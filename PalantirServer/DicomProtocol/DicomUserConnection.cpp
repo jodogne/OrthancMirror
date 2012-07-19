@@ -499,7 +499,13 @@ namespace Palantir
     gethostname(localHost, HOST_NAME_MAX - 1);
 
     char distantHostAndPort[HOST_NAME_MAX];
-    snprintf(distantHostAndPort, HOST_NAME_MAX - 1, "%s:%d", distantHost_.c_str(), distantPort_);
+
+#ifdef _MSC_VER
+	_snprintf
+#else
+	snprintf
+#endif
+		(distantHostAndPort, HOST_NAME_MAX - 1, "%s:%d", distantHost_.c_str(), distantPort_);
 
     Check(ASC_setPresentationAddresses(pimpl_->params_, localHost, distantHostAndPort));
 

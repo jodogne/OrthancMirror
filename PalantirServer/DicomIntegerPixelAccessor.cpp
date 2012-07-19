@@ -20,9 +20,11 @@
 
 #include "DicomIntegerPixelAccessor.h"
 
+#define NOMINMAX
 #include "../Core/PalantirException.h"
 #include "FromDcmtkBridge.h"
 #include <boost/lexical_cast.hpp>
+#include <limits>
 
 namespace Palantir
 {
