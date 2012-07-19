@@ -43,6 +43,7 @@
 #include <dcmtk/dcmdata/dcvrul.h>
 #include <dcmtk/dcmdata/dcvrus.h>
 
+#include <boost/math/special_functions/round.hpp>
 
 namespace Palantir
 {
@@ -87,7 +88,7 @@ namespace Palantir
         {
           utf8 = boost::locale::conv::to_utf<char>(s, "ISO-8859-1"); // TODO Parameter?
         }
-        catch (std::runtime_error& e)
+        catch (std::runtime_error&)
         {
           // Bad input string or bad encoding
           utf8 = s;
@@ -407,7 +408,7 @@ namespace Palantir
           for (unsigned int x = 0; x < accessor->GetWidth(); x++, result++)
           {
             int32_t v = accessor->GetValue(x, y);
-            *result = lround(static_cast<float>(v - min) / static_cast<float>(max - min) * 255.0f);
+            *result = static_cast<uint8_t>(boost::math::lround(static_cast<float>(v - min) / static_cast<float>(max - min) * 255.0f));
           }
         }
       }

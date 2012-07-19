@@ -22,6 +22,7 @@
 
 using namespace Palantir;
 
+#define NOMINMAX
 #include <EmbeddedResources.h>
 #include "../Core/Toolbox.h"
 #include "../Core/Uuid.h"
