@@ -20,7 +20,10 @@
 
 #include "DicomIntegerPixelAccessor.h"
 
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
+
 #include "../Core/PalantirException.h"
 #include "FromDcmtkBridge.h"
 #include <boost/lexical_cast.hpp>
