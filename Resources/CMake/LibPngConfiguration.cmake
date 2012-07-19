@@ -1,0 +1,55 @@
+if (${STATIC_BUILD})
+  SET(LIBPNG_SOURCES_DIR ${CMAKE_BINARY_DIR}/libpng-1.5.12)
+  DownloadPackage("http://download.sourceforge.net/libpng/libpng-1.5.12.tar.gz" "${LIBPNG_SOURCES_DIR}" "${LIBPNG_PRELOADED}" "")
+
+  include_directories(
+    ${LIBPNG_SOURCES_DIR}
+    )
+
+  configure_file(
+    ${LIBPNG_SOURCES_DIR}/scripts/pnglibconf.h.prebuilt
+    ${LIBPNG_SOURCES_DIR}/pnglibconf.h
+    COPY_ONLY)
+
+  set(LIBPNG_SOURCES
+    #${LIBPNG_SOURCES_DIR}/example.c
+    ${LIBPNG_SOURCES_DIR}/png.c
+    ${LIBPNG_SOURCES_DIR}/pngerror.c
+    ${LIBPNG_SOURCES_DIR}/pngget.c
+    ${LIBPNG_SOURCES_DIR}/pngmem.c
+    ${LIBPNG_SOURCES_DIR}/pngpread.c
+    ${LIBPNG_SOURCES_DIR}/pngread.c
+    ${LIBPNG_SOURCES_DIR}/pngrio.c
+    ${LIBPNG_SOURCES_DIR}/pngrtran.c
+    ${LIBPNG_SOURCES_DIR}/pngrutil.c
+    ${LIBPNG_SOURCES_DIR}/pngset.c
+    #${LIBPNG_SOURCES_DIR}/pngtest.c
+    ${LIBPNG_SOURCES_DIR}/pngtrans.c
+    ${LIBPNG_SOURCES_DIR}/pngwio.c
+    ${LIBPNG_SOURCES_DIR}/pngwrite.c
+    ${LIBPNG_SOURCES_DIR}/pngwtran.c
+    ${LIBPNG_SOURCES_DIR}/pngwutil.c
+    )
+
+  #set_property(
+  #  SOURCE ${LIBPNG_SOURCES}
+  #  PROPERTY COMPILE_FLAGS -UHAVE_CONFIG_H)
+
+  list(APPEND THIRD_PARTY_SOURCES ${LIBPNG_SOURCES})
+
+  add_definitions(
+    -DPNG_NO_CONSOLE_IO=1
+    -DPNG_NO_STDIO=1
+    )
+
+else()
+  include(FindPNG)
+
+  if (NOT ${PNG_FOUND})
+    message(FATAL_ERROR "Unable to find LibPNG")
+  endif()
+
+  include_directories(${PNG_INCLUDE_DIRS})
+  link_libraries(${PNG_LIBRARIES})
+  add_definitions(${PNG_DEFINITIONS})
+endif()

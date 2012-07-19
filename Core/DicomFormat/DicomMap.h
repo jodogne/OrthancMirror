@@ -1,0 +1,133 @@
+/**
+ * Palantir - A Lightweight, RESTful DICOM Store
+ * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Belgium
+ *
+ * This program is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ **/
+
+
+#pragma once
+
+#include "DicomTag.h"
+#include "DicomValue.h"
+#include "DicomString.h"
+
+#include <map>
+#include <json/json.h>
+
+namespace Palantir
+{
+  class DicomMap : public boost::noncopyable
+  {
+  private:
+    friend class DicomArray;
+    friend class FromDcmtkBridge;
+    friend class ToDcmtkBridge;
+
+    typedef std::map<DicomTag, DicomValue*>  Map;
+
+    Map map_;
+
+    // Warning: This takes the ownership of "value"
+    void SetValue(uint16_t group, 
+                  uint16_t element, 
+                  DicomValue* value);
+
+    void SetValue(DicomTag tag, 
+                  DicomValue* value);
+
+    void ExtractTags(DicomMap& source,
+                     const DicomTag* tags,
+                     size_t count) const;
+
+  public:
+    DicomMap()
+    {
+    }
+
+    ~DicomMap()
+    {
+      Clear();
+    }
+
+    DicomMap* Clone() const;
+
+    void Clear();
+
+    void SetValue(uint16_t group, 
+                  uint16_t element, 
+                  const DicomValue& value)
+    {
+      SetValue(group, element, value.Clone());
+    }
+
+    void SetValue(const DicomTag& tag,
+                  const DicomValue& value)
+    {
+      SetValue(tag, value.Clone());
+    }
+
+    void SetValue(const DicomTag& tag,
+                  const std::string& str)
+    {
+      SetValue(tag, new DicomString(str));
+    }
+
+    void SetValue(uint16_t group, 
+                  uint16_t element, 
+                  const std::string& str)
+    {
+      SetValue(group, element, new DicomString(str));
+    }
+
+    bool HasTag(uint16_t group, uint16_t element) const
+    {
+      return HasTag(DicomTag(group, element));
+    }
+
+    bool HasTag(const DicomTag& tag) const
+    {
+      return map_.find(tag) != map_.end();
+    }
+
+    const DicomValue& GetValue(uint16_t group, uint16_t element) const
+    {
+      return GetValue(DicomTag(group, element));
+    }
+
+    const DicomValue& GetValue(const DicomTag& tag) const;
+
+    void Remove(const DicomTag& tag);
+
+    void ExtractPatientInformation(DicomMap& result) const;
+
+    void ExtractStudyInformation(DicomMap& result) const;
+
+    void ExtractSeriesInformation(DicomMap& result) const;
+
+    void ExtractInstanceInformation(DicomMap& result) const;
+
+    static void SetupFindPatientTemplate(DicomMap& result);
+
+    static void SetupFindStudyTemplate(DicomMap& result);
+
+    static void SetupFindSeriesTemplate(DicomMap& result);
+
+    static void SetupFindInstanceTemplate(DicomMap& result);
+
+    void CopyTagIfExists(const DicomMap& source,
+                         const DicomTag& tag);
+  };
+}

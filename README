@@ -1,0 +1,81 @@
+Palantir - A Lightweight, RESTful DICOM Server
+==============================================
+
+General Information
+-------------------
+
+General information about this software can be found on our Google
+Code hosting page:
+http://code.google.com/p/palantir-dicom/
+
+The instructions for building Palantir can be found in the "INSTALL"
+file.
+
+
+
+Licensing
+---------
+
+Palantir is licensed under the GPLv3 license. Because Palantir uses
+the Software-as-a-Service paradigm, commercial products are allowed to
+access the Palantir REST services and to bundle Palantir in an
+commercial aggregate. 
+
+We also kindly require scientific works that make use of Palantir to
+cite Palantir in their associated publications.
+
+The files of the "PalantirCppClient" directory are licensed under the
+MIT license, which allow commercial products to statically link
+against the C++ client library.
+
+
+
+Supported Platforms
+-------------------
+
+Currently, the supported platforms are:
+
+* Linux 32bit.
+* Linux 64bit.
+* Windows 32bit (through MinGW).
+
+
+
+Supported Toolchains
+--------------------
+
+Palantir can currently be built using the following compiling
+toolchains:
+
+* Native Linux compilation, with gcc.
+* Cross-compilation for Windows under Linux through MinGW.
+
+More toolchains will be supported in the future.
+
+
+
+Content
+-------
+
+This archive contains the following directories:
+
+* Core/               - The core C++ classes (independent of DCMTK)
+* PalantirCppClient/  - Code of the C++ client (under MIT license)
+* PalantirExplorer/   - Code of the Web application (HTML5/Javascript)
+* PalantirServer/     - Code of the Palantir server (depends on DCMTK)
+* Resources/          - Scripts, resources for building third-party code
+* UnitTests/          - Unit tests
+
+This archive contains the following files:
+
+* AUTHORS             - The list of the authors
+* CMakeLists.txt      - The main build script
+* COPYING             - The GPLv3 license
+* INSTALL             - How to build Palantir
+* README              - This file
+* THANKS              - The list of the contributors
+
+We have decided not to maintain separate "NEWS" and "ChangeLog"
+files. The major features of each version of Palantir ("NEWS") can be
+found on our Web site. Each commit to the official Palantir Mercurial
+repository should be associated with a description of the changes.
