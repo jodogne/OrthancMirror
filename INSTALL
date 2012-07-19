@@ -8,10 +8,12 @@ Dependencies
 Palantir uses CMake (http://www.cmake.org/) to automate its building
 process. You thus have to download and install CMake first.
 
+For the native build under Windows, you will also need to download and
+install 7-Zip (http://www.7-zip.org/).
+
 The other third party dependencies are automatically downloaded by the
 CMake scripts. The downloaded packages are stored in the
 "ThirdPartyDownloads" directory.
-
 
 
 Building Palantir at a glance
@@ -66,3 +68,12 @@ the following command:
 # cd ~/PalantirBuild
 # cmake -DCMAKE_TOOLCHAIN_FILE=~/Palantir/Resources/MinGWToolchain.cmake -DCMAKE_BUILD_TYPE=DEBUG ~/Palantir
 # make
+
+
+
+Native Windows build with MinGW
+-------------------------------
+
+# cd [...]/PalantirBuild
+# cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=DEBUG [...]/Palantir
+# mingw32-make

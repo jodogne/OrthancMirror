@@ -49,6 +49,46 @@ macro(DownloadPackage Url TargetDirectory PreloadedVariable UncompressArguments)
       else()
         message(FATAL_ERROR "Unknown package format.")
       endif()
+
+    elseif ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
+      FIND_PROGRAM(ZIP_EXECUTABLE 7z PATHS "$ENV{ProgramFiles}/7-Zip") 
+
+      if (("${TMP_EXTENSION}" STREQUAL "gz") OR ("${TMP_EXTENSION}" STREQUAL "tgz"))
+        execute_process(
+          COMMAND ${ZIP_EXECUTABLE} e ${TMP_PATH}
+          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+          )
+        set(ARGS ${UncompressArguments})
+        SEPARATE_ARGUMENTS(ARGS)
+        list(LENGTH ARGS TMP_LENGTH)
+
+        if ("${TMP_EXTENSION}" STREQUAL "tgz")
+          string(REGEX REPLACE ".tgz$" ".tar" TMP_FILENAME2 "${TMP_FILENAME}")
+        else()
+          string(REGEX REPLACE ".gz$" "" TMP_FILENAME2 "${TMP_FILENAME}")
+        endif()
+
+        if (TMP_LENGTH EQUAL 0)
+          execute_process(
+            COMMAND ${ZIP_EXECUTABLE} x ${TMP_FILENAME2}
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            )
+        else()
+          foreach(SUBDIR ${ARGS})
+            execute_process(
+              COMMAND ${ZIP_EXECUTABLE} x "-i!${SUBDIR}" "${TMP_FILENAME2}"
+              WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+              )
+          endforeach()
+        endif()
+      elseif ("${TMP_EXTENSION}" STREQUAL "zip")
+        execute_process(
+          COMMAND ${ZIP_EXECUTABLE} x ${TMP_PATH}
+          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+          )
+      else()
+        message(FATAL_ERROR "Support your platform here")
+      endif()
     else()
       message(FATAL_ERROR "Support your platform here")
     endif()
