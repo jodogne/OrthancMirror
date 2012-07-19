@@ -115,7 +115,7 @@ int main(int argc, char* argv[])
       DicomServer dicomServer;
       dicomServer.SetCalledApplicationEntityTitleCheck(true);
       dicomServer.SetStoreRequestHandlerFactory(storeScp);
-      dicomServer.SetPort(GetGlobalIntegerParameter("DicomPort", 4242));
+      dicomServer.SetPortNumber(GetGlobalIntegerParameter("DicomPort", 4242));
       dicomServer.SetApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "PALANTIR"));
 
       // HTTP server
