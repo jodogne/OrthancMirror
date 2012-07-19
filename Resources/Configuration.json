@@ -1,0 +1,11 @@
+{
+    "HttpPort" : 8000,
+
+    "DicomAet" : "ANY-SCP",
+    "DicomPort" : 4242,
+    "DicomModalities" : {
+    },
+
+    "PalantirPeers" : {
+    }
+}
