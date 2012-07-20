@@ -10,3 +10,5 @@ list(APPEND THIRD_PARTY_SOURCES
 include_directories(
   ${JSONCPP_SOURCES_DIR}/include
   )
+
+source_group(ThirdParty\\JsonCpp REGULAR_EXPRESSION ${JSONCPP_SOURCES_DIR}/.*)

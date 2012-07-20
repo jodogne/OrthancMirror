@@ -19,3 +19,5 @@ add_definitions(
   # Remove SSL support from mongoose
   -DNO_SSL=1
   )
+
+source_group(ThirdParty\\Mongoose REGULAR_EXPRESSION ${MONGOOSE_SOURCES_DIR}/.*)

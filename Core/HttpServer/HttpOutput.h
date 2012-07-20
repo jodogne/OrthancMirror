@@ -34,7 +34,7 @@ namespace Palantir
 
     void SendOkHeader(const char* contentType,
                       bool hasContentLength,
-                      size_t contentLength);
+                      uint64_t contentLength);
 
   public:
     virtual ~HttpOutput()

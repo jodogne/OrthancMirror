@@ -26,7 +26,7 @@ using namespace Palantir;
 #define NOMINMAX
 #endif
 
-#include <EmbeddedResources.h>
+#include "EmbeddedResources.h"
 #include "../Core/Toolbox.h"
 #include "../Core/Uuid.h"
 #include "../Core/DicomFormat/DicomArray.h"
