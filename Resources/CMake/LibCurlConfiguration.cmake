@@ -23,9 +23,6 @@ if (${STATIC_BUILD})
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     configure_file("${SOURCE_CONFIG}/curl_config.h" "${CURL_SOURCES_DIR}/lib/curl_config.h" COPYONLY)
     configure_file("${SOURCE_CONFIG}/curlbuild.h" "${CURL_SOURCES_DIR}/include/curl/curlbuild.h" COPYONLY)
-    set_property(
-      SOURCE ${CURL_SOURCES}
-      PROPERTY COMPILE_DEFINITIONS HAVE_CONFIG_H)
   elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     configure_file("${SOURCE_CONFIG}/curlbuild.h" "${CURL_SOURCES_DIR}/include/curl/curlbuild.h" COPYONLY)
   endif()
@@ -44,6 +41,12 @@ if (${STATIC_BUILD})
     -DCURL_DISABLE_LDAP=1
     -D_WIN32_WINNT=0x0501
     )
+
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    set_property(
+      SOURCE ${CURL_SOURCES}
+      PROPERTY COMPILE_DEFINITIONS HAVE_CONFIG_H)
+  endif()
 
 else()
   include(FindCURL)
