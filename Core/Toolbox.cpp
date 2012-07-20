@@ -32,20 +32,28 @@
 #endif
 
 #if defined(__linux)
+#include <signal.h>
 #include <unistd.h>
 #endif
 
-#include <signal.h>
 
 namespace Palantir
 {
   static bool finish;
 
+#if defined(_WIN32)
+  static BOOL WINAPI ConsoleControlHandler(DWORD dwCtrlType)
+  {
+	// http://msdn.microsoft.com/en-us/library/ms683242(v=vs.85).aspx
+	finish = true;
+	return true;
+  }
+#else
   static void SignalHandler(int)
   {
     finish = true;
   }
-
+#endif
 
   void Toolbox::Sleep(uint32_t seconds)
   {
@@ -72,9 +80,10 @@ namespace Palantir
 
   void Toolbox::ServerBarrier()
   {
+#if defined(_WIN32)
+	SetConsoleCtrlHandler(ConsoleControlHandler, true);
+#else
     signal(SIGINT, SignalHandler);
-
-#if !defined(_WIN32)
     signal(SIGQUIT, SignalHandler);
 #endif
   
@@ -84,9 +93,10 @@ namespace Palantir
       USleep(100000);
     }
 
+#if defined(_WIN32)
+	SetConsoleCtrlHandler(ConsoleControlHandler, false);
+#else
     signal(SIGINT, NULL);
-
-#if !defined(_WIN32)
     signal(SIGQUIT, NULL);
 #endif
   }

@@ -339,7 +339,7 @@ namespace Palantir
     }
 
     typedef boost::find_iterator<std::string::iterator> FindIterator;
-    typedef boost::iterator_range<std::string::iterator> Range;
+    typedef boost::iterator_range<char*> Range;
 
     //chunkStore.Print();
 
@@ -353,7 +353,7 @@ namespace Palantir
       {
         if (last != FindIterator())
         {
-/*          Range part(&last->back(), &it->front());
+          Range part(&last->back(), &it->front());
           Range content = boost::find_first(part, "\r\n\r\n");
           if (content != Range())
           {
@@ -379,7 +379,7 @@ namespace Palantir
                 return chunkStore.Store(completedFile, chunkData, chunkSize, fileName->second, fileSize);
               }
             }
-          }*/
+          }
         }
 
         last = it;
