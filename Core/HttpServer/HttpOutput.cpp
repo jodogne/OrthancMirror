@@ -59,7 +59,7 @@ namespace Palantir
 
   void HttpOutput::SendOkHeader(const char* contentType,
                                 bool hasContentLength,
-                                size_t contentLength)
+                                uint64_t contentLength)
   {
     std::string s = "HTTP/1.1 200 OK\r\n";
 

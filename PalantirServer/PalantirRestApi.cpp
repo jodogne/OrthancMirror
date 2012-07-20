@@ -111,7 +111,7 @@ namespace Palantir
     Json::Reader reader;
 
     if (!reader.parse(postData, query) ||
-        !query.type() == Json::objectValue)
+        query.type() != Json::objectValue)
     {
       return false;
     }

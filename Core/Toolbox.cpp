@@ -61,7 +61,7 @@ namespace Palantir
   void Toolbox::USleep(uint64_t microSeconds)
   {
 #if defined(_WIN32)
-    ::Sleep(microSeconds / static_cast<uint64_t>(1000));
+    ::Sleep(static_cast<DWORD>(microSeconds / static_cast<uint64_t>(1000)));
 #elif defined(__linux)
     usleep(microSeconds);
 #else
