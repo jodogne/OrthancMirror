@@ -24,6 +24,8 @@ if (${STATIC_BUILD})
     ${ZLIB_SOURCES_DIR}/zutil.c
     )
 
+  source_group(ThirdParty\\ZLib REGULAR_EXPRESSION ${ZLIB_SOURCES_DIR}/.*)
+
 else()
   include(FindZLIB)
   include_directories(${ZLIB_INCLUDE_DIRS})

@@ -42,6 +42,8 @@ if (${STATIC_BUILD})
     -DPNG_NO_STDIO=1
     )
 
+  source_group(ThirdParty\\Libpng REGULAR_EXPRESSION ${LIBPNG_SOURCES_DIR}/.*)
+
 else()
   include(FindPNG)
 

@@ -15,3 +15,5 @@ add_definitions(
 include_directories(
   ${SQLITE_SOURCES_DIR}
   )
+
+source_group(ThirdParty\\SQLite REGULAR_EXPRESSION ${SQLITE_SOURCES_DIR}/.*)

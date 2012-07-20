@@ -46,6 +46,7 @@ if (${STATIC_BUILD})
     ${DCMTK_SOURCES_DIR}/dcmdata/include
     )
 
+  source_group(ThirdParty\\Dcmtk REGULAR_EXPRESSION ${DCMTK_SOURCES_DIR}/.*)
 else()
   include(FindDCMTK)
 

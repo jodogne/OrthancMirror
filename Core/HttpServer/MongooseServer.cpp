@@ -281,7 +281,7 @@ namespace Palantir
       {
         return PostDataStatus_Failure;
       }
-      assert((unsigned int) r <= length);
+      assert(r <= length);
       length -= r;
       pos += r;
     }
@@ -353,7 +353,7 @@ namespace Palantir
       {
         if (last != FindIterator())
         {
-          Range part(&last->back(), &it->front());
+/*          Range part(&last->back(), &it->front());
           Range content = boost::find_first(part, "\r\n\r\n");
           if (content != Range())
           {
@@ -379,7 +379,7 @@ namespace Palantir
                 return chunkStore.Store(completedFile, chunkData, chunkSize, fileName->second, fileSize);
               }
             }
-          }
+          }*/
         }
 
         last = it;

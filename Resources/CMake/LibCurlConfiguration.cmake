@@ -23,6 +23,9 @@ if (${STATIC_BUILD})
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     configure_file("${SOURCE_CONFIG}/curl_config.h" "${CURL_SOURCES_DIR}/lib/curl_config.h" COPYONLY)
     configure_file("${SOURCE_CONFIG}/curlbuild.h" "${CURL_SOURCES_DIR}/include/curl/curlbuild.h" COPYONLY)
+    set_property(
+      SOURCE ${CURL_SOURCES}
+      PROPERTY COMPILE_DEFINITIONS HAVE_CONFIG_H)
   elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     configure_file("${SOURCE_CONFIG}/curlbuild.h" "${CURL_SOURCES_DIR}/include/curl/curlbuild.h" COPYONLY)
   endif()
@@ -30,20 +33,17 @@ if (${STATIC_BUILD})
   include_directories(${CURL_SOURCES_DIR}/include)
 
   AUX_SOURCE_DIRECTORY(${CURL_SOURCES_DIR}/lib CURL_SOURCES)
-
-  set_property(
-    SOURCE ${CURL_SOURCES}
-    PROPERTY COMPILE_DEFINITIONS HAVE_CONFIG_H)
+  source_group(ThirdParty\\LibCurl REGULAR_EXPRESSION ${CURL_SOURCES_DIR}/.*)
 
   list(APPEND THIRD_PARTY_SOURCES ${CURL_SOURCES})
   
   add_definitions(
     -DCURL_STATICLIB=1
     -DBUILDING_LIBCURL=1
+    -DCURL_DISABLE_LDAPS=1
+    -DCURL_DISABLE_LDAP=1
+    -D_WIN32_WINNT=0x0501
     )
-
-  #add_library(libcurl STATIC ${CURL_SOURCES})
-  #link_libraries(libcurl)
 
 else()
   include(FindCURL)
