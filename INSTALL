@@ -82,7 +82,7 @@ the following command:
 
 
 Native Windows build with MinGW (VERY SLOW)
--------------------------------
+-------------------------------------------
 
 # cd [...]\PalantirBuild
 # cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=DEBUG [...]\Palantir
@@ -100,6 +100,6 @@ Then open the "[...]/PalantirBuild/Palantir.sln" with Visual Studio.
 
 NOTES:
 * More recent versions of Visual Studio should also work.
-* You will have to install the Platform SDK (version 6 or above):
+* You might have to install the Platform SDK (version 6 or above):
   http://en.wikipedia.org/wiki/Microsoft_Windows_SDK.
-  Read the CMake FAQ about MSVC 2005: http://goo.gl/By90B 
+  Read the CMake FAQ: http://goo.gl/By90B 
