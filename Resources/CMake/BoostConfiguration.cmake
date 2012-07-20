@@ -72,4 +72,6 @@ if (BOOST_STATIC)
   include_directories(
     ${BOOST_SOURCES_DIR}
     )
+
+  source_group(ThirdParty\\Boost REGULAR_EXPRESSION ${BOOST_SOURCES_DIR}/.*)
 endif()

@@ -35,7 +35,12 @@ if (${CMAKE_COMPILER_IS_GNUCXX})
   set(CMAKE_C_FLAGS "-Wall -pedantic -Wno-implicit-function-declaration")  # --std=c99 makes libcurl not to compile
   set(CMAKE_CXX_FLAGS "-Wall -pedantic -Wno-long-long -Wno-variadic-macros")
 elseif (${MSVC})
-  add_definitions(-D_CRT_SECURE_NO_WARNINGS=1)  
+  add_definitions(
+    -D_CRT_SECURE_NO_WARNINGS=1
+    -D_CRT_SECURE_NO_DEPRECATE=1
+    )
+  include_directories(${CMAKE_SOURCE_DIR}/Resources/VisualStudio)
+  link_libraries(netapi32)
 endif()
 
 
