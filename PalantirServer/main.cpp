@@ -107,8 +107,9 @@ int main(int argc, char* argv[])
 
   try
   {
-    ServerIndex index("server");
-    MyDicomStoreFactory storeScp(index, "server");
+	std::string storageDirectory = GetGlobalStringParameter("StorageDirectory", "PalantirStorage");
+    ServerIndex index(storageDirectory);
+    MyDicomStoreFactory storeScp(index, storageDirectory);
 
     {
       // DICOM server
@@ -128,7 +129,7 @@ int main(int argc, char* argv[])
       httpServer.RegisterHandler(new FilesystemHttpHandler("/app", PALANTIR_PATH "/PalantirExplorer"));
 #endif
 
-      httpServer.RegisterHandler(new PalantirRestApi(index, "server"));
+      httpServer.RegisterHandler(new PalantirRestApi(index, storageDirectory));
 
       // GO !!!
       httpServer.Start();

@@ -1,4 +1,5 @@
 {
+    "StorageDirectory" : "PalantirStorage",
     "HttpPort" : 8000,
 
     "DicomAet" : "ANY-SCP",
