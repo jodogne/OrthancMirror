@@ -25,7 +25,7 @@ We also kindly require scientific works that make use of Palantir to
 cite Palantir in their associated publications.
 
 The files of the "PalantirCppClient" directory are licensed under the
-MIT license, which allow commercial products to statically link
+MIT license, which allows commercial products to statically link
 against the C++ client library.
 
 
