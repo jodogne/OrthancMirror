@@ -13,23 +13,6 @@ file.
 
 
 
-Licensing
----------
-
-Palantir is licensed under the GPLv3 license. Because Palantir uses
-the Software-as-a-Service paradigm, commercial products are allowed to
-access the Palantir REST services and to bundle Palantir in an
-commercial aggregate. 
-
-We also kindly require scientific works that make use of Palantir to
-cite Palantir in their associated publications.
-
-The files of the "PalantirCppClient" directory are licensed under the
-MIT license, which allows commercial products to statically link
-against the C++ client library.
-
-
-
 Supported Platforms
 -------------------
 
@@ -50,6 +33,33 @@ toolchains:
 * Native Linux compilation, with gcc.
 * Native Windows compilation, with Microsoft Visual Studio.
 * Cross-compilation for Windows under Linux, with MinGW.
+
+
+
+Licensing
+---------
+
+Palantir is licensed under the GPLv3 license. Because Palantir uses
+the Software-as-a-Service paradigm, commercial products are allowed to
+access the Palantir REST services and to bundle Palantir in an
+commercial aggregate. 
+
+We also kindly require scientific works that make use of Palantir to
+cite Palantir in their associated publications.
+
+
+
+Licensing of special directories
+--------------------------------
+
+The following directories have separate licensing terms:
+
+* The files of the "PalantirCppClient/" directory are licensed under
+  the MIT license, which allows commercial products to statically link
+  against the C++ client library.
+
+* The file of the "Core/SQLite/" directory are licensed under the
+  3-clause BSD license, as they are derived from the Chromium project.
 
 
 
