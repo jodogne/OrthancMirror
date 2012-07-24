@@ -46,7 +46,7 @@ while i < len(sys.argv):
                     else:
                         r = os.path.join(base, f).lower()
 
-                    r = '/' + r
+                    r = '/' + r.replace('\\', '/')
                     if r in content:
                         raise Exception("Twice the same filename (check case): " + r)
 
