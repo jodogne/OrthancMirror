@@ -48,14 +48,22 @@ namespace Palantir
     }
     else
     {
-#if PALANTIR_RELEASE == 0
-      boost::filesystem::path p = PALANTIR_PATH;
-      p /= "Resources";
-      p /= CONFIGURATION_FILE;
-      Toolbox::ReadFile(content, p.string());
+      try
+      {
+#if PALANTIR_STANDALONE == 0
+        boost::filesystem::path p = PALANTIR_PATH;
+        p /= "Resources";
+        p /= CONFIGURATION_FILE;
+        Toolbox::ReadFile(content, p.string());
 #else
-      Toolbox::ReadFile(content, CONFIGURATION_FILE);
+        Toolbox::ReadFile(content, CONFIGURATION_FILE);
 #endif
+      }
+      catch (PalantirException&)
+      {
+        // No configuration file found, give up with empty configuration
+        return;
+      }
     }
 
     Json::Reader reader;

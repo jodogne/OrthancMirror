@@ -6,9 +6,13 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/DownloadPackage.cmake)
 include(CheckIncludeFiles)
 
 SET(STATIC_BUILD ON CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")
-SET(RELEASE_BUILD OFF CACHE BOOL "Release build")
+SET(STANDALONE_BUILD OFF CACHE BOOL "Standalone build (necessary for cross-compilation or binary releases)")
 
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+if (${CMAKE_CROSSCOMPILING})
+  SET(STANDALONE_BUILD ON)
+endif()
+
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
   CHECK_INCLUDE_FILES(rpc.h HAVE_UUID_H)
 else()
   CHECK_INCLUDE_FILES(uuid/uuid.h HAVE_UUID_H)
@@ -85,9 +89,9 @@ else()
   add_definitions(-DPALANTIR_STATIC=0)
 endif()
 
-if (${RELEASE_BUILD})
+if (${STANDALONE_BUILD})
   add_definitions(
-    -DPALANTIR_RELEASE=1
+    -DPALANTIR_STANDALONE=1
     )
 
   EmbedResources(
@@ -97,7 +101,7 @@ if (${RELEASE_BUILD})
 
 else()
   add_definitions(
-    -DPALANTIR_RELEASE=0
+    -DPALANTIR_STANDALONE=0
     -DPALANTIR_PATH=\"${CMAKE_SOURCE_DIR}\"
     )
 

@@ -107,7 +107,7 @@ int main(int argc, char* argv[])
 
   try
   {
-	std::string storageDirectory = GetGlobalStringParameter("StorageDirectory", "PalantirStorage");
+    std::string storageDirectory = GetGlobalStringParameter("StorageDirectory", "PalantirStorage");
     ServerIndex index(storageDirectory);
     MyDicomStoreFactory storeScp(index, storageDirectory);
 
@@ -123,7 +123,7 @@ int main(int argc, char* argv[])
       MongooseServer httpServer;
       httpServer.SetPort(GetGlobalIntegerParameter("HttpPort", 8000));
 
-#if PALANTIR_RELEASE == 1
+#if PALANTIR_STANDALONE == 1
       httpServer.RegisterHandler(new EmbeddedResourceHttpHandler("/app", EmbeddedResources::PALANTIR_EXPLORER));
 #else
       httpServer.RegisterHandler(new FilesystemHttpHandler("/app", PALANTIR_PATH "/PalantirExplorer"));
