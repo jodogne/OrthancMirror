@@ -2,6 +2,7 @@ Pending changes
 ===============
 
 * Licensing of the "Core/SQLite" folder
+* Standalone build for cross-compilation
 
 
 Version 0.1.1 (2012/07/20)
