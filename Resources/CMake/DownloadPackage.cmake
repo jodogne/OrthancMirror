@@ -34,17 +34,20 @@ macro(DownloadPackage Url TargetDirectory PreloadedVariable UncompressArguments)
         execute_process(
           COMMAND sh -c "unzip ${TMP_PATH} ${UncompressArguments}"
           WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-          )
+          RESULT_VARIABLE Failure
+        )
       elseif (("${TMP_EXTENSION}" STREQUAL "gz") OR ("${TMP_EXTENSION}" STREQUAL "tgz"))
         #message("tar xvfz ${TMP_PATH} ${UncompressArguments}")
         execute_process(
           COMMAND sh -c "tar xvfz ${TMP_PATH} ${UncompressArguments}"
           WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+          RESULT_VARIABLE Failure
           )
       elseif ("${TMP_EXTENSION}" STREQUAL "bz2")
         execute_process(
           COMMAND sh -c "tar xvfj ${TMP_PATH} ${UncompressArguments}"
           WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+          RESULT_VARIABLE Failure
           )
       else()
         message(FATAL_ERROR "Unknown package format.")
@@ -57,7 +60,13 @@ macro(DownloadPackage Url TargetDirectory PreloadedVariable UncompressArguments)
         execute_process(
           COMMAND ${ZIP_EXECUTABLE} e ${TMP_PATH}
           WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+          RESULT_VARIABLE Failure
           )
+
+        if (Failure)
+          message(FATAL_ERROR "Error while running the uncompression tool")
+        endif()
+
         set(ARGS ${UncompressArguments})
         SEPARATE_ARGUMENTS(ARGS)
         list(LENGTH ARGS TMP_LENGTH)
@@ -72,25 +81,36 @@ macro(DownloadPackage Url TargetDirectory PreloadedVariable UncompressArguments)
           execute_process(
             COMMAND ${ZIP_EXECUTABLE} x ${TMP_FILENAME2}
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            RESULT_VARIABLE Failure
             )
         else()
           foreach(SUBDIR ${ARGS})
             execute_process(
               COMMAND ${ZIP_EXECUTABLE} x "-i!${SUBDIR}" "${TMP_FILENAME2}"
               WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+              RESULT_VARIABLE Failure
               )
+
+            if (Failure)
+              message(FATAL_ERROR "Error while running the uncompression tool")
+            endif()
           endforeach()
         endif()
       elseif ("${TMP_EXTENSION}" STREQUAL "zip")
         execute_process(
           COMMAND ${ZIP_EXECUTABLE} x ${TMP_PATH}
           WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+          RESULT_VARIABLE Failure
           )
       else()
         message(FATAL_ERROR "Support your platform here")
       endif()
     else()
       message(FATAL_ERROR "Support your platform here")
+    endif()
+   
+    if (Failure)
+      message(FATAL_ERROR "Error while running the uncompression tool")
     endif()
 
     if (NOT IS_DIRECTORY "${TargetDirectory}")
