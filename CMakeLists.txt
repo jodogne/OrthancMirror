@@ -23,7 +23,9 @@ if ("${HAVE_UUID_H}" STREQUAL "")
 endif()
 
 
-SET(THIRD_PARTY_SOURCES)
+SET(THIRD_PARTY_SOURCES
+  ${CMAKE_SOURCE_DIR}/Resources/md5/md5.c
+  )
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/BoostConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/DcmtkConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)

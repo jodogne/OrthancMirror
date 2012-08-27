@@ -254,6 +254,18 @@ TEST(Uri, AutodetectMimeType)
   ASSERT_EQ("image/png", Toolbox::AutodetectMimeType("NOTES.png"));
 }
 
+TEST(Toolbox, ComputeMD5)
+{
+  std::string s;
+
+  // # echo -n "Hello" | md5sum
+
+  Toolbox::ComputeMD5(s, "Hello");
+  ASSERT_EQ("8b1a9953c4611296a827abf8c47804d7", s);
+  Toolbox::ComputeMD5(s, "");
+  ASSERT_EQ("d41d8cd98f00b204e9800998ecf8427e", s);
+}
+
 
 int main(int argc, char **argv)
 {
