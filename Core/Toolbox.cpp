@@ -36,6 +36,8 @@
 #include <unistd.h>
 #endif
 
+#include "../Resources/md5/md5.h"
+
 
 namespace Palantir
 {
@@ -301,5 +303,41 @@ namespace Palantir
     {
       throw PalantirException(ErrorCode_InexistentFile);
     }
+  }
+
+
+
+  static char GetHexadecimalCharacter(uint8_t value)
+  {
+    assert(value < 16);
+
+    if (value < 10)
+      return value + '0';
+    else
+      return (value - 10) + 'a';
+  }
+
+  void Toolbox::ComputeMD5(std::string& result,
+                           const std::string& data)
+  {
+    md5_state_s state;
+    md5_init(&state);
+
+    if (data.size() > 0)
+    {
+      md5_append(&state, reinterpret_cast<const md5_byte_t*>(&data[0]), 
+                 static_cast<int>(data.size()));
+    }
+
+    md5_byte_t actualHash[16];
+    md5_finish(&state, actualHash);
+
+    result.resize(32);
+    for (unsigned int i = 0; i < 16; i++)
+    {
+      result[2 * i] = GetHexadecimalCharacter(actualHash[i] / 16);
+      result[2 * i + 1] = GetHexadecimalCharacter(actualHash[i] % 16);
+    }
+
   }
 }

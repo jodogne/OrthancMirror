@@ -57,5 +57,8 @@ namespace Palantir
                            size_t fromLevel = 0);
 
     uint64_t GetFileSize(const std::string& path);
+
+    void ComputeMD5(std::string& result,
+                    const std::string& data);
   }
 }
