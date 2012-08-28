@@ -4,7 +4,7 @@ if (${STATIC_BUILD})
 
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
-      SET(SOURCE_CONFIG ${CMAKE_SOURCE_DIR}/Resources/libcurl/x86_64-linux)
+      SET(SOURCE_CONFIG ${CMAKE_SOURCE_DIR}/Resources/libcurl/WithSsl/x86_64-linux)
     elseif ("${CMAKE_SIZEOF_VOID_P}" EQUAL "4")
       SET(SOURCE_CONFIG ${CMAKE_SOURCE_DIR}/Resources/libcurl/i686-pc-linux-gnu)
     else()

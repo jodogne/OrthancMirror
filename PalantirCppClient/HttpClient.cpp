@@ -87,6 +87,10 @@ namespace Palantir
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HEADER, 0));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_FOLLOWLOCATION, 1));
 
+#if PALANTIR_SSL_ENABLED == 1
+    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYPEER, 0)); 
+#endif
+
     url_ = "";
     method_ = HttpMethod_Get;
     lastStatus_ = HttpStatus_200_Ok;
