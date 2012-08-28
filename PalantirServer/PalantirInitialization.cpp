@@ -123,6 +123,22 @@ namespace Palantir
     }
   }
 
+  bool GetGlobalBoolParameter(const std::string& parameter,
+                              bool defaultValue)
+  {
+    boost::mutex::scoped_lock lock(globalMutex_);
+
+    if (configuration_->isMember(parameter))
+    {
+      return (*configuration_) [parameter].asBool();
+    }
+    else
+    {
+      return defaultValue;
+    }
+  }
+
+
 
 
   void GetDicomModality(const std::string& name,

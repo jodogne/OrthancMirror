@@ -23,6 +23,7 @@
 #include "HttpHandler.h"
 
 #include <list>
+#include <map>
 #include <stdint.h>
 #include <boost/shared_ptr.hpp>
 
@@ -40,6 +41,11 @@ namespace Palantir
     typedef std::list<HttpHandler*> Handlers;
     Handlers handlers_;
 
+    typedef std::map<std::string, std::string> RegisteredUsers;
+    RegisteredUsers registeredUsers_;
+
+    bool ssl_;
+    std::string certificate_;
     uint16_t port_;
   
     bool IsRunning() const;
@@ -60,7 +66,24 @@ namespace Palantir
 
     void Stop();
 
+    void RegisterUser(const char* username,
+                      const char* password);
+
     void RegisterHandler(HttpHandler* handler);  // This takes the ownership
+
+    bool IsSslEnabled() const
+    {
+      return ssl_;
+    }
+
+    void SetSslEnabled(bool enabled);
+
+    const std::string& GetSslCertificate() const
+    {
+      return certificate_;
+    }
+
+    void SetSslCertificate(const char* path);
 
     void ClearHandlers();
 

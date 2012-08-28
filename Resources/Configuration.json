@@ -1,11 +1,26 @@
 {
+    // Path to the directory that holds the database
     "StorageDirectory" : "PalantirStorage",
+
+    // HTTP port for the REST services and for the GUI
     "HttpPort" : 8000,
 
+    // The DICOM Application Entity Title
     "DicomAet" : "ANY-SCP",
+
+    // The DICOM port
     "DicomPort" : 4242,
+
+    // The list of the DICOM modalities.
     "DicomModalities" : {
+        // "sample" : [ "SAMPLESCP", "192.168.100.42", 104 ]
     },
+
+    // Whether or not SSL is enabled
+    "SslEnabled" : false,
+
+    // Path to the SSL certificate
+    "SslCertificate" : "certificate.pem",
 
     "PalantirPeers" : {
     }

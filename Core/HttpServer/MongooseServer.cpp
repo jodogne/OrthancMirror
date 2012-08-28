@@ -394,6 +394,22 @@ namespace Palantir
   }
 
 
+  static bool Authorize(MongooseServer& that,
+                        HttpOutput& output,
+                        struct mg_connection *connection,
+                        const struct mg_request_info *request)
+  {
+    /*std::string s = "HTTP/1.0 401 Unauthorized\r\n" 
+      "WWW-Authenticate: Digest realm=\"www.palanthir.com\",qop=\"auth\",nonce=\"dcd98b7102dd2f0e8b11d0f600bfb0c093\""
+      "\r\n\r\n";
+    output.Send(&s[0], s.size());
+
+    return false;*/
+
+    return true;
+  }
+
+
 
   static void* Callback(enum mg_event event,
                         struct mg_connection *connection,
@@ -411,6 +427,19 @@ namespace Palantir
         std::string name = request->http_headers[i].name;
         std::transform(name.begin(), name.end(), name.begin(), ::tolower);
         headers.insert(std::make_pair(name, request->http_headers[i].value));
+      }
+
+      printf("=========================\n");
+      printf(" URI: [%s]\n", request->uri);
+      for (HttpHandler::Arguments::const_iterator i = headers.begin(); i != headers.end(); i++)
+      {
+        printf("[%s] = [%s]\n", i->first.c_str(), i->second.c_str());
+      }
+
+      // Authenticate this connection
+      if (!Authorize(*that, c, connection, request))
+      {
+        return (void*) "";
       }
 
       std::string postData;
@@ -501,6 +530,7 @@ namespace Palantir
   MongooseServer::MongooseServer() : pimpl_(new PImpl)
   {
     pimpl_->context_ = NULL;
+    ssl_ = false;
     port_ = 8000;
   }
 
@@ -524,8 +554,15 @@ namespace Palantir
     {
       std::string port = boost::lexical_cast<std::string>(port_);
 
+      if (ssl_)
+      {
+        port += "s";
+      }
+
       const char *options[] = {
         "listening_ports", port.c_str(), 
+        ssl_ ? "ssl_certificate" : NULL,
+        certificate_.c_str(),
         NULL
       };
 
@@ -566,4 +603,35 @@ namespace Palantir
     }
   }
 
+
+  void MongooseServer::RegisterUser(const char* username,
+                                    const char* password)
+  {
+    Stop();
+    registeredUsers_[username] = password;
+  }
+
+  void MongooseServer::SetSslEnabled(bool enabled)
+  {
+    Stop();
+
+#if PALANTIR_SSL_ENABLED == 0
+    if (enabled)
+    {
+      throw PalantirException("Palantir has been build without SSL support");
+    }
+    else
+    {
+      ssl_ = false;
+    }
+#else
+    ssl_ = enabled;
+#endif
+  }
+
+  void MongooseServer::SetSslCertificate(const char* path)
+  {
+    Stop();
+    certificate_ = path;
+  }
 }

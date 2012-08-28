@@ -15,9 +15,20 @@ list(APPEND THIRD_PARTY_SOURCES
   ${MONGOOSE_SOURCES_DIR}/mongoose.c
   )
 
-add_definitions(
-  # Remove SSL support from mongoose
-  -DNO_SSL=1
-  )
+if (${ENABLE_SSL})
+  add_definitions(
+    -DPALANTIR_SSL_ENABLED=1
+    )
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    link_libraries(dl)
+  endif()
+
+else()
+  add_definitions(
+    -DPALANTIR_SSL_ENABLED=0
+    -DNO_SSL=1   # Remove SSL support from mongoose
+    )
+endif()
+
 
 source_group(ThirdParty\\Mongoose REGULAR_EXPRESSION ${MONGOOSE_SOURCES_DIR}/.*)
