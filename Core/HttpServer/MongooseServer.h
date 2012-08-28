@@ -41,7 +41,7 @@ namespace Palantir
     typedef std::list<HttpHandler*> Handlers;
     Handlers handlers_;
 
-    typedef std::map<std::string, std::string> RegisteredUsers;
+    typedef std::set<std::string> RegisteredUsers;
     RegisteredUsers registeredUsers_;
 
     bool ssl_;

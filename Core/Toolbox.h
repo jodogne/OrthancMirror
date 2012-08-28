@@ -60,5 +60,7 @@ namespace Palantir
 
     void ComputeMD5(std::string& result,
                     const std::string& data);
+
+    std::string EncodeBase64(const std::string& data);
   }
 }

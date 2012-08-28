@@ -608,7 +608,9 @@ namespace Palantir
                                     const char* password)
   {
     Stop();
-    registeredUsers_[username] = password;
+
+    std::string tag = std::string(username) + ":" + std::string(password);
+    registeredUsers_.insert(Toolbox::EncodeBase64(tag));
   }
 
   void MongooseServer::SetSslEnabled(bool enabled)
