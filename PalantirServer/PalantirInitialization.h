@@ -36,6 +36,9 @@ namespace Palantir
   int GetGlobalIntegerParameter(const std::string& parameter,
                                 int defaultValue);
 
+  bool GetGlobalBoolParameter(const std::string& parameter,
+                              bool defaultValue);
+
   void GetDicomModality(const std::string& name,
                         std::string& aet,
                         std::string& address,

@@ -306,7 +306,6 @@ namespace Palantir
   }
 
 
-
   static char GetHexadecimalCharacter(uint8_t value)
   {
     assert(value < 16);
@@ -316,6 +315,7 @@ namespace Palantir
     else
       return (value - 10) + 'a';
   }
+
 
   void Toolbox::ComputeMD5(std::string& result,
                            const std::string& data)
@@ -338,6 +338,5 @@ namespace Palantir
       result[2 * i] = GetHexadecimalCharacter(actualHash[i] / 16);
       result[2 * i + 1] = GetHexadecimalCharacter(actualHash[i] % 16);
     }
-
   }
 }

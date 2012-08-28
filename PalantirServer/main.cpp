@@ -123,6 +123,17 @@ int main(int argc, char* argv[])
       MongooseServer httpServer;
       httpServer.SetPort(GetGlobalIntegerParameter("HttpPort", 8000));
 
+      if (GetGlobalBoolParameter("SslEnabled", false))
+      {
+        std::string certificate = GetGlobalStringParameter("SslCertificate", "certificate.pem");
+        httpServer.SetSslEnabled(true);
+        httpServer.SetSslCertificate(certificate.c_str());
+      }
+      else
+      {
+        httpServer.SetSslEnabled(false);
+      }
+
 #if PALANTIR_STANDALONE == 1
       httpServer.RegisterHandler(new EmbeddedResourceHttpHandler("/app", EmbeddedResources::PALANTIR_EXPLORER));
 #else

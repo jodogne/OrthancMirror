@@ -7,6 +7,7 @@ include(CheckIncludeFiles)
 
 SET(STATIC_BUILD ON CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")
 SET(STANDALONE_BUILD OFF CACHE BOOL "Standalone build (necessary for cross-compilation or binary releases)")
+SET(ENABLE_SSL ON CACHE BOOL "Include support for SSL")
 
 if (${CMAKE_CROSSCOMPILING})
   SET(STANDALONE_BUILD ON)
