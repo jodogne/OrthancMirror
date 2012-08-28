@@ -37,7 +37,7 @@
 #endif
 
 #include "../Resources/md5/md5.h"
-
+#include "../Resources/base64/base64.h"
 
 namespace Palantir
 {
@@ -339,4 +339,11 @@ namespace Palantir
       result[2 * i + 1] = GetHexadecimalCharacter(actualHash[i] % 16);
     }
   }
+
+
+  std::string Toolbox::EncodeBase64(const std::string& data)
+  {
+    return base64_encode(data.c_str());
+  }
+
 }

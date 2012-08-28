@@ -266,6 +266,13 @@ TEST(Toolbox, ComputeMD5)
   ASSERT_EQ("d41d8cd98f00b204e9800998ecf8427e", s);
 }
 
+TEST(Toolbox, Base64)
+{
+  ASSERT_EQ("", Toolbox::EncodeBase64(""));
+  ASSERT_EQ("YQ==", Toolbox::EncodeBase64("a"));
+  ASSERT_EQ("SGVsbG8gd29ybGQ=", Toolbox::EncodeBase64("Hello world"));
+}
+
 
 int main(int argc, char **argv)
 {
