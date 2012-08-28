@@ -15,9 +15,11 @@ list(APPEND THIRD_PARTY_SOURCES
   ${MONGOOSE_SOURCES_DIR}/mongoose.c
   )
 
+
 if (${ENABLE_SSL})
   add_definitions(
     -DPALANTIR_SSL_ENABLED=1
+    -DNO_SSL_DL=1
     )
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     link_libraries(dl)

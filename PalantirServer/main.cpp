@@ -95,18 +95,17 @@ public:
 
 int main(int argc, char* argv[]) 
 {
-  if (argc >= 2)
-  {
-    PalantirInitialize(argv[1]);
-  }
-  else
-  {
-    PalantirInitialize();
-  }
-
-
   try
   {
+    if (argc >= 2)
+    {
+      PalantirInitialize(argv[1]);
+    }
+    else
+    {
+      PalantirInitialize();
+    }
+
     std::string storageDirectory = GetGlobalStringParameter("StorageDirectory", "PalantirStorage");
     ServerIndex index(storageDirectory);
     MyDicomStoreFactory storeScp(index, storageDirectory);
@@ -157,13 +156,13 @@ int main(int argc, char* argv[])
     }
 
     storeScp.Done();
+
+    PalantirFinalize();
   }
   catch (PalantirException& e)
   {
     std::cout << "EXCEPT [" << e.What() << "]" << std::endl;
   }
-
-  PalantirFinalize();
 
   return 0;
 }

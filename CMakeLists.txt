@@ -28,6 +28,7 @@ SET(THIRD_PARTY_SOURCES
   ${CMAKE_SOURCE_DIR}/Resources/md5/md5.c
   ${CMAKE_SOURCE_DIR}/Resources/base64/base64.cpp
   )
+
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/BoostConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/DcmtkConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
@@ -38,9 +39,15 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/JsonCppConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibCurlConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibPngConfiguration.cmake)
 
+if (${ENABLE_SSL})
+  include(${CMAKE_SOURCE_DIR}/Resources/CMake/OpenSslConfiguration.cmake)
+endif()
+
 
 if (${CMAKE_COMPILER_IS_GNUCXX})
-  set(CMAKE_C_FLAGS "-Wall -pedantic -Wno-implicit-function-declaration")  # --std=c99 makes libcurl not to compile
+  set(CMAKE_C_FLAGS "-Wall -Wno-long-long -Wno-implicit-function-declaration")  
+  # --std=c99 makes libcurl not to compile
+  # -pedantic gives a lot of warnings on OpenSSL 
   set(CMAKE_CXX_FLAGS "-Wall -pedantic -Wno-long-long -Wno-variadic-macros")
 elseif (${MSVC})
   # http://stackoverflow.com/a/6510446
@@ -183,7 +190,6 @@ add_executable(UnitTests
 
 TARGET_LINK_LIBRARIES(Palantir ServerLibrary CoreLibrary)
 TARGET_LINK_LIBRARIES(UnitTests ServerLibrary CoreLibrary)
-
 
 find_package(Doxygen)
 if (DOXYGEN_FOUND)
