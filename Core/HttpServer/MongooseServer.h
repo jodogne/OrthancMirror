@@ -44,6 +44,7 @@ namespace Palantir
     typedef std::set<std::string> RegisteredUsers;
     RegisteredUsers registeredUsers_;
 
+    bool authentication_;
     bool ssl_;
     std::string certificate_;
     uint16_t port_;
@@ -66,10 +67,19 @@ namespace Palantir
 
     void Stop();
 
+    void ClearUsers();
+
     void RegisterUser(const char* username,
                       const char* password);
 
     void RegisterHandler(HttpHandler* handler);  // This takes the ownership
+
+    bool IsAuthenticationEnabled() const
+    {
+      return authentication_;
+    }
+
+    void SetAuthenticationEnabled(bool enabled);
 
     bool IsSslEnabled() const
     {
@@ -91,5 +101,7 @@ namespace Palantir
     HttpHandler* FindHandler(const UriComponents& forUri) const;
 
     ChunkStore& GetChunkStore();
+
+    bool IsValidBasicHttpAuthentication(const std::string& basic) const;
   };
 }

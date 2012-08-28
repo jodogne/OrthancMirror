@@ -123,6 +123,9 @@ int main(int argc, char* argv[])
       MongooseServer httpServer;
       httpServer.SetPort(GetGlobalIntegerParameter("HttpPort", 8000));
 
+      httpServer.SetAuthenticationEnabled(GetGlobalBoolParameter("AuthenticationEnabled", false));
+      SetupRegisteredUsers(httpServer);
+
       if (GetGlobalBoolParameter("SslEnabled", false))
       {
         std::string certificate = GetGlobalStringParameter("SslCertificate", "certificate.pem");

@@ -23,6 +23,7 @@
 #include <string>
 #include <set>
 #include <json/json.h>
+#include "../Core/HttpServer/MongooseServer.h"
 
 namespace Palantir
 {
@@ -45,4 +46,6 @@ namespace Palantir
                         int& port);
 
   void GetListOfDicomModalities(std::set<std::string>& target);
+
+  void SetupRegisteredUsers(MongooseServer& httpServer);
 }

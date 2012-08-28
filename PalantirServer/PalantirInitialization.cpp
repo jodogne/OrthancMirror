@@ -205,4 +205,32 @@ namespace Palantir
       target.insert(members[i]);
     }
   }
+
+
+
+  void SetupRegisteredUsers(MongooseServer& httpServer)
+  {
+    boost::mutex::scoped_lock lock(globalMutex_);
+
+    httpServer.ClearUsers();
+
+    if (!configuration_->isMember("RegisteredUsers"))
+    {
+      return;
+    }
+
+    const Json::Value& users = (*configuration_) ["RegisteredUsers"];
+    if (users.type() != Json::objectValue)
+    {
+      throw PalantirException("Badly formatted list of users");
+    }
+
+    Json::Value::Members usernames = users.getMemberNames();
+    for (size_t i = 0; i < usernames.size(); i++)
+    {
+      const std::string& username = usernames[i];
+      std::string password = users[username].asString();
+      httpServer.RegisterUser(username.c_str(), password.c_str());
+    }
+  }
 }
