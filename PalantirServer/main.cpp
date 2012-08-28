@@ -156,13 +156,13 @@ int main(int argc, char* argv[])
     }
 
     storeScp.Done();
-
-    PalantirFinalize();
   }
   catch (PalantirException& e)
   {
     std::cout << "EXCEPT [" << e.What() << "]" << std::endl;
   }
+
+  PalantirFinalize();
 
   return 0;
 }
