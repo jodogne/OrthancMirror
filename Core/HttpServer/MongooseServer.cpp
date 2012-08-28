@@ -36,6 +36,9 @@
 #include "mongoose.h"
 
 
+#define PALANTIR_REALM "Palantir Secure Area"
+
+
 namespace Palantir
 {
   static const char multipart[] = "multipart/form-data; boundary=";
@@ -394,19 +397,35 @@ namespace Palantir
   }
 
 
-  static bool Authorize(MongooseServer& that,
-                        HttpOutput& output,
-                        struct mg_connection *connection,
-                        const struct mg_request_info *request)
+  static bool Authorize(const MongooseServer& that,
+                        const HttpHandler::Arguments& headers,
+                        HttpOutput& output)
   {
-    /*std::string s = "HTTP/1.0 401 Unauthorized\r\n" 
-      "WWW-Authenticate: Digest realm=\"www.palanthir.com\",qop=\"auth\",nonce=\"dcd98b7102dd2f0e8b11d0f600bfb0c093\""
-      "\r\n\r\n";
-    output.Send(&s[0], s.size());
+    bool granted = false;
 
-    return false;*/
+    HttpHandler::Arguments::const_iterator auth = headers.find("authorization");
+    if (auth != headers.end())
+    {
+      std::string s = auth->second;
+      if (s.substr(0, 6) == "Basic ")
+      {
+        std::string b64 = s.substr(6);
+        granted = that.IsValidBasicHttpAuthentication(b64);
+      }
+    }
 
-    return true;
+    if (!granted)
+    {
+      std::string s = "HTTP/1.1 401 Unauthorized\r\n" 
+        "WWW-Authenticate: Basic realm=\"" PALANTIR_REALM "\""
+        "\r\n\r\n";
+      output.Send(&s[0], s.size());
+      return false;
+    }
+    else
+    {
+      return true;
+    }
   }
 
 
@@ -429,15 +448,9 @@ namespace Palantir
         headers.insert(std::make_pair(name, request->http_headers[i].value));
       }
 
-      printf("=========================\n");
-      printf(" URI: [%s]\n", request->uri);
-      for (HttpHandler::Arguments::const_iterator i = headers.begin(); i != headers.end(); i++)
-      {
-        printf("[%s] = [%s]\n", i->first.c_str(), i->second.c_str());
-      }
-
       // Authenticate this connection
-      if (!Authorize(*that, c, connection, request))
+      if (that->IsAuthenticationEnabled() &&
+          !Authorize(*that, headers, c))
       {
         return (void*) "";
       }
@@ -530,6 +543,7 @@ namespace Palantir
   MongooseServer::MongooseServer() : pimpl_(new PImpl)
   {
     pimpl_->context_ = NULL;
+    authentication_ = false;
     ssl_ = false;
     port_ = 8000;
   }
@@ -604,6 +618,13 @@ namespace Palantir
   }
 
 
+  void MongooseServer::ClearUsers()
+  {
+    Stop();
+    registeredUsers_.clear();
+  }
+
+
   void MongooseServer::RegisterUser(const char* username,
                                     const char* password)
   {
@@ -620,7 +641,7 @@ namespace Palantir
 #if PALANTIR_SSL_ENABLED == 0
     if (enabled)
     {
-      throw PalantirException("Palantir has been build without SSL support");
+      throw PalantirException("Palantir has been built without SSL support");
     }
     else
     {
@@ -631,9 +652,20 @@ namespace Palantir
 #endif
   }
 
+  void MongooseServer::SetAuthenticationEnabled(bool enabled)
+  {
+    Stop();
+    authentication_ = enabled;
+  }
+
   void MongooseServer::SetSslCertificate(const char* path)
   {
     Stop();
     certificate_ = path;
+  }
+
+  bool MongooseServer::IsValidBasicHttpAuthentication(const std::string& basic) const
+  {
+    return registeredUsers_.find(basic) != registeredUsers_.end();
   }
 }
