@@ -2,6 +2,21 @@ if (${STATIC_BUILD})
   SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.0.1c)
   DownloadPackage("http://www.openssl.org/source/openssl-1.0.1c.tar.gz" "${OPENSSL_SOURCES_DIR}" "" "")
 
+  if (NOT EXISTS "${OPENSSL_SOURCES_DIR}/include/PATCHED")
+    message("Patching the symbolic links")
+    if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
+      # Patch the symbolic links by copying the files
+      file(GLOB headers "${OPENSSL_SOURCES_DIR}/include/openssl/*.h")
+      foreach(header ${headers})
+        message(${header})
+        file(READ "${header}" symbolicLink)
+        message(${symbolicLink})
+        configure_file("${OPENSSL_SOURCES_DIR}/include/openssl/${symbolicLink}" "${header}" COPYONLY)
+      endforeach()
+      file(WRITE "${OPENSSL_SOURCES_DIR}/include/PATCHED")
+    endif()
+  endif()
+
   add_definitions(
     -DOPENSSL_THREADS
     -DOPENSSL_IA32_SSE2
@@ -35,6 +50,19 @@ if (${STATIC_BUILD})
     -DOPENSSL_NO_WHIRLPOOL
     -DOPENSSL_NO_RIPEMD
     )
+
+  if (${MSVC})
+    # http://stackoverflow.com/a/1372836/881731
+#    add_definitions(-D_WINSOCKAPI_)
+    add_definitions(
+      -DOPENSSL_SYSNAME_WIN32
+      -DOPENSSL_SYS_MSDOS
+      -DSO_WIN32
+#      -DWIN32_LEAN_AND_MEAN
+      -DOPENSSL_NO_SOCK
+      -DL_ENDIAN
+      )
+  endif()
 
   include_directories(
     ${OPENSSL_SOURCES_DIR}
@@ -115,6 +143,7 @@ if (${STATIC_BUILD})
     ${OPENSSL_SOURCES_DIR}/crypto/pkcs7/bio_ber.c
     ${OPENSSL_SOURCES_DIR}/crypto/pkcs7/pk7_enc.c
     ${OPENSSL_SOURCES_DIR}/crypto/ppccap.c
+    ${OPENSSL_SOURCES_DIR}/crypto/rand/randtest.c
     ${OPENSSL_SOURCES_DIR}/crypto/s390xcap.c
     ${OPENSSL_SOURCES_DIR}/crypto/sparcv9cap.c
     ${OPENSSL_SOURCES_DIR}/crypto/x509v3/tabtest.c
