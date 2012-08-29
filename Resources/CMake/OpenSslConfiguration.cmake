@@ -3,8 +3,8 @@ if (${STATIC_BUILD})
   DownloadPackage("http://www.openssl.org/source/openssl-1.0.1c.tar.gz" "${OPENSSL_SOURCES_DIR}" "" "")
 
   if (NOT EXISTS "${OPENSSL_SOURCES_DIR}/include/PATCHED")
-    message("Patching the symbolic links")
     if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
+      message("Patching the symbolic links")
       # Patch the symbolic links by copying the files
       file(GLOB headers "${OPENSSL_SOURCES_DIR}/include/openssl/*.h")
       foreach(header ${headers})
@@ -139,7 +139,8 @@ if (${STATIC_BUILD})
     ${OPENSSL_SOURCES_DIR}/ssl/ssl_task.c
     )
 
-  if (${MSVC})
+  #if (${MSVC})
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     set_source_files_properties(
       ${OPENSSL_SOURCES}
       PROPERTIES COMPILE_DEFINITIONS

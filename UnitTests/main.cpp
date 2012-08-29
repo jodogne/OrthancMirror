@@ -273,15 +273,6 @@ TEST(Toolbox, Base64)
   ASSERT_EQ("SGVsbG8gd29ybGQ=", Toolbox::EncodeBase64("Hello world"));
 }
 
-TEST(tutu, tata)
-{
-  HttpClient c;
-  c.SetUrl("https://localhost:8000/instances");
-  std::string s;
-  ASSERT_TRUE(c.Apply(s));
-}
-
-
 int main(int argc, char **argv)
 {
   PalantirInitialize();

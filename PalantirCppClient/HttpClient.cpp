@@ -44,6 +44,7 @@ namespace Palantir
   {
     if (code != CURLE_OK)
     {
+      printf("ICI: %s\n", curl_easy_strerror(code));
       throw HttpException("CURL: " + std::string(curl_easy_strerror(code)));
     }
 

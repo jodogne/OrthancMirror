@@ -18,7 +18,6 @@ list(APPEND THIRD_PARTY_SOURCES
 
 if (${ENABLE_SSL})
   add_definitions(
-    -DPALANTIR_SSL_ENABLED=1
     -DNO_SSL_DL=1
     )
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
@@ -27,7 +26,6 @@ if (${ENABLE_SSL})
 
 else()
   add_definitions(
-    -DPALANTIR_SSL_ENABLED=0
     -DNO_SSL=1   # Remove SSL support from mongoose
     )
 endif()
