@@ -29,6 +29,13 @@ SET(THIRD_PARTY_SOURCES
   ${CMAKE_SOURCE_DIR}/Resources/base64/base64.cpp
   )
 
+if (${ENABLE_SSL})
+  add_definitions(-DPALANTIR_SSL_ENABLED=1)
+  include(${CMAKE_SOURCE_DIR}/Resources/CMake/OpenSslConfiguration.cmake)
+else()
+  add_definitions(-DPALANTIR_SSL_ENABLED=0)
+endif()
+
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/BoostConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/DcmtkConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
@@ -38,10 +45,6 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/SQLiteConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/JsonCppConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibCurlConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibPngConfiguration.cmake)
-
-if (${ENABLE_SSL})
-  include(${CMAKE_SOURCE_DIR}/Resources/CMake/OpenSslConfiguration.cmake)
-endif()
 
 
 if (${CMAKE_COMPILER_IS_GNUCXX})

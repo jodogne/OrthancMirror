@@ -50,3 +50,18 @@ TEST(Versions, PngStatic)
   ASSERT_STREQ("1.5.12", PNG_LIBPNG_VER_STRING);
 }
 #endif
+
+
+TEST(Versions, CurlSsl)
+{
+  curl_version_info_data * vinfo = curl_version_info(CURLVERSION_NOW);
+
+  // Check that SSL support is enabled when required
+  bool curlSupportsSsl = vinfo->features & CURL_VERSION_SSL;
+
+#if PALANTIR_SSL_ENABLED == 0
+  ASSERT_FALSE(curlSupportsSsl);
+#else
+  ASSERT_TRUE(curlSupportsSsl);
+#endif
+}
