@@ -1,7 +1,10 @@
 Pending changes
 ===============
 
-* Licensing of the "Core/SQLite" folder
+* Support of SSL and HTTP Basic Authentication
+* Change of the licensing of the "Core/SQLite" folder to BSD, (to
+  reflect the original licensing terms of Chromium, from which the
+  code derives)
 * Standalone build for cross-compilation
 
 
