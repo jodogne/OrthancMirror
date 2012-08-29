@@ -51,19 +51,6 @@ if (${STATIC_BUILD})
     -DOPENSSL_NO_RIPEMD
     )
 
-  if (${MSVC})
-    # http://stackoverflow.com/a/1372836/881731
-#    add_definitions(-D_WINSOCKAPI_)
-    add_definitions(
-      -DOPENSSL_SYSNAME_WIN32
-      -DOPENSSL_SYS_MSDOS
-      -DSO_WIN32
-#      -DWIN32_LEAN_AND_MEAN
-      -DOPENSSL_NO_SOCK
-      -DL_ENDIAN
-      )
-  endif()
-
   include_directories(
     ${OPENSSL_SOURCES_DIR}
     ${OPENSSL_SOURCES_DIR}/crypto
@@ -148,8 +135,16 @@ if (${STATIC_BUILD})
     ${OPENSSL_SOURCES_DIR}/crypto/sparcv9cap.c
     ${OPENSSL_SOURCES_DIR}/crypto/x509v3/tabtest.c
     ${OPENSSL_SOURCES_DIR}/crypto/x509v3/v3conf.c
+    ${OPENSSL_SOURCES_DIR}/crypto/des/des.c
     ${OPENSSL_SOURCES_DIR}/ssl/ssl_task.c
     )
+
+  if (${MSVC})
+    set_source_files_properties(
+      ${OPENSSL_SOURCES}
+      PROPERTIES COMPILE_DEFINITIONS
+      "OPENSSL_SYSNAME_WIN32;SO_WIN32;WIN32_LEAN_AND_MEAN;L_ENDIAN")
+  endif()
 
   add_library(OpenSSL STATIC ${OPENSSL_SOURCES})
   link_libraries(OpenSSL)
