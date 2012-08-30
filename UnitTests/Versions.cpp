@@ -49,8 +49,6 @@ TEST(Versions, PngStatic)
   ASSERT_EQ(10512, png_access_version_number());
   ASSERT_STREQ("1.5.12", PNG_LIBPNG_VER_STRING);
 }
-#endif
-
 
 TEST(Versions, CurlSsl)
 {
@@ -65,3 +63,4 @@ TEST(Versions, CurlSsl)
   ASSERT_TRUE(curlSupportsSsl);
 #endif
 }
+#endif
