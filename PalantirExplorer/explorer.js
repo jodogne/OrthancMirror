@@ -207,11 +207,14 @@ function FormatMainDicomTags(tags, tagsToIgnore)
     {
       var v = tags[i];
 
-      if (v == "PatientBirthDate")
+      if (i == "PatientBirthDate" ||
+          i == "StudyDate" ||
+          i == "SeriesDate")
       {
         v = FormatDicomDate(v);
       }
-      else if (v == "DicomStudyInstanceUID")
+      else if (i == "DicomStudyInstanceUID" ||
+               i == "DicomSeriesInstanceUID")
       {
         v = SplitLongUid(v);
       }
@@ -227,18 +230,14 @@ function FormatMainDicomTags(tags, tagsToIgnore)
 
 function FormatPatient(patient, link, isReverse)
 {
-  var s = ('<h3>{0}</h3>' + 
-           '<p>Patient ID: <strong>{1}</strong></p>' +
-           '<p>Accession aaNumber: <strong>{2}</strong></p>' +
-           '<p>Date of Birth: <strong>{3}</strong></p>' +
-           '<p>Sex: <strong>{4}</strong></p>' +
-           '<span class="ui-li-count">{5}</span>'
+  var s = ('<h3>{0}</h3>{1}' + 
+           '<span class="ui-li-count">{2}</span>'
           ).format
   (patient.MainDicomTags.PatientName,
-   patient.DicomPatientID,
-   patient.MainDicomTags.AccessionNumber,
-   FormatDicomDate(patient.MainDicomTags.PatientBirthDate),
-   patient.MainDicomTags.PatientSex,
+   FormatMainDicomTags(patient.MainDicomTags, [ 
+     "PatientName", 
+     "OtherPatientIDs" 
+   ]),
    patient.Studies.length
   );
 
@@ -249,14 +248,14 @@ function FormatPatient(patient, link, isReverse)
 
 function FormatStudy(study, link, isReverse)
 {
-  var s = ('<h3>{0}</h3>' +
-           //'<p>Study Instance UID: <strong>{1}</strong></p>' +
-           '{1}' +
+  var s = ('<h3>{0}</h3>{1}' +
            '<span class="ui-li-count">{2}</span>'
            ).format
   (study.MainDicomTags.StudyDescription,
-   //SplitLongUid(study.DicomStudyInstanceUID),
-   FormatMainDicomTags(study.MainDicomTags, [ "StudyDescription", "StudyTime" ]),
+   FormatMainDicomTags(study.MainDicomTags, [
+     "StudyDescription", 
+     "StudyTime" 
+   ]),
    study.Series.length
   );
 
@@ -267,17 +266,15 @@ function FormatStudy(study, link, isReverse)
 
 function FormatSeries(series, link, isReverse)
 {
-  var s = ('<h3>{0}</h3>' +
-           '<p>Modality: <strong>{1}</strong></p>' +
-           '<p>Protocol: <strong>{2}</strong></p>' +
-           '<p>Station name: <strong>{3}</strong></p>' +
-           '<p>Series Instance UID: <strong>{4}</strong></p>' +
-           '<span class="ui-li-count">{5}</span>').format
+  var s = ('<h3>{0}</h3>{1}' +
+           '<span class="ui-li-count">{2}</span>').format
   (series.MainDicomTags.SeriesDescription,
-   series.MainDicomTags.Modality,
-   series.MainDicomTags.ProtocolName,
-   series.MainDicomTags.StationName,
-   SplitLongUid(series.DicomSeriesInstanceUID),
+   FormatMainDicomTags(series.MainDicomTags, [
+     "SeriesDescription", 
+     "SeriesTime", 
+     "Manufacturer", 
+     "SeriesDate"
+   ]),
    series.Instances.length
   );
 
@@ -287,11 +284,14 @@ function FormatSeries(series, link, isReverse)
 
 function FormatInstance(instance, link, isReverse)
 {
-  var s = ('<h3>Instance {0}</h3>' +
-           '<p>SOP Instance UID: <strong>{1}</strong></p>'
-          ).format
+  var s = ('<h3>Instance {0}</h3>{1}').format
   (instance.MainDicomTags.InstanceNumber,
-   instance.DicomSOPInstanceUID
+   FormatMainDicomTags(instance.MainDicomTags, [
+     "AcquisitionNumber", 
+     "InstanceNumber", 
+     "InstanceCreationDate", 
+     "InstanceCreationTime"
+   ])
   );
 
   return CompleteFormatting(s, link, isReverse);
