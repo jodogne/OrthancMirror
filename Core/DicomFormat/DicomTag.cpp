@@ -24,6 +24,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <stdio.h>
 
 namespace Palantir
 {
@@ -48,6 +49,14 @@ namespace Palantir
       << "," << setw(4) << tag.GetElement() << ")";
     o.flags(state);
     return o;
+  }
+
+
+  std::string DicomTag::Format() const
+  {
+    char b[16];
+    sprintf(b, "%04x,%04x", group_, element_);
+    return std::string(b);
   }
 
 

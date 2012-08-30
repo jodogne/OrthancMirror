@@ -38,6 +38,71 @@ namespace Palantir
     output.AnswerBufferWithContentType(s, "application/json");
   }
 
+
+  static void SimplifyTagsRecursion(Json::Value& target,
+                                    const Json::Value& source)
+  {
+    assert(source.isObject());
+
+    target = Json::objectValue;
+    Json::Value::Members members = source.getMemberNames();
+
+    for (size_t i = 0; i < members.size(); i++)
+    {
+      const Json::Value& v = source[members[i]];
+      const std::string& name = v["Name"].asString();
+      const std::string& type = v["Type"].asString();
+
+      if (type == "String")
+      {
+        target[name] = v["Value"].asString();
+      }
+      else if (type == "TooLong" ||
+               type == "Null")
+      {
+        target[name] = Json::nullValue;
+      }
+      else if (type == "Sequence")
+      {
+        const Json::Value& array = v["Value"];
+        assert(array.isArray());
+
+        Json::Value children = Json::arrayValue;
+        for (size_t i = 0; i < array.size(); i++)
+        {
+          Json::Value c;
+          SimplifyTagsRecursion(c, array[i]);
+          children.append(c);
+        }
+
+        target[name] = children;
+      }
+      else
+      {
+        assert(0);
+      }
+    }
+  }
+
+
+  static void SimplifyTags(Json::Value& target,
+                           const FileStorage& storage,
+                           const std::string& fileUuid)
+  {
+    std::string s;
+    storage.ReadFile(s, fileUuid);
+
+    Json::Value source;
+    Json::Reader reader;
+    if (!reader.parse(s, source))
+    {
+      throw PalantirException("Corrupted JSON file");
+    }
+
+    SimplifyTagsRecursion(target, source);
+  }
+
+
   bool PalantirRestApi::Store(Json::Value& result,
                               const std::string& postData)
   {
@@ -468,7 +533,7 @@ namespace Palantir
              uri[0] == "instances" &&
              (uri[2] == "file" || 
               uri[2] == "tags" || 
-              uri[2] == "named-tags"))
+              uri[2] == "simplified-tags"))
     {
       std::string fileUuid, contentType;
       if (uri[2] == "file")
@@ -477,7 +542,7 @@ namespace Palantir
         contentType = "application/dicom";
       }
       else if (uri[2] == "tags" ||
-               uri[2] == "named-tags")
+               uri[2] == "simplified-tags")
       {
         existingResource = index_.GetJsonFile(fileUuid, uri[1]);
         contentType = "application/json";
@@ -485,8 +550,18 @@ namespace Palantir
 
       if (existingResource)
       {
-        output.AnswerFile(storage_, fileUuid, contentType);
-        return;
+        if (uri[2] == "simplified-tags")
+        {
+          Json::Value v;
+          SimplifyTags(v, storage_, fileUuid);
+          SendJson(output, v);
+          return;
+        }
+        else
+        {
+          output.AnswerFile(storage_, fileUuid, contentType);
+          return;
+        }
       }
     }
 

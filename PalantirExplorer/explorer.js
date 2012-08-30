@@ -381,33 +381,42 @@ function ConvertForTree(dicom)
   var result = [];
 
   for (var i in dicom) {
-    if (dicom [i] != null) {
-      if (typeof dicom[i] == 'string')
+    if (dicom[i] != null) {
+      var label = i + '<span class="tag-name"> (<i>' + dicom[i]["Name"] + '</i>)</span>: ';
+
+      if (dicom[i]["Type"] == 'String')
       {
         result.push({
-          label: i + ': <strong>' + dicom[i] + '</strong>',
+          label: label + '<strong>' + dicom[i]["Value"] + '</strong>',
           children: []
         });
       }
-      else if (typeof dicom[i] == 'number')
+      else if (dicom[i]["Type"] == 'TooLong')
       {
         result.push({
-          label: i + ': <i>Too long</i>',
+          label: label + '<i>Too long</i>',
           children: []
         });
       }
-      else
+      else if (dicom[i]["Type"] == 'Null')
+      {
+        result.push({
+          label: label + '<i>Null</i>',
+          children: []
+        });
+      }
+      else if (dicom[i]["Type"] == 'Sequence')
       {
         var c = [];
-        for (var j = 0; j < dicom[i].length; j++) {
+        for (var j = 0; j < dicom[i]["Value"].length; j++) {
           c.push({
             label: 'Item ' + j,
-            children: ConvertForTree(dicom[i][j])
+            children: ConvertForTree(dicom[i]["Value"][j])
           });
         }
 
         result.push({
-          label: i + '[]',
+          label: label + '[]',
           children: c
         });
       }
@@ -438,7 +447,7 @@ $('#instance').live('pagebeforeshow', function() {
               .listview('refresh');
 
             $.ajax({
-              url: '/instances/' + instance.ID + '/all-tags',
+              url: '/instances/' + instance.ID + '/tags',
               dataType: 'json',
               success: function(s) {
                 $('#dicom-tree').tree('loadData', ConvertForTree(s));
@@ -531,7 +540,7 @@ $('#instance-download-dicom').live('click', function(e) {
 $('#instance-download-json').live('click', function(e) {
   // http://stackoverflow.com/a/1296101
   e.preventDefault();  //stop the browser from following
-  window.location.href = '/instances/' + $.mobile.pageData.uuid + '/all-tags';
+  window.location.href = '/instances/' + $.mobile.pageData.uuid + '/tags';
 });
 
 
@@ -642,4 +651,13 @@ $('#instance-store,#series-store').live('click', function(e) {
       
     }
   });
+});
+
+
+$('#show-tag-name').live('change', function(e) {
+  var checked = e.currentTarget.checked;
+  if (checked)
+    $('.tag-name').show();
+  else
+    $('.tag-name').hide();
 });
