@@ -617,7 +617,6 @@ namespace Palantir
     {
       result["ID"] = instanceUuid;
       result["ParentSeries"] = s.ColumnString(0);
-      result["DicomSOPInstanceUID"] = s.ColumnString(1);
       result["FileSize"] = s.ColumnInt(2);   // TODO switch to 64bit with JsonCpp 0.6?
       result["FileUuid"] = s.ColumnString(3);
       MainDicomTagsToJson(result, instanceUuid);
@@ -641,7 +640,6 @@ namespace Palantir
 
     result["ID"] = seriesUuid;
     result["ParentStudy"] = s1.ColumnString(0);
-    result["DicomSeriesInstanceUID"] = s1.ColumnString(1);
     MainDicomTagsToJson(result, seriesUuid);
 
     Json::Value instances(Json::arrayValue);
@@ -673,7 +671,6 @@ namespace Palantir
 
     result["ID"] = studyUuid;
     result["ParentPatient"] = s1.ColumnString(0);
-    result["DicomStudyInstanceUID"] = s1.ColumnString(1);
     MainDicomTagsToJson(result, studyUuid);
 
     Json::Value series(Json::arrayValue);
@@ -703,7 +700,6 @@ namespace Palantir
     }
 
     result["ID"] = patientUuid;
-    result["DicomPatientID"] = s1.ColumnString(0);
     MainDicomTagsToJson(result, patientUuid);
 
     Json::Value studies(Json::arrayValue);
