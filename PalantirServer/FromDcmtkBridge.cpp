@@ -298,14 +298,20 @@ namespace Palantir
   {
     assert(target.type() == Json::objectValue);
 
-    const std::string tagName = FromDcmtkBridge::GetName(FromDcmtkBridge::GetTag(element));
+    DicomTag tag(FromDcmtkBridge::GetTag(element));
+    const std::string tagName = FromDcmtkBridge::GetName(tag);
+    const std::string formattedTag = tag.Format();
 
     if (element.isLeaf())
     {
+      Json::Value value(Json::objectValue);
+      value["Name"] = tagName;
+
       std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element));
       if (v->IsNull())
       {
-        target[tagName] = Json::nullValue;
+        value["Type"] = "Null";
+        value["Value"] = Json::nullValue;
       }
       else
       {
@@ -313,18 +319,21 @@ namespace Palantir
         if (maxStringLength == 0 ||
             s.size() <= maxStringLength)
         {
-          target[tagName] = s;
+          value["Type"] = "String";
+          value["Value"] = s;
         }
         else
         {
-          // An integer value of 0 in JSON indicates too long field
-          target[tagName] = 0; 
+          value["Type"] = "TooLong";
+          value["Value"] = Json::nullValue;
         }
       }
+
+      target[formattedTag] = value;
     }
     else
     {
-      target[tagName] = Json::Value(Json::arrayValue);
+      Json::Value children(Json::arrayValue);
 
       // "All subclasses of DcmElement except for DcmSequenceOfItems
       // are leaf nodes, while DcmSequenceOfItems, DcmItem, DcmDataset
@@ -334,9 +343,13 @@ namespace Palantir
       for (unsigned long i = 0; i < sequence.card(); i++)
       {
         DcmItem* child = sequence.getItem(i);
-        Json::Value& v = target[tagName].append(Json::objectValue);
+        Json::Value& v = children.append(Json::objectValue);
         StoreItem(v, *child, maxStringLength);
       }  
+
+      target[formattedTag]["Name"] = tagName;
+      target[formattedTag]["Type"] = "Sequence";
+      target[formattedTag]["Value"] = children;
     }
   }
 

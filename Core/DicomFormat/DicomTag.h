@@ -54,6 +54,8 @@ namespace Palantir
 
     bool operator< (const DicomTag& other) const;
 
+    std::string Format() const;
+
     friend std::ostream& operator<< (std::ostream& o, const DicomTag& tag);
 
     // Alias for the most useful tags
