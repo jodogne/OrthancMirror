@@ -38,6 +38,8 @@
 
 #define PALANTIR_REALM "Palantir Secure Area"
 
+static const long LOCALHOST = (127ll << 24) + 1ll;
+
 
 namespace Palantir
 {
@@ -397,6 +399,15 @@ namespace Palantir
   }
 
 
+  static void SendUnauthorized(HttpOutput& output)
+  {
+    std::string s = "HTTP/1.1 401 Unauthorized\r\n" 
+      "WWW-Authenticate: Basic realm=\"" PALANTIR_REALM "\""
+      "\r\n\r\n";
+    output.Send(&s[0], s.size());
+  }
+
+
   static bool Authorize(const MongooseServer& that,
                         const HttpHandler::Arguments& headers,
                         HttpOutput& output)
@@ -416,10 +427,7 @@ namespace Palantir
 
     if (!granted)
     {
-      std::string s = "HTTP/1.1 401 Unauthorized\r\n" 
-        "WWW-Authenticate: Basic realm=\"" PALANTIR_REALM "\""
-        "\r\n\r\n";
-      output.Send(&s[0], s.size());
+      SendUnauthorized(output);
       return false;
     }
     else
@@ -437,9 +445,16 @@ namespace Palantir
     if (event == MG_NEW_REQUEST) 
     {
       MongooseServer* that = (MongooseServer*) (request->user_data);
+      MongooseOutput output(connection);
+
+      if (!that->IsRemoteAccessAllowed() &&
+          request->remote_ip != LOCALHOST)
+      {
+        SendUnauthorized(output);
+        return (void*) "";
+      }
 
       HttpHandler::Arguments arguments, headers;
-      MongooseOutput c(connection);
 
       for (int i = 0; i < request->num_headers; i++)
       {
@@ -450,7 +465,7 @@ namespace Palantir
 
       // Authenticate this connection
       if (that->IsAuthenticationEnabled() &&
-          !Authorize(*that, headers, c))
+          !Authorize(*that, headers, output))
       {
         return (void*) "";
       }
@@ -466,7 +481,7 @@ namespace Palantir
         HttpHandler::Arguments::const_iterator ct = headers.find("content-type");
         if (ct == headers.end())
         {
-          c.SendHeader(HttpStatus_400_BadRequest);
+          output.SendHeader(HttpStatus_400_BadRequest);
           return (void*) "";
         }
 
@@ -486,15 +501,15 @@ namespace Palantir
         switch (status)
         {
         case PostDataStatus_NoLength:
-          c.SendHeader(HttpStatus_411_LengthRequired);
+          output.SendHeader(HttpStatus_411_LengthRequired);
           return (void*) "";
 
         case PostDataStatus_Failure:
-          c.SendHeader(HttpStatus_400_BadRequest);
+          output.SendHeader(HttpStatus_400_BadRequest);
           return (void*) "";
 
         case PostDataStatus_Pending:
-          c.AnswerBuffer("");
+          output.AnswerBuffer("");
           return (void*) "";
 
         default:
@@ -510,18 +525,18 @@ namespace Palantir
       {
         try
         {
-          handler->Handle(c, std::string(request->request_method),
+          handler->Handle(output, std::string(request->request_method),
                           uri, headers, arguments, postData);
         }
         catch (PalantirException& e)
         {
           std::cerr << "MongooseServer Exception [" << e.What() << "]" << std::endl;
-          c.SendHeader(HttpStatus_500_InternalServerError);        
+          output.SendHeader(HttpStatus_500_InternalServerError);        
         }
       }
       else
       {
-        c.SendHeader(HttpStatus_404_NotFound);
+        output.SendHeader(HttpStatus_404_NotFound);
       }
 
       // Mark as processed
@@ -543,6 +558,7 @@ namespace Palantir
   MongooseServer::MongooseServer() : pimpl_(new PImpl)
   {
     pimpl_->context_ = NULL;
+    remoteAllowed_ = false;
     authentication_ = false;
     ssl_ = false;
     port_ = 8000;
@@ -663,6 +679,13 @@ namespace Palantir
     Stop();
     certificate_ = path;
   }
+
+  void MongooseServer::SetRemoteAccessAllowed(bool allowed)
+  {
+    Stop();
+    remoteAllowed_ = allowed;
+  }
+
 
   bool MongooseServer::IsValidBasicHttpAuthentication(const std::string& basic) const
   {

@@ -49,7 +49,7 @@ namespace Palantir
     }
     is.setEos();
 
-    printf("[%d]\n", postData.size());
+    //printf("[%d]\n", postData.size());
 
     DcmFileFormat dicomFile;
     if (dicomFile.read(is).good())
@@ -467,7 +467,8 @@ namespace Palantir
     else if (uri.size() == 3 &&
              uri[0] == "instances" &&
              (uri[2] == "file" || 
-              uri[2] == "all-tags"))
+              uri[2] == "tags" || 
+              uri[2] == "named-tags"))
     {
       std::string fileUuid, contentType;
       if (uri[2] == "file")
@@ -475,7 +476,8 @@ namespace Palantir
         existingResource = index_.GetDicomFile(fileUuid, uri[1]);
         contentType = "application/dicom";
       }
-      else
+      else if (uri[2] == "tags" ||
+               uri[2] == "named-tags")
       {
         existingResource = index_.GetJsonFile(fileUuid, uri[1]);
         contentType = "application/json";

@@ -44,6 +44,7 @@ namespace Palantir
     typedef std::set<std::string> RegisteredUsers;
     RegisteredUsers registeredUsers_;
 
+    bool remoteAllowed_;
     bool authentication_;
     bool ssl_;
     std::string certificate_;
@@ -94,6 +95,13 @@ namespace Palantir
     }
 
     void SetSslCertificate(const char* path);
+
+    bool IsRemoteAccessAllowed() const
+    {
+      return remoteAllowed_;
+    }
+
+    void SetRemoteAccessAllowed(bool allowed);
 
     void ClearHandlers();
 
