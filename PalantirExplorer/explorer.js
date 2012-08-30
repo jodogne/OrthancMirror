@@ -88,10 +88,22 @@ function FormatDicomDate(s)
 
 function SortOnDicomTag(arr, tag, isInteger, reverse)
 {
+  var defaultValue;
+  if (isInteger)
+    defaultValue = 0;
+  else
+    defaultValue = '';
+
   arr.sort(function(a, b) {
     var ta = a.MainDicomTags[tag];
     var tb = b.MainDicomTags[tag];
     var order;
+
+    if (ta == undefined)
+      ta = defaultValue;
+
+    if (tb == undefined)
+      tb = defaultValue;
 
     if (isInteger)
     {
