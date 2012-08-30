@@ -197,18 +197,44 @@ function CompleteFormatting(s, link, isReverse)
 }
 
 
+function FormatMainDicomTags(tags, tagsToIgnore)
+{
+  var s = '';
+
+  for (var i in tags)
+  {
+    if (tagsToIgnore.indexOf(i) == -1)
+    {
+      var v = tags[i];
+
+      if (v == "PatientBirthDate")
+      {
+        v = FormatDicomDate(v);
+      }
+      else if (v == "DicomStudyInstanceUID")
+      {
+        v = SplitLongUid(v);
+      }
+      
+
+      s += ('<p>{0}: <strong>{1}</strong></p>').format(i, v);
+    }
+  }
+
+  return s;
+}
+
 
 function FormatPatient(patient, link, isReverse)
 {
-  var s = ('<h3>{1}</h3>' + 
-           '<p>Patient ID: <strong>{2}</strong></p>' +
-           '<p>Accession Number: <strong>{3}</strong></p>' +
-           '<p>Date of Birth: <strong>{4}</strong></p>' +
-           '<p>Sex: <strong>{5}</strong></p>' +
-           '<span class="ui-li-count">{6}</span>'
+  var s = ('<h3>{0}</h3>' + 
+           '<p>Patient ID: <strong>{1}</strong></p>' +
+           '<p>Accession aaNumber: <strong>{2}</strong></p>' +
+           '<p>Date of Birth: <strong>{3}</strong></p>' +
+           '<p>Sex: <strong>{4}</strong></p>' +
+           '<span class="ui-li-count">{5}</span>'
           ).format
-  (link,
-   patient.MainDicomTags.PatientName,
+  (patient.MainDicomTags.PatientName,
    patient.DicomPatientID,
    patient.MainDicomTags.AccessionNumber,
    FormatDicomDate(patient.MainDicomTags.PatientBirthDate),
@@ -224,11 +250,13 @@ function FormatPatient(patient, link, isReverse)
 function FormatStudy(study, link, isReverse)
 {
   var s = ('<h3>{0}</h3>' +
-           '<p>Study Instance UID: <strong>{1}</strong></p>' +
+           //'<p>Study Instance UID: <strong>{1}</strong></p>' +
+           '{1}' +
            '<span class="ui-li-count">{2}</span>'
            ).format
   (study.MainDicomTags.StudyDescription,
-   SplitLongUid(study.DicomStudyInstanceUID),
+   //SplitLongUid(study.DicomStudyInstanceUID),
+   FormatMainDicomTags(study.MainDicomTags, [ "StudyDescription", "StudyTime" ]),
    study.Series.length
   );
 

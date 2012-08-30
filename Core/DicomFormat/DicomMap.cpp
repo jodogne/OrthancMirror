@@ -30,25 +30,25 @@ namespace Palantir
 {
   static DicomTag patientTags[] =
   {
-    DicomTag(0x0008, 0x0050), // AccessionNumber
     DicomTag(0x0010, 0x0010), // PatientName
     DicomTag(0x0010, 0x0020), // PatientID
     DicomTag(0x0010, 0x0030), // PatientBirthDate
     DicomTag(0x0010, 0x0040), // PatientSex
-    DicomTag(0x0010, 0x1000), // OtherPatientIDs
-    DicomTag(0x0010, 0x1010), // PatientAge
-    DicomTag(0x0010, 0x1040)  // PatientAddress
+    DicomTag(0x0010, 0x1000)  // OtherPatientIDs
+    //DicomTag(0x0010, 0x1010), // PatientAge
+    //DicomTag(0x0010, 0x1040)  // PatientAddress
   };
 
   static DicomTag studyTags[] =
   {
     DicomTag(0x0008, 0x0020), // StudyDate
     DicomTag(0x0008, 0x0030), // StudyTime
+    DicomTag(0x0008, 0x0050), // AccessionNumber
     DicomTag(0x0008, 0x1030), // StudyDescription
     DicomTag(0x0020, 0x000d), // StudyInstanceUID
-    DicomTag(0x0020, 0x0010), // StudyID
-    DicomTag(0x0010, 0x1020), // PatientSize
-    DicomTag(0x0010, 0x1030)  // PatientWeight
+    DicomTag(0x0020, 0x0010)  // StudyID
+    //DicomTag(0x0010, 0x1020), // PatientSize
+    //DicomTag(0x0010, 0x1030)  // PatientWeight
   };
 
   static DicomTag seriesTags[] =
@@ -59,7 +59,8 @@ namespace Palantir
     DicomTag(0x0008, 0x0070), // Manufacturer
     DicomTag(0x0008, 0x1010), // StationName
     DicomTag(0x0008, 0x103e), // SeriesDescription
-    DicomTag(0x0010, 0x1080), // MilitaryRank
+    //DicomTag(0x0010, 0x1080), // MilitaryRank
+    DicomTag(0x0018, 0x0015), // BodyPartExamined
     DicomTag(0x0018, 0x0024), // SequenceName
     DicomTag(0x0018, 0x1030), // ProtocolName
     DicomTag(0x0020, 0x000e), // SeriesInstanceUID
