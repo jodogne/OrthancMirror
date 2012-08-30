@@ -245,7 +245,6 @@ namespace Palantir
 
     DicomMap dicom;
     dicomSummary.ExtractInstanceInformation(dicom);
-    dicom.Remove(DicomTag::INSTANCE_UID);
     StoreMainDicomTags(instanceUuid, dicom);
 
     return instanceUuid;
@@ -290,7 +289,6 @@ namespace Palantir
 
     DicomMap dicom;
     dicomSummary.ExtractSeriesInformation(dicom);
-    dicom.Remove(DicomTag::SERIES_UID);
     StoreMainDicomTags(seriesUuid, dicom);
 
     return seriesUuid;
@@ -328,7 +326,6 @@ namespace Palantir
 
     DicomMap dicom;
     dicomSummary.ExtractStudyInformation(dicom);
-    dicom.Remove(DicomTag::STUDY_UID);
     StoreMainDicomTags(studyUuid, dicom);
 
     return studyUuid;
@@ -367,7 +364,6 @@ namespace Palantir
 
     DicomMap dicom;
     dicomSummary.ExtractPatientInformation(dicom);
-    dicom.Remove(DicomTag::PATIENT_ID);
     StoreMainDicomTags(patientUuid, dicom);
 
     return patientUuid;
