@@ -47,6 +47,7 @@ if (${STATIC_BUILD})
     set_property(
       SOURCE ${CURL_SOURCES}
       PROPERTY COMPILE_DEFINITIONS "HAVE_TIME_H;HAVE_STRUCT_TIMEVAL;HAVE_SYS_STAT_H;HAVE_SOCKET;HAVE_STRUCT_SOCKADDR_STORAGE;HAVE_SYS_SOCKET_H;HAVE_SOCKET;HAVE_SYS_SOCKET_H;HAVE_NETINET_IN_H;HAVE_NETDB_H;HAVE_FCNTL_O_NONBLOCK;HAVE_FCNTL_H;HAVE_SELECT;HAVE_ERRNO_H;HAVE_SEND;HAVE_RECV;OS=\"${TMP_OS}\"")
+
     if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
       add_definitions(
         -DRECV_TYPE_ARG1=int
@@ -66,15 +67,15 @@ if (${STATIC_BUILD})
         )
     elseif ("${CMAKE_SIZEOF_VOID_P}" EQUAL "4")
       add_definitions(
-        -DRECV_TYPE_ARG1=SOCKET
-        -DRECV_TYPE_ARG2=char*
-        -DRECV_TYPE_ARG3=int
+        -DRECV_TYPE_ARG1=int
+        -DRECV_TYPE_ARG2=void*
+        -DRECV_TYPE_ARG3=size_t
         -DRECV_TYPE_ARG4=int
         -DRECV_TYPE_RETV=int
-        -DSEND_TYPE_ARG1=SOCKET
-        -DSEND_TYPE_ARG2=char*
+        -DSEND_TYPE_ARG1=int
+        -DSEND_TYPE_ARG2=void*
         -DSEND_QUAL_ARG2=const
-        -DSEND_TYPE_ARG3=int
+        -DSEND_TYPE_ARG3=size_t
         -DSEND_TYPE_ARG4=int
         -DSEND_TYPE_RETV=int
         -DSIZEOF_SHORT=2
