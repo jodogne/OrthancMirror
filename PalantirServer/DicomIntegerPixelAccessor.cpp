@@ -80,8 +80,8 @@ namespace Palantir
       throw PalantirException(ErrorCode_NotImplemented);
     }
 
-    printf("%d %d %d %d %d %d %d\n", width_, height_, samplesPerPixel_, bitsAllocated,
-           bitsStored, highBit, pixelRepresentation);
+    /*printf("%d %d %d %d %d %d %d\n", width_, height_, samplesPerPixel_, bitsAllocated,
+      bitsStored, highBit, pixelRepresentation);*/
 
     bytesPerPixel_ = bitsAllocated / 8;
     shift_ = highBit + 1 - bitsStored;

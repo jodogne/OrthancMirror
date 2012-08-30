@@ -49,14 +49,14 @@ public:
   virtual void Handle(const std::vector<uint8_t>& dicomFile,
                       const DicomMap& dicomSummary,
                       const Json::Value& dicomJson,
-                      const std::string& distantAet)
+                      const std::string& remoteAet)
   {
     std::string instanceUuid;
     if (dicomFile.size() > 0)
     {
       index_.Store(instanceUuid, storage_, 
                    reinterpret_cast<const char*>(&dicomFile[0]), dicomFile.size(),
-                   dicomSummary, dicomJson, distantAet);
+                   dicomSummary, dicomJson, remoteAet);
     }
   }
 };
@@ -121,6 +121,7 @@ int main(int argc, char* argv[])
       // HTTP server
       MongooseServer httpServer;
       httpServer.SetPort(GetGlobalIntegerParameter("HttpPort", 8000));
+      httpServer.SetRemoteAccessAllowed(GetGlobalBoolParameter("RemoteAccessAllowed", false));
 
       httpServer.SetAuthenticationEnabled(GetGlobalBoolParameter("AuthenticationEnabled", false));
       SetupRegisteredUsers(httpServer);
