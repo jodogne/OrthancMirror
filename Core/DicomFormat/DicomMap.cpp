@@ -65,6 +65,7 @@ namespace Palantir
     DicomTag(0x0018, 0x1030), // ProtocolName
     DicomTag(0x0020, 0x000e), // SeriesInstanceUID
     DicomTag(0x0020, 0x0011), // SeriesNumber
+    DicomTag(0x0020, 0x1002), // ImagesInAcquisition
     DicomTag(0x0054, 0x0081)  // NumberOfSlices
   };
 
