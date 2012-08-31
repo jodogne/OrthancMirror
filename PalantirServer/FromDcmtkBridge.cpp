@@ -379,8 +379,8 @@ namespace Palantir
   }
 
 
-  void FromDcmtkBridge::ExtractNormalizedImage(std::string& result,
-                                               DcmDataset& dataset)
+  void FromDcmtkBridge::ExtractPreviewImage(std::string& result,
+                                            DcmDataset& dataset)
   {
     // See also: http://support.dcmtk.org/wiki/dcmtk/howto/accessing-compressed-data
 
@@ -432,8 +432,8 @@ namespace Palantir
   }
 
 
-  void FromDcmtkBridge::ExtractNormalizedImage(std::string& result,
-                                               const std::string& dicomContent)
+  void FromDcmtkBridge::ExtractPreviewImage(std::string& result,
+                                            const std::string& dicomContent)
   {
     DcmInputBufferStream is;
     if (dicomContent.size() > 0)
@@ -445,7 +445,7 @@ namespace Palantir
     DcmFileFormat dicom;
     if (dicom.read(is).good())
     {
-      ExtractNormalizedImage(result, *dicom.getDataset());
+      ExtractPreviewImage(result, *dicom.getDataset());
     }
     else
     {

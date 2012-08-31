@@ -272,7 +272,8 @@ function FormatSeries(series, link, isReverse)
    FormatMainDicomTags(series.MainDicomTags, [
      "SeriesDescription", 
      "SeriesTime", 
-     "Manufacturer", 
+     "Manufacturer",
+     "ImagesInAcquisition",
      "SeriesDate"
    ]),
    series.Instances.length
@@ -585,7 +586,7 @@ $('#instance-download-json').live('click', function(e) {
 
 
 $('#instance-preview').live('click', function(e) {
-  jQuery.slimbox('/instances/' + $.mobile.pageData.uuid + '/normalized-image', '', {
+  jQuery.slimbox('/instances/' + $.mobile.pageData.uuid + '/preview', '', {
                    overlayFadeDuration : 1,
                    resizeDuration : 1,
                    imageFadeDuration : 1
@@ -600,7 +601,7 @@ $('#series-preview').live('click', function(e) {
 
         var images = [];
         for (var i = 0; i < instances.length; i++) {
-          images.push([ '/instances/' + instances[i].ID + '/normalized-image',
+          images.push([ '/instances/' + instances[i].ID + '/preview',
                         '{0}/{1}'.format(i + 1, instances.length) ])
         }
 

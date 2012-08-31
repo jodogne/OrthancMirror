@@ -43,11 +43,11 @@ namespace Palantir
                        const std::string& path,
                        unsigned int maxStringLength = 256);
 
-    static void ExtractNormalizedImage(std::string& result,
-                                       DcmDataset& dataset);
+    static void ExtractPreviewImage(std::string& result,
+                                    DcmDataset& dataset);
 
-    static void ExtractNormalizedImage(std::string& result,
-                                       const std::string& dicomContent);
+    static void ExtractPreviewImage(std::string& result,
+                                    const std::string& dicomContent);
 
     static std::string GetName(const DicomTag& tag);
 
