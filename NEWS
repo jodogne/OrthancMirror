@@ -1,6 +1,7 @@
 Pending changes
 ===============
 
+* Access to the raw PNG images (in 8bpp and 16bpp)
 * Support of SSL and HTTP Basic Authentication
 * Change of the licensing of the "Core/SQLite" folder to BSD, (to
   reflect the original licensing terms of Chromium, from which the
