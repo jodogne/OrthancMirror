@@ -379,12 +379,69 @@ namespace Palantir
   }
 
 
-  void FromDcmtkBridge::ExtractPreviewImage(std::string& result,
-                                            DcmDataset& dataset)
+  static void ExtractPngImagePreview(std::string& result,
+                                     DicomIntegerPixelAccessor& accessor)
+  {
+    PngWriter w;
+
+    int32_t min, max;
+    accessor.GetExtremeValues(min, max);
+
+    std::vector<uint8_t> image(accessor.GetWidth() * accessor.GetHeight(), 0);
+    if (min != max)
+    {
+      uint8_t* pixel = &image[0];
+      for (unsigned int y = 0; y < accessor.GetHeight(); y++)
+      {
+        for (unsigned int x = 0; x < accessor.GetWidth(); x++, pixel++)
+        {
+          int32_t v = accessor.GetValue(x, y);
+          *pixel = static_cast<uint8_t>(
+            boost::math::lround(static_cast<float>(v - min) / 
+                                static_cast<float>(max - min) * 255.0f));
+        }
+      }
+    }
+
+    w.WriteToMemory(result, accessor.GetWidth(), accessor.GetHeight(),
+                    accessor.GetWidth(), PixelFormat_Grayscale8, &image[0]);
+  }
+
+
+  template <typename T>
+  static void ExtractPngImageTruncate(std::string& result,
+                                      DicomIntegerPixelAccessor& accessor,
+                                      PixelFormat format)
+  {
+    PngWriter w;
+
+    std::vector<T> image(accessor.GetWidth() * accessor.GetHeight(), 0);
+    T* pixel = &image[0];
+    for (unsigned int y = 0; y < accessor.GetHeight(); y++)
+    {
+      for (unsigned int x = 0; x < accessor.GetWidth(); x++, pixel++)
+      {
+        int32_t v = accessor.GetValue(x, y);
+        if (v < std::numeric_limits<T>::min())
+          *pixel = std::numeric_limits<T>::min();
+        else if (v > std::numeric_limits<T>::max())
+          *pixel = std::numeric_limits<T>::max();
+        else
+          *pixel = static_cast<T>(v);
+      }
+    }
+
+    w.WriteToMemory(result, accessor.GetWidth(), accessor.GetHeight(),
+                    accessor.GetWidth() * sizeof(T), format, &image[0]);
+  }
+
+
+  void FromDcmtkBridge::ExtractPngImage(std::string& result,
+                                        DcmDataset& dataset,
+                                        ImageExtractionMode mode)
   {
     // See also: http://support.dcmtk.org/wiki/dcmtk/howto/accessing-compressed-data
 
-    PngWriter w;
     std::auto_ptr<DicomIntegerPixelAccessor> accessor;
 
     DicomMap m;
@@ -401,39 +458,55 @@ namespace Palantir
       }
     }
 
+    PixelFormat format;
+    switch (mode)
+    {
+    case ImageExtractionMode_Preview:
+    case ImageExtractionMode_UInt8:
+      format = PixelFormat_Grayscale8;
+      break;
+
+    case ImageExtractionMode_UInt16:
+      format = PixelFormat_Grayscale16;
+      break;
+
+    default:
+      throw PalantirException(ErrorCode_NotImplemented);
+    }
+
     if (accessor.get() == NULL ||
         accessor->GetWidth() == 0 ||
         accessor->GetHeight() == 0)
     {
-      w.WriteToMemory(result, 0, 0, 0, PixelFormat_Grayscale8, NULL);
+      PngWriter w;
+      w.WriteToMemory(result, 0, 0, 0, format, NULL);
     }
     else
     {
-      int32_t min, max;
-      accessor->GetExtremeValues(min, max);
-
-      std::vector<uint8_t> image(accessor->GetWidth() * accessor->GetHeight(), 0);
-      if (min != max)
+      switch (mode)
       {
-        uint8_t* result = &image[0];
-        for (unsigned int y = 0; y < accessor->GetHeight(); y++)
-        {
-          for (unsigned int x = 0; x < accessor->GetWidth(); x++, result++)
-          {
-            int32_t v = accessor->GetValue(x, y);
-            *result = static_cast<uint8_t>(boost::math::lround(static_cast<float>(v - min) / static_cast<float>(max - min) * 255.0f));
-          }
-        }
-      }
+      case ImageExtractionMode_Preview:
+        ExtractPngImagePreview(result, *accessor);
+        break;
 
-      w.WriteToMemory(result, accessor->GetWidth(), accessor->GetHeight(),
-                      accessor->GetWidth(), PixelFormat_Grayscale8, &image[0]);
+      case ImageExtractionMode_UInt8:
+        ExtractPngImageTruncate<uint8_t>(result, *accessor, format);
+        break;
+
+      case ImageExtractionMode_UInt16:
+        ExtractPngImageTruncate<uint16_t>(result, *accessor, format);
+        break;
+
+      default:
+        throw PalantirException(ErrorCode_NotImplemented);
+      }
     }
   }
 
 
-  void FromDcmtkBridge::ExtractPreviewImage(std::string& result,
-                                            const std::string& dicomContent)
+  void FromDcmtkBridge::ExtractPngImage(std::string& result,
+                                        const std::string& dicomContent,
+                                        ImageExtractionMode mode)
   {
     DcmInputBufferStream is;
     if (dicomContent.size() > 0)
@@ -445,7 +518,7 @@ namespace Palantir
     DcmFileFormat dicom;
     if (dicom.read(is).good())
     {
-      ExtractPreviewImage(result, *dicom.getDataset());
+      ExtractPngImage(result, *dicom.getDataset(), mode);
     }
     else
     {

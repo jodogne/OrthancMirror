@@ -26,6 +26,13 @@
 
 namespace Palantir
 {
+  enum ImageExtractionMode
+  {
+    ImageExtractionMode_Preview,
+    ImageExtractionMode_UInt8,
+    ImageExtractionMode_UInt16
+  };
+
   class FromDcmtkBridge
   {
   public:
@@ -43,11 +50,13 @@ namespace Palantir
                        const std::string& path,
                        unsigned int maxStringLength = 256);
 
-    static void ExtractPreviewImage(std::string& result,
-                                    DcmDataset& dataset);
+    static void ExtractPngImage(std::string& result,
+                                DcmDataset& dataset,
+                                ImageExtractionMode mode);
 
-    static void ExtractPreviewImage(std::string& result,
-                                    const std::string& dicomContent);
+    static void ExtractPngImage(std::string& result,
+                                const std::string& dicomContent,
+                                ImageExtractionMode mode);
 
     static std::string GetName(const DicomTag& tag);
 

@@ -568,7 +568,9 @@ namespace Palantir
 
     else if (uri.size() == 3 &&
              uri[0] == "instances" &&
-             uri[2] == "preview")
+             (uri[2] == "preview" ||
+              uri[2] == "image-uint8" ||
+              uri[2] == "image-uint16"))
     {
       std::string uuid;
       existingResource = index_.GetDicomFile(uuid, uri[1]);
@@ -579,7 +581,23 @@ namespace Palantir
         storage_.ReadFile(dicomContent, uuid);
         try
         {
-          FromDcmtkBridge::ExtractPreviewImage(png, dicomContent);
+          if (uri[2] == "preview")
+          {
+            FromDcmtkBridge::ExtractPngImage(png, dicomContent, ImageExtractionMode_Preview);
+          }
+          else if (uri[2] == "image-uint8")
+          {
+            FromDcmtkBridge::ExtractPngImage(png, dicomContent, ImageExtractionMode_UInt8);
+          }
+          else if (uri[2] == "image-uint16")
+          {
+            FromDcmtkBridge::ExtractPngImage(png, dicomContent, ImageExtractionMode_UInt16);
+          }
+          else
+          {
+            throw PalantirException(ErrorCode_InternalError);
+          }
+
           output.AnswerBufferWithContentType(png, "image/png");
           return;
         }
