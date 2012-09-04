@@ -27,83 +27,87 @@
 
 #pragma once
 
-namespace Palantir
+
+/**
+ * This file contains the enumerations for the access to the Palantir
+ * REST API in C and C++. Namespaces are not used, in order to enable
+ * the access in C.
+ **/
+
+// Most common, non-joke and non-experimental HTTP status codes
+// http://en.wikipedia.org/wiki/List_of_HTTP_status_codes
+enum Palantir_HttpStatus
 {
-  // Most common, non-joke and non-experimental HTTP status codes
-  // http://en.wikipedia.org/wiki/List_of_HTTP_status_codes
-  enum HttpStatus
-  {
-    HttpStatus_None = -1,
+  Palantir_HttpStatus_None = -1,
 
-    // 1xx Informational
-    HttpStatus_100_Continue = 100,
-    HttpStatus_101_SwitchingProtocols = 101,
-    HttpStatus_102_Processing = 102,
+  // 1xx Informational
+  Palantir_HttpStatus_100_Continue = 100,
+  Palantir_HttpStatus_101_SwitchingProtocols = 101,
+  Palantir_HttpStatus_102_Processing = 102,
 
-    // 2xx Success
-    HttpStatus_200_Ok = 200,
-    HttpStatus_201_Created = 201,
-    HttpStatus_202_Accepted = 202,
-    HttpStatus_203_NonAuthoritativeInformation = 203,
-    HttpStatus_204_NoContent = 204,
-    HttpStatus_205_ResetContent = 205,
-    HttpStatus_206_PartialContent = 206,
-    HttpStatus_207_MultiStatus = 207,
-    HttpStatus_208_AlreadyReported = 208,
-    HttpStatus_226_IMUsed = 226,
+  // 2xx Success
+  Palantir_HttpStatus_200_Ok = 200,
+  Palantir_HttpStatus_201_Created = 201,
+  Palantir_HttpStatus_202_Accepted = 202,
+  Palantir_HttpStatus_203_NonAuthoritativeInformation = 203,
+  Palantir_HttpStatus_204_NoContent = 204,
+  Palantir_HttpStatus_205_ResetContent = 205,
+  Palantir_HttpStatus_206_PartialContent = 206,
+  Palantir_HttpStatus_207_MultiStatus = 207,
+  Palantir_HttpStatus_208_AlreadyReported = 208,
+  Palantir_HttpStatus_226_IMUsed = 226,
 
-    // 3xx Redirection
-    HttpStatus_300_MultipleChoices = 300,
-    HttpStatus_301_MovedPermanently = 301,
-    HttpStatus_302_Found = 302,
-    HttpStatus_303_SeeOther = 303,
-    HttpStatus_304_NotModified = 304,
-    HttpStatus_305_UseProxy = 305,
-    HttpStatus_307_TemporaryRedirect = 307,
+  // 3xx Redirection
+  Palantir_HttpStatus_300_MultipleChoices = 300,
+  Palantir_HttpStatus_301_MovedPermanently = 301,
+  Palantir_HttpStatus_302_Found = 302,
+  Palantir_HttpStatus_303_SeeOther = 303,
+  Palantir_HttpStatus_304_NotModified = 304,
+  Palantir_HttpStatus_305_UseProxy = 305,
+  Palantir_HttpStatus_307_TemporaryRedirect = 307,
 
-    // 4xx Client Error
-    HttpStatus_400_BadRequest = 400,
-    HttpStatus_401_Unauthorized = 401,
-    HttpStatus_402_PaymentRequired = 402,
-    HttpStatus_403_Forbidden = 403,
-    HttpStatus_404_NotFound = 404,
-    HttpStatus_405_MethodNotAllowed = 405,
-    HttpStatus_406_NotAcceptable = 406,
-    HttpStatus_407_ProxyAuthenticationRequired = 407,
-    HttpStatus_408_RequestTimeout = 408,
-    HttpStatus_409_Conflict = 409,
-    HttpStatus_410_Gone = 410,
-    HttpStatus_411_LengthRequired = 411,
-    HttpStatus_412_PreconditionFailed = 412,
-    HttpStatus_413_RequestEntityTooLarge = 413,
-    HttpStatus_414_RequestUriTooLong = 414,
-    HttpStatus_415_UnsupportedMediaType = 415,
-    HttpStatus_416_RequestedRangeNotSatisfiable = 416,
-    HttpStatus_417_ExpectationFailed = 417,
-    HttpStatus_422_UnprocessableEntity = 422,
-    HttpStatus_423_Locked = 423,
-    HttpStatus_424_FailedDependency = 424,
-    HttpStatus_426_UpgradeRequired = 426,
+  // 4xx Client Error
+  Palantir_HttpStatus_400_BadRequest = 400,
+  Palantir_HttpStatus_401_Unauthorized = 401,
+  Palantir_HttpStatus_402_PaymentRequired = 402,
+  Palantir_HttpStatus_403_Forbidden = 403,
+  Palantir_HttpStatus_404_NotFound = 404,
+  Palantir_HttpStatus_405_MethodNotAllowed = 405,
+  Palantir_HttpStatus_406_NotAcceptable = 406,
+  Palantir_HttpStatus_407_ProxyAuthenticationRequired = 407,
+  Palantir_HttpStatus_408_RequestTimeout = 408,
+  Palantir_HttpStatus_409_Conflict = 409,
+  Palantir_HttpStatus_410_Gone = 410,
+  Palantir_HttpStatus_411_LengthRequired = 411,
+  Palantir_HttpStatus_412_PreconditionFailed = 412,
+  Palantir_HttpStatus_413_RequestEntityTooLarge = 413,
+  Palantir_HttpStatus_414_RequestUriTooLong = 414,
+  Palantir_HttpStatus_415_UnsupportedMediaType = 415,
+  Palantir_HttpStatus_416_RequestedRangeNotSatisfiable = 416,
+  Palantir_HttpStatus_417_ExpectationFailed = 417,
+  Palantir_HttpStatus_422_UnprocessableEntity = 422,
+  Palantir_HttpStatus_423_Locked = 423,
+  Palantir_HttpStatus_424_FailedDependency = 424,
+  Palantir_HttpStatus_426_UpgradeRequired = 426,
 
-    // 5xx Server Error
-    HttpStatus_500_InternalServerError = 500,
-    HttpStatus_501_NotImplemented = 501,
-    HttpStatus_502_BadGateway = 502,
-    HttpStatus_503_ServiceUnavailable = 503,
-    HttpStatus_504_GatewayTimeout = 504,
-    HttpStatus_505_HttpVersionNotSupported = 505,
-    HttpStatus_506_VariantAlsoNegotiates = 506,
-    HttpStatus_507_InsufficientStorage = 507,
-    HttpStatus_509_BandwidthLimitExceeded = 509,
-    HttpStatus_510_NotExtended = 510
-  };
+  // 5xx Server Error
+  Palantir_HttpStatus_500_InternalServerError = 500,
+  Palantir_HttpStatus_501_NotImplemented = 501,
+  Palantir_HttpStatus_502_BadGateway = 502,
+  Palantir_HttpStatus_503_ServiceUnavailable = 503,
+  Palantir_HttpStatus_504_GatewayTimeout = 504,
+  Palantir_HttpStatus_505_HttpVersionNotSupported = 505,
+  Palantir_HttpStatus_506_VariantAlsoNegotiates = 506,
+  Palantir_HttpStatus_507_InsufficientStorage = 507,
+  Palantir_HttpStatus_509_BandwidthLimitExceeded = 509,
+  Palantir_HttpStatus_510_NotExtended = 510
+};
 
 
-  enum HttpMethod
-  {
-    HttpMethod_Get,
-    HttpMethod_Post,
-    HttpMethod_Delete,
-    HttpMethod_Put
-  };
-}
+enum Palantir_HttpMethod
+{
+  Palantir_HttpMethod_Get = 0,
+  Palantir_HttpMethod_Post = 1,
+  Palantir_HttpMethod_Delete = 2,
+  Palantir_HttpMethod_Put = 3
+};

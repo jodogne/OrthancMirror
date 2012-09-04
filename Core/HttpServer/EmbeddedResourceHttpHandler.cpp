@@ -67,7 +67,7 @@ namespace Palantir
     }
     catch (PalantirException& e)
     {
-      output.SendHeader(HttpStatus_404_NotFound);
+      output.SendHeader(Palantir_HttpStatus_404_NotFound);
     }
   } 
 }

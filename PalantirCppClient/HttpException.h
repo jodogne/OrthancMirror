@@ -36,24 +36,24 @@ namespace Palantir
   class HttpException
   {
   private:
-    HttpStatus status_;
+    Palantir_HttpStatus status_;
     std::string custom_;
 
   public:
-    static const char* GetDescription(HttpStatus status);
+    static const char* GetDescription(Palantir_HttpStatus status);
 
     HttpException(const std::string& custom)
     {
-      status_ = HttpStatus_None;
+      status_ = Palantir_HttpStatus_None;
       custom_ = custom;
     }
 
-    HttpException(HttpStatus status)
+    HttpException(Palantir_HttpStatus status)
     {
       status_ = status;
     }
 
-    HttpStatus GetHttpStatus() const
+    Palantir_HttpStatus GetHttpStatus() const
     {
       return status_;
     }

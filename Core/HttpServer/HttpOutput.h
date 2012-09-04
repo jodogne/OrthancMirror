@@ -30,7 +30,7 @@ namespace Palantir
   class HttpOutput
   {
   private:
-    void SendHeaderInternal(HttpStatus status);
+    void SendHeaderInternal(Palantir_HttpStatus status);
 
     void SendOkHeader(const char* contentType,
                       bool hasContentLength,
@@ -56,7 +56,7 @@ namespace Palantir
 
     void SendMethodNotAllowedError(const std::string& allowed);
 
-    void SendHeader(HttpStatus status);
+    void SendHeader(Palantir_HttpStatus status);
 
 
     // Higher-level constructs to send entire files or buffers -------------------

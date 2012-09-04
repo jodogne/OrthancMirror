@@ -426,7 +426,7 @@ namespace Palantir
         }
         else
         {
-          output.SendHeader(HttpStatus_415_UnsupportedMediaType);
+          output.SendHeader(Palantir_HttpStatus_415_UnsupportedMediaType);
           return;
         }
       }
@@ -629,7 +629,7 @@ namespace Palantir
         }
         catch (boost::bad_lexical_cast)
         {
-          output.SendHeader(HttpStatus_400_BadRequest);
+          output.SendHeader(Palantir_HttpStatus_400_BadRequest);
           return;
         }
 
@@ -640,7 +640,7 @@ namespace Palantir
 
         if (!index_.GetChanges(result, since, filter, limit))
         {
-          output.SendHeader(HttpStatus_400_BadRequest);
+          output.SendHeader(Palantir_HttpStatus_400_BadRequest);
           return;
         }
 
@@ -730,7 +730,7 @@ namespace Palantir
               (uri[2] == "find" && !DicomFind(result, connection, postData)) ||
               (uri[2] == "store" && !DicomStore(result, connection, postData)))
           {
-            output.SendHeader(HttpStatus_400_BadRequest);
+            output.SendHeader(Palantir_HttpStatus_400_BadRequest);
             return;
           }
         }
@@ -744,7 +744,7 @@ namespace Palantir
     }
     else
     {
-      output.SendHeader(HttpStatus_404_NotFound);
+      output.SendHeader(Palantir_HttpStatus_404_NotFound);
     }
   }
 }
