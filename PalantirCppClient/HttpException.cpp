@@ -31,7 +31,7 @@ namespace Palantir
 {
   const char* HttpException::What() const
   {
-    if (status_ == HttpStatus_None)
+    if (status_ == Palantir_HttpStatus_None)
     {
       return custom_.c_str();
     }
@@ -41,164 +41,164 @@ namespace Palantir
     }
   }
 
-  const char* HttpException::GetDescription(HttpStatus status)
+  const char* HttpException::GetDescription(Palantir_HttpStatus status)
   {
     switch (status)
     {
-    case HttpStatus_100_Continue:
+    case Palantir_HttpStatus_100_Continue:
       return "Continue";
 
-    case HttpStatus_101_SwitchingProtocols:
+    case Palantir_HttpStatus_101_SwitchingProtocols:
       return "Switching Protocols";
 
-    case HttpStatus_102_Processing:
+    case Palantir_HttpStatus_102_Processing:
       return "Processing";
 
-    case HttpStatus_200_Ok:
+    case Palantir_HttpStatus_200_Ok:
       return "OK";
 
-    case HttpStatus_201_Created:
+    case Palantir_HttpStatus_201_Created:
       return "Created";
 
-    case HttpStatus_202_Accepted:
+    case Palantir_HttpStatus_202_Accepted:
       return "Accepted";
 
-    case HttpStatus_203_NonAuthoritativeInformation:
+    case Palantir_HttpStatus_203_NonAuthoritativeInformation:
       return "Non-Authoritative Information";
 
-    case HttpStatus_204_NoContent:
+    case Palantir_HttpStatus_204_NoContent:
       return "No Content";
 
-    case HttpStatus_205_ResetContent:
+    case Palantir_HttpStatus_205_ResetContent:
       return "Reset Content";
 
-    case HttpStatus_206_PartialContent:
+    case Palantir_HttpStatus_206_PartialContent:
       return "Partial Content";
 
-    case HttpStatus_207_MultiStatus:
+    case Palantir_HttpStatus_207_MultiStatus:
       return "Multi-Status";
 
-    case HttpStatus_208_AlreadyReported:
+    case Palantir_HttpStatus_208_AlreadyReported:
       return "Already Reported";
 
-    case HttpStatus_226_IMUsed:
+    case Palantir_HttpStatus_226_IMUsed:
       return "IM Used";
 
-    case HttpStatus_300_MultipleChoices:
+    case Palantir_HttpStatus_300_MultipleChoices:
       return "Multiple Choices";
 
-    case HttpStatus_301_MovedPermanently:
+    case Palantir_HttpStatus_301_MovedPermanently:
       return "Moved Permanently";
 
-    case HttpStatus_302_Found:
+    case Palantir_HttpStatus_302_Found:
       return "Found";
 
-    case HttpStatus_303_SeeOther:
+    case Palantir_HttpStatus_303_SeeOther:
       return "See Other";
 
-    case HttpStatus_304_NotModified:
+    case Palantir_HttpStatus_304_NotModified:
       return "Not Modified";
 
-    case HttpStatus_305_UseProxy:
+    case Palantir_HttpStatus_305_UseProxy:
       return "Use Proxy";
 
-    case HttpStatus_307_TemporaryRedirect:
+    case Palantir_HttpStatus_307_TemporaryRedirect:
       return "Temporary Redirect";
 
-    case HttpStatus_400_BadRequest:
+    case Palantir_HttpStatus_400_BadRequest:
       return "Bad Request";
 
-    case HttpStatus_401_Unauthorized:
+    case Palantir_HttpStatus_401_Unauthorized:
       return "Unauthorized";
 
-    case HttpStatus_402_PaymentRequired:
+    case Palantir_HttpStatus_402_PaymentRequired:
       return "Payment Required";
 
-    case HttpStatus_403_Forbidden:
+    case Palantir_HttpStatus_403_Forbidden:
       return "Forbidden";
 
-    case HttpStatus_404_NotFound:
+    case Palantir_HttpStatus_404_NotFound:
       return "Not Found";
 
-    case HttpStatus_405_MethodNotAllowed:
+    case Palantir_HttpStatus_405_MethodNotAllowed:
       return "Method Not Allowed";
 
-    case HttpStatus_406_NotAcceptable:
+    case Palantir_HttpStatus_406_NotAcceptable:
       return "Not Acceptable";
 
-    case HttpStatus_407_ProxyAuthenticationRequired:
+    case Palantir_HttpStatus_407_ProxyAuthenticationRequired:
       return "Proxy Authentication Required";
 
-    case HttpStatus_408_RequestTimeout:
+    case Palantir_HttpStatus_408_RequestTimeout:
       return "Request Timeout";
 
-    case HttpStatus_409_Conflict:
+    case Palantir_HttpStatus_409_Conflict:
       return "Conflict";
 
-    case HttpStatus_410_Gone:
+    case Palantir_HttpStatus_410_Gone:
       return "Gone";
 
-    case HttpStatus_411_LengthRequired:
+    case Palantir_HttpStatus_411_LengthRequired:
       return "Length Required";
 
-    case HttpStatus_412_PreconditionFailed:
+    case Palantir_HttpStatus_412_PreconditionFailed:
       return "Precondition Failed";
 
-    case HttpStatus_413_RequestEntityTooLarge:
+    case Palantir_HttpStatus_413_RequestEntityTooLarge:
       return "Request Entity Too Large";
 
-    case HttpStatus_414_RequestUriTooLong:
+    case Palantir_HttpStatus_414_RequestUriTooLong:
       return "Request-URI Too Long";
 
-    case HttpStatus_415_UnsupportedMediaType:
+    case Palantir_HttpStatus_415_UnsupportedMediaType:
       return "Unsupported Media Type";
 
-    case HttpStatus_416_RequestedRangeNotSatisfiable:
+    case Palantir_HttpStatus_416_RequestedRangeNotSatisfiable:
       return "Requested Range Not Satisfiable";
 
-    case HttpStatus_417_ExpectationFailed:
+    case Palantir_HttpStatus_417_ExpectationFailed:
       return "Expectation Failed";
 
-    case HttpStatus_422_UnprocessableEntity:
+    case Palantir_HttpStatus_422_UnprocessableEntity:
       return "Unprocessable Entity";
 
-    case HttpStatus_423_Locked:
+    case Palantir_HttpStatus_423_Locked:
       return "Locked";
 
-    case HttpStatus_424_FailedDependency:
+    case Palantir_HttpStatus_424_FailedDependency:
       return "Failed Dependency";
 
-    case HttpStatus_426_UpgradeRequired:
+    case Palantir_HttpStatus_426_UpgradeRequired:
       return "Upgrade Required";
 
-    case HttpStatus_500_InternalServerError:
+    case Palantir_HttpStatus_500_InternalServerError:
       return "Internal Server Error";
 
-    case HttpStatus_501_NotImplemented:
+    case Palantir_HttpStatus_501_NotImplemented:
       return "Not Implemented";
 
-    case HttpStatus_502_BadGateway:
+    case Palantir_HttpStatus_502_BadGateway:
       return "Bad Gateway";
 
-    case HttpStatus_503_ServiceUnavailable:
+    case Palantir_HttpStatus_503_ServiceUnavailable:
       return "Service Unavailable";
 
-    case HttpStatus_504_GatewayTimeout:
+    case Palantir_HttpStatus_504_GatewayTimeout:
       return "Gateway Timeout";
 
-    case HttpStatus_505_HttpVersionNotSupported:
+    case Palantir_HttpStatus_505_HttpVersionNotSupported:
       return "HTTP Version Not Supported";
 
-    case HttpStatus_506_VariantAlsoNegotiates:
+    case Palantir_HttpStatus_506_VariantAlsoNegotiates:
       return "Variant Also Negotiates";
 
-    case HttpStatus_507_InsufficientStorage:
+    case Palantir_HttpStatus_507_InsufficientStorage:
       return "Insufficient Storage";
 
-    case HttpStatus_509_BandwidthLimitExceeded:
+    case Palantir_HttpStatus_509_BandwidthLimitExceeded:
       return "Bandwidth Limit Exceeded";
 
-    case HttpStatus_510_NotExtended:
+    case Palantir_HttpStatus_510_NotExtended:
       return "Not Extended";
 
     default:

@@ -481,7 +481,7 @@ namespace Palantir
         HttpHandler::Arguments::const_iterator ct = headers.find("content-type");
         if (ct == headers.end())
         {
-          output.SendHeader(HttpStatus_400_BadRequest);
+          output.SendHeader(Palantir_HttpStatus_400_BadRequest);
           return (void*) "";
         }
 
@@ -501,11 +501,11 @@ namespace Palantir
         switch (status)
         {
         case PostDataStatus_NoLength:
-          output.SendHeader(HttpStatus_411_LengthRequired);
+          output.SendHeader(Palantir_HttpStatus_411_LengthRequired);
           return (void*) "";
 
         case PostDataStatus_Failure:
-          output.SendHeader(HttpStatus_400_BadRequest);
+          output.SendHeader(Palantir_HttpStatus_400_BadRequest);
           return (void*) "";
 
         case PostDataStatus_Pending:
@@ -531,12 +531,12 @@ namespace Palantir
         catch (PalantirException& e)
         {
           std::cerr << "MongooseServer Exception [" << e.What() << "]" << std::endl;
-          output.SendHeader(HttpStatus_500_InternalServerError);        
+          output.SendHeader(Palantir_HttpStatus_500_InternalServerError);        
         }
       }
       else
       {
-        output.SendHeader(HttpStatus_404_NotFound);
+        output.SendHeader(Palantir_HttpStatus_404_NotFound);
       }
 
       // Mark as processed

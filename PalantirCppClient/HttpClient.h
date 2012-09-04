@@ -43,8 +43,8 @@ namespace Palantir
     boost::shared_ptr<PImpl> pimpl_;
 
     std::string url_;
-    HttpMethod method_;
-    HttpStatus lastStatus_;
+    Palantir_HttpMethod method_;
+    Palantir_HttpStatus lastStatus_;
     std::string postData_;
     bool isVerbose_;
 
@@ -68,12 +68,12 @@ namespace Palantir
       return url_;
     }
 
-    void SetMethod(HttpMethod method)
+    void SetMethod(Palantir_HttpMethod method)
     {
       method_ = method;
     }
 
-    HttpMethod GetMethod() const
+    Palantir_HttpMethod GetMethod() const
     {
       return method_;
     }
@@ -99,7 +99,7 @@ namespace Palantir
 
     bool Apply(Json::Value& answer);
 
-    HttpStatus GetLastStatus() const
+    Palantir_HttpStatus GetLastStatus() const
     {
       return lastStatus_;
     }

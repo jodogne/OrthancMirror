@@ -136,7 +136,7 @@ namespace Palantir
     }
     else
     {
-      output.SendHeader(HttpStatus_404_NotFound);
+      output.SendHeader(Palantir_HttpStatus_404_NotFound);
     }
   } 
 }

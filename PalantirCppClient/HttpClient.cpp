@@ -93,8 +93,8 @@ namespace Palantir
 #endif
 
     url_ = "";
-    method_ = HttpMethod_Get;
-    lastStatus_ = HttpStatus_200_Ok;
+    method_ = Palantir_HttpMethod_Get;
+    lastStatus_ = Palantir_HttpStatus_200_Ok;
     isVerbose_ = false;
   }
 
@@ -130,11 +130,11 @@ namespace Palantir
 
     switch (method_)
     {
-    case HttpMethod_Get:
+    case Palantir_HttpMethod_Get:
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPGET, 1L));
       break;
 
-    case HttpMethod_Post:
+    case Palantir_HttpMethod_Post:
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POST, 1L));
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPHEADER, pimpl_->postHeaders_));
 
@@ -151,12 +151,12 @@ namespace Palantir
 
       break;
 
-    case HttpMethod_Delete:
+    case Palantir_HttpMethod_Delete:
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_NOBODY, 1L));
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CUSTOMREQUEST, "DELETE"));
       break;
 
-    case HttpMethod_Put:
+    case Palantir_HttpMethod_Put:
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_PUT, 1L));
       break;
 
@@ -173,11 +173,11 @@ namespace Palantir
     if (status == 0)
     {
       // This corresponds to a call to an inexistent host
-      lastStatus_ = HttpStatus_500_InternalServerError;
+      lastStatus_ = Palantir_HttpStatus_500_InternalServerError;
     }
     else
     {
-      lastStatus_ = static_cast<HttpStatus>(status);
+      lastStatus_ = static_cast<Palantir_HttpStatus>(status);
     }
 
     return (status >= 200 && status < 300);
