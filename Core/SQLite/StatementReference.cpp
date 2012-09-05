@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -36,12 +36,12 @@
 
 #include "StatementReference.h"
 
-#include "../PalantirException.h"
+#include "../PalanthirException.h"
 
 #include <cassert>
 #include "sqlite3.h"
 
-namespace Palantir
+namespace Palanthir
 {
   namespace SQLite
   {
@@ -63,7 +63,7 @@ namespace Palantir
     {
       if (database == NULL || sql == NULL)
       {
-        throw PalantirException(ErrorCode_ParameterOutOfRange);
+        throw PalanthirException(ErrorCode_ParameterOutOfRange);
       }
 
       root_ = NULL;
@@ -72,7 +72,7 @@ namespace Palantir
       int error = sqlite3_prepare_v2(database, sql, -1, &statement_, NULL);
       if (error != SQLITE_OK)
       {
-        throw PalantirException("SQLite: " + std::string(sqlite3_errmsg(database)));
+        throw PalanthirException("SQLite: " + std::string(sqlite3_errmsg(database)));
       }
 
       assert(IsRoot());
@@ -104,7 +104,7 @@ namespace Palantir
         if (refCount_ != 0)
         {
           // There remain references to this object
-          throw PalantirException(ErrorCode_InternalError);
+          throw PalanthirException(ErrorCode_InternalError);
         }
         else if (statement_ != NULL)
         {
@@ -115,7 +115,7 @@ namespace Palantir
       {
         if (root_->refCount_ == 0)
         {
-          throw PalantirException(ErrorCode_InternalError);
+          throw PalanthirException(ErrorCode_InternalError);
         }
         else
         {

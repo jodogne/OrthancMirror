@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -24,7 +24,7 @@
 
 #include "../FromDcmtkBridge.h"
 #include "../ToDcmtkBridge.h"
-#include "../../Core/PalantirException.h"
+#include "../../Core/PalanthirException.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmdata/dcmetinf.h>
@@ -33,7 +33,7 @@
 #include <dcmtk/dcmnet/diutil.h>
 
 
-namespace Palantir
+namespace Palanthir
 {
   namespace Internals
   {
@@ -84,7 +84,7 @@ namespace Palantir
           data.failureCount_ = 0;
           data.warningCount_ = 0;
         }
-        catch (PalantirException& e)
+        catch (PalanthirException& e)
         {
           // Internal error!
           OFLOG_ERROR(Internals::Logger, "IMoveRequestHandler Failed: " << e.What());
@@ -113,7 +113,7 @@ namespace Palantir
         {
           status = data.iterator_->DoNext();
         }
-        catch (PalantirException& e)
+        catch (PalanthirException& e)
         {
           // Internal error!
           OFLOG_ERROR(Internals::Logger, "IMoveRequestHandler Failed: " << e.What());

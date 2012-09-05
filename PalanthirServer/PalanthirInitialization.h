@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -25,11 +25,11 @@
 #include <json/json.h>
 #include "../Core/HttpServer/MongooseServer.h"
 
-namespace Palantir
+namespace Palanthir
 {
-  void PalantirInitialize(const char* configurationFile = NULL);
+  void PalanthirInitialize(const char* configurationFile = NULL);
 
-  void PalantirFinalize();
+  void PalanthirFinalize();
 
   std::string GetGlobalStringParameter(const std::string& parameter,
                                        const std::string& defaultValue);

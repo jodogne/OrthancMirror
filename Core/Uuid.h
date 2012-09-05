@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -31,7 +31,7 @@
  * http://stackoverflow.com/questions/246930/is-there-any-difference-between-a-guid-and-a-uuid
  **/
 
-namespace Palantir
+namespace Palanthir
 {
   namespace Toolbox
   {

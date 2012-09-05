@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -18,9 +18,9 @@
  **/
 
 
-#include "PalantirInitialization.h"
+#include "PalanthirInitialization.h"
 
-#include "../Core/PalantirException.h"
+#include "../Core/PalanthirException.h"
 #include "../Core/Toolbox.h"
 
 #include <boost/lexical_cast.hpp>
@@ -28,7 +28,7 @@
 #include <curl/curl.h>
 #include <boost/thread.hpp>
 
-namespace Palantir
+namespace Palanthir
 {
   static const char* CONFIGURATION_FILE = "Configuration.json";
 
@@ -50,8 +50,8 @@ namespace Palantir
     {
       try
       {
-#if PALANTIR_STANDALONE == 0
-        boost::filesystem::path p = PALANTIR_PATH;
+#if PALANTHIR_STANDALONE == 0
+        boost::filesystem::path p = PALANTHIR_PATH;
         p /= "Resources";
         p /= CONFIGURATION_FILE;
         Toolbox::ReadFile(content, p.string());
@@ -59,7 +59,7 @@ namespace Palantir
         Toolbox::ReadFile(content, CONFIGURATION_FILE);
 #endif
       }
-      catch (PalantirException&)
+      catch (PalanthirException&)
       {
         // No configuration file found, give up with empty configuration
         return;
@@ -69,12 +69,12 @@ namespace Palantir
     Json::Reader reader;
     if (!reader.parse(content, *configuration_))
     {
-      throw PalantirException("Unable to read the configuration file");
+      throw PalanthirException("Unable to read the configuration file");
     }
   }
 
 
-  void PalantirInitialize(const char* configurationFile)
+  void PalanthirInitialize(const char* configurationFile)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
     ReadGlobalConfiguration(configurationFile);
@@ -83,7 +83,7 @@ namespace Palantir
 
 
 
-  void PalantirFinalize()
+  void PalanthirFinalize()
   {
     boost::mutex::scoped_lock lock(globalMutex_);
     curl_global_cleanup();
@@ -150,14 +150,14 @@ namespace Palantir
 
     if (!configuration_->isMember("DicomModalities"))
     {
-      throw PalantirException("");
+      throw PalanthirException("");
     }
 
     const Json::Value& modalities = (*configuration_) ["DicomModalities"];
     if (modalities.type() != Json::objectValue ||
         !modalities.isMember(name))
     {
-      throw PalantirException("");
+      throw PalanthirException("");
     }
 
     try
@@ -168,7 +168,7 @@ namespace Palantir
     }
     catch (...)
     {
-      throw PalantirException("Badly formatted DICOM modality");
+      throw PalanthirException("Badly formatted DICOM modality");
     }
   }
 
@@ -188,7 +188,7 @@ namespace Palantir
     const Json::Value& modalities = (*configuration_) ["DicomModalities"];
     if (modalities.type() != Json::objectValue)
     {
-      throw PalantirException("Badly formatted list of DICOM modalities");
+      throw PalanthirException("Badly formatted list of DICOM modalities");
     }
 
     Json::Value::Members members = modalities.getMemberNames();
@@ -198,7 +198,7 @@ namespace Palantir
       {
         if (!isalnum(members[i][j]) && members[i][j] != '-')
         {
-          throw PalantirException("Only alphanumeric and dash characters are allowed in the names of the modalities");
+          throw PalanthirException("Only alphanumeric and dash characters are allowed in the names of the modalities");
         }
       }
 
@@ -222,7 +222,7 @@ namespace Palantir
     const Json::Value& users = (*configuration_) ["RegisteredUsers"];
     if (users.type() != Json::objectValue)
     {
-      throw PalantirException("Badly formatted list of users");
+      throw PalanthirException("Badly formatted list of users");
     }
 
     Json::Value::Members usernames = users.getMemberNames();

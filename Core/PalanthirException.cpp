@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -18,11 +18,11 @@
  **/
 
 
-#include "PalantirException.h"
+#include "PalanthirException.h"
 
-namespace Palantir
+namespace Palanthir
 {
-  const char* PalantirException::What() const
+  const char* PalanthirException::What() const
   {
     if (error_ == ErrorCode_Custom)
     {
@@ -35,7 +35,7 @@ namespace Palantir
   }
 
 
-  const char* PalantirException::GetDescription(ErrorCode error)
+  const char* PalanthirException::GetDescription(ErrorCode error)
   {
     switch (error)
     {

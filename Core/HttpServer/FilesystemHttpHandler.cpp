@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -20,12 +20,12 @@
 
 #include "FilesystemHttpHandler.h"
 
-#include "../PalantirException.h"
+#include "../PalanthirException.h"
 
 #include <boost/filesystem.hpp>
 
 
-namespace Palantir
+namespace Palanthir
 {
   struct FilesystemHttpHandler::PImpl
   {
@@ -91,7 +91,7 @@ namespace Palantir
     if (!fs::exists(pimpl_->root_) || 
         !fs::is_directory(pimpl_->root_))
     {
-      throw PalantirException("The path does not point to a directory");
+      throw PalanthirException("The path does not point to a directory");
     }
   }
 
@@ -136,7 +136,7 @@ namespace Palantir
     }
     else
     {
-      output.SendHeader(Palantir_HttpStatus_404_NotFound);
+      output.SendHeader(Palanthir_HttpStatus_404_NotFound);
     }
   } 
 }

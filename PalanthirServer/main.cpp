@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -18,7 +18,7 @@
  **/
 
 
-#include "PalantirRestApi.h"
+#include "PalanthirRestApi.h"
 
 #include <stdio.h>
 
@@ -26,10 +26,10 @@
 #include "../Core/HttpServer/FilesystemHttpHandler.h"
 #include "../Core/HttpServer/MongooseServer.h"
 #include "DicomProtocol/DicomServer.h"
-#include "PalantirInitialization.h"
+#include "PalanthirInitialization.h"
 
 
-using namespace Palantir;
+using namespace Palanthir;
 
 
 class MyDicomStore : public IStoreRequestHandler
@@ -99,14 +99,14 @@ int main(int argc, char* argv[])
   {
     if (argc >= 2)
     {
-      PalantirInitialize(argv[1]);
+      PalanthirInitialize(argv[1]);
     }
     else
     {
-      PalantirInitialize();
+      PalanthirInitialize();
     }
 
-    std::string storageDirectory = GetGlobalStringParameter("StorageDirectory", "PalantirStorage");
+    std::string storageDirectory = GetGlobalStringParameter("StorageDirectory", "PalanthirStorage");
     ServerIndex index(storageDirectory);
     MyDicomStoreFactory storeScp(index, storageDirectory);
 
@@ -116,7 +116,7 @@ int main(int argc, char* argv[])
       dicomServer.SetCalledApplicationEntityTitleCheck(true);
       dicomServer.SetStoreRequestHandlerFactory(storeScp);
       dicomServer.SetPortNumber(GetGlobalIntegerParameter("DicomPort", 4242));
-      dicomServer.SetApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "PALANTIR"));
+      dicomServer.SetApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "PALANTHIR"));
 
       // HTTP server
       MongooseServer httpServer;
@@ -137,13 +137,13 @@ int main(int argc, char* argv[])
         httpServer.SetSslEnabled(false);
       }
 
-#if PALANTIR_STANDALONE == 1
-      httpServer.RegisterHandler(new EmbeddedResourceHttpHandler("/app", EmbeddedResources::PALANTIR_EXPLORER));
+#if PALANTHIR_STANDALONE == 1
+      httpServer.RegisterHandler(new EmbeddedResourceHttpHandler("/app", EmbeddedResources::PALANTHIR_EXPLORER));
 #else
-      httpServer.RegisterHandler(new FilesystemHttpHandler("/app", PALANTIR_PATH "/PalantirExplorer"));
+      httpServer.RegisterHandler(new FilesystemHttpHandler("/app", PALANTHIR_PATH "/PalanthirExplorer"));
 #endif
 
-      httpServer.RegisterHandler(new PalantirRestApi(index, storageDirectory));
+      httpServer.RegisterHandler(new PalanthirRestApi(index, storageDirectory));
 
       // GO !!!
       httpServer.Start();
@@ -158,12 +158,12 @@ int main(int argc, char* argv[])
 
     storeScp.Done();
   }
-  catch (PalantirException& e)
+  catch (PalanthirException& e)
   {
     std::cout << "EXCEPT [" << e.What() << "]" << std::endl;
   }
 
-  PalantirFinalize();
+  PalanthirFinalize();
 
   return 0;
 }

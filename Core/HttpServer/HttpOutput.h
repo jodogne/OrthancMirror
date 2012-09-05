@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -25,12 +25,12 @@
 #include "../Enumerations.h"
 #include "../FileStorage.h"
 
-namespace Palantir
+namespace Palanthir
 {
   class HttpOutput
   {
   private:
-    void SendHeaderInternal(Palantir_HttpStatus status);
+    void SendHeaderInternal(Palanthir_HttpStatus status);
 
     void SendOkHeader(const char* contentType,
                       bool hasContentLength,
@@ -56,7 +56,7 @@ namespace Palantir
 
     void SendMethodNotAllowedError(const std::string& allowed);
 
-    void SendHeader(Palantir_HttpStatus status);
+    void SendHeader(Palanthir_HttpStatus status);
 
 
     // Higher-level constructs to send entire files or buffers -------------------

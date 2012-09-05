@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -20,13 +20,13 @@
 
 #include "DicomTag.h"
 
-#include "../PalantirException.h"
+#include "../PalanthirException.h"
 
 #include <iostream>
 #include <iomanip>
 #include <stdio.h>
 
-namespace Palantir
+namespace Palanthir
 {
   bool DicomTag::operator< (const DicomTag& other) const
   {

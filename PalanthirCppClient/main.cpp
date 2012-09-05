@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -32,7 +32,7 @@
 int main()
 {
   // Prepare a simple call to a Web service
-  Palantir::HttpClient c;
+  Palanthir::HttpClient c;
   c.SetUrl("http://nominatim.openstreetmap.org/search?format=json&q=chu+liege+belgium");
   
   // Do the request and store the result in a JSON structure

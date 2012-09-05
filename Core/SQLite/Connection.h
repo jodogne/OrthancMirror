@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -48,7 +48,7 @@ struct sqlite3_stmt;
 
 #define SQLITE_FROM_HERE SQLite::StatementId(__FILE__, __LINE__)
 
-namespace Palantir
+namespace Palanthir
 {
   namespace SQLite
   {

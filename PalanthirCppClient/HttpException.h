@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -31,29 +31,29 @@
 
 #include <string>
 
-namespace Palantir
+namespace Palanthir
 {
   class HttpException
   {
   private:
-    Palantir_HttpStatus status_;
+    Palanthir_HttpStatus status_;
     std::string custom_;
 
   public:
-    static const char* GetDescription(Palantir_HttpStatus status);
+    static const char* GetDescription(Palanthir_HttpStatus status);
 
     HttpException(const std::string& custom)
     {
-      status_ = Palantir_HttpStatus_None;
+      status_ = Palanthir_HttpStatus_None;
       custom_ = custom;
     }
 
-    HttpException(Palantir_HttpStatus status)
+    HttpException(Palanthir_HttpStatus status)
     {
       status_ = status;
     }
 
-    Palantir_HttpStatus GetHttpStatus() const
+    Palanthir_HttpStatus GetHttpStatus() const
     {
       return status_;
     }

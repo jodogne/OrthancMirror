@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -23,7 +23,7 @@
 #include <vector>
 #include <stdint.h>
 #include <png.h>
-#include "PalantirException.h"
+#include "PalanthirException.h"
 #include "ChunkedBuffer.h"
 
 
@@ -58,7 +58,7 @@ static void WarningHandler(png_structp png, png_const_charp message)
 }*/
 
 
-namespace Palantir
+namespace Palanthir
 {
   struct PngWriter::PImpl
   {
@@ -82,14 +82,14 @@ namespace Palantir
       (PNG_LIBPNG_VER_STRING, NULL, NULL, NULL); //this, ErrorHandler, WarningHandler);
     if (!pimpl_->png_)
     {
-      throw PalantirException(ErrorCode_NotEnoughMemory);
+      throw PalanthirException(ErrorCode_NotEnoughMemory);
     }
 
     pimpl_->info_ = png_create_info_struct(pimpl_->png_);
     if (!pimpl_->info_)
     {
       png_destroy_write_struct(&pimpl_->png_, NULL);
-      throw PalantirException(ErrorCode_NotEnoughMemory);
+      throw PalanthirException(ErrorCode_NotEnoughMemory);
     }
   }
 
@@ -133,7 +133,7 @@ namespace Palantir
       break;
 
     default:
-      throw PalantirException(ErrorCode_NotImplemented);
+      throw PalanthirException(ErrorCode_NotImplemented);
     }
   }
 
@@ -180,7 +180,7 @@ namespace Palantir
     FILE* fp = fopen(filename, "wb");
     if (!fp)
     {
-      throw PalantirException(ErrorCode_CannotWriteFile);
+      throw PalanthirException(ErrorCode_CannotWriteFile);
     }    
 
     png_init_io(pimpl_->png_, fp);
@@ -188,7 +188,7 @@ namespace Palantir
     if (setjmp(png_jmpbuf(pimpl_->png_)))
     {
       // Error during writing PNG
-      throw PalantirException(ErrorCode_CannotWriteFile);      
+      throw PalanthirException(ErrorCode_CannotWriteFile);      
     }
 
     Compress(width, height, pitch, format);
@@ -223,7 +223,7 @@ namespace Palantir
     if (setjmp(png_jmpbuf(pimpl_->png_)))
     {
       // Error during writing PNG
-      throw PalantirException(ErrorCode_InternalError);      
+      throw PalanthirException(ErrorCode_InternalError);      
     }
 
     png_set_write_fn(pimpl_->png_, &chunks, MemoryCallback, NULL);
