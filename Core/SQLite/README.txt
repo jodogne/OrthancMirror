@@ -13,9 +13,9 @@ Main differences with Chromium
 
 * The reference counting mechanism has been reimplemented to make it 
   simpler.
-* The PalantirException class is used for the exception mechanisms.
+* The PalanthirException class is used for the exception mechanisms.
 * A statement is always valid (is_valid() always return true).
-* The classes and the methods have been renamed to meet Palantir's
+* The classes and the methods have been renamed to meet Palanthir's
   coding conventions.
 
 

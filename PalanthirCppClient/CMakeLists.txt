@@ -1,9 +1,9 @@
-# Mini-project to check whether "PalantirCppClient" can compile in a
+# Mini-project to check whether "PalanthirCppClient" can compile in a
 # standalone fashion
 
 cmake_minimum_required(VERSION 2.8)
 
-project(PalantirCppClientTest)
+project(PalanthirCppClientTest)
 
 SET(STATIC_BUILD OFF)
 
@@ -20,7 +20,7 @@ elseif (${MSVC})
   add_definitions(-D_CRT_SECURE_NO_WARNINGS=1)  
 endif()
 
-add_library(PalantirCppClient
+add_library(PalanthirCppClient
   SHARED
 
   ${THIRD_PARTY_SOURCES}
@@ -32,4 +32,4 @@ add_executable(Test
   main.cpp
   )
 
-target_link_libraries(Test PalantirCppClient)
+target_link_libraries(Test PalanthirCppClient)
