@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -20,7 +20,7 @@
 
 #include "DicomServer.h"
 
-#include "../../Core/PalantirException.h"
+#include "../../Core/PalanthirException.h"
 #include "../../Core/Toolbox.h"
 #include "../Internals/CommandDispatcher.h"
 
@@ -28,7 +28,7 @@
 #include <dcmtk/dcmdata/dcdict.h>
 
 
-namespace Palantir
+namespace Palanthir
 {
   struct DicomServer::PImpl
   {
@@ -64,7 +64,7 @@ namespace Palantir
     {
       OFString temp_str;
       OFLOG_ERROR(Internals::Logger, "cannot create network: " << DimseCondition::dump(temp_str, cond));
-      throw PalantirException("Cannot create network");
+      throw PalanthirException("Cannot create network");
     }
 
     OFLOG_WARN(Internals::Logger, "DICOM server started");
@@ -170,14 +170,14 @@ namespace Palantir
   {
     if (aet.size() == 0)
     {
-      throw PalantirException("Too short AET");
+      throw PalanthirException("Too short AET");
     }
 
     for (size_t i = 0; i < aet.size(); i++)
     {
       if (!isalnum(aet[i]) && aet[i] != '-')
       {
-        throw PalantirException("Only alphanumeric characters are allowed in AET");
+        throw PalanthirException("Only alphanumeric characters are allowed in AET");
       }
     }
 
@@ -209,7 +209,7 @@ namespace Palantir
     }
     else
     {
-      throw PalantirException("No C-FIND request handler factory");
+      throw PalanthirException("No C-FIND request handler factory");
     }
   }
 
@@ -232,7 +232,7 @@ namespace Palantir
     }
     else
     {
-      throw PalantirException("No C-MOVE request handler factory");
+      throw PalanthirException("No C-MOVE request handler factory");
     }
   }
 
@@ -255,7 +255,7 @@ namespace Palantir
     }
     else
     {
-      throw PalantirException("No C-STORE request handler factory");
+      throw PalanthirException("No C-STORE request handler factory");
     }
   }
 
@@ -278,7 +278,7 @@ namespace Palantir
     }
     else
     {
-      throw PalantirException("No application entity filter");
+      throw PalanthirException("No application entity filter");
     }
   }
 

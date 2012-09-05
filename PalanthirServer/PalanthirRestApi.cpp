@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -18,9 +18,9 @@
  **/
 
 
-#include "PalantirRestApi.h"
+#include "PalanthirRestApi.h"
 
-#include "PalantirInitialization.h"
+#include "PalanthirInitialization.h"
 #include "FromDcmtkBridge.h"
 #include "../Core/Uuid.h"
 
@@ -28,7 +28,7 @@
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <boost/lexical_cast.hpp>
 
-namespace Palantir
+namespace Palanthir
 {
   static void SendJson(HttpOutput& output,
                        const Json::Value& value)
@@ -96,15 +96,15 @@ namespace Palantir
     Json::Reader reader;
     if (!reader.parse(s, source))
     {
-      throw PalantirException("Corrupted JSON file");
+      throw PalanthirException("Corrupted JSON file");
     }
 
     SimplifyTagsRecursion(target, source);
   }
 
 
-  bool PalantirRestApi::Store(Json::Value& result,
-                              const std::string& postData)
+  bool PalanthirRestApi::Store(Json::Value& result,
+                               const std::string& postData)
   {
     // Prepare an input stream for the memory buffer
     DcmInputBufferStream is;
@@ -156,21 +156,21 @@ namespace Palantir
     return false;
   }
 
-  void PalantirRestApi::ConnectToModality(DicomUserConnection& c,
-                                          const std::string& name)
+  void PalanthirRestApi::ConnectToModality(DicomUserConnection& c,
+                                           const std::string& name)
   {
     std::string aet, address;
     int port;
     GetDicomModality(name, aet, address, port);
-    c.SetLocalApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "PALANTIR"));
+    c.SetLocalApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "PALANTHIR"));
     c.SetDistantApplicationEntityTitle(aet);
     c.SetDistantHost(address);
     c.SetDistantPort(port);
     c.Open();
   }
 
-  bool PalantirRestApi::MergeQueryAndTemplate(DicomMap& result,
-                                              const std::string& postData)
+  bool PalanthirRestApi::MergeQueryAndTemplate(DicomMap& result,
+                                               const std::string& postData)
   {
     Json::Value query;
     Json::Reader reader;
@@ -191,9 +191,9 @@ namespace Palantir
     return true;
   }
 
-  bool PalantirRestApi::DicomFindPatient(Json::Value& result,
-                                         DicomUserConnection& c,
-                                         const std::string& postData)
+  bool PalanthirRestApi::DicomFindPatient(Json::Value& result,
+                                          DicomUserConnection& c,
+                                          const std::string& postData)
   {
     DicomMap m;
     DicomMap::SetupFindPatientTemplate(m);
@@ -208,9 +208,9 @@ namespace Palantir
     return true;
   }
 
-  bool PalantirRestApi::DicomFindStudy(Json::Value& result,
-                                       DicomUserConnection& c,
-                                       const std::string& postData)
+  bool PalanthirRestApi::DicomFindStudy(Json::Value& result,
+                                        DicomUserConnection& c,
+                                        const std::string& postData)
   {
     DicomMap m;
     DicomMap::SetupFindStudyTemplate(m);
@@ -231,9 +231,9 @@ namespace Palantir
     return true;
   }
 
-  bool PalantirRestApi::DicomFindSeries(Json::Value& result,
-                                        DicomUserConnection& c,
-                                        const std::string& postData)
+  bool PalanthirRestApi::DicomFindSeries(Json::Value& result,
+                                         DicomUserConnection& c,
+                                         const std::string& postData)
   {
     DicomMap m;
     DicomMap::SetupFindSeriesTemplate(m);
@@ -255,9 +255,9 @@ namespace Palantir
     return true;
   }
 
-  bool PalantirRestApi::DicomFind(Json::Value& result,
-                                  DicomUserConnection& c,
-                                  const std::string& postData)
+  bool PalanthirRestApi::DicomFind(Json::Value& result,
+                                   DicomUserConnection& c,
+                                   const std::string& postData)
   {
     DicomMap m;
     DicomMap::SetupFindPatientTemplate(m);
@@ -325,9 +325,9 @@ namespace Palantir
 
 
 
-  bool PalantirRestApi::DicomStore(Json::Value& result,
-                                   DicomUserConnection& c,
-                                   const std::string& postData)
+  bool PalanthirRestApi::DicomStore(Json::Value& result,
+                                    DicomUserConnection& c,
+                                    const std::string& postData)
   {
     Json::Value found(Json::objectValue);
 
@@ -371,8 +371,8 @@ namespace Palantir
   }
 
 
-  PalantirRestApi::PalantirRestApi(ServerIndex& index,
-                                   const std::string& path) :
+  PalanthirRestApi::PalanthirRestApi(ServerIndex& index,
+                                     const std::string& path) :
     index_(index),
     storage_(path)
   {
@@ -380,7 +380,7 @@ namespace Palantir
   }
 
 
-  void PalantirRestApi::Handle(
+  void PalanthirRestApi::Handle(
     HttpOutput& output,
     const std::string& method,
     const UriComponents& uri,
@@ -426,7 +426,7 @@ namespace Palantir
         }
         else
         {
-          output.SendHeader(Palantir_HttpStatus_415_UnsupportedMediaType);
+          output.SendHeader(Palanthir_HttpStatus_415_UnsupportedMediaType);
           return;
         }
       }
@@ -595,13 +595,13 @@ namespace Palantir
           }
           else
           {
-            throw PalantirException(ErrorCode_InternalError);
+            throw PalanthirException(ErrorCode_InternalError);
           }
 
           output.AnswerBufferWithContentType(png, "image/png");
           return;
         }
-        catch (PalantirException&)
+        catch (PalanthirException&)
         {
           output.Redirect("/app/images/Unsupported.png");
           return;
@@ -629,7 +629,7 @@ namespace Palantir
         }
         catch (boost::bad_lexical_cast)
         {
-          output.SendHeader(Palantir_HttpStatus_400_BadRequest);
+          output.SendHeader(Palanthir_HttpStatus_400_BadRequest);
           return;
         }
 
@@ -640,7 +640,7 @@ namespace Palantir
 
         if (!index_.GetChanges(result, since, filter, limit))
         {
-          output.SendHeader(Palantir_HttpStatus_400_BadRequest);
+          output.SendHeader(Palanthir_HttpStatus_400_BadRequest);
           return;
         }
 
@@ -730,7 +730,7 @@ namespace Palantir
               (uri[2] == "find" && !DicomFind(result, connection, postData)) ||
               (uri[2] == "store" && !DicomStore(result, connection, postData)))
           {
-            output.SendHeader(Palantir_HttpStatus_400_BadRequest);
+            output.SendHeader(Palanthir_HttpStatus_400_BadRequest);
             return;
           }
         }
@@ -744,7 +744,7 @@ namespace Palantir
     }
     else
     {
-      output.SendHeader(Palantir_HttpStatus_404_NotFound);
+      output.SendHeader(Palanthir_HttpStatus_404_NotFound);
     }
   }
 }

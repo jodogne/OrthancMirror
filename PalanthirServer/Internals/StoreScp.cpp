@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -22,7 +22,7 @@
 
 #include "../FromDcmtkBridge.h"
 #include "../ToDcmtkBridge.h"
-#include "../../Core/PalantirException.h"
+#include "../../Core/PalanthirException.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmdata/dcmetinf.h>
@@ -31,7 +31,7 @@
 #include <dcmtk/dcmnet/diutil.h>
 
 
-namespace Palantir
+namespace Palanthir
 {
   namespace Internals
   {
@@ -188,7 +188,7 @@ namespace Palantir
               {
                 cbdata->handler->Handle(buffer, summary, dicomJson, cbdata->distantAET);
               }
-              catch (PalantirException& e)
+              catch (PalanthirException& e)
               {
                 rsp->DimseStatus = STATUS_STORE_Refused_OutOfResources;
                 OFLOG_ERROR(Internals::Logger, "Exception while storing DICOM: " << e.What());

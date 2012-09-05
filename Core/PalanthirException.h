@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -23,9 +23,9 @@
 #include <string>
 #include "Enumerations.h"
 
-namespace Palantir
+namespace Palanthir
 {
-  class PalantirException
+  class PalanthirException
   {
   private:
     ErrorCode error_;
@@ -34,13 +34,13 @@ namespace Palantir
   public:
     static const char* GetDescription(ErrorCode error);
 
-    PalantirException(const std::string& custom)
+    PalanthirException(const std::string& custom)
     {
       error_ = ErrorCode_Custom;
       custom_ = custom;
     }
 
-    PalantirException(ErrorCode error)
+    PalanthirException(ErrorCode error)
     {
       error_ = error;
     }

@@ -5,15 +5,15 @@
 #include "../Core/Compression/ZlibCompressor.h"
 #include "../Core/DicomFormat/DicomTag.h"
 #include "../Core/FileStorage.h"
-#include "../PalantirCppClient/HttpClient.h"
+#include "../PalanthirCppClient/HttpClient.h"
 #include "../Core/HttpServer/HttpHandler.h"
-#include "../Core/PalantirException.h"
+#include "../Core/PalanthirException.h"
 #include "../Core/Toolbox.h"
 #include "../Core/Uuid.h"
-#include "../PalantirServer/FromDcmtkBridge.h"
-#include "../PalantirServer/PalantirInitialization.h"
+#include "../PalanthirServer/FromDcmtkBridge.h"
+#include "../PalanthirServer/PalanthirInitialization.h"
 
-using namespace Palantir;
+using namespace Palanthir;
 
 
 TEST(Uuid, Generation)
@@ -186,8 +186,8 @@ TEST(Uri, SplitUriComponents)
   ASSERT_EQ(1u, c.size());
   ASSERT_EQ("hello", c[0]);
 
-  ASSERT_THROW(Toolbox::SplitUriComponents(c, ""), PalantirException);
-  ASSERT_THROW(Toolbox::SplitUriComponents(c, "a"), PalantirException);
+  ASSERT_THROW(Toolbox::SplitUriComponents(c, ""), PalanthirException);
+  ASSERT_THROW(Toolbox::SplitUriComponents(c, "a"), PalanthirException);
 }
 
 
@@ -275,9 +275,9 @@ TEST(Toolbox, Base64)
 
 int main(int argc, char **argv)
 {
-  PalantirInitialize();
+  PalanthirInitialize();
   ::testing::InitGoogleTest(&argc, argv);
   int result = RUN_ALL_TESTS();
-  PalantirFinalize();
+  PalanthirFinalize();
   return result;
 }

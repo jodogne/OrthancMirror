@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -23,15 +23,15 @@
 #include <stdio.h>
 #include <string.h>
 #include <zlib.h>
-#include "../PalantirException.h"
+#include "../PalanthirException.h"
 
-namespace Palantir
+namespace Palanthir
 {
   void ZlibCompressor::SetCompressionLevel(uint8_t level)
   {
     if (level >= 10)
     {
-      throw PalantirException("Zlib compression level must be between 0 (no compression) and 9 (highest compression");
+      throw PalanthirException("Zlib compression level must be between 0 (no compression) and 9 (highest compression");
     }
   }
 
@@ -70,10 +70,10 @@ namespace Palantir
       switch (error)
       {
       case Z_MEM_ERROR:
-        throw PalantirException(ErrorCode_NotEnoughMemory);
+        throw PalanthirException(ErrorCode_NotEnoughMemory);
 
       default:
-        throw PalantirException(ErrorCode_InternalError);
+        throw PalanthirException(ErrorCode_InternalError);
       }  
     }
   }
@@ -91,7 +91,7 @@ namespace Palantir
 
     if (compressedSize < sizeof(size_t))
     {
-      throw PalantirException("Zlib: The compressed buffer is ill-formed");
+      throw PalanthirException("Zlib: The compressed buffer is ill-formed");
     }
 
     size_t uncompressedLength;
@@ -112,13 +112,13 @@ namespace Palantir
       switch (error)
       {
       case Z_DATA_ERROR:
-        throw PalantirException("Zlib: Corrupted or incomplete compressed buffer");
+        throw PalanthirException("Zlib: Corrupted or incomplete compressed buffer");
 
       case Z_MEM_ERROR:
-        throw PalantirException(ErrorCode_NotEnoughMemory);
+        throw PalanthirException(ErrorCode_NotEnoughMemory);
 
       default:
-        throw PalantirException(ErrorCode_InternalError);
+        throw PalanthirException(ErrorCode_InternalError);
       }  
     }
   }

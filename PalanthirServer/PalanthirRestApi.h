@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -27,9 +27,9 @@
 #include <set>
 
 
-namespace Palantir
+namespace Palanthir
 {
-  class PalantirRestApi : public HttpHandler
+  class PalanthirRestApi : public HttpHandler
   {
   private:
     typedef std::set<std::string> Modalities;
@@ -68,8 +68,8 @@ namespace Palantir
                     const std::string& postData);
 
   public:
-    PalantirRestApi(ServerIndex& index,
-                    const std::string& path);
+    PalanthirRestApi(ServerIndex& index,
+                     const std::string& path);
 
     virtual bool IsServedUri(const UriComponents& uri)
     {

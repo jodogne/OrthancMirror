@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -20,7 +20,7 @@
 
 #include "ServerIndex.h"
 
-using namespace Palantir;
+using namespace Palanthir;
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -36,7 +36,7 @@ using namespace Palantir;
 #include <boost/lexical_cast.hpp>
 #include <stdio.h>
 
-namespace Palantir
+namespace Palanthir
 {
   namespace Internals
   {
@@ -109,7 +109,7 @@ namespace Palantir
         case 3:
           return "series";
         default:
-          throw PalantirException(ErrorCode_InternalError);
+          throw PalanthirException(ErrorCode_InternalError);
         }
       }
 
@@ -526,7 +526,7 @@ namespace Palantir
       return StoreStatus_Success;
       //t.Rollback();
     }
-    catch (PalantirException& e)
+    catch (PalanthirException& e)
     {
       std::cout << "EXCEPT2 [" << e.What() << "]" << " " << db_.GetErrorMessage() << std::endl;  
     }

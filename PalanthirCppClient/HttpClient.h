@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -34,7 +34,7 @@
 #include <boost/shared_ptr.hpp>
 #include <json/json.h>
 
-namespace Palantir
+namespace Palanthir
 {
   class HttpClient
   {
@@ -43,8 +43,8 @@ namespace Palantir
     boost::shared_ptr<PImpl> pimpl_;
 
     std::string url_;
-    Palantir_HttpMethod method_;
-    Palantir_HttpStatus lastStatus_;
+    Palanthir_HttpMethod method_;
+    Palanthir_HttpStatus lastStatus_;
     std::string postData_;
     bool isVerbose_;
 
@@ -68,12 +68,12 @@ namespace Palantir
       return url_;
     }
 
-    void SetMethod(Palantir_HttpMethod method)
+    void SetMethod(Palanthir_HttpMethod method)
     {
       method_ = method;
     }
 
-    Palantir_HttpMethod GetMethod() const
+    Palanthir_HttpMethod GetMethod() const
     {
       return method_;
     }
@@ -99,7 +99,7 @@ namespace Palantir
 
     bool Apply(Json::Value& answer);
 
-    Palantir_HttpStatus GetLastStatus() const
+    Palanthir_HttpStatus GetLastStatus() const
     {
       return lastStatus_;
     }

@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -20,7 +20,7 @@
 
 #include "Toolbox.h"
 
-#include "PalantirException.h"
+#include "PalanthirException.h"
 
 #include <string.h>
 #include <boost/filesystem.hpp>
@@ -39,7 +39,7 @@
 #include "../Resources/md5/md5.h"
 #include "../Resources/base64/base64.h"
 
-namespace Palantir
+namespace Palanthir
 {
   static bool finish;
 
@@ -125,7 +125,7 @@ namespace Palantir
     f.open(path, std::ifstream::in | std::ios::binary);
     if (!f.good())
     {
-      throw PalantirException("Unable to open a file");
+      throw PalanthirException("Unable to open a file");
     }
 
     // http://www.cplusplus.com/reference/iostream/istream/tellg/
@@ -150,7 +150,7 @@ namespace Palantir
       if (boost::filesystem::is_regular_file(path))
         boost::filesystem::remove(path);
       else
-        throw PalantirException("The path is not a regular file: " + path);
+        throw PalanthirException("The path is not a regular file: " + path);
     }
   }
 
@@ -166,7 +166,7 @@ namespace Palantir
     if (uri.size() == 0 ||
         uri[0] != URI_SEPARATOR)
     {
-      throw PalantirException(ErrorCode_UriSyntax);
+      throw PalanthirException(ErrorCode_UriSyntax);
     }
 
     // Count the number of slashes in the URI to make an assumption
@@ -301,7 +301,7 @@ namespace Palantir
     }
     catch (boost::filesystem::filesystem_error)
     {
-      throw PalantirException(ErrorCode_InexistentFile);
+      throw PalanthirException(ErrorCode_InexistentFile);
     }
   }
 

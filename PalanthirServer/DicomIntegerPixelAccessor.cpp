@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -24,12 +24,12 @@
 #define NOMINMAX
 #endif
 
-#include "../Core/PalantirException.h"
+#include "../Core/PalanthirException.h"
 #include "FromDcmtkBridge.h"
 #include <boost/lexical_cast.hpp>
 #include <limits>
 
-namespace Palantir
+namespace Palanthir
 {
   DicomIntegerPixelAccessor::DicomIntegerPixelAccessor(const DicomMap& values,
                                                        const void* pixelData,
@@ -54,30 +54,30 @@ namespace Palantir
     }
     catch (boost::bad_lexical_cast)
     {
-      throw PalantirException(ErrorCode_NotImplemented);
+      throw PalanthirException(ErrorCode_NotImplemented);
     }
 
     if (bitsAllocated != 8 && bitsAllocated != 16 && 
         bitsAllocated != 24 && bitsAllocated != 32)
     {
-      throw PalantirException(ErrorCode_NotImplemented);
+      throw PalanthirException(ErrorCode_NotImplemented);
     }
 
     if (bitsAllocated > 32 ||
         bitsStored >= 32)
     {
       // Not available, as the accessor internally uses int32_t values
-      throw PalantirException(ErrorCode_NotImplemented);
+      throw PalanthirException(ErrorCode_NotImplemented);
     }
     
     if (samplesPerPixel_ != 1)
     {
-      throw PalantirException(ErrorCode_NotImplemented);
+      throw PalanthirException(ErrorCode_NotImplemented);
     }
 
     if (width_ * height_ * bitsAllocated / 8 != size)
     {
-      throw PalantirException(ErrorCode_NotImplemented);
+      throw PalanthirException(ErrorCode_NotImplemented);
     }
 
     /*printf("%d %d %d %d %d %d %d\n", width_, height_, samplesPerPixel_, bitsAllocated,
@@ -145,7 +145,7 @@ namespace Palantir
     if (v & signMask_)
     {
       // Signed value: Not implemented yet
-      //throw PalantirException(ErrorCode_NotImplemented);
+      //throw PalanthirException(ErrorCode_NotImplemented);
       v = 0;
     }
 

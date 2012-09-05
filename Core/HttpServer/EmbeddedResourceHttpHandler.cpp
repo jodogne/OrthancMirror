@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -20,12 +20,12 @@
 
 #include "EmbeddedResourceHttpHandler.h"
 
-#include "../PalantirException.h"
+#include "../PalanthirException.h"
 
 #include <stdio.h>
 
 
-namespace Palantir
+namespace Palanthir
 {
   EmbeddedResourceHttpHandler::EmbeddedResourceHttpHandler(
     const std::string& baseUri,
@@ -65,9 +65,9 @@ namespace Palantir
       size_t size = EmbeddedResources::GetDirectoryResourceSize(resourceId_, resourcePath.c_str());
       output.AnswerBufferWithContentType(buffer, size, contentType);
     }
-    catch (PalantirException& e)
+    catch (PalanthirException& e)
     {
-      output.SendHeader(Palantir_HttpStatus_404_NotFound);
+      output.SendHeader(Palanthir_HttpStatus_404_NotFound);
     }
   } 
 }

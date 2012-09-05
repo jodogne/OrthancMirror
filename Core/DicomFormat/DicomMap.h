@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -27,7 +27,7 @@
 #include <map>
 #include <json/json.h>
 
-namespace Palantir
+namespace Palanthir
 {
   class DicomMap : public boost::noncopyable
   {

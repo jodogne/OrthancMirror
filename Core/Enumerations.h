@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -20,9 +20,9 @@
 
 #pragma once
 
-#include "../PalantirCppClient/HttpEnumerations.h"
+#include "../PalanthirCppClient/HttpEnumerations.h"
 
-namespace Palantir
+namespace Palanthir
 {
   enum ErrorCode
   {

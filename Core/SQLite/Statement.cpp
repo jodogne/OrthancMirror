@@ -1,5 +1,5 @@
 /**
- * Palantir - A Lightweight, RESTful DICOM Store
+ * Palanthir - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -43,7 +43,7 @@
 #include <sqlite3.h>
 #include <string.h>
 
-namespace Palantir
+namespace Palanthir
 {
   namespace SQLite
   {
@@ -52,7 +52,7 @@ namespace Palantir
       bool succeeded = (err == SQLITE_OK || err == SQLITE_ROW || err == SQLITE_DONE);
       if (!succeeded)
       {
-        throw PalantirException("SQLite error code " + boost::lexical_cast<std::string>(err));
+        throw PalanthirException("SQLite error code " + boost::lexical_cast<std::string>(err));
       }
 
       return err;
@@ -63,11 +63,11 @@ namespace Palantir
       if (err == SQLITE_RANGE)
       {
         // Binding to a non-existent variable is evidence of a serious error.
-        throw PalantirException("Bind value out of range");
+        throw PalanthirException("Bind value out of range");
       }
       else if (err != SQLITE_OK)
       {
-        throw PalantirException("SQLite error code " + boost::lexical_cast<std::string>(err));
+        throw PalanthirException("SQLite error code " + boost::lexical_cast<std::string>(err));
       }
     }
 
