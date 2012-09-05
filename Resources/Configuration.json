@@ -1,10 +1,10 @@
 {
     /**
-     * General configuration of Palantir
+     * General configuration of Palanthir
      **/
 
     // Path to the directory that holds the database
-    "StorageDirectory" : "PalantirStorage",
+    "StorageDirectory" : "PalanthirStorage",
 
 
 
@@ -45,7 +45,7 @@
     // Whether or not the password protection is enabled
     "AuthenticationEnabled" : false,
 
-    // The list of the registered users. Because Palantir uses HTTP
+    // The list of the registered users. Because Palanthir uses HTTP
     // Basic Authentication, the passwords are stored as plain text.
     "RegisteredUsers" : {
         "alice" : "alicePassword"
@@ -62,7 +62,7 @@
         // "sample" : [ "SAMPLESCP", "192.168.100.42", 104 ]
     },
 
-    // The list of the known Palantir peers (currently unused)
-    "PalantirPeers" : {
+    // The list of the known Palanthir peers (currently unused)
+    "PalanthirPeers" : {
     }
 }
