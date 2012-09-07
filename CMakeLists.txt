@@ -19,7 +19,7 @@ else()
   CHECK_INCLUDE_FILES(uuid/uuid.h HAVE_UUID_H)
 endif()
 
-if ("${HAVE_UUID_H}" STREQUAL "")
+if (NOT ${HAVE_UUID_H})
   message(FATAL_ERROR "Please install the uuid-dev package")
 endif()
 
