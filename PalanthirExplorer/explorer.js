@@ -586,11 +586,36 @@ $('#instance-download-json').live('click', function(e) {
 
 
 $('#instance-preview').live('click', function(e) {
-  jQuery.slimbox('/instances/' + $.mobile.pageData.uuid + '/preview', '', {
-                   overlayFadeDuration : 1,
-                   resizeDuration : 1,
-                   imageFadeDuration : 1
-                 });
+  if ($.mobile.pageData) {
+    GetSingleResource('instances', $.mobile.pageData.uuid + '/frames', function(frames) {
+      if (frames.length == 1)
+      {
+        // Viewing a single-frame image
+        jQuery.slimbox('/instances/' + $.mobile.pageData.uuid + '/preview', '', {
+          overlayFadeDuration : 1,
+          resizeDuration : 1,
+          imageFadeDuration : 1
+        });
+      }
+      else
+      {
+        // Viewing a multi-frame image
+
+        var images = [];
+        for (var i = 0; i < frames.length; i++) {
+          images.push([ '/instances/' + $.mobile.pageData.uuid + '/frames/' + i + '/preview' ]);
+        }
+
+        jQuery.slimbox(images, 0, {
+          overlayFadeDuration : 1,
+          resizeDuration : 1,
+          imageFadeDuration : 1,
+          loop : true
+        });
+      }
+    });
+
+  }
 });
 
 $('#series-preview').live('click', function(e) {
