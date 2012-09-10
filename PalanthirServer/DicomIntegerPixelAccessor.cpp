@@ -57,8 +57,24 @@ namespace Palanthir
       throw PalanthirException(ErrorCode_NotImplemented);
     }
 
-    if (bitsAllocated != 8 && bitsAllocated != 16 && 
-        bitsAllocated != 24 && bitsAllocated != 32)
+    frame_ = 0;
+    try
+    {
+      numberOfFrames_ = boost::lexical_cast<unsigned int>(FromDcmtkBridge::GetValue(values, "NumberOfFrames").AsString());
+    }
+    catch (PalanthirException)
+    {
+      // If the tag "NumberOfFrames" is absent, assume there is a single frame
+      numberOfFrames_ = 1;
+    }
+    catch (boost::bad_lexical_cast)
+    {
+      throw PalanthirException(ErrorCode_NotImplemented);
+    }
+
+    if ((bitsAllocated != 8 && bitsAllocated != 16 && 
+         bitsAllocated != 24 && bitsAllocated != 32) ||
+        numberOfFrames_ == 0)
     {
       throw PalanthirException(ErrorCode_NotImplemented);
     }
@@ -69,19 +85,19 @@ namespace Palanthir
       // Not available, as the accessor internally uses int32_t values
       throw PalanthirException(ErrorCode_NotImplemented);
     }
-    
+
     if (samplesPerPixel_ != 1)
     {
       throw PalanthirException(ErrorCode_NotImplemented);
     }
 
-    if (width_ * height_ * bitsAllocated / 8 != size)
+    if (width_ * height_ * bitsAllocated / 8 * numberOfFrames_ != size)
     {
       throw PalanthirException(ErrorCode_NotImplemented);
     }
 
-    /*printf("%d %d %d %d %d %d %d\n", width_, height_, samplesPerPixel_, bitsAllocated,
-      bitsStored, highBit, pixelRepresentation);*/
+    /*printf("%d %d %d %d %d %d %d %d\n", width_, height_, samplesPerPixel_, bitsAllocated,
+           bitsStored, highBit, pixelRepresentation, numberOfFrames_);*/
 
     bytesPerPixel_ = bitsAllocated / 8;
     shift_ = highBit + 1 - bitsStored;
@@ -96,6 +112,9 @@ namespace Palanthir
       mask_ = (1 << bitsStored) - 1;
       signMask_ = 0;
     }
+
+    rowOffset_ = width_ * bytesPerPixel_;
+    frameOffset_ = height_ * width_ * bytesPerPixel_;
   }
 
 
@@ -129,7 +148,8 @@ namespace Palanthir
   {
     assert(x < width_ && y < height_);
     
-    const uint8_t* pixel = reinterpret_cast<const uint8_t*>(pixelData_) + (y * width_ + x) * bytesPerPixel_;
+    const uint8_t* pixel = reinterpret_cast<const uint8_t*>(pixelData_) + 
+      y * rowOffset_ + x * bytesPerPixel_ + frame_ * frameOffset_;
 
     int32_t v;
     v = pixel[0];
@@ -151,4 +171,16 @@ namespace Palanthir
 
     return v;
   }
+
+
+  void DicomIntegerPixelAccessor::SetCurrentFrame(unsigned int frame)
+  {
+    if (frame >= numberOfFrames_)
+    {
+      throw PalanthirException(ErrorCode_ParameterOutOfRange);
+    }
+
+    frame_ = frame;
+  }
+
 }

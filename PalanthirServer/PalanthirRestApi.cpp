@@ -568,12 +568,64 @@ namespace Palanthir
 
     else if (uri.size() == 3 &&
              uri[0] == "instances" &&
-             (uri[2] == "preview" ||
-              uri[2] == "image-uint8" ||
-              uri[2] == "image-uint16"))
+             uri[2] == "frames")
+    {
+      Json::Value instance(Json::objectValue);
+      existingResource = index_.GetInstance(instance, uri[1]);
+
+      if (existingResource)
+      {
+        result = Json::arrayValue;
+
+        unsigned int numberOfFrames = 1;
+        try
+        {
+          Json::Value tmp = instance["MainDicomTags"]["NumberOfFrames"];
+          numberOfFrames = boost::lexical_cast<unsigned int>(tmp.asString());
+        }
+        catch (boost::bad_lexical_cast)
+        {
+        }
+
+        for (unsigned int i = 0; i < numberOfFrames; i++)
+        {
+          result.append(i);
+        }                
+      }
+    }
+
+
+    else if (uri[0] == "instances" &&
+             ((uri.size() == 3 &&
+               (uri[2] == "preview" || 
+                uri[2] == "image-uint8" || 
+                uri[2] == "image-uint16")) ||
+              (uri.size() == 5 &&
+               uri[2] == "frames" &&
+               (uri[4] == "preview" || 
+                uri[4] == "image-uint8" || 
+                uri[4] == "image-uint16"))))
     {
       std::string uuid;
       existingResource = index_.GetDicomFile(uuid, uri[1]);
+
+      std::string action = uri[2];
+
+      unsigned int frame = 0;
+      if (existingResource &&
+          uri.size() == 5)
+      {
+        // Access to multi-frame image
+        action = uri[4];
+        try
+        {
+          frame = boost::lexical_cast<unsigned int>(uri[3]);
+        }
+        catch (boost::bad_lexical_cast)
+        {
+          existingResource = false;
+        }
+      }
 
       if (existingResource)
       {
@@ -581,17 +633,17 @@ namespace Palanthir
         storage_.ReadFile(dicomContent, uuid);
         try
         {
-          if (uri[2] == "preview")
+          if (action == "preview")
           {
-            FromDcmtkBridge::ExtractPngImage(png, dicomContent, ImageExtractionMode_Preview);
+            FromDcmtkBridge::ExtractPngImage(png, dicomContent, frame, ImageExtractionMode_Preview);
           }
-          else if (uri[2] == "image-uint8")
+          else if (action == "image-uint8")
           {
-            FromDcmtkBridge::ExtractPngImage(png, dicomContent, ImageExtractionMode_UInt8);
+            FromDcmtkBridge::ExtractPngImage(png, dicomContent, frame, ImageExtractionMode_UInt8);
           }
-          else if (uri[2] == "image-uint16")
+          else if (action == "image-uint16")
           {
-            FromDcmtkBridge::ExtractPngImage(png, dicomContent, ImageExtractionMode_UInt16);
+            FromDcmtkBridge::ExtractPngImage(png, dicomContent, frame, ImageExtractionMode_UInt16);
           }
           else
           {

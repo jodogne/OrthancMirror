@@ -32,6 +32,7 @@ namespace Palanthir
     unsigned int width_;
     unsigned int height_;
     unsigned int samplesPerPixel_;
+    unsigned int numberOfFrames_;
     const void* pixelData_;
     size_t size_;
 
@@ -39,6 +40,10 @@ namespace Palanthir
     uint32_t signMask_;
     uint32_t mask_;
     size_t bytesPerPixel_;
+    unsigned int frame_;
+
+    size_t frameOffset_;
+    size_t rowOffset_;
 
   public:
     DicomIntegerPixelAccessor(const DicomMap& values,
@@ -54,6 +59,18 @@ namespace Palanthir
     {
       return height_;
     }
+
+    unsigned int GetNumberOfFrames() const
+    {
+      return numberOfFrames_;
+    }
+
+    unsigned int GetCurrentFrame() const
+    {
+      return frame_;
+    }
+
+    void SetCurrentFrame(unsigned int frame);
 
     void GetExtremeValues(int32_t& min, 
                           int32_t& max) const;

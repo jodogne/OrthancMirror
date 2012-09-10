@@ -52,10 +52,12 @@ namespace Palanthir
 
     static void ExtractPngImage(std::string& result,
                                 DcmDataset& dataset,
+                                unsigned int frame,
                                 ImageExtractionMode mode);
 
     static void ExtractPngImage(std::string& result,
                                 const std::string& dicomContent,
+                                unsigned int frame,
                                 ImageExtractionMode mode);
 
     static std::string GetName(const DicomTag& tag);
