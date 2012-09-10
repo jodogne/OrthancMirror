@@ -438,6 +438,7 @@ namespace Palanthir
 
   void FromDcmtkBridge::ExtractPngImage(std::string& result,
                                         DcmDataset& dataset,
+                                        unsigned int frame,
                                         ImageExtractionMode mode)
   {
     // See also: http://support.dcmtk.org/wiki/dcmtk/howto/accessing-compressed-data
@@ -455,6 +456,7 @@ namespace Palanthir
       if (e->getUint8Array(pixData) == EC_Normal)
       {    
         accessor.reset(new DicomIntegerPixelAccessor(m, pixData, e->getLength()));
+        accessor->SetCurrentFrame(frame);
       }
     }
 
@@ -506,6 +508,7 @@ namespace Palanthir
 
   void FromDcmtkBridge::ExtractPngImage(std::string& result,
                                         const std::string& dicomContent,
+                                        unsigned int frame,
                                         ImageExtractionMode mode)
   {
     DcmInputBufferStream is;
@@ -518,7 +521,7 @@ namespace Palanthir
     DcmFileFormat dicom;
     if (dicom.read(is).good())
     {
-      ExtractPngImage(result, *dicom.getDataset(), mode);
+      ExtractPngImage(result, *dicom.getDataset(), frame, mode);
     }
     else
     {

@@ -76,6 +76,7 @@ namespace Palanthir
     DicomTag(0x0008, 0x0018), // SOPInstanceUID
     DicomTag(0x0020, 0x0012), // AcquisitionNumber
     DicomTag(0x0020, 0x0013), // InstanceNumber
+    DicomTag(0x0028, 0x0008), // NumberOfFrames
     DicomTag(0x0054, 0x1330)  // ImageIndex
   };
 
