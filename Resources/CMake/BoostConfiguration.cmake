@@ -2,7 +2,7 @@ if (${STATIC_BUILD})
   SET(BOOST_STATIC 1)
 else()
   find_package(Boost
-    COMPONENTS filesystem thread system)
+    COMPONENTS filesystem thread system locale)
 
   if (${Boost_VERSION} LESS 104800)
     # boost::locale is only available from 1.48.00
