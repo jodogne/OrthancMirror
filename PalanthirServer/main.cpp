@@ -113,7 +113,7 @@ int main(int argc, char* argv[])
     {
       // DICOM server
       DicomServer dicomServer;
-      dicomServer.SetCalledApplicationEntityTitleCheck(true);
+      dicomServer.SetCalledApplicationEntityTitleCheck(GetGlobalBoolParameter("DicomCheckCalledAet", false));
       dicomServer.SetStoreRequestHandlerFactory(storeScp);
       dicomServer.SetPortNumber(GetGlobalIntegerParameter("DicomPort", 4242));
       dicomServer.SetApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "PALANTHIR"));

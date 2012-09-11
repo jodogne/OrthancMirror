@@ -24,6 +24,9 @@
     // The DICOM Application Entity Title
     "DicomAet" : "ANY-SCP",
 
+    // Check whether the called AET corresponds during a DICOM request
+    "DicomCheckCalledAet" : true,
+
     // The DICOM port
     "DicomPort" : 4242,
 

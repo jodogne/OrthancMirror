@@ -142,6 +142,8 @@ header.close()
 ## Write the resource content in the .cpp source
 #####################################################################
 
+PYTHON_MAJOR_VERSION = sys.version_info[0]
+
 def WriteResource(cpp, item):
     cpp.write('    static const uint8_t resource%dBuffer[] = {' % item['Index'])
 
@@ -152,16 +154,21 @@ def WriteResource(cpp, item):
     # http://stackoverflow.com/a/1035360
     pos = 0
     for b in content:
+        if PYTHON_MAJOR_VERSION == 2:
+            c = ord(b[0])
+        else:
+            c = b
+
         if pos > 0:
             cpp.write(', ')
 
         if (pos % 16) == 0:
             cpp.write('\n    ')
 
-        if ord(b[0]) < 0:
+        if c < 0:
             raise Exception("Internal error")
 
-        cpp.write("0x%02x" % ord(b[0]))
+        cpp.write("0x%02x" % c)
         pos += 1
 
     cpp.write('  };\n')
