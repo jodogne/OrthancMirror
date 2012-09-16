@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -23,13 +23,13 @@
 // http://stackoverflow.com/questions/1576272/storing-large-number-of-files-in-file-system
 // http://stackoverflow.com/questions/446358/storing-a-large-number-of-images
 
-#include "PalanthirException.h"
+#include "OrthancException.h"
 #include "Toolbox.h"
 #include "Uuid.h"
 
 #include <boost/filesystem/fstream.hpp>
 
-namespace Palanthir
+namespace Orthanc
 {
   boost::filesystem::path FileStorage::GetPath(const std::string& uuid) const
   {
@@ -37,7 +37,7 @@ namespace Palanthir
 
     if (!Toolbox::IsUuid(uuid))
     {
-      throw PalanthirException(ErrorCode_ParameterOutOfRange);
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
     fs::path path = root_;
@@ -60,14 +60,14 @@ namespace Palanthir
     {
       if (!fs::is_directory(root))
       {
-        throw PalanthirException("The file storage root directory is a file");
+        throw OrthancException("The file storage root directory is a file");
       }
     }
     else
     {
       if (!fs::create_directories(root))
       {
-        throw PalanthirException("Unable to create the file storage root directory");
+        throw OrthancException("Unable to create the file storage root directory");
       }
     }
   }
@@ -96,14 +96,14 @@ namespace Palanthir
     {
       if (!boost::filesystem::is_directory(path.parent_path()))
       {
-        throw PalanthirException("The subdirectory to be created is already occupied by a regular file");        
+        throw OrthancException("The subdirectory to be created is already occupied by a regular file");        
       }
     }
     else
     {
       if (!boost::filesystem::create_directories(path.parent_path()))
       {
-        throw PalanthirException("Unable to create a subdirectory in the file storage");        
+        throw OrthancException("Unable to create a subdirectory in the file storage");        
       }
     }
 
@@ -111,7 +111,7 @@ namespace Palanthir
     f.open(path, std::ofstream::out | std::ios::binary);
     if (!f.good())
     {
-      throw PalanthirException("Unable to create a new file in the file storage");
+      throw OrthancException("Unable to create a new file in the file storage");
     }
 
     if (size != 0)
@@ -120,7 +120,7 @@ namespace Palanthir
       if (!f.good())
       {
         f.close();
-        throw PalanthirException("Unable to write to the new file in the file storage");
+        throw OrthancException("Unable to write to the new file in the file storage");
       }
     }
 

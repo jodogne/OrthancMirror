@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -25,12 +25,12 @@
 #include "../Enumerations.h"
 #include "../FileStorage.h"
 
-namespace Palanthir
+namespace Orthanc
 {
   class HttpOutput
   {
   private:
-    void SendHeaderInternal(Palanthir_HttpStatus status);
+    void SendHeaderInternal(Orthanc_HttpStatus status);
 
     void SendOkHeader(const char* contentType,
                       bool hasContentLength,
@@ -56,7 +56,7 @@ namespace Palanthir
 
     void SendMethodNotAllowedError(const std::string& allowed);
 
-    void SendHeader(Palanthir_HttpStatus status);
+    void SendHeader(Orthanc_HttpStatus status);
 
 
     // Higher-level constructs to send entire files or buffers -------------------

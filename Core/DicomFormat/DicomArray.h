@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -25,7 +25,7 @@
 
 #include <vector>
 
-namespace Palanthir
+namespace Orthanc
 {
   class DicomArray : public boost::noncopyable
   {

@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -20,13 +20,13 @@
 
 #include "DicomTag.h"
 
-#include "../PalanthirException.h"
+#include "../OrthancException.h"
 
 #include <iostream>
 #include <iomanip>
 #include <stdio.h>
 
-namespace Palanthir
+namespace Orthanc
 {
   bool DicomTag::operator< (const DicomTag& other) const
   {
