@@ -1,10 +1,10 @@
 {
     /**
-     * General configuration of Palanthir
+     * General configuration of Orthanc
      **/
 
     // Path to the directory that holds the database
-    "StorageDirectory" : "PalanthirStorage",
+    "StorageDirectory" : "OrthancStorage",
 
 
 
@@ -48,7 +48,7 @@
     // Whether or not the password protection is enabled
     "AuthenticationEnabled" : false,
 
-    // The list of the registered users. Because Palanthir uses HTTP
+    // The list of the registered users. Because Orthanc uses HTTP
     // Basic Authentication, the passwords are stored as plain text.
     "RegisteredUsers" : {
         "alice" : "alicePassword"
@@ -65,7 +65,7 @@
         // "sample" : [ "SAMPLESCP", "192.168.100.42", 104 ]
     },
 
-    // The list of the known Palanthir peers (currently unused)
-    "PalanthirPeers" : {
+    // The list of the known Orthanc peers (currently unused)
+    "OrthancPeers" : {
     }
 }

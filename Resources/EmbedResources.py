@@ -88,7 +88,7 @@ header.write("""
 
 #include <string>
 
-namespace Palanthir
+namespace Orthanc
 {
   namespace EmbeddedResources
   {
@@ -179,12 +179,12 @@ cpp = open(sys.argv[1] + '.cpp', 'w')
 
 cpp.write("""
 #include "%s.h"
-#include "%s/Core/PalanthirException.h"
+#include "%s/Core/OrthancException.h"
 
 #include <stdint.h>
 #include <string.h>
 
-namespace Palanthir
+namespace Orthanc
 {
   namespace EmbeddedResources
   {
@@ -218,7 +218,7 @@ for name in resources:
 
 cpp.write("""
       default:
-        throw PalanthirException(ErrorCode_ParameterOutOfRange);
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
     }
 
@@ -235,7 +235,7 @@ for name in resources:
 
 cpp.write("""
       default:
-        throw PalanthirException(ErrorCode_ParameterOutOfRange);
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
     }
 """)
@@ -260,10 +260,10 @@ for name in resources:
         for path in resources[name]['Files']:
             cpp.write('        if (!strcmp(path, "%s"))\n' % path)
             cpp.write('          return resource%dBuffer;\n' % resources[name]['Files'][path]['Index'])
-        cpp.write('        throw PalanthirException("Unknown path in a directory resource");\n\n')
+        cpp.write('        throw OrthancException("Unknown path in a directory resource");\n\n')
 
 cpp.write("""      default:
-        throw PalanthirException(ErrorCode_ParameterOutOfRange);
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
     }
 
@@ -280,10 +280,10 @@ for name in resources:
         for path in resources[name]['Files']:
             cpp.write('        if (!strcmp(path, "%s"))\n' % path)
             cpp.write('          return resource%dSize;\n' % resources[name]['Files'][path]['Index'])
-        cpp.write('        throw PalanthirException("Unknown path in a directory resource");\n\n')
+        cpp.write('        throw OrthancException("Unknown path in a directory resource");\n\n')
 
 cpp.write("""      default:
-        throw PalanthirException(ErrorCode_ParameterOutOfRange);
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
     }
 """)
