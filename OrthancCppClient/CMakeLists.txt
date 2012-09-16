@@ -1,9 +1,9 @@
-# Mini-project to check whether "PalanthirCppClient" can compile in a
+# Mini-project to check whether "OrthancCppClient" can compile in a
 # standalone fashion
 
 cmake_minimum_required(VERSION 2.8)
 
-project(PalanthirCppClientTest)
+project(OrthancCppClientTest)
 
 SET(STATIC_BUILD OFF)
 
@@ -20,7 +20,7 @@ elseif (${MSVC})
   add_definitions(-D_CRT_SECURE_NO_WARNINGS=1)  
 endif()
 
-add_library(PalanthirCppClient
+add_library(OrthancCppClient
   SHARED
 
   ${THIRD_PARTY_SOURCES}
@@ -32,4 +32,4 @@ add_executable(Test
   main.cpp
   )
 
-target_link_libraries(Test PalanthirCppClient)
+target_link_libraries(Test OrthancCppClient)

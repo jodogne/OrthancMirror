@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -34,7 +34,7 @@
 #include <boost/shared_ptr.hpp>
 #include <json/json.h>
 
-namespace Palanthir
+namespace Orthanc
 {
   class HttpClient
   {
@@ -43,8 +43,8 @@ namespace Palanthir
     boost::shared_ptr<PImpl> pimpl_;
 
     std::string url_;
-    Palanthir_HttpMethod method_;
-    Palanthir_HttpStatus lastStatus_;
+    Orthanc_HttpMethod method_;
+    Orthanc_HttpStatus lastStatus_;
     std::string postData_;
     bool isVerbose_;
 
@@ -68,12 +68,12 @@ namespace Palanthir
       return url_;
     }
 
-    void SetMethod(Palanthir_HttpMethod method)
+    void SetMethod(Orthanc_HttpMethod method)
     {
       method_ = method;
     }
 
-    Palanthir_HttpMethod GetMethod() const
+    Orthanc_HttpMethod GetMethod() const
     {
       return method_;
     }
@@ -99,7 +99,7 @@ namespace Palanthir
 
     bool Apply(Json::Value& answer);
 
-    Palanthir_HttpStatus GetLastStatus() const
+    Orthanc_HttpStatus GetLastStatus() const
     {
       return lastStatus_;
     }
