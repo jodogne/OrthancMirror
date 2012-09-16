@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -22,7 +22,7 @@
 
 #include "ToDcmtkBridge.h"
 #include "DicomIntegerPixelAccessor.h"
-#include "../Core/PalanthirException.h"
+#include "../Core/OrthancException.h"
 #include "../Core/PngWriter.h"
 #include "../Core/DicomFormat/DicomString.h"
 #include "../Core/DicomFormat/DicomNullValue.h"
@@ -45,7 +45,7 @@
 
 #include <boost/math/special_functions/round.hpp>
 
-namespace Palanthir
+namespace Orthanc
 {
   void FromDcmtkBridge::Convert(DicomMap& target, DcmDataset& dataset)
   {
@@ -73,7 +73,7 @@ namespace Palanthir
   {
     if (!element.isLeaf())
     {
-      throw PalanthirException("Only applicable to leaf elements");
+      throw OrthancException("Only applicable to leaf elements");
     }
 
     if (element.isaString())
@@ -370,7 +370,7 @@ namespace Palanthir
     DcmFileFormat dicom;
     if (!dicom.loadFile(path.c_str()).good())
     {
-      throw PalanthirException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
     else
     {
@@ -473,7 +473,7 @@ namespace Palanthir
       break;
 
     default:
-      throw PalanthirException(ErrorCode_NotImplemented);
+      throw OrthancException(ErrorCode_NotImplemented);
     }
 
     if (accessor.get() == NULL ||
@@ -500,7 +500,7 @@ namespace Palanthir
         break;
 
       default:
-        throw PalanthirException(ErrorCode_NotImplemented);
+        throw OrthancException(ErrorCode_NotImplemented);
       }
     }
   }
@@ -525,7 +525,7 @@ namespace Palanthir
     }
     else
     {
-      throw PalanthirException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
   }
 
@@ -556,7 +556,7 @@ namespace Palanthir
     if (entry == NULL)
     {
       dcmDataDict.unlock();
-      throw PalanthirException("Unknown DICOM tag");
+      throw OrthancException("Unknown DICOM tag");
     }
     else
     {
@@ -585,7 +585,7 @@ namespace Palanthir
   {
     if (result.type() != Json::objectValue)
     {
-      throw PalanthirException(ErrorCode_BadParameterType);
+      throw OrthancException(ErrorCode_BadParameterType);
     }
 
     result.clear();

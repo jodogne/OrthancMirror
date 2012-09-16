@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -20,7 +20,7 @@
 
 #include "ServerIndex.h"
 
-using namespace Palanthir;
+using namespace Orthanc;
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -36,7 +36,7 @@ using namespace Palanthir;
 #include <boost/lexical_cast.hpp>
 #include <stdio.h>
 
-namespace Palanthir
+namespace Orthanc
 {
   namespace Internals
   {
@@ -109,7 +109,7 @@ namespace Palanthir
         case 3:
           return "series";
         default:
-          throw PalanthirException(ErrorCode_InternalError);
+          throw OrthancException(ErrorCode_InternalError);
         }
       }
 
@@ -526,7 +526,7 @@ namespace Palanthir
       return StoreStatus_Success;
       //t.Rollback();
     }
-    catch (PalanthirException& e)
+    catch (OrthancException& e)
     {
       std::cout << "EXCEPT2 [" << e.What() << "]" << " " << db_.GetErrorMessage() << std::endl;  
     }

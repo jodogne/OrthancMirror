@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -20,7 +20,7 @@
 
 #include "DicomUserConnection.h"
 
-#include "../../Core/PalanthirException.h"
+#include "../../Core/OrthancException.h"
 #include "../ToDcmtkBridge.h"
 #include "../FromDcmtkBridge.h"
 
@@ -46,7 +46,7 @@
 #endif 
 
 
-namespace Palanthir
+namespace Orthanc
 {
   struct DicomUserConnection::PImpl
   {
@@ -70,7 +70,7 @@ namespace Palanthir
   {
     if (cond.bad())
     {
-      throw PalanthirException("DicomUserConnection: " + std::string(cond.text()));
+      throw OrthancException("DicomUserConnection: " + std::string(cond.text()));
     }
   }
 
@@ -78,7 +78,7 @@ namespace Palanthir
   {
     if (!IsOpen())
     {
-      throw PalanthirException("DicomUserConnection: First open the connection");
+      throw OrthancException("DicomUserConnection: First open the connection");
     }
   }
 
@@ -170,7 +170,7 @@ namespace Palanthir
     DIC_UI sopInstance;
     if (!DU_findSOPClassAndInstanceInDataSet(dcmff.getDataset(), sopClass, sopInstance))
     {
-      throw PalanthirException("DicomUserConnection: Unable to find the SOP class and instance");
+      throw OrthancException("DicomUserConnection: Unable to find the SOP class and instance");
     }
 
     // Figure out which of the accepted presentation contexts should be used
@@ -180,7 +180,7 @@ namespace Palanthir
       const char *modalityName = dcmSOPClassUIDToModality(sopClass);
       if (!modalityName) modalityName = dcmFindNameOfUID(sopClass);
       if (!modalityName) modalityName = "unknown SOP class";
-      throw PalanthirException("DicomUserConnection: No presentation context for modality " + 
+      throw OrthancException("DicomUserConnection: No presentation context for modality " + 
                               std::string(modalityName));
     }
 
@@ -306,14 +306,14 @@ namespace Palanthir
       break;
 
     default:
-      throw PalanthirException(ErrorCode_ParameterOutOfRange);
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
     // Figure out which of the accepted presentation contexts should be used
     int presID = ASC_findAcceptedPresentationContextID(pimpl_->assoc_, sopClass);
     if (presID == 0)
     {
-      throw PalanthirException("DicomUserConnection: The C-FIND command is not supported by the distant AET");
+      throw OrthancException("DicomUserConnection: The C-FIND command is not supported by the distant AET");
     }
 
     T_DIMSE_C_FindRQ request;
@@ -403,7 +403,7 @@ namespace Palanthir
     int presID = ASC_findAcceptedPresentationContextID(pimpl_->assoc_, sopClass);
     if (presID == 0)
     {
-      throw PalanthirException("DicomUserConnection: The C-MOVE command is not supported by the distant AET");
+      throw OrthancException("DicomUserConnection: The C-MOVE command is not supported by the distant AET");
     }
 
     T_DIMSE_C_MoveRQ request;
@@ -471,7 +471,7 @@ namespace Palanthir
   {
     if (host.size() > HOST_NAME_MAX - 10)
     {
-      throw PalanthirException("Distant host name is too long");
+      throw OrthancException("Distant host name is too long");
     }
 
     Close();
@@ -519,7 +519,7 @@ namespace Palanthir
 
     if (ASC_countAcceptedPresentationContexts(pimpl_->params_) == 0)
     {
-      throw PalanthirException("DicomUserConnection: No Acceptable Presentation Contexts");
+      throw OrthancException("DicomUserConnection: No Acceptable Presentation Contexts");
     }
   }
 

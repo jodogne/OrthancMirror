@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -18,9 +18,9 @@
  **/
 
 
-#include "PalanthirRestApi.h"
+#include "OrthancRestApi.h"
 
-#include "PalanthirInitialization.h"
+#include "OrthancInitialization.h"
 #include "FromDcmtkBridge.h"
 #include "../Core/Uuid.h"
 
@@ -28,7 +28,7 @@
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <boost/lexical_cast.hpp>
 
-namespace Palanthir
+namespace Orthanc
 {
   static void SendJson(HttpOutput& output,
                        const Json::Value& value)
@@ -96,14 +96,14 @@ namespace Palanthir
     Json::Reader reader;
     if (!reader.parse(s, source))
     {
-      throw PalanthirException("Corrupted JSON file");
+      throw OrthancException("Corrupted JSON file");
     }
 
     SimplifyTagsRecursion(target, source);
   }
 
 
-  bool PalanthirRestApi::Store(Json::Value& result,
+  bool OrthancRestApi::Store(Json::Value& result,
                                const std::string& postData)
   {
     // Prepare an input stream for the memory buffer
@@ -156,20 +156,20 @@ namespace Palanthir
     return false;
   }
 
-  void PalanthirRestApi::ConnectToModality(DicomUserConnection& c,
+  void OrthancRestApi::ConnectToModality(DicomUserConnection& c,
                                            const std::string& name)
   {
     std::string aet, address;
     int port;
     GetDicomModality(name, aet, address, port);
-    c.SetLocalApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "PALANTHIR"));
+    c.SetLocalApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
     c.SetDistantApplicationEntityTitle(aet);
     c.SetDistantHost(address);
     c.SetDistantPort(port);
     c.Open();
   }
 
-  bool PalanthirRestApi::MergeQueryAndTemplate(DicomMap& result,
+  bool OrthancRestApi::MergeQueryAndTemplate(DicomMap& result,
                                                const std::string& postData)
   {
     Json::Value query;
@@ -191,7 +191,7 @@ namespace Palanthir
     return true;
   }
 
-  bool PalanthirRestApi::DicomFindPatient(Json::Value& result,
+  bool OrthancRestApi::DicomFindPatient(Json::Value& result,
                                           DicomUserConnection& c,
                                           const std::string& postData)
   {
@@ -208,7 +208,7 @@ namespace Palanthir
     return true;
   }
 
-  bool PalanthirRestApi::DicomFindStudy(Json::Value& result,
+  bool OrthancRestApi::DicomFindStudy(Json::Value& result,
                                         DicomUserConnection& c,
                                         const std::string& postData)
   {
@@ -231,7 +231,7 @@ namespace Palanthir
     return true;
   }
 
-  bool PalanthirRestApi::DicomFindSeries(Json::Value& result,
+  bool OrthancRestApi::DicomFindSeries(Json::Value& result,
                                          DicomUserConnection& c,
                                          const std::string& postData)
   {
@@ -255,7 +255,7 @@ namespace Palanthir
     return true;
   }
 
-  bool PalanthirRestApi::DicomFind(Json::Value& result,
+  bool OrthancRestApi::DicomFind(Json::Value& result,
                                    DicomUserConnection& c,
                                    const std::string& postData)
   {
@@ -325,7 +325,7 @@ namespace Palanthir
 
 
 
-  bool PalanthirRestApi::DicomStore(Json::Value& result,
+  bool OrthancRestApi::DicomStore(Json::Value& result,
                                     DicomUserConnection& c,
                                     const std::string& postData)
   {
@@ -371,7 +371,7 @@ namespace Palanthir
   }
 
 
-  PalanthirRestApi::PalanthirRestApi(ServerIndex& index,
+  OrthancRestApi::OrthancRestApi(ServerIndex& index,
                                      const std::string& path) :
     index_(index),
     storage_(path)
@@ -380,7 +380,7 @@ namespace Palanthir
   }
 
 
-  void PalanthirRestApi::Handle(
+  void OrthancRestApi::Handle(
     HttpOutput& output,
     const std::string& method,
     const UriComponents& uri,
@@ -426,7 +426,7 @@ namespace Palanthir
         }
         else
         {
-          output.SendHeader(Palanthir_HttpStatus_415_UnsupportedMediaType);
+          output.SendHeader(Orthanc_HttpStatus_415_UnsupportedMediaType);
           return;
         }
       }
@@ -647,13 +647,13 @@ namespace Palanthir
           }
           else
           {
-            throw PalanthirException(ErrorCode_InternalError);
+            throw OrthancException(ErrorCode_InternalError);
           }
 
           output.AnswerBufferWithContentType(png, "image/png");
           return;
         }
-        catch (PalanthirException&)
+        catch (OrthancException&)
         {
           output.Redirect("/app/images/Unsupported.png");
           return;
@@ -681,7 +681,7 @@ namespace Palanthir
         }
         catch (boost::bad_lexical_cast)
         {
-          output.SendHeader(Palanthir_HttpStatus_400_BadRequest);
+          output.SendHeader(Orthanc_HttpStatus_400_BadRequest);
           return;
         }
 
@@ -692,7 +692,7 @@ namespace Palanthir
 
         if (!index_.GetChanges(result, since, filter, limit))
         {
-          output.SendHeader(Palanthir_HttpStatus_400_BadRequest);
+          output.SendHeader(Orthanc_HttpStatus_400_BadRequest);
           return;
         }
 
@@ -782,7 +782,7 @@ namespace Palanthir
               (uri[2] == "find" && !DicomFind(result, connection, postData)) ||
               (uri[2] == "store" && !DicomStore(result, connection, postData)))
           {
-            output.SendHeader(Palanthir_HttpStatus_400_BadRequest);
+            output.SendHeader(Orthanc_HttpStatus_400_BadRequest);
             return;
           }
         }
@@ -796,7 +796,7 @@ namespace Palanthir
     }
     else
     {
-      output.SendHeader(Palanthir_HttpStatus_404_NotFound);
+      output.SendHeader(Orthanc_HttpStatus_404_NotFound);
     }
   }
 }

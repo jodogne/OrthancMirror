@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -25,11 +25,11 @@
 #include <json/json.h>
 #include "../Core/HttpServer/MongooseServer.h"
 
-namespace Palanthir
+namespace Orthanc
 {
-  void PalanthirInitialize(const char* configurationFile = NULL);
+  void OrthancInitialize(const char* configurationFile = NULL);
 
-  void PalanthirFinalize();
+  void OrthancFinalize();
 
   std::string GetGlobalStringParameter(const std::string& parameter,
                                        const std::string& defaultValue);

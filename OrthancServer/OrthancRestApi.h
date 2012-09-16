@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -27,9 +27,9 @@
 #include <set>
 
 
-namespace Palanthir
+namespace Orthanc
 {
-  class PalanthirRestApi : public HttpHandler
+  class OrthancRestApi : public HttpHandler
   {
   private:
     typedef std::set<std::string> Modalities;
@@ -68,7 +68,7 @@ namespace Palanthir
                     const std::string& postData);
 
   public:
-    PalanthirRestApi(ServerIndex& index,
+    OrthancRestApi(ServerIndex& index,
                      const std::string& path);
 
     virtual bool IsServedUri(const UriComponents& uri)

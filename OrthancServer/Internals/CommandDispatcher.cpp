@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -30,7 +30,7 @@
 static OFBool    opt_rejectWithoutImplementationUID = OFFalse;
 
 
-namespace Palanthir
+namespace Orthanc
 {
   namespace Internals
   {

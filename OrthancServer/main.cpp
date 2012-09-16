@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -18,7 +18,7 @@
  **/
 
 
-#include "PalanthirRestApi.h"
+#include "OrthancRestApi.h"
 
 #include <stdio.h>
 
@@ -26,10 +26,10 @@
 #include "../Core/HttpServer/FilesystemHttpHandler.h"
 #include "../Core/HttpServer/MongooseServer.h"
 #include "DicomProtocol/DicomServer.h"
-#include "PalanthirInitialization.h"
+#include "OrthancInitialization.h"
 
 
-using namespace Palanthir;
+using namespace Orthanc;
 
 
 class MyDicomStore : public IStoreRequestHandler
@@ -99,14 +99,14 @@ int main(int argc, char* argv[])
   {
     if (argc >= 2)
     {
-      PalanthirInitialize(argv[1]);
+      OrthancInitialize(argv[1]);
     }
     else
     {
-      PalanthirInitialize();
+      OrthancInitialize();
     }
 
-    std::string storageDirectory = GetGlobalStringParameter("StorageDirectory", "PalanthirStorage");
+    std::string storageDirectory = GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
     ServerIndex index(storageDirectory);
     MyDicomStoreFactory storeScp(index, storageDirectory);
 
@@ -116,7 +116,7 @@ int main(int argc, char* argv[])
       dicomServer.SetCalledApplicationEntityTitleCheck(GetGlobalBoolParameter("DicomCheckCalledAet", false));
       dicomServer.SetStoreRequestHandlerFactory(storeScp);
       dicomServer.SetPortNumber(GetGlobalIntegerParameter("DicomPort", 4242));
-      dicomServer.SetApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "PALANTHIR"));
+      dicomServer.SetApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
 
       // HTTP server
       MongooseServer httpServer;
@@ -137,13 +137,13 @@ int main(int argc, char* argv[])
         httpServer.SetSslEnabled(false);
       }
 
-#if PALANTHIR_STANDALONE == 1
-      httpServer.RegisterHandler(new EmbeddedResourceHttpHandler("/app", EmbeddedResources::PALANTHIR_EXPLORER));
+#if ORTHANC_STANDALONE == 1
+      httpServer.RegisterHandler(new EmbeddedResourceHttpHandler("/app", EmbeddedResources::ORTHANC_EXPLORER));
 #else
-      httpServer.RegisterHandler(new FilesystemHttpHandler("/app", PALANTHIR_PATH "/PalanthirExplorer"));
+      httpServer.RegisterHandler(new FilesystemHttpHandler("/app", ORTHANC_PATH "/OrthancExplorer"));
 #endif
 
-      httpServer.RegisterHandler(new PalanthirRestApi(index, storageDirectory));
+      httpServer.RegisterHandler(new OrthancRestApi(index, storageDirectory));
 
       // GO !!!
       httpServer.Start();
@@ -158,12 +158,12 @@ int main(int argc, char* argv[])
 
     storeScp.Done();
   }
-  catch (PalanthirException& e)
+  catch (OrthancException& e)
   {
     std::cout << "EXCEPT [" << e.What() << "]" << std::endl;
   }
 
-  PalanthirFinalize();
+  OrthancFinalize();
 
   return 0;
 }
