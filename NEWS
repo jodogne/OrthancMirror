@@ -1,15 +1,26 @@
 Pending changes
 ===============
 
+Version 0.2.0 (2012/09/16)
+==========================
+
+Major changes
+-------------
+
 * Renaming to "Orthanc"
-* Access to multi-frame images
+* Focus on security: Support of SSL, HTTP Basic Authentication and
+  interdiction of remote access
+* Access to multi-frame images (for nuclear medicine)
 * Access to the raw PNG images (in 8bpp and 16bpp)
-* Security: Support of SSL, HTTP Basic Authentication and interdiction
-  of remote access
+
+Minor changes
+-------------
+
 * Change of the licensing of the "Core/SQLite" folder to BSD (to
   reflect the original licensing terms of Chromium, from which the
   code derives)
 * Standalone build for cross-compilation
+
 
 
 Version 0.1.1 (2012/07/20)
@@ -18,6 +29,7 @@ Version 0.1.1 (2012/07/20)
 * Fix Windows version
 * Native Windows build with Microsoft Visual Studio 2005
 * Add path to storage in Configuration.json
+
 
 
 Version 0.1.0 (2012/07/19)

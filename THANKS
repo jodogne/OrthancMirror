@@ -4,11 +4,11 @@ Orthanc - A Lightweight, RESTful DICOM Server
 Orthanc has originally been written by Sebastien Jodogne
 (cf. "AUTHORS" file). This file contains the list of the people that
 have further contributed to Orthanc by reporting problems, suggesting
-various improvements, or submitting actual actual. Please help keep it
+various improvements, or submitting actual code. Please help keep it
 complete and exempt or errors.
 
 
 Contributors
 ------------
 
-* None at this time :)
+* Cyril Paulus (cyril.paulus@student.ulg.ac.be), for the build process.
