@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -22,7 +22,7 @@
 
 #include "../FromDcmtkBridge.h"
 #include "../ToDcmtkBridge.h"
-#include "../../Core/PalanthirException.h"
+#include "../../Core/OrthancException.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmdata/dcmetinf.h>
@@ -31,7 +31,7 @@
 #include <dcmtk/dcmnet/diutil.h>
 
 
-namespace Palanthir
+namespace Orthanc
 {
   namespace Internals
   {
@@ -74,7 +74,7 @@ namespace Palanthir
         {
           data.handler_->Handle(data.input_, data.answers_);
         }
-        catch (PalanthirException& e)
+        catch (OrthancException& e)
         {
           // Internal error!
           OFLOG_ERROR(Internals::Logger, "IFindRequestHandler Failed: " << e.What());

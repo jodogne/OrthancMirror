@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -24,12 +24,12 @@
 #define NOMINMAX
 #endif
 
-#include "../Core/PalanthirException.h"
+#include "../Core/OrthancException.h"
 #include "FromDcmtkBridge.h"
 #include <boost/lexical_cast.hpp>
 #include <limits>
 
-namespace Palanthir
+namespace Orthanc
 {
   DicomIntegerPixelAccessor::DicomIntegerPixelAccessor(const DicomMap& values,
                                                        const void* pixelData,
@@ -54,7 +54,7 @@ namespace Palanthir
     }
     catch (boost::bad_lexical_cast)
     {
-      throw PalanthirException(ErrorCode_NotImplemented);
+      throw OrthancException(ErrorCode_NotImplemented);
     }
 
     frame_ = 0;
@@ -62,38 +62,38 @@ namespace Palanthir
     {
       numberOfFrames_ = boost::lexical_cast<unsigned int>(FromDcmtkBridge::GetValue(values, "NumberOfFrames").AsString());
     }
-    catch (PalanthirException)
+    catch (OrthancException)
     {
       // If the tag "NumberOfFrames" is absent, assume there is a single frame
       numberOfFrames_ = 1;
     }
     catch (boost::bad_lexical_cast)
     {
-      throw PalanthirException(ErrorCode_NotImplemented);
+      throw OrthancException(ErrorCode_NotImplemented);
     }
 
     if ((bitsAllocated != 8 && bitsAllocated != 16 && 
          bitsAllocated != 24 && bitsAllocated != 32) ||
         numberOfFrames_ == 0)
     {
-      throw PalanthirException(ErrorCode_NotImplemented);
+      throw OrthancException(ErrorCode_NotImplemented);
     }
 
     if (bitsAllocated > 32 ||
         bitsStored >= 32)
     {
       // Not available, as the accessor internally uses int32_t values
-      throw PalanthirException(ErrorCode_NotImplemented);
+      throw OrthancException(ErrorCode_NotImplemented);
     }
 
     if (samplesPerPixel_ != 1)
     {
-      throw PalanthirException(ErrorCode_NotImplemented);
+      throw OrthancException(ErrorCode_NotImplemented);
     }
 
     if (width_ * height_ * bitsAllocated / 8 * numberOfFrames_ != size)
     {
-      throw PalanthirException(ErrorCode_NotImplemented);
+      throw OrthancException(ErrorCode_NotImplemented);
     }
 
     /*printf("%d %d %d %d %d %d %d %d\n", width_, height_, samplesPerPixel_, bitsAllocated,
@@ -165,7 +165,7 @@ namespace Palanthir
     if (v & signMask_)
     {
       // Signed value: Not implemented yet
-      //throw PalanthirException(ErrorCode_NotImplemented);
+      //throw OrthancException(ErrorCode_NotImplemented);
       v = 0;
     }
 
@@ -177,7 +177,7 @@ namespace Palanthir
   {
     if (frame >= numberOfFrames_)
     {
-      throw PalanthirException(ErrorCode_ParameterOutOfRange);
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
     frame_ = frame;
