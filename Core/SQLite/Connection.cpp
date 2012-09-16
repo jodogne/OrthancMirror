@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -43,7 +43,7 @@
 
 
 
-namespace Palanthir
+namespace Orthanc
 {
   namespace SQLite
   {
@@ -65,7 +65,7 @@ namespace Palanthir
     {
       if (!db_)
       {
-        throw PalanthirException("SQLite: The database is not opened");
+        throw OrthancException("SQLite: The database is not opened");
       }
     }
 
@@ -73,7 +73,7 @@ namespace Palanthir
     {
       if (db_) 
       {
-        throw PalanthirException("SQLite: Connection is already open");
+        throw OrthancException("SQLite: Connection is already open");
       }
 
       int err = sqlite3_open(path.c_str(), &db_);
@@ -81,7 +81,7 @@ namespace Palanthir
       {
         Close();
         db_ = NULL;
-        throw PalanthirException("SQLite: Unable to open the database");
+        throw OrthancException("SQLite: Unable to open the database");
       }
 
       // Execute PRAGMAs at this point
@@ -133,7 +133,7 @@ namespace Palanthir
       {
         if (i->second->GetReferenceCount() >= 1)
         {
-          throw PalanthirException("SQLite: This cached statement is already being referred to");
+          throw OrthancException("SQLite: This cached statement is already being referred to");
         }
 
         return *i->second;
@@ -154,7 +154,7 @@ namespace Palanthir
       int error = sqlite3_exec(db_, sql, NULL, NULL, NULL);
       if (error == SQLITE_ERROR)
       {
-        throw PalanthirException("SQLite Execute error: " + std::string(sqlite3_errmsg(db_)));
+        throw OrthancException("SQLite Execute error: " + std::string(sqlite3_errmsg(db_)));
       }
       else
       {
@@ -275,7 +275,7 @@ namespace Palanthir
     {
       if (!transactionNesting_)
       {
-        throw PalanthirException("Rolling back a nonexistent transaction");
+        throw OrthancException("Rolling back a nonexistent transaction");
       }
 
       transactionNesting_--;
@@ -294,7 +294,7 @@ namespace Palanthir
     {
       if (!transactionNesting_) 
       {
-        throw PalanthirException("Committing a nonexistent transaction");
+        throw OrthancException("Committing a nonexistent transaction");
       }
       transactionNesting_--;
 
@@ -362,7 +362,7 @@ namespace Palanthir
       if (err != SQLITE_OK)
       {
         delete func;
-        throw PalanthirException("SQLite: Unable to register a function");
+        throw OrthancException("SQLite: Unable to register a function");
       }
 
       return func;

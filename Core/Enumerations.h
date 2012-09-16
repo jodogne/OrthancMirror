@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -20,9 +20,9 @@
 
 #pragma once
 
-#include "../PalanthirCppClient/HttpEnumerations.h"
+#include "../OrthancCppClient/HttpEnumerations.h"
 
-namespace Palanthir
+namespace Orthanc
 {
   enum ErrorCode
   {

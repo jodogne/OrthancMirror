@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -23,9 +23,9 @@
 #include <string>
 #include "Enumerations.h"
 
-namespace Palanthir
+namespace Orthanc
 {
-  class PalanthirException
+  class OrthancException
   {
   private:
     ErrorCode error_;
@@ -34,13 +34,13 @@ namespace Palanthir
   public:
     static const char* GetDescription(ErrorCode error);
 
-    PalanthirException(const std::string& custom)
+    OrthancException(const std::string& custom)
     {
       error_ = ErrorCode_Custom;
       custom_ = custom;
     }
 
-    PalanthirException(ErrorCode error)
+    OrthancException(ErrorCode error)
     {
       error_ = error;
     }

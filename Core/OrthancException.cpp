@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -18,11 +18,11 @@
  **/
 
 
-#include "PalanthirException.h"
+#include "OrthancException.h"
 
-namespace Palanthir
+namespace Orthanc
 {
-  const char* PalanthirException::What() const
+  const char* OrthancException::What() const
   {
     if (error_ == ErrorCode_Custom)
     {
@@ -35,7 +35,7 @@ namespace Palanthir
   }
 
 
-  const char* PalanthirException::GetDescription(ErrorCode error)
+  const char* OrthancException::GetDescription(ErrorCode error)
   {
     switch (error)
     {

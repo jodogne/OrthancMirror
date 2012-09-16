@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -36,12 +36,12 @@
 
 #include "StatementReference.h"
 
-#include "../PalanthirException.h"
+#include "../OrthancException.h"
 
 #include <cassert>
 #include "sqlite3.h"
 
-namespace Palanthir
+namespace Orthanc
 {
   namespace SQLite
   {
@@ -63,7 +63,7 @@ namespace Palanthir
     {
       if (database == NULL || sql == NULL)
       {
-        throw PalanthirException(ErrorCode_ParameterOutOfRange);
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
 
       root_ = NULL;
@@ -72,7 +72,7 @@ namespace Palanthir
       int error = sqlite3_prepare_v2(database, sql, -1, &statement_, NULL);
       if (error != SQLITE_OK)
       {
-        throw PalanthirException("SQLite: " + std::string(sqlite3_errmsg(database)));
+        throw OrthancException("SQLite: " + std::string(sqlite3_errmsg(database)));
       }
 
       assert(IsRoot());
@@ -104,7 +104,7 @@ namespace Palanthir
         if (refCount_ != 0)
         {
           // There remain references to this object
-          throw PalanthirException(ErrorCode_InternalError);
+          throw OrthancException(ErrorCode_InternalError);
         }
         else if (statement_ != NULL)
         {
@@ -115,7 +115,7 @@ namespace Palanthir
       {
         if (root_->refCount_ == 0)
         {
-          throw PalanthirException(ErrorCode_InternalError);
+          throw OrthancException(ErrorCode_InternalError);
         }
         else
         {
