@@ -106,7 +106,6 @@ if (${STATIC_BUILD})
   endforeach()
 
   list(REMOVE_ITEM OPENSSL_SOURCES
-    ${OPENSSL_SOURCES_DIR}/crypto/LPdir_nyi.c
     ${OPENSSL_SOURCES_DIR}/crypto/LPdir_unix.c
     ${OPENSSL_SOURCES_DIR}/crypto/LPdir_vms.c
     ${OPENSSL_SOURCES_DIR}/crypto/LPdir_win.c
@@ -118,6 +117,7 @@ if (${STATIC_BUILD})
     ${OPENSSL_SOURCES_DIR}/crypto/bn/exp.c
     ${OPENSSL_SOURCES_DIR}/crypto/conf/cnf_save.c
     ${OPENSSL_SOURCES_DIR}/crypto/conf/test.c
+    ${OPENSSL_SOURCES_DIR}/crypto/des/des.c
     ${OPENSSL_SOURCES_DIR}/crypto/des/des3s.cpp
     ${OPENSSL_SOURCES_DIR}/crypto/des/des_opts.c
     ${OPENSSL_SOURCES_DIR}/crypto/des/dess.cpp
@@ -135,8 +135,32 @@ if (${STATIC_BUILD})
     ${OPENSSL_SOURCES_DIR}/crypto/sparcv9cap.c
     ${OPENSSL_SOURCES_DIR}/crypto/x509v3/tabtest.c
     ${OPENSSL_SOURCES_DIR}/crypto/x509v3/v3conf.c
-    ${OPENSSL_SOURCES_DIR}/crypto/des/des.c
     ${OPENSSL_SOURCES_DIR}/ssl/ssl_task.c
+    ${OPENSSL_SOURCES_DIR}/crypto/LPdir_nyi.c
+    ${OPENSSL_SOURCES_DIR}/crypto/aes/aes_x86core.c
+    ${OPENSSL_SOURCES_DIR}/crypto/bio/bss_dgram.c
+    ${OPENSSL_SOURCES_DIR}/crypto/bn/bntest.c
+    ${OPENSSL_SOURCES_DIR}/crypto/bn/expspeed.c
+    ${OPENSSL_SOURCES_DIR}/crypto/bn/exptest.c
+    ${OPENSSL_SOURCES_DIR}/crypto/engine/enginetest.c
+    ${OPENSSL_SOURCES_DIR}/crypto/evp/evp_test.c
+    ${OPENSSL_SOURCES_DIR}/crypto/hmac/hmactest.c
+    ${OPENSSL_SOURCES_DIR}/crypto/md5/md5.c
+    ${OPENSSL_SOURCES_DIR}/crypto/md5/md5test.c
+    ${OPENSSL_SOURCES_DIR}/crypto/o_dir_test.c
+    ${OPENSSL_SOURCES_DIR}/crypto/pkcs7/dec.c
+    ${OPENSSL_SOURCES_DIR}/crypto/pkcs7/enc.c
+    ${OPENSSL_SOURCES_DIR}/crypto/pkcs7/sign.c
+    ${OPENSSL_SOURCES_DIR}/crypto/pkcs7/verify.c
+    ${OPENSSL_SOURCES_DIR}/crypto/rsa/rsa_test.c
+    ${OPENSSL_SOURCES_DIR}/crypto/sha/sha.c
+    ${OPENSSL_SOURCES_DIR}/crypto/sha/sha1.c
+    ${OPENSSL_SOURCES_DIR}/crypto/sha/sha1t.c
+    ${OPENSSL_SOURCES_DIR}/crypto/sha/sha1test.c
+    ${OPENSSL_SOURCES_DIR}/crypto/sha/sha256t.c
+    ${OPENSSL_SOURCES_DIR}/crypto/sha/sha512t.c
+    ${OPENSSL_SOURCES_DIR}/crypto/sha/shatest.c
+    ${OPENSSL_SOURCES_DIR}/crypto/srp/srptest.c
     )
 
   #if (${MSVC})
