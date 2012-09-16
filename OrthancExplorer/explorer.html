@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Orthanc Explorer</title>
+
+    <link rel="stylesheet" href="libs/jquery.mobile-1.1.0.min.css" />
+    <link rel="stylesheet" href="libs/jqtree.css" />
+    <link rel="stylesheet" href="libs/jquery.mobile.simpledialog.min.css" />
+    <link rel="stylesheet" href="libs/jquery-file-upload/css/style.css" />
+    <link rel="stylesheet" href="libs/jquery-file-upload/css/jquery.fileupload-ui.css" />
+    <link rel="stylesheet" href="libs/slimbox2/slimbox2.css" />
+
+    <script src="libs/jquery-1.7.2.min.js"></script>
+    <script src="libs/jquery.mobile-1.1.0.min.js"></script>
+    <script src="libs/jqm.page.params.js"></script>
+    <script src="libs/tree.jquery.js"></script>
+    <script src="libs/date.js"></script>
+    <script src="libs/jquery.mobile.simpledialog2.js"></script>
+    <script src="libs/slimbox2.js"></script>
+    <script src="libs/jquery.blockUI.js"></script>
+
+    <!-- https://github.com/blueimp/jQuery-File-Upload/wiki/Basic-plugin -->
+    <script src="libs/jquery-file-upload/js/vendor/jquery.ui.widget.js"></script>
+    <script src="libs/jquery-file-upload/js/jquery.iframe-transport.js"></script>
+    <script src="libs/jquery-file-upload/js/jquery.fileupload.js"></script>
+
+    <link rel="stylesheet" href="explorer.css" />
+    <script src="file-upload.js"></script>
+    <script src="explorer.js"></script>
+  </head>
+  <body>
+    <div data-role="page" id="find-patients" >
+      <div data-role="header" >
+	<h1>Find a patient</h1>
+        <a href="#upload" data-icon="gear" class="ui-btn-right">Upload DICOM</a>
+      </div>
+      <div data-role="content">
+        <ul id="all-patients" data-role="listview" data-inset="true" data-filter="true">
+        </ul>
+      </div>
+    </div>
+
+    <div data-role="page" id="upload" >
+      <div data-role="header" >
+	<h1>Upload DICOM files</h1>
+        <a href="#find-patients" data-icon="search" class="ui-btn-left" data-direction="reverse">Find patient</a>
+      </div>
+      <div data-role="content">
+        <div style="display:none">
+          <input id="fileupload" type="file" name="files[]" data-url="/instances/" multiple>
+        </div>
+        <p>
+          <ul data-role="listview" data-inset="true">
+            <li data-icon="arrow-r" data-theme="e"><a href="#" id="upload-button">Start the upload</a></li>
+            <!--li data-icon="gear" data-theme="e"><a href="#" id="upload-abort" class="ui-disabled">Abort the current upload</a></li-->
+            <li data-icon="delete" data-theme="e"><a href="#" id="upload-clear">Clear the pending uploads</a></li>
+          </ul>
+          <div id="progress" class="ui-corner-all">
+            <span class="bar ui-corner-all"></span>
+            <div class="label"></div>
+          </div>
+        </p>
+        <ul id="upload-list" data-role="listview" data-inset="true">
+          <li data-role="list-divider">Drag and drop DICOM files here</li>
+        </ul>
+      </div>
+    </div>
+
+    <div data-role="page" id="patient" >
+      <div data-role="header" >
+	<h1>List of the studies of one patient</h1>
+        <a href="#find-patients" data-icon="search" class="ui-btn-left" data-direction="reverse">Find patient</a>
+        <a href="#upload" data-icon="gear" class="ui-btn-right">Upload DICOM</a>
+      </div>
+      <div data-role="content">
+        <div class="ui-grid-a">
+          <div class="ui-block-a" style="width:30%">
+            <div style="padding-right:10px">
+              <ul data-role="listview" data-inset="true" data-theme="a"  id="patient-info">
+              </ul>
+              <p>
+                <a href="#find-patients" data-role="button" data-icon="search">Go to patient finder</a>
+                <a href="#" data-role="button" data-icon="delete" id="patient-delete">Delete this patient</a>
+              </p>
+            </div>
+          </div>
+          <div class="ui-block-b" style="width:70%">
+            <div style="padding:10px">
+              <ul id="list-studies" data-role="listview" data-inset="true" data-filter="true">
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div data-role="page" id="study">
+      <div data-role="header">
+	<h1>List of the series of one study</h1>
+        <a href="#find-patients" data-icon="search" class="ui-btn-left" data-direction="reverse">Find patient</a>
+        <a href="#upload" data-icon="gear" class="ui-btn-right">Upload DICOM</a>
+      </div>
+      <div data-role="content">
+        <div class="ui-grid-a">
+          <div class="ui-block-a" style="width:30%">
+            <div style="padding-right:10px">
+              <ul data-role="listview" data-inset="true" data-theme="a" id="study-info">
+              </ul>
+              <p>
+                <a href="#" data-role="button" data-icon="delete" id="study-delete">Delete this study</a>
+              </p>
+            </div>
+          </div>
+          <div class="ui-block-b" style="width:70%">
+            <div style="padding:10px">
+              <ul id="list-series" data-role="listview" data-inset="true" data-filter="true">
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div data-role="page" id="series">
+      <div data-role="header">
+	<h1>List of the instances of one series</h1>
+        <a href="#find-patients" data-icon="search" class="ui-btn-left" data-direction="reverse">Find patient</a>
+        <a href="#upload" data-icon="gear" class="ui-btn-right">Upload DICOM</a>
+      </div>
+      <div data-role="content">
+        <div class="ui-grid-a">
+          <div class="ui-block-a" style="width:30%">
+            <div style="padding-right:10px">
+              <ul data-role="listview" data-inset="true" data-theme="a"  id="series-info">
+              </ul>
+              <p>
+                <a href="#" data-role="button" data-icon="delete" id="series-delete">Delete this series</a>
+                <a href="#" data-role="button" data-icon="arrow-d" id="series-preview">Preview this series</a>
+                <a href="#" data-role="button" data-icon="arrow-d" id="series-store">Store in another DICOM modality</a>
+              </p>
+            </div>
+          </div>
+          <div class="ui-block-b" style="width:70%">
+            <div style="padding:10px">
+              <ul id="list-instances" data-role="listview" data-inset="true" data-filter="true">
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div data-role="page" id="instance">
+      <div data-role="header">
+	<h1>One DICOM instance</h1>
+        <a href="#find-patients" data-icon="search" class="ui-btn-left" data-direction="reverse">Find patient</a>
+        <a href="#upload" data-icon="gear" class="ui-btn-right">Upload DICOM</a>
+      </div>
+      <div data-role="content">
+        <div class="ui-grid-a">
+          <div class="ui-block-a" style="width:30%">
+            <div style="padding-right:10px">
+              <ul data-role="listview" data-inset="true" data-theme="a"  id="instance-info">
+              </ul>
+              <p>
+                <a href="#" data-role="button" data-icon="delete" id="instance-delete">Delete this instance</a>
+                <a href="#" data-role="button" data-icon="arrow-d" id="instance-download-dicom">Download the DICOM file</a>
+                <a href="#" data-role="button" data-icon="arrow-d" id="instance-download-json">Download the JSON file</a>
+                <a href="#" data-role="button" data-icon="arrow-d" id="instance-preview">Preview the instance</a>
+                <a href="#" data-role="button" data-icon="arrow-d" id="instance-store">Store in another DICOM modality</a>
+              </p>
+            </div>
+          </div>
+          <div class="ui-block-b" style="width:70%">
+            <div style="padding:10px">
+              <div class="ui-body ui-body-b">
+                <h1>DICOM Tags</h1>
+                <p align="right">
+                  <input type="checkbox" id="show-tag-name" checked="checked" class="custom" data-mini="true" />
+                  <label for="show-tag-name">Show tag description</label>
+                </p>
+                <div id="dicom-tree"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="loading" style="display:none;" class="ui-body-c">
+      <p align="center"><b>Sending to DICOM modality...</b></p>
+      <p><img src="libs/images/ajax-loader2.gif" alt="" /></p>
+    </div>
+
+    <div id="dialog" style="display:none" >
+    </div>
+  </body>
+</html>

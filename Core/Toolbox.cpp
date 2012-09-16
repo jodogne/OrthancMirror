@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -20,7 +20,7 @@
 
 #include "Toolbox.h"
 
-#include "PalanthirException.h"
+#include "OrthancException.h"
 
 #include <string.h>
 #include <boost/filesystem.hpp>
@@ -39,7 +39,7 @@
 #include "../Resources/md5/md5.h"
 #include "../Resources/base64/base64.h"
 
-namespace Palanthir
+namespace Orthanc
 {
   static bool finish;
 
@@ -125,7 +125,7 @@ namespace Palanthir
     f.open(path, std::ifstream::in | std::ios::binary);
     if (!f.good())
     {
-      throw PalanthirException("Unable to open a file");
+      throw OrthancException("Unable to open a file");
     }
 
     // http://www.cplusplus.com/reference/iostream/istream/tellg/
@@ -150,7 +150,7 @@ namespace Palanthir
       if (boost::filesystem::is_regular_file(path))
         boost::filesystem::remove(path);
       else
-        throw PalanthirException("The path is not a regular file: " + path);
+        throw OrthancException("The path is not a regular file: " + path);
     }
   }
 
@@ -166,7 +166,7 @@ namespace Palanthir
     if (uri.size() == 0 ||
         uri[0] != URI_SEPARATOR)
     {
-      throw PalanthirException(ErrorCode_UriSyntax);
+      throw OrthancException(ErrorCode_UriSyntax);
     }
 
     // Count the number of slashes in the URI to make an assumption
@@ -301,7 +301,7 @@ namespace Palanthir
     }
     catch (boost::filesystem::filesystem_error)
     {
-      throw PalanthirException(ErrorCode_InexistentFile);
+      throw OrthancException(ErrorCode_InexistentFile);
     }
   }
 

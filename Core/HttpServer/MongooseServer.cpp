@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -31,17 +31,17 @@
 #include <stdio.h>
 #include <boost/thread.hpp>
 
-#include "../PalanthirException.h"
+#include "../OrthancException.h"
 #include "../ChunkedBuffer.h"
 #include "mongoose.h"
 
 
-#define PALANTHIR_REALM "Palanthir Secure Area"
+#define ORTHANC_REALM "Orthanc Secure Area"
 
 static const long LOCALHOST = (127ll << 24) + 1ll;
 
 
-namespace Palanthir
+namespace Orthanc
 {
   static const char multipart[] = "multipart/form-data; boundary=";
   static unsigned int multipartLength = sizeof(multipart) / sizeof(char) - 1;
@@ -402,7 +402,7 @@ namespace Palanthir
   static void SendUnauthorized(HttpOutput& output)
   {
     std::string s = "HTTP/1.1 401 Unauthorized\r\n" 
-      "WWW-Authenticate: Basic realm=\"" PALANTHIR_REALM "\""
+      "WWW-Authenticate: Basic realm=\"" ORTHANC_REALM "\""
       "\r\n\r\n";
     output.Send(&s[0], s.size());
   }
@@ -481,7 +481,7 @@ namespace Palanthir
         HttpHandler::Arguments::const_iterator ct = headers.find("content-type");
         if (ct == headers.end())
         {
-          output.SendHeader(Palanthir_HttpStatus_400_BadRequest);
+          output.SendHeader(Orthanc_HttpStatus_400_BadRequest);
           return (void*) "";
         }
 
@@ -501,11 +501,11 @@ namespace Palanthir
         switch (status)
         {
         case PostDataStatus_NoLength:
-          output.SendHeader(Palanthir_HttpStatus_411_LengthRequired);
+          output.SendHeader(Orthanc_HttpStatus_411_LengthRequired);
           return (void*) "";
 
         case PostDataStatus_Failure:
-          output.SendHeader(Palanthir_HttpStatus_400_BadRequest);
+          output.SendHeader(Orthanc_HttpStatus_400_BadRequest);
           return (void*) "";
 
         case PostDataStatus_Pending:
@@ -528,15 +528,15 @@ namespace Palanthir
           handler->Handle(output, std::string(request->request_method),
                           uri, headers, arguments, postData);
         }
-        catch (PalanthirException& e)
+        catch (OrthancException& e)
         {
           std::cerr << "MongooseServer Exception [" << e.What() << "]" << std::endl;
-          output.SendHeader(Palanthir_HttpStatus_500_InternalServerError);        
+          output.SendHeader(Orthanc_HttpStatus_500_InternalServerError);        
         }
       }
       else
       {
-        output.SendHeader(Palanthir_HttpStatus_404_NotFound);
+        output.SendHeader(Orthanc_HttpStatus_404_NotFound);
       }
 
       // Mark as processed
@@ -599,7 +599,7 @@ namespace Palanthir
       pimpl_->context_ = mg_start(&Callback, this, options);
       if (!pimpl_->context_)
       {
-        throw PalanthirException("Unable to launch the Mongoose server");
+        throw OrthancException("Unable to launch the Mongoose server");
       }
     }
   }
@@ -654,10 +654,10 @@ namespace Palanthir
   {
     Stop();
 
-#if PALANTHIR_SSL_ENABLED == 0
+#if ORTHANC_SSL_ENABLED == 0
     if (enabled)
     {
-      throw PalanthirException("Palanthir has been built without SSL support");
+      throw OrthancException("Orthanc has been built without SSL support");
     }
     else
     {

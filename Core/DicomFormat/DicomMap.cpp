@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -23,10 +23,10 @@
 #include <stdio.h>
 #include <memory>
 #include "DicomString.h"
-#include "../PalanthirException.h"
+#include "../OrthancException.h"
 
 
-namespace Palanthir
+namespace Orthanc
 {
   static DicomTag patientTags[] =
   {
@@ -178,7 +178,7 @@ namespace Palanthir
 
     if (it == map_.end())
     {
-      throw PalanthirException("Inexistent tag");
+      throw OrthancException("Inexistent tag");
     }
     else
     {

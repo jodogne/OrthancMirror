@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -23,11 +23,11 @@
 #include <vector>
 #include <stdio.h>
 #include <boost/lexical_cast.hpp>
-#include "../PalanthirException.h"
+#include "../OrthancException.h"
 #include "../Toolbox.h"
-#include "../../PalanthirCppClient/HttpException.h"
+#include "../../OrthancCppClient/HttpException.h"
 
-namespace Palanthir
+namespace Orthanc
 {
   void HttpOutput::SendString(const std::string& s)
   {
@@ -82,26 +82,26 @@ namespace Palanthir
   void HttpOutput::SendMethodNotAllowedError(const std::string& allowed)
   {
     std::string s = 
-      "HTTP/1.1 405 " + std::string(HttpException::GetDescription(Palanthir_HttpStatus_405_MethodNotAllowed)) +
+      "HTTP/1.1 405 " + std::string(HttpException::GetDescription(Orthanc_HttpStatus_405_MethodNotAllowed)) +
       "\r\nAllow: " + allowed + 
       "\r\n\r\n";
     Send(&s[0], s.size());
   }
 
 
-  void HttpOutput::SendHeader(Palanthir_HttpStatus status)
+  void HttpOutput::SendHeader(Orthanc_HttpStatus status)
   {
-    if (status == Palanthir_HttpStatus_200_Ok ||
-        status == Palanthir_HttpStatus_405_MethodNotAllowed)
+    if (status == Orthanc_HttpStatus_200_Ok ||
+        status == Orthanc_HttpStatus_405_MethodNotAllowed)
     {
-      throw PalanthirException("Please use the dedicated methods to this HTTP status code in HttpOutput");
+      throw OrthancException("Please use the dedicated methods to this HTTP status code in HttpOutput");
     }
     
     SendHeaderInternal(status);
   }
 
 
-  void HttpOutput::SendHeaderInternal(Palanthir_HttpStatus status)
+  void HttpOutput::SendHeaderInternal(Orthanc_HttpStatus status)
   {
     std::string s = "HTTP/1.1 " + 
       boost::lexical_cast<std::string>(status) +
@@ -136,7 +136,7 @@ namespace Palanthir
     FILE* fp = fopen(path.c_str(), "rb");
     if (!fp)
     {
-      SendHeaderInternal(Palanthir_HttpStatus_500_InternalServerError);
+      SendHeaderInternal(Orthanc_HttpStatus_500_InternalServerError);
       return;
     }
   
@@ -180,7 +180,7 @@ namespace Palanthir
   void HttpOutput::Redirect(const std::string& path)
   {
     std::string s = 
-      "HTTP/1.1 301 " + std::string(HttpException::GetDescription(Palanthir_HttpStatus_301_MovedPermanently)) + 
+      "HTTP/1.1 301 " + std::string(HttpException::GetDescription(Orthanc_HttpStatus_301_MovedPermanently)) + 
       "\r\nLocation: " + path +
       "\r\n\r\n";
     Send(&s[0], s.size());  

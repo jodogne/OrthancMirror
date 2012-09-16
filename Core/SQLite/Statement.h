@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -36,7 +36,7 @@
 
 #pragma once
 
-#include "../PalanthirException.h"
+#include "../OrthancException.h"
 #include "StatementId.h"
 #include "StatementReference.h"
 
@@ -47,7 +47,7 @@
 struct sqlite3_stmt;
 
 
-namespace Palanthir
+namespace Orthanc
 {
   namespace SQLite
   {

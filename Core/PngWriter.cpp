@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -23,7 +23,7 @@
 #include <vector>
 #include <stdint.h>
 #include <png.h>
-#include "PalanthirException.h"
+#include "OrthancException.h"
 #include "ChunkedBuffer.h"
 
 
@@ -58,7 +58,7 @@ static void WarningHandler(png_structp png, png_const_charp message)
 }*/
 
 
-namespace Palanthir
+namespace Orthanc
 {
   struct PngWriter::PImpl
   {
@@ -82,14 +82,14 @@ namespace Palanthir
       (PNG_LIBPNG_VER_STRING, NULL, NULL, NULL); //this, ErrorHandler, WarningHandler);
     if (!pimpl_->png_)
     {
-      throw PalanthirException(ErrorCode_NotEnoughMemory);
+      throw OrthancException(ErrorCode_NotEnoughMemory);
     }
 
     pimpl_->info_ = png_create_info_struct(pimpl_->png_);
     if (!pimpl_->info_)
     {
       png_destroy_write_struct(&pimpl_->png_, NULL);
-      throw PalanthirException(ErrorCode_NotEnoughMemory);
+      throw OrthancException(ErrorCode_NotEnoughMemory);
     }
   }
 
@@ -133,7 +133,7 @@ namespace Palanthir
       break;
 
     default:
-      throw PalanthirException(ErrorCode_NotImplemented);
+      throw OrthancException(ErrorCode_NotImplemented);
     }
   }
 
@@ -180,7 +180,7 @@ namespace Palanthir
     FILE* fp = fopen(filename, "wb");
     if (!fp)
     {
-      throw PalanthirException(ErrorCode_CannotWriteFile);
+      throw OrthancException(ErrorCode_CannotWriteFile);
     }    
 
     png_init_io(pimpl_->png_, fp);
@@ -188,7 +188,7 @@ namespace Palanthir
     if (setjmp(png_jmpbuf(pimpl_->png_)))
     {
       // Error during writing PNG
-      throw PalanthirException(ErrorCode_CannotWriteFile);      
+      throw OrthancException(ErrorCode_CannotWriteFile);      
     }
 
     Compress(width, height, pitch, format);
@@ -223,7 +223,7 @@ namespace Palanthir
     if (setjmp(png_jmpbuf(pimpl_->png_)))
     {
       // Error during writing PNG
-      throw PalanthirException(ErrorCode_InternalError);      
+      throw OrthancException(ErrorCode_InternalError);      
     }
 
     png_set_write_fn(pimpl_->png_, &chunks, MemoryCallback, NULL);

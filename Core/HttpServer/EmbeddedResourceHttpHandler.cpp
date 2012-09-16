@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -20,12 +20,12 @@
 
 #include "EmbeddedResourceHttpHandler.h"
 
-#include "../PalanthirException.h"
+#include "../OrthancException.h"
 
 #include <stdio.h>
 
 
-namespace Palanthir
+namespace Orthanc
 {
   EmbeddedResourceHttpHandler::EmbeddedResourceHttpHandler(
     const std::string& baseUri,
@@ -65,9 +65,9 @@ namespace Palanthir
       size_t size = EmbeddedResources::GetDirectoryResourceSize(resourceId_, resourcePath.c_str());
       output.AnswerBufferWithContentType(buffer, size, contentType);
     }
-    catch (PalanthirException& e)
+    catch (OrthancException& e)
     {
-      output.SendHeader(Palanthir_HttpStatus_404_NotFound);
+      output.SendHeader(Orthanc_HttpStatus_404_NotFound);
     }
   } 
 }
