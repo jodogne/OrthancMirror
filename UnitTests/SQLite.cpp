@@ -6,7 +6,7 @@
 
 #include <sqlite3.h>
 
-using namespace Palanthir;
+using namespace Orthanc;
 
 
 TEST(SQLite, Configuration)

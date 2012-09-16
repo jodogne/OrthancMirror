@@ -5,15 +5,15 @@
 #include "../Core/Compression/ZlibCompressor.h"
 #include "../Core/DicomFormat/DicomTag.h"
 #include "../Core/FileStorage.h"
-#include "../PalanthirCppClient/HttpClient.h"
+#include "../OrthancCppClient/HttpClient.h"
 #include "../Core/HttpServer/HttpHandler.h"
-#include "../Core/PalanthirException.h"
+#include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
 #include "../Core/Uuid.h"
-#include "../PalanthirServer/FromDcmtkBridge.h"
-#include "../PalanthirServer/PalanthirInitialization.h"
+#include "../OrthancServer/FromDcmtkBridge.h"
+#include "../OrthancServer/OrthancInitialization.h"
 
-using namespace Palanthir;
+using namespace Orthanc;
 
 
 TEST(Uuid, Generation)
@@ -186,8 +186,8 @@ TEST(Uri, SplitUriComponents)
   ASSERT_EQ(1u, c.size());
   ASSERT_EQ("hello", c[0]);
 
-  ASSERT_THROW(Toolbox::SplitUriComponents(c, ""), PalanthirException);
-  ASSERT_THROW(Toolbox::SplitUriComponents(c, "a"), PalanthirException);
+  ASSERT_THROW(Toolbox::SplitUriComponents(c, ""), OrthancException);
+  ASSERT_THROW(Toolbox::SplitUriComponents(c, "a"), OrthancException);
 }
 
 
@@ -275,9 +275,9 @@ TEST(Toolbox, Base64)
 
 int main(int argc, char **argv)
 {
-  PalanthirInitialize();
+  OrthancInitialize();
   ::testing::InitGoogleTest(&argc, argv);
   int result = RUN_ALL_TESTS();
-  PalanthirFinalize();
+  OrthancFinalize();
   return result;
 }

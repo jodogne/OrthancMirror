@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -36,7 +36,7 @@
 
 #include "Transaction.h"
 
-namespace Palanthir
+namespace Orthanc
 {
   namespace SQLite
   {
@@ -58,13 +58,13 @@ namespace Palanthir
     {
       if (isOpen_) 
       {
-        throw PalanthirException("SQLite: Beginning a transaction twice!");
+        throw OrthancException("SQLite: Beginning a transaction twice!");
       }
 
       isOpen_ = connection_.BeginTransaction();
       if (!isOpen_)
       {
-        throw PalanthirException("SQLite: Unable to create a transaction");
+        throw OrthancException("SQLite: Unable to create a transaction");
       }
     }
 
@@ -72,7 +72,7 @@ namespace Palanthir
     {
       if (!isOpen_) 
       {
-        throw PalanthirException("SQLite: Attempting to roll back a nonexistent transaction. "
+        throw OrthancException("SQLite: Attempting to roll back a nonexistent transaction. "
                                 "Did you remember to call Begin()?");
       }
 
@@ -85,7 +85,7 @@ namespace Palanthir
     {
       if (!isOpen_) 
       {
-        throw PalanthirException("SQLite: Attempting to roll back a nonexistent transaction. "
+        throw OrthancException("SQLite: Attempting to roll back a nonexistent transaction. "
                                 "Did you remember to call Begin()?");
       }
 
@@ -93,7 +93,7 @@ namespace Palanthir
 
       if (!connection_.CommitTransaction())
       {
-        throw PalanthirException("SQLite: Failure when committing the transaction");
+        throw OrthancException("SQLite: Failure when committing the transaction");
       }
     }
   }

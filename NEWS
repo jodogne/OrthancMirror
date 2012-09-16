@@ -1,7 +1,7 @@
 Pending changes
 ===============
 
-* Renaming to "Palanthir"
+* Renaming to "Orthanc"
 * Access to multi-frame images
 * Access to the raw PNG images (in 8bpp and 16bpp)
 * Security: Support of SSL, HTTP Basic Authentication and interdiction

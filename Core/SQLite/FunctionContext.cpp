@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -35,7 +35,7 @@
 
 #include <sqlite3.h>
 
-namespace Palanthir
+namespace Orthanc
 {
   namespace SQLite
   {
@@ -56,7 +56,7 @@ namespace Palanthir
     {
       if (index >= argc_)
       {
-        throw PalanthirException(ErrorCode_ParameterOutOfRange);
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
     }
 

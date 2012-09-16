@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -20,12 +20,12 @@
 
 #include "FilesystemHttpHandler.h"
 
-#include "../PalanthirException.h"
+#include "../OrthancException.h"
 
 #include <boost/filesystem.hpp>
 
 
-namespace Palanthir
+namespace Orthanc
 {
   struct FilesystemHttpHandler::PImpl
   {
@@ -91,7 +91,7 @@ namespace Palanthir
     if (!fs::exists(pimpl_->root_) || 
         !fs::is_directory(pimpl_->root_))
     {
-      throw PalanthirException("The path does not point to a directory");
+      throw OrthancException("The path does not point to a directory");
     }
   }
 
@@ -136,7 +136,7 @@ namespace Palanthir
     }
     else
     {
-      output.SendHeader(Palanthir_HttpStatus_404_NotFound);
+      output.SendHeader(Orthanc_HttpStatus_404_NotFound);
     }
   } 
 }

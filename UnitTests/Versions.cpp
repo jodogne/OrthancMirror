@@ -27,7 +27,7 @@ TEST(Versions, Png)
 }
 
 
-#if PALANTHIR_STATIC == 1
+#if ORTHANC_STATIC == 1
 TEST(Versions, ZlibStatic)
 {
   ASSERT_STREQ("1.2.7", zlibVersion());
@@ -57,7 +57,7 @@ TEST(Versions, CurlSsl)
   // Check that SSL support is enabled when required
   bool curlSupportsSsl = vinfo->features & CURL_VERSION_SSL;
 
-#if PALANTHIR_SSL_ENABLED == 0
+#if ORTHANC_SSL_ENABLED == 0
   ASSERT_FALSE(curlSupportsSsl);
 #else
   ASSERT_TRUE(curlSupportsSsl);
