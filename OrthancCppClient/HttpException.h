@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -31,29 +31,29 @@
 
 #include <string>
 
-namespace Palanthir
+namespace Orthanc
 {
   class HttpException
   {
   private:
-    Palanthir_HttpStatus status_;
+    Orthanc_HttpStatus status_;
     std::string custom_;
 
   public:
-    static const char* GetDescription(Palanthir_HttpStatus status);
+    static const char* GetDescription(Orthanc_HttpStatus status);
 
     HttpException(const std::string& custom)
     {
-      status_ = Palanthir_HttpStatus_None;
+      status_ = Orthanc_HttpStatus_None;
       custom_ = custom;
     }
 
-    HttpException(Palanthir_HttpStatus status)
+    HttpException(Orthanc_HttpStatus status)
     {
       status_ = status;
     }
 
-    Palanthir_HttpStatus GetHttpStatus() const
+    Orthanc_HttpStatus GetHttpStatus() const
     {
       return status_;
     }

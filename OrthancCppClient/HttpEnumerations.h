@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -29,85 +29,85 @@
 
 
 /**
- * This file contains the enumerations for the access to the Palanthir
+ * This file contains the enumerations for the access to the Orthanc
  * REST API in C and C++. Namespaces are not used, in order to enable
  * the access in C.
  **/
 
 // Most common, non-joke and non-experimental HTTP status codes
 // http://en.wikipedia.org/wiki/List_of_HTTP_status_codes
-enum Palanthir_HttpStatus
+enum Orthanc_HttpStatus
 {
-  Palanthir_HttpStatus_None = -1,
+  Orthanc_HttpStatus_None = -1,
 
   // 1xx Informational
-  Palanthir_HttpStatus_100_Continue = 100,
-  Palanthir_HttpStatus_101_SwitchingProtocols = 101,
-  Palanthir_HttpStatus_102_Processing = 102,
+  Orthanc_HttpStatus_100_Continue = 100,
+  Orthanc_HttpStatus_101_SwitchingProtocols = 101,
+  Orthanc_HttpStatus_102_Processing = 102,
 
   // 2xx Success
-  Palanthir_HttpStatus_200_Ok = 200,
-  Palanthir_HttpStatus_201_Created = 201,
-  Palanthir_HttpStatus_202_Accepted = 202,
-  Palanthir_HttpStatus_203_NonAuthoritativeInformation = 203,
-  Palanthir_HttpStatus_204_NoContent = 204,
-  Palanthir_HttpStatus_205_ResetContent = 205,
-  Palanthir_HttpStatus_206_PartialContent = 206,
-  Palanthir_HttpStatus_207_MultiStatus = 207,
-  Palanthir_HttpStatus_208_AlreadyReported = 208,
-  Palanthir_HttpStatus_226_IMUsed = 226,
+  Orthanc_HttpStatus_200_Ok = 200,
+  Orthanc_HttpStatus_201_Created = 201,
+  Orthanc_HttpStatus_202_Accepted = 202,
+  Orthanc_HttpStatus_203_NonAuthoritativeInformation = 203,
+  Orthanc_HttpStatus_204_NoContent = 204,
+  Orthanc_HttpStatus_205_ResetContent = 205,
+  Orthanc_HttpStatus_206_PartialContent = 206,
+  Orthanc_HttpStatus_207_MultiStatus = 207,
+  Orthanc_HttpStatus_208_AlreadyReported = 208,
+  Orthanc_HttpStatus_226_IMUsed = 226,
 
   // 3xx Redirection
-  Palanthir_HttpStatus_300_MultipleChoices = 300,
-  Palanthir_HttpStatus_301_MovedPermanently = 301,
-  Palanthir_HttpStatus_302_Found = 302,
-  Palanthir_HttpStatus_303_SeeOther = 303,
-  Palanthir_HttpStatus_304_NotModified = 304,
-  Palanthir_HttpStatus_305_UseProxy = 305,
-  Palanthir_HttpStatus_307_TemporaryRedirect = 307,
+  Orthanc_HttpStatus_300_MultipleChoices = 300,
+  Orthanc_HttpStatus_301_MovedPermanently = 301,
+  Orthanc_HttpStatus_302_Found = 302,
+  Orthanc_HttpStatus_303_SeeOther = 303,
+  Orthanc_HttpStatus_304_NotModified = 304,
+  Orthanc_HttpStatus_305_UseProxy = 305,
+  Orthanc_HttpStatus_307_TemporaryRedirect = 307,
 
   // 4xx Client Error
-  Palanthir_HttpStatus_400_BadRequest = 400,
-  Palanthir_HttpStatus_401_Unauthorized = 401,
-  Palanthir_HttpStatus_402_PaymentRequired = 402,
-  Palanthir_HttpStatus_403_Forbidden = 403,
-  Palanthir_HttpStatus_404_NotFound = 404,
-  Palanthir_HttpStatus_405_MethodNotAllowed = 405,
-  Palanthir_HttpStatus_406_NotAcceptable = 406,
-  Palanthir_HttpStatus_407_ProxyAuthenticationRequired = 407,
-  Palanthir_HttpStatus_408_RequestTimeout = 408,
-  Palanthir_HttpStatus_409_Conflict = 409,
-  Palanthir_HttpStatus_410_Gone = 410,
-  Palanthir_HttpStatus_411_LengthRequired = 411,
-  Palanthir_HttpStatus_412_PreconditionFailed = 412,
-  Palanthir_HttpStatus_413_RequestEntityTooLarge = 413,
-  Palanthir_HttpStatus_414_RequestUriTooLong = 414,
-  Palanthir_HttpStatus_415_UnsupportedMediaType = 415,
-  Palanthir_HttpStatus_416_RequestedRangeNotSatisfiable = 416,
-  Palanthir_HttpStatus_417_ExpectationFailed = 417,
-  Palanthir_HttpStatus_422_UnprocessableEntity = 422,
-  Palanthir_HttpStatus_423_Locked = 423,
-  Palanthir_HttpStatus_424_FailedDependency = 424,
-  Palanthir_HttpStatus_426_UpgradeRequired = 426,
+  Orthanc_HttpStatus_400_BadRequest = 400,
+  Orthanc_HttpStatus_401_Unauthorized = 401,
+  Orthanc_HttpStatus_402_PaymentRequired = 402,
+  Orthanc_HttpStatus_403_Forbidden = 403,
+  Orthanc_HttpStatus_404_NotFound = 404,
+  Orthanc_HttpStatus_405_MethodNotAllowed = 405,
+  Orthanc_HttpStatus_406_NotAcceptable = 406,
+  Orthanc_HttpStatus_407_ProxyAuthenticationRequired = 407,
+  Orthanc_HttpStatus_408_RequestTimeout = 408,
+  Orthanc_HttpStatus_409_Conflict = 409,
+  Orthanc_HttpStatus_410_Gone = 410,
+  Orthanc_HttpStatus_411_LengthRequired = 411,
+  Orthanc_HttpStatus_412_PreconditionFailed = 412,
+  Orthanc_HttpStatus_413_RequestEntityTooLarge = 413,
+  Orthanc_HttpStatus_414_RequestUriTooLong = 414,
+  Orthanc_HttpStatus_415_UnsupportedMediaType = 415,
+  Orthanc_HttpStatus_416_RequestedRangeNotSatisfiable = 416,
+  Orthanc_HttpStatus_417_ExpectationFailed = 417,
+  Orthanc_HttpStatus_422_UnprocessableEntity = 422,
+  Orthanc_HttpStatus_423_Locked = 423,
+  Orthanc_HttpStatus_424_FailedDependency = 424,
+  Orthanc_HttpStatus_426_UpgradeRequired = 426,
 
   // 5xx Server Error
-  Palanthir_HttpStatus_500_InternalServerError = 500,
-  Palanthir_HttpStatus_501_NotImplemented = 501,
-  Palanthir_HttpStatus_502_BadGateway = 502,
-  Palanthir_HttpStatus_503_ServiceUnavailable = 503,
-  Palanthir_HttpStatus_504_GatewayTimeout = 504,
-  Palanthir_HttpStatus_505_HttpVersionNotSupported = 505,
-  Palanthir_HttpStatus_506_VariantAlsoNegotiates = 506,
-  Palanthir_HttpStatus_507_InsufficientStorage = 507,
-  Palanthir_HttpStatus_509_BandwidthLimitExceeded = 509,
-  Palanthir_HttpStatus_510_NotExtended = 510
+  Orthanc_HttpStatus_500_InternalServerError = 500,
+  Orthanc_HttpStatus_501_NotImplemented = 501,
+  Orthanc_HttpStatus_502_BadGateway = 502,
+  Orthanc_HttpStatus_503_ServiceUnavailable = 503,
+  Orthanc_HttpStatus_504_GatewayTimeout = 504,
+  Orthanc_HttpStatus_505_HttpVersionNotSupported = 505,
+  Orthanc_HttpStatus_506_VariantAlsoNegotiates = 506,
+  Orthanc_HttpStatus_507_InsufficientStorage = 507,
+  Orthanc_HttpStatus_509_BandwidthLimitExceeded = 509,
+  Orthanc_HttpStatus_510_NotExtended = 510
 };
 
 
-enum Palanthir_HttpMethod
+enum Orthanc_HttpMethod
 {
-  Palanthir_HttpMethod_Get = 0,
-  Palanthir_HttpMethod_Post = 1,
-  Palanthir_HttpMethod_Delete = 2,
-  Palanthir_HttpMethod_Put = 3
+  Orthanc_HttpMethod_Get = 0,
+  Orthanc_HttpMethod_Post = 1,
+  Orthanc_HttpMethod_Delete = 2,
+  Orthanc_HttpMethod_Put = 3
 };

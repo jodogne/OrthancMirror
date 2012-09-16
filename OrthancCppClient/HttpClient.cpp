@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -31,7 +31,7 @@
 #include <curl/curl.h>
 
 
-namespace Palanthir
+namespace Orthanc
 {
   struct HttpClient::PImpl
   {
@@ -88,13 +88,13 @@ namespace Palanthir
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HEADER, 0));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_FOLLOWLOCATION, 1));
 
-#if PALANTHIR_SSL_ENABLED == 1
+#if ORTHANC_SSL_ENABLED == 1
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYPEER, 0)); 
 #endif
 
     url_ = "";
-    method_ = Palanthir_HttpMethod_Get;
-    lastStatus_ = Palanthir_HttpStatus_200_Ok;
+    method_ = Orthanc_HttpMethod_Get;
+    lastStatus_ = Orthanc_HttpStatus_200_Ok;
     isVerbose_ = false;
   }
 
@@ -130,11 +130,11 @@ namespace Palanthir
 
     switch (method_)
     {
-    case Palanthir_HttpMethod_Get:
+    case Orthanc_HttpMethod_Get:
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPGET, 1L));
       break;
 
-    case Palanthir_HttpMethod_Post:
+    case Orthanc_HttpMethod_Post:
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POST, 1L));
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPHEADER, pimpl_->postHeaders_));
 
@@ -151,12 +151,12 @@ namespace Palanthir
 
       break;
 
-    case Palanthir_HttpMethod_Delete:
+    case Orthanc_HttpMethod_Delete:
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_NOBODY, 1L));
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CUSTOMREQUEST, "DELETE"));
       break;
 
-    case Palanthir_HttpMethod_Put:
+    case Orthanc_HttpMethod_Put:
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_PUT, 1L));
       break;
 
@@ -173,11 +173,11 @@ namespace Palanthir
     if (status == 0)
     {
       // This corresponds to a call to an inexistent host
-      lastStatus_ = Palanthir_HttpStatus_500_InternalServerError;
+      lastStatus_ = Orthanc_HttpStatus_500_InternalServerError;
     }
     else
     {
-      lastStatus_ = static_cast<Palanthir_HttpStatus>(status);
+      lastStatus_ = static_cast<Orthanc_HttpStatus>(status);
     }
 
     return (status >= 200 && status < 300);

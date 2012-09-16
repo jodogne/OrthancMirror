@@ -1,5 +1,5 @@
 /**
- * Palanthir - A Lightweight, RESTful DICOM Store
+ * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
  * Belgium
  *
@@ -27,11 +27,11 @@
 
 #include "HttpException.h"
 
-namespace Palanthir
+namespace Orthanc
 {
   const char* HttpException::What() const
   {
-    if (status_ == Palanthir_HttpStatus_None)
+    if (status_ == Orthanc_HttpStatus_None)
     {
       return custom_.c_str();
     }
@@ -41,164 +41,164 @@ namespace Palanthir
     }
   }
 
-  const char* HttpException::GetDescription(Palanthir_HttpStatus status)
+  const char* HttpException::GetDescription(Orthanc_HttpStatus status)
   {
     switch (status)
     {
-    case Palanthir_HttpStatus_100_Continue:
+    case Orthanc_HttpStatus_100_Continue:
       return "Continue";
 
-    case Palanthir_HttpStatus_101_SwitchingProtocols:
+    case Orthanc_HttpStatus_101_SwitchingProtocols:
       return "Switching Protocols";
 
-    case Palanthir_HttpStatus_102_Processing:
+    case Orthanc_HttpStatus_102_Processing:
       return "Processing";
 
-    case Palanthir_HttpStatus_200_Ok:
+    case Orthanc_HttpStatus_200_Ok:
       return "OK";
 
-    case Palanthir_HttpStatus_201_Created:
+    case Orthanc_HttpStatus_201_Created:
       return "Created";
 
-    case Palanthir_HttpStatus_202_Accepted:
+    case Orthanc_HttpStatus_202_Accepted:
       return "Accepted";
 
-    case Palanthir_HttpStatus_203_NonAuthoritativeInformation:
+    case Orthanc_HttpStatus_203_NonAuthoritativeInformation:
       return "Non-Authoritative Information";
 
-    case Palanthir_HttpStatus_204_NoContent:
+    case Orthanc_HttpStatus_204_NoContent:
       return "No Content";
 
-    case Palanthir_HttpStatus_205_ResetContent:
+    case Orthanc_HttpStatus_205_ResetContent:
       return "Reset Content";
 
-    case Palanthir_HttpStatus_206_PartialContent:
+    case Orthanc_HttpStatus_206_PartialContent:
       return "Partial Content";
 
-    case Palanthir_HttpStatus_207_MultiStatus:
+    case Orthanc_HttpStatus_207_MultiStatus:
       return "Multi-Status";
 
-    case Palanthir_HttpStatus_208_AlreadyReported:
+    case Orthanc_HttpStatus_208_AlreadyReported:
       return "Already Reported";
 
-    case Palanthir_HttpStatus_226_IMUsed:
+    case Orthanc_HttpStatus_226_IMUsed:
       return "IM Used";
 
-    case Palanthir_HttpStatus_300_MultipleChoices:
+    case Orthanc_HttpStatus_300_MultipleChoices:
       return "Multiple Choices";
 
-    case Palanthir_HttpStatus_301_MovedPermanently:
+    case Orthanc_HttpStatus_301_MovedPermanently:
       return "Moved Permanently";
 
-    case Palanthir_HttpStatus_302_Found:
+    case Orthanc_HttpStatus_302_Found:
       return "Found";
 
-    case Palanthir_HttpStatus_303_SeeOther:
+    case Orthanc_HttpStatus_303_SeeOther:
       return "See Other";
 
-    case Palanthir_HttpStatus_304_NotModified:
+    case Orthanc_HttpStatus_304_NotModified:
       return "Not Modified";
 
-    case Palanthir_HttpStatus_305_UseProxy:
+    case Orthanc_HttpStatus_305_UseProxy:
       return "Use Proxy";
 
-    case Palanthir_HttpStatus_307_TemporaryRedirect:
+    case Orthanc_HttpStatus_307_TemporaryRedirect:
       return "Temporary Redirect";
 
-    case Palanthir_HttpStatus_400_BadRequest:
+    case Orthanc_HttpStatus_400_BadRequest:
       return "Bad Request";
 
-    case Palanthir_HttpStatus_401_Unauthorized:
+    case Orthanc_HttpStatus_401_Unauthorized:
       return "Unauthorized";
 
-    case Palanthir_HttpStatus_402_PaymentRequired:
+    case Orthanc_HttpStatus_402_PaymentRequired:
       return "Payment Required";
 
-    case Palanthir_HttpStatus_403_Forbidden:
+    case Orthanc_HttpStatus_403_Forbidden:
       return "Forbidden";
 
-    case Palanthir_HttpStatus_404_NotFound:
+    case Orthanc_HttpStatus_404_NotFound:
       return "Not Found";
 
-    case Palanthir_HttpStatus_405_MethodNotAllowed:
+    case Orthanc_HttpStatus_405_MethodNotAllowed:
       return "Method Not Allowed";
 
-    case Palanthir_HttpStatus_406_NotAcceptable:
+    case Orthanc_HttpStatus_406_NotAcceptable:
       return "Not Acceptable";
 
-    case Palanthir_HttpStatus_407_ProxyAuthenticationRequired:
+    case Orthanc_HttpStatus_407_ProxyAuthenticationRequired:
       return "Proxy Authentication Required";
 
-    case Palanthir_HttpStatus_408_RequestTimeout:
+    case Orthanc_HttpStatus_408_RequestTimeout:
       return "Request Timeout";
 
-    case Palanthir_HttpStatus_409_Conflict:
+    case Orthanc_HttpStatus_409_Conflict:
       return "Conflict";
 
-    case Palanthir_HttpStatus_410_Gone:
+    case Orthanc_HttpStatus_410_Gone:
       return "Gone";
 
-    case Palanthir_HttpStatus_411_LengthRequired:
+    case Orthanc_HttpStatus_411_LengthRequired:
       return "Length Required";
 
-    case Palanthir_HttpStatus_412_PreconditionFailed:
+    case Orthanc_HttpStatus_412_PreconditionFailed:
       return "Precondition Failed";
 
-    case Palanthir_HttpStatus_413_RequestEntityTooLarge:
+    case Orthanc_HttpStatus_413_RequestEntityTooLarge:
       return "Request Entity Too Large";
 
-    case Palanthir_HttpStatus_414_RequestUriTooLong:
+    case Orthanc_HttpStatus_414_RequestUriTooLong:
       return "Request-URI Too Long";
 
-    case Palanthir_HttpStatus_415_UnsupportedMediaType:
+    case Orthanc_HttpStatus_415_UnsupportedMediaType:
       return "Unsupported Media Type";
 
-    case Palanthir_HttpStatus_416_RequestedRangeNotSatisfiable:
+    case Orthanc_HttpStatus_416_RequestedRangeNotSatisfiable:
       return "Requested Range Not Satisfiable";
 
-    case Palanthir_HttpStatus_417_ExpectationFailed:
+    case Orthanc_HttpStatus_417_ExpectationFailed:
       return "Expectation Failed";
 
-    case Palanthir_HttpStatus_422_UnprocessableEntity:
+    case Orthanc_HttpStatus_422_UnprocessableEntity:
       return "Unprocessable Entity";
 
-    case Palanthir_HttpStatus_423_Locked:
+    case Orthanc_HttpStatus_423_Locked:
       return "Locked";
 
-    case Palanthir_HttpStatus_424_FailedDependency:
+    case Orthanc_HttpStatus_424_FailedDependency:
       return "Failed Dependency";
 
-    case Palanthir_HttpStatus_426_UpgradeRequired:
+    case Orthanc_HttpStatus_426_UpgradeRequired:
       return "Upgrade Required";
 
-    case Palanthir_HttpStatus_500_InternalServerError:
+    case Orthanc_HttpStatus_500_InternalServerError:
       return "Internal Server Error";
 
-    case Palanthir_HttpStatus_501_NotImplemented:
+    case Orthanc_HttpStatus_501_NotImplemented:
       return "Not Implemented";
 
-    case Palanthir_HttpStatus_502_BadGateway:
+    case Orthanc_HttpStatus_502_BadGateway:
       return "Bad Gateway";
 
-    case Palanthir_HttpStatus_503_ServiceUnavailable:
+    case Orthanc_HttpStatus_503_ServiceUnavailable:
       return "Service Unavailable";
 
-    case Palanthir_HttpStatus_504_GatewayTimeout:
+    case Orthanc_HttpStatus_504_GatewayTimeout:
       return "Gateway Timeout";
 
-    case Palanthir_HttpStatus_505_HttpVersionNotSupported:
+    case Orthanc_HttpStatus_505_HttpVersionNotSupported:
       return "HTTP Version Not Supported";
 
-    case Palanthir_HttpStatus_506_VariantAlsoNegotiates:
+    case Orthanc_HttpStatus_506_VariantAlsoNegotiates:
       return "Variant Also Negotiates";
 
-    case Palanthir_HttpStatus_507_InsufficientStorage:
+    case Orthanc_HttpStatus_507_InsufficientStorage:
       return "Insufficient Storage";
 
-    case Palanthir_HttpStatus_509_BandwidthLimitExceeded:
+    case Orthanc_HttpStatus_509_BandwidthLimitExceeded:
       return "Bandwidth Limit Exceeded";
 
-    case Palanthir_HttpStatus_510_NotExtended:
+    case Orthanc_HttpStatus_510_NotExtended:
       return "Not Extended";
 
     default:
