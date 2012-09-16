@@ -7,7 +7,7 @@
 
 #include <sqlite3.h>
 
-using namespace Palanthir;
+using namespace Orthanc;
 
 
 
@@ -192,7 +192,7 @@ TEST_F(SQLStatementTest, BasicErrorCallback) {
   // handler to be called with SQLITE_MISMATCH as error code.
   SQLite::Statement s(db(), "INSERT INTO foo (a) VALUES (?)");
   s.BindCString(0, "bad bad");
-  EXPECT_THROW(s.Run(), PalanthirException);
+  EXPECT_THROW(s.Run(), OrthancException);
 }
 
 TEST_F(SQLStatementTest, Reset) {
@@ -330,7 +330,7 @@ TEST_F(SQLTransactionTest, NestedRollback) {
     EXPECT_EQ(1, db().GetTransactionNesting());
     {
       SQLite::Transaction inner3(db());
-      EXPECT_THROW(inner3.Begin(), PalanthirException);
+      EXPECT_THROW(inner3.Begin(), OrthancException);
       EXPECT_EQ(1, db().GetTransactionNesting());
     }
   }
