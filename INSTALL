@@ -100,6 +100,7 @@ Then open the "[...]/OrthancBuild/Orthanc.sln" with Visual Studio.
 
 NOTES:
 * More recent versions of Visual Studio should also work.
-* You might have to install the Platform SDK (version 6 or above):
+* You will have to install the Platform SDK (version 6 or above) for
+  Visual Studio 2005:
   http://en.wikipedia.org/wiki/Microsoft_Windows_SDK.
   Read the CMake FAQ: http://goo.gl/By90B 
