@@ -17,6 +17,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 
 #include "FromDcmtkBridge.h"
 
@@ -26,6 +29,8 @@
 #include "../Core/PngWriter.h"
 #include "../Core/DicomFormat/DicomString.h"
 #include "../Core/DicomFormat/DicomNullValue.h"
+
+#include <limits>
 
 #include <boost/locale.hpp>
 #include <boost/lexical_cast.hpp>
@@ -422,7 +427,7 @@ namespace Orthanc
       for (unsigned int x = 0; x < accessor.GetWidth(); x++, pixel++)
       {
         int32_t v = accessor.GetValue(x, y);
-        if (v < std::numeric_limits<T>::min())
+        if (v < typename std::numeric_limits<T>::min())
           *pixel = std::numeric_limits<T>::min();
         else if (v > std::numeric_limits<T>::max())
           *pixel = std::numeric_limits<T>::max();
