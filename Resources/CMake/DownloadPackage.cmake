@@ -59,7 +59,7 @@ macro(DownloadPackage Url TargetDirectory PreloadedVariable UncompressArguments)
 
       if (("${TMP_EXTENSION}" STREQUAL "gz") OR ("${TMP_EXTENSION}" STREQUAL "tgz"))
         execute_process(
-          COMMAND ${ZIP_EXECUTABLE} e ${TMP_PATH}
+          COMMAND ${ZIP_EXECUTABLE} e -y ${TMP_PATH}
           WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
           RESULT_VARIABLE Failure
           OUTPUT_QUIET
@@ -81,7 +81,7 @@ macro(DownloadPackage Url TargetDirectory PreloadedVariable UncompressArguments)
 
         if (TMP_LENGTH EQUAL 0)
           execute_process(
-            COMMAND ${ZIP_EXECUTABLE} x ${TMP_FILENAME2}
+            COMMAND ${ZIP_EXECUTABLE} x -y ${TMP_FILENAME2}
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
             RESULT_VARIABLE Failure
             OUTPUT_QUIET
@@ -89,7 +89,7 @@ macro(DownloadPackage Url TargetDirectory PreloadedVariable UncompressArguments)
         else()
           foreach(SUBDIR ${ARGS})
             execute_process(
-              COMMAND ${ZIP_EXECUTABLE} x "-i!${SUBDIR}" "${TMP_FILENAME2}"
+              COMMAND ${ZIP_EXECUTABLE} x -y "-i!${SUBDIR}" "${TMP_FILENAME2}"
               WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
               RESULT_VARIABLE Failure
               OUTPUT_QUIET
@@ -102,7 +102,7 @@ macro(DownloadPackage Url TargetDirectory PreloadedVariable UncompressArguments)
         endif()
       elseif ("${TMP_EXTENSION}" STREQUAL "zip")
         execute_process(
-          COMMAND ${ZIP_EXECUTABLE} x ${TMP_PATH}
+          COMMAND ${ZIP_EXECUTABLE} x -y ${TMP_PATH}
           WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
           RESULT_VARIABLE Failure
           OUTPUT_QUIET
