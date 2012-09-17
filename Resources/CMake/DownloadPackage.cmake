@@ -28,24 +28,25 @@ macro(DownloadPackage Url TargetDirectory PreloadedVariable UncompressArguments)
 
     GetUrlExtension(TMP_EXTENSION "${Url}")
     #message(${TMP_EXTENSION})
+    message("Uncompressing ${Url}")
 
     if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Linux")
       if ("${TMP_EXTENSION}" STREQUAL "zip")
         execute_process(
-          COMMAND sh -c "unzip ${TMP_PATH} ${UncompressArguments}"
+          COMMAND sh -c "unzip -q ${TMP_PATH} ${UncompressArguments}"
           WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
           RESULT_VARIABLE Failure
         )
       elseif (("${TMP_EXTENSION}" STREQUAL "gz") OR ("${TMP_EXTENSION}" STREQUAL "tgz"))
         #message("tar xvfz ${TMP_PATH} ${UncompressArguments}")
         execute_process(
-          COMMAND sh -c "tar xvfz ${TMP_PATH} ${UncompressArguments}"
+          COMMAND sh -c "tar xfz ${TMP_PATH} ${UncompressArguments}"
           WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
           RESULT_VARIABLE Failure
           )
       elseif ("${TMP_EXTENSION}" STREQUAL "bz2")
         execute_process(
-          COMMAND sh -c "tar xvfj ${TMP_PATH} ${UncompressArguments}"
+          COMMAND sh -c "tar xfj ${TMP_PATH} ${UncompressArguments}"
           WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
           RESULT_VARIABLE Failure
           )
@@ -61,6 +62,7 @@ macro(DownloadPackage Url TargetDirectory PreloadedVariable UncompressArguments)
           COMMAND ${ZIP_EXECUTABLE} e ${TMP_PATH}
           WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
           RESULT_VARIABLE Failure
+          OUTPUT_QUIET
           )
 
         if (Failure)
@@ -82,6 +84,7 @@ macro(DownloadPackage Url TargetDirectory PreloadedVariable UncompressArguments)
             COMMAND ${ZIP_EXECUTABLE} x ${TMP_FILENAME2}
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
             RESULT_VARIABLE Failure
+            OUTPUT_QUIET
             )
         else()
           foreach(SUBDIR ${ARGS})
@@ -89,6 +92,7 @@ macro(DownloadPackage Url TargetDirectory PreloadedVariable UncompressArguments)
               COMMAND ${ZIP_EXECUTABLE} x "-i!${SUBDIR}" "${TMP_FILENAME2}"
               WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
               RESULT_VARIABLE Failure
+              OUTPUT_QUIET
               )
 
             if (Failure)
@@ -101,6 +105,7 @@ macro(DownloadPackage Url TargetDirectory PreloadedVariable UncompressArguments)
           COMMAND ${ZIP_EXECUTABLE} x ${TMP_PATH}
           WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
           RESULT_VARIABLE Failure
+          OUTPUT_QUIET
           )
       else()
         message(FATAL_ERROR "Support your platform here")
