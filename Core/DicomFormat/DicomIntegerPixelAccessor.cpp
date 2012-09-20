@@ -24,7 +24,7 @@
 #define NOMINMAX
 #endif
 
-#include "../Core/OrthancException.h"
+#include "../OrthancException.h"
 #include <boost/lexical_cast.hpp>
 #include <limits>
 
