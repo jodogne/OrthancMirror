@@ -17,7 +17,8 @@ CREATE TABLE Studies(
 CREATE TABLE Series(
        uuid TEXT PRIMARY KEY,
        parentStudy TEXT REFERENCES Studies(uuid) ON DELETE CASCADE,
-       dicomSeries TEXT
+       dicomSeries TEXT,
+       numberOfInstances INTEGER
        );
 
 CREATE TABLE Instances(
@@ -27,7 +28,8 @@ CREATE TABLE Instances(
        fileUuid TEXT,
        fileSize INTEGER,
        jsonUuid TEXT,
-       distantAet TEXT
+       distantAet TEXT,
+       instanceIndex INTEGER
        );
 
 CREATE TABLE MainDicomTags(
@@ -55,6 +57,9 @@ CREATE INDEX DicomSeriesIndex ON Series(dicomSeries);
 CREATE INDEX DicomInstanceIndex ON Instances(dicomInstance);
 
 CREATE INDEX MainDicomTagsIndex ON MainDicomTags(uuid);
+CREATE INDEX MainDicomTagsGroupElement ON MainDicomTags(tagGroup, tagElement);
+CREATE INDEX MainDicomTagsValues ON MainDicomTags(value COLLATE BINARY);
+
 CREATE INDEX ChangesIndex ON Changes(uuid);
 
 CREATE TRIGGER InstanceRemoved

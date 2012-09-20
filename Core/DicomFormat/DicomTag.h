@@ -58,14 +58,20 @@ namespace Orthanc
 
     friend std::ostream& operator<< (std::ostream& o, const DicomTag& tag);
 
-    // Alias for the most useful tags
+    // Aliases for the most useful tags
     static const DicomTag ACCESSION_NUMBER;
-    static const DicomTag IMAGE_INDEX;
-    static const DicomTag INSTANCE_UID;
-    static const DicomTag NUMBER_OF_SLICES;
+    static const DicomTag SOP_INSTANCE_UID;
     static const DicomTag PATIENT_ID;
-    static const DicomTag SERIES_UID;
-    static const DicomTag STUDY_UID;
+    static const DicomTag SERIES_INSTANCE_UID;
+    static const DicomTag STUDY_INSTANCE_UID;
     static const DicomTag PIXEL_DATA;
+
+    static const DicomTag INSTANCE_NUMBER;
+    static const DicomTag IMAGE_INDEX;
+
+    static const DicomTag NUMBER_OF_SLICES;
+    static const DicomTag NUMBER_OF_FRAMES;
+    static const DicomTag CARDIAC_NUMBER_OF_IMAGES;
+    static const DicomTag IMAGES_IN_ACQUISITION;
   };
 }

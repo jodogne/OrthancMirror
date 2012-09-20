@@ -30,54 +30,55 @@ namespace Orthanc
 {
   static DicomTag patientTags[] =
   {
-    DicomTag(0x0010, 0x0010), // PatientName
-    DicomTag(0x0010, 0x0020), // PatientID
-    DicomTag(0x0010, 0x0030), // PatientBirthDate
-    DicomTag(0x0010, 0x0040), // PatientSex
-    DicomTag(0x0010, 0x1000)  // OtherPatientIDs
     //DicomTag(0x0010, 0x1010), // PatientAge
     //DicomTag(0x0010, 0x1040)  // PatientAddress
+    DicomTag(0x0010, 0x0010),   // PatientName
+    DicomTag(0x0010, 0x0030),   // PatientBirthDate
+    DicomTag(0x0010, 0x0040),   // PatientSex
+    DicomTag(0x0010, 0x1000),   // OtherPatientIDs
+    DicomTag::PATIENT_ID
   };
 
   static DicomTag studyTags[] =
   {
-    DicomTag(0x0008, 0x0020), // StudyDate
-    DicomTag(0x0008, 0x0030), // StudyTime
-    DicomTag(0x0008, 0x0050), // AccessionNumber
-    DicomTag(0x0008, 0x1030), // StudyDescription
-    DicomTag(0x0020, 0x000d), // StudyInstanceUID
-    DicomTag(0x0020, 0x0010)  // StudyID
     //DicomTag(0x0010, 0x1020), // PatientSize
     //DicomTag(0x0010, 0x1030)  // PatientWeight
+    DicomTag(0x0008, 0x0020),   // StudyDate
+    DicomTag(0x0008, 0x0030),   // StudyTime
+    DicomTag(0x0008, 0x1030),   // StudyDescription
+    DicomTag(0x0020, 0x0010),   // StudyID
+    DicomTag::ACCESSION_NUMBER,
+    DicomTag::STUDY_INSTANCE_UID
   };
 
   static DicomTag seriesTags[] =
   {
-    DicomTag(0x0008, 0x0021), // SeriesDate
-    DicomTag(0x0008, 0x0031), // SeriesTime
-    DicomTag(0x0008, 0x0060), // Modality
-    DicomTag(0x0008, 0x0070), // Manufacturer
-    DicomTag(0x0008, 0x1010), // StationName
-    DicomTag(0x0008, 0x103e), // SeriesDescription
     //DicomTag(0x0010, 0x1080), // MilitaryRank
-    DicomTag(0x0018, 0x0015), // BodyPartExamined
-    DicomTag(0x0018, 0x0024), // SequenceName
-    DicomTag(0x0018, 0x1030), // ProtocolName
-    DicomTag(0x0020, 0x000e), // SeriesInstanceUID
-    DicomTag(0x0020, 0x0011), // SeriesNumber
-    DicomTag(0x0020, 0x1002), // ImagesInAcquisition
-    DicomTag(0x0054, 0x0081)  // NumberOfSlices
+    DicomTag(0x0008, 0x0021),   // SeriesDate
+    DicomTag(0x0008, 0x0031),   // SeriesTime
+    DicomTag(0x0008, 0x0060),   // Modality
+    DicomTag(0x0008, 0x0070),   // Manufacturer
+    DicomTag(0x0008, 0x1010),   // StationName
+    DicomTag(0x0008, 0x103e),   // SeriesDescription
+    DicomTag(0x0018, 0x0015),   // BodyPartExamined
+    DicomTag(0x0018, 0x0024),   // SequenceName
+    DicomTag(0x0018, 0x1030),   // ProtocolName
+    DicomTag(0x0020, 0x0011),   // SeriesNumber
+    DicomTag::IMAGES_IN_ACQUISITION,
+    DicomTag::NUMBER_OF_SLICES,
+    DicomTag::SERIES_INSTANCE_UID
   };
 
   static DicomTag instanceTags[] =
   {
-    DicomTag(0x0008, 0x0012), // InstanceCreationDate
-    DicomTag(0x0008, 0x0013), // InstanceCreationTime
-    DicomTag(0x0008, 0x0018), // SOPInstanceUID
-    DicomTag(0x0020, 0x0012), // AcquisitionNumber
-    DicomTag(0x0020, 0x0013), // InstanceNumber
-    DicomTag(0x0028, 0x0008), // NumberOfFrames
-    DicomTag(0x0054, 0x1330)  // ImageIndex
+    DicomTag(0x0008, 0x0012),   // InstanceCreationDate
+    DicomTag(0x0008, 0x0013),   // InstanceCreationTime
+    DicomTag(0x0020, 0x0012),   // AcquisitionNumber
+    DicomTag::CARDIAC_NUMBER_OF_IMAGES,
+    DicomTag::IMAGE_INDEX,
+    DicomTag::INSTANCE_NUMBER,
+    DicomTag::NUMBER_OF_FRAMES,
+    DicomTag::SOP_INSTANCE_UID
   };
 
 
@@ -227,7 +228,7 @@ namespace Orthanc
     SetupFindTemplate(result, seriesTags, sizeof(seriesTags) / sizeof(DicomTag));
     result.SetValue(DicomTag::ACCESSION_NUMBER, "");
     result.SetValue(DicomTag::PATIENT_ID, "");
-    result.SetValue(DicomTag::STUDY_UID, "");
+    result.SetValue(DicomTag::STUDY_INSTANCE_UID, "");
   }
 
   void DicomMap::SetupFindInstanceTemplate(DicomMap& result)
@@ -235,8 +236,8 @@ namespace Orthanc
     SetupFindTemplate(result, instanceTags, sizeof(instanceTags) / sizeof(DicomTag));
     result.SetValue(DicomTag::ACCESSION_NUMBER, "");
     result.SetValue(DicomTag::PATIENT_ID, "");
-    result.SetValue(DicomTag::STUDY_UID, "");
-    result.SetValue(DicomTag::SERIES_UID, "");
+    result.SetValue(DicomTag::STUDY_INSTANCE_UID, "");
+    result.SetValue(DicomTag::SERIES_INSTANCE_UID, "");
   }
 
 

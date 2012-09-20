@@ -61,11 +61,18 @@ namespace Orthanc
 
 
   const DicomTag DicomTag::ACCESSION_NUMBER = DicomTag(0x0008, 0x0050);
-  const DicomTag DicomTag::IMAGE_INDEX = DicomTag(0x0054, 0x1330);
-  const DicomTag DicomTag::INSTANCE_UID = DicomTag(0x0008, 0x0018);
-  const DicomTag DicomTag::NUMBER_OF_SLICES = DicomTag(0x0054, 0x0081);
+  const DicomTag DicomTag::SOP_INSTANCE_UID = DicomTag(0x0008, 0x0018);
   const DicomTag DicomTag::PATIENT_ID = DicomTag(0x0010, 0x0020);
-  const DicomTag DicomTag::SERIES_UID = DicomTag(0x0020, 0x000e);
-  const DicomTag DicomTag::STUDY_UID = DicomTag(0x0020, 0x000d);
+  const DicomTag DicomTag::SERIES_INSTANCE_UID = DicomTag(0x0020, 0x000e);
+  const DicomTag DicomTag::STUDY_INSTANCE_UID = DicomTag(0x0020, 0x000d);
   const DicomTag DicomTag::PIXEL_DATA = DicomTag(0x7fe0, 0x0010);
+
+  const DicomTag DicomTag::INSTANCE_NUMBER = DicomTag(0x0020, 0x0013);
+  const DicomTag DicomTag::IMAGE_INDEX = DicomTag(0x0054, 0x1330);
+
+  const DicomTag DicomTag::NUMBER_OF_SLICES = DicomTag(0x0054, 0x0081);
+  const DicomTag DicomTag::NUMBER_OF_FRAMES = DicomTag(0x0028, 0x0008);
+  const DicomTag DicomTag::CARDIAC_NUMBER_OF_IMAGES = DicomTag(0x0018, 0x1090);
+  const DicomTag DicomTag::IMAGES_IN_ACQUISITION = DicomTag(0x0020, 0x1002);
+
 }

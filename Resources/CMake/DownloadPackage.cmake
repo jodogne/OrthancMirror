@@ -55,6 +55,9 @@ macro(DownloadPackage Url TargetDirectory PreloadedVariable UncompressArguments)
       endif()
 
     elseif ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
+      # How to silently extract files using 7-zip
+      # http://superuser.com/questions/331148/7zip-command-line-extract-silently-quietly
+
       FIND_PROGRAM(ZIP_EXECUTABLE 7z PATHS "$ENV{ProgramFiles}/7-Zip") 
 
       if (("${TMP_EXTENSION}" STREQUAL "gz") OR ("${TMP_EXTENSION}" STREQUAL "tgz"))
