@@ -85,8 +85,7 @@ function FormatDicomDate(s)
 }
 
 
-
-function SortOnDicomTag(arr, tag, isInteger, reverse)
+function Sort(arr, fieldExtractor, isInteger, reverse)
 {
   var defaultValue;
   if (isInteger)
@@ -95,8 +94,8 @@ function SortOnDicomTag(arr, tag, isInteger, reverse)
     defaultValue = '';
 
   arr.sort(function(a, b) {
-    var ta = a.MainDicomTags[tag];
-    var tb = b.MainDicomTags[tag];
+    var ta = fieldExtractor(a);
+    var tb = fieldExtractor(b);
     var order;
 
     if (ta == undefined)
@@ -126,6 +125,14 @@ function SortOnDicomTag(arr, tag, isInteger, reverse)
     else
       return order;
   });
+}
+
+
+function SortOnDicomTag(arr, tag, isInteger, reverse)
+{
+  return Sort(arr, function(a) { 
+    return a.MainDicomTags[tag];
+  }, isInteger, reverse);
 }
 
 
@@ -266,9 +273,21 @@ function FormatStudy(study, link, isReverse)
 
 function FormatSeries(series, link, isReverse)
 {
-  var s = ('<h3>{0}</h3>{1}' +
-           '<span class="ui-li-count">{2}</span>').format
+  var c;
+  if (series.Instances.length == series.ExpectedNumberOfInstances)
+  {
+    c = series.ExpectedNumberOfInstances;
+  }
+  else
+  {
+    c = series.Instances.length + '/' + series.ExpectedNumberOfInstances;
+  }
+
+  var s = ('<h3>{0}</h3>' +
+           '<p><em>Status: <strong>{1}</strong></em></p>{2}' +
+           '<span class="ui-li-count">{3}</span>').format
   (series.MainDicomTags.SeriesDescription,
+   series.Status,
    FormatMainDicomTags(series.MainDicomTags, [
      "SeriesDescription", 
      "SeriesTime", 
@@ -276,7 +295,7 @@ function FormatSeries(series, link, isReverse)
      "ImagesInAcquisition",
      "SeriesDate"
    ]),
-   series.Instances.length
+   c
   );
 
   return CompleteFormatting(s, link, isReverse);
@@ -286,7 +305,7 @@ function FormatSeries(series, link, isReverse)
 function FormatInstance(instance, link, isReverse)
 {
   var s = ('<h3>Instance {0}</h3>{1}').format
-  (instance.MainDicomTags.InstanceNumber,
+  (instance.IndexInSeries,
    FormatMainDicomTags(instance.MainDicomTags, [
      "AcquisitionNumber", 
      "InstanceNumber", 
@@ -390,7 +409,7 @@ $('#series').live('pagebeforeshow', function() {
       GetSingleResource('studies', series.ParentStudy, function(study) {
         GetSingleResource('patients', study.ParentPatient, function(patient) {
           GetMultipleResources('instances', series.Instances, function(instances) {
-            SortOnDicomTag(instances, 'InstanceNumber', true, false);
+            Sort(instances, function(x) { return x.IndexInSeries; }, true, false);
 
             $('#series-info li').remove();
             $('#series-info')
@@ -622,7 +641,7 @@ $('#series-preview').live('click', function(e) {
   if ($.mobile.pageData) {
     GetSingleResource('series', $.mobile.pageData.uuid, function(series) {
       GetMultipleResources('instances', series.Instances, function(instances) {
-        SortOnDicomTag(instances, 'InstanceNumber', true, false);
+        Sort(instances, function(x) { return x.IndexInSeries; }, true, false);
 
         var images = [];
         for (var i = 0; i < instances.length; i++) {

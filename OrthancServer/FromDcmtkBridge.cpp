@@ -454,7 +454,7 @@ namespace Orthanc
     FromDcmtkBridge::Convert(m, dataset);
 
     DcmElement* e;
-    if (dataset.findAndGetElement(ToDcmtkBridge::Convert(DicomTag::PIXEL_DATA), e).good() &&
+    if (dataset.findAndGetElement(ToDcmtkBridge::Convert(DICOM_TAG_PIXEL_DATA), e).good() &&
         e != NULL)
     {
       Uint8* pixData = NULL;

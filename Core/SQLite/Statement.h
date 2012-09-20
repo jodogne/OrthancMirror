@@ -137,6 +137,7 @@ namespace Orthanc
       ColumnType GetDeclaredColumnType(int col) const;
 
       // These all take a 0-based argument index.
+      bool ColumnIsNull(int col) const ;
       bool ColumnBool(int col) const;
       int ColumnInt(int col) const;
       int64_t ColumnInt64(int col) const;

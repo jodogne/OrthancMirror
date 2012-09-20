@@ -215,6 +215,11 @@ namespace Orthanc
       return COLUMN_TYPE_NULL;
     }
 
+    bool Statement::ColumnIsNull(int col) const 
+    {
+      return sqlite3_column_type(GetStatement(), col) == SQLITE_NULL;
+    }
+
     bool Statement::ColumnBool(int col) const 
     {
       return !!ColumnInt(col);

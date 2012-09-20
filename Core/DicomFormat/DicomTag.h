@@ -57,21 +57,21 @@ namespace Orthanc
     std::string Format() const;
 
     friend std::ostream& operator<< (std::ostream& o, const DicomTag& tag);
-
-    // Aliases for the most useful tags
-    static const DicomTag ACCESSION_NUMBER;
-    static const DicomTag SOP_INSTANCE_UID;
-    static const DicomTag PATIENT_ID;
-    static const DicomTag SERIES_INSTANCE_UID;
-    static const DicomTag STUDY_INSTANCE_UID;
-    static const DicomTag PIXEL_DATA;
-
-    static const DicomTag INSTANCE_NUMBER;
-    static const DicomTag IMAGE_INDEX;
-
-    static const DicomTag NUMBER_OF_SLICES;
-    static const DicomTag NUMBER_OF_FRAMES;
-    static const DicomTag CARDIAC_NUMBER_OF_IMAGES;
-    static const DicomTag IMAGES_IN_ACQUISITION;
   };
+
+  // Aliases for the most useful tags
+  static const DicomTag DICOM_TAG_ACCESSION_NUMBER(0x0008, 0x0050);
+  static const DicomTag DICOM_TAG_SOP_INSTANCE_UID(0x0008, 0x0018);
+  static const DicomTag DICOM_TAG_PATIENT_ID(0x0010, 0x0020);
+  static const DicomTag DICOM_TAG_SERIES_INSTANCE_UID(0x0020, 0x000e);
+  static const DicomTag DICOM_TAG_STUDY_INSTANCE_UID(0x0020, 0x000d);
+  static const DicomTag DICOM_TAG_PIXEL_DATA(0x7fe0, 0x0010);
+
+  static const DicomTag DICOM_TAG_IMAGE_INDEX(0x0054, 0x1330);
+  static const DicomTag DICOM_TAG_INSTANCE_NUMBER(0x0020, 0x0013);
+
+  static const DicomTag DICOM_TAG_NUMBER_OF_SLICES(0x0054, 0x0081);
+  static const DicomTag DICOM_TAG_NUMBER_OF_FRAMES(0x0028, 0x0008);
+  static const DicomTag DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES(0x0018, 0x1090);
+  static const DicomTag DICOM_TAG_IMAGES_IN_ACQUISITION(0x0020, 0x1002);
 }

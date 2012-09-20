@@ -67,7 +67,7 @@ namespace Orthanc
     frame_ = 0;
     try
     {
-      numberOfFrames_ = boost::lexical_cast<unsigned int>(values.GetValue(DicomTag::NUMBER_OF_FRAMES).AsString());
+      numberOfFrames_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_NUMBER_OF_FRAMES).AsString());
     }
     catch (OrthancException)
     {

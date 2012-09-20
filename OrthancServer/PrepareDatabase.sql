@@ -18,7 +18,7 @@ CREATE TABLE Series(
        uuid TEXT PRIMARY KEY,
        parentStudy TEXT REFERENCES Studies(uuid) ON DELETE CASCADE,
        dicomSeries TEXT,
-       numberOfInstances INTEGER
+       expectedNumberOfInstances INTEGER
        );
 
 CREATE TABLE Instances(
@@ -29,7 +29,7 @@ CREATE TABLE Instances(
        fileSize INTEGER,
        jsonUuid TEXT,
        distantAet TEXT,
-       instanceIndex INTEGER
+       indexInSeries INTEGER
        );
 
 CREATE TABLE MainDicomTags(

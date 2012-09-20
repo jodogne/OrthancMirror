@@ -109,6 +109,13 @@ namespace Orthanc
 
     const DicomValue& GetValue(const DicomTag& tag) const;
 
+    const DicomValue* TestAndGetValue(uint16_t group, uint16_t element) const
+    {
+      return TestAndGetValue(DicomTag(group, element));
+    }       
+
+    const DicomValue* TestAndGetValue(const DicomTag& tag) const;
+
     void Remove(const DicomTag& tag);
 
     void ExtractPatientInformation(DicomMap& result) const;
