@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include "../Core/DicomFormat/DicomMap.h"
+#include "DicomMap.h"
 
 #include <stdint.h>
 

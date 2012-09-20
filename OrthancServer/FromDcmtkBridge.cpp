@@ -24,11 +24,11 @@
 #include "FromDcmtkBridge.h"
 
 #include "ToDcmtkBridge.h"
-#include "DicomIntegerPixelAccessor.h"
 #include "../Core/OrthancException.h"
 #include "../Core/PngWriter.h"
 #include "../Core/DicomFormat/DicomString.h"
 #include "../Core/DicomFormat/DicomNullValue.h"
+#include "../Core/DicomFormat/DicomIntegerPixelAccessor.h"
 
 #include <limits>
 
