@@ -36,7 +36,7 @@ namespace Orthanc
     DicomTag(0x0010, 0x0030),   // PatientBirthDate
     DicomTag(0x0010, 0x0040),   // PatientSex
     DicomTag(0x0010, 0x1000),   // OtherPatientIDs
-    DicomTag::PATIENT_ID
+    DICOM_TAG_PATIENT_ID
   };
 
   static DicomTag studyTags[] =
@@ -47,8 +47,8 @@ namespace Orthanc
     DicomTag(0x0008, 0x0030),   // StudyTime
     DicomTag(0x0008, 0x1030),   // StudyDescription
     DicomTag(0x0020, 0x0010),   // StudyID
-    DicomTag::ACCESSION_NUMBER,
-    DicomTag::STUDY_INSTANCE_UID
+    DICOM_TAG_ACCESSION_NUMBER,
+    DICOM_TAG_STUDY_INSTANCE_UID
   };
 
   static DicomTag seriesTags[] =
@@ -64,9 +64,11 @@ namespace Orthanc
     DicomTag(0x0018, 0x0024),   // SequenceName
     DicomTag(0x0018, 0x1030),   // ProtocolName
     DicomTag(0x0020, 0x0011),   // SeriesNumber
-    DicomTag::IMAGES_IN_ACQUISITION,
-    DicomTag::NUMBER_OF_SLICES,
-    DicomTag::SERIES_INSTANCE_UID
+    DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES,
+    DICOM_TAG_IMAGES_IN_ACQUISITION,
+    DICOM_TAG_NUMBER_OF_FRAMES,
+    DICOM_TAG_NUMBER_OF_SLICES,
+    DICOM_TAG_SERIES_INSTANCE_UID
   };
 
   static DicomTag instanceTags[] =
@@ -74,11 +76,9 @@ namespace Orthanc
     DicomTag(0x0008, 0x0012),   // InstanceCreationDate
     DicomTag(0x0008, 0x0013),   // InstanceCreationTime
     DicomTag(0x0020, 0x0012),   // AcquisitionNumber
-    DicomTag::CARDIAC_NUMBER_OF_IMAGES,
-    DicomTag::IMAGE_INDEX,
-    DicomTag::INSTANCE_NUMBER,
-    DicomTag::NUMBER_OF_FRAMES,
-    DicomTag::SOP_INSTANCE_UID
+    DICOM_TAG_IMAGE_INDEX,
+    DICOM_TAG_INSTANCE_NUMBER,
+    DICOM_TAG_SOP_INSTANCE_UID
   };
 
 
@@ -160,6 +160,7 @@ namespace Orthanc
   }
 
 
+
   DicomMap* DicomMap::Clone() const
   {
     std::auto_ptr<DicomMap> result(new DicomMap);
@@ -175,15 +176,30 @@ namespace Orthanc
 
   const DicomValue& DicomMap::GetValue(const DicomTag& tag) const
   {
+    const DicomValue* value = TestAndGetValue(tag);
+
+    if (value)
+    {
+      return *value;
+    }
+    else
+    {
+      throw OrthancException("Inexistent tag");
+    }
+  }
+
+
+  const DicomValue* DicomMap::TestAndGetValue(const DicomTag& tag) const
+  {
     Map::const_iterator it = map_.find(tag);
 
     if (it == map_.end())
     {
-      throw OrthancException("Inexistent tag");
+      return NULL;
     }
     else
     {
-      return *it->second;
+      return it->second;
     }
   }
 
@@ -219,25 +235,25 @@ namespace Orthanc
   void DicomMap::SetupFindStudyTemplate(DicomMap& result)
   {
     SetupFindTemplate(result, studyTags, sizeof(studyTags) / sizeof(DicomTag));
-    result.SetValue(DicomTag::ACCESSION_NUMBER, "");
-    result.SetValue(DicomTag::PATIENT_ID, "");
+    result.SetValue(DICOM_TAG_ACCESSION_NUMBER, "");
+    result.SetValue(DICOM_TAG_PATIENT_ID, "");
   }
 
   void DicomMap::SetupFindSeriesTemplate(DicomMap& result)
   {
     SetupFindTemplate(result, seriesTags, sizeof(seriesTags) / sizeof(DicomTag));
-    result.SetValue(DicomTag::ACCESSION_NUMBER, "");
-    result.SetValue(DicomTag::PATIENT_ID, "");
-    result.SetValue(DicomTag::STUDY_INSTANCE_UID, "");
+    result.SetValue(DICOM_TAG_ACCESSION_NUMBER, "");
+    result.SetValue(DICOM_TAG_PATIENT_ID, "");
+    result.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "");
   }
 
   void DicomMap::SetupFindInstanceTemplate(DicomMap& result)
   {
     SetupFindTemplate(result, instanceTags, sizeof(instanceTags) / sizeof(DicomTag));
-    result.SetValue(DicomTag::ACCESSION_NUMBER, "");
-    result.SetValue(DicomTag::PATIENT_ID, "");
-    result.SetValue(DicomTag::STUDY_INSTANCE_UID, "");
-    result.SetValue(DicomTag::SERIES_INSTANCE_UID, "");
+    result.SetValue(DICOM_TAG_ACCESSION_NUMBER, "");
+    result.SetValue(DICOM_TAG_PATIENT_ID, "");
+    result.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "");
+    result.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, "");
   }
 
 

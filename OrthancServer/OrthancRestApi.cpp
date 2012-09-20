@@ -219,8 +219,8 @@ namespace Orthanc
       return false;
     }
 
-    if (m.GetValue(DicomTag::ACCESSION_NUMBER).AsString().size() <= 2 &&
-        m.GetValue(DicomTag::PATIENT_ID).AsString().size() <= 2)
+    if (m.GetValue(DICOM_TAG_ACCESSION_NUMBER).AsString().size() <= 2 &&
+        m.GetValue(DICOM_TAG_PATIENT_ID).AsString().size() <= 2)
     {
       return false;
     }        
@@ -242,9 +242,9 @@ namespace Orthanc
       return false;
     }
 
-    if ((m.GetValue(DicomTag::ACCESSION_NUMBER).AsString().size() <= 2 &&
-         m.GetValue(DicomTag::PATIENT_ID).AsString().size() <= 2) ||
-        m.GetValue(DicomTag::STUDY_INSTANCE_UID).AsString().size() <= 2)
+    if ((m.GetValue(DICOM_TAG_ACCESSION_NUMBER).AsString().size() <= 2 &&
+         m.GetValue(DICOM_TAG_PATIENT_ID).AsString().size() <= 2) ||
+        m.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString().size() <= 2)
     {
       return false;
     }        
@@ -281,7 +281,7 @@ namespace Orthanc
       {
         return false;
       }
-      m.CopyTagIfExists(patients.GetAnswer(i), DicomTag::PATIENT_ID);
+      m.CopyTagIfExists(patients.GetAnswer(i), DICOM_TAG_PATIENT_ID);
 
       DicomFindAnswers studies;
       c.FindStudy(studies, m);
@@ -299,8 +299,8 @@ namespace Orthanc
         {
           return false;
         }
-        m.CopyTagIfExists(studies.GetAnswer(j), DicomTag::PATIENT_ID);
-        m.CopyTagIfExists(studies.GetAnswer(j), DicomTag::STUDY_INSTANCE_UID);
+        m.CopyTagIfExists(studies.GetAnswer(j), DICOM_TAG_PATIENT_ID);
+        m.CopyTagIfExists(studies.GetAnswer(j), DICOM_TAG_STUDY_INSTANCE_UID);
 
         DicomFindAnswers series;
         c.FindSeries(series, m);

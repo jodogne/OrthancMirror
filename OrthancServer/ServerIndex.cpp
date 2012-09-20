@@ -231,7 +231,7 @@ namespace Orthanc
   {
     std::string instanceUuid = Toolbox::GenerateUuid();
 
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Instances VALUES(?, ?, ?, ?, ?, ?, ?)");
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Instances VALUES(?, ?, ?, ?, ?, ?, ?, ?)");
     s.BindString(0, instanceUuid);
     s.BindString(1, parentSeriesUuid);
     s.BindString(2, dicomInstance);
@@ -239,6 +239,18 @@ namespace Orthanc
     s.BindInt64(4, fileSize);
     s.BindString(5, jsonUuid);
     s.BindString(6, distantAet);
+
+    const DicomValue* indexInSeries;
+    if ((indexInSeries = dicomSummary.TestAndGetValue(DICOM_TAG_INSTANCE_NUMBER)) != NULL ||
+        (indexInSeries = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGE_INDEX)) != NULL)
+    {
+      s.BindInt(7, boost::lexical_cast<unsigned int>(indexInSeries->AsString()));
+    }
+    else
+    {
+      s.BindNull(7);
+    }
+
     s.Run();
 
     RecordChange("instances", instanceUuid);
@@ -283,7 +295,20 @@ namespace Orthanc
     s.BindString(0, seriesUuid);
     s.BindString(1, parentStudyUuid);
     s.BindString(2, dicomSeries);
-    s.BindNull(3);
+
+    const DicomValue* expectedNumberOfInstances;
+    if ((expectedNumberOfInstances = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_FRAMES)) != NULL ||
+        (expectedNumberOfInstances = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_SLICES)) != NULL ||
+        (expectedNumberOfInstances = dicomSummary.TestAndGetValue(DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES)) != NULL ||
+        (expectedNumberOfInstances = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGES_IN_ACQUISITION)) != NULL)
+    {
+      s.BindInt(3, boost::lexical_cast<unsigned int>(expectedNumberOfInstances->AsString()));
+    }
+    else
+    {
+      s.BindNull(3);
+    }
+
     s.Run();
 
     RecordChange("series", seriesUuid);
@@ -354,7 +379,7 @@ namespace Orthanc
                                          const DicomMap& dicomSummary)
   {
     std::string patientUuid = Toolbox::GenerateUuid();
-    std::string dicomPatientId = dicomSummary.GetValue(DicomTag::PATIENT_ID).AsString();
+    std::string dicomPatientId = dicomSummary.GetValue(DICOM_TAG_PATIENT_ID).AsString();
 
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Patients VALUES(?, ?)");
     s.BindString(0, patientUuid);
@@ -474,10 +499,10 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock scoped_lock(mutex_);
 
-    std::string dicomPatientId = dicomSummary.GetValue(DicomTag::PATIENT_ID).AsString();
-    std::string dicomInstance = dicomSummary.GetValue(DicomTag::SOP_INSTANCE_UID).AsString();
-    std::string dicomSeries = dicomSummary.GetValue(DicomTag::SERIES_INSTANCE_UID).AsString();
-    std::string dicomStudy = dicomSummary.GetValue(DicomTag::STUDY_INSTANCE_UID).AsString();
+    std::string dicomPatientId = dicomSummary.GetValue(DICOM_TAG_PATIENT_ID).AsString();
+    std::string dicomInstance = dicomSummary.GetValue(DICOM_TAG_SOP_INSTANCE_UID).AsString();
+    std::string dicomSeries = dicomSummary.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).AsString();
+    std::string dicomStudy = dicomSummary.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString();
 
     try
     {
@@ -584,21 +609,50 @@ namespace Orthanc
 
   SeriesStatus ServerIndex::GetSeriesStatus(const std::string& seriesUuid)
   {
-    int numberOfSlices;
-    if (!GetMainDicomIntTag(numberOfSlices, seriesUuid, DicomTag::NUMBER_OF_SLICES) ||
-        numberOfSlices < 0)
+    SQLite::Statement s1(db_, SQLITE_FROM_HERE, "SELECT expectedNumberOfInstances FROM Series WHERE uuid=?");
+    s1.BindString(0, seriesUuid);
+    if (!s1.Step())
     {
       return SeriesStatus_Unknown;
     }
 
-    // Loop over the instances of the series
-    //std::set<
+    int numberOfInstances = s1.ColumnInt(0);
+    if (numberOfInstances < 0)
+    {
+      return SeriesStatus_Unknown;
+    }
 
-    // TODO
-    return SeriesStatus_Unknown;
+    std::set<int> instances;
+    SQLite::Statement s2(db_, SQLITE_FROM_HERE, "SELECT indexInSeries FROM Instances WHERE parentSeries=?");
+    s2.BindString(0, seriesUuid);
+    while (s2.Step())
+    {
+      int index = s2.ColumnInt(0);
+      if (index <= 0 || index > numberOfInstances)
+      {
+        // Out-of-range instance index
+        return SeriesStatus_Inconsistent;
+      }
+
+      if (instances.find(index) != instances.end())
+      {
+        // Twice the same instance index
+        return SeriesStatus_Inconsistent;
+      }
+
+      instances.insert(index);
+    }
+
+    for (int i = 1; i <= numberOfInstances; i++)
+    {
+      if (instances.find(i) == instances.end())
+      {
+        return SeriesStatus_Missing;
+      }
+    }
+
+    return SeriesStatus_Complete;
   }
-
-
 
 
 
@@ -608,7 +662,7 @@ namespace Orthanc
     assert(result.type() == Json::objectValue);
     boost::mutex::scoped_lock scoped_lock(mutex_);
 
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT parentSeries, dicomInstance, fileSize, fileUuid FROM Instances WHERE uuid=?");
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT parentSeries, dicomInstance, fileSize, fileUuid, indexInSeries FROM Instances WHERE uuid=?");
     s.BindString(0, instanceUuid);
     if (!s.Step())
     {
@@ -621,6 +675,16 @@ namespace Orthanc
       result["FileSize"] = s.ColumnInt(2);   // TODO switch to 64bit with JsonCpp 0.6?
       result["FileUuid"] = s.ColumnString(3);
       MainDicomTagsToJson(result, instanceUuid);
+      
+      if (s.ColumnIsNull(4))
+      {
+        result["IndexInSeries"] = -1;
+      }
+      else
+      {
+        result["IndexInSeries"] = s.ColumnInt(4);
+      }
+
       return true;
     }
   }
@@ -632,7 +696,7 @@ namespace Orthanc
     assert(result.type() == Json::objectValue);
     boost::mutex::scoped_lock scoped_lock(mutex_);
 
-    SQLite::Statement s1(db_, SQLITE_FROM_HERE, "SELECT parentStudy, dicomSeries FROM Series WHERE uuid=?");
+    SQLite::Statement s1(db_, SQLITE_FROM_HERE, "SELECT parentStudy, dicomSeries, expectedNumberOfInstances FROM Series WHERE uuid=?");
     s1.BindString(0, seriesUuid);
     if (!s1.Step())
     {
@@ -652,6 +716,37 @@ namespace Orthanc
     }
       
     result["Instances"] = instances;
+
+    if (s1.ColumnIsNull(2))
+    {
+      result["ExpectedNumberOfInstances"] = -1;
+    }
+    else
+    {
+      result["ExpectedNumberOfInstances"] = s1.ColumnInt(2);
+    }
+
+    SeriesStatus status = GetSeriesStatus(seriesUuid);
+
+    switch (status)
+    {
+    case SeriesStatus_Complete:
+      result["Status"] = "Complete";
+      break;
+
+    case SeriesStatus_Missing:
+      result["Status"] = "Missing";
+      break;
+
+    case SeriesStatus_Inconsistent:
+      result["Status"] = "Inconsistent";
+      break;
+
+    default:
+    case SeriesStatus_Unknown:
+      result["Status"] = "Unknown";
+      break;
+    }
 
     return true;
   }

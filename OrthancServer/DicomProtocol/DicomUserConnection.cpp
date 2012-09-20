@@ -355,8 +355,8 @@ namespace Orthanc
     DicomMap s;
     fields.ExtractStudyInformation(s);
 
-    s.CopyTagIfExists(fields, DicomTag::PATIENT_ID);
-    s.CopyTagIfExists(fields, DicomTag::ACCESSION_NUMBER);
+    s.CopyTagIfExists(fields, DICOM_TAG_PATIENT_ID);
+    s.CopyTagIfExists(fields, DICOM_TAG_ACCESSION_NUMBER);
 
     Find(result, FindRootModel_Study, s);
   }
@@ -368,9 +368,9 @@ namespace Orthanc
     DicomMap s;
     fields.ExtractSeriesInformation(s);
 
-    s.CopyTagIfExists(fields, DicomTag::PATIENT_ID);
-    s.CopyTagIfExists(fields, DicomTag::ACCESSION_NUMBER);
-    s.CopyTagIfExists(fields, DicomTag::STUDY_INSTANCE_UID);
+    s.CopyTagIfExists(fields, DICOM_TAG_PATIENT_ID);
+    s.CopyTagIfExists(fields, DICOM_TAG_ACCESSION_NUMBER);
+    s.CopyTagIfExists(fields, DICOM_TAG_STUDY_INSTANCE_UID);
 
     Find(result, FindRootModel_Series, s);
   }
@@ -382,10 +382,10 @@ namespace Orthanc
     DicomMap s;
     fields.ExtractInstanceInformation(s);
 
-    s.CopyTagIfExists(fields, DicomTag::PATIENT_ID);
-    s.CopyTagIfExists(fields, DicomTag::ACCESSION_NUMBER);
-    s.CopyTagIfExists(fields, DicomTag::STUDY_INSTANCE_UID);
-    s.CopyTagIfExists(fields, DicomTag::SERIES_INSTANCE_UID);
+    s.CopyTagIfExists(fields, DICOM_TAG_PATIENT_ID);
+    s.CopyTagIfExists(fields, DICOM_TAG_ACCESSION_NUMBER);
+    s.CopyTagIfExists(fields, DICOM_TAG_STUDY_INSTANCE_UID);
+    s.CopyTagIfExists(fields, DICOM_TAG_SERIES_INSTANCE_UID);
 
     Find(result, FindRootModel_Instance, s);
   }
@@ -594,8 +594,8 @@ namespace Orthanc
                                        const DicomMap& findResult)
   {
     DicomMap simplified;
-    simplified.SetValue(DicomTag::STUDY_INSTANCE_UID, findResult.GetValue(DicomTag::STUDY_INSTANCE_UID));
-    simplified.SetValue(DicomTag::SERIES_INSTANCE_UID, findResult.GetValue(DicomTag::SERIES_INSTANCE_UID));
+    simplified.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, findResult.GetValue(DICOM_TAG_STUDY_INSTANCE_UID));
+    simplified.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, findResult.GetValue(DICOM_TAG_SERIES_INSTANCE_UID));
     Move(targetAet, simplified);
   }
 
@@ -604,8 +604,8 @@ namespace Orthanc
                                        const std::string& seriesUid)
   {
     DicomMap map;
-    map.SetValue(DicomTag::STUDY_INSTANCE_UID, studyUid);
-    map.SetValue(DicomTag::SERIES_INSTANCE_UID, seriesUid);
+    map.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid);
+    map.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, seriesUid);
     Move(targetAet, map);
   }
 
@@ -613,9 +613,9 @@ namespace Orthanc
                                          const DicomMap& findResult)
   {
     DicomMap simplified;
-    simplified.SetValue(DicomTag::STUDY_INSTANCE_UID, findResult.GetValue(DicomTag::STUDY_INSTANCE_UID));
-    simplified.SetValue(DicomTag::SERIES_INSTANCE_UID, findResult.GetValue(DicomTag::SERIES_INSTANCE_UID));
-    simplified.SetValue(DicomTag::SOP_INSTANCE_UID, findResult.GetValue(DicomTag::SOP_INSTANCE_UID));
+    simplified.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, findResult.GetValue(DICOM_TAG_STUDY_INSTANCE_UID));
+    simplified.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, findResult.GetValue(DICOM_TAG_SERIES_INSTANCE_UID));
+    simplified.SetValue(DICOM_TAG_SOP_INSTANCE_UID, findResult.GetValue(DICOM_TAG_SOP_INSTANCE_UID));
     Move(targetAet, simplified);
   }
 
@@ -625,9 +625,9 @@ namespace Orthanc
                                          const std::string& instanceUid)
   {
     DicomMap map;
-    map.SetValue(DicomTag::STUDY_INSTANCE_UID, studyUid);
-    map.SetValue(DicomTag::SERIES_INSTANCE_UID, seriesUid);
-    map.SetValue(DicomTag::SOP_INSTANCE_UID, instanceUid);
+    map.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid);
+    map.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, seriesUid);
+    map.SetValue(DICOM_TAG_SOP_INSTANCE_UID, instanceUid);
     Move(targetAet, map);
   }
 
