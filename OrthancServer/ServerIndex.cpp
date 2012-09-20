@@ -279,10 +279,11 @@ namespace Orthanc
   {
     std::string seriesUuid = Toolbox::GenerateUuid();
 
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Series VALUES(?, ?, ?)");
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Series VALUES(?, ?, ?, ?)");
     s.BindString(0, seriesUuid);
     s.BindString(1, parentStudyUuid);
     s.BindString(2, dicomSeries);
+    s.BindNull(3);
     s.Run();
 
     RecordChange("series", seriesUuid);
@@ -474,9 +475,9 @@ namespace Orthanc
     boost::mutex::scoped_lock scoped_lock(mutex_);
 
     std::string dicomPatientId = dicomSummary.GetValue(DicomTag::PATIENT_ID).AsString();
-    std::string dicomInstance = dicomSummary.GetValue(DicomTag::INSTANCE_UID).AsString();
-    std::string dicomSeries = dicomSummary.GetValue(DicomTag::SERIES_UID).AsString();
-    std::string dicomStudy = dicomSummary.GetValue(DicomTag::STUDY_UID).AsString();
+    std::string dicomInstance = dicomSummary.GetValue(DicomTag::SOP_INSTANCE_UID).AsString();
+    std::string dicomSeries = dicomSummary.GetValue(DicomTag::SERIES_INSTANCE_UID).AsString();
+    std::string dicomStudy = dicomSummary.GetValue(DicomTag::STUDY_INSTANCE_UID).AsString();
 
     try
     {
