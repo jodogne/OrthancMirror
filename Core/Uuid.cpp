@@ -31,6 +31,8 @@ extern "C"
 #endif
 }
 
+#include <boost/filesystem.hpp>
+
 namespace Orthanc
 {
   namespace Toolbox
@@ -80,5 +82,20 @@ namespace Orthanc
 
       return true;
     }
+
+
+    TemporaryFile::TemporaryFile()
+    {
+      // We use UUID to create unique path to temporary files
+      boost::filesystem::path tmp = boost::filesystem::temp_directory_path();
+      tmp /= "Orthanc-" + Orthanc::Toolbox::GenerateUuid();
+      path_ = tmp.string();
+    }
+
+
+    TemporaryFile::~TemporaryFile()
+    {
+      boost::filesystem::remove(path_);
+    }  
   }
 }

@@ -3,6 +3,11 @@ CREATE TABLE GlobalProperties(
        value TEXT
        );
 
+CREATE TABLE Resources(
+       uuid TEXT PRIMARY KEY,
+       resourceType INTEGER
+       );
+
 CREATE TABLE Patients(
        uuid TEXT PRIMARY KEY,
        dicomPatientId TEXT
@@ -65,6 +70,7 @@ CREATE INDEX ChangesIndex ON Changes(uuid);
 CREATE TRIGGER InstanceRemoved
 AFTER DELETE ON Instances
 FOR EACH ROW BEGIN
+  DELETE FROM Resources WHERE uuid = old.uuid;
   DELETE FROM MainDicomTags WHERE uuid = old.uuid;
   DELETE FROM Changes WHERE uuid = old.uuid;
   SELECT DeleteFromFileStorage(old.fileUuid);
@@ -75,6 +81,7 @@ END;
 CREATE TRIGGER SeriesRemoved
 AFTER DELETE ON Series
 FOR EACH ROW BEGIN
+  DELETE FROM Resources WHERE uuid = old.uuid;
   DELETE FROM MainDicomTags WHERE uuid = old.uuid;
   DELETE FROM Changes WHERE uuid = old.uuid;
   SELECT SignalDeletedLevel(2, old.parentStudy);
@@ -83,6 +90,7 @@ END;
 CREATE TRIGGER StudyRemoved
 AFTER DELETE ON Studies
 FOR EACH ROW BEGIN
+  DELETE FROM Resources WHERE uuid = old.uuid;
   DELETE FROM MainDicomTags WHERE uuid = old.uuid;
   DELETE FROM Changes WHERE uuid = old.uuid;
   SELECT SignalDeletedLevel(1, old.parentPatient);
@@ -91,6 +99,7 @@ END;
 CREATE TRIGGER PatientRemoved
 AFTER DELETE ON Patients
 FOR EACH ROW BEGIN
+  DELETE FROM Resources WHERE uuid = old.uuid;
   DELETE FROM MainDicomTags WHERE uuid = old.uuid;
   DELETE FROM Changes WHERE uuid = old.uuid;
   SELECT SignalDeletedLevel(0, "");

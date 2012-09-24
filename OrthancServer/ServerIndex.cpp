@@ -231,6 +231,11 @@ namespace Orthanc
   {
     std::string instanceUuid = Toolbox::GenerateUuid();
 
+    SQLite::Statement s2(db_, SQLITE_FROM_HERE, "INSERT INTO Resources VALUES(?, ?)");
+    s2.BindString(0, instanceUuid);
+    s2.BindInt(1, ResourceType_Instance);
+    s2.Run();
+
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Instances VALUES(?, ?, ?, ?, ?, ?, ?, ?)");
     s.BindString(0, instanceUuid);
     s.BindString(1, parentSeriesUuid);
@@ -291,6 +296,11 @@ namespace Orthanc
   {
     std::string seriesUuid = Toolbox::GenerateUuid();
 
+    SQLite::Statement s2(db_, SQLITE_FROM_HERE, "INSERT INTO Resources VALUES(?, ?)");
+    s2.BindString(0, seriesUuid);
+    s2.BindInt(1, ResourceType_Series);
+    s2.Run();
+
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Series VALUES(?, ?, ?, ?)");
     s.BindString(0, seriesUuid);
     s.BindString(1, parentStudyUuid);
@@ -299,7 +309,7 @@ namespace Orthanc
     const DicomValue* expectedNumberOfInstances;
     if ((expectedNumberOfInstances = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_FRAMES)) != NULL ||
         (expectedNumberOfInstances = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_SLICES)) != NULL ||
-        (expectedNumberOfInstances = dicomSummary.TestAndGetValue(DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES)) != NULL ||
+        //(expectedNumberOfInstances = dicomSummary.TestAndGetValue(DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES)) != NULL ||
         (expectedNumberOfInstances = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGES_IN_ACQUISITION)) != NULL)
     {
       s.BindInt(3, boost::lexical_cast<unsigned int>(expectedNumberOfInstances->AsString()));
@@ -342,6 +352,11 @@ namespace Orthanc
   {
     std::string studyUuid = Toolbox::GenerateUuid();
 
+    SQLite::Statement s2(db_, SQLITE_FROM_HERE, "INSERT INTO Resources VALUES(?, ?)");
+    s2.BindString(0, studyUuid);
+    s2.BindInt(1, ResourceType_Study);
+    s2.Run();
+
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Studies VALUES(?, ?, ?)");
     s.BindString(0, studyUuid);
     s.BindString(1, parentPatientUuid);
@@ -380,6 +395,11 @@ namespace Orthanc
   {
     std::string patientUuid = Toolbox::GenerateUuid();
     std::string dicomPatientId = dicomSummary.GetValue(DICOM_TAG_PATIENT_ID).AsString();
+
+    SQLite::Statement s2(db_, SQLITE_FROM_HERE, "INSERT INTO Resources VALUES(?, ?)");
+    s2.BindString(0, patientUuid);
+    s2.BindInt(1, ResourceType_Patient);
+    s2.Run();
 
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Patients VALUES(?, ?)");
     s.BindString(0, patientUuid);
@@ -611,7 +631,7 @@ namespace Orthanc
   {
     SQLite::Statement s1(db_, SQLITE_FROM_HERE, "SELECT expectedNumberOfInstances FROM Series WHERE uuid=?");
     s1.BindString(0, seriesUuid);
-    if (!s1.Step())
+    if (!s1.Step() || s1.ColumnIsNull(0))
     {
       return SeriesStatus_Unknown;
     }
@@ -678,7 +698,7 @@ namespace Orthanc
       
       if (s.ColumnIsNull(4))
       {
-        result["IndexInSeries"] = -1;
+        result["IndexInSeries"] = Json::nullValue;
       }
       else
       {
@@ -719,7 +739,7 @@ namespace Orthanc
 
     if (s1.ColumnIsNull(2))
     {
-      result["ExpectedNumberOfInstances"] = -1;
+      result["ExpectedNumberOfInstances"] = Json::nullValue;
     }
     else
     {
@@ -926,4 +946,5 @@ namespace Orthanc
 
     return true;
   }
+
 }

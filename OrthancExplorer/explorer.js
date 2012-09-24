@@ -274,9 +274,10 @@ function FormatStudy(study, link, isReverse)
 function FormatSeries(series, link, isReverse)
 {
   var c;
-  if (series.Instances.length == series.ExpectedNumberOfInstances)
+  if (series.ExpectedNumberOfInstances == null ||
+      series.Instances.length == series.ExpectedNumberOfInstances)
   {
-    c = series.ExpectedNumberOfInstances;
+    c = series.Instances.length;
   }
   else
   {

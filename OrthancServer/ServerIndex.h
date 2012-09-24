@@ -45,6 +45,16 @@ namespace Orthanc
   };
 
 
+  enum ResourceType
+  {
+    ResourceType_Patient = 1,
+    ResourceType_Study = 2,
+    ResourceType_Series = 3,
+    ResourceType_Instance = 4,
+    ResourceType_File = 5
+  };
+
+
   namespace Internals
   {
     class SignalDeletedLevelFunction;
@@ -189,5 +199,9 @@ namespace Orthanc
                     int64_t since,
                     const std::string& filter,
                     unsigned int maxResults);
+
+    /*bool GetAllInstances(std::list<std::string>& instancesUuid,
+                         const std::string& uuid,
+                         bool clear = true);*/
   };
 }
