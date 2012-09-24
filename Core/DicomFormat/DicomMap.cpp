@@ -64,7 +64,7 @@ namespace Orthanc
     DicomTag(0x0018, 0x0024),   // SequenceName
     DicomTag(0x0018, 0x1030),   // ProtocolName
     DicomTag(0x0020, 0x0011),   // SeriesNumber
-    DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES,
+    //DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES,
     DICOM_TAG_IMAGES_IN_ACQUISITION,
     DICOM_TAG_NUMBER_OF_FRAMES,
     DICOM_TAG_NUMBER_OF_SLICES,

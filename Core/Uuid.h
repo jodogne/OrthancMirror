@@ -38,5 +38,21 @@ namespace Orthanc
     std::string GenerateUuid();
 
     bool IsUuid(const std::string& str);
+
+    class TemporaryFile
+    {
+    private:
+      std::string path_;
+
+    public:
+      TemporaryFile();
+
+      ~TemporaryFile();
+
+      const std::string& GetPath() const
+      {
+        return path_;
+      }
+    };
   }
 }
