@@ -1,4 +1,4 @@
-if (${STATIC_BUILD})
+if (ON) #(${STATIC_BUILD})
   SET(ZLIB_SOURCES_DIR ${CMAKE_BINARY_DIR}/zlib-1.2.7)
   DownloadPackage("http://zlib.net/zlib-1.2.7.tar.gz" "${ZLIB_SOURCES_DIR}" "${ZLIB_PRELOADED}" "")
 
@@ -22,6 +22,8 @@ if (${STATIC_BUILD})
     ${ZLIB_SOURCES_DIR}/trees.c 
     ${ZLIB_SOURCES_DIR}/uncompr.c 
     ${ZLIB_SOURCES_DIR}/zutil.c
+    ${ZLIB_SOURCES_DIR}/contrib/minizip/ioapi.c
+    ${ZLIB_SOURCES_DIR}/contrib/minizip/zip.c
     )
 
   source_group(ThirdParty\\ZLib REGULAR_EXPRESSION ${ZLIB_SOURCES_DIR}/.*)
