@@ -24,7 +24,7 @@ endif()
 if (BOOST_STATIC)
   SET(BOOST_NAME boost_1_49_0)
   SET(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
-  DownloadPackage("http://switch.dl.sourceforge.net/project/boost/boost/1.49.0/${BOOST_NAME}.tar.gz" "${BOOST_SOURCES_DIR}" "${BOOST_PRELOADED}" "${BOOST_NAME}/boost ${BOOST_NAME}/libs/thread/src ${BOOST_NAME}/libs/system/src ${BOOST_NAME}/libs/filesystem/v3/src ${BOOST_NAME}/libs/locale/src")
+  DownloadPackage("http://switch.dl.sourceforge.net/project/boost/boost/1.49.0/${BOOST_NAME}.tar.gz" "${BOOST_SOURCES_DIR}" "${BOOST_PRELOADED}" "${BOOST_NAME}/boost ${BOOST_NAME}/libs/thread/src ${BOOST_NAME}/libs/system/src ${BOOST_NAME}/libs/filesystem/v3/src ${BOOST_NAME}/libs/locale/src ${BOOST_NAME}/libs/date_time/src")
 
   set(BOOST_SOURCES)
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
@@ -50,12 +50,13 @@ if (BOOST_STATIC)
   endif()
 
   list(APPEND BOOST_SOURCES
-    ${BOOST_SOURCES_DIR}/libs/system/src/error_code.cpp
+    ${BOOST_SOURCES_DIR}/libs/date_time/src/gregorian/greg_month.cpp
+    ${BOOST_SOURCES_DIR}/libs/filesystem/v3/src/codecvt_error_category.cpp
+    ${BOOST_SOURCES_DIR}/libs/filesystem/v3/src/operations.cpp
     ${BOOST_SOURCES_DIR}/libs/filesystem/v3/src/path.cpp
     ${BOOST_SOURCES_DIR}/libs/filesystem/v3/src/path_traits.cpp
-    ${BOOST_SOURCES_DIR}/libs/filesystem/v3/src/operations.cpp
-    ${BOOST_SOURCES_DIR}/libs/filesystem/v3/src/codecvt_error_category.cpp
     ${BOOST_SOURCES_DIR}/libs/locale/src/encoding/codepage.cpp
+    ${BOOST_SOURCES_DIR}/libs/system/src/error_code.cpp
     )
 
   list(APPEND THIRD_PARTY_SOURCES ${BOOST_SOURCES})

@@ -133,6 +133,7 @@ add_library(CoreLibrary
   Core/ChunkedBuffer.cpp
   Core/Compression/BufferCompressor.cpp
   Core/Compression/ZlibCompressor.cpp
+  Core/Compression/ZipWriter.cpp
   Core/OrthancException.cpp
   Core/DicomFormat/DicomArray.cpp
   Core/DicomFormat/DicomMap.cpp
@@ -187,6 +188,7 @@ add_executable(UnitTests
   UnitTests/SQLite.cpp
   UnitTests/SQLiteChromium.cpp
   UnitTests/Versions.cpp
+  UnitTests/Zip.cpp
   )
 
 TARGET_LINK_LIBRARIES(Orthanc ServerLibrary CoreLibrary)

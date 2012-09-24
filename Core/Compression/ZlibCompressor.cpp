@@ -33,6 +33,8 @@ namespace Orthanc
     {
       throw OrthancException("Zlib compression level must be between 0 (no compression) and 9 (highest compression");
     }
+
+    compressionLevel_ = level;
   }
 
 
