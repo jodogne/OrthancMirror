@@ -141,7 +141,7 @@ function GetSingleResource(type, uuid, callback)
 {
   var resource = null;
   $.ajax({
-    url: '/' + type + '/' + uuid,
+    url: '../' + type + '/' + uuid,
     dataType: 'json',
     async: false,
     success: function(s) {
@@ -156,7 +156,7 @@ function GetMultipleResources(type, uuids, callback)
   if (uuids == null)
   {
     $.ajax({
-      url: '/' + type,
+      url: '../' + type,
       dataType: 'json',
       async: false,
       success: function(s) {
@@ -168,7 +168,7 @@ function GetMultipleResources(type, uuids, callback)
   var resources = [];
   var ajaxRequests = uuids.map(function(uuid) {
     return $.ajax({
-      url: '/' + type + '/' + uuid,
+      url: '../' + type + '/' + uuid,
       dataType: 'json',
       async: true,
       success: function(s) {
@@ -508,7 +508,7 @@ $('#instance').live('pagebeforeshow', function() {
               .listview('refresh');
 
             $.ajax({
-              url: '/instances/' + instance.ID + '/tags',
+              url: '../instances/' + instance.ID + '/tags',
               dataType: 'json',
               success: function(s) {
                 $('#dicom-tree').tree('loadData', ConvertForTree(s));
@@ -572,22 +572,22 @@ function OpenDeleteResourceDialog(path, title)
 
 
 $('#instance-delete').live('click', function() {
-  OpenDeleteResourceDialog('/instances/' + $.mobile.pageData.uuid,
+  OpenDeleteResourceDialog('../instances/' + $.mobile.pageData.uuid,
                            'Delete this instance?');
 });
 
 $('#study-delete').live('click', function() {
-  OpenDeleteResourceDialog('/studies/' + $.mobile.pageData.uuid,
+  OpenDeleteResourceDialog('../studies/' + $.mobile.pageData.uuid,
                            'Delete this study?');
 });
 
 $('#series-delete').live('click', function() {
-  OpenDeleteResourceDialog('/series/' + $.mobile.pageData.uuid,
+  OpenDeleteResourceDialog('../series/' + $.mobile.pageData.uuid,
                            'Delete this series?');
 });
 
 $('#patient-delete').live('click', function() {
-  OpenDeleteResourceDialog('/patients/' + $.mobile.pageData.uuid,
+  OpenDeleteResourceDialog('../patients/' + $.mobile.pageData.uuid,
                            'Delete this patient?');
 });
 
@@ -595,13 +595,13 @@ $('#patient-delete').live('click', function() {
 $('#instance-download-dicom').live('click', function(e) {
   // http://stackoverflow.com/a/1296101
   e.preventDefault();  //stop the browser from following
-  window.location.href = '/instances/' + $.mobile.pageData.uuid + '/file';
+  window.location.href = '../instances/' + $.mobile.pageData.uuid + '/file';
 });
 
 $('#instance-download-json').live('click', function(e) {
   // http://stackoverflow.com/a/1296101
   e.preventDefault();  //stop the browser from following
-  window.location.href = '/instances/' + $.mobile.pageData.uuid + '/tags';
+  window.location.href = '../instances/' + $.mobile.pageData.uuid + '/tags';
 });
 
 
@@ -611,7 +611,7 @@ $('#instance-preview').live('click', function(e) {
       if (frames.length == 1)
       {
         // Viewing a single-frame image
-        jQuery.slimbox('/instances/' + $.mobile.pageData.uuid + '/preview', '', {
+        jQuery.slimbox('../instances/' + $.mobile.pageData.uuid + '/preview', '', {
           overlayFadeDuration : 1,
           resizeDuration : 1,
           imageFadeDuration : 1
@@ -623,7 +623,7 @@ $('#instance-preview').live('click', function(e) {
 
         var images = [];
         for (var i = 0; i < frames.length; i++) {
-          images.push([ '/instances/' + $.mobile.pageData.uuid + '/frames/' + i + '/preview' ]);
+          images.push([ '../instances/' + $.mobile.pageData.uuid + '/frames/' + i + '/preview' ]);
         }
 
         jQuery.slimbox(images, 0, {
@@ -646,7 +646,7 @@ $('#series-preview').live('click', function(e) {
 
         var images = [];
         for (var i = 0; i < instances.length; i++) {
-          images.push([ '/instances/' + instances[i].ID + '/preview',
+          images.push([ '../instances/' + instances[i].ID + '/preview',
                         '{0}/{1}'.format(i + 1, instances.length) ])
         }
 
@@ -669,7 +669,7 @@ $('#series-preview').live('click', function(e) {
 function ChooseDicomModality(callback)
 {
   $.ajax({
-    url: '/modalities',
+    url: '../modalities',
     type: 'GET',
     dataType: 'json',
     async: false,
@@ -716,7 +716,7 @@ $('#instance-store,#series-store').live('click', function(e) {
   ChooseDicomModality(function(modality) {
     if (modality != '') {
       $.ajax({
-        url: '/modalities/' + modality + '/store',
+        url: '../modalities/' + modality + '/store',
         type: 'POST',
         dataType: 'text',
         data: $.mobile.pageData.uuid,
