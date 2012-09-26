@@ -1,11 +1,17 @@
-if (ON) #(${STATIC_BUILD})
-  SET(ZLIB_SOURCES_DIR ${CMAKE_BINARY_DIR}/zlib-1.2.7)
-  DownloadPackage("http://zlib.net/zlib-1.2.7.tar.gz" "${ZLIB_SOURCES_DIR}" "${ZLIB_PRELOADED}" "")
+SET(ZLIB_SOURCES_DIR ${CMAKE_BINARY_DIR}/zlib-1.2.7)
+DownloadPackage("http://zlib.net/zlib-1.2.7.tar.gz" "${ZLIB_SOURCES_DIR}" "${ZLIB_PRELOADED}" "")
 
-  include_directories(
-    ${ZLIB_SOURCES_DIR}
-    )
+include_directories(
+  ${ZLIB_SOURCES_DIR}
+  )
 
+# This is the minizip distribution to create ZIP files
+list(APPEND THIRD_PARTY_SOURCES 
+  ${ZLIB_SOURCES_DIR}/contrib/minizip/ioapi.c
+  ${ZLIB_SOURCES_DIR}/contrib/minizip/zip.c
+  )
+
+if (${STATIC_BUILD})
   list(APPEND THIRD_PARTY_SOURCES 
     ${ZLIB_SOURCES_DIR}/adler32.c
     ${ZLIB_SOURCES_DIR}/compress.c
@@ -22,14 +28,12 @@ if (ON) #(${STATIC_BUILD})
     ${ZLIB_SOURCES_DIR}/trees.c 
     ${ZLIB_SOURCES_DIR}/uncompr.c 
     ${ZLIB_SOURCES_DIR}/zutil.c
-    ${ZLIB_SOURCES_DIR}/contrib/minizip/ioapi.c
-    ${ZLIB_SOURCES_DIR}/contrib/minizip/zip.c
     )
-
-  source_group(ThirdParty\\ZLib REGULAR_EXPRESSION ${ZLIB_SOURCES_DIR}/.*)
 
 else()
   include(FindZLIB)
   include_directories(${ZLIB_INCLUDE_DIRS})
   link_libraries(${ZLIB_LIBRARIES})
 endif()
+
+source_group(ThirdParty\\ZLib REGULAR_EXPRESSION ${ZLIB_SOURCES_DIR}/.*)
