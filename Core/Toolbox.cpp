@@ -343,7 +343,7 @@ namespace Orthanc
 
   std::string Toolbox::EncodeBase64(const std::string& data)
   {
-    return base64_encode(data.c_str());
+    return base64_encode(data);
   }
 
 }
