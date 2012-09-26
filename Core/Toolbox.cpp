@@ -31,7 +31,13 @@
 #include <windows.h>
 #endif
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <mach-o/dyld.h> /* _NSGetExecutablePath */
+#include <limits.h>      /* PATH_MAX */
+#endif
+
 #if defined(__linux)
+#include <limits.h>      /* PATH_MAX */
 #include <signal.h>
 #include <unistd.h>
 #endif
@@ -344,6 +350,52 @@ namespace Orthanc
   std::string Toolbox::EncodeBase64(const std::string& data)
   {
     return base64_encode(data);
+  }
+
+
+#if defined(_WIN32)
+  std::string Toolbox::GetPathToExecutable()
+  {
+    // Yes, this is ugly, but there is no simple way to get the 
+    // required buffer size, so we use a big constant
+    std::vector<char> buffer(32768);
+    /*int bytes =*/ GetModuleFileNameA(NULL, &buffer[0], static_cast<DWORD>(buffer.size() - 1));
+    return std::string(&buffer[0]);
+  }
+
+#elif defined(__linux)
+  std::string Toolbox::GetPathToExecutable()
+  {
+    std::vector<char> buffer(PATH_MAX + 1);
+    ssize_t bytes = readlink("/proc/self/exe", &buffer[0], buffer.size() - 1);
+    if (bytes == 0)
+    {
+      throw OrthancException("Unable to get the path to the executable");
+    }
+
+    return std::string(&buffer[0]);
+  }
+
+#elif defined(__APPLE__) && defined(__MACH__)
+  std::string Toolbox::GetPathToExecutable()
+  {
+    char pathbuf[PATH_MAX + 1];
+    unsigned int  bufsize = static_cast<int>(sizeof(pathbuf));
+
+    _NSGetExecutablePath( pathbuf, &bufsize);
+
+    return std::string(pathbuf);
+  }
+
+#else
+#error Support your platform here
+#endif
+
+
+  std::string Toolbox::GetDirectoryOfExecutable()
+  {
+    boost::filesystem::path p(GetPathToExecutable());
+    return p.parent_path().string();
   }
 
 }

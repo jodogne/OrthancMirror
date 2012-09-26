@@ -62,5 +62,9 @@ namespace Orthanc
                     const std::string& data);
 
     std::string EncodeBase64(const std::string& data);
+
+    std::string GetPathToExecutable();
+
+    std::string GetDirectoryOfExecutable();
   }
 }
