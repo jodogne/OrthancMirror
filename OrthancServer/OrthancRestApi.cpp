@@ -392,7 +392,7 @@ namespace Orthanc
     {
       if (method == "GET")
       {
-        output.Redirect("/app/explorer.html");
+        output.Redirect("app/explorer.html");
       }
       else
       {
@@ -655,7 +655,13 @@ namespace Orthanc
         }
         catch (OrthancException&)
         {
-          output.Redirect("/app/images/Unsupported.png");
+          std::string root = "";
+          for (size_t i = 1; i < uri.size(); i++)
+          {
+            root += "../";
+          }
+
+          output.Redirect(root + "app/images/Unsupported.png");
           return;
         }
       }
