@@ -273,6 +273,12 @@ TEST(Toolbox, Base64)
   ASSERT_EQ("SGVsbG8gd29ybGQ=", Toolbox::EncodeBase64("Hello world"));
 }
 
+TEST(Toolbox, PathToExecutable)
+{
+  printf("[%s]\n", Toolbox::GetPathToExecutable().c_str());
+  printf("[%s]\n", Toolbox::GetDirectoryOfExecutable().c_str());
+}
+
 int main(int argc, char **argv)
 {
   OrthancInitialize();

@@ -45,25 +45,53 @@ namespace Orthanc
     if (configurationFile)
     {
       Toolbox::ReadFile(content, configurationFile);
+      printf("Using the configuration from: [%s]\n", configurationFile);
     }
     else
     {
+#if ORTHANC_STANDALONE == 1 && defined(__linux)
+      // Under Linux, try and open "../etc/orthanc/Configuration.json"
       try
       {
-#if ORTHANC_STANDALONE == 0
         boost::filesystem::path p = ORTHANC_PATH;
-        p /= "Resources";
+        p = p.parent_path();
+        p /= "etc";
+        p /= "orthanc";
         p /= CONFIGURATION_FILE;
+          
         Toolbox::ReadFile(content, p.string());
-#else
-        Toolbox::ReadFile(content, CONFIGURATION_FILE);
-#endif
+        printf("Using the configuration from: [%s]\n", p.string().c_str());
       }
       catch (OrthancException&)
       {
         // No configuration file found, give up with empty configuration
+        printf("Using the default Orthanc configuration\n");
         return;
       }
+
+#elif ORTHANC_STANDALONE == 1
+      // No default path for the configuration file in Windows
+      printf("Using the default Orthanc configuration\n");
+      return;
+
+#else
+      // In a non-standalone build, we use the
+      // "Resources/Configuration.json" from the Orthanc distribution
+      try
+      {
+        boost::filesystem::path p = ORTHANC_PATH;
+        p /= "Resources";
+        p /= CONFIGURATION_FILE;
+        Toolbox::ReadFile(content, p.string());
+        printf("Using the configuration from: [%s]\n", p.string().c_str());
+      }
+      catch (OrthancException&)
+      {
+        // No configuration file found, give up with empty configuration
+        printf("Using the default Orthanc configuration\n");
+        return;
+      }
+#endif
     }
 
     Json::Reader reader;
