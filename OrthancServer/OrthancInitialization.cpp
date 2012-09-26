@@ -50,11 +50,11 @@ namespace Orthanc
     else
     {
 #if ORTHANC_STANDALONE == 1 && defined(__linux)
-      // Under Linux, try and open "../etc/orthanc/Configuration.json"
+      // Under Linux, try and open "../../etc/orthanc/Configuration.json"
       try
       {
-        boost::filesystem::path p = ORTHANC_PATH;
-        p = p.parent_path();
+        boost::filesystem::path p = Toolbox::GetDirectoryOfExecutable();
+        p = p.parent_path().parent_path();
         p /= "etc";
         p /= "orthanc";
         p /= CONFIGURATION_FILE;
