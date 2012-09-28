@@ -1,8 +1,15 @@
 Pending changes in the mainline
 ===============================
 
+
+
+Version 0.2.1 (2012/09/28)
+==========================
+
 * Status of series
 * Continuous Integration Server is up and running
+* Ready for Debian packaging
+
 
 
 Version 0.2.0 (2012/09/16)
