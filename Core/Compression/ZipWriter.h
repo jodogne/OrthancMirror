@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#include <string.h>
+#include <string>
 #include <boost/shared_ptr.hpp>
 
 namespace Orthanc
