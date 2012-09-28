@@ -13,7 +13,7 @@
      **/
 
     // HTTP port for the REST services and for the GUI
-    "HttpPort" : 8000,
+    "HttpPort" : 8042,
 
 
 
