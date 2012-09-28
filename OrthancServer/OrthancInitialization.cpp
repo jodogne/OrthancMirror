@@ -49,7 +49,8 @@ namespace Orthanc
     }
     else
     {
-#if ORTHANC_STANDALONE == 1 && defined(__linux)
+#if 0 && ORTHANC_STANDALONE == 1 && defined(__linux)
+      // Unused anymore
       // Under Linux, try and open "../../etc/orthanc/Configuration.json"
       try
       {
@@ -70,7 +71,7 @@ namespace Orthanc
       }
 
 #elif ORTHANC_STANDALONE == 1
-      // No default path for the configuration file in Windows
+      // No default path for the standalone configuration
       printf("Using the default Orthanc configuration\n");
       return;
 
