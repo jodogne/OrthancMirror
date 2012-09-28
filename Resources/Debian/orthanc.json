@@ -1,0 +1,71 @@
+{
+    /**
+     * General configuration of Orthanc
+     **/
+
+    // Path to the directory that holds the database
+    "StorageDirectory" : "/var/lib/orthanc",
+
+
+
+    /**
+     * Configuration of the HTTP server
+     **/
+
+    // HTTP port for the REST services and for the GUI
+    "HttpPort" : 8000,
+
+
+
+    /**
+     * Configuration of the DICOM server
+     **/
+
+    // The DICOM Application Entity Title
+    "DicomAet" : "ORTHANC",
+
+    // Check whether the called AET corresponds during a DICOM request
+    "DicomCheckCalledAet" : false,
+
+    // The DICOM port
+    "DicomPort" : 4242,
+
+
+
+    /**
+     * Security-related options
+     **/
+
+    // Whether remote hosts can connect to the HTTP server
+    "RemoteAccessAllowed" : false,
+
+    // Whether or not SSL is enabled
+    "SslEnabled" : false,
+
+    // Path to the SSL certificate
+    "SslCertificate" : "certificate.pem",
+
+    // Whether or not the password protection is enabled
+    "AuthenticationEnabled" : false,
+
+    // The list of the registered users. Because Orthanc uses HTTP
+    // Basic Authentication, the passwords are stored as plain text.
+    "RegisteredUsers" : {
+        "alice" : "alicePassword"
+    },
+
+
+
+    /**
+     * Network topology
+     **/
+
+    // The list of the known DICOM modalities
+    "DicomModalities" : {
+        // "sample" : [ "SAMPLESCP", "192.168.100.42", 104 ]
+    },
+
+    // The list of the known Orthanc peers (currently unused)
+    "OrthancPeers" : {
+    }
+}
