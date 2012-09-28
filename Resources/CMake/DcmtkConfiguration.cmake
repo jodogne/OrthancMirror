@@ -1,4 +1,7 @@
-if (${STATIC_BUILD})
+# We always statically link against DCMTK 3.6.0, as there are many
+# differences wrt. DCMTK 3.5.x.
+
+if (ON) ## ${STATIC_BUILD})
   SET(DCMTK_SOURCES_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.0)
   DownloadPackage("ftp://dicom.offis.de/pub/dicom/offis/software/dcmtk/dcmtk360/dcmtk-3.6.0.zip" "${DCMTK_SOURCES_DIR}" "" "")
 
