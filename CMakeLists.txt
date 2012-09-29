@@ -8,6 +8,7 @@ include(CheckIncludeFiles)
 SET(STATIC_BUILD ON CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")
 SET(STANDALONE_BUILD OFF CACHE BOOL "Standalone build (necessary for cross-compilation or binary releases)")
 SET(ENABLE_SSL ON CACHE BOOL "Include support for SSL")
+SET(DEBIAN_HARDENING OFF CACHE BOOL "Use Debian hardening flags")
 
 if (${CMAKE_CROSSCOMPILING})
   SET(STANDALONE_BUILD ON)
@@ -76,13 +77,35 @@ endif()
 
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  if (DEBIAN_HARDENING)
+    execute_process(
+      COMMAND dpkg-buildflags --get CPPFLAGS 
+      OUTPUT_VARIABLE DEBIAN_CPP_FLAGS
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(
+      COMMAND dpkg-buildflags --get CFLAGS 
+      OUTPUT_VARIABLE DEBIAN_C_FLAGS
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(
+      COMMAND dpkg-buildflags --get CXXFLAGS 
+      OUTPUT_VARIABLE DEBIAN_CXX_FLAGS
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(
+      COMMAND dpkg-buildflags --get LDFLAGS 
+      OUTPUT_VARIABLE DEBIAN_LD_FLAGS
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${DEBIAN_C_FLAGS} ${DEBIAN_CPP_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${DEBIAN_CXX_FLAGS} ${DEBIAN_CPP_FLAGS}")
+  endif()
+
   add_definitions(
     -D_LARGEFILE64_SOURCE=1 
     -D_FILE_OFFSET_BITS=64
     )
-  set(CMAKE_EXE_LINKER_FLAGS "-Wl,--as-needed")
-  set(CMAKE_MODULE_LINKER_FLAGS "-Wl,--no-undefined")
-  set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--no-undefined")
+  set(CMAKE_EXE_LINKER_FLAGS "-Wl,--as-needed ${DEBIAN_LD_FLAGS}")
+  set(CMAKE_MODULE_LINKER_FLAGS "-Wl,--no-undefined ${DEBIAN_LD_FLAGS}")
+  set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--no-undefined ${DEBIAN_LD_FLAGS}")
 
   # http://www.mail-archive.com/cmake@cmake.org/msg08837.html
   set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
