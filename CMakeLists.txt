@@ -46,6 +46,7 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/SQLiteConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/JsonCppConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibCurlConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibPngConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/Log4CPlusConfiguration.cmake)
 
 
 if (${CMAKE_COMPILER_IS_GNUCXX})

@@ -37,7 +37,7 @@
      **/
 
     // Whether remote hosts can connect to the HTTP server
-    "RemoteAccessAllowed" : false,
+    "RemoteAccessAllowed" : true,
 
     // Whether or not SSL is enabled
     "SslEnabled" : false,
