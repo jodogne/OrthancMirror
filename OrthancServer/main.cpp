@@ -21,6 +21,7 @@
 #include "OrthancRestApi.h"
 
 #include <stdio.h>
+#include <glog/logging.h>
 
 #include "../Core/HttpServer/EmbeddedResourceHttpHandler.h"
 #include "../Core/HttpServer/FilesystemHttpHandler.h"
@@ -91,10 +92,12 @@ public:
 
 
 
-
-
 int main(int argc, char* argv[]) 
 {
+  // Initialize Google's logging library.
+  FLAGS_logtostderr = true;
+  google::InitGoogleLogging("Orthanc");
+
   try
   {
     if (argc >= 2)

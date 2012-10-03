@@ -23,13 +23,13 @@
 #include "../FromDcmtkBridge.h"
 #include "../ToDcmtkBridge.h"
 #include "../../Core/OrthancException.h"
-#include "DcmtkLogging.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmdata/dcmetinf.h>
 #include <dcmtk/dcmdata/dcostrmb.h>
 #include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmnet/diutil.h>
+#include <glog/logging.h>
 
 
 namespace Orthanc
@@ -64,12 +64,13 @@ namespace Orthanc
 
       dataSet->transferInit();
 
-#if 0
+#if 1
       OFCondition c = dataSet->write(ob, xfer, encodingType, NULL,
                                      /*opt_groupLength*/ EGL_recalcGL,
                                      /*opt_paddingType*/ EPD_withoutPadding);
-#endif
+#else
       OFCondition c = dataSet->write(ob, xfer, encodingType);
+#endif
 
       dataSet->transferEnd();
       if (c.good())
@@ -155,7 +156,7 @@ namespace Orthanc
 
             if (SaveToMemoryBuffer(*imageDataSet, buffer) < 0)
             {
-              LOG4CPP_ERROR(Internals::GetLogger(), "cannot write DICOM file to memory");
+              LOG(ERROR) << "cannot write DICOM file to memory";
               rsp->DimseStatus = STATUS_STORE_Refused_OutOfResources;
             }
           }
@@ -191,7 +192,7 @@ namespace Orthanc
               catch (OrthancException& e)
               {
                 rsp->DimseStatus = STATUS_STORE_Refused_OutOfResources;
-                LOG4CPP_ERROR(Internals::GetLogger(), "Exception while storing DICOM: " + std::string(e.What()));
+                LOG(ERROR) << "Exception while storing DICOM: " << e.What();
               }
             }
           }
@@ -260,7 +261,7 @@ namespace Orthanc
     if (cond.bad())
     {
       OFString temp_str;
-      LOG4CPP_ERROR(GetLogger(), "Store SCP Failed: " + std::string(cond.text()));
+      LOG(ERROR) << "Store SCP Failed: " << cond.text();
     }
 
     // return return value
