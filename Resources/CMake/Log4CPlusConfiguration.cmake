@@ -51,6 +51,10 @@ elseif (STATIC_BUILD)
   source_group(ThirdParty\\Log4Cplus REGULAR_EXPRESSION ${LOG4CPLUS_SOURCES_DIR}/.*)
 
 else()
-  message(FATAL_ERROR "Dynamic log4cplus")
-  
+  CHECK_INCLUDE_FILE_CXX(log4cpp/FileAppender.hh HAVE_LOG4CPLUS_H)
+  if (NOT HAVE_LOG4CPLUS_H)
+    message(FATAL_ERROR "Please install the liblog4cpp5-dev package")
+  endif()
+
+  link_libraries(log4cpp)
 endif()

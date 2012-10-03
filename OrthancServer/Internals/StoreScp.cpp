@@ -23,6 +23,7 @@
 #include "../FromDcmtkBridge.h"
 #include "../ToDcmtkBridge.h"
 #include "../../Core/OrthancException.h"
+#include "DcmtkLogging.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmdata/dcmetinf.h>
@@ -33,12 +34,6 @@
 
 namespace Orthanc
 {
-  namespace Internals
-  {
-    extern OFLogger Logger;
-  }
-
-
   namespace
   {  
     struct StoreCallbackData
@@ -68,9 +63,14 @@ namespace Orthanc
       DcmOutputBufferStream ob(&buffer[0], s);
 
       dataSet->transferInit();
+
+#if 0
       OFCondition c = dataSet->write(ob, xfer, encodingType, NULL,
                                      /*opt_groupLength*/ EGL_recalcGL,
                                      /*opt_paddingType*/ EPD_withoutPadding);
+#endif
+      OFCondition c = dataSet->write(ob, xfer, encodingType);
+
       dataSet->transferEnd();
       if (c.good())
       {
@@ -155,7 +155,7 @@ namespace Orthanc
 
             if (SaveToMemoryBuffer(*imageDataSet, buffer) < 0)
             {
-              OFLOG_ERROR(Internals::Logger, "cannot write DICOM file to memory");
+              LOG4CPP_ERROR(Internals::GetLogger(), "cannot write DICOM file to memory");
               rsp->DimseStatus = STATUS_STORE_Refused_OutOfResources;
             }
           }
@@ -171,7 +171,7 @@ namespace Orthanc
             // which SOP class and SOP instance ?
             if (!DU_findSOPClassAndInstanceInDataSet(*imageDataSet, sopClass, sopInstance, /*opt_correctUIDPadding*/ OFFalse))
             {
-              //OFLOG_ERROR(Internals::Logger, "bad DICOM file: " << fileName);
+              //LOG4CPP_ERROR(Internals::GetLogger(), "bad DICOM file: " << fileName);
               rsp->DimseStatus = STATUS_STORE_Error_CannotUnderstand;
             }
             else if (strcmp(sopClass, req->AffectedSOPClassUID) != 0)
@@ -191,7 +191,7 @@ namespace Orthanc
               catch (OrthancException& e)
               {
                 rsp->DimseStatus = STATUS_STORE_Refused_OutOfResources;
-                OFLOG_ERROR(Internals::Logger, "Exception while storing DICOM: " << e.What());
+                LOG4CPP_ERROR(Internals::GetLogger(), "Exception while storing DICOM: " + std::string(e.What()));
               }
             }
           }
@@ -224,7 +224,10 @@ namespace Orthanc
     // intialize some variables
     StoreCallbackData callbackData;
     callbackData.handler = &handler;
-    callbackData.modality = dcmSOPClassUIDToModality(req->AffectedSOPClassUID, "UNKNOWN");
+    callbackData.modality = dcmSOPClassUIDToModality(req->AffectedSOPClassUID/*, "UNKNOWN"*/);
+    if (callbackData.modality == NULL)
+      callbackData.modality = "UNKNOWN";
+
     callbackData.affectedSOPInstanceUID = req->AffectedSOPInstanceUID;
     callbackData.messageID = req->MessageID;
     if (assoc && assoc->params)
@@ -257,7 +260,7 @@ namespace Orthanc
     if (cond.bad())
     {
       OFString temp_str;
-      OFLOG_ERROR(Logger, "Store SCP Failed: " << DimseCondition::dump(temp_str, cond));
+      LOG4CPP_ERROR(GetLogger(), "Store SCP Failed: " + std::string(cond.text()));
     }
 
     // return return value

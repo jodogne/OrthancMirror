@@ -22,6 +22,7 @@
 
 #include "../FromDcmtkBridge.h"
 #include "../ToDcmtkBridge.h"
+#include "DcmtkLogging.h"
 #include "../../Core/OrthancException.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
@@ -33,12 +34,6 @@
 
 namespace Orthanc
 {
-  namespace Internals
-  {
-    extern OFLogger Logger;
-  }
-
-
   namespace
   {  
     struct FindScpData
@@ -77,7 +72,7 @@ namespace Orthanc
         catch (OrthancException& e)
         {
           // Internal error!
-          OFLOG_ERROR(Internals::Logger, "IFindRequestHandler Failed: " << e.What());
+          LOG4CPP_ERROR(Internals::GetLogger(), "IFindRequestHandler Failed: " + std::string(e.What()));
           response->DimseStatus = STATUS_FIND_Failed_UnableToProcess;
           *responseIdentifiers = NULL;   
           return;
@@ -125,7 +120,7 @@ namespace Orthanc
     if (cond.bad())
     {
       OFString temp_str;
-      OFLOG_ERROR(Internals::Logger, "Find SCP Failed: " << DimseCondition::dump(temp_str, cond));
+      LOG4CPP_ERROR(Internals::GetLogger(), "Find SCP Failed: " + std::string(cond.text()));
     }
 
     return cond;
