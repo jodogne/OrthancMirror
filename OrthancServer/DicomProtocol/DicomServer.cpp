@@ -22,11 +22,11 @@
 
 #include "../../Core/OrthancException.h"
 #include "../../Core/Toolbox.h"
-#include "../Internals/DcmtkLogging.h"
 #include "../Internals/CommandDispatcher.h"
 
 #include <boost/thread.hpp>
 #include <dcmtk/dcmdata/dcdict.h>
+#include <glog/logging.h>
 
 
 namespace Orthanc
@@ -47,8 +47,7 @@ namespace Orthanc
     /* make sure data dictionary is loaded */
     if (!dcmDataDict.isDictionaryLoaded())
     {
-      LOG4CPP_WARN(Internals::GetLogger(), "no data dictionary loaded, check environment variable: "
-		   DCM_DICT_ENVIRONMENT_VARIABLE);
+      LOG(WARNING) << "no data dictionary loaded, check environment variable: " << DCM_DICT_ENVIRONMENT_VARIABLE;
     }
 
     /* initialize network, i.e. create an instance of T_ASC_Network*. */
@@ -57,11 +56,11 @@ namespace Orthanc
       (NET_ACCEPTOR, OFstatic_cast(int, server->port_), /*opt_acse_timeout*/ 30, &net);
     if (cond.bad())
     {
-      LOG4CPP_ERROR(Internals::GetLogger(), "cannot create network: " + std::string(cond.text()));
+      LOG(ERROR) << "cannot create network: " << cond.text();
       throw OrthancException("Cannot create network");
     }
 
-    LOG4CPP_WARN(Internals::GetLogger(), "DICOM server started");
+    LOG(WARNING) << "DICOM server started";
 
     server->started_ = true;
 
@@ -84,14 +83,14 @@ namespace Orthanc
       }
     }
 
-    LOG4CPP_WARN(Internals::GetLogger(), "DICOM server stopping");
+    LOG(WARNING) << "DICOM server stopping";
 
     /* drop the network, i.e. free memory of T_ASC_Network* structure. This call */
     /* is the counterpart of ASC_initializeNetwork(...) which was called above. */
     cond = ASC_dropNetwork(&net);
     if (cond.bad())
     {
-      LOG4CPP_ERROR(Internals::GetLogger(), "Error while dropping the network: " + std::string(cond.text()));
+      LOG(ERROR) << "Error while dropping the network: " << cond.text();
     }
   }                           
 

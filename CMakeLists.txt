@@ -31,6 +31,8 @@ SET(THIRD_PARTY_SOURCES
   ${CMAKE_SOURCE_DIR}/Resources/base64/base64.cpp
   )
 
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfiguration.cmake)
+
 if (${ENABLE_SSL})
   add_definitions(-DORTHANC_SSL_ENABLED=1)
   include(${CMAKE_SOURCE_DIR}/Resources/CMake/OpenSslConfiguration.cmake)
@@ -40,7 +42,6 @@ endif()
 
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/BoostConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/DcmtkConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/Log4CPlusConfiguration.cmake) # Must be after DcmtkConfiguration
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/MongooseConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/ZlibConfiguration.cmake)
@@ -172,7 +173,6 @@ add_library(CoreLibrary
   Core/HttpServer/MongooseServer.cpp
   Core/MultiThreading/BagOfRunnablesBySteps.cpp
   Core/PngWriter.cpp
-  Core/Logging.cpp
   Core/SQLite/Connection.cpp
   Core/SQLite/FunctionContext.cpp
   Core/SQLite/Statement.cpp
@@ -191,7 +191,6 @@ add_library(ServerLibrary
   OrthancServer/DicomProtocol/DicomServer.cpp
   OrthancServer/DicomProtocol/DicomUserConnection.cpp
   OrthancServer/FromDcmtkBridge.cpp
-  OrthancServer/Internals/DcmtkLogging.cpp
   OrthancServer/Internals/CommandDispatcher.cpp
   OrthancServer/Internals/FindScp.cpp
   OrthancServer/Internals/MoveScp.cpp

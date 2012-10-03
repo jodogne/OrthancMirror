@@ -25,13 +25,13 @@
 #include "../FromDcmtkBridge.h"
 #include "../ToDcmtkBridge.h"
 #include "../../Core/OrthancException.h"
-#include "DcmtkLogging.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmdata/dcmetinf.h>
 #include <dcmtk/dcmdata/dcostrmb.h>
 #include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmnet/diutil.h>
+#include <glog/logging.h>
 
 
 namespace Orthanc
@@ -82,7 +82,7 @@ namespace Orthanc
         catch (OrthancException& e)
         {
           // Internal error!
-          LOG4CPP_ERROR(Internals::GetLogger(), "IMoveRequestHandler Failed: " + std::string(e.What()));
+          LOG(ERROR) << "IMoveRequestHandler Failed: " << e.What();
           response->DimseStatus = STATUS_MOVE_Failed_UnableToProcess;
           return;
         }
@@ -111,7 +111,7 @@ namespace Orthanc
         catch (OrthancException& e)
         {
           // Internal error!
-          LOG4CPP_ERROR(Internals::GetLogger(), "IMoveRequestHandler Failed: " + std::string(e.What()));
+          LOG(ERROR) << "IMoveRequestHandler Failed: " << e.What();
           response->DimseStatus = STATUS_MOVE_Failed_UnableToProcess;
           return;
         }
@@ -162,7 +162,7 @@ namespace Orthanc
     if (cond.bad())
     {
       OFString temp_str;
-      LOG4CPP_ERROR(Internals::GetLogger(), "Move SCP Failed: " + std::string(cond.text()));
+      LOG(ERROR) << "Move SCP Failed: " << cond.text();
     }
 
     return cond;

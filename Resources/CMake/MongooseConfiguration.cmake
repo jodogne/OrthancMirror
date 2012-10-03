@@ -3,7 +3,7 @@ DownloadPackage("http://mongoose.googlecode.com/files/mongoose-3.1.tgz" "${MONGO
 
 # Patch mongoose
 execute_process(
-  COMMAND patch mongoose.c ${CMAKE_SOURCE_DIR}/Resources/mongoose-patch.diff
+  COMMAND patch mongoose.c ${CMAKE_SOURCE_DIR}/Resources/Patches/mongoose-patch.diff
   WORKING_DIRECTORY ${MONGOOSE_SOURCES_DIR}
   )
 
@@ -29,6 +29,5 @@ else()
     -DNO_SSL=1   # Remove SSL support from mongoose
     )
 endif()
-
 
 source_group(ThirdParty\\Mongoose REGULAR_EXPRESSION ${MONGOOSE_SOURCES_DIR}/.*)
