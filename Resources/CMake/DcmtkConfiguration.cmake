@@ -1,7 +1,7 @@
 # We always statically link against DCMTK 3.6.0, as there are many
 # differences wrt. DCMTK 3.5.x.
 
-if (ON) ## ${STATIC_BUILD})
+if (${STATIC_BUILD})
   SET(DCMTK_SOURCES_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.0)
   DownloadPackage("ftp://dicom.offis.de/pub/dicom/offis/software/dcmtk/dcmtk360/dcmtk-3.6.0.zip" "${DCMTK_SOURCES_DIR}" "" "")
 
@@ -17,8 +17,9 @@ if (ON) ## ${STATIC_BUILD})
   AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmnet/libsrc THIRD_PARTY_SOURCES)
   AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmdata/libsrc THIRD_PARTY_SOURCES)
   AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/ofstd/libsrc THIRD_PARTY_SOURCES)
-  AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/oflog/libsrc THIRD_PARTY_SOURCES)
 
+  # Source for the logging facility of DCMTK
+  AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/oflog/libsrc THIRD_PARTY_SOURCES)
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     list(REMOVE_ITEM THIRD_PARTY_SOURCES 
       ${DCMTK_SOURCES_DIR}/oflog/libsrc/windebap.cc
@@ -38,7 +39,7 @@ if (ON) ## ${STATIC_BUILD})
 
   # This fixes crashes related to the destruction of the DCMTK OFLogger
   # http://support.dcmtk.org/docs-snapshot/file_macros.html
-  add_definitions(-DLOG4CPLUS_DISABLE_FATAL=1)
+  #add_definitions(-DLOG4CPLUS_DISABLE_FATAL=1)
 
   include_directories(
     #${DCMTK_SOURCES_DIR}
@@ -50,6 +51,9 @@ if (ON) ## ${STATIC_BUILD})
     )
 
   source_group(ThirdParty\\Dcmtk REGULAR_EXPRESSION ${DCMTK_SOURCES_DIR}/.*)
+
+  set(DCMTK_BUNDLES_LOG4CPLUS 1)
+
 else()
   include(FindDCMTK)
 
@@ -59,4 +63,14 @@ else()
   add_definitions(
     -DHAVE_CONFIG_H=1
     )
+
+  message("${DCMTK_DIR}/oflog")
+  
+  IF (EXISTS "${DCMTK_DIR}/oflog")
+    set(DCMTK_BUNDLES_LOG4CPLUS 1)
+  else()
+    set(DCMTK_BUNDLES_LOG4CPLUS 0)
+  endif()
 endif()
+
+message("DCMTK includes its own copy of Log4Cplus: ${DCMTK_BUNDLES_LOG4CPLUS}")

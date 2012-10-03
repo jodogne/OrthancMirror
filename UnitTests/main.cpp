@@ -279,8 +279,43 @@ TEST(Toolbox, PathToExecutable)
   printf("[%s]\n", Toolbox::GetDirectoryOfExecutable().c_str());
 }
 
+
+
+#if DCMTK_BUNDLES_LOG4CPLUS == 0
+#include <log4cplus/logger.h>
+#include <log4cplus/consoleappender.h>
+#include <log4cplus/fileappender.h>
+#include <log4cplus/configurator.h>
+#else
+#include <dcmtk/oflog/logger.h>
+#include <dcmtk/oflog/consap.h>
+#include <dcmtk/oflog/fileap.h>
+//#include <dcmtk/oflog/configurator.h>
+#endif
+
+
+static log4cplus::Logger logger(log4cplus::Logger::getInstance("UnitTests"));
+
+TEST(Logger, Basic)
+{
+  LOG4CPLUS_INFO(logger, "I say hello");
+}
+
+
 int main(int argc, char **argv)
 {
+  using namespace log4cplus;
+  SharedAppenderPtr myAppender(new ConsoleAppender());
+  //SharedAppenderPtr myAppender(new FileAppender("UnitTests.log"));
+#if DCMTK_BUNDLES_LOG4CPLUS == 0
+  std::auto_ptr<Layout> myLayout(new TTCCLayout());
+#else
+  OFauto_ptr<Layout> myLayout(new TTCCLayout());
+#endif
+  myAppender->setLayout(myLayout);
+  Logger::getRoot().addAppender(myAppender);
+  Logger::getRoot().setLogLevel(INFO_LOG_LEVEL);
+
   OrthancInitialize();
   ::testing::InitGoogleTest(&argc, argv);
   int result = RUN_ALL_TESTS();
