@@ -54,6 +54,16 @@ namespace Orthanc
 
     bool operator< (const DicomTag& other) const;
 
+    bool operator== (const DicomTag& other) const
+    {
+      return group_ == other.group_ && element_ == other.element_;
+    }
+
+    bool operator!= (const DicomTag& other) const
+    {
+      return !(*this == other);
+    }
+
     std::string Format() const;
 
     friend std::ostream& operator<< (std::ostream& o, const DicomTag& tag);
@@ -74,4 +84,6 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_NUMBER_OF_FRAMES(0x0028, 0x0008);
   static const DicomTag DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES(0x0018, 0x1090);
   static const DicomTag DICOM_TAG_IMAGES_IN_ACQUISITION(0x0020, 0x1002);
+
+  static const DicomTag DICOM_TAG_PATIENT_NAME(0x0010, 0x0010);
 }

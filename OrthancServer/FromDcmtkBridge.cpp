@@ -538,6 +538,19 @@ namespace Orthanc
 
   std::string FromDcmtkBridge::GetName(const DicomTag& t)
   {
+    // Some patches for important tags because of different DICOM
+    // dictionaries between DCMTK versions
+    if (t == DICOM_TAG_PATIENT_NAME)
+      return "PatientName";
+
+    if (t == DicomTag(0x0010, 0x0030))
+      return "PatientBirthDate";
+
+    if (t == DicomTag(0x0010, 0x0040))
+      return "PatientSex";
+
+    // End of patches
+
     DcmTagKey tag(t.GetGroup(), t.GetElement());
     const DcmDataDictionary& dict = dcmDataDict.rdlock();
     const DcmDictEntry* entry = dict.findEntry(tag, NULL);
