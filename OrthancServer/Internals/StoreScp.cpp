@@ -64,7 +64,7 @@ namespace Orthanc
 
       dataSet->transferInit();
 
-#if 1
+#if DCMTK_VERSION_NUMBER >= 360
       OFCondition c = dataSet->write(ob, xfer, encodingType, NULL,
                                      /*opt_groupLength*/ EGL_recalcGL,
                                      /*opt_paddingType*/ EPD_withoutPadding);

@@ -2,6 +2,7 @@
 # differences wrt. DCMTK 3.5.x.
 
 if (${STATIC_BUILD})
+  SET(DCMTK_VERSION_NUMBER 360)
   SET(DCMTK_SOURCES_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.0)
   DownloadPackage("ftp://dicom.offis.de/pub/dicom/offis/software/dcmtk/dcmtk360/dcmtk-3.6.0.zip" "${DCMTK_SOURCES_DIR}" "" "")
 
@@ -39,7 +40,10 @@ if (${STATIC_BUILD})
 
   # This fixes crashes related to the destruction of the DCMTK OFLogger
   # http://support.dcmtk.org/docs-snapshot/file_macros.html
-  #add_definitions(-DLOG4CPLUS_DISABLE_FATAL=1)
+  add_definitions(
+    -DLOG4CPLUS_DISABLE_FATAL=1
+    -DDCMTK_VERSION_NUMBER=360
+    )
 
   include_directories(
     #${DCMTK_SOURCES_DIR}
@@ -64,6 +68,14 @@ else()
     -DHAVE_CONFIG_H=1
     )
 
+
+  # Autodetection of the version of DCMTK
+  file(STRINGS "${DCMTK_DIR}/config/cfunix.h" DCMTK_VERSION_NUMBER
+    REGEX ".*PACKAGE_VERSION_NUMBER.*")
+  string(REGEX REPLACE ".*PACKAGE_VERSION_NUMBER" "" DCMTK_VERSION_NUMBER1 ${DCMTK_VERSION_NUMBER})
+  string(STRIP ${DCMTK_VERSION_NUMBER1} DCMTK_VERSION_NUMBER)
+
+
   IF (EXISTS "${DCMTK_DIR}/oflog")
     set(DCMTK_BUNDLES_LOG4CPLUS 1)
     link_libraries(${DCMTK_LIBRARIES} oflog)
@@ -72,4 +84,6 @@ else()
   endif()
 endif()
 
+add_definitions(-DDCMTK_VERSION_NUMBER=${DCMTK_VERSION_NUMBER})
+message("DCMTK version: ${DCMTK_VERSION_NUMBER}")
 message("Does DCMTK includes its own copy of Log4Cplus: ${DCMTK_BUNDLES_LOG4CPLUS}")
