@@ -12,7 +12,11 @@ if (${STATIC_BUILD})
       WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src
       )
     execute_process(
-      COMMAND patch port.h ${CMAKE_SOURCE_DIR}/Resources/Patches/glog-port.diff 
+      COMMAND patch port.h ${CMAKE_SOURCE_DIR}/Resources/Patches/glog-port-h.diff 
+      WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src/windows
+      )
+    execute_process(
+      COMMAND patch port.cc ${CMAKE_SOURCE_DIR}/Resources/Patches/glog-port-cc.diff 
       WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src/windows
       )
   endif()
@@ -39,8 +43,8 @@ if (${STATIC_BUILD})
       )
 
     set(GOOGLE_LOG_SOURCES
-      ${GOOGLE_LOG_SOURCES_DIR}/src/logging.cc
       ${GOOGLE_LOG_SOURCES_DIR}/src/windows/port.cc
+      ${GOOGLE_LOG_SOURCES_DIR}/src/logging.cc
       ${GOOGLE_LOG_SOURCES_DIR}/src/raw_logging.cc
       ${GOOGLE_LOG_SOURCES_DIR}/src/utilities.cc
       ${GOOGLE_LOG_SOURCES_DIR}/src/vlog_is_on.cc
