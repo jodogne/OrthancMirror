@@ -23,9 +23,11 @@
 #include "FindScp.h"
 #include "StoreScp.h"
 #include "MoveScp.h"
+#include "DcmtkLogging.h"
 #include "../../Core/Toolbox.h"
 
 #include <dcmtk/dcmnet/dcasccfg.h>      /* for class DcmAssociationConfiguration */
+#include <boost/lexical_cast.hpp>
 
 static OFBool    opt_rejectWithoutImplementationUID = OFFalse;
 
@@ -34,24 +36,20 @@ namespace Orthanc
 {
   namespace Internals
   {
-    extern OFLogger Logger;
-
-
-
     OFCondition AssociationCleanup(T_ASC_Association *assoc)
     {
       OFString temp_str;
       OFCondition cond = ASC_dropSCPAssociation(assoc);
       if (cond.bad())
       {
-        OFLOG_FATAL(Internals::Logger, DimseCondition::dump(temp_str, cond));
+        LOG4CPP_FATAL(Internals::GetLogger(), std::string(cond.text()));
         return cond;
       }
 
       cond = ASC_destroyAssociation(&assoc);
       if (cond.bad())
       {
-        OFLOG_FATAL(Internals::Logger, DimseCondition::dump(temp_str, cond));
+        LOG4CPP_FATAL(Internals::GetLogger(), std::string(cond.text()));
         return cond;
       }
 
@@ -109,13 +107,13 @@ namespace Orthanc
       // if some kind of error occured, take care of it
       if (cond.bad())
       {
-        OFLOG_ERROR(Internals::Logger, "Receiving Association failed: " << DimseCondition::dump(temp_str, cond));
+        LOG4CPP_ERROR(Internals::GetLogger(), "Receiving Association failed: " + std::string(cond.text()));
         // no matter what kind of error occurred, we need to do a cleanup
         AssociationCleanup(assoc);
         return NULL;
       }
 
-      OFLOG_INFO(Internals::Logger, "Association Received");
+      LOG4CPP_INFO(Internals::GetLogger(), "Association Received");
 
       transferSyntaxes[0] = UID_LittleEndianExplicitTransferSyntax;
       transferSyntaxes[1] = UID_BigEndianExplicitTransferSyntax;
@@ -126,7 +124,7 @@ namespace Orthanc
       cond = ASC_acceptContextsWithPreferredTransferSyntaxes( assoc->params, &knownAbstractSyntaxes[0], knownAbstractSyntaxes.size(), transferSyntaxes, numTransferSyntaxes);
       if (cond.bad())
       {
-        OFLOG_DEBUG(Internals::Logger, DimseCondition::dump(temp_str, cond));
+        LOG4CPP_DEBUG(Internals::GetLogger(), std::string(cond.text()));
         AssociationCleanup(assoc);
         return NULL;
       }
@@ -135,7 +133,7 @@ namespace Orthanc
       cond = ASC_acceptContextsWithPreferredTransferSyntaxes( assoc->params, dcmAllStorageSOPClassUIDs, numberOfAllDcmStorageSOPClassUIDs, transferSyntaxes, numTransferSyntaxes);
       if (cond.bad())
       {
-        OFLOG_DEBUG(Internals::Logger, DimseCondition::dump(temp_str, cond));
+        LOG4CPP_DEBUG(Internals::GetLogger(), std::string(cond.text()));
         AssociationCleanup(assoc);
         return NULL;
       }
@@ -155,11 +153,11 @@ namespace Orthanc
             ASC_REASON_SU_APPCONTEXTNAMENOTSUPPORTED
           };
 
-        OFLOG_INFO(Internals::Logger, "Association Rejected: Bad Application Context Name: " << buf);
+        LOG4CPP_INFO(Internals::GetLogger(), "Association Rejected: Bad Application Context Name: " + std::string(buf));
         cond = ASC_rejectAssociation(assoc, &rej);
         if (cond.bad())
         {
-          OFLOG_DEBUG(Internals::Logger, DimseCondition::dump(temp_str, cond));
+          LOG4CPP_DEBUG(Internals::GetLogger(), std::string(cond.text()));
         }
         AssociationCleanup(assoc);
         return NULL;
@@ -185,9 +183,9 @@ namespace Orthanc
           return NULL;
         }
 
-        std::string callingIP(OFSTRING_GUARD(callingIP_C));
-        std::string callingTitle(OFSTRING_GUARD(callingTitle_C));
-        std::string calledTitle(OFSTRING_GUARD(calledTitle_C));
+        std::string callingIP(/*OFSTRING_GUARD*/(callingIP_C));
+        std::string callingTitle(/*OFSTRING_GUARD*/(callingTitle_C));
+        std::string calledTitle(/*OFSTRING_GUARD*/(calledTitle_C));
         Toolbox::ToUpperCase(callingIP);
         Toolbox::ToUpperCase(callingTitle);
         Toolbox::ToUpperCase(calledTitle);
@@ -231,11 +229,11 @@ namespace Orthanc
             ASC_REASON_SU_NOREASON
           };
 
-        OFLOG_INFO(Internals::Logger, "Association Rejected: No Implementation Class UID provided");
+        LOG4CPP_INFO(Internals::GetLogger(), "Association Rejected: No Implementation Class UID provided");
         cond = ASC_rejectAssociation(assoc, &rej);
         if (cond.bad())
         {
-          OFLOG_DEBUG(Internals::Logger, DimseCondition::dump(temp_str, cond));
+          LOG4CPP_DEBUG(Internals::GetLogger(), std::string(cond.text()));
         }
         AssociationCleanup(assoc);
         return NULL;
@@ -245,13 +243,13 @@ namespace Orthanc
         cond = ASC_acknowledgeAssociation(assoc);
         if (cond.bad())
         {
-          OFLOG_ERROR(Internals::Logger, DimseCondition::dump(temp_str, cond));
+          LOG4CPP_ERROR(Internals::GetLogger(), std::string(cond.text()));
           AssociationCleanup(assoc);
           return NULL;
         }
-        OFLOG_INFO(Internals::Logger, "Association Acknowledged (Max Send PDV: " << assoc->sendPDVLength << ")");
+        LOG4CPP_INFO(Internals::GetLogger(), "Association Acknowledged (Max Send PDV: " + boost::lexical_cast<std::string>(assoc->sendPDVLength) + ")");
         if (ASC_countAcceptedPresentationContexts(assoc->params) == 0)
-          OFLOG_INFO(Internals::Logger, "    (but no valid presentation contexts)");
+          LOG4CPP_INFO(Internals::GetLogger(), "    (but no valid presentation contexts)");
       }
 
       return new CommandDispatcher(server, assoc);
@@ -278,7 +276,7 @@ namespace Orthanc
       // detail information, dump this information
       if (statusDetail != NULL)
       {
-        OFLOG_WARN(Internals::Logger, "Status Detail:" << OFendl << DcmObject::PrintHelper(*statusDetail));
+        //LOG4CPP_WARN(Internals::GetLogger(), "Status Detail:" << OFendl << DcmObject::PrintHelper(*statusDetail));
         delete statusDetail;
       }
 
@@ -349,8 +347,9 @@ namespace Orthanc
         default:
           // we cannot handle this kind of message
           cond = DIMSE_BADCOMMANDTYPE;
-          OFLOG_ERROR(Internals::Logger, "cannot handle command: 0x"
-                      << STD_NAMESPACE hex << OFstatic_cast(unsigned, msg.CommandField));
+          LOG4CPP_ERROR(Internals::GetLogger(), "cannot handle command: 0x"
+			+ boost::lexical_cast<std::string>(hex) 
+			+ boost::lexical_cast<std::string>(msg.CommandField));
           break;
         }
       }
@@ -365,17 +364,17 @@ namespace Orthanc
       {
         if (cond == DUL_PEERREQUESTEDRELEASE)
         {
-          OFLOG_INFO(Internals::Logger, "Association Release");
+          LOG4CPP_INFO(Internals::GetLogger(), "Association Release");
           ASC_acknowledgeRelease(assoc_);
         }
         else if (cond == DUL_PEERABORTEDASSOCIATION)
         {
-          OFLOG_INFO(Internals::Logger, "Association Aborted");
+          LOG4CPP_INFO(Internals::GetLogger(), "Association Aborted");
         }
         else
         {
           OFString temp_str;
-          OFLOG_ERROR(Internals::Logger, "DIMSE failure (aborting association): " << DimseCondition::dump(temp_str, cond));
+          LOG4CPP_ERROR(Internals::GetLogger(), "DIMSE failure (aborting association): " + std::string(cond.text()));
           /* some kind of error so abort the association */
           ASC_abortAssociation(assoc_);
         }
@@ -388,14 +387,14 @@ namespace Orthanc
     OFCondition EchoScp( T_ASC_Association * assoc, T_DIMSE_Message * msg, T_ASC_PresentationContextID presID)
     {
       OFString temp_str;
-      OFLOG_INFO(Internals::Logger, "Received Echo Request");
-      OFLOG_DEBUG(Internals::Logger, DIMSE_dumpMessage(temp_str, msg->msg.CEchoRQ, DIMSE_INCOMING, NULL, presID));
+      LOG4CPP_INFO(Internals::GetLogger(), "Received Echo Request");
+      //LOG4CPP_DEBUG(Internals::GetLogger(), DIMSE_dumpMessage(temp_str, msg->msg.CEchoRQ, DIMSE_INCOMING, NULL, presID));
 
       /* the echo succeeded !! */
       OFCondition cond = DIMSE_sendEchoResponse(assoc, presID, &msg->msg.CEchoRQ, STATUS_Success, NULL);
       if (cond.bad())
       {
-        OFLOG_ERROR(Internals::Logger, "Echo SCP Failed: " << DimseCondition::dump(temp_str, cond));
+        LOG4CPP_ERROR(Internals::GetLogger(), "Echo SCP Failed: " + std::string(cond.text()));
       }
       return cond;
     }

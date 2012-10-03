@@ -22,6 +22,7 @@
 
 #include "../../Core/OrthancException.h"
 #include "../../Core/Toolbox.h"
+#include "../Internals/DcmtkLogging.h"
 #include "../Internals/CommandDispatcher.h"
 
 #include <boost/thread.hpp>
@@ -38,12 +39,6 @@ namespace Orthanc
   };
 
 
-  namespace Internals
-  {
-    OFLogger Logger = OFLog::getLogger("dcmtk.apps.storescp");
-  }
-
-
   void DicomServer::ServerThread(DicomServer* server)
   {
     /* Disable "gethostbyaddr" (which results in memory leaks) and use raw IP addresses */
@@ -52,8 +47,8 @@ namespace Orthanc
     /* make sure data dictionary is loaded */
     if (!dcmDataDict.isDictionaryLoaded())
     {
-      OFLOG_WARN(Internals::Logger, "no data dictionary loaded, check environment variable: "
-                 << DCM_DICT_ENVIRONMENT_VARIABLE);
+      LOG4CPP_WARN(Internals::GetLogger(), "no data dictionary loaded, check environment variable: "
+		   DCM_DICT_ENVIRONMENT_VARIABLE);
     }
 
     /* initialize network, i.e. create an instance of T_ASC_Network*. */
@@ -62,12 +57,11 @@ namespace Orthanc
       (NET_ACCEPTOR, OFstatic_cast(int, server->port_), /*opt_acse_timeout*/ 30, &net);
     if (cond.bad())
     {
-      OFString temp_str;
-      OFLOG_ERROR(Internals::Logger, "cannot create network: " << DimseCondition::dump(temp_str, cond));
+      LOG4CPP_ERROR(Internals::GetLogger(), "cannot create network: " + std::string(cond.text()));
       throw OrthancException("Cannot create network");
     }
 
-    OFLOG_WARN(Internals::Logger, "DICOM server started");
+    LOG4CPP_WARN(Internals::GetLogger(), "DICOM server started");
 
     server->started_ = true;
 
@@ -90,15 +84,14 @@ namespace Orthanc
       }
     }
 
-    OFLOG_WARN(Internals::Logger, "DICOM server stopping");
+    LOG4CPP_WARN(Internals::GetLogger(), "DICOM server stopping");
 
     /* drop the network, i.e. free memory of T_ASC_Network* structure. This call */
     /* is the counterpart of ASC_initializeNetwork(...) which was called above. */
     cond = ASC_dropNetwork(&net);
     if (cond.bad())
     {
-      OFString temp_str;
-      OFLOG_ERROR(Internals::Logger, DimseCondition::dump(temp_str, cond));
+      LOG4CPP_ERROR(Internals::GetLogger(), "Error while dropping the network: " + std::string(cond.text()));
     }
   }                           
 

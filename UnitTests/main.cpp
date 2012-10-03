@@ -281,13 +281,13 @@ TEST(Toolbox, PathToExecutable)
 
 
 
+#include "../Core/Logging.h"
+
 #if DCMTK_BUNDLES_LOG4CPLUS == 0
-#include <log4cplus/logger.h>
 #include <log4cplus/consoleappender.h>
 #include <log4cplus/fileappender.h>
 #include <log4cplus/configurator.h>
 #else
-#include <dcmtk/oflog/logger.h>
 #include <dcmtk/oflog/consap.h>
 #include <dcmtk/oflog/fileap.h>
 //#include <dcmtk/oflog/configurator.h>
@@ -298,7 +298,7 @@ static log4cplus::Logger logger(log4cplus::Logger::getInstance("UnitTests"));
 
 TEST(Logger, Basic)
 {
-  LOG4CPLUS_INFO(logger, "I say hello");
+  LOG4CPP_INFO(logger, "I say hello");
 }
 
 
