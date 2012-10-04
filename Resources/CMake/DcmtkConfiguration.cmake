@@ -59,13 +59,14 @@ if (${STATIC_BUILD})
   set(DCMTK_BUNDLES_LOG4CPLUS 1)
 
 else()
-  include(FindDCMTK)
+  #include(FindDCMTK)
+  set(DCMTK_DIR /usr/include/dcmtk)
+  set(DCMTK_INCLUDE_DIR ${DCMTK_DIR})
 
   #message(${DCMTK_LIBRARIES})
-  set(DCMTK_LIBRARIES dcmdata dcmnet)
 
   include_directories(${DCMTK_INCLUDE_DIR})
-  link_libraries(${DCMTK_LIBRARIES} wrap)
+  link_libraries(dcmdata dcmnet wrap)
 
   add_definitions(
     -DHAVE_CONFIG_H=1
