@@ -30,6 +30,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <boost/thread.hpp>
+#include <glog/logging.h>
 
 #include "../OrthancException.h"
 #include "../ChunkedBuffer.h"
@@ -530,7 +531,7 @@ namespace Orthanc
         }
         catch (OrthancException& e)
         {
-          std::cerr << "MongooseServer Exception [" << e.What() << "]" << std::endl;
+          LOG(ERROR) << "MongooseServer Exception [" << e.What() << "]";
           output.SendHeader(Orthanc_HttpStatus_500_InternalServerError);        
         }
       }

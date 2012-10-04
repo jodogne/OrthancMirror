@@ -152,18 +152,18 @@ int main(int argc, char* argv[])
       httpServer.Start();
       dicomServer.Start();
 
-      printf("The server has started\n");
+      LOG(INFO) << "The server has started";
       Toolbox::ServerBarrier();
 
       // Stop
-      printf("Finishing\n");
+      LOG(INFO) << "The server is stopping";
     }
 
     storeScp.Done();
   }
   catch (OrthancException& e)
   {
-    std::cout << "EXCEPT [" << e.What() << "]" << std::endl;
+    LOG(ERROR) << "EXCEPTION [" << e.What() << "]";
   }
 
   OrthancFinalize();
