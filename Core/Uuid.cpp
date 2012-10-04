@@ -86,10 +86,17 @@ namespace Orthanc
 
     TemporaryFile::TemporaryFile()
     {
+#if BOOST_HAS_FILESYSTEM_V3 == 1
+      boost::filesystem::path tmpDir = boost::filesystem::temp_directory_path();
+#elif defined(__linux__)
+      boost::filesystem::path tmpDir("/tmp");
+#else
+#error Support your platform here
+#endif
+
       // We use UUID to create unique path to temporary files
-      boost::filesystem::path tmp = boost::filesystem::temp_directory_path();
-      tmp /= "Orthanc-" + Orthanc::Toolbox::GenerateUuid();
-      path_ = tmp.string();
+      tmpDir /= "Orthanc-" + Orthanc::Toolbox::GenerateUuid();
+      path_ = tmpDir.string();
     }
 
 

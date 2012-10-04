@@ -80,6 +80,7 @@ if (BOOST_STATIC)
     -DBOOST_SYSTEM_NO_LIB
     -DBOOST_LOCALE_NO_LIB
     -DBOOST_HAS_LOCALE=1
+    -DBOOST_HAS_FILESYSTEM_V3=1
     )
 
   if (${CMAKE_COMPILER_IS_GNUCXX})
@@ -94,5 +95,6 @@ if (BOOST_STATIC)
 else()
   add_definitions(
     -DBOOST_HAS_LOCALE=0
+    -DBOOST_HAS_FILESYSTEM_V3=0
     )
 endif()
