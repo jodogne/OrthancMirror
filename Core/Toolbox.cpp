@@ -506,6 +506,4 @@ namespace Orthanc
 
     return result;
   }
-
-
 }

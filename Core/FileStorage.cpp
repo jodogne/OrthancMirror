@@ -29,6 +29,16 @@
 
 #include <boost/filesystem/fstream.hpp>
 
+static std::string ToString(const boost::filesystem::path& p)
+{
+#if BOOST_HAS_FILESYSTEM_V3 == 1
+  return p.filename().string();
+#else
+  return p.filename();
+#endif
+}
+
+
 namespace Orthanc
 {
   boost::filesystem::path FileStorage::GetPath(const std::string& uuid) const
@@ -45,7 +55,10 @@ namespace Orthanc
     path /= std::string(&uuid[0], &uuid[2]);
     path /= std::string(&uuid[2], &uuid[4]);
     path /= uuid;
+
+#if BOOST_HAS_FILESYSTEM_V3 == 1
     path.make_preferred();
+#endif
 
     return path;
   }
@@ -54,7 +67,8 @@ namespace Orthanc
   {
     namespace fs = boost::filesystem;
 
-    root_ = fs::absolute(root);
+    //root_ = boost::filesystem::absolute(root).string();
+    root_ = root;
 
     if (fs::exists(root))
     {
@@ -170,7 +184,7 @@ namespace Orthanc
     if (HasBufferCompressor())
     {
       std::string compressed;
-      Toolbox::ReadFile(compressed, GetPath(uuid).string());
+      Toolbox::ReadFile(compressed, ToString(GetPath(uuid)));
 
       if (compressed.size() != 0)
       {
@@ -207,12 +221,12 @@ namespace Orthanc
           try
           {
             fs::path d = current->path();
-            std::string uuid = d.filename().string();
+            std::string uuid = ToString(d);
             if (Toolbox::IsUuid(uuid))
             {
               fs::path p0 = d.parent_path().parent_path().parent_path();
-              std::string p1 = d.parent_path().parent_path().filename().string();
-              std::string p2 = d.parent_path().filename().string();
+              std::string p1 = ToString(d.parent_path().parent_path());
+              std::string p2 = ToString(d.parent_path());
               if (p1.length() == 2 &&
                   p2.length() == 2 &&
                   p1 == uuid.substr(0, 2) &&
@@ -256,9 +270,15 @@ namespace Orthanc
 
     // Remove the two parent directories, ignoring the error code if
     // these directories are not empty
+
+#if BOOST_HAS_FILESYSTEM_V3 == 1
     boost::system::error_code err;
     fs::remove(p.parent_path(), err);
     fs::remove(p.parent_path().parent_path(), err);
+#else
+    fs::remove(p.parent_path());
+    fs::remove(p.parent_path().parent_path());
+#endif
   }
 
 

@@ -56,7 +56,12 @@ namespace Orthanc
     fs::directory_iterator end;
     for (fs::directory_iterator it(p) ; it != end; ++it)
     {
+#if BOOST_HAS_FILESYSTEM_V3 == 1
       std::string f = it->path().filename().string();
+#else
+      std::string f = it->path().filename();
+#endif
+
       std::string h = Toolbox::FlattenUri(uri) + "/" + f;
       if (fs::is_directory(it->status()))
         output.SendString("<li><a href=\"" + h + "\">" + f + "</a></li>");
@@ -68,7 +73,12 @@ namespace Orthanc
 
     for (fs::directory_iterator it(p) ; it != end; ++it)
     {
+#if BOOST_HAS_FILESYSTEM_V3 == 1
       std::string f = it->path().filename().string();
+#else
+      std::string f = it->path().filename();
+#endif
+
       std::string h = Toolbox::FlattenUri(uri) + "/" + f;
       if (fs::is_regular_file(it->status()))
         output.SendString("<li><a href=\"" + h + "\">" + f + "</a></li>");
