@@ -62,7 +62,7 @@ else()
   include(FindDCMTK)
 
   include_directories(${DCMTK_INCLUDE_DIR})
-  link_libraries(${DCMTK_LIBRARIES} ofstd wrap)
+  link_libraries(${DCMTK_LIBRARIES} ofstd)
 
   add_definitions(
     -DHAVE_CONFIG_H=1
@@ -80,7 +80,7 @@ else()
 
   IF (EXISTS "${DCMTK_DIR}/oflog")
     set(DCMTK_BUNDLES_LOG4CPLUS 1)
-    link_libraries(${DCMTK_LIBRARIES} oflog)
+    link_libraries(${DCMTK_LIBRARIES} oflog wrap)
   else()
     set(DCMTK_BUNDLES_LOG4CPLUS 0)
   endif()
