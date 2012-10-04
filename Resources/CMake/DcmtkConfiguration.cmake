@@ -68,6 +68,9 @@ else()
     -DHAVE_CONFIG_H=1
     )
 
+  if (NOT EXISTS "${DCMTK_DIR}/config/cfunix.h")
+    message(FATAL_ERROR "Please install libdcmtk1-dev")
+  endif()
 
   # Autodetection of the version of DCMTK
   file(STRINGS "${DCMTK_DIR}/config/cfunix.h" DCMTK_VERSION_NUMBER1
