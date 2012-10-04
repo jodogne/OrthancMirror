@@ -22,6 +22,7 @@
 
 #include <stdio.h>
 #include <glog/logging.h>
+#include <boost/algorithm/string/predicate.hpp>
 
 #include "../Core/HttpServer/EmbeddedResourceHttpHandler.h"
 #include "../Core/HttpServer/FilesystemHttpHandler.h"
@@ -96,15 +97,37 @@ int main(int argc, char* argv[])
 {
   // Initialize Google's logging library.
   FLAGS_logtostderr = true;
+  
+  for (int i = 1; i < argc; i++)
+  {
+    if (boost::starts_with(argv[i], "--logdir="))
+    {
+      FLAGS_logtostderr = false;
+      FLAGS_log_dir = std::string(argv[i]).substr(9);
+    }
+  }
+
   google::InitGoogleLogging("Orthanc");
+
 
   try
   {
+    bool isInitialized = false;
     if (argc >= 2)
     {
-      OrthancInitialize(argv[1]);
+      for (int i = 1; i < argc; i++)
+      {
+        // Use the first argument that does not start with a "-" as
+        // the configuration file
+        if (argv[i][0] != '-')
+        {
+          OrthancInitialize(argv[i]);
+          isInitialized = true;
+        }
+      }
     }
-    else
+
+    if (!isInitialized)
     {
       OrthancInitialize();
     }
