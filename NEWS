@@ -6,6 +6,7 @@ Pending changes in the mainline
 Version 0.2.2 (2012/10/40)
 ==========================
 
+* Switch to Google Logging
 * Fixes to Debian packaging
 
 
