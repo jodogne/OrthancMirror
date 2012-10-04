@@ -1,23 +1,31 @@
 if (${STATIC_BUILD})
   SET(BOOST_STATIC 1)
 else()
+  include(FindBoost)
+
+  SET(BOOST_STATIC 0)
+  set(Boost_DEBUG 1)
+  #set(Boost_USE_STATIC_LIBS ON)
+
   find_package(Boost
-    COMPONENTS filesystem thread system locale)
+    COMPONENTS filesystem thread system)
 
-  if (${Boost_VERSION} LESS 104800)
-    # boost::locale is only available from 1.48.00
-    message("Too old version of Boost (${Boost_LIB_VERSION}): Building the static version")
-    SET(BOOST_STATIC 1)
-  else()
-    SET(BOOST_STATIC 0)
-
-    add_definitions(
-      -DBOOST_FILESYSTEM_VERSION=3
-      )
-
-    include_directories(${Boost_INCLUDE_DIRS})
-    link_libraries(${Boost_LIBRARIES})
+  if (NOT Boost_FOUND)
+    message(FATAL_ERROR "Unable to locate Boost on this system")
   endif()
+
+  #if (${Boost_VERSION} LESS 104800)
+  # boost::locale is only available from 1.48.00
+  #message("Too old version of Boost (${Boost_LIB_VERSION}): Building the static version")
+  #  SET(BOOST_STATIC 1)
+  #endif()
+
+  #add_definitions(
+  #  -DBOOST_FILESYSTEM_VERSION=1
+  #  )
+
+  include_directories(${Boost_INCLUDE_DIRS})
+  link_libraries(${Boost_LIBRARIES})
 endif()
 
 
@@ -71,6 +79,7 @@ if (BOOST_STATIC)
     -DBOOST_REGEX_NO_LIB
     -DBOOST_SYSTEM_NO_LIB
     -DBOOST_LOCALE_NO_LIB
+    -DBOOST_HAS_LOCALE=1
     )
 
   if (${CMAKE_COMPILER_IS_GNUCXX})
@@ -82,4 +91,8 @@ if (BOOST_STATIC)
     )
 
   source_group(ThirdParty\\Boost REGULAR_EXPRESSION ${BOOST_SOURCES_DIR}/.*)
+else()
+  add_definitions(
+    -DBOOST_HAS_LOCALE=0
+    )
 endif()
