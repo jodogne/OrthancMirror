@@ -14,15 +14,24 @@ else()
     message(FATAL_ERROR "Unable to locate Boost on this system")
   endif()
 
+  # Boost releases 1.44 through 1.47 supply both V2 and V3 filesystem
+  # http://www.boost.org/doc/libs/1_46_1/libs/filesystem/v3/doc/index.htm
+  if (${Boost_VERSION} LESS 104400)
+    add_definitions(
+      -DBOOST_HAS_FILESYSTEM_V3=0
+      )
+  else()
+    add_definitions(
+      -DBOOST_HAS_FILESYSTEM_V3=1
+      -DBOOST_FILESYSTEM_VERSION=3
+      )
+  endif()
+
   #if (${Boost_VERSION} LESS 104800)
   # boost::locale is only available from 1.48.00
   #message("Too old version of Boost (${Boost_LIB_VERSION}): Building the static version")
   #  SET(BOOST_STATIC 1)
   #endif()
-
-  #add_definitions(
-  #  -DBOOST_FILESYSTEM_VERSION=1
-  #  )
 
   include_directories(${Boost_INCLUDE_DIRS})
   link_libraries(${Boost_LIBRARIES})
@@ -95,6 +104,5 @@ if (BOOST_STATIC)
 else()
   add_definitions(
     -DBOOST_HAS_LOCALE=0
-    -DBOOST_HAS_FILESYSTEM_V3=0
     )
 endif()
