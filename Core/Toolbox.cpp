@@ -26,6 +26,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <algorithm>
+#include <ctype.h>
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -42,8 +43,72 @@
 #include <unistd.h>
 #endif
 
+#if BOOST_HAS_LOCALE == 1
+#include <boost/locale.hpp>
+#else
+#include <iconv.h>
+#endif
+
 #include "../Resources/md5/md5.h"
 #include "../Resources/base64/base64.h"
+
+
+#if BOOST_HAS_LOCALE == 0
+namespace
+{
+  class IconvRabi
+  {
+  private:
+    iconv_t context_;
+
+  public:
+    IconvRabi(const char* tocode, const char* fromcode)
+    {
+      context_ = iconv_open(tocode, fromcode);
+      if (!context_)
+      {
+        throw Orthanc::OrthancException("Unknown code page");
+      }
+    }
+    
+    ~IconvRabi()
+    {
+      iconv_close(context_);
+    }
+
+    std::string Convert(const std::string& source)
+    {
+      if (source.size() == 0)
+      {
+        return "";
+      }
+
+      std::string result;
+      char* sourcePos = const_cast<char*>(&source[0]);
+      size_t sourceLeft = source.size();
+
+      std::vector<char> storage(source.size() + 10);
+      
+      while (sourceLeft > 0)
+      {
+        char* tmp = &storage[0];
+        size_t outputLeft = storage.size();
+        size_t err = iconv(context_, &sourcePos, &sourceLeft, &tmp, &outputLeft);
+        if (err < 0)
+        {
+          throw Orthanc::OrthancException("Bad character in sequence");
+        }
+
+        size_t count = storage.size() - outputLeft;
+        result += std::string(&storage[0], count);
+      }
+
+      return result;
+    }
+  };
+}
+#endif
+
 
 namespace Orthanc
 {
@@ -397,5 +462,50 @@ namespace Orthanc
     boost::filesystem::path p(GetPathToExecutable());
     return p.parent_path().string();
   }
+
+
+  std::string Toolbox::ConvertToUtf8(const std::string& source,
+                                     const char* fromEncoding)
+  {
+#if BOOST_HAS_LOCALE == 1
+    try
+    {
+      return boost::locale::conv::to_utf<char>(source, fromEncoding);
+    }
+    catch (std::runtime_error&)
+    {
+      // Bad input string or bad encoding
+      return ConvertToAscii(source);
+    }
+#else
+    IconvRabi iconv("UTF-8", fromEncoding);
+    try
+    {
+      return iconv.Convert(source);
+    }
+    catch (OrthancException)
+    {
+      return ConvertToAscii(source);
+    }
+#endif
+  }
+
+
+  std::string Toolbox::ConvertToAscii(const std::string& source)
+  {
+    std::string result;
+
+    result.reserve(source.size());
+    for (size_t i = 0; i < source.size(); i++)
+    {
+      if (source[i] < 128 && source[i] >= 0 && !iscntrl(source[i]))
+      {
+        result.push_back(source[i]);
+      }
+    }
+
+    return result;
+  }
+
 
 }

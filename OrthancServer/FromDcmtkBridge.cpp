@@ -24,6 +24,7 @@
 #include "FromDcmtkBridge.h"
 
 #include "ToDcmtkBridge.h"
+#include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"
 #include "../Core/PngWriter.h"
 #include "../Core/DicomFormat/DicomString.h"
@@ -32,7 +33,6 @@
 
 #include <limits>
 
-#include <boost/locale.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include <dcmtk/dcmdata/dcdicent.h>
@@ -88,17 +88,7 @@ namespace Orthanc
           c != NULL)
       {
         std::string s(c);
-        std::string utf8;
-        try
-        {
-          utf8 = boost::locale::conv::to_utf<char>(s, "ISO-8859-1"); // TODO Parameter?
-        }
-        catch (std::runtime_error&)
-        {
-          // Bad input string or bad encoding
-          utf8 = s;
-        }
-
+        std::string utf8 = Toolbox::ConvertToUtf8(s, "ISO-8859-1"); // TODO Parameter?
         return new DicomString(utf8);
       }
       else

@@ -288,6 +288,38 @@ TEST(Logger, Basic)
   LOG(INFO) << "I say hello";
 }
 
+TEST(Toolbox, ConvertFromLatin1)
+{
+  // This is a Latin-1 test string
+  const unsigned char data[10] = { 0xe0, 0xe9, 0xea, 0xe7, 0x26, 0xc6, 0x61, 0x62, 0x63, 0x00 };
+  
+  /*FILE* f = fopen("/tmp/tutu", "w");
+  fwrite(&data[0], 9, 1, f);
+  fclose(f);*/
+
+  std::string s((char*) &data[0], 10);
+  ASSERT_EQ("&abc", Toolbox::ConvertToAscii(s));
+
+  // Open in Emacs, then save with UTF-8 encoding, then "hexdump -C"
+  std::string utf8 = Toolbox::ConvertToUtf8(s, "ISO-8859-1");
+  ASSERT_EQ(15, utf8.size());
+  ASSERT_EQ(0xc3, static_cast<unsigned char>(utf8[0]));
+  ASSERT_EQ(0xa0, static_cast<unsigned char>(utf8[1]));
+  ASSERT_EQ(0xc3, static_cast<unsigned char>(utf8[2]));
+  ASSERT_EQ(0xa9, static_cast<unsigned char>(utf8[3]));
+  ASSERT_EQ(0xc3, static_cast<unsigned char>(utf8[4]));
+  ASSERT_EQ(0xaa, static_cast<unsigned char>(utf8[5]));
+  ASSERT_EQ(0xc3, static_cast<unsigned char>(utf8[6]));
+  ASSERT_EQ(0xa7, static_cast<unsigned char>(utf8[7]));
+  ASSERT_EQ(0x26, static_cast<unsigned char>(utf8[8]));
+  ASSERT_EQ(0xc3, static_cast<unsigned char>(utf8[9]));
+  ASSERT_EQ(0x86, static_cast<unsigned char>(utf8[10]));
+  ASSERT_EQ(0x61, static_cast<unsigned char>(utf8[11]));
+  ASSERT_EQ(0x62, static_cast<unsigned char>(utf8[12]));
+  ASSERT_EQ(0x63, static_cast<unsigned char>(utf8[13]));
+  ASSERT_EQ(0x00, static_cast<unsigned char>(utf8[14]));  // Null-terminated string
+}
+
 
 int main(int argc, char **argv)
 {

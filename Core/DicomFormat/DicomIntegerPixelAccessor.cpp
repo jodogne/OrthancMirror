@@ -27,6 +27,7 @@
 #include "../OrthancException.h"
 #include <boost/lexical_cast.hpp>
 #include <limits>
+#include <cassert>
 
 namespace Orthanc
 {
