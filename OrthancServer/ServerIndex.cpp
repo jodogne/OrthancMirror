@@ -35,6 +35,7 @@ using namespace Orthanc;
 
 #include <boost/lexical_cast.hpp>
 #include <stdio.h>
+#include <glog/logging.h>
 
 namespace Orthanc
 {
@@ -64,7 +65,7 @@ namespace Orthanc
       virtual void Compute(SQLite::FunctionContext& context)
       {
         std::string fileUuid = context.GetStringValue(0);
-        printf("Removing file [%s]\n", fileUuid.c_str());
+        LOG(INFO) << "Removing file [" << fileUuid << "]";
         if (Toolbox::IsUuid(fileUuid))
         {
           fileStorage_.Remove(fileUuid);
@@ -502,7 +503,7 @@ namespace Orthanc
 
     if (!db_.DoesTableExist("GlobalProperties"))
     {
-      printf("Creating the database\n");
+      LOG(INFO) << "Creating the database";
       std::string query;
       EmbeddedResources::GetFileResource(query, EmbeddedResources::PREPARE_DATABASE);
       db_.Execute(query);
@@ -574,7 +575,7 @@ namespace Orthanc
     }
     catch (OrthancException& e)
     {
-      std::cout << "EXCEPT2 [" << e.What() << "]" << " " << db_.GetErrorMessage() << std::endl;  
+      LOG(ERROR) << "EXCEPTION [" << e.What() << "]" << " " << db_.GetErrorMessage();  
     }
 
     return StoreStatus_Failure;
@@ -603,15 +604,15 @@ namespace Orthanc
     switch (status)
     {
     case StoreStatus_Success:
-      std::cout << "New instance stored: " << GetTotalSize() << std::endl;
+      LOG(INFO) << "New instance stored: " << GetTotalSize() << " bytes";
       break;
 
     case StoreStatus_AlreadyStored:
-      std::cout << "Already stored" << std::endl;
+      LOG(INFO) << "Already stored";
       break;
 
     case StoreStatus_Failure:
-      std::cout << "Store failure" << std::endl;
+      LOG(INFO) << "Store failure";
       break;
     }
 

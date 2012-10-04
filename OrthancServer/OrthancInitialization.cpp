@@ -27,6 +27,7 @@
 #include <boost/filesystem.hpp>
 #include <curl/curl.h>
 #include <boost/thread.hpp>
+#include <glog/logging.h>
 
 namespace Orthanc
 {
@@ -45,7 +46,7 @@ namespace Orthanc
     if (configurationFile)
     {
       Toolbox::ReadFile(content, configurationFile);
-      printf("Using the configuration from: [%s]\n", configurationFile);
+      LOG(INFO) << "Using the configuration from: " << configurationFile;
     }
     else
     {
@@ -61,18 +62,18 @@ namespace Orthanc
         p /= CONFIGURATION_FILE;
           
         Toolbox::ReadFile(content, p.string());
-        printf("Using the configuration from: [%s]\n", p.string().c_str());
+        LOG(INFO) << "Using the configuration from: " << p.string();
       }
       catch (OrthancException&)
       {
         // No configuration file found, give up with empty configuration
-        printf("Using the default Orthanc configuration\n");
+        LOG(INFO) << "Using the default Orthanc configuration";
         return;
       }
 
 #elif ORTHANC_STANDALONE == 1
       // No default path for the standalone configuration
-      printf("Using the default Orthanc configuration\n");
+      LOG(INFO) << "Using the default Orthanc configuration";
       return;
 
 #else
@@ -84,12 +85,12 @@ namespace Orthanc
         p /= "Resources";
         p /= CONFIGURATION_FILE;
         Toolbox::ReadFile(content, p.string());
-        printf("Using the configuration from: [%s]\n", p.string().c_str());
+        LOG(INFO) << "Using the configuration from: " << p.string();
       }
       catch (OrthancException&)
       {
         // No configuration file found, give up with empty configuration
-        printf("Using the default Orthanc configuration\n");
+        LOG(INFO) << "Using the default Orthanc configuration";
         return;
       }
 #endif
