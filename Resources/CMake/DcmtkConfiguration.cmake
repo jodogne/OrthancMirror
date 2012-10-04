@@ -61,8 +61,11 @@ if (${STATIC_BUILD})
 else()
   include(FindDCMTK)
 
+  #message(${DCMTK_LIBRARIES})
+  set(DCMTK_LIBRARIES dcmdata dcmnet)
+
   include_directories(${DCMTK_INCLUDE_DIR})
-  link_libraries(${DCMTK_LIBRARIES} ofstd)
+  link_libraries(${DCMTK_LIBRARIES} wrap)
 
   add_definitions(
     -DHAVE_CONFIG_H=1
@@ -80,7 +83,7 @@ else()
 
   IF (EXISTS "${DCMTK_DIR}/oflog")
     set(DCMTK_BUNDLES_LOG4CPLUS 1)
-    link_libraries(${DCMTK_LIBRARIES} oflog wrap)
+    link_libraries(ofstd oflog)
   else()
     set(DCMTK_BUNDLES_LOG4CPLUS 0)
   endif()
