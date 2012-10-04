@@ -4,7 +4,7 @@ else()
   include(FindBoost)
 
   SET(BOOST_STATIC 0)
-  set(Boost_DEBUG 1)
+  #set(Boost_DEBUG 1)
   #set(Boost_USE_STATIC_LIBS ON)
 
   find_package(Boost
