@@ -9,6 +9,7 @@ include(CheckIncludeFileCXX)
 SET(STATIC_BUILD ON CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")
 SET(STANDALONE_BUILD OFF CACHE BOOL "Standalone build (necessary for cross-compilation or binary releases)")
 SET(ENABLE_SSL ON CACHE BOOL "Include support for SSL")
+SET(BUILD_UNIT_TESTS ON CACHE BOOL "Build the unit tests")
 SET(DEBIAN_HARDENING OFF CACHE BOOL "Use Debian hardening flags")
 
 if (${CMAKE_CROSSCOMPILING})
@@ -42,7 +43,6 @@ endif()
 
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/BoostConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/DcmtkConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/MongooseConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/ZlibConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/SQLiteConfiguration.cmake)
@@ -208,17 +208,22 @@ add_executable(Orthanc
   OrthancServer/main.cpp
   )
 
-add_executable(UnitTests
-  ${GTEST_SOURCES}
-  UnitTests/main.cpp
-  UnitTests/SQLite.cpp
-  UnitTests/SQLiteChromium.cpp
-  UnitTests/Versions.cpp
-  UnitTests/Zip.cpp
-  )
-
 TARGET_LINK_LIBRARIES(Orthanc ServerLibrary CoreLibrary)
-TARGET_LINK_LIBRARIES(UnitTests ServerLibrary CoreLibrary)
+
+
+if (BUILD_UNIT_TESTS)
+  include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
+  add_executable(UnitTests
+    ${GTEST_SOURCES}
+    UnitTests/main.cpp
+    UnitTests/SQLite.cpp
+    UnitTests/SQLiteChromium.cpp
+    UnitTests/Versions.cpp
+    UnitTests/Zip.cpp
+    )
+  TARGET_LINK_LIBRARIES(UnitTests ServerLibrary CoreLibrary)
+endif()
+
 
 find_package(Doxygen)
 if (DOXYGEN_FOUND)
