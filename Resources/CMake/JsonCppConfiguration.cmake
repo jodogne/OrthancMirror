@@ -4,6 +4,7 @@ if (USE_DYNAMIC_JSONCPP)
     message(FATAL_ERROR "Please install the libjsoncpp-dev package")
   endif()
 
+  include_directories(/usr/include/jsoncpp)
   link_libraries(jsoncpp)
 
 else()
