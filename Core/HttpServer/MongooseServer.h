@@ -57,9 +57,9 @@ namespace Orthanc
 
     ~MongooseServer();
 
-    void SetPort(uint16_t port);
+    void SetPortNumber(uint16_t port);
 
-    uint16_t GetPort() const
+    uint16_t GetPortNumber() const
     {
       return port_;
     }

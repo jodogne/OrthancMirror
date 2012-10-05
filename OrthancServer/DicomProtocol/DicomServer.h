@@ -58,8 +58,8 @@ namespace Orthanc
 
     ~DicomServer();
 
-    void SetPort(uint16_t port);
-    uint16_t GetPort() const;
+    void SetPortNumber(uint16_t port);
+    uint16_t GetPortNumber() const;
 
     void SetThreaded(bool isThreaded);
     bool IsThreaded() const;

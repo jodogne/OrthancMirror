@@ -113,13 +113,13 @@ namespace Orthanc
     Stop();
   }
 
-  void DicomServer::SetPort(uint16_t port)
+  void DicomServer::SetPortNumber(uint16_t port)
   {
     Stop();
     port_ = port;
   }
 
-  uint16_t DicomServer::GetPort() const
+  uint16_t DicomServer::GetPortNumber() const
   {
     return port_;
   }
