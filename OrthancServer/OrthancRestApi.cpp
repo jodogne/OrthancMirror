@@ -68,7 +68,7 @@ namespace Orthanc
         assert(array.isArray());
 
         Json::Value children = Json::arrayValue;
-        for (size_t i = 0; i < array.size(); i++)
+        for (Json::Value::ArrayIndex i = 0; i < array.size(); i++)
         {
           Json::Value c;
           SimplifyTagsRecursion(c, array[i]);
@@ -339,7 +339,7 @@ namespace Orthanc
     else if (index_.GetSeries(found, postData))
     {
       // The UUID corresponds to a series
-      for (size_t i = 0; i < found["Instances"].size(); i++)
+      for (Json::Value::ArrayIndex i = 0; i < found["Instances"].size(); i++)
       {
         std::string uuid = found["Instances"][i].asString();
         Json::Value instance(Json::objectValue);
