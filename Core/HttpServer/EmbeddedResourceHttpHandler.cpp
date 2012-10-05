@@ -23,6 +23,7 @@
 #include "../OrthancException.h"
 
 #include <stdio.h>
+#include <glog/logging.h>
 
 
 namespace Orthanc
@@ -67,6 +68,7 @@ namespace Orthanc
     }
     catch (OrthancException& e)
     {
+      LOG(WARNING) << "Unable to find HTTP resource: " << resourcePath;
       output.SendHeader(Orthanc_HttpStatus_404_NotFound);
     }
   } 

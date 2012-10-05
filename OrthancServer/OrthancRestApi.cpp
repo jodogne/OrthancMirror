@@ -68,7 +68,7 @@ namespace Orthanc
         assert(array.isArray());
 
         Json::Value children = Json::arrayValue;
-        for (size_t i = 0; i < array.size(); i++)
+        for (Json::Value::ArrayIndex i = 0; i < array.size(); i++)
         {
           Json::Value c;
           SimplifyTagsRecursion(c, array[i]);

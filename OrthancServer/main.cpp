@@ -141,7 +141,7 @@ int main(int argc, char* argv[])
       DicomServer dicomServer;
       dicomServer.SetCalledApplicationEntityTitleCheck(GetGlobalBoolParameter("DicomCheckCalledAet", false));
       dicomServer.SetStoreRequestHandlerFactory(storeScp);
-      dicomServer.SetPortNumber(GetGlobalIntegerParameter("DicomPort", 4242));
+      dicomServer.SetPort(GetGlobalIntegerParameter("DicomPort", 4242));
       dicomServer.SetApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
 
       // HTTP server
@@ -162,6 +162,9 @@ int main(int argc, char* argv[])
       {
         httpServer.SetSslEnabled(false);
       }
+
+      LOG(INFO) << "DICOM server listening on port: " << dicomServer.GetPort();
+      LOG(INFO) << "HTTP server listening on port: " << httpServer.GetPort();
 
 #if ORTHANC_STANDALONE == 1
       httpServer.RegisterHandler(new EmbeddedResourceHttpHandler("/app", EmbeddedResources::ORTHANC_EXPLORER));
