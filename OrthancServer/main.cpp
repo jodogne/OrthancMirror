@@ -141,12 +141,12 @@ int main(int argc, char* argv[])
       DicomServer dicomServer;
       dicomServer.SetCalledApplicationEntityTitleCheck(GetGlobalBoolParameter("DicomCheckCalledAet", false));
       dicomServer.SetStoreRequestHandlerFactory(storeScp);
-      dicomServer.SetPort(GetGlobalIntegerParameter("DicomPort", 4242));
+      dicomServer.SetPortNumber(GetGlobalIntegerParameter("DicomPort", 4242));
       dicomServer.SetApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
 
       // HTTP server
       MongooseServer httpServer;
-      httpServer.SetPort(GetGlobalIntegerParameter("HttpPort", 8000));
+      httpServer.SetPortNumber(GetGlobalIntegerParameter("HttpPort", 8000));
       httpServer.SetRemoteAccessAllowed(GetGlobalBoolParameter("RemoteAccessAllowed", false));
 
       httpServer.SetAuthenticationEnabled(GetGlobalBoolParameter("AuthenticationEnabled", false));
@@ -163,8 +163,8 @@ int main(int argc, char* argv[])
         httpServer.SetSslEnabled(false);
       }
 
-      LOG(INFO) << "DICOM server listening on port: " << dicomServer.GetPort();
-      LOG(INFO) << "HTTP server listening on port: " << httpServer.GetPort();
+      LOG(INFO) << "DICOM server listening on port: " << dicomServer.GetPortNumber();
+      LOG(INFO) << "HTTP server listening on port: " << httpServer.GetPortNumber();
 
 #if ORTHANC_STANDALONE == 1
       httpServer.RegisterHandler(new EmbeddedResourceHttpHandler("/app", EmbeddedResources::ORTHANC_EXPLORER));

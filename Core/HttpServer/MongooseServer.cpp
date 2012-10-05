@@ -573,7 +573,7 @@ namespace Orthanc
   }
 
 
-  void MongooseServer::SetPort(uint16_t port)
+  void MongooseServer::SetPortNumber(uint16_t port)
   {
     Stop();
     port_ = port;
