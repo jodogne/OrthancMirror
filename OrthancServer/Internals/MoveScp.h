@@ -22,7 +22,6 @@
 
 #include "../DicomProtocol/IMoveRequestHandler.h"
 
-#include <dcmtk/dcmnet/assoc.h>
 #include <dcmtk/dcmnet/dimse.h>
 
 namespace Orthanc

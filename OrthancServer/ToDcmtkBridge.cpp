@@ -21,7 +21,6 @@
 #include "ToDcmtkBridge.h"
 
 #include <memory>
-#include <dcmtk/dcmdata/dcelem.h>
 #include <dcmtk/dcmnet/diutil.h>
 
 

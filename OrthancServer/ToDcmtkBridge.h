@@ -23,7 +23,6 @@
 #include "../Core/DicomFormat/DicomMap.h"
 #include <dcmtk/dcmdata/dcdatset.h>
 
-
 namespace Orthanc
 {
   class ToDcmtkBridge
