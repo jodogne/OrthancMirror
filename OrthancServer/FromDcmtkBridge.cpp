@@ -37,10 +37,8 @@
 
 #include <dcmtk/dcmdata/dcdicent.h>
 #include <dcmtk/dcmdata/dcdict.h>
-#include <dcmtk/dcmdata/dcelem.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmdata/dcistrmb.h>
-#include <dcmtk/dcmdata/dcsequen.h>
 #include <dcmtk/dcmdata/dcvrfd.h>
 #include <dcmtk/dcmdata/dcvrfl.h>
 #include <dcmtk/dcmdata/dcvrsl.h>

@@ -23,7 +23,6 @@
 #include "../DicomProtocol/DicomServer.h"
 #include "../../Core/MultiThreading/IRunnableBySteps.h"
 
-#include <dcmtk/dcmnet/assoc.h>
 #include <dcmtk/dcmnet/dimse.h>
 
 namespace Orthanc

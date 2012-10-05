@@ -24,8 +24,6 @@
 #include "../ToDcmtkBridge.h"
 #include "../FromDcmtkBridge.h"
 
-#include <dcmtk/dcmnet/assoc.h>
-#include <dcmtk/dcmnet/dimse.h>
 #include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcistrmf.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
