@@ -11,6 +11,7 @@ SET(STANDALONE_BUILD OFF CACHE BOOL "Standalone build (necessary for cross-compi
 SET(ENABLE_SSL ON CACHE BOOL "Include support for SSL")
 SET(BUILD_UNIT_TESTS ON CACHE BOOL "Build the unit tests")
 SET(DEBIAN_HARDENING OFF CACHE BOOL "Use Debian hardening flags")
+SET(USE_DYNAMIC_JSONCPP OFF CACHE BOOL "Use the dynamic version of JsonCpp, only for Debian Unstable")
 
 if (${CMAKE_CROSSCOMPILING})
   SET(STANDALONE_BUILD ON)
