@@ -1,6 +1,34 @@
-if (${STATIC_BUILD})
+if (NOT USE_DYNAMIC_GOOGLE_LOG)
   SET(GOOGLE_LOG_SOURCES_DIR ${CMAKE_BINARY_DIR}/glog-0.3.2)
   DownloadPackage("http://google-glog.googlecode.com/files/glog-0.3.2.tar.gz" "${GOOGLE_LOG_SOURCES_DIR}" "" "")
+
+  set(GOOGLE_LOG_HEADERS
+    ${GOOGLE_LOG_SOURCES_DIR}/src/glog/logging.h
+    ${GOOGLE_LOG_SOURCES_DIR}/src/glog/raw_logging.h
+    ${GOOGLE_LOG_SOURCES_DIR}/src/glog/stl_logging.h
+    ${GOOGLE_LOG_SOURCES_DIR}/src/glog/vlog_is_on.h
+    )
+
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    set(ac_cv_have_unistd_h 1)
+    set(ac_cv_have_stdint_h 1)
+    set(ac_cv_have_systypes_h 0)
+    set(ac_cv_have_inttypes_h 0)
+    set(ac_cv_have_libgflags 0)
+    set(ac_cv_have_uint16_t 1)
+    set(ac_cv_have_u_int16_t 0)
+    set(ac_cv_have___uint16 0)
+    set(ac_cv_cxx_using_operator HAVE_USING_OPERATOR)
+    set(ac_cv_have___builtin_expect HAVE___BUILTIN_EXPECT)
+    set(ac_google_start_namespace _START_GOOGLE_NAMESPACE_)
+    set(ac_google_end_namespace _END_GOOGLE_NAMESPACE_)
+  else()
+    # TODO
+  endif()
+
+  foreach (f ${GOOGLE_LOG_HEADERS})
+    configure_file(${f}.in ${f})
+  endforeach()
 
   include_directories(
     ${GOOGLE_LOG_SOURCES_DIR}/src
