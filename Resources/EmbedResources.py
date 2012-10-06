@@ -2,6 +2,7 @@ import sys
 import os
 import os.path
 import pprint
+import re
 
 if len(sys.argv) < 2 or len(sys.argv) % 2 != 0:
     print ('Usage:')
@@ -19,6 +20,10 @@ except:
 #####################################################################
 ## Read each resource file
 #####################################################################
+
+def CheckNoUpcase(s):
+    if re.search('[A-Z]', s) != None:
+        raise Exception("Path in a directory with an upcase letter: %s" % s)
 
 resources = {}
 
@@ -42,10 +47,11 @@ while i < len(sys.argv):
             for f in files:
                 if f.find('~') == -1:  # Ignore Emacs backup files
                     if base == '.':
-                        r = f.lower()
+                        r = f
                     else:
-                        r = os.path.join(base, f).lower()
+                        r = os.path.join(base, f)
 
+                    CheckNoUpcase(r)
                     r = '/' + r.replace('\\', '/')
                     if r in content:
                         raise Exception("Twice the same filename (check case): " + r)
