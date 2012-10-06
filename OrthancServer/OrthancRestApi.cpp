@@ -661,7 +661,7 @@ namespace Orthanc
             root += "../";
           }
 
-          output.Redirect(root + "app/images/Unsupported.png");
+          output.Redirect(root + "app/images/unsupported.png");
           return;
         }
       }
