@@ -12,6 +12,7 @@ SET(ENABLE_SSL ON CACHE BOOL "Include support for SSL")
 SET(BUILD_UNIT_TESTS ON CACHE BOOL "Build the unit tests")
 SET(DEBIAN_HARDENING OFF CACHE BOOL "Use Debian hardening flags")
 SET(USE_DYNAMIC_JSONCPP OFF CACHE BOOL "Use the dynamic version of JsonCpp, only for Debian Unstable")
+SET(USE_DYNAMIC_GOOGLE_LOG ON CACHE BOOL "Use the dynamic version of Google Log")
 
 if (${CMAKE_CROSSCOMPILING})
   SET(STANDALONE_BUILD ON)
