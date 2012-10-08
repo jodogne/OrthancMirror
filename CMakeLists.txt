@@ -6,6 +6,8 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/DownloadPackage.cmake)
 include(CheckIncludeFiles)
 include(CheckIncludeFileCXX)
 
+add_definitions(-DORTHANC_VERSION="mainline")
+
 SET(STATIC_BUILD ON CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")
 SET(STANDALONE_BUILD OFF CACHE BOOL "Standalone build (necessary for cross-compilation or binary releases)")
 SET(ENABLE_SSL ON CACHE BOOL "Include support for SSL")

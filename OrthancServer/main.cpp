@@ -90,16 +90,61 @@ public:
 };
 
 
+void PrintHelp(char* path)
+{
+  std::cout 
+    << "Usage: " << path << " [OPTION]... [CONFIGURATION]" << std::endl
+    << "Start Orthanc, a lightweight, RESTful DICOM server for healthcare and medical research." << std::endl
+    << std::endl
+    << "If no configuration file is given on the command line, a set of default parameters " << std::endl
+    << "is used. Please refer to the Orthanc homepage for the full instructions about how to use Orthanc " << std::endl
+    << "<https://code.google.com/p/orthanc/wiki/OrthancCookbook>." << std::endl
+    << std::endl
+    << "Command-line options:" << std::endl
+    << "  --help\t\tdisplay this help and exit" << std::endl
+    << "  --version\t\toutput version information and exit" << std::endl
+    << "  --logdir=[dir]\tdirectory where to store the log files" << std::endl
+    << "\t\t\t(if not used, the logs are dumped to stderr)" << std::endl
+    << std::endl
+    << "Exit status:" << std::endl
+    << " 0  if OK," << std::endl
+    << " -1  if error (have a look at the logs)." << std::endl
+    << std::endl;
+}
 
+
+void PrintVersion(char* path)
+{
+  std::cout
+    << path << " " << ORTHANC_VERSION << std::endl
+    << "Copyright (C) 2012 Medical Physics Department, CHU of Liege (Belgium) " << std::endl
+    << "Licensing GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>, with OpenSSL exception." << std::endl
+    << "This is free software: you are free to change and redistribute it." << std::endl
+    << "There is NO WARRANTY, to the extent permitted by law." << std::endl
+    << std::endl
+    << "Written by Sebastien Jodogne <s.jodogne@gmail.com>" << std::endl;
+}
 
 
 int main(int argc, char* argv[]) 
 {
   // Initialize Google's logging library.
   FLAGS_logtostderr = true;
-  
+
   for (int i = 1; i < argc; i++)
   {
+    if (std::string(argv[i]) == "--help")
+    {
+      PrintHelp(argv[0]);
+      return 0;
+    }
+
+    if (std::string(argv[i]) == "--version")
+    {
+      PrintVersion(argv[0]);
+      return 0;
+    }
+
     if (boost::starts_with(argv[i], "--logdir="))
     {
       FLAGS_logtostderr = false;
@@ -190,6 +235,7 @@ int main(int argc, char* argv[])
   catch (OrthancException& e)
   {
     LOG(ERROR) << "EXCEPTION [" << e.What() << "]";
+return -1;
   }
 
   OrthancFinalize();
