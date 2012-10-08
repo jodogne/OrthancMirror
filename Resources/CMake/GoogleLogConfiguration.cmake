@@ -34,7 +34,7 @@ if (${STATIC_BUILD} OR NOT ${USE_DYNAMIC_GOOGLE_LOG})
     set(ac_cv_have_u_int16_t 0)
     set(ac_cv_have___uint16 1)
     set(ac_cv_cxx_using_operator 1)
-    set(ac_cv_have___builtin_expect 1)
+    set(ac_cv_have___builtin_expect 0)
   endif()
 
   foreach (f ${GOOGLE_LOG_HEADERS})
