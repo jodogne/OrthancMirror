@@ -2,21 +2,29 @@ cmake_minimum_required(VERSION 2.8)
 
 project(Orthanc)
 
+# Version of the build, should always be "mainline" except in release branches
+add_definitions(
+  -DORTHANC_VERSION="mainline"
+  )
+
 # Parameters of the build
 SET(STATIC_BUILD ON CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")
 SET(STANDALONE_BUILD OFF CACHE BOOL "Standalone build (all the resources are embedded, necessary for releases)")
 SET(ENABLE_SSL ON CACHE BOOL "Include support for SSL")
 SET(BUILD_UNIT_TESTS ON CACHE BOOL "Build the unit tests")
-SET(DEBIAN_FORCE_HARDENING OFF CACHE BOOL "Force the injection of Debian hardening flags (unrecommended)")
+
+# Advanced parameters (for Debian packaging)
 SET(USE_DYNAMIC_JSONCPP OFF CACHE BOOL "Use the dynamic version of JsonCpp (only for Debian sid)")
 SET(USE_DYNAMIC_GOOGLE_LOG ON CACHE BOOL "Use the dynamic version of Google Log")
 SET(USE_DYNAMIC_GOOGLE_TEST ON CACHE BOOL "Use the dynamic version of Google Test (not for Debian sid)")
-SET(USE_STATIC_DEBIAN_GOOGLE_TEST OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (only for Debian sid)")
+SET(DEBIAN_FORCE_HARDENING OFF CACHE BOOL "Force the injection of Debian hardening flags (unrecommended)")
+SET(DEBIAN_USE_STATIC_GOOGLE_TEST OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (only for Debian sid)")
 
-# Version of the build, should always be "mainline" except in release branches
-add_definitions(
-  -DORTHANC_VERSION="mainline"
-  )
+mark_as_advanced(USE_DYNAMIC_JSONCPP)
+mark_as_advanced(USE_DYNAMIC_GOOGLE_LOG)
+mark_as_advanced(USE_DYNAMIC_GOOGLE_TEST)
+mark_as_advanced(DEBIAN_FORCE_HARDENING)
+mark_as_advanced(DEBIAN_USE_STATIC_GOOGLE_TEST)
 
 # Some basic inclusions
 include(CheckIncludeFiles)
@@ -133,6 +141,11 @@ add_executable(Orthanc
   )
 
 target_link_libraries(Orthanc ServerLibrary CoreLibrary)
+
+install(
+  TARGETS Orthanc
+  RUNTIME DESTINATION bin
+  )
 
 
 # Build the unit tests if required
