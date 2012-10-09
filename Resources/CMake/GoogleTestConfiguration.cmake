@@ -1,4 +1,7 @@
-if (${STATIC_BUILD})
+if (USE_STATIC_DEBIAN_GOOGLE_TEST)
+  message(FATAL_ERROR "todo")
+
+elseif (STATIC_BUILD OR NOT USE_DYNAMIC_GOOGLE_TEST)
   SET(GTEST_SOURCES_DIR ${CMAKE_BINARY_DIR}/gtest-1.6.0)
   DownloadPackage("http://googletest.googlecode.com/files/gtest-1.6.0.zip" "${GTEST_SOURCES_DIR}" "" "")
 

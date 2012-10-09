@@ -1,4 +1,4 @@
-if (${STATIC_BUILD} OR NOT ${USE_DYNAMIC_GOOGLE_LOG})
+if (STATIC_BUILD OR NOT USE_DYNAMIC_GOOGLE_LOG)
   SET(GOOGLE_LOG_SOURCES_DIR ${CMAKE_BINARY_DIR}/glog-0.3.2)
   DownloadPackage("http://google-glog.googlecode.com/files/glog-0.3.2.tar.gz" "${GOOGLE_LOG_SOURCES_DIR}" "" "")
 
