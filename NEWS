@@ -1,6 +1,8 @@
 Pending changes in the mainline
 ===============================
 
+* Help on the command line
+* Possibility of dynamic linking against jsoncpp, sqlite, boost and dmctk
 
 
 Version 0.2.2 (2012/10/04)
@@ -10,14 +12,12 @@ Version 0.2.2 (2012/10/04)
 * Fixes to Debian packaging
 
 
-
 Version 0.2.1 (2012/09/28)
 ==========================
 
 * Status of series
 * Continuous Integration Server is up and running
 * Ready for Debian packaging
-
 
 
 Version 0.2.0 (2012/09/16)
@@ -41,14 +41,12 @@ Minor changes
 * Standalone build for cross-compilation
 
 
-
 Version 0.1.1 (2012/07/20)
 ==========================
 
 * Fix Windows version
 * Native Windows build with Microsoft Visual Studio 2005
 * Add path to storage in Configuration.json
-
 
 
 Version 0.1.0 (2012/07/19)
