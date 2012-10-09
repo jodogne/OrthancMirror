@@ -37,10 +37,13 @@ toolchains:
 Licensing
 ---------
 
-Orthanc is licensed under the GPLv3 license. Because Orthanc uses the
-Software-as-a-Service paradigm, commercial products are allowed to
-access the Orthanc REST services and to bundle Orthanc in an
-commercial aggregate.
+Orthanc is licensed under the GPLv3 license, with the OpenSSL
+exception:
+http://people.gnome.org/~markmc/openssl-and-the-gpl.html
+
+Because Orthanc uses the Software-as-a-Service paradigm, commercial
+products are allowed to access the Orthanc REST services and to bundle
+Orthanc in an commercial aggregate.
 
 We also kindly require scientific works and clinical studies that make
 use of Orthanc to cite Orthanc in their associated publications.
