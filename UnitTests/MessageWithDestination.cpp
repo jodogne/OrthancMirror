@@ -2,6 +2,7 @@
 
 #include "../Core/OrthancException.h"
 
+#include <stdint.h>
 #include <memory>
 #include <map>
 #include <gtest/gtest.h>
