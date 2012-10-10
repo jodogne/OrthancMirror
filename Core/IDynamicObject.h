@@ -39,6 +39,8 @@ namespace Orthanc
   /**
    * This class should be the ancestor to any class whose type is
    * determined at the runtime, and that can be dynamically allocated.
+   * Being a child of IDynamicObject only implies the existence of a
+   * virtual destructor.
    **/
   class IDynamicObject : public boost::noncopyable
   {
