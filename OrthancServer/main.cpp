@@ -113,6 +113,8 @@ void PrintHelp(char* path)
     << "<https://code.google.com/p/orthanc/wiki/OrthancCookbook>." << std::endl
     << std::endl
     << "Command-line options:" << std::endl
+    << "  --verbose\t\tbe verbose in logs" << std::endl
+    << "  --trace\t\thighest verbosity in logs (for debug)" << std::endl
     << "  --help\t\tdisplay this help and exit" << std::endl
     << "  --version\t\toutput version information and exit" << std::endl
     << "  --logdir=[dir]\tdirectory where to store the log files" << std::endl
@@ -142,6 +144,8 @@ int main(int argc, char* argv[])
 {
   // Initialize Google's logging library.
   FLAGS_logtostderr = true;
+  FLAGS_minloglevel = 1;
+  FLAGS_v = 0;
 
   for (int i = 1; i < argc; i++)
   {
@@ -155,6 +159,17 @@ int main(int argc, char* argv[])
     {
       PrintVersion(argv[0]);
       return 0;
+    }
+
+    if (std::string(argv[i]) == "--verbose")
+    {
+      FLAGS_minloglevel = 0;
+    }
+
+    if (std::string(argv[i]) == "--trace")
+    {
+      FLAGS_minloglevel = 0;
+      FLAGS_v = 1;
     }
 
     if (boost::starts_with(argv[i], "--logdir="))
@@ -235,11 +250,11 @@ int main(int argc, char* argv[])
       httpServer.Start();
       dicomServer.Start();
 
-      LOG(INFO) << "The server has started";
+      LOG(WARNING) << "Orthanc has started";
       Toolbox::ServerBarrier();
 
       // Stop
-      LOG(INFO) << "The server is stopping";
+      LOG(WARNING) << "Orthanc is stopping";
     }
 
     storeScp.Done();

@@ -41,6 +41,7 @@
 #include <sqlite3.h>
 #include <string.h>
 
+#include <glog/logging.h>
 
 
 namespace Orthanc
@@ -149,6 +150,7 @@ namespace Orthanc
 
     bool Connection::Execute(const char* sql) 
     {
+      VLOG(1) << "SQLite::Connection::Execute " << sql;
       CheckIsOpen();
 
       int error = sqlite3_exec(db_, sql, NULL, NULL, NULL);

@@ -325,6 +325,8 @@ int main(int argc, char **argv)
 {
   // Initialize Google's logging library.
   FLAGS_logtostderr = true;
+  FLAGS_minloglevel = 0;
+  FLAGS_v = 1;
   google::InitGoogleLogging("Orthanc");
 
   OrthancInitialize();

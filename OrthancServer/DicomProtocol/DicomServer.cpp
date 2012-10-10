@@ -59,7 +59,7 @@ namespace Orthanc
     /* make sure data dictionary is loaded */
     if (!dcmDataDict.isDictionaryLoaded())
     {
-      LOG(WARNING) << "no data dictionary loaded, check environment variable: " << DCM_DICT_ENVIRONMENT_VARIABLE;
+      LOG(ERROR) << "no data dictionary loaded, check environment variable: " << DCM_DICT_ENVIRONMENT_VARIABLE;
     }
 
     /* initialize network, i.e. create an instance of T_ASC_Network*. */
@@ -72,7 +72,7 @@ namespace Orthanc
       throw OrthancException("Cannot create network");
     }
 
-    LOG(WARNING) << "DICOM server started";
+    LOG(INFO) << "DICOM server started";
 
     server->started_ = true;
 
@@ -95,7 +95,7 @@ namespace Orthanc
       }
     }
 
-    LOG(WARNING) << "DICOM server stopping";
+    LOG(INFO) << "DICOM server stopping";
 
     /* drop the network, i.e. free memory of T_ASC_Network* structure. This call */
     /* is the counterpart of ASC_initializeNetwork(...) which was called above. */
