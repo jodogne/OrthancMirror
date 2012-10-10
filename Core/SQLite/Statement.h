@@ -43,6 +43,7 @@
 #include <vector>
 #include <stdint.h>
 #include <boost/noncopyable.hpp>
+#include <gtest/gtest_prod.h>
 
 struct sqlite3_stmt;
 
@@ -67,6 +68,8 @@ namespace Orthanc
     class Statement : public boost::noncopyable
     {
       friend class Connection;
+      FRIEND_TEST(SQLStatementTest, Run);
+      FRIEND_TEST(SQLStatementTest, Reset);
 
     private:
       StatementReference  reference_;
@@ -79,6 +82,10 @@ namespace Orthanc
       {
         return reference_.GetWrappedObject();
       }
+
+      // Resets the statement to its initial condition. This includes any current
+      // result row, and also the bound variables if the |clear_bound_vars| is true.
+      void Reset(bool clear_bound_vars = true);
 
     public:
       Statement(Connection& database,
@@ -103,10 +110,6 @@ namespace Orthanc
       bool Run();
 
       bool Step();
-
-      // Resets the statement to its initial condition. This includes any current
-      // result row, and also the bound variables if the |clear_bound_vars| is true.
-      void Reset(bool clear_bound_vars = true);
 
       // Diagnostics --------------------------------------------------------------
 

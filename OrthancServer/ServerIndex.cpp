@@ -154,12 +154,10 @@ namespace Orthanc
   void ServerIndex::StoreMainDicomTags(const std::string& uuid,
                                        const DicomMap& map)
   {
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO MainDicomTags VALUES(?, ?, ?, ?)");
-
     DicomArray flattened(map);
     for (size_t i = 0; i < flattened.GetSize(); i++)
     {
-      s.Reset();
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO MainDicomTags VALUES(?, ?, ?, ?)");
       s.BindString(0, uuid);
       s.BindInt(1, flattened.GetElement(i).GetTag().GetGroup());
       s.BindInt(2, flattened.GetElement(i).GetTag().GetElement());
@@ -616,15 +614,15 @@ namespace Orthanc
     switch (status)
     {
     case StoreStatus_Success:
-      LOG(INFO) << "New instance stored: " << GetTotalSize() << " bytes";
+      LOG(WARNING) << "New instance stored: " << GetTotalSize() << " bytes";
       break;
 
     case StoreStatus_AlreadyStored:
-      LOG(INFO) << "Already stored";
+      LOG(WARNING) << "Already stored";
       break;
 
     case StoreStatus_Failure:
-      LOG(INFO) << "Store failure";
+      LOG(ERROR) << "Store failure";
       break;
     }
 
