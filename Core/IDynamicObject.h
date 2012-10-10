@@ -32,22 +32,19 @@
 
 #pragma once
 
-#include "../IDynamicObject.h"
-
-#include <string>
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class DicomValue : public IDynamicObject
+  /**
+   * This class should be the ancestor to any class whose type is
+   * determined at the runtime, and that can be dynamically allocated.
+   **/
+  class IDynamicObject : public boost::noncopyable
   {
   public:
-    virtual DicomValue* Clone() const = 0;
-
-    virtual std::string AsString() const = 0;
-
-    virtual bool IsNull() const
+    virtual ~IDynamicObject()
     {
-      return false;
     }
   };
 }

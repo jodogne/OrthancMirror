@@ -154,6 +154,7 @@ if (BUILD_UNIT_TESTS)
   add_executable(UnitTests
     ${GTEST_SOURCES}
     UnitTests/main.cpp
+    UnitTests/MessageWithDestination.cpp
     UnitTests/SQLite.cpp
     UnitTests/SQLiteChromium.cpp
     UnitTests/Versions.cpp
