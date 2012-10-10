@@ -7,8 +7,9 @@
 
 #include <sqlite3.h>
 
-using namespace Orthanc;
 
+using namespace Orthanc;
+using namespace Orthanc::SQLite;
 
 
 /********************************************************************
@@ -37,13 +38,13 @@ public:
     db_.Close();
   }
 
-  SQLite::Connection& db() 
+  Connection& db() 
   { 
     return db_; 
   }
 
 private:
-  SQLite::Connection db_;
+  Connection db_;
 };
 
 
@@ -67,17 +68,17 @@ TEST_F(SQLConnectionTest, ExecuteWithErrorCode) {
             db().ExecuteAndReturnErrorCode("CREATE TABLE TABLE"));
   ASSERT_EQ(SQLITE_ERROR,
             db().ExecuteAndReturnErrorCode(
-                "INSERT INTO foo(a, b) VALUES (1, 2, 3, 4)"));
+              "INSERT INTO foo(a, b) VALUES (1, 2, 3, 4)"));
 }
 
 TEST_F(SQLConnectionTest, CachedStatement) {
-  SQLite::StatementId id1("foo", 12);
+  StatementId id1("foo", 12);
   ASSERT_TRUE(db().Execute("CREATE TABLE foo (a, b)"));
   ASSERT_TRUE(db().Execute("INSERT INTO foo(a, b) VALUES (12, 13)"));
 
   // Create a new cached statement.
   {
-    SQLite::Statement s(db(), id1, "SELECT a FROM foo");
+    Statement s(db(), id1, "SELECT a FROM foo");
     ASSERT_TRUE(s.Step());
     EXPECT_EQ(12, s.ColumnInt(0));
   }
@@ -88,7 +89,7 @@ TEST_F(SQLConnectionTest, CachedStatement) {
   {
     // Get the same statement using different SQL. This should ignore our
     // SQL and use the cached one (so it will be valid).
-    SQLite::Statement s(db(), id1, "something invalid(");
+    Statement s(db(), id1, "something invalid(");
     ASSERT_TRUE(s.Step());
     EXPECT_EQ(12, s.ColumnInt(0));
   }
@@ -132,7 +133,7 @@ TEST_F(SQLConnectionTest, GetLastInsertRowId) {
   EXPECT_LT(0, row);
 
   // It should be the primary key of the row we just inserted.
-  SQLite::Statement s(db(), "SELECT value FROM foo WHERE id=?");
+  Statement s(db(), "SELECT value FROM foo WHERE id=?");
   s.BindInt64(0, row);
   ASSERT_TRUE(s.Step());
   EXPECT_EQ(12, s.ColumnInt(0));
@@ -155,67 +156,71 @@ TEST_F(SQLConnectionTest, Rollback) {
  ** http://src.chromium.org/viewvc/chrome/trunk/src/sql/statement_unittest.cc
  ********************************************************************/
 
-class SQLStatementTest : public SQLConnectionTest
+namespace Orthanc
 {
-};
+  namespace SQLite
+  {
+    class SQLStatementTest : public SQLConnectionTest
+    {
+    };
 
+    TEST_F(SQLStatementTest, Run) {
+      ASSERT_TRUE(db().Execute("CREATE TABLE foo (a, b)"));
+      ASSERT_TRUE(db().Execute("INSERT INTO foo (a, b) VALUES (3, 12)"));
 
-TEST_F(SQLStatementTest, Run) {
-  ASSERT_TRUE(db().Execute("CREATE TABLE foo (a, b)"));
-  ASSERT_TRUE(db().Execute("INSERT INTO foo (a, b) VALUES (3, 12)"));
+      Statement s(db(), "SELECT b FROM foo WHERE a=?");
+      // Stepping it won't work since we haven't bound the value.
+      EXPECT_FALSE(s.Step());
 
-  SQLite::Statement s(db(), "SELECT b FROM foo WHERE a=?");
-  // Stepping it won't work since we haven't bound the value.
-  EXPECT_FALSE(s.Step());
+      // Run should fail since this produces output, and we should use Step(). This
+      // gets a bit wonky since sqlite says this is OK so succeeded is set.
+      s.Reset(true);
+      s.BindInt(0, 3);
+      EXPECT_FALSE(s.Run());
+      EXPECT_EQ(SQLITE_ROW, db().GetErrorCode());
 
-  // Run should fail since this produces output, and we should use Step(). This
-  // gets a bit wonky since sqlite says this is OK so succeeded is set.
-  s.Reset(true);
-  s.BindInt(0, 3);
-  EXPECT_FALSE(s.Run());
-  EXPECT_EQ(SQLITE_ROW, db().GetErrorCode());
+      // Resetting it should put it back to the previous state (not runnable).
+      s.Reset(true);
 
-  // Resetting it should put it back to the previous state (not runnable).
-  s.Reset(true);
+      // Binding and stepping should produce one row.
+      s.BindInt(0, 3);
+      EXPECT_TRUE(s.Step());
+      EXPECT_EQ(12, s.ColumnInt(0));
+      EXPECT_FALSE(s.Step());
+    }
 
-  // Binding and stepping should produce one row.
-  s.BindInt(0, 3);
-  EXPECT_TRUE(s.Step());
-  EXPECT_EQ(12, s.ColumnInt(0));
-  EXPECT_FALSE(s.Step());
+    TEST_F(SQLStatementTest, BasicErrorCallback) {
+      ASSERT_TRUE(db().Execute("CREATE TABLE foo (a INTEGER PRIMARY KEY, b)"));
+      // Insert in the foo table the primary key. It is an error to insert
+      // something other than an number. This error causes the error callback
+      // handler to be called with SQLITE_MISMATCH as error code.
+      Statement s(db(), "INSERT INTO foo (a) VALUES (?)");
+      s.BindCString(0, "bad bad");
+      EXPECT_THROW(s.Run(), OrthancException);
+    }
+
+    TEST_F(SQLStatementTest, Reset) {
+      ASSERT_TRUE(db().Execute("CREATE TABLE foo (a, b)"));
+      ASSERT_TRUE(db().Execute("INSERT INTO foo (a, b) VALUES (3, 12)"));
+      ASSERT_TRUE(db().Execute("INSERT INTO foo (a, b) VALUES (4, 13)"));
+
+      Statement s(db(), "SELECT b FROM foo WHERE a = ? ");
+      s.BindInt(0, 3);
+      ASSERT_TRUE(s.Step());
+      EXPECT_EQ(12, s.ColumnInt(0));
+      ASSERT_FALSE(s.Step());
+
+      s.Reset(false);
+      // Verify that we can get all rows again.
+      ASSERT_TRUE(s.Step());
+      EXPECT_EQ(12, s.ColumnInt(0));
+      EXPECT_FALSE(s.Step());
+
+      s.Reset(true);
+      ASSERT_FALSE(s.Step());
+    }
+  }
 }
-
-TEST_F(SQLStatementTest, BasicErrorCallback) {
-  ASSERT_TRUE(db().Execute("CREATE TABLE foo (a INTEGER PRIMARY KEY, b)"));
-  // Insert in the foo table the primary key. It is an error to insert
-  // something other than an number. This error causes the error callback
-  // handler to be called with SQLITE_MISMATCH as error code.
-  SQLite::Statement s(db(), "INSERT INTO foo (a) VALUES (?)");
-  s.BindCString(0, "bad bad");
-  EXPECT_THROW(s.Run(), OrthancException);
-}
-
-TEST_F(SQLStatementTest, Reset) {
-  ASSERT_TRUE(db().Execute("CREATE TABLE foo (a, b)"));
-  ASSERT_TRUE(db().Execute("INSERT INTO foo (a, b) VALUES (3, 12)"));
-  ASSERT_TRUE(db().Execute("INSERT INTO foo (a, b) VALUES (4, 13)"));
-
-  SQLite::Statement s(db(), "SELECT b FROM foo WHERE a = ? ");
-  s.BindInt(0, 3);
-  ASSERT_TRUE(s.Step());
-  EXPECT_EQ(12, s.ColumnInt(0));
-  ASSERT_FALSE(s.Step());
-
-  s.Reset(false);
-  // Verify that we can get all rows again.
-  ASSERT_TRUE(s.Step());
-  EXPECT_EQ(12, s.ColumnInt(0));
-  EXPECT_FALSE(s.Step());
-
-  s.Reset(true);
-  ASSERT_FALSE(s.Step());
-}
-
 
 
 
@@ -239,7 +244,7 @@ public:
   // Returns the number of rows in table "foo".
   int CountFoo() 
   {
-    SQLite::Statement count(db(), "SELECT count(*) FROM foo");
+    Statement count(db(), "SELECT count(*) FROM foo");
     count.Step();
     return count.ColumnInt(0);
   }
@@ -248,7 +253,7 @@ public:
 
 TEST_F(SQLTransactionTest, Commit) {
   {
-    SQLite::Transaction t(db());
+    Transaction t(db());
     EXPECT_FALSE(t.IsOpen());
     t.Begin();
     EXPECT_TRUE(t.IsOpen());
@@ -266,7 +271,7 @@ TEST_F(SQLTransactionTest, Rollback) {
   // Test some basic initialization, and that rollback runs when you exit the
   // scope.
   {
-    SQLite::Transaction t(db());
+    Transaction t(db());
     EXPECT_FALSE(t.IsOpen());
     t.Begin();
     EXPECT_TRUE(t.IsOpen());
@@ -278,7 +283,7 @@ TEST_F(SQLTransactionTest, Rollback) {
   EXPECT_EQ(0, CountFoo());
 
   // Test explicit rollback.
-  SQLite::Transaction t2(db());
+  Transaction t2(db());
   EXPECT_FALSE(t2.IsOpen());
   t2.Begin();
 
@@ -296,13 +301,13 @@ TEST_F(SQLTransactionTest, NestedRollback) {
 
   // Outermost transaction.
   {
-    SQLite::Transaction outer(db());
+    Transaction outer(db());
     outer.Begin();
     EXPECT_EQ(1, db().GetTransactionNesting());
 
     // The first inner one gets committed.
     {
-      SQLite::Transaction inner1(db());
+      Transaction inner1(db());
       inner1.Begin();
       EXPECT_TRUE(db().Execute("INSERT INTO foo (a, b) VALUES (1, 2)"));
       EXPECT_EQ(2, db().GetTransactionNesting());
@@ -316,7 +321,7 @@ TEST_F(SQLTransactionTest, NestedRollback) {
 
     // The second inner one gets rolled back.
     {
-      SQLite::Transaction inner2(db());
+      Transaction inner2(db());
       inner2.Begin();
       EXPECT_TRUE(db().Execute("INSERT INTO foo (a, b) VALUES (1, 2)"));
       EXPECT_EQ(2, db().GetTransactionNesting());
@@ -329,7 +334,7 @@ TEST_F(SQLTransactionTest, NestedRollback) {
     // back.
     EXPECT_EQ(1, db().GetTransactionNesting());
     {
-      SQLite::Transaction inner3(db());
+      Transaction inner3(db());
       EXPECT_THROW(inner3.Begin(), OrthancException);
       EXPECT_EQ(1, db().GetTransactionNesting());
     }
