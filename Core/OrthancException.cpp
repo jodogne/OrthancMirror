@@ -81,6 +81,9 @@ namespace Orthanc
     case ErrorCode_CannotWriteFile:
       return "Cannot write to file";
 
+    case ErrorCode_Timeout:
+      return "Timeout";
+
     case ErrorCode_Custom:
     default:
       return "???";

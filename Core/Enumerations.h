@@ -51,7 +51,8 @@ namespace Orthanc
     ErrorCode_UriSyntax,
     ErrorCode_InexistentFile,
     ErrorCode_CannotWriteFile,
-    ErrorCode_BadFileFormat
+    ErrorCode_BadFileFormat,
+    ErrorCode_Timeout
   };
 
   enum PixelFormat
