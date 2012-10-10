@@ -42,6 +42,7 @@
 #include <boost/lexical_cast.hpp>
 #include <sqlite3.h>
 #include <string.h>
+#include <glog/logging.h>
 
 namespace Orthanc
 {
@@ -106,11 +107,13 @@ namespace Orthanc
 
     bool Statement::Run()
     {
+      VLOG(1) << "SQLite::Statement::Run " << sqlite3_sql(GetStatement());
       return CheckError(sqlite3_step(GetStatement())) == SQLITE_DONE;
     }
 
     bool Statement::Step()
     {
+      VLOG(1) << "SQLite::Statement::Step " << sqlite3_sql(GetStatement());
       return CheckError(sqlite3_step(GetStatement())) == SQLITE_ROW;
     }
 
@@ -121,6 +124,7 @@ namespace Orthanc
       // spurious error callback.
       if (clear_bound_vars)
         sqlite3_clear_bindings(GetStatement());
+      //VLOG(1) << "SQLite::Statement::Reset";
       sqlite3_reset(GetStatement());
     }
 

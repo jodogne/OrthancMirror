@@ -3,6 +3,7 @@
 #include "../Core/Toolbox.h"
 #include "../Core/SQLite/Connection.h"
 #include "../Core/SQLite/Statement.h"
+#include "../Core/SQLite/Transaction.h"
 
 #include <sqlite3.h>
 
@@ -201,4 +202,37 @@ TEST(SQLite, CascadedDeleteCallback)
   ASSERT_EQ(2u, func->deleted_.size());
   ASSERT_TRUE(func->deleted_.find(4300) != func->deleted_.end());
   ASSERT_TRUE(func->deleted_.find(4301) != func->deleted_.end());
+}
+
+
+TEST(SQLite, EmptyTransactions)
+{
+  try
+  {
+    SQLite::Connection c;
+    c.OpenInMemory();
+
+    c.Execute("CREATE TABLE a(id INTEGER PRIMARY KEY);");
+    c.Execute("INSERT INTO a VALUES(NULL)");
+      
+    {
+      SQLite::Transaction t(c);
+      t.Begin();
+      {
+        SQLite::Statement s(c, SQLITE_FROM_HERE, "SELECT * FROM a");
+        s.Step();
+      }
+      //t.Commit();
+    }
+
+    {
+      SQLite::Statement s(c, SQLITE_FROM_HERE, "SELECT * FROM a");
+      s.Step();
+    }
+  }
+  catch (OrthancException& e)
+  {
+    fprintf(stderr, "Exception: [%s]\n", e.What());
+    throw e;
+  }
 }
