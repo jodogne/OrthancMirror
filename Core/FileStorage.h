@@ -82,8 +82,6 @@ namespace Orthanc
 
     void Remove(const std::string& uuid);
 
-    void UncheckedRemove(const std::string& uuid);
-
     uintmax_t GetCapacity() const;
 
     uintmax_t GetAvailableSpace() const;
