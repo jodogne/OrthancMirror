@@ -278,33 +278,35 @@ namespace Orthanc
     namespace fs = boost::filesystem;
 
     fs::path p = GetPath(uuid);
-    fs::remove(p);
+
+    try
+    {
+      fs::remove(p);
+    }
+    catch (fs::filesystem_error)
+    {
+      // Ignore the error
+    }
 
     // Remove the two parent directories, ignoring the error code if
     // these directories are not empty
 
-#if BOOST_HAS_FILESYSTEM_V3 == 1
-    boost::system::error_code err;
-    fs::remove(p.parent_path(), err);
-    fs::remove(p.parent_path().parent_path(), err);
-#else
-    fs::remove(p.parent_path());
-    fs::remove(p.parent_path().parent_path());
-#endif
-  }
-
-  void FileStorage::UncheckedRemove(const std::string& uuid)
-  {
     try
     {
-      Remove(uuid);
+#if BOOST_HAS_FILESYSTEM_V3 == 1
+      boost::system::error_code err;
+      fs::remove(p.parent_path(), err);
+      fs::remove(p.parent_path().parent_path(), err);
+#else
+      fs::remove(p.parent_path());
+      fs::remove(p.parent_path().parent_path());
+#endif
     }
-    catch (boost::filesystem::filesystem_error)
+    catch (fs::filesystem_error)
     {
       // Ignore the error
     }
   }
-
 
 
   uintmax_t FileStorage::GetCapacity() const
