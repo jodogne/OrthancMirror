@@ -109,5 +109,7 @@ namespace Orthanc
       return HttpException::GetDescription(lastStatus_);
     }
 
+    void SetPassword(const char* username,
+                     const char* password);
   };
 }

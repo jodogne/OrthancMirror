@@ -25,7 +25,7 @@
     "DicomAet" : "ORTHANC",
 
     // Check whether the called AET corresponds during a DICOM request
-    "DicomCheckCalledAet" : false,
+    "DicomCheckCalledAet" : true,
 
     // The DICOM port
     "DicomPort" : 4242,
