@@ -283,7 +283,7 @@ namespace Orthanc
     {
       fs::remove(p);
     }
-    catch (fs::filesystem_error)
+    catch (...)
     {
       // Ignore the error
     }
@@ -302,7 +302,7 @@ namespace Orthanc
       fs::remove(p.parent_path().parent_path());
 #endif
     }
-    catch (fs::filesystem_error)
+    catch (...)
     {
       // Ignore the error
     }
