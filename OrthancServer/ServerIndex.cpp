@@ -607,8 +607,8 @@ namespace Orthanc
 
     if (status != StoreStatus_Success)
     {
-      storage.Remove(fileUuid);
-      storage.Remove(jsonUuid);
+      storage.UncheckedRemove(fileUuid);
+      storage.UncheckedRemove(jsonUuid);
     }
 
     switch (status)
