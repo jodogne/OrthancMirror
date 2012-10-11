@@ -293,6 +293,19 @@ namespace Orthanc
 #endif
   }
 
+  void FileStorage::UncheckedRemove(const std::string& uuid)
+  {
+    try
+    {
+      Remove(uuid);
+    }
+    catch (boost::filesystem::filesystem_error)
+    {
+      // Ignore the error
+    }
+  }
+
+
 
   uintmax_t FileStorage::GetCapacity() const
   {
