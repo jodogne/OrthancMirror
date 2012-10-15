@@ -178,4 +178,7 @@ if (DOXYGEN_FOUND)
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Generating API documentation with Doxygen" VERBATIM
     )
+else()
+  message("Doxygen not found. The documentation will not be built.")
 endif()
+
