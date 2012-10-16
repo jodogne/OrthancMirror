@@ -72,15 +72,17 @@ else()
     -DHAVE_CONFIG_H=1
     )
 
-  if (NOT EXISTS "${DCMTK_DIR}/config/cfunix.h")
+  if (EXISTS "${DCMTK_DIR}/config/cfunix.h")
+    set(DCMTK_CONFIGURATION_FILE "${DCMTK_DIR}/config/cfunix.h")
+  elseif (EXISTS "${DCMTK_DIR}/config/osconfig.h")  # This is for Arch Linux
+    set(DCMTK_CONFIGURATION_FILE "${DCMTK_DIR}/config/osconfig.h")
+  else()
     message(FATAL_ERROR "Please install libdcmtk1-dev")
   endif()
 
   # Autodetection of the version of DCMTK
-  file(STRINGS "${DCMTK_DIR}/config/cfunix.h" DCMTK_VERSION_NUMBER1
-    REGEX ".*PACKAGE_VERSION .*")
+  file(STRINGS "${DCMTK_CONFIGURATION_FILE}" DCMTK_VERSION_NUMBER1 REGEX ".*PACKAGE_VERSION .*")    
   string(REGEX REPLACE ".*PACKAGE_VERSION.*\"([0-9]*)\\.([0-9]*)\\.([0-9]*)\"$" "\\1\\2\\3" DCMTK_VERSION_NUMBER ${DCMTK_VERSION_NUMBER1})
-
 
   IF (EXISTS "${DCMTK_DIR}/oflog")
     set(DCMTK_BUNDLES_LOG4CPLUS 1)
