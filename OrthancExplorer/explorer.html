@@ -34,7 +34,7 @@
   <body>
     <div data-role="page" id="find-patients" >
       <div data-role="header" >
-	<h1>Find a patient</h1>
+	<h1><span class="orthanc-name"></span>Find a patient</h1>
         <a href="#upload" data-icon="gear" class="ui-btn-right">Upload DICOM</a>
       </div>
       <div data-role="content">
@@ -45,7 +45,7 @@
 
     <div data-role="page" id="upload" >
       <div data-role="header" >
-	<h1>Upload DICOM files</h1>
+	<h1><span class="orthanc-name"></span>Upload DICOM files</h1>
         <a href="#find-patients" data-icon="search" class="ui-btn-left" data-direction="reverse">Find patient</a>
       </div>
       <div data-role="content">
@@ -71,7 +71,7 @@
 
     <div data-role="page" id="patient" >
       <div data-role="header" >
-	<h1>List of the studies of one patient</h1>
+	<h1><span class="orthanc-name"></span>List of the studies of one patient</h1>
         <a href="#find-patients" data-icon="search" class="ui-btn-left" data-direction="reverse">Find patient</a>
         <a href="#upload" data-icon="gear" class="ui-btn-right">Upload DICOM</a>
       </div>
@@ -99,7 +99,7 @@
 
     <div data-role="page" id="study">
       <div data-role="header">
-	<h1>List of the series of one study</h1>
+	<h1><span class="orthanc-name"></span>List of the series of one study</h1>
         <a href="#find-patients" data-icon="search" class="ui-btn-left" data-direction="reverse">Find patient</a>
         <a href="#upload" data-icon="gear" class="ui-btn-right">Upload DICOM</a>
       </div>
@@ -126,7 +126,7 @@
 
     <div data-role="page" id="series">
       <div data-role="header">
-	<h1>List of the instances of one series</h1>
+	<h1><span class="orthanc-name"></span>List of the instances of one series</h1>
         <a href="#find-patients" data-icon="search" class="ui-btn-left" data-direction="reverse">Find patient</a>
         <a href="#upload" data-icon="gear" class="ui-btn-right">Upload DICOM</a>
       </div>
@@ -155,7 +155,7 @@
 
     <div data-role="page" id="instance">
       <div data-role="header">
-	<h1>One DICOM instance</h1>
+	<h1><span class="orthanc-name"></span>One DICOM instance</h1>
         <a href="#find-patients" data-icon="search" class="ui-btn-left" data-direction="reverse">Find patient</a>
         <a href="#upload" data-icon="gear" class="ui-btn-right">Upload DICOM</a>
       </div>

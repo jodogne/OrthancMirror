@@ -418,6 +418,25 @@ namespace Orthanc
     Json::Value result(Json::objectValue);
 
 
+    // Version information ------------------------------------------------------
+ 
+    if (uri.size() == 1 && uri[0] == "system")
+    {
+      if (method == "GET")
+      {
+        result = Json::Value(Json::objectValue);
+        result["Version"] = ORTHANC_VERSION;
+        result["Name"] = GetGlobalStringParameter("Name", "");
+        existingResource = true;
+      }
+      else
+      {
+        output.SendMethodNotAllowedError("GET,POST");
+        return;
+      }
+    }
+
+
     // List all the instances ---------------------------------------------------
  
     if (uri.size() == 1 && uri[0] == "instances")

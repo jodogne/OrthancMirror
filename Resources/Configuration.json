@@ -6,6 +6,9 @@
     // Path to the directory that holds the database
     "StorageDirectory" : "OrthancStorage",
 
+    // The logical name of this instance of Orthanc. This one is
+    // displayed in Orthanc Explorer and at the URI "/system".
+    "Name" : "MyOrthanc",
 
 
     /**
@@ -13,7 +16,7 @@
      **/
 
     // HTTP port for the REST services and for the GUI
-    "HttpPort" : 8000,
+    "HttpPort" : 8042,
 
 
 
