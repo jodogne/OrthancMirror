@@ -1,10 +1,12 @@
 Pending changes in the mainline
 ===============================
 
+* URI "/system"
 * Help on the command line
 * Improved logging
 * Possibility of dynamic linking against jsoncpp, sqlite, boost and dmctk
 * Fix some bugs
+* Switch to 8042 port for HTTP
 
 
 Version 0.2.2 (2012/10/04)

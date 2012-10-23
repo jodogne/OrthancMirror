@@ -322,6 +322,16 @@ function FormatInstance(instance, link, isReverse)
 
 
 $('#find-patients').live('pagebeforeshow', function() {
+  //$('.orthanc-name').each(
+  
+  $.ajax({
+    url: '/system',
+    dataType: 'json',
+    success: function(s) {
+      $('.orthanc-name').html(s.Name + ' &raquo; ');
+    }
+  });
+
   GetMultipleResources('patients', null, function(patients) {
     var target = $('#all-patients');
     $('li', target).remove();
