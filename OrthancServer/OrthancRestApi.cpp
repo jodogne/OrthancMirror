@@ -566,17 +566,19 @@ namespace Orthanc
               uri[2] == "tags" || 
               uri[2] == "simplified-tags"))
     {
-      std::string fileUuid, contentType;
+      std::string fileUuid, contentType, filename;
       if (uri[2] == "file")
       {
         existingResource = index_.GetDicomFile(fileUuid, uri[1]);
         contentType = "application/dicom";
+        filename = fileUuid + ".dcm";
       }
       else if (uri[2] == "tags" ||
                uri[2] == "simplified-tags")
       {
         existingResource = index_.GetJsonFile(fileUuid, uri[1]);
         contentType = "application/json";
+        filename = fileUuid + ".json";
       }
 
       if (existingResource)
@@ -590,7 +592,7 @@ namespace Orthanc
         }
         else
         {
-          output.AnswerFile(storage_, fileUuid, contentType);
+          output.AnswerFile(storage_, fileUuid, contentType, filename.c_str());
           return;
         }
       }

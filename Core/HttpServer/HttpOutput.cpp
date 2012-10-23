@@ -49,33 +49,17 @@ namespace Orthanc
 
   void HttpOutput::SendOkHeader(const std::string& contentType)
   {
-    SendOkHeader(contentType.c_str(), false, 0);
+    SendOkHeader(contentType.c_str(), false, 0, NULL);
   }
-
-  void HttpOutput::SendOkHeader()
-  {
-    SendOkHeader(NULL, false, 0);
-  }
-
-  void HttpOutput::SendOkHeader(uint64_t contentLength)
-  {
-    SendOkHeader(NULL, true, contentLength);
-  }
-
-  void HttpOutput::SendOkHeader(const std::string& contentType,
-                                uint64_t contentLength)
-  {
-    SendOkHeader(contentType.c_str(), true, contentLength);
-  }
-
 
   void HttpOutput::SendOkHeader(const char* contentType,
                                 bool hasContentLength,
-                                uint64_t contentLength)
+                                uint64_t contentLength,
+                                const char* contentFilename)
   {
     std::string s = "HTTP/1.1 200 OK\r\n";
 
-    if (contentType)
+    if (contentType && contentType[0] != '\0')
     {
       s += "Content-Type: " + std::string(contentType) + "\r\n";
     }
@@ -83,6 +67,11 @@ namespace Orthanc
     if (hasContentLength)
     {
       s += "Content-Length: " + boost::lexical_cast<std::string>(contentLength) + "\r\n";
+    }
+
+    if (contentFilename && contentFilename[0] != '\0')
+    {
+      s += "Content-Disposition: attachment; filename=\"" + std::string(contentFilename) + "\"\r\n";
     }
 
     s += "\r\n";
@@ -126,7 +115,7 @@ namespace Orthanc
   void HttpOutput::AnswerBufferWithContentType(const std::string& buffer,
                                                const std::string& contentType)
   {
-    SendOkHeader(contentType.c_str(), true, buffer.size());
+    SendOkHeader(contentType.c_str(), true, buffer.size(), NULL);
     SendString(buffer);
   }
 
@@ -135,13 +124,14 @@ namespace Orthanc
                                                size_t size,
                                                const std::string& contentType)
   {
-    SendOkHeader(contentType.c_str(), true, size);
+    SendOkHeader(contentType.c_str(), true, size, NULL);
     Send(buffer, size);
   }
 
 
   void HttpOutput::AnswerFileWithContentType(const std::string& path,
-                                             const std::string& contentType)
+                                             const std::string& contentType,
+                                             const char* filename)
   {
     uint64_t fileSize = Toolbox::GetFileSize(path);
   
@@ -152,7 +142,7 @@ namespace Orthanc
       return;
     }
   
-    SendOkHeader(contentType.c_str(), true, fileSize);
+    SendOkHeader(contentType.c_str(), true, fileSize, filename);
 
     std::vector<uint8_t> buffer(1024 * 1024);  // Chunks of 1MB
 
@@ -173,18 +163,20 @@ namespace Orthanc
   }
 
 
-  void HttpOutput::AnswerFileAutodetectContentType(const std::string& path)
+  void HttpOutput::AnswerFileAutodetectContentType(const std::string& path,
+                                                   const char* filename)
   {
-    AnswerFileWithContentType(path, Toolbox::AutodetectMimeType(path));
+    AnswerFileWithContentType(path, Toolbox::AutodetectMimeType(path), filename);
   }
 
 
   void HttpOutput::AnswerFile(const FileStorage& storage,
                               const std::string& uuid,
-                              const std::string& contentType)
+                              const std::string& contentType,
+                              const char* filename)
   {
     boost::filesystem::path p(storage.GetPath(uuid));
-    AnswerFileWithContentType(p.string(), contentType);
+    AnswerFileWithContentType(p.string(), contentType, filename);
   }
 
 
