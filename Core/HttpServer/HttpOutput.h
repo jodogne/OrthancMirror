@@ -46,7 +46,8 @@ namespace Orthanc
 
     void SendOkHeader(const char* contentType,
                       bool hasContentLength,
-                      uint64_t contentLength);
+                      uint64_t contentLength,
+                      const char* contentFilename);
 
   public:
     virtual ~HttpOutput()
@@ -55,16 +56,9 @@ namespace Orthanc
 
     virtual void Send(const void* buffer, size_t length) = 0;
 
-    void SendString(const std::string& s);
-
-    void SendOkHeader();
-
-    void SendOkHeader(uint64_t contentLength);
-
     void SendOkHeader(const std::string& contentType);
 
-    void SendOkHeader(const std::string& contentType,
-                      uint64_t contentLength);
+    void SendString(const std::string& s);
 
     void SendMethodNotAllowedError(const std::string& allowed);
 
@@ -73,11 +67,6 @@ namespace Orthanc
 
     // Higher-level constructs to send entire files or buffers -------------------
 
-    void AnswerBuffer(const std::string& buffer)
-    {
-      AnswerBufferWithContentType(buffer, "");
-    }
-
     void AnswerBufferWithContentType(const std::string& buffer,
                                      const std::string& contentType);
 
@@ -85,25 +74,17 @@ namespace Orthanc
                                      size_t size,
                                      const std::string& contentType);
 
-    void AnswerFile(const std::string& path)
-    {
-      AnswerFileWithContentType(path, "");
-    }
-
     void AnswerFileWithContentType(const std::string& path,
-                                   const std::string& contentType);
+                                   const std::string& contentType,
+                                   const char* filename = NULL);
 
-    void AnswerFileAutodetectContentType(const std::string& path); 
-
-    void AnswerFile(const FileStorage& storage,
-                    const std::string& uuid)
-    {
-      AnswerFile(storage, uuid, "");
-    }
+    void AnswerFileAutodetectContentType(const std::string& path,
+                                         const char* filename = NULL); 
 
     void AnswerFile(const FileStorage& storage,
                     const std::string& uuid,
-                    const std::string& contentType);
+                    const std::string& contentType,
+                    const char* filename = NULL);
 
     void Redirect(const std::string& path);
   };

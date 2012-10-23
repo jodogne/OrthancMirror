@@ -522,7 +522,7 @@ namespace Orthanc
           return (void*) "";
 
         case PostDataStatus_Pending:
-          output.AnswerBuffer("");
+          output.AnswerBufferWithContentType(NULL, 0, "");
           return (void*) "";
 
         default:
