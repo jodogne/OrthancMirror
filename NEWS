@@ -2,7 +2,7 @@ Pending changes in the mainline
 ===============================
 
 * URI "/system"
-* Help on the command line
+* Versioning info and help on the command line
 * Improved logging
 * Possibility of dynamic linking against jsoncpp, sqlite, boost and dmctk
 * Fix some bugs

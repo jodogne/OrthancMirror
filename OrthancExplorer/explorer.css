@@ -32,3 +32,8 @@ ul.tree ul {
     width: 0%; 
     background-color: green; 
 }
+
+.ui-title a {
+    text-decoration: none;
+    color: white !important;
+}
