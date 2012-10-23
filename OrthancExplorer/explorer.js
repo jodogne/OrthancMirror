@@ -321,7 +321,7 @@ function FormatInstance(instance, link, isReverse)
 
 $('[data-role="page"]').live('pagebeforeshow', function() {
   $.ajax({
-    url: '/system',
+    url: '../system',
     dataType: 'json',
     async: false,
     success: function(s) {
