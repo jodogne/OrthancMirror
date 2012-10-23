@@ -71,7 +71,7 @@
 
     <div data-role="page" id="patient" >
       <div data-role="header" >
-	<h1><span class="orthanc-name"></span>List of the studies of one patient</h1>
+	<h1><span class="orthanc-name"></span>Patient</h1>
         <a href="#find-patients" data-icon="search" class="ui-btn-left" data-direction="reverse">Find patient</a>
         <a href="#upload" data-icon="gear" class="ui-btn-right">Upload DICOM</a>
       </div>
@@ -99,7 +99,11 @@
 
     <div data-role="page" id="study">
       <div data-role="header">
-	<h1><span class="orthanc-name"></span>List of the series of one study</h1>
+	<h1>
+          <span class="orthanc-name"></span>
+          <a href="#" class="patient-link">Patient</a> &raquo; 
+          Study
+        </h1>
         <a href="#find-patients" data-icon="search" class="ui-btn-left" data-direction="reverse">Find patient</a>
         <a href="#upload" data-icon="gear" class="ui-btn-right">Upload DICOM</a>
       </div>
@@ -126,7 +130,13 @@
 
     <div data-role="page" id="series">
       <div data-role="header">
-	<h1><span class="orthanc-name"></span>List of the instances of one series</h1>
+	<h1>
+          <span class="orthanc-name"></span>
+          <a href="#" class="patient-link">Patient</a> &raquo; 
+          <a href="#" class="study-link">Study</a> &raquo; 
+          Series
+        </h1>
+
         <a href="#find-patients" data-icon="search" class="ui-btn-left" data-direction="reverse">Find patient</a>
         <a href="#upload" data-icon="gear" class="ui-btn-right">Upload DICOM</a>
       </div>
@@ -155,7 +165,13 @@
 
     <div data-role="page" id="instance">
       <div data-role="header">
-	<h1><span class="orthanc-name"></span>One DICOM instance</h1>
+	<h1>
+          <span class="orthanc-name"></span>
+          <a href="#" class="patient-link">Patient</a> &raquo; 
+          <a href="#" class="study-link">Study</a> &raquo; 
+          <a href="#" class="series-link">Series</a> &raquo; 
+          Instance
+        </h1>
         <a href="#find-patients" data-icon="search" class="ui-btn-left" data-direction="reverse">Find patient</a>
         <a href="#upload" data-icon="gear" class="ui-btn-right">Upload DICOM</a>
       </div>

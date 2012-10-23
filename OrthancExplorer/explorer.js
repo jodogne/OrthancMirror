@@ -319,19 +319,20 @@ function FormatInstance(instance, link, isReverse)
 }
 
 
-
-
-$('#find-patients').live('pagebeforeshow', function() {
-  //$('.orthanc-name').each(
-  
+$('[data-role="page"]').live('pagebeforeshow', function() {
   $.ajax({
     url: '/system',
     dataType: 'json',
+    async: false,
     success: function(s) {
-      $('.orthanc-name').html(s.Name + ' &raquo; ');
+      $('.orthanc-name').html('<a class="ui-link" href="explorer.html">' + s.Name + '</a> &raquo; ');
     }
   });
+});
 
+
+
+$('#find-patients').live('pagebeforeshow', function() {
   GetMultipleResources('patients', null, function(patients) {
     var target = $('#all-patients');
     $('li', target).remove();
@@ -388,6 +389,7 @@ $('#study').live('pagebeforeshow', function() {
         GetMultipleResources('series', study.Series, function(series) {
           SortOnDicomTag(series, 'SeriesDate', false, true);
 
+          $('#study .patient-link').attr('href', '#patient?uuid=' + patient.ID);
           $('#study-info li').remove();
           $('#study-info')
             .append('<li data-role="list-divider">Patient</li>')
@@ -421,6 +423,9 @@ $('#series').live('pagebeforeshow', function() {
         GetSingleResource('patients', study.ParentPatient, function(patient) {
           GetMultipleResources('instances', series.Instances, function(instances) {
             Sort(instances, function(x) { return x.IndexInSeries; }, true, false);
+
+            $('#series .patient-link').attr('href', '#patient?uuid=' + patient.ID);
+            $('#series .study-link').attr('href', '#study?uuid=' + study.ID);
 
             $('#series-info li').remove();
             $('#series-info')
@@ -504,6 +509,10 @@ $('#instance').live('pagebeforeshow', function() {
       GetSingleResource('series', instance.ParentSeries, function(series) {
         GetSingleResource('studies', series.ParentStudy, function(study) {
           GetSingleResource('patients', study.ParentPatient, function(patient) {
+
+            $('#instance .patient-link').attr('href', '#patient?uuid=' + patient.ID);
+            $('#instance .study-link').attr('href', '#study?uuid=' + study.ID);
+            $('#instance .series-link').attr('href', '#series?uuid=' + series.ID);
             
             $('#instance-info li').remove();
             $('#instance-info')
