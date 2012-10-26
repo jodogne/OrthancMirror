@@ -325,7 +325,9 @@ $('[data-role="page"]').live('pagebeforeshow', function() {
     dataType: 'json',
     async: false,
     success: function(s) {
-      $('.orthanc-name').html('<a class="ui-link" href="explorer.html">' + s.Name + '</a> &raquo; ');
+      if (s.Name != "") {
+        $('.orthanc-name').html('<a class="ui-link" href="explorer.html">' + s.Name + '</a> &raquo; ');
+      }
     }
   });
 });
