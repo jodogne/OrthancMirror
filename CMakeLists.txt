@@ -19,7 +19,7 @@ SET(USE_DYNAMIC_GOOGLE_LOG ON CACHE BOOL "Use the dynamic version of Google Log"
 SET(USE_DYNAMIC_GOOGLE_TEST ON CACHE BOOL "Use the dynamic version of Google Test (not for Debian sid)")
 SET(USE_DYNAMIC_SQLITE ON CACHE BOOL "Use the dynamic version of SQLite")
 SET(DEBIAN_FORCE_HARDENING OFF CACHE BOOL "Force the injection of Debian hardening flags (unrecommended)")
-SET(DEBIAN_USE_STATIC_GOOGLE_TEST OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (only for Debian sid)")
+SET(DEBIAN_USE_GTEST_SOURCE_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (only for Debian sid)")
 
 mark_as_advanced(USE_DYNAMIC_JSONCPP)
 mark_as_advanced(USE_DYNAMIC_GOOGLE_LOG)
