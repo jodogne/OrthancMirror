@@ -218,7 +218,7 @@ int main(int argc, char* argv[])
 
       // HTTP server
       MongooseServer httpServer;
-      httpServer.SetPortNumber(GetGlobalIntegerParameter("HttpPort", 8000));
+      httpServer.SetPortNumber(GetGlobalIntegerParameter("HttpPort", 8042));
       httpServer.SetRemoteAccessAllowed(GetGlobalBoolParameter("RemoteAccessAllowed", false));
 
       httpServer.SetAuthenticationEnabled(GetGlobalBoolParameter("AuthenticationEnabled", false));
