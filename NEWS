@@ -1,11 +1,18 @@
 Pending changes in the mainline
 ===============================
 
+None
+
+
+Version 0.2.3 (2012/10/26)
+==========================
+
 * Use HTTP Content-Disposition to set a filename when downloading JSON/DCM
 * URI "/system" for general information about Orthanc
 * Versioning info and help on the command line
 * Improved logging
 * Possibility of dynamic linking against jsoncpp, sqlite, boost and dmctk
+  for Debian packaging
 * Fix some bugs
 * Switch to default 8042 port for HTTP
 
