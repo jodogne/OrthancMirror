@@ -47,6 +47,7 @@ if (${STANDALONE_BUILD})
   EmbedResources(
     PREPARE_DATABASE OrthancServer/PrepareDatabase.sql
     ORTHANC_EXPLORER OrthancExplorer
+    CONFIGURATION_SAMPLE Resources/Configuration.json
     )
 else()
   add_definitions(
@@ -55,6 +56,7 @@ else()
     )
   EmbedResources(
     PREPARE_DATABASE OrthancServer/PrepareDatabase.sql
+    CONFIGURATION_SAMPLE Resources/Configuration.json
     )
 endif()
 
