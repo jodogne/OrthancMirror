@@ -32,7 +32,7 @@
 
 #include "OrthancRestApi.h"
 
-#include <stdio.h>
+#include <fstream>
 #include <glog/logging.h>
 #include <boost/algorithm/string/predicate.hpp>
 
@@ -106,19 +106,21 @@ void PrintHelp(char* path)
 {
   std::cout 
     << "Usage: " << path << " [OPTION]... [CONFIGURATION]" << std::endl
-    << "Start Orthanc, a lightweight, RESTful DICOM server for healthcare and medical research." << std::endl
+    << "Orthanc, lightweight, RESTful DICOM server for healthcare and medical research." << std::endl
     << std::endl
-    << "If no configuration file is given on the command line, a set of default parameters " << std::endl
-    << "is used. Please refer to the Orthanc homepage for the full instructions about how to use Orthanc " << std::endl
+    << "If no configuration file is given on the command line, a set of default " << std::endl
+    << "parameters is used. Please refer to the Orthanc homepage for the full " << std::endl
+    << "instructions about how to use Orthanc " << std::endl
     << "<https://code.google.com/p/orthanc/wiki/OrthancCookbook>." << std::endl
     << std::endl
     << "Command-line options:" << std::endl
-    << "  --verbose\t\tbe verbose in logs" << std::endl
-    << "  --trace\t\thighest verbosity in logs (for debug)" << std::endl
     << "  --help\t\tdisplay this help and exit" << std::endl
-    << "  --version\t\toutput version information and exit" << std::endl
     << "  --logdir=[dir]\tdirectory where to store the log files" << std::endl
     << "\t\t\t(if not used, the logs are dumped to stderr)" << std::endl
+    << "  --config=[file]\tcreate a sample configuration file and exit" << std::endl
+    << "  --trace\t\thighest verbosity in logs (for debug)" << std::endl
+    << "  --verbose\t\tbe verbose in logs" << std::endl
+    << "  --version\t\toutput version information and exit" << std::endl
     << std::endl
     << "Exit status:" << std::endl
     << " 0  if OK," << std::endl
@@ -176,6 +178,18 @@ int main(int argc, char* argv[])
     {
       FLAGS_logtostderr = false;
       FLAGS_log_dir = std::string(argv[i]).substr(9);
+    }
+
+    if (boost::starts_with(argv[i], "--config="))
+    {
+      std::string configurationSample;
+      GetFileResource(configurationSample, EmbeddedResources::CONFIGURATION_SAMPLE);
+
+      std::string target = std::string(argv[i]).substr(9);
+      std::ofstream f(target.c_str());
+      f << configurationSample;
+      f.close();
+      return 0;
     }
   }
 
