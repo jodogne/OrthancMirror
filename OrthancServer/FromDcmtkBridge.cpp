@@ -57,6 +57,7 @@
 #include <dcmtk/dcmdata/dcvrss.h>
 #include <dcmtk/dcmdata/dcvrul.h>
 #include <dcmtk/dcmdata/dcvrus.h>
+#include <dcmtk/dcmdata/dcuid.h>
 
 #include <boost/math/special_functions/round.hpp>
 
@@ -614,4 +615,26 @@ namespace Orthanc
       result[GetName(it->first)] = it->second->AsString();
     }
   }
+
+
+  std::string FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel level)
+  {
+    char uid[100];
+
+    switch (level)
+    {
+    case DicomRootLevel_Instance:
+      return dcmGenerateUniqueIdentifier(uid, SITE_INSTANCE_UID_ROOT);
+
+    case DicomRootLevel_Series:
+      return dcmGenerateUniqueIdentifier(uid, SITE_SERIES_UID_ROOT);
+
+    case DicomRootLevel_Study:
+      return dcmGenerateUniqueIdentifier(uid, SITE_STUDY_UID_ROOT);
+
+    default:
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
 }

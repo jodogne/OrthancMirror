@@ -45,6 +45,13 @@ namespace Orthanc
     ImageExtractionMode_UInt16
   };
 
+  enum DicomRootLevel
+  {
+    DicomRootLevel_Study,
+    DicomRootLevel_Series,
+    DicomRootLevel_Instance
+  };
+
   class FromDcmtkBridge
   {
   public:
@@ -105,5 +112,7 @@ namespace Orthanc
 
     static void ToJson(Json::Value& result,
                        const DicomMap& values);
+
+    static std::string GenerateUniqueIdentifier(DicomRootLevel level);
   };
 }
