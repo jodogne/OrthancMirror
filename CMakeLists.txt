@@ -102,6 +102,7 @@ add_library(CoreLibrary
   Core/DicomFormat/DicomMap.cpp
   Core/DicomFormat/DicomTag.cpp
   Core/DicomFormat/DicomIntegerPixelAccessor.cpp
+  Core/DicomFormat/DicomInstanceHasher.cpp
   Core/FileStorage.cpp
   Core/HttpServer/EmbeddedResourceHttpHandler.cpp
   Core/HttpServer/FilesystemHttpHandler.cpp

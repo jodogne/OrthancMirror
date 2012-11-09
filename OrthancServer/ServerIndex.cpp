@@ -42,6 +42,7 @@ using namespace Orthanc;
 #include "../Core/Toolbox.h"
 #include "../Core/Uuid.h"
 #include "../Core/DicomFormat/DicomArray.h"
+#include "../Core/DicomFormat/DicomInstanceHasher.h"
 #include "../Core/SQLite/Transaction.h"
 #include "FromDcmtkBridge.h"
 
@@ -530,53 +531,50 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock scoped_lock(mutex_);
 
-    std::string dicomPatientId = dicomSummary.GetValue(DICOM_TAG_PATIENT_ID).AsString();
-    std::string dicomInstance = dicomSummary.GetValue(DICOM_TAG_SOP_INSTANCE_UID).AsString();
-    std::string dicomSeries = dicomSummary.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).AsString();
-    std::string dicomStudy = dicomSummary.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString();
+    DicomInstanceHasher hasher(dicomSummary);
 
     try
     {
       SQLite::Transaction t(db_);
       t.Begin();
 
-      if (HasInstance(instanceUuid, dicomInstance))
+      if (HasInstance(instanceUuid, hasher.GetInstanceUid()))
       {
         return StoreStatus_AlreadyStored;
         // TODO: Check consistency?
       }
 
       std::string patientUuid;
-      if (HasPatient(patientUuid, dicomPatientId))
+      if (HasPatient(patientUuid, hasher.GetPatientId()))
       {
         // TODO: Check consistency?
       }
       else
       {
-        patientUuid = CreatePatient(dicomPatientId, dicomSummary);
+        patientUuid = CreatePatient(hasher.GetPatientId(), dicomSummary);
       }
 
       std::string studyUuid;
-      if (HasStudy(studyUuid, dicomStudy))
+      if (HasStudy(studyUuid, hasher.GetStudyUid()))
       {
         // TODO: Check consistency?
       }
       else
       {
-        studyUuid = CreateStudy(patientUuid, dicomStudy, dicomSummary);
+        studyUuid = CreateStudy(patientUuid, hasher.GetStudyUid(), dicomSummary);
       }
 
       std::string seriesUuid;
-      if (HasSeries(seriesUuid, dicomSeries))
+      if (HasSeries(seriesUuid, hasher.GetSeriesUid()))
       {
         // TODO: Check consistency?
       }
       else
       {
-        seriesUuid = CreateSeries(studyUuid, dicomSeries, dicomSummary);
+        seriesUuid = CreateSeries(studyUuid, hasher.GetSeriesUid(), dicomSummary);
       }
 
-      instanceUuid = CreateInstance(seriesUuid, dicomInstance, dicomSummary, fileUuid, 
+      instanceUuid = CreateInstance(seriesUuid, hasher.GetInstanceUid(), dicomSummary, fileUuid, 
                                     uncompressedFileSize, jsonUuid, distantAet);
       
       t.Commit();
