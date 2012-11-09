@@ -249,8 +249,8 @@ int main(int argc, char* argv[])
         httpServer.SetSslEnabled(false);
       }
 
-      LOG(INFO) << "DICOM server listening on port: " << dicomServer.GetPortNumber();
-      LOG(INFO) << "HTTP server listening on port: " << httpServer.GetPortNumber();
+      LOG(WARNING) << "DICOM server listening on port: " << dicomServer.GetPortNumber();
+      LOG(WARNING) << "HTTP server listening on port: " << httpServer.GetPortNumber();
 
 #if ORTHANC_STANDALONE == 1
       httpServer.RegisterHandler(new EmbeddedResourceHttpHandler("/app", EmbeddedResources::ORTHANC_EXPLORER));
