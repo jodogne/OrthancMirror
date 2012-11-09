@@ -266,6 +266,17 @@ TEST(Toolbox, ComputeMD5)
   ASSERT_EQ("d41d8cd98f00b204e9800998ecf8427e", s);
 }
 
+TEST(Toolbox, ComputeSHA1)
+{
+  std::string s;
+  
+  Toolbox::ComputeSHA1(s, "The quick brown fox jumps over the lazy dog");
+  ASSERT_EQ("2fd4e1c6-7a2d28fc-ed849ee1-bb76e739-1b93eb12", s);
+  Toolbox::ComputeSHA1(s, "");
+  ASSERT_EQ("da39a3ee-5e6b4b0d-3255bfef-95601890-afd80709", s);
+}
+
+
 TEST(Toolbox, Base64)
 {
   ASSERT_EQ("", Toolbox::EncodeBase64(""));

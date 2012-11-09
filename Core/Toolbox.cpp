@@ -63,6 +63,7 @@
 
 #include "../Resources/md5/md5.h"
 #include "../Resources/base64/base64.h"
+#include "../Resources/sha1/sha1.h"
 
 
 #if BOOST_HAS_LOCALE == 0
@@ -518,4 +519,36 @@ namespace Orthanc
 
     return result;
   }
+
+  void Toolbox::ComputeSHA1(std::string& result,
+                            const std::string& data)
+  {
+    SHA1 sha1;
+    if (data.size() > 0)
+    {
+      sha1.Input(&data[0], data.size());
+    }
+
+    unsigned digest[5];
+
+    // Sanity check for the memory layout: A SHA-1 digest is 160 bits wide
+    assert(sizeof(unsigned) == 4 && sizeof(digest) == (160 / 8)); 
+    
+    if (sha1.Result(digest))
+    {
+      result.resize(8 * 5 + 4);
+      sprintf(&result[0], "%08x-%08x-%08x-%08x-%08x",
+              digest[0],
+              digest[1],
+              digest[2],
+              digest[3],
+              digest[4]);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
 }

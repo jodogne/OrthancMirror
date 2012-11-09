@@ -73,6 +73,9 @@ namespace Orthanc
     void ComputeMD5(std::string& result,
                     const std::string& data);
 
+    void ComputeSHA1(std::string& result,
+                     const std::string& data);
+
     std::string EncodeBase64(const std::string& data);
 
     std::string GetPathToExecutable();
