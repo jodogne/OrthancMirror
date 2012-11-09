@@ -56,12 +56,15 @@ namespace Orthanc
     class DeleteFromFileStorageFunction : public SQLite::IScalarFunction
     {
     private:
-      FileStorage fileStorage_;
+      std::auto_ptr<FileStorage> fileStorage_;
 
     public:
-      DeleteFromFileStorageFunction(const std::string& path) :
-        fileStorage_(path)
+      DeleteFromFileStorageFunction(const std::string& path)
       {
+        if (path != ":memory:")
+        {
+          fileStorage_.reset(new FileStorage(path));
+        }
       }
 
       virtual const char* GetName() const
@@ -76,11 +79,18 @@ namespace Orthanc
 
       virtual void Compute(SQLite::FunctionContext& context)
       {
+        if (fileStorage_.get() == NULL)
+        {
+          // In-memory index, for unit tests
+          return;
+        }
+
         std::string fileUuid = context.GetStringValue(0);
         LOG(INFO) << "Removing file [" << fileUuid << "]";
+
         if (Toolbox::IsUuid(fileUuid))
         {
-          fileStorage_.Remove(fileUuid);
+          fileStorage_->Remove(fileUuid);
         }
       }
     };
@@ -205,20 +215,12 @@ namespace Orthanc
     }
   }
 
-  bool ServerIndex::HasInstance(std::string& instanceUuid,
-                                const DicomInstanceHasher& hasher)
+
+  bool ServerIndex::HasInstance(DicomInstanceHasher& hasher)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT uuid FROM Instances WHERE dicomInstance=?");
     s.BindString(0, hasher.GetInstanceUid());
-    if (s.Step())
-    {
-      instanceUuid = s.ColumnString(0);
-      return true;
-    }
-    else
-    {
-      return false;
-    }
+    return s.Step();
   }
 
 
@@ -232,24 +234,21 @@ namespace Orthanc
   }
 
 
-  std::string ServerIndex::CreateInstance(const std::string& parentSeriesUuid,
-                                          const DicomInstanceHasher& hasher,
-                                          const DicomMap& dicomSummary,
-                                          const std::string& fileUuid,
-                                          uint64_t fileSize,
-                                          const std::string& jsonUuid, 
-                                          const std::string& distantAet)
+  void ServerIndex::CreateInstance(DicomInstanceHasher& hasher,
+                                   const DicomMap& dicomSummary,
+                                   const std::string& fileUuid,
+                                   uint64_t fileSize,
+                                   const std::string& jsonUuid, 
+                                   const std::string& distantAet)
   {
-    std::string instanceUuid = Toolbox::GenerateUuid();
-
     SQLite::Statement s2(db_, SQLITE_FROM_HERE, "INSERT INTO Resources VALUES(?, ?)");
-    s2.BindString(0, instanceUuid);
+    s2.BindString(0, hasher.HashInstance());
     s2.BindInt(1, ResourceType_Instance);
     s2.Run();
 
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Instances VALUES(?, ?, ?, ?, ?, ?, ?, ?)");
-    s.BindString(0, instanceUuid);
-    s.BindString(1, parentSeriesUuid);
+    s.BindString(0, hasher.HashInstance());
+    s.BindString(1, hasher.HashSeries());
     s.BindString(2, hasher.GetInstanceUid());
     s.BindString(3, fileUuid);
     s.BindInt64(4, fileSize);
@@ -269,13 +268,11 @@ namespace Orthanc
 
     s.Run();
 
-    RecordChange("instances", instanceUuid);
+    RecordChange("instances", hasher.HashInstance());
 
     DicomMap dicom;
     dicomSummary.ExtractInstanceInformation(dicom);
-    StoreMainDicomTags(instanceUuid, dicom);
-
-    return instanceUuid;
+    StoreMainDicomTags(hasher.HashInstance(), dicom);
   }
 
   void ServerIndex::RemoveInstance(const std::string& uuid)
@@ -285,36 +282,24 @@ namespace Orthanc
     s.Run();
   }
 
-  bool ServerIndex::HasSeries(std::string& seriesUuid,
-                              const DicomInstanceHasher& hasher)
+  bool ServerIndex::HasSeries(DicomInstanceHasher& hasher)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT uuid FROM Series WHERE dicomSeries=?");
     s.BindString(0, hasher.GetSeriesUid());
-    if (s.Step())
-    {
-      seriesUuid = s.ColumnString(0);
-      return true;
-    }
-    else
-    {
-      return false;
-    }
+    return s.Step();
   }
 
-  std::string ServerIndex::CreateSeries(const std::string& parentStudyUuid,
-                                        const DicomInstanceHasher& hasher,
-                                        const DicomMap& dicomSummary)
+  void ServerIndex::CreateSeries(DicomInstanceHasher& hasher,
+                                 const DicomMap& dicomSummary)
   {
-    std::string seriesUuid = Toolbox::GenerateUuid();
-
     SQLite::Statement s2(db_, SQLITE_FROM_HERE, "INSERT INTO Resources VALUES(?, ?)");
-    s2.BindString(0, seriesUuid);
+    s2.BindString(0, hasher.HashSeries());
     s2.BindInt(1, ResourceType_Series);
     s2.Run();
 
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Series VALUES(?, ?, ?, ?)");
-    s.BindString(0, seriesUuid);
-    s.BindString(1, parentStudyUuid);
+    s.BindString(0, hasher.HashSeries());
+    s.BindString(1, hasher.HashStudy());
     s.BindString(2, hasher.GetSeriesUid());
 
     const DicomValue* expectedNumberOfInstances;
@@ -332,98 +317,70 @@ namespace Orthanc
 
     s.Run();
 
-    RecordChange("series", seriesUuid);
+    RecordChange("series", hasher.HashSeries());
 
     DicomMap dicom;
     dicomSummary.ExtractSeriesInformation(dicom);
-    StoreMainDicomTags(seriesUuid, dicom);
-
-    return seriesUuid;
+    StoreMainDicomTags(hasher.HashSeries(), dicom);
   }
 
-  bool ServerIndex::HasStudy(std::string& studyUuid,
-                             const DicomInstanceHasher& hasher)
+  bool ServerIndex::HasStudy(DicomInstanceHasher& hasher)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT uuid FROM Studies WHERE dicomStudy=?");
     s.BindString(0, hasher.GetStudyUid());
-    if (s.Step())
-    {
-      studyUuid = s.ColumnString(0);
-      return true;
-    }
-    else
-    {
-      return false;
-    }
+    return s.Step();
   }
 
-  std::string ServerIndex::CreateStudy(const std::string& parentPatientUuid,
-                                       const DicomInstanceHasher& hasher,
-                                       const DicomMap& dicomSummary)
+  void ServerIndex::CreateStudy(DicomInstanceHasher& hasher,
+                                const DicomMap& dicomSummary)
   {
-    std::string studyUuid = Toolbox::GenerateUuid();
-
     SQLite::Statement s2(db_, SQLITE_FROM_HERE, "INSERT INTO Resources VALUES(?, ?)");
-    s2.BindString(0, studyUuid);
+    s2.BindString(0, hasher.HashStudy());
     s2.BindInt(1, ResourceType_Study);
     s2.Run();
 
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Studies VALUES(?, ?, ?)");
-    s.BindString(0, studyUuid);
-    s.BindString(1, parentPatientUuid);
+    s.BindString(0, hasher.HashStudy());
+    s.BindString(1, hasher.HashPatient());
     s.BindString(2, hasher.GetStudyUid());
     s.Run();
 
-    RecordChange("studies", studyUuid);
+    RecordChange("studies", hasher.HashStudy());
 
     DicomMap dicom;
     dicomSummary.ExtractStudyInformation(dicom);
-    StoreMainDicomTags(studyUuid, dicom);
-
-    return studyUuid;
+    StoreMainDicomTags(hasher.HashStudy(), dicom);
   }
 
 
 
-  bool ServerIndex::HasPatient(std::string& patientUuid,
-                               const DicomInstanceHasher& hasher)
+  bool ServerIndex::HasPatient(DicomInstanceHasher& hasher)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT uuid FROM Patients WHERE dicomPatientId=?");
     s.BindString(0,hasher.GetPatientId());
-    if (s.Step())
-    {
-      patientUuid = s.ColumnString(0);
-      return true;
-    }
-    else
-    {
-      return false;
-    }
+    return s.Step();
   }
 
-  std::string ServerIndex::CreatePatient(const DicomInstanceHasher& hasher, 
-                                         const DicomMap& dicomSummary)
+  void ServerIndex::CreatePatient(DicomInstanceHasher& hasher, 
+                                  const DicomMap& dicomSummary)
   {
-    std::string patientUuid = Toolbox::GenerateUuid();
     std::string dicomPatientId = dicomSummary.GetValue(DICOM_TAG_PATIENT_ID).AsString();
 
     SQLite::Statement s2(db_, SQLITE_FROM_HERE, "INSERT INTO Resources VALUES(?, ?)");
-    s2.BindString(0, patientUuid);
+    s2.BindString(0, hasher.HashPatient());
     s2.BindInt(1, ResourceType_Patient);
     s2.Run();
 
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Patients VALUES(?, ?)");
-    s.BindString(0, patientUuid);
+    s.BindString(0, hasher.HashPatient());
     s.BindString(1, dicomPatientId);
     s.Run();
 
-    RecordChange("patients", patientUuid);
+    RecordChange("patients", hasher.HashPatient());
 
     DicomMap dicom;
     dicomSummary.ExtractPatientInformation(dicom);
-    StoreMainDicomTags(patientUuid, dicom);
-
-    return patientUuid;
+    StoreMainDicomTags(hasher.HashPatient(), dicom);
   }
 
 
@@ -495,18 +452,26 @@ namespace Orthanc
 
   ServerIndex::ServerIndex(const std::string& storagePath)
   {
-    boost::filesystem::path p = storagePath;
-
-    try
+    if (storagePath == ":memory:")
     {
-      boost::filesystem::create_directories(storagePath);
+      db_.OpenInMemory();
     }
-    catch (boost::filesystem::filesystem_error)
+    else
     {
+      boost::filesystem::path p = storagePath;
+
+      try
+      {
+        boost::filesystem::create_directories(storagePath);
+      }
+      catch (boost::filesystem::filesystem_error)
+      {
+      }
+
+      p /= "index";
+      db_.Open(p.string());
     }
 
-    p /= "index";
-    db_.Open(p.string());
     db_.Register(new Internals::DeleteFromFileStorageFunction(storagePath));
     deletedLevels_ = (Internals::SignalDeletedLevelFunction*) 
       db_.Register(new Internals::SignalDeletedLevelFunction);
@@ -537,44 +502,41 @@ namespace Orthanc
       SQLite::Transaction t(db_);
       t.Begin();
 
-      if (HasInstance(instanceUuid, hasher))
+      if (HasInstance(hasher))
       {
         return StoreStatus_AlreadyStored;
         // TODO: Check consistency?
       }
 
-      std::string patientUuid;
-      if (HasPatient(patientUuid, hasher))
+      if (HasPatient(hasher))
       {
         // TODO: Check consistency?
       }
       else
       {
-        patientUuid = CreatePatient(hasher, dicomSummary);
+        CreatePatient(hasher, dicomSummary);
       }
 
-      std::string studyUuid;
-      if (HasStudy(studyUuid, hasher))
+      if (HasStudy(hasher))
       {
         // TODO: Check consistency?
       }
       else
       {
-        studyUuid = CreateStudy(patientUuid, hasher, dicomSummary);
+        CreateStudy(hasher, dicomSummary);
       }
 
-      std::string seriesUuid;
-      if (HasSeries(seriesUuid, hasher))
+      if (HasSeries(hasher))
       {
         // TODO: Check consistency?
       }
       else
       {
-        seriesUuid = CreateSeries(studyUuid, hasher, dicomSummary);
+        CreateSeries(hasher, dicomSummary);
       }
 
-      instanceUuid = CreateInstance(seriesUuid, hasher, dicomSummary, fileUuid, 
-                                    uncompressedFileSize, jsonUuid, distantAet);
+      CreateInstance(hasher, dicomSummary, fileUuid, 
+                     uncompressedFileSize, jsonUuid, distantAet);
       
       t.Commit();
       return StoreStatus_Success;

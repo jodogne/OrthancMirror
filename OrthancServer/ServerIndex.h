@@ -94,41 +94,37 @@ namespace Orthanc
                             const std::string& uuid,
                             const DicomTag& tag);
 
-    bool HasInstance(std::string& instanceUuid,
-                     const DicomInstanceHasher& hasher);
+
+    bool HasPatient(DicomInstanceHasher& hasher);
+
+    void CreatePatient(DicomInstanceHasher& hasher,
+                       const DicomMap& dicomSummary);
+
+    bool HasStudy(DicomInstanceHasher& hasher);
+
+    void CreateStudy(DicomInstanceHasher& hasher,
+                     const DicomMap& dicomSummary);
+
+    bool HasSeries(DicomInstanceHasher& hasher);
+
+    void CreateSeries(DicomInstanceHasher& hasher,
+                      const DicomMap& dicomSummary);
+
+    bool HasInstance(DicomInstanceHasher& hasher);
+
+    void CreateInstance(DicomInstanceHasher& hasher,
+                        const DicomMap& dicomSummary,
+                        const std::string& fileUuid,
+                        uint64_t fileSize,
+                        const std::string& jsonUuid, 
+                        const std::string& distantAet);
+
+
 
     void RecordChange(const std::string& resourceType,
                       const std::string& uuid);
 
-    std::string CreateInstance(const std::string& parentSeriesUuid,
-                               const DicomInstanceHasher& hasher,
-                               const DicomMap& dicomSummary,
-                               const std::string& fileUuid,
-                               uint64_t fileSize,
-                               const std::string& jsonUuid, 
-                               const std::string& distantAet);
-
     void RemoveInstance(const std::string& uuid);
-
-    bool HasSeries(std::string& seriesUuid,
-                   const DicomInstanceHasher& hasher);
-
-    std::string CreateSeries(const std::string& parentStudyUuid,
-                             const DicomInstanceHasher& hasher,
-                             const DicomMap& dicomSummary);
-
-    bool HasStudy(std::string& studyUuid,
-                  const DicomInstanceHasher& hasher);
-
-    std::string CreateStudy(const std::string& parentPatientUuid,
-                            const DicomInstanceHasher& hasher,
-                            const DicomMap& dicomSummary);
-
-    bool HasPatient(std::string& patientUuid,
-                    const DicomInstanceHasher& hasher);
-
-    std::string CreatePatient(const DicomInstanceHasher& hasher,
-                              const DicomMap& dicomSummary);
 
     void GetMainDicomTags(DicomMap& map,
                           const std::string& uuid);
