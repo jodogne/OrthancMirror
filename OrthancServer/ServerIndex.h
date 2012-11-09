@@ -36,6 +36,7 @@
 #include "../Core/SQLite/Connection.h"
 #include "../Core/DicomFormat/DicomMap.h"
 #include "../Core/FileStorage.h"
+#include "../Core/DicomFormat/DicomInstanceHasher.h"
 
 
 namespace Orthanc
@@ -94,13 +95,13 @@ namespace Orthanc
                             const DicomTag& tag);
 
     bool HasInstance(std::string& instanceUuid,
-                     const std::string& dicomInstance);
+                     const DicomInstanceHasher& hasher);
 
     void RecordChange(const std::string& resourceType,
                       const std::string& uuid);
 
     std::string CreateInstance(const std::string& parentSeriesUuid,
-                               const std::string& dicomInstance,
+                               const DicomInstanceHasher& hasher,
                                const DicomMap& dicomSummary,
                                const std::string& fileUuid,
                                uint64_t fileSize,
@@ -110,23 +111,23 @@ namespace Orthanc
     void RemoveInstance(const std::string& uuid);
 
     bool HasSeries(std::string& seriesUuid,
-                   const std::string& dicomSeries);
+                   const DicomInstanceHasher& hasher);
 
     std::string CreateSeries(const std::string& parentStudyUuid,
-                             const std::string& dicomSeries,
+                             const DicomInstanceHasher& hasher,
                              const DicomMap& dicomSummary);
 
     bool HasStudy(std::string& studyUuid,
-                  const std::string& dicomStudy);
+                  const DicomInstanceHasher& hasher);
 
     std::string CreateStudy(const std::string& parentPatientUuid,
-                            const std::string& dicomStudy,
+                            const DicomInstanceHasher& hasher,
                             const DicomMap& dicomSummary);
 
     bool HasPatient(std::string& patientUuid,
-                    const std::string& dicomPatientId);
+                    const DicomInstanceHasher& hasher);
 
-    std::string CreatePatient(const std::string& patientId,
+    std::string CreatePatient(const DicomInstanceHasher& hasher,
                               const DicomMap& dicomSummary);
 
     void GetMainDicomTags(DicomMap& map,

@@ -50,9 +50,14 @@ namespace Orthanc
   {
   private:
     std::string patientId_;
-    std::string instanceUid_;
-    std::string seriesUid_;
     std::string studyUid_;
+    std::string seriesUid_;
+    std::string instanceUid_;
+
+    std::string patientHash_;
+    std::string studyHash_;
+    std::string seriesHash_;
+    std::string instanceHash_;
 
   public:
     DicomInstanceHasher(const DicomMap& instance);
@@ -62,9 +67,9 @@ namespace Orthanc
       return patientId_;
     }
 
-    const std::string& GetInstanceUid() const
+    const std::string& GetStudyUid() const
     {
-      return instanceUid_;
+      return studyUid_;
     }
 
     const std::string& GetSeriesUid() const
@@ -72,17 +77,17 @@ namespace Orthanc
       return seriesUid_;
     }
 
-    const std::string& GetStudyUid() const
+    const std::string& GetInstanceUid() const
     {
-      return studyUid_;
+      return instanceUid_;
     }
 
-    std::string HashPatient() const;
+    const std::string& HashPatient();
 
-    std::string HashStudy() const;
+    const std::string& HashStudy();
 
-    std::string HashSeries() const;
+    const std::string& HashSeries();
 
-    std::string HashInstance() const;
+    const std::string& HashInstance();
   };
 }
