@@ -89,6 +89,8 @@ namespace Orthanc
       // http://www.sqlite.org/pragma.html
       Execute("PRAGMA FOREIGN_KEYS=ON;");
 
+      Execute("PRAGMA RECURSIVE_TRIGGERS=ON;");
+
       // Performance tuning
       Execute("PRAGMA SYNCHRONOUS=NORMAL;");
       Execute("PRAGMA JOURNAL_MODE=WAL;");
