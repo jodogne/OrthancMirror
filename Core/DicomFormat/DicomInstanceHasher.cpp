@@ -39,44 +39,56 @@ namespace Orthanc
   DicomInstanceHasher::DicomInstanceHasher(const DicomMap& instance)
   {
     patientId_ = instance.GetValue(DICOM_TAG_PATIENT_ID).AsString();
-    instanceUid_ = instance.GetValue(DICOM_TAG_SOP_INSTANCE_UID).AsString();
-    seriesUid_ = instance.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).AsString();
     studyUid_ = instance.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString();
+    seriesUid_ = instance.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).AsString();
+    instanceUid_ = instance.GetValue(DICOM_TAG_SOP_INSTANCE_UID).AsString();
 
     if (patientId_.size() == 0 ||
-        instanceUid_.size() == 0 ||
+        studyUid_.size() == 0 ||
         seriesUid_.size() == 0 ||
-        studyUid_.size() == 0)
+        instanceUid_.size() == 0)
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
   }
 
-  std::string DicomInstanceHasher::HashPatient() const
+  const std::string& DicomInstanceHasher::HashPatient()
   {
-    std::string s;
-    Toolbox::ComputeSHA1(s, patientId_);
-    return s;
+    if (patientHash_.size() == 0)
+    {
+      Toolbox::ComputeSHA1(patientHash_, patientId_);
+    }
+
+    return patientHash_;
   }
 
-  std::string DicomInstanceHasher::HashStudy() const
+  const std::string& DicomInstanceHasher::HashStudy()
   {
-    std::string s;
-    Toolbox::ComputeSHA1(s, patientId_ + "|" + studyUid_);
-    return s;
+    if (studyHash_.size() == 0)
+    {
+      Toolbox::ComputeSHA1(studyHash_, patientId_ + "|" + studyUid_);
+    }
+
+    return studyHash_;
   }
 
-  std::string DicomInstanceHasher::HashSeries() const
+  const std::string& DicomInstanceHasher::HashSeries()
   {
-    std::string s;
-    Toolbox::ComputeSHA1(s, patientId_ + "|" + studyUid_ + "|" + seriesUid_);
-    return s;
+    if (seriesHash_.size() == 0)
+    {
+      Toolbox::ComputeSHA1(seriesHash_, patientId_ + "|" + studyUid_ + "|" + seriesUid_);
+    }
+
+    return seriesHash_;
   }
 
-  std::string DicomInstanceHasher::HashInstance() const
+  const std::string& DicomInstanceHasher::HashInstance()
   {
-    std::string s;
-    Toolbox::ComputeSHA1(s, patientId_ + "|" + studyUid_ + "|" + seriesUid_ + "|" + instanceUid_);
-    return s;
+    if (instanceHash_.size() == 0)
+    {
+      Toolbox::ComputeSHA1(instanceHash_, patientId_ + "|" + studyUid_ + "|" + seriesUid_ + "|" + instanceUid_);
+    }
+
+    return instanceHash_;
   }
 }
