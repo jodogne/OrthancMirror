@@ -7,6 +7,7 @@
 #include <zlib.h>
 #include <curl/curl.h>
 #include <boost/version.hpp>
+#include <sqlite3.h>
 
 
 TEST(Versions, Zlib)
@@ -24,6 +25,17 @@ TEST(Versions, Png)
 {
   ASSERT_EQ(PNG_LIBPNG_VER_MAJOR * 10000 + PNG_LIBPNG_VER_MINOR * 100 + PNG_LIBPNG_VER_RELEASE,
             png_access_version_number());
+}
+
+TEST(Versions, SQLite)
+{
+  // http://www.sqlite.org/capi3ref.html#sqlite3_libversion
+  assert(sqlite3_libversion_number() == SQLITE_VERSION_NUMBER );
+  assert(strcmp(sqlite3_sourceid(), SQLITE_SOURCE_ID) == 0);
+  assert(strcmp(sqlite3_libversion(), SQLITE_VERSION) == 0);
+
+  // Ensure that the SQLite version is above 3.7.0
+  ASSERT_GE(SQLITE_VERSION_NUMBER, 3007000);
 }
 
 

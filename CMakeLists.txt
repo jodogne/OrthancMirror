@@ -46,6 +46,7 @@ if (${STANDALONE_BUILD})
   add_definitions(-DORTHANC_STANDALONE=1)
   EmbedResources(
     PREPARE_DATABASE OrthancServer/PrepareDatabase.sql
+    PREPARE_DATABASE_2 OrthancServer/PrepareDatabase2.sql
     ORTHANC_EXPLORER OrthancExplorer
     CONFIGURATION_SAMPLE Resources/Configuration.json
     )
@@ -56,6 +57,7 @@ else()
     )
   EmbedResources(
     PREPARE_DATABASE OrthancServer/PrepareDatabase.sql
+    PREPARE_DATABASE_2 OrthancServer/PrepareDatabase2.sql
     CONFIGURATION_SAMPLE Resources/Configuration.json
     )
 endif()
@@ -165,6 +167,7 @@ if (BUILD_UNIT_TESTS)
     UnitTests/SQLiteChromium.cpp
     UnitTests/Versions.cpp
     UnitTests/Zip.cpp
+    UnitTests/ServerIndex.cpp
     )
   target_link_libraries(UnitTests ServerLibrary CoreLibrary)
 endif()

@@ -63,8 +63,7 @@ namespace Orthanc
     ResourceType_Patient = 1,
     ResourceType_Study = 2,
     ResourceType_Series = 3,
-    ResourceType_Instance = 4,
-    ResourceType_File = 5
+    ResourceType_Instance = 4
   };
 
 
