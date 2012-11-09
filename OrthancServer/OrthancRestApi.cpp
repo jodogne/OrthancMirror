@@ -35,10 +35,12 @@
 #include "OrthancInitialization.h"
 #include "FromDcmtkBridge.h"
 #include "../Core/Uuid.h"
+#include "../Core/DicomFormat/DicomArray.h"
 
 #include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <boost/lexical_cast.hpp>
+#include <glog/logging.h>
 
 namespace Orthanc
 {
@@ -112,6 +114,124 @@ namespace Orthanc
     }
 
     SimplifyTagsRecursion(target, source);
+  }
+
+
+  static bool GetTagContent(HttpOutput& output,
+                            const FileStorage& storage,
+                            const std::string& fileUuid,
+                            const UriComponents& uri)
+  {
+    // TODO: Implement a true caching mechanism!
+    static boost::mutex mutex_;
+    static std::string lastFileUuid_;
+    static DcmFileFormat dicomFile_;
+
+    boost::mutex::scoped_lock lock(mutex_);
+
+    if (fileUuid != lastFileUuid_)
+    {
+      LOG(INFO) << "Parsing file " << fileUuid;
+      std::string content;
+      storage.ReadFile(content, fileUuid);
+
+      DcmInputBufferStream is;
+      if (content.size() > 0)
+      {
+        is.setBuffer(&content[0], content.size());
+      }
+      is.setEos();
+
+      if (!dicomFile_.read(is).good())
+      {
+        return false;
+      }
+ 
+      lastFileUuid_ = fileUuid;
+    }
+    else
+    {
+      LOG(INFO) << "Already parsed file " << fileUuid;
+    }
+
+    if (uri.size() == 3)
+    {
+      DicomMap dicomSummary;
+      FromDcmtkBridge::Convert(dicomSummary, *dicomFile_.getDataset());
+
+      DicomArray a(dicomSummary);
+    
+      Json::Value target = Json::arrayValue;
+      for (size_t i = 0; i < a.GetSize(); i++)
+      {
+        char b[16];
+        sprintf(b, "%04x-%04x", a.GetElement(i).GetTagGroup(),
+                a.GetElement(i).GetTagElement());
+        target.append(b);
+      }
+
+      SendJson(output, target);
+      return true;
+    }
+
+    if (uri.size() == 4)
+    {
+      if (uri[3].size() != 9 ||
+          uri[3][4] != '-')
+      {
+        return false;
+      }
+      
+      unsigned int group, element;
+      if (sscanf(uri[3].c_str(), "%04x-%04x", &group, &element) != 2)
+      {
+        return false;
+      }
+
+      DcmTagKey tag(group, element);
+      DcmElement* item = NULL;
+
+      if (dicomFile_.getDataset()->findAndGetElement(tag, item).good() && 
+          item != NULL)
+      {
+        std::string buffer;
+        buffer.resize(65536);
+        Uint32 length = item->getLength();
+        Uint32 offset = 0;
+
+        while (offset < length)
+        {
+          Uint32 nbytes;
+          if (length - offset < buffer.size())
+          {
+            nbytes = length - offset;
+          }
+          else
+          {
+            nbytes = buffer.size();
+          }
+
+          output.SendOkHeader("application/octet-stream");
+          if (item->getPartialValue(&buffer[0], offset, nbytes).good())
+          {
+            output.Send(&buffer[0], nbytes);
+            offset += nbytes;
+          }
+          else
+          {
+            return true;
+          }
+        }
+
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }
+
+    return false;
   }
 
 
@@ -624,6 +744,28 @@ namespace Orthanc
         {
           result.append(i);
         }                
+      }
+    }
+
+
+    else if (uri.size() >= 3 &&
+             uri[0] == "instances" &&
+             uri[2] == "content")
+    {
+      Json::Value instance(Json::objectValue);
+      std::string fileUuid;
+      existingResource = index_.GetDicomFile(fileUuid, uri[1]);
+
+      if (existingResource)
+      {
+        if (GetTagContent(output, storage_, fileUuid, uri))
+        {
+          return;
+        }
+        else
+        {
+          existingResource = false;
+        }
       }
     }
 
