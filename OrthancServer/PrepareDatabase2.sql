@@ -29,14 +29,39 @@ CREATE TABLE AttachedFiles(
        id INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE,
        name TEXT,
        uuid TEXT,
+       compressedSize INTEGER,
        uncompressedSize INTEGER,
        compressionType INTEGER,
        PRIMARY KEY(id, name)
        );              
 
+CREATE TABLE Changes(
+       seq INTEGER PRIMARY KEY AUTOINCREMENT,
+       changeType INTEGER,
+       publicId TEXT,
+       resourceType INTEGER,
+       date TEXT
+       );
+
+CREATE TABLE ExportedInstances(
+       seq INTEGER PRIMARY KEY AUTOINCREMENT,
+       remoteModality TEXT,
+       publicId TEXT,
+       patientId TEXT,
+       studyInstanceUid TEXT,
+       seriesInstanceUid TEXT,
+       sopInstanceUid TEXT,
+       date TEXT
+       ); 
+
 CREATE INDEX ChildrenIndex ON Resources(parentId);
 CREATE INDEX PublicIndex ON Resources(publicId);
 
+CREATE INDEX MainDicomTagsIndex1 ON MainDicomTags(id);
+CREATE INDEX MainDicomTagsIndex2 ON MainDicomTags(tagGroup, tagElement);
+CREATE INDEX MainDicomTagsIndexValues ON MainDicomTags(value COLLATE BINARY);
+
+CREATE INDEX ChangesIndex ON Changes(publicId);
 
 CREATE TRIGGER AttachedFileDeleted
 AFTER DELETE ON AttachedFiles
@@ -47,13 +72,14 @@ END;
 CREATE TRIGGER ResourceDeleted
 AFTER DELETE ON Resources
 BEGIN
-  SELECT SignalResourceDeleted(old.resourceType, old.parentId);
+  SELECT SignalRemainingAncestor(parent.publicId, parent.resourceType) 
+    FROM Resources AS parent WHERE internalId = old.parentId;
 END;
 
-
--- -- Delete a resource when its unique child is deleted  TODO TODO
--- CREATE TRIGGER ResourceRemovedUpward
--- AFTER DELETE ON Resources
--- FOR EACH ROW
---   WHEN (SELECT COUNT(*) FROM ParentRelationship WHERE parent = old.
--- END;
+-- Delete a parent resource when its unique child is deleted 
+CREATE TRIGGER ResourceDeletedParentCleaning
+AFTER DELETE ON Resources
+FOR EACH ROW WHEN (SELECT COUNT(*) FROM Resources WHERE parentId = old.parentId) = 0
+BEGIN
+  DELETE FROM Resources WHERE internalId = old.parentId;
+END;

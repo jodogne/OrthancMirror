@@ -37,36 +37,11 @@
 #include "../Core/DicomFormat/DicomMap.h"
 #include "../Core/FileStorage.h"
 #include "../Core/DicomFormat/DicomInstanceHasher.h"
+#include "ServerEnumerations.h"
 
 
 namespace Orthanc
 {
-  enum SeriesStatus
-  {
-    SeriesStatus_Complete,
-    SeriesStatus_Missing,
-    SeriesStatus_Inconsistent,
-    SeriesStatus_Unknown
-  };
-
-
-  enum StoreStatus
-  {
-    StoreStatus_Success,
-    StoreStatus_AlreadyStored,
-    StoreStatus_Failure
-  };
-
-
-  enum ResourceType
-  {
-    ResourceType_Patient = 1,
-    ResourceType_Study = 2,
-    ResourceType_Series = 3,
-    ResourceType_Instance = 4
-  };
-
-
   namespace Internals
   {
     class SignalDeletedLevelFunction;
