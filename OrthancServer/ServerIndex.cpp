@@ -450,11 +450,34 @@ namespace Orthanc
   }
 
 
+  namespace Internals
+  {
+    class ServerIndexListenerTmp : public IServerIndexListener
+    {
+    public:
+      virtual void SignalRemainingAncestor(ResourceType parentType,
+                                           const std::string& publicId)
+      {
+        LOG(INFO) << "Remaning ancestor \"" << publicId << "\" (" << parentType << ")";
+      }
+
+      virtual void SignalFileDeleted(const std::string& fileUuid)
+      {
+        LOG(INFO) << "Deleted file " << fileUuid;
+      }
+                                 
+    };
+  }
+
+
   ServerIndex::ServerIndex(const std::string& storagePath)
   {
+    listener2_.reset(new Internals::ServerIndexListenerTmp);
+
     if (storagePath == ":memory:")
     {
       db_.OpenInMemory();
+      db2_.reset(new DatabaseWrapper(*listener2_));
     }
     else
     {
@@ -467,6 +490,8 @@ namespace Orthanc
       catch (boost::filesystem::filesystem_error)
       {
       }
+
+      db2_.reset(new DatabaseWrapper(p.string() + "/index2", *listener2_));
 
       p /= "index";
       db_.Open(p.string());
