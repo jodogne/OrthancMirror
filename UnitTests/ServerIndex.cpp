@@ -72,7 +72,8 @@ TEST(DatabaseWrapper, Simple)
   ASSERT_TRUE(index.GetParentPublicId(s, a[4])); ASSERT_EQ("c", s);
   ASSERT_TRUE(index.GetParentPublicId(s, a[5])); ASSERT_EQ("g", s);
 
-  std::list<std::string> l;
+  /*
+    std::list<std::string> l;
   index.GetChildrenPublicId(l, a[0]); ASSERT_EQ(1, l.size()); ASSERT_EQ("b", l.front());
   index.GetChildrenPublicId(l, a[1]); ASSERT_EQ(1, l.size()); ASSERT_EQ("c", l.front());
   index.GetChildrenPublicId(l, a[3]); ASSERT_EQ(0, l.size()); 
@@ -90,6 +91,7 @@ TEST(DatabaseWrapper, Simple)
     ASSERT_EQ("d", l.back());
     ASSERT_EQ("e", l.front());
   }
+  */
 
   index.AttachFile(a[4], "_json", "my json file", 21, 42, CompressionType_Zlib);
   index.AttachFile(a[4], "_dicom", "my dicom file", 42);
