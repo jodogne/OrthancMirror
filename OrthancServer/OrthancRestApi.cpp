@@ -133,30 +133,30 @@ namespace Orthanc
     {
       DicomMap dicomSummary;
       FromDcmtkBridge::Convert(dicomSummary, *dicomFile.getDataset());
-          
+
+      DicomInstanceHasher hasher(dicomSummary);
+
       Json::Value dicomJson;
       FromDcmtkBridge::ToJson(dicomJson, *dicomFile.getDataset());
       
-      std::string instanceUuid;
       StoreStatus status = StoreStatus_Failure;
       if (postData.size() > 0)
       {
         status = index_.Store
-          (instanceUuid, storage_, reinterpret_cast<const char*>(&postData[0]),
+          (storage_, reinterpret_cast<const char*>(&postData[0]),
            postData.size(), dicomSummary, dicomJson, "");
       }
+
+      result["ID"] = hasher.HashInstance();
+      result["Path"] = "/instances/" + hasher.HashInstance();
 
       switch (status)
       {
       case StoreStatus_Success:
-        result["ID"] = instanceUuid;
-        result["Path"] = "/instances/" + instanceUuid;
         result["Status"] = "Success";
         return true;
       
       case StoreStatus_AlreadyStored:
-        result["ID"] = instanceUuid;
-        result["Path"] = "/instances/" + instanceUuid;
         result["Status"] = "AlreadyStored";
         return true;
 
@@ -427,6 +427,8 @@ namespace Orthanc
         result = Json::Value(Json::objectValue);
         result["Version"] = ORTHANC_VERSION;
         result["Name"] = GetGlobalStringParameter("Name", "");
+        result["TotalCompressedSize"] = boost::lexical_cast<std::string>(index_.GetTotalCompressedSize());
+        result["TotalUncompressedSize"] = boost::lexical_cast<std::string>(index_.GetTotalUncompressedSize());
         existingResource = true;
       }
       else

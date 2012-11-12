@@ -96,7 +96,7 @@ namespace Orthanc
                         const std::string& fileUuid,
                         uint64_t fileSize,
                         const std::string& jsonUuid, 
-                        const std::string& distantAet);
+                        const std::string& remoteAet);
 
 
 
@@ -115,25 +115,31 @@ namespace Orthanc
                         const std::string& uuid,
                         const std::string& tableName);
 
+    StoreStatus Store2(const DicomMap& dicomSummary,
+                       const std::string& fileUuid,
+                       uint64_t uncompressedFileSize,
+                       const std::string& jsonUuid,
+                       const std::string& remoteAet);
+
   public:
     ServerIndex(const std::string& storagePath);
 
-    StoreStatus Store(std::string& instanceUuid,
-                      const DicomMap& dicomSummary,
+    StoreStatus Store(const DicomMap& dicomSummary,
                       const std::string& fileUuid,
                       uint64_t uncompressedFileSize,
                       const std::string& jsonUuid,
-                      const std::string& distantAet);
+                      const std::string& remoteAet);
 
-    StoreStatus Store(std::string& instanceUuid,
-                      FileStorage& storage,
+    StoreStatus Store(FileStorage& storage,
                       const char* dicomFile,
                       size_t dicomSize,
                       const DicomMap& dicomSummary,
                       const Json::Value& dicomJson,
-                      const std::string& distantAet);
+                      const std::string& remoteAet);
 
-    uint64_t GetTotalSize();
+    uint64_t GetTotalCompressedSize();
+
+    uint64_t GetTotalUncompressedSize();
 
     SeriesStatus GetSeriesStatus(const std::string& seriesUuid);
 

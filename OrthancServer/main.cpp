@@ -65,10 +65,9 @@ public:
                       const Json::Value& dicomJson,
                       const std::string& remoteAet)
   {
-    std::string instanceUuid;
     if (dicomFile.size() > 0)
     {
-      index_.Store(instanceUuid, storage_, 
+      index_.Store(storage_, 
                    reinterpret_cast<const char*>(&dicomFile[0]), dicomFile.size(),
                    dicomSummary, dicomJson, remoteAet);
     }

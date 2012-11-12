@@ -33,6 +33,7 @@
 #pragma once
 
 #include "../Core/SQLite/Connection.h"
+#include "../Core/SQLite/Transaction.h"
 #include "../Core/DicomFormat/DicomInstanceHasher.h"
 #include "IServerIndexListener.h"
 
@@ -97,14 +98,14 @@ namespace Orthanc
     void AttachFile(int64_t id,
                     const std::string& name,
                     const std::string& fileUuid,
-                    size_t compressedSize,
-                    size_t uncompressedSize,
+                    uint64_t compressedSize,
+                    uint64_t uncompressedSize,
                     CompressionType compressionType);
 
     void AttachFile(int64_t id,
                     const std::string& name,
                     const std::string& fileUuid,
-                    size_t fileSize)
+                    uint64_t fileSize)
     {
       AttachFile(id, name, fileUuid, fileSize, fileSize, CompressionType_None);
     }
@@ -112,8 +113,8 @@ namespace Orthanc
     bool FindFile(int64_t id,
                   const std::string& name,
                   std::string& fileUuid,
-                  size_t& compressedSize,
-                  size_t& uncompressedSize,
+                  uint64_t& compressedSize,
+                  uint64_t& uncompressedSize,
                   CompressionType& compressionType);
 
     void SetMainDicomTags(int64_t id,
@@ -147,5 +148,10 @@ namespace Orthanc
                     IServerIndexListener& listener);
 
     DatabaseWrapper(IServerIndexListener& listener);
+
+    SQLite::Transaction* StartTransaction()
+    {
+      return new SQLite::Transaction(db_);
+    }
   };
 }

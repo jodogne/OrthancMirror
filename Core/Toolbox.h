@@ -86,5 +86,7 @@ namespace Orthanc
                               const char* fromEncoding);
 
     std::string ConvertToAscii(const std::string& source);
+
+    std::string GetNowIsoString();
   }
 }

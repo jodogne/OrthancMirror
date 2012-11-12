@@ -37,6 +37,7 @@
 #include <string.h>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <algorithm>
 #include <ctype.h>
 
@@ -548,6 +549,12 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_InternalError);
     }
+  }
+
+  std::string Toolbox::GetNowIsoString()
+  {
+    boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
+    return boost::posix_time::to_iso_string(now);
   }
 
 
