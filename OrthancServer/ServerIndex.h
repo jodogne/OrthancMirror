@@ -39,6 +39,8 @@
 #include "../Core/DicomFormat/DicomInstanceHasher.h"
 #include "ServerEnumerations.h"
 
+#include "DatabaseWrapper.h"
+
 
 namespace Orthanc
 {
@@ -53,6 +55,9 @@ namespace Orthanc
   private:
     SQLite::Connection db_;
     boost::mutex mutex_;
+
+    std::auto_ptr<IServerIndexListener> listener2_;
+    std::auto_ptr<DatabaseWrapper> db2_;
 
     // DO NOT delete the following one, SQLite::Connection will do it automatically
     Internals::SignalDeletedLevelFunction* deletedLevels_;
