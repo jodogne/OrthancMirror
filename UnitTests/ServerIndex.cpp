@@ -105,31 +105,31 @@ TEST(DatabaseWrapper, Simple)
 
   int64_t b;
   ResourceType t;
-  ASSERT_TRUE(index.FindResource("g", b, t));
+  ASSERT_TRUE(index.LookupResource("g", b, t));
   ASSERT_EQ(7, b);
   ASSERT_EQ(ResourceType_Study, t);
 
-  ASSERT_TRUE(index.FindMetadata(s, a[4], MetadataType_Instance_RemoteAet));
-  ASSERT_FALSE(index.FindMetadata(s, a[4], MetadataType_Instance_IndexInSeries));
+  ASSERT_TRUE(index.LookupMetadata(s, a[4], MetadataType_Instance_RemoteAet));
+  ASSERT_FALSE(index.LookupMetadata(s, a[4], MetadataType_Instance_IndexInSeries));
   ASSERT_EQ("PINNACLE", s);
   ASSERT_EQ("PINNACLE", index.GetMetadata(a[4], MetadataType_Instance_RemoteAet));
   ASSERT_EQ("None", index.GetMetadata(a[4], MetadataType_Instance_IndexInSeries, "None"));
 
-  ASSERT_TRUE(index.FindGlobalProperty(s, "Hello"));
-  ASSERT_FALSE(index.FindGlobalProperty(s, "Hello2"));
+  ASSERT_TRUE(index.LookupGlobalProperty(s, "Hello"));
+  ASSERT_FALSE(index.LookupGlobalProperty(s, "Hello2"));
   ASSERT_EQ("World", s);
   ASSERT_EQ("World", index.GetGlobalProperty("Hello"));
   ASSERT_EQ("None", index.GetGlobalProperty("Hello2", "None"));
 
-  size_t us, cs;
+  uint64_t us, cs;
   CompressionType ct;
-  ASSERT_TRUE(index.FindFile(a[4], "_json", s, cs, us, ct));
+  ASSERT_TRUE(index.LookupFile(a[4], "_json", s, cs, us, ct));
   ASSERT_EQ("my json file", s);
   ASSERT_EQ(21, cs);
   ASSERT_EQ(42, us);
   ASSERT_EQ(CompressionType_Zlib, ct);
 
-  ASSERT_EQ(0, listener.deletedFiles_.size());
+  ASSERT_EQ(0u, listener.deletedFiles_.size());
   ASSERT_EQ(7, index.GetTableRecordCount("Resources"));
   ASSERT_EQ(3, index.GetTableRecordCount("AttachedFiles"));
   ASSERT_EQ(1, index.GetTableRecordCount("Metadata"));

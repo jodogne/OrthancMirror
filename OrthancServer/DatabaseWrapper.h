@@ -65,8 +65,8 @@ namespace Orthanc
     void SetGlobalProperty(const std::string& name,
                            const std::string& value);
 
-    bool FindGlobalProperty(std::string& target,
-                            const std::string& name);
+    bool LookupGlobalProperty(std::string& target,
+                              const std::string& name);
 
     std::string GetGlobalProperty(const std::string& name,
                                   const std::string& defaultValue = "");
@@ -74,9 +74,9 @@ namespace Orthanc
     int64_t CreateResource(const std::string& publicId,
                            ResourceType type);
 
-    bool FindResource(const std::string& publicId,
-                      int64_t& id,
-                      ResourceType& type);
+    bool LookupResource(const std::string& publicId,
+                        int64_t& id,
+                        ResourceType& type);
 
     void AttachChild(int64_t parent,
                      int64_t child);
@@ -87,9 +87,9 @@ namespace Orthanc
                      MetadataType type,
                      const std::string& value);
 
-    bool FindMetadata(std::string& target,
-                      int64_t id,
-                      MetadataType type);
+    bool LookupMetadata(std::string& target,
+                        int64_t id,
+                        MetadataType type);
 
     std::string GetMetadata(int64_t id,
                             MetadataType type,
@@ -110,12 +110,12 @@ namespace Orthanc
       AttachFile(id, name, fileUuid, fileSize, fileSize, CompressionType_None);
     }
 
-    bool FindFile(int64_t id,
-                  const std::string& name,
-                  std::string& fileUuid,
-                  uint64_t& compressedSize,
-                  uint64_t& uncompressedSize,
-                  CompressionType& compressionType);
+    bool LookupFile(int64_t id,
+                    const std::string& name,
+                    std::string& fileUuid,
+                    uint64_t& compressedSize,
+                    uint64_t& uncompressedSize,
+                    CompressionType& compressionType);
 
     void SetMainDicomTags(int64_t id,
                           const DicomMap& tags);
