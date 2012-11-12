@@ -531,29 +531,29 @@ namespace Orthanc
       bool isNewSeries = false;
 
       // Do nothing if the instance already exists
-      if (db2_->FindResource(hasher.HashInstance(), patient, type))
+      if (db2_->LookupResource(hasher.HashInstance(), patient, type))
       {
-        assert(type == ResourceType_Patient);
+        assert(type == ResourceType_Instance);
         return StoreStatus_AlreadyStored;
       }
 
       // Create the patient/study/series/instance hierarchy
       instance = db2_->CreateResource(hasher.HashInstance(), ResourceType_Instance);
 
-      if (!db2_->FindResource(hasher.HashSeries(), series, type))
+      if (!db2_->LookupResource(hasher.HashSeries(), series, type))
       {
         // This is a new series
         isNewSeries = true;
         series = db2_->CreateResource(hasher.HashSeries(), ResourceType_Series);
         db2_->AttachChild(series, instance);
 
-        if (!db2_->FindResource(hasher.HashStudy(), study, type))
+        if (!db2_->LookupResource(hasher.HashStudy(), study, type))
         {
           // This is a new study
           study = db2_->CreateResource(hasher.HashStudy(), ResourceType_Study);
           db2_->AttachChild(study, series);
 
-          if (!db2_->FindResource(hasher.HashPatient(), patient, type))
+          if (!db2_->LookupResource(hasher.HashPatient(), patient, type))
           {
             // This is a new patient
             patient = db2_->CreateResource(hasher.HashPatient(), ResourceType_Patient);

@@ -139,8 +139,8 @@ namespace Orthanc
     s.Run();
   }
 
-  bool DatabaseWrapper::FindGlobalProperty(std::string& target,
-                                           const std::string& name)
+  bool DatabaseWrapper::LookupGlobalProperty(std::string& target,
+                                             const std::string& name)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT value FROM GlobalProperties WHERE name=?");
@@ -161,7 +161,7 @@ namespace Orthanc
                                                  const std::string& defaultValue)
   {
     std::string s;
-    if (FindGlobalProperty(s, name))
+    if (LookupGlobalProperty(s, name))
     {
       return s;
     }
@@ -181,9 +181,9 @@ namespace Orthanc
     return db_.GetLastInsertRowId();
   }
 
-  bool DatabaseWrapper::FindResource(const std::string& publicId,
-                                     int64_t& id,
-                                     ResourceType& type)
+  bool DatabaseWrapper::LookupResource(const std::string& publicId,
+                                       int64_t& id,
+                                       ResourceType& type)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT internalId, resourceType FROM Resources WHERE publicId=?");
@@ -240,9 +240,9 @@ namespace Orthanc
     s.Run();
   }
 
-  bool DatabaseWrapper::FindMetadata(std::string& target,
-                                     int64_t id,
-                                     MetadataType type)
+  bool DatabaseWrapper::LookupMetadata(std::string& target,
+                                       int64_t id,
+                                       MetadataType type)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT value FROM Metadata WHERE id=? AND type=?");
@@ -265,7 +265,7 @@ namespace Orthanc
                                            const std::string& defaultValue)
   {
     std::string s;
-    if (FindMetadata(s, id, type))
+    if (LookupMetadata(s, id, type))
     {
       return s;
     }
@@ -292,12 +292,12 @@ namespace Orthanc
     s.Run();
   }
 
-  bool DatabaseWrapper::FindFile(int64_t id,
-                                 const std::string& name,
-                                 std::string& fileUuid,
-                                 uint64_t& compressedSize,
-                                 uint64_t& uncompressedSize,
-                                 CompressionType& compressionType)
+  bool DatabaseWrapper::LookupFile(int64_t id,
+                                   const std::string& name,
+                                   std::string& fileUuid,
+                                   uint64_t& compressedSize,
+                                   uint64_t& uncompressedSize,
+                                   CompressionType& compressionType)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT uuid, compressedSize, uncompressedSize, compressionType FROM AttachedFiles WHERE id=? AND name=?");
