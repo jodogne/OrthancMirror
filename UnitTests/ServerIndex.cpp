@@ -319,6 +319,42 @@ namespace Orthanc
       }
     }
 
+
+    bool GetParentPublicId(std::string& result,
+                           int64_t id)
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT a.publicId FROM Resources AS a, Resources AS b "
+                          "WHERE a.internalId = b.parentId AND b.internalId = ?");     
+      s.BindInt(0, id);
+
+      if (s.Step())
+      {
+        result = s.ColumnString(0);
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }
+
+
+    void GetChildrenPublicId(std::list<std::string>& result,
+                             int64_t id)
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT a.publicId FROM Resources AS a, Resources AS b  "
+                          "WHERE a.parentId = b.internalId AND b.internalId = ?");     
+      s.BindInt(0, id);
+
+      result.clear();
+
+      while (s.Step())
+      {
+        result.push_back(s.ColumnString(0));
+      }
+    }
+    
+
     int64_t GetTableRecordCount(const std::string& table)
     {
       char buf[128];
@@ -432,13 +468,13 @@ TEST(ServerIndexHelper, Simple)
   LOG(WARNING) << "ok";
 
   int64_t a[] = {
-    index.CreateResource("a", ResourceType_Patient),
-    index.CreateResource("b", ResourceType_Study),
-    index.CreateResource("c", ResourceType_Series),
-    index.CreateResource("d", ResourceType_Instance),
-    index.CreateResource("e", ResourceType_Instance),
-    index.CreateResource("f", ResourceType_Instance),
-    index.CreateResource("g", ResourceType_Study)
+    index.CreateResource("a", ResourceType_Patient),   // 0
+    index.CreateResource("b", ResourceType_Study),     // 1
+    index.CreateResource("c", ResourceType_Series),    // 2
+    index.CreateResource("d", ResourceType_Instance),  // 3
+    index.CreateResource("e", ResourceType_Instance),  // 4
+    index.CreateResource("f", ResourceType_Instance),  // 5
+    index.CreateResource("g", ResourceType_Study)      // 6
   };
 
   index.SetGlobalProperty("Hello", "World");
@@ -448,6 +484,37 @@ TEST(ServerIndexHelper, Simple)
   index.AttachChild(a[2], a[3]);
   index.AttachChild(a[2], a[4]);
   index.AttachChild(a[6], a[5]);
+
+  std::string s;
+  
+  ASSERT_FALSE(index.GetParentPublicId(s, a[0]));
+  ASSERT_FALSE(index.GetParentPublicId(s, a[6]));
+  ASSERT_TRUE(index.GetParentPublicId(s, a[1])); ASSERT_EQ("a", s);
+  ASSERT_TRUE(index.GetParentPublicId(s, a[2])); ASSERT_EQ("b", s);
+  ASSERT_TRUE(index.GetParentPublicId(s, a[3])); ASSERT_EQ("c", s);
+  ASSERT_TRUE(index.GetParentPublicId(s, a[4])); ASSERT_EQ("c", s);
+  ASSERT_TRUE(index.GetParentPublicId(s, a[5])); ASSERT_EQ("g", s);
+
+  std::list<std::string> l;
+  index.GetChildrenPublicId(l, a[0]); ASSERT_EQ(1, l.size()); ASSERT_EQ("b", l.front());
+  index.GetChildrenPublicId(l, a[1]); ASSERT_EQ(1, l.size()); ASSERT_EQ("c", l.front());
+  index.GetChildrenPublicId(l, a[3]); ASSERT_EQ(0, l.size()); 
+  index.GetChildrenPublicId(l, a[4]); ASSERT_EQ(0, l.size()); 
+  index.GetChildrenPublicId(l, a[5]); ASSERT_EQ(0, l.size()); 
+  index.GetChildrenPublicId(l, a[6]); ASSERT_EQ(1, l.size()); ASSERT_EQ("f", l.front());
+
+  index.GetChildrenPublicId(l, a[2]); ASSERT_EQ(2, l.size()); 
+  if (l.front() == "d")
+  {
+    ASSERT_EQ("e", l.back());
+  }
+  else
+  {
+    ASSERT_EQ("d", l.back());
+    ASSERT_EQ("e", l.front());
+  }
+
+
   index.AttachFile(a[4], "_json", "my json file", 42, CompressionType_Zlib);
   index.AttachFile(a[4], "_dicom", "my dicom file", 42, CompressionType_None);
   index.SetMetadata(a[4], MetadataType_Instance_RemoteAet, "PINNACLE");
@@ -461,8 +528,6 @@ TEST(ServerIndexHelper, Simple)
   ASSERT_TRUE(index.FindResource("g", b, t));
   ASSERT_EQ(7, b);
   ASSERT_EQ(ResourceType_Study, t);
-
-  std::string s;
 
   ASSERT_TRUE(index.FindMetadata(s, a[4], MetadataType_Instance_RemoteAet));
   ASSERT_FALSE(index.FindMetadata(s, a[4], MetadataType_Instance_IndexInSeries));
