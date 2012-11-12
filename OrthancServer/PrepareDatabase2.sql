@@ -38,7 +38,7 @@ CREATE TABLE AttachedFiles(
 CREATE TABLE Changes(
        seq INTEGER PRIMARY KEY AUTOINCREMENT,
        changeType INTEGER,
-       publicId TEXT,
+       internalId INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE,
        resourceType INTEGER,
        date TEXT
        );
@@ -61,7 +61,7 @@ CREATE INDEX MainDicomTagsIndex1 ON MainDicomTags(id);
 CREATE INDEX MainDicomTagsIndex2 ON MainDicomTags(tagGroup, tagElement);
 CREATE INDEX MainDicomTagsIndexValues ON MainDicomTags(value COLLATE BINARY);
 
-CREATE INDEX ChangesIndex ON Changes(publicId);
+CREATE INDEX ChangesIndex ON Changes(internalId);
 
 CREATE TRIGGER AttachedFileDeleted
 AFTER DELETE ON AttachedFiles

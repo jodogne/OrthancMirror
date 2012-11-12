@@ -130,13 +130,13 @@ namespace Orthanc
                              int64_t id);
 
     void LogChange(ChangeType changeType,
-                   const std::string& publicId,
+                   int64_t internalId,
                    ResourceType resourceType,
-                   const boost::posix_time::ptime& date);
+                   const boost::posix_time::ptime& date = boost::posix_time::second_clock::local_time());
 
     void LogExportedInstance(const std::string& remoteModality,
                              DicomInstanceHasher& hasher,
-                             const boost::posix_time::ptime& date);
+                             const boost::posix_time::ptime& date = boost::posix_time::second_clock::local_time());
     
     int64_t GetTableRecordCount(const std::string& table);
     
