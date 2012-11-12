@@ -278,8 +278,8 @@ namespace Orthanc
   void DatabaseWrapper::AttachFile(int64_t id,
                                    const std::string& name,
                                    const std::string& fileUuid,
-                                   size_t compressedSize,
-                                   size_t uncompressedSize,
+                                   uint64_t compressedSize,
+                                   uint64_t uncompressedSize,
                                    CompressionType compressionType)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO AttachedFiles VALUES(?, ?, ?, ?, ?, ?)");
@@ -295,8 +295,8 @@ namespace Orthanc
   bool DatabaseWrapper::FindFile(int64_t id,
                                  const std::string& name,
                                  std::string& fileUuid,
-                                 size_t& compressedSize,
-                                 size_t& uncompressedSize,
+                                 uint64_t& compressedSize,
+                                 uint64_t& uncompressedSize,
                                  CompressionType& compressionType)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 

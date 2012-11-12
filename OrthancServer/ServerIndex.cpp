@@ -239,7 +239,7 @@ namespace Orthanc
                                    const std::string& fileUuid,
                                    uint64_t fileSize,
                                    const std::string& jsonUuid, 
-                                   const std::string& distantAet)
+                                   const std::string& remoteAet)
   {
     SQLite::Statement s2(db_, SQLITE_FROM_HERE, "INSERT INTO Resources VALUES(?, ?)");
     s2.BindString(0, hasher.HashInstance());
@@ -253,7 +253,7 @@ namespace Orthanc
     s.BindString(3, fileUuid);
     s.BindInt64(4, fileSize);
     s.BindString(5, jsonUuid);
-    s.BindString(6, distantAet);
+    s.BindString(6, remoteAet);
 
     const DicomValue* indexInSeries;
     if ((indexInSeries = dicomSummary.TestAndGetValue(DICOM_TAG_INSTANCE_NUMBER)) != NULL ||
@@ -511,13 +511,112 @@ namespace Orthanc
   }
 
 
-  StoreStatus ServerIndex::Store(std::string& instanceUuid,
-                                 const DicomMap& dicomSummary,
+  StoreStatus ServerIndex::Store2(const DicomMap& dicomSummary,
+                                  const std::string& fileUuid,
+                                  uint64_t uncompressedFileSize,
+                                  const std::string& jsonUuid,
+                                  const std::string& remoteAet)
+  {
+    boost::mutex::scoped_lock scoped_lock(mutex_);
+
+    DicomInstanceHasher hasher(dicomSummary);
+
+    try
+    {
+      std::auto_ptr<SQLite::Transaction> t(db2_->StartTransaction());
+      t->Begin();
+
+      int64_t patient, study, series, instance;
+      ResourceType type;
+      bool isNewSeries = false;
+
+      // Do nothing if the instance already exists
+      if (db2_->FindResource(hasher.HashInstance(), patient, type))
+      {
+        assert(type == ResourceType_Patient);
+        return StoreStatus_AlreadyStored;
+      }
+
+      // Create the patient/study/series/instance hierarchy
+      instance = db2_->CreateResource(hasher.HashInstance(), ResourceType_Instance);
+
+      if (!db2_->FindResource(hasher.HashSeries(), series, type))
+      {
+        // This is a new series
+        isNewSeries = true;
+        series = db2_->CreateResource(hasher.HashSeries(), ResourceType_Series);
+        db2_->AttachChild(series, instance);
+
+        if (!db2_->FindResource(hasher.HashStudy(), study, type))
+        {
+          // This is a new study
+          study = db2_->CreateResource(hasher.HashStudy(), ResourceType_Study);
+          db2_->AttachChild(study, series);
+
+          if (!db2_->FindResource(hasher.HashPatient(), patient, type))
+          {
+            // This is a new patient
+            patient = db2_->CreateResource(hasher.HashPatient(), ResourceType_Patient);
+            db2_->AttachChild(patient, study);
+          }
+          else
+          {
+            assert(type == ResourceType_Patient);
+          }
+        }
+        else
+        {
+          assert(type == ResourceType_Study);
+        }
+      }
+      else
+      {
+        assert(type == ResourceType_Series);
+      }
+
+      // Attach the files to the newly created instance
+      db2_->AttachFile(instance, "_dicom", fileUuid, uncompressedFileSize);
+      db2_->AttachFile(instance, "_json", jsonUuid, 0);  // TODO "0"
+
+      // Attach the metadata
+      db2_->SetMetadata(instance, MetadataType_Instance_ReceptionDate, Toolbox::GetNowIsoString());
+      db2_->SetMetadata(instance, MetadataType_Instance_RemoteAet, remoteAet);
+
+      const DicomValue* value;
+      if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_INSTANCE_NUMBER)) != NULL ||
+          (value = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGE_INDEX)) != NULL)
+      {
+        db2_->SetMetadata(instance, MetadataType_Instance_IndexInSeries, value->AsString());
+      }
+
+      if (isNewSeries)
+      {
+        if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_SLICES)) != NULL ||
+            (value = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGES_IN_ACQUISITION)) != NULL)
+        {
+          db2_->SetMetadata(series, MetadataType_Series_ExpectedNumberOfInstances, value->AsString());
+        }
+      }
+
+      t->Commit();
+    }
+    catch (OrthancException& e)
+    {
+      LOG(ERROR) << "EXCEPTION2 [" << e.What() << "]" << " " << db_.GetErrorMessage();  
+    }
+
+    return StoreStatus_Failure;
+  }
+
+
+  StoreStatus ServerIndex::Store(const DicomMap& dicomSummary,
                                  const std::string& fileUuid,
                                  uint64_t uncompressedFileSize,
                                  const std::string& jsonUuid,
-                                 const std::string& distantAet)
+                                 const std::string& remoteAet)
   {
+    Store2(dicomSummary, fileUuid, uncompressedFileSize, jsonUuid, remoteAet);
+
     boost::mutex::scoped_lock scoped_lock(mutex_);
 
     DicomInstanceHasher hasher(dicomSummary);
@@ -561,7 +660,7 @@ namespace Orthanc
       }
 
       CreateInstance(hasher, dicomSummary, fileUuid, 
-                     uncompressedFileSize, jsonUuid, distantAet);
+                     uncompressedFileSize, jsonUuid, remoteAet);
       
       t.Commit();
       return StoreStatus_Success;
@@ -576,18 +675,16 @@ namespace Orthanc
   }
 
 
-  StoreStatus ServerIndex::Store(std::string& instanceUuid,
-                                 FileStorage& storage,
+  StoreStatus ServerIndex::Store(FileStorage& storage,
                                  const char* dicomFile,
                                  size_t dicomSize,
                                  const DicomMap& dicomSummary,
                                  const Json::Value& dicomJson,
-                                 const std::string& distantAet)
+                                 const std::string& remoteAet)
   {
     std::string fileUuid = storage.Create(dicomFile, dicomSize);
     std::string jsonUuid = storage.Create(dicomJson.toStyledString());
-    StoreStatus status = Store(instanceUuid, dicomSummary, fileUuid, 
-                               dicomSize, jsonUuid, distantAet);
+    StoreStatus status = Store(dicomSummary, fileUuid, dicomSize, jsonUuid, remoteAet);
 
     if (status != StoreStatus_Success)
     {
@@ -598,7 +695,7 @@ namespace Orthanc
     switch (status)
     {
     case StoreStatus_Success:
-      LOG(WARNING) << "New instance stored: " << GetTotalSize() << " bytes";
+      LOG(WARNING) << "New instance stored";
       break;
 
     case StoreStatus_AlreadyStored:
@@ -613,13 +710,19 @@ namespace Orthanc
     return status;
   }
 
-  uint64_t ServerIndex::GetTotalSize()
+  uint64_t ServerIndex::GetTotalCompressedSize()
   {
     boost::mutex::scoped_lock scoped_lock(mutex_);
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT SUM(fileSize) FROM Instances");
-    s.Run();
-    return s.ColumnInt64(0);
+    return db2_->GetTotalCompressedSize();
   }
+
+  uint64_t ServerIndex::GetTotalUncompressedSize()
+  {
+    boost::mutex::scoped_lock scoped_lock(mutex_);
+    return db2_->GetTotalUncompressedSize();
+  }
+
+
 
 
   SeriesStatus ServerIndex::GetSeriesStatus(const std::string& seriesUuid)
