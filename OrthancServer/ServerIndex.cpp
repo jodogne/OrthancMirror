@@ -452,7 +452,7 @@ namespace Orthanc
 
   namespace Internals
   {
-    class ServerIndexListenerTmp : public IServerIndexListener
+    class ServerIndexListenerTodo : public IServerIndexListener
     {
     public:
       virtual void SignalRemainingAncestor(ResourceType parentType,
@@ -472,7 +472,7 @@ namespace Orthanc
 
   ServerIndex::ServerIndex(const std::string& storagePath)
   {
-    listener2_.reset(new Internals::ServerIndexListenerTmp);
+    listener2_.reset(new Internals::ServerIndexListenerTodo);
 
     if (storagePath == ":memory:")
     {
@@ -540,38 +540,51 @@ namespace Orthanc
       // Create the patient/study/series/instance hierarchy
       instance = db2_->CreateResource(hasher.HashInstance(), ResourceType_Instance);
 
+      DicomMap dicom;
+      dicomSummary.ExtractInstanceInformation(dicom);
+      db2_->SetMainDicomTags(instance, dicom);
+
       if (!db2_->LookupResource(hasher.HashSeries(), series, type))
       {
         // This is a new series
         isNewSeries = true;
         series = db2_->CreateResource(hasher.HashSeries(), ResourceType_Series);
+        dicomSummary.ExtractSeriesInformation(dicom);
+        db2_->SetMainDicomTags(series, dicom);
         db2_->AttachChild(series, instance);
 
         if (!db2_->LookupResource(hasher.HashStudy(), study, type))
         {
           // This is a new study
           study = db2_->CreateResource(hasher.HashStudy(), ResourceType_Study);
+          dicomSummary.ExtractStudyInformation(dicom);
+          db2_->SetMainDicomTags(study, dicom);
           db2_->AttachChild(study, series);
 
           if (!db2_->LookupResource(hasher.HashPatient(), patient, type))
           {
             // This is a new patient
             patient = db2_->CreateResource(hasher.HashPatient(), ResourceType_Patient);
+            dicomSummary.ExtractPatientInformation(dicom);
+            db2_->SetMainDicomTags(patient, dicom);
             db2_->AttachChild(patient, study);
           }
           else
           {
             assert(type == ResourceType_Patient);
+            db2_->AttachChild(patient, study);
           }
         }
         else
         {
           assert(type == ResourceType_Study);
+          db2_->AttachChild(study, series);
         }
       }
       else
       {
         assert(type == ResourceType_Series);
+        db2_->AttachChild(series, instance);
       }
 
       // Attach the files to the newly created instance

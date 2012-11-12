@@ -178,7 +178,33 @@ namespace Orthanc
     s.BindInt(0, type);
     s.BindString(1, publicId);
     s.Run();
-    return db_.GetLastInsertRowId();
+    int64_t id = db_.GetLastInsertRowId();
+
+    ChangeType changeType;
+    switch (type)
+    {
+    case ResourceType_Patient: 
+      changeType = ChangeType_NewPatient; 
+      break;
+
+    case ResourceType_Study: 
+      changeType = ChangeType_NewStudy; 
+      break;
+
+    case ResourceType_Series: 
+      changeType = ChangeType_NewSeries; 
+      break;
+
+    case ResourceType_Instance: 
+      changeType = ChangeType_NewInstance; 
+      break;
+
+    default:
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    LogChange(changeType, id, type);
+    return id;
   }
 
   bool DatabaseWrapper::LookupResource(const std::string& publicId,
@@ -385,13 +411,13 @@ namespace Orthanc
 
 
   void DatabaseWrapper::LogChange(ChangeType changeType,
-                                  const std::string& publicId,
+                                  int64_t internalId,
                                   ResourceType resourceType,
                                   const boost::posix_time::ptime& date)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Changes VALUES(NULL, ?, ?, ?, ?)");
     s.BindInt(0, changeType);
-    s.BindString(1, publicId);
+    s.BindInt(1, internalId);
     s.BindInt(2, resourceType);
     s.BindString(3, boost::posix_time::to_iso_string(date));
     s.Run();      
