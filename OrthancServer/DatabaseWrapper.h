@@ -96,22 +96,22 @@ namespace Orthanc
                             const std::string& defaultValue = "");
 
     void AttachFile(int64_t id,
-                    const std::string& name,
+                    const std::string& contentName,
                     const std::string& fileUuid,
                     uint64_t compressedSize,
                     uint64_t uncompressedSize,
                     CompressionType compressionType);
 
     void AttachFile(int64_t id,
-                    const std::string& name,
+                    const std::string& contentName,
                     const std::string& fileUuid,
                     uint64_t fileSize)
     {
-      AttachFile(id, name, fileUuid, fileSize, fileSize, CompressionType_None);
+      AttachFile(id, contentName, fileUuid, fileSize, fileSize, CompressionType_None);
     }
 
     bool LookupFile(int64_t id,
-                    const std::string& name,
+                    const std::string& contentName,
                     std::string& fileUuid,
                     uint64_t& compressedSize,
                     uint64_t& uncompressedSize,

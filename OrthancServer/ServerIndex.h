@@ -121,6 +121,12 @@ namespace Orthanc
                        const std::string& jsonUuid,
                        const std::string& remoteAet);
 
+    bool GetJsonFile(std::string& fileUuid,
+                     const std::string& instanceUuid);
+
+    bool GetDicomFile(std::string& fileUuid,
+                      const std::string& instanceUuid);
+
   public:
     ServerIndex(const std::string& storagePath);
 
@@ -156,11 +162,9 @@ namespace Orthanc
     bool GetPatient(Json::Value& result,
                     const std::string& patientUuid);
 
-    bool GetJsonFile(std::string& fileUuid,
-                     const std::string& instanceUuid);
-
-    bool GetDicomFile(std::string& fileUuid,
-                      const std::string& instanceUuid);
+    bool GetFile(std::string& fileUuid,
+                 const std::string& instanceUuid,
+                 const std::string& contentName);
 
     void GetAllUuids(Json::Value& target,
                      ResourceType resourceType);

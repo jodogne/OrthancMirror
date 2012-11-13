@@ -571,14 +571,14 @@ namespace Orthanc
       std::string fileUuid, contentType, filename;
       if (uri[2] == "file")
       {
-        existingResource = index_.GetDicomFile(fileUuid, uri[1]);
+        existingResource = index_.GetFile(fileUuid, uri[1], "dicom");
         contentType = "application/dicom";
         filename = fileUuid + ".dcm";
       }
       else if (uri[2] == "tags" ||
                uri[2] == "simplified-tags")
       {
-        existingResource = index_.GetJsonFile(fileUuid, uri[1]);
+        existingResource = index_.GetFile(fileUuid, uri[1], "json");
         contentType = "application/json";
         filename = fileUuid + ".json";
       }
@@ -642,7 +642,7 @@ namespace Orthanc
                 uri[4] == "image-uint16"))))
     {
       std::string uuid;
-      existingResource = index_.GetDicomFile(uuid, uri[1]);
+      existingResource = index_.GetFile(uuid, uri[1], "dicom");
 
       std::string action = uri[2];
 

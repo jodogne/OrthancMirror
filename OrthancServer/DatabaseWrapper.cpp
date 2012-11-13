@@ -302,7 +302,7 @@ namespace Orthanc
   }
 
   void DatabaseWrapper::AttachFile(int64_t id,
-                                   const std::string& name,
+                                   const std::string& contentName,
                                    const std::string& fileUuid,
                                    uint64_t compressedSize,
                                    uint64_t uncompressedSize,
@@ -310,7 +310,7 @@ namespace Orthanc
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO AttachedFiles VALUES(?, ?, ?, ?, ?, ?)");
     s.BindInt(0, id);
-    s.BindString(1, name);
+    s.BindString(1, contentName);
     s.BindString(2, fileUuid);
     s.BindInt(3, compressedSize);
     s.BindInt(4, uncompressedSize);
@@ -319,16 +319,16 @@ namespace Orthanc
   }
 
   bool DatabaseWrapper::LookupFile(int64_t id,
-                                   const std::string& name,
+                                   const std::string& contentName,
                                    std::string& fileUuid,
                                    uint64_t& compressedSize,
                                    uint64_t& uncompressedSize,
                                    CompressionType& compressionType)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-                        "SELECT uuid, compressedSize, uncompressedSize, compressionType FROM AttachedFiles WHERE id=? AND name=?");
+                        "SELECT uuid, compressedSize, uncompressedSize, compressionType FROM AttachedFiles WHERE id=? AND contentName=?");
     s.BindInt(0, id);
-    s.BindString(1, name);
+    s.BindString(1, contentName);
 
     if (!s.Step())
     {
