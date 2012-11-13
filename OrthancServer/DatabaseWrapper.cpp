@@ -240,6 +240,20 @@ namespace Orthanc
     s.Run();
   }
 
+  void DatabaseWrapper::GetChildren(Json::Value& childrenPublicIds,
+                                    int64_t id)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT publicId FROM Resources WHERE parentId=?");
+    s.BindInt(0, id);
+
+    childrenPublicIds = Json::arrayValue;
+    while (s.Step())
+    {
+      childrenPublicIds.append(s.ColumnString(0));
+    }
+  }
+
+
   void DatabaseWrapper::DeleteResource(int64_t id)
   {
     signalRemainingAncestor_->Reset();

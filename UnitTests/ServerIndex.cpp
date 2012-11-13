@@ -198,6 +198,30 @@ TEST(DatabaseWrapper, Upward)
   index.AttachChild(a[0], a[5]);
   index.AttachChild(a[5], a[7]);
 
+  {
+    Json::Value j;
+    index.GetChildren(j, a[0]);
+    ASSERT_EQ(2, j.size());
+    ASSERT_TRUE((j[0u] == "b" && j[1u] == "f") ||
+                (j[1u] == "b" && j[0u] == "f"));
+
+    index.GetChildren(j, a[1]);
+    ASSERT_EQ(2, j.size());
+    ASSERT_TRUE((j[0u] == "c" && j[1u] == "g") ||
+                (j[1u] == "c" && j[0u] == "g"));
+
+    index.GetChildren(j, a[2]);
+    ASSERT_EQ(2, j.size());
+    ASSERT_TRUE((j[0u] == "d" && j[1u] == "e") ||
+                (j[1u] == "d" && j[0u] == "e"));
+
+    index.GetChildren(j, a[3]); ASSERT_EQ(0, j.size());
+    index.GetChildren(j, a[4]); ASSERT_EQ(0, j.size());
+    index.GetChildren(j, a[5]); ASSERT_EQ(1, j.size()); ASSERT_EQ("h", j[0u].asString());
+    index.GetChildren(j, a[6]); ASSERT_EQ(0, j.size());
+    index.GetChildren(j, a[7]); ASSERT_EQ(0, j.size());
+  }
+
   listener.Reset();
   index.DeleteResource(a[3]);
   ASSERT_EQ("c", listener.ancestorId_);

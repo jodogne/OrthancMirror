@@ -51,6 +51,10 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${DEBIAN_CXX_FLAGS} ${DEBIAN_CPP_FLAGS}")
   endif()
 
+  if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -nostdinc++ -I${LSB_PATH}/include -I${LSB_PATH}/include/c++ -I${LSB_PATH}/include/c++/backward -fpermissive")
+  endif()
+
   add_definitions(
     -D_LARGEFILE64_SOURCE=1 
     -D_FILE_OFFSET_BITS=64
