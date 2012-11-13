@@ -589,8 +589,8 @@ namespace Orthanc
       }
 
       // Attach the files to the newly created instance
-      db2_->AttachFile(instance, "_dicom", fileUuid, uncompressedFileSize);
-      db2_->AttachFile(instance, "_json", jsonUuid, 0);  // TODO "0"
+      db2_->AttachFile(instance, "dicom", fileUuid, uncompressedFileSize);
+      db2_->AttachFile(instance, "json", jsonUuid, 0);  // TODO "0"
 
       // Attach the metadata
       db2_->SetMetadata(instance, MetadataType_Instance_ReceptionDate, Toolbox::GetNowIsoString());
@@ -978,6 +978,26 @@ namespace Orthanc
       return false;
     }
   }
+
+
+  bool ServerIndex::GetFile(std::string& fileUuid,
+                            const std::string& instanceUuid,
+                            const std::string& contentName)
+  {
+    if (contentName == "json")
+    {
+      return GetJsonFile(fileUuid, instanceUuid);
+    }
+    else if (contentName == "dicom")
+    {
+      return GetDicomFile(fileUuid, instanceUuid);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
 
 
   void ServerIndex::GetAllUuids(Json::Value& target,

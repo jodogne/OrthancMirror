@@ -27,12 +27,12 @@ CREATE TABLE Metadata(
 
 CREATE TABLE AttachedFiles(
        id INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE,
-       name TEXT,
+       contentName TEXT,
        uuid TEXT,
        compressedSize INTEGER,
        uncompressedSize INTEGER,
        compressionType INTEGER,
-       PRIMARY KEY(id, name)
+       PRIMARY KEY(id, contentName)
        );              
 
 CREATE TABLE Changes(
