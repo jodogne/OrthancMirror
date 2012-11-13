@@ -984,39 +984,7 @@ namespace Orthanc
                                 ResourceType resourceType)
   {
     boost::mutex::scoped_lock scoped_lock(mutex_);
-
-    std::string tableName;
-
-    switch (resourceType)
-    {
-    case ResourceType_Patient:
-      tableName = "Patients";
-      break;
-
-    case ResourceType_Study:
-      tableName = "Studies";
-      break;
-
-    case ResourceType_Series:
-      tableName = "Series";
-      break;
-
-    case ResourceType_Instance:
-      tableName = "Instances";
-      break;
-
-    default:
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    assert(target.type() == Json::arrayValue);
-
-    std::string query = "SELECT uuid FROM " + tableName;
-    SQLite::Statement s(db_, query);
-    while (s.Step())
-    {
-      target.append(s.ColumnString(0));
-    }
+    db2_->GetAllPublicIds(target, resourceType);
   }
 
 
