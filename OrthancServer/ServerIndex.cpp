@@ -537,13 +537,14 @@ namespace Orthanc
         return StoreStatus_AlreadyStored;
       }
 
-      // Create the patient/study/series/instance hierarchy
+      // Create the instance
       instance = db2_->CreateResource(hasher.HashInstance(), ResourceType_Instance);
 
       DicomMap dicom;
       dicomSummary.ExtractInstanceInformation(dicom);
       db2_->SetMainDicomTags(instance, dicom);
 
+      // Create the patient/study/series/instance hierarchy
       if (!db2_->LookupResource(hasher.HashSeries(), series, type))
       {
         // This is a new series
@@ -980,10 +981,35 @@ namespace Orthanc
 
 
   void ServerIndex::GetAllUuids(Json::Value& target,
-                                const std::string& tableName)
+                                ResourceType resourceType)
   {
-    assert(target.type() == Json::arrayValue);
     boost::mutex::scoped_lock scoped_lock(mutex_);
+
+    std::string tableName;
+
+    switch (resourceType)
+    {
+    case ResourceType_Patient:
+      tableName = "Patients";
+      break;
+
+    case ResourceType_Study:
+      tableName = "Studies";
+      break;
+
+    case ResourceType_Series:
+      tableName = "Series";
+      break;
+
+    case ResourceType_Instance:
+      tableName = "Instances";
+      break;
+
+    default:
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    assert(target.type() == Json::arrayValue);
 
     std::string query = "SELECT uuid FROM " + tableName;
     SQLite::Statement s(db_, query);

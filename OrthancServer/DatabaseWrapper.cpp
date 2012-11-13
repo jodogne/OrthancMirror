@@ -469,6 +469,19 @@ namespace Orthanc
     return static_cast<uint64_t>(s.ColumnInt64(0));
   }
 
+  void DatabaseWrapper::GetAllPublicIds(Json::Value& target,
+                                        ResourceType resourceType)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT publicId FROM Resources WHERE resourceType=?");
+    s.BindInt(0, resourceType);
+
+    target = Json::arrayValue;
+    while (s.Step())
+    {
+      target.append(s.ColumnString(0));
+    }
+  }
+
 
   DatabaseWrapper::DatabaseWrapper(const std::string& path,
                                    IServerIndexListener& listener) :

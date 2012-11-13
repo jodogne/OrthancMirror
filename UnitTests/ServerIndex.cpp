@@ -54,6 +54,24 @@ TEST(DatabaseWrapper, Simple)
     index.CreateResource("g", ResourceType_Study)      // 6
   };
 
+  {
+    Json::Value t;
+    index.GetAllPublicIds(t, ResourceType_Patient);
+
+    ASSERT_EQ(1, t.size());
+    ASSERT_EQ("a", t[0u].asString());
+
+    index.GetAllPublicIds(t, ResourceType_Series);
+    ASSERT_EQ(1, t.size());
+    ASSERT_EQ("c", t[0u].asString());
+
+    index.GetAllPublicIds(t, ResourceType_Study);
+    ASSERT_EQ(2, t.size());
+
+    index.GetAllPublicIds(t, ResourceType_Instance);
+    ASSERT_EQ(3, t.size());
+  }
+
   index.SetGlobalProperty("Hello", "World");
 
   index.AttachChild(a[0], a[1]);

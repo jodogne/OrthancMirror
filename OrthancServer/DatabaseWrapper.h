@@ -144,6 +144,9 @@ namespace Orthanc
     
     uint64_t GetTotalUncompressedSize();
 
+    void GetAllPublicIds(Json::Value& target,
+                         ResourceType resourceType);
+
     DatabaseWrapper(const std::string& path,
                     IServerIndexListener& listener);
 

@@ -56,6 +56,7 @@ CREATE TABLE ExportedInstances(
 
 CREATE INDEX ChildrenIndex ON Resources(parentId);
 CREATE INDEX PublicIndex ON Resources(publicId);
+CREATE INDEX ResourceTypeIndex ON Resources(resourceType);
 
 CREATE INDEX MainDicomTagsIndex1 ON MainDicomTags(id);
 CREATE INDEX MainDicomTagsIndex2 ON MainDicomTags(tagGroup, tagElement);

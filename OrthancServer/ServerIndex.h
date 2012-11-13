@@ -163,7 +163,7 @@ namespace Orthanc
                       const std::string& instanceUuid);
 
     void GetAllUuids(Json::Value& target,
-                     const std::string& tableName);
+                     ResourceType resourceType);
 
     bool DeletePatient(Json::Value& target,
                        const std::string& patientUuid)

@@ -1,6 +1,7 @@
 Pending changes in the mainline
 ===============================
 
+* Full refactoring of the DB schema
 * Generate a sample configuration file from command line
 
 
