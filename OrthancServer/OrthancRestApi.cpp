@@ -446,7 +446,7 @@ namespace Orthanc
       if (method == "GET")
       {
         result = Json::Value(Json::arrayValue);
-        index_.GetAllUuids(result, "Instances");
+        index_.GetAllUuids(result, ResourceType_Instance);
         existingResource = true;
       }
       else if (method == "POST")
@@ -483,13 +483,13 @@ namespace Orthanc
         result = Json::Value(Json::arrayValue);
 
         if (uri[0] == "instances")
-          index_.GetAllUuids(result, "Instances");
+          index_.GetAllUuids(result, ResourceType_Instance);
         else if (uri[0] == "series")
-          index_.GetAllUuids(result, "Series");
+          index_.GetAllUuids(result, ResourceType_Series);
         else if (uri[0] == "studies")
-          index_.GetAllUuids(result, "Studies");
+          index_.GetAllUuids(result, ResourceType_Study);
         else if (uri[0] == "patients")
-          index_.GetAllUuids(result, "Patients");
+          index_.GetAllUuids(result, ResourceType_Patient);
 
         existingResource = true;
       }
