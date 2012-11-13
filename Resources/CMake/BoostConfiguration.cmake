@@ -52,6 +52,11 @@ if (BOOST_STATIC)
     add_definitions(
       -DBOOST_LOCALE_WITH_ICONV=1
       )
+
+    if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
+      add_definitions(-DBOOST_HAS_SCHED_YIELD=1)
+    endif()
+
   elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     list(APPEND BOOST_SOURCES
       ${BOOST_SOURCES_DIR}/libs/thread/src/win32/tss_dll.cpp

@@ -943,59 +943,24 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::GetJsonFile(std::string& fileUuid,
-                                const std::string& instanceUuid)
-  {
-    boost::mutex::scoped_lock scoped_lock(mutex_);
-
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT jsonUuid FROM Instances WHERE uuid=?");
-    s.BindString(0, instanceUuid);
-    if (s.Step())
-    {
-      fileUuid = s.ColumnString(0);
-      return true;
-    }
-    else
-    {
-      return false;
-    }
-  }
-
-  bool ServerIndex::GetDicomFile(std::string& fileUuid,
-                                 const std::string& instanceUuid)
-  {
-    boost::mutex::scoped_lock scoped_lock(mutex_);
-
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT fileUuid FROM Instances WHERE uuid=?");
-    s.BindString(0, instanceUuid);
-    if (s.Step())
-    {
-      fileUuid = s.ColumnString(0);
-      return true;
-    }
-    else
-    {
-      return false;
-    }
-  }
-
-
   bool ServerIndex::GetFile(std::string& fileUuid,
+                            CompressionType& compressionType,
                             const std::string& instanceUuid,
                             const std::string& contentName)
   {
-    if (contentName == "json")
-    {
-      return GetJsonFile(fileUuid, instanceUuid);
-    }
-    else if (contentName == "dicom")
-    {
-      return GetDicomFile(fileUuid, instanceUuid);
-    }
-    else
+    boost::mutex::scoped_lock scoped_lock(mutex_);
+
+    int64_t id;
+    ResourceType type;
+    if (!db2_->LookupResource(instanceUuid, id, type) ||
+        type != ResourceType_Instance)
     {
       throw OrthancException(ErrorCode_InternalError);
     }
+
+    uint64_t compressedSize, uncompressedSize;
+
+    return db2_->LookupFile(id, contentName, fileUuid, compressedSize, uncompressedSize, compressionType);
   }
 
 

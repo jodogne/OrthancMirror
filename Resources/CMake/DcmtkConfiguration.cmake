@@ -12,7 +12,22 @@ if (${STATIC_BUILD})
   SET(DCMTK_SOURCE_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.0)
   include(${DCMTK_SOURCES_DIR}/CMake/CheckFunctionWithHeaderExists.cmake)
   include(${DCMTK_SOURCES_DIR}/CMake/GenerateDCMTKConfigure.cmake)
-  CONFIGURE_FILE(${DCMTK_SOURCES_DIR}/CMake/osconfig.h.in
+
+  if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
+    set(HAVE_SSTREAM 1)
+    set(HAVE_PROTOTYPE_BZERO 1)
+    set(HAVE_PROTOTYPE_GETHOSTNAME 1)
+    set(HAVE_PROTOTYPE_GETSOCKOPT 1)
+    set(HAVE_PROTOTYPE_SETSOCKOPT 1)
+    set(HAVE_PROTOTYPE_CONNECT 1)
+    set(HAVE_PROTOTYPE_BIND 1)
+    set(HAVE_PROTOTYPE_ACCEPT 1)
+    set(HAVE_PROTOTYPE_SETSOCKNAME 1)
+    set(HAVE_PROTOTYPE_GETSOCKNAME 1)
+  endif()
+
+  CONFIGURE_FILE(
+    ${DCMTK_SOURCES_DIR}/CMake/osconfig.h.in
     ${DCMTK_SOURCES_DIR}/config/include/dcmtk/config/osconfig.h)
 
   AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmnet/libsrc THIRD_PARTY_SOURCES)

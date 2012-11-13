@@ -81,6 +81,9 @@ namespace Orthanc
     void AttachChild(int64_t parent,
                      int64_t child);
 
+    void GetChildren(Json::Value& childrenPublicIds,
+                     int64_t id);
+
     void DeleteResource(int64_t id);
 
     void SetMetadata(int64_t id,
