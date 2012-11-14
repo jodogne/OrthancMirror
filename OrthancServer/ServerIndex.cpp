@@ -709,11 +709,11 @@ namespace Orthanc
     switch (status)
     {
     case StoreStatus_Success:
-      LOG(WARNING) << "New instance stored";
+      LOG(INFO) << "New instance stored";
       break;
 
     case StoreStatus_AlreadyStored:
-      LOG(WARNING) << "Already stored";
+      LOG(INFO) << "Already stored";
       break;
 
     case StoreStatus_Failure:

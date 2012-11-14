@@ -1,6 +1,3 @@
-# We always statically link against DCMTK 3.6.0, as there are many
-# differences wrt. DCMTK 3.5.x.
-
 if (${STATIC_BUILD})
   SET(DCMTK_VERSION_NUMBER 360)
   SET(DCMTK_SOURCES_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.0)
