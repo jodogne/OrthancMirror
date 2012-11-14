@@ -24,5 +24,16 @@ else()
     message(FATAL_ERROR "Please install the libsqlite3-dev package")
   endif()
 
+  # Autodetection of the version of SQLite
+  file(STRINGS "/usr/include/sqlite3.h" SQLITE_VERSION_NUMBER1 REGEX "#define SQLITE_VERSION_NUMBER.*$")    
+  string(REGEX REPLACE "#define SQLITE_VERSION_NUMBER(.*)$" "\\1" SQLITE_VERSION_NUMBER ${SQLITE_VERSION_NUMBER1})
+
+  message("Detected version of SQLite: ${SQLITE_VERSION_NUMBER}")
+
+  IF (${SQLITE_VERSION_NUMBER} LESS 3007000)
+    # "sqlite3_create_function_v2" is not defined in SQLite < 3.7.0
+    message(FATAL_ERROR "SQLite version must be above 3.7.0. Please set the CMake variable USE_DYNAMIC_SQLITE to OFF.")
+  ENDIF()
+
   link_libraries(sqlite3)
 endif()

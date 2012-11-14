@@ -81,7 +81,7 @@ namespace Orthanc
                                      /*opt_groupLength*/ EGL_recalcGL,
                                      /*opt_paddingType*/ EPD_withoutPadding);
 #else
-      OFCondition c = dataSet->write(ob, xfer, encodingType);
+      OFCondition c = dataSet->write(ob, xfer, encodingType, NULL);
 #endif
 
       dataSet->transferEnd();
