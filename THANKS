@@ -8,9 +8,26 @@ various improvements, or submitting actual code. Please help keep it
 complete and exempt or errors.
 
 
-Contributors
-------------
+Code contributors
+-----------------
 
-* Cyril Paulus (cyril.paulus@student.ulg.ac.be), for the build process.
-* Mathieu Malaterre (mathieu.malaterre@gmail.com), for Debian packaging.
-* Andreas Tille (andreas@an3as.eu), for Debian packaging. 
+* Cyril Paulus (cyril.paulus@student.ulg.ac.be), for the build process
+  and suggestions about the REST API.
+
+
+Artwork
+-------
+
+https://code.google.com/p/orthanc/wiki/Logos
+
+* Benjamin Golinvaux (golinvauxb@gmail.com), for creating the official logo.
+* Jean-François Degbomont (jfdegbo@gmail.com), for submitting a logo.
+* Martin Jolly, for submitting a logo.
+* Philippe Sepers (sepers.philippe@gmail.com), for submitting a logo.
+
+
+Debian
+------
+
+* Mathieu Malaterre (mathieu.malaterre@gmail.com), for sponsoring Orthanc.
+* Andreas Tille (andreas@an3as.eu), for help about Debian packaging. 
