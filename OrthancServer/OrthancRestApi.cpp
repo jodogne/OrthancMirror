@@ -125,11 +125,12 @@ namespace Orthanc
     // TODO: Implement a true caching mechanism!
     static boost::mutex mutex_;
     static std::string lastFileUuid_;
-    static DcmFileFormat dicomFile_;
+    static std::auto_ptr<DcmFileFormat> dicomFile_;
 
     boost::mutex::scoped_lock lock(mutex_);
 
-    if (fileUuid != lastFileUuid_)
+    if (dicomFile_.get() == NULL ||
+        fileUuid != lastFileUuid_)
     {
       LOG(INFO) << "Parsing file " << fileUuid;
       std::string content;
@@ -142,7 +143,9 @@ namespace Orthanc
       }
       is.setEos();
 
-      if (!dicomFile_.read(is).good())
+      dicomFile_.reset(new DcmFileFormat);
+
+      if (!dicomFile_->read(is).good())
       {
         return false;
       }
@@ -157,7 +160,7 @@ namespace Orthanc
     if (uri.size() == 3)
     {
       DicomMap dicomSummary;
-      FromDcmtkBridge::Convert(dicomSummary, *dicomFile_.getDataset());
+      FromDcmtkBridge::Convert(dicomSummary, *dicomFile_->getDataset());
 
       DicomArray a(dicomSummary);
     
@@ -191,7 +194,7 @@ namespace Orthanc
       DcmTagKey tag(group, element);
       DcmElement* item = NULL;
 
-      if (dicomFile_.getDataset()->findAndGetElement(tag, item).good() && 
+      if (dicomFile_->getDataset()->findAndGetElement(tag, item).good() && 
           item != NULL)
       {
         std::string buffer;
