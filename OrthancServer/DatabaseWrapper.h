@@ -137,6 +137,9 @@ namespace Orthanc
     void GetChildrenPublicId(std::list<std::string>& result,
                              int64_t id);
 
+    void GetChildrenInternalId(std::list<int64_t>& result,
+                               int64_t id);
+
     void LogChange(ChangeType changeType,
                    int64_t internalId,
                    ResourceType resourceType,

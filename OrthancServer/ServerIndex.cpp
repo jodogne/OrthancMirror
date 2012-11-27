@@ -787,6 +787,72 @@ namespace Orthanc
   }
 
 
+  SeriesStatus ServerIndex::GetSeriesStatus(int id)
+  {
+    // Get the expected number of instances in this series (from the metadata)
+    std::string s = db2_->GetMetadata(id, MetadataType_Series_ExpectedNumberOfInstances);
+
+    size_t expected;
+    try
+    {
+      expected = boost::lexical_cast<size_t>(s);
+      if (expected < 0)
+      {
+        return SeriesStatus_Unknown;
+      }
+    }
+    catch (boost::bad_lexical_cast&)
+    {
+      return SeriesStatus_Unknown;
+    }
+
+    // Loop over the instances of this series
+    std::list<int64_t> children;
+    db2_->GetChildrenInternalId(children, id);
+
+    std::set<size_t> instances;
+    for (std::list<int64_t>::const_iterator 
+           it = children.begin(); it != children.end(); it++)
+    {
+      // Get the index of this instance in the series
+      s = db2_->GetMetadata(*it, MetadataType_Instance_IndexInSeries);
+      size_t index;
+      try
+      {
+        index = boost::lexical_cast<size_t>(s);
+      }
+      catch (boost::bad_lexical_cast&)
+      {
+        return SeriesStatus_Unknown;
+      }
+
+      if (index <= 0 || index > expected)
+      {
+        // Out-of-range instance index
+        return SeriesStatus_Inconsistent;
+      }
+
+      if (instances.find(index) != instances.end())
+      {
+        // Twice the same instance index
+        return SeriesStatus_Inconsistent;
+      }
+
+      instances.insert(index);
+    }
+
+    if (instances.size() == expected)
+    {
+      return SeriesStatus_Complete;
+    }
+    else
+    {
+      return SeriesStatus_Missing;
+    }
+  }
+
+
+
   void ServerIndex::MainDicomTagsToJson2(Json::Value& target,
                                          int64_t resourceId)
   {
@@ -797,14 +863,18 @@ namespace Orthanc
   }
 
   bool ServerIndex::LookupResource(Json::Value& result,
-                                   const std::string& publicId)
+                                   const std::string& publicId,
+                                   ResourceType expectedType)
   {
     result = Json::objectValue;
+
+    boost::mutex::scoped_lock scoped_lock(mutex_);
 
     // Lookup for the requested resource
     int64_t id;
     ResourceType type;
-    if (!db2_->LookupResource(publicId, id, type))
+    if (!db2_->LookupResource(publicId, id, type) ||
+        type != expectedType)
     {
       return false;
     }
@@ -884,8 +954,21 @@ namespace Orthanc
       break;
 
     case ResourceType_Series:
+    {
       result["Type"] = "Series";
+      result["Status"] = ToString(GetSeriesStatus(id));
+
+      std::string n = db2_->GetMetadata(id, MetadataType_Series_ExpectedNumberOfInstances);
+      if (n.size() > 0)
+      {
+        result["ExpectedNumberOfInstances"] = n;
+      }
+      else
+      {
+        result["ExpectedNumberOfInstances"] = Json::nullValue;
+      }
       break;
+    }
 
     case ResourceType_Instance:
       result["Type"] = "Instance";
@@ -942,6 +1025,8 @@ namespace Orthanc
   bool ServerIndex::GetSeries(Json::Value& result,
                               const std::string& seriesUuid)
   {
+    return LookupResource(result, seriesUuid, ResourceType_Series);
+
     assert(result.type() == Json::objectValue);
     boost::mutex::scoped_lock scoped_lock(mutex_);
 
@@ -975,28 +1060,7 @@ namespace Orthanc
       result["ExpectedNumberOfInstances"] = s1.ColumnInt(2);
     }
 
-    SeriesStatus status = GetSeriesStatus(seriesUuid);
-
-    switch (status)
-    {
-    case SeriesStatus_Complete:
-      result["Status"] = "Complete";
-      break;
-
-    case SeriesStatus_Missing:
-      result["Status"] = "Missing";
-      break;
-
-    case SeriesStatus_Inconsistent:
-      result["Status"] = "Inconsistent";
-      break;
-
-    default:
-    case SeriesStatus_Unknown:
-      result["Status"] = "Unknown";
-      break;
-    }
-
+    result["Status"] = ToString(GetSeriesStatus(seriesUuid));
     result["Type"] = "Series";
 
     return true;
@@ -1006,63 +1070,14 @@ namespace Orthanc
   bool ServerIndex::GetStudy(Json::Value& result,
                              const std::string& studyUuid)
   {
-    assert(result.type() == Json::objectValue);
-    boost::mutex::scoped_lock scoped_lock(mutex_);
-
-    SQLite::Statement s1(db_, SQLITE_FROM_HERE, "SELECT parentPatient, dicomStudy FROM Studies WHERE uuid=?");
-    s1.BindString(0, studyUuid);
-    if (!s1.Step())
-    {
-      return false;
-    }
-
-    result["ID"] = studyUuid;
-    result["ParentPatient"] = s1.ColumnString(0);
-    MainDicomTagsToJson(result, studyUuid);
-
-    Json::Value series(Json::arrayValue);
-    SQLite::Statement s2(db_, SQLITE_FROM_HERE, "SELECT uuid FROM Series WHERE parentStudy=?");
-    s2.BindString(0, studyUuid);
-    while (s2.Step())
-    {
-      series.append(s2.ColumnString(0));
-    }
-      
-    result["Series"] = series;
-    result["Type"] = "Study";
-    return true;
+    return LookupResource(result, studyUuid, ResourceType_Study);
   }
 
 
   bool ServerIndex::GetPatient(Json::Value& result,
                                const std::string& patientUuid)
   {
-    assert(result.type() == Json::objectValue);
-    boost::mutex::scoped_lock scoped_lock(mutex_);
-
-    SQLite::Statement s1(db_, SQLITE_FROM_HERE, "SELECT dicomPatientId FROM Patients WHERE uuid=?");
-    s1.BindString(0, patientUuid);
-    if (!s1.Step())
-    {
-      return false;
-    }
-
-    result["ID"] = patientUuid;
-    MainDicomTagsToJson(result, patientUuid);
-
-    Json::Value studies(Json::arrayValue);
-    SQLite::Statement s2(db_, SQLITE_FROM_HERE, "SELECT uuid FROM Studies WHERE parentPatient=?");
-    s2.BindString(0, patientUuid);
-    while (s2.Step())
-    {
-      studies.append(s2.ColumnString(0));
-    }
-      
-    result["Studies"] = studies;
-    result["Type"] = "Patient";
-    return true;
-
-    //return LookupResource(result, patientUuid);
+    return LookupResource(result, patientUuid, ResourceType_Patient);
   }
 
 

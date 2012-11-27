@@ -514,19 +514,22 @@ namespace Orthanc
         if (uri[0] == "patients")
         {
           existingResource = index_.GetPatient(result, uri[1]);
-          assert(result["Type"] == "Patient");
+          assert(!existingResource || result["Type"] == "Patient");
         }
         else if (uri[0] == "studies")
         {
           existingResource = index_.GetStudy(result, uri[1]);
+          assert(!existingResource || result["Type"] == "Study");
         }
         else if (uri[0] == "series")
         {
           existingResource = index_.GetSeries(result, uri[1]);
+          assert(!existingResource || result["Type"] == "Series");
         }
         else if (uri[0] == "instances")
         {
           existingResource = index_.GetInstance(result, uri[1]);
+          assert(!existingResource || result["Type"] == "Instance");
         }
       }
       else if (method == "DELETE")
