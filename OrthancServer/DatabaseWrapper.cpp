@@ -461,6 +461,22 @@ namespace Orthanc
   }
 
 
+  void DatabaseWrapper::GetChildrenInternalId(std::list<int64_t>& result,
+                                              int64_t id)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT a.internalId FROM Resources AS a, Resources AS b  "
+                        "WHERE a.parentId = b.internalId AND b.internalId = ?");     
+    s.BindInt(0, id);
+
+    result.clear();
+
+    while (s.Step())
+    {
+      result.push_back(s.ColumnInt(0));
+    }
+  }
+
+
   void DatabaseWrapper::LogChange(ChangeType changeType,
                                   int64_t internalId,
                                   ResourceType resourceType,

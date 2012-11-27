@@ -98,8 +98,6 @@ namespace Orthanc
                         const std::string& jsonUuid, 
                         const std::string& remoteAet);
 
-
-
     void RecordChange(const std::string& resourceType,
                       const std::string& uuid);
 
@@ -125,7 +123,12 @@ namespace Orthanc
                        const std::string& remoteAet);
 
     bool LookupResource(Json::Value& result,
-                        const std::string& publicId);
+                        const std::string& publicId,
+                        ResourceType expectedType);
+
+    SeriesStatus GetSeriesStatus(int id);
+
+    SeriesStatus GetSeriesStatus(const std::string& seriesUuid);
 
   public:
     ServerIndex(const std::string& storagePath);
@@ -146,8 +149,6 @@ namespace Orthanc
     uint64_t GetTotalCompressedSize();
 
     uint64_t GetTotalUncompressedSize();
-
-    SeriesStatus GetSeriesStatus(const std::string& seriesUuid);
 
 
     bool GetInstance(Json::Value& result,

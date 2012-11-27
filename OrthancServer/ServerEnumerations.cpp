@@ -29,64 +29,51 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
-#pragma once
+#include "ServerEnumerations.h"
+
+#include "../Core/OrthancException.h"
 
 namespace Orthanc
 {
-  enum SeriesStatus
+  const char* ToString(ResourceType type)
   {
-    SeriesStatus_Complete,
-    SeriesStatus_Missing,
-    SeriesStatus_Inconsistent,
-    SeriesStatus_Unknown
-  };
+    switch (type)
+    {
+    case ResourceType_Patient:
+      return "Patient";
 
-  enum StoreStatus
+    case ResourceType_Study:
+      return "Study";
+
+    case ResourceType_Series:
+      return "Series";
+
+    case ResourceType_Instance:
+      return "Instance";
+      
+    default:
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+  const char* ToString(SeriesStatus status)
   {
-    StoreStatus_Success,
-    StoreStatus_AlreadyStored,
-    StoreStatus_Failure
-  };
+    switch (status)
+    {
+    case SeriesStatus_Complete:
+      return "Complete";
 
-  enum ResourceType
-  {
-    ResourceType_Patient = 1,
-    ResourceType_Study = 2,
-    ResourceType_Series = 3,
-    ResourceType_Instance = 4
-  };
+    case SeriesStatus_Missing:
+      return "Missing";
 
-  enum CompressionType
-  {
-    CompressionType_None = 1,
-    CompressionType_Zlib = 2
-  };
+    case SeriesStatus_Inconsistent:
+      return "Inconsistent";
 
-  enum MetadataType
-  {
-    MetadataType_Instance_IndexInSeries = 2,
-    MetadataType_Instance_ReceptionDate = 4,
-    MetadataType_Instance_RemoteAet = 1,
-    MetadataType_Series_ExpectedNumberOfInstances = 3
-  };
+    case SeriesStatus_Unknown:
+      return "Unknown";
 
-  enum ChangeType
-  {
-    ChangeType_CompletedSeries = 1,
-    ChangeType_NewInstance = 3,
-    ChangeType_NewPatient = 4,
-    ChangeType_NewSeries = 2,
-    ChangeType_NewStudy = 5,
-    ChangeType_InvalidSeries = 6
-  };
-
-  enum AttachedFileType
-  {
-    AttachedFileType_Dicom = 1,
-    AttachedFileType_Json = 2
-  };
-
-  const char* ToString(ResourceType type);
-
-  const char* ToString(SeriesStatus status);
+    default:
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
 }
