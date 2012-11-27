@@ -53,18 +53,84 @@ namespace Orthanc
 {
   namespace Internals
   {
+    class ServerIndexListenerTodo : public IServerIndexListener
+    {
+    private:
+      FileStorage& fileStorage_;
+      bool hasRemainingLevel_;
+      ResourceType remainingType_;
+      std::string remainingPublicId_;
+
+    public:
+      ServerIndexListenerTodo(FileStorage& fileStorage) : 
+        fileStorage_(fileStorage),
+        hasRemainingLevel_(false)
+      {
+        assert(ResourceType_Patient < ResourceType_Study &&
+               ResourceType_Study < ResourceType_Series &&
+               ResourceType_Series < ResourceType_Instance);
+      }
+
+      void Reset()
+      {
+        hasRemainingLevel_ = false;
+      }
+
+      virtual void SignalRemainingAncestor(ResourceType parentType,
+                                           const std::string& publicId)
+      {
+        LOG(INFO) << "Remaining ancestor \"" << publicId << "\" (" << parentType << ")";
+
+        if (hasRemainingLevel_)
+        {
+          if (parentType < remainingType_)
+          {
+            remainingType_ = parentType;
+            remainingPublicId_ = publicId;
+          }
+        }
+        else
+        {
+          hasRemainingLevel_ = true;
+          remainingType_ = parentType;
+          remainingPublicId_ = publicId;
+        }        
+      }
+
+      virtual void SignalFileDeleted(const std::string& fileUuid)
+      {
+        assert(Toolbox::IsUuid(fileUuid));
+        fileStorage_.Remove(fileUuid);
+      }
+
+      bool HasRemainingLevel() const
+      {
+        return hasRemainingLevel_;
+      }
+
+      ResourceType GetRemainingType() const
+      {
+        assert(HasRemainingLevel());
+        return remainingType_;
+      }
+
+      const std::string& GetRemainingPublicId() const
+      {
+        assert(HasRemainingLevel());
+        return remainingPublicId_;
+      }                                 
+    };
+
+
     class DeleteFromFileStorageFunction : public SQLite::IScalarFunction
     {
     private:
-      std::auto_ptr<FileStorage> fileStorage_;
+      FileStorage& fileStorage_;
 
     public:
-      DeleteFromFileStorageFunction(const std::string& path)
+      DeleteFromFileStorageFunction(FileStorage& fileStorage) : 
+        fileStorage_(fileStorage)
       {
-        if (path != ":memory:")
-        {
-          fileStorage_.reset(new FileStorage(path));
-        }
       }
 
       virtual const char* GetName() const
@@ -79,18 +145,12 @@ namespace Orthanc
 
       virtual void Compute(SQLite::FunctionContext& context)
       {
-        if (fileStorage_.get() == NULL)
-        {
-          // In-memory index, for unit tests
-          return;
-        }
-
         std::string fileUuid = context.GetStringValue(0);
         LOG(INFO) << "Removing file [" << fileUuid << "]";
 
         if (Toolbox::IsUuid(fileUuid))
         {
-          fileStorage_->Remove(fileUuid);
+          fileStorage_.Remove(fileUuid);
         }
       }
     };
@@ -350,6 +410,46 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock scoped_lock(mutex_);
 
+
+    {
+      listener2_->Reset();
+
+      std::auto_ptr<SQLite::Transaction> t(db2_->StartTransaction());
+      t->Begin();
+
+      int64_t id;
+      ResourceType type;
+      if (!db2_->LookupResource(uuid, id, type))
+      {
+        return false;
+      }
+      
+      db2_->DeleteResource(id);
+
+      if (listener2_->HasRemainingLevel())
+      {
+        ResourceType type = listener2_->GetRemainingType();
+        const std::string& uuid = listener2_->GetRemainingPublicId();
+
+        target["RemainingAncestor"] = Json::Value(Json::objectValue);
+        target["RemainingAncestor"]["Path"] = std::string(GetBasePath(type)) + "/" + uuid;
+        target["RemainingAncestor"]["Type"] = ToString(type);
+        target["RemainingAncestor"]["ID"] = uuid;
+      }
+      else
+      {
+        target["RemainingAncestor"] = Json::nullValue;
+      }
+
+      std::cout << target << std::endl;
+
+      t->Commit();
+
+      return true;
+    }
+
+
+
     deletedLevels_->Clear();
 
     SQLite::Statement s(db_, "DELETE FROM " + tableName + " WHERE uuid=?");
@@ -385,42 +485,23 @@ namespace Orthanc
   }
 
 
-  namespace Internals
+  ServerIndex::ServerIndex(FileStorage& fileStorage,
+                           const std::string& dbPath)
   {
-    class ServerIndexListenerTodo : public IServerIndexListener
-    {
-    public:
-      virtual void SignalRemainingAncestor(ResourceType parentType,
-                                           const std::string& publicId)
-      {
-        LOG(INFO) << "Remaning ancestor \"" << publicId << "\" (" << parentType << ")";
-      }
+    listener2_.reset(new Internals::ServerIndexListenerTodo(fileStorage));
 
-      virtual void SignalFileDeleted(const std::string& fileUuid)
-      {
-        LOG(INFO) << "Deleted file " << fileUuid;
-      }
-                                 
-    };
-  }
-
-
-  ServerIndex::ServerIndex(const std::string& storagePath)
-  {
-    listener2_.reset(new Internals::ServerIndexListenerTodo);
-
-    if (storagePath == ":memory:")
+    if (dbPath == ":memory:")
     {
       db_.OpenInMemory();
       db2_.reset(new DatabaseWrapper(*listener2_));
     }
     else
     {
-      boost::filesystem::path p = storagePath;
+      boost::filesystem::path p = dbPath;
 
       try
       {
-        boost::filesystem::create_directories(storagePath);
+        boost::filesystem::create_directories(p);
       }
       catch (boost::filesystem::filesystem_error)
       {
@@ -432,7 +513,7 @@ namespace Orthanc
       db_.Open(p.string());
     }
 
-    db_.Register(new Internals::DeleteFromFileStorageFunction(storagePath));
+    db_.Register(new Internals::DeleteFromFileStorageFunction(fileStorage));
     deletedLevels_ = (Internals::SignalDeletedLevelFunction*) 
       db_.Register(new Internals::SignalDeletedLevelFunction);
 

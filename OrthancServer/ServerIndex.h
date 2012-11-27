@@ -47,6 +47,7 @@ namespace Orthanc
   namespace Internals
   {
     class SignalDeletedLevelFunction;
+    class ServerIndexListenerTodo;
   }
 
 
@@ -56,7 +57,7 @@ namespace Orthanc
     SQLite::Connection db_;
     boost::mutex mutex_;
 
-    std::auto_ptr<IServerIndexListener> listener2_;
+    std::auto_ptr<Internals::ServerIndexListenerTodo> listener2_;
     std::auto_ptr<DatabaseWrapper> db2_;
 
     // DO NOT delete the following one, SQLite::Connection will do it automatically
@@ -114,7 +115,8 @@ namespace Orthanc
     SeriesStatus GetSeriesStatus(int id);
 
   public:
-    ServerIndex(const std::string& storagePath);
+    ServerIndex(FileStorage& fileStorage,
+                const std::string& dbPath);
 
     StoreStatus Store(const DicomMap& dicomSummary,
                       const std::string& fileUuid,

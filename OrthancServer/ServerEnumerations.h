@@ -88,5 +88,7 @@ namespace Orthanc
 
   const char* ToString(ResourceType type);
 
+  const char* GetBasePath(ResourceType type);
+
   const char* ToString(SeriesStatus status);
 }

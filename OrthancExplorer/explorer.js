@@ -557,7 +557,7 @@ function DeleteResource(path)
       if (ancestor == null)
         $.mobile.changePage('#find-patients');
       else
-        $.mobile.changePage('#' + ancestor.Type + '?uuid=' + ancestor.ID);
+        $.mobile.changePage('#' + ancestor.Type.toLowerCase() + '?uuid=' + ancestor.ID);
     }
   });
 }
