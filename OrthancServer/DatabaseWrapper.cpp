@@ -595,7 +595,7 @@ namespace Orthanc
     {
       LOG(INFO) << "Creating the database";
       std::string query;
-      EmbeddedResources::GetFileResource(query, EmbeddedResources::PREPARE_DATABASE_2);
+      EmbeddedResources::GetFileResource(query, EmbeddedResources::PREPARE_DATABASE);
       db_.Execute(query);
     }
 
