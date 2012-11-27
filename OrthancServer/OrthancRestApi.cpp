@@ -572,14 +572,14 @@ namespace Orthanc
       std::string fileUuid, contentType, filename;
       if (uri[2] == "file")
       {
-        existingResource = index_.GetFile(fileUuid, compressionType, uri[1], "dicom");
+        existingResource = index_.GetFile(fileUuid, compressionType, uri[1], AttachedFileType_Dicom);
         contentType = "application/dicom";
         filename = fileUuid + ".dcm";
       }
       else if (uri[2] == "tags" ||
                uri[2] == "simplified-tags")
       {
-        existingResource = index_.GetFile(fileUuid, compressionType, uri[1], "json");
+        existingResource = index_.GetFile(fileUuid, compressionType, uri[1], AttachedFileType_Json);
         contentType = "application/json";
         filename = fileUuid + ".json";
       }
@@ -644,7 +644,7 @@ namespace Orthanc
     {
       std::string uuid;
       CompressionType compressionType;
-      existingResource = index_.GetFile(uuid, compressionType, uri[1], "dicom");
+      existingResource = index_.GetFile(uuid, compressionType, uri[1], AttachedFileType_Dicom);
 
       std::string action = uri[2];
 
