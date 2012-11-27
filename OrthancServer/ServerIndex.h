@@ -46,67 +46,24 @@ namespace Orthanc
 {
   namespace Internals
   {
-    class SignalDeletedLevelFunction;
-    class ServerIndexListenerTodo;
+    class ServerIndexListener;
   }
 
 
   class ServerIndex
   {
   private:
-    SQLite::Connection db_;
     boost::mutex mutex_;
 
-    std::auto_ptr<Internals::ServerIndexListenerTodo> listener2_;
-    std::auto_ptr<DatabaseWrapper> db2_;
+    std::auto_ptr<Internals::ServerIndexListener> listener_;
+    std::auto_ptr<DatabaseWrapper> db_;
 
-    // DO NOT delete the following one, SQLite::Connection will do it automatically
-    Internals::SignalDeletedLevelFunction* deletedLevels_;
-
-    void StoreMainDicomTags(const std::string& uuid,
-                            const DicomMap& map);
-
-    bool HasPatient(DicomInstanceHasher& hasher);
-
-    void CreatePatient(DicomInstanceHasher& hasher,
-                       const DicomMap& dicomSummary);
-
-    bool HasStudy(DicomInstanceHasher& hasher);
-
-    void CreateStudy(DicomInstanceHasher& hasher,
-                     const DicomMap& dicomSummary);
-
-    bool HasSeries(DicomInstanceHasher& hasher);
-
-    void CreateSeries(DicomInstanceHasher& hasher,
-                      const DicomMap& dicomSummary);
-
-    bool HasInstance(DicomInstanceHasher& hasher);
-
-    void CreateInstance(DicomInstanceHasher& hasher,
-                        const DicomMap& dicomSummary,
-                        const std::string& fileUuid,
-                        uint64_t fileSize,
-                        const std::string& jsonUuid, 
-                        const std::string& remoteAet);
-
-    void RecordChange(const std::string& resourceType,
-                      const std::string& uuid);
-
-    void RemoveInstance(const std::string& uuid);
-
-    void MainDicomTagsToJson2(Json::Value& result,
-                              int64_t resourceId);
+    void MainDicomTagsToJson(Json::Value& result,
+                             int64_t resourceId);
 
     bool DeleteInternal(Json::Value& target,
                         const std::string& uuid,
-                        const std::string& tableName);
-
-    StoreStatus Store2(const DicomMap& dicomSummary,
-                       const std::string& fileUuid,
-                       uint64_t uncompressedFileSize,
-                       const std::string& jsonUuid,
-                       const std::string& remoteAet);
+                        ResourceType expectedType);
 
     bool LookupResource(Json::Value& result,
                         const std::string& publicId,
@@ -172,25 +129,25 @@ namespace Orthanc
     bool DeletePatient(Json::Value& target,
                        const std::string& patientUuid)
     {
-      return DeleteInternal(target, patientUuid, "Patients");
+      return DeleteInternal(target, patientUuid, ResourceType_Patient);
     }
 
     bool DeleteStudy(Json::Value& target,
                      const std::string& studyUuid)
     {
-      return DeleteInternal(target, studyUuid, "Studies");
+      return DeleteInternal(target, studyUuid, ResourceType_Study);
     }
 
     bool DeleteSeries(Json::Value& target,
                       const std::string& seriesUuid)
     {
-      return DeleteInternal(target, seriesUuid, "Series");
+      return DeleteInternal(target, seriesUuid, ResourceType_Series);
     }
 
     bool DeleteInstance(Json::Value& target,
                         const std::string& instanceUuid)
     {
-      return DeleteInternal(target, instanceUuid, "Instances");
+      return DeleteInternal(target, instanceUuid, ResourceType_Instance);
     }
 
     bool GetChanges(Json::Value& target,
