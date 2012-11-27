@@ -181,5 +181,10 @@ namespace Orthanc
     {
       return new SQLite::Transaction(db_);
     }
+
+    const char* GetErrorMessage() const
+    {
+      return db_.GetErrorMessage();
+    }
   };
 }
