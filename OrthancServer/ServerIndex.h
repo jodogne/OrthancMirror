@@ -159,7 +159,7 @@ namespace Orthanc
     bool GetFile(std::string& fileUuid,
                  CompressionType& compressionType,
                  const std::string& instanceUuid,
-                 const std::string& contentName);
+                 AttachedFileType contentType);
 
     void GetAllUuids(Json::Value& target,
                      ResourceType resourceType);

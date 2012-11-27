@@ -29,7 +29,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
-
 #pragma once
 
 namespace Orthanc
@@ -80,5 +79,11 @@ namespace Orthanc
     ChangeType_NewSeries = 2,
     ChangeType_NewStudy = 5,
     ChangeType_InvalidSeries = 6
+  };
+
+  enum AttachedFileType
+  {
+    AttachedFileType_Dicom = 1,
+    AttachedFileType_Json = 2
   };
 }

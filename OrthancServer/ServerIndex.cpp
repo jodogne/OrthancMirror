@@ -589,8 +589,8 @@ namespace Orthanc
       }
 
       // Attach the files to the newly created instance
-      db2_->AttachFile(instance, "dicom", fileUuid, uncompressedFileSize);
-      db2_->AttachFile(instance, "json", jsonUuid, 0);  // TODO "0"
+      db2_->AttachFile(instance, AttachedFileType_Dicom, fileUuid, uncompressedFileSize);
+      db2_->AttachFile(instance, AttachedFileType_Json, jsonUuid, 0);  // TODO "0"
 
       // Attach the metadata
       db2_->SetMetadata(instance, MetadataType_Instance_ReceptionDate, Toolbox::GetNowIsoString());
@@ -946,7 +946,7 @@ namespace Orthanc
   bool ServerIndex::GetFile(std::string& fileUuid,
                             CompressionType& compressionType,
                             const std::string& instanceUuid,
-                            const std::string& contentName)
+                            AttachedFileType contentType)
   {
     boost::mutex::scoped_lock scoped_lock(mutex_);
 
@@ -960,7 +960,7 @@ namespace Orthanc
 
     uint64_t compressedSize, uncompressedSize;
 
-    return db2_->LookupFile(id, contentName, fileUuid, compressedSize, uncompressedSize, compressionType);
+    return db2_->LookupFile(id, contentType, fileUuid, compressedSize, uncompressedSize, compressionType);
   }
 
 
