@@ -65,15 +65,6 @@ namespace Orthanc
     void StoreMainDicomTags(const std::string& uuid,
                             const DicomMap& map);
 
-    bool GetMainDicomStringTag(std::string& result,
-                               const std::string& uuid,
-                               const DicomTag& tag);
-
-    bool GetMainDicomIntTag(int& result,
-                            const std::string& uuid,
-                            const DicomTag& tag);
-
-
     bool HasPatient(DicomInstanceHasher& hasher);
 
     void CreatePatient(DicomInstanceHasher& hasher,
@@ -103,12 +94,6 @@ namespace Orthanc
 
     void RemoveInstance(const std::string& uuid);
 
-    void GetMainDicomTags(DicomMap& map,
-                          const std::string& uuid);
-
-    void MainDicomTagsToJson(Json::Value& target,
-                             const std::string& uuid);
-
     void MainDicomTagsToJson2(Json::Value& result,
                               int64_t resourceId);
 
@@ -127,8 +112,6 @@ namespace Orthanc
                         ResourceType expectedType);
 
     SeriesStatus GetSeriesStatus(int id);
-
-    SeriesStatus GetSeriesStatus(const std::string& seriesUuid);
 
   public:
     ServerIndex(const std::string& storagePath);
@@ -150,18 +133,31 @@ namespace Orthanc
 
     uint64_t GetTotalUncompressedSize();
 
-
     bool GetInstance(Json::Value& result,
-                     const std::string& instanceUuid);
+                     const std::string& instanceUuid)
+    {
+      return LookupResource(result, instanceUuid, ResourceType_Instance);
+    }
 
     bool GetSeries(Json::Value& result,
-                   const std::string& seriesUuid);
+                   const std::string& seriesUuid)
+    {
+      return LookupResource(result, seriesUuid, ResourceType_Series);
+    }
+
 
     bool GetStudy(Json::Value& result,
-                  const std::string& studyUuid);
+                  const std::string& studyUuid)
+    {
+      return LookupResource(result, studyUuid, ResourceType_Study);
+    }
+
 
     bool GetPatient(Json::Value& result,
-                    const std::string& patientUuid);
+                    const std::string& patientUuid)
+    {
+      return LookupResource(result, patientUuid, ResourceType_Patient);
+    }
 
     bool GetFile(std::string& fileUuid,
                  CompressionType& compressionType,
@@ -199,9 +195,5 @@ namespace Orthanc
                     int64_t since,
                     const std::string& filter,
                     unsigned int maxResults);
-
-    /*bool GetAllInstances(std::list<std::string>& instancesUuid,
-                         const std::string& uuid,
-                         bool clear = true);*/
   };
 }

@@ -103,6 +103,10 @@ namespace Orthanc
                             MetadataType type,
                             const std::string& defaultValue = "");
 
+    bool GetMetadataAsInteger(int& result,
+                              int64_t id,
+                              MetadataType type);
+
     void AttachFile(int64_t id,
                     AttachedFileType contentType,
                     const std::string& fileUuid,
@@ -124,6 +128,16 @@ namespace Orthanc
                     uint64_t& compressedSize,
                     uint64_t& uncompressedSize,
                     CompressionType& compressionType);
+
+    bool LookupFile(int64_t id,
+                    AttachedFileType contentType,
+                    std::string& fileUuid,
+                    uint64_t& uncompressedSize)
+    {
+      uint64_t compressedSize;
+      CompressionType compressionType;
+      return LookupFile(id, contentType, fileUuid, compressedSize, uncompressedSize, compressionType);
+    }
 
     void SetMainDicomTags(int64_t id,
                           const DicomMap& tags);
