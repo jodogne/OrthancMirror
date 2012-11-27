@@ -176,46 +176,6 @@ namespace Orthanc
     }
   }
 
-  bool ServerIndex::GetMainDicomStringTag(std::string& result,
-                                          const std::string& uuid,
-                                          const DicomTag& tag)
-  {
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-                        "SELECT * FROM MainDicomTags WHERE uuid=? AND tagGroup=? AND tagElement=?");
-    s.BindString(0, uuid);
-    s.BindInt(1, tag.GetGroup());
-    s.BindInt(2, tag.GetElement());
-    if (!s.Step())
-    {
-      return false;
-    }
-
-    result = s.ColumnString(0);
-    return true;
-  }
-
-  bool ServerIndex::GetMainDicomIntTag(int& result,
-                                       const std::string& uuid,
-                                       const DicomTag& tag)
-  {
-    std::string s;
-    if (!GetMainDicomStringTag(s, uuid, tag))
-    {
-      return false;
-    }
-
-    try
-    {
-      result = boost::lexical_cast<int>(s);
-      return true;
-    }
-    catch (boost::bad_lexical_cast)
-    {
-      return false;
-    }
-  }
-
-
   bool ServerIndex::HasInstance(DicomInstanceHasher& hasher)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT uuid FROM Instances WHERE dicomInstance=?");
@@ -304,9 +264,9 @@ namespace Orthanc
 
     const DicomValue* expectedNumberOfInstances;
     if (//(expectedNumberOfInstances = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_FRAMES)) != NULL ||
-        (expectedNumberOfInstances = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_SLICES)) != NULL ||
-        //(expectedNumberOfInstances = dicomSummary.TestAndGetValue(DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES)) != NULL ||
-        (expectedNumberOfInstances = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGES_IN_ACQUISITION)) != NULL)
+      (expectedNumberOfInstances = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_SLICES)) != NULL ||
+      //(expectedNumberOfInstances = dicomSummary.TestAndGetValue(DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES)) != NULL ||
+      (expectedNumberOfInstances = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGES_IN_ACQUISITION)) != NULL)
     {
       s.BindInt(3, boost::lexical_cast<unsigned int>(expectedNumberOfInstances->AsString()));
     }
@@ -381,31 +341,6 @@ namespace Orthanc
     DicomMap dicom;
     dicomSummary.ExtractPatientInformation(dicom);
     StoreMainDicomTags(hasher.HashPatient(), dicom);
-  }
-
-
-  void ServerIndex::GetMainDicomTags(DicomMap& map,
-                                     const std::string& uuid)
-  {
-    map.Clear();
-
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT * FROM MainDicomTags WHERE uuid=?");
-    s.BindString(0, uuid);
-    while (s.Step())
-    {
-      map.SetValue(s.ColumnInt(1),
-                   s.ColumnInt(2),
-                   s.ColumnString(3));
-    }
-  }
-
-  void ServerIndex::MainDicomTagsToJson(Json::Value& target,
-                                        const std::string& uuid)
-  {
-    DicomMap map;
-    GetMainDicomTags(map, uuid);
-    target["MainDicomTags"] = Json::objectValue;
-    FromDcmtkBridge::ToJson(target["MainDicomTags"], map);
   }
 
 
@@ -606,7 +541,8 @@ namespace Orthanc
       if (isNewSeries)
       {
         if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_SLICES)) != NULL ||
-            (value = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGES_IN_ACQUISITION)) != NULL)
+            (value = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGES_IN_ACQUISITION)) != NULL ||
+            (value = dicomSummary.TestAndGetValue(DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES)) != NULL)
         {
           db2_->SetMetadata(series, MetadataType_Series_ExpectedNumberOfInstances, value->AsString());
         }
@@ -734,56 +670,6 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock scoped_lock(mutex_);
     return db2_->GetTotalUncompressedSize();
-  }
-
-
-
-
-  SeriesStatus ServerIndex::GetSeriesStatus(const std::string& seriesUuid)
-  {
-    SQLite::Statement s1(db_, SQLITE_FROM_HERE, "SELECT expectedNumberOfInstances FROM Series WHERE uuid=?");
-    s1.BindString(0, seriesUuid);
-    if (!s1.Step() || s1.ColumnIsNull(0))
-    {
-      return SeriesStatus_Unknown;
-    }
-
-    int numberOfInstances = s1.ColumnInt(0);
-    if (numberOfInstances < 0)
-    {
-      return SeriesStatus_Unknown;
-    }
-
-    std::set<int> instances;
-    SQLite::Statement s2(db_, SQLITE_FROM_HERE, "SELECT indexInSeries FROM Instances WHERE parentSeries=?");
-    s2.BindString(0, seriesUuid);
-    while (s2.Step())
-    {
-      int index = s2.ColumnInt(0);
-      if (index <= 0 || index > numberOfInstances)
-      {
-        // Out-of-range instance index
-        return SeriesStatus_Inconsistent;
-      }
-
-      if (instances.find(index) != instances.end())
-      {
-        // Twice the same instance index
-        return SeriesStatus_Inconsistent;
-      }
-
-      instances.insert(index);
-    }
-
-    for (int i = 1; i <= numberOfInstances; i++)
-    {
-      if (instances.find(i) == instances.end())
-      {
-        return SeriesStatus_Missing;
-      }
-    }
-
-    return SeriesStatus_Complete;
   }
 
 
@@ -958,21 +844,37 @@ namespace Orthanc
       result["Type"] = "Series";
       result["Status"] = ToString(GetSeriesStatus(id));
 
-      std::string n = db2_->GetMetadata(id, MetadataType_Series_ExpectedNumberOfInstances);
-      if (n.size() > 0)
-      {
-        result["ExpectedNumberOfInstances"] = n;
-      }
-      else
-      {
+      int i;
+      if (db2_->GetMetadataAsInteger(i, id, MetadataType_Series_ExpectedNumberOfInstances))
+        result["ExpectedNumberOfInstances"] = i;
+        else
         result["ExpectedNumberOfInstances"] = Json::nullValue;
-      }
+
       break;
     }
 
     case ResourceType_Instance:
+    {
       result["Type"] = "Instance";
+
+      std::string fileUuid;
+      uint64_t uncompressedSize;
+      if (!db2_->LookupFile(id, AttachedFileType_Dicom, fileUuid, uncompressedSize))
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      result["FileSize"] = static_cast<unsigned int>(uncompressedSize);
+      result["FileUuid"] = fileUuid;
+
+      int i;
+      if (db2_->GetMetadataAsInteger(i, id, MetadataType_Instance_IndexInSeries))
+        result["IndexInSeries"] = i;
+      else
+        result["IndexInSeries"] = Json::nullValue;
+
       break;
+    }
 
     default:
       throw OrthancException(ErrorCode_InternalError);
@@ -983,101 +885,6 @@ namespace Orthanc
     MainDicomTagsToJson2(result, id);
 
     return true;
-  }
-
-
-  bool ServerIndex::GetInstance(Json::Value& result,
-                                const std::string& instanceUuid)
-  {
-    assert(result.type() == Json::objectValue);
-    boost::mutex::scoped_lock scoped_lock(mutex_);
-
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT parentSeries, dicomInstance, fileSize, fileUuid, indexInSeries FROM Instances WHERE uuid=?");
-    s.BindString(0, instanceUuid);
-    if (!s.Step())
-    {
-      return false;
-    }
-    else
-    {
-      result["ID"] = instanceUuid;
-      result["ParentSeries"] = s.ColumnString(0);
-      result["FileSize"] = s.ColumnInt(2);   // TODO switch to 64bit with JsonCpp 0.6?
-      result["FileUuid"] = s.ColumnString(3);
-      MainDicomTagsToJson(result, instanceUuid);
-      
-      if (s.ColumnIsNull(4))
-      {
-        result["IndexInSeries"] = Json::nullValue;
-      }
-      else
-      {
-        result["IndexInSeries"] = s.ColumnInt(4);
-      }
-
-      result["Type"] = "Instance";
-
-      return true;
-    }
-  }
-
-
-  bool ServerIndex::GetSeries(Json::Value& result,
-                              const std::string& seriesUuid)
-  {
-    return LookupResource(result, seriesUuid, ResourceType_Series);
-
-    assert(result.type() == Json::objectValue);
-    boost::mutex::scoped_lock scoped_lock(mutex_);
-
-    SQLite::Statement s1(db_, SQLITE_FROM_HERE, "SELECT parentStudy, dicomSeries, expectedNumberOfInstances FROM Series WHERE uuid=?");
-    s1.BindString(0, seriesUuid);
-    if (!s1.Step())
-    {
-      return false;
-    }
-
-    result["ID"] = seriesUuid;
-    result["ParentStudy"] = s1.ColumnString(0);
-    MainDicomTagsToJson(result, seriesUuid);
-
-    Json::Value instances(Json::arrayValue);
-    SQLite::Statement s2(db_, SQLITE_FROM_HERE, "SELECT uuid FROM Instances WHERE parentSeries=?");
-    s2.BindString(0, seriesUuid);
-    while (s2.Step())
-    {
-      instances.append(s2.ColumnString(0));
-    }
-      
-    result["Instances"] = instances;
-
-    if (s1.ColumnIsNull(2))
-    {
-      result["ExpectedNumberOfInstances"] = Json::nullValue;
-    }
-    else
-    {
-      result["ExpectedNumberOfInstances"] = s1.ColumnInt(2);
-    }
-
-    result["Status"] = ToString(GetSeriesStatus(seriesUuid));
-    result["Type"] = "Series";
-
-    return true;
-  }
-
-
-  bool ServerIndex::GetStudy(Json::Value& result,
-                             const std::string& studyUuid)
-  {
-    return LookupResource(result, studyUuid, ResourceType_Study);
-  }
-
-
-  bool ServerIndex::GetPatient(Json::Value& result,
-                               const std::string& patientUuid)
-  {
-    return LookupResource(result, patientUuid, ResourceType_Patient);
   }
 
 

@@ -352,6 +352,30 @@ namespace Orthanc
     }
   }
 
+
+  bool DatabaseWrapper::GetMetadataAsInteger(int& result,
+                                             int64_t id,
+                                             MetadataType type)
+  {
+    std::string s = GetMetadata(id, type, "");
+    if (s.size() == 0)
+    {
+      return false;
+    }
+
+    try
+    {
+      result = boost::lexical_cast<int>(s);
+      return true;
+    }
+    catch (boost::bad_lexical_cast&)
+    {
+      return false;
+    }
+  }
+
+
+
   void DatabaseWrapper::AttachFile(int64_t id,
                                    AttachedFileType contentType,
                                    const std::string& fileUuid,
