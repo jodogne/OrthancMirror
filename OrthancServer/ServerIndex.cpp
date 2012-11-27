@@ -787,6 +787,121 @@ namespace Orthanc
   }
 
 
+  void ServerIndex::MainDicomTagsToJson2(Json::Value& target,
+                                         int64_t resourceId)
+  {
+    DicomMap tags;
+    db2_->GetMainDicomTags(tags, resourceId);
+    target["MainDicomTags"] = Json::objectValue;
+    FromDcmtkBridge::ToJson(target["MainDicomTags"], tags);
+  }
+
+  bool ServerIndex::LookupResource(Json::Value& result,
+                                   const std::string& publicId)
+  {
+    result = Json::objectValue;
+
+    // Lookup for the requested resource
+    int64_t id;
+    ResourceType type;
+    if (!db2_->LookupResource(publicId, id, type))
+    {
+      return false;
+    }
+
+    // Find the parent resource (if it exists)
+    if (type != ResourceType_Patient)
+    {
+      int64_t parentId;
+      if (!db2_->LookupParent(parentId, id))
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      std::string parent = db2_->GetPublicId(parentId);
+
+      switch (type)
+      {
+      case ResourceType_Study:
+        result["ParentPatient"] = parent;
+        break;
+
+      case ResourceType_Series:
+        result["ParentStudy"] = parent;
+        break;
+
+      case ResourceType_Instance:
+        result["ParentSeries"] = parent;
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    // List the children resources
+    std::list<std::string> children;
+    db2_->GetChildrenPublicId(children, id);
+
+    if (type != ResourceType_Instance)
+    {
+      Json::Value c = Json::arrayValue;
+
+      for (std::list<std::string>::const_iterator
+             it = children.begin(); it != children.end(); it++)
+      {
+        c.append(*it);
+      }
+
+      switch (type)
+      {
+      case ResourceType_Patient:
+        result["Studies"] = c;
+        break;
+
+      case ResourceType_Study:
+        result["Series"] = c;
+        break;
+
+      case ResourceType_Series:
+        result["Instances"] = c;
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    // Set the resource type
+    switch (type)
+    {
+    case ResourceType_Patient:
+      result["Type"] = "Patient";
+      break;
+
+    case ResourceType_Study:
+      result["Type"] = "Study";
+      break;
+
+    case ResourceType_Series:
+      result["Type"] = "Series";
+      break;
+
+    case ResourceType_Instance:
+      result["Type"] = "Instance";
+      break;
+
+    default:
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    // Record the remaining information
+    result["ID"] = publicId;
+    MainDicomTagsToJson2(result, id);
+
+    return true;
+  }
+
 
   bool ServerIndex::GetInstance(Json::Value& result,
                                 const std::string& instanceUuid)
@@ -816,6 +931,8 @@ namespace Orthanc
       {
         result["IndexInSeries"] = s.ColumnInt(4);
       }
+
+      result["Type"] = "Instance";
 
       return true;
     }
@@ -880,6 +997,8 @@ namespace Orthanc
       break;
     }
 
+    result["Type"] = "Series";
+
     return true;
   }
 
@@ -910,6 +1029,7 @@ namespace Orthanc
     }
       
     result["Series"] = series;
+    result["Type"] = "Study";
     return true;
   }
 
@@ -939,7 +1059,10 @@ namespace Orthanc
     }
       
     result["Studies"] = studies;
+    result["Type"] = "Patient";
     return true;
+
+    //return LookupResource(result, patientUuid);
   }
 
 

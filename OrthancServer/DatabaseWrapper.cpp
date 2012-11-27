@@ -231,6 +231,43 @@ namespace Orthanc
     }
   }
 
+  bool DatabaseWrapper::LookupParent(int64_t& parentId,
+                                     int64_t resourceId)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                        "SELECT parentId FROM Resources WHERE internalId=?");
+    s.BindInt(0, resourceId);
+
+    if (!s.Step())
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
+    if (s.ColumnIsNull(0))
+    {
+      return false;
+    }
+    else
+    {
+      parentId = s.ColumnInt(0);
+      return true;
+    }
+  }
+
+  std::string DatabaseWrapper::GetPublicId(int64_t resourceId)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                        "SELECT publicId FROM Resources WHERE internalId=?");
+    s.BindInt(0, resourceId);
+    
+    if (!s.Step())
+    { 
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
+    return s.ColumnString(0);
+  }
+
   void DatabaseWrapper::AttachChild(int64_t parent,
                                     int64_t child)
   {

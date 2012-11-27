@@ -514,6 +514,7 @@ namespace Orthanc
         if (uri[0] == "patients")
         {
           existingResource = index_.GetPatient(result, uri[1]);
+          assert(result["Type"] == "Patient");
         }
         else if (uri[0] == "studies")
         {
