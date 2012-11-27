@@ -56,6 +56,27 @@ namespace Orthanc
     }
   }
 
+  const char* GetBasePath(ResourceType type)
+  {
+    switch (type)
+    {
+    case ResourceType_Patient:
+      return "patients";
+
+    case ResourceType_Study:
+      return "studies";
+
+    case ResourceType_Series:
+      return "series";
+
+    case ResourceType_Instance:
+      return "instances";
+      
+    default:
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
   const char* ToString(SeriesStatus status)
   {
     switch (status)

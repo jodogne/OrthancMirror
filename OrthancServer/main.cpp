@@ -217,9 +217,10 @@ int main(int argc, char* argv[])
       OrthancInitialize();
     }
 
-    std::string storageDirectory = GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
-    ServerIndex index(storageDirectory);
-    MyDicomStoreFactory storeScp(index, storageDirectory);
+    boost::filesystem::path storageDirectory = GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
+    FileStorage storage(storageDirectory.string());
+    ServerIndex index(storage, storageDirectory.string());
+    MyDicomStoreFactory storeScp(index, storageDirectory.string());
 
     {
       // DICOM server
@@ -257,7 +258,7 @@ int main(int argc, char* argv[])
       httpServer.RegisterHandler(new FilesystemHttpHandler("/app", ORTHANC_PATH "/OrthancExplorer"));
 #endif
 
-      httpServer.RegisterHandler(new OrthancRestApi(index, storageDirectory));
+      httpServer.RegisterHandler(new OrthancRestApi(index, storageDirectory.string()));
 
       // GO !!!
       httpServer.Start();

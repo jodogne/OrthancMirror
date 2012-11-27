@@ -40,6 +40,7 @@
 #include "Uuid.h"
 
 #include <boost/filesystem/fstream.hpp>
+#include <glog/logging.h>
 
 static std::string ToString(const boost::filesystem::path& p)
 {
@@ -275,6 +276,7 @@ namespace Orthanc
 
   void FileStorage::Remove(const std::string& uuid)
   {
+    LOG(INFO) << "Deleting file " << uuid;
     namespace fs = boost::filesystem;
 
     fs::path p = GetPath(uuid);
