@@ -78,6 +78,11 @@ namespace Orthanc
                         int64_t& id,
                         ResourceType& type);
 
+    bool LookupParent(int64_t& parentId,
+                      int64_t resourceId);
+
+    std::string GetPublicId(int64_t resourceId);
+
     void AttachChild(int64_t parent,
                      int64_t child);
 

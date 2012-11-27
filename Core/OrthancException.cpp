@@ -84,6 +84,9 @@ namespace Orthanc
     case ErrorCode_Timeout:
       return "Timeout";
 
+    case ErrorCode_UnknownResource:
+      return "Unknown resource";
+
     case ErrorCode_Custom:
     default:
       return "???";

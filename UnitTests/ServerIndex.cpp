@@ -54,6 +54,14 @@ TEST(DatabaseWrapper, Simple)
     index.CreateResource("g", ResourceType_Study)      // 6
   };
 
+  ASSERT_EQ("a", index.GetPublicId(a[0]));
+  ASSERT_EQ("b", index.GetPublicId(a[1]));
+  ASSERT_EQ("c", index.GetPublicId(a[2]));
+  ASSERT_EQ("d", index.GetPublicId(a[3]));
+  ASSERT_EQ("e", index.GetPublicId(a[4]));
+  ASSERT_EQ("f", index.GetPublicId(a[5]));
+  ASSERT_EQ("g", index.GetPublicId(a[6]));
+
   {
     Json::Value t;
     index.GetAllPublicIds(t, ResourceType_Patient);
@@ -79,6 +87,15 @@ TEST(DatabaseWrapper, Simple)
   index.AttachChild(a[2], a[3]);
   index.AttachChild(a[2], a[4]);
   index.AttachChild(a[6], a[5]);
+
+  int64_t parent;
+  ASSERT_FALSE(index.LookupParent(parent, a[0]));
+  ASSERT_TRUE(index.LookupParent(parent, a[1])); ASSERT_EQ(a[0], parent);
+  ASSERT_TRUE(index.LookupParent(parent, a[2])); ASSERT_EQ(a[1], parent);
+  ASSERT_TRUE(index.LookupParent(parent, a[3])); ASSERT_EQ(a[2], parent);
+  ASSERT_TRUE(index.LookupParent(parent, a[4])); ASSERT_EQ(a[2], parent);
+  ASSERT_TRUE(index.LookupParent(parent, a[5])); ASSERT_EQ(a[6], parent);
+  ASSERT_FALSE(index.LookupParent(parent, a[6]));
 
   std::string s;
   

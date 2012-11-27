@@ -111,6 +111,9 @@ namespace Orthanc
     void MainDicomTagsToJson(Json::Value& target,
                              const std::string& uuid);
 
+    void MainDicomTagsToJson2(Json::Value& result,
+                              int64_t resourceId);
+
     bool DeleteInternal(Json::Value& target,
                         const std::string& uuid,
                         const std::string& tableName);
@@ -120,6 +123,9 @@ namespace Orthanc
                        uint64_t uncompressedFileSize,
                        const std::string& jsonUuid,
                        const std::string& remoteAet);
+
+    bool LookupResource(Json::Value& result,
+                        const std::string& publicId);
 
   public:
     ServerIndex(const std::string& storagePath);
