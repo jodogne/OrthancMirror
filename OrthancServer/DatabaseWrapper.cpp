@@ -130,21 +130,21 @@ namespace Orthanc
 
 
   
-  void DatabaseWrapper::SetGlobalProperty(const std::string& name,
+  void DatabaseWrapper::SetGlobalProperty(GlobalProperty property,
                                           const std::string& value)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR REPLACE INTO GlobalProperties VALUES(?, ?)");
-    s.BindString(0, name);
+    s.BindInt(0, property);
     s.BindString(1, value);
     s.Run();
   }
 
   bool DatabaseWrapper::LookupGlobalProperty(std::string& target,
-                                             const std::string& name)
+                                             GlobalProperty property)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-                        "SELECT value FROM GlobalProperties WHERE name=?");
-    s.BindString(0, name);
+                        "SELECT value FROM GlobalProperties WHERE property=?");
+    s.BindInt(0, property);
 
     if (!s.Step())
     {
@@ -157,11 +157,11 @@ namespace Orthanc
     }
   }
 
-  std::string DatabaseWrapper::GetGlobalProperty(const std::string& name,
+  std::string DatabaseWrapper::GetGlobalProperty(GlobalProperty property,
                                                  const std::string& defaultValue)
   {
     std::string s;
-    if (LookupGlobalProperty(s, name))
+    if (LookupGlobalProperty(s, property))
     {
       return s;
     }

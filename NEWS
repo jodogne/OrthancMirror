@@ -1,8 +1,18 @@
 Pending changes in the mainline
 ===============================
 
+Major changes
+-------------
+
 * Full refactoring of the DB schema
 * Generate a sample configuration file from command line
+
+Minor changes
+-------------
+
+* "CompletedSeries" event in the changes API
+* Flush to disk thread
+
 
 
 Version 0.2.3 (2012/10/26)

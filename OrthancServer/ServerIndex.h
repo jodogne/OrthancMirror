@@ -54,6 +54,7 @@ namespace Orthanc
   {
   private:
     boost::mutex mutex_;
+    boost::thread flushThread_;
 
     std::auto_ptr<Internals::ServerIndexListener> listener_;
     std::auto_ptr<DatabaseWrapper> db_;
@@ -74,6 +75,8 @@ namespace Orthanc
   public:
     ServerIndex(FileStorage& fileStorage,
                 const std::string& dbPath);
+
+    ~ServerIndex();
 
     StoreStatus Store(const DicomMap& dicomSummary,
                       const std::string& fileUuid,
