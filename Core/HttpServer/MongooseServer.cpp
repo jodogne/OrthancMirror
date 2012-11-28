@@ -489,7 +489,8 @@ namespace Orthanc
       {
         HttpHandler::ParseGetQuery(arguments, request->query_string);
       }
-      else if (!strcmp(request->request_method, "POST"))
+      else if (!strcmp(request->request_method, "POST") ||
+               !strcmp(request->request_method, "PUT"))
       {
         HttpHandler::Arguments::const_iterator ct = headers.find("content-type");
         if (ct == headers.end())

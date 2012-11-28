@@ -76,12 +76,12 @@ namespace Orthanc
 
 
 
-  std::string HttpHandler::GetArgument(const Arguments& arguments,
+  std::string HttpHandler::GetArgument(const Arguments& getArguments,
                                        const std::string& name,
                                        const std::string& defaultValue)
   {
-    Arguments::const_iterator it = arguments.find(name);
-    if (it == arguments.end())
+    Arguments::const_iterator it = getArguments.find(name);
+    if (it == getArguments.end())
     {
       return defaultValue;
     }

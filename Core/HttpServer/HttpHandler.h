@@ -55,13 +55,13 @@ namespace Orthanc
                         const std::string& method,
                         const UriComponents& uri,
                         const Arguments& headers,
-                        const Arguments& arguments,
+                        const Arguments& getArguments,
                         const std::string& postData) = 0;
 
     static void ParseGetQuery(HttpHandler::Arguments& result, 
                               const char* query);
 
-    static std::string GetArgument(const Arguments& arguments,
+    static std::string GetArgument(const Arguments& getArguments,
                                    const std::string& name,
                                    const std::string& defaultValue);
   };

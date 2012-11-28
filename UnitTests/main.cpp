@@ -188,6 +188,7 @@ TEST(Uri, SplitUriComponents)
 
   ASSERT_THROW(Toolbox::SplitUriComponents(c, ""), OrthancException);
   ASSERT_THROW(Toolbox::SplitUriComponents(c, "a"), OrthancException);
+  ASSERT_THROW(Toolbox::SplitUriComponents(c, "/coucou//coucou"), OrthancException);
 }
 
 

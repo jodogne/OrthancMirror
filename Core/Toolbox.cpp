@@ -288,6 +288,15 @@ namespace Orthanc
     {
       components.push_back(std::string(&uri[start], end - start));
     }
+
+    for (size_t i = 0; i < components.size(); i++)
+    {
+      if (components[i].size() == 0)
+      {
+        // Empty component, as in: "/coucou//e"
+        throw OrthancException(ErrorCode_UriSyntax);
+      }
+    }
   }
 
 
