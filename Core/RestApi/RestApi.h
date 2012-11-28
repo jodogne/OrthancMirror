@@ -32,7 +32,6 @@
 
 #pragma once
 
-#include "../IDynamicObject.h"
 #include "../HttpServer/HttpHandler.h"
 #include "RestApiPath.h"
 #include "RestApiOutput.h"
@@ -48,7 +47,7 @@ namespace Orthanc
 
     private:
       RestApiOutput* output_;
-      IDynamicObject* context_;
+      RestApi* context_;
       const HttpHandler::Arguments* httpHeaders_;
       const RestApiPath::Components* uriComponents_;
       const UriComponents* trailing_;
@@ -59,9 +58,9 @@ namespace Orthanc
         return *output_;
       }
 
-      IDynamicObject* GetContext()
+      RestApi& GetContext()
       {
-        return context_;
+        return *context_;
       }
     
       const HttpHandler::Arguments& GetHttpHeaders() const
@@ -149,9 +148,6 @@ namespace Orthanc
     typedef std::list< std::pair<RestApiPath*, PostHandler> > PostHandlers;
     typedef std::list< std::pair<RestApiPath*, DeleteHandler> > DeleteHandlers;
 
-    // CAUTION: PLEASE INTRODUCE MUTEX BETWEEN CONTEXTS !!!
-    std::auto_ptr<IDynamicObject> context_;
-
     GetHandlers  getHandlers_;
     PutHandlers  putHandlers_;
     PostHandlers  postHandlers_;
@@ -167,11 +163,6 @@ namespace Orthanc
   public:
     RestApi()
     {
-    }
-
-    void SetContext(IDynamicObject* context)  // This takes the ownership
-    {
-      context_.reset(context);
     }
 
     ~RestApi();

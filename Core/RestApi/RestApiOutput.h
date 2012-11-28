@@ -43,11 +43,12 @@ namespace Orthanc
   {
   private:
     HttpOutput& output_;
+    bool existingResource_;
 
   public:
-    RestApiOutput(HttpOutput& output) : output_(output)
-    {
-    }
+    RestApiOutput(HttpOutput& output);
+
+    ~RestApiOutput();
 
     void AnswerFile(HttpFileSender& sender);
 

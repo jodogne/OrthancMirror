@@ -419,27 +419,6 @@ namespace Orthanc
     Json::Value result(Json::objectValue);
 
 
-    // Version information ------------------------------------------------------
- 
-    if (uri.size() == 1 && uri[0] == "system")
-    {
-      if (method == "GET")
-      {
-        result = Json::Value(Json::objectValue);
-        result["Version"] = ORTHANC_VERSION;
-        result["Name"] = GetGlobalStringParameter("Name", "");
-        result["TotalCompressedSize"] = boost::lexical_cast<std::string>(index_.GetTotalCompressedSize());
-        result["TotalUncompressedSize"] = boost::lexical_cast<std::string>(index_.GetTotalUncompressedSize());
-        existingResource = true;
-      }
-      else
-      {
-        output.SendMethodNotAllowedError("GET,POST");
-        return;
-      }
-    }
-
-
     // List all the instances ---------------------------------------------------
  
     if (uri.size() == 1 && uri[0] == "instances")
@@ -710,72 +689,7 @@ namespace Orthanc
     }
 
 
-
-    // Changes API --------------------------------------------------------------
- 
-    if (uri.size() == 1 && uri[0] == "changes")
-    {
-      if (method == "GET")
-      {
-        const static unsigned int MAX_RESULTS = 100;
-        
-        //std::string filter = GetArgument(getArguments, "filter", "");
-        int64_t since;
-        unsigned int limit;
-        try
-        {
-          since = boost::lexical_cast<int64_t>(GetArgument(getArguments, "since", "0"));
-          limit = boost::lexical_cast<unsigned int>(GetArgument(getArguments, "limit", "0"));
-        }
-        catch (boost::bad_lexical_cast)
-        {
-          output.SendHeader(Orthanc_HttpStatus_400_BadRequest);
-          return;
-        }
-
-        if (limit == 0 || limit > MAX_RESULTS)
-        {
-          limit = MAX_RESULTS;
-        }
-
-        if (!index_.GetChanges(result, since, limit))
-        {
-          output.SendHeader(Orthanc_HttpStatus_400_BadRequest);
-          return;
-        }
-
-        existingResource = true;
-      }
-      else
-      {
-        output.SendMethodNotAllowedError("GET");
-        return;
-      }
-    }
-
-
     // DICOM bridge -------------------------------------------------------------
-
-    if (uri.size() == 1 &&
-        uri[0] == "modalities")
-    {
-      if (method == "GET")
-      {
-        result = Json::Value(Json::arrayValue);
-        existingResource = true;
-
-        for (Modalities::const_iterator it = modalities_.begin(); 
-             it != modalities_.end(); it++)
-        {
-          result.append(*it);
-        }
-      }
-      else
-      {
-        output.SendMethodNotAllowedError("GET");
-        return;
-      }
-    }
 
     if ((uri.size() == 2 ||
          uri.size() == 3) && 

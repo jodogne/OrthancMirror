@@ -30,49 +30,42 @@
  **/
 
 
-#include "RestApiOutput.h"
+#pragma once
+
+#include "ServerIndex.h"
+#include "../Core/RestApi/RestApi.h"
+
+#include <set>
 
 namespace Orthanc
 {
-  RestApiOutput::RestApiOutput(HttpOutput& output) : 
-    output_(output)
+  class OrthancRestApi2 : public RestApi
   {
-    existingResource_ = false;
-  }
+  public:
+    typedef std::set<std::string> Modalities;
 
+  private:
+    ServerIndex& index_;
+    FileStorage storage_;
+    Modalities modalities_;
 
-  RestApiOutput::~RestApiOutput()
-  {
-    if (!existingResource_)
+  public:
+    OrthancRestApi2(ServerIndex& index,
+                    const std::string& path);
+
+    ServerIndex& GetIndex()
     {
-      output_.SendHeader(Orthanc_HttpStatus_400_BadRequest);
+      return index_;
     }
-  }
+    
+    FileStorage& GetStorage()
+    {
+      return storage_;
+    }
 
-  void RestApiOutput::AnswerFile(HttpFileSender& sender)
-  {
-    sender.Send(output_);
-    existingResource_ = true;
-  }
-
-  void RestApiOutput::AnswerJson(const Json::Value& value)
-  {
-    Json::StyledWriter writer;
-    std::string s = writer.write(value);
-    output_.AnswerBufferWithContentType(s, "application/json");
-    existingResource_ = true;
-  }
-
-  void RestApiOutput::AnswerBuffer(const std::string& buffer,
-                                   const std::string& contentType)
-  {
-    output_.AnswerBufferWithContentType(buffer, contentType);
-    existingResource_ = true;
-  }
-
-  void RestApiOutput::Redirect(const char* path)
-  {
-    output_.Redirect(path);
-    existingResource_ = true;
-  }
+    Modalities& GetModalities()
+    {
+      return modalities_;
+    }
+  };
 }
