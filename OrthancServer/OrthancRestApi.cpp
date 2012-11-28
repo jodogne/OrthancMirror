@@ -717,8 +717,8 @@ namespace Orthanc
       if (method == "GET")
       {
         const static unsigned int MAX_RESULTS = 100;
-
-        std::string filter = GetArgument(arguments, "filter", "");
+        
+        //std::string filter = GetArgument(arguments, "filter", "");
         int64_t since;
         unsigned int limit;
         try
@@ -737,7 +737,7 @@ namespace Orthanc
           limit = MAX_RESULTS;
         }
 
-        if (!index_.GetChanges(result, since, filter, limit))
+        if (!index_.GetChanges(result, since, limit))
         {
           output.SendHeader(Orthanc_HttpStatus_400_BadRequest);
           return;

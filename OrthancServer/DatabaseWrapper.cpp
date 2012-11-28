@@ -515,6 +515,43 @@ namespace Orthanc
   }
 
 
+  void DatabaseWrapper::GetChanges(Json::Value& target,
+                                   int64_t since,
+                                   unsigned int maxResults)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT * FROM Changes WHERE seq>? ORDER BY seq LIMIT ?");
+    s.BindInt(0, since);
+    s.BindInt(1, maxResults + 1);
+
+    Json::Value changes = Json::arrayValue;
+    int64_t last = 0;
+
+    while (changes.size() < maxResults && s.Step())
+    {
+      int64_t seq = s.ColumnInt(0);
+      ChangeType changeType = static_cast<ChangeType>(s.ColumnInt(1));
+      int64_t internalId = s.ColumnInt(2);
+      ResourceType resourceType = static_cast<ResourceType>(s.ColumnInt(3));
+      const std::string& date = s.ColumnString(4);
+
+      Json::Value item = Json::objectValue;
+      item["Seq"] = static_cast<int>(seq);
+      item["ChangeType"] = ToString(changeType);
+      item["ResourceType"] = ToString(resourceType);
+      item["ID"] = GetPublicId(internalId);
+      item["Date"] = date;
+      last = seq;
+
+      changes.append(item);
+    }
+
+    target = Json::objectValue;
+    target["Changes"] = changes;
+    target["PendingChanges"] = (changes.size() == maxResults && s.Step());
+    target["LastSeq"] = static_cast<int>(last);
+  }
+
+
   void DatabaseWrapper::LogExportedInstance(const std::string& remoteModality,
                                             DicomInstanceHasher& hasher,
                                             const boost::posix_time::ptime& date)

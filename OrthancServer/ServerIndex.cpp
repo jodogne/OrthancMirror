@@ -120,104 +120,6 @@ namespace Orthanc
         return remainingPublicId_;
       }                                 
     };
-
-
-    class DeleteFromFileStorageFunction : public SQLite::IScalarFunction
-    {
-    private:
-      FileStorage& fileStorage_;
-
-    public:
-      DeleteFromFileStorageFunction(FileStorage& fileStorage) : 
-        fileStorage_(fileStorage)
-      {
-      }
-
-      virtual const char* GetName() const
-      {
-        return "DeleteFromFileStorage";
-      }
-
-      virtual unsigned int GetCardinality() const
-      {
-        return 1;
-      }
-
-      virtual void Compute(SQLite::FunctionContext& context)
-      {
-        std::string fileUuid = context.GetStringValue(0);
-        LOG(INFO) << "Removing file [" << fileUuid << "]";
-
-        if (Toolbox::IsUuid(fileUuid))
-        {
-          fileStorage_.Remove(fileUuid);
-        }
-      }
-    };
-
-
-    class SignalDeletedLevelFunction : public SQLite::IScalarFunction
-    {
-    private:
-      int remainingLevel_;
-      std::string remainingLevelUuid_;
-
-    public:
-      void Clear()
-      {
-        remainingLevel_ = std::numeric_limits<int>::max();
-      }
-
-      bool HasRemainingLevel() const
-      {
-        return (remainingLevel_ != 0 && 
-                remainingLevel_ !=  std::numeric_limits<int>::max());
-      }
-
-      const std::string& GetRemainingLevelUuid() const
-      {
-        assert(HasRemainingLevel());
-        return remainingLevelUuid_;
-      }
-
-      const char* GetRemainingLevelType() const
-      {
-        assert(HasRemainingLevel());
-        switch (remainingLevel_)
-        {
-        case 1:
-          return "patient";
-        case 2:
-          return "study";
-        case 3:
-          return "series";
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-        }
-      }
-
-      virtual const char* GetName() const
-      {
-        return "SignalDeletedLevel";
-      }
-
-      virtual unsigned int GetCardinality() const
-      {
-        return 2;
-      }
-
-      virtual void Compute(SQLite::FunctionContext& context)
-      {
-        int level = context.GetIntValue(0);
-        if (level < remainingLevel_)
-        {
-          remainingLevel_ = level;
-          remainingLevelUuid_ = context.GetStringValue(1);
-        }
-
-        //printf("deleted level [%d] [%s]\n", level, context.GetStringValue(1).c_str());
-      }
-    };
   }
 
 
@@ -248,7 +150,7 @@ namespace Orthanc
       const std::string& uuid = listener_->GetRemainingPublicId();
 
       target["RemainingAncestor"] = Json::Value(Json::objectValue);
-      target["RemainingAncestor"]["Path"] = std::string(GetBasePath(type)) + "/" + uuid;
+      target["RemainingAncestor"]["Path"] = GetBasePath(type, uuid);
       target["RemainingAncestor"]["Type"] = ToString(type);
       target["RemainingAncestor"]["ID"] = uuid;
     }
@@ -698,70 +600,13 @@ namespace Orthanc
 
 
   bool ServerIndex::GetChanges(Json::Value& target,
-                               int64_t since,
-                               const std::string& filter,
+                               int64_t since,                               
                                unsigned int maxResults)
   {
     boost::mutex::scoped_lock scoped_lock(mutex_);
-    return false;
-    // TODO !!!!
-    
-    /*assert(target.type() == Json::objectValue);
-      boost::mutex::scoped_lock scoped_lock(mutex_);
 
-      if (filter.size() != 0 &&
-      filter != "instances" &&
-      filter != "series" &&
-      filter != "studies" &&
-      filter != "patients")
-      {
-      return false;
-      }
+    db_->GetChanges(target, since, maxResults);
 
-      std::auto_ptr<SQLite::Statement> s;
-      if (filter.size() == 0)
-      {    
-      s.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT * FROM Changes WHERE seq>? "
-      "ORDER BY seq LIMIT ?"));
-      s->BindInt64(0, since);
-      s->BindInt(1, maxResults);
-      }
-      else
-      {
-      s.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT * FROM Changes WHERE seq>? "
-      "AND basePath=? ORDER BY seq LIMIT ?"));
-      s->BindInt64(0, since);
-      s->BindString(1, filter);
-      s->BindInt(2, maxResults);
-      }
-    
-      int64_t lastSeq = 0;
-      Json::Value results(Json::arrayValue);
-      while (s->Step())
-      {
-      int64_t seq = s->ColumnInt64(0);
-      std::string basePath = s->ColumnString(1);
-      std::string uuid = s->ColumnString(2);
-
-      if (filter.size() == 0 ||
-      filter == basePath)
-      {
-      Json::Value change(Json::objectValue);
-      change["Seq"] = static_cast<int>(seq);   // TODO JsonCpp in 64bit
-      change["BasePath"] = basePath;
-      change["ID"] = uuid;
-      results.append(change);
-      }
-
-      if (seq > lastSeq)
-      {
-      lastSeq = seq;
-      }
-      }
-
-      target["Results"] = results;
-      target["LastSeq"] = static_cast<int>(lastSeq);   // TODO JsonCpp in 64bit
-
-      return true;*/
+    return true;
   }
 }

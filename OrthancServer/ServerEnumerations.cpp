@@ -56,21 +56,22 @@ namespace Orthanc
     }
   }
 
-  const char* GetBasePath(ResourceType type)
+  std::string GetBasePath(ResourceType type,
+                          const std::string& publicId)
   {
     switch (type)
     {
     case ResourceType_Patient:
-      return "patients";
+      return "/patients/" + publicId;
 
     case ResourceType_Study:
-      return "studies";
+      return "/studies/" + publicId;
 
     case ResourceType_Series:
-      return "series";
+      return "/series/" + publicId;
 
     case ResourceType_Instance:
-      return "instances";
+      return "/instances/" + publicId;
       
     default:
       throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -92,6 +93,30 @@ namespace Orthanc
 
     case SeriesStatus_Unknown:
       return "Unknown";
+
+    default:
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+  const char* ToString(ChangeType type)
+  {
+    switch (type)
+    {
+    case ChangeType_CompletedSeries:
+      return "CompletedSeries";
+
+    case ChangeType_NewInstance:
+      return "NewInstance";
+
+    case ChangeType_NewPatient:
+      return "NewPatient";
+
+    case ChangeType_NewSeries:
+      return "NewSeries";
+
+    case ChangeType_NewStudy:
+      return "NewStudy";
 
     default:
       throw OrthancException(ErrorCode_ParameterOutOfRange);
