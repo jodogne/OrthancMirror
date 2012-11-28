@@ -372,5 +372,16 @@ namespace Orthanc
       return func;
     }
 
+
+    void Connection::FlushToDisk()
+    {
+      VLOG(1) << "SQLite::Connection::FlushToDisk";
+      int err = sqlite3_wal_checkpoint(db_, NULL);
+
+      if (err != SQLITE_OK)
+      {
+        throw OrthancException("SQLite: Unable to flush the database");
+      }
+    }
   }
 }

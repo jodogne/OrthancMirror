@@ -35,6 +35,11 @@
 
 namespace Orthanc
 {
+  enum GlobalProperty
+  {
+    GlobalProperty_FlushSleep = 1
+  };
+
   enum SeriesStatus
   {
     SeriesStatus_Complete,

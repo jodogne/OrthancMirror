@@ -1,5 +1,5 @@
 CREATE TABLE GlobalProperties(
-       name TEXT PRIMARY KEY,
+       property INTEGER PRIMARY KEY,
        value TEXT
        );
 

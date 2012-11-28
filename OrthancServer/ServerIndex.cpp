@@ -127,7 +127,7 @@ namespace Orthanc
                                    const std::string& uuid,
                                    ResourceType expectedType)
   {
-    boost::mutex::scoped_lock scoped_lock(mutex_);
+    boost::mutex::scoped_lock lock(mutex_);
 
     listener_->Reset();
 
@@ -165,6 +165,35 @@ namespace Orthanc
   }
 
 
+  static void FlushThread(DatabaseWrapper* db,
+                          boost::mutex* mutex)
+  {
+    // By default, wait for 10 seconds before flushing
+    unsigned int sleep = 10;
+
+    {
+      boost::mutex::scoped_lock lock(*mutex);
+      std::string s = db->GetGlobalProperty(GlobalProperty_FlushSleep);
+      try
+      {
+        sleep = boost::lexical_cast<unsigned int>(s);
+      }
+      catch (boost::bad_lexical_cast&)
+      {
+      }
+    }
+
+    LOG(INFO) << "Starting the database flushing thread (sleep = " << sleep << ")";
+
+    while (1)
+    {
+      boost::this_thread::sleep(boost::posix_time::seconds(sleep));
+      boost::mutex::scoped_lock lock(*mutex);
+      db->FlushToDisk();
+    }
+  }
+
+
   ServerIndex::ServerIndex(FileStorage& fileStorage,
                            const std::string& dbPath)
   {
@@ -188,6 +217,16 @@ namespace Orthanc
 
       db_.reset(new DatabaseWrapper(p.string() + "/index", *listener_));
     }
+
+    flushThread_ = boost::thread(FlushThread, db_.get(), &mutex_);
+  }
+
+
+  ServerIndex::~ServerIndex()
+  {
+    LOG(INFO) << "Stopping the database flushing thread";
+    flushThread_.interrupt();
+    flushThread_.join();
   }
 
 
@@ -197,7 +236,7 @@ namespace Orthanc
                                  const std::string& jsonUuid,
                                  const std::string& remoteAet)
   {
-    boost::mutex::scoped_lock scoped_lock(mutex_);
+    boost::mutex::scoped_lock lock(mutex_);
 
     DicomInstanceHasher hasher(dicomSummary);
 
@@ -350,13 +389,13 @@ namespace Orthanc
 
   uint64_t ServerIndex::GetTotalCompressedSize()
   {
-    boost::mutex::scoped_lock scoped_lock(mutex_);
+    boost::mutex::scoped_lock lock(mutex_);
     return db_->GetTotalCompressedSize();
   }
 
   uint64_t ServerIndex::GetTotalUncompressedSize()
   {
-    boost::mutex::scoped_lock scoped_lock(mutex_);
+    boost::mutex::scoped_lock lock(mutex_);
     return db_->GetTotalUncompressedSize();
   }
 
@@ -442,7 +481,7 @@ namespace Orthanc
   {
     result = Json::objectValue;
 
-    boost::mutex::scoped_lock scoped_lock(mutex_);
+    boost::mutex::scoped_lock lock(mutex_);
 
     // Lookup for the requested resource
     int64_t id;
@@ -581,7 +620,7 @@ namespace Orthanc
                             const std::string& instanceUuid,
                             AttachedFileType contentType)
   {
-    boost::mutex::scoped_lock scoped_lock(mutex_);
+    boost::mutex::scoped_lock lock(mutex_);
 
     int64_t id;
     ResourceType type;
@@ -601,7 +640,7 @@ namespace Orthanc
   void ServerIndex::GetAllUuids(Json::Value& target,
                                 ResourceType resourceType)
   {
-    boost::mutex::scoped_lock scoped_lock(mutex_);
+    boost::mutex::scoped_lock lock(mutex_);
     db_->GetAllPublicIds(target, resourceType);
   }
 
@@ -610,7 +649,7 @@ namespace Orthanc
                                int64_t since,                               
                                unsigned int maxResults)
   {
-    boost::mutex::scoped_lock scoped_lock(mutex_);
+    boost::mutex::scoped_lock lock(mutex_);
 
     db_->GetChanges(target, since, maxResults);
 

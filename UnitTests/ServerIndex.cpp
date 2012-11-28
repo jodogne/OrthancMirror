@@ -80,7 +80,7 @@ TEST(DatabaseWrapper, Simple)
     ASSERT_EQ(3, t.size());
   }
 
-  index.SetGlobalProperty("Hello", "World");
+  index.SetGlobalProperty(GlobalProperty_FlushSleep, "World");
 
   index.AttachChild(a[0], a[1]);
   index.AttachChild(a[1], a[2]);
@@ -150,11 +150,11 @@ TEST(DatabaseWrapper, Simple)
   ASSERT_EQ("PINNACLE", index.GetMetadata(a[4], MetadataType_Instance_RemoteAet));
   ASSERT_EQ("None", index.GetMetadata(a[4], MetadataType_Instance_IndexInSeries, "None"));
 
-  ASSERT_TRUE(index.LookupGlobalProperty(s, "Hello"));
-  ASSERT_FALSE(index.LookupGlobalProperty(s, "Hello2"));
+  ASSERT_TRUE(index.LookupGlobalProperty(s, GlobalProperty_FlushSleep));
+  ASSERT_FALSE(index.LookupGlobalProperty(s, static_cast<GlobalProperty>(42)));
   ASSERT_EQ("World", s);
-  ASSERT_EQ("World", index.GetGlobalProperty("Hello"));
-  ASSERT_EQ("None", index.GetGlobalProperty("Hello2", "None"));
+  ASSERT_EQ("World", index.GetGlobalProperty(GlobalProperty_FlushSleep));
+  ASSERT_EQ("None", index.GetGlobalProperty(static_cast<GlobalProperty>(42), "None"));
 
   uint64_t us, cs;
   CompressionType ct;

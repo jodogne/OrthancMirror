@@ -62,13 +62,13 @@ namespace Orthanc
     void Open();
 
   public:
-    void SetGlobalProperty(const std::string& name,
+    void SetGlobalProperty(GlobalProperty property,
                            const std::string& value);
 
     bool LookupGlobalProperty(std::string& target,
-                              const std::string& name);
+                              GlobalProperty property);
 
-    std::string GetGlobalProperty(const std::string& name,
+    std::string GetGlobalProperty(GlobalProperty property,
                                   const std::string& defaultValue = "");
 
     int64_t CreateResource(const std::string& publicId,
@@ -189,6 +189,11 @@ namespace Orthanc
     const char* GetErrorMessage() const
     {
       return db_.GetErrorMessage();
+    }
+
+    void FlushToDisk()
+    {
+      db_.FlushToDisk();
     }
   };
 }

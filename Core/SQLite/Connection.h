@@ -111,6 +111,8 @@ namespace Orthanc
         return Execute(sql.c_str());
       }
 
+      void FlushToDisk();
+
       IScalarFunction* Register(IScalarFunction* func);  // Takes the ownership of the function
 
       // Info querying -------------------------------------------------------------
@@ -169,7 +171,7 @@ namespace Orthanc
 
       bool BeginTransaction();
       void RollbackTransaction();
-      bool CommitTransaction();
+      bool CommitTransaction();      
     };
   }
 }
