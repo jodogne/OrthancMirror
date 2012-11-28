@@ -31,6 +31,8 @@
 
 #pragma once
 
+#include <string>
+
 namespace Orthanc
 {
   enum SeriesStatus
@@ -76,8 +78,7 @@ namespace Orthanc
     ChangeType_NewInstance = 3,
     ChangeType_NewPatient = 4,
     ChangeType_NewSeries = 2,
-    ChangeType_NewStudy = 5,
-    ChangeType_InvalidSeries = 6
+    ChangeType_NewStudy = 5
   };
 
   enum AttachedFileType
@@ -88,7 +89,10 @@ namespace Orthanc
 
   const char* ToString(ResourceType type);
 
-  const char* GetBasePath(ResourceType type);
+  std::string GetBasePath(ResourceType type,
+                          const std::string& publicId);
 
   const char* ToString(SeriesStatus status);
+
+  const char* ToString(ChangeType type);
 }

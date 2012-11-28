@@ -159,6 +159,10 @@ namespace Orthanc
                    ResourceType resourceType,
                    const boost::posix_time::ptime& date = boost::posix_time::second_clock::local_time());
 
+    void GetChanges(Json::Value& target,
+                    int64_t since,
+                    unsigned int maxResults);
+
     void LogExportedInstance(const std::string& remoteModality,
                              DicomInstanceHasher& hasher,
                              const boost::posix_time::ptime& date = boost::posix_time::second_clock::local_time());

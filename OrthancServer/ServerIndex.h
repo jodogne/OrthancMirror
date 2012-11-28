@@ -152,7 +152,6 @@ namespace Orthanc
 
     bool GetChanges(Json::Value& target,
                     int64_t since,
-                    const std::string& filter,
                     unsigned int maxResults);
   };
 }
