@@ -5,7 +5,6 @@
 #include <ctype.h>
 #include <glog/logging.h>
 
-
 using namespace Orthanc;
 
 namespace
@@ -261,9 +260,15 @@ TEST(DatabaseWrapper, Upward)
 
 
 
+
+#include "../Core/HttpServer/FilesystemHttpSender.h"
+
 #include "../Core/Toolbox.h"
 #include "../Core/HttpServer/HttpOutput.h"
 #include "../Core/HttpServer/HttpHandler.h"
+
+#include "../Core/HttpServer/HttpFileSender.h"
+
 
 namespace Orthanc
 {
@@ -373,131 +378,6 @@ namespace Orthanc
       Components components;
       UriComponents trailing;
       return Match(components, trailing, uri);
-    }
-  };
-
-
-  class HttpFileSender
-  {
-  private:
-    std::string contentType_;
-    std::string filename_;
-
-    void SendHeader(HttpOutput& output)
-    {
-      std::string header;
-      header += "Content-Length: " + boost::lexical_cast<std::string>(GetFileSize()) + "\r\n";
-
-      if (contentType_.size() > 0)
-      {
-        header += "Content-Type: " + contentType_ + "\r\n";
-      }
-
-      if (filename_.size() > 0)
-      {
-        header += "Content-Disposition: attachment; filename=\"" + filename_ + "\"\r\n";
-      }
-  
-      output.SendCustomOkHeader(header);
-    }
-
-  protected:
-    virtual uint64_t GetFileSize() = 0;
-
-    virtual bool SendData(HttpOutput& output) = 0;
-
-  public:
-    virtual ~HttpFileSender()
-    {
-    }
-
-    void ResetContentType()
-    {
-      contentType_.clear();
-    }
-
-    void SetContentType(const std::string& contentType)
-    {
-      contentType_ = contentType;
-    }
-
-    const std::string& GetContentType() const
-    {
-      return contentType_;
-    }
-
-    void ResetFilename()
-    {
-      contentType_.clear();
-    }
-
-    void SetFilename(const std::string& filename)
-    {
-      filename_ = filename;
-    }
-
-    const std::string& GetFilename() const
-    {
-      return filename_;
-    }
-
-    void Send(HttpOutput& output)
-    {
-      SendHeader(output);
-
-      if (!SendData(output))
-      {
-        output.SendHeader(Orthanc_HttpStatus_500_InternalServerError);
-      }
-    }
-  };
-
-
-  class FilesystemHttpSender : public HttpFileSender
-  {
-  private:
-    std::string path_;
-
-  protected:
-    virtual uint64_t GetFileSize()
-    {
-      return Toolbox::GetFileSize(path_);
-    }
-
-    virtual bool SendData(HttpOutput& output)
-    {
-      FILE* fp = fopen(path_.c_str(), "rb");
-      if (!fp)
-      {
-        return false;
-      }
-
-      std::vector<uint8_t> buffer(1024 * 1024);  // Chunks of 1MB
-
-      for (;;)
-      {
-        size_t nbytes = fread(&buffer[0], 1, buffer.size(), fp);
-        if (nbytes == 0)
-        {
-          break;
-        }
-        else
-        {
-          output.Send(&buffer[0], nbytes);
-        }
-      }
-
-      fclose(fp);
-
-      return true;
-    }
-
-  public:
-    FilesystemHttpSender(const char* path) : path_(path)
-    {
-      boost::filesystem::path p(path);
-      SetFilename(p.filename().string());
-      SetContentType(Toolbox::AutodetectMimeType(p.filename().string()));
     }
   };
 
@@ -994,14 +874,3 @@ TEST(RestApi, Tutu)
   /*LOG(WARNING) << "REST has started";
     Toolbox::ServerBarrier();*/
 }
-
-
-/**
-
-   output.AnswerBufferWithContentType(s, "application/json");
-   output.AnswerFile(storage_, fileUuid, contentType, filename.c_str());
-   output.Redirect("app/explorer.html");
-   output.SendHeader(Orthanc_HttpStatus_415_UnsupportedMediaType);
-   output.SendMethodNotAllowedError("GET");
-
-**/

@@ -29,68 +29,29 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
-
 #pragma once
 
-#include <boost/filesystem.hpp>
-#include <set>
-
-#include "Compression/BufferCompressor.h"
+#include "HttpFileSender.h"
+#include "../FileStorage.h"
 
 namespace Orthanc
 {
-  class FileStorage : public boost::noncopyable
+  class FilesystemHttpSender : public HttpFileSender
   {
-    // TODO REMOVE THIS
-    friend class HttpOutput;
-    friend class FilesystemHttpSender;
-
   private:
-    std::auto_ptr<BufferCompressor> compressor_;
+    std::string path_;
 
-    boost::filesystem::path root_;
+    void Setup();
 
-    boost::filesystem::path GetPath(const std::string& uuid) const;
+  protected:
+    virtual uint64_t GetFileSize();
 
-    std::string CreateFileWithoutCompression(const void* content, size_t size);
+    virtual bool SendData(HttpOutput& output);
 
   public:
-    FileStorage(std::string root);
+    FilesystemHttpSender(const char* path);
 
-    void SetBufferCompressor(BufferCompressor* compressor)  // Takes the ownership
-    {
-      compressor_.reset(compressor);
-    }
-
-    bool HasBufferCompressor() const
-    {
-      return compressor_.get() != NULL;
-    }
-
-    std::string Create(const void* content, size_t size);
-
-    std::string Create(const std::vector<uint8_t>& content);
-
-    std::string Create(const std::string& content);
-
-    void ReadFile(std::string& content,
-                  const std::string& uuid) const;
-
-    void ListAllFiles(std::set<std::string>& result) const;
-
-    uintmax_t GetCompressedSize(const std::string& uuid) const;
-
-    void Clear();
-
-    void Remove(const std::string& uuid);
-
-    uintmax_t GetCapacity() const;
-
-    uintmax_t GetAvailableSpace() const;
-
-    std::string GetPath() const
-    {
-      return root_.string();
-    }
+    FilesystemHttpSender(const FileStorage& storage,
+                         const std::string& uuid);
   };
 }

@@ -32,65 +32,58 @@
 
 #pragma once
 
-#include <boost/filesystem.hpp>
-#include <set>
-
-#include "Compression/BufferCompressor.h"
+#include "HttpOutput.h"
 
 namespace Orthanc
 {
-  class FileStorage : public boost::noncopyable
+  class HttpFileSender
   {
-    // TODO REMOVE THIS
-    friend class HttpOutput;
-    friend class FilesystemHttpSender;
-
   private:
-    std::auto_ptr<BufferCompressor> compressor_;
+    std::string contentType_;
+    std::string filename_;
 
-    boost::filesystem::path root_;
+    void SendHeader(HttpOutput& output);
 
-    boost::filesystem::path GetPath(const std::string& uuid) const;
+  protected:
+    virtual uint64_t GetFileSize() = 0;
 
-    std::string CreateFileWithoutCompression(const void* content, size_t size);
+    virtual bool SendData(HttpOutput& output) = 0;
 
   public:
-    FileStorage(std::string root);
-
-    void SetBufferCompressor(BufferCompressor* compressor)  // Takes the ownership
+    virtual ~HttpFileSender()
     {
-      compressor_.reset(compressor);
     }
 
-    bool HasBufferCompressor() const
+    void ResetContentType()
     {
-      return compressor_.get() != NULL;
+      contentType_.clear();
     }
 
-    std::string Create(const void* content, size_t size);
-
-    std::string Create(const std::vector<uint8_t>& content);
-
-    std::string Create(const std::string& content);
-
-    void ReadFile(std::string& content,
-                  const std::string& uuid) const;
-
-    void ListAllFiles(std::set<std::string>& result) const;
-
-    uintmax_t GetCompressedSize(const std::string& uuid) const;
-
-    void Clear();
-
-    void Remove(const std::string& uuid);
-
-    uintmax_t GetCapacity() const;
-
-    uintmax_t GetAvailableSpace() const;
-
-    std::string GetPath() const
+    void SetContentType(const std::string& contentType)
     {
-      return root_.string();
+      contentType_ = contentType;
     }
+
+    const std::string& GetContentType() const
+    {
+      return contentType_;
+    }
+
+    void ResetFilename()
+    {
+      contentType_.clear();
+    }
+
+    void SetFilename(const std::string& filename)
+    {
+      filename_ = filename;
+    }
+
+    const std::string& GetFilename() const
+    {
+      return filename_;
+    }
+
+    void Send(HttpOutput& output);
   };
 }

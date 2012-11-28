@@ -109,6 +109,8 @@ add_library(CoreLibrary
   Core/HttpServer/HttpHandler.cpp
   Core/HttpServer/HttpOutput.cpp
   Core/HttpServer/MongooseServer.cpp
+  Core/HttpServer/HttpFileSender.cpp
+  Core/HttpServer/FilesystemHttpSender.cpp
   Core/MultiThreading/BagOfRunnablesBySteps.cpp
   Core/PngWriter.cpp
   Core/SQLite/Connection.cpp
