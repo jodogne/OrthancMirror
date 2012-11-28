@@ -29,68 +29,63 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
+#include "FilesystemHttpSender.h"
 
-#pragma once
+#include "../Toolbox.h"
 
-#include <boost/filesystem.hpp>
-#include <set>
-
-#include "Compression/BufferCompressor.h"
+#include <stdio.h>
 
 namespace Orthanc
 {
-  class FileStorage : public boost::noncopyable
+  void FilesystemHttpSender::Setup()
   {
-    // TODO REMOVE THIS
-    friend class HttpOutput;
-    friend class FilesystemHttpSender;
+    boost::filesystem::path p(path_);
+    SetFilename(p.filename().string());
+    SetContentType(Toolbox::AutodetectMimeType(p.filename().string()));
+  }
 
-  private:
-    std::auto_ptr<BufferCompressor> compressor_;
+  uint64_t FilesystemHttpSender::GetFileSize()
+  {
+    return Toolbox::GetFileSize(path_);
+  }
 
-    boost::filesystem::path root_;
-
-    boost::filesystem::path GetPath(const std::string& uuid) const;
-
-    std::string CreateFileWithoutCompression(const void* content, size_t size);
-
-  public:
-    FileStorage(std::string root);
-
-    void SetBufferCompressor(BufferCompressor* compressor)  // Takes the ownership
+  bool FilesystemHttpSender::SendData(HttpOutput& output)
+  {
+    FILE* fp = fopen(path_.c_str(), "rb");
+    if (!fp)
     {
-      compressor_.reset(compressor);
+      return false;
     }
 
-    bool HasBufferCompressor() const
+    std::vector<uint8_t> buffer(1024 * 1024);  // Chunks of 1MB
+
+    for (;;)
     {
-      return compressor_.get() != NULL;
+      size_t nbytes = fread(&buffer[0], 1, buffer.size(), fp);
+      if (nbytes == 0)
+      {
+        break;
+      }
+      else
+      {
+        output.Send(&buffer[0], nbytes);
+      }
     }
 
-    std::string Create(const void* content, size_t size);
+    fclose(fp);
 
-    std::string Create(const std::vector<uint8_t>& content);
+    return true;
+  }
 
-    std::string Create(const std::string& content);
+  FilesystemHttpSender::FilesystemHttpSender(const char* path) : path_(path)
+  {
+    Setup();
+  }
 
-    void ReadFile(std::string& content,
-                  const std::string& uuid) const;
-
-    void ListAllFiles(std::set<std::string>& result) const;
-
-    uintmax_t GetCompressedSize(const std::string& uuid) const;
-
-    void Clear();
-
-    void Remove(const std::string& uuid);
-
-    uintmax_t GetCapacity() const;
-
-    uintmax_t GetAvailableSpace() const;
-
-    std::string GetPath() const
-    {
-      return root_.string();
-    }
-  };
+  FilesystemHttpSender::FilesystemHttpSender(const FileStorage& storage,
+                                             const std::string& uuid)
+  {
+    path_ = storage.GetPath(uuid).string();
+    Setup();
+  }
 }

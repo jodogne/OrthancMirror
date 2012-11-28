@@ -30,67 +30,37 @@
  **/
 
 
-#pragma once
+#include "HttpFileSender.h"
 
-#include <boost/filesystem.hpp>
-#include <set>
-
-#include "Compression/BufferCompressor.h"
+#include <boost/lexical_cast.hpp>
 
 namespace Orthanc
 {
-  class FileStorage : public boost::noncopyable
+  void HttpFileSender::SendHeader(HttpOutput& output)
   {
-    // TODO REMOVE THIS
-    friend class HttpOutput;
-    friend class FilesystemHttpSender;
+    std::string header;
+    header += "Content-Length: " + boost::lexical_cast<std::string>(GetFileSize()) + "\r\n";
 
-  private:
-    std::auto_ptr<BufferCompressor> compressor_;
-
-    boost::filesystem::path root_;
-
-    boost::filesystem::path GetPath(const std::string& uuid) const;
-
-    std::string CreateFileWithoutCompression(const void* content, size_t size);
-
-  public:
-    FileStorage(std::string root);
-
-    void SetBufferCompressor(BufferCompressor* compressor)  // Takes the ownership
+    if (contentType_.size() > 0)
     {
-      compressor_.reset(compressor);
+      header += "Content-Type: " + contentType_ + "\r\n";
     }
 
-    bool HasBufferCompressor() const
+    if (filename_.size() > 0)
     {
-      return compressor_.get() != NULL;
+      header += "Content-Disposition: attachment; filename=\"" + filename_ + "\"\r\n";
     }
+  
+    output.SendCustomOkHeader(header);
+  }
 
-    std::string Create(const void* content, size_t size);
+  void HttpFileSender::Send(HttpOutput& output)
+  {
+    SendHeader(output);
 
-    std::string Create(const std::vector<uint8_t>& content);
-
-    std::string Create(const std::string& content);
-
-    void ReadFile(std::string& content,
-                  const std::string& uuid) const;
-
-    void ListAllFiles(std::set<std::string>& result) const;
-
-    uintmax_t GetCompressedSize(const std::string& uuid) const;
-
-    void Clear();
-
-    void Remove(const std::string& uuid);
-
-    uintmax_t GetCapacity() const;
-
-    uintmax_t GetAvailableSpace() const;
-
-    std::string GetPath() const
+    if (!SendData(output))
     {
-      return root_.string();
+      output.SendHeader(Orthanc_HttpStatus_500_InternalServerError);
     }
-  };
+  }
 }

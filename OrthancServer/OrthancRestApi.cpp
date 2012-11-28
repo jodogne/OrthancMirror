@@ -35,6 +35,7 @@
 #include "OrthancInitialization.h"
 #include "FromDcmtkBridge.h"
 #include "../Core/Uuid.h"
+#include "../Core/HttpServer/FilesystemHttpSender.h"
 
 #include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
