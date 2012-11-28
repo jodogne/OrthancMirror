@@ -258,3 +258,750 @@ TEST(DatabaseWrapper, Upward)
   index.DeleteResource(a[6]);
   ASSERT_EQ("", listener.ancestorId_);  // No more ancestor
 }
+
+
+
+#include "../Core/Toolbox.h"
+#include "../Core/HttpServer/HttpOutput.h"
+#include "../Core/HttpServer/HttpHandler.h"
+
+namespace Orthanc
+{
+  class RestApiPath
+  {
+  private:
+    UriComponents uri_;
+    bool hasTrailing_;
+    std::vector<std::string> components_;
+
+  public:
+    typedef std::map<std::string, std::string> Components;
+
+    RestApiPath(const std::string& uri)
+    {
+      Toolbox::SplitUriComponents(uri_, uri);
+
+      if (uri_.size() == 0)
+      {
+        return;
+      }
+
+      if (uri_.back() == "*")
+      {
+        hasTrailing_ = true;
+        uri_.pop_back();
+      }
+      else
+      {
+        hasTrailing_ = false;
+      }
+
+      components_.resize(uri_.size());
+      for (size_t i = 0; i < uri_.size(); i++)
+      {
+        size_t s = uri_[i].size();
+        assert(s > 0);
+
+        if (uri_[i][0] == '{' && 
+            uri_[i][s - 1] == '}')
+        {
+          components_[i] = uri_[i].substr(1, s - 2);
+          uri_[i] = "";
+        }
+        else
+        {
+          components_[i] = "";
+        }
+      }
+    }
+
+    // This version is slower
+    bool Match(Components& components,
+               UriComponents& trailing,
+               const std::string& uriRaw) const
+    {
+      UriComponents uri;
+      Toolbox::SplitUriComponents(uri, uriRaw);
+      return Match(components, trailing, uri);
+    }
+
+    bool Match(Components& components,
+               UriComponents& trailing,
+               const UriComponents& uri) const
+    {
+      if (uri.size() < uri_.size())
+      {
+        return false;
+      }
+
+      if (!hasTrailing_ && uri.size() > uri_.size())
+      {
+        return false;
+      }
+
+      components.clear();
+      trailing.clear();
+
+      assert(uri_.size() <= uri.size());
+      for (size_t i = 0; i < uri_.size(); i++)
+      {
+        if (components_[i].size() == 0)
+        {
+          // This URI component is not a free parameter
+          if (uri_[i] != uri[i])
+          {
+            return false;
+          }
+        }
+        else
+        {
+          // This URI component is a free parameter
+          components[components_[i]] = uri[i];
+        }
+      }
+
+      if (hasTrailing_)
+      {
+        trailing.assign(uri.begin() + uri_.size(), uri.end());
+      }
+
+      return true;
+    }
+
+    bool Match(const UriComponents& uri) const
+    {
+      Components components;
+      UriComponents trailing;
+      return Match(components, trailing, uri);
+    }
+  };
+
+
+  class HttpFileSender
+  {
+  private:
+    std::string contentType_;
+    std::string filename_;
+
+    void SendHeader(HttpOutput& output)
+    {
+      std::string header;
+      header += "Content-Length: " + boost::lexical_cast<std::string>(GetFileSize()) + "\r\n";
+
+      if (contentType_.size() > 0)
+      {
+        header += "Content-Type: " + contentType_ + "\r\n";
+      }
+
+      if (filename_.size() > 0)
+      {
+        header += "Content-Disposition: attachment; filename=\"" + filename_ + "\"\r\n";
+      }
+  
+      output.SendCustomOkHeader(header);
+    }
+
+  protected:
+    virtual uint64_t GetFileSize() = 0;
+
+    virtual bool SendData(HttpOutput& output) = 0;
+
+  public:
+    virtual ~HttpFileSender()
+    {
+    }
+
+    void ResetContentType()
+    {
+      contentType_.clear();
+    }
+
+    void SetContentType(const std::string& contentType)
+    {
+      contentType_ = contentType;
+    }
+
+    const std::string& GetContentType() const
+    {
+      return contentType_;
+    }
+
+    void ResetFilename()
+    {
+      contentType_.clear();
+    }
+
+    void SetFilename(const std::string& filename)
+    {
+      filename_ = filename;
+    }
+
+    const std::string& GetFilename() const
+    {
+      return filename_;
+    }
+
+    void Send(HttpOutput& output)
+    {
+      SendHeader(output);
+
+      if (!SendData(output))
+      {
+        output.SendHeader(Orthanc_HttpStatus_500_InternalServerError);
+      }
+    }
+  };
+
+
+  class FilesystemHttpSender : public HttpFileSender
+  {
+  private:
+    std::string path_;
+
+  protected:
+    virtual uint64_t GetFileSize()
+    {
+      return Toolbox::GetFileSize(path_);
+    }
+
+    virtual bool SendData(HttpOutput& output)
+    {
+      FILE* fp = fopen(path_.c_str(), "rb");
+      if (!fp)
+      {
+        return false;
+      }
+
+      std::vector<uint8_t> buffer(1024 * 1024);  // Chunks of 1MB
+
+      for (;;)
+      {
+        size_t nbytes = fread(&buffer[0], 1, buffer.size(), fp);
+        if (nbytes == 0)
+        {
+          break;
+        }
+        else
+        {
+          output.Send(&buffer[0], nbytes);
+        }
+      }
+
+      fclose(fp);
+
+      return true;
+    }
+
+  public:
+    FilesystemHttpSender(const char* path) : path_(path)
+    {
+      boost::filesystem::path p(path);
+      SetFilename(p.filename().string());
+      SetContentType(Toolbox::AutodetectMimeType(p.filename().string()));
+    }
+  };
+
+
+  class RestApiOutput
+  {
+  private:
+    HttpOutput& output_;
+
+  public:
+    RestApiOutput(HttpOutput& output) : output_(output)
+    {
+    }
+
+    void AnswerFile(HttpFileSender& sender)
+    {
+      sender.Send(output_);
+    }
+
+    void AnswerJson(const Json::Value& value)
+    {
+      Json::StyledWriter writer;
+      std::string s = writer.write(value);
+      output_.AnswerBufferWithContentType(s, "application/json");
+    }
+
+    void AnswerBuffer(const std::string& buffer,
+                      const std::string& contentType)
+    {
+      output_.AnswerBufferWithContentType(buffer, contentType);
+    }
+
+    void Redirect(const char* path)
+    {
+      output_.Redirect(path);
+    }
+  };
+
+
+  class RestApiSharedCall
+  {
+  protected:
+    RestApiOutput* output_;
+    IDynamicObject* context_;
+    const HttpHandler::Arguments* httpHeaders_;
+    const RestApiPath::Components* uriComponents_;
+    const UriComponents* trailing_;
+
+  public:
+    RestApiOutput& GetOutput()
+    {
+      return *output_;
+    }
+
+    IDynamicObject* GetContext()
+    {
+      return context_;
+    }
+    
+    const HttpHandler::Arguments& GetHttpHeaders() const
+    {
+      return *httpHeaders_;
+    }
+
+    const RestApiPath::Components& GetUriComponents() const
+    {
+      return *uriComponents_;
+    }
+
+    const UriComponents& GetTrailing() const
+    {
+      return *trailing_;
+    }
+
+    std::string GetUriComponent(const std::string& name,
+                                const std::string& defaultValue)
+    {
+      return HttpHandler::GetArgument(*uriComponents_, name, defaultValue);
+    }
+  };
+
+ 
+  class RestApiPutCall : public RestApiSharedCall
+  {
+    friend class RestApi;
+
+  private:
+    const std::string* data_;
+
+  public:
+    const std::string& GetData()
+    {
+      return *data_;
+    }
+  };
+
+
+  class RestApiPostCall : public RestApiSharedCall
+  {
+    friend class RestApi;
+
+  private:
+    const std::string* data_;
+
+  public:
+    const std::string& GetData()
+    {
+      return *data_;
+    }
+  };
+
+
+ 
+  class RestApiDeleteCall : public RestApiSharedCall
+  {
+    friend class RestApi;
+  };
+
+
+
+
+  class RestApiGetCall : public RestApiSharedCall
+  {
+    friend class RestApi;
+
+  private:
+    const HttpHandler::Arguments* getArguments_;
+
+  public:
+    std::string GetArgument(const std::string& name,
+                            const std::string& defaultValue)
+    {
+      return HttpHandler::GetArgument(*getArguments_, name, defaultValue);
+    }
+  };
+
+
+
+  class RestApi : public HttpHandler
+  {
+  public:
+    typedef void (*GetHandler) (RestApiGetCall& call);
+    
+    typedef void (*DeleteHandler) (RestApiDeleteCall& call);
+    
+    typedef void (*PutHandler) (RestApiPutCall& call);
+    
+    typedef void (*PostHandler) (RestApiPostCall& call);
+    
+  private:
+    typedef std::list< std::pair<RestApiPath*, GetHandler> > GetHandlers;
+    typedef std::list< std::pair<RestApiPath*, PutHandler> > PutHandlers;
+    typedef std::list< std::pair<RestApiPath*, PostHandler> > PostHandlers;
+    typedef std::list< std::pair<RestApiPath*, DeleteHandler> > DeleteHandlers;
+
+    // TODO MUTEX BETWEEN CONTEXTS !!!
+    std::auto_ptr<IDynamicObject> context_;
+
+    GetHandlers  getHandlers_;
+    PutHandlers  putHandlers_;
+    PostHandlers  postHandlers_;
+    DeleteHandlers  deleteHandlers_;
+
+    bool IsGetAccepted(const UriComponents& uri)
+    {
+      for (GetHandlers::const_iterator it = getHandlers_.begin();
+           it != getHandlers_.end(); it++)
+      {
+        if (it->first->Match(uri))
+        {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    bool IsPutAccepted(const UriComponents& uri)
+    {
+      for (PutHandlers::const_iterator it = putHandlers_.begin();
+           it != putHandlers_.end(); it++)
+      {
+        if (it->first->Match(uri))
+        {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    bool IsPostAccepted(const UriComponents& uri)
+    {
+      for (PostHandlers::const_iterator it = postHandlers_.begin();
+           it != postHandlers_.end(); it++)
+      {
+        if (it->first->Match(uri))
+        {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    bool IsDeleteAccepted(const UriComponents& uri)
+    {
+      for (DeleteHandlers::const_iterator it = deleteHandlers_.begin();
+           it != deleteHandlers_.end(); it++)
+      {
+        if (it->first->Match(uri))
+        {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    void AddMethod(std::string& target,
+                   const std::string& method) const
+    {
+      if (target.size() > 0)
+        target += "," + method;
+      else
+        target = method;
+    }
+
+    std::string  GetAcceptedMethods(const UriComponents& uri)
+    {
+      std::string s;
+
+      if (IsGetAccepted(uri))
+        AddMethod(s, "GET");
+
+      if (IsPutAccepted(uri))
+        AddMethod(s, "PUT");
+
+      if (IsPostAccepted(uri))
+        AddMethod(s, "POST");
+
+      if (IsDeleteAccepted(uri))
+        AddMethod(s, "DELETE");
+
+      return s;
+    }
+
+  public:
+    RestApi()
+    {
+    }
+
+    void SetContext(IDynamicObject* context)  // This takes the ownership
+    {
+      context_.reset(context);
+    }
+
+    ~RestApi()
+    {
+      for (GetHandlers::iterator it = getHandlers_.begin(); 
+           it != getHandlers_.end(); it++)
+      {
+        delete it->first;
+      } 
+
+      for (PutHandlers::iterator it = putHandlers_.begin(); 
+           it != putHandlers_.end(); it++)
+      {
+        delete it->first;
+      } 
+
+      for (PostHandlers::iterator it = postHandlers_.begin(); 
+           it != postHandlers_.end(); it++)
+      {
+        delete it->first;
+      } 
+
+      for (DeleteHandlers::iterator it = deleteHandlers_.begin(); 
+           it != deleteHandlers_.end(); it++)
+      {
+        delete it->first;
+      } 
+    }
+
+    virtual bool IsServedUri(const UriComponents& uri)
+    {
+      return (IsGetAccepted(uri) ||
+              IsPutAccepted(uri) ||
+              IsPostAccepted(uri) ||
+              IsDeleteAccepted(uri));
+    }
+
+    virtual void Handle(HttpOutput& output,
+                        const std::string& method,
+                        const UriComponents& uri,
+                        const Arguments& headers,
+                        const Arguments& getArguments,
+                        const std::string& postData)
+    {
+      bool ok = false;
+      RestApiOutput restOutput(output);
+      RestApiPath::Components components;
+      UriComponents trailing;
+               
+      if (method == "GET")
+      {
+        for (GetHandlers::const_iterator it = getHandlers_.begin();
+             it != getHandlers_.end(); it++)
+        {
+          if (it->first->Match(components, trailing, uri))
+          {
+            ok = true;
+            RestApiGetCall call;
+            call.output_ = &restOutput;
+            call.context_ = context_.get();
+            call.httpHeaders_ = &headers;
+            call.uriComponents_ = &components;
+            call.trailing_ = &trailing;
+           
+            call.getArguments_ = &getArguments;
+            it->second(call);
+          }
+        }
+      }
+      else if (method == "PUT")
+      {
+        for (PutHandlers::const_iterator it = putHandlers_.begin();
+             it != putHandlers_.end(); it++)
+        {
+          if (it->first->Match(components, trailing, uri))
+          {
+            ok = true;
+            RestApiPutCall call;
+            call.output_ = &restOutput;
+            call.context_ = context_.get();
+            call.httpHeaders_ = &headers;
+            call.uriComponents_ = &components;
+            call.trailing_ = &trailing;
+           
+            call.data_ = &postData;
+            it->second(call);
+          }
+        }
+      }
+      else if (method == "POST")
+      {
+        for (PostHandlers::const_iterator it = postHandlers_.begin();
+             it != postHandlers_.end(); it++)
+        {
+          if (it->first->Match(components, trailing, uri))
+          {
+            ok = true;
+            RestApiPostCall call;
+            call.output_ = &restOutput;
+            call.context_ = context_.get();
+            call.httpHeaders_ = &headers;
+            call.uriComponents_ = &components;
+            call.trailing_ = &trailing;
+           
+            call.data_ = &postData;
+            it->second(call);
+          }
+        }
+      }
+      else if (method == "DELETE")
+      {
+        for (DeleteHandlers::const_iterator it = deleteHandlers_.begin();
+             it != deleteHandlers_.end(); it++)
+        {
+          if (it->first->Match(components, trailing, uri))
+          {
+            ok = true;
+            RestApiDeleteCall call;
+            call.output_ = &restOutput;
+            call.context_ = context_.get();
+            call.httpHeaders_ = &headers;
+            call.uriComponents_ = &components;
+            call.trailing_ = &trailing;
+            it->second(call);
+          }
+        }
+      }
+
+      if (!ok)
+      {
+        output.SendMethodNotAllowedError(GetAcceptedMethods(uri));
+      }
+    }
+
+    void Register(const std::string& path,
+                  GetHandler handler)
+    {
+      getHandlers_.push_back(std::make_pair(new RestApiPath(path), handler));
+    }
+
+
+    void Register(const std::string& path,
+                  PutHandler handler)
+    {
+      putHandlers_.push_back(std::make_pair(new RestApiPath(path), handler));
+    }
+
+
+    void Register(const std::string& path,
+                  PostHandler handler)
+    {
+      postHandlers_.push_back(std::make_pair(new RestApiPath(path), handler));
+    }
+
+
+    void Register(const std::string& path,
+                  DeleteHandler handler)
+    {
+      deleteHandlers_.push_back(std::make_pair(new RestApiPath(path), handler));
+    }
+
+  };
+
+}
+
+
+TEST(RestApi, RestApiPath)
+{
+  RestApiPath::Components args;
+  UriComponents trail;
+
+  {
+    RestApiPath uri("/coucou/{abc}/d/*");
+    ASSERT_TRUE(uri.Match(args, trail, "/coucou/moi/d/e/f/g"));
+    ASSERT_EQ(1u, args.size());
+    ASSERT_EQ(3u, trail.size());
+    ASSERT_EQ("moi", args["abc"]);
+    ASSERT_EQ("e", trail[0]);
+    ASSERT_EQ("f", trail[1]);
+    ASSERT_EQ("g", trail[2]);
+
+    ASSERT_FALSE(uri.Match(args, trail, "/coucou/moi/f"));
+    ASSERT_TRUE(uri.Match(args, trail, "/coucou/moi/d/"));
+    ASSERT_FALSE(uri.Match(args, trail, "/a/moi/d"));
+    ASSERT_FALSE(uri.Match(args, trail, "/coucou/moi"));
+  }
+
+  {
+    RestApiPath uri("/coucou/{abc}/d");
+    ASSERT_FALSE(uri.Match(args, trail, "/coucou/moi/d/e/f/g"));
+    ASSERT_TRUE(uri.Match(args, trail, "/coucou/moi/d"));
+    ASSERT_EQ(1u, args.size());
+    ASSERT_EQ(0u, trail.size());
+    ASSERT_EQ("moi", args["abc"]);
+  }
+
+  {
+    RestApiPath uri("/*");
+    ASSERT_TRUE(uri.Match(args, trail, "/a/b/c"));
+    ASSERT_EQ(0u, args.size());
+    ASSERT_EQ(3u, trail.size());
+    ASSERT_EQ("a", trail[0]);
+    ASSERT_EQ("b", trail[1]);
+    ASSERT_EQ("c", trail[2]);
+  }
+}
+
+
+
+
+#include "../Core/HttpServer/MongooseServer.h"
+
+struct Tutu : public IDynamicObject
+{
+  static void Toto(RestApiGetCall& call)
+  {
+    printf("DONE\n");
+    Json::Value a = Json::objectValue;
+    a["Tutu"] = "Toto";
+    a["Youpie"] = call.GetArgument("coucou", "nope");
+    a["Toto"] = call.GetUriComponent("test", "nope");
+    call.GetOutput().AnswerJson(a);
+  }
+};
+
+
+
+TEST(RestApi, Tutu)
+{
+  MongooseServer httpServer;
+  httpServer.SetPortNumber(8042);
+  httpServer.Start();
+
+  RestApi* api = new RestApi;
+  httpServer.RegisterHandler(api);
+  api->Register("/coucou/{test}/a/*", Tutu::Toto);
+
+  httpServer.Start();
+  /*LOG(WARNING) << "REST has started";
+    Toolbox::ServerBarrier();*/
+}
+
+
+/**
+
+   output.AnswerBufferWithContentType(s, "application/json");
+   output.AnswerFile(storage_, fileUuid, contentType, filename.c_str());
+   output.Redirect("app/explorer.html");
+   output.SendHeader(Orthanc_HttpStatus_415_UnsupportedMediaType);
+   output.SendMethodNotAllowedError("GET");
+
+**/

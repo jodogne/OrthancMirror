@@ -44,11 +44,6 @@ namespace Orthanc
   private:
     void SendHeaderInternal(Orthanc_HttpStatus status);
 
-    void SendOkHeader(const char* contentType,
-                      bool hasContentLength,
-                      uint64_t contentLength,
-                      const char* contentFilename);
-
   public:
     virtual ~HttpOutput()
     {
@@ -57,6 +52,13 @@ namespace Orthanc
     virtual void Send(const void* buffer, size_t length) = 0;
 
     void SendOkHeader(const std::string& contentType);
+
+    void SendOkHeader(const char* contentType,
+                      bool hasContentLength,
+                      uint64_t contentLength,
+                      const char* contentFilename);
+
+    void SendCustomOkHeader(const std::string& customHeader);
 
     void SendString(const std::string& s);
 

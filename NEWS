@@ -11,8 +11,7 @@ Minor changes
 -------------
 
 * "CompletedSeries" event in the changes API
-* Flush to disk thread
-
+* Thread to continuously flush DB to disk (robustness against reboots)
 
 
 Version 0.2.3 (2012/10/26)

@@ -93,7 +93,7 @@ namespace Orthanc
       const std::string& method,
       const UriComponents& uri,
       const Arguments& headers,
-      const Arguments& arguments,
+      const Arguments& getArguments,
       const std::string& postData);
   };
 }

@@ -397,7 +397,7 @@ namespace Orthanc
     const std::string& method,
     const UriComponents& uri,
     const Arguments& headers,
-    const Arguments& arguments,
+    const Arguments& getArguments,
     const std::string& postData)
   {
     if (uri.size() == 0)
@@ -718,13 +718,13 @@ namespace Orthanc
       {
         const static unsigned int MAX_RESULTS = 100;
         
-        //std::string filter = GetArgument(arguments, "filter", "");
+        //std::string filter = GetArgument(getArguments, "filter", "");
         int64_t since;
         unsigned int limit;
         try
         {
-          since = boost::lexical_cast<int64_t>(GetArgument(arguments, "since", "0"));
-          limit = boost::lexical_cast<unsigned int>(GetArgument(arguments, "limit", "0"));
+          since = boost::lexical_cast<int64_t>(GetArgument(getArguments, "since", "0"));
+          limit = boost::lexical_cast<unsigned int>(GetArgument(getArguments, "limit", "0"));
         }
         catch (boost::bad_lexical_cast)
         {

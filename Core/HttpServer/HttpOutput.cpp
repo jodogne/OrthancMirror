@@ -80,6 +80,13 @@ namespace Orthanc
   }
 
 
+  void HttpOutput::SendCustomOkHeader(const std::string& customHeader)
+  {
+    std::string s = "HTTP/1.1 200 OK\r\n" + customHeader + "\r\n";
+    Send(&s[0], s.size());
+  }
+
+
   void HttpOutput::SendMethodNotAllowedError(const std::string& allowed)
   {
     std::string s = 
