@@ -50,6 +50,7 @@ TEST(RestApi, RestApiPath)
 
 
 
+#if 0
 
 #include "../Core/HttpServer/MongooseServer.h"
 
@@ -82,3 +83,5 @@ TEST(RestApi, Tutu)
   /*LOG(WARNING) << "REST has started";
     Toolbox::ServerBarrier();*/
 }
+
+#endif

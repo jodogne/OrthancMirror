@@ -31,6 +31,7 @@
 
 
 #include "OrthancRestApi.h"
+#include "OrthancRestApi2.h"
 
 #include <fstream>
 #include <glog/logging.h>
@@ -258,6 +259,7 @@ int main(int argc, char* argv[])
       httpServer.RegisterHandler(new FilesystemHttpHandler("/app", ORTHANC_PATH "/OrthancExplorer"));
 #endif
 
+      httpServer.RegisterHandler(new OrthancRestApi2(index, storageDirectory.string()));
       httpServer.RegisterHandler(new OrthancRestApi(index, storageDirectory.string()));
 
       // GO !!!

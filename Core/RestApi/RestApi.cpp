@@ -32,6 +32,8 @@
 
 #include "RestApi.h"
 
+#include <glog/logging.h>
+
 namespace Orthanc
 {
   bool RestApi::IsGetAccepted(const UriComponents& uri)
@@ -164,7 +166,7 @@ namespace Orthanc
     RestApiOutput restOutput(output);
     RestApiPath::Components components;
     UriComponents trailing;
-               
+
     if (method == "GET")
     {
       for (GetHandlers::const_iterator it = getHandlers_.begin();
@@ -172,10 +174,11 @@ namespace Orthanc
       {
         if (it->first->Match(components, trailing, uri))
         {
+          LOG(INFO) << "REST GET call on: " << Toolbox::FlattenUri(uri);
           ok = true;
           GetCall call;
           call.output_ = &restOutput;
-          call.context_ = context_.get();
+          call.context_ = this;
           call.httpHeaders_ = &headers;
           call.uriComponents_ = &components;
           call.trailing_ = &trailing;
@@ -192,10 +195,11 @@ namespace Orthanc
       {
         if (it->first->Match(components, trailing, uri))
         {
+          LOG(INFO) << "REST PUT call on: " << Toolbox::FlattenUri(uri);
           ok = true;
           PutCall call;
           call.output_ = &restOutput;
-          call.context_ = context_.get();
+          call.context_ = this;
           call.httpHeaders_ = &headers;
           call.uriComponents_ = &components;
           call.trailing_ = &trailing;
@@ -212,10 +216,11 @@ namespace Orthanc
       {
         if (it->first->Match(components, trailing, uri))
         {
+          LOG(INFO) << "REST POST call on: " << Toolbox::FlattenUri(uri);
           ok = true;
           PostCall call;
           call.output_ = &restOutput;
-          call.context_ = context_.get();
+          call.context_ = this;
           call.httpHeaders_ = &headers;
           call.uriComponents_ = &components;
           call.trailing_ = &trailing;
@@ -232,10 +237,11 @@ namespace Orthanc
       {
         if (it->first->Match(components, trailing, uri))
         {
+          LOG(INFO) << "REST DELETE call on: " << Toolbox::FlattenUri(uri);
           ok = true;
           DeleteCall call;
           call.output_ = &restOutput;
-          call.context_ = context_.get();
+          call.context_ = this;
           call.httpHeaders_ = &headers;
           call.uriComponents_ = &components;
           call.trailing_ = &trailing;
@@ -246,6 +252,7 @@ namespace Orthanc
 
     if (!ok)
     {
+      LOG(INFO) << "REST method " << method << " not allowed on: " << Toolbox::FlattenUri(uri);
       output.SendMethodNotAllowedError(GetAcceptedMethods(uri));
     }
   }
