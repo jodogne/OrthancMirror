@@ -111,6 +111,9 @@ add_library(CoreLibrary
   Core/HttpServer/MongooseServer.cpp
   Core/HttpServer/HttpFileSender.cpp
   Core/HttpServer/FilesystemHttpSender.cpp
+  Core/RestApi/RestApiPath.cpp
+  Core/RestApi/RestApiOutput.cpp
+  Core/RestApi/RestApi.cpp
   Core/MultiThreading/BagOfRunnablesBySteps.cpp
   Core/PngWriter.cpp
   Core/SQLite/Connection.cpp
@@ -163,13 +166,14 @@ if (BUILD_UNIT_TESTS)
   include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
   add_executable(UnitTests
     ${GTEST_SOURCES}
-    UnitTests/main.cpp
     UnitTests/MessageWithDestination.cpp
+    UnitTests/RestApi.cpp
     UnitTests/SQLite.cpp
     UnitTests/SQLiteChromium.cpp
+    UnitTests/ServerIndex.cpp
     UnitTests/Versions.cpp
     UnitTests/Zip.cpp
-    UnitTests/ServerIndex.cpp
+    UnitTests/main.cpp
     )
   target_link_libraries(UnitTests ServerLibrary CoreLibrary)
 endif()
