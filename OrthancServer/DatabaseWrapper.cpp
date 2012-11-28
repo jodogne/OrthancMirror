@@ -533,12 +533,14 @@ namespace Orthanc
       int64_t internalId = s.ColumnInt(2);
       ResourceType resourceType = static_cast<ResourceType>(s.ColumnInt(3));
       const std::string& date = s.ColumnString(4);
+      std::string publicId = GetPublicId(internalId);
 
       Json::Value item = Json::objectValue;
       item["Seq"] = static_cast<int>(seq);
       item["ChangeType"] = ToString(changeType);
       item["ResourceType"] = ToString(resourceType);
-      item["ID"] = GetPublicId(internalId);
+      item["ID"] = publicId;
+      item["Path"] = GetBasePath(resourceType, publicId);
       item["Date"] = date;
       last = seq;
 

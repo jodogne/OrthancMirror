@@ -293,6 +293,13 @@ namespace Orthanc
         }
       }
 
+      // Check whether the series of this new instance is now completed
+      SeriesStatus seriesStatus = GetSeriesStatus(series);
+      if (seriesStatus == SeriesStatus_Complete)
+      {
+        db_->LogChange(ChangeType_CompletedSeries, series, ResourceType_Series);
+      }
+
       t->Commit();
 
       return StoreStatus_Success;
