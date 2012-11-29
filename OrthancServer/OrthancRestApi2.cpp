@@ -41,6 +41,7 @@
 #include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <boost/lexical_cast.hpp>
+#include <glog/logging.h>
 
 
 #define RETRIEVE_CONTEXT(call)                                          \
@@ -269,6 +270,58 @@ namespace Orthanc
   }
 
 
+  // Upload of DICOM files through HTTP ---------------------------------------
+
+  static void UploadDicomFile(RestApi::PostCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+
+    const std::string& postData = call.GetPostBody();
+
+    LOG(INFO) << "Receiving a DICOM file of " << postData.size() << " bytes through HTTP";
+
+    // Prepare an input stream for the memory buffer
+    DcmInputBufferStream is;
+    if (postData.size() > 0)
+    {
+      is.setBuffer(&postData[0], postData.size());
+    }
+    is.setEos();
+
+    DcmFileFormat dicomFile;
+    if (!dicomFile.read(is).good())
+    {
+      call.GetOutput().SignalError(Orthanc_HttpStatus_415_UnsupportedMediaType);
+      return;
+    }
+
+    DicomMap dicomSummary;
+    FromDcmtkBridge::Convert(dicomSummary, *dicomFile.getDataset());
+
+    DicomInstanceHasher hasher(dicomSummary);
+
+    Json::Value dicomJson;
+    FromDcmtkBridge::ToJson(dicomJson, *dicomFile.getDataset());
+      
+    StoreStatus status = StoreStatus_Failure;
+    if (postData.size() > 0)
+    {
+      status = context.GetIndex().Store
+        (context.GetFileStorage(), reinterpret_cast<const char*>(&postData[0]),
+         postData.size(), dicomSummary, dicomJson, "");
+    }
+
+    Json::Value result = Json::objectValue;
+
+    if (status != StoreStatus_Failure)
+    {
+      result["ID"] = hasher.HashInstance();
+      result["Path"] = GetBasePath(ResourceType_Instance, hasher.HashInstance());
+    }
+
+    result["Status"] = ToString(status);
+    call.GetOutput().AnswerJson(result);
+  }
 
 
   // DICOM bridge -------------------------------------------------------------
@@ -305,6 +358,7 @@ namespace Orthanc
     Register("/changes", GetChanges);
     Register("/modalities", ListModalities);
 
+    Register("/instances", UploadDicomFile);
     Register("/instances", ListResources<ResourceType_Instance>);
     Register("/patients", ListResources<ResourceType_Patient>);
     Register("/series", ListResources<ResourceType_Series>);

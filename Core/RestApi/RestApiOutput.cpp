@@ -39,12 +39,12 @@ namespace Orthanc
   RestApiOutput::RestApiOutput(HttpOutput& output) : 
     output_(output)
   {
-    existingResource_ = false;
+    alreadySent_ = false;
   }
 
   RestApiOutput::~RestApiOutput()
   {
-    if (!existingResource_)
+    if (!alreadySent_)
     {
       output_.SendHeader(Orthanc_HttpStatus_400_BadRequest);
     }
@@ -52,7 +52,7 @@ namespace Orthanc
   
   void RestApiOutput::CheckStatus()
   {
-    if (existingResource_)
+    if (alreadySent_)
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
@@ -62,7 +62,7 @@ namespace Orthanc
   {
     CheckStatus();
     sender.Send(output_);
-    existingResource_ = true;
+    alreadySent_ = true;
   }
 
   void RestApiOutput::AnswerJson(const Json::Value& value)
@@ -71,7 +71,7 @@ namespace Orthanc
     Json::StyledWriter writer;
     std::string s = writer.write(value);
     output_.AnswerBufferWithContentType(s, "application/json");
-    existingResource_ = true;
+    alreadySent_ = true;
   }
 
   void RestApiOutput::AnswerBuffer(const std::string& buffer,
@@ -79,13 +79,25 @@ namespace Orthanc
   {
     CheckStatus();
     output_.AnswerBufferWithContentType(buffer, contentType);
-    existingResource_ = true;
+    alreadySent_ = true;
   }
 
   void RestApiOutput::Redirect(const std::string& path)
   {
     CheckStatus();
     output_.Redirect(path);
-    existingResource_ = true;
+    alreadySent_ = true;
+  }
+
+  void RestApiOutput::SignalError(Orthanc_HttpStatus status)
+  {
+    if (status != Orthanc_HttpStatus_415_UnsupportedMediaType)
+    {
+      throw OrthancException("This HTTP status is not allowed in a REST API");
+    }
+
+    CheckStatus();
+    output_.SendHeader(status);
+    alreadySent_ = true;    
   }
 }
