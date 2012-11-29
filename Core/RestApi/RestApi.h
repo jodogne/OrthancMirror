@@ -51,6 +51,7 @@ namespace Orthanc
       const HttpHandler::Arguments* httpHeaders_;
       const RestApiPath::Components* uriComponents_;
       const UriComponents* trailing_;
+      const UriComponents* fullUri_;
 
     public:
       RestApiOutput& GetOutput()
@@ -63,9 +64,9 @@ namespace Orthanc
         return *context_;
       }
     
-      const UriComponents& GetTrailing() const
+      const UriComponents& GetFullUri() const
       {
-        return *trailing_;
+        return *fullUri_;
       }
 
       std::string GetUriComponent(const std::string& name,

@@ -59,6 +59,6 @@ namespace Orthanc
     void AnswerBuffer(const std::string& buffer,
                       const std::string& contentType);
 
-    void Redirect(const char* path);
+    void Redirect(const std::string& path);
   };
 }

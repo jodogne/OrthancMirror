@@ -82,7 +82,7 @@ namespace Orthanc
     existingResource_ = true;
   }
 
-  void RestApiOutput::Redirect(const char* path)
+  void RestApiOutput::Redirect(const std::string& path)
   {
     CheckStatus();
     output_.Redirect(path);
