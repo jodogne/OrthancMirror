@@ -35,7 +35,6 @@
 #include <string>
 #include <stdint.h>
 #include "../Enumerations.h"
-#include "../FileStorage.h"
 
 namespace Orthanc
 {
@@ -44,19 +43,17 @@ namespace Orthanc
   private:
     void SendHeaderInternal(Orthanc_HttpStatus status);
 
+    void SendOkHeader(const char* contentType,
+                      bool hasContentLength,
+                      uint64_t contentLength,
+                      const char* contentFilename);
+
   public:
     virtual ~HttpOutput()
     {
     }
 
     virtual void Send(const void* buffer, size_t length) = 0;
-
-    void SendOkHeader(const std::string& contentType);
-
-    void SendOkHeader(const char* contentType,
-                      bool hasContentLength,
-                      uint64_t contentLength,
-                      const char* contentFilename);
 
     void SendCustomOkHeader(const std::string& customHeader);
 
@@ -66,8 +63,9 @@ namespace Orthanc
 
     void SendHeader(Orthanc_HttpStatus status);
 
+    void Redirect(const std::string& path);
 
-    // Higher-level constructs to send entire files or buffers -------------------
+    // Higher-level constructs to send entire buffers ----------------------------
 
     void AnswerBufferWithContentType(const std::string& buffer,
                                      const std::string& contentType);
@@ -75,19 +73,5 @@ namespace Orthanc
     void AnswerBufferWithContentType(const void* buffer,
                                      size_t size,
                                      const std::string& contentType);
-
-    void AnswerFileWithContentType(const std::string& path,
-                                   const std::string& contentType,
-                                   const char* filename = NULL);
-
-    void AnswerFileAutodetectContentType(const std::string& path,
-                                         const char* filename = NULL); 
-
-    void AnswerFile(const FileStorage& storage,
-                    const std::string& uuid,
-                    const std::string& contentType,
-                    const char* filename = NULL);
-
-    void Redirect(const std::string& path);
   };
 }

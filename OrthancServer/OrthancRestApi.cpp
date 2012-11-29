@@ -53,7 +53,7 @@ namespace Orthanc
   }
 
   void OrthancRestApi::ConnectToModality(DicomUserConnection& c,
-                                           const std::string& name)
+                                         const std::string& name)
   {
     std::string aet, address;
     int port;
@@ -66,7 +66,7 @@ namespace Orthanc
   }
 
   bool OrthancRestApi::MergeQueryAndTemplate(DicomMap& result,
-                                               const std::string& postData)
+                                             const std::string& postData)
   {
     Json::Value query;
     Json::Reader reader;
@@ -88,8 +88,8 @@ namespace Orthanc
   }
 
   bool OrthancRestApi::DicomFindPatient(Json::Value& result,
-                                          DicomUserConnection& c,
-                                          const std::string& postData)
+                                        DicomUserConnection& c,
+                                        const std::string& postData)
   {
     DicomMap m;
     DicomMap::SetupFindPatientTemplate(m);
@@ -105,8 +105,8 @@ namespace Orthanc
   }
 
   bool OrthancRestApi::DicomFindStudy(Json::Value& result,
-                                        DicomUserConnection& c,
-                                        const std::string& postData)
+                                      DicomUserConnection& c,
+                                      const std::string& postData)
   {
     DicomMap m;
     DicomMap::SetupFindStudyTemplate(m);
@@ -128,8 +128,8 @@ namespace Orthanc
   }
 
   bool OrthancRestApi::DicomFindSeries(Json::Value& result,
-                                         DicomUserConnection& c,
-                                         const std::string& postData)
+                                       DicomUserConnection& c,
+                                       const std::string& postData)
   {
     DicomMap m;
     DicomMap::SetupFindSeriesTemplate(m);
@@ -152,8 +152,8 @@ namespace Orthanc
   }
 
   bool OrthancRestApi::DicomFind(Json::Value& result,
-                                   DicomUserConnection& c,
-                                   const std::string& postData)
+                                 DicomUserConnection& c,
+                                 const std::string& postData)
   {
     DicomMap m;
     DicomMap::SetupFindPatientTemplate(m);
@@ -222,8 +222,8 @@ namespace Orthanc
 
 
   bool OrthancRestApi::DicomStore(Json::Value& result,
-                                    DicomUserConnection& c,
-                                    const std::string& postData)
+                                  DicomUserConnection& c,
+                                  const std::string& postData)
   {
     Json::Value found(Json::objectValue);
 
@@ -268,7 +268,7 @@ namespace Orthanc
 
 
   OrthancRestApi::OrthancRestApi(ServerIndex& index,
-                                     const std::string& path) :
+                                 const std::string& path) :
     index_(index),
     storage_(path)
   {

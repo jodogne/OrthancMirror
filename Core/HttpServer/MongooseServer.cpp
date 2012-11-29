@@ -75,7 +75,10 @@ namespace Orthanc
 
       virtual void Send(const void* buffer, size_t length)
       {
-        mg_write(connection_, buffer, length);
+        if (length > 0)
+        {
+          mg_write(connection_, buffer, length);
+        }
       }
     };
 

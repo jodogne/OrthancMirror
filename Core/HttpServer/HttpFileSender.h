@@ -40,7 +40,7 @@ namespace Orthanc
   {
   private:
     std::string contentType_;
-    std::string filename_;
+    std::string downloadFilename_;
 
     void SendHeader(HttpOutput& output);
 
@@ -69,19 +69,19 @@ namespace Orthanc
       return contentType_;
     }
 
-    void ResetFilename()
+    void ResetDownloadFilename()
     {
-      contentType_.clear();
+      downloadFilename_.clear();
     }
 
-    void SetFilename(const std::string& filename)
+    void SetDownloadFilename(const std::string& filename)
     {
-      filename_ = filename;
+      downloadFilename_ = filename;
     }
 
-    const std::string& GetFilename() const
+    const std::string& GetDownloadFilename() const
     {
-      return filename_;
+      return downloadFilename_;
     }
 
     void Send(HttpOutput& output);
