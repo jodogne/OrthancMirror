@@ -50,7 +50,7 @@ namespace Orthanc
 
   bool FilesystemHttpSender::SendData(HttpOutput& output)
   {
-    FILE* fp = fopen(path_.c_str(), "rb");
+    FILE* fp = fopen(path_.string().c_str(), "rb");
     if (!fp)
     {
       return false;
