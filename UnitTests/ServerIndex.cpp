@@ -164,7 +164,7 @@ TEST(DatabaseWrapper, Simple)
   ASSERT_EQ(CompressionType_Zlib, ct);
 
   ASSERT_EQ(0u, listener.deletedFiles_.size());
-  ASSERT_EQ(7, index.GetTableRecordCount("Resources"));
+  ASSERT_EQ(7, index.GetTableRecordCount("Resources")); 
   ASSERT_EQ(3, index.GetTableRecordCount("AttachedFiles"));
   ASSERT_EQ(1, index.GetTableRecordCount("Metadata"));
   ASSERT_EQ(1, index.GetTableRecordCount("MainDicomTags"));

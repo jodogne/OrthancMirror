@@ -42,6 +42,7 @@ namespace Orthanc
 
     if (uri_.size() == 0)
     {
+      hasTrailing_ = false;
       return;
     }
 

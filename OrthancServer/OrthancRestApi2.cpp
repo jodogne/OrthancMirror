@@ -256,15 +256,18 @@ namespace Orthanc
         FromDcmtkBridge::ExtractPngImage(png, dicomContent, frame, mode);
         call.GetOutput().AnswerBuffer(png, "image/png");
       }
-      catch (OrthancException&)
+      catch (OrthancException& e)
       {
-        std::string root = "";
-        for (size_t i = 1; i < call.GetFullUri().size(); i++)
+        if (e.GetErrorCode() == ErrorCode_NotImplemented)
         {
-          root += "../";
-        }
+          std::string root = "";
+          for (size_t i = 1; i < call.GetFullUri().size(); i++)
+          {
+            root += "../";
+          }
 
-        call.GetOutput().Redirect(root + "app/images/unsupported.png");
+          call.GetOutput().Redirect(root + "app/images/unsupported.png");
+        }
       }
     }
   }

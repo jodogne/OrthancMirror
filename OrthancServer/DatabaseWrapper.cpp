@@ -576,7 +576,11 @@ namespace Orthanc
     sprintf(buf, "SELECT COUNT(*) FROM %s", table.c_str());
     SQLite::Statement s(db_, buf);
 
-    assert(s.Step());
+    if (!s.Step())
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
     int64_t c = s.ColumnInt(0);
     assert(!s.Step());
 
