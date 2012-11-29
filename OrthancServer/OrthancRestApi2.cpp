@@ -193,6 +193,35 @@ namespace Orthanc
     }
   }
 
+  
+  static void ListFrames(RestApi::GetCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+
+    Json::Value instance;
+    if (context.GetIndex().LookupResource(instance, call.GetUriComponent("id", ""), ResourceType_Instance))
+    {
+      unsigned int numberOfFrames = 1;
+
+      try
+      {
+        Json::Value tmp = instance["MainDicomTags"]["NumberOfFrames"];
+        numberOfFrames = boost::lexical_cast<unsigned int>(tmp.asString());
+      }
+      catch (...)
+      {
+      }
+
+      Json::Value result = Json::arrayValue;
+      for (unsigned int i = 0; i < numberOfFrames; i++)
+      {
+        result.append(i);
+      }
+
+      call.GetOutput().AnswerJson(result);
+    }
+  }
+
 
 
   // DICOM bridge -------------------------------------------------------------
@@ -246,6 +275,7 @@ namespace Orthanc
     Register("/instances/{id}/file", GetInstanceFile);
     Register("/instances/{id}/tags", GetInstanceTags<false>);
     Register("/instances/{id}/simplified-tags", GetInstanceTags<true>);
+    Register("/instances/{id}/frames", ListFrames);
 
     // TODO : "content", "frames"
   }
