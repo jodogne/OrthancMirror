@@ -42,22 +42,20 @@
 #include "../Core/HttpServer/MongooseServer.h"
 #include "DicomProtocol/DicomServer.h"
 #include "OrthancInitialization.h"
-
+#include "ServerContext.h"
 
 using namespace Orthanc;
+
 
 
 class MyDicomStore : public IStoreRequestHandler
 {
 private:
-  ServerIndex& index_;
-  FileStorage storage_;
+  ServerContext& context_;
 
 public:
-  MyDicomStore(ServerIndex& index,
-               const std::string& path) :
-    index_(index),
-    storage_(path)
+  MyDicomStore(ServerContext& context) :
+    context_(context)
   {
   }
 
@@ -68,9 +66,8 @@ public:
   {
     if (dicomFile.size() > 0)
     {
-      index_.Store(storage_, 
-                   reinterpret_cast<const char*>(&dicomFile[0]), dicomFile.size(),
-                   dicomSummary, dicomJson, remoteAet);
+      context_.Store(reinterpret_cast<const char*>(&dicomFile[0]), dicomFile.size(),
+                     dicomSummary, dicomJson, remoteAet);
     }
   }
 };
@@ -79,20 +76,16 @@ public:
 class MyDicomStoreFactory : public IStoreRequestHandlerFactory
 {
 private:
-  ServerIndex& index_;
-  std::string path_;
+  ServerContext& context_;
 
 public:
-  MyDicomStoreFactory(ServerIndex& index,
-                      const std::string& path) :
-    index_(index),
-    path_(path)
+  MyDicomStoreFactory(ServerContext& context) : context_(context)
   {
   }
 
   virtual IStoreRequestHandler* ConstructStoreRequestHandler()
   {
-    return new MyDicomStore(index_, path_);
+    return new MyDicomStore(context_);
   }
 
   void Done()
@@ -219,9 +212,8 @@ int main(int argc, char* argv[])
     }
 
     boost::filesystem::path storageDirectory = GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
-    FileStorage storage(storageDirectory.string());
-    ServerIndex index(storage, storageDirectory.string());
-    MyDicomStoreFactory storeScp(index, storageDirectory.string());
+    ServerContext context(storageDirectory);
+    MyDicomStoreFactory storeScp(context);
 
     {
       // DICOM server
@@ -259,8 +251,8 @@ int main(int argc, char* argv[])
       httpServer.RegisterHandler(new FilesystemHttpHandler("/app", ORTHANC_PATH "/OrthancExplorer"));
 #endif
 
-      httpServer.RegisterHandler(new OrthancRestApi2(index, storageDirectory.string()));
-      httpServer.RegisterHandler(new OrthancRestApi(index, storageDirectory.string()));
+      httpServer.RegisterHandler(new OrthancRestApi2(context));
+      httpServer.RegisterHandler(new OrthancRestApi(context.GetIndex(), storageDirectory.string()));
 
       // GO !!!
       httpServer.Start();

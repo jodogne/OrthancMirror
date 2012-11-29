@@ -30,35 +30,49 @@
  **/
 
 
-#pragma once
-
 #include "ServerContext.h"
-#include "../Core/RestApi/RestApi.h"
 
-#include <set>
+#include <glog/logging.h>
 
 namespace Orthanc
 {
-  class OrthancRestApi2 : public RestApi
+  ServerContext::ServerContext(const boost::filesystem::path& path) :
+    storage_(path.string()),
+    index_(storage_, path.string())
   {
-  public:
-    typedef std::set<std::string> Modalities;
+  }
 
-  private:
-    ServerContext& context_;
-    Modalities modalities_;
+  StoreStatus ServerContext::Store(const char* dicomFile,
+                                   size_t dicomSize,
+                                   const DicomMap& dicomSummary,
+                                   const Json::Value& dicomJson,
+                                   const std::string& remoteAet)
+  {
+    std::string fileUuid = storage_.Create(dicomFile, dicomSize);
+    std::string jsonUuid = storage_.Create(dicomJson.toStyledString());
+    StoreStatus status = index_.Store(dicomSummary, fileUuid, dicomSize, jsonUuid, remoteAet);
 
-  public:
-    OrthancRestApi2(ServerContext& context);
-
-    ServerContext& GetContext()
+    if (status != StoreStatus_Success)
     {
-      return context_;
+      storage_.Remove(fileUuid);
+      storage_.Remove(jsonUuid);
     }
 
-    Modalities& GetModalities()
+    switch (status)
     {
-      return modalities_;
+    case StoreStatus_Success:
+      LOG(INFO) << "New instance stored";
+      break;
+
+    case StoreStatus_AlreadyStored:
+      LOG(INFO) << "Already stored";
+      break;
+
+    case StoreStatus_Failure:
+      LOG(ERROR) << "Store failure";
+      break;
     }
-  };
+
+    return status;
+  }
 }

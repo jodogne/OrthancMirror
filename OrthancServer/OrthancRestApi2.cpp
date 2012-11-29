@@ -45,7 +45,7 @@
 
 
 #define RETRIEVE_CONTEXT(call)                                          \
-  OrthancRestApi2& context = dynamic_cast<OrthancRestApi2&>(call.GetContext())
+  ServerContext& context = dynamic_cast<OrthancRestApi2&>(call.GetContext()).GetContext()
 
 
 namespace Orthanc
@@ -258,7 +258,7 @@ namespace Orthanc
       }
       catch (OrthancException& e)
       {
-        if (e.GetErrorCode() == ErrorCode_NotImplemented)
+        //if (e.GetErrorCode() == ErrorCode_NotImplemented)
         {
           std::string root = "";
           for (size_t i = 1; i < call.GetFullUri().size(); i++)
@@ -309,8 +309,8 @@ namespace Orthanc
     StoreStatus status = StoreStatus_Failure;
     if (postData.size() > 0)
     {
-      status = context.GetIndex().Store
-        (context.GetFileStorage(), reinterpret_cast<const char*>(&postData[0]),
+      status = context.Store
+        (reinterpret_cast<const char*>(&postData[0]),
          postData.size(), dicomSummary, dicomJson, "");
     }
 
@@ -331,13 +331,13 @@ namespace Orthanc
 
   static void ListModalities(RestApi::GetCall& call)
   {
-    RETRIEVE_CONTEXT(call);
+    const OrthancRestApi2::Modalities& m = 
+      dynamic_cast<OrthancRestApi2&>(call.GetContext()).GetModalities();
 
     Json::Value result = Json::arrayValue;
 
     for (OrthancRestApi2::Modalities::const_iterator 
-           it = context.GetModalities().begin();
-         it != context.GetModalities().end(); it++)
+           it = m.begin(); it != m.end(); it++)
     {
       result.append(*it);
     }
@@ -349,10 +349,8 @@ namespace Orthanc
 
   // Registration of the various REST handlers --------------------------------
 
-  OrthancRestApi2::OrthancRestApi2(ServerIndex& index,
-                                   const std::string& path) :
-    index_(index),
-    storage_(path)
+  OrthancRestApi2::OrthancRestApi2(ServerContext& context) : 
+    context_(context)
   {
     GetListOfDicomModalities(modalities_);
 

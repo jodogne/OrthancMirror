@@ -77,13 +77,6 @@ namespace Orthanc
                       const std::string& jsonUuid,
                       const std::string& remoteAet);
 
-    StoreStatus Store(FileStorage& storage,
-                      const char* dicomFile,
-                      size_t dicomSize,
-                      const DicomMap& dicomSummary,
-                      const Json::Value& dicomJson,
-                      const std::string& remoteAet);
-
     uint64_t GetTotalCompressedSize();
 
     uint64_t GetTotalUncompressedSize();

@@ -32,33 +32,34 @@
 
 #pragma once
 
-#include "ServerContext.h"
-#include "../Core/RestApi/RestApi.h"
-
-#include <set>
+#include "ServerIndex.h"
+#include "../Core/FileStorage.h"
 
 namespace Orthanc
 {
-  class OrthancRestApi2 : public RestApi
+  class ServerContext
   {
-  public:
-    typedef std::set<std::string> Modalities;
-
   private:
-    ServerContext& context_;
-    Modalities modalities_;
+    FileStorage storage_;
+    ServerIndex index_;
 
   public:
-    OrthancRestApi2(ServerContext& context);
+    ServerContext(const boost::filesystem::path& path);
 
-    ServerContext& GetContext()
+    ServerIndex& GetIndex()
     {
-      return context_;
+      return index_;
     }
 
-    Modalities& GetModalities()
+    FileStorage& GetFileStorage()
     {
-      return modalities_;
+      return storage_;
     }
+
+    StoreStatus Store(const char* dicomFile,
+                      size_t dicomSize,
+                      const DicomMap& dicomSummary,
+                      const Json::Value& dicomJson,
+                      const std::string& remoteAet);
   };
 }
