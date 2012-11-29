@@ -33,6 +33,7 @@
 #pragma once
 
 #include <boost/thread.hpp>
+#include <boost/noncopyable.hpp>
 #include "../Core/SQLite/Connection.h"
 #include "../Core/DicomFormat/DicomMap.h"
 #include "../Core/FileStorage.h"
@@ -50,7 +51,7 @@ namespace Orthanc
   }
 
 
-  class ServerIndex
+  class ServerIndex : public boost::noncopyable
   {
   private:
     boost::mutex mutex_;

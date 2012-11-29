@@ -166,23 +166,9 @@ namespace Orthanc
 
 
   static void FlushThread(DatabaseWrapper* db,
-                          boost::mutex* mutex)
+                          boost::mutex* mutex,
+                          unsigned int sleep)
   {
-    // By default, wait for 10 seconds before flushing
-    unsigned int sleep = 10;
-
-    {
-      boost::mutex::scoped_lock lock(*mutex);
-      std::string s = db->GetGlobalProperty(GlobalProperty_FlushSleep);
-      try
-      {
-        sleep = boost::lexical_cast<unsigned int>(s);
-      }
-      catch (boost::bad_lexical_cast&)
-      {
-      }
-    }
-
     LOG(INFO) << "Starting the database flushing thread (sleep = " << sleep << ")";
 
     while (1)
@@ -195,7 +181,7 @@ namespace Orthanc
 
 
   ServerIndex::ServerIndex(FileStorage& fileStorage,
-                           const std::string& dbPath)
+                           const std::string& dbPath) : mutex_()
   {
     listener_.reset(new Internals::ServerIndexListener(fileStorage));
 
@@ -218,15 +204,27 @@ namespace Orthanc
       db_.reset(new DatabaseWrapper(p.string() + "/index", *listener_));
     }
 
-    flushThread_ = boost::thread(FlushThread, db_.get(), &mutex_);
+    unsigned int sleep;
+    try
+    {
+      std::string sleepString = db_->GetGlobalProperty(GlobalProperty_FlushSleep);
+      sleep = boost::lexical_cast<unsigned int>(sleepString);
+    }
+    catch (boost::bad_lexical_cast&)
+    {
+      // By default, wait for 10 seconds before flushing
+      sleep = 10;
+    }
+
+    flushThread_ = boost::thread(FlushThread, db_.get(), &mutex_, sleep);
   }
 
 
   ServerIndex::~ServerIndex()
   {
     LOG(INFO) << "Stopping the database flushing thread";
-    flushThread_.interrupt();
-    flushThread_.join();
+    /*flushThread_.terminate();
+      flushThread_.join();*/
   }
 
 
