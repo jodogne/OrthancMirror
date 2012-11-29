@@ -146,6 +146,7 @@ add_library(ServerLibrary
   OrthancServer/ServerIndex.cpp
   OrthancServer/ToDcmtkBridge.cpp
   OrthancServer/DatabaseWrapper.cpp
+  OrthancServer/ServerContext.cpp
   OrthancServer/ServerEnumerations.cpp
   OrthancServer/ServerToolbox.cpp
   )

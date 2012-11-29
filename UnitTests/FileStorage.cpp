@@ -4,6 +4,7 @@
 #include <glog/logging.h>
 
 #include "../Core/FileStorage.h"
+#include "../OrthancServer/ServerIndex.h"
 #include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Uuid.h"
@@ -130,8 +131,100 @@ TEST(FileStorageAccessor, Mix)
   ASSERT_NE(compressedData, r);
   
 #if defined(__linux)
-  // This tests is too slow on Windows
+  // This test is too slow on Windows
   accessor.SetCompressionForNextOperations(CompressionType_Zlib);
   ASSERT_THROW(accessor.Read(r, uncompressedId), OrthancException);
 #endif
 }
+
+
+
+#if 0
+// TODO REMOVE THIS STUFF
+namespace Orthanc
+{
+  class ServerStorageAccessor : public StorageAccessor
+  {
+  private:
+    CompressedFileStorageAccessor composite_;
+    ServerIndex& index_;
+    AttachedFileType contentType_;
+
+  protected:
+    virtual std::string WriteInternal(const void* data,
+                                      size_t size)
+    {
+      switch (contentType_)
+      {
+      case AttachedFileType_Json:
+        composite_.SetCompressionForNextOperations(CompressionType_None);
+        break;
+
+      case AttachedFileType_Dicom:
+        // TODO GLOBAL PARAMETER
+        composite_.SetCompressionForNextOperations(CompressionType_Zlib);
+        break;
+        
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      std::string fileUuid = composite_.Write(data, size);
+
+      
+    }
+
+  public: 
+    ServerStorageAccessor(FileStorage& storage,
+                          ServerIndex& index) :
+      composite_(storage),
+      index_(index)
+    {
+      contentType_ = AttachedFileType_Dicom;
+    }
+
+    void SetAttachmentType(AttachedFileType type)
+    {
+      contentType_ = type;
+    }
+
+    AttachedFileType GetAttachmentType() const
+    {
+      return contentType_;
+    }
+
+    virtual void Read(std::string& content,
+                      const std::string& uuid)
+    {
+      std::string fileUuid;
+      CompressionType compression;
+
+      if (index_.GetFile(fileUuid, compression, uuid, contentType_))
+      {
+        composite_.SetCompressionForNextOperations(compression);
+        composite_.Read(content, fileUuid);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    virtual HttpFileSender* ConstructHttpFileSender(const std::string& uuid)
+    {
+      std::string fileUuid;
+      CompressionType compression;
+
+      if (index_.GetFile(fileUuid, compression, uuid, contentType_))
+      {
+        composite_.SetCompressionForNextOperations(compression);
+        return composite_.ConstructHttpFileSender(fileUuid);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+  };
+}
+#endif

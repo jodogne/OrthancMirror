@@ -350,41 +350,6 @@ namespace Orthanc
   }
 
 
-  StoreStatus ServerIndex::Store(FileStorage& storage,
-                                 const char* dicomFile,
-                                 size_t dicomSize,
-                                 const DicomMap& dicomSummary,
-                                 const Json::Value& dicomJson,
-                                 const std::string& remoteAet)
-  {
-    std::string fileUuid = storage.Create(dicomFile, dicomSize);
-    std::string jsonUuid = storage.Create(dicomJson.toStyledString());
-    StoreStatus status = Store(dicomSummary, fileUuid, dicomSize, jsonUuid, remoteAet);
-
-    if (status != StoreStatus_Success)
-    {
-      storage.Remove(fileUuid);
-      storage.Remove(jsonUuid);
-    }
-
-    switch (status)
-    {
-    case StoreStatus_Success:
-      LOG(INFO) << "New instance stored";
-      break;
-
-    case StoreStatus_AlreadyStored:
-      LOG(INFO) << "Already stored";
-      break;
-
-    case StoreStatus_Failure:
-      LOG(ERROR) << "Store failure";
-      break;
-    }
-
-    return status;
-  }
-
   uint64_t ServerIndex::GetTotalCompressedSize()
   {
     boost::mutex::scoped_lock lock(mutex_);
