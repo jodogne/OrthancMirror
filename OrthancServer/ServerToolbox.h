@@ -32,40 +32,16 @@
 
 #pragma once
 
-#include "ServerIndex.h"
-#include "../Core/RestApi/RestApi.h"
+#include "../Core/FileStorage.h"
 
-#include <set>
+#include <json/json.h>
 
 namespace Orthanc
 {
-  class OrthancRestApi2 : public RestApi
-  {
-  public:
-    typedef std::set<std::string> Modalities;
+  void ReadJson(Json::Value& target,
+                const FileStorage& storage,
+                const std::string& fileUuid);
 
-  private:
-    ServerIndex& index_;
-    FileStorage storage_;
-    Modalities modalities_;
-
-  public:
-    OrthancRestApi2(ServerIndex& index,
-                    const std::string& path);
-
-    ServerIndex& GetIndex()
-    {
-      return index_;
-    }
-    
-    FileStorage& GetFileStorage()
-    {
-      return storage_;
-    }
-
-    Modalities& GetModalities()
-    {
-      return modalities_;
-    }
-  };
+  void SimplifyTags(Json::Value& target,
+                    const Json::Value& source);
 }
