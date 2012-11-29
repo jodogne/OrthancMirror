@@ -49,6 +49,11 @@
 namespace Orthanc
 {
   // System information -------------------------------------------------------
+
+  static void ServeRoot(RestApi::GetCall& call)
+  {
+    call.GetOutput().Redirect("app/explorer.html");
+  }
  
   static void GetSystemInformation(RestApi::GetCall& call)
   {
@@ -59,6 +64,19 @@ namespace Orthanc
     result["Name"] = GetGlobalStringParameter("Name", "");
     result["TotalCompressedSize"] = boost::lexical_cast<std::string>(context.GetIndex().GetTotalCompressedSize());
     result["TotalUncompressedSize"] = boost::lexical_cast<std::string>(context.GetIndex().GetTotalUncompressedSize());
+    call.GetOutput().AnswerJson(result);
+  }
+
+
+  // List all the patients, studies, series or instances ----------------------
+ 
+  template <enum ResourceType resourceType>
+  static void ListResources(RestApi::GetCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+
+    Json::Value result;
+    context.GetIndex().GetAllUuids(result, resourceType);
     call.GetOutput().AnswerJson(result);
   }
 
@@ -126,8 +144,14 @@ namespace Orthanc
   {
     GetListOfDicomModalities(modalities_);
 
+    Register("/", ServeRoot);
     Register("/system", GetSystemInformation);
     Register("/changes", GetChanges);
     Register("/modalities", ListModalities);
+
+    Register("/instances", ListResources<ResourceType_Instance>);
+    Register("/patients", ListResources<ResourceType_Patient>);
+    Register("/series", ListResources<ResourceType_Series>);
+    Register("/studies", ListResources<ResourceType_Study>);
   }
 }

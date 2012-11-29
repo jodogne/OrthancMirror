@@ -46,6 +46,7 @@ namespace Orthanc
     ErrorCode_ParameterOutOfRange,
     ErrorCode_NotEnoughMemory,
     ErrorCode_BadParameterType,
+    ErrorCode_BadSequenceOfCalls,
 
     // Specific error codes
     ErrorCode_UriSyntax,

@@ -32,6 +32,8 @@
 
 #include "RestApiOutput.h"
 
+#include "../OrthancException.h"
+
 namespace Orthanc
 {
   RestApiOutput::RestApiOutput(HttpOutput& output) : 
@@ -40,7 +42,6 @@ namespace Orthanc
     existingResource_ = false;
   }
 
-
   RestApiOutput::~RestApiOutput()
   {
     if (!existingResource_)
@@ -48,15 +49,25 @@ namespace Orthanc
       output_.SendHeader(Orthanc_HttpStatus_400_BadRequest);
     }
   }
+  
+  void RestApiOutput::CheckStatus()
+  {
+    if (existingResource_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
 
   void RestApiOutput::AnswerFile(HttpFileSender& sender)
   {
+    CheckStatus();
     sender.Send(output_);
     existingResource_ = true;
   }
 
   void RestApiOutput::AnswerJson(const Json::Value& value)
   {
+    CheckStatus();
     Json::StyledWriter writer;
     std::string s = writer.write(value);
     output_.AnswerBufferWithContentType(s, "application/json");
@@ -66,12 +77,14 @@ namespace Orthanc
   void RestApiOutput::AnswerBuffer(const std::string& buffer,
                                    const std::string& contentType)
   {
+    CheckStatus();
     output_.AnswerBufferWithContentType(buffer, contentType);
     existingResource_ = true;
   }
 
   void RestApiOutput::Redirect(const char* path)
   {
+    CheckStatus();
     output_.Redirect(path);
     existingResource_ = true;
   }

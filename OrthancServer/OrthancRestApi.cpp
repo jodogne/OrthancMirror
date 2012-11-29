@@ -401,20 +401,6 @@ namespace Orthanc
     const Arguments& getArguments,
     const std::string& postData)
   {
-    if (uri.size() == 0)
-    {
-      if (method == "GET")
-      {
-        output.Redirect("app/explorer.html");
-      }
-      else
-      {
-        output.SendMethodNotAllowedError("GET");
-      }
-
-      return;
-    }
-
     bool existingResource = false;
     Json::Value result(Json::objectValue);
 
@@ -446,36 +432,6 @@ namespace Orthanc
       else
       {
         output.SendMethodNotAllowedError("GET,POST");
-        return;
-      }
-    }
-
-
-    // List all the patients, studies or series ---------------------------------
- 
-    if (uri.size() == 1 && 
-        (uri[0] == "series" ||
-         uri[0] == "studies" ||
-         uri[0] == "patients"))
-    {
-      if (method == "GET")
-      {
-        result = Json::Value(Json::arrayValue);
-
-        if (uri[0] == "instances")
-          index_.GetAllUuids(result, ResourceType_Instance);
-        else if (uri[0] == "series")
-          index_.GetAllUuids(result, ResourceType_Series);
-        else if (uri[0] == "studies")
-          index_.GetAllUuids(result, ResourceType_Study);
-        else if (uri[0] == "patients")
-          index_.GetAllUuids(result, ResourceType_Patient);
-
-        existingResource = true;
-      }
-      else
-      {
-        output.SendMethodNotAllowedError("GET");
         return;
       }
     }
