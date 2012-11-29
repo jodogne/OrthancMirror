@@ -223,6 +223,53 @@ namespace Orthanc
   }
 
 
+  template <enum ImageExtractionMode mode>
+  static void GetImage(RestApi::GetCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+
+    CompressionType compressionType;
+    std::string fileUuid;
+    std::string publicId = call.GetUriComponent("id", "");
+    std::string frameId = call.GetUriComponent("frame", "0");
+
+    unsigned int frame;
+    try
+    {
+      frame = boost::lexical_cast<unsigned int>(frameId);
+    }
+    catch (boost::bad_lexical_cast)
+    {
+      return;
+    }
+
+    if (context.GetIndex().GetFile(fileUuid, compressionType, publicId, AttachedFileType_Dicom))
+    {
+      assert(compressionType == CompressionType_None);
+
+      std::string dicomContent, png;
+      context.GetFileStorage().ReadFile(dicomContent, fileUuid);
+
+      try
+      {
+        FromDcmtkBridge::ExtractPngImage(png, dicomContent, frame, mode);
+        call.GetOutput().AnswerBuffer(png, "image/png");
+      }
+      catch (OrthancException&)
+      {
+        std::string root = "";
+        for (size_t i = 1; i < call.GetFullUri().size(); i++)
+        {
+          root += "../";
+        }
+
+        call.GetOutput().Redirect(root + "app/images/unsupported.png");
+      }
+    }
+  }
+
+
+
 
   // DICOM bridge -------------------------------------------------------------
 
@@ -277,6 +324,13 @@ namespace Orthanc
     Register("/instances/{id}/simplified-tags", GetInstanceTags<true>);
     Register("/instances/{id}/frames", ListFrames);
 
-    // TODO : "content", "frames"
+    Register("/instances/{id}/frames/{frame}/preview", GetImage<ImageExtractionMode_Preview>);
+    Register("/instances/{id}/frames/{frame}/image-uint8", GetImage<ImageExtractionMode_UInt8>);
+    Register("/instances/{id}/frames/{frame}/image-uint16", GetImage<ImageExtractionMode_UInt16>);
+    Register("/instances/{id}/preview", GetImage<ImageExtractionMode_Preview>);
+    Register("/instances/{id}/image-uint8", GetImage<ImageExtractionMode_UInt8>);
+    Register("/instances/{id}/image-uint16", GetImage<ImageExtractionMode_UInt16>);
+
+    // TODO : "content"
   }
 }

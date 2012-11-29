@@ -182,7 +182,8 @@ namespace Orthanc
           call.httpHeaders_ = &headers;
           call.uriComponents_ = &components;
           call.trailing_ = &trailing;
-           
+          call.fullUri_ = &uri;
+          
           call.getArguments_ = &getArguments;
           it->second(call);
         }
@@ -203,6 +204,7 @@ namespace Orthanc
           call.httpHeaders_ = &headers;
           call.uriComponents_ = &components;
           call.trailing_ = &trailing;
+          call.fullUri_ = &uri;
            
           call.data_ = &postData;
           it->second(call);
@@ -224,6 +226,7 @@ namespace Orthanc
           call.httpHeaders_ = &headers;
           call.uriComponents_ = &components;
           call.trailing_ = &trailing;
+          call.fullUri_ = &uri;
            
           call.data_ = &postData;
           it->second(call);
@@ -245,6 +248,7 @@ namespace Orthanc
           call.httpHeaders_ = &headers;
           call.uriComponents_ = &components;
           call.trailing_ = &trailing;
+          call.fullUri_ = &uri;
           it->second(call);
         }
       }
