@@ -177,6 +177,7 @@ if (BUILD_UNIT_TESTS)
     UnitTests/ServerIndex.cpp
     UnitTests/Versions.cpp
     UnitTests/Zip.cpp
+    UnitTests/FileStorage.cpp
     UnitTests/main.cpp
     )
   target_link_libraries(UnitTests ServerLibrary CoreLibrary)

@@ -4,7 +4,6 @@
 
 #include "../Core/Compression/ZlibCompressor.h"
 #include "../Core/DicomFormat/DicomTag.h"
-#include "../Core/FileStorage.h"
 #include "../OrthancCppClient/HttpClient.h"
 #include "../Core/HttpServer/HttpHandler.h"
 #include "../Core/OrthancException.h"
@@ -97,51 +96,6 @@ TEST(ParseGetQuery, SingleEmpty)
   ASSERT_EQ(1u, a.size());
   ASSERT_EQ(a["aaa"], "");
 }
-
-TEST(FileStorage, Basic)
-{
-  FileStorage s("FileStorageUnitTests");
-
-  std::string data = Toolbox::GenerateUuid();
-  std::string uid = s.Create(data);
-  std::string d;
-  s.ReadFile(d, uid);
-  ASSERT_EQ(d.size(), data.size());
-  ASSERT_FALSE(memcmp(&d[0], &data[0], data.size()));
-}
-
-TEST(FileStorage, EndToEnd)
-{
-  FileStorage s("FileStorageUnitTests");
-  s.Clear();
-
-  std::list<std::string> u;
-  for (unsigned int i = 0; i < 10; i++)
-  {
-    u.push_back(s.Create(Toolbox::GenerateUuid()));
-  }
-
-  std::set<std::string> ss;
-  s.ListAllFiles(ss);
-  ASSERT_EQ(10u, ss.size());
-  
-  unsigned int c = 0;
-  for (std::list<std::string>::iterator
-         i = u.begin(); i != u.end(); i++, c++)
-  {
-    ASSERT_TRUE(ss.find(*i) != ss.end());
-    if (c < 5)
-      s.Remove(*i);
-  }
-
-  s.ListAllFiles(ss);
-  ASSERT_EQ(5u, ss.size());
-
-  s.Clear();
-  s.ListAllFiles(ss);
-  ASSERT_EQ(0u, ss.size());
-}
-
 
 TEST(DicomFormat, Tag)
 {
