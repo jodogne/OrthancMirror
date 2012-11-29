@@ -36,6 +36,7 @@
 #include "FromDcmtkBridge.h"
 #include "../Core/Uuid.h"
 #include "../Core/HttpServer/FilesystemHttpSender.h"
+#include "ServerToolbox.h"
 
 #include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
@@ -141,6 +142,58 @@ namespace Orthanc
 
 
   
+  // Get information about a single instance ----------------------------------
+ 
+  static void GetInstanceFile(RestApi::GetCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+
+    CompressionType compressionType;
+    std::string fileUuid;
+    std::string publicId = call.GetUriComponent("id", "");
+
+    if (context.GetIndex().GetFile(fileUuid, compressionType, publicId, AttachedFileType_Dicom))
+    {
+      assert(compressionType == CompressionType_None);
+
+      FilesystemHttpSender sender(context.GetFileStorage(), fileUuid);
+      sender.SetFilename(fileUuid + ".dcm");
+      sender.SetContentType("application/dicom");
+      call.GetOutput().AnswerFile(sender);
+    }
+  }
+
+
+  template <bool simplify>
+  static void GetInstanceTags(RestApi::GetCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+
+    CompressionType compressionType;
+    std::string fileUuid;
+    std::string publicId = call.GetUriComponent("id", "");
+
+    if (context.GetIndex().GetFile(fileUuid, compressionType, publicId, AttachedFileType_Json))
+    {
+      assert(compressionType == CompressionType_None);
+
+      Json::Value full;
+      ReadJson(full, context.GetFileStorage(), fileUuid);
+
+      if (simplify)
+      {
+        Json::Value simplified;
+        SimplifyTags(simplified, full);
+        call.GetOutput().AnswerJson(simplified);
+      }
+      else
+      {
+        call.GetOutput().AnswerJson(full);
+      }
+    }
+  }
+
+
 
   // DICOM bridge -------------------------------------------------------------
 
@@ -160,6 +213,9 @@ namespace Orthanc
     call.GetOutput().AnswerJson(result);
   }
 
+
+
+  // Registration of the various REST handlers --------------------------------
 
   OrthancRestApi2::OrthancRestApi2(ServerIndex& index,
                                    const std::string& path) :
@@ -186,5 +242,11 @@ namespace Orthanc
     Register("/series/{id}", GetSingleResource<ResourceType_Series>);
     Register("/studies/{id}", DeleteSingleResource<ResourceType_Study>);
     Register("/studies/{id}", GetSingleResource<ResourceType_Study>);
+
+    Register("/instances/{id}/file", GetInstanceFile);
+    Register("/instances/{id}/tags", GetInstanceTags<false>);
+    Register("/instances/{id}/simplified-tags", GetInstanceTags<true>);
+
+    // TODO : "content", "frames"
   }
 }

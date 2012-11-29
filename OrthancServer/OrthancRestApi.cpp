@@ -34,6 +34,7 @@
 
 #include "OrthancInitialization.h"
 #include "FromDcmtkBridge.h"
+#include "ServerToolbox.h"
 #include "../Core/Uuid.h"
 #include "../Core/HttpServer/FilesystemHttpSender.h"
 
@@ -50,71 +51,6 @@ namespace Orthanc
     std::string s = writer.write(value);
     output.AnswerBufferWithContentType(s, "application/json");
   }
-
-
-  static void SimplifyTagsRecursion(Json::Value& target,
-                                    const Json::Value& source)
-  {
-    assert(source.isObject());
-
-    target = Json::objectValue;
-    Json::Value::Members members = source.getMemberNames();
-
-    for (size_t i = 0; i < members.size(); i++)
-    {
-      const Json::Value& v = source[members[i]];
-      const std::string& name = v["Name"].asString();
-      const std::string& type = v["Type"].asString();
-
-      if (type == "String")
-      {
-        target[name] = v["Value"].asString();
-      }
-      else if (type == "TooLong" ||
-               type == "Null")
-      {
-        target[name] = Json::nullValue;
-      }
-      else if (type == "Sequence")
-      {
-        const Json::Value& array = v["Value"];
-        assert(array.isArray());
-
-        Json::Value children = Json::arrayValue;
-        for (Json::Value::ArrayIndex i = 0; i < array.size(); i++)
-        {
-          Json::Value c;
-          SimplifyTagsRecursion(c, array[i]);
-          children.append(c);
-        }
-
-        target[name] = children;
-      }
-      else
-      {
-        assert(0);
-      }
-    }
-  }
-
-
-  static void SimplifyTags(Json::Value& target,
-                           const FileStorage& storage,
-                           const std::string& fileUuid)
-  {
-    std::string s;
-    storage.ReadFile(s, fileUuid);
-
-    Json::Value source;
-    Json::Reader reader;
-    if (!reader.parse(s, source))
-    {
-      throw OrthancException("Corrupted JSON file");
-    }
-
-    SimplifyTagsRecursion(target, source);
-  }
-
 
   bool OrthancRestApi::Store(Json::Value& result,
                                const std::string& postData)
@@ -437,69 +373,6 @@ namespace Orthanc
     }
 
 
-    // Information about a single object ----------------------------------------
- 
-    else if (uri.size() == 2 && 
-             (uri[0] == "instances" ||
-              uri[0] == "series" ||
-              uri[0] == "studies" ||
-              uri[0] == "patients"))
-    {
-      if (method == "GET")
-      {
-        if (uri[0] == "patients")
-        {
-          existingResource = index_.LookupResource(result, uri[1], ResourceType_Patient);
-          assert(!existingResource || result["Type"] == "Patient");
-        }
-        else if (uri[0] == "studies")
-        {
-          existingResource = index_.LookupResource(result, uri[1], ResourceType_Study);
-          assert(!existingResource || result["Type"] == "Study");
-        }
-        else if (uri[0] == "series")
-        {
-          existingResource = index_.LookupResource(result, uri[1], ResourceType_Series);
-          assert(!existingResource || result["Type"] == "Series");
-        }
-        else if (uri[0] == "instances")
-        {
-          existingResource = index_.LookupResource(result, uri[1], ResourceType_Instance);
-          assert(!existingResource || result["Type"] == "Instance");
-        }
-      }
-      else if (method == "DELETE")
-      {
-        if (uri[0] == "patients")
-        {
-          existingResource = index_.DeleteResource(result, uri[1], ResourceType_Patient);
-        }
-        else if (uri[0] == "studies")
-        {
-          existingResource = index_.DeleteResource(result, uri[1], ResourceType_Study);
-        }
-        else if (uri[0] == "series")
-        {
-          existingResource = index_.DeleteResource(result, uri[1], ResourceType_Series);
-        }
-        else if (uri[0] == "instances")
-        {
-          existingResource = index_.DeleteResource(result, uri[1], ResourceType_Instance);
-        }
-
-        if (existingResource)
-        {
-          result["Status"] = "Success";
-        }
-      }
-      else
-      {
-        output.SendMethodNotAllowedError("GET,DELETE");
-        return;
-      }
-    }
-
-
     // Get the DICOM or the JSON file of one instance ---------------------------
  
     else if (uri.size() == 3 &&
@@ -528,9 +401,10 @@ namespace Orthanc
       {
         if (uri[2] == "simplified-tags")
         {
-          Json::Value v;
-          SimplifyTags(v, storage_, fileUuid);
-          SendJson(output, v);
+          Json::Value simplified, full;
+          ReadJson(full, storage_, fileUuid);
+          SimplifyTags(simplified, full);
+          SendJson(output, simplified);
           return;
         }
         else

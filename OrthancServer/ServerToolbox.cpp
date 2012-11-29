@@ -30,42 +30,68 @@
  **/
 
 
-#pragma once
+#include "ServerToolbox.h"
 
-#include "ServerIndex.h"
-#include "../Core/RestApi/RestApi.h"
-
-#include <set>
+#include "../Core/OrthancException.h"
 
 namespace Orthanc
 {
-  class OrthancRestApi2 : public RestApi
+  void ReadJson(Json::Value& target,
+                const FileStorage& storage,
+                const std::string& fileUuid)
   {
-  public:
-    typedef std::set<std::string> Modalities;
+    std::string s;
+    storage.ReadFile(s, fileUuid);
 
-  private:
-    ServerIndex& index_;
-    FileStorage storage_;
-    Modalities modalities_;
-
-  public:
-    OrthancRestApi2(ServerIndex& index,
-                    const std::string& path);
-
-    ServerIndex& GetIndex()
+    Json::Reader reader;
+    if (!reader.parse(s, target))
     {
-      return index_;
+      throw OrthancException("Corrupted JSON file");
     }
-    
-    FileStorage& GetFileStorage()
-    {
-      return storage_;
-    }
+  }
 
-    Modalities& GetModalities()
+  void SimplifyTags(Json::Value& target,
+                    const Json::Value& source)
+  {
+    assert(source.isObject());
+
+    target = Json::objectValue;
+    Json::Value::Members members = source.getMemberNames();
+
+    for (size_t i = 0; i < members.size(); i++)
     {
-      return modalities_;
+      const Json::Value& v = source[members[i]];
+      const std::string& name = v["Name"].asString();
+      const std::string& type = v["Type"].asString();
+
+      if (type == "String")
+      {
+        target[name] = v["Value"].asString();
+      }
+      else if (type == "TooLong" ||
+               type == "Null")
+      {
+        target[name] = Json::nullValue;
+      }
+      else if (type == "Sequence")
+      {
+        const Json::Value& array = v["Value"];
+        assert(array.isArray());
+
+        Json::Value children = Json::arrayValue;
+        for (Json::Value::ArrayIndex i = 0; i < array.size(); i++)
+        {
+          Json::Value c;
+          SimplifyTags(c, array[i]);
+          children.append(c);
+        }
+
+        target[name] = children;
+      }
+      else
+      {
+        assert(0);
+      }
     }
-  };
+  }
 }
