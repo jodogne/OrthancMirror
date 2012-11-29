@@ -99,6 +99,25 @@ namespace Orthanc
     }
   }
 
+  const char* ToString(StoreStatus status)
+  {
+    switch (status)
+    {
+    case StoreStatus_Success:
+      return "Success";
+
+    case StoreStatus_AlreadyStored:
+      return "AlreadyStored";
+
+    case StoreStatus_Failure:
+      return "Failure";
+
+    default:
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
   const char* ToString(ChangeType type)
   {
     switch (type)

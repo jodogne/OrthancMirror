@@ -52,59 +52,6 @@ namespace Orthanc
     output.AnswerBufferWithContentType(s, "application/json");
   }
 
-  bool OrthancRestApi::Store(Json::Value& result,
-                               const std::string& postData)
-  {
-    // Prepare an input stream for the memory buffer
-    DcmInputBufferStream is;
-    if (postData.size() > 0)
-    {
-      is.setBuffer(&postData[0], postData.size());
-    }
-    is.setEos();
-
-    //printf("[%d]\n", postData.size());
-
-    DcmFileFormat dicomFile;
-    if (dicomFile.read(is).good())
-    {
-      DicomMap dicomSummary;
-      FromDcmtkBridge::Convert(dicomSummary, *dicomFile.getDataset());
-
-      DicomInstanceHasher hasher(dicomSummary);
-
-      Json::Value dicomJson;
-      FromDcmtkBridge::ToJson(dicomJson, *dicomFile.getDataset());
-      
-      StoreStatus status = StoreStatus_Failure;
-      if (postData.size() > 0)
-      {
-        status = index_.Store
-          (storage_, reinterpret_cast<const char*>(&postData[0]),
-           postData.size(), dicomSummary, dicomJson, "");
-      }
-
-      result["ID"] = hasher.HashInstance();
-      result["Path"] = "/instances/" + hasher.HashInstance();
-
-      switch (status)
-      {
-      case StoreStatus_Success:
-        result["Status"] = "Success";
-        return true;
-      
-      case StoreStatus_AlreadyStored:
-        result["Status"] = "AlreadyStored";
-        return true;
-
-      default:
-        return false;
-      }
-    }
-
-    return false;
-  }
-
   void OrthancRestApi::ConnectToModality(DicomUserConnection& c,
                                            const std::string& name)
   {
@@ -340,37 +287,6 @@ namespace Orthanc
     bool existingResource = false;
     Json::Value result(Json::objectValue);
 
-
-    // List all the instances ---------------------------------------------------
- 
-    if (uri.size() == 1 && uri[0] == "instances")
-    {
-      if (method == "GET")
-      {
-        result = Json::Value(Json::arrayValue);
-        index_.GetAllUuids(result, ResourceType_Instance);
-        existingResource = true;
-      }
-      else if (method == "POST")
-      {
-        // Add a new instance to the storage
-        if (Store(result, postData))
-        {
-          SendJson(output, result);
-          return;
-        }
-        else
-        {
-          output.SendHeader(Orthanc_HttpStatus_415_UnsupportedMediaType);
-          return;
-        }
-      }
-      else
-      {
-        output.SendMethodNotAllowedError("GET,POST");
-        return;
-      }
-    }
 
     // DICOM bridge -------------------------------------------------------------
 

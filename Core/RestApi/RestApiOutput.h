@@ -43,7 +43,7 @@ namespace Orthanc
   {
   private:
     HttpOutput& output_;
-    bool existingResource_;
+    bool alreadySent_;
 
     void CheckStatus();
 
@@ -58,6 +58,8 @@ namespace Orthanc
 
     void AnswerBuffer(const std::string& buffer,
                       const std::string& contentType);
+
+    void SignalError(Orthanc_HttpStatus status);
 
     void Redirect(const std::string& path);
   };

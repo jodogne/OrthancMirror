@@ -99,5 +99,7 @@ namespace Orthanc
 
   const char* ToString(SeriesStatus status);
 
+  const char* ToString(StoreStatus status);
+
   const char* ToString(ChangeType type);
 }

@@ -107,7 +107,7 @@ namespace Orthanc
       const std::string* data_;
 
     public:
-      const std::string& GetData()
+      const std::string& GetPutBody()
       {
         return *data_;
       }
@@ -121,7 +121,7 @@ namespace Orthanc
       const std::string* data_;
 
     public:
-      const std::string& GetData()
+      const std::string& GetPostBody()
       {
         return *data_;
       }
