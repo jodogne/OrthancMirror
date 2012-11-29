@@ -4,6 +4,9 @@
 #include <glog/logging.h>
 
 #include "../Core/RestApi/RestApi.h"
+#include "../Core/Uuid.h"
+#include "../Core/OrthancException.h"
+#include "../Core/Compression/ZlibCompressor.h"
 
 using namespace Orthanc;
 
@@ -85,3 +88,88 @@ TEST(RestApi, Tutu)
 }
 
 #endif
+
+
+
+#include "../Core/FileStorage.h"
+#include "../Core/HttpServer/FilesystemHttpSender.h"
+#include "../Core/HttpServer/BufferHttpSender.h"
+#include "../Core/FileStorage/FileStorageAccessor.h"
+#include "../Core/FileStorage/CompressedFileStorageAccessor.h"
+
+
+
+TEST(FileStorageAccessor, Simple)
+{
+  FileStorage s("FileStorageUnitTests");
+  FileStorageAccessor accessor(s);
+
+  std::string data = "Hello world";
+  std::string id = accessor.Write(data);
+  
+  std::string r;
+  accessor.Read(r, id);
+
+  ASSERT_EQ(data, r);
+}
+
+
+
+TEST(FileStorageAccessor, NoCompression)
+{
+  FileStorage s("FileStorageUnitTests");
+  CompressedFileStorageAccessor accessor(s);
+
+  accessor.SetCompressionForNextOperations(CompressionType_None);
+  std::string data = "Hello world";
+  std::string id = accessor.Write(data);
+  
+  std::string r;
+  accessor.Read(r, id);
+
+  ASSERT_EQ(data, r);
+}
+
+
+TEST(FileStorageAccessor, Compression)
+{
+  FileStorage s("FileStorageUnitTests");
+  CompressedFileStorageAccessor accessor(s);
+
+  accessor.SetCompressionForNextOperations(CompressionType_Zlib);
+  std::string data = "Hello world";
+  std::string id = accessor.Write(data);
+  
+  std::string r;
+  accessor.Read(r, id);
+
+  ASSERT_EQ(data, r);
+}
+
+
+TEST(FileStorageAccessor, Mix)
+{
+  FileStorage s("FileStorageUnitTests");
+  CompressedFileStorageAccessor accessor(s);
+
+  std::string r;
+  std::string compressedData = "Hello";
+  std::string uncompressedData = "HelloWorld";
+
+  accessor.SetCompressionForNextOperations(CompressionType_Zlib);
+  std::string compressedId = accessor.Write(compressedData);
+  
+  accessor.SetCompressionForNextOperations(CompressionType_None);
+  std::string uncompressedId = accessor.Write(uncompressedData);
+  
+  accessor.SetCompressionForNextOperations(CompressionType_Zlib);
+  accessor.Read(r, compressedId);
+  ASSERT_EQ(compressedData, r);
+
+  accessor.SetCompressionForNextOperations(CompressionType_None);
+  accessor.Read(r, compressedId);
+  ASSERT_NE(compressedData, r);
+  
+  accessor.SetCompressionForNextOperations(CompressionType_Zlib);
+  ASSERT_THROW(accessor.Read(r, uncompressedId), OrthancException);
+}

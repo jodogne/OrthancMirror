@@ -110,7 +110,15 @@ namespace Orthanc
 
     size_t uncompressedLength;
     memcpy(&uncompressedLength, compressed, sizeof(size_t));
-    uncompressed.resize(uncompressedLength);
+    
+    try
+    {
+      uncompressed.resize(uncompressedLength);
+    }
+    catch (...)
+    {
+      throw OrthancException("Zlib: Corrupted compressed buffer");
+    }
 
     uLongf tmp = uncompressedLength;
     int error = uncompress

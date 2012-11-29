@@ -31,69 +31,38 @@
 
 #pragma once
 
-#include <string>
+#include "HttpFileSender.h"
 
 namespace Orthanc
 {
-  enum GlobalProperty
+  class BufferHttpSender : public HttpFileSender
   {
-    GlobalProperty_FlushSleep = 1
+  private:
+    std::string buffer_;
+
+  protected:
+    virtual uint64_t GetFileSize()
+    {
+      return buffer_.size();
+    }
+
+    virtual bool SendData(HttpOutput& output)
+    {
+      if (buffer_.size())
+        output.Send(&buffer_[0], buffer_.size());
+
+      return true;
+    }
+
+  public:
+    std::string& GetBuffer() 
+    {
+      return buffer_;
+    }
+
+    const std::string& GetBuffer() const
+    {
+      return buffer_;
+    }
   };
-
-  enum SeriesStatus
-  {
-    SeriesStatus_Complete,
-    SeriesStatus_Missing,
-    SeriesStatus_Inconsistent,
-    SeriesStatus_Unknown
-  };
-
-  enum StoreStatus
-  {
-    StoreStatus_Success,
-    StoreStatus_AlreadyStored,
-    StoreStatus_Failure
-  };
-
-  enum ResourceType
-  {
-    ResourceType_Patient = 1,
-    ResourceType_Study = 2,
-    ResourceType_Series = 3,
-    ResourceType_Instance = 4
-  };
-
-  enum MetadataType
-  {
-    MetadataType_Instance_IndexInSeries = 2,
-    MetadataType_Instance_ReceptionDate = 4,
-    MetadataType_Instance_RemoteAet = 1,
-    MetadataType_Series_ExpectedNumberOfInstances = 3
-  };
-
-  enum ChangeType
-  {
-    ChangeType_CompletedSeries = 1,
-    ChangeType_NewInstance = 3,
-    ChangeType_NewPatient = 4,
-    ChangeType_NewSeries = 2,
-    ChangeType_NewStudy = 5
-  };
-
-  enum AttachedFileType
-  {
-    AttachedFileType_Dicom = 1,
-    AttachedFileType_Json = 2
-  };
-
-  const char* ToString(ResourceType type);
-
-  std::string GetBasePath(ResourceType type,
-                          const std::string& publicId);
-
-  const char* ToString(SeriesStatus status);
-
-  const char* ToString(StoreStatus status);
-
-  const char* ToString(ChangeType type);
 }
