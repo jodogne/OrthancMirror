@@ -158,7 +158,7 @@ namespace Orthanc
       assert(compressionType == CompressionType_None);
 
       FilesystemHttpSender sender(context.GetFileStorage(), fileUuid);
-      sender.SetFilename(fileUuid + ".dcm");
+      sender.SetDownloadFilename(fileUuid + ".dcm");
       sender.SetContentType("application/dicom");
       call.GetOutput().AnswerFile(sender);
     }

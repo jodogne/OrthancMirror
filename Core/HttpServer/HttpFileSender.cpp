@@ -46,9 +46,9 @@ namespace Orthanc
       header += "Content-Type: " + contentType_ + "\r\n";
     }
 
-    if (filename_.size() > 0)
+    if (downloadFilename_.size() > 0)
     {
-      header += "Content-Disposition: attachment; filename=\"" + filename_ + "\"\r\n";
+      header += "Content-Disposition: attachment; filename=\"" + downloadFilename_ + "\"\r\n";
     }
   
     output.SendCustomOkHeader(header);

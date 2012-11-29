@@ -36,6 +36,7 @@
 
 #include <list>
 #include <map>
+#include <set>
 #include <stdint.h>
 #include <boost/shared_ptr.hpp>
 

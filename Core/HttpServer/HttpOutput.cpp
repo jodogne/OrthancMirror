@@ -44,12 +44,9 @@ namespace Orthanc
   void HttpOutput::SendString(const std::string& s)
   {
     if (s.size() > 0)
+    {
       Send(&s[0], s.size());
-  }
-
-  void HttpOutput::SendOkHeader(const std::string& contentType)
-  {
-    SendOkHeader(contentType.c_str(), false, 0, NULL);
+    }
   }
 
   void HttpOutput::SendOkHeader(const char* contentType,
@@ -134,59 +131,6 @@ namespace Orthanc
     SendOkHeader(contentType.c_str(), true, size, NULL);
     Send(buffer, size);
   }
-
-
-  void HttpOutput::AnswerFileWithContentType(const std::string& path,
-                                             const std::string& contentType,
-                                             const char* filename)
-  {
-    uint64_t fileSize = Toolbox::GetFileSize(path);
-  
-    FILE* fp = fopen(path.c_str(), "rb");
-    if (!fp)
-    {
-      SendHeaderInternal(Orthanc_HttpStatus_500_InternalServerError);
-      return;
-    }
-  
-    SendOkHeader(contentType.c_str(), true, fileSize, filename);
-
-    std::vector<uint8_t> buffer(1024 * 1024);  // Chunks of 1MB
-
-    for (;;)
-    {
-      size_t nbytes = fread(&buffer[0], 1, buffer.size(), fp);
-      if (nbytes == 0)
-      {
-        break;
-      }
-      else
-      {
-        Send(&buffer[0], nbytes);
-      }
-    }
-
-    fclose(fp);
-  }
-
-
-  void HttpOutput::AnswerFileAutodetectContentType(const std::string& path,
-                                                   const char* filename)
-  {
-    AnswerFileWithContentType(path, Toolbox::AutodetectMimeType(path), filename);
-  }
-
-
-  void HttpOutput::AnswerFile(const FileStorage& storage,
-                              const std::string& uuid,
-                              const std::string& contentType,
-                              const char* filename)
-  {
-    boost::filesystem::path p(storage.GetPath(uuid));
-    AnswerFileWithContentType(p.string(), contentType, filename);
-  }
-
-
 
   void HttpOutput::Redirect(const std::string& path)
   {

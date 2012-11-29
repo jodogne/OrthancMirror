@@ -33,6 +33,7 @@
 #include "FilesystemHttpHandler.h"
 
 #include "../OrthancException.h"
+#include "FilesystemHttpSender.h"
 
 #include <boost/filesystem.hpp>
 
@@ -53,7 +54,7 @@ namespace Orthanc
   {
     namespace fs = boost::filesystem;
 
-    output.SendOkHeader("text/html");
+    output.SendCustomOkHeader("Content-Type: text/html\r\n");
     output.SendString("<html>");
     output.SendString("  <body>");
     output.SendString("    <h1>Subdirectories</h1>");
@@ -148,7 +149,9 @@ namespace Orthanc
 
     if (fs::exists(p) && fs::is_regular_file(p))
     {
-      output.AnswerFileAutodetectContentType(p.string());
+      FilesystemHttpSender(p).Send(output);
+
+      //output.AnswerFileAutodetectContentType(p.string());
     }
     else if (listDirectoryContent_ &&
              fs::exists(p) && 

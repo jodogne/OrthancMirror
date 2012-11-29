@@ -39,7 +39,7 @@ namespace Orthanc
   class FilesystemHttpSender : public HttpFileSender
   {
   private:
-    std::string path_;
+    boost::filesystem::path path_;
 
     void Setup();
 
@@ -50,6 +50,8 @@ namespace Orthanc
 
   public:
     FilesystemHttpSender(const char* path);
+
+    FilesystemHttpSender(const boost::filesystem::path& path);
 
     FilesystemHttpSender(const FileStorage& storage,
                          const std::string& uuid);

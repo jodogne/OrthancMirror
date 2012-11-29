@@ -39,14 +39,13 @@ namespace Orthanc
 {
   void FilesystemHttpSender::Setup()
   {
-    boost::filesystem::path p(path_);
-    SetFilename(p.filename().string());
-    SetContentType(Toolbox::AutodetectMimeType(p.filename().string()));
+    //SetDownloadFilename(path_.filename().string());
+    SetContentType(Toolbox::AutodetectMimeType(path_.filename().string()));
   }
 
   uint64_t FilesystemHttpSender::GetFileSize()
   {
-    return Toolbox::GetFileSize(path_);
+    return Toolbox::GetFileSize(path_.string());
   }
 
   bool FilesystemHttpSender::SendData(HttpOutput& output)
@@ -77,8 +76,15 @@ namespace Orthanc
     return true;
   }
 
-  FilesystemHttpSender::FilesystemHttpSender(const char* path) : path_(path)
+  FilesystemHttpSender::FilesystemHttpSender(const char* path)
   {
+    path_ = std::string(path);
+    Setup();
+  }
+
+  FilesystemHttpSender::FilesystemHttpSender(const boost::filesystem::path& path)
+  {
+    path_ = path;
     Setup();
   }
 

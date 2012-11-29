@@ -36,6 +36,8 @@
 #include "RestApiPath.h"
 #include "RestApiOutput.h"
 
+#include <list>
+
 namespace Orthanc
 {
   class RestApi : public HttpHandler
