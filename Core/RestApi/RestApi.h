@@ -63,16 +63,6 @@ namespace Orthanc
         return *context_;
       }
     
-      const HttpHandler::Arguments& GetHttpHeaders() const
-      {
-        return *httpHeaders_;
-      }
-
-      const RestApiPath::Components& GetUriComponents() const
-      {
-        return *uriComponents_;
-      }
-
       const UriComponents& GetTrailing() const
       {
         return *trailing_;
@@ -82,6 +72,12 @@ namespace Orthanc
                                   const std::string& defaultValue)
       {
         return HttpHandler::GetArgument(*uriComponents_, name, defaultValue);
+      }
+
+      std::string GetHttpHeader(const std::string& name,
+                                const std::string& defaultValue)
+      {
+        return HttpHandler::GetArgument(*httpHeaders_, name, defaultValue);
       }
     };
 

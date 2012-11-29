@@ -349,14 +349,14 @@ namespace Orthanc
       // This is not a UUID, assume this is a DICOM instance
       c.Store(postData);
     }
-    else if (index_.GetSeries(found, postData))
+    else if (index_.LookupResource(found, postData, ResourceType_Series))
     {
       // The UUID corresponds to a series
       for (Json::Value::ArrayIndex i = 0; i < found["Instances"].size(); i++)
       {
         std::string uuid = found["Instances"][i].asString();
         Json::Value instance(Json::objectValue);
-        if (index_.GetInstance(instance, uuid))
+        if (index_.LookupResource(instance, uuid, ResourceType_Instance))
         {
           std::string content;
           storage_.ReadFile(content, instance["FileUuid"].asString());
@@ -368,7 +368,7 @@ namespace Orthanc
         }
       }
     }
-    else if (index_.GetInstance(found, postData))
+    else if (index_.LookupResource(found, postData, ResourceType_Instance))
     {
       // The UUID corresponds to an instance
       std::string content;
@@ -449,22 +449,22 @@ namespace Orthanc
       {
         if (uri[0] == "patients")
         {
-          existingResource = index_.GetPatient(result, uri[1]);
+          existingResource = index_.LookupResource(result, uri[1], ResourceType_Patient);
           assert(!existingResource || result["Type"] == "Patient");
         }
         else if (uri[0] == "studies")
         {
-          existingResource = index_.GetStudy(result, uri[1]);
+          existingResource = index_.LookupResource(result, uri[1], ResourceType_Study);
           assert(!existingResource || result["Type"] == "Study");
         }
         else if (uri[0] == "series")
         {
-          existingResource = index_.GetSeries(result, uri[1]);
+          existingResource = index_.LookupResource(result, uri[1], ResourceType_Series);
           assert(!existingResource || result["Type"] == "Series");
         }
         else if (uri[0] == "instances")
         {
-          existingResource = index_.GetInstance(result, uri[1]);
+          existingResource = index_.LookupResource(result, uri[1], ResourceType_Instance);
           assert(!existingResource || result["Type"] == "Instance");
         }
       }
@@ -472,19 +472,19 @@ namespace Orthanc
       {
         if (uri[0] == "patients")
         {
-          existingResource = index_.DeletePatient(result, uri[1]);
+          existingResource = index_.DeleteResource(result, uri[1], ResourceType_Patient);
         }
         else if (uri[0] == "studies")
         {
-          existingResource = index_.DeleteStudy(result, uri[1]);
+          existingResource = index_.DeleteResource(result, uri[1], ResourceType_Study);
         }
         else if (uri[0] == "series")
         {
-          existingResource = index_.DeleteSeries(result, uri[1]);
+          existingResource = index_.DeleteResource(result, uri[1], ResourceType_Series);
         }
         else if (uri[0] == "instances")
         {
-          existingResource = index_.DeleteInstance(result, uri[1]);
+          existingResource = index_.DeleteResource(result, uri[1], ResourceType_Instance);
         }
 
         if (existingResource)
@@ -547,7 +547,7 @@ namespace Orthanc
              uri[2] == "frames")
     {
       Json::Value instance(Json::objectValue);
-      existingResource = index_.GetInstance(instance, uri[1]);
+      existingResource = index_.LookupResource(instance, uri[1], ResourceType_Instance);
 
       if (existingResource)
       {
