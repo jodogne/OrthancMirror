@@ -63,4 +63,10 @@ namespace Orthanc
     PixelFormat_Grayscale8,
     PixelFormat_Grayscale16
   };
+
+  enum CompressionType
+  {
+    CompressionType_None = 1,
+    CompressionType_Zlib = 2
+  };
 }

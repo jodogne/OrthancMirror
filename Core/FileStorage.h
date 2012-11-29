@@ -42,8 +42,8 @@ namespace Orthanc
   class FileStorage : public boost::noncopyable
   {
     // TODO REMOVE THIS
-    friend class HttpOutput;
     friend class FilesystemHttpSender;
+    friend class FileStorageAccessor;
 
   private:
     std::auto_ptr<BufferCompressor> compressor_;

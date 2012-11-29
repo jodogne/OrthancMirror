@@ -29,71 +29,41 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
+
 #pragma once
 
-#include <string>
+#include "StorageAccessor.h"
+#include "../FileStorage.h"
+#include "../HttpServer/FilesystemHttpSender.h"
 
 namespace Orthanc
 {
-  enum GlobalProperty
+  class FileStorageAccessor : public StorageAccessor
   {
-    GlobalProperty_FlushSleep = 1
+  private:
+    FileStorage& storage_;
+    
+  protected:
+    virtual std::string WriteInternal(const void* data,
+                                      size_t size)
+    {
+      return storage_.Create(data, size);
+    }
+
+  public:
+    FileStorageAccessor(FileStorage& storage) : storage_(storage)
+    {
+    }
+
+    virtual void Read(std::string& content,
+                      const std::string& uuid)
+    {
+      storage_.ReadFile(content, uuid);
+    }
+
+    virtual HttpFileSender* ConstructHttpFileSender(const std::string& uuid)
+    {
+      return new FilesystemHttpSender(storage_.GetPath(uuid));
+    }
   };
-
-  enum SeriesStatus
-  {
-    SeriesStatus_Complete,
-    SeriesStatus_Missing,
-    SeriesStatus_Inconsistent,
-    SeriesStatus_Unknown
-  };
-
-  enum StoreStatus
-  {
-    StoreStatus_Success,
-    StoreStatus_AlreadyStored,
-    StoreStatus_Failure
-  };
-
-  enum ResourceType
-  {
-    ResourceType_Patient = 1,
-    ResourceType_Study = 2,
-    ResourceType_Series = 3,
-    ResourceType_Instance = 4
-  };
-
-  enum MetadataType
-  {
-    MetadataType_Instance_IndexInSeries = 2,
-    MetadataType_Instance_ReceptionDate = 4,
-    MetadataType_Instance_RemoteAet = 1,
-    MetadataType_Series_ExpectedNumberOfInstances = 3
-  };
-
-  enum ChangeType
-  {
-    ChangeType_CompletedSeries = 1,
-    ChangeType_NewInstance = 3,
-    ChangeType_NewPatient = 4,
-    ChangeType_NewSeries = 2,
-    ChangeType_NewStudy = 5
-  };
-
-  enum AttachedFileType
-  {
-    AttachedFileType_Dicom = 1,
-    AttachedFileType_Json = 2
-  };
-
-  const char* ToString(ResourceType type);
-
-  std::string GetBasePath(ResourceType type,
-                          const std::string& publicId);
-
-  const char* ToString(SeriesStatus status);
-
-  const char* ToString(StoreStatus status);
-
-  const char* ToString(ChangeType type);
 }
