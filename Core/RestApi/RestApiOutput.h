@@ -45,6 +45,8 @@ namespace Orthanc
     HttpOutput& output_;
     bool existingResource_;
 
+    void CheckStatus();
+
   public:
     RestApiOutput(HttpOutput& output);
 

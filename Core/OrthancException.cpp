@@ -87,6 +87,9 @@ namespace Orthanc
     case ErrorCode_UnknownResource:
       return "Unknown resource";
 
+    case ErrorCode_BadSequenceOfCalls:
+      return "Bad sequence of calls";
+
     case ErrorCode_Custom:
     default:
       return "???";
