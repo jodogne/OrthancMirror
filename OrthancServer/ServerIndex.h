@@ -62,14 +62,6 @@ namespace Orthanc
     void MainDicomTagsToJson(Json::Value& result,
                              int64_t resourceId);
 
-    bool DeleteInternal(Json::Value& target,
-                        const std::string& uuid,
-                        ResourceType expectedType);
-
-    bool LookupResource(Json::Value& result,
-                        const std::string& publicId,
-                        ResourceType expectedType);
-
     SeriesStatus GetSeriesStatus(int id);
 
   public:
@@ -95,31 +87,9 @@ namespace Orthanc
 
     uint64_t GetTotalUncompressedSize();
 
-    bool GetInstance(Json::Value& result,
-                     const std::string& instanceUuid)
-    {
-      return LookupResource(result, instanceUuid, ResourceType_Instance);
-    }
-
-    bool GetSeries(Json::Value& result,
-                   const std::string& seriesUuid)
-    {
-      return LookupResource(result, seriesUuid, ResourceType_Series);
-    }
-
-
-    bool GetStudy(Json::Value& result,
-                  const std::string& studyUuid)
-    {
-      return LookupResource(result, studyUuid, ResourceType_Study);
-    }
-
-
-    bool GetPatient(Json::Value& result,
-                    const std::string& patientUuid)
-    {
-      return LookupResource(result, patientUuid, ResourceType_Patient);
-    }
+    bool LookupResource(Json::Value& result,
+                        const std::string& publicId,
+                        ResourceType expectedType);
 
     bool GetFile(std::string& fileUuid,
                  CompressionType& compressionType,
@@ -129,29 +99,9 @@ namespace Orthanc
     void GetAllUuids(Json::Value& target,
                      ResourceType resourceType);
 
-    bool DeletePatient(Json::Value& target,
-                       const std::string& patientUuid)
-    {
-      return DeleteInternal(target, patientUuid, ResourceType_Patient);
-    }
-
-    bool DeleteStudy(Json::Value& target,
-                     const std::string& studyUuid)
-    {
-      return DeleteInternal(target, studyUuid, ResourceType_Study);
-    }
-
-    bool DeleteSeries(Json::Value& target,
-                      const std::string& seriesUuid)
-    {
-      return DeleteInternal(target, seriesUuid, ResourceType_Series);
-    }
-
-    bool DeleteInstance(Json::Value& target,
-                        const std::string& instanceUuid)
-    {
-      return DeleteInternal(target, instanceUuid, ResourceType_Instance);
-    }
+    bool DeleteResource(Json::Value& target,
+                        const std::string& uuid,
+                        ResourceType expectedType);
 
     bool GetChanges(Json::Value& target,
                     int64_t since,

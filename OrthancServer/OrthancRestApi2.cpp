@@ -80,6 +80,30 @@ namespace Orthanc
     call.GetOutput().AnswerJson(result);
   }
 
+  template <enum ResourceType resourceType>
+  static void GetSingleResource(RestApi::GetCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+
+    Json::Value result;
+    if (context.GetIndex().LookupResource(result, call.GetUriComponent("id", ""), resourceType))
+    {
+      call.GetOutput().AnswerJson(result);
+    }
+  }
+
+  template <enum ResourceType resourceType>
+  static void DeleteSingleResource(RestApi::DeleteCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+
+    Json::Value result;
+    if (context.GetIndex().DeleteResource(result, call.GetUriComponent("id", ""), resourceType))
+    {
+      call.GetOutput().AnswerJson(result);
+    }
+  }
+
 
   // Changes API --------------------------------------------------------------
  
@@ -153,5 +177,14 @@ namespace Orthanc
     Register("/patients", ListResources<ResourceType_Patient>);
     Register("/series", ListResources<ResourceType_Series>);
     Register("/studies", ListResources<ResourceType_Study>);
+
+    Register("/instances/{id}", DeleteSingleResource<ResourceType_Instance>);
+    Register("/instances/{id}", GetSingleResource<ResourceType_Instance>);
+    Register("/patients/{id}", DeleteSingleResource<ResourceType_Patient>);
+    Register("/patients/{id}", GetSingleResource<ResourceType_Patient>);
+    Register("/series/{id}", DeleteSingleResource<ResourceType_Series>);
+    Register("/series/{id}", GetSingleResource<ResourceType_Series>);
+    Register("/studies/{id}", DeleteSingleResource<ResourceType_Study>);
+    Register("/studies/{id}", GetSingleResource<ResourceType_Study>);
   }
 }

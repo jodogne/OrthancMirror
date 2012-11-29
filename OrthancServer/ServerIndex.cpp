@@ -123,7 +123,7 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::DeleteInternal(Json::Value& target,
+  bool ServerIndex::DeleteResource(Json::Value& target,
                                    const std::string& uuid,
                                    ResourceType expectedType)
   {
