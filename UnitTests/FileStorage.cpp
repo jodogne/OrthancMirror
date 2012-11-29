@@ -129,6 +129,9 @@ TEST(FileStorageAccessor, Mix)
   accessor.Read(r, compressedId);
   ASSERT_NE(compressedData, r);
   
+#if defined(__linux)
+  // This tests is too slow on Windows
   accessor.SetCompressionForNextOperations(CompressionType_Zlib);
   ASSERT_THROW(accessor.Read(r, uncompressedId), OrthancException);
+#endif
 }
