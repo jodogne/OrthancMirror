@@ -45,7 +45,8 @@
 
 
 #define RETRIEVE_CONTEXT(call)                                          \
-  ServerContext& context = dynamic_cast<OrthancRestApi2&>(call.GetContext()).GetContext()
+  OrthancRestApi2& contextApi = dynamic_cast<OrthancRestApi2&>(call.GetContext()); \
+  ServerContext& context = contextApi.GetContext()
 
 
 namespace Orthanc
