@@ -34,6 +34,7 @@
 
 #include "ServerIndex.h"
 #include "../Core/FileStorage.h"
+#include "../Core/RestApi/RestApiOutput.h"
 
 namespace Orthanc
 {
@@ -51,9 +52,15 @@ namespace Orthanc
       return index_;
     }
 
+    // TODO REMOVE THIS, SINCE IT IS NOT PROTECTED BY MUTEXES
     FileStorage& GetFileStorage()
     {
       return storage_;
+    }
+
+    void RemoveFile(const std::string& fileUuid)
+    {
+      storage_.Remove(fileUuid);
     }
 
     StoreStatus Store(const char* dicomFile,
@@ -61,5 +68,12 @@ namespace Orthanc
                       const DicomMap& dicomSummary,
                       const Json::Value& dicomJson,
                       const std::string& remoteAet);
+
+    void AnswerFile(RestApiOutput& output,
+                    const std::string& instancePublicId,
+                    AttachedFileType content);
+
+    void ReadJson(Json::Value& result,
+                  const std::string& instancePublicId);
   };
 }

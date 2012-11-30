@@ -35,6 +35,7 @@
 #include "../Core/HttpServer/HttpHandler.h"
 #include "ServerIndex.h"
 #include "DicomProtocol/DicomUserConnection.h"
+#include "../Core/FileStorage.h"
 
 #include <set>
 

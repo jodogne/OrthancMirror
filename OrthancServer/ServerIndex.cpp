@@ -32,8 +32,6 @@
 
 #include "ServerIndex.h"
 
-using namespace Orthanc;
-
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -44,6 +42,7 @@ using namespace Orthanc;
 #include "../Core/DicomFormat/DicomArray.h"
 #include "../Core/SQLite/Transaction.h"
 #include "FromDcmtkBridge.h"
+#include "ServerContext.h"
 
 #include <boost/lexical_cast.hpp>
 #include <stdio.h>
@@ -56,14 +55,14 @@ namespace Orthanc
     class ServerIndexListener : public IServerIndexListener
     {
     private:
-      FileStorage& fileStorage_;
+      ServerContext& context_;
       bool hasRemainingLevel_;
       ResourceType remainingType_;
       std::string remainingPublicId_;
 
     public:
-      ServerIndexListener(FileStorage& fileStorage) : 
-        fileStorage_(fileStorage),
+      ServerIndexListener(ServerContext& context) : 
+        context_(context),
         hasRemainingLevel_(false)
       {
         assert(ResourceType_Patient < ResourceType_Study &&
@@ -100,7 +99,7 @@ namespace Orthanc
       virtual void SignalFileDeleted(const std::string& fileUuid)
       {
         assert(Toolbox::IsUuid(fileUuid));
-        fileStorage_.Remove(fileUuid);
+        context_.RemoveFile(fileUuid);
       }
 
       bool HasRemainingLevel() const
@@ -180,10 +179,10 @@ namespace Orthanc
   }
 
 
-  ServerIndex::ServerIndex(FileStorage& fileStorage,
+  ServerIndex::ServerIndex(ServerContext& context,
                            const std::string& dbPath) : mutex_()
   {
-    listener_.reset(new Internals::ServerIndexListener(fileStorage));
+    listener_.reset(new Internals::ServerIndexListener(context));
 
     if (dbPath == ":memory:")
     {

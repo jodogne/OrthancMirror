@@ -36,20 +36,6 @@
 
 namespace Orthanc
 {
-  void ReadJson(Json::Value& target,
-                const FileStorage& storage,
-                const std::string& fileUuid)
-  {
-    std::string s;
-    storage.ReadFile(s, fileUuid);
-
-    Json::Reader reader;
-    if (!reader.parse(s, target))
-    {
-      throw OrthancException("Corrupted JSON file");
-    }
-  }
-
   void SimplifyTags(Json::Value& target,
                     const Json::Value& source)
   {
