@@ -69,7 +69,7 @@ namespace Orthanc
 
     void AnswerFile(RestApiOutput& output,
                     const std::string& instancePublicId,
-                    FileType content);
+                    FileContentType content);
 
     void ReadJson(Json::Value& result,
                   const std::string& instancePublicId);
@@ -77,6 +77,6 @@ namespace Orthanc
     // TODO CACHING MECHANISM AT THIS POINT
     void ReadFile(std::string& result,
                   const std::string& instancePublicId,
-                  FileType content);
+                  FileContentType content);
   };
 }

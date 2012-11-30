@@ -77,9 +77,9 @@ namespace Orthanc
     CompressionType_Zlib = 2
   };
 
-  enum FileType
+  enum FileContentType
   {
-    FileType_Dicom = 1,
-    FileType_Json = 2
+    FileContentType_Dicom = 1,
+    FileContentType_Json = 2
   };
 }

@@ -68,8 +68,8 @@ namespace Orthanc
   {
     //accessor_.SetCompressionForNextOperations(CompressionType_Zlib);
 
-    FileInfo dicomInfo = accessor_.Write(dicomFile, dicomSize, FileType_Dicom);
-    FileInfo jsonInfo = accessor_.Write(dicomJson.toStyledString(), FileType_Json);
+    FileInfo dicomInfo = accessor_.Write(dicomFile, dicomSize, FileContentType_Dicom);
+    FileInfo jsonInfo = accessor_.Write(dicomJson.toStyledString(), FileContentType_Json);
 
     ServerIndex::Attachments attachments;
     attachments.push_back(dicomInfo);
@@ -104,13 +104,13 @@ namespace Orthanc
   
   void ServerContext::AnswerFile(RestApiOutput& output,
                                  const std::string& instancePublicId,
-                                 FileType content)
+                                 FileContentType content)
   {
     FileInfo attachment;
-    if (index_.LookupAttachment(attachment, instancePublicId, FileType_Dicom))
+    if (index_.LookupAttachment(attachment, instancePublicId, FileContentType_Dicom))
     {
       assert(attachment.GetCompressionType() == CompressionType_None);
-      assert(attachment.GetFileType() == FileType_Dicom);
+      assert(attachment.GetContentType() == FileContentType_Dicom);
 
       FilesystemHttpSender sender(storage_, attachment.GetUuid());
       sender.SetDownloadFilename(attachment.GetUuid() + ".dcm");
@@ -124,7 +124,7 @@ namespace Orthanc
                                const std::string& instancePublicId)
   {
     std::string s;
-    ReadFile(s, instancePublicId, FileType_Json);
+    ReadFile(s, instancePublicId, FileContentType_Json);
 
     Json::Reader reader;
     if (!reader.parse(s, result))
@@ -136,7 +136,7 @@ namespace Orthanc
 
   void ServerContext::ReadFile(std::string& result,
                                const std::string& instancePublicId,
-                               FileType content)
+                               FileContentType content)
   {
     FileInfo attachment;
     if (!index_.LookupAttachment(attachment, instancePublicId, content))

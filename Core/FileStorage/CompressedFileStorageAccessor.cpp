@@ -40,7 +40,7 @@ namespace Orthanc
 {
   FileInfo CompressedFileStorageAccessor::WriteInternal(const void* data,
                                                         size_t size,
-                                                        FileType type)
+                                                        FileContentType type)
   {
     switch (compressionType_)
     {

@@ -66,7 +66,7 @@ TEST(FileStorageAccessor, Simple)
   FileStorageAccessor accessor(s);
 
   std::string data = "Hello world";
-  FileInfo info = accessor.Write(data, FileType_Dicom);
+  FileInfo info = accessor.Write(data, FileContentType_Dicom);
   
   std::string r;
   accessor.Read(r, info.GetUuid());
@@ -75,7 +75,7 @@ TEST(FileStorageAccessor, Simple)
   ASSERT_EQ(CompressionType_None, info.GetCompressionType());
   ASSERT_EQ(11u, info.GetUncompressedSize());
   ASSERT_EQ(11u, info.GetCompressedSize());
-  ASSERT_EQ(FileType_Dicom, info.GetFileType());
+  ASSERT_EQ(FileContentType_Dicom, info.GetContentType());
 }
 
 
@@ -86,7 +86,7 @@ TEST(FileStorageAccessor, NoCompression)
 
   accessor.SetCompressionForNextOperations(CompressionType_None);
   std::string data = "Hello world";
-  FileInfo info = accessor.Write(data, FileType_Dicom);
+  FileInfo info = accessor.Write(data, FileContentType_Dicom);
   
   std::string r;
   accessor.Read(r, info.GetUuid());
@@ -95,7 +95,7 @@ TEST(FileStorageAccessor, NoCompression)
   ASSERT_EQ(CompressionType_None, info.GetCompressionType());
   ASSERT_EQ(11u, info.GetUncompressedSize());
   ASSERT_EQ(11u, info.GetCompressedSize());
-  ASSERT_EQ(FileType_Dicom, info.GetFileType());
+  ASSERT_EQ(FileContentType_Dicom, info.GetContentType());
 }
 
 
@@ -106,7 +106,7 @@ TEST(FileStorageAccessor, Compression)
 
   accessor.SetCompressionForNextOperations(CompressionType_Zlib);
   std::string data = "Hello world";
-  FileInfo info = accessor.Write(data, FileType_Dicom);
+  FileInfo info = accessor.Write(data, FileContentType_Dicom);
   
   std::string r;
   accessor.Read(r, info.GetUuid());
@@ -114,7 +114,7 @@ TEST(FileStorageAccessor, Compression)
   ASSERT_EQ(data, r);
   ASSERT_EQ(CompressionType_Zlib, info.GetCompressionType());
   ASSERT_EQ(11u, info.GetUncompressedSize());
-  ASSERT_EQ(FileType_Dicom, info.GetFileType());
+  ASSERT_EQ(FileContentType_Dicom, info.GetContentType());
 }
 
 
@@ -128,10 +128,10 @@ TEST(FileStorageAccessor, Mix)
   std::string uncompressedData = "HelloWorld";
 
   accessor.SetCompressionForNextOperations(CompressionType_Zlib);
-  FileInfo compressedInfo = accessor.Write(compressedData, FileType_Dicom);
+  FileInfo compressedInfo = accessor.Write(compressedData, FileContentType_Dicom);
   
   accessor.SetCompressionForNextOperations(CompressionType_None);
-  FileInfo uncompressedInfo = accessor.Write(uncompressedData, FileType_Dicom);
+  FileInfo uncompressedInfo = accessor.Write(uncompressedData, FileContentType_Dicom);
   
   accessor.SetCompressionForNextOperations(CompressionType_Zlib);
   accessor.Read(r, compressedInfo.GetUuid());
@@ -147,95 +147,3 @@ TEST(FileStorageAccessor, Mix)
   ASSERT_THROW(accessor.Read(r, uncompressedInfo.GetUuid()), OrthancException);
   */
 }
-
-
-
-#if 0
-// TODO REMOVE THIS STUFF
-namespace Orthanc
-{
-  class ServerStorageAccessor : public StorageAccessor
-  {
-  private:
-    CompressedFileStorageAccessor composite_;
-    ServerIndex& index_;
-    AttachedFileType contentType_;
-
-  protected:
-    virtual std::string WriteInternal(const void* data,
-                                      size_t size)
-    {
-      switch (contentType_)
-      {
-      case AttachedFileType_Json:
-        composite_.SetCompressionForNextOperations(CompressionType_None);
-        break;
-
-      case AttachedFileType_Dicom:
-        // TODO GLOBAL PARAMETER
-        composite_.SetCompressionForNextOperations(CompressionType_Zlib);
-        break;
-        
-      default:
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
-      std::string fileUuid = composite_.Write(data, size);
-
-      
-    }
-
-  public: 
-    ServerStorageAccessor(FileStorage& storage,
-                          ServerIndex& index) :
-      composite_(storage),
-      index_(index)
-    {
-      contentType_ = AttachedFileType_Dicom;
-    }
-
-    void SetAttachmentType(AttachedFileType type)
-    {
-      contentType_ = type;
-    }
-
-    AttachedFileType GetAttachmentType() const
-    {
-      return contentType_;
-    }
-
-    virtual void Read(std::string& content,
-                      const std::string& uuid)
-    {
-      std::string fileUuid;
-      CompressionType compression;
-
-      if (index_.GetFile(fileUuid, compression, uuid, contentType_))
-      {
-        composite_.SetCompressionForNextOperations(compression);
-        composite_.Read(content, fileUuid);
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-    }
-
-    virtual HttpFileSender* ConstructHttpFileSender(const std::string& uuid)
-    {
-      std::string fileUuid;
-      CompressionType compression;
-
-      if (index_.GetFile(fileUuid, compression, uuid, contentType_))
-      {
-        composite_.SetCompressionForNextOperations(compression);
-        return composite_.ConstructHttpFileSender(fileUuid);
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-    }
-  };
-}
-#endif

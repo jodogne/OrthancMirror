@@ -35,7 +35,7 @@
 namespace Orthanc
 {
   FileInfo StorageAccessor::Write(const std::vector<uint8_t>& content,
-                                  FileType type)
+                                  FileContentType type)
   {
     if (content.size() == 0)
     {
@@ -48,7 +48,7 @@ namespace Orthanc
   }
 
   FileInfo StorageAccessor::Write(const std::string& content,
-                                  FileType type)
+                                  FileContentType type)
   {
     if (content.size() == 0)
     {

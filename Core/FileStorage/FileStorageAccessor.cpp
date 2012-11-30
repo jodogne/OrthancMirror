@@ -36,7 +36,7 @@ namespace Orthanc
 {
   FileInfo FileStorageAccessor::WriteInternal(const void* data,
                                               size_t size,
-                                              FileType type)
+                                              FileContentType type)
   {
     return FileInfo(storage_.Create(data, size), type, size);
   }

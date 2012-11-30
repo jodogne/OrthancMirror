@@ -89,7 +89,7 @@ namespace Orthanc
 
     bool LookupAttachment(FileInfo& attachment,
                           const std::string& instanceUuid,
-                          FileType contentType);
+                          FileContentType contentType);
 
     void GetAllUuids(Json::Value& target,
                      ResourceType resourceType);
