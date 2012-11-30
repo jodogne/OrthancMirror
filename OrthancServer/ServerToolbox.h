@@ -38,10 +38,6 @@
 
 namespace Orthanc
 {
-  void ReadJson(Json::Value& target,
-                const FileStorage& storage,
-                const std::string& fileUuid);
-
   void SimplifyTags(Json::Value& target,
                     const Json::Value& source);
 }

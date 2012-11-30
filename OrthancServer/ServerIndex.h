@@ -36,7 +36,6 @@
 #include <boost/noncopyable.hpp>
 #include "../Core/SQLite/Connection.h"
 #include "../Core/DicomFormat/DicomMap.h"
-#include "../Core/FileStorage.h"
 #include "../Core/DicomFormat/DicomInstanceHasher.h"
 #include "ServerEnumerations.h"
 
@@ -45,6 +44,8 @@
 
 namespace Orthanc
 {
+  class ServerContext;
+
   namespace Internals
   {
     class ServerIndexListener;
@@ -66,7 +67,7 @@ namespace Orthanc
     SeriesStatus GetSeriesStatus(int id);
 
   public:
-    ServerIndex(FileStorage& fileStorage,
+    ServerIndex(ServerContext& context,
                 const std::string& dbPath);
 
     ~ServerIndex();

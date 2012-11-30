@@ -32,13 +32,15 @@
 
 #include "ServerContext.h"
 
+#include "../Core/HttpServer/FilesystemHttpSender.h"
+
 #include <glog/logging.h>
 
 namespace Orthanc
 {
   ServerContext::ServerContext(const boost::filesystem::path& path) :
     storage_(path.string()),
-    index_(storage_, path.string())
+    index_(*this, path.string())
   {
   }
 
@@ -74,5 +76,48 @@ namespace Orthanc
     }
 
     return status;
+  }
+
+  
+  void ServerContext::AnswerFile(RestApiOutput& output,
+                                 const std::string& instancePublicId,
+                                 AttachedFileType content)
+  {
+    CompressionType compressionType;
+    std::string fileUuid;
+
+    if (index_.GetFile(fileUuid, compressionType, 
+                       instancePublicId, AttachedFileType_Dicom))
+    {
+      assert(compressionType == CompressionType_None);
+
+      FilesystemHttpSender sender(storage_, fileUuid);
+      sender.SetDownloadFilename(fileUuid + ".dcm");
+      sender.SetContentType("application/dicom");
+      output.AnswerFile(sender);
+    }
+  }
+
+
+  void ServerContext::ReadJson(Json::Value& result,
+                               const std::string& instancePublicId)
+  {
+    CompressionType compressionType;
+    std::string fileUuid;
+    if (!index_.GetFile(fileUuid, compressionType, instancePublicId, AttachedFileType_Json))
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    assert(compressionType == CompressionType_None);
+
+    std::string s;
+    storage_.ReadFile(s, fileUuid);
+
+    Json::Reader reader;
+    if (!reader.parse(s, result))
+    {
+      throw OrthancException("Corrupted JSON file");
+    }
   }
 }

@@ -45,7 +45,8 @@
 
 
 #define RETRIEVE_CONTEXT(call)                                          \
-  OrthancRestApi2& contextApi = dynamic_cast<OrthancRestApi2&>(call.GetContext()); \
+  OrthancRestApi2& contextApi =                                         \
+    dynamic_cast<OrthancRestApi2&>(call.GetContext());                  \
   ServerContext& context = contextApi.GetContext()
 
 
@@ -150,19 +151,8 @@ namespace Orthanc
   {
     RETRIEVE_CONTEXT(call);
 
-    CompressionType compressionType;
-    std::string fileUuid;
     std::string publicId = call.GetUriComponent("id", "");
-
-    if (context.GetIndex().GetFile(fileUuid, compressionType, publicId, AttachedFileType_Dicom))
-    {
-      assert(compressionType == CompressionType_None);
-
-      FilesystemHttpSender sender(context.GetFileStorage(), fileUuid);
-      sender.SetDownloadFilename(fileUuid + ".dcm");
-      sender.SetContentType("application/dicom");
-      call.GetOutput().AnswerFile(sender);
-    }
+    context.AnswerFile(call.GetOutput(), publicId, AttachedFileType_Dicom);
   }
 
 
@@ -171,27 +161,20 @@ namespace Orthanc
   {
     RETRIEVE_CONTEXT(call);
 
-    CompressionType compressionType;
-    std::string fileUuid;
     std::string publicId = call.GetUriComponent("id", "");
+    
+    Json::Value full;
+    context.ReadJson(full, publicId);
 
-    if (context.GetIndex().GetFile(fileUuid, compressionType, publicId, AttachedFileType_Json))
+    if (simplify)
     {
-      assert(compressionType == CompressionType_None);
-
-      Json::Value full;
-      ReadJson(full, context.GetFileStorage(), fileUuid);
-
-      if (simplify)
-      {
-        Json::Value simplified;
-        SimplifyTags(simplified, full);
-        call.GetOutput().AnswerJson(simplified);
-      }
-      else
-      {
-        call.GetOutput().AnswerJson(full);
-      }
+      Json::Value simplified;
+      SimplifyTags(simplified, full);
+      call.GetOutput().AnswerJson(simplified);
+    }
+    else
+    {
+      call.GetOutput().AnswerJson(full);
     }
   }
 
@@ -259,7 +242,12 @@ namespace Orthanc
       }
       catch (OrthancException& e)
       {
-        //if (e.GetErrorCode() == ErrorCode_NotImplemented)
+        if (e.GetErrorCode() == ErrorCode_ParameterOutOfRange)
+        {
+          // The frame number is out of the range for this DICOM
+          // instance, the resource is not existent
+        }
+        else
         {
           std::string root = "";
           for (size_t i = 1; i < call.GetFullUri().size(); i++)
