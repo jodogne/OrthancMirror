@@ -38,19 +38,25 @@
 
 namespace Orthanc
 {
-  std::string CompressedFileStorageAccessor::WriteInternal(const void* data,
-                                                           size_t size)
+  FileInfo CompressedFileStorageAccessor::WriteInternal(const void* data,
+                                                        size_t size,
+                                                        FileType type)
   {
     switch (compressionType_)
     {
     case CompressionType_None:
-      return storage_.Create(data, size);
+    {
+      std::string uuid = storage_.Create(data, size);
+      return FileInfo(uuid, type, size);
+    }
 
     case CompressionType_Zlib:
     {
       std::string compressed;
       zlib_.Compress(compressed, data, size);
-      return storage_.Create(compressed);
+      std::string uuid = storage_.Create(compressed);
+      return FileInfo(uuid, type, size, 
+                      CompressionType_Zlib, compressed.size());
     }
 
     default:
@@ -61,7 +67,7 @@ namespace Orthanc
   CompressedFileStorageAccessor::CompressedFileStorageAccessor(FileStorage& storage) : 
     storage_(storage)
   {
-    compressionType_ = CompressionType_Zlib;
+    compressionType_ = CompressionType_None;
   }
 
   void CompressedFileStorageAccessor::Read(std::string& content,

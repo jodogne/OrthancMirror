@@ -46,8 +46,9 @@ namespace Orthanc
     CompressionType compressionType_;
 
   protected:
-    virtual std::string WriteInternal(const void* data,
-                                      size_t size);
+    virtual FileInfo WriteInternal(const void* data,
+                                   size_t size,
+                                   FileType type);
 
   public: 
     CompressedFileStorageAccessor(FileStorage& storage);

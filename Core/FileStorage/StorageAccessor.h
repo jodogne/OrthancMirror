@@ -32,6 +32,7 @@
 
 #pragma once
 
+#include "FileInfo.h"
 #include "../HttpServer/HttpFileSender.h"
 
 #include <vector>
@@ -44,23 +45,27 @@ namespace Orthanc
   class StorageAccessor : boost::noncopyable
   {
   protected:
-    virtual std::string WriteInternal(const void* data,
-                                      size_t size) = 0;
+    virtual FileInfo WriteInternal(const void* data,
+                                   size_t size,
+                                   FileType type) = 0;
 
   public:
     virtual ~StorageAccessor()
     {
     }
 
-    std::string Write(const void* data,
-                      size_t size)
+    FileInfo Write(const void* data,
+                   size_t size,
+                   FileType type)
     {
-      return WriteInternal(data, size);
+      return WriteInternal(data, size, type);
     }
 
-    std::string Write(const std::vector<uint8_t>& content);
+    FileInfo Write(const std::vector<uint8_t>& content,
+                   FileType type);
 
-    std::string Write(const std::string& content);
+    FileInfo Write(const std::string& content,
+                   FileType type);
 
     virtual void Read(std::string& content,
                       const std::string& uuid) = 0;

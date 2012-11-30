@@ -106,6 +106,7 @@ add_library(CoreLibrary
   Core/FileStorage.cpp
   Core/FileStorage/StorageAccessor.cpp
   Core/FileStorage/CompressedFileStorageAccessor.cpp
+  Core/FileStorage/FileStorageAccessor.cpp
   Core/HttpServer/EmbeddedResourceHttpHandler.cpp
   Core/HttpServer/FilesystemHttpHandler.cpp
   Core/HttpServer/HttpHandler.cpp

@@ -64,9 +64,22 @@ namespace Orthanc
     PixelFormat_Grayscale16
   };
 
+
+  /**
+   * WARNING: Do not change the explicit values in the enumerations
+   * below this point. This would result in incompatible databases
+   * between versions of Orthanc!
+   **/
+
   enum CompressionType
   {
     CompressionType_None = 1,
     CompressionType_Zlib = 2
+  };
+
+  enum FileType
+  {
+    FileType_Dicom = 1,
+    FileType_Json = 2
   };
 }
