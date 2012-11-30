@@ -554,20 +554,89 @@ namespace Orthanc
   }
 
 
-  void DatabaseWrapper::LogExportedInstance(const std::string& remoteModality,
-                                            DicomInstanceHasher& hasher,
+  void DatabaseWrapper::LogExportedResource(ResourceType resourceType,
+                                            const std::string& publicId,
+                                            const std::string& remoteModality,
+                                            const std::string& patientId,
+                                            const std::string& studyInstanceUid,
+                                            const std::string& seriesInstanceUid,
+                                            const std::string& sopInstanceUid,
                                             const boost::posix_time::ptime& date)
   {
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO ExportedInstances VALUES(NULL, ?, ?, ?, ?, ?, ?)");
-    s.BindString(0, remoteModality);
-    s.BindString(1, hasher.HashInstance());
-    s.BindString(2, hasher.GetPatientId());
-    s.BindString(3, hasher.GetStudyUid());
-    s.BindString(4, hasher.GetSeriesUid());
-    s.BindString(5, hasher.GetInstanceUid());
-    s.BindString(6, boost::posix_time::to_iso_string(date));
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                        "INSERT INTO ExportedResources VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+    s.BindInt(0, resourceType);
+    s.BindString(1, publicId);
+    s.BindString(2, remoteModality);
+    s.BindString(3, patientId);
+    s.BindString(4, studyInstanceUid);
+    s.BindString(5, seriesInstanceUid);
+    s.BindString(6, sopInstanceUid);
+    s.BindString(7, boost::posix_time::to_iso_string(date));
+
     s.Run();      
   }
+
+
+  void DatabaseWrapper::GetExportedResources(Json::Value& target,
+                                             int64_t since,
+                                             unsigned int maxResults)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                        "SELECT * FROM ExportedResources WHERE seq>? ORDER BY seq LIMIT ?");
+    s.BindInt(0, since);
+    s.BindInt(1, maxResults + 1);
+
+    Json::Value changes = Json::arrayValue;
+    int64_t last = 0;
+
+    while (changes.size() < maxResults && s.Step())
+    {
+      int64_t seq = s.ColumnInt(0);
+      ResourceType resourceType = static_cast<ResourceType>(s.ColumnInt(1));
+      std::string publicId = s.ColumnString(2);
+
+      Json::Value item = Json::objectValue;
+      item["Seq"] = static_cast<int>(seq);
+      item["ResourceType"] = ToString(resourceType);
+      item["ID"] = publicId;
+      item["Path"] = GetBasePath(resourceType, publicId);
+      item["RemoteModality"] = s.ColumnString(3);
+      item["Date"] = s.ColumnString(8);
+
+      // WARNING: Do not add "break" below and do not reorder the case items!
+      switch (resourceType)
+      {
+      case ResourceType_Instance:
+        item["SopInstanceUid"] = s.ColumnString(7);
+
+      case ResourceType_Series:
+        item["SeriesInstanceUid"] = s.ColumnString(6);
+
+      case ResourceType_Study:
+        item["StudyInstanceUid"] = s.ColumnString(5);
+
+      case ResourceType_Patient:
+        item["PatientId"] = s.ColumnString(4);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      last = seq;
+
+      changes.append(item);
+    }
+
+    target = Json::objectValue;
+    target["Changes"] = changes;
+    target["PendingChanges"] = (changes.size() == maxResults && s.Step());
+    target["LastSeq"] = static_cast<int>(last);
+  }
+
+
     
 
   int64_t DatabaseWrapper::GetTableRecordCount(const std::string& table)

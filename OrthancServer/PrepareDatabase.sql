@@ -43,10 +43,11 @@ CREATE TABLE Changes(
        date TEXT
        );
 
-CREATE TABLE ExportedInstances(
+CREATE TABLE ExportedResources(
        seq INTEGER PRIMARY KEY AUTOINCREMENT,
-       remoteModality TEXT,
+       resourceType INTEGER,
        publicId TEXT,
+       remoteModality TEXT,
        patientId TEXT,
        studyInstanceUid TEXT,
        seriesInstanceUid TEXT,

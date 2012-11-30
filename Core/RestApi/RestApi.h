@@ -72,13 +72,13 @@ namespace Orthanc
       }
 
       std::string GetUriComponent(const std::string& name,
-                                  const std::string& defaultValue)
+                                  const std::string& defaultValue) const
       {
         return HttpHandler::GetArgument(*uriComponents_, name, defaultValue);
       }
 
       std::string GetHttpHeader(const std::string& name,
-                                const std::string& defaultValue)
+                                const std::string& defaultValue) const
       {
         return HttpHandler::GetArgument(*httpHeaders_, name, defaultValue);
       }
@@ -95,7 +95,7 @@ namespace Orthanc
 
     public:
       std::string GetArgument(const std::string& name,
-                              const std::string& defaultValue)
+                              const std::string& defaultValue) const
       {
         return HttpHandler::GetArgument(*getArguments_, name, defaultValue);
       }
