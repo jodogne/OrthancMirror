@@ -38,6 +38,11 @@
 
 namespace Orthanc
 {
+  /**
+   * This class is responsible for maintaining the storage area on the
+   * filesystem (including compression), as well as the index of the
+   * DICOM store. It implements the required locking mechanisms.
+   **/
   class ServerContext
   {
   private:
@@ -52,16 +57,7 @@ namespace Orthanc
       return index_;
     }
 
-    // TODO REMOVE THIS, SINCE IT IS NOT PROTECTED BY MUTEXES
-    FileStorage& GetFileStorage()
-    {
-      return storage_;
-    }
-
-    void RemoveFile(const std::string& fileUuid)
-    {
-      storage_.Remove(fileUuid);
-    }
+    void RemoveFile(const std::string& fileUuid);
 
     StoreStatus Store(const char* dicomFile,
                       size_t dicomSize,
@@ -75,5 +71,10 @@ namespace Orthanc
 
     void ReadJson(Json::Value& result,
                   const std::string& instancePublicId);
+
+    // TODO CACHING MECHANISM AT THIS POINT
+    void ReadFile(std::string& result,
+                  const std::string& instancePublicId,
+                  AttachedFileType content);
   };
 }

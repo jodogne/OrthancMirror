@@ -32,10 +32,11 @@
 
 #include "OrthancRestApi2.h"
 
-#include "OrthancInitialization.h"
-#include "FromDcmtkBridge.h"
-#include "../Core/Uuid.h"
 #include "../Core/HttpServer/FilesystemHttpSender.h"
+#include "../Core/Uuid.h"
+#include "DicomProtocol/DicomUserConnection.h"
+#include "FromDcmtkBridge.h"
+#include "OrthancInitialization.h"
 #include "ServerToolbox.h"
 
 #include <dcmtk/dcmdata/dcistrmb.h>
@@ -44,14 +45,241 @@
 #include <glog/logging.h>
 
 
-#define RETRIEVE_CONTEXT(call)                                          \
-  OrthancRestApi2& contextApi =                                         \
-    dynamic_cast<OrthancRestApi2&>(call.GetContext());                  \
+#define RETRIEVE_CONTEXT(call)                          \
+  OrthancRestApi2& contextApi =                         \
+    dynamic_cast<OrthancRestApi2&>(call.GetContext());  \
   ServerContext& context = contextApi.GetContext()
+
+#define RETRIEVE_MODALITIES(call)                                       \
+  const OrthancRestApi2::Modalities& modalities =                       \
+    dynamic_cast<OrthancRestApi2&>(call.GetContext()).GetModalities();
+
 
 
 namespace Orthanc
 {
+  // DICOM SCU ----------------------------------------------------------------
+
+  static void ConnectToModality(DicomUserConnection& connection,
+                                const std::string& name)
+  {
+    std::string aet, address;
+    int port;
+    GetDicomModality(name, aet, address, port);
+    connection.SetLocalApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
+    connection.SetDistantApplicationEntityTitle(aet);
+    connection.SetDistantHost(address);
+    connection.SetDistantPort(port);
+    connection.Open();
+  }
+
+  static bool MergeQueryAndTemplate(DicomMap& result,
+                                    const std::string& postData)
+  {
+    Json::Value query;
+    Json::Reader reader;
+
+    if (!reader.parse(postData, query) ||
+        query.type() != Json::objectValue)
+    {
+      return false;
+    }
+
+    Json::Value::Members members = query.getMemberNames();
+    for (size_t i = 0; i < members.size(); i++)
+    {
+      DicomTag t = FromDcmtkBridge::FindTag(members[i]);
+      result.SetValue(t, query[members[i]].asString());
+    }
+
+    return true;
+  }
+
+  static void DicomFindPatient(RestApi::PostCall& call)
+  {
+    DicomMap m;
+    DicomMap::SetupFindPatientTemplate(m);
+    if (!MergeQueryAndTemplate(m, call.GetPostBody()))
+    {
+      return;
+    }
+
+    DicomUserConnection connection;
+    ConnectToModality(connection, call.GetUriComponent("id", ""));
+
+    DicomFindAnswers answers;
+    connection.FindPatient(answers, m);
+
+    Json::Value result;
+    answers.ToJson(result);
+    call.GetOutput().AnswerJson(result);
+  }
+
+  static void DicomFindStudy(RestApi::PostCall& call)
+  {
+    DicomMap m;
+    DicomMap::SetupFindStudyTemplate(m);
+    if (!MergeQueryAndTemplate(m, call.GetPostBody()))
+    {
+      return;
+    }
+
+    if (m.GetValue(DICOM_TAG_ACCESSION_NUMBER).AsString().size() <= 2 &&
+        m.GetValue(DICOM_TAG_PATIENT_ID).AsString().size() <= 2)
+    {
+      return;
+    }        
+      
+    DicomUserConnection connection;
+    ConnectToModality(connection, call.GetUriComponent("id", ""));
+  
+    DicomFindAnswers answers;
+    connection.FindStudy(answers, m);
+
+    Json::Value result;
+    answers.ToJson(result);
+    call.GetOutput().AnswerJson(result);
+  }
+
+  static void DicomFindSeries(RestApi::PostCall& call)
+  {
+    DicomMap m;
+    DicomMap::SetupFindSeriesTemplate(m);
+    if (!MergeQueryAndTemplate(m, call.GetPostBody()))
+    {
+      return;
+    }
+
+    if ((m.GetValue(DICOM_TAG_ACCESSION_NUMBER).AsString().size() <= 2 &&
+         m.GetValue(DICOM_TAG_PATIENT_ID).AsString().size() <= 2) ||
+        m.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString().size() <= 2)
+    {
+      return;
+    }        
+         
+    DicomUserConnection connection;
+    ConnectToModality(connection, call.GetUriComponent("id", ""));
+  
+    DicomFindAnswers answers;
+    connection.FindSeries(answers, m);
+
+    Json::Value result;
+    answers.ToJson(result);
+    call.GetOutput().AnswerJson(result);
+  }
+
+  static void DicomFind(RestApi::PostCall& call)
+  {
+    DicomMap m;
+    DicomMap::SetupFindPatientTemplate(m);
+    if (!MergeQueryAndTemplate(m, call.GetPostBody()))
+    {
+      return;
+    }
+ 
+    DicomUserConnection connection;
+    ConnectToModality(connection, call.GetUriComponent("id", ""));
+  
+    DicomFindAnswers patients;
+    connection.FindPatient(patients, m);
+
+    // Loop over the found patients
+    Json::Value result = Json::arrayValue;
+    for (size_t i = 0; i < patients.GetSize(); i++)
+    {
+      Json::Value patient(Json::objectValue);
+      FromDcmtkBridge::ToJson(patient, patients.GetAnswer(i));
+
+      DicomMap::SetupFindStudyTemplate(m);
+      if (!MergeQueryAndTemplate(m, call.GetPostBody()))
+      {
+        return;
+      }
+      m.CopyTagIfExists(patients.GetAnswer(i), DICOM_TAG_PATIENT_ID);
+
+      DicomFindAnswers studies;
+      connection.FindStudy(studies, m);
+
+      patient["Studies"] = Json::arrayValue;
+      
+      // Loop over the found studies
+      for (size_t j = 0; j < studies.GetSize(); j++)
+      {
+        Json::Value study(Json::objectValue);
+        FromDcmtkBridge::ToJson(study, studies.GetAnswer(j));
+
+        DicomMap::SetupFindSeriesTemplate(m);
+        if (!MergeQueryAndTemplate(m, call.GetPostBody()))
+        {
+          return;
+        }
+        m.CopyTagIfExists(studies.GetAnswer(j), DICOM_TAG_PATIENT_ID);
+        m.CopyTagIfExists(studies.GetAnswer(j), DICOM_TAG_STUDY_INSTANCE_UID);
+
+        DicomFindAnswers series;
+        connection.FindSeries(series, m);
+
+        // Loop over the found series
+        study["Series"] = Json::arrayValue;
+        for (size_t k = 0; k < series.GetSize(); k++)
+        {
+          Json::Value series2(Json::objectValue);
+          FromDcmtkBridge::ToJson(series2, series.GetAnswer(k));
+          study["Series"].append(series2);
+        }
+
+        patient["Studies"].append(study);
+      }
+
+      result.append(patient);
+    }
+    
+    call.GetOutput().AnswerJson(result);
+  }
+
+
+  static void DicomStore(RestApi::PostCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+
+    DicomUserConnection connection;
+    ConnectToModality(connection, call.GetUriComponent("id", ""));
+
+    Json::Value found;
+    if (context.GetIndex().LookupResource(found, call.GetPostBody(), ResourceType_Series))
+    {
+      // The UUID corresponds to a series
+      for (Json::Value::ArrayIndex i = 0; i < found["Instances"].size(); i++)
+      {
+        std::string instanceId = found["Instances"][i].asString();
+        std::string dicom;
+        context.ReadFile(dicom, instanceId, AttachedFileType_Dicom);
+        connection.Store(dicom);
+      }
+
+      call.GetOutput().AnswerBuffer("{}", "application/json");
+    }
+    else if (context.GetIndex().LookupResource(found, call.GetPostBody(), ResourceType_Instance))
+    {
+      // The UUID corresponds to an instance
+      std::string instanceId = call.GetPostBody();
+      std::string dicom;
+      context.ReadFile(dicom, instanceId, AttachedFileType_Dicom);
+      connection.Store(dicom);
+
+      call.GetOutput().AnswerBuffer("{}", "application/json");
+    }
+    else
+    {
+      // The POST body is not a known resource, assume that it
+      // contains a raw DICOM instance
+      connection.Store(call.GetPostBody());
+      call.GetOutput().AnswerBuffer("{}", "application/json");
+    }
+  }
+
+
+
   // System information -------------------------------------------------------
 
   static void ServeRoot(RestApi::GetCall& call)
@@ -66,8 +294,11 @@ namespace Orthanc
     Json::Value result = Json::objectValue;
     result["Version"] = ORTHANC_VERSION;
     result["Name"] = GetGlobalStringParameter("Name", "");
-    result["TotalCompressedSize"] = boost::lexical_cast<std::string>(context.GetIndex().GetTotalCompressedSize());
-    result["TotalUncompressedSize"] = boost::lexical_cast<std::string>(context.GetIndex().GetTotalUncompressedSize());
+    result["TotalCompressedSize"] = boost::lexical_cast<std::string>
+      (context.GetIndex().GetTotalCompressedSize());
+    result["TotalUncompressedSize"] = boost::lexical_cast<std::string>
+      (context.GetIndex().GetTotalUncompressedSize());
+
     call.GetOutput().AnswerJson(result);
   }
 
@@ -213,9 +444,6 @@ namespace Orthanc
   {
     RETRIEVE_CONTEXT(call);
 
-    CompressionType compressionType;
-    std::string fileUuid;
-    std::string publicId = call.GetUriComponent("id", "");
     std::string frameId = call.GetUriComponent("frame", "0");
 
     unsigned int frame;
@@ -228,35 +456,31 @@ namespace Orthanc
       return;
     }
 
-    if (context.GetIndex().GetFile(fileUuid, compressionType, publicId, AttachedFileType_Dicom))
+    std::string publicId = call.GetUriComponent("id", "");
+    std::string dicomContent, png;
+    context.ReadFile(dicomContent, publicId, AttachedFileType_Dicom);
+
+    try
     {
-      assert(compressionType == CompressionType_None);
-
-      std::string dicomContent, png;
-      context.GetFileStorage().ReadFile(dicomContent, fileUuid);
-
-      try
+      FromDcmtkBridge::ExtractPngImage(png, dicomContent, frame, mode);
+      call.GetOutput().AnswerBuffer(png, "image/png");
+    }
+    catch (OrthancException& e)
+    {
+      if (e.GetErrorCode() == ErrorCode_ParameterOutOfRange)
       {
-        FromDcmtkBridge::ExtractPngImage(png, dicomContent, frame, mode);
-        call.GetOutput().AnswerBuffer(png, "image/png");
+        // The frame number is out of the range for this DICOM
+        // instance, the resource is not existent
       }
-      catch (OrthancException& e)
+      else
       {
-        if (e.GetErrorCode() == ErrorCode_ParameterOutOfRange)
+        std::string root = "";
+        for (size_t i = 1; i < call.GetFullUri().size(); i++)
         {
-          // The frame number is out of the range for this DICOM
-          // instance, the resource is not existent
+          root += "../";
         }
-        else
-        {
-          std::string root = "";
-          for (size_t i = 1; i < call.GetFullUri().size(); i++)
-          {
-            root += "../";
-          }
 
-          call.GetOutput().Redirect(root + "app/images/unsupported.png");
-        }
+        call.GetOutput().Redirect(root + "app/images/unsupported.png");
       }
     }
   }
@@ -318,20 +542,42 @@ namespace Orthanc
 
   // DICOM bridge -------------------------------------------------------------
 
+  static bool IsExistingModality(const OrthancRestApi2::Modalities& modalities,
+                                 const std::string& id)
+  {
+    return modalities.find(id) != modalities.end();
+  }
+
   static void ListModalities(RestApi::GetCall& call)
   {
-    const OrthancRestApi2::Modalities& m = 
-      dynamic_cast<OrthancRestApi2&>(call.GetContext()).GetModalities();
+    RETRIEVE_MODALITIES(call);
 
     Json::Value result = Json::arrayValue;
-
     for (OrthancRestApi2::Modalities::const_iterator 
-           it = m.begin(); it != m.end(); it++)
+           it = modalities.begin(); it != modalities.end(); it++)
     {
       result.append(*it);
     }
 
     call.GetOutput().AnswerJson(result);
+  }
+
+
+  static void ListModalityOperations(RestApi::GetCall& call)
+  {
+    RETRIEVE_MODALITIES(call);
+
+    std::string id = call.GetUriComponent("id", "");
+    if (IsExistingModality(modalities, id))
+    {
+      Json::Value result = Json::arrayValue;
+      result.append("find-patient");
+      result.append("find-study");
+      result.append("find-series");
+      result.append("find");
+      result.append("store");
+      call.GetOutput().AnswerJson(result);
+    }
   }
 
 
@@ -346,7 +592,6 @@ namespace Orthanc
     Register("/", ServeRoot);
     Register("/system", GetSystemInformation);
     Register("/changes", GetChanges);
-    Register("/modalities", ListModalities);
 
     Register("/instances", UploadDicomFile);
     Register("/instances", ListResources<ResourceType_Instance>);
@@ -374,6 +619,14 @@ namespace Orthanc
     Register("/instances/{id}/preview", GetImage<ImageExtractionMode_Preview>);
     Register("/instances/{id}/image-uint8", GetImage<ImageExtractionMode_UInt8>);
     Register("/instances/{id}/image-uint16", GetImage<ImageExtractionMode_UInt16>);
+
+    Register("/modalities", ListModalities);
+    Register("/modalities/{id}", ListModalityOperations);
+    Register("/modalities/{id}/find-patient", DicomFindPatient);
+    Register("/modalities/{id}/find-study", DicomFindStudy);
+    Register("/modalities/{id}/find-series", DicomFindSeries);
+    Register("/modalities/{id}/find", DicomFind);
+    Register("/modalities/{id}/store", DicomStore);
 
     // TODO : "content"
   }

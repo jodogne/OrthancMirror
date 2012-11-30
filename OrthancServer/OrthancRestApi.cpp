@@ -290,31 +290,12 @@ namespace Orthanc
 
     // DICOM bridge -------------------------------------------------------------
 
-    if ((uri.size() == 2 ||
-         uri.size() == 3) && 
+    if (uri.size() == 3 && 
         uri[0] == "modalities")
     {
       if (modalities_.find(uri[1]) == modalities_.end())
       {
         // Unknown modality
-      }
-      else if (uri.size() == 2)
-      {
-        if (method != "GET")
-        {
-          output.SendMethodNotAllowedError("POST");
-          return;
-        }
-        else
-        {
-          existingResource = true;
-          result = Json::arrayValue;
-          result.append("find-patient");
-          result.append("find-study");
-          result.append("find-series");
-          result.append("find");
-          result.append("store");
-        }
       }
       else if (uri.size() == 3)
       {
