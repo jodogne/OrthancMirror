@@ -167,11 +167,14 @@ namespace Orthanc
 
     void GetLastExportedResource(Json::Value& target);
 
+    // For unit testing only!
     int64_t GetTableRecordCount(const std::string& table);
     
     uint64_t GetTotalCompressedSize();
     
     uint64_t GetTotalUncompressedSize();
+
+    uint64_t GetResourceCount(ResourceType resourceType);
 
     void GetAllPublicIds(Json::Value& target,
                          ResourceType resourceType);

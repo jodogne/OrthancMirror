@@ -350,17 +350,24 @@ namespace Orthanc
   }
 
 
-  uint64_t ServerIndex::GetTotalCompressedSize()
+  void ServerIndex::ComputeStatistics(Json::Value& target)
   {
     boost::mutex::scoped_lock lock(mutex_);
-    return db_->GetTotalCompressedSize();
-  }
+    target = Json::objectValue;
 
-  uint64_t ServerIndex::GetTotalUncompressedSize()
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-    return db_->GetTotalUncompressedSize();
-  }
+    uint64_t cs = db_->GetTotalCompressedSize();
+    uint64_t us = db_->GetTotalUncompressedSize();
+    target["TotalDiskSize"] = boost::lexical_cast<std::string>(cs);
+    target["TotalUncompressedSize"] = boost::lexical_cast<std::string>(us);
+    target["TotalDiskSizeMB"] = boost::lexical_cast<unsigned int>(cs / (1024llu * 1024llu));
+    target["TotalUncompressedSizeMB"] = boost::lexical_cast<unsigned int>(us / (1024llu * 1024llu));
+
+    target["CountPatients"] = static_cast<unsigned int>(db_->GetResourceCount(ResourceType_Patient));
+    target["CountStudies"] = static_cast<unsigned int>(db_->GetResourceCount(ResourceType_Study));
+    target["CountSeries"] = static_cast<unsigned int>(db_->GetResourceCount(ResourceType_Series));
+    target["CountInstances"] = static_cast<unsigned int>(db_->GetResourceCount(ResourceType_Instance));
+  }          
+
 
 
   SeriesStatus ServerIndex::GetSeriesStatus(int id)
