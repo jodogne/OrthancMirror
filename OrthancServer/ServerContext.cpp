@@ -50,7 +50,8 @@ namespace Orthanc
 {
   ServerContext::ServerContext(const boost::filesystem::path& path) :
     storage_(path.string()),
-    index_(*this, path.string())
+    index_(*this, path.string()),
+    accessor_(storage_)
   {
   }
 
@@ -65,14 +66,21 @@ namespace Orthanc
                                    const Json::Value& dicomJson,
                                    const std::string& remoteAet)
   {
-    std::string fileUuid = storage_.Create(dicomFile, dicomSize);
-    std::string jsonUuid = storage_.Create(dicomJson.toStyledString());
-    StoreStatus status = index_.Store(dicomSummary, fileUuid, dicomSize, jsonUuid, remoteAet);
+    //accessor_.SetCompressionForNextOperations(CompressionType_Zlib);
+
+    FileInfo dicomInfo = accessor_.Write(dicomFile, dicomSize, FileType_Dicom);
+    FileInfo jsonInfo = accessor_.Write(dicomJson.toStyledString(), FileType_Json);
+
+    ServerIndex::Attachments attachments;
+    attachments.push_back(dicomInfo);
+    attachments.push_back(jsonInfo);
+
+    StoreStatus status = index_.Store(dicomSummary, attachments, remoteAet);
 
     if (status != StoreStatus_Success)
     {
-      storage_.Remove(fileUuid);
-      storage_.Remove(jsonUuid);
+      storage_.Remove(dicomInfo.GetUuid());
+      storage_.Remove(jsonInfo.GetUuid());
     }
 
     switch (status)
@@ -96,18 +104,16 @@ namespace Orthanc
   
   void ServerContext::AnswerFile(RestApiOutput& output,
                                  const std::string& instancePublicId,
-                                 AttachedFileType content)
+                                 FileType content)
   {
-    CompressionType compressionType;
-    std::string fileUuid;
-
-    if (index_.GetFile(fileUuid, compressionType, 
-                       instancePublicId, AttachedFileType_Dicom))
+    FileInfo attachment;
+    if (index_.LookupAttachment(attachment, instancePublicId, FileType_Dicom))
     {
-      assert(compressionType == CompressionType_None);
+      assert(attachment.GetCompressionType() == CompressionType_None);
+      assert(attachment.GetFileType() == FileType_Dicom);
 
-      FilesystemHttpSender sender(storage_, fileUuid);
-      sender.SetDownloadFilename(fileUuid + ".dcm");
+      FilesystemHttpSender sender(storage_, attachment.GetUuid());
+      sender.SetDownloadFilename(attachment.GetUuid() + ".dcm");
       sender.SetContentType("application/dicom");
       output.AnswerFile(sender);
     }
@@ -118,7 +124,7 @@ namespace Orthanc
                                const std::string& instancePublicId)
   {
     std::string s;
-    ReadFile(s, instancePublicId, AttachedFileType_Json);
+    ReadFile(s, instancePublicId, FileType_Json);
 
     Json::Reader reader;
     if (!reader.parse(s, result))
@@ -130,16 +136,15 @@ namespace Orthanc
 
   void ServerContext::ReadFile(std::string& result,
                                const std::string& instancePublicId,
-                               AttachedFileType content)
+                               FileType content)
   {
-    CompressionType compressionType;
-    std::string fileUuid;
-    if (!index_.GetFile(fileUuid, compressionType, instancePublicId, content))
+    FileInfo attachment;
+    if (!index_.LookupAttachment(attachment, instancePublicId, content))
     {
       throw OrthancException(ErrorCode_InternalError);
     }
 
-    assert(compressionType == CompressionType_None);
-    storage_.ReadFile(result, fileUuid);    
+    accessor_.SetCompressionForNextOperations(attachment.GetCompressionType());
+    accessor_.Read(result, attachment.GetUuid());
   }
 }

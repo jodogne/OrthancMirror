@@ -32,36 +32,79 @@
 
 #pragma once
 
-#include "StorageAccessor.h"
-#include "../FileStorage.h"
-#include "../HttpServer/FilesystemHttpSender.h"
+#include <string>
+#include <stdint.h>
+#include "../Enumerations.h"
 
 namespace Orthanc
 {
-  class FileStorageAccessor : public StorageAccessor
+  struct FileInfo
   {
   private:
-    FileStorage& storage_;
-    
-  protected:
-    virtual FileInfo WriteInternal(const void* data,
-                                   size_t size,
-                                   FileType type);
+    std::string uuid_;
+    FileType type_;
+    uint64_t uncompressedSize_;
+    CompressionType compression_;
+    uint64_t compressedSize_;
 
   public:
-    FileStorageAccessor(FileStorage& storage) : storage_(storage)
+    FileInfo()
     {
     }
 
-    virtual void Read(std::string& content,
-                      const std::string& uuid)
+    /**
+     * Constructor for an uncompressed attachment.
+     **/
+    FileInfo(const std::string& uuid,
+             FileType type,
+             uint64_t size) :
+      uuid_(uuid),
+      type_(type),
+      uncompressedSize_(size),
+      compression_(CompressionType_None),
+      compressedSize_(size)
     {
-      storage_.ReadFile(content, uuid);
     }
 
-    virtual HttpFileSender* ConstructHttpFileSender(const std::string& uuid)
+    /**
+     * Constructor for a compressed attachment.
+     **/
+    FileInfo(const std::string& uuid,
+             FileType type,
+             uint64_t uncompressedSize,
+             CompressionType compression,
+             uint64_t compressedSize) :
+      uuid_(uuid),
+      type_(type),
+      uncompressedSize_(uncompressedSize),
+      compression_(compression),
+      compressedSize_(compressedSize)
     {
-      return new FilesystemHttpSender(storage_.GetPath(uuid));
+    }
+
+    const std::string& GetUuid() const
+    {
+      return uuid_;
+    }
+
+    FileType GetFileType() const
+    {
+      return type_;
+    }
+
+    uint64_t GetUncompressedSize() const
+    {
+      return uncompressedSize_;
+    }
+
+    CompressionType GetCompressionType() const
+    {
+      return compression_;
+    }
+
+    uint64_t GetCompressedSize() const
+    {
+      return compressedSize_;
     }
   };
 }

@@ -17,7 +17,7 @@ Minor changes
 * Generate a sample configuration file from command line
 * "CompletedSeries" event in the changes API
 * Thread to continuously flush DB to disk (SQLite checkpoints for
-  robustness against reboots)
+  improved robustness)
 
 
 Version 0.2.3 (2012/10/26)

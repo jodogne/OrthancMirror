@@ -30,38 +30,14 @@
  **/
 
 
-#pragma once
-
-#include "StorageAccessor.h"
-#include "../FileStorage.h"
-#include "../HttpServer/FilesystemHttpSender.h"
+#include "FileStorageAccessor.h"
 
 namespace Orthanc
 {
-  class FileStorageAccessor : public StorageAccessor
+  FileInfo FileStorageAccessor::WriteInternal(const void* data,
+                                              size_t size,
+                                              FileType type)
   {
-  private:
-    FileStorage& storage_;
-    
-  protected:
-    virtual FileInfo WriteInternal(const void* data,
-                                   size_t size,
-                                   FileType type);
-
-  public:
-    FileStorageAccessor(FileStorage& storage) : storage_(storage)
-    {
-    }
-
-    virtual void Read(std::string& content,
-                      const std::string& uuid)
-    {
-      storage_.ReadFile(content, uuid);
-    }
-
-    virtual HttpFileSender* ConstructHttpFileSender(const std::string& uuid)
-    {
-      return new FilesystemHttpSender(storage_.GetPath(uuid));
-    }
-  };
+    return FileInfo(storage_.Create(data, size), type, size);
+  }
 }

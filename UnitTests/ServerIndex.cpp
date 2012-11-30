@@ -65,18 +65,18 @@ TEST(DatabaseWrapper, Simple)
     Json::Value t;
     index.GetAllPublicIds(t, ResourceType_Patient);
 
-    ASSERT_EQ(1, t.size());
+    ASSERT_EQ(1u, t.size());
     ASSERT_EQ("a", t[0u].asString());
 
     index.GetAllPublicIds(t, ResourceType_Series);
-    ASSERT_EQ(1, t.size());
+    ASSERT_EQ(1u, t.size());
     ASSERT_EQ("c", t[0u].asString());
 
     index.GetAllPublicIds(t, ResourceType_Study);
-    ASSERT_EQ(2, t.size());
+    ASSERT_EQ(2u, t.size());
 
     index.GetAllPublicIds(t, ResourceType_Instance);
-    ASSERT_EQ(3, t.size());
+    ASSERT_EQ(3u, t.size());
   }
 
   index.SetGlobalProperty(GlobalProperty_FlushSleep, "World");
@@ -107,14 +107,14 @@ TEST(DatabaseWrapper, Simple)
   ASSERT_TRUE(index.GetParentPublicId(s, a[5])); ASSERT_EQ("g", s);
 
   std::list<std::string> l;
-  index.GetChildrenPublicId(l, a[0]); ASSERT_EQ(1, l.size()); ASSERT_EQ("b", l.front());
-  index.GetChildrenPublicId(l, a[1]); ASSERT_EQ(1, l.size()); ASSERT_EQ("c", l.front());
-  index.GetChildrenPublicId(l, a[3]); ASSERT_EQ(0, l.size()); 
-  index.GetChildrenPublicId(l, a[4]); ASSERT_EQ(0, l.size()); 
-  index.GetChildrenPublicId(l, a[5]); ASSERT_EQ(0, l.size()); 
-  index.GetChildrenPublicId(l, a[6]); ASSERT_EQ(1, l.size()); ASSERT_EQ("f", l.front());
+  index.GetChildrenPublicId(l, a[0]); ASSERT_EQ(1u, l.size()); ASSERT_EQ("b", l.front());
+  index.GetChildrenPublicId(l, a[1]); ASSERT_EQ(1u, l.size()); ASSERT_EQ("c", l.front());
+  index.GetChildrenPublicId(l, a[3]); ASSERT_EQ(0u, l.size()); 
+  index.GetChildrenPublicId(l, a[4]); ASSERT_EQ(0u, l.size()); 
+  index.GetChildrenPublicId(l, a[5]); ASSERT_EQ(0u, l.size()); 
+  index.GetChildrenPublicId(l, a[6]); ASSERT_EQ(1u, l.size()); ASSERT_EQ("f", l.front());
 
-  index.GetChildrenPublicId(l, a[2]); ASSERT_EQ(2, l.size()); 
+  index.GetChildrenPublicId(l, a[2]); ASSERT_EQ(2u, l.size()); 
   if (l.front() == "d")
   {
     ASSERT_EQ("e", l.back());
@@ -125,13 +125,13 @@ TEST(DatabaseWrapper, Simple)
     ASSERT_EQ("e", l.front());
   }
 
-  index.AttachFile(a[4], AttachedFileType_Json, "my json file", 21, 42, CompressionType_Zlib);
-  index.AttachFile(a[4], AttachedFileType_Dicom, "my dicom file", 42);
-  index.AttachFile(a[6], AttachedFileType_Dicom, "world", 44);
+  index.AddAttachment(a[4], FileInfo("my json file", FileType_Json, 42, CompressionType_Zlib, 21));
+  index.AddAttachment(a[4], FileInfo("my dicom file", FileType_Dicom, 42));
+  index.AddAttachment(a[6], FileInfo("world", FileType_Dicom, 44));
   index.SetMetadata(a[4], MetadataType_Instance_RemoteAet, "PINNACLE");
 
-  ASSERT_EQ(21 + 42 + 44, index.GetTotalCompressedSize());
-  ASSERT_EQ(42 + 42 + 44, index.GetTotalUncompressedSize());
+  ASSERT_EQ(21u + 42u + 44u, index.GetTotalCompressedSize());
+  ASSERT_EQ(42u + 42u + 44u, index.GetTotalUncompressedSize());
 
   DicomMap m;
   m.SetValue(0x0010, 0x0010, "PatientName");
@@ -155,35 +155,34 @@ TEST(DatabaseWrapper, Simple)
   ASSERT_EQ("World", index.GetGlobalProperty(GlobalProperty_FlushSleep));
   ASSERT_EQ("None", index.GetGlobalProperty(static_cast<GlobalProperty>(42), "None"));
 
-  uint64_t us, cs;
-  CompressionType ct;
-  ASSERT_TRUE(index.LookupFile(a[4], AttachedFileType_Json, s, cs, us, ct));
-  ASSERT_EQ("my json file", s);
-  ASSERT_EQ(21, cs);
-  ASSERT_EQ(42, us);
-  ASSERT_EQ(CompressionType_Zlib, ct);
+  FileInfo att;
+  ASSERT_TRUE(index.LookupAttachment(att, a[4], FileType_Json));
+  ASSERT_EQ("my json file", att.GetUuid());
+  ASSERT_EQ(21u, att.GetCompressedSize());
+  ASSERT_EQ(42u, att.GetUncompressedSize());
+  ASSERT_EQ(CompressionType_Zlib, att.GetCompressionType());
 
   ASSERT_EQ(0u, listener.deletedFiles_.size());
-  ASSERT_EQ(7, index.GetTableRecordCount("Resources")); 
-  ASSERT_EQ(3, index.GetTableRecordCount("AttachedFiles"));
-  ASSERT_EQ(1, index.GetTableRecordCount("Metadata"));
-  ASSERT_EQ(1, index.GetTableRecordCount("MainDicomTags"));
+  ASSERT_EQ(7u, index.GetTableRecordCount("Resources")); 
+  ASSERT_EQ(3u, index.GetTableRecordCount("AttachedFiles"));
+  ASSERT_EQ(1u, index.GetTableRecordCount("Metadata"));
+  ASSERT_EQ(1u, index.GetTableRecordCount("MainDicomTags"));
   index.DeleteResource(a[0]);
 
-  ASSERT_EQ(2, listener.deletedFiles_.size());
+  ASSERT_EQ(2u, listener.deletedFiles_.size());
   ASSERT_FALSE(listener.deletedFiles_.find("my json file") == listener.deletedFiles_.end());
   ASSERT_FALSE(listener.deletedFiles_.find("my dicom file") == listener.deletedFiles_.end());
 
-  ASSERT_EQ(2, index.GetTableRecordCount("Resources"));
-  ASSERT_EQ(0, index.GetTableRecordCount("Metadata"));
-  ASSERT_EQ(1, index.GetTableRecordCount("AttachedFiles"));
-  ASSERT_EQ(0, index.GetTableRecordCount("MainDicomTags"));
+  ASSERT_EQ(2u, index.GetTableRecordCount("Resources"));
+  ASSERT_EQ(0u, index.GetTableRecordCount("Metadata"));
+  ASSERT_EQ(1u, index.GetTableRecordCount("AttachedFiles"));
+  ASSERT_EQ(0u, index.GetTableRecordCount("MainDicomTags"));
   index.DeleteResource(a[5]);
-  ASSERT_EQ(0, index.GetTableRecordCount("Resources"));
-  ASSERT_EQ(0, index.GetTableRecordCount("AttachedFiles"));
-  ASSERT_EQ(1, index.GetTableRecordCount("GlobalProperties"));
+  ASSERT_EQ(0u, index.GetTableRecordCount("Resources"));
+  ASSERT_EQ(0u, index.GetTableRecordCount("AttachedFiles"));
+  ASSERT_EQ(1u, index.GetTableRecordCount("GlobalProperties"));
 
-  ASSERT_EQ(3, listener.deletedFiles_.size());
+  ASSERT_EQ(3u, listener.deletedFiles_.size());
   ASSERT_FALSE(listener.deletedFiles_.find("world") == listener.deletedFiles_.end());
 }
 
@@ -217,25 +216,25 @@ TEST(DatabaseWrapper, Upward)
   {
     Json::Value j;
     index.GetChildren(j, a[0]);
-    ASSERT_EQ(2, j.size());
+    ASSERT_EQ(2u, j.size());
     ASSERT_TRUE((j[0u] == "b" && j[1u] == "f") ||
                 (j[1u] == "b" && j[0u] == "f"));
 
     index.GetChildren(j, a[1]);
-    ASSERT_EQ(2, j.size());
+    ASSERT_EQ(2u, j.size());
     ASSERT_TRUE((j[0u] == "c" && j[1u] == "g") ||
                 (j[1u] == "c" && j[0u] == "g"));
 
     index.GetChildren(j, a[2]);
-    ASSERT_EQ(2, j.size());
+    ASSERT_EQ(2u, j.size());
     ASSERT_TRUE((j[0u] == "d" && j[1u] == "e") ||
                 (j[1u] == "d" && j[0u] == "e"));
 
-    index.GetChildren(j, a[3]); ASSERT_EQ(0, j.size());
-    index.GetChildren(j, a[4]); ASSERT_EQ(0, j.size());
-    index.GetChildren(j, a[5]); ASSERT_EQ(1, j.size()); ASSERT_EQ("h", j[0u].asString());
-    index.GetChildren(j, a[6]); ASSERT_EQ(0, j.size());
-    index.GetChildren(j, a[7]); ASSERT_EQ(0, j.size());
+    index.GetChildren(j, a[3]); ASSERT_EQ(0u, j.size());
+    index.GetChildren(j, a[4]); ASSERT_EQ(0u, j.size());
+    index.GetChildren(j, a[5]); ASSERT_EQ(1u, j.size()); ASSERT_EQ("h", j[0u].asString());
+    index.GetChildren(j, a[6]); ASSERT_EQ(0u, j.size());
+    index.GetChildren(j, a[7]); ASSERT_EQ(0u, j.size());
   }
 
   listener.Reset();

@@ -228,9 +228,7 @@ namespace Orthanc
 
 
   StoreStatus ServerIndex::Store(const DicomMap& dicomSummary,
-                                 const std::string& fileUuid,
-                                 uint64_t uncompressedFileSize,
-                                 const std::string& jsonUuid,
+                                 const Attachments& attachments,
                                  const std::string& remoteAet)
   {
     boost::mutex::scoped_lock lock(mutex_);
@@ -305,8 +303,11 @@ namespace Orthanc
       }
 
       // Attach the files to the newly created instance
-      db_->AttachFile(instance, AttachedFileType_Dicom, fileUuid, uncompressedFileSize);
-      db_->AttachFile(instance, AttachedFileType_Json, jsonUuid, 0);  // TODO "0"
+      for (Attachments::const_iterator it = attachments.begin();
+           it != attachments.end(); it++)
+      {
+        db_->AddAttachment(instance, *it);
+      }
 
       // Attach the metadata
       db_->SetMetadata(instance, MetadataType_Instance_ReceptionDate, Toolbox::GetNowIsoString());
@@ -546,15 +547,14 @@ namespace Orthanc
     {
       result["Type"] = "Instance";
 
-      std::string fileUuid;
-      uint64_t uncompressedSize;
-      if (!db_->LookupFile(id, AttachedFileType_Dicom, fileUuid, uncompressedSize))
+      FileInfo attachment;
+      if (!db_->LookupAttachment(attachment, id, FileType_Dicom))
       {
         throw OrthancException(ErrorCode_InternalError);
       }
 
-      result["FileSize"] = static_cast<unsigned int>(uncompressedSize);
-      result["FileUuid"] = fileUuid;
+      result["FileSize"] = static_cast<unsigned int>(attachment.GetUncompressedSize());
+      result["FileUuid"] = attachment.GetUuid();
 
       int i;
       if (db_->GetMetadataAsInteger(i, id, MetadataType_Instance_IndexInSeries))
@@ -577,10 +577,9 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::GetFile(std::string& fileUuid,
-                            CompressionType& compressionType,
-                            const std::string& instanceUuid,
-                            AttachedFileType contentType)
+  bool ServerIndex::LookupAttachment(FileInfo& attachment,
+                                     const std::string& instanceUuid,
+                                     FileType contentType)
   {
     boost::mutex::scoped_lock lock(mutex_);
 
@@ -592,9 +591,15 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
 
-    uint64_t compressedSize, uncompressedSize;
-
-    return db_->LookupFile(id, contentType, fileUuid, compressedSize, uncompressedSize, compressionType);
+    if (db_->LookupAttachment(attachment, id, contentType))
+    {
+      assert(attachment.GetFileType() == contentType);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
   }
 
 

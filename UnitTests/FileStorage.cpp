@@ -66,12 +66,16 @@ TEST(FileStorageAccessor, Simple)
   FileStorageAccessor accessor(s);
 
   std::string data = "Hello world";
-  std::string id = accessor.Write(data);
+  FileInfo info = accessor.Write(data, FileType_Dicom);
   
   std::string r;
-  accessor.Read(r, id);
+  accessor.Read(r, info.GetUuid());
 
   ASSERT_EQ(data, r);
+  ASSERT_EQ(CompressionType_None, info.GetCompressionType());
+  ASSERT_EQ(11u, info.GetUncompressedSize());
+  ASSERT_EQ(11u, info.GetCompressedSize());
+  ASSERT_EQ(FileType_Dicom, info.GetFileType());
 }
 
 
@@ -82,12 +86,16 @@ TEST(FileStorageAccessor, NoCompression)
 
   accessor.SetCompressionForNextOperations(CompressionType_None);
   std::string data = "Hello world";
-  std::string id = accessor.Write(data);
+  FileInfo info = accessor.Write(data, FileType_Dicom);
   
   std::string r;
-  accessor.Read(r, id);
+  accessor.Read(r, info.GetUuid());
 
   ASSERT_EQ(data, r);
+  ASSERT_EQ(CompressionType_None, info.GetCompressionType());
+  ASSERT_EQ(11u, info.GetUncompressedSize());
+  ASSERT_EQ(11u, info.GetCompressedSize());
+  ASSERT_EQ(FileType_Dicom, info.GetFileType());
 }
 
 
@@ -98,12 +106,15 @@ TEST(FileStorageAccessor, Compression)
 
   accessor.SetCompressionForNextOperations(CompressionType_Zlib);
   std::string data = "Hello world";
-  std::string id = accessor.Write(data);
+  FileInfo info = accessor.Write(data, FileType_Dicom);
   
   std::string r;
-  accessor.Read(r, id);
+  accessor.Read(r, info.GetUuid());
 
   ASSERT_EQ(data, r);
+  ASSERT_EQ(CompressionType_Zlib, info.GetCompressionType());
+  ASSERT_EQ(11u, info.GetUncompressedSize());
+  ASSERT_EQ(FileType_Dicom, info.GetFileType());
 }
 
 
@@ -117,24 +128,24 @@ TEST(FileStorageAccessor, Mix)
   std::string uncompressedData = "HelloWorld";
 
   accessor.SetCompressionForNextOperations(CompressionType_Zlib);
-  std::string compressedId = accessor.Write(compressedData);
+  FileInfo compressedInfo = accessor.Write(compressedData, FileType_Dicom);
   
   accessor.SetCompressionForNextOperations(CompressionType_None);
-  std::string uncompressedId = accessor.Write(uncompressedData);
+  FileInfo uncompressedInfo = accessor.Write(uncompressedData, FileType_Dicom);
   
   accessor.SetCompressionForNextOperations(CompressionType_Zlib);
-  accessor.Read(r, compressedId);
+  accessor.Read(r, compressedInfo.GetUuid());
   ASSERT_EQ(compressedData, r);
 
   accessor.SetCompressionForNextOperations(CompressionType_None);
-  accessor.Read(r, compressedId);
+  accessor.Read(r, compressedInfo.GetUuid());
   ASSERT_NE(compressedData, r);
-  
-#if defined(__linux)
+
+  /*
   // This test is too slow on Windows
   accessor.SetCompressionForNextOperations(CompressionType_Zlib);
-  ASSERT_THROW(accessor.Read(r, uncompressedId), OrthancException);
-#endif
+  ASSERT_THROW(accessor.Read(r, uncompressedInfo.GetUuid()), OrthancException);
+  */
 }
 
 

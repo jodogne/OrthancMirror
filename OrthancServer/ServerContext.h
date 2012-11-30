@@ -35,6 +35,7 @@
 #include "ServerIndex.h"
 #include "../Core/FileStorage.h"
 #include "../Core/RestApi/RestApiOutput.h"
+#include "../Core/FileStorage/CompressedFileStorageAccessor.h"
 
 namespace Orthanc
 {
@@ -48,6 +49,7 @@ namespace Orthanc
   private:
     FileStorage storage_;
     ServerIndex index_;
+    CompressedFileStorageAccessor accessor_;
 
   public:
     ServerContext(const boost::filesystem::path& path);
@@ -67,7 +69,7 @@ namespace Orthanc
 
     void AnswerFile(RestApiOutput& output,
                     const std::string& instancePublicId,
-                    AttachedFileType content);
+                    FileType content);
 
     void ReadJson(Json::Value& result,
                   const std::string& instancePublicId);
@@ -75,6 +77,6 @@ namespace Orthanc
     // TODO CACHING MECHANISM AT THIS POINT
     void ReadFile(std::string& result,
                   const std::string& instancePublicId,
-                  AttachedFileType content);
+                  FileType content);
   };
 }

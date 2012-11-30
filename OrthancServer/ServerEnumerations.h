@@ -35,11 +35,6 @@
 
 namespace Orthanc
 {
-  enum GlobalProperty
-  {
-    GlobalProperty_FlushSleep = 1
-  };
-
   enum SeriesStatus
   {
     SeriesStatus_Complete,
@@ -55,6 +50,18 @@ namespace Orthanc
     StoreStatus_Failure
   };
 
+
+  /**
+   * WARNING: Do not change the explicit values in the enumerations
+   * below this point. This would result in incompatible databases
+   * between versions of Orthanc!
+   **/
+
+  enum GlobalProperty
+  {
+    GlobalProperty_FlushSleep = 1
+  };
+
   enum ResourceType
   {
     ResourceType_Patient = 1,
@@ -65,31 +72,25 @@ namespace Orthanc
 
   enum MetadataType
   {
-    MetadataType_Instance_IndexInSeries = 2,
-    MetadataType_Instance_ReceptionDate = 4,
-    MetadataType_Instance_RemoteAet = 1,
-    MetadataType_Series_ExpectedNumberOfInstances = 3
+    MetadataType_Instance_IndexInSeries = 1,
+    MetadataType_Instance_ReceptionDate = 2,
+    MetadataType_Instance_RemoteAet = 3,
+    MetadataType_Series_ExpectedNumberOfInstances = 4
   };
 
   enum ChangeType
   {
     ChangeType_CompletedSeries = 1,
-    ChangeType_NewInstance = 3,
-    ChangeType_NewPatient = 4,
-    ChangeType_NewSeries = 2,
+    ChangeType_NewInstance = 2,
+    ChangeType_NewPatient = 3,
+    ChangeType_NewSeries = 4,
     ChangeType_NewStudy = 5
   };
 
-  enum AttachedFileType
-  {
-    AttachedFileType_Dicom = 1,
-    AttachedFileType_Json = 2
-  };
-
-  const char* ToString(ResourceType type);
-
   std::string GetBasePath(ResourceType type,
                           const std::string& publicId);
+
+  const char* ToString(ResourceType type);
 
   const char* ToString(SeriesStatus status);
 

@@ -52,6 +52,7 @@ namespace Orthanc
   }
 
 
+
   class ServerIndex : public boost::noncopyable
   {
   private:
@@ -67,15 +68,15 @@ namespace Orthanc
     SeriesStatus GetSeriesStatus(int id);
 
   public:
+    typedef std::list<FileInfo> Attachments;
+
     ServerIndex(ServerContext& context,
                 const std::string& dbPath);
 
     ~ServerIndex();
 
     StoreStatus Store(const DicomMap& dicomSummary,
-                      const std::string& fileUuid,
-                      uint64_t uncompressedFileSize,
-                      const std::string& jsonUuid,
+                      const Attachments& attachments,
                       const std::string& remoteAet);
 
     uint64_t GetTotalCompressedSize();
@@ -86,10 +87,9 @@ namespace Orthanc
                         const std::string& publicId,
                         ResourceType expectedType);
 
-    bool GetFile(std::string& fileUuid,
-                 CompressionType& compressionType,
-                 const std::string& instanceUuid,
-                 AttachedFileType contentType);
+    bool LookupAttachment(FileInfo& attachment,
+                          const std::string& instanceUuid,
+                          FileType contentType);
 
     void GetAllUuids(Json::Value& target,
                      ResourceType resourceType);

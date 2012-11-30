@@ -376,32 +376,25 @@ namespace Orthanc
 
 
 
-  void DatabaseWrapper::AttachFile(int64_t id,
-                                   AttachedFileType contentType,
-                                   const std::string& fileUuid,
-                                   uint64_t compressedSize,
-                                   uint64_t uncompressedSize,
-                                   CompressionType compressionType)
+  void DatabaseWrapper::AddAttachment(int64_t id,
+                                      const FileInfo& attachment)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO AttachedFiles VALUES(?, ?, ?, ?, ?, ?)");
     s.BindInt(0, id);
-    s.BindInt(1, contentType);
-    s.BindString(2, fileUuid);
-    s.BindInt(3, compressedSize);
-    s.BindInt(4, uncompressedSize);
-    s.BindInt(5, compressionType);
+    s.BindInt(1, attachment.GetFileType());
+    s.BindString(2, attachment.GetUuid());
+    s.BindInt(3, attachment.GetCompressedSize());
+    s.BindInt(4, attachment.GetUncompressedSize());
+    s.BindInt(5, attachment.GetCompressionType());
     s.Run();
   }
 
-  bool DatabaseWrapper::LookupFile(int64_t id,
-                                   AttachedFileType contentType,
-                                   std::string& fileUuid,
-                                   uint64_t& compressedSize,
-                                   uint64_t& uncompressedSize,
-                                   CompressionType& compressionType)
+  bool DatabaseWrapper::LookupAttachment(FileInfo& attachment,
+                                         int64_t id,
+                                         FileType contentType)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-                        "SELECT uuid, compressedSize, uncompressedSize, compressionType FROM AttachedFiles WHERE id=? AND fileType=?");
+                        "SELECT uuid, uncompressedSize, compressionType, compressedSize FROM AttachedFiles WHERE id=? AND fileType=?");
     s.BindInt(0, id);
     s.BindInt(1, contentType);
 
@@ -411,10 +404,11 @@ namespace Orthanc
     }
     else
     {
-      fileUuid = s.ColumnString(0);
-      compressedSize = s.ColumnInt(1);
-      uncompressedSize = s.ColumnInt(2);
-      compressionType = static_cast<CompressionType>(s.ColumnInt(3));
+      attachment = FileInfo(s.ColumnString(0),
+                            contentType,
+                            s.ColumnInt(1),
+                            static_cast<CompressionType>(s.ColumnInt(2)),
+                            s.ColumnInt(3));
       return true;
     }
   }

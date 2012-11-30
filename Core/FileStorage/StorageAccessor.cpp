@@ -34,27 +34,29 @@
 
 namespace Orthanc
 {
-  std::string StorageAccessor::Write(const std::vector<uint8_t>& content)
+  FileInfo StorageAccessor::Write(const std::vector<uint8_t>& content,
+                                  FileType type)
   {
     if (content.size() == 0)
     {
-      return WriteInternal(NULL, 0);
+      return WriteInternal(NULL, 0, type);
     }
     else
     {
-      return WriteInternal(&content[0], content.size());
+      return WriteInternal(&content[0], content.size(), type);
     }
   }
 
-  std::string StorageAccessor::Write(const std::string& content)
+  FileInfo StorageAccessor::Write(const std::string& content,
+                                  FileType type)
   {
     if (content.size() == 0)
     {
-      return WriteInternal(NULL, 0);
+      return WriteInternal(NULL, 0, type);
     }
     else
     {
-      return WriteInternal(&content[0], content.size());
+      return WriteInternal(&content[0], content.size(), type);
     }
   }
 }
