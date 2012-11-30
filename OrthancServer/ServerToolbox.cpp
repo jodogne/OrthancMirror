@@ -34,6 +34,8 @@
 
 #include "../Core/OrthancException.h"
 
+#include <cassert>
+
 namespace Orthanc
 {
   void SimplifyTags(Json::Value& target,

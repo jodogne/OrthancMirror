@@ -32,7 +32,7 @@
 #pragma once
 
 #include "HttpFileSender.h"
-#include "../FileStorage.h"
+#include "../FileStorage/FileStorage.h"
 
 namespace Orthanc
 {

@@ -35,7 +35,7 @@
 #include <boost/filesystem.hpp>
 #include <set>
 
-#include "Compression/BufferCompressor.h"
+#include "../Compression/BufferCompressor.h"
 
 namespace Orthanc
 {

@@ -32,8 +32,6 @@
 
 #pragma once
 
-#include "../Core/FileStorage.h"
-
 #include <json/json.h>
 
 namespace Orthanc

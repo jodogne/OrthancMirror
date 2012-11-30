@@ -35,9 +35,9 @@
 // http://stackoverflow.com/questions/1576272/storing-large-number-of-files-in-file-system
 // http://stackoverflow.com/questions/446358/storing-a-large-number-of-images
 
-#include "OrthancException.h"
-#include "Toolbox.h"
-#include "Uuid.h"
+#include "../OrthancException.h"
+#include "../Toolbox.h"
+#include "../Uuid.h"
 
 #include <boost/filesystem/fstream.hpp>
 #include <glog/logging.h>
