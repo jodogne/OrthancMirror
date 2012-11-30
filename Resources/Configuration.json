@@ -3,12 +3,15 @@
      * General configuration of Orthanc
      **/
 
-    // Path to the directory that holds the database
-    "StorageDirectory" : "OrthancStorage",
-
     // The logical name of this instance of Orthanc. This one is
     // displayed in Orthanc Explorer and at the URI "/system".
     "Name" : "MyOrthanc",
+
+    // Path to the directory that holds the database
+    "StorageDirectory" : "OrthancStorage",
+
+    // Enable the transparent compression of the DICOM instances
+    "StorageCompression" : false,
 
 
 

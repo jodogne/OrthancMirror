@@ -55,6 +55,16 @@ namespace Orthanc
   {
   }
 
+  void ServerContext::SetCompressionEnabled(bool enabled)
+  {
+    if (enabled)
+      LOG(WARNING) << "Disk compression is enabled";
+    else
+      LOG(WARNING) << "Disk compression is disabled";
+
+    compressionEnabled_ = enabled;
+  }
+
   void ServerContext::RemoveFile(const std::string& fileUuid)
   {
     storage_.Remove(fileUuid);
@@ -66,7 +76,14 @@ namespace Orthanc
                                    const Json::Value& dicomJson,
                                    const std::string& remoteAet)
   {
-    //accessor_.SetCompressionForNextOperations(CompressionType_Zlib);
+    if (compressionEnabled_)
+    {
+      accessor_.SetCompressionForNextOperations(CompressionType_Zlib);
+    }
+    else
+    {
+      accessor_.SetCompressionForNextOperations(CompressionType_None);
+    }      
 
     FileInfo dicomInfo = accessor_.Write(dicomFile, dicomSize, FileContentType_Dicom);
     FileInfo jsonInfo = accessor_.Write(dicomJson.toStyledString(), FileContentType_Json);
@@ -107,16 +124,14 @@ namespace Orthanc
                                  FileContentType content)
   {
     FileInfo attachment;
-    if (index_.LookupAttachment(attachment, instancePublicId, FileContentType_Dicom))
+    if (!index_.LookupAttachment(attachment, instancePublicId, content))
     {
-      assert(attachment.GetCompressionType() == CompressionType_None);
-      assert(attachment.GetContentType() == FileContentType_Dicom);
-
-      FilesystemHttpSender sender(storage_, attachment.GetUuid());
-      sender.SetDownloadFilename(attachment.GetUuid() + ".dcm");
-      sender.SetContentType("application/dicom");
-      output.AnswerFile(sender);
+      throw OrthancException(ErrorCode_InternalError);
     }
+
+    accessor_.SetCompressionForNextOperations(attachment.GetCompressionType());
+    std::auto_ptr<HttpFileSender> sender(accessor_.ConstructHttpFileSender(attachment.GetUuid()));
+    output.AnswerFile(*sender);
   }
 
 

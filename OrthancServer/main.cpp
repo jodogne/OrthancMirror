@@ -212,6 +212,8 @@ int main(int argc, char* argv[])
 
     boost::filesystem::path storageDirectory = GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
     ServerContext context(storageDirectory);
+    context.SetCompressionEnabled(GetGlobalBoolParameter("StorageCompression", false));
+
     MyDicomStoreFactory storeScp(context);
 
     {

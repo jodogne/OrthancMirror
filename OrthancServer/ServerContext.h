@@ -50,6 +50,7 @@ namespace Orthanc
     FileStorage storage_;
     ServerIndex index_;
     CompressedFileStorageAccessor accessor_;
+    bool compressionEnabled_;
 
   public:
     ServerContext(const boost::filesystem::path& path);
@@ -57,6 +58,13 @@ namespace Orthanc
     ServerIndex& GetIndex()
     {
       return index_;
+    }
+
+    void SetCompressionEnabled(bool enabled);
+
+    bool IsCompressionEnabled() const
+    {
+      return compressionEnabled_;
     }
 
     void RemoveFile(const std::string& fileUuid);

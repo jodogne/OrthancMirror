@@ -4,12 +4,13 @@ Pending changes in the mainline
 Major changes
 -------------
 
-* Full refactoring of the DB schema and of the REST API
-* Introduction of generic classes for REST APIs (in Core/RestApi)
+* Transparent compression of the DICOM instances on the disk
 * The patient/study/series/instances are now indexed by SHA-1 digests
   of their DICOM Instance IDs (and not by UUIDs anymore): The same
   DICOM objects are thus always identified by the same Orthanc IDs
 * Log of exported instances through DICOM C-Store SCU ("/exported" URI)
+* Full refactoring of the DB schema and of the REST API
+* Introduction of generic classes for REST APIs (in Core/RestApi)
 
 Minor changes
 -------------
