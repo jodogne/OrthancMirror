@@ -163,10 +163,20 @@ namespace Orthanc
                     int64_t since,
                     unsigned int maxResults);
 
-    void LogExportedInstance(const std::string& remoteModality,
-                             DicomInstanceHasher& hasher,
-                             const boost::posix_time::ptime& date = boost::posix_time::second_clock::local_time());
+    void LogExportedResource(ResourceType resourceType,
+                             const std::string& publicId,
+                             const std::string& remoteModality,
+                             const std::string& patientId,
+                             const std::string& studyInstanceUid,
+                             const std::string& seriesInstanceUid,
+                             const std::string& sopInstanceUid,
+                             const boost::posix_time::ptime& date = 
+                             boost::posix_time::second_clock::local_time());
     
+    void GetExportedResources(Json::Value& target,
+                              int64_t since,
+                              unsigned int maxResults);
+
     int64_t GetTableRecordCount(const std::string& table);
     
     uint64_t GetTotalCompressedSize();

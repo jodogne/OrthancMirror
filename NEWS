@@ -9,13 +9,15 @@ Major changes
 * The patient/study/series/instances are now indexed by SHA-1 digests
   of their DICOM Instance IDs (and not by UUIDs anymore): The same
   DICOM objects are thus always identified by the same Orthanc IDs
+* Log of exported instances through DICOM C-Store SCU ("/exported" URI)
 
 Minor changes
 -------------
 
 * Generate a sample configuration file from command line
 * "CompletedSeries" event in the changes API
-* Thread to continuously flush DB to disk (robustness against reboots)
+* Thread to continuously flush DB to disk (SQLite checkpoints for
+  robustness against reboots)
 
 
 Version 0.2.3 (2012/10/26)

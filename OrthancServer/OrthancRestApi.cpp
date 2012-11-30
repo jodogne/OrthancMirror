@@ -242,13 +242,18 @@ namespace Orthanc
   {
     RETRIEVE_CONTEXT(call);
 
+    std::string remote = call.GetUriComponent("id", "");
     DicomUserConnection connection;
-    ConnectToModality(connection, call.GetUriComponent("id", ""));
+    ConnectToModality(connection, remote);
+
+    const std::string& resourceId = call.GetPostBody();
 
     Json::Value found;
-    if (context.GetIndex().LookupResource(found, call.GetPostBody(), ResourceType_Series))
+    if (context.GetIndex().LookupResource(found, resourceId, ResourceType_Series))
     {
       // The UUID corresponds to a series
+      context.GetIndex().LogExportedResource(resourceId, remote);
+
       for (Json::Value::ArrayIndex i = 0; i < found["Instances"].size(); i++)
       {
         std::string instanceId = found["Instances"][i].asString();
@@ -259,12 +264,13 @@ namespace Orthanc
 
       call.GetOutput().AnswerBuffer("{}", "application/json");
     }
-    else if (context.GetIndex().LookupResource(found, call.GetPostBody(), ResourceType_Instance))
+    else if (context.GetIndex().LookupResource(found, resourceId, ResourceType_Instance))
     {
       // The UUID corresponds to an instance
-      std::string instanceId = call.GetPostBody();
+      context.GetIndex().LogExportedResource(resourceId, remote);
+
       std::string dicom;
-      context.ReadFile(dicom, instanceId, AttachedFileType_Dicom);
+      context.ReadFile(dicom, resourceId, AttachedFileType_Dicom);
       connection.Store(dicom);
 
       call.GetOutput().AnswerBuffer("{}", "application/json");
@@ -273,7 +279,7 @@ namespace Orthanc
     {
       // The POST body is not a known resource, assume that it
       // contains a raw DICOM instance
-      connection.Store(call.GetPostBody());
+      connection.Store(resourceId);
       call.GetOutput().AnswerBuffer("{}", "application/json");
     }
   }
@@ -342,16 +348,12 @@ namespace Orthanc
 
   // Changes API --------------------------------------------------------------
  
-  static void GetChanges(RestApi::GetCall& call)
+  static void GetSinceAndLimit(int64_t& since,
+                               unsigned int& limit,
+                               const RestApi::GetCall& call)
   {
-    RETRIEVE_CONTEXT(call);
-
     static const unsigned int MAX_RESULTS = 100;
-    ServerIndex& index = context.GetIndex();
         
-    //std::string filter = GetArgument(getArguments, "filter", "");
-    int64_t since;
-    unsigned int limit;
     try
     {
       since = boost::lexical_cast<int64_t>(call.GetArgument("since", "0"));
@@ -366,14 +368,39 @@ namespace Orthanc
     {
       limit = MAX_RESULTS;
     }
+  }
+
+  static void GetChanges(RestApi::GetCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+
+    //std::string filter = GetArgument(getArguments, "filter", "");
+    int64_t since;
+    unsigned int limit;
+    GetSinceAndLimit(since, limit, call);
 
     Json::Value result;
-    if (index.GetChanges(result, since, limit))
+    if (context.GetIndex().GetChanges(result, since, limit))
     {
       call.GetOutput().AnswerJson(result);
     }
   }
 
+
+  static void GetExports(RestApi::GetCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+
+    int64_t since;
+    unsigned int limit;
+    GetSinceAndLimit(since, limit, call);
+
+    Json::Value result;
+    if (context.GetIndex().GetExportedResources(result, since, limit))
+    {
+      call.GetOutput().AnswerJson(result);
+    }
+  }
 
   
   // Get information about a single instance ----------------------------------
@@ -592,6 +619,7 @@ namespace Orthanc
     Register("/", ServeRoot);
     Register("/system", GetSystemInformation);
     Register("/changes", GetChanges);
+    Register("/exported", GetExports);
 
     Register("/instances", UploadDicomFile);
     Register("/instances", ListResources<ResourceType_Instance>);

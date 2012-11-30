@@ -617,4 +617,85 @@ namespace Orthanc
 
     return true;
   }
+
+  void ServerIndex::LogExportedResource(const std::string& publicId,
+                                        const std::string& remoteModality)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    int64_t id;
+    ResourceType type;
+    if (!db_->LookupResource(publicId, id, type))
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    std::string patientId;
+    std::string studyInstanceUid;
+    std::string seriesInstanceUid;
+    std::string sopInstanceUid;
+
+    int64_t currentId = id;
+    ResourceType currentType = type;
+
+    // Iteratively go up inside the patient/study/series/instance hierarchy
+    bool done = false;
+    while (!done)
+    {
+      DicomMap map;
+      db_->GetMainDicomTags(map, currentId);
+
+      switch (currentType)
+      {
+      case ResourceType_Patient:
+        patientId = map.GetValue(DICOM_TAG_PATIENT_ID).AsString();
+        done = true;
+        break;
+
+      case ResourceType_Study:
+        studyInstanceUid = map.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString();
+        currentType = ResourceType_Patient;
+        break;
+
+      case ResourceType_Series:
+        seriesInstanceUid = map.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).AsString();
+        currentType = ResourceType_Study;
+        break;
+
+      case ResourceType_Instance:
+        sopInstanceUid = map.GetValue(DICOM_TAG_SOP_INSTANCE_UID).AsString();
+        currentType = ResourceType_Series;
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      // If we have not reached the Patient level, find the parent of
+      // the current resource
+      if (!done)
+      {
+        assert(db_->LookupParent(currentId, currentId));
+      }
+    }
+
+    // No need for a SQLite::Transaction here, as we only insert 1 record
+    db_->LogExportedResource(type,
+                             publicId,
+                             remoteModality,
+                             patientId,
+                             studyInstanceUid,
+                             seriesInstanceUid,
+                             sopInstanceUid);
+  }
+
+
+  bool ServerIndex::GetExportedResources(Json::Value& target,
+                                         int64_t since,
+                                         unsigned int maxResults)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    db_->GetExportedResources(target, since, maxResults);
+    return true;
+  }
 }

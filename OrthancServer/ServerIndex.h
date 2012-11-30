@@ -101,5 +101,12 @@ namespace Orthanc
     bool GetChanges(Json::Value& target,
                     int64_t since,
                     unsigned int maxResults);
+
+    void LogExportedResource(const std::string& publicId,
+                             const std::string& remoteModality);
+
+    bool GetExportedResources(Json::Value& target,
+                              int64_t since,
+                              unsigned int maxResults);
   };
 }
