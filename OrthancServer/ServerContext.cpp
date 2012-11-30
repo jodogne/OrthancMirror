@@ -36,12 +36,27 @@
 
 #include <glog/logging.h>
 
+
+/**
+ * IMPORTANT: We make the assumption that the same instance of
+ * FileStorage can be accessed from multiple threads. This seems OK
+ * since the filesystem implements the required locking mechanisms,
+ * but maybe a read-writer lock on the "FileStorage" could be
+ * useful. Conversely, "ServerIndex" already implements mutex-based
+ * locking.
+ **/
+
 namespace Orthanc
 {
   ServerContext::ServerContext(const boost::filesystem::path& path) :
     storage_(path.string()),
     index_(*this, path.string())
   {
+  }
+
+  void ServerContext::RemoveFile(const std::string& fileUuid)
+  {
+    storage_.Remove(fileUuid);
   }
 
   StoreStatus ServerContext::Store(const char* dicomFile,
@@ -102,22 +117,29 @@ namespace Orthanc
   void ServerContext::ReadJson(Json::Value& result,
                                const std::string& instancePublicId)
   {
-    CompressionType compressionType;
-    std::string fileUuid;
-    if (!index_.GetFile(fileUuid, compressionType, instancePublicId, AttachedFileType_Json))
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    assert(compressionType == CompressionType_None);
-
     std::string s;
-    storage_.ReadFile(s, fileUuid);
+    ReadFile(s, instancePublicId, AttachedFileType_Json);
 
     Json::Reader reader;
     if (!reader.parse(s, result))
     {
       throw OrthancException("Corrupted JSON file");
     }
+  }
+
+
+  void ServerContext::ReadFile(std::string& result,
+                               const std::string& instancePublicId,
+                               AttachedFileType content)
+  {
+    CompressionType compressionType;
+    std::string fileUuid;
+    if (!index_.GetFile(fileUuid, compressionType, instancePublicId, content))
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    assert(compressionType == CompressionType_None);
+    storage_.ReadFile(result, fileUuid);    
   }
 }
