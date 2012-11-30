@@ -30,7 +30,6 @@
  **/
 
 
-#include "OrthancRestApi.h"
 #include "OrthancRestApi2.h"
 
 #include <fstream>
@@ -252,7 +251,6 @@ int main(int argc, char* argv[])
 #endif
 
       httpServer.RegisterHandler(new OrthancRestApi2(context));
-      httpServer.RegisterHandler(new OrthancRestApi(context.GetIndex(), storageDirectory.string()));
 
       // GO !!!
       httpServer.Start();
