@@ -258,7 +258,7 @@ namespace Orthanc
       {
         std::string instanceId = found["Instances"][i].asString();
         std::string dicom;
-        context.ReadFile(dicom, instanceId, FileType_Dicom);
+        context.ReadFile(dicom, instanceId, FileContentType_Dicom);
         connection.Store(dicom);
       }
 
@@ -270,7 +270,7 @@ namespace Orthanc
       context.GetIndex().LogExportedResource(resourceId, remote);
 
       std::string dicom;
-      context.ReadFile(dicom, resourceId, FileType_Dicom);
+      context.ReadFile(dicom, resourceId, FileContentType_Dicom);
       connection.Store(dicom);
 
       call.GetOutput().AnswerBuffer("{}", "application/json");
@@ -410,7 +410,7 @@ namespace Orthanc
     RETRIEVE_CONTEXT(call);
 
     std::string publicId = call.GetUriComponent("id", "");
-    context.AnswerFile(call.GetOutput(), publicId, FileType_Dicom);
+    context.AnswerFile(call.GetOutput(), publicId, FileContentType_Dicom);
   }
 
 
@@ -485,7 +485,7 @@ namespace Orthanc
 
     std::string publicId = call.GetUriComponent("id", "");
     std::string dicomContent, png;
-    context.ReadFile(dicomContent, publicId, FileType_Dicom);
+    context.ReadFile(dicomContent, publicId, FileContentType_Dicom);
 
     try
     {

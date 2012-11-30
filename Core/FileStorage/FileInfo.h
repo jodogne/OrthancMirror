@@ -42,9 +42,9 @@ namespace Orthanc
   {
   private:
     std::string uuid_;
-    FileType type_;
+    FileContentType contentType_;
     uint64_t uncompressedSize_;
-    CompressionType compression_;
+    CompressionType compressionType_;
     uint64_t compressedSize_;
 
   public:
@@ -56,12 +56,12 @@ namespace Orthanc
      * Constructor for an uncompressed attachment.
      **/
     FileInfo(const std::string& uuid,
-             FileType type,
+             FileContentType contentType,
              uint64_t size) :
       uuid_(uuid),
-      type_(type),
+      contentType_(contentType),
       uncompressedSize_(size),
-      compression_(CompressionType_None),
+      compressionType_(CompressionType_None),
       compressedSize_(size)
     {
     }
@@ -70,14 +70,14 @@ namespace Orthanc
      * Constructor for a compressed attachment.
      **/
     FileInfo(const std::string& uuid,
-             FileType type,
+             FileContentType contentType,
              uint64_t uncompressedSize,
-             CompressionType compression,
+             CompressionType compressionType,
              uint64_t compressedSize) :
       uuid_(uuid),
-      type_(type),
+      contentType_(contentType),
       uncompressedSize_(uncompressedSize),
-      compression_(compression),
+      compressionType_(compressionType),
       compressedSize_(compressedSize)
     {
     }
@@ -87,9 +87,9 @@ namespace Orthanc
       return uuid_;
     }
 
-    FileType GetFileType() const
+    FileContentType GetContentType() const
     {
-      return type_;
+      return contentType_;
     }
 
     uint64_t GetUncompressedSize() const
@@ -99,7 +99,7 @@ namespace Orthanc
 
     CompressionType GetCompressionType() const
     {
-      return compression_;
+      return compressionType_;
     }
 
     uint64_t GetCompressedSize() const

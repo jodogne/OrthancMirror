@@ -48,7 +48,7 @@ namespace Orthanc
   protected:
     virtual FileInfo WriteInternal(const void* data,
                                    size_t size,
-                                   FileType type);
+                                   FileContentType type);
 
   public: 
     CompressedFileStorageAccessor(FileStorage& storage);

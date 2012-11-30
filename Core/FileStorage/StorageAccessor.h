@@ -47,7 +47,7 @@ namespace Orthanc
   protected:
     virtual FileInfo WriteInternal(const void* data,
                                    size_t size,
-                                   FileType type) = 0;
+                                   FileContentType type) = 0;
 
   public:
     virtual ~StorageAccessor()
@@ -56,16 +56,16 @@ namespace Orthanc
 
     FileInfo Write(const void* data,
                    size_t size,
-                   FileType type)
+                   FileContentType type)
     {
       return WriteInternal(data, size, type);
     }
 
     FileInfo Write(const std::vector<uint8_t>& content,
-                   FileType type);
+                   FileContentType type);
 
     FileInfo Write(const std::string& content,
-                   FileType type);
+                   FileContentType type);
 
     virtual void Read(std::string& content,
                       const std::string& uuid) = 0;

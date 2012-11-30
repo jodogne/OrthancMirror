@@ -113,7 +113,7 @@ namespace Orthanc
 
     bool LookupAttachment(FileInfo& attachment,
                           int64_t id,
-                          FileType contentType);
+                          FileContentType contentType);
 
     void SetMainDicomTags(int64_t id,
                           const DicomMap& tags);

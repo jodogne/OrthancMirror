@@ -125,9 +125,9 @@ TEST(DatabaseWrapper, Simple)
     ASSERT_EQ("e", l.front());
   }
 
-  index.AddAttachment(a[4], FileInfo("my json file", FileType_Json, 42, CompressionType_Zlib, 21));
-  index.AddAttachment(a[4], FileInfo("my dicom file", FileType_Dicom, 42));
-  index.AddAttachment(a[6], FileInfo("world", FileType_Dicom, 44));
+  index.AddAttachment(a[4], FileInfo("my json file", FileContentType_Json, 42, CompressionType_Zlib, 21));
+  index.AddAttachment(a[4], FileInfo("my dicom file", FileContentType_Dicom, 42));
+  index.AddAttachment(a[6], FileInfo("world", FileContentType_Dicom, 44));
   index.SetMetadata(a[4], MetadataType_Instance_RemoteAet, "PINNACLE");
 
   ASSERT_EQ(21u + 42u + 44u, index.GetTotalCompressedSize());
@@ -156,7 +156,7 @@ TEST(DatabaseWrapper, Simple)
   ASSERT_EQ("None", index.GetGlobalProperty(static_cast<GlobalProperty>(42), "None"));
 
   FileInfo att;
-  ASSERT_TRUE(index.LookupAttachment(att, a[4], FileType_Json));
+  ASSERT_TRUE(index.LookupAttachment(att, a[4], FileContentType_Json));
   ASSERT_EQ("my json file", att.GetUuid());
   ASSERT_EQ(21u, att.GetCompressedSize());
   ASSERT_EQ(42u, att.GetUncompressedSize());

@@ -381,7 +381,7 @@ namespace Orthanc
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO AttachedFiles VALUES(?, ?, ?, ?, ?, ?)");
     s.BindInt(0, id);
-    s.BindInt(1, attachment.GetFileType());
+    s.BindInt(1, attachment.GetContentType());
     s.BindString(2, attachment.GetUuid());
     s.BindInt(3, attachment.GetCompressedSize());
     s.BindInt(4, attachment.GetUncompressedSize());
@@ -391,7 +391,7 @@ namespace Orthanc
 
   bool DatabaseWrapper::LookupAttachment(FileInfo& attachment,
                                          int64_t id,
-                                         FileType contentType)
+                                         FileContentType contentType)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT uuid, uncompressedSize, compressionType, compressedSize FROM AttachedFiles WHERE id=? AND fileType=?");

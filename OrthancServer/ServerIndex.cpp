@@ -548,7 +548,7 @@ namespace Orthanc
       result["Type"] = "Instance";
 
       FileInfo attachment;
-      if (!db_->LookupAttachment(attachment, id, FileType_Dicom))
+      if (!db_->LookupAttachment(attachment, id, FileContentType_Dicom))
       {
         throw OrthancException(ErrorCode_InternalError);
       }
@@ -579,7 +579,7 @@ namespace Orthanc
 
   bool ServerIndex::LookupAttachment(FileInfo& attachment,
                                      const std::string& instanceUuid,
-                                     FileType contentType)
+                                     FileContentType contentType)
   {
     boost::mutex::scoped_lock lock(mutex_);
 
@@ -593,7 +593,7 @@ namespace Orthanc
 
     if (db_->LookupAttachment(attachment, id, contentType))
     {
-      assert(attachment.GetFileType() == contentType);
+      assert(attachment.GetContentType() == contentType);
       return true;
     }
     else
