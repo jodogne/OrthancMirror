@@ -30,7 +30,7 @@
  **/
 
 
-#include "OrthancRestApi2.h"
+#include "OrthancRestApi.h"
 
 #include <fstream>
 #include <glog/logging.h>
@@ -250,7 +250,7 @@ int main(int argc, char* argv[])
       httpServer.RegisterHandler(new FilesystemHttpHandler("/app", ORTHANC_PATH "/OrthancExplorer"));
 #endif
 
-      httpServer.RegisterHandler(new OrthancRestApi2(context));
+      httpServer.RegisterHandler(new OrthancRestApi(context));
 
       // GO !!!
       httpServer.Start();
