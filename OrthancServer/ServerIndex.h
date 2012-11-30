@@ -79,9 +79,7 @@ namespace Orthanc
                       const Attachments& attachments,
                       const std::string& remoteAet);
 
-    uint64_t GetTotalCompressedSize();
-
-    uint64_t GetTotalUncompressedSize();
+    void ComputeStatistics(Json::Value& target);                        
 
     bool LookupResource(Json::Value& result,
                         const std::string& publicId,

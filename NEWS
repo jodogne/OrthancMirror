@@ -15,6 +15,7 @@ Major changes
 Minor changes
 -------------
 
+* "/statistics" URI
 * "last" flag to retrieve the last change from the "/changes" URI
 * Generate a sample configuration file from command line
 * "CompletedSeries" event in the changes API

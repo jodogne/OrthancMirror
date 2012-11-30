@@ -739,4 +739,21 @@ namespace Orthanc
     db_.Register(signalRemainingAncestor_);
     db_.Register(new Internals::SignalFileDeleted(listener_));
   }
+
+  uint64_t DatabaseWrapper::GetResourceCount(ResourceType resourceType)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                        "SELECT COUNT(*) FROM Resources WHERE resourceType=?");
+    s.BindInt(0, resourceType);
+    
+    if (!s.Step())
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    int64_t c = s.ColumnInt(0);
+    assert(!s.Step());
+
+    return c;
+  }
 }

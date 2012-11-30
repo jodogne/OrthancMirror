@@ -296,15 +296,19 @@ namespace Orthanc
   static void GetSystemInformation(RestApi::GetCall& call)
   {
     RETRIEVE_CONTEXT(call);
-
     Json::Value result = Json::objectValue;
+
     result["Version"] = ORTHANC_VERSION;
     result["Name"] = GetGlobalStringParameter("Name", "");
-    result["TotalCompressedSize"] = boost::lexical_cast<std::string>
-      (context.GetIndex().GetTotalCompressedSize());
-    result["TotalUncompressedSize"] = boost::lexical_cast<std::string>
-      (context.GetIndex().GetTotalUncompressedSize());
 
+    call.GetOutput().AnswerJson(result);
+  }
+
+  static void GetStatistics(RestApi::GetCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+    Json::Value result = Json::objectValue;
+    context.GetIndex().ComputeStatistics(result);
     call.GetOutput().AnswerJson(result);
   }
 
@@ -631,6 +635,7 @@ namespace Orthanc
 
     Register("/", ServeRoot);
     Register("/system", GetSystemInformation);
+    Register("/statistics", GetStatistics);
     Register("/changes", GetChanges);
     Register("/exports", GetExports);
 
