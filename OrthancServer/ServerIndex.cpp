@@ -617,9 +617,14 @@ namespace Orthanc
                                unsigned int maxResults)
   {
     boost::mutex::scoped_lock lock(mutex_);
-
     db_->GetChanges(target, since, maxResults);
+    return true;
+  }
 
+  bool ServerIndex::GetLastChange(Json::Value& target)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    db_->GetLastChange(target);
     return true;
   }
 
@@ -701,6 +706,13 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(mutex_);
     db_->GetExportedResources(target, since, maxResults);
+    return true;
+  }
+
+  bool ServerIndex::GetLastExportedResource(Json::Value& target)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    db_->GetLastExportedResource(target);
     return true;
   }
 }

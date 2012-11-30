@@ -509,16 +509,13 @@ namespace Orthanc
   }
 
 
-  void DatabaseWrapper::GetChanges(Json::Value& target,
-                                   int64_t since,
-                                   unsigned int maxResults)
+  void DatabaseWrapper::GetChangesInternal(Json::Value& target,
+                                           SQLite::Statement& s,
+                                           int64_t since,
+                                           unsigned int maxResults)
   {
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT * FROM Changes WHERE seq>? ORDER BY seq LIMIT ?");
-    s.BindInt(0, since);
-    s.BindInt(1, maxResults + 1);
-
     Json::Value changes = Json::arrayValue;
-    int64_t last = 0;
+    int64_t last = since;
 
     while (changes.size() < maxResults && s.Step())
     {
@@ -543,8 +540,25 @@ namespace Orthanc
 
     target = Json::objectValue;
     target["Changes"] = changes;
-    target["PendingChanges"] = (changes.size() == maxResults && s.Step());
-    target["LastSeq"] = static_cast<int>(last);
+    target["Done"] = !(changes.size() == maxResults && s.Step());
+    target["Last"] = static_cast<int>(last);
+  }
+
+
+  void DatabaseWrapper::GetChanges(Json::Value& target,
+                                   int64_t since,
+                                   unsigned int maxResults)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT * FROM Changes WHERE seq>? ORDER BY seq LIMIT ?");
+    s.BindInt(0, since);
+    s.BindInt(1, maxResults + 1);
+    GetChangesInternal(target, s, since, maxResults);
+  }
+
+  void DatabaseWrapper::GetLastChange(Json::Value& target)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT * FROM Changes ORDER BY seq DESC LIMIT 1");
+    GetChangesInternal(target, s, 0, 1);
   }
 
 
@@ -574,16 +588,12 @@ namespace Orthanc
 
 
   void DatabaseWrapper::GetExportedResources(Json::Value& target,
+                                             SQLite::Statement& s,
                                              int64_t since,
                                              unsigned int maxResults)
   {
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-                        "SELECT * FROM ExportedResources WHERE seq>? ORDER BY seq LIMIT ?");
-    s.BindInt(0, since);
-    s.BindInt(1, maxResults + 1);
-
     Json::Value changes = Json::arrayValue;
-    int64_t last = 0;
+    int64_t last = since;
 
     while (changes.size() < maxResults && s.Step())
     {
@@ -625,9 +635,29 @@ namespace Orthanc
     }
 
     target = Json::objectValue;
-    target["Changes"] = changes;
-    target["PendingChanges"] = (changes.size() == maxResults && s.Step());
-    target["LastSeq"] = static_cast<int>(last);
+    target["Exports"] = changes;
+    target["Done"] = !(changes.size() == maxResults && s.Step());
+    target["Last"] = static_cast<int>(last);
+  }
+
+
+  void DatabaseWrapper::GetExportedResources(Json::Value& target,
+                                             int64_t since,
+                                             unsigned int maxResults)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                        "SELECT * FROM ExportedResources WHERE seq>? ORDER BY seq LIMIT ?");
+    s.BindInt(0, since);
+    s.BindInt(1, maxResults + 1);
+    GetExportedResources(target, s, since, maxResults);
+  }
+
+    
+  void DatabaseWrapper::GetLastExportedResource(Json::Value& target)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                        "SELECT * FROM ExportedResources ORDER BY seq DESC LIMIT 1");
+    GetExportedResources(target, s, 0, 1);
   }
 
 

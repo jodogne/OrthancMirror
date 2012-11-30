@@ -350,10 +350,19 @@ namespace Orthanc
  
   static void GetSinceAndLimit(int64_t& since,
                                unsigned int& limit,
+                               bool& last,
                                const RestApi::GetCall& call)
   {
     static const unsigned int MAX_RESULTS = 100;
-        
+    
+    if (call.HasArgument("last"))
+    {
+      last = true;
+      return;
+    }
+
+    last = false;
+
     try
     {
       since = boost::lexical_cast<int64_t>(call.GetArgument("since", "0"));
@@ -377,10 +386,12 @@ namespace Orthanc
     //std::string filter = GetArgument(getArguments, "filter", "");
     int64_t since;
     unsigned int limit;
-    GetSinceAndLimit(since, limit, call);
+    bool last;
+    GetSinceAndLimit(since, limit, last, call);
 
     Json::Value result;
-    if (context.GetIndex().GetChanges(result, since, limit))
+    if ((!last && context.GetIndex().GetChanges(result, since, limit)) ||
+        ( last && context.GetIndex().GetLastChange(result)))
     {
       call.GetOutput().AnswerJson(result);
     }
@@ -393,10 +404,12 @@ namespace Orthanc
 
     int64_t since;
     unsigned int limit;
-    GetSinceAndLimit(since, limit, call);
+    bool last;
+    GetSinceAndLimit(since, limit, last, call);
 
     Json::Value result;
-    if (context.GetIndex().GetExportedResources(result, since, limit))
+    if ((!last && context.GetIndex().GetExportedResources(result, since, limit)) ||
+        ( last && context.GetIndex().GetLastExportedResource(result)))
     {
       call.GetOutput().AnswerJson(result);
     }
@@ -619,7 +632,7 @@ namespace Orthanc
     Register("/", ServeRoot);
     Register("/system", GetSystemInformation);
     Register("/changes", GetChanges);
-    Register("/exported", GetExports);
+    Register("/exports", GetExports);
 
     Register("/instances", UploadDicomFile);
     Register("/instances", ListResources<ResourceType_Instance>);
