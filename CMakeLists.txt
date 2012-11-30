@@ -141,7 +141,7 @@ add_library(ServerLibrary
   OrthancServer/Internals/MoveScp.cpp
   OrthancServer/Internals/StoreScp.cpp
   OrthancServer/OrthancInitialization.cpp
-  OrthancServer/OrthancRestApi2.cpp
+  OrthancServer/OrthancRestApi.cpp
   OrthancServer/ServerIndex.cpp
   OrthancServer/ToDcmtkBridge.cpp
   OrthancServer/DatabaseWrapper.cpp
