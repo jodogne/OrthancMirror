@@ -352,6 +352,8 @@ namespace Orthanc
 
   void ServerIndex::ComputeStatistics(Json::Value& target)
   {
+    static const uint64_t MB = 1024 * 1024;
+
     boost::mutex::scoped_lock lock(mutex_);
     target = Json::objectValue;
 
@@ -359,8 +361,8 @@ namespace Orthanc
     uint64_t us = db_->GetTotalUncompressedSize();
     target["TotalDiskSpace"] = boost::lexical_cast<std::string>(cs);
     target["TotalUncompressedSize"] = boost::lexical_cast<std::string>(us);
-    target["TotalDiskSpaceMB"] = boost::lexical_cast<unsigned int>(cs / (1024llu * 1024llu));
-    target["TotalUncompressedSizeMB"] = boost::lexical_cast<unsigned int>(us / (1024llu * 1024llu));
+    target["TotalDiskSpaceMB"] = boost::lexical_cast<unsigned int>(cs / MB);
+    target["TotalUncompressedSizeMB"] = boost::lexical_cast<unsigned int>(us / MB);
 
     target["CountPatients"] = static_cast<unsigned int>(db_->GetResourceCount(ResourceType_Patient));
     target["CountStudies"] = static_cast<unsigned int>(db_->GetResourceCount(ResourceType_Study));
