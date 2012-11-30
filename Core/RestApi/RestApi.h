@@ -99,6 +99,11 @@ namespace Orthanc
       {
         return HttpHandler::GetArgument(*getArguments_, name, defaultValue);
       }
+
+      bool HasArgument(const std::string& name) const
+      {
+        return getArguments_->find(name) != getArguments_->end();
+      }
     };
 
     class PutCall : public SharedCall

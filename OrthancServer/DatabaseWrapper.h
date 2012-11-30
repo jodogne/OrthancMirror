@@ -62,6 +62,16 @@ namespace Orthanc
 
     void Open();
 
+    void GetChangesInternal(Json::Value& target,
+                            SQLite::Statement& s,
+                            int64_t since,
+                            unsigned int maxResults);
+
+    void GetExportedResources(Json::Value& target,
+                              SQLite::Statement& s,
+                              int64_t since,
+                              unsigned int maxResults);
+
   public:
     void SetGlobalProperty(GlobalProperty property,
                            const std::string& value);
@@ -139,6 +149,8 @@ namespace Orthanc
                     int64_t since,
                     unsigned int maxResults);
 
+    void GetLastChange(Json::Value& target);
+
     void LogExportedResource(ResourceType resourceType,
                              const std::string& publicId,
                              const std::string& remoteModality,
@@ -152,6 +164,8 @@ namespace Orthanc
     void GetExportedResources(Json::Value& target,
                               int64_t since,
                               unsigned int maxResults);
+
+    void GetLastExportedResource(Json::Value& target);
 
     int64_t GetTableRecordCount(const std::string& table);
     

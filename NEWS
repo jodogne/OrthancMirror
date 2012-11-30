@@ -15,6 +15,7 @@ Major changes
 Minor changes
 -------------
 
+* "last" flag to retrieve the last change from the "/changes" URI
 * Generate a sample configuration file from command line
 * "CompletedSeries" event in the changes API
 * Thread to continuously flush DB to disk (SQLite checkpoints for
