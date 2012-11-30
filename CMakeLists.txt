@@ -103,7 +103,7 @@ add_library(CoreLibrary
   Core/DicomFormat/DicomTag.cpp
   Core/DicomFormat/DicomIntegerPixelAccessor.cpp
   Core/DicomFormat/DicomInstanceHasher.cpp
-  Core/FileStorage.cpp
+  Core/FileStorage/FileStorage.cpp
   Core/FileStorage/StorageAccessor.cpp
   Core/FileStorage/CompressedFileStorageAccessor.cpp
   Core/FileStorage/FileStorageAccessor.cpp

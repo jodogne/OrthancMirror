@@ -3,7 +3,7 @@
 #include <ctype.h>
 #include <glog/logging.h>
 
-#include "../Core/FileStorage.h"
+#include "../Core/FileStorage/FileStorage.h"
 #include "../OrthancServer/ServerIndex.h"
 #include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"

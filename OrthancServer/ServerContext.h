@@ -33,9 +33,9 @@
 #pragma once
 
 #include "ServerIndex.h"
-#include "../Core/FileStorage.h"
-#include "../Core/RestApi/RestApiOutput.h"
 #include "../Core/FileStorage/CompressedFileStorageAccessor.h"
+#include "../Core/FileStorage/FileStorage.h"
+#include "../Core/RestApi/RestApiOutput.h"
 
 namespace Orthanc
 {
