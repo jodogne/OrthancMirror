@@ -30,7 +30,7 @@
  **/
 
 
-#include "OrthancRestApi2.h"
+#include "OrthancRestApi.h"
 
 #include "../Core/HttpServer/FilesystemHttpSender.h"
 #include "../Core/Uuid.h"
@@ -46,13 +46,13 @@
 
 
 #define RETRIEVE_CONTEXT(call)                          \
-  OrthancRestApi2& contextApi =                         \
-    dynamic_cast<OrthancRestApi2&>(call.GetContext());  \
+  OrthancRestApi& contextApi =                          \
+    dynamic_cast<OrthancRestApi&>(call.GetContext());   \
   ServerContext& context = contextApi.GetContext()
 
 #define RETRIEVE_MODALITIES(call)                                       \
-  const OrthancRestApi2::Modalities& modalities =                       \
-    dynamic_cast<OrthancRestApi2&>(call.GetContext()).GetModalities();
+  const OrthancRestApi::Modalities& modalities =                        \
+    dynamic_cast<OrthancRestApi&>(call.GetContext()).GetModalities();
 
 
 
@@ -542,7 +542,7 @@ namespace Orthanc
 
   // DICOM bridge -------------------------------------------------------------
 
-  static bool IsExistingModality(const OrthancRestApi2::Modalities& modalities,
+  static bool IsExistingModality(const OrthancRestApi::Modalities& modalities,
                                  const std::string& id)
   {
     return modalities.find(id) != modalities.end();
@@ -553,7 +553,7 @@ namespace Orthanc
     RETRIEVE_MODALITIES(call);
 
     Json::Value result = Json::arrayValue;
-    for (OrthancRestApi2::Modalities::const_iterator 
+    for (OrthancRestApi::Modalities::const_iterator 
            it = modalities.begin(); it != modalities.end(); it++)
     {
       result.append(*it);
@@ -584,7 +584,7 @@ namespace Orthanc
 
   // Registration of the various REST handlers --------------------------------
 
-  OrthancRestApi2::OrthancRestApi2(ServerContext& context) : 
+  OrthancRestApi::OrthancRestApi(ServerContext& context) : 
     context_(context)
   {
     GetListOfDicomModalities(modalities_);

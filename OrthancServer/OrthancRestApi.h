@@ -39,7 +39,7 @@
 
 namespace Orthanc
 {
-  class OrthancRestApi2 : public RestApi
+  class OrthancRestApi : public RestApi
   {
   public:
     typedef std::set<std::string> Modalities;
@@ -49,7 +49,7 @@ namespace Orthanc
     Modalities modalities_;
 
   public:
-    OrthancRestApi2(ServerContext& context);
+    OrthancRestApi(ServerContext& context);
 
     ServerContext& GetContext()
     {
