@@ -245,6 +245,13 @@ TEST(Toolbox, PathToExecutable)
   printf("[%s]\n", Toolbox::GetDirectoryOfExecutable().c_str());
 }
 
+TEST(Toolbox, StripSpaces)
+{
+  ASSERT_EQ("", Toolbox::StripSpaces("       \t  \r   \n  "));
+  ASSERT_EQ("coucou", Toolbox::StripSpaces("    coucou   \t  \r   \n  "));
+  ASSERT_EQ("cou   cou", Toolbox::StripSpaces("    cou   cou    \n  "));
+  ASSERT_EQ("c", Toolbox::StripSpaces("    \n\t c\r    \n  "));
+}
 
 
 #include <glog/logging.h>

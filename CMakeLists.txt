@@ -97,6 +97,7 @@ add_library(CoreLibrary
   Core/Compression/BufferCompressor.cpp
   Core/Compression/ZlibCompressor.cpp
   Core/Compression/ZipWriter.cpp
+  Core/Compression/HierarchicalZipWriter.cpp
   Core/OrthancException.cpp
   Core/DicomFormat/DicomArray.cpp
   Core/DicomFormat/DicomMap.cpp

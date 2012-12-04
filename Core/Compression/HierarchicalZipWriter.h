@@ -32,63 +32,90 @@
 
 #pragma once
 
-#include <stdint.h>
-#include <vector>
-#include <string>
+#include "ZipWriter.h"
+
+#include <map>
+#include <list>
+#include <boost/lexical_cast.hpp>
 
 namespace Orthanc
 {
-  typedef std::vector<std::string> UriComponents;
-
-  namespace Toolbox
+  class HierarchicalZipWriter
   {
-    void ServerBarrier();
+    FRIEND_TEST(HierarchicalZipWriter, Index);
+    FRIEND_TEST(HierarchicalZipWriter, Filenames);
 
-    void ToUpperCase(std::string& s);
+  private:
+    class Index
+    {
+    private:
+      struct Directory
+      {
+        typedef std::map<std::string, unsigned int>  Content;
 
-    void ToLowerCase(std::string& s);
+        std::string name_;
+        Content  content_;
+      };
 
-    void ReadFile(std::string& content,
-                  const std::string& path);
-
-    void Sleep(uint32_t seconds);
-
-    void USleep(uint64_t microSeconds);
-
-    void RemoveFile(const std::string& path);
-
-    void SplitUriComponents(UriComponents& components,
-                            const std::string& uri);
+      typedef std::list<Directory*> Stack;
   
-    bool IsChildUri(const UriComponents& baseUri,
-                    const UriComponents& testedUri);
+      Stack stack_;
 
-    std::string AutodetectMimeType(const std::string& path);
+      std::string GetCurrentDirectoryPath() const;
 
-    std::string FlattenUri(const UriComponents& components,
-                           size_t fromLevel = 0);
+      std::string EnsureUniqueFilename(const char* filename);
 
-    uint64_t GetFileSize(const std::string& path);
+    public:
+      Index();
 
-    void ComputeMD5(std::string& result,
-                    const std::string& data);
+      ~Index();
 
-    void ComputeSHA1(std::string& result,
-                     const std::string& data);
+      bool IsRoot() const
+      {
+        return stack_.size() == 1;
+      }
 
-    std::string EncodeBase64(const std::string& data);
+      std::string CreateFile(const char* name);
 
-    std::string GetPathToExecutable();
+      void CreateDirectory(const char* name);
 
-    std::string GetDirectoryOfExecutable();
+      void CloseDirectory();
 
-    std::string ConvertToUtf8(const std::string& source,
-                              const char* fromEncoding);
+      static std::string KeepAlphanumeric(const std::string& source);
+    };
 
-    std::string ConvertToAscii(const std::string& source);
+    Index indexer_;
+    ZipWriter writer_;
 
-    std::string StripSpaces(const std::string& source);
+  public:
+    HierarchicalZipWriter(const char* path);
 
-    std::string GetNowIsoString();
-  }
+    ~HierarchicalZipWriter();
+
+    void SetCompressionLevel(uint8_t level)
+    {
+      writer_.SetCompressionLevel(level);
+    }
+
+    uint8_t GetCompressionLevel() const
+    {
+      return writer_.GetCompressionLevel();
+    }
+
+    void CreateFile(const char* name);
+
+    void CreateDirectory(const char* name);
+
+    void CloseDirectory();
+
+    void Write(const char* data, size_t length)
+    {
+      writer_.Write(data, length);
+    }
+
+    void Write(const std::string& data)
+    {
+      writer_.Write(data);
+    }
+  };
 }
