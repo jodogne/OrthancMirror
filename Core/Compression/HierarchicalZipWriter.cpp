@@ -59,7 +59,9 @@ namespace Orthanc
             result.push_back(' ');
           }
         }
-        else if (isalnum(source[i]))
+        else if (isalnum(source[i]) || 
+                 source[i] == '.' || 
+                 source[i] == '_')
         {
           result.push_back(source[i]);
           lastSpace = false;
