@@ -566,5 +566,30 @@ namespace Orthanc
     return boost::posix_time::to_iso_string(now);
   }
 
+  std::string Toolbox::StripSpaces(const std::string& source)
+  {
+    size_t first = 0;
 
+    while (first < source.length() &&
+           isspace(source[first]))
+    {
+      first++;
+    }
+
+    if (first == source.length())
+    {
+      // String containing only spaces
+      return "";
+    }
+
+    size_t last = source.length();
+    while (last > first &&
+           isspace(source[last - 1]))
+    {
+      last--;
+    }          
+    
+    assert(first <= last);
+    return source.substr(first, last - first);
+  }
 }

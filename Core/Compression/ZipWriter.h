@@ -35,6 +35,7 @@
 #include <stdint.h>
 #include <string>
 #include <boost/shared_ptr.hpp>
+#include <gtest/gtest_prod.h>
 
 namespace Orthanc
 {
