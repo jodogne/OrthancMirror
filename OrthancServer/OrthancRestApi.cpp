@@ -34,6 +34,7 @@
 
 #include "../Core/HttpServer/FilesystemHttpSender.h"
 #include "../Core/Uuid.h"
+#include "../Core/Compression/HierarchicalZipWriter.h"
 #include "DicomProtocol/DicomUserConnection.h"
 #include "FromDcmtkBridge.h"
 #include "OrthancInitialization.h"
@@ -350,6 +351,62 @@ namespace Orthanc
   }
 
 
+  // Download of ZIP files ----------------------------------------------------
+ 
+  static void GetPatientArchive(RestApi::GetCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+
+    Json::Value patient;
+    if (!context.GetIndex().LookupResource(patient, call.GetUriComponent("id", ""), ResourceType_Patient))
+    {
+      return;
+    }
+
+    Toolbox::TemporaryFile tmp;
+
+    {
+      HierarchicalZipWriter writer(tmp.GetPath().c_str());
+      
+      for (size_t i = 0; i < patient["Studies"].size(); i++)
+      {
+        Json::Value study;
+        if (context.GetIndex().LookupResource(study, patient["Studies"][i].asString(), ResourceType_Study))
+        {
+          writer.CreateDirectory(study["MainDicomTags"]["StudyDescription"].asString().c_str());
+
+          for (size_t i = 0; i < study["Series"].size(); i++)
+          {
+            Json::Value series;
+            if (context.GetIndex().LookupResource(series, study["Series"][i].asString(), ResourceType_Series))
+            {
+              std::string m = series["MainDicomTags"]["Modality"].asString();
+              std::string s = series["MainDicomTags"]["SeriesDescription"].asString();
+              writer.CreateDirectory((m + " " + s).c_str());
+
+              for (size_t i = 0; i < series["Instances"].size(); i++)
+              {
+                Json::Value instance;
+                if (context.GetIndex().LookupResource(instance, series["Instances"][i].asString(), ResourceType_Instance))
+                {
+                  writer.CreateFile(instance["MainDicomTags"]["SOPInstanceUID"].asString().c_str());
+                }
+              }
+
+              writer.CloseDirectory();
+            }
+          }
+
+          writer.CloseDirectory();
+        }
+      }
+    }
+    
+    FilesystemHttpSender sender(tmp.GetPath().c_str());
+    call.GetOutput().AnswerFile(sender);
+  }
+
+
   // Changes API --------------------------------------------------------------
  
   static void GetSinceAndLimit(int64_t& since,
@@ -653,6 +710,7 @@ namespace Orthanc
     Register("/series/{id}", GetSingleResource<ResourceType_Series>);
     Register("/studies/{id}", DeleteSingleResource<ResourceType_Study>);
     Register("/studies/{id}", GetSingleResource<ResourceType_Study>);
+    Register("/patients/{id}/archive", GetPatientArchive);
 
     Register("/instances/{id}/file", GetInstanceFile);
     Register("/instances/{id}/tags", GetInstanceTags<false>);
