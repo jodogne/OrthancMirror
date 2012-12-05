@@ -373,7 +373,7 @@ namespace Orthanc
         Json::Value study;
         if (context.GetIndex().LookupResource(study, patient["Studies"][i].asString(), ResourceType_Study))
         {
-          writer.CreateDirectory(study["MainDicomTags"]["StudyDescription"].asString().c_str());
+          writer.OpenDirectory(study["MainDicomTags"]["StudyDescription"].asString().c_str());
 
           for (size_t i = 0; i < study["Series"].size(); i++)
           {
@@ -382,14 +382,14 @@ namespace Orthanc
             {
               std::string m = series["MainDicomTags"]["Modality"].asString();
               std::string s = series["MainDicomTags"]["SeriesDescription"].asString();
-              writer.CreateDirectory((m + " " + s).c_str());
+              writer.OpenDirectory((m + " " + s).c_str());
 
               for (size_t i = 0; i < series["Instances"].size(); i++)
               {
                 Json::Value instance;
                 if (context.GetIndex().LookupResource(instance, series["Instances"][i].asString(), ResourceType_Instance))
                 {
-                  writer.CreateFile(instance["MainDicomTags"]["SOPInstanceUID"].asString().c_str());
+                  writer.OpenFile(instance["MainDicomTags"]["SOPInstanceUID"].asString().c_str());
                 }
               }
 

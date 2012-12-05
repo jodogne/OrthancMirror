@@ -75,9 +75,9 @@ namespace Orthanc
         return stack_.size() == 1;
       }
 
-      std::string CreateFile(const char* name);
+      std::string OpenFile(const char* name);
 
-      void CreateDirectory(const char* name);
+      void OpenDirectory(const char* name);
 
       void CloseDirectory();
 
@@ -102,9 +102,9 @@ namespace Orthanc
       return writer_.GetCompressionLevel();
     }
 
-    void CreateFile(const char* name);
+    void OpenFile(const char* name);
 
-    void CreateDirectory(const char* name);
+    void OpenDirectory(const char* name);
 
     void CloseDirectory();
 

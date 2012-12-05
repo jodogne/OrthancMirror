@@ -13,7 +13,7 @@ TEST(ZipWriter, Basic)
   Orthanc::ZipWriter w;
   w.SetOutputPath("hello.zip");
   w.Open();
-  w.CreateFileInZip("world/hello");
+  w.OpenFile("world/hello");
   w.Write("Hello world");
 }
 
@@ -39,28 +39,28 @@ namespace Orthanc
   TEST(HierarchicalZipWriter, Index)
   {
     HierarchicalZipWriter::Index i;
-    ASSERT_EQ("hello", i.CreateFile("hello"));
-    ASSERT_EQ("hello-2", i.CreateFile("hello"));
-    ASSERT_EQ("coucou", i.CreateFile("coucou"));
-    ASSERT_EQ("hello-3", i.CreateFile("hello"));
+    ASSERT_EQ("hello", i.OpenFile("hello"));
+    ASSERT_EQ("hello-2", i.OpenFile("hello"));
+    ASSERT_EQ("coucou", i.OpenFile("coucou"));
+    ASSERT_EQ("hello-3", i.OpenFile("hello"));
 
-    i.CreateDirectory("coucou");
+    i.OpenDirectory("coucou");
 
-    ASSERT_EQ("coucou-2/world", i.CreateFile("world"));
-    ASSERT_EQ("coucou-2/world-2", i.CreateFile("world"));
+    ASSERT_EQ("coucou-2/world", i.OpenFile("world"));
+    ASSERT_EQ("coucou-2/world-2", i.OpenFile("world"));
 
-    i.CreateDirectory("world");
+    i.OpenDirectory("world");
   
-    ASSERT_EQ("coucou-2/world-3/hello", i.CreateFile("hello"));
-    ASSERT_EQ("coucou-2/world-3/hello-2", i.CreateFile("hello"));
+    ASSERT_EQ("coucou-2/world-3/hello", i.OpenFile("hello"));
+    ASSERT_EQ("coucou-2/world-3/hello-2", i.OpenFile("hello"));
 
     i.CloseDirectory();
 
-    ASSERT_EQ("coucou-2/world-4", i.CreateFile("world"));
+    ASSERT_EQ("coucou-2/world-4", i.OpenFile("world"));
 
     i.CloseDirectory();
 
-    ASSERT_EQ("coucou-3", i.CreateFile("coucou"));
+    ASSERT_EQ("coucou-3", i.OpenFile("coucou"));
 
     ASSERT_THROW(i.CloseDirectory(), OrthancException);
   }
@@ -83,28 +83,28 @@ TEST(HierarchicalZipWriter, Basic)
   w.SetCompressionLevel(0);
 
   // Inside "/"
-  w.CreateFile("hello");
+  w.OpenFile("hello");
   w.Write(SPACES + "hello\n");
-  w.CreateFile("hello");
+  w.OpenFile("hello");
   w.Write(SPACES + "hello-2\n");
-  w.CreateDirectory("hello");
+  w.OpenDirectory("hello");
 
   // Inside "/hello-3"
-  w.CreateFile("hello");
+  w.OpenFile("hello");
   w.Write(SPACES + "hello\n");
-  w.CreateDirectory("hello");
+  w.OpenDirectory("hello");
 
   w.SetCompressionLevel(9);
 
   // Inside "/hello-3/hello-2"
-  w.CreateFile("hello");
+  w.OpenFile("hello");
   w.Write(SPACES + "hello\n");
-  w.CreateFile("hello");
+  w.OpenFile("hello");
   w.Write(SPACES + "hello-2\n");
   w.CloseDirectory();
 
   // Inside "/hello-3"
-  w.CreateFile("hello");
+  w.OpenFile("hello");
   w.Write(SPACES + "hello-3\n");
 
   /**

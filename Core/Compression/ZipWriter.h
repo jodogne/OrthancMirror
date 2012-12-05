@@ -74,7 +74,7 @@ namespace Orthanc
       return path_;
     }
 
-    void CreateFileInZip(const char* path);
+    void OpenFile(const char* path);
 
     void Write(const char* data, size_t length);
 
