@@ -1,7 +1,12 @@
 Pending changes in the mainline
 ===============================
 
-* Download archives of patients, studies and serie as ZIP files
+
+
+Version 0.3.1 (2012/12/05)
+==========================
+
+* Download archives of patients, studies and series as ZIP files
 * Orthanc now checks the version of its database schema before starting
 
 
