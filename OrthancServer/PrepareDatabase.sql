@@ -85,3 +85,7 @@ FOR EACH ROW WHEN (SELECT COUNT(*) FROM Resources WHERE parentId = old.parentId)
 BEGIN
   DELETE FROM Resources WHERE internalId = old.parentId;
 END;
+
+-- Set the version of the database schema
+-- The "1" corresponds to the "GlobalProperty_DatabaseSchemaVersion" enumeration
+INSERT INTO GlobalProperties VALUES (1, "2");

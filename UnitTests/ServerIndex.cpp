@@ -180,7 +180,7 @@ TEST(DatabaseWrapper, Simple)
   index.DeleteResource(a[5]);
   ASSERT_EQ(0u, index.GetTableRecordCount("Resources"));
   ASSERT_EQ(0u, index.GetTableRecordCount("AttachedFiles"));
-  ASSERT_EQ(1u, index.GetTableRecordCount("GlobalProperties"));
+  ASSERT_EQ(2u, index.GetTableRecordCount("GlobalProperties"));
 
   ASSERT_EQ(3u, listener.deletedFiles_.size());
   ASSERT_FALSE(listener.deletedFiles_.find("world") == listener.deletedFiles_.end());

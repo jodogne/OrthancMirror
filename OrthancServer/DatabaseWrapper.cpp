@@ -735,6 +735,27 @@ namespace Orthanc
       db_.Execute(query);
     }
 
+    // Sanity check of the version of the database
+    std::string version = GetGlobalProperty(GlobalProperty_DatabaseSchemaVersion, "Unknown");
+    bool ok = false;
+    try
+    {
+      LOG(INFO) << "Version of the Orthanc database: " << version;
+      unsigned int v = boost::lexical_cast<unsigned int>(version);
+
+      // This version of Orthanc is only compatible with version 2 of
+      // the DB schema (since Orthanc 0.3.1)
+      ok = (v == 2); 
+    }
+    catch (boost::bad_lexical_cast&)
+    {
+    }
+
+    if (!ok)
+    {
+      throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
+    }
+
     signalRemainingAncestor_ = new Internals::SignalRemainingAncestor;
     db_.Register(signalRemainingAncestor_);
     db_.Register(new Internals::SignalFileDeleted(listener_));

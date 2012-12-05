@@ -51,48 +51,51 @@ namespace Orthanc
   {
     switch (error)
     {
-    case ErrorCode_Success:
-      return "Success";
+      case ErrorCode_Success:
+        return "Success";
 
-    case ErrorCode_ParameterOutOfRange:
-      return "Parameter out of range";
+      case ErrorCode_ParameterOutOfRange:
+        return "Parameter out of range";
 
-    case ErrorCode_NotImplemented:
-      return "Not implemented yet";
+      case ErrorCode_NotImplemented:
+        return "Not implemented yet";
 
-    case ErrorCode_InternalError:
-      return "Internal error";
+      case ErrorCode_InternalError:
+        return "Internal error";
 
-    case ErrorCode_NotEnoughMemory:
-      return "Not enough memory";
+      case ErrorCode_NotEnoughMemory:
+        return "Not enough memory";
 
-    case ErrorCode_UriSyntax:
-      return "Badly formatted URI";
+      case ErrorCode_UriSyntax:
+        return "Badly formatted URI";
 
-    case ErrorCode_BadParameterType:
-      return "Bad type for a parameter";
+      case ErrorCode_BadParameterType:
+        return "Bad type for a parameter";
 
-    case ErrorCode_InexistentFile:
-      return "Inexistent file";
+      case ErrorCode_InexistentFile:
+        return "Inexistent file";
 
-    case ErrorCode_BadFileFormat:
-      return "Bad file format";
+      case ErrorCode_BadFileFormat:
+        return "Bad file format";
 
-    case ErrorCode_CannotWriteFile:
-      return "Cannot write to file";
+      case ErrorCode_CannotWriteFile:
+        return "Cannot write to file";
 
-    case ErrorCode_Timeout:
-      return "Timeout";
+      case ErrorCode_Timeout:
+        return "Timeout";
 
-    case ErrorCode_UnknownResource:
-      return "Unknown resource";
+      case ErrorCode_UnknownResource:
+        return "Unknown resource";
 
-    case ErrorCode_BadSequenceOfCalls:
-      return "Bad sequence of calls";
+      case ErrorCode_BadSequenceOfCalls:
+        return "Bad sequence of calls";
 
-    case ErrorCode_Custom:
-    default:
-      return "???";
+      case ErrorCode_IncompatibleDatabaseVersion:
+        return "Incompatible version of the database";
+
+      case ErrorCode_Custom:
+      default:
+        return "???";
     }
   }
 }
