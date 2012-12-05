@@ -59,7 +59,8 @@ namespace Orthanc
 
   enum GlobalProperty
   {
-    GlobalProperty_FlushSleep = 1
+    GlobalProperty_DatabaseSchemaVersion = 1,
+    GlobalProperty_FlushSleep = 2
   };
 
   enum ResourceType
