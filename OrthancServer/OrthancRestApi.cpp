@@ -366,10 +366,16 @@ namespace Orthanc
       }
 
       case ResourceType_Study:
+      {
         return resource["MainDicomTags"]["StudyDescription"].asString();
+      }
         
       case ResourceType_Series:
-        return resource["MainDicomTags"]["SeriesDescription"].asString();
+      {
+        std::string d = resource["MainDicomTags"]["SeriesDescription"].asString();
+        std::string m = resource["MainDicomTags"]["Modality"].asString();
+        return m + " " + d;
+      }
         
       default:
         throw OrthancException(ErrorCode_InternalError);
