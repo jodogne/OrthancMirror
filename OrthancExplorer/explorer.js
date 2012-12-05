@@ -626,6 +626,7 @@ $('#instance-download-json').live('click', function(e) {
 });
 
 
+
 $('#instance-preview').live('click', function(e) {
   if ($.mobile.pageData) {
     GetSingleResource('instances', $.mobile.pageData.uuid + '/frames', function(frames) {
@@ -768,3 +769,20 @@ $('#show-tag-name').live('change', function(e) {
   else
     $('.tag-name').hide();
 });
+
+
+$('#patient-archive').live('click', function(e) {
+  e.preventDefault();  //stop the browser from following
+  window.location.href = '../patients/' + $.mobile.pageData.uuid + '/archive';
+});
+
+$('#study-archive').live('click', function(e) {
+  e.preventDefault();  //stop the browser from following
+  window.location.href = '../studies/' + $.mobile.pageData.uuid + '/archive';
+});
+
+$('#series-archive').live('click', function(e) {
+  e.preventDefault();  //stop the browser from following
+  window.location.href = '../series/' + $.mobile.pageData.uuid + '/archive';
+});
+

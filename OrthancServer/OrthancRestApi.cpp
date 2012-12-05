@@ -296,7 +296,6 @@ namespace Orthanc
  
   static void GetSystemInformation(RestApi::GetCall& call)
   {
-    RETRIEVE_CONTEXT(call);
     Json::Value result = Json::objectValue;
 
     result["Version"] = ORTHANC_VERSION;
@@ -353,57 +352,182 @@ namespace Orthanc
 
   // Download of ZIP files ----------------------------------------------------
  
-  static void GetPatientArchive(RestApi::GetCall& call)
+
+  static std::string GetDirectoryNameInArchive(const Json::Value& resource,
+                                               ResourceType resourceType)
+  {
+    switch (resourceType)
+    {
+      case ResourceType_Patient:
+      {
+        std::string p = resource["MainDicomTags"]["PatientID"].asString();
+        std::string n = resource["MainDicomTags"]["PatientName"].asString();
+        return p + " " + n;
+      }
+
+      case ResourceType_Study:
+        return resource["MainDicomTags"]["StudyDescription"].asString();
+        
+      case ResourceType_Series:
+        return resource["MainDicomTags"]["SeriesDescription"].asString();
+        
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+  static bool CreateRootDirectoryInArchive(HierarchicalZipWriter& writer,
+                                           ServerContext& context,
+                                           const Json::Value& resource,
+                                           ResourceType resourceType)
+  {
+    if (resourceType == ResourceType_Patient)
+    {
+      return true;
+    }
+
+    ResourceType parentType = GetParentResourceType(resourceType);
+    Json::Value parent;
+
+    switch (resourceType)
+    {
+      case ResourceType_Study:
+      {
+        if (!context.GetIndex().LookupResource(parent, resource["ParentPatient"].asString(), parentType))
+        {
+          return false;
+        }
+
+        break;
+      }
+        
+      case ResourceType_Series:
+        if (!context.GetIndex().LookupResource(parent, resource["ParentStudy"].asString(), parentType) ||
+            !CreateRootDirectoryInArchive(writer, context, parent, parentType))
+        {
+          return false;
+        }
+        break;
+        
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+    writer.OpenDirectory(GetDirectoryNameInArchive(parent, parentType).c_str());
+    return true;
+  }
+
+  static bool ArchiveInstance(HierarchicalZipWriter& writer,
+                              ServerContext& context,
+                              const std::string& instancePublicId)
+  {
+    Json::Value instance;
+    if (!context.GetIndex().LookupResource(instance, instancePublicId, ResourceType_Instance))
+    {
+      return false;
+    }
+
+    std::string filename = instance["MainDicomTags"]["SOPInstanceUID"].asString() + ".dcm";
+    writer.OpenFile(filename.c_str());
+
+    std::string dicom;
+    context.ReadFile(dicom, instancePublicId, FileContentType_Dicom);
+    writer.Write(dicom);
+
+    return true;
+  }
+
+  static bool ArchiveInternal(HierarchicalZipWriter& writer,
+                              ServerContext& context,
+                              const std::string& publicId,
+                              ResourceType resourceType,
+                              bool isFirstLevel)
+  {
+    Json::Value resource;
+    if (!context.GetIndex().LookupResource(resource, publicId, resourceType))
+    {
+      return false;
+    }
+
+    if (isFirstLevel && 
+        !CreateRootDirectoryInArchive(writer, context, resource, resourceType))
+    {
+      return false;
+    }
+
+    writer.OpenDirectory(GetDirectoryNameInArchive(resource, resourceType).c_str());
+
+    switch (resourceType)
+    {
+      case ResourceType_Patient:
+        for (size_t i = 0; i < resource["Studies"].size(); i++)
+        {
+          std::string studyId = resource["Studies"][i].asString();
+          if (!ArchiveInternal(writer, context, studyId, ResourceType_Study, false))
+          {
+            return false;
+          }
+        }
+        break;
+
+      case ResourceType_Study:
+        for (size_t i = 0; i < resource["Series"].size(); i++)
+        {
+          std::string seriesId = resource["Series"][i].asString();
+          if (!ArchiveInternal(writer, context, seriesId, ResourceType_Series, false))
+          {
+            return false;
+          }
+        }
+        break;
+
+      case ResourceType_Series:
+        for (size_t i = 0; i < resource["Instances"].size(); i++)
+        {
+          if (!ArchiveInstance(writer, context, resource["Instances"][i].asString()))
+          {
+            return false;
+          }
+        }
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+
+    writer.CloseDirectory();
+    return true;
+  }                                 
+
+  template <enum ResourceType resourceType>
+  static void GetArchive(RestApi::GetCall& call)
   {
     RETRIEVE_CONTEXT(call);
 
-    Json::Value patient;
-    if (!context.GetIndex().LookupResource(patient, call.GetUriComponent("id", ""), ResourceType_Patient))
-    {
-      return;
-    }
-
+    // Create a RAII for the temporary file to manage the ZIP file
     Toolbox::TemporaryFile tmp;
+    std::string id = call.GetUriComponent("id", "");
 
     {
+      // Create a ZIP writer
       HierarchicalZipWriter writer(tmp.GetPath().c_str());
-      
-      for (size_t i = 0; i < patient["Studies"].size(); i++)
+
+      // Store the requested resource into the ZIP
+      if (!ArchiveInternal(writer, context, id, resourceType, true))
       {
-        Json::Value study;
-        if (context.GetIndex().LookupResource(study, patient["Studies"][i].asString(), ResourceType_Study))
-        {
-          writer.OpenDirectory(study["MainDicomTags"]["StudyDescription"].asString().c_str());
-
-          for (size_t i = 0; i < study["Series"].size(); i++)
-          {
-            Json::Value series;
-            if (context.GetIndex().LookupResource(series, study["Series"][i].asString(), ResourceType_Series))
-            {
-              std::string m = series["MainDicomTags"]["Modality"].asString();
-              std::string s = series["MainDicomTags"]["SeriesDescription"].asString();
-              writer.OpenDirectory((m + " " + s).c_str());
-
-              for (size_t i = 0; i < series["Instances"].size(); i++)
-              {
-                Json::Value instance;
-                if (context.GetIndex().LookupResource(instance, series["Instances"][i].asString(), ResourceType_Instance))
-                {
-                  writer.OpenFile(instance["MainDicomTags"]["SOPInstanceUID"].asString().c_str());
-                }
-              }
-
-              writer.CloseDirectory();
-            }
-          }
-
-          writer.CloseDirectory();
-        }
+        return;
       }
     }
-    
+
+    // Prepare the sending of the ZIP file
     FilesystemHttpSender sender(tmp.GetPath().c_str());
+    sender.SetContentType("application/zip");
+    sender.SetDownloadFilename(id + ".zip");
+
+    // Send the ZIP
     call.GetOutput().AnswerFile(sender);
+
+    // The temporary file is automatically removed thanks to the RAII
   }
 
 
@@ -710,7 +834,10 @@ namespace Orthanc
     Register("/series/{id}", GetSingleResource<ResourceType_Series>);
     Register("/studies/{id}", DeleteSingleResource<ResourceType_Study>);
     Register("/studies/{id}", GetSingleResource<ResourceType_Study>);
-    Register("/patients/{id}/archive", GetPatientArchive);
+
+    Register("/patients/{id}/archive", GetArchive<ResourceType_Patient>);
+    Register("/studies/{id}/archive", GetArchive<ResourceType_Study>);
+    Register("/series/{id}/archive", GetArchive<ResourceType_Series>);
 
     Register("/instances/{id}/file", GetInstanceFile);
     Register("/instances/{id}/tags", GetInstanceTags<false>);
