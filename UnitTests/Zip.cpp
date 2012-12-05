@@ -69,7 +69,9 @@ namespace Orthanc
   TEST(HierarchicalZipWriter, Filenames)
   {
     ASSERT_EQ("trE hell", HierarchicalZipWriter::Index::KeepAlphanumeric("    ÊtrE hellô  "));
-    ASSERT_EQ("Hello world", HierarchicalZipWriter::Index::KeepAlphanumeric("    Hel^^lo  \t  <world>  "));
+
+    // The "^" character is considered as a space in DICOM
+    ASSERT_EQ("Hel lo world", HierarchicalZipWriter::Index::KeepAlphanumeric("    Hel^^  ^\r\n\t^^lo  \t  <world>  "));
   }
 }
 
