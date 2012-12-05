@@ -120,12 +120,12 @@ namespace Orthanc
     }
   }
 
-  std::string HierarchicalZipWriter::Index::CreateFile(const char* name)
+  std::string HierarchicalZipWriter::Index::OpenFile(const char* name)
   {
     return GetCurrentDirectoryPath() + EnsureUniqueFilename(name);
   }
 
-  void HierarchicalZipWriter::Index::CreateDirectory(const char* name)
+  void HierarchicalZipWriter::Index::OpenDirectory(const char* name)
   {
     std::string d = EnsureUniqueFilename(name);
 
@@ -158,15 +158,15 @@ namespace Orthanc
     writer_.Close();
   }
 
-  void HierarchicalZipWriter::CreateFile(const char* name)
+  void HierarchicalZipWriter::OpenFile(const char* name)
   {
-    std::string p = indexer_.CreateFile(name);
-    writer_.CreateFileInZip(p.c_str());
+    std::string p = indexer_.OpenFile(name);
+    writer_.OpenFile(p.c_str());
   }
 
-  void HierarchicalZipWriter::CreateDirectory(const char* name)
+  void HierarchicalZipWriter::OpenDirectory(const char* name)
   {
-    indexer_.CreateDirectory(name);
+    indexer_.OpenDirectory(name);
   }
 
   void HierarchicalZipWriter::CloseDirectory()

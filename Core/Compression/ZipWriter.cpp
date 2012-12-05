@@ -136,7 +136,7 @@ namespace Orthanc
     compressionLevel_ = level;
   }
 
-  void ZipWriter::CreateFileInZip(const char* path)
+  void ZipWriter::OpenFile(const char* path)
   {
     Open();
 
@@ -171,7 +171,7 @@ namespace Orthanc
   {
     if (!hasFileInZip_)
     {
-      throw OrthancException("Call first CreateFileInZip()");
+      throw OrthancException("Call first OpenFile()");
     }
 
     const size_t maxBytesInAStep = std::numeric_limits<int32_t>::max();

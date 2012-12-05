@@ -32,6 +32,7 @@
 
 #include "RestApi.h"
 
+#include <stdlib.h>   // To define "_exit()" under Windows
 #include <glog/logging.h>
 
 namespace Orthanc
