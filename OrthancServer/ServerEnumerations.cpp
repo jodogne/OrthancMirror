@@ -39,20 +39,20 @@ namespace Orthanc
   {
     switch (type)
     {
-    case ResourceType_Patient:
-      return "Patient";
+      case ResourceType_Patient:
+        return "Patient";
 
-    case ResourceType_Study:
-      return "Study";
+      case ResourceType_Study:
+        return "Study";
 
-    case ResourceType_Series:
-      return "Series";
+      case ResourceType_Series:
+        return "Series";
 
-    case ResourceType_Instance:
-      return "Instance";
+      case ResourceType_Instance:
+        return "Instance";
       
-    default:
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
 
@@ -61,20 +61,20 @@ namespace Orthanc
   {
     switch (type)
     {
-    case ResourceType_Patient:
-      return "/patients/" + publicId;
+      case ResourceType_Patient:
+        return "/patients/" + publicId;
 
-    case ResourceType_Study:
-      return "/studies/" + publicId;
+      case ResourceType_Study:
+        return "/studies/" + publicId;
 
-    case ResourceType_Series:
-      return "/series/" + publicId;
+      case ResourceType_Series:
+        return "/series/" + publicId;
 
-    case ResourceType_Instance:
-      return "/instances/" + publicId;
+      case ResourceType_Instance:
+        return "/instances/" + publicId;
       
-    default:
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
 
@@ -82,20 +82,20 @@ namespace Orthanc
   {
     switch (status)
     {
-    case SeriesStatus_Complete:
-      return "Complete";
+      case SeriesStatus_Complete:
+        return "Complete";
 
-    case SeriesStatus_Missing:
-      return "Missing";
+      case SeriesStatus_Missing:
+        return "Missing";
 
-    case SeriesStatus_Inconsistent:
-      return "Inconsistent";
+      case SeriesStatus_Inconsistent:
+        return "Inconsistent";
 
-    case SeriesStatus_Unknown:
-      return "Unknown";
+      case SeriesStatus_Unknown:
+        return "Unknown";
 
-    default:
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
 
@@ -103,17 +103,17 @@ namespace Orthanc
   {
     switch (status)
     {
-    case StoreStatus_Success:
-      return "Success";
+      case StoreStatus_Success:
+        return "Success";
 
-    case StoreStatus_AlreadyStored:
-      return "AlreadyStored";
+      case StoreStatus_AlreadyStored:
+        return "AlreadyStored";
 
-    case StoreStatus_Failure:
-      return "Failure";
+      case StoreStatus_Failure:
+        return "Failure";
 
-    default:
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
 
@@ -122,23 +122,61 @@ namespace Orthanc
   {
     switch (type)
     {
-    case ChangeType_CompletedSeries:
-      return "CompletedSeries";
+      case ChangeType_CompletedSeries:
+        return "CompletedSeries";
 
-    case ChangeType_NewInstance:
-      return "NewInstance";
+      case ChangeType_NewInstance:
+        return "NewInstance";
 
-    case ChangeType_NewPatient:
-      return "NewPatient";
+      case ChangeType_NewPatient:
+        return "NewPatient";
 
-    case ChangeType_NewSeries:
-      return "NewSeries";
+      case ChangeType_NewSeries:
+        return "NewSeries";
 
-    case ChangeType_NewStudy:
-      return "NewStudy";
+      case ChangeType_NewStudy:
+        return "NewStudy";
 
-    default:
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  ResourceType GetParentResourceType(ResourceType type)
+  {
+    switch (type)
+    {
+      case ResourceType_Study:
+        return ResourceType_Patient;
+
+      case ResourceType_Series:
+        return ResourceType_Study;
+
+      case ResourceType_Instance:
+        return ResourceType_Series;
+      
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  ResourceType GetChildResourceType(ResourceType type)
+  {
+    switch (type)
+    {
+      case ResourceType_Patient:
+        return ResourceType_Study;
+
+      case ResourceType_Study:
+        return ResourceType_Series;
+
+      case ResourceType_Series:
+        return ResourceType_Instance;
+      
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
 }

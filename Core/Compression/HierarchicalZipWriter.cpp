@@ -48,10 +48,14 @@ namespace Orthanc
     result.reserve(source.size());
     for (size_t i = 0; i < source.size(); i++)
     {
-      if (source[i] < 128 && 
-          source[i] >= 0)
+      char c = source[i];
+      if (c == '^')
+        c = ' ';
+
+      if (c < 128 && 
+          c >= 0)
       {
-        if (isspace(source[i])) 
+        if (isspace(c)) 
         {
           if (!lastSpace)
           {
@@ -59,11 +63,11 @@ namespace Orthanc
             result.push_back(' ');
           }
         }
-        else if (isalnum(source[i]) || 
-                 source[i] == '.' || 
-                 source[i] == '_')
+        else if (isalnum(c) || 
+                 c == '.' || 
+                 c == '_')
         {
-          result.push_back(source[i]);
+          result.push_back(c);
           lastSpace = false;
         }
       }

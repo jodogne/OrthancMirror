@@ -97,4 +97,8 @@ namespace Orthanc
   const char* ToString(StoreStatus status);
 
   const char* ToString(ChangeType type);
+
+  ResourceType GetParentResourceType(ResourceType type);
+
+  ResourceType GetChildResourceType(ResourceType type);
 }
