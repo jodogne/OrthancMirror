@@ -53,6 +53,9 @@ namespace Orthanc
     index_(*this, path.string()),
     accessor_(storage_)
   {
+    // TODO RECYCLING SETUP HERE
+    //index_.SetMaximumPatientCount(4);
+    //index_.SetMaximumStorageSize(10);
   }
 
   void ServerContext::SetCompressionEnabled(bool enabled)

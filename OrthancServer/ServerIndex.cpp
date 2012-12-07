@@ -195,7 +195,9 @@ namespace Orthanc
 
 
   ServerIndex::ServerIndex(ServerContext& context,
-                           const std::string& dbPath) : mutex_()
+                           const std::string& dbPath) : 
+    maximumStorageSize_(0),
+    maximumPatients_(0)
   {
     listener_.reset(new Internals::ServerIndexListener(context));
 
@@ -217,6 +219,10 @@ namespace Orthanc
 
       db_.reset(new DatabaseWrapper(p.string() + "/index", *listener_));
     }
+
+    // Initial recycling if the parameters have changed since the last
+    // execution of Orthanc
+    StandaloneRecycling();
 
     unsigned int sleep;
     try
@@ -509,20 +515,20 @@ namespace Orthanc
 
       switch (type)
       {
-      case ResourceType_Study:
-        result["ParentPatient"] = parent;
-        break;
+        case ResourceType_Study:
+          result["ParentPatient"] = parent;
+          break;
 
-      case ResourceType_Series:
-        result["ParentStudy"] = parent;
-        break;
+        case ResourceType_Series:
+          result["ParentStudy"] = parent;
+          break;
 
-      case ResourceType_Instance:
-        result["ParentSeries"] = parent;
-        break;
+        case ResourceType_Instance:
+          result["ParentSeries"] = parent;
+          break;
 
-      default:
-        throw OrthancException(ErrorCode_InternalError);
+        default:
+          throw OrthancException(ErrorCode_InternalError);
       }
     }
 
@@ -542,72 +548,72 @@ namespace Orthanc
 
       switch (type)
       {
-      case ResourceType_Patient:
-        result["Studies"] = c;
-        break;
+        case ResourceType_Patient:
+          result["Studies"] = c;
+          break;
 
-      case ResourceType_Study:
-        result["Series"] = c;
-        break;
+        case ResourceType_Study:
+          result["Series"] = c;
+          break;
 
-      case ResourceType_Series:
-        result["Instances"] = c;
-        break;
+        case ResourceType_Series:
+          result["Instances"] = c;
+          break;
 
-      default:
-        throw OrthancException(ErrorCode_InternalError);
+        default:
+          throw OrthancException(ErrorCode_InternalError);
       }
     }
 
     // Set the resource type
     switch (type)
     {
-    case ResourceType_Patient:
-      result["Type"] = "Patient";
-      break;
+      case ResourceType_Patient:
+        result["Type"] = "Patient";
+        break;
 
-    case ResourceType_Study:
-      result["Type"] = "Study";
-      break;
+      case ResourceType_Study:
+        result["Type"] = "Study";
+        break;
 
-    case ResourceType_Series:
-    {
-      result["Type"] = "Series";
-      result["Status"] = ToString(GetSeriesStatus(id));
-
-      int i;
-      if (db_->GetMetadataAsInteger(i, id, MetadataType_Series_ExpectedNumberOfInstances))
-        result["ExpectedNumberOfInstances"] = i;
-      else
-        result["ExpectedNumberOfInstances"] = Json::nullValue;
-
-      break;
-    }
-
-    case ResourceType_Instance:
-    {
-      result["Type"] = "Instance";
-
-      FileInfo attachment;
-      if (!db_->LookupAttachment(attachment, id, FileContentType_Dicom))
+      case ResourceType_Series:
       {
-        throw OrthancException(ErrorCode_InternalError);
+        result["Type"] = "Series";
+        result["Status"] = ToString(GetSeriesStatus(id));
+
+        int i;
+        if (db_->GetMetadataAsInteger(i, id, MetadataType_Series_ExpectedNumberOfInstances))
+          result["ExpectedNumberOfInstances"] = i;
+        else
+          result["ExpectedNumberOfInstances"] = Json::nullValue;
+
+        break;
       }
 
-      result["FileSize"] = static_cast<unsigned int>(attachment.GetUncompressedSize());
-      result["FileUuid"] = attachment.GetUuid();
+      case ResourceType_Instance:
+      {
+        result["Type"] = "Instance";
 
-      int i;
-      if (db_->GetMetadataAsInteger(i, id, MetadataType_Instance_IndexInSeries))
-        result["IndexInSeries"] = i;
-      else
-        result["IndexInSeries"] = Json::nullValue;
+        FileInfo attachment;
+        if (!db_->LookupAttachment(attachment, id, FileContentType_Dicom))
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
 
-      break;
-    }
+        result["FileSize"] = static_cast<unsigned int>(attachment.GetUncompressedSize());
+        result["FileUuid"] = attachment.GetUuid();
 
-    default:
-      throw OrthancException(ErrorCode_InternalError);
+        int i;
+        if (db_->GetMetadataAsInteger(i, id, MetadataType_Instance_IndexInSeries))
+          result["IndexInSeries"] = i;
+        else
+          result["IndexInSeries"] = Json::nullValue;
+
+        break;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
     }
 
     // Record the remaining information
@@ -698,28 +704,28 @@ namespace Orthanc
 
       switch (currentType)
       {
-      case ResourceType_Patient:
-        patientId = map.GetValue(DICOM_TAG_PATIENT_ID).AsString();
-        done = true;
-        break;
+        case ResourceType_Patient:
+          patientId = map.GetValue(DICOM_TAG_PATIENT_ID).AsString();
+          done = true;
+          break;
 
-      case ResourceType_Study:
-        studyInstanceUid = map.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString();
-        currentType = ResourceType_Patient;
-        break;
+        case ResourceType_Study:
+          studyInstanceUid = map.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString();
+          currentType = ResourceType_Patient;
+          break;
 
-      case ResourceType_Series:
-        seriesInstanceUid = map.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).AsString();
-        currentType = ResourceType_Study;
-        break;
+        case ResourceType_Series:
+          seriesInstanceUid = map.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).AsString();
+          currentType = ResourceType_Study;
+          break;
 
-      case ResourceType_Instance:
-        sopInstanceUid = map.GetValue(DICOM_TAG_SOP_INSTANCE_UID).AsString();
-        currentType = ResourceType_Series;
-        break;
+        case ResourceType_Instance:
+          sopInstanceUid = map.GetValue(DICOM_TAG_SOP_INSTANCE_UID).AsString();
+          currentType = ResourceType_Series;
+          break;
 
-      default:
-        throw OrthancException(ErrorCode_InternalError);
+        default:
+          throw OrthancException(ErrorCode_InternalError);
       }
 
       // If we have not reached the Patient level, find the parent of
@@ -760,6 +766,24 @@ namespace Orthanc
 
   bool ServerIndex::IsRecyclingNeeded(uint64_t instanceSize)
   {
+    if (maximumStorageSize_ != 0)
+    {
+      uint64_t currentSize = db_->GetTotalCompressedSize();
+      if (currentSize + instanceSize > maximumStorageSize_)
+      {
+        return true;
+      }
+    }
+
+    if (maximumPatients_ != 0)
+    {
+      uint64_t patientCount = db_->GetResourceCount(ResourceType_Patient);
+      if (patientCount > maximumPatients_)
+      {
+        return true;
+      }
+    }
+
     return false;
   }
 
@@ -772,7 +796,65 @@ namespace Orthanc
       return;
     }
 
+    // Check whether other DICOM instances from this patient are
+    // already stored
+    int64_t patientToAvoid;
+    ResourceType type;
+    bool hasPatientToAvoid = db_->LookupResource(newPatientId, patientToAvoid, type);
 
-    //throw OrthancException(ErrorCode_FullStorage);
+    if (hasPatientToAvoid && type != ResourceType_Patient)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    // Iteratively select patient to remove until there is enough
+    // space in the DICOM store
+    int64_t patientToRecycle;
+    while (true)
+    {
+      // If other instances of this patient are already in the store,
+      // we must avoid to recycle them
+      bool ok = hasPatientToAvoid ?
+        db_->SelectPatientToRecycle(patientToRecycle, patientToAvoid) :
+        db_->SelectPatientToRecycle(patientToRecycle);
+        
+      if (!ok)
+      {
+        throw OrthancException(ErrorCode_FullStorage);
+      }
+      
+      LOG(INFO) << "Recycling one patient";
+      db_->DeleteResource(patientToRecycle);
+
+      if (!IsRecyclingNeeded(instanceSize))
+      {
+        // OK, we're done
+        break;
+      }
+    }
   }  
+
+  void ServerIndex::SetMaximumPatientCount(unsigned int count) 
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    maximumPatients_ = count;
+    StandaloneRecycling();
+  }
+
+  void ServerIndex::SetMaximumStorageSize(uint64_t size) 
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    maximumStorageSize_ = size;
+    StandaloneRecycling();
+  }
+
+  void  ServerIndex::StandaloneRecycling()
+  {
+    // WARNING: No mutex here, do not include this as a public method
+    std::auto_ptr<SQLite::Transaction> t(db_->StartTransaction());
+    t->Begin();
+    Recycle(0, "");
+    t->Commit();
+    listener_->CommitFilesToRemove();
+  }
 }
