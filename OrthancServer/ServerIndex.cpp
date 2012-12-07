@@ -59,6 +59,7 @@ namespace Orthanc
       bool hasRemainingLevel_;
       ResourceType remainingType_;
       std::string remainingPublicId_;
+      std::list<std::string> pendingFilesToRemove_;
 
     public:
       ServerIndexListener(ServerContext& context) : 
@@ -73,6 +74,17 @@ namespace Orthanc
       void Reset()
       {
         hasRemainingLevel_ = false;
+        pendingFilesToRemove_.clear();
+      }
+
+      void CommitFilesToRemove()
+      {
+        for (std::list<std::string>::iterator 
+               it = pendingFilesToRemove_.begin();
+             it != pendingFilesToRemove_.end(); it++)
+        {
+          context_.RemoveFile(*it);
+        }
       }
 
       virtual void SignalRemainingAncestor(ResourceType parentType,
@@ -99,7 +111,7 @@ namespace Orthanc
       virtual void SignalFileDeleted(const std::string& fileUuid)
       {
         assert(Toolbox::IsUuid(fileUuid));
-        context_.RemoveFile(fileUuid);
+        pendingFilesToRemove_.push_back(fileUuid);
       }
 
       bool HasRemainingLevel() const
@@ -159,6 +171,10 @@ namespace Orthanc
     }
 
     t->Commit();
+
+    // We can remove the files once the SQLite transaction has been
+    // successfully committed
+    listener_->CommitFilesToRemove();
 
     return true;
   }
