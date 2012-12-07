@@ -181,6 +181,9 @@ namespace Orthanc
 
     bool SelectPatientToRecycle(int64_t& internalId);
 
+    bool SelectPatientToRecycle(int64_t& internalId,
+                                int64_t patientIdToAvoid);
+
     bool IsProtectedPatient(int64_t internalId);
 
     void SetProtectedPatient(int64_t internalId, 

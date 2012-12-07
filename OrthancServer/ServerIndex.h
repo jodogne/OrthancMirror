@@ -67,6 +67,11 @@ namespace Orthanc
 
     SeriesStatus GetSeriesStatus(int id);
 
+    bool IsRecyclingNeeded(uint64_t instanceSize);
+
+    void Recycle(uint64_t instanceSize,
+                 const std::string& newPatientId);
+
   public:
     typedef std::list<FileInfo> Attachments;
 

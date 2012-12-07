@@ -93,6 +93,9 @@ namespace Orthanc
       case ErrorCode_IncompatibleDatabaseVersion:
         return "Incompatible version of the database";
 
+      case ErrorCode_FullStorage:
+        return "The file storage is full";
+
       case ErrorCode_Custom:
       default:
         return "???";

@@ -795,6 +795,26 @@ namespace Orthanc
     }    
   }
 
+  bool DatabaseWrapper::SelectPatientToRecycle(int64_t& internalId,
+                                               int64_t patientIdToAvoid)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE,
+                        "SELECT patientId FROM PatientRecyclingOrder "
+                        "WHERE patientId != ? ORDER BY seq ASC LIMIT 1");
+    s.BindInt(0, patientIdToAvoid);
+
+    if (!s.Step())
+    {
+      // No patient remaining or all the patients are protected
+      return false;
+    }
+    else
+    {
+      internalId = s.ColumnInt(0);
+      return true;
+    }   
+  }
+
   bool DatabaseWrapper::IsProtectedPatient(int64_t internalId)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE,

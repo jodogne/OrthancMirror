@@ -55,7 +55,8 @@ namespace Orthanc
     ErrorCode_BadFileFormat,
     ErrorCode_Timeout,
     ErrorCode_UnknownResource,
-    ErrorCode_IncompatibleDatabaseVersion
+    ErrorCode_IncompatibleDatabaseVersion,
+    ErrorCode_FullStorage
   };
 
   enum PixelFormat
