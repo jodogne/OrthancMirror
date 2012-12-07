@@ -868,7 +868,7 @@ namespace Orthanc
     StandaloneRecycling();
   }
 
-  void  ServerIndex::StandaloneRecycling()
+  void ServerIndex::StandaloneRecycling()
   {
     // WARNING: No mutex here, do not include this as a public method
     std::auto_ptr<SQLite::Transaction> t(db_->StartTransaction());
@@ -877,4 +877,46 @@ namespace Orthanc
     t->Commit();
     listener_->CommitFilesToRemove();
   }
+
+
+  bool ServerIndex::IsProtectedPatient(const std::string& publicId)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    // Lookup for the requested resource
+    int64_t id;
+    ResourceType type;
+    if (!db_->LookupResource(publicId, id, type) ||
+        type != ResourceType_Patient)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    return db_->IsProtectedPatient(id);
+  }
+     
+
+  void ServerIndex::SetProtectedPatient(const std::string& publicId,
+                                        bool isProtected)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    // Lookup for the requested resource
+    int64_t id;
+    ResourceType type;
+    if (!db_->LookupResource(publicId, id, type) ||
+        type != ResourceType_Patient)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    // No need for a SQLite::Transaction here, as we only make 1 write to the DB
+    db_->SetProtectedPatient(id, isProtected);
+
+    if (isProtected)
+      LOG(INFO) << "Patient " << publicId << " has been protected";
+    else
+      LOG(INFO) << "Patient " << publicId << " has been unprotected";
+  }
+
 }

@@ -607,6 +607,40 @@ namespace Orthanc
   }
 
   
+  // Get information about a single patient -----------------------------------
+ 
+  static void IsProtectedPatient(RestApi::GetCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+    std::string publicId = call.GetUriComponent("id", "");
+    bool isProtected = context.GetIndex().IsProtectedPatient(publicId);
+    call.GetOutput().AnswerBuffer(isProtected ? "1" : "0", "text/plain");
+  }
+
+
+  static void SetPatientProtection(RestApi::PutCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+    std::string publicId = call.GetUriComponent("id", "");
+    std::string s = Toolbox::StripSpaces(call.GetPutBody());
+
+    if (s == "0")
+    {
+      context.GetIndex().SetProtectedPatient(publicId, false);
+      call.GetOutput().AnswerBuffer("", "text/plain");
+    }
+    else if (s == "1")
+    {
+      context.GetIndex().SetProtectedPatient(publicId, true);
+      call.GetOutput().AnswerBuffer("", "text/plain");
+    }
+    else
+    {
+      // Bad request
+    }
+  }
+
+
   // Get information about a single instance ----------------------------------
  
   static void GetInstanceFile(RestApi::GetCall& call)
@@ -845,6 +879,8 @@ namespace Orthanc
     Register("/studies/{id}/archive", GetArchive<ResourceType_Study>);
     Register("/series/{id}/archive", GetArchive<ResourceType_Series>);
 
+    Register("/patients/{id}/protected", IsProtectedPatient);
+    Register("/patients/{id}/protected", SetPatientProtection);
     Register("/instances/{id}/file", GetInstanceFile);
     Register("/instances/{id}/tags", GetInstanceTags<false>);
     Register("/instances/{id}/simplified-tags", GetInstanceTags<true>);
