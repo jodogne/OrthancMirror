@@ -319,9 +319,8 @@ TEST(DatabaseWrapper, PatientRecycling)
 
 TEST(DatabaseWrapper, PatientProtection)
 {
-  Toolbox::RemoveFile("hi.sqlite");
   ServerIndexListener listener;
-  DatabaseWrapper index("hi.sqlite", listener);
+  DatabaseWrapper index(listener);
 
   std::vector<int64_t> patients;
   for (int i = 0; i < 5; i++)
