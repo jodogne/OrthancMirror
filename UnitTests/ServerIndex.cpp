@@ -369,10 +369,12 @@ TEST(DatabaseWrapper, PatientProtection)
   int64_t p;
   ASSERT_TRUE(index.SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[0]);
   index.DeleteResource(p);
+  ASSERT_TRUE(index.SelectPatientToRecycle(p, patients[1])); ASSERT_EQ(p, patients[4]);
   ASSERT_TRUE(index.SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[1]);
   index.DeleteResource(p);
   ASSERT_TRUE(index.SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[4]);
   index.DeleteResource(p);
+  ASSERT_FALSE(index.SelectPatientToRecycle(p, patients[2]));
   ASSERT_TRUE(index.SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[2]);
   index.DeleteResource(p);
   // "patients[3]" is still protected
@@ -384,6 +386,8 @@ TEST(DatabaseWrapper, PatientProtection)
 
   index.SetProtectedPatient(patients[3], false);
   ASSERT_EQ(1u, index.GetTableRecordCount("PatientRecyclingOrder")); 
+  ASSERT_FALSE(index.SelectPatientToRecycle(p, patients[3]));
+  ASSERT_TRUE(index.SelectPatientToRecycle(p, patients[2]));
   ASSERT_TRUE(index.SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[3]);
   index.DeleteResource(p);
 

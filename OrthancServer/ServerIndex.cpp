@@ -139,7 +139,6 @@ namespace Orthanc
                                    ResourceType expectedType)
   {
     boost::mutex::scoped_lock lock(mutex_);
-
     listener_->Reset();
 
     std::auto_ptr<SQLite::Transaction> t(db_->StartTransaction());
@@ -248,6 +247,7 @@ namespace Orthanc
                                  const std::string& remoteAet)
   {
     boost::mutex::scoped_lock lock(mutex_);
+    listener_->Reset();
 
     DicomInstanceHasher hasher(dicomSummary);
 
@@ -266,6 +266,16 @@ namespace Orthanc
         assert(type == ResourceType_Instance);
         return StoreStatus_AlreadyStored;
       }
+
+      // Ensure there is enough room in the storage for the new instance
+      uint64_t instanceSize = 0;
+      for (Attachments::const_iterator it = attachments.begin();
+           it != attachments.end(); it++)
+      {
+        instanceSize += it->GetCompressedSize();
+      }
+
+      Recycle(instanceSize, hasher.HashPatient());
 
       // Create the instance
       instance = db_->CreateResource(hasher.HashInstance(), ResourceType_Instance);
@@ -355,11 +365,17 @@ namespace Orthanc
 
       t->Commit();
 
+      // We can remove the files once the SQLite transaction has been
+      // successfully committed. Some files might have to be deleted
+      // because of recycling.
+      listener_->CommitFilesToRemove();
+
       return StoreStatus_Success;
     }
     catch (OrthancException& e)
     {
-      LOG(ERROR) << "EXCEPTION2 [" << e.What() << "]" << " " << db_->GetErrorMessage();  
+      LOG(ERROR) << "EXCEPTION [" << e.What() << "]" 
+                 << " (SQLite status: " << db_->GetErrorMessage() << ")";
     }
 
     return StoreStatus_Failure;
@@ -740,4 +756,23 @@ namespace Orthanc
     db_->GetLastExportedResource(target);
     return true;
   }
+
+
+  bool ServerIndex::IsRecyclingNeeded(uint64_t instanceSize)
+  {
+    return false;
+  }
+
+  
+  void ServerIndex::Recycle(uint64_t instanceSize,
+                            const std::string& newPatientId)
+  {
+    if (!IsRecyclingNeeded(instanceSize))
+    {
+      return;
+    }
+
+
+    //throw OrthancException(ErrorCode_FullStorage);
+  }  
 }
