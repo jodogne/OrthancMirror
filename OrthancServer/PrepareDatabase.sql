@@ -55,9 +55,15 @@ CREATE TABLE ExportedResources(
        date TEXT
        ); 
 
+CREATE TABLE PatientRecyclingOrder(
+       seq INTEGER PRIMARY KEY AUTOINCREMENT,
+       patientId INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE
+       );
+
 CREATE INDEX ChildrenIndex ON Resources(parentId);
 CREATE INDEX PublicIndex ON Resources(publicId);
 CREATE INDEX ResourceTypeIndex ON Resources(resourceType);
+CREATE INDEX PatientRecyclingIndex ON PatientRecyclingOrder(patientId);
 
 CREATE INDEX MainDicomTagsIndex1 ON MainDicomTags(id);
 CREATE INDEX MainDicomTagsIndex2 ON MainDicomTags(tagGroup, tagElement);
@@ -86,6 +92,14 @@ BEGIN
   DELETE FROM Resources WHERE internalId = old.parentId;
 END;
 
+CREATE TRIGGER PatientAdded
+AFTER INSERT ON Resources
+FOR EACH ROW WHEN new.resourceType = 1  -- "1" corresponds to "ResourceType_Patient" in C++
+BEGIN
+  INSERT INTO PatientRecyclingOrder VALUES (NULL, new.internalId);
+END;
+
+
 -- Set the version of the database schema
 -- The "1" corresponds to the "GlobalProperty_DatabaseSchemaVersion" enumeration
-INSERT INTO GlobalProperties VALUES (1, "2");
+INSERT INTO GlobalProperties VALUES (1, "3");

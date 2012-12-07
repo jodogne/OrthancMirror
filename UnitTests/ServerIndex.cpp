@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 
 #include "../OrthancServer/DatabaseWrapper.h"
+#include "../Core/Toolbox.h"
 
 #include <ctype.h>
 #include <glog/logging.h>
@@ -12,7 +13,7 @@ namespace
   class ServerIndexListener : public IServerIndexListener
   {
   public:
-    std::set<std::string> deletedFiles_;
+    std::vector<std::string> deletedFiles_;
     std::string ancestorId_;
     ResourceType ancestorType_;
 
@@ -31,7 +32,7 @@ namespace
 
     virtual void SignalFileDeleted(const std::string& fileUuid)
     {
-      deletedFiles_.insert(fileUuid);
+      deletedFiles_.push_back(fileUuid);
       LOG(INFO) << "A file must be removed: " << fileUuid;
     }                                
   };
@@ -170,8 +171,12 @@ TEST(DatabaseWrapper, Simple)
   index.DeleteResource(a[0]);
 
   ASSERT_EQ(2u, listener.deletedFiles_.size());
-  ASSERT_FALSE(listener.deletedFiles_.find("my json file") == listener.deletedFiles_.end());
-  ASSERT_FALSE(listener.deletedFiles_.find("my dicom file") == listener.deletedFiles_.end());
+  ASSERT_FALSE(std::find(listener.deletedFiles_.begin(), 
+                         listener.deletedFiles_.end(),
+                         "my json file") == listener.deletedFiles_.end());
+  ASSERT_FALSE(std::find(listener.deletedFiles_.begin(), 
+                         listener.deletedFiles_.end(),
+                         "my dicom file") == listener.deletedFiles_.end());
 
   ASSERT_EQ(2u, index.GetTableRecordCount("Resources"));
   ASSERT_EQ(0u, index.GetTableRecordCount("Metadata"));
@@ -183,7 +188,9 @@ TEST(DatabaseWrapper, Simple)
   ASSERT_EQ(2u, index.GetTableRecordCount("GlobalProperties"));
 
   ASSERT_EQ(3u, listener.deletedFiles_.size());
-  ASSERT_FALSE(listener.deletedFiles_.find("world") == listener.deletedFiles_.end());
+  ASSERT_FALSE(std::find(listener.deletedFiles_.begin(), 
+                         listener.deletedFiles_.end(),
+                         "world") == listener.deletedFiles_.end());
 }
 
 
@@ -255,4 +262,133 @@ TEST(DatabaseWrapper, Upward)
   listener.Reset();
   index.DeleteResource(a[6]);
   ASSERT_EQ("", listener.ancestorId_);  // No more ancestor
+}
+
+
+TEST(DatabaseWrapper, PatientRecycling)
+{
+  ServerIndexListener listener;
+  DatabaseWrapper index(listener);
+
+  std::vector<int64_t> patients;
+  for (int i = 0; i < 10; i++)
+  {
+    std::string p = "Patient " + boost::lexical_cast<std::string>(i);
+    patients.push_back(index.CreateResource(p, ResourceType_Patient));
+    index.AddAttachment(patients[i], FileInfo(p, FileContentType_Dicom, i + 10));
+    ASSERT_FALSE(index.IsProtectedPatient(patients[i]));
+  }
+
+  ASSERT_EQ(10u, index.GetTableRecordCount("Resources")); 
+  ASSERT_EQ(10u, index.GetTableRecordCount("PatientRecyclingOrder")); 
+
+  listener.Reset();
+
+  index.DeleteResource(patients[5]);
+  index.DeleteResource(patients[0]);
+  ASSERT_EQ(8u, index.GetTableRecordCount("Resources")); 
+  ASSERT_EQ(8u, index.GetTableRecordCount("PatientRecyclingOrder"));
+
+  ASSERT_EQ(2u, listener.deletedFiles_.size());
+  ASSERT_EQ("Patient 5", listener.deletedFiles_[0]);
+  ASSERT_EQ("Patient 0", listener.deletedFiles_[1]);
+
+  int64_t p;
+  ASSERT_TRUE(index.SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[1]);
+  index.DeleteResource(p);
+  ASSERT_TRUE(index.SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[2]);
+  index.DeleteResource(p);
+  ASSERT_TRUE(index.SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[3]);
+  index.DeleteResource(p);
+  ASSERT_TRUE(index.SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[4]);
+  index.DeleteResource(p);
+  ASSERT_TRUE(index.SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[6]);
+  index.DeleteResource(p);
+  index.DeleteResource(patients[8]);
+  ASSERT_TRUE(index.SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[7]);
+  index.DeleteResource(p);
+  ASSERT_TRUE(index.SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[9]);
+  index.DeleteResource(p);
+  ASSERT_FALSE(index.SelectPatientToRecycle(p));
+
+  ASSERT_EQ(10u, listener.deletedFiles_.size());
+  ASSERT_EQ(0u, index.GetTableRecordCount("Resources")); 
+  ASSERT_EQ(0u, index.GetTableRecordCount("PatientRecyclingOrder")); 
+}
+
+
+TEST(DatabaseWrapper, PatientProtection)
+{
+  Toolbox::RemoveFile("hi.sqlite");
+  ServerIndexListener listener;
+  DatabaseWrapper index("hi.sqlite", listener);
+
+  std::vector<int64_t> patients;
+  for (int i = 0; i < 5; i++)
+  {
+    std::string p = "Patient " + boost::lexical_cast<std::string>(i);
+    patients.push_back(index.CreateResource(p, ResourceType_Patient));
+    index.AddAttachment(patients[i], FileInfo(p, FileContentType_Dicom, i + 10));
+    ASSERT_FALSE(index.IsProtectedPatient(patients[i]));
+  }
+
+  ASSERT_EQ(5u, index.GetTableRecordCount("Resources")); 
+  ASSERT_EQ(5u, index.GetTableRecordCount("PatientRecyclingOrder")); 
+
+  ASSERT_FALSE(index.IsProtectedPatient(patients[2]));
+  index.SetProtectedPatient(patients[2], true);
+  ASSERT_TRUE(index.IsProtectedPatient(patients[2]));
+  ASSERT_EQ(4u, index.GetTableRecordCount("PatientRecyclingOrder"));
+  ASSERT_EQ(5u, index.GetTableRecordCount("Resources")); 
+
+  index.SetProtectedPatient(patients[2], true);
+  ASSERT_TRUE(index.IsProtectedPatient(patients[2]));
+  ASSERT_EQ(4u, index.GetTableRecordCount("PatientRecyclingOrder")); 
+  index.SetProtectedPatient(patients[2], false);
+  ASSERT_FALSE(index.IsProtectedPatient(patients[2]));
+  ASSERT_EQ(5u, index.GetTableRecordCount("PatientRecyclingOrder")); 
+  index.SetProtectedPatient(patients[2], false);
+  ASSERT_FALSE(index.IsProtectedPatient(patients[2]));
+  ASSERT_EQ(5u, index.GetTableRecordCount("PatientRecyclingOrder")); 
+
+  ASSERT_EQ(5u, index.GetTableRecordCount("Resources")); 
+  ASSERT_EQ(5u, index.GetTableRecordCount("PatientRecyclingOrder")); 
+  index.SetProtectedPatient(patients[2], true);
+  ASSERT_TRUE(index.IsProtectedPatient(patients[2]));
+  ASSERT_EQ(4u, index.GetTableRecordCount("PatientRecyclingOrder"));
+  index.SetProtectedPatient(patients[2], false);
+  ASSERT_FALSE(index.IsProtectedPatient(patients[2]));
+  ASSERT_EQ(5u, index.GetTableRecordCount("PatientRecyclingOrder")); 
+  index.SetProtectedPatient(patients[3], true);
+  ASSERT_TRUE(index.IsProtectedPatient(patients[3]));
+  ASSERT_EQ(4u, index.GetTableRecordCount("PatientRecyclingOrder")); 
+
+  ASSERT_EQ(5u, index.GetTableRecordCount("Resources")); 
+  ASSERT_EQ(0u, listener.deletedFiles_.size());
+
+  // Unprotecting a patient puts it at the last position in the recycling queue
+  int64_t p;
+  ASSERT_TRUE(index.SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[0]);
+  index.DeleteResource(p);
+  ASSERT_TRUE(index.SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[1]);
+  index.DeleteResource(p);
+  ASSERT_TRUE(index.SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[4]);
+  index.DeleteResource(p);
+  ASSERT_TRUE(index.SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[2]);
+  index.DeleteResource(p);
+  // "patients[3]" is still protected
+  ASSERT_FALSE(index.SelectPatientToRecycle(p));
+
+  ASSERT_EQ(4u, listener.deletedFiles_.size());
+  ASSERT_EQ(1u, index.GetTableRecordCount("Resources")); 
+  ASSERT_EQ(0u, index.GetTableRecordCount("PatientRecyclingOrder")); 
+
+  index.SetProtectedPatient(patients[3], false);
+  ASSERT_EQ(1u, index.GetTableRecordCount("PatientRecyclingOrder")); 
+  ASSERT_TRUE(index.SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[3]);
+  index.DeleteResource(p);
+
+  ASSERT_EQ(5u, listener.deletedFiles_.size());
+  ASSERT_EQ(0u, index.GetTableRecordCount("Resources")); 
+  ASSERT_EQ(0u, index.GetTableRecordCount("PatientRecyclingOrder")); 
 }
