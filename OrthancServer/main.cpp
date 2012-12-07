@@ -214,6 +214,25 @@ int main(int argc, char* argv[])
     ServerContext context(storageDirectory);
     context.SetCompressionEnabled(GetGlobalBoolParameter("StorageCompression", false));
 
+    try
+    {
+      context.GetIndex().SetMaximumPatientCount(GetGlobalIntegerParameter("MaximumPatientCount", 0));
+    }
+    catch (...)
+    {
+      context.GetIndex().SetMaximumPatientCount(0);
+    }
+
+    try
+    {
+      uint64_t size = GetGlobalIntegerParameter("MaximumStorageSize", 0);
+      context.GetIndex().SetMaximumStorageSize(size * 1024 * 1024);
+    }
+    catch (...)
+    {
+      context.GetIndex().SetMaximumStorageSize(0);
+    }
+
     MyDicomStoreFactory storeScp(context);
 
     {

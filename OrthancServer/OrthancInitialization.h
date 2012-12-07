@@ -35,6 +35,7 @@
 #include <string>
 #include <set>
 #include <json/json.h>
+#include <stdint.h>
 #include "../Core/HttpServer/MongooseServer.h"
 
 namespace Orthanc
