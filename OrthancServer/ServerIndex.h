@@ -137,5 +137,9 @@ namespace Orthanc
 
     bool GetLastExportedResource(Json::Value& target);
 
+    bool IsProtectedPatient(const std::string& publicId);
+
+    void SetProtectedPatient(const std::string& publicId,
+                             bool isProtected);
   };
 }
