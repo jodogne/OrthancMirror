@@ -838,6 +838,16 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(mutex_);
     maximumPatients_ = count;
+
+    if (count == 0)
+    {
+      LOG(WARNING) << "No limit on the number of stored patients";
+    }
+    else
+    {
+      LOG(WARNING) << "At most " << count << " patients will be stored";
+    }
+
     StandaloneRecycling();
   }
 
@@ -845,6 +855,16 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(mutex_);
     maximumStorageSize_ = size;
+
+    if (size == 0)
+    {
+      LOG(WARNING) << "No limit on the size of the storage area";
+    }
+    else
+    {
+      LOG(WARNING) << "At most " << (size / (1024 * 1024)) << "MB will be used for the storage area";
+    }
+
     StandaloneRecycling();
   }
 
