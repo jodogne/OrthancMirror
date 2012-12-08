@@ -108,10 +108,10 @@ namespace Orthanc
         }        
       }
 
-      virtual void SignalFileDeleted(const std::string& fileUuid)
+      virtual void SignalFileDeleted(const FileInfo& info)
       {
-        assert(Toolbox::IsUuid(fileUuid));
-        pendingFilesToRemove_.push_back(fileUuid);
+        assert(Toolbox::IsUuid(info.GetUuid()));
+        pendingFilesToRemove_.push_back(info.GetUuid());
       }
 
       bool HasRemainingLevel() const

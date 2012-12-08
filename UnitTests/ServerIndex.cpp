@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 
 #include "../OrthancServer/DatabaseWrapper.h"
-#include "../Core/Toolbox.h"
+#include "../Core/Uuid.h"
 
 #include <ctype.h>
 #include <glog/logging.h>
@@ -30,8 +30,9 @@ namespace
       ancestorType_ = type;
     }
 
-    virtual void SignalFileDeleted(const std::string& fileUuid)
+    virtual void SignalFileDeleted(const FileInfo& info)
     {
+      const std::string fileUuid = info.GetUuid();
       deletedFiles_.push_back(fileUuid);
       LOG(INFO) << "A file must be removed: " << fileUuid;
     }                                

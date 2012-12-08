@@ -72,6 +72,12 @@ namespace Orthanc
       return sqlite3_value_int(argv_[index]);
     }
 
+    int64_t FunctionContext::GetInt64Value(unsigned int index) const
+    {
+      CheckIndex(index);
+      return sqlite3_value_int64(argv_[index]);
+    }
+
     double FunctionContext::GetDoubleValue(unsigned int index) const
     {
       CheckIndex(index);

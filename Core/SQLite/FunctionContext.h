@@ -69,6 +69,8 @@ namespace Orthanc
 
       int GetIntValue(unsigned int index) const;
 
+      int64_t GetInt64Value(unsigned int index) const;
+
       double GetDoubleValue(unsigned int index) const;
 
       std::string GetStringValue(unsigned int index) const;

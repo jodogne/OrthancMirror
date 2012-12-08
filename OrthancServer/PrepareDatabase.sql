@@ -74,7 +74,8 @@ CREATE INDEX ChangesIndex ON Changes(internalId);
 CREATE TRIGGER AttachedFileDeleted
 AFTER DELETE ON AttachedFiles
 BEGIN
-  SELECT SignalFileDeleted(old.uuid);
+  SELECT SignalFileDeleted(old.uuid, old.fileType, old.uncompressedSize, 
+                           old.compressionType, old.compressedSize);
 END;
 
 CREATE TRIGGER ResourceDeleted

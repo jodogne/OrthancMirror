@@ -33,6 +33,7 @@
 #include "DatabaseWrapper.h"
 
 #include "../Core/DicomFormat/DicomArray.h"
+#include "../Core/Uuid.h"
 #include "EmbeddedResources.h"
 
 #include <glog/logging.h>
@@ -61,12 +62,18 @@ namespace Orthanc
 
       virtual unsigned int GetCardinality() const
       {
-        return 1;
+        return 5;
       }
 
       virtual void Compute(SQLite::FunctionContext& context)
       {
-        listener_.SignalFileDeleted(context.GetStringValue(0));
+        FileInfo info(context.GetStringValue(0),
+                      static_cast<FileContentType>(context.GetIntValue(1)),
+                      static_cast<uint64_t>(context.GetInt64Value(2)),
+                      static_cast<CompressionType>(context.GetIntValue(3)),
+                      static_cast<uint64_t>(context.GetInt64Value(4)));
+        
+        listener_.SignalFileDeleted(info);
       }
     };
 
