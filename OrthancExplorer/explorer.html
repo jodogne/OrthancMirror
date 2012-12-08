@@ -82,7 +82,13 @@
               <ul data-role="listview" data-inset="true" data-theme="a"  id="patient-info">
               </ul>
               <p>
-                <a href="#find-patients" data-role="button" data-icon="search">Go to patient finder</a>
+                <div class="switch-container">
+                  <select name="protection" id="protection" data-role="slider">
+	            <option value="off">Unprotected</option>
+	            <option value="on">Protected</option>
+                  </select>
+                </div>
+                <!--a href="#find-patients" data-role="button" data-icon="search">Go to patient finder</a-->
                 <a href="#" data-role="button" data-icon="delete" id="patient-delete">Delete this patient</a>
                 <a href="#" data-role="button" data-icon="gear" id="patient-archive">Download ZIP</a>
               </p>

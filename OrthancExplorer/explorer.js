@@ -378,6 +378,18 @@ $('#patient').live('pagebeforeshow', function() {
         }
 
         target.listview('refresh');
+
+        // Check whether this patient is protected
+        $.ajax({
+          url: '../patients/' + $.mobile.pageData.uuid + '/protected',
+          type: 'GET',
+          dataType: 'text',
+          async: false,
+          success: function (s) {
+            var v = (s == '1') ? 'on' : 'off';
+            $('#protection').val(v).slider('refresh');
+          }
+        });
       });
     });
   }
@@ -786,3 +798,13 @@ $('#series-archive').live('click', function(e) {
   window.location.href = '../series/' + $.mobile.pageData.uuid + '/archive';
 });
 
+$('#protection').live('change', function(e) {
+  var isProtected = e.target.value == "on";
+  $.ajax({
+    url: '../patients/' + $.mobile.pageData.uuid + '/protected',
+    type: 'PUT',
+    dataType: 'text',
+    data: isProtected ? '1' : '0',
+    async: false
+  });
+});
