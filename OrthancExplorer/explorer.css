@@ -37,3 +37,7 @@ ul.tree ul {
     text-decoration: none;
     color: white !important;
 }
+
+.switch-container .ui-slider-switch {
+    width: 100%;
+}
