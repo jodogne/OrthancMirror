@@ -51,17 +51,18 @@ namespace Orthanc
     class ServerIndexListener;
   }
 
-
-
   class ServerIndex : public boost::noncopyable
   {
   private:
+    class Transaction;
+
     boost::mutex mutex_;
     boost::thread flushThread_;
 
     std::auto_ptr<Internals::ServerIndexListener> listener_;
     std::auto_ptr<DatabaseWrapper> db_;
 
+    uint64_t currentStorageSize_;
     uint64_t maximumStorageSize_;
     unsigned int maximumPatients_;
 
