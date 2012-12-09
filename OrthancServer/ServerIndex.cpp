@@ -60,12 +60,13 @@ namespace Orthanc
       ResourceType remainingType_;
       std::string remainingPublicId_;
       std::list<std::string> pendingFilesToRemove_;
+      uint64_t sizeOfFilesToRemove_;
 
     public:
       ServerIndexListener(ServerContext& context) : 
-        context_(context),
-        hasRemainingLevel_(false)
+        context_(context)
       {
+        Reset();
         assert(ResourceType_Patient < ResourceType_Study &&
                ResourceType_Study < ResourceType_Series &&
                ResourceType_Series < ResourceType_Instance);
@@ -73,8 +74,14 @@ namespace Orthanc
 
       void Reset()
       {
+        sizeOfFilesToRemove_ = 0;
         hasRemainingLevel_ = false;
         pendingFilesToRemove_.clear();
+      }
+
+      uint64_t GetSizeOfFilesToRemove()
+      {
+        return sizeOfFilesToRemove_;
       }
 
       void CommitFilesToRemove()
@@ -112,6 +119,7 @@ namespace Orthanc
       {
         assert(Toolbox::IsUuid(info.GetUuid()));
         pendingFilesToRemove_.push_back(info.GetUuid());
+        sizeOfFilesToRemove_ += info.GetCompressedSize();
       }
 
       bool HasRemainingLevel() const
@@ -134,6 +142,49 @@ namespace Orthanc
   }
 
 
+  class ServerIndex::Transaction
+  {
+  private:
+    ServerIndex& index_;
+    std::auto_ptr<SQLite::Transaction> transaction_;
+    bool isCommitted_;
+
+  public:
+    Transaction(ServerIndex& index) : 
+      index_(index),
+      isCommitted_(false)
+    {
+      assert(index_.currentStorageSize_ == index_.db_->GetTotalCompressedSize());
+
+      index_.listener_->Reset();
+      transaction_.reset(index_.db_->StartTransaction());
+      transaction_->Begin();
+    }
+
+    void Commit(uint64_t sizeOfAddedFiles)
+    {
+      if (!isCommitted_)
+      {
+        transaction_->Commit();
+
+        // We can remove the files once the SQLite transaction has
+        // been successfully committed. Some files might have to be
+        // deleted because of recycling.
+        index_.listener_->CommitFilesToRemove();
+
+        index_.currentStorageSize_ += sizeOfAddedFiles;
+
+        assert(index_.currentStorageSize_ >= index_.listener_->GetSizeOfFilesToRemove());
+        index_.currentStorageSize_ -= index_.listener_->GetSizeOfFilesToRemove();
+
+        assert(index_.currentStorageSize_ == index_.db_->GetTotalCompressedSize());
+
+        isCommitted_ = true;
+      }
+    }
+  };
+
+
   bool ServerIndex::DeleteResource(Json::Value& target,
                                    const std::string& uuid,
                                    ResourceType expectedType)
@@ -141,8 +192,7 @@ namespace Orthanc
     boost::mutex::scoped_lock lock(mutex_);
     listener_->Reset();
 
-    std::auto_ptr<SQLite::Transaction> t(db_->StartTransaction());
-    t->Begin();
+    Transaction t(*this);
 
     int64_t id;
     ResourceType type;
@@ -169,11 +219,7 @@ namespace Orthanc
       target["RemainingAncestor"] = Json::nullValue;
     }
 
-    t->Commit();
-
-    // We can remove the files once the SQLite transaction has been
-    // successfully committed
-    listener_->CommitFilesToRemove();
+    t.Commit(0);
 
     return true;
   }
@@ -220,6 +266,8 @@ namespace Orthanc
       db_.reset(new DatabaseWrapper(p.string() + "/index", *listener_));
     }
 
+    currentStorageSize_ = db_->GetTotalCompressedSize();
+
     // Initial recycling if the parameters have changed since the last
     // execution of Orthanc
     StandaloneRecycling();
@@ -259,8 +307,7 @@ namespace Orthanc
 
     try
     {
-      std::auto_ptr<SQLite::Transaction> t(db_->StartTransaction());
-      t->Begin();
+      Transaction t(*this);
 
       int64_t patient, study, series, instance;
       ResourceType type;
@@ -369,12 +416,7 @@ namespace Orthanc
         db_->LogChange(ChangeType_CompletedSeries, series, ResourceType_Series);
       }
 
-      t->Commit();
-
-      // We can remove the files once the SQLite transaction has been
-      // successfully committed. Some files might have to be deleted
-      // because of recycling.
-      listener_->CommitFilesToRemove();
+      t.Commit(instanceSize);
 
       return StoreStatus_Success;
     }
@@ -395,7 +437,8 @@ namespace Orthanc
     boost::mutex::scoped_lock lock(mutex_);
     target = Json::objectValue;
 
-    uint64_t cs = db_->GetTotalCompressedSize();
+    uint64_t cs = currentStorageSize_;
+    assert(cs == db_->GetTotalCompressedSize());
     uint64_t us = db_->GetTotalUncompressedSize();
     target["TotalDiskSpace"] = boost::lexical_cast<std::string>(cs);
     target["TotalUncompressedSize"] = boost::lexical_cast<std::string>(us);
@@ -768,7 +811,9 @@ namespace Orthanc
   {
     if (maximumStorageSize_ != 0)
     {
-      uint64_t currentSize = db_->GetTotalCompressedSize();
+      uint64_t currentSize = currentStorageSize_ - listener_->GetSizeOfFilesToRemove();
+      assert(db_->GetTotalCompressedSize() == currentSize);
+
       if (currentSize + instanceSize > maximumStorageSize_)
       {
         return true;
@@ -871,11 +916,9 @@ namespace Orthanc
   void ServerIndex::StandaloneRecycling()
   {
     // WARNING: No mutex here, do not include this as a public method
-    std::auto_ptr<SQLite::Transaction> t(db_->StartTransaction());
-    t->Begin();
+    Transaction t(*this);
     Recycle(0, "");
-    t->Commit();
-    listener_->CommitFilesToRemove();
+    t.Commit(0);
   }
 
 
