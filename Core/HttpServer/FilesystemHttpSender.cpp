@@ -40,7 +40,12 @@ namespace Orthanc
   void FilesystemHttpSender::Setup()
   {
     //SetDownloadFilename(path_.filename().string());
+
+#if BOOST_HAS_FILESYSTEM_V3 == 1
     SetContentType(Toolbox::AutodetectMimeType(path_.filename().string()));
+#else
+    SetContentType(Toolbox::AutodetectMimeType(path_.filename()));
+#endif
   }
 
   uint64_t FilesystemHttpSender::GetFileSize()
