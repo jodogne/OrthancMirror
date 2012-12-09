@@ -143,6 +143,7 @@ add_library(CoreLibrary
 
 if(NOT ONLY_CORE_LIBRARY)
   add_library(ServerLibrary
+    ${DCMTK_SOURCES}
     OrthancServer/DicomProtocol/DicomFindAnswers.cpp
     OrthancServer/DicomProtocol/DicomServer.cpp
     OrthancServer/DicomProtocol/DicomUserConnection.cpp
@@ -165,7 +166,6 @@ if(NOT ONLY_CORE_LIBRARY)
   add_dependencies(ServerLibrary CoreLibrary)
 
   add_executable(Orthanc
-    ${DCMTK_SOURCES}
     OrthancServer/main.cpp
     )
 
