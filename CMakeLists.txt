@@ -156,6 +156,7 @@ add_library(ServerLibrary
 add_dependencies(ServerLibrary CoreLibrary)
 
 add_executable(Orthanc
+  ${DCMTK_SOURCES}
   OrthancServer/main.cpp
   )
 
