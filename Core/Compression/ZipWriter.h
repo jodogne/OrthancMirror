@@ -35,7 +35,10 @@
 #include <stdint.h>
 #include <string>
 #include <boost/shared_ptr.hpp>
+
+#if ORTHANC_BUILD_UNIT_TESTS == 1
 #include <gtest/gtest_prod.h>
+#endif
 
 namespace Orthanc
 {

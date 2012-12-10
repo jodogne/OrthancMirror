@@ -178,6 +178,7 @@ if(NOT ONLY_CORE_LIBRARY)
 
   # Build the unit tests if required
   if (BUILD_UNIT_TESTS)
+    add_definitions(-DORTHANC_BUILD_UNIT_TESTS=1)
     include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
     add_executable(UnitTests
       ${GTEST_SOURCES}
