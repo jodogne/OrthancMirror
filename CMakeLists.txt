@@ -181,7 +181,6 @@ if(NOT ONLY_CORE_LIBRARY)
     include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
     add_executable(UnitTests
       ${GTEST_SOURCES}
-      UnitTests/MessageWithDestination.cpp
       UnitTests/RestApi.cpp
       UnitTests/SQLite.cpp
       UnitTests/SQLiteChromium.cpp
