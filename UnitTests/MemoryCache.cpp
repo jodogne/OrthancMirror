@@ -5,7 +5,7 @@
 #include <boost/thread.hpp>
 #include <boost/lexical_cast.hpp>
 #include "../Core/IDynamicObject.h"
-#include "../Core/MultiThreading/CacheIndex.h"
+#include "../Core/Cache/MemoryCache.h"
 
 
 TEST(CacheIndex, Basic)
@@ -66,118 +66,6 @@ TEST(CacheIndex, Payload)
 }
 
 
-namespace Orthanc
-{
-
-  class ICacheProvider
-  {
-  public:
-    virtual ~ICacheProvider()
-    {
-    }
-
-    virtual IDynamicObject* Provide(const std::string& id) = 0;
-  };
-
-  class MemoryCache
-  {
-  private:
-    struct Page
-    {
-      std::string id_;
-      std::auto_ptr<IDynamicObject> content_;
-    };
-
-    ICacheProvider& provider_;
-    size_t cacheSize_;
-    CacheIndex<std::string, Page*>  index_;
-
-    Page& Load(const std::string& id)
-    {
-      // Reuse the cache entry if it already exists
-      Page* p = NULL;
-      if (index_.Contains(id, p))
-      {
-        assert(p != NULL);
-        index_.TagAsMostRecent(id);
-        return *p;
-      }
-
-      // The id is not in the cache yet. Make some room if the cache
-      // is full.
-      if (index_.GetSize() == cacheSize_)
-      {
-        index_.RemoveOldest(p);
-        delete p;
-      }
-
-      // Create a new cache page
-      std::auto_ptr<Page> result(new Page);
-      result->id_ = id;
-      result->content_.reset(provider_.Provide(id));
-
-      // Add the newly create page to the cache
-      p = result.release();
-      index_.Add(id, p);
-      return *p;
-    }
-
-  public:
-    class Accessor
-    {
-      friend class MemoryCache;
-
-    private:
-      Page& element_;
-
-      Accessor(Page& element) : 
-        element_(element)
-      {
-      }
-
-    public:
-      const std::string GetId() const
-      {
-        return element_.id_;
-      }
-
-      IDynamicObject& GetContent()
-      {
-        return *element_.content_;
-      }
-
-      const IDynamicObject& GetContent() const
-      {
-        return *element_.content_;
-      }
-    };
-
-    MemoryCache(ICacheProvider& provider,
-                size_t cacheSize) : 
-      provider_(provider),
-      cacheSize_(cacheSize)
-    {
-    }
-
-    ~MemoryCache()
-    {
-      while (!index_.IsEmpty())
-      {
-        Page* element = NULL;
-        index_.RemoveOldest(element);
-        assert(element != NULL);
-        delete element;
-      }
-    }
-
-    Accessor* Access(const std::string& id)
-    {
-      Page& element = Load(id);
-      return new Accessor(element);
-    }
-  };
-}
-
 
 
 namespace
@@ -205,7 +93,7 @@ namespace
     }
   };
 
-  class IntegerProvider : public Orthanc::ICacheProvider
+  class IntegerProvider : public Orthanc::ICachePageProvider
   {
   public:
     std::string log_;

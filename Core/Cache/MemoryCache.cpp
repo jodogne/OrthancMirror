@@ -30,69 +30,61 @@
  **/
 
 
-#pragma once
-
-#include <stdint.h>
-#include <vector>
-#include <string>
+#include "MemoryCache.h"
 
 namespace Orthanc
 {
-  typedef std::vector<std::string> UriComponents;
-
-  class NullType
+  MemoryCache::Page& MemoryCache::Load(const std::string& id)
   {
-  };
+    // Reuse the cache entry if it already exists
+    Page* p = NULL;
+    if (index_.Contains(id, p))
+    {
+      assert(p != NULL);
+      index_.TagAsMostRecent(id);
+      return *p;
+    }
 
-  namespace Toolbox
+    // The id is not in the cache yet. Make some room if the cache
+    // is full.
+    if (index_.GetSize() == cacheSize_)
+    {
+      index_.RemoveOldest(p);
+      delete p;
+    }
+
+    // Create a new cache page
+    std::auto_ptr<Page> result(new Page);
+    result->id_ = id;
+    result->content_.reset(provider_.Provide(id));
+
+    // Add the newly create page to the cache
+    p = result.release();
+    index_.Add(id, p);
+    return *p;
+  }
+
+  MemoryCache::MemoryCache(ICachePageProvider& provider,
+                           size_t cacheSize) : 
+    provider_(provider),
+    cacheSize_(cacheSize)
   {
-    void ServerBarrier();
+  }
 
-    void ToUpperCase(std::string& s);
+  MemoryCache::~MemoryCache()
+  {
+    while (!index_.IsEmpty())
+    {
+      Page* element = NULL;
+      index_.RemoveOldest(element);
+      assert(element != NULL);
+      delete element;
+    }
+  }
 
-    void ToLowerCase(std::string& s);
-
-    void ReadFile(std::string& content,
-                  const std::string& path);
-
-    void Sleep(uint32_t seconds);
-
-    void USleep(uint64_t microSeconds);
-
-    void RemoveFile(const std::string& path);
-
-    void SplitUriComponents(UriComponents& components,
-                            const std::string& uri);
-  
-    bool IsChildUri(const UriComponents& baseUri,
-                    const UriComponents& testedUri);
-
-    std::string AutodetectMimeType(const std::string& path);
-
-    std::string FlattenUri(const UriComponents& components,
-                           size_t fromLevel = 0);
-
-    uint64_t GetFileSize(const std::string& path);
-
-    void ComputeMD5(std::string& result,
-                    const std::string& data);
-
-    void ComputeSHA1(std::string& result,
-                     const std::string& data);
-
-    std::string EncodeBase64(const std::string& data);
-
-    std::string GetPathToExecutable();
-
-    std::string GetDirectoryOfExecutable();
-
-    std::string ConvertToUtf8(const std::string& source,
-                              const char* fromEncoding);
-
-    std::string ConvertToAscii(const std::string& source);
-
-    std::string StripSpaces(const std::string& source);
-
-    std::string GetNowIsoString();
+  MemoryCache::Accessor* MemoryCache::Access(const std::string& id)
+  {
+    Page& element = Load(id);
+    return new Accessor(element);
   }
 }
