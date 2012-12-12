@@ -82,9 +82,8 @@ namespace Orthanc
     }
   }
 
-  MemoryCache::Accessor* MemoryCache::Access(const std::string& id)
+  IDynamicObject& MemoryCache::Access(const std::string& id)
   {
-    Page& element = Load(id);
-    return new Accessor(element);
+    return *Load(id).content_;
   }
 }

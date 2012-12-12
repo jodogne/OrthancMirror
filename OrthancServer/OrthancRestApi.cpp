@@ -847,6 +847,23 @@ namespace Orthanc
 
 
 
+  // Raw access to the DICOM tags of an instance ------------------------------
+
+  static void GetRawContent(RestApi::GetCall& call)
+  {
+    // TODO IMPROVE MULTITHREADING
+    static boost::mutex mutex_;
+    boost::mutex::scoped_lock lock(mutex_);
+
+    RETRIEVE_CONTEXT(call);
+    std::string id = call.GetUriComponent("id", "");
+    ParsedDicomFile& dicom = context.GetDicomFile(id);
+    dicom.SendPathValue(call.GetOutput(), call.GetTrailingUri());
+  }
+
+
+
+
   // Registration of the various REST handlers --------------------------------
 
   OrthancRestApi::OrthancRestApi(ServerContext& context) : 
@@ -885,6 +902,7 @@ namespace Orthanc
     Register("/instances/{id}/tags", GetInstanceTags<false>);
     Register("/instances/{id}/simplified-tags", GetInstanceTags<true>);
     Register("/instances/{id}/frames", ListFrames);
+    Register("/instances/{id}/content/*", GetRawContent);
 
     Register("/instances/{id}/frames/{frame}/preview", GetImage<ImageExtractionMode_Preview>);
     Register("/instances/{id}/frames/{frame}/image-uint8", GetImage<ImageExtractionMode_UInt8>);

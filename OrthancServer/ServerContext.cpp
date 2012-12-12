@@ -37,6 +37,8 @@
 #include <glog/logging.h>
 
 
+static const size_t DICOM_CACHE_SIZE = 2;
+
 /**
  * IMPORTANT: We make the assumption that the same instance of
  * FileStorage can be accessed from multiple threads. This seems OK
@@ -51,7 +53,9 @@ namespace Orthanc
   ServerContext::ServerContext(const boost::filesystem::path& path) :
     storage_(path.string()),
     index_(*this, path.string()),
-    accessor_(storage_)
+    accessor_(storage_),
+    provider_(*this),
+    dicomCache_(provider_, DICOM_CACHE_SIZE)
   {
     // TODO RECYCLING SETUP HERE
     //index_.SetMaximumPatientCount(4);
@@ -164,5 +168,19 @@ namespace Orthanc
 
     accessor_.SetCompressionForNextOperations(attachment.GetCompressionType());
     accessor_.Read(result, attachment.GetUuid());
+  }
+
+
+  IDynamicObject* ServerContext::DicomCacheProvider::Provide(const std::string& instancePublicId)
+  {
+    std::string content;
+    context_.ReadFile(content, instancePublicId, FileContentType_Dicom);
+    return new ParsedDicomFile(content);
+  }
+
+
+  ParsedDicomFile& ServerContext::GetDicomFile(const std::string& instancePublicId)
+  {
+    return dynamic_cast<ParsedDicomFile&>(dicomCache_.Access(instancePublicId));
   }
 }

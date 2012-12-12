@@ -113,15 +113,14 @@ TEST(MemoryCache, Basic)
 
   {
     Orthanc::MemoryCache cache(provider, 3);
-    std::auto_ptr<Orthanc::MemoryCache::Accessor> a;
-    a.reset(cache.Access("42"));  // 42 -> exit
-    a.reset(cache.Access("43"));  // 43, 42 -> exit
-    a.reset(cache.Access("45"));  // 45, 43, 42 -> exit
-    a.reset(cache.Access("42"));  // 42, 45, 43 -> exit
-    a.reset(cache.Access("43"));  // 43, 42, 45 -> exit
-    a.reset(cache.Access("47"));  // 45 is removed; 47, 43, 42 -> exit 
-    a.reset(cache.Access("44"));  // 42 is removed; 44, 47, 43 -> exit
-    a.reset(cache.Access("42"));  // 43 is removed; 42, 44, 47 -> exit
+    cache.Access("42");  // 42 -> exit
+    cache.Access("43");  // 43, 42 -> exit
+    cache.Access("45");  // 45, 43, 42 -> exit
+    cache.Access("42");  // 42, 45, 43 -> exit
+    cache.Access("43");  // 43, 42, 45 -> exit
+    cache.Access("47");  // 45 is removed; 47, 43, 42 -> exit 
+    cache.Access("44");  // 42 is removed; 44, 47, 43 -> exit
+    cache.Access("42");  // 43 is removed; 42, 44, 47 -> exit
     // Closing the cache: 47, 44, 42 are successively removed
   }
 
