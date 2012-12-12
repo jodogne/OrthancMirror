@@ -70,6 +70,11 @@ namespace Orthanc
       {
         return *fullUri_;
       }
+    
+      const UriComponents& GetTrailingUri() const
+      {
+        return *trailing_;
+      }
 
       std::string GetUriComponent(const std::string& name,
                                   const std::string& defaultValue) const

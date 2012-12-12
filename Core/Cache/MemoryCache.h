@@ -57,40 +57,11 @@ namespace Orthanc
     Page& Load(const std::string& id);
 
   public:
-    class Accessor
-    {
-      friend class MemoryCache;
-
-    private:
-      Page& element_;
-
-      Accessor(Page& element) : 
-        element_(element)
-      {
-      }
-
-    public:
-      const std::string GetId() const
-      {
-        return element_.id_;
-      }
-
-      IDynamicObject& GetContent()
-      {
-        return *element_.content_;
-      }
-
-      const IDynamicObject& GetContent() const
-      {
-        return *element_.content_;
-      }
-    };
-
     MemoryCache(ICachePageProvider& provider,
                 size_t cacheSize);
 
     ~MemoryCache();
 
-    Accessor* Access(const std::string& id);
+    IDynamicObject& Access(const std::string& id);
   };
 }

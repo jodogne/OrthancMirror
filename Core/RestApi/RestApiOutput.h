@@ -52,6 +52,16 @@ namespace Orthanc
 
     ~RestApiOutput();
 
+    HttpOutput& GetLowLevelOutput()
+    {
+      return output_;
+    }
+
+    void MarkLowLevelOutputDone()
+    {
+      alreadySent_ = true;
+    }
+
     void AnswerFile(HttpFileSender& sender);
 
     void AnswerJson(const Json::Value& value);

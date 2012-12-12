@@ -33,8 +33,13 @@
 #pragma once
 
 #include "../Core/DicomFormat/DicomMap.h"
+#include "../Core/RestApi/RestApiOutput.h"
+#include "../Core/Toolbox.h"
+
 #include <dcmtk/dcmdata/dcdatset.h>
+#include <dcmtk/dcmdata/dcfilefo.h>
 #include <json/json.h>
+#include <memory>
 
 namespace Orthanc
 {
@@ -50,6 +55,23 @@ namespace Orthanc
     DicomRootLevel_Study,
     DicomRootLevel_Series,
     DicomRootLevel_Instance
+  };
+
+  class ParsedDicomFile : public IDynamicObject
+  {
+  private:
+    std::auto_ptr<DcmFileFormat> file_;
+
+  public:
+    ParsedDicomFile(const std::string& content);
+
+    DcmFileFormat& GetDicom()
+    {
+      return *file_;
+    }
+
+    void SendPathValue(RestApiOutput& output,
+                       const UriComponents& uri);
   };
 
   class FromDcmtkBridge
