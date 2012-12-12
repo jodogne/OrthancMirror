@@ -125,6 +125,7 @@ add_library(CoreLibrary
   Core/RestApi/RestApiOutput.cpp
   Core/RestApi/RestApi.cpp
   Core/MultiThreading/BagOfRunnablesBySteps.cpp
+  Core/MultiThreading/CacheIndex.cpp
   Core/PngWriter.cpp
   Core/SQLite/Connection.cpp
   Core/SQLite/FunctionContext.cpp
@@ -189,6 +190,7 @@ if(NOT ONLY_CORE_LIBRARY)
       UnitTests/Versions.cpp
       UnitTests/Zip.cpp
       UnitTests/FileStorage.cpp
+      UnitTests/MemoryCache.cpp
       UnitTests/main.cpp
       )
     target_link_libraries(UnitTests ServerLibrary CoreLibrary)
