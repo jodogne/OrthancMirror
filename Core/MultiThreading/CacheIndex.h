@@ -35,6 +35,9 @@
 #include <list>
 #include <map>
 #include <boost/noncopyable.hpp>
+#include <cassert>
+
+#include "../OrthancException.h"
 
 namespace Orthanc
 {
@@ -114,6 +117,30 @@ namespace Orthanc
       return index_.find(id) != index_.end();
     }
 
+    bool Contains(T id, Payload& payload) const
+    {
+      typename Index::const_iterator it = index_.find(id);
+      if (it == index_.end())
+      {
+        return false;
+      }
+      else
+      {
+        payload = it->second->second;
+        return true;
+      }
+    }
+
+    /**
+     * Return the number of elements in the cache.
+     * \return The number of elements.
+     **/
+    size_t GetSize() const
+    {
+      assert(index_.size() == queue_.size());
+      return queue_.size();
+    }
+
     /**
      * Check whether the cache index is empty.
      * \return \c true iff the cache is empty.
@@ -123,4 +150,104 @@ namespace Orthanc
       return index_.empty();
     }
   };
+
+
+
+
+  /******************************************************************
+   ** Implementation of the template
+   ******************************************************************/
+
+  template <typename T, typename Payload>
+  void CacheIndex<T, Payload>::CheckInvariants() const
+  {
+#ifndef NDEBUG
+    assert(index_.size() == queue_.size());
+
+    for (typename Index::const_iterator 
+           it = index_.begin(); it != index_.end(); it++)
+    {
+      assert(it->second != queue_.end());
+      assert(it->second->first == it->first);
+    }
+#endif
+  }
+
+
+  template <typename T, typename Payload>
+  void CacheIndex<T, Payload>::Add(T id, Payload payload)
+  {
+    if (Contains(id))
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    queue_.push_front(std::make_pair(id, payload));
+    index_[id] = queue_.begin();
+
+    CheckInvariants();
+  }
+
+
+  template <typename T, typename Payload>
+  void CacheIndex<T, Payload>::TagAsMostRecent(T id)
+  {
+    if (!Contains(id))
+    {
+      throw OrthancException(ErrorCode_InexistentItem);
+    }
+
+    typename Index::iterator it = index_.find(id);
+    assert(it != index_.end());
+
+    std::pair<T, Payload> item = *(it->second);
+    
+    queue_.erase(it->second);
+    queue_.push_front(item);
+    index_[id] = queue_.begin();
+
+    CheckInvariants();
+  }
+
+
+  template <typename T, typename Payload>
+  Payload CacheIndex<T, Payload>::Invalidate(T id)
+  {
+    if (!Contains(id))
+    {
+      throw OrthancException(ErrorCode_InexistentItem);
+    }
+
+    typename Index::iterator it = index_.find(id);
+    assert(it != index_.end());
+
+    Payload payload = it->second->second;
+    queue_.erase(it->second);
+    index_.erase(it);
+
+    CheckInvariants();
+    return payload;
+  }
+
+
+  template <typename T, typename Payload>
+  T CacheIndex<T, Payload>::RemoveOldest(Payload& payload)
+  {
+    if (IsEmpty())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    std::pair<T, Payload> item = queue_.back();
+    T oldest = item.first;
+    payload = item.second;
+
+    queue_.pop_back();
+    assert(index_.find(oldest) != index_.end());
+    index_.erase(oldest);
+
+    CheckInvariants();
+
+    return oldest;
+  }
 }
