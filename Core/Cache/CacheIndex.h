@@ -38,13 +38,10 @@
 #include <cassert>
 
 #include "../OrthancException.h"
+#include "../Toolbox.h"
 
 namespace Orthanc
 {
-  class NullType
-  {
-  };
-
   /**
    * This class implements the index of a cache with least recently
    * used (LRU) recycling policy. All the items of the cache index
