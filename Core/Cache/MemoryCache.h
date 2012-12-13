@@ -32,67 +32,36 @@
 
 #pragma once
 
-#include <stdint.h>
-#include <vector>
-#include <string>
+#include <memory>
+#include "CacheIndex.h"
+#include "ICachePageProvider.h"
 
 namespace Orthanc
 {
-  typedef std::vector<std::string> UriComponents;
-
-  class NullType
+  /**
+   * WARNING: This class is NOT thread-safe.
+   **/
+  class MemoryCache
   {
+  private:
+    struct Page
+    {
+      std::string id_;
+      std::auto_ptr<IDynamicObject> content_;
+    };
+
+    ICachePageProvider& provider_;
+    size_t cacheSize_;
+    CacheIndex<std::string, Page*>  index_;
+
+    Page& Load(const std::string& id);
+
+  public:
+    MemoryCache(ICachePageProvider& provider,
+                size_t cacheSize);
+
+    ~MemoryCache();
+
+    IDynamicObject& Access(const std::string& id);
   };
-
-  namespace Toolbox
-  {
-    void ServerBarrier();
-
-    void ToUpperCase(std::string& s);
-
-    void ToLowerCase(std::string& s);
-
-    void ReadFile(std::string& content,
-                  const std::string& path);
-
-    void Sleep(uint32_t seconds);
-
-    void USleep(uint64_t microSeconds);
-
-    void RemoveFile(const std::string& path);
-
-    void SplitUriComponents(UriComponents& components,
-                            const std::string& uri);
-  
-    bool IsChildUri(const UriComponents& baseUri,
-                    const UriComponents& testedUri);
-
-    std::string AutodetectMimeType(const std::string& path);
-
-    std::string FlattenUri(const UriComponents& components,
-                           size_t fromLevel = 0);
-
-    uint64_t GetFileSize(const std::string& path);
-
-    void ComputeMD5(std::string& result,
-                    const std::string& data);
-
-    void ComputeSHA1(std::string& result,
-                     const std::string& data);
-
-    std::string EncodeBase64(const std::string& data);
-
-    std::string GetPathToExecutable();
-
-    std::string GetDirectoryOfExecutable();
-
-    std::string ConvertToUtf8(const std::string& source,
-                              const char* fromEncoding);
-
-    std::string ConvertToAscii(const std::string& source);
-
-    std::string StripSpaces(const std::string& source);
-
-    std::string GetNowIsoString();
-  }
 }

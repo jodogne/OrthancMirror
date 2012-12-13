@@ -32,10 +32,12 @@
 
 #pragma once
 
-#include "ServerIndex.h"
+#include "../Core/Cache/MemoryCache.h"
 #include "../Core/FileStorage/CompressedFileStorageAccessor.h"
 #include "../Core/FileStorage/FileStorage.h"
 #include "../Core/RestApi/RestApiOutput.h"
+#include "ServerIndex.h"
+#include "FromDcmtkBridge.h"
 
 namespace Orthanc
 {
@@ -47,10 +49,26 @@ namespace Orthanc
   class ServerContext
   {
   private:
+    class DicomCacheProvider : public ICachePageProvider
+    {
+    private:
+      ServerContext& context_;
+
+    public:
+      DicomCacheProvider(ServerContext& context) : context_(context)
+      {
+      }
+      
+      virtual IDynamicObject* Provide(const std::string& id);
+    };
+
     FileStorage storage_;
     ServerIndex index_;
     CompressedFileStorageAccessor accessor_;
     bool compressionEnabled_;
+    
+    DicomCacheProvider provider_;
+    MemoryCache dicomCache_;
 
   public:
     ServerContext(const boost::filesystem::path& path);
@@ -86,5 +104,8 @@ namespace Orthanc
     void ReadFile(std::string& result,
                   const std::string& instancePublicId,
                   FileContentType content);
+
+    // TODO IMPLEMENT MULTITHREADING FOR THIS METHOD
+    ParsedDicomFile& GetDicomFile(const std::string& instancePublicId);
   };
 }

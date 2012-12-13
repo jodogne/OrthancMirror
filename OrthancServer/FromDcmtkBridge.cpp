@@ -63,6 +63,193 @@
 
 namespace Orthanc
 {
+  ParsedDicomFile::ParsedDicomFile(const std::string& content)
+  {
+    DcmInputBufferStream is;
+    if (content.size() > 0)
+    {
+      is.setBuffer(&content[0], content.size());
+    }
+    is.setEos();
+
+    file_.reset(new DcmFileFormat);
+    if (!file_->read(is).good())
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+  }
+
+
+  static void SendPathValueForDictionary(RestApiOutput& output,
+                                       DcmItem& dicom)
+  {
+    Json::Value v = Json::arrayValue;
+
+    for (unsigned long i = 0; i < dicom.card(); i++)
+    {
+      DcmElement* element = dicom.getElement(i);
+      if (element)
+      {
+        char buf[16];
+        sprintf(buf, "%04x-%04x", element->getTag().getGTag(), element->getTag().getETag());
+        v.append(buf);
+      }
+    }
+
+    output.AnswerJson(v);
+  }
+
+  static inline uint16_t GetCharValue(char c)
+  {
+    if (c >= '0' && c <= '9')
+      return c - '0';
+    else if (c >= 'a' && c <= 'f')
+      return c - 'a' + 10;
+    else if (c >= 'A' && c <= 'F')
+      return c - 'A' + 10;
+    else
+      return 0;
+  }
+
+  static inline uint16_t GetTagValue(const char* c)
+  {
+    return ((GetCharValue(c[0]) << 12) + 
+            (GetCharValue(c[1]) << 8) + 
+            (GetCharValue(c[2]) << 4) + 
+            GetCharValue(c[3]));
+  }
+
+  static bool ParseTagAndGroup(DcmTagKey& key,
+                               const std::string& tag)
+  {
+    if (tag.size() != 9 ||
+        !isxdigit(tag[0]) ||
+        !isxdigit(tag[1]) ||
+        !isxdigit(tag[2]) ||
+        !isxdigit(tag[3]) ||
+        tag[4] != '-' ||
+        !isxdigit(tag[5]) ||
+        !isxdigit(tag[6]) ||
+        !isxdigit(tag[7]) ||
+        !isxdigit(tag[8]))        
+    {
+      return false;
+    }
+
+    uint16_t group = GetTagValue(tag.c_str());
+    uint16_t element = GetTagValue(tag.c_str() + 5);
+
+    key = DcmTagKey(group, element);
+
+    return true;
+  }
+
+  static void SendPathValueForLeaf(RestApiOutput& output,
+                                   const std::string& tag,
+                                   DcmItem& dicom)
+  {
+    DcmTagKey k;
+    if (!ParseTagAndGroup(k, tag))
+    {
+      return;
+    }
+
+    DcmElement* element = NULL;
+    if (dicom.findAndGetElement(k, element).good() && element != NULL)
+    {
+      if (element->getVR() == EVR_SQ)
+      {
+        // This element is a sequence
+        Json::Value v = Json::arrayValue;
+        DcmSequenceOfItems& sequence = dynamic_cast<DcmSequenceOfItems&>(*element);
+
+        for (unsigned long i = 0; i < sequence.card(); i++)
+        {
+          v.append(boost::lexical_cast<std::string>(i));
+        }
+
+        output.AnswerJson(v);
+      }
+      else
+      {
+        // This element is not a sequence
+        std::string buffer;
+        buffer.resize(65536);
+        Uint32 length = element->getLength();
+        Uint32 offset = 0;
+
+        output.GetLowLevelOutput().SendOkHeader("application/octet-stream", true, length, NULL);
+
+        while (offset < length)
+        {
+          Uint32 nbytes;
+          if (length - offset < buffer.size())
+          {
+            nbytes = length - offset;
+          }
+          else
+          {
+            nbytes = buffer.size();
+          }
+
+          if (element->getPartialValue(&buffer[0], offset, nbytes).good())
+          {
+            output.GetLowLevelOutput().Send(&buffer[0], nbytes);
+            offset += nbytes;
+          }
+          else
+          {
+            return;
+          }
+        }
+
+        output.MarkLowLevelOutputDone();
+      }
+    }
+  }
+
+  void ParsedDicomFile::SendPathValue(RestApiOutput& output,
+                                      const UriComponents& uri)
+  {
+    DcmItem* dicom = file_->getDataset();
+
+    // Go down in the tag hierarchy according to the URI
+    for (size_t pos = 0; pos < uri.size() / 2; pos++)
+    {
+      size_t index;
+      try
+      {
+        index = boost::lexical_cast<size_t>(uri[2 * pos + 1]);
+      }
+      catch (boost::bad_lexical_cast&)
+      {
+        return;
+      }
+
+      DcmTagKey k;
+      DcmItem *child = NULL;
+      if (!ParseTagAndGroup(k, uri[2 * pos]) ||
+          !dicom->findAndGetSequenceItem(k, child, index).good() ||
+          child == NULL)
+      {
+        return;
+      }
+
+      dicom = child;
+    }
+
+    // We have reached the end of the URI
+    if (uri.size() % 2 == 0)
+    {
+      SendPathValueForDictionary(output, *dicom);
+    }
+    else
+    {
+      SendPathValueForLeaf(output, uri.back(), *dicom);
+    }
+  }
+
+
   void FromDcmtkBridge::Convert(DicomMap& target, DcmDataset& dataset)
   {
     target.Clear();
