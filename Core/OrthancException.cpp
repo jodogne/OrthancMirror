@@ -96,6 +96,9 @@ namespace Orthanc
       case ErrorCode_FullStorage:
         return "The file storage is full";
 
+      case ErrorCode_InexistentItem:
+        return "Accessing an inexistent item";
+
       case ErrorCode_Custom:
       default:
         return "???";

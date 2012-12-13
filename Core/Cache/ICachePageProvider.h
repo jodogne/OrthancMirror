@@ -32,67 +32,18 @@
 
 #pragma once
 
-#include <stdint.h>
-#include <vector>
 #include <string>
+#include "../IDynamicObject.h"
 
 namespace Orthanc
 {
-  typedef std::vector<std::string> UriComponents;
-
-  class NullType
+  class ICachePageProvider
   {
+  public:
+    virtual ~ICachePageProvider()
+    {
+    }
+
+    virtual IDynamicObject* Provide(const std::string& id) = 0;
   };
-
-  namespace Toolbox
-  {
-    void ServerBarrier();
-
-    void ToUpperCase(std::string& s);
-
-    void ToLowerCase(std::string& s);
-
-    void ReadFile(std::string& content,
-                  const std::string& path);
-
-    void Sleep(uint32_t seconds);
-
-    void USleep(uint64_t microSeconds);
-
-    void RemoveFile(const std::string& path);
-
-    void SplitUriComponents(UriComponents& components,
-                            const std::string& uri);
-  
-    bool IsChildUri(const UriComponents& baseUri,
-                    const UriComponents& testedUri);
-
-    std::string AutodetectMimeType(const std::string& path);
-
-    std::string FlattenUri(const UriComponents& components,
-                           size_t fromLevel = 0);
-
-    uint64_t GetFileSize(const std::string& path);
-
-    void ComputeMD5(std::string& result,
-                    const std::string& data);
-
-    void ComputeSHA1(std::string& result,
-                     const std::string& data);
-
-    std::string EncodeBase64(const std::string& data);
-
-    std::string GetPathToExecutable();
-
-    std::string GetDirectoryOfExecutable();
-
-    std::string ConvertToUtf8(const std::string& source,
-                              const char* fromEncoding);
-
-    std::string ConvertToAscii(const std::string& source);
-
-    std::string StripSpaces(const std::string& source);
-
-    std::string GetNowIsoString();
-  }
 }
