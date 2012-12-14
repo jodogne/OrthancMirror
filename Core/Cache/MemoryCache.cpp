@@ -32,6 +32,8 @@
 
 #include "MemoryCache.h"
 
+#include <glog/logging.h>
+
 namespace Orthanc
 {
   MemoryCache::Page& MemoryCache::Load(const std::string& id)
@@ -40,6 +42,7 @@ namespace Orthanc
     Page* p = NULL;
     if (index_.Contains(id, p))
     {
+      VLOG(1) << "Reusing a cache page";
       assert(p != NULL);
       index_.TagAsMostRecent(id);
       return *p;
@@ -49,6 +52,7 @@ namespace Orthanc
     // is full.
     if (index_.GetSize() == cacheSize_)
     {
+      VLOG(1) << "Dropping the oldest cache page";
       index_.RemoveOldest(p);
       delete p;
     }
@@ -59,6 +63,7 @@ namespace Orthanc
     result->content_.reset(provider_.Provide(id));
 
     // Add the newly create page to the cache
+    VLOG(1) << "Registering new data in a cache page";
     p = result.release();
     index_.Add(id, p);
     return *p;

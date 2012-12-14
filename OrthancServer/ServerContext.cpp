@@ -57,9 +57,6 @@ namespace Orthanc
     provider_(*this),
     dicomCache_(provider_, DICOM_CACHE_SIZE)
   {
-    // TODO RECYCLING SETUP HERE
-    //index_.SetMaximumPatientCount(4);
-    //index_.SetMaximumStorageSize(10);
   }
 
   void ServerContext::SetCompressionEnabled(bool enabled)
