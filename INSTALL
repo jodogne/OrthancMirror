@@ -46,7 +46,7 @@ Native Linux Compilation
 To build binaries with debug information:
 
 # cd ~/OrthancBuild
-# cmake -DCMAKE_BUILD_TYPE=DEBUG ~/Orthanc
+# cmake -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
 # make
 # make doc
 
@@ -54,7 +54,7 @@ To build binaries with debug information:
 To build a release version:
 
 # cd ~/OrthancBuild
-# cmake -DCMAKE_BUILD_TYPE=RELEASE ~/Orthanc
+# cmake -DCMAKE_BUILD_TYPE=Release ~/Orthanc
 # make
 # make doc
 
@@ -64,7 +64,7 @@ against the shared libraries of your system, provided their version is
 recent enough. This greatly speeds up the compilation:
 
 # cd ~/OrthancBuild
-# cmake -DSTATIC_BUILD=OFF -DCMAKE_BUILD_TYPE=DEBUG ~/Orthanc
+# cmake -DSTATIC_BUILD=OFF -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
 # make
 
 
@@ -76,7 +76,7 @@ To cross-compile Windows binaries under Linux using MinGW, please use
 the following command:
 
 # cd ~/OrthancBuild
-# cmake -DCMAKE_TOOLCHAIN_FILE=~/Orthanc/Resources/MinGWToolchain.cmake -DSTANDALONE_BUILD=ON -DCMAKE_BUILD_TYPE=DEBUG ~/Orthanc
+# cmake -DCMAKE_TOOLCHAIN_FILE=~/Orthanc/Resources/MinGWToolchain.cmake -DSTANDALONE_BUILD=ON -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
 # make
 
 
@@ -85,7 +85,7 @@ Native Windows build with MinGW (VERY SLOW)
 -------------------------------------------
 
 # cd [...]\OrthancBuild
-# cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=DEBUG [...]\Orthanc
+# cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Debug [...]\Orthanc
 # mingw32-make
 
 
@@ -115,6 +115,6 @@ manually add the "wrap" and "oflog" libraries at the configuration
 time (because of a packaging error in "libdcmtk"):
 
 # cd ~/OrthancBuild
-# cmake "-DDCMTK_LIBRARIES=wrap;oflog" -DSTATIC_BUILD=OFF -DCMAKE_BUILD_TYPE=DEBUG ~/Orthanc
+# cmake "-DDCMTK_LIBRARIES=wrap;oflog" -DSTATIC_BUILD=OFF -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
 # make
 
