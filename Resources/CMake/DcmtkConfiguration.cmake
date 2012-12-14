@@ -71,14 +71,14 @@ if (${STATIC_BUILD})
   set(DCMTK_BUNDLES_LOG4CPLUS 1)
 
 else()
-  #include(FindDCMTK)
-  set(DCMTK_DIR /usr/include/dcmtk)
-  set(DCMTK_INCLUDE_DIR ${DCMTK_DIR})
-
-  #message(${DCMTK_LIBRARIES})
+  # The following line allows to manually add libraries at the
+  # command-line, which is necessary for Ubuntu/Debian packages
+  set(tmp "${DCMTK_LIBRARIES}")
+  include(FindDCMTK)
+  list(APPEND DCMTK_LIBRARIES "${tmp}")
 
   include_directories(${DCMTK_INCLUDE_DIR})
-  link_libraries(dcmdata dcmnet wrap ofstd)
+  link_libraries(${DCMTK_LIBRARIES})
 
   add_definitions(
     -DHAVE_CONFIG_H=1
@@ -93,17 +93,17 @@ else()
   endif()
 
   # Autodetection of the version of DCMTK
-  file(STRINGS "${DCMTK_CONFIGURATION_FILE}" DCMTK_VERSION_NUMBER1 REGEX ".*PACKAGE_VERSION .*")    
-  string(REGEX REPLACE ".*PACKAGE_VERSION.*\"([0-9]*)\\.([0-9]*)\\.([0-9]*)\"$" "\\1\\2\\3" DCMTK_VERSION_NUMBER ${DCMTK_VERSION_NUMBER1})
+  file(STRINGS
+    "${DCMTK_CONFIGURATION_FILE}" 
+    DCMTK_VERSION_NUMBER1 REGEX
+    ".*PACKAGE_VERSION .*")    
 
-  IF (EXISTS "${DCMTK_DIR}/oflog")
-    set(DCMTK_BUNDLES_LOG4CPLUS 1)
-    link_libraries(oflog)
-  else()
-    set(DCMTK_BUNDLES_LOG4CPLUS 0)
-  endif()
+  string(REGEX REPLACE
+    ".*PACKAGE_VERSION.*\"([0-9]*)\\.([0-9]*)\\.([0-9]*)\"$"
+    "\\1\\2\\3" 
+    DCMTK_VERSION_NUMBER 
+    ${DCMTK_VERSION_NUMBER1})
 endif()
 
 add_definitions(-DDCMTK_VERSION_NUMBER=${DCMTK_VERSION_NUMBER})
 message("DCMTK version: ${DCMTK_VERSION_NUMBER}")
-message("Does DCMTK includes its own copy of Log4Cplus: ${DCMTK_BUNDLES_LOG4CPLUS}")
