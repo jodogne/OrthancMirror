@@ -60,6 +60,8 @@
 #include <dcmtk/dcmdata/dcuid.h>
 
 #include <boost/math/special_functions/round.hpp>
+#include <glog/logging.h>
+#include <dcmtk/dcmdata/dcostrmb.h>
 
 namespace Orthanc
 {
@@ -73,10 +75,13 @@ namespace Orthanc
     is.setEos();
 
     file_.reset(new DcmFileFormat);
+    file_->transferInit();
     if (!file_->read(is).good())
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
+    file_->loadAllDataIntoMemory();
+    file_->transferEnd();
   }
 
 
@@ -144,6 +149,58 @@ namespace Orthanc
     return true;
   }
 
+
+  static void SendSequence(RestApiOutput& output,
+                           DcmSequenceOfItems& sequence)
+  {
+    // This element is a sequence
+    Json::Value v = Json::arrayValue;
+
+    for (unsigned long i = 0; i < sequence.card(); i++)
+    {
+      v.append(boost::lexical_cast<std::string>(i));
+    }
+
+    output.AnswerJson(v);
+  }
+
+  static void SendField(RestApiOutput& output,
+                        DcmElement& element)
+  {
+    // This element is not a sequence
+    std::string buffer;
+    buffer.resize(65536);
+    Uint32 length = element.getLength();
+    Uint32 offset = 0;
+
+    output.GetLowLevelOutput().SendOkHeader("application/octet-stream", true, length, NULL);
+
+    while (offset < length)
+    {
+      Uint32 nbytes;
+      if (length - offset < buffer.size())
+      {
+        nbytes = length - offset;
+      }
+      else
+      {
+        nbytes = buffer.size();
+      }
+
+      if (element.getPartialValue(&buffer[0], offset, nbytes).good())
+      {
+        output.GetLowLevelOutput().Send(&buffer[0], nbytes);
+        offset += nbytes;
+      }
+      else
+      {
+        return;
+      }
+    }
+
+    output.MarkLowLevelOutputDone();
+  }
+
   static void SendPathValueForLeaf(RestApiOutput& output,
                                    const std::string& tag,
                                    DcmItem& dicom)
@@ -154,57 +211,22 @@ namespace Orthanc
       return;
     }
 
-    DcmElement* element = NULL;
-    if (dicom.findAndGetElement(k, element).good() && element != NULL)
+    DcmSequenceOfItems* sequence = NULL;
+    if (dicom.findAndGetSequence(k, sequence).good() && 
+        sequence != NULL &&
+        sequence->getVR() == EVR_SQ)
     {
-      if (element->getVR() == EVR_SQ)
-      {
-        // This element is a sequence
-        Json::Value v = Json::arrayValue;
-        DcmSequenceOfItems& sequence = dynamic_cast<DcmSequenceOfItems&>(*element);
+      SendSequence(output, *sequence);
+      return;
+    }
 
-        for (unsigned long i = 0; i < sequence.card(); i++)
-        {
-          v.append(boost::lexical_cast<std::string>(i));
-        }
-
-        output.AnswerJson(v);
-      }
-      else
-      {
-        // This element is not a sequence
-        std::string buffer;
-        buffer.resize(65536);
-        Uint32 length = element->getLength();
-        Uint32 offset = 0;
-
-        output.GetLowLevelOutput().SendOkHeader("application/octet-stream", true, length, NULL);
-
-        while (offset < length)
-        {
-          Uint32 nbytes;
-          if (length - offset < buffer.size())
-          {
-            nbytes = length - offset;
-          }
-          else
-          {
-            nbytes = buffer.size();
-          }
-
-          if (element->getPartialValue(&buffer[0], offset, nbytes).good())
-          {
-            output.GetLowLevelOutput().Send(&buffer[0], nbytes);
-            offset += nbytes;
-          }
-          else
-          {
-            return;
-          }
-        }
-
-        output.MarkLowLevelOutputDone();
-      }
+    DcmElement* element = NULL;
+    if (dicom.findAndGetElement(k, element).good() && 
+        element != NULL &&
+        element->getVR() != EVR_UNKNOWN &&
+        element->getVR() != EVR_SQ)
+    {
+      SendField(output, *element);
     }
   }
 
@@ -728,15 +750,11 @@ namespace Orthanc
   {
     // Some patches for important tags because of different DICOM
     // dictionaries between DCMTK versions
-    if (t == DICOM_TAG_PATIENT_NAME)
-      return "PatientName";
-
-    if (t == DicomTag(0x0010, 0x0030))
-      return "PatientBirthDate";
-
-    if (t == DicomTag(0x0010, 0x0040))
-      return "PatientSex";
-
+    std::string n = t.GetMainTagsName();
+    if (n.size() != 0)
+    {
+      return n;
+    }
     // End of patches
 
     DcmTagKey tag(t.GetGroup(), t.GetElement());
@@ -823,5 +841,54 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
+
+  bool FromDcmtkBridge::SaveToMemoryBuffer(std::string& buffer,
+                                           DcmDataset* dataSet)
+  {
+    // Determine the transfer syntax which shall be used to write the
+    // information to the file. We always switch to the Little Endian
+    // syntax, with explicit length.
+
+    // http://support.dcmtk.org/docs/dcxfer_8h-source.html
+    E_TransferSyntax xfer = EXS_LittleEndianExplicit;
+    E_EncodingType encodingType = /*opt_sequenceType*/ EET_ExplicitLength;
+
+    uint32_t s = dataSet->getLength(xfer, encodingType);
+
+    buffer.resize(s);
+    DcmOutputBufferStream ob(&buffer[0], s);
+
+    dataSet->transferInit();
+
+#if DCMTK_VERSION_NUMBER >= 360
+    OFCondition c = dataSet->write(ob, xfer, encodingType, NULL,
+                                   /*opt_groupLength*/ EGL_recalcGL,
+                                   /*opt_paddingType*/ EPD_withoutPadding);
+#else
+    OFCondition c = dataSet->write(ob, xfer, encodingType, NULL);
+#endif
+
+    dataSet->transferEnd();
+    if (c.good())
+    {
+      return true;
+    }
+    else
+    {
+      buffer.clear();
+      return false;
+    }
+
+#if 0
+    OFCondition cond = cbdata->dcmff->saveFile(fileName.c_str(), xfer, 
+                                               encodingType, 
+                                               /*opt_groupLength*/ EGL_recalcGL,
+                                               /*opt_paddingType*/ EPD_withoutPadding,
+                                               OFstatic_cast(Uint32, /*opt_filepad*/ 0), 
+                                               OFstatic_cast(Uint32, /*opt_itempad*/ 0),
+                                               (opt_useMetaheader) ? EWM_fileformat : EWM_dataset);
+#endif
+  }
+
 
 }

@@ -58,55 +58,6 @@ namespace Orthanc
     };
 
 
-    static int SaveToMemoryBuffer(DcmDataset* dataSet,
-                                  std::vector<uint8_t>& buffer)
-    {
-      // Determine the transfer syntax which shall be used to write the
-      // information to the file. We always switch to the Little Endian
-      // syntax, with explicit length.
-
-      // http://support.dcmtk.org/docs/dcxfer_8h-source.html
-      E_TransferSyntax xfer = EXS_LittleEndianExplicit;
-      E_EncodingType encodingType = /*opt_sequenceType*/ EET_ExplicitLength;
-
-      uint32_t s = dataSet->getLength(xfer, encodingType);
-
-      buffer.resize(s);
-      DcmOutputBufferStream ob(&buffer[0], s);
-
-      dataSet->transferInit();
-
-#if DCMTK_VERSION_NUMBER >= 360
-      OFCondition c = dataSet->write(ob, xfer, encodingType, NULL,
-                                     /*opt_groupLength*/ EGL_recalcGL,
-                                     /*opt_paddingType*/ EPD_withoutPadding);
-#else
-      OFCondition c = dataSet->write(ob, xfer, encodingType, NULL);
-#endif
-
-      dataSet->transferEnd();
-      if (c.good())
-      {
-        return 0;
-      }
-      else
-      {
-        buffer.clear();
-        return -1;
-      }
-
-#if 0
-      OFCondition cond = cbdata->dcmff->saveFile(fileName.c_str(), xfer, 
-                                                 encodingType, 
-                                                 /*opt_groupLength*/ EGL_recalcGL,
-                                                 /*opt_paddingType*/ EPD_withoutPadding,
-                                                 OFstatic_cast(Uint32, /*opt_filepad*/ 0), 
-                                                 OFstatic_cast(Uint32, /*opt_itempad*/ 0),
-                                                 (opt_useMetaheader) ? EWM_fileformat : EWM_dataset);
-#endif
-    }
-
-
     static void
     storeScpCallback(
       void *callbackData,
@@ -159,14 +110,14 @@ namespace Orthanc
         {
           DicomMap summary;
           Json::Value dicomJson;
-          std::vector<uint8_t> buffer;
+          std::string buffer;
 
           try
           {
             FromDcmtkBridge::Convert(summary, **imageDataSet);
             FromDcmtkBridge::ToJson(dicomJson, **imageDataSet);       
 
-            if (SaveToMemoryBuffer(*imageDataSet, buffer) < 0)
+            if (FromDcmtkBridge::SaveToMemoryBuffer(buffer, *imageDataSet) < 0)
             {
               LOG(ERROR) << "cannot write DICOM file to memory";
               rsp->DimseStatus = STATUS_STORE_Refused_OutOfResources;

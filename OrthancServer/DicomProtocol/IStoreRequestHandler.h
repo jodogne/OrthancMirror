@@ -47,7 +47,7 @@ namespace Orthanc
     {
     }
 
-    virtual void Handle(const std::vector<uint8_t>& dicomFile,
+    virtual void Handle(const std::string& dicomFile,
                         const DicomMap& dicomSummary,
                         const Json::Value& dicomJson,
                         const std::string& distantAet) = 0;

@@ -36,6 +36,8 @@
 
 #include <glog/logging.h>
 
+#define ENABLE_DICOM_CACHE  1
+
 
 static const size_t DICOM_CACHE_SIZE = 2;
 
@@ -178,6 +180,12 @@ namespace Orthanc
 
   ParsedDicomFile& ServerContext::GetDicomFile(const std::string& instancePublicId)
   {
+#if ENABLE_DICOM_CACHE == 0
+    static std::auto_ptr<IDynamicObject> p;
+    p.reset(provider_.Provide(instancePublicId));
+    return dynamic_cast<ParsedDicomFile&>(*p);
+#else
     return dynamic_cast<ParsedDicomFile&>(dicomCache_.Access(instancePublicId));
+#endif
   }
 }

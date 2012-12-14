@@ -758,22 +758,29 @@ namespace Orthanc
     RETRIEVE_CONTEXT(call);
 
     const std::string& postData = call.GetPostBody();
+    if (postData.size() == 0)
+    {
+      return;
+    }
 
     LOG(INFO) << "Receiving a DICOM file of " << postData.size() << " bytes through HTTP";
 
-    // Prepare an input stream for the memory buffer
-    DcmInputBufferStream is;
-    if (postData.size() > 0)
-    {
-      is.setBuffer(&postData[0], postData.size());
-    }
-    is.setEos();
-
     DcmFileFormat dicomFile;
-    if (!dicomFile.read(is).good())
+
     {
-      call.GetOutput().SignalError(Orthanc_HttpStatus_415_UnsupportedMediaType);
-      return;
+      // Prepare an input stream for the memory buffer
+      DcmInputBufferStream is;
+      is.setBuffer(&postData[0], postData.size());
+      is.setEos();
+
+      dicomFile.transferInit();
+      if (!dicomFile.read(is).good())
+      {
+        call.GetOutput().SignalError(Orthanc_HttpStatus_415_UnsupportedMediaType);
+        return;
+      }
+      dicomFile.loadAllDataIntoMemory();
+      dicomFile.transferEnd();
     }
 
     DicomMap dicomSummary;
@@ -788,9 +795,9 @@ namespace Orthanc
     if (postData.size() > 0)
     {
       status = context.Store
-        (reinterpret_cast<const char*>(&postData[0]),
-         postData.size(), dicomSummary, dicomJson, "");
-    }
+        (reinterpret_cast<const char*>(&postData[0]), postData.size(), 
+         dicomSummary, dicomJson, "");
+    }   
 
     Json::Value result = Json::objectValue;
 

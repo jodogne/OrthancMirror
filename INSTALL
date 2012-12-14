@@ -76,7 +76,7 @@ To cross-compile Windows binaries under Linux using MinGW, please use
 the following command:
 
 # cd ~/OrthancBuild
-# cmake -DCMAKE_TOOLCHAIN_FILE=~/Orthanc/Resources/MinGWToolchain.cmake -DCMAKE_BUILD_TYPE=DEBUG ~/Orthanc
+# cmake -DCMAKE_TOOLCHAIN_FILE=~/Orthanc/Resources/MinGWToolchain.cmake -DSTANDALONE_BUILD=ON -DCMAKE_BUILD_TYPE=DEBUG ~/Orthanc
 # make
 
 
@@ -94,7 +94,7 @@ Native Windows build with Microsoft Visual Studio 2005
 ------------------------------------------------------
 
 # cd [...]\OrthancBuild
-# cmake -G "Visual Studio 8 2005" [...]\Orthanc
+# cmake -DSTANDALONE_BUILD=ON -G "Visual Studio 8 2005" [...]\Orthanc
 
 Then open the "[...]/OrthancBuild/Orthanc.sln" with Visual Studio.
 

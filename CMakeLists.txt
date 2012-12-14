@@ -43,26 +43,6 @@ if (${CMAKE_CROSSCOMPILING})
   SET(STANDALONE_BUILD ON)
 endif()
 
-if (${STANDALONE_BUILD})
-  # We embed all the resources in the binaries for standalone builds
-  add_definitions(-DORTHANC_STANDALONE=1)
-  EmbedResources(
-    PREPARE_DATABASE OrthancServer/PrepareDatabase.sql
-    ORTHANC_EXPLORER OrthancExplorer
-    CONFIGURATION_SAMPLE Resources/Configuration.json
-    )
-else()
-  add_definitions(
-    -DORTHANC_STANDALONE=0
-    -DORTHANC_PATH=\"${CMAKE_SOURCE_DIR}\"
-    )
-  EmbedResources(
-    PREPARE_DATABASE OrthancServer/PrepareDatabase.sql
-    CONFIGURATION_SAMPLE Resources/Configuration.json
-    )
-endif()
-
-
 # Prepare the third-party dependencies
 SET(THIRD_PARTY_SOURCES
   ${CMAKE_SOURCE_DIR}/Resources/md5/md5.c
@@ -91,6 +71,32 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/SQLiteConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/JsonCppConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibCurlConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibPngConfiguration.cmake)
+
+
+# Prepare the embedded files
+set(EMBEDDED_FILES
+  PREPARE_DATABASE ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/PrepareDatabase.sql
+  CONFIGURATION_SAMPLE ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Configuration.json
+  )
+
+if (${STANDALONE_BUILD})
+  # We embed all the resources in the binaries for standalone builds
+  add_definitions(-DORTHANC_STANDALONE=1)
+  EmbedResources(
+    ${EMBEDDED_FILES}
+    ORTHANC_EXPLORER ${CMAKE_CURRENT_SOURCE_DIR}/OrthancExplorer
+    ${DCMTK_DICTIONARIES}
+    )
+else()
+  add_definitions(
+    -DORTHANC_STANDALONE=0
+    -DORTHANC_PATH=\"${CMAKE_SOURCE_DIR}\"
+    )
+  EmbedResources(
+    ${EMBEDDED_FILES}
+    )
+endif()
+
 
 
 # The main instructions to build the Orthanc binaries

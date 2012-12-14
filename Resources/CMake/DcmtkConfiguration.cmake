@@ -70,6 +70,14 @@ if (${STATIC_BUILD})
 
   set(DCMTK_BUNDLES_LOG4CPLUS 1)
 
+  if (${STANDALONE_BUILD})
+    set(DCMTK_DICTIONARIES
+      DICTIONARY_DICOM ${DCMTK_SOURCES_DIR}/dcmdata/data/dicom.dic
+      DICTIONARY_PRIVATE ${DCMTK_SOURCES_DIR}/dcmdata/data/private.dic
+      DICTIONARY_DICONDE ${DCMTK_SOURCES_DIR}/dcmdata/data/diconde.dic
+      )
+  endif()
+
 else()
   # The following line allows to manually add libraries at the
   # command-line, which is necessary for Ubuntu/Debian packages
@@ -103,6 +111,7 @@ else()
     "\\1\\2\\3" 
     DCMTK_VERSION_NUMBER 
     ${DCMTK_VERSION_NUMBER1})
+
 endif()
 
 add_definitions(-DDCMTK_VERSION_NUMBER=${DCMTK_VERSION_NUMBER})
