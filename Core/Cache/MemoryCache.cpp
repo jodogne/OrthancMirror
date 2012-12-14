@@ -32,6 +32,8 @@
 
 #include "MemoryCache.h"
 
+#include <stdlib.h>  // This fixes a problem in glog for recent
+                     // releases of MinGW
 #include <glog/logging.h>
 
 namespace Orthanc

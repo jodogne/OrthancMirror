@@ -58,15 +58,14 @@ public:
   {
   }
 
-  virtual void Handle(const std::vector<uint8_t>& dicomFile,
+  virtual void Handle(const std::string& dicomFile,
                       const DicomMap& dicomSummary,
                       const Json::Value& dicomJson,
                       const std::string& remoteAet)
   {
     if (dicomFile.size() > 0)
     {
-      context_.Store(reinterpret_cast<const char*>(&dicomFile[0]), dicomFile.size(),
-                     dicomSummary, dicomJson, remoteAet);
+      context_.Store(&dicomFile[0], dicomFile.size(), dicomSummary, dicomJson, remoteAet);
     }
   }
 };
@@ -187,7 +186,7 @@ int main(int argc, char* argv[])
 
   google::InitGoogleLogging("Orthanc");
 
-
+  int status = 0;
   try
   {
     bool isInitialized = false;
@@ -289,10 +288,15 @@ int main(int argc, char* argv[])
   catch (OrthancException& e)
   {
     LOG(ERROR) << "EXCEPTION [" << e.What() << "]";
-return -1;
+    status = -1;
+  }
+  catch (...)
+  {
+    LOG(ERROR) << "NATIVE EXCEPTION";
+    status = -1;
   }
 
   OrthancFinalize();
 
-  return 0;
+  return status;
 }

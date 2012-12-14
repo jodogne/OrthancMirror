@@ -136,5 +136,8 @@ namespace Orthanc
                        const DicomMap& values);
 
     static std::string GenerateUniqueIdentifier(DicomRootLevel level);
+
+    static bool SaveToMemoryBuffer(std::string& buffer,
+                                   DcmDataset* dataSet);
   };
 }

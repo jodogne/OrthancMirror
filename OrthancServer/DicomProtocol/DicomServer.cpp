@@ -34,7 +34,9 @@
 
 #include "../../Core/OrthancException.h"
 #include "../../Core/Toolbox.h"
+#include "../../Core/Uuid.h"
 #include "../Internals/CommandDispatcher.h"
+#include "EmbeddedResources.h"
 
 #include <boost/thread.hpp>
 #include <dcmtk/dcmdata/dcdict.h>
@@ -51,15 +53,44 @@ namespace Orthanc
   };
 
 
+  static void LoadEmbeddedDictionary(DcmDataDictionary& dictionary,
+                                     EmbeddedResources::FileResourceId resource)
+  {
+    Toolbox::TemporaryFile tmp;
+
+    FILE* fp = fopen(tmp.GetPath().c_str(), "wb");
+    fwrite(EmbeddedResources::GetFileResourceBuffer(resource), 
+           EmbeddedResources::GetFileResourceSize(resource), 1, fp);
+    fclose(fp);
+
+    if (!dictionary.loadDictionary(tmp.GetPath().c_str()))
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+                             
+
+
   void DicomServer::ServerThread(DicomServer* server)
   {
     /* Disable "gethostbyaddr" (which results in memory leaks) and use raw IP addresses */
     dcmDisableGethostbyaddr.set(OFTrue);
 
+#if ORTHANC_STANDALONE == 1
+    LOG(WARNING) << "Loading the embedded dictionaries";
+    dcmDataDict.clear();
+    DcmDataDictionary& d = dcmDataDict.wrlock();
+    LoadEmbeddedDictionary(d, EmbeddedResources::DICTIONARY_DICOM);
+    LoadEmbeddedDictionary(d, EmbeddedResources::DICTIONARY_PRIVATE);
+    LoadEmbeddedDictionary(d, EmbeddedResources::DICTIONARY_DICONDE);
+    dcmDataDict.unlock();
+#endif
+
     /* make sure data dictionary is loaded */
     if (!dcmDataDict.isDictionaryLoaded())
     {
       LOG(ERROR) << "no data dictionary loaded, check environment variable: " << DCM_DICT_ENVIRONMENT_VARIABLE;
+      throw OrthancException(ErrorCode_InternalError);
     }
 
     /* initialize network, i.e. create an instance of T_ASC_Network*. */
