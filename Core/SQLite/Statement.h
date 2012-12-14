@@ -43,7 +43,10 @@
 #include <vector>
 #include <stdint.h>
 #include <boost/noncopyable.hpp>
+
+#if ORTHANC_BUILD_UNIT_TESTS == 1
 #include <gtest/gtest_prod.h>
+#endif
 
 struct sqlite3_stmt;
 
@@ -68,8 +71,11 @@ namespace Orthanc
     class Statement : public boost::noncopyable
     {
       friend class Connection;
+
+#if ORTHANC_BUILD_UNIT_TESTS == 1
       FRIEND_TEST(SQLStatementTest, Run);
       FRIEND_TEST(SQLStatementTest, Reset);
+#endif
 
     private:
       StatementReference  reference_;

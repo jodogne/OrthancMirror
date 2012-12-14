@@ -42,8 +42,10 @@ namespace Orthanc
 {
   class HierarchicalZipWriter
   {
+#if ORTHANC_BUILD_UNIT_TESTS == 1
     FRIEND_TEST(HierarchicalZipWriter, Index);
     FRIEND_TEST(HierarchicalZipWriter, Filenames);
+#endif
 
   private:
     class Index
