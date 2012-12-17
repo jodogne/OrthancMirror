@@ -80,7 +80,8 @@
       /**
        * Uncommenting the following line would enable Orthanc to
        * connect to an instance of the "storescp" open-source DICOM
-       * store started by the command line "storescp 2000".
+       * store (shipped in the DCMTK distribution) started by the
+       * command line "storescp 2000".
        **/
       // "sample" : [ "STORESCP", "localhost", 2000 ]
     },
