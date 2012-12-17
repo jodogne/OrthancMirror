@@ -70,13 +70,12 @@ if (${STATIC_BUILD})
 
   set(DCMTK_BUNDLES_LOG4CPLUS 1)
 
-  if (${STANDALONE_BUILD})
-    set(DCMTK_DICTIONARIES
-      DICTIONARY_DICOM ${DCMTK_SOURCES_DIR}/dcmdata/data/dicom.dic
-      DICTIONARY_PRIVATE ${DCMTK_SOURCES_DIR}/dcmdata/data/private.dic
-      DICTIONARY_DICONDE ${DCMTK_SOURCES_DIR}/dcmdata/data/diconde.dic
-      )
-  endif()
+  add_definitions(-DDCMTK_USE_EMBEDDED_DICTIONARIES=1)
+  set(DCMTK_DICTIONARIES
+    DICTIONARY_DICOM ${DCMTK_SOURCES_DIR}/dcmdata/data/dicom.dic
+    DICTIONARY_PRIVATE ${DCMTK_SOURCES_DIR}/dcmdata/data/private.dic
+    DICTIONARY_DICONDE ${DCMTK_SOURCES_DIR}/dcmdata/data/diconde.dic
+    )
 
 else()
   # The following line allows to manually add libraries at the
@@ -111,6 +110,8 @@ else()
     "\\1\\2\\3" 
     DCMTK_VERSION_NUMBER 
     ${DCMTK_VERSION_NUMBER1})
+
+  add_definitions(-DDCMTK_USE_EMBEDDED_DICTIONARIES=0)
 
 endif()
 

@@ -76,7 +76,7 @@ namespace Orthanc
     /* Disable "gethostbyaddr" (which results in memory leaks) and use raw IP addresses */
     dcmDisableGethostbyaddr.set(OFTrue);
 
-#if ORTHANC_STANDALONE == 1
+#if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
     LOG(WARNING) << "Loading the embedded dictionaries";
     dcmDataDict.clear();
     DcmDataDictionary& d = dcmDataDict.wrlock();
