@@ -466,7 +466,7 @@ namespace Orthanc
     switch (resourceType)
     {
       case ResourceType_Patient:
-        for (size_t i = 0; i < resource["Studies"].size(); i++)
+        for (Json::Value::ArrayIndex i = 0; i < resource["Studies"].size(); i++)
         {
           std::string studyId = resource["Studies"][i].asString();
           if (!ArchiveInternal(writer, context, studyId, ResourceType_Study, false))
@@ -477,7 +477,7 @@ namespace Orthanc
         break;
 
       case ResourceType_Study:
-        for (size_t i = 0; i < resource["Series"].size(); i++)
+        for (Json::Value::ArrayIndex i = 0; i < resource["Series"].size(); i++)
         {
           std::string seriesId = resource["Series"][i].asString();
           if (!ArchiveInternal(writer, context, seriesId, ResourceType_Series, false))
@@ -488,7 +488,7 @@ namespace Orthanc
         break;
 
       case ResourceType_Series:
-        for (size_t i = 0; i < resource["Instances"].size(); i++)
+        for (Json::Value::ArrayIndex i = 0; i < resource["Instances"].size(); i++)
         {
           if (!ArchiveInstance(writer, context, resource["Instances"][i].asString()))
           {
