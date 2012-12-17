@@ -150,6 +150,7 @@ add_library(CoreLibrary
 
 if(NOT ONLY_CORE_LIBRARY)
   add_library(ServerLibrary
+    STATIC
     ${DCMTK_SOURCES}
     OrthancServer/DicomProtocol/DicomFindAnswers.cpp
     OrthancServer/DicomProtocol/DicomServer.cpp
