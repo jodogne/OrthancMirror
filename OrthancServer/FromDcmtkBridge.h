@@ -62,6 +62,15 @@ namespace Orthanc
   private:
     std::auto_ptr<DcmFileFormat> file_;
 
+    ParsedDicomFile(DcmFileFormat& other) :
+      file_(dynamic_cast<DcmFileFormat*>(other.clone()))
+    {
+    }
+
+    void ReplaceInternal(const DicomTag& tag,
+                         const std::string& value,
+                         bool insertOnAbsent);
+
   public:
     ParsedDicomFile(const std::string& content);
 
@@ -70,8 +79,26 @@ namespace Orthanc
       return *file_;
     }
 
+    ParsedDicomFile* Clone()
+    {
+      return new ParsedDicomFile(*file_);
+    }
+
     void SendPathValue(RestApiOutput& output,
                        const UriComponents& uri);
+
+    void Answer(RestApiOutput& output);
+
+    void Remove(const DicomTag& tag);
+
+    void Replace(const DicomTag& tag,
+                 const std::string& value);
+
+    void Insert(const DicomTag& tag,
+                const std::string& value);
+    
+    void InsertOrReplace(const DicomTag& tag,
+                         const std::string& value);
   };
 
   class FromDcmtkBridge

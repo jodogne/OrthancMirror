@@ -118,3 +118,15 @@ time (because of a packaging error in "libdcmtk"):
 # cmake "-DDCMTK_LIBRARIES=wrap;oflog" -DSTATIC_BUILD=OFF -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
 # make
 
+
+
+Using ccache
+------------
+
+Under Linux, you have the opportunity to use "ccache" to dramatically
+decrease the compilation time when rebuilding Orthanc. This is
+especially useful for developers. Under Debian/Ubuntu, you would use:
+
+# CC="ccache gcc" CXX="ccache g++" cmake "-DDCMTK_LIBRARIES=wrap;oflog" \
+  -DSTATIC_BUILD=OFF -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
+
