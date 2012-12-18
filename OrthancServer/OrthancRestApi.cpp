@@ -870,6 +870,26 @@ namespace Orthanc
 
 
 
+  // Modification of DICOM tags -----------------------------------------------
+
+  template <enum ResourceType resourceType>
+  static void Modify(RestApi::PostCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+    
+    std::string id = call.GetUriComponent("id", "");
+    ParsedDicomFile& dicom = context.GetDicomFile(id);
+    
+    std::auto_ptr<ParsedDicomFile> modified(dicom.Clone());
+
+    modified->InsertOrReplace(DicomTag(0x0010,0x0010), "0.42");
+    modified->Remove(DicomTag(0x0010,0x0020));
+    /*modified->Insert(DicomTag(0x0018,0x9082), "0.42");
+      modified->Replace(DicomTag(0x0010,0x0010), "Hello");*/
+    modified->Answer(call.GetOutput());
+  }
+
+
 
   // Registration of the various REST handlers --------------------------------
 
@@ -926,6 +946,6 @@ namespace Orthanc
     Register("/modalities/{id}/find", DicomFind);
     Register("/modalities/{id}/store", DicomStore);
 
-    // TODO : "content"
+    Register("/instances/{id}/modify", Modify<ResourceType_Instance>);
   }
 }

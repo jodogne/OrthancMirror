@@ -47,17 +47,34 @@
 
 #include <boost/lexical_cast.hpp>
 
+#include <dcmtk/dcmdata/dcchrstr.h>
 #include <dcmtk/dcmdata/dcdicent.h>
 #include <dcmtk/dcmdata/dcdict.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmdata/dcistrmb.h>
+#include <dcmtk/dcmdata/dcuid.h>
+
+#include <dcmtk/dcmdata/dcvrae.h>
+#include <dcmtk/dcmdata/dcvras.h>
+#include <dcmtk/dcmdata/dcvrcs.h>
+#include <dcmtk/dcmdata/dcvrda.h>
+#include <dcmtk/dcmdata/dcvrds.h>
+#include <dcmtk/dcmdata/dcvrdt.h>
 #include <dcmtk/dcmdata/dcvrfd.h>
 #include <dcmtk/dcmdata/dcvrfl.h>
+#include <dcmtk/dcmdata/dcvris.h>
+#include <dcmtk/dcmdata/dcvrlo.h>
+#include <dcmtk/dcmdata/dcvrlt.h>
+#include <dcmtk/dcmdata/dcvrpn.h>
+#include <dcmtk/dcmdata/dcvrsh.h>
 #include <dcmtk/dcmdata/dcvrsl.h>
 #include <dcmtk/dcmdata/dcvrss.h>
+#include <dcmtk/dcmdata/dcvrst.h>
+#include <dcmtk/dcmdata/dcvrtm.h>
+#include <dcmtk/dcmdata/dcvrui.h>
 #include <dcmtk/dcmdata/dcvrul.h>
 #include <dcmtk/dcmdata/dcvrus.h>
-#include <dcmtk/dcmdata/dcuid.h>
+#include <dcmtk/dcmdata/dcvrut.h>
 
 #include <boost/math/special_functions/round.hpp>
 #include <glog/logging.h>
@@ -86,7 +103,7 @@ namespace Orthanc
 
 
   static void SendPathValueForDictionary(RestApiOutput& output,
-                                       DcmItem& dicom)
+                                         DcmItem& dicom)
   {
     Json::Value v = Json::arrayValue;
 
@@ -164,8 +181,8 @@ namespace Orthanc
     output.AnswerJson(v);
   }
 
-  static void SendField(RestApiOutput& output,
-                        DcmElement& element)
+  static void AnswerDicomField(RestApiOutput& output,
+                               DcmElement& element)
   {
     // This element is not a sequence
     std::string buffer;
@@ -194,6 +211,7 @@ namespace Orthanc
       }
       else
       {
+        LOG(ERROR) << "Error while sending a DICOM field";
         return;
       }
     }
@@ -226,7 +244,7 @@ namespace Orthanc
         element->getVR() != EVR_UNKNOWN &&
         element->getVR() != EVR_SQ)
     {
-      SendField(output, *element);
+      AnswerDicomField(output, *element);
     }
   }
 
@@ -268,6 +286,359 @@ namespace Orthanc
     else
     {
       SendPathValueForLeaf(output, uri.back(), *dicom);
+    }
+  }
+
+
+  
+
+
+  static DcmElement* CreateElementForTag(const DicomTag& tag)
+  {
+    DcmTag key(tag.GetGroup(), tag.GetElement());
+
+    switch (key.getEVR())
+    {
+      // http://support.dcmtk.org/docs/dcvr_8h-source.html
+
+      /**
+       * TODO.
+       **/
+    
+      case EVR_OB:  // other byte
+      case EVR_OF:  // other float
+      case EVR_OW:  // other word
+      case EVR_AT:  // attribute tag
+        throw OrthancException(ErrorCode_NotImplemented);
+
+      case EVR_UN:  // unknown value representation
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+
+
+      /**
+       * String types.
+       * http://support.dcmtk.org/docs/classDcmByteString.html
+       **/
+      
+      case EVR_AS:  // age string
+        return new DcmAgeString(key);
+
+      case EVR_AE:  // application entity title
+        return new DcmApplicationEntity(key);
+
+      case EVR_CS:  // code string
+        return new DcmCodeString(key);        
+
+      case EVR_DA:  // date string
+        return new DcmDate(key);
+        
+      case EVR_DT:  // date time string
+        return new DcmDateTime(key);
+
+      case EVR_DS:  // decimal string
+        return new DcmDecimalString(key);
+
+      case EVR_IS:  // integer string
+        return new DcmIntegerString(key);
+
+      case EVR_TM:  // time string
+        return new DcmTime(key);
+
+      case EVR_UI:  // unique identifier
+        return new DcmUniqueIdentifier(key);
+
+      case EVR_ST:  // short text
+        return new DcmShortText(key);
+
+      case EVR_LO:  // long string
+        return new DcmLongString(key);
+
+      case EVR_LT:  // long text
+        return new DcmLongText(key);
+
+      case EVR_UT:  // unlimited text
+        return new DcmUnlimitedText(key);
+
+      case EVR_SH:  // short string
+        return new DcmShortString(key);
+
+      case EVR_PN:  // person name
+        return new DcmPersonName(key);
+
+        
+      /**
+       * Numerical types
+       **/ 
+      
+      case EVR_SL:  // signed long
+        return new DcmSignedLong(key);
+
+      case EVR_SS:  // signed short
+        return new DcmSignedShort(key);
+
+      case EVR_UL:  // unsigned long
+        return new DcmUnsignedLong(key);
+
+      case EVR_US:  // unsigned short
+        return new DcmUnsignedShort(key);
+
+      case EVR_FL:  // float single-precision
+        return new DcmFloatingPointSingle(key);
+
+      case EVR_FD:  // float double-precision
+        return new DcmFloatingPointDouble(key);
+
+
+      /**
+       * Sequence types, should never occur at this point.
+       **/
+
+      case EVR_SQ:  // sequence of items
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+
+
+      /**
+       * Internal to DCMTK.
+       **/ 
+
+      case EVR_ox:  // OB or OW depending on context
+      case EVR_xs:  // SS or US depending on context
+      case EVR_lt:  // US, SS or OW depending on context, used for LUT Data (thus the name)
+      case EVR_na:  // na="not applicable", for data which has no VR
+      case EVR_up:  // up="unsigned pointer", used internally for DICOMDIR suppor
+      case EVR_item:  // used internally for items
+      case EVR_metainfo:  // used internally for meta info datasets
+      case EVR_dataset:  // used internally for datasets
+      case EVR_fileFormat:  // used internally for DICOM files
+      case EVR_dicomDir:  // used internally for DICOMDIR objects
+      case EVR_dirRecord:  // used internally for DICOMDIR records
+      case EVR_pixelSQ:  // used internally for pixel sequences in a compressed image
+      case EVR_pixelItem:  // used internally for pixel items in a compressed image
+      case EVR_UNKNOWN: // used internally for elements with unknown VR (encoded with 4-byte length field in explicit VR)
+      case EVR_PixelData:  // used internally for uncompressed pixeld data
+      case EVR_OverlayData:  // used internally for overlay data
+      case EVR_UNKNOWN2B:  // used internally for elements with unknown VR with 2-byte length field in explicit VR
+      default:
+        break;
+    }
+
+    throw OrthancException(ErrorCode_InternalError);          
+  }
+
+
+
+  static void FillElementWithString(DcmElement& element,
+                                    const DicomTag& tag,
+                                    const std::string& value)
+  {
+    DcmTag key(tag.GetGroup(), tag.GetElement());
+    bool ok = false;
+    
+    try
+    {
+      switch (key.getEVR())
+      {
+        // http://support.dcmtk.org/docs/dcvr_8h-source.html
+
+        /**
+         * TODO.
+         **/
+
+        case EVR_OB:  // other byte
+        case EVR_OF:  // other float
+        case EVR_OW:  // other word
+        case EVR_AT:  // attribute tag
+          throw OrthancException(ErrorCode_NotImplemented);
+    
+        case EVR_UN:  // unknown value representation
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+
+
+        /**
+         * String types.
+         **/
+      
+        case EVR_DS:  // decimal string
+        case EVR_IS:  // integer string
+        case EVR_AS:  // age string
+        case EVR_DA:  // date string
+        case EVR_DT:  // date time string
+        case EVR_TM:  // time string
+        case EVR_AE:  // application entity title
+        case EVR_CS:  // code string
+        case EVR_SH:  // short string
+        case EVR_LO:  // long string
+        case EVR_ST:  // short text
+        case EVR_LT:  // long text
+        case EVR_UT:  // unlimited text
+        case EVR_PN:  // person name
+        case EVR_UI:  // unique identifier
+        {
+          ok = element.putString(value.c_str()).good();
+          break;
+        }
+
+        
+        /**
+         * Numerical types
+         **/ 
+      
+        case EVR_SL:  // signed long
+        {
+          ok = element.putSint32(boost::lexical_cast<Sint32>(value)).good();
+          break;
+        }
+
+        case EVR_SS:  // signed short
+        {
+          ok = element.putSint16(boost::lexical_cast<Sint16>(value)).good();
+          break;
+        }
+
+        case EVR_UL:  // unsigned long
+        {
+          ok = element.putUint32(boost::lexical_cast<Uint32>(value)).good();
+          break;
+        }
+
+        case EVR_US:  // unsigned short
+        {
+          ok = element.putUint16(boost::lexical_cast<Uint16>(value)).good();
+          break;
+        }
+
+        case EVR_FL:  // float single-precision
+        {
+          ok = element.putFloat32(boost::lexical_cast<float>(value)).good();
+          break;
+        }
+
+        case EVR_FD:  // float double-precision
+        {
+          ok = element.putFloat64(boost::lexical_cast<double>(value)).good();
+          break;
+        }
+
+
+        /**
+         * Sequence types, should never occur at this point.
+         **/
+
+        case EVR_SQ:  // sequence of items
+        {
+          ok = false;
+          break;
+        }
+
+
+        /**
+         * Internal to DCMTK.
+         **/ 
+
+        case EVR_ox:  // OB or OW depending on context
+        case EVR_xs:  // SS or US depending on context
+        case EVR_lt:  // US, SS or OW depending on context, used for LUT Data (thus the name)
+        case EVR_na:  // na="not applicable", for data which has no VR
+        case EVR_up:  // up="unsigned pointer", used internally for DICOMDIR suppor
+        case EVR_item:  // used internally for items
+        case EVR_metainfo:  // used internally for meta info datasets
+        case EVR_dataset:  // used internally for datasets
+        case EVR_fileFormat:  // used internally for DICOM files
+        case EVR_dicomDir:  // used internally for DICOMDIR objects
+        case EVR_dirRecord:  // used internally for DICOMDIR records
+        case EVR_pixelSQ:  // used internally for pixel sequences in a compressed image
+        case EVR_pixelItem:  // used internally for pixel items in a compressed image
+        case EVR_UNKNOWN: // used internally for elements with unknown VR (encoded with 4-byte length field in explicit VR)
+        case EVR_PixelData:  // used internally for uncompressed pixeld data
+        case EVR_OverlayData:  // used internally for overlay data
+        case EVR_UNKNOWN2B:  // used internally for elements with unknown VR with 2-byte length field in explicit VR
+        default:
+          break;
+      }
+    }
+    catch (boost::bad_lexical_cast&)
+    {
+      ok = false;
+    }
+
+    if (!ok)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
+  void ParsedDicomFile::Remove(const DicomTag& tag)
+  {
+    DcmTagKey key(tag.GetGroup(), tag.GetElement());
+
+    // TODO This call results in memory leaks inside DCMTK
+    file_->getDataset()->remove(key);
+  }
+
+
+
+  void ParsedDicomFile::Insert(const DicomTag& tag,
+                               const std::string& value)
+  {
+    std::auto_ptr<DcmElement> element(CreateElementForTag(tag));
+    FillElementWithString(*element, tag, value);
+
+    if (!file_->getDataset()->insert(element.release(), false, false).good())
+    {
+      // This field already exists
+      throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
+  void ParsedDicomFile::ReplaceInternal(const DicomTag& tag,
+                                        const std::string& value,
+                                        bool insertOnAbsent)
+  {
+    DcmTagKey key(tag.GetGroup(), tag.GetElement());
+    DcmElement* element = NULL;
+
+    if (!file_->getDataset()->findAndGetElement(key, element).good() ||
+        element == NULL)
+    {
+      if (insertOnAbsent)
+      {
+        // This field does not exist, use "Insert()" instead
+        Insert(tag, value);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+    else
+    {
+      FillElementWithString(*element, tag, value);
+    }
+  }
+
+    
+  void ParsedDicomFile::Replace(const DicomTag& tag,
+                                const std::string& value)
+  {
+    return ReplaceInternal(tag, value, false);
+  }
+
+  void ParsedDicomFile::InsertOrReplace(const DicomTag& tag,
+                                        const std::string& value)
+  {
+    return ReplaceInternal(tag, value, true);
+  }
+
+
+
+  void ParsedDicomFile::Answer(RestApiOutput& output)
+  {
+    std::string serialized;
+    if (FromDcmtkBridge::SaveToMemoryBuffer(serialized, file_->getDataset()))
+    {
+      output.AnswerBuffer(serialized, "application/octet-stream");
     }
   }
 
@@ -327,159 +698,159 @@ namespace Orthanc
          * TODO.
          **/
     
-      case EVR_DS:  // decimal string
-      case EVR_IS:  // integer string
-      case EVR_OB:  // other byte
-      case EVR_OF:  // other float
-      case EVR_OW:  // other word
-      case EVR_AS:  // age string
-      case EVR_AT:  // attribute tag
-      case EVR_DA:  // date string
-      case EVR_DT:  // date time string
-      case EVR_TM:  // time string
-      case EVR_UN:  // unknown value representation
-        return new DicomNullValue();
+        case EVR_DS:  // decimal string
+        case EVR_IS:  // integer string
+        case EVR_OB:  // other byte
+        case EVR_OF:  // other float
+        case EVR_OW:  // other word
+        case EVR_AS:  // age string
+        case EVR_AT:  // attribute tag
+        case EVR_DA:  // date string
+        case EVR_DT:  // date time string
+        case EVR_TM:  // time string
+        case EVR_UN:  // unknown value representation
+          return new DicomNullValue();
+
+
+          /**
+           * String types, should never happen at this point because of
+           * "element.isaString()".
+           **/
+      
+        case EVR_AE:  // application entity title
+        case EVR_CS:  // code string
+        case EVR_SH:  // short string
+        case EVR_LO:  // long string
+        case EVR_ST:  // short text
+        case EVR_LT:  // long text
+        case EVR_UT:  // unlimited text
+        case EVR_PN:  // person name
+        case EVR_UI:  // unique identifier
+          return new DicomNullValue();
+
+
+          /**
+           * Numerical types
+           **/ 
+      
+        case EVR_SL:  // signed long
+        {
+          Sint32 f;
+          if (dynamic_cast<DcmSignedLong&>(element).getSint32(f).good())
+          {
+            return new DicomString(boost::lexical_cast<std::string>(f));
+          }
+          else
+          {
+            return new DicomNullValue();
+          }
+        }
+
+        case EVR_SS:  // signed short
+        {
+          Sint16 f;
+          if (dynamic_cast<DcmSignedShort&>(element).getSint16(f).good())
+          {
+            return new DicomString(boost::lexical_cast<std::string>(f));
+          }
+          else
+          {
+            return new DicomNullValue();
+          }
+        }
+
+        case EVR_UL:  // unsigned long
+        {
+          Uint32 f;
+          if (dynamic_cast<DcmUnsignedLong&>(element).getUint32(f).good())
+          {
+            return new DicomString(boost::lexical_cast<std::string>(f));
+          }
+          else
+          {
+            return new DicomNullValue();
+          }
+        }
+
+        case EVR_US:  // unsigned short
+        {
+          Uint16 f;
+          if (dynamic_cast<DcmUnsignedShort&>(element).getUint16(f).good())
+          {
+            return new DicomString(boost::lexical_cast<std::string>(f));
+          }
+          else
+          {
+            return new DicomNullValue();
+          }
+        }
+
+        case EVR_FL:  // float single-precision
+        {
+          Float32 f;
+          if (dynamic_cast<DcmFloatingPointSingle&>(element).getFloat32(f).good())
+          {
+            return new DicomString(boost::lexical_cast<std::string>(f));
+          }
+          else
+          {
+            return new DicomNullValue();
+          }
+        }
+
+        case EVR_FD:  // float double-precision
+        {
+          Float64 f;
+          if (dynamic_cast<DcmFloatingPointDouble&>(element).getFloat64(f).good())
+          {
+            return new DicomString(boost::lexical_cast<std::string>(f));
+          }
+          else
+          {
+            return new DicomNullValue();
+          }
+        }
 
 
         /**
-         * String types, should never happen at this point because of
-         * "element.isaString()".
+         * Sequence types, should never occur at this point because of
+         * "element.isLeaf()".
          **/
-      
-      case EVR_AE:  // application entity title
-      case EVR_CS:  // code string
-      case EVR_SH:  // short string
-      case EVR_LO:  // long string
-      case EVR_ST:  // short text
-      case EVR_LT:  // long text
-      case EVR_UT:  // unlimited text
-      case EVR_PN:  // person name
-      case EVR_UI:  // unique identifier
-        return new DicomNullValue();
+
+        case EVR_SQ:  // sequence of items
+          return new DicomNullValue;
 
 
-        /**
-         * Numerical types
-         **/ 
-      
-      case EVR_SL:  // signed long
-      {
-        Sint32 f;
-        if (dynamic_cast<DcmSignedLong&>(element).getSint32(f).good())
-        {
-          return new DicomString(boost::lexical_cast<std::string>(f));
-        }
-        else
-        {
-          return new DicomNullValue();
-        }
-      }
+          /**
+           * Internal to DCMTK.
+           **/ 
 
-      case EVR_SS:  // signed short
-      {
-        Sint16 f;
-        if (dynamic_cast<DcmSignedShort&>(element).getSint16(f).good())
-        {
-          return new DicomString(boost::lexical_cast<std::string>(f));
-        }
-        else
-        {
-          return new DicomNullValue();
-        }
-      }
-
-      case EVR_UL:  // unsigned long
-      {
-        Uint32 f;
-        if (dynamic_cast<DcmUnsignedLong&>(element).getUint32(f).good())
-        {
-          return new DicomString(boost::lexical_cast<std::string>(f));
-        }
-        else
-        {
-          return new DicomNullValue();
-        }
-      }
-
-      case EVR_US:  // unsigned short
-      {
-        Uint16 f;
-        if (dynamic_cast<DcmUnsignedShort&>(element).getUint16(f).good())
-        {
-          return new DicomString(boost::lexical_cast<std::string>(f));
-        }
-        else
-        {
-          return new DicomNullValue();
-        }
-      }
-
-      case EVR_FL:  // float single-precision
-      {
-        Float32 f;
-        if (dynamic_cast<DcmFloatingPointSingle&>(element).getFloat32(f).good())
-        {
-          return new DicomString(boost::lexical_cast<std::string>(f));
-        }
-        else
-        {
-          return new DicomNullValue();
-        }
-      }
-
-      case EVR_FD:  // float double-precision
-      {
-        Float64 f;
-        if (dynamic_cast<DcmFloatingPointDouble&>(element).getFloat64(f).good())
-        {
-          return new DicomString(boost::lexical_cast<std::string>(f));
-        }
-        else
-        {
-          return new DicomNullValue();
-        }
-      }
+        case EVR_ox:  // OB or OW depending on context
+        case EVR_xs:  // SS or US depending on context
+        case EVR_lt:  // US, SS or OW depending on context, used for LUT Data (thus the name)
+        case EVR_na:  // na="not applicable", for data which has no VR
+        case EVR_up:  // up="unsigned pointer", used internally for DICOMDIR suppor
+        case EVR_item:  // used internally for items
+        case EVR_metainfo:  // used internally for meta info datasets
+        case EVR_dataset:  // used internally for datasets
+        case EVR_fileFormat:  // used internally for DICOM files
+        case EVR_dicomDir:  // used internally for DICOMDIR objects
+        case EVR_dirRecord:  // used internally for DICOMDIR records
+        case EVR_pixelSQ:  // used internally for pixel sequences in a compressed image
+        case EVR_pixelItem:  // used internally for pixel items in a compressed image
+        case EVR_UNKNOWN: // used internally for elements with unknown VR (encoded with 4-byte length field in explicit VR)
+        case EVR_PixelData:  // used internally for uncompressed pixeld data
+        case EVR_OverlayData:  // used internally for overlay data
+        case EVR_UNKNOWN2B:  // used internally for elements with unknown VR with 2-byte length field in explicit VR
+          return new DicomNullValue;
 
 
-      /**
-       * Sequence types, should never occur at this point because of
-       * "element.isLeaf()".
-       **/
+          /**
+           * Default case.
+           **/ 
 
-      case EVR_SQ:  // sequence of items
-        return new DicomNullValue;
-
-
-        /**
-         * Internal to DCMTK.
-         **/ 
-
-      case EVR_ox:  // OB or OW depending on context
-      case EVR_xs:  // SS or US depending on context
-      case EVR_lt:  // US, SS or OW depending on context, used for LUT Data (thus the name)
-      case EVR_na:  // na="not applicable", for data which has no VR
-      case EVR_up:  // up="unsigned pointer", used internally for DICOMDIR suppor
-      case EVR_item:  // used internally for items
-      case EVR_metainfo:  // used internally for meta info datasets
-      case EVR_dataset:  // used internally for datasets
-      case EVR_fileFormat:  // used internally for DICOM files
-      case EVR_dicomDir:  // used internally for DICOMDIR objects
-      case EVR_dirRecord:  // used internally for DICOMDIR records
-      case EVR_pixelSQ:  // used internally for pixel sequences in a compressed image
-      case EVR_pixelItem:  // used internally for pixel items in a compressed image
-      case EVR_UNKNOWN: // used internally for elements with unknown VR (encoded with 4-byte length field in explicit VR)
-      case EVR_PixelData:  // used internally for uncompressed pixeld data
-      case EVR_OverlayData:  // used internally for overlay data
-      case EVR_UNKNOWN2B:  // used internally for elements with unknown VR with 2-byte length field in explicit VR
-        return new DicomNullValue;
-
-
-        /**
-         * Default case.
-         **/ 
-
-      default:
-        return new DicomNullValue;
+        default:
+          return new DicomNullValue;
       }
     }
     catch (boost::bad_lexical_cast)
@@ -678,17 +1049,17 @@ namespace Orthanc
     PixelFormat format;
     switch (mode)
     {
-    case ImageExtractionMode_Preview:
-    case ImageExtractionMode_UInt8:
-      format = PixelFormat_Grayscale8;
-      break;
+      case ImageExtractionMode_Preview:
+      case ImageExtractionMode_UInt8:
+        format = PixelFormat_Grayscale8;
+        break;
 
-    case ImageExtractionMode_UInt16:
-      format = PixelFormat_Grayscale16;
-      break;
+      case ImageExtractionMode_UInt16:
+        format = PixelFormat_Grayscale16;
+        break;
 
-    default:
-      throw OrthancException(ErrorCode_NotImplemented);
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
     }
 
     if (accessor.get() == NULL ||
@@ -702,20 +1073,20 @@ namespace Orthanc
     {
       switch (mode)
       {
-      case ImageExtractionMode_Preview:
-        ExtractPngImagePreview(result, *accessor);
-        break;
+        case ImageExtractionMode_Preview:
+          ExtractPngImagePreview(result, *accessor);
+          break;
 
-      case ImageExtractionMode_UInt8:
-        ExtractPngImageTruncate<uint8_t>(result, *accessor, format);
-        break;
+        case ImageExtractionMode_UInt8:
+          ExtractPngImageTruncate<uint8_t>(result, *accessor, format);
+          break;
 
-      case ImageExtractionMode_UInt16:
-        ExtractPngImageTruncate<uint16_t>(result, *accessor, format);
-        break;
+        case ImageExtractionMode_UInt16:
+          ExtractPngImageTruncate<uint16_t>(result, *accessor, format);
+          break;
 
-      default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        default:
+          throw OrthancException(ErrorCode_NotImplemented);
       }
     }
   }
@@ -828,17 +1199,17 @@ namespace Orthanc
 
     switch (level)
     {
-    case DicomRootLevel_Instance:
-      return dcmGenerateUniqueIdentifier(uid, SITE_INSTANCE_UID_ROOT);
+      case DicomRootLevel_Instance:
+        return dcmGenerateUniqueIdentifier(uid, SITE_INSTANCE_UID_ROOT);
 
-    case DicomRootLevel_Series:
-      return dcmGenerateUniqueIdentifier(uid, SITE_SERIES_UID_ROOT);
+      case DicomRootLevel_Series:
+        return dcmGenerateUniqueIdentifier(uid, SITE_SERIES_UID_ROOT);
 
-    case DicomRootLevel_Study:
-      return dcmGenerateUniqueIdentifier(uid, SITE_STUDY_UID_ROOT);
+      case DicomRootLevel_Study:
+        return dcmGenerateUniqueIdentifier(uid, SITE_STUDY_UID_ROOT);
 
-    default:
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
 
@@ -889,6 +1260,4 @@ namespace Orthanc
                                                (opt_useMetaheader) ? EWM_fileformat : EWM_dataset);
 #endif
   }
-
-
 }
