@@ -616,6 +616,21 @@ namespace Orthanc
     {
       FillElementWithString(*element, tag, value);
     }
+
+
+    /**
+     * dcmodify will automatically correct 'Media Storage SOP Class
+     * UID' and 'Media Storage SOP Instance UID' in the metaheader, if
+     * you make changes to the related tags in the dataset ('SOP Class
+     * UID' and 'SOP Instance UID') via insert or modify mode
+     * options. You can disable this behaviour by using the -nmu
+     * option.
+     **/
+    if (tag == DICOM_TAG_SOP_CLASS_UID)
+      ReplaceInternal(DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID, value, true);
+
+    if (tag == DICOM_TAG_SOP_INSTANCE_UID)
+      ReplaceInternal(DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID, value, true);
   }
 
     
