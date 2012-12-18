@@ -882,8 +882,16 @@ namespace Orthanc
     
     std::auto_ptr<ParsedDicomFile> modified(dicom.Clone());
 
+    std::string studyUid = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Study);
+    std::string seriesUid = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series);
+    std::string instanceUid = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Instance);
+
+    modified->Replace(DICOM_TAG_SOP_INSTANCE_UID, instanceUid);
+    modified->Replace(DICOM_TAG_SERIES_INSTANCE_UID, seriesUid);
+    modified->Replace(DICOM_TAG_STUDY_INSTANCE_UID, studyUid);
+
     modified->InsertOrReplace(DicomTag(0x0010,0x0010), "0.42");
-    modified->Remove(DicomTag(0x0010,0x0020));
+    //modified->Remove(DicomTag(0x0010,0x0020));
     /*modified->Insert(DicomTag(0x0018,0x9082), "0.42");
       modified->Replace(DicomTag(0x0010,0x0010), "Hello");*/
     modified->Answer(call.GetOutput());
