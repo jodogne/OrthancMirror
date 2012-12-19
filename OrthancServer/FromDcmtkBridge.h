@@ -71,8 +71,23 @@ namespace Orthanc
                          const std::string& value,
                          bool insertOnAbsent);
 
+    void Setup(const char* content,
+               size_t size);
+
   public:
-    ParsedDicomFile(const std::string& content);
+    ParsedDicomFile(const char* content,
+                    size_t size)
+    {
+      Setup(content, size);
+    }
+
+    ParsedDicomFile(const std::string& content)
+    {
+      if (content.size() == 0)
+        Setup(NULL, 0);
+      else
+        Setup(&content[0], content.size());
+    }
 
     DcmFileFormat& GetDicom()
     {
@@ -130,30 +145,30 @@ namespace Orthanc
 
     static std::string GetName(const DicomTag& tag);
 
-    static DicomTag FindTag(const char* name);
+    static DicomTag ParseTag(const char* name);
 
-    static DicomTag FindTag(const std::string& name)
+    static DicomTag ParseTag(const std::string& name)
     {
-      return FindTag(name.c_str());
+      return ParseTag(name.c_str());
     }
 
     static bool HasTag(const DicomMap& fields,
                        const std::string& tagName)
     {
-      return fields.HasTag(FindTag(tagName));
+      return fields.HasTag(ParseTag(tagName));
     }
 
     static const DicomValue& GetValue(const DicomMap& fields,
                                       const std::string& tagName)
     {
-      return fields.GetValue(FindTag(tagName));
+      return fields.GetValue(ParseTag(tagName));
     }
 
     static void SetValue(DicomMap& target,
                          const std::string& tagName,
                          DicomValue* value)
     {
-      target.SetValue(FindTag(tagName), value);
+      target.SetValue(ParseTag(tagName), value);
     }
 
     static void Print(FILE* fp, 

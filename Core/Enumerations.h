@@ -48,6 +48,7 @@ namespace Orthanc
     ErrorCode_BadParameterType,
     ErrorCode_BadSequenceOfCalls,
     ErrorCode_InexistentItem,
+    ErrorCode_BadRequest,
 
     // Specific error codes
     ErrorCode_UriSyntax,

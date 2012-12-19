@@ -82,12 +82,12 @@
 
 namespace Orthanc
 {
-  ParsedDicomFile::ParsedDicomFile(const std::string& content)
+  void ParsedDicomFile::Setup(const char* buffer, size_t size)
   {
     DcmInputBufferStream is;
-    if (content.size() > 0)
+    if (size > 0)
     {
-      is.setBuffer(&content[0], content.size());
+      is.setBuffer(buffer, size);
     }
     is.setEos();
 
@@ -141,29 +141,11 @@ namespace Orthanc
             GetCharValue(c[3]));
   }
 
-  static bool ParseTagAndGroup(DcmTagKey& key,
+  static void ParseTagAndGroup(DcmTagKey& key,
                                const std::string& tag)
   {
-    if (tag.size() != 9 ||
-        !isxdigit(tag[0]) ||
-        !isxdigit(tag[1]) ||
-        !isxdigit(tag[2]) ||
-        !isxdigit(tag[3]) ||
-        tag[4] != '-' ||
-        !isxdigit(tag[5]) ||
-        !isxdigit(tag[6]) ||
-        !isxdigit(tag[7]) ||
-        !isxdigit(tag[8]))        
-    {
-      return false;
-    }
-
-    uint16_t group = GetTagValue(tag.c_str());
-    uint16_t element = GetTagValue(tag.c_str() + 5);
-
-    key = DcmTagKey(group, element);
-
-    return true;
+    DicomTag t = FromDcmtkBridge::ParseTag(tag);
+    key = DcmTagKey(t.GetGroup(), t.GetElement());
   }
 
 
@@ -224,10 +206,7 @@ namespace Orthanc
                                    DcmItem& dicom)
   {
     DcmTagKey k;
-    if (!ParseTagAndGroup(k, tag))
-    {
-      return;
-    }
+    ParseTagAndGroup(k, tag);
 
     DcmSequenceOfItems* sequence = NULL;
     if (dicom.findAndGetSequence(k, sequence).good() && 
@@ -268,8 +247,8 @@ namespace Orthanc
 
       DcmTagKey k;
       DcmItem *child = NULL;
-      if (!ParseTagAndGroup(k, uri[2 * pos]) ||
-          !dicom->findAndGetSequenceItem(k, child, index).good() ||
+      ParseTagAndGroup(k, uri[2 * pos]);
+      if (!dicom->findAndGetSequenceItem(k, child, index).good() ||
           child == NULL)
       {
         return;
@@ -1158,8 +1137,24 @@ namespace Orthanc
   }
 
 
-  DicomTag FromDcmtkBridge::FindTag(const char* name)
+  DicomTag FromDcmtkBridge::ParseTag(const char* name)
   {
+    if (strlen(name) == 9 &&
+        isxdigit(name[0]) &&
+        isxdigit(name[1]) &&
+        isxdigit(name[2]) &&
+        isxdigit(name[3]) &&
+        name[4] == '-' &&
+        isxdigit(name[5]) &&
+        isxdigit(name[6]) &&
+        isxdigit(name[7]) &&
+        isxdigit(name[8]))        
+    {
+      uint16_t group = GetTagValue(name);
+      uint16_t element = GetTagValue(name + 5);
+      return DicomTag(group, element);
+    }
+
     const DcmDataDictionary& dict = dcmDataDict.rdlock();
     const DcmDictEntry* entry = dict.findEntry(name);
 

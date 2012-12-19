@@ -94,6 +94,8 @@ namespace Orthanc
 
     std::string GetPublicId(int64_t resourceId);
 
+    ResourceType GetResourceType(int64_t resourceId);
+
     void AttachChild(int64_t parent,
                      int64_t child);
 

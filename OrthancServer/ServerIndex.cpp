@@ -962,4 +962,54 @@ namespace Orthanc
       LOG(INFO) << "Patient " << publicId << " has been unprotected";
   }
 
+
+  void ServerIndex::GetChildInstances(std::list<std::string>& result,
+                                      const std::string& publicId)
+  {
+    result.clear();
+
+    boost::mutex::scoped_lock lock(mutex_);
+
+    ResourceType type;
+    int64_t top;
+    if (!db_->LookupResource(publicId, top, type))
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
+    if (type == ResourceType_Instance)
+    {
+      // The resource is already an instance: Do not go down the hierarchy
+      result.push_back(publicId);
+      return;
+    }
+
+    std::stack<int64_t> toExplore;
+    toExplore.push(top);
+
+    std::list<int64_t> tmp;
+
+    while (!toExplore.empty())
+    {
+      // Get the internal ID of the current resource
+      int64_t resource = toExplore.top();
+      toExplore.pop();
+
+      if (db_->GetResourceType(resource) == ResourceType_Instance)
+      {
+        result.push_back(db_->GetPublicId(resource));
+      }
+      else
+      {
+        // Tag all the children of this resource as to be explored
+        db_->GetChildrenInternalId(tmp, resource);
+        for (std::list<int64_t>::const_iterator 
+               it = tmp.begin(); it != tmp.end(); it++)
+        {
+          toExplore.push(*it);
+        }
+      }
+    }
+  }
+
 }

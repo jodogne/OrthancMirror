@@ -63,6 +63,14 @@ TEST(DatabaseWrapper, Simple)
   ASSERT_EQ("f", index.GetPublicId(a[5]));
   ASSERT_EQ("g", index.GetPublicId(a[6]));
 
+  ASSERT_EQ(ResourceType_Patient, index.GetResourceType(a[0]));
+  ASSERT_EQ(ResourceType_Study, index.GetResourceType(a[1]));
+  ASSERT_EQ(ResourceType_Series, index.GetResourceType(a[2]));
+  ASSERT_EQ(ResourceType_Instance, index.GetResourceType(a[3]));
+  ASSERT_EQ(ResourceType_Instance, index.GetResourceType(a[4]));
+  ASSERT_EQ(ResourceType_Instance, index.GetResourceType(a[5]));
+  ASSERT_EQ(ResourceType_Study, index.GetResourceType(a[6]));
+
   {
     Json::Value t;
     index.GetAllPublicIds(t, ResourceType_Patient);

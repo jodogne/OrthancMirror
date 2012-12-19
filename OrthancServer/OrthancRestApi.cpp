@@ -89,7 +89,7 @@ namespace Orthanc
     Json::Value::Members members = query.getMemberNames();
     for (size_t i = 0; i < members.size(); i++)
     {
-      DicomTag t = FromDcmtkBridge::FindTag(members[i]);
+      DicomTag t = FromDcmtkBridge::ParseTag(members[i]);
       result.SetValue(t, query[members[i]].asString());
     }
 
@@ -765,51 +765,20 @@ namespace Orthanc
 
     LOG(INFO) << "Receiving a DICOM file of " << postData.size() << " bytes through HTTP";
 
-    DcmFileFormat dicomFile;
-
-    {
-      // Prepare an input stream for the memory buffer
-      DcmInputBufferStream is;
-      is.setBuffer(&postData[0], postData.size());
-      is.setEos();
-
-      dicomFile.transferInit();
-      if (!dicomFile.read(is).good())
-      {
-        call.GetOutput().SignalError(Orthanc_HttpStatus_415_UnsupportedMediaType);
-        return;
-      }
-      dicomFile.loadAllDataIntoMemory();
-      dicomFile.transferEnd();
-    }
-
-    DicomMap dicomSummary;
-    FromDcmtkBridge::Convert(dicomSummary, *dicomFile.getDataset());
-
-    DicomInstanceHasher hasher(dicomSummary);
-
-    Json::Value dicomJson;
-    FromDcmtkBridge::ToJson(dicomJson, *dicomFile.getDataset());
-      
-    StoreStatus status = StoreStatus_Failure;
-    if (postData.size() > 0)
-    {
-      status = context.Store
-        (reinterpret_cast<const char*>(&postData[0]), postData.size(), 
-         dicomSummary, dicomJson, "");
-    }   
-
+    std::string publicId;
+    StoreStatus status = context.Store(publicId, postData);
     Json::Value result = Json::objectValue;
 
     if (status != StoreStatus_Failure)
     {
-      result["ID"] = hasher.HashInstance();
-      result["Path"] = GetBasePath(ResourceType_Instance, hasher.HashInstance());
+      result["ID"] = publicId;
+      result["Path"] = GetBasePath(ResourceType_Instance, publicId);
     }
 
     result["Status"] = ToString(status);
     call.GetOutput().AnswerJson(result);
   }
+
 
 
   // DICOM bridge -------------------------------------------------------------
@@ -870,31 +839,54 @@ namespace Orthanc
 
 
 
-  // Modification of DICOM tags -----------------------------------------------
+  // Modification of DICOM instances ------------------------------------------
 
-  template <enum ResourceType resourceType>
-  static void Modify(RestApi::PostCall& call)
+  static void ModifyInstanceInternal(ParsedDicomFile& toModify,
+                                     const Json::Value& replacements)
+  {
+    if (!replacements.isObject())
+    {
+      throw OrthancException(ErrorCode_BadRequest);
+    }
+
+    Json::Value::Members members = replacements.getMemberNames();
+
+    for (size_t i = 0; i < members.size(); i++)
+    {
+      const std::string& name = members[i];
+      std::string value = replacements[name].asString();
+
+      DicomTag tag = FromDcmtkBridge::ParseTag(name);      
+      toModify.Replace(tag, value);
+    }
+
+    // A new SOP instance UID is automatically generated
+    std::string instanceUid = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Instance);
+    toModify.Replace(DICOM_TAG_SOP_INSTANCE_UID, instanceUid);
+  }
+
+
+  static void ModifyInstance(RestApi::PostCall& call)
   {
     RETRIEVE_CONTEXT(call);
     
     std::string id = call.GetUriComponent("id", "");
     ParsedDicomFile& dicom = context.GetDicomFile(id);
     
-    std::auto_ptr<ParsedDicomFile> modified(dicom.Clone());
+    Json::Value request;
+    if (call.ParseJsonRequest(request))
+    {
+      std::auto_ptr<ParsedDicomFile> modified(dicom.Clone());
+      ModifyInstanceInternal(*modified, request);
+      modified->Answer(call.GetOutput());
+    }
 
-    std::string studyUid = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Study);
+    /*std::string studyUid = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Study);
     std::string seriesUid = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series);
-    std::string instanceUid = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Instance);
-
-    modified->Replace(DICOM_TAG_SOP_INSTANCE_UID, instanceUid);
     modified->Replace(DICOM_TAG_SERIES_INSTANCE_UID, seriesUid);
-    modified->Replace(DICOM_TAG_STUDY_INSTANCE_UID, studyUid);
+    modified->Replace(DICOM_TAG_STUDY_INSTANCE_UID, studyUid);*/
 
-    modified->InsertOrReplace(DicomTag(0x0010,0x0010), "0.42");
-    //modified->Remove(DicomTag(0x0010,0x0020));
-    /*modified->Insert(DicomTag(0x0018,0x9082), "0.42");
-      modified->Replace(DicomTag(0x0010,0x0010), "Hello");*/
-    modified->Answer(call.GetOutput());
+
   }
 
 
@@ -954,6 +946,6 @@ namespace Orthanc
     Register("/modalities/{id}/find", DicomFind);
     Register("/modalities/{id}/store", DicomStore);
 
-    Register("/instances/{id}/modify", Modify<ResourceType_Instance>);
+    Register("/instances/{id}/modify", ModifyInstance);
   }
 }

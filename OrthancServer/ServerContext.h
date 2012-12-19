@@ -87,11 +87,32 @@ namespace Orthanc
 
     void RemoveFile(const std::string& fileUuid);
 
-    StoreStatus Store(const char* dicomFile,
+    StoreStatus Store(const char* dicomInstance,
                       size_t dicomSize,
                       const DicomMap& dicomSummary,
                       const Json::Value& dicomJson,
                       const std::string& remoteAet);
+
+    StoreStatus Store(std::string& resultPublicId,
+                      DcmFileFormat& dicomInstance,
+                      const char* dicomBuffer,
+                      size_t dicomSize);
+
+    StoreStatus Store(std::string& resultPublicId,
+                      DcmFileFormat& dicomInstance);
+
+    StoreStatus Store(std::string& resultPublicId,
+                      const char* dicomBuffer,
+                      size_t dicomSize);
+
+    StoreStatus Store(std::string& resultPublicId,
+                      const std::string& dicomContent)
+    {
+      if (dicomContent.size() == 0)
+        return Store(resultPublicId, NULL, 0);
+      else
+        return Store(resultPublicId, &dicomContent[0], dicomContent.size());
+    }
 
     void AnswerFile(RestApiOutput& output,
                     const std::string& instancePublicId,
