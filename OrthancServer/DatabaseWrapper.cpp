@@ -275,6 +275,22 @@ namespace Orthanc
     return s.ColumnString(0);
   }
 
+
+  ResourceType DatabaseWrapper::GetResourceType(int64_t resourceId)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                        "SELECT resourceType FROM Resources WHERE internalId=?");
+    s.BindInt(0, resourceId);
+    
+    if (!s.Step())
+    { 
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
+    return static_cast<ResourceType>(s.ColumnInt(0));
+  }
+
+
   void DatabaseWrapper::AttachChild(int64_t parent,
                                     int64_t child)
   {

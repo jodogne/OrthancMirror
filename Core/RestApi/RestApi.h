@@ -55,6 +55,10 @@ namespace Orthanc
       const UriComponents* trailing_;
       const UriComponents* fullUri_;
 
+    protected:
+      static bool ParseJsonRequestInternal(Json::Value& result,
+                                           const char* request);
+
     public:
       RestApiOutput& GetOutput()
       {
@@ -87,6 +91,8 @@ namespace Orthanc
       {
         return HttpHandler::GetArgument(*httpHeaders_, name, defaultValue);
       }
+
+      virtual bool ParseJsonRequest(Json::Value& result) const = 0;
     };
 
  
@@ -109,6 +115,8 @@ namespace Orthanc
       {
         return getArguments_->find(name) != getArguments_->end();
       }
+
+      virtual bool ParseJsonRequest(Json::Value& result) const;
     };
 
     class PutCall : public SharedCall
@@ -119,10 +127,15 @@ namespace Orthanc
       const std::string* data_;
 
     public:
-      const std::string& GetPutBody()
+      const std::string& GetPutBody() const
       {
         return *data_;
       }
+
+      virtual bool ParseJsonRequest(Json::Value& result) const
+      {
+        return ParseJsonRequestInternal(result, GetPutBody().c_str());
+      }      
     };
 
     class PostCall : public SharedCall
@@ -133,14 +146,25 @@ namespace Orthanc
       const std::string* data_;
 
     public:
-      const std::string& GetPostBody()
+      const std::string& GetPostBody() const
       {
         return *data_;
       }
+
+      virtual bool ParseJsonRequest(Json::Value& result) const
+      {
+        return ParseJsonRequestInternal(result, GetPostBody().c_str());
+      }      
     };
 
     class DeleteCall : public SharedCall
     {
+    public:
+      virtual bool ParseJsonRequest(Json::Value& result) const
+      {
+        result.clear();
+        return true;
+      }
     };
 
     typedef void (*GetHandler) (GetCall& call);

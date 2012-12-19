@@ -76,7 +76,7 @@ namespace Orthanc
     storage_.Remove(fileUuid);
   }
 
-  StoreStatus ServerContext::Store(const char* dicomFile,
+  StoreStatus ServerContext::Store(const char* dicomInstance,
                                    size_t dicomSize,
                                    const DicomMap& dicomSummary,
                                    const Json::Value& dicomJson,
@@ -91,7 +91,7 @@ namespace Orthanc
       accessor_.SetCompressionForNextOperations(CompressionType_None);
     }      
 
-    FileInfo dicomInfo = accessor_.Write(dicomFile, dicomSize, FileContentType_Dicom);
+    FileInfo dicomInfo = accessor_.Write(dicomInstance, dicomSize, FileContentType_Dicom);
     FileInfo jsonInfo = accessor_.Write(dicomJson.toStyledString(), FileContentType_Json);
 
     ServerIndex::Attachments attachments;
@@ -188,4 +188,54 @@ namespace Orthanc
     return dynamic_cast<ParsedDicomFile&>(dicomCache_.Access(instancePublicId));
 #endif
   }
+
+
+  StoreStatus ServerContext::Store(std::string& resultPublicId,
+                                   DcmFileFormat& dicomInstance,
+                                   const char* dicomBuffer,
+                                   size_t dicomSize)
+  {
+    DicomMap dicomSummary;
+    FromDcmtkBridge::Convert(dicomSummary, *dicomInstance.getDataset());
+
+    DicomInstanceHasher hasher(dicomSummary);
+    resultPublicId = hasher.HashInstance();
+
+    Json::Value dicomJson;
+    FromDcmtkBridge::ToJson(dicomJson, *dicomInstance.getDataset());
+      
+    StoreStatus status = StoreStatus_Failure;
+    if (dicomSize > 0)
+    {
+      status = Store(dicomBuffer, dicomSize, dicomSummary, dicomJson, "");
+    }   
+
+    return status;
+  }
+
+
+  StoreStatus ServerContext::Store(std::string& resultPublicId,
+                                   DcmFileFormat& dicomInstance)
+  {
+    std::string buffer;
+    if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, dicomInstance.getDataset()))
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    if (buffer.size() == 0)
+      return Store(resultPublicId, dicomInstance, NULL, 0);
+    else
+      return Store(resultPublicId, dicomInstance, &buffer[0], buffer.size());
+  }
+
+
+  StoreStatus ServerContext::Store(std::string& resultPublicId,
+                                   const char* dicomBuffer,
+                                   size_t dicomSize)
+  {
+    ParsedDicomFile dicom(dicomBuffer, dicomSize);
+    return Store(resultPublicId, dicom.GetDicom(), dicomBuffer, dicomSize);
+  }
+
 }

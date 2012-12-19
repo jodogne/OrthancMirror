@@ -99,6 +99,9 @@ namespace Orthanc
       case ErrorCode_InexistentItem:
         return "Accessing an inexistent item";
 
+      case ErrorCode_BadRequest:
+        return "Bad request";
+
       case ErrorCode_Custom:
       default:
         return "???";

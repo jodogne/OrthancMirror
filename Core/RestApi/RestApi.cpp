@@ -37,6 +37,29 @@
 
 namespace Orthanc
 {
+  bool RestApi::SharedCall::ParseJsonRequestInternal(Json::Value& result,
+                                                     const char* request)
+  {
+    result.clear();
+    Json::Reader reader;
+    return reader.parse(request, result);
+  }
+
+
+  bool RestApi::GetCall::ParseJsonRequest(Json::Value& result) const
+  {
+    result.clear();
+
+    for (HttpHandler::Arguments::const_iterator 
+           it = getArguments_->begin(); it != getArguments_->end(); it++)
+    {
+      result[it->first] = result[it->second];
+    }
+
+    return true;
+  }
+
+
   bool RestApi::IsGetAccepted(const UriComponents& uri)
   {
     for (GetHandlers::const_iterator it = getHandlers_.begin();
