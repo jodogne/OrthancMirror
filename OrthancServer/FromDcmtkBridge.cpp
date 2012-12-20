@@ -39,10 +39,12 @@
 #include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"
 #include "../Core/PngWriter.h"
+#include "../Core/Uuid.h"
 #include "../Core/DicomFormat/DicomString.h"
 #include "../Core/DicomFormat/DicomNullValue.h"
 #include "../Core/DicomFormat/DicomIntegerPixelAccessor.h"
 
+#include <list>
 #include <limits>
 
 #include <boost/lexical_cast.hpp>
@@ -550,9 +552,41 @@ namespace Orthanc
   void ParsedDicomFile::Remove(const DicomTag& tag)
   {
     DcmTagKey key(tag.GetGroup(), tag.GetElement());
+    DcmElement* element = file_->getDataset()->remove(key);
+    if (element != NULL)
+    {
+      delete element;
+    }
+  }
 
-    // TODO This call results in memory leaks inside DCMTK
-    file_->getDataset()->remove(key);
+
+
+  void ParsedDicomFile::RemovePrivateTags()
+  {
+    typedef std::list<DcmElement*> Tags;
+
+    Tags privateTags;
+
+    DcmDataset& dataset = *file_->getDataset();
+    for (unsigned long i = 0; i < dataset.card(); i++)
+    {
+      DcmElement* element = dataset.getElement(i);
+      DcmTag tag(element->getTag());
+      if (tag.getPrivateCreator() != NULL)
+      {
+        privateTags.push_back(element);
+      }
+    }
+
+    for (Tags::iterator it = privateTags.begin(); 
+         it != privateTags.end(); it++)
+    {
+      DcmElement* tmp = dataset.remove(*it);
+      if (tmp != NULL)
+      {
+        delete tmp;
+      }
+    }
   }
 
 
@@ -681,26 +715,25 @@ namespace Orthanc
         /**
          * TODO.
          **/
-    
-        case EVR_DS:  // decimal string
-        case EVR_IS:  // integer string
+
         case EVR_OB:  // other byte
         case EVR_OF:  // other float
         case EVR_OW:  // other word
-        case EVR_AS:  // age string
         case EVR_AT:  // attribute tag
-        case EVR_DA:  // date string
-        case EVR_DT:  // date time string
-        case EVR_TM:  // time string
         case EVR_UN:  // unknown value representation
           return new DicomNullValue();
-
-
+    
           /**
            * String types, should never happen at this point because of
            * "element.isaString()".
            **/
       
+        case EVR_DS:  // decimal string
+        case EVR_IS:  // integer string
+        case EVR_AS:  // age string
+        case EVR_DA:  // date string
+        case EVR_DT:  // date time string
+        case EVR_TM:  // time string
         case EVR_AE:  // application entity title
         case EVR_CS:  // code string
         case EVR_SH:  // short string
@@ -721,78 +754,54 @@ namespace Orthanc
         {
           Sint32 f;
           if (dynamic_cast<DcmSignedLong&>(element).getSint32(f).good())
-          {
             return new DicomString(boost::lexical_cast<std::string>(f));
-          }
           else
-          {
             return new DicomNullValue();
-          }
         }
 
         case EVR_SS:  // signed short
         {
           Sint16 f;
           if (dynamic_cast<DcmSignedShort&>(element).getSint16(f).good())
-          {
             return new DicomString(boost::lexical_cast<std::string>(f));
-          }
           else
-          {
             return new DicomNullValue();
-          }
         }
 
         case EVR_UL:  // unsigned long
         {
           Uint32 f;
           if (dynamic_cast<DcmUnsignedLong&>(element).getUint32(f).good())
-          {
             return new DicomString(boost::lexical_cast<std::string>(f));
-          }
           else
-          {
             return new DicomNullValue();
-          }
         }
 
         case EVR_US:  // unsigned short
         {
           Uint16 f;
           if (dynamic_cast<DcmUnsignedShort&>(element).getUint16(f).good())
-          {
             return new DicomString(boost::lexical_cast<std::string>(f));
-          }
           else
-          {
             return new DicomNullValue();
-          }
         }
 
         case EVR_FL:  // float single-precision
         {
           Float32 f;
           if (dynamic_cast<DcmFloatingPointSingle&>(element).getFloat32(f).good())
-          {
             return new DicomString(boost::lexical_cast<std::string>(f));
-          }
           else
-          {
             return new DicomNullValue();
-          }
         }
 
         case EVR_FD:  // float double-precision
         {
           Float64 f;
           if (dynamic_cast<DcmFloatingPointDouble&>(element).getFloat64(f).good())
-          {
             return new DicomString(boost::lexical_cast<std::string>(f));
-          }
           else
-          {
             return new DicomNullValue();
-          }
         }
 
 
@@ -841,6 +850,10 @@ namespace Orthanc
     {
       return new DicomNullValue;
     }
+    catch (std::bad_cast)
+    {
+      return new DicomNullValue;
+    }
   }
 
 
@@ -876,13 +889,18 @@ namespace Orthanc
 #else
     // This version of the code gives access to the name of the private tags
     DcmTag tagbis(element.getTag());
-    const std::string tagName(tagbis.getTagName());
+    const std::string tagName(tagbis.getTagName());      
 #endif
 
     if (element.isLeaf())
     {
       Json::Value value(Json::objectValue);
       value["Name"] = tagName;
+
+      if (tagbis.getPrivateCreator() != NULL)
+      {
+        value["PrivateCreator"] = tagbis.getPrivateCreator();
+      }
 
       std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element));
       if (v->IsNull())
@@ -1124,7 +1142,7 @@ namespace Orthanc
     const DcmDataDictionary& dict = dcmDataDict.rdlock();
     const DcmDictEntry* entry = dict.findEntry(tag, NULL);
 
-    std::string s("Unknown");
+    std::string s(DcmTag_ERROR_TagName);
     if (entry != NULL)
     {
       s = std::string(entry->getTagName());
@@ -1137,7 +1155,7 @@ namespace Orthanc
     const char* name = tag.getTagName();
     if (name == NULL)
     {
-      return "Unknown";
+      return DcmTag_ERROR_TagName;
     }
     else
     {
@@ -1231,6 +1249,19 @@ namespace Orthanc
 
     switch (level)
     {
+      case DicomRootLevel_Patient:
+      {
+        std::string uuid = Toolbox::GenerateUuid();
+        std::string id;
+        id.reserve(uuid.size());
+        for (size_t i = 0; i < uuid.size() && i < 8; i++)
+        {
+          id.push_back(toupper(uuid[i]));
+        }
+
+        return id;
+      }
+
       case DicomRootLevel_Instance:
         return dcmGenerateUniqueIdentifier(uid, SITE_INSTANCE_UID_ROOT);
 

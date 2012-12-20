@@ -52,6 +52,7 @@ namespace Orthanc
 
   enum DicomRootLevel
   {
+    DicomRootLevel_Patient,
     DicomRootLevel_Study,
     DicomRootLevel_Series,
     DicomRootLevel_Instance
@@ -115,6 +116,8 @@ namespace Orthanc
     void Replace(const DicomTag& tag,
                  const std::string& value,
                  DicomReplaceMode mode);
+
+    void RemovePrivateTags();
   };
 
   class FromDcmtkBridge

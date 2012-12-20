@@ -146,5 +146,15 @@ namespace Orthanc
     void GetChildInstances(std::list<std::string>& result,
                            const std::string& publicId);
 
+    void SetMetadata(const std::string& publicId,
+                     MetadataType type,
+                     const std::string& value);
+
+    bool LookupMetadata(std::string& target,
+                        const std::string& publicId,
+                        MetadataType type);
+
+    bool LookupParent(std::string& target,
+                      const std::string& publicId);
   };
 }

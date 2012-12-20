@@ -1012,4 +1012,61 @@ namespace Orthanc
     }
   }
 
+
+  void ServerIndex::SetMetadata(const std::string& publicId,
+                                MetadataType type,
+                                const std::string& value)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    ResourceType rtype;
+    int64_t id;
+    if (!db_->LookupResource(publicId, id, rtype))
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
+    db_->SetMetadata(id, type, value);
+  }
+
+  bool ServerIndex::LookupMetadata(std::string& target,
+                                   const std::string& publicId,
+                                   MetadataType type)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    ResourceType rtype;
+    int64_t id;
+    if (!db_->LookupResource(publicId, id, rtype))
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
+    return db_->LookupMetadata(target, id, type);
+  }
+
+
+  bool ServerIndex::LookupParent(std::string& target,
+                                 const std::string& publicId)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    ResourceType type;
+    int64_t id;
+    if (!db_->LookupResource(publicId, id, type))
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
+    int64_t parentId;
+    if (db_->LookupParent(parentId, id))
+    {
+      target = db_->GetPublicId(parentId);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
 }
