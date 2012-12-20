@@ -938,6 +938,8 @@ namespace Orthanc
       return;
     }
 
+    // TODO RECONSTRUCT A HIERARCHY OF UIDs
+
     Json::Value removals, replacements;
     if (ParseModifyRequest(removals, replacements, call))
     {
