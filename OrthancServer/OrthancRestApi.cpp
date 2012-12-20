@@ -842,16 +842,23 @@ namespace Orthanc
   // Modification of DICOM instances ------------------------------------------
 
   static void ReplaceInstanceInternal(ParsedDicomFile& toModify,
+                                      const Json::Value& removals,
                                       const Json::Value& replacements,
                                       DicomReplaceMode mode)
   {
-    if (!replacements.isObject())
+    if (!replacements.isObject() ||
+        !removals.isArray())
     {
       throw OrthancException(ErrorCode_BadRequest);
     }
 
-    Json::Value::Members members = replacements.getMemberNames();
+    for (Json::Value::ArrayIndex i = 0; i < removals.size(); i++)
+    {
+      DicomTag tag = FromDcmtkBridge::ParseTag(removals[i].asString());
+      toModify.Remove(tag);
+    }
 
+    Json::Value::Members members = replacements.getMemberNames();
     for (size_t i = 0; i < members.size(); i++)
     {
       const std::string& name = members[i];
@@ -866,8 +873,35 @@ namespace Orthanc
     toModify.Replace(DICOM_TAG_SOP_INSTANCE_UID, instanceUid, DicomReplaceMode_InsertIfAbsent);
   }
 
+ 
+  static bool ParseModifyRequest(Json::Value& removals,
+                                 Json::Value& replacements,
+                                 const RestApi::PostCall& call)
+  {
+    Json::Value request;
+    if (call.ParseJsonRequest(request) &&
+        request.isObject())
+    {
+      removals = Json::arrayValue;
+      replacements = Json::objectValue;
 
-  
+      if (request.isMember("Remove"))
+      {
+        removals = request["Remove"];
+      }
+
+      if (request.isMember("Replace"))
+      {
+        replacements = request["Replace"];
+      }
+
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
 
 
   static void ModifyInstance(RestApi::PostCall& call)
@@ -877,18 +911,98 @@ namespace Orthanc
     std::string id = call.GetUriComponent("id", "");
     ParsedDicomFile& dicom = context.GetDicomFile(id);
     
-    Json::Value request;
-    if (call.ParseJsonRequest(request))
+    Json::Value removals, replacements;
+    if (ParseModifyRequest(removals, replacements, call))
     {
       std::auto_ptr<ParsedDicomFile> modified(dicom.Clone());
-      ReplaceInstanceInternal(*modified, request, DicomReplaceMode_InsertIfAbsent);
+      ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent);
+      context.GetIndex().SetMetadata(id, MetadataType_ModifiedFrom, id);
       modified->Answer(call.GetOutput());
     }
+  }
 
-    /*std::string studyUid = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Study);
-    std::string seriesUid = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series);
-    modified->Replace(DICOM_TAG_SERIES_INSTANCE_UID, seriesUid);
-    modified->Replace(DICOM_TAG_STUDY_INSTANCE_UID, studyUid);*/
+
+  template <enum ResourceType resourceType>
+  static void ModifyInplace(RestApi::PostCall& call)
+  {
+    typedef std::list<std::string> Instances;
+
+    RETRIEVE_CONTEXT(call);
+    
+    Instances instances;
+    std::string id = call.GetUriComponent("id", "");
+    context.GetIndex().GetChildInstances(instances, id);
+
+    if (instances.size() == 0)
+    {
+      return;
+    }
+
+    Json::Value removals, replacements;
+    if (ParseModifyRequest(removals, replacements, call))
+    {
+      switch (resourceType)
+      {
+        // DO NOT ADD "break" OR CHANGE THE ORDER BELOW
+        case ResourceType_Patient:
+          replacements["0010-0020"] = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Patient);
+
+        case ResourceType_Study:
+          replacements["0020-000d"] = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Study);
+
+        case ResourceType_Series:
+          replacements["0020-000e"] = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series);
+          break;
+          
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+
+      std::string modifiedId;
+      for (Instances::const_iterator it = instances.begin(); 
+           it != instances.end(); it++)
+      {
+        LOG(INFO) << "Modifying instance " << *it;
+        ParsedDicomFile& dicom = context.GetDicomFile(*it);
+        std::auto_ptr<ParsedDicomFile> modified(dicom.Clone());
+        ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent);
+
+        if (context.Store(modifiedId, modified->GetDicom()) != StoreStatus_Success)
+        {
+          LOG(ERROR) << "Error while modifying the instance " << *it;
+          return;
+        }
+
+        context.GetIndex().SetMetadata(modifiedId, MetadataType_ModifiedFrom, *it);
+      }
+
+
+      int level;
+      std::string id;
+      switch (resourceType)
+      {
+        case ResourceType_Series:  level = 1; break;
+        case ResourceType_Study:   level = 2; break;
+        case ResourceType_Patient: level = 3; break;
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+
+      for (int i = 0; i < level; i++)
+      {
+        if (!context.GetIndex().LookupParent(id, modifiedId))
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+        
+        modifiedId = id;
+      }
+
+      Json::Value result = Json::objectValue;
+      result["ID"] = id;
+      result["Path"] = GetBasePath(resourceType, id);
+      call.GetOutput().AnswerJson(result);
+    }
   }
 
 
@@ -949,5 +1063,8 @@ namespace Orthanc
     Register("/modalities/{id}/store", DicomStore);
 
     Register("/instances/{id}/modify", ModifyInstance);
+    Register("/series/{id}/modify", ModifyInplace<ResourceType_Series>);
+    Register("/studies/{id}/modify", ModifyInplace<ResourceType_Study>);
+    Register("/patients/{id}/modify", ModifyInplace<ResourceType_Patient>);
   }
 }
