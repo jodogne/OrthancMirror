@@ -571,9 +571,9 @@ namespace Orthanc
   }
 
 
-  void ParsedDicomFile::ReplaceInternal(const DicomTag& tag,
-                                        const std::string& value,
-                                        bool insertOnAbsent)
+  void ParsedDicomFile::Replace(const DicomTag& tag,
+                                const std::string& value,
+                                DicomReplaceMode mode)
   {
     DcmTagKey key(tag.GetGroup(), tag.GetElement());
     DcmElement* element = NULL;
@@ -581,14 +581,18 @@ namespace Orthanc
     if (!file_->getDataset()->findAndGetElement(key, element).good() ||
         element == NULL)
     {
-      if (insertOnAbsent)
+      // This field does not exist, act wrt. the specified "mode"
+      switch (mode)
       {
-        // This field does not exist, use "Insert()" instead
-        Insert(tag, value);
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_InternalError);
+        case DicomReplaceMode_InsertIfAbsent:
+          Insert(tag, value);
+          break;
+
+        case DicomReplaceMode_ThrowIfAbsent:
+          throw OrthancException(ErrorCode_InexistentItem);
+
+        case DicomReplaceMode_IgnoreIfAbsent:
+          return;
       }
     }
     else
@@ -606,27 +610,13 @@ namespace Orthanc
      * option.
      **/
     if (tag == DICOM_TAG_SOP_CLASS_UID)
-      ReplaceInternal(DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID, value, true);
+      Replace(DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID, value, DicomReplaceMode_InsertIfAbsent);
 
     if (tag == DICOM_TAG_SOP_INSTANCE_UID)
-      ReplaceInternal(DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID, value, true);
+      Replace(DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID, value, DicomReplaceMode_InsertIfAbsent);
   }
 
     
-  void ParsedDicomFile::Replace(const DicomTag& tag,
-                                const std::string& value)
-  {
-    return ReplaceInternal(tag, value, false);
-  }
-
-  void ParsedDicomFile::InsertOrReplace(const DicomTag& tag,
-                                        const std::string& value)
-  {
-    return ReplaceInternal(tag, value, true);
-  }
-
-
-
   void ParsedDicomFile::Answer(RestApiOutput& output)
   {
     std::string serialized;
@@ -879,8 +869,15 @@ namespace Orthanc
     assert(target.type() == Json::objectValue);
 
     DicomTag tag(FromDcmtkBridge::GetTag(element));
-    const std::string tagName = FromDcmtkBridge::GetName(tag);
     const std::string formattedTag = tag.Format();
+
+#if 0
+    const std::string tagName = FromDcmtkBridge::GetName(tag);
+#else
+    // This version of the code gives access to the name of the private tags
+    DcmTag tagbis(element.getTag());
+    const std::string tagName(tagbis.getTagName());
+#endif
 
     if (element.isLeaf())
     {
@@ -1122,6 +1119,7 @@ namespace Orthanc
     }
     // End of patches
 
+#if 0
     DcmTagKey tag(t.GetGroup(), t.GetElement());
     const DcmDataDictionary& dict = dcmDataDict.rdlock();
     const DcmDictEntry* entry = dict.findEntry(tag, NULL);
@@ -1134,6 +1132,18 @@ namespace Orthanc
 
     dcmDataDict.unlock();
     return s;
+#else
+    DcmTag tag(t.GetGroup(), t.GetElement());
+    const char* name = tag.getTagName();
+    if (name == NULL)
+    {
+      return "Unknown";
+    }
+    else
+    {
+      return std::string(name);
+    }
+#endif
   }
 
 
@@ -1155,6 +1165,7 @@ namespace Orthanc
       return DicomTag(group, element);
     }
 
+#if 0
     const DcmDataDictionary& dict = dcmDataDict.rdlock();
     const DcmDictEntry* entry = dict.findEntry(name);
 
@@ -1170,6 +1181,17 @@ namespace Orthanc
       dcmDataDict.unlock();
       return tag;
     }
+#else
+    DcmTag tag;
+    if (DcmTag::findTagFromName(name, tag).good())
+    {
+      return DicomTag(tag.getGTag(), tag.getETag());
+    }
+    else
+    {
+      throw OrthancException("Unknown DICOM tag");
+    }
+#endif
   }
 
 

@@ -57,6 +57,13 @@ namespace Orthanc
     DicomRootLevel_Instance
   };
 
+  enum DicomReplaceMode
+  {
+    DicomReplaceMode_InsertIfAbsent,
+    DicomReplaceMode_ThrowIfAbsent,
+    DicomReplaceMode_IgnoreIfAbsent
+  };
+
   class ParsedDicomFile : public IDynamicObject
   {
   private:
@@ -66,10 +73,6 @@ namespace Orthanc
       file_(dynamic_cast<DcmFileFormat*>(other.clone()))
     {
     }
-
-    void ReplaceInternal(const DicomTag& tag,
-                         const std::string& value,
-                         bool insertOnAbsent);
 
     void Setup(const char* content,
                size_t size);
@@ -106,14 +109,12 @@ namespace Orthanc
 
     void Remove(const DicomTag& tag);
 
-    void Replace(const DicomTag& tag,
-                 const std::string& value);
-
     void Insert(const DicomTag& tag,
                 const std::string& value);
-    
-    void InsertOrReplace(const DicomTag& tag,
-                         const std::string& value);
+
+    void Replace(const DicomTag& tag,
+                 const std::string& value,
+                 DicomReplaceMode mode);
   };
 
   class FromDcmtkBridge
