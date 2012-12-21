@@ -59,6 +59,10 @@
 
 namespace Orthanc
 {
+  // TODO IMPROVE MULTITHREADING
+  static boost::mutex cacheMutex_;
+
+
   // DICOM SCU ----------------------------------------------------------------
 
   static void ConnectToModality(DicomUserConnection& connection,
@@ -827,9 +831,7 @@ namespace Orthanc
 
   static void GetRawContent(RestApi::GetCall& call)
   {
-    // TODO IMPROVE MULTITHREADING
-    static boost::mutex mutex_;
-    boost::mutex::scoped_lock lock(mutex_);
+    boost::mutex::scoped_lock lock(cacheMutex_);
 
     RETRIEVE_CONTEXT(call);
     std::string id = call.GetUriComponent("id", "");
@@ -1098,6 +1100,8 @@ namespace Orthanc
                                         bool removePrivateTags,
                                         RestApi::PostCall& call)
   {
+    boost::mutex::scoped_lock lock(cacheMutex_);
+
     RETRIEVE_CONTEXT(call);
     
     std::string id = call.GetUriComponent("id", "");
@@ -1154,31 +1158,33 @@ namespace Orthanc
   {
     RETRIEVE_CONTEXT(call);
     
-    typedef std::list<std::string> Instances;
-    Instances instances;
-    std::string id = call.GetUriComponent("id", "");
-    context.GetIndex().GetChildInstances(instances, id);
-
-    if (instances.size() == 0)
-    {
-      return;
-    }
-
     Removals removals;
     Replacements replacements;
     bool removePrivateTags;
 
     if (ParseModifyRequest(removals, replacements, removePrivateTags, call))
     {
-      std::string newSeriesId;
+      boost::mutex::scoped_lock lock(cacheMutex_);
+
+      typedef std::list<std::string> Instances;
+      Instances instances;
+      std::string id = call.GetUriComponent("id", "");
+      context.GetIndex().GetChildInstances(instances, id);
+
+      if (instances.size() == 0)
+      {
+        return;
+      }
+
       replacements[DICOM_TAG_SERIES_INSTANCE_UID] = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series);
 
+      std::string newSeriesId;
       for (Instances::const_iterator it = instances.begin(); 
            it != instances.end(); it++)
       {
         LOG(INFO) << "Modifying instance " << *it;
-        ParsedDicomFile& dicom = context.GetDicomFile(*it);
-        std::auto_ptr<ParsedDicomFile> modified(dicom.Clone());
+        ParsedDicomFile& original = context.GetDicomFile(*it);
+        std::auto_ptr<ParsedDicomFile> modified(original.Clone());
         ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent, removePrivateTags);
 
         std::string modifiedInstance;
@@ -1188,15 +1194,22 @@ namespace Orthanc
           return;
         }
 
-        if (newSeriesId.size() == 0 &&
-            !context.GetIndex().LookupParent(newSeriesId, modifiedInstance))
+        DicomInstanceHasher modifiedHasher = modified->GetHasher();
+        DicomInstanceHasher originalHasher = original.GetHasher();
+
+        if (newSeriesId.size() == 0)
         {
-          throw OrthancException(ErrorCode_InternalError);
+          assert(id == originalHasher.HashSeries());
+          newSeriesId = modifiedHasher.HashSeries();
+          context.GetIndex().SetMetadata(newSeriesId, MetadataType_ModifiedFrom, id);
         }
 
-        // TODO for the instances and the series:
-        // context.GetIndex().SetMetadata(id, MetadataType_ModifiedFrom, id);
+        assert(*it == originalHasher.HashInstance());
+        assert(modifiedInstance == modifiedHasher.HashInstance());
+        context.GetIndex().SetMetadata(modifiedInstance, MetadataType_ModifiedFrom, *it);
       }
+
+      context.GetIndex().LogChange(ChangeType_ModifiedSeries, newSeriesId);
 
       assert(newSeriesId.size() != 0);
       Json::Value result = Json::objectValue;
@@ -1214,15 +1227,6 @@ namespace Orthanc
     typedef std::list<std::string> Instances;
     typedef std::map<std::string, std::string> SeriesUidMap;
 
-    Instances instances;
-    std::string id = call.GetUriComponent("id", "");
-    context.GetIndex().GetChildInstances(instances, id);
-
-    if (instances.size() == 0)
-    {
-      return;
-    }
-
     SeriesUidMap seriesUidMap;
     Removals removals;
     Replacements replacements;
@@ -1230,6 +1234,17 @@ namespace Orthanc
 
     if (ParseModifyRequest(removals, replacements, removePrivateTags, call))
     {
+      boost::mutex::scoped_lock lock(cacheMutex_);
+
+      Instances instances;
+      std::string id = call.GetUriComponent("id", "");
+      context.GetIndex().GetChildInstances(instances, id);
+
+      if (instances.size() == 0)
+      {
+        return;
+      }
+
       std::string newStudyId;
       replacements[DICOM_TAG_STUDY_INSTANCE_UID] = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Study);
 
@@ -1237,27 +1252,30 @@ namespace Orthanc
            it != instances.end(); it++)
       {
         LOG(INFO) << "Modifying instance " << *it;
-        ParsedDicomFile& dicom = context.GetDicomFile(*it);
+        ParsedDicomFile& original = context.GetDicomFile(*it);
 
-        std::string seriesId;
-        if (!dicom.GetTagValue(seriesId, DICOM_TAG_SERIES_INSTANCE_UID))
+        std::string seriesUid;
+        if (!original.GetTagValue(seriesUid, DICOM_TAG_SERIES_INSTANCE_UID))
         {
           throw OrthancException(ErrorCode_InternalError);
         }
 
-        SeriesUidMap::const_iterator it2 = seriesUidMap.find(seriesId);
+        bool isNewSeries;
+        SeriesUidMap::const_iterator it2 = seriesUidMap.find(seriesUid);
         if (it2 == seriesUidMap.end())
         {
           std::string newSeriesUid = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series);
-          seriesUidMap[seriesId] = newSeriesUid;
+          seriesUidMap[seriesUid] = newSeriesUid;
           replacements[DICOM_TAG_SERIES_INSTANCE_UID] = newSeriesUid;
+          isNewSeries = true;
         }
         else
         {
           replacements[DICOM_TAG_SERIES_INSTANCE_UID] = it2->second;
+          isNewSeries = false;
         }
 
-        std::auto_ptr<ParsedDicomFile> modified(dicom.Clone());
+        std::auto_ptr<ParsedDicomFile> modified(original.Clone());
         ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent, removePrivateTags);
 
         std::string modifiedInstance;
@@ -1267,19 +1285,27 @@ namespace Orthanc
           return;
         }
 
+        DicomInstanceHasher modifiedHasher = modified->GetHasher();
+        DicomInstanceHasher originalHasher = original.GetHasher();
+
+        if (isNewSeries)
+        {
+          context.GetIndex().SetMetadata
+            (modifiedHasher.HashSeries(), MetadataType_ModifiedFrom, originalHasher.HashSeries());
+        }
+
         if (newStudyId.size() == 0)
         {
-          // TODO FOR instances, studies and series:
-          // context.GetIndex().SetMetadata(id, MetadataType_ModifiedFrom, id);
-
-          std::string newSeriesId;
-          if (!context.GetIndex().LookupParent(newSeriesId, modifiedInstance) ||
-              !context.GetIndex().LookupParent(newStudyId, newSeriesId))
-          {
-            throw OrthancException(ErrorCode_InternalError);
-          }
+          newStudyId = modifiedHasher.HashStudy();
+          context.GetIndex().SetMetadata(newStudyId, MetadataType_ModifiedFrom, originalHasher.HashStudy());
         }
+
+        assert(*it == originalHasher.HashInstance());
+        assert(modifiedInstance == modifiedHasher.HashInstance());
+        context.GetIndex().SetMetadata(modifiedInstance, MetadataType_ModifiedFrom, *it);
       }
+
+      context.GetIndex().LogChange(ChangeType_ModifiedStudy, newStudyId);
 
       assert(newStudyId.size() != 0);
       Json::Value result = Json::objectValue;

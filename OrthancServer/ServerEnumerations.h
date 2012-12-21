@@ -88,7 +88,11 @@ namespace Orthanc
     ChangeType_NewInstance = 2,
     ChangeType_NewPatient = 3,
     ChangeType_NewSeries = 4,
-    ChangeType_NewStudy = 5
+    ChangeType_NewStudy = 5,
+    ChangeType_AnonymizedStudy = 6,
+    ChangeType_AnonymizedSeries = 7,
+    ChangeType_ModifiedStudy = 8,
+    ChangeType_ModifiedSeries = 9
   };
 
   std::string GetBasePath(ResourceType type,
