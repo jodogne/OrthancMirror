@@ -156,5 +156,7 @@ namespace Orthanc
 
     bool LookupParent(std::string& target,
                       const std::string& publicId);
+
+    uint64_t IncrementGlobalSequence(GlobalProperty sequence);
   };
 }

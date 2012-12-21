@@ -1069,4 +1069,11 @@ namespace Orthanc
       return false;
     }
   }
+
+
+  uint64_t ServerIndex::IncrementGlobalSequence(GlobalProperty sequence)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    return db_->IncrementGlobalSequence(sequence);
+  }
 }
