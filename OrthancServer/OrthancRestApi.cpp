@@ -1262,21 +1262,21 @@ namespace Orthanc
       if (isNewSeries)
       {
         context.GetIndex().SetMetadata
-          (modifiedHasher.HashSeries(), MetadataType_ModifiedFrom, originalHasher.HashSeries());
+          (modifiedHasher.HashSeries(), metadataType, originalHasher.HashSeries());
       }
 
       if (newStudyId.size() == 0)
       {
         newStudyId = modifiedHasher.HashStudy();
-        context.GetIndex().SetMetadata(newStudyId, MetadataType_ModifiedFrom, originalHasher.HashStudy());
+        context.GetIndex().SetMetadata(newStudyId, metadataType, originalHasher.HashStudy());
       }
 
       assert(*it == originalHasher.HashInstance());
       assert(modifiedInstance == modifiedHasher.HashInstance());
-      context.GetIndex().SetMetadata(modifiedInstance, MetadataType_ModifiedFrom, *it);
+      context.GetIndex().SetMetadata(modifiedInstance, metadataType, *it);
     }
 
-    context.GetIndex().LogChange(ChangeType_ModifiedStudy, newStudyId);
+    context.GetIndex().LogChange(changeType, newStudyId);
 
     assert(newStudyId.size() != 0);
     Json::Value result = Json::objectValue;

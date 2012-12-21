@@ -1,8 +1,15 @@
 Pending changes in the mainline
 ===============================
 
+Major changes
+-------------
+
 * Download of modified or anonymized DICOM instances
-* Inplace modifications to DICOM series and studies
+* Inplace modification and anymization of DICOM series and studies
+
+Minor changes
+-------------
+
 * Support of private tags
 
 
