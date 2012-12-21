@@ -60,6 +60,7 @@
 namespace Orthanc
 {
   // TODO IMPROVE MULTITHREADING
+  // Every call to "ParsedDicomFile" must lock this mutex!!!
   static boost::mutex cacheMutex_;
 
 
@@ -1038,8 +1039,10 @@ namespace Orthanc
   static bool ParseAnonymizationRequest(Removals& removals,
                                         Replacements& replacements,
                                         bool& removePrivateTags,
-                                        const RestApi::PostCall& call)
+                                        RestApi::PostCall& call)
   {
+    RETRIEVE_CONTEXT(call);
+
     removePrivateTags = true;
 
     Json::Value request;
@@ -1086,6 +1089,19 @@ namespace Orthanc
 
       ParseReplacements(replacements, replacementsPart);
 
+      // Generate random Patient's Name if none is specified
+      if (replacements.find(DicomTag(0x0010, 0x0010)) == replacements.end())
+      {
+        replacements.insert(std::make_pair(DicomTag(0x0010, 0x0010), GeneratePatientName(context)));
+      }
+
+      // Generate random Patient's ID if none is specified
+      if (replacements.find(DICOM_TAG_PATIENT_ID) == replacements.end())
+      {
+        replacements.insert(std::make_pair(DICOM_TAG_PATIENT_ID, 
+                                           FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Patient)));
+      }
+
       return true;
     }
     else
@@ -1113,6 +1129,164 @@ namespace Orthanc
   }
 
 
+  static void AnonymizeOrModifySeries(Removals removals,
+                                      Replacements replacements,
+                                      bool removePrivateTags,
+                                      MetadataType metadataType,
+                                      ChangeType changeType,
+                                      RestApi::PostCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+    
+    boost::mutex::scoped_lock lock(cacheMutex_);
+
+    typedef std::list<std::string> Instances;
+    Instances instances;
+    std::string id = call.GetUriComponent("id", "");
+    context.GetIndex().GetChildInstances(instances, id);
+
+    if (instances.size() == 0)
+    {
+      return;
+    }
+
+    replacements[DICOM_TAG_SERIES_INSTANCE_UID] = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series);
+
+    std::string newSeriesId;
+    for (Instances::const_iterator it = instances.begin(); 
+         it != instances.end(); it++)
+    {
+      LOG(INFO) << "Modifying instance " << *it;
+      ParsedDicomFile& original = context.GetDicomFile(*it);
+      std::auto_ptr<ParsedDicomFile> modified(original.Clone());
+      ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent, removePrivateTags);
+
+      std::string modifiedInstance;
+      if (context.Store(modifiedInstance, modified->GetDicom()) != StoreStatus_Success)
+      {
+        LOG(ERROR) << "Error while storing a modified instance " << *it;
+        return;
+      }
+
+      DicomInstanceHasher modifiedHasher = modified->GetHasher();
+      DicomInstanceHasher originalHasher = original.GetHasher();
+
+      if (newSeriesId.size() == 0)
+      {
+        assert(id == originalHasher.HashSeries());
+        newSeriesId = modifiedHasher.HashSeries();
+        context.GetIndex().SetMetadata(newSeriesId, metadataType, id);
+      }
+
+      assert(*it == originalHasher.HashInstance());
+      assert(modifiedInstance == modifiedHasher.HashInstance());
+      context.GetIndex().SetMetadata(modifiedInstance, metadataType, *it);
+    }
+
+    context.GetIndex().LogChange(changeType, newSeriesId);
+
+    assert(newSeriesId.size() != 0);
+    Json::Value result = Json::objectValue;
+    result["ID"] = newSeriesId;
+    result["Path"] = GetBasePath(ResourceType_Series, newSeriesId);
+    call.GetOutput().AnswerJson(result);
+  }
+
+
+  static void AnonymizeOrModifyStudy(Removals removals,
+                                     Replacements replacements,
+                                     bool removePrivateTags,
+                                     MetadataType metadataType,
+                                     ChangeType changeType,
+                                     RestApi::PostCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+    boost::mutex::scoped_lock lock(cacheMutex_);
+
+    typedef std::list<std::string> Instances;
+    typedef std::map<std::string, std::string> SeriesUidMap;
+
+    Instances instances;
+    std::string id = call.GetUriComponent("id", "");
+    context.GetIndex().GetChildInstances(instances, id);
+
+    if (instances.size() == 0)
+    {
+      return;
+    }
+
+    std::string newStudyId;
+    replacements[DICOM_TAG_STUDY_INSTANCE_UID] = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Study);
+
+    SeriesUidMap seriesUidMap;
+    for (Instances::const_iterator it = instances.begin(); 
+         it != instances.end(); it++)
+    {
+      LOG(INFO) << "Modifying instance " << *it;
+      ParsedDicomFile& original = context.GetDicomFile(*it);
+
+      std::string seriesUid;
+      if (!original.GetTagValue(seriesUid, DICOM_TAG_SERIES_INSTANCE_UID))
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      bool isNewSeries;
+      SeriesUidMap::const_iterator it2 = seriesUidMap.find(seriesUid);
+      if (it2 == seriesUidMap.end())
+      {
+        std::string newSeriesUid = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series);
+        seriesUidMap[seriesUid] = newSeriesUid;
+        replacements[DICOM_TAG_SERIES_INSTANCE_UID] = newSeriesUid;
+        isNewSeries = true;
+      }
+      else
+      {
+        replacements[DICOM_TAG_SERIES_INSTANCE_UID] = it2->second;
+        isNewSeries = false;
+      }
+
+      std::auto_ptr<ParsedDicomFile> modified(original.Clone());
+      ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent, removePrivateTags);
+
+      std::string modifiedInstance;
+      if (context.Store(modifiedInstance, modified->GetDicom()) != StoreStatus_Success)
+      {
+        LOG(ERROR) << "Error while storing a modified instance " << *it;
+        return;
+      }
+
+      DicomInstanceHasher modifiedHasher = modified->GetHasher();
+      DicomInstanceHasher originalHasher = original.GetHasher();
+
+      if (isNewSeries)
+      {
+        context.GetIndex().SetMetadata
+          (modifiedHasher.HashSeries(), MetadataType_ModifiedFrom, originalHasher.HashSeries());
+      }
+
+      if (newStudyId.size() == 0)
+      {
+        newStudyId = modifiedHasher.HashStudy();
+        context.GetIndex().SetMetadata(newStudyId, MetadataType_ModifiedFrom, originalHasher.HashStudy());
+      }
+
+      assert(*it == originalHasher.HashInstance());
+      assert(modifiedInstance == modifiedHasher.HashInstance());
+      context.GetIndex().SetMetadata(modifiedInstance, MetadataType_ModifiedFrom, *it);
+    }
+
+    context.GetIndex().LogChange(ChangeType_ModifiedStudy, newStudyId);
+
+    assert(newStudyId.size() != 0);
+    Json::Value result = Json::objectValue;
+    result["ID"] = newStudyId;
+    result["Path"] = GetBasePath(ResourceType_Study, newStudyId);
+    call.GetOutput().AnswerJson(result);
+  }
+
+
+
   static void ModifyInstance(RestApi::PostCall& call)
   {
     Removals removals;
@@ -1128,27 +1302,12 @@ namespace Orthanc
 
   static void AnonymizeInstance(RestApi::PostCall& call)
   {
-    RETRIEVE_CONTEXT(call);
-    
     Removals removals;
     Replacements replacements;
     bool removePrivateTags;
 
     if (ParseAnonymizationRequest(removals, replacements, removePrivateTags, call))
     {
-      // Generate random Patient's Name if none is specified
-      if (replacements.find(DicomTag(0x0010, 0x0010)) == replacements.end())
-      {
-        replacements.insert(std::make_pair(DicomTag(0x0010, 0x0010), GeneratePatientName(context)));
-      }
-
-      // Generate random Patient's ID if none is specified
-      if (replacements.find(DICOM_TAG_PATIENT_ID) == replacements.end())
-      {
-        replacements.insert(std::make_pair(DICOM_TAG_PATIENT_ID, 
-                                           FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Patient)));
-      }
-
       AnonymizeOrModifyInstance(removals, replacements, removePrivateTags, call);
     }
   }
@@ -1156,165 +1315,58 @@ namespace Orthanc
 
   static void ModifySeriesInplace(RestApi::PostCall& call)
   {
-    RETRIEVE_CONTEXT(call);
-    
     Removals removals;
     Replacements replacements;
     bool removePrivateTags;
 
     if (ParseModifyRequest(removals, replacements, removePrivateTags, call))
     {
-      boost::mutex::scoped_lock lock(cacheMutex_);
+      AnonymizeOrModifySeries(removals, replacements, removePrivateTags, 
+                              MetadataType_ModifiedFrom, ChangeType_ModifiedSeries, call);
+    }
+  }
 
-      typedef std::list<std::string> Instances;
-      Instances instances;
-      std::string id = call.GetUriComponent("id", "");
-      context.GetIndex().GetChildInstances(instances, id);
 
-      if (instances.size() == 0)
-      {
-        return;
-      }
+  static void AnonymizeSeriesInplace(RestApi::PostCall& call)
+  {
+    Removals removals;
+    Replacements replacements;
+    bool removePrivateTags;
 
-      replacements[DICOM_TAG_SERIES_INSTANCE_UID] = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series);
-
-      std::string newSeriesId;
-      for (Instances::const_iterator it = instances.begin(); 
-           it != instances.end(); it++)
-      {
-        LOG(INFO) << "Modifying instance " << *it;
-        ParsedDicomFile& original = context.GetDicomFile(*it);
-        std::auto_ptr<ParsedDicomFile> modified(original.Clone());
-        ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent, removePrivateTags);
-
-        std::string modifiedInstance;
-        if (context.Store(modifiedInstance, modified->GetDicom()) != StoreStatus_Success)
-        {
-          LOG(ERROR) << "Error while storing a modified instance " << *it;
-          return;
-        }
-
-        DicomInstanceHasher modifiedHasher = modified->GetHasher();
-        DicomInstanceHasher originalHasher = original.GetHasher();
-
-        if (newSeriesId.size() == 0)
-        {
-          assert(id == originalHasher.HashSeries());
-          newSeriesId = modifiedHasher.HashSeries();
-          context.GetIndex().SetMetadata(newSeriesId, MetadataType_ModifiedFrom, id);
-        }
-
-        assert(*it == originalHasher.HashInstance());
-        assert(modifiedInstance == modifiedHasher.HashInstance());
-        context.GetIndex().SetMetadata(modifiedInstance, MetadataType_ModifiedFrom, *it);
-      }
-
-      context.GetIndex().LogChange(ChangeType_ModifiedSeries, newSeriesId);
-
-      assert(newSeriesId.size() != 0);
-      Json::Value result = Json::objectValue;
-      result["ID"] = newSeriesId;
-      result["Path"] = GetBasePath(ResourceType_Series, newSeriesId);
-      call.GetOutput().AnswerJson(result);
+    if (ParseAnonymizationRequest(removals, replacements, removePrivateTags, call))
+    {
+      AnonymizeOrModifySeries(removals, replacements, removePrivateTags, 
+                              MetadataType_AnonymizedFrom, ChangeType_AnonymizedSeries, call);
     }
   }
 
 
   static void ModifyStudyInplace(RestApi::PostCall& call)
   {
-    RETRIEVE_CONTEXT(call);
-    
-    typedef std::list<std::string> Instances;
-    typedef std::map<std::string, std::string> SeriesUidMap;
-
-    SeriesUidMap seriesUidMap;
     Removals removals;
     Replacements replacements;
     bool removePrivateTags;
 
     if (ParseModifyRequest(removals, replacements, removePrivateTags, call))
     {
-      boost::mutex::scoped_lock lock(cacheMutex_);
-
-      Instances instances;
-      std::string id = call.GetUriComponent("id", "");
-      context.GetIndex().GetChildInstances(instances, id);
-
-      if (instances.size() == 0)
-      {
-        return;
-      }
-
-      std::string newStudyId;
-      replacements[DICOM_TAG_STUDY_INSTANCE_UID] = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Study);
-
-      for (Instances::const_iterator it = instances.begin(); 
-           it != instances.end(); it++)
-      {
-        LOG(INFO) << "Modifying instance " << *it;
-        ParsedDicomFile& original = context.GetDicomFile(*it);
-
-        std::string seriesUid;
-        if (!original.GetTagValue(seriesUid, DICOM_TAG_SERIES_INSTANCE_UID))
-        {
-          throw OrthancException(ErrorCode_InternalError);
-        }
-
-        bool isNewSeries;
-        SeriesUidMap::const_iterator it2 = seriesUidMap.find(seriesUid);
-        if (it2 == seriesUidMap.end())
-        {
-          std::string newSeriesUid = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series);
-          seriesUidMap[seriesUid] = newSeriesUid;
-          replacements[DICOM_TAG_SERIES_INSTANCE_UID] = newSeriesUid;
-          isNewSeries = true;
-        }
-        else
-        {
-          replacements[DICOM_TAG_SERIES_INSTANCE_UID] = it2->second;
-          isNewSeries = false;
-        }
-
-        std::auto_ptr<ParsedDicomFile> modified(original.Clone());
-        ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent, removePrivateTags);
-
-        std::string modifiedInstance;
-        if (context.Store(modifiedInstance, modified->GetDicom()) != StoreStatus_Success)
-        {
-          LOG(ERROR) << "Error while storing a modified instance " << *it;
-          return;
-        }
-
-        DicomInstanceHasher modifiedHasher = modified->GetHasher();
-        DicomInstanceHasher originalHasher = original.GetHasher();
-
-        if (isNewSeries)
-        {
-          context.GetIndex().SetMetadata
-            (modifiedHasher.HashSeries(), MetadataType_ModifiedFrom, originalHasher.HashSeries());
-        }
-
-        if (newStudyId.size() == 0)
-        {
-          newStudyId = modifiedHasher.HashStudy();
-          context.GetIndex().SetMetadata(newStudyId, MetadataType_ModifiedFrom, originalHasher.HashStudy());
-        }
-
-        assert(*it == originalHasher.HashInstance());
-        assert(modifiedInstance == modifiedHasher.HashInstance());
-        context.GetIndex().SetMetadata(modifiedInstance, MetadataType_ModifiedFrom, *it);
-      }
-
-      context.GetIndex().LogChange(ChangeType_ModifiedStudy, newStudyId);
-
-      assert(newStudyId.size() != 0);
-      Json::Value result = Json::objectValue;
-      result["ID"] = newStudyId;
-      result["Path"] = GetBasePath(ResourceType_Study, newStudyId);
-      call.GetOutput().AnswerJson(result);
+      AnonymizeOrModifyStudy(removals, replacements, removePrivateTags, 
+                             MetadataType_ModifiedFrom, ChangeType_ModifiedStudy, call);
     }
   }
 
+
+  static void AnonymizeStudyInplace(RestApi::PostCall& call)
+  {
+    Removals removals;
+    Replacements replacements;
+    bool removePrivateTags;
+
+    if (ParseAnonymizationRequest(removals, replacements, removePrivateTags, call))
+    {
+      AnonymizeOrModifyStudy(removals, replacements, removePrivateTags, 
+                             MetadataType_AnonymizedFrom, ChangeType_AnonymizedStudy, call);
+    }
+  }
 
 
 
@@ -1378,5 +1430,7 @@ namespace Orthanc
     Register("/studies/{id}/modify", ModifyStudyInplace);
 
     Register("/instances/{id}/anonymize", AnonymizeInstance);
+    Register("/series/{id}/anonymize", AnonymizeSeriesInplace);
+    Register("/studies/{id}/anonymize", AnonymizeStudyInplace);
   }
 }
