@@ -661,6 +661,34 @@ namespace Orthanc
   }
 
 
+
+  bool ParsedDicomFile::GetTagValue(std::string& value,
+                                    const DicomTag& tag)
+  {
+    DcmTagKey k(tag.GetGroup(), tag.GetElement());
+    DcmDataset& dataset = *file_->getDataset();
+    DcmElement* element = NULL;
+    if (!dataset.findAndGetElement(k, element).good() ||
+        element == NULL)
+    {
+      return false;
+    }
+
+    std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(*element));
+
+    if (v.get() == NULL)
+    {
+      value = "";
+    }
+    else
+    {
+      value = v->AsString();
+    }
+
+    return true;
+  }
+
+
   void FromDcmtkBridge::Convert(DicomMap& target, DcmDataset& dataset)
   {
     target.Clear();

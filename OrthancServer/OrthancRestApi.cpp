@@ -922,13 +922,11 @@ namespace Orthanc
   }
 
 
-  template <enum ResourceType resourceType>
-  static void ModifyInplace(RestApi::PostCall& call)
+  static void ModifySeriesInplace(RestApi::PostCall& call)
   {
-    typedef std::list<std::string> Instances;
-
     RETRIEVE_CONTEXT(call);
     
+    typedef std::list<std::string> Instances;
     Instances instances;
     std::string id = call.GetUriComponent("id", "");
     context.GetIndex().GetChildInstances(instances, id);
@@ -938,29 +936,12 @@ namespace Orthanc
       return;
     }
 
-    // TODO RECONSTRUCT A HIERARCHY OF UIDs
-
     Json::Value removals, replacements;
     if (ParseModifyRequest(removals, replacements, call))
     {
-      switch (resourceType)
-      {
-        // DO NOT ADD "break" OR CHANGE THE ORDER BELOW
-        case ResourceType_Patient:
-          replacements["0010-0020"] = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Patient);
+      std::string newSeriesId;
+      replacements["0020-000e"] = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series);
 
-        case ResourceType_Study:
-          replacements["0020-000d"] = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Study);
-
-        case ResourceType_Series:
-          replacements["0020-000e"] = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series);
-          break;
-          
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }
-
-      std::string modifiedId;
       for (Instances::const_iterator it = instances.begin(); 
            it != instances.end(); it++)
       {
@@ -969,43 +950,106 @@ namespace Orthanc
         std::auto_ptr<ParsedDicomFile> modified(dicom.Clone());
         ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent);
 
-        if (context.Store(modifiedId, modified->GetDicom()) != StoreStatus_Success)
+        std::string modifiedInstance;
+        if (context.Store(modifiedInstance, modified->GetDicom()) != StoreStatus_Success)
         {
-          LOG(ERROR) << "Error while modifying the instance " << *it;
+          LOG(ERROR) << "Error while storing a modified instance " << *it;
           return;
         }
 
-        context.GetIndex().SetMetadata(modifiedId, MetadataType_ModifiedFrom, *it);
-      }
-
-
-      int level;
-      std::string id;
-      switch (resourceType)
-      {
-        case ResourceType_Series:  level = 1; break;
-        case ResourceType_Study:   level = 2; break;
-        case ResourceType_Patient: level = 3; break;
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }
-
-      for (int i = 0; i < level; i++)
-      {
-        if (!context.GetIndex().LookupParent(id, modifiedId))
+        if (newSeriesId.size() == 0 &&
+            !context.GetIndex().LookupParent(newSeriesId, modifiedInstance))
         {
           throw OrthancException(ErrorCode_InternalError);
         }
-        
-        modifiedId = id;
       }
 
+      assert(newSeriesId.size() != 0);
       Json::Value result = Json::objectValue;
-      result["ID"] = id;
-      result["Path"] = GetBasePath(resourceType, id);
+      result["ID"] = newSeriesId;
+      result["Path"] = GetBasePath(ResourceType_Series, newSeriesId);
       call.GetOutput().AnswerJson(result);
     }
   }
+
+
+  static void ModifyStudyInplace(RestApi::PostCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+    
+    typedef std::list<std::string> Instances;
+    typedef std::map<std::string, std::string> SeriesUidMap;
+
+    Instances instances;
+    std::string id = call.GetUriComponent("id", "");
+    context.GetIndex().GetChildInstances(instances, id);
+
+    if (instances.size() == 0)
+    {
+      return;
+    }
+
+    SeriesUidMap seriesUidMap;
+
+    Json::Value removals, replacements;
+    if (ParseModifyRequest(removals, replacements, call))
+    {
+      std::string newStudyId;
+      replacements["0020-000d"] = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Study);
+
+      for (Instances::const_iterator it = instances.begin(); 
+           it != instances.end(); it++)
+      {
+        LOG(INFO) << "Modifying instance " << *it;
+        ParsedDicomFile& dicom = context.GetDicomFile(*it);
+
+        std::string seriesId;
+        if (!dicom.GetTagValue(seriesId, DICOM_TAG_SERIES_INSTANCE_UID))
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+
+        SeriesUidMap::const_iterator it2 = seriesUidMap.find(seriesId);
+        if (it2 == seriesUidMap.end())
+        {
+          std::string newSeriesUid = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series);
+          seriesUidMap[seriesId] = newSeriesUid;
+          replacements["0020-000e"] = newSeriesUid;
+        }
+        else
+        {
+          replacements["0020-000e"] = it2->second;
+        }
+
+        std::auto_ptr<ParsedDicomFile> modified(dicom.Clone());
+        ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent);
+
+        std::string modifiedInstance;
+        if (context.Store(modifiedInstance, modified->GetDicom()) != StoreStatus_Success)
+        {
+          LOG(ERROR) << "Error while storing a modified instance " << *it;
+          return;
+        }
+
+        if (newStudyId.size() == 0)
+        {
+          std::string newSeriesId;
+          if (!context.GetIndex().LookupParent(newSeriesId, modifiedInstance) ||
+              !context.GetIndex().LookupParent(newStudyId, newSeriesId))
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+        }
+      }
+
+      assert(newStudyId.size() != 0);
+      Json::Value result = Json::objectValue;
+      result["ID"] = newStudyId;
+      result["Path"] = GetBasePath(ResourceType_Study, newStudyId);
+      call.GetOutput().AnswerJson(result);
+    }
+  }
+
 
 
 
@@ -1065,8 +1109,7 @@ namespace Orthanc
     Register("/modalities/{id}/store", DicomStore);
 
     Register("/instances/{id}/modify", ModifyInstance);
-    Register("/series/{id}/modify", ModifyInplace<ResourceType_Series>);
-    Register("/studies/{id}/modify", ModifyInplace<ResourceType_Study>);
-    Register("/patients/{id}/modify", ModifyInplace<ResourceType_Patient>);
+    Register("/series/{id}/modify", ModifySeriesInplace);
+    Register("/studies/{id}/modify", ModifyStudyInplace);
   }
 }
