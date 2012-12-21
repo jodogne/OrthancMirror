@@ -137,6 +137,18 @@ namespace Orthanc
       case ChangeType_NewStudy:
         return "NewStudy";
 
+      case ChangeType_AnonymizedStudy:
+        return "AnonymizedStudy";
+
+      case ChangeType_AnonymizedSeries:
+        return "AnonymizedSeries";
+
+      case ChangeType_ModifiedStudy:
+        return "ModifiedStudy";
+
+      case ChangeType_ModifiedSeries:
+        return "ModifiedSeries";
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }

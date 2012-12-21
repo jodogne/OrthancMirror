@@ -663,6 +663,16 @@ namespace Orthanc
     result["ID"] = publicId;
     MainDicomTagsToJson(result, id);
 
+    std::string tmp;
+
+    tmp = db_->GetMetadata(id, MetadataType_AnonymizedFrom);
+    if (tmp.size() != 0)
+      result["AnonymizedFrom"] = tmp;
+
+    tmp = db_->GetMetadata(id, MetadataType_ModifiedFrom);
+    if (tmp.size() != 0)
+      result["ModifiedFrom"] = tmp;
+
     return true;
   }
 
@@ -1082,5 +1092,26 @@ namespace Orthanc
     transaction->Commit();
 
     return seq;
+  }
+
+
+
+  void ServerIndex::LogChange(ChangeType changeType,
+                              const std::string& publicId)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    std::auto_ptr<SQLite::Transaction> transaction(db_->StartTransaction());
+    transaction->Begin();
+
+    int64_t id;
+    ResourceType type;
+    if (!db_->LookupResource(publicId, id, type))
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
+    db_->LogChange(changeType, id, type);
+
+    transaction->Commit();
   }
 }

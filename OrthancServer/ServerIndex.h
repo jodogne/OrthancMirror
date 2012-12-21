@@ -158,5 +158,8 @@ namespace Orthanc
                       const std::string& publicId);
 
     uint64_t IncrementGlobalSequence(GlobalProperty sequence);
+
+    void LogChange(ChangeType changeType,
+                   const std::string& publicId);
   };
 }

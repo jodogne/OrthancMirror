@@ -690,6 +690,23 @@ namespace Orthanc
   }
 
 
+
+  DicomInstanceHasher ParsedDicomFile::GetHasher()
+  {
+    std::string patientId, studyUid, seriesUid, instanceUid;
+
+    if (!GetTagValue(patientId, DICOM_TAG_PATIENT_ID) ||
+        !GetTagValue(studyUid, DICOM_TAG_STUDY_INSTANCE_UID) ||
+        !GetTagValue(seriesUid, DICOM_TAG_SERIES_INSTANCE_UID) ||
+        !GetTagValue(instanceUid, DICOM_TAG_SOP_INSTANCE_UID))
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    return DicomInstanceHasher(patientId, studyUid, seriesUid, instanceUid);
+  }
+
+
   void FromDcmtkBridge::Convert(DicomMap& target, DcmDataset& dataset)
   {
     target.Clear();

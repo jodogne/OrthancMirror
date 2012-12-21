@@ -36,12 +36,15 @@
 
 namespace Orthanc
 {
-  DicomInstanceHasher::DicomInstanceHasher(const DicomMap& instance)
+  void DicomInstanceHasher::Setup(const std::string& patientId,
+                                  const std::string& studyUid,
+                                  const std::string& seriesUid,
+                                  const std::string& instanceUid)
   {
-    patientId_ = instance.GetValue(DICOM_TAG_PATIENT_ID).AsString();
-    studyUid_ = instance.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString();
-    seriesUid_ = instance.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).AsString();
-    instanceUid_ = instance.GetValue(DICOM_TAG_SOP_INSTANCE_UID).AsString();
+    patientId_ = patientId;
+    studyUid_ = studyUid;
+    seriesUid_ = seriesUid;
+    instanceUid_ = instanceUid;
 
     if (patientId_.size() == 0 ||
         studyUid_.size() == 0 ||
@@ -50,6 +53,14 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
+  }
+
+  DicomInstanceHasher::DicomInstanceHasher(const DicomMap& instance)
+  {
+    Setup(instance.GetValue(DICOM_TAG_PATIENT_ID).AsString(),
+          instance.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString(),
+          instance.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).AsString(),
+          instance.GetValue(DICOM_TAG_SOP_INSTANCE_UID).AsString());
   }
 
   const std::string& DicomInstanceHasher::HashPatient()

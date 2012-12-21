@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include "../Core/DicomFormat/DicomMap.h"
+#include "../Core/DicomFormat/DicomInstanceHasher.h"
 #include "../Core/RestApi/RestApiOutput.h"
 #include "../Core/Toolbox.h"
 
@@ -121,6 +121,8 @@ namespace Orthanc
 
     bool GetTagValue(std::string& value,
                      const DicomTag& tag);
+
+    DicomInstanceHasher GetHasher();
   };
 
   class FromDcmtkBridge
