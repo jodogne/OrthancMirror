@@ -210,5 +210,7 @@ namespace Orthanc
     {
       db_.FlushToDisk();
     }
+
+    uint64_t IncrementGlobalSequence(GlobalProperty property);
   };
 }

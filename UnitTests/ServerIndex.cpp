@@ -404,3 +404,16 @@ TEST(DatabaseWrapper, PatientProtection)
   ASSERT_EQ(0u, index.GetTableRecordCount("Resources")); 
   ASSERT_EQ(0u, index.GetTableRecordCount("PatientRecyclingOrder")); 
 }
+
+
+
+TEST(DatabaseWrapper, Sequence)
+{
+  ServerIndexListener listener;
+  DatabaseWrapper index(listener);
+
+  ASSERT_EQ(1u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
+  ASSERT_EQ(2u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
+  ASSERT_EQ(3u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
+  ASSERT_EQ(4u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
+}

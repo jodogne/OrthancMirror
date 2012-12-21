@@ -866,4 +866,32 @@ namespace Orthanc
       // Nothing to do: The patient is already unprotected
     }
   }
+
+
+  uint64_t DatabaseWrapper::IncrementGlobalSequence(GlobalProperty property)
+  {
+    std::string oldValue;
+
+    if (LookupGlobalProperty(oldValue, property))
+    {
+      uint64_t oldNumber;
+
+      try
+      {
+        oldNumber = boost::lexical_cast<uint64_t>(oldValue);
+        SetGlobalProperty(property, boost::lexical_cast<std::string>(oldNumber + 1));
+        return oldNumber + 1;
+      }
+      catch (boost::bad_lexical_cast&)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+    else
+    {
+      // Initialize the sequence at "1"
+      SetGlobalProperty(property, "1");
+      return 1;
+    }
+  }
 }

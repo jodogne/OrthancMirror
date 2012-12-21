@@ -841,22 +841,59 @@ namespace Orthanc
 
   // Modification of DICOM instances ------------------------------------------
 
+  typedef std::set<DicomTag> Removals;
+  typedef std::map<DicomTag, std::string> Replacements;
+
   static void ReplaceInstanceInternal(ParsedDicomFile& toModify,
-                                      const Json::Value& removals,
-                                      const Json::Value& replacements,
+                                      const Removals& removals,
+                                      const Replacements& replacements,
                                       DicomReplaceMode mode)
   {
-    if (!replacements.isObject() ||
-        !removals.isArray())
+    for (Removals::const_iterator it = removals.begin(); 
+         it != removals.end(); it++)
+    {
+      toModify.Remove(*it);
+    }
+
+    for (Replacements::const_iterator it = replacements.begin(); 
+         it != replacements.end(); it++)
+    {
+      toModify.Replace(it->first, it->second, mode);
+    }
+
+    // A new SOP instance UID is automatically generated
+    std::string instanceUid = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Instance);
+    toModify.Replace(DICOM_TAG_SOP_INSTANCE_UID, instanceUid, DicomReplaceMode_InsertIfAbsent);
+  }
+
+
+  static void ParseRemovals(Removals& target,
+                            const Json::Value& removals)
+  {
+    if (!removals.isArray())
     {
       throw OrthancException(ErrorCode_BadRequest);
     }
 
+    target.clear();
+
     for (Json::Value::ArrayIndex i = 0; i < removals.size(); i++)
     {
       DicomTag tag = FromDcmtkBridge::ParseTag(removals[i].asString());
-      toModify.Remove(tag);
+      target.insert(tag);
     }
+  }
+
+
+  static void ParseReplacements(Replacements& target,
+                                const Json::Value& replacements)
+  {
+    if (!replacements.isObject())
+    {
+      throw OrthancException(ErrorCode_BadRequest);
+    }
+
+    target.clear();
 
     Json::Value::Members members = replacements.getMemberNames();
     for (size_t i = 0; i < members.size(); i++)
@@ -865,35 +902,66 @@ namespace Orthanc
       std::string value = replacements[name].asString();
 
       DicomTag tag = FromDcmtkBridge::ParseTag(name);      
-      toModify.Replace(tag, value, mode);
+      target[tag] = value;
     }
-
-    // A new SOP instance UID is automatically generated
-    std::string instanceUid = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Instance);
-    toModify.Replace(DICOM_TAG_SOP_INSTANCE_UID, instanceUid, DicomReplaceMode_InsertIfAbsent);
   }
 
- 
-  static bool ParseModifyRequest(Json::Value& removals,
-                                 Json::Value& replacements,
+
+  static void SetupAnonymization(Removals& removals,
+                                 Replacements& replacements)
+  {
+    removals.clear();
+    replacements.clear();
+
+    // This is table X.1-1 from DICOM supplement 55: Attribute Level Confidentiality
+    removals.insert(DicomTag(0x0008, 0x0014));  // Instance Creator UID
+    // 0008-0018 - SOP Instance UID is automatically set by ReplaceInstanceInternal()
+    removals.insert(DicomTag(0x0008, 0x0050));  // Accession number
+/*    removals.insert(DicomTag(0x0008, 0x    ));  // 
+    removals.insert(DicomTag(0x    , 0x    ));  // 
+    removals.insert(DicomTag(0x    , 0x    ));  // 
+    removals.insert(DicomTag(0x    , 0x    ));  // 
+    removals.insert(DicomTag(0x    , 0x    ));  // 
+    removals.insert(DicomTag(0x    , 0x    ));  // 
+    removals.insert(DicomTag(0x    , 0x    ));  // 
+    removals.insert(DicomTag(0x    , 0x    ));  // 
+    removals.insert(DicomTag(0x    , 0x    ));  // 
+    removals.insert(DicomTag(0x    , 0x    ));  // 
+    removals.insert(DicomTag(0x    , 0x    ));  // 
+    removals.insert(DicomTag(0x    , 0x    ));  // 
+    removals.insert(DicomTag(0x    , 0x    ));  // 
+    removals.insert(DicomTag(0x    , 0x    ));  // 
+    removals.insert(DicomTag(0x    , 0x    ));  // 
+    removals.insert(DicomTag(0x    , 0x    ));  // 
+    removals.insert(DicomTag(0x    , 0x    ));  // 
+    removals.insert(DicomTag(0x    , 0x    ));  // 
+*/  
+  }
+
+
+  static bool ParseModifyRequest(Removals& removals,
+                                 Replacements& replacements,
                                  const RestApi::PostCall& call)
   {
     Json::Value request;
     if (call.ParseJsonRequest(request) &&
         request.isObject())
     {
-      removals = Json::arrayValue;
-      replacements = Json::objectValue;
+      Json::Value removalsPart = Json::arrayValue;
+      Json::Value replacementsPart = Json::objectValue;
 
       if (request.isMember("Remove"))
       {
-        removals = request["Remove"];
+        removalsPart = request["Remove"];
       }
 
       if (request.isMember("Replace"))
       {
-        replacements = request["Replace"];
+        replacementsPart = request["Replace"];
       }
+
+      ParseRemovals(removals, removalsPart);
+      ParseReplacements(replacements, replacementsPart);
 
       return true;
     }
@@ -911,7 +979,9 @@ namespace Orthanc
     std::string id = call.GetUriComponent("id", "");
     ParsedDicomFile& dicom = context.GetDicomFile(id);
     
-    Json::Value removals, replacements;
+    Removals removals;
+    Replacements replacements;
+
     if (ParseModifyRequest(removals, replacements, call))
     {
       std::auto_ptr<ParsedDicomFile> modified(dicom.Clone());
@@ -936,11 +1006,13 @@ namespace Orthanc
       return;
     }
 
-    Json::Value removals, replacements;
+    Removals removals;
+    Replacements replacements;
+
     if (ParseModifyRequest(removals, replacements, call))
     {
       std::string newSeriesId;
-      replacements["0020-000e"] = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series);
+      replacements[DICOM_TAG_SERIES_INSTANCE_UID] = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series);
 
       for (Instances::const_iterator it = instances.begin(); 
            it != instances.end(); it++)
@@ -990,12 +1062,13 @@ namespace Orthanc
     }
 
     SeriesUidMap seriesUidMap;
+    Removals removals;
+    Replacements replacements;
 
-    Json::Value removals, replacements;
     if (ParseModifyRequest(removals, replacements, call))
     {
       std::string newStudyId;
-      replacements["0020-000d"] = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Study);
+      replacements[DICOM_TAG_STUDY_INSTANCE_UID] = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Study);
 
       for (Instances::const_iterator it = instances.begin(); 
            it != instances.end(); it++)
@@ -1014,11 +1087,11 @@ namespace Orthanc
         {
           std::string newSeriesUid = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series);
           seriesUidMap[seriesId] = newSeriesUid;
-          replacements["0020-000e"] = newSeriesUid;
+          replacements[DICOM_TAG_SERIES_INSTANCE_UID] = newSeriesUid;
         }
         else
         {
-          replacements["0020-000e"] = it2->second;
+          replacements[DICOM_TAG_SERIES_INSTANCE_UID] = it2->second;
         }
 
         std::auto_ptr<ParsedDicomFile> modified(dicom.Clone());
