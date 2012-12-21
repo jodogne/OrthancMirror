@@ -1074,6 +1074,13 @@ namespace Orthanc
   uint64_t ServerIndex::IncrementGlobalSequence(GlobalProperty sequence)
   {
     boost::mutex::scoped_lock lock(mutex_);
-    return db_->IncrementGlobalSequence(sequence);
+
+    std::auto_ptr<SQLite::Transaction> transaction(db_->StartTransaction());
+
+    transaction->Begin();
+    uint64_t seq = db_->IncrementGlobalSequence(sequence);
+    transaction->Commit();
+
+    return seq;
   }
 }
