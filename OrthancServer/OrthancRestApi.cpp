@@ -1108,7 +1108,6 @@ namespace Orthanc
     {
       std::auto_ptr<ParsedDicomFile> modified(dicom.Clone());
       ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent, removePrivateTags);
-      context.GetIndex().SetMetadata(id, MetadataType_ModifiedFrom, id);
       modified->Answer(call.GetOutput());
     }
   }
@@ -1142,8 +1141,6 @@ namespace Orthanc
 
       std::auto_ptr<ParsedDicomFile> anonymized(dicom.Clone());
       ReplaceInstanceInternal(*anonymized, removals, replacements, DicomReplaceMode_InsertIfAbsent, removePrivateTags);
-      context.GetIndex().SetMetadata(id, MetadataType_AnonymizedFrom, id);
-
       anonymized->Answer(call.GetOutput());
     }
   }
@@ -1192,6 +1189,9 @@ namespace Orthanc
         {
           throw OrthancException(ErrorCode_InternalError);
         }
+
+        // TODO for the instances and the series:
+        // context.GetIndex().SetMetadata(id, MetadataType_ModifiedFrom, id);
       }
 
       assert(newSeriesId.size() != 0);
@@ -1265,6 +1265,9 @@ namespace Orthanc
 
         if (newStudyId.size() == 0)
         {
+          // TODO FOR instances, studies and series:
+          // context.GetIndex().SetMetadata(id, MetadataType_ModifiedFrom, id);
+
           std::string newSeriesId;
           if (!context.GetIndex().LookupParent(newSeriesId, modifiedInstance) ||
               !context.GetIndex().LookupParent(newStudyId, newSeriesId))
