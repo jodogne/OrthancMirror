@@ -118,6 +118,9 @@ namespace Orthanc
                  DicomReplaceMode mode);
 
     void RemovePrivateTags();
+
+    bool GetTagValue(std::string& value,
+                     const DicomTag& tag);
   };
 
   class FromDcmtkBridge
