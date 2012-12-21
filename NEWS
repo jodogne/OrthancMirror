@@ -1,7 +1,9 @@
 Pending changes in the mainline
 ===============================
 
-* Support for the private tags
+* Download of modified DICOM instances
+* Inplace modifications to DICOM series and studies
+* Support of private tags
 
 
 Version 0.4.0 (2012/12/14)
