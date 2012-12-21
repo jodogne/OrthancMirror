@@ -1093,22 +1093,31 @@ namespace Orthanc
   }
 
 
-  static void ModifyInstance(RestApi::PostCall& call)
+  static void AnonymizeOrModifyInstance(Removals removals,
+                                        Replacements replacements,
+                                        bool removePrivateTags,
+                                        RestApi::PostCall& call)
   {
     RETRIEVE_CONTEXT(call);
     
     std::string id = call.GetUriComponent("id", "");
     ParsedDicomFile& dicom = context.GetDicomFile(id);
     
+    std::auto_ptr<ParsedDicomFile> modified(dicom.Clone());
+    ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent, removePrivateTags);
+    modified->Answer(call.GetOutput());
+  }
+
+
+  static void ModifyInstance(RestApi::PostCall& call)
+  {
     Removals removals;
     Replacements replacements;
     bool removePrivateTags;
 
     if (ParseModifyRequest(removals, replacements, removePrivateTags, call))
     {
-      std::auto_ptr<ParsedDicomFile> modified(dicom.Clone());
-      ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent, removePrivateTags);
-      modified->Answer(call.GetOutput());
+      AnonymizeOrModifyInstance(removals, replacements, removePrivateTags, call);
     }
   }
 
@@ -1116,9 +1125,6 @@ namespace Orthanc
   static void AnonymizeInstance(RestApi::PostCall& call)
   {
     RETRIEVE_CONTEXT(call);
-    
-    std::string id = call.GetUriComponent("id", "");
-    ParsedDicomFile& dicom = context.GetDicomFile(id);
     
     Removals removals;
     Replacements replacements;
@@ -1139,9 +1145,7 @@ namespace Orthanc
                                            FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Patient)));
       }
 
-      std::auto_ptr<ParsedDicomFile> anonymized(dicom.Clone());
-      ReplaceInstanceInternal(*anonymized, removals, replacements, DicomReplaceMode_InsertIfAbsent, removePrivateTags);
-      anonymized->Answer(call.GetOutput());
+      AnonymizeOrModifyInstance(removals, replacements, removePrivateTags, call);
     }
   }
 
