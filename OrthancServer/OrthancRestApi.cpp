@@ -850,8 +850,14 @@ namespace Orthanc
   static void ReplaceInstanceInternal(ParsedDicomFile& toModify,
                                       const Removals& removals,
                                       const Replacements& replacements,
-                                      DicomReplaceMode mode)
+                                      DicomReplaceMode mode,
+                                      bool removePrivateTags)
   {
+    if (removePrivateTags)
+    {
+      toModify.RemovePrivateTags();
+    }
+
     for (Removals::const_iterator it = removals.begin(); 
          it != removals.end(); it++)
     {
@@ -920,9 +926,6 @@ namespace Orthanc
   static void SetupAnonymization(Removals& removals,
                                  Replacements& replacements)
   {
-    removals.clear();
-    replacements.clear();
-
     // This is Table E.1-1 from PS 3.15-2008 - DICOM Part 15: Security and System Management Profiles
     removals.insert(DicomTag(0x0008, 0x0014));  // Instance Creator UID
     //removals.insert(DicomTag(0x0008, 0x0018)); // SOP Instance UID => set by ReplaceInstanceInternal()
@@ -992,8 +995,10 @@ namespace Orthanc
 
   static bool ParseModifyRequest(Removals& removals,
                                  Replacements& replacements,
+                                 bool& removePrivateTags,
                                  const RestApi::PostCall& call)
   {
+    removePrivateTags = false;
     Json::Value request;
     if (call.ParseJsonRequest(request) &&
         request.isObject())
@@ -1011,6 +1016,11 @@ namespace Orthanc
         replacementsPart = request["Replace"];
       }
 
+      if (request.isMember("RemovePrivateTags"))
+      {
+        removePrivateTags = true;
+      }
+      
       ParseRemovals(removals, removalsPart);
       ParseReplacements(replacements, replacementsPart);
 
@@ -1035,6 +1045,9 @@ namespace Orthanc
         request.isObject())
     {
       Json::Value keepPart = Json::arrayValue;
+      Json::Value removalsPart = Json::arrayValue;
+      Json::Value replacementsPart = Json::objectValue;
+
       if (request.isMember("Keep"))
       {
         keepPart = request["Keep"];
@@ -1043,6 +1056,11 @@ namespace Orthanc
       if (request.isMember("KeepPrivateTags"))
       {
         removePrivateTags = false;
+      }
+
+      if (request.isMember("Replace"))
+      {
+        replacementsPart = request["Replace"];
       }
 
       Removals toKeep;
@@ -1054,6 +1072,17 @@ namespace Orthanc
       {
         removals.erase(*it);
       }
+
+      Removals additionalRemovals;
+      ParseRemovals(additionalRemovals, removalsPart);
+
+      for (Removals::iterator it = additionalRemovals.begin(); 
+           it != additionalRemovals.end(); it++)
+      {
+        removals.erase(*it);
+      }     
+
+      ParseReplacements(replacements, replacementsPart);
 
       return true;
     }
@@ -1073,11 +1102,12 @@ namespace Orthanc
     
     Removals removals;
     Replacements replacements;
+    bool removePrivateTags;
 
-    if (ParseModifyRequest(removals, replacements, call))
+    if (ParseModifyRequest(removals, replacements, removePrivateTags, call))
     {
       std::auto_ptr<ParsedDicomFile> modified(dicom.Clone());
-      ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent);
+      ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent, removePrivateTags);
       context.GetIndex().SetMetadata(id, MetadataType_ModifiedFrom, id);
       modified->Answer(call.GetOutput());
     }
@@ -1097,23 +1127,21 @@ namespace Orthanc
 
     if (ParseAnonymizationRequest(removals, replacements, removePrivateTags, call))
     {
-      // Generate random Patient's name
-      removals.erase(DicomTag(0x0010, 0x0010));
-      replacements.insert(std::make_pair(DicomTag(0x0010, 0x0010), GeneratePatientName(context)));
-
-      // Generate random Patient ID
-      removals.erase(DICOM_TAG_PATIENT_ID); 
-      replacements.insert(std::make_pair(DICOM_TAG_PATIENT_ID, 
-                                         FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Patient)));
-
-      std::auto_ptr<ParsedDicomFile> anonymized(dicom.Clone());
-
-      if (removePrivateTags)
+      // Generate random Patient's Name if none is specified
+      if (replacements.find(DicomTag(0x0010, 0x0010)) == replacements.end())
       {
-        anonymized->RemovePrivateTags();
+        replacements.insert(std::make_pair(DicomTag(0x0010, 0x0010), GeneratePatientName(context)));
       }
 
-      ReplaceInstanceInternal(*anonymized, removals, replacements, DicomReplaceMode_InsertIfAbsent);
+      // Generate random Patient's ID if none is specified
+      if (replacements.find(DICOM_TAG_PATIENT_ID) == replacements.end())
+      {
+        replacements.insert(std::make_pair(DICOM_TAG_PATIENT_ID, 
+                                           FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Patient)));
+      }
+
+      std::auto_ptr<ParsedDicomFile> anonymized(dicom.Clone());
+      ReplaceInstanceInternal(*anonymized, removals, replacements, DicomReplaceMode_InsertIfAbsent, removePrivateTags);
       context.GetIndex().SetMetadata(id, MetadataType_AnonymizedFrom, id);
 
       anonymized->Answer(call.GetOutput());
@@ -1137,8 +1165,9 @@ namespace Orthanc
 
     Removals removals;
     Replacements replacements;
+    bool removePrivateTags;
 
-    if (ParseModifyRequest(removals, replacements, call))
+    if (ParseModifyRequest(removals, replacements, removePrivateTags, call))
     {
       std::string newSeriesId;
       replacements[DICOM_TAG_SERIES_INSTANCE_UID] = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series);
@@ -1149,7 +1178,7 @@ namespace Orthanc
         LOG(INFO) << "Modifying instance " << *it;
         ParsedDicomFile& dicom = context.GetDicomFile(*it);
         std::auto_ptr<ParsedDicomFile> modified(dicom.Clone());
-        ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent);
+        ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent, removePrivateTags);
 
         std::string modifiedInstance;
         if (context.Store(modifiedInstance, modified->GetDicom()) != StoreStatus_Success)
@@ -1193,8 +1222,9 @@ namespace Orthanc
     SeriesUidMap seriesUidMap;
     Removals removals;
     Replacements replacements;
+    bool removePrivateTags;
 
-    if (ParseModifyRequest(removals, replacements, call))
+    if (ParseModifyRequest(removals, replacements, removePrivateTags, call))
     {
       std::string newStudyId;
       replacements[DICOM_TAG_STUDY_INSTANCE_UID] = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Study);
@@ -1224,7 +1254,7 @@ namespace Orthanc
         }
 
         std::auto_ptr<ParsedDicomFile> modified(dicom.Clone());
-        ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent);
+        ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent, removePrivateTags);
 
         std::string modifiedInstance;
         if (context.Store(modifiedInstance, modified->GetDicom()) != StoreStatus_Success)
