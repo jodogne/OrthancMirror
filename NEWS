@@ -1,7 +1,7 @@
 Pending changes in the mainline
 ===============================
 
-* Download of modified DICOM instances
+* Download of modified or anonymized DICOM instances
 * Inplace modifications to DICOM series and studies
 * Support of private tags
 

@@ -841,8 +841,11 @@ namespace Orthanc
 
   // Modification of DICOM instances ------------------------------------------
 
-  typedef std::set<DicomTag> Removals;
-  typedef std::map<DicomTag, std::string> Replacements;
+  namespace
+  {
+    typedef std::set<DicomTag> Removals;
+    typedef std::map<DicomTag, std::string> Replacements;
+  }
 
   static void ReplaceInstanceInternal(ParsedDicomFile& toModify,
                                       const Removals& removals,
@@ -907,35 +910,83 @@ namespace Orthanc
   }
 
 
+  static std::string GeneratePatientName(ServerContext& context)
+  {
+    uint64_t seq = context.GetIndex().IncrementGlobalSequence(GlobalProperty_AnonymizationSequence);
+    return "Anonymized" + boost::lexical_cast<std::string>(seq);
+  }
+
+
   static void SetupAnonymization(Removals& removals,
                                  Replacements& replacements)
   {
     removals.clear();
     replacements.clear();
 
-    // This is table X.1-1 from DICOM supplement 55: Attribute Level Confidentiality
+    // This is Table E.1-1 from PS 3.15-2008 - DICOM Part 15: Security and System Management Profiles
     removals.insert(DicomTag(0x0008, 0x0014));  // Instance Creator UID
-    // 0008-0018 - SOP Instance UID is automatically set by ReplaceInstanceInternal()
-    removals.insert(DicomTag(0x0008, 0x0050));  // Accession number
-/*    removals.insert(DicomTag(0x0008, 0x    ));  // 
-    removals.insert(DicomTag(0x    , 0x    ));  // 
-    removals.insert(DicomTag(0x    , 0x    ));  // 
-    removals.insert(DicomTag(0x    , 0x    ));  // 
-    removals.insert(DicomTag(0x    , 0x    ));  // 
-    removals.insert(DicomTag(0x    , 0x    ));  // 
-    removals.insert(DicomTag(0x    , 0x    ));  // 
-    removals.insert(DicomTag(0x    , 0x    ));  // 
-    removals.insert(DicomTag(0x    , 0x    ));  // 
-    removals.insert(DicomTag(0x    , 0x    ));  // 
-    removals.insert(DicomTag(0x    , 0x    ));  // 
-    removals.insert(DicomTag(0x    , 0x    ));  // 
-    removals.insert(DicomTag(0x    , 0x    ));  // 
-    removals.insert(DicomTag(0x    , 0x    ));  // 
-    removals.insert(DicomTag(0x    , 0x    ));  // 
-    removals.insert(DicomTag(0x    , 0x    ));  // 
-    removals.insert(DicomTag(0x    , 0x    ));  // 
-    removals.insert(DicomTag(0x    , 0x    ));  // 
-*/  
+    //removals.insert(DicomTag(0x0008, 0x0018)); // SOP Instance UID => set by ReplaceInstanceInternal()
+    removals.insert(DicomTag(0x0008, 0x0050));  // Accession Number
+    removals.insert(DicomTag(0x0008, 0x0080));  // Institution Name
+    removals.insert(DicomTag(0x0008, 0x0081));  // Institution Address
+    removals.insert(DicomTag(0x0008, 0x0090));  // Referring Physician's Name 
+    removals.insert(DicomTag(0x0008, 0x0092));  // Referring Physician's Address 
+    removals.insert(DicomTag(0x0008, 0x0094));  // Referring Physician's Telephone Numbers 
+    removals.insert(DicomTag(0x0008, 0x1010));  // Station Name 
+    removals.insert(DicomTag(0x0008, 0x1030));  // Study Description 
+    removals.insert(DicomTag(0x0008, 0x103e));  // Series Description 
+    removals.insert(DicomTag(0x0008, 0x1040));  // Institutional Department Name 
+    removals.insert(DicomTag(0x0008, 0x1048));  // Physician(s) of Record 
+    removals.insert(DicomTag(0x0008, 0x1050));  // Performing Physicians' Name 
+    removals.insert(DicomTag(0x0008, 0x1060));  // Name of Physician(s) Reading Study 
+    removals.insert(DicomTag(0x0008, 0x1070));  // Operators' Name 
+    removals.insert(DicomTag(0x0008, 0x1080));  // Admitting Diagnoses Description 
+    removals.insert(DicomTag(0x0008, 0x1155));  // Referenced SOP Instance UID 
+    removals.insert(DicomTag(0x0008, 0x2111));  // Derivation Description 
+    removals.insert(DicomTag(0x0010, 0x0010));  // Patient's Name 
+    removals.insert(DicomTag(0x0010, 0x0020));  // Patient ID
+    removals.insert(DicomTag(0x0010, 0x0030));  // Patient's Birth Date 
+    removals.insert(DicomTag(0x0010, 0x0032));  // Patient's Birth Time 
+    removals.insert(DicomTag(0x0010, 0x0040));  // Patient's Sex 
+    removals.insert(DicomTag(0x0010, 0x1000));  // Other Patient Ids 
+    removals.insert(DicomTag(0x0010, 0x1001));  // Other Patient Names 
+    removals.insert(DicomTag(0x0010, 0x1010));  // Patient's Age 
+    removals.insert(DicomTag(0x0010, 0x1020));  // Patient's Size 
+    removals.insert(DicomTag(0x0010, 0x1030));  // Patient's Weight 
+    removals.insert(DicomTag(0x0010, 0x1090));  // Medical Record Locator 
+    removals.insert(DicomTag(0x0010, 0x2160));  // Ethnic Group 
+    removals.insert(DicomTag(0x0010, 0x2180));  // Occupation 
+    removals.insert(DicomTag(0x0010, 0x21b0));  // Additional Patient's History 
+    removals.insert(DicomTag(0x0010, 0x4000));  // Patient Comments 
+    removals.insert(DicomTag(0x0018, 0x1000));  // Device Serial Number 
+    removals.insert(DicomTag(0x0018, 0x1030));  // Protocol Name 
+    //removals.insert(DicomTag(0x0020, 0x000d));  // Study Instance UID => generated below
+    //removals.insert(DicomTag(0x0020, 0x000e));  // Series Instance UID => generated below
+    removals.insert(DicomTag(0x0020, 0x0010));  // Study ID 
+    removals.insert(DicomTag(0x0020, 0x0052));  // Frame of Reference UID 
+    removals.insert(DicomTag(0x0020, 0x0200));  // Synchronization Frame of Reference UID 
+    removals.insert(DicomTag(0x0020, 0x4000));  // Image Comments 
+    removals.insert(DicomTag(0x0040, 0x0275));  // Request Attributes Sequence 
+    removals.insert(DicomTag(0x0040, 0xa124));  // UID
+    removals.insert(DicomTag(0x0040, 0xa730));  // Content Sequence 
+    removals.insert(DicomTag(0x0088, 0x0140));  // Storage Media File-set UID 
+    removals.insert(DicomTag(0x3006, 0x0024));  // Referenced Frame of Reference UID 
+    removals.insert(DicomTag(0x3006, 0x00c2));  // Related Frame of Reference UID 
+
+    // Some more removals (from the experience of DICOM files at the CHU of Liege)
+    removals.insert(DicomTag(0x0010, 0x1040));  // Patient's Address
+    removals.insert(DicomTag(0x0032, 0x1032));  // Requesting Physician
+
+    // Set the DeidentificationMethod tag
+    replacements.insert(std::make_pair(DicomTag(0x0012, 0x0063), "Orthanc " ORTHANC_VERSION " - PS 3.15-2008 Table E.1-1"));
+
+    // Set the PatientIdentityRemoved
+    replacements.insert(std::make_pair(DicomTag(0x0012, 0x0062), "YES"));
+
+    replacements.insert(std::make_pair(DICOM_TAG_STUDY_INSTANCE_UID, 
+                                       FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Study)));
+    replacements.insert(std::make_pair(DICOM_TAG_SERIES_INSTANCE_UID, 
+                                       FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series)));
   }
 
 
@@ -972,6 +1023,47 @@ namespace Orthanc
   }
 
 
+  static bool ParseAnonymizationRequest(Removals& removals,
+                                        Replacements& replacements,
+                                        bool& removePrivateTags,
+                                        const RestApi::PostCall& call)
+  {
+    removePrivateTags = true;
+
+    Json::Value request;
+    if (call.ParseJsonRequest(request) &&
+        request.isObject())
+    {
+      Json::Value keepPart = Json::arrayValue;
+      if (request.isMember("Keep"))
+      {
+        keepPart = request["Keep"];
+      }
+
+      if (request.isMember("KeepPrivateTags"))
+      {
+        removePrivateTags = false;
+      }
+
+      Removals toKeep;
+      ParseRemovals(toKeep, keepPart);
+
+      SetupAnonymization(removals, replacements);
+
+      for (Removals::iterator it = toKeep.begin(); it != toKeep.end(); it++)
+      {
+        removals.erase(*it);
+      }
+
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+
   static void ModifyInstance(RestApi::PostCall& call)
   {
     RETRIEVE_CONTEXT(call);
@@ -988,6 +1080,43 @@ namespace Orthanc
       ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent);
       context.GetIndex().SetMetadata(id, MetadataType_ModifiedFrom, id);
       modified->Answer(call.GetOutput());
+    }
+  }
+
+
+  static void AnonymizeInstance(RestApi::PostCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+    
+    std::string id = call.GetUriComponent("id", "");
+    ParsedDicomFile& dicom = context.GetDicomFile(id);
+    
+    Removals removals;
+    Replacements replacements;
+    bool removePrivateTags;
+
+    if (ParseAnonymizationRequest(removals, replacements, removePrivateTags, call))
+    {
+      // Generate random Patient's name
+      removals.erase(DicomTag(0x0010, 0x0010));
+      replacements.insert(std::make_pair(DicomTag(0x0010, 0x0010), GeneratePatientName(context)));
+
+      // Generate random Patient ID
+      removals.erase(DICOM_TAG_PATIENT_ID); 
+      replacements.insert(std::make_pair(DICOM_TAG_PATIENT_ID, 
+                                         FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Patient)));
+
+      std::auto_ptr<ParsedDicomFile> anonymized(dicom.Clone());
+
+      if (removePrivateTags)
+      {
+        anonymized->RemovePrivateTags();
+      }
+
+      ReplaceInstanceInternal(*anonymized, removals, replacements, DicomReplaceMode_InsertIfAbsent);
+      context.GetIndex().SetMetadata(id, MetadataType_AnonymizedFrom, id);
+
+      anonymized->Answer(call.GetOutput());
     }
   }
 
@@ -1184,5 +1313,7 @@ namespace Orthanc
     Register("/instances/{id}/modify", ModifyInstance);
     Register("/series/{id}/modify", ModifySeriesInplace);
     Register("/studies/{id}/modify", ModifyStudyInplace);
+
+    Register("/instances/{id}/anonymize", AnonymizeInstance);
   }
 }

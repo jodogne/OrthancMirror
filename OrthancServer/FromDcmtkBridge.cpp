@@ -572,7 +572,8 @@ namespace Orthanc
     {
       DcmElement* element = dataset.getElement(i);
       DcmTag tag(element->getTag());
-      if (tag.getPrivateCreator() != NULL)
+      if (!strcmp("PrivateCreator", tag.getTagName()) ||  // TODO - This may change with future versions of DCMTK
+          tag.getPrivateCreator() != NULL)
       {
         privateTags.push_back(element);
       }
@@ -1278,17 +1279,10 @@ namespace Orthanc
     switch (level)
     {
       case DicomRootLevel_Patient:
-      {
-        std::string uuid = Toolbox::GenerateUuid();
-        std::string id;
-        id.reserve(uuid.size());
-        for (size_t i = 0; i < uuid.size() && i < 8; i++)
-        {
-          id.push_back(toupper(uuid[i]));
-        }
-
-        return id;
-      }
+        // The "PatientID" field is of type LO (Long String), 64
+        // Bytes Maximum. An UUID is of length 36, thus it can be used
+        // as a random PatientID.
+        return Toolbox::GenerateUuid();
 
       case DicomRootLevel_Instance:
         return dcmGenerateUniqueIdentifier(uid, SITE_INSTANCE_UID_ROOT);
