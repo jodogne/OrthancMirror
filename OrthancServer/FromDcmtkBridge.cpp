@@ -222,7 +222,7 @@ namespace Orthanc
     DcmElement* element = NULL;
     if (dicom.findAndGetElement(k, element).good() && 
         element != NULL &&
-        element->getVR() != EVR_UNKNOWN &&
+        //element->getVR() != EVR_UNKNOWN &&  // This would forbid private tags
         element->getVR() != EVR_SQ)
     {
       AnswerDicomField(output, *element);
