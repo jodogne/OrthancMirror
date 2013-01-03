@@ -10,6 +10,7 @@ Major changes
 Minor changes
 -------------
 
+* Implementation of the PMSCT_RLE1 image decoding for Philips modalities
 * Support of private tags
 
 

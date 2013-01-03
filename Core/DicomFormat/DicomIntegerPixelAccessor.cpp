@@ -111,9 +111,9 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
-    if (width_ * height_ * bitsAllocated / 8 * numberOfFrames_ != size)
+    if (width_ * height_ * bitsAllocated / 8 * numberOfFrames_ > size)
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
 
     /*printf("%d %d %d %d %d %d %d %d\n", width_, height_, samplesPerPixel_, bitsAllocated,

@@ -1077,6 +1077,101 @@ namespace Orthanc
   }
 
 
+  static bool DecodePsmctRle1(std::string& output,
+                              DcmDataset& dataset)
+  {
+    static const DicomTag tagContent(0x07a1, 0x100a);
+    static const DicomTag tagCompressionType(0x07a1, 0x1011);
+
+    DcmElement* e;
+    char* c;
+
+    // Check whether the DICOM instance contains an image encoded with
+    // the PMSCT_RLE1 scheme.
+    if (!dataset.findAndGetElement(ToDcmtkBridge::Convert(tagCompressionType), e).good() ||
+        e == NULL ||
+        !e->isaString() ||
+        !e->getString(c).good() ||
+        c == NULL ||
+        strcmp("PMSCT_RLE1", c))
+    {
+      return false;
+    }
+
+    // OK, this is a custom RLE encoding from Philips. Get the pixel
+    // data from the appropriate private DICOM tag.
+    Uint8* pixData = NULL;
+    if (!dataset.findAndGetElement(ToDcmtkBridge::Convert(tagContent), e).good() ||
+        e == NULL ||
+        e->getUint8Array(pixData) != EC_Normal)
+    {
+      return false;
+    }    
+
+    // The "unsigned" below IS VERY IMPORTANT
+    const uint8_t* inbuffer = reinterpret_cast<const uint8_t*>(pixData);
+    const size_t length = e->getLength();
+
+    /**
+     * The code below is an adaptation of a sample code for GDCM by
+     * Mathieu Malaterre (under a BSD license).
+     * http://gdcm.sourceforge.net/html/rle2img_8cxx-example.html
+     **/
+
+    // RLE pass
+    std::vector<uint8_t> temp;
+    temp.reserve(length);
+    for (size_t i = 0; i < length; i++)
+    {
+      if (inbuffer[i] == 0xa5)
+      {
+        temp.push_back(inbuffer[i+2]);
+        for (uint8_t repeat = inbuffer[i + 1]; repeat != 0; repeat--)
+        {
+          temp.push_back(inbuffer[i+2]);
+        }
+        i += 2;
+      }
+      else
+      {
+        temp.push_back(inbuffer[i]);
+      }
+    }
+
+    // Delta encoding pass
+    uint16_t delta = 0;
+    output.clear();
+    output.reserve(temp.size());
+    for (size_t i = 0; i < temp.size(); i++)
+    {
+      uint16_t value;
+
+      if (temp[i] == 0x5a)
+      {
+        uint16_t v1 = temp[i + 1];
+        uint16_t v2 = temp[i + 2];
+        value = (v2 << 8) + v1;
+        i += 2;
+      }
+      else
+      {
+        value = delta + (int8_t) temp[i];
+      }
+
+      output.push_back(value & 0xff);
+      output.push_back(value >> 8);
+      delta = value;
+    }
+
+    if (output.size() % 2)
+    {
+      output.resize(output.size() - 1);
+    }
+
+    return true;
+  }
+
+
   void FromDcmtkBridge::ExtractPngImage(std::string& result,
                                         DcmDataset& dataset,
                                         unsigned int frame,
@@ -1089,6 +1184,8 @@ namespace Orthanc
     DicomMap m;
     FromDcmtkBridge::Convert(m, dataset);
 
+    std::string privateContent;
+
     DcmElement* e;
     if (dataset.findAndGetElement(ToDcmtkBridge::Convert(DICOM_TAG_PIXEL_DATA), e).good() &&
         e != NULL)
@@ -1099,6 +1196,15 @@ namespace Orthanc
         accessor.reset(new DicomIntegerPixelAccessor(m, pixData, e->getLength()));
         accessor->SetCurrentFrame(frame);
       }
+    }
+    else if (DecodePsmctRle1(privateContent, dataset))
+    {
+      LOG(INFO) << "The PMSCT_RLE1 decoding has succeeded";
+      Uint8* pixData = NULL;
+      if (privateContent.size() > 0)
+        pixData = reinterpret_cast<Uint8*>(&privateContent[0]);
+      accessor.reset(new DicomIntegerPixelAccessor(m, pixData, privateContent.size()));
+      accessor->SetCurrentFrame(frame);
     }
 
     PixelFormat format;
@@ -1266,7 +1372,7 @@ namespace Orthanc
     {
       DicomTag t = it->first;
       std::string s = it->second->AsString();
-      printf("0x%04x 0x%04x (%s) [%s]\n", t.GetGroup(), t.GetElement(), GetName(t).c_str(), s.c_str());
+      fprintf(fp, "0x%04x 0x%04x (%s) [%s]\n", t.GetGroup(), t.GetElement(), GetName(t).c_str(), s.c_str());
     }
   }
 
