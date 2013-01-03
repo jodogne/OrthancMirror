@@ -136,7 +136,10 @@ namespace Orthanc
     }
 
     accessor_.SetCompressionForNextOperations(attachment.GetCompressionType());
+
     std::auto_ptr<HttpFileSender> sender(accessor_.ConstructHttpFileSender(attachment.GetUuid()));
+    sender->SetContentType("application/dicom");
+    sender->SetDownloadFilename(instancePublicId + ".dcm");
     output.AnswerFile(*sender);
   }
 
