@@ -123,6 +123,7 @@ header.write("""
 #pragma once
 
 #include <string>
+#include <list>
 
 namespace Orthanc
 {
@@ -167,6 +168,8 @@ header.write("""
     const void* GetDirectoryResourceBuffer(DirectoryResourceId id, const char* path);
     size_t GetDirectoryResourceSize(DirectoryResourceId id, const char* path);
     void GetDirectoryResource(std::string& result, DirectoryResourceId id, const char* path);
+
+    void ListResources(std::list<std::string>& result, DirectoryResourceId id);
   }
 }
 """)
@@ -317,6 +320,35 @@ for name in resources:
             cpp.write('        if (!strcmp(path, "%s"))\n' % path)
             cpp.write('          return resource%dSize;\n' % resources[name]['Files'][path]['Index'])
         cpp.write('        throw OrthancException("Unknown path in a directory resource");\n\n')
+
+cpp.write("""      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+""")
+
+
+
+
+#####################################################################
+## List the resources in a directory
+#####################################################################
+
+cpp.write("""
+    void ListResources(std::list<std::string>& result, DirectoryResourceId id)
+    {
+      result.clear();
+
+      switch (id)
+      {
+""")
+
+for name in resources:
+    if resources[name]['Type'] == 'Directory':
+        cpp.write('      case %s:\n' % name)
+        for path in sorted(resources[name]['Files']):
+            cpp.write('        result.push_back("%s");\n' % path)
+        cpp.write('        break;\n\n')
 
 cpp.write("""      default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
