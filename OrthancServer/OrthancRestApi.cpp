@@ -989,10 +989,19 @@ namespace Orthanc
     // Set the PatientIdentityRemoved
     replacements.insert(std::make_pair(DicomTag(0x0012, 0x0062), "YES"));
 
-    replacements.insert(std::make_pair(DICOM_TAG_STUDY_INSTANCE_UID, 
-                                       FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Study)));
-    replacements.insert(std::make_pair(DICOM_TAG_SERIES_INSTANCE_UID, 
-                                       FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series)));
+    // Generate random study UID if not specified
+    if (replacements.find(DICOM_TAG_STUDY_INSTANCE_UID) == replacements.end())
+    {
+      replacements.insert(std::make_pair(DICOM_TAG_STUDY_INSTANCE_UID, 
+                                         FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Study)));
+    }
+
+    // Generate random series UID if not specified
+    if (replacements.find(DICOM_TAG_SERIES_INSTANCE_UID) == replacements.end())
+    {
+      replacements.insert(std::make_pair(DICOM_TAG_SERIES_INSTANCE_UID, 
+                                         FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series)));
+    }
   }
 
 
@@ -1084,7 +1093,7 @@ namespace Orthanc
       for (Removals::iterator it = additionalRemovals.begin(); 
            it != additionalRemovals.end(); it++)
       {
-        removals.erase(*it);
+        removals.insert(*it);
       }     
 
       ParseReplacements(replacements, replacementsPart);
