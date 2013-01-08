@@ -46,6 +46,7 @@
 
 #include "../OrthancException.h"
 #include "../ChunkedBuffer.h"
+#include "HttpOutput.h"
 #include "mongoose.h"
 
 

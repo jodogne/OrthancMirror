@@ -35,6 +35,7 @@
 #include <string>
 #include <stdint.h>
 #include "../Enumerations.h"
+#include "HttpHandler.h"
 
 namespace Orthanc
 {
@@ -55,7 +56,7 @@ namespace Orthanc
                       uint64_t contentLength,
                       const char* contentFilename);
 
-    void SendCustomOkHeader(const std::string& customHeader);
+    void SendOkHeader(const HttpHandler::Arguments& header);
 
     void SendString(const std::string& s);
 
