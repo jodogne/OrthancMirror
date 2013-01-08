@@ -36,13 +36,23 @@ import re
 
 if len(sys.argv) < 2 or len(sys.argv) % 2 != 0:
     print ('Usage:')
-    print ('python %s <TargetBaseFilename> [ <Name> <Source> ]*' % sys.argv[0])
+    print ('python %s [--no-upcase-check] <TargetBaseFilename> [ <Name> <Source> ]*' % sys.argv[0])
     exit(-1)
 
+UPCASE_CHECK = True
+ARGS = []
+for i in range(len(sys.argv)):
+    if not sys.argv[i].startswith('--'):
+        ARGS.append(sys.argv[i])
+    elif sys.argv[i].lower() == '--no-upcase-check':
+        UPCASE_CHECK = False
+
+TARGET_BASE_FILENAME = ARGS[1]
+SOURCES = ARGS[2:]
 
 try:
     # Make sure the destination directory exists
-    os.makedirs(os.path.normpath(os.path.join(sys.argv[1], '..')))
+    os.makedirs(os.path.normpath(os.path.join(TARGET_BASE_FILENAME, '..')))
 except:
     pass
 
@@ -52,16 +62,18 @@ except:
 #####################################################################
 
 def CheckNoUpcase(s):
-    if re.search('[A-Z]', s) != None:
+    global UPCASE_CHECK
+    if (UPCASE_CHECK and
+        re.search('[A-Z]', s) != None):
         raise Exception("Path in a directory with an upcase letter: %s" % s)
 
 resources = {}
 
 counter = 0
-i = 2
-while i < len(sys.argv):
-    resourceName = sys.argv[i].upper()
-    pathName = sys.argv[i + 1]
+i = 0
+while i < len(SOURCES):
+    resourceName = SOURCES[i].upper()
+    pathName = SOURCES[i + 1]
 
     if not os.path.exists(pathName):
         raise Exception("Non existing path: %s" % pathName)
@@ -117,7 +129,7 @@ while i < len(sys.argv):
 ## Write .h header
 #####################################################################
 
-header = open(sys.argv[1] + '.h', 'w')
+header = open(TARGET_BASE_FILENAME + '.h', 'w')
 
 header.write("""
 #pragma once
@@ -214,7 +226,7 @@ def WriteResource(cpp, item):
     cpp.write('    static const size_t resource%dSize = %d;\n' % (item['Index'], pos))
 
 
-cpp = open(sys.argv[1] + '.cpp', 'w')
+cpp = open(TARGET_BASE_FILENAME + '.cpp', 'w')
 
 cpp.write("""
 #include "%s.h"
@@ -227,7 +239,7 @@ namespace Orthanc
 {
   namespace EmbeddedResources
   {
-""" % (os.path.basename(sys.argv[1]),
+""" % (os.path.basename(TARGET_BASE_FILENAME),
        os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))))
 
 
