@@ -551,6 +551,11 @@ namespace Orthanc
           LOG(ERROR) << "MongooseServer Exception [" << e.What() << "]";
           output.SendHeader(Orthanc_HttpStatus_500_InternalServerError);        
         }
+        catch (boost::bad_lexical_cast&)
+        {
+          LOG(ERROR) << "MongooseServer Exception: Bad lexical cast";
+          output.SendHeader(Orthanc_HttpStatus_500_InternalServerError);        
+        }
       }
       else
       {
