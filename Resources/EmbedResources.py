@@ -34,11 +34,6 @@ import os.path
 import pprint
 import re
 
-if len(sys.argv) < 2 or len(sys.argv) % 2 != 0:
-    print ('Usage:')
-    print ('python %s [--no-upcase-check] <TargetBaseFilename> [ <Name> <Source> ]*' % sys.argv[0])
-    exit(-1)
-
 UPCASE_CHECK = True
 ARGS = []
 for i in range(len(sys.argv)):
@@ -46,6 +41,11 @@ for i in range(len(sys.argv)):
         ARGS.append(sys.argv[i])
     elif sys.argv[i].lower() == '--no-upcase-check':
         UPCASE_CHECK = False
+
+if len(ARGS) < 2 or len(ARGS) % 2 != 0:
+    print ('Usage:')
+    print ('python %s [--no-upcase-check] <TargetBaseFilename> [ <Name> <Source> ]*' % sys.argv[0])
+    exit(-1)
 
 TARGET_BASE_FILENAME = ARGS[1]
 SOURCES = ARGS[2:]
