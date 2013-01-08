@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 2.8)
 
 project(RestApiSample)
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -std=c++0x")
+
 file(DOWNLOAD 
   http://mongoose.googlecode.com/files/mongoose-3.1.tgz 
   ${CMAKE_BINARY_DIR}/mongoose-3.1.tar.gz
@@ -24,6 +27,12 @@ execute_process(
 execute_process(
   COMMAND ${CMAKE_COMMAND} -E tar xvfz ${CMAKE_BINARY_DIR}/mongoose-3.1.tar.gz
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  )
+
+# Apply a patch to improve Mongoose shutdown
+execute_process(
+  COMMAND patch mongoose.c ${ORTHANC_DIR}/Resources/Patches/mongoose-patch.diff
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mongoose
   )
 
 execute_process(

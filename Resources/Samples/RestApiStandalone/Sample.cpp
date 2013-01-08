@@ -49,31 +49,6 @@
  *  # curl http://localhost:8042 -X POST -d "PostBody"
  **/
 
-static void GetRoot(Orthanc::RestApi::GetCall& call)
-{
-  std::string answer = "Hello world\n";
-  answer += "Glad to meet you, Mr. " + call.GetArgument("name", "Nobody") + "\n";
-  call.GetOutput().AnswerBuffer(answer, "text/plain");
-}
- 
-static void DeleteRoot(Orthanc::RestApi::DeleteCall& call)
-{
-  call.GetOutput().AnswerBuffer("Hey, you have just deleted the server!\n",
-                                "text/plain");
-}
- 
-static void PostRoot(Orthanc::RestApi::PostCall& call)
-{
-  call.GetOutput().AnswerBuffer("I have received a POST with body: [" +
-                                call.GetPostBody() + "]\n", "text/plain");
-}
- 
-static void PutRoot(Orthanc::RestApi::PutCall& call)
-{
-  call.GetOutput().AnswerBuffer("I have received a PUT with body: [" +
-                                call.GetPutBody() + "]\n", "text/plain");
-}
- 
 int main()
 {
   // Initialize the logging mechanism
@@ -82,12 +57,29 @@ int main()
   FLAGS_minloglevel = 0;                      // Use the verbose mode
   FLAGS_v = 0;
   
-  // Define the callbacks of the REST API
+  // Define the callbacks of the REST API using C++11 lambda functions
   std::auto_ptr<Orthanc::RestApi> rest(new Orthanc::RestApi);
-  rest->Register("/", GetRoot);
-  rest->Register("/", PostRoot);
-  rest->Register("/", PutRoot);
-  rest->Register("/", DeleteRoot);
+
+  rest->Register("/", [] (Orthanc::RestApi::GetCall& call) {
+      std::string answer = "Hello world\n";
+      answer += "Glad to meet you, Mr. " + call.GetArgument("name", "Nobody") + "\n";
+      call.GetOutput().AnswerBuffer(answer, "text/plain");
+    });
+
+  rest->Register("/", [] (Orthanc::RestApi::DeleteCall& call) {
+      call.GetOutput().AnswerBuffer("Hey, you have just deleted the server!\n",
+                                    "text/plain");
+    });
+    
+  rest->Register("/", [] (Orthanc::RestApi::PostCall& call) {
+      call.GetOutput().AnswerBuffer("I have received a POST with body: [" +
+                                    call.GetPostBody() + "]\n", "text/plain");
+    });
+
+  rest->Register("/", [] (Orthanc::RestApi::PutCall& call) {
+      call.GetOutput().AnswerBuffer("I have received a PUT with body: [" +
+                                    call.GetPutBody() + "]\n", "text/plain");
+    });
 
   // Setup the embedded HTTP server
   Orthanc::MongooseServer httpServer;
