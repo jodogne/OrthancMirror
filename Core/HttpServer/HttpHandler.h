@@ -35,11 +35,12 @@
 #include <map>
 #include <vector>
 #include <stdint.h>
-#include "HttpOutput.h"
 #include "../Toolbox.h"
 
 namespace Orthanc
 {
+  class HttpOutput;
+
   class HttpHandler
   {
   public:

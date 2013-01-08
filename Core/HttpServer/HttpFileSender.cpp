@@ -38,20 +38,20 @@ namespace Orthanc
 {
   void HttpFileSender::SendHeader(HttpOutput& output)
   {
-    std::string header;
-    header += "Content-Length: " + boost::lexical_cast<std::string>(GetFileSize()) + "\r\n";
+    HttpHandler::Arguments header;
+    header["Content-Length"] = boost::lexical_cast<std::string>(GetFileSize());
 
     if (contentType_.size() > 0)
     {
-      header += "Content-Type: " + contentType_ + "\r\n";
+      header["Content-Type"] = contentType_;
     }
 
     if (downloadFilename_.size() > 0)
     {
-      header += "Content-Disposition: attachment; filename=\"" + downloadFilename_ + "\"\r\n";
+      header["Content-Disposition"] = "attachment; filename=\"" + downloadFilename_ + "\"";
     }
   
-    output.SendCustomOkHeader(header);
+    output.SendOkHeader(header);
   }
 
   void HttpFileSender::Send(HttpOutput& output)

@@ -32,6 +32,7 @@
 
 #include "HttpOutput.h"
 
+#include <iostream>
 #include <vector>
 #include <stdio.h>
 #include <boost/lexical_cast.hpp>
@@ -76,10 +77,18 @@ namespace Orthanc
     Send(&s[0], s.size());
   }
 
-
-  void HttpOutput::SendCustomOkHeader(const std::string& customHeader)
+  void HttpOutput::SendOkHeader(const HttpHandler::Arguments& header)
   {
-    std::string s = "HTTP/1.1 200 OK\r\n" + customHeader + "\r\n";
+    std::string s = "HTTP/1.1 200 OK\r\n";
+
+    for (HttpHandler::Arguments::const_iterator 
+           it = header.begin(); it != header.end(); it++)
+    {
+      s += it->first + ": " + it->second + "\r\n";
+    }
+
+    s += "\r\n";
+
     Send(&s[0], s.size());
   }
 

@@ -33,6 +33,7 @@
 #include "EmbeddedResourceHttpHandler.h"
 
 #include "../OrthancException.h"
+#include "HttpOutput.h"
 
 #include <stdio.h>
 #include <glog/logging.h>
