@@ -15,7 +15,7 @@ TEST(RestApi, ParseCookies)
   HttpHandler::Arguments headers;
   HttpHandler::Arguments cookies;
 
-  headers["cookies"] = "a=b;c=d;;;e=f;;g=h;";
+  headers["cookie"] = "a=b;c=d;;;e=f;;g=h;";
   HttpHandler::ParseCookies(cookies, headers);
   ASSERT_EQ(4u, cookies.size());
   ASSERT_EQ("b", cookies["a"]);
@@ -23,17 +23,17 @@ TEST(RestApi, ParseCookies)
   ASSERT_EQ("f", cookies["e"]);
   ASSERT_EQ("h", cookies["g"]);
 
-  headers["cookies"] = "  name =  value  ; name2=value2";
+  headers["cookie"] = "  name =  value  ; name2=value2";
   HttpHandler::ParseCookies(cookies, headers);
   ASSERT_EQ(2u, cookies.size());
   ASSERT_EQ("value", cookies["name"]);
   ASSERT_EQ("value2", cookies["name2"]);
 
-  headers["cookies"] = "  ;;;    ";
+  headers["cookie"] = "  ;;;    ";
   HttpHandler::ParseCookies(cookies, headers);
   ASSERT_EQ(0u, cookies.size());
 
-  headers["cookies"] = "  ;   n=v  ;;    ";
+  headers["cookie"] = "  ;   n=v  ;;    ";
   HttpHandler::ParseCookies(cookies, headers);
   ASSERT_EQ(1u, cookies.size());
   ASSERT_EQ("v", cookies["n"]);

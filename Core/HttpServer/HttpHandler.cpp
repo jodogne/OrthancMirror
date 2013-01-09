@@ -98,7 +98,7 @@ namespace Orthanc
   {
     result.clear();
 
-    HttpHandler::Arguments::const_iterator it = httpHeaders.find("cookies");
+    HttpHandler::Arguments::const_iterator it = httpHeaders.find("cookie");
     if (it != httpHeaders.end())
     {
       const std::string& cookies = it->second;
