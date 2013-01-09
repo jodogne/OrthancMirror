@@ -44,6 +44,7 @@ namespace Orthanc
   private:
     HttpOutput& output_;
     bool alreadySent_;
+    HttpHandler::Arguments cookies_;
 
     void CheckStatus();
 
@@ -72,5 +73,11 @@ namespace Orthanc
     void SignalError(Orthanc_HttpStatus status);
 
     void Redirect(const std::string& path);
+
+    void SetCookie(const std::string& name,
+                   const std::string& value,
+                   unsigned int maxAge = 0);
+
+    void ResetCookie(const std::string& name);
   };
 }

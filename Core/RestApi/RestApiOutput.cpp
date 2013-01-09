@@ -32,6 +32,8 @@
 
 #include "RestApiOutput.h"
 
+#include <boost/lexical_cast.hpp>
+
 #include "../OrthancException.h"
 
 namespace Orthanc
@@ -70,7 +72,7 @@ namespace Orthanc
     CheckStatus();
     Json::StyledWriter writer;
     std::string s = writer.write(value);
-    output_.AnswerBufferWithContentType(s, "application/json");
+    output_.AnswerBufferWithContentType(s, "application/json", cookies_);
     alreadySent_ = true;
   }
 
@@ -78,7 +80,7 @@ namespace Orthanc
                                    const std::string& contentType)
   {
     CheckStatus();
-    output_.AnswerBufferWithContentType(buffer, contentType);
+    output_.AnswerBufferWithContentType(buffer, contentType, cookies_);
     alreadySent_ = true;
   }
 
@@ -91,7 +93,8 @@ namespace Orthanc
 
   void RestApiOutput::SignalError(Orthanc_HttpStatus status)
   {
-    if (status != Orthanc_HttpStatus_415_UnsupportedMediaType)
+    if (status != Orthanc_HttpStatus_403_Forbidden &&
+        status != Orthanc_HttpStatus_415_UnsupportedMediaType)
     {
       throw OrthancException("This HTTP status is not allowed in a REST API");
     }
@@ -99,5 +102,37 @@ namespace Orthanc
     CheckStatus();
     output_.SendHeader(status);
     alreadySent_ = true;    
+  }
+
+  void RestApiOutput::SetCookie(const std::string& name,
+                                const std::string& value,
+                                unsigned int maxAge)
+  {
+    if (name.find(";") != std::string::npos ||
+        name.find(" ") != std::string::npos ||
+        value.find(";") != std::string::npos ||
+        value.find(" ") != std::string::npos)
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+    CheckStatus();
+
+    std::string v = value + ";path=/";
+
+    if (maxAge != 0)
+    {
+      v += ";max-age=" + boost::lexical_cast<std::string>(maxAge);
+    }
+
+    cookies_[name] = v;
+  }
+
+  void RestApiOutput::ResetCookie(const std::string& name)
+  {
+    // This marks the cookie to be deleted by the browser in 1 second,
+    // and before it actually gets deleted, its value is set to the
+    // empty string
+    SetCookie(name, "", 1);
   }
 }

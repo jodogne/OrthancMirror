@@ -54,10 +54,7 @@ namespace Orthanc
   {
     namespace fs = boost::filesystem;
 
-    HttpHandler::Arguments header;
-    header["Content-Type"] = "text/html";
-    output.SendOkHeader(header);
-
+    output.SendOkHeader("text/html", false, 0, NULL);
     output.SendString("<html>");
     output.SendString("  <body>");
     output.SendString("    <h1>Subdirectories</h1>");

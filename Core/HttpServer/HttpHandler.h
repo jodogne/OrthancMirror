@@ -65,5 +65,8 @@ namespace Orthanc
     static std::string GetArgument(const Arguments& getArguments,
                                    const std::string& name,
                                    const std::string& defaultValue);
+
+    static void ParseCookies(HttpHandler::Arguments& result, 
+                             const HttpHandler::Arguments& httpHeaders);
   };
 }
