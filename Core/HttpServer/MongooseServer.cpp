@@ -554,7 +554,12 @@ namespace Orthanc
         catch (boost::bad_lexical_cast&)
         {
           LOG(ERROR) << "MongooseServer Exception: Bad lexical cast";
-          output.SendHeader(Orthanc_HttpStatus_500_InternalServerError);        
+          output.SendHeader(Orthanc_HttpStatus_400_BadRequest);
+        }
+        catch (std::runtime_error&)
+        {
+          LOG(ERROR) << "MongooseServer Exception: Presumably a bad JSON request";
+          output.SendHeader(Orthanc_HttpStatus_400_BadRequest);
         }
       }
       else
