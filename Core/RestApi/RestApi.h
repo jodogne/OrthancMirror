@@ -92,6 +92,11 @@ namespace Orthanc
         return HttpHandler::GetArgument(*httpHeaders_, name, defaultValue);
       }
 
+      const HttpHandler::Arguments& GetHttpHeaders() const
+      {
+        return *httpHeaders_;
+      }
+
       void ParseCookies(HttpHandler::Arguments& result) const
       {
         HttpHandler::ParseCookies(result, *httpHeaders_);
