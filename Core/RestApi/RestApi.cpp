@@ -37,8 +37,8 @@
 
 namespace Orthanc
 {
-  bool RestApi::SharedCall::ParseJsonRequestInternal(Json::Value& result,
-                                                     const char* request)
+  bool RestApi::Call::ParseJsonRequestInternal(Json::Value& result,
+                                               const char* request)
   {
     result.clear();
     Json::Reader reader;

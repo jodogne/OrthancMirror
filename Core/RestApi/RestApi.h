@@ -42,8 +42,8 @@ namespace Orthanc
 {
   class RestApi : public HttpHandler
   {
-  private:
-    class SharedCall
+  public:
+    class Call
     {
       friend class RestApi;
 
@@ -101,8 +101,7 @@ namespace Orthanc
     };
 
  
-  public:
-    class GetCall : public SharedCall
+    class GetCall : public Call
     {
       friend class RestApi;
 
@@ -124,7 +123,7 @@ namespace Orthanc
       virtual bool ParseJsonRequest(Json::Value& result) const;
     };
 
-    class PutCall : public SharedCall
+    class PutCall : public Call
     {
       friend class RestApi;
 
@@ -143,7 +142,7 @@ namespace Orthanc
       }      
     };
 
-    class PostCall : public SharedCall
+    class PostCall : public Call
     {
       friend class RestApi;
 
@@ -162,7 +161,7 @@ namespace Orthanc
       }      
     };
 
-    class DeleteCall : public SharedCall
+    class DeleteCall : public Call
     {
     public:
       virtual bool ParseJsonRequest(Json::Value& result) const
