@@ -92,6 +92,11 @@ namespace Orthanc
         return HttpHandler::GetArgument(*httpHeaders_, name, defaultValue);
       }
 
+      void ParseCookies(HttpHandler::Arguments& result) const
+      {
+        HttpHandler::ParseCookies(result, *httpHeaders_);
+      }
+
       virtual bool ParseJsonRequest(Json::Value& result) const = 0;
     };
 

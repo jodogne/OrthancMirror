@@ -32,6 +32,7 @@
 
 #pragma once
 
+#include <list>
 #include <string>
 #include <stdint.h>
 #include "../Enumerations.h"
@@ -42,7 +43,17 @@ namespace Orthanc
   class HttpOutput
   {
   private:
+    typedef std::list< std::pair<std::string, std::string> >  Header;
+
     void SendHeaderInternal(Orthanc_HttpStatus status);
+
+    void PrepareOkHeader(Header& header,
+                         const char* contentType,
+                         bool hasContentLength,
+                         uint64_t contentLength,
+                         const char* contentFilename);
+
+    void SendOkHeader(const Header& header);
 
   public:
     virtual ~HttpOutput()
@@ -56,8 +67,6 @@ namespace Orthanc
                       uint64_t contentLength,
                       const char* contentFilename);
 
-    void SendOkHeader(const HttpHandler::Arguments& header);
-
     void SendString(const std::string& s);
 
     void SendMethodNotAllowedError(const std::string& allowed);
@@ -70,6 +79,10 @@ namespace Orthanc
 
     void AnswerBufferWithContentType(const std::string& buffer,
                                      const std::string& contentType);
+
+    void AnswerBufferWithContentType(const std::string& buffer,
+                                     const std::string& contentType,
+                                     const HttpHandler::Arguments& cookies);
 
     void AnswerBufferWithContentType(const void* buffer,
                                      size_t size,

@@ -10,6 +10,35 @@
 
 using namespace Orthanc;
 
+TEST(RestApi, ParseCookies)
+{
+  HttpHandler::Arguments headers;
+  HttpHandler::Arguments cookies;
+
+  headers["cookies"] = "a=b;c=d;;;e=f;;g=h;";
+  HttpHandler::ParseCookies(cookies, headers);
+  ASSERT_EQ(4u, cookies.size());
+  ASSERT_EQ("b", cookies["a"]);
+  ASSERT_EQ("d", cookies["c"]);
+  ASSERT_EQ("f", cookies["e"]);
+  ASSERT_EQ("h", cookies["g"]);
+
+  headers["cookies"] = "  name =  value  ; name2=value2";
+  HttpHandler::ParseCookies(cookies, headers);
+  ASSERT_EQ(2u, cookies.size());
+  ASSERT_EQ("value", cookies["name"]);
+  ASSERT_EQ("value2", cookies["name2"]);
+
+  headers["cookies"] = "  ;;;    ";
+  HttpHandler::ParseCookies(cookies, headers);
+  ASSERT_EQ(0u, cookies.size());
+
+  headers["cookies"] = "  ;   n=v  ;;    ";
+  HttpHandler::ParseCookies(cookies, headers);
+  ASSERT_EQ(1u, cookies.size());
+  ASSERT_EQ("v", cookies["n"]);
+}
+
 TEST(RestApi, RestApiPath)
 {
   RestApiPath::Components args;

@@ -50,38 +50,46 @@ namespace Orthanc
     }
   }
 
+  void HttpOutput::PrepareOkHeader(Header& header,
+                                   const char* contentType,
+                                   bool hasContentLength,
+                                   uint64_t contentLength,
+                                   const char* contentFilename)
+  {
+    header.clear();
+
+    if (contentType && contentType[0] != '\0')
+    {
+      header.push_back(std::make_pair("Content-Type", std::string(contentType)));
+    }
+
+    if (hasContentLength)
+    {
+      header.push_back(std::make_pair("Content-Length", boost::lexical_cast<std::string>(contentLength)));
+    }
+
+    if (contentFilename && contentFilename[0] != '\0')
+    {
+      std::string attachment = "attachment; filename=\"" + std::string(contentFilename) + "\"";
+      header.push_back(std::make_pair("Content-Disposition", attachment));
+    }
+  }
+
   void HttpOutput::SendOkHeader(const char* contentType,
                                 bool hasContentLength,
                                 uint64_t contentLength,
                                 const char* contentFilename)
   {
-    std::string s = "HTTP/1.1 200 OK\r\n";
-
-    if (contentType && contentType[0] != '\0')
-    {
-      s += "Content-Type: " + std::string(contentType) + "\r\n";
-    }
-
-    if (hasContentLength)
-    {
-      s += "Content-Length: " + boost::lexical_cast<std::string>(contentLength) + "\r\n";
-    }
-
-    if (contentFilename && contentFilename[0] != '\0')
-    {
-      s += "Content-Disposition: attachment; filename=\"" + std::string(contentFilename) + "\"\r\n";
-    }
-
-    s += "\r\n";
-
-    Send(&s[0], s.size());
+    Header header;
+    PrepareOkHeader(header, contentType, hasContentLength, contentLength, contentFilename);
+    SendOkHeader(header);
   }
 
-  void HttpOutput::SendOkHeader(const HttpHandler::Arguments& header)
+  void HttpOutput::SendOkHeader(const Header& header)
   {
     std::string s = "HTTP/1.1 200 OK\r\n";
 
-    for (HttpHandler::Arguments::const_iterator 
+    for (Header::const_iterator 
            it = header.begin(); it != header.end(); it++)
     {
       s += it->first + ": " + it->second + "\r\n";
@@ -129,6 +137,24 @@ namespace Orthanc
                                                const std::string& contentType)
   {
     SendOkHeader(contentType.c_str(), true, buffer.size(), NULL);
+    SendString(buffer);
+  }
+
+
+  void HttpOutput::AnswerBufferWithContentType(const std::string& buffer,
+                                               const std::string& contentType,
+                                               const HttpHandler::Arguments& cookies)
+  {
+    Header header;
+    PrepareOkHeader(header, contentType.c_str(), true, buffer.size(), NULL);
+    
+    for (HttpHandler::Arguments::const_iterator it = cookies.begin();
+         it != cookies.end(); it++)
+    {
+      header.push_back(std::make_pair("Set-Cookie", it->first + "=" + it->second));
+    }
+
+    SendOkHeader(header);
     SendString(buffer);
   }
 

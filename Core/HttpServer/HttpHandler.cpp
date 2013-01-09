@@ -90,4 +90,44 @@ namespace Orthanc
       return it->second;
     }
   }
+
+
+
+  void HttpHandler::ParseCookies(HttpHandler::Arguments& result, 
+                                 const HttpHandler::Arguments& httpHeaders)
+  {
+    result.clear();
+
+    HttpHandler::Arguments::const_iterator it = httpHeaders.find("cookies");
+    if (it != httpHeaders.end())
+    {
+      const std::string& cookies = it->second;
+
+      size_t pos = 0;
+      while (pos != std::string::npos)
+      {
+        size_t nextSemicolon = cookies.find(";", pos);
+        std::string cookie;
+
+        if (nextSemicolon == std::string::npos)
+        {
+          cookie = cookies.substr(pos);
+          pos = std::string::npos;
+        }
+        else
+        {
+          cookie = cookies.substr(pos, nextSemicolon - pos);
+          pos = nextSemicolon + 1;
+        }
+
+        size_t equal = cookie.find("=");
+        if (equal != std::string::npos)
+        {
+          std::string name = Toolbox::StripSpaces(cookie.substr(0, equal));
+          std::string value = Toolbox::StripSpaces(cookie.substr(equal + 1));
+          result[name] = value;
+        }
+      }
+    }
+  }
 }
