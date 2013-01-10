@@ -40,16 +40,21 @@ namespace Orthanc
                                 const char* start,
                                 const char* end)
   {
+    std::string name, value;
+    
     const char* equal = strchr(start, '=');
     if (equal == NULL || equal >= end)
     {
-      result.insert(std::make_pair(std::string(start, end - start), ""));
+      name = std::string(start, end - start);
+      //value = "";
     }
     else
     {
-      result.insert(std::make_pair(std::string(start, equal - start),
-                                   std::string(equal + 1, end)));
+      name = std::string(start, equal - start);
+      value = std::string(equal + 1, end);
     }
+
+    result.insert(std::make_pair(name, value));
   }
 
 
