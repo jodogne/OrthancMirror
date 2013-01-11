@@ -53,7 +53,7 @@ namespace Orthanc
     for (HttpHandler::Arguments::const_iterator 
            it = getArguments_->begin(); it != getArguments_->end(); it++)
     {
-      result[it->first] = result[it->second];
+      result[it->first] = it->second;
     }
 
     return true;
