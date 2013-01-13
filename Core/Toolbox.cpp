@@ -594,7 +594,7 @@ namespace Orthanc
   }
 
 
-  static uint8_t Hex2Dec(char c)
+  static char Hex2Dec(char c)
   {
     return ((c >= '0' && c <= '9') ? c - '0' :
             ((c >= 'a' && c <= 'f') ? c - 'a' + 10 : c - 'A' + 10));
