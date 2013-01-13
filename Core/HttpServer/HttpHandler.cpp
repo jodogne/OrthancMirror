@@ -54,6 +54,9 @@ namespace Orthanc
       value = std::string(equal + 1, end);
     }
 
+    Toolbox::UrlDecode(name);
+    Toolbox::UrlDecode(value);
+
     result.insert(std::make_pair(name, value));
   }
 

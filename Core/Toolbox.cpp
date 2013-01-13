@@ -592,4 +592,51 @@ namespace Orthanc
     assert(first <= last);
     return source.substr(first, last - first);
   }
+
+
+  static uint8_t Hex2Dec(char c)
+  {
+    return ((c >= '0' && c <= '9') ? c - '0' :
+            ((c >= 'a' && c <= 'f') ? c - 'a' + 10 : c - 'A' + 10));
+  }
+
+  void Toolbox::UrlDecode(std::string& s)
+  {
+    // http://en.wikipedia.org/wiki/Percent-encoding
+    // http://www.w3schools.com/tags/ref_urlencode.asp
+    // http://stackoverflow.com/questions/154536/encode-decode-urls-in-c
+
+    if (s.size() == 0)
+    {
+      return;
+    }
+
+    size_t source = 0;
+    size_t target = 0;
+
+    while (source < s.size())
+    {
+      if (s[source] == '%' &&
+          source + 2 < s.size() &&
+          isalnum(s[source + 1]) &&
+          isalnum(s[source + 2]))
+      {
+        s[target] = (Hex2Dec(s[source + 1]) << 4) | Hex2Dec(s[source + 2]);
+        source += 3;
+        target += 1;
+      }
+      else
+      {
+        if (s[source] == '+')
+          s[target] = ' ';
+        else
+          s[target] = s[source];
+
+        source++;
+        target++;
+      }
+    }
+
+    s.resize(target);
+  }
 }
