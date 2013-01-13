@@ -305,9 +305,12 @@ TEST(Toolbox, UrlDecode)
   Toolbox::UrlDecode(s);
   ASSERT_EQ("Hello World", s);
 
-  s = "%21%23%24%26%27%28%29%2A%2B%2c%2f%3A%3b%3d%3f%40%5B%5D";
+  s = "%21%23%24%26%27%28%29%2A%2B%2c%2f%3A%3b%3d%3f%40%5B%5D%90%ff";
   Toolbox::UrlDecode(s);
-  ASSERT_EQ("!#$&'()*+,/:;=?@[]", s);
+  std::string ss = "!#$&'()*+,/:;=?@[]"; 
+  ss.push_back((char) 144); 
+  ss.push_back((char) 255);
+  ASSERT_EQ(ss, s);
 
   s = "(2000%2C00A4)+Other";
   Toolbox::UrlDecode(s);
