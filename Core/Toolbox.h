@@ -94,5 +94,8 @@ namespace Orthanc
     std::string StripSpaces(const std::string& source);
 
     std::string GetNowIsoString();
+
+    // In-place percent-decoding for URL
+    void UrlDecode(std::string& s);
   }
 }

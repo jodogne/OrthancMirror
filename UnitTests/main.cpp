@@ -297,6 +297,23 @@ TEST(Toolbox, ConvertFromLatin1)
   ASSERT_EQ(0x00, static_cast<unsigned char>(utf8[14]));  // Null-terminated string
 }
 
+TEST(Toolbox, UrlDecode)
+{
+  std::string s;
+
+  s = "Hello%20World";
+  Toolbox::UrlDecode(s);
+  ASSERT_EQ("Hello World", s);
+
+  s = "%21%23%24%26%27%28%29%2A%2B%2c%2f%3A%3b%3d%3f%40%5B%5D";
+  Toolbox::UrlDecode(s);
+  ASSERT_EQ("!#$&'()*+,/:;=?@[]", s);
+
+  s = "(2000%2C00A4)+Other";
+  Toolbox::UrlDecode(s);
+  ASSERT_EQ("(2000,00A4) Other", s);
+}
+
 
 int main(int argc, char **argv)
 {
