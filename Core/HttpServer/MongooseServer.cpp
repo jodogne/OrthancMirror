@@ -341,7 +341,7 @@ namespace Orthanc
     ArgumentIterator fileName = headers.find("x-file-name");
     ArgumentIterator fileSizeStr = headers.find("x-file-size");
 
-    if (requestedWith == headers.end() ||
+    if (requestedWith != headers.end() &&
         requestedWith->second != "XMLHttpRequest")
     {
       return PostDataStatus_Failure; 
