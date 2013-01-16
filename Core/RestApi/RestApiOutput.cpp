@@ -84,6 +84,15 @@ namespace Orthanc
     alreadySent_ = true;
   }
 
+  void RestApiOutput::AnswerBuffer(const void* buffer,
+                                   size_t length,
+                                   const std::string& contentType)
+  {
+    CheckStatus();
+    output_.AnswerBufferWithContentType(buffer, length, contentType, cookies_);
+    alreadySent_ = true;
+  }
+
   void RestApiOutput::Redirect(const std::string& path)
   {
     CheckStatus();

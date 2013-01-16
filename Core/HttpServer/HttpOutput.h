@@ -55,6 +55,9 @@ namespace Orthanc
 
     void SendOkHeader(const Header& header);
 
+    void PrepareCookies(Header& header,
+                        const HttpHandler::Arguments& cookies);
+
   public:
     virtual ~HttpOutput()
     {
@@ -87,5 +90,10 @@ namespace Orthanc
     void AnswerBufferWithContentType(const void* buffer,
                                      size_t size,
                                      const std::string& contentType);
+
+    void AnswerBufferWithContentType(const void* buffer,
+                                     size_t size,
+                                     const std::string& contentType,
+                                     const HttpHandler::Arguments& cookies);
   };
 }
