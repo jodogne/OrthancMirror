@@ -141,19 +141,24 @@ namespace Orthanc
   }
 
 
+  void HttpOutput::PrepareCookies(Header& header,
+                                  const HttpHandler::Arguments& cookies)
+  {
+    for (HttpHandler::Arguments::const_iterator it = cookies.begin();
+         it != cookies.end(); it++)
+    {
+      header.push_back(std::make_pair("Set-Cookie", it->first + "=" + it->second));
+    }
+  }
+
+
   void HttpOutput::AnswerBufferWithContentType(const std::string& buffer,
                                                const std::string& contentType,
                                                const HttpHandler::Arguments& cookies)
   {
     Header header;
     PrepareOkHeader(header, contentType.c_str(), true, buffer.size(), NULL);
-    
-    for (HttpHandler::Arguments::const_iterator it = cookies.begin();
-         it != cookies.end(); it++)
-    {
-      header.push_back(std::make_pair("Set-Cookie", it->first + "=" + it->second));
-    }
-
+    PrepareCookies(header, cookies);
     SendOkHeader(header);
     SendString(buffer);
   }
@@ -166,6 +171,21 @@ namespace Orthanc
     SendOkHeader(contentType.c_str(), true, size, NULL);
     Send(buffer, size);
   }
+
+
+  void HttpOutput::AnswerBufferWithContentType(const void* buffer,
+                                               size_t size,
+                                               const std::string& contentType,
+                                               const HttpHandler::Arguments& cookies)
+  {
+    Header header;
+    PrepareOkHeader(header, contentType.c_str(), true, size, NULL);
+    PrepareCookies(header, cookies);
+    SendOkHeader(header);
+    Send(buffer, size);
+  }
+
+
 
   void HttpOutput::Redirect(const std::string& path)
   {
