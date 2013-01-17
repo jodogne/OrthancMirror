@@ -1,9 +1,5 @@
-import hashlib
 import httplib2
 import json
-import os.path
-import Image
-import zipfile
 from urllib import urlencode
 
 def DoGet(uri, data = {}):
