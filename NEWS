@@ -10,8 +10,9 @@ Major changes
 Minor changes
 -------------
 
-* Implementation of the PMSCT_RLE1 image decoding for Philips modalities
 * Support of private tags
+* Implementation of the PMSCT_RLE1 image decoding for Philips modalities
+* Generation of random DICOM UID through the REST API (/tools/generate-uid)
 
 
 Version 0.4.0 (2012/12/14)
