@@ -317,6 +317,27 @@ namespace Orthanc
     call.GetOutput().AnswerJson(result);
   }
 
+  static void GenerateUid(RestApi::GetCall& call)
+  {
+    std::string level = call.GetArgument("level", "");
+    if (level == "patient")
+    {
+      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Patient), "text/plain");
+    }
+    else if (level == "study")
+    {
+      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Study), "text/plain");
+    }
+    else if (level == "series")
+    {
+      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series), "text/plain");
+    }
+    else if (level == "instance")
+    {
+      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Instance), "text/plain");
+    }
+  }
+
 
   // List all the patients, studies, series or instances ----------------------
  
@@ -1441,5 +1462,7 @@ namespace Orthanc
     Register("/instances/{id}/anonymize", AnonymizeInstance);
     Register("/series/{id}/anonymize", AnonymizeSeriesInplace);
     Register("/studies/{id}/anonymize", AnonymizeStudyInplace);
+
+    Register("/tools/generate-uid", GenerateUid);
   }
 }
