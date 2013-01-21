@@ -144,6 +144,7 @@ function GetSingleResource(type, uuid, callback)
     url: '../' + type + '/' + uuid,
     dataType: 'json',
     async: false,
+    cache: false,
     success: function(s) {
       callback(s);
     }
@@ -159,6 +160,7 @@ function GetMultipleResources(type, uuids, callback)
       url: '../' + type,
       dataType: 'json',
       async: false,
+      cache: false,
       success: function(s) {
         uuids = s;
       }
@@ -171,6 +173,7 @@ function GetMultipleResources(type, uuids, callback)
       url: '../' + type + '/' + uuid,
       dataType: 'json',
       async: true,
+      cache: false,
       success: function(s) {
         resources.push(s);
       }
@@ -324,6 +327,7 @@ $('[data-role="page"]').live('pagebeforeshow', function() {
     url: '../system',
     dataType: 'json',
     async: false,
+    cache: false,
     success: function(s) {
       if (s.Name != "") {
         $('.orthanc-name').html('<a class="ui-link" href="explorer.html">' + s.Name + '</a> &raquo; ');
@@ -385,6 +389,7 @@ $('#patient').live('pagebeforeshow', function() {
           type: 'GET',
           dataType: 'text',
           async: false,
+          cache: false,
           success: function (s) {
             var v = (s == '1') ? 'on' : 'off';
             $('#protection').val(v).slider('refresh');
@@ -542,6 +547,7 @@ $('#instance').live('pagebeforeshow', function() {
 
             $.ajax({
               url: '../instances/' + instance.ID + '/tags',
+              cache: false,
               dataType: 'json',
               success: function(s) {
                 $('#dicom-tree').tree('loadData', ConvertForTree(s));
@@ -707,6 +713,7 @@ function ChooseDicomModality(callback)
     type: 'GET',
     dataType: 'json',
     async: false,
+    cache: false,
     success: function(modalities) {
       var clickedModality = '';
       var items = $('<ul>')
@@ -807,4 +814,55 @@ $('#protection').live('change', function(e) {
     data: isProtected ? '1' : '0',
     async: false
   });
+});
+
+
+
+function OpenAnonymizeResourceDialog(path, title)
+{
+  $(document).simpledialog2({ 
+    mode: 'button',
+    animate: false,
+    headerText: title,
+    headerClose: true,
+    width: '500px',
+    buttons : {
+      'OK': {
+        click: function () { 
+          $.ajax({
+            url: path + '/anonymize',
+            type: 'POST',
+            data: '{}',
+            dataType: 'json',
+            async: false,
+            cache: false,
+            success: function(s) {
+              $.mobile.changePage('#patient?uuid=' + s.PatientID);
+            }
+          });
+        },
+        icon: "delete",
+        theme: "c"
+      },
+      'Cancel': {
+        click: function () { 
+        }
+      }
+    }
+  });
+}
+
+$('#instance-anonymize').live('click', function() {
+  OpenAnonymizeResourceDialog('../instances/' + $.mobile.pageData.uuid,
+                              'Anonymize this instance?');
+});
+
+$('#study-anonymize').live('click', function() {
+  OpenAnonymizeResourceDialog('../studies/' + $.mobile.pageData.uuid,
+                              'Anonymize this study?');
+});
+
+$('#series-anonymize').live('click', function() {
+  OpenAnonymizeResourceDialog('../series/' + $.mobile.pageData.uuid,
+                              'Anonymize this series?');
 });
