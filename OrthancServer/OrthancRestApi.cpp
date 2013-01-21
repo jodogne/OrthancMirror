@@ -1166,59 +1166,70 @@ namespace Orthanc
                                       ChangeType changeType,
                                       RestApi::PostCall& call)
   {
-    RETRIEVE_CONTEXT(call);
+    Json::Value result = Json::objectValue;
     
-    boost::mutex::scoped_lock lock(cacheMutex_);
-
-    typedef std::list<std::string> Instances;
-    Instances instances;
-    std::string id = call.GetUriComponent("id", "");
-    context.GetIndex().GetChildInstances(instances, id);
-
-    if (instances.size() == 0)
     {
-      return;
-    }
+      boost::mutex::scoped_lock lock(cacheMutex_);
+      RETRIEVE_CONTEXT(call);
 
-    replacements[DICOM_TAG_SERIES_INSTANCE_UID] = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series);
+      typedef std::list<std::string> Instances;
+      Instances instances;
+      std::string id = call.GetUriComponent("id", "");
+      context.GetIndex().GetChildInstances(instances, id);
 
-    std::string newSeriesId;
-    for (Instances::const_iterator it = instances.begin(); 
-         it != instances.end(); it++)
-    {
-      LOG(INFO) << "Modifying instance " << *it;
-      ParsedDicomFile& original = context.GetDicomFile(*it);
-      std::auto_ptr<ParsedDicomFile> modified(original.Clone());
-      ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent, removePrivateTags);
-
-      std::string modifiedInstance;
-      if (context.Store(modifiedInstance, modified->GetDicom()) != StoreStatus_Success)
+      if (instances.size() == 0)
       {
-        LOG(ERROR) << "Error while storing a modified instance " << *it;
         return;
       }
 
-      DicomInstanceHasher modifiedHasher = modified->GetHasher();
-      DicomInstanceHasher originalHasher = original.GetHasher();
+      replacements[DICOM_TAG_SERIES_INSTANCE_UID] = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series);
 
-      if (newSeriesId.size() == 0)
+      std::string newSeriesId, newPatientId;
+      for (Instances::const_iterator it = instances.begin(); 
+           it != instances.end(); it++)
       {
-        assert(id == originalHasher.HashSeries());
-        newSeriesId = modifiedHasher.HashSeries();
-        context.GetIndex().SetMetadata(newSeriesId, metadataType, id);
+        LOG(INFO) << "Modifying instance " << *it;
+        ParsedDicomFile& original = context.GetDicomFile(*it);
+        std::auto_ptr<ParsedDicomFile> modified(original.Clone());
+        ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent, removePrivateTags);
+
+        std::string modifiedInstance;
+        if (context.Store(modifiedInstance, modified->GetDicom()) != StoreStatus_Success)
+        {
+          LOG(ERROR) << "Error while storing a modified instance " << *it;
+          return;
+        }
+
+        DicomInstanceHasher modifiedHasher = modified->GetHasher();
+        DicomInstanceHasher originalHasher = original.GetHasher();
+
+        if (newSeriesId.size() == 0)
+        {
+          assert(id == originalHasher.HashSeries());
+          newSeriesId = modifiedHasher.HashSeries();
+          context.GetIndex().SetMetadata(newSeriesId, metadataType, id);
+        }
+
+        if (newPatientId.size() == 0)
+        {
+          newPatientId = modifiedHasher.HashPatient();
+        }
+
+        assert(*it == originalHasher.HashInstance());
+        assert(modifiedInstance == modifiedHasher.HashInstance());
+        context.GetIndex().SetMetadata(modifiedInstance, metadataType, *it);
       }
 
-      assert(*it == originalHasher.HashInstance());
-      assert(modifiedInstance == modifiedHasher.HashInstance());
-      context.GetIndex().SetMetadata(modifiedInstance, metadataType, *it);
+      context.GetIndex().LogChange(changeType, newSeriesId);
+
+      assert(newSeriesId.size() != 0);
+      result["Type"] = ToString(ResourceType_Series);
+      result["ID"] = newSeriesId;
+      result["Path"] = GetBasePath(ResourceType_Series, newSeriesId);
+      result["PatientID"] = newPatientId;
     }
 
-    context.GetIndex().LogChange(changeType, newSeriesId);
-
-    assert(newSeriesId.size() != 0);
-    Json::Value result = Json::objectValue;
-    result["ID"] = newSeriesId;
-    result["Path"] = GetBasePath(ResourceType_Series, newSeriesId);
+    // Do not answer before the lock has been released
     call.GetOutput().AnswerJson(result);
   }
 
@@ -1230,88 +1241,101 @@ namespace Orthanc
                                      ChangeType changeType,
                                      RestApi::PostCall& call)
   {
-    RETRIEVE_CONTEXT(call);
-    boost::mutex::scoped_lock lock(cacheMutex_);
+    Json::Value result = Json::objectValue;
 
-    typedef std::list<std::string> Instances;
-    typedef std::map<std::string, std::string> SeriesUidMap;
-
-    Instances instances;
-    std::string id = call.GetUriComponent("id", "");
-    context.GetIndex().GetChildInstances(instances, id);
-
-    if (instances.size() == 0)
     {
-      return;
-    }
+      boost::mutex::scoped_lock lock(cacheMutex_);
+      RETRIEVE_CONTEXT(call);
 
-    std::string newStudyId;
-    replacements[DICOM_TAG_STUDY_INSTANCE_UID] = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Study);
+      typedef std::list<std::string> Instances;
+      typedef std::map<std::string, std::string> SeriesUidMap;
 
-    SeriesUidMap seriesUidMap;
-    for (Instances::const_iterator it = instances.begin(); 
-         it != instances.end(); it++)
-    {
-      LOG(INFO) << "Modifying instance " << *it;
-      ParsedDicomFile& original = context.GetDicomFile(*it);
+      Instances instances;
+      std::string id = call.GetUriComponent("id", "");
+      context.GetIndex().GetChildInstances(instances, id);
 
-      std::string seriesUid;
-      if (!original.GetTagValue(seriesUid, DICOM_TAG_SERIES_INSTANCE_UID))
+      if (instances.size() == 0)
       {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
-      bool isNewSeries;
-      SeriesUidMap::const_iterator it2 = seriesUidMap.find(seriesUid);
-      if (it2 == seriesUidMap.end())
-      {
-        std::string newSeriesUid = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series);
-        seriesUidMap[seriesUid] = newSeriesUid;
-        replacements[DICOM_TAG_SERIES_INSTANCE_UID] = newSeriesUid;
-        isNewSeries = true;
-      }
-      else
-      {
-        replacements[DICOM_TAG_SERIES_INSTANCE_UID] = it2->second;
-        isNewSeries = false;
-      }
-
-      std::auto_ptr<ParsedDicomFile> modified(original.Clone());
-      ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent, removePrivateTags);
-
-      std::string modifiedInstance;
-      if (context.Store(modifiedInstance, modified->GetDicom()) != StoreStatus_Success)
-      {
-        LOG(ERROR) << "Error while storing a modified instance " << *it;
         return;
       }
 
-      DicomInstanceHasher modifiedHasher = modified->GetHasher();
-      DicomInstanceHasher originalHasher = original.GetHasher();
+      std::string newPatientId;
+      std::string newStudyId;
+      replacements[DICOM_TAG_STUDY_INSTANCE_UID] = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Study);
 
-      if (isNewSeries)
+      SeriesUidMap seriesUidMap;
+      for (Instances::const_iterator it = instances.begin(); 
+           it != instances.end(); it++)
       {
-        context.GetIndex().SetMetadata
-          (modifiedHasher.HashSeries(), metadataType, originalHasher.HashSeries());
+        LOG(INFO) << "Modifying instance " << *it;
+        ParsedDicomFile& original = context.GetDicomFile(*it);
+
+        std::string seriesUid;
+        if (!original.GetTagValue(seriesUid, DICOM_TAG_SERIES_INSTANCE_UID))
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+
+        bool isNewSeries;
+        SeriesUidMap::const_iterator it2 = seriesUidMap.find(seriesUid);
+        if (it2 == seriesUidMap.end())
+        {
+          std::string newSeriesUid = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series);
+          seriesUidMap[seriesUid] = newSeriesUid;
+          replacements[DICOM_TAG_SERIES_INSTANCE_UID] = newSeriesUid;
+          isNewSeries = true;
+        }
+        else
+        {
+          replacements[DICOM_TAG_SERIES_INSTANCE_UID] = it2->second;
+          isNewSeries = false;
+        }
+
+        std::auto_ptr<ParsedDicomFile> modified(original.Clone());
+        ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent, removePrivateTags);
+
+        std::string modifiedInstance;
+        if (context.Store(modifiedInstance, modified->GetDicom()) != StoreStatus_Success)
+        {
+          LOG(ERROR) << "Error while storing a modified instance " << *it;
+          return;
+        }
+
+        DicomInstanceHasher modifiedHasher = modified->GetHasher();
+        DicomInstanceHasher originalHasher = original.GetHasher();
+
+        if (isNewSeries)
+        {
+          context.GetIndex().SetMetadata
+            (modifiedHasher.HashSeries(), metadataType, originalHasher.HashSeries());
+        }
+
+        if (newStudyId.size() == 0)
+        {
+          newStudyId = modifiedHasher.HashStudy();
+          context.GetIndex().SetMetadata(newStudyId, metadataType, originalHasher.HashStudy());
+        }
+
+        if (newPatientId.size() == 0)
+        {
+          newPatientId = modifiedHasher.HashPatient();
+        }
+
+        assert(*it == originalHasher.HashInstance());
+        assert(modifiedInstance == modifiedHasher.HashInstance());
+        context.GetIndex().SetMetadata(modifiedInstance, metadataType, *it);
       }
 
-      if (newStudyId.size() == 0)
-      {
-        newStudyId = modifiedHasher.HashStudy();
-        context.GetIndex().SetMetadata(newStudyId, metadataType, originalHasher.HashStudy());
-      }
+      context.GetIndex().LogChange(changeType, newStudyId);
 
-      assert(*it == originalHasher.HashInstance());
-      assert(modifiedInstance == modifiedHasher.HashInstance());
-      context.GetIndex().SetMetadata(modifiedInstance, metadataType, *it);
+      assert(newStudyId.size() != 0);
+      result["Type"] = ToString(ResourceType_Study);
+      result["ID"] = newStudyId;
+      result["Path"] = GetBasePath(ResourceType_Study, newStudyId);
+      result["PatientID"] = newPatientId;
     }
 
-    context.GetIndex().LogChange(changeType, newStudyId);
-
-    assert(newStudyId.size() != 0);
-    Json::Value result = Json::objectValue;
-    result["ID"] = newStudyId;
-    result["Path"] = GetBasePath(ResourceType_Study, newStudyId);
+    // Do not answer before the lock has been released
     call.GetOutput().AnswerJson(result);
   }
 
