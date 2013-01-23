@@ -377,7 +377,7 @@ namespace Orthanc
         {
           Range part(&last->back(), &it->front());
           Range content = boost::find_first(part, "\r\n\r\n");
-          if (content != Range())
+          if (/*content != Range()*/!content.empty())
           {
             Range c(&content.back() + 1, &it->front() - 2);
             size_t chunkSize = c.size();
