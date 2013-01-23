@@ -769,7 +769,7 @@ $('#instance-store,#series-store').live('click', function(e) {
           $.unblockUI();
         },
         success: function(s) {
-          console.log('done !');
+          //console.log('done !');
         },
         error: function() {
           alert('Error during C-Store');
