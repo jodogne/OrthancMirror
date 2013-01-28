@@ -837,7 +837,11 @@ function OpenAnonymizeResourceDialog(path, title)
             async: false,
             cache: false,
             success: function(s) {
-              $.mobile.changePage('#patient?uuid=' + s.PatientID);
+              // The following line does not work...
+              //$.mobile.changePage('explorer.html#patient?uuid=' + s.PatientID);
+
+              window.location.assign('explorer.html#patient?uuid=' + s.PatientID);
+              window.location.reload();
             }
           });
         },
@@ -865,4 +869,9 @@ $('#study-anonymize').live('click', function() {
 $('#series-anonymize').live('click', function() {
   OpenAnonymizeResourceDialog('../series/' + $.mobile.pageData.uuid,
                               'Anonymize this series?');
+});
+
+$('#patient-anonymize').live('click', function() {
+  OpenAnonymizeResourceDialog('../patients/' + $.mobile.pageData.uuid,
+                              'Anonymize this patient?');
 });

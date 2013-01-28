@@ -1413,6 +1413,36 @@ namespace Orthanc
   }
 
 
+  static void ModifyPatientInplace(RestApi::PostCall& call)
+  {
+    Removals removals;
+    Replacements replacements;
+    bool removePrivateTags;
+
+    if (ParseModifyRequest(removals, replacements, removePrivateTags, call))
+    {
+      AnonymizeOrModifyResource(removals, replacements, removePrivateTags, 
+                                MetadataType_ModifiedFrom, ChangeType_ModifiedPatient, 
+                                ResourceType_Patient, call);
+    }
+  }
+
+
+  static void AnonymizePatientInplace(RestApi::PostCall& call)
+  {
+    Removals removals;
+    Replacements replacements;
+    bool removePrivateTags;
+
+    if (ParseAnonymizationRequest(removals, replacements, removePrivateTags, call))
+    {
+      AnonymizeOrModifyResource(removals, replacements, removePrivateTags, 
+                                MetadataType_AnonymizedFrom, ChangeType_AnonymizedPatient, 
+                                ResourceType_Patient, call);
+    }
+  }
+
+
 
   // Registration of the various REST handlers --------------------------------
 
@@ -1472,10 +1502,12 @@ namespace Orthanc
     Register("/instances/{id}/modify", ModifyInstance);
     Register("/series/{id}/modify", ModifySeriesInplace);
     Register("/studies/{id}/modify", ModifyStudyInplace);
+    Register("/patients/{id}/modify", ModifyPatientInplace);
 
     Register("/instances/{id}/anonymize", AnonymizeInstance);
     Register("/series/{id}/anonymize", AnonymizeSeriesInplace);
     Register("/studies/{id}/anonymize", AnonymizeStudyInplace);
+    Register("/patients/{id}/anonymize", AnonymizePatientInplace);
 
     Register("/tools/generate-uid", GenerateUid);
   }
