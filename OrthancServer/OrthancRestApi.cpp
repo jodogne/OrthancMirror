@@ -1141,8 +1141,8 @@ namespace Orthanc
   }
 
 
-  static void AnonymizeOrModifyInstance(Removals removals,
-                                        Replacements replacements,
+  static void AnonymizeOrModifyInstance(Removals& removals,
+                                        Replacements& replacements,
                                         bool removePrivateTags,
                                         RestApi::PostCall& call)
   {
@@ -1159,8 +1159,8 @@ namespace Orthanc
   }
 
 
-  static void AnonymizeOrModifySeries(Removals removals,
-                                      Replacements replacements,
+  static void AnonymizeOrModifySeries(Removals& removals,
+                                      Replacements& replacements,
                                       bool removePrivateTags,
                                       MetadataType metadataType,
                                       ChangeType changeType,
@@ -1234,8 +1234,8 @@ namespace Orthanc
   }
 
 
-  static void AnonymizeOrModifyStudy(Removals removals,
-                                     Replacements replacements,
+  static void AnonymizeOrModifyStudy(Removals& removals,
+                                     Replacements& replacements,
                                      bool removePrivateTags,
                                      MetadataType metadataType,
                                      ChangeType changeType,
@@ -1336,6 +1336,135 @@ namespace Orthanc
     }
 
     // Do not answer before the lock has been released
+    call.GetOutput().AnswerJson(result);
+  }
+
+
+
+  namespace
+  {
+    typedef std::map< std::pair<DicomRootLevel, std::string>, std::string>  UidMap;
+  }
+
+  static void RetrieveMappedUid(ParsedDicomFile& dicom,
+                                DicomRootLevel level,
+                                Replacements& replacements,
+                                UidMap& uidMap)
+  {
+    std::auto_ptr<DicomTag> tag;
+    if (level == DicomRootLevel_Series)
+    {
+      tag.reset(new DicomTag(DICOM_TAG_SERIES_INSTANCE_UID));
+    }
+    else
+    {
+      assert(level == DicomRootLevel_Study);
+      tag.reset(new DicomTag(DICOM_TAG_STUDY_INSTANCE_UID));
+    }
+
+    std::string original;
+    if (!dicom.GetTagValue(original, *tag))
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    std::string mapped;
+
+    UidMap::const_iterator previous = uidMap.find(std::make_pair(level, original));
+    if (previous == uidMap.end())
+    {
+      mapped = FromDcmtkBridge::GenerateUniqueIdentifier(level);
+      uidMap.insert(std::make_pair(std::make_pair(level, original), mapped));
+    }
+    else
+    {
+      mapped = previous->second;
+    }    
+
+    replacements[*tag] = mapped;
+  }
+
+
+  static void AnonymizeOrModifyResource(Removals& removals,
+                                        Replacements& replacements,
+                                        bool removePrivateTags,
+                                        MetadataType metadataType,
+                                        ChangeType changeType,
+                                        ResourceType resourceType,
+                                        RestApi::PostCall& call)
+  {
+    typedef std::list<std::string> Instances;
+
+    bool isFirst = true;
+    Json::Value result(Json::objectValue);
+
+    boost::mutex::scoped_lock lock(cacheMutex_);
+    RETRIEVE_CONTEXT(call);
+
+    Instances instances;
+    std::string id = call.GetUriComponent("id", "");
+    context.GetIndex().GetChildInstances(instances, id);
+
+    if (instances.size() == 0)
+    {
+      return;
+    }
+
+    UidMap uidMap;
+    for (Instances::const_iterator it = instances.begin(); 
+         it != instances.end(); it++)
+    {
+      LOG(INFO) << "Modifying instance " << *it;
+      ParsedDicomFile& original = context.GetDicomFile(*it);
+
+      RetrieveMappedUid(original, DicomRootLevel_Series, replacements, uidMap);
+
+      if (resourceType == ResourceType_Study ||
+          resourceType == ResourceType_Patient)
+      {
+        RetrieveMappedUid(original, DicomRootLevel_Study, replacements, uidMap);
+      }
+
+      std::auto_ptr<ParsedDicomFile> modified(original.Clone());
+      ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent, removePrivateTags);
+
+      std::string modifiedInstance;
+      if (context.Store(modifiedInstance, modified->GetDicom()) != StoreStatus_Success)
+      {
+        LOG(ERROR) << "Error while storing a modified instance " << *it;
+        return;
+      }
+
+      if (isFirst)
+      {
+        DicomInstanceHasher modifiedHasher = modified->GetHasher();
+        std::string newId;
+
+        switch (resourceType)
+        {
+          case ResourceType_Series:
+            newId = modifiedHasher.HashSeries();
+            break;
+
+          case ResourceType_Study:
+            newId = modifiedHasher.HashStudy();
+            break;
+
+          case ResourceType_Patient:
+            newId = modifiedHasher.HashPatient();
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_InternalError);
+        }
+
+        result["Type"] = ToString(resourceType);
+        result["Path"] = GetBasePath(resourceType, newId);
+        result["PatientID"] = modifiedHasher.HashPatient();
+        isFirst = false;
+      }
+    }
+
     call.GetOutput().AnswerJson(result);
   }
 
