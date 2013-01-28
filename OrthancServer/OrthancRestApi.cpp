@@ -1346,7 +1346,7 @@ namespace Orthanc
     typedef std::map< std::pair<DicomRootLevel, std::string>, std::string>  UidMap;
   }
 
-  static void RetrieveMappedUid(ParsedDicomFile& dicom,
+  static bool RetrieveMappedUid(ParsedDicomFile& dicom,
                                 DicomRootLevel level,
                                 Replacements& replacements,
                                 UidMap& uidMap)
@@ -1369,19 +1369,23 @@ namespace Orthanc
     }
 
     std::string mapped;
+    bool isNew;
 
     UidMap::const_iterator previous = uidMap.find(std::make_pair(level, original));
     if (previous == uidMap.end())
     {
       mapped = FromDcmtkBridge::GenerateUniqueIdentifier(level);
       uidMap.insert(std::make_pair(std::make_pair(level, original), mapped));
+      isNew = true;
     }
     else
     {
       mapped = previous->second;
+      isNew = false;
     }    
 
     replacements[*tag] = mapped;
+    return isNew;
   }
 
 
@@ -1410,6 +1414,11 @@ namespace Orthanc
       return;
     }
 
+
+    /**
+     * Loop over all the instances of the resource.
+     **/
+
     UidMap uidMap;
     for (Instances::const_iterator it = instances.begin(); 
          it != instances.end(); it++)
@@ -1417,13 +1426,18 @@ namespace Orthanc
       LOG(INFO) << "Modifying instance " << *it;
       ParsedDicomFile& original = context.GetDicomFile(*it);
 
-      RetrieveMappedUid(original, DicomRootLevel_Series, replacements, uidMap);
+      bool isNewSeries = RetrieveMappedUid(original, DicomRootLevel_Series, replacements, uidMap);
 
+      bool isNewStudy = false;
       if (resourceType == ResourceType_Study ||
           resourceType == ResourceType_Patient)
       {
-        RetrieveMappedUid(original, DicomRootLevel_Study, replacements, uidMap);
+        isNewStudy = RetrieveMappedUid(original, DicomRootLevel_Study, replacements, uidMap);
       }
+
+      /**
+       * Compute the resulting DICOM instance and store it into the Orthanc store.
+       **/
 
       std::auto_ptr<ParsedDicomFile> modified(original.Clone());
       ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent, removePrivateTags);
@@ -1435,9 +1449,37 @@ namespace Orthanc
         return;
       }
 
+
+      /**
+       * Record metadata information (AnonimizedFrom/ModifiedFrom).
+       **/
+
+      DicomInstanceHasher modifiedHasher = modified->GetHasher();
+      DicomInstanceHasher originalHasher = original.GetHasher();
+
+      if (isNewSeries)
+      {
+        context.GetIndex().SetMetadata(modifiedHasher.HashSeries(), 
+                                       metadataType, originalHasher.HashSeries());
+      }
+
+      if (isNewStudy)
+      {
+        context.GetIndex().SetMetadata(modifiedHasher.HashStudy(), 
+                                       metadataType, originalHasher.HashStudy());
+      }
+
+      assert(*it == originalHasher.HashInstance());
+      assert(modifiedInstance == modifiedHasher.HashInstance());
+      context.GetIndex().SetMetadata(modifiedInstance, metadataType, *it);
+
+
+      /**
+       * Compute the JSON object that is returned by the REST call.
+       **/
+
       if (isFirst)
       {
-        DicomInstanceHasher modifiedHasher = modified->GetHasher();
         std::string newId;
 
         switch (resourceType)
@@ -1459,6 +1501,7 @@ namespace Orthanc
         }
 
         result["Type"] = ToString(resourceType);
+        result["ID"] = newId;
         result["Path"] = GetBasePath(resourceType, newId);
         result["PatientID"] = modifiedHasher.HashPatient();
         isFirst = false;
@@ -1504,8 +1547,9 @@ namespace Orthanc
 
     if (ParseModifyRequest(removals, replacements, removePrivateTags, call))
     {
-      AnonymizeOrModifySeries(removals, replacements, removePrivateTags, 
-                              MetadataType_ModifiedFrom, ChangeType_ModifiedSeries, call);
+      AnonymizeOrModifyResource(removals, replacements, removePrivateTags, 
+                                MetadataType_ModifiedFrom, ChangeType_ModifiedSeries, 
+                                ResourceType_Series, call);
     }
   }
 
@@ -1518,8 +1562,9 @@ namespace Orthanc
 
     if (ParseAnonymizationRequest(removals, replacements, removePrivateTags, call))
     {
-      AnonymizeOrModifySeries(removals, replacements, removePrivateTags, 
-                              MetadataType_AnonymizedFrom, ChangeType_AnonymizedSeries, call);
+      AnonymizeOrModifyResource(removals, replacements, removePrivateTags, 
+                                MetadataType_AnonymizedFrom, ChangeType_AnonymizedSeries, 
+                                ResourceType_Series, call);
     }
   }
 
@@ -1532,8 +1577,9 @@ namespace Orthanc
 
     if (ParseModifyRequest(removals, replacements, removePrivateTags, call))
     {
-      AnonymizeOrModifyStudy(removals, replacements, removePrivateTags, 
-                             MetadataType_ModifiedFrom, ChangeType_ModifiedStudy, call);
+      AnonymizeOrModifyResource(removals, replacements, removePrivateTags, 
+                                MetadataType_ModifiedFrom, ChangeType_ModifiedStudy, 
+                                ResourceType_Study, call);
     }
   }
 
@@ -1546,8 +1592,9 @@ namespace Orthanc
 
     if (ParseAnonymizationRequest(removals, replacements, removePrivateTags, call))
     {
-      AnonymizeOrModifyStudy(removals, replacements, removePrivateTags, 
-                             MetadataType_AnonymizedFrom, ChangeType_AnonymizedStudy, call);
+      AnonymizeOrModifyResource(removals, replacements, removePrivateTags, 
+                                MetadataType_AnonymizedFrom, ChangeType_AnonymizedStudy, 
+                                ResourceType_Study, call);
     }
   }
 
