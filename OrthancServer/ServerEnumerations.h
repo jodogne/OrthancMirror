@@ -92,7 +92,9 @@ namespace Orthanc
     ChangeType_AnonymizedStudy = 6,
     ChangeType_AnonymizedSeries = 7,
     ChangeType_ModifiedStudy = 8,
-    ChangeType_ModifiedSeries = 9
+    ChangeType_ModifiedSeries = 9,
+    ChangeType_AnonymizedPatient = 10,
+    ChangeType_ModifiedPatient = 11
   };
 
   std::string GetBasePath(ResourceType type,
