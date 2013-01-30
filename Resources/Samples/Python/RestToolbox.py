@@ -38,6 +38,8 @@ def _DoPutOrPost(uri, method, data, contentType):
         body = data
         if len(contentType) != 0:
             headers = { 'content-type' : contentType }
+        else:
+            headers = { 'content-type' : 'text/plain' }
     else:
         body = json.dumps(data)
         headers = { 'content-type' : 'application/json' }

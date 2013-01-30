@@ -832,7 +832,7 @@ function OpenAnonymizeResourceDialog(path, title)
           $.ajax({
             url: path + '/anonymize',
             type: 'POST',
-            data: '{}',
+            data: '{ "Keep" : [ "SeriesDescription", "StudyDescription" ] }',
             dataType: 'json',
             async: false,
             cache: false,
