@@ -58,13 +58,13 @@ namespace Orthanc
 
   void EmbeddedResourceHttpHandler::Handle(
     HttpOutput& output,
-    const std::string& method,
+    Orthanc_HttpMethod method,
     const UriComponents& uri,
     const Arguments& headers,
     const Arguments& arguments,
     const std::string&)
   {
-    if (method != "GET")
+    if (method != Orthanc_HttpMethod_Get)
     {
       output.SendMethodNotAllowedError("GET");
       return;

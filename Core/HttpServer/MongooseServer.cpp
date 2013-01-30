@@ -464,6 +464,30 @@ namespace Orthanc
       MongooseServer* that = (MongooseServer*) (request->user_data);
       MongooseOutput output(connection);
 
+      // Compute the method
+      Orthanc_HttpMethod method;
+      if (!strcmp(request->request_method, "GET"))
+      {
+        method = Orthanc_HttpMethod_Get;
+      }
+      else if (!strcmp(request->request_method, "POST"))
+      {
+        method = Orthanc_HttpMethod_Post;
+      }
+      else if (!strcmp(request->request_method, "DELETE"))
+      {
+        method = Orthanc_HttpMethod_Delete;
+      }
+      else if (!strcmp(request->request_method, "PUT"))
+      {
+        method = Orthanc_HttpMethod_Put;
+      }
+      else
+      {
+        output.SendHeader(Orthanc_HttpStatus_405_MethodNotAllowed);
+        return (void*) "";
+      }      
+
       if (!that->IsRemoteAccessAllowed() &&
           request->remote_ip != LOCALHOST)
       {
@@ -489,12 +513,12 @@ namespace Orthanc
 
       std::string postData;
 
-      if (!strcmp(request->request_method, "GET"))
+      if (method == Orthanc_HttpMethod_Get)
       {
         HttpHandler::ParseGetQuery(arguments, request->query_string);
       }
-      else if (!strcmp(request->request_method, "POST") ||
-               !strcmp(request->request_method, "PUT"))
+      else if (method == Orthanc_HttpMethod_Post ||
+               method == Orthanc_HttpMethod_Put)
       {
         HttpHandler::Arguments::const_iterator ct = headers.find("content-type");
         if (ct == headers.end())
@@ -543,8 +567,7 @@ namespace Orthanc
       {
         try
         {
-          handler->Handle(output, std::string(request->request_method),
-                          uri, headers, arguments, postData);
+          handler->Handle(output, method, uri, headers, arguments, postData);
         }
         catch (OrthancException& e)
         {

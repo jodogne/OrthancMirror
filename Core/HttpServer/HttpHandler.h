@@ -36,6 +36,7 @@
 #include <vector>
 #include <stdint.h>
 #include "../Toolbox.h"
+#include "../../OrthancCppClient/HttpEnumerations.h"
 
 namespace Orthanc
 {
@@ -53,7 +54,7 @@ namespace Orthanc
     virtual bool IsServedUri(const UriComponents& uri) = 0;
 
     virtual void Handle(HttpOutput& output,
-                        const std::string& method,
+                        Orthanc_HttpMethod method,
                         const UriComponents& uri,
                         const Arguments& headers,
                         const Arguments& getArguments,
