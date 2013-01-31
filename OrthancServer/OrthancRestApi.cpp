@@ -913,8 +913,11 @@ namespace Orthanc
 
     for (Json::Value::ArrayIndex i = 0; i < removals.size(); i++)
     {
-      DicomTag tag = FromDcmtkBridge::ParseTag(removals[i].asString());
+      std::string name = removals[i].asString();
+      DicomTag tag = FromDcmtkBridge::ParseTag(name);
       target.insert(tag);
+
+      VLOG(1) << "Removal: " << name << " " << tag << std::endl;
     }
   }
 
@@ -937,6 +940,8 @@ namespace Orthanc
 
       DicomTag tag = FromDcmtkBridge::ParseTag(name);      
       target[tag] = value;
+
+      VLOG(1) << "Replacement: " << name << " " << tag << " == " << value << std::endl;
     }
   }
 
@@ -1148,7 +1153,6 @@ namespace Orthanc
                                         RestApi::PostCall& call)
   {
     boost::mutex::scoped_lock lock(cacheMutex_);
-
     RETRIEVE_CONTEXT(call);
     
     std::string id = call.GetUriComponent("id", "");
