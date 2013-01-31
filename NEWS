@@ -5,7 +5,7 @@ Major changes
 -------------
 
 * Download of modified or anonymized DICOM instances
-* Inplace modification and anymization of DICOM series and studies
+* Inplace modification and anymization of DICOM series, studies and patients
 
 Minor changes
 -------------
