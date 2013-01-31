@@ -4,7 +4,7 @@ project(Orthanc)
 
 # Version of the build, should always be "mainline" except in release branches
 add_definitions(
-  -DORTHANC_VERSION="mainline"
+  -DORTHANC_VERSION="0.5.0"
   )
 
 # Parameters of the build
