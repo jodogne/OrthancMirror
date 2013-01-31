@@ -124,7 +124,7 @@ void PrintVersion(char* path)
 {
   std::cout
     << path << " " << ORTHANC_VERSION << std::endl
-    << "Copyright (C) 2012 Medical Physics Department, CHU of Liege (Belgium) " << std::endl
+    << "Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege (Belgium) " << std::endl
     << "Licensing GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>, with OpenSSL exception." << std::endl
     << "This is free software: you are free to change and redistribute it." << std::endl
     << "There is NO WARRANTY, to the extent permitted by law." << std::endl
