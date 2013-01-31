@@ -30,31 +30,7 @@ macro(DownloadPackage Url TargetDirectory PreloadedVariable UncompressArguments)
     #message(${TMP_EXTENSION})
     message("Uncompressing ${TMP_FILENAME}")
 
-    if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Linux")
-      if ("${TMP_EXTENSION}" STREQUAL "zip")
-        execute_process(
-          COMMAND sh -c "unzip -q ${TMP_PATH} ${UncompressArguments}"
-          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-          RESULT_VARIABLE Failure
-        )
-      elseif (("${TMP_EXTENSION}" STREQUAL "gz") OR ("${TMP_EXTENSION}" STREQUAL "tgz"))
-        #message("tar xvfz ${TMP_PATH} ${UncompressArguments}")
-        execute_process(
-          COMMAND sh -c "tar xfz ${TMP_PATH} ${UncompressArguments}"
-          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-          RESULT_VARIABLE Failure
-          )
-      elseif ("${TMP_EXTENSION}" STREQUAL "bz2")
-        execute_process(
-          COMMAND sh -c "tar xfj ${TMP_PATH} ${UncompressArguments}"
-          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-          RESULT_VARIABLE Failure
-          )
-      else()
-        message(FATAL_ERROR "Unknown package format.")
-      endif()
-
-    elseif ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
+    if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
       # How to silently extract files using 7-zip
       # http://superuser.com/questions/331148/7zip-command-line-extract-silently-quietly
 
@@ -113,8 +89,30 @@ macro(DownloadPackage Url TargetDirectory PreloadedVariable UncompressArguments)
       else()
         message(FATAL_ERROR "Support your platform here")
       endif()
+
     else()
-      message(FATAL_ERROR "Support your platform here")
+      if ("${TMP_EXTENSION}" STREQUAL "zip")
+        execute_process(
+          COMMAND sh -c "unzip -q ${TMP_PATH} ${UncompressArguments}"
+          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+          RESULT_VARIABLE Failure
+        )
+      elseif (("${TMP_EXTENSION}" STREQUAL "gz") OR ("${TMP_EXTENSION}" STREQUAL "tgz"))
+        #message("tar xvfz ${TMP_PATH} ${UncompressArguments}")
+        execute_process(
+          COMMAND sh -c "tar xfz ${TMP_PATH} ${UncompressArguments}"
+          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+          RESULT_VARIABLE Failure
+          )
+      elseif ("${TMP_EXTENSION}" STREQUAL "bz2")
+        execute_process(
+          COMMAND sh -c "tar xfj ${TMP_PATH} ${UncompressArguments}"
+          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+          RESULT_VARIABLE Failure
+          )
+      else()
+        message(FATAL_ERROR "Unknown package format.")
+      endif()
     endif()
    
     if (Failure)
