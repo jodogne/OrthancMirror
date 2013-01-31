@@ -80,17 +80,34 @@ namespace Orthanc
     LOG(WARNING) << "Loading the embedded dictionaries";
     dcmDataDict.clear();
     DcmDataDictionary& d = dcmDataDict.wrlock();
+
+    /**
+     * Do not load DICONDE dictionary, it breaks the other tags. The
+     * command "strace storescu 2>&1 |grep dic" shows that DICONDE
+     * dictionary is not loaded by storescu.
+     **/
+    //LoadEmbeddedDictionary(d, EmbeddedResources::DICTIONARY_DICONDE);
+
     LoadEmbeddedDictionary(d, EmbeddedResources::DICTIONARY_DICOM);
     LoadEmbeddedDictionary(d, EmbeddedResources::DICTIONARY_PRIVATE);
-    LoadEmbeddedDictionary(d, EmbeddedResources::DICTIONARY_DICONDE);
     dcmDataDict.unlock();
 #endif
 
     /* make sure data dictionary is loaded */
     if (!dcmDataDict.isDictionaryLoaded())
     {
-      LOG(ERROR) << "no data dictionary loaded, check environment variable: " << DCM_DICT_ENVIRONMENT_VARIABLE;
+      LOG(ERROR) << "No DICOM dictionary loaded, check environment variable: " << DCM_DICT_ENVIRONMENT_VARIABLE;
       throw OrthancException(ErrorCode_InternalError);
+    }
+
+    {
+      // Test the dictionary with a simple DICOM tag
+      DcmTag key(0x0010, 0x1030); // This is PatientWeight
+      if (key.getEVR() != EVR_DS)
+      {
+        LOG(ERROR) << "The DICOM dictionary has not been correctly read";
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
 
     /* initialize network, i.e. create an instance of T_ASC_Network*. */
