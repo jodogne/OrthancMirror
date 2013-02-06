@@ -440,6 +440,11 @@ namespace Orthanc
     return base64_encode(data);
   }
 
+  std::string Toolbox::DecodeBase64(const std::string& data)
+  {
+    return base64_decode(data);
+  }
+
 
 #if defined(_WIN32)
   std::string Toolbox::GetPathToExecutable()

@@ -80,6 +80,8 @@ namespace Orthanc
     void ComputeSHA1(std::string& result,
                      const std::string& data);
 
+    std::string DecodeBase64(const std::string& data);
+
     std::string EncodeBase64(const std::string& data);
 
     std::string GetPathToExecutable();
