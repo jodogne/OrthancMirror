@@ -96,7 +96,7 @@ namespace Orthanc
     }
 
 
-    TemporaryFile::TemporaryFile()
+    static std::string CreateTemporaryPath(const char* extension)
     {
 #if BOOST_HAS_FILESYSTEM_V3 == 1
       boost::filesystem::path tmpDir = boost::filesystem::temp_directory_path();
@@ -107,8 +107,27 @@ namespace Orthanc
 #endif
 
       // We use UUID to create unique path to temporary files
-      tmpDir /= "Orthanc-" + Orthanc::Toolbox::GenerateUuid();
-      path_ = tmpDir.string();
+      std::string filename = "Orthanc-" + Orthanc::Toolbox::GenerateUuid();
+
+      if (extension != NULL)
+      {
+        filename.append(extension);
+      }
+
+      tmpDir /= filename;
+      return tmpDir.string();
+    }
+
+
+    TemporaryFile::TemporaryFile()
+    {
+      path_ = CreateTemporaryPath(NULL);
+    }
+
+
+    TemporaryFile::TemporaryFile(const char* extension)
+    {
+      path_ = CreateTemporaryPath(extension);
     }
 
 
