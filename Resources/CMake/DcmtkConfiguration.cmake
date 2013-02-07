@@ -70,7 +70,12 @@ if (${STATIC_BUILD})
 
   set(DCMTK_BUNDLES_LOG4CPLUS 1)
 
-  add_definitions(-DDCMTK_USE_EMBEDDED_DICTIONARIES=1)
+  if (STANDALONE_BUILD)
+    add_definitions(-DDCMTK_USE_EMBEDDED_DICTIONARIES=1)
+  else()
+    add_definitions(-DDCMTK_USE_EMBEDDED_DICTIONARIES=0)
+  endif()
+
   set(DCMTK_DICTIONARIES
     DICTIONARY_DICOM ${DCMTK_SOURCES_DIR}/dcmdata/data/dicom.dic
     DICTIONARY_PRIVATE ${DCMTK_SOURCES_DIR}/dcmdata/data/private.dic
