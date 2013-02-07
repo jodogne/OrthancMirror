@@ -59,6 +59,8 @@ namespace Orthanc
     public:
       TemporaryFile();
 
+      TemporaryFile(const char* extension);
+
       ~TemporaryFile();
 
       const std::string& GetPath() const
