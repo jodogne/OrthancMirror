@@ -63,7 +63,7 @@ namespace Orthanc
 
   enum PixelFormat
   {
-    PixelFormat_RGB,
+    PixelFormat_RGB24,
     PixelFormat_Grayscale8,
     PixelFormat_Grayscale16
   };

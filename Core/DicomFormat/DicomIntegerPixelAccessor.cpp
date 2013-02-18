@@ -40,6 +40,7 @@
 #include <boost/lexical_cast.hpp>
 #include <limits>
 #include <cassert>
+#include <stdio.h>
 
 namespace Orthanc
 {
@@ -50,6 +51,7 @@ namespace Orthanc
   static const DicomTag BITS_STORED(0x0028, 0x0101);
   static const DicomTag HIGH_BIT(0x0028, 0x0102);
   static const DicomTag PIXEL_REPRESENTATION(0x0028, 0x0103);
+  static const DicomTag PLANAR_CONFIGURATION(0x0028, 0x0006);
 
   DicomIntegerPixelAccessor::DicomIntegerPixelAccessor(const DicomMap& values,
                                                        const void* pixelData,
@@ -61,6 +63,7 @@ namespace Orthanc
     unsigned int bitsStored;
     unsigned int highBit;
     unsigned int pixelRepresentation;
+    planarConfiguration_ = 0;
 
     try
     {
@@ -71,8 +74,19 @@ namespace Orthanc
       bitsStored = boost::lexical_cast<unsigned int>(values.GetValue(BITS_STORED).AsString());
       highBit = boost::lexical_cast<unsigned int>(values.GetValue(HIGH_BIT).AsString());
       pixelRepresentation = boost::lexical_cast<unsigned int>(values.GetValue(PIXEL_REPRESENTATION).AsString());
+
+      if (samplesPerPixel_ > 1)
+      {
+        // The "Planar Configuration" is only set when "Samples per Pixels" is greater than 1
+        // https://www.dabsoft.ch/dicom/3/C.7.6.3.1.3/
+        planarConfiguration_ = boost::lexical_cast<unsigned int>(values.GetValue(PLANAR_CONFIGURATION).AsString());
+      }
     }
     catch (boost::bad_lexical_cast)
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+    catch (OrthancException)
     {
       throw OrthancException(ErrorCode_NotImplemented);
     }
@@ -94,7 +108,8 @@ namespace Orthanc
 
     if ((bitsAllocated != 8 && bitsAllocated != 16 && 
          bitsAllocated != 24 && bitsAllocated != 32) ||
-        numberOfFrames_ == 0)
+        numberOfFrames_ == 0 ||
+        (planarConfiguration_ != 0 && planarConfiguration_ != 1))
     {
       throw OrthancException(ErrorCode_NotImplemented);
     }
@@ -106,21 +121,23 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
-    if (samplesPerPixel_ != 1)
+    if (samplesPerPixel_ != 1 &&
+        samplesPerPixel_ != 3)
     {
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
-    if (width_ * height_ * bitsAllocated / 8 * numberOfFrames_ > size)
+    bytesPerPixel_ = bitsAllocated / 8;
+    shift_ = highBit + 1 - bitsStored;
+    frameOffset_ = height_ * width_ * bytesPerPixel_ * samplesPerPixel_;
+
+    if (numberOfFrames_ * frameOffset_ > size)
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
     /*printf("%d %d %d %d %d %d %d %d\n", width_, height_, samplesPerPixel_, bitsAllocated,
-           bitsStored, highBit, pixelRepresentation, numberOfFrames_);*/
-
-    bytesPerPixel_ = bitsAllocated / 8;
-    shift_ = highBit + 1 - bitsStored;
+      bitsStored, highBit, pixelRepresentation, numberOfFrames_);*/
 
     if (pixelRepresentation)
     {
@@ -133,8 +150,25 @@ namespace Orthanc
       signMask_ = 0;
     }
 
-    rowOffset_ = width_ * bytesPerPixel_;
-    frameOffset_ = height_ * width_ * bytesPerPixel_;
+    if (planarConfiguration_ == 0)
+    {
+      /**
+       * The sample values for the first pixel are followed by the
+       * sample values for the second pixel, etc. For RGB images, this
+       * means the order of the pixel values sent shall be R1, G1, B1,
+       * R2, G2, B2, ..., etc.
+       **/
+      rowOffset_ = width_ * bytesPerPixel_ * samplesPerPixel_;
+    }
+    else
+    {
+      /**
+       * Each color plane shall be sent contiguously. For RGB images,
+       * this means the order of the pixel values sent is R1, R2, R3,
+       * ..., G1, G2, G3, ..., B1, B2, B3, etc.
+       **/
+      rowOffset_ = width_ * bytesPerPixel_;
+    }
   }
 
 
@@ -154,22 +188,49 @@ namespace Orthanc
     {
       for (unsigned int x = 0; x < width_; x++)
       {
-        int32_t v = GetValue(x, y);
-        if (v < min)
-          min = v;
-        if (v > max)
-          max = v;
+        for (unsigned int c = 0; c < GetChannelCount(); c++)
+        {
+          int32_t v = GetValue(x, y);
+          if (v < min)
+            min = v;
+          if (v > max)
+            max = v;
+        }
       }
     }
   }
 
 
-  int32_t DicomIntegerPixelAccessor::GetValue(unsigned int x, unsigned int y) const
+  int32_t DicomIntegerPixelAccessor::GetValue(unsigned int x, 
+                                              unsigned int y,
+                                              unsigned int channel) const
   {
-    assert(x < width_ && y < height_);
+    assert(x < width_ && y < height_ && channel < samplesPerPixel_);
     
     const uint8_t* pixel = reinterpret_cast<const uint8_t*>(pixelData_) + 
-      y * rowOffset_ + x * bytesPerPixel_ + frame_ * frameOffset_;
+      y * rowOffset_ + frame_ * frameOffset_;
+
+    // https://www.dabsoft.ch/dicom/3/C.7.6.3.1.3/
+    if (planarConfiguration_ == 0)
+    {
+      /**
+       * The sample values for the first pixel are followed by the
+       * sample values for the second pixel, etc. For RGB images, this
+       * means the order of the pixel values sent shall be R1, G1, B1,
+       * R2, G2, B2, ..., etc.
+       **/
+      pixel += channel * bytesPerPixel_ + x * samplesPerPixel_ * bytesPerPixel_;
+    }
+    else
+    {
+      /**
+       * Each color plane shall be sent contiguously. For RGB images,
+       * this means the order of the pixel values sent is R1, R2, R3,
+       * ..., G1, G2, G3, ..., B1, B2, B3, etc.
+       **/
+      assert(frameOffset_ % samplesPerPixel_ == 0);
+      pixel += channel * frameOffset_ / samplesPerPixel_ + x * bytesPerPixel_;
+    }
 
     int32_t v;
     v = pixel[0];

@@ -45,6 +45,7 @@ namespace Orthanc
     unsigned int height_;
     unsigned int samplesPerPixel_;
     unsigned int numberOfFrames_;
+    unsigned int planarConfiguration_;
     const void* pixelData_;
     size_t size_;
 
@@ -87,6 +88,11 @@ namespace Orthanc
     void GetExtremeValues(int32_t& min, 
                           int32_t& max) const;
 
-    int32_t GetValue(unsigned int x, unsigned int y) const;
+    unsigned int GetChannelCount() const
+    {
+      return samplesPerPixel_;
+    }
+
+    int32_t GetValue(unsigned int x, unsigned int y, unsigned int channel = 0) const;
   };
 }

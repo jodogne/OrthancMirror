@@ -190,14 +190,15 @@ if(NOT ONLY_CORE_LIBRARY)
     include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
     add_executable(UnitTests
       ${GTEST_SOURCES}
+      UnitTests/FileStorage.cpp
+      UnitTests/MemoryCache.cpp
+      UnitTests/PngWriter.cpp
       UnitTests/RestApi.cpp
       UnitTests/SQLite.cpp
       UnitTests/SQLiteChromium.cpp
       UnitTests/ServerIndex.cpp
       UnitTests/Versions.cpp
       UnitTests/Zip.cpp
-      UnitTests/FileStorage.cpp
-      UnitTests/MemoryCache.cpp
       UnitTests/main.cpp
       )
     target_link_libraries(UnitTests ServerLibrary CoreLibrary)
