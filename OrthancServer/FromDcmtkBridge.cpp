@@ -1020,9 +1020,41 @@ namespace Orthanc
   }
 
 
-  static void ExtractPngImagePreview(std::string& result,
-                                     DicomIntegerPixelAccessor& accessor)
+  static void ExtractPngImageColorPreview(std::string& result,
+                                          DicomIntegerPixelAccessor& accessor)
   {
+    assert(accessor.GetChannelCount() == 3);
+    PngWriter w;
+
+    std::vector<uint8_t> image(accessor.GetWidth() * accessor.GetHeight() * 3, 0);
+    uint8_t* pixel = &image[0];
+
+    for (unsigned int y = 0; y < accessor.GetHeight(); y++)
+    {
+      for (unsigned int x = 0; x < accessor.GetWidth(); x++)
+      {
+        for (unsigned int c = 0; c < 3; c++, pixel++)
+        {
+          int32_t v = accessor.GetValue(x, y, c);
+          if (v < 0)
+            *pixel = 0;
+          else if (v > 255)
+            *pixel = 255;
+          else
+            *pixel = v;
+        }
+      }
+    }
+
+    w.WriteToMemory(result, accessor.GetWidth(), accessor.GetHeight(),
+                    accessor.GetWidth() * 3, PixelFormat_RGB24, &image[0]);
+  }
+
+
+  static void ExtractPngImageGrayscalePreview(std::string& result,
+                                              DicomIntegerPixelAccessor& accessor)
+  {
+    assert(accessor.GetChannelCount() == 1);
     PngWriter w;
 
     int32_t min, max;
@@ -1054,6 +1086,8 @@ namespace Orthanc
                                       DicomIntegerPixelAccessor& accessor,
                                       PixelFormat format)
   {
+    assert(accessor.GetChannelCount() == 1);
+
     PngWriter w;
 
     std::vector<T> image(accessor.GetWidth() * accessor.GetHeight(), 0);
@@ -1208,9 +1242,32 @@ namespace Orthanc
     }
 
     PixelFormat format;
+
+    if (accessor->GetChannelCount() != 1 &&
+        (mode == ImageExtractionMode_UInt8 ||
+         mode == ImageExtractionMode_UInt16))
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+    
     switch (mode)
     {
       case ImageExtractionMode_Preview:
+        switch (accessor->GetChannelCount())
+        {
+          case 1:
+            format = PixelFormat_Grayscale8;
+            break;
+
+          case 3:
+            format = PixelFormat_RGB24;
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_NotImplemented);
+        }
+        break;
+
       case ImageExtractionMode_UInt8:
         format = PixelFormat_Grayscale8;
         break;
@@ -1235,7 +1292,10 @@ namespace Orthanc
       switch (mode)
       {
         case ImageExtractionMode_Preview:
-          ExtractPngImagePreview(result, *accessor);
+          if (format == PixelFormat_Grayscale8)
+            ExtractPngImageGrayscalePreview(result, *accessor);
+          else
+            ExtractPngImageColorPreview(result, *accessor);
           break;
 
         case ImageExtractionMode_UInt8:

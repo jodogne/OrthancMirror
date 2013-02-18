@@ -134,6 +134,11 @@ namespace Orthanc
 
     switch (format)
     {
+    case PixelFormat_RGB24:
+      pimpl_->bitDepth_ = 8;
+      pimpl_->colorType_ = PNG_COLOR_TYPE_RGB;
+      break;
+
     case PixelFormat_Grayscale8:
       pimpl_->bitDepth_ = 8;
       pimpl_->colorType_ = PNG_COLOR_TYPE_GRAY;
