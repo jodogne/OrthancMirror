@@ -1242,43 +1242,51 @@ namespace Orthanc
     }
 
     PixelFormat format;
+    bool supported = false;
 
-    if (accessor->GetChannelCount() != 1 &&
-        (mode == ImageExtractionMode_UInt8 ||
-         mode == ImageExtractionMode_UInt16))
+    if (accessor->GetChannelCount() == 1)
+    {
+      switch (mode)
+      {
+        case ImageExtractionMode_Preview:
+          supported = true;
+          format = PixelFormat_Grayscale8;
+          break;
+
+        case ImageExtractionMode_UInt8:
+          supported = true;
+          format = PixelFormat_Grayscale8;
+          break;
+
+        case ImageExtractionMode_UInt16:
+          supported = true;
+          format = PixelFormat_Grayscale16;
+          break;
+
+        default:
+          supported = false;
+          break;
+      }
+    }
+    else if (accessor->GetChannelCount() == 3)
+    {
+      switch (mode)
+      {
+        case ImageExtractionMode_Preview:
+          supported = true;
+          format = PixelFormat_RGB24;
+          break;
+
+        default:
+          supported = false;
+          break;
+      }
+    }
+
+    if (!supported)
     {
       throw OrthancException(ErrorCode_NotImplemented);
-    }
-    
-    switch (mode)
-    {
-      case ImageExtractionMode_Preview:
-        switch (accessor->GetChannelCount())
-        {
-          case 1:
-            format = PixelFormat_Grayscale8;
-            break;
-
-          case 3:
-            format = PixelFormat_RGB24;
-            break;
-
-          default:
-            throw OrthancException(ErrorCode_NotImplemented);
-        }
-        break;
-
-      case ImageExtractionMode_UInt8:
-        format = PixelFormat_Grayscale8;
-        break;
-
-      case ImageExtractionMode_UInt16:
-        format = PixelFormat_Grayscale16;
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_NotImplemented);
-    }
+    }   
 
     if (accessor.get() == NULL ||
         accessor->GetWidth() == 0 ||

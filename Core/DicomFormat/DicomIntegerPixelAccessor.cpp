@@ -121,8 +121,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
-    if (samplesPerPixel_ != 1 &&
-        samplesPerPixel_ != 3)
+    if (samplesPerPixel_ == 0)
     {
       throw OrthancException(ErrorCode_NotImplemented);
     }
