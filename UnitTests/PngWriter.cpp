@@ -50,9 +50,10 @@ TEST(PngWriter, Gray16Pattern)
   Orthanc::PngWriter w;
   int width = 256;
   int height = 256;
-  int pitch = width * 2 + 17;
+  int pitch = width * 2 + 16;
 
   std::vector<uint8_t> image(height * pitch);
+
   int v = 0;
   for (int y = 0; y < height; y++)
   {
