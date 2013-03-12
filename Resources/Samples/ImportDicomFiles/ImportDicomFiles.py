@@ -5,7 +5,7 @@ import sys
 import os.path
 import httplib2
 
-if len(sys.argv) != 4:
+if len(sys.argv) != 4 and len(sys.argv) != 6:
     print("""
 Sample script to recursively import in Orthanc all the DICOM files
 that are stored in some path. Please make sure that Orthanc is running
@@ -13,8 +13,9 @@ before starting this script. The files are uploaded through the REST
 API.
 
 Usage: %s [hostname] [HTTP port] [path]
+Usage: %s [hostname] [HTTP port] [path] [username] [password]
 For instance: %s localhost 8042 .
-""" % (sys.argv[0], sys.argv[0]))
+""" % (sys.argv[0], sys.argv[0], sys.argv[0]))
     exit(-1)
 
 URL = 'http://%s:%d/instances' % (sys.argv[1], int(sys.argv[2]))
@@ -26,7 +27,7 @@ success = 0
 def UploadFile(path):
     global success
 
-    f = open(path, "r")
+    f = open(path, "rb")
     content = f.read()
     f.close()
 
@@ -34,6 +35,10 @@ def UploadFile(path):
         sys.stdout.write("Importing %s" % path)
 
         h = httplib2.Http()
+
+        if len(sys.argv) == 6:
+            h.add_credentials(sys.argv[4], sys.argv[5])
+    
         resp, content = h.request(URL, 'POST', 
                                   body = content,
                                   headers = { 'content-type' : 'application/dicom' })
@@ -45,7 +50,7 @@ def UploadFile(path):
             sys.stdout.write(" => failure (is it a DICOM file?)\n")
 
     except:
-        sys.stdout.write(" => unable to connect\n")
+        sys.stdout.write(" => unable to connect (is there a password?)\n")
 
 
 if os.path.isfile(sys.argv[3]):
