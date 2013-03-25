@@ -4,6 +4,7 @@ import os
 import sys
 import os.path
 import httplib2
+import base64
 
 if len(sys.argv) != 4 and len(sys.argv) != 6:
     print("""
@@ -36,21 +37,33 @@ def UploadFile(path):
 
         h = httplib2.Http()
 
+        headers = { 'content-type' : 'application/dicom' }
+
         if len(sys.argv) == 6:
-            h.add_credentials(sys.argv[4], sys.argv[5])
-    
+            username = sys.argv[4]
+            password = sys.argv[5]
+
+            # h.add_credentials(username, password)
+
+            # This is a custom reimplementation of the
+            # "Http.add_credentials()" method for Basic HTTP Access
+            # Authentication (for some weird reason, this method does
+            # not always work)
+            # http://en.wikipedia.org/wiki/Basic_access_authentication
+            headers['authorization'] = 'Basic ' + base64.b64encode(username + ':' + password)       
+            
         resp, content = h.request(URL, 'POST', 
                                   body = content,
-                                  headers = { 'content-type' : 'application/dicom' })
+                                  headers = headers)
 
         if resp.status == 200:
             sys.stdout.write(" => success\n")
             success += 1
         else:
-            sys.stdout.write(" => failure (is it a DICOM file?)\n")
+            sys.stdout.write(" => failure (Is it a DICOM file?)\n")
 
     except:
-        sys.stdout.write(" => unable to connect (is there a password?)\n")
+        sys.stdout.write(" => unable to connect (Is Orthanc running? Is there a password?)\n")
 
 
 if os.path.isfile(sys.argv[3]):
