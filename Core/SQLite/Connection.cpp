@@ -88,15 +88,7 @@ namespace Orthanc
       // Execute PRAGMAs at this point
       // http://www.sqlite.org/pragma.html
       Execute("PRAGMA FOREIGN_KEYS=ON;");
-
       Execute("PRAGMA RECURSIVE_TRIGGERS=ON;");
-
-      // Performance tuning
-      Execute("PRAGMA SYNCHRONOUS=NORMAL;");
-      Execute("PRAGMA JOURNAL_MODE=WAL;");
-      Execute("PRAGMA LOCKING_MODE=EXCLUSIVE;");
-      Execute("PRAGMA WAL_AUTOCHECKPOINT=1000;");
-      //Execute("PRAGMA TEMP_STORE=memory");
     }
 
     void Connection::OpenInMemory()

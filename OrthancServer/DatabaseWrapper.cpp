@@ -750,6 +750,14 @@ namespace Orthanc
 
   void DatabaseWrapper::Open()
   {
+    // Performance tuning of SQLite with PRAGMAs
+    // http://www.sqlite.org/pragma.html
+    db_.Execute("PRAGMA SYNCHRONOUS=NORMAL;");
+    db_.Execute("PRAGMA JOURNAL_MODE=WAL;");
+    db_.Execute("PRAGMA LOCKING_MODE=EXCLUSIVE;");
+    db_.Execute("PRAGMA WAL_AUTOCHECKPOINT=1000;");
+    //db_.Execute("PRAGMA TEMP_STORE=memory");
+
     if (!db_.DoesTableExist("GlobalProperties"))
     {
       LOG(INFO) << "Creating the database";
