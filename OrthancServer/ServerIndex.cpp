@@ -785,7 +785,8 @@ namespace Orthanc
       // the current resource
       if (!done)
       {
-        assert(db_->LookupParent(currentId, currentId));
+        bool ok = db_->LookupParent(currentId, currentId);
+        assert(ok);
       }
     }
 
