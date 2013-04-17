@@ -7,8 +7,14 @@
     // displayed in Orthanc Explorer and at the URI "/system".
     "Name" : "MyOrthanc",
 
-    // Path to the directory that holds the database
+    // Path to the directory that holds the heavyweight files
+    // (i.e. the raw DICOM instances)
     "StorageDirectory" : "OrthancStorage",
+
+    // Path to the directory that holds the SQLite index (if unset,
+    // the value of StorageDirectory is used). This index could be
+    // stored on a RAM-drive or a SSD device for performance reasons.
+    "IndexDirectory" : "OrthancStorage",
 
     // Enable the transparent compression of the DICOM instances
     "StorageCompression" : false,

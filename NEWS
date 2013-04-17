@@ -2,6 +2,9 @@ Pending changes in the mainline
 ===============================
 
 * Support of RGB images
+* Fix of store SCU in release builds
+* Possibility to store the SQLite index at another place than the
+  DICOM instances
 
 
 Version 0.5.0 (2013/01/31)

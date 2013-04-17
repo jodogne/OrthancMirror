@@ -39,8 +39,13 @@
 #include "EmbeddedResources.h"
 
 #include <boost/thread.hpp>
+#include <boost/filesystem.hpp>
 #include <dcmtk/dcmdata/dcdict.h>
 #include <glog/logging.h>
+
+#if defined(__linux)
+#include <cstdlib>
+#endif
 
 
 namespace Orthanc
@@ -70,17 +75,31 @@ namespace Orthanc
   }
                              
 
+  static void LoadExternalDictionary(DcmDataDictionary& dictionary,
+                                     const std::string& directory,
+                                     const std::string& filename)
+  {
+    boost::filesystem::path p = directory;
+    p = p / filename;
+
+    if (!dictionary.loadDictionary(p.string().c_str()))
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+                             
+
 
   void DicomServer::ServerThread(DicomServer* server)
   {
     /* Disable "gethostbyaddr" (which results in memory leaks) and use raw IP addresses */
     dcmDisableGethostbyaddr.set(OFTrue);
 
-#if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
-    LOG(WARNING) << "Loading the embedded dictionaries";
     dcmDataDict.clear();
     DcmDataDictionary& d = dcmDataDict.wrlock();
 
+#if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
+    LOG(WARNING) << "Loading the embedded dictionaries";
     /**
      * Do not load DICONDE dictionary, it breaks the other tags. The
      * command "strace storescu 2>&1 |grep dic" shows that DICONDE
@@ -90,8 +109,24 @@ namespace Orthanc
 
     LoadEmbeddedDictionary(d, EmbeddedResources::DICTIONARY_DICOM);
     LoadEmbeddedDictionary(d, EmbeddedResources::DICTIONARY_PRIVATE);
-    dcmDataDict.unlock();
+
+#elif defined(__linux)
+    std::string path = "/usr/share/dcmtk";
+
+    const char* env = std::getenv(DCM_DICT_ENVIRONMENT_VARIABLE);
+    if (env != NULL)
+    {
+      path = std::string(env);
+    }
+
+    LoadExternalDictionary(d, path, "dicom.dic");
+    LoadExternalDictionary(d, path, "private.dic");
+
+#else
+#error Support your platform here
 #endif
+
+    dcmDataDict.unlock();
 
     /* make sure data dictionary is loaded */
     if (!dcmDataDict.isDictionaryLoaded())

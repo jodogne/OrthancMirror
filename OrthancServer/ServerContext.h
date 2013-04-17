@@ -71,7 +71,8 @@ namespace Orthanc
     MemoryCache dicomCache_;
 
   public:
-    ServerContext(const boost::filesystem::path& path);
+    ServerContext(const boost::filesystem::path& storagePath,
+                  const boost::filesystem::path& indexPath);
 
     ServerIndex& GetIndex()
     {
