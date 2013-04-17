@@ -46,7 +46,7 @@ Native Linux Compilation
 To build binaries with debug information:
 
 # cd ~/OrthancBuild
-# cmake -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
+# cmake -DSTATIC_BUILD=ON -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
 # make
 # make doc
 
@@ -54,7 +54,7 @@ To build binaries with debug information:
 To build a release version:
 
 # cd ~/OrthancBuild
-# cmake -DCMAKE_BUILD_TYPE=Release ~/Orthanc
+# cmake -DSTATIC_BUILD=ON -DCMAKE_BUILD_TYPE=Release ~/Orthanc
 # make
 # make doc
 
