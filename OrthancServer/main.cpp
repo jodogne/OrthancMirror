@@ -210,7 +210,12 @@ int main(int argc, char* argv[])
     }
 
     boost::filesystem::path storageDirectory = GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
-    ServerContext context(storageDirectory);
+    boost::filesystem::path indexDirectory = GetGlobalStringParameter("IndexDirectory", storageDirectory.string());
+    ServerContext context(storageDirectory, indexDirectory);
+
+    LOG(WARNING) << "Storage directory: " << storageDirectory;
+    LOG(WARNING) << "Index directory: " << indexDirectory;
+
     context.SetCompressionEnabled(GetGlobalBoolParameter("StorageCompression", false));
 
     try
