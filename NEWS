@@ -1,6 +1,11 @@
 Pending changes in the mainline
 ===============================
 
+
+
+Version 0.5.1 (2013/04/17)
+==========================
+
 * Support of RGB images
 * Fix of store SCU in release builds
 * Possibility to store the SQLite index at another place than the
