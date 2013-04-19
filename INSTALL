@@ -69,6 +69,23 @@ recent enough. This greatly speeds up the compilation:
 
 
 
+Native Windows build with Microsoft Visual Studio 2005
+------------------------------------------------------
+
+# cd [...]\OrthancBuild
+# cmake -DSTANDALONE_BUILD=ON -G "Visual Studio 8 2005" [...]\Orthanc
+
+Then open the "[...]/OrthancBuild/Orthanc.sln" with Visual Studio.
+
+NOTES:
+* More recent versions of Visual Studio should also work.
+* You will have to install the Platform SDK (version 6 or above) for
+  Visual Studio 2005:
+  http://en.wikipedia.org/wiki/Microsoft_Windows_SDK.
+  Read the CMake FAQ: http://goo.gl/By90B 
+
+
+
 Cross-Compilation for Windows under Linux
 -----------------------------------------
 
@@ -90,36 +107,6 @@ Native Windows build with MinGW (VERY SLOW)
 
 
 
-Native Windows build with Microsoft Visual Studio 2005
-------------------------------------------------------
-
-# cd [...]\OrthancBuild
-# cmake -DSTANDALONE_BUILD=ON -G "Visual Studio 8 2005" [...]\Orthanc
-
-Then open the "[...]/OrthancBuild/Orthanc.sln" with Visual Studio.
-
-NOTES:
-* More recent versions of Visual Studio should also work.
-* You will have to install the Platform SDK (version 6 or above) for
-  Visual Studio 2005:
-  http://en.wikipedia.org/wiki/Microsoft_Windows_SDK.
-  Read the CMake FAQ: http://goo.gl/By90B 
-
-
-
-Debian/Ubuntu specific
-----------------------
-
-When dynamically linking against the system libraries, you have to
-manually add the "wrap" and "oflog" libraries at the configuration
-time (because of a packaging error in "libdcmtk"):
-
-# cd ~/OrthancBuild
-# cmake "-DDCMTK_LIBRARIES=wrap;oflog" -DSTATIC_BUILD=OFF -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
-# make
-
-
-
 Using ccache
 ------------
 
@@ -130,3 +117,10 @@ especially useful for developers. Under Debian/Ubuntu, you would use:
 # CC="ccache gcc" CXX="ccache g++" cmake "-DDCMTK_LIBRARIES=wrap;oflog" \
   -DSTATIC_BUILD=OFF -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
 
+
+
+Troubleshooting
+---------------
+
+The build instructions for specific Linux distributions are available at the following place:
+https://code.google.com/p/orthanc/wiki/FAQ#I_use_the_Linux_distribution_XXX,_how_can_I_build_Orthanc?
