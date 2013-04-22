@@ -39,6 +39,7 @@
 #include "../Core/HttpServer/EmbeddedResourceHttpHandler.h"
 #include "../Core/HttpServer/FilesystemHttpHandler.h"
 #include "../Core/HttpServer/MongooseServer.h"
+#include "../Core/DicomFormat/DicomArray.h"
 #include "DicomProtocol/DicomServer.h"
 #include "OrthancInitialization.h"
 #include "ServerContext.h"
@@ -47,13 +48,13 @@ using namespace Orthanc;
 
 
 
-class MyDicomStore : public IStoreRequestHandler
+class MyStoreRequestHandler : public IStoreRequestHandler
 {
 private:
   ServerContext& context_;
 
 public:
-  MyDicomStore(ServerContext& context) :
+  MyStoreRequestHandler(ServerContext& context) :
     context_(context)
   {
   }
@@ -71,24 +72,78 @@ public:
 };
 
 
-class MyDicomStoreFactory : public IStoreRequestHandlerFactory
+class MyFindRequestHandler : public IFindRequestHandler
 {
 private:
   ServerContext& context_;
 
 public:
-  MyDicomStoreFactory(ServerContext& context) : context_(context)
+  MyFindRequestHandler(ServerContext& context) :
+    context_(context)
+  {
+  }
+
+  virtual void Handle(const DicomMap& input,
+                      DicomFindAnswers& answers)
+  {
+    printf("FindRequest\n");
+    DicomArray a(input);
+    a.Print(stdout);
+  }
+};
+
+
+class MyMoveRequestHandler : public IMoveRequestHandler
+{
+private:
+  ServerContext& context_;
+
+public:
+  MyMoveRequestHandler(ServerContext& context) :
+    context_(context)
+  {
+  }
+
+public:
+  virtual IMoveRequestIterator* Handle(const std::string& target,
+                                       const DicomMap& input)
+  {
+    printf("MoveRequest\n");
+    return NULL;
+  }
+};
+
+
+class MyDicomServerFactory : 
+  public IStoreRequestHandlerFactory,
+  public IFindRequestHandlerFactory, 
+  public IMoveRequestHandlerFactory
+{
+private:
+  ServerContext& context_;
+
+public:
+  MyDicomServerFactory(ServerContext& context) : context_(context)
   {
   }
 
   virtual IStoreRequestHandler* ConstructStoreRequestHandler()
   {
-    return new MyDicomStore(context_);
+    return new MyStoreRequestHandler(context_);
+  }
+
+  virtual IFindRequestHandler* ConstructFindRequestHandler()
+  {
+    return new MyFindRequestHandler(context_);
+  }
+
+  virtual IMoveRequestHandler* ConstructMoveRequestHandler()
+  {
+    return new MyMoveRequestHandler(context_);
   }
 
   void Done()
   {
-    //index_.db().Execute("DELETE FROM Studies");
   }
 };
 
@@ -237,13 +292,16 @@ int main(int argc, char* argv[])
       context.GetIndex().SetMaximumStorageSize(0);
     }
 
-    MyDicomStoreFactory storeScp(context);
+    MyDicomServerFactory serverFactory(context);
+    
 
     {
       // DICOM server
       DicomServer dicomServer;
       dicomServer.SetCalledApplicationEntityTitleCheck(GetGlobalBoolParameter("DicomCheckCalledAet", false));
-      dicomServer.SetStoreRequestHandlerFactory(storeScp);
+      dicomServer.SetStoreRequestHandlerFactory(serverFactory);
+      dicomServer.SetMoveRequestHandlerFactory(serverFactory);
+      dicomServer.SetFindRequestHandlerFactory(serverFactory);
       dicomServer.SetPortNumber(GetGlobalIntegerParameter("DicomPort", 4242));
       dicomServer.SetApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
 
@@ -288,7 +346,7 @@ int main(int argc, char* argv[])
       LOG(WARNING) << "Orthanc is stopping";
     }
 
-    storeScp.Done();
+    serverFactory.Done();
   }
   catch (OrthancException& e)
   {
