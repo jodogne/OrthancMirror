@@ -86,7 +86,7 @@ public:
   virtual void Handle(const DicomMap& input,
                       DicomFindAnswers& answers)
   {
-    printf("FindRequest\n");
+    LOG(WARNING) << "Find-SCU request received";
     DicomArray a(input);
     a.Print(stdout);
   }
@@ -108,7 +108,7 @@ public:
   virtual IMoveRequestIterator* Handle(const std::string& target,
                                        const DicomMap& input)
   {
-    printf("MoveRequest\n");
+    LOG(WARNING) << "Move-SCU request received";
     return NULL;
   }
 };
@@ -300,8 +300,8 @@ int main(int argc, char* argv[])
       DicomServer dicomServer;
       dicomServer.SetCalledApplicationEntityTitleCheck(GetGlobalBoolParameter("DicomCheckCalledAet", false));
       dicomServer.SetStoreRequestHandlerFactory(serverFactory);
-      dicomServer.SetMoveRequestHandlerFactory(serverFactory);
-      dicomServer.SetFindRequestHandlerFactory(serverFactory);
+      //dicomServer.SetMoveRequestHandlerFactory(serverFactory);
+      //dicomServer.SetFindRequestHandlerFactory(serverFactory);
       dicomServer.SetPortNumber(GetGlobalIntegerParameter("DicomPort", 4242));
       dicomServer.SetApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
 
