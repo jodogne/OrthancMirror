@@ -39,7 +39,7 @@ else()
     message(FATAL_ERROR "Please install the mongoose-devel package")
   endif()
 
-  CHECK_LIBRARY_EXISTS(mongoose "mg_start" HAVE_MONGOOSE_LIB)
+  CHECK_LIBRARY_EXISTS(mongoose mg_start "" HAVE_MONGOOSE_LIB)
   if (NOT HAVE_MONGOOSE_LIB)
     message(FATAL_ERROR "Please install the mongoose-devel package")
   endif()
