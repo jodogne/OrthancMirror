@@ -3,7 +3,9 @@ if (STATIC_BUILD OR NOT USE_DYNAMIC_LUA)
   DownloadPackage("http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/lua-5.1.5.tar.gz" "${LUA_SOURCES_DIR}" "" "")
 
   add_definitions(
-    -DLUA_COMPAT_ALL=1  # Compile a generic version of Lua
+    #-DLUA_LIB=1
+    #-Dluaall_c=1
+    #-DLUA_COMPAT_ALL=1  # Compile a generic version of Lua
     )
 
   include_directories(
@@ -32,8 +34,17 @@ if (STATIC_BUILD OR NOT USE_DYNAMIC_LUA)
     ${LUA_SOURCES_DIR}/src/lvm.c 
     ${LUA_SOURCES_DIR}/src/lzio.c
 
-    # Additional modules
+    # Base Lua modules
+    ${LUA_SOURCES_DIR}/src/lauxlib.c
+    ${LUA_SOURCES_DIR}/src/lbaselib.c
+    ${LUA_SOURCES_DIR}/src/ldblib.c
+    ${LUA_SOURCES_DIR}/src/liolib.c
+    ${LUA_SOURCES_DIR}/src/lmathlib.c
+    ${LUA_SOURCES_DIR}/src/loslib.c
+    ${LUA_SOURCES_DIR}/src/ltablib.c
     ${LUA_SOURCES_DIR}/src/lstrlib.c
+    ${LUA_SOURCES_DIR}/src/loadlib.c
+    ${LUA_SOURCES_DIR}/src/linit.c
     )
 
   add_library(Lua STATIC ${LUA_SOURCES})
