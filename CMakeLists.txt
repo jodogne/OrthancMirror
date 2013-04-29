@@ -79,6 +79,7 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/LuaConfiguration.cmake)
 set(EMBEDDED_FILES
   PREPARE_DATABASE ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/PrepareDatabase.sql
   CONFIGURATION_SAMPLE ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Configuration.json
+  LUA_TOOLBOX ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Toolbox.lua
   )
 
 if (${STANDALONE_BUILD})
@@ -201,6 +202,7 @@ if(NOT ONLY_CORE_LIBRARY)
       UnitTests/ServerIndex.cpp
       UnitTests/Versions.cpp
       UnitTests/Zip.cpp
+      UnitTests/Lua.cpp
       UnitTests/main.cpp
       )
     target_link_libraries(UnitTests ServerLibrary CoreLibrary)
