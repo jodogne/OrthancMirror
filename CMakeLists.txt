@@ -144,6 +144,8 @@ add_library(CoreLibrary
   Core/SQLite/Transaction.cpp
   Core/Toolbox.cpp
   Core/Uuid.cpp
+  Core/Lua/LuaContext.cpp
+  Core/Lua/LuaFunctionCall.cpp
 
   OrthancCppClient/HttpClient.cpp
   OrthancCppClient/HttpException.cpp
