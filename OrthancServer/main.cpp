@@ -38,7 +38,7 @@
 
 #include "../Core/HttpServer/EmbeddedResourceHttpHandler.h"
 #include "../Core/HttpServer/FilesystemHttpHandler.h"
-#include "../Core/HttpServer/MongooseServer.h"
+#include "../Core/Lua/LuaFunctionCall.h"
 #include "DicomProtocol/DicomServer.h"
 #include "OrthancInitialization.h"
 #include "ServerContext.h"
@@ -50,12 +50,15 @@ using namespace Orthanc;
 class MyDicomStore : public IStoreRequestHandler
 {
 private:
-  ServerContext& context_;
+  ServerContext& server_;
 
 public:
   MyDicomStore(ServerContext& context) :
-    context_(context)
+    server_(context)
   {
+    LuaContext& lua = server_.GetLuaContext();
+    lua.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
+    lua.Execute("function NewInstanceFilter(dicom, aet) print(dicom['0010,0020'].Value); return true end");
   }
 
   virtual void Handle(const std::string& dicomFile,
@@ -65,7 +68,20 @@ public:
   {
     if (dicomFile.size() > 0)
     {
-      context_.Store(&dicomFile[0], dicomFile.size(), dicomSummary, dicomJson, remoteAet);
+      LuaContext& lua = server_.GetLuaContext();
+      // TODO : Is existing trigger ?
+      LuaFunctionCall call(lua, "NewInstanceFilter");
+      call.PushJSON(dicomJson);
+      call.PushString(remoteAet);
+
+      if (call.ExecutePredicate())
+      {
+        server_.Store(&dicomFile[0], dicomFile.size(), dicomSummary, dicomJson, remoteAet);
+      }
+      else
+      {
+        LOG(WARNING) << "An instance has been discarded by a filter";
+      }
     }
   }
 };
@@ -74,16 +90,16 @@ public:
 class MyDicomStoreFactory : public IStoreRequestHandlerFactory
 {
 private:
-  ServerContext& context_;
+  ServerContext& server_;
 
 public:
-  MyDicomStoreFactory(ServerContext& context) : context_(context)
+  MyDicomStoreFactory(ServerContext& context) : server_(context)
   {
   }
 
   virtual IStoreRequestHandler* ConstructStoreRequestHandler()
   {
-    return new MyDicomStore(context_);
+    return new MyDicomStore(server_);
   }
 
   void Done()
