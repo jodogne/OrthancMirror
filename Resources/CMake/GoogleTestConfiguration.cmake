@@ -9,7 +9,7 @@ if (DEBIAN_USE_GTEST_SOURCE_PACKAGE)
 
 elseif (STATIC_BUILD OR NOT USE_DYNAMIC_GOOGLE_TEST)
   SET(GTEST_SOURCES_DIR ${CMAKE_BINARY_DIR}/gtest-1.6.0)
-  DownloadPackage("http://googletest.googlecode.com/files/gtest-1.6.0.zip" "${GTEST_SOURCES_DIR}" "" "")
+  DownloadPackage("http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/gtest-1.6.0.zip" "${GTEST_SOURCES_DIR}" "" "")
 
   include_directories(
     ${GTEST_SOURCES_DIR}/include
