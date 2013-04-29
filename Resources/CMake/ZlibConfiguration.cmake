@@ -6,7 +6,7 @@ list(APPEND THIRD_PARTY_SOURCES
 
 if (${STATIC_BUILD})
   SET(ZLIB_SOURCES_DIR ${CMAKE_BINARY_DIR}/zlib-1.2.7)
-  DownloadPackage("http://zlib.net/zlib-1.2.7.tar.gz" "${ZLIB_SOURCES_DIR}" "${ZLIB_PRELOADED}" "")
+  DownloadPackage("http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/zlib-1.2.7.tar.gz" "${ZLIB_SOURCES_DIR}" "${ZLIB_PRELOADED}" "")
 
   include_directories(
     ${ZLIB_SOURCES_DIR}

@@ -9,7 +9,7 @@ if (USE_DYNAMIC_JSONCPP)
 
 else()
   SET(JSONCPP_SOURCES_DIR ${CMAKE_BINARY_DIR}/jsoncpp-src-0.5.0)
-  DownloadPackage("http://downloads.sourceforge.net/project/jsoncpp/jsoncpp/0.5.0/jsoncpp-src-0.5.0.tar.gz" "${JSONCPP_SOURCES_DIR}" "" "")
+  DownloadPackage("http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/jsoncpp-src-0.5.0.tar.gz" "${JSONCPP_SOURCES_DIR}" "" "")
 
   list(APPEND THIRD_PARTY_SOURCES
     ${JSONCPP_SOURCES_DIR}/src/lib_json/json_reader.cpp

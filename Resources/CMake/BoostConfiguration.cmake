@@ -41,7 +41,7 @@ endif()
 if (BOOST_STATIC)
   SET(BOOST_NAME boost_1_49_0)
   SET(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
-  DownloadPackage("http://switch.dl.sourceforge.net/project/boost/boost/1.49.0/${BOOST_NAME}.tar.gz" "${BOOST_SOURCES_DIR}" "${BOOST_PRELOADED}" "${BOOST_NAME}/boost ${BOOST_NAME}/libs/thread/src ${BOOST_NAME}/libs/system/src ${BOOST_NAME}/libs/filesystem/v3/src ${BOOST_NAME}/libs/locale/src ${BOOST_NAME}/libs/date_time/src")
+  DownloadPackage("http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/${BOOST_NAME}.tar.gz" "${BOOST_SOURCES_DIR}" "${BOOST_PRELOADED}" "${BOOST_NAME}/boost ${BOOST_NAME}/libs/thread/src ${BOOST_NAME}/libs/system/src ${BOOST_NAME}/libs/filesystem/v3/src ${BOOST_NAME}/libs/locale/src ${BOOST_NAME}/libs/date_time/src")
 
   set(BOOST_SOURCES)
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
