@@ -1,6 +1,6 @@
 if (${STATIC_BUILD})
   SET(LIBPNG_SOURCES_DIR ${CMAKE_BINARY_DIR}/libpng-1.5.12)
-  DownloadPackage("http://download.sourceforge.net/libpng/libpng-1.5.12.tar.gz" "${LIBPNG_SOURCES_DIR}" "${LIBPNG_PRELOADED}" "")
+  DownloadPackage("http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/libpng-1.5.12.tar.gz" "${LIBPNG_SOURCES_DIR}" "${LIBPNG_PRELOADED}" "")
 
   include_directories(
     ${LIBPNG_SOURCES_DIR}

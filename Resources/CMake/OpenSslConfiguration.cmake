@@ -1,6 +1,6 @@
 if (${STATIC_BUILD})
   SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.0.1c)
-  DownloadPackage("http://www.openssl.org/source/openssl-1.0.1c.tar.gz" "${OPENSSL_SOURCES_DIR}" "" "")
+  DownloadPackage("www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/openssl-1.0.1c.tar.gz" "${OPENSSL_SOURCES_DIR}" "" "")
 
   if (NOT EXISTS "${OPENSSL_SOURCES_DIR}/include/PATCHED")
     if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")

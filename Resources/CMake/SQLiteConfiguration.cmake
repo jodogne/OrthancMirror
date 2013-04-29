@@ -1,6 +1,6 @@
 if (STATIC_BUILD OR NOT USE_DYNAMIC_SQLITE)
   SET(SQLITE_SOURCES_DIR ${CMAKE_BINARY_DIR}/sqlite-amalgamation-3071300)
-  DownloadPackage("http://www.sqlite.org/sqlite-amalgamation-3071300.zip" "${SQLITE_SOURCES_DIR}" "" "")
+  DownloadPackage("http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/sqlite-amalgamation-3071300.zip" "${SQLITE_SOURCES_DIR}" "" "")
 
   list(APPEND THIRD_PARTY_SOURCES
     ${SQLITE_SOURCES_DIR}/sqlite3.c
