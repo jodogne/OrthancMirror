@@ -56,9 +56,6 @@ public:
   MyDicomStore(ServerContext& context) :
     server_(context)
   {
-    LuaContext& lua = server_.GetLuaContext();
-    lua.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
-    lua.Execute("function NewInstanceFilter(dicom, aet) print(dicom['0010,0020'].Value); return true end");
   }
 
   virtual void Handle(const std::string& dicomFile,
@@ -233,6 +230,19 @@ int main(int argc, char* argv[])
     LOG(WARNING) << "Index directory: " << indexDirectory;
 
     context.SetCompressionEnabled(GetGlobalBoolParameter("StorageCompression", false));
+
+    {
+      std::string path = GetGlobalStringParameter("Scripting", "");
+      if (path.size() > 0)
+      {
+        LOG(WARNING) << "Installing the Lua scripts from: " << path;
+        std::string lua;
+        Toolbox::ReadFile(lua, path);
+        context.GetLuaContext().Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
+        context.GetLuaContext().Execute(lua);
+      }
+    }
+
 
     try
     {
