@@ -27,6 +27,10 @@
     // in the storage (a value of "0" indicates no limit on the number
     // of patients)
     "MaximumPatientCount" : 0,
+  
+    // Path to the custom Lua scripts for this instance of Orthanc (an
+    // empty string denotes the absence of custom scripts)
+    "Scripting" : "",
 
 
     /**
