@@ -51,6 +51,8 @@ namespace Orthanc
 
     bool IsUuid(const std::string& str);
 
+    bool StartsWithUuid(const std::string& str);
+
     class TemporaryFile
     {
     private:

@@ -29,6 +29,23 @@ TEST(Uuid, Test)
   ASSERT_FALSE(Toolbox::IsUuid(""));
   ASSERT_FALSE(Toolbox::IsUuid("012345678901234567890123456789012345"));
   ASSERT_TRUE(Toolbox::IsUuid("550e8400-e29b-41d4-a716-446655440000"));
+  ASSERT_FALSE(Toolbox::StartsWithUuid("550e8400-e29b-41d4-a716-44665544000"));
+  ASSERT_TRUE(Toolbox::StartsWithUuid("550e8400-e29b-41d4-a716-446655440000"));
+  ASSERT_TRUE(Toolbox::StartsWithUuid("550e8400-e29b-41d4-a716-446655440000 ok"));
+  ASSERT_FALSE(Toolbox::StartsWithUuid("550e8400-e29b-41d4-a716-446655440000ok"));
+}
+
+TEST(Toolbox, IsSHA1)
+{
+  ASSERT_FALSE(Toolbox::IsSHA1(""));
+  ASSERT_FALSE(Toolbox::IsSHA1("01234567890123456789012345678901234567890123"));
+  ASSERT_FALSE(Toolbox::IsSHA1("012345678901234567890123456789012345678901234"));
+  ASSERT_TRUE(Toolbox::IsSHA1("b5ed549f-956400ce-69a8c063-bf5b78be-2732a4b9"));
+
+  std::string s;
+  Toolbox::ComputeSHA1(s, "The quick brown fox jumps over the lazy dog");
+  ASSERT_TRUE(Toolbox::IsSHA1(s));
+  ASSERT_EQ("2fd4e1c6-7a2d28fc-ed849ee1-bb76e739-1b93eb12", s);
 }
 
 TEST(Zlib, Basic)
