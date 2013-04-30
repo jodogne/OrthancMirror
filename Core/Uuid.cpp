@@ -96,6 +96,28 @@ namespace Orthanc
     }
 
 
+    bool StartsWithUuid(const std::string& str)
+    {
+      if (str.size() < 36)
+      {
+        return false;
+      }
+
+      if (str.size() == 36)
+      {
+        return IsUuid(str);
+      }
+
+      assert(str.size() > 36);
+      if (!isspace(str[36]))
+      {
+        return false;
+      }
+
+      return IsUuid(str.substr(0, 36));
+    }
+
+
     static std::string CreateTemporaryPath(const char* extension)
     {
 #if BOOST_HAS_FILESYSTEM_V3 == 1
