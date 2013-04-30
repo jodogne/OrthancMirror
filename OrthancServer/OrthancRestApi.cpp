@@ -266,6 +266,7 @@ namespace Orthanc
     std::list<std::string> instances;
     if (request.isString())
     {
+      LOG(INFO) << "Sending resource " << request.asString() << " to modality " << remote;
       context.GetIndex().LogExportedResource(request.asString(), remote);
       context.GetIndex().GetChildInstances(instances, request.asString());
     }
@@ -284,6 +285,7 @@ namespace Orthanc
           return;
         }
 
+        LOG(INFO) << "Sending resource " << stripped << " to modality " << remote;
         context.GetIndex().LogExportedResource(stripped, remote);
        
         std::list<std::string> tmp;
