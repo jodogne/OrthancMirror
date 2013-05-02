@@ -32,38 +32,38 @@
 
 #pragma once
 
-#include <string>
-#include <set>
+#include "LuaContext.h"
+
 #include <json/json.h>
-#include <stdint.h>
-#include "../Core/HttpServer/MongooseServer.h"
+
 
 namespace Orthanc
 {
-  void OrthancInitialize(const char* configurationFile = NULL);
+  class LuaFunctionCall : public boost::noncopyable
+  {
+  private:
+    LuaContext& context_;
+    boost::mutex::scoped_lock lock_;
+    bool isExecuted_;
 
-  void OrthancFinalize();
+    void CheckAlreadyExecuted();
 
-  std::string GetGlobalStringParameter(const std::string& parameter,
-                                       const std::string& defaultValue);
+  public:
+    LuaFunctionCall(LuaContext& context,
+                    const char* functionName);
 
-  int GetGlobalIntegerParameter(const std::string& parameter,
-                                int defaultValue);
+    void PushString(const std::string& value);
 
-  bool GetGlobalBoolParameter(const std::string& parameter,
-                              bool defaultValue);
+    void PushBoolean(bool value);
 
-  void GetDicomModality(const std::string& name,
-                        std::string& aet,
-                        std::string& address,
-                        int& port);
+    void PushInteger(int value);
 
-  void GetListOfDicomModalities(std::set<std::string>& target);
+    void PushDouble(double value);
 
-  void SetupRegisteredUsers(MongooseServer& httpServer);
+    void PushJSON(const Json::Value& value);
 
-  std::string InterpretStringParameterAsPath(const std::string& parameter);
+    void Execute(int numOutputs = 0);
 
-  void GetGlobalListOfStringsParameter(std::list<std::string>& target,
-                                       const std::string& key);
+    bool ExecutePredicate();
+  };
 }

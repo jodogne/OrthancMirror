@@ -19,6 +19,7 @@ SET(USE_DYNAMIC_GOOGLE_LOG ON CACHE BOOL "Use the dynamic version of Google Log"
 SET(USE_DYNAMIC_GOOGLE_TEST ON CACHE BOOL "Use the dynamic version of Google Test (not for Debian sid)")
 SET(USE_DYNAMIC_SQLITE ON CACHE BOOL "Use the dynamic version of SQLite")
 SET(USE_DYNAMIC_MONGOOSE OFF CACHE BOOL "Use the dynamic version of Mongoose")
+SET(USE_DYNAMIC_LUA OFF CACHE BOOL "Use the dynamic version of Lua")
 SET(DEBIAN_FORCE_HARDENING OFF CACHE BOOL "Force the injection of Debian hardening flags (unrecommended)")
 SET(DEBIAN_USE_GTEST_SOURCE_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (only for Debian sid)")
 SET(ONLY_CORE_LIBRARY OFF CACHE BOOL "Only build the core library")
@@ -73,12 +74,14 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/SQLiteConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/JsonCppConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibCurlConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibPngConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/LuaConfiguration.cmake)
 
 
 # Prepare the embedded files
 set(EMBEDDED_FILES
   PREPARE_DATABASE ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/PrepareDatabase.sql
   CONFIGURATION_SAMPLE ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Configuration.json
+  LUA_TOOLBOX ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Toolbox.lua
   )
 
 if (${STANDALONE_BUILD})
@@ -143,6 +146,8 @@ add_library(CoreLibrary
   Core/SQLite/Transaction.cpp
   Core/Toolbox.cpp
   Core/Uuid.cpp
+  Core/Lua/LuaContext.cpp
+  Core/Lua/LuaFunctionCall.cpp
 
   OrthancCppClient/HttpClient.cpp
   OrthancCppClient/HttpException.cpp
@@ -201,6 +206,7 @@ if(NOT ONLY_CORE_LIBRARY)
       UnitTests/ServerIndex.cpp
       UnitTests/Versions.cpp
       UnitTests/Zip.cpp
+      UnitTests/Lua.cpp
       UnitTests/main.cpp
       )
     target_link_libraries(UnitTests ServerLibrary CoreLibrary)

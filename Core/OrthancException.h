@@ -39,12 +39,18 @@ namespace Orthanc
 {
   class OrthancException
   {
-  private:
+  protected:
     ErrorCode error_;
     std::string custom_;
 
   public:
     static const char* GetDescription(ErrorCode error);
+
+    OrthancException(const char* custom)
+    {
+      error_ = ErrorCode_Custom;
+      custom_ = custom;
+    }
 
     OrthancException(const std::string& custom)
     {

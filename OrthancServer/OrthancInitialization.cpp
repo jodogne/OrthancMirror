@@ -47,6 +47,7 @@ namespace Orthanc
 
   static boost::mutex globalMutex_;
   static std::auto_ptr<Json::Value> configuration_;
+  static boost::filesystem::path defaultDirectory_;
 
 
   static void ReadGlobalConfiguration(const char* configurationFile)
@@ -58,6 +59,7 @@ namespace Orthanc
     if (configurationFile)
     {
       Toolbox::ReadFile(content, configurationFile);
+      defaultDirectory_ = boost::filesystem::path(configurationFile).parent_path();
       LOG(INFO) << "Using the configuration from: " << configurationFile;
     }
     else
@@ -119,6 +121,7 @@ namespace Orthanc
   void OrthancInitialize(const char* configurationFile)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
+    defaultDirectory_ = boost::filesystem::current_path();
     ReadGlobalConfiguration(configurationFile);
     curl_global_init(CURL_GLOBAL_ALL);
   }
@@ -274,5 +277,38 @@ namespace Orthanc
       std::string password = users[username].asString();
       httpServer.RegisterUser(username.c_str(), password.c_str());
     }
+  }
+
+
+  std::string InterpretStringParameterAsPath(const std::string& parameter)
+  {
+    boost::mutex::scoped_lock lock(globalMutex_);
+    return (defaultDirectory_ / parameter).string();
+  }
+
+
+  void GetGlobalListOfStringsParameter(std::list<std::string>& target,
+                                       const std::string& key)
+  {
+    boost::mutex::scoped_lock lock(globalMutex_);
+
+    target.clear();
+  
+    if (!configuration_->isMember(key))
+    {
+      return;
+    }
+
+    const Json::Value& lst = (*configuration_) [key];
+
+    if (lst.type() != Json::arrayValue)
+    {
+      throw OrthancException("Badly formatted list of strings");
+    }
+
+    for (Json::Value::ArrayIndex i = 0; i < lst.size(); i++)
+    {
+      target.push_back(lst[i].asString());
+    }    
   }
 }

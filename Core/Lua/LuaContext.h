@@ -32,38 +32,39 @@
 
 #pragma once
 
-#include <string>
-#include <set>
-#include <json/json.h>
-#include <stdint.h>
-#include "../Core/HttpServer/MongooseServer.h"
+#include "LuaException.h"
+
+#include <boost/thread.hpp>
+
+extern "C" 
+{
+#include <lua.h>
+}
+
+#include <EmbeddedResources.h>
+
 
 namespace Orthanc
 {
-  void OrthancInitialize(const char* configurationFile = NULL);
+  class LuaContext : public boost::noncopyable
+  {
+  private:
+    friend class LuaFunctionCall;
 
-  void OrthancFinalize();
+    lua_State *lua_;
+    boost::mutex mutex_;
 
-  std::string GetGlobalStringParameter(const std::string& parameter,
-                                       const std::string& defaultValue);
+    static int PrintToLog(lua_State *L);
 
-  int GetGlobalIntegerParameter(const std::string& parameter,
-                                int defaultValue);
+  public:
+    LuaContext();
 
-  bool GetGlobalBoolParameter(const std::string& parameter,
-                              bool defaultValue);
+    ~LuaContext();
 
-  void GetDicomModality(const std::string& name,
-                        std::string& aet,
-                        std::string& address,
-                        int& port);
+    void Execute(const std::string& command);
 
-  void GetListOfDicomModalities(std::set<std::string>& target);
+    void Execute(EmbeddedResources::FileResourceId resource);
 
-  void SetupRegisteredUsers(MongooseServer& httpServer);
-
-  std::string InterpretStringParameterAsPath(const std::string& parameter);
-
-  void GetGlobalListOfStringsParameter(std::list<std::string>& target,
-                                       const std::string& key);
+    bool IsExistingFunction(const char* name);
+  };
 }
