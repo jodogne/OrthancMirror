@@ -35,6 +35,7 @@
 #include "../Core/HttpServer/FilesystemHttpSender.h"
 
 #include <glog/logging.h>
+#include <EmbeddedResources.h>
 
 #define ENABLE_DICOM_CACHE  1
 
@@ -60,6 +61,7 @@ namespace Orthanc
     provider_(*this),
     dicomCache_(provider_, DICOM_CACHE_SIZE)
   {
+    lua_.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
   }
 
   void ServerContext::SetCompressionEnabled(bool enabled)
