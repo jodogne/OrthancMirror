@@ -112,6 +112,9 @@ namespace Orthanc
       case StoreStatus_Failure:
         return "Failure";
 
+      case StoreStatus_FilteredOut:
+        return "FilteredOut";
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }

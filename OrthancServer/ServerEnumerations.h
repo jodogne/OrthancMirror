@@ -47,7 +47,8 @@ namespace Orthanc
   {
     StoreStatus_Success,
     StoreStatus_AlreadyStored,
-    StoreStatus_Failure
+    StoreStatus_Failure,
+    StoreStatus_FilteredOut     // Removed by NewInstanceFilter
   };
 
 

@@ -32,38 +32,21 @@
 
 #pragma once
 
-#include <string>
-#include <set>
-#include <json/json.h>
-#include <stdint.h>
-#include "../Core/HttpServer/MongooseServer.h"
+#include "../OrthancException.h"
 
 namespace Orthanc
 {
-  void OrthancInitialize(const char* configurationFile = NULL);
+  class LuaException : public OrthancException
+  {
+  public:
+    LuaException(const char* explanation) : 
+      OrthancException(explanation)
+    {
+    }
 
-  void OrthancFinalize();
-
-  std::string GetGlobalStringParameter(const std::string& parameter,
-                                       const std::string& defaultValue);
-
-  int GetGlobalIntegerParameter(const std::string& parameter,
-                                int defaultValue);
-
-  bool GetGlobalBoolParameter(const std::string& parameter,
-                              bool defaultValue);
-
-  void GetDicomModality(const std::string& name,
-                        std::string& aet,
-                        std::string& address,
-                        int& port);
-
-  void GetListOfDicomModalities(std::set<std::string>& target);
-
-  void SetupRegisteredUsers(MongooseServer& httpServer);
-
-  std::string InterpretStringParameterAsPath(const std::string& parameter);
-
-  void GetGlobalListOfStringsParameter(std::list<std::string>& target,
-                                       const std::string& key);
+    LuaException(const std::string& explanation) : 
+      OrthancException(explanation)
+    {
+    }
+  };
 }

@@ -38,7 +38,7 @@
 
 #include "../Core/HttpServer/EmbeddedResourceHttpHandler.h"
 #include "../Core/HttpServer/FilesystemHttpHandler.h"
-#include "../Core/HttpServer/MongooseServer.h"
+#include "../Core/Lua/LuaFunctionCall.h"
 #include "../Core/DicomFormat/DicomArray.h"
 #include "DicomProtocol/DicomServer.h"
 #include "OrthancInitialization.h"
@@ -51,11 +51,11 @@ using namespace Orthanc;
 class MyStoreRequestHandler : public IStoreRequestHandler
 {
 private:
-  ServerContext& context_;
+  ServerContext& server_;
 
 public:
   MyStoreRequestHandler(ServerContext& context) :
-    context_(context)
+    server_(context)
   {
   }
 
@@ -66,7 +66,7 @@ public:
   {
     if (dicomFile.size() > 0)
     {
-      context_.Store(&dicomFile[0], dicomFile.size(), dicomSummary, dicomJson, remoteAet);
+      server_.Store(&dicomFile[0], dicomFile.size(), dicomSummary, dicomJson, remoteAet);
     }
   }
 };
@@ -264,14 +264,29 @@ int main(int argc, char* argv[])
       OrthancInitialize();
     }
 
-    boost::filesystem::path storageDirectory = GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
-    boost::filesystem::path indexDirectory = GetGlobalStringParameter("IndexDirectory", storageDirectory.string());
+    boost::filesystem::path storageDirectory = 
+      InterpretStringParameterAsPath(GetGlobalStringParameter("StorageDirectory", "OrthancStorage"));
+    boost::filesystem::path indexDirectory = 
+      InterpretStringParameterAsPath(GetGlobalStringParameter("IndexDirectory", storageDirectory.string()));
     ServerContext context(storageDirectory, indexDirectory);
 
     LOG(WARNING) << "Storage directory: " << storageDirectory;
     LOG(WARNING) << "Index directory: " << indexDirectory;
 
     context.SetCompressionEnabled(GetGlobalBoolParameter("StorageCompression", false));
+
+    std::list<std::string> luaScripts;
+    GetGlobalListOfStringsParameter(luaScripts, "LuaScripts");
+    for (std::list<std::string>::const_iterator
+           it = luaScripts.begin(); it != luaScripts.end(); it++)
+    {
+      std::string path = InterpretStringParameterAsPath(*it);
+      LOG(WARNING) << "Installing the Lua scripts from: " << path;
+      std::string script;
+      Toolbox::ReadFile(script, path);
+      context.GetLuaContext().Execute(script);
+    }
+
 
     try
     {
@@ -315,7 +330,8 @@ int main(int argc, char* argv[])
 
       if (GetGlobalBoolParameter("SslEnabled", false))
       {
-        std::string certificate = GetGlobalStringParameter("SslCertificate", "certificate.pem");
+        std::string certificate = 
+          InterpretStringParameterAsPath(GetGlobalStringParameter("SslCertificate", "certificate.pem"));
         httpServer.SetSslEnabled(true);
         httpServer.SetSslCertificate(certificate.c_str());
       }
