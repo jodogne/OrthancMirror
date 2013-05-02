@@ -65,20 +65,7 @@ public:
   {
     if (dicomFile.size() > 0)
     {
-      LuaContext& lua = server_.GetLuaContext();
-      // TODO : Is existing trigger ?
-      LuaFunctionCall call(lua, "NewInstanceFilter");
-      call.PushJSON(dicomJson);
-      call.PushString(remoteAet);
-
-      if (call.ExecutePredicate())
-      {
-        server_.Store(&dicomFile[0], dicomFile.size(), dicomSummary, dicomJson, remoteAet);
-      }
-      else
-      {
-        LOG(WARNING) << "An instance has been discarded by a filter";
-      }
+      server_.Store(&dicomFile[0], dicomFile.size(), dicomSummary, dicomJson, remoteAet);
     }
   }
 };

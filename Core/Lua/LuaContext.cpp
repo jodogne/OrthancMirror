@@ -70,7 +70,7 @@ namespace Orthanc
       lua_pop(L, 1);
     }
 
-    LOG(WARNING) << "Lua: " << result;         
+    LOG(INFO) << "Lua says: " << result;         
 
     return 0;
   }
@@ -120,5 +120,14 @@ namespace Orthanc
     std::string command;
     EmbeddedResources::GetFileResource(command, resource);
     Execute(command);
+  }
+
+
+  bool LuaContext::IsExistingFunction(const char* name)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    lua_settop(lua_, 0);
+    lua_getglobal(lua_, name);
+    return lua_type(lua_, -1) == LUA_TFUNCTION;
   }
 }

@@ -64,5 +64,7 @@ namespace Orthanc
     void Execute(const std::string& command);
 
     void Execute(EmbeddedResources::FileResourceId resource);
+
+    bool IsExistingFunction(const char* name);
   };
 }
