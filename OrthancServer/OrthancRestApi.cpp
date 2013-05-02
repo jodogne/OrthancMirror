@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -249,45 +249,69 @@ namespace Orthanc
     RETRIEVE_CONTEXT(call);
 
     std::string remote = call.GetUriComponent("id", "");
-    DicomUserConnection connection;
-    ConnectToModality(connection, remote);
+    std::string stripped = Toolbox::StripSpaces(call.GetPostBody());
 
-    const std::string& resourceId = call.GetPostBody();
-
-    Json::Value found;
-    if (context.GetIndex().LookupResource(found, resourceId, ResourceType_Series))
+    Json::Value request;
+    if (Toolbox::IsSHA1(stripped))
     {
-      // The UUID corresponds to a series
-      context.GetIndex().LogExportedResource(resourceId, remote);
-
-      for (Json::Value::ArrayIndex i = 0; i < found["Instances"].size(); i++)
-      {
-        std::string instanceId = found["Instances"][i].asString();
-        std::string dicom;
-        context.ReadFile(dicom, instanceId, FileContentType_Dicom);
-        connection.Store(dicom);
-      }
-
-      call.GetOutput().AnswerBuffer("{}", "application/json");
+      // This is for compatibility with Orthanc <= 0.5.1.
+      request = stripped;
     }
-    else if (context.GetIndex().LookupResource(found, resourceId, ResourceType_Instance))
+    else if (!call.ParseJsonRequest(request))
     {
-      // The UUID corresponds to an instance
-      context.GetIndex().LogExportedResource(resourceId, remote);
+      // Bad JSON request
+      return;
+    }
 
-      std::string dicom;
-      context.ReadFile(dicom, resourceId, FileContentType_Dicom);
-      connection.Store(dicom);
+    std::list<std::string> instances;
+    if (request.isString())
+    {
+      LOG(INFO) << "Sending resource " << request.asString() << " to modality " << remote;
+      context.GetIndex().LogExportedResource(request.asString(), remote);
+      context.GetIndex().GetChildInstances(instances, request.asString());
+    }
+    else if (request.isArray())
+    {
+      for (Json::Value::ArrayIndex i = 0; i < request.size(); i++)
+      {
+        if (!request[i].isString())
+        {
+          return;
+        }
 
-      call.GetOutput().AnswerBuffer("{}", "application/json");
+        std::string stripped = Toolbox::StripSpaces(request[i].asString());
+        if (!Toolbox::IsSHA1(stripped))
+        {
+          return;
+        }
+
+        LOG(INFO) << "Sending resource " << stripped << " to modality " << remote;
+        context.GetIndex().LogExportedResource(stripped, remote);
+       
+        std::list<std::string> tmp;
+        context.GetIndex().GetChildInstances(tmp, stripped);
+        instances.merge(tmp);
+        assert(tmp.size() == 0);
+      }
     }
     else
     {
-      // The POST body is not a known resource, assume that it
-      // contains a raw DICOM instance
-      connection.Store(resourceId);
-      call.GetOutput().AnswerBuffer("{}", "application/json");
+      // Neither a string, nor a list of strings. Bad request.
+      return;
     }
+
+    DicomUserConnection connection;
+    ConnectToModality(connection, remote);
+
+    for (std::list<std::string>::const_iterator 
+           it = instances.begin(); it != instances.end(); it++)
+    {
+      std::string dicom;
+      context.ReadFile(dicom, *it, FileContentType_Dicom);
+      connection.Store(dicom);
+    }
+
+    call.GetOutput().AnswerBuffer("{}", "application/json");
   }
 
 

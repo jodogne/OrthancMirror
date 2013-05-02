@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -93,6 +93,28 @@ namespace Orthanc
       }
 
       return true;
+    }
+
+
+    bool StartsWithUuid(const std::string& str)
+    {
+      if (str.size() < 36)
+      {
+        return false;
+      }
+
+      if (str.size() == 36)
+      {
+        return IsUuid(str);
+      }
+
+      assert(str.size() > 36);
+      if (!isspace(str[36]))
+      {
+        return false;
+      }
+
+      return IsUuid(str.substr(0, 36));
     }
 
 

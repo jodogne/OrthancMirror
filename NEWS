@@ -2,6 +2,10 @@ Pending changes in the mainline
 ===============================
 
 
+* Store-SCU for patients and studies in Orthanc Explorer.
+* "Bulk" Store-SCU (send several DICOM instances with the same
+  DICOM connexion).
+
 
 Version 0.5.1 (2013/04/17)
 ==========================
@@ -9,7 +13,7 @@ Version 0.5.1 (2013/04/17)
 * Support of RGB images
 * Fix of store SCU in release builds
 * Possibility to store the SQLite index at another place than the
-  DICOM instances
+  DICOM instances (for performance)
 
 
 Version 0.5.0 (2013/01/31)
