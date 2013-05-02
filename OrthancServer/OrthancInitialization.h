@@ -61,4 +61,9 @@ namespace Orthanc
   void GetListOfDicomModalities(std::set<std::string>& target);
 
   void SetupRegisteredUsers(MongooseServer& httpServer);
+
+  std::string InterpretStringParameterAsPath(const std::string& parameter);
+
+  void GetGlobalListOfStringsParameter(std::list<std::string>& target,
+                                       const std::string& key);
 }
