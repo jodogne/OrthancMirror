@@ -60,7 +60,7 @@
 
 
     /**
-     * Security-related options
+     * Security-related options for the HTTP server
      **/
 
     // Whether remote hosts can connect to the HTTP server
@@ -69,7 +69,7 @@
     // Whether or not SSL is enabled
     "SslEnabled" : false,
 
-    // Path to the SSL certificate
+    // Path to the SSL certificate (meaningful only if SSL is enabled)
     "SslCertificate" : "certificate.pem",
 
     // Whether or not the password protection is enabled

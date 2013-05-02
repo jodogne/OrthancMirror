@@ -753,7 +753,7 @@ function ChooseDicomModality(callback)
 }
 
 
-$('#instance-store,#series-store').live('click', function(e) {
+$('#instance-store,#series-store,#study-store,#patient-store').live('click', function(e) {
   ChooseDicomModality(function(modality) {
     if (modality != '') {
       $.ajax({
@@ -769,7 +769,6 @@ $('#instance-store,#series-store').live('click', function(e) {
           $.unblockUI();
         },
         success: function(s) {
-          //console.log('done !');
         },
         error: function() {
           alert('Error during C-Store');
