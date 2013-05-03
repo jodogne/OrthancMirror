@@ -485,6 +485,79 @@ namespace Orthanc
   }
 
 
+  static bool ExtractMethod(Orthanc_HttpMethod& method,
+                            const struct mg_request_info *request,
+                            const HttpHandler::Arguments& headers,
+                            const HttpHandler::Arguments& argumentsGET)
+  {
+    std::string overriden;
+
+    // Check whether some PUT/DELETE faking is done
+
+    // 1. Faking with Google's approach
+    HttpHandler::Arguments::const_iterator methodOverride =
+      headers.find("x-http-method-override");
+
+    if (methodOverride != headers.end())
+    {
+      overriden = methodOverride->second;
+    }
+    else if (!strcmp(request->request_method, "GET"))
+    {
+      // 2. Faking with Ruby on Rail's approach
+      // GET /my/resource?_method=delete <=> DELETE /my/resource
+      methodOverride = argumentsGET.find("_method");
+      if (methodOverride != argumentsGET.end())
+      {
+        overriden = methodOverride->second;
+      }
+    }
+
+    if (overriden.size() > 0)
+    {
+      // A faking has been done within this request
+      Toolbox::ToUpperCase(overriden);
+
+      if (overriden == "PUT")
+      {
+        method = Orthanc_HttpMethod_Put;
+      }
+      else if (overriden == "DELETE")
+      {
+        method = Orthanc_HttpMethod_Delete;
+      }
+      else
+      {
+        return false;
+      }
+    }
+
+    // No PUT/DELETE faking was present
+    if (!strcmp(request->request_method, "GET"))
+    {
+      method = Orthanc_HttpMethod_Get;
+    }
+    else if (!strcmp(request->request_method, "POST"))
+    {
+      method = Orthanc_HttpMethod_Post;
+    }
+    else if (!strcmp(request->request_method, "DELETE"))
+    {
+      method = Orthanc_HttpMethod_Delete;
+    }
+    else if (!strcmp(request->request_method, "PUT"))
+    {
+      method = Orthanc_HttpMethod_Put;
+    }
+    else
+    {
+      return false;
+    }    
+
+    return true;
+  }
+
+
 
   static void* Callback(enum mg_event event,
                         struct mg_connection *connection,
@@ -495,30 +568,8 @@ namespace Orthanc
       MongooseServer* that = (MongooseServer*) (request->user_data);
       MongooseOutput output(connection);
 
-      // Compute the method
-      Orthanc_HttpMethod method;
-      if (!strcmp(request->request_method, "GET"))
-      {
-        method = Orthanc_HttpMethod_Get;
-      }
-      else if (!strcmp(request->request_method, "POST"))
-      {
-        method = Orthanc_HttpMethod_Post;
-      }
-      else if (!strcmp(request->request_method, "DELETE"))
-      {
-        method = Orthanc_HttpMethod_Delete;
-      }
-      else if (!strcmp(request->request_method, "PUT"))
-      {
-        method = Orthanc_HttpMethod_Put;
-      }
-      else
-      {
-        output.SendHeader(Orthanc_HttpStatus_405_MethodNotAllowed);
-        return (void*) "";
-      }      
 
+      // Check remote calls
       if (!that->IsRemoteAccessAllowed() &&
           request->remote_ip != LOCALHOST)
       {
@@ -526,14 +577,33 @@ namespace Orthanc
         return (void*) "";
       }
 
-      HttpHandler::Arguments arguments, headers;
 
+      // Extract the HTTP headers
+      HttpHandler::Arguments headers;
       for (int i = 0; i < request->num_headers; i++)
       {
         std::string name = request->http_headers[i].name;
         std::transform(name.begin(), name.end(), name.begin(), ::tolower);
         headers.insert(std::make_pair(name, request->http_headers[i].value));
       }
+
+
+      // Extract the GET arguments
+      HttpHandler::Arguments argumentsGET;
+      if (!strcmp(request->request_method, "GET"))
+      {
+        HttpHandler::ParseGetQuery(argumentsGET, request->query_string);
+      }
+
+
+      // Compute the HTTP method, taking method faking into consideration
+      Orthanc_HttpMethod method;
+      if (!ExtractMethod(method, request, headers, argumentsGET))
+      {
+        output.SendHeader(Orthanc_HttpStatus_405_MethodNotAllowed);
+        return (void*) "";
+      }
+
 
       // Authenticate this connection
       if (that->IsAuthenticationEnabled() &&
@@ -564,14 +634,10 @@ namespace Orthanc
       }
 
 
-      std::string postData;
-
-      if (method == Orthanc_HttpMethod_Get)
-      {
-        HttpHandler::ParseGetQuery(arguments, request->query_string);
-      }
-      else if (method == Orthanc_HttpMethod_Post ||
-               method == Orthanc_HttpMethod_Put)
+      // Extract the body of the request for PUT and POST
+      std::string body;
+      if (method == Orthanc_HttpMethod_Post ||
+          method == Orthanc_HttpMethod_Put)
       {
         HttpHandler::Arguments::const_iterator ct = headers.find("content-type");
         if (ct == headers.end())
@@ -586,11 +652,11 @@ namespace Orthanc
         if (contentType.size() >= multipartLength &&
             !memcmp(contentType.c_str(), multipart, multipartLength))
         {
-          status = ParseMultipartPost(postData, connection, headers, contentType, that->GetChunkStore());
+          status = ParseMultipartPost(body, connection, headers, contentType, that->GetChunkStore());
         }
         else
         {
-          status = ReadPostData(postData, connection, headers);
+          status = ReadPostData(body, connection, headers);
         }
 
         switch (status)
@@ -612,6 +678,8 @@ namespace Orthanc
         }
       }
 
+
+      // Call the proper handler for this URI
       UriComponents uri;
       Toolbox::SplitUriComponents(uri, request->uri);
 
@@ -620,7 +688,7 @@ namespace Orthanc
       {
         try
         {
-          handler->Handle(output, method, uri, headers, arguments, postData);
+          handler->Handle(output, method, uri, headers, argumentsGET, body);
         }
         catch (OrthancException& e)
         {
