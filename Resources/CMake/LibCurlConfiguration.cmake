@@ -1,6 +1,9 @@
 if (${STATIC_BUILD})
   SET(CURL_SOURCES_DIR ${CMAKE_BINARY_DIR}/curl-7.26.0)
-  DownloadPackage("http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/curl-7.26.0.tar.gz" "${CURL_SOURCES_DIR}" "" "")
+  DownloadPackage(
+    "3fa4d5236f2a36ca5c3af6715e837691"
+    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/curl-7.26.0.tar.gz"
+    "${CURL_SOURCES_DIR}" "" "")
 
   include_directories(${CURL_SOURCES_DIR}/include)
   AUX_SOURCE_DIRECTORY(${CURL_SOURCES_DIR}/lib CURL_SOURCES)
