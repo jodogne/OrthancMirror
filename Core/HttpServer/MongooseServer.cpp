@@ -454,6 +454,37 @@ namespace Orthanc
   }
 
 
+  static std::string GetAuthenticatedUsername(const HttpHandler::Arguments& headers)
+  {
+    HttpHandler::Arguments::const_iterator auth = headers.find("authorization");
+
+    if (auth == headers.end())
+    {
+      return "";
+    }
+
+    std::string s = auth->second;
+    if (s.substr(0, 6) != "Basic ")
+    {
+      return "";
+    }
+
+    std::string b64 = s.substr(6);
+    std::string decoded = Toolbox::DecodeBase64(b64);
+    size_t semicolons = decoded.find(':');
+
+    if (semicolons == std::string::npos)
+    {
+      // Bad-formatted request
+      return "";
+    }
+    else
+    {
+      return decoded.substr(0, semicolons);
+    }
+  }
+
+
 
   static void* Callback(enum mg_event event,
                         struct mg_connection *connection,
@@ -510,6 +541,28 @@ namespace Orthanc
       {
         return (void*) "";
       }
+
+
+      // Apply the filter, if it is installed
+      const IIncomingHttpRequestFilter *filter = that->GetIncomingHttpRequestFilter();
+      if (filter != NULL)
+      {
+        std::string username = GetAuthenticatedUsername(headers);
+
+        char remoteIp[24];
+        sprintf(remoteIp, "%d.%d.%d.%d", 
+                reinterpret_cast<const uint8_t*>(&request->remote_ip) [3], 
+                reinterpret_cast<const uint8_t*>(&request->remote_ip) [2], 
+                reinterpret_cast<const uint8_t*>(&request->remote_ip) [1], 
+                reinterpret_cast<const uint8_t*>(&request->remote_ip) [0]);
+
+        if (!filter->IsAllowed(method, request->uri, remoteIp, username.c_str()))
+        {
+          SendUnauthorized(output);
+          return (void*) "";
+        }
+      }
+
 
       std::string postData;
 
@@ -737,6 +790,11 @@ namespace Orthanc
     remoteAllowed_ = allowed;
   }
 
+  void MongooseServer::SetIncomingHttpRequestFilter(IIncomingHttpRequestFilter& filter)
+  {
+    Stop();
+    filter_ = &filter;
+  }
 
   bool MongooseServer::IsValidBasicHttpAuthentication(const std::string& basic) const
   {
