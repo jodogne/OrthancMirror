@@ -2,12 +2,12 @@ Pending changes in the mainline
 ===============================
 
 
-* Store-SCU for patients and studies in Orthanc Explorer.
 * "Bulk" Store-SCU (send several DICOM instances with the same
-  DICOM connexion).
-* Filtering of incoming DICOM instances (through Lua scripting).
-* Filtering of incoming HTTP requests (through Lua scripting).
-* Check MD5 of third party downloads.
+  DICOM connexion)
+* Store-SCU for patients and studies in Orthanc Explorer
+* Filtering of incoming DICOM instances (through Lua scripting)
+* Filtering of incoming HTTP requests (through Lua scripting)
+* Check MD5 of third party downloads
 
 
 Version 0.5.1 (2013/04/17)
