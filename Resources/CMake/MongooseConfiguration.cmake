@@ -1,6 +1,9 @@
 if (STATIC_BUILD OR NOT USE_DYNAMIC_MONGOOSE)
   SET(MONGOOSE_SOURCES_DIR ${CMAKE_BINARY_DIR}/mongoose)
-  DownloadPackage("http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/mongoose-3.1.tgz" "${MONGOOSE_SOURCES_DIR}" "" "")
+  DownloadPackage(
+    "e718fc287b4eb1bd523be3fa00942bb0"
+    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/mongoose-3.1.tgz"
+    "${MONGOOSE_SOURCES_DIR}" "" "")
 
   # Patch mongoose
   execute_process(

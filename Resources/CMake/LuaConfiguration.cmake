@@ -1,6 +1,9 @@
 if (STATIC_BUILD OR NOT USE_DYNAMIC_LUA)
   SET(LUA_SOURCES_DIR ${CMAKE_BINARY_DIR}/lua-5.1.5)
-  DownloadPackage("http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/lua-5.1.5.tar.gz" "${LUA_SOURCES_DIR}" "" "")
+  DownloadPackage(
+    "2e115fe26e435e33b0d5c022e4490567"
+    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/lua-5.1.5.tar.gz"
+    "${LUA_SOURCES_DIR}" "" "")
 
   add_definitions(
     #-DLUA_LIB=1
