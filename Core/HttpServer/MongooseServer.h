@@ -44,6 +44,19 @@ namespace Orthanc
 {
   class ChunkStore;
 
+  class IIncomingHttpRequestFilter
+  {
+  public:
+    virtual ~IIncomingHttpRequestFilter()
+    {
+    }
+
+    virtual bool IsAllowed(Orthanc_HttpMethod method,
+                           const char* uri,
+                           const char* ip,
+                           const char* username) const = 0;
+  };
+
   class MongooseServer
   {
   private:
@@ -62,6 +75,7 @@ namespace Orthanc
     bool ssl_;
     std::string certificate_;
     uint16_t port_;
+    IIncomingHttpRequestFilter* filter_;
   
     bool IsRunning() const;
 
@@ -115,6 +129,13 @@ namespace Orthanc
     }
 
     void SetRemoteAccessAllowed(bool allowed);
+
+    const IIncomingHttpRequestFilter* GetIncomingHttpRequestFilter() const
+    {
+      return filter_;
+    }
+
+    void SetIncomingHttpRequestFilter(IIncomingHttpRequestFilter& filter);
 
     void ClearHandlers();
 
