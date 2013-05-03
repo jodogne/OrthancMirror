@@ -99,6 +99,10 @@ def Consumer(queue):
             for instance in instances:
                 RestToolbox.DoDelete('%s/instances/%s' % (URL, instance))
 
+            # Clear the log of the exported instances (to prevent the
+            # SQLite database from growing indefinitely)
+            RestToolbox.DoDelete('%s/exports' % URL)
+
             end = time.time()
             print 'The packet of %d instances has been sent in %d seconds' % (len(instances), end - start)
 

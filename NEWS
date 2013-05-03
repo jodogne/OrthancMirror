@@ -7,6 +7,7 @@ Pending changes in the mainline
 * Store-SCU for patients and studies in Orthanc Explorer
 * Filtering of incoming DICOM instances (through Lua scripting)
 * Filtering of incoming HTTP requests (through Lua scripting)
+* Clearing of "/exports" and "/changes"
 * Check MD5 of third party downloads
 
 

@@ -161,5 +161,9 @@ namespace Orthanc
 
     void LogChange(ChangeType changeType,
                    const std::string& publicId);
+
+    void DeleteChanges();
+
+    void DeleteExportedResources();
   };
 }

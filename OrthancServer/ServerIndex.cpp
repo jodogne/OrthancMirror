@@ -1115,4 +1115,17 @@ namespace Orthanc
 
     transaction->Commit();
   }
+
+
+  void ServerIndex::DeleteChanges()
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    db_->ClearTable("Changes");
+  }
+
+  void ServerIndex::DeleteExportedResources()
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    db_->ClearTable("ExportedResources");
+  }
 }
