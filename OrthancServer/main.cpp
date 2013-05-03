@@ -148,6 +148,66 @@ public:
 };
 
 
+class MyIncomingHttpRequestFilter : public IIncomingHttpRequestFilter
+{
+private:
+  ServerContext& context_;
+
+public:
+  MyIncomingHttpRequestFilter(ServerContext& context) : context_(context)
+  {
+  }
+
+  virtual bool IsAllowed(Orthanc_HttpMethod method,
+                         const char* uri,
+                         const char* ip,
+                         const char* username) const
+  {
+    static const char* HTTP_FILTER = "IncomingHttpRequestFilter";
+
+    // Test if the instance must be filtered out
+    if (context_.GetLuaContext().IsExistingFunction(HTTP_FILTER))
+    {
+      LuaFunctionCall call(context_.GetLuaContext(), HTTP_FILTER);
+
+      switch (method)
+      {
+        case Orthanc_HttpMethod_Get:
+          call.PushString("GET");
+          break;
+
+        case Orthanc_HttpMethod_Put:
+          call.PushString("PUT");
+          break;
+
+        case Orthanc_HttpMethod_Post:
+          call.PushString("POST");
+          break;
+
+        case Orthanc_HttpMethod_Delete:
+          call.PushString("DELETE");
+          break;
+
+        default:
+          return true;
+      }
+
+      call.PushString(uri);
+      call.PushString(ip);
+      call.PushString(username);
+
+      if (!call.ExecutePredicate())
+      {
+        LOG(INFO) << "An incoming HTTP request has been discarded by the filter";
+        return false;
+      }
+    }
+
+    return true;
+  }
+};
+
+
 void PrintHelp(char* path)
 {
   std::cout 
@@ -321,9 +381,11 @@ int main(int argc, char* argv[])
       dicomServer.SetApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
 
       // HTTP server
+      MyIncomingHttpRequestFilter httpFilter(context);
       MongooseServer httpServer;
       httpServer.SetPortNumber(GetGlobalIntegerParameter("HttpPort", 8042));
       httpServer.SetRemoteAccessAllowed(GetGlobalBoolParameter("RemoteAccessAllowed", false));
+      httpServer.SetIncomingHttpRequestFilter(httpFilter);
 
       httpServer.SetAuthenticationEnabled(GetGlobalBoolParameter("AuthenticationEnabled", false));
       SetupRegisteredUsers(httpServer);

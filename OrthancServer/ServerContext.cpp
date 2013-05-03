@@ -100,7 +100,7 @@ namespace Orthanc
 
       if (!call.ExecutePredicate())
       {
-        LOG(INFO) << "An incoming instance has been discarded by a filter";
+        LOG(INFO) << "An incoming instance has been discarded by the filter";
         return StoreStatus_FilteredOut;
       }
     }
