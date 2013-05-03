@@ -639,6 +639,14 @@ namespace Orthanc
   }
 
 
+  static void DeleteChanges(RestApi::DeleteCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+    context.GetIndex().DeleteChanges();
+    call.GetOutput().AnswerBuffer("", "text/plain");
+  }
+
+
   static void GetExports(RestApi::GetCall& call)
   {
     RETRIEVE_CONTEXT(call);
@@ -654,6 +662,14 @@ namespace Orthanc
     {
       call.GetOutput().AnswerJson(result);
     }
+  }
+
+
+  static void DeleteExports(RestApi::DeleteCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+    context.GetIndex().DeleteExportedResources();
+    call.GetOutput().AnswerBuffer("", "text/plain");
   }
 
   
@@ -1483,7 +1499,9 @@ namespace Orthanc
     Register("/system", GetSystemInformation);
     Register("/statistics", GetStatistics);
     Register("/changes", GetChanges);
+    Register("/changes", DeleteChanges);
     Register("/exports", GetExports);
+    Register("/exports", DeleteExports);
 
     Register("/instances", UploadDicomFile);
     Register("/instances", ListResources<ResourceType_Instance>);

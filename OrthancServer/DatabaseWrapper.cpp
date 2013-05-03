@@ -902,4 +902,10 @@ namespace Orthanc
       return 1;
     }
   }
+
+
+  void DatabaseWrapper::ClearTable(const std::string& tableName)
+  {
+    db_.Execute("DELETE FROM " + tableName);    
+  }
 }
