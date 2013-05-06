@@ -681,7 +681,16 @@ namespace Orthanc
 
       // Call the proper handler for this URI
       UriComponents uri;
-      Toolbox::SplitUriComponents(uri, request->uri);
+      try
+      {
+        Toolbox::SplitUriComponents(uri, request->uri);
+      }
+      catch (OrthancException)
+      {
+        output.SendHeader(Orthanc_HttpStatus_400_BadRequest);
+        return (void*) "";
+      }
+
 
       HttpHandler* handler = that->FindHandler(uri);
       if (handler)
