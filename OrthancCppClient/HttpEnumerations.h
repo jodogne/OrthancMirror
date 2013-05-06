@@ -111,3 +111,6 @@ enum Orthanc_HttpMethod
   Orthanc_HttpMethod_Delete = 2,
   Orthanc_HttpMethod_Put = 3
 };
+
+
+const char* Orthanc_HttpMethod_ToString(Orthanc_HttpMethod method);

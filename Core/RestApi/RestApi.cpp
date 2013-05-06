@@ -198,7 +198,7 @@ namespace Orthanc
       {
         if (it->first->Match(components, trailing, uri))
         {
-          LOG(INFO) << "REST GET call on: " << Toolbox::FlattenUri(uri);
+          //LOG(INFO) << "REST GET call on: " << Toolbox::FlattenUri(uri);
           ok = true;
           GetCall call;
           call.output_ = &restOutput;
@@ -220,7 +220,7 @@ namespace Orthanc
       {
         if (it->first->Match(components, trailing, uri))
         {
-          LOG(INFO) << "REST PUT call on: " << Toolbox::FlattenUri(uri);
+          //LOG(INFO) << "REST PUT call on: " << Toolbox::FlattenUri(uri);
           ok = true;
           PutCall call;
           call.output_ = &restOutput;
@@ -242,7 +242,7 @@ namespace Orthanc
       {
         if (it->first->Match(components, trailing, uri))
         {
-          LOG(INFO) << "REST POST call on: " << Toolbox::FlattenUri(uri);
+          //LOG(INFO) << "REST POST call on: " << Toolbox::FlattenUri(uri);
           ok = true;
           PostCall call;
           call.output_ = &restOutput;
@@ -264,7 +264,7 @@ namespace Orthanc
       {
         if (it->first->Match(components, trailing, uri))
         {
-          LOG(INFO) << "REST DELETE call on: " << Toolbox::FlattenUri(uri);
+          //LOG(INFO) << "REST DELETE call on: " << Toolbox::FlattenUri(uri);
           ok = true;
           DeleteCall call;
           call.output_ = &restOutput;
@@ -280,7 +280,8 @@ namespace Orthanc
 
     if (!ok)
     {
-      LOG(INFO) << "REST method " << method << " not allowed on: " << Toolbox::FlattenUri(uri);
+      LOG(INFO) << "REST method " << Orthanc_HttpMethod_ToString(method) 
+                << " not allowed on: " << Toolbox::FlattenUri(uri);
       output.SendMethodNotAllowedError(GetAcceptedMethods(uri));
     }
   }

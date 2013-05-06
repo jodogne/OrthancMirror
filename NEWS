@@ -9,6 +9,7 @@ Pending changes in the mainline
 * Filtering of incoming HTTP requests (through Lua scripting)
 * Clearing of "/exports" and "/changes"
 * Check MD5 of third party downloads
+* Faking of the HTTP methods PUT and DELETE
 
 
 Version 0.5.1 (2013/04/17)

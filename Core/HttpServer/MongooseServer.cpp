@@ -268,9 +268,9 @@ namespace Orthanc
 
 
 
-  static PostDataStatus ReadPostData(std::string& postData,
-                                     struct mg_connection *connection,
-                                     const HttpHandler::Arguments& headers)
+  static PostDataStatus ReadBody(std::string& postData,
+                                 struct mg_connection *connection,
+                                 const HttpHandler::Arguments& headers)
   {
     HttpHandler::Arguments::const_iterator cs = headers.find("content-length");
     if (cs == headers.end())
@@ -322,7 +322,7 @@ namespace Orthanc
     std::string boundary = "--" + contentType.substr(multipartLength);
 
     std::string postData;
-    PostDataStatus status = ReadPostData(postData, connection, headers);
+    PostDataStatus status = ReadBody(postData, connection, headers);
 
     if (status != PostDataStatus_Success)
     {
@@ -518,13 +518,17 @@ namespace Orthanc
       // A faking has been done within this request
       Toolbox::ToUpperCase(overriden);
 
+      LOG(INFO) << "HTTP method faking has been detected for " << overriden;
+
       if (overriden == "PUT")
       {
         method = Orthanc_HttpMethod_Put;
+        return true;
       }
       else if (overriden == "DELETE")
       {
         method = Orthanc_HttpMethod_Delete;
+        return true;
       }
       else
       {
@@ -568,7 +572,6 @@ namespace Orthanc
       MongooseServer* that = (MongooseServer*) (request->user_data);
       MongooseOutput output(connection);
 
-
       // Check remote calls
       if (!that->IsRemoteAccessAllowed() &&
           request->remote_ip != LOCALHOST)
@@ -600,7 +603,7 @@ namespace Orthanc
       Orthanc_HttpMethod method;
       if (!ExtractMethod(method, request, headers, argumentsGET))
       {
-        output.SendHeader(Orthanc_HttpStatus_405_MethodNotAllowed);
+        output.SendHeader(Orthanc_HttpStatus_400_BadRequest);
         return (void*) "";
       }
 
@@ -639,42 +642,44 @@ namespace Orthanc
       if (method == Orthanc_HttpMethod_Post ||
           method == Orthanc_HttpMethod_Put)
       {
+        PostDataStatus status;
+
         HttpHandler::Arguments::const_iterator ct = headers.find("content-type");
         if (ct == headers.end())
         {
-          output.SendHeader(Orthanc_HttpStatus_400_BadRequest);
-          return (void*) "";
-        }
-
-        PostDataStatus status;
-      
-        std::string contentType = ct->second;
-        if (contentType.size() >= multipartLength &&
-            !memcmp(contentType.c_str(), multipart, multipartLength))
-        {
-          status = ParseMultipartPost(body, connection, headers, contentType, that->GetChunkStore());
+          // No content-type specified. Assume no multi-part content occurs at this point.
+          status = ReadBody(body, connection, headers);          
         }
         else
         {
-          status = ReadPostData(body, connection, headers);
+          std::string contentType = ct->second;
+          if (contentType.size() >= multipartLength &&
+              !memcmp(contentType.c_str(), multipart, multipartLength))
+          {
+            status = ParseMultipartPost(body, connection, headers, contentType, that->GetChunkStore());
+          }
+          else
+          {
+            status = ReadBody(body, connection, headers);
+          }
         }
 
         switch (status)
         {
-        case PostDataStatus_NoLength:
-          output.SendHeader(Orthanc_HttpStatus_411_LengthRequired);
-          return (void*) "";
+          case PostDataStatus_NoLength:
+            output.SendHeader(Orthanc_HttpStatus_411_LengthRequired);
+            return (void*) "";
 
-        case PostDataStatus_Failure:
-          output.SendHeader(Orthanc_HttpStatus_400_BadRequest);
-          return (void*) "";
+          case PostDataStatus_Failure:
+            output.SendHeader(Orthanc_HttpStatus_400_BadRequest);
+            return (void*) "";
 
-        case PostDataStatus_Pending:
-          output.AnswerBufferWithContentType(NULL, 0, "");
-          return (void*) "";
+          case PostDataStatus_Pending:
+            output.AnswerBufferWithContentType(NULL, 0, "");
+            return (void*) "";
 
-        default:
-          break;
+          default:
+            break;
         }
       }
 
@@ -697,6 +702,7 @@ namespace Orthanc
       {
         try
         {
+          LOG(INFO) << Orthanc_HttpMethod_ToString(method) << " " << Toolbox::FlattenUri(uri);
           handler->Handle(output, method, uri, headers, argumentsGET, body);
         }
         catch (OrthancException& e)
