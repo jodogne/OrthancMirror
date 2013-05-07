@@ -1240,6 +1240,11 @@ namespace Orthanc
       accessor.reset(new DicomIntegerPixelAccessor(m, pixData, privateContent.size()));
       accessor->SetCurrentFrame(frame);
     }
+    
+    if (accessor.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
 
     PixelFormat format;
     bool supported = false;
