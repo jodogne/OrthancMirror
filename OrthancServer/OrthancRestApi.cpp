@@ -362,6 +362,16 @@ namespace Orthanc
     }
   }
 
+  static void ExecuteScript(RestApi::PostCall& call)
+  {
+    std::string result;
+    RETRIEVE_CONTEXT(call);
+    context.GetLuaContext().Execute(result, call.GetPostBody());
+    call.GetOutput().AnswerBuffer(result, "text/plain");
+  }
+
+
+
 
   // List all the patients, studies, series or instances ----------------------
  
@@ -1556,5 +1566,6 @@ namespace Orthanc
     Register("/patients/{id}/anonymize", AnonymizePatientInplace);
 
     Register("/tools/generate-uid", GenerateUid);
+    Register("/tools/execute-script", ExecuteScript);
   }
 }

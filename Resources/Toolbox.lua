@@ -17,3 +17,5 @@ function PrintRecursive(s, l, i) -- recursive Print (structure, limit, indent)
    end
    return l
 end	
+
+print('Lua toolbox installed')

@@ -303,6 +303,7 @@ namespace Orthanc
       {
         return PostDataStatus_Failure;
       }
+
       assert(r <= length);
       length -= r;
       pos += r;
