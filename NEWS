@@ -2,6 +2,10 @@ Pending changes in the mainline
 ===============================
 
 
+
+Version 0.5.2 (2013/05/07)
+==========================
+
 * "Bulk" Store-SCU (send several DICOM instances with the same
   DICOM connexion)
 * Store-SCU for patients and studies in Orthanc Explorer
