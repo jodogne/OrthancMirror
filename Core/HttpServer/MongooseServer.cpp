@@ -749,6 +749,7 @@ namespace Orthanc
     authentication_ = false;
     ssl_ = false;
     port_ = 8000;
+    filter_ = NULL;
   }
 
 
