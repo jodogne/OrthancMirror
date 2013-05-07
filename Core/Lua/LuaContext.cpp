@@ -42,11 +42,18 @@ extern "C"
 
 namespace Orthanc
 {
-  int LuaContext::PrintToLog(lua_State *L)
+  int LuaContext::PrintToLog(lua_State *state)
   {
+    // Get the pointer to the "LuaContext" underlying object
+    lua_getglobal(state, "_LuaContext");
+    assert(lua_type(state, -1) == LUA_TLIGHTUSERDATA);
+    LuaContext* that = const_cast<LuaContext*>(reinterpret_cast<const LuaContext*>(lua_topointer(state, -1)));
+    assert(that != NULL);
+    lua_pop(state, 1);
+
     // http://medek.wordpress.com/2009/02/03/wrapping-lua-errors-and-print-function/
-    int nArgs = lua_gettop(L);
-    lua_getglobal(L, "tostring");
+    int nArgs = lua_gettop(state);
+    lua_getglobal(state, "tostring");
 
     // Make sure you start at 1 *NOT* 0 for arrays in Lua.
     std::string result;
@@ -54,10 +61,10 @@ namespace Orthanc
     for (int i = 1; i <= nArgs; i++)
     {
       const char *s;
-      lua_pushvalue(L, -1);
-      lua_pushvalue(L, i);
-      lua_call(L, 1, 1);
-      s = lua_tostring(L, -1);
+      lua_pushvalue(state, -1);
+      lua_pushvalue(state, i);
+      lua_call(state, 1, 1);
+      s = lua_tostring(state, -1);
 
       if (result.size() > 0)
         result.append(", ");
@@ -67,10 +74,12 @@ namespace Orthanc
       else
         result.append(s);
  
-      lua_pop(L, 1);
+      lua_pop(state, 1);
     }
 
     LOG(INFO) << "Lua says: " << result;         
+    that->log_.append(result);
+    that->log_.append("\n");
 
     return 0;
   }
@@ -86,6 +95,9 @@ namespace Orthanc
 
     luaL_openlibs(lua_);
     lua_register(lua_, "print", PrintToLog);
+    
+    lua_pushlightuserdata(lua_, this);
+    lua_setglobal(lua_, "_LuaContext");
   }
 
 
@@ -95,12 +107,12 @@ namespace Orthanc
   }
 
 
-  void LuaContext::Execute(const std::string& command)
+  void LuaContext::Execute(std::string* output,
+                           const std::string& command)
   {
     boost::mutex::scoped_lock lock(mutex_);
 
-    lua_settop(lua_, 0);
-
+    log_.clear();
     int error = (luaL_loadbuffer(lua_, command.c_str(), command.size(), "line") ||
                  lua_pcall(lua_, 0, 0, 0));
 
@@ -111,6 +123,11 @@ namespace Orthanc
       std::string description(lua_tostring(lua_, -1));
       lua_pop(lua_, 1); /* pop error message from the stack */
       throw LuaException(description);
+    }
+
+    if (output != NULL)
+    {
+      *output = log_;
     }
   }
 
