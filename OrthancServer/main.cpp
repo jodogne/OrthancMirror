@@ -324,10 +324,10 @@ int main(int argc, char* argv[])
       OrthancInitialize();
     }
 
-    boost::filesystem::path storageDirectory = 
-      InterpretStringParameterAsPath(GetGlobalStringParameter("StorageDirectory", "OrthancStorage"));
+    std::string storageDirectoryStr = GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
+    boost::filesystem::path storageDirectory = InterpretStringParameterAsPath(storageDirectoryStr);
     boost::filesystem::path indexDirectory = 
-      InterpretStringParameterAsPath(GetGlobalStringParameter("IndexDirectory", storageDirectory.string()));
+      InterpretStringParameterAsPath(GetGlobalStringParameter("IndexDirectory", storageDirectoryStr));
     ServerContext context(storageDirectory, indexDirectory);
 
     LOG(WARNING) << "Storage directory: " << storageDirectory;
