@@ -283,7 +283,17 @@ namespace Orthanc
   std::string InterpretStringParameterAsPath(const std::string& parameter)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
-    return (defaultDirectory_ / parameter).string();
+
+    boost::filesystem::path p(parameter);
+
+    if (p.is_absolute())
+    {
+      return p.string();
+    }
+    else
+    {
+      return (defaultDirectory_ / parameter).string();
+    }
   }
 
 
