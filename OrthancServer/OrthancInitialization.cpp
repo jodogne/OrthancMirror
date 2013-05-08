@@ -286,8 +286,6 @@ namespace Orthanc
     boost::filesystem::path base(baseDirectory);
     boost::filesystem::path relative(relativePath);
 
-    return (base / relative).string();
-
     /**
        The following lines should be equivalent to this one: 
 
