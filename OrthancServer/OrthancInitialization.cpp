@@ -284,6 +284,16 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
+    /**
+       The following lines should be equivalent to this one: 
+
+       return (defaultDirectory_ / parameter).string();
+
+       However, for some unknown reason, some versions of Boost do not
+       make the proper path resolution when "defaultDirectory_" is an
+       absolute path. So, a hack is used below.
+     **/
+
     boost::filesystem::path p(parameter);
 
     if (p.is_absolute())
