@@ -338,7 +338,8 @@ TEST(Toolbox, UrlDecode)
 #if defined(__linux)
 TEST(OrthancInitialization, AbsoluteDirectory)
 {
-  ASSERT_EQ("/tmp/coucou", InterpretRelativePath("/tmp", "coucou"));
+  ASSERT_EQ("/tmp/hello", InterpretRelativePath("/tmp", "hello"));
+  ASSERT_EQ("/tmp", InterpretRelativePath("/tmp", "/tmp"));
 }
 #endif
 
