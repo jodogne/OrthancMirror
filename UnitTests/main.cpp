@@ -335,6 +335,14 @@ TEST(Toolbox, UrlDecode)
 }
 
 
+#if defined(__linux)
+TEST(OrthancInitialization, AbsoluteDirectory)
+{
+  ASSERT_EQ("/tmp/coucou", InterpretRelativePath("/tmp", "coucou"));
+}
+#endif
+
+
 int main(int argc, char **argv)
 {
   // Initialize Google's logging library.

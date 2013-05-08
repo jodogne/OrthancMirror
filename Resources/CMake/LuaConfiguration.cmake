@@ -56,15 +56,12 @@ if (STATIC_BUILD OR NOT USE_DYNAMIC_LUA)
   source_group(ThirdParty\\Lua REGULAR_EXPRESSION ${LUA_SOURCES_DIR}/.*)
 
 else()
-  CHECK_INCLUDE_FILE_CXX(lua.h HAVE_LUA_H)
-  if (NOT HAVE_LUA_H)
+  include(FindLua51)
+
+  if (NOT LUA51_FOUND)
     message(FATAL_ERROR "Please install the liblua-dev package")
   endif()
 
-  CHECK_LIBRARY_EXISTS(lua lua_pcall "" HAVE_LUA_LIB)
-  if (NOT HAVE_LUA_LIB)
-    message(FATAL_ERROR "Please install the liblua-dev package")
-  endif()
-
-  link_libraries(lua)
+  include_directories(${LUA_INCLUDE_DIR})
+  link_libraries(${LUA_LIBRARIES})
 endif()
