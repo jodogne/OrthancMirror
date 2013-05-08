@@ -61,7 +61,7 @@ else()
     message(FATAL_ERROR "Please install the liblua-dev package")
   endif()
 
-  CHECK_LIBRARY_EXISTS(lua "lua_pcall" HAVE_LUA_LIB)
+  CHECK_LIBRARY_EXISTS(lua lua_pcall "" HAVE_LUA_LIB)
   if (NOT HAVE_LUA_LIB)
     message(FATAL_ERROR "Please install the liblua-dev package")
   endif()
