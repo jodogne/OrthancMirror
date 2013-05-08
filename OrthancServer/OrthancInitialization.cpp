@@ -280,30 +280,38 @@ namespace Orthanc
   }
 
 
-  std::string InterpretStringParameterAsPath(const std::string& parameter)
+  std::string InterpretRelativePath(const std::string& baseDirectory,
+                                    const std::string& relativePath)
   {
-    boost::mutex::scoped_lock lock(globalMutex_);
+    boost::filesystem::path base(baseDirectory);
+    boost::filesystem::path relative(relativePath);
+
+    return (base / relative).string();
 
     /**
        The following lines should be equivalent to this one: 
 
-       return (defaultDirectory_ / parameter).string();
+       return (base / relative).string();
 
        However, for some unknown reason, some versions of Boost do not
-       make the proper path resolution when "defaultDirectory_" is an
+       make the proper path resolution when "baseDirectory" is an
        absolute path. So, a hack is used below.
      **/
 
-    boost::filesystem::path p(parameter);
-
-    if (p.is_absolute())
+    if (relative.is_absolute())
     {
-      return p.string();
+      return relative.string();
     }
     else
     {
-      return (defaultDirectory_ / parameter).string();
+      return (base / relative).string();
     }
+  }
+
+  std::string InterpretStringParameterAsPath(const std::string& parameter)
+  {
+    boost::mutex::scoped_lock lock(globalMutex_);
+    return InterpretRelativePath(defaultDirectory_.string(), parameter);
   }
 
 
