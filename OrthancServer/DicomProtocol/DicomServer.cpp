@@ -385,7 +385,11 @@ namespace Orthanc
   void DicomServer::Stop()
   {
     continue_ = false;
-    pimpl_->thread_.join();
+
+    if (pimpl_->thread_.joinable())
+    {
+      pimpl_->thread_.join();
+    }
 
     bagOfDispatchers_.StopAll();
   }

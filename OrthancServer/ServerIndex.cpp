@@ -291,8 +291,6 @@ namespace Orthanc
   ServerIndex::~ServerIndex()
   {
     LOG(INFO) << "Stopping the database flushing thread";
-    /*flushThread_.terminate();
-      flushThread_.join();*/
   }
 
 
