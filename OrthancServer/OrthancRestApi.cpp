@@ -1499,7 +1499,6 @@ namespace Orthanc
 
   // Handling of metadata -----------------------------------------------------
 
-  template <enum ResourceType resourceType>
   static void ListMetadata(RestApi::GetCall& call)
   {
     RETRIEVE_CONTEXT(call);
@@ -1521,7 +1520,6 @@ namespace Orthanc
   }
 
 
-  template <enum ResourceType resourceType>
   static void GetMetadata(RestApi::GetCall& call)
   {
     RETRIEVE_CONTEXT(call);
@@ -1536,6 +1534,26 @@ namespace Orthanc
       call.GetOutput().AnswerBuffer(value, "text/plain");
     }
   }
+
+
+  static void SetMetadata(RestApi::PutCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+
+    std::string publicId = call.GetUriComponent("id", "");
+    std::string name = call.GetUriComponent("name", "");
+    MetadataType metadata = StringToMetadata(name);
+    std::string value = call.GetPutBody();
+
+    if (metadata >= MetadataType_StartUser &&
+        metadata <= MetadataType_EndUser)
+    {
+      // It is forbidden to modify internal metadata
+      context.GetIndex().SetMetadata(publicId, metadata, value);
+      call.GetOutput().AnswerBuffer("", "text/plain");
+    }
+  }
+
 
 
   // Registration of the various REST handlers --------------------------------
@@ -1572,14 +1590,18 @@ namespace Orthanc
     Register("/studies/{id}/archive", GetArchive<ResourceType_Study>);
     Register("/series/{id}/archive", GetArchive<ResourceType_Series>);
 
-    Register("/instances/{id}/metadata", ListMetadata<ResourceType_Instance>);
-    Register("/instances/{id}/metadata/{name}", GetMetadata<ResourceType_Instance>);
-    Register("/patients/{id}/metadata", ListMetadata<ResourceType_Patient>);
-    Register("/patients/{id}/metadata/{name}", GetMetadata<ResourceType_Patient>);
-    Register("/series/{id}/metadata", ListMetadata<ResourceType_Series>);
-    Register("/series/{id}/metadata/{name}", GetMetadata<ResourceType_Series>);
-    Register("/studies/{id}/metadata", ListMetadata<ResourceType_Study>);
-    Register("/studies/{id}/metadata/{name}", GetMetadata<ResourceType_Study>);
+    Register("/instances/{id}/metadata", ListMetadata);
+    Register("/instances/{id}/metadata/{name}", GetMetadata);
+    Register("/instances/{id}/metadata/{name}", SetMetadata);
+    Register("/patients/{id}/metadata", ListMetadata);
+    Register("/patients/{id}/metadata/{name}", GetMetadata);
+    Register("/patients/{id}/metadata/{name}", SetMetadata);
+    Register("/series/{id}/metadata", ListMetadata);
+    Register("/series/{id}/metadata/{name}", GetMetadata);
+    Register("/series/{id}/metadata/{name}", SetMetadata);
+    Register("/studies/{id}/metadata", ListMetadata);
+    Register("/studies/{id}/metadata/{name}", GetMetadata);
+    Register("/studies/{id}/metadata/{name}", SetMetadata);
 
     Register("/patients/{id}/protected", IsProtectedPatient);
     Register("/patients/{id}/protected", SetPatientProtection);
