@@ -1536,6 +1536,24 @@ namespace Orthanc
   }
 
 
+  static void DeleteMetadata(RestApi::DeleteCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+    
+    std::string publicId = call.GetUriComponent("id", "");
+    std::string name = call.GetUriComponent("name", "");
+    MetadataType metadata = StringToMetadata(name);
+
+    if (metadata >= MetadataType_StartUser &&
+        metadata <= MetadataType_EndUser)
+    {
+      // It is forbidden to modify internal metadata
+      context.GetIndex().DeleteMetadata(publicId, metadata);
+      call.GetOutput().AnswerBuffer("", "text/plain");
+    }
+  }
+
+
   static void SetMetadata(RestApi::PutCall& call)
   {
     RETRIEVE_CONTEXT(call);
@@ -1591,15 +1609,19 @@ namespace Orthanc
     Register("/series/{id}/archive", GetArchive<ResourceType_Series>);
 
     Register("/instances/{id}/metadata", ListMetadata);
+    Register("/instances/{id}/metadata/{name}", DeleteMetadata);
     Register("/instances/{id}/metadata/{name}", GetMetadata);
     Register("/instances/{id}/metadata/{name}", SetMetadata);
     Register("/patients/{id}/metadata", ListMetadata);
+    Register("/patients/{id}/metadata/{name}", DeleteMetadata);
     Register("/patients/{id}/metadata/{name}", GetMetadata);
     Register("/patients/{id}/metadata/{name}", SetMetadata);
     Register("/series/{id}/metadata", ListMetadata);
+    Register("/series/{id}/metadata/{name}", DeleteMetadata);
     Register("/series/{id}/metadata/{name}", GetMetadata);
     Register("/series/{id}/metadata/{name}", SetMetadata);
     Register("/studies/{id}/metadata", ListMetadata);
+    Register("/studies/{id}/metadata/{name}", DeleteMetadata);
     Register("/studies/{id}/metadata/{name}", GetMetadata);
     Register("/studies/{id}/metadata/{name}", SetMetadata);
 

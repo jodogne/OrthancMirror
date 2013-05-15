@@ -108,6 +108,9 @@ namespace Orthanc
                      MetadataType type,
                      const std::string& value);
 
+    void DeleteMetadata(int64_t id,
+                        MetadataType type);
+
     bool LookupMetadata(std::string& target,
                         int64_t id,
                         MetadataType type);

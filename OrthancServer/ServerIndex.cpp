@@ -1123,6 +1123,23 @@ namespace Orthanc
     db_->SetMetadata(id, type, value);
   }
 
+
+  void ServerIndex::DeleteMetadata(const std::string& publicId,
+                                   MetadataType type)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    ResourceType rtype;
+    int64_t id;
+    if (!db_->LookupResource(publicId, id, rtype))
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
+    db_->DeleteMetadata(id, type);
+  }
+
+
   bool ServerIndex::LookupMetadata(std::string& target,
                                    const std::string& publicId,
                                    MetadataType type)

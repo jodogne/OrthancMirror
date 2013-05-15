@@ -147,6 +147,13 @@ TEST(DatabaseWrapper, Simple)
   index.ListAvailableMetadata(md, a[4]);
   ASSERT_EQ(1u, md.size());
   ASSERT_EQ(MetadataType_Instance_RemoteAet, md.front());
+  index.SetMetadata(a[4], MetadataType_ModifiedFrom, "TUTU");
+  index.ListAvailableMetadata(md, a[4]);
+  ASSERT_EQ(2u, md.size());
+  index.DeleteMetadata(a[4], MetadataType_ModifiedFrom);
+  index.ListAvailableMetadata(md, a[4]);
+  ASSERT_EQ(1u, md.size());
+  ASSERT_EQ(MetadataType_Instance_RemoteAet, md.front());
 
   ASSERT_EQ(21u + 42u + 44u, index.GetTotalCompressedSize());
   ASSERT_EQ(42u + 42u + 44u, index.GetTotalUncompressedSize());
