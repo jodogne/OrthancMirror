@@ -68,10 +68,12 @@ namespace Orthanc
     dictMetadataType_.Add(static_cast<MetadataType>(metadata), name);
   }
 
-  const char* EnumerationToString(MetadataType type)
+  std::string EnumerationToString(MetadataType type)
   {
+    // This function MUST return a "std::string" and not "const
+    // char*", as the result is not a static string
     boost::mutex::scoped_lock lock(enumerationsMutex_);
-    return dictMetadataType_.Translate(type).c_str();
+    return dictMetadataType_.Translate(type);
   }
 
   MetadataType StringToMetadata(const std::string& str)

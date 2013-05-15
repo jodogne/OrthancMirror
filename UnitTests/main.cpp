@@ -384,8 +384,8 @@ TEST(EnumerationDictionary, ServerEnumerations)
 
   ASSERT_STREQ("CompletedSeries", EnumerationToString(ChangeType_CompletedSeries));
 
-  ASSERT_STREQ("IndexInSeries", EnumerationToString(MetadataType_Instance_IndexInSeries));
-  ASSERT_STREQ("LastUpdate", EnumerationToString(MetadataType_LastUpdate));
+  ASSERT_EQ("IndexInSeries", EnumerationToString(MetadataType_Instance_IndexInSeries));
+  ASSERT_EQ("LastUpdate", EnumerationToString(MetadataType_LastUpdate));
 
   ASSERT_EQ(2047, StringToMetadata("2047"));
   ASSERT_THROW(StringToMetadata("Ceci est un test"), OrthancException);

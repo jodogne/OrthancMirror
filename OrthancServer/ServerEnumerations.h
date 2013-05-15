@@ -115,7 +115,7 @@ namespace Orthanc
 
   const char* EnumerationToString(ResourceType type);
 
-  const char* EnumerationToString(MetadataType type);
+  std::string EnumerationToString(MetadataType type);
 
   const char* EnumerationToString(SeriesStatus status);
 
