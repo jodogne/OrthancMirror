@@ -80,7 +80,8 @@ namespace Orthanc
     MetadataType_Instance_RemoteAet = 3,
     MetadataType_Series_ExpectedNumberOfInstances = 4,
     MetadataType_ModifiedFrom = 5,
-    MetadataType_AnonymizedFrom = 6
+    MetadataType_AnonymizedFrom = 6,
+    MetadataType_LastUpdate = 7
   };
 
   enum ChangeType

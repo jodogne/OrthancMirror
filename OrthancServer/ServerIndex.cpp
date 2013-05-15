@@ -307,15 +307,15 @@ namespace Orthanc
     {
       Transaction t(*this);
 
-      int64_t patient, study, series, instance;
-      ResourceType type;
-      bool isNewSeries = false;
-
       // Do nothing if the instance already exists
-      if (db_->LookupResource(hasher.HashInstance(), patient, type))
       {
-        assert(type == ResourceType_Instance);
-        return StoreStatus_AlreadyStored;
+        ResourceType type;
+        int64_t tmp;
+        if (db_->LookupResource(hasher.HashInstance(), tmp, type))
+        {
+          assert(type == ResourceType_Instance);
+          return StoreStatus_AlreadyStored;
+        }
       }
 
       // Ensure there is enough room in the storage for the new instance
@@ -329,55 +329,100 @@ namespace Orthanc
       Recycle(instanceSize, hasher.HashPatient());
 
       // Create the instance
-      instance = db_->CreateResource(hasher.HashInstance(), ResourceType_Instance);
+      int64_t instance = db_->CreateResource(hasher.HashInstance(), ResourceType_Instance);
 
       DicomMap dicom;
       dicomSummary.ExtractInstanceInformation(dicom);
       db_->SetMainDicomTags(instance, dicom);
 
-      // Create the patient/study/series/instance hierarchy
-      if (!db_->LookupResource(hasher.HashSeries(), series, type))
+      // Detect up to which level the patient/study/series/instance
+      // hierarchy must be created
+      int64_t patient = -1, study = -1, series = -1;
+      bool isNewPatient = false;
+      bool isNewStudy = false;
+      bool isNewSeries = false;
+
       {
-        // This is a new series
-        isNewSeries = true;
-        series = db_->CreateResource(hasher.HashSeries(), ResourceType_Series);
-        dicomSummary.ExtractSeriesInformation(dicom);
-        db_->SetMainDicomTags(series, dicom);
-        db_->AttachChild(series, instance);
+        ResourceType dummy;
 
-        if (!db_->LookupResource(hasher.HashStudy(), study, type))
+        if (db_->LookupResource(hasher.HashSeries(), series, dummy))
         {
-          // This is a new study
-          study = db_->CreateResource(hasher.HashStudy(), ResourceType_Study);
-          dicomSummary.ExtractStudyInformation(dicom);
-          db_->SetMainDicomTags(study, dicom);
-          db_->AttachChild(study, series);
+          assert(dummy == ResourceType_Series);
+          // The patient, the study and the series already exist
 
-          if (!db_->LookupResource(hasher.HashPatient(), patient, type))
-          {
-            // This is a new patient
-            patient = db_->CreateResource(hasher.HashPatient(), ResourceType_Patient);
-            dicomSummary.ExtractPatientInformation(dicom);
-            db_->SetMainDicomTags(patient, dicom);
-            db_->AttachChild(patient, study);
-          }
-          else
-          {
-            assert(type == ResourceType_Patient);
-            db_->AttachChild(patient, study);
-          }
+          bool ok = (db_->LookupResource(hasher.HashPatient(), patient, dummy) &&
+                     db_->LookupResource(hasher.HashStudy(), study, dummy));
+          assert(ok);
+        }
+        else if (db_->LookupResource(hasher.HashStudy(), study, dummy))
+        {
+          assert(dummy == ResourceType_Study);
+
+          // New series: The patient and the study already exist
+          isNewSeries = true;
+
+          bool ok = db_->LookupResource(hasher.HashPatient(), patient, dummy);
+          assert(ok);
+        }
+        else if (db_->LookupResource(hasher.HashPatient(), patient, dummy))
+        {
+          assert(dummy == ResourceType_Patient);
+
+          // New study and series: The patient already exist
+          isNewStudy = true;
+          isNewSeries = true;
         }
         else
         {
-          assert(type == ResourceType_Study);
-          db_->AttachChild(study, series);
+          // New patient, study and series: Nothing exists
+          isNewPatient = true;
+          isNewStudy = true;
+          isNewSeries = true;
         }
       }
-      else
+
+      // Create the series if needed
+      if (isNewSeries)
       {
-        assert(type == ResourceType_Series);
-        db_->AttachChild(series, instance);
+        series = db_->CreateResource(hasher.HashSeries(), ResourceType_Series);
+        dicomSummary.ExtractSeriesInformation(dicom);
+        db_->SetMainDicomTags(series, dicom);
       }
+
+      // Create the study if needed
+      if (isNewStudy)
+      {
+        study = db_->CreateResource(hasher.HashStudy(), ResourceType_Study);
+        dicomSummary.ExtractStudyInformation(dicom);
+        db_->SetMainDicomTags(study, dicom);
+      }
+
+      // Create the patient if needed
+      if (isNewPatient)
+      {
+        patient = db_->CreateResource(hasher.HashPatient(), ResourceType_Patient);
+        dicomSummary.ExtractPatientInformation(dicom);
+        db_->SetMainDicomTags(patient, dicom);
+      }
+
+      // Create the parent-to-child links
+      db_->AttachChild(series, instance);
+
+      if (isNewSeries)
+      {
+        db_->AttachChild(study, series);
+      }
+
+      if (isNewStudy)
+      {
+        db_->AttachChild(patient, study);
+      }
+
+      // Sanity checks
+      assert(patient != -1);
+      assert(study != -1);
+      assert(series != -1);
+      assert(instance != -1);
 
       // Attach the files to the newly created instance
       for (Attachments::const_iterator it = attachments.begin();
@@ -387,7 +432,12 @@ namespace Orthanc
       }
 
       // Attach the metadata
-      db_->SetMetadata(instance, MetadataType_Instance_ReceptionDate, Toolbox::GetNowIsoString());
+      std::string now = Toolbox::GetNowIsoString();
+      db_->SetMetadata(instance, MetadataType_Instance_ReceptionDate, now);
+      db_->SetMetadata(series, MetadataType_LastUpdate, now);
+      db_->SetMetadata(study, MetadataType_LastUpdate, now);
+      db_->SetMetadata(patient, MetadataType_LastUpdate, now);
+
       db_->SetMetadata(instance, MetadataType_Instance_RemoteAet, remoteAet);
 
       const DicomValue* value;
