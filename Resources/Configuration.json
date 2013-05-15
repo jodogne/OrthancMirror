@@ -1,104 +1,110 @@
 {
-    /**
-     * General configuration of Orthanc
-     **/
+  /**
+   * General configuration of Orthanc
+   **/
 
-    // The logical name of this instance of Orthanc. This one is
-    // displayed in Orthanc Explorer and at the URI "/system".
-    "Name" : "MyOrthanc",
+  // The logical name of this instance of Orthanc. This one is
+  // displayed in Orthanc Explorer and at the URI "/system".
+  "Name" : "MyOrthanc",
 
-    // Path to the directory that holds the heavyweight files
-    // (i.e. the raw DICOM instances)
-    "StorageDirectory" : "OrthancStorage",
+  // Path to the directory that holds the heavyweight files
+  // (i.e. the raw DICOM instances)
+  "StorageDirectory" : "OrthancStorage",
 
-    // Path to the directory that holds the SQLite index (if unset,
-    // the value of StorageDirectory is used). This index could be
-    // stored on a RAM-drive or a SSD device for performance reasons.
-    "IndexDirectory" : "OrthancStorage",
+  // Path to the directory that holds the SQLite index (if unset,
+  // the value of StorageDirectory is used). This index could be
+  // stored on a RAM-drive or a SSD device for performance reasons.
+  "IndexDirectory" : "OrthancStorage",
 
-    // Enable the transparent compression of the DICOM instances
-    "StorageCompression" : false,
+  // Enable the transparent compression of the DICOM instances
+  "StorageCompression" : false,
 
-    // Maximum size of the storage in MB (a value of "0" indicates no
-    // limit on the storage size)
-    "MaximumStorageSize" : 0,
+  // Maximum size of the storage in MB (a value of "0" indicates no
+  // limit on the storage size)
+  "MaximumStorageSize" : 0,
 
-    // Maximum number of patients that can be stored at a given time
-    // in the storage (a value of "0" indicates no limit on the number
-    // of patients)
-    "MaximumPatientCount" : 0,
+  // Maximum number of patients that can be stored at a given time
+  // in the storage (a value of "0" indicates no limit on the number
+  // of patients)
+  "MaximumPatientCount" : 0,
   
-    // List of paths to the custom Lua scripts to load into this
-    // instance of Orthanc
-    "LuaScripts" : [
-    ],
+  // List of paths to the custom Lua scripts to load into this
+  // instance of Orthanc
+  "LuaScripts" : [
+  ],
+
+  // Dictionary of the user-specific metadata. Each entry must map a
+  // number between 1024 and 65535 to an unique string.
+  "UserMetadata" : {
+    // "Sample" : 1024
+  },
 
 
 
+  /**
+   * Configuration of the HTTP server
+   **/
+
+  // HTTP port for the REST services and for the GUI
+  "HttpPort" : 8042,
+
+
+
+  /**
+   * Configuration of the DICOM server
+   **/
+
+  // The DICOM Application Entity Title
+  "DicomAet" : "ORTHANC",
+
+  // Check whether the called AET corresponds during a DICOM request
+  "DicomCheckCalledAet" : false,
+
+  // The DICOM port
+  "DicomPort" : 4242,
+
+
+
+  /**
+   * Security-related options for the HTTP server
+   **/
+
+  // Whether remote hosts can connect to the HTTP server
+  "RemoteAccessAllowed" : false,
+
+  // Whether or not SSL is enabled
+  "SslEnabled" : false,
+
+  // Path to the SSL certificate (meaningful only if SSL is enabled)
+  "SslCertificate" : "certificate.pem",
+
+  // Whether or not the password protection is enabled
+  "AuthenticationEnabled" : false,
+
+  // The list of the registered users. Because Orthanc uses HTTP
+  // Basic Authentication, the passwords are stored as plain text.
+  "RegisteredUsers" : {
+    // "alice" : "alicePassword"
+  },
+
+
+
+  /**
+   * Network topology
+   **/
+
+  // The list of the known DICOM modalities
+  "DicomModalities" : {
     /**
-     * Configuration of the HTTP server
+     * Uncommenting the following line would enable Orthanc to
+     * connect to an instance of the "storescp" open-source DICOM
+     * store (shipped in the DCMTK distribution) started by the
+     * command line "storescp 2000".
      **/
+    // "sample" : [ "STORESCP", "localhost", 2000 ]
+  },
 
-    // HTTP port for the REST services and for the GUI
-    "HttpPort" : 8042,
-
-
-
-    /**
-     * Configuration of the DICOM server
-     **/
-
-    // The DICOM Application Entity Title
-    "DicomAet" : "ORTHANC",
-
-    // Check whether the called AET corresponds during a DICOM request
-    "DicomCheckCalledAet" : false,
-
-    // The DICOM port
-    "DicomPort" : 4242,
-
-
-
-    /**
-     * Security-related options for the HTTP server
-     **/
-
-    // Whether remote hosts can connect to the HTTP server
-    "RemoteAccessAllowed" : false,
-
-    // Whether or not SSL is enabled
-    "SslEnabled" : false,
-
-    // Path to the SSL certificate (meaningful only if SSL is enabled)
-    "SslCertificate" : "certificate.pem",
-
-    // Whether or not the password protection is enabled
-    "AuthenticationEnabled" : false,
-
-    // The list of the registered users. Because Orthanc uses HTTP
-    // Basic Authentication, the passwords are stored as plain text.
-    "RegisteredUsers" : {
-        "alice" : "alicePassword"
-    },
-
-
-
-    /**
-     * Network topology
-     **/
-
-    // The list of the known DICOM modalities
-    "DicomModalities" : {
-      /**
-       * Uncommenting the following line would enable Orthanc to
-       * connect to an instance of the "storescp" open-source DICOM
-       * store (shipped in the DCMTK distribution) started by the
-       * command line "storescp 2000".
-       **/
-      // "sample" : [ "STORESCP", "localhost", 2000 ]
-    },
-
-    // The list of the known Orthanc peers (currently unused)
-    "OrthancPeers" : {
-    }
+  // The list of the known Orthanc peers (currently unused)
+  "OrthancPeers" : {
+  }
 }

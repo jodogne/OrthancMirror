@@ -32,9 +32,54 @@
 #include "ServerEnumerations.h"
 
 #include "../Core/OrthancException.h"
+#include "../Core/EnumerationDictionary.h"
+
+#include <boost/thread.hpp>
 
 namespace Orthanc
 {
+  static boost::mutex enumerationsMutex_;
+  static Toolbox::EnumerationDictionary<MetadataType> dictMetadataType_;
+
+  void InitializeServerEnumerations()
+  {
+    boost::mutex::scoped_lock lock(enumerationsMutex_);
+
+    dictMetadataType_.Add(MetadataType_Instance_IndexInSeries, "IndexInSeries");
+    dictMetadataType_.Add(MetadataType_Instance_ReceptionDate, "ReceptionDate");
+    dictMetadataType_.Add(MetadataType_Instance_RemoteAet, "RemoteAET");
+    dictMetadataType_.Add(MetadataType_Series_ExpectedNumberOfInstances, "ExpectedNumberOfInstances");
+    dictMetadataType_.Add(MetadataType_ModifiedFrom, "ModifiedFrom");
+    dictMetadataType_.Add(MetadataType_AnonymizedFrom, "AnonymizedFrom");
+    dictMetadataType_.Add(MetadataType_LastUpdate, "LastUpdate");
+  }
+
+  void RegisterUserMetadata(int metadata,
+                            const std::string name)
+  {
+    boost::mutex::scoped_lock lock(enumerationsMutex_);
+
+    if (metadata < static_cast<int>(MetadataType_StartUser) ||
+        metadata > static_cast<int>(MetadataType_EndUser))
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    dictMetadataType_.Add(static_cast<MetadataType>(metadata), name);
+  }
+
+  const char* EnumerationToString(MetadataType type)
+  {
+    boost::mutex::scoped_lock lock(enumerationsMutex_);
+    return dictMetadataType_.Translate(type).c_str();
+  }
+
+  MetadataType StringToMetadata(const std::string& str)
+  {
+    boost::mutex::scoped_lock lock(enumerationsMutex_);
+    return dictMetadataType_.Translate(str);
+  }
+
   const char* EnumerationToString(ResourceType type)
   {
     switch (type)
