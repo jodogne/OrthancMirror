@@ -851,7 +851,7 @@ namespace Orthanc
       result["Path"] = GetBasePath(ResourceType_Instance, publicId);
     }
 
-    result["Status"] = ToString(status);
+    result["Status"] = EnumerationToString(status);
     call.GetOutput().AnswerJson(result);
   }
 
@@ -1368,7 +1368,7 @@ namespace Orthanc
             throw OrthancException(ErrorCode_InternalError);
         }
 
-        result["Type"] = ToString(resourceType);
+        result["Type"] = EnumerationToString(resourceType);
         result["ID"] = newId;
         result["Path"] = GetBasePath(resourceType, newId);
         result["PatientID"] = modifiedHasher.HashPatient();

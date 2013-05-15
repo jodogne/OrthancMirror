@@ -1,3 +1,5 @@
+#include "../Core/EnumerationDictionary.h"
+
 #include "gtest/gtest.h"
 
 #include <ctype.h>
@@ -342,6 +344,40 @@ TEST(OrthancInitialization, AbsoluteDirectory)
   ASSERT_EQ("/tmp", InterpretRelativePath("/tmp", "/tmp"));
 }
 #endif
+
+
+
+#include "../OrthancServer/ServerEnumerations.h"
+
+TEST(EnumerationDictionary, Simple)
+{
+  Toolbox::EnumerationDictionary<MetadataType>  d;
+
+  ASSERT_THROW(d.Translate("2"), OrthancException);
+  ASSERT_THROW(d.Translate("ReceptionDate"), OrthancException);
+
+  d.Add(MetadataType_Instance_ReceptionDate, "ReceptionDate");
+
+  ASSERT_EQ(MetadataType_Instance_ReceptionDate, d.Translate("ReceptionDate"));
+  ASSERT_EQ(MetadataType_Instance_ReceptionDate, d.Translate("2"));
+  ASSERT_EQ("ReceptionDate", d.Translate(MetadataType_Instance_ReceptionDate));
+}
+
+
+TEST(EnumerationDictionary, ServerEnumerations)
+{
+  ASSERT_STREQ("Patient", EnumerationToString(ResourceType_Patient));
+  ASSERT_STREQ("Study", EnumerationToString(ResourceType_Study));
+  ASSERT_STREQ("Series", EnumerationToString(ResourceType_Series));
+  ASSERT_STREQ("Instance", EnumerationToString(ResourceType_Instance));
+
+  ASSERT_STREQ("ModifiedSeries", EnumerationToString(ChangeType_ModifiedSeries));
+
+  ASSERT_STREQ("Failure", EnumerationToString(StoreStatus_Failure));
+  ASSERT_STREQ("Success", EnumerationToString(StoreStatus_Success));
+
+  ASSERT_STREQ("CompletedSeries", EnumerationToString(ChangeType_CompletedSeries));
+}
 
 
 int main(int argc, char **argv)

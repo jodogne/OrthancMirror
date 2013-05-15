@@ -551,8 +551,8 @@ namespace Orthanc
 
       Json::Value item = Json::objectValue;
       item["Seq"] = static_cast<int>(seq);
-      item["ChangeType"] = ToString(changeType);
-      item["ResourceType"] = ToString(resourceType);
+      item["ChangeType"] = EnumerationToString(changeType);
+      item["ResourceType"] = EnumerationToString(resourceType);
       item["ID"] = publicId;
       item["Path"] = GetBasePath(resourceType, publicId);
       item["Date"] = date;
@@ -626,7 +626,7 @@ namespace Orthanc
 
       Json::Value item = Json::objectValue;
       item["Seq"] = static_cast<int>(seq);
-      item["ResourceType"] = ToString(resourceType);
+      item["ResourceType"] = EnumerationToString(resourceType);
       item["ID"] = publicId;
       item["Path"] = GetBasePath(resourceType, publicId);
       item["RemoteModality"] = s.ColumnString(3);
