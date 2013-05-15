@@ -1497,6 +1497,46 @@ namespace Orthanc
   }
 
 
+  // Handling of metadata -----------------------------------------------------
+
+  template <enum ResourceType resourceType>
+  static void ListMetadata(RestApi::GetCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+    
+    std::string publicId = call.GetUriComponent("id", "");
+    std::list<MetadataType> metadata;
+    if (context.GetIndex().ListAvailableMetadata(metadata, publicId))
+    {
+      Json::Value result = Json::arrayValue;
+
+      for (std::list<MetadataType>::const_iterator 
+             it = metadata.begin(); it != metadata.end(); it++)
+      {
+        result.append(EnumerationToString(*it));
+      }
+
+      call.GetOutput().AnswerJson(result);
+    }
+  }
+
+
+  template <enum ResourceType resourceType>
+  static void GetMetadata(RestApi::GetCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+    
+    std::string publicId = call.GetUriComponent("id", "");
+    std::string name = call.GetUriComponent("name", "");
+    MetadataType metadata = StringToMetadata(name);
+
+    std::string value;
+    if (context.GetIndex().LookupMetadata(value, publicId, metadata))
+    {
+      call.GetOutput().AnswerBuffer(value, "text/plain");
+    }
+  }
+
 
   // Registration of the various REST handlers --------------------------------
 
@@ -1531,6 +1571,15 @@ namespace Orthanc
     Register("/patients/{id}/archive", GetArchive<ResourceType_Patient>);
     Register("/studies/{id}/archive", GetArchive<ResourceType_Study>);
     Register("/series/{id}/archive", GetArchive<ResourceType_Series>);
+
+    Register("/instances/{id}/metadata", ListMetadata<ResourceType_Instance>);
+    Register("/instances/{id}/metadata/{name}", GetMetadata<ResourceType_Instance>);
+    Register("/patients/{id}/metadata", ListMetadata<ResourceType_Patient>);
+    Register("/patients/{id}/metadata/{name}", GetMetadata<ResourceType_Patient>);
+    Register("/series/{id}/metadata", ListMetadata<ResourceType_Series>);
+    Register("/series/{id}/metadata/{name}", GetMetadata<ResourceType_Series>);
+    Register("/studies/{id}/metadata", ListMetadata<ResourceType_Study>);
+    Register("/studies/{id}/metadata/{name}", GetMetadata<ResourceType_Study>);
 
     Register("/patients/{id}/protected", IsProtectedPatient);
     Register("/patients/{id}/protected", SetPatientProtection);

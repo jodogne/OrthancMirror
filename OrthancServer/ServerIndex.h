@@ -154,6 +154,9 @@ namespace Orthanc
                         const std::string& publicId,
                         MetadataType type);
 
+    bool ListAvailableMetadata(std::list<MetadataType>& target,
+                               const std::string& publicId);
+
     bool LookupParent(std::string& target,
                       const std::string& publicId);
 

@@ -102,14 +102,15 @@ namespace Orthanc
         }
       }
 
-      const std::string& Translate(Enumeration e) const
+      std::string Translate(Enumeration e) const
       {
         typename EnumerationToString::const_iterator
           found = enumerationToString_.find(e);
 
         if (found == enumerationToString_.end())
         {
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
+          // No name for this item
+          return boost::lexical_cast<std::string>(static_cast<int>(e));
         }
         else
         {

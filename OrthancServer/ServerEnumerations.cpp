@@ -44,7 +44,7 @@ namespace Orthanc
   void InitializeServerEnumerations()
   {
     boost::mutex::scoped_lock lock(enumerationsMutex_);
-
+    
     dictMetadataType_.Add(MetadataType_Instance_IndexInSeries, "IndexInSeries");
     dictMetadataType_.Add(MetadataType_Instance_ReceptionDate, "ReceptionDate");
     dictMetadataType_.Add(MetadataType_Instance_RemoteAet, "RemoteAET");
