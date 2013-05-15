@@ -353,14 +353,19 @@ TEST(EnumerationDictionary, Simple)
 {
   Toolbox::EnumerationDictionary<MetadataType>  d;
 
-  ASSERT_THROW(d.Translate("2"), OrthancException);
   ASSERT_THROW(d.Translate("ReceptionDate"), OrthancException);
+  ASSERT_EQ(MetadataType_ModifiedFrom, d.Translate("5"));
 
   d.Add(MetadataType_Instance_ReceptionDate, "ReceptionDate");
 
   ASSERT_EQ(MetadataType_Instance_ReceptionDate, d.Translate("ReceptionDate"));
   ASSERT_EQ(MetadataType_Instance_ReceptionDate, d.Translate("2"));
   ASSERT_EQ("ReceptionDate", d.Translate(MetadataType_Instance_ReceptionDate));
+
+  ASSERT_THROW(d.Add(MetadataType_Instance_ReceptionDate, "Hello"), OrthancException);
+  ASSERT_THROW(d.Add(MetadataType_ModifiedFrom, "ReceptionDate"), OrthancException); // already used
+  ASSERT_THROW(d.Add(MetadataType_ModifiedFrom, "1024"), OrthancException); // cannot register numbers
+  d.Add(MetadataType_ModifiedFrom, "ModifiedFrom");  // ok
 }
 
 
@@ -377,6 +382,17 @@ TEST(EnumerationDictionary, ServerEnumerations)
   ASSERT_STREQ("Success", EnumerationToString(StoreStatus_Success));
 
   ASSERT_STREQ("CompletedSeries", EnumerationToString(ChangeType_CompletedSeries));
+
+  ASSERT_STREQ("IndexInSeries", EnumerationToString(MetadataType_Instance_IndexInSeries));
+  ASSERT_STREQ("LastUpdate", EnumerationToString(MetadataType_LastUpdate));
+
+  ASSERT_EQ(2047, StringToMetadata("2047"));
+  ASSERT_THROW(StringToMetadata("Ceci est un test"), OrthancException);
+  ASSERT_THROW(RegisterUserMetadata(128, ""), OrthancException); // too low (< 1024)
+  ASSERT_THROW(RegisterUserMetadata(128000, ""), OrthancException); // too high (> 65535)
+  RegisterUserMetadata(2047, "Ceci est un test");
+  ASSERT_EQ(2047, StringToMetadata("2047"));
+  ASSERT_EQ(2047, StringToMetadata("Ceci est un test"));
 }
 
 

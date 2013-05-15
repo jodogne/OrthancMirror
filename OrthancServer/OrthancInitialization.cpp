@@ -34,6 +34,7 @@
 
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
+#include "ServerEnumerations.h"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
@@ -118,12 +119,51 @@ namespace Orthanc
   }
 
 
+  static void RegisterUserMetadata()
+  {
+    if (configuration_->isMember("UserMetadata"))
+    {
+      const Json::Value& parameter = (*configuration_) ["UserMetadata"];
+
+      Json::Value::Members members = parameter.getMemberNames();
+      for (size_t i = 0; i < members.size(); i++)
+      {
+        std::string info = "\"" + members[i] + "\" = " + parameter[members[i]].toStyledString();
+        LOG(INFO) << "Registering user-specific metadata: " << info;
+
+        if (!parameter[members[i]].asBool())
+        {
+          LOG(ERROR) << "Not a number in this user-specific metadata: " << info;
+          throw OrthancException(ErrorCode_BadParameterType);
+        }
+
+        int metadata = parameter[members[i]].asInt();
+
+        try
+        {
+          RegisterUserMetadata(metadata, members[i]);
+        }
+        catch (OrthancException e)
+        {
+          LOG(ERROR) << "Cannot register this user-specific metadata: " << info;
+          throw e;
+        }
+      }
+    }
+  }
+
+
   void OrthancInitialize(const char* configurationFile)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
+
+    InitializeServerEnumerations();
     defaultDirectory_ = boost::filesystem::current_path();
     ReadGlobalConfiguration(configurationFile);
+
     curl_global_init(CURL_GLOBAL_ALL);
+
+    RegisterUserMetadata();
   }
 
 

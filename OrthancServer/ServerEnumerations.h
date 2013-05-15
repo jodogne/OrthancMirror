@@ -81,7 +81,11 @@ namespace Orthanc
     MetadataType_Series_ExpectedNumberOfInstances = 4,
     MetadataType_ModifiedFrom = 5,
     MetadataType_AnonymizedFrom = 6,
-    MetadataType_LastUpdate = 7
+    MetadataType_LastUpdate = 7,
+
+    // Make sure that the value "65535" can be stored into this enumeration
+    MetadataType_StartUser = 1024,
+    MetadataType_EndUser = 65535
   };
 
   enum ChangeType
@@ -99,10 +103,19 @@ namespace Orthanc
     ChangeType_ModifiedPatient = 11
   };
 
+  void InitializeServerEnumerations();
+
+  void RegisterUserMetadata(int metadata,
+                            const std::string name);
+
   std::string GetBasePath(ResourceType type,
                           const std::string& publicId);
 
+  MetadataType StringToMetadata(const std::string& str);
+
   const char* EnumerationToString(ResourceType type);
+
+  const char* EnumerationToString(MetadataType type);
 
   const char* EnumerationToString(SeriesStatus status);
 
