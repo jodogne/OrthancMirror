@@ -102,13 +102,13 @@ namespace Orthanc
   std::string GetBasePath(ResourceType type,
                           const std::string& publicId);
 
-  const char* ToString(ResourceType type);
+  const char* EnumerationToString(ResourceType type);
 
-  const char* ToString(SeriesStatus status);
+  const char* EnumerationToString(SeriesStatus status);
 
-  const char* ToString(StoreStatus status);
+  const char* EnumerationToString(StoreStatus status);
 
-  const char* ToString(ChangeType type);
+  const char* EnumerationToString(ChangeType type);
 
   ResourceType GetParentResourceType(ResourceType type);
 

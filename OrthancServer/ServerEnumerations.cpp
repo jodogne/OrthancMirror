@@ -35,7 +35,7 @@
 
 namespace Orthanc
 {
-  const char* ToString(ResourceType type)
+  const char* EnumerationToString(ResourceType type)
   {
     switch (type)
     {
@@ -78,7 +78,7 @@ namespace Orthanc
     }
   }
 
-  const char* ToString(SeriesStatus status)
+  const char* EnumerationToString(SeriesStatus status)
   {
     switch (status)
     {
@@ -99,7 +99,7 @@ namespace Orthanc
     }
   }
 
-  const char* ToString(StoreStatus status)
+  const char* EnumerationToString(StoreStatus status)
   {
     switch (status)
     {
@@ -121,7 +121,7 @@ namespace Orthanc
   }
 
 
-  const char* ToString(ChangeType type)
+  const char* EnumerationToString(ChangeType type)
   {
     switch (type)
     {

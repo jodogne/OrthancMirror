@@ -211,7 +211,7 @@ namespace Orthanc
 
       target["RemainingAncestor"] = Json::Value(Json::objectValue);
       target["RemainingAncestor"]["Path"] = GetBasePath(type, uuid);
-      target["RemainingAncestor"]["Type"] = ToString(type);
+      target["RemainingAncestor"]["Type"] = EnumerationToString(type);
       target["RemainingAncestor"]["ID"] = uuid;
     }
     else
@@ -705,7 +705,7 @@ namespace Orthanc
       case ResourceType_Series:
       {
         result["Type"] = "Series";
-        result["Status"] = ToString(GetSeriesStatus(id));
+        result["Status"] = EnumerationToString(GetSeriesStatus(id));
 
         int i;
         if (db_->GetMetadataAsInteger(i, id, MetadataType_Series_ExpectedNumberOfInstances))
