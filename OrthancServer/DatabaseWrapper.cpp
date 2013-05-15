@@ -340,6 +340,15 @@ namespace Orthanc
     s.Run();
   }
 
+  void DatabaseWrapper::DeleteMetadata(int64_t id,
+                                       MetadataType type)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM Metadata WHERE id=? and type=?");
+    s.BindInt(0, id);
+    s.BindInt(1, type);
+    s.Run();
+  }
+
   bool DatabaseWrapper::LookupMetadata(std::string& target,
                                        int64_t id,
                                        MetadataType type)
