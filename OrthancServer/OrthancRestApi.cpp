@@ -1573,6 +1573,16 @@ namespace Orthanc
   }
 
 
+  static void GetResourceStatistics(RestApi::GetCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+    std::string publicId = call.GetUriComponent("id", "");
+    Json::Value result;
+    context.GetIndex().GetStatistics(result, publicId);
+    call.GetOutput().AnswerJson(result);
+  }
+
+
 
   // Registration of the various REST handlers --------------------------------
 
@@ -1607,6 +1617,11 @@ namespace Orthanc
     Register("/patients/{id}/archive", GetArchive<ResourceType_Patient>);
     Register("/studies/{id}/archive", GetArchive<ResourceType_Study>);
     Register("/series/{id}/archive", GetArchive<ResourceType_Series>);
+
+    Register("/instances/{id}/statistics", GetResourceStatistics);
+    Register("/patients/{id}/statistics", GetResourceStatistics);
+    Register("/studies/{id}/statistics", GetResourceStatistics);
+    Register("/series/{id}/statistics", GetResourceStatistics);
 
     Register("/instances/{id}/metadata", ListMetadata);
     Register("/instances/{id}/metadata/{name}", DeleteMetadata);

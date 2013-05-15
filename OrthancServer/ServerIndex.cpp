@@ -48,6 +48,8 @@
 #include <stdio.h>
 #include <glog/logging.h>
 
+static const uint64_t MEGA_BYTES = 1024 * 1024;
+
 namespace Orthanc
 {
   namespace Internals
@@ -515,18 +517,16 @@ namespace Orthanc
 
   void ServerIndex::ComputeStatistics(Json::Value& target)
   {
-    static const uint64_t MB = 1024 * 1024;
-
     boost::mutex::scoped_lock lock(mutex_);
     target = Json::objectValue;
 
     uint64_t cs = currentStorageSize_;
     assert(cs == db_->GetTotalCompressedSize());
     uint64_t us = db_->GetTotalUncompressedSize();
-    target["TotalDiskSpace"] = boost::lexical_cast<std::string>(cs);
+    target["TotalDiskSize"] = boost::lexical_cast<std::string>(cs);
     target["TotalUncompressedSize"] = boost::lexical_cast<std::string>(us);
-    target["TotalDiskSpaceMB"] = boost::lexical_cast<unsigned int>(cs / MB);
-    target["TotalUncompressedSizeMB"] = boost::lexical_cast<unsigned int>(us / MB);
+    target["TotalDiskSizeMB"] = boost::lexical_cast<unsigned int>(cs / MEGA_BYTES);
+    target["TotalUncompressedSizeMB"] = boost::lexical_cast<unsigned int>(us / MEGA_BYTES);
 
     target["CountPatients"] = static_cast<unsigned int>(db_->GetResourceCount(ResourceType_Patient));
     target["CountStudies"] = static_cast<unsigned int>(db_->GetResourceCount(ResourceType_Study));
@@ -1001,7 +1001,7 @@ namespace Orthanc
     }
     else
     {
-      LOG(WARNING) << "At most " << (size / (1024 * 1024)) << "MB will be used for the storage area";
+      LOG(WARNING) << "At most " << (size / MEGA_BYTES) << "MB will be used for the storage area";
     }
 
     StandaloneRecycling();
@@ -1243,5 +1243,104 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(mutex_);
     db_->ClearTable("ExportedResources");
+  }
+
+
+  void ServerIndex::GetStatistics(Json::Value& target,
+                                  const std::string& publicId)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    ResourceType type;
+    int64_t top;
+    if (!db_->LookupResource(publicId, top, type))
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
+    std::stack<int64_t> toExplore;
+    toExplore.push(top);
+
+    int countInstances = 0;
+    int countSeries = 0;
+    int countStudies = 0;
+    uint64_t compressedSize = 0;
+    uint64_t uncompressedSize = 0;
+
+    while (!toExplore.empty())
+    {
+      // Get the internal ID of the current resource
+      int64_t resource = toExplore.top();
+      toExplore.pop();
+
+      ResourceType thisType = db_->GetResourceType(resource);
+
+      if (thisType == ResourceType_Instance)
+      {
+        std::list<FileContentType> f;
+        db_->ListAvailableAttachments(f, resource);
+
+        for (std::list<FileContentType>::const_iterator
+               it = f.begin(); it != f.end(); it++)
+        {
+          FileInfo attachment;
+          if (db_->LookupAttachment(attachment, resource, *it))
+          {
+            compressedSize += attachment.GetCompressedSize();
+            uncompressedSize += attachment.GetUncompressedSize();
+          }
+        }
+
+        countInstances++;
+      }
+      else
+      {
+        switch (thisType)
+        {
+          case ResourceType_Study:
+            countStudies++;
+            break;
+
+          case ResourceType_Series:
+            countSeries++;
+            break;
+
+          default:
+            break;
+        }
+
+        // Tag all the children of this resource as to be explored
+        std::list<int64_t> tmp;
+        db_->GetChildrenInternalId(tmp, resource);
+        for (std::list<int64_t>::const_iterator 
+               it = tmp.begin(); it != tmp.end(); it++)
+        {
+          toExplore.push(*it);
+        }
+      }
+    }
+
+    target = Json::objectValue;
+    target["DiskSize"] = boost::lexical_cast<std::string>(compressedSize);
+    target["DiskSizeMB"] = boost::lexical_cast<unsigned int>(compressedSize / MEGA_BYTES);
+    target["UncompressedSize"] = boost::lexical_cast<std::string>(uncompressedSize);
+    target["UncompressedSizeMB"] = boost::lexical_cast<unsigned int>(uncompressedSize / MEGA_BYTES);
+
+    switch (type)
+    {
+      // Do NOT add "break" below this point!
+      case ResourceType_Patient:
+        target["CountStudies"] = countStudies;
+
+      case ResourceType_Study:
+        target["CountSeries"] = countSeries;
+
+      case ResourceType_Series:
+        target["CountInstances"] = countInstances;
+
+      case ResourceType_Instance:
+      default:
+        break;
+    }
   }
 }
