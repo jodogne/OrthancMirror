@@ -171,5 +171,8 @@ namespace Orthanc
     void DeleteChanges();
 
     void DeleteExportedResources();
+
+    void GetStatistics(Json::Value& target,
+                       const std::string& publicId);
   };
 }

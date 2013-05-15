@@ -13,6 +13,7 @@ Metadata
 Other
 -----
 
+* Statistics about patients, studies, series and instances
 * Fixes for Red Hat and Debian packaging
 * Fixes for boost::thread, as reported by Cyril Paulus
 

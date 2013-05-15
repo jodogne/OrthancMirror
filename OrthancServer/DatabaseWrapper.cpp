@@ -438,6 +438,21 @@ namespace Orthanc
     s.Run();
   }
 
+  void DatabaseWrapper::ListAvailableAttachments(std::list<FileContentType>& result,
+                                                 int64_t id)
+  {
+    result.clear();
+
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                        "SELECT fileType FROM AttachedFiles WHERE id=?");
+    s.BindInt(0, id);
+
+    while (s.Step())
+    {
+      result.push_back(static_cast<FileContentType>(s.ColumnInt(0)));
+    }
+  }
+
   bool DatabaseWrapper::LookupAttachment(FileInfo& attachment,
                                          int64_t id,
                                          FileContentType contentType)
