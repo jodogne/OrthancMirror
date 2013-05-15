@@ -135,10 +135,18 @@ TEST(DatabaseWrapper, Simple)
     ASSERT_EQ("e", l.front());
   }
 
+  std::list<MetadataType> md;
+  index.ListAvailableMetadata(md, a[4]);
+  ASSERT_EQ(0u, md.size());
+
   index.AddAttachment(a[4], FileInfo("my json file", FileContentType_Json, 42, CompressionType_Zlib, 21));
   index.AddAttachment(a[4], FileInfo("my dicom file", FileContentType_Dicom, 42));
   index.AddAttachment(a[6], FileInfo("world", FileContentType_Dicom, 44));
   index.SetMetadata(a[4], MetadataType_Instance_RemoteAet, "PINNACLE");
+  
+  index.ListAvailableMetadata(md, a[4]);
+  ASSERT_EQ(1u, md.size());
+  ASSERT_EQ(MetadataType_Instance_RemoteAet, md.front());
 
   ASSERT_EQ(21u + 42u + 44u, index.GetTotalCompressedSize());
   ASSERT_EQ(42u + 42u + 44u, index.GetTotalUncompressedSize());

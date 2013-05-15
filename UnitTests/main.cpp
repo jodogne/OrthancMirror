@@ -355,6 +355,7 @@ TEST(EnumerationDictionary, Simple)
 
   ASSERT_THROW(d.Translate("ReceptionDate"), OrthancException);
   ASSERT_EQ(MetadataType_ModifiedFrom, d.Translate("5"));
+  ASSERT_EQ(256, d.Translate("256"));
 
   d.Add(MetadataType_Instance_ReceptionDate, "ReceptionDate");
 

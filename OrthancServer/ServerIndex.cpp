@@ -1140,6 +1140,22 @@ namespace Orthanc
   }
 
 
+  bool ServerIndex::ListAvailableMetadata(std::list<MetadataType>& target,
+                                          const std::string& publicId)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    ResourceType rtype;
+    int64_t id;
+    if (!db_->LookupResource(publicId, id, rtype))
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
+    return db_->ListAvailableMetadata(target, id);
+  }
+
+
   bool ServerIndex::LookupParent(std::string& target,
                                  const std::string& publicId)
   {
