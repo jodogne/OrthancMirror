@@ -33,8 +33,9 @@
   "LuaScripts" : [
   ],
 
-  // Dictionary of the user-specific metadata. Each entry must map a
-  // number between 1024 and 65535 to an unique string.
+  // Dictionary of symbolic names for the user-defined metadata. Each
+  // entry must map a number between 1024 and 65535 to an unique
+  // string.
   "UserMetadata" : {
     // "Sample" : 1024
   },

@@ -1,8 +1,18 @@
 Pending changes in the mainline
 ===============================
 
+
+Metadata
+--------
+
+* Access to the metadata through the REST API   
+* Support of user-defined metadata
 * "LastUpdate" metadata for patients, studies and series
 * Improved support of series with temporal positions
+
+Other
+-----
+
 * Fixes for Red Hat and Debian packaging
 * Fixes for boost::thread, as reported by Cyril Paulus
 

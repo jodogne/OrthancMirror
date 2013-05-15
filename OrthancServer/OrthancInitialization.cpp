@@ -129,11 +129,11 @@ namespace Orthanc
       for (size_t i = 0; i < members.size(); i++)
       {
         std::string info = "\"" + members[i] + "\" = " + parameter[members[i]].toStyledString();
-        LOG(INFO) << "Registering user-specific metadata: " << info;
+        LOG(INFO) << "Registering user-defined metadata: " << info;
 
         if (!parameter[members[i]].asBool())
         {
-          LOG(ERROR) << "Not a number in this user-specific metadata: " << info;
+          LOG(ERROR) << "Not a number in this user-defined metadata: " << info;
           throw OrthancException(ErrorCode_BadParameterType);
         }
 
@@ -145,7 +145,7 @@ namespace Orthanc
         }
         catch (OrthancException e)
         {
-          LOG(ERROR) << "Cannot register this user-specific metadata: " << info;
+          LOG(ERROR) << "Cannot register this user-defined metadata: " << info;
           throw e;
         }
       }
