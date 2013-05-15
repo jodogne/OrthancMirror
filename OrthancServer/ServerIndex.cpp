@@ -240,6 +240,46 @@ namespace Orthanc
   }
 
 
+  static void ComputeExpectedNumberOfInstances(DatabaseWrapper& db,
+                                               int64_t series,
+                                               const DicomMap& dicomSummary)
+  {
+    const DicomValue* value;
+    const DicomValue* value2;
+          
+    try
+    {
+      if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGES_IN_ACQUISITION)) != NULL &&
+          (value2 = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS)) != NULL)
+      {
+        // Patch for series with temporal positions thanks to Will Ryder
+        int64_t imagesInAcquisition = boost::lexical_cast<int64_t>(value->AsString());
+        int64_t countTemporalPositions = boost::lexical_cast<int64_t>(value2->AsString());
+        std::string expected = boost::lexical_cast<std::string>(imagesInAcquisition * countTemporalPositions);
+        db.SetMetadata(series, MetadataType_Series_ExpectedNumberOfInstances, expected);
+      }
+
+      else if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_SLICES)) != NULL &&
+               (value2 = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_TIME_SLICES)) != NULL)
+      {
+        // Support of Cardio-PET images
+        int64_t numberOfSlices = boost::lexical_cast<int64_t>(value->AsString());
+        int64_t numberOfTimeSlices = boost::lexical_cast<int64_t>(value2->AsString());
+        std::string expected = boost::lexical_cast<std::string>(numberOfSlices * numberOfTimeSlices);
+        db.SetMetadata(series, MetadataType_Series_ExpectedNumberOfInstances, expected);
+      }
+
+      else if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES)) != NULL)
+      {
+        db.SetMetadata(series, MetadataType_Series_ExpectedNumberOfInstances, value->AsString());
+      }
+    }
+    catch (boost::bad_lexical_cast)
+    {
+    }
+  }
+
+
   ServerIndex::ServerIndex(ServerContext& context,
                            const std::string& dbPath) : 
     maximumStorageSize_(0),
@@ -449,12 +489,7 @@ namespace Orthanc
 
       if (isNewSeries)
       {
-        if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_SLICES)) != NULL ||
-            (value = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGES_IN_ACQUISITION)) != NULL ||
-            (value = dicomSummary.TestAndGetValue(DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES)) != NULL)
-        {
-          db_->SetMetadata(series, MetadataType_Series_ExpectedNumberOfInstances, value->AsString());
-        }
+        ComputeExpectedNumberOfInstances(*db_, series, dicomSummary);
       }
 
       // Check whether the series of this new instance is now completed
