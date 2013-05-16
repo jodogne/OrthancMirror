@@ -14,7 +14,7 @@ Code contributors
 * Cyril Paulus (cyril.paulus@student.ulg.ac.be), for the build process
   and suggestions about the REST API.
 * Will Ryder (will.ryder@sydney.edu.au), for improvements with the
-  handling of series with temporal positions (fMRI).
+  handling of series with temporal positions (fMRI and dynamic PET).
 
 
 Artwork
