@@ -370,6 +370,13 @@ namespace Orthanc
     call.GetOutput().AnswerBuffer(result, "text/plain");
   }
 
+  static void GetNowIsoString(RestApi::GetCall& call)
+  {
+    call.GetOutput().AnswerBuffer(Toolbox::GetNowIsoString(), "text/plain");
+  }
+
+
+
 
 
 
@@ -1678,5 +1685,6 @@ namespace Orthanc
 
     Register("/tools/generate-uid", GenerateUid);
     Register("/tools/execute-script", ExecuteScript);
+    Register("/tools/now", GetNowIsoString);
   }
 }
