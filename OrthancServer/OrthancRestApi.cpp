@@ -1319,7 +1319,7 @@ namespace Orthanc
 
 
       /**
-       * Record metadata information (AnonimizedFrom/ModifiedFrom).
+       * Record metadata information (AnonymizedFrom/ModifiedFrom).
        **/
 
       DicomInstanceHasher modifiedHasher = modified->GetHasher();
@@ -1348,6 +1348,9 @@ namespace Orthanc
 
       if (isFirst)
       {
+        context.GetIndex().SetMetadata(modifiedHasher.HashPatient(), 
+                                       metadataType, originalHasher.HashPatient());
+
         std::string newId;
 
         switch (resourceType)
