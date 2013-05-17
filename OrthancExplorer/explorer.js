@@ -356,6 +356,23 @@ $('#find-patients').live('pagebeforeshow', function() {
 
 
 
+function SetupAnonymizedFrom(buttonSelector, resource, resourceType)
+{
+  if ('AnonymizedFrom' in resource)
+  {
+    $(buttonSelector).closest('li').show();
+    $(buttonSelector).click(function(e) {
+      window.location.assign('explorer.html#' + resourceType + '?uuid=' + resource.AnonymizedFrom);
+      window.location.reload();
+    });
+  }
+  else
+  {
+    $(buttonSelector).closest('li').hide();
+  }
+}
+
+
 $('#patient').live('pagebeforeshow', function() {
   if ($.mobile.pageData) {
     GetSingleResource('patients', $.mobile.pageData.uuid, function(patient) {
@@ -380,6 +397,8 @@ $('#patient').live('pagebeforeshow', function() {
 
           target.append(FormatStudy(studies[i], '#study?uuid=' + studies[i].ID));
         }
+
+        SetupAnonymizedFrom('#patient-anonymized-from', patient, 'patient');
 
         target.listview('refresh');
 
@@ -416,6 +435,8 @@ $('#study').live('pagebeforeshow', function() {
             .append('<li data-role="list-divider">Study</li>')
             .append(FormatStudy(study))
             .listview('refresh');
+
+          SetupAnonymizedFrom('#study-anonymized-from', study, 'study');
 
           var target = $('#list-series');
           $('li', target).remove();
@@ -455,6 +476,8 @@ $('#series').live('pagebeforeshow', function() {
               .append('<li data-role="list-divider">Series</li>')
               .append(FormatSeries(series))
               .listview('refresh');
+
+            SetupAnonymizedFrom('#series-anonymized-from', series, 'series');
 
             var target = $('#list-instances');
             $('li', target).remove();
