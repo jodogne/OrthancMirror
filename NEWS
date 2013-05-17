@@ -5,9 +5,10 @@ Pending changes in the mainline
 Metadata
 --------
 
-* Access to the metadata through the REST API   
+* Access to the metadata through the REST API (/metadata)
 * Support of user-defined metadata
 * "LastUpdate" metadata for patients, studies and series
+* "/tools/now" to be used in combination with "LastUpdate"
 * Improved support of series with temporal positions
 
 Other
