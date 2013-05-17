@@ -14,6 +14,7 @@ Other
 -----
 
 * Statistics about patients, studies, series and instances
+* Link from anonymized to original resource in Orthanc Explorer
 * Fixes for Red Hat and Debian packaging
 * Fixes for boost::thread, as reported by Cyril Paulus
 
