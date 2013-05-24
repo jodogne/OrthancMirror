@@ -9,7 +9,7 @@ add_definitions(
 
 # Parameters of the build
 SET(STATIC_BUILD ON CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")
-SET(STANDALONE_BUILD OFF CACHE BOOL "Standalone build (all the resources are embedded, necessary for releases)")
+SET(STANDALONE_BUILD ON CACHE BOOL "Standalone build (all the resources are embedded, necessary for releases)")
 SET(ENABLE_SSL ON CACHE BOOL "Include support for SSL")
 SET(BUILD_UNIT_TESTS ON CACHE BOOL "Build the unit tests")
 
