@@ -34,6 +34,7 @@
 
 #include "../IDynamicObject.h"
 
+#include <stdint.h>
 #include <list>
 #include <boost/thread.hpp>
 
