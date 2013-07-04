@@ -138,6 +138,7 @@ add_library(CoreLibrary
   Core/RestApi/RestApi.cpp
   Core/MultiThreading/BagOfRunnablesBySteps.cpp
   Core/MultiThreading/SharedMessageQueue.cpp
+  Core/FileFormats/PngReader.cpp
   Core/FileFormats/PngWriter.cpp
   Core/SQLite/Connection.cpp
   Core/SQLite/FunctionContext.cpp
