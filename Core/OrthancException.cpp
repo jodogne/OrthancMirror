@@ -102,6 +102,9 @@ namespace Orthanc
       case ErrorCode_BadRequest:
         return "Bad request";
 
+      case ErrorCode_NetworkProtocol:
+        return "Error in the network protocol";
+
       case ErrorCode_Custom:
       default:
         return "???";
