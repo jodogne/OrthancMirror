@@ -92,6 +92,11 @@ namespace Orthanc
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYPEER, 0)); 
 #endif
 
+    // This fixes the "longjmp causes uninitialized stack frame" crash
+    // that happens on modern Linux versions.
+    // http://stackoverflow.com/questions/9191668/error-longjmp-causes-uninitialized-stack-frame
+    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_NOSIGNAL, 1));
+
     url_ = "";
     method_ = Orthanc_HttpMethod_Get;
     lastStatus_ = Orthanc_HttpStatus_200_Ok;
