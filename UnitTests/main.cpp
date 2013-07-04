@@ -419,18 +419,21 @@ public:
 TEST(SharedMessageQueue, Basic)
 {
   SharedMessageQueue q;
+  ASSERT_TRUE(q.WaitEmpty(0));
   q.Enqueue(new DynamicInteger(10));
+  ASSERT_FALSE(q.WaitEmpty(1));
   q.Enqueue(new DynamicInteger(20));
   q.Enqueue(new DynamicInteger(30));
   q.Enqueue(new DynamicInteger(40));
 
   std::auto_ptr<DynamicInteger> i;
-  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(10))); ASSERT_EQ(10, i->GetValue());
-  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(10))); ASSERT_EQ(20, i->GetValue());
-  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(10))); ASSERT_EQ(30, i->GetValue());
-  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(10))); ASSERT_EQ(40, i->GetValue());
-  
-  ASSERT_EQ(NULL, q.Dequeue(10));
+  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(10, i->GetValue());
+  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(20, i->GetValue());
+  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(30, i->GetValue());
+  ASSERT_FALSE(q.WaitEmpty(1));
+  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(40, i->GetValue());
+  ASSERT_TRUE(q.WaitEmpty(0));
+  ASSERT_EQ(NULL, q.Dequeue(1));
 }
 
 

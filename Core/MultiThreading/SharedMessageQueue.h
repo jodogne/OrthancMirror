@@ -49,6 +49,7 @@ namespace Orthanc
     Queue queue_;
     boost::mutex mutex_;
     boost::condition_variable elementAvailable_;
+    boost::condition_variable emptied_;
 
   public:
     SharedMessageQueue(unsigned int maxSize = 0);
@@ -60,5 +61,7 @@ namespace Orthanc
 
     // The caller is responsible to delete the dequeud message!
     IDynamicObject* Dequeue(int32_t millisecondsTimeout);
+
+    bool WaitEmpty(int32_t millisecondsTimeout);
   };
 }

@@ -89,7 +89,34 @@ namespace Orthanc
 
     std::auto_ptr<IDynamicObject> message(queue_.front());
     queue_.pop_front();
+    emptied_.notify_all();
 
     return message.release();
+  }
+
+
+
+  bool SharedMessageQueue::WaitEmpty(int32_t millisecondsTimeout)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    
+    // Wait for the queue to become empty
+    if (!queue_.empty())
+    {
+      if (millisecondsTimeout == 0)
+      {
+        emptied_.wait(lock);
+      }
+      else
+      {
+        if (!emptied_.timed_wait
+            (lock, boost::posix_time::milliseconds(millisecondsTimeout)))
+        {
+          return false;
+        }
+      }
+    }
+
+    return true;
   }
 }
