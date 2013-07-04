@@ -461,6 +461,8 @@ int main(int argc, char **argv)
   // Go to trace-level verbosity
   //FLAGS_v = 1;
 
+  Toolbox::DetectEndianness();
+
   google::InitGoogleLogging("Orthanc");
 
   OrthancInitialize();
