@@ -111,5 +111,9 @@ namespace Orthanc
 
     void SetPassword(const char* username,
                      const char* password);
+
+    static void GlobalInitialize();
+  
+    static void GlobalFinalize();
   };
 }

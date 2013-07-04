@@ -32,6 +32,7 @@
 
 #include "OrthancInitialization.h"
 
+#include "../OrthancCppClient/HttpClient.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
 #include "ServerEnumerations.h"
@@ -161,7 +162,7 @@ namespace Orthanc
     defaultDirectory_ = boost::filesystem::current_path();
     ReadGlobalConfiguration(configurationFile);
 
-    curl_global_init(CURL_GLOBAL_ALL);
+    HttpClient::GlobalInitialize();
 
     RegisterUserMetadata();
   }
@@ -171,7 +172,7 @@ namespace Orthanc
   void OrthancFinalize()
   {
     boost::mutex::scoped_lock lock(globalMutex_);
-    curl_global_cleanup();
+    HttpClient::GlobalFinalize();
     configuration_.reset(NULL);
   }
 
