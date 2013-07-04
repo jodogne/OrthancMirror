@@ -36,6 +36,13 @@
 
 namespace Orthanc
 {
+  enum Endianness
+  {
+    Endianness_Unknown,
+    Endianness_Big,
+    Endianness_Little
+  };
+
   enum ErrorCode
   {
     // Generic error codes

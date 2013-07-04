@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "Enumerations.h"
+
 #include <stdint.h>
 #include <vector>
 #include <string>
@@ -101,5 +103,7 @@ namespace Orthanc
 
     // In-place percent-decoding for URL
     void UrlDecode(std::string& s);
+
+    Endianness DetectEndianness();
   }
 }
