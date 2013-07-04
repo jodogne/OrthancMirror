@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 
 #include <stdint.h>
+#include "../Core/FileFormats/PngReader.h"
 #include "../Core/FileFormats/PngWriter.h"
 
 TEST(PngWriter, ColorPattern)
@@ -65,4 +66,44 @@ TEST(PngWriter, Gray16Pattern)
   }
 
   w.WriteToFile("Gray16Pattern.png", width, height, pitch, Orthanc::PixelFormat_Grayscale16, &image[0]);
+}
+
+TEST(PngWriter, EndToEnd)
+{
+  Orthanc::PngWriter w;
+  int width = 256;
+  int height = 256;
+  int pitch = width * 2 + 16;
+
+  std::vector<uint8_t> image(height * pitch);
+
+  int v = 0;
+  for (int y = 0; y < height; y++)
+  {
+    uint16_t *p = reinterpret_cast<uint16_t*>(&image[0] + y * pitch);
+    for (int x = 0; x < width; x++, p++, v++)
+    {
+      *p = v;
+    }
+  }
+
+  std::string s;
+  w.WriteToMemory(s, width, height, pitch, Orthanc::PixelFormat_Grayscale16, &image[0]);
+
+  Orthanc::PngReader r;
+  r.ReadFromMemory(s);
+
+  ASSERT_EQ(r.GetWidth(), width);
+  ASSERT_EQ(r.GetHeight(), height);
+
+  v = 0;
+  for (int y = 0; y < height; y++)
+  {
+    uint16_t *p = reinterpret_cast<uint16_t*>((uint8_t*) r.GetBuffer() + y * r.GetPitch());
+    for (int x = 0; x < width; x++, p++, v++)
+    {
+      ASSERT_EQ(*p, v);
+    }
+  }
+
 }
