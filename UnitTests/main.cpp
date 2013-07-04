@@ -13,6 +13,7 @@
 #include "../Core/Uuid.h"
 #include "../OrthancServer/FromDcmtkBridge.h"
 #include "../OrthancServer/OrthancInitialization.h"
+#include "../Core/MultiThreading/SharedMessageQueue.h"
 
 using namespace Orthanc;
 
@@ -394,6 +395,57 @@ TEST(EnumerationDictionary, ServerEnumerations)
   RegisterUserMetadata(2047, "Ceci est un test");
   ASSERT_EQ(2047, StringToMetadata("2047"));
   ASSERT_EQ(2047, StringToMetadata("Ceci est un test"));
+}
+
+
+
+class DynamicInteger : public IDynamicObject
+{
+private:
+  int value_;
+
+public:
+  DynamicInteger(int value) : value_(value)
+  {
+  }
+
+  int GetValue() const
+  {
+    return value_;
+  }
+};
+
+
+TEST(SharedMessageQueue, Basic)
+{
+  SharedMessageQueue q;
+  q.Enqueue(new DynamicInteger(10));
+  q.Enqueue(new DynamicInteger(20));
+  q.Enqueue(new DynamicInteger(30));
+  q.Enqueue(new DynamicInteger(40));
+
+  std::auto_ptr<DynamicInteger> i;
+  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(10))); ASSERT_EQ(10, i->GetValue());
+  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(10))); ASSERT_EQ(20, i->GetValue());
+  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(10))); ASSERT_EQ(30, i->GetValue());
+  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(10))); ASSERT_EQ(40, i->GetValue());
+  
+  ASSERT_EQ(NULL, q.Dequeue(10));
+}
+
+
+TEST(SharedMessageQueue, Clean)
+{
+  try
+  {
+    SharedMessageQueue q;
+    q.Enqueue(new DynamicInteger(10));
+    q.Enqueue(new DynamicInteger(20));  
+    throw OrthancException("Nope");
+  }
+  catch (OrthancException)
+  {
+  }
 }
 
 
