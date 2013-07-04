@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include "Enumerations.h"
+#include "../Enumerations.h"
 
 #include <boost/shared_ptr.hpp>
 #include <string>

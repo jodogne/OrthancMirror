@@ -138,7 +138,7 @@ add_library(CoreLibrary
   Core/RestApi/RestApi.cpp
   Core/MultiThreading/BagOfRunnablesBySteps.cpp
   Core/MultiThreading/SharedMessageQueue.cpp
-  Core/PngWriter.cpp
+  Core/FileFormats/PngWriter.cpp
   Core/SQLite/Connection.cpp
   Core/SQLite/FunctionContext.cpp
   Core/SQLite/Statement.cpp
@@ -201,7 +201,7 @@ if(NOT ONLY_CORE_LIBRARY)
       ${GTEST_SOURCES}
       UnitTests/FileStorage.cpp
       UnitTests/MemoryCache.cpp
-      UnitTests/PngWriter.cpp
+      UnitTests/Png.cpp
       UnitTests/RestApi.cpp
       UnitTests/SQLite.cpp
       UnitTests/SQLiteChromium.cpp

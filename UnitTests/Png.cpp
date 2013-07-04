@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 
 #include <stdint.h>
-#include "../Core/PngWriter.h"
+#include "../Core/FileFormats/PngWriter.h"
 
 TEST(PngWriter, ColorPattern)
 {
