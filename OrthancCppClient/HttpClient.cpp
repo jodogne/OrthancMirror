@@ -210,4 +210,16 @@ namespace Orthanc
     std::string s = std::string(username) + ":" + std::string(password);
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_USERPWD, s.c_str()));
   }
+
+
+  
+  void HttpClient::GlobalInitialize()
+  {
+    CheckCode(curl_global_init(CURL_GLOBAL_DEFAULT));
+  }
+  
+  void HttpClient::GlobalFinalize()
+  {
+    curl_global_cleanup();
+  }
 }
