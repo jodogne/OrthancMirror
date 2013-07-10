@@ -15,6 +15,7 @@ Code contributors
   and suggestions about the REST API.
 * Will Ryder (will.ryder@sydney.edu.au), for improvements with the
   handling of series with temporal positions (fMRI and dynamic PET).
+* Ryan Walklin (ryanwalklin@gmail.com), for Mac OS X build.
 
 
 Artwork
