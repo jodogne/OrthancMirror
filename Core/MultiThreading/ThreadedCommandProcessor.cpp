@@ -107,10 +107,9 @@ namespace Orthanc
 
   void ThreadedCommandProcessor::Post(ICommand* command)
   {
-    queue_.Enqueue(command);
-
     {
       boost::mutex::scoped_lock lock(mutex_);
+      queue_.Enqueue(command);
       remainingCommands_++;
     }
   }
