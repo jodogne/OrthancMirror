@@ -54,7 +54,17 @@ namespace Orthanc
           if (that->success_)
           {
             // No command has failed so far
-            success = dynamic_cast<ICommand&>(*command).Execute();
+
+            if (that->cancel_)
+            {
+              // The commands have been canceled. Skip the execution
+              // of this command, yet mark it as succeeded.
+              success = true;
+            }
+            else
+            {
+              success = dynamic_cast<ICommand&>(*command).Execute();
+            }
           }
           else
           {
@@ -71,7 +81,30 @@ namespace Orthanc
           that->remainingCommands_--;
 
           if (!success)
+          {
+            if (!that->cancel_ && that->listener_ && that->success_)
+            {
+              // This is the first command that fails
+              that->listener_->SignalFailure();
+            }
+
             that->success_ = false;
+          }
+          else
+          {
+            if (!that->cancel_ && that->listener_)
+            {
+              if (that->remainingCommands_ == 0)
+              {
+                that->listener_->SignalSuccess(that->totalCommands_);
+              }
+              else
+              {
+                that->listener_->SignalProgress(that->totalCommands_ - that->remainingCommands_,
+                                                that->totalCommands_);
+              }
+            }
+          }
 
           that->processedCommand_.notify_all();
         }
@@ -86,11 +119,14 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
-    
+
+    listener_ = NULL;
     success_ = true;
     done_ = false;
+    cancel_ = false;
     threads_.resize(numThreads);
     remainingCommands_ = 0;
+    totalCommands_ = 0;
 
     for (unsigned int i = 0; i < numThreads; i++)
     {
@@ -122,11 +158,10 @@ namespace Orthanc
 
   void ThreadedCommandProcessor::Post(ICommand* command)
   {
-    {
-      boost::mutex::scoped_lock lock(mutex_);
-      queue_.Enqueue(command);
-      remainingCommands_++;
-    }
+    boost::mutex::scoped_lock lock(mutex_);
+    queue_.Enqueue(command);
+    remainingCommands_++;
+    totalCommands_++;
   }
 
 
@@ -139,10 +174,32 @@ namespace Orthanc
       processedCommand_.wait(lock);
     }
 
-    // Reset the "success" flag for subsequent commands
+    if (cancel_ && listener_)
+    {
+      listener_->SignalCancel();
+    }
+
+    // Reset the sequence counters for subsequent commands
     bool hasSucceeded = success_;
     success_ = true;
+    totalCommands_ = 0;
+    cancel_ = false;
 
     return hasSucceeded;
+  }
+
+
+  void ThreadedCommandProcessor::Cancel()
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    cancel_ = true;
+  }
+
+
+  void ThreadedCommandProcessor::SetListener(IListener& listener)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    listener_ = &listener;
   }
 }
