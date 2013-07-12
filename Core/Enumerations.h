@@ -73,7 +73,8 @@ namespace Orthanc
   {
     PixelFormat_RGB24,
     PixelFormat_Grayscale8,
-    PixelFormat_Grayscale16
+    PixelFormat_Grayscale16,
+    PixelFormat_SignedGrayscale16
   };
 
 

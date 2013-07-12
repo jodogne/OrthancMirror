@@ -1662,9 +1662,11 @@ namespace Orthanc
     Register("/instances/{id}/frames/{frame}/preview", GetImage<ImageExtractionMode_Preview>);
     Register("/instances/{id}/frames/{frame}/image-uint8", GetImage<ImageExtractionMode_UInt8>);
     Register("/instances/{id}/frames/{frame}/image-uint16", GetImage<ImageExtractionMode_UInt16>);
+    Register("/instances/{id}/frames/{frame}/image-int16", GetImage<ImageExtractionMode_Int16>);
     Register("/instances/{id}/preview", GetImage<ImageExtractionMode_Preview>);
     Register("/instances/{id}/image-uint8", GetImage<ImageExtractionMode_UInt8>);
     Register("/instances/{id}/image-uint16", GetImage<ImageExtractionMode_UInt16>);
+    Register("/instances/{id}/image-int16", GetImage<ImageExtractionMode_Int16>);
 
     Register("/modalities", ListModalities);
     Register("/modalities/{id}", ListModalityOperations);

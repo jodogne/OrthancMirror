@@ -245,7 +245,8 @@ namespace Orthanc
     if (v & signMask_)
     {
       // Signed value
-      return -static_cast<int32_t>(v & mask_);
+      // http://en.wikipedia.org/wiki/Two%27s_complement#Subtraction_from_2N
+      return -static_cast<int32_t>(mask_) + static_cast<int32_t>(v & mask_) - 1;
     }
     else
     {
