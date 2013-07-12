@@ -86,6 +86,14 @@ namespace Orthanc
         return NULL;
     }
 
+    const void* GetBuffer(unsigned int y) const
+    {
+      if (buffer_.size() > 0)
+        return &buffer_[y * pitch_];
+      else
+        return NULL;
+    }
+
     void ReadFromFile(const char* filename);
 
     void ReadFromMemory(const void* buffer,
