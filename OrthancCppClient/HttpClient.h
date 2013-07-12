@@ -43,12 +43,19 @@ namespace Orthanc
     boost::shared_ptr<PImpl> pimpl_;
 
     std::string url_;
+    std::string credentials_;
     Orthanc_HttpMethod method_;
     Orthanc_HttpStatus lastStatus_;
     std::string postData_;
     bool isVerbose_;
 
+    void Setup();
+
+    void operator= (const HttpClient&);  // Forbidden
+
   public:
+    HttpClient(const HttpClient& base);
+
     HttpClient();
 
     ~HttpClient();

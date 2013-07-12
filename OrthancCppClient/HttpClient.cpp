@@ -44,7 +44,7 @@ namespace Orthanc
   {
     if (code != CURLE_OK)
     {
-      printf("ICI: %s\n", curl_easy_strerror(code));
+      //printf("ICI: %s\n", curl_easy_strerror(code));
       throw HttpException("CURL: " + std::string(curl_easy_strerror(code)));
     }
 
@@ -69,7 +69,7 @@ namespace Orthanc
   }
 
 
-  HttpClient::HttpClient() : pimpl_(new PImpl)
+  void HttpClient::Setup()
   {
     pimpl_->postHeaders_ = NULL;
     if ((pimpl_->postHeaders_ = curl_slist_append(pimpl_->postHeaders_, "Expect:")) == NULL)
@@ -104,6 +104,28 @@ namespace Orthanc
   }
 
 
+  HttpClient::HttpClient() : pimpl_(new PImpl)
+  {
+    Setup();
+  }
+
+
+  HttpClient::HttpClient(const HttpClient& other) : pimpl_(new PImpl)
+  {
+    Setup();
+
+    if (other.IsVerbose())
+    {
+      SetVerbose(true);
+    }
+
+    if (other.credentials_.size() != 0)
+    {
+      credentials_ = other.credentials_;
+    }
+  }
+
+
   HttpClient::~HttpClient()
   {
     curl_easy_cleanup(pimpl_->curl_);
@@ -132,6 +154,11 @@ namespace Orthanc
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_URL, url_.c_str()));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_WRITEDATA, &answer));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPHEADER, NULL));
+
+    if (credentials_.size() != 0)
+    {
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_USERPWD, credentials_.c_str()));
+    }
 
     switch (method_)
     {
@@ -207,10 +234,8 @@ namespace Orthanc
   void HttpClient::SetCredentials(const char* username,
                                   const char* password)
   {
-    std::string s = std::string(username) + ":" + std::string(password);
-    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_USERPWD, s.c_str()));
+    credentials_ = std::string(username) + ":" + std::string(password);
   }
-
 
   
   void HttpClient::GlobalInitialize()
