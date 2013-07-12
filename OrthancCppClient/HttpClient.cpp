@@ -204,8 +204,8 @@ namespace Orthanc
   }
 
 
-  void HttpClient::SetPassword(const char* username,
-			       const char* password)
+  void HttpClient::SetCredentials(const char* username,
+                                  const char* password)
   {
     std::string s = std::string(username) + ":" + std::string(password);
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_USERPWD, s.c_str()));
