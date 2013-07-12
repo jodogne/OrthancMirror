@@ -43,6 +43,6 @@ namespace Orthanc
   class ICommand : public IDynamicObject
   {
   public:
-    virtual void Execute() = 0;
+    virtual bool Execute() = 0;
   };
 }

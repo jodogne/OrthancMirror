@@ -47,9 +47,19 @@ namespace Orthanc
 
       if (command.get() != NULL)
       {
+        bool success = false;
+
         try
         {
-          dynamic_cast<ICommand&>(*command).Execute();
+          if (that->success_)
+          {
+            // No command has failed so far
+            success = dynamic_cast<ICommand&>(*command).Execute();
+          }
+          else
+          {
+            // A command has already failed. Skip the execution of this command.
+          }
         }
         catch (OrthancException)
         {
@@ -59,6 +69,10 @@ namespace Orthanc
           boost::mutex::scoped_lock lock(that->mutex_);
           assert(that->remainingCommands_ > 0);
           that->remainingCommands_--;
+
+          if (!success)
+            that->success_ = false;
+
           that->processedCommand_.notify_all();
         }
       }
@@ -72,7 +86,8 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
-
+    
+    success_ = true;
     done_ = false;
     threads_.resize(numThreads);
     remainingCommands_ = 0;
@@ -115,7 +130,7 @@ namespace Orthanc
   }
 
 
-  void ThreadedCommandProcessor::Join()
+  bool ThreadedCommandProcessor::Join()
   {
     boost::mutex::scoped_lock lock(mutex_);
 
@@ -123,5 +138,11 @@ namespace Orthanc
     {
       processedCommand_.wait(lock);
     }
+
+    // Reset the "success" flag for subsequent commands
+    bool hasSucceeded = success_;
+    success_ = true;
+
+    return hasSucceeded;
   }
 }
