@@ -40,14 +40,34 @@ namespace Orthanc
 {
   class ThreadedCommandProcessor
   {
+  public:
+    class IListener
+    {
+    public:
+      virtual ~IListener()
+      {
+      }
+
+      virtual void SignalProgress(unsigned int current,
+                                  unsigned int total) = 0;
+
+      virtual void SignalSuccess(unsigned int total) = 0;
+
+      virtual void SignalFailure() = 0;
+
+      virtual void SignalCancel() = 0;
+    };
+
   private:
     SharedMessageQueue  queue_;
     bool done_;
+    bool cancel_;
     std::vector<boost::thread*>  threads_;
+    IListener* listener_;
 
     boost::mutex mutex_;
     bool success_;
-    unsigned int remainingCommands_;
+    unsigned int remainingCommands_, totalCommands_;
     boost::condition_variable processedCommand_;
 
     static void Processor(ThreadedCommandProcessor* that);
@@ -61,5 +81,14 @@ namespace Orthanc
     void Post(ICommand* command);
 
     bool Join();
+
+    void Cancel();
+
+    void SetListener(IListener& listener);
+
+    IListener& GetListener() const
+    {
+      return *listener_;
+    }
   };
 }
