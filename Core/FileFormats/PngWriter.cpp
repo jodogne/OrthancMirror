@@ -146,6 +146,7 @@ namespace Orthanc
       break;
 
     case PixelFormat_Grayscale16:
+    case PixelFormat_SignedGrayscale16:
       pimpl_->bitDepth_ = 16;
       pimpl_->colorType_ = PNG_COLOR_TYPE_GRAY;
       break;
@@ -172,6 +173,7 @@ namespace Orthanc
       switch (format)
       {
       case PixelFormat_Grayscale16:
+      case PixelFormat_SignedGrayscale16:
         png_set_rows(pimpl_->png_, pimpl_->info_, &pimpl_->rows_[0]);
 
         if (Toolbox::DetectEndianness() == Endianness_Little)

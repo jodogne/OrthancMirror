@@ -1311,6 +1311,11 @@ namespace Orthanc
           format = PixelFormat_Grayscale16;
           break;
 
+        case ImageExtractionMode_Int16:
+          supported = true;
+          format = PixelFormat_SignedGrayscale16;
+          break;
+
         default:
           supported = false;
           break;
@@ -1360,6 +1365,10 @@ namespace Orthanc
 
         case ImageExtractionMode_UInt16:
           ExtractPngImageTruncate<uint16_t>(result, *accessor, format);
+          break;
+
+        case ImageExtractionMode_Int16:
+          ExtractPngImageTruncate<int16_t>(result, *accessor, format);
           break;
 
         default:
