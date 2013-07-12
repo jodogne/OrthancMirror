@@ -46,6 +46,7 @@ namespace Orthanc
     std::vector<boost::thread*>  threads_;
 
     boost::mutex mutex_;
+    bool success_;
     unsigned int remainingCommands_;
     boost::condition_variable processedCommand_;
 
@@ -59,6 +60,6 @@ namespace Orthanc
     // This takes the ownership of the command
     void Post(ICommand* command);
 
-    void Join();
+    bool Join();
   };
 }
