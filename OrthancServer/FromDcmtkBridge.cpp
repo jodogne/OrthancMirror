@@ -1140,9 +1140,9 @@ namespace Orthanc
       for (unsigned int x = 0; x < accessor.GetWidth(); x++, pixel++)
       {
         int32_t v = accessor.GetValue(x, y);
-        if (v < std::numeric_limits<T>::min())
+        if (v < static_cast<int32_t>(std::numeric_limits<T>::min()))
           *pixel = std::numeric_limits<T>::min();
-        else if (v > std::numeric_limits<T>::max())
+        else if (v > static_cast<int32_t>(std::numeric_limits<T>::max()))
           *pixel = std::numeric_limits<T>::max();
         else
           *pixel = static_cast<T>(v);
