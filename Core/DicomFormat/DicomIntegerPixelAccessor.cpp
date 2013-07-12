@@ -231,25 +231,27 @@ namespace Orthanc
       pixel += channel * frameOffset_ / samplesPerPixel_ + x * bytesPerPixel_;
     }
 
-    int32_t v;
+    uint32_t v;
     v = pixel[0];
     if (bytesPerPixel_ >= 2)
-      v = v + (static_cast<int32_t>(pixel[1]) << 8);
+      v = v + (static_cast<uint32_t>(pixel[1]) << 8);
     if (bytesPerPixel_ >= 3)
-      v = v + (static_cast<int32_t>(pixel[2]) << 16);
+      v = v + (static_cast<uint32_t>(pixel[2]) << 16);
     if (bytesPerPixel_ >= 4)
-      v = v + (static_cast<int32_t>(pixel[3]) << 24);
+      v = v + (static_cast<uint32_t>(pixel[3]) << 24);
 
-    v = (v >> shift_) & mask_;
+    v = v >> shift_;
 
     if (v & signMask_)
     {
-      // Signed value: Not implemented yet
-      //throw OrthancException(ErrorCode_NotImplemented);
-      v = 0;
+      // Signed value
+      return -static_cast<int32_t>(v & mask_);
     }
-
-    return v;
+    else
+    {
+      // Unsigned value
+      return static_cast<int32_t>(v & mask_);
+    }
   }
 
 
