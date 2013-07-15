@@ -43,14 +43,6 @@
 
 namespace Orthanc
 {
-  enum ImageExtractionMode
-  {
-    ImageExtractionMode_Preview,
-    ImageExtractionMode_UInt8,
-    ImageExtractionMode_UInt16,
-    ImageExtractionMode_Int16
-  };
-
   enum DicomRootLevel
   {
     DicomRootLevel_Patient,
