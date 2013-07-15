@@ -107,5 +107,7 @@ namespace Orthanc
     Endianness DetectEndianness();
 
     const char* ToString(HttpMethod method);
+
+    const char* ToString(HttpStatus status);
   }
 }

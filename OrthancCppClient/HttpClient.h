@@ -29,6 +29,8 @@
 
 #include "HttpException.h"
 
+#include "../Core/Toolbox.h"
+
 #include <string>
 #include <boost/shared_ptr.hpp>
 #include <json/json.h>
@@ -112,7 +114,7 @@ namespace Orthanc
 
     const char* GetLastStatusText() const
     {
-      return HttpException::GetDescription(lastStatus_);
+      return Toolbox::ToString(lastStatus_);
     }
 
     void SetCredentials(const char* username,
