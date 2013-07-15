@@ -122,6 +122,7 @@ add_library(CoreLibrary
   Core/DicomFormat/DicomTag.cpp
   Core/DicomFormat/DicomIntegerPixelAccessor.cpp
   Core/DicomFormat/DicomInstanceHasher.cpp
+  Core/Enumerations.cpp
   Core/FileStorage/FileStorage.cpp
   Core/FileStorage/StorageAccessor.cpp
   Core/FileStorage/CompressedFileStorageAccessor.cpp

@@ -252,6 +252,6 @@ namespace Orthanc
 
   const char* HttpClient::GetLastStatusText() const
   {
-    return Toolbox::ToString(lastStatus_);
+    return EnumerationToString(lastStatus_);
   }
 }

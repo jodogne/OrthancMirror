@@ -22,10 +22,10 @@ endif()
 
 add_library(OrthancCppClient
   SHARED
-
   ${THIRD_PARTY_SOURCES}
-  HttpException.cpp
-  HttpClient.cpp
+  ../Core/OrthancException.cpp
+  ../Core/Enumerations.cpp
+  ../Core/HttpClient.cpp
   )
 
 add_executable(Test
