@@ -27,7 +27,6 @@
 
 #pragma once
 
-#include "HttpEnumerations.h"
 #include "HttpException.h"
 
 #include <string>
@@ -44,8 +43,8 @@ namespace Orthanc
 
     std::string url_;
     std::string credentials_;
-    Orthanc_HttpMethod method_;
-    Orthanc_HttpStatus lastStatus_;
+    HttpMethod method_;
+    HttpStatus lastStatus_;
     std::string postData_;
     bool isVerbose_;
 
@@ -75,12 +74,12 @@ namespace Orthanc
       return url_;
     }
 
-    void SetMethod(Orthanc_HttpMethod method)
+    void SetMethod(HttpMethod method)
     {
       method_ = method;
     }
 
-    Orthanc_HttpMethod GetMethod() const
+    HttpMethod GetMethod() const
     {
       return method_;
     }
@@ -106,7 +105,7 @@ namespace Orthanc
 
     bool Apply(Json::Value& answer);
 
-    Orthanc_HttpStatus GetLastStatus() const
+    HttpStatus GetLastStatus() const
     {
       return lastStatus_;
     }

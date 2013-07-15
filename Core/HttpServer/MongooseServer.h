@@ -51,7 +51,7 @@ namespace Orthanc
     {
     }
 
-    virtual bool IsAllowed(Orthanc_HttpMethod method,
+    virtual bool IsAllowed(HttpMethod method,
                            const char* uri,
                            const char* ip,
                            const char* username) const = 0;

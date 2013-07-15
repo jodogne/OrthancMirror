@@ -58,13 +58,13 @@ namespace Orthanc
 
   void EmbeddedResourceHttpHandler::Handle(
     HttpOutput& output,
-    Orthanc_HttpMethod method,
+    HttpMethod method,
     const UriComponents& uri,
     const Arguments& headers,
     const Arguments& arguments,
     const std::string&)
   {
-    if (method != Orthanc_HttpMethod_Get)
+    if (method != HttpMethod_Get)
     {
       output.SendMethodNotAllowedError("GET");
       return;
@@ -82,7 +82,7 @@ namespace Orthanc
     catch (OrthancException& e)
     {
       LOG(WARNING) << "Unable to find HTTP resource: " << resourcePath;
-      output.SendHeader(Orthanc_HttpStatus_404_NotFound);
+      output.SendHeader(HttpStatus_404_NotFound);
     }
   } 
 }

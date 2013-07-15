@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "HttpEnumerations.h"
+#include "../Core/Enumerations.h"
 
 #include <string>
 
@@ -36,24 +36,24 @@ namespace Orthanc
   class HttpException
   {
   private:
-    Orthanc_HttpStatus status_;
+    HttpStatus status_;
     std::string custom_;
 
   public:
-    static const char* GetDescription(Orthanc_HttpStatus status);
+    static const char* GetDescription(HttpStatus status);
 
     HttpException(const std::string& custom)
     {
-      status_ = Orthanc_HttpStatus_None;
+      status_ = HttpStatus_None;
       custom_ = custom;
     }
 
-    HttpException(Orthanc_HttpStatus status)
+    HttpException(HttpStatus status)
     {
       status_ = status;
     }
 
-    Orthanc_HttpStatus GetHttpStatus() const
+    HttpStatus GetHttpStatus() const
     {
       return status_;
     }

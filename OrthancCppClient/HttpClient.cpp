@@ -98,8 +98,8 @@ namespace Orthanc
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_NOSIGNAL, 1));
 
     url_ = "";
-    method_ = Orthanc_HttpMethod_Get;
-    lastStatus_ = Orthanc_HttpStatus_200_Ok;
+    method_ = HttpMethod_Get;
+    lastStatus_ = HttpStatus_200_Ok;
     isVerbose_ = false;
   }
 
@@ -162,11 +162,11 @@ namespace Orthanc
 
     switch (method_)
     {
-    case Orthanc_HttpMethod_Get:
+    case HttpMethod_Get:
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPGET, 1L));
       break;
 
-    case Orthanc_HttpMethod_Post:
+    case HttpMethod_Post:
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POST, 1L));
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPHEADER, pimpl_->postHeaders_));
 
@@ -183,12 +183,12 @@ namespace Orthanc
 
       break;
 
-    case Orthanc_HttpMethod_Delete:
+    case HttpMethod_Delete:
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_NOBODY, 1L));
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CUSTOMREQUEST, "DELETE"));
       break;
 
-    case Orthanc_HttpMethod_Put:
+    case HttpMethod_Put:
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_PUT, 1L));
       break;
 
@@ -205,11 +205,11 @@ namespace Orthanc
     if (status == 0)
     {
       // This corresponds to a call to an inexistent host
-      lastStatus_ = Orthanc_HttpStatus_500_InternalServerError;
+      lastStatus_ = HttpStatus_500_InternalServerError;
     }
     else
     {
-      lastStatus_ = static_cast<Orthanc_HttpStatus>(status);
+      lastStatus_ = static_cast<HttpStatus>(status);
     }
 
     return (status >= 200 && status < 300);

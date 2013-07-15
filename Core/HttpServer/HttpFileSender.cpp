@@ -47,7 +47,7 @@ namespace Orthanc
 
     if (!SendData(output))
     {
-      output.SendHeader(Orthanc_HttpStatus_500_InternalServerError);
+      output.SendHeader(HttpStatus_500_InternalServerError);
     }
   }
 }

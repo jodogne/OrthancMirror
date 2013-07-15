@@ -486,7 +486,7 @@ namespace Orthanc
   }
 
 
-  static bool ExtractMethod(Orthanc_HttpMethod& method,
+  static bool ExtractMethod(HttpMethod& method,
                             const struct mg_request_info *request,
                             const HttpHandler::Arguments& headers,
                             const HttpHandler::Arguments& argumentsGET)
@@ -523,12 +523,12 @@ namespace Orthanc
 
       if (overriden == "PUT")
       {
-        method = Orthanc_HttpMethod_Put;
+        method = HttpMethod_Put;
         return true;
       }
       else if (overriden == "DELETE")
       {
-        method = Orthanc_HttpMethod_Delete;
+        method = HttpMethod_Delete;
         return true;
       }
       else
@@ -540,19 +540,19 @@ namespace Orthanc
     // No PUT/DELETE faking was present
     if (!strcmp(request->request_method, "GET"))
     {
-      method = Orthanc_HttpMethod_Get;
+      method = HttpMethod_Get;
     }
     else if (!strcmp(request->request_method, "POST"))
     {
-      method = Orthanc_HttpMethod_Post;
+      method = HttpMethod_Post;
     }
     else if (!strcmp(request->request_method, "DELETE"))
     {
-      method = Orthanc_HttpMethod_Delete;
+      method = HttpMethod_Delete;
     }
     else if (!strcmp(request->request_method, "PUT"))
     {
-      method = Orthanc_HttpMethod_Put;
+      method = HttpMethod_Put;
     }
     else
     {
@@ -601,10 +601,10 @@ namespace Orthanc
 
 
       // Compute the HTTP method, taking method faking into consideration
-      Orthanc_HttpMethod method;
+      HttpMethod method;
       if (!ExtractMethod(method, request, headers, argumentsGET))
       {
-        output.SendHeader(Orthanc_HttpStatus_400_BadRequest);
+        output.SendHeader(HttpStatus_400_BadRequest);
         return (void*) "";
       }
 
@@ -640,8 +640,8 @@ namespace Orthanc
 
       // Extract the body of the request for PUT and POST
       std::string body;
-      if (method == Orthanc_HttpMethod_Post ||
-          method == Orthanc_HttpMethod_Put)
+      if (method == HttpMethod_Post ||
+          method == HttpMethod_Put)
       {
         PostDataStatus status;
 
@@ -668,11 +668,11 @@ namespace Orthanc
         switch (status)
         {
           case PostDataStatus_NoLength:
-            output.SendHeader(Orthanc_HttpStatus_411_LengthRequired);
+            output.SendHeader(HttpStatus_411_LengthRequired);
             return (void*) "";
 
           case PostDataStatus_Failure:
-            output.SendHeader(Orthanc_HttpStatus_400_BadRequest);
+            output.SendHeader(HttpStatus_400_BadRequest);
             return (void*) "";
 
           case PostDataStatus_Pending:
@@ -693,7 +693,7 @@ namespace Orthanc
       }
       catch (OrthancException)
       {
-        output.SendHeader(Orthanc_HttpStatus_400_BadRequest);
+        output.SendHeader(HttpStatus_400_BadRequest);
         return (void*) "";
       }
 
@@ -703,28 +703,28 @@ namespace Orthanc
       {
         try
         {
-          LOG(INFO) << Orthanc_HttpMethod_ToString(method) << " " << Toolbox::FlattenUri(uri);
+          LOG(INFO) << Toolbox::ToString(method) << " " << Toolbox::FlattenUri(uri);
           handler->Handle(output, method, uri, headers, argumentsGET, body);
         }
         catch (OrthancException& e)
         {
           LOG(ERROR) << "MongooseServer Exception [" << e.What() << "]";
-          output.SendHeader(Orthanc_HttpStatus_500_InternalServerError);        
+          output.SendHeader(HttpStatus_500_InternalServerError);        
         }
         catch (boost::bad_lexical_cast&)
         {
           LOG(ERROR) << "MongooseServer Exception: Bad lexical cast";
-          output.SendHeader(Orthanc_HttpStatus_400_BadRequest);
+          output.SendHeader(HttpStatus_400_BadRequest);
         }
         catch (std::runtime_error&)
         {
           LOG(ERROR) << "MongooseServer Exception: Presumably a bad JSON request";
-          output.SendHeader(Orthanc_HttpStatus_400_BadRequest);
+          output.SendHeader(HttpStatus_400_BadRequest);
         }
       }
       else
       {
-        output.SendHeader(Orthanc_HttpStatus_404_NotFound);
+        output.SendHeader(HttpStatus_404_NotFound);
       }
 
       // Mark as processed

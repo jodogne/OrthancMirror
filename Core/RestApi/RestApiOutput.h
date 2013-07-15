@@ -74,7 +74,7 @@ namespace Orthanc
                       size_t length,
                       const std::string& contentType);
 
-    void SignalError(Orthanc_HttpStatus status);
+    void SignalError(HttpStatus status);
 
     void Redirect(const std::string& path);
 

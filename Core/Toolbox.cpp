@@ -132,9 +132,9 @@ namespace Orthanc
 #if defined(_WIN32)
   static BOOL WINAPI ConsoleControlHandler(DWORD dwCtrlType)
   {
-	// http://msdn.microsoft.com/en-us/library/ms683242(v=vs.85).aspx
-	finish = true;
-	return true;
+    // http://msdn.microsoft.com/en-us/library/ms683242(v=vs.85).aspx
+    finish = true;
+    return true;
   }
 #else
   static void SignalHandler(int)
@@ -169,7 +169,7 @@ namespace Orthanc
   void Toolbox::ServerBarrier()
   {
 #if defined(_WIN32)
-	SetConsoleCtrlHandler(ConsoleControlHandler, true);
+    SetConsoleCtrlHandler(ConsoleControlHandler, true);
 #else
     signal(SIGINT, SignalHandler);
     signal(SIGQUIT, SignalHandler);
@@ -182,7 +182,7 @@ namespace Orthanc
     }
 
 #if defined(_WIN32)
-	SetConsoleCtrlHandler(ConsoleControlHandler, false);
+    SetConsoleCtrlHandler(ConsoleControlHandler, false);
 #else
     signal(SIGINT, NULL);
     signal(SIGQUIT, NULL);
@@ -695,6 +695,28 @@ namespace Orthanc
         
       default:
         throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
+
+
+  const char* Toolbox::ToString(HttpMethod method)
+  {
+    switch (method)
+    {
+      case HttpMethod_Get:
+        return "GET";
+
+      case HttpMethod_Post:
+        return "POST";
+
+      case HttpMethod_Delete:
+        return "DELETE";
+
+      case HttpMethod_Put:
+        return "PUT";
+
+      default:
+        return "?";
     }
   }
 }
