@@ -104,7 +104,7 @@ namespace Orthanc
   void HttpOutput::SendMethodNotAllowedError(const std::string& allowed)
   {
     std::string s = 
-      "HTTP/1.1 405 " + std::string(HttpException::GetDescription(HttpStatus_405_MethodNotAllowed)) +
+      "HTTP/1.1 405 " + std::string(Toolbox::ToString(HttpStatus_405_MethodNotAllowed)) +
       "\r\nAllow: " + allowed + 
       "\r\n\r\n";
     Send(&s[0], s.size());
@@ -127,7 +127,7 @@ namespace Orthanc
   {
     std::string s = "HTTP/1.1 " + 
       boost::lexical_cast<std::string>(status) +
-      " " + std::string(HttpException::GetDescription(status)) +
+      " " + std::string(Toolbox::ToString(status)) +
       "\r\n\r\n";
     Send(&s[0], s.size());
   }
@@ -190,7 +190,7 @@ namespace Orthanc
   void HttpOutput::Redirect(const std::string& path)
   {
     std::string s = 
-      "HTTP/1.1 301 " + std::string(HttpException::GetDescription(HttpStatus_301_MovedPermanently)) + 
+      "HTTP/1.1 301 " + std::string(Toolbox::ToString(HttpStatus_301_MovedPermanently)) + 
       "\r\nLocation: " + path +
       "\r\n\r\n";
     Send(&s[0], s.size());  

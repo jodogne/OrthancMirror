@@ -40,8 +40,6 @@ namespace Orthanc
     std::string custom_;
 
   public:
-    static const char* GetDescription(HttpStatus status);
-
     HttpException(const std::string& custom)
     {
       status_ = HttpStatus_None;
