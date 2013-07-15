@@ -182,4 +182,10 @@ namespace Orthanc
     FileContentType_Dicom = 1,
     FileContentType_Json = 2
   };
+
+
+
+  const char* EnumerationToString(HttpMethod method);
+
+  const char* EnumerationToString(HttpStatus status);
 }

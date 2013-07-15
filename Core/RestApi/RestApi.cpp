@@ -280,7 +280,7 @@ namespace Orthanc
 
     if (!ok)
     {
-      LOG(INFO) << "REST method " << Toolbox::ToString(method) 
+      LOG(INFO) << "REST method " << EnumerationToString(method) 
                 << " not allowed on: " << Toolbox::FlattenUri(uri);
       output.SendMethodNotAllowedError(GetAcceptedMethods(uri));
     }

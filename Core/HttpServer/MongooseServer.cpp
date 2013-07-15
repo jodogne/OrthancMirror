@@ -703,7 +703,7 @@ namespace Orthanc
       {
         try
         {
-          LOG(INFO) << Toolbox::ToString(method) << " " << Toolbox::FlattenUri(uri);
+          LOG(INFO) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
           handler->Handle(output, method, uri, headers, argumentsGET, body);
         }
         catch (OrthancException& e)
