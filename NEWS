@@ -15,6 +15,7 @@ Other
 -----
 
 * Access to signed images (instances/.../image-int16)
+  (Closes: Debian #716958)
 * Statistics about patients, studies, series and instances
 * Link from anonymized to original resource in Orthanc Explorer
 * Fixes for Red Hat and Debian packaging
