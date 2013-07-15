@@ -54,7 +54,7 @@ namespace Orthanc
 
     virtual void Handle(
       HttpOutput& output,
-      Orthanc_HttpMethod method,
+      HttpMethod method,
       const UriComponents& uri,
       const Arguments& headers,
       const Arguments& arguments,

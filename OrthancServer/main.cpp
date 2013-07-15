@@ -158,7 +158,7 @@ public:
   {
   }
 
-  virtual bool IsAllowed(Orthanc_HttpMethod method,
+  virtual bool IsAllowed(HttpMethod method,
                          const char* uri,
                          const char* ip,
                          const char* username) const
@@ -172,19 +172,19 @@ public:
 
       switch (method)
       {
-        case Orthanc_HttpMethod_Get:
+        case HttpMethod_Get:
           call.PushString("GET");
           break;
 
-        case Orthanc_HttpMethod_Put:
+        case HttpMethod_Put:
           call.PushString("PUT");
           break;
 
-        case Orthanc_HttpMethod_Post:
+        case HttpMethod_Post:
           call.PushString("POST");
           break;
 
-        case Orthanc_HttpMethod_Delete:
+        case HttpMethod_Delete:
           call.PushString("DELETE");
           break;
 

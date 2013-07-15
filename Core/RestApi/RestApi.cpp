@@ -180,7 +180,7 @@ namespace Orthanc
   }
 
   void RestApi::Handle(HttpOutput& output,
-                       Orthanc_HttpMethod method,
+                       HttpMethod method,
                        const UriComponents& uri,
                        const Arguments& headers,
                        const Arguments& getArguments,
@@ -191,7 +191,7 @@ namespace Orthanc
     RestApiPath::Components components;
     UriComponents trailing;
 
-    if (method == Orthanc_HttpMethod_Get)
+    if (method == HttpMethod_Get)
     {
       for (GetHandlers::const_iterator it = getHandlers_.begin();
            it != getHandlers_.end(); it++)
@@ -213,7 +213,7 @@ namespace Orthanc
         }
       }
     }
-    else if (method == Orthanc_HttpMethod_Put)
+    else if (method == HttpMethod_Put)
     {
       for (PutHandlers::const_iterator it = putHandlers_.begin();
            it != putHandlers_.end(); it++)
@@ -235,7 +235,7 @@ namespace Orthanc
         }
       }
     }
-    else if (method == Orthanc_HttpMethod_Post)
+    else if (method == HttpMethod_Post)
     {
       for (PostHandlers::const_iterator it = postHandlers_.begin();
            it != postHandlers_.end(); it++)
@@ -257,7 +257,7 @@ namespace Orthanc
         }
       }
     }
-    else if (method == Orthanc_HttpMethod_Delete)
+    else if (method == HttpMethod_Delete)
     {
       for (DeleteHandlers::const_iterator it = deleteHandlers_.begin();
            it != deleteHandlers_.end(); it++)
@@ -280,7 +280,7 @@ namespace Orthanc
 
     if (!ok)
     {
-      LOG(INFO) << "REST method " << Orthanc_HttpMethod_ToString(method) 
+      LOG(INFO) << "REST method " << Toolbox::ToString(method) 
                 << " not allowed on: " << Toolbox::FlattenUri(uri);
       output.SendMethodNotAllowedError(GetAcceptedMethods(uri));
     }

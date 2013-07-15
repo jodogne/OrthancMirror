@@ -153,7 +153,6 @@ add_library(CoreLibrary
   Core/Lua/LuaFunctionCall.cpp
 
   OrthancCppClient/HttpClient.cpp
-  OrthancCppClient/HttpEnumerations.cpp
   OrthancCppClient/HttpException.cpp
   )  
 

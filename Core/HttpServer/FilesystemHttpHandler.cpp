@@ -127,13 +127,13 @@ namespace Orthanc
 
   void FilesystemHttpHandler::Handle(
     HttpOutput& output,
-    Orthanc_HttpMethod method,
+    HttpMethod method,
     const UriComponents& uri,
     const Arguments& headers,
     const Arguments& arguments,
     const std::string&)
   {
-    if (method != Orthanc_HttpMethod_Get)
+    if (method != HttpMethod_Get)
     {
       output.SendMethodNotAllowedError("GET");
       return;
@@ -161,7 +161,7 @@ namespace Orthanc
     }
     else
     {
-      output.SendHeader(Orthanc_HttpStatus_404_NotFound);
+      output.SendHeader(HttpStatus_404_NotFound);
     }
   } 
 }

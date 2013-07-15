@@ -45,7 +45,7 @@ namespace Orthanc
   private:
     typedef std::list< std::pair<std::string, std::string> >  Header;
 
-    void SendHeaderInternal(Orthanc_HttpStatus status);
+    void SendHeaderInternal(HttpStatus status);
 
     void PrepareOkHeader(Header& header,
                          const char* contentType,
@@ -74,7 +74,7 @@ namespace Orthanc
 
     void SendMethodNotAllowedError(const std::string& allowed);
 
-    void SendHeader(Orthanc_HttpStatus status);
+    void SendHeader(HttpStatus status);
 
     void Redirect(const std::string& path);
 

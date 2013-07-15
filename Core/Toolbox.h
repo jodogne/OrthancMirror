@@ -105,5 +105,7 @@ namespace Orthanc
     void UrlDecode(std::string& s);
 
     Endianness DetectEndianness();
+
+    const char* ToString(HttpMethod method);
   }
 }

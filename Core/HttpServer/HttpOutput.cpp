@@ -104,17 +104,17 @@ namespace Orthanc
   void HttpOutput::SendMethodNotAllowedError(const std::string& allowed)
   {
     std::string s = 
-      "HTTP/1.1 405 " + std::string(HttpException::GetDescription(Orthanc_HttpStatus_405_MethodNotAllowed)) +
+      "HTTP/1.1 405 " + std::string(HttpException::GetDescription(HttpStatus_405_MethodNotAllowed)) +
       "\r\nAllow: " + allowed + 
       "\r\n\r\n";
     Send(&s[0], s.size());
   }
 
 
-  void HttpOutput::SendHeader(Orthanc_HttpStatus status)
+  void HttpOutput::SendHeader(HttpStatus status)
   {
-    if (status == Orthanc_HttpStatus_200_Ok ||
-        status == Orthanc_HttpStatus_405_MethodNotAllowed)
+    if (status == HttpStatus_200_Ok ||
+        status == HttpStatus_405_MethodNotAllowed)
     {
       throw OrthancException("Please use the dedicated methods to this HTTP status code in HttpOutput");
     }
@@ -123,7 +123,7 @@ namespace Orthanc
   }
 
 
-  void HttpOutput::SendHeaderInternal(Orthanc_HttpStatus status)
+  void HttpOutput::SendHeaderInternal(HttpStatus status)
   {
     std::string s = "HTTP/1.1 " + 
       boost::lexical_cast<std::string>(status) +
@@ -190,7 +190,7 @@ namespace Orthanc
   void HttpOutput::Redirect(const std::string& path)
   {
     std::string s = 
-      "HTTP/1.1 301 " + std::string(HttpException::GetDescription(Orthanc_HttpStatus_301_MovedPermanently)) + 
+      "HTTP/1.1 301 " + std::string(HttpException::GetDescription(HttpStatus_301_MovedPermanently)) + 
       "\r\nLocation: " + path +
       "\r\n\r\n";
     Send(&s[0], s.size());  
