@@ -27,6 +27,9 @@
 
 #include "HttpClient.h"
 
+#include "../Core/Toolbox.h"
+#include "../Core/OrthancException.h"
+
 #include <string.h>
 #include <curl/curl.h>
 
@@ -44,8 +47,7 @@ namespace Orthanc
   {
     if (code != CURLE_OK)
     {
-      //printf("ICI: %s\n", curl_easy_strerror(code));
-      throw HttpException("CURL: " + std::string(curl_easy_strerror(code)));
+      throw OrthancException("libCURL error: " + std::string(curl_easy_strerror(code)));
     }
 
     return code;
@@ -74,14 +76,14 @@ namespace Orthanc
     pimpl_->postHeaders_ = NULL;
     if ((pimpl_->postHeaders_ = curl_slist_append(pimpl_->postHeaders_, "Expect:")) == NULL)
     {
-      throw HttpException("HttpClient: Not enough memory");
+      throw OrthancException(ErrorCode_NotEnoughMemory);
     }
 
     pimpl_->curl_ = curl_easy_init();
     if (!pimpl_->curl_)
     {
       curl_slist_free_all(pimpl_->postHeaders_);
-      throw HttpException("HttpClient: Not enough memory");
+      throw OrthancException(ErrorCode_NotEnoughMemory);
     }
 
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_WRITEFUNCTION, &CurlCallback));
@@ -193,7 +195,7 @@ namespace Orthanc
       break;
 
     default:
-      throw HttpException("HttpClient: Internal error");
+      throw OrthancException(ErrorCode_InternalError);
     }
 
     // Do the actual request
@@ -246,5 +248,10 @@ namespace Orthanc
   void HttpClient::GlobalFinalize()
   {
     curl_global_cleanup();
+  }
+
+  const char* HttpClient::GetLastStatusText() const
+  {
+    return Toolbox::ToString(lastStatus_);
   }
 }

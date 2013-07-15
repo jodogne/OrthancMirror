@@ -38,7 +38,6 @@
 #include <boost/lexical_cast.hpp>
 #include "../OrthancException.h"
 #include "../Toolbox.h"
-#include "../../OrthancCppClient/HttpException.h"
 
 namespace Orthanc
 {

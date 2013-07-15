@@ -27,9 +27,7 @@
 
 #pragma once
 
-#include "HttpException.h"
-
-#include "../Core/Toolbox.h"
+#include "../Core/Enumerations.h"
 
 #include <string>
 #include <boost/shared_ptr.hpp>
@@ -112,10 +110,7 @@ namespace Orthanc
       return lastStatus_;
     }
 
-    const char* GetLastStatusText() const
-    {
-      return Toolbox::ToString(lastStatus_);
-    }
+    const char* GetLastStatusText() const;
 
     void SetCredentials(const char* username,
                         const char* password);
