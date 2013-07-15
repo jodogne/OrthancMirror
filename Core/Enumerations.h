@@ -77,6 +77,14 @@ namespace Orthanc
     PixelFormat_SignedGrayscale16
   };
 
+  enum ImageExtractionMode
+  {
+    ImageExtractionMode_Preview,
+    ImageExtractionMode_UInt8,
+    ImageExtractionMode_UInt16,
+    ImageExtractionMode_Int16
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations
