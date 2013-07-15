@@ -6,7 +6,6 @@
 
 #include "../Core/Compression/ZlibCompressor.h"
 #include "../Core/DicomFormat/DicomTag.h"
-#include "../OrthancCppClient/HttpClient.h"
 #include "../Core/HttpServer/HttpHandler.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"

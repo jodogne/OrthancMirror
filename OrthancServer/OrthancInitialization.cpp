@@ -32,7 +32,7 @@
 
 #include "OrthancInitialization.h"
 
-#include "../OrthancCppClient/HttpClient.h"
+#include "../Core/HttpClient.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
 #include "ServerEnumerations.h"

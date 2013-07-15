@@ -126,6 +126,7 @@ add_library(CoreLibrary
   Core/FileStorage/StorageAccessor.cpp
   Core/FileStorage/CompressedFileStorageAccessor.cpp
   Core/FileStorage/FileStorageAccessor.cpp
+  Core/HttpClient.cpp
   Core/HttpServer/EmbeddedResourceHttpHandler.cpp
   Core/HttpServer/FilesystemHttpHandler.cpp
   Core/HttpServer/HttpHandler.cpp
@@ -151,8 +152,6 @@ add_library(CoreLibrary
   Core/Uuid.cpp
   Core/Lua/LuaContext.cpp
   Core/Lua/LuaFunctionCall.cpp
-
-  OrthancCppClient/HttpClient.cpp
   )  
 
 
