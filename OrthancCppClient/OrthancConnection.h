@@ -38,7 +38,9 @@
 
 namespace OrthancClient
 {
-  class OrthancConnection : public boost::noncopyable, private Orthanc::ArrayFilledByThreads::IFiller
+  class OrthancConnection : 
+    public boost::noncopyable,
+    private Orthanc::ArrayFilledByThreads::IFiller
   {
   private:
     Orthanc::HttpClient client_;

@@ -36,7 +36,9 @@
 
 namespace OrthancClient
 {
-  class Study : public Orthanc::IDynamicObject, private Orthanc::ArrayFilledByThreads::IFiller
+  class Study : 
+    public Orthanc::IDynamicObject, 
+    private Orthanc::ArrayFilledByThreads::IFiller
   {
   private:
     const OrthancConnection& connection_;
