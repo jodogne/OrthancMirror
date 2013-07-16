@@ -107,6 +107,12 @@
 
   // The list of the known Orthanc peers
   "OrthancPeers" : {
-    // "peer" : [ "http://localhost:8043/", "alice", "alicePassword" ]
+    /**
+     * Each line gives the base URL of an Orthanc peer, possibly
+     * followed by the username/password pair (if the password
+     * protection is enabled on the peer).
+     **/
+    // "peer"  : [ "http://localhost:8043/", "alice", "alicePassword" ]
+    // "peer2" : [ "http://localhost:8044/" ]
   }
 }
