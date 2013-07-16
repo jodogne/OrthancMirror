@@ -735,6 +735,21 @@ namespace Orthanc
   }
 
 
+  static void ExportInstanceFile(RestApi::PostCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+
+    std::string publicId = call.GetUriComponent("id", "");
+
+    std::string dicom;
+    context.ReadFile(dicom, publicId, FileContentType_Dicom);
+
+    Toolbox::WriteFile(dicom, call.GetPostBody());
+
+    call.GetOutput().AnswerBuffer("{}", "application/json");
+  }
+
+
   template <bool simplify>
   static void GetInstanceTags(RestApi::GetCall& call)
   {
@@ -1654,6 +1669,7 @@ namespace Orthanc
     Register("/patients/{id}/protected", IsProtectedPatient);
     Register("/patients/{id}/protected", SetPatientProtection);
     Register("/instances/{id}/file", GetInstanceFile);
+    Register("/instances/{id}/export", ExportInstanceFile);
     Register("/instances/{id}/tags", GetInstanceTags<false>);
     Register("/instances/{id}/simplified-tags", GetInstanceTags<true>);
     Register("/instances/{id}/frames", ListFrames);
