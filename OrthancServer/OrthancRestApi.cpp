@@ -52,8 +52,12 @@
   ServerContext& context = contextApi.GetContext()
 
 #define RETRIEVE_MODALITIES(call)                                       \
-  const OrthancRestApi::Modalities& modalities =                        \
+  const OrthancRestApi::SetOfStrings& modalities =                      \
     dynamic_cast<OrthancRestApi&>(call.GetContext()).GetModalities();
+
+#define RETRIEVE_PEERS(call)                                            \
+  const OrthancRestApi::SetOfStrings& peers =                           \
+    dynamic_cast<OrthancRestApi&>(call.GetContext()).GetPeers();
 
 
 
@@ -881,7 +885,7 @@ namespace Orthanc
 
   // DICOM bridge -------------------------------------------------------------
 
-  static bool IsExistingModality(const OrthancRestApi::Modalities& modalities,
+  static bool IsExistingModality(const OrthancRestApi::SetOfStrings& modalities,
                                  const std::string& id)
   {
     return modalities.find(id) != modalities.end();
@@ -892,7 +896,7 @@ namespace Orthanc
     RETRIEVE_MODALITIES(call);
 
     Json::Value result = Json::arrayValue;
-    for (OrthancRestApi::Modalities::const_iterator 
+    for (OrthancRestApi::SetOfStrings::const_iterator 
            it = modalities.begin(); it != modalities.end(); it++)
     {
       result.append(*it);
@@ -1610,12 +1614,51 @@ namespace Orthanc
 
 
 
+  // Orthanc Peers ------------------------------------------------------------
+
+  static bool IsExistingPeer(const OrthancRestApi::SetOfStrings& peers,
+                             const std::string& id)
+  {
+    return peers.find(id) != peers.end();
+  }
+
+  static void ListPeers(RestApi::GetCall& call)
+  {
+    RETRIEVE_PEERS(call);
+
+    Json::Value result = Json::arrayValue;
+    for (OrthancRestApi::SetOfStrings::const_iterator 
+           it = peers.begin(); it != peers.end(); it++)
+    {
+      result.append(*it);
+    }
+
+    call.GetOutput().AnswerJson(result);
+  }
+
+  static void ListPeerOperations(RestApi::GetCall& call)
+  {
+    RETRIEVE_PEERS(call);
+
+    std::string id = call.GetUriComponent("id", "");
+    if (IsExistingPeer(peers, id))
+    {
+      Json::Value result = Json::arrayValue;
+      result.append("store");
+      call.GetOutput().AnswerJson(result);
+    }
+  }
+
+
+
+
   // Registration of the various REST handlers --------------------------------
 
   OrthancRestApi::OrthancRestApi(ServerContext& context) : 
     context_(context)
   {
     GetListOfDicomModalities(modalities_);
+    GetListOfOrthancPeers(peers_);
 
     Register("/", ServeRoot);
     Register("/system", GetSystemInformation);
@@ -1691,6 +1734,9 @@ namespace Orthanc
     Register("/modalities/{id}/find-series", DicomFindSeries);
     Register("/modalities/{id}/find", DicomFind);
     Register("/modalities/{id}/store", DicomStore);
+
+    Register("/peers", ListPeers);
+    Register("/peers/{id}", ListPeerOperations);
 
     Register("/instances/{id}/modify", ModifyInstance);
     Register("/series/{id}/modify", ModifySeriesInplace);

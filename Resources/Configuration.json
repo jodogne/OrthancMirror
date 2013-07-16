@@ -105,7 +105,8 @@
     // "sample" : [ "STORESCP", "localhost", 2000 ]
   },
 
-  // The list of the known Orthanc peers (currently unused)
+  // The list of the known Orthanc peers
   "OrthancPeers" : {
+    // "peer" : [ "http://localhost:8043/", "alice", "alicePassword" ]
   }
 }
