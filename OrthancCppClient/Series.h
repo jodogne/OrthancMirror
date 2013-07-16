@@ -39,7 +39,9 @@
 
 namespace OrthancClient
 {
-  class Series : public Orthanc::IDynamicObject, private Orthanc::ArrayFilledByThreads::IFiller
+  class Series :
+    public Orthanc::IDynamicObject, 
+    private Orthanc::ArrayFilledByThreads::IFiller
   {
   private:
     enum Status3DImage

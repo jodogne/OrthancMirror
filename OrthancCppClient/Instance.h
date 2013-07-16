@@ -57,6 +57,11 @@ namespace OrthancClient
     Instance(const OrthancConnection& connection,
              const std::string& id);
 
+    const std::string& GetId() const
+    {
+      return id_;
+    }
+
     void SetImageExtractionMode(Orthanc::ImageExtractionMode mode);
 
     Orthanc::ImageExtractionMode GetImageExtractionMode() const
