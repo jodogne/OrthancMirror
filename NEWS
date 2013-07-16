@@ -20,6 +20,7 @@ Minor changes
 * Fixes for Red Hat and Debian packaging
 * Fixes for history in Orthanc Explorer
 * Fixes for boost::thread, as reported by Cyril Paulus
+* Fix licensing (Closes: Debian #712038)
 
 
 Metadata
