@@ -7,9 +7,11 @@ project(OrthancCppClientTest)
 
 SET(STATIC_BUILD OFF)
 
-include(${CMAKE_SOURCE_DIR}/../Resources/CMake/DownloadPackage.cmake)
-include(${CMAKE_SOURCE_DIR}/../Resources/CMake/JsonCppConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/../Resources/CMake/LibCurlConfiguration.cmake)
+set(ORTHANC_ROOT ${CMAKE_SOURCE_DIR}/../../../..)
+
+include(${ORTHANC_ROOT}/Resources/CMake/DownloadPackage.cmake)
+include(${ORTHANC_ROOT}/Resources/CMake/JsonCppConfiguration.cmake)
+include(${ORTHANC_ROOT}/Resources/CMake/LibCurlConfiguration.cmake)
 
 if (${CMAKE_COMPILER_IS_GNUCXX})
   set(CMAKE_C_FLAGS "-Wall -pedantic -Wno-implicit-function-declaration")  # --std=c99 makes libcurl not to compile
@@ -23,9 +25,9 @@ endif()
 add_library(OrthancCppClient
   SHARED
   ${THIRD_PARTY_SOURCES}
-  ../Core/OrthancException.cpp
-  ../Core/Enumerations.cpp
-  ../Core/HttpClient.cpp
+  ${ORTHANC_ROOT}/Core/OrthancException.cpp
+  ${ORTHANC_ROOT}/Core/Enumerations.cpp
+  ${ORTHANC_ROOT}/Core/HttpClient.cpp
   )
 
 add_executable(Test
