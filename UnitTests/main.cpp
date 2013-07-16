@@ -451,6 +451,35 @@ TEST(SharedMessageQueue, Clean)
 }
 
 
+TEST(Toolbox, WriteFile)
+{
+  std::string path;
+
+  {
+    Toolbox::TemporaryFile tmp;
+    path = tmp.GetPath();
+
+    std::string s;
+    s.append("Hello");
+    s.push_back('\0');
+    s.append("World");
+    ASSERT_EQ(11u, s.size());
+
+    Toolbox::WriteFile(s, path.c_str());
+
+    std::string t;
+    Toolbox::ReadFile(t, path.c_str());
+
+    ASSERT_EQ(11u, t.size());
+    ASSERT_EQ(0, t[5]);
+    ASSERT_EQ(0, memcmp(s.c_str(), t.c_str(), s.size()));
+  }
+
+  std::string u;
+  ASSERT_THROW(Toolbox::ReadFile(u, path.c_str()), OrthancException);
+}
+
+
 int main(int argc, char **argv)
 {
   // Initialize Google's logging library.

@@ -208,10 +208,10 @@ namespace Orthanc
                          const std::string& path) 
   {
     boost::filesystem::ifstream f;
-    f.open(path, std::ifstream::in | std::ios::binary);
+    f.open(path, std::ifstream::in | std::ifstream::binary);
     if (!f.good())
     {
-      throw OrthancException("Unable to open a file");
+      throw OrthancException(ErrorCode_InexistentFile);
     }
 
     // http://www.cplusplus.com/reference/iostream/istream/tellg/
@@ -227,6 +227,26 @@ namespace Orthanc
 
     f.close();
   }
+
+
+  void Toolbox::WriteFile(const std::string& content,
+                          const std::string& path)
+  {
+    boost::filesystem::ofstream f;
+    f.open(path, std::ofstream::binary);
+    if (!f.good())
+    {
+      throw OrthancException(ErrorCode_CannotWriteFile);
+    }
+
+    if (content.size() != 0)
+    {
+      f.write(content.c_str(), content.size());
+    }
+
+    f.close();
+  }
+
 
 
   void Toolbox::RemoveFile(const std::string& path)

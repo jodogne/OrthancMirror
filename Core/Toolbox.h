@@ -57,6 +57,9 @@ namespace Orthanc
     void ReadFile(std::string& content,
                   const std::string& path);
 
+    void WriteFile(const std::string& content,
+                   const std::string& path);
+
     void Sleep(uint32_t seconds);
 
     void USleep(uint64_t microSeconds);
