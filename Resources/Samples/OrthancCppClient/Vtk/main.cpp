@@ -146,6 +146,19 @@ void Display(OrthancClient::Series& series)
 
 int main()
 {
+  // Use the commented code below if you know the identifier of a
+  // series that corresponds to a 3D image.
+
+  /*
+     {
+     OrthancClient::OrthancConnection orthanc("http://localhost:8042");
+     OrthancClient::Series series(orthanc, "c1c4cb95-05e3bd11-8da9f5bb-87278f71-0b2b43f5");
+     Display(series);
+     return 0;
+     }
+  */
+
+
   // Try and find a 3D image inside the local store
   OrthancClient::OrthancConnection orthanc("http://localhost:8042");
 
