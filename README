@@ -60,10 +60,6 @@ Licensing of special directories
 
 The following directories have separate licensing terms:
 
-* The files of the "OrthancCppClient/" directory are licensed under
-  the MIT license, which allows commercial products to statically link
-  against the C++ client library.
-
 * The file of the "Core/SQLite/" directory are licensed under the
   3-clause BSD license, as they are derived from the Chromium project.
 
@@ -74,7 +70,7 @@ Content
 This archive contains the following directories:
 
 * Core/               - The core C++ classes (independent of DCMTK)
-* OrthancCppClient/   - Code of the C++ client (under MIT license)
+* OrthancCppClient/   - Code of the C++ client
 * OrthancExplorer/    - Code of the Web application (HTML5/Javascript)
 * OrthancServer/      - Code of the Orthanc server (depends on DCMTK)
 * Resources/          - Scripts, resources for building third-party code

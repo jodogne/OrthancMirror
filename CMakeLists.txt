@@ -141,6 +141,7 @@ add_library(CoreLibrary
   Core/MultiThreading/BagOfRunnablesBySteps.cpp
   Core/MultiThreading/SharedMessageQueue.cpp
   Core/MultiThreading/ThreadedCommandProcessor.cpp
+  Core/MultiThreading/ArrayFilledByThreads.cpp
   Core/FileFormats/PngReader.cpp
   Core/FileFormats/PngWriter.cpp
   Core/SQLite/Connection.cpp
@@ -153,6 +154,12 @@ add_library(CoreLibrary
   Core/Uuid.cpp
   Core/Lua/LuaContext.cpp
   Core/Lua/LuaFunctionCall.cpp
+
+  OrthancCppClient/OrthancConnection.cpp
+  OrthancCppClient/Study.cpp
+  OrthancCppClient/Series.cpp
+  OrthancCppClient/Instance.cpp
+  OrthancCppClient/Patient.cpp
   )  
 
 
