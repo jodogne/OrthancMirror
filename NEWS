@@ -2,6 +2,10 @@ Pending changes in the mainline
 ===============================
 
 
+
+Version 0.6.0 (2013/07/16)
+==========================
+
 Major changes
 -------------
 
@@ -9,7 +13,6 @@ Major changes
 * Send DICOM resources to other Orthanc instances through HTTP
 * Access to signed images (instances/.../image-int16)
   (Closes: Debian #716958)
-
 
 Minor changes
 -------------
@@ -22,7 +25,6 @@ Minor changes
 * Fixes for boost::thread, as reported by Cyril Paulus
 * Fix licensing (Closes: Debian #712038)
 
-
 Metadata
 --------
 
@@ -31,7 +33,6 @@ Metadata
 * "LastUpdate" metadata for patients, studies and series
 * "/tools/now" to be used in combination with "LastUpdate"
 * Improved support of series with temporal positions
-
 
 
 Version 0.5.2 (2013/05/07)
