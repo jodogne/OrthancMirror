@@ -12,6 +12,11 @@ if ($.browser.msie)
 //$.mobile.page.prototype.options.addBackBtn = true;
 //$.mobile.defaultPageTransition = 'slide';
 
+
+var currentPage = '';
+var currentUuid = '';
+
+
 // http://stackoverflow.com/a/4673436
 String.prototype.format = function() {
   var args = arguments;
@@ -363,7 +368,7 @@ function SetupAnonymizedFrom(buttonSelector, resource, resourceType)
     $(buttonSelector).closest('li').show();
     $(buttonSelector).click(function(e) {
       window.location.assign('explorer.html#' + resourceType + '?uuid=' + resource.AnonymizedFrom);
-      window.location.reload();
+      //window.location.reload();
     });
   }
   else
@@ -373,7 +378,8 @@ function SetupAnonymizedFrom(buttonSelector, resource, resourceType)
 }
 
 
-$('#patient').live('pagebeforeshow', function() {
+function RefreshPatient()
+{
   if ($.mobile.pageData) {
     GetSingleResource('patients', $.mobile.pageData.uuid, function(patient) {
       GetMultipleResources('studies', patient.Studies, function(studies) {
@@ -414,13 +420,17 @@ $('#patient').live('pagebeforeshow', function() {
             $('#protection').val(v).slider('refresh');
           }
         });
+
+        currentPage = 'patient';
+        currentUuid = $.mobile.pageData.uuid;
       });
     });
   }
-});
+}
 
 
-$('#study').live('pagebeforeshow', function() {
+function RefreshStudy()
+{
   if ($.mobile.pageData) {
     GetSingleResource('studies', $.mobile.pageData.uuid, function(study) {
       GetSingleResource('patients', study.ParentPatient, function(patient) {
@@ -449,14 +459,18 @@ $('#study').live('pagebeforeshow', function() {
             target.append(FormatSeries(series[i], '#series?uuid=' + series[i].ID));
           }
           target.listview('refresh');
+
+          currentPage = 'study';
+          currentUuid = $.mobile.pageData.uuid;
         });
       });  
     });
   }
-});
+}
   
 
-$('#series').live('pagebeforeshow', function() {
+function RefreshSeries() 
+{
   if ($.mobile.pageData) {
     GetSingleResource('series', $.mobile.pageData.uuid, function(series) {
       GetSingleResource('studies', series.ParentStudy, function(study) {
@@ -485,12 +499,15 @@ $('#series').live('pagebeforeshow', function() {
               target.append(FormatInstance(instances[i], '#instance?uuid=' + instances[i].ID));
             }
             target.listview('refresh');
+
+            currentPage = 'series';
+            currentUuid = $.mobile.pageData.uuid;
           });
         });
       });
     });
   }
-});
+}
 
 
 
@@ -545,7 +562,8 @@ function ConvertForTree(dicom)
 }
 
 
-$('#instance').live('pagebeforeshow', function() {
+function RefreshInstance()
+{
   if ($.mobile.pageData) {
     GetSingleResource('instances', $.mobile.pageData.uuid, function(instance) {
       GetSingleResource('series', instance.ParentSeries, function(series) {
@@ -577,12 +595,46 @@ $('#instance').live('pagebeforeshow', function() {
               }
             });
 
+            currentPage = 'instance';
+            currentUuid = $.mobile.pageData.uuid;
           });
         });
       });
     });
   }
+}
+
+$(document).live('pagebeforehide', function() {
+  currentPage = '';
+  currentUuid = '';
 });
+
+
+
+$('#patient').live('pagebeforeshow', RefreshPatient);
+$('#study').live('pagebeforeshow', RefreshStudy);
+$('#series').live('pagebeforeshow', RefreshSeries);
+$('#instance').live('pagebeforeshow', RefreshInstance);
+
+$(function() {
+  $(window).hashchange(function(e, data) {
+    // This fixes the navigation with the back button and with the anonymization
+    if ('uuid' in $.mobile.pageData &&
+        currentPage == $.mobile.pageData.active &&
+        currentUuid != $.mobile.pageData.uuid) {
+      if (currentPage == 'patient')
+        RefreshPatient();
+      else if (currentPage == 'study')
+        RefreshStudy();
+      else if (currentPage == 'series')
+        RefreshSeries();
+      else if (currentPage == 'instance')
+        RefreshInstance();
+    }
+  });
+});
+
+
 
 
 
@@ -863,7 +915,7 @@ function OpenAnonymizeResourceDialog(path, title)
               //$.mobile.changePage('explorer.html#patient?uuid=' + s.PatientID);
 
               window.location.assign('explorer.html#patient?uuid=' + s.PatientID);
-              window.location.reload();
+              //window.location.reload();
             }
           });
         },
