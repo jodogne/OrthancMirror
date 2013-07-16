@@ -6,6 +6,7 @@ Major changes
 -------------
 
 * Introduction of the C++ client
+* Send DICOM resources to other Orthanc instances through HTTP
 * Access to signed images (instances/.../image-int16)
   (Closes: Debian #716958)
 
@@ -13,6 +14,7 @@ Major changes
 Minor changes
 -------------
 
+* Export of DICOM files to the host filesystem (instances/.../export)
 * Statistics about patients, studies, series and instances
 * Link from anonymized to original resource in Orthanc Explorer
 * Fixes for Red Hat and Debian packaging

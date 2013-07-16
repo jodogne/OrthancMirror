@@ -792,7 +792,10 @@ function ChooseDicomModality(callback)
     success: function(modalities) {
       var clickedModality = '';
       var items = $('<ul>')
+        .attr('data-divider-theme', 'd')
         .attr('data-role', 'listview');
+
+      items.append('<li data-role="list-divider">DICOM modalities</li>');
 
       for (var i = 0; i < modalities.length; i++) {
         var modality = modalities[i];
@@ -805,10 +808,13 @@ function ChooseDicomModality(callback)
         items.append(item);
       }
 
+      items.append('<li data-role="list-divider">Orthanc peers</li>');
+
+
       $('#dialog').simpledialog2({
         mode: 'blank',
         animate: false,
-        headerText: 'DICOM modality',
+        headerText: 'Choose target',
         headerClose: true,
         width: '100%',
         blankContent: items,

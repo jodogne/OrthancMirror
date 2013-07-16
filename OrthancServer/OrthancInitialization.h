@@ -58,7 +58,14 @@ namespace Orthanc
                         std::string& address,
                         int& port);
 
+  void GetOrthancPeer(const std::string& name,
+                      std::string& url,
+                      std::string& username,
+                      std::string& password);
+
   void GetListOfDicomModalities(std::set<std::string>& target);
+
+  void GetListOfOrthancPeers(std::set<std::string>& target);
 
   void SetupRegisteredUsers(MongooseServer& httpServer);
 

@@ -260,35 +260,92 @@ namespace Orthanc
 
 
 
-  void GetListOfDicomModalities(std::set<std::string>& target)
+  void GetOrthancPeer(const std::string& name,
+                      std::string& url,
+                      std::string& username,
+                      std::string& password)
+  {
+    boost::mutex::scoped_lock lock(globalMutex_);
+
+    if (!configuration_->isMember("OrthancPeers"))
+    {
+      throw OrthancException("");
+    }
+
+    const Json::Value& modalities = (*configuration_) ["OrthancPeers"];
+    if (modalities.type() != Json::objectValue ||
+        !modalities.isMember(name))
+    {
+      throw OrthancException("");
+    }
+
+    try
+    {
+      url = modalities[name].get(0u, "").asString();
+      username = modalities[name].get(1u, "").asString();
+      password = modalities[name].get(2u, "").asString();
+    }
+    catch (...)
+    {
+      throw OrthancException("Badly formatted Orthanc peer");
+    }
+  }
+
+
+  static bool ReadKeys(std::set<std::string>& target,
+                       const char* parameter,
+                       bool onlyAlphanumeric)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
     target.clear();
   
-    if (!configuration_->isMember("DicomModalities"))
+    if (!configuration_->isMember(parameter))
     {
-      return;
+      return true;
     }
 
-    const Json::Value& modalities = (*configuration_) ["DicomModalities"];
+    const Json::Value& modalities = (*configuration_) [parameter];
     if (modalities.type() != Json::objectValue)
     {
-      throw OrthancException("Badly formatted list of DICOM modalities");
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
 
     Json::Value::Members members = modalities.getMemberNames();
     for (size_t i = 0; i < members.size(); i++)
     {
-      for (size_t j = 0; j < members[i].size(); j++)
+      if (onlyAlphanumeric)
       {
-        if (!isalnum(members[i][j]) && members[i][j] != '-')
+        for (size_t j = 0; j < members[i].size(); j++)
         {
-          throw OrthancException("Only alphanumeric and dash characters are allowed in the names of the modalities");
+          if (!isalnum(members[i][j]) && members[i][j] != '-')
+          {
+            return false;
+          }
         }
       }
 
       target.insert(members[i]);
+    }
+
+    return true;
+  }
+
+
+  void GetListOfDicomModalities(std::set<std::string>& target)
+  {
+    if (!ReadKeys(target, "DicomModalities", true))
+    {
+      throw OrthancException("Only alphanumeric and dash characters are allowed in the names of the modalities");
+    }
+  }
+
+
+  void GetListOfOrthancPeers(std::set<std::string>& target)
+  {
+    if (!ReadKeys(target, "OrthancPeers", true))
+    {
+      throw OrthancException("Only alphanumeric and dash characters are allowed in the names of Orthanc peers");
     }
   }
 
