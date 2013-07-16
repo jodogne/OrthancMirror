@@ -105,7 +105,9 @@ $( document ).bind( "pagebeforechange", function( e, data ) {
 
 // http://stackoverflow.com/a/8295488
 $(document).bind("pagebeforechange", function( event, data ) {
-    $.mobile.pageData = (data && data.options && data.options.pageData)
+  $.mobile.pageData = (data && data.options && data.options.pageData)
     ? data.options.pageData
     : {};
+
+  $.mobile.pageData.active = data.toPage[0].id;
 });

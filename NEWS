@@ -2,24 +2,33 @@ Pending changes in the mainline
 ===============================
 
 
+Major changes
+-------------
+
+* Introduction of the C++ client
+* Access to signed images (instances/.../image-int16)
+  (Closes: Debian #716958)
+
+
+Minor changes
+-------------
+
+* Statistics about patients, studies, series and instances
+* Link from anonymized to original resource in Orthanc Explorer
+* Fixes for Red Hat and Debian packaging
+* Fixes for history in Orthanc Explorer
+* Fixes for boost::thread, as reported by Cyril Paulus
+
+
 Metadata
 --------
 
-* Access to the metadata through the REST API (/metadata)
+* Access to the metadata through the REST API (.../metadata)
 * Support of user-defined metadata
 * "LastUpdate" metadata for patients, studies and series
 * "/tools/now" to be used in combination with "LastUpdate"
 * Improved support of series with temporal positions
 
-Other
------
-
-* Access to signed images (instances/.../image-int16)
-  (Closes: Debian #716958)
-* Statistics about patients, studies, series and instances
-* Link from anonymized to original resource in Orthanc Explorer
-* Fixes for Red Hat and Debian packaging
-* Fixes for boost::thread, as reported by Cyril Paulus
 
 
 Version 0.5.2 (2013/05/07)
