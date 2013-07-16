@@ -783,6 +783,13 @@ $('#series-preview').live('click', function(e) {
 
 function ChooseDicomModality(callback)
 {
+  var clickedModality = '';
+  var clickedPeer = '';
+  var items = $('<ul>')
+    .attr('data-divider-theme', 'd')
+    .attr('data-role', 'listview');
+
+  // Retrieve the list of the known DICOM modalities
   $.ajax({
     url: '../modalities',
     type: 'GET',
@@ -790,43 +797,66 @@ function ChooseDicomModality(callback)
     async: false,
     cache: false,
     success: function(modalities) {
-      var clickedModality = '';
-      var items = $('<ul>')
-        .attr('data-divider-theme', 'd')
-        .attr('data-role', 'listview');
+      if (modalities.length > 0)
+      {
+        items.append('<li data-role="list-divider">DICOM modalities</li>');
 
-      items.append('<li data-role="list-divider">DICOM modalities</li>');
-
-      for (var i = 0; i < modalities.length; i++) {
-        var modality = modalities[i];
-        var item = $('<li>')
-          .html('<a href="#" rel="close">' + modality + '</a>')
-          .attr('modality', modality)
-          .click(function() { 
-            clickedModality = $(this).attr('modality');
-          });
-        items.append(item);
+        for (var i = 0; i < modalities.length; i++) {
+          var name = modalities[i];
+          var item = $('<li>')
+            .html('<a href="#" rel="close">' + name + '</a>')
+            .attr('name', name)
+            .click(function() { 
+              clickedModality = $(this).attr('name');
+            });
+          items.append(item);
+        }
       }
 
-      items.append('<li data-role="list-divider">Orthanc peers</li>');
+      // Retrieve the list of the known Orthanc peers
+      $.ajax({
+        url: '../peers',
+        type: 'GET',
+        dataType: 'json',
+        async: false,
+        cache: false,
+        success: function(peers) {
+          if (peers.length > 0)
+          {
+            items.append('<li data-role="list-divider">Orthanc peers</li>');
 
-
-      $('#dialog').simpledialog2({
-        mode: 'blank',
-        animate: false,
-        headerText: 'Choose target',
-        headerClose: true,
-        width: '100%',
-        blankContent: items,
-        callbackClose: function() {
-          var timer;
-          function WaitForDialogToClose() {
-            if (!$('#dialog').is(':visible')) {
-              clearInterval(timer);
-              callback(clickedModality);
+            for (var i = 0; i < peers.length; i++) {
+              var name = peers[i];
+              var item = $('<li>')
+                .html('<a href="#" rel="close">' + name + '</a>')
+                .attr('name', name)
+                .click(function() { 
+                  clickedPeer = $(this).attr('name');
+                });
+              items.append(item);
             }
           }
-          timer = setInterval(WaitForDialogToClose, 100);
+
+          // Launch the dialog
+          $('#dialog').simpledialog2({
+            mode: 'blank',
+            animate: false,
+            headerText: 'Choose target',
+            headerClose: true,
+            forceInput: false,
+            width: '100%',
+            blankContent: items,
+            callbackClose: function() {
+              var timer;
+              function WaitForDialogToClose() {
+                if (!$('#dialog').is(':visible')) {
+                  clearInterval(timer);
+                  callback(clickedModality, clickedPeer);
+                }
+              }
+              timer = setInterval(WaitForDialogToClose, 100);
+            }
+          });
         }
       });
     }
@@ -835,16 +865,31 @@ function ChooseDicomModality(callback)
 
 
 $('#instance-store,#series-store,#study-store,#patient-store').live('click', function(e) {
-  ChooseDicomModality(function(modality) {
-    if (modality != '') {
+  ChooseDicomModality(function(modality, peer) {
+    var url;
+    var loading;
+
+    if (modality != '')
+    {
+      url = '../modalities/' + modality + '/store';
+      loading = '#dicom-store';
+    }
+
+    if (peer != '')
+    {
+      url = '../peers/' + peer + '/store';
+      loading = '#peer-store';
+    }
+
+    if (url != '') {
       $.ajax({
-        url: '../modalities/' + modality + '/store',
+        url: url,
         type: 'POST',
         dataType: 'text',
         data: $.mobile.pageData.uuid,
         async: true,  // Necessary to block UI
         beforeSend: function() {
-          $.blockUI({ message: $('#loading') });
+          $.blockUI({ message: $(loading) });
         },
         complete: function(s) {
           $.unblockUI();
@@ -852,10 +897,9 @@ $('#instance-store,#series-store,#study-store,#patient-store').live('click', fun
         success: function(s) {
         },
         error: function() {
-          alert('Error during C-Store');
+          alert('Error during store');
         }
-      });
-      
+      });      
     }
   });
 });

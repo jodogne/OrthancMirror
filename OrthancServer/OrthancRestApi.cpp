@@ -32,9 +32,10 @@
 
 #include "OrthancRestApi.h"
 
+#include "../Core/Compression/HierarchicalZipWriter.h"
+#include "../Core/HttpClient.h"
 #include "../Core/HttpServer/FilesystemHttpSender.h"
 #include "../Core/Uuid.h"
-#include "../Core/Compression/HierarchicalZipWriter.h"
 #include "DicomProtocol/DicomUserConnection.h"
 #include "FromDcmtkBridge.h"
 #include "OrthancInitialization.h"
@@ -248,11 +249,12 @@ namespace Orthanc
   }
 
 
-  static void DicomStore(RestApi::PostCall& call)
+  static bool GetInstancesToExport(std::list<std::string>& instances,
+                                   const std::string& remote,
+                                   RestApi::PostCall& call)
   {
     RETRIEVE_CONTEXT(call);
 
-    std::string remote = call.GetUriComponent("id", "");
     std::string stripped = Toolbox::StripSpaces(call.GetPostBody());
 
     Json::Value request;
@@ -264,13 +266,11 @@ namespace Orthanc
     else if (!call.ParseJsonRequest(request))
     {
       // Bad JSON request
-      return;
+      return false;
     }
 
-    std::list<std::string> instances;
     if (request.isString())
     {
-      LOG(INFO) << "Sending resource " << request.asString() << " to modality " << remote;
       context.GetIndex().LogExportedResource(request.asString(), remote);
       context.GetIndex().GetChildInstances(instances, request.asString());
     }
@@ -280,16 +280,15 @@ namespace Orthanc
       {
         if (!request[i].isString())
         {
-          return;
+          return false;
         }
 
         std::string stripped = Toolbox::StripSpaces(request[i].asString());
         if (!Toolbox::IsSHA1(stripped))
         {
-          return;
+          return false;
         }
 
-        LOG(INFO) << "Sending resource " << stripped << " to modality " << remote;
         context.GetIndex().LogExportedResource(stripped, remote);
        
         std::list<std::string> tmp;
@@ -301,6 +300,22 @@ namespace Orthanc
     else
     {
       // Neither a string, nor a list of strings. Bad request.
+      return false;
+    }
+
+    return true;
+  }
+
+
+  static void DicomStore(RestApi::PostCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+
+    std::string remote = call.GetUriComponent("id", "");
+
+    std::list<std::string> instances;
+    if (!GetInstancesToExport(instances, remote, call))
+    {
       return;
     }
 
@@ -310,6 +325,8 @@ namespace Orthanc
     for (std::list<std::string>::const_iterator 
            it = instances.begin(); it != instances.end(); it++)
     {
+      LOG(INFO) << "Sending resource " << *it << " to modality \"" << remote << "\"";
+
       std::string dicom;
       context.ReadFile(dicom, *it, FileContentType_Dicom);
       connection.Store(dicom);
@@ -1649,6 +1666,51 @@ namespace Orthanc
     }
   }
 
+  static void PeerStore(RestApi::PostCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+
+    std::string remote = call.GetUriComponent("id", "");
+
+    std::list<std::string> instances;
+    if (!GetInstancesToExport(instances, remote, call))
+    {
+      return;
+    }
+
+    std::string url, username, password;
+    GetOrthancPeer(remote, url, username, password);
+
+    // Configure the HTTP client
+    HttpClient client;
+    if (username.size() != 0 && password.size() != 0)
+    {
+      client.SetCredentials(username.c_str(), password.c_str());
+    }
+
+    client.SetUrl(url + "instances");
+    client.SetMethod(HttpMethod_Post);
+
+    // Loop over the instances that are to be sent
+    for (std::list<std::string>::const_iterator 
+           it = instances.begin(); it != instances.end(); it++)
+    {
+      LOG(INFO) << "Sending resource " << *it << " to peer \"" << remote << "\"";
+
+      context.ReadFile(client.AccessPostData(), *it, FileContentType_Dicom);
+
+      std::string answer;
+      if (!client.Apply(answer))
+      {
+        LOG(ERROR) << "Unable to send resource " << *it << " to peer \"" << remote << "\"";
+        return;
+      }
+    }
+
+    call.GetOutput().AnswerBuffer("{}", "application/json");
+  }
+
+
 
 
 
@@ -1737,6 +1799,7 @@ namespace Orthanc
 
     Register("/peers", ListPeers);
     Register("/peers/{id}", ListPeerOperations);
+    Register("/peers/{id}/store", PeerStore);
 
     Register("/instances/{id}/modify", ModifyInstance);
     Register("/series/{id}/modify", ModifySeriesInplace);

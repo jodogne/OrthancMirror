@@ -282,12 +282,30 @@ namespace Orthanc
     try
     {
       url = modalities[name].get(0u, "").asString();
-      username = modalities[name].get(1u, "").asString();
-      password = modalities[name].get(2u, "").asString();
+
+      if (modalities[name].size() == 1)
+      {
+        username = "";
+        password = "";
+      }
+      else if (modalities[name].size() == 3)
+      {
+        username = modalities[name].get(1u, "").asString();
+        password = modalities[name].get(2u, "").asString();
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
     }
     catch (...)
     {
-      throw OrthancException("Badly formatted Orthanc peer");
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    if (url.size() != 0 && url[url.size() - 1] != '/')
+    {
+      url += '/';
     }
   }
 
