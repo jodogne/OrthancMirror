@@ -52,7 +52,7 @@ namespace OrthancClient
     };
 
     const OrthancConnection& connection_;
-    std::string id_;
+    std::string id_, url_;
     Json::Value series_;
     Orthanc::ArrayFilledByThreads  instances_;
     Status3DImage status_;
@@ -96,7 +96,10 @@ namespace OrthancClient
       return id_.c_str();
     }
 
-    std::string GetUrl() const;
+    const char* GetUrl() const
+    {
+      return url_.c_str();
+    }
 
     uint32_t GetWidth();
 
@@ -104,7 +107,7 @@ namespace OrthancClient
 
     void GetVoxelSize(float& sizeX, float& sizeY, float& sizeZ);  
 
-    std::string GetMainDicomTag(const char* tag, 
+    const char* GetMainDicomTag(const char* tag, 
                                 const char* defaultValue) const;
 
     LAAW_API_INTERNAL void Load3DImage(void* target,

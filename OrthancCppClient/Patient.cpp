@@ -52,7 +52,8 @@ namespace OrthancClient
   Orthanc::IDynamicObject* Patient::GetFillerItem(size_t index)
   {
     Json::Value::ArrayIndex tmp = static_cast<Json::Value::ArrayIndex>(index);
-    return new Study(connection_, patient_["Studies"][tmp].asString());
+    std::string id = patient_["Studies"][tmp].asString();
+    return new Study(connection_, id.c_str());
   }
 
   Patient::Patient(const OrthancConnection& connection,
@@ -65,11 +66,11 @@ namespace OrthancClient
     ReadPatient();
   }
 
-  std::string Patient::GetMainDicomTag(const char* tag, const char* defaultValue) const
+  const char* Patient::GetMainDicomTag(const char* tag, const char* defaultValue) const
   {
     if (patient_["MainDicomTags"].isMember(tag))
     {
-      return patient_["MainDicomTags"][tag].asString();
+      return patient_["MainDicomTags"][tag].asCString();
     }
     else
     {
