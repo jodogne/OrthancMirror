@@ -205,7 +205,7 @@ namespace OrthancClient
   {
     Orthanc::HttpClient client(connection_.GetHttpClient());
 
-    client.SetUrl(connection_.GetOrthancUrl() + "/series/" + id_);
+    client.SetUrl(std::string(connection_.GetOrthancUrl()) + "/series/" + id_);
     Json::Value v;
     if (!client.Apply(series_))
     {
@@ -216,11 +216,12 @@ namespace OrthancClient
   Orthanc::IDynamicObject* Series::GetFillerItem(size_t index)
   {
     Json::Value::ArrayIndex tmp = static_cast<Json::Value::ArrayIndex>(index);
-    return new Instance(connection_, series_["Instances"][tmp].asString());
+    std::string id = series_["Instances"][tmp].asString();
+    return new Instance(connection_, id.c_str());
   }
 
   Series::Series(const OrthancConnection& connection,
-                 const std::string& id) :
+                 const char* id) :
     connection_(connection),
     id_(id),
     instances_(*this)
@@ -254,7 +255,7 @@ namespace OrthancClient
 
   std::string Series::GetUrl() const
   {
-    return connection_.GetOrthancUrl() + "/series/" + id_;
+    return std::string(connection_.GetOrthancUrl()) + "/series/" + id_;
   }
 
   unsigned int Series::GetWidth()

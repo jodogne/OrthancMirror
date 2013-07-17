@@ -67,7 +67,7 @@ namespace OrthancClient
       }
 
       Orthanc::HttpClient client(connection_.GetHttpClient());
-      client.SetUrl(connection_.GetOrthancUrl() +  "/instances/" + id_ + "/" + suffix);
+      client.SetUrl(std::string(connection_.GetOrthancUrl()) +  "/instances/" + id_ + "/" + suffix);
       std::string png;
 
       if (!client.Apply(png))
@@ -81,14 +81,14 @@ namespace OrthancClient
   }
 
   Instance::Instance(const OrthancConnection& connection,
-                     const std::string& id) :
+                     const char* id) :
     connection_(connection),
     id_(id),
     mode_(Orthanc::ImageExtractionMode_Int16)
   {
     Orthanc::HttpClient client(connection_.GetHttpClient());
             
-    client.SetUrl(connection_.GetOrthancUrl() + "/instances/" + id_ + "/simplified-tags");
+    client.SetUrl(std::string(connection_.GetOrthancUrl()) + "/instances/" + id_ + "/simplified-tags");
     Json::Value v;
     if (!client.Apply(tags_))
     {

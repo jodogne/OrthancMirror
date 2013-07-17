@@ -35,6 +35,7 @@
 #include <string>
 #include <json/value.h>
 
+#include "Package/Laaw/laaw.h"
 #include "../Core/IDynamicObject.h"
 #include "../Core/FileFormats/PngReader.h"
 
@@ -42,7 +43,7 @@ namespace OrthancClient
 {
   class OrthancConnection;
 
-  class Instance : public Orthanc::IDynamicObject
+  class LAAW_API Instance : public Orthanc::IDynamicObject
   {
   private:
     const OrthancConnection& connection_;
@@ -55,11 +56,11 @@ namespace OrthancClient
 
   public:
     Instance(const OrthancConnection& connection,
-             const std::string& id);
+             const char* id);
 
-    const std::string& GetId() const
+    const char* GetId() const
     {
-      return id_;
+      return id_.c_str();
     }
 
     void SetImageExtractionMode(Orthanc::ImageExtractionMode mode);
@@ -73,23 +74,23 @@ namespace OrthancClient
 
     float GetTagAsFloat(const char* tag);
 
-    int GetTagAsInt(const char* tag);
+    int32_t GetTagAsInt(const char* tag);
 
-    unsigned int GetWidth();
+    uint32_t GetWidth();
 
-    unsigned int GetHeight();
+    uint32_t GetHeight();
 
-    unsigned int GetPitch();
+    uint32_t GetPitch();
 
     Orthanc::PixelFormat GetPixelFormat();
 
     const void* GetBuffer();
 
-    const void* GetBuffer(unsigned int y);
+    const void* GetBuffer(uint32_t y);
 
     void DiscardImage();
 
-    void SplitVectorOfFloats(std::vector<float>& target,
-                             const char* tag);
+    LAAW_API_INTERNAL void SplitVectorOfFloats(std::vector<float>& target,
+                                               const char* tag);
   };
 }

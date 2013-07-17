@@ -39,7 +39,7 @@
 
 namespace OrthancClient
 {
-  class Series :
+  class LAAW_API Series :
     public Orthanc::IDynamicObject, 
     private Orthanc::ArrayFilledByThreads::IFiller
   {
@@ -78,7 +78,7 @@ namespace OrthancClient
 
   public:
     Series(const OrthancConnection& connection,
-           const std::string& id);
+           const char* id);
 
     void Reload()
     {
@@ -87,39 +87,39 @@ namespace OrthancClient
 
     bool Is3DImage();
 
-    unsigned int GetInstanceCount();
+    uint32_t GetInstanceCount();
 
-    Instance& GetInstance(unsigned int index);
+    Instance& GetInstance(uint32_t index);
 
-    const std::string& GetId() const
+    const char* GetId() const
     {
-      return id_;
+      return id_.c_str();
     }
 
     std::string GetUrl() const;
 
-    unsigned int GetWidth();
+    uint32_t GetWidth();
 
-    unsigned int GetHeight();
+    uint32_t GetHeight();
 
     void GetVoxelSize(float& sizeX, float& sizeY, float& sizeZ);  
 
     std::string GetMainDicomTag(const char* tag, 
                                 const char* defaultValue) const;
 
-    void Load3DImage(void* target,
-                     Orthanc::PixelFormat format,
-                     size_t lineStride,
-                     size_t stackStride,
-                     Orthanc::ThreadedCommandProcessor::IListener& listener)
+    LAAW_API_INTERNAL void Load3DImage(void* target,
+                                       Orthanc::PixelFormat format,
+                                       int64_t lineStride,
+                                       int64_t stackStride,
+                                       Orthanc::ThreadedCommandProcessor::IListener& listener)
     {
       Load3DImage(target, format, lineStride, stackStride, &listener);
     }
 
     void Load3DImage(void* target,
                      Orthanc::PixelFormat format,
-                     size_t lineStride,
-                     size_t stackStride)
+                     int64_t lineStride,
+                     int64_t stackStride)
     {
       Load3DImage(target, format, lineStride, stackStride, NULL);
     }

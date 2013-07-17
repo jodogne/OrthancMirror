@@ -40,7 +40,8 @@ namespace OrthancClient
   void Study::ReadStudy()
   {
     Orthanc::HttpClient client(connection_.GetHttpClient());
-    client.SetUrl(connection_.GetOrthancUrl() + "/studies/" + id_);
+    client.SetUrl(std::string(connection_.GetOrthancUrl()) + "/studies/" + id_);
+
     Json::Value v;
     if (!client.Apply(study_))
     {
@@ -51,7 +52,8 @@ namespace OrthancClient
   Orthanc::IDynamicObject* Study::GetFillerItem(size_t index)
   {
     Json::Value::ArrayIndex tmp = static_cast<Json::Value::ArrayIndex>(index);
-    return new Series(connection_, study_["Series"][tmp].asString());
+    std::string id = study_["Series"][tmp].asString();
+    return new Series(connection_, id.c_str());
   }
 
   Study::Study(const OrthancConnection& connection,

@@ -38,7 +38,7 @@
 
 namespace OrthancClient
 {
-  class OrthancConnection : 
+  class LAAW_API OrthancConnection : 
     public boost::noncopyable,
     private Orthanc::ArrayFilledByThreads::IFiller
   {
@@ -64,12 +64,12 @@ namespace OrthancClient
                       const char* username, 
                       const char* password);
 
-    unsigned int GetThreadCount() const
+    uint32_t GetThreadCount() const
     {
       return patients_.GetThreadCount();
     }
 
-    void SetThreadCount(unsigned int threadCount)
+    void SetThreadCount(uint32_t threadCount)
     {
       patients_.SetThreadCount(threadCount);
     }
@@ -84,16 +84,16 @@ namespace OrthancClient
       return client_;
     }
 
-    const std::string& GetOrthancUrl() const
+    const char* GetOrthancUrl() const
     {
-      return orthancUrl_;
+      return orthancUrl_.c_str();
     }
 
-    unsigned int GetPatientCount()
+    uint32_t GetPatientCount()
     {
       return patients_.GetSize();
     }
 
-    Patient& GetPatient(unsigned int index);
+    Patient& GetPatient(uint32_t index);
   };
 }
