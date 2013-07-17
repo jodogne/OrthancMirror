@@ -50,7 +50,8 @@ namespace OrthancClient
 
   Orthanc::IDynamicObject* Patient::GetFillerItem(size_t index)
   {
-    return new Study(connection_, patient_["Studies"][index].asString());
+    Json::Value::ArrayIndex tmp = static_cast<Json::Value::ArrayIndex>(index);
+    return new Study(connection_, patient_["Studies"][tmp].asString());
   }
 
   Patient::Patient(const OrthancConnection& connection,

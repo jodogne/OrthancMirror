@@ -36,6 +36,7 @@
 #include "../Toolbox.h"
 
 #include <png.h>
+#include <string.h>  // For memcpy()
 
 namespace Orthanc
 {

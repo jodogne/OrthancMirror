@@ -8,10 +8,10 @@ if (USE_DYNAMIC_JSONCPP)
   link_libraries(jsoncpp)
 
 else()
-  SET(JSONCPP_SOURCES_DIR ${CMAKE_BINARY_DIR}/jsoncpp-src-0.5.0)
+  SET(JSONCPP_SOURCES_DIR ${CMAKE_BINARY_DIR}/jsoncpp-src-0.6.0-rc2)
   DownloadPackage(
-    "24482b67c1cb17aac1ed1814288a3a8f"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/jsoncpp-src-0.5.0.tar.gz"
+    "363e2f4cbd3aeb63bf4e571f377400fb"
+    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/jsoncpp-src-0.6.0-rc2.tar.gz"
     "${JSONCPP_SOURCES_DIR}" "" "")
 
   list(APPEND THIRD_PARTY_SOURCES

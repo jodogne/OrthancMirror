@@ -215,7 +215,8 @@ namespace OrthancClient
 
   Orthanc::IDynamicObject* Series::GetFillerItem(size_t index)
   {
-    return new Instance(connection_, series_["Instances"][index].asString());
+    Json::Value::ArrayIndex tmp = static_cast<Json::Value::ArrayIndex>(index);
+    return new Instance(connection_, series_["Instances"][tmp].asString());
   }
 
   Series::Series(const OrthancConnection& connection,
