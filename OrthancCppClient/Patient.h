@@ -79,7 +79,7 @@ namespace OrthancClient
       return id_.c_str();
     }
 
-    std::string GetMainDicomTag(const char* tag, 
+    const char* GetMainDicomTag(const char* tag, 
                                 const char* defaultValue) const;
   };
 }

@@ -70,11 +70,11 @@ namespace OrthancClient
       return mode_;
     }
 
-    std::string GetTagAsString(const char* tag);
+    const char* GetTagAsString(const char* tag) const;
 
-    float GetTagAsFloat(const char* tag);
+    float GetTagAsFloat(const char* tag) const;
 
-    int32_t GetTagAsInt(const char* tag);
+    int32_t GetTagAsInt(const char* tag) const;
 
     uint32_t GetWidth();
 

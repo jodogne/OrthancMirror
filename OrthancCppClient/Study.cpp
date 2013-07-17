@@ -57,7 +57,7 @@ namespace OrthancClient
   }
 
   Study::Study(const OrthancConnection& connection,
-               const std::string& id) :
+               const char* id) :
     connection_(connection),
     id_(id),
     series_(*this)
@@ -66,11 +66,11 @@ namespace OrthancClient
     ReadStudy();
   }
 
-  std::string Study::GetMainDicomTag(const char* tag, const char* defaultValue) const
+  const char* Study::GetMainDicomTag(const char* tag, const char* defaultValue) const
   {
     if (study_["MainDicomTags"].isMember(tag))
     {
-      return study_["MainDicomTags"][tag].asString();
+      return study_["MainDicomTags"][tag].asCString();
     }
     else
     {

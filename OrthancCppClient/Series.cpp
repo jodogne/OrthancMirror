@@ -228,6 +228,7 @@ namespace OrthancClient
   {
     ReadSeries();
     status_ = Status3DImage_NotTested;
+    url_ = std::string(connection_.GetOrthancUrl()) + "/series/" + id_;
 
     instances_.SetThreadCount(connection.GetThreadCount());
   }
@@ -251,11 +252,6 @@ namespace OrthancClient
   Instance& Series::GetInstance(unsigned int index)
   {
     return dynamic_cast<Instance&>(instances_.GetItem(index));
-  }
-
-  std::string Series::GetUrl() const
-  {
-    return std::string(connection_.GetOrthancUrl()) + "/series/" + id_;
   }
 
   unsigned int Series::GetWidth()
@@ -310,11 +306,11 @@ namespace OrthancClient
   }
 
 
-  std::string Series::GetMainDicomTag(const char* tag, const char* defaultValue) const
+  const char* Series::GetMainDicomTag(const char* tag, const char* defaultValue) const
   {
     if (series_["MainDicomTags"].isMember(tag))
     {
-      return series_["MainDicomTags"][tag].asString();
+      return series_["MainDicomTags"][tag].asCString();
     }
     else
     {

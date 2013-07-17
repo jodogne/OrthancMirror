@@ -96,11 +96,11 @@ namespace OrthancClient
     }
   }
 
-  std::string Instance::GetTagAsString(const char* tag)
+  const char* Instance::GetTagAsString(const char* tag) const
   {
     if (tags_.isMember(tag))
     {
-      return tags_[tag].asString();
+      return tags_[tag].asCString();
     }
     else
     {
@@ -108,7 +108,7 @@ namespace OrthancClient
     }
   }
 
-  float Instance::GetTagAsFloat(const char* tag)
+  float Instance::GetTagAsFloat(const char* tag) const
   {
     std::string value = GetTagAsString(tag);
 
@@ -122,7 +122,7 @@ namespace OrthancClient
     }
   }
 
-  int Instance::GetTagAsInt(const char* tag)
+  int Instance::GetTagAsInt(const char* tag) const
   {
     std::string value = GetTagAsString(tag);
 

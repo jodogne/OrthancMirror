@@ -79,7 +79,7 @@ namespace OrthancClient
       patients_.Reload();
     }
 
-    const Orthanc::HttpClient& GetHttpClient() const
+    LAAW_API_INTERNAL const Orthanc::HttpClient& GetHttpClient() const
     {
       return client_;
     }

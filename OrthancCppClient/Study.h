@@ -57,7 +57,7 @@ namespace OrthancClient
 
   public:
     Study(const OrthancConnection& connection,
-          const std::string& id);
+          const char* id);
 
     void Reload()
     {
@@ -74,12 +74,12 @@ namespace OrthancClient
       return dynamic_cast<Series&>(series_.GetItem(index));
     }
 
-    const std::string& GetId() const
+    const char* GetId() const
     {
-      return id_;
+      return id_.c_str();
     }
 
-    std::string GetMainDicomTag(const char* tag, 
+    const char* GetMainDicomTag(const char* tag, 
                                 const char* defaultValue) const;
   };
 }
