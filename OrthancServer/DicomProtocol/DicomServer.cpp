@@ -82,6 +82,8 @@ namespace Orthanc
     boost::filesystem::path p = directory;
     p = p / filename;
 
+    LOG(WARNING) << "Loading the external DICOM dictionary " << p;
+
     if (!dictionary.loadDictionary(p.string().c_str()))
     {
       throw OrthancException(ErrorCode_InternalError);
@@ -111,7 +113,7 @@ namespace Orthanc
     LoadEmbeddedDictionary(d, EmbeddedResources::DICTIONARY_PRIVATE);
 
 #elif defined(__linux)
-    std::string path = "/usr/share/dcmtk";
+    std::string path = DCMTK_DICTIONARY_DIR;
 
     const char* env = std::getenv(DCM_DICT_ENVIRONMENT_VARIABLE);
     if (env != NULL)
