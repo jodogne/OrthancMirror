@@ -1,7 +1,7 @@
 /**
- * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Laaw - A Lightweight, Automated API Wrapper
+ * Copyright (C) 2010-2013 Alain Mazy, Benjamin Golinvaux, Sebastien
+ * Jodogne
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -32,54 +32,58 @@
 
 #pragma once
 
-#include "Study.h"
+#include "laaw-exports.h"
+#include <stddef.h>
+#include <string>
 
-namespace OrthancClient
+#if (LAAW_PARSING == 1)
+
+#define LAAW_API   __attribute__((deprecated("")))
+#define LAAW_API_INTERNAL  __attribute__((deprecated("")))
+#define LAAW_API_OVERLOAD(name)  __attribute__((deprecated("")))
+#define LAAW_API_PROPERTY  __attribute__((deprecated("")))
+#define LAAW_API_STATIC_CLASS  __attribute__((deprecated("")))
+#define LAAW_API_CUSTOM(name, value)  __attribute__((deprecated("")))
+
+#else
+
+#define LAAW_API
+#define LAAW_API_INTERNAL
+#define LAAW_API_OVERLOAD(name)
+#define LAAW_API_PROPERTY
+#define LAAW_API_STATIC_CLASS
+#define LAAW_API_CUSTOM(name, value)
+
+#endif
+
+
+namespace Laaw
 {
-  class LAAW_API Patient : 
-    public Orthanc::IDynamicObject, 
-    private Orthanc::ArrayFilledByThreads::IFiller
+  /**
+   * This is the base class from which all the public exceptions in
+   * the SDK should derive.
+   **/
+  class LaawException
   {
   private:
-    const OrthancConnection& connection_;
-    std::string id_;
-    Json::Value patient_;
-    Orthanc::ArrayFilledByThreads  studies_;
-
-    void ReadPatient();
-
-    virtual size_t GetFillerSize()
-    {
-      return patient_["Studies"].size();
-    }
-
-    virtual Orthanc::IDynamicObject* GetFillerItem(size_t index);
+    std::string what_;
 
   public:
-    Patient(const OrthancConnection& connection,
-            const char* id);
-
-    void Reload()
+    LaawException()
     {
-      studies_.Reload();
     }
 
-    uint32_t GetStudyCount()
+    LaawException(const std::string& what) : what_(what)
     {
-      return studies_.GetSize();
     }
 
-    Study& GetStudy(uint32_t index)
+    LaawException(const char* what) : what_(what)
     {
-      return dynamic_cast<Study&>(studies_.GetItem(index));
     }
 
-    const char* GetId() const
+    virtual const char* What() const
     {
-      return id_.c_str();
+      return what_.c_str();
     }
-
-    std::string GetMainDicomTag(const char* tag, 
-                                const char* defaultValue) const;
   };
 }

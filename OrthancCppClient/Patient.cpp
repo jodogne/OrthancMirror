@@ -40,7 +40,8 @@ namespace OrthancClient
   void Patient::ReadPatient()
   {
     Orthanc::HttpClient client(connection_.GetHttpClient());
-    client.SetUrl(connection_.GetOrthancUrl() + "/patients/" + id_);
+    client.SetUrl(std::string(connection_.GetOrthancUrl()) + "/patients/" + id_);
+
     Json::Value v;
     if (!client.Apply(patient_))
     {
@@ -55,7 +56,7 @@ namespace OrthancClient
   }
 
   Patient::Patient(const OrthancConnection& connection,
-                   const std::string& id) :
+                   const char* id) :
     connection_(connection),
     id_(id),
     studies_(*this)

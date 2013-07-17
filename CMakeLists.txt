@@ -104,7 +104,6 @@ else()
 endif()
 
 
-
 # The main instructions to build the Orthanc binaries
 add_library(CoreLibrary
   STATIC

@@ -64,12 +64,12 @@ namespace OrthancClient
       series_.Reload();
     }
 
-    unsigned int GetSeriesCount()
+    uint32_t GetSeriesCount()
     {
       return series_.GetSize();
     }
 
-    Series& GetSeries(unsigned int index)
+    Series& GetSeries(uint32_t index)
     {
       return dynamic_cast<Series&>(series_.GetItem(index));
     }
