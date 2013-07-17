@@ -12,6 +12,7 @@ SET(STATIC_BUILD ON CACHE BOOL "Static build of the third-party libraries (neces
 SET(STANDALONE_BUILD ON CACHE BOOL "Standalone build (all the resources are embedded, necessary for releases)")
 SET(ENABLE_SSL ON CACHE BOOL "Include support for SSL")
 SET(BUILD_UNIT_TESTS ON CACHE BOOL "Build the unit tests")
+SET(DCMTK_DICTIONARY_DIR "/usr/share/dcmtk" CACHE PATH "Directory containing the DCMTK dictionaries \"dicom.dic\" and \"private.dic\" (ignored in standalone builds)") 
 
 # Advanced parameters (for Debian packaging)
 SET(USE_DYNAMIC_JSONCPP OFF CACHE BOOL "Use the dynamic version of JsonCpp (only for Debian sid)")
