@@ -36,7 +36,7 @@
 
 namespace OrthancClient
 {
-  class Study : 
+  class LAAW_API Study : 
     public Orthanc::IDynamicObject, 
     private Orthanc::ArrayFilledByThreads::IFiller
   {
