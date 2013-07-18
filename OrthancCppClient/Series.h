@@ -56,6 +56,11 @@ namespace OrthancClient
     Json::Value series_;
     Orthanc::ArrayFilledByThreads  instances_;
     Status3DImage status_;
+
+    bool isVoxelSizeRead_;
+    float voxelSizeX_;
+    float voxelSizeY_;
+    float voxelSizeZ_;
   
     void Check3DImage();
 
@@ -75,6 +80,8 @@ namespace OrthancClient
                      size_t lineStride,
                      size_t stackStride,
                      Orthanc::ThreadedCommandProcessor::IListener* listener);
+
+    void LoadVoxelSize();  
 
   public:
     Series(const OrthancConnection& connection,
@@ -105,7 +112,11 @@ namespace OrthancClient
 
     uint32_t GetHeight();
 
-    void GetVoxelSize(float& sizeX, float& sizeY, float& sizeZ);  
+    float GetVoxelSizeX();
+
+    float GetVoxelSizeY();
+
+    float GetVoxelSizeZ();
 
     const char* GetMainDicomTag(const char* tag, 
                                 const char* defaultValue) const;

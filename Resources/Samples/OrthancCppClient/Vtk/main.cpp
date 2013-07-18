@@ -88,9 +88,9 @@ void Display(OrthancClient::Series& series)
                        2 * series.GetWidth(), 2 * series.GetHeight() * series.GetWidth(), listener);
   }
 
-  float sx, sy, sz;
-  series.GetVoxelSize(sx, sy, sz);
-  image->SetSpacing(sx, sy, sz);
+  image->SetSpacing(series.GetVoxelSizeX(), 
+                    series.GetVoxelSizeY(), 
+                    series.GetVoxelSizeZ());
 
 
   /**

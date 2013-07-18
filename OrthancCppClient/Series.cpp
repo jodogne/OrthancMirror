@@ -174,13 +174,17 @@ namespace OrthancClient
         return true;
       }
 
+      Instance& i1 = GetInstance(0);
+
       for (unsigned int i = 0; i < GetInstanceCount(); i++)
       {
-        if (GetInstance(0).GetTagAsString("Columns") != GetInstance(i).GetTagAsString("Columns") ||
-            GetInstance(0).GetTagAsString("Rows") != GetInstance(i).GetTagAsString("Rows") ||
-            GetInstance(0).GetTagAsString("ImageOrientationPatient") != GetInstance(i).GetTagAsString("ImageOrientationPatient") ||
-            GetInstance(0).GetTagAsString("SliceThickness") != GetInstance(i).GetTagAsString("SliceThickness") ||
-            GetInstance(0).GetTagAsString("PixelSpacing") != GetInstance(i).GetTagAsString("PixelSpacing"))
+        Instance& i2 = GetInstance(1);
+
+        if (std::string(i1.GetTagAsString("Columns")) != std::string(i2.GetTagAsString("Columns")) ||
+            std::string(i1.GetTagAsString("Rows")) != std::string(i2.GetTagAsString("Rows")) ||
+            std::string(i1.GetTagAsString("ImageOrientationPatient")) != std::string(i2.GetTagAsString("ImageOrientationPatient")) ||
+            std::string(i1.GetTagAsString("SliceThickness")) != std::string(i2.GetTagAsString("SliceThickness")) ||
+            std::string(i1.GetTagAsString("PixelSpacing")) != std::string(i2.GetTagAsString("PixelSpacing")))
         {
           return false;
         }              
@@ -229,6 +233,7 @@ namespace OrthancClient
     ReadSeries();
     status_ = Status3DImage_NotTested;
     url_ = std::string(connection_.GetOrthancUrl()) + "/series/" + id_;
+    isVoxelSizeRead_ = false;
 
     instances_.SetThreadCount(connection.GetThreadCount());
   }
@@ -274,15 +279,21 @@ namespace OrthancClient
       return GetInstance(0).GetTagAsInt("Rows");
   }
 
-  void Series::GetVoxelSize(float& sizeX, float& sizeY, float& sizeZ)
+  void Series::LoadVoxelSize()
   {
+    if (isVoxelSizeRead_)
+    {
+      return;
+    }
+
     Check3DImage();
 
     if (GetInstanceCount() == 0)
     {
-      sizeX = 0;
-      sizeY = 0;
-      sizeZ = 0;
+      // Empty image, use some default value
+      voxelSizeX_ = 1;
+      voxelSizeY_ = 1;
+      voxelSizeZ_ = 1;
     }
     else
     {
@@ -294,15 +305,17 @@ namespace OrthancClient
         std::string sy = s.substr(0, pos);
         std::string sx = s.substr(pos + 1);
 
-        sizeX = boost::lexical_cast<float>(sx);
-        sizeY = boost::lexical_cast<float>(sy);
-        sizeZ = GetInstance(0).GetTagAsFloat("SliceThickness");
+        voxelSizeX_ = boost::lexical_cast<float>(sx);
+        voxelSizeY_ = boost::lexical_cast<float>(sy);
+        voxelSizeZ_ = GetInstance(0).GetTagAsFloat("SliceThickness");
       }
       catch (boost::bad_lexical_cast)
       {
         throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
       }
     }
+
+    isVoxelSizeRead_ = true;
   }
 
 
@@ -424,6 +437,24 @@ namespace OrthancClient
     {
       throw OrthancException(ErrorCode_NetworkProtocol);
     }
+  }
+
+  float Series::GetVoxelSizeX()
+  {
+    LoadVoxelSize();
+    return voxelSizeX_;
+  }
+
+  float Series::GetVoxelSizeY()
+  {
+    LoadVoxelSize();
+    return voxelSizeY_;
+  }
+
+  float Series::GetVoxelSizeZ()
+  {
+    LoadVoxelSize();
+    return voxelSizeZ_;
   }
 
 }
