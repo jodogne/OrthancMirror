@@ -32,8 +32,6 @@
 
 #include "OrthancConnection.h"
 
-#include "../Core/OrthancException.h"
-
 namespace OrthancClient
 {
   void OrthancConnection::ReadPatients()
@@ -42,7 +40,7 @@ namespace OrthancClient
     Json::Value v;
     if (!client_.Apply(content_))
     {
-      throw Orthanc::OrthancException(Orthanc::ErrorCode_NetworkProtocol);
+      throw OrthancClientException(Orthanc::ErrorCode_NetworkProtocol);
     }
   }
 
