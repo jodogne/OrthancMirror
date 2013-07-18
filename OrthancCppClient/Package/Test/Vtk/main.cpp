@@ -139,8 +139,6 @@ int main()
     // Try and find a 3D image inside the local store
     OrthancClient::OrthancConnection orthanc("http://localhost:8042");
 
-    printf(">> %d\n", orthanc.GetPatientCount());
-
     for (unsigned int i = 0; i < orthanc.GetPatientCount(); i++)
     {
       OrthancClient::Patient patient = orthanc.GetPatient(i);
