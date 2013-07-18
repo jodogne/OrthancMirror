@@ -50,8 +50,7 @@ add_library(OrthancCppClient SHARED
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--version-script=${CMAKE_SOURCE_DIR}/Laaw/VersionScript.map")
   target_link_libraries(OrthancCppClient pthread)
+else()
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--allow-multiple-definition -static-libgcc -static-libstdc++")
+  target_link_libraries(OrthancCppClient ws2_32)
 endif()
-
-
-
-set(CMAKE_CXX_FLAGS "-fpermissive")  #TODO REMOVE
