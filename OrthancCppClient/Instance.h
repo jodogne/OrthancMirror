@@ -35,7 +35,7 @@
 #include <string>
 #include <json/value.h>
 
-#include "Package/Laaw/laaw.h"
+#include "OrthancClientException.h"
 #include "../Core/IDynamicObject.h"
 #include "../Core/FileFormats/PngReader.h"
 

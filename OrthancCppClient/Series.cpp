@@ -33,7 +33,6 @@
 #include "Series.h"
 
 #include "OrthancConnection.h"
-#include "../Core/OrthancException.h"
 
 #include <set>
 #include <boost/lexical_cast.hpp>
@@ -61,7 +60,7 @@ namespace OrthancClient
 
         if (cosines.size() != 6)
         {
-          throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat);
+          throw OrthancClientException(Orthanc::ErrorCode_BadFileFormat);
         }
 
         normal_[0] = cosines[1] * cosines[5] - cosines[2] * cosines[4];
@@ -79,7 +78,7 @@ namespace OrthancClient
         instance.SplitVectorOfFloats(ipp, "ImagePositionPatient");
         if (ipp.size() != 3)
         {
-          throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat);
+          throw OrthancClientException(Orthanc::ErrorCode_BadFileFormat);
         }
 
         float dist = 0;
@@ -144,7 +143,7 @@ namespace OrthancClient
           }
           else
           {
-            throw OrthancException(ErrorCode_NotImplemented);
+            throw OrthancClientException(ErrorCode_NotImplemented);
           }
         }
 
@@ -161,7 +160,7 @@ namespace OrthancClient
   {
     if (!Is3DImage())
     {
-      throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
+      throw OrthancClientException(Orthanc::ErrorCode_NotImplemented);
     }
   }
 
@@ -199,7 +198,7 @@ namespace OrthancClient
 
       return l.size() == GetInstanceCount();
     }
-    catch (Orthanc::OrthancException)
+    catch (OrthancClientException)
     {
       return false;
     }
@@ -213,7 +212,7 @@ namespace OrthancClient
     Json::Value v;
     if (!client.Apply(series_))
     {
-      throw Orthanc::OrthancException(Orthanc::ErrorCode_NetworkProtocol);
+      throw OrthancClientException(Orthanc::ErrorCode_NetworkProtocol);
     }
   }
 
@@ -311,7 +310,7 @@ namespace OrthancClient
       }
       catch (boost::bad_lexical_cast)
       {
-        throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
+        throw OrthancClientException(Orthanc::ErrorCode_NotImplemented);
       }
     }
 
@@ -371,7 +370,7 @@ namespace OrthancClient
         break;
 
       default:
-        throw OrthancException(ErrorCode_NotImplemented);
+        throw OrthancClientException(ErrorCode_NotImplemented);
     }
 
 
@@ -382,7 +381,7 @@ namespace OrthancClient
     if (lineStride < sx * bytesPerPixel ||
         stackStride < sx * sy * bytesPerPixel)
     {
-      throw OrthancException(ErrorCode_BadRequest);
+      throw OrthancClientException(ErrorCode_BadRequest);
     }
 
     if (sx == 0 || sy == 0 || GetInstanceCount() == 0)
@@ -412,7 +411,7 @@ namespace OrthancClient
     if (instances.size() != GetInstanceCount())
     {
       // Several instances have the same Z coordinate
-      throw OrthancException(ErrorCode_NotImplemented);
+      throw OrthancClientException(ErrorCode_NotImplemented);
     }
 
 
@@ -435,7 +434,7 @@ namespace OrthancClient
     // Wait for all the stacks to be downloaded
     if (!processor.Join())
     {
-      throw OrthancException(ErrorCode_NetworkProtocol);
+      throw OrthancClientException(ErrorCode_NetworkProtocol);
     }
   }
 

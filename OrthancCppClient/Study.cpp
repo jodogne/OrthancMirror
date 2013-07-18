@@ -33,7 +33,6 @@
 #include "Study.h"
 
 #include "OrthancConnection.h"
-#include "../Core/OrthancException.h"
 
 namespace OrthancClient
 {
@@ -45,7 +44,7 @@ namespace OrthancClient
     Json::Value v;
     if (!client.Apply(study_))
     {
-      throw Orthanc::OrthancException(Orthanc::ErrorCode_NetworkProtocol);
+      throw OrthancClientException(Orthanc::ErrorCode_NetworkProtocol);
     }
   }
 

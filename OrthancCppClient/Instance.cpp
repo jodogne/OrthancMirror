@@ -33,7 +33,6 @@
 #include "Instance.h"
 
 #include "OrthancConnection.h"
-#include "../Core/OrthancException.h"
 
 #include <boost/lexical_cast.hpp>
 
@@ -63,7 +62,7 @@ namespace OrthancClient
           break;
           
         default:
-          throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
+          throw OrthancClientException(Orthanc::ErrorCode_NotImplemented);
       }
 
       Orthanc::HttpClient client(connection_.GetHttpClient());
@@ -72,7 +71,7 @@ namespace OrthancClient
 
       if (!client.Apply(png))
       {
-        throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
+        throw OrthancClientException(Orthanc::ErrorCode_NotImplemented);
       }
      
       reader_.reset(new Orthanc::PngReader);
@@ -92,7 +91,7 @@ namespace OrthancClient
     Json::Value v;
     if (!client.Apply(tags_))
     {
-      throw Orthanc::OrthancException(Orthanc::ErrorCode_NetworkProtocol);
+      throw OrthancClientException(Orthanc::ErrorCode_NetworkProtocol);
     }
   }
 
@@ -104,7 +103,7 @@ namespace OrthancClient
     }
     else
     {
-      throw Orthanc::OrthancException(Orthanc::ErrorCode_InexistentItem);
+      throw OrthancClientException(Orthanc::ErrorCode_InexistentItem);
     }
   }
 
@@ -118,7 +117,7 @@ namespace OrthancClient
     }
     catch (boost::bad_lexical_cast)
     {
-      throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat);
+      throw OrthancClientException(Orthanc::ErrorCode_BadFileFormat);
     }
   }
 
@@ -132,7 +131,7 @@ namespace OrthancClient
     }
     catch (boost::bad_lexical_cast)
     {
-      throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat);
+      throw OrthancClientException(Orthanc::ErrorCode_BadFileFormat);
     }
   }
 
@@ -218,7 +217,7 @@ namespace OrthancClient
     catch (boost::bad_lexical_cast)
     {
       // Unable to parse the Image Orientation Patient.
-      throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat);
+      throw OrthancClientException(Orthanc::ErrorCode_BadFileFormat);
     }
   }
 }

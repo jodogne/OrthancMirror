@@ -30,50 +30,29 @@
  **/
 
 
-#include "Patient.h"
+#pragma once
 
-#include "OrthancConnection.h"
+#include "../Core/OrthancException.h"
+#include "Package/Laaw/laaw.h"
 
 namespace OrthancClient
 {
-  void Patient::ReadPatient()
+  class OrthancClientException : public ::Laaw::LaawException
   {
-    Orthanc::HttpClient client(connection_.GetHttpClient());
-    client.SetUrl(std::string(connection_.GetOrthancUrl()) + "/patients/" + id_);
-
-    Json::Value v;
-    if (!client.Apply(patient_))
-    {
-      throw OrthancClientException(Orthanc::ErrorCode_NetworkProtocol);
+  public:
+    OrthancClientException(Orthanc::ErrorCode code) :
+      LaawException(Orthanc::OrthancException::GetDescription(code))
+    { 
     }
-  }
 
-  Orthanc::IDynamicObject* Patient::GetFillerItem(size_t index)
-  {
-    Json::Value::ArrayIndex tmp = static_cast<Json::Value::ArrayIndex>(index);
-    std::string id = patient_["Studies"][tmp].asString();
-    return new Study(connection_, id.c_str());
-  }
-
-  Patient::Patient(const OrthancConnection& connection,
-                   const char* id) :
-    connection_(connection),
-    id_(id),
-    studies_(*this)
-  {
-    studies_.SetThreadCount(connection.GetThreadCount());
-    ReadPatient();
-  }
-
-  const char* Patient::GetMainDicomTag(const char* tag, const char* defaultValue) const
-  {
-    if (patient_["MainDicomTags"].isMember(tag))
-    {
-      return patient_["MainDicomTags"][tag].asCString();
+    OrthancClientException(const char* message) : 
+      LaawException(message)
+    {    
     }
-    else
-    {
-      return defaultValue;
+
+    OrthancClientException(const std::string& message) : 
+      LaawException(message)
+    {    
     }
-  }
+  };
 }
