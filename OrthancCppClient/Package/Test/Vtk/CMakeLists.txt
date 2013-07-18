@@ -14,5 +14,3 @@ if(VTK_LIBRARIES)
 else()
   target_link_libraries(Test vtkHybrid vtkVolumeRendering)
 endif()
-
-set(CMAKE_CXX_FLAGS "-fpermissive")  #TODO REMOVE

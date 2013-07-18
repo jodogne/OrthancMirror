@@ -39,7 +39,7 @@
 #include <vtkOpenGLRenderer.h>
 #include <vtkInteractorStyleTrackballCamera.h>
 
-#include "../Build/OrthancClient.h"
+#include "../../Build/OrthancClient.h"
 
 
 void Display(OrthancClient::Series& series)
@@ -144,8 +144,6 @@ int main()
     for (unsigned int i = 0; i < orthanc.GetPatientCount(); i++)
     {
       OrthancClient::Patient patient = orthanc.GetPatient(i);
-      printf("-- %d\n", (int) &patient);
-      printf(">>>> %d\n", patient.GetStudyCount());
       std::cout << "Patient: " << patient.GetId() << std::endl;
 
       for (unsigned int j = 0; j < patient.GetStudyCount(); j++)
