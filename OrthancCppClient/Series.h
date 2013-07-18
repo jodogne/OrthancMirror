@@ -95,7 +95,7 @@ namespace OrthancClient
     bool Is3DImage();
 
     uint32_t GetInstanceCount();
-
+    
     Instance& GetInstance(uint32_t index);
 
     const char* GetId() const

@@ -70,6 +70,4 @@ namespace OrthancClient
     client_.SetCredentials(username, password);
     ReadPatients();
   }
-
-
 }
