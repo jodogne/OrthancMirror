@@ -64,6 +64,10 @@ namespace OrthancClient
                       const char* username, 
                       const char* password);
 
+    virtual ~OrthancConnection()
+    {
+    }
+
     uint32_t GetThreadCount() const
     {
       return patients_.GetThreadCount();

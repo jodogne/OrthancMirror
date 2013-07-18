@@ -1,5 +1,5 @@
 {
   "InternalsNamespace" : [ "OrthancClient", "Internals" ],
   "PublicNamespace" : [ "OrthancClient" ],
-  "ExceptionClassName" : "OrthancException"
+  "ExceptionClassName" : "OrthancClientException"
 }
