@@ -1,5 +1,3 @@
-# nm -C -D --defined-only libOrthancCppClient.so 
-
 include_directories(${ORTHANC_ROOT}/OrthancCppClient/Package/Laaw)
 
 set(STATIC_BUILD ON)
