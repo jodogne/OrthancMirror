@@ -35,9 +35,11 @@ if (STATIC_BUILD OR NOT USE_DYNAMIC_MONGOOSE)
   endif()
 
 
-  if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows" AND ${CMAKE_COMPILER_IS_GNUCXX})
-    # This is a patch for MinGW64
-    add_definitions(-D_TIMESPEC_DEFINED=1)
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+    if (${CMAKE_COMPILER_IS_GNUCXX})
+      # This is a patch for MinGW64
+      add_definitions(-D_TIMESPEC_DEFINED=1)
+    endif()
   endif()
 
   source_group(ThirdParty\\Mongoose REGULAR_EXPRESSION ${MONGOOSE_SOURCES_DIR}/.*)
