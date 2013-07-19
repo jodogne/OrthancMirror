@@ -277,12 +277,14 @@ include_directories(${ORTHANC_ROOT}/OrthancCppClient/Package/Laaw)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
   if (${CMAKE_SIZEOF_VOID_P} EQUAL 4)
-    set(ORTHANC_CPP_CLIENT_DEF ${ORTHANC_ROOT}/OrthancCppClient/Package/Build/Windows32.def)
+    set(ORTHANC_CPP_CLIENT_AUX ${ORTHANC_ROOT}/OrthancCppClient/Package/Build/Windows32.def)
   elseif (${CMAKE_SIZEOF_VOID_P} EQUAL 8)
-    set(ORTHANC_CPP_CLIENT_DEF ${ORTHANC_ROOT}/OrthancCppClient/Package/Build/Windows64.def)
+    set(ORTHANC_CPP_CLIENT_AUX ${ORTHANC_ROOT}/OrthancCppClient/Package/Build/Windows64.def)
   else()
     message(FATAL_ERROR "Support your platform here")
   endif()
+else()
+  set(ORTHANC_CPP_CLIENT_AUX ${OPENSSL_SOURCES})
 endif()
 
 add_library(OrthancCppClient SHARED
@@ -303,9 +305,8 @@ add_library(OrthancCppClient SHARED
   ${ORTHANC_ROOT}/Resources/sha1/sha1.cpp
   ${ORTHANC_ROOT}/Resources/md5/md5.c
   ${ORTHANC_ROOT}/Resources/base64/base64.cpp
-  ${ORTHANC_CPP_CLIENT_DEF}
+  ${ORTHANC_CPP_CLIENT_AUX}
   ${THIRD_PARTY_SOURCES}
-  ${OPENSSL_SOURCES}
   ${CURL_SOURCES}
   )
 
@@ -315,6 +316,8 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     )
   target_link_libraries(OrthancCppClient pthread)
 elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+  target_link_libraries(OrthancCppClient OpenSSL)
+
   if (${CMAKE_COMPILER_IS_GNUCXX})
     set_target_properties(OrthancCppClient
       PROPERTIES LINK_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--allow-multiple-definition -static-libgcc -static-libstdc++"
