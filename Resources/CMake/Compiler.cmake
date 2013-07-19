@@ -74,6 +74,12 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     -D_CRT_SECURE_NO_WARNINGS=1
     )
   link_libraries(rpcrt4 ws2_32)
+
+  if (${CMAKE_COMPILER_IS_GNUCXX})
+    # This is a patch for MinGW64
+    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--allow-multiple-definition -static-libgcc -static-libstdc++")
+  endif()
+
 endif()
 
 

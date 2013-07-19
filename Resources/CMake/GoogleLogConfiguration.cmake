@@ -5,6 +5,12 @@ if (STATIC_BUILD OR NOT USE_DYNAMIC_GOOGLE_LOG)
     "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/glog-0.3.2.tar.gz"
     "${GOOGLE_LOG_SOURCES_DIR}" "" "")
 
+  #SET(GOOGLE_LOG_SOURCES_DIR ${CMAKE_BINARY_DIR}/glog-0.3.3)
+  #DownloadPackage(
+  #  "a6fd2c22f8996846e34c763422717c18"
+  #  "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/glog-0.3.3.tar.gz"
+  #  "${GOOGLE_LOG_SOURCES_DIR}" "" "")
+
   set(GOOGLE_LOG_HEADERS
     ${GOOGLE_LOG_SOURCES_DIR}/src/glog/logging.h
     ${GOOGLE_LOG_SOURCES_DIR}/src/glog/raw_logging.h
@@ -97,8 +103,16 @@ if (STATIC_BUILD OR NOT USE_DYNAMIC_GOOGLE_LOG)
       -DNO_FRAME_POINTER=1
       -DGOOGLE_GLOG_DLL_DECL=
       )
+
+    if (${CMAKE_COMPILER_IS_GNUCXX})
+      # This is a patch for MinGW64
+      add_definitions(-D_TIME_H__S=1)
+    endif()
+
   endif()
  
+
+
   add_library(GoogleLog STATIC ${GOOGLE_LOG_SOURCES})
   link_libraries(GoogleLog)
 
