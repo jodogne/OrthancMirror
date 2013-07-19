@@ -47,6 +47,15 @@ if (${STATIC_BUILD})
     list(REMOVE_ITEM DCMTK_SOURCES 
       ${DCMTK_SOURCES_DIR}/oflog/libsrc/unixsock.cc
       )
+
+    if (${CMAKE_COMPILER_IS_GNUCXX})
+      # This is a patch for MinGW64
+      execute_process(
+        COMMAND patch -p0 -i ${CMAKE_SOURCE_DIR}/Resources/Patches/dcmtk-mingw64.patch
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        )
+    endif()
+
   endif()
 
   list(REMOVE_ITEM DCMTK_SOURCES 
