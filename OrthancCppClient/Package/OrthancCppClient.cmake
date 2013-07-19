@@ -50,9 +50,13 @@ add_library(OrthancCppClient SHARED
   )
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--version-script=${ORTHANC_ROOT}/OrthancCppClient/Package/Laaw/VersionScript.map")
+  set_target_properties(OrthancCppClient
+    PROPERTIES LINK_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined -Wl,--version-script=${ORTHANC_ROOT}/OrthancCppClient/Package/Laaw/VersionScript.map"
+    )
   target_link_libraries(OrthancCppClient pthread)
 else()
-  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--allow-multiple-definition -static-libgcc -static-libstdc++")
+  set_target_properties(OrthancCppClient
+    PROPERTIES LINK_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--allow-multiple-definition -static-libgcc -static-libstdc++"
+    )
   target_link_libraries(OrthancCppClient ws2_32)
 endif()
