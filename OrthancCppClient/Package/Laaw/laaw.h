@@ -1,7 +1,7 @@
 /**
- * Laaw - A Lightweight, Automated API Wrapper
- * Copyright (C) 2010-2013 Alain Mazy, Benjamin Golinvaux, Sebastien
- * Jodogne
+ * Laaw - Lightweight, Automated API Wrapper
+ * Copyright (C) 2010-2013 Jomago - Alain Mazy, Benjamin Golinvaux,
+ * Sebastien Jodogne
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
