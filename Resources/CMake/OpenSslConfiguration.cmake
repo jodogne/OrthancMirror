@@ -164,6 +164,20 @@ if (${STATIC_BUILD})
     ${OPENSSL_SOURCES_DIR}/crypto/sha/sha512t.c
     ${OPENSSL_SOURCES_DIR}/crypto/sha/shatest.c
     ${OPENSSL_SOURCES_DIR}/crypto/srp/srptest.c
+
+    ${OPENSSL_SOURCES_DIR}/crypto/bn/divtest.c
+    ${OPENSSL_SOURCES_DIR}/crypto/bn/bnspeed.c
+    ${OPENSSL_SOURCES_DIR}/crypto/des/destest.c
+    ${OPENSSL_SOURCES_DIR}/crypto/dh/p192.c
+    ${OPENSSL_SOURCES_DIR}/crypto/dh/p512.c
+    ${OPENSSL_SOURCES_DIR}/crypto/dh/p1024.c
+    ${OPENSSL_SOURCES_DIR}/crypto/des/rpw.c
+    ${OPENSSL_SOURCES_DIR}/ssl/ssltest.c
+    ${OPENSSL_SOURCES_DIR}/crypto/dsa/dsagen.c
+    ${OPENSSL_SOURCES_DIR}/crypto/dsa/dsatest.c
+    ${OPENSSL_SOURCES_DIR}/crypto/dh/dhtest.c
+    ${OPENSSL_SOURCES_DIR}/crypto/pqueue/pq_test.c
+    ${OPENSSL_SOURCES_DIR}/crypto/des/ncbc_enc.c
     )
 
   #if (${MSVC})
@@ -174,8 +188,8 @@ if (${STATIC_BUILD})
       "OPENSSL_SYSNAME_WIN32;SO_WIN32;WIN32_LEAN_AND_MEAN;L_ENDIAN")
   endif()
 
-  add_library(OpenSSL STATIC ${OPENSSL_SOURCES})
-  link_libraries(OpenSSL)
+  #add_library(OpenSSL STATIC ${OPENSSL_SOURCES})
+  #link_libraries(OpenSSL)
 
 else()
   include(FindOpenSSL)

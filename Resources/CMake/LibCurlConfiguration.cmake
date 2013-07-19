@@ -11,7 +11,6 @@ if (${STATIC_BUILD})
 
   #add_library(Curl STATIC ${CURL_SOURCES})
   #link_libraries(Curl)  
-  list(APPEND THIRD_PARTY_SOURCES ${CURL_SOURCES})
 
   add_definitions(
     -DCURL_STATICLIB=1
