@@ -128,7 +128,10 @@ endif()
 ## Build the core of Orthanc
 #####################################################################
 
-add_library(OpenSSL STATIC ${OPENSSL_SOURCES})
+list(LENGTH OPENSSL_SOURCES OPENSSL_SOURCES_LENGTH)
+if (${OPENSSL_SOURCES_LENGTH} GREATER 0)
+  add_library(OpenSSL STATIC ${OPENSSL_SOURCES})
+endif()
 
 add_library(CoreLibrary
   STATIC
@@ -223,7 +226,11 @@ if(NOT ONLY_CORE_LIBRARY)
     OrthancServer/main.cpp
     )
 
-  target_link_libraries(Orthanc ServerLibrary CoreLibrary OpenSSL)
+  target_link_libraries(Orthanc ServerLibrary CoreLibrary)
+
+  if (${OPENSSL_SOURCES_LENGTH} GREATER 0)
+    target_link_libraries(Orthanc OpenSSL)
+  endif()
 
   install(
     TARGETS Orthanc
@@ -252,7 +259,12 @@ if(NOT ONLY_CORE_LIBRARY)
       UnitTests/Lua.cpp
       UnitTests/main.cpp
       )
-    target_link_libraries(UnitTests ServerLibrary CoreLibrary OpenSSL)
+    target_link_libraries(UnitTests ServerLibrary CoreLibrary)
+
+    if (${OPENSSL_SOURCES_LENGTH} GREATER 0)
+      target_link_libraries(UnitTests OpenSSL)
+    endif()
+
   endif()
 endif()
 
