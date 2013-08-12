@@ -179,6 +179,34 @@ namespace Orthanc
     call.GetOutput().AnswerJson(result);
   }
 
+  static void DicomFindInstance(RestApi::PostCall& call)
+  {
+    DicomMap m;
+    DicomMap::SetupFindInstanceTemplate(m);
+    if (!MergeQueryAndTemplate(m, call.GetPostBody()))
+    {
+      return;
+    }
+
+    if ((m.GetValue(DICOM_TAG_ACCESSION_NUMBER).AsString().size() <= 2 &&
+         m.GetValue(DICOM_TAG_PATIENT_ID).AsString().size() <= 2) ||
+        m.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString().size() <= 2 ||
+        m.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).AsString().size() <= 2)
+    {
+      return;
+    }        
+         
+    DicomUserConnection connection;
+    ConnectToModality(connection, call.GetUriComponent("id", ""));
+  
+    DicomFindAnswers answers;
+    connection.FindInstance(answers, m);
+
+    Json::Value result;
+    answers.ToJson(result);
+    call.GetOutput().AnswerJson(result);
+  }
+
   static void DicomFind(RestApi::PostCall& call)
   {
     DicomMap m;
@@ -934,6 +962,7 @@ namespace Orthanc
       result.append("find-patient");
       result.append("find-study");
       result.append("find-series");
+      result.append("find-instance");
       result.append("find");
       result.append("store");
       call.GetOutput().AnswerJson(result);
@@ -1794,6 +1823,7 @@ namespace Orthanc
     Register("/modalities/{id}/find-patient", DicomFindPatient);
     Register("/modalities/{id}/find-study", DicomFindStudy);
     Register("/modalities/{id}/find-series", DicomFindSeries);
+    Register("/modalities/{id}/find-instance", DicomFindInstance);
     Register("/modalities/{id}/find", DicomFind);
     Register("/modalities/{id}/store", DicomStore);
 
