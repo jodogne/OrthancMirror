@@ -49,7 +49,7 @@ namespace Orthanc
    * Reference: http://stackoverflow.com/a/2504317
    **/
   template <typename T, typename Payload = NullType>
-  class CacheIndex : public boost::noncopyable
+  class LeastRecentlyUsedIndex : public boost::noncopyable
   {
   private:
     typedef std::list< std::pair<T, Payload> >  Queue;
@@ -156,7 +156,7 @@ namespace Orthanc
    ******************************************************************/
 
   template <typename T, typename Payload>
-  void CacheIndex<T, Payload>::CheckInvariants() const
+  void LeastRecentlyUsedIndex<T, Payload>::CheckInvariants() const
   {
 #ifndef NDEBUG
     assert(index_.size() == queue_.size());
@@ -172,7 +172,7 @@ namespace Orthanc
 
 
   template <typename T, typename Payload>
-  void CacheIndex<T, Payload>::Add(T id, Payload payload)
+  void LeastRecentlyUsedIndex<T, Payload>::Add(T id, Payload payload)
   {
     if (Contains(id))
     {
@@ -187,7 +187,7 @@ namespace Orthanc
 
 
   template <typename T, typename Payload>
-  void CacheIndex<T, Payload>::TagAsMostRecent(T id)
+  void LeastRecentlyUsedIndex<T, Payload>::TagAsMostRecent(T id)
   {
     if (!Contains(id))
     {
@@ -208,7 +208,7 @@ namespace Orthanc
 
 
   template <typename T, typename Payload>
-  Payload CacheIndex<T, Payload>::Invalidate(T id)
+  Payload LeastRecentlyUsedIndex<T, Payload>::Invalidate(T id)
   {
     if (!Contains(id))
     {
@@ -228,7 +228,7 @@ namespace Orthanc
 
 
   template <typename T, typename Payload>
-  T CacheIndex<T, Payload>::RemoveOldest(Payload& payload)
+  T LeastRecentlyUsedIndex<T, Payload>::RemoveOldest(Payload& payload)
   {
     if (IsEmpty())
     {
