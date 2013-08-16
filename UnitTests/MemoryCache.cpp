@@ -24,12 +24,19 @@ TEST(LRU, Basic)
   r.TagAsMostRecent("d");
   r.TagAsMostRecent("c");
 
+  ASSERT_EQ("a", r.GetOldest());
   ASSERT_EQ("a", r.RemoveOldest());
+  ASSERT_EQ("b", r.GetOldest());
   ASSERT_EQ("b", r.RemoveOldest());
+  ASSERT_EQ("d", r.GetOldest());
   ASSERT_EQ("d", r.RemoveOldest());
+  ASSERT_EQ("c", r.GetOldest());
   ASSERT_EQ("c", r.RemoveOldest());
 
   ASSERT_TRUE(r.IsEmpty());
+
+  ASSERT_THROW(r.GetOldest(), Orthanc::OrthancException);
+  ASSERT_THROW(r.RemoveOldest(), Orthanc::OrthancException);
 }
 
 
@@ -58,8 +65,16 @@ TEST(LRU, Payload)
   ASSERT_TRUE(r.Contains("c", p)); ASSERT_EQ(422, p);
   ASSERT_TRUE(r.Contains("d", p)); ASSERT_EQ(423, p);
 
+  ASSERT_EQ("a", r.GetOldest());
+  ASSERT_EQ(420, r.GetOldestPayload());
   ASSERT_EQ("a", r.RemoveOldest(p)); ASSERT_EQ(420, p);
+
+  ASSERT_EQ("d", r.GetOldest());
+  ASSERT_EQ(423, r.GetOldestPayload());
   ASSERT_EQ("d", r.RemoveOldest(p)); ASSERT_EQ(423, p);
+
+  ASSERT_EQ("c", r.GetOldest());
+  ASSERT_EQ(422, r.GetOldestPayload());
   ASSERT_EQ("c", r.RemoveOldest(p)); ASSERT_EQ(422, p);
 
   ASSERT_TRUE(r.IsEmpty());
