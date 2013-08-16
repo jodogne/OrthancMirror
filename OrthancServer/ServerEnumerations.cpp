@@ -205,6 +205,15 @@ namespace Orthanc
       case ChangeType_ModifiedPatient:
         return "ModifiedPatient";
 
+      case ChangeType_StablePatient:
+        return "StablePatient";
+
+      case ChangeType_StableStudy:
+        return "StableStudy";
+
+      case ChangeType_StableSeries:
+        return "StableSeries";
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }

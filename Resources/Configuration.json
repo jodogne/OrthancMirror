@@ -33,13 +33,6 @@
   "LuaScripts" : [
   ],
 
-  // Dictionary of symbolic names for the user-defined metadata. Each
-  // entry must map a number between 1024 and 65535 to an unique
-  // string.
-  "UserMetadata" : {
-    // "Sample" : 1024
-  },
-
 
 
   /**
@@ -114,5 +107,22 @@
      **/
     // "peer"  : [ "http://localhost:8043/", "alice", "alicePassword" ]
     // "peer2" : [ "http://localhost:8044/" ]
-  }
+  },
+
+
+
+  /**
+   * Advanced options
+   **/
+
+  // Dictionary of symbolic names for the user-defined metadata. Each
+  // entry must map a number between 1024 and 65535 to an unique
+  // string.
+  "UserMetadata" : {
+    // "Sample" : 1024
+  },
+
+  // Number of seconds without receiving any instance before a
+  // patient, a study or a series is considered as stable.
+  "StableAge" : 60
 }
