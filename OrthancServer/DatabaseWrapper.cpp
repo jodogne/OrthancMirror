@@ -949,4 +949,13 @@ namespace Orthanc
   {
     db_.Execute("DELETE FROM " + tableName);    
   }
+
+
+  bool DatabaseWrapper::IsExistingResource(int64_t internalId)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                        "SELECT * FROM Resources WHERE internalId=?");
+    s.BindInt(0, internalId);
+    return s.Step();
+  }
 }

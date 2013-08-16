@@ -223,5 +223,7 @@ namespace Orthanc
     uint64_t IncrementGlobalSequence(GlobalProperty property);
 
     void ClearTable(const std::string& tableName);
+
+    bool IsExistingResource(int64_t internalId);
   };
 }

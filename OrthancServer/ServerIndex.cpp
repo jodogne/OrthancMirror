@@ -1416,6 +1416,7 @@ namespace Orthanc
       boost::this_thread::sleep(boost::posix_time::seconds(1));
 
       boost::mutex::scoped_lock lock(that->mutex_);
+
       while (!that->unstableResources_.IsEmpty() &&
              that->unstableResources_.GetOldestPayload().GetAge() > static_cast<unsigned int>(stableAge))
       {
@@ -1425,25 +1426,29 @@ namespace Orthanc
         UnstableResourcePayload payload;
         int64_t id = that->unstableResources_.RemoveOldest(payload);
 
-        switch (payload.type_)
+        // Ensure that the resource is still existing before logging the change
+        if (that->db_->IsExistingResource(id))
         {
-          case Orthanc::ResourceType_Patient:
-            that->db_->LogChange(ChangeType_StablePatient, id, ResourceType_Patient);
-            break;
+          switch (payload.type_)
+          {
+            case Orthanc::ResourceType_Patient:
+              that->db_->LogChange(ChangeType_StablePatient, id, ResourceType_Patient);
+              break;
 
-          case Orthanc::ResourceType_Study:
-            that->db_->LogChange(ChangeType_StableStudy, id, ResourceType_Study);
-            break;
+            case Orthanc::ResourceType_Study:
+              that->db_->LogChange(ChangeType_StableStudy, id, ResourceType_Study);
+              break;
 
-          case Orthanc::ResourceType_Series:
-            that->db_->LogChange(ChangeType_StableSeries, id, ResourceType_Series);
-            break;
+            case Orthanc::ResourceType_Series:
+              that->db_->LogChange(ChangeType_StableSeries, id, ResourceType_Series);
+              break;
 
-          default:
-            throw OrthancException(ErrorCode_InternalError);
+            default:
+              throw OrthancException(ErrorCode_InternalError);
+          }
+
+          //LOG(INFO) << "Stable resource: " << EnumerationToString(payload.type_) << " " << id;
         }
-
-        //LOG(INFO) << "Stable resource: " << EnumerationToString(payload.type_) << " " << id;
       }
     }
 
