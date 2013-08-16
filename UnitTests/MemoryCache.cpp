@@ -8,9 +8,9 @@
 #include "../Core/Cache/MemoryCache.h"
 
 
-TEST(CacheIndex, Basic)
+TEST(LRU, Basic)
 {
-  Orthanc::CacheIndex<std::string> r;
+  Orthanc::LeastRecentlyUsedIndex<std::string> r;
   
   r.Add("d");
   r.Add("a");
@@ -33,9 +33,9 @@ TEST(CacheIndex, Basic)
 }
 
 
-TEST(CacheIndex, Payload)
+TEST(LRU, Payload)
 {
-  Orthanc::CacheIndex<std::string, int> r;
+  Orthanc::LeastRecentlyUsedIndex<std::string, int> r;
   
   r.Add("a", 420);
   r.Add("b", 421);

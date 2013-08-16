@@ -33,7 +33,7 @@
 #pragma once
 
 #include <memory>
-#include "CacheIndex.h"
+#include "LeastRecentlyUsedIndex.h"
 #include "ICachePageProvider.h"
 
 namespace Orthanc
@@ -52,7 +52,7 @@ namespace Orthanc
 
     ICachePageProvider& provider_;
     size_t cacheSize_;
-    CacheIndex<std::string, Page*>  index_;
+    LeastRecentlyUsedIndex<std::string, Page*>  index_;
 
     Page& Load(const std::string& id);
 
