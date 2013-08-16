@@ -100,7 +100,10 @@ namespace Orthanc
     ChangeType_ModifiedStudy = 8,
     ChangeType_ModifiedSeries = 9,
     ChangeType_AnonymizedPatient = 10,
-    ChangeType_ModifiedPatient = 11
+    ChangeType_ModifiedPatient = 11,
+    ChangeType_StablePatient = 12,
+    ChangeType_StableStudy = 13,
+    ChangeType_StableSeries = 14
   };
 
   void InitializeServerEnumerations();
