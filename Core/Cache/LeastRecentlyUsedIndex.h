@@ -146,6 +146,10 @@ namespace Orthanc
     {
       return index_.empty();
     }
+
+    const T& GetOldest() const;
+    
+    const Payload& GetOldestPayload() const;
   };
 
 
@@ -246,5 +250,29 @@ namespace Orthanc
     CheckInvariants();
 
     return oldest;
+  }
+
+
+  template <typename T, typename Payload>
+  const T& LeastRecentlyUsedIndex<T, Payload>::GetOldest() const
+  {
+    if (IsEmpty())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    return queue_.back().first;
+  }
+
+
+  template <typename T, typename Payload>
+  const Payload& LeastRecentlyUsedIndex<T, Payload>::GetOldestPayload() const
+  {
+    if (IsEmpty())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    return queue_.back().second;
   }
 }
