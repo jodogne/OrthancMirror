@@ -73,12 +73,16 @@ namespace Orthanc
      **/
     void Add(T id, Payload payload = Payload());
 
+    void AddOrMakeMostRecent(T id, Payload payload = Payload());
+
     /**
      * When accessing an element of the cache, this method tags the
      * element as the most recently used.
      * \param id The most recently accessed item.
      **/
-    void TagAsMostRecent(T id);
+    void MakeMostRecent(T id);
+
+    void MakeMostRecent(T id, Payload updatedPayload);
 
     /**
      * Remove an element from the cache index.
@@ -90,11 +94,7 @@ namespace Orthanc
      * Get the oldest element in the cache and remove it.
      * \return The oldest item.
      **/
-    T RemoveOldest()
-    {
-      Payload p;
-      return RemoveOldest(p);
-    }
+    T RemoveOldest();
 
     /**
      * Get the oldest element in the cache, remove it and return the
@@ -191,7 +191,7 @@ namespace Orthanc
 
 
   template <typename T, typename Payload>
-  void LeastRecentlyUsedIndex<T, Payload>::TagAsMostRecent(T id)
+  void LeastRecentlyUsedIndex<T, Payload>::MakeMostRecent(T id)
   {
     if (!Contains(id))
     {
@@ -202,6 +202,53 @@ namespace Orthanc
     assert(it != index_.end());
 
     std::pair<T, Payload> item = *(it->second);
+    
+    queue_.erase(it->second);
+    queue_.push_front(item);
+    index_[id] = queue_.begin();
+
+    CheckInvariants();
+  }
+
+
+  template <typename T, typename Payload>
+  void LeastRecentlyUsedIndex<T, Payload>::AddOrMakeMostRecent(T id, Payload payload)
+  {
+    typename Index::iterator it = index_.find(id);
+
+    if (it != index_.end())
+    {
+      // Already existing. Make it most recent.
+      std::pair<T, Payload> item = *(it->second);
+      item.second = payload;
+      queue_.erase(it->second);
+      queue_.push_front(item);
+    }
+    else
+    {
+      // New item
+      queue_.push_front(std::make_pair(id, payload));
+    }
+
+    index_[id] = queue_.begin();
+
+    CheckInvariants();
+  }
+
+
+  template <typename T, typename Payload>
+  void LeastRecentlyUsedIndex<T, Payload>::MakeMostRecent(T id, Payload updatedPayload)
+  {
+    if (!Contains(id))
+    {
+      throw OrthancException(ErrorCode_InexistentItem);
+    }
+
+    typename Index::iterator it = index_.find(id);
+    assert(it != index_.end());
+
+    std::pair<T, Payload> item = *(it->second);
+    item.second = updatedPayload;
     
     queue_.erase(it->second);
     queue_.push_front(item);
@@ -242,6 +289,27 @@ namespace Orthanc
     std::pair<T, Payload> item = queue_.back();
     T oldest = item.first;
     payload = item.second;
+
+    queue_.pop_back();
+    assert(index_.find(oldest) != index_.end());
+    index_.erase(oldest);
+
+    CheckInvariants();
+
+    return oldest;
+  }
+
+
+  template <typename T, typename Payload>
+  T LeastRecentlyUsedIndex<T, Payload>::RemoveOldest()
+  {
+    if (IsEmpty())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    std::pair<T, Payload> item = queue_.back();
+    T oldest = item.first;
 
     queue_.pop_back();
     assert(index_.find(oldest) != index_.end());
