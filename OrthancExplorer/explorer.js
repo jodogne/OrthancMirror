@@ -361,14 +361,13 @@ $('#find-patients').live('pagebeforeshow', function() {
 
 
 
-function SetupAnonymizedFrom(buttonSelector, resource, resourceType)
+function SetupAnonymizedOrModifiedFrom(buttonSelector, resource, resourceType, field)
 {
-  if ('AnonymizedFrom' in resource)
+  if (field in resource)
   {
     $(buttonSelector).closest('li').show();
     $(buttonSelector).click(function(e) {
-      window.location.assign('explorer.html#' + resourceType + '?uuid=' + resource.AnonymizedFrom);
-      //window.location.reload();
+      window.location.assign('explorer.html#' + resourceType + '?uuid=' + resource[field]);
     });
   }
   else
@@ -376,6 +375,7 @@ function SetupAnonymizedFrom(buttonSelector, resource, resourceType)
     $(buttonSelector).closest('li').hide();
   }
 }
+
 
 
 function RefreshPatient()
@@ -404,7 +404,8 @@ function RefreshPatient()
           target.append(FormatStudy(studies[i], '#study?uuid=' + studies[i].ID));
         }
 
-        SetupAnonymizedFrom('#patient-anonymized-from', patient, 'patient');
+        SetupAnonymizedOrModifiedFrom('#patient-anonymized-from', patient, 'patient', 'AnonymizedFrom');
+        SetupAnonymizedOrModifiedFrom('#patient-modified-from', patient, 'patient', 'ModifiedFrom');
 
         target.listview('refresh');
 
@@ -446,7 +447,8 @@ function RefreshStudy()
             .append(FormatStudy(study))
             .listview('refresh');
 
-          SetupAnonymizedFrom('#study-anonymized-from', study, 'study');
+          SetupAnonymizedOrModifiedFrom('#study-anonymized-from', study, 'study', 'AnonymizedFrom');
+          SetupAnonymizedOrModifiedFrom('#study-modified-from', study, 'study', 'ModifiedFrom');
 
           var target = $('#list-series');
           $('li', target).remove();
@@ -491,7 +493,8 @@ function RefreshSeries()
               .append(FormatSeries(series))
               .listview('refresh');
 
-            SetupAnonymizedFrom('#series-anonymized-from', series, 'series');
+            SetupAnonymizedOrModifiedFrom('#series-anonymized-from', series, 'series', 'AnonymizedFrom');
+            SetupAnonymizedOrModifiedFrom('#series-modified-from', series, 'series', 'ModifiedFrom');
 
             var target = $('#list-instances');
             $('li', target).remove();
@@ -594,6 +597,9 @@ function RefreshInstance()
                 $('#dicom-tree').tree('loadData', ConvertForTree(s));
               }
             });
+
+            SetupAnonymizedOrModifiedFrom('#instance-anonymized-from', instance, 'instance', 'AnonymizedFrom');
+            SetupAnonymizedOrModifiedFrom('#instance-modified-from', instance, 'instance', 'ModifiedFrom');
 
             currentPage = 'instance';
             currentUuid = $.mobile.pageData.uuid;
