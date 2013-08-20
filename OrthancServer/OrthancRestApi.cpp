@@ -76,11 +76,13 @@ namespace Orthanc
   {
     std::string aet, address;
     int port;
-    GetDicomModality(name, aet, address, port);
+    ModalityManufacturer manufacturer;
+    GetDicomModality(name, aet, address, port, manufacturer);
     connection.SetLocalApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
     connection.SetDistantApplicationEntityTitle(aet);
     connection.SetDistantHost(address);
     connection.SetDistantPort(port);
+    connection.SetDistantManufacturer(manufacturer);
     connection.Open();
   }
 

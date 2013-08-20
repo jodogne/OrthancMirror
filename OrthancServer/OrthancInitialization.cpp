@@ -230,7 +230,8 @@ namespace Orthanc
   void GetDicomModality(const std::string& name,
                         std::string& aet,
                         std::string& address,
-                        int& port)
+                        int& port,
+                        ModalityManufacturer& manufacturer)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
@@ -241,7 +242,8 @@ namespace Orthanc
 
     const Json::Value& modalities = (*configuration_) ["DicomModalities"];
     if (modalities.type() != Json::objectValue ||
-        !modalities.isMember(name))
+        !modalities.isMember(name) ||
+        (modalities[name].size() != 3 && modalities[name].size() != 4))
     {
       throw OrthancException("");
     }
@@ -251,6 +253,15 @@ namespace Orthanc
       aet = modalities[name].get(0u, "").asString();
       address = modalities[name].get(1u, "").asString();
       port = modalities[name].get(2u, "").asInt();
+
+      if (modalities[name].size() == 4)
+      {
+        manufacturer = StringToModalityManufacturer(modalities[name].get(3u, "").asString());
+      }
+      else
+      {
+        manufacturer = ModalityManufacturer_Generic;
+      }
     }
     catch (...)
     {

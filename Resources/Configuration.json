@@ -96,6 +96,14 @@
      * command line "storescp 2000".
      **/
     // "sample" : [ "STORESCP", "localhost", 2000 ]
+
+    /**
+     * A fourth parameter is available to enable patches for a
+     * specific PACS manufacturer. The allowed values are currently
+     * "Generic" (default value) and "ClearCanvas". This parameter is
+     * case-sensitive.
+     **/
+    // "clearcanvas" : [ "CLEARCANVAS", "192.168.1.1", 104, "ClearCanvas" ]
   },
 
   // The list of the known Orthanc peers
