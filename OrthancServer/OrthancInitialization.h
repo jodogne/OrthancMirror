@@ -37,6 +37,7 @@
 #include <json/json.h>
 #include <stdint.h>
 #include "../Core/HttpServer/MongooseServer.h"
+#include "ServerEnumerations.h"
 
 namespace Orthanc
 {
@@ -56,7 +57,8 @@ namespace Orthanc
   void GetDicomModality(const std::string& name,
                         std::string& aet,
                         std::string& address,
-                        int& port);
+                        int& port,
+                        ModalityManufacturer& manufacturer);
 
   void GetOrthancPeer(const std::string& name,
                       std::string& url,

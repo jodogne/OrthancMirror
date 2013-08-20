@@ -51,6 +51,12 @@ namespace Orthanc
     StoreStatus_FilteredOut     // Removed by NewInstanceFilter
   };
 
+  enum ModalityManufacturer
+  {
+    ModalityManufacturer_Generic,
+    ModalityManufacturer_ClearCanvas
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations
@@ -125,6 +131,10 @@ namespace Orthanc
   const char* EnumerationToString(StoreStatus status);
 
   const char* EnumerationToString(ChangeType type);
+
+  const char* EnumerationToString(ModalityManufacturer manufacturer);
+
+  ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer);
 
   ResourceType GetParentResourceType(ResourceType type);
 
