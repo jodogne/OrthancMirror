@@ -44,6 +44,13 @@
 #define REFERENCED_SOP_INSTANCE_UID "0008,1155"
 #define FRAME_OF_REFERENCE_UID "0020,0052"
 #define REFERENCED_FRAME_OF_REFERENCE_SEQUENCE "3006,0010"
+#define STRUCTURE_SET_ROI_SEQUENCE "3006,0020"
+#define ROI_NUMBER "3006,0022"
+#define ROI_NAME "3006,0026"
+#define ROI_GENERATION_ALGORITHM "3006,0036"
+#define ROI_CONTOUR_SEQUENCE "3006,0039"
+#define REFERENCED_ROI_NUMBER "3006,0084"
+#define ROI_DISPLAY_COLOR "3006,002a"
 
 namespace Orthanc
 {
@@ -153,7 +160,88 @@ namespace Orthanc
         }
       }
 
+
       call.GetOutput().AnswerJson(result);
+    }
+  }
+
+
+  static void GetRtStructuresListOfROIs(RestApi::GetCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+
+    Json::Value study, series, content;
+    std::string frameOfReference;
+    if (GetRtStructuresInfo(study, series, content, frameOfReference, context, call.GetUriComponent("id", "")))
+    {
+      Json::Value result(Json::arrayValue);
+
+      if (content.isMember(STRUCTURE_SET_ROI_SEQUENCE))
+      {
+        for (Json::Value::ArrayIndex i = 0; i < content[STRUCTURE_SET_ROI_SEQUENCE]["Value"].size(); i++)
+        {
+          if (content[STRUCTURE_SET_ROI_SEQUENCE]["Value"][i].isMember(ROI_NUMBER))
+          {
+            result.append(content[STRUCTURE_SET_ROI_SEQUENCE]["Value"][i][ROI_NUMBER]["Value"].asString());
+          }
+        }
+      }
+
+      call.GetOutput().AnswerJson(result);
+    }
+  }
+
+
+  static void GetRtStructuresROI(RestApi::GetCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+
+    Json::Value study, series, content;
+    std::string frameOfReference;
+    if (GetRtStructuresInfo(study, series, content, frameOfReference, context, call.GetUriComponent("id", "")))
+    {
+      if (content.isMember(STRUCTURE_SET_ROI_SEQUENCE) &&
+          content.isMember(ROI_CONTOUR_SEQUENCE))
+      {
+        Json::Value result;
+
+        bool found = false;
+        for (Json::Value::ArrayIndex i = 0; i < content[STRUCTURE_SET_ROI_SEQUENCE]["Value"].size(); i++)
+        {
+          if (content[STRUCTURE_SET_ROI_SEQUENCE]["Value"][i].isMember(ROI_NUMBER) &&
+              content[STRUCTURE_SET_ROI_SEQUENCE]["Value"][i].isMember(ROI_NAME) &&
+              content[STRUCTURE_SET_ROI_SEQUENCE]["Value"][i][ROI_NUMBER]["Value"].asString() == call.GetUriComponent("roi", ""))
+          {
+            result["Number"] = call.GetUriComponent("roi", "");
+            result["Name"] = content[STRUCTURE_SET_ROI_SEQUENCE]["Value"][i][ROI_NAME]["Value"].asString();
+            result["GenerationAlgorithm"] = content[STRUCTURE_SET_ROI_SEQUENCE]["Value"][i][ROI_GENERATION_ALGORITHM]["Value"].asString();
+            found = true;
+          }
+        }
+
+        if (!found)
+        {
+          return;
+        }
+
+        found = false;
+
+        for (Json::Value::ArrayIndex i = 0; i < content[ROI_CONTOUR_SEQUENCE]["Value"].size(); i++)
+        {
+          if (content[ROI_CONTOUR_SEQUENCE]["Value"][i].isMember(REFERENCED_ROI_NUMBER) &&
+              content[ROI_CONTOUR_SEQUENCE]["Value"][i].isMember(ROI_DISPLAY_COLOR) &&
+              content[ROI_CONTOUR_SEQUENCE]["Value"][i][REFERENCED_ROI_NUMBER]["Value"].asString() == call.GetUriComponent("roi", ""))
+          {
+            result["DisplayColor"] = content[ROI_CONTOUR_SEQUENCE]["Value"][i][ROI_DISPLAY_COLOR]["Value"].asString();
+            found = true;
+          }
+        }
+
+        if (found)
+        {
+          call.GetOutput().AnswerJson(result);
+        }
+      }
     }
   }
 
@@ -161,7 +249,10 @@ namespace Orthanc
   RadiotherapyRestApi::RadiotherapyRestApi(ServerContext& context) : OrthancRestApi(context)
   {
     Register("/series/{id}/rt-structures", GetRtStructuresInfo);
+    Register("/series/{id}/rt-structures/roi", GetRtStructuresListOfROIs);
+    Register("/series/{id}/rt-structures/roi/{roi}", GetRtStructuresROI);
   }
+
 }
 
 
