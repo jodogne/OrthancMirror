@@ -32,39 +32,13 @@
 
 #pragma once
 
-#include "ServerContext.h"
-#include "../Core/RestApi/RestApi.h"
-
-#include <set>
+#include "OrthancRestApi.h"
 
 namespace Orthanc
 {
-  class OrthancRestApi : public RestApi
+  class RadiotherapyRestApi : public OrthancRestApi
   {
   public:
-    typedef std::set<std::string> SetOfStrings;
-
-  protected:
-    ServerContext& context_;
-    SetOfStrings modalities_;
-    SetOfStrings peers_;
-
-  public:
-    OrthancRestApi(ServerContext& context);
-
-    ServerContext& GetContext()
-    {
-      return context_;
-    }
-
-    SetOfStrings& GetModalities()
-    {
-      return modalities_;
-    }
-
-    SetOfStrings& GetPeers()
-    {
-      return peers_;
-    }
+    RadiotherapyRestApi(ServerContext& context);
   };
 }

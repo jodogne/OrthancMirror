@@ -64,11 +64,6 @@
 
 namespace Orthanc
 {
-  // TODO IMPROVE MULTITHREADING
-  // Every call to "ParsedDicomFile" must lock this mutex!!!
-  static boost::mutex cacheMutex_;
-
-
   // DICOM SCU ----------------------------------------------------------------
 
   static void ConnectToModality(DicomUserConnection& connection,
@@ -977,9 +972,9 @@ namespace Orthanc
 
   static void GetRawContent(RestApi::GetCall& call)
   {
-    boost::mutex::scoped_lock lock(cacheMutex_);
-
     RETRIEVE_CONTEXT(call);
+    boost::mutex::scoped_lock lock(context.GetDicomFileMutex());
+
     std::string id = call.GetUriComponent("id", "");
     ParsedDicomFile& dicom = context.GetDicomFile(id);
     dicom.SendPathValue(call.GetOutput(), call.GetTrailingUri());
@@ -1260,8 +1255,8 @@ namespace Orthanc
                                         bool removePrivateTags,
                                         RestApi::PostCall& call)
   {
-    boost::mutex::scoped_lock lock(cacheMutex_);
     RETRIEVE_CONTEXT(call);
+    boost::mutex::scoped_lock lock(context.GetDicomFileMutex());
     
     std::string id = call.GetUriComponent("id", "");
     ParsedDicomFile& dicom = context.GetDicomFile(id);
@@ -1338,8 +1333,8 @@ namespace Orthanc
     bool isFirst = true;
     Json::Value result(Json::objectValue);
 
-    boost::mutex::scoped_lock lock(cacheMutex_);
     RETRIEVE_CONTEXT(call);
+    boost::mutex::scoped_lock lock(context.GetDicomFileMutex());
 
     Instances instances;
     std::string id = call.GetUriComponent("id", "");

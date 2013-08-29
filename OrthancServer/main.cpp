@@ -30,7 +30,8 @@
  **/
 
 
-#include "OrthancRestApi.h"
+//#include "OrthancRestApi.h"
+#include "RadiotherapyRestApi.h"
 
 #include <fstream>
 #include <glog/logging.h>
@@ -411,7 +412,8 @@ int main(int argc, char* argv[])
       httpServer.RegisterHandler(new FilesystemHttpHandler("/app", ORTHANC_PATH "/OrthancExplorer"));
 #endif
 
-      httpServer.RegisterHandler(new OrthancRestApi(context));
+      //httpServer.RegisterHandler(new OrthancRestApi(context));
+      httpServer.RegisterHandler(new RadiotherapyRestApi(context));
 
       // GO !!!
       httpServer.Start();

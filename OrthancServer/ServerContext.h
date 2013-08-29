@@ -40,6 +40,8 @@
 #include "ServerIndex.h"
 #include "FromDcmtkBridge.h"
 
+#include <boost/thread.hpp>
+
 namespace Orthanc
 {
   /**
@@ -62,6 +64,8 @@ namespace Orthanc
       
       virtual IDynamicObject* Provide(const std::string& id);
     };
+
+    boost::mutex cacheMutex_;
 
     FileStorage storage_;
     ServerIndex index_;
@@ -132,6 +136,13 @@ namespace Orthanc
 
     // TODO IMPLEMENT MULTITHREADING FOR THIS METHOD
     ParsedDicomFile& GetDicomFile(const std::string& instancePublicId);
+
+    boost::mutex& GetDicomFileMutex()
+    {
+      // TODO IMPROVE MULTITHREADING
+      // Every call to "ParsedDicomFile" must lock this mutex!!!
+      return cacheMutex_;
+    }
 
     LuaContext& GetLuaContext()
     {
