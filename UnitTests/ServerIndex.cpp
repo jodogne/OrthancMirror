@@ -5,6 +5,7 @@
 
 #include <ctype.h>
 #include <glog/logging.h>
+#include <algorithm>
 
 using namespace Orthanc;
 
@@ -431,4 +432,58 @@ TEST(DatabaseWrapper, Sequence)
   ASSERT_EQ(2u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
   ASSERT_EQ(3u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
   ASSERT_EQ(4u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
+}
+
+
+
+TEST(DatabaseWrapper, LookupTagValue)
+{
+  ServerIndexListener listener;
+  DatabaseWrapper index(listener);
+
+  int64_t a[] = {
+    index.CreateResource("a", ResourceType_Study),   // 0
+    index.CreateResource("b", ResourceType_Study),   // 1
+    index.CreateResource("c", ResourceType_Study),   // 2
+    index.CreateResource("d", ResourceType_Series)   // 3
+  };
+
+  DicomMap m;
+  m.Clear(); m.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "0"); index.SetMainDicomTags(a[0], m);
+  m.Clear(); m.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "1"); index.SetMainDicomTags(a[1], m);
+  m.Clear(); m.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "0"); index.SetMainDicomTags(a[2], m);
+  m.Clear(); m.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, "0"); index.SetMainDicomTags(a[3], m);
+
+  std::list<int64_t> s;
+
+  index.LookupTagValue(s, DICOM_TAG_STUDY_INSTANCE_UID, "0");
+  ASSERT_EQ(2u, s.size());
+  ASSERT_TRUE(std::find(s.begin(), s.end(), a[0]) != s.end());
+  ASSERT_TRUE(std::find(s.begin(), s.end(), a[2]) != s.end());
+
+  index.LookupTagValue(s, "0");
+  ASSERT_EQ(3u, s.size());
+  ASSERT_TRUE(std::find(s.begin(), s.end(), a[0]) != s.end());
+  ASSERT_TRUE(std::find(s.begin(), s.end(), a[2]) != s.end());
+  ASSERT_TRUE(std::find(s.begin(), s.end(), a[3]) != s.end());
+
+  index.LookupTagValue(s, DICOM_TAG_STUDY_INSTANCE_UID, "1");
+  ASSERT_EQ(1u, s.size());
+  ASSERT_TRUE(std::find(s.begin(), s.end(), a[1]) != s.end());
+
+  index.LookupTagValue(s, "1");
+  ASSERT_EQ(1u, s.size());
+  ASSERT_TRUE(std::find(s.begin(), s.end(), a[1]) != s.end());
+
+
+  /*{
+      std::list<std::string> s;
+      context.GetIndex().LookupTagValue(s, DICOM_TAG_STUDY_INSTANCE_UID, "1.2.250.1.74.20130819132500.29000036381059");
+      for (std::list<std::string>::iterator i = s.begin(); i != s.end(); i++)
+      {
+        std::cout << "*** " << *i << std::endl;;
+      }      
+      }*/
+
+
 }

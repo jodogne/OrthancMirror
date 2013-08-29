@@ -1468,4 +1468,42 @@ namespace Orthanc
     unstableResources_.AddOrMakeMostRecent(id, type);
     //LOG(INFO) << "Unstable resource: " << EnumerationToString(type) << " " << id;
   }
+
+
+
+  void ServerIndex::LookupTagValue(std::list<std::string>& result,
+                                   DicomTag tag,
+                                   const std::string& value)
+  {
+    result.clear();
+
+    boost::mutex::scoped_lock lock(mutex_);
+
+    std::list<int64_t> id;
+    db_->LookupTagValue(id, tag, value);
+
+    for (std::list<int64_t>::const_iterator 
+           it = id.begin(); it != id.end(); it++)
+    {
+      result.push_back(db_->GetPublicId(*it));
+    }
+  }
+
+
+  void ServerIndex::LookupTagValue(std::list<std::string>& result,
+                                   const std::string& value)
+  {
+    result.clear();
+
+    boost::mutex::scoped_lock lock(mutex_);
+
+    std::list<int64_t> id;
+    db_->LookupTagValue(id, value);
+
+    for (std::list<int64_t>::const_iterator 
+           it = id.begin(); it != id.end(); it++)
+    {
+      result.push_back(db_->GetPublicId(*it));
+    }
+  }
 }
