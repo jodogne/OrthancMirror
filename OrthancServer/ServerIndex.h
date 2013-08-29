@@ -186,5 +186,12 @@ namespace Orthanc
 
     void GetStatistics(Json::Value& target,
                        const std::string& publicId);
+
+    void LookupTagValue(std::list<std::string>& result,
+                        DicomTag tag,
+                        const std::string& value);
+
+    void LookupTagValue(std::list<std::string>& result,
+                        const std::string& value);
   };
 }
