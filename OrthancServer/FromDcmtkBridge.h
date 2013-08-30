@@ -72,6 +72,8 @@ namespace Orthanc
                size_t size);
 
   public:
+    typedef std::list< std::pair<DicomTag, unsigned int> >  SequencePath;
+
     ParsedDicomFile(const char* content,
                     size_t size)
     {
@@ -113,6 +115,10 @@ namespace Orthanc
     void RemovePrivateTags();
 
     bool GetTagValue(std::string& value,
+                     const DicomTag& tag);
+
+    bool GetTagValue(std::string& value,
+                     const SequencePath& path,
                      const DicomTag& tag);
 
     DicomInstanceHasher GetHasher();

@@ -717,4 +717,47 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NotImplemented);
     }
   }
+
+
+
+  void Toolbox::Split(std::vector<std::string>& result,
+                      const std::string& source,
+                      char delimiter)
+  {
+    if (source.size() == 0)
+    {
+      result.clear();
+      return;
+    }
+
+    size_t count = 1;
+    for (size_t i = 0; i < source.size(); i++)
+    {
+      if (source[i] == delimiter)
+      {
+        count++;
+      }
+    }
+
+    result.clear();
+    result.resize(count);
+
+    size_t pos = 0;
+    size_t start = 0;
+    while (start < source.size())
+    {
+      assert(pos < count);
+
+      size_t end = start;
+      while (end < source.size() && 
+             source[end] != delimiter)
+      {
+        end++;
+      }
+
+      result[pos++] = source.substr(start, end - start);
+      start = end + 1;
+    }
+  }
+
 }

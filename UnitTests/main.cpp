@@ -480,6 +480,47 @@ TEST(Toolbox, WriteFile)
 }
 
 
+TEST(Toolbox, Split)
+{
+  std::vector<std::string> s;
+  
+  Toolbox::Split(s, "", '|'); 
+  ASSERT_EQ(0, s.size());
+  
+  Toolbox::Split(s, "aaaaa", '|'); 
+  ASSERT_EQ(1, s.size());
+  ASSERT_EQ("aaaaa", s[0]);
+  
+  Toolbox::Split(s, "aaa|aa", '|'); 
+  ASSERT_EQ(2, s.size());
+  ASSERT_EQ("aaa", s[0]);
+  ASSERT_EQ("aa", s[1]);
+  
+  Toolbox::Split(s, "a|aa|ab", '|'); 
+  ASSERT_EQ(3, s.size());
+  ASSERT_EQ("a", s[0]);
+  ASSERT_EQ("aa", s[1]);
+  ASSERT_EQ("ab", s[2]);
+  
+  Toolbox::Split(s, "||ab", '|'); 
+  ASSERT_EQ(3, s.size());
+  ASSERT_EQ("", s[0]);
+  ASSERT_EQ("", s[1]);
+  ASSERT_EQ("ab", s[2]);
+  
+  Toolbox::Split(s, "|", '|'); 
+  ASSERT_EQ(2, s.size());
+  ASSERT_EQ("", s[0]);
+  ASSERT_EQ("", s[1]);
+  
+  Toolbox::Split(s, "||", '|'); 
+  ASSERT_EQ(3, s.size());
+  ASSERT_EQ("", s[0]);
+  ASSERT_EQ("", s[1]);
+  ASSERT_EQ("", s[2]);
+}
+
+
 int main(int argc, char **argv)
 {
   // Initialize Google's logging library.

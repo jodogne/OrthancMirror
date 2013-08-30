@@ -40,6 +40,8 @@
   ServerContext& context = contextApi.GetContext()
 
 
+// DICOM tags for RT-STRUCT
+
 #define REFERENCED_STUDY_SEQUENCE "0008,1110"
 #define REFERENCED_SOP_INSTANCE_UID "0008,1155"
 #define FRAME_OF_REFERENCE_UID "0020,0052"
@@ -51,6 +53,12 @@
 #define ROI_CONTOUR_SEQUENCE "3006,0039"
 #define REFERENCED_ROI_NUMBER "3006,0084"
 #define ROI_DISPLAY_COLOR "3006,002a"
+#define CONTOUR_SEQUENCE "3006,0040"
+#define CONTOUR_IMAGE_SEQUENCE "3006,0016"
+#define CONTOUR_GEOMETRIC_TYPE "3006,0042"
+#define NUMBER_OF_CONTOUR_POINTS "3006,0046"
+#define CONTOUR_DATA "3006,0050"
+
 
 namespace Orthanc
 {
@@ -208,13 +216,15 @@ namespace Orthanc
         bool found = false;
         for (Json::Value::ArrayIndex i = 0; i < content[STRUCTURE_SET_ROI_SEQUENCE]["Value"].size(); i++)
         {
-          if (content[STRUCTURE_SET_ROI_SEQUENCE]["Value"][i].isMember(ROI_NUMBER) &&
-              content[STRUCTURE_SET_ROI_SEQUENCE]["Value"][i].isMember(ROI_NAME) &&
-              content[STRUCTURE_SET_ROI_SEQUENCE]["Value"][i][ROI_NUMBER]["Value"].asString() == call.GetUriComponent("roi", ""))
+          const Json::Value& roi = content[STRUCTURE_SET_ROI_SEQUENCE]["Value"][i];
+
+          if (roi.isMember(ROI_NUMBER) &&
+              roi.isMember(ROI_NAME) &&
+              roi[ROI_NUMBER]["Value"].asString() == call.GetUriComponent("roi", ""))
           {
             result["Number"] = call.GetUriComponent("roi", "");
-            result["Name"] = content[STRUCTURE_SET_ROI_SEQUENCE]["Value"][i][ROI_NAME]["Value"].asString();
-            result["GenerationAlgorithm"] = content[STRUCTURE_SET_ROI_SEQUENCE]["Value"][i][ROI_GENERATION_ALGORITHM]["Value"].asString();
+            result["Name"] = roi[ROI_NAME]["Value"].asString();
+            result["GenerationAlgorithm"] = roi[ROI_GENERATION_ALGORITHM]["Value"].asString();
             found = true;
           }
         }
@@ -226,13 +236,112 @@ namespace Orthanc
 
         found = false;
 
+        boost::mutex::scoped_lock lock(context.GetDicomFileMutex());
+        ParsedDicomFile& dicom = context.GetDicomFile(series["Instances"][0].asString());
+
         for (Json::Value::ArrayIndex i = 0; i < content[ROI_CONTOUR_SEQUENCE]["Value"].size(); i++)
         {
-          if (content[ROI_CONTOUR_SEQUENCE]["Value"][i].isMember(REFERENCED_ROI_NUMBER) &&
-              content[ROI_CONTOUR_SEQUENCE]["Value"][i].isMember(ROI_DISPLAY_COLOR) &&
-              content[ROI_CONTOUR_SEQUENCE]["Value"][i][REFERENCED_ROI_NUMBER]["Value"].asString() == call.GetUriComponent("roi", ""))
+          const Json::Value& contour = content[ROI_CONTOUR_SEQUENCE]["Value"][i];
+
+          if (contour.isMember(REFERENCED_ROI_NUMBER) &&
+              contour.isMember(ROI_DISPLAY_COLOR) &&
+              contour.isMember(CONTOUR_SEQUENCE) &&
+              contour[REFERENCED_ROI_NUMBER]["Value"].asString() == call.GetUriComponent("roi", ""))
           {
-            result["DisplayColor"] = content[ROI_CONTOUR_SEQUENCE]["Value"][i][ROI_DISPLAY_COLOR]["Value"].asString();
+            std::vector<std::string> color;
+            Toolbox::Split(color, contour[ROI_DISPLAY_COLOR]["Value"].asString(), '\\');
+
+            result["Points"] = Json::objectValue;
+            result["ClosedPlanar"] = Json::objectValue;
+            result["DisplayColor"] = Json::arrayValue;
+            for (size_t k = 0; k < color.size(); k++)
+            {
+              result["DisplayColor"].append(boost::lexical_cast<int>(color[k]));
+            }
+
+            for (Json::Value::ArrayIndex j = 0; j < contour[CONTOUR_SEQUENCE]["Value"].size(); j++)
+            {
+              const Json::Value& contourSequence = contour[CONTOUR_SEQUENCE]["Value"][j];
+
+              if (contourSequence.isMember(CONTOUR_IMAGE_SEQUENCE) &&
+                  contourSequence.isMember(CONTOUR_GEOMETRIC_TYPE) &&
+                  contourSequence.isMember(NUMBER_OF_CONTOUR_POINTS) &&
+                  contourSequence.isMember(CONTOUR_DATA) &&
+                  contourSequence[CONTOUR_IMAGE_SEQUENCE]["Value"].size() == 1 &&
+                  contourSequence[CONTOUR_IMAGE_SEQUENCE]["Value"][0].isMember(REFERENCED_SOP_INSTANCE_UID))
+              {
+                const std::string type = contourSequence[CONTOUR_GEOMETRIC_TYPE]["Value"].asString();
+                if (type != "POINT" && type != "CLOSED_PLANAR")
+                {
+                  continue;
+                }
+
+                const std::string uid = (contourSequence[CONTOUR_IMAGE_SEQUENCE]["Value"][0]
+                                         [REFERENCED_SOP_INSTANCE_UID]["Value"].asString());
+
+                std::list<std::string> instance;
+                context.GetIndex().LookupTagValue(instance, DICOM_TAG_SOP_INSTANCE_UID, uid);
+                if (instance.size() != 1)
+                {
+                  continue;
+                }
+
+                unsigned int countPoints = boost::lexical_cast<unsigned int>
+                  (contourSequence[NUMBER_OF_CONTOUR_POINTS]["Value"].asString());
+                if (countPoints <= 0)
+                {
+                  continue;
+                }
+
+                ParsedDicomFile::SequencePath path;
+                path.push_back(std::make_pair(DicomTag(0x3006, 0x0039 /* ROIContourSequence */), i));
+                path.push_back(std::make_pair(DicomTag(0x3006, 0x0040 /* ContourSequence */), j));
+                
+                std::string contourData;
+                dicom.GetTagValue(contourData, path, DicomTag(0x3006, 0x0050 /* ContourData */));
+
+                std::vector<std::string> points;
+                Toolbox::Split(points, contourData, '\\');
+
+                Json::Value* target;
+                Json::Value item = Json::arrayValue;
+
+                if (type == "POINT" && 
+                    countPoints == 1 && 
+                    points.size() == 3)
+                {
+                  target = &result["Points"];
+                  item.append(boost::lexical_cast<float>(points[0]));
+                  item.append(boost::lexical_cast<float>(points[1]));
+                  item.append(boost::lexical_cast<float>(points[2]));
+                }
+                else if (type == "CLOSED_PLANAR" &&
+                         points.size() == 3 * countPoints)
+                {
+                  target = &result["ClosedPlanar"];
+                  for (size_t k = 0; k < countPoints; k++)
+                  {
+                    Json::Value p = Json::arrayValue;
+                    p.append(boost::lexical_cast<float>(points[3 * k]));
+                    p.append(boost::lexical_cast<float>(points[3 * k + 1]));
+                    p.append(boost::lexical_cast<float>(points[3 * k + 2]));
+                    item.append(p);
+                  }
+                }
+                else
+                {
+                  continue;
+                }
+              
+                if (!target->isMember(instance.front()))
+                {
+                  (*target) [instance.front()] = Json::arrayValue;
+                }
+
+                (*target) [instance.front()].append(item);
+              }                  
+            }
+
             found = true;
           }
         }

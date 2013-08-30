@@ -706,13 +706,13 @@ namespace Orthanc
 
 
 
-  bool ParsedDicomFile::GetTagValue(std::string& value,
-                                    const DicomTag& tag)
+  static bool GetTagValueInternal(std::string& value,
+                                  DcmItem& item,
+                                  const DicomTag& tag)
   {
     DcmTagKey k(tag.GetGroup(), tag.GetElement());
-    DcmDataset& dataset = *file_->getDataset();
     DcmElement* element = NULL;
-    if (!dataset.findAndGetElement(k, element).good() ||
+    if (!item.findAndGetElement(k, element).good() ||
         element == NULL)
     {
       return false;
@@ -729,7 +729,53 @@ namespace Orthanc
       value = v->AsString();
     }
 
-    return true;
+    return true;    
+  }
+
+
+  bool ParsedDicomFile::GetTagValue(std::string& value,
+                                    const DicomTag& tag)
+  {
+    DcmDataset& dataset = *file_->getDataset();
+    return GetTagValueInternal(value, dataset, tag);
+  }
+
+
+
+  bool ParsedDicomFile::GetTagValue(std::string& value,
+                                    const SequencePath& path,
+                                    const DicomTag& tag)
+  {
+    if (path.size() == 0)
+    {
+      return GetTagValue(value, tag);
+    }
+
+    DcmItem* current = file_->getDataset();
+      assert(current != NULL);
+
+    for (SequencePath::const_iterator it = path.begin(); it != path.end(); it++)
+    {
+      DcmTagKey k(it->first.GetGroup(), it->first.GetElement());
+
+      DcmSequenceOfItems* sequence = NULL;
+      if (!current->findAndGetSequence(k, sequence).good() ||
+          sequence == NULL ||
+          sequence->getVR() != EVR_SQ)
+      {
+        return false;
+      }
+
+      if (it->second > sequence->card())
+      {
+        return false;
+      }
+
+      current = sequence->getItem(it->second);
+      assert(current != NULL);
+    }
+    
+    return GetTagValueInternal(value, *current, tag);    
   }
 
 

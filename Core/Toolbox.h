@@ -108,5 +108,9 @@ namespace Orthanc
     void UrlDecode(std::string& s);
 
     Endianness DetectEndianness();
+
+    void Split(std::vector<std::string>& result,
+               const std::string& source,
+               char delimiter);
   }
 }
