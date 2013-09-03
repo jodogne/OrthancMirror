@@ -766,13 +766,17 @@ namespace Orthanc
         return false;
       }
 
-      if (it->second > sequence->card())
+      if (it->second < 0 || it->second > sequence->card())
       {
         return false;
       }
 
       current = sequence->getItem(it->second);
-      assert(current != NULL);
+
+      if (current == NULL)
+      {
+        return false;
+      }
     }
     
     return GetTagValueInternal(value, *current, tag);    
