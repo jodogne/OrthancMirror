@@ -163,14 +163,16 @@ namespace Orthanc
       return false;
     }
 
-    // Check that the "ReferencedStudySequence" is the same as the parent study.
-    if (!content.isMember(REFERENCED_STUDY_SEQUENCE) ||
-        content[REFERENCED_STUDY_SEQUENCE]["Value"].size() != 1 ||
-        !content[REFERENCED_STUDY_SEQUENCE]["Value"][0].isMember(REFERENCED_SOP_INSTANCE_UID) ||
-        content[REFERENCED_STUDY_SEQUENCE]["Value"][0][REFERENCED_SOP_INSTANCE_UID]["Value"].asString() != 
-        study["MainDicomTags"]["StudyInstanceUID"].asString())
+    // Check that the "ReferencedStudySequence" (if any) is the same as the parent study.
+    if (content.isMember(REFERENCED_STUDY_SEQUENCE))
     {
-      return false;
+      if (content[REFERENCED_STUDY_SEQUENCE]["Value"].size() != 1 ||
+          !content[REFERENCED_STUDY_SEQUENCE]["Value"][0].isMember(REFERENCED_SOP_INSTANCE_UID) ||
+          content[REFERENCED_STUDY_SEQUENCE]["Value"][0][REFERENCED_SOP_INSTANCE_UID]["Value"].asString() != 
+          study["MainDicomTags"]["StudyInstanceUID"].asString())
+      {
+        return false;
+      }
     }
 
     // Lookup for the frame of reference. Orthanc does not support
