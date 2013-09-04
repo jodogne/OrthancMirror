@@ -42,6 +42,15 @@
 
 // DICOM tags for RT-STRUCT
 
+/**
+ * REFERENCE: http://www.dabsoft.ch/dicom/3/C.8.8.6/
+ *
+ * IMPORTANT: The points/vertices coordinates are reported in [mm]. 
+ * 
+ * TODO: Support "Contour Offset Vector"
+ **/
+
+
 #define REFERENCED_STUDY_SEQUENCE "0008,1110"
 #define REFERENCED_SOP_INSTANCE_UID "0008,1155"
 #define FRAME_OF_REFERENCE_UID "0020,0052"
@@ -59,7 +68,15 @@
 #define NUMBER_OF_CONTOUR_POINTS "3006,0046"
 #define CONTOUR_DATA "3006,0050"
 #define CONTOUR_SLAB_THICKNESS "3006,0044"
+#define SLICE_THICKNESS "0018,0050"
 
+
+
+#include <boost/geometry.hpp>
+#include <boost/geometry/geometries/point.hpp>
+#include <boost/geometry/geometries/point_xy.hpp>
+#include <boost/geometry/geometries/polygon.hpp>
+#include <boost/geometry/geometries/linestring.hpp>
 
 namespace Orthanc
 {
@@ -93,7 +110,6 @@ namespace Orthanc
     // Retrieve the instance data
     std::string instanceId = series["Instances"][0].asString();
 
-    Json::Value info;
     context.ReadJson(content, instanceId);
 
     return true;
@@ -258,6 +274,92 @@ namespace Orthanc
   }
 
 
+  static bool GetClosedPlanarPoints(Json::Value& result,
+                                    ServerContext& context,
+                                    const std::string& instanceId,
+                                    const Json::Value& roi,
+                                    unsigned int index)
+  {
+    boost::mutex::scoped_lock lock(context.GetDicomFileMutex());
+    ParsedDicomFile& dicom = context.GetDicomFile(instanceId);
+
+    ParsedDicomFile::SequencePath path;
+    path.push_back(std::make_pair(DicomTag(0x3006, 0x0039 /* ROIContourSequence */), roi["InternalIndex"].asInt()));
+    path.push_back(std::make_pair(DicomTag(0x3006, 0x0040 /* ContourSequence */), index));
+        
+    std::string contourData;
+    std::string numberOfPoints;
+
+    if (dicom.GetTagValue(contourData, path, DicomTag(0x3006, 0x0050 /* ContourData */)) &&
+        dicom.GetTagValue(numberOfPoints, path, DicomTag(0x3006, 0x0046 /* NumberOfContourPoints */)) &&
+        ContourToPoints(result, contourData) &&
+        result.size() == boost::lexical_cast<unsigned int>(numberOfPoints))
+    {
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+
+
+  static bool LookupReferencedInstance(Json::Value& result,
+                                       ServerContext& context,
+                                       const Json::Value& contour)
+  {
+    if (contour.isMember(CONTOUR_IMAGE_SEQUENCE) &&
+        contour[CONTOUR_IMAGE_SEQUENCE]["Value"].size() == 1 &&
+        contour[CONTOUR_IMAGE_SEQUENCE]["Value"][0].isMember(REFERENCED_SOP_INSTANCE_UID))
+    {
+      std::string uid = contour[CONTOUR_IMAGE_SEQUENCE]["Value"][0][REFERENCED_SOP_INSTANCE_UID]["Value"].asString();
+
+      std::list<std::string> instance;
+      context.GetIndex().LookupTagValue(instance, DICOM_TAG_SOP_INSTANCE_UID, uid);
+
+      if (instance.size() == 1 &&
+          context.GetIndex().LookupResource(result, instance.front(), ResourceType_Instance))
+      {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+
+  static bool GetRtStructuresClosedPlanarThickness(float& result,
+                                                   ServerContext& context,
+                                                   const Json::Value& contour)
+  {
+    if (contour.isMember(CONTOUR_SLAB_THICKNESS))
+    {
+      result = boost::lexical_cast<float>(contour[CONTOUR_SLAB_THICKNESS]["Value"].asString());
+      return true;
+    }
+
+    // No slab thickness is explicitely specified: Fallback to
+    // the thickness of the referred instance
+
+    Json::Value instance;
+    if (LookupReferencedInstance(instance, context, contour))
+    {
+      Json::Value info;
+      context.ReadJson(info, instance["ID"].asString());       
+
+      if (info.isMember(SLICE_THICKNESS))
+      {
+        result = boost::lexical_cast<float>(info[SLICE_THICKNESS]["Value"].asString());
+        return true;
+      }
+    }
+
+    return false;
+  }
+                                       
+
+
   static void GetRtStructuresInfo(RestApi::GetCall& call)
   {
     RETRIEVE_CONTEXT(call);
@@ -406,7 +508,7 @@ namespace Orthanc
   {
      RETRIEVE_CONTEXT(call);
 
-     Json::Value roi, contour;
+     Json::Value roi, contour, result;
      std::string instanceId;
 
      if (GetRtStructuresRoi(roi, contour, instanceId, context, 
@@ -415,21 +517,7 @@ namespace Orthanc
      {
        unsigned int index = boost::lexical_cast<unsigned int>(call.GetUriComponent("polygon", ""));
 
-       boost::mutex::scoped_lock lock(context.GetDicomFileMutex());
-       ParsedDicomFile& dicom = context.GetDicomFile(instanceId);
-
-       ParsedDicomFile::SequencePath path;
-       path.push_back(std::make_pair(DicomTag(0x3006, 0x0039 /* ROIContourSequence */), roi["InternalIndex"].asInt()));
-       path.push_back(std::make_pair(DicomTag(0x3006, 0x0040 /* ContourSequence */), index));
-        
-       Json::Value result;
-       std::string contourData;
-       std::string numberOfPoints;
-
-       if (dicom.GetTagValue(contourData, path, DicomTag(0x3006, 0x0050 /* ContourData */)) &&
-           dicom.GetTagValue(numberOfPoints, path, DicomTag(0x3006, 0x0046 /* NumberOfContourPoints */)) &&
-           ContourToPoints(result, contourData) &&
-           result.size() == boost::lexical_cast<unsigned int>(numberOfPoints))
+       if (GetClosedPlanarPoints(result, context, instanceId, roi, index))
        {
          call.GetOutput().AnswerJson(result);
        }
@@ -450,15 +538,77 @@ namespace Orthanc
      {
        unsigned int index = boost::lexical_cast<unsigned int>(call.GetUriComponent("polygon", ""));
 
-       if (contour[index].isMember(CONTOUR_SLAB_THICKNESS))
+       float thickness;
+       if (GetRtStructuresClosedPlanarThickness(thickness, context, contour[index]))
        {
-         std::cout <<contour[index][CONTOUR_SLAB_THICKNESS] << std::endl;
-         call.GetOutput().AnswerBuffer(contour[index][CONTOUR_SLAB_THICKNESS]["Value"].asString(), "text/plain");
+         call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(thickness), "text/plain");
        }
-       else
+     }
+  }
+
+
+  static bool ComputeClosedPlanarArea(double& area,
+                                      const Json::Value& vertices)
+  {
+    if (vertices.size() <= 1)
+    {
+      area = 0;
+      return true;
+    }
+         
+    // Check that all the points share the same z coordinates
+    for (Json::Value::ArrayIndex i = 1; i < vertices.size(); i++)
+    {
+      static float THRESHOLD = 10.0f * std::numeric_limits<float>::epsilon();
+
+      assert(vertices[i].size() == 3);
+      if (fabs(vertices[i][2].asFloat() - vertices[0][2].asFloat()) > THRESHOLD)
+      {
+        // This point has not the same z coordinate
+        return false;
+      }
+    }
+
+    // Calculate the area of a cartesian polygon
+    // TODO - What happens if self-crossing polygon?
+    typedef boost::geometry::model::d2::point_xy<float> point_type;
+
+    boost::geometry::model::linestring<point_type> points;
+
+    points.resize(vertices.size());
+    for (Json::Value::ArrayIndex i = 0; i < vertices.size(); i++)
+    {
+      float x = vertices[i][0].asFloat();
+      float y = vertices[i][1].asFloat();
+      points[i] = boost::geometry::make<point_type>(x, y);
+    }
+
+    boost::geometry::model::polygon<point_type> poly;
+    boost::geometry::append(poly, points);
+               
+    area = abs(boost::geometry::area(poly));
+    return true;
+  }
+
+
+  static void GetRtStructuresClosedPlanarArea(RestApi::GetCall& call)
+  {
+     RETRIEVE_CONTEXT(call);
+
+     Json::Value roi, contour, vertices;
+     std::string instanceId;
+
+     if (GetRtStructuresRoi(roi, contour, instanceId, context, 
+                            call.GetUriComponent("id", ""),
+                            call.GetUriComponent("roi", "")))
+     {
+       unsigned int index = boost::lexical_cast<unsigned int>(call.GetUriComponent("polygon", ""));
+
+       double area;
+       if (GetClosedPlanarPoints(vertices, context, instanceId, roi, index) &&
+           ComputeClosedPlanarArea(area, vertices))
        {
-         // TODO - No slab thickness is explicitely specified: Should we
-         // fallback to the thickness of the instance?
+         call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(area), "text/plain");
        }
      }
   }
@@ -477,21 +627,10 @@ namespace Orthanc
     {
       unsigned int index = boost::lexical_cast<unsigned int>(call.GetUriComponent("polygon", ""));
 
-      if (contour[index].isMember(CONTOUR_IMAGE_SEQUENCE) &&
-          contour[index][CONTOUR_IMAGE_SEQUENCE]["Value"].size() == 1 &&
-          contour[index][CONTOUR_IMAGE_SEQUENCE]["Value"][0].isMember(REFERENCED_SOP_INSTANCE_UID))
+      Json::Value result;
+      if (LookupReferencedInstance(result, context, contour[index]))
       {
-        std::string uid = contour[index][CONTOUR_IMAGE_SEQUENCE]["Value"][0][REFERENCED_SOP_INSTANCE_UID]["Value"].asString();
-
-        std::list<std::string> instance;
-        context.GetIndex().LookupTagValue(instance, DICOM_TAG_SOP_INSTANCE_UID, uid);
-
-        Json::Value result;
-        if (instance.size() == 1 &&
-            context.GetIndex().LookupResource(result, instance.front(), ResourceType_Instance))
-        {
-          call.GetOutput().AnswerJson(result);
-        }
+        call.GetOutput().AnswerJson(result);
       }
     }
   }
@@ -546,9 +685,6 @@ namespace Orthanc
                             call.GetUriComponent("id", ""),
                             call.GetUriComponent("roi", "")))
      {
-       boost::mutex::scoped_lock lock(context.GetDicomFileMutex());
-       ParsedDicomFile& dicom = context.GetDicomFile(instanceId);
-
        Json::Value result = Json::arrayValue;
 
        for (Json::Value::ArrayIndex i = 0; i < contour.size(); i++)
@@ -563,24 +699,12 @@ namespace Orthanc
          {
            std::string uid = contour[i][CONTOUR_IMAGE_SEQUENCE]["Value"][0][REFERENCED_SOP_INSTANCE_UID]["Value"].asString();
 
-           if (uid == instance["MainDicomTags"]["SOPInstanceUID"].asString())
+           Json::Value points;
+           if (uid == instance["MainDicomTags"]["SOPInstanceUID"].asString() &&
+               GetClosedPlanarPoints(points, context, instanceId, roi, i))
            {
-             ParsedDicomFile::SequencePath path;
-             path.push_back(std::make_pair(DicomTag(0x3006, 0x0039 /* ROIContourSequence */), roi["InternalIndex"].asInt()));
-             path.push_back(std::make_pair(DicomTag(0x3006, 0x0040 /* ContourSequence */), i));
-        
-             Json::Value points;
-             std::string contourData;
-             std::string numberOfPoints;
-
-             if (dicom.GetTagValue(contourData, path, DicomTag(0x3006, 0x0050 /* ContourData */)) &&
-                 dicom.GetTagValue(numberOfPoints, path, DicomTag(0x3006, 0x0046 /* NumberOfContourPoints */)) &&
-                 ContourToPoints(points, contourData) &&
-                 points.size() == boost::lexical_cast<unsigned int>(numberOfPoints))
-             {
-               result.append(points);
-             }             
-           }
+             result.append(points);
+           }             
          }
        }
 
@@ -632,6 +756,37 @@ namespace Orthanc
   }
 
 
+  static void GetRtStructuresVolume(RestApi::GetCall& call)
+  {
+     RETRIEVE_CONTEXT(call);
+
+     Json::Value roi, contour, vertices;
+     std::string instanceId;
+
+     if (GetRtStructuresRoi(roi, contour, instanceId, context, 
+                            call.GetUriComponent("id", ""),
+                            call.GetUriComponent("roi", "")))
+     {
+       double volume = 0;
+
+       for (Json::Value::ArrayIndex i = 0; i < contour.size(); i++)
+       {
+         double area;
+         float thickness;
+
+         if (contour[i].isMember(CONTOUR_GEOMETRIC_TYPE) &&
+             contour[i][CONTOUR_GEOMETRIC_TYPE]["Value"].asString() == "CLOSED_PLANAR" &&
+             GetClosedPlanarPoints(vertices, context, instanceId, roi, i) &&
+             ComputeClosedPlanarArea(area, vertices) &&
+             GetRtStructuresClosedPlanarThickness(thickness, context, contour[i]))
+         {
+           volume += area * static_cast<double>(thickness);
+         }
+       }
+
+       call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(volume), "text/plain");
+     }
+  }
 
 
   RadiotherapyRestApi::RadiotherapyRestApi(ServerContext& context) : OrthancRestApi(context)
@@ -644,9 +799,11 @@ namespace Orthanc
     Register("/series/{id}/rt-structures/roi/{roi}/closed-planar/{polygon}/vertices", GetRtStructuresSingleClosedPlanar);
     Register("/series/{id}/rt-structures/roi/{roi}/closed-planar/{polygon}/thickness", GetRtStructuresClosedPlanarThickness);
     Register("/series/{id}/rt-structures/roi/{roi}/closed-planar/{polygon}/instance", GetRtStructuresInstanceOfClosedPlanar);
+    Register("/series/{id}/rt-structures/roi/{roi}/closed-planar/{polygon}/area", GetRtStructuresClosedPlanarArea);
     Register("/series/{id}/rt-structures/roi/{roi}/instances", GetRtStructuresListOfInstances);
     Register("/series/{id}/rt-structures/roi/{roi}/instances/{instance}/closed-planar", GetRtStructuresClosedPlanarsOfInstance);
     Register("/series/{id}/rt-structures/roi/{roi}/instances/{instance}/points", GetRtStructuresPointsOfInstance);
+    Register("/series/{id}/rt-structures/roi/{roi}/volume", GetRtStructuresVolume);
   }
 
 }
