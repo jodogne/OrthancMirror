@@ -1138,6 +1138,7 @@ namespace Orthanc
     removals.insert(DicomTag(0x0010, 0x1040));  // Patient's Address
     removals.insert(DicomTag(0x0032, 0x1032));  // Requesting Physician
     removals.insert(DicomTag(0x0010, 0x2154));  // PatientTelephoneNumbers
+    removals.insert(DicomTag(0x0010, 0x2000));  // Medical Alerts
 
     // Set the DeidentificationMethod tag
     replacements.insert(std::make_pair(DicomTag(0x0012, 0x0063), "Orthanc " ORTHANC_VERSION " - PS 3.15-2008 Table E.1-1"));
