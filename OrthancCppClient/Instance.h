@@ -51,8 +51,11 @@ namespace OrthancClient
     Json::Value tags_;
     std::auto_ptr<Orthanc::PngReader> reader_;
     Orthanc::ImageExtractionMode mode_;
+    std::auto_ptr<std::string> dicom_;
 
     void DownloadImage();
+
+    void DownloadDicom();
 
   public:
     Instance(const OrthancConnection& connection,
@@ -89,6 +92,12 @@ namespace OrthancClient
     const void* GetBuffer(uint32_t y);
 
     void DiscardImage();
+
+    void DiscardDicom();
+
+    const uint64_t GetDicomSize();
+
+    const void* GetDicom();
 
     LAAW_API_INTERNAL void SplitVectorOfFloats(std::vector<float>& target,
                                                const char* tag);

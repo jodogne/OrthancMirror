@@ -76,4 +76,17 @@ namespace OrthancClient
       return defaultValue;
     }
   }
+  
+  void Patient::Delete()
+  {
+    Orthanc::HttpClient client(connection_.GetHttpClient());
+    client.SetMethod(Orthanc::HttpMethod_Delete);
+    client.SetUrl(std::string(connection_.GetOrthancUrl()) + "/patients/" + id_);
+    
+    std::string s;
+    if (!client.Apply(s))
+    {
+      throw OrthancClientException(Orthanc::ErrorCode_NetworkProtocol);
+    }
+  }
 }

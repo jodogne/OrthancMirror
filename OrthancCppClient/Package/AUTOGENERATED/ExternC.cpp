@@ -155,7 +155,7 @@ this_->SetThreadCount(arg0);
         }
       }
 
-      LAAW_EXPORT_DLL_API char* LAAW_CALL_CONVENTION LAAW_EXTERNC_e05097c153f676e5a5ee54dcfc78256f(void* thisObject)
+      LAAW_EXPORT_DLL_API char* LAAW_CALL_CONVENTION LAAW_EXTERNC_d7497fd24e4b453f2965bae9ef8330b0(void* thisObject)
       {
         try
         {
@@ -164,7 +164,7 @@ this_->SetThreadCount(arg0);
           #endif
 
           OrthancClient::OrthancConnection* this_ = static_cast<OrthancClient::OrthancConnection*>(thisObject);
-this_->Reload();
+this_->Refresh();
 
           return NULL;
         }
@@ -234,6 +234,75 @@ this_->Reload();
 
           OrthancClient::OrthancConnection* this_ = static_cast<OrthancClient::OrthancConnection*>(thisObject);
 *result = &this_->GetPatient(arg0);
+
+          return NULL;
+        }
+        catch (::Laaw::LaawException& e)
+        {
+          return LAAW_EXTERNC_CopyString(e.What());
+        }
+        catch (...)
+        {
+          return LAAW_EXTERNC_CopyString("...");
+        }
+      }
+
+      LAAW_EXPORT_DLL_API char* LAAW_CALL_CONVENTION LAAW_EXTERNC_aeb20dc75b9246188db857317e5e0ce7(void* thisObject, uint32_t arg0)
+      {
+        try
+        {
+          #ifdef LAAW_EXTERNC_START_FUNCTION
+          LAAW_EXTERNC_START_FUNCTION;
+          #endif
+
+          OrthancClient::OrthancConnection* this_ = static_cast<OrthancClient::OrthancConnection*>(thisObject);
+this_->DeletePatient(arg0);
+
+          return NULL;
+        }
+        catch (::Laaw::LaawException& e)
+        {
+          return LAAW_EXTERNC_CopyString(e.What());
+        }
+        catch (...)
+        {
+          return LAAW_EXTERNC_CopyString("...");
+        }
+      }
+
+      LAAW_EXPORT_DLL_API char* LAAW_CALL_CONVENTION LAAW_EXTERNC_62689803d9871e4d9c51a648640b320b(void* thisObject, const char* arg0)
+      {
+        try
+        {
+          #ifdef LAAW_EXTERNC_START_FUNCTION
+          LAAW_EXTERNC_START_FUNCTION;
+          #endif
+
+          OrthancClient::OrthancConnection* this_ = static_cast<OrthancClient::OrthancConnection*>(thisObject);
+this_->StoreFile(reinterpret_cast< const char* >(arg0));
+
+          return NULL;
+        }
+        catch (::Laaw::LaawException& e)
+        {
+          return LAAW_EXTERNC_CopyString(e.What());
+        }
+        catch (...)
+        {
+          return LAAW_EXTERNC_CopyString("...");
+        }
+      }
+
+      LAAW_EXPORT_DLL_API char* LAAW_CALL_CONVENTION LAAW_EXTERNC_2fb64c9e5a67eccd413b0e913469a421(void* thisObject, const void* arg0, uint64_t arg1)
+      {
+        try
+        {
+          #ifdef LAAW_EXTERNC_START_FUNCTION
+          LAAW_EXTERNC_START_FUNCTION;
+          #endif
+
+          OrthancClient::OrthancConnection* this_ = static_cast<OrthancClient::OrthancConnection*>(thisObject);
+this_->Store(reinterpret_cast< const void* >(arg0), arg1);
 
           return NULL;
         }
@@ -1238,6 +1307,75 @@ this_->SetImageExtractionMode(static_cast< ::Orthanc::ImageExtractionMode >(arg0
 
           OrthancClient::Instance* this_ = static_cast<OrthancClient::Instance*>(thisObject);
 this_->DiscardImage();
+
+          return NULL;
+        }
+        catch (::Laaw::LaawException& e)
+        {
+          return LAAW_EXTERNC_CopyString(e.What());
+        }
+        catch (...)
+        {
+          return LAAW_EXTERNC_CopyString("...");
+        }
+      }
+
+      LAAW_EXPORT_DLL_API char* LAAW_CALL_CONVENTION LAAW_EXTERNC_d604f44bd5195e082e745e9cbc164f4c(void* thisObject)
+      {
+        try
+        {
+          #ifdef LAAW_EXTERNC_START_FUNCTION
+          LAAW_EXTERNC_START_FUNCTION;
+          #endif
+
+          OrthancClient::Instance* this_ = static_cast<OrthancClient::Instance*>(thisObject);
+this_->DiscardDicom();
+
+          return NULL;
+        }
+        catch (::Laaw::LaawException& e)
+        {
+          return LAAW_EXTERNC_CopyString(e.What());
+        }
+        catch (...)
+        {
+          return LAAW_EXTERNC_CopyString("...");
+        }
+      }
+
+      LAAW_EXPORT_DLL_API char* LAAW_CALL_CONVENTION LAAW_EXTERNC_9ca979fffd08fa256306d4e68d8b0e91(void* thisObject, uint64_t* result)
+      {
+        try
+        {
+          #ifdef LAAW_EXTERNC_START_FUNCTION
+          LAAW_EXTERNC_START_FUNCTION;
+          #endif
+
+          OrthancClient::Instance* this_ = static_cast<OrthancClient::Instance*>(thisObject);
+*result = this_->GetDicomSize();
+
+          return NULL;
+        }
+        catch (::Laaw::LaawException& e)
+        {
+          return LAAW_EXTERNC_CopyString(e.What());
+        }
+        catch (...)
+        {
+          return LAAW_EXTERNC_CopyString("...");
+        }
+      }
+
+      LAAW_EXPORT_DLL_API char* LAAW_CALL_CONVENTION LAAW_EXTERNC_6f2d77a26edc91c28d89408dbc3c271e(void* thisObject, const void** result)
+      {
+        try
+        {
+          #ifdef LAAW_EXTERNC_START_FUNCTION
+          LAAW_EXTERNC_START_FUNCTION;
+          #endif
+
+          OrthancClient::Instance* this_ = static_cast<OrthancClient::Instance*>(thisObject);
+*result = this_->GetDicom();
 
           return NULL;
         }
