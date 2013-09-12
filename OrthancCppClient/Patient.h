@@ -81,5 +81,7 @@ namespace OrthancClient
 
     const char* GetMainDicomTag(const char* tag, 
                                 const char* defaultValue) const;
+
+    LAAW_API_INTERNAL void Delete();
   };
 }

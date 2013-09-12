@@ -78,9 +78,10 @@ namespace OrthancClient
       patients_.SetThreadCount(threadCount);
     }
 
-    void Reload()
+    void Refresh()
     {
-      patients_.Reload();
+      ReadPatients();
+      patients_.Invalidate();
     }
 
     LAAW_API_INTERNAL const Orthanc::HttpClient& GetHttpClient() const
@@ -99,5 +100,15 @@ namespace OrthancClient
     }
 
     Patient& GetPatient(uint32_t index);
+
+    void DeletePatient(uint32_t index)
+    {
+      GetPatient(index).Delete();
+      Refresh();
+    }
+
+    void StoreFile(const char* filename);
+
+    void Store(const void* dicom, uint64_t size);
   };
 }

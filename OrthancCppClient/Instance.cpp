@@ -79,6 +79,22 @@ namespace OrthancClient
     }
   }
 
+  void Instance::DownloadDicom()
+  {
+    if (dicom_.get() == NULL)
+    {
+      Orthanc::HttpClient client(connection_.GetHttpClient());
+      client.SetUrl(std::string(connection_.GetOrthancUrl()) +  "/instances/" + id_ + "/file");
+
+      dicom_.reset(new std::string);
+
+      if (!client.Apply(*dicom_))
+      {
+        throw OrthancClientException(Orthanc::ErrorCode_NetworkProtocol);
+      }
+    }
+  }
+
   Instance::Instance(const OrthancConnection& connection,
                      const char* id) :
     connection_(connection),
@@ -176,6 +192,11 @@ namespace OrthancClient
     reader_.reset();
   }
 
+  void Instance::DiscardDicom()
+  {
+    dicom_.reset();
+  }
+
 
   void Instance::SetImageExtractionMode(Orthanc::ImageExtractionMode mode)
   {
@@ -220,4 +241,28 @@ namespace OrthancClient
       throw OrthancClientException(Orthanc::ErrorCode_BadFileFormat);
     }
   }
+
+
+  const uint64_t Instance::GetDicomSize()
+  {
+    DownloadDicom();
+    assert(dicom_.get() != NULL);
+    return dicom_->size();
+  }
+
+  const void* Instance::GetDicom()
+  {
+    DownloadDicom();
+    assert(dicom_.get() != NULL);
+
+    if (dicom_->size() == 0)
+    {
+      return NULL;
+    }
+    else
+    {
+      return &((*dicom_) [0]);
+    }
+  }
+
 }

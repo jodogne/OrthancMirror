@@ -32,11 +32,15 @@
 
 #include "OrthancConnection.h"
 
+#include "../Core/Toolbox.h"
+
 namespace OrthancClient
 {
   void OrthancConnection::ReadPatients()
   {
+    client_.SetMethod(Orthanc::HttpMethod_Get);
     client_.SetUrl(orthancUrl_ + "/patients");
+
     Json::Value v;
     if (!client_.Apply(content_))
     {
@@ -70,4 +74,41 @@ namespace OrthancClient
     client_.SetCredentials(username, password);
     ReadPatients();
   }
+
+
+  void OrthancConnection::Store(const void* dicom, uint64_t size)
+  {
+    if (size == 0)
+    {
+      return;
+    }
+
+    client_.SetMethod(Orthanc::HttpMethod_Post);
+    client_.SetUrl(orthancUrl_ + "/instances");
+
+    // Copy the DICOM file in the POST body. TODO - Avoid memory copy
+    client_.AccessPostData().resize(size);
+    memcpy(&client_.AccessPostData()[0], dicom, size);
+
+    Json::Value v;
+    if (!client_.Apply(v))
+    {
+      throw OrthancClientException(Orthanc::ErrorCode_NetworkProtocol);
+    }
+    
+    Refresh();
+  }
+
+
+  void  OrthancConnection::StoreFile(const char* filename)
+  {
+    std::string content;
+    Orthanc::Toolbox::ReadFile(content, filename);
+
+    if (content.size() != 0)
+    {
+      Store(&content[0], content.size());
+    }
+  }
+
 }
