@@ -949,4 +949,50 @@ namespace Orthanc
   {
     db_.Execute("DELETE FROM " + tableName);    
   }
+
+
+  bool DatabaseWrapper::IsExistingResource(int64_t internalId)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                        "SELECT * FROM Resources WHERE internalId=?");
+    s.BindInt(0, internalId);
+    return s.Step();
+  }
+
+
+  void  DatabaseWrapper::LookupTagValue(std::list<int64_t>& result,
+                                        DicomTag tag,
+                                        const std::string& value)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                        "SELECT id FROM MainDicomTags WHERE tagGroup=? AND tagElement=? and value=?");
+
+    s.BindInt(0, tag.GetGroup());
+    s.BindInt(1, tag.GetElement());
+    s.BindString(2, value);
+
+    result.clear();
+
+    while (s.Step())
+    {
+      result.push_back(s.ColumnInt64(0));
+    }
+  }
+
+
+  void  DatabaseWrapper::LookupTagValue(std::list<int64_t>& result,
+                                        const std::string& value)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                        "SELECT id FROM MainDicomTags WHERE value=?");
+
+    s.BindString(0, value);
+
+    result.clear();
+
+    while (s.Step())
+    {
+      result.push_back(s.ColumnInt64(0));
+    }
+  }
 }
