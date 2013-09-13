@@ -34,6 +34,7 @@
 
 #include <boost/thread.hpp>
 #include <boost/noncopyable.hpp>
+#include "../Core/Cache/LeastRecentlyUsedIndex.h"
 #include "../Core/SQLite/Connection.h"
 #include "../Core/DicomFormat/DicomMap.h"
 #include "../Core/DicomFormat/DicomInstanceHasher.h"
@@ -55,16 +56,24 @@ namespace Orthanc
   {
   private:
     class Transaction;
+    struct UnstableResourcePayload;
 
+    bool done_;
     boost::mutex mutex_;
     boost::thread flushThread_;
+    boost::thread unstableResourcesMonitorThread_;
 
     std::auto_ptr<Internals::ServerIndexListener> listener_;
     std::auto_ptr<DatabaseWrapper> db_;
+    LeastRecentlyUsedIndex<int64_t, UnstableResourcePayload>  unstableResources_;
 
     uint64_t currentStorageSize_;
     uint64_t maximumStorageSize_;
     unsigned int maximumPatients_;
+
+    static void FlushThread(ServerIndex* that);
+
+    static void UnstableResourcesMonitorThread(ServerIndex* that);
 
     void MainDicomTagsToJson(Json::Value& result,
                              int64_t resourceId);
@@ -77,6 +86,9 @@ namespace Orthanc
                  const std::string& newPatientId);
 
     void StandaloneRecycling();
+
+    void MarkAsUnstable(int64_t id,
+                        Orthanc::ResourceType type);
 
   public:
     typedef std::list<FileInfo> Attachments;
@@ -174,5 +186,12 @@ namespace Orthanc
 
     void GetStatistics(Json::Value& target,
                        const std::string& publicId);
+
+    void LookupTagValue(std::list<std::string>& result,
+                        DicomTag tag,
+                        const std::string& value);
+
+    void LookupTagValue(std::list<std::string>& result,
+                        const std::string& value);
   };
 }

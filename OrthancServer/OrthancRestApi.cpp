@@ -76,11 +76,13 @@ namespace Orthanc
   {
     std::string aet, address;
     int port;
-    GetDicomModality(name, aet, address, port);
+    ModalityManufacturer manufacturer;
+    GetDicomModality(name, aet, address, port, manufacturer);
     connection.SetLocalApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
     connection.SetDistantApplicationEntityTitle(aet);
     connection.SetDistantHost(address);
     connection.SetDistantPort(port);
+    connection.SetDistantManufacturer(manufacturer);
     connection.Open();
   }
 
@@ -173,6 +175,34 @@ namespace Orthanc
   
     DicomFindAnswers answers;
     connection.FindSeries(answers, m);
+
+    Json::Value result;
+    answers.ToJson(result);
+    call.GetOutput().AnswerJson(result);
+  }
+
+  static void DicomFindInstance(RestApi::PostCall& call)
+  {
+    DicomMap m;
+    DicomMap::SetupFindInstanceTemplate(m);
+    if (!MergeQueryAndTemplate(m, call.GetPostBody()))
+    {
+      return;
+    }
+
+    if ((m.GetValue(DICOM_TAG_ACCESSION_NUMBER).AsString().size() <= 2 &&
+         m.GetValue(DICOM_TAG_PATIENT_ID).AsString().size() <= 2) ||
+        m.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString().size() <= 2 ||
+        m.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).AsString().size() <= 2)
+    {
+      return;
+    }        
+         
+    DicomUserConnection connection;
+    ConnectToModality(connection, call.GetUriComponent("id", ""));
+  
+    DicomFindAnswers answers;
+    connection.FindInstance(answers, m);
 
     Json::Value result;
     answers.ToJson(result);
@@ -934,6 +964,7 @@ namespace Orthanc
       result.append("find-patient");
       result.append("find-study");
       result.append("find-series");
+      result.append("find-instance");
       result.append("find");
       result.append("store");
       call.GetOutput().AnswerJson(result);
@@ -1002,8 +1033,6 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadRequest);
     }
 
-    target.clear();
-
     for (Json::Value::ArrayIndex i = 0; i < removals.size(); i++)
     {
       std::string name = removals[i].asString();
@@ -1022,8 +1051,6 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_BadRequest);
     }
-
-    target.clear();
 
     Json::Value::Members members = replacements.getMemberNames();
     for (size_t i = 0; i < members.size(); i++)
@@ -1070,7 +1097,7 @@ namespace Orthanc
     removals.insert(DicomTag(0x0008, 0x1155));  // Referenced SOP Instance UID 
     removals.insert(DicomTag(0x0008, 0x2111));  // Derivation Description 
     removals.insert(DicomTag(0x0010, 0x0010));  // Patient's Name 
-    removals.insert(DicomTag(0x0010, 0x0020));  // Patient ID
+    //removals.insert(DicomTag(0x0010, 0x0020));  // Patient ID => cf. below (*)
     removals.insert(DicomTag(0x0010, 0x0030));  // Patient's Birth Date 
     removals.insert(DicomTag(0x0010, 0x0032));  // Patient's Birth Time 
     removals.insert(DicomTag(0x0010, 0x0040));  // Patient's Sex 
@@ -1086,8 +1113,8 @@ namespace Orthanc
     removals.insert(DicomTag(0x0010, 0x4000));  // Patient Comments 
     removals.insert(DicomTag(0x0018, 0x1000));  // Device Serial Number 
     removals.insert(DicomTag(0x0018, 0x1030));  // Protocol Name 
-    //removals.insert(DicomTag(0x0020, 0x000d));  // Study Instance UID => generated below
-    //removals.insert(DicomTag(0x0020, 0x000e));  // Series Instance UID => generated below
+    //removals.insert(DicomTag(0x0020, 0x000d));  // Study Instance UID => cf. below (*)
+    //removals.insert(DicomTag(0x0020, 0x000e));  // Series Instance UID => cf. below (*)
     removals.insert(DicomTag(0x0020, 0x0010));  // Study ID 
     removals.insert(DicomTag(0x0020, 0x0052));  // Frame of Reference UID 
     removals.insert(DicomTag(0x0020, 0x0200));  // Synchronization Frame of Reference UID 
@@ -1099,30 +1126,25 @@ namespace Orthanc
     removals.insert(DicomTag(0x3006, 0x0024));  // Referenced Frame of Reference UID 
     removals.insert(DicomTag(0x3006, 0x00c2));  // Related Frame of Reference UID 
 
+    /**
+     *   (*) Patient ID, Study Instance UID and Series Instance UID
+     * are modified by "AnonymizeInstance()" if anonymizing a single
+     * instance, or by "RetrieveMappedUid()" if anonymizing a
+     * patient/study/series.
+     **/
+
+
     // Some more removals (from the experience of DICOM files at the CHU of Liege)
     removals.insert(DicomTag(0x0010, 0x1040));  // Patient's Address
     removals.insert(DicomTag(0x0032, 0x1032));  // Requesting Physician
     removals.insert(DicomTag(0x0010, 0x2154));  // PatientTelephoneNumbers
+    removals.insert(DicomTag(0x0010, 0x2000));  // Medical Alerts
 
     // Set the DeidentificationMethod tag
     replacements.insert(std::make_pair(DicomTag(0x0012, 0x0063), "Orthanc " ORTHANC_VERSION " - PS 3.15-2008 Table E.1-1"));
 
-    // Set the PatientIdentityRemoved
+    // Set the PatientIdentityRemoved tag
     replacements.insert(std::make_pair(DicomTag(0x0012, 0x0062), "YES"));
-
-    // Generate random study UID if not specified
-    if (replacements.find(DICOM_TAG_STUDY_INSTANCE_UID) == replacements.end())
-    {
-      replacements.insert(std::make_pair(DICOM_TAG_STUDY_INSTANCE_UID, 
-                                         FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Study)));
-    }
-
-    // Generate random series UID if not specified
-    if (replacements.find(DICOM_TAG_SERIES_INSTANCE_UID) == replacements.end())
-    {
-      replacements.insert(std::make_pair(DICOM_TAG_SERIES_INSTANCE_UID, 
-                                         FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series)));
-    }
   }
 
 
@@ -1225,13 +1247,6 @@ namespace Orthanc
         replacements.insert(std::make_pair(DicomTag(0x0010, 0x0010), GeneratePatientName(context)));
       }
 
-      // Generate random Patient's ID if none is specified
-      if (replacements.find(DICOM_TAG_PATIENT_ID) == replacements.end())
-      {
-        replacements.insert(std::make_pair(DICOM_TAG_PATIENT_ID, 
-                                           FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Patient)));
-      }
-
       return true;
     }
     else
@@ -1264,14 +1279,23 @@ namespace Orthanc
                                 UidMap& uidMap)
   {
     std::auto_ptr<DicomTag> tag;
-    if (level == DicomRootLevel_Series)
+
+    switch (level)
     {
-      tag.reset(new DicomTag(DICOM_TAG_SERIES_INSTANCE_UID));
-    }
-    else
-    {
-      assert(level == DicomRootLevel_Study);
-      tag.reset(new DicomTag(DICOM_TAG_STUDY_INSTANCE_UID));
+      case DicomRootLevel_Series:
+        tag.reset(new DicomTag(DICOM_TAG_SERIES_INSTANCE_UID));
+        break;
+
+      case DicomRootLevel_Study:
+        tag.reset(new DicomTag(DICOM_TAG_STUDY_INSTANCE_UID));
+        break;
+
+      case DicomRootLevel_Patient:
+        tag.reset(new DicomTag(DICOM_TAG_PATIENT_ID));
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
     }
 
     std::string original;
@@ -1301,7 +1325,8 @@ namespace Orthanc
   }
 
 
-  static void AnonymizeOrModifyResource(Removals& removals,
+  static void AnonymizeOrModifyResource(bool isAnonymization,
+                                        Removals& removals,
                                         Replacements& replacements,
                                         bool removePrivateTags,
                                         MetadataType metadataType,
@@ -1338,14 +1363,19 @@ namespace Orthanc
       LOG(INFO) << "Modifying instance " << *it;
       ParsedDicomFile& original = context.GetDicomFile(*it);
 
-      bool isNewSeries = RetrieveMappedUid(original, DicomRootLevel_Series, replacements, uidMap);
+      DicomInstanceHasher originalHasher = original.GetHasher();
 
-      bool isNewStudy = false;
-      if (resourceType == ResourceType_Study ||
-          resourceType == ResourceType_Patient)
+      if (isFirst && !isAnonymization)
       {
-        isNewStudy = RetrieveMappedUid(original, DicomRootLevel_Study, replacements, uidMap);
+        // If modifying a study or a series, keep the original patient ID.
+        std::string patientId = originalHasher.GetPatientId();
+        uidMap[std::make_pair(DicomRootLevel_Patient, patientId)] = patientId;
       }
+
+      bool isNewSeries = RetrieveMappedUid(original, DicomRootLevel_Series, replacements, uidMap);
+      bool isNewStudy = RetrieveMappedUid(original, DicomRootLevel_Study, replacements, uidMap);
+      bool isNewPatient = RetrieveMappedUid(original, DicomRootLevel_Patient, replacements, uidMap);
+
 
       /**
        * Compute the resulting DICOM instance and store it into the Orthanc store.
@@ -1367,7 +1397,6 @@ namespace Orthanc
        **/
 
       DicomInstanceHasher modifiedHasher = modified->GetHasher();
-      DicomInstanceHasher originalHasher = original.GetHasher();
 
       if (isNewSeries)
       {
@@ -1381,6 +1410,12 @@ namespace Orthanc
                                        metadataType, originalHasher.HashStudy());
       }
 
+      if (isNewPatient)
+      {
+        context.GetIndex().SetMetadata(modifiedHasher.HashPatient(), 
+                                       metadataType, originalHasher.HashPatient());
+      }
+
       assert(*it == originalHasher.HashInstance());
       assert(modifiedInstance == modifiedHasher.HashInstance());
       context.GetIndex().SetMetadata(modifiedInstance, metadataType, *it);
@@ -1392,9 +1427,6 @@ namespace Orthanc
 
       if (isFirst)
       {
-        context.GetIndex().SetMetadata(modifiedHasher.HashPatient(), 
-                                       metadataType, originalHasher.HashPatient());
-
         std::string newId;
 
         switch (resourceType)
@@ -1449,6 +1481,27 @@ namespace Orthanc
 
     if (ParseAnonymizationRequest(removals, replacements, removePrivateTags, call))
     {
+      // Generate random patient ID if not specified
+      if (replacements.find(DICOM_TAG_PATIENT_ID) == replacements.end())
+      {
+        replacements.insert(std::make_pair(DICOM_TAG_PATIENT_ID, 
+                                           FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Patient)));
+      }
+
+      // Generate random study UID if not specified
+      if (replacements.find(DICOM_TAG_STUDY_INSTANCE_UID) == replacements.end())
+      {
+        replacements.insert(std::make_pair(DICOM_TAG_STUDY_INSTANCE_UID, 
+                                           FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Study)));
+      }
+
+      // Generate random series UID if not specified
+      if (replacements.find(DICOM_TAG_SERIES_INSTANCE_UID) == replacements.end())
+      {
+        replacements.insert(std::make_pair(DICOM_TAG_SERIES_INSTANCE_UID, 
+                                           FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series)));
+      }
+
       AnonymizeOrModifyInstance(removals, replacements, removePrivateTags, call);
     }
   }
@@ -1462,7 +1515,7 @@ namespace Orthanc
 
     if (ParseModifyRequest(removals, replacements, removePrivateTags, call))
     {
-      AnonymizeOrModifyResource(removals, replacements, removePrivateTags, 
+      AnonymizeOrModifyResource(false, removals, replacements, removePrivateTags, 
                                 MetadataType_ModifiedFrom, ChangeType_ModifiedSeries, 
                                 ResourceType_Series, call);
     }
@@ -1477,7 +1530,7 @@ namespace Orthanc
 
     if (ParseAnonymizationRequest(removals, replacements, removePrivateTags, call))
     {
-      AnonymizeOrModifyResource(removals, replacements, removePrivateTags, 
+      AnonymizeOrModifyResource(true, removals, replacements, removePrivateTags, 
                                 MetadataType_AnonymizedFrom, ChangeType_AnonymizedSeries, 
                                 ResourceType_Series, call);
     }
@@ -1492,7 +1545,7 @@ namespace Orthanc
 
     if (ParseModifyRequest(removals, replacements, removePrivateTags, call))
     {
-      AnonymizeOrModifyResource(removals, replacements, removePrivateTags, 
+      AnonymizeOrModifyResource(false, removals, replacements, removePrivateTags, 
                                 MetadataType_ModifiedFrom, ChangeType_ModifiedStudy, 
                                 ResourceType_Study, call);
     }
@@ -1507,14 +1560,14 @@ namespace Orthanc
 
     if (ParseAnonymizationRequest(removals, replacements, removePrivateTags, call))
     {
-      AnonymizeOrModifyResource(removals, replacements, removePrivateTags, 
+      AnonymizeOrModifyResource(true, removals, replacements, removePrivateTags, 
                                 MetadataType_AnonymizedFrom, ChangeType_AnonymizedStudy, 
                                 ResourceType_Study, call);
     }
   }
 
 
-  static void ModifyPatientInplace(RestApi::PostCall& call)
+  /*static void ModifyPatientInplace(RestApi::PostCall& call)
   {
     Removals removals;
     Replacements replacements;
@@ -1522,11 +1575,11 @@ namespace Orthanc
 
     if (ParseModifyRequest(removals, replacements, removePrivateTags, call))
     {
-      AnonymizeOrModifyResource(removals, replacements, removePrivateTags, 
+      AnonymizeOrModifyResource(false, removals, replacements, removePrivateTags, 
                                 MetadataType_ModifiedFrom, ChangeType_ModifiedPatient, 
                                 ResourceType_Patient, call);
     }
-  }
+    }*/
 
 
   static void AnonymizePatientInplace(RestApi::PostCall& call)
@@ -1537,7 +1590,7 @@ namespace Orthanc
 
     if (ParseAnonymizationRequest(removals, replacements, removePrivateTags, call))
     {
-      AnonymizeOrModifyResource(removals, replacements, removePrivateTags, 
+      AnonymizeOrModifyResource(true, removals, replacements, removePrivateTags, 
                                 MetadataType_AnonymizedFrom, ChangeType_AnonymizedPatient, 
                                 ResourceType_Patient, call);
     }
@@ -1794,6 +1847,7 @@ namespace Orthanc
     Register("/modalities/{id}/find-patient", DicomFindPatient);
     Register("/modalities/{id}/find-study", DicomFindStudy);
     Register("/modalities/{id}/find-series", DicomFindSeries);
+    Register("/modalities/{id}/find-instance", DicomFindInstance);
     Register("/modalities/{id}/find", DicomFind);
     Register("/modalities/{id}/store", DicomStore);
 
@@ -1804,7 +1858,7 @@ namespace Orthanc
     Register("/instances/{id}/modify", ModifyInstance);
     Register("/series/{id}/modify", ModifySeriesInplace);
     Register("/studies/{id}/modify", ModifyStudyInplace);
-    Register("/patients/{id}/modify", ModifyPatientInplace);
+    //Register("/patients/{id}/modify", ModifyPatientInplace);
 
     Register("/instances/{id}/anonymize", AnonymizeInstance);
     Register("/series/{id}/anonymize", AnonymizeSeriesInplace);

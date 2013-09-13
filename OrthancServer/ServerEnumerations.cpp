@@ -205,6 +205,15 @@ namespace Orthanc
       case ChangeType_ModifiedPatient:
         return "ModifiedPatient";
 
+      case ChangeType_StablePatient:
+        return "StablePatient";
+
+      case ChangeType_StableStudy:
+        return "StableStudy";
+
+      case ChangeType_StableSeries:
+        return "StableSeries";
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -247,4 +256,39 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
+
+
+  const char* EnumerationToString(ModalityManufacturer manufacturer)
+  {
+    switch (manufacturer)
+    {
+      case ModalityManufacturer_Generic:
+        return "Generic";
+
+      case ModalityManufacturer_ClearCanvas:
+        return "ClearCanvas";
+      
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer)
+  {
+    if (manufacturer == "Generic")
+    {
+      return ModalityManufacturer_Generic;
+    }
+    else if (manufacturer == "ClearCanvas")
+    {
+      return ModalityManufacturer_ClearCanvas;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
 }

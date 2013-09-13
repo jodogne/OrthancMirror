@@ -46,7 +46,7 @@ namespace Orthanc
     {
       VLOG(1) << "Reusing a cache page";
       assert(p != NULL);
-      index_.TagAsMostRecent(id);
+      index_.MakeMostRecent(id);
       return *p;
     }
 

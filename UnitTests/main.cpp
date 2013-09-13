@@ -445,7 +445,7 @@ TEST(SharedMessageQueue, Clean)
     q.Enqueue(new DynamicInteger(20));  
     throw OrthancException("Nope");
   }
-  catch (OrthancException)
+  catch (OrthancException&)
   {
   }
 }

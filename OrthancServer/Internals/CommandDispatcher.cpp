@@ -41,7 +41,147 @@
 #include <boost/lexical_cast.hpp>
 #include <glog/logging.h>
 
+#define ORTHANC_PROMISCUOUS 1
+
 static OFBool    opt_rejectWithoutImplementationUID = OFFalse;
+
+
+
+#if ORTHANC_PROMISCUOUS == 1
+static
+DUL_PRESENTATIONCONTEXT *
+findPresentationContextID(LST_HEAD * head,
+                          T_ASC_PresentationContextID presentationContextID)
+{
+  DUL_PRESENTATIONCONTEXT *pc;
+  LST_HEAD **l;
+  OFBool found = OFFalse;
+
+  if (head == NULL)
+    return NULL;
+
+  l = &head;
+  if (*l == NULL)
+    return NULL;
+
+  pc = OFstatic_cast(DUL_PRESENTATIONCONTEXT *, LST_Head(l));
+  (void)LST_Position(l, OFstatic_cast(LST_NODE *, pc));
+
+  while (pc && !found) {
+    if (pc->presentationContextID == presentationContextID) {
+      found = OFTrue;
+    } else {
+      pc = OFstatic_cast(DUL_PRESENTATIONCONTEXT *, LST_Next(l));
+    }
+  }
+  return pc;
+}
+
+
+/** accept all presenstation contexts for unknown SOP classes,
+ *  i.e. UIDs appearing in the list of abstract syntaxes
+ *  where no corresponding name is defined in the UID dictionary.
+ *  @param params pointer to association parameters structure
+ *  @param transferSyntax transfer syntax to accept
+ *  @param acceptedRole SCU/SCP role to accept
+ */
+static OFCondition acceptUnknownContextsWithTransferSyntax(
+  T_ASC_Parameters * params,
+  const char* transferSyntax,
+  T_ASC_SC_ROLE acceptedRole)
+{
+  OFCondition cond = EC_Normal;
+  int n, i, k;
+  DUL_PRESENTATIONCONTEXT *dpc;
+  T_ASC_PresentationContext pc;
+  OFBool accepted = OFFalse;
+  OFBool abstractOK = OFFalse;
+
+  n = ASC_countPresentationContexts(params);
+  for (i = 0; i < n; i++)
+  {
+    cond = ASC_getPresentationContext(params, i, &pc);
+    if (cond.bad()) return cond;
+    abstractOK = OFFalse;
+    accepted = OFFalse;
+
+    if (dcmFindNameOfUID(pc.abstractSyntax) == NULL)
+    {
+      abstractOK = OFTrue;
+
+      /* check the transfer syntax */
+      for (k = 0; (k < OFstatic_cast(int, pc.transferSyntaxCount)) && !accepted; k++)
+      {
+        if (strcmp(pc.proposedTransferSyntaxes[k], transferSyntax) == 0)
+        {
+          accepted = OFTrue;
+        }
+      }
+    }
+
+    if (accepted)
+    {
+      cond = ASC_acceptPresentationContext(
+        params, pc.presentationContextID,
+        transferSyntax, acceptedRole);
+      if (cond.bad()) return cond;
+    } else {
+      T_ASC_P_ResultReason reason;
+
+      /* do not refuse if already accepted */
+      dpc = findPresentationContextID(params->DULparams.acceptedPresentationContext,
+                                      pc.presentationContextID);
+      if ((dpc == NULL) || ((dpc != NULL) && (dpc->result != ASC_P_ACCEPTANCE)))
+      {
+
+        if (abstractOK) {
+          reason = ASC_P_TRANSFERSYNTAXESNOTSUPPORTED;
+        } else {
+          reason = ASC_P_ABSTRACTSYNTAXNOTSUPPORTED;
+        }
+        /*
+         * If previously this presentation context was refused
+         * because of bad transfer syntax let it stay that way.
+         */
+        if ((dpc != NULL) && (dpc->result == ASC_P_TRANSFERSYNTAXESNOTSUPPORTED))
+          reason = ASC_P_TRANSFERSYNTAXESNOTSUPPORTED;
+
+        cond = ASC_refusePresentationContext(params, pc.presentationContextID, reason);
+        if (cond.bad()) return cond;
+      }
+    }
+  }
+  return EC_Normal;
+}
+
+
+/** accept all presenstation contexts for unknown SOP classes,
+ *  i.e. UIDs appearing in the list of abstract syntaxes
+ *  where no corresponding name is defined in the UID dictionary.
+ *  This method is passed a list of "preferred" transfer syntaxes.
+ *  @param params pointer to association parameters structure
+ *  @param transferSyntax transfer syntax to accept
+ *  @param acceptedRole SCU/SCP role to accept
+ */
+static OFCondition acceptUnknownContextsWithPreferredTransferSyntaxes(
+  T_ASC_Parameters * params,
+  const char* transferSyntaxes[], int transferSyntaxCount,
+  T_ASC_SC_ROLE acceptedRole = ASC_SC_ROLE_DEFAULT)
+{
+  OFCondition cond = EC_Normal;
+  /*
+  ** Accept in the order "least wanted" to "most wanted" transfer
+  ** syntax.  Accepting a transfer syntax will override previously
+  ** accepted transfer syntaxes.
+  */
+  for (int i = transferSyntaxCount - 1; i >= 0; i--)
+  {
+    cond = acceptUnknownContextsWithTransferSyntax(params, transferSyntaxes[i], acceptedRole);
+    if (cond.bad()) return cond;
+  }
+  return cond;
+}
+#endif
 
 
 namespace Orthanc
@@ -149,6 +289,18 @@ namespace Orthanc
         AssociationCleanup(assoc);
         return NULL;
       }
+
+#if ORTHANC_PROMISCUOUS == 1
+      /* accept everything not known not to be a storage SOP class */
+      cond = acceptUnknownContextsWithPreferredTransferSyntaxes(
+        assoc->params, transferSyntaxes, numTransferSyntaxes);
+      if (cond.bad())
+      {
+        LOG(INFO) << cond.text();
+        AssociationCleanup(assoc);
+        return NULL;
+      }
+#endif
 
       /* set our app title */
       ASC_setAPTitles(assoc->params, NULL, NULL, server.GetApplicationEntityTitle().c_str());

@@ -223,5 +223,14 @@ namespace Orthanc
     uint64_t IncrementGlobalSequence(GlobalProperty property);
 
     void ClearTable(const std::string& tableName);
+
+    bool IsExistingResource(int64_t internalId);
+
+    void LookupTagValue(std::list<int64_t>& result,
+                        DicomTag tag,
+                        const std::string& value);
+
+    void LookupTagValue(std::list<int64_t>& result,
+                        const std::string& value);
   };
 }

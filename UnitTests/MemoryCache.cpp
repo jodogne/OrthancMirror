@@ -8,46 +8,53 @@
 #include "../Core/Cache/MemoryCache.h"
 
 
-TEST(CacheIndex, Basic)
+TEST(LRU, Basic)
 {
-  Orthanc::CacheIndex<std::string> r;
+  Orthanc::LeastRecentlyUsedIndex<std::string> r;
   
   r.Add("d");
   r.Add("a");
   r.Add("c");
   r.Add("b");
 
-  r.TagAsMostRecent("a");
-  r.TagAsMostRecent("d");
-  r.TagAsMostRecent("b");
-  r.TagAsMostRecent("c");
-  r.TagAsMostRecent("d");
-  r.TagAsMostRecent("c");
+  r.MakeMostRecent("a");
+  r.MakeMostRecent("d");
+  r.MakeMostRecent("b");
+  r.MakeMostRecent("c");
+  r.MakeMostRecent("d");
+  r.MakeMostRecent("c");
 
+  ASSERT_EQ("a", r.GetOldest());
   ASSERT_EQ("a", r.RemoveOldest());
+  ASSERT_EQ("b", r.GetOldest());
   ASSERT_EQ("b", r.RemoveOldest());
+  ASSERT_EQ("d", r.GetOldest());
   ASSERT_EQ("d", r.RemoveOldest());
+  ASSERT_EQ("c", r.GetOldest());
   ASSERT_EQ("c", r.RemoveOldest());
 
   ASSERT_TRUE(r.IsEmpty());
+
+  ASSERT_THROW(r.GetOldest(), Orthanc::OrthancException);
+  ASSERT_THROW(r.RemoveOldest(), Orthanc::OrthancException);
 }
 
 
-TEST(CacheIndex, Payload)
+TEST(LRU, Payload)
 {
-  Orthanc::CacheIndex<std::string, int> r;
+  Orthanc::LeastRecentlyUsedIndex<std::string, int> r;
   
   r.Add("a", 420);
   r.Add("b", 421);
   r.Add("c", 422);
   r.Add("d", 423);
 
-  r.TagAsMostRecent("a");
-  r.TagAsMostRecent("d");
-  r.TagAsMostRecent("b");
-  r.TagAsMostRecent("c");
-  r.TagAsMostRecent("d");
-  r.TagAsMostRecent("c");
+  r.MakeMostRecent("a");
+  r.MakeMostRecent("d");
+  r.MakeMostRecent("b");
+  r.MakeMostRecent("c");
+  r.MakeMostRecent("d");
+  r.MakeMostRecent("c");
 
   ASSERT_TRUE(r.Contains("b"));
   ASSERT_EQ(421, r.Invalidate("b"));
@@ -58,9 +65,71 @@ TEST(CacheIndex, Payload)
   ASSERT_TRUE(r.Contains("c", p)); ASSERT_EQ(422, p);
   ASSERT_TRUE(r.Contains("d", p)); ASSERT_EQ(423, p);
 
+  ASSERT_EQ("a", r.GetOldest());
+  ASSERT_EQ(420, r.GetOldestPayload());
   ASSERT_EQ("a", r.RemoveOldest(p)); ASSERT_EQ(420, p);
+
+  ASSERT_EQ("d", r.GetOldest());
+  ASSERT_EQ(423, r.GetOldestPayload());
   ASSERT_EQ("d", r.RemoveOldest(p)); ASSERT_EQ(423, p);
+
+  ASSERT_EQ("c", r.GetOldest());
+  ASSERT_EQ(422, r.GetOldestPayload());
   ASSERT_EQ("c", r.RemoveOldest(p)); ASSERT_EQ(422, p);
+
+  ASSERT_TRUE(r.IsEmpty());
+}
+
+
+TEST(LRU, PayloadUpdate)
+{
+  Orthanc::LeastRecentlyUsedIndex<std::string, int> r;
+  
+  r.Add("a", 420);
+  r.Add("b", 421);
+  r.Add("d", 423);
+
+  r.MakeMostRecent("a", 424);
+  r.MakeMostRecent("d", 421);
+
+  ASSERT_EQ("b", r.GetOldest());
+  ASSERT_EQ(421, r.GetOldestPayload());
+  r.RemoveOldest();
+
+  ASSERT_EQ("a", r.GetOldest());
+  ASSERT_EQ(424, r.GetOldestPayload());
+  r.RemoveOldest();
+
+  ASSERT_EQ("d", r.GetOldest());
+  ASSERT_EQ(421, r.GetOldestPayload());
+  r.RemoveOldest();
+
+  ASSERT_TRUE(r.IsEmpty());
+}
+
+
+
+TEST(LRU, PayloadUpdateBis)
+{
+  Orthanc::LeastRecentlyUsedIndex<std::string, int> r;
+  
+  r.AddOrMakeMostRecent("a", 420);
+  r.AddOrMakeMostRecent("b", 421);
+  r.AddOrMakeMostRecent("d", 423);
+  r.AddOrMakeMostRecent("a", 424);
+  r.AddOrMakeMostRecent("d", 421);
+
+  ASSERT_EQ("b", r.GetOldest());
+  ASSERT_EQ(421, r.GetOldestPayload());
+  r.RemoveOldest();
+
+  ASSERT_EQ("a", r.GetOldest());
+  ASSERT_EQ(424, r.GetOldestPayload());
+  r.RemoveOldest();
+
+  ASSERT_EQ("d", r.GetOldest());
+  ASSERT_EQ(421, r.GetOldestPayload());
+  r.RemoveOldest();
 
   ASSERT_TRUE(r.IsEmpty());
 }
