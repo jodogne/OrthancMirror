@@ -1,6 +1,10 @@
 Pending changes in the mainline
 ===============================
 
+
+Version 0.6.1 (2013/09/16)
+==========================
+
 * Detection of stable patients/studies/series
 * C-Find SCU at the instance level
 * Link from modified to original resource in Orthanc Explorer
