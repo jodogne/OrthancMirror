@@ -45,9 +45,9 @@ if (BOOST_STATIC)
     SET(BOOST_MD5 "e0defc8c818e4f1c5bbb29d0292b76ca")
     SET(BOOST_FILESYSTEM_SOURCES_DIR "${BOOST_NAME}/libs/filesystem/v3/src")
   else()
-    # Parameters for Boost 1.54.0
-    SET(BOOST_NAME boost_1_54_0)
-    SET(BOOST_MD5 "efbfbff5a85a9330951f243d0a46e4b9")
+    # Parameters for Boost 1.53.0
+    SET(BOOST_NAME boost_1_53_0)
+    SET(BOOST_MD5 "57a9e2047c0f511c4dfcf00eb5eb2fbb")
     SET(BOOST_FILESYSTEM_SOURCES_DIR "${BOOST_NAME}/libs/filesystem/src")
   endif()
   
