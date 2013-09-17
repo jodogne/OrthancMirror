@@ -3,7 +3,7 @@ if (${STATIC_BUILD})
   DownloadPackage(
     "8ea7f60347a306c5faf70b977fa80e28"
     "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/libpng-1.5.12.tar.gz"
-    "${LIBPNG_SOURCES_DIR}" "${LIBPNG_PRELOADED}" "")
+    "${LIBPNG_SOURCES_DIR}")
 
   include_directories(
     ${LIBPNG_SOURCES_DIR}
