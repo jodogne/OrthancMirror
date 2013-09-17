@@ -12,7 +12,7 @@ elseif (STATIC_BUILD OR NOT USE_DYNAMIC_GOOGLE_TEST)
   DownloadPackage(
     "4577b49f2973c90bf9ba69aa8166b786"
     "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/gtest-1.6.0.zip"
-    "${GTEST_SOURCES_DIR}" "" "")
+    "${GTEST_SOURCES_DIR}")
 
   include_directories(
     ${GTEST_SOURCES_DIR}/include

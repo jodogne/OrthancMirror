@@ -41,16 +41,14 @@ endif()
 if (BOOST_STATIC)
   # Parameters for Boost 1.54.0
   SET(BOOST_NAME boost_1_54_0)
-  SET(BOOST_MD5 "78a35834c45220a6164310e280abe675")
+  SET(BOOST_MD5 "a1dd0265c5ba500daa90eb8d01aac335")
   SET(BOOST_FILESYSTEM_SOURCES_DIR "${BOOST_NAME}/libs/filesystem/src")
   
   SET(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
   DownloadPackage(
     "${BOOST_MD5}"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/${BOOST_NAME}.zip"
-    "${BOOST_SOURCES_DIR}" "${BOOST_PRELOADED}" 
-    # Only uncompress the Boost modules we need
-    "${BOOST_NAME}/boost/* ${BOOST_NAME}/libs/thread/src/* ${BOOST_NAME}/libs/system/src/* ${BOOST_NAME}/libs/locale/src/* ${BOOST_NAME}/libs/date_time/src/* ${BOOST_FILESYSTEM_SOURCES_DIR}/*"
+    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/${BOOST_NAME}_bcpdigest.tar.gz"
+    "${BOOST_SOURCES_DIR}"
     )
 
   set(BOOST_SOURCES)

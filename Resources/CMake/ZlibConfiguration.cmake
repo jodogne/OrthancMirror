@@ -9,7 +9,7 @@ if (${STATIC_BUILD})
   DownloadPackage(
     "60df6a37c56e7c1366cca812414f7b85"
     "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/zlib-1.2.7.tar.gz"
-    "${ZLIB_SOURCES_DIR}" "${ZLIB_PRELOADED}" "")
+    "${ZLIB_SOURCES_DIR}")
 
   include_directories(
     ${ZLIB_SOURCES_DIR}
