@@ -39,25 +39,18 @@ endif()
 
 
 if (BOOST_STATIC)
-  if (0)
-    # Parameters for Boost 1.49.0
-    SET(BOOST_NAME boost_1_49_0)
-    SET(BOOST_MD5 "e0defc8c818e4f1c5bbb29d0292b76ca")
-    SET(BOOST_FILESYSTEM_SOURCES_DIR "${BOOST_NAME}/libs/filesystem/v3/src")
-  else()
-    # Parameters for Boost 1.53.0
-    SET(BOOST_NAME boost_1_53_0)
-    SET(BOOST_MD5 "57a9e2047c0f511c4dfcf00eb5eb2fbb")
-    SET(BOOST_FILESYSTEM_SOURCES_DIR "${BOOST_NAME}/libs/filesystem/src")
-  endif()
+  # Parameters for Boost 1.54.0
+  SET(BOOST_NAME boost_1_54_0)
+  SET(BOOST_MD5 "78a35834c45220a6164310e280abe675")
+  SET(BOOST_FILESYSTEM_SOURCES_DIR "${BOOST_NAME}/libs/filesystem/src")
   
   SET(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
   DownloadPackage(
     "${BOOST_MD5}"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/${BOOST_NAME}.tar.gz"
+    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/${BOOST_NAME}.zip"
     "${BOOST_SOURCES_DIR}" "${BOOST_PRELOADED}" 
     # Only uncompress the Boost modules we need
-    "${BOOST_NAME}/boost ${BOOST_NAME}/libs/thread/src ${BOOST_NAME}/libs/system/src ${BOOST_NAME}/libs/locale/src ${BOOST_NAME}/libs/date_time/src ${BOOST_FILESYSTEM_SOURCES_DIR}"
+    "${BOOST_NAME}/boost/* ${BOOST_NAME}/libs/thread/src/* ${BOOST_NAME}/libs/system/src/* ${BOOST_NAME}/libs/locale/src/* ${BOOST_NAME}/libs/date_time/src/* ${BOOST_FILESYSTEM_SOURCES_DIR}/*"
     )
 
   set(BOOST_SOURCES)
