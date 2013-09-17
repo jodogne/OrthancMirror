@@ -41,7 +41,7 @@ endif()
 if (BOOST_STATIC)
   # Parameters for Boost 1.54.0
   SET(BOOST_NAME boost_1_54_0)
-  SET(BOOST_MD5 "a1dd0265c5ba500daa90eb8d01aac335")
+  SET(BOOST_MD5 "0b9b636e04f02ecefc5ecc7e919923d5")
   SET(BOOST_FILESYSTEM_SOURCES_DIR "${BOOST_NAME}/libs/filesystem/src")
   
   SET(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
