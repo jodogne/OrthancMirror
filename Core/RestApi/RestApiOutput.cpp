@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -48,7 +48,7 @@ namespace Orthanc
   {
     if (!alreadySent_)
     {
-      output_.SendHeader(Orthanc_HttpStatus_400_BadRequest);
+      output_.SendHeader(HttpStatus_400_BadRequest);
     }
   }
   
@@ -100,10 +100,10 @@ namespace Orthanc
     alreadySent_ = true;
   }
 
-  void RestApiOutput::SignalError(Orthanc_HttpStatus status)
+  void RestApiOutput::SignalError(HttpStatus status)
   {
-    if (status != Orthanc_HttpStatus_403_Forbidden &&
-        status != Orthanc_HttpStatus_415_UnsupportedMediaType)
+    if (status != HttpStatus_403_Forbidden &&
+        status != HttpStatus_415_UnsupportedMediaType)
     {
       throw OrthancException("This HTTP status is not allowed in a REST API");
     }

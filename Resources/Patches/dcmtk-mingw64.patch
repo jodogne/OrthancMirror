@@ -1,0 +1,22 @@
+diff -urEb dcmtk-3.6.0.orig/ofstd/include/dcmtk/ofstd/offile.h dcmtk-3.6.0/ofstd/include/dcmtk/ofstd/offile.h
+--- dcmtk-3.6.0.orig/ofstd/include/dcmtk/ofstd/offile.h	2010-12-17 11:50:30.000000000 +0100
++++ dcmtk-3.6.0/ofstd/include/dcmtk/ofstd/offile.h	2013-07-19 15:56:25.688996134 +0200
+@@ -196,7 +196,7 @@
+   OFBool popen(const char *command, const char *modes)
+   {
+     if (file_) fclose();
+-#ifdef _WIN32
++#if 0
+     file_ = _popen(command, modes);
+ #else
+     file_ = :: popen(command, modes);
+@@ -258,7 +258,7 @@
+     {
+       if (popened_)
+       {
+-#ifdef _WIN32
++#if 0
+         result = _pclose(file_);
+ #else
+         result = :: pclose(file_);
+Only in dcmtk-3.6.0/ofstd/include/dcmtk/ofstd: offile.h~

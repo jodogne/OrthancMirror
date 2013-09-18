@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -117,7 +117,7 @@ namespace Orthanc
             FromDcmtkBridge::Convert(summary, **imageDataSet);
             FromDcmtkBridge::ToJson(dicomJson, **imageDataSet);       
 
-            if (FromDcmtkBridge::SaveToMemoryBuffer(buffer, *imageDataSet) < 0)
+            if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, *imageDataSet))
             {
               LOG(ERROR) << "cannot write DICOM file to memory";
               rsp->DimseStatus = STATUS_STORE_Refused_OutOfResources;

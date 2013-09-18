@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -231,25 +231,28 @@ namespace Orthanc
       pixel += channel * frameOffset_ / samplesPerPixel_ + x * bytesPerPixel_;
     }
 
-    int32_t v;
+    uint32_t v;
     v = pixel[0];
     if (bytesPerPixel_ >= 2)
-      v = v + (static_cast<int32_t>(pixel[1]) << 8);
+      v = v + (static_cast<uint32_t>(pixel[1]) << 8);
     if (bytesPerPixel_ >= 3)
-      v = v + (static_cast<int32_t>(pixel[2]) << 16);
+      v = v + (static_cast<uint32_t>(pixel[2]) << 16);
     if (bytesPerPixel_ >= 4)
-      v = v + (static_cast<int32_t>(pixel[3]) << 24);
+      v = v + (static_cast<uint32_t>(pixel[3]) << 24);
 
-    v = (v >> shift_) & mask_;
+    v = v >> shift_;
 
     if (v & signMask_)
     {
-      // Signed value: Not implemented yet
-      //throw OrthancException(ErrorCode_NotImplemented);
-      v = 0;
+      // Signed value
+      // http://en.wikipedia.org/wiki/Two%27s_complement#Subtraction_from_2N
+      return -static_cast<int32_t>(mask_) + static_cast<int32_t>(v & mask_) - 1;
     }
-
-    return v;
+    else
+    {
+      // Unsigned value
+      return static_cast<int32_t>(v & mask_);
+    }
   }
 
 

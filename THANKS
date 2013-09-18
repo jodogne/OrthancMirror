@@ -13,6 +13,11 @@ Code contributors
 
 * Cyril Paulus (cyril.paulus@student.ulg.ac.be), for the build process
   and suggestions about the REST API.
+* Will Ryder (will.ryder@sydney.edu.au), for improvements with the
+  handling of series with temporal positions (fMRI and dynamic PET).
+* Ryan Walklin (ryanwalklin@gmail.com), for Mac OS X build.
+* Peter Somlo (peter.somlo@gmail.com), for ClearCanvas support.
+* 12maksqwe@gmail.com, for fixing issue #8.
 
 
 Artwork
@@ -30,4 +35,10 @@ Debian
 ------
 
 * Mathieu Malaterre (mathieu.malaterre@gmail.com), for sponsoring Orthanc.
-* Andreas Tille (andreas@an3as.eu), for help about Debian packaging. 
+* Andreas Tille (andreas@an3as.eu), for help about packaging. 
+
+
+Fedora and Red Hat
+------------------
+
+* Mario Ceresa (mrceresa@gmail.com), for help about packaging.

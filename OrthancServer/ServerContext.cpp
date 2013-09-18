@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -33,11 +33,15 @@
 #include "ServerContext.h"
 
 #include "../Core/HttpServer/FilesystemHttpSender.h"
+#include "../Core/Lua/LuaFunctionCall.h"
+#include "ServerToolbox.h"
 
 #include <glog/logging.h>
+#include <EmbeddedResources.h>
 
 #define ENABLE_DICOM_CACHE  1
 
+static const char* RECEIVED_INSTANCE_FILTER = "ReceivedInstanceFilter";
 
 static const size_t DICOM_CACHE_SIZE = 2;
 
@@ -60,6 +64,7 @@ namespace Orthanc
     provider_(*this),
     dicomCache_(provider_, DICOM_CACHE_SIZE)
   {
+    lua_.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
   }
 
   void ServerContext::SetCompressionEnabled(bool enabled)
@@ -83,6 +88,23 @@ namespace Orthanc
                                    const Json::Value& dicomJson,
                                    const std::string& remoteAet)
   {
+    // Test if the instance must be filtered out
+    if (lua_.IsExistingFunction(RECEIVED_INSTANCE_FILTER))
+    {
+      Json::Value simplified;
+      SimplifyTags(simplified, dicomJson);
+
+      LuaFunctionCall call(lua_, RECEIVED_INSTANCE_FILTER);
+      call.PushJSON(simplified);
+      call.PushString(remoteAet);
+
+      if (!call.ExecutePredicate())
+      {
+        LOG(INFO) << "An incoming instance has been discarded by the filter";
+        return StoreStatus_FilteredOut;
+      }
+    }
+
     if (compressionEnabled_)
     {
       accessor_.SetCompressionForNextOperations(CompressionType_Zlib);
@@ -109,17 +131,21 @@ namespace Orthanc
 
     switch (status)
     {
-    case StoreStatus_Success:
-      LOG(INFO) << "New instance stored";
-      break;
+      case StoreStatus_Success:
+        LOG(INFO) << "New instance stored";
+        break;
 
-    case StoreStatus_AlreadyStored:
-      LOG(INFO) << "Already stored";
-      break;
+      case StoreStatus_AlreadyStored:
+        LOG(INFO) << "Already stored";
+        break;
 
-    case StoreStatus_Failure:
-      LOG(ERROR) << "Store failure";
-      break;
+      case StoreStatus_Failure:
+        LOG(ERROR) << "Store failure";
+        break;
+
+      default:
+        // This should never happen
+        break;
     }
 
     return status;

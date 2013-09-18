@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -29,6 +29,49 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
+
+
+/*=========================================================================
+
+  This file is based on portions of the following project:
+
+  Program: GDCM (Grassroots DICOM). A DICOM library
+  Module:  http://gdcm.sourceforge.net/Copyright.html
+
+Copyright (c) 2006-2011 Mathieu Malaterre
+Copyright (c) 1993-2005 CREATIS
+(CREATIS = Centre de Recherche et d'Applications en Traitement de l'Image)
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+ * Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+ * Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+ * Neither name of Mathieu Malaterre, or CREATIS, nor the names of any
+   contributors (CNRS, INSERM, UCB, Universite Lyon I), may be used to
+   endorse or promote products derived from this software without specific
+   prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS''
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+=========================================================================*/
+
+
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -38,7 +81,7 @@
 #include "ToDcmtkBridge.h"
 #include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"
-#include "../Core/PngWriter.h"
+#include "../Core/FileFormats/PngWriter.h"
 #include "../Core/Uuid.h"
 #include "../Core/DicomFormat/DicomString.h"
 #include "../Core/DicomFormat/DicomNullValue.h"
@@ -1097,9 +1140,9 @@ namespace Orthanc
       for (unsigned int x = 0; x < accessor.GetWidth(); x++, pixel++)
       {
         int32_t v = accessor.GetValue(x, y);
-        if (v < std::numeric_limits<T>::min())
+        if (v < static_cast<int32_t>(std::numeric_limits<T>::min()))
           *pixel = std::numeric_limits<T>::min();
-        else if (v > std::numeric_limits<T>::max())
+        else if (v > static_cast<int32_t>(std::numeric_limits<T>::max()))
           *pixel = std::numeric_limits<T>::max();
         else
           *pixel = static_cast<T>(v);
@@ -1240,6 +1283,11 @@ namespace Orthanc
       accessor.reset(new DicomIntegerPixelAccessor(m, pixData, privateContent.size()));
       accessor->SetCurrentFrame(frame);
     }
+    
+    if (accessor.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
 
     PixelFormat format;
     bool supported = false;
@@ -1261,6 +1309,11 @@ namespace Orthanc
         case ImageExtractionMode_UInt16:
           supported = true;
           format = PixelFormat_Grayscale16;
+          break;
+
+        case ImageExtractionMode_Int16:
+          supported = true;
+          format = PixelFormat_SignedGrayscale16;
           break;
 
         default:
@@ -1312,6 +1365,10 @@ namespace Orthanc
 
         case ImageExtractionMode_UInt16:
           ExtractPngImageTruncate<uint16_t>(result, *accessor, format);
+          break;
+
+        case ImageExtractionMode_Int16:
+          ExtractPngImageTruncate<int16_t>(result, *accessor, format);
           break;
 
         default:

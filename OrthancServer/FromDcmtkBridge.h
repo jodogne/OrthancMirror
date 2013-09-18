@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -43,13 +43,6 @@
 
 namespace Orthanc
 {
-  enum ImageExtractionMode
-  {
-    ImageExtractionMode_Preview,
-    ImageExtractionMode_UInt8,
-    ImageExtractionMode_UInt16
-  };
-
   enum DicomRootLevel
   {
     DicomRootLevel_Patient,

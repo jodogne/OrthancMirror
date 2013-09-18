@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -32,10 +32,57 @@
 #include "ServerEnumerations.h"
 
 #include "../Core/OrthancException.h"
+#include "../Core/EnumerationDictionary.h"
+
+#include <boost/thread.hpp>
 
 namespace Orthanc
 {
-  const char* ToString(ResourceType type)
+  static boost::mutex enumerationsMutex_;
+  static Toolbox::EnumerationDictionary<MetadataType> dictMetadataType_;
+
+  void InitializeServerEnumerations()
+  {
+    boost::mutex::scoped_lock lock(enumerationsMutex_);
+    
+    dictMetadataType_.Add(MetadataType_Instance_IndexInSeries, "IndexInSeries");
+    dictMetadataType_.Add(MetadataType_Instance_ReceptionDate, "ReceptionDate");
+    dictMetadataType_.Add(MetadataType_Instance_RemoteAet, "RemoteAET");
+    dictMetadataType_.Add(MetadataType_Series_ExpectedNumberOfInstances, "ExpectedNumberOfInstances");
+    dictMetadataType_.Add(MetadataType_ModifiedFrom, "ModifiedFrom");
+    dictMetadataType_.Add(MetadataType_AnonymizedFrom, "AnonymizedFrom");
+    dictMetadataType_.Add(MetadataType_LastUpdate, "LastUpdate");
+  }
+
+  void RegisterUserMetadata(int metadata,
+                            const std::string name)
+  {
+    boost::mutex::scoped_lock lock(enumerationsMutex_);
+
+    if (metadata < static_cast<int>(MetadataType_StartUser) ||
+        metadata > static_cast<int>(MetadataType_EndUser))
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    dictMetadataType_.Add(static_cast<MetadataType>(metadata), name);
+  }
+
+  std::string EnumerationToString(MetadataType type)
+  {
+    // This function MUST return a "std::string" and not "const
+    // char*", as the result is not a static string
+    boost::mutex::scoped_lock lock(enumerationsMutex_);
+    return dictMetadataType_.Translate(type);
+  }
+
+  MetadataType StringToMetadata(const std::string& str)
+  {
+    boost::mutex::scoped_lock lock(enumerationsMutex_);
+    return dictMetadataType_.Translate(str);
+  }
+
+  const char* EnumerationToString(ResourceType type)
   {
     switch (type)
     {
@@ -78,7 +125,7 @@ namespace Orthanc
     }
   }
 
-  const char* ToString(SeriesStatus status)
+  const char* EnumerationToString(SeriesStatus status)
   {
     switch (status)
     {
@@ -99,7 +146,7 @@ namespace Orthanc
     }
   }
 
-  const char* ToString(StoreStatus status)
+  const char* EnumerationToString(StoreStatus status)
   {
     switch (status)
     {
@@ -112,13 +159,16 @@ namespace Orthanc
       case StoreStatus_Failure:
         return "Failure";
 
+      case StoreStatus_FilteredOut:
+        return "FilteredOut";
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
 
 
-  const char* ToString(ChangeType type)
+  const char* EnumerationToString(ChangeType type)
   {
     switch (type)
     {
@@ -154,6 +204,15 @@ namespace Orthanc
 
       case ChangeType_ModifiedPatient:
         return "ModifiedPatient";
+
+      case ChangeType_StablePatient:
+        return "StablePatient";
+
+      case ChangeType_StableStudy:
+        return "StableStudy";
+
+      case ChangeType_StableSeries:
+        return "StableSeries";
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -197,4 +256,39 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
+
+
+  const char* EnumerationToString(ModalityManufacturer manufacturer)
+  {
+    switch (manufacturer)
+    {
+      case ModalityManufacturer_Generic:
+        return "Generic";
+
+      case ModalityManufacturer_ClearCanvas:
+        return "ClearCanvas";
+      
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer)
+  {
+    if (manufacturer == "Generic")
+    {
+      return ModalityManufacturer_Generic;
+    }
+    else if (manufacturer == "ClearCanvas")
+    {
+      return ModalityManufacturer_ClearCanvas;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
 }

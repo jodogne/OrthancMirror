@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -212,7 +212,7 @@ namespace Orthanc
     virtual bool IsServedUri(const UriComponents& uri);
 
     virtual void Handle(HttpOutput& output,
-                        Orthanc_HttpMethod method,
+                        HttpMethod method,
                         const UriComponents& uri,
                         const Arguments& headers,
                         const Arguments& getArguments,

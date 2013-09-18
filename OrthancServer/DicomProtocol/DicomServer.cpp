@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -82,6 +82,8 @@ namespace Orthanc
     boost::filesystem::path p = directory;
     p = p / filename;
 
+    LOG(WARNING) << "Loading the external DICOM dictionary " << p;
+
     if (!dictionary.loadDictionary(p.string().c_str()))
     {
       throw OrthancException(ErrorCode_InternalError);
@@ -111,7 +113,7 @@ namespace Orthanc
     LoadEmbeddedDictionary(d, EmbeddedResources::DICTIONARY_PRIVATE);
 
 #elif defined(__linux)
-    std::string path = "/usr/share/dcmtk";
+    std::string path = DCMTK_DICTIONARY_DIR;
 
     const char* env = std::getenv(DCM_DICT_ENVIRONMENT_VARIABLE);
     if (env != NULL)
@@ -385,7 +387,11 @@ namespace Orthanc
   void DicomServer::Stop()
   {
     continue_ = false;
-    pimpl_->thread_.join();
+
+    if (pimpl_->thread_.joinable())
+    {
+      pimpl_->thread_.join();
+    }
 
     bagOfDispatchers_.StopAll();
   }

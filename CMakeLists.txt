@@ -9,27 +9,25 @@ add_definitions(
 
 # Parameters of the build
 SET(STATIC_BUILD ON CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")
-SET(STANDALONE_BUILD OFF CACHE BOOL "Standalone build (all the resources are embedded, necessary for releases)")
+SET(STANDALONE_BUILD ON CACHE BOOL "Standalone build (all the resources are embedded, necessary for releases)")
 SET(ENABLE_SSL ON CACHE BOOL "Include support for SSL")
 SET(BUILD_UNIT_TESTS ON CACHE BOOL "Build the unit tests")
+SET(DCMTK_DICTIONARY_DIR "/usr/share/dcmtk" CACHE PATH "Directory containing the DCMTK dictionaries \"dicom.dic\" and \"private.dic\" (ignored in standalone builds)") 
 
-# Advanced parameters (for Debian packaging)
-SET(USE_DYNAMIC_JSONCPP OFF CACHE BOOL "Use the dynamic version of JsonCpp (only for Debian sid)")
+# Advanced parameters to fine-tune linking against system libraries
+SET(USE_DYNAMIC_JSONCPP OFF CACHE BOOL "Use the dynamic version of JsonCpp")
 SET(USE_DYNAMIC_GOOGLE_LOG ON CACHE BOOL "Use the dynamic version of Google Log")
-SET(USE_DYNAMIC_GOOGLE_TEST ON CACHE BOOL "Use the dynamic version of Google Test (not for Debian sid)")
+SET(USE_DYNAMIC_GOOGLE_TEST ON CACHE BOOL "Use the dynamic version of Google Test")
 SET(USE_DYNAMIC_SQLITE ON CACHE BOOL "Use the dynamic version of SQLite")
 SET(USE_DYNAMIC_MONGOOSE OFF CACHE BOOL "Use the dynamic version of Mongoose")
-SET(DEBIAN_FORCE_HARDENING OFF CACHE BOOL "Force the injection of Debian hardening flags (unrecommended)")
-SET(DEBIAN_USE_GTEST_SOURCE_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (only for Debian sid)")
-SET(ONLY_CORE_LIBRARY OFF CACHE BOOL "Only build the core library")
+SET(USE_DYNAMIC_LUA OFF CACHE BOOL "Use the dynamic version of Lua")
+SET(DEBIAN_USE_GTEST_SOURCE_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
 
 mark_as_advanced(USE_DYNAMIC_JSONCPP)
 mark_as_advanced(USE_DYNAMIC_GOOGLE_LOG)
 mark_as_advanced(USE_DYNAMIC_GOOGLE_TEST)
 mark_as_advanced(USE_DYNAMIC_SQLITE)
-mark_as_advanced(DEBIAN_FORCE_HARDENING)
-mark_as_advanced(DEBIAN_USE_STATIC_GOOGLE_TEST)
-mark_as_advanced(ONLY_CORE_LIBRARY)
+mark_as_advanced(DEBIAN_USE_GTEST_SOURCE_PACKAGE)
 
 # Some basic inclusions
 include(CheckIncludeFiles)
@@ -62,23 +60,21 @@ else()
 endif()
 
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/BoostConfiguration.cmake)
-
-if(NOT ONLY_CORE_LIBRARY)
-  include(${CMAKE_SOURCE_DIR}/Resources/CMake/DcmtkConfiguration.cmake)
-endif()
-
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/DcmtkConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/MongooseConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/ZlibConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/SQLiteConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/JsonCppConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibCurlConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibPngConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/LuaConfiguration.cmake)
 
 
 # Prepare the embedded files
 set(EMBEDDED_FILES
   PREPARE_DATABASE ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/PrepareDatabase.sql
   CONFIGURATION_SAMPLE ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Configuration.json
+  LUA_TOOLBOX ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Toolbox.lua
   )
 
 if (${STANDALONE_BUILD})
@@ -119,10 +115,12 @@ add_library(CoreLibrary
   Core/DicomFormat/DicomTag.cpp
   Core/DicomFormat/DicomIntegerPixelAccessor.cpp
   Core/DicomFormat/DicomInstanceHasher.cpp
+  Core/Enumerations.cpp
   Core/FileStorage/FileStorage.cpp
   Core/FileStorage/StorageAccessor.cpp
   Core/FileStorage/CompressedFileStorageAccessor.cpp
   Core/FileStorage/FileStorageAccessor.cpp
+  Core/HttpClient.cpp
   Core/HttpServer/EmbeddedResourceHttpHandler.cpp
   Core/HttpServer/FilesystemHttpHandler.cpp
   Core/HttpServer/HttpHandler.cpp
@@ -134,7 +132,11 @@ add_library(CoreLibrary
   Core/RestApi/RestApiOutput.cpp
   Core/RestApi/RestApi.cpp
   Core/MultiThreading/BagOfRunnablesBySteps.cpp
-  Core/PngWriter.cpp
+  Core/MultiThreading/SharedMessageQueue.cpp
+  Core/MultiThreading/ThreadedCommandProcessor.cpp
+  Core/MultiThreading/ArrayFilledByThreads.cpp
+  Core/FileFormats/PngReader.cpp
+  Core/FileFormats/PngWriter.cpp
   Core/SQLite/Connection.cpp
   Core/SQLite/FunctionContext.cpp
   Core/SQLite/Statement.cpp
@@ -143,68 +145,71 @@ add_library(CoreLibrary
   Core/SQLite/Transaction.cpp
   Core/Toolbox.cpp
   Core/Uuid.cpp
+  Core/Lua/LuaContext.cpp
+  Core/Lua/LuaFunctionCall.cpp
 
-  OrthancCppClient/HttpClient.cpp
-  OrthancCppClient/HttpException.cpp
+  OrthancCppClient/OrthancConnection.cpp
+  OrthancCppClient/Study.cpp
+  OrthancCppClient/Series.cpp
+  OrthancCppClient/Instance.cpp
+  OrthancCppClient/Patient.cpp
   )  
 
 
+add_library(ServerLibrary
+  STATIC
+  ${DCMTK_SOURCES}
+  OrthancServer/DicomProtocol/DicomFindAnswers.cpp
+  OrthancServer/DicomProtocol/DicomServer.cpp
+  OrthancServer/DicomProtocol/DicomUserConnection.cpp
+  OrthancServer/FromDcmtkBridge.cpp
+  OrthancServer/Internals/CommandDispatcher.cpp
+  OrthancServer/Internals/FindScp.cpp
+  OrthancServer/Internals/MoveScp.cpp
+  OrthancServer/Internals/StoreScp.cpp
+  OrthancServer/OrthancInitialization.cpp
+  OrthancServer/OrthancRestApi.cpp
+  OrthancServer/ServerIndex.cpp
+  OrthancServer/ToDcmtkBridge.cpp
+  OrthancServer/DatabaseWrapper.cpp
+  OrthancServer/ServerContext.cpp
+  OrthancServer/ServerEnumerations.cpp
+  OrthancServer/ServerToolbox.cpp
+  )
 
-if(NOT ONLY_CORE_LIBRARY)
-  add_library(ServerLibrary
-    STATIC
-    ${DCMTK_SOURCES}
-    OrthancServer/DicomProtocol/DicomFindAnswers.cpp
-    OrthancServer/DicomProtocol/DicomServer.cpp
-    OrthancServer/DicomProtocol/DicomUserConnection.cpp
-    OrthancServer/FromDcmtkBridge.cpp
-    OrthancServer/Internals/CommandDispatcher.cpp
-    OrthancServer/Internals/FindScp.cpp
-    OrthancServer/Internals/MoveScp.cpp
-    OrthancServer/Internals/StoreScp.cpp
-    OrthancServer/OrthancInitialization.cpp
-    OrthancServer/OrthancRestApi.cpp
-    OrthancServer/ServerIndex.cpp
-    OrthancServer/ToDcmtkBridge.cpp
-    OrthancServer/DatabaseWrapper.cpp
-    OrthancServer/ServerContext.cpp
-    OrthancServer/ServerEnumerations.cpp
-    OrthancServer/ServerToolbox.cpp
+# Ensure autogenerated code is built before building ServerLibrary
+add_dependencies(ServerLibrary CoreLibrary)
+
+add_executable(Orthanc
+  OrthancServer/main.cpp
+  )
+
+target_link_libraries(Orthanc ServerLibrary CoreLibrary)
+
+install(
+  TARGETS Orthanc
+  RUNTIME DESTINATION bin
+  )
+
+# Build the unit tests if required
+if (BUILD_UNIT_TESTS)
+  add_definitions(-DORTHANC_BUILD_UNIT_TESTS=1)
+  include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
+  add_executable(UnitTests
+    ${GTEST_SOURCES}
+    UnitTests/FileStorage.cpp
+    UnitTests/MemoryCache.cpp
+    UnitTests/Png.cpp
+    UnitTests/RestApi.cpp
+    UnitTests/SQLite.cpp
+    UnitTests/SQLiteChromium.cpp
+    UnitTests/ServerIndex.cpp
+    UnitTests/Versions.cpp
+    UnitTests/Zip.cpp
+    UnitTests/Lua.cpp
+    UnitTests/main.cpp
     )
-
-  # Ensure autogenerated code is built before building ServerLibrary
-  add_dependencies(ServerLibrary CoreLibrary)
-
-  add_executable(Orthanc
-    OrthancServer/main.cpp
-    )
-
-  target_link_libraries(Orthanc ServerLibrary CoreLibrary)
-
-  install(
-    TARGETS Orthanc
-    RUNTIME DESTINATION bin
-    )
-
-  # Build the unit tests if required
-  if (BUILD_UNIT_TESTS)
-    add_definitions(-DORTHANC_BUILD_UNIT_TESTS=1)
-    include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
-    add_executable(UnitTests
-      ${GTEST_SOURCES}
-      UnitTests/FileStorage.cpp
-      UnitTests/MemoryCache.cpp
-      UnitTests/PngWriter.cpp
-      UnitTests/RestApi.cpp
-      UnitTests/SQLite.cpp
-      UnitTests/SQLiteChromium.cpp
-      UnitTests/ServerIndex.cpp
-      UnitTests/Versions.cpp
-      UnitTests/Zip.cpp
-      UnitTests/main.cpp
-      )
-    target_link_libraries(UnitTests ServerLibrary CoreLibrary)
-  endif()
+  target_link_libraries(UnitTests ServerLibrary CoreLibrary)
 endif()
 
 

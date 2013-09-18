@@ -1,31 +1,39 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use, copy,
- * modify, merge, publish, distribute, sublicense, and/or sell copies
- * of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * This program is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
+ * In addition, as a special exception, the copyright holders of this
+ * program give permission to link the code of its release with the
+ * OpenSSL project's "OpenSSL" library (or with modified versions of it
+ * that use the same license as the "OpenSSL" library), and distribute
+ * the linked executables. You must obey the GNU General Public License
+ * in all respects for all of the code used other than "OpenSSL". If you
+ * modify file(s) with this exception, you may extend this exception to
+ * your version of the file(s), but you are not obligated to do so. If
+ * you do not wish to do so, delete this exception statement from your
+ * version. If you delete this exception statement from all source files
+ * in the program, then also delete it here.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
- * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
- * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
 
 #include "HttpClient.h"
+
+#include "../Core/Toolbox.h"
+#include "../Core/OrthancException.h"
 
 #include <string.h>
 #include <curl/curl.h>
@@ -44,8 +52,7 @@ namespace Orthanc
   {
     if (code != CURLE_OK)
     {
-      printf("ICI: %s\n", curl_easy_strerror(code));
-      throw HttpException("CURL: " + std::string(curl_easy_strerror(code)));
+      throw OrthancException("libCURL error: " + std::string(curl_easy_strerror(code)));
     }
 
     return code;
@@ -69,19 +76,19 @@ namespace Orthanc
   }
 
 
-  HttpClient::HttpClient() : pimpl_(new PImpl)
+  void HttpClient::Setup()
   {
     pimpl_->postHeaders_ = NULL;
     if ((pimpl_->postHeaders_ = curl_slist_append(pimpl_->postHeaders_, "Expect:")) == NULL)
     {
-      throw HttpException("HttpClient: Not enough memory");
+      throw OrthancException(ErrorCode_NotEnoughMemory);
     }
 
     pimpl_->curl_ = curl_easy_init();
     if (!pimpl_->curl_)
     {
       curl_slist_free_all(pimpl_->postHeaders_);
-      throw HttpException("HttpClient: Not enough memory");
+      throw OrthancException(ErrorCode_NotEnoughMemory);
     }
 
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_WRITEFUNCTION, &CurlCallback));
@@ -92,10 +99,37 @@ namespace Orthanc
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYPEER, 0)); 
 #endif
 
+    // This fixes the "longjmp causes uninitialized stack frame" crash
+    // that happens on modern Linux versions.
+    // http://stackoverflow.com/questions/9191668/error-longjmp-causes-uninitialized-stack-frame
+    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_NOSIGNAL, 1));
+
     url_ = "";
-    method_ = Orthanc_HttpMethod_Get;
-    lastStatus_ = Orthanc_HttpStatus_200_Ok;
+    method_ = HttpMethod_Get;
+    lastStatus_ = HttpStatus_200_Ok;
     isVerbose_ = false;
+  }
+
+
+  HttpClient::HttpClient() : pimpl_(new PImpl)
+  {
+    Setup();
+  }
+
+
+  HttpClient::HttpClient(const HttpClient& other) : pimpl_(new PImpl)
+  {
+    Setup();
+
+    if (other.IsVerbose())
+    {
+      SetVerbose(true);
+    }
+
+    if (other.credentials_.size() != 0)
+    {
+      credentials_ = other.credentials_;
+    }
   }
 
 
@@ -128,13 +162,18 @@ namespace Orthanc
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_WRITEDATA, &answer));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPHEADER, NULL));
 
+    if (credentials_.size() != 0)
+    {
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_USERPWD, credentials_.c_str()));
+    }
+
     switch (method_)
     {
-    case Orthanc_HttpMethod_Get:
+    case HttpMethod_Get:
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPGET, 1L));
       break;
 
-    case Orthanc_HttpMethod_Post:
+    case HttpMethod_Post:
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POST, 1L));
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPHEADER, pimpl_->postHeaders_));
 
@@ -151,17 +190,17 @@ namespace Orthanc
 
       break;
 
-    case Orthanc_HttpMethod_Delete:
+    case HttpMethod_Delete:
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_NOBODY, 1L));
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CUSTOMREQUEST, "DELETE"));
       break;
 
-    case Orthanc_HttpMethod_Put:
+    case HttpMethod_Put:
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_PUT, 1L));
       break;
 
     default:
-      throw HttpException("HttpClient: Internal error");
+      throw OrthancException(ErrorCode_InternalError);
     }
 
     // Do the actual request
@@ -173,11 +212,11 @@ namespace Orthanc
     if (status == 0)
     {
       // This corresponds to a call to an inexistent host
-      lastStatus_ = Orthanc_HttpStatus_500_InternalServerError;
+      lastStatus_ = HttpStatus_500_InternalServerError;
     }
     else
     {
-      lastStatus_ = static_cast<Orthanc_HttpStatus>(status);
+      lastStatus_ = static_cast<HttpStatus>(status);
     }
 
     return (status >= 200 && status < 300);
@@ -199,10 +238,25 @@ namespace Orthanc
   }
 
 
-  void HttpClient::SetPassword(const char* username,
-			       const char* password)
+  void HttpClient::SetCredentials(const char* username,
+                                  const char* password)
   {
-    std::string s = std::string(username) + ":" + std::string(password);
-    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_USERPWD, s.c_str()));
+    credentials_ = std::string(username) + ":" + std::string(password);
+  }
+
+  
+  void HttpClient::GlobalInitialize()
+  {
+    CheckCode(curl_global_init(CURL_GLOBAL_DEFAULT));
+  }
+  
+  void HttpClient::GlobalFinalize()
+  {
+    curl_global_cleanup();
+  }
+
+  const char* HttpClient::GetLastStatusText() const
+  {
+    return EnumerationToString(lastStatus_);
   }
 }

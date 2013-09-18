@@ -1,6 +1,62 @@
 Pending changes in the mainline
 ===============================
 
+* Switch to Boost 1.54.0 (cf. issue #9)
+
+
+Version 0.6.1 (2013/09/16)
+==========================
+
+* Detection of stable patients/studies/series
+* C-Find SCU at the instance level
+* Link from modified to original resource in Orthanc Explorer
+* Fix of issue #8
+* Anonymization of the medical alerts tag (0010,2000)
+
+
+Version 0.6.0 (2013/07/16)
+==========================
+
+Major changes
+-------------
+
+* Introduction of the C++ client
+* Send DICOM resources to other Orthanc instances through HTTP
+* Access to signed images (instances/.../image-int16)
+  (Closes: Debian #716958)
+
+Minor changes
+-------------
+
+* Export of DICOM files to the host filesystem (instances/.../export)
+* Statistics about patients, studies, series and instances
+* Link from anonymized to original resource in Orthanc Explorer
+* Fixes for Red Hat and Debian packaging
+* Fixes for history in Orthanc Explorer
+* Fixes for boost::thread, as reported by Cyril Paulus
+* Fix licensing (Closes: Debian #712038)
+
+Metadata
+--------
+
+* Access to the metadata through the REST API (.../metadata)
+* Support of user-defined metadata
+* "LastUpdate" metadata for patients, studies and series
+* "/tools/now" to be used in combination with "LastUpdate"
+* Improved support of series with temporal positions
+
+
+Version 0.5.2 (2013/05/07)
+==========================
+
+* "Bulk" Store-SCU (send several DICOM instances with the same
+  DICOM connexion)
+* Store-SCU for patients and studies in Orthanc Explorer
+* Filtering of incoming DICOM instances (through Lua scripting)
+* Filtering of incoming HTTP requests (through Lua scripting)
+* Clearing of "/exports" and "/changes"
+* Check MD5 of third party downloads
+* Faking of the HTTP methods PUT and DELETE
 
 
 Version 0.5.1 (2013/04/17)
@@ -9,7 +65,7 @@ Version 0.5.1 (2013/04/17)
 * Support of RGB images
 * Fix of store SCU in release builds
 * Possibility to store the SQLite index at another place than the
-  DICOM instances
+  DICOM instances (for performance)
 
 
 Version 0.5.0 (2013/01/31)

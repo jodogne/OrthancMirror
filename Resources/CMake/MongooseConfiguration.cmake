@@ -1,6 +1,9 @@
 if (STATIC_BUILD OR NOT USE_DYNAMIC_MONGOOSE)
   SET(MONGOOSE_SOURCES_DIR ${CMAKE_BINARY_DIR}/mongoose)
-  DownloadPackage("http://mongoose.googlecode.com/files/mongoose-3.1.tgz" "${MONGOOSE_SOURCES_DIR}" "" "")
+  DownloadPackage(
+    "e718fc287b4eb1bd523be3fa00942bb0"
+    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/mongoose-3.1.tgz"
+    "${MONGOOSE_SOURCES_DIR}")
 
   # Patch mongoose
   execute_process(
@@ -29,6 +32,14 @@ if (STATIC_BUILD OR NOT USE_DYNAMIC_MONGOOSE)
     add_definitions(
       -DNO_SSL=1   # Remove SSL support from mongoose
       )
+  endif()
+
+
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+    if (${CMAKE_COMPILER_IS_GNUCXX})
+      # This is a patch for MinGW64
+      add_definitions(-D_TIMESPEC_DEFINED=1)
+    endif()
   endif()
 
   source_group(ThirdParty\\Mongoose REGULAR_EXPRESSION ${MONGOOSE_SOURCES_DIR}/.*)

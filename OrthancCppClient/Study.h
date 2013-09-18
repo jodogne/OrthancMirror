@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -32,47 +32,54 @@
 
 #pragma once
 
-#include "Enumerations.h"
+#include "Series.h"
 
-#include <boost/shared_ptr.hpp>
-#include <string>
-
-namespace Orthanc
+namespace OrthancClient
 {
-  class PngWriter
+  class Study : 
+    public Orthanc::IDynamicObject, 
+    private Orthanc::ArrayFilledByThreads::IFiller
   {
   private:
-    struct PImpl;
-    boost::shared_ptr<PImpl> pimpl_;
+    const OrthancConnection& connection_;
+    std::string id_;
+    Json::Value study_;
+    Orthanc::ArrayFilledByThreads  series_;
 
-    void Compress(unsigned int width,
-                  unsigned int height,
-                  unsigned int pitch,
-                  PixelFormat format);
+    void ReadStudy();
 
-    void Prepare(unsigned int width,
-                 unsigned int height,
-                 unsigned int pitch,
-                 PixelFormat format,
-                 const void* buffer);
+    virtual size_t GetFillerSize()
+    {
+      return study_["Series"].size();
+    }
+
+    virtual Orthanc::IDynamicObject* GetFillerItem(size_t index);
 
   public:
-    PngWriter();
+    Study(const OrthancConnection& connection,
+          const std::string& id);
 
-    ~PngWriter();
+    void Reload()
+    {
+      series_.Reload();
+    }
 
-    void WriteToFile(const char* filename,
-                     unsigned int width,
-                     unsigned int height,
-                     unsigned int pitch,
-                     PixelFormat format,
-                     const void* buffer);
+    unsigned int GetSeriesCount()
+    {
+      return series_.GetSize();
+    }
 
-    void WriteToMemory(std::string& png,
-                       unsigned int width,
-                       unsigned int height,
-                       unsigned int pitch,
-                       PixelFormat format,
-                       const void* buffer);
+    Series& GetSeries(unsigned int index)
+    {
+      return dynamic_cast<Series&>(series_.GetItem(index));
+    }
+
+    const std::string& GetId() const
+    {
+      return id_;
+    }
+
+    std::string GetMainDicomTag(const char* tag, 
+                                const char* defaultValue) const;
   };
 }
