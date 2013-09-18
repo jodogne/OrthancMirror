@@ -1,7 +1,12 @@
+add_definitions(-DDCMTK_DICTIONARY_DIR="${DCMTK_DICTIONARY_DIR}")
+
 if (${STATIC_BUILD})
   SET(DCMTK_VERSION_NUMBER 360)
   SET(DCMTK_SOURCES_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.0)
-  DownloadPackage("ftp://dicom.offis.de/pub/dicom/offis/software/dcmtk/dcmtk360/dcmtk-3.6.0.zip" "${DCMTK_SOURCES_DIR}" "" "")
+  DownloadPackage(
+    "219ad631b82031806147e4abbfba4fa4"
+    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/dcmtk-3.6.0.zip" 
+    "${DCMTK_SOURCES_DIR}")
 
   IF(CMAKE_CROSSCOMPILING)
     SET(C_CHAR_UNSIGNED 1 CACHE INTERNAL "Whether char is unsigned.")
@@ -42,6 +47,15 @@ if (${STATIC_BUILD})
     list(REMOVE_ITEM DCMTK_SOURCES 
       ${DCMTK_SOURCES_DIR}/oflog/libsrc/unixsock.cc
       )
+
+    if (${CMAKE_COMPILER_IS_GNUCXX})
+      # This is a patch for MinGW64
+      execute_process(
+        COMMAND patch -p0 -i ${CMAKE_SOURCE_DIR}/Resources/Patches/dcmtk-mingw64.patch
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        )
+    endif()
+
   endif()
 
   list(REMOVE_ITEM DCMTK_SOURCES 

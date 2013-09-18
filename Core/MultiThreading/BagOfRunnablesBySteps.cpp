@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -102,7 +102,11 @@ namespace Orthanc
         assert(t.get() != NULL);
         assert(bag->pimpl_->activeThreads_.find(r.get()) == bag->pimpl_->activeThreads_.end());
 
-        t->join();
+        if (t->joinable())
+        {
+          t->join();
+        }
+
         bag->pimpl_->oneThreadIsJoined_.notify_one();
       }
 
@@ -128,7 +132,11 @@ namespace Orthanc
     // Stop the finish listener
     pimpl_->stopFinishListener_ = true;
     pimpl_->oneThreadIsStopped_.notify_one();  // Awakens the listener
-    pimpl_->finishListener_->join();
+
+    if (pimpl_->finishListener_->joinable())
+    {
+      pimpl_->finishListener_->join();
+    }
   }
 
 

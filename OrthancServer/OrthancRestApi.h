@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -42,11 +42,12 @@ namespace Orthanc
   class OrthancRestApi : public RestApi
   {
   public:
-    typedef std::set<std::string> Modalities;
+    typedef std::set<std::string> SetOfStrings;
 
   private:
     ServerContext& context_;
-    Modalities modalities_;
+    SetOfStrings modalities_;
+    SetOfStrings peers_;
 
   public:
     OrthancRestApi(ServerContext& context);
@@ -56,9 +57,14 @@ namespace Orthanc
       return context_;
     }
 
-    Modalities& GetModalities()
+    SetOfStrings& GetModalities()
     {
       return modalities_;
+    }
+
+    SetOfStrings& GetPeers()
+    {
+      return peers_;
     }
   };
 }

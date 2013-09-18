@@ -88,11 +88,24 @@
 	            <option value="on">Protected</option>
                   </select>
                 </div>
-                <!--a href="#find-patients" data-role="button" data-icon="search">Go to patient finder</a-->
-                <a href="#" data-role="button" data-icon="delete" id="patient-delete">Delete this patient</a>
-                <a href="#" data-role="button" data-icon="gear" id="patient-archive">Download ZIP</a>
-                <a href="#" data-role="button" data-icon="star" id="patient-anonymize">Anonymize</a>
               </p>
+              <ul data-role="listview" data-inset="true" data-theme="d" data-divider-theme="c">
+                <li data-role="list-divider">Interact</li>
+                <li data-icon="delete"><a href="#" id="patient-delete">Delete this patient</a></li>
+                <li data-icon="forward"><a href="#" id="patient-store">Send to remote modality</a></li>
+                <li data-icon="star"><a href="#" id="patient-anonymize">Anonymize</a></li>
+              </ul>
+
+              <ul data-role="listview" data-inset="true" data-theme="d" data-divider-theme="c">
+                <li data-role="list-divider">Access</li>
+                <li data-icon="info" data-theme="e" style="display:none">
+                  <a href="#" id="patient-anonymized-from">Before anonymization</a>
+                </li>
+                <li data-icon="info" data-theme="e" style="display:none">
+                  <a href="#" id="patient-modified-from">Before modification</a>
+                </li>
+                <li data-icon="gear"><a href="#" id="patient-archive">Download ZIP</a></li>
+              </ul>
             </div>
           </div>
           <div class="ui-block-b" style="width:70%">
@@ -121,11 +134,24 @@
             <div style="padding-right:10px">
               <ul data-role="listview" data-inset="true" data-theme="a" id="study-info">
               </ul>
-              <p>
-                <a href="#" data-role="button" data-icon="delete" id="study-delete">Delete this study</a>
-                <a href="#" data-role="button" data-icon="gear" id="study-archive">Download ZIP</a>
-                <a href="#" data-role="button" data-icon="star" id="study-anonymize">Anonymize</a>
-              </p>
+
+              <ul data-role="listview" data-inset="true" data-theme="d" data-divider-theme="c">
+                <li data-role="list-divider">Interact</li>
+                <li data-icon="delete"><a href="#" id="study-delete">Delete this study</a></li>
+                <li data-icon="forward"><a href="#" id="study-store">Send to DICOM modality</a></li>
+                <li data-icon="star"><a href="#" id="study-anonymize">Anonymize</a></li>
+              </ul>
+
+              <ul data-role="listview" data-inset="true" data-theme="d" data-divider-theme="c">
+                <li data-role="list-divider">Access</li>
+                <li data-icon="info" data-theme="e" style="display:none">
+                  <a href="#" id="study-anonymized-from">Before anonymization</a>
+                </li>
+                <li data-icon="info" data-theme="e" style="display:none">
+                  <a href="#" id="study-modified-from">Before modification</a>
+                </li>
+                <li data-icon="gear"><a href="#" id="study-archive">Download ZIP</a></li>
+              </ul>
             </div>
           </div>
           <div class="ui-block-b" style="width:70%">
@@ -154,15 +180,27 @@
         <div class="ui-grid-a">
           <div class="ui-block-a" style="width:30%">
             <div style="padding-right:10px">
-              <ul data-role="listview" data-inset="true" data-theme="a"  id="series-info">
+              <ul data-role="listview" data-inset="true" data-theme="a" id="series-info">
               </ul>
-              <p>
-                <a href="#" data-role="button" data-icon="delete" id="series-delete">Delete this series</a>
-                <a href="#" data-role="button" data-icon="search" id="series-preview">Preview this series</a>
-                <a href="#" data-role="button" data-icon="forward" id="series-store">Store in another DICOM modality</a>
-                <a href="#" data-role="button" data-icon="gear" id="series-archive">Download ZIP</a>
-                <a href="#" data-role="button" data-icon="star" id="series-anonymize">Anonymize</a>
-              </p>
+
+              <ul data-role="listview" data-inset="true" data-theme="d" data-divider-theme="c">
+                <li data-role="list-divider">Interact</li>
+                <li data-icon="delete"><a href="#" id="series-delete">Delete this series</a></li>
+                <li data-icon="forward"><a href="#" id="series-store">Send to DICOM modality</a></li>
+                <li data-icon="star"><a href="#" id="series-anonymize">Anonymize</a></li>
+              </ul>
+
+              <ul data-role="listview" data-inset="true" data-theme="d" data-divider-theme="c">
+                <li data-role="list-divider">Access</li>
+                <li data-icon="info" data-theme="e" style="display:none">
+                  <a href="#" id="series-anonymized-from">Before anonymization</a>
+                </li>
+                <li data-icon="info" data-theme="e" style="display:none">
+                  <a href="#" id="series-modified-from">Before modification</a>
+                </li>
+                <li data-icon="search"><a href="#" id="series-preview">Preview this series</a></li>
+                <li data-icon="gear"><a href="#" id="series-archive">Download ZIP</a></li>
+              </ul>
             </div>
           </div>
           <div class="ui-block-b" style="width:70%">
@@ -193,13 +231,25 @@
             <div style="padding-right:10px">
               <ul data-role="listview" data-inset="true" data-theme="a"  id="instance-info">
               </ul>
-              <p>
-                <a href="#" data-role="button" data-icon="delete" id="instance-delete">Delete this instance</a>
-                <a href="#" data-role="button" data-icon="arrow-d" id="instance-download-dicom">Download the DICOM file</a>
-                <a href="#" data-role="button" data-icon="arrow-d" id="instance-download-json">Download the JSON file</a>
-                <a href="#" data-role="button" data-icon="search" id="instance-preview">Preview the instance</a>
-                <a href="#" data-role="button" data-icon="forward" id="instance-store">Store in another DICOM modality</a>
-              </p>
+
+              <ul data-role="listview" data-inset="true" data-theme="d" data-divider-theme="c">
+                <li data-role="list-divider">Interact</li>
+                <li data-icon="delete"><a href="#" id="instance-delete">Delete this instance</a></li>
+                <li data-icon="forward"><a href="#" id="instance-store">Send to DICOM modality</a></li>
+              </ul>
+
+              <ul data-role="listview" data-inset="true" data-theme="d" data-divider-theme="c">
+                <li data-role="list-divider">Access</li>
+                <li data-icon="info" data-theme="e" style="display:none">
+                  <a href="#" id="instance-anonymized-from">Before anonymization</a>
+                </li>
+                <li data-icon="info" data-theme="e" style="display:none">
+                  <a href="#" id="instance-modified-from">Before modification</a>
+                </li>
+                <li data-icon="arrow-d"><a href="#" id="instance-download-dicom">Download the DICOM file</a></li>
+                <li data-icon="arrow-d"><a href="#" id="instance-download-json">Download the JSON file</a></li>
+                <li data-icon="search"><a href="#" id="instance-preview">Preview the instance</a></li>
+              </ul>
             </div>
           </div>
           <div class="ui-block-b" style="width:70%">
@@ -218,7 +268,12 @@
       </div>
     </div>
 
-    <div id="loading" style="display:none;" class="ui-body-c">
+    <div id="peer-store" style="display:none;" class="ui-body-c">
+      <p align="center"><b>Sending to Orthanc peer...</b></p>
+      <p><img src="libs/images/ajax-loader2.gif" alt="" /></p>
+    </div>
+
+    <div id="dicom-store" style="display:none;" class="ui-body-c">
       <p align="center"><b>Sending to DICOM modality...</b></p>
       <p><img src="libs/images/ajax-loader2.gif" alt="" /></p>
     </div>

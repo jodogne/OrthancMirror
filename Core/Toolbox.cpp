@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -34,6 +34,7 @@
 
 #include "OrthancException.h"
 
+#include <stdint.h>
 #include <string.h>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
@@ -131,9 +132,9 @@ namespace Orthanc
 #if defined(_WIN32)
   static BOOL WINAPI ConsoleControlHandler(DWORD dwCtrlType)
   {
-	// http://msdn.microsoft.com/en-us/library/ms683242(v=vs.85).aspx
-	finish = true;
-	return true;
+    // http://msdn.microsoft.com/en-us/library/ms683242(v=vs.85).aspx
+    finish = true;
+    return true;
   }
 #else
   static void SignalHandler(int)
@@ -168,7 +169,7 @@ namespace Orthanc
   void Toolbox::ServerBarrier()
   {
 #if defined(_WIN32)
-	SetConsoleCtrlHandler(ConsoleControlHandler, true);
+    SetConsoleCtrlHandler(ConsoleControlHandler, true);
 #else
     signal(SIGINT, SignalHandler);
     signal(SIGQUIT, SignalHandler);
@@ -181,7 +182,7 @@ namespace Orthanc
     }
 
 #if defined(_WIN32)
-	SetConsoleCtrlHandler(ConsoleControlHandler, false);
+    SetConsoleCtrlHandler(ConsoleControlHandler, false);
 #else
     signal(SIGINT, NULL);
     signal(SIGQUIT, NULL);
@@ -207,10 +208,10 @@ namespace Orthanc
                          const std::string& path) 
   {
     boost::filesystem::ifstream f;
-    f.open(path, std::ifstream::in | std::ios::binary);
+    f.open(path, std::ifstream::in | std::ifstream::binary);
     if (!f.good())
     {
-      throw OrthancException("Unable to open a file");
+      throw OrthancException(ErrorCode_InexistentFile);
     }
 
     // http://www.cplusplus.com/reference/iostream/istream/tellg/
@@ -226,6 +227,26 @@ namespace Orthanc
 
     f.close();
   }
+
+
+  void Toolbox::WriteFile(const std::string& content,
+                          const std::string& path)
+  {
+    boost::filesystem::ofstream f;
+    f.open(path, std::ofstream::binary);
+    if (!f.good())
+    {
+      throw OrthancException(ErrorCode_CannotWriteFile);
+    }
+
+    if (content.size() != 0)
+    {
+      f.write(content.c_str(), content.size());
+    }
+
+    f.close();
+  }
+
 
 
   void Toolbox::RemoveFile(const std::string& path)
@@ -565,6 +586,33 @@ namespace Orthanc
     }
   }
 
+  bool Toolbox::IsSHA1(const std::string& str)
+  {
+    if (str.size() != 44)
+    {
+      return false;
+    }
+
+    for (unsigned int i = 0; i < 44; i++)
+    {
+      if (i == 8 ||
+          i == 17 ||
+          i == 26 ||
+          i == 35)
+      {
+        if (str[i] != '-')
+          return false;
+      }
+      else
+      {
+        if (!isalnum(str[i]))
+          return false;
+      }
+    }
+
+    return true;
+  }
+
   std::string Toolbox::GetNowIsoString()
   {
     boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
@@ -643,5 +691,30 @@ namespace Orthanc
     }
 
     s.resize(target);
+  }
+
+
+  Endianness Toolbox::DetectEndianness()
+  {
+    // http://sourceforge.net/p/predef/wiki/Endianness/
+
+    uint8_t buffer[4];
+
+    buffer[0] = 0x00;
+    buffer[1] = 0x01;
+    buffer[2] = 0x02;
+    buffer[3] = 0x03;
+
+    switch (*((uint32_t *)buffer)) 
+    {
+      case 0x00010203: 
+        return Endianness_Big;
+
+      case 0x03020100: 
+        return Endianness_Little;
+        
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
   }
 }

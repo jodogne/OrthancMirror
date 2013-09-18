@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -294,7 +294,20 @@ namespace Orthanc
       break;
 
     case FindRootModel_Instance:
-      DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "INSTANCE");
+      if (manufacturer_ == ModalityManufacturer_ClearCanvas)
+      {
+        // This is a particular case for ClearCanvas, thanks to Peter Somlo <peter.somlo@gmail.com>.
+        // https://groups.google.com/d/msg/orthanc-users/j-6C3MAVwiw/iolB9hclom8J
+        // http://www.clearcanvas.ca/Home/Community/OldForums/tabid/526/aff/11/aft/14670/afv/topic/Default.aspx
+        printf("CLEAR CANVAS\n");
+        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "IMAGE");
+      }
+      else
+      {
+        printf("GENERIC\n");
+        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "INSTANCE");
+      }
+
       sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
 
       // Accession number
@@ -453,6 +466,7 @@ namespace Orthanc
     distantAet_ = "ANY-SCP";
     distantPort_ = 104;
     distantHost_ = "127.0.0.1";
+    manufacturer_ = ModalityManufacturer_Generic;
 
     pimpl_->net_ = NULL;
     pimpl_->params_ = NULL;
@@ -474,6 +488,12 @@ namespace Orthanc
   {
     Close();
     distantAet_ = aet;
+  }
+
+  void DicomUserConnection::SetDistantManufacturer(ModalityManufacturer manufacturer)
+  {
+    Close();
+    manufacturer_ = manufacturer;
   }
 
 

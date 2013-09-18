@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -180,7 +180,7 @@ namespace Orthanc
   }
 
   void RestApi::Handle(HttpOutput& output,
-                       Orthanc_HttpMethod method,
+                       HttpMethod method,
                        const UriComponents& uri,
                        const Arguments& headers,
                        const Arguments& getArguments,
@@ -191,14 +191,14 @@ namespace Orthanc
     RestApiPath::Components components;
     UriComponents trailing;
 
-    if (method == Orthanc_HttpMethod_Get)
+    if (method == HttpMethod_Get)
     {
       for (GetHandlers::const_iterator it = getHandlers_.begin();
            it != getHandlers_.end(); it++)
       {
         if (it->first->Match(components, trailing, uri))
         {
-          LOG(INFO) << "REST GET call on: " << Toolbox::FlattenUri(uri);
+          //LOG(INFO) << "REST GET call on: " << Toolbox::FlattenUri(uri);
           ok = true;
           GetCall call;
           call.output_ = &restOutput;
@@ -213,14 +213,14 @@ namespace Orthanc
         }
       }
     }
-    else if (method == Orthanc_HttpMethod_Put)
+    else if (method == HttpMethod_Put)
     {
       for (PutHandlers::const_iterator it = putHandlers_.begin();
            it != putHandlers_.end(); it++)
       {
         if (it->first->Match(components, trailing, uri))
         {
-          LOG(INFO) << "REST PUT call on: " << Toolbox::FlattenUri(uri);
+          //LOG(INFO) << "REST PUT call on: " << Toolbox::FlattenUri(uri);
           ok = true;
           PutCall call;
           call.output_ = &restOutput;
@@ -235,14 +235,14 @@ namespace Orthanc
         }
       }
     }
-    else if (method == Orthanc_HttpMethod_Post)
+    else if (method == HttpMethod_Post)
     {
       for (PostHandlers::const_iterator it = postHandlers_.begin();
            it != postHandlers_.end(); it++)
       {
         if (it->first->Match(components, trailing, uri))
         {
-          LOG(INFO) << "REST POST call on: " << Toolbox::FlattenUri(uri);
+          //LOG(INFO) << "REST POST call on: " << Toolbox::FlattenUri(uri);
           ok = true;
           PostCall call;
           call.output_ = &restOutput;
@@ -257,14 +257,14 @@ namespace Orthanc
         }
       }
     }
-    else if (method == Orthanc_HttpMethod_Delete)
+    else if (method == HttpMethod_Delete)
     {
       for (DeleteHandlers::const_iterator it = deleteHandlers_.begin();
            it != deleteHandlers_.end(); it++)
       {
         if (it->first->Match(components, trailing, uri))
         {
-          LOG(INFO) << "REST DELETE call on: " << Toolbox::FlattenUri(uri);
+          //LOG(INFO) << "REST DELETE call on: " << Toolbox::FlattenUri(uri);
           ok = true;
           DeleteCall call;
           call.output_ = &restOutput;
@@ -280,7 +280,8 @@ namespace Orthanc
 
     if (!ok)
     {
-      LOG(INFO) << "REST method " << method << " not allowed on: " << Toolbox::FlattenUri(uri);
+      LOG(INFO) << "REST method " << EnumerationToString(method) 
+                << " not allowed on: " << Toolbox::FlattenUri(uri);
       output.SendMethodNotAllowedError(GetAcceptedMethods(uri));
     }
   }

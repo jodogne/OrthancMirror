@@ -12,6 +12,11 @@ if ($.browser.msie)
 //$.mobile.page.prototype.options.addBackBtn = true;
 //$.mobile.defaultPageTransition = 'slide';
 
+
+var currentPage = '';
+var currentUuid = '';
+
+
 // http://stackoverflow.com/a/4673436
 String.prototype.format = function() {
   var args = arguments;
@@ -356,7 +361,25 @@ $('#find-patients').live('pagebeforeshow', function() {
 
 
 
-$('#patient').live('pagebeforeshow', function() {
+function SetupAnonymizedOrModifiedFrom(buttonSelector, resource, resourceType, field)
+{
+  if (field in resource)
+  {
+    $(buttonSelector).closest('li').show();
+    $(buttonSelector).click(function(e) {
+      window.location.assign('explorer.html#' + resourceType + '?uuid=' + resource[field]);
+    });
+  }
+  else
+  {
+    $(buttonSelector).closest('li').hide();
+  }
+}
+
+
+
+function RefreshPatient()
+{
   if ($.mobile.pageData) {
     GetSingleResource('patients', $.mobile.pageData.uuid, function(patient) {
       GetMultipleResources('studies', patient.Studies, function(studies) {
@@ -381,6 +404,9 @@ $('#patient').live('pagebeforeshow', function() {
           target.append(FormatStudy(studies[i], '#study?uuid=' + studies[i].ID));
         }
 
+        SetupAnonymizedOrModifiedFrom('#patient-anonymized-from', patient, 'patient', 'AnonymizedFrom');
+        SetupAnonymizedOrModifiedFrom('#patient-modified-from', patient, 'patient', 'ModifiedFrom');
+
         target.listview('refresh');
 
         // Check whether this patient is protected
@@ -395,13 +421,17 @@ $('#patient').live('pagebeforeshow', function() {
             $('#protection').val(v).slider('refresh');
           }
         });
+
+        currentPage = 'patient';
+        currentUuid = $.mobile.pageData.uuid;
       });
     });
   }
-});
+}
 
 
-$('#study').live('pagebeforeshow', function() {
+function RefreshStudy()
+{
   if ($.mobile.pageData) {
     GetSingleResource('studies', $.mobile.pageData.uuid, function(study) {
       GetSingleResource('patients', study.ParentPatient, function(patient) {
@@ -417,6 +447,9 @@ $('#study').live('pagebeforeshow', function() {
             .append(FormatStudy(study))
             .listview('refresh');
 
+          SetupAnonymizedOrModifiedFrom('#study-anonymized-from', study, 'study', 'AnonymizedFrom');
+          SetupAnonymizedOrModifiedFrom('#study-modified-from', study, 'study', 'ModifiedFrom');
+
           var target = $('#list-series');
           $('li', target).remove();
           for (var i = 0; i < series.length; i++) {
@@ -428,14 +461,18 @@ $('#study').live('pagebeforeshow', function() {
             target.append(FormatSeries(series[i], '#series?uuid=' + series[i].ID));
           }
           target.listview('refresh');
+
+          currentPage = 'study';
+          currentUuid = $.mobile.pageData.uuid;
         });
       });  
     });
   }
-});
+}
   
 
-$('#series').live('pagebeforeshow', function() {
+function RefreshSeries() 
+{
   if ($.mobile.pageData) {
     GetSingleResource('series', $.mobile.pageData.uuid, function(series) {
       GetSingleResource('studies', series.ParentStudy, function(study) {
@@ -456,18 +493,24 @@ $('#series').live('pagebeforeshow', function() {
               .append(FormatSeries(series))
               .listview('refresh');
 
+            SetupAnonymizedOrModifiedFrom('#series-anonymized-from', series, 'series', 'AnonymizedFrom');
+            SetupAnonymizedOrModifiedFrom('#series-modified-from', series, 'series', 'ModifiedFrom');
+
             var target = $('#list-instances');
             $('li', target).remove();
             for (var i = 0; i < instances.length; i++) {
               target.append(FormatInstance(instances[i], '#instance?uuid=' + instances[i].ID));
             }
             target.listview('refresh');
+
+            currentPage = 'series';
+            currentUuid = $.mobile.pageData.uuid;
           });
         });
       });
     });
   }
-});
+}
 
 
 
@@ -522,7 +565,8 @@ function ConvertForTree(dicom)
 }
 
 
-$('#instance').live('pagebeforeshow', function() {
+function RefreshInstance()
+{
   if ($.mobile.pageData) {
     GetSingleResource('instances', $.mobile.pageData.uuid, function(instance) {
       GetSingleResource('series', instance.ParentSeries, function(series) {
@@ -554,12 +598,49 @@ $('#instance').live('pagebeforeshow', function() {
               }
             });
 
+            SetupAnonymizedOrModifiedFrom('#instance-anonymized-from', instance, 'instance', 'AnonymizedFrom');
+            SetupAnonymizedOrModifiedFrom('#instance-modified-from', instance, 'instance', 'ModifiedFrom');
+
+            currentPage = 'instance';
+            currentUuid = $.mobile.pageData.uuid;
           });
         });
       });
     });
   }
+}
+
+$(document).live('pagebeforehide', function() {
+  currentPage = '';
+  currentUuid = '';
 });
+
+
+
+$('#patient').live('pagebeforeshow', RefreshPatient);
+$('#study').live('pagebeforeshow', RefreshStudy);
+$('#series').live('pagebeforeshow', RefreshSeries);
+$('#instance').live('pagebeforeshow', RefreshInstance);
+
+$(function() {
+  $(window).hashchange(function(e, data) {
+    // This fixes the navigation with the back button and with the anonymization
+    if ('uuid' in $.mobile.pageData &&
+        currentPage == $.mobile.pageData.active &&
+        currentUuid != $.mobile.pageData.uuid) {
+      if (currentPage == 'patient')
+        RefreshPatient();
+      else if (currentPage == 'study')
+        RefreshStudy();
+      else if (currentPage == 'series')
+        RefreshSeries();
+      else if (currentPage == 'instance')
+        RefreshInstance();
+    }
+  });
+});
+
+
 
 
 
@@ -708,6 +789,13 @@ $('#series-preview').live('click', function(e) {
 
 function ChooseDicomModality(callback)
 {
+  var clickedModality = '';
+  var clickedPeer = '';
+  var items = $('<ul>')
+    .attr('data-divider-theme', 'd')
+    .attr('data-role', 'listview');
+
+  // Retrieve the list of the known DICOM modalities
   $.ajax({
     url: '../modalities',
     type: 'GET',
@@ -715,37 +803,66 @@ function ChooseDicomModality(callback)
     async: false,
     cache: false,
     success: function(modalities) {
-      var clickedModality = '';
-      var items = $('<ul>')
-        .attr('data-role', 'listview');
+      if (modalities.length > 0)
+      {
+        items.append('<li data-role="list-divider">DICOM modalities</li>');
 
-      for (var i = 0; i < modalities.length; i++) {
-        var modality = modalities[i];
-        var item = $('<li>')
-          .html('<a href="#" rel="close">' + modality + '</a>')
-          .attr('modality', modality)
-          .click(function() { 
-            clickedModality = $(this).attr('modality');
-          });
-        items.append(item);
+        for (var i = 0; i < modalities.length; i++) {
+          var name = modalities[i];
+          var item = $('<li>')
+            .html('<a href="#" rel="close">' + name + '</a>')
+            .attr('name', name)
+            .click(function() { 
+              clickedModality = $(this).attr('name');
+            });
+          items.append(item);
+        }
       }
 
-      $('#dialog').simpledialog2({
-        mode: 'blank',
-        animate: false,
-        headerText: 'DICOM modality',
-        headerClose: true,
-        width: '100%',
-        blankContent: items,
-        callbackClose: function() {
-          var timer;
-          function WaitForDialogToClose() {
-            if (!$('#dialog').is(':visible')) {
-              clearInterval(timer);
-              callback(clickedModality);
+      // Retrieve the list of the known Orthanc peers
+      $.ajax({
+        url: '../peers',
+        type: 'GET',
+        dataType: 'json',
+        async: false,
+        cache: false,
+        success: function(peers) {
+          if (peers.length > 0)
+          {
+            items.append('<li data-role="list-divider">Orthanc peers</li>');
+
+            for (var i = 0; i < peers.length; i++) {
+              var name = peers[i];
+              var item = $('<li>')
+                .html('<a href="#" rel="close">' + name + '</a>')
+                .attr('name', name)
+                .click(function() { 
+                  clickedPeer = $(this).attr('name');
+                });
+              items.append(item);
             }
           }
-          timer = setInterval(WaitForDialogToClose, 100);
+
+          // Launch the dialog
+          $('#dialog').simpledialog2({
+            mode: 'blank',
+            animate: false,
+            headerText: 'Choose target',
+            headerClose: true,
+            forceInput: false,
+            width: '100%',
+            blankContent: items,
+            callbackClose: function() {
+              var timer;
+              function WaitForDialogToClose() {
+                if (!$('#dialog').is(':visible')) {
+                  clearInterval(timer);
+                  callback(clickedModality, clickedPeer);
+                }
+              }
+              timer = setInterval(WaitForDialogToClose, 100);
+            }
+          });
         }
       });
     }
@@ -753,29 +870,42 @@ function ChooseDicomModality(callback)
 }
 
 
-$('#instance-store,#series-store').live('click', function(e) {
-  ChooseDicomModality(function(modality) {
-    if (modality != '') {
+$('#instance-store,#series-store,#study-store,#patient-store').live('click', function(e) {
+  ChooseDicomModality(function(modality, peer) {
+    var url;
+    var loading;
+
+    if (modality != '')
+    {
+      url = '../modalities/' + modality + '/store';
+      loading = '#dicom-store';
+    }
+
+    if (peer != '')
+    {
+      url = '../peers/' + peer + '/store';
+      loading = '#peer-store';
+    }
+
+    if (url != '') {
       $.ajax({
-        url: '../modalities/' + modality + '/store',
+        url: url,
         type: 'POST',
         dataType: 'text',
         data: $.mobile.pageData.uuid,
         async: true,  // Necessary to block UI
         beforeSend: function() {
-          $.blockUI({ message: $('#loading') });
+          $.blockUI({ message: $(loading) });
         },
         complete: function(s) {
           $.unblockUI();
         },
         success: function(s) {
-          //console.log('done !');
         },
         error: function() {
-          alert('Error during C-Store');
+          alert('Error during store');
         }
-      });
-      
+      });      
     }
   });
 });
@@ -841,7 +971,7 @@ function OpenAnonymizeResourceDialog(path, title)
               //$.mobile.changePage('explorer.html#patient?uuid=' + s.PatientID);
 
               window.location.assign('explorer.html#patient?uuid=' + s.PatientID);
-              window.location.reload();
+              //window.location.reload();
             }
           });
         },

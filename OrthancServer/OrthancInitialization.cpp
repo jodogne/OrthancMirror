@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -32,8 +32,10 @@
 
 #include "OrthancInitialization.h"
 
+#include "../Core/HttpClient.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
+#include "ServerEnumerations.h"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
@@ -47,6 +49,7 @@ namespace Orthanc
 
   static boost::mutex globalMutex_;
   static std::auto_ptr<Json::Value> configuration_;
+  static boost::filesystem::path defaultDirectory_;
 
 
   static void ReadGlobalConfiguration(const char* configurationFile)
@@ -58,6 +61,7 @@ namespace Orthanc
     if (configurationFile)
     {
       Toolbox::ReadFile(content, configurationFile);
+      defaultDirectory_ = boost::filesystem::path(configurationFile).parent_path();
       LOG(INFO) << "Using the configuration from: " << configurationFile;
     }
     else
@@ -116,11 +120,51 @@ namespace Orthanc
   }
 
 
+  static void RegisterUserMetadata()
+  {
+    if (configuration_->isMember("UserMetadata"))
+    {
+      const Json::Value& parameter = (*configuration_) ["UserMetadata"];
+
+      Json::Value::Members members = parameter.getMemberNames();
+      for (size_t i = 0; i < members.size(); i++)
+      {
+        std::string info = "\"" + members[i] + "\" = " + parameter[members[i]].toStyledString();
+        LOG(INFO) << "Registering user-defined metadata: " << info;
+
+        if (!parameter[members[i]].asBool())
+        {
+          LOG(ERROR) << "Not a number in this user-defined metadata: " << info;
+          throw OrthancException(ErrorCode_BadParameterType);
+        }
+
+        int metadata = parameter[members[i]].asInt();
+
+        try
+        {
+          RegisterUserMetadata(metadata, members[i]);
+        }
+        catch (OrthancException e)
+        {
+          LOG(ERROR) << "Cannot register this user-defined metadata: " << info;
+          throw e;
+        }
+      }
+    }
+  }
+
+
   void OrthancInitialize(const char* configurationFile)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
+
+    InitializeServerEnumerations();
+    defaultDirectory_ = boost::filesystem::current_path();
     ReadGlobalConfiguration(configurationFile);
-    curl_global_init(CURL_GLOBAL_ALL);
+
+    HttpClient::GlobalInitialize();
+
+    RegisterUserMetadata();
   }
 
 
@@ -128,7 +172,7 @@ namespace Orthanc
   void OrthancFinalize()
   {
     boost::mutex::scoped_lock lock(globalMutex_);
-    curl_global_cleanup();
+    HttpClient::GlobalFinalize();
     configuration_.reset(NULL);
   }
 
@@ -186,7 +230,8 @@ namespace Orthanc
   void GetDicomModality(const std::string& name,
                         std::string& aet,
                         std::string& address,
-                        int& port)
+                        int& port,
+                        ModalityManufacturer& manufacturer)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
@@ -197,7 +242,8 @@ namespace Orthanc
 
     const Json::Value& modalities = (*configuration_) ["DicomModalities"];
     if (modalities.type() != Json::objectValue ||
-        !modalities.isMember(name))
+        !modalities.isMember(name) ||
+        (modalities[name].size() != 3 && modalities[name].size() != 4))
     {
       throw OrthancException("");
     }
@@ -207,6 +253,15 @@ namespace Orthanc
       aet = modalities[name].get(0u, "").asString();
       address = modalities[name].get(1u, "").asString();
       port = modalities[name].get(2u, "").asInt();
+
+      if (modalities[name].size() == 4)
+      {
+        manufacturer = StringToModalityManufacturer(modalities[name].get(3u, "").asString());
+      }
+      else
+      {
+        manufacturer = ModalityManufacturer_Generic;
+      }
     }
     catch (...)
     {
@@ -216,35 +271,110 @@ namespace Orthanc
 
 
 
-  void GetListOfDicomModalities(std::set<std::string>& target)
+  void GetOrthancPeer(const std::string& name,
+                      std::string& url,
+                      std::string& username,
+                      std::string& password)
+  {
+    boost::mutex::scoped_lock lock(globalMutex_);
+
+    if (!configuration_->isMember("OrthancPeers"))
+    {
+      throw OrthancException("");
+    }
+
+    const Json::Value& modalities = (*configuration_) ["OrthancPeers"];
+    if (modalities.type() != Json::objectValue ||
+        !modalities.isMember(name))
+    {
+      throw OrthancException("");
+    }
+
+    try
+    {
+      url = modalities[name].get(0u, "").asString();
+
+      if (modalities[name].size() == 1)
+      {
+        username = "";
+        password = "";
+      }
+      else if (modalities[name].size() == 3)
+      {
+        username = modalities[name].get(1u, "").asString();
+        password = modalities[name].get(2u, "").asString();
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+    }
+    catch (...)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    if (url.size() != 0 && url[url.size() - 1] != '/')
+    {
+      url += '/';
+    }
+  }
+
+
+  static bool ReadKeys(std::set<std::string>& target,
+                       const char* parameter,
+                       bool onlyAlphanumeric)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
     target.clear();
   
-    if (!configuration_->isMember("DicomModalities"))
+    if (!configuration_->isMember(parameter))
     {
-      return;
+      return true;
     }
 
-    const Json::Value& modalities = (*configuration_) ["DicomModalities"];
+    const Json::Value& modalities = (*configuration_) [parameter];
     if (modalities.type() != Json::objectValue)
     {
-      throw OrthancException("Badly formatted list of DICOM modalities");
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
 
     Json::Value::Members members = modalities.getMemberNames();
     for (size_t i = 0; i < members.size(); i++)
     {
-      for (size_t j = 0; j < members[i].size(); j++)
+      if (onlyAlphanumeric)
       {
-        if (!isalnum(members[i][j]) && members[i][j] != '-')
+        for (size_t j = 0; j < members[i].size(); j++)
         {
-          throw OrthancException("Only alphanumeric and dash characters are allowed in the names of the modalities");
+          if (!isalnum(members[i][j]) && members[i][j] != '-')
+          {
+            return false;
+          }
         }
       }
 
       target.insert(members[i]);
+    }
+
+    return true;
+  }
+
+
+  void GetListOfDicomModalities(std::set<std::string>& target)
+  {
+    if (!ReadKeys(target, "DicomModalities", true))
+    {
+      throw OrthancException("Only alphanumeric and dash characters are allowed in the names of the modalities");
+    }
+  }
+
+
+  void GetListOfOrthancPeers(std::set<std::string>& target)
+  {
+    if (!ReadKeys(target, "OrthancPeers", true))
+    {
+      throw OrthancException("Only alphanumeric and dash characters are allowed in the names of Orthanc peers");
     }
   }
 
@@ -274,5 +404,64 @@ namespace Orthanc
       std::string password = users[username].asString();
       httpServer.RegisterUser(username.c_str(), password.c_str());
     }
+  }
+
+
+  std::string InterpretRelativePath(const std::string& baseDirectory,
+                                    const std::string& relativePath)
+  {
+    boost::filesystem::path base(baseDirectory);
+    boost::filesystem::path relative(relativePath);
+
+    /**
+       The following lines should be equivalent to this one: 
+
+       return (base / relative).string();
+
+       However, for some unknown reason, some versions of Boost do not
+       make the proper path resolution when "baseDirectory" is an
+       absolute path. So, a hack is used below.
+     **/
+
+    if (relative.is_absolute())
+    {
+      return relative.string();
+    }
+    else
+    {
+      return (base / relative).string();
+    }
+  }
+
+  std::string InterpretStringParameterAsPath(const std::string& parameter)
+  {
+    boost::mutex::scoped_lock lock(globalMutex_);
+    return InterpretRelativePath(defaultDirectory_.string(), parameter);
+  }
+
+
+  void GetGlobalListOfStringsParameter(std::list<std::string>& target,
+                                       const std::string& key)
+  {
+    boost::mutex::scoped_lock lock(globalMutex_);
+
+    target.clear();
+  
+    if (!configuration_->isMember(key))
+    {
+      return;
+    }
+
+    const Json::Value& lst = (*configuration_) [key];
+
+    if (lst.type() != Json::arrayValue)
+    {
+      throw OrthancException("Badly formatted list of strings");
+    }
+
+    for (Json::Value::ArrayIndex i = 0; i < lst.size(); i++)
+    {
+      target.push_back(lst[i].asString());
+    }    
   }
 }

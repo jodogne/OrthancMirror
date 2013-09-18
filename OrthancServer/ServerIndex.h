@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -34,6 +34,7 @@
 
 #include <boost/thread.hpp>
 #include <boost/noncopyable.hpp>
+#include "../Core/Cache/LeastRecentlyUsedIndex.h"
 #include "../Core/SQLite/Connection.h"
 #include "../Core/DicomFormat/DicomMap.h"
 #include "../Core/DicomFormat/DicomInstanceHasher.h"
@@ -55,16 +56,24 @@ namespace Orthanc
   {
   private:
     class Transaction;
+    struct UnstableResourcePayload;
 
+    bool done_;
     boost::mutex mutex_;
     boost::thread flushThread_;
+    boost::thread unstableResourcesMonitorThread_;
 
     std::auto_ptr<Internals::ServerIndexListener> listener_;
     std::auto_ptr<DatabaseWrapper> db_;
+    LeastRecentlyUsedIndex<int64_t, UnstableResourcePayload>  unstableResources_;
 
     uint64_t currentStorageSize_;
     uint64_t maximumStorageSize_;
     unsigned int maximumPatients_;
+
+    static void FlushThread(ServerIndex* that);
+
+    static void UnstableResourcesMonitorThread(ServerIndex* that);
 
     void MainDicomTagsToJson(Json::Value& result,
                              int64_t resourceId);
@@ -77,6 +86,9 @@ namespace Orthanc
                  const std::string& newPatientId);
 
     void StandaloneRecycling();
+
+    void MarkAsUnstable(int64_t id,
+                        Orthanc::ResourceType type);
 
   public:
     typedef std::list<FileInfo> Attachments;
@@ -150,9 +162,15 @@ namespace Orthanc
                      MetadataType type,
                      const std::string& value);
 
+    void DeleteMetadata(const std::string& publicId,
+                        MetadataType type);
+
     bool LookupMetadata(std::string& target,
                         const std::string& publicId,
                         MetadataType type);
+
+    bool ListAvailableMetadata(std::list<MetadataType>& target,
+                               const std::string& publicId);
 
     bool LookupParent(std::string& target,
                       const std::string& publicId);
@@ -161,5 +179,19 @@ namespace Orthanc
 
     void LogChange(ChangeType changeType,
                    const std::string& publicId);
+
+    void DeleteChanges();
+
+    void DeleteExportedResources();
+
+    void GetStatistics(Json::Value& target,
+                       const std::string& publicId);
+
+    void LookupTagValue(std::list<std::string>& result,
+                        DicomTag tag,
+                        const std::string& value);
+
+    void LookupTagValue(std::list<std::string>& result,
+                        const std::string& value);
   };
 }

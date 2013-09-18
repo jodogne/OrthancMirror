@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -33,7 +33,7 @@
 #pragma once
 
 #include <memory>
-#include "CacheIndex.h"
+#include "LeastRecentlyUsedIndex.h"
 #include "ICachePageProvider.h"
 
 namespace Orthanc
@@ -52,7 +52,7 @@ namespace Orthanc
 
     ICachePageProvider& provider_;
     size_t cacheSize_;
-    CacheIndex<std::string, Page*>  index_;
+    LeastRecentlyUsedIndex<std::string, Page*>  index_;
 
     Page& Load(const std::string& id);
 

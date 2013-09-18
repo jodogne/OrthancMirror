@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -340,6 +340,15 @@ namespace Orthanc
     s.Run();
   }
 
+  void DatabaseWrapper::DeleteMetadata(int64_t id,
+                                       MetadataType type)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM Metadata WHERE id=? and type=?");
+    s.BindInt(0, id);
+    s.BindInt(1, type);
+    s.Run();
+  }
+
   bool DatabaseWrapper::LookupMetadata(std::string& target,
                                        int64_t id,
                                        MetadataType type)
@@ -359,6 +368,23 @@ namespace Orthanc
       return true;
     }
   }
+
+  bool DatabaseWrapper::ListAvailableMetadata(std::list<MetadataType>& target,
+                                              int64_t id)
+  {
+    target.clear();
+
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT type FROM Metadata WHERE id=?");
+    s.BindInt(0, id);
+
+    while (s.Step())
+    {
+      target.push_back(static_cast<MetadataType>(s.ColumnInt(0)));
+    }
+
+    return true;
+  }
+
 
   std::string DatabaseWrapper::GetMetadata(int64_t id,
                                            MetadataType type,
@@ -410,6 +436,21 @@ namespace Orthanc
     s.BindInt(4, attachment.GetUncompressedSize());
     s.BindInt(5, attachment.GetCompressionType());
     s.Run();
+  }
+
+  void DatabaseWrapper::ListAvailableAttachments(std::list<FileContentType>& result,
+                                                 int64_t id)
+  {
+    result.clear();
+
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                        "SELECT fileType FROM AttachedFiles WHERE id=?");
+    s.BindInt(0, id);
+
+    while (s.Step())
+    {
+      result.push_back(static_cast<FileContentType>(s.ColumnInt(0)));
+    }
   }
 
   bool DatabaseWrapper::LookupAttachment(FileInfo& attachment,
@@ -551,8 +592,8 @@ namespace Orthanc
 
       Json::Value item = Json::objectValue;
       item["Seq"] = static_cast<int>(seq);
-      item["ChangeType"] = ToString(changeType);
-      item["ResourceType"] = ToString(resourceType);
+      item["ChangeType"] = EnumerationToString(changeType);
+      item["ResourceType"] = EnumerationToString(resourceType);
       item["ID"] = publicId;
       item["Path"] = GetBasePath(resourceType, publicId);
       item["Date"] = date;
@@ -626,7 +667,7 @@ namespace Orthanc
 
       Json::Value item = Json::objectValue;
       item["Seq"] = static_cast<int>(seq);
-      item["ResourceType"] = ToString(resourceType);
+      item["ResourceType"] = EnumerationToString(resourceType);
       item["ID"] = publicId;
       item["Path"] = GetBasePath(resourceType, publicId);
       item["RemoteModality"] = s.ColumnString(3);
@@ -900,6 +941,58 @@ namespace Orthanc
       // Initialize the sequence at "1"
       SetGlobalProperty(property, "1");
       return 1;
+    }
+  }
+
+
+  void DatabaseWrapper::ClearTable(const std::string& tableName)
+  {
+    db_.Execute("DELETE FROM " + tableName);    
+  }
+
+
+  bool DatabaseWrapper::IsExistingResource(int64_t internalId)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                        "SELECT * FROM Resources WHERE internalId=?");
+    s.BindInt(0, internalId);
+    return s.Step();
+  }
+
+
+  void  DatabaseWrapper::LookupTagValue(std::list<int64_t>& result,
+                                        DicomTag tag,
+                                        const std::string& value)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                        "SELECT id FROM MainDicomTags WHERE tagGroup=? AND tagElement=? and value=?");
+
+    s.BindInt(0, tag.GetGroup());
+    s.BindInt(1, tag.GetElement());
+    s.BindString(2, value);
+
+    result.clear();
+
+    while (s.Step())
+    {
+      result.push_back(s.ColumnInt64(0));
+    }
+  }
+
+
+  void  DatabaseWrapper::LookupTagValue(std::list<int64_t>& result,
+                                        const std::string& value)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                        "SELECT id FROM MainDicomTags WHERE value=?");
+
+    s.BindString(0, value);
+
+    result.clear();
+
+    while (s.Step())
+    {
+      result.push_back(s.ColumnInt64(0));
     }
   }
 }

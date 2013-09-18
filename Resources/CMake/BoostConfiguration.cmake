@@ -39,9 +39,17 @@ endif()
 
 
 if (BOOST_STATIC)
-  SET(BOOST_NAME boost_1_49_0)
+  # Parameters for Boost 1.54.0
+  SET(BOOST_NAME boost_1_54_0)
+  SET(BOOST_MD5 "cee688c35a9c7775b7305587e782e3f5")
+  SET(BOOST_FILESYSTEM_SOURCES_DIR "${BOOST_NAME}/libs/filesystem/src")
+  
   SET(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
-  DownloadPackage("http://switch.dl.sourceforge.net/project/boost/boost/1.49.0/${BOOST_NAME}.tar.gz" "${BOOST_SOURCES_DIR}" "${BOOST_PRELOADED}" "${BOOST_NAME}/boost ${BOOST_NAME}/libs/thread/src ${BOOST_NAME}/libs/system/src ${BOOST_NAME}/libs/filesystem/v3/src ${BOOST_NAME}/libs/locale/src ${BOOST_NAME}/libs/date_time/src")
+  DownloadPackage(
+    "${BOOST_MD5}"
+    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/${BOOST_NAME}_bcpdigest.tar.gz"
+    "${BOOST_SOURCES_DIR}"
+    )
 
   set(BOOST_SOURCES)
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
@@ -62,7 +70,7 @@ if (BOOST_STATIC)
       ${BOOST_SOURCES_DIR}/libs/thread/src/win32/tss_dll.cpp
       ${BOOST_SOURCES_DIR}/libs/thread/src/win32/thread.cpp
       ${BOOST_SOURCES_DIR}/libs/thread/src/win32/tss_pe.cpp
-      ${BOOST_SOURCES_DIR}/libs/filesystem/v3/src/windows_file_codecvt.cpp
+      ${BOOST_FILESYSTEM_SOURCES_DIR}/windows_file_codecvt.cpp
       )
     add_definitions(
       -DBOOST_LOCALE_WITH_WCONV=1
@@ -73,10 +81,10 @@ if (BOOST_STATIC)
 
   list(APPEND BOOST_SOURCES
     ${BOOST_SOURCES_DIR}/libs/date_time/src/gregorian/greg_month.cpp
-    ${BOOST_SOURCES_DIR}/libs/filesystem/v3/src/codecvt_error_category.cpp
-    ${BOOST_SOURCES_DIR}/libs/filesystem/v3/src/operations.cpp
-    ${BOOST_SOURCES_DIR}/libs/filesystem/v3/src/path.cpp
-    ${BOOST_SOURCES_DIR}/libs/filesystem/v3/src/path_traits.cpp
+    ${BOOST_FILESYSTEM_SOURCES_DIR}/codecvt_error_category.cpp
+    ${BOOST_FILESYSTEM_SOURCES_DIR}/operations.cpp
+    ${BOOST_FILESYSTEM_SOURCES_DIR}/path.cpp
+    ${BOOST_FILESYSTEM_SOURCES_DIR}/path_traits.cpp
     ${BOOST_SOURCES_DIR}/libs/locale/src/encoding/codepage.cpp
     ${BOOST_SOURCES_DIR}/libs/system/src/error_code.cpp
     )

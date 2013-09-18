@@ -41,22 +41,24 @@ Orthanc is licensed under the GPLv3 license, with the OpenSSL
 exception:
 http://people.gnome.org/~markmc/openssl-and-the-gpl.html
 
-Because Orthanc uses the Software-as-a-Service paradigm, commercial
-products are allowed to access the Orthanc REST services and to bundle
-Orthanc in an commercial aggregate.
-
 We also kindly require scientific works and clinical studies that make
-use of Orthanc to cite Orthanc in their associated publications.
+use of Orthanc to cite Orthanc in their associated
+publications. Similarly, we require open-source and closed-source
+products that make use of Orthanc to warn us about this use. You can
+cite our work using the following BibTeX entry:
+
+@inproceedings{Jodogne:ISBI2013,
+  author = "Jodogne, S. and Bernard, C. and Devillers, M. and Lenaerts, E. and Coucke, P.",
+  title = "Orthanc -- {A} Lightweight, {REST}ful {DICOM} Server for Healthcare and Medical Research",
+  booktitle = "Proc. of the International Symposium on Biomedical Imaging ({ISBI})",
+  year = "2013",
+}
 
 
 Licensing of special directories
 --------------------------------
 
 The following directories have separate licensing terms:
-
-* The files of the "OrthancCppClient/" directory are licensed under
-  the MIT license, which allows commercial products to statically link
-  against the C++ client library.
 
 * The file of the "Core/SQLite/" directory are licensed under the
   3-clause BSD license, as they are derived from the Chromium project.
@@ -68,7 +70,7 @@ Content
 This archive contains the following directories:
 
 * Core/               - The core C++ classes (independent of DCMTK)
-* OrthancCppClient/   - Code of the C++ client (under MIT license)
+* OrthancCppClient/   - Code of the C++ client
 * OrthancExplorer/    - Code of the Web application (HTML5/Javascript)
 * OrthancServer/      - Code of the Orthanc server (depends on DCMTK)
 * Resources/          - Scripts, resources for building third-party code

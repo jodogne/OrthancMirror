@@ -1,16 +1,18 @@
+#include "../Core/EnumerationDictionary.h"
+
 #include "gtest/gtest.h"
 
 #include <ctype.h>
 
 #include "../Core/Compression/ZlibCompressor.h"
 #include "../Core/DicomFormat/DicomTag.h"
-#include "../OrthancCppClient/HttpClient.h"
 #include "../Core/HttpServer/HttpHandler.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
 #include "../Core/Uuid.h"
 #include "../OrthancServer/FromDcmtkBridge.h"
 #include "../OrthancServer/OrthancInitialization.h"
+#include "../Core/MultiThreading/SharedMessageQueue.h"
 
 using namespace Orthanc;
 
@@ -29,6 +31,23 @@ TEST(Uuid, Test)
   ASSERT_FALSE(Toolbox::IsUuid(""));
   ASSERT_FALSE(Toolbox::IsUuid("012345678901234567890123456789012345"));
   ASSERT_TRUE(Toolbox::IsUuid("550e8400-e29b-41d4-a716-446655440000"));
+  ASSERT_FALSE(Toolbox::StartsWithUuid("550e8400-e29b-41d4-a716-44665544000"));
+  ASSERT_TRUE(Toolbox::StartsWithUuid("550e8400-e29b-41d4-a716-446655440000"));
+  ASSERT_TRUE(Toolbox::StartsWithUuid("550e8400-e29b-41d4-a716-446655440000 ok"));
+  ASSERT_FALSE(Toolbox::StartsWithUuid("550e8400-e29b-41d4-a716-446655440000ok"));
+}
+
+TEST(Toolbox, IsSHA1)
+{
+  ASSERT_FALSE(Toolbox::IsSHA1(""));
+  ASSERT_FALSE(Toolbox::IsSHA1("01234567890123456789012345678901234567890123"));
+  ASSERT_FALSE(Toolbox::IsSHA1("012345678901234567890123456789012345678901234"));
+  ASSERT_TRUE(Toolbox::IsSHA1("b5ed549f-956400ce-69a8c063-bf5b78be-2732a4b9"));
+
+  std::string s;
+  Toolbox::ComputeSHA1(s, "The quick brown fox jumps over the lazy dog");
+  ASSERT_TRUE(Toolbox::IsSHA1(s));
+  ASSERT_EQ("2fd4e1c6-7a2d28fc-ed849ee1-bb76e739-1b93eb12", s);
 }
 
 TEST(Zlib, Basic)
@@ -318,6 +337,149 @@ TEST(Toolbox, UrlDecode)
 }
 
 
+#if defined(__linux)
+TEST(OrthancInitialization, AbsoluteDirectory)
+{
+  ASSERT_EQ("/tmp/hello", InterpretRelativePath("/tmp", "hello"));
+  ASSERT_EQ("/tmp", InterpretRelativePath("/tmp", "/tmp"));
+}
+#endif
+
+
+
+#include "../OrthancServer/ServerEnumerations.h"
+
+TEST(EnumerationDictionary, Simple)
+{
+  Toolbox::EnumerationDictionary<MetadataType>  d;
+
+  ASSERT_THROW(d.Translate("ReceptionDate"), OrthancException);
+  ASSERT_EQ(MetadataType_ModifiedFrom, d.Translate("5"));
+  ASSERT_EQ(256, d.Translate("256"));
+
+  d.Add(MetadataType_Instance_ReceptionDate, "ReceptionDate");
+
+  ASSERT_EQ(MetadataType_Instance_ReceptionDate, d.Translate("ReceptionDate"));
+  ASSERT_EQ(MetadataType_Instance_ReceptionDate, d.Translate("2"));
+  ASSERT_EQ("ReceptionDate", d.Translate(MetadataType_Instance_ReceptionDate));
+
+  ASSERT_THROW(d.Add(MetadataType_Instance_ReceptionDate, "Hello"), OrthancException);
+  ASSERT_THROW(d.Add(MetadataType_ModifiedFrom, "ReceptionDate"), OrthancException); // already used
+  ASSERT_THROW(d.Add(MetadataType_ModifiedFrom, "1024"), OrthancException); // cannot register numbers
+  d.Add(MetadataType_ModifiedFrom, "ModifiedFrom");  // ok
+}
+
+
+TEST(EnumerationDictionary, ServerEnumerations)
+{
+  ASSERT_STREQ("Patient", EnumerationToString(ResourceType_Patient));
+  ASSERT_STREQ("Study", EnumerationToString(ResourceType_Study));
+  ASSERT_STREQ("Series", EnumerationToString(ResourceType_Series));
+  ASSERT_STREQ("Instance", EnumerationToString(ResourceType_Instance));
+
+  ASSERT_STREQ("ModifiedSeries", EnumerationToString(ChangeType_ModifiedSeries));
+
+  ASSERT_STREQ("Failure", EnumerationToString(StoreStatus_Failure));
+  ASSERT_STREQ("Success", EnumerationToString(StoreStatus_Success));
+
+  ASSERT_STREQ("CompletedSeries", EnumerationToString(ChangeType_CompletedSeries));
+
+  ASSERT_EQ("IndexInSeries", EnumerationToString(MetadataType_Instance_IndexInSeries));
+  ASSERT_EQ("LastUpdate", EnumerationToString(MetadataType_LastUpdate));
+
+  ASSERT_EQ(2047, StringToMetadata("2047"));
+  ASSERT_THROW(StringToMetadata("Ceci est un test"), OrthancException);
+  ASSERT_THROW(RegisterUserMetadata(128, ""), OrthancException); // too low (< 1024)
+  ASSERT_THROW(RegisterUserMetadata(128000, ""), OrthancException); // too high (> 65535)
+  RegisterUserMetadata(2047, "Ceci est un test");
+  ASSERT_EQ(2047, StringToMetadata("2047"));
+  ASSERT_EQ(2047, StringToMetadata("Ceci est un test"));
+}
+
+
+
+class DynamicInteger : public IDynamicObject
+{
+private:
+  int value_;
+
+public:
+  DynamicInteger(int value) : value_(value)
+  {
+  }
+
+  int GetValue() const
+  {
+    return value_;
+  }
+};
+
+
+TEST(SharedMessageQueue, Basic)
+{
+  SharedMessageQueue q;
+  ASSERT_TRUE(q.WaitEmpty(0));
+  q.Enqueue(new DynamicInteger(10));
+  ASSERT_FALSE(q.WaitEmpty(1));
+  q.Enqueue(new DynamicInteger(20));
+  q.Enqueue(new DynamicInteger(30));
+  q.Enqueue(new DynamicInteger(40));
+
+  std::auto_ptr<DynamicInteger> i;
+  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(10, i->GetValue());
+  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(20, i->GetValue());
+  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(30, i->GetValue());
+  ASSERT_FALSE(q.WaitEmpty(1));
+  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(40, i->GetValue());
+  ASSERT_TRUE(q.WaitEmpty(0));
+  ASSERT_EQ(NULL, q.Dequeue(1));
+}
+
+
+TEST(SharedMessageQueue, Clean)
+{
+  try
+  {
+    SharedMessageQueue q;
+    q.Enqueue(new DynamicInteger(10));
+    q.Enqueue(new DynamicInteger(20));  
+    throw OrthancException("Nope");
+  }
+  catch (OrthancException&)
+  {
+  }
+}
+
+
+TEST(Toolbox, WriteFile)
+{
+  std::string path;
+
+  {
+    Toolbox::TemporaryFile tmp;
+    path = tmp.GetPath();
+
+    std::string s;
+    s.append("Hello");
+    s.push_back('\0');
+    s.append("World");
+    ASSERT_EQ(11u, s.size());
+
+    Toolbox::WriteFile(s, path.c_str());
+
+    std::string t;
+    Toolbox::ReadFile(t, path.c_str());
+
+    ASSERT_EQ(11u, t.size());
+    ASSERT_EQ(0, t[5]);
+    ASSERT_EQ(0, memcmp(s.c_str(), t.c_str(), s.size()));
+  }
+
+  std::string u;
+  ASSERT_THROW(Toolbox::ReadFile(u, path.c_str()), OrthancException);
+}
+
+
 int main(int argc, char **argv)
 {
   // Initialize Google's logging library.
@@ -326,6 +488,8 @@ int main(int argc, char **argv)
 
   // Go to trace-level verbosity
   //FLAGS_v = 1;
+
+  Toolbox::DetectEndianness();
 
   google::InitGoogleLogging("Orthanc");
 

@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -95,6 +95,7 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_INSTANCE_NUMBER(0x0020, 0x0013);
 
   static const DicomTag DICOM_TAG_NUMBER_OF_SLICES(0x0054, 0x0081);
+  static const DicomTag DICOM_TAG_NUMBER_OF_TIME_SLICES(0x0054, 0x0101);
   static const DicomTag DICOM_TAG_NUMBER_OF_FRAMES(0x0028, 0x0008);
   static const DicomTag DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES(0x0018, 0x1090);
   static const DicomTag DICOM_TAG_IMAGES_IN_ACQUISITION(0x0020, 0x1002);
@@ -105,4 +106,8 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_SOP_CLASS_UID(0x0008, 0x0016);
   static const DicomTag DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID(0x0002, 0x0002);
   static const DicomTag DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID(0x0002, 0x0003);
+
+  // DICOM tags used for fMRI (thanks to Will Ryder)
+  static const DicomTag DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS(0x0020, 0x0105);
+  static const DicomTag DICOM_TAG_TEMPORAL_POSITION_IDENTIFIER(0x0020, 0x0100);
 }

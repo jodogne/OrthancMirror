@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -38,7 +38,7 @@
 
 #include "../Core/HttpServer/EmbeddedResourceHttpHandler.h"
 #include "../Core/HttpServer/FilesystemHttpHandler.h"
-#include "../Core/HttpServer/MongooseServer.h"
+#include "../Core/Lua/LuaFunctionCall.h"
 #include "../Core/DicomFormat/DicomArray.h"
 #include "DicomProtocol/DicomServer.h"
 #include "OrthancInitialization.h"
@@ -51,11 +51,11 @@ using namespace Orthanc;
 class MyStoreRequestHandler : public IStoreRequestHandler
 {
 private:
-  ServerContext& context_;
+  ServerContext& server_;
 
 public:
   MyStoreRequestHandler(ServerContext& context) :
-    context_(context)
+    server_(context)
   {
   }
 
@@ -66,7 +66,7 @@ public:
   {
     if (dicomFile.size() > 0)
     {
-      context_.Store(&dicomFile[0], dicomFile.size(), dicomSummary, dicomJson, remoteAet);
+      server_.Store(&dicomFile[0], dicomFile.size(), dicomSummary, dicomJson, remoteAet);
     }
   }
 };
@@ -144,6 +144,66 @@ public:
 
   void Done()
   {
+  }
+};
+
+
+class MyIncomingHttpRequestFilter : public IIncomingHttpRequestFilter
+{
+private:
+  ServerContext& context_;
+
+public:
+  MyIncomingHttpRequestFilter(ServerContext& context) : context_(context)
+  {
+  }
+
+  virtual bool IsAllowed(HttpMethod method,
+                         const char* uri,
+                         const char* ip,
+                         const char* username) const
+  {
+    static const char* HTTP_FILTER = "IncomingHttpRequestFilter";
+
+    // Test if the instance must be filtered out
+    if (context_.GetLuaContext().IsExistingFunction(HTTP_FILTER))
+    {
+      LuaFunctionCall call(context_.GetLuaContext(), HTTP_FILTER);
+
+      switch (method)
+      {
+        case HttpMethod_Get:
+          call.PushString("GET");
+          break;
+
+        case HttpMethod_Put:
+          call.PushString("PUT");
+          break;
+
+        case HttpMethod_Post:
+          call.PushString("POST");
+          break;
+
+        case HttpMethod_Delete:
+          call.PushString("DELETE");
+          break;
+
+        default:
+          return true;
+      }
+
+      call.PushString(uri);
+      call.PushString(ip);
+      call.PushString(username);
+
+      if (!call.ExecutePredicate())
+      {
+        LOG(INFO) << "An incoming HTTP request has been discarded by the filter";
+        return false;
+      }
+    }
+
+    return true;
   }
 };
 
@@ -264,14 +324,29 @@ int main(int argc, char* argv[])
       OrthancInitialize();
     }
 
-    boost::filesystem::path storageDirectory = GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
-    boost::filesystem::path indexDirectory = GetGlobalStringParameter("IndexDirectory", storageDirectory.string());
+    std::string storageDirectoryStr = GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
+    boost::filesystem::path storageDirectory = InterpretStringParameterAsPath(storageDirectoryStr);
+    boost::filesystem::path indexDirectory = 
+      InterpretStringParameterAsPath(GetGlobalStringParameter("IndexDirectory", storageDirectoryStr));
     ServerContext context(storageDirectory, indexDirectory);
 
     LOG(WARNING) << "Storage directory: " << storageDirectory;
     LOG(WARNING) << "Index directory: " << indexDirectory;
 
     context.SetCompressionEnabled(GetGlobalBoolParameter("StorageCompression", false));
+
+    std::list<std::string> luaScripts;
+    GetGlobalListOfStringsParameter(luaScripts, "LuaScripts");
+    for (std::list<std::string>::const_iterator
+           it = luaScripts.begin(); it != luaScripts.end(); it++)
+    {
+      std::string path = InterpretStringParameterAsPath(*it);
+      LOG(WARNING) << "Installing the Lua scripts from: " << path;
+      std::string script;
+      Toolbox::ReadFile(script, path);
+      context.GetLuaContext().Execute(script);
+    }
+
 
     try
     {
@@ -306,16 +381,19 @@ int main(int argc, char* argv[])
       dicomServer.SetApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
 
       // HTTP server
+      MyIncomingHttpRequestFilter httpFilter(context);
       MongooseServer httpServer;
       httpServer.SetPortNumber(GetGlobalIntegerParameter("HttpPort", 8042));
       httpServer.SetRemoteAccessAllowed(GetGlobalBoolParameter("RemoteAccessAllowed", false));
+      httpServer.SetIncomingHttpRequestFilter(httpFilter);
 
       httpServer.SetAuthenticationEnabled(GetGlobalBoolParameter("AuthenticationEnabled", false));
       SetupRegisteredUsers(httpServer);
 
       if (GetGlobalBoolParameter("SslEnabled", false))
       {
-        std::string certificate = GetGlobalStringParameter("SslCertificate", "certificate.pem");
+        std::string certificate = 
+          InterpretStringParameterAsPath(GetGlobalStringParameter("SslCertificate", "certificate.pem"));
         httpServer.SetSslEnabled(true);
         httpServer.SetSslCertificate(certificate.c_str());
       }

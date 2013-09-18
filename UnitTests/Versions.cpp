@@ -8,6 +8,7 @@
 #include <curl/curl.h>
 #include <boost/version.hpp>
 #include <sqlite3.h>
+#include <lua.h>
 
 
 TEST(Versions, Zlib)
@@ -40,6 +41,14 @@ TEST(Versions, SQLite)
 }
 
 
+TEST(Versions, Lua)
+{
+  // Ensure that the Lua version is above 5.1.0. This version has
+  // introduced some API changes.
+  ASSERT_GE(LUA_VERSION_NUM, 501);
+}
+
+
 #if ORTHANC_STATIC == 1
 TEST(Versions, ZlibStatic)
 {
@@ -48,7 +57,7 @@ TEST(Versions, ZlibStatic)
 
 TEST(Versions, BoostStatic)
 {
-  ASSERT_STREQ("1_49", BOOST_LIB_VERSION);
+  ASSERT_STREQ("1_54", BOOST_LIB_VERSION);
 }
 
 TEST(Versions, CurlStatic)
@@ -63,7 +72,7 @@ TEST(Versions, PngStatic)
   ASSERT_STREQ("1.5.12", PNG_LIBPNG_VER_STRING);
 }
 
-TEST(Versions, CurlSsl)
+TEST(Versions, CurlSslStatic)
 {
   curl_version_info_data * vinfo = curl_version_info(CURLVERSION_NOW);
 
@@ -76,4 +85,10 @@ TEST(Versions, CurlSsl)
   ASSERT_TRUE(curlSupportsSsl);
 #endif
 }
+
+TEST(Version, LuaStatic)
+{
+  ASSERT_STREQ("Lua 5.1.5", LUA_RELEASE);
+}
 #endif
+

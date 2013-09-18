@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -37,6 +37,7 @@
 #include <json/json.h>
 #include <stdint.h>
 #include "../Core/HttpServer/MongooseServer.h"
+#include "ServerEnumerations.h"
 
 namespace Orthanc
 {
@@ -56,9 +57,25 @@ namespace Orthanc
   void GetDicomModality(const std::string& name,
                         std::string& aet,
                         std::string& address,
-                        int& port);
+                        int& port,
+                        ModalityManufacturer& manufacturer);
+
+  void GetOrthancPeer(const std::string& name,
+                      std::string& url,
+                      std::string& username,
+                      std::string& password);
 
   void GetListOfDicomModalities(std::set<std::string>& target);
 
+  void GetListOfOrthancPeers(std::set<std::string>& target);
+
   void SetupRegisteredUsers(MongooseServer& httpServer);
+
+  std::string InterpretRelativePath(const std::string& baseDirectory,
+                                    const std::string& relativePath);
+
+  std::string InterpretStringParameterAsPath(const std::string& parameter);
+
+  void GetGlobalListOfStringsParameter(std::list<std::string>& target,
+                                       const std::string& key);
 }

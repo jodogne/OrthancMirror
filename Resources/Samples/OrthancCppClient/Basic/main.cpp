@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * Permission is hereby granted, free of charge, to any person
@@ -25,9 +25,10 @@
  **/
 
 
-#include "HttpClient.h"
-
 #include <iostream>
+
+#include "../../../../Core/HttpClient.h"
+#include "../../../../OrthancCppClient/OrthancConnection.h"
 
 int main()
 {
@@ -41,6 +42,32 @@ int main()
 
   // Display the JSON answer
   std::cout << result << std::endl;
+
+  // Display the content of the local Orthanc instance
+  OrthancClient::OrthancConnection orthanc("http://localhost:8042");
+
+  for (unsigned int i = 0; i < orthanc.GetPatientCount(); i++)
+  {
+    OrthancClient::Patient& patient = orthanc.GetPatient(i);
+    std::cout << "Patient: " << patient.GetId() << std::endl;
+
+    for (unsigned int j = 0; j < patient.GetStudyCount(); j++)
+    {
+      OrthancClient::Study& study = patient.GetStudy(j);
+      std::cout << "  Study: " << study.GetId() << std::endl;
+
+      for (unsigned int k = 0; k < study.GetSeriesCount(); k++)
+      {
+        OrthancClient::Series& series = study.GetSeries(k);
+        std::cout << "    Series: " << series.GetId() << std::endl;
+
+        for (unsigned int l = 0; l < series.GetInstanceCount(); l++)
+        {
+          std::cout << "      Instance: " << series.GetInstance(l).GetId() << std::endl;
+        }
+      }
+    }
+  }
 
   return 0;
 }

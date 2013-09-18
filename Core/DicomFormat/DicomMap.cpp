@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -76,9 +76,11 @@ namespace Orthanc
     DicomTag(0x0018, 0x0024),   // SequenceName
     DicomTag(0x0018, 0x1030),   // ProtocolName
     DicomTag(0x0020, 0x0011),   // SeriesNumber
-    //DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES,
+    DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES,
     DICOM_TAG_IMAGES_IN_ACQUISITION,
+    DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS,
     DICOM_TAG_NUMBER_OF_SLICES,
+    DICOM_TAG_NUMBER_OF_TIME_SLICES,
     DICOM_TAG_SERIES_INSTANCE_UID
   };
 
@@ -90,6 +92,7 @@ namespace Orthanc
     DICOM_TAG_IMAGE_INDEX,
     DICOM_TAG_INSTANCE_NUMBER,
     DICOM_TAG_NUMBER_OF_FRAMES,
+    DICOM_TAG_TEMPORAL_POSITION_IDENTIFIER,
     DICOM_TAG_SOP_INSTANCE_UID
   };
 

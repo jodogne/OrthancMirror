@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -35,8 +35,9 @@
 #include <vector>
 #include <stdint.h>
 #include <png.h>
-#include "OrthancException.h"
-#include "ChunkedBuffer.h"
+#include "../OrthancException.h"
+#include "../ChunkedBuffer.h"
+#include "../Toolbox.h"
 
 
 // http://www.libpng.org/pub/png/libpng-1.2.5-manual.html#section-4
@@ -145,6 +146,7 @@ namespace Orthanc
       break;
 
     case PixelFormat_Grayscale16:
+    case PixelFormat_SignedGrayscale16:
       pimpl_->bitDepth_ = 16;
       pimpl_->colorType_ = PNG_COLOR_TYPE_GRAY;
       break;
@@ -171,9 +173,15 @@ namespace Orthanc
       switch (format)
       {
       case PixelFormat_Grayscale16:
-        // Must swap the endianness!!
+      case PixelFormat_SignedGrayscale16:
         png_set_rows(pimpl_->png_, pimpl_->info_, &pimpl_->rows_[0]);
-        png_write_png(pimpl_->png_, pimpl_->info_, PNG_TRANSFORM_SWAP_ENDIAN, NULL);
+
+        if (Toolbox::DetectEndianness() == Endianness_Little)
+        {
+          // Must swap the endianness!!
+          png_write_png(pimpl_->png_, pimpl_->info_, PNG_TRANSFORM_SWAP_ENDIAN, NULL);
+        }
+
         break;
 
       default:
