@@ -387,6 +387,13 @@ TEST(EnumerationDictionary, ServerEnumerations)
   ASSERT_EQ("IndexInSeries", EnumerationToString(MetadataType_Instance_IndexInSeries));
   ASSERT_EQ("LastUpdate", EnumerationToString(MetadataType_LastUpdate));
 
+  ASSERT_EQ(ResourceType_Patient, StringToResourceType("PATienT"));
+  ASSERT_EQ(ResourceType_Study, StringToResourceType("STudy"));
+  ASSERT_EQ(ResourceType_Series, StringToResourceType("SeRiEs"));
+  ASSERT_EQ(ResourceType_Instance, StringToResourceType("INStance"));
+  ASSERT_EQ(ResourceType_Instance, StringToResourceType("IMagE"));
+  ASSERT_THROW(StringToResourceType("heLLo"), OrthancException);
+
   ASSERT_EQ(2047, StringToMetadata("2047"));
   ASSERT_THROW(StringToMetadata("Ceci est un test"), OrthancException);
   ASSERT_THROW(RegisterUserMetadata(128, ""), OrthancException); // too low (< 1024)
