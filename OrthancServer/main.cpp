@@ -43,6 +43,7 @@
 #include "DicomProtocol/DicomServer.h"
 #include "OrthancInitialization.h"
 #include "ServerContext.h"
+#include "OrthancFindRequestHandler.h"
 
 using namespace Orthanc;
 
@@ -68,88 +69,6 @@ public:
     {
       server_.Store(&dicomFile[0], dicomFile.size(), dicomSummary, dicomJson, remoteAet);
     }
-  }
-};
-
-
-class MyFindRequestHandler : public IFindRequestHandler
-{
-private:
-  ServerContext& context_;
-
-public:
-  MyFindRequestHandler(ServerContext& context) :
-    context_(context)
-  {
-  }
-
-  virtual void Handle(const DicomMap& input,
-                      DicomFindAnswers& answers)
-  {
-    LOG(WARNING) << "Find-SCU request received";
-
-    /**
-     * Retrieve the query level.
-     **/
-
-    const DicomValue* levelTmp = input.TestAndGetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL);
-    if (levelTmp == NULL) 
-    {
-      throw OrthancException(ErrorCode_BadRequest);
-    }
-
-    ResourceType level = StringToResourceType(levelTmp->AsString().c_str());
-
-    if (level != ResourceType_Patient &&
-        level != ResourceType_Study &&
-        level != ResourceType_Series)
-    {
-      throw OrthancException(ErrorCode_NotImplemented);
-    }
-
-
-    /**
-     * Retrieve the constraints of the query.
-     **/
-
-    DicomArray query(input);
-
-    DicomMap constraintsTmp;
-    DicomMap wildcardConstraintsTmp;
-
-    for (size_t i = 0; i < query.GetSize(); i++)
-    {
-      if (!query.GetElement(i).GetValue().IsNull() &&
-          query.GetElement(i).GetTag() != DICOM_TAG_QUERY_RETRIEVE_LEVEL &&
-          query.GetElement(i).GetTag() != DICOM_TAG_SPECIFIC_CHARACTER_SET)
-      {
-        DicomTag tag = query.GetElement(i).GetTag();
-        std::string value = query.GetElement(i).GetValue().AsString();
-
-        if (value.find('*') != std::string::npos ||
-            value.find('?') != std::string::npos ||
-            value.find('\\') != std::string::npos ||
-            value.find('-') != std::string::npos)
-        {
-          wildcardConstraintsTmp.SetValue(tag, value);
-        }
-        else
-        {
-          constraintsTmp.SetValue(tag, value);
-        }
-      }
-    }
-
-    DicomArray constraints(constraintsTmp);
-    DicomArray wildcardConstraints(wildcardConstraintsTmp);
-
-    // http://www.itk.org/Wiki/DICOM_QueryRetrieve_Explained
-    // http://dicomiseasy.blogspot.be/2012/01/dicom-queryretrieve-part-i.html
-
-    constraints.Print(stdout);
-    printf("\n"); fflush(stdout);
-    wildcardConstraints.Print(stdout);
-    printf("\n"); fflush(stdout);
   }
 };
 
@@ -195,7 +114,7 @@ public:
 
   virtual IFindRequestHandler* ConstructFindRequestHandler()
   {
-    return new MyFindRequestHandler(context_);
+    return new OrthancFindRequestHandler(context_);
   }
 
   virtual IMoveRequestHandler* ConstructMoveRequestHandler()
