@@ -83,27 +83,6 @@ namespace Orthanc
     return dictMetadataType_.Translate(str);
   }
 
-  const char* EnumerationToString(ResourceType type)
-  {
-    switch (type)
-    {
-      case ResourceType_Patient:
-        return "Patient";
-
-      case ResourceType_Study:
-        return "Study";
-
-      case ResourceType_Series:
-        return "Series";
-
-      case ResourceType_Instance:
-        return "Instance";
-      
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
   std::string GetBasePath(ResourceType type,
                           const std::string& publicId)
   {
@@ -284,34 +263,6 @@ namespace Orthanc
     else if (manufacturer == "ClearCanvas")
     {
       return ModalityManufacturer_ClearCanvas;
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
-
-  ResourceType StringToResourceType(const char* type)
-  {
-    std::string s(type);
-    Toolbox::ToUpperCase(s);
-
-    if (s == "PATIENT")
-    {
-      return ResourceType_Patient;
-    }
-    else if (s == "STUDY")
-    {
-      return ResourceType_Study;
-    }
-    else if (s == "SERIES")
-    {
-      return ResourceType_Series;
-    }
-    else if (s == "INSTANCE" || s == "IMAGE")
-    {
-      return ResourceType_Instance;
     }
     else
     {
