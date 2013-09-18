@@ -33,6 +33,8 @@
 
 #include <string>
 
+#include "../Core/Enumerations.h"
+
 namespace Orthanc
 {
   enum SeriesStatus
@@ -69,14 +71,6 @@ namespace Orthanc
     GlobalProperty_DatabaseSchemaVersion = 1,
     GlobalProperty_FlushSleep = 2,
     GlobalProperty_AnonymizationSequence = 3
-  };
-
-  enum ResourceType
-  {
-    ResourceType_Patient = 1,
-    ResourceType_Study = 2,
-    ResourceType_Series = 3,
-    ResourceType_Instance = 4
   };
 
   enum MetadataType
@@ -122,8 +116,6 @@ namespace Orthanc
 
   MetadataType StringToMetadata(const std::string& str);
 
-  const char* EnumerationToString(ResourceType type);
-
   std::string EnumerationToString(MetadataType type);
 
   const char* EnumerationToString(SeriesStatus status);
@@ -139,6 +131,4 @@ namespace Orthanc
   ResourceType GetParentResourceType(ResourceType type);
 
   ResourceType GetChildResourceType(ResourceType type);
-
-  ResourceType StringToResourceType(const char* type);
 }

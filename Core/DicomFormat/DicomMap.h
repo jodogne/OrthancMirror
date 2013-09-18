@@ -35,6 +35,7 @@
 #include "DicomTag.h"
 #include "DicomValue.h"
 #include "DicomString.h"
+#include "../Enumerations.h"
 
 #include <map>
 #include <json/json.h>
@@ -148,5 +149,9 @@ namespace Orthanc
 
     void CopyTagIfExists(const DicomMap& source,
                          const DicomTag& tag);
+
+    static bool IsMainDicomTag(const DicomTag& tag, ResourceType level);
+
+    static bool IsMainDicomTag(const DicomTag& tag);
   };
 }
