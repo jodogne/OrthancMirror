@@ -139,4 +139,6 @@ namespace Orthanc
   ResourceType GetParentResourceType(ResourceType type);
 
   ResourceType GetChildResourceType(ResourceType type);
+
+  ResourceType StringToResourceType(const char* type);
 }
