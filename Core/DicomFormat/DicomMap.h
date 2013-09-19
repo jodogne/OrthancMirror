@@ -37,6 +37,7 @@
 #include "DicomString.h"
 #include "../Enumerations.h"
 
+#include <set>
 #include <map>
 #include <json/json.h>
 
@@ -64,6 +65,8 @@ namespace Orthanc
     void ExtractTags(DicomMap& source,
                      const DicomTag* tags,
                      size_t count) const;
+   
+    static void GetMainDicomTagsInternal(std::set<DicomTag>& result, ResourceType level);
 
   public:
     DicomMap()
@@ -153,5 +156,9 @@ namespace Orthanc
     static bool IsMainDicomTag(const DicomTag& tag, ResourceType level);
 
     static bool IsMainDicomTag(const DicomTag& tag);
+
+    static void GetMainDicomTags(std::set<DicomTag>& result, ResourceType level);
+
+    static void GetMainDicomTags(std::set<DicomTag>& result);
   };
 }

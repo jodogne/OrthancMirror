@@ -67,7 +67,6 @@ CREATE INDEX PatientRecyclingIndex ON PatientRecyclingOrder(patientId);
 
 CREATE INDEX MainDicomTagsIndex1 ON MainDicomTags(id);
 CREATE INDEX MainDicomTagsIndex2 ON MainDicomTags(tagGroup, tagElement);
-CREATE INDEX MainDicomTagsIndexValues ON MainDicomTags(value COLLATE BINARY);
 
 CREATE INDEX ChangesIndex ON Changes(internalId);
 
