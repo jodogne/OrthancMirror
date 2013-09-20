@@ -153,6 +153,47 @@ namespace OrthancClient
         return true;
       }
     };
+
+
+    class ProgressToFloatListener : public Orthanc::ThreadedCommandProcessor::IListener
+    {
+    private:
+      float* target_;
+
+    public:
+      ProgressToFloatListener(float* target) : target_(target)
+      {
+      }
+
+      virtual void SignalProgress(unsigned int current,
+                                  unsigned int total)
+      {
+        if (total == 0)
+        {
+          *target_ = 0;
+        }
+        else
+        {
+          *target_ = static_cast<float>(current) / static_cast<float>(total);
+        }
+      }
+
+      virtual void SignalSuccess(unsigned int total)
+      {
+        *target_ = 1;
+      }
+
+      virtual void SignalFailure()
+      {
+        *target_ = 0;
+      }
+
+      virtual void SignalCancel()
+      {
+        *target_ = 0;
+      }
+    };
+
   }
 
 
@@ -177,7 +218,7 @@ namespace OrthancClient
 
       for (unsigned int i = 0; i < GetInstanceCount(); i++)
       {
-        Instance& i2 = GetInstance(1);
+        Instance& i2 = GetInstance(i);
 
         if (std::string(i1.GetTagAsString("Columns")) != std::string(i2.GetTagAsString("Columns")) ||
             std::string(i1.GetTagAsString("Rows")) != std::string(i2.GetTagAsString("Rows")) ||
@@ -332,11 +373,11 @@ namespace OrthancClient
 
 
   
-  void Series::Load3DImage(void* target,
-                           Orthanc::PixelFormat format,
-                           size_t lineStride,
-                           size_t stackStride,
-                           Orthanc::ThreadedCommandProcessor::IListener* listener)
+  void Series::Load3DImageInternal(void* target,
+                                   Orthanc::PixelFormat format,
+                                   size_t lineStride,
+                                   size_t stackStride,
+                                   Orthanc::ThreadedCommandProcessor::IListener* listener)
   {
     using namespace Orthanc;
 
@@ -456,4 +497,13 @@ namespace OrthancClient
     return voxelSizeZ_;
   }
 
+  void Series::Load3DImage(void* target,
+                           Orthanc::PixelFormat format,
+                           int64_t lineStride,
+                           int64_t stackStride,
+                           float* progress)
+  {
+    ProgressToFloatListener listener(progress);
+    Load3DImageInternal(target, format, lineStride, stackStride, &listener);
+  }
 }

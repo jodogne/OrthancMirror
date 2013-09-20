@@ -818,6 +818,29 @@ this_->Load3DImage(reinterpret_cast< void* >(arg0), static_cast< ::Orthanc::Pixe
         }
       }
 
+      LAAW_EXPORT_DLL_API char* LAAW_CALL_CONVENTION LAAW_EXTERNC_b2601a161c24ad0a1d3586246f87452c(void* thisObject, void* arg0, int32_t arg1, int64_t arg2, int64_t arg3, float* arg4)
+      {
+        try
+        {
+          #ifdef LAAW_EXTERNC_START_FUNCTION
+          LAAW_EXTERNC_START_FUNCTION;
+          #endif
+
+          OrthancClient::Series* this_ = static_cast<OrthancClient::Series*>(thisObject);
+this_->Load3DImage(reinterpret_cast< void* >(arg0), static_cast< ::Orthanc::PixelFormat >(arg1), arg2, arg3, reinterpret_cast< float* >(arg4));
+
+          return NULL;
+        }
+        catch (::Laaw::LaawException& e)
+        {
+          return LAAW_EXTERNC_CopyString(e.What());
+        }
+        catch (...)
+        {
+          return LAAW_EXTERNC_CopyString("...");
+        }
+      }
+
       LAAW_EXPORT_DLL_API char* LAAW_CALL_CONVENTION LAAW_EXTERNC_b01c6003238eb46c8db5dc823d7ca678(void** newObject, void* arg0, const char* arg1)
       {
         try
