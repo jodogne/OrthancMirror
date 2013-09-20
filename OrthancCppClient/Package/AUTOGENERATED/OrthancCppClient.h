@@ -203,7 +203,7 @@ class Library
   {
   private:
     LAAW_ORTHANC_CLIENT_HANDLE_TYPE  handle_;
-    LAAW_ORTHANC_CLIENT_FUNCTION_TYPE  functionsIndex_[59 + 1];
+    LAAW_ORTHANC_CLIENT_FUNCTION_TYPE  functionsIndex_[60 + 1];
 
 
 
@@ -239,7 +239,7 @@ class Library
     void FreeString(char* str)
     {
       typedef void (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (char*);
-      Function function = (Function) GetFunction(59);
+      Function function = (Function) GetFunction(60);
       function(str);
     }
 
@@ -386,7 +386,7 @@ void ::OrthancClient::Internals::Library::LoadFunctions()
     throw ::OrthancClient::OrthancClientException("Mismatch between the C++ header and the library version");
   }
 
-  functionsIndex_[59] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_FreeString", "4");
+  functionsIndex_[60] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_FreeString", "4");
   functionsIndex_[3] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_557aee7b61817292a0f31269d3c35db7", "8");
   functionsIndex_[4] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_0b8dff0ce67f10954a49b059e348837e", "8");
   functionsIndex_[5] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_d7497fd24e4b453f2965bae9ef8330b0", "4");
@@ -419,36 +419,37 @@ void ::OrthancClient::Internals::Library::LoadFunctions()
   functionsIndex_[31] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_046aed35bbe4751691f4c34cc249a61d", "8");
   functionsIndex_[32] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_88134b978f9acb2aecdadf54aeab3c64", "16");
   functionsIndex_[33] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_4dcc7a0fd025efba251ac6e9b701c2c5", "28");
+  functionsIndex_[34] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_b2601a161c24ad0a1d3586246f87452c", "32");
   functionsIndex_[19] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_193599b9e345384fcdfcd47c29c55342", "12");
   functionsIndex_[20] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_7c97f17063a357d38c5fab1136ad12a0", "4");
-  functionsIndex_[36] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_e65b20b7e0170b67544cd6664a4639b7", "4");
-  functionsIndex_[37] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_470e981b0e41f17231ba0ae6f3033321", "8");
-  functionsIndex_[38] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_04cefd138b6ea15ad909858f2a0a8f05", "12");
-  functionsIndex_[39] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_aee5b1f6f0c082f2c3b0986f9f6a18c7", "8");
-  functionsIndex_[40] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_93965682bace75491413e1f0b8d5a654", "16");
-  functionsIndex_[34] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_b01c6003238eb46c8db5dc823d7ca678", "12");
-  functionsIndex_[35] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_0147007fb99bad8cd95a139ec8795376", "4");
-  functionsIndex_[43] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_236ee8b403bc99535a8a4695c0cd45cb", "8");
-  functionsIndex_[44] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_2a437b7aba6bb01e81113835be8f0146", "8");
-  functionsIndex_[45] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_2bcbcb850934ae0bb4c6f0cc940e6cda", "8");
-  functionsIndex_[46] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_8d415c3a78a48e7e61d9fd24e7c79484", "12");
-  functionsIndex_[47] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_70d2f8398bbc63b5f792b69b4ad5fecb", "12");
-  functionsIndex_[48] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_1729a067d902771517388eedd7346b23", "12");
-  functionsIndex_[49] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_72e2aeee66cd3abd8ab7e987321c3745", "8");
-  functionsIndex_[50] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_1ea3df5a1ac1a1a687fe7325adddb6f0", "8");
-  functionsIndex_[51] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_99b4f370e4f532d8b763e2cb49db92f8", "8");
-  functionsIndex_[52] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_c41c742b68617f1c0590577a0a5ebc0c", "8");
-  functionsIndex_[53] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_142dd2feba0fc1d262bbd0baeb441a8b", "8");
-  functionsIndex_[54] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_5f5c9f81a4dff8daa6c359f1d0488fef", "12");
-  functionsIndex_[55] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_c0f494b80d4ff8b232df7a75baa0700a", "4");
-  functionsIndex_[56] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_d604f44bd5195e082e745e9cbc164f4c", "4");
-  functionsIndex_[57] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_9ca979fffd08fa256306d4e68d8b0e91", "8");
-  functionsIndex_[58] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_6f2d77a26edc91c28d89408dbc3c271e", "8");
-  functionsIndex_[41] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_6c5ad02f91b583e29cebd0bd319ce21d", "12");
-  functionsIndex_[42] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_4068241c44a9c1367fe0e57be523f207", "4");
+  functionsIndex_[37] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_e65b20b7e0170b67544cd6664a4639b7", "4");
+  functionsIndex_[38] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_470e981b0e41f17231ba0ae6f3033321", "8");
+  functionsIndex_[39] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_04cefd138b6ea15ad909858f2a0a8f05", "12");
+  functionsIndex_[40] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_aee5b1f6f0c082f2c3b0986f9f6a18c7", "8");
+  functionsIndex_[41] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_93965682bace75491413e1f0b8d5a654", "16");
+  functionsIndex_[35] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_b01c6003238eb46c8db5dc823d7ca678", "12");
+  functionsIndex_[36] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_0147007fb99bad8cd95a139ec8795376", "4");
+  functionsIndex_[44] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_236ee8b403bc99535a8a4695c0cd45cb", "8");
+  functionsIndex_[45] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_2a437b7aba6bb01e81113835be8f0146", "8");
+  functionsIndex_[46] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_2bcbcb850934ae0bb4c6f0cc940e6cda", "8");
+  functionsIndex_[47] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_8d415c3a78a48e7e61d9fd24e7c79484", "12");
+  functionsIndex_[48] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_70d2f8398bbc63b5f792b69b4ad5fecb", "12");
+  functionsIndex_[49] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_1729a067d902771517388eedd7346b23", "12");
+  functionsIndex_[50] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_72e2aeee66cd3abd8ab7e987321c3745", "8");
+  functionsIndex_[51] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_1ea3df5a1ac1a1a687fe7325adddb6f0", "8");
+  functionsIndex_[52] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_99b4f370e4f532d8b763e2cb49db92f8", "8");
+  functionsIndex_[53] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_c41c742b68617f1c0590577a0a5ebc0c", "8");
+  functionsIndex_[54] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_142dd2feba0fc1d262bbd0baeb441a8b", "8");
+  functionsIndex_[55] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_5f5c9f81a4dff8daa6c359f1d0488fef", "12");
+  functionsIndex_[56] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_c0f494b80d4ff8b232df7a75baa0700a", "4");
+  functionsIndex_[57] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_d604f44bd5195e082e745e9cbc164f4c", "4");
+  functionsIndex_[58] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_9ca979fffd08fa256306d4e68d8b0e91", "8");
+  functionsIndex_[59] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_6f2d77a26edc91c28d89408dbc3c271e", "8");
+  functionsIndex_[42] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_6c5ad02f91b583e29cebd0bd319ce21d", "12");
+  functionsIndex_[43] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_4068241c44a9c1367fe0e57be523f207", "4");
   
   /* Check whether the functions were properly loaded */
-  for (unsigned int i = 0; i <= 59; i++)
+  for (unsigned int i = 0; i <= 60; i++)
   {
     if (functionsIndex_[i] == (LAAW_ORTHANC_CLIENT_FUNCTION_TYPE) NULL)
     {
@@ -576,6 +577,7 @@ namespace OrthancClient
     inline float GetVoxelSizeZ();
     inline ::std::string GetMainDicomTag(const ::std::string& tag, const ::std::string& defaultValue) const;
     inline void Load3DImage(void* target, ::Orthanc::PixelFormat format, LAAW_INT64 lineStride, LAAW_INT64 stackStride);
+    inline void Load3DImage(void* target, ::Orthanc::PixelFormat format, LAAW_INT64 lineStride, LAAW_INT64 stackStride, float progress[]);
   };
 }
 
@@ -943,6 +945,13 @@ namespace OrthancClient
     char* error = function(pimpl_, target, format, lineStride, stackStride);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
+  inline void Series::Load3DImage(void* target, ::Orthanc::PixelFormat format, LAAW_INT64 lineStride, LAAW_INT64 stackStride, float progress[])
+  {
+    typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, void*, LAAW_INT32, LAAW_INT64, LAAW_INT64, float*);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(34);
+    char* error = function(pimpl_, target, format, lineStride, stackStride, progress);
+    ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
+  }
 }
 
 namespace OrthancClient
@@ -951,7 +960,7 @@ namespace OrthancClient
   {
     isReference_ = false;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void**, void*, const char*);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(34);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(35);
     char* error = function(&pimpl_, connection.pimpl_, id.c_str());
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
@@ -965,14 +974,14 @@ namespace OrthancClient
   {
     if (isReference_) return;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(35);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(36);
     char* error = function(pimpl_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
   inline void Study::Reload()
   {
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(36);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(37);
     char* error = function(pimpl_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
@@ -980,7 +989,7 @@ namespace OrthancClient
   {
     LAAW_UINT32 result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, LAAW_UINT32*);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(37);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(38);
     char* error = function(pimpl_, &result_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return result_;
@@ -989,7 +998,7 @@ namespace OrthancClient
   {
     void* result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, void**, LAAW_UINT32);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(38);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(39);
     char* error = function(pimpl_, &result_, index);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return ::OrthancClient::Series(result_);
@@ -998,7 +1007,7 @@ namespace OrthancClient
   {
     const char* result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (const void*, const char**);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(39);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(40);
     char* error = function(pimpl_, &result_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return std::string(result_);
@@ -1007,7 +1016,7 @@ namespace OrthancClient
   {
     const char* result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (const void*, const char**, const char*, const char*);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(40);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(41);
     char* error = function(pimpl_, &result_, tag.c_str(), defaultValue.c_str());
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return std::string(result_);
@@ -1020,7 +1029,7 @@ namespace OrthancClient
   {
     isReference_ = false;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void**, void*, const char*);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(41);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(42);
     char* error = function(&pimpl_, connection.pimpl_, id.c_str());
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
@@ -1034,7 +1043,7 @@ namespace OrthancClient
   {
     if (isReference_) return;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(42);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(43);
     char* error = function(pimpl_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
@@ -1042,7 +1051,7 @@ namespace OrthancClient
   {
     const char* result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (const void*, const char**);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(43);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(44);
     char* error = function(pimpl_, &result_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return std::string(result_);
@@ -1050,7 +1059,7 @@ namespace OrthancClient
   inline void Instance::SetImageExtractionMode(::Orthanc::ImageExtractionMode mode)
   {
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, LAAW_INT32);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(44);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(45);
     char* error = function(pimpl_, mode);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
@@ -1058,7 +1067,7 @@ namespace OrthancClient
   {
     LAAW_INT32 result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (const void*, LAAW_INT32*);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(45);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(46);
     char* error = function(pimpl_, &result_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return static_cast< ::Orthanc::ImageExtractionMode >(result_);
@@ -1067,7 +1076,7 @@ namespace OrthancClient
   {
     const char* result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (const void*, const char**, const char*);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(46);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(47);
     char* error = function(pimpl_, &result_, tag.c_str());
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return std::string(result_);
@@ -1076,7 +1085,7 @@ namespace OrthancClient
   {
     float result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (const void*, float*, const char*);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(47);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(48);
     char* error = function(pimpl_, &result_, tag.c_str());
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return result_;
@@ -1085,7 +1094,7 @@ namespace OrthancClient
   {
     LAAW_INT32 result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (const void*, LAAW_INT32*, const char*);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(48);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(49);
     char* error = function(pimpl_, &result_, tag.c_str());
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return result_;
@@ -1094,7 +1103,7 @@ namespace OrthancClient
   {
     LAAW_UINT32 result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, LAAW_UINT32*);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(49);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(50);
     char* error = function(pimpl_, &result_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return result_;
@@ -1103,7 +1112,7 @@ namespace OrthancClient
   {
     LAAW_UINT32 result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, LAAW_UINT32*);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(50);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(51);
     char* error = function(pimpl_, &result_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return result_;
@@ -1112,7 +1121,7 @@ namespace OrthancClient
   {
     LAAW_UINT32 result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, LAAW_UINT32*);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(51);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(52);
     char* error = function(pimpl_, &result_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return result_;
@@ -1121,7 +1130,7 @@ namespace OrthancClient
   {
     LAAW_INT32 result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, LAAW_INT32*);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(52);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(53);
     char* error = function(pimpl_, &result_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return static_cast< ::Orthanc::PixelFormat >(result_);
@@ -1130,7 +1139,7 @@ namespace OrthancClient
   {
     const void* result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, const void**);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(53);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(54);
     char* error = function(pimpl_, &result_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return reinterpret_cast< const void* >(result_);
@@ -1139,7 +1148,7 @@ namespace OrthancClient
   {
     const void* result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, const void**, LAAW_UINT32);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(54);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(55);
     char* error = function(pimpl_, &result_, y);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return reinterpret_cast< const void* >(result_);
@@ -1147,14 +1156,14 @@ namespace OrthancClient
   inline void Instance::DiscardImage()
   {
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(55);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(56);
     char* error = function(pimpl_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
   inline void Instance::DiscardDicom()
   {
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(56);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(57);
     char* error = function(pimpl_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
@@ -1162,7 +1171,7 @@ namespace OrthancClient
   {
     LAAW_UINT64 result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, LAAW_UINT64*);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(57);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(58);
     char* error = function(pimpl_, &result_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return result_;
@@ -1171,7 +1180,7 @@ namespace OrthancClient
   {
     const void* result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, const void**);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(58);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(59);
     char* error = function(pimpl_, &result_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return reinterpret_cast< const void* >(result_);

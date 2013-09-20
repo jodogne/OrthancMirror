@@ -75,11 +75,11 @@ namespace OrthancClient
 
     virtual Orthanc::IDynamicObject* GetFillerItem(size_t index);
 
-    void Load3DImage(void* target,
-                     Orthanc::PixelFormat format,
-                     size_t lineStride,
-                     size_t stackStride,
-                     Orthanc::ThreadedCommandProcessor::IListener* listener);
+    void Load3DImageInternal(void* target,
+                             Orthanc::PixelFormat format,
+                             size_t lineStride,
+                             size_t stackStride,
+                             Orthanc::ThreadedCommandProcessor::IListener* listener);
 
     void LoadVoxelSize();  
 
@@ -127,7 +127,7 @@ namespace OrthancClient
                                        int64_t stackStride,
                                        Orthanc::ThreadedCommandProcessor::IListener& listener)
     {
-      Load3DImage(target, format, lineStride, stackStride, &listener);
+      Load3DImageInternal(target, format, lineStride, stackStride, &listener);
     }
 
     void Load3DImage(void* target,
@@ -135,7 +135,13 @@ namespace OrthancClient
                      int64_t lineStride,
                      int64_t stackStride)
     {
-      Load3DImage(target, format, lineStride, stackStride, NULL);
+      Load3DImageInternal(target, format, lineStride, stackStride, NULL);
     }
+
+    void Load3DImage(void* target,
+                     Orthanc::PixelFormat format,
+                     int64_t lineStride,
+                     int64_t stackStride,
+                     float* progress);
   };
 }
