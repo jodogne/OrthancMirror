@@ -57,7 +57,7 @@ TEST(Versions, ZlibStatic)
 
 TEST(Versions, BoostStatic)
 {
-  ASSERT_STREQ("1_49", BOOST_LIB_VERSION);
+  ASSERT_STREQ("1_54", BOOST_LIB_VERSION);
 }
 
 TEST(Versions, CurlStatic)

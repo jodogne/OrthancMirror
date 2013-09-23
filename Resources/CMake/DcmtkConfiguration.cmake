@@ -6,7 +6,7 @@ if (${STATIC_BUILD})
   DownloadPackage(
     "219ad631b82031806147e4abbfba4fa4"
     "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/dcmtk-3.6.0.zip" 
-    "${DCMTK_SOURCES_DIR}" "" "")
+    "${DCMTK_SOURCES_DIR}")
 
   IF(CMAKE_CROSSCOMPILING)
     SET(C_CHAR_UNSIGNED 1 CACHE INTERNAL "Whether char is unsigned.")

@@ -3,7 +3,7 @@ if (${STATIC_BUILD})
   DownloadPackage(
     "ae412727c8c15b67880aef7bd2999b2e"
     "www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/openssl-1.0.1c.tar.gz"
-    "${OPENSSL_SOURCES_DIR}" "" "")
+    "${OPENSSL_SOURCES_DIR}")
 
   if (NOT EXISTS "${OPENSSL_SOURCES_DIR}/include/PATCHED")
     if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
