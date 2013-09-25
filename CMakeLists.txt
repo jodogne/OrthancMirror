@@ -280,8 +280,9 @@ if (BUILD_CLIENT_LIBRARY)
         message(FATAL_ERROR "Support your platform here")
       endif()
     else()
-      set(ORTHANC_CPP_CLIENT_AUX ${OPENSSL_SOURCES})
+      # Nothing to do if using Visual Studio
     endif()
+
   else()
     set(ORTHANC_CPP_CLIENT_AUX ${OPENSSL_SOURCES})
   endif()
@@ -316,13 +317,12 @@ if (BUILD_CLIENT_LIBRARY)
     target_link_libraries(OrthancClient pthread)
 
   elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+    target_link_libraries(OrthancClient OpenSSL ws2_32)
+
     if (CMAKE_CROSSCOMPILING)
-      target_link_libraries(OrthancClient OpenSSL ws2_32)
       set_target_properties(OrthancClient
         PROPERTIES LINK_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--allow-multiple-definition -static-libgcc -static-libstdc++"
         )
-    else()
-      message(FATAL_ERROR "Support Visual Studio here")
     endif()
 
   else()
