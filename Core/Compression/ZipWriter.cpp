@@ -29,11 +29,15 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
+#ifdef _WIN32
+#define NOMINMAX
+#endif
 
 #include "ZipWriter.h"
 
 #include "../../Resources/minizip/zip.h"
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <limits>
 
 #include "../OrthancException.h"
 
