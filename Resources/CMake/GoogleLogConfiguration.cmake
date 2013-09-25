@@ -49,7 +49,7 @@ if (STATIC_BUILD OR NOT USE_DYNAMIC_GOOGLE_LOG)
     )
 
   if (CMAKE_COMPILER_IS_GNUCXX)
-    if (${CMAKE_SYSTEM_VERSION} STREQUAL "LinuxStandardBase")
+    if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
       execute_process(
         COMMAND patch utilities.cc ${CMAKE_SOURCE_DIR}/Resources/Patches/glog-utilities-lsb.diff
         WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src
@@ -72,7 +72,7 @@ if (STATIC_BUILD OR NOT USE_DYNAMIC_GOOGLE_LOG)
   endif()
 
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    if (${CMAKE_SYSTEM_VERSION} STREQUAL "LinuxStandardBase")
+    if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
       # Install the specific configuration for LSB SDK
       configure_file(
         ${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfigurationLSB.h
