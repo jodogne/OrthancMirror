@@ -1,0 +1,30 @@
+#include <winver.h>
+
+VS_VERSION_INFO VERSIONINFO
+   FILEVERSION 0,6,0,1
+   PRODUCTVERSION 0,6,0,0
+   FILEOS VOS_NT_WINDOWS32
+   FILETYPE VFT_DLL
+   BEGIN
+      BLOCK "StringFileInfo"
+      BEGIN
+         BLOCK "040904E4"
+         BEGIN
+            VALUE "Comments", "Release 0.6.1"
+            VALUE "CompanyName", "CHU of Liege"
+            VALUE "FileDescription", "Native client to the REST API of Orthanc"
+            VALUE "FileVersion", "0.6.0.1"
+            VALUE "InternalName", "OrthancClient"
+            VALUE "LegalCopyright", "(c) 2012-2013, Sebastien Jodogne, CHU of Liege"
+            VALUE "LegalTrademarks", "Licensing information is available on https://code.google.com/p/orthanc/"
+            VALUE "OriginalFilename", "OrthancClient_Windows64.dll"
+            VALUE "ProductName", "OrthancClient"
+            VALUE "ProductVersion", "0.6"
+         END
+      END
+
+      BLOCK "VarFileInfo"
+      BEGIN
+        VALUE "Translation", 0x409, 1252  // U.S. English
+      END
+   END

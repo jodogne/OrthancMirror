@@ -5,6 +5,12 @@ if (${CMAKE_COMPILER_IS_GNUCXX})
   # --std=c99 makes libcurl not to compile
   # -pedantic gives a lot of warnings on OpenSSL 
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wno-long-long -Wno-variadic-macros")
+
+  if (CMAKE_CROSSCOMPILING)
+    # http://stackoverflow.com/a/3543845/881731
+    set(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> -O coff -I<CMAKE_CURRENT_SOURCE_DIR> <SOURCE> <OBJECT>")
+  endif()
+
 elseif (${MSVC})
   # Use static runtime under Visual Studio
   # http://www.cmake.org/Wiki/CMake_FAQ#Dynamic_Replace
