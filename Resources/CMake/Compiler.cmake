@@ -6,6 +6,8 @@ if (${CMAKE_COMPILER_IS_GNUCXX})
   # -pedantic gives a lot of warnings on OpenSSL 
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wno-long-long -Wno-variadic-macros")
 elseif (${MSVC})
+  # Use static runtime under Visual Studio
+  # http://www.cmake.org/Wiki/CMake_FAQ#Dynamic_Replace
   # http://stackoverflow.com/a/6510446
   foreach(flag_var
     CMAKE_C_FLAGS_DEBUG
@@ -19,6 +21,7 @@ elseif (${MSVC})
     string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
     string(REGEX REPLACE "/MDd" "/MTd" ${flag_var} "${${flag_var}}")
   endforeach(flag_var)
+
   add_definitions(
     -D_CRT_SECURE_NO_WARNINGS=1
     -D_CRT_SECURE_NO_DEPRECATE=1
