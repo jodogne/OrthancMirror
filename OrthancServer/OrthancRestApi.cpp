@@ -1242,9 +1242,10 @@ namespace Orthanc
       ParseReplacements(replacements, replacementsPart);
 
       // Generate random Patient's Name if none is specified
-      if (replacements.find(DicomTag(0x0010, 0x0010)) == replacements.end())
+      if (toKeep.find(DICOM_TAG_PATIENT_NAME) == toKeep.end() &&
+          replacements.find(DICOM_TAG_PATIENT_NAME) == replacements.end())
       {
-        replacements.insert(std::make_pair(DicomTag(0x0010, 0x0010), GeneratePatientName(context)));
+        replacements.insert(std::make_pair(DICOM_TAG_PATIENT_NAME, GeneratePatientName(context)));
       }
 
       return true;
