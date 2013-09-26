@@ -362,12 +362,20 @@ if (DOXYGEN_FOUND)
     ${CMAKE_SOURCE_DIR}/Resources/Orthanc.doxygen
     ${CMAKE_CURRENT_BINARY_DIR}/Orthanc.doxygen
     @ONLY)
+
+  configure_file(
+    ${CMAKE_SOURCE_DIR}/Resources/OrthancClient.doxygen
+    ${CMAKE_CURRENT_BINARY_DIR}/OrthancClient.doxygen
+    @ONLY)
+
   add_custom_target(doc
     ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Orthanc.doxygen
+    COMMAND
+    ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/OrthancClient.doxygen
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Generating API documentation with Doxygen" VERBATIM
     )
+
 else()
   message("Doxygen not found. The documentation will not be built.")
 endif()
-
