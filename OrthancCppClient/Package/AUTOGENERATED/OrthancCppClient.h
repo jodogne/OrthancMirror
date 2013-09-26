@@ -506,15 +506,25 @@ namespace Orthanc
 
 namespace OrthancClient
 {
+  /**
+  * @brief Connection to an instance of %Orthanc.
+  *
+  * This class encapsulates a connection to an instance of %Orthanc through its REST API.
+  *
+  **/
   class OrthancConnection
   {
+    friend class ::OrthancClient::Patient;
+    friend class ::OrthancClient::Series;
+    friend class ::OrthancClient::Study;
+    friend class ::OrthancClient::Instance;
   private:
     bool isReference_;
-  public:
     void* pimpl_;
     OrthancConnection(void* pimpl) : isReference_(true), pimpl_(pimpl) {}
     OrthancConnection(const OrthancConnection& other) { *this = other; }
     void operator= (const OrthancConnection& other) { if (!other.isReference_) throw ::OrthancClient::OrthancClientException("Cannot copy a non-reference object"); pimpl_ = other.pimpl_; isReference_ = true;  }
+  public:
     inline OrthancConnection(const ::std::string& orthancUrl);
     inline OrthancConnection(const ::std::string& orthancUrl, const ::std::string& username, const ::std::string& password);
     inline ~OrthancConnection();
@@ -534,13 +544,17 @@ namespace OrthancClient
 {
   class Patient
   {
+    friend class ::OrthancClient::OrthancConnection;
+    friend class ::OrthancClient::Series;
+    friend class ::OrthancClient::Study;
+    friend class ::OrthancClient::Instance;
   private:
     bool isReference_;
-  public:
     void* pimpl_;
     Patient(void* pimpl) : isReference_(true), pimpl_(pimpl) {}
     Patient(const Patient& other) { *this = other; }
     void operator= (const Patient& other) { if (!other.isReference_) throw ::OrthancClient::OrthancClientException("Cannot copy a non-reference object"); pimpl_ = other.pimpl_; isReference_ = true;  }
+  public:
     inline Patient(::OrthancClient::OrthancConnection& connection, const ::std::string& id);
     inline ~Patient();
     inline void Reload();
@@ -555,13 +569,17 @@ namespace OrthancClient
 {
   class Series
   {
+    friend class ::OrthancClient::OrthancConnection;
+    friend class ::OrthancClient::Patient;
+    friend class ::OrthancClient::Study;
+    friend class ::OrthancClient::Instance;
   private:
     bool isReference_;
-  public:
     void* pimpl_;
     Series(void* pimpl) : isReference_(true), pimpl_(pimpl) {}
     Series(const Series& other) { *this = other; }
     void operator= (const Series& other) { if (!other.isReference_) throw ::OrthancClient::OrthancClientException("Cannot copy a non-reference object"); pimpl_ = other.pimpl_; isReference_ = true;  }
+  public:
     inline Series(::OrthancClient::OrthancConnection& connection, const ::std::string& id);
     inline ~Series();
     inline void Reload();
@@ -585,13 +603,17 @@ namespace OrthancClient
 {
   class Study
   {
+    friend class ::OrthancClient::OrthancConnection;
+    friend class ::OrthancClient::Patient;
+    friend class ::OrthancClient::Series;
+    friend class ::OrthancClient::Instance;
   private:
     bool isReference_;
-  public:
     void* pimpl_;
     Study(void* pimpl) : isReference_(true), pimpl_(pimpl) {}
     Study(const Study& other) { *this = other; }
     void operator= (const Study& other) { if (!other.isReference_) throw ::OrthancClient::OrthancClientException("Cannot copy a non-reference object"); pimpl_ = other.pimpl_; isReference_ = true;  }
+  public:
     inline Study(::OrthancClient::OrthancConnection& connection, const ::std::string& id);
     inline ~Study();
     inline void Reload();
@@ -606,13 +628,17 @@ namespace OrthancClient
 {
   class Instance
   {
+    friend class ::OrthancClient::OrthancConnection;
+    friend class ::OrthancClient::Patient;
+    friend class ::OrthancClient::Series;
+    friend class ::OrthancClient::Study;
   private:
     bool isReference_;
-  public:
     void* pimpl_;
     Instance(void* pimpl) : isReference_(true), pimpl_(pimpl) {}
     Instance(const Instance& other) { *this = other; }
     void operator= (const Instance& other) { if (!other.isReference_) throw ::OrthancClient::OrthancClientException("Cannot copy a non-reference object"); pimpl_ = other.pimpl_; isReference_ = true;  }
+  public:
     inline Instance(::OrthancClient::OrthancConnection& connection, const ::std::string& id);
     inline ~Instance();
     inline ::std::string GetId() const;
@@ -636,6 +662,13 @@ namespace OrthancClient
 
 namespace OrthancClient
 {
+  /**
+  * @brief Create a connection to an instance of %Orthanc.
+  *
+  * Create a connection to an instance of %Orthanc.
+  *
+  * @param orthancUrl URL to which the REST API of %Orthanc is listening.
+  **/
   inline OrthancConnection::OrthancConnection(const ::std::string& orthancUrl)
   {
     isReference_ = false;
@@ -644,6 +677,15 @@ namespace OrthancClient
     char* error = function(&pimpl_, orthancUrl.c_str());
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
+  /**
+  * @brief Create a connection to an instance of %Orthanc, with authentication.
+  *
+  * Create a connection to an instance of %Orthanc, with authentication.
+  *
+  * @param orthancUrl URL to which the REST API of %Orthanc is listening.
+  * @param username The username.
+  * @param password The password.
+  **/
   inline OrthancConnection::OrthancConnection(const ::std::string& orthancUrl, const ::std::string& username, const ::std::string& password)
   {
     isReference_ = false;
@@ -666,6 +708,13 @@ namespace OrthancClient
     char* error = function(pimpl_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
+  /**
+  * @brief Returns the number of threads for this connection.
+  *
+  * Returns the number of simultaneous connections that are used when downloading information from this instance of %Orthanc.
+  *
+  * @return The number of threads.
+  **/
   inline LAAW_UINT32 OrthancConnection::GetThreadCount() const
   {
     LAAW_UINT32 result_;
@@ -675,6 +724,13 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return result_;
   }
+  /**
+  * @brief Sets the number of threads for this connection.
+  *
+  * Sets the number of simultaneous connections that are used when downloading information from this instance of %Orthanc.
+  *
+  * @param threadCount The number of threads.
+  **/
   inline void OrthancConnection::SetThreadCount(LAAW_UINT32 threadCount)
   {
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, LAAW_UINT32);
@@ -682,6 +738,12 @@ namespace OrthancClient
     char* error = function(pimpl_, threadCount);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
+  /**
+  * @brief Refresh the list of the patients.
+  *
+  * This method will reload the list of the patients from the remote instance of %Orthanc. Pay attention to the fact that the patients that have been previously returned by GetPatient() will be invalidated.
+  *
+  **/
   inline void OrthancConnection::Refresh()
   {
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*);
@@ -689,6 +751,13 @@ namespace OrthancClient
     char* error = function(pimpl_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
+  /**
+  * @brief Returns the URL of this instance of %Orthanc.
+  *
+  * Returns the URL of the remote %Orthanc instance to which this object is connected.
+  *
+  * @return The URL.
+  **/
   inline ::std::string OrthancConnection::GetOrthancUrl() const
   {
     const char* result_;
@@ -698,6 +767,13 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return std::string(result_);
   }
+  /**
+  * @brief Returns the number of patients.
+  *
+  * Returns the number of patients that are stored in the remote instance of %Orthanc.
+  *
+  * @return The number of patients.
+  **/
   inline LAAW_UINT32 OrthancConnection::GetPatientCount()
   {
     LAAW_UINT32 result_;
@@ -707,6 +783,14 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return result_;
   }
+  /**
+  * @brief Get some patient.
+  *
+  * This method will return an object that contains information about some patient. The patients are indexed by a number between 0 (inclusive) and the result of GetPatientCount() (exclusive).
+  *
+  * @param index The index of the patient of interest.
+  * @return The patient.
+  **/
   inline ::OrthancClient::Patient OrthancConnection::GetPatient(LAAW_UINT32 index)
   {
     void* result_;
@@ -716,6 +800,14 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return ::OrthancClient::Patient(result_);
   }
+  /**
+  * @brief Delete some patient.
+  *
+  * Delete some patient from the remote instance of %Orthanc. Pay attention to the fact that the patients that have been previously returned by GetPatient() will be invalidated.
+  *
+  * @param index The index of the patient of interest.
+  * @return The patient.
+  **/
   inline void OrthancConnection::DeletePatient(LAAW_UINT32 index)
   {
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, LAAW_UINT32);
@@ -723,6 +815,13 @@ namespace OrthancClient
     char* error = function(pimpl_, index);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
+  /**
+  * @brief Send a DICOM file.
+  *
+  * This method will store a DICOM file in the remote instance of %Orthanc. Pay attention to the fact that the patients that have been previously returned by GetPatient() will be invalidated.
+  *
+  * @param filename Path to the DICOM file
+  **/
   inline void OrthancConnection::StoreFile(const ::std::string& filename)
   {
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, const char*);
@@ -730,6 +829,14 @@ namespace OrthancClient
     char* error = function(pimpl_, filename.c_str());
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
+  /**
+  * @brief Send a DICOM file that is contained inside a memory buffer.
+  *
+  * This method will store a DICOM file in the remote instance of %Orthanc. Pay attention to the fact that the patients that have been previously returned by GetPatient() will be invalidated.
+  *
+  * @param dicom The memory buffer containing the DICOM file.
+  * @param size The size of the DICOM file.
+  **/
   inline void OrthancConnection::Store(const void* dicom, LAAW_UINT64 size)
   {
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, const void*, LAAW_UINT64);

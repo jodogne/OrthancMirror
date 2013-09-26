@@ -38,6 +38,11 @@
 
 namespace OrthancClient
 {
+  /**
+   * {summary}{Connection to an instance of %Orthanc.}
+   * {description}{This class encapsulates a connection to an instance
+   * of %Orthanc through its REST API.}
+   **/  
   class LAAW_API OrthancConnection : 
     public boost::noncopyable,
     private Orthanc::ArrayFilledByThreads::IFiller
@@ -58,8 +63,18 @@ namespace OrthancClient
     virtual Orthanc::IDynamicObject* GetFillerItem(size_t index);
 
   public:
+    /**
+     * {summary}{Create a connection to an instance of %Orthanc.}
+     * {param}{orthancUrl URL to which the REST API of %Orthanc is listening.}
+     **/
     OrthancConnection(const char* orthancUrl);
 
+    /**
+     * {summary}{Create a connection to an instance of %Orthanc, with authentication.}
+     * {param}{orthancUrl URL to which the REST API of %Orthanc is listening.}
+     * {param}{username The username.}
+     * {param}{password The password.}
+     **/
     OrthancConnection(const char* orthancUrl,
                       const char* username, 
                       const char* password);
@@ -68,16 +83,34 @@ namespace OrthancClient
     {
     }
 
+    /**
+     * {summary}{Returns the number of threads for this connection.}
+     * {description}{Returns the number of simultaneous connections
+     * that are used when downloading information from this instance
+     * of %Orthanc.} 
+     * {returns}{The number of threads.}
+     **/
     uint32_t GetThreadCount() const
     {
       return patients_.GetThreadCount();
     }
 
+    /**
+     * {summary}{Sets the number of threads for this connection.}
+     * {description}{Sets  the number of simultaneous connections
+     * that are used when downloading information from this instance
+     * of %Orthanc.} 
+     * {param}{threadCount The number of threads.}
+     **/
     void SetThreadCount(uint32_t threadCount)
     {
       patients_.SetThreadCount(threadCount);
     }
 
+    /**
+     * {summary}{Refresh the list of the patients.}
+     * {description}{This method will reload the list of the patients from the remote instance of %Orthanc. Pay attention to the fact that the patients that have been previously returned by GetPatient() will be invalidated.}
+     **/
     void Refresh()
     {
       ReadPatients();
@@ -89,26 +122,59 @@ namespace OrthancClient
       return client_;
     }
 
+    /**
+     * {summary}{Returns the URL of this instance of %Orthanc.}
+     * {description}{Returns the URL of the remote %Orthanc instance to which this object is connected.}
+     * {returns}{The URL.}
+     **/
     const char* GetOrthancUrl() const
     {
       return orthancUrl_.c_str();
     }
 
+    /**
+     * {summary}{Returns the number of patients.}
+     * {description}{Returns the number of patients that are stored in the remote instance of %Orthanc.}
+     * {returns}{The number of patients.}
+     **/
     uint32_t GetPatientCount()
     {
       return patients_.GetSize();
     }
 
+    /**
+     * {summary}{Get some patient.}
+     * {description}{This method will return an object that contains information about some patient. The patients are indexed by a number between 0 (inclusive) and the result of GetPatientCount() (exclusive).}
+     * {param}{index The index of the patient of interest.}
+     * {returns}{The patient.}
+     **/
     Patient& GetPatient(uint32_t index);
 
+    /**
+     * {summary}{Delete some patient.}
+     * {description}{Delete some patient from the remote instance of %Orthanc. Pay attention to the fact that the patients that have been previously returned by GetPatient() will be invalidated.}
+     * {param}{index The index of the patient of interest.}
+     * {returns}{The patient.}
+     **/
     void DeletePatient(uint32_t index)
     {
       GetPatient(index).Delete();
       Refresh();
     }
 
+    /**
+     * {summary}{Send a DICOM file.}
+     * {description}{This method will store a DICOM file in the remote instance of %Orthanc. Pay attention to the fact that the patients that have been previously returned by GetPatient() will be invalidated.}
+     * {param}{filename Path to the DICOM file}
+     **/
     void StoreFile(const char* filename);
 
+    /**
+     * {summary}{Send a DICOM file that is contained inside a memory buffer.}
+     * {description}{This method will store a DICOM file in the remote instance of %Orthanc. Pay attention to the fact that the patients that have been previously returned by GetPatient() will be invalidated.}
+     * {param}{dicom The memory buffer containing the DICOM file.}
+     * {param}{size The size of the DICOM file.}
+     **/    
     void Store(const void* dicom, uint64_t size);
   };
 }
