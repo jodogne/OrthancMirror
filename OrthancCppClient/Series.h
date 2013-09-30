@@ -39,7 +39,7 @@
 
 namespace OrthancClient
 {
-  class Series :
+  class LAAW_API Series :
     public Orthanc::IDynamicObject, 
     private Orthanc::ArrayFilledByThreads::IFiller
   {
@@ -52,10 +52,15 @@ namespace OrthancClient
     };
 
     const OrthancConnection& connection_;
-    std::string id_;
+    std::string id_, url_;
     Json::Value series_;
     Orthanc::ArrayFilledByThreads  instances_;
     Status3DImage status_;
+
+    bool isVoxelSizeRead_;
+    float voxelSizeX_;
+    float voxelSizeY_;
+    float voxelSizeZ_;
   
     void Check3DImage();
 
@@ -70,15 +75,17 @@ namespace OrthancClient
 
     virtual Orthanc::IDynamicObject* GetFillerItem(size_t index);
 
-    void Load3DImage(void* target,
-                     Orthanc::PixelFormat format,
-                     size_t lineStride,
-                     size_t stackStride,
-                     Orthanc::ThreadedCommandProcessor::IListener* listener);
+    void Load3DImageInternal(void* target,
+                             Orthanc::PixelFormat format,
+                             size_t lineStride,
+                             size_t stackStride,
+                             Orthanc::ThreadedCommandProcessor::IListener* listener);
+
+    void LoadVoxelSize();  
 
   public:
     Series(const OrthancConnection& connection,
-           const std::string& id);
+           const char* id);
 
     void Reload()
     {
@@ -87,41 +94,54 @@ namespace OrthancClient
 
     bool Is3DImage();
 
-    unsigned int GetInstanceCount();
+    uint32_t GetInstanceCount();
+    
+    Instance& GetInstance(uint32_t index);
 
-    Instance& GetInstance(unsigned int index);
-
-    const std::string& GetId() const
+    const char* GetId() const
     {
-      return id_;
+      return id_.c_str();
     }
 
-    std::string GetUrl() const;
+    const char* GetUrl() const
+    {
+      return url_.c_str();
+    }
 
-    unsigned int GetWidth();
+    uint32_t GetWidth();
 
-    unsigned int GetHeight();
+    uint32_t GetHeight();
 
-    void GetVoxelSize(float& sizeX, float& sizeY, float& sizeZ);  
+    float GetVoxelSizeX();
 
-    std::string GetMainDicomTag(const char* tag, 
+    float GetVoxelSizeY();
+
+    float GetVoxelSizeZ();
+
+    const char* GetMainDicomTag(const char* tag, 
                                 const char* defaultValue) const;
 
-    void Load3DImage(void* target,
-                     Orthanc::PixelFormat format,
-                     size_t lineStride,
-                     size_t stackStride,
-                     Orthanc::ThreadedCommandProcessor::IListener& listener)
+    LAAW_API_INTERNAL void Load3DImage(void* target,
+                                       Orthanc::PixelFormat format,
+                                       int64_t lineStride,
+                                       int64_t stackStride,
+                                       Orthanc::ThreadedCommandProcessor::IListener& listener)
     {
-      Load3DImage(target, format, lineStride, stackStride, &listener);
+      Load3DImageInternal(target, format, lineStride, stackStride, &listener);
     }
 
     void Load3DImage(void* target,
                      Orthanc::PixelFormat format,
-                     size_t lineStride,
-                     size_t stackStride)
+                     int64_t lineStride,
+                     int64_t stackStride)
     {
-      Load3DImage(target, format, lineStride, stackStride, NULL);
+      Load3DImageInternal(target, format, lineStride, stackStride, NULL);
     }
+
+    void Load3DImage(void* target,
+                     Orthanc::PixelFormat format,
+                     int64_t lineStride,
+                     int64_t stackStride,
+                     float* progress);
   };
 }

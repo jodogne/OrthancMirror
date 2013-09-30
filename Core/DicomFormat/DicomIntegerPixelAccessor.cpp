@@ -140,11 +140,13 @@ namespace Orthanc
 
     if (pixelRepresentation)
     {
+      // Pixels are signed
       mask_ = (1 << (bitsStored - 1)) - 1;
       signMask_ = (1 << (bitsStored - 1));
     }
     else
     {
+      // Pixels are unsigned
       mask_ = (1 << bitsStored) - 1;
       signMask_ = 0;
     }

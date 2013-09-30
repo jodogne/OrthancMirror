@@ -33,29 +33,30 @@
 #include "Patient.h"
 
 #include "OrthancConnection.h"
-#include "../Core/OrthancException.h"
 
 namespace OrthancClient
 {
   void Patient::ReadPatient()
   {
     Orthanc::HttpClient client(connection_.GetHttpClient());
-    client.SetUrl(connection_.GetOrthancUrl() + "/patients/" + id_);
+    client.SetUrl(std::string(connection_.GetOrthancUrl()) + "/patients/" + id_);
+
     Json::Value v;
     if (!client.Apply(patient_))
     {
-      throw Orthanc::OrthancException(Orthanc::ErrorCode_NetworkProtocol);
+      throw OrthancClientException(Orthanc::ErrorCode_NetworkProtocol);
     }
   }
 
   Orthanc::IDynamicObject* Patient::GetFillerItem(size_t index)
   {
     Json::Value::ArrayIndex tmp = static_cast<Json::Value::ArrayIndex>(index);
-    return new Study(connection_, patient_["Studies"][tmp].asString());
+    std::string id = patient_["Studies"][tmp].asString();
+    return new Study(connection_, id.c_str());
   }
 
   Patient::Patient(const OrthancConnection& connection,
-                   const std::string& id) :
+                   const char* id) :
     connection_(connection),
     id_(id),
     studies_(*this)
@@ -64,15 +65,28 @@ namespace OrthancClient
     ReadPatient();
   }
 
-  std::string Patient::GetMainDicomTag(const char* tag, const char* defaultValue) const
+  const char* Patient::GetMainDicomTag(const char* tag, const char* defaultValue) const
   {
     if (patient_["MainDicomTags"].isMember(tag))
     {
-      return patient_["MainDicomTags"][tag].asString();
+      return patient_["MainDicomTags"][tag].asCString();
     }
     else
     {
       return defaultValue;
+    }
+  }
+  
+  void Patient::Delete()
+  {
+    Orthanc::HttpClient client(connection_.GetHttpClient());
+    client.SetMethod(Orthanc::HttpMethod_Delete);
+    client.SetUrl(std::string(connection_.GetOrthancUrl()) + "/patients/" + id_);
+    
+    std::string s;
+    if (!client.Apply(s))
+    {
+      throw OrthancClientException(Orthanc::ErrorCode_NetworkProtocol);
     }
   }
 }

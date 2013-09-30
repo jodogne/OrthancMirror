@@ -32,74 +32,27 @@
 
 #pragma once
 
-#include <string>
-#include <json/value.h>
-
-#include "OrthancClientException.h"
-#include "../Core/IDynamicObject.h"
-#include "../Core/FileFormats/PngReader.h"
+#include "../Core/OrthancException.h"
+#include "SharedLibrary/Laaw/laaw.h"
 
 namespace OrthancClient
 {
-  class OrthancConnection;
-
-  class LAAW_API Instance : public Orthanc::IDynamicObject
+  class OrthancClientException : public ::Laaw::LaawException
   {
-  private:
-    const OrthancConnection& connection_;
-    std::string id_;
-    Json::Value tags_;
-    std::auto_ptr<Orthanc::PngReader> reader_;
-    Orthanc::ImageExtractionMode mode_;
-    std::auto_ptr<std::string> dicom_;
-
-    void DownloadImage();
-
-    void DownloadDicom();
-
   public:
-    Instance(const OrthancConnection& connection,
-             const char* id);
-
-    const char* GetId() const
-    {
-      return id_.c_str();
+    OrthancClientException(Orthanc::ErrorCode code) :
+      LaawException(Orthanc::OrthancException::GetDescription(code))
+    { 
     }
 
-    void SetImageExtractionMode(Orthanc::ImageExtractionMode mode);
-
-    Orthanc::ImageExtractionMode GetImageExtractionMode() const
-    {
-      return mode_;
+    OrthancClientException(const char* message) : 
+      LaawException(message)
+    {    
     }
 
-    const char* GetTagAsString(const char* tag) const;
-
-    float GetTagAsFloat(const char* tag) const;
-
-    int32_t GetTagAsInt(const char* tag) const;
-
-    uint32_t GetWidth();
-
-    uint32_t GetHeight();
-
-    uint32_t GetPitch();
-
-    Orthanc::PixelFormat GetPixelFormat();
-
-    const void* GetBuffer();
-
-    const void* GetBuffer(uint32_t y);
-
-    void DiscardImage();
-
-    void DiscardDicom();
-
-    const uint64_t GetDicomSize();
-
-    const void* GetDicom();
-
-    LAAW_API_INTERNAL void SplitVectorOfFloats(std::vector<float>& target,
-                                               const char* tag);
+    OrthancClientException(const std::string& message) : 
+      LaawException(message)
+    {    
+    }
   };
 }

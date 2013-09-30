@@ -36,7 +36,7 @@
 
 namespace OrthancClient
 {
-  class Study : 
+  class LAAW_API Study : 
     public Orthanc::IDynamicObject, 
     private Orthanc::ArrayFilledByThreads::IFiller
   {
@@ -57,29 +57,29 @@ namespace OrthancClient
 
   public:
     Study(const OrthancConnection& connection,
-          const std::string& id);
+          const char* id);
 
     void Reload()
     {
       series_.Reload();
     }
 
-    unsigned int GetSeriesCount()
+    uint32_t GetSeriesCount()
     {
       return series_.GetSize();
     }
 
-    Series& GetSeries(unsigned int index)
+    Series& GetSeries(uint32_t index)
     {
       return dynamic_cast<Series&>(series_.GetItem(index));
     }
 
-    const std::string& GetId() const
+    const char* GetId() const
     {
-      return id_;
+      return id_.c_str();
     }
 
-    std::string GetMainDicomTag(const char* tag, 
+    const char* GetMainDicomTag(const char* tag, 
                                 const char* defaultValue) const;
   };
 }

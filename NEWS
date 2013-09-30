@@ -3,6 +3,8 @@ Pending changes in the mainline
 
 * Fix of Debian bug #724947 (licensing issue with the SHA-1 library)
 * Switch to Boost 1.54.0 (cf. issue #9)
+* Build of the C++ client as a shared library
+* Improved C++ client API
 
 
 Version 0.6.1 (2013/09/16)
