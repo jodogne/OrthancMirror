@@ -41,13 +41,14 @@ endif()
 if (BOOST_STATIC)
   # Parameters for Boost 1.54.0
   SET(BOOST_NAME boost_1_54_0)
-  SET(BOOST_MD5 "cee688c35a9c7775b7305587e782e3f5")
+  SET(BOOST_BCP_SUFFIX bcpdigest-0.6.2)
+  SET(BOOST_MD5 "a464288a976ba133f9b325f454cb503d")
   SET(BOOST_FILESYSTEM_SOURCES_DIR "${BOOST_NAME}/libs/filesystem/src")
   
   SET(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
   DownloadPackage(
     "${BOOST_MD5}"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/${BOOST_NAME}_bcpdigest.tar.gz"
+    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz"
     "${BOOST_SOURCES_DIR}"
     )
 
