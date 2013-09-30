@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "../OrthancCppClient/SharedLibrary/Laaw/laaw.h"
+
 namespace Orthanc
 {
   enum Endianness
@@ -67,7 +69,7 @@ namespace Orthanc
     ErrorCode_FullStorage
   };
 
-  enum PixelFormat
+  enum LAAW_API PixelFormat
   {
     PixelFormat_RGB24,
     PixelFormat_Grayscale8,
@@ -75,7 +77,7 @@ namespace Orthanc
     PixelFormat_SignedGrayscale16
   };
 
-  enum ImageExtractionMode
+  enum LAAW_API ImageExtractionMode
   {
     ImageExtractionMode_Preview,
     ImageExtractionMode_UInt8,

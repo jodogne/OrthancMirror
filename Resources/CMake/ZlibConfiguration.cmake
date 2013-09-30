@@ -1,7 +1,7 @@
 # This is the minizip distribution to create ZIP files
 list(APPEND THIRD_PARTY_SOURCES 
-  ${CMAKE_SOURCE_DIR}/Resources/minizip/ioapi.c
-  ${CMAKE_SOURCE_DIR}/Resources/minizip/zip.c
+  ${ORTHANC_ROOT}/Resources/minizip/ioapi.c
+  ${ORTHANC_ROOT}/Resources/minizip/zip.c
   )
 
 if (${STATIC_BUILD})

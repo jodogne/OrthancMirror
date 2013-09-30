@@ -68,6 +68,19 @@
 #include "../Resources/base64/base64.h"
 
 
+#ifdef _MSC_VER
+// Patch for the missing "_strtoll" symbol when compiling with Visual Studio
+extern "C"
+{
+int64_t _strtoi64(const char *nptr, char **endptr, int base);
+int64_t strtoll(const char *nptr, char **endptr, int base)
+{
+    return _strtoi64(nptr, endptr, base);
+} 
+}
+#endif
+
+
 #if BOOST_HAS_LOCALE == 0
 namespace
 {

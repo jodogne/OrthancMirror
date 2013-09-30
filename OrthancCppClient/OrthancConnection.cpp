@@ -32,24 +32,27 @@
 
 #include "OrthancConnection.h"
 
-#include "../Core/OrthancException.h"
+#include "../Core/Toolbox.h"
 
 namespace OrthancClient
 {
   void OrthancConnection::ReadPatients()
   {
+    client_.SetMethod(Orthanc::HttpMethod_Get);
     client_.SetUrl(orthancUrl_ + "/patients");
+
     Json::Value v;
     if (!client_.Apply(content_))
     {
-      throw Orthanc::OrthancException(Orthanc::ErrorCode_NetworkProtocol);
+      throw OrthancClientException(Orthanc::ErrorCode_NetworkProtocol);
     }
   }
 
   Orthanc::IDynamicObject* OrthancConnection::GetFillerItem(size_t index)
   {
     Json::Value::ArrayIndex tmp = static_cast<Json::Value::ArrayIndex>(index);
-    return new Patient(*this, content_[tmp].asString());
+    std::string id = content_[tmp].asString();
+    return new Patient(*this, id.c_str());
   }
 
   Patient& OrthancConnection::GetPatient(unsigned int index)
@@ -72,5 +75,40 @@ namespace OrthancClient
     ReadPatients();
   }
 
+
+  void OrthancConnection::Store(const void* dicom, uint64_t size)
+  {
+    if (size == 0)
+    {
+      return;
+    }
+
+    client_.SetMethod(Orthanc::HttpMethod_Post);
+    client_.SetUrl(orthancUrl_ + "/instances");
+
+    // Copy the DICOM file in the POST body. TODO - Avoid memory copy
+    client_.AccessPostData().resize(size);
+    memcpy(&client_.AccessPostData()[0], dicom, size);
+
+    Json::Value v;
+    if (!client_.Apply(v))
+    {
+      throw OrthancClientException(Orthanc::ErrorCode_NetworkProtocol);
+    }
+    
+    Refresh();
+  }
+
+
+  void  OrthancConnection::StoreFile(const char* filename)
+  {
+    std::string content;
+    Orthanc::Toolbox::ReadFile(content, filename);
+
+    if (content.size() != 0)
+    {
+      Store(&content[0], content.size());
+    }
+  }
 
 }
