@@ -311,7 +311,6 @@ if (BUILD_CLIENT_LIBRARY)
     ${ORTHANC_ROOT}/OrthancCppClient/Instance.cpp
     ${ORTHANC_ROOT}/OrthancCppClient/Patient.cpp
     ${ORTHANC_ROOT}/OrthancCppClient/SharedLibrary/SharedLibrary.cpp
-    ${ORTHANC_ROOT}/Resources/sha1/sha1.cpp
     ${ORTHANC_ROOT}/Resources/md5/md5.c
     ${ORTHANC_ROOT}/Resources/base64/base64.cpp
     ${ORTHANC_CPP_CLIENT_AUX}
