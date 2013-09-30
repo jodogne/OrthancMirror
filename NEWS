@@ -1,6 +1,7 @@
 Pending changes in the mainline
 ===============================
 
+* Fix of Debian bug #724947 (licensing issue with the SHA-1 library)
 * Switch to Boost 1.54.0 (cf. issue #9)
 
 

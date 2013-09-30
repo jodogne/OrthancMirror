@@ -47,7 +47,6 @@ endif()
 SET(THIRD_PARTY_SOURCES
   ${CMAKE_SOURCE_DIR}/Resources/md5/md5.c
   ${CMAKE_SOURCE_DIR}/Resources/base64/base64.cpp
-  ${CMAKE_SOURCE_DIR}/Resources/sha1/sha1.cpp
   )
 
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfiguration.cmake)
