@@ -584,7 +584,7 @@ namespace Orthanc
 
 
 
-  SeriesStatus ServerIndex::GetSeriesStatus(int id)
+  SeriesStatus ServerIndex::GetSeriesStatus(int64_t id)
   {
     // Get the expected number of instances in this series (from the metadata)
     std::string s = db_->GetMetadata(id, MetadataType_Series_ExpectedNumberOfInstances);

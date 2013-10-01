@@ -87,8 +87,8 @@ namespace OrthancClient
     client_.SetUrl(orthancUrl_ + "/instances");
 
     // Copy the DICOM file in the POST body. TODO - Avoid memory copy
-    client_.AccessPostData().resize(size);
-    memcpy(&client_.AccessPostData()[0], dicom, size);
+    client_.AccessPostData().resize(static_cast<size_t>(size));
+    memcpy(&client_.AccessPostData()[0], dicom, static_cast<size_t>(size));
 
     Json::Value v;
     if (!client_.Apply(v))

@@ -127,7 +127,8 @@ namespace OrthancClient
                                        int64_t stackStride,
                                        Orthanc::ThreadedCommandProcessor::IListener& listener)
     {
-      Load3DImageInternal(target, format, lineStride, stackStride, &listener);
+      Load3DImageInternal(target, format, static_cast<size_t>(lineStride), 
+                          static_cast<size_t>(stackStride), &listener);
     }
 
     void Load3DImage(void* target,
@@ -135,7 +136,8 @@ namespace OrthancClient
                      int64_t lineStride,
                      int64_t stackStride)
     {
-      Load3DImageInternal(target, format, lineStride, stackStride, NULL);
+      Load3DImageInternal(target, format, static_cast<size_t>(lineStride),
+                          static_cast<size_t>(stackStride), NULL);
     }
 
     void Load3DImage(void* target,
