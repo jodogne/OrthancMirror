@@ -504,6 +504,7 @@ namespace OrthancClient
                            float* progress)
   {
     ProgressToFloatListener listener(progress);
-    Load3DImageInternal(target, format, lineStride, stackStride, &listener);
+    Load3DImageInternal(target, format, static_cast<size_t>(lineStride), 
+                        static_cast<size_t>(stackStride), &listener);
   }
 }
