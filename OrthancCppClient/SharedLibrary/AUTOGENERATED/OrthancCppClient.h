@@ -81,9 +81,9 @@
 
 /* cf. http://sourceforge.net/p/predef/wiki/Architectures/ */
 #ifdef __amd64__
-#define LAAW_ORTHANC_CLIENT_DEFAULT_PATH  "libOrthancClient.so.0.6"
+#define LAAW_ORTHANC_CLIENT_DEFAULT_PATH  "libOrthancClient.so"
 #else
-#define LAAW_ORTHANC_CLIENT_DEFAULT_PATH  "libOrthancClient.so.0.6"
+#define LAAW_ORTHANC_CLIENT_DEFAULT_PATH  "libOrthancClient.so"
 #endif
 
 #define LAAW_ORTHANC_CLIENT_CALL_CONV
@@ -522,9 +522,9 @@ namespace OrthancClient
     bool isReference_;
     void* pimpl_;
     OrthancConnection(void* pimpl) : isReference_(true), pimpl_(pimpl) {}
+  public:
     OrthancConnection(const OrthancConnection& other) { *this = other; }
     void operator= (const OrthancConnection& other) { if (!other.isReference_) throw ::OrthancClient::OrthancClientException("Cannot copy a non-reference object"); pimpl_ = other.pimpl_; isReference_ = true;  }
-  public:
     inline OrthancConnection(const ::std::string& orthancUrl);
     inline OrthancConnection(const ::std::string& orthancUrl, const ::std::string& username, const ::std::string& password);
     inline ~OrthancConnection();
@@ -552,9 +552,9 @@ namespace OrthancClient
     bool isReference_;
     void* pimpl_;
     Patient(void* pimpl) : isReference_(true), pimpl_(pimpl) {}
+  public:
     Patient(const Patient& other) { *this = other; }
     void operator= (const Patient& other) { if (!other.isReference_) throw ::OrthancClient::OrthancClientException("Cannot copy a non-reference object"); pimpl_ = other.pimpl_; isReference_ = true;  }
-  public:
     inline Patient(::OrthancClient::OrthancConnection& connection, const ::std::string& id);
     inline ~Patient();
     inline void Reload();
@@ -577,9 +577,9 @@ namespace OrthancClient
     bool isReference_;
     void* pimpl_;
     Series(void* pimpl) : isReference_(true), pimpl_(pimpl) {}
+  public:
     Series(const Series& other) { *this = other; }
     void operator= (const Series& other) { if (!other.isReference_) throw ::OrthancClient::OrthancClientException("Cannot copy a non-reference object"); pimpl_ = other.pimpl_; isReference_ = true;  }
-  public:
     inline Series(::OrthancClient::OrthancConnection& connection, const ::std::string& id);
     inline ~Series();
     inline void Reload();
@@ -611,9 +611,9 @@ namespace OrthancClient
     bool isReference_;
     void* pimpl_;
     Study(void* pimpl) : isReference_(true), pimpl_(pimpl) {}
+  public:
     Study(const Study& other) { *this = other; }
     void operator= (const Study& other) { if (!other.isReference_) throw ::OrthancClient::OrthancClientException("Cannot copy a non-reference object"); pimpl_ = other.pimpl_; isReference_ = true;  }
-  public:
     inline Study(::OrthancClient::OrthancConnection& connection, const ::std::string& id);
     inline ~Study();
     inline void Reload();
@@ -636,9 +636,9 @@ namespace OrthancClient
     bool isReference_;
     void* pimpl_;
     Instance(void* pimpl) : isReference_(true), pimpl_(pimpl) {}
+  public:
     Instance(const Instance& other) { *this = other; }
     void operator= (const Instance& other) { if (!other.isReference_) throw ::OrthancClient::OrthancClientException("Cannot copy a non-reference object"); pimpl_ = other.pimpl_; isReference_ = true;  }
-  public:
     inline Instance(::OrthancClient::OrthancConnection& connection, const ::std::string& id);
     inline ~Instance();
     inline ::std::string GetId() const;
