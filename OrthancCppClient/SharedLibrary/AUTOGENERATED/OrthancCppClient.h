@@ -520,11 +520,18 @@ namespace OrthancClient
     friend class ::OrthancClient::Instance;
   private:
     bool isReference_;
+    OrthancConnection& operator= (const OrthancConnection&); // Assignment is forbidden
     void* pimpl_;
     OrthancConnection(void* pimpl) : isReference_(true), pimpl_(pimpl) {}
   public:
-    OrthancConnection(const OrthancConnection& other) { *this = other; }
-    void operator= (const OrthancConnection& other) { if (!other.isReference_) throw ::OrthancClient::OrthancClientException("Cannot copy a non-reference object"); pimpl_ = other.pimpl_; isReference_ = true;  }
+    /**
+     * @brief Construct a new reference to this object.
+     *
+     * Construct a new reference to this object. Pay attention to the fact that when the referenced object is deleted, the content of this object will be invalid.
+     *
+     * @param other The original object.
+     **/
+    OrthancConnection(const OrthancConnection& other) : pimpl_(other.pimpl_), isReference_(true) { }
     inline OrthancConnection(const ::std::string& orthancUrl);
     inline OrthancConnection(const ::std::string& orthancUrl, const ::std::string& username, const ::std::string& password);
     inline ~OrthancConnection();
@@ -550,11 +557,18 @@ namespace OrthancClient
     friend class ::OrthancClient::Instance;
   private:
     bool isReference_;
+    Patient& operator= (const Patient&); // Assignment is forbidden
     void* pimpl_;
     Patient(void* pimpl) : isReference_(true), pimpl_(pimpl) {}
   public:
-    Patient(const Patient& other) { *this = other; }
-    void operator= (const Patient& other) { if (!other.isReference_) throw ::OrthancClient::OrthancClientException("Cannot copy a non-reference object"); pimpl_ = other.pimpl_; isReference_ = true;  }
+    /**
+     * @brief Construct a new reference to this object.
+     *
+     * Construct a new reference to this object. Pay attention to the fact that when the referenced object is deleted, the content of this object will be invalid.
+     *
+     * @param other The original object.
+     **/
+    Patient(const Patient& other) : pimpl_(other.pimpl_), isReference_(true) { }
     inline Patient(::OrthancClient::OrthancConnection& connection, const ::std::string& id);
     inline ~Patient();
     inline void Reload();
@@ -575,11 +589,18 @@ namespace OrthancClient
     friend class ::OrthancClient::Instance;
   private:
     bool isReference_;
+    Series& operator= (const Series&); // Assignment is forbidden
     void* pimpl_;
     Series(void* pimpl) : isReference_(true), pimpl_(pimpl) {}
   public:
-    Series(const Series& other) { *this = other; }
-    void operator= (const Series& other) { if (!other.isReference_) throw ::OrthancClient::OrthancClientException("Cannot copy a non-reference object"); pimpl_ = other.pimpl_; isReference_ = true;  }
+    /**
+     * @brief Construct a new reference to this object.
+     *
+     * Construct a new reference to this object. Pay attention to the fact that when the referenced object is deleted, the content of this object will be invalid.
+     *
+     * @param other The original object.
+     **/
+    Series(const Series& other) : pimpl_(other.pimpl_), isReference_(true) { }
     inline Series(::OrthancClient::OrthancConnection& connection, const ::std::string& id);
     inline ~Series();
     inline void Reload();
@@ -609,11 +630,18 @@ namespace OrthancClient
     friend class ::OrthancClient::Instance;
   private:
     bool isReference_;
+    Study& operator= (const Study&); // Assignment is forbidden
     void* pimpl_;
     Study(void* pimpl) : isReference_(true), pimpl_(pimpl) {}
   public:
-    Study(const Study& other) { *this = other; }
-    void operator= (const Study& other) { if (!other.isReference_) throw ::OrthancClient::OrthancClientException("Cannot copy a non-reference object"); pimpl_ = other.pimpl_; isReference_ = true;  }
+    /**
+     * @brief Construct a new reference to this object.
+     *
+     * Construct a new reference to this object. Pay attention to the fact that when the referenced object is deleted, the content of this object will be invalid.
+     *
+     * @param other The original object.
+     **/
+    Study(const Study& other) : pimpl_(other.pimpl_), isReference_(true) { }
     inline Study(::OrthancClient::OrthancConnection& connection, const ::std::string& id);
     inline ~Study();
     inline void Reload();
@@ -634,11 +662,18 @@ namespace OrthancClient
     friend class ::OrthancClient::Study;
   private:
     bool isReference_;
+    Instance& operator= (const Instance&); // Assignment is forbidden
     void* pimpl_;
     Instance(void* pimpl) : isReference_(true), pimpl_(pimpl) {}
   public:
-    Instance(const Instance& other) { *this = other; }
-    void operator= (const Instance& other) { if (!other.isReference_) throw ::OrthancClient::OrthancClientException("Cannot copy a non-reference object"); pimpl_ = other.pimpl_; isReference_ = true;  }
+    /**
+     * @brief Construct a new reference to this object.
+     *
+     * Construct a new reference to this object. Pay attention to the fact that when the referenced object is deleted, the content of this object will be invalid.
+     *
+     * @param other The original object.
+     **/
+    Instance(const Instance& other) : pimpl_(other.pimpl_), isReference_(true) { }
     inline Instance(::OrthancClient::OrthancConnection& connection, const ::std::string& id);
     inline ~Instance();
     inline ::std::string GetId() const;

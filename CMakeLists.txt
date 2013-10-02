@@ -366,13 +366,19 @@ if (DOXYGEN_FOUND)
     ${CMAKE_CURRENT_BINARY_DIR}/OrthancClient.doxygen
     @ONLY)
 
-  add_custom_target(doc
-    ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Orthanc.doxygen
-    COMMAND
+  add_custom_target(doc-client
     ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/OrthancClient.doxygen
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMENT "Generating API documentation with Doxygen" VERBATIM
+    COMMENT "Generating client documentation with Doxygen" VERBATIM
     )
+
+  add_custom_target(doc-internal
+    ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Orthanc.doxygen
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Generating internal documentation with Doxygen" VERBATIM
+    )
+
+  add_custom_target(doc DEPENDS doc-client doc-internal)
 
 else()
   message("Doxygen not found. The documentation will not be built.")
