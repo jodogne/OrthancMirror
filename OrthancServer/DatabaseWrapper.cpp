@@ -243,7 +243,7 @@ namespace Orthanc
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT parentId FROM Resources WHERE internalId=?");
-    s.BindInt(0, resourceId);
+    s.BindInt64(0, resourceId);
 
     if (!s.Step())
     {
@@ -265,7 +265,7 @@ namespace Orthanc
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT publicId FROM Resources WHERE internalId=?");
-    s.BindInt(0, resourceId);
+    s.BindInt64(0, resourceId);
     
     if (!s.Step())
     { 
@@ -280,7 +280,7 @@ namespace Orthanc
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT resourceType FROM Resources WHERE internalId=?");
-    s.BindInt(0, resourceId);
+    s.BindInt64(0, resourceId);
     
     if (!s.Step())
     { 
@@ -295,8 +295,8 @@ namespace Orthanc
                                     int64_t child)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "UPDATE Resources SET parentId = ? WHERE internalId = ?");
-    s.BindInt(0, parent);
-    s.BindInt(1, child);
+    s.BindInt64(0, parent);
+    s.BindInt64(1, child);
     s.Run();
   }
 
@@ -304,7 +304,7 @@ namespace Orthanc
                                     int64_t id)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT publicId FROM Resources WHERE parentId=?");
-    s.BindInt(0, id);
+    s.BindInt64(0, id);
 
     childrenPublicIds = Json::arrayValue;
     while (s.Step())
@@ -319,7 +319,7 @@ namespace Orthanc
     signalRemainingAncestor_->Reset();
 
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM Resources WHERE internalId=?");
-    s.BindInt(0, id);
+    s.BindInt64(0, id);
     s.Run();
 
     if (signalRemainingAncestor_->HasRemainingAncestor())
@@ -334,7 +334,7 @@ namespace Orthanc
                                     const std::string& value)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR REPLACE INTO Metadata VALUES(?, ?, ?)");
-    s.BindInt(0, id);
+    s.BindInt64(0, id);
     s.BindInt(1, type);
     s.BindString(2, value);
     s.Run();
@@ -344,7 +344,7 @@ namespace Orthanc
                                        MetadataType type)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM Metadata WHERE id=? and type=?");
-    s.BindInt(0, id);
+    s.BindInt64(0, id);
     s.BindInt(1, type);
     s.Run();
   }
@@ -355,7 +355,7 @@ namespace Orthanc
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT value FROM Metadata WHERE id=? AND type=?");
-    s.BindInt(0, id);
+    s.BindInt64(0, id);
     s.BindInt(1, type);
 
     if (!s.Step())
@@ -375,7 +375,7 @@ namespace Orthanc
     target.clear();
 
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT type FROM Metadata WHERE id=?");
-    s.BindInt(0, id);
+    s.BindInt64(0, id);
 
     while (s.Step())
     {
@@ -429,11 +429,11 @@ namespace Orthanc
                                       const FileInfo& attachment)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO AttachedFiles VALUES(?, ?, ?, ?, ?, ?)");
-    s.BindInt(0, id);
+    s.BindInt64(0, id);
     s.BindInt(1, attachment.GetContentType());
     s.BindString(2, attachment.GetUuid());
-    s.BindInt(3, attachment.GetCompressedSize());
-    s.BindInt(4, attachment.GetUncompressedSize());
+    s.BindInt64(3, attachment.GetCompressedSize());
+    s.BindInt64(4, attachment.GetUncompressedSize());
     s.BindInt(5, attachment.GetCompressionType());
     s.Run();
   }
@@ -445,7 +445,7 @@ namespace Orthanc
 
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT fileType FROM AttachedFiles WHERE id=?");
-    s.BindInt(0, id);
+    s.BindInt64(0, id);
 
     while (s.Step())
     {
@@ -459,7 +459,7 @@ namespace Orthanc
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT uuid, uncompressedSize, compressionType, compressedSize FROM AttachedFiles WHERE id=? AND fileType=?");
-    s.BindInt(0, id);
+    s.BindInt64(0, id);
     s.BindInt(1, contentType);
 
     if (!s.Step())
@@ -484,7 +484,7 @@ namespace Orthanc
     for (size_t i = 0; i < flattened.GetSize(); i++)
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO MainDicomTags VALUES(?, ?, ?, ?)");
-      s.BindInt(0, id);
+      s.BindInt64(0, id);
       s.BindInt(1, flattened.GetElement(i).GetTag().GetGroup());
       s.BindInt(2, flattened.GetElement(i).GetTag().GetElement());
       s.BindString(3, flattened.GetElement(i).GetValue().AsString());
@@ -498,7 +498,7 @@ namespace Orthanc
     map.Clear();
 
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT * FROM MainDicomTags WHERE id=?");
-    s.BindInt(0, id);
+    s.BindInt64(0, id);
     while (s.Step())
     {
       map.SetValue(s.ColumnInt(1),
@@ -513,7 +513,7 @@ namespace Orthanc
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT a.publicId FROM Resources AS a, Resources AS b "
                         "WHERE a.internalId = b.parentId AND b.internalId = ?");     
-    s.BindInt(0, id);
+    s.BindInt64(0, id);
 
     if (s.Step())
     {
@@ -532,7 +532,7 @@ namespace Orthanc
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT a.publicId FROM Resources AS a, Resources AS b  "
                         "WHERE a.parentId = b.internalId AND b.internalId = ?");     
-    s.BindInt(0, id);
+    s.BindInt64(0, id);
 
     result.clear();
 
@@ -548,7 +548,7 @@ namespace Orthanc
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT a.internalId FROM Resources AS a, Resources AS b  "
                         "WHERE a.parentId = b.internalId AND b.internalId = ?");     
-    s.BindInt(0, id);
+    s.BindInt64(0, id);
 
     result.clear();
 
@@ -566,7 +566,7 @@ namespace Orthanc
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Changes VALUES(NULL, ?, ?, ?, ?)");
     s.BindInt(0, changeType);
-    s.BindInt(1, internalId);
+    s.BindInt64(1, internalId);
     s.BindInt(2, resourceType);
     s.BindString(3, boost::posix_time::to_iso_string(date));
     s.Run();      
@@ -614,7 +614,7 @@ namespace Orthanc
                                    unsigned int maxResults)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT * FROM Changes WHERE seq>? ORDER BY seq LIMIT ?");
-    s.BindInt(0, since);
+    s.BindInt64(0, since);
     s.BindInt(1, maxResults + 1);
     GetChangesInternal(target, s, since, maxResults);
   }
@@ -711,7 +711,7 @@ namespace Orthanc
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT * FROM ExportedResources WHERE seq>? ORDER BY seq LIMIT ?");
-    s.BindInt(0, since);
+    s.BindInt64(0, since);
     s.BindInt(1, maxResults + 1);
     GetExportedResources(target, s, since, maxResults);
   }
@@ -873,7 +873,7 @@ namespace Orthanc
     SQLite::Statement s(db_, SQLITE_FROM_HERE,
                         "SELECT patientId FROM PatientRecyclingOrder "
                         "WHERE patientId != ? ORDER BY seq ASC LIMIT 1");
-    s.BindInt(0, patientIdToAvoid);
+    s.BindInt64(0, patientIdToAvoid);
 
     if (!s.Step())
     {
@@ -891,7 +891,7 @@ namespace Orthanc
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE,
                         "SELECT * FROM PatientRecyclingOrder WHERE patientId = ?");
-    s.BindInt(0, internalId);
+    s.BindInt64(0, internalId);
     return !s.Step();
   }
 
@@ -901,13 +901,13 @@ namespace Orthanc
     if (isProtected)
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM PatientRecyclingOrder WHERE patientId=?");
-      s.BindInt(0, internalId);
+      s.BindInt64(0, internalId);
       s.Run();
     }
     else if (IsProtectedPatient(internalId))
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO PatientRecyclingOrder VALUES(NULL, ?)");
-      s.BindInt(0, internalId);
+      s.BindInt64(0, internalId);
       s.Run();
     }
     else
@@ -955,7 +955,7 @@ namespace Orthanc
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT * FROM Resources WHERE internalId=?");
-    s.BindInt(0, internalId);
+    s.BindInt64(0, internalId);
     return s.Step();
   }
 
