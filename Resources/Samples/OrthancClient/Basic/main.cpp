@@ -41,17 +41,17 @@ int main()
 
     for (unsigned int i = 0; i < orthanc.GetPatientCount(); i++)
     {
-      OrthancClient::Patient patient = orthanc.GetPatient(i);
+      OrthancClient::Patient patient(orthanc.GetPatient(i));
       std::cout << "Patient: " << patient.GetId() << std::endl;
 
       for (unsigned int j = 0; j < patient.GetStudyCount(); j++)
       {
-        OrthancClient::Study study = patient.GetStudy(j);
+        OrthancClient::Study study(patient.GetStudy(j));
         std::cout << "  Study: " << study.GetId() << std::endl;
 
         for (unsigned int k = 0; k < study.GetSeriesCount(); k++)
         {
-          OrthancClient::Series series = study.GetSeries(k);
+          OrthancClient::Series series(study.GetSeries(k));
           std::cout << "    Series: " << series.GetId() << std::endl;
 
           for (unsigned int l = 0; l < series.GetInstanceCount(); l++)
