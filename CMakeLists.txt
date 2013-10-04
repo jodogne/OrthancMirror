@@ -374,6 +374,11 @@ if (DOXYGEN_FOUND)
     COMMENT "Generating client documentation with Doxygen" VERBATIM
     )
 
+  install(
+    DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/OrthancClientDocumentation/doc/
+    DESTINATION share/doc/orthanc/OrthancClient
+    )
+
 else()
   message("Doxygen not found. The documentation will not be built.")
 endif()
