@@ -36,6 +36,11 @@
 
 namespace OrthancClient
 {
+  /**
+   * {summary}{Connection to a study stored in %Orthanc.}
+   * {description}{This class encapsulates a connection to a study
+   * from a remote instance of %Orthanc.}
+   **/
   class LAAW_API Study : 
     public Orthanc::IDynamicObject, 
     private Orthanc::ArrayFilledByThreads::IFiller
@@ -56,29 +61,58 @@ namespace OrthancClient
     virtual Orthanc::IDynamicObject* GetFillerItem(size_t index);
 
   public:
+    /**
+     * {summary}{Create a connection to some study.}
+     * {param}{connection The remote instance of %Orthanc.}
+     * {param}{id The %Orthanc identifier of the study.}
+     **/
     Study(const OrthancConnection& connection,
           const char* id);
 
+    /**
+     * {summary}{Reload the series of this study.}
+     * {description}{This method will reload the list of the series of this study. Pay attention to the fact that the series that have been previously returned by GetSeries() will be invalidated.}
+     **/
     void Reload()
     {
       series_.Reload();
     }
 
+    /**
+     * {summary}{Return the number of series for this study.}
+     * {returns}{The number of series.}
+     **/
     uint32_t GetSeriesCount()
     {
       return series_.GetSize();
     }
 
+    /**
+     * {summary}{Get some series of this study.}
+     * {description}{This method will return an object that contains information about some series. The series are indexed by a number between 0 (inclusive) and the result of GetSeriesCount() (exclusive).}
+     * {param}{index The index of the series of interest.}
+     * {returns}{The series.}
+     **/
     Series& GetSeries(uint32_t index)
     {
       return dynamic_cast<Series&>(series_.GetItem(index));
     }
-
+    
+    /**
+     * {summary}{Get the %Orthanc identifier of this study.}
+     * {returns}{The identifier.}
+     **/
     const char* GetId() const
     {
       return id_.c_str();
     }
 
+    /**
+     * {summary}{Get the value of one of the main DICOM tags for this study.}
+     * {param}{tag The name of the tag of interest ("StudyDate", "StudyDescription", "StudyInstanceUID" or "StudyTime").}
+     * {param}{defaultValue The default value to be returned if this tag does not exist.}
+     * {returns}{The value of the tag.}
+     **/
     const char* GetMainDicomTag(const char* tag, 
                                 const char* defaultValue) const;
   };

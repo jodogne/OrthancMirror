@@ -43,6 +43,11 @@ namespace OrthancClient
 {
   class OrthancConnection;
 
+  /**
+   * {summary}{Connection to an instance stored in %Orthanc.}
+   * {description}{This class encapsulates a connection to an image instance
+   * from a remote instance of %Orthanc.}
+   **/
   class LAAW_API Instance : public Orthanc::IDynamicObject
   {
   private:
@@ -58,46 +63,125 @@ namespace OrthancClient
     void DownloadDicom();
 
   public:
+     /**
+     * {summary}{Create a connection to some image instance.}
+     * {param}{connection The remote instance of %Orthanc.}
+     * {param}{id The %Orthanc identifier of the image instance.}
+     **/
     Instance(const OrthancConnection& connection,
              const char* id);
 
+    
+    /**
+     * {summary}{Get the %Orthanc identifier of this identifier.}
+     * {returns}{The identifier.}
+     **/
     const char* GetId() const
     {
       return id_.c_str();
     }
 
+
+    /**
+     * {summary}{Set the extraction mode for the 2D image corresponding to this instance.}
+     * {param}{mode The extraction mode.}
+     **/
     void SetImageExtractionMode(Orthanc::ImageExtractionMode mode);
 
+    /**
+     * {summary}{Get the extraction mode for the 2D image corresponding to this instance.}
+     * {returns}{The extraction mode.}
+     **/
     Orthanc::ImageExtractionMode GetImageExtractionMode() const
     {
       return mode_;
     }
 
+    
+    /**
+     * {summary}{Get the string value of some DICOM tag of this instance.}
+     * {param}{tag The name of the tag of interest.}
+     * {returns}{The value of the tag.}
+     **/
     const char* GetTagAsString(const char* tag) const;
 
+    /**
+     * {summary}{Get the floating point value that is stored in some DICOM tag of this instance.}
+     * {param}{tag The name of the tag of interest.}
+     * {returns}{The value of the tag.}
+     **/
     float GetTagAsFloat(const char* tag) const;
 
+    /**
+     * {summary}{Get the integer value that is stored in some DICOM tag of this instance.}
+     * {param}{tag The name of the tag of interest.}
+     * {returns}{The value of the tag.}
+     **/
     int32_t GetTagAsInt(const char* tag) const;
 
+    
+    /**
+     * {summary}{Get the width of the 2D image.}
+     * {description}{Get the width of the 2D image that is encoded by this DICOM instance.}
+     * {returns}{The width.}
+     **/
     uint32_t GetWidth();
 
+    /**
+     * {summary}{Get the height of the 2D image.}
+     * {description}{Get the height of the 2D image that is encoded by this DICOM instance.}
+     * {returns}{The height.}
+     **/
     uint32_t GetHeight();
 
+    /**
+     * {summary}{Get the number of bytes between two lines of the image (pitch).}
+     * {description}{Get the number of bytes between two lines of the image in the memory buffer returned by GetBuffer(). This value depends on the extraction mode for the image.}
+     * {returns}{The pitch.}
+     **/
     uint32_t GetPitch();
 
+    /**
+     * {summary}{Get the format of the pixels of the 2D image.}
+     * {description}{Return the memory layout that is used for the 2D image that is encoded by this DICOM instance. This value depends on the extraction mode for the image.}
+     * {returns}{The pixel format.}
+     **/
     Orthanc::PixelFormat GetPixelFormat();
 
+    /**
+     * {summary}{Access the memory buffer in which the raw pixels of the 2D image are stored.}
+     * {returns}{A pointer to the memory buffer.}
+     **/
     const void* GetBuffer();
 
+    /**
+     * {summary}{Access the memory buffer in which the raw pixels of some line of the 2D image are stored.}
+     * {param}{y The line of interest.}
+     * {returns}{A pointer to the memory buffer.}
+     **/
     const void* GetBuffer(uint32_t y);
 
-    void DiscardImage();
-
-    void DiscardDicom();
-
+    /**
+     * {summary}{Get the size of the DICOM file corresponding to this instance.}
+     * {returns}{The file size.}
+     **/
     const uint64_t GetDicomSize();
 
+    /**
+     * {summary}{Get a pointer to the content of the DICOM file corresponding to this instance.}
+     * {returns}{The DICOM file.}
+     **/
     const void* GetDicom();
+
+    /**
+     * {summary}{Discard the downloaded 2D image, so as to make room in memory.}
+     **/
+    void DiscardImage();
+
+    /**
+     * {summary}{Discard the downloaded DICOM file, so as to make room in memory.}
+     **/
+    void DiscardDicom();
 
     LAAW_API_INTERNAL void SplitVectorOfFloats(std::vector<float>& target,
                                                const char* tag);

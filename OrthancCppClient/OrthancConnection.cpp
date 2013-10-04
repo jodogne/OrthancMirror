@@ -96,7 +96,7 @@ namespace OrthancClient
       throw OrthancClientException(Orthanc::ErrorCode_NetworkProtocol);
     }
     
-    Refresh();
+    Reload();
   }
 
 

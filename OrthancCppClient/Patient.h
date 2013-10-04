@@ -36,6 +36,11 @@
 
 namespace OrthancClient
 {
+  /**
+   * {summary}{Connection to a patient stored in %Orthanc.}
+   * {description}{This class encapsulates a connection to a patient
+   * from a remote instance of %Orthanc.}
+   **/
   class LAAW_API Patient : 
     public Orthanc::IDynamicObject, 
     private Orthanc::ArrayFilledByThreads::IFiller
@@ -56,29 +61,58 @@ namespace OrthancClient
     virtual Orthanc::IDynamicObject* GetFillerItem(size_t index);
 
   public:
+    /**
+     * {summary}{Create a connection to some patient.}
+     * {param}{connection The remote instance of %Orthanc.}
+     * {param}{id The %Orthanc identifier of the patient.}
+     **/
     Patient(const OrthancConnection& connection,
             const char* id);
 
+    /**
+     * {summary}{Reload the studies of this patient.}
+     * {description}{This method will reload the list of the studies of this patient. Pay attention to the fact that the studies that have been previously returned by GetStudy() will be invalidated.}
+     **/
     void Reload()
     {
       studies_.Reload();
     }
 
+    /**
+     * {summary}{Return the number of studies for this patient.}
+     * {returns}{The number of studies.}
+     **/
     uint32_t GetStudyCount()
     {
       return studies_.GetSize();
     }
 
+    /**
+     * {summary}{Get some study of this patient.}
+     * {description}{This method will return an object that contains information about some study. The studies are indexed by a number between 0 (inclusive) and the result of GetStudyCount() (exclusive).}
+     * {param}{index The index of the study of interest.}
+     * {returns}{The study.}
+     **/
     Study& GetStudy(uint32_t index)
     {
       return dynamic_cast<Study&>(studies_.GetItem(index));
     }
 
+    /**
+     * {summary}{Get the %Orthanc identifier of this patient.}
+     * {returns}{The identifier.}
+     **/
     const char* GetId() const
     {
       return id_.c_str();
     }
 
+    /**
+     * {summary}{Get the value of one of the main DICOM tags for this patient.}
+     * {param}{tag The name of the tag of interest ("PatientName", "PatientID", "PatientSex" or "PatientBirthDate").}
+     * {param}{defaultValue The default value to be returned if this tag does not exist.}
+     * {returns}{The value of the tag.}
+     **/
     const char* GetMainDicomTag(const char* tag, 
                                 const char* defaultValue) const;
 

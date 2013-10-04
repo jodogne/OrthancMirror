@@ -40,7 +40,7 @@ namespace OrthancClient
 {
   /**
    * {summary}{Connection to an instance of %Orthanc.}
-   * {description}{This class encapsulates a connection to an instance
+   * {description}{This class encapsulates a connection to a remote instance
    * of %Orthanc through its REST API.}
    **/  
   class LAAW_API OrthancConnection : 
@@ -108,10 +108,10 @@ namespace OrthancClient
     }
 
     /**
-     * {summary}{Refresh the list of the patients.}
+     * {summary}{Reload the list of the patients.}
      * {description}{This method will reload the list of the patients from the remote instance of %Orthanc. Pay attention to the fact that the patients that have been previously returned by GetPatient() will be invalidated.}
      **/
-    void Refresh()
+    void Reload()
     {
       ReadPatients();
       patients_.Invalidate();
@@ -159,7 +159,7 @@ namespace OrthancClient
     void DeletePatient(uint32_t index)
     {
       GetPatient(index).Delete();
-      Refresh();
+      Reload();
     }
 
     /**
