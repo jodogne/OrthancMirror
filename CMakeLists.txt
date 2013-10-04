@@ -361,23 +361,30 @@ if (DOXYGEN_FOUND)
     ${CMAKE_CURRENT_BINARY_DIR}/Orthanc.doxygen
     @ONLY)
 
-  configure_file(
-    ${CMAKE_SOURCE_DIR}/Resources/OrthancClient.doxygen
-    ${CMAKE_CURRENT_BINARY_DIR}/OrthancClient.doxygen
-    @ONLY)
-
   add_custom_target(doc
     ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Orthanc.doxygen
-    COMMAND
-    ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/OrthancClient.doxygen
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMENT "Generating client documentation with Doxygen" VERBATIM
+    COMMENT "Generating internal documentation with Doxygen" VERBATIM
     )
 
-  install(
-    DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/OrthancClientDocumentation/doc/
-    DESTINATION share/doc/orthanc/OrthancClient
-    )
+  if (BUILD_CLIENT_LIBRARY)
+    configure_file(
+      ${CMAKE_SOURCE_DIR}/Resources/OrthancClient.doxygen
+      ${CMAKE_CURRENT_BINARY_DIR}/OrthancClient.doxygen
+      @ONLY)
+
+    add_custom_command(TARGET OrthancClient 
+      POST_BUILD
+      COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/OrthancClient.doxygen
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+      COMMENT "Generating client documentation with Doxygen" VERBATIM
+      )
+
+    install(
+      DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/OrthancClientDocumentation/doc/
+      DESTINATION share/doc/orthanc/OrthancClient
+      )
+  endif()
 
 else()
   message("Doxygen not found. The documentation will not be built.")
