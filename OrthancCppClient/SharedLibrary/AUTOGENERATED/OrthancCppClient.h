@@ -310,6 +310,11 @@ class Library
 }}
 
 
+/*!
+ * \addtogroup Global Global definitions.
+ * @{
+ * @}
+ */
 
 
 namespace OrthancClient { 
@@ -389,7 +394,7 @@ void ::OrthancClient::Internals::Library::LoadFunctions()
   functionsIndex_[60] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_FreeString", "4");
   functionsIndex_[3] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_557aee7b61817292a0f31269d3c35db7", "8");
   functionsIndex_[4] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_0b8dff0ce67f10954a49b059e348837e", "8");
-  functionsIndex_[5] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_d7497fd24e4b453f2965bae9ef8330b0", "4");
+  functionsIndex_[5] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_e05097c153f676e5a5ee54dcfc78256f", "4");
   functionsIndex_[6] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_e840242bf58d17d3c1d722da09ce88e0", "8");
   functionsIndex_[7] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_c9af31433001b5dfc012a552dc6d0050", "8");
   functionsIndex_[8] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_3fba4d6b818180a44cd1cae6046334dc", "12");
@@ -407,17 +412,17 @@ void ::OrthancClient::Internals::Library::LoadFunctions()
   functionsIndex_[12] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_6cf0d7268667f9b0aa4511bacf184919", "12");
   functionsIndex_[13] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_7d81cd502ee27e859735d0ea7112b5a1", "4");
   functionsIndex_[21] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_48a2a1a9d68c047e22bfba23014643d2", "4");
-  functionsIndex_[22] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_152cb1b704c053d24b0dab7461ba6ea3", "8");
-  functionsIndex_[23] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_852bf8296ca21c5fde5ec565cc10721d", "8");
-  functionsIndex_[24] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_efd04574e0779faa83df1f2d8f9888db", "12");
-  functionsIndex_[25] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_736247ff5e8036dac38163da6f666ed5", "8");
-  functionsIndex_[26] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_d82d2598a7a73f4b6fcc0c09c25b08ca", "8");
-  functionsIndex_[27] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_eee03f337ec81d9f1783cd41e5238757", "8");
-  functionsIndex_[28] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_006f08237bd7611636fc721baebfb4c5", "8");
-  functionsIndex_[29] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_b794f5cd3dad7d7b575dd1fd902afdd0", "8");
-  functionsIndex_[30] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_8ee2e50dd9df8f66a3c1766090dd03ab", "8");
-  functionsIndex_[31] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_046aed35bbe4751691f4c34cc249a61d", "8");
-  functionsIndex_[32] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_88134b978f9acb2aecdadf54aeab3c64", "16");
+  functionsIndex_[22] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_852bf8296ca21c5fde5ec565cc10721d", "8");
+  functionsIndex_[23] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_efd04574e0779faa83df1f2d8f9888db", "12");
+  functionsIndex_[24] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_736247ff5e8036dac38163da6f666ed5", "8");
+  functionsIndex_[25] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_d82d2598a7a73f4b6fcc0c09c25b08ca", "8");
+  functionsIndex_[26] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_88134b978f9acb2aecdadf54aeab3c64", "16");
+  functionsIndex_[27] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_152cb1b704c053d24b0dab7461ba6ea3", "8");
+  functionsIndex_[28] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_eee03f337ec81d9f1783cd41e5238757", "8");
+  functionsIndex_[29] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_006f08237bd7611636fc721baebfb4c5", "8");
+  functionsIndex_[30] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_b794f5cd3dad7d7b575dd1fd902afdd0", "8");
+  functionsIndex_[31] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_8ee2e50dd9df8f66a3c1766090dd03ab", "8");
+  functionsIndex_[32] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_046aed35bbe4751691f4c34cc249a61d", "8");
   functionsIndex_[33] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_4dcc7a0fd025efba251ac6e9b701c2c5", "28");
   functionsIndex_[34] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_b2601a161c24ad0a1d3586246f87452c", "32");
   functionsIndex_[19] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_193599b9e345384fcdfcd47c29c55342", "12");
@@ -441,10 +446,10 @@ void ::OrthancClient::Internals::Library::LoadFunctions()
   functionsIndex_[53] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_c41c742b68617f1c0590577a0a5ebc0c", "8");
   functionsIndex_[54] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_142dd2feba0fc1d262bbd0baeb441a8b", "8");
   functionsIndex_[55] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_5f5c9f81a4dff8daa6c359f1d0488fef", "12");
-  functionsIndex_[56] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_c0f494b80d4ff8b232df7a75baa0700a", "4");
-  functionsIndex_[57] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_d604f44bd5195e082e745e9cbc164f4c", "4");
-  functionsIndex_[58] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_9ca979fffd08fa256306d4e68d8b0e91", "8");
-  functionsIndex_[59] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_6f2d77a26edc91c28d89408dbc3c271e", "8");
+  functionsIndex_[56] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_9ca979fffd08fa256306d4e68d8b0e91", "8");
+  functionsIndex_[57] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_6f2d77a26edc91c28d89408dbc3c271e", "8");
+  functionsIndex_[58] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_c0f494b80d4ff8b232df7a75baa0700a", "4");
+  functionsIndex_[59] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_d604f44bd5195e082e745e9cbc164f4c", "4");
   functionsIndex_[42] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_6c5ad02f91b583e29cebd0bd319ce21d", "12");
   functionsIndex_[43] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_4068241c44a9c1367fe0e57be523f207", "4");
   
@@ -484,22 +489,84 @@ namespace OrthancClient
 
 namespace Orthanc
 {
+  /**
+  * @brief The memory layout of the pixels (resp. voxels) of a 2D (resp. 3D) image.
+  *
+  * The memory layout of the pixels (resp. voxels) of a 2D (resp. 3D) image.
+  *
+  * @ingroup Global
+  **/
   enum PixelFormat
   {
+    /**
+    * @brief Graylevel, signed 16bpp image.
+    *
+    * The image is graylevel. Each pixel is signed and stored in two bytes.
+    *
+    **/
     PixelFormat_SignedGrayscale16 = 3,
+    /**
+    * @brief Color image in RGB24 format.
+    *
+    * Color image in RGB24 format.
+    *
+    **/
     PixelFormat_RGB24 = 0,
+    /**
+    * @brief Graylevel 8bpp image.
+    *
+    * The image is graylevel. Each pixel is unsigned and stored in one byte.
+    *
+    **/
     PixelFormat_Grayscale8 = 1,
+    /**
+    * @brief Graylevel, unsigned 16bpp image.
+    *
+    * The image is graylevel. Each pixel is unsigned and stored in two bytes.
+    *
+    **/
     PixelFormat_Grayscale16 = 2
   };
 }
 
 namespace Orthanc
 {
+  /**
+  * @brief The extraction mode specifies the way the values of the pixels are scaled when downloading a 2D image.
+  *
+  * The extraction mode specifies the way the values of the pixels are scaled when downloading a 2D image.
+  *
+  * @ingroup Global
+  **/
   enum ImageExtractionMode
   {
+    /**
+    * @brief Truncation to the [-32768, 32767] range.
+    *
+    * Truncation to the [-32768, 32767] range.
+    *
+    **/
     ImageExtractionMode_Int16 = 3,
+    /**
+    * @brief Rescaled to 8bpp.
+    *
+    * The minimum value of the image is set to 0, and its maximum value is set to 255.
+    *
+    **/
     ImageExtractionMode_Preview = 0,
+    /**
+    * @brief Truncation to the [0, 255] range.
+    *
+    * Truncation to the [0, 255] range.
+    *
+    **/
     ImageExtractionMode_UInt8 = 1,
+    /**
+    * @brief Truncation to the [0, 65535] range.
+    *
+    * Truncation to the [0, 65535] range.
+    *
+    **/
     ImageExtractionMode_UInt16 = 2
   };
 }
@@ -509,7 +576,7 @@ namespace OrthancClient
   /**
   * @brief Connection to an instance of %Orthanc.
   *
-  * This class encapsulates a connection to an instance of %Orthanc through its REST API.
+  * This class encapsulates a connection to a remote instance of %Orthanc through its REST API.
   *
   **/
   class OrthancConnection
@@ -537,7 +604,7 @@ namespace OrthancClient
     inline ~OrthancConnection();
     inline LAAW_UINT32 GetThreadCount() const;
     inline void SetThreadCount(LAAW_UINT32 threadCount);
-    inline void Refresh();
+    inline void Reload();
     inline ::std::string GetOrthancUrl() const;
     inline LAAW_UINT32 GetPatientCount();
     inline ::OrthancClient::Patient GetPatient(LAAW_UINT32 index);
@@ -549,6 +616,12 @@ namespace OrthancClient
 
 namespace OrthancClient
 {
+  /**
+  * @brief Connection to a patient stored in %Orthanc.
+  *
+  * This class encapsulates a connection to a patient from a remote instance of %Orthanc.
+  *
+  **/
   class Patient
   {
     friend class ::OrthancClient::OrthancConnection;
@@ -581,6 +654,12 @@ namespace OrthancClient
 
 namespace OrthancClient
 {
+  /**
+  * @brief Connection to a series stored in %Orthanc.
+  *
+  * This class encapsulates a connection to a series from a remote instance of %Orthanc.
+  *
+  **/
   class Series
   {
     friend class ::OrthancClient::OrthancConnection;
@@ -604,17 +683,17 @@ namespace OrthancClient
     inline Series(::OrthancClient::OrthancConnection& connection, const ::std::string& id);
     inline ~Series();
     inline void Reload();
-    inline bool Is3DImage();
     inline LAAW_UINT32 GetInstanceCount();
     inline ::OrthancClient::Instance GetInstance(LAAW_UINT32 index);
     inline ::std::string GetId() const;
     inline ::std::string GetUrl() const;
+    inline ::std::string GetMainDicomTag(const ::std::string& tag, const ::std::string& defaultValue) const;
+    inline bool Is3DImage();
     inline LAAW_UINT32 GetWidth();
     inline LAAW_UINT32 GetHeight();
     inline float GetVoxelSizeX();
     inline float GetVoxelSizeY();
     inline float GetVoxelSizeZ();
-    inline ::std::string GetMainDicomTag(const ::std::string& tag, const ::std::string& defaultValue) const;
     inline void Load3DImage(void* target, ::Orthanc::PixelFormat format, LAAW_INT64 lineStride, LAAW_INT64 stackStride);
     inline void Load3DImage(void* target, ::Orthanc::PixelFormat format, LAAW_INT64 lineStride, LAAW_INT64 stackStride, float progress[]);
   };
@@ -622,6 +701,12 @@ namespace OrthancClient
 
 namespace OrthancClient
 {
+  /**
+  * @brief Connection to a study stored in %Orthanc.
+  *
+  * This class encapsulates a connection to a study from a remote instance of %Orthanc.
+  *
+  **/
   class Study
   {
     friend class ::OrthancClient::OrthancConnection;
@@ -654,6 +739,12 @@ namespace OrthancClient
 
 namespace OrthancClient
 {
+  /**
+  * @brief Connection to an instance stored in %Orthanc.
+  *
+  * This class encapsulates a connection to an image instance from a remote instance of %Orthanc.
+  *
+  **/
   class Instance
   {
     friend class ::OrthancClient::OrthancConnection;
@@ -688,10 +779,10 @@ namespace OrthancClient
     inline ::Orthanc::PixelFormat GetPixelFormat();
     inline const void* GetBuffer();
     inline const void* GetBuffer(LAAW_UINT32 y);
-    inline void DiscardImage();
-    inline void DiscardDicom();
     inline LAAW_UINT64 GetDicomSize();
     inline const void* GetDicom();
+    inline void DiscardImage();
+    inline void DiscardDicom();
   };
 }
 
@@ -774,12 +865,12 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
   /**
-  * @brief Refresh the list of the patients.
+  * @brief Reload the list of the patients.
   *
   * This method will reload the list of the patients from the remote instance of %Orthanc. Pay attention to the fact that the patients that have been previously returned by GetPatient() will be invalidated.
   *
   **/
-  inline void OrthancConnection::Refresh()
+  inline void OrthancConnection::Reload()
   {
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*);
     Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(5);
@@ -883,6 +974,14 @@ namespace OrthancClient
 
 namespace OrthancClient
 {
+  /**
+  * @brief Create a connection to some patient.
+  *
+  * Create a connection to some patient.
+  *
+  * @param connection The remote instance of %Orthanc.
+  * @param id The %Orthanc identifier of the patient.
+  **/
   inline Patient::Patient(::OrthancClient::OrthancConnection& connection, const ::std::string& id)
   {
     isReference_ = false;
@@ -905,6 +1004,12 @@ namespace OrthancClient
     char* error = function(pimpl_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
+  /**
+  * @brief Reload the studies of this patient.
+  *
+  * This method will reload the list of the studies of this patient. Pay attention to the fact that the studies that have been previously returned by GetStudy() will be invalidated.
+  *
+  **/
   inline void Patient::Reload()
   {
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*);
@@ -912,6 +1017,13 @@ namespace OrthancClient
     char* error = function(pimpl_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
+  /**
+  * @brief Return the number of studies for this patient.
+  *
+  * Return the number of studies for this patient.
+  *
+  * @return The number of studies.
+  **/
   inline LAAW_UINT32 Patient::GetStudyCount()
   {
     LAAW_UINT32 result_;
@@ -921,6 +1033,14 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return result_;
   }
+  /**
+  * @brief Get some study of this patient.
+  *
+  * This method will return an object that contains information about some study. The studies are indexed by a number between 0 (inclusive) and the result of GetStudyCount() (exclusive).
+  *
+  * @param index The index of the study of interest.
+  * @return The study.
+  **/
   inline ::OrthancClient::Study Patient::GetStudy(LAAW_UINT32 index)
   {
     void* result_;
@@ -930,6 +1050,13 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return ::OrthancClient::Study(result_);
   }
+  /**
+  * @brief Get the %Orthanc identifier of this patient.
+  *
+  * Get the %Orthanc identifier of this patient.
+  *
+  * @return The identifier.
+  **/
   inline ::std::string Patient::GetId() const
   {
     const char* result_;
@@ -939,6 +1066,15 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return std::string(result_);
   }
+  /**
+  * @brief Get the value of one of the main DICOM tags for this patient.
+  *
+  * Get the value of one of the main DICOM tags for this patient.
+  *
+  * @param tag The name of the tag of interest ("PatientName", "PatientID", "PatientSex" or "PatientBirthDate").
+  * @param defaultValue The default value to be returned if this tag does not exist.
+  * @return The value of the tag.
+  **/
   inline ::std::string Patient::GetMainDicomTag(const ::std::string& tag, const ::std::string& defaultValue) const
   {
     const char* result_;
@@ -952,6 +1088,14 @@ namespace OrthancClient
 
 namespace OrthancClient
 {
+  /**
+  * @brief Create a connection to some series.
+  *
+  * Create a connection to some series.
+  *
+  * @param connection The remote instance of %Orthanc.
+  * @param id The %Orthanc identifier of the series.
+  **/
   inline Series::Series(::OrthancClient::OrthancConnection& connection, const ::std::string& id)
   {
     isReference_ = false;
@@ -974,6 +1118,12 @@ namespace OrthancClient
     char* error = function(pimpl_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
+  /**
+  * @brief Reload the instances of this series.
+  *
+  * This method will reload the list of the instances of this series. Pay attention to the fact that the instances that have been previously returned by GetInstance() will be invalidated.
+  *
+  **/
   inline void Series::Reload()
   {
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*);
@@ -981,34 +1131,63 @@ namespace OrthancClient
     char* error = function(pimpl_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
-  inline bool Series::Is3DImage()
-  {
-    LAAW_INT32 result_;
-    typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, LAAW_INT32*);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(22);
-    char* error = function(pimpl_, &result_);
-    ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
-    return result_ != 0;
-  }
+  /**
+  * @brief Return the number of instances for this series.
+  *
+  * Return the number of instances for this series.
+  *
+  * @return The number of instances.
+  **/
   inline LAAW_UINT32 Series::GetInstanceCount()
   {
     LAAW_UINT32 result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, LAAW_UINT32*);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(23);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(22);
     char* error = function(pimpl_, &result_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return result_;
   }
+  /**
+  * @brief Get some instance of this series.
+  *
+  * This method will return an object that contains information about some instance. The instances are indexed by a number between 0 (inclusive) and the result of GetInstanceCount() (exclusive).
+  *
+  * @param index The index of the instance of interest.
+  * @return The instance.
+  **/
   inline ::OrthancClient::Instance Series::GetInstance(LAAW_UINT32 index)
   {
     void* result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, void**, LAAW_UINT32);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(24);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(23);
     char* error = function(pimpl_, &result_, index);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return ::OrthancClient::Instance(result_);
   }
+  /**
+  * @brief Get the %Orthanc identifier of this series.
+  *
+  * Get the %Orthanc identifier of this series.
+  *
+  * @return The identifier.
+  **/
   inline ::std::string Series::GetId() const
+  {
+    const char* result_;
+    typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (const void*, const char**);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(24);
+    char* error = function(pimpl_, &result_);
+    ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
+    return std::string(result_);
+  }
+  /**
+  * @brief Returns the URL to this series.
+  *
+  * Returns the URL to this series.
+  *
+  * @return The URL.
+  **/
+  inline ::std::string Series::GetUrl() const
   {
     const char* result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (const void*, const char**);
@@ -1017,25 +1196,48 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return std::string(result_);
   }
-  inline ::std::string Series::GetUrl() const
+  /**
+  * @brief Get the value of one of the main DICOM tags for this series.
+  *
+  * Get the value of one of the main DICOM tags for this series.
+  *
+  * @param tag The name of the tag of interest ("Modality", "Manufacturer", "SeriesDate", "SeriesDescription", "SeriesInstanceUID"...).
+  * @param defaultValue The default value to be returned if this tag does not exist.
+  * @return The value of the tag.
+  **/
+  inline ::std::string Series::GetMainDicomTag(const ::std::string& tag, const ::std::string& defaultValue) const
   {
     const char* result_;
-    typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (const void*, const char**);
+    typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (const void*, const char**, const char*, const char*);
     Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(26);
-    char* error = function(pimpl_, &result_);
+    char* error = function(pimpl_, &result_, tag.c_str(), defaultValue.c_str());
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return std::string(result_);
   }
-  inline LAAW_UINT32 Series::GetWidth()
+  /**
+  * @brief Test whether this series encodes a 3D image that can be downloaded from %Orthanc.
+  *
+  * Test whether this series encodes a 3D image that can be downloaded from %Orthanc.
+  *
+  * @return "true" if and only if this is a 3D image.
+  **/
+  inline bool Series::Is3DImage()
   {
-    LAAW_UINT32 result_;
-    typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, LAAW_UINT32*);
+    LAAW_INT32 result_;
+    typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, LAAW_INT32*);
     Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(27);
     char* error = function(pimpl_, &result_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
-    return result_;
+    return result_ != 0;
   }
-  inline LAAW_UINT32 Series::GetHeight()
+  /**
+  * @brief Get the width of the 3D image.
+  *
+  * Get the width of the 3D image (i.e. along the X-axis). This call is only valid if this series corresponds to a 3D image.
+  *
+  * @return The width.
+  **/
+  inline LAAW_UINT32 Series::GetWidth()
   {
     LAAW_UINT32 result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, LAAW_UINT32*);
@@ -1044,16 +1246,30 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return result_;
   }
-  inline float Series::GetVoxelSizeX()
+  /**
+  * @brief Get the height of the 3D image.
+  *
+  * Get the height of the 3D image (i.e. along the Y-axis). This call is only valid if this series corresponds to a 3D image.
+  *
+  * @return The height.
+  **/
+  inline LAAW_UINT32 Series::GetHeight()
   {
-    float result_;
-    typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, float*);
+    LAAW_UINT32 result_;
+    typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, LAAW_UINT32*);
     Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(29);
     char* error = function(pimpl_, &result_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return result_;
   }
-  inline float Series::GetVoxelSizeY()
+  /**
+  * @brief Get the physical size of a voxel along the X-axis.
+  *
+  * Get the physical size of a voxel along the X-axis. This call is only valid if this series corresponds to a 3D image.
+  *
+  * @return The voxel size.
+  **/
+  inline float Series::GetVoxelSizeX()
   {
     float result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, float*);
@@ -1062,7 +1278,14 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return result_;
   }
-  inline float Series::GetVoxelSizeZ()
+  /**
+  * @brief Get the physical size of a voxel along the Y-axis.
+  *
+  * Get the physical size of a voxel along the Y-axis. This call is only valid if this series corresponds to a 3D image.
+  *
+  * @return The voxel size.
+  **/
+  inline float Series::GetVoxelSizeY()
   {
     float result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, float*);
@@ -1071,15 +1294,32 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return result_;
   }
-  inline ::std::string Series::GetMainDicomTag(const ::std::string& tag, const ::std::string& defaultValue) const
+  /**
+  * @brief Get the physical size of a voxel along the Z-axis.
+  *
+  * Get the physical size of a voxel along the Z-axis. This call is only valid if this series corresponds to a 3D image.
+  *
+  * @return The voxel size.
+  **/
+  inline float Series::GetVoxelSizeZ()
   {
-    const char* result_;
-    typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (const void*, const char**, const char*, const char*);
+    float result_;
+    typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, float*);
     Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(32);
-    char* error = function(pimpl_, &result_, tag.c_str(), defaultValue.c_str());
+    char* error = function(pimpl_, &result_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
-    return std::string(result_);
+    return result_;
   }
+  /**
+  * @brief Load the 3D image into a memory buffer.
+  *
+  * Load the 3D image into a memory buffer. This call is only valid if this series corresponds to a 3D image. The "target" buffer must be wide enough to store all the voxels of the image.
+  *
+  * @param target The target memory buffer.
+  * @param format The memory layout of the voxels.
+  * @param lineStride The number of bytes between two lines in the target memory buffer.
+  * @param stackStride The number of bytes between two 2D slices in the target memory buffer.
+  **/
   inline void Series::Load3DImage(void* target, ::Orthanc::PixelFormat format, LAAW_INT64 lineStride, LAAW_INT64 stackStride)
   {
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, void*, LAAW_INT32, LAAW_INT64, LAAW_INT64);
@@ -1087,6 +1327,17 @@ namespace OrthancClient
     char* error = function(pimpl_, target, format, lineStride, stackStride);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
+  /**
+  * @brief Load the 3D image into a memory buffer.
+  *
+  * Load the 3D image into a memory buffer. This call is only valid if this series corresponds to a 3D image. The "target" buffer must be wide enough to store all the voxels of the image. This method will also update a progress indicator to monitor the loading of the image.
+  *
+  * @param target The target memory buffer.
+  * @param format The memory layout of the voxels.
+  * @param lineStride The number of bytes between two lines in the target memory buffer.
+  * @param stackStride The number of bytes between two 2D slices in the target memory buffer.
+  * @param progress A pointer to a floating-point number that is continuously updated by the download threads to reflect the percentage of completion (between 0 and 1). This value can be read from a separate thread.
+  **/
   inline void Series::Load3DImage(void* target, ::Orthanc::PixelFormat format, LAAW_INT64 lineStride, LAAW_INT64 stackStride, float progress[])
   {
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, void*, LAAW_INT32, LAAW_INT64, LAAW_INT64, float*);
@@ -1098,6 +1349,14 @@ namespace OrthancClient
 
 namespace OrthancClient
 {
+  /**
+  * @brief Create a connection to some study.
+  *
+  * Create a connection to some study.
+  *
+  * @param connection The remote instance of %Orthanc.
+  * @param id The %Orthanc identifier of the study.
+  **/
   inline Study::Study(::OrthancClient::OrthancConnection& connection, const ::std::string& id)
   {
     isReference_ = false;
@@ -1120,6 +1379,12 @@ namespace OrthancClient
     char* error = function(pimpl_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
+  /**
+  * @brief Reload the series of this study.
+  *
+  * This method will reload the list of the series of this study. Pay attention to the fact that the series that have been previously returned by GetSeries() will be invalidated.
+  *
+  **/
   inline void Study::Reload()
   {
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*);
@@ -1127,6 +1392,13 @@ namespace OrthancClient
     char* error = function(pimpl_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
+  /**
+  * @brief Return the number of series for this study.
+  *
+  * Return the number of series for this study.
+  *
+  * @return The number of series.
+  **/
   inline LAAW_UINT32 Study::GetSeriesCount()
   {
     LAAW_UINT32 result_;
@@ -1136,6 +1408,14 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return result_;
   }
+  /**
+  * @brief Get some series of this study.
+  *
+  * This method will return an object that contains information about some series. The series are indexed by a number between 0 (inclusive) and the result of GetSeriesCount() (exclusive).
+  *
+  * @param index The index of the series of interest.
+  * @return The series.
+  **/
   inline ::OrthancClient::Series Study::GetSeries(LAAW_UINT32 index)
   {
     void* result_;
@@ -1145,6 +1425,13 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return ::OrthancClient::Series(result_);
   }
+  /**
+  * @brief Get the %Orthanc identifier of this study.
+  *
+  * Get the %Orthanc identifier of this study.
+  *
+  * @return The identifier.
+  **/
   inline ::std::string Study::GetId() const
   {
     const char* result_;
@@ -1154,6 +1441,15 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return std::string(result_);
   }
+  /**
+  * @brief Get the value of one of the main DICOM tags for this study.
+  *
+  * Get the value of one of the main DICOM tags for this study.
+  *
+  * @param tag The name of the tag of interest ("StudyDate", "StudyDescription", "StudyInstanceUID" or "StudyTime").
+  * @param defaultValue The default value to be returned if this tag does not exist.
+  * @return The value of the tag.
+  **/
   inline ::std::string Study::GetMainDicomTag(const ::std::string& tag, const ::std::string& defaultValue) const
   {
     const char* result_;
@@ -1167,6 +1463,14 @@ namespace OrthancClient
 
 namespace OrthancClient
 {
+  /**
+  * @brief Create a connection to some image instance.
+  *
+  * Create a connection to some image instance.
+  *
+  * @param connection The remote instance of %Orthanc.
+  * @param id The %Orthanc identifier of the image instance.
+  **/
   inline Instance::Instance(::OrthancClient::OrthancConnection& connection, const ::std::string& id)
   {
     isReference_ = false;
@@ -1189,6 +1493,13 @@ namespace OrthancClient
     char* error = function(pimpl_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
+  /**
+  * @brief Get the %Orthanc identifier of this identifier.
+  *
+  * Get the %Orthanc identifier of this identifier.
+  *
+  * @return The identifier.
+  **/
   inline ::std::string Instance::GetId() const
   {
     const char* result_;
@@ -1198,6 +1509,13 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return std::string(result_);
   }
+  /**
+  * @brief Set the extraction mode for the 2D image corresponding to this instance.
+  *
+  * Set the extraction mode for the 2D image corresponding to this instance.
+  *
+  * @param mode The extraction mode.
+  **/
   inline void Instance::SetImageExtractionMode(::Orthanc::ImageExtractionMode mode)
   {
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, LAAW_INT32);
@@ -1205,6 +1523,13 @@ namespace OrthancClient
     char* error = function(pimpl_, mode);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
+  /**
+  * @brief Get the extraction mode for the 2D image corresponding to this instance.
+  *
+  * Get the extraction mode for the 2D image corresponding to this instance.
+  *
+  * @return The extraction mode.
+  **/
   inline ::Orthanc::ImageExtractionMode Instance::GetImageExtractionMode() const
   {
     LAAW_INT32 result_;
@@ -1214,6 +1539,14 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return static_cast< ::Orthanc::ImageExtractionMode >(result_);
   }
+  /**
+  * @brief Get the string value of some DICOM tag of this instance.
+  *
+  * Get the string value of some DICOM tag of this instance.
+  *
+  * @param tag The name of the tag of interest.
+  * @return The value of the tag.
+  **/
   inline ::std::string Instance::GetTagAsString(const ::std::string& tag) const
   {
     const char* result_;
@@ -1223,6 +1556,14 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return std::string(result_);
   }
+  /**
+  * @brief Get the floating point value that is stored in some DICOM tag of this instance.
+  *
+  * Get the floating point value that is stored in some DICOM tag of this instance.
+  *
+  * @param tag The name of the tag of interest.
+  * @return The value of the tag.
+  **/
   inline float Instance::GetTagAsFloat(const ::std::string& tag) const
   {
     float result_;
@@ -1232,6 +1573,14 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return result_;
   }
+  /**
+  * @brief Get the integer value that is stored in some DICOM tag of this instance.
+  *
+  * Get the integer value that is stored in some DICOM tag of this instance.
+  *
+  * @param tag The name of the tag of interest.
+  * @return The value of the tag.
+  **/
   inline LAAW_INT32 Instance::GetTagAsInt(const ::std::string& tag) const
   {
     LAAW_INT32 result_;
@@ -1241,6 +1590,13 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return result_;
   }
+  /**
+  * @brief Get the width of the 2D image.
+  *
+  * Get the width of the 2D image that is encoded by this DICOM instance.
+  *
+  * @return The width.
+  **/
   inline LAAW_UINT32 Instance::GetWidth()
   {
     LAAW_UINT32 result_;
@@ -1250,6 +1606,13 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return result_;
   }
+  /**
+  * @brief Get the height of the 2D image.
+  *
+  * Get the height of the 2D image that is encoded by this DICOM instance.
+  *
+  * @return The height.
+  **/
   inline LAAW_UINT32 Instance::GetHeight()
   {
     LAAW_UINT32 result_;
@@ -1259,6 +1622,13 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return result_;
   }
+  /**
+  * @brief Get the number of bytes between two lines of the image (pitch).
+  *
+  * Get the number of bytes between two lines of the image in the memory buffer returned by GetBuffer(). This value depends on the extraction mode for the image.
+  *
+  * @return The pitch.
+  **/
   inline LAAW_UINT32 Instance::GetPitch()
   {
     LAAW_UINT32 result_;
@@ -1268,6 +1638,13 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return result_;
   }
+  /**
+  * @brief Get the format of the pixels of the 2D image.
+  *
+  * Return the memory layout that is used for the 2D image that is encoded by this DICOM instance. This value depends on the extraction mode for the image.
+  *
+  * @return The pixel format.
+  **/
   inline ::Orthanc::PixelFormat Instance::GetPixelFormat()
   {
     LAAW_INT32 result_;
@@ -1277,6 +1654,13 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return static_cast< ::Orthanc::PixelFormat >(result_);
   }
+  /**
+  * @brief Access the memory buffer in which the raw pixels of the 2D image are stored.
+  *
+  * Access the memory buffer in which the raw pixels of the 2D image are stored.
+  *
+  * @return A pointer to the memory buffer.
+  **/
   inline const void* Instance::GetBuffer()
   {
     const void* result_;
@@ -1286,6 +1670,14 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return reinterpret_cast< const void* >(result_);
   }
+  /**
+  * @brief Access the memory buffer in which the raw pixels of some line of the 2D image are stored.
+  *
+  * Access the memory buffer in which the raw pixels of some line of the 2D image are stored.
+  *
+  * @param y The line of interest.
+  * @return A pointer to the memory buffer.
+  **/
   inline const void* Instance::GetBuffer(LAAW_UINT32 y)
   {
     const void* result_;
@@ -1295,37 +1687,63 @@ namespace OrthancClient
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return reinterpret_cast< const void* >(result_);
   }
-  inline void Instance::DiscardImage()
-  {
-    typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(56);
-    char* error = function(pimpl_);
-    ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
-  }
-  inline void Instance::DiscardDicom()
-  {
-    typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(57);
-    char* error = function(pimpl_);
-    ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
-  }
+  /**
+  * @brief Get the size of the DICOM file corresponding to this instance.
+  *
+  * Get the size of the DICOM file corresponding to this instance.
+  *
+  * @return The file size.
+  **/
   inline LAAW_UINT64 Instance::GetDicomSize()
   {
     LAAW_UINT64 result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, LAAW_UINT64*);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(58);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(56);
     char* error = function(pimpl_, &result_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return result_;
   }
+  /**
+  * @brief Get a pointer to the content of the DICOM file corresponding to this instance.
+  *
+  * Get a pointer to the content of the DICOM file corresponding to this instance.
+  *
+  * @return The DICOM file.
+  **/
   inline const void* Instance::GetDicom()
   {
     const void* result_;
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, const void**);
-    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(59);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(57);
     char* error = function(pimpl_, &result_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
     return reinterpret_cast< const void* >(result_);
+  }
+  /**
+  * @brief Discard the downloaded 2D image, so as to make room in memory.
+  *
+  * Discard the downloaded 2D image, so as to make room in memory.
+  *
+  **/
+  inline void Instance::DiscardImage()
+  {
+    typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(58);
+    char* error = function(pimpl_);
+    ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
+  }
+  /**
+  * @brief Discard the downloaded DICOM file, so as to make room in memory.
+  *
+  * Discard the downloaded DICOM file, so as to make room in memory.
+  *
+  **/
+  inline void Instance::DiscardDicom()
+  {
+    typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(59);
+    char* error = function(pimpl_);
+    ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
   }
 }
 

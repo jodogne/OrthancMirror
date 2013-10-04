@@ -69,19 +69,62 @@ namespace Orthanc
     ErrorCode_FullStorage
   };
 
+  /**
+   * {summary}{The memory layout of the pixels (resp. voxels) of a 2D (resp. 3D) image.}
+   **/
   enum LAAW_API PixelFormat
   {
+    /**
+     * {summary}{Color image in RGB24 format.}
+     * {description}{This format describes a color image. The pixels are stored in 3
+     * consecutive bytes. The memory layout is RGB.
+     **/
     PixelFormat_RGB24,
+
+    /**
+     * {summary}{Graylevel 8bpp image.}
+     * {description}{The image is graylevel. Each pixel is unsigned and stored in one byte.}
+     **/
     PixelFormat_Grayscale8,
+      
+    /**
+     * {summary}{Graylevel, unsigned 16bpp image.}
+     * {description}{The image is graylevel. Each pixel is unsigned and stored in two bytes.}
+     **/
     PixelFormat_Grayscale16,
+      
+    /**
+     * {summary}{Graylevel, signed 16bpp image.}
+     * {description}{The image is graylevel. Each pixel is signed and stored in two bytes.}
+     **/
     PixelFormat_SignedGrayscale16
   };
 
+
+  /**
+   * {summary}{The extraction mode specifies the way the values of the pixels are scaled when downloading a 2D image.}
+   **/
   enum LAAW_API ImageExtractionMode
   {
+    /**
+     * {summary}{Rescaled to 8bpp.}
+     * {description}{The minimum value of the image is set to 0, and its maximum value is set to 255.}
+     **/
     ImageExtractionMode_Preview,
+
+    /**
+     * {summary}{Truncation to the [0, 255] range.}
+     **/
     ImageExtractionMode_UInt8,
+
+    /**
+     * {summary}{Truncation to the [0, 65535] range.}
+     **/
     ImageExtractionMode_UInt16,
+
+    /**
+     * {summary}{Truncation to the [-32768, 32767] range.}
+     **/
     ImageExtractionMode_Int16
   };
 
