@@ -3,9 +3,7 @@ cmake_minimum_required(VERSION 2.8)
 project(Orthanc)
 
 # Version of the build, should always be "mainline" except in release branches
-add_definitions(
-  -DORTHANC_VERSION="mainline"
-  )
+set(ORTHANC_VERSION "mainline")
 
 
 #####################################################################
@@ -119,6 +117,10 @@ endif()
 #####################################################################
 ## Build the core of Orthanc
 #####################################################################
+
+add_definitions(
+  -DORTHANC_VERSION="${ORTHANC_VERSION}"
+  )
 
 list(LENGTH OPENSSL_SOURCES OPENSSL_SOURCES_LENGTH)
 if (${OPENSSL_SOURCES_LENGTH} GREATER 0)
@@ -337,6 +339,18 @@ if (BUILD_CLIENT_LIBRARY)
     message(FATAL_ERROR "Support your platform here")
   endif()
 
+
+  # Set the version of the shared library for releases
+  string(REGEX MATCH "^[0-9]+\\.[0-9]+\\.[0-9]+$" ORTHANC_IS_RELEASE ${ORTHANC_VERSION})
+  if (ORTHANC_IS_RELEASE)
+    string(REGEX REPLACE "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$" "\\1.\\2" ORTHANC_RELEASE ${ORTHANC_VERSION})
+    message("This is a release build, setting the version of the library to ${ORTHANC_RELEASE}")
+    set_target_properties(OrthancClient PROPERTIES VERSION ${ORTHANC_RELEASE} SOVERSION ${ORTHANC_RELEASE})
+  else()
+    message("This is not a release build")
+  endif()
+
+
   install(
     TARGETS OrthancClient
     RUNTIME DESTINATION lib    # Destination for Windows
@@ -349,6 +363,8 @@ if (BUILD_CLIENT_LIBRARY)
     )
 endif()
 
+
+        
 
 #####################################################################
 ## Generate the documentation if Doxygen is present
