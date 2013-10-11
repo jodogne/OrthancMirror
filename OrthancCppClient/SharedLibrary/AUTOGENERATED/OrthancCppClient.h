@@ -81,9 +81,9 @@
 
 /* cf. http://sourceforge.net/p/predef/wiki/Architectures/ */
 #ifdef __amd64__
-#define LAAW_ORTHANC_CLIENT_DEFAULT_PATH  "libOrthancClient.so"
+#define LAAW_ORTHANC_CLIENT_DEFAULT_PATH  "libOrthancClient.so.0.6"
 #else
-#define LAAW_ORTHANC_CLIENT_DEFAULT_PATH  "libOrthancClient.so"
+#define LAAW_ORTHANC_CLIENT_DEFAULT_PATH  "libOrthancClient.so.0.6"
 #endif
 
 #define LAAW_ORTHANC_CLIENT_CALL_CONV

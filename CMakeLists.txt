@@ -340,15 +340,20 @@ if (BUILD_CLIENT_LIBRARY)
   endif()
 
 
-  # Set the version of the shared library for releases
-  string(REGEX MATCH "^[0-9]+\\.[0-9]+\\.[0-9]+$" ORTHANC_IS_RELEASE ${ORTHANC_VERSION})
-  if (ORTHANC_IS_RELEASE)
-    string(REGEX REPLACE "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$" "\\1.\\2" ORTHANC_RELEASE ${ORTHANC_VERSION})
-    message("This is a release build, setting the version of the library to ${ORTHANC_RELEASE}")
-    set_target_properties(OrthancClient PROPERTIES VERSION ${ORTHANC_RELEASE} SOVERSION ${ORTHANC_RELEASE})
-  else()
-    message("This is not a release build")
-  endif()
+  # Set the version of the "Orthanc Client" shared library
+  file(STRINGS
+    ${CMAKE_SOURCE_DIR}/OrthancCppClient/SharedLibrary/Product.json
+    ORTHANC_CLIENT_VERSION_TMP
+    REGEX "^[ \t]*\"Version\"[ \t]*")
+
+  string(REGEX REPLACE "^.*\"([0-9]+)\\.([0-9]+)\\.([0-9]+)\"" "\\1.\\2" 
+    ORTHANC_CLIENT_VERSION ${ORTHANC_CLIENT_VERSION_TMP})
+
+  message("Setting the version of the library to ${ORTHANC_CLIENT_VERSION}")
+
+  set_target_properties(OrthancClient PROPERTIES 
+    VERSION ${ORTHANC_CLIENT_VERSION} 
+    SOVERSION ${ORTHANC_CLIENT_VERSION})
 
 
   install(
