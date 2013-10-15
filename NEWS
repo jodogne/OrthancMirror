@@ -2,6 +2,7 @@ Pending changes in the mainline
 ===============================
 
 * Possibility to keep the PatientID during an anonymization
+* Check whether "unzip", "tar" and/or "7-zip" are installed from CMake
 
 
 Version 0.6.2 (2013/10/04)
