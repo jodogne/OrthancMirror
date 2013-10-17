@@ -42,6 +42,7 @@
 #include <boost/uuid/sha1.hpp>
 #include <algorithm>
 #include <ctype.h>
+#include <boost/regex.hpp> 
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -726,4 +727,60 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NotImplemented);
     }
   }
+
+
+  std::string Toolbox::WildcardToRegularExpression(const std::string& source)
+  {
+    // TODO - Speed up this with a regular expression
+
+    std::string result = source;
+
+    // Escape all special characters
+    boost::replace_all(result, "\\", "\\\\");
+    boost::replace_all(result, "^", "\\^");
+    boost::replace_all(result, ".", "\\.");
+    boost::replace_all(result, "$", "\\$");
+    boost::replace_all(result, "|", "\\|");
+    boost::replace_all(result, "(", "\\(");
+    boost::replace_all(result, ")", "\\)");
+    boost::replace_all(result, "[", "\\[");
+    boost::replace_all(result, "]", "\\]");
+    boost::replace_all(result, "+", "\\+");
+    boost::replace_all(result, "/", "\\/");
+    boost::replace_all(result, "{", "\\{");
+    boost::replace_all(result, "}", "\\}");
+
+    // Convert wildcards '*' and '?' to their regex equivalents
+    boost::replace_all(result, "?", ".");
+    boost::replace_all(result, "*", ".*");
+
+    return result;
+  }
+
+
+
+  void Toolbox::TokenizeString(std::vector<std::string>& result,
+                               const std::string& value,
+                               char separator)
+  {
+    result.clear();
+
+    std::string currentItem;
+
+    for (size_t i = 0; i < value.size(); i++)
+    {
+      if (value[i] == separator)
+      {
+        result.push_back(currentItem);
+        currentItem.clear();
+      }
+      else
+      {
+        currentItem.push_back(value[i]);
+      }
+    }
+
+    result.push_back(currentItem);
+  }
 }
+

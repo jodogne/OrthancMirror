@@ -32,11 +32,167 @@
 #include "OrthancFindRequestHandler.h"
 
 #include <glog/logging.h>
+#include <boost/regex.hpp> 
 
 #include "../Core/DicomFormat/DicomArray.h"
+#include "ServerToolbox.h"
 
 namespace Orthanc
 {
+  static bool ApplyRangeConstraint(const std::string& value,
+                                   const std::string& constraint)
+  {
+    // TODO
+    return false;
+  }
+
+
+  static bool ApplyListConstraint(const std::string& value,
+                                  const std::string& constraint)
+  {
+    std::cout << value << std::endl;
+
+    std::string v1 = value;
+    Toolbox::ToLowerCase(v1);
+
+    std::vector<std::string> items;
+    Toolbox::TokenizeString(items, constraint, '\\');
+
+    for (size_t i = 0; i < items.size(); i++)
+    {
+      Toolbox::ToLowerCase(items[i]);
+      if (items[i] == v1)
+      {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+
+  static bool Matches(const std::string& value,
+                      const std::string& constraint)
+  {
+    // http://www.itk.org/Wiki/DICOM_QueryRetrieve_Explained
+    // http://dicomiseasy.blogspot.be/2012/01/dicom-queryretrieve-part-i.html  
+
+    if (constraint.find('-') != std::string::npos)
+    {
+      return ApplyRangeConstraint(value, constraint);
+    }
+    
+    if (constraint.find('\\') != std::string::npos)
+    {
+      return ApplyListConstraint(value, constraint);
+    }
+
+    if (constraint.find('*') != std::string::npos ||
+        constraint.find('?') != std::string::npos)
+    {
+      // TODO - Cache the constructed regular expression
+      boost::regex pattern(Toolbox::WildcardToRegularExpression(constraint),
+                           boost::regex::icase /* case insensitive search */);
+      return boost::regex_match(value, pattern);
+    }
+    else
+    {
+      std::string v1 = value;
+      std::string v2 = constraint;
+
+      Toolbox::ToLowerCase(v1);
+      Toolbox::ToLowerCase(v2);
+
+      return v1 == v2;
+    }
+  }
+
+
+  static bool LookupOneInstance(std::string& result,
+                                ServerIndex& index,
+                                const std::string& id,
+                                ResourceType type)
+  {
+    if (type == ResourceType_Instance)
+    {
+      result = id;
+      return true;
+    }
+
+    std::string childId;
+    
+    {
+      std::list<std::string> children;
+      index.GetChildInstances(children, id);
+
+      if (children.size() == 0)
+      {
+        return false;
+      }
+
+      childId = children.front();
+    }
+
+    return LookupOneInstance(result, index, childId, GetChildResourceType(type));
+  }
+
+
+  static bool Matches(const Json::Value& resource,
+                      const DicomArray& query)
+  {
+    for (size_t i = 0; i < query.GetSize(); i++)
+    {
+      if (query.GetElement(i).GetValue().IsNull() ||
+          query.GetElement(i).GetTag() == DICOM_TAG_QUERY_RETRIEVE_LEVEL ||
+          query.GetElement(i).GetTag() == DICOM_TAG_SPECIFIC_CHARACTER_SET)
+      {
+        continue;
+      }
+
+      std::string tag = query.GetElement(i).GetTag().Format();
+      std::cout << tag << std::endl;
+
+      std::string value;
+      if (resource.isMember(tag))
+      {
+        value = resource.get(tag, Json::arrayValue).get("Value", "").asString();
+      }
+
+      if (!Matches(value, query.GetElement(i).GetValue().AsString()))
+      {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+
+  static void AddAnswer(DicomFindAnswers& answers,
+                        const Json::Value& resource,
+                        const DicomArray& query)
+  {
+    DicomMap result;
+
+    for (size_t i = 0; i < query.GetSize(); i++)
+    {
+      if (query.GetElement(i).GetTag() != DICOM_TAG_QUERY_RETRIEVE_LEVEL &&
+          query.GetElement(i).GetTag() != DICOM_TAG_SPECIFIC_CHARACTER_SET)
+      {
+        std::string tag = query.GetElement(i).GetTag().Format();
+        std::string value;
+        if (resource.isMember(tag))
+        {
+          value = resource.get(tag, Json::arrayValue).get("Value", "").asString();
+          result.SetValue(query.GetElement(i).GetTag(), value);
+        }
+      }
+    }
+
+    answers.Add(result);
+  }
+
+
   void OrthancFindRequestHandler::Handle(const DicomMap& input,
                                          DicomFindAnswers& answers)
   {
@@ -63,46 +219,43 @@ namespace Orthanc
 
 
     /**
-     * Retrieve the constraints of the query.
+     * Retrieve all the resources for this query level.
+     **/
+
+    Json::Value resources;
+    context_.GetIndex().GetAllUuids(resources, level);
+    assert(resources.type() == Json::arrayValue);
+
+
+    // TODO : Speed up using MainDicomTags (to avoid looping over ALL
+    // the resources and reading the JSON file for each of them)
+
+
+    /**
+     * Loop over all the resources for this query level.
      **/
 
     DicomArray query(input);
-
-    DicomMap constraintsTmp;
-    DicomMap wildcardConstraintsTmp;
-
-    for (size_t i = 0; i < query.GetSize(); i++)
+    for (Json::Value::ArrayIndex i = 0; i < resources.size(); i++)
     {
-      if (!query.GetElement(i).GetValue().IsNull() &&
-          query.GetElement(i).GetTag() != DICOM_TAG_QUERY_RETRIEVE_LEVEL &&
-          query.GetElement(i).GetTag() != DICOM_TAG_SPECIFIC_CHARACTER_SET)
+      try
       {
-        DicomTag tag = query.GetElement(i).GetTag();
-        std::string value = query.GetElement(i).GetValue().AsString();
-
-        if (value.find('*') != std::string::npos ||
-            value.find('?') != std::string::npos ||
-            value.find('\\') != std::string::npos ||
-            value.find('-') != std::string::npos)
+        std::string instance;
+        if (LookupOneInstance(instance, context_.GetIndex(), resources[i].asString(), level))
         {
-          wildcardConstraintsTmp.SetValue(tag, value);
-        }
-        else
-        {
-          constraintsTmp.SetValue(tag, value);
+          Json::Value resource;
+          context_.ReadJson(resource, instance);
+        
+          if (Matches(resource, query))
+          {
+            AddAnswer(answers, resource, query);
+          }
         }
       }
+      catch (OrthancException&)
+      {
+        // This resource has been deleted during the find request
+      }
     }
-
-    DicomArray constraints(constraintsTmp);
-    DicomArray wildcardConstraints(wildcardConstraintsTmp);
-
-    // http://www.itk.org/Wiki/DICOM_QueryRetrieve_Explained
-    // http://dicomiseasy.blogspot.be/2012/01/dicom-queryretrieve-part-i.html
-
-    constraints.Print(stdout);
-    printf("\n"); fflush(stdout);
-    wildcardConstraints.Print(stdout);
-    printf("\n"); fflush(stdout);
   }
 }

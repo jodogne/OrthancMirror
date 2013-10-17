@@ -108,5 +108,11 @@ namespace Orthanc
     void UrlDecode(std::string& s);
 
     Endianness DetectEndianness();
+
+    std::string WildcardToRegularExpression(const std::string& s);
+
+    void TokenizeString(std::vector<std::string>& result,
+                        const std::string& source,
+                        char separator);
   }
 }
