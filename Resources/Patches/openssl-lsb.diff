@@ -1,0 +1,118 @@
+--- ui_openssl.c.orig	2013-09-24 15:06:54.264420779 +0200
++++ ui_openssl.c	2013-09-24 14:22:43.512312998 +0200
+@@ -291,7 +291,7 @@
+ static unsigned short channel = 0;
+ #else
+ #if !defined(OPENSSL_SYS_MSDOS) || defined(__DJGPP__)
+-static TTY_STRUCT tty_orig,tty_new;
++//static TTY_STRUCT tty_orig,tty_new;
+ #endif
+ #endif
+ static FILE *tty_in, *tty_out;
+@@ -475,106 +475,21 @@
+ /* Internal functions to open, handle and close a channel to the console.  */
+ static int open_console(UI *ui)
+ 	{
+-	CRYPTO_w_lock(CRYPTO_LOCK_UI);
+-	is_a_tty = 1;
+-
+-#if defined(OPENSSL_SYS_MACINTOSH_CLASSIC) || defined(OPENSSL_SYS_VXWORKS) || defined(OPENSSL_SYS_NETWARE) || defined(OPENSSL_SYS_BEOS)
+-	tty_in=stdin;
+-	tty_out=stderr;
+-#else
+-#  ifdef OPENSSL_SYS_MSDOS
+-#    define DEV_TTY "con"
+-#  else
+-#    define DEV_TTY "/dev/tty"
+-#  endif
+-	if ((tty_in=fopen(DEV_TTY,"r")) == NULL)
+-		tty_in=stdin;
+-	if ((tty_out=fopen(DEV_TTY,"w")) == NULL)
+-		tty_out=stderr;
+-#endif
+-
+-#if defined(TTY_get) && !defined(OPENSSL_SYS_VMS)
+- 	if (TTY_get(fileno(tty_in),&tty_orig) == -1)
+-		{
+-#ifdef ENOTTY
+-		if (errno == ENOTTY)
+-			is_a_tty=0;
+-		else
+-#endif
+-#ifdef EINVAL
+-		/* Ariel Glenn ariel@columbia.edu reports that solaris
+-		 * can return EINVAL instead.  This should be ok */
+-		if (errno == EINVAL)
+-			is_a_tty=0;
+-		else
+-#endif
+-			return 0;
+-		}
+-#endif
+-#ifdef OPENSSL_SYS_VMS
+-	status = sys$assign(&terminal,&channel,0,0);
+-	if (status != SS$_NORMAL)
+-		return 0;
+-	status=sys$qiow(0,channel,IO$_SENSEMODE,&iosb,0,0,tty_orig,12,0,0,0,0);
+-	if ((status != SS$_NORMAL) || (iosb.iosb$w_value != SS$_NORMAL))
+-		return 0;
+-#endif
+ 	return 1;
+ 	}
+ 
+ static int noecho_console(UI *ui)
+ 	{
+-#ifdef TTY_FLAGS
+-	memcpy(&(tty_new),&(tty_orig),sizeof(tty_orig));
+-	tty_new.TTY_FLAGS &= ~ECHO;
+-#endif
+-
+-#if defined(TTY_set) && !defined(OPENSSL_SYS_VMS)
+-	if (is_a_tty && (TTY_set(fileno(tty_in),&tty_new) == -1))
+-		return 0;
+-#endif
+-#ifdef OPENSSL_SYS_VMS
+-	tty_new[0] = tty_orig[0];
+-	tty_new[1] = tty_orig[1] | TT$M_NOECHO;
+-	tty_new[2] = tty_orig[2];
+-	status = sys$qiow(0,channel,IO$_SETMODE,&iosb,0,0,tty_new,12,0,0,0,0);
+-	if ((status != SS$_NORMAL) || (iosb.iosb$w_value != SS$_NORMAL))
+-		return 0;
+-#endif
+ 	return 1;
+ 	}
+ 
+ static int echo_console(UI *ui)
+ 	{
+-#if defined(TTY_set) && !defined(OPENSSL_SYS_VMS)
+-	memcpy(&(tty_new),&(tty_orig),sizeof(tty_orig));
+-	tty_new.TTY_FLAGS |= ECHO;
+-#endif
+-
+-#if defined(TTY_set) && !defined(OPENSSL_SYS_VMS)
+-	if (is_a_tty && (TTY_set(fileno(tty_in),&tty_new) == -1))
+-		return 0;
+-#endif
+-#ifdef OPENSSL_SYS_VMS
+-	tty_new[0] = tty_orig[0];
+-	tty_new[1] = tty_orig[1] & ~TT$M_NOECHO;
+-	tty_new[2] = tty_orig[2];
+-	status = sys$qiow(0,channel,IO$_SETMODE,&iosb,0,0,tty_new,12,0,0,0,0);
+-	if ((status != SS$_NORMAL) || (iosb.iosb$w_value != SS$_NORMAL))
+-		return 0;
+-#endif
+ 	return 1;
+ 	}
+ 
+ static int close_console(UI *ui)
+ 	{
+-	if (tty_in != stdin) fclose(tty_in);
+-	if (tty_out != stderr) fclose(tty_out);
+-#ifdef OPENSSL_SYS_VMS
+-	status = sys$dassgn(channel);
+-#endif
+-	CRYPTO_w_unlock(CRYPTO_LOCK_UI);
+-
+ 	return 1;
+ 	}
+ 

@@ -49,10 +49,18 @@ if (STATIC_BUILD OR NOT USE_DYNAMIC_GOOGLE_LOG)
     )
 
   if (CMAKE_COMPILER_IS_GNUCXX)
-    execute_process(
-      COMMAND patch utilities.cc ${CMAKE_SOURCE_DIR}/Resources/Patches/glog-utilities.diff
-      WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src
-      )
+    if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
+      execute_process(
+        COMMAND patch utilities.cc ${CMAKE_SOURCE_DIR}/Resources/Patches/glog-utilities-lsb.diff
+        WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src
+        )
+    else()
+      execute_process(
+        COMMAND patch utilities.cc ${CMAKE_SOURCE_DIR}/Resources/Patches/glog-utilities.diff
+        WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src
+        )
+    endif()
+
     execute_process(
       COMMAND patch port.h ${CMAKE_SOURCE_DIR}/Resources/Patches/glog-port-h.diff 
       WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src/windows
@@ -64,10 +72,18 @@ if (STATIC_BUILD OR NOT USE_DYNAMIC_GOOGLE_LOG)
   endif()
 
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    configure_file(
-      ${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfiguration.h
-      ${GOOGLE_LOG_SOURCES_DIR}/src/config.h
-      COPYONLY)
+    if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
+      # Install the specific configuration for LSB SDK
+      configure_file(
+        ${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfigurationLSB.h
+        ${GOOGLE_LOG_SOURCES_DIR}/src/config.h
+        COPYONLY)
+    else()
+      configure_file(
+        ${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfiguration.h
+        ${GOOGLE_LOG_SOURCES_DIR}/src/config.h
+        COPYONLY)
+    endif()
 
     set(GOOGLE_LOG_SOURCES
       ${GOOGLE_LOG_SOURCES_DIR}/src/demangle.cc

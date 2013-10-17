@@ -26,48 +26,49 @@
 
 
 #include <iostream>
-
-#include "../../../../Core/HttpClient.h"
-#include "../../../../OrthancCppClient/OrthancConnection.h"
+#include <orthanc/OrthancCppClient.h>
 
 int main()
 {
-  // Prepare a simple call to a Web service
-  Orthanc::HttpClient c;
-  c.SetUrl("http://nominatim.openstreetmap.org/search?format=json&q=chu+liege+belgium");
-  
-  // Do the request and store the result in a JSON structure
-  Json::Value result;
-  c.Apply(result);
-
-  // Display the JSON answer
-  std::cout << result << std::endl;
-
-  // Display the content of the local Orthanc instance
-  OrthancClient::OrthancConnection orthanc("http://localhost:8042");
-
-  for (unsigned int i = 0; i < orthanc.GetPatientCount(); i++)
+  try
   {
-    OrthancClient::Patient& patient = orthanc.GetPatient(i);
-    std::cout << "Patient: " << patient.GetId() << std::endl;
+    // The following explicit initialization is not required, except
+    // if you wish to specify the full path to the shared library
+    OrthancClient::Initialize();
 
-    for (unsigned int j = 0; j < patient.GetStudyCount(); j++)
+    // Display the content of the local Orthanc instance
+    OrthancClient::OrthancConnection orthanc("http://localhost:8042");
+
+    for (unsigned int i = 0; i < orthanc.GetPatientCount(); i++)
     {
-      OrthancClient::Study& study = patient.GetStudy(j);
-      std::cout << "  Study: " << study.GetId() << std::endl;
+      OrthancClient::Patient patient(orthanc.GetPatient(i));
+      std::cout << "Patient: " << patient.GetId() << std::endl;
 
-      for (unsigned int k = 0; k < study.GetSeriesCount(); k++)
+      for (unsigned int j = 0; j < patient.GetStudyCount(); j++)
       {
-        OrthancClient::Series& series = study.GetSeries(k);
-        std::cout << "    Series: " << series.GetId() << std::endl;
+        OrthancClient::Study study(patient.GetStudy(j));
+        std::cout << "  Study: " << study.GetId() << std::endl;
 
-        for (unsigned int l = 0; l < series.GetInstanceCount(); l++)
+        for (unsigned int k = 0; k < study.GetSeriesCount(); k++)
         {
-          std::cout << "      Instance: " << series.GetInstance(l).GetId() << std::endl;
+          OrthancClient::Series series(study.GetSeries(k));
+          std::cout << "    Series: " << series.GetId() << std::endl;
+
+          for (unsigned int l = 0; l < series.GetInstanceCount(); l++)
+          {
+            std::cout << "      Instance: " << series.GetInstance(l).GetId() << std::endl;
+          }
         }
       }
     }
-  }
 
-  return 0;
+    OrthancClient::Finalize();
+
+    return 0;
+  }
+  catch (OrthancClient::OrthancClientException e)
+  {
+    std::cerr << "EXCEPTION: [" << e.What() << "]" << std::endl;
+    return -1;
+  }
 }

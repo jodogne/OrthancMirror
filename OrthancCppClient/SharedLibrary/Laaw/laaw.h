@@ -1,7 +1,7 @@
 /**
- * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Laaw - Lightweight, Automated API Wrapper
+ * Copyright (C) 2010-2013 Jomago - Alain Mazy, Benjamin Golinvaux,
+ * Sebastien Jodogne
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -30,50 +30,60 @@
  **/
 
 
-#include "Study.h"
+#pragma once
 
-#include "OrthancConnection.h"
+#include "laaw-exports.h"
+#include <stddef.h>
+#include <string>
 
-namespace OrthancClient
+#if (LAAW_PARSING == 1)
+
+#define LAAW_API   __attribute__((deprecated("")))
+#define LAAW_API_INTERNAL  __attribute__((deprecated("")))
+#define LAAW_API_OVERLOAD(name)  __attribute__((deprecated("")))
+#define LAAW_API_PROPERTY  __attribute__((deprecated("")))
+#define LAAW_API_STATIC_CLASS  __attribute__((deprecated("")))
+#define LAAW_API_CUSTOM(name, value)  __attribute__((deprecated("")))
+
+#else
+
+#define LAAW_API
+#define LAAW_API_INTERNAL
+#define LAAW_API_OVERLOAD(name)
+#define LAAW_API_PROPERTY
+#define LAAW_API_STATIC_CLASS
+#define LAAW_API_CUSTOM(name, value)
+
+#endif
+
+
+namespace Laaw
 {
-  void Study::ReadStudy()
+  /**
+   * This is the base class from which all the public exceptions in
+   * the SDK should derive.
+   **/
+  class LaawException
   {
-    Orthanc::HttpClient client(connection_.GetHttpClient());
-    client.SetUrl(std::string(connection_.GetOrthancUrl()) + "/studies/" + id_);
+  private:
+    std::string what_;
 
-    Json::Value v;
-    if (!client.Apply(study_))
+  public:
+    LaawException()
     {
-      throw OrthancClientException(Orthanc::ErrorCode_NetworkProtocol);
     }
-  }
 
-  Orthanc::IDynamicObject* Study::GetFillerItem(size_t index)
-  {
-    Json::Value::ArrayIndex tmp = static_cast<Json::Value::ArrayIndex>(index);
-    std::string id = study_["Series"][tmp].asString();
-    return new Series(connection_, id.c_str());
-  }
-
-  Study::Study(const OrthancConnection& connection,
-               const char* id) :
-    connection_(connection),
-    id_(id),
-    series_(*this)
-  {
-    series_.SetThreadCount(connection.GetThreadCount());
-    ReadStudy();
-  }
-
-  const char* Study::GetMainDicomTag(const char* tag, const char* defaultValue) const
-  {
-    if (study_["MainDicomTags"].isMember(tag))
+    LaawException(const std::string& what) : what_(what)
     {
-      return study_["MainDicomTags"][tag].asCString();
     }
-    else
+
+    LaawException(const char* what) : what_(what)
     {
-      return defaultValue;
     }
-  }
+
+    virtual const char* What() const
+    {
+      return what_.c_str();
+    }
+  };
 }
