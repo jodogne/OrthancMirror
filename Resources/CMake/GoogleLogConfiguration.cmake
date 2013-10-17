@@ -3,13 +3,7 @@ if (STATIC_BUILD OR NOT USE_DYNAMIC_GOOGLE_LOG)
   DownloadPackage(
     "897fbff90d91ea2b6d6e78c8cea641cc"
     "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/glog-0.3.2.tar.gz"
-    "${GOOGLE_LOG_SOURCES_DIR}" "" "")
-
-  #SET(GOOGLE_LOG_SOURCES_DIR ${CMAKE_BINARY_DIR}/glog-0.3.3)
-  #DownloadPackage(
-  #  "a6fd2c22f8996846e34c763422717c18"
-  #  "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/glog-0.3.3.tar.gz"
-  #  "${GOOGLE_LOG_SOURCES_DIR}" "" "")
+    "${GOOGLE_LOG_SOURCES_DIR}")
 
   set(GOOGLE_LOG_HEADERS
     ${GOOGLE_LOG_SOURCES_DIR}/src/glog/logging.h
@@ -55,10 +49,18 @@ if (STATIC_BUILD OR NOT USE_DYNAMIC_GOOGLE_LOG)
     )
 
   if (CMAKE_COMPILER_IS_GNUCXX)
-    execute_process(
-      COMMAND patch utilities.cc ${CMAKE_SOURCE_DIR}/Resources/Patches/glog-utilities.diff
-      WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src
-      )
+    if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
+      execute_process(
+        COMMAND patch utilities.cc ${CMAKE_SOURCE_DIR}/Resources/Patches/glog-utilities-lsb.diff
+        WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src
+        )
+    else()
+      execute_process(
+        COMMAND patch utilities.cc ${CMAKE_SOURCE_DIR}/Resources/Patches/glog-utilities.diff
+        WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src
+        )
+    endif()
+
     execute_process(
       COMMAND patch port.h ${CMAKE_SOURCE_DIR}/Resources/Patches/glog-port-h.diff 
       WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src/windows
@@ -70,10 +72,18 @@ if (STATIC_BUILD OR NOT USE_DYNAMIC_GOOGLE_LOG)
   endif()
 
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    configure_file(
-      ${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfiguration.h
-      ${GOOGLE_LOG_SOURCES_DIR}/src/config.h
-      COPYONLY)
+    if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
+      # Install the specific configuration for LSB SDK
+      configure_file(
+        ${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfigurationLSB.h
+        ${GOOGLE_LOG_SOURCES_DIR}/src/config.h
+        COPYONLY)
+    else()
+      configure_file(
+        ${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfiguration.h
+        ${GOOGLE_LOG_SOURCES_DIR}/src/config.h
+        COPYONLY)
+    endif()
 
     set(GOOGLE_LOG_SOURCES
       ${GOOGLE_LOG_SOURCES_DIR}/src/demangle.cc

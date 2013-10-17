@@ -12,7 +12,7 @@ else()
   DownloadPackage(
     "363e2f4cbd3aeb63bf4e571f377400fb"
     "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/jsoncpp-src-0.6.0-rc2.tar.gz"
-    "${JSONCPP_SOURCES_DIR}" "" "")
+    "${JSONCPP_SOURCES_DIR}")
 
   list(APPEND THIRD_PARTY_SOURCES
     ${JSONCPP_SOURCES_DIR}/src/lib_json/json_reader.cpp

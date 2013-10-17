@@ -10,20 +10,39 @@ macro(GetUrlExtension TargetVariable Url)
 endmacro()
 
 
-macro(DownloadPackage MD5 Url TargetDirectory PreloadedVariable UncompressArguments)
+##
+## Check the existence of the required decompression tools
+##
+
+if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
+  find_program(ZIP_EXECUTABLE 7z PATHS "$ENV{ProgramFiles}/7-Zip")
+  if (${ZIP_EXECUTABLE} MATCHES "ZIP_EXECUTABLE-NOTFOUND")
+    message(FATAL_ERROR "Please install the '7-zip' software (http://www.7-zip.org/)")
+  endif()
+
+else()
+  find_program(UNZIP_EXECUTABLE unzip)
+  if (${UNZIP_EXECUTABLE} MATCHES "UNZIP_EXECUTABLE-NOTFOUND")
+    message(FATAL_ERROR "Please install the 'unzip' package")
+  endif()
+
+  find_program(TAR_EXECUTABLE tar)
+  if (${TAR_EXECUTABLE} MATCHES "TAR_EXECUTABLE-NOTFOUND")
+    message(FATAL_ERROR "Please install the 'tar' package")
+  endif()
+endif()
+
+
+macro(DownloadPackage MD5 Url TargetDirectory)
   if (NOT IS_DIRECTORY "${TargetDirectory}")
     GetUrlFilename(TMP_FILENAME "${Url}")
-    if ("${PreloadedVariable}" STREQUAL "")
-      set(TMP_PATH "${CMAKE_SOURCE_DIR}/ThirdPartyDownloads/${TMP_FILENAME}")
-      if (NOT EXISTS "${TMP_PATH}")
-        message("Downloading ${Url}")
-        file(DOWNLOAD "${Url}" "${TMP_PATH}" SHOW_PROGRESS EXPECTED_MD5 "${MD5}")
-      else()
-        message("Using local copy of ${Url}")
-      endif()
+
+    set(TMP_PATH "${CMAKE_SOURCE_DIR}/ThirdPartyDownloads/${TMP_FILENAME}")
+    if (NOT EXISTS "${TMP_PATH}")
+      message("Downloading ${Url}")
+      file(DOWNLOAD "${Url}" "${TMP_PATH}" SHOW_PROGRESS EXPECTED_MD5 "${MD5}")
     else()
-      message("Using preloaded archive ${PreloadedVariable} for ${Url}")
-      set(TMP_PATH "${PreloadedVariable}")
+      message("Using local copy of ${Url}")
     endif()
 
     GetUrlExtension(TMP_EXTENSION "${Url}")
@@ -33,8 +52,6 @@ macro(DownloadPackage MD5 Url TargetDirectory PreloadedVariable UncompressArgume
     if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
       # How to silently extract files using 7-zip
       # http://superuser.com/questions/331148/7zip-command-line-extract-silently-quietly
-
-      FIND_PROGRAM(ZIP_EXECUTABLE 7z PATHS "$ENV{ProgramFiles}/7-Zip") 
 
       if (("${TMP_EXTENSION}" STREQUAL "gz") OR ("${TMP_EXTENSION}" STREQUAL "tgz"))
         execute_process(
@@ -48,37 +65,18 @@ macro(DownloadPackage MD5 Url TargetDirectory PreloadedVariable UncompressArgume
           message(FATAL_ERROR "Error while running the uncompression tool")
         endif()
 
-        set(ARGS ${UncompressArguments})
-        SEPARATE_ARGUMENTS(ARGS)
-        list(LENGTH ARGS TMP_LENGTH)
-
         if ("${TMP_EXTENSION}" STREQUAL "tgz")
           string(REGEX REPLACE ".tgz$" ".tar" TMP_FILENAME2 "${TMP_FILENAME}")
         else()
           string(REGEX REPLACE ".gz$" "" TMP_FILENAME2 "${TMP_FILENAME}")
         endif()
 
-        if (TMP_LENGTH EQUAL 0)
-          execute_process(
-            COMMAND ${ZIP_EXECUTABLE} x -y ${TMP_FILENAME2}
-            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-            RESULT_VARIABLE Failure
-            OUTPUT_QUIET
-            )
-        else()
-          foreach(SUBDIR ${ARGS})
-            execute_process(
-              COMMAND ${ZIP_EXECUTABLE} x -y "-i!${SUBDIR}" "${TMP_FILENAME2}"
-              WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-              RESULT_VARIABLE Failure
-              OUTPUT_QUIET
-              )
-
-            if (Failure)
-              message(FATAL_ERROR "Error while running the uncompression tool")
-            endif()
-          endforeach()
-        endif()
+        execute_process(
+          COMMAND ${ZIP_EXECUTABLE} x -y ${TMP_FILENAME2}
+          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+          RESULT_VARIABLE Failure
+          OUTPUT_QUIET
+          )
       elseif ("${TMP_EXTENSION}" STREQUAL "zip")
         execute_process(
           COMMAND ${ZIP_EXECUTABLE} x -y ${TMP_PATH}
@@ -93,20 +91,20 @@ macro(DownloadPackage MD5 Url TargetDirectory PreloadedVariable UncompressArgume
     else()
       if ("${TMP_EXTENSION}" STREQUAL "zip")
         execute_process(
-          COMMAND sh -c "unzip -q ${TMP_PATH} ${UncompressArguments}"
+          COMMAND sh -c "${UNZIP_EXECUTABLE} -q ${TMP_PATH}"
           WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
           RESULT_VARIABLE Failure
         )
       elseif (("${TMP_EXTENSION}" STREQUAL "gz") OR ("${TMP_EXTENSION}" STREQUAL "tgz"))
-        #message("tar xvfz ${TMP_PATH} ${UncompressArguments}")
+        #message("tar xvfz ${TMP_PATH}")
         execute_process(
-          COMMAND sh -c "tar xfz ${TMP_PATH} ${UncompressArguments}"
+          COMMAND sh -c "${TAR_EXECUTABLE} xfz ${TMP_PATH}"
           WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
           RESULT_VARIABLE Failure
           )
       elseif ("${TMP_EXTENSION}" STREQUAL "bz2")
         execute_process(
-          COMMAND sh -c "tar xfj ${TMP_PATH} ${UncompressArguments}"
+          COMMAND sh -c "${TAR_EXECUTABLE} xfj ${TMP_PATH}"
           WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
           RESULT_VARIABLE Failure
           )
@@ -124,4 +122,3 @@ macro(DownloadPackage MD5 Url TargetDirectory PreloadedVariable UncompressArgume
     endif()
   endif()
 endmacro()
-

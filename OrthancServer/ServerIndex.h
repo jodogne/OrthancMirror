@@ -78,7 +78,7 @@ namespace Orthanc
     void MainDicomTagsToJson(Json::Value& result,
                              int64_t resourceId);
 
-    SeriesStatus GetSeriesStatus(int id);
+    SeriesStatus GetSeriesStatus(int64_t id);
 
     bool IsRecyclingNeeded(uint64_t instanceSize);
 
