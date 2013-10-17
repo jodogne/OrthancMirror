@@ -1191,11 +1191,13 @@ namespace Orthanc
   static bool ParseAnonymizationRequest(Removals& removals,
                                         Replacements& replacements,
                                         bool& removePrivateTags,
+                                        bool& keepPatientId,
                                         RestApi::PostCall& call)
   {
     RETRIEVE_CONTEXT(call);
 
     removePrivateTags = true;
+    keepPatientId = false;
 
     Json::Value request;
     if (call.ParseJsonRequest(request) &&
@@ -1227,6 +1229,11 @@ namespace Orthanc
 
       for (Removals::iterator it = toKeep.begin(); it != toKeep.end(); it++)
       {
+        if (*it == DICOM_TAG_PATIENT_ID)
+        {
+          keepPatientId = true;
+        }
+
         removals.erase(*it);
       }
 
@@ -1242,9 +1249,10 @@ namespace Orthanc
       ParseReplacements(replacements, replacementsPart);
 
       // Generate random Patient's Name if none is specified
-      if (replacements.find(DicomTag(0x0010, 0x0010)) == replacements.end())
+      if (toKeep.find(DICOM_TAG_PATIENT_NAME) == toKeep.end() &&
+          replacements.find(DICOM_TAG_PATIENT_NAME) == replacements.end())
       {
-        replacements.insert(std::make_pair(DicomTag(0x0010, 0x0010), GeneratePatientName(context)));
+        replacements.insert(std::make_pair(DICOM_TAG_PATIENT_NAME, GeneratePatientName(context)));
       }
 
       return true;
@@ -1325,10 +1333,10 @@ namespace Orthanc
   }
 
 
-  static void AnonymizeOrModifyResource(bool isAnonymization,
-                                        Removals& removals,
+  static void AnonymizeOrModifyResource(Removals& removals,
                                         Replacements& replacements,
                                         bool removePrivateTags,
+                                        bool keepPatientId,
                                         MetadataType metadataType,
                                         ChangeType changeType,
                                         ResourceType resourceType,
@@ -1365,9 +1373,8 @@ namespace Orthanc
 
       DicomInstanceHasher originalHasher = original.GetHasher();
 
-      if (isFirst && !isAnonymization)
+      if (isFirst && keepPatientId)
       {
-        // If modifying a study or a series, keep the original patient ID.
         std::string patientId = originalHasher.GetPatientId();
         uidMap[std::make_pair(DicomRootLevel_Patient, patientId)] = patientId;
       }
@@ -1477,10 +1484,12 @@ namespace Orthanc
   {
     Removals removals;
     Replacements replacements;
-    bool removePrivateTags;
+    bool removePrivateTags, keepPatientId;
 
-    if (ParseAnonymizationRequest(removals, replacements, removePrivateTags, call))
+    if (ParseAnonymizationRequest(removals, replacements, removePrivateTags, keepPatientId, call))
     {
+      // TODO Handle "keepPatientId"
+
       // Generate random patient ID if not specified
       if (replacements.find(DICOM_TAG_PATIENT_ID) == replacements.end())
       {
@@ -1515,7 +1524,7 @@ namespace Orthanc
 
     if (ParseModifyRequest(removals, replacements, removePrivateTags, call))
     {
-      AnonymizeOrModifyResource(false, removals, replacements, removePrivateTags, 
+      AnonymizeOrModifyResource(removals, replacements, removePrivateTags, true /*keepPatientId*/,
                                 MetadataType_ModifiedFrom, ChangeType_ModifiedSeries, 
                                 ResourceType_Series, call);
     }
@@ -1526,11 +1535,11 @@ namespace Orthanc
   {
     Removals removals;
     Replacements replacements;
-    bool removePrivateTags;
+    bool removePrivateTags, keepPatientId;
 
-    if (ParseAnonymizationRequest(removals, replacements, removePrivateTags, call))
+    if (ParseAnonymizationRequest(removals, replacements, removePrivateTags, keepPatientId, call))
     {
-      AnonymizeOrModifyResource(true, removals, replacements, removePrivateTags, 
+      AnonymizeOrModifyResource(removals, replacements, removePrivateTags, keepPatientId,
                                 MetadataType_AnonymizedFrom, ChangeType_AnonymizedSeries, 
                                 ResourceType_Series, call);
     }
@@ -1545,7 +1554,7 @@ namespace Orthanc
 
     if (ParseModifyRequest(removals, replacements, removePrivateTags, call))
     {
-      AnonymizeOrModifyResource(false, removals, replacements, removePrivateTags, 
+      AnonymizeOrModifyResource(removals, replacements, removePrivateTags, true /*keepPatientId*/,
                                 MetadataType_ModifiedFrom, ChangeType_ModifiedStudy, 
                                 ResourceType_Study, call);
     }
@@ -1556,11 +1565,11 @@ namespace Orthanc
   {
     Removals removals;
     Replacements replacements;
-    bool removePrivateTags;
+    bool removePrivateTags, keepPatientId;
 
-    if (ParseAnonymizationRequest(removals, replacements, removePrivateTags, call))
+    if (ParseAnonymizationRequest(removals, replacements, removePrivateTags, keepPatientId, call))
     {
-      AnonymizeOrModifyResource(true, removals, replacements, removePrivateTags, 
+      AnonymizeOrModifyResource(removals, replacements, removePrivateTags, keepPatientId,
                                 MetadataType_AnonymizedFrom, ChangeType_AnonymizedStudy, 
                                 ResourceType_Study, call);
     }
@@ -1586,11 +1595,11 @@ namespace Orthanc
   {
     Removals removals;
     Replacements replacements;
-    bool removePrivateTags;
+    bool removePrivateTags, keepPatientId;
 
-    if (ParseAnonymizationRequest(removals, replacements, removePrivateTags, call))
+    if (ParseAnonymizationRequest(removals, replacements, removePrivateTags, keepPatientId, call))
     {
-      AnonymizeOrModifyResource(true, removals, replacements, removePrivateTags, 
+      AnonymizeOrModifyResource(removals, replacements, removePrivateTags, keepPatientId,
                                 MetadataType_AnonymizedFrom, ChangeType_AnonymizedPatient, 
                                 ResourceType_Patient, call);
     }

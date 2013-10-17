@@ -1,23 +1,20 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(OrthancCppClientTest)
-
-set(STATIC_BUILD OFF)
-set(ORTHANC_ROOT ${CMAKE_SOURCE_DIR}/../../../..)
-
-include(../OrthancCppClient.cmake)
+project(Vtk)
 
 find_package(VTK REQUIRED)
 include(${VTK_USE_FILE})
 
 add_executable(Test
   main.cpp
-  ${ORTHANC_CPP_CLIENT_SOURCES}
   )
+
+# Linking with "pthread" is necessary, otherwise the software crashes
+# http://sourceware.org/bugzilla/show_bug.cgi?id=10652#c17
+target_link_libraries(Test pthread dl)
 
 if(VTK_LIBRARIES)
   target_link_libraries(Test ${VTK_LIBRARIES})
 else()
   target_link_libraries(Test vtkHybrid vtkVolumeRendering)
 endif()
-
