@@ -491,6 +491,37 @@ TEST(Toolbox, WriteFile)
 }
 
 
+TEST(Toolbox, Wildcard)
+{
+  ASSERT_EQ("abcd", Toolbox::WildcardToRegularExpression("abcd"));
+  ASSERT_EQ("ab.*cd", Toolbox::WildcardToRegularExpression("ab*cd"));
+  ASSERT_EQ("ab..cd", Toolbox::WildcardToRegularExpression("ab??cd"));
+  ASSERT_EQ("a.*b.c.*d", Toolbox::WildcardToRegularExpression("a*b?c*d"));
+  ASSERT_EQ("a\\{b\\]", Toolbox::WildcardToRegularExpression("a{b]"));
+}
+
+
+TEST(Toolbox, Tokenize)
+{
+  std::vector<std::string> t;
+  
+  Toolbox::TokenizeString(t, "", ','); 
+  ASSERT_EQ(1, t.size());
+  ASSERT_EQ("", t[0]);
+  
+  Toolbox::TokenizeString(t, "abc", ','); 
+  ASSERT_EQ(1, t.size());
+  ASSERT_EQ("abc", t[0]);
+  
+  Toolbox::TokenizeString(t, "ab,cd,ef,", ','); 
+  ASSERT_EQ(4, t.size());
+  ASSERT_EQ("ab", t[0]);
+  ASSERT_EQ("cd", t[1]);
+  ASSERT_EQ("ef", t[2]);
+  ASSERT_EQ("", t[3]);
+}
+
+
 int main(int argc, char **argv)
 {
   // Initialize Google's logging library.
