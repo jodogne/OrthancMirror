@@ -464,4 +464,69 @@ namespace Orthanc
       target.push_back(lst[i].asString());
     }    
   }
+
+
+  void ConnectToModalityUsingSymbolicName(DicomUserConnection& connection,
+                                          const std::string& name)
+  {
+    std::string aet, address;
+    int port;
+    ModalityManufacturer manufacturer;
+    GetDicomModality(name, aet, address, port, manufacturer);
+
+    LOG(WARNING) << "Connecting to remote DICOM modality: AET=" << aet << ", address=" << address << ", port=" << port;
+
+    connection.SetLocalApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
+    connection.SetDistantApplicationEntityTitle(aet);
+    connection.SetDistantHost(address);
+    connection.SetDistantPort(port);
+    connection.SetDistantManufacturer(manufacturer);
+    connection.Open();
+  }
+
+
+  void ConnectToModalityUsingAETitle(DicomUserConnection& connection,
+                                     const std::string& aet)
+  {
+    std::set<std::string> modalities;
+    GetListOfDicomModalities(modalities);
+
+    std::string address;
+    int port;
+    ModalityManufacturer manufacturer;
+    bool found = false;
+
+    for (std::set<std::string>::const_iterator 
+           it = modalities.begin(); it != modalities.end(); it++)
+    {
+      try
+      {
+        std::string thisAet;
+        GetDicomModality(*it, thisAet, address, port, manufacturer);
+        
+        if (aet == thisAet)
+        {
+          found = true;
+          break;
+        }
+      }
+      catch (OrthancException&)
+      {
+      }
+    }
+
+    if (!found)
+    {
+      throw OrthancException("Unknown modality: " + aet);
+    }
+
+    LOG(WARNING) << "Connecting to remote DICOM modality: AET=" << aet << ", address=" << address << ", port=" << port;
+
+    connection.SetLocalApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
+    connection.SetDistantApplicationEntityTitle(aet);
+    connection.SetDistantHost(address);
+    connection.SetDistantPort(port);
+    connection.SetDistantManufacturer(manufacturer);
+    connection.Open();
+  }
 }
