@@ -209,6 +209,74 @@ namespace Orthanc
   }
 
 
+  static bool ApplyModalitiesInStudyFilter(Json::Value& filteredStudies,
+                                           const Json::Value& studies,
+                                           const DicomMap& input,
+                                           ServerIndex& index)
+  {
+    filteredStudies = Json::arrayValue;
+
+    const DicomValue& v = input.GetValue(DICOM_TAG_MODALITIES_IN_STUDY);
+    if (v.IsNull())
+    {
+      return false;
+    }
+
+    // Move the allowed modalities into a "std::set"
+    std::vector<std::string>  tmp;
+    Toolbox::TokenizeString(tmp, v.AsString(), '\\'); 
+
+    std::set<std::string> modalities;
+    for (size_t i = 0; i < tmp.size(); i++)
+    {
+      modalities.insert(tmp[i]);
+    }
+
+    // Loop over the studies
+    for (Json::Value::ArrayIndex i = 0; i < studies.size(); i++)
+    {
+      try
+      {
+        // We are considering a single study. Check whether one of
+        // its child series matches one of the modalities.
+        Json::Value study;
+        if (index.LookupResource(study, studies[i].asString(), ResourceType_Study))
+        {
+          // Loop over the series of the considered study.
+          for (Json::Value::ArrayIndex j = 0; j < study["Series"].size(); j++)   // (*)
+          {
+            Json::Value series;
+            if (index.LookupResource(series, study["Series"][j].asString(), ResourceType_Series))
+            {
+              // Get the modality of this series
+              if (series["MainDicomTags"].isMember("Modality"))
+              {
+                std::string modality = series["MainDicomTags"]["Modality"].asString();
+                if (modalities.find(modality) != modalities.end())
+                {
+                  // This series of the considered study matches one
+                  // of the required modalities. Take the study into
+                  // consideration for future filtering.
+                  filteredStudies.append(studies[i]);
+
+                  // We have finished considering this study. Break the study loop at (*).
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+      catch (OrthancException&)
+      {
+        // This resource has probably been deleted during the find request
+      }
+    }
+
+    return true;
+  }
+
+
   void OrthancFindRequestHandler::Handle(const DicomMap& input,
                                          DicomFindAnswers& answers)
   {
@@ -256,55 +324,10 @@ namespace Orthanc
     if (level == ResourceType_Study &&
         input.HasTag(DICOM_TAG_MODALITIES_IN_STUDY))
     {
-      const DicomValue& v = input.GetValue(DICOM_TAG_MODALITIES_IN_STUDY);
-      if (!v.IsNull())
+      Json::Value filtered;
+      if (ApplyModalitiesInStudyFilter(filtered, resources, input, context_.GetIndex()))
       {
-        // Move the allowed modalities into a "std::set"
-        std::vector<std::string>  tmp;
-        Toolbox::TokenizeString(tmp, v.AsString(), '\\'); 
-
-        std::set<std::string> modalities;
-        for (size_t i = 0; i < tmp.size(); i++)
-        {
-          modalities.insert(tmp[i]);
-        }
-
-        // Loop over the studies
-        Json::Value studies = resources;
-        resources = Json::arrayValue;
-
-        for (Json::Value::ArrayIndex i = 0; i < studies.size(); i++)
-        {
-          // We are considering a single study. Check whether one of
-          // its child series matches one of the modalities.
-          Json::Value study;
-          if (context_.GetIndex().LookupResource(study, studies[i].asString(), ResourceType_Study))
-          {
-            // Loop over the series of the considered study.
-            for (Json::Value::ArrayIndex j = 0; j < study["Series"].size(); j++)   // (*)
-            {
-              Json::Value series;
-              if (context_.GetIndex().LookupResource(series, study["Series"][j].asString(), ResourceType_Series))
-              {
-                // Get the modality of this series
-                if (series["MainDicomTags"].isMember("Modality"))
-                {
-                  std::string modality = series["MainDicomTags"]["Modality"].asString();
-                  if (modalities.find(modality) != modalities.end())
-                  {
-                    // This series of the considered study matches one
-                    // of the required modalities. Take the study into
-                    // consideration for future filtering.
-                    resources.append(studies[i]);
-
-                    // We have finished considering this study. Break the study loop at (*).
-                    break;
-                  }
-                }
-              }
-            }
-          }
-        }
+        resources = filtered;
       }
     }
 
