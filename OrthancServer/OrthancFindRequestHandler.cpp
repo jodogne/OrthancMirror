@@ -39,11 +39,37 @@
 
 namespace Orthanc
 {
+  static std::string ToLowerCase(const std::string& s)
+  {
+    std::string result = s;
+    Toolbox::ToLowerCase(result);
+    return result;
+  }
+
   static bool ApplyRangeConstraint(const std::string& value,
                                    const std::string& constraint)
   {
-    // TODO
-    return false;
+    size_t separator = constraint.find('-');
+    std::string lower = ToLowerCase(constraint.substr(0, separator));
+    std::string upper = ToLowerCase(constraint.substr(separator + 1));
+    std::string v = ToLowerCase(value);
+
+    if (lower.size() == 0 && upper.size() == 0)
+    {
+      return false;
+    }
+
+    if (lower.size() == 0)
+    {
+      return v <= upper;
+    }
+
+    if (upper.size() == 0)
+    {
+      return v >= lower;
+    }
+    
+    return (v >= lower && v <= upper);
   }
 
 
@@ -52,8 +78,7 @@ namespace Orthanc
   {
     std::cout << value << std::endl;
 
-    std::string v1 = value;
-    Toolbox::ToLowerCase(v1);
+    std::string v1 = ToLowerCase(value);
 
     std::vector<std::string> items;
     Toolbox::TokenizeString(items, constraint, '\\');
@@ -97,13 +122,7 @@ namespace Orthanc
     }
     else
     {
-      std::string v1 = value;
-      std::string v2 = constraint;
-
-      Toolbox::ToLowerCase(v1);
-      Toolbox::ToLowerCase(v2);
-
-      return v1 == v2;
+      return ToLowerCase(value) == ToLowerCase(constraint);
     }
   }
 
@@ -150,13 +169,13 @@ namespace Orthanc
       }
 
       std::string tag = query.GetElement(i).GetTag().Format();
-      std::cout << tag << std::endl;
-
       std::string value;
       if (resource.isMember(tag))
       {
         value = resource.get(tag, Json::arrayValue).get("Value", "").asString();
       }
+
+      std::cout << tag << " " << value << std::endl;
 
       if (!Matches(value, query.GetElement(i).GetValue().AsString()))
       {
