@@ -82,6 +82,13 @@ namespace Orthanc
         try
         {
           data.iterator_.reset(data.handler_->Handle(data.target_, data.input_));
+          if (data.iterator_.get() == NULL)
+          {
+            // Internal error!
+            response->DimseStatus = STATUS_MOVE_Failed_UnableToProcess;
+            return;
+          }
+
           data.subOperationCount_ = data.iterator_->GetSubOperationCount();
           data.failureCount_ = 0;
           data.warningCount_ = 0;

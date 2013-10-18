@@ -41,6 +41,7 @@
 #include "../Core/Lua/LuaFunctionCall.h"
 #include "../Core/DicomFormat/DicomArray.h"
 #include "DicomProtocol/DicomServer.h"
+#include "DicomProtocol/DicomUserConnection.h"
 #include "OrthancInitialization.h"
 #include "ServerContext.h"
 #include "OrthancFindRequestHandler.h"
@@ -49,13 +50,13 @@ using namespace Orthanc;
 
 
 
-class MyStoreRequestHandler : public IStoreRequestHandler
+class OrthancStoreRequestHandler : public IStoreRequestHandler
 {
 private:
   ServerContext& server_;
 
 public:
-  MyStoreRequestHandler(ServerContext& context) :
+  OrthancStoreRequestHandler(ServerContext& context) :
     server_(context)
   {
   }
@@ -73,13 +74,92 @@ public:
 };
 
 
-class MyMoveRequestHandler : public IMoveRequestHandler
+
+class OrthancMoveRequestIterator : public IMoveRequestIterator
+{
+private:
+  ServerContext& context_;
+  std::vector<std::string> instances_;
+  DicomUserConnection connection_;
+  size_t position_;
+
+public:
+  OrthancMoveRequestIterator(ServerContext& context,
+                             const std::string& target,
+                             const std::string& publicId) :
+    context_(context),
+    position_(0)
+  {
+    LOG(INFO) << "Sending resource " << publicId << " to modality \"" << target << "\"";
+
+    std::list<std::string> tmp;
+    context_.GetIndex().GetChildInstances(tmp, publicId);
+
+    instances_.reserve(tmp.size());
+    for (std::list<std::string>::iterator it = tmp.begin(); it != tmp.end(); it++)
+    {
+      instances_.push_back(*it);
+    }
+    
+    ConnectToModalityUsingAETitle(connection_, target);
+  }
+
+  virtual unsigned int GetSubOperationCount() const
+  {
+    return instances_.size();
+  }
+
+  virtual Status DoNext()
+  {
+    if (position_ >= instances_.size())
+    {
+      return Status_Failure;
+    }
+
+    const std::string& id = instances_[position_++];
+
+    std::string dicom;
+    context_.ReadFile(dicom, id, FileContentType_Dicom);
+    connection_.Store(dicom);
+
+    return Status_Success;
+  }
+};
+
+
+
+class OrthancMoveRequestHandler : public IMoveRequestHandler
 {
 private:
   ServerContext& context_;
 
+  bool LookupResource(std::string& publicId,
+                      DicomTag tag,
+                      const DicomMap& input)
+  {
+    if (!input.HasTag(tag))
+    {
+      return false;
+    }
+
+    std::string value = input.GetValue(tag).AsString();
+
+    std::list<std::string> ids;
+    context_.GetIndex().LookupTagValue(ids, tag, value);
+
+    if (ids.size() != 1)
+    {
+      return false;
+    }
+    else
+    {
+      publicId = ids.front();
+      return true;
+    }
+  }
+
 public:
-  MyMoveRequestHandler(ServerContext& context) :
+  OrthancMoveRequestHandler(ServerContext& context) :
     context_(context)
   {
   }
@@ -88,8 +168,57 @@ public:
   virtual IMoveRequestIterator* Handle(const std::string& target,
                                        const DicomMap& input)
   {
-    LOG(WARNING) << "Move-SCU request received";
-    return NULL;
+    LOG(WARNING) << "Move-SCU request received for AET \"" << target << "\"";
+
+
+    /**
+     * Retrieve the query level.
+     **/
+
+    const DicomValue* levelTmp = input.TestAndGetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL);
+    if (levelTmp == NULL) 
+    {
+      throw OrthancException(ErrorCode_BadRequest);
+    }
+
+    ResourceType level = StringToResourceType(levelTmp->AsString().c_str());
+
+
+    /**
+     * Lookup for the resource to be sent.
+     **/
+
+    bool ok;
+    std::string publicId;
+
+    switch (level)
+    {
+      case ResourceType_Patient:
+        ok = LookupResource(publicId, DICOM_TAG_PATIENT_ID, input);
+        break;
+
+      case ResourceType_Study:
+        ok = LookupResource(publicId, DICOM_TAG_STUDY_INSTANCE_UID, input);
+        break;
+
+      case ResourceType_Series:
+        ok = LookupResource(publicId, DICOM_TAG_SERIES_INSTANCE_UID, input);
+        break;
+
+      case ResourceType_Instance:
+        ok = LookupResource(publicId, DICOM_TAG_SOP_INSTANCE_UID, input);
+        break;
+
+      default:
+        ok = false;
+    }
+
+    if (!ok)
+    {
+      throw OrthancException(ErrorCode_BadRequest);
+    }
+
+    return new OrthancMoveRequestIterator(context_, target, publicId);
   }
 };
 
@@ -109,7 +238,7 @@ public:
 
   virtual IStoreRequestHandler* ConstructStoreRequestHandler()
   {
-    return new MyStoreRequestHandler(context_);
+    return new OrthancStoreRequestHandler(context_);
   }
 
   virtual IFindRequestHandler* ConstructFindRequestHandler()
@@ -119,7 +248,7 @@ public:
 
   virtual IMoveRequestHandler* ConstructMoveRequestHandler()
   {
-    return new MyMoveRequestHandler(context_);
+    return new OrthancMoveRequestHandler(context_);
   }
 
   void Done()
