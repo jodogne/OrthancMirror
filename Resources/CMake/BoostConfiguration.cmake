@@ -80,18 +80,16 @@ if (BOOST_STATIC)
     message(FATAL_ERROR "Support your platform here")
   endif()
 
+  aux_source_directory(${BOOST_SOURCES_DIR}/libs/regex/src BOOST_REGEX_SOURCES)
+
   list(APPEND BOOST_SOURCES
+    ${BOOST_REGEX_SOURCES}
     ${BOOST_SOURCES_DIR}/libs/date_time/src/gregorian/greg_month.cpp
     ${BOOST_FILESYSTEM_SOURCES_DIR}/codecvt_error_category.cpp
     ${BOOST_FILESYSTEM_SOURCES_DIR}/operations.cpp
     ${BOOST_FILESYSTEM_SOURCES_DIR}/path.cpp
     ${BOOST_FILESYSTEM_SOURCES_DIR}/path_traits.cpp
     ${BOOST_SOURCES_DIR}/libs/locale/src/encoding/codepage.cpp
-    ${BOOST_SOURCES_DIR}/libs/regex/src/cpp_regex_traits.cpp
-    ${BOOST_SOURCES_DIR}/libs/regex/src/regex.cpp
-    ${BOOST_SOURCES_DIR}/libs/regex/src/regex_raw_buffer.cpp
-    ${BOOST_SOURCES_DIR}/libs/regex/src/regex_traits_defaults.cpp
-    ${BOOST_SOURCES_DIR}/libs/regex/src/static_mutex.cpp
     ${BOOST_SOURCES_DIR}/libs/system/src/error_code.cpp
     )
 
