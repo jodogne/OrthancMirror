@@ -387,7 +387,7 @@ int main(int argc, char* argv[])
       httpServer.SetRemoteAccessAllowed(GetGlobalBoolParameter("RemoteAccessAllowed", false));
       httpServer.SetIncomingHttpRequestFilter(httpFilter);
 
-      httpServer.SetAuthenticationEnabled(GetGlobalBoolParameter("AuthenticationEnabled", true));
+      httpServer.SetAuthenticationEnabled(GetGlobalBoolParameter("AuthenticationEnabled", false));
       SetupRegisteredUsers(httpServer);
 
       if (GetGlobalBoolParameter("SslEnabled", false))
