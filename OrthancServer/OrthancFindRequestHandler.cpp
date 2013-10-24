@@ -39,6 +39,14 @@
 
 namespace Orthanc
 {
+  static bool IsWildcard(const std::string& constraint)
+  {
+    return (constraint.find('-') != std::string::npos ||
+            constraint.find('*') != std::string::npos ||
+            constraint.find('\\') != std::string::npos ||
+            constraint.find('?') != std::string::npos);
+  }
+
   static std::string ToLowerCase(const std::string& s)
   {
     std::string result = s;
@@ -209,12 +217,12 @@ namespace Orthanc
   }
 
 
-  static bool ApplyModalitiesInStudyFilter(Json::Value& filteredStudies,
-                                           const Json::Value& studies,
+  static bool ApplyModalitiesInStudyFilter(std::list<std::string>& filteredStudies,
+                                           const std::list<std::string>& studies,
                                            const DicomMap& input,
                                            ServerIndex& index)
   {
-    filteredStudies = Json::arrayValue;
+    filteredStudies.clear();
 
     const DicomValue& v = input.GetValue(DICOM_TAG_MODALITIES_IN_STUDY);
     if (v.IsNull())
@@ -233,14 +241,15 @@ namespace Orthanc
     }
 
     // Loop over the studies
-    for (Json::Value::ArrayIndex i = 0; i < studies.size(); i++)
+    for (std::list<std::string>::const_iterator 
+           it = studies.begin(); it != studies.end(); it++)
     {
       try
       {
         // We are considering a single study. Check whether one of
         // its child series matches one of the modalities.
         Json::Value study;
-        if (index.LookupResource(study, studies[i].asString(), ResourceType_Study))
+        if (index.LookupResource(study, *it, ResourceType_Study))
         {
           // Loop over the series of the considered study.
           for (Json::Value::ArrayIndex j = 0; j < study["Series"].size(); j++)   // (*)
@@ -257,7 +266,7 @@ namespace Orthanc
                   // This series of the considered study matches one
                   // of the required modalities. Take the study into
                   // consideration for future filtering.
-                  filteredStudies.append(studies[i]);
+                  filteredStudies.push_back(*it);
 
                   // We have finished considering this study. Break the study loop at (*).
                   break;
@@ -274,6 +283,78 @@ namespace Orthanc
     }
 
     return true;
+  }
+
+
+  static bool LookupCandidateResourcesInternal(/* out */ std::list<std::string>& resources,
+                                               /* in */  ServerIndex& index,
+                                               /* in */  ResourceType level,
+                                               /* in */  const DicomMap& query,
+                                               /* in */  DicomTag tag)
+  {
+    if (query.HasTag(tag))
+    {
+      const DicomValue& value = query.GetValue(tag);
+      if (!value.IsNull())
+      {
+        std::string str = query.GetValue(tag).AsString();
+        if (!IsWildcard(str))
+        {
+          printf(">> [%s]\n", str.c_str());
+          index.LookupTagValue(resources, tag, str/*, level*/);
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+
+  static void LookupCandidateResources(/* out */ std::list<std::string>& resources,
+                                       /* in */  ServerIndex& index,
+                                       /* in */  ResourceType level,
+                                       /* in */  const DicomMap& query)
+  {
+    // TODO : Speed up using full querying against the MainDicomTags.
+
+    resources.clear();
+
+    bool done = false;
+
+    switch (level)
+    {
+      case ResourceType_Patient:
+        done = LookupCandidateResourcesInternal(resources, index, level, query, DICOM_TAG_PATIENT_ID);
+        break;
+
+      case ResourceType_Study:
+        done = LookupCandidateResourcesInternal(resources, index, level, query, DICOM_TAG_STUDY_INSTANCE_UID);
+        break;
+
+      case ResourceType_Series:
+        done = LookupCandidateResourcesInternal(resources, index, level, query, DICOM_TAG_SERIES_INSTANCE_UID);
+        break;
+
+      case ResourceType_Instance:
+        done = LookupCandidateResourcesInternal(resources, index, level, query, DICOM_TAG_SOP_INSTANCE_UID);
+        break;
+
+      default:
+        break;
+    }
+
+    if (!done)
+    {
+      Json::Value allResources;
+      index.GetAllUuids(allResources, level);
+      assert(allResources.type() == Json::arrayValue);
+
+      for (Json::Value::ArrayIndex i = 0; i < allResources.size(); i++)
+      {
+        resources.push_back(allResources[i].asString());
+      }
+    }
   }
 
 
@@ -303,16 +384,14 @@ namespace Orthanc
 
 
     /**
-     * Retrieve all the resources for this query level.
+     * Retrieve the candidate resources for this query level. Whenever
+     * possible, we avoid returning ALL the resources for this query
+     * level, as it would imply reading the JSON file on the harddisk
+     * for each of them.
      **/
 
-    Json::Value resources;
-    context_.GetIndex().GetAllUuids(resources, level);
-    assert(resources.type() == Json::arrayValue);
-
-    // TODO : Speed up using MainDicomTags (to avoid looping over ALL
-    // the resources and reading the JSON file for each of them)
-
+    std::list<std::string>  resources;
+    LookupCandidateResources(resources, context_.GetIndex(), level, input);
 
 
     /**
@@ -324,7 +403,7 @@ namespace Orthanc
     if (level == ResourceType_Study &&
         input.HasTag(DICOM_TAG_MODALITIES_IN_STUDY))
     {
-      Json::Value filtered;
+      std::list<std::string> filtered;
       if (ApplyModalitiesInStudyFilter(filtered, resources, input, context_.GetIndex()))
       {
         resources = filtered;
@@ -337,19 +416,20 @@ namespace Orthanc
      **/
 
     DicomArray query(input);
-    for (Json::Value::ArrayIndex i = 0; i < resources.size(); i++)
+    for (std::list<std::string>::const_iterator 
+           resource = resources.begin(); resource != resources.end(); resource++)
     {
       try
       {
         std::string instance;
-        if (LookupOneInstance(instance, context_.GetIndex(), resources[i].asString(), level))
+        if (LookupOneInstance(instance, context_.GetIndex(), *resource, level))
         {
-          Json::Value resource;
-          context_.ReadJson(resource, instance);
+          Json::Value info;
+          context_.ReadJson(info, instance);
         
-          if (Matches(resource, query))
+          if (Matches(info, query))
           {
-            AddAnswer(answers, resource, query);
+            AddAnswer(answers, info, query);
           }
         }
       }
