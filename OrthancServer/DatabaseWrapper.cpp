@@ -807,7 +807,7 @@ namespace Orthanc
       db_.Execute(query);
     }
 
-    // Sanity check of the version of the database
+    // Check the version of the database
     std::string version = GetGlobalProperty(GlobalProperty_DatabaseSchemaVersion, "Unknown");
     bool ok = false;
     try
@@ -817,7 +817,7 @@ namespace Orthanc
 
       // This version of Orthanc is only compatible with version 3 of
       // the DB schema (since Orthanc 0.3.2)
-      ok = (v == 3); 
+      ok = (v == 3);
     }
     catch (boost::bad_lexical_cast&)
     {

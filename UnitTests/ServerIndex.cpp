@@ -487,3 +487,11 @@ TEST(DatabaseWrapper, LookupTagValue)
 
 
 }
+
+
+TEST(DicomMap, MainTags)
+{
+  ASSERT_TRUE(DicomMap::IsMainDicomTag(DICOM_TAG_PATIENT_ID));
+  ASSERT_TRUE(DicomMap::IsMainDicomTag(DICOM_TAG_PATIENT_ID, ResourceType_Patient));
+  ASSERT_FALSE(DicomMap::IsMainDicomTag(DICOM_TAG_PATIENT_ID, ResourceType_Study));
+}

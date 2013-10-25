@@ -33,6 +33,8 @@
 
 #include <string>
 
+#include "../Core/Enumerations.h"
+
 namespace Orthanc
 {
   enum SeriesStatus
@@ -57,6 +59,15 @@ namespace Orthanc
     ModalityManufacturer_ClearCanvas
   };
 
+  enum DicomRequestType
+  {
+    DicomRequestType_Echo,
+    DicomRequestType_Find,
+    DicomRequestType_Get,
+    DicomRequestType_Move,
+    DicomRequestType_Store
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations
@@ -69,14 +80,6 @@ namespace Orthanc
     GlobalProperty_DatabaseSchemaVersion = 1,
     GlobalProperty_FlushSleep = 2,
     GlobalProperty_AnonymizationSequence = 3
-  };
-
-  enum ResourceType
-  {
-    ResourceType_Patient = 1,
-    ResourceType_Study = 2,
-    ResourceType_Series = 3,
-    ResourceType_Instance = 4
   };
 
   enum MetadataType
@@ -122,8 +125,6 @@ namespace Orthanc
 
   MetadataType StringToMetadata(const std::string& str);
 
-  const char* EnumerationToString(ResourceType type);
-
   std::string EnumerationToString(MetadataType type);
 
   const char* EnumerationToString(SeriesStatus status);
@@ -133,6 +134,8 @@ namespace Orthanc
   const char* EnumerationToString(ChangeType type);
 
   const char* EnumerationToString(ModalityManufacturer manufacturer);
+
+  const char* EnumerationToString(DicomRequestType type);
 
   ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer);
 

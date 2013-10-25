@@ -110,4 +110,9 @@ namespace Orthanc
   // DICOM tags used for fMRI (thanks to Will Ryder)
   static const DicomTag DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS(0x0020, 0x0105);
   static const DicomTag DICOM_TAG_TEMPORAL_POSITION_IDENTIFIER(0x0020, 0x0100);
+
+  // Tags for C-FIND and C-MOVE
+  static const DicomTag DICOM_TAG_SPECIFIC_CHARACTER_SET(0x0008, 0x0005);
+  static const DicomTag DICOM_TAG_QUERY_RETRIEVE_LEVEL(0x0008, 0x0052);
+  static const DicomTag DICOM_TAG_MODALITIES_IN_STUDY(0x0008, 0x0061);
 }

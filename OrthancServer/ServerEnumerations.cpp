@@ -33,6 +33,7 @@
 
 #include "../Core/OrthancException.h"
 #include "../Core/EnumerationDictionary.h"
+#include "../Core/Toolbox.h"
 
 #include <boost/thread.hpp>
 
@@ -80,27 +81,6 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(enumerationsMutex_);
     return dictMetadataType_.Translate(str);
-  }
-
-  const char* EnumerationToString(ResourceType type)
-  {
-    switch (type)
-    {
-      case ResourceType_Patient:
-        return "Patient";
-
-      case ResourceType_Study:
-        return "Study";
-
-      case ResourceType_Series:
-        return "Series";
-
-      case ResourceType_Instance:
-        return "Instance";
-      
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
   }
 
   std::string GetBasePath(ResourceType type,
@@ -274,6 +254,38 @@ namespace Orthanc
   }
 
 
+  const char* EnumerationToString(DicomRequestType type)
+  {
+    switch (type)
+    {
+      case DicomRequestType_Echo:
+        return "Echo";
+        break;
+
+      case DicomRequestType_Find:
+        return "Find";
+        break;
+
+      case DicomRequestType_Get:
+        return "Get";
+        break;
+
+      case DicomRequestType_Move:
+        return "Move";
+        break;
+
+      case DicomRequestType_Store:
+        return "Store";
+        break;
+
+
+      default: 
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+
   ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer)
   {
     if (manufacturer == "Generic")
@@ -289,6 +301,4 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
-
-
 }

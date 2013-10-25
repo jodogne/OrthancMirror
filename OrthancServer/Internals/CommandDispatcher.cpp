@@ -326,6 +326,9 @@ namespace Orthanc
         AssociationCleanup(assoc);
         return NULL;
       }
+
+      std::string callingIP;
+      std::string callingTitle;
   
       /* check the AETs */
       {
@@ -347,8 +350,8 @@ namespace Orthanc
           return NULL;
         }
 
-        std::string callingIP(/*OFSTRING_GUARD*/(callingIP_C));
-        std::string callingTitle(/*OFSTRING_GUARD*/(callingTitle_C));
+        callingIP = std::string(/*OFSTRING_GUARD*/(callingIP_C));
+        callingTitle = std::string(/*OFSTRING_GUARD*/(callingTitle_C));
         std::string calledTitle(/*OFSTRING_GUARD*/(calledTitle_C));
         Toolbox::ToUpperCase(callingIP);
         Toolbox::ToUpperCase(callingTitle);
@@ -369,7 +372,7 @@ namespace Orthanc
         }
 
         if (server.HasApplicationEntityFilter() &&
-            !server.GetApplicationEntityFilter().IsAllowed(callingIP, callingTitle))
+            !server.GetApplicationEntityFilter().IsAllowedConnection(callingIP, callingTitle))
         {
           T_ASC_RejectParameters rej =
             {
@@ -416,7 +419,8 @@ namespace Orthanc
           LOG(INFO) << "    (but no valid presentation contexts)";
       }
 
-      return new CommandDispatcher(server, assoc);
+      IApplicationEntityFilter* filter = server.HasApplicationEntityFilter() ? &server.GetApplicationEntityFilter() : NULL;
+      return new CommandDispatcher(server, assoc, callingIP, callingTitle, filter);
     }
 
     bool CommandDispatcher::Step()
@@ -463,56 +467,94 @@ namespace Orthanc
         // Reset the client timeout counter
         elapsedTimeSinceLastCommand_ = 0;
 
-        // in case we received a valid message, process this command
-        // note that storescp can only process a C-ECHO-RQ and a C-STORE-RQ
+        // Convert the type of request to Orthanc's internal type
+        bool supported = false;
+        DicomRequestType request;
         switch (msg.CommandField)
         {
-        case DIMSE_C_ECHO_RQ:
-          // process C-ECHO-Request
-          cond = EchoScp(assoc_, &msg, presID);
-          break;
+          case DIMSE_C_ECHO_RQ:
+            request = DicomRequestType_Echo;
+            supported = true;
+            break;
 
-        case DIMSE_C_STORE_RQ:
-          // process C-STORE-Request
-          if (server_.HasStoreRequestHandlerFactory())
-          {
-            std::auto_ptr<IStoreRequestHandler> handler
-              (server_.GetStoreRequestHandlerFactory().ConstructStoreRequestHandler());
-            cond = Internals::storeScp(assoc_, &msg, presID, *handler);
-          }
-          else
-            cond = DIMSE_BADCOMMANDTYPE;  // Should never happen
-          break;
+          case DIMSE_C_STORE_RQ:
+            request = DicomRequestType_Store;
+            supported = true;
+            break;
 
-        case DIMSE_C_MOVE_RQ:
-          // process C-MOVE-Request
-          if (server_.HasMoveRequestHandlerFactory())
-          {
-            std::auto_ptr<IMoveRequestHandler> handler
-              (server_.GetMoveRequestHandlerFactory().ConstructMoveRequestHandler());
-            cond = Internals::moveScp(assoc_, &msg, presID, *handler);
-          }
-          else
-            cond = DIMSE_BADCOMMANDTYPE;  // Should never happen
-          break;
+          case DIMSE_C_MOVE_RQ:
+            request = DicomRequestType_Move;
+            supported = true;
+            break;
 
-        case DIMSE_C_FIND_RQ:
-          // process C-FIND-Request
-          if (server_.HasFindRequestHandlerFactory())
-          {
-            std::auto_ptr<IFindRequestHandler> handler
-              (server_.GetFindRequestHandlerFactory().ConstructFindRequestHandler());
-            cond = Internals::findScp(assoc_, &msg, presID, *handler);
-          }
-          else
-            cond = DIMSE_BADCOMMANDTYPE;  // Should never happen
-          break;
+          case DIMSE_C_FIND_RQ:
+            request = DicomRequestType_Find;
+            supported = true;
+            break;
 
-        default:
-          // we cannot handle this kind of message
+          default:
+            // we cannot handle this kind of message
+            cond = DIMSE_BADCOMMANDTYPE;
+            LOG(ERROR) << "cannot handle command: 0x" << std::hex << msg.CommandField;
+            break;
+        }
+
+
+        // Check whether this request is allowed by the security filter
+        if (supported && 
+            filter_ != NULL &&
+            !filter_->IsAllowedRequest(callingIP_, callingAETitle_, request))
+        {
+          LOG(ERROR) << EnumerationToString(request) 
+                     << " requests are disallowed for the AET \"" 
+                     << callingAETitle_ << "\"";
           cond = DIMSE_BADCOMMANDTYPE;
-          LOG(ERROR) << "cannot handle command: 0x" << std::hex << msg.CommandField;
-          break;
+          supported = false;
+        }
+
+        // in case we received a supported message, process this command
+        if (supported)
+        {
+          // If anything goes wrong, there will be a "BADCOMMANDTYPE" answer
+          cond = DIMSE_BADCOMMANDTYPE;
+
+          switch (request)
+          {
+            case DicomRequestType_Echo:
+              cond = EchoScp(assoc_, &msg, presID);
+              break;
+
+            case DicomRequestType_Store:
+              if (server_.HasStoreRequestHandlerFactory()) // Should always be true
+              {
+                std::auto_ptr<IStoreRequestHandler> handler
+                  (server_.GetStoreRequestHandlerFactory().ConstructStoreRequestHandler());
+                cond = Internals::storeScp(assoc_, &msg, presID, *handler);
+              }
+              break;
+
+            case DicomRequestType_Move:
+              if (server_.HasMoveRequestHandlerFactory()) // Should always be true
+              {
+                std::auto_ptr<IMoveRequestHandler> handler
+                  (server_.GetMoveRequestHandlerFactory().ConstructMoveRequestHandler());
+                cond = Internals::moveScp(assoc_, &msg, presID, *handler);
+              }
+              break;
+
+            case DicomRequestType_Find:
+              if (server_.HasFindRequestHandlerFactory()) // Should always be true
+              {
+                std::auto_ptr<IFindRequestHandler> handler
+                  (server_.GetFindRequestHandlerFactory().ConstructFindRequestHandler());
+                cond = Internals::findScp(assoc_, &msg, presID, *handler);
+              }
+              break;
+
+            default:
+              // Should never happen
+              break;
+          }
         }
       }
       else

@@ -41,20 +41,23 @@
 #include "../Core/Lua/LuaFunctionCall.h"
 #include "../Core/DicomFormat/DicomArray.h"
 #include "DicomProtocol/DicomServer.h"
+#include "DicomProtocol/DicomUserConnection.h"
 #include "OrthancInitialization.h"
 #include "ServerContext.h"
+#include "OrthancFindRequestHandler.h"
+#include "OrthancMoveRequestHandler.h"
 
 using namespace Orthanc;
 
 
 
-class MyStoreRequestHandler : public IStoreRequestHandler
+class OrthancStoreRequestHandler : public IStoreRequestHandler
 {
 private:
   ServerContext& server_;
 
 public:
-  MyStoreRequestHandler(ServerContext& context) :
+  OrthancStoreRequestHandler(ServerContext& context) :
     server_(context)
   {
   }
@@ -72,47 +75,6 @@ public:
 };
 
 
-class MyFindRequestHandler : public IFindRequestHandler
-{
-private:
-  ServerContext& context_;
-
-public:
-  MyFindRequestHandler(ServerContext& context) :
-    context_(context)
-  {
-  }
-
-  virtual void Handle(const DicomMap& input,
-                      DicomFindAnswers& answers)
-  {
-    LOG(WARNING) << "Find-SCU request received";
-    DicomArray a(input);
-    a.Print(stdout);
-  }
-};
-
-
-class MyMoveRequestHandler : public IMoveRequestHandler
-{
-private:
-  ServerContext& context_;
-
-public:
-  MyMoveRequestHandler(ServerContext& context) :
-    context_(context)
-  {
-  }
-
-public:
-  virtual IMoveRequestIterator* Handle(const std::string& target,
-                                       const DicomMap& input)
-  {
-    LOG(WARNING) << "Move-SCU request received";
-    return NULL;
-  }
-};
-
 
 class MyDicomServerFactory : 
   public IStoreRequestHandlerFactory,
@@ -129,21 +91,53 @@ public:
 
   virtual IStoreRequestHandler* ConstructStoreRequestHandler()
   {
-    return new MyStoreRequestHandler(context_);
+    return new OrthancStoreRequestHandler(context_);
   }
 
   virtual IFindRequestHandler* ConstructFindRequestHandler()
   {
-    return new MyFindRequestHandler(context_);
+    return new OrthancFindRequestHandler(context_);
   }
 
   virtual IMoveRequestHandler* ConstructMoveRequestHandler()
   {
-    return new MyMoveRequestHandler(context_);
+    return new OrthancMoveRequestHandler(context_);
   }
 
   void Done()
   {
+  }
+};
+
+
+class OrthancApplicationEntityFilter : public IApplicationEntityFilter
+{
+public:
+  virtual bool IsAllowedConnection(const std::string& /*callingIp*/,
+                                   const std::string& /*callingAet*/)
+  {
+    return true;
+  }
+
+  virtual bool IsAllowedRequest(const std::string& /*callingIp*/,
+                                const std::string& callingAet,
+                                DicomRequestType type)
+  {
+    if (type == DicomRequestType_Store)
+    {
+      // Incoming store requests are always accepted, even from unknown AET
+      return true;
+    }
+
+    if (!IsKnownAETitle(callingAet))
+    {
+      LOG(ERROR) << "Unkwnown remote DICOM modality AET: \"" << callingAet << "\"";
+      return false;
+    }
+    else
+    {
+      return true;
+    }
   }
 };
 
@@ -369,16 +363,17 @@ int main(int argc, char* argv[])
 
     MyDicomServerFactory serverFactory(context);
     
-
     {
       // DICOM server
       DicomServer dicomServer;
+      OrthancApplicationEntityFilter dicomFilter;
       dicomServer.SetCalledApplicationEntityTitleCheck(GetGlobalBoolParameter("DicomCheckCalledAet", false));
       dicomServer.SetStoreRequestHandlerFactory(serverFactory);
-      //dicomServer.SetMoveRequestHandlerFactory(serverFactory);
-      //dicomServer.SetFindRequestHandlerFactory(serverFactory);
+      dicomServer.SetMoveRequestHandlerFactory(serverFactory);
+      dicomServer.SetFindRequestHandlerFactory(serverFactory);
       dicomServer.SetPortNumber(GetGlobalIntegerParameter("DicomPort", 4242));
       dicomServer.SetApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
+      dicomServer.SetApplicationEntityFilter(dicomFilter);
 
       // HTTP server
       MyIncomingHttpRequestFilter httpFilter(context);

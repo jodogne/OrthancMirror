@@ -71,21 +71,6 @@ namespace Orthanc
 
   // DICOM SCU ----------------------------------------------------------------
 
-  static void ConnectToModality(DicomUserConnection& connection,
-                                const std::string& name)
-  {
-    std::string aet, address;
-    int port;
-    ModalityManufacturer manufacturer;
-    GetDicomModality(name, aet, address, port, manufacturer);
-    connection.SetLocalApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
-    connection.SetDistantApplicationEntityTitle(aet);
-    connection.SetDistantHost(address);
-    connection.SetDistantPort(port);
-    connection.SetDistantManufacturer(manufacturer);
-    connection.Open();
-  }
-
   static bool MergeQueryAndTemplate(DicomMap& result,
                                     const std::string& postData)
   {
@@ -118,7 +103,7 @@ namespace Orthanc
     }
 
     DicomUserConnection connection;
-    ConnectToModality(connection, call.GetUriComponent("id", ""));
+    ConnectToModalityUsingSymbolicName(connection, call.GetUriComponent("id", ""));
 
     DicomFindAnswers answers;
     connection.FindPatient(answers, m);
@@ -144,7 +129,7 @@ namespace Orthanc
     }        
       
     DicomUserConnection connection;
-    ConnectToModality(connection, call.GetUriComponent("id", ""));
+    ConnectToModalityUsingSymbolicName(connection, call.GetUriComponent("id", ""));
   
     DicomFindAnswers answers;
     connection.FindStudy(answers, m);
@@ -171,7 +156,7 @@ namespace Orthanc
     }        
          
     DicomUserConnection connection;
-    ConnectToModality(connection, call.GetUriComponent("id", ""));
+    ConnectToModalityUsingSymbolicName(connection, call.GetUriComponent("id", ""));
   
     DicomFindAnswers answers;
     connection.FindSeries(answers, m);
@@ -199,7 +184,7 @@ namespace Orthanc
     }        
          
     DicomUserConnection connection;
-    ConnectToModality(connection, call.GetUriComponent("id", ""));
+    ConnectToModalityUsingSymbolicName(connection, call.GetUriComponent("id", ""));
   
     DicomFindAnswers answers;
     connection.FindInstance(answers, m);
@@ -219,7 +204,7 @@ namespace Orthanc
     }
  
     DicomUserConnection connection;
-    ConnectToModality(connection, call.GetUriComponent("id", ""));
+    ConnectToModalityUsingSymbolicName(connection, call.GetUriComponent("id", ""));
   
     DicomFindAnswers patients;
     connection.FindPatient(patients, m);
@@ -350,7 +335,7 @@ namespace Orthanc
     }
 
     DicomUserConnection connection;
-    ConnectToModality(connection, remote);
+    ConnectToModalityUsingSymbolicName(connection, remote);
 
     for (std::list<std::string>::const_iterator 
            it = instances.begin(); it != instances.end(); it++)

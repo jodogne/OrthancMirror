@@ -280,4 +280,110 @@ namespace Orthanc
       SetValue(tag, source.GetValue(tag));
     }
   }
+
+
+  bool DicomMap::IsMainDicomTag(const DicomTag& tag, ResourceType level)
+  {
+    DicomTag *tags = NULL;
+    size_t size;
+
+    switch (level)
+    {
+      case ResourceType_Patient:
+        tags = patientTags;
+        size = sizeof(patientTags) / sizeof(DicomTag);
+        break;
+
+      case ResourceType_Study:
+        tags = studyTags;
+        size = sizeof(studyTags) / sizeof(DicomTag);
+        break;
+
+      case ResourceType_Series:
+        tags = seriesTags;
+        size = sizeof(seriesTags) / sizeof(DicomTag);
+        break;
+
+      case ResourceType_Instance:
+        tags = instanceTags;
+        size = sizeof(instanceTags) / sizeof(DicomTag);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    for (size_t i = 0; i < size; i++)
+    {
+      if (tags[i] == tag)
+      {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  bool DicomMap::IsMainDicomTag(const DicomTag& tag)
+  {
+    return (IsMainDicomTag(tag, ResourceType_Patient) ||
+            IsMainDicomTag(tag, ResourceType_Study) ||
+            IsMainDicomTag(tag, ResourceType_Series) ||
+            IsMainDicomTag(tag, ResourceType_Instance));
+  }
+
+
+  void DicomMap::GetMainDicomTagsInternal(std::set<DicomTag>& result, ResourceType level)
+  {
+    DicomTag *tags = NULL;
+    size_t size;
+
+    switch (level)
+    {
+      case ResourceType_Patient:
+        tags = patientTags;
+        size = sizeof(patientTags) / sizeof(DicomTag);
+        break;
+
+      case ResourceType_Study:
+        tags = studyTags;
+        size = sizeof(studyTags) / sizeof(DicomTag);
+        break;
+
+      case ResourceType_Series:
+        tags = seriesTags;
+        size = sizeof(seriesTags) / sizeof(DicomTag);
+        break;
+
+      case ResourceType_Instance:
+        tags = instanceTags;
+        size = sizeof(instanceTags) / sizeof(DicomTag);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    for (size_t i = 0; i < size; i++)
+    {
+      result.insert(tags[i]);
+    }
+  }
+
+
+  void DicomMap::GetMainDicomTags(std::set<DicomTag>& result, ResourceType level)
+  {
+    result.clear();
+    GetMainDicomTagsInternal(result, level);
+  }
+
+
+  void DicomMap::GetMainDicomTags(std::set<DicomTag>& result)
+  {
+    result.clear();
+    GetMainDicomTagsInternal(result, ResourceType_Patient);
+    GetMainDicomTagsInternal(result, ResourceType_Study);
+    GetMainDicomTagsInternal(result, ResourceType_Series);
+    GetMainDicomTagsInternal(result, ResourceType_Instance);
+  }
 }
