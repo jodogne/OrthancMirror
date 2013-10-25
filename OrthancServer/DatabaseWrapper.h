@@ -72,8 +72,6 @@ namespace Orthanc
                               int64_t since,
                               unsigned int maxResults);
 
-    void CompleteMainDicomTags();
-
   public:
     void SetGlobalProperty(GlobalProperty property,
                            const std::string& value);
