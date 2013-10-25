@@ -55,11 +55,17 @@ namespace Orthanc
   bool GetGlobalBoolParameter(const std::string& parameter,
                               bool defaultValue);
 
-  void GetDicomModality(const std::string& name,
-                        std::string& aet,
-                        std::string& address,
-                        int& port,
-                        ModalityManufacturer& manufacturer);
+  void GetDicomModalityUsingSymbolicName(const std::string& name,
+                                         std::string& aet,
+                                         std::string& address,
+                                         int& port,
+                                         ModalityManufacturer& manufacturer);
+
+  bool LookupDicomModalityUsingAETitle(const std::string& aet,
+                                       std::string& symbolicName,
+                                       std::string& address,
+                                       int& port,
+                                       ModalityManufacturer& manufacturer);
 
   void GetOrthancPeer(const std::string& name,
                       std::string& url,
@@ -85,4 +91,6 @@ namespace Orthanc
 
   void ConnectToModalityUsingAETitle(DicomUserConnection& connection,
                                      const std::string& aet);
+
+  bool IsKnownAETitle(const std::string& aet);
 }
