@@ -90,7 +90,6 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/LuaConfiguration.cmake)
 # Prepare the embedded files
 set(EMBEDDED_FILES
   PREPARE_DATABASE ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/PrepareDatabase.sql
-  PREPARE_DATABASE_V4 ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/PrepareDatabaseV4.sql
   CONFIGURATION_SAMPLE ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Configuration.json
   LUA_TOOLBOX ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Toolbox.lua
   )

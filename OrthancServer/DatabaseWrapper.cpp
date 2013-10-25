@@ -815,27 +815,9 @@ namespace Orthanc
       LOG(INFO) << "Version of the Orthanc database: " << version;
       unsigned int v = boost::lexical_cast<unsigned int>(version);
 
-      // This version of Orthanc is only compatible with versions 3
-      // (Orthanc 0.3.2 to 0.6.1) and 4 (since Orthanc 0.6.2) of the
-      // DB schema
-      ok = (v == 3 || v == 4);
-
-      if (v == 3)
-      {
-        LOG(WARNING) << "Upgrading the database from version 3 to version 4 (reconstructing the index)";
-
-        // Reconstruct the index for case insensitive queries in C-FIND
-        db_.Execute("DROP INDEX IF EXISTS MainDicomTagsIndexValues;");
-        db_.Execute("DROP TABLE IF EXISTS AvailableTags;");
-
-        std::string query;
-        EmbeddedResources::GetFileResource(query, EmbeddedResources::PREPARE_DATABASE_V4);
-        db_.Execute(query);
-
-        db_.Execute("INSERT INTO AvailableTags SELECT DISTINCT tagGroup, tagElement FROM MainDicomTags;");
-
-        //SetGlobalProperty(GlobalProperty_DatabaseSchemaVersion, "4");
-      }
+      // This version of Orthanc is only compatible with version 3 of
+      // the DB schema (since Orthanc 0.3.2)
+      ok = (v == 3);
     }
     catch (boost::bad_lexical_cast&)
     {
@@ -845,8 +827,6 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
     }
-
-    CompleteMainDicomTags();
 
     signalRemainingAncestor_ = new Internals::SignalRemainingAncestor;
     db_.Register(signalRemainingAncestor_);
@@ -1014,12 +994,5 @@ namespace Orthanc
     {
       result.push_back(s.ColumnInt64(0));
     }
-  }
-
-
-  void DatabaseWrapper::CompleteMainDicomTags()
-  {
-    std::set<DicomTag> requiredTags;
-    
   }
 }
