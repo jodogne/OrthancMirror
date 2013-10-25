@@ -36,6 +36,7 @@
 
 #include "../Core/DicomFormat/DicomArray.h"
 #include "ServerToolbox.h"
+#include "OrthancInitialization.h"
 
 namespace Orthanc
 {
@@ -300,7 +301,6 @@ namespace Orthanc
         std::string str = query.GetValue(tag).AsString();
         if (!IsWildcard(str))
         {
-          printf(">> [%s]\n", str.c_str());
           index.LookupTagValue(resources, tag, str/*, level*/);
           return true;
         }
@@ -358,11 +358,9 @@ namespace Orthanc
   }
 
 
-  void OrthancFindRequestHandler::Handle(const DicomMap& input,
-                                         DicomFindAnswers& answers)
+  void OrthancFindRequestHandler::Handle(DicomFindAnswers& answers,
+                                         const DicomMap& input)
   {
-    LOG(WARNING) << "Find-SCU request received";
-
     /**
      * Retrieve the query level.
      **/

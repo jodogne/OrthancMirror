@@ -257,6 +257,25 @@ public:
 };
 
 
+class OrthancApplicationEntityFilter : public IApplicationEntityFilter
+{
+public:
+  virtual bool IsAllowed(const std::string& /*callingIp*/,
+                         const std::string& callingAet)
+  {
+    if (!IsKnownAETitle(callingAet))
+    {
+      LOG(ERROR) << "Unkwnown remote DICOM modality AET: \"" << callingAet << "\"";
+      return false;
+    }
+    else
+    {
+      return true;
+    }
+  }
+};
+
+
 class MyIncomingHttpRequestFilter : public IIncomingHttpRequestFilter
 {
 private:
@@ -481,12 +500,14 @@ int main(int argc, char* argv[])
     {
       // DICOM server
       DicomServer dicomServer;
+      OrthancApplicationEntityFilter dicomFilter;
       dicomServer.SetCalledApplicationEntityTitleCheck(GetGlobalBoolParameter("DicomCheckCalledAet", false));
       dicomServer.SetStoreRequestHandlerFactory(serverFactory);
       dicomServer.SetMoveRequestHandlerFactory(serverFactory);
       dicomServer.SetFindRequestHandlerFactory(serverFactory);
       dicomServer.SetPortNumber(GetGlobalIntegerParameter("DicomPort", 4242));
       dicomServer.SetApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
+      dicomServer.SetApplicationEntityFilter(dicomFilter);
 
       // HTTP server
       MyIncomingHttpRequestFilter httpFilter(context);
