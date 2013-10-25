@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "../ServerEnumerations.h"
+
 #include <string>
 
 namespace Orthanc
@@ -43,7 +45,11 @@ namespace Orthanc
     {
     }
 
-    virtual bool IsAllowed(const std::string& callingIp,
-                           const std::string& callingAet) = 0;
+    virtual bool IsAllowedConnection(const std::string& callingIp,
+                                     const std::string& callingAet) = 0;
+
+    virtual bool IsAllowedRequest(const std::string& callingIp,
+                                  const std::string& callingAet,
+                                  DicomRequestType type) = 0;
   };
 }

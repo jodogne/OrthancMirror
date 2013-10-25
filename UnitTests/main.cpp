@@ -127,6 +127,10 @@ TEST(DicomFormat, Tag)
   t = FromDcmtkBridge::ParseTag("0020-e040");
   ASSERT_EQ(0x0020, t.GetGroup());
   ASSERT_EQ(0xe040, t.GetElement());
+
+  // Test ==() and !=() operators
+  ASSERT_TRUE(DICOM_TAG_PATIENT_ID == DicomTag(0x0010, 0x0020));
+  ASSERT_FALSE(DICOM_TAG_PATIENT_ID != DicomTag(0x0010, 0x0020));
 }
 
 
@@ -387,6 +391,13 @@ TEST(EnumerationDictionary, ServerEnumerations)
   ASSERT_EQ("IndexInSeries", EnumerationToString(MetadataType_Instance_IndexInSeries));
   ASSERT_EQ("LastUpdate", EnumerationToString(MetadataType_LastUpdate));
 
+  ASSERT_EQ(ResourceType_Patient, StringToResourceType("PATienT"));
+  ASSERT_EQ(ResourceType_Study, StringToResourceType("STudy"));
+  ASSERT_EQ(ResourceType_Series, StringToResourceType("SeRiEs"));
+  ASSERT_EQ(ResourceType_Instance, StringToResourceType("INStance"));
+  ASSERT_EQ(ResourceType_Instance, StringToResourceType("IMagE"));
+  ASSERT_THROW(StringToResourceType("heLLo"), OrthancException);
+
   ASSERT_EQ(2047, StringToMetadata("2047"));
   ASSERT_THROW(StringToMetadata("Ceci est un test"), OrthancException);
   ASSERT_THROW(RegisterUserMetadata(128, ""), OrthancException); // too low (< 1024)
@@ -477,6 +488,37 @@ TEST(Toolbox, WriteFile)
 
   std::string u;
   ASSERT_THROW(Toolbox::ReadFile(u, path.c_str()), OrthancException);
+}
+
+
+TEST(Toolbox, Wildcard)
+{
+  ASSERT_EQ("abcd", Toolbox::WildcardToRegularExpression("abcd"));
+  ASSERT_EQ("ab.*cd", Toolbox::WildcardToRegularExpression("ab*cd"));
+  ASSERT_EQ("ab..cd", Toolbox::WildcardToRegularExpression("ab??cd"));
+  ASSERT_EQ("a.*b.c.*d", Toolbox::WildcardToRegularExpression("a*b?c*d"));
+  ASSERT_EQ("a\\{b\\]", Toolbox::WildcardToRegularExpression("a{b]"));
+}
+
+
+TEST(Toolbox, Tokenize)
+{
+  std::vector<std::string> t;
+  
+  Toolbox::TokenizeString(t, "", ','); 
+  ASSERT_EQ(1, t.size());
+  ASSERT_EQ("", t[0]);
+  
+  Toolbox::TokenizeString(t, "abc", ','); 
+  ASSERT_EQ(1, t.size());
+  ASSERT_EQ("abc", t[0]);
+  
+  Toolbox::TokenizeString(t, "ab,cd,ef,", ','); 
+  ASSERT_EQ(4, t.size());
+  ASSERT_EQ("ab", t[0]);
+  ASSERT_EQ("cd", t[1]);
+  ASSERT_EQ("ef", t[2]);
+  ASSERT_EQ("", t[3]);
 }
 
 

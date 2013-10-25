@@ -228,9 +228,20 @@ namespace Orthanc
     FileContentType_Json = 2
   };
 
+  enum ResourceType
+  {
+    ResourceType_Patient = 1,
+    ResourceType_Study = 2,
+    ResourceType_Series = 3,
+    ResourceType_Instance = 4
+  };
 
 
   const char* EnumerationToString(HttpMethod method);
 
   const char* EnumerationToString(HttpStatus status);
+
+  const char* EnumerationToString(ResourceType type);
+
+  ResourceType StringToResourceType(const char* type);
 }

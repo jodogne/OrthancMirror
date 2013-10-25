@@ -227,11 +227,11 @@ namespace Orthanc
 
 
 
-  void GetDicomModality(const std::string& name,
-                        std::string& aet,
-                        std::string& address,
-                        int& port,
-                        ModalityManufacturer& manufacturer)
+  void GetDicomModalityUsingSymbolicName(const std::string& name,
+                                         std::string& aet,
+                                         std::string& address,
+                                         int& port,
+                                         ModalityManufacturer& manufacturer)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
@@ -463,5 +463,88 @@ namespace Orthanc
     {
       target.push_back(lst[i].asString());
     }    
+  }
+
+
+  void ConnectToModalityUsingSymbolicName(DicomUserConnection& connection,
+                                          const std::string& name)
+  {
+    std::string aet, address;
+    int port;
+    ModalityManufacturer manufacturer;
+    GetDicomModalityUsingSymbolicName(name, aet, address, port, manufacturer);
+
+    LOG(WARNING) << "Connecting to remote DICOM modality: AET=" << aet << ", address=" << address << ", port=" << port;
+
+    connection.SetLocalApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
+    connection.SetDistantApplicationEntityTitle(aet);
+    connection.SetDistantHost(address);
+    connection.SetDistantPort(port);
+    connection.SetDistantManufacturer(manufacturer);
+    connection.Open();
+  }
+
+
+  bool LookupDicomModalityUsingAETitle(const std::string& aet,
+                                       std::string& symbolicName,
+                                       std::string& address,
+                                       int& port,
+                                       ModalityManufacturer& manufacturer)
+  {
+    std::set<std::string> modalities;
+    GetListOfDicomModalities(modalities);
+
+    for (std::set<std::string>::const_iterator 
+           it = modalities.begin(); it != modalities.end(); it++)
+    {
+      try
+      {
+        std::string thisAet;
+        GetDicomModalityUsingSymbolicName(*it, thisAet, address, port, manufacturer);
+        
+        if (aet == thisAet)
+        {
+          return true;
+        }
+      }
+      catch (OrthancException&)
+      {
+      }
+    }
+
+    return false;
+  }
+
+
+  bool IsKnownAETitle(const std::string& aet)
+  {
+    std::string symbolicName, address;
+    int port;
+    ModalityManufacturer manufacturer;
+    
+    return LookupDicomModalityUsingAETitle(aet, symbolicName, address, port, manufacturer);
+  }
+
+
+  void ConnectToModalityUsingAETitle(DicomUserConnection& connection,
+                                     const std::string& aet)
+  {
+    std::string symbolicName, address;
+    int port;
+    ModalityManufacturer manufacturer;
+
+    if (!LookupDicomModalityUsingAETitle(aet, symbolicName, address, port, manufacturer))
+    {
+      throw OrthancException("Unknown modality: " + aet);
+    }
+
+    LOG(WARNING) << "Connecting to remote DICOM modality: AET=" << aet << ", address=" << address << ", port=" << port;
+
+    connection.SetLocalApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
+    connection.SetDistantApplicationEntityTitle(aet);
+    connection.SetDistantHost(address);
+    connection.SetDistantPort(port);
+    connection.SetDistantManufacturer(manufacturer);
+    connection.Open();
   }
 }

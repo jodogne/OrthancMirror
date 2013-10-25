@@ -29,25 +29,29 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
-
 #pragma once
 
-#include "DicomFindAnswers.h"
-
-#include <vector>
-#include <string>
-
+#include "DicomProtocol/IMoveRequestHandler.h"
+#include "ServerContext.h"
 
 namespace Orthanc
 {
-  class IFindRequestHandler
+  class OrthancMoveRequestHandler : public IMoveRequestHandler
   {
+  private:
+    ServerContext& context_;
+
+    bool LookupResource(std::string& publicId,
+                        DicomTag tag,
+                        const DicomMap& input);
+
   public:
-    virtual ~IFindRequestHandler()
+    OrthancMoveRequestHandler(ServerContext& context) :
+    context_(context)
     {
     }
 
-    virtual void Handle(DicomFindAnswers& answers,
-                        const DicomMap& input) = 0;
+    virtual IMoveRequestIterator* Handle(const std::string& target,
+                                         const DicomMap& input);
   };
 }
