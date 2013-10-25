@@ -113,9 +113,22 @@ public:
 class OrthancApplicationEntityFilter : public IApplicationEntityFilter
 {
 public:
-  virtual bool IsAllowed(const std::string& /*callingIp*/,
-                         const std::string& callingAet)
+  virtual bool IsAllowedConnection(const std::string& /*callingIp*/,
+                                   const std::string& /*callingAet*/)
   {
+    return true;
+  }
+
+  virtual bool IsAllowedRequest(const std::string& /*callingIp*/,
+                                const std::string& callingAet,
+                                DicomRequestType type)
+  {
+    if (type == DicomRequestType_Store)
+    {
+      // Incoming store requests are always accepted, even from unknown AET
+      return true;
+    }
+
     if (!IsKnownAETitle(callingAet))
     {
       LOG(ERROR) << "Unkwnown remote DICOM modality AET: \"" << callingAet << "\"";

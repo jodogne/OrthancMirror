@@ -59,6 +59,15 @@ namespace Orthanc
     ModalityManufacturer_ClearCanvas
   };
 
+  enum DicomRequestType
+  {
+    DicomRequestType_Echo,
+    DicomRequestType_Find,
+    DicomRequestType_Get,
+    DicomRequestType_Move,
+    DicomRequestType_Store
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations
@@ -125,6 +134,8 @@ namespace Orthanc
   const char* EnumerationToString(ChangeType type);
 
   const char* EnumerationToString(ModalityManufacturer manufacturer);
+
+  const char* EnumerationToString(DicomRequestType type);
 
   ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer);
 
