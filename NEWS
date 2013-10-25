@@ -1,6 +1,7 @@
 Pending changes in the mainline
 ===============================
 
+* DICOM Query/Retrieve is supported
 * Possibility to keep the PatientID during an anonymization
 * Check whether "unzip", "tar" and/or "7-zip" are installed from CMake
 
