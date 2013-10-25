@@ -74,7 +74,7 @@ namespace Orthanc
 
         try
         {
-          data.handler_->Handle(data.input_, data.answers_);
+          data.handler_->Handle(data.answers_, data.input_);
         }
         catch (OrthancException& e)
         {

@@ -47,7 +47,7 @@ namespace Orthanc
     {
     }
 
-    virtual void Handle(const DicomMap& input,
-                        DicomFindAnswers& answers) = 0;
+    virtual void Handle(DicomFindAnswers& answers,
+                        const DicomMap& input) = 0;
   };
 }
