@@ -76,6 +76,27 @@ SUPPORTED - Debian Squeeze (6.0)
 	~/Orthanc 
 
 
+SUPPORTED - Debian Jessie/Sid
+-----------------------------
+
+# sudo apt-get install build-essential unzip cmake mercurial \
+       	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
+       	       	       libgoogle-glog-dev libgtest-dev libpng-dev \
+       	       	       libsqlite3-dev libssl-dev zlib1g-dev \
+       	       	       libdcmtk2-dev libboost-all-dev libwrap0-dev
+
+# cmake "-DDCMTK_LIBRARIES=wrap;oflog" \
+        -DALLOW_DOWNLOADS=ON \
+	-DUSE_SYSTEM_MONGOOSE=OFF \
+        -DUSE_GTEST_DEBIAN_PACKAGE=ON \
+        -DDCMTK_DICTIONARY_DIR:PATH=/usr/share/libdcmtk2 \
+	~/Orthanc
+
+Note: Have also a look at the official package:
+http://anonscm.debian.org/viewvc/debian-med/trunk/packages/orthanc/trunk/debian/
+
+
+
 SUPPORTED - Ubuntu 12.10
 ------------------------
 
@@ -83,7 +104,7 @@ SUPPORTED - Ubuntu 12.10
        	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
        	       	       libgoogle-glog-dev libgtest-dev libpng-dev \
        	       	       libsqlite3-dev libssl-dev zlib1g-dev \
-       	       	       libdcmtk2-dev libboost-all-dev
+       	       	       libdcmtk2-dev libboost-all-dev libwrap0-dev
 
 # cmake "-DDCMTK_LIBRARIES=wrap;oflog" \
         -DALLOW_DOWNLOADS=ON \
@@ -91,6 +112,23 @@ SUPPORTED - Ubuntu 12.10
 	-DUSE_SYSTEM_JSONCPP=OFF \
         -DUSE_GTEST_DEBIAN_PACKAGE=ON \
 	~/Orthanc
+
+
+
+SUPPORTED - Fedora 18
+---------------------
+
+# sudo yum install make automake gcc gcc-c++ python cmake \
+                   boost-devel curl-devel dcmtk-devel glog-devel \
+                   gtest-devel libpng-devel libsqlite3x-devel libuuid-devel \
+                   mongoose-devel openssl-devel jsoncpp-devel lua-devel
+
+# cmake ~/Orthanc
+
+Note: Have also a look at the official package:
+http://pkgs.fedoraproject.org/cgit/orthanc.git/tree/?h=f18
+
+
 
 
 
@@ -118,4 +156,4 @@ dramatically decrease the compilation time when rebuilding
 Orthanc. This is especially useful for developers. To this end, you
 would use:
 
-# CC="ccache gcc" CXX="ccache g++" cmake ~/Orthanc [Options]
+# CC="ccache gcc" CXX="ccache g++" cmake ~/Orthanc [Other Options]
