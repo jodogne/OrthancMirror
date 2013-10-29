@@ -1,4 +1,4 @@
-if (${STATIC_BUILD})
+if (STATIC_BUILD OR NOT USE_SYSTEM_BOOST)
   set(BOOST_STATIC 1)
 else()
   include(FindBoost)
