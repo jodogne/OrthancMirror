@@ -25,6 +25,8 @@ SET(USE_DYNAMIC_GOOGLE_TEST ON CACHE BOOL "Use the dynamic version of Google Tes
 SET(USE_DYNAMIC_SQLITE ON CACHE BOOL "Use the dynamic version of SQLite")
 SET(USE_DYNAMIC_MONGOOSE OFF CACHE BOOL "Use the dynamic version of Mongoose")
 SET(USE_DYNAMIC_LUA OFF CACHE BOOL "Use the dynamic version of Lua")
+SET(USE_SYSTEM_DCMTK ON CACHE BOOL "Use the system version of DCMTK")
+SET(USE_SYSTEM_BOOST ON CACHE BOOL "Use the system version of Boost")
 SET(DEBIAN_USE_GTEST_SOURCE_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
 
 mark_as_advanced(USE_DYNAMIC_JSONCPP)
