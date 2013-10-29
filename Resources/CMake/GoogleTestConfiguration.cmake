@@ -1,4 +1,4 @@
-if (USE_GTEST_DEBIAN_PACKAGE)
+if (USE_GTEST_DEBIAN_SOURCE_PACKAGE)
   set(GTEST_SOURCES /usr/src/gtest/src/gtest-all.cc)
   include_directories(/usr/src/gtest)
 
