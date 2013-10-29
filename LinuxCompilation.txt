@@ -1,0 +1,102 @@
+This file is a complement to "INSTALL", which contains instructions
+that are specific to Linux.
+
+
+Static linking for Linux
+========================
+
+The most simple way of building Orthanc under Linux consists in
+statically linking against all the third-party dependencies. In this
+case, the system-wide libraries will not be used. The build tool
+(CMake) will download the sources of all the required packages and
+automatically compile them. This process should work on all the Linux
+distributions.
+
+
+To build binaries with debug information:
+
+# cd ~/OrthancBuild
+# cmake -DSTATIC_BUILD=ON -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
+# make
+# make doc
+
+
+To build a release version:
+
+# cd ~/OrthancBuild
+# cmake -DSTATIC_BUILD=ON -DCMAKE_BUILD_TYPE=Release ~/Orthanc
+# make
+# make doc
+
+
+Note: When the "STATIC_BUILD" option is set to "ON", the build tool
+will not ask you the permission to download packages from the
+Internet.
+
+
+Use system-wide libraries under Linux
+=====================================
+
+Under Linux, by default, Orthanc links against the shared libraries of
+your system (the "STATIC_BUILD" option is set to "OFF"). This greatly
+speeds up the compilation. This is also required when building
+packages for Linux distributions. Because using system libraries is
+the default behavior, you just have to use:
+
+# cd ~/OrthancBuild
+# cmake -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
+# make
+
+
+However, on some Linux distributions, it is still required to download
+and static link against some third-party dependencies, e.g. when the
+system-wide library is not shipped or is outdated. Because of
+difference in the packaging of the various Linux distribution, it is
+also sometimes required to fine-tune some options.
+
+You will find below build instructions for specific Linux
+distributions. Distributions tagged by "SUPPORTED" are tested by
+Sébastien Jodogne. Distributions tagged by "CONTRIBUTED" come from
+Orthanc users.
+
+
+SUPPORTED - Debian Squeeze (6.0)
+--------------------------------
+
+# sudo apt-get install build-essential unzip cmake mercurial \
+       	       	       uuid-dev libcurl4-gnutls-dev liblua5.1-0-dev
+
+# cmake -DALLOW_DOWNLOADS=ON \
+  	-DUSE_SYSTEM_BOOST=OFF \
+	-DUSE_SYSTEM_DCMTK=OFF \
+	-DUSE_SYSTEM_MONGOOSE=OFF \
+	-DUSE_SYSTEM_JSONCPP=OFF \
+	~/Orthanc 
+
+
+
+Other Linux distributions?
+--------------------------
+
+Please send us your build instructions (by a mail to
+s.jodogne@gmail.com)!
+
+You can find build instructions for Orthanc up to 0.7.0 on the
+following Wiki page:
+https://code.google.com/p/orthanc/wiki/LinuxCompilationUpTo070
+
+These instructions will not work as such beyond Orthanc 0.7.0, but
+they might give indications.
+
+
+
+
+Using ccache
+============
+
+Under Linux, you also have the opportunity to use "ccache" to
+dramatically decrease the compilation time when rebuilding
+Orthanc. This is especially useful for developers. To this end, you
+would use:
+
+# CC="ccache gcc" CXX="ccache g++" cmake ~/Orthanc [Options]
