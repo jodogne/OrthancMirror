@@ -48,6 +48,7 @@ namespace Orthanc
     struct PImpl;
     boost::shared_ptr<PImpl> pimpl_;
 
+    bool isZip64_;
     bool hasFileInZip_;
     uint8_t compressionLevel_;
     std::string path_;
@@ -56,6 +57,13 @@ namespace Orthanc
     ZipWriter();
 
     ~ZipWriter();
+
+    void SetZip64(bool isZip64);
+
+    bool IsZip64() const
+    {
+      return isZip64_;
+    }
 
     void SetCompressionLevel(uint8_t level);
 

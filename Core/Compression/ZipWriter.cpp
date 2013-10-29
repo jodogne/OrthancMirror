@@ -80,6 +80,7 @@ namespace Orthanc
   {
     compressionLevel_ = 6;
     hasFileInZip_ = false;
+    isZip64_ = false;
 
     pimpl_->file_ = NULL;
   }
@@ -117,7 +118,16 @@ namespace Orthanc
     }
 
     hasFileInZip_ = false;
-    pimpl_->file_ = zipOpen64(path_.c_str(), APPEND_STATUS_CREATE);
+
+    if (isZip64_)
+    {
+      pimpl_->file_ = zipOpen64(path_.c_str(), APPEND_STATUS_CREATE);
+    }
+    else
+    {
+      pimpl_->file_ = zipOpen(path_.c_str(), APPEND_STATUS_CREATE);
+    }
+
     if (!pimpl_->file_)
     {
       throw OrthancException(ErrorCode_CannotWriteFile);
@@ -130,6 +140,12 @@ namespace Orthanc
     path_ = path;
   }
 
+  void ZipWriter::SetZip64(bool isZip64)
+  {
+    Close();
+    isZip64_ = isZip64;
+  }
+
   void ZipWriter::SetCompressionLevel(uint8_t level)
   {
     if (level >= 10)
@@ -137,6 +153,7 @@ namespace Orthanc
       throw OrthancException("ZIP compression level must be between 0 (no compression) and 9 (highest compression");
     }
 
+    Close();
     compressionLevel_ = level;
   }
 
@@ -147,13 +164,30 @@ namespace Orthanc
     zip_fileinfo zfi;
     PrepareFileInfo(zfi);
 
-    if (zipOpenNewFileInZip64(pimpl_->file_, path,
-                              &zfi,
-                              NULL,   0,
-                              NULL,   0,
-                              "",  // Comment
-                              Z_DEFLATED,
-                              compressionLevel_, 1) != 0)
+    int result;
+
+    if (isZip64_)
+    {
+      result = zipOpenNewFileInZip64(pimpl_->file_, path,
+                                     &zfi,
+                                     NULL,   0,
+                                     NULL,   0,
+                                     "",  // Comment
+                                     Z_DEFLATED,
+                                     compressionLevel_, 1);
+    }
+    else
+    {
+      result = zipOpenNewFileInZip(pimpl_->file_, path,
+                                   &zfi,
+                                   NULL,   0,
+                                   NULL,   0,
+                                   "",  // Comment
+                                   Z_DEFLATED,
+                                   compressionLevel_);
+    }
+
+    if (result != 0)
     {
       throw OrthancException(ErrorCode_CannotWriteFile);
     }
