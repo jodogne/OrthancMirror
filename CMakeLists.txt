@@ -31,8 +31,8 @@ SET(USE_SYSTEM_LIBPNG ON CACHE BOOL "Use the system version of LibPng")
 SET(USE_SYSTEM_CURL ON CACHE BOOL "Use the system version of LibCurl")
 
 # Distribution-specific settings
-SET(USE_GTEST_DEBIAN_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
-mark_as_advanced(USE_GTEST_DEBIAN_PACKAGE)
+SET(USE_GTEST_DEBIAN_SOURCE_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
+mark_as_advanced(USE_GTEST_DEBIAN_SOURCE_PACKAGE)
 
 # Some basic inclusions
 include(CheckIncludeFiles)
