@@ -235,9 +235,10 @@ install(
 
 
 #####################################################################
-## Build the unit tests if required
+## Build the unit tests
 #####################################################################
 
+add_definitions(-DORTHANC_BUILD_UNIT_TESTS=1)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
 add_executable(UnitTests
   ${GTEST_SOURCES}
