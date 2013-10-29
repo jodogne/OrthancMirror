@@ -18,11 +18,22 @@ TEST(ZipWriter, Basic)
 }
 
 
+TEST(ZipWriter, Basic64)
+{
+  Orthanc::ZipWriter w;
+  w.SetOutputPath("hello64.zip");
+  w.SetZip64(true);
+  w.Open();
+  w.OpenFile("world/hello");
+  w.Write("Hello world");
+}
+
+
 TEST(ZipWriter, Exceptions)
 {
   Orthanc::ZipWriter w;
   ASSERT_THROW(w.Open(), Orthanc::OrthancException);
-  w.SetOutputPath("hello.zip");
+  w.SetOutputPath("hello3.zip");
   w.Open();
   ASSERT_THROW(w.Write("hello world"), Orthanc::OrthancException);
 }
