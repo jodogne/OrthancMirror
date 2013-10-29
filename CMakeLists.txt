@@ -244,17 +244,17 @@ if (BUILD_UNIT_TESTS)
   include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
   add_executable(UnitTests
     ${GTEST_SOURCES}
-    UnitTests/FileStorage.cpp
-    UnitTests/MemoryCache.cpp
-    UnitTests/Png.cpp
-    UnitTests/RestApi.cpp
-    UnitTests/SQLite.cpp
-    UnitTests/SQLiteChromium.cpp
-    UnitTests/ServerIndex.cpp
-    UnitTests/Versions.cpp
-    UnitTests/Zip.cpp
-    UnitTests/Lua.cpp
-    UnitTests/main.cpp
+    UnitTestsSources/FileStorage.cpp
+    UnitTestsSources/MemoryCache.cpp
+    UnitTestsSources/Png.cpp
+    UnitTestsSources/RestApi.cpp
+    UnitTestsSources/SQLite.cpp
+    UnitTestsSources/SQLiteChromium.cpp
+    UnitTestsSources/ServerIndex.cpp
+    UnitTestsSources/Versions.cpp
+    UnitTestsSources/Zip.cpp
+    UnitTestsSources/Lua.cpp
+    UnitTestsSources/main.cpp
     )
   target_link_libraries(UnitTests ServerLibrary CoreLibrary)
 

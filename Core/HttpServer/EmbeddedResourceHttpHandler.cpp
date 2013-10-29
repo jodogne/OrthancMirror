@@ -79,7 +79,7 @@ namespace Orthanc
       size_t size = EmbeddedResources::GetDirectoryResourceSize(resourceId_, resourcePath.c_str());
       output.AnswerBufferWithContentType(buffer, size, contentType);
     }
-    catch (OrthancException& e)
+    catch (OrthancException&)
     {
       LOG(WARNING) << "Unable to find HTTP resource: " << resourcePath;
       output.SendHeader(HttpStatus_404_NotFound);
