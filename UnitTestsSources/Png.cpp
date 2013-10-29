@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include "../Core/FileFormats/PngReader.h"
 #include "../Core/FileFormats/PngWriter.h"
+#include "../Core/Toolbox.h"
+
 
 TEST(PngWriter, ColorPattern)
 {
@@ -24,6 +26,11 @@ TEST(PngWriter, ColorPattern)
   }
 
   w.WriteToFile("ColorPattern.png", width, height, pitch, Orthanc::PixelFormat_RGB24, &image[0]);
+
+  std::string f, md5;
+  Orthanc::Toolbox::ReadFile(f, "ColorPattern.png");
+  Orthanc::Toolbox::ComputeMD5(md5, f);
+  ASSERT_EQ("604e785f53c99cae6ea4584870b2c41d", md5);
 }
 
 TEST(PngWriter, Gray8Pattern)
@@ -44,6 +51,11 @@ TEST(PngWriter, Gray8Pattern)
   }
 
   w.WriteToFile("Gray8Pattern.png", width, height, pitch, Orthanc::PixelFormat_Grayscale8, &image[0]);
+
+  std::string f, md5;
+  Orthanc::Toolbox::ReadFile(f, "Gray8Pattern.png");
+  Orthanc::Toolbox::ComputeMD5(md5, f);
+  ASSERT_EQ("5a9b98bea3d0a6d983980cc38bfbcdb3", md5);
 }
 
 TEST(PngWriter, Gray16Pattern)
@@ -66,6 +78,11 @@ TEST(PngWriter, Gray16Pattern)
   }
 
   w.WriteToFile("Gray16Pattern.png", width, height, pitch, Orthanc::PixelFormat_Grayscale16, &image[0]);
+
+  std::string f, md5;
+  Orthanc::Toolbox::ReadFile(f, "Gray16Pattern.png");
+  Orthanc::Toolbox::ComputeMD5(md5, f);
+  ASSERT_EQ("0785866a08bf0a02d2eeff87f658571c", md5);
 }
 
 TEST(PngWriter, EndToEnd)
@@ -105,5 +122,4 @@ TEST(PngWriter, EndToEnd)
       ASSERT_EQ(*p, v);
     }
   }
-
 }
