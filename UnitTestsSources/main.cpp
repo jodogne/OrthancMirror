@@ -522,6 +522,23 @@ TEST(Toolbox, Tokenize)
 }
 
 
+TEST(Toolbox, Endianness)
+{
+#if defined(__powerpc__) || defined(__powerpc64__)
+  ASSERT_EQ(Endianness_Big, Toolbox::DetectEndianness());
+#endif
+
+#if defined(_WIN32)
+  ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
+#endif
+
+#if defined(__amd64__) || defined(__i386__)
+  ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
+#endif
+}
+
+
+
 int main(int argc, char **argv)
 {
   // Initialize Google's logging library.
