@@ -2,6 +2,10 @@ Pending changes in the mainline
 ===============================
 
 
+* Fix for big-endian architectures (RedHat bug #985748)
+* Refactoring of the CMake options
+
+
 Version 0.7.0 (2013/10/25)
 ==========================
 
