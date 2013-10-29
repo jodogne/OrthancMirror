@@ -11,29 +11,28 @@ set(ORTHANC_VERSION "mainline")
 #####################################################################
 
 # Parameters of the build
-SET(STATIC_BUILD ON CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")
+SET(STATIC_BUILD OFF CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")
 SET(STANDALONE_BUILD ON CACHE BOOL "Standalone build (all the resources are embedded, necessary for releases)")
 SET(ENABLE_SSL ON CACHE BOOL "Include support for SSL")
-SET(BUILD_UNIT_TESTS ON CACHE BOOL "Build the unit tests")
 SET(BUILD_CLIENT_LIBRARY ON CACHE BOOL "Build the client library")
-SET(DCMTK_DICTIONARY_DIR "/usr/share/dcmtk" CACHE PATH "Directory containing the DCMTK dictionaries \"dicom.dic\" and \"private.dic\" (ignored in standalone builds)") 
+SET(DCMTK_DICTIONARY_DIR "/usr/share/dcmtk" CACHE PATH "Directory containing the DCMTK dictionaries \"dicom.dic\" and \"private.dic\" (only when using system version of DCMTK)") 
+SET(ALLOW_DOWNLOADS OFF CACHE BOOL "Allow CMake to download packages")
 
 # Advanced parameters to fine-tune linking against system libraries
-SET(USE_DYNAMIC_JSONCPP OFF CACHE BOOL "Use the dynamic version of JsonCpp")
-SET(USE_DYNAMIC_GOOGLE_LOG ON CACHE BOOL "Use the dynamic version of Google Log")
-SET(USE_DYNAMIC_GOOGLE_TEST ON CACHE BOOL "Use the dynamic version of Google Test")
-SET(USE_DYNAMIC_SQLITE ON CACHE BOOL "Use the dynamic version of SQLite")
-SET(USE_DYNAMIC_MONGOOSE OFF CACHE BOOL "Use the dynamic version of Mongoose")
-SET(USE_DYNAMIC_LUA OFF CACHE BOOL "Use the dynamic version of Lua")
+SET(USE_SYSTEM_JSONCPP ON CACHE BOOL "Use the system version of JsonCpp")
+SET(USE_SYSTEM_GOOGLE_LOG ON CACHE BOOL "Use the system version of Google Log")
+SET(USE_SYSTEM_GOOGLE_TEST ON CACHE BOOL "Use the system version of Google Test")
+SET(USE_SYSTEM_SQLITE ON CACHE BOOL "Use the system version of SQLite")
+SET(USE_SYSTEM_MONGOOSE ON CACHE BOOL "Use the system version of Mongoose")
+SET(USE_SYSTEM_LUA ON CACHE BOOL "Use the system version of Lua")
 SET(USE_SYSTEM_DCMTK ON CACHE BOOL "Use the system version of DCMTK")
 SET(USE_SYSTEM_BOOST ON CACHE BOOL "Use the system version of Boost")
-SET(DEBIAN_USE_GTEST_SOURCE_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
+SET(USE_SYSTEM_LIBPNG ON CACHE BOOL "Use the system version of LibPng")
+SET(USE_SYSTEM_CURL ON CACHE BOOL "Use the system version of LibCurl")
 
-mark_as_advanced(USE_DYNAMIC_JSONCPP)
-mark_as_advanced(USE_DYNAMIC_GOOGLE_LOG)
-mark_as_advanced(USE_DYNAMIC_GOOGLE_TEST)
-mark_as_advanced(USE_DYNAMIC_SQLITE)
-mark_as_advanced(DEBIAN_USE_GTEST_SOURCE_PACKAGE)
+# Distribution-specific settings
+SET(USE_GTEST_DEBIAN_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
+mark_as_advanced(USE_GTEST_DEBIAN_PACKAGE)
 
 # Some basic inclusions
 include(CheckIncludeFiles)
@@ -239,28 +238,25 @@ install(
 ## Build the unit tests if required
 #####################################################################
 
-if (BUILD_UNIT_TESTS)
-  add_definitions(-DORTHANC_BUILD_UNIT_TESTS=1)
-  include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
-  add_executable(UnitTests
-    ${GTEST_SOURCES}
-    UnitTestsSources/FileStorage.cpp
-    UnitTestsSources/MemoryCache.cpp
-    UnitTestsSources/Png.cpp
-    UnitTestsSources/RestApi.cpp
-    UnitTestsSources/SQLite.cpp
-    UnitTestsSources/SQLiteChromium.cpp
-    UnitTestsSources/ServerIndex.cpp
-    UnitTestsSources/Versions.cpp
-    UnitTestsSources/Zip.cpp
-    UnitTestsSources/Lua.cpp
-    UnitTestsSources/main.cpp
-    )
-  target_link_libraries(UnitTests ServerLibrary CoreLibrary)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
+add_executable(UnitTests
+  ${GTEST_SOURCES}
+  UnitTestsSources/FileStorage.cpp
+  UnitTestsSources/MemoryCache.cpp
+  UnitTestsSources/Png.cpp
+  UnitTestsSources/RestApi.cpp
+  UnitTestsSources/SQLite.cpp
+  UnitTestsSources/SQLiteChromium.cpp
+  UnitTestsSources/ServerIndex.cpp
+  UnitTestsSources/Versions.cpp
+  UnitTestsSources/Zip.cpp
+  UnitTestsSources/Lua.cpp
+  UnitTestsSources/main.cpp
+  )
+target_link_libraries(UnitTests ServerLibrary CoreLibrary)
 
-  if (${OPENSSL_SOURCES_LENGTH} GREATER 0)
-    target_link_libraries(UnitTests OpenSSL)
-  endif()
+if (${OPENSSL_SOURCES_LENGTH} GREATER 0)
+  target_link_libraries(UnitTests OpenSSL)
 endif()
 
 

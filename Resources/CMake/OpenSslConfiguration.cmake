@@ -1,4 +1,4 @@
-if (${STATIC_BUILD})
+if (STATIC_BUILD)
   SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.0.1c)
   DownloadPackage(
     "ae412727c8c15b67880aef7bd2999b2e"
