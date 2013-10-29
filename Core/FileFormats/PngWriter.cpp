@@ -174,15 +174,18 @@ namespace Orthanc
       {
       case PixelFormat_Grayscale16:
       case PixelFormat_SignedGrayscale16:
-        png_set_rows(pimpl_->png_, pimpl_->info_, &pimpl_->rows_[0]);
-
+      {
+        int transforms = 0;
         if (Toolbox::DetectEndianness() == Endianness_Little)
         {
-          // Must swap the endianness!!
-          png_write_png(pimpl_->png_, pimpl_->info_, PNG_TRANSFORM_SWAP_ENDIAN, NULL);
+          transforms = PNG_TRANSFORM_SWAP_ENDIAN;
         }
 
+        png_set_rows(pimpl_->png_, pimpl_->info_, &pimpl_->rows_[0]);
+        png_write_png(pimpl_->png_, pimpl_->info_, transforms, NULL);
+
         break;
+      }
 
       default:
         png_write_image(pimpl_->png_, &pimpl_->rows_[0]);
