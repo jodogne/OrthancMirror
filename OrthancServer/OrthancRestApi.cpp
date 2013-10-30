@@ -46,6 +46,10 @@
 #include <boost/lexical_cast.hpp>
 #include <glog/logging.h>
 
+#if defined(_MSC_VER)
+#define snprintf _snprintf
+#endif
+
 static const uint64_t MEGA_BYTES = 1024 * 1024;
 static const uint64_t GIGA_BYTES = 1024 * 1024 * 1024;
 
