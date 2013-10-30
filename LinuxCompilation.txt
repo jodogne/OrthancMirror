@@ -85,8 +85,7 @@ SUPPORTED - Debian Jessie/Sid
        	       	       libsqlite3-dev libssl-dev zlib1g-dev \
        	       	       libdcmtk2-dev libboost-all-dev libwrap0-dev
 
-# cmake "-DDCMTK_LIBRARIES=wrap;oflog" \
-        -DALLOW_DOWNLOADS=ON \
+# cmake -DALLOW_DOWNLOADS=ON \
 	-DUSE_SYSTEM_MONGOOSE=OFF \
         -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
         -DDCMTK_DICTIONARY_DIR:PATH=/usr/share/libdcmtk2 \
