@@ -1440,12 +1440,12 @@ this_->DiscardDicom();
 
   LAAW_EXPORT_DLL_API const char* LAAW_CALL_CONVENTION LAAW_EXTERNC_GetFileVersion()
   {
-    return "0.7.0.0";
+    return "0.7.0.1";
   }
 
   LAAW_EXPORT_DLL_API const char* LAAW_CALL_CONVENTION LAAW_EXTERNC_GetFullVersion()
   {
-    return "0.7.0";
+    return "0.7.1";
   }
 
   LAAW_EXPORT_DLL_API void LAAW_CALL_CONVENTION LAAW_EXTERNC_FreeString(char* str)

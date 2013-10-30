@@ -2,6 +2,9 @@ Pending changes in the mainline
 ===============================
 
 
+Version 0.7.1 (2013/10/30)
+==========================
+
 * Use ZIP64 only when required to improve compatibility (cf. issue #7)
 * Refactoring of the CMake options
 * Fix for big-endian architectures (RedHat bug #985748)
