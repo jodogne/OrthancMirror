@@ -2,9 +2,10 @@ Pending changes in the mainline
 ===============================
 
 
-* Use ZIP64 only when it is required (depending on file count and size)
-* Fix for big-endian architectures (RedHat bug #985748)
+* Use ZIP64 only when required to improve compatibility (cf. issue #7)
 * Refactoring of the CMake options
+* Fix for big-endian architectures (RedHat bug #985748)
+* Use filenames with 8 characters in ZIP files for maximum compatibility
 * Possibility to build Orthanc inplace (in the source directory)
 
 
