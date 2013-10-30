@@ -1301,26 +1301,22 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::GetStatistics(Json::Value& target,
-                                  const std::string& publicId)
+  void ServerIndex::GetStatisticsInternal(/* out */ uint64_t& compressedSize, 
+                                          /* out */ uint64_t& uncompressedSize, 
+                                          /* out */ unsigned int& countStudies, 
+                                          /* out */ unsigned int& countSeries, 
+                                          /* out */ unsigned int& countInstances, 
+                                          /* in  */ int64_t id,
+                                          /* in  */ ResourceType type)
   {
-    boost::mutex::scoped_lock lock(mutex_);
-
-    ResourceType type;
-    int64_t top;
-    if (!db_->LookupResource(publicId, top, type))
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-
     std::stack<int64_t> toExplore;
-    toExplore.push(top);
+    toExplore.push(id);
 
-    int countInstances = 0;
-    int countSeries = 0;
-    int countStudies = 0;
-    uint64_t compressedSize = 0;
-    uint64_t uncompressedSize = 0;
+    countInstances = 0;
+    countSeries = 0;
+    countStudies = 0;
+    compressedSize = 0;
+    uncompressedSize = 0;
 
     while (!toExplore.empty())
     {
@@ -1375,6 +1371,39 @@ namespace Orthanc
       }
     }
 
+    if (countStudies == 0)
+    {
+      countStudies = 1;
+    }
+
+    if (countSeries == 0)
+    {
+      countSeries = 1;
+    }
+  }
+
+
+
+  void ServerIndex::GetStatistics(Json::Value& target,
+                                  const std::string& publicId)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    ResourceType type;
+    int64_t top;
+    if (!db_->LookupResource(publicId, top, type))
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
+    uint64_t uncompressedSize;
+    uint64_t compressedSize;
+    unsigned int countStudies;
+    unsigned int countSeries;
+    unsigned int countInstances;
+    GetStatisticsInternal(compressedSize, uncompressedSize, countStudies, 
+                          countSeries, countInstances, top, type);
+
     target = Json::objectValue;
     target["DiskSize"] = boost::lexical_cast<std::string>(compressedSize);
     target["DiskSizeMB"] = boost::lexical_cast<unsigned int>(compressedSize / MEGA_BYTES);
@@ -1397,6 +1426,27 @@ namespace Orthanc
       default:
         break;
     }
+  }
+
+
+  void ServerIndex::GetStatistics(/* out */ uint64_t& compressedSize, 
+                                  /* out */ uint64_t& uncompressedSize, 
+                                  /* out */ unsigned int& countStudies, 
+                                  /* out */ unsigned int& countSeries, 
+                                  /* out */ unsigned int& countInstances, 
+                                  const std::string& publicId)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    ResourceType type;
+    int64_t top;
+    if (!db_->LookupResource(publicId, top, type))
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
+    GetStatisticsInternal(compressedSize, uncompressedSize, countStudies, 
+                          countSeries, countInstances, top, type);    
   }
 
 

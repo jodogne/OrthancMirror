@@ -94,6 +94,16 @@ namespace Orthanc
 
     ~HierarchicalZipWriter();
 
+    void SetZip64(bool isZip64)
+    {
+      writer_.SetZip64(isZip64);
+    }
+
+    bool IsZip64() const
+    {
+      return writer_.IsZip64();
+    }
+
     void SetCompressionLevel(uint8_t level)
     {
       writer_.SetCompressionLevel(level);
