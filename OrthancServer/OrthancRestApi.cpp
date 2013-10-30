@@ -531,7 +531,8 @@ namespace Orthanc
 
   static bool ArchiveInstance(HierarchicalZipWriter& writer,
                               ServerContext& context,
-                              const std::string& instancePublicId)
+                              const std::string& instancePublicId,
+                              const char* filename)
   {
     Json::Value instance;
     if (!context.GetIndex().LookupResource(instance, instancePublicId, ResourceType_Instance))
@@ -539,8 +540,7 @@ namespace Orthanc
       return false;
     }
 
-    std::string filename = instance["MainDicomTags"]["SOPInstanceUID"].asString() + ".dcm";
-    writer.OpenFile(filename.c_str());
+    writer.OpenFile(filename);
 
     std::string dicom;
     context.ReadFile(dicom, instancePublicId, FileContentType_Dicom);
@@ -594,14 +594,43 @@ namespace Orthanc
         break;
 
       case ResourceType_Series:
+      {
+        // Create a filename prefix, depending on the modality
+        char format[16] = "%08d";
+
+        if (resource["MainDicomTags"].isMember("Modality"))
+        {
+          std::string modality = resource["MainDicomTags"]["Modality"].asString();
+
+          if (modality.size() == 1)
+          {
+            snprintf(format, sizeof(format) - 1, "%c%%07d", toupper(modality[0]));
+          }
+          else if (modality.size() >= 2)
+          {
+            snprintf(format, sizeof(format) - 1, "%c%c%%06d", toupper(modality[0]), toupper(modality[1]));
+          }
+        }
+
+        char filename[16];
+
         for (Json::Value::ArrayIndex i = 0; i < resource["Instances"].size(); i++)
         {
-          if (!ArchiveInstance(writer, context, resource["Instances"][i].asString()))
+          snprintf(filename, sizeof(filename) - 1, format, i);
+
+          std::string publicId = resource["Instances"][i].asString();
+
+          // This was the implementation up to Orthanc 0.7.0:
+          // std::string filename = instance["MainDicomTags"]["SOPInstanceUID"].asString() + ".dcm";
+
+          if (!ArchiveInstance(writer, context, publicId, filename))
           {
             return false;
           }
         }
+
         break;
+      }
 
       default:
         throw OrthancException(ErrorCode_InternalError);
