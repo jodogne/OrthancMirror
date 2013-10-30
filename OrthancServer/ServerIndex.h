@@ -90,6 +90,14 @@ namespace Orthanc
     void MarkAsUnstable(int64_t id,
                         Orthanc::ResourceType type);
 
+    void GetStatisticsInternal(/* out */ uint64_t& compressedSize, 
+                               /* out */ uint64_t& uncompressedSize, 
+                               /* out */ unsigned int& countStudies, 
+                               /* out */ unsigned int& countSeries, 
+                               /* out */ unsigned int& countInstances, 
+                               /* in  */ int64_t id,
+                               /* in  */ ResourceType type);
+
   public:
     typedef std::list<FileInfo> Attachments;
 
@@ -185,6 +193,13 @@ namespace Orthanc
     void DeleteExportedResources();
 
     void GetStatistics(Json::Value& target,
+                       const std::string& publicId);
+
+    void GetStatistics(/* out */ uint64_t& compressedSize, 
+                       /* out */ uint64_t& uncompressedSize, 
+                       /* out */ unsigned int& countStudies, 
+                       /* out */ unsigned int& countSeries, 
+                       /* out */ unsigned int& countInstances, 
                        const std::string& publicId);
 
     void LookupTagValue(std::list<std::string>& result,

@@ -46,6 +46,9 @@
 #include <boost/lexical_cast.hpp>
 #include <glog/logging.h>
 
+static const uint64_t MEGA_BYTES = 1024 * 1024;
+static const uint64_t GIGA_BYTES = 1024 * 1024 * 1024;
+
 
 #define RETRIEVE_CONTEXT(call)                          \
   OrthancRestApi& contextApi =                          \
@@ -551,12 +554,12 @@ namespace Orthanc
                               const std::string& publicId,
                               ResourceType resourceType,
                               bool isFirstLevel)
-  {
+  { 
     Json::Value resource;
     if (!context.GetIndex().LookupResource(resource, publicId, resourceType))
     {
       return false;
-    }
+    }    
 
     if (isFirstLevel && 
         !CreateRootDirectoryInArchive(writer, context, resource, resourceType))
@@ -612,14 +615,36 @@ namespace Orthanc
   static void GetArchive(RestApi::GetCall& call)
   {
     RETRIEVE_CONTEXT(call);
+    std::string id = call.GetUriComponent("id", "");
+
+    /**
+     * Determine whether ZIP64 is required. Original ZIP format can
+     * store up to 2GB of data (some implementation supporting up to
+     * 4GB of data), and up to 65535 files.
+     * https://en.wikipedia.org/wiki/Zip_(file_format)#ZIP64
+     **/
+
+    uint64_t uncompressedSize;
+    uint64_t compressedSize;
+    unsigned int countStudies;
+    unsigned int countSeries;
+    unsigned int countInstances;
+    context.GetIndex().GetStatistics(compressedSize, uncompressedSize, 
+                                     countStudies, countSeries, countInstances, id);
+    const bool isZip64 = (uncompressedSize >= 2 * GIGA_BYTES ||
+                          countInstances >= 65535);
+
+    LOG(INFO) << "Creating a ZIP file with " << countInstances << " files of size "
+              << (uncompressedSize / MEGA_BYTES) << "MB using the "
+              << (isZip64 ? "ZIP64" : "ZIP32") << " file format";
 
     // Create a RAII for the temporary file to manage the ZIP file
     Toolbox::TemporaryFile tmp;
-    std::string id = call.GetUriComponent("id", "");
 
     {
       // Create a ZIP writer
       HierarchicalZipWriter writer(tmp.GetPath().c_str());
+      writer.SetZip64(isZip64);
 
       // Store the requested resource into the ZIP
       if (!ArchiveInternal(writer, context, id, resourceType, true))
