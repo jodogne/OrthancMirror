@@ -229,7 +229,7 @@ endif()
 
 install(
   TARGETS Orthanc
-  RUNTIME DESTINATION bin
+  RUNTIME DESTINATION sbin
   )
 
 
