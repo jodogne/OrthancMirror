@@ -2,6 +2,7 @@ Pending changes in the mainline
 ===============================
 
 
+* Use ZIP64 only when it is required (depending on file count and size)
 * Fix for big-endian architectures (RedHat bug #985748)
 * Refactoring of the CMake options
 * Possibility to build Orthanc inplace (in the source directory)
