@@ -51,7 +51,7 @@ namespace Orthanc
     result.clear();
 
     for (HttpHandler::Arguments::const_iterator 
-           it = getArguments_->begin(); it != getArguments_->end(); ++it)
+           it = getArguments_.begin(); it != getArguments_.end(); ++it)
     {
       result[it->first] = it->second;
     }
@@ -200,15 +200,7 @@ namespace Orthanc
         {
           //LOG(INFO) << "REST GET call on: " << Toolbox::FlattenUri(uri);
           ok = true;
-          GetCall call;
-          call.output_ = &restOutput;
-          call.context_ = this;
-          call.httpHeaders_ = &headers;
-          call.uriComponents_ = &components;
-          call.trailing_ = &trailing;
-          call.fullUri_ = &uri;
-          
-          call.getArguments_ = &getArguments;
+          GetCall call(restOutput, *this, headers, components, trailing, uri, getArguments);
           it->second(call);
         }
       }
@@ -222,15 +214,7 @@ namespace Orthanc
         {
           //LOG(INFO) << "REST PUT call on: " << Toolbox::FlattenUri(uri);
           ok = true;
-          PutCall call;
-          call.output_ = &restOutput;
-          call.context_ = this;
-          call.httpHeaders_ = &headers;
-          call.uriComponents_ = &components;
-          call.trailing_ = &trailing;
-          call.fullUri_ = &uri;
-           
-          call.data_ = &postData;
+          PutCall call(restOutput, *this, headers, components, trailing, uri, postData);
           it->second(call);
         }
       }
@@ -244,15 +228,7 @@ namespace Orthanc
         {
           //LOG(INFO) << "REST POST call on: " << Toolbox::FlattenUri(uri);
           ok = true;
-          PostCall call;
-          call.output_ = &restOutput;
-          call.context_ = this;
-          call.httpHeaders_ = &headers;
-          call.uriComponents_ = &components;
-          call.trailing_ = &trailing;
-          call.fullUri_ = &uri;
-           
-          call.data_ = &postData;
+          PostCall call(restOutput, *this, headers, components, trailing, uri, postData);
           it->second(call);
         }
       }
@@ -266,13 +242,7 @@ namespace Orthanc
         {
           //LOG(INFO) << "REST DELETE call on: " << Toolbox::FlattenUri(uri);
           ok = true;
-          DeleteCall call;
-          call.output_ = &restOutput;
-          call.context_ = this;
-          call.httpHeaders_ = &headers;
-          call.uriComponents_ = &components;
-          call.trailing_ = &trailing;
-          call.fullUri_ = &uri;
+          DeleteCall call(restOutput, *this, headers, components, trailing, uri);
           it->second(call);
         }
       }
