@@ -372,8 +372,8 @@ inline void Finalize()
 }
 
 
-
-void ::OrthancClient::Internals::Library::LoadFunctions()
+namespace OrthancClient { namespace Internals { 
+inline void Library::LoadFunctions()
 {
   typedef const char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) ();
   Function getVersion = (Function) LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_GetVersion", "0");
@@ -462,6 +462,7 @@ void ::OrthancClient::Internals::Library::LoadFunctions()
     }
   }
 }
+}}
 namespace OrthancClient
 {
   class OrthancConnection;

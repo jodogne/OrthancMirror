@@ -58,6 +58,7 @@ namespace Orthanc
   };
 
 
+#if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
   static void LoadEmbeddedDictionary(DcmDataDictionary& dictionary,
                                      EmbeddedResources::FileResourceId resource)
   {
@@ -74,7 +75,7 @@ namespace Orthanc
     }
   }
                              
-
+#else
   static void LoadExternalDictionary(DcmDataDictionary& dictionary,
                                      const std::string& directory,
                                      const std::string& filename)
@@ -89,7 +90,8 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
   }
-                             
+                            
+#endif
 
 
   void DicomServer::ServerThread(DicomServer* server)

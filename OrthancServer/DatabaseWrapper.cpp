@@ -85,6 +85,11 @@ namespace Orthanc
       ResourceType remainingType_;
 
     public:
+      SignalRemainingAncestor() : 
+        hasRemainingAncestor_(false)
+      {
+      }
+
       void Reset()
       {
         hasRemainingAncestor_ = false;
