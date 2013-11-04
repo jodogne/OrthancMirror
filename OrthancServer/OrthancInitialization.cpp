@@ -45,12 +45,9 @@
 
 namespace Orthanc
 {
-  static const char* CONFIGURATION_FILE = "Configuration.json";
-
   static boost::mutex globalMutex_;
   static std::auto_ptr<Json::Value> configuration_;
   static boost::filesystem::path defaultDirectory_;
-
 
   static void ReadGlobalConfiguration(const char* configurationFile)
   {
@@ -62,51 +59,31 @@ namespace Orthanc
     {
       Toolbox::ReadFile(content, configurationFile);
       defaultDirectory_ = boost::filesystem::path(configurationFile).parent_path();
-      LOG(INFO) << "Using the configuration from: " << configurationFile;
+      LOG(WARNING) << "Using the configuration from: " << configurationFile;
     }
     else
     {
-#if 0 && ORTHANC_STANDALONE == 1 && defined(__linux)
-      // Unused anymore
-      // Under Linux, try and open "../../etc/orthanc/Configuration.json"
-      try
-      {
-        boost::filesystem::path p = Toolbox::GetDirectoryOfExecutable();
-        p = p.parent_path().parent_path();
-        p /= "etc";
-        p /= "orthanc";
-        p /= CONFIGURATION_FILE;
-          
-        Toolbox::ReadFile(content, p.string());
-        LOG(INFO) << "Using the configuration from: " << p.string();
-      }
-      catch (OrthancException&)
-      {
-        // No configuration file found, give up with empty configuration
-        LOG(INFO) << "Using the default Orthanc configuration";
-        return;
-      }
-
-#elif ORTHANC_STANDALONE == 1
+#if ORTHANC_STANDALONE == 1
       // No default path for the standalone configuration
-      LOG(INFO) << "Using the default Orthanc configuration";
+      LOG(WARNING) << "Using the default Orthanc configuration";
       return;
 
 #else
       // In a non-standalone build, we use the
-      // "Resources/Configuration.json" from the Orthanc distribution
+      // "Resources/Configuration.json" from the Orthanc source code
+
       try
       {
         boost::filesystem::path p = ORTHANC_PATH;
         p /= "Resources";
-        p /= CONFIGURATION_FILE;
+        p /= "Configuration.json";
         Toolbox::ReadFile(content, p.string());
-        LOG(INFO) << "Using the configuration from: " << p.string();
+        LOG(WARNING) << "Using the configuration from: " << p.string();
       }
       catch (OrthancException&)
       {
         // No configuration file found, give up with empty configuration
-        LOG(INFO) << "Using the default Orthanc configuration";
+        LOG(WARNING) << "Using the default Orthanc configuration";
         return;
       }
 #endif
@@ -130,7 +107,7 @@ namespace Orthanc
       for (size_t i = 0; i < members.size(); i++)
       {
         std::string info = "\"" + members[i] + "\" = " + parameter[members[i]].toStyledString();
-        LOG(INFO) << "Registering user-defined metadata: " << info;
+        LOG(WARNING) << "Registering user-defined metadata: " << info;
 
         if (!parameter[members[i]].asBool())
         {
