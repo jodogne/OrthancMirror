@@ -332,7 +332,7 @@ int main(int argc, char* argv[])
     std::list<std::string> luaScripts;
     GetGlobalListOfStringsParameter(luaScripts, "LuaScripts");
     for (std::list<std::string>::const_iterator
-           it = luaScripts.begin(); it != luaScripts.end(); it++)
+           it = luaScripts.begin(); it != luaScripts.end(); ++it)
     {
       std::string path = InterpretStringParameterAsPath(*it);
       LOG(WARNING) << "Installing the Lua scripts from: " << path;

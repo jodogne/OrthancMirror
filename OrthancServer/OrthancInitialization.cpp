@@ -144,10 +144,10 @@ namespace Orthanc
         {
           RegisterUserMetadata(metadata, members[i]);
         }
-        catch (OrthancException& e)
+        catch (OrthancException&)
         {
           LOG(ERROR) << "Cannot register this user-defined metadata: " << info;
-          throw e;
+          throw;
         }
       }
     }

@@ -119,7 +119,11 @@ namespace Orthanc
       {
         if (root_->refCount_ == 0)
         {
-          throw OrthancException(ErrorCode_InternalError);
+          // There remain references to this object. We cannot throw
+          // an exception because:
+          // http://www.parashift.com/c++-faq/dtors-shouldnt-throw.html
+
+          LOG(ERROR) << "Bad value of the reference counter";
         }
         else
         {

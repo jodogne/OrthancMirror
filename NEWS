@@ -2,6 +2,10 @@ Pending changes in the mainline
 ===============================
 
 
+* Switch from glog 0.3.2 to glog 0.3.3
+* Fixes and improvements thanks to cppcheck
+
+
 Version 0.7.1 (2013/10/30)
 ==========================
 

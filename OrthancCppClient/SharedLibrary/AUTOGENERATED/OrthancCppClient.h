@@ -598,7 +598,7 @@ namespace OrthancClient
      *
      * @param other The original object.
      **/
-    OrthancConnection(const OrthancConnection& other) : pimpl_(other.pimpl_), isReference_(true) { }
+    OrthancConnection(const OrthancConnection& other) : isReference_(true), pimpl_(other.pimpl_) { }
     inline OrthancConnection(const ::std::string& orthancUrl);
     inline OrthancConnection(const ::std::string& orthancUrl, const ::std::string& username, const ::std::string& password);
     inline ~OrthancConnection();
@@ -641,7 +641,7 @@ namespace OrthancClient
      *
      * @param other The original object.
      **/
-    Patient(const Patient& other) : pimpl_(other.pimpl_), isReference_(true) { }
+    Patient(const Patient& other) : isReference_(true), pimpl_(other.pimpl_) { }
     inline Patient(::OrthancClient::OrthancConnection& connection, const ::std::string& id);
     inline ~Patient();
     inline void Reload();
@@ -679,7 +679,7 @@ namespace OrthancClient
      *
      * @param other The original object.
      **/
-    Series(const Series& other) : pimpl_(other.pimpl_), isReference_(true) { }
+    Series(const Series& other) : isReference_(true), pimpl_(other.pimpl_) { }
     inline Series(::OrthancClient::OrthancConnection& connection, const ::std::string& id);
     inline ~Series();
     inline void Reload();
@@ -726,7 +726,7 @@ namespace OrthancClient
      *
      * @param other The original object.
      **/
-    Study(const Study& other) : pimpl_(other.pimpl_), isReference_(true) { }
+    Study(const Study& other) : isReference_(true), pimpl_(other.pimpl_) { }
     inline Study(::OrthancClient::OrthancConnection& connection, const ::std::string& id);
     inline ~Study();
     inline void Reload();
@@ -764,7 +764,7 @@ namespace OrthancClient
      *
      * @param other The original object.
      **/
-    Instance(const Instance& other) : pimpl_(other.pimpl_), isReference_(true) { }
+    Instance(const Instance& other) : isReference_(true), pimpl_(other.pimpl_) { }
     inline Instance(::OrthancClient::OrthancConnection& connection, const ::std::string& id);
     inline ~Instance();
     inline ::std::string GetId() const;
@@ -832,7 +832,7 @@ namespace OrthancClient
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*);
     Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(2);
     char* error = function(pimpl_);
-    ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
+    error = error;  // Remove warning about unused variable
   }
   /**
   * @brief Returns the number of threads for this connection.
@@ -1002,7 +1002,7 @@ namespace OrthancClient
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*);
     Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(13);
     char* error = function(pimpl_);
-    ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
+    error = error;  // Remove warning about unused variable
   }
   /**
   * @brief Reload the studies of this patient.
@@ -1116,7 +1116,7 @@ namespace OrthancClient
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*);
     Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(20);
     char* error = function(pimpl_);
-    ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
+    error = error;  // Remove warning about unused variable
   }
   /**
   * @brief Reload the instances of this series.
@@ -1377,7 +1377,7 @@ namespace OrthancClient
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*);
     Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(36);
     char* error = function(pimpl_);
-    ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
+    error = error;  // Remove warning about unused variable
   }
   /**
   * @brief Reload the series of this study.
@@ -1491,7 +1491,7 @@ namespace OrthancClient
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*);
     Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(43);
     char* error = function(pimpl_);
-    ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
+    error = error;  // Remove warning about unused variable
   }
   /**
   * @brief Get the %Orthanc identifier of this identifier.

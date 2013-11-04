@@ -227,7 +227,7 @@ namespace Orthanc
     DcmDataset *responseIdentifiers /* pending response identifiers */
     )
   {
-    DicomFindAnswers& answers = *(DicomFindAnswers*) callbackData;
+    DicomFindAnswers& answers = *reinterpret_cast<DicomFindAnswers*>(callbackData);
 
     if (responseIdentifiers != NULL)
     {
