@@ -141,15 +141,15 @@ namespace Orthanc
     }
 
 
-    TemporaryFile::TemporaryFile()
+    TemporaryFile::TemporaryFile() : 
+      path_(CreateTemporaryPath(NULL))
     {
-      path_ = CreateTemporaryPath(NULL);
     }
 
 
-    TemporaryFile::TemporaryFile(const char* extension)
+    TemporaryFile::TemporaryFile(const char* extension) :
+      path_(CreateTemporaryPath(extension))
     {
-      path_ = CreateTemporaryPath(extension);
     }
 
 

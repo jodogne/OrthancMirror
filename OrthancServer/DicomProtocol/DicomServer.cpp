@@ -192,9 +192,10 @@ namespace Orthanc
   }                           
 
 
-  DicomServer::DicomServer() : pimpl_(new PImpl)
+  DicomServer::DicomServer() : 
+    pimpl_(new PImpl),
+    aet_("ANY-SCP")
   {
-    aet_ = "ANY-SCP";
     port_ = 104;
     findRequestHandlerFactory_ = NULL;
     moveRequestHandlerFactory_ = NULL;
@@ -203,6 +204,8 @@ namespace Orthanc
     checkCalledAet_ = true;
     clientTimeout_ = 30;
     isThreaded_ = true;
+    continue_ = false;
+    started_ = false;
   }
 
   DicomServer::~DicomServer()

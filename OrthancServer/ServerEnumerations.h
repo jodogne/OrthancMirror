@@ -118,7 +118,7 @@ namespace Orthanc
   void InitializeServerEnumerations();
 
   void RegisterUserMetadata(int metadata,
-                            const std::string name);
+                            const std::string& name);
 
   std::string GetBasePath(ResourceType type,
                           const std::string& publicId);

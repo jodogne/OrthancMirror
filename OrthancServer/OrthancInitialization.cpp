@@ -144,7 +144,7 @@ namespace Orthanc
         {
           RegisterUserMetadata(metadata, members[i]);
         }
-        catch (OrthancException e)
+        catch (OrthancException& e)
         {
           LOG(ERROR) << "Cannot register this user-defined metadata: " << info;
           throw e;
@@ -495,7 +495,7 @@ namespace Orthanc
     GetListOfDicomModalities(modalities);
 
     for (std::set<std::string>::const_iterator 
-           it = modalities.begin(); it != modalities.end(); it++)
+           it = modalities.begin(); it != modalities.end(); ++it)
     {
       try
       {

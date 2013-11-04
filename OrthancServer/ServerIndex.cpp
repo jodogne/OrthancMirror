@@ -91,7 +91,7 @@ namespace Orthanc
       {
         for (std::list<std::string>::iterator 
                it = pendingFilesToRemove_.begin();
-             it != pendingFilesToRemove_.end(); it++)
+             it != pendingFilesToRemove_.end(); ++it)
         {
           context_.RemoveFile(*it);
         }
@@ -290,11 +290,11 @@ namespace Orthanc
                                                int64_t series,
                                                const DicomMap& dicomSummary)
   {
-    const DicomValue* value;
-    const DicomValue* value2;
-          
     try
     {
+      const DicomValue* value;
+      const DicomValue* value2;
+          
       if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGES_IN_ACQUISITION)) != NULL &&
           (value2 = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS)) != NULL)
       {
@@ -407,7 +407,7 @@ namespace Orthanc
       // Ensure there is enough room in the storage for the new instance
       uint64_t instanceSize = 0;
       for (Attachments::const_iterator it = attachments.begin();
-           it != attachments.end(); it++)
+           it != attachments.end(); ++it)
       {
         instanceSize += it->GetCompressedSize();
       }
@@ -512,7 +512,7 @@ namespace Orthanc
 
       // Attach the files to the newly created instance
       for (Attachments::const_iterator it = attachments.begin();
-           it != attachments.end(); it++)
+           it != attachments.end(); ++it)
       {
         db_->AddAttachment(instance, *it);
       }
@@ -593,10 +593,6 @@ namespace Orthanc
     try
     {
       expected = boost::lexical_cast<size_t>(s);
-      if (expected < 0)
-      {
-        return SeriesStatus_Unknown;
-      }
     }
     catch (boost::bad_lexical_cast&)
     {
@@ -609,7 +605,7 @@ namespace Orthanc
 
     std::set<size_t> instances;
     for (std::list<int64_t>::const_iterator 
-           it = children.begin(); it != children.end(); it++)
+           it = children.begin(); it != children.end(); ++it)
     {
       // Get the index of this instance in the series
       s = db_->GetMetadata(*it, MetadataType_Instance_IndexInSeries);
@@ -623,7 +619,7 @@ namespace Orthanc
         return SeriesStatus_Unknown;
       }
 
-      if (index <= 0 || index > expected)
+      if (!(index > 0 && index <= expected))
       {
         // Out-of-range instance index
         return SeriesStatus_Inconsistent;
@@ -715,7 +711,7 @@ namespace Orthanc
       Json::Value c = Json::arrayValue;
 
       for (std::list<std::string>::const_iterator
-             it = children.begin(); it != children.end(); it++)
+             it = children.begin(); it != children.end(); ++it)
       {
         c.append(*it);
       }
@@ -1153,7 +1149,7 @@ namespace Orthanc
         // Tag all the children of this resource as to be explored
         db_->GetChildrenInternalId(tmp, resource);
         for (std::list<int64_t>::const_iterator 
-               it = tmp.begin(); it != tmp.end(); it++)
+               it = tmp.begin(); it != tmp.end(); ++it)
         {
           toExplore.push(*it);
         }
@@ -1332,7 +1328,7 @@ namespace Orthanc
         db_->ListAvailableAttachments(f, resource);
 
         for (std::list<FileContentType>::const_iterator
-               it = f.begin(); it != f.end(); it++)
+               it = f.begin(); it != f.end(); ++it)
         {
           FileInfo attachment;
           if (db_->LookupAttachment(attachment, resource, *it))
@@ -1364,7 +1360,7 @@ namespace Orthanc
         std::list<int64_t> tmp;
         db_->GetChildrenInternalId(tmp, resource);
         for (std::list<int64_t>::const_iterator 
-               it = tmp.begin(); it != tmp.end(); it++)
+               it = tmp.begin(); it != tmp.end(); ++it)
         {
           toExplore.push(*it);
         }
@@ -1534,7 +1530,7 @@ namespace Orthanc
     db_->LookupTagValue(id, tag, value);
 
     for (std::list<int64_t>::const_iterator 
-           it = id.begin(); it != id.end(); it++)
+           it = id.begin(); it != id.end(); ++it)
     {
       if (db_->GetResourceType(*it) == type)
       {
@@ -1556,7 +1552,7 @@ namespace Orthanc
     db_->LookupTagValue(id, tag, value);
 
     for (std::list<int64_t>::const_iterator 
-           it = id.begin(); it != id.end(); it++)
+           it = id.begin(); it != id.end(); ++it)
     {
       result.push_back(db_->GetPublicId(*it));
     }
@@ -1574,7 +1570,7 @@ namespace Orthanc
     db_->LookupTagValue(id, value);
 
     for (std::list<int64_t>::const_iterator 
-           it = id.begin(); it != id.end(); it++)
+           it = id.begin(); it != id.end(); ++it)
     {
       result.push_back(db_->GetPublicId(*it));
     }

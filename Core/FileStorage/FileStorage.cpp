@@ -267,7 +267,7 @@ namespace Orthanc
     List result;
     ListAllFiles(result);
 
-    for (List::const_iterator it = result.begin(); it != result.end(); it++)
+    for (List::const_iterator it = result.begin(); it != result.end(); ++it)
     {
       Remove(*it);
     }

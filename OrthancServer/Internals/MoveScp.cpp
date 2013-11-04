@@ -74,7 +74,7 @@ namespace Orthanc
       *statusDetail = NULL;
       *responseIdentifiers = NULL;   
 
-      MoveScpData& data = *(MoveScpData*) callbackData;
+      MoveScpData& data = *reinterpret_cast<MoveScpData*>(callbackData);
       if (data.lastRequest_ == NULL)
       {
         FromDcmtkBridge::Convert(data.input_, *requestIdentifiers);

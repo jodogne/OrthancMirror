@@ -128,7 +128,7 @@ namespace Orthanc
 
   void DicomMap::Clear()
   {
-    for (Map::iterator it = map_.begin(); it != map_.end(); it++)
+    for (Map::iterator it = map_.begin(); it != map_.end(); ++it)
     {
       delete it->second;
     }
@@ -180,7 +180,7 @@ namespace Orthanc
   {
     std::auto_ptr<DicomMap> result(new DicomMap);
 
-    for (Map::const_iterator it = map_.begin(); it != map_.end(); it++)
+    for (Map::const_iterator it = map_.begin(); it != map_.end(); ++it)
     {
       result->map_.insert(std::make_pair(it->first, it->second->Clone()));
     }

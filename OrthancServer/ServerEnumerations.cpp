@@ -56,7 +56,7 @@ namespace Orthanc
   }
 
   void RegisterUserMetadata(int metadata,
-                            const std::string name)
+                            const std::string& name)
   {
     boost::mutex::scoped_lock lock(enumerationsMutex_);
 

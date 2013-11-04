@@ -130,7 +130,7 @@ namespace Orthanc
       Json::Value::Members members = value.getMemberNames();
 
       for (Json::Value::Members::const_iterator 
-             it = members.begin(); it != members.end(); it++)
+             it = members.begin(); it != members.end(); ++it)
       {
         // Push the index of the cell
         lua_pushstring(context_.lua_, it->c_str());

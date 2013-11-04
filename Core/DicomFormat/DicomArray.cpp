@@ -41,7 +41,7 @@ namespace Orthanc
     elements_.reserve(map.map_.size());
     
     for (DicomMap::Map::const_iterator it = 
-           map.map_.begin(); it != map.map_.end(); it++)
+           map.map_.begin(); it != map.map_.end(); ++it)
     {
       elements_.push_back(new DicomElement(it->first, *it->second));
     }
