@@ -1,8 +1,8 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
-  SET(GOOGLE_LOG_SOURCES_DIR ${CMAKE_BINARY_DIR}/glog-0.3.2)
+  SET(GOOGLE_LOG_SOURCES_DIR ${CMAKE_BINARY_DIR}/glog-0.3.3)
   DownloadPackage(
-    "897fbff90d91ea2b6d6e78c8cea641cc"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/glog-0.3.2.tar.gz"
+    "a6fd2c22f8996846e34c763422717c18"
+    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/glog-0.3.3.tar.gz"
     "${GOOGLE_LOG_SOURCES_DIR}")
 
   set(GOOGLE_LOG_HEADERS
