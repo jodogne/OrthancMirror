@@ -151,7 +151,7 @@ namespace Orthanc
     const char* asFallback[2];
     std::set<std::string>::const_iterator it = abstractSyntaxes.begin();
     asFallback[0] = it->c_str();
-    it++;
+    ++it;
     asFallback[1] = it->c_str();
 
     unsigned int presentationContextId = 1;
@@ -460,12 +460,13 @@ namespace Orthanc
   }
 
 
-  DicomUserConnection::DicomUserConnection() : pimpl_(new PImpl)
+  DicomUserConnection::DicomUserConnection() : 
+    pimpl_(new PImpl),
+    localAet_("STORESCU"),
+    distantAet_("ANY-SCP"),
+    distantHost_("127.0.0.1")
   {
-    localAet_ = "STORESCU";
-    distantAet_ = "ANY-SCP";
     distantPort_ = 104;
-    distantHost_ = "127.0.0.1";
     manufacturer_ = ModalityManufacturer_Generic;
 
     pimpl_->net_ = NULL;

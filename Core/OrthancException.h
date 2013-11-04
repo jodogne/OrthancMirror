@@ -46,21 +46,20 @@ namespace Orthanc
   public:
     static const char* GetDescription(ErrorCode error);
 
-    OrthancException(const char* custom)
+    OrthancException(const char* custom) : 
+      error_(ErrorCode_Custom),
+      custom_(custom)
     {
-      error_ = ErrorCode_Custom;
-      custom_ = custom;
     }
 
-    OrthancException(const std::string& custom)
+    OrthancException(const std::string& custom) : 
+      error_(ErrorCode_Custom),
+      custom_(custom)
     {
-      error_ = ErrorCode_Custom;
-      custom_ = custom;
     }
 
-    OrthancException(ErrorCode error)
+    OrthancException(ErrorCode error) : error_(error)
     {
-      error_ = error;
     }
 
     ErrorCode GetErrorCode() const

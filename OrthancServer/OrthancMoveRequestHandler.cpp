@@ -63,7 +63,7 @@ namespace Orthanc
         context_.GetIndex().GetChildInstances(tmp, publicId);
 
         instances_.reserve(tmp.size());
-        for (std::list<std::string>::iterator it = tmp.begin(); it != tmp.end(); it++)
+        for (std::list<std::string>::iterator it = tmp.begin(); it != tmp.end(); ++it)
         {
           instances_.push_back(*it);
         }

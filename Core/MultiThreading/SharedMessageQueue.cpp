@@ -42,7 +42,7 @@ namespace Orthanc
 
   SharedMessageQueue::~SharedMessageQueue()
   {
-    for (Queue::iterator it = queue_.begin(); it != queue_.end(); it++)
+    for (Queue::iterator it = queue_.begin(); it != queue_.end(); ++it)
     {
       delete *it;
     }

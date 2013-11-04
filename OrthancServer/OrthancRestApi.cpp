@@ -316,7 +316,7 @@ namespace Orthanc
         std::list<std::string> tmp;
         context.GetIndex().GetChildInstances(tmp, stripped);
         instances.merge(tmp);
-        assert(tmp.size() == 0);
+        assert(tmp.empty());
       }
     }
     else
@@ -345,7 +345,7 @@ namespace Orthanc
     ConnectToModalityUsingSymbolicName(connection, remote);
 
     for (std::list<std::string>::const_iterator 
-           it = instances.begin(); it != instances.end(); it++)
+           it = instances.begin(); it != instances.end(); ++it)
     {
       LOG(INFO) << "Sending resource " << *it << " to modality \"" << remote << "\"";
 
@@ -987,7 +987,7 @@ namespace Orthanc
 
     Json::Value result = Json::arrayValue;
     for (OrthancRestApi::SetOfStrings::const_iterator 
-           it = modalities.begin(); it != modalities.end(); it++)
+           it = modalities.begin(); it != modalities.end(); ++it)
     {
       result.append(*it);
     }
@@ -1051,13 +1051,13 @@ namespace Orthanc
     }
 
     for (Removals::const_iterator it = removals.begin(); 
-         it != removals.end(); it++)
+         it != removals.end(); ++it)
     {
       toModify.Remove(*it);
     }
 
     for (Replacements::const_iterator it = replacements.begin(); 
-         it != replacements.end(); it++)
+         it != replacements.end(); ++it)
     {
       toModify.Replace(it->first, it->second, mode);
     }
@@ -1270,7 +1270,7 @@ namespace Orthanc
 
       SetupAnonymization(removals, replacements);
 
-      for (Removals::iterator it = toKeep.begin(); it != toKeep.end(); it++)
+      for (Removals::iterator it = toKeep.begin(); it != toKeep.end(); ++it)
       {
         if (*it == DICOM_TAG_PATIENT_ID)
         {
@@ -1284,7 +1284,7 @@ namespace Orthanc
       ParseRemovals(additionalRemovals, removalsPart);
 
       for (Removals::iterator it = additionalRemovals.begin(); 
-           it != additionalRemovals.end(); it++)
+           it != additionalRemovals.end(); ++it)
       {
         removals.insert(*it);
       }     
@@ -1397,11 +1397,10 @@ namespace Orthanc
     std::string id = call.GetUriComponent("id", "");
     context.GetIndex().GetChildInstances(instances, id);
 
-    if (instances.size() == 0)
+    if (instances.empty())
     {
       return;
     }
-
 
     /**
      * Loop over all the instances of the resource.
@@ -1409,7 +1408,7 @@ namespace Orthanc
 
     UidMap uidMap;
     for (Instances::const_iterator it = instances.begin(); 
-         it != instances.end(); it++)
+         it != instances.end(); ++it)
     {
       LOG(INFO) << "Modifying instance " << *it;
       ParsedDicomFile& original = context.GetDicomFile(*it);
@@ -1662,7 +1661,7 @@ namespace Orthanc
       Json::Value result = Json::arrayValue;
 
       for (std::list<MetadataType>::const_iterator 
-             it = metadata.begin(); it != metadata.end(); it++)
+             it = metadata.begin(); it != metadata.end(); ++it)
       {
         result.append(EnumerationToString(*it));
       }
@@ -1750,7 +1749,7 @@ namespace Orthanc
 
     Json::Value result = Json::arrayValue;
     for (OrthancRestApi::SetOfStrings::const_iterator 
-           it = peers.begin(); it != peers.end(); it++)
+           it = peers.begin(); it != peers.end(); ++it)
     {
       result.append(*it);
     }
@@ -1798,7 +1797,7 @@ namespace Orthanc
 
     // Loop over the instances that are to be sent
     for (std::list<std::string>::const_iterator 
-           it = instances.begin(); it != instances.end(); it++)
+           it = instances.begin(); it != instances.end(); ++it)
     {
       LOG(INFO) << "Sending resource " << *it << " to peer \"" << remote << "\"";
 

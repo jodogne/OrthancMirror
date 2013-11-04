@@ -43,7 +43,7 @@ namespace Orthanc
     numBytes_ = 0;
 
     for (Chunks::iterator it = chunks_.begin(); 
-         it != chunks_.end(); it++)
+         it != chunks_.end(); ++it)
     {
       delete *it;
     }
@@ -70,7 +70,7 @@ namespace Orthanc
 
     size_t pos = 0;
     for (Chunks::iterator it = chunks_.begin(); 
-         it != chunks_.end(); it++)
+         it != chunks_.end(); ++it)
     {
       assert(*it != NULL);
 

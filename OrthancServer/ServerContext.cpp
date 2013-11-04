@@ -61,6 +61,7 @@ namespace Orthanc
     storage_(storagePath.string()),
     index_(*this, indexPath.string()),
     accessor_(storage_),
+    compressionEnabled_(false),
     provider_(*this),
     dicomCache_(provider_, DICOM_CACHE_SIZE)
   {

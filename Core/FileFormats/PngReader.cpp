@@ -242,7 +242,7 @@ namespace Orthanc
                                           png_bytep outBytes, 
                                           png_size_t byteCountToRead)
   {
-    MemoryBuffer* from = (MemoryBuffer*) png_get_io_ptr(png_ptr);
+    MemoryBuffer* from = reinterpret_cast<MemoryBuffer*>(png_get_io_ptr(png_ptr));
 
     if (!from->ok_)
     {

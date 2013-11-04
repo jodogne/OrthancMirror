@@ -623,7 +623,7 @@ namespace Orthanc
     }
 
     for (Tags::iterator it = privateTags.begin(); 
-         it != privateTags.end(); it++)
+         it != privateTags.end(); ++it)
     {
       DcmElement* tmp = dataset.remove(*it);
       if (tmp != NULL)
@@ -1493,7 +1493,7 @@ namespace Orthanc
   void FromDcmtkBridge::Print(FILE* fp, const DicomMap& m)
   {
     for (DicomMap::Map::const_iterator 
-           it = m.map_.begin(); it != m.map_.end(); it++)
+           it = m.map_.begin(); it != m.map_.end(); ++it)
     {
       DicomTag t = it->first;
       std::string s = it->second->AsString();
@@ -1513,7 +1513,7 @@ namespace Orthanc
     result.clear();
 
     for (DicomMap::Map::const_iterator 
-           it = values.map_.begin(); it != values.map_.end(); it++)
+           it = values.map_.begin(); it != values.map_.end(); ++it)
     {
       result[GetName(it->first)] = it->second->AsString();
     }

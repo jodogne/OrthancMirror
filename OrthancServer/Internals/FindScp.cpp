@@ -67,7 +67,7 @@ namespace Orthanc
       bzero(response, sizeof(T_DIMSE_C_FindRSP));
       *statusDetail = NULL;
 
-      FindScpData& data = *(FindScpData*) callbackData;
+      FindScpData& data = *reinterpret_cast<FindScpData*>(callbackData);
       if (data.lastRequest_ == NULL)
       {
         FromDcmtkBridge::Convert(data.input_, *requestIdentifiers);

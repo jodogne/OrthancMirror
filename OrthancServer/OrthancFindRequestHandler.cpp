@@ -151,7 +151,7 @@ namespace Orthanc
       std::list<std::string> children;
       index.GetChildInstances(children, id);
 
-      if (children.size() == 0)
+      if (children.empty())
       {
         return false;
       }
@@ -243,7 +243,7 @@ namespace Orthanc
 
     // Loop over the studies
     for (std::list<std::string>::const_iterator 
-           it = studies.begin(); it != studies.end(); it++)
+           it = studies.begin(); it != studies.end(); ++it)
     {
       try
       {
@@ -415,7 +415,7 @@ namespace Orthanc
 
     DicomArray query(input);
     for (std::list<std::string>::const_iterator 
-           resource = resources.begin(); resource != resources.end(); resource++)
+           resource = resources.begin(); resource != resources.end(); ++resource)
     {
       try
       {

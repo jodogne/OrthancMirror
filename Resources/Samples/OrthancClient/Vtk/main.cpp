@@ -173,7 +173,7 @@ int main()
 
     return 0;
   }
-  catch (OrthancClient::OrthancClientException e)
+  catch (OrthancClient::OrthancClientException& e)
   {
     std::cerr << "EXCEPTION: [" << e.What() << "]" << std::endl;
     return -1;

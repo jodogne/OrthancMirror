@@ -129,7 +129,7 @@ namespace Orthanc
     void Clear()
     {
       for (Content::iterator it = content_.begin();
-           it != content_.end(); it++)
+           it != content_.end(); ++it)
       {
         delete *it;
       }
@@ -138,7 +138,7 @@ namespace Orthanc
     Content::iterator Find(const std::string& filename)
     {
       for (Content::iterator it = content_.begin();
-           it != content_.end(); it++)
+           it != content_.end(); ++it)
       {
         if ((*it)->GetFilename() == filename)
         {
@@ -254,7 +254,7 @@ namespace Orthanc
   HttpHandler* MongooseServer::FindHandler(const UriComponents& forUri) const
   {
     for (Handlers::const_iterator it = 
-           handlers_.begin(); it != handlers_.end(); it++) 
+           handlers_.begin(); it != handlers_.end(); ++it) 
     {
       if ((*it)->IsServedUri(forUri))
       {
@@ -570,7 +570,7 @@ namespace Orthanc
   {
     if (event == MG_NEW_REQUEST) 
     {
-      MongooseServer* that = (MongooseServer*) (request->user_data);
+      MongooseServer* that = reinterpret_cast<MongooseServer*>(request->user_data);
       MongooseOutput output(connection);
 
       // Check remote calls
@@ -816,7 +816,7 @@ namespace Orthanc
     Stop();
 
     for (Handlers::iterator it = 
-           handlers_.begin(); it != handlers_.end(); it++)
+           handlers_.begin(); it != handlers_.end(); ++it)
     {
       delete *it;
     }

@@ -49,7 +49,7 @@ namespace Orthanc
     std::auto_ptr<DcmDataset> result(new DcmDataset);
 
     for (DicomMap::Map::const_iterator 
-           it = map.map_.begin(); it != map.map_.end(); it++)
+           it = map.map_.begin(); it != map.map_.end(); ++it)
     {
       std::string s = it->second->AsString();
       DU_putStringDOElement(result.get(), Convert(it->first), s.c_str());
