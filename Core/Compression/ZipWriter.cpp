@@ -29,7 +29,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
-#ifdef _WIN32
+#ifndef NOMINMAX
 #define NOMINMAX
 #endif
 

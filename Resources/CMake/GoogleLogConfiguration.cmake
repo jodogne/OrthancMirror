@@ -1,9 +1,21 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
-  SET(GOOGLE_LOG_SOURCES_DIR ${CMAKE_BINARY_DIR}/glog-0.3.3)
+  SET(GOOGLE_LOG_SOURCES_DIR ${CMAKE_BINARY_DIR}/glog-0.3.2)
   DownloadPackage(
-    "a6fd2c22f8996846e34c763422717c18"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/glog-0.3.3.tar.gz"
+    "897fbff90d91ea2b6d6e78c8cea641cc"
+    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/glog-0.3.2.tar.gz"
     "${GOOGLE_LOG_SOURCES_DIR}")
+
+
+  # Glog 0.3.3 fails to build with old versions of MinGW, such as the
+  # one installed on our Continuous Integration Server that runs
+  # Debian Squeeze. We thus stick to Glog 0.3.2 for the time being.
+
+  #SET(GOOGLE_LOG_SOURCES_DIR ${CMAKE_BINARY_DIR}/glog-0.3.3)
+  #DownloadPackage(
+  #  "a6fd2c22f8996846e34c763422717c18"
+  #  "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/glog-0.3.3.tar.gz"
+  #  "${GOOGLE_LOG_SOURCES_DIR}")
+
 
   set(GOOGLE_LOG_HEADERS
     ${GOOGLE_LOG_SOURCES_DIR}/src/glog/logging.h
