@@ -2,7 +2,9 @@ Pending changes in the mainline
 ===============================
 
 
-* Fixes and improvements thanks to cppcheck
+* Accept more transfer syntaxes for C-Store SCP (including JPEG)
+* Create the meta-header when receiving files through C-Store SCP
+* Fixes and improvements thanks to the static analyzer cppcheck
 
 
 Version 0.7.1 (2013/10/30)
