@@ -98,6 +98,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcuid.h>
+#include <dcmtk/dcmdata/dcmetinf.h>
 
 #include <dcmtk/dcmdata/dcvrae.h>
 #include <dcmtk/dcmdata/dcvras.h>
@@ -1554,25 +1555,41 @@ namespace Orthanc
     // syntax, with explicit length.
 
     // http://support.dcmtk.org/docs/dcxfer_8h-source.html
-    E_TransferSyntax xfer = EXS_LittleEndianExplicit;
+
+
+    /**
+     * Note that up to Orthanc 0.7.1 (inclusive), the
+     * "EXS_LittleEndianExplicit" was always used to save the DICOM
+     * dataset into memory. We now keep the original transfer syntax
+     * (if available).
+     **/
+    E_TransferSyntax xfer = dataSet->getOriginalXfer();
+    if (xfer == EXS_Unknown)
+    {
+      // No information about the original transfer syntax: This is
+      // most probably a DICOM dataset that was read from memory.
+      xfer = EXS_LittleEndianExplicit;
+    }
+
     E_EncodingType encodingType = /*opt_sequenceType*/ EET_ExplicitLength;
 
-    uint32_t s = dataSet->getLength(xfer, encodingType);
+    // Create the meta-header information
+    DcmFileFormat ff(dataSet);
+    ff.validateMetaInfo(xfer);
 
+    // Create a memory buffer with the proper size
+    uint32_t s = ff.calcElementLength(xfer, encodingType);
     buffer.resize(s);
     DcmOutputBufferStream ob(&buffer[0], s);
 
-    dataSet->transferInit();
+    // Fill the memory buffer with the meta-header and the dataset
+    ff.transferInit();
+    OFCondition c = ff.write(ob, xfer, encodingType, NULL,
+                             /*opt_groupLength*/ EGL_recalcGL,
+                             /*opt_paddingType*/ EPD_withoutPadding);
+    ff.transferEnd();
 
-#if DCMTK_VERSION_NUMBER >= 360
-    OFCondition c = dataSet->write(ob, xfer, encodingType, NULL,
-                                   /*opt_groupLength*/ EGL_recalcGL,
-                                   /*opt_paddingType*/ EPD_withoutPadding);
-#else
-    OFCondition c = dataSet->write(ob, xfer, encodingType, NULL);
-#endif
-
-    dataSet->transferEnd();
+    // Handle errors
     if (c.good())
     {
       return true;
@@ -1582,15 +1599,5 @@ namespace Orthanc
       buffer.clear();
       return false;
     }
-
-#if 0
-    OFCondition cond = cbdata->dcmff->saveFile(fileName.c_str(), xfer, 
-                                               encodingType, 
-                                               /*opt_groupLength*/ EGL_recalcGL,
-                                               /*opt_paddingType*/ EPD_withoutPadding,
-                                               OFstatic_cast(Uint32, /*opt_filepad*/ 0), 
-                                               OFstatic_cast(Uint32, /*opt_itempad*/ 0),
-                                               (opt_useMetaheader) ? EWM_fileformat : EWM_dataset);
-#endif
   }
 }

@@ -240,9 +240,6 @@ namespace Orthanc
         knownAbstractSyntaxes.push_back(UID_MOVEStudyRootQueryRetrieveInformationModel);
       }
 
-      const char* transferSyntaxes[] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
-      int numTransferSyntaxes = 0;
-
       cond = ASC_receiveAssociation(net, &assoc, 
                                     /*opt_maxPDU*/ ASC_DEFAULTMAXPDU, 
                                     NULL, NULL,
@@ -267,13 +264,49 @@ namespace Orthanc
 
       LOG(INFO) << "Association Received";
 
-      transferSyntaxes[0] = UID_LittleEndianExplicitTransferSyntax;
-      transferSyntaxes[1] = UID_BigEndianExplicitTransferSyntax;
-      transferSyntaxes[2] = UID_LittleEndianImplicitTransferSyntax;
-      numTransferSyntaxes = 3;
+      std::vector<const char*> transferSyntaxes;
+
+#if 0
+      // This is the list of the transfer syntaxes that were supported up to Orthanc 0.7.1
+      transferSyntaxes.push_back(UID_LittleEndianExplicitTransferSyntax);
+      transferSyntaxes.push_back(UID_BigEndianExplicitTransferSyntax);
+      transferSyntaxes.push_back(UID_LittleEndianImplicitTransferSyntax);
+#else
+      transferSyntaxes.push_back(UID_LittleEndianImplicitTransferSyntax); 
+      transferSyntaxes.push_back(UID_DeflatedExplicitVRLittleEndianTransferSyntax); 
+      transferSyntaxes.push_back(UID_JPEGProcess1TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess2_4TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess3_5TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess6_8TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess7_9TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess10_12TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess11_13TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess14TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess15TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess16_18TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess17_19TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess20_22TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess21_23TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess24_26TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess25_27TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess28TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess29TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess14SV1TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGLSLosslessTransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGLSLossyTransferSyntax);
+      transferSyntaxes.push_back(UID_JPEG2000LosslessOnlyTransferSyntax);
+      transferSyntaxes.push_back(UID_JPEG2000TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionLosslessOnlyTransferSyntax);
+      transferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionTransferSyntax);
+      transferSyntaxes.push_back(UID_JPIPReferencedTransferSyntax);
+      transferSyntaxes.push_back(UID_JPIPReferencedDeflateTransferSyntax);
+      transferSyntaxes.push_back(UID_MPEG2MainProfileAtMainLevelTransferSyntax);
+      transferSyntaxes.push_back(UID_MPEG2MainProfileAtHighLevelTransferSyntax);
+      transferSyntaxes.push_back(UID_RLELosslessTransferSyntax);
+#endif
 
       /* accept the Verification SOP Class if presented */
-      cond = ASC_acceptContextsWithPreferredTransferSyntaxes( assoc->params, &knownAbstractSyntaxes[0], knownAbstractSyntaxes.size(), transferSyntaxes, numTransferSyntaxes);
+      cond = ASC_acceptContextsWithPreferredTransferSyntaxes( assoc->params, &knownAbstractSyntaxes[0], knownAbstractSyntaxes.size(), &transferSyntaxes[0], transferSyntaxes.size());
       if (cond.bad())
       {
         LOG(INFO) << cond.text();
@@ -282,7 +315,7 @@ namespace Orthanc
       }
 
       /* the array of Storage SOP Class UIDs comes from dcuid.h */
-      cond = ASC_acceptContextsWithPreferredTransferSyntaxes( assoc->params, dcmAllStorageSOPClassUIDs, numberOfAllDcmStorageSOPClassUIDs, transferSyntaxes, numTransferSyntaxes);
+      cond = ASC_acceptContextsWithPreferredTransferSyntaxes( assoc->params, dcmAllStorageSOPClassUIDs, numberOfAllDcmStorageSOPClassUIDs, &transferSyntaxes[0], transferSyntaxes.size());
       if (cond.bad())
       {
         LOG(INFO) << cond.text();
@@ -293,7 +326,7 @@ namespace Orthanc
 #if ORTHANC_PROMISCUOUS == 1
       /* accept everything not known not to be a storage SOP class */
       cond = acceptUnknownContextsWithPreferredTransferSyntaxes(
-        assoc->params, transferSyntaxes, numTransferSyntaxes);
+        assoc->params, &transferSyntaxes[0], transferSyntaxes.size());
       if (cond.bad())
       {
         LOG(INFO) << cond.text();
