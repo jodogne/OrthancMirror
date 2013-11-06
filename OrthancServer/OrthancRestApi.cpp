@@ -317,7 +317,7 @@ namespace Orthanc
         context.GetIndex().GetChildInstances(tmp, stripped);
 
         for (std::list<std::string>::const_iterator
-          it = tmp.begin(); it != tmp.end(); ++it)
+               it = tmp.begin(); it != tmp.end(); ++it)
         {
           instances.push_back(*it);
         }
