@@ -56,6 +56,7 @@ namespace Orthanc
     boost::shared_ptr<PImpl> pimpl_;
 
     // Connection parameters
+    std::string preferredTransferSyntax_;
     std::string localAet_;
     std::string distantAet_;
     std::string distantHost_;
@@ -64,7 +65,7 @@ namespace Orthanc
 
     void CheckIsOpen() const;
 
-    void SetupPresentationContexts();
+    void SetupPresentationContexts(const std::string& preferredTransferSyntax);
 
     void Find(DicomFindAnswers& result,
               FindRootModel model,
@@ -113,6 +114,15 @@ namespace Orthanc
     ModalityManufacturer GetDistantManufacturer() const
     {
       return manufacturer_;
+    }
+
+    void ResetPreferredTransferSyntax();
+
+    void SetPreferredTransferSyntax(const std::string& preferredTransferSyntax);
+
+    const std::string& GetPreferredTransferSyntax() const
+    {
+      return preferredTransferSyntax_;
     }
 
     void Open();
