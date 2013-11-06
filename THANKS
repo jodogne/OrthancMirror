@@ -16,7 +16,7 @@ Code contributors
 * Will Ryder (will.ryder@sydney.edu.au), for improvements with the
   handling of series with temporal positions (fMRI and dynamic PET).
 * Ryan Walklin (ryanwalklin@gmail.com), for Mac OS X build.
-* Peter Somlo (peter.somlo@gmail.com), for ClearCanvas support.
+* Peter Somlo (peter.somlo@gmail.com), for ClearCanvas and JPEG support.
 * 12maksqwe@gmail.com, for fixing issue #8.
 * Julien Nabet, for various suggestions to improve the source code.
 

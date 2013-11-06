@@ -39,9 +39,11 @@
 #include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcistrmf.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
+#include <dcmtk/dcmdata/dcmetinf.h>
 #include <dcmtk/dcmnet/diutil.h>
 
 #include <set>
+#include <glog/logging.h>
 
 
 
@@ -55,6 +57,8 @@
 #define HOST_NAME_MAX 256
 #endif 
 
+
+static const char* DEFAULT_PREFERRED_TRANSFER_SYNTAX = UID_LittleEndianImplicitTransferSyntax;
 
 namespace Orthanc
 {
@@ -72,7 +76,7 @@ namespace Orthanc
 
     void CheckIsOpen() const;
 
-    void Store(DcmInputStream& is);
+    void Store(DcmInputStream& is, DicomUserConnection& connection);
   };
 
 
@@ -106,21 +110,18 @@ namespace Orthanc
     distantAet_ = other.distantAet_;
     distantHost_ = other.distantHost_;
     distantPort_ = other.distantPort_;
+    manufacturer_ = other.manufacturer_;
+    preferredTransferSyntax_ = other.preferredTransferSyntax_;
   }
 
 
-  void DicomUserConnection::SetupPresentationContexts()
+  void DicomUserConnection::SetupPresentationContexts(const std::string& preferredTransferSyntax)
   {
-    // The preferred abstract syntax
-    std::string preferredSyntax = UID_LittleEndianImplicitTransferSyntax;
-
-    // Fallback abstract syntaxes
-    std::set<std::string> abstractSyntaxes;
-    abstractSyntaxes.insert(UID_LittleEndianExplicitTransferSyntax);
-    abstractSyntaxes.insert(UID_BigEndianExplicitTransferSyntax);
-    abstractSyntaxes.insert(UID_LittleEndianImplicitTransferSyntax);
-    abstractSyntaxes.erase(preferredSyntax);
-    assert(abstractSyntaxes.size() == 2);
+    // Fallback transfer syntaxes
+    std::set<std::string> fallbackSyntaxes;
+    fallbackSyntaxes.insert(UID_LittleEndianExplicitTransferSyntax);
+    fallbackSyntaxes.insert(UID_BigEndianExplicitTransferSyntax);
+    fallbackSyntaxes.insert(UID_LittleEndianImplicitTransferSyntax);
 
     // Transfer syntaxes for C-ECHO, C-FIND and C-MOVE
     std::vector<std::string> transferSyntaxes;
@@ -146,13 +147,18 @@ namespace Orthanc
       }
     }
 
-    // Flatten the fallback abstract syntaxes array
-    const char* asPreferred[1] = { preferredSyntax.c_str() };
-    const char* asFallback[2];
-    std::set<std::string>::const_iterator it = abstractSyntaxes.begin();
-    asFallback[0] = it->c_str();
-    ++it;
-    asFallback[1] = it->c_str();
+    // Flatten the fallback transfer syntaxes array
+    const char* asPreferred[1] = { preferredTransferSyntax.c_str() };
+
+    fallbackSyntaxes.erase(preferredTransferSyntax);
+
+    std::vector<const char*> asFallback;
+    asFallback.reserve(fallbackSyntaxes.size());
+    for (std::set<std::string>::const_iterator 
+           it = fallbackSyntaxes.begin(); it != fallbackSyntaxes.end(); ++it)
+    {
+      asFallback.push_back(it->c_str());
+    }
 
     unsigned int presentationContextId = 1;
     for (size_t i = 0; i < transferSyntaxes.size(); i++)
@@ -161,19 +167,54 @@ namespace Orthanc
                                        transferSyntaxes[i].c_str(), asPreferred, 1));
       presentationContextId += 2;
 
-      Check(ASC_addPresentationContext(pimpl_->params_, presentationContextId, 
-                                       transferSyntaxes[i].c_str(), asFallback, 2));
-      presentationContextId += 2;
+      if (asFallback.size() > 0)
+      {
+        Check(ASC_addPresentationContext(pimpl_->params_, presentationContextId, 
+                                         transferSyntaxes[i].c_str(), &asFallback[0], asFallback.size()));
+        presentationContextId += 2;
+      }
     }
   }
 
 
-  void DicomUserConnection::PImpl::Store(DcmInputStream& is)
+  static bool IsGenericTransferSyntax(const std::string& syntax)
+  {
+    return (syntax == UID_LittleEndianExplicitTransferSyntax ||
+            syntax == UID_BigEndianExplicitTransferSyntax ||
+            syntax == UID_LittleEndianImplicitTransferSyntax);
+  }
+
+
+  void DicomUserConnection::PImpl::Store(DcmInputStream& is, DicomUserConnection& connection)
   {
     CheckIsOpen();
 
     DcmFileFormat dcmff;
     Check(dcmff.read(is, EXS_Unknown, EGL_noChange, DCM_MaxReadLength));
+
+    // Determine whether a new presentation context must be
+    // negociated, depending on the transfer syntax of this instance
+    DcmXfer xfer(dcmff.getDataset()->getOriginalXfer());
+    const std::string syntax(xfer.getXferID());
+    bool isGeneric = IsGenericTransferSyntax(syntax);
+
+    if (isGeneric ^ IsGenericTransferSyntax(connection.GetPreferredTransferSyntax()))
+    {
+      // Making a generic-to-specific or specific-to-generic change of
+      // the transfer syntax. Renegociate the connection.
+      LOG(INFO) << "Renegociating a C-Store association due to a change in the transfer syntax";
+
+      if (isGeneric)
+      {
+        connection.ResetPreferredTransferSyntax();
+      }
+      else
+      {
+        connection.SetPreferredTransferSyntax(syntax);
+      }
+
+      connection.Open();
+    }
 
     // Figure out which SOP class and SOP instance is encapsulated in the file
     DIC_UI sopClass;
@@ -468,6 +509,7 @@ namespace Orthanc
   {
     distantPort_ = 104;
     manufacturer_ = ModalityManufacturer_Generic;
+    preferredTransferSyntax_ = DEFAULT_PREFERRED_TRANSFER_SYNTAX;
 
     pimpl_->net_ = NULL;
     pimpl_->params_ = NULL;
@@ -481,43 +523,76 @@ namespace Orthanc
 
   void DicomUserConnection::SetLocalApplicationEntityTitle(const std::string& aet)
   {
-    Close();
-    localAet_ = aet;
+    if (localAet_ != aet)
+    {
+      Close();
+      localAet_ = aet;
+    }
   }
 
   void DicomUserConnection::SetDistantApplicationEntityTitle(const std::string& aet)
   {
-    Close();
-    distantAet_ = aet;
+    if (distantAet_ != aet)
+    {
+      Close();
+      distantAet_ = aet;
+    }
   }
 
   void DicomUserConnection::SetDistantManufacturer(ModalityManufacturer manufacturer)
   {
-    Close();
-    manufacturer_ = manufacturer;
+    if (manufacturer_ != manufacturer)
+    {
+      Close();
+      manufacturer_ = manufacturer;
+    }
+  }
+
+  void DicomUserConnection::ResetPreferredTransferSyntax()
+  {
+    SetPreferredTransferSyntax(DEFAULT_PREFERRED_TRANSFER_SYNTAX);
+  }
+
+  void DicomUserConnection::SetPreferredTransferSyntax(const std::string& preferredTransferSyntax)
+  {
+    if (preferredTransferSyntax_ != preferredTransferSyntax)
+    {
+      Close();
+      preferredTransferSyntax_ = preferredTransferSyntax;
+    }
   }
 
 
   void DicomUserConnection::SetDistantHost(const std::string& host)
   {
-    if (host.size() > HOST_NAME_MAX - 10)
+    if (distantHost_ != host)
     {
-      throw OrthancException("Distant host name is too long");
-    }
+      if (host.size() > HOST_NAME_MAX - 10)
+      {
+        throw OrthancException("Distant host name is too long");
+      }
 
-    Close();
-    distantHost_ = host;
+      Close();
+      distantHost_ = host;
+    }
   }
 
   void DicomUserConnection::SetDistantPort(uint16_t port)
   {
-    Close();
-    distantPort_ = port;
+    if (distantPort_ != port)
+    {
+      Close();
+      distantPort_ = port;
+    }
   }
 
   void DicomUserConnection::Open()
   {
-    Close();
+    if (IsOpen())
+    {
+      // Don't reopen the connection
+      return;
+    }
 
     Check(ASC_initializeNetwork(NET_REQUESTOR, 0, /*opt_acse_timeout*/ 30, &pimpl_->net_));
     Check(ASC_createAssociationParameters(&pimpl_->params_, /*opt_maxReceivePDULength*/ ASC_DEFAULTMAXPDU));
@@ -543,7 +618,7 @@ namespace Orthanc
     // Set various options
     Check(ASC_setTransportLayerType(pimpl_->params_, /*opt_secureConnection*/ false));
 
-    SetupPresentationContexts();
+    SetupPresentationContexts(preferredTransferSyntax_);
 
     // Do the association
     Check(ASC_requestAssociation(pimpl_->net_, pimpl_->params_, &pimpl_->assoc_));
@@ -592,7 +667,7 @@ namespace Orthanc
       is.setBuffer(buffer, size);
     is.setEos();
       
-    pimpl_->Store(is);
+    pimpl_->Store(is, *this);
   }
 
   void DicomUserConnection::Store(const std::string& buffer)
@@ -607,7 +682,7 @@ namespace Orthanc
   {
     // Prepare an input stream for the file
     DcmInputFileStream is(path.c_str());
-    pimpl_->Store(is);
+    pimpl_->Store(is, *this);
   }
 
   bool DicomUserConnection::Echo()
