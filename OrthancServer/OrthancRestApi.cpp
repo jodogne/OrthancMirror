@@ -315,8 +315,12 @@ namespace Orthanc
        
         std::list<std::string> tmp;
         context.GetIndex().GetChildInstances(tmp, stripped);
-        instances.merge(tmp);
-        assert(tmp.empty());
+
+        for (std::list<std::string>::const_iterator
+          it = tmp.begin(); it != tmp.end(); ++it)
+        {
+          instances.push_back(*it);
+        }
       }
     }
     else
