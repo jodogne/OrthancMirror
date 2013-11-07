@@ -49,6 +49,7 @@ namespace Orthanc
     }
 
     virtual void Handle(DicomFindAnswers& answers,
-                        const DicomMap& input);
+                        const DicomMap& input,
+                        const std::string& callingAETitle);
   };
 }
