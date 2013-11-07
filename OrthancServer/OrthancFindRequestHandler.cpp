@@ -314,7 +314,8 @@ namespace Orthanc
   static void LookupCandidateResources(/* out */ std::list<std::string>& resources,
                                        /* in */  ServerIndex& index,
                                        /* in */  ResourceType level,
-                                       /* in */  const DicomMap& query)
+                                       /* in */  const DicomMap& query,
+                                       /* in */  ModalityManufacturer manufacturer)
   {
     // TODO : Speed up using full querying against the MainDicomTags.
 
@@ -337,7 +338,22 @@ namespace Orthanc
         break;
 
       case ResourceType_Instance:
-        done = LookupCandidateResourcesInternal(resources, index, level, query, DICOM_TAG_SOP_INSTANCE_UID);
+        if (manufacturer == ModalityManufacturer_MedInria)
+        {
+          std::list<std::string> series;
+
+          if (LookupCandidateResourcesInternal(series, index, ResourceType_Series, query, DICOM_TAG_SERIES_INSTANCE_UID) &&
+              series.size() == 1)
+          {
+            index.GetChildInstances(resources, series.front());
+            done = true;
+          }          
+        }
+        else
+        {
+          done = LookupCandidateResourcesInternal(resources, index, level, query, DICOM_TAG_SOP_INSTANCE_UID);
+        }
+
         break;
 
       default:
@@ -359,8 +375,26 @@ namespace Orthanc
 
 
   void OrthancFindRequestHandler::Handle(DicomFindAnswers& answers,
-                                         const DicomMap& input)
+                                         const DicomMap& input,
+                                         const std::string& callingAETitle)
   {
+    /**
+     * Retrieve the manufacturer of this modality.
+     **/
+
+    ModalityManufacturer manufacturer;
+
+    {
+      std::string symbolicName, address;
+      int port;
+
+      if (!LookupDicomModalityUsingAETitle(callingAETitle, symbolicName, address, port, manufacturer))
+      {
+        throw OrthancException("Unknown modality");
+      }
+    }
+
+
     /**
      * Retrieve the query level.
      **/
@@ -373,11 +407,19 @@ namespace Orthanc
 
     ResourceType level = StringToResourceType(levelTmp->AsString().c_str());
 
-    if (level != ResourceType_Patient &&
-        level != ResourceType_Study &&
-        level != ResourceType_Series)
+    switch (manufacturer)
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      case ModalityManufacturer_MedInria:
+        // MedInria makes FIND requests at the instance level before starting MOVE
+        break;
+
+      default:
+        if (level != ResourceType_Patient &&
+            level != ResourceType_Study &&
+            level != ResourceType_Series)
+        {
+          throw OrthancException(ErrorCode_NotImplemented);
+        }
     }
 
 
@@ -389,7 +431,7 @@ namespace Orthanc
      **/
 
     std::list<std::string>  resources;
-    LookupCandidateResources(resources, context_.GetIndex(), level, input);
+    LookupCandidateResources(resources, context_.GetIndex(), level, input, manufacturer);
 
 
     /**

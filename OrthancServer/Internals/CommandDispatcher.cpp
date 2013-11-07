@@ -238,6 +238,7 @@ namespace Orthanc
       if (server.HasMoveRequestHandlerFactory())
       {
         knownAbstractSyntaxes.push_back(UID_MOVEStudyRootQueryRetrieveInformationModel);
+        knownAbstractSyntaxes.push_back(UID_MOVEPatientRootQueryRetrieveInformationModel);
       }
 
       cond = ASC_receiveAssociation(net, &assoc, 
@@ -266,13 +267,12 @@ namespace Orthanc
 
       std::vector<const char*> transferSyntaxes;
 
-#if 0
       // This is the list of the transfer syntaxes that were supported up to Orthanc 0.7.1
       transferSyntaxes.push_back(UID_LittleEndianExplicitTransferSyntax);
       transferSyntaxes.push_back(UID_BigEndianExplicitTransferSyntax);
       transferSyntaxes.push_back(UID_LittleEndianImplicitTransferSyntax);
-#else
-      transferSyntaxes.push_back(UID_LittleEndianImplicitTransferSyntax); 
+
+      // New transfer syntaxes supported since Orthanc 0.7.2
       transferSyntaxes.push_back(UID_DeflatedExplicitVRLittleEndianTransferSyntax); 
       transferSyntaxes.push_back(UID_JPEGProcess1TransferSyntax);
       transferSyntaxes.push_back(UID_JPEGProcess2_4TransferSyntax);
@@ -303,7 +303,6 @@ namespace Orthanc
       transferSyntaxes.push_back(UID_MPEG2MainProfileAtMainLevelTransferSyntax);
       transferSyntaxes.push_back(UID_MPEG2MainProfileAtHighLevelTransferSyntax);
       transferSyntaxes.push_back(UID_RLELosslessTransferSyntax);
-#endif
 
       /* accept the Verification SOP Class if presented */
       cond = ASC_acceptContextsWithPreferredTransferSyntaxes( assoc->params, &knownAbstractSyntaxes[0], knownAbstractSyntaxes.size(), &transferSyntaxes[0], transferSyntaxes.size());
@@ -580,7 +579,7 @@ namespace Orthanc
               {
                 std::auto_ptr<IFindRequestHandler> handler
                   (server_.GetFindRequestHandlerFactory().ConstructFindRequestHandler());
-                cond = Internals::findScp(assoc_, &msg, presID, *handler);
+                cond = Internals::findScp(assoc_, &msg, presID, *handler, callingAETitle_);
               }
               break;
 
@@ -595,6 +594,8 @@ namespace Orthanc
         // Bad status, which indicates the closing of the connection by
         // the peer or a network error
         finished = true;
+
+        LOG(ERROR) << cond.text();
       }
     
       if (finished)

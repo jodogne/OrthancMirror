@@ -248,6 +248,9 @@ namespace Orthanc
       case ModalityManufacturer_ClearCanvas:
         return "ClearCanvas";
       
+      case ModalityManufacturer_MedInria:
+        return "MedInria";
+      
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -295,6 +298,10 @@ namespace Orthanc
     else if (manufacturer == "ClearCanvas")
     {
       return ModalityManufacturer_ClearCanvas;
+    }
+    else if (manufacturer == "MedInria")
+    {
+      return ModalityManufacturer_MedInria;
     }
     else
     {

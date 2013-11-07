@@ -56,7 +56,8 @@ namespace Orthanc
   enum ModalityManufacturer
   {
     ModalityManufacturer_Generic,
-    ModalityManufacturer_ClearCanvas
+    ModalityManufacturer_ClearCanvas,
+    ModalityManufacturer_MedInria
   };
 
   enum DicomRequestType

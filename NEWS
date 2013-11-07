@@ -2,6 +2,7 @@ Pending changes in the mainline
 ===============================
 
 
+* Support of Query/Retrieve from medInria
 * Accept more transfer syntaxes for C-Store SCP and SCU (notably JPEG)
 * Create the meta-header when receiving files through C-Store SCP
 * Fixes and improvements thanks to the static analyzer cppcheck

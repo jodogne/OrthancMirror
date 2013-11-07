@@ -49,6 +49,7 @@ namespace Orthanc
       DicomMap input_;
       DicomFindAnswers answers_;
       DcmDataset* lastRequest_;
+      const std::string* callingAETitle_;
     };
 
 
@@ -74,7 +75,7 @@ namespace Orthanc
 
         try
         {
-          data.handler_->Handle(data.answers_, data.input_);
+          data.handler_->Handle(data.answers_, data.input_, *data.callingAETitle_);
         }
         catch (OrthancException& e)
         {
@@ -112,11 +113,13 @@ namespace Orthanc
   OFCondition Internals::findScp(T_ASC_Association * assoc, 
                                  T_DIMSE_Message * msg, 
                                  T_ASC_PresentationContextID presID,
-                                 IFindRequestHandler& handler)
+                                 IFindRequestHandler& handler,
+                                 const std::string& callingAETitle)
   {
     FindScpData data;
     data.lastRequest_ = NULL;
     data.handler_ = &handler;
+    data.callingAETitle_ = &callingAETitle;
 
     OFCondition cond = DIMSE_findProvider(assoc, presID, &msg->msg.CFindRQ, 
                                           FindScpCallback, &data,
