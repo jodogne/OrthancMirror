@@ -503,13 +503,13 @@ namespace Orthanc
 
   DicomUserConnection::DicomUserConnection() : 
     pimpl_(new PImpl),
+    preferredTransferSyntax_(DEFAULT_PREFERRED_TRANSFER_SYNTAX),
     localAet_("STORESCU"),
     distantAet_("ANY-SCP"),
     distantHost_("127.0.0.1")
   {
     distantPort_ = 104;
     manufacturer_ = ModalityManufacturer_Generic;
-    preferredTransferSyntax_ = DEFAULT_PREFERRED_TRANSFER_SYNTAX;
 
     pimpl_->net_ = NULL;
     pimpl_->params_ = NULL;
