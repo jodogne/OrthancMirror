@@ -595,7 +595,7 @@ namespace Orthanc
         // the peer or a network error
         finished = true;
 
-        LOG(ERROR) << cond.text();
+        LOG(INFO) << cond.text();
       }
     
       if (finished)
