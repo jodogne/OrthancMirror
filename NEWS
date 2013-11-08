@@ -2,6 +2,10 @@ Pending changes in the mainline
 ===============================
 
 
+
+Version 0.7.2 (2013/11/08)
+==========================
+
 * Support of Query/Retrieve from medInria
 * Accept more transfer syntaxes for C-Store SCP and SCU (notably JPEG)
 * Create the meta-header when receiving files through C-Store SCP
