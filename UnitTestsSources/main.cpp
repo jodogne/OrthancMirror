@@ -522,18 +522,33 @@ TEST(Toolbox, Tokenize)
 }
 
 
+
+#if defined(__linux)
+#include <endian.h>
+#endif
+
 TEST(Toolbox, Endianness)
 {
-#if defined(__powerpc__) || defined(__powerpc64__)
-  ASSERT_EQ(Endianness_Big, Toolbox::DetectEndianness());
-#endif
+  // Parts of this test come from Adam Conrad
+  // http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=728822#5
 
 #if defined(_WIN32)
   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
+
+#elif defined(__linux)
+
+#if !defined(__BYTE_ORDER)
+#  error Support your platform here
 #endif
 
-#if defined(__amd64__) || defined(__i386__)
+#  if __BYTE_ORDER == __BIG_ENDIAN
+  ASSERT_EQ(Endianness_Big, Toolbox::DetectEndianness());
+#  else // __LITTLE_ENDIAN
   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
+#  endif
+
+#else
+#error Support your platform here
 #endif
 }
 
