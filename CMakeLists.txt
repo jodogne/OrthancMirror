@@ -29,6 +29,8 @@ SET(USE_SYSTEM_DCMTK ON CACHE BOOL "Use the system version of DCMTK")
 SET(USE_SYSTEM_BOOST ON CACHE BOOL "Use the system version of Boost")
 SET(USE_SYSTEM_LIBPNG ON CACHE BOOL "Use the system version of LibPng")
 SET(USE_SYSTEM_CURL ON CACHE BOOL "Use the system version of LibCurl")
+SET(USE_SYSTEM_OPENSSL ON CACHE BOOL "Use the system version of OpenSSL")
+SET(USE_SYSTEM_ZLIB ON CACHE BOOL "Use the system version of ZLib")
 
 # Distribution-specific settings
 SET(USE_GTEST_DEBIAN_SOURCE_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
@@ -64,6 +66,16 @@ SET(THIRD_PARTY_SOURCES
   )
 
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/BoostConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/DcmtkConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/MongooseConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/ZlibConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/SQLiteConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/JsonCppConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibPngConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/LuaConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibCurlConfiguration.cmake)
+
 
 if (${ENABLE_SSL})
   add_definitions(-DORTHANC_SSL_ENABLED=1)
@@ -71,16 +83,6 @@ if (${ENABLE_SSL})
 else()
   add_definitions(-DORTHANC_SSL_ENABLED=0)
 endif()
-
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/BoostConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/DcmtkConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/MongooseConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/ZlibConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/SQLiteConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/JsonCppConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibCurlConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibPngConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/LuaConfiguration.cmake)
 
 
 
