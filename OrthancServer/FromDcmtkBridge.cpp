@@ -121,6 +121,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <dcmtk/dcmdata/dcvrul.h>
 #include <dcmtk/dcmdata/dcvrus.h>
 #include <dcmtk/dcmdata/dcvrut.h>
+#include <dcmtk/dcmdata/dcpixel.h>
+#include <dcmtk/dcmdata/dcpixseq.h>
+#include <dcmtk/dcmdata/dcpxitem.h>
+
 
 #include <boost/math/special_functions/round.hpp>
 #include <glog/logging.h>
@@ -209,13 +213,65 @@ namespace Orthanc
     output.AnswerJson(v);
   }
 
-  static void AnswerDicomField(RestApiOutput& output,
-                               DcmElement& element)
+
+  static void AnswerPixelData(RestApiOutput& output,
+                              DcmPixelData& pixelData,
+                              E_TransferSyntax transferSyntax)
   {
-    // This element is not a sequence
+    DcmPixelSequence* pixelSequence = NULL;
+    if (pixelData.getEncapsulatedRepresentation
+        (transferSyntax, NULL, pixelSequence).good() && pixelSequence)
+    {
+      for (unsigned long i = 0; i < pixelSequence->card(); i++)
+      {
+        DcmPixelItem* pixelItem = NULL;
+        if (pixelSequence->getItem(pixelItem, i).good() && pixelItem)
+        {
+          Uint8* b = NULL;
+          if (pixelItem->getUint8Array(b).good() && b)
+          {
+            // JPEG-LS (lossless)
+            // http://gdcm.sourceforge.net/wiki/index.php/Tools/ffmpeg#JPEG_LS
+            // http://www.stat.columbia.edu/~jakulin/jpeg-ls/
+            // http://itohws03.ee.noda.sut.ac.jp/~matsuda/mrp/
+
+            printf("ITEM: %d\n", pixelItem->getLength());
+            char buf[64];
+            sprintf(buf, "/tmp/toto-%06ld.jpg", i);
+            FILE* fp = fopen(buf, "wb");
+            fwrite(b, pixelItem->getLength(), 1, fp);
+            fclose(fp);
+          }
+        }
+      }
+    }
+  }
+
+
+  static void AnswerDicomField(RestApiOutput& output,
+                               DcmElement& element,
+                               E_TransferSyntax transferSyntax)
+  {
+    // This element is not a sequence. Test if it is pixel data.
+    if (element.getTag().getGTag() == DICOM_TAG_PIXEL_DATA.GetGroup() &&
+        element.getTag().getETag() == DICOM_TAG_PIXEL_DATA.GetElement())
+    {
+      try
+      {
+        DcmPixelData& pixelData = dynamic_cast<DcmPixelData&>(element);
+        AnswerPixelData(output, pixelData, transferSyntax);
+        return;
+      }
+      catch (std::bad_cast&)
+      {
+      }
+    }
+
+
+    // This element is nor a sequence, neither a pixel-data
     std::string buffer;
     buffer.resize(65536);
-    Uint32 length = element.getLength();
+    Uint32 length = element.getLength(transferSyntax);
     Uint32 offset = 0;
 
     output.GetLowLevelOutput().SendOkHeader("application/octet-stream", true, length, NULL);
@@ -232,14 +288,16 @@ namespace Orthanc
         nbytes = buffer.size();
       }
 
-      if (element.getPartialValue(&buffer[0], offset, nbytes).good())
+      OFCondition cond = element.getPartialValue(&buffer[0], offset, nbytes);
+
+      if (cond.good())
       {
         output.GetLowLevelOutput().Send(&buffer[0], nbytes);
         offset += nbytes;
       }
       else
       {
-        LOG(ERROR) << "Error while sending a DICOM field";
+        LOG(ERROR) << "Error while sending a DICOM field: " << cond.text();
         return;
       }
     }
@@ -249,7 +307,8 @@ namespace Orthanc
 
   static void SendPathValueForLeaf(RestApiOutput& output,
                                    const std::string& tag,
-                                   DcmItem& dicom)
+                                   DcmItem& dicom,
+                                   E_TransferSyntax transferSyntax)
   {
     DcmTagKey k;
     ParseTagAndGroup(k, tag);
@@ -269,7 +328,7 @@ namespace Orthanc
         //element->getVR() != EVR_UNKNOWN &&  // This would forbid private tags
         element->getVR() != EVR_SQ)
     {
-      AnswerDicomField(output, *element);
+      AnswerDicomField(output, *element, transferSyntax);
     }
   }
 
@@ -310,7 +369,7 @@ namespace Orthanc
     }
     else
     {
-      SendPathValueForLeaf(output, uri.back(), *dicom);
+      SendPathValueForLeaf(output, uri.back(), *dicom, file_->getDataset()->getOriginalXfer());
     }
   }
 
