@@ -83,12 +83,11 @@ SUPPORTED - Debian Wheezy (7.x)
        	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
        	       	       libgtest-dev libpng-dev libsqlite3-dev \
        	       	       libssl-dev zlib1g-dev libdcmtk2-dev \
-       	       	       libboost-all-dev libwrap0-dev
+       	       	       libboost-all-dev libwrap0-dev libjsoncpp-dev
 
 # cmake -DALLOW_DOWNLOADS=ON \
         -DUSE_SYSTEM_GOOGLE_LOG=OFF \
 	-DUSE_SYSTEM_MONGOOSE=OFF \
-	-DUSE_SYSTEM_JSONCPP=OFF \
         -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
         -DDCMTK_DICTIONARY_DIR:PATH=/usr/share/dcmtk \
 	~/Orthanc
@@ -100,8 +99,8 @@ SUPPORTED - Debian Jessie/Sid
 # sudo apt-get install build-essential unzip cmake mercurial \
        	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
        	       	       libgoogle-glog-dev libgtest-dev libpng-dev \
-       	       	       libsqlite3-dev libssl-dev zlib1g-dev \
-       	       	       libdcmtk2-dev libboost-all-dev libwrap0-dev
+       	       	       libsqlite3-dev libssl-dev zlib1g-dev libdcmtk2-dev \
+                       libboost-all-dev libwrap0-dev libjsoncpp-dev
 
 # cmake -DALLOW_DOWNLOADS=ON \
 	-DUSE_SYSTEM_MONGOOSE=OFF \
