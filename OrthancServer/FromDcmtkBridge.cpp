@@ -235,7 +235,7 @@ namespace Orthanc
             // http://www.stat.columbia.edu/~jakulin/jpeg-ls/
             // http://itohws03.ee.noda.sut.ac.jp/~matsuda/mrp/
 
-            printf("ITEM: %d\n", pixelItem->getLength());
+            printf("ITEM: %d %d\n", transferSyntax, pixelItem->getLength());
             char buf[64];
             sprintf(buf, "/tmp/toto-%06ld.jpg", i);
             FILE* fp = fopen(buf, "wb");
@@ -260,7 +260,7 @@ namespace Orthanc
       {
         DcmPixelData& pixelData = dynamic_cast<DcmPixelData&>(element);
         AnswerPixelData(output, pixelData, transferSyntax);
-        return;
+        //return;
       }
       catch (std::bad_cast&)
       {
