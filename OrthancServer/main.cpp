@@ -412,6 +412,29 @@ int main(int argc, char* argv[])
       httpServer.Start();
       dicomServer.Start();
 
+
+      {
+        DicomUserConnection c;
+        c.SetLocalApplicationEntityTitle("ORTHANC");
+        c.SetDistantApplicationEntityTitle("ORTHANC");
+        c.SetDistantHost("localhost");
+        c.SetDistantPort(4343);
+        c.Open();
+
+        DicomMap m; // Delphine
+        m.SetValue(DICOM_TAG_PATIENT_ID, "5423962");
+        m.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "1.2.840.113845.11.1000000001951524609.20121203131451.1457891");
+        m.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, "1.2.840.113619.2.278.3.262930758.589.1354512768.115");
+        m.SetValue(DICOM_TAG_SOP_INSTANCE_UID, "1.3.12.2.1107.5.2.33.37097.2012041613043195815872177");
+
+        DicomFindAnswers fnd;
+        c.FindInstance(fnd, m);
+        //c.FindSeries(fnd, m);
+
+        printf("ok %d\n", fnd.GetSize());
+      }
+
+
       LOG(WARNING) << "Orthanc has started";
       Toolbox::ServerBarrier();
 

@@ -311,12 +311,142 @@ namespace Orthanc
   }
 
 
+  static bool LookupCandidateResourcesInternal(/* inout */ std::set<std::string>& resources,
+                                               /* in */  bool alreadyFiltered,
+                                               /* in */  ServerIndex& index,
+                                               /* in */  ResourceType level,
+                                               /* in */  const DicomMap& query,
+                                               /* in */  DicomTag tag)
+  {
+    assert(alreadyFiltered || resources.size() == 0);
+
+    if (!query.HasTag(tag))
+    {
+      return alreadyFiltered;
+    }
+
+    const DicomValue& value = query.GetValue(tag);
+    if (value.IsNull())
+    {
+      return alreadyFiltered;
+    }
+
+    std::string str = query.GetValue(tag).AsString();
+    if (IsWildcard(str))
+    {
+      return alreadyFiltered;
+    }
+
+    std::list<std::string> matches;
+    index.LookupTagValue(matches, tag, str/*, level*/);
+
+    if (alreadyFiltered)
+    {
+      std::set<std::string> previous = resources;
+      
+      for (std::list<std::string>::const_iterator 
+             it = matches.begin(); it != matches.end(); it++)
+      {
+        if (previous.find(*it) != previous.end())
+        {
+          resources.insert(*it);
+        }
+      }
+    }
+    else
+    {
+      for (std::list<std::string>::const_iterator 
+             it = matches.begin(); it != matches.end(); it++)
+      {
+        resources.insert(*it);
+      }
+    }
+
+    return true;
+  }
+
+
+  static bool LookupCandidateResourcesAtOneLevel(/* out */ std::set<std::string>& resources,
+                                                 /* in */  ServerIndex& index,
+                                                 /* in */  ResourceType level,
+                                                 /* in */  const DicomMap& fullQuery,
+                                                 /* in */  ModalityManufacturer manufacturer)
+  {
+    DicomMap tmp;
+    fullQuery.ExtractMainDicomTagsForLevel(tmp, level);
+    DicomArray query(tmp);
+
+    if (query.GetSize() == 0)
+    {
+      return false;
+    }
+
+    for (size_t i = 0; i < query.GetSize(); i++)
+    {
+      const DicomTag tag = query.GetElement(i).GetTag();
+      const DicomValue& value = query.GetElement(i).GetValue();
+      if (!value.IsNull())
+      {
+        // TODO TODO TODO
+      }
+    }
+
+    printf(">>>>>>>>>>\n");
+    query.Print(stdout); 
+    printf("<<<<<<<<<<\n\n");
+    return true;
+  }
+
+
   static void LookupCandidateResources(/* out */ std::list<std::string>& resources,
                                        /* in */  ServerIndex& index,
                                        /* in */  ResourceType level,
                                        /* in */  const DicomMap& query,
                                        /* in */  ModalityManufacturer manufacturer)
   {
+#if 1
+    {
+      std::set<std::string> s;
+      LookupCandidateResourcesAtOneLevel(s, index, ResourceType_Patient, query, manufacturer);
+      LookupCandidateResourcesAtOneLevel(s, index, ResourceType_Study, query, manufacturer);
+      LookupCandidateResourcesAtOneLevel(s, index, ResourceType_Series, query, manufacturer);
+      LookupCandidateResourcesAtOneLevel(s, index, ResourceType_Instance, query, manufacturer);
+    }
+
+    std::set<std::string> filtered;
+    bool isFiltered = false; 
+
+    // Filter by indexed tags, from most specific to least specific
+    //isFiltered = LookupCandidateResourcesInternal(filtered, isFiltered, index, level, query, DICOM_TAG_SOP_INSTANCE_UID);
+    isFiltered = LookupCandidateResourcesInternal(filtered, isFiltered, index, level, query, DICOM_TAG_SERIES_INSTANCE_UID);
+    //isFiltered = LookupCandidateResourcesInternal(filtered, isFiltered, index, level, query, DICOM_TAG_STUDY_INSTANCE_UID);
+    //isFiltered = LookupCandidateResourcesInternal(filtered, isFiltered, index, level, query, DICOM_TAG_PATIENT_ID);
+
+    resources.clear();
+
+    if (isFiltered)
+    {
+      for (std::set<std::string>::const_iterator
+             it = filtered.begin(); it != filtered.end(); it++)
+      {
+        resources.push_back(*it);
+      }
+    }
+    else
+    {
+      // No indexed tag matches the query. Return all the resources at this query level.
+      Json::Value allResources;
+      index.GetAllUuids(allResources, level);
+      assert(allResources.type() == Json::arrayValue);
+
+      for (Json::Value::ArrayIndex i = 0; i < allResources.size(); i++)
+      {
+        resources.push_back(allResources[i].asString());
+      }
+    }
+
+#else
+
     // TODO : Speed up using full querying against the MainDicomTags.
 
     resources.clear();
@@ -371,6 +501,7 @@ namespace Orthanc
         resources.push_back(allResources[i].asString());
       }
     }
+#endif
   }
 
 
@@ -416,7 +547,8 @@ namespace Orthanc
       default:
         if (level != ResourceType_Patient &&
             level != ResourceType_Study &&
-            level != ResourceType_Series)
+            level != ResourceType_Series &&
+            level != ResourceType_Instance)
         {
           throw OrthancException(ErrorCode_NotImplemented);
         }
@@ -456,6 +588,8 @@ namespace Orthanc
      **/
 
     DicomArray query(input);
+    query.Print(stdout);
+
     for (std::list<std::string>::const_iterator 
            resource = resources.begin(); resource != resources.end(); ++resource)
     {

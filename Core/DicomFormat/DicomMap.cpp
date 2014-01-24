@@ -386,4 +386,32 @@ namespace Orthanc
     GetMainDicomTagsInternal(result, ResourceType_Series);
     GetMainDicomTagsInternal(result, ResourceType_Instance);
   }
+
+
+  void DicomMap::ExtractMainDicomTagsForLevel(DicomMap& result,
+                                              ResourceType level) const
+  {
+    switch (level)
+    {
+      case ResourceType_Patient:
+        ExtractPatientInformation(result);
+        break;
+
+      case ResourceType_Study:
+        ExtractStudyInformation(result);
+        break;
+
+      case ResourceType_Series:
+        ExtractSeriesInformation(result);
+        break;
+
+      case ResourceType_Instance:
+        ExtractInstanceInformation(result);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
 }
