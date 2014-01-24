@@ -213,5 +213,21 @@ namespace Orthanc
 
     void LookupTagValue(std::list<std::string>& result,
                         const std::string& value);
+
+
+    // TODO IS IT USEFUL???
+    void LookupTagValue(std::set<std::string>& result,
+                        DicomTag tag,
+                        const std::string& value,
+                        ResourceType type);
+
+    // TODO IS IT USEFUL???
+    void LookupTagValue(std::set<std::string>& result,
+                        DicomTag tag,
+                        const std::string& value);
+
+    // TODO IS IT USEFUL???
+    void LookupTagValue(std::set<std::string>& result,
+                        const std::string& value);
   };
 }

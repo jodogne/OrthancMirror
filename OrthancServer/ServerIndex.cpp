@@ -1575,4 +1575,55 @@ namespace Orthanc
       result.push_back(db_->GetPublicId(*it));
     }
   }
+
+
+  // TODO IS IT USEFUL???
+  void ServerIndex::LookupTagValue(std::set<std::string>& result,
+                                   DicomTag tag,
+                                   const std::string& value,
+                                   ResourceType type)
+  {
+    std::list<std::string> lst;
+    LookupTagValue(lst, tag, value, type);
+
+    result.clear();
+    for (std::list<std::string>::const_iterator
+           it = lst.begin(); it != lst.end(); it++)
+    {
+      result.insert(*it);
+    }
+  }
+
+
+  // TODO IS IT USEFUL???
+  void ServerIndex::LookupTagValue(std::set<std::string>& result,
+                                   DicomTag tag,
+                                   const std::string& value)
+  {
+    std::list<std::string> lst;
+    LookupTagValue(lst, tag, value);
+
+    result.clear();
+    for (std::list<std::string>::const_iterator
+           it = lst.begin(); it != lst.end(); it++)
+    {
+      result.insert(*it);
+    }
+  }
+
+
+  // TODO IS IT USEFUL???
+  void ServerIndex::LookupTagValue(std::set<std::string>& result,
+                                   const std::string& value)
+  {
+    std::list<std::string> lst;
+    LookupTagValue(lst, value);
+
+    result.clear();
+    for (std::list<std::string>::const_iterator
+           it = lst.begin(); it != lst.end(); it++)
+    {
+      result.insert(*it);
+    }
+  }
 }
