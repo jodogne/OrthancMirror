@@ -1,6 +1,7 @@
 Pending changes in the mainline
 ===============================
 
+* Maintenance tool to recover DICOM files compressed by Orthanc
 
 
 Version 0.7.2 (2013/11/08)
