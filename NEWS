@@ -1,6 +1,7 @@
 Pending changes in the mainline
 ===============================
 
+* Recover pixel data for more transfer syntaxes (notably JPEG)
 * Maintenance tool to recover DICOM files compressed by Orthanc
 
 
