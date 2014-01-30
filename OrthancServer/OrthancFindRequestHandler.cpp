@@ -480,3 +480,15 @@ namespace Orthanc
     }
   }
 }
+
+
+
+/**
+ * TODO : Case-insensitive match for PN value representation (Patient
+ * Name). Case-senstive match for all the other value representations.
+ *
+ * Reference: DICOM PS 3.4
+ *   - C.2.2.2.1 ("Single Value Matching") 
+ *   - C.2.2.2.4 ("Wild Card Matching")
+ * http://medical.nema.org/Dicom/2011/11_04pu.pdf (
+ **/

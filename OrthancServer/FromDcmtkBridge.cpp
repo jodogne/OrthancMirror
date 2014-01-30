@@ -130,6 +130,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <glog/logging.h>
 #include <dcmtk/dcmdata/dcostrmb.h>
 
+
+static const char* CONTENT_TYPE_OCTET_STREAM = "application/octet-stream";
+
+
+
 namespace Orthanc
 {
   void ParsedDicomFile::Setup(const char* buffer, size_t size)
@@ -214,36 +219,18 @@ namespace Orthanc
   }
 
 
-  static void AnswerPixelData(RestApiOutput& output,
-                              DcmPixelData& pixelData,
-                              E_TransferSyntax transferSyntax)
+  static unsigned int GetPixelDataBlockCount(DcmPixelData& pixelData,
+                                             E_TransferSyntax transferSyntax)
   {
     DcmPixelSequence* pixelSequence = NULL;
     if (pixelData.getEncapsulatedRepresentation
         (transferSyntax, NULL, pixelSequence).good() && pixelSequence)
     {
-      for (unsigned long i = 0; i < pixelSequence->card(); i++)
-      {
-        DcmPixelItem* pixelItem = NULL;
-        if (pixelSequence->getItem(pixelItem, i).good() && pixelItem)
-        {
-          Uint8* b = NULL;
-          if (pixelItem->getUint8Array(b).good() && b)
-          {
-            // JPEG-LS (lossless)
-            // http://gdcm.sourceforge.net/wiki/index.php/Tools/ffmpeg#JPEG_LS
-            // http://www.stat.columbia.edu/~jakulin/jpeg-ls/
-            // http://itohws03.ee.noda.sut.ac.jp/~matsuda/mrp/
-
-            printf("ITEM: %d %d\n", transferSyntax, pixelItem->getLength());
-            char buf[64];
-            sprintf(buf, "/tmp/toto-%06ld.jpg", i);
-            FILE* fp = fopen(buf, "wb");
-            fwrite(b, pixelItem->getLength(), 1, fp);
-            fclose(fp);
-          }
-        }
-      }
+      return pixelSequence->card();
+    }
+    else
+    {
+      return 1;
     }
   }
 
@@ -252,29 +239,13 @@ namespace Orthanc
                                DcmElement& element,
                                E_TransferSyntax transferSyntax)
   {
-    // This element is not a sequence. Test if it is pixel data.
-    if (element.getTag().getGTag() == DICOM_TAG_PIXEL_DATA.GetGroup() &&
-        element.getTag().getETag() == DICOM_TAG_PIXEL_DATA.GetElement())
-    {
-      try
-      {
-        DcmPixelData& pixelData = dynamic_cast<DcmPixelData&>(element);
-        AnswerPixelData(output, pixelData, transferSyntax);
-        //return;
-      }
-      catch (std::bad_cast&)
-      {
-      }
-    }
-
-
     // This element is nor a sequence, neither a pixel-data
     std::string buffer;
     buffer.resize(65536);
     Uint32 length = element.getLength(transferSyntax);
     Uint32 offset = 0;
 
-    output.GetLowLevelOutput().SendOkHeader("application/octet-stream", true, length, NULL);
+    output.GetLowLevelOutput().SendOkHeader(CONTENT_TYPE_OCTET_STREAM, true, length, NULL);
 
     while (offset < length)
     {
@@ -304,6 +275,92 @@ namespace Orthanc
 
     output.MarkLowLevelOutputDone();
   }
+
+
+  static bool AnswerPixelData(RestApiOutput& output,
+                              DcmItem& dicom,
+                              E_TransferSyntax transferSyntax,
+                              const std::string* blockUri)
+  {
+    DcmTag k(DICOM_TAG_PIXEL_DATA.GetGroup(),
+             DICOM_TAG_PIXEL_DATA.GetElement());
+
+    DcmElement *element = NULL;
+    if (!dicom.findAndGetElement(k, element).good() ||
+        element == NULL)
+    {
+      return false;
+    }
+
+    try
+    {
+      DcmPixelData& pixelData = dynamic_cast<DcmPixelData&>(*element);
+      if (blockUri == NULL)
+      {
+        // The user asks how many blocks are presents in this pixel data
+        unsigned int blocks = GetPixelDataBlockCount(pixelData, transferSyntax);
+
+        Json::Value result(Json::arrayValue);
+        for (unsigned int i = 0; i < blocks; i++)
+        {
+          result.append(boost::lexical_cast<std::string>(i));
+        }
+        
+        output.AnswerJson(result);
+        return true;
+      }
+
+
+      unsigned int block = boost::lexical_cast<unsigned int>(*blockUri);
+
+      if (block < GetPixelDataBlockCount(pixelData, transferSyntax))
+      {
+        DcmPixelSequence* pixelSequence = NULL;
+        if (pixelData.getEncapsulatedRepresentation
+            (transferSyntax, NULL, pixelSequence).good() && pixelSequence)
+        {
+          // This is the case for JPEG transfer syntaxes
+          if (block < pixelSequence->card())
+          {
+            DcmPixelItem* pixelItem = NULL;
+            if (pixelSequence->getItem(pixelItem, block).good() && pixelItem)
+            {
+              if (pixelItem->getLength() == 0)
+              {
+                output.AnswerBuffer(NULL, 0, CONTENT_TYPE_OCTET_STREAM);
+                return true;
+              }
+
+              Uint8* buffer = NULL;
+              if (pixelItem->getUint8Array(buffer).good() && buffer)
+              {
+                output.AnswerBuffer(buffer, pixelItem->getLength(), CONTENT_TYPE_OCTET_STREAM);
+                return true;
+              }
+            }
+          }
+        }
+        else
+        {
+          // This is the case for raw, uncompressed image buffers
+          assert(*blockUri == "0");
+          AnswerDicomField(output, *element, transferSyntax);
+        }
+      }
+    }
+    catch (boost::bad_lexical_cast&)
+    {
+      // The URI entered by the user is not a number
+    }
+    catch (std::bad_cast&)
+    {
+      // This should never happen
+    }
+
+    return false;
+  }
+
+
 
   static void SendPathValueForLeaf(RestApiOutput& output,
                                    const std::string& tag,
@@ -336,6 +393,22 @@ namespace Orthanc
                                       const UriComponents& uri)
   {
     DcmItem* dicom = file_->getDataset();
+    E_TransferSyntax transferSyntax = file_->getDataset()->getOriginalXfer();
+
+    // Special case: Accessing the pixel data
+    if (uri.size() == 1 || 
+        uri.size() == 2)
+    {
+      DcmTagKey tag;
+      ParseTagAndGroup(tag, uri[0]);
+
+      if (tag.getGroup() == DICOM_TAG_PIXEL_DATA.GetGroup() &&
+          tag.getElement() == DICOM_TAG_PIXEL_DATA.GetElement())
+      {
+        AnswerPixelData(output, *dicom, transferSyntax, uri.size() == 1 ? NULL : &uri[1]);
+        return;
+      }
+    }        
 
     // Go down in the tag hierarchy according to the URI
     for (size_t pos = 0; pos < uri.size() / 2; pos++)
@@ -369,7 +442,7 @@ namespace Orthanc
     }
     else
     {
-      SendPathValueForLeaf(output, uri.back(), *dicom, file_->getDataset()->getOriginalXfer());
+      SendPathValueForLeaf(output, uri.back(), *dicom, transferSyntax);
     }
   }
 
@@ -760,7 +833,7 @@ namespace Orthanc
     std::string serialized;
     if (FromDcmtkBridge::SaveToMemoryBuffer(serialized, file_->getDataset()))
     {
-      output.AnswerBuffer(serialized, "application/octet-stream");
+      output.AnswerBuffer(serialized, CONTENT_TYPE_OCTET_STREAM);
     }
   }
 
