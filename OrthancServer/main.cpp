@@ -285,6 +285,11 @@ int main(int argc, char* argv[])
       std::string configurationSample;
       GetFileResource(configurationSample, EmbeddedResources::CONFIGURATION_SAMPLE);
 
+#if defined(_WIN32)
+      // Replace UNIX newlines with DOS newlines 
+      boost::replace_all(configurationSample, "\n", "\r\n");
+#endif
+
       std::string target = std::string(argv[i]).substr(9);
       std::ofstream f(target.c_str());
       f << configurationSample;

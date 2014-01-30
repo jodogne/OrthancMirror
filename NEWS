@@ -3,6 +3,7 @@ Pending changes in the mainline
 
 * Recover pixel data for more transfer syntaxes (notably JPEG)
 * Maintenance tool to recover DICOM files compressed by Orthanc
+* The newline characters in the configuration file are fixed for Linux
 
 
 Version 0.7.2 (2013/11/08)
