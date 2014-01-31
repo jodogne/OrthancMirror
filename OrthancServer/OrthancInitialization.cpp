@@ -35,6 +35,7 @@
 #include "../Core/HttpClient.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
+#include "DicomProtocol/DicomServer.h"
 #include "ServerEnumerations.h"
 
 #include <boost/lexical_cast.hpp>
@@ -142,6 +143,8 @@ namespace Orthanc
     HttpClient::GlobalInitialize();
 
     RegisterUserMetadata();
+
+    DicomServer::InitializeDictionary();
   }
 
 
