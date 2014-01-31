@@ -187,6 +187,7 @@ namespace Orthanc
 #else
     signal(SIGINT, SignalHandler);
     signal(SIGQUIT, SignalHandler);
+    signal(SIGTERM, SignalHandler);
 #endif
   
     finish = false;
@@ -200,6 +201,7 @@ namespace Orthanc
 #else
     signal(SIGINT, NULL);
     signal(SIGQUIT, NULL);
+    signal(SIGTERM, NULL);
 #endif
   }
 
