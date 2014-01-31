@@ -94,7 +94,7 @@ namespace Orthanc
 #endif
 
 
-  void DicomServer::ServerThread(DicomServer* server)
+  void DicomServer::InitializeDictionary()
   {
     /* Disable "gethostbyaddr" (which results in memory leaks) and use raw IP addresses */
     dcmDisableGethostbyaddr.set(OFTrue);
@@ -148,7 +148,11 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
       }
     }
+  }
 
+
+  void DicomServer::ServerThread(DicomServer* server)
+  {
     /* initialize network, i.e. create an instance of T_ASC_Network*. */
     T_ASC_Network *net;
     OFCondition cond = ASC_initializeNetwork

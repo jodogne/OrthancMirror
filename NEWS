@@ -1,6 +1,7 @@
 Pending changes in the mainline
 ===============================
 
+* Possibility to disable the HTTP server or the DICOM server
 * Recover pixel data for more transfer syntaxes (notably JPEG)
 * Maintenance tool to recover DICOM files compressed by Orthanc
 * The newline characters in the configuration file are fixed for Linux

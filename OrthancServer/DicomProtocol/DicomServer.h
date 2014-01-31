@@ -66,6 +66,8 @@ namespace Orthanc
     static void ServerThread(DicomServer* server);
 
   public:
+    static void InitializeDictionary();
+
     DicomServer();
 
     ~DicomServer();

@@ -132,5 +132,15 @@
 
   // Number of seconds without receiving any instance before a
   // patient, a study or a series is considered as stable.
-  "StableAge" : 60
+  "StableAge" : 60,
+
+  // Enable the HTTP server. If this parameter is set to "false",
+  // Orthanc acts as a pure DICOM server. The REST API and Orthanc
+  // Explorer will not be available.
+  "HttpServerEnabled" : true,
+
+  // Enable the DICOM server. If this parameter is set to "false",
+  // Orthanc acts as a pure REST server. It will not be possible to
+  // receive files or to do query/retrieve through the DICOM protocol.
+  "DicomServerEnabled" : true
 }

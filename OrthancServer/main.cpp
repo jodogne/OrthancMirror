@@ -402,9 +402,6 @@ int main(int argc, char* argv[])
         httpServer.SetSslEnabled(false);
       }
 
-      LOG(WARNING) << "DICOM server listening on port: " << dicomServer.GetPortNumber();
-      LOG(WARNING) << "HTTP server listening on port: " << httpServer.GetPortNumber();
-
 #if ORTHANC_STANDALONE == 1
       httpServer.RegisterHandler(new EmbeddedResourceHttpHandler("/app", EmbeddedResources::ORTHANC_EXPLORER));
 #else
@@ -413,14 +410,31 @@ int main(int argc, char* argv[])
 
       httpServer.RegisterHandler(new OrthancRestApi(context));
 
-      // GO !!!
-      httpServer.Start();
-      dicomServer.Start();
+      // GO !!! Start the requested servers
+      if (GetGlobalBoolParameter("HttpServerEnabled", true))
+      {
+        httpServer.Start();
+        LOG(WARNING) << "HTTP server listening on port: " << httpServer.GetPortNumber();
+      }
+      else
+      {
+        LOG(WARNING) << "The HTTP server is disabled";
+      }
+
+      if (GetGlobalBoolParameter("DicomServerEnabled", true))
+      {
+        dicomServer.Start();
+        LOG(WARNING) << "DICOM server listening on port: " << dicomServer.GetPortNumber();
+      }
+      else
+      {
+        LOG(WARNING) << "The DICOM server is disabled";
+      }
 
       LOG(WARNING) << "Orthanc has started";
       Toolbox::ServerBarrier();
 
-      // Stop
+      // We're done
       LOG(WARNING) << "Orthanc is stopping";
     }
 
