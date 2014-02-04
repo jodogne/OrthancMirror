@@ -219,6 +219,20 @@ namespace Orthanc
   }
 
 
+  void Toolbox::ToUpperCase(std::string& result,
+                            const std::string& source)
+  {
+    result = source;
+    ToUpperCase(result);
+  }
+
+  void Toolbox::ToLowerCase(std::string& result,
+                            const std::string& source)
+  {
+    result = source;
+    ToLowerCase(result);
+  }
+
 
   void Toolbox::ReadFile(std::string& content,
                          const std::string& path) 

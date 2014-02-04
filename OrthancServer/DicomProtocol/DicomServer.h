@@ -106,6 +106,8 @@ namespace Orthanc
     void Start();
   
     void Stop();
+
+    bool IsMyAETitle(const std::string& aet) const;
   };
 
 }

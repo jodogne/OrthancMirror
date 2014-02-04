@@ -142,5 +142,10 @@
   // Enable the DICOM server. If this parameter is set to "false",
   // Orthanc acts as a pure REST server. It will not be possible to
   // receive files or to do query/retrieve through the DICOM protocol.
-  "DicomServerEnabled" : true
+  "DicomServerEnabled" : true,
+
+  // By default, Orthanc compares AET (Application Entity Titles) in a
+  // case-insensitive way. Setting this option to "true" will enable
+  // case-sensitive matching.
+  "StrictAetComparison" : false
 }

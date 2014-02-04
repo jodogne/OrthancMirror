@@ -385,12 +385,8 @@ namespace Orthanc
         callingIP = std::string(/*OFSTRING_GUARD*/(callingIP_C));
         callingTitle = std::string(/*OFSTRING_GUARD*/(callingTitle_C));
         std::string calledTitle(/*OFSTRING_GUARD*/(calledTitle_C));
-        Toolbox::ToUpperCase(callingIP);
-        Toolbox::ToUpperCase(callingTitle);
-        Toolbox::ToUpperCase(calledTitle);
 
-        if (server.HasCalledApplicationEntityTitleCheck() &&
-            calledTitle != server.GetApplicationEntityTitle())
+        if (!server.IsMyAETitle(calledTitle))
         {
           T_ASC_RejectParameters rej =
             {

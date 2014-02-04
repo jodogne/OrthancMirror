@@ -48,20 +48,14 @@ namespace Orthanc
             constraint.find('?') != std::string::npos);
   }
 
-  static std::string ToLowerCase(const std::string& s)
-  {
-    std::string result = s;
-    Toolbox::ToLowerCase(result);
-    return result;
-  }
-
   static bool ApplyRangeConstraint(const std::string& value,
                                    const std::string& constraint)
   {
     size_t separator = constraint.find('-');
-    std::string lower = ToLowerCase(constraint.substr(0, separator));
-    std::string upper = ToLowerCase(constraint.substr(separator + 1));
-    std::string v = ToLowerCase(value);
+    std::string lower, upper, v;
+    Toolbox::ToLowerCase(lower, constraint.substr(0, separator));
+    Toolbox::ToLowerCase(upper, constraint.substr(separator + 1));
+    Toolbox::ToLowerCase(v, value);
 
     if (lower.size() == 0 && upper.size() == 0)
     {
@@ -85,15 +79,17 @@ namespace Orthanc
   static bool ApplyListConstraint(const std::string& value,
                                   const std::string& constraint)
   {
-    std::string v1 = ToLowerCase(value);
+    std::string v1;
+    Toolbox::ToLowerCase(v1, value);
 
     std::vector<std::string> items;
     Toolbox::TokenizeString(items, constraint, '\\');
 
     for (size_t i = 0; i < items.size(); i++)
     {
-      Toolbox::ToLowerCase(items[i]);
-      if (items[i] == v1)
+      std::string lower;
+      Toolbox::ToLowerCase(lower, items[i]);
+      if (lower == v1)
       {
         return true;
       }
@@ -129,7 +125,10 @@ namespace Orthanc
     }
     else
     {
-      return ToLowerCase(value) == ToLowerCase(constraint);
+      std::string v, c;
+      Toolbox::ToLowerCase(v, value);
+      Toolbox::ToLowerCase(c, constraint);
+      return v == c;
     }
   }
 
