@@ -42,21 +42,36 @@ namespace Orthanc
                                                         size_t size,
                                                         FileContentType type)
   {
+    std::string md5;
+
+    if (storeMD5_)
+    {
+      Toolbox::ComputeMD5(md5, data, size);
+    }
+
     switch (compressionType_)
     {
     case CompressionType_None:
     {
       std::string uuid = storage_.Create(data, size);
-      return FileInfo(uuid, type, size);
+      return FileInfo(uuid, type, size, md5);
     }
 
     case CompressionType_Zlib:
     {
       std::string compressed;
       zlib_.Compress(compressed, data, size);
+
+      std::string compressedMD5;
+      
+      if (storeMD5_)
+      {
+        Toolbox::ComputeMD5(compressedMD5, compressed);
+      }
+
       std::string uuid = storage_.Create(compressed);
-      return FileInfo(uuid, type, size, 
-                      CompressionType_Zlib, compressed.size());
+      return FileInfo(uuid, type, size, md5,
+                      CompressionType_Zlib, compressed.size(), compressedMD5);
     }
 
     default:

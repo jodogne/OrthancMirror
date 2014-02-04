@@ -66,7 +66,8 @@ namespace Orthanc
     ErrorCode_Timeout,
     ErrorCode_UnknownResource,
     ErrorCode_IncompatibleDatabaseVersion,
-    ErrorCode_FullStorage
+    ErrorCode_FullStorage,
+    ErrorCode_CorruptedFile
   };
 
   /**

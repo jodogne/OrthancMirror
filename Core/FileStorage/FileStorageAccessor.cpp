@@ -38,6 +38,13 @@ namespace Orthanc
                                               size_t size,
                                               FileContentType type)
   {
-    return FileInfo(storage_.Create(data, size), type, size);
+    std::string md5;
+
+    if (storeMD5_)
+    {
+      Toolbox::ComputeMD5(md5, data, size);
+    }
+
+    return FileInfo(storage_.Create(data, size), type, size, md5);
   }
 }

@@ -140,9 +140,10 @@ TEST(DatabaseWrapper, Simple)
   index.ListAvailableMetadata(md, a[4]);
   ASSERT_EQ(0u, md.size());
 
-  index.AddAttachment(a[4], FileInfo("my json file", FileContentType_Json, 42, CompressionType_Zlib, 21));
-  index.AddAttachment(a[4], FileInfo("my dicom file", FileContentType_Dicom, 42));
-  index.AddAttachment(a[6], FileInfo("world", FileContentType_Dicom, 44));
+  index.AddAttachment(a[4], FileInfo("my json file", FileContentType_Json, 42, "md5", 
+                                     CompressionType_Zlib, 21, "compressedMD5"));
+  index.AddAttachment(a[4], FileInfo("my dicom file", FileContentType_Dicom, 42, "md5"));
+  index.AddAttachment(a[6], FileInfo("world", FileContentType_Dicom, 44, "md5"));
   index.SetMetadata(a[4], MetadataType_Instance_RemoteAet, "PINNACLE");
   
   index.ListAvailableMetadata(md, a[4]);
@@ -185,8 +186,18 @@ TEST(DatabaseWrapper, Simple)
   ASSERT_TRUE(index.LookupAttachment(att, a[4], FileContentType_Json));
   ASSERT_EQ("my json file", att.GetUuid());
   ASSERT_EQ(21u, att.GetCompressedSize());
+  ASSERT_EQ("md5", att.GetUncompressedMD5());
+  ASSERT_EQ("compressedMD5", att.GetCompressedMD5());
   ASSERT_EQ(42u, att.GetUncompressedSize());
   ASSERT_EQ(CompressionType_Zlib, att.GetCompressionType());
+
+  ASSERT_TRUE(index.LookupAttachment(att, a[6], FileContentType_Dicom));
+  ASSERT_EQ("world", att.GetUuid());
+  ASSERT_EQ(44u, att.GetCompressedSize());
+  ASSERT_EQ("md5", att.GetUncompressedMD5());
+  ASSERT_EQ("md5", att.GetCompressedMD5());
+  ASSERT_EQ(44u, att.GetUncompressedSize());
+  ASSERT_EQ(CompressionType_None, att.GetCompressionType());
 
   ASSERT_EQ(0u, listener.deletedFiles_.size());
   ASSERT_EQ(7u, index.GetTableRecordCount("Resources")); 
@@ -300,7 +311,8 @@ TEST(DatabaseWrapper, PatientRecycling)
   {
     std::string p = "Patient " + boost::lexical_cast<std::string>(i);
     patients.push_back(index.CreateResource(p, ResourceType_Patient));
-    index.AddAttachment(patients[i], FileInfo(p, FileContentType_Dicom, i + 10));
+    index.AddAttachment(patients[i], FileInfo(p, FileContentType_Dicom, i + 10, 
+                                              "md5-" + boost::lexical_cast<std::string>(i)));
     ASSERT_FALSE(index.IsProtectedPatient(patients[i]));
   }
 
@@ -352,7 +364,8 @@ TEST(DatabaseWrapper, PatientProtection)
   {
     std::string p = "Patient " + boost::lexical_cast<std::string>(i);
     patients.push_back(index.CreateResource(p, ResourceType_Patient));
-    index.AddAttachment(patients[i], FileInfo(p, FileContentType_Dicom, i + 10));
+    index.AddAttachment(patients[i], FileInfo(p, FileContentType_Dicom, i + 10,
+                                              "md5-" + boost::lexical_cast<std::string>(i)));
     ASSERT_FALSE(index.IsProtectedPatient(patients[i]));
   }
 

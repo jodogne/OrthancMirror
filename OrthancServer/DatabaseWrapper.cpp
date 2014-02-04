@@ -62,7 +62,7 @@ namespace Orthanc
 
       virtual unsigned int GetCardinality() const
       {
-        return 5;
+        return 7;
       }
 
       virtual void Compute(SQLite::FunctionContext& context)
@@ -70,8 +70,10 @@ namespace Orthanc
         FileInfo info(context.GetStringValue(0),
                       static_cast<FileContentType>(context.GetIntValue(1)),
                       static_cast<uint64_t>(context.GetInt64Value(2)),
+                      context.GetStringValue(5),
                       static_cast<CompressionType>(context.GetIntValue(3)),
-                      static_cast<uint64_t>(context.GetInt64Value(4)));
+                      static_cast<uint64_t>(context.GetInt64Value(4)),
+                      context.GetStringValue(6));
         
         listener_.SignalFileDeleted(info);
       }
@@ -433,13 +435,15 @@ namespace Orthanc
   void DatabaseWrapper::AddAttachment(int64_t id,
                                       const FileInfo& attachment)
   {
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO AttachedFiles VALUES(?, ?, ?, ?, ?, ?)");
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO AttachedFiles VALUES(?, ?, ?, ?, ?, ?, ?, ?)");
     s.BindInt64(0, id);
     s.BindInt(1, attachment.GetContentType());
     s.BindString(2, attachment.GetUuid());
     s.BindInt64(3, attachment.GetCompressedSize());
     s.BindInt64(4, attachment.GetUncompressedSize());
     s.BindInt(5, attachment.GetCompressionType());
+    s.BindString(6, attachment.GetUncompressedMD5());
+    s.BindString(7, attachment.GetCompressedMD5());
     s.Run();
   }
 
@@ -463,7 +467,7 @@ namespace Orthanc
                                          FileContentType contentType)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-                        "SELECT uuid, uncompressedSize, compressionType, compressedSize FROM AttachedFiles WHERE id=? AND fileType=?");
+                        "SELECT uuid, uncompressedSize, compressionType, compressedSize, uncompressedMD5, compressedMD5 FROM AttachedFiles WHERE id=? AND fileType=?");
     s.BindInt64(0, id);
     s.BindInt(1, contentType);
 
@@ -476,8 +480,10 @@ namespace Orthanc
       attachment = FileInfo(s.ColumnString(0),
                             contentType,
                             s.ColumnInt(1),
+                            s.ColumnString(4),
                             static_cast<CompressionType>(s.ColumnInt(2)),
-                            s.ColumnInt(3));
+                            s.ColumnInt(3),
+                            s.ColumnString(5));
       return true;
     }
   }
@@ -820,9 +826,11 @@ namespace Orthanc
       LOG(INFO) << "Version of the Orthanc database: " << version;
       unsigned int v = boost::lexical_cast<unsigned int>(version);
 
-      // This version of Orthanc is only compatible with version 3 of
-      // the DB schema (since Orthanc 0.3.2)
-      ok = (v == 3);
+      // Version 3: from Orthanc 0.3.2 to Orthanc 0.7.2 (inclusive)
+      // Version 4: from Orthanc 0.7.3 (inclusive)
+
+      // This version of Orthanc is only compatible with version 4 of the DB schema
+      ok = (v == 4);
     }
     catch (boost::bad_lexical_cast&)
     {
@@ -830,6 +838,7 @@ namespace Orthanc
 
     if (!ok)
     {
+      LOG(ERROR) << "Incompatible version of the Orthanc database: " << version;
       throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
     }
 
