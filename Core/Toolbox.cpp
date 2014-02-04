@@ -465,13 +465,29 @@ namespace Orthanc
   void Toolbox::ComputeMD5(std::string& result,
                            const std::string& data)
   {
+    if (data.size() > 0)
+    {
+      ComputeMD5(result, &data[0], data.size());
+    }
+    else
+    {
+      ComputeMD5(result, NULL, 0);
+    }
+  }
+
+
+  void Toolbox::ComputeMD5(std::string& result,
+                           const void* data,
+                           size_t length)
+  {
     md5_state_s state;
     md5_init(&state);
 
-    if (data.size() > 0)
+    if (length > 0)
     {
-      md5_append(&state, reinterpret_cast<const md5_byte_t*>(&data[0]), 
-                 static_cast<int>(data.size()));
+      md5_append(&state, 
+                 reinterpret_cast<const md5_byte_t*>(data), 
+                 static_cast<int>(length));
     }
 
     md5_byte_t actualHash[16];

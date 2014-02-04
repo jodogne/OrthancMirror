@@ -43,9 +43,13 @@ namespace Orthanc
   private:
     std::string uuid_;
     FileContentType contentType_;
+
     uint64_t uncompressedSize_;
+    std::string uncompressedMD5_;
+
     CompressionType compressionType_;
     uint64_t compressedSize_;
+    std::string compressedMD5_;
 
   public:
     FileInfo()
@@ -57,12 +61,15 @@ namespace Orthanc
      **/
     FileInfo(const std::string& uuid,
              FileContentType contentType,
-             uint64_t size) :
+             uint64_t size,
+             const std::string& md5) :
       uuid_(uuid),
       contentType_(contentType),
       uncompressedSize_(size),
+      uncompressedMD5_(md5),
       compressionType_(CompressionType_None),
-      compressedSize_(size)
+      compressedSize_(size),
+      compressedMD5_(md5)
     {
     }
 
@@ -72,13 +79,17 @@ namespace Orthanc
     FileInfo(const std::string& uuid,
              FileContentType contentType,
              uint64_t uncompressedSize,
+             const std::string& uncompressedMD5,
              CompressionType compressionType,
-             uint64_t compressedSize) :
+             uint64_t compressedSize,
+             const std::string& compressedMD5) :
       uuid_(uuid),
       contentType_(contentType),
       uncompressedSize_(uncompressedSize),
+      uncompressedMD5_(uncompressedMD5),
       compressionType_(compressionType),
-      compressedSize_(compressedSize)
+      compressedSize_(compressedSize),
+      compressedMD5_(compressedMD5)
     {
     }
 
@@ -105,6 +116,16 @@ namespace Orthanc
     uint64_t GetCompressedSize() const
     {
       return compressedSize_;
+    }
+
+    const std::string& GetCompressedMD5() const
+    {
+      return compressedMD5_;
+    }
+
+    const std::string& GetUncompressedMD5() const
+    {
+      return uncompressedMD5_;
     }
   };
 }

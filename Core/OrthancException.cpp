@@ -105,6 +105,9 @@ namespace Orthanc
       case ErrorCode_NetworkProtocol:
         return "Error in the network protocol";
 
+      case ErrorCode_CorruptedFile:
+        return "Corrupted file (inconsistent MD5 hash)";
+
       case ErrorCode_Custom:
       default:
         return "???";

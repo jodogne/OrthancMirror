@@ -88,6 +88,10 @@ namespace Orthanc
     void ComputeMD5(std::string& result,
                     const std::string& data);
 
+    void ComputeMD5(std::string& result,
+                    const void* data,
+                    size_t length);
+
     void ComputeSHA1(std::string& result,
                      const std::string& data);
 
