@@ -340,12 +340,10 @@ namespace Orthanc
         // This is a particular case for ClearCanvas, thanks to Peter Somlo <peter.somlo@gmail.com>.
         // https://groups.google.com/d/msg/orthanc-users/j-6C3MAVwiw/iolB9hclom8J
         // http://www.clearcanvas.ca/Home/Community/OldForums/tabid/526/aff/11/aft/14670/afv/topic/Default.aspx
-        printf("CLEAR CANVAS\n");
         DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "IMAGE");
       }
       else
       {
-        printf("GENERIC\n");
         DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "INSTANCE");
       }
 
