@@ -36,6 +36,7 @@
 #include "../../Core/Toolbox.h"
 #include "../../Core/Uuid.h"
 #include "../Internals/CommandDispatcher.h"
+#include "../OrthancInitialization.h"
 #include "EmbeddedResources.h"
 
 #include <boost/thread.hpp>
@@ -404,4 +405,16 @@ namespace Orthanc
 
     bagOfDispatchers_.StopAll();
   }
+
+  bool DicomServer::IsMyAETitle(const std::string& aet) const
+  {
+    if (!HasCalledApplicationEntityTitleCheck())
+    {
+      // OK, no check on the AET.
+      return true;
+    }
+
+    return Orthanc::IsSameAETitle(aet, GetApplicationEntityTitle());
+  }
+
 }

@@ -50,9 +50,15 @@ namespace Orthanc
   {
     void ServerBarrier();
 
-    void ToUpperCase(std::string& s);
+    void ToUpperCase(std::string& s);  // Inplace version
 
-    void ToLowerCase(std::string& s);
+    void ToLowerCase(std::string& s);  // Inplace version
+
+    void ToUpperCase(std::string& result,
+                     const std::string& source);
+
+    void ToLowerCase(std::string& result,
+                     const std::string& source);
 
     void ReadFile(std::string& content,
                   const std::string& path);

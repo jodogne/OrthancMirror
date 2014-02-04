@@ -453,5 +453,7 @@ int main(int argc, char* argv[])
 
   OrthancFinalize();
 
+  LOG(WARNING) << "Orthanc has stopped";
+
   return status;
 }

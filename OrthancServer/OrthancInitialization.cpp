@@ -465,6 +465,25 @@ namespace Orthanc
   }
 
 
+  bool IsSameAETitle(const std::string& aet1,
+                     const std::string& aet2)
+  {
+    if (GetGlobalBoolParameter("StrictAetComparison", false))
+    {
+      // Case-sensitive matching
+      return aet1 == aet2;
+    }
+    else
+    {
+      // Case-insensitive matching (default)
+      std::string tmp1, tmp2;
+      Toolbox::ToLowerCase(tmp1, aet1);
+      Toolbox::ToLowerCase(tmp2, aet2);
+      return tmp1 == tmp2;
+    }
+  }
+
+
   bool LookupDicomModalityUsingAETitle(const std::string& aet,
                                        std::string& symbolicName,
                                        std::string& address,
@@ -482,7 +501,7 @@ namespace Orthanc
         std::string thisAet;
         GetDicomModalityUsingSymbolicName(*it, thisAet, address, port, manufacturer);
         
-        if (aet == thisAet)
+        if (IsSameAETitle(aet, thisAet))
         {
           return true;
         }

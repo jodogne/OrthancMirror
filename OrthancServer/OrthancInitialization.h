@@ -93,4 +93,7 @@ namespace Orthanc
                                      const std::string& aet);
 
   bool IsKnownAETitle(const std::string& aet);
+
+  bool IsSameAETitle(const std::string& aet1,
+                     const std::string& aet2);
 }
