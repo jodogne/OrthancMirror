@@ -829,7 +829,7 @@ namespace Orthanc
     RETRIEVE_CONTEXT(call);
 
     std::string publicId = call.GetUriComponent("id", "");
-    context.AnswerFile(call.GetOutput(), publicId, FileContentType_Dicom);
+    context.AnswerDicomFile(call.GetOutput(), publicId, FileContentType_Dicom);
   }
 
 
@@ -1654,9 +1654,17 @@ namespace Orthanc
 
   // Handling of metadata -----------------------------------------------------
 
+  static void CheckValidResourceType(RestApi::Call& call)
+  {
+    std::string resourceType = call.GetUriComponent("resourceType", "");
+    StringToResourceType(resourceType.c_str());
+  }
+
+
   static void ListMetadata(RestApi::GetCall& call)
   {
     RETRIEVE_CONTEXT(call);
+    CheckValidResourceType(call);
     
     std::string publicId = call.GetUriComponent("id", "");
     std::list<MetadataType> metadata;
@@ -1678,6 +1686,7 @@ namespace Orthanc
   static void GetMetadata(RestApi::GetCall& call)
   {
     RETRIEVE_CONTEXT(call);
+    CheckValidResourceType(call);
     
     std::string publicId = call.GetUriComponent("id", "");
     std::string name = call.GetUriComponent("name", "");
@@ -1694,7 +1703,8 @@ namespace Orthanc
   static void DeleteMetadata(RestApi::DeleteCall& call)
   {
     RETRIEVE_CONTEXT(call);
-    
+    CheckValidResourceType(call);
+
     std::string publicId = call.GetUriComponent("id", "");
     std::string name = call.GetUriComponent("name", "");
     MetadataType metadata = StringToMetadata(name);
@@ -1712,6 +1722,7 @@ namespace Orthanc
   static void SetMetadata(RestApi::PutCall& call)
   {
     RETRIEVE_CONTEXT(call);
+    CheckValidResourceType(call);
 
     std::string publicId = call.GetUriComponent("id", "");
     std::string name = call.GetUriComponent("name", "");
@@ -1822,6 +1833,137 @@ namespace Orthanc
 
 
 
+
+  // Handling of attached files -----------------------------------------------
+
+  static void ListAttachments(RestApi::GetCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+    
+    std::string resourceType = call.GetUriComponent("resourceType", "");
+    std::string publicId = call.GetUriComponent("id", "");
+    std::list<FileContentType> attachments;
+    context.GetIndex().ListAvailableAttachments(attachments, publicId, StringToResourceType(resourceType.c_str()));
+
+    Json::Value result = Json::arrayValue;
+
+    for (std::list<FileContentType>::const_iterator 
+           it = attachments.begin(); it != attachments.end(); ++it)
+    {
+      result.append(EnumerationToString(*it));
+    }
+
+    call.GetOutput().AnswerJson(result);
+  }
+
+
+  static bool GetAttachmentInfo(FileInfo& info, RestApi::Call& call)
+  {
+    RETRIEVE_CONTEXT(call);
+    CheckValidResourceType(call);
+ 
+    std::string publicId = call.GetUriComponent("id", "");
+    std::string name = call.GetUriComponent("name", "");
+    FileContentType contentType = StringToContentType(name);
+
+    return context.GetIndex().LookupAttachment(info, publicId, contentType);
+  }
+
+
+  static void GetAttachmentOperations(RestApi::GetCall& call)
+  {
+    FileInfo info;
+    if (GetAttachmentInfo(info, call))
+    {
+      Json::Value operations = Json::arrayValue;
+
+      operations.append("compressed-data");
+
+      if (info.GetCompressedMD5() != "")
+      {
+        operations.append("compressed-md5");
+      }
+
+      operations.append("compressed-size");
+      operations.append("data");
+
+      if (info.GetUncompressedMD5() != "")
+      {
+        operations.append("md5");
+      }
+
+      operations.append("size");
+
+      if (info.GetCompressedMD5() != "")
+      {
+        operations.append("verify-md5");
+      }
+
+      call.GetOutput().AnswerJson(operations);
+    }
+  }
+
+  
+  template <int uncompress>
+  static void GetAttachmentData(RestApi::GetCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+    CheckValidResourceType(call);
+ 
+    std::string publicId = call.GetUriComponent("id", "");
+    std::string name = call.GetUriComponent("name", "");
+
+    std::string content;
+    context.ReadFile(content, publicId, StringToContentType(name),
+                     (uncompress == 1));
+
+    call.GetOutput().AnswerBuffer(content, "application/octet-stream");
+  }
+
+
+  static void GetAttachmentSize(RestApi::GetCall& call)
+  {
+    FileInfo info;
+    if (GetAttachmentInfo(info, call))
+    {
+      call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetUncompressedSize()), "text/plain");
+    }
+  }
+
+
+  static void GetAttachmentCompressedSize(RestApi::GetCall& call)
+  {
+    FileInfo info;
+    if (GetAttachmentInfo(info, call))
+    {
+      call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetCompressedSize()), "text/plain");
+    }
+  }
+
+
+  static void GetAttachmentMD5(RestApi::GetCall& call)
+  {
+    FileInfo info;
+    if (GetAttachmentInfo(info, call) &&
+        info.GetUncompressedMD5() != "")
+    {
+      call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetUncompressedMD5()), "text/plain");
+    }
+  }
+
+
+  static void GetAttachmentCompressedMD5(RestApi::GetCall& call)
+  {
+    FileInfo info;
+    if (GetAttachmentInfo(info, call) &&
+        info.GetCompressedMD5() != "")
+    {
+      call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetCompressedMD5()), "text/plain");
+    }
+  }
+
+
+
   // Registration of the various REST handlers --------------------------------
 
   OrthancRestApi::OrthancRestApi(ServerContext& context) : 
@@ -1862,22 +2004,19 @@ namespace Orthanc
     Register("/studies/{id}/statistics", GetResourceStatistics);
     Register("/series/{id}/statistics", GetResourceStatistics);
 
-    Register("/instances/{id}/metadata", ListMetadata);
-    Register("/instances/{id}/metadata/{name}", DeleteMetadata);
-    Register("/instances/{id}/metadata/{name}", GetMetadata);
-    Register("/instances/{id}/metadata/{name}", SetMetadata);
-    Register("/patients/{id}/metadata", ListMetadata);
-    Register("/patients/{id}/metadata/{name}", DeleteMetadata);
-    Register("/patients/{id}/metadata/{name}", GetMetadata);
-    Register("/patients/{id}/metadata/{name}", SetMetadata);
-    Register("/series/{id}/metadata", ListMetadata);
-    Register("/series/{id}/metadata/{name}", DeleteMetadata);
-    Register("/series/{id}/metadata/{name}", GetMetadata);
-    Register("/series/{id}/metadata/{name}", SetMetadata);
-    Register("/studies/{id}/metadata", ListMetadata);
-    Register("/studies/{id}/metadata/{name}", DeleteMetadata);
-    Register("/studies/{id}/metadata/{name}", GetMetadata);
-    Register("/studies/{id}/metadata/{name}", SetMetadata);
+    Register("/{resourceType}/{id}/metadata", ListMetadata);
+    Register("/{resourceType}/{id}/metadata/{name}", DeleteMetadata);
+    Register("/{resourceType}/{id}/metadata/{name}", GetMetadata);
+    Register("/{resourceType}/{id}/metadata/{name}", SetMetadata);
+
+    Register("/{resourceType}/{id}/attachments", ListAttachments);
+    Register("/{resourceType}/{id}/attachments/{name}", GetAttachmentOperations);
+    Register("/{resourceType}/{id}/attachments/{name}/compressed-data", GetAttachmentData<0>);
+    Register("/{resourceType}/{id}/attachments/{name}/compressed-md5", GetAttachmentCompressedMD5);
+    Register("/{resourceType}/{id}/attachments/{name}/compressed-size", GetAttachmentCompressedSize);
+    Register("/{resourceType}/{id}/attachments/{name}/data", GetAttachmentData<1>);
+    Register("/{resourceType}/{id}/attachments/{name}/md5", GetAttachmentMD5);
+    Register("/{resourceType}/{id}/attachments/{name}/size", GetAttachmentSize);
 
     Register("/patients/{id}/protected", IsProtectedPatient);
     Register("/patients/{id}/protected", SetPatientProtection);

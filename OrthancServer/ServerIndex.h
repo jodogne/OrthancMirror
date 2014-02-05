@@ -180,6 +180,10 @@ namespace Orthanc
     bool ListAvailableMetadata(std::list<MetadataType>& target,
                                const std::string& publicId);
 
+    void ListAvailableAttachments(std::list<FileContentType>& target,
+                                  const std::string& publicId,
+                                  ResourceType expectedType);
+
     bool LookupParent(std::string& target,
                       const std::string& publicId);
 

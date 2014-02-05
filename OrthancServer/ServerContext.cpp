@@ -116,7 +116,7 @@ namespace Orthanc
     }      
 
     FileInfo dicomInfo = accessor_.Write(dicomInstance, dicomSize, FileContentType_Dicom);
-    FileInfo jsonInfo = accessor_.Write(dicomJson.toStyledString(), FileContentType_JsonSummary);
+    FileInfo jsonInfo = accessor_.Write(dicomJson.toStyledString(), FileContentType_DicomAsJson);
 
     ServerIndex::Attachments attachments;
     attachments.push_back(dicomInfo);
@@ -153,9 +153,9 @@ namespace Orthanc
   }
 
   
-  void ServerContext::AnswerFile(RestApiOutput& output,
-                                 const std::string& instancePublicId,
-                                 FileContentType content)
+  void ServerContext::AnswerDicomFile(RestApiOutput& output,
+                                      const std::string& instancePublicId,
+                                      FileContentType content)
   {
     FileInfo attachment;
     if (!index_.LookupAttachment(attachment, instancePublicId, content))
@@ -176,7 +176,7 @@ namespace Orthanc
                                const std::string& instancePublicId)
   {
     std::string s;
-    ReadFile(s, instancePublicId, FileContentType_JsonSummary);
+    ReadFile(s, instancePublicId, FileContentType_DicomAsJson);
 
     Json::Reader reader;
     if (!reader.parse(s, result))
@@ -188,7 +188,8 @@ namespace Orthanc
 
   void ServerContext::ReadFile(std::string& result,
                                const std::string& instancePublicId,
-                               FileContentType content)
+                               FileContentType content,
+                               bool uncompressIfNeeded)
   {
     FileInfo attachment;
     if (!index_.LookupAttachment(attachment, instancePublicId, content))
@@ -196,7 +197,15 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
 
-    accessor_.SetCompressionForNextOperations(attachment.GetCompressionType());
+    if (uncompressIfNeeded)
+    {
+      accessor_.SetCompressionForNextOperations(attachment.GetCompressionType());
+    }
+    else
+    {
+      accessor_.SetCompressionForNextOperations(CompressionType_None);
+    }
+
     accessor_.Read(result, attachment.GetUuid());
   }
 
