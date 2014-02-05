@@ -1593,4 +1593,30 @@ namespace Orthanc
       result.push_back(db_->GetPublicId(*it));
     }
   }
+
+
+  StoreStatus ServerIndex::AddAttachment(const FileInfo& attachment,
+                                         const std::string& publicId)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    Transaction t(*this);
+
+    ResourceType resourceType;
+    int64_t resourceId;
+    if (!db_->LookupResource(publicId, resourceId, resourceType))
+    {
+      return StoreStatus_Failure;  // Inexistent resource
+    }
+
+    db_->DeleteAttachment(resourceId, attachment.GetContentType());
+
+    // TODO Integrate the recycling mechanism!!
+    db_->AddAttachment(resourceId, attachment);
+
+    t.Commit(attachment.GetCompressedSize());
+
+    return StoreStatus_Success;
+  }
+
 }

@@ -217,5 +217,9 @@ namespace Orthanc
 
     void LookupTagValue(std::list<std::string>& result,
                         const std::string& value);
+
+    StoreStatus AddAttachment(const FileInfo& attachment,
+                              const std::string& publicId);
+
   };
 }

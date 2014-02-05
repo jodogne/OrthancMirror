@@ -284,4 +284,34 @@ namespace Orthanc
     accessor_.SetStoreMD5(storeMD5);
   }
 
+
+  bool ServerContext::AddAttachment(const std::string& resourceId,
+                                    FileContentType attachmentType,
+                                    const void* data,
+                                    size_t size)
+  {
+    LOG(INFO) << "Adding attachment " << EnumerationToString(attachmentType) << " to resource " << resourceId;
+    
+    if (compressionEnabled_)
+    {
+      accessor_.SetCompressionForNextOperations(CompressionType_Zlib);
+    }
+    else
+    {
+      accessor_.SetCompressionForNextOperations(CompressionType_None);
+    }      
+
+    FileInfo info = accessor_.Write(data, size, attachmentType);
+    StoreStatus status = index_.AddAttachment(info, resourceId);
+
+    if (status != StoreStatus_Success)
+    {
+      storage_.Remove(info.GetUuid());
+      return false;
+    }
+    else
+    {
+      return true;
+    }
+  }
 }
