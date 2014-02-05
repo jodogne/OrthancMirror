@@ -1894,7 +1894,8 @@ namespace Orthanc
 
       operations.append("size");
 
-      if (info.GetCompressedMD5() != "")
+      if (info.GetCompressedMD5() != "" &&
+          info.GetUncompressedMD5() != "")
       {
         operations.append("verify-md5");
       }
@@ -1963,6 +1964,60 @@ namespace Orthanc
   }
 
 
+  static void VerifyAttachment(RestApi::PostCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+    CheckValidResourceType(call);
+
+    std::string publicId = call.GetUriComponent("id", "");
+    std::string name = call.GetUriComponent("name", "");
+
+    FileInfo info;
+    if (!GetAttachmentInfo(info, call) ||
+        info.GetCompressedMD5() == "" ||
+        info.GetUncompressedMD5() == "")
+    {
+      // Inexistent resource, or no MD5 available
+      return;
+    }
+
+    bool ok = false;
+
+    // First check whether the compressed data is correctly stored in the disk
+    std::string data;
+    context.ReadFile(data, publicId, StringToContentType(name), false);
+
+    std::string actualMD5;
+    Toolbox::ComputeMD5(actualMD5, data);
+    
+    if (actualMD5 == info.GetCompressedMD5())
+    {
+      // The compressed data is OK. If a compression algorithm was
+      // applied to it, now check the MD5 of the uncompressed data.
+      if (info.GetCompressionType() == CompressionType_None)
+      {
+        ok = true;
+      }
+      else
+      {
+        context.ReadFile(data, publicId, StringToContentType(name), true);        
+        Toolbox::ComputeMD5(actualMD5, data);
+        ok = (actualMD5 == info.GetUncompressedMD5());
+      }
+    }
+
+    if (ok)
+    {
+      LOG(INFO) << "The attachment " << name << " of resource " << publicId << " has the right MD5";
+      call.GetOutput().AnswerBuffer("{}", "application/json");
+    }
+    else
+    {
+      LOG(INFO) << "The attachment " << name << " of resource " << publicId << " has bad MD5!";
+    }
+  }
+
+
 
   // Registration of the various REST handlers --------------------------------
 
@@ -2017,6 +2072,7 @@ namespace Orthanc
     Register("/{resourceType}/{id}/attachments/{name}/data", GetAttachmentData<1>);
     Register("/{resourceType}/{id}/attachments/{name}/md5", GetAttachmentMD5);
     Register("/{resourceType}/{id}/attachments/{name}/size", GetAttachmentSize);
+    Register("/{resourceType}/{id}/attachments/{name}/verify-md5", VerifyAttachment);
 
     Register("/patients/{id}/protected", IsProtectedPatient);
     Register("/patients/{id}/protected", SetPatientProtection);
