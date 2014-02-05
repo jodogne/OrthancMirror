@@ -74,6 +74,8 @@ namespace Orthanc
       double GetDoubleValue(unsigned int index) const;
 
       std::string GetStringValue(unsigned int index) const;
+
+      bool IsNullValue(unsigned int index) const;
   
       void SetNullResult();
 

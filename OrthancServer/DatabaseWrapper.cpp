@@ -67,13 +67,25 @@ namespace Orthanc
 
       virtual void Compute(SQLite::FunctionContext& context)
       {
+        std::string uncompressedMD5, compressedMD5;
+
+        if (!context.IsNullValue(5))
+        {
+          uncompressedMD5 = context.GetStringValue(5);
+        }
+
+        if (!context.IsNullValue(6))
+        {
+          compressedMD5 = context.GetStringValue(6);
+        }
+
         FileInfo info(context.GetStringValue(0),
                       static_cast<FileContentType>(context.GetIntValue(1)),
                       static_cast<uint64_t>(context.GetInt64Value(2)),
-                      context.GetStringValue(5),
+                      uncompressedMD5,
                       static_cast<CompressionType>(context.GetIntValue(3)),
                       static_cast<uint64_t>(context.GetInt64Value(4)),
-                      context.GetStringValue(6));
+                      compressedMD5);
         
         listener_.SignalFileDeleted(info);
       }
@@ -826,11 +838,24 @@ namespace Orthanc
       LOG(INFO) << "Version of the Orthanc database: " << version;
       unsigned int v = boost::lexical_cast<unsigned int>(version);
 
-      // Version 3: from Orthanc 0.3.2 to Orthanc 0.7.2 (inclusive)
-      // Version 4: from Orthanc 0.7.3 (inclusive)
+      /**
+       * History of the database versions:
+       *  - Version 3: from Orthanc 0.3.2 to Orthanc 0.7.2 (inclusive)
+       *  - Version 4: from Orthanc 0.7.3 (inclusive)
+       **/
 
-      // This version of Orthanc is only compatible with version 4 of the DB schema
-      ok = (v == 4);
+      // This version of Orthanc is only compatible with versions 3 of 4 of the DB schema
+      ok = (v == 3 || v == 4);
+
+      if (v == 3)
+      {
+        LOG(WARNING) << "Upgrading database version from 3 to 4";
+        std::string upgrade;
+        EmbeddedResources::GetFileResource(upgrade, EmbeddedResources::UPGRADE_DATABASE_3_TO_4);
+        db_.BeginTransaction();
+        db_.Execute(upgrade);
+        db_.CommitTransaction();
+      }
     }
     catch (boost::bad_lexical_cast&)
     {
