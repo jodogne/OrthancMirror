@@ -147,5 +147,11 @@
   // By default, Orthanc compares AET (Application Entity Titles) in a
   // case-insensitive way. Setting this option to "true" will enable
   // case-sensitive matching.
-  "StrictAetComparison" : false
+  "StrictAetComparison" : false,
+
+  // When the following option is "true", the MD5 of the DICOM files
+  // will be computed and stored in the Orthanc database. This
+  // information can be used to detect disk corruption, at the price
+  // of a small performance overhead.
+  "StoreMD5ForAttachments" : true
 }

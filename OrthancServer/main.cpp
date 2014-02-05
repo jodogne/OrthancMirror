@@ -333,6 +333,7 @@ int main(int argc, char* argv[])
     LOG(WARNING) << "Index directory: " << indexDirectory;
 
     context.SetCompressionEnabled(GetGlobalBoolParameter("StorageCompression", false));
+    context.SetStoreMD5ForAttachments(GetGlobalBoolParameter("StoreMD5ForAttachments", true));
 
     std::list<std::string> luaScripts;
     GetGlobalListOfStringsParameter(luaScripts, "LuaScripts");

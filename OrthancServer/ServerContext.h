@@ -137,5 +137,12 @@ namespace Orthanc
     {
       return lua_;
     }
+
+    void SetStoreMD5ForAttachments(bool storeMD5);
+
+    bool IsStoreMD5ForAttachments() const
+    {
+      return accessor_.IsStoreMD5();
+    }
   };
 }
