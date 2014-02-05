@@ -2018,6 +2018,23 @@ namespace Orthanc
   }
 
 
+  static void UploadAttachment(RestApi::PostCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+    CheckValidResourceType(call);
+ 
+    std::string publicId = call.GetUriComponent("id", "");
+    std::string name = call.GetUriComponent("name", "");
+
+    const void* data = call.GetPostBody().size() ? &call.GetPostBody()[0] : NULL;
+
+    if (context.AddAttachment(publicId, StringToContentType(name), data, call.GetPostBody().size()))
+    {
+      call.GetOutput().AnswerBuffer("{}", "application/json");
+    }
+  }
+
+
 
   // Registration of the various REST handlers --------------------------------
 
@@ -2073,6 +2090,7 @@ namespace Orthanc
     Register("/{resourceType}/{id}/attachments/{name}/md5", GetAttachmentMD5);
     Register("/{resourceType}/{id}/attachments/{name}/size", GetAttachmentSize);
     Register("/{resourceType}/{id}/attachments/{name}/verify-md5", VerifyAttachment);
+    Register("/{resourceType}/{id}/attachments/{name}", UploadAttachment);
 
     Register("/patients/{id}/protected", IsProtectedPatient);
     Register("/patients/{id}/protected", SetPatientProtection);

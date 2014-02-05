@@ -129,6 +129,9 @@ namespace Orthanc
     void AddAttachment(int64_t id,
                        const FileInfo& attachment);
 
+    void DeleteAttachment(int64_t id,
+                          FileContentType attachment);
+
     void ListAvailableAttachments(std::list<FileContentType>& result,
                                   int64_t id);
 

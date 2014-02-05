@@ -91,6 +91,11 @@ namespace Orthanc
 
     void RemoveFile(const std::string& fileUuid);
 
+    bool AddAttachment(const std::string& resourceId,
+                       FileContentType attachmentType,
+                       const void* data,
+                       size_t size);
+
     StoreStatus Store(const char* dicomInstance,
                       size_t dicomSize,
                       const DicomMap& dicomSummary,
