@@ -4,9 +4,10 @@ Pending changes in the mainline
 * AET comparison is now case-insensitive by default
 * Possibility to disable the HTTP server or the DICOM server
 * Recover pixel data for more transfer syntaxes (notably JPEG)
+* Automatic computation of MD5 hashes for the stored DICOM files
 * Maintenance tool to recover DICOM files compressed by Orthanc
 * The newline characters in the configuration file are fixed for Linux
-* Capture of the SIGTERM signal
+* Capture of the SIGTERM signal in Linux
 
 
 Version 0.7.2 (2013/11/08)

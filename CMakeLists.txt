@@ -93,7 +93,7 @@ endif()
 # Prepare the embedded files
 set(EMBEDDED_FILES
   PREPARE_DATABASE ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/PrepareDatabase.sql
-  UPGRADE_3_TO_4 ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/Upgrade3To4.sql
+  UPGRADE_DATABASE_3_TO_4 ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/Upgrade3To4.sql
   CONFIGURATION_SAMPLE ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Configuration.json
   LUA_TOOLBOX ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Toolbox.lua
   )

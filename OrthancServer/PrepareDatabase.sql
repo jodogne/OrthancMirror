@@ -78,6 +78,7 @@ AFTER DELETE ON AttachedFiles
 BEGIN
   SELECT SignalFileDeleted(old.uuid, old.fileType, old.uncompressedSize, 
                            old.compressionType, old.compressedSize,
+                           -- These 2 arguments are new in Orthanc 0.7.3 (database v4)
                            old.uncompressedMD5, old.compressedMD5);
 END;
 
