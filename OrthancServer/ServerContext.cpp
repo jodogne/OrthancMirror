@@ -269,4 +269,10 @@ namespace Orthanc
     return Store(resultPublicId, dicom.GetDicom(), dicomBuffer, dicomSize);
   }
 
+  void ServerContext::SetStoreMD5ForAttachments(bool storeMD5)
+  {
+    LOG(INFO) << "Storing MD5 for attachments: " << (storeMD5 ? "yes" : "no");
+    accessor_.SetStoreMD5(storeMD5);
+  }
+
 }
