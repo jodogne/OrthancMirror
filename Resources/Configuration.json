@@ -130,6 +130,13 @@
     // "Sample" : 1024
   },
 
+  // Dictionary of symbolic names for the user-defined types of
+  // attached files. Each entry must map a number between 1024 and
+  // 65535 to an unique string.
+  "UserContentType" : {
+    // "sample" : 1024
+  },
+
   // Number of seconds without receiving any instance before a
   // patient, a study or a series is considered as stable.
   "StableAge" : 60,

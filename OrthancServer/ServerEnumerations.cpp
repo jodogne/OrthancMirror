@@ -41,6 +41,7 @@ namespace Orthanc
 {
   static boost::mutex enumerationsMutex_;
   static Toolbox::EnumerationDictionary<MetadataType> dictMetadataType_;
+  static Toolbox::EnumerationDictionary<FileContentType> dictContentType_;
 
   void InitializeServerEnumerations()
   {
@@ -53,6 +54,9 @@ namespace Orthanc
     dictMetadataType_.Add(MetadataType_ModifiedFrom, "ModifiedFrom");
     dictMetadataType_.Add(MetadataType_AnonymizedFrom, "AnonymizedFrom");
     dictMetadataType_.Add(MetadataType_LastUpdate, "LastUpdate");
+
+    dictContentType_.Add(FileContentType_Dicom, "dicom");
+    dictContentType_.Add(FileContentType_JsonSummary, "json-summary");
   }
 
   void RegisterUserMetadata(int metadata,
@@ -81,6 +85,34 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(enumerationsMutex_);
     return dictMetadataType_.Translate(str);
+  }
+
+  void RegisterUserContentType(int contentType,
+                               const std::string& name)
+  {
+    boost::mutex::scoped_lock lock(enumerationsMutex_);
+
+    if (contentType < static_cast<int>(FileContentType_StartUser) ||
+        contentType > static_cast<int>(FileContentType_EndUser))
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    dictContentType_.Add(static_cast<FileContentType>(contentType), name);
+  }
+
+  std::string EnumerationToString(FileContentType type)
+  {
+    // This function MUST return a "std::string" and not "const
+    // char*", as the result is not a static string
+    boost::mutex::scoped_lock lock(enumerationsMutex_);
+    return dictContentType_.Translate(type);
+  }
+
+  FileContentType StringToContentType(const std::string& str)
+  {
+    boost::mutex::scoped_lock lock(enumerationsMutex_);
+    return dictContentType_.Translate(str);
   }
 
   std::string GetBasePath(ResourceType type,

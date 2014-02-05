@@ -121,12 +121,19 @@ namespace Orthanc
   void RegisterUserMetadata(int metadata,
                             const std::string& name);
 
-  std::string GetBasePath(ResourceType type,
-                          const std::string& publicId);
-
   MetadataType StringToMetadata(const std::string& str);
 
   std::string EnumerationToString(MetadataType type);
+
+  void RegisterUserContentType(int contentType,
+                               const std::string& name);
+
+  FileContentType StringToContentType(const std::string& str);
+
+  std::string EnumerationToString(FileContentType type);
+
+  std::string GetBasePath(ResourceType type,
+                          const std::string& publicId);
 
   const char* EnumerationToString(SeriesStatus status);
 

@@ -116,7 +116,7 @@ namespace Orthanc
     }      
 
     FileInfo dicomInfo = accessor_.Write(dicomInstance, dicomSize, FileContentType_Dicom);
-    FileInfo jsonInfo = accessor_.Write(dicomJson.toStyledString(), FileContentType_Json);
+    FileInfo jsonInfo = accessor_.Write(dicomJson.toStyledString(), FileContentType_JsonSummary);
 
     ServerIndex::Attachments attachments;
     attachments.push_back(dicomInfo);
@@ -176,7 +176,7 @@ namespace Orthanc
                                const std::string& instancePublicId)
   {
     std::string s;
-    ReadFile(s, instancePublicId, FileContentType_Json);
+    ReadFile(s, instancePublicId, FileContentType_JsonSummary);
 
     Json::Reader reader;
     if (!reader.parse(s, result))

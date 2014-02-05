@@ -226,7 +226,11 @@ namespace Orthanc
   enum FileContentType
   {
     FileContentType_Dicom = 1,
-    FileContentType_Json = 2
+    FileContentType_JsonSummary = 2,
+
+    // Make sure that the value "65535" can be stored into this enumeration
+    FileContentType_StartUser = 1024,
+    FileContentType_EndUser = 65535
   };
 
   enum ResourceType
