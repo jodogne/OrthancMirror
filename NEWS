@@ -1,6 +1,7 @@
 Pending changes in the mainline
 ===============================
 
+* Access to lowlevel info about the attached files through the REST API
 * AET comparison is now case-insensitive by default
 * Possibility to disable the HTTP server or the DICOM server
 * Recover pixel data for more transfer syntaxes (notably JPEG)
