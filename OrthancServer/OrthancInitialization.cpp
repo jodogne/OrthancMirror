@@ -108,7 +108,7 @@ namespace Orthanc
       for (size_t i = 0; i < members.size(); i++)
       {
         std::string info = "\"" + members[i] + "\" = " + parameter[members[i]].toStyledString();
-        LOG(WARNING) << "Registering user-defined metadata: " << info;
+        LOG(INFO) << "Registering user-defined metadata: " << info;
 
         if (!parameter[members[i]].asBool())
         {
@@ -132,6 +132,40 @@ namespace Orthanc
   }
 
 
+  static void RegisterUserContentType()
+  {
+    if (configuration_->isMember("UserContentType"))
+    {
+      const Json::Value& parameter = (*configuration_) ["UserContentType"];
+
+      Json::Value::Members members = parameter.getMemberNames();
+      for (size_t i = 0; i < members.size(); i++)
+      {
+        std::string info = "\"" + members[i] + "\" = " + parameter[members[i]].toStyledString();
+        LOG(INFO) << "Registering user-defined attachment type: " << info;
+
+        if (!parameter[members[i]].asBool())
+        {
+          LOG(ERROR) << "Not a number in this user-defined attachment type: " << info;
+          throw OrthancException(ErrorCode_BadParameterType);
+        }
+
+        int contentType = parameter[members[i]].asInt();
+
+        try
+        {
+          RegisterUserContentType(contentType, members[i]);
+        }
+        catch (OrthancException&)
+        {
+          LOG(ERROR) << "Cannot register this user-defined attachment type: " << info;
+          throw;
+        }
+      }
+    }
+  }
+
+
   void OrthancInitialize(const char* configurationFile)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
@@ -143,6 +177,7 @@ namespace Orthanc
     HttpClient::GlobalInitialize();
 
     RegisterUserMetadata();
+    RegisterUserContentType();
 
     DicomServer::InitializeDictionary();
   }
