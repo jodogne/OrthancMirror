@@ -118,9 +118,9 @@ namespace Orthanc
         return Store(resultPublicId, &dicomContent[0], dicomContent.size());
     }
 
-    void AnswerFile(RestApiOutput& output,
-                    const std::string& instancePublicId,
-                    FileContentType content);
+    void AnswerDicomFile(RestApiOutput& output,
+                         const std::string& instancePublicId,
+                         FileContentType content);
 
     void ReadJson(Json::Value& result,
                   const std::string& instancePublicId);
@@ -128,7 +128,8 @@ namespace Orthanc
     // TODO CACHING MECHANISM AT THIS POINT
     void ReadFile(std::string& result,
                   const std::string& instancePublicId,
-                  FileContentType content);
+                  FileContentType content,
+                  bool uncompressIfNeeded = true);
 
     // TODO IMPLEMENT MULTITHREADING FOR THIS METHOD
     ParsedDicomFile& GetDicomFile(const std::string& instancePublicId);

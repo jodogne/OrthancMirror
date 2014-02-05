@@ -140,7 +140,7 @@ TEST(DatabaseWrapper, Simple)
   index.ListAvailableMetadata(md, a[4]);
   ASSERT_EQ(0u, md.size());
 
-  index.AddAttachment(a[4], FileInfo("my json file", FileContentType_JsonSummary, 42, "md5", 
+  index.AddAttachment(a[4], FileInfo("my json file", FileContentType_DicomAsJson, 42, "md5", 
                                      CompressionType_Zlib, 21, "compressedMD5"));
   index.AddAttachment(a[4], FileInfo("my dicom file", FileContentType_Dicom, 42, "md5"));
   index.AddAttachment(a[6], FileInfo("world", FileContentType_Dicom, 44, "md5"));
@@ -183,7 +183,7 @@ TEST(DatabaseWrapper, Simple)
   ASSERT_EQ("None", index.GetGlobalProperty(static_cast<GlobalProperty>(42), "None"));
 
   FileInfo att;
-  ASSERT_TRUE(index.LookupAttachment(att, a[4], FileContentType_JsonSummary));
+  ASSERT_TRUE(index.LookupAttachment(att, a[4], FileContentType_DicomAsJson));
   ASSERT_EQ("my json file", att.GetUuid());
   ASSERT_EQ(21u, att.GetCompressedSize());
   ASSERT_EQ("md5", att.GetUncompressedMD5());

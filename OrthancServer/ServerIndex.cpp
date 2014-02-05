@@ -1224,6 +1224,24 @@ namespace Orthanc
   }
 
 
+  void ServerIndex::ListAvailableAttachments(std::list<FileContentType>& target,
+                                             const std::string& publicId,
+                                             ResourceType expectedType)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    ResourceType type;
+    int64_t id;
+    if (!db_->LookupResource(publicId, id, type) ||
+        expectedType != type)
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
+    db_->ListAvailableAttachments(target, id);
+  }
+
+
   bool ServerIndex::LookupParent(std::string& target,
                                  const std::string& publicId)
   {
