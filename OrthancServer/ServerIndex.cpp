@@ -819,8 +819,7 @@ namespace Orthanc
 
     int64_t id;
     ResourceType type;
-    if (!db_->LookupResource(instanceUuid, id, type) ||
-        type != ResourceType_Instance)
+    if (!db_->LookupResource(instanceUuid, id, type))
     {
       throw OrthancException(ErrorCode_InternalError);
     }
