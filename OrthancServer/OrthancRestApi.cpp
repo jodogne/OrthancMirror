@@ -2018,7 +2018,7 @@ namespace Orthanc
   }
 
 
-  static void UploadAttachment(RestApi::PostCall& call)
+  static void UploadAttachment(RestApi::PutCall& call)
   {
     RETRIEVE_CONTEXT(call);
     CheckValidResourceType(call);
@@ -2026,9 +2026,9 @@ namespace Orthanc
     std::string publicId = call.GetUriComponent("id", "");
     std::string name = call.GetUriComponent("name", "");
 
-    const void* data = call.GetPostBody().size() ? &call.GetPostBody()[0] : NULL;
+    const void* data = call.GetPutBody().size() ? &call.GetPutBody()[0] : NULL;
 
-    if (context.AddAttachment(publicId, StringToContentType(name), data, call.GetPostBody().size()))
+    if (context.AddAttachment(publicId, StringToContentType(name), data, call.GetPutBody().size()))
     {
       call.GetOutput().AnswerBuffer("{}", "application/json");
     }
@@ -2076,22 +2076,6 @@ namespace Orthanc
     Register("/studies/{id}/statistics", GetResourceStatistics);
     Register("/series/{id}/statistics", GetResourceStatistics);
 
-    Register("/{resourceType}/{id}/metadata", ListMetadata);
-    Register("/{resourceType}/{id}/metadata/{name}", DeleteMetadata);
-    Register("/{resourceType}/{id}/metadata/{name}", GetMetadata);
-    Register("/{resourceType}/{id}/metadata/{name}", SetMetadata);
-
-    Register("/{resourceType}/{id}/attachments", ListAttachments);
-    Register("/{resourceType}/{id}/attachments/{name}", GetAttachmentOperations);
-    Register("/{resourceType}/{id}/attachments/{name}/compressed-data", GetAttachmentData<0>);
-    Register("/{resourceType}/{id}/attachments/{name}/compressed-md5", GetAttachmentCompressedMD5);
-    Register("/{resourceType}/{id}/attachments/{name}/compressed-size", GetAttachmentCompressedSize);
-    Register("/{resourceType}/{id}/attachments/{name}/data", GetAttachmentData<1>);
-    Register("/{resourceType}/{id}/attachments/{name}/md5", GetAttachmentMD5);
-    Register("/{resourceType}/{id}/attachments/{name}/size", GetAttachmentSize);
-    Register("/{resourceType}/{id}/attachments/{name}/verify-md5", VerifyAttachment);
-    Register("/{resourceType}/{id}/attachments/{name}", UploadAttachment);
-
     Register("/patients/{id}/protected", IsProtectedPatient);
     Register("/patients/{id}/protected", SetPatientProtection);
     Register("/instances/{id}/file", GetInstanceFile);
@@ -2136,5 +2120,21 @@ namespace Orthanc
     Register("/tools/generate-uid", GenerateUid);
     Register("/tools/execute-script", ExecuteScript);
     Register("/tools/now", GetNowIsoString);
+
+    Register("/{resourceType}/{id}/metadata", ListMetadata);
+    Register("/{resourceType}/{id}/metadata/{name}", DeleteMetadata);
+    Register("/{resourceType}/{id}/metadata/{name}", GetMetadata);
+    Register("/{resourceType}/{id}/metadata/{name}", SetMetadata);
+
+    Register("/{resourceType}/{id}/attachments", ListAttachments);
+    Register("/{resourceType}/{id}/attachments/{name}", GetAttachmentOperations);
+    Register("/{resourceType}/{id}/attachments/{name}/compressed-data", GetAttachmentData<0>);
+    Register("/{resourceType}/{id}/attachments/{name}/compressed-md5", GetAttachmentCompressedMD5);
+    Register("/{resourceType}/{id}/attachments/{name}/compressed-size", GetAttachmentCompressedSize);
+    Register("/{resourceType}/{id}/attachments/{name}/data", GetAttachmentData<1>);
+    Register("/{resourceType}/{id}/attachments/{name}/md5", GetAttachmentMD5);
+    Register("/{resourceType}/{id}/attachments/{name}/size", GetAttachmentSize);
+    Register("/{resourceType}/{id}/attachments/{name}/verify-md5", VerifyAttachment);
+    Register("/{resourceType}/{id}/attachments/{name}", UploadAttachment);
   }
 }

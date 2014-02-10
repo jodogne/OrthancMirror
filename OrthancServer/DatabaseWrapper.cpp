@@ -463,7 +463,7 @@ namespace Orthanc
   void DatabaseWrapper::DeleteAttachment(int64_t id,
                                          FileContentType attachment)
   {
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM Resources WHERE internalId=?");
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM AttachedFiles WHERE id=? AND fileType=?");
     s.BindInt64(0, id);
     s.BindInt(1, attachment);
     s.Run();
