@@ -2028,11 +2028,34 @@ namespace Orthanc
 
     const void* data = call.GetPutBody().size() ? &call.GetPutBody()[0] : NULL;
 
-    if (context.AddAttachment(publicId, StringToContentType(name), data, call.GetPutBody().size()))
+    FileContentType contentType = StringToContentType(name);
+    if (contentType >= FileContentType_StartUser &&  // It is forbidden to modify internal attachments
+        contentType <= FileContentType_EndUser &&
+        context.AddAttachment(publicId, StringToContentType(name), data, call.GetPutBody().size()))
     {
       call.GetOutput().AnswerBuffer("{}", "application/json");
     }
   }
+
+
+  static void DeleteAttachment(RestApi::DeleteCall& call)
+  {
+    RETRIEVE_CONTEXT(call);
+    CheckValidResourceType(call);
+
+    std::string publicId = call.GetUriComponent("id", "");
+    std::string name = call.GetUriComponent("name", "");
+    FileContentType contentType = StringToContentType(name);
+
+    if (contentType >= FileContentType_StartUser &&
+        contentType <= FileContentType_EndUser)
+    {
+      // It is forbidden to delete internal attachments
+      context.GetIndex().DeleteAttachment(publicId, contentType);
+      call.GetOutput().AnswerBuffer("{}", "application/json");
+    }
+  }
+
 
 
 
@@ -2127,6 +2150,7 @@ namespace Orthanc
     Register("/{resourceType}/{id}/metadata/{name}", SetMetadata);
 
     Register("/{resourceType}/{id}/attachments", ListAttachments);
+    Register("/{resourceType}/{id}/attachments/{name}", DeleteAttachment);
     Register("/{resourceType}/{id}/attachments/{name}", GetAttachmentOperations);
     Register("/{resourceType}/{id}/attachments/{name}/compressed-data", GetAttachmentData<0>);
     Register("/{resourceType}/{id}/attachments/{name}/compressed-md5", GetAttachmentCompressedMD5);
