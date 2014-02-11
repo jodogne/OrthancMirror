@@ -221,5 +221,7 @@ namespace Orthanc
     StoreStatus AddAttachment(const FileInfo& attachment,
                               const std::string& publicId);
 
+    void DeleteAttachment(const std::string& publicId,
+                          FileContentType type);
   };
 }

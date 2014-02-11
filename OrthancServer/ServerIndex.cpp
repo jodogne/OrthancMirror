@@ -1339,22 +1339,22 @@ namespace Orthanc
 
       ResourceType thisType = db_->GetResourceType(resource);
 
+      std::list<FileContentType> f;
+      db_->ListAvailableAttachments(f, resource);
+
+      for (std::list<FileContentType>::const_iterator
+             it = f.begin(); it != f.end(); ++it)
+      {
+        FileInfo attachment;
+        if (db_->LookupAttachment(attachment, resource, *it))
+        {
+          compressedSize += attachment.GetCompressedSize();
+          uncompressedSize += attachment.GetUncompressedSize();
+        }
+      }
+
       if (thisType == ResourceType_Instance)
       {
-        std::list<FileContentType> f;
-        db_->ListAvailableAttachments(f, resource);
-
-        for (std::list<FileContentType>::const_iterator
-               it = f.begin(); it != f.end(); ++it)
-        {
-          FileInfo attachment;
-          if (db_->LookupAttachment(attachment, resource, *it))
-          {
-            compressedSize += attachment.GetCompressedSize();
-            uncompressedSize += attachment.GetUncompressedSize();
-          }
-        }
-
         countInstances++;
       }
       else
@@ -1617,5 +1617,27 @@ namespace Orthanc
 
     return StoreStatus_Success;
   }
+
+
+  void ServerIndex::DeleteAttachment(const std::string& publicId,
+                                     FileContentType type)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    listener_->Reset();
+
+    Transaction t(*this);
+
+    ResourceType rtype;
+    int64_t id;
+    if (!db_->LookupResource(publicId, id, rtype))
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
+    db_->DeleteAttachment(id, type);
+
+    t.Commit(0);
+  }
+
 
 }
