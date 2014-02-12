@@ -1608,9 +1608,30 @@ namespace Orthanc
       return StoreStatus_Failure;  // Inexistent resource
     }
 
+    // Remove possible previous attachment
     db_->DeleteAttachment(resourceId, attachment.GetContentType());
 
-    // TODO Integrate the recycling mechanism!!
+    // Locate the patient of the target resource
+    int64_t patientId = resourceId;
+    for (;;)
+    {
+      int64_t parent;
+      if (db_->LookupParent(parent, patientId))
+      {
+        // We have not reached the patient level yet
+        patientId = parent;
+      }
+      else
+      {
+        // We have reached the patient level
+        break;
+      }
+    }
+
+    // Possibly apply the recycling mechanism while preserving this patient
+    assert(db_->GetResourceType(patientId) == ResourceType_Patient);
+    Recycle(attachment.GetCompressedSize(), db_->GetPublicId(patientId));
+
     db_->AddAttachment(resourceId, attachment);
 
     t.Commit(attachment.GetCompressedSize());
