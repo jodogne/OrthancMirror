@@ -520,6 +520,8 @@ TEST(DatabaseWrapper, AttachmentRecycling)
   ServerContext context(path, ":memory:");
   ServerIndex& index = context.GetIndex();
   
+  index.SetMaximumStorageSize(10);
+
   Json::Value tmp;
   index.ComputeStatistics(tmp);
   ASSERT_EQ(0, tmp["PatientCount"].asInt());
@@ -527,9 +529,9 @@ TEST(DatabaseWrapper, AttachmentRecycling)
   ServerIndex::Attachments attachments;
 
   DicomMap instance;
-  m.SetValue(DICOM_TAG_PATIENT_ID, "patient1");
-  m.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "study1");
-  m.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, "series1");
-  m.SetValue(DICOM_TAG_SOP_INSTANCE_UID, "instance1");
+  instance.SetValue(DICOM_TAG_PATIENT_ID, "patient1");
+  instance.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "study1");
+  instance.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, "series1");
+  instance.SetValue(DICOM_TAG_SOP_INSTANCE_UID, "instance1");
   ASSERT_EQ(StoreStatus_Success, index.Store(instance, attachments, ""));
 }
