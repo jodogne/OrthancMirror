@@ -1,11 +1,18 @@
 Pending changes in the mainline
 ===============================
 
+Major changes
+-------------
+
 * Custom attachment of files to patients, studies, series or instances
 * Access to lowlevel info about the attached files through the REST API
+* Recover pixel data for more transfer syntaxes (notably JPEG)
+
+Minor changes
+-------------
+
 * AET comparison is now case-insensitive by default
 * Possibility to disable the HTTP server or the DICOM server
-* Recover pixel data for more transfer syntaxes (notably JPEG)
 * Automatic computation of MD5 hashes for the stored DICOM files
 * Maintenance tool to recover DICOM files compressed by Orthanc
 * The newline characters in the configuration file are fixed for Linux
