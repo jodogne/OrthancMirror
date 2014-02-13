@@ -4,6 +4,7 @@
 #include "../OrthancServer/ServerContext.h"
 #include "../OrthancServer/ServerIndex.h"
 #include "../Core/Uuid.h"
+#include "../Core/DicomFormat/DicomNullValue.h"
 
 #include <ctype.h>
 #include <glog/logging.h>
@@ -499,16 +500,6 @@ TEST(DatabaseWrapper, LookupTagValue)
         std::cout << "*** " << *i << std::endl;;
       }      
       }*/
-
-
-}
-
-
-TEST(DicomMap, MainTags)
-{
-  ASSERT_TRUE(DicomMap::IsMainDicomTag(DICOM_TAG_PATIENT_ID));
-  ASSERT_TRUE(DicomMap::IsMainDicomTag(DICOM_TAG_PATIENT_ID, ResourceType_Patient));
-  ASSERT_FALSE(DicomMap::IsMainDicomTag(DICOM_TAG_PATIENT_ID, ResourceType_Study));
 }
 
 
