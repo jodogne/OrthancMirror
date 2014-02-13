@@ -120,6 +120,7 @@ TEST(PngWriter, EndToEnd)
     for (int y = 0; y < height; y++)
     {
       uint16_t *p = reinterpret_cast<uint16_t*>((uint8_t*) r.GetBuffer() + y * r.GetPitch());
+      ASSERT_EQ(p, r.GetBuffer(y));
       for (int x = 0; x < width; x++, p++, v++)
       {
         ASSERT_EQ(*p, v);
@@ -142,6 +143,7 @@ TEST(PngWriter, EndToEnd)
     for (int y = 0; y < height; y++)
     {
       uint16_t *p = reinterpret_cast<uint16_t*>((uint8_t*) r2.GetBuffer() + y * r2.GetPitch());
+      ASSERT_EQ(p, r2.GetBuffer(y));
       for (int x = 0; x < width; x++, p++, v++)
       {
         ASSERT_EQ(*p, v);
