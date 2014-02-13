@@ -112,6 +112,7 @@ TEST(PngWriter, EndToEnd)
     Orthanc::PngReader r;
     r.ReadFromMemory(s);
 
+    ASSERT_EQ(r.GetFormat(), Orthanc::PixelFormat_Grayscale16);
     ASSERT_EQ(r.GetWidth(), width);
     ASSERT_EQ(r.GetHeight(), height);
 
@@ -127,14 +128,17 @@ TEST(PngWriter, EndToEnd)
   }
 
   {
-    Toolbox::TemporaryFile tmp;
-    Toolbox::WriteFile(s, tmp.GetPath());
+    Orthanc::Toolbox::TemporaryFile tmp;
+    Orthanc::Toolbox::WriteFile(s, tmp.GetPath());
 
     Orthanc::PngReader r2;
     r2.ReadFromFile(tmp.GetPath());
 
+    ASSERT_EQ(r2.GetFormat(), Orthanc::PixelFormat_Grayscale16);
     ASSERT_EQ(r2.GetWidth(), width);
     ASSERT_EQ(r2.GetHeight(), height);
+
+    v = 0;
     for (int y = 0; y < height; y++)
     {
       uint16_t *p = reinterpret_cast<uint16_t*>((uint8_t*) r2.GetBuffer() + y * r2.GetPitch());
