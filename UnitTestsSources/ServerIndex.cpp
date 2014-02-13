@@ -1,6 +1,8 @@
 #include "gtest/gtest.h"
 
 #include "../OrthancServer/DatabaseWrapper.h"
+#include "../OrthancServer/ServerContext.h"
+#include "../OrthancServer/ServerIndex.h"
 #include "../Core/Uuid.h"
 
 #include <ctype.h>
@@ -507,4 +509,27 @@ TEST(DicomMap, MainTags)
   ASSERT_TRUE(DicomMap::IsMainDicomTag(DICOM_TAG_PATIENT_ID));
   ASSERT_TRUE(DicomMap::IsMainDicomTag(DICOM_TAG_PATIENT_ID, ResourceType_Patient));
   ASSERT_FALSE(DicomMap::IsMainDicomTag(DICOM_TAG_PATIENT_ID, ResourceType_Study));
+}
+
+
+
+TEST(DatabaseWrapper, AttachmentRecycling)
+{
+  const std::string path = "OrthancStorageUnitTests";
+  Toolbox::RemoveFile(path + "/index");
+  ServerContext context(path, ":memory:");
+  ServerIndex& index = context.GetIndex();
+  
+  Json::Value tmp;
+  index.ComputeStatistics(tmp);
+  ASSERT_EQ(0, tmp["PatientCount"].asInt());
+
+  ServerIndex::Attachments attachments;
+
+  DicomMap instance;
+  m.SetValue(DICOM_TAG_PATIENT_ID, "patient1");
+  m.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "study1");
+  m.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, "series1");
+  m.SetValue(DICOM_TAG_SOP_INSTANCE_UID, "instance1");
+  ASSERT_EQ(StoreStatus_Success, index.Store(instance, attachments, ""));
 }
