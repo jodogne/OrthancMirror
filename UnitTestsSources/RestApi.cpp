@@ -3,12 +3,59 @@
 #include <ctype.h>
 #include <glog/logging.h>
 
+#include "../Core/ChunkedBuffer.h"
+#include "../Core/HttpClient.h"
 #include "../Core/RestApi/RestApi.h"
 #include "../Core/Uuid.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Compression/ZlibCompressor.h"
 
 using namespace Orthanc;
+
+#if !defined(UNIT_TESTS_WITH_HTTP_CONNEXIONS)
+#error "Please set UNIT_TESTS_WITH_HTTP_CONNEXIONS"
+#endif
+
+TEST(HttpClient, Basic)
+{
+  HttpClient c;
+  ASSERT_FALSE(c.IsVerbose());
+  c.SetVerbose(true);
+  ASSERT_TRUE(c.IsVerbose());
+  c.SetVerbose(false);
+  ASSERT_FALSE(c.IsVerbose());
+
+#if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1
+  Json::Value v;
+  c.SetUrl("http://orthanc.googlecode.com/hg/Resources/Configuration.json");
+  c.Apply(v);
+  ASSERT_TRUE(v.isMember("StorageDirectory"));
+  //ASSERT_EQ(GetLastStatusText());
+
+  v = Json::nullValue;
+
+  HttpClient cc(c);
+  cc.SetUrl("https://orthanc.googlecode.com/hg/Resources/Configuration.json");
+  cc.Apply(v);
+  ASSERT_TRUE(v.isMember("LuaScripts"));
+#endif
+}
+
+TEST(RestApi, ChunkedBuffer)
+{
+  ChunkedBuffer b;
+  ASSERT_EQ(0, b.GetNumBytes());
+
+  b.AddChunk("hello", 5);
+  ASSERT_EQ(5, b.GetNumBytes());
+
+  b.AddChunk("world", 5);
+  ASSERT_EQ(10, b.GetNumBytes());
+
+  std::string s;
+  b.Flatten(s);
+  ASSERT_EQ("helloworld", s);
+}
 
 TEST(RestApi, ParseCookies)
 {

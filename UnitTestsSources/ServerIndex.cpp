@@ -517,9 +517,9 @@ TEST(DatabaseWrapper, AttachmentRecycling)
 {
   const std::string path = "OrthancStorageUnitTests";
   Toolbox::RemoveFile(path + "/index");
-  ServerContext context(path, ":memory:");
+  ServerContext context(path, ":memory:");   // The SQLite DB is in memory
   ServerIndex& index = context.GetIndex();
-  
+
   index.SetMaximumStorageSize(10);
 
   Json::Value tmp;
@@ -534,4 +534,7 @@ TEST(DatabaseWrapper, AttachmentRecycling)
   instance.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, "series1");
   instance.SetValue(DICOM_TAG_SOP_INSTANCE_UID, "instance1");
   ASSERT_EQ(StoreStatus_Success, index.Store(instance, attachments, ""));
+
+  // Because the DB is in memory, the SQLite index must not have been created
+  ASSERT_THROW(Toolbox::GetFileSize(path + "/index"), OrthancException);  
 }

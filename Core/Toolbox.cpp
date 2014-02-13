@@ -157,17 +157,6 @@ namespace Orthanc
   }
 #endif
 
-  void Toolbox::Sleep(uint32_t seconds)
-  {
-#if defined(_WIN32)
-    ::Sleep(static_cast<DWORD>(seconds) * static_cast<DWORD>(1000));
-#elif defined(__linux)
-    usleep(static_cast<uint64_t>(seconds) * static_cast<uint64_t>(1000000));
-#else
-#error Support your platform here
-#endif
-  }
-
   void Toolbox::USleep(uint64_t microSeconds)
   {
 #if defined(_WIN32)
