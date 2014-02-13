@@ -31,6 +31,7 @@ TEST(Uuid, Test)
   ASSERT_FALSE(Toolbox::IsUuid(""));
   ASSERT_FALSE(Toolbox::IsUuid("012345678901234567890123456789012345"));
   ASSERT_TRUE(Toolbox::IsUuid("550e8400-e29b-41d4-a716-446655440000"));
+  ASSERT_FALSE(Toolbox::IsUuid("550e8400-e29b-41d4-a716-44665544000_"));
   ASSERT_FALSE(Toolbox::IsUuid("01234567890123456789012345678901234_"));
   ASSERT_FALSE(Toolbox::StartsWithUuid("550e8400-e29b-41d4-a716-44665544000"));
   ASSERT_TRUE(Toolbox::StartsWithUuid("550e8400-e29b-41d4-a716-446655440000"));
@@ -53,7 +54,59 @@ TEST(Toolbox, IsSHA1)
   ASSERT_FALSE(Toolbox::IsSHA1("b5ed549f-956400ce-69a8c063-bf5b78be-2732a4b_"));
 }
 
+static void StringToVector(std::vector<uint8_t>& v,
+                           const std::string& s)
+{
+  v.resize(s.size());
+  for (size_t i = 0; i < s.size(); i++)
+    v[i] = s[i];
+}
+
+
 TEST(Zlib, Basic)
+{
+  std::string s = Toolbox::GenerateUuid();
+  s = s + s + s + s;
+ 
+  std::string compressed, compressed2;
+  ZlibCompressor c;
+  c.Compress(compressed, s);
+
+  std::vector<uint8_t> v, vv;
+  StringToVector(v, s);
+  c.Compress(compressed2, v);
+  ASSERT_EQ(compressed, compressed2);
+
+  std::string uncompressed;
+  c.Uncompress(uncompressed, compressed);
+  ASSERT_EQ(s.size(), uncompressed.size());
+  ASSERT_EQ(0, memcmp(&s[0], &uncompressed[0], s.size()));
+
+  StringToVector(vv, compressed);
+  c.Uncompress(uncompressed, vv);
+  ASSERT_EQ(s.size(), uncompressed.size());
+  ASSERT_EQ(0, memcmp(&s[0], &uncompressed[0], s.size()));
+}
+
+
+TEST(Zlib, Level)
+{
+  std::string s = Toolbox::GenerateUuid();
+  s = s + s + s + s;
+ 
+  std::string compressed, compressed2;
+  ZlibCompressor c;
+  c.SetCompressionLevel(9);
+  c.Compress(compressed, s);
+
+  c.SetCompressionLevel(0);
+  c.Compress(compressed2, s);
+
+  ASSERT_TRUE(compressed.size() < compressed2.size());
+}
+
+
+TEST(Zlib, Corrupted)
 {
   std::string s = Toolbox::GenerateUuid();
   s = s + s + s + s;
@@ -62,26 +115,33 @@ TEST(Zlib, Basic)
   ZlibCompressor c;
   c.Compress(compressed, s);
 
-  std::string uncompressed;
-  c.Uncompress(uncompressed, compressed);
+  compressed[compressed.size() - 1] = 'a';
+  std::string u;
 
-  ASSERT_EQ(s.size(), uncompressed.size());
-  ASSERT_EQ(0, memcmp(&s[0], &uncompressed[0], s.size()));
+  ASSERT_THROW(c.Uncompress(u, compressed), OrthancException);
 }
+
 
 TEST(Zlib, Empty)
 {
   std::string s = "";
+  std::vector<uint8_t> v, vv;
  
-  std::string compressed;
+  std::string compressed, compressed2;
   ZlibCompressor c;
   c.Compress(compressed, s);
+  c.Compress(compressed2, v);
+  ASSERT_EQ(compressed, compressed2);
 
   std::string uncompressed;
   c.Uncompress(uncompressed, compressed);
+  ASSERT_EQ(0u, uncompressed.size());
 
+  StringToVector(vv, compressed);
+  c.Uncompress(uncompressed, vv);
   ASSERT_EQ(0u, uncompressed.size());
 }
+
 
 TEST(ParseGetQuery, Basic)
 {
