@@ -254,9 +254,4 @@ namespace Orthanc
   {
     curl_global_cleanup();
   }
-
-  const char* HttpClient::GetLastStatusText() const
-  {
-    return EnumerationToString(lastStatus_);
-  }
 }

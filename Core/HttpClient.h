@@ -115,8 +115,6 @@ namespace Orthanc
       return lastStatus_;
     }
 
-    const char* GetLastStatusText() const;
-
     void SetCredentials(const char* username,
                         const char* password);
 

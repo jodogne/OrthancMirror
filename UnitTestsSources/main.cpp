@@ -31,6 +31,7 @@ TEST(Uuid, Test)
   ASSERT_FALSE(Toolbox::IsUuid(""));
   ASSERT_FALSE(Toolbox::IsUuid("012345678901234567890123456789012345"));
   ASSERT_TRUE(Toolbox::IsUuid("550e8400-e29b-41d4-a716-446655440000"));
+  ASSERT_FALSE(Toolbox::IsUuid("01234567890123456789012345678901234_"));
   ASSERT_FALSE(Toolbox::StartsWithUuid("550e8400-e29b-41d4-a716-44665544000"));
   ASSERT_TRUE(Toolbox::StartsWithUuid("550e8400-e29b-41d4-a716-446655440000"));
   ASSERT_TRUE(Toolbox::StartsWithUuid("550e8400-e29b-41d4-a716-446655440000 ok"));
@@ -48,6 +49,8 @@ TEST(Toolbox, IsSHA1)
   Toolbox::ComputeSHA1(s, "The quick brown fox jumps over the lazy dog");
   ASSERT_TRUE(Toolbox::IsSHA1(s));
   ASSERT_EQ("2fd4e1c6-7a2d28fc-ed849ee1-bb76e739-1b93eb12", s);
+
+  ASSERT_FALSE(Toolbox::IsSHA1("b5ed549f-956400ce-69a8c063-bf5b78be-2732a4b_"));
 }
 
 TEST(Zlib, Basic)
@@ -170,6 +173,10 @@ TEST(Uri, SplitUriComponents)
   ASSERT_THROW(Toolbox::SplitUriComponents(c, ""), OrthancException);
   ASSERT_THROW(Toolbox::SplitUriComponents(c, "a"), OrthancException);
   ASSERT_THROW(Toolbox::SplitUriComponents(c, "/coucou//coucou"), OrthancException);
+
+  c.clear();
+  c.push_back("test");
+  ASSERT_EQ("/", Toolbox::FlattenUri(c, 10));
 }
 
 
@@ -263,7 +270,10 @@ TEST(Toolbox, Base64)
 {
   ASSERT_EQ("", Toolbox::EncodeBase64(""));
   ASSERT_EQ("YQ==", Toolbox::EncodeBase64("a"));
-  ASSERT_EQ("SGVsbG8gd29ybGQ=", Toolbox::EncodeBase64("Hello world"));
+
+  const std::string hello = "SGVsbG8gd29ybGQ=";
+  ASSERT_EQ(hello, Toolbox::EncodeBase64("Hello world"));
+  ASSERT_EQ("Hello world", Toolbox::DecodeBase64(hello));
 }
 
 TEST(Toolbox, PathToExecutable)
@@ -278,6 +288,25 @@ TEST(Toolbox, StripSpaces)
   ASSERT_EQ("coucou", Toolbox::StripSpaces("    coucou   \t  \r   \n  "));
   ASSERT_EQ("cou   cou", Toolbox::StripSpaces("    cou   cou    \n  "));
   ASSERT_EQ("c", Toolbox::StripSpaces("    \n\t c\r    \n  "));
+}
+
+TEST(Toolbox, Case)
+{
+  std::string s = "CoU";
+  std::string ss;
+
+  Toolbox::ToUpperCase(ss, s);
+  ASSERT_EQ("COU", ss);
+  Toolbox::ToLowerCase(ss, s);
+  ASSERT_EQ("cou", ss); 
+
+  s = "CoU";
+  Toolbox::ToUpperCase(s);
+  ASSERT_EQ("COU", s);
+
+  s = "CoU";
+  Toolbox::ToLowerCase(s);
+  ASSERT_EQ("cou", s);
 }
 
 

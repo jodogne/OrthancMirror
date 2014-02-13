@@ -17,6 +17,7 @@ SET(ENABLE_SSL ON CACHE BOOL "Include support for SSL")
 SET(BUILD_CLIENT_LIBRARY ON CACHE BOOL "Build the client library")
 SET(DCMTK_DICTIONARY_DIR "/usr/share/dcmtk" CACHE PATH "Directory containing the DCMTK dictionaries \"dicom.dic\" and \"private.dic\" (only when using system version of DCMTK)") 
 SET(ALLOW_DOWNLOADS OFF CACHE BOOL "Allow CMake to download packages")
+SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
 
 # Advanced parameters to fine-tune linking against system libraries
 SET(USE_SYSTEM_JSONCPP ON CACHE BOOL "Use the system version of JsonCpp")
@@ -240,6 +241,12 @@ install(
 #####################################################################
 ## Build the unit tests
 #####################################################################
+
+if (UNIT_TESTS_WITH_HTTP_CONNEXIONS)
+  add_definitions(-DUNIT_TESTS_WITH_HTTP_CONNEXIONS=1)
+else()
+  add_definitions(-DUNIT_TESTS_WITH_HTTP_CONNEXIONS=0)
+endif()
 
 add_definitions(-DORTHANC_BUILD_UNIT_TESTS=1)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
