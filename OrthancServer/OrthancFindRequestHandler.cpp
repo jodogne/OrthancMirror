@@ -210,6 +210,10 @@ namespace Orthanc
           value = resource.get(tag, Json::arrayValue).get("Value", "").asString();
           result.SetValue(query.GetElement(i).GetTag(), value);
         }
+        else
+        {
+          result.SetValue(query.GetElement(i).GetTag(), "");
+        }
       }
     }
 

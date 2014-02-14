@@ -95,7 +95,7 @@ namespace Orthanc
         *responseIdentifiers = NULL;   
         return;
       }
-  
+
       if (responseCount <= static_cast<int>(data.answers_.GetSize()))
       {
         response->DimseStatus = STATUS_Pending;

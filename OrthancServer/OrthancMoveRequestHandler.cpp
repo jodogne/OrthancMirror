@@ -139,7 +139,6 @@ namespace Orthanc
 
     ResourceType level = StringToResourceType(levelTmp->AsString().c_str());
 
-
     /**
      * Lookup for the resource to be sent.
      **/

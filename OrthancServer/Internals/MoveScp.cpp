@@ -82,6 +82,7 @@ namespace Orthanc
         try
         {
           data.iterator_.reset(data.handler_->Handle(data.target_, data.input_));
+
           if (data.iterator_.get() == NULL)
           {
             // Internal error!
