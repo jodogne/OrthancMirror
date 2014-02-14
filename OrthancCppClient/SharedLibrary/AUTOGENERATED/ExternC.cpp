@@ -1430,7 +1430,7 @@ this_->DiscardDicom();
 
   LAAW_EXPORT_DLL_API const char* LAAW_CALL_CONVENTION LAAW_EXTERNC_GetCopyright()
   {
-    return "(c) 2012-2013, Sebastien Jodogne, CHU of Liege";
+    return "(c) 2012-2014, Sebastien Jodogne, CHU of Liege";
   }
 
   LAAW_EXPORT_DLL_API const char* LAAW_CALL_CONVENTION LAAW_EXTERNC_GetVersion()
@@ -1440,12 +1440,12 @@ this_->DiscardDicom();
 
   LAAW_EXPORT_DLL_API const char* LAAW_CALL_CONVENTION LAAW_EXTERNC_GetFileVersion()
   {
-    return "0.7.0.2";
+    return "0.7.0.3";
   }
 
   LAAW_EXPORT_DLL_API const char* LAAW_CALL_CONVENTION LAAW_EXTERNC_GetFullVersion()
   {
-    return "0.7.2";
+    return "0.7.3";
   }
 
   LAAW_EXPORT_DLL_API void LAAW_CALL_CONVENTION LAAW_EXTERNC_FreeString(char* str)
