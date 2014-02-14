@@ -504,7 +504,7 @@ TEST(DatabaseWrapper, LookupTagValue)
 
 
 
-TEST(DatabaseWrapper, AttachmentRecycling)
+TEST(ServerIndex, AttachmentRecycling)
 {
   const std::string path = "OrthancStorageUnitTests";
   Toolbox::RemoveFile(path + "/index");
@@ -515,16 +515,41 @@ TEST(DatabaseWrapper, AttachmentRecycling)
 
   Json::Value tmp;
   index.ComputeStatistics(tmp);
-  ASSERT_EQ(0, tmp["PatientCount"].asInt());
+  ASSERT_EQ(0, tmp["CountPatients"].asInt());
+  ASSERT_EQ(0, boost::lexical_cast<int>(tmp["TotalDiskSize"].asString()));
 
   ServerIndex::Attachments attachments;
 
-  DicomMap instance;
-  instance.SetValue(DICOM_TAG_PATIENT_ID, "patient1");
-  instance.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "study1");
-  instance.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, "series1");
-  instance.SetValue(DICOM_TAG_SOP_INSTANCE_UID, "instance1");
-  ASSERT_EQ(StoreStatus_Success, index.Store(instance, attachments, ""));
+  std::vector<std::string> ids;
+  for (int i = 0; i < 10; i++)
+  {
+    std::string id = boost::lexical_cast<std::string>(i);
+    DicomMap instance;
+    instance.SetValue(DICOM_TAG_PATIENT_ID, "patient-" + id);
+    instance.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "study-" + id);
+    instance.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, "series-" + id);
+    instance.SetValue(DICOM_TAG_SOP_INSTANCE_UID, "instance-" + id);
+    ASSERT_EQ(StoreStatus_Success, index.Store(instance, attachments, ""));
+
+    DicomInstanceHasher hasher(instance);
+    ids.push_back(hasher.HashPatient());
+    ids.push_back(hasher.HashStudy());
+    ids.push_back(hasher.HashSeries());
+    ids.push_back(hasher.HashInstance());
+  }
+
+  index.ComputeStatistics(tmp);
+  ASSERT_EQ(10, tmp["CountPatients"].asInt());
+  ASSERT_EQ(0, boost::lexical_cast<int>(tmp["TotalDiskSize"].asString()));
+
+  for (size_t i = 0; i < ids.size(); i++)
+  {
+    FileInfo info(Toolbox::GenerateUuid(), FileContentType_Dicom, 1, "md5");
+    index.AddAttachment(info, ids[i]);
+
+    index.ComputeStatistics(tmp);
+    ASSERT_GE(10, boost::lexical_cast<int>(tmp["TotalDiskSize"].asString()));
+  }
 
   // Because the DB is in memory, the SQLite index must not have been created
   ASSERT_THROW(Toolbox::GetFileSize(path + "/index"), OrthancException);  
