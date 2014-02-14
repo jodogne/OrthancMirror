@@ -4,6 +4,7 @@ Pending changes in the mainline
 Major changes
 -------------
 
+* New, cleaner implementation of the C-FIND handler for Query/Retrieve
 * Custom attachment of files to patients, studies, series or instances
 * Access to lowlevel info about the attached files through the REST API
 * Recover pixel data for more transfer syntaxes (notably JPEG)
