@@ -301,7 +301,7 @@ namespace Orthanc
                             const std::list<std::string>& source)
       {
         for (std::list<std::string>::const_iterator
-               it = source.begin(); it != source.end(); it++)
+               it = source.begin(); it != source.end(); ++it)
         {
           target.insert(*it);
         }
@@ -324,7 +324,7 @@ namespace Orthanc
           filtered_.clear();
 
           for (std::set<std::string>::const_iterator 
-                 it = tmp.begin(); it != tmp.end(); it++)
+                 it = tmp.begin(); it != tmp.end(); ++it)
           {
             if (s.find(*it) != s.end())
             {
@@ -366,7 +366,7 @@ namespace Orthanc
           filtered_.clear();
 
           for (std::set<std::string>::const_iterator 
-                 it = tmp.begin(); it != tmp.end(); it++)
+                 it = tmp.begin(); it != tmp.end(); ++it)
           {
             std::list<std::string> children;
             index_.GetChildren(children, *it);
@@ -400,7 +400,7 @@ namespace Orthanc
         if (isFilterApplied_)
         {
           for (std::set<std::string>::const_iterator 
-                 it = filtered_.begin(); it != filtered_.end(); it++)
+                 it = filtered_.begin(); it != filtered_.end(); ++it)
           {
             resources.push_back(*it);
           }
