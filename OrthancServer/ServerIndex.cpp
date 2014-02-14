@@ -1107,6 +1107,37 @@ namespace Orthanc
   }
 
 
+  void ServerIndex::GetChildren(std::list<std::string>& result,
+                                const std::string& publicId)
+  {
+    result.clear();
+
+    boost::mutex::scoped_lock lock(mutex_);
+
+    ResourceType type;
+    int64_t resource;
+    if (!db_->LookupResource(publicId, resource, type))
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
+    if (type == ResourceType_Instance)
+    {
+      // An instance cannot have a child
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+
+    std::list<int64_t> tmp;
+    db_->GetChildrenInternalId(tmp, resource);
+
+    for (std::list<int64_t>::const_iterator 
+           it = tmp.begin(); it != tmp.end(); ++it)
+    {
+      result.push_back(db_->GetPublicId(*it));
+    }
+  }
+
+
   void ServerIndex::GetChildInstances(std::list<std::string>& result,
                                       const std::string& publicId)
   {

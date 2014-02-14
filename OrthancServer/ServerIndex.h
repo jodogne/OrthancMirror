@@ -163,6 +163,9 @@ namespace Orthanc
     void SetProtectedPatient(const std::string& publicId,
                              bool isProtected);
 
+    void GetChildren(std::list<std::string>& result,
+                     const std::string& publicId);
+
     void GetChildInstances(std::list<std::string>& result,
                            const std::string& publicId);
 
