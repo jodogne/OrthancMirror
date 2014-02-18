@@ -2,7 +2,7 @@
 
 #include <boost/thread.hpp>
 
-#include "../ICommand.h"
+#include "../IDynamicObject.h"
 
 namespace Orthanc
 {

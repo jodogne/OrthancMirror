@@ -158,6 +158,11 @@ namespace Orthanc
 
   void ThreadedCommandProcessor::Post(ICommand* command)
   {
+    if (command == NULL)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
     boost::mutex::scoped_lock lock(mutex_);
     queue_.Enqueue(command);
     remainingCommands_++;
