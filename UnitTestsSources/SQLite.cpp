@@ -236,3 +236,66 @@ TEST(SQLite, EmptyTransactions)
     throw e;
   }
 }
+
+
+TEST(SQLite, Types)
+{
+  SQLite::Connection c;
+  c.OpenInMemory();
+  c.Execute("CREATE TABLE a(id INTEGER PRIMARY KEY, value)");
+
+  {
+    SQLite::Statement s(c, std::string("SELECT * FROM a"));
+    ASSERT_EQ(2, s.ColumnCount());
+    ASSERT_FALSE(s.Step());
+  }
+
+  {
+    SQLite::Statement s(c, SQLITE_FROM_HERE, std::string("SELECT * FROM a"));
+    ASSERT_FALSE(s.Step());
+    ASSERT_EQ("SELECT * FROM a", s.GetOriginalSQLStatement());
+  }
+
+  {
+    SQLite::Statement s(c, SQLITE_FROM_HERE, "INSERT INTO a VALUES(NULL, ?);");
+    s.BindNull(0);             ASSERT_TRUE(s.Run()); s.Reset();
+    s.BindBool(0, true);       ASSERT_TRUE(s.Run()); s.Reset();
+    s.BindInt(0, 42);          ASSERT_TRUE(s.Run()); s.Reset();
+    s.BindInt64(0, 42ll);      ASSERT_TRUE(s.Run()); s.Reset();
+    s.BindDouble(0, 42.5);     ASSERT_TRUE(s.Run()); s.Reset();
+    s.BindCString(0, "Hello"); ASSERT_TRUE(s.Run()); s.Reset();
+    s.BindBlob(0, "Hello", 5); ASSERT_TRUE(s.Run()); s.Reset();
+  }
+
+  {
+    SQLite::Statement s(c, SQLITE_FROM_HERE, std::string("SELECT * FROM a"));
+    ASSERT_TRUE(s.Step());
+    ASSERT_EQ(SQLite::COLUMN_TYPE_NULL, s.GetColumnType(1));
+    ASSERT_TRUE(s.ColumnIsNull(1));
+    ASSERT_TRUE(s.Step());
+    ASSERT_EQ(SQLite::COLUMN_TYPE_INTEGER, s.GetColumnType(1));
+    ASSERT_TRUE(s.ColumnBool(1));
+    ASSERT_TRUE(s.Step());
+    ASSERT_EQ(SQLite::COLUMN_TYPE_INTEGER, s.GetColumnType(1));
+    ASSERT_EQ(42, s.ColumnInt(1));
+    ASSERT_TRUE(s.Step());
+    ASSERT_EQ(SQLite::COLUMN_TYPE_INTEGER, s.GetColumnType(1));
+    ASSERT_EQ(42ll, s.ColumnInt64(1));
+    ASSERT_TRUE(s.Step());
+    ASSERT_EQ(SQLite::COLUMN_TYPE_FLOAT, s.GetColumnType(1));
+    ASSERT_FLOAT_EQ(42.5, s.ColumnDouble(1));
+    ASSERT_TRUE(s.Step());
+    ASSERT_EQ(SQLite::COLUMN_TYPE_TEXT, s.GetColumnType(1));
+    ASSERT_EQ("Hello", s.ColumnString(1));
+    ASSERT_TRUE(s.Step());
+    ASSERT_EQ(SQLite::COLUMN_TYPE_BLOB, s.GetColumnType(1));
+    ASSERT_EQ(5, s.ColumnByteLength(1));
+    ASSERT_TRUE(!memcmp("Hello", s.ColumnBlob(1), 5));
+
+    std::string t;
+    ASSERT_TRUE(s.ColumnBlobAsString(1, &t));
+    ASSERT_EQ("Hello", t);
+
+    ASSERT_FALSE(s.Step());
+  }
+}

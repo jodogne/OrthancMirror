@@ -295,7 +295,7 @@ namespace Orthanc
       return true;
       }*/
 
-    bool Statement::ColumnBlobAsVector(int col, std::vector<char>* val) const 
+    /*bool Statement::ColumnBlobAsVector(int col, std::vector<char>* val) const 
     {
       val->clear();
 
@@ -306,14 +306,14 @@ namespace Orthanc
         memcpy(&(*val)[0], data, len);
       }
       return true;
-    }
+      }*/
 
-    bool Statement::ColumnBlobAsVector(
+    /*bool Statement::ColumnBlobAsVector(
       int col,
       std::vector<unsigned char>* val) const 
     {
       return ColumnBlobAsVector(col, reinterpret_cast< std::vector<char>* >(val));
-    }
+      }*/
 
   }
 }
