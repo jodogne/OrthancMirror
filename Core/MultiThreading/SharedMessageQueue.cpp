@@ -89,7 +89,11 @@ namespace Orthanc
 
     std::auto_ptr<IDynamicObject> message(queue_.front());
     queue_.pop_front();
-    emptied_.notify_all();
+
+    if (queue_.empty())
+    {
+      emptied_.notify_all();
+    }
 
     return message.release();
   }
@@ -101,7 +105,7 @@ namespace Orthanc
     boost::mutex::scoped_lock lock(mutex_);
     
     // Wait for the queue to become empty
-    if (!queue_.empty())
+    while (!queue_.empty())
     {
       if (millisecondsTimeout == 0)
       {

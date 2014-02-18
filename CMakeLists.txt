@@ -263,6 +263,7 @@ add_executable(UnitTests
   UnitTestsSources/Versions.cpp
   UnitTestsSources/Zip.cpp
   UnitTestsSources/Lua.cpp
+  UnitTestsSources/MultiThreading.cpp
   UnitTestsSources/main.cpp
   )
 target_link_libraries(UnitTests ServerLibrary CoreLibrary)
