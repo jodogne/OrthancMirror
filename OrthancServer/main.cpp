@@ -131,7 +131,7 @@ public:
 
     if (!IsKnownAETitle(callingAet))
     {
-      LOG(ERROR) << "Unkwnown remote DICOM modality AET: \"" << callingAet << "\"";
+      LOG(ERROR) << "Unknown remote DICOM modality AET: \"" << callingAet << "\"";
       return false;
     }
     else
