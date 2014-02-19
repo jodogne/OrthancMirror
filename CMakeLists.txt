@@ -259,12 +259,12 @@ add_executable(UnitTests
   UnitTestsSources/RestApi.cpp
   UnitTestsSources/SQLite.cpp
   UnitTestsSources/SQLiteChromium.cpp
-  UnitTestsSources/ServerIndex.cpp
+  UnitTestsSources/ServerIndexTests.cpp
   UnitTestsSources/Versions.cpp
   UnitTestsSources/Zip.cpp
   UnitTestsSources/Lua.cpp
   UnitTestsSources/MultiThreading.cpp
-  UnitTestsSources/main.cpp
+  UnitTestsSources/UnitTestsMain.cpp
   )
 target_link_libraries(UnitTests ServerLibrary CoreLibrary)
 
