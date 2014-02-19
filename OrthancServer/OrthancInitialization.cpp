@@ -535,7 +535,7 @@ namespace Orthanc
       {
         std::string thisAet;
         GetDicomModalityUsingSymbolicName(*it, thisAet, address, port, manufacturer);
-        
+
         if (IsSameAETitle(aet, thisAet))
         {
           return true;

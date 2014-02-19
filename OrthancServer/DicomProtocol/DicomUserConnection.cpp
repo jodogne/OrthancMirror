@@ -419,6 +419,7 @@ namespace Orthanc
 
     s.CopyTagIfExists(fields, DICOM_TAG_PATIENT_ID);
     s.CopyTagIfExists(fields, DICOM_TAG_ACCESSION_NUMBER);
+    s.CopyTagIfExists(fields, DICOM_TAG_MODALITIES_IN_STUDY);
 
     Find(result, FindRootModel_Study, s);
   }
