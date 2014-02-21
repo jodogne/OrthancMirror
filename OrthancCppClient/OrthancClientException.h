@@ -33,7 +33,7 @@
 #pragma once
 
 #include "../Core/OrthancException.h"
-#include "SharedLibrary/Laaw/laaw.h"
+#include <laaw/laaw.h>
 
 namespace OrthancClient
 {

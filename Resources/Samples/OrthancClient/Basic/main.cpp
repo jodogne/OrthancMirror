@@ -57,6 +57,10 @@ int main()
           for (unsigned int l = 0; l < series.GetInstanceCount(); l++)
           {
             std::cout << "      Instance: " << series.GetInstance(l).GetId() << std::endl;
+
+            // Load and display some raw DICOM tag
+            series.GetInstance(l).LoadTagContent("0020-000d");
+            std::cout << "        SOP instance UID: " << series.GetInstance(l).GetLoadedTagContent() << std::endl;
           }
         }
       }

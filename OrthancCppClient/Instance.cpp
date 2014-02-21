@@ -265,4 +265,21 @@ namespace OrthancClient
     }
   }
 
+
+  void Instance::LoadTagContent(const char* path)
+  {
+    Orthanc::HttpClient client(connection_.GetHttpClient());
+    client.SetUrl(std::string(connection_.GetOrthancUrl()) + "/instances/" + id_ + "/content/" + path);
+
+    if (!client.Apply(content_))
+    {
+      throw OrthancClientException(Orthanc::ErrorCode_UnknownResource);
+    }
+  }
+
+
+  const char* Instance::GetLoadedTagContent() const
+  {
+    return content_.c_str();
+  }
 }

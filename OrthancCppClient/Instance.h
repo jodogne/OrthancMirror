@@ -57,6 +57,7 @@ namespace OrthancClient
     std::auto_ptr<Orthanc::PngReader> reader_;
     Orthanc::ImageExtractionMode mode_;
     std::auto_ptr<std::string> dicom_;
+    std::string content_;
 
     void DownloadImage();
 
@@ -185,5 +186,17 @@ namespace OrthancClient
 
     LAAW_API_INTERNAL void SplitVectorOfFloats(std::vector<float>& target,
                                                const char* tag);
+
+    /**
+     * {summary}{Load a raw tag from the DICOM file.}
+     * {param}{path The path to the tag of interest (e.g. "0020-000d").}
+     **/
+    void LoadTagContent(const char* path);
+
+    /**
+     * {summary}{Return the value of the raw tag that was loaded by LoadContent.}
+     * {returns}{The tag value.}
+     **/
+    const char* GetLoadedTagContent() const;
   };
 }
