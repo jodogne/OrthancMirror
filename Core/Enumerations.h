@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include "../OrthancCppClient/SharedLibrary/Laaw/laaw.h"
+#include <laaw/laaw.h>
 
 namespace Orthanc
 {
