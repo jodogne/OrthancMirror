@@ -69,6 +69,11 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--allow-multiple-definition -static-libgcc -static-libstdc++")
   endif()
 
+elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+  add_definitions(
+    -D_XOPEN_SOURCE=1
+    )
+
 endif()
 
 
