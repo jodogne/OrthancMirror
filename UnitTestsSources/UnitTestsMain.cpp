@@ -570,6 +570,9 @@ TEST(Toolbox, Endianness)
 #if defined(_WIN32)
   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
 
+#elif defined(__APPLE__)
+  ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
+
 #elif defined(__linux)
 
 #if !defined(__BYTE_ORDER)

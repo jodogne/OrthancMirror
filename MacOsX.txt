@@ -1,0 +1,8 @@
+mkdir Build
+cd Build
+cmake -GXcode -DCMAKE_OSX_DEPLOYMENT_TARGET=10.8 -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON ..
+xcodebuild
+./Debug/UnitTests
+
+xcodebuild -configuration Release
+./Release/UnitTests

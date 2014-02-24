@@ -92,6 +92,12 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
         ${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfigurationLSB.h
         ${GOOGLE_LOG_SOURCES_DIR}/src/config.h
         COPYONLY)
+    elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+      # Install the specific configuration for Mac OS
+      configure_file(
+        ${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfigurationDarwin.h
+        ${GOOGLE_LOG_SOURCES_DIR}/src/config.h
+        COPYONLY)
     else()
       configure_file(
         ${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfiguration.h
