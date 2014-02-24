@@ -54,7 +54,8 @@ if (BOOST_STATIC)
 
   set(BOOST_SOURCES)
 
-  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
     list(APPEND BOOST_SOURCES
       ${BOOST_SOURCES_DIR}/libs/thread/src/pthread/once.cpp
       ${BOOST_SOURCES_DIR}/libs/thread/src/pthread/thread.cpp
@@ -78,17 +79,14 @@ if (BOOST_STATIC)
       -DBOOST_LOCALE_WITH_WCONV=1
       )
 
-  elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-    list(APPEND BOOST_SOURCES
-      ${BOOST_SOURCES_DIR}/libs/thread/src/pthread/once.cpp
-      ${BOOST_SOURCES_DIR}/libs/thread/src/pthread/thread.cpp
-      ${BOOST_SOURCES_DIR}/libs/filesystem/src/utf8_codecvt_facet.cpp
-      )
-
-    aux_source_directory(${BOOST_SOURCES_DIR}/libs/locale/src/posix BOOST_SOURCES)
-
   else()
     message(FATAL_ERROR "Support your platform here")
+  endif()
+
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+    list(APPEND BOOST_SOURCES
+      ${BOOST_SOURCES_DIR}/libs/filesystem/src/utf8_codecvt_facet.cpp
+      )
   endif()
 
   aux_source_directory(${BOOST_SOURCES_DIR}/libs/regex/src BOOST_REGEX_SOURCES)
@@ -103,12 +101,6 @@ if (BOOST_STATIC)
     ${BOOST_SOURCES_DIR}/libs/locale/src/encoding/codepage.cpp
     ${BOOST_SOURCES_DIR}/libs/system/src/error_code.cpp
     )
-
-  if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-  #    list(REMOVE_ITEM BOOST_SOURCES
-  #    ${BOOST_SOURCES_DIR}/libs/locale/src/encoding/codepage.cpp
-  #    )
-  endif()
 
   list(APPEND THIRD_PARTY_SOURCES ${BOOST_SOURCES})
 
