@@ -82,6 +82,7 @@ if (BOOST_STATIC)
     list(APPEND BOOST_SOURCES
       ${BOOST_SOURCES_DIR}/libs/thread/src/pthread/once.cpp
       ${BOOST_SOURCES_DIR}/libs/thread/src/pthread/thread.cpp
+      ${BOOST_SOURCES_DIR}/libs/filesystem/src/utf8_codecvt_facet.cpp
       )
 
     aux_source_directory(${BOOST_SOURCES_DIR}/libs/locale/src/posix BOOST_SOURCES)
@@ -104,9 +105,9 @@ if (BOOST_STATIC)
     )
 
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-    list(REMOVE_ITEM BOOST_SOURCES
-      ${BOOST_SOURCES_DIR}/libs/locale/src/encoding/codepage.cpp
-      )
+  #    list(REMOVE_ITEM BOOST_SOURCES
+  #    ${BOOST_SOURCES_DIR}/libs/locale/src/encoding/codepage.cpp
+  #    )
   endif()
 
   list(APPEND THIRD_PARTY_SOURCES ${BOOST_SOURCES})
