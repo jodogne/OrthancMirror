@@ -73,6 +73,7 @@ elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
   add_definitions(
     -D_XOPEN_SOURCE=1
     )
+  link_libraries(iconv)
 
 endif()
 
