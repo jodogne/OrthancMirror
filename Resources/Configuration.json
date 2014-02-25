@@ -100,8 +100,8 @@
     /**
      * A fourth parameter is available to enable patches for a
      * specific PACS manufacturer. The allowed values are currently
-     * "Generic" (default value), "ClearCanvas" and "MedInria". This
-     * parameter is case-sensitive.
+     * "Generic" (default value), "ClearCanvas", "MedInria" and
+     * "Dcm4Chee". This parameter is case-sensitive.
      **/
     // "clearcanvas" : [ "CLEARCANVAS", "192.168.1.1", 104, "ClearCanvas" ]
   },
