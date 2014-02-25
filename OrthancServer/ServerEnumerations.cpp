@@ -282,6 +282,9 @@ namespace Orthanc
       
       case ModalityManufacturer_MedInria:
         return "MedInria";
+
+      case ModalityManufacturer_Dcm4Chee:
+        return "Dcm4Chee";
       
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -334,6 +337,10 @@ namespace Orthanc
     else if (manufacturer == "MedInria")
     {
       return ModalityManufacturer_MedInria;
+    }
+    else if (manufacturer == "Dcm4Chee")
+    {
+      return ModalityManufacturer_Dcm4Chee;
     }
     else
     {
