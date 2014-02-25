@@ -238,19 +238,31 @@ namespace Orthanc
     DicomMap dicomSummary;
     FromDcmtkBridge::Convert(dicomSummary, *dicomInstance.getDataset());
 
-    DicomInstanceHasher hasher(dicomSummary);
-    resultPublicId = hasher.HashInstance();
-
-    Json::Value dicomJson;
-    FromDcmtkBridge::ToJson(dicomJson, *dicomInstance.getDataset());
-      
-    StoreStatus status = StoreStatus_Failure;
-    if (dicomSize > 0)
+    try
     {
-      status = Store(dicomBuffer, dicomSize, dicomSummary, dicomJson, "");
-    }   
+      DicomInstanceHasher hasher(dicomSummary);
+      resultPublicId = hasher.HashInstance();
 
-    return status;
+      Json::Value dicomJson;
+      FromDcmtkBridge::ToJson(dicomJson, *dicomInstance.getDataset());
+      
+      StoreStatus status = StoreStatus_Failure;
+      if (dicomSize > 0)
+      {
+        status = Store(dicomBuffer, dicomSize, dicomSummary, dicomJson, "");
+      }   
+
+      return status;
+    }
+    catch (OrthancException& e)
+    {
+      if (e.GetErrorCode() == ErrorCode_InexistentTag)
+      {
+        LogMissingRequiredTag(dicomSummary);
+      }
+
+      throw e;
+    }
   }
 
 

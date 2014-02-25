@@ -46,6 +46,7 @@
 #include "ServerContext.h"
 #include "OrthancFindRequestHandler.h"
 #include "OrthancMoveRequestHandler.h"
+#include "ServerToolbox.h"
 
 using namespace Orthanc;
 

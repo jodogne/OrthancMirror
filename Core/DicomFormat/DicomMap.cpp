@@ -199,7 +199,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException("Inexistent tag");
+      throw OrthancException(ErrorCode_InexistentTag);
     }
   }
 
