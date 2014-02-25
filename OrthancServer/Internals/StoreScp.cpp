@@ -33,6 +33,7 @@
 #include "StoreScp.h"
 
 #include "../FromDcmtkBridge.h"
+#include "../ServerToolbox.h"
 #include "../ToDcmtkBridge.h"
 #include "../../Core/OrthancException.h"
 
@@ -57,7 +58,7 @@ namespace Orthanc
       uint32_t messageID;
     };
 
-
+    
     static void
     storeScpCallback(
       void *callbackData,
@@ -155,7 +156,15 @@ namespace Orthanc
               catch (OrthancException& e)
               {
                 rsp->DimseStatus = STATUS_STORE_Refused_OutOfResources;
-                LOG(ERROR) << "Exception while storing DICOM: " << e.What();
+
+                if (e.GetErrorCode() == ErrorCode_InexistentTag)
+                {
+                  LogMissingRequiredTag(summary);
+                }
+                else
+                {
+                  LOG(ERROR) << "Exception while storing DICOM: " << e.What();
+                }
               }
             }
           }
