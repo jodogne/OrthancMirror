@@ -108,6 +108,9 @@ namespace Orthanc
       case ErrorCode_CorruptedFile:
         return "Corrupted file (inconsistent MD5 hash)";
 
+      case ErrorCode_InexistentTag:
+        return "Inexistent tag";
+
       case ErrorCode_Custom:
       default:
         return "???";

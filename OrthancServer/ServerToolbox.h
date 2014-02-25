@@ -32,10 +32,14 @@
 
 #pragma once
 
+#include "../Core/DicomFormat/DicomMap.h"
+
 #include <json/json.h>
 
 namespace Orthanc
 {
   void SimplifyTags(Json::Value& target,
                     const Json::Value& source);
+
+  void LogMissingRequiredTag(const DicomMap& summary);
 }
