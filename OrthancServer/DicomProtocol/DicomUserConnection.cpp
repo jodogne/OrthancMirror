@@ -335,7 +335,8 @@ namespace Orthanc
       break;
 
     case FindRootModel_Instance:
-      if (manufacturer_ == ModalityManufacturer_ClearCanvas)
+      if (manufacturer_ == ModalityManufacturer_ClearCanvas ||
+          manufacturer_ == ModalityManufacturer_Dcm4Chee)
       {
         // This is a particular case for ClearCanvas, thanks to Peter Somlo <peter.somlo@gmail.com>.
         // https://groups.google.com/d/msg/orthanc-users/j-6C3MAVwiw/iolB9hclom8J
