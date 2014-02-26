@@ -11,6 +11,15 @@ xcodebuild -configuration Release
 ./Release/UnitTests
 
 
+Avec Xcode 4.2 (pour Mac OS 10.6)
+---------------------------------
+
+Le build 64bit ne fonctionne pas a cause de Google Log. Il faut preciser l'architecture :
+
+xcodebuild -arch i386
+xcodebuild -arch i386 -configuration Release
+
+
 
 Xcode
 =====
