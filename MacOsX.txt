@@ -50,3 +50,9 @@ allows you to install 10.7+. I'd advise sticking with 10.8+ for Mac
 and 6+ for iOS unless you have specific business reasons.  Now that
 Mavericks is free, people have no barrier to update."
 
+
+
+Outils
+======
+
+http://macdependency.googlecode.com/  => correspond a DependencyWalker
