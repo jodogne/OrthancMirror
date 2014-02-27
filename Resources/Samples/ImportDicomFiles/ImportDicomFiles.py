@@ -21,16 +21,19 @@ For instance: %s localhost 8042 .
 
 URL = 'http://%s:%d/instances' % (sys.argv[1], int(sys.argv[2]))
 
-success = 0
+success_count = 0
+total_file_count = 0
 
 
 # This function will upload a single file to Orthanc through the REST API
 def UploadFile(path):
-    global success
+    global success_count
+    global total_file_count
 
     f = open(path, "rb")
     content = f.read()
     f.close()
+    total_file_count += 1
 
     try:
         sys.stdout.write("Importing %s" % path)
@@ -51,14 +54,14 @@ def UploadFile(path):
             # not always work)
             # http://en.wikipedia.org/wiki/Basic_access_authentication
             headers['authorization'] = 'Basic ' + base64.b64encode(username + ':' + password)       
-            
+
         resp, content = h.request(URL, 'POST', 
                                   body = content,
                                   headers = headers)
 
         if resp.status == 200:
             sys.stdout.write(" => success\n")
-            success += 1
+            success_count += 1
         else:
             sys.stdout.write(" => failure (Is it a DICOM file?)\n")
 
@@ -74,6 +77,8 @@ else:
     for root, dirs, files in os.walk(sys.argv[3]):
         for f in files:
             UploadFile(os.path.join(root, f))
-        
 
-print("\nSummary: %d DICOM file(s) have been imported" % success)
+if success_count == total_file_count:
+    print("\nSummary: all %d DICOM file(s) have been imported successfully" % success_count)
+else:
+    print("\nSummary: %d out of %d files have been imported successfully as DICOM instances" % (success_count, total_file_count))
