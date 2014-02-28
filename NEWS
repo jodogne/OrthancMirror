@@ -3,6 +3,7 @@ Pending changes in the mainline
 
 * Better logging about nonexistent tags
 * Dcm4Chee manufacturer
+* Automatic discovering of the path to the DICOM dictionaries
 
 
 Version 0.7.3 (2014/02/14)
