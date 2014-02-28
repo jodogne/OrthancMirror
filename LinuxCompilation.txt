@@ -161,8 +161,8 @@ SUPPORTED - Ubuntu 13.10
 
 
 
-SUPPORTED - Fedora 18
----------------------
+SUPPORTED - Fedora 18/19/20
+---------------------------
 
 # sudo yum install make automake gcc gcc-c++ python cmake \
                    boost-devel curl-devel dcmtk-devel glog-devel \
