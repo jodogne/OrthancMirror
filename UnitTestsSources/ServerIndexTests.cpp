@@ -14,6 +14,12 @@ using namespace Orthanc;
 
 namespace
 {
+  enum DatabaseWrapperClass
+  {
+    DatabaseWrapperClass_SQLite
+  };
+
+
   class ServerIndexListener : public IServerIndexListener
   {
   public:
@@ -41,14 +47,36 @@ namespace
       LOG(INFO) << "A file must be removed: " << fileUuid;
     }                                
   };
+
+
+  class DatabaseWrapperTest : public ::testing::TestWithParam<DatabaseWrapperClass>
+  {
+  protected:
+    ServerIndexListener listener;
+    DatabaseWrapper index;
+
+    DatabaseWrapperTest() : index(listener)
+    {
+    }
+
+    virtual void SetUp() 
+    {
+    }
+
+    virtual void TearDown()
+    {
+    }
+  };
 }
 
 
-TEST(DatabaseWrapper, Simple)
-{
-  ServerIndexListener listener;
-  DatabaseWrapper index(listener);
+INSTANTIATE_TEST_CASE_P(DatabaseWrapperName,
+                        DatabaseWrapperTest,
+                        ::testing::Values(DatabaseWrapperClass_SQLite));
 
+
+TEST_P(DatabaseWrapperTest, Simple)
+{
   int64_t a[] = {
     index.CreateResource("a", ResourceType_Patient),   // 0
     index.CreateResource("b", ResourceType_Study),     // 1
@@ -235,11 +263,8 @@ TEST(DatabaseWrapper, Simple)
 
 
 
-TEST(DatabaseWrapper, Upward)
+TEST_P(DatabaseWrapperTest, Upward)
 {
-  ServerIndexListener listener;
-  DatabaseWrapper index(listener);
-
   int64_t a[] = {
     index.CreateResource("a", ResourceType_Patient),   // 0
     index.CreateResource("b", ResourceType_Study),     // 1
@@ -304,11 +329,8 @@ TEST(DatabaseWrapper, Upward)
 }
 
 
-TEST(DatabaseWrapper, PatientRecycling)
+TEST_P(DatabaseWrapperTest, PatientRecycling)
 {
-  ServerIndexListener listener;
-  DatabaseWrapper index(listener);
-
   std::vector<int64_t> patients;
   for (int i = 0; i < 10; i++)
   {
@@ -357,11 +379,8 @@ TEST(DatabaseWrapper, PatientRecycling)
 }
 
 
-TEST(DatabaseWrapper, PatientProtection)
+TEST_P(DatabaseWrapperTest, PatientProtection)
 {
-  ServerIndexListener listener;
-  DatabaseWrapper index(listener);
-
   std::vector<int64_t> patients;
   for (int i = 0; i < 5; i++)
   {
@@ -439,11 +458,8 @@ TEST(DatabaseWrapper, PatientProtection)
 
 
 
-TEST(DatabaseWrapper, Sequence)
+TEST_P(DatabaseWrapperTest, Sequence)
 {
-  ServerIndexListener listener;
-  DatabaseWrapper index(listener);
-
   ASSERT_EQ(1u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
   ASSERT_EQ(2u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
   ASSERT_EQ(3u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
@@ -452,11 +468,8 @@ TEST(DatabaseWrapper, Sequence)
 
 
 
-TEST(DatabaseWrapper, LookupTagValue)
+TEST_P(DatabaseWrapperTest, LookupTagValue)
 {
-  ServerIndexListener listener;
-  DatabaseWrapper index(listener);
-
   int64_t a[] = {
     index.CreateResource("a", ResourceType_Study),   // 0
     index.CreateResource("b", ResourceType_Study),   // 1
