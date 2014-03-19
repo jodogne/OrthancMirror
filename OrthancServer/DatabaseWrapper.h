@@ -67,10 +67,10 @@ namespace Orthanc
                             int64_t since,
                             unsigned int maxResults);
 
-    void GetExportedResources(Json::Value& target,
-                              SQLite::Statement& s,
-                              int64_t since,
-                              unsigned int maxResults);
+    void GetExportedResourcesInternal(Json::Value& target,
+                                      SQLite::Statement& s,
+                                      int64_t since,
+                                      unsigned int maxResults);
 
   public:
     void SetGlobalProperty(GlobalProperty property,
