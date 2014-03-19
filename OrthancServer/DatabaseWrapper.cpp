@@ -694,7 +694,7 @@ namespace Orthanc
 
     while (changes.size() < maxResults && s.Step())
     {
-      int64_t seq = s.ColumnInt(0);
+      int64_t seq = s.ColumnInt64(0);
       ResourceType resourceType = static_cast<ResourceType>(s.ColumnInt(1));
       std::string publicId = s.ColumnString(2);
 
