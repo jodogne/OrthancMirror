@@ -501,10 +501,10 @@ namespace Orthanc
     {
       attachment = FileInfo(s.ColumnString(0),
                             contentType,
-                            s.ColumnInt(1),
+                            s.ColumnInt64(1),
                             s.ColumnString(4),
                             static_cast<CompressionType>(s.ColumnInt(2)),
-                            s.ColumnInt(3),
+                            s.ColumnInt64(3),
                             s.ColumnString(5));
       return true;
     }
