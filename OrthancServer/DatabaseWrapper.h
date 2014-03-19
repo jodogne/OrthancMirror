@@ -115,7 +115,7 @@ namespace Orthanc
                         int64_t id,
                         MetadataType type);
 
-    bool ListAvailableMetadata(std::list<MetadataType>& target,
+    void ListAvailableMetadata(std::list<MetadataType>& target,
                                int64_t id);
 
     std::string GetMetadata(int64_t id,

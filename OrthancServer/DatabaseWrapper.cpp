@@ -388,7 +388,7 @@ namespace Orthanc
     }
   }
 
-  bool DatabaseWrapper::ListAvailableMetadata(std::list<MetadataType>& target,
+  void DatabaseWrapper::ListAvailableMetadata(std::list<MetadataType>& target,
                                               int64_t id)
   {
     target.clear();
@@ -400,8 +400,6 @@ namespace Orthanc
     {
       target.push_back(static_cast<MetadataType>(s.ColumnInt(0)));
     }
-
-    return true;
   }
 
 

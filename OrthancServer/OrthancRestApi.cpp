@@ -1668,18 +1668,17 @@ namespace Orthanc
     
     std::string publicId = call.GetUriComponent("id", "");
     std::list<MetadataType> metadata;
-    if (context.GetIndex().ListAvailableMetadata(metadata, publicId))
+
+    context.GetIndex().ListAvailableMetadata(metadata, publicId);
+    Json::Value result = Json::arrayValue;
+
+    for (std::list<MetadataType>::const_iterator 
+           it = metadata.begin(); it != metadata.end(); ++it)
     {
-      Json::Value result = Json::arrayValue;
-
-      for (std::list<MetadataType>::const_iterator 
-             it = metadata.begin(); it != metadata.end(); ++it)
-      {
-        result.append(EnumerationToString(*it));
-      }
-
-      call.GetOutput().AnswerJson(result);
+      result.append(EnumerationToString(*it));
     }
+
+    call.GetOutput().AnswerJson(result);
   }
 
 
