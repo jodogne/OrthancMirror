@@ -587,7 +587,7 @@ namespace Orthanc
 
     while (s.Step())
     {
-      result.push_back(s.ColumnInt(0));
+      result.push_back(s.ColumnInt64(0));
     }
   }
 
