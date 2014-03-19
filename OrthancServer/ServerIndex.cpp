@@ -1238,7 +1238,7 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::ListAvailableMetadata(std::list<MetadataType>& target,
+  void ServerIndex::ListAvailableMetadata(std::list<MetadataType>& target,
                                           const std::string& publicId)
   {
     boost::mutex::scoped_lock lock(mutex_);
@@ -1250,7 +1250,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_UnknownResource);
     }
 
-    return db_->ListAvailableMetadata(target, id);
+    db_->ListAvailableMetadata(target, id);
   }
 
 
