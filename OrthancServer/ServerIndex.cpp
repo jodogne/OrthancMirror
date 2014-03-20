@@ -255,6 +255,7 @@ namespace Orthanc
 
     try
     {
+      boost::mutex::scoped_lock lock(that->mutex_);
       std::string sleepString = that->db_->GetGlobalProperty(GlobalProperty_FlushSleep);
       sleep = boost::lexical_cast<unsigned int>(sleepString);
     }
