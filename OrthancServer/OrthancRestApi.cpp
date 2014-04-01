@@ -54,16 +54,6 @@ static const uint64_t MEGA_BYTES = 1024 * 1024;
 static const uint64_t GIGA_BYTES = 1024 * 1024 * 1024;
 
 
-#define RETRIEVE_CONTEXT(call)                          \
-  OrthancRestApi& that =                                \
-    dynamic_cast<OrthancRestApi&>(call.GetContext());   \
-  ServerContext& context = that.GetContext()
-
-#define RETRIEVE_THAT(call)                             \
-  OrthancRestApi& that =                                \
-    dynamic_cast<OrthancRestApi&>(call.GetContext());
-
-
 namespace Orthanc
 {
   // TODO IMPROVE MULTITHREADING
@@ -270,7 +260,7 @@ namespace Orthanc
                                    const std::string& remote,
                                    RestApi::PostCall& call)
   {
-    RETRIEVE_CONTEXT(call);
+    ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string stripped = Toolbox::StripSpaces(call.GetPostBody());
 
@@ -330,7 +320,7 @@ namespace Orthanc
 
   static void DicomStore(RestApi::PostCall& call)
   {
-    RETRIEVE_CONTEXT(call);
+    ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string remote = call.GetUriComponent("id", "");
 
@@ -377,9 +367,8 @@ namespace Orthanc
 
   static void GetStatistics(RestApi::GetCall& call)
   {
-    RETRIEVE_CONTEXT(call);
     Json::Value result = Json::objectValue;
-    context.GetIndex().ComputeStatistics(result);
+    OrthancRestApi::GetIndex(call).ComputeStatistics(result);
     call.GetOutput().AnswerJson(result);
   }
 
@@ -407,7 +396,7 @@ namespace Orthanc
   static void ExecuteScript(RestApi::PostCall& call)
   {
     std::string result;
-    RETRIEVE_CONTEXT(call);
+    ServerContext& context = OrthancRestApi::GetContext(call);
     context.GetLuaContext().Execute(result, call.GetPostBody());
     call.GetOutput().AnswerBuffer(result, "text/plain");
   }
@@ -427,20 +416,16 @@ namespace Orthanc
   template <enum ResourceType resourceType>
   static void ListResources(RestApi::GetCall& call)
   {
-    RETRIEVE_CONTEXT(call);
-
     Json::Value result;
-    context.GetIndex().GetAllUuids(result, resourceType);
+    OrthancRestApi::GetIndex(call).GetAllUuids(result, resourceType);
     call.GetOutput().AnswerJson(result);
   }
 
   template <enum ResourceType resourceType>
   static void GetSingleResource(RestApi::GetCall& call)
   {
-    RETRIEVE_CONTEXT(call);
-
     Json::Value result;
-    if (context.GetIndex().LookupResource(result, call.GetUriComponent("id", ""), resourceType))
+    if (OrthancRestApi::GetIndex(call).LookupResource(result, call.GetUriComponent("id", ""), resourceType))
     {
       call.GetOutput().AnswerJson(result);
     }
@@ -449,10 +434,8 @@ namespace Orthanc
   template <enum ResourceType resourceType>
   static void DeleteSingleResource(RestApi::DeleteCall& call)
   {
-    RETRIEVE_CONTEXT(call);
-
     Json::Value result;
-    if (context.GetIndex().DeleteResource(result, call.GetUriComponent("id", ""), resourceType))
+    if (OrthancRestApi::GetIndex(call).DeleteResource(result, call.GetUriComponent("id", ""), resourceType))
     {
       call.GetOutput().AnswerJson(result);
     }
@@ -538,6 +521,7 @@ namespace Orthanc
                               const char* filename)
   {
     Json::Value instance;
+
     if (!context.GetIndex().LookupResource(instance, instancePublicId, ResourceType_Instance))
     {
       return false;
@@ -646,7 +630,8 @@ namespace Orthanc
   template <enum ResourceType resourceType>
   static void GetArchive(RestApi::GetCall& call)
   {
-    RETRIEVE_CONTEXT(call);
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
     std::string id = call.GetUriComponent("id", "");
 
     /**
@@ -732,7 +717,7 @@ namespace Orthanc
 
   static void GetChanges(RestApi::GetCall& call)
   {
-    RETRIEVE_CONTEXT(call);
+    ServerContext& context = OrthancRestApi::GetContext(call);
 
     //std::string filter = GetArgument(getArguments, "filter", "");
     int64_t since;
@@ -751,15 +736,14 @@ namespace Orthanc
 
   static void DeleteChanges(RestApi::DeleteCall& call)
   {
-    RETRIEVE_CONTEXT(call);
-    context.GetIndex().DeleteChanges();
+    OrthancRestApi::GetIndex(call).DeleteChanges();
     call.GetOutput().AnswerBuffer("", "text/plain");
   }
 
 
   static void GetExports(RestApi::GetCall& call)
   {
-    RETRIEVE_CONTEXT(call);
+    ServerContext& context = OrthancRestApi::GetContext(call);
 
     int64_t since;
     unsigned int limit;
@@ -777,8 +761,7 @@ namespace Orthanc
 
   static void DeleteExports(RestApi::DeleteCall& call)
   {
-    RETRIEVE_CONTEXT(call);
-    context.GetIndex().DeleteExportedResources();
+    OrthancRestApi::GetIndex(call).DeleteExportedResources();
     call.GetOutput().AnswerBuffer("", "text/plain");
   }
 
@@ -787,16 +770,16 @@ namespace Orthanc
  
   static void IsProtectedPatient(RestApi::GetCall& call)
   {
-    RETRIEVE_CONTEXT(call);
     std::string publicId = call.GetUriComponent("id", "");
-    bool isProtected = context.GetIndex().IsProtectedPatient(publicId);
+    bool isProtected = OrthancRestApi::GetIndex(call).IsProtectedPatient(publicId);
     call.GetOutput().AnswerBuffer(isProtected ? "1" : "0", "text/plain");
   }
 
 
   static void SetPatientProtection(RestApi::PutCall& call)
   {
-    RETRIEVE_CONTEXT(call);
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
     std::string publicId = call.GetUriComponent("id", "");
     std::string s = Toolbox::StripSpaces(call.GetPutBody());
 
@@ -821,7 +804,7 @@ namespace Orthanc
  
   static void GetInstanceFile(RestApi::GetCall& call)
   {
-    RETRIEVE_CONTEXT(call);
+    ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string publicId = call.GetUriComponent("id", "");
     context.AnswerDicomFile(call.GetOutput(), publicId, FileContentType_Dicom);
@@ -830,7 +813,7 @@ namespace Orthanc
 
   static void ExportInstanceFile(RestApi::PostCall& call)
   {
-    RETRIEVE_CONTEXT(call);
+    ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string publicId = call.GetUriComponent("id", "");
 
@@ -846,7 +829,7 @@ namespace Orthanc
   template <bool simplify>
   static void GetInstanceTags(RestApi::GetCall& call)
   {
-    RETRIEVE_CONTEXT(call);
+    ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string publicId = call.GetUriComponent("id", "");
     
@@ -868,10 +851,8 @@ namespace Orthanc
   
   static void ListFrames(RestApi::GetCall& call)
   {
-    RETRIEVE_CONTEXT(call);
-
     Json::Value instance;
-    if (context.GetIndex().LookupResource(instance, call.GetUriComponent("id", ""), ResourceType_Instance))
+    if (OrthancRestApi::GetIndex(call).LookupResource(instance, call.GetUriComponent("id", ""), ResourceType_Instance))
     {
       unsigned int numberOfFrames = 1;
 
@@ -898,7 +879,7 @@ namespace Orthanc
   template <enum ImageExtractionMode mode>
   static void GetImage(RestApi::GetCall& call)
   {
-    RETRIEVE_CONTEXT(call);
+    ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string frameId = call.GetUriComponent("frame", "0");
 
@@ -946,7 +927,7 @@ namespace Orthanc
 
   static void UploadDicomFile(RestApi::PostCall& call)
   {
-    RETRIEVE_CONTEXT(call);
+    ServerContext& context = OrthancRestApi::GetContext(call);
 
     const std::string& postData = call.GetPostBody();
     if (postData.size() == 0)
@@ -982,12 +963,12 @@ namespace Orthanc
 
   static void ListModalities(RestApi::GetCall& call)
   {
-    RETRIEVE_THAT(call);
+    OrthancRestApi::SetOfStrings modalities;
+    GetListOfDicomModalities(modalities);
 
     Json::Value result = Json::arrayValue;
     for (OrthancRestApi::SetOfStrings::const_iterator 
-           it = that.GetModalities().begin(); 
-         it != that.GetModalities().end(); ++it)
+           it = modalities.begin(); it != modalities.end(); ++it)
     {
       result.append(*it);
     }
@@ -998,10 +979,11 @@ namespace Orthanc
 
   static void ListModalityOperations(RestApi::GetCall& call)
   {
-    RETRIEVE_THAT(call);
+    OrthancRestApi::SetOfStrings modalities;
+    GetListOfDicomModalities(modalities);
 
     std::string id = call.GetUriComponent("id", "");
-    if (IsExistingModality(that.GetModalities(), id))
+    if (IsExistingModality(modalities, id))
     {
       Json::Value result = Json::arrayValue;
       result.append("find-patient");
@@ -1022,7 +1004,8 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(cacheMutex_);
 
-    RETRIEVE_CONTEXT(call);
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
     std::string id = call.GetUriComponent("id", "");
     ParsedDicomFile& dicom = context.GetDicomFile(id);
     dicom.SendPathValue(call.GetOutput(), call.GetTrailingUri());
@@ -1237,7 +1220,7 @@ namespace Orthanc
                                         bool& keepPatientId,
                                         RestApi::PostCall& call)
   {
-    RETRIEVE_CONTEXT(call);
+    ServerContext& context = OrthancRestApi::GetContext(call);
 
     removePrivateTags = true;
     keepPatientId = false;
@@ -1313,8 +1296,8 @@ namespace Orthanc
                                         RestApi::PostCall& call)
   {
     boost::mutex::scoped_lock lock(cacheMutex_);
-    RETRIEVE_CONTEXT(call);
-    
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
     std::string id = call.GetUriComponent("id", "");
     ParsedDicomFile& dicom = context.GetDicomFile(id);
     
@@ -1391,7 +1374,7 @@ namespace Orthanc
     Json::Value result(Json::objectValue);
 
     boost::mutex::scoped_lock lock(cacheMutex_);
-    RETRIEVE_CONTEXT(call);
+    ServerContext& context = OrthancRestApi::GetContext(call);
 
     Instances instances;
     std::string id = call.GetUriComponent("id", "");
@@ -1659,13 +1642,12 @@ namespace Orthanc
 
   static void ListMetadata(RestApi::GetCall& call)
   {
-    RETRIEVE_CONTEXT(call);
     CheckValidResourceType(call);
     
     std::string publicId = call.GetUriComponent("id", "");
     std::list<MetadataType> metadata;
 
-    context.GetIndex().ListAvailableMetadata(metadata, publicId);
+    OrthancRestApi::GetIndex(call).ListAvailableMetadata(metadata, publicId);
     Json::Value result = Json::arrayValue;
 
     for (std::list<MetadataType>::const_iterator 
@@ -1680,7 +1662,6 @@ namespace Orthanc
 
   static void GetMetadata(RestApi::GetCall& call)
   {
-    RETRIEVE_CONTEXT(call);
     CheckValidResourceType(call);
     
     std::string publicId = call.GetUriComponent("id", "");
@@ -1688,7 +1669,7 @@ namespace Orthanc
     MetadataType metadata = StringToMetadata(name);
 
     std::string value;
-    if (context.GetIndex().LookupMetadata(value, publicId, metadata))
+    if (OrthancRestApi::GetIndex(call).LookupMetadata(value, publicId, metadata))
     {
       call.GetOutput().AnswerBuffer(value, "text/plain");
     }
@@ -1697,7 +1678,6 @@ namespace Orthanc
 
   static void DeleteMetadata(RestApi::DeleteCall& call)
   {
-    RETRIEVE_CONTEXT(call);
     CheckValidResourceType(call);
 
     std::string publicId = call.GetUriComponent("id", "");
@@ -1708,7 +1688,7 @@ namespace Orthanc
         metadata <= MetadataType_EndUser)
     {
       // It is forbidden to modify internal metadata
-      context.GetIndex().DeleteMetadata(publicId, metadata);
+      OrthancRestApi::GetIndex(call).DeleteMetadata(publicId, metadata);
       call.GetOutput().AnswerBuffer("", "text/plain");
     }
   }
@@ -1716,7 +1696,6 @@ namespace Orthanc
 
   static void SetMetadata(RestApi::PutCall& call)
   {
-    RETRIEVE_CONTEXT(call);
     CheckValidResourceType(call);
 
     std::string publicId = call.GetUriComponent("id", "");
@@ -1728,7 +1707,7 @@ namespace Orthanc
         metadata <= MetadataType_EndUser)
     {
       // It is forbidden to modify internal metadata
-      context.GetIndex().SetMetadata(publicId, metadata, value);
+      OrthancRestApi::GetIndex(call).SetMetadata(publicId, metadata, value);
       call.GetOutput().AnswerBuffer("", "text/plain");
     }
   }
@@ -1736,10 +1715,9 @@ namespace Orthanc
 
   static void GetResourceStatistics(RestApi::GetCall& call)
   {
-    RETRIEVE_CONTEXT(call);
     std::string publicId = call.GetUriComponent("id", "");
     Json::Value result;
-    context.GetIndex().GetStatistics(result, publicId);
+    OrthancRestApi::GetIndex(call).GetStatistics(result, publicId);
     call.GetOutput().AnswerJson(result);
   }
 
@@ -1755,12 +1733,12 @@ namespace Orthanc
 
   static void ListPeers(RestApi::GetCall& call)
   {
-    RETRIEVE_THAT(call);
+    OrthancRestApi::SetOfStrings peers;
+    GetListOfOrthancPeers(peers);
 
     Json::Value result = Json::arrayValue;
     for (OrthancRestApi::SetOfStrings::const_iterator 
-           it = that.GetPeers().begin(); 
-         it != that.GetPeers().end(); ++it)
+           it = peers.begin(); it != peers.end(); ++it)
     {
       result.append(*it);
     }
@@ -1770,10 +1748,11 @@ namespace Orthanc
 
   static void ListPeerOperations(RestApi::GetCall& call)
   {
-    RETRIEVE_THAT(call);
+    OrthancRestApi::SetOfStrings peers;
+    GetListOfOrthancPeers(peers);
 
     std::string id = call.GetUriComponent("id", "");
-    if (IsExistingPeer(that.GetPeers(), id))
+    if (IsExistingPeer(peers, id))
     {
       Json::Value result = Json::arrayValue;
       result.append("store");
@@ -1783,7 +1762,7 @@ namespace Orthanc
 
   static void PeerStore(RestApi::PostCall& call)
   {
-    RETRIEVE_CONTEXT(call);
+    ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string remote = call.GetUriComponent("id", "");
 
@@ -1834,12 +1813,10 @@ namespace Orthanc
 
   static void ListAttachments(RestApi::GetCall& call)
   {
-    RETRIEVE_CONTEXT(call);
-    
     std::string resourceType = call.GetUriComponent("resourceType", "");
     std::string publicId = call.GetUriComponent("id", "");
     std::list<FileContentType> attachments;
-    context.GetIndex().ListAvailableAttachments(attachments, publicId, StringToResourceType(resourceType.c_str()));
+    OrthancRestApi::GetIndex(call).ListAvailableAttachments(attachments, publicId, StringToResourceType(resourceType.c_str()));
 
     Json::Value result = Json::arrayValue;
 
@@ -1855,14 +1832,13 @@ namespace Orthanc
 
   static bool GetAttachmentInfo(FileInfo& info, RestApi::Call& call)
   {
-    RETRIEVE_CONTEXT(call);
     CheckValidResourceType(call);
  
     std::string publicId = call.GetUriComponent("id", "");
     std::string name = call.GetUriComponent("name", "");
     FileContentType contentType = StringToContentType(name);
 
-    return context.GetIndex().LookupAttachment(info, publicId, contentType);
+    return OrthancRestApi::GetIndex(call).LookupAttachment(info, publicId, contentType);
   }
 
 
@@ -1904,7 +1880,8 @@ namespace Orthanc
   template <int uncompress>
   static void GetAttachmentData(RestApi::GetCall& call)
   {
-    RETRIEVE_CONTEXT(call);
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
     CheckValidResourceType(call);
  
     std::string publicId = call.GetUriComponent("id", "");
@@ -1962,7 +1939,7 @@ namespace Orthanc
 
   static void VerifyAttachment(RestApi::PostCall& call)
   {
-    RETRIEVE_CONTEXT(call);
+    ServerContext& context = OrthancRestApi::GetContext(call);
     CheckValidResourceType(call);
 
     std::string publicId = call.GetUriComponent("id", "");
@@ -2016,7 +1993,7 @@ namespace Orthanc
 
   static void UploadAttachment(RestApi::PutCall& call)
   {
-    RETRIEVE_CONTEXT(call);
+    ServerContext& context = OrthancRestApi::GetContext(call);
     CheckValidResourceType(call);
  
     std::string publicId = call.GetUriComponent("id", "");
@@ -2036,7 +2013,6 @@ namespace Orthanc
 
   static void DeleteAttachment(RestApi::DeleteCall& call)
   {
-    RETRIEVE_CONTEXT(call);
     CheckValidResourceType(call);
 
     std::string publicId = call.GetUriComponent("id", "");
@@ -2047,7 +2023,7 @@ namespace Orthanc
         contentType <= FileContentType_EndUser)
     {
       // It is forbidden to delete internal attachments
-      context.GetIndex().DeleteAttachment(publicId, contentType);
+      OrthancRestApi::GetIndex(call).DeleteAttachment(publicId, contentType);
       call.GetOutput().AnswerBuffer("{}", "application/json");
     }
   }
@@ -2060,9 +2036,6 @@ namespace Orthanc
   OrthancRestApi::OrthancRestApi(ServerContext& context) : 
     context_(context)
   {
-    GetListOfDicomModalities(modalities_);
-    GetListOfOrthancPeers(peers_);
-
     Register("/", ServeRoot);
     Register("/system", GetSystemInformation);
     Register("/statistics", GetStatistics);
