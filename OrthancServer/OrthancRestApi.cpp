@@ -55,18 +55,13 @@ static const uint64_t GIGA_BYTES = 1024 * 1024 * 1024;
 
 
 #define RETRIEVE_CONTEXT(call)                          \
-  OrthancRestApi& contextApi =                          \
+  OrthancRestApi& that =                                \
     dynamic_cast<OrthancRestApi&>(call.GetContext());   \
-  ServerContext& context = contextApi.GetContext()
+  ServerContext& context = that.GetContext()
 
-#define RETRIEVE_MODALITIES(call)                                       \
-  const OrthancRestApi::SetOfStrings& modalities =                      \
-    dynamic_cast<OrthancRestApi&>(call.GetContext()).GetModalities();
-
-#define RETRIEVE_PEERS(call)                                            \
-  const OrthancRestApi::SetOfStrings& peers =                           \
-    dynamic_cast<OrthancRestApi&>(call.GetContext()).GetPeers();
-
+#define RETRIEVE_THAT(call)                             \
+  OrthancRestApi& that =                                \
+    dynamic_cast<OrthancRestApi&>(call.GetContext());
 
 
 namespace Orthanc
@@ -987,11 +982,12 @@ namespace Orthanc
 
   static void ListModalities(RestApi::GetCall& call)
   {
-    RETRIEVE_MODALITIES(call);
+    RETRIEVE_THAT(call);
 
     Json::Value result = Json::arrayValue;
     for (OrthancRestApi::SetOfStrings::const_iterator 
-           it = modalities.begin(); it != modalities.end(); ++it)
+           it = that.GetModalities().begin(); 
+         it != that.GetModalities().end(); ++it)
     {
       result.append(*it);
     }
@@ -1002,10 +998,10 @@ namespace Orthanc
 
   static void ListModalityOperations(RestApi::GetCall& call)
   {
-    RETRIEVE_MODALITIES(call);
+    RETRIEVE_THAT(call);
 
     std::string id = call.GetUriComponent("id", "");
-    if (IsExistingModality(modalities, id))
+    if (IsExistingModality(that.GetModalities(), id))
     {
       Json::Value result = Json::arrayValue;
       result.append("find-patient");
@@ -1759,11 +1755,12 @@ namespace Orthanc
 
   static void ListPeers(RestApi::GetCall& call)
   {
-    RETRIEVE_PEERS(call);
+    RETRIEVE_THAT(call);
 
     Json::Value result = Json::arrayValue;
     for (OrthancRestApi::SetOfStrings::const_iterator 
-           it = peers.begin(); it != peers.end(); ++it)
+           it = that.GetPeers().begin(); 
+         it != that.GetPeers().end(); ++it)
     {
       result.append(*it);
     }
@@ -1773,10 +1770,10 @@ namespace Orthanc
 
   static void ListPeerOperations(RestApi::GetCall& call)
   {
-    RETRIEVE_PEERS(call);
+    RETRIEVE_THAT(call);
 
     std::string id = call.GetUriComponent("id", "");
-    if (IsExistingPeer(peers, id))
+    if (IsExistingPeer(that.GetPeers(), id))
     {
       Json::Value result = Json::arrayValue;
       result.append("store");
