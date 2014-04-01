@@ -46,25 +46,19 @@ namespace Orthanc
 
   private:
     ServerContext& context_;
-    SetOfStrings modalities_;
-    SetOfStrings peers_;
 
   public:
     OrthancRestApi(ServerContext& context);
 
-    ServerContext& GetContext()
+    static ServerContext& GetContext(RestApi::Call& call)
     {
-      return context_;
+      OrthancRestApi& that = dynamic_cast<OrthancRestApi&>(call.GetContext());
+      return that.context_;
     }
 
-    SetOfStrings& GetModalities()
+    static ServerIndex& GetIndex(RestApi::Call& call)
     {
-      return modalities_;
-    }
-
-    SetOfStrings& GetPeers()
-    {
-      return peers_;
+      return GetContext(call).GetIndex();
     }
   };
 }
