@@ -756,12 +756,12 @@ namespace Orthanc
     filter_ = NULL;
 
 #if ORTHANC_SSL_ENABLED == 1
-    // Check for the Heartbeat exploit
+    // Check for the Heartbleed exploit
     // https://en.wikipedia.org/wiki/OpenSSL#Heartbleed_bug
     if (OPENSSL_VERSION_NUMBER <  0x1000107fL  /* openssl-1.0.1g */ &&
         OPENSSL_VERSION_NUMBER >= 0x1000100fL  /* openssl-1.0.1 */) 
     {
-      LOG(WARNING) << "This version of OpenSSL can be affected by the Heartbeat exploit";
+      LOG(WARNING) << "This version of OpenSSL is vulnerable to the Heartbleed exploit";
     }
 #endif
   }
