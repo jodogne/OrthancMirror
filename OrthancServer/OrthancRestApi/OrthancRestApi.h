@@ -32,8 +32,8 @@
 
 #pragma once
 
-#include "ServerContext.h"
-#include "../Core/RestApi/RestApi.h"
+#include "../ServerContext.h"
+#include "../../Core/RestApi/RestApi.h"
 
 #include <set>
 

@@ -32,14 +32,14 @@
 
 #include "OrthancRestApi.h"
 
-#include "../Core/Compression/HierarchicalZipWriter.h"
-#include "../Core/HttpClient.h"
-#include "../Core/HttpServer/FilesystemHttpSender.h"
-#include "../Core/Uuid.h"
-#include "DicomProtocol/DicomUserConnection.h"
-#include "FromDcmtkBridge.h"
-#include "OrthancInitialization.h"
-#include "ServerToolbox.h"
+#include "../../Core/Compression/HierarchicalZipWriter.h"
+#include "../../Core/HttpClient.h"
+#include "../../Core/HttpServer/FilesystemHttpSender.h"
+#include "../../Core/Uuid.h"
+#include "../DicomProtocol/DicomUserConnection.h"
+#include "../FromDcmtkBridge.h"
+#include "../OrthancInitialization.h"
+#include "../ServerToolbox.h"
 
 #include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
