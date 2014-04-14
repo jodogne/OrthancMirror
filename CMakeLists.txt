@@ -207,7 +207,13 @@ add_library(ServerLibrary
   OrthancServer/Internals/MoveScp.cpp
   OrthancServer/Internals/StoreScp.cpp
   OrthancServer/OrthancInitialization.cpp
+  OrthancServer/OrthancRestApi/OrthancRestAnonymizeModify.cpp
   OrthancServer/OrthancRestApi/OrthancRestApi.cpp
+  OrthancServer/OrthancRestApi/OrthancRestArchive.cpp
+  OrthancServer/OrthancRestApi/OrthancRestChanges.cpp
+  OrthancServer/OrthancRestApi/OrthancRestModalities.cpp
+  OrthancServer/OrthancRestApi/OrthancRestResources.cpp
+  OrthancServer/OrthancRestApi/OrthancRestSystem.cpp
   OrthancServer/ServerIndex.cpp
   OrthancServer/ToDcmtkBridge.cpp
   OrthancServer/DatabaseWrapper.cpp

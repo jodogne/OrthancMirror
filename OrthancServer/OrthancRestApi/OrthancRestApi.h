@@ -47,6 +47,18 @@ namespace Orthanc
   private:
     ServerContext& context_;
 
+    void RegisterSystem();
+
+    void RegisterChanges();
+
+    void RegisterResources();
+
+    void RegisterModalities();
+
+    void RegisterAnonymizeModify();
+
+    void RegisterArchive();
+
   public:
     OrthancRestApi(ServerContext& context);
 
