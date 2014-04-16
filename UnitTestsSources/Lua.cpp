@@ -3,7 +3,7 @@
 #include "../Core/Lua/LuaFunctionCall.h"
 
 
-TEST(Lua, Simple)
+TEST(Lua, Json)
 {
   Orthanc::LuaContext lua;
   lua.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
@@ -69,4 +69,35 @@ TEST(Lua, Existing)
   ASSERT_TRUE(lua.IsExistingFunction("f"));
   ASSERT_FALSE(lua.IsExistingFunction("a"));
   ASSERT_FALSE(lua.IsExistingFunction("Dummy"));
+}
+
+
+TEST(Lua, Simple)
+{
+  Orthanc::LuaContext lua;
+  lua.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
+
+  {
+    Orthanc::LuaFunctionCall f(lua, "PrintRecursive");
+    f.PushString("hello");
+    f.Execute();
+  }
+
+  {
+    Orthanc::LuaFunctionCall f(lua, "PrintRecursive");
+    f.PushBoolean(true);
+    f.Execute();
+  }
+
+  {
+    Orthanc::LuaFunctionCall f(lua, "PrintRecursive");
+    f.PushInteger(42);
+    f.Execute();
+  }
+
+  {
+    Orthanc::LuaFunctionCall f(lua, "PrintRecursive");
+    f.PushDouble(3.1415);
+    f.Execute();
+  }
 }

@@ -9,6 +9,7 @@
 #include <boost/version.hpp>
 #include <sqlite3.h>
 #include <lua.h>
+#include <openssl/opensslv.h>
 
 
 TEST(Versions, Zlib)
@@ -57,7 +58,7 @@ TEST(Versions, ZlibStatic)
 
 TEST(Versions, BoostStatic)
 {
-  ASSERT_STREQ("1_54", BOOST_LIB_VERSION);
+  ASSERT_STREQ("1_55", BOOST_LIB_VERSION);
 }
 
 TEST(Versions, CurlStatic)
@@ -90,5 +91,10 @@ TEST(Version, LuaStatic)
 {
   ASSERT_STREQ("Lua 5.1.5", LUA_RELEASE);
 }
-#endif
 
+TEST(Version, OpenSslStatic)
+{
+  ASSERT_EQ(0x1000107fL /* openssl-1.0.1g */, OPENSSL_VERSION_NUMBER);
+}
+
+#endif

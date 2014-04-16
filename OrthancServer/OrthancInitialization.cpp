@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -35,6 +35,7 @@
 #include "../Core/HttpClient.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
+#include "DicomProtocol/DicomServer.h"
 #include "ServerEnumerations.h"
 
 #include <boost/lexical_cast.hpp>
@@ -107,7 +108,7 @@ namespace Orthanc
       for (size_t i = 0; i < members.size(); i++)
       {
         std::string info = "\"" + members[i] + "\" = " + parameter[members[i]].toStyledString();
-        LOG(WARNING) << "Registering user-defined metadata: " << info;
+        LOG(INFO) << "Registering user-defined metadata: " << info;
 
         if (!parameter[members[i]].asBool())
         {
@@ -131,6 +132,40 @@ namespace Orthanc
   }
 
 
+  static void RegisterUserContentType()
+  {
+    if (configuration_->isMember("UserContentType"))
+    {
+      const Json::Value& parameter = (*configuration_) ["UserContentType"];
+
+      Json::Value::Members members = parameter.getMemberNames();
+      for (size_t i = 0; i < members.size(); i++)
+      {
+        std::string info = "\"" + members[i] + "\" = " + parameter[members[i]].toStyledString();
+        LOG(INFO) << "Registering user-defined attachment type: " << info;
+
+        if (!parameter[members[i]].asBool())
+        {
+          LOG(ERROR) << "Not a number in this user-defined attachment type: " << info;
+          throw OrthancException(ErrorCode_BadParameterType);
+        }
+
+        int contentType = parameter[members[i]].asInt();
+
+        try
+        {
+          RegisterUserContentType(contentType, members[i]);
+        }
+        catch (OrthancException&)
+        {
+          LOG(ERROR) << "Cannot register this user-defined attachment type: " << info;
+          throw;
+        }
+      }
+    }
+  }
+
+
   void OrthancInitialize(const char* configurationFile)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
@@ -142,6 +177,9 @@ namespace Orthanc
     HttpClient::GlobalInitialize();
 
     RegisterUserMetadata();
+    RegisterUserContentType();
+
+    DicomServer::InitializeDictionary();
   }
 
 
@@ -214,7 +252,7 @@ namespace Orthanc
 
     if (!configuration_->isMember("DicomModalities"))
     {
-      throw OrthancException("");
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
 
     const Json::Value& modalities = (*configuration_) ["DicomModalities"];
@@ -222,14 +260,30 @@ namespace Orthanc
         !modalities.isMember(name) ||
         (modalities[name].size() != 3 && modalities[name].size() != 4))
     {
-      throw OrthancException("");
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
 
     try
     {
       aet = modalities[name].get(0u, "").asString();
       address = modalities[name].get(1u, "").asString();
-      port = modalities[name].get(2u, "").asInt();
+
+      const Json::Value& portValue = modalities[name].get(2u, "");
+      try
+      {
+        port = portValue.asInt();
+      }
+      catch (std::runtime_error /* error inside JsonCpp */)
+      {
+        try
+        {
+          port = boost::lexical_cast<int>(portValue.asString());
+        }
+        catch (boost::bad_lexical_cast)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);
+        }
+      }
 
       if (modalities[name].size() == 4)
       {
@@ -240,9 +294,11 @@ namespace Orthanc
         manufacturer = ModalityManufacturer_Generic;
       }
     }
-    catch (...)
+    catch (OrthancException& e)
     {
-      throw OrthancException("Badly formatted DICOM modality");
+      LOG(ERROR) << "Syntax error in the definition of modality \"" << name 
+                 << "\". Please check your configuration file.";
+      throw e;
     }
   }
 
@@ -257,43 +313,52 @@ namespace Orthanc
 
     if (!configuration_->isMember("OrthancPeers"))
     {
-      throw OrthancException("");
-    }
-
-    const Json::Value& modalities = (*configuration_) ["OrthancPeers"];
-    if (modalities.type() != Json::objectValue ||
-        !modalities.isMember(name))
-    {
-      throw OrthancException("");
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
 
     try
     {
-      url = modalities[name].get(0u, "").asString();
-
-      if (modalities[name].size() == 1)
-      {
-        username = "";
-        password = "";
-      }
-      else if (modalities[name].size() == 3)
-      {
-        username = modalities[name].get(1u, "").asString();
-        password = modalities[name].get(2u, "").asString();
-      }
-      else
+      const Json::Value& modalities = (*configuration_) ["OrthancPeers"];
+      if (modalities.type() != Json::objectValue ||
+          !modalities.isMember(name))
       {
         throw OrthancException(ErrorCode_BadFileFormat);
       }
-    }
-    catch (...)
-    {
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
 
-    if (url.size() != 0 && url[url.size() - 1] != '/')
+      try
+      {
+        url = modalities[name].get(0u, "").asString();
+
+        if (modalities[name].size() == 1)
+        {
+          username = "";
+          password = "";
+        }
+        else if (modalities[name].size() == 3)
+        {
+          username = modalities[name].get(1u, "").asString();
+          password = modalities[name].get(2u, "").asString();
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);
+        }
+      }
+      catch (...)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      if (url.size() != 0 && url[url.size() - 1] != '/')
+      {
+        url += '/';
+      }
+    }
+    catch (OrthancException& e)
     {
-      url += '/';
+      LOG(ERROR) << "Syntax error in the definition of peer \"" << name 
+                 << "\". Please check your configuration file.";
+      throw e;
     }
   }
 
@@ -398,7 +463,7 @@ namespace Orthanc
        However, for some unknown reason, some versions of Boost do not
        make the proper path resolution when "baseDirectory" is an
        absolute path. So, a hack is used below.
-     **/
+    **/
 
     if (relative.is_absolute())
     {
@@ -462,6 +527,25 @@ namespace Orthanc
   }
 
 
+  bool IsSameAETitle(const std::string& aet1,
+                     const std::string& aet2)
+  {
+    if (GetGlobalBoolParameter("StrictAetComparison", false))
+    {
+      // Case-sensitive matching
+      return aet1 == aet2;
+    }
+    else
+    {
+      // Case-insensitive matching (default)
+      std::string tmp1, tmp2;
+      Toolbox::ToLowerCase(tmp1, aet1);
+      Toolbox::ToLowerCase(tmp2, aet2);
+      return tmp1 == tmp2;
+    }
+  }
+
+
   bool LookupDicomModalityUsingAETitle(const std::string& aet,
                                        std::string& symbolicName,
                                        std::string& address,
@@ -478,8 +562,8 @@ namespace Orthanc
       {
         std::string thisAet;
         GetDicomModalityUsingSymbolicName(*it, thisAet, address, port, manufacturer);
-        
-        if (aet == thisAet)
+
+        if (IsSameAETitle(aet, thisAet))
         {
           return true;
         }

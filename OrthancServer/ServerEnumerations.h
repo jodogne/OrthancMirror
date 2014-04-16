@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -57,7 +57,8 @@ namespace Orthanc
   {
     ModalityManufacturer_Generic,
     ModalityManufacturer_ClearCanvas,
-    ModalityManufacturer_MedInria
+    ModalityManufacturer_MedInria,
+    ModalityManufacturer_Dcm4Chee
   };
 
   enum DicomRequestType
@@ -121,12 +122,19 @@ namespace Orthanc
   void RegisterUserMetadata(int metadata,
                             const std::string& name);
 
-  std::string GetBasePath(ResourceType type,
-                          const std::string& publicId);
-
   MetadataType StringToMetadata(const std::string& str);
 
   std::string EnumerationToString(MetadataType type);
+
+  void RegisterUserContentType(int contentType,
+                               const std::string& name);
+
+  FileContentType StringToContentType(const std::string& str);
+
+  std::string EnumerationToString(FileContentType type);
+
+  std::string GetBasePath(ResourceType type,
+                          const std::string& publicId);
 
   const char* EnumerationToString(SeriesStatus status);
 

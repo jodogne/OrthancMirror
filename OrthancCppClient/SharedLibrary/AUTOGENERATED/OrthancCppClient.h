@@ -203,7 +203,7 @@ class Library
   {
   private:
     LAAW_ORTHANC_CLIENT_HANDLE_TYPE  handle_;
-    LAAW_ORTHANC_CLIENT_FUNCTION_TYPE  functionsIndex_[60 + 1];
+    LAAW_ORTHANC_CLIENT_FUNCTION_TYPE  functionsIndex_[62 + 1];
 
 
 
@@ -239,7 +239,7 @@ class Library
     void FreeString(char* str)
     {
       typedef void (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (char*);
-      Function function = (Function) GetFunction(60);
+      Function function = (Function) GetFunction(62);
       function(str);
     }
 
@@ -391,7 +391,7 @@ inline void Library::LoadFunctions()
     throw ::OrthancClient::OrthancClientException("Mismatch between the C++ header and the library version");
   }
 
-  functionsIndex_[60] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_FreeString", "4");
+  functionsIndex_[62] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_FreeString", "4");
   functionsIndex_[3] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_557aee7b61817292a0f31269d3c35db7", "8");
   functionsIndex_[4] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_0b8dff0ce67f10954a49b059e348837e", "8");
   functionsIndex_[5] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_e05097c153f676e5a5ee54dcfc78256f", "4");
@@ -450,11 +450,13 @@ inline void Library::LoadFunctions()
   functionsIndex_[57] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_6f2d77a26edc91c28d89408dbc3c271e", "8");
   functionsIndex_[58] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_c0f494b80d4ff8b232df7a75baa0700a", "4");
   functionsIndex_[59] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_d604f44bd5195e082e745e9cbc164f4c", "4");
+  functionsIndex_[60] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_1710299d1c5f3b1f2b7cf3962deebbfd", "8");
+  functionsIndex_[61] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_bb55aaf772ddceaadee36f4e54136bcb", "8");
   functionsIndex_[42] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_6c5ad02f91b583e29cebd0bd319ce21d", "12");
   functionsIndex_[43] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_4068241c44a9c1367fe0e57be523f207", "4");
   
   /* Check whether the functions were properly loaded */
-  for (unsigned int i = 0; i <= 60; i++)
+  for (unsigned int i = 0; i <= 62; i++)
   {
     if (functionsIndex_[i] == (LAAW_ORTHANC_CLIENT_FUNCTION_TYPE) NULL)
     {
@@ -784,6 +786,8 @@ namespace OrthancClient
     inline const void* GetDicom();
     inline void DiscardImage();
     inline void DiscardDicom();
+    inline void LoadTagContent(const ::std::string& path);
+    inline ::std::string GetLoadedTagContent() const;
   };
 }
 
@@ -1745,6 +1749,36 @@ namespace OrthancClient
     Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(59);
     char* error = function(pimpl_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
+  }
+  /**
+  * @brief Load a raw tag from the DICOM file.
+  *
+  * Load a raw tag from the DICOM file.
+  *
+  * @param path The path to the tag of interest (e.g. "0020-000d").
+  **/
+  inline void Instance::LoadTagContent(const ::std::string& path)
+  {
+    typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, const char*);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(60);
+    char* error = function(pimpl_, path.c_str());
+    ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
+  }
+  /**
+  * @brief Return the value of the raw tag that was loaded by LoadContent.
+  *
+  * Return the value of the raw tag that was loaded by LoadContent.
+  *
+  * @return The tag value.
+  **/
+  inline ::std::string Instance::GetLoadedTagContent() const
+  {
+    const char* result_;
+    typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (const void*, const char**);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(61);
+    char* error = function(pimpl_, &result_);
+    ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
+    return std::string(result_);
   }
 }
 

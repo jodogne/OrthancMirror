@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -252,11 +252,11 @@ namespace Orthanc
     std::string s(type);
     Toolbox::ToUpperCase(s);
 
-    if (s == "PATIENT")
+    if (s == "PATIENT" || s == "PATIENTS")
     {
       return ResourceType_Patient;
     }
-    else if (s == "STUDY")
+    else if (s == "STUDY" || s == "STUDIES")
     {
       return ResourceType_Study;
     }
@@ -264,7 +264,8 @@ namespace Orthanc
     {
       return ResourceType_Series;
     }
-    else if (s == "INSTANCE" || s == "IMAGE")
+    else if (s == "INSTANCE"  || s == "IMAGE" || 
+             s == "INSTANCES" || s == "IMAGES")
     {
       return ResourceType_Instance;
     }

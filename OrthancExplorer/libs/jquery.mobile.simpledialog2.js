@@ -3,8 +3,6 @@
  * Copyright (c) JTSage
  * CC 3.0 Attribution.  May be relicensed without permission/notifcation.
  * https://github.com/jtsage/jquery-mobile-simpledialog
- *
- * Modifications by Sebastien Jodogne
  */
 
 (function($, undefined ) {

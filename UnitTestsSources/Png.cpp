@@ -4,6 +4,7 @@
 #include "../Core/FileFormats/PngReader.h"
 #include "../Core/FileFormats/PngWriter.h"
 #include "../Core/Toolbox.h"
+#include "../Core/Uuid.h"
 
 
 TEST(PngWriter, ColorPattern)
@@ -107,19 +108,46 @@ TEST(PngWriter, EndToEnd)
   std::string s;
   w.WriteToMemory(s, width, height, pitch, Orthanc::PixelFormat_Grayscale16, &image[0]);
 
-  Orthanc::PngReader r;
-  r.ReadFromMemory(s);
-
-  ASSERT_EQ(r.GetWidth(), width);
-  ASSERT_EQ(r.GetHeight(), height);
-
-  v = 0;
-  for (int y = 0; y < height; y++)
   {
-    uint16_t *p = reinterpret_cast<uint16_t*>((uint8_t*) r.GetBuffer() + y * r.GetPitch());
-    for (int x = 0; x < width; x++, p++, v++)
+    Orthanc::PngReader r;
+    r.ReadFromMemory(s);
+
+    ASSERT_EQ(r.GetFormat(), Orthanc::PixelFormat_Grayscale16);
+    ASSERT_EQ(r.GetWidth(), width);
+    ASSERT_EQ(r.GetHeight(), height);
+
+    v = 0;
+    for (int y = 0; y < height; y++)
     {
-      ASSERT_EQ(*p, v);
+      uint16_t *p = reinterpret_cast<uint16_t*>((uint8_t*) r.GetBuffer() + y * r.GetPitch());
+      ASSERT_EQ(p, r.GetBuffer(y));
+      for (int x = 0; x < width; x++, p++, v++)
+      {
+        ASSERT_EQ(*p, v);
+      }
+    }
+  }
+
+  {
+    Orthanc::Toolbox::TemporaryFile tmp;
+    Orthanc::Toolbox::WriteFile(s, tmp.GetPath());
+
+    Orthanc::PngReader r2;
+    r2.ReadFromFile(tmp.GetPath());
+
+    ASSERT_EQ(r2.GetFormat(), Orthanc::PixelFormat_Grayscale16);
+    ASSERT_EQ(r2.GetWidth(), width);
+    ASSERT_EQ(r2.GetHeight(), height);
+
+    v = 0;
+    for (int y = 0; y < height; y++)
+    {
+      uint16_t *p = reinterpret_cast<uint16_t*>((uint8_t*) r2.GetBuffer() + y * r2.GetPitch());
+      ASSERT_EQ(p, r2.GetBuffer(y));
+      for (int x = 0; x < width; x++, p++, v++)
+      {
+        ASSERT_EQ(*p, v);
+      }
     }
   }
 }

@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -255,6 +255,7 @@ namespace Orthanc
 
     try
     {
+      boost::mutex::scoped_lock lock(that->mutex_);
       std::string sleepString = that->db_->GetGlobalProperty(GlobalProperty_FlushSleep);
       sleep = boost::lexical_cast<unsigned int>(sleepString);
     }
@@ -819,8 +820,7 @@ namespace Orthanc
 
     int64_t id;
     ResourceType type;
-    if (!db_->LookupResource(instanceUuid, id, type) ||
-        type != ResourceType_Instance)
+    if (!db_->LookupResource(instanceUuid, id, type))
     {
       throw OrthancException(ErrorCode_InternalError);
     }
@@ -1108,6 +1108,37 @@ namespace Orthanc
   }
 
 
+  void ServerIndex::GetChildren(std::list<std::string>& result,
+                                const std::string& publicId)
+  {
+    result.clear();
+
+    boost::mutex::scoped_lock lock(mutex_);
+
+    ResourceType type;
+    int64_t resource;
+    if (!db_->LookupResource(publicId, resource, type))
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
+    if (type == ResourceType_Instance)
+    {
+      // An instance cannot have a child
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+
+    std::list<int64_t> tmp;
+    db_->GetChildrenInternalId(tmp, resource);
+
+    for (std::list<int64_t>::const_iterator 
+           it = tmp.begin(); it != tmp.end(); ++it)
+    {
+      result.push_back(db_->GetPublicId(*it));
+    }
+  }
+
+
   void ServerIndex::GetChildInstances(std::list<std::string>& result,
                                       const std::string& publicId)
   {
@@ -1208,7 +1239,7 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::ListAvailableMetadata(std::list<MetadataType>& target,
+  void ServerIndex::ListAvailableMetadata(std::list<MetadataType>& target,
                                           const std::string& publicId)
   {
     boost::mutex::scoped_lock lock(mutex_);
@@ -1220,7 +1251,25 @@ namespace Orthanc
       throw OrthancException(ErrorCode_UnknownResource);
     }
 
-    return db_->ListAvailableMetadata(target, id);
+    db_->ListAvailableMetadata(target, id);
+  }
+
+
+  void ServerIndex::ListAvailableAttachments(std::list<FileContentType>& target,
+                                             const std::string& publicId,
+                                             ResourceType expectedType)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    ResourceType type;
+    int64_t id;
+    if (!db_->LookupResource(publicId, id, type) ||
+        expectedType != type)
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
+    db_->ListAvailableAttachments(target, id);
   }
 
 
@@ -1322,22 +1371,22 @@ namespace Orthanc
 
       ResourceType thisType = db_->GetResourceType(resource);
 
+      std::list<FileContentType> f;
+      db_->ListAvailableAttachments(f, resource);
+
+      for (std::list<FileContentType>::const_iterator
+             it = f.begin(); it != f.end(); ++it)
+      {
+        FileInfo attachment;
+        if (db_->LookupAttachment(attachment, resource, *it))
+        {
+          compressedSize += attachment.GetCompressedSize();
+          uncompressedSize += attachment.GetUncompressedSize();
+        }
+      }
+
       if (thisType == ResourceType_Instance)
       {
-        std::list<FileContentType> f;
-        db_->ListAvailableAttachments(f, resource);
-
-        for (std::list<FileContentType>::const_iterator
-               it = f.begin(); it != f.end(); ++it)
-        {
-          FileInfo attachment;
-          if (db_->LookupAttachment(attachment, resource, *it))
-          {
-            compressedSize += attachment.GetCompressedSize();
-            uncompressedSize += attachment.GetUncompressedSize();
-          }
-        }
-
         countInstances++;
       }
       else
@@ -1577,53 +1626,71 @@ namespace Orthanc
   }
 
 
-  // TODO IS IT USEFUL???
-  void ServerIndex::LookupTagValue(std::set<std::string>& result,
-                                   DicomTag tag,
-                                   const std::string& value,
-                                   ResourceType type)
+  StoreStatus ServerIndex::AddAttachment(const FileInfo& attachment,
+                                         const std::string& publicId)
   {
-    std::list<std::string> lst;
-    LookupTagValue(lst, tag, value, type);
+    boost::mutex::scoped_lock lock(mutex_);
 
-    result.clear();
-    for (std::list<std::string>::const_iterator
-           it = lst.begin(); it != lst.end(); it++)
+    Transaction t(*this);
+
+    ResourceType resourceType;
+    int64_t resourceId;
+    if (!db_->LookupResource(publicId, resourceId, resourceType))
     {
-      result.insert(*it);
+      return StoreStatus_Failure;  // Inexistent resource
     }
+
+    // Remove possible previous attachment
+    db_->DeleteAttachment(resourceId, attachment.GetContentType());
+
+    // Locate the patient of the target resource
+    int64_t patientId = resourceId;
+    for (;;)
+    {
+      int64_t parent;
+      if (db_->LookupParent(parent, patientId))
+      {
+        // We have not reached the patient level yet
+        patientId = parent;
+      }
+      else
+      {
+        // We have reached the patient level
+        break;
+      }
+    }
+
+    // Possibly apply the recycling mechanism while preserving this patient
+    assert(db_->GetResourceType(patientId) == ResourceType_Patient);
+    Recycle(attachment.GetCompressedSize(), db_->GetPublicId(patientId));
+
+    db_->AddAttachment(resourceId, attachment);
+
+    t.Commit(attachment.GetCompressedSize());
+
+    return StoreStatus_Success;
   }
 
 
-  // TODO IS IT USEFUL???
-  void ServerIndex::LookupTagValue(std::set<std::string>& result,
-                                   DicomTag tag,
-                                   const std::string& value)
+  void ServerIndex::DeleteAttachment(const std::string& publicId,
+                                     FileContentType type)
   {
-    std::list<std::string> lst;
-    LookupTagValue(lst, tag, value);
+    boost::mutex::scoped_lock lock(mutex_);
+    listener_->Reset();
 
-    result.clear();
-    for (std::list<std::string>::const_iterator
-           it = lst.begin(); it != lst.end(); it++)
+    Transaction t(*this);
+
+    ResourceType rtype;
+    int64_t id;
+    if (!db_->LookupResource(publicId, id, rtype))
     {
-      result.insert(*it);
+      throw OrthancException(ErrorCode_UnknownResource);
     }
+
+    db_->DeleteAttachment(id, type);
+
+    t.Commit(0);
   }
 
 
-  // TODO IS IT USEFUL???
-  void ServerIndex::LookupTagValue(std::set<std::string>& result,
-                                   const std::string& value)
-  {
-    std::list<std::string> lst;
-    LookupTagValue(lst, value);
-
-    result.clear();
-    for (std::list<std::string>::const_iterator
-           it = lst.begin(); it != lst.end(); it++)
-    {
-      result.insert(*it);
-    }
-  }
 }

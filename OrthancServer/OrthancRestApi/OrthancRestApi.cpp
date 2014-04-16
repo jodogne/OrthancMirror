@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -30,41 +30,55 @@
  **/
 
 
-#pragma once
+#include "OrthancRestApi.h"
 
-#include "ServerContext.h"
-#include "../Core/RestApi/RestApi.h"
-
-#include <set>
+#include <glog/logging.h>
 
 namespace Orthanc
 {
-  class OrthancRestApi : public RestApi
+  // Upload of DICOM files through HTTP ---------------------------------------
+
+  static void UploadDicomFile(RestApi::PostCall& call)
   {
-  public:
-    typedef std::set<std::string> SetOfStrings;
+    ServerContext& context = OrthancRestApi::GetContext(call);
 
-  private:
-    ServerContext& context_;
-    SetOfStrings modalities_;
-    SetOfStrings peers_;
-
-  public:
-    OrthancRestApi(ServerContext& context);
-
-    ServerContext& GetContext()
+    const std::string& postData = call.GetPostBody();
+    if (postData.size() == 0)
     {
-      return context_;
+      return;
     }
 
-    SetOfStrings& GetModalities()
+    LOG(INFO) << "Receiving a DICOM file of " << postData.size() << " bytes through HTTP";
+
+    std::string publicId;
+    StoreStatus status = context.Store(publicId, postData);
+    Json::Value result = Json::objectValue;
+
+    if (status != StoreStatus_Failure)
     {
-      return modalities_;
+      result["ID"] = publicId;
+      result["Path"] = GetBasePath(ResourceType_Instance, publicId);
     }
 
-    SetOfStrings& GetPeers()
-    {
-      return peers_;
-    }
-  };
+    result["Status"] = EnumerationToString(status);
+    call.GetOutput().AnswerJson(result);
+  }
+
+
+
+  // Registration of the various REST handlers --------------------------------
+
+  OrthancRestApi::OrthancRestApi(ServerContext& context) : 
+    context_(context)
+  {
+    RegisterSystem();
+
+    RegisterChanges();
+    RegisterResources();
+    RegisterModalities();
+    RegisterAnonymizeModify();
+    RegisterArchive();
+
+    Register("/instances", UploadDicomFile);
+  }
 }

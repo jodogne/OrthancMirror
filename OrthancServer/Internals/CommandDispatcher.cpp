@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -385,12 +385,8 @@ namespace Orthanc
         callingIP = std::string(/*OFSTRING_GUARD*/(callingIP_C));
         callingTitle = std::string(/*OFSTRING_GUARD*/(callingTitle_C));
         std::string calledTitle(/*OFSTRING_GUARD*/(calledTitle_C));
-        Toolbox::ToUpperCase(callingIP);
-        Toolbox::ToUpperCase(callingTitle);
-        Toolbox::ToUpperCase(calledTitle);
 
-        if (server.HasCalledApplicationEntityTitleCheck() &&
-            calledTitle != server.GetApplicationEntityTitle())
+        if (!server.IsMyAETitle(calledTitle))
         {
           T_ASC_RejectParameters rej =
             {

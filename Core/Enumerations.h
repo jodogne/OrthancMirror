@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include "../OrthancCppClient/SharedLibrary/Laaw/laaw.h"
+#include <laaw/laaw.h>
 
 namespace Orthanc
 {
@@ -66,7 +66,9 @@ namespace Orthanc
     ErrorCode_Timeout,
     ErrorCode_UnknownResource,
     ErrorCode_IncompatibleDatabaseVersion,
-    ErrorCode_FullStorage
+    ErrorCode_FullStorage,
+    ErrorCode_CorruptedFile,
+    ErrorCode_InexistentTag
   };
 
   /**
@@ -225,7 +227,11 @@ namespace Orthanc
   enum FileContentType
   {
     FileContentType_Dicom = 1,
-    FileContentType_Json = 2
+    FileContentType_DicomAsJson = 2,
+
+    // Make sure that the value "65535" can be stored into this enumeration
+    FileContentType_StartUser = 1024,
+    FileContentType_EndUser = 65535
   };
 
   enum ResourceType

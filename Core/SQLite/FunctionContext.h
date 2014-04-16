@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * Redistribution and use in source and binary forms, with or without
@@ -74,6 +74,8 @@ namespace Orthanc
       double GetDoubleValue(unsigned int index) const;
 
       std::string GetStringValue(unsigned int index) const;
+
+      bool IsNullValue(unsigned int index) const;
   
       void SetNullResult();
 

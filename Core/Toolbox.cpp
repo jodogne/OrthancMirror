@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -157,17 +157,6 @@ namespace Orthanc
   }
 #endif
 
-  void Toolbox::Sleep(uint32_t seconds)
-  {
-#if defined(_WIN32)
-    ::Sleep(static_cast<DWORD>(seconds) * static_cast<DWORD>(1000));
-#elif defined(__linux)
-    usleep(static_cast<uint64_t>(seconds) * static_cast<uint64_t>(1000000));
-#else
-#error Support your platform here
-#endif
-  }
-
   void Toolbox::USleep(uint64_t microSeconds)
   {
 #if defined(_WIN32)
@@ -187,6 +176,7 @@ namespace Orthanc
 #else
     signal(SIGINT, SignalHandler);
     signal(SIGQUIT, SignalHandler);
+    signal(SIGTERM, SignalHandler);
 #endif
   
     finish = false;
@@ -200,6 +190,7 @@ namespace Orthanc
 #else
     signal(SIGINT, NULL);
     signal(SIGQUIT, NULL);
+    signal(SIGTERM, NULL);
 #endif
   }
 
@@ -216,6 +207,20 @@ namespace Orthanc
     std::transform(s.begin(), s.end(), s.begin(), tolower);
   }
 
+
+  void Toolbox::ToUpperCase(std::string& result,
+                            const std::string& source)
+  {
+    result = source;
+    ToUpperCase(result);
+  }
+
+  void Toolbox::ToLowerCase(std::string& result,
+                            const std::string& source)
+  {
+    result = source;
+    ToLowerCase(result);
+  }
 
 
   void Toolbox::ReadFile(std::string& content,
@@ -449,13 +454,29 @@ namespace Orthanc
   void Toolbox::ComputeMD5(std::string& result,
                            const std::string& data)
   {
+    if (data.size() > 0)
+    {
+      ComputeMD5(result, &data[0], data.size());
+    }
+    else
+    {
+      ComputeMD5(result, NULL, 0);
+    }
+  }
+
+
+  void Toolbox::ComputeMD5(std::string& result,
+                           const void* data,
+                           size_t length)
+  {
     md5_state_s state;
     md5_init(&state);
 
-    if (data.size() > 0)
+    if (length > 0)
     {
-      md5_append(&state, reinterpret_cast<const md5_byte_t*>(&data[0]), 
-                 static_cast<int>(data.size()));
+      md5_append(&state, 
+                 reinterpret_cast<const md5_byte_t*>(data), 
+                 static_cast<int>(length));
     }
 
     md5_byte_t actualHash[16];

@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -335,7 +335,8 @@ namespace Orthanc
       break;
 
     case FindRootModel_Instance:
-      if (manufacturer_ == ModalityManufacturer_ClearCanvas)
+      if (manufacturer_ == ModalityManufacturer_ClearCanvas ||
+          manufacturer_ == ModalityManufacturer_Dcm4Chee)
       {
         // This is a particular case for ClearCanvas, thanks to Peter Somlo <peter.somlo@gmail.com>.
         // https://groups.google.com/d/msg/orthanc-users/j-6C3MAVwiw/iolB9hclom8J
@@ -419,6 +420,7 @@ namespace Orthanc
 
     s.CopyTagIfExists(fields, DICOM_TAG_PATIENT_ID);
     s.CopyTagIfExists(fields, DICOM_TAG_ACCESSION_NUMBER);
+    s.CopyTagIfExists(fields, DICOM_TAG_MODALITIES_IN_STUDY);
 
     Find(result, FindRootModel_Study, s);
   }

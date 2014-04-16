@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -33,6 +33,7 @@
 #include "StoreScp.h"
 
 #include "../FromDcmtkBridge.h"
+#include "../ServerToolbox.h"
 #include "../ToDcmtkBridge.h"
 #include "../../Core/OrthancException.h"
 
@@ -57,7 +58,7 @@ namespace Orthanc
       uint32_t messageID;
     };
 
-
+    
     static void
     storeScpCallback(
       void *callbackData,
@@ -155,7 +156,15 @@ namespace Orthanc
               catch (OrthancException& e)
               {
                 rsp->DimseStatus = STATUS_STORE_Refused_OutOfResources;
-                LOG(ERROR) << "Exception while storing DICOM: " << e.What();
+
+                if (e.GetErrorCode() == ErrorCode_InexistentTag)
+                {
+                  LogMissingRequiredTag(summary);
+                }
+                else
+                {
+                  LOG(ERROR) << "Exception while storing DICOM: " << e.What();
+                }
               }
             }
           }
