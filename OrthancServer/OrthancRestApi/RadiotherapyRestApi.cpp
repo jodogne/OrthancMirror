@@ -807,5 +807,7 @@ namespace Orthanc
 }
 
 
-//  curl http://localhost:8042/series/0b9e2bb2-605a59aa-f27c0260-9cc4faf6-9d8bf457/rt-structures
-//  curl http://localhost:8042/series/ef041e6b-c855e775-f7e0f7fe-dc3c17dc-533cb8c5/rt-structures
+/**
+   storescu localhost 4242 ~/DICOM/Akos/data1/*.dcm
+   curl http://localhost:8042/series/10668f4a-fcc8fd1c-832e409c-5c7c018f-7ac8d3d9/rt-structures
+**/

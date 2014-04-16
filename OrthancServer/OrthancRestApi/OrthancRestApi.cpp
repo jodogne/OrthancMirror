@@ -80,5 +80,7 @@ namespace Orthanc
     RegisterArchive();
 
     Register("/instances", UploadDicomFile);
+
+    RegisterRadiotherapy();
   }
 }
