@@ -15,7 +15,7 @@ SET(STATIC_BUILD OFF CACHE BOOL "Static build of the third-party libraries (nece
 SET(STANDALONE_BUILD ON CACHE BOOL "Standalone build (all the resources are embedded, necessary for releases)")
 SET(ENABLE_SSL ON CACHE BOOL "Include support for SSL")
 SET(BUILD_CLIENT_LIBRARY ON CACHE BOOL "Build the client library")
-SET(DCMTK_DICTIONARY_DIR "/usr/share/dcmtk" CACHE PATH "Directory containing the DCMTK dictionaries \"dicom.dic\" and \"private.dic\" (only when using system version of DCMTK)") 
+SET(DCMTK_DICTIONARY_DIR "" CACHE PATH "Directory containing the DCMTK dictionaries \"dicom.dic\" and \"private.dic\" (only when using system version of DCMTK)") 
 SET(ALLOW_DOWNLOADS OFF CACHE BOOL "Allow CMake to download packages")
 SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
 
@@ -207,7 +207,13 @@ add_library(ServerLibrary
   OrthancServer/Internals/MoveScp.cpp
   OrthancServer/Internals/StoreScp.cpp
   OrthancServer/OrthancInitialization.cpp
-  OrthancServer/OrthancRestApi.cpp
+  OrthancServer/OrthancRestApi/OrthancRestAnonymizeModify.cpp
+  OrthancServer/OrthancRestApi/OrthancRestApi.cpp
+  OrthancServer/OrthancRestApi/OrthancRestArchive.cpp
+  OrthancServer/OrthancRestApi/OrthancRestChanges.cpp
+  OrthancServer/OrthancRestApi/OrthancRestModalities.cpp
+  OrthancServer/OrthancRestApi/OrthancRestResources.cpp
+  OrthancServer/OrthancRestApi/OrthancRestSystem.cpp
   OrthancServer/ServerIndex.cpp
   OrthancServer/ToDcmtkBridge.cpp
   OrthancServer/DatabaseWrapper.cpp

@@ -180,7 +180,7 @@ namespace Orthanc
                         const std::string& publicId,
                         MetadataType type);
 
-    bool ListAvailableMetadata(std::list<MetadataType>& target,
+    void ListAvailableMetadata(std::list<MetadataType>& target,
                                const std::string& publicId);
 
     void ListAvailableAttachments(std::list<FileContentType>& target,

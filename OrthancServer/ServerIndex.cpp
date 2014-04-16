@@ -255,6 +255,7 @@ namespace Orthanc
 
     try
     {
+      boost::mutex::scoped_lock lock(that->mutex_);
       std::string sleepString = that->db_->GetGlobalProperty(GlobalProperty_FlushSleep);
       sleep = boost::lexical_cast<unsigned int>(sleepString);
     }
@@ -1238,7 +1239,7 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::ListAvailableMetadata(std::list<MetadataType>& target,
+  void ServerIndex::ListAvailableMetadata(std::list<MetadataType>& target,
                                           const std::string& publicId)
   {
     boost::mutex::scoped_lock lock(mutex_);
@@ -1250,7 +1251,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_UnknownResource);
     }
 
-    return db_->ListAvailableMetadata(target, id);
+    db_->ListAvailableMetadata(target, id);
   }
 
 

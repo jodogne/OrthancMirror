@@ -388,7 +388,7 @@ namespace Orthanc
     }
   }
 
-  bool DatabaseWrapper::ListAvailableMetadata(std::list<MetadataType>& target,
+  void DatabaseWrapper::ListAvailableMetadata(std::list<MetadataType>& target,
                                               int64_t id)
   {
     target.clear();
@@ -400,8 +400,6 @@ namespace Orthanc
     {
       target.push_back(static_cast<MetadataType>(s.ColumnInt(0)));
     }
-
-    return true;
   }
 
 
@@ -503,10 +501,10 @@ namespace Orthanc
     {
       attachment = FileInfo(s.ColumnString(0),
                             contentType,
-                            s.ColumnInt(1),
+                            s.ColumnInt64(1),
                             s.ColumnString(4),
                             static_cast<CompressionType>(s.ColumnInt(2)),
-                            s.ColumnInt(3),
+                            s.ColumnInt64(3),
                             s.ColumnString(5));
       return true;
     }
@@ -589,7 +587,7 @@ namespace Orthanc
 
     while (s.Step())
     {
-      result.push_back(s.ColumnInt(0));
+      result.push_back(s.ColumnInt64(0));
     }
   }
 
@@ -618,9 +616,9 @@ namespace Orthanc
 
     while (changes.size() < maxResults && s.Step())
     {
-      int64_t seq = s.ColumnInt(0);
+      int64_t seq = s.ColumnInt64(0);
       ChangeType changeType = static_cast<ChangeType>(s.ColumnInt(1));
-      int64_t internalId = s.ColumnInt(2);
+      int64_t internalId = s.ColumnInt64(2);
       ResourceType resourceType = static_cast<ResourceType>(s.ColumnInt(3));
       const std::string& date = s.ColumnString(4);
       std::string publicId = GetPublicId(internalId);
@@ -686,17 +684,17 @@ namespace Orthanc
   }
 
 
-  void DatabaseWrapper::GetExportedResources(Json::Value& target,
-                                             SQLite::Statement& s,
-                                             int64_t since,
-                                             unsigned int maxResults)
+  void DatabaseWrapper::GetExportedResourcesInternal(Json::Value& target,
+                                                     SQLite::Statement& s,
+                                                     int64_t since,
+                                                     unsigned int maxResults)
   {
     Json::Value changes = Json::arrayValue;
     int64_t last = since;
 
     while (changes.size() < maxResults && s.Step())
     {
-      int64_t seq = s.ColumnInt(0);
+      int64_t seq = s.ColumnInt64(0);
       ResourceType resourceType = static_cast<ResourceType>(s.ColumnInt(1));
       std::string publicId = s.ColumnString(2);
 
@@ -748,7 +746,7 @@ namespace Orthanc
                         "SELECT * FROM ExportedResources WHERE seq>? ORDER BY seq LIMIT ?");
     s.BindInt64(0, since);
     s.BindInt(1, maxResults + 1);
-    GetExportedResources(target, s, since, maxResults);
+    GetExportedResourcesInternal(target, s, since, maxResults);
   }
 
     
@@ -756,7 +754,7 @@ namespace Orthanc
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT * FROM ExportedResources ORDER BY seq DESC LIMIT 1");
-    GetExportedResources(target, s, 0, 1);
+    GetExportedResourcesInternal(target, s, 0, 1);
   }
 
 

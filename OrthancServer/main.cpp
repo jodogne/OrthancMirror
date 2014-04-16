@@ -30,7 +30,7 @@
  **/
 
 
-#include "OrthancRestApi.h"
+#include "OrthancRestApi/OrthancRestApi.h"
 
 #include <fstream>
 #include <glog/logging.h>

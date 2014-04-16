@@ -252,7 +252,7 @@ namespace Orthanc
 
     if (!configuration_->isMember("DicomModalities"))
     {
-      throw OrthancException("");
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
 
     const Json::Value& modalities = (*configuration_) ["DicomModalities"];
@@ -260,14 +260,30 @@ namespace Orthanc
         !modalities.isMember(name) ||
         (modalities[name].size() != 3 && modalities[name].size() != 4))
     {
-      throw OrthancException("");
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
 
     try
     {
       aet = modalities[name].get(0u, "").asString();
       address = modalities[name].get(1u, "").asString();
-      port = modalities[name].get(2u, "").asInt();
+
+      const Json::Value& portValue = modalities[name].get(2u, "");
+      try
+      {
+        port = portValue.asInt();
+      }
+      catch (std::runtime_error /* error inside JsonCpp */)
+      {
+        try
+        {
+          port = boost::lexical_cast<int>(portValue.asString());
+        }
+        catch (boost::bad_lexical_cast)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);
+        }
+      }
 
       if (modalities[name].size() == 4)
       {
@@ -278,9 +294,11 @@ namespace Orthanc
         manufacturer = ModalityManufacturer_Generic;
       }
     }
-    catch (...)
+    catch (OrthancException& e)
     {
-      throw OrthancException("Badly formatted DICOM modality");
+      LOG(ERROR) << "Syntax error in the definition of modality \"" << name 
+                 << "\". Please check your configuration file.";
+      throw e;
     }
   }
 
@@ -295,43 +313,52 @@ namespace Orthanc
 
     if (!configuration_->isMember("OrthancPeers"))
     {
-      throw OrthancException("");
-    }
-
-    const Json::Value& modalities = (*configuration_) ["OrthancPeers"];
-    if (modalities.type() != Json::objectValue ||
-        !modalities.isMember(name))
-    {
-      throw OrthancException("");
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
 
     try
     {
-      url = modalities[name].get(0u, "").asString();
-
-      if (modalities[name].size() == 1)
-      {
-        username = "";
-        password = "";
-      }
-      else if (modalities[name].size() == 3)
-      {
-        username = modalities[name].get(1u, "").asString();
-        password = modalities[name].get(2u, "").asString();
-      }
-      else
+      const Json::Value& modalities = (*configuration_) ["OrthancPeers"];
+      if (modalities.type() != Json::objectValue ||
+          !modalities.isMember(name))
       {
         throw OrthancException(ErrorCode_BadFileFormat);
       }
-    }
-    catch (...)
-    {
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
 
-    if (url.size() != 0 && url[url.size() - 1] != '/')
+      try
+      {
+        url = modalities[name].get(0u, "").asString();
+
+        if (modalities[name].size() == 1)
+        {
+          username = "";
+          password = "";
+        }
+        else if (modalities[name].size() == 3)
+        {
+          username = modalities[name].get(1u, "").asString();
+          password = modalities[name].get(2u, "").asString();
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);
+        }
+      }
+      catch (...)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      if (url.size() != 0 && url[url.size() - 1] != '/')
+      {
+        url += '/';
+      }
+    }
+    catch (OrthancException& e)
     {
-      url += '/';
+      LOG(ERROR) << "Syntax error in the definition of peer \"" << name 
+                 << "\". Please check your configuration file.";
+      throw e;
     }
   }
 
@@ -436,7 +463,7 @@ namespace Orthanc
        However, for some unknown reason, some versions of Boost do not
        make the proper path resolution when "baseDirectory" is an
        absolute path. So, a hack is used below.
-     **/
+    **/
 
     if (relative.is_absolute())
     {
