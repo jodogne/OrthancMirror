@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -30,7 +30,7 @@
  **/
 
 
-#include "OrthancRestApi.h"
+#include "OrthancRestApi/OrthancRestApi.h"
 
 #include <fstream>
 #include <glog/logging.h>
@@ -46,6 +46,7 @@
 #include "ServerContext.h"
 #include "OrthancFindRequestHandler.h"
 #include "OrthancMoveRequestHandler.h"
+#include "ServerToolbox.h"
 
 using namespace Orthanc;
 
@@ -131,7 +132,7 @@ public:
 
     if (!IsKnownAETitle(callingAet))
     {
-      LOG(ERROR) << "Unkwnown remote DICOM modality AET: \"" << callingAet << "\"";
+      LOG(ERROR) << "Unknown remote DICOM modality AET: \"" << callingAet << "\"";
       return false;
     }
     else
@@ -233,7 +234,7 @@ void PrintVersion(char* path)
 {
   std::cout
     << path << " " << ORTHANC_VERSION << std::endl
-    << "Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege (Belgium) " << std::endl
+    << "Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege (Belgium) " << std::endl
     << "Licensing GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>, with OpenSSL exception." << std::endl
     << "This is free software: you are free to change and redistribute it." << std::endl
     << "There is NO WARRANTY, to the extent permitted by law." << std::endl
@@ -285,6 +286,11 @@ int main(int argc, char* argv[])
       std::string configurationSample;
       GetFileResource(configurationSample, EmbeddedResources::CONFIGURATION_SAMPLE);
 
+#if defined(_WIN32)
+      // Replace UNIX newlines with DOS newlines 
+      boost::replace_all(configurationSample, "\n", "\r\n");
+#endif
+
       std::string target = std::string(argv[i]).substr(9);
       std::ofstream f(target.c_str());
       f << configurationSample;
@@ -328,6 +334,7 @@ int main(int argc, char* argv[])
     LOG(WARNING) << "Index directory: " << indexDirectory;
 
     context.SetCompressionEnabled(GetGlobalBoolParameter("StorageCompression", false));
+    context.SetStoreMD5ForAttachments(GetGlobalBoolParameter("StoreMD5ForAttachments", true));
 
     std::list<std::string> luaScripts;
     GetGlobalListOfStringsParameter(luaScripts, "LuaScripts");
@@ -397,9 +404,6 @@ int main(int argc, char* argv[])
         httpServer.SetSslEnabled(false);
       }
 
-      LOG(WARNING) << "DICOM server listening on port: " << dicomServer.GetPortNumber();
-      LOG(WARNING) << "HTTP server listening on port: " << httpServer.GetPortNumber();
-
 #if ORTHANC_STANDALONE == 1
       httpServer.RegisterHandler(new EmbeddedResourceHttpHandler("/app", EmbeddedResources::ORTHANC_EXPLORER));
 #else
@@ -408,9 +412,26 @@ int main(int argc, char* argv[])
 
       httpServer.RegisterHandler(new OrthancRestApi(context));
 
-      // GO !!!
-      httpServer.Start();
-      dicomServer.Start();
+      // GO !!! Start the requested servers
+      if (GetGlobalBoolParameter("HttpServerEnabled", true))
+      {
+        httpServer.Start();
+        LOG(WARNING) << "HTTP server listening on port: " << httpServer.GetPortNumber();
+      }
+      else
+      {
+        LOG(WARNING) << "The HTTP server is disabled";
+      }
+
+      if (GetGlobalBoolParameter("DicomServerEnabled", true))
+      {
+        dicomServer.Start();
+        LOG(WARNING) << "DICOM server listening on port: " << dicomServer.GetPortNumber();
+      }
+      else
+      {
+        LOG(WARNING) << "The DICOM server is disabled";
+      }
 
 
       {
@@ -438,7 +459,7 @@ int main(int argc, char* argv[])
       LOG(WARNING) << "Orthanc has started";
       Toolbox::ServerBarrier();
 
-      // Stop
+      // We're done
       LOG(WARNING) << "Orthanc is stopping";
     }
 
@@ -456,6 +477,8 @@ int main(int argc, char* argv[])
   }
 
   OrthancFinalize();
+
+  LOG(WARNING) << "Orthanc has stopped";
 
   return status;
 }

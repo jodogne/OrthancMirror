@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -42,21 +42,36 @@ namespace Orthanc
                                                         size_t size,
                                                         FileContentType type)
   {
+    std::string md5;
+
+    if (storeMD5_)
+    {
+      Toolbox::ComputeMD5(md5, data, size);
+    }
+
     switch (compressionType_)
     {
     case CompressionType_None:
     {
       std::string uuid = storage_.Create(data, size);
-      return FileInfo(uuid, type, size);
+      return FileInfo(uuid, type, size, md5);
     }
 
     case CompressionType_Zlib:
     {
       std::string compressed;
       zlib_.Compress(compressed, data, size);
+
+      std::string compressedMD5;
+      
+      if (storeMD5_)
+      {
+        Toolbox::ComputeMD5(compressedMD5, compressed);
+      }
+
       std::string uuid = storage_.Create(compressed);
-      return FileInfo(uuid, type, size, 
-                      CompressionType_Zlib, compressed.size());
+      return FileInfo(uuid, type, size, md5,
+                      CompressionType_Zlib, compressed.size(), compressedMD5);
     }
 
     default:

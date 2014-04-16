@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -41,6 +41,7 @@ namespace Orthanc
 {
   static boost::mutex enumerationsMutex_;
   static Toolbox::EnumerationDictionary<MetadataType> dictMetadataType_;
+  static Toolbox::EnumerationDictionary<FileContentType> dictContentType_;
 
   void InitializeServerEnumerations()
   {
@@ -53,6 +54,9 @@ namespace Orthanc
     dictMetadataType_.Add(MetadataType_ModifiedFrom, "ModifiedFrom");
     dictMetadataType_.Add(MetadataType_AnonymizedFrom, "AnonymizedFrom");
     dictMetadataType_.Add(MetadataType_LastUpdate, "LastUpdate");
+
+    dictContentType_.Add(FileContentType_Dicom, "dicom");
+    dictContentType_.Add(FileContentType_DicomAsJson, "dicom-as-json");
   }
 
   void RegisterUserMetadata(int metadata,
@@ -81,6 +85,34 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(enumerationsMutex_);
     return dictMetadataType_.Translate(str);
+  }
+
+  void RegisterUserContentType(int contentType,
+                               const std::string& name)
+  {
+    boost::mutex::scoped_lock lock(enumerationsMutex_);
+
+    if (contentType < static_cast<int>(FileContentType_StartUser) ||
+        contentType > static_cast<int>(FileContentType_EndUser))
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    dictContentType_.Add(static_cast<FileContentType>(contentType), name);
+  }
+
+  std::string EnumerationToString(FileContentType type)
+  {
+    // This function MUST return a "std::string" and not "const
+    // char*", as the result is not a static string
+    boost::mutex::scoped_lock lock(enumerationsMutex_);
+    return dictContentType_.Translate(type);
+  }
+
+  FileContentType StringToContentType(const std::string& str)
+  {
+    boost::mutex::scoped_lock lock(enumerationsMutex_);
+    return dictContentType_.Translate(str);
   }
 
   std::string GetBasePath(ResourceType type,
@@ -250,6 +282,9 @@ namespace Orthanc
       
       case ModalityManufacturer_MedInria:
         return "MedInria";
+
+      case ModalityManufacturer_Dcm4Chee:
+        return "Dcm4Chee";
       
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -302,6 +337,10 @@ namespace Orthanc
     else if (manufacturer == "MedInria")
     {
       return ModalityManufacturer_MedInria;
+    }
+    else if (manufacturer == "Dcm4Chee")
+    {
+      return ModalityManufacturer_Dcm4Chee;
     }
     else
     {

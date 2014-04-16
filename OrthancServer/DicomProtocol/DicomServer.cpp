@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -36,6 +36,7 @@
 #include "../../Core/Toolbox.h"
 #include "../../Core/Uuid.h"
 #include "../Internals/CommandDispatcher.h"
+#include "../OrthancInitialization.h"
 #include "EmbeddedResources.h"
 
 #include <boost/thread.hpp>
@@ -94,7 +95,7 @@ namespace Orthanc
 #endif
 
 
-  void DicomServer::ServerThread(DicomServer* server)
+  void DicomServer::InitializeDictionary()
   {
     /* Disable "gethostbyaddr" (which results in memory leaks) and use raw IP addresses */
     dcmDisableGethostbyaddr.set(OFTrue);
@@ -148,7 +149,11 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
       }
     }
+  }
 
+
+  void DicomServer::ServerThread(DicomServer* server)
+  {
     /* initialize network, i.e. create an instance of T_ASC_Network*. */
     T_ASC_Network *net;
     OFCondition cond = ASC_initializeNetwork
@@ -400,4 +405,16 @@ namespace Orthanc
 
     bagOfDispatchers_.StopAll();
   }
+
+  bool DicomServer::IsMyAETitle(const std::string& aet) const
+  {
+    if (!HasCalledApplicationEntityTitleCheck())
+    {
+      // OK, no check on the AET.
+      return true;
+    }
+
+    return Orthanc::IsSameAETitle(aet, GetApplicationEntityTitle());
+  }
+
 }

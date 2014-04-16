@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -45,13 +45,30 @@ namespace Orthanc
   class StorageAccessor : boost::noncopyable
   {
   protected:
+    bool storeMD5_;
+
     virtual FileInfo WriteInternal(const void* data,
                                    size_t size,
                                    FileContentType type) = 0;
 
   public:
+    StorageAccessor()
+    {
+      storeMD5_ = true;
+    }
+
     virtual ~StorageAccessor()
     {
+    }
+
+    void SetStoreMD5(bool storeMD5)
+    {
+      storeMD5_ = storeMD5;
+    }
+
+    bool IsStoreMD5() const
+    {
+      return storeMD5_;
     }
 
     FileInfo Write(const void* data,

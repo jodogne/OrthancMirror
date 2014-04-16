@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -163,6 +163,9 @@ namespace Orthanc
     void SetProtectedPatient(const std::string& publicId,
                              bool isProtected);
 
+    void GetChildren(std::list<std::string>& result,
+                     const std::string& publicId);
+
     void GetChildInstances(std::list<std::string>& result,
                            const std::string& publicId);
 
@@ -177,8 +180,12 @@ namespace Orthanc
                         const std::string& publicId,
                         MetadataType type);
 
-    bool ListAvailableMetadata(std::list<MetadataType>& target,
+    void ListAvailableMetadata(std::list<MetadataType>& target,
                                const std::string& publicId);
+
+    void ListAvailableAttachments(std::list<FileContentType>& target,
+                                  const std::string& publicId,
+                                  ResourceType expectedType);
 
     bool LookupParent(std::string& target,
                       const std::string& publicId);
@@ -214,20 +221,10 @@ namespace Orthanc
     void LookupTagValue(std::list<std::string>& result,
                         const std::string& value);
 
+    StoreStatus AddAttachment(const FileInfo& attachment,
+                              const std::string& publicId);
 
-    // TODO IS IT USEFUL???
-    void LookupTagValue(std::set<std::string>& result,
-                        DicomTag tag,
-                        const std::string& value,
-                        ResourceType type);
-
-    // TODO IS IT USEFUL???
-    void LookupTagValue(std::set<std::string>& result,
-                        DicomTag tag,
-                        const std::string& value);
-
-    // TODO IS IT USEFUL???
-    void LookupTagValue(std::set<std::string>& result,
-                        const std::string& value);
+    void DeleteAttachment(const std::string& publicId,
+                          FileContentType type);
   };
 }
