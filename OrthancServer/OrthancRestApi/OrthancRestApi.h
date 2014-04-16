@@ -59,6 +59,8 @@ namespace Orthanc
 
     void RegisterArchive();
 
+    void RegisterRadiotherapy();
+
   public:
     OrthancRestApi(ServerContext& context);
 
