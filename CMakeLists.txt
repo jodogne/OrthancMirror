@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.8)
 project(Orthanc)
 
 # Version of the build, should always be "mainline" except in release branches
-set(ORTHANC_VERSION "mainline")
+set(ORTHANC_VERSION "0.7.4")
 
 
 #####################################################################
