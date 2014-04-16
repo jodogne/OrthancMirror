@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -49,6 +49,9 @@
 #include "HttpOutput.h"
 #include "mongoose.h"
 
+#if ORTHANC_SSL_ENABLED == 1
+#include <openssl/opensslv.h>
+#endif
 
 #define ORTHANC_REALM "Orthanc Secure Area"
 
@@ -129,7 +132,7 @@ namespace Orthanc
     void Clear()
     {
       for (Content::iterator it = content_.begin();
-           it != content_.end(); it++)
+           it != content_.end(); ++it)
       {
         delete *it;
       }
@@ -138,7 +141,7 @@ namespace Orthanc
     Content::iterator Find(const std::string& filename)
     {
       for (Content::iterator it = content_.begin();
-           it != content_.end(); it++)
+           it != content_.end(); ++it)
       {
         if ((*it)->GetFilename() == filename)
         {
@@ -254,7 +257,7 @@ namespace Orthanc
   HttpHandler* MongooseServer::FindHandler(const UriComponents& forUri) const
   {
     for (Handlers::const_iterator it = 
-           handlers_.begin(); it != handlers_.end(); it++) 
+           handlers_.begin(); it != handlers_.end(); ++it) 
     {
       if ((*it)->IsServedUri(forUri))
       {
@@ -570,7 +573,7 @@ namespace Orthanc
   {
     if (event == MG_NEW_REQUEST) 
     {
-      MongooseServer* that = (MongooseServer*) (request->user_data);
+      MongooseServer* that = reinterpret_cast<MongooseServer*>(request->user_data);
       MongooseOutput output(connection);
 
       // Check remote calls
@@ -751,6 +754,16 @@ namespace Orthanc
     ssl_ = false;
     port_ = 8000;
     filter_ = NULL;
+
+#if ORTHANC_SSL_ENABLED == 1
+    // Check for the Heartbleed exploit
+    // https://en.wikipedia.org/wiki/OpenSSL#Heartbleed_bug
+    if (OPENSSL_VERSION_NUMBER <  0x1000107fL  /* openssl-1.0.1g */ &&
+        OPENSSL_VERSION_NUMBER >= 0x1000100fL  /* openssl-1.0.1 */) 
+    {
+      LOG(WARNING) << "This version of OpenSSL is vulnerable to the Heartbleed exploit";
+    }
+#endif
   }
 
 
@@ -816,7 +829,7 @@ namespace Orthanc
     Stop();
 
     for (Handlers::iterator it = 
-           handlers_.begin(); it != handlers_.end(); it++)
+           handlers_.begin(); it != handlers_.end(); ++it)
     {
       delete *it;
     }

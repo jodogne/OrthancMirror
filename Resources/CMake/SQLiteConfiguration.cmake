@@ -1,4 +1,4 @@
-if (STATIC_BUILD OR NOT USE_DYNAMIC_SQLITE)
+if (STATIC_BUILD OR NOT USE_SYSTEM_SQLITE)
   SET(SQLITE_SOURCES_DIR ${CMAKE_BINARY_DIR}/sqlite-amalgamation-3071300)
   DownloadPackage(
     "5fbeff9645ab035a1f580e90b279a16d"
@@ -36,7 +36,7 @@ else()
 
   IF (${SQLITE_VERSION_NUMBER} LESS 3007000)
     # "sqlite3_create_function_v2" is not defined in SQLite < 3.7.0
-    message(FATAL_ERROR "SQLite version must be above 3.7.0. Please set the CMake variable USE_DYNAMIC_SQLITE to OFF.")
+    message(FATAL_ERROR "SQLite version must be above 3.7.0. Please set the CMake variable USE_SYSTEM_SQLITE to OFF.")
   ENDIF()
 
   link_libraries(sqlite3)

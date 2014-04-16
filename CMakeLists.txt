@@ -11,27 +11,31 @@ set(ORTHANC_VERSION "mainline")
 #####################################################################
 
 # Parameters of the build
-SET(STATIC_BUILD ON CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")
+SET(STATIC_BUILD OFF CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")
 SET(STANDALONE_BUILD ON CACHE BOOL "Standalone build (all the resources are embedded, necessary for releases)")
 SET(ENABLE_SSL ON CACHE BOOL "Include support for SSL")
-SET(BUILD_UNIT_TESTS ON CACHE BOOL "Build the unit tests")
 SET(BUILD_CLIENT_LIBRARY ON CACHE BOOL "Build the client library")
-SET(DCMTK_DICTIONARY_DIR "/usr/share/dcmtk" CACHE PATH "Directory containing the DCMTK dictionaries \"dicom.dic\" and \"private.dic\" (ignored in standalone builds)") 
+SET(DCMTK_DICTIONARY_DIR "" CACHE PATH "Directory containing the DCMTK dictionaries \"dicom.dic\" and \"private.dic\" (only when using system version of DCMTK)") 
+SET(ALLOW_DOWNLOADS OFF CACHE BOOL "Allow CMake to download packages")
+SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
 
 # Advanced parameters to fine-tune linking against system libraries
-SET(USE_DYNAMIC_JSONCPP OFF CACHE BOOL "Use the dynamic version of JsonCpp")
-SET(USE_DYNAMIC_GOOGLE_LOG ON CACHE BOOL "Use the dynamic version of Google Log")
-SET(USE_DYNAMIC_GOOGLE_TEST ON CACHE BOOL "Use the dynamic version of Google Test")
-SET(USE_DYNAMIC_SQLITE ON CACHE BOOL "Use the dynamic version of SQLite")
-SET(USE_DYNAMIC_MONGOOSE OFF CACHE BOOL "Use the dynamic version of Mongoose")
-SET(USE_DYNAMIC_LUA OFF CACHE BOOL "Use the dynamic version of Lua")
-SET(DEBIAN_USE_GTEST_SOURCE_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
+SET(USE_SYSTEM_JSONCPP ON CACHE BOOL "Use the system version of JsonCpp")
+SET(USE_SYSTEM_GOOGLE_LOG ON CACHE BOOL "Use the system version of Google Log")
+SET(USE_SYSTEM_GOOGLE_TEST ON CACHE BOOL "Use the system version of Google Test")
+SET(USE_SYSTEM_SQLITE ON CACHE BOOL "Use the system version of SQLite")
+SET(USE_SYSTEM_MONGOOSE ON CACHE BOOL "Use the system version of Mongoose")
+SET(USE_SYSTEM_LUA ON CACHE BOOL "Use the system version of Lua")
+SET(USE_SYSTEM_DCMTK ON CACHE BOOL "Use the system version of DCMTK")
+SET(USE_SYSTEM_BOOST ON CACHE BOOL "Use the system version of Boost")
+SET(USE_SYSTEM_LIBPNG ON CACHE BOOL "Use the system version of LibPng")
+SET(USE_SYSTEM_CURL ON CACHE BOOL "Use the system version of LibCurl")
+SET(USE_SYSTEM_OPENSSL ON CACHE BOOL "Use the system version of OpenSSL")
+SET(USE_SYSTEM_ZLIB ON CACHE BOOL "Use the system version of ZLib")
 
-mark_as_advanced(USE_DYNAMIC_JSONCPP)
-mark_as_advanced(USE_DYNAMIC_GOOGLE_LOG)
-mark_as_advanced(USE_DYNAMIC_GOOGLE_TEST)
-mark_as_advanced(USE_DYNAMIC_SQLITE)
-mark_as_advanced(DEBIAN_USE_GTEST_SOURCE_PACKAGE)
+# Distribution-specific settings
+SET(USE_GTEST_DEBIAN_SOURCE_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
+mark_as_advanced(USE_GTEST_DEBIAN_SOURCE_PACKAGE)
 
 # Some basic inclusions
 include(CheckIncludeFiles)
@@ -63,6 +67,16 @@ SET(THIRD_PARTY_SOURCES
   )
 
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/BoostConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/DcmtkConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/MongooseConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/ZlibConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/SQLiteConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/JsonCppConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibPngConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/LuaConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibCurlConfiguration.cmake)
+
 
 if (${ENABLE_SSL})
   add_definitions(-DORTHANC_SSL_ENABLED=1)
@@ -70,16 +84,6 @@ if (${ENABLE_SSL})
 else()
   add_definitions(-DORTHANC_SSL_ENABLED=0)
 endif()
-
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/BoostConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/DcmtkConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/MongooseConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/ZlibConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/SQLiteConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/JsonCppConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibCurlConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibPngConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/LuaConfiguration.cmake)
 
 
 
@@ -90,6 +94,7 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/LuaConfiguration.cmake)
 # Prepare the embedded files
 set(EMBEDDED_FILES
   PREPARE_DATABASE ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/PrepareDatabase.sql
+  UPGRADE_DATABASE_3_TO_4 ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/Upgrade3To4.sql
   CONFIGURATION_SAMPLE ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Configuration.json
   LUA_TOOLBOX ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Toolbox.lua
   )
@@ -202,15 +207,23 @@ add_library(ServerLibrary
   OrthancServer/Internals/MoveScp.cpp
   OrthancServer/Internals/StoreScp.cpp
   OrthancServer/OrthancInitialization.cpp
-  OrthancServer/OrthancRestApi.cpp
+  OrthancServer/OrthancRestApi/OrthancRestAnonymizeModify.cpp
+  OrthancServer/OrthancRestApi/OrthancRestApi.cpp
+  OrthancServer/OrthancRestApi/OrthancRestArchive.cpp
+  OrthancServer/OrthancRestApi/OrthancRestChanges.cpp
+  OrthancServer/OrthancRestApi/OrthancRestModalities.cpp
+  OrthancServer/OrthancRestApi/OrthancRestResources.cpp
+  OrthancServer/OrthancRestApi/OrthancRestSystem.cpp
   OrthancServer/ServerIndex.cpp
   OrthancServer/ToDcmtkBridge.cpp
   OrthancServer/DatabaseWrapper.cpp
   OrthancServer/ServerContext.cpp
   OrthancServer/ServerEnumerations.cpp
   OrthancServer/ServerToolbox.cpp
+  OrthancServer/OrthancFindRequestHandler.cpp
+  OrthancServer/OrthancMoveRequestHandler.cpp
 
-  OrthancServer/RadiotherapyRestApi.cpp
+  #OrthancServer/RadiotherapyRestApi.cpp
   )
 
 # Ensure autogenerated code is built before building ServerLibrary
@@ -228,37 +241,43 @@ endif()
 
 install(
   TARGETS Orthanc
-  RUNTIME DESTINATION bin
+  RUNTIME DESTINATION sbin
   )
 
 
 
 #####################################################################
-## Build the unit tests if required
+## Build the unit tests
 #####################################################################
 
-if (BUILD_UNIT_TESTS)
-  add_definitions(-DORTHANC_BUILD_UNIT_TESTS=1)
-  include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
-  add_executable(UnitTests
-    ${GTEST_SOURCES}
-    UnitTests/FileStorage.cpp
-    UnitTests/MemoryCache.cpp
-    UnitTests/Png.cpp
-    UnitTests/RestApi.cpp
-    UnitTests/SQLite.cpp
-    UnitTests/SQLiteChromium.cpp
-    UnitTests/ServerIndex.cpp
-    UnitTests/Versions.cpp
-    UnitTests/Zip.cpp
-    UnitTests/Lua.cpp
-    UnitTests/main.cpp
-    )
-  target_link_libraries(UnitTests ServerLibrary CoreLibrary)
+if (UNIT_TESTS_WITH_HTTP_CONNEXIONS)
+  add_definitions(-DUNIT_TESTS_WITH_HTTP_CONNEXIONS=1)
+else()
+  add_definitions(-DUNIT_TESTS_WITH_HTTP_CONNEXIONS=0)
+endif()
 
-  if (${OPENSSL_SOURCES_LENGTH} GREATER 0)
-    target_link_libraries(UnitTests OpenSSL)
-  endif()
+add_definitions(-DORTHANC_BUILD_UNIT_TESTS=1)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
+add_executable(UnitTests
+  ${GTEST_SOURCES}
+  UnitTestsSources/DicomMap.cpp
+  UnitTestsSources/FileStorage.cpp
+  UnitTestsSources/MemoryCache.cpp
+  UnitTestsSources/Png.cpp
+  UnitTestsSources/RestApi.cpp
+  UnitTestsSources/SQLite.cpp
+  UnitTestsSources/SQLiteChromium.cpp
+  UnitTestsSources/ServerIndexTests.cpp
+  UnitTestsSources/Versions.cpp
+  UnitTestsSources/Zip.cpp
+  UnitTestsSources/Lua.cpp
+  UnitTestsSources/MultiThreading.cpp
+  UnitTestsSources/UnitTestsMain.cpp
+  )
+target_link_libraries(UnitTests ServerLibrary CoreLibrary)
+
+if (${OPENSSL_SOURCES_LENGTH} GREATER 0)
+  target_link_libraries(UnitTests OpenSSL)
 endif()
 
 

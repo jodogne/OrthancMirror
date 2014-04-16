@@ -12,7 +12,6 @@
 #include "../Core/Uuid.h"
 #include "../OrthancServer/FromDcmtkBridge.h"
 #include "../OrthancServer/OrthancInitialization.h"
-#include "../Core/MultiThreading/SharedMessageQueue.h"
 
 using namespace Orthanc;
 
@@ -31,6 +30,8 @@ TEST(Uuid, Test)
   ASSERT_FALSE(Toolbox::IsUuid(""));
   ASSERT_FALSE(Toolbox::IsUuid("012345678901234567890123456789012345"));
   ASSERT_TRUE(Toolbox::IsUuid("550e8400-e29b-41d4-a716-446655440000"));
+  ASSERT_FALSE(Toolbox::IsUuid("550e8400-e29b-41d4-a716-44665544000_"));
+  ASSERT_FALSE(Toolbox::IsUuid("01234567890123456789012345678901234_"));
   ASSERT_FALSE(Toolbox::StartsWithUuid("550e8400-e29b-41d4-a716-44665544000"));
   ASSERT_TRUE(Toolbox::StartsWithUuid("550e8400-e29b-41d4-a716-446655440000"));
   ASSERT_TRUE(Toolbox::StartsWithUuid("550e8400-e29b-41d4-a716-446655440000 ok"));
@@ -48,9 +49,63 @@ TEST(Toolbox, IsSHA1)
   Toolbox::ComputeSHA1(s, "The quick brown fox jumps over the lazy dog");
   ASSERT_TRUE(Toolbox::IsSHA1(s));
   ASSERT_EQ("2fd4e1c6-7a2d28fc-ed849ee1-bb76e739-1b93eb12", s);
+
+  ASSERT_FALSE(Toolbox::IsSHA1("b5ed549f-956400ce-69a8c063-bf5b78be-2732a4b_"));
 }
 
+static void StringToVector(std::vector<uint8_t>& v,
+                           const std::string& s)
+{
+  v.resize(s.size());
+  for (size_t i = 0; i < s.size(); i++)
+    v[i] = s[i];
+}
+
+
 TEST(Zlib, Basic)
+{
+  std::string s = Toolbox::GenerateUuid();
+  s = s + s + s + s;
+ 
+  std::string compressed, compressed2;
+  ZlibCompressor c;
+  c.Compress(compressed, s);
+
+  std::vector<uint8_t> v, vv;
+  StringToVector(v, s);
+  c.Compress(compressed2, v);
+  ASSERT_EQ(compressed, compressed2);
+
+  std::string uncompressed;
+  c.Uncompress(uncompressed, compressed);
+  ASSERT_EQ(s.size(), uncompressed.size());
+  ASSERT_EQ(0, memcmp(&s[0], &uncompressed[0], s.size()));
+
+  StringToVector(vv, compressed);
+  c.Uncompress(uncompressed, vv);
+  ASSERT_EQ(s.size(), uncompressed.size());
+  ASSERT_EQ(0, memcmp(&s[0], &uncompressed[0], s.size()));
+}
+
+
+TEST(Zlib, Level)
+{
+  std::string s = Toolbox::GenerateUuid();
+  s = s + s + s + s;
+ 
+  std::string compressed, compressed2;
+  ZlibCompressor c;
+  c.SetCompressionLevel(9);
+  c.Compress(compressed, s);
+
+  c.SetCompressionLevel(0);
+  c.Compress(compressed2, s);
+
+  ASSERT_TRUE(compressed.size() < compressed2.size());
+}
+
+
+TEST(Zlib, DISABLED_Corrupted)  // Disabled because it may result in a crash
 {
   std::string s = Toolbox::GenerateUuid();
   s = s + s + s + s;
@@ -59,26 +114,33 @@ TEST(Zlib, Basic)
   ZlibCompressor c;
   c.Compress(compressed, s);
 
-  std::string uncompressed;
-  c.Uncompress(uncompressed, compressed);
+  compressed[compressed.size() - 1] = 'a';
+  std::string u;
 
-  ASSERT_EQ(s.size(), uncompressed.size());
-  ASSERT_EQ(0, memcmp(&s[0], &uncompressed[0], s.size()));
+  ASSERT_THROW(c.Uncompress(u, compressed), OrthancException);
 }
+
 
 TEST(Zlib, Empty)
 {
   std::string s = "";
+  std::vector<uint8_t> v, vv;
  
-  std::string compressed;
+  std::string compressed, compressed2;
   ZlibCompressor c;
   c.Compress(compressed, s);
+  c.Compress(compressed2, v);
+  ASSERT_EQ(compressed, compressed2);
 
   std::string uncompressed;
   c.Uncompress(uncompressed, compressed);
+  ASSERT_EQ(0u, uncompressed.size());
 
+  StringToVector(vv, compressed);
+  c.Uncompress(uncompressed, vv);
   ASSERT_EQ(0u, uncompressed.size());
 }
+
 
 TEST(ParseGetQuery, Basic)
 {
@@ -127,6 +189,10 @@ TEST(DicomFormat, Tag)
   t = FromDcmtkBridge::ParseTag("0020-e040");
   ASSERT_EQ(0x0020, t.GetGroup());
   ASSERT_EQ(0xe040, t.GetElement());
+
+  // Test ==() and !=() operators
+  ASSERT_TRUE(DICOM_TAG_PATIENT_ID == DicomTag(0x0010, 0x0020));
+  ASSERT_FALSE(DICOM_TAG_PATIENT_ID != DicomTag(0x0010, 0x0020));
 }
 
 
@@ -166,6 +232,10 @@ TEST(Uri, SplitUriComponents)
   ASSERT_THROW(Toolbox::SplitUriComponents(c, ""), OrthancException);
   ASSERT_THROW(Toolbox::SplitUriComponents(c, "a"), OrthancException);
   ASSERT_THROW(Toolbox::SplitUriComponents(c, "/coucou//coucou"), OrthancException);
+
+  c.clear();
+  c.push_back("test");
+  ASSERT_EQ("/", Toolbox::FlattenUri(c, 10));
 }
 
 
@@ -259,7 +329,10 @@ TEST(Toolbox, Base64)
 {
   ASSERT_EQ("", Toolbox::EncodeBase64(""));
   ASSERT_EQ("YQ==", Toolbox::EncodeBase64("a"));
-  ASSERT_EQ("SGVsbG8gd29ybGQ=", Toolbox::EncodeBase64("Hello world"));
+
+  const std::string hello = "SGVsbG8gd29ybGQ=";
+  ASSERT_EQ(hello, Toolbox::EncodeBase64("Hello world"));
+  ASSERT_EQ("Hello world", Toolbox::DecodeBase64(hello));
 }
 
 TEST(Toolbox, PathToExecutable)
@@ -274,6 +347,25 @@ TEST(Toolbox, StripSpaces)
   ASSERT_EQ("coucou", Toolbox::StripSpaces("    coucou   \t  \r   \n  "));
   ASSERT_EQ("cou   cou", Toolbox::StripSpaces("    cou   cou    \n  "));
   ASSERT_EQ("c", Toolbox::StripSpaces("    \n\t c\r    \n  "));
+}
+
+TEST(Toolbox, Case)
+{
+  std::string s = "CoU";
+  std::string ss;
+
+  Toolbox::ToUpperCase(ss, s);
+  ASSERT_EQ("COU", ss);
+  Toolbox::ToLowerCase(ss, s);
+  ASSERT_EQ("cou", ss); 
+
+  s = "CoU";
+  Toolbox::ToUpperCase(s);
+  ASSERT_EQ("COU", s);
+
+  s = "CoU";
+  Toolbox::ToLowerCase(s);
+  ASSERT_EQ("cou", s);
 }
 
 
@@ -387,6 +479,13 @@ TEST(EnumerationDictionary, ServerEnumerations)
   ASSERT_EQ("IndexInSeries", EnumerationToString(MetadataType_Instance_IndexInSeries));
   ASSERT_EQ("LastUpdate", EnumerationToString(MetadataType_LastUpdate));
 
+  ASSERT_EQ(ResourceType_Patient, StringToResourceType("PATienT"));
+  ASSERT_EQ(ResourceType_Study, StringToResourceType("STudy"));
+  ASSERT_EQ(ResourceType_Series, StringToResourceType("SeRiEs"));
+  ASSERT_EQ(ResourceType_Instance, StringToResourceType("INStance"));
+  ASSERT_EQ(ResourceType_Instance, StringToResourceType("IMagE"));
+  ASSERT_THROW(StringToResourceType("heLLo"), OrthancException);
+
   ASSERT_EQ(2047, StringToMetadata("2047"));
   ASSERT_THROW(StringToMetadata("Ceci est un test"), OrthancException);
   ASSERT_THROW(RegisterUserMetadata(128, ""), OrthancException); // too low (< 1024)
@@ -396,59 +495,6 @@ TEST(EnumerationDictionary, ServerEnumerations)
   ASSERT_EQ(2047, StringToMetadata("Ceci est un test"));
 }
 
-
-
-class DynamicInteger : public IDynamicObject
-{
-private:
-  int value_;
-
-public:
-  DynamicInteger(int value) : value_(value)
-  {
-  }
-
-  int GetValue() const
-  {
-    return value_;
-  }
-};
-
-
-TEST(SharedMessageQueue, Basic)
-{
-  SharedMessageQueue q;
-  ASSERT_TRUE(q.WaitEmpty(0));
-  q.Enqueue(new DynamicInteger(10));
-  ASSERT_FALSE(q.WaitEmpty(1));
-  q.Enqueue(new DynamicInteger(20));
-  q.Enqueue(new DynamicInteger(30));
-  q.Enqueue(new DynamicInteger(40));
-
-  std::auto_ptr<DynamicInteger> i;
-  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(10, i->GetValue());
-  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(20, i->GetValue());
-  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(30, i->GetValue());
-  ASSERT_FALSE(q.WaitEmpty(1));
-  i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(40, i->GetValue());
-  ASSERT_TRUE(q.WaitEmpty(0));
-  ASSERT_EQ(NULL, q.Dequeue(1));
-}
-
-
-TEST(SharedMessageQueue, Clean)
-{
-  try
-  {
-    SharedMessageQueue q;
-    q.Enqueue(new DynamicInteger(10));
-    q.Enqueue(new DynamicInteger(20));  
-    throw OrthancException("Nope");
-  }
-  catch (OrthancException&)
-  {
-  }
-}
 
 
 TEST(Toolbox, WriteFile)
@@ -480,45 +526,101 @@ TEST(Toolbox, WriteFile)
 }
 
 
-TEST(Toolbox, Split)
+TEST(Toolbox, Wildcard)
 {
-  std::vector<std::string> s;
-  
-  Toolbox::Split(s, "", '|'); 
-  ASSERT_EQ(0, s.size());
-  
-  Toolbox::Split(s, "aaaaa", '|'); 
-  ASSERT_EQ(1, s.size());
-  ASSERT_EQ("aaaaa", s[0]);
-  
-  Toolbox::Split(s, "aaa|aa", '|'); 
-  ASSERT_EQ(2, s.size());
-  ASSERT_EQ("aaa", s[0]);
-  ASSERT_EQ("aa", s[1]);
-  
-  Toolbox::Split(s, "a|aa|ab", '|'); 
-  ASSERT_EQ(3, s.size());
-  ASSERT_EQ("a", s[0]);
-  ASSERT_EQ("aa", s[1]);
-  ASSERT_EQ("ab", s[2]);
-  
-  Toolbox::Split(s, "||ab", '|'); 
-  ASSERT_EQ(3, s.size());
-  ASSERT_EQ("", s[0]);
-  ASSERT_EQ("", s[1]);
-  ASSERT_EQ("ab", s[2]);
-  
-  Toolbox::Split(s, "|", '|'); 
-  ASSERT_EQ(2, s.size());
-  ASSERT_EQ("", s[0]);
-  ASSERT_EQ("", s[1]);
-  
-  Toolbox::Split(s, "||", '|'); 
-  ASSERT_EQ(3, s.size());
-  ASSERT_EQ("", s[0]);
-  ASSERT_EQ("", s[1]);
-  ASSERT_EQ("", s[2]);
+  ASSERT_EQ("abcd", Toolbox::WildcardToRegularExpression("abcd"));
+  ASSERT_EQ("ab.*cd", Toolbox::WildcardToRegularExpression("ab*cd"));
+  ASSERT_EQ("ab..cd", Toolbox::WildcardToRegularExpression("ab??cd"));
+  ASSERT_EQ("a.*b.c.*d", Toolbox::WildcardToRegularExpression("a*b?c*d"));
+  ASSERT_EQ("a\\{b\\]", Toolbox::WildcardToRegularExpression("a{b]"));
 }
+
+
+TEST(Toolbox, Tokenize)
+{
+  std::vector<std::string> t;
+  
+  Toolbox::TokenizeString(t, "", ','); 
+  ASSERT_EQ(1, t.size());
+  ASSERT_EQ("", t[0]);
+  
+  Toolbox::TokenizeString(t, "abc", ','); 
+  ASSERT_EQ(1, t.size());
+  ASSERT_EQ("abc", t[0]);
+  
+  Toolbox::TokenizeString(t, "ab,cd,ef,", ','); 
+  ASSERT_EQ(4, t.size());
+  ASSERT_EQ("ab", t[0]);
+  ASSERT_EQ("cd", t[1]);
+  ASSERT_EQ("ef", t[2]);
+  ASSERT_EQ("", t[3]);
+  
+  Toolbox::TokenizeString(t, "", '|'); 
+  ASSERT_EQ(1, t.size());
+  
+  Toolbox::TokenizeString(t, "aaaaa", '|'); 
+  ASSERT_EQ(1, t.size());
+  ASSERT_EQ("aaaaa", t[0]);
+  
+  Toolbox::TokenizeString(t, "aaa|aa", '|'); 
+  ASSERT_EQ(2, t.size());
+  ASSERT_EQ("aaa", t[0]);
+  ASSERT_EQ("aa", t[1]);
+  
+  Toolbox::TokenizeString(t, "a|aa|ab", '|'); 
+  ASSERT_EQ(3, t.size());
+  ASSERT_EQ("a", t[0]);
+  ASSERT_EQ("aa", t[1]);
+  ASSERT_EQ("ab", t[2]);
+  
+  Toolbox::TokenizeString(t, "||ab", '|'); 
+  ASSERT_EQ(3, t.size());
+  ASSERT_EQ("", t[0]);
+  ASSERT_EQ("", t[1]);
+  ASSERT_EQ("ab", t[2]);
+  
+  Toolbox::TokenizeString(t, "|", '|'); 
+  ASSERT_EQ(2, t.size());
+  ASSERT_EQ("", t[0]);
+  ASSERT_EQ("", t[1]);
+  
+  Toolbox::TokenizeString(t, "||", '|'); 
+  ASSERT_EQ(3, t.size());
+  ASSERT_EQ("", t[0]);
+  ASSERT_EQ("", t[1]);
+  ASSERT_EQ("", t[2]);
+}
+
+
+#if defined(__linux)
+#include <endian.h>
+#endif
+
+TEST(Toolbox, Endianness)
+{
+  // Parts of this test come from Adam Conrad
+  // http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=728822#5
+
+#if defined(_WIN32)
+  ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
+
+#elif defined(__linux)
+
+#if !defined(__BYTE_ORDER)
+#  error Support your platform here
+#endif
+
+#  if __BYTE_ORDER == __BIG_ENDIAN
+  ASSERT_EQ(Endianness_Big, Toolbox::DetectEndianness());
+#  else // __LITTLE_ENDIAN
+  ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
+#  endif
+
+#else
+#error Support your platform here
+#endif
+}
+
 
 
 int main(int argc, char **argv)

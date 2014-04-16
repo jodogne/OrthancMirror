@@ -1,8 +1,8 @@
-if (${STATIC_BUILD})
-  SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.0.1c)
+if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
+  SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.0.1g)
   DownloadPackage(
-    "ae412727c8c15b67880aef7bd2999b2e"
-    "www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/openssl-1.0.1c.tar.gz"
+    "de62b43dfcd858e66a74bee1c834e959"
+    "www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/openssl-1.0.1g.tar.gz"
     "${OPENSSL_SOURCES_DIR}")
 
   if (NOT EXISTS "${OPENSSL_SOURCES_DIR}/include/PATCHED")
@@ -180,18 +180,18 @@ if (${STATIC_BUILD})
     ${OPENSSL_SOURCES_DIR}/crypto/des/ncbc_enc.c
     )
 
-  #if (${MSVC})
-  if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+  if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     set_source_files_properties(
       ${OPENSSL_SOURCES}
       PROPERTIES COMPILE_DEFINITIONS
       "OPENSSL_SYSNAME_WIN32;SO_WIN32;WIN32_LEAN_AND_MEAN;L_ENDIAN")
 
-  elseif (${CMAKE_SYSTEM_VERSION} STREQUAL "LinuxStandardBase")
+  elseif ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
     execute_process(
       COMMAND patch ui_openssl.c ${CMAKE_SOURCE_DIR}/Resources/Patches/openssl-lsb.diff
       WORKING_DIRECTORY ${OPENSSL_SOURCES_DIR}/crypto/ui
       )
+
   endif()
 
   #add_library(OpenSSL STATIC ${OPENSSL_SOURCES})

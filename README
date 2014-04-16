@@ -5,9 +5,9 @@ Orthanc - A Lightweight, RESTful DICOM Server
 General Information
 -------------------
 
-General information about this software can be found on our Google
-Code hosting page:
-http://code.google.com/p/orthanc/
+General information about this software can be found on its official
+Website:
+http://www.orthanc-server.com/
 
 The instructions for building Orthanc can be found in the "INSTALL"
 file.

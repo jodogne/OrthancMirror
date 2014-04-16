@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -104,6 +104,12 @@ namespace Orthanc
 
       case ErrorCode_NetworkProtocol:
         return "Error in the network protocol";
+
+      case ErrorCode_CorruptedFile:
+        return "Corrupted file (inconsistent MD5 hash)";
+
+      case ErrorCode_InexistentTag:
+        return "Inexistent tag";
 
       case ErrorCode_Custom:
       default:

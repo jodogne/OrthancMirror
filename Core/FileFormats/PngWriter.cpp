@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -174,15 +174,18 @@ namespace Orthanc
       {
       case PixelFormat_Grayscale16:
       case PixelFormat_SignedGrayscale16:
-        png_set_rows(pimpl_->png_, pimpl_->info_, &pimpl_->rows_[0]);
-
+      {
+        int transforms = 0;
         if (Toolbox::DetectEndianness() == Endianness_Little)
         {
-          // Must swap the endianness!!
-          png_write_png(pimpl_->png_, pimpl_->info_, PNG_TRANSFORM_SWAP_ENDIAN, NULL);
+          transforms = PNG_TRANSFORM_SWAP_ENDIAN;
         }
 
+        png_set_rows(pimpl_->png_, pimpl_->info_, &pimpl_->rows_[0]);
+        png_write_png(pimpl_->png_, pimpl_->info_, transforms, NULL);
+
         break;
+      }
 
       default:
         png_write_image(pimpl_->png_, &pimpl_->rows_[0]);
@@ -228,7 +231,7 @@ namespace Orthanc
                              png_bytep data, 
                              png_size_t size)
   {
-    ChunkedBuffer* buffer = (ChunkedBuffer*) png_get_io_ptr(png_ptr);
+    ChunkedBuffer* buffer = reinterpret_cast<ChunkedBuffer*>(png_get_io_ptr(png_ptr));
     buffer->AddChunk(reinterpret_cast<const char*>(data), size);
   }
 

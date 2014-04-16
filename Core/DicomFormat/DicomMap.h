@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -35,7 +35,9 @@
 #include "DicomTag.h"
 #include "DicomValue.h"
 #include "DicomString.h"
+#include "../Enumerations.h"
 
+#include <set>
 #include <map>
 #include <json/json.h>
 
@@ -63,6 +65,8 @@ namespace Orthanc
     void ExtractTags(DicomMap& source,
                      const DicomTag* tags,
                      size_t count) const;
+   
+    static void GetMainDicomTagsInternal(std::set<DicomTag>& result, ResourceType level);
 
   public:
     DicomMap()
@@ -148,5 +152,13 @@ namespace Orthanc
 
     void CopyTagIfExists(const DicomMap& source,
                          const DicomTag& tag);
+
+    static bool IsMainDicomTag(const DicomTag& tag, ResourceType level);
+
+    static bool IsMainDicomTag(const DicomTag& tag);
+
+    static void GetMainDicomTags(std::set<DicomTag>& result, ResourceType level);
+
+    static void GetMainDicomTags(std::set<DicomTag>& result);
   };
 }

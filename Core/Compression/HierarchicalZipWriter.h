@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -93,6 +93,16 @@ namespace Orthanc
     HierarchicalZipWriter(const char* path);
 
     ~HierarchicalZipWriter();
+
+    void SetZip64(bool isZip64)
+    {
+      writer_.SetZip64(isZip64);
+    }
+
+    bool IsZip64() const
+    {
+      return writer_.IsZip64();
+    }
 
     void SetCompressionLevel(uint8_t level)
     {

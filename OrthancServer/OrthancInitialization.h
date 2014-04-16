@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -37,6 +37,7 @@
 #include <json/json.h>
 #include <stdint.h>
 #include "../Core/HttpServer/MongooseServer.h"
+#include "DicomProtocol/DicomUserConnection.h"
 #include "ServerEnumerations.h"
 
 namespace Orthanc
@@ -54,11 +55,17 @@ namespace Orthanc
   bool GetGlobalBoolParameter(const std::string& parameter,
                               bool defaultValue);
 
-  void GetDicomModality(const std::string& name,
-                        std::string& aet,
-                        std::string& address,
-                        int& port,
-                        ModalityManufacturer& manufacturer);
+  void GetDicomModalityUsingSymbolicName(const std::string& name,
+                                         std::string& aet,
+                                         std::string& address,
+                                         int& port,
+                                         ModalityManufacturer& manufacturer);
+
+  bool LookupDicomModalityUsingAETitle(const std::string& aet,
+                                       std::string& symbolicName,
+                                       std::string& address,
+                                       int& port,
+                                       ModalityManufacturer& manufacturer);
 
   void GetOrthancPeer(const std::string& name,
                       std::string& url,
@@ -78,4 +85,15 @@ namespace Orthanc
 
   void GetGlobalListOfStringsParameter(std::list<std::string>& target,
                                        const std::string& key);
+
+  void ConnectToModalityUsingSymbolicName(DicomUserConnection& connection,
+                                          const std::string& name);
+
+  void ConnectToModalityUsingAETitle(DicomUserConnection& connection,
+                                     const std::string& aet);
+
+  bool IsKnownAETitle(const std::string& aet);
+
+  bool IsSameAETitle(const std::string& aet1,
+                     const std::string& aet2);
 }

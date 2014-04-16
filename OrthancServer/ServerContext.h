@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -95,6 +95,11 @@ namespace Orthanc
 
     void RemoveFile(const std::string& fileUuid);
 
+    bool AddAttachment(const std::string& resourceId,
+                       FileContentType attachmentType,
+                       const void* data,
+                       size_t size);
+
     StoreStatus Store(const char* dicomInstance,
                       size_t dicomSize,
                       const DicomMap& dicomSummary,
@@ -122,9 +127,9 @@ namespace Orthanc
         return Store(resultPublicId, &dicomContent[0], dicomContent.size());
     }
 
-    void AnswerFile(RestApiOutput& output,
-                    const std::string& instancePublicId,
-                    FileContentType content);
+    void AnswerDicomFile(RestApiOutput& output,
+                         const std::string& instancePublicId,
+                         FileContentType content);
 
     void ReadJson(Json::Value& result,
                   const std::string& instancePublicId);
@@ -132,7 +137,8 @@ namespace Orthanc
     // TODO CACHING MECHANISM AT THIS POINT
     void ReadFile(std::string& result,
                   const std::string& instancePublicId,
-                  FileContentType content);
+                  FileContentType content,
+                  bool uncompressIfNeeded = true);
 
     // TODO IMPLEMENT MULTITHREADING FOR THIS METHOD
     ParsedDicomFile& GetDicomFile(const std::string& instancePublicId);
@@ -147,6 +153,13 @@ namespace Orthanc
     LuaContext& GetLuaContext()
     {
       return lua_;
+    }
+
+    void SetStoreMD5ForAttachments(bool storeMD5);
+
+    bool IsStoreMD5ForAttachments() const
+    {
+      return accessor_.IsStoreMD5();
     }
   };
 }

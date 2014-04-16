@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * Permission is hereby granted, free of charge, to any person
@@ -57,6 +57,10 @@ int main()
           for (unsigned int l = 0; l < series.GetInstanceCount(); l++)
           {
             std::cout << "      Instance: " << series.GetInstance(l).GetId() << std::endl;
+
+            // Load and display some raw DICOM tag
+            series.GetInstance(l).LoadTagContent("0020-000d");
+            std::cout << "        SOP instance UID: " << series.GetInstance(l).GetLoadedTagContent() << std::endl;
           }
         }
       }
@@ -66,7 +70,7 @@ int main()
 
     return 0;
   }
-  catch (OrthancClient::OrthancClientException e)
+  catch (OrthancClient::OrthancClientException& e)
   {
     std::cerr << "EXCEPTION: [" << e.What() << "]" << std::endl;
     return -1;

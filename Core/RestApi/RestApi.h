@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -48,12 +48,27 @@ namespace Orthanc
       friend class RestApi;
 
     private:
-      RestApiOutput* output_;
-      RestApi* context_;
-      const HttpHandler::Arguments* httpHeaders_;
-      const RestApiPath::Components* uriComponents_;
-      const UriComponents* trailing_;
-      const UriComponents* fullUri_;
+      RestApiOutput& output_;
+      RestApi& context_;
+      const HttpHandler::Arguments& httpHeaders_;
+      const RestApiPath::Components& uriComponents_;
+      const UriComponents& trailing_;
+      const UriComponents& fullUri_;
+
+      Call(RestApiOutput& output,
+           RestApi& context,
+           const HttpHandler::Arguments& httpHeaders,
+           const RestApiPath::Components& uriComponents,
+           const UriComponents& trailing,
+           const UriComponents& fullUri) :
+        output_(output),
+        context_(context),
+        httpHeaders_(httpHeaders),
+        uriComponents_(uriComponents),
+        trailing_(trailing),
+        fullUri_(fullUri)
+      {
+      }
 
     protected:
       static bool ParseJsonRequestInternal(Json::Value& result,
@@ -62,44 +77,44 @@ namespace Orthanc
     public:
       RestApiOutput& GetOutput()
       {
-        return *output_;
+        return output_;
       }
 
       RestApi& GetContext()
       {
-        return *context_;
+        return context_;
       }
     
       const UriComponents& GetFullUri() const
       {
-        return *fullUri_;
+        return fullUri_;
       }
     
       const UriComponents& GetTrailingUri() const
       {
-        return *trailing_;
+        return trailing_;
       }
 
       std::string GetUriComponent(const std::string& name,
                                   const std::string& defaultValue) const
       {
-        return HttpHandler::GetArgument(*uriComponents_, name, defaultValue);
+        return HttpHandler::GetArgument(uriComponents_, name, defaultValue);
       }
 
       std::string GetHttpHeader(const std::string& name,
                                 const std::string& defaultValue) const
       {
-        return HttpHandler::GetArgument(*httpHeaders_, name, defaultValue);
+        return HttpHandler::GetArgument(httpHeaders_, name, defaultValue);
       }
 
       const HttpHandler::Arguments& GetHttpHeaders() const
       {
-        return *httpHeaders_;
+        return httpHeaders_;
       }
 
       void ParseCookies(HttpHandler::Arguments& result) const
       {
-        HttpHandler::ParseCookies(result, *httpHeaders_);
+        HttpHandler::ParseCookies(result, httpHeaders_);
       }
 
       virtual bool ParseJsonRequest(Json::Value& result) const = 0;
@@ -111,34 +126,59 @@ namespace Orthanc
       friend class RestApi;
 
     private:
-      const HttpHandler::Arguments* getArguments_;
+      const HttpHandler::Arguments& getArguments_;
 
     public:
+      GetCall(RestApiOutput& output,
+              RestApi& context,
+              const HttpHandler::Arguments& httpHeaders,
+              const RestApiPath::Components& uriComponents,
+              const UriComponents& trailing,
+              const UriComponents& fullUri,
+              const HttpHandler::Arguments& getArguments) :
+        Call(output, context, httpHeaders, uriComponents, trailing, fullUri),
+        getArguments_(getArguments)
+      {
+      }
+
       std::string GetArgument(const std::string& name,
                               const std::string& defaultValue) const
       {
-        return HttpHandler::GetArgument(*getArguments_, name, defaultValue);
+        return HttpHandler::GetArgument(getArguments_, name, defaultValue);
       }
 
       bool HasArgument(const std::string& name) const
       {
-        return getArguments_->find(name) != getArguments_->end();
+        return getArguments_.find(name) != getArguments_.end();
       }
 
       virtual bool ParseJsonRequest(Json::Value& result) const;
     };
+
 
     class PutCall : public Call
     {
       friend class RestApi;
 
     private:
-      const std::string* data_;
+      const std::string& data_;
 
     public:
+      PutCall(RestApiOutput& output,
+              RestApi& context,
+              const HttpHandler::Arguments& httpHeaders,
+              const RestApiPath::Components& uriComponents,
+              const UriComponents& trailing,
+              const UriComponents& fullUri,
+              const std::string& data) :
+        Call(output, context, httpHeaders, uriComponents, trailing, fullUri),
+        data_(data)
+      {
+      }
+
       const std::string& GetPutBody() const
       {
-        return *data_;
+        return data_;
       }
 
       virtual bool ParseJsonRequest(Json::Value& result) const
@@ -152,12 +192,24 @@ namespace Orthanc
       friend class RestApi;
 
     private:
-      const std::string* data_;
+      const std::string& data_;
 
     public:
+      PostCall(RestApiOutput& output,
+               RestApi& context,
+               const HttpHandler::Arguments& httpHeaders,
+               const RestApiPath::Components& uriComponents,
+               const UriComponents& trailing,
+               const UriComponents& fullUri,
+               const std::string& data) :
+        Call(output, context, httpHeaders, uriComponents, trailing, fullUri),
+        data_(data)
+      {
+      }
+
       const std::string& GetPostBody() const
       {
-        return *data_;
+        return data_;
       }
 
       virtual bool ParseJsonRequest(Json::Value& result) const
@@ -169,6 +221,16 @@ namespace Orthanc
     class DeleteCall : public Call
     {
     public:
+      DeleteCall(RestApiOutput& output,
+                 RestApi& context,
+                 const HttpHandler::Arguments& httpHeaders,
+                 const RestApiPath::Components& uriComponents,
+                 const UriComponents& trailing,
+                 const UriComponents& fullUri) :
+        Call(output, context, httpHeaders, uriComponents, trailing, fullUri)
+      {
+      }
+
       virtual bool ParseJsonRequest(Json::Value& result) const
       {
         result.clear();

@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -30,8 +30,7 @@
  **/
 
 
-//#include "OrthancRestApi.h"
-#include "RadiotherapyRestApi.h"
+#include "OrthancRestApi/OrthancRestApi.h"
 
 #include <fstream>
 #include <glog/logging.h>
@@ -42,20 +41,24 @@
 #include "../Core/Lua/LuaFunctionCall.h"
 #include "../Core/DicomFormat/DicomArray.h"
 #include "DicomProtocol/DicomServer.h"
+#include "DicomProtocol/DicomUserConnection.h"
 #include "OrthancInitialization.h"
 #include "ServerContext.h"
+#include "OrthancFindRequestHandler.h"
+#include "OrthancMoveRequestHandler.h"
+#include "ServerToolbox.h"
 
 using namespace Orthanc;
 
 
 
-class MyStoreRequestHandler : public IStoreRequestHandler
+class OrthancStoreRequestHandler : public IStoreRequestHandler
 {
 private:
   ServerContext& server_;
 
 public:
-  MyStoreRequestHandler(ServerContext& context) :
+  OrthancStoreRequestHandler(ServerContext& context) :
     server_(context)
   {
   }
@@ -73,47 +76,6 @@ public:
 };
 
 
-class MyFindRequestHandler : public IFindRequestHandler
-{
-private:
-  ServerContext& context_;
-
-public:
-  MyFindRequestHandler(ServerContext& context) :
-    context_(context)
-  {
-  }
-
-  virtual void Handle(const DicomMap& input,
-                      DicomFindAnswers& answers)
-  {
-    LOG(WARNING) << "Find-SCU request received";
-    DicomArray a(input);
-    a.Print(stdout);
-  }
-};
-
-
-class MyMoveRequestHandler : public IMoveRequestHandler
-{
-private:
-  ServerContext& context_;
-
-public:
-  MyMoveRequestHandler(ServerContext& context) :
-    context_(context)
-  {
-  }
-
-public:
-  virtual IMoveRequestIterator* Handle(const std::string& target,
-                                       const DicomMap& input)
-  {
-    LOG(WARNING) << "Move-SCU request received";
-    return NULL;
-  }
-};
-
 
 class MyDicomServerFactory : 
   public IStoreRequestHandlerFactory,
@@ -130,21 +92,53 @@ public:
 
   virtual IStoreRequestHandler* ConstructStoreRequestHandler()
   {
-    return new MyStoreRequestHandler(context_);
+    return new OrthancStoreRequestHandler(context_);
   }
 
   virtual IFindRequestHandler* ConstructFindRequestHandler()
   {
-    return new MyFindRequestHandler(context_);
+    return new OrthancFindRequestHandler(context_);
   }
 
   virtual IMoveRequestHandler* ConstructMoveRequestHandler()
   {
-    return new MyMoveRequestHandler(context_);
+    return new OrthancMoveRequestHandler(context_);
   }
 
   void Done()
   {
+  }
+};
+
+
+class OrthancApplicationEntityFilter : public IApplicationEntityFilter
+{
+public:
+  virtual bool IsAllowedConnection(const std::string& /*callingIp*/,
+                                   const std::string& /*callingAet*/)
+  {
+    return true;
+  }
+
+  virtual bool IsAllowedRequest(const std::string& /*callingIp*/,
+                                const std::string& callingAet,
+                                DicomRequestType type)
+  {
+    if (type == DicomRequestType_Store)
+    {
+      // Incoming store requests are always accepted, even from unknown AET
+      return true;
+    }
+
+    if (!IsKnownAETitle(callingAet))
+    {
+      LOG(ERROR) << "Unknown remote DICOM modality AET: \"" << callingAet << "\"";
+      return false;
+    }
+    else
+    {
+      return true;
+    }
   }
 };
 
@@ -240,7 +234,7 @@ void PrintVersion(char* path)
 {
   std::cout
     << path << " " << ORTHANC_VERSION << std::endl
-    << "Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege (Belgium) " << std::endl
+    << "Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege (Belgium) " << std::endl
     << "Licensing GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>, with OpenSSL exception." << std::endl
     << "This is free software: you are free to change and redistribute it." << std::endl
     << "There is NO WARRANTY, to the extent permitted by law." << std::endl
@@ -292,6 +286,11 @@ int main(int argc, char* argv[])
       std::string configurationSample;
       GetFileResource(configurationSample, EmbeddedResources::CONFIGURATION_SAMPLE);
 
+#if defined(_WIN32)
+      // Replace UNIX newlines with DOS newlines 
+      boost::replace_all(configurationSample, "\n", "\r\n");
+#endif
+
       std::string target = std::string(argv[i]).substr(9);
       std::ofstream f(target.c_str());
       f << configurationSample;
@@ -335,11 +334,12 @@ int main(int argc, char* argv[])
     LOG(WARNING) << "Index directory: " << indexDirectory;
 
     context.SetCompressionEnabled(GetGlobalBoolParameter("StorageCompression", false));
+    context.SetStoreMD5ForAttachments(GetGlobalBoolParameter("StoreMD5ForAttachments", true));
 
     std::list<std::string> luaScripts;
     GetGlobalListOfStringsParameter(luaScripts, "LuaScripts");
     for (std::list<std::string>::const_iterator
-           it = luaScripts.begin(); it != luaScripts.end(); it++)
+           it = luaScripts.begin(); it != luaScripts.end(); ++it)
     {
       std::string path = InterpretStringParameterAsPath(*it);
       LOG(WARNING) << "Installing the Lua scripts from: " << path;
@@ -370,16 +370,17 @@ int main(int argc, char* argv[])
 
     MyDicomServerFactory serverFactory(context);
     
-
     {
       // DICOM server
       DicomServer dicomServer;
+      OrthancApplicationEntityFilter dicomFilter;
       dicomServer.SetCalledApplicationEntityTitleCheck(GetGlobalBoolParameter("DicomCheckCalledAet", false));
       dicomServer.SetStoreRequestHandlerFactory(serverFactory);
-      //dicomServer.SetMoveRequestHandlerFactory(serverFactory);
-      //dicomServer.SetFindRequestHandlerFactory(serverFactory);
+      dicomServer.SetMoveRequestHandlerFactory(serverFactory);
+      dicomServer.SetFindRequestHandlerFactory(serverFactory);
       dicomServer.SetPortNumber(GetGlobalIntegerParameter("DicomPort", 4242));
       dicomServer.SetApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
+      dicomServer.SetApplicationEntityFilter(dicomFilter);
 
       // HTTP server
       MyIncomingHttpRequestFilter httpFilter(context);
@@ -403,26 +404,39 @@ int main(int argc, char* argv[])
         httpServer.SetSslEnabled(false);
       }
 
-      LOG(WARNING) << "DICOM server listening on port: " << dicomServer.GetPortNumber();
-      LOG(WARNING) << "HTTP server listening on port: " << httpServer.GetPortNumber();
-
 #if ORTHANC_STANDALONE == 1
       httpServer.RegisterHandler(new EmbeddedResourceHttpHandler("/app", EmbeddedResources::ORTHANC_EXPLORER));
 #else
       httpServer.RegisterHandler(new FilesystemHttpHandler("/app", ORTHANC_PATH "/OrthancExplorer"));
 #endif
 
-      //httpServer.RegisterHandler(new OrthancRestApi(context));
-      httpServer.RegisterHandler(new RadiotherapyRestApi(context));
+      httpServer.RegisterHandler(new OrthancRestApi(context));
 
-      // GO !!!
-      httpServer.Start();
-      dicomServer.Start();
+      // GO !!! Start the requested servers
+      if (GetGlobalBoolParameter("HttpServerEnabled", true))
+      {
+        httpServer.Start();
+        LOG(WARNING) << "HTTP server listening on port: " << httpServer.GetPortNumber();
+      }
+      else
+      {
+        LOG(WARNING) << "The HTTP server is disabled";
+      }
+
+      if (GetGlobalBoolParameter("DicomServerEnabled", true))
+      {
+        dicomServer.Start();
+        LOG(WARNING) << "DICOM server listening on port: " << dicomServer.GetPortNumber();
+      }
+      else
+      {
+        LOG(WARNING) << "The DICOM server is disabled";
+      }
 
       LOG(WARNING) << "Orthanc has started";
       Toolbox::ServerBarrier();
 
-      // Stop
+      // We're done
       LOG(WARNING) << "Orthanc is stopping";
     }
 
@@ -440,6 +454,8 @@ int main(int argc, char* argv[])
   }
 
   OrthancFinalize();
+
+  LOG(WARNING) << "Orthanc has stopped";
 
   return status;
 }

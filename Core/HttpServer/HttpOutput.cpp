@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -89,7 +89,7 @@ namespace Orthanc
     std::string s = "HTTP/1.1 200 OK\r\n";
 
     for (Header::const_iterator 
-           it = header.begin(); it != header.end(); it++)
+           it = header.begin(); it != header.end(); ++it)
     {
       s += it->first + ": " + it->second + "\r\n";
     }
@@ -144,7 +144,7 @@ namespace Orthanc
                                   const HttpHandler::Arguments& cookies)
   {
     for (HttpHandler::Arguments::const_iterator it = cookies.begin();
-         it != cookies.end(); it++)
+         it != cookies.end(); ++it)
     {
       header.push_back(std::make_pair("Set-Cookie", it->first + "=" + it->second));
     }

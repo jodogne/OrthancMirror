@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -51,7 +51,7 @@ namespace Orthanc
     result.clear();
 
     for (HttpHandler::Arguments::const_iterator 
-           it = getArguments_->begin(); it != getArguments_->end(); it++)
+           it = getArguments_.begin(); it != getArguments_.end(); ++it)
     {
       result[it->first] = it->second;
     }
@@ -63,7 +63,7 @@ namespace Orthanc
   bool RestApi::IsGetAccepted(const UriComponents& uri)
   {
     for (GetHandlers::const_iterator it = getHandlers_.begin();
-         it != getHandlers_.end(); it++)
+         it != getHandlers_.end(); ++it)
     {
       if (it->first->Match(uri))
       {
@@ -77,7 +77,7 @@ namespace Orthanc
   bool RestApi::IsPutAccepted(const UriComponents& uri)
   {
     for (PutHandlers::const_iterator it = putHandlers_.begin();
-         it != putHandlers_.end(); it++)
+         it != putHandlers_.end(); ++it)
     {
       if (it->first->Match(uri))
       {
@@ -91,7 +91,7 @@ namespace Orthanc
   bool RestApi::IsPostAccepted(const UriComponents& uri)
   {
     for (PostHandlers::const_iterator it = postHandlers_.begin();
-         it != postHandlers_.end(); it++)
+         it != postHandlers_.end(); ++it)
     {
       if (it->first->Match(uri))
       {
@@ -105,7 +105,7 @@ namespace Orthanc
   bool RestApi::IsDeleteAccepted(const UriComponents& uri)
   {
     for (DeleteHandlers::const_iterator it = deleteHandlers_.begin();
-         it != deleteHandlers_.end(); it++)
+         it != deleteHandlers_.end(); ++it)
     {
       if (it->first->Match(uri))
       {
@@ -147,25 +147,25 @@ namespace Orthanc
   RestApi::~RestApi()
   {
     for (GetHandlers::iterator it = getHandlers_.begin(); 
-         it != getHandlers_.end(); it++)
+         it != getHandlers_.end(); ++it)
     {
       delete it->first;
     } 
 
     for (PutHandlers::iterator it = putHandlers_.begin(); 
-         it != putHandlers_.end(); it++)
+         it != putHandlers_.end(); ++it)
     {
       delete it->first;
     } 
 
     for (PostHandlers::iterator it = postHandlers_.begin(); 
-         it != postHandlers_.end(); it++)
+         it != postHandlers_.end(); ++it)
     {
       delete it->first;
     } 
 
     for (DeleteHandlers::iterator it = deleteHandlers_.begin(); 
-         it != deleteHandlers_.end(); it++)
+         it != deleteHandlers_.end(); ++it)
     {
       delete it->first;
     } 
@@ -194,21 +194,13 @@ namespace Orthanc
     if (method == HttpMethod_Get)
     {
       for (GetHandlers::const_iterator it = getHandlers_.begin();
-           it != getHandlers_.end(); it++)
+           it != getHandlers_.end(); ++it)
       {
         if (it->first->Match(components, trailing, uri))
         {
           //LOG(INFO) << "REST GET call on: " << Toolbox::FlattenUri(uri);
           ok = true;
-          GetCall call;
-          call.output_ = &restOutput;
-          call.context_ = this;
-          call.httpHeaders_ = &headers;
-          call.uriComponents_ = &components;
-          call.trailing_ = &trailing;
-          call.fullUri_ = &uri;
-          
-          call.getArguments_ = &getArguments;
+          GetCall call(restOutput, *this, headers, components, trailing, uri, getArguments);
           it->second(call);
         }
       }
@@ -216,21 +208,13 @@ namespace Orthanc
     else if (method == HttpMethod_Put)
     {
       for (PutHandlers::const_iterator it = putHandlers_.begin();
-           it != putHandlers_.end(); it++)
+           it != putHandlers_.end(); ++it)
       {
         if (it->first->Match(components, trailing, uri))
         {
           //LOG(INFO) << "REST PUT call on: " << Toolbox::FlattenUri(uri);
           ok = true;
-          PutCall call;
-          call.output_ = &restOutput;
-          call.context_ = this;
-          call.httpHeaders_ = &headers;
-          call.uriComponents_ = &components;
-          call.trailing_ = &trailing;
-          call.fullUri_ = &uri;
-           
-          call.data_ = &postData;
+          PutCall call(restOutput, *this, headers, components, trailing, uri, postData);
           it->second(call);
         }
       }
@@ -238,21 +222,13 @@ namespace Orthanc
     else if (method == HttpMethod_Post)
     {
       for (PostHandlers::const_iterator it = postHandlers_.begin();
-           it != postHandlers_.end(); it++)
+           it != postHandlers_.end(); ++it)
       {
         if (it->first->Match(components, trailing, uri))
         {
           //LOG(INFO) << "REST POST call on: " << Toolbox::FlattenUri(uri);
           ok = true;
-          PostCall call;
-          call.output_ = &restOutput;
-          call.context_ = this;
-          call.httpHeaders_ = &headers;
-          call.uriComponents_ = &components;
-          call.trailing_ = &trailing;
-          call.fullUri_ = &uri;
-           
-          call.data_ = &postData;
+          PostCall call(restOutput, *this, headers, components, trailing, uri, postData);
           it->second(call);
         }
       }
@@ -260,19 +236,13 @@ namespace Orthanc
     else if (method == HttpMethod_Delete)
     {
       for (DeleteHandlers::const_iterator it = deleteHandlers_.begin();
-           it != deleteHandlers_.end(); it++)
+           it != deleteHandlers_.end(); ++it)
       {
         if (it->first->Match(components, trailing, uri))
         {
           //LOG(INFO) << "REST DELETE call on: " << Toolbox::FlattenUri(uri);
           ok = true;
-          DeleteCall call;
-          call.output_ = &restOutput;
-          call.context_ = this;
-          call.httpHeaders_ = &headers;
-          call.uriComponents_ = &components;
-          call.trailing_ = &trailing;
-          call.fullUri_ = &uri;
+          DeleteCall call(restOutput, *this, headers, components, trailing, uri);
           it->second(call);
         }
       }

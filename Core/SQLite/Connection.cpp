@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * Copyright (c) 2012 The Chromium Authors. All rights reserved.
@@ -111,7 +111,7 @@ namespace Orthanc
     {
       for (CachedStatements::iterator 
              it = cachedStatements_.begin(); 
-           it != cachedStatements_.end(); it++)
+           it != cachedStatements_.end(); ++it)
       {
         delete it->second;
       }
@@ -331,7 +331,7 @@ namespace Orthanc
       void* payload = sqlite3_user_data(rawContext);
       assert(payload != NULL);
 
-      IScalarFunction& func = *(IScalarFunction*) payload;
+      IScalarFunction& func = *reinterpret_cast<IScalarFunction*>(payload);
       func.Compute(context);
     }
 
@@ -339,7 +339,7 @@ namespace Orthanc
     static void ScalarFunctionDestroyer(void* payload)
     {
       assert(payload != NULL);
-      delete (IScalarFunction*) payload;
+      delete reinterpret_cast<IScalarFunction*>(payload);
     }
 
 

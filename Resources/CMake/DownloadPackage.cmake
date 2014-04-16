@@ -40,6 +40,15 @@ macro(DownloadPackage MD5 Url TargetDirectory)
     set(TMP_PATH "${CMAKE_SOURCE_DIR}/ThirdPartyDownloads/${TMP_FILENAME}")
     if (NOT EXISTS "${TMP_PATH}")
       message("Downloading ${Url}")
+
+      # This fixes issue 6: "I think cmake shouldn't download the
+      # packages which are not in the system, it should stop and let
+      # user know."
+      # https://code.google.com/p/orthanc/issues/detail?id=6
+      if (NOT STATIC_BUILD AND NOT ALLOW_DOWNLOADS)
+	message(FATAL_ERROR "CMake is not allowed to download from Internet. Please set the ALLOW_DOWNLOADS option to ON")
+      endif()
+
       file(DOWNLOAD "${Url}" "${TMP_PATH}" SHOW_PROGRESS EXPECTED_MD5 "${MD5}")
     else()
       message("Using local copy of ${Url}")

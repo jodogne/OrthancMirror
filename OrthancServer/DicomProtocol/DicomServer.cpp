@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -36,6 +36,7 @@
 #include "../../Core/Toolbox.h"
 #include "../../Core/Uuid.h"
 #include "../Internals/CommandDispatcher.h"
+#include "../OrthancInitialization.h"
 #include "EmbeddedResources.h"
 
 #include <boost/thread.hpp>
@@ -58,6 +59,7 @@ namespace Orthanc
   };
 
 
+#if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
   static void LoadEmbeddedDictionary(DcmDataDictionary& dictionary,
                                      EmbeddedResources::FileResourceId resource)
   {
@@ -74,7 +76,7 @@ namespace Orthanc
     }
   }
                              
-
+#else
   static void LoadExternalDictionary(DcmDataDictionary& dictionary,
                                      const std::string& directory,
                                      const std::string& filename)
@@ -89,10 +91,11 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
   }
-                             
+                            
+#endif
 
 
-  void DicomServer::ServerThread(DicomServer* server)
+  void DicomServer::InitializeDictionary()
   {
     /* Disable "gethostbyaddr" (which results in memory leaks) and use raw IP addresses */
     dcmDisableGethostbyaddr.set(OFTrue);
@@ -146,7 +149,11 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
       }
     }
+  }
 
+
+  void DicomServer::ServerThread(DicomServer* server)
+  {
     /* initialize network, i.e. create an instance of T_ASC_Network*. */
     T_ASC_Network *net;
     OFCondition cond = ASC_initializeNetwork
@@ -192,9 +199,10 @@ namespace Orthanc
   }                           
 
 
-  DicomServer::DicomServer() : pimpl_(new PImpl)
+  DicomServer::DicomServer() : 
+    pimpl_(new PImpl),
+    aet_("ANY-SCP")
   {
-    aet_ = "ANY-SCP";
     port_ = 104;
     findRequestHandlerFactory_ = NULL;
     moveRequestHandlerFactory_ = NULL;
@@ -203,6 +211,8 @@ namespace Orthanc
     checkCalledAet_ = true;
     clientTimeout_ = 30;
     isThreaded_ = true;
+    continue_ = false;
+    started_ = false;
   }
 
   DicomServer::~DicomServer()
@@ -395,4 +405,16 @@ namespace Orthanc
 
     bagOfDispatchers_.StopAll();
   }
+
+  bool DicomServer::IsMyAETitle(const std::string& aet) const
+  {
+    if (!HasCalledApplicationEntityTitleCheck())
+    {
+      // OK, no check on the AET.
+      return true;
+    }
+
+    return Orthanc::IsSameAETitle(aet, GetApplicationEntityTitle());
+  }
+
 }

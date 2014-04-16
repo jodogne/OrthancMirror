@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -30,11 +30,11 @@
  **/
 
 
-#include "DicomIntegerPixelAccessor.h"
-
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
+
+#include "DicomIntegerPixelAccessor.h"
 
 #include "../OrthancException.h"
 #include <boost/lexical_cast.hpp>

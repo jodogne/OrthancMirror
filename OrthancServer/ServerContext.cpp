@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -61,6 +61,7 @@ namespace Orthanc
     storage_(storagePath.string()),
     index_(*this, indexPath.string()),
     accessor_(storage_),
+    compressionEnabled_(false),
     provider_(*this),
     dicomCache_(provider_, DICOM_CACHE_SIZE)
   {
@@ -115,7 +116,7 @@ namespace Orthanc
     }      
 
     FileInfo dicomInfo = accessor_.Write(dicomInstance, dicomSize, FileContentType_Dicom);
-    FileInfo jsonInfo = accessor_.Write(dicomJson.toStyledString(), FileContentType_Json);
+    FileInfo jsonInfo = accessor_.Write(dicomJson.toStyledString(), FileContentType_DicomAsJson);
 
     ServerIndex::Attachments attachments;
     attachments.push_back(dicomInfo);
@@ -152,9 +153,9 @@ namespace Orthanc
   }
 
   
-  void ServerContext::AnswerFile(RestApiOutput& output,
-                                 const std::string& instancePublicId,
-                                 FileContentType content)
+  void ServerContext::AnswerDicomFile(RestApiOutput& output,
+                                      const std::string& instancePublicId,
+                                      FileContentType content)
   {
     FileInfo attachment;
     if (!index_.LookupAttachment(attachment, instancePublicId, content))
@@ -175,7 +176,7 @@ namespace Orthanc
                                const std::string& instancePublicId)
   {
     std::string s;
-    ReadFile(s, instancePublicId, FileContentType_Json);
+    ReadFile(s, instancePublicId, FileContentType_DicomAsJson);
 
     Json::Reader reader;
     if (!reader.parse(s, result))
@@ -187,7 +188,8 @@ namespace Orthanc
 
   void ServerContext::ReadFile(std::string& result,
                                const std::string& instancePublicId,
-                               FileContentType content)
+                               FileContentType content,
+                               bool uncompressIfNeeded)
   {
     FileInfo attachment;
     if (!index_.LookupAttachment(attachment, instancePublicId, content))
@@ -195,7 +197,15 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
 
-    accessor_.SetCompressionForNextOperations(attachment.GetCompressionType());
+    if (uncompressIfNeeded)
+    {
+      accessor_.SetCompressionForNextOperations(attachment.GetCompressionType());
+    }
+    else
+    {
+      accessor_.SetCompressionForNextOperations(CompressionType_None);
+    }
+
     accessor_.Read(result, attachment.GetUuid());
   }
 
@@ -228,19 +238,31 @@ namespace Orthanc
     DicomMap dicomSummary;
     FromDcmtkBridge::Convert(dicomSummary, *dicomInstance.getDataset());
 
-    DicomInstanceHasher hasher(dicomSummary);
-    resultPublicId = hasher.HashInstance();
-
-    Json::Value dicomJson;
-    FromDcmtkBridge::ToJson(dicomJson, *dicomInstance.getDataset());
-      
-    StoreStatus status = StoreStatus_Failure;
-    if (dicomSize > 0)
+    try
     {
-      status = Store(dicomBuffer, dicomSize, dicomSummary, dicomJson, "");
-    }   
+      DicomInstanceHasher hasher(dicomSummary);
+      resultPublicId = hasher.HashInstance();
 
-    return status;
+      Json::Value dicomJson;
+      FromDcmtkBridge::ToJson(dicomJson, *dicomInstance.getDataset());
+      
+      StoreStatus status = StoreStatus_Failure;
+      if (dicomSize > 0)
+      {
+        status = Store(dicomBuffer, dicomSize, dicomSummary, dicomJson, "");
+      }   
+
+      return status;
+    }
+    catch (OrthancException& e)
+    {
+      if (e.GetErrorCode() == ErrorCode_InexistentTag)
+      {
+        LogMissingRequiredTag(dicomSummary);
+      }
+
+      throw e;
+    }
   }
 
 
@@ -268,4 +290,40 @@ namespace Orthanc
     return Store(resultPublicId, dicom.GetDicom(), dicomBuffer, dicomSize);
   }
 
+  void ServerContext::SetStoreMD5ForAttachments(bool storeMD5)
+  {
+    LOG(INFO) << "Storing MD5 for attachments: " << (storeMD5 ? "yes" : "no");
+    accessor_.SetStoreMD5(storeMD5);
+  }
+
+
+  bool ServerContext::AddAttachment(const std::string& resourceId,
+                                    FileContentType attachmentType,
+                                    const void* data,
+                                    size_t size)
+  {
+    LOG(INFO) << "Adding attachment " << EnumerationToString(attachmentType) << " to resource " << resourceId;
+    
+    if (compressionEnabled_)
+    {
+      accessor_.SetCompressionForNextOperations(CompressionType_Zlib);
+    }
+    else
+    {
+      accessor_.SetCompressionForNextOperations(CompressionType_None);
+    }      
+
+    FileInfo info = accessor_.Write(data, size, attachmentType);
+    StoreStatus status = index_.AddAttachment(info, resourceId);
+
+    if (status != StoreStatus_Success)
+    {
+      storage_.Remove(info.GetUuid());
+      return false;
+    }
+    else
+    {
+      return true;
+    }
+  }
 }

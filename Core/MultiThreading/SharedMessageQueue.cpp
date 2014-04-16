@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -42,7 +42,7 @@ namespace Orthanc
 
   SharedMessageQueue::~SharedMessageQueue()
   {
-    for (Queue::iterator it = queue_.begin(); it != queue_.end(); it++)
+    for (Queue::iterator it = queue_.begin(); it != queue_.end(); ++it)
     {
       delete *it;
     }
@@ -89,7 +89,11 @@ namespace Orthanc
 
     std::auto_ptr<IDynamicObject> message(queue_.front());
     queue_.pop_front();
-    emptied_.notify_all();
+
+    if (queue_.empty())
+    {
+      emptied_.notify_all();
+    }
 
     return message.release();
   }
@@ -101,7 +105,7 @@ namespace Orthanc
     boost::mutex::scoped_lock lock(mutex_);
     
     // Wait for the queue to become empty
-    if (!queue_.empty())
+    while (!queue_.empty())
     {
       if (millisecondsTimeout == 0)
       {

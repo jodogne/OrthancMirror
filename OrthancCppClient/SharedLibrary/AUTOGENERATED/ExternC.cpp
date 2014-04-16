@@ -30,7 +30,7 @@
  **/
 
 
-#include <laaw.h>
+#include <laaw/laaw.h>
 #include <string.h>  // For strcpy() and strlen()
 #include <stdlib.h>  // For free()
 
@@ -1412,6 +1412,52 @@ this_->DiscardDicom();
         }
       }
 
+      LAAW_EXPORT_DLL_API char* LAAW_CALL_CONVENTION LAAW_EXTERNC_1710299d1c5f3b1f2b7cf3962deebbfd(void* thisObject, const char* arg0)
+      {
+        try
+        {
+          #ifdef LAAW_EXTERNC_START_FUNCTION
+          LAAW_EXTERNC_START_FUNCTION;
+          #endif
+
+          OrthancClient::Instance* this_ = static_cast<OrthancClient::Instance*>(thisObject);
+this_->LoadTagContent(reinterpret_cast< const char* >(arg0));
+
+          return NULL;
+        }
+        catch (::Laaw::LaawException& e)
+        {
+          return LAAW_EXTERNC_CopyString(e.What());
+        }
+        catch (...)
+        {
+          return LAAW_EXTERNC_CopyString("...");
+        }
+      }
+
+      LAAW_EXPORT_DLL_API char* LAAW_CALL_CONVENTION LAAW_EXTERNC_bb55aaf772ddceaadee36f4e54136bcb(const void* thisObject, const char** result)
+      {
+        try
+        {
+          #ifdef LAAW_EXTERNC_START_FUNCTION
+          LAAW_EXTERNC_START_FUNCTION;
+          #endif
+
+          const OrthancClient::Instance* this_ = static_cast<const OrthancClient::Instance*>(thisObject);
+*result = this_->GetLoadedTagContent();
+
+          return NULL;
+        }
+        catch (::Laaw::LaawException& e)
+        {
+          return LAAW_EXTERNC_CopyString(e.What());
+        }
+        catch (...)
+        {
+          return LAAW_EXTERNC_CopyString("...");
+        }
+      }
+
 
   LAAW_EXPORT_DLL_API const char* LAAW_CALL_CONVENTION LAAW_EXTERNC_GetDescription()
   {
@@ -1430,22 +1476,22 @@ this_->DiscardDicom();
 
   LAAW_EXPORT_DLL_API const char* LAAW_CALL_CONVENTION LAAW_EXTERNC_GetCopyright()
   {
-    return "(c) 2012-2013, Sebastien Jodogne, CHU of Liege";
+    return "(c) 2012-2014, Sebastien Jodogne, CHU of Liege";
   }
 
   LAAW_EXPORT_DLL_API const char* LAAW_CALL_CONVENTION LAAW_EXTERNC_GetVersion()
   {
-    return "0.6";
+    return "0.7";
   }
 
   LAAW_EXPORT_DLL_API const char* LAAW_CALL_CONVENTION LAAW_EXTERNC_GetFileVersion()
   {
-    return "0.6.0.2";
+    return "0.7.0.4";
   }
 
   LAAW_EXPORT_DLL_API const char* LAAW_CALL_CONVENTION LAAW_EXTERNC_GetFullVersion()
   {
-    return "0.6.2";
+    return "0.7.4";
   }
 
   LAAW_EXPORT_DLL_API void LAAW_CALL_CONVENTION LAAW_EXTERNC_FreeString(char* str)

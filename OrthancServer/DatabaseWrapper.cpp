@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -62,16 +62,30 @@ namespace Orthanc
 
       virtual unsigned int GetCardinality() const
       {
-        return 5;
+        return 7;
       }
 
       virtual void Compute(SQLite::FunctionContext& context)
       {
+        std::string uncompressedMD5, compressedMD5;
+
+        if (!context.IsNullValue(5))
+        {
+          uncompressedMD5 = context.GetStringValue(5);
+        }
+
+        if (!context.IsNullValue(6))
+        {
+          compressedMD5 = context.GetStringValue(6);
+        }
+
         FileInfo info(context.GetStringValue(0),
                       static_cast<FileContentType>(context.GetIntValue(1)),
                       static_cast<uint64_t>(context.GetInt64Value(2)),
+                      uncompressedMD5,
                       static_cast<CompressionType>(context.GetIntValue(3)),
-                      static_cast<uint64_t>(context.GetInt64Value(4)));
+                      static_cast<uint64_t>(context.GetInt64Value(4)),
+                      compressedMD5);
         
         listener_.SignalFileDeleted(info);
       }
@@ -85,6 +99,11 @@ namespace Orthanc
       ResourceType remainingType_;
 
     public:
+      SignalRemainingAncestor() : 
+        hasRemainingAncestor_(false)
+      {
+      }
+
       void Reset()
       {
         hasRemainingAncestor_ = false;
@@ -369,7 +388,7 @@ namespace Orthanc
     }
   }
 
-  bool DatabaseWrapper::ListAvailableMetadata(std::list<MetadataType>& target,
+  void DatabaseWrapper::ListAvailableMetadata(std::list<MetadataType>& target,
                                               int64_t id)
   {
     target.clear();
@@ -381,8 +400,6 @@ namespace Orthanc
     {
       target.push_back(static_cast<MetadataType>(s.ColumnInt(0)));
     }
-
-    return true;
   }
 
 
@@ -428,15 +445,29 @@ namespace Orthanc
   void DatabaseWrapper::AddAttachment(int64_t id,
                                       const FileInfo& attachment)
   {
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO AttachedFiles VALUES(?, ?, ?, ?, ?, ?)");
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO AttachedFiles VALUES(?, ?, ?, ?, ?, ?, ?, ?)");
     s.BindInt64(0, id);
     s.BindInt(1, attachment.GetContentType());
     s.BindString(2, attachment.GetUuid());
     s.BindInt64(3, attachment.GetCompressedSize());
     s.BindInt64(4, attachment.GetUncompressedSize());
     s.BindInt(5, attachment.GetCompressionType());
+    s.BindString(6, attachment.GetUncompressedMD5());
+    s.BindString(7, attachment.GetCompressedMD5());
     s.Run();
   }
+
+
+  void DatabaseWrapper::DeleteAttachment(int64_t id,
+                                         FileContentType attachment)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM AttachedFiles WHERE id=? AND fileType=?");
+    s.BindInt64(0, id);
+    s.BindInt(1, attachment);
+    s.Run();
+  }
+
+
 
   void DatabaseWrapper::ListAvailableAttachments(std::list<FileContentType>& result,
                                                  int64_t id)
@@ -458,7 +489,7 @@ namespace Orthanc
                                          FileContentType contentType)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-                        "SELECT uuid, uncompressedSize, compressionType, compressedSize FROM AttachedFiles WHERE id=? AND fileType=?");
+                        "SELECT uuid, uncompressedSize, compressionType, compressedSize, uncompressedMD5, compressedMD5 FROM AttachedFiles WHERE id=? AND fileType=?");
     s.BindInt64(0, id);
     s.BindInt(1, contentType);
 
@@ -470,9 +501,11 @@ namespace Orthanc
     {
       attachment = FileInfo(s.ColumnString(0),
                             contentType,
-                            s.ColumnInt(1),
+                            s.ColumnInt64(1),
+                            s.ColumnString(4),
                             static_cast<CompressionType>(s.ColumnInt(2)),
-                            s.ColumnInt(3));
+                            s.ColumnInt64(3),
+                            s.ColumnString(5));
       return true;
     }
   }
@@ -554,7 +587,7 @@ namespace Orthanc
 
     while (s.Step())
     {
-      result.push_back(s.ColumnInt(0));
+      result.push_back(s.ColumnInt64(0));
     }
   }
 
@@ -583,9 +616,9 @@ namespace Orthanc
 
     while (changes.size() < maxResults && s.Step())
     {
-      int64_t seq = s.ColumnInt(0);
+      int64_t seq = s.ColumnInt64(0);
       ChangeType changeType = static_cast<ChangeType>(s.ColumnInt(1));
-      int64_t internalId = s.ColumnInt(2);
+      int64_t internalId = s.ColumnInt64(2);
       ResourceType resourceType = static_cast<ResourceType>(s.ColumnInt(3));
       const std::string& date = s.ColumnString(4);
       std::string publicId = GetPublicId(internalId);
@@ -651,17 +684,17 @@ namespace Orthanc
   }
 
 
-  void DatabaseWrapper::GetExportedResources(Json::Value& target,
-                                             SQLite::Statement& s,
-                                             int64_t since,
-                                             unsigned int maxResults)
+  void DatabaseWrapper::GetExportedResourcesInternal(Json::Value& target,
+                                                     SQLite::Statement& s,
+                                                     int64_t since,
+                                                     unsigned int maxResults)
   {
     Json::Value changes = Json::arrayValue;
     int64_t last = since;
 
     while (changes.size() < maxResults && s.Step())
     {
-      int64_t seq = s.ColumnInt(0);
+      int64_t seq = s.ColumnInt64(0);
       ResourceType resourceType = static_cast<ResourceType>(s.ColumnInt(1));
       std::string publicId = s.ColumnString(2);
 
@@ -713,7 +746,7 @@ namespace Orthanc
                         "SELECT * FROM ExportedResources WHERE seq>? ORDER BY seq LIMIT ?");
     s.BindInt64(0, since);
     s.BindInt(1, maxResults + 1);
-    GetExportedResources(target, s, since, maxResults);
+    GetExportedResourcesInternal(target, s, since, maxResults);
   }
 
     
@@ -721,7 +754,7 @@ namespace Orthanc
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT * FROM ExportedResources ORDER BY seq DESC LIMIT 1");
-    GetExportedResources(target, s, 0, 1);
+    GetExportedResourcesInternal(target, s, 0, 1);
   }
 
 
@@ -807,7 +840,7 @@ namespace Orthanc
       db_.Execute(query);
     }
 
-    // Sanity check of the version of the database
+    // Check the version of the database
     std::string version = GetGlobalProperty(GlobalProperty_DatabaseSchemaVersion, "Unknown");
     bool ok = false;
     try
@@ -815,9 +848,24 @@ namespace Orthanc
       LOG(INFO) << "Version of the Orthanc database: " << version;
       unsigned int v = boost::lexical_cast<unsigned int>(version);
 
-      // This version of Orthanc is only compatible with version 3 of
-      // the DB schema (since Orthanc 0.3.2)
-      ok = (v == 3); 
+      /**
+       * History of the database versions:
+       *  - Version 3: from Orthanc 0.3.2 to Orthanc 0.7.2 (inclusive)
+       *  - Version 4: from Orthanc 0.7.3 (inclusive)
+       **/
+
+      // This version of Orthanc is only compatible with versions 3 of 4 of the DB schema
+      ok = (v == 3 || v == 4);
+
+      if (v == 3)
+      {
+        LOG(WARNING) << "Upgrading database version from 3 to 4";
+        std::string upgrade;
+        EmbeddedResources::GetFileResource(upgrade, EmbeddedResources::UPGRADE_DATABASE_3_TO_4);
+        db_.BeginTransaction();
+        db_.Execute(upgrade);
+        db_.CommitTransaction();
+      }
     }
     catch (boost::bad_lexical_cast&)
     {
@@ -825,6 +873,7 @@ namespace Orthanc
 
     if (!ok)
     {
+      LOG(ERROR) << "Incompatible version of the Orthanc database: " << version;
       throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
     }
 

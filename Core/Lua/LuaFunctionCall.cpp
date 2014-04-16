@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -130,7 +130,7 @@ namespace Orthanc
       Json::Value::Members members = value.getMemberNames();
 
       for (Json::Value::Members::const_iterator 
-             it = members.begin(); it != members.end(); it++)
+             it = members.begin(); it != members.end(); ++it)
       {
         // Push the index of the cell
         lua_pushstring(context_.lua_, it->c_str());

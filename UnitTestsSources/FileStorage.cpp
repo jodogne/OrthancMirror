@@ -15,6 +15,16 @@
 
 using namespace Orthanc;
 
+
+static void StringToVector(std::vector<uint8_t>& v,
+                           const std::string& s)
+{
+  v.resize(s.size());
+  for (size_t i = 0; i < s.size(); i++)
+    v[i] = s[i];
+}
+
+
 TEST(FileStorage, Basic)
 {
   FileStorage s("FileStorageUnitTests");
@@ -25,6 +35,21 @@ TEST(FileStorage, Basic)
   s.ReadFile(d, uid);
   ASSERT_EQ(d.size(), data.size());
   ASSERT_FALSE(memcmp(&d[0], &data[0], data.size()));
+  ASSERT_EQ(s.GetCompressedSize(uid), data.size());
+}
+
+TEST(FileStorage, Basic2)
+{
+  FileStorage s("FileStorageUnitTests");
+
+  std::vector<uint8_t> data;
+  StringToVector(data, Toolbox::GenerateUuid());
+  std::string uid = s.Create(data);
+  std::string d;
+  s.ReadFile(d, uid);
+  ASSERT_EQ(d.size(), data.size());
+  ASSERT_FALSE(memcmp(&d[0], &data[0], data.size()));
+  ASSERT_EQ(s.GetCompressedSize(uid), data.size());
 }
 
 TEST(FileStorage, EndToEnd)
@@ -92,6 +117,27 @@ TEST(FileStorageAccessor, NoCompression)
   accessor.Read(r, info.GetUuid());
 
   ASSERT_EQ(data, r);
+  ASSERT_EQ(CompressionType_None, info.GetCompressionType());
+  ASSERT_EQ(11u, info.GetUncompressedSize());
+  ASSERT_EQ(11u, info.GetCompressedSize());
+  ASSERT_EQ(FileContentType_Dicom, info.GetContentType());
+}
+
+
+TEST(FileStorageAccessor, NoCompression2)
+{
+  FileStorage s("FileStorageUnitTests");
+  CompressedFileStorageAccessor accessor(s);
+
+  accessor.SetCompressionForNextOperations(CompressionType_None);
+  std::vector<uint8_t> data;
+  StringToVector(data, "Hello world");
+  FileInfo info = accessor.Write(data, FileContentType_Dicom);
+  
+  std::string r;
+  accessor.Read(r, info.GetUuid());
+
+  ASSERT_EQ(0, memcmp(&r[0], &data[0], data.size()));
   ASSERT_EQ(CompressionType_None, info.GetCompressionType());
   ASSERT_EQ(11u, info.GetUncompressedSize());
   ASSERT_EQ(11u, info.GetCompressedSize());

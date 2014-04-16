@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -273,7 +273,11 @@ namespace OrthancClient
     ReadSeries();
     status_ = Status3DImage_NotTested;
     url_ = std::string(connection_.GetOrthancUrl()) + "/series/" + id_;
+
     isVoxelSizeRead_ = false;
+    voxelSizeX_ = 0;
+    voxelSizeY_ = 0;
+    voxelSizeZ_ = 0;
 
     instances_.SetThreadCount(connection.GetThreadCount());
   }
@@ -465,7 +469,7 @@ namespace OrthancClient
     }
 
     uint8_t* stackTarget = reinterpret_cast<uint8_t*>(target);
-    for (Instances::iterator it = instances.begin(); it != instances.end(); it++)
+    for (Instances::iterator it = instances.begin(); it != instances.end(); ++it)
     {
       processor.Post(new ImageDownloadCommand(*it->second, format, mode, stackTarget, lineStride));
       stackTarget += stackStride;

@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -35,6 +35,7 @@
 #include "../Core/HttpClient.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
+#include "DicomProtocol/DicomServer.h"
 #include "ServerEnumerations.h"
 
 #include <boost/lexical_cast.hpp>
@@ -45,12 +46,9 @@
 
 namespace Orthanc
 {
-  static const char* CONFIGURATION_FILE = "Configuration.json";
-
   static boost::mutex globalMutex_;
   static std::auto_ptr<Json::Value> configuration_;
   static boost::filesystem::path defaultDirectory_;
-
 
   static void ReadGlobalConfiguration(const char* configurationFile)
   {
@@ -62,51 +60,31 @@ namespace Orthanc
     {
       Toolbox::ReadFile(content, configurationFile);
       defaultDirectory_ = boost::filesystem::path(configurationFile).parent_path();
-      LOG(INFO) << "Using the configuration from: " << configurationFile;
+      LOG(WARNING) << "Using the configuration from: " << configurationFile;
     }
     else
     {
-#if 0 && ORTHANC_STANDALONE == 1 && defined(__linux)
-      // Unused anymore
-      // Under Linux, try and open "../../etc/orthanc/Configuration.json"
-      try
-      {
-        boost::filesystem::path p = Toolbox::GetDirectoryOfExecutable();
-        p = p.parent_path().parent_path();
-        p /= "etc";
-        p /= "orthanc";
-        p /= CONFIGURATION_FILE;
-          
-        Toolbox::ReadFile(content, p.string());
-        LOG(INFO) << "Using the configuration from: " << p.string();
-      }
-      catch (OrthancException&)
-      {
-        // No configuration file found, give up with empty configuration
-        LOG(INFO) << "Using the default Orthanc configuration";
-        return;
-      }
-
-#elif ORTHANC_STANDALONE == 1
+#if ORTHANC_STANDALONE == 1
       // No default path for the standalone configuration
-      LOG(INFO) << "Using the default Orthanc configuration";
+      LOG(WARNING) << "Using the default Orthanc configuration";
       return;
 
 #else
       // In a non-standalone build, we use the
-      // "Resources/Configuration.json" from the Orthanc distribution
+      // "Resources/Configuration.json" from the Orthanc source code
+
       try
       {
         boost::filesystem::path p = ORTHANC_PATH;
         p /= "Resources";
-        p /= CONFIGURATION_FILE;
+        p /= "Configuration.json";
         Toolbox::ReadFile(content, p.string());
-        LOG(INFO) << "Using the configuration from: " << p.string();
+        LOG(WARNING) << "Using the configuration from: " << p.string();
       }
       catch (OrthancException&)
       {
         // No configuration file found, give up with empty configuration
-        LOG(INFO) << "Using the default Orthanc configuration";
+        LOG(WARNING) << "Using the default Orthanc configuration";
         return;
       }
 #endif
@@ -144,10 +122,44 @@ namespace Orthanc
         {
           RegisterUserMetadata(metadata, members[i]);
         }
-        catch (OrthancException e)
+        catch (OrthancException&)
         {
           LOG(ERROR) << "Cannot register this user-defined metadata: " << info;
-          throw e;
+          throw;
+        }
+      }
+    }
+  }
+
+
+  static void RegisterUserContentType()
+  {
+    if (configuration_->isMember("UserContentType"))
+    {
+      const Json::Value& parameter = (*configuration_) ["UserContentType"];
+
+      Json::Value::Members members = parameter.getMemberNames();
+      for (size_t i = 0; i < members.size(); i++)
+      {
+        std::string info = "\"" + members[i] + "\" = " + parameter[members[i]].toStyledString();
+        LOG(INFO) << "Registering user-defined attachment type: " << info;
+
+        if (!parameter[members[i]].asBool())
+        {
+          LOG(ERROR) << "Not a number in this user-defined attachment type: " << info;
+          throw OrthancException(ErrorCode_BadParameterType);
+        }
+
+        int contentType = parameter[members[i]].asInt();
+
+        try
+        {
+          RegisterUserContentType(contentType, members[i]);
+        }
+        catch (OrthancException&)
+        {
+          LOG(ERROR) << "Cannot register this user-defined attachment type: " << info;
+          throw;
         }
       }
     }
@@ -165,6 +177,9 @@ namespace Orthanc
     HttpClient::GlobalInitialize();
 
     RegisterUserMetadata();
+    RegisterUserContentType();
+
+    DicomServer::InitializeDictionary();
   }
 
 
@@ -227,17 +242,17 @@ namespace Orthanc
 
 
 
-  void GetDicomModality(const std::string& name,
-                        std::string& aet,
-                        std::string& address,
-                        int& port,
-                        ModalityManufacturer& manufacturer)
+  void GetDicomModalityUsingSymbolicName(const std::string& name,
+                                         std::string& aet,
+                                         std::string& address,
+                                         int& port,
+                                         ModalityManufacturer& manufacturer)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
     if (!configuration_->isMember("DicomModalities"))
     {
-      throw OrthancException("");
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
 
     const Json::Value& modalities = (*configuration_) ["DicomModalities"];
@@ -245,14 +260,30 @@ namespace Orthanc
         !modalities.isMember(name) ||
         (modalities[name].size() != 3 && modalities[name].size() != 4))
     {
-      throw OrthancException("");
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
 
     try
     {
       aet = modalities[name].get(0u, "").asString();
       address = modalities[name].get(1u, "").asString();
-      port = modalities[name].get(2u, "").asInt();
+
+      const Json::Value& portValue = modalities[name].get(2u, "");
+      try
+      {
+        port = portValue.asInt();
+      }
+      catch (std::runtime_error /* error inside JsonCpp */)
+      {
+        try
+        {
+          port = boost::lexical_cast<int>(portValue.asString());
+        }
+        catch (boost::bad_lexical_cast)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);
+        }
+      }
 
       if (modalities[name].size() == 4)
       {
@@ -263,9 +294,11 @@ namespace Orthanc
         manufacturer = ModalityManufacturer_Generic;
       }
     }
-    catch (...)
+    catch (OrthancException& e)
     {
-      throw OrthancException("Badly formatted DICOM modality");
+      LOG(ERROR) << "Syntax error in the definition of modality \"" << name 
+                 << "\". Please check your configuration file.";
+      throw e;
     }
   }
 
@@ -280,43 +313,52 @@ namespace Orthanc
 
     if (!configuration_->isMember("OrthancPeers"))
     {
-      throw OrthancException("");
-    }
-
-    const Json::Value& modalities = (*configuration_) ["OrthancPeers"];
-    if (modalities.type() != Json::objectValue ||
-        !modalities.isMember(name))
-    {
-      throw OrthancException("");
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
 
     try
     {
-      url = modalities[name].get(0u, "").asString();
-
-      if (modalities[name].size() == 1)
-      {
-        username = "";
-        password = "";
-      }
-      else if (modalities[name].size() == 3)
-      {
-        username = modalities[name].get(1u, "").asString();
-        password = modalities[name].get(2u, "").asString();
-      }
-      else
+      const Json::Value& modalities = (*configuration_) ["OrthancPeers"];
+      if (modalities.type() != Json::objectValue ||
+          !modalities.isMember(name))
       {
         throw OrthancException(ErrorCode_BadFileFormat);
       }
-    }
-    catch (...)
-    {
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
 
-    if (url.size() != 0 && url[url.size() - 1] != '/')
+      try
+      {
+        url = modalities[name].get(0u, "").asString();
+
+        if (modalities[name].size() == 1)
+        {
+          username = "";
+          password = "";
+        }
+        else if (modalities[name].size() == 3)
+        {
+          username = modalities[name].get(1u, "").asString();
+          password = modalities[name].get(2u, "").asString();
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);
+        }
+      }
+      catch (...)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      if (url.size() != 0 && url[url.size() - 1] != '/')
+      {
+        url += '/';
+      }
+    }
+    catch (OrthancException& e)
     {
-      url += '/';
+      LOG(ERROR) << "Syntax error in the definition of peer \"" << name 
+                 << "\". Please check your configuration file.";
+      throw e;
     }
   }
 
@@ -421,7 +463,7 @@ namespace Orthanc
        However, for some unknown reason, some versions of Boost do not
        make the proper path resolution when "baseDirectory" is an
        absolute path. So, a hack is used below.
-     **/
+    **/
 
     if (relative.is_absolute())
     {
@@ -463,5 +505,107 @@ namespace Orthanc
     {
       target.push_back(lst[i].asString());
     }    
+  }
+
+
+  void ConnectToModalityUsingSymbolicName(DicomUserConnection& connection,
+                                          const std::string& name)
+  {
+    std::string aet, address;
+    int port;
+    ModalityManufacturer manufacturer;
+    GetDicomModalityUsingSymbolicName(name, aet, address, port, manufacturer);
+
+    LOG(WARNING) << "Connecting to remote DICOM modality: AET=" << aet << ", address=" << address << ", port=" << port;
+
+    connection.SetLocalApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
+    connection.SetDistantApplicationEntityTitle(aet);
+    connection.SetDistantHost(address);
+    connection.SetDistantPort(port);
+    connection.SetDistantManufacturer(manufacturer);
+    connection.Open();
+  }
+
+
+  bool IsSameAETitle(const std::string& aet1,
+                     const std::string& aet2)
+  {
+    if (GetGlobalBoolParameter("StrictAetComparison", false))
+    {
+      // Case-sensitive matching
+      return aet1 == aet2;
+    }
+    else
+    {
+      // Case-insensitive matching (default)
+      std::string tmp1, tmp2;
+      Toolbox::ToLowerCase(tmp1, aet1);
+      Toolbox::ToLowerCase(tmp2, aet2);
+      return tmp1 == tmp2;
+    }
+  }
+
+
+  bool LookupDicomModalityUsingAETitle(const std::string& aet,
+                                       std::string& symbolicName,
+                                       std::string& address,
+                                       int& port,
+                                       ModalityManufacturer& manufacturer)
+  {
+    std::set<std::string> modalities;
+    GetListOfDicomModalities(modalities);
+
+    for (std::set<std::string>::const_iterator 
+           it = modalities.begin(); it != modalities.end(); ++it)
+    {
+      try
+      {
+        std::string thisAet;
+        GetDicomModalityUsingSymbolicName(*it, thisAet, address, port, manufacturer);
+
+        if (IsSameAETitle(aet, thisAet))
+        {
+          return true;
+        }
+      }
+      catch (OrthancException&)
+      {
+      }
+    }
+
+    return false;
+  }
+
+
+  bool IsKnownAETitle(const std::string& aet)
+  {
+    std::string symbolicName, address;
+    int port;
+    ModalityManufacturer manufacturer;
+    
+    return LookupDicomModalityUsingAETitle(aet, symbolicName, address, port, manufacturer);
+  }
+
+
+  void ConnectToModalityUsingAETitle(DicomUserConnection& connection,
+                                     const std::string& aet)
+  {
+    std::string symbolicName, address;
+    int port;
+    ModalityManufacturer manufacturer;
+
+    if (!LookupDicomModalityUsingAETitle(aet, symbolicName, address, port, manufacturer))
+    {
+      throw OrthancException("Unknown modality: " + aet);
+    }
+
+    LOG(WARNING) << "Connecting to remote DICOM modality: AET=" << aet << ", address=" << address << ", port=" << port;
+
+    connection.SetLocalApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
+    connection.SetDistantApplicationEntityTitle(aet);
+    connection.SetDistantHost(address);
+    connection.SetDistantPort(port);
+    connection.SetDistantManufacturer(manufacturer);
+    connection.Open();
   }
 }

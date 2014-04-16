@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -238,10 +238,8 @@ namespace Orthanc
       if (server.HasMoveRequestHandlerFactory())
       {
         knownAbstractSyntaxes.push_back(UID_MOVEStudyRootQueryRetrieveInformationModel);
+        knownAbstractSyntaxes.push_back(UID_MOVEPatientRootQueryRetrieveInformationModel);
       }
-
-      const char* transferSyntaxes[] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
-      int numTransferSyntaxes = 0;
 
       cond = ASC_receiveAssociation(net, &assoc, 
                                     /*opt_maxPDU*/ ASC_DEFAULTMAXPDU, 
@@ -267,13 +265,47 @@ namespace Orthanc
 
       LOG(INFO) << "Association Received";
 
-      transferSyntaxes[0] = UID_LittleEndianExplicitTransferSyntax;
-      transferSyntaxes[1] = UID_BigEndianExplicitTransferSyntax;
-      transferSyntaxes[2] = UID_LittleEndianImplicitTransferSyntax;
-      numTransferSyntaxes = 3;
+      std::vector<const char*> transferSyntaxes;
+
+      // This is the list of the transfer syntaxes that were supported up to Orthanc 0.7.1
+      transferSyntaxes.push_back(UID_LittleEndianExplicitTransferSyntax);
+      transferSyntaxes.push_back(UID_BigEndianExplicitTransferSyntax);
+      transferSyntaxes.push_back(UID_LittleEndianImplicitTransferSyntax);
+
+      // New transfer syntaxes supported since Orthanc 0.7.2
+      transferSyntaxes.push_back(UID_DeflatedExplicitVRLittleEndianTransferSyntax); 
+      transferSyntaxes.push_back(UID_JPEGProcess1TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess2_4TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess3_5TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess6_8TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess7_9TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess10_12TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess11_13TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess14TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess15TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess16_18TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess17_19TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess20_22TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess21_23TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess24_26TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess25_27TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess28TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess29TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGProcess14SV1TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGLSLosslessTransferSyntax);
+      transferSyntaxes.push_back(UID_JPEGLSLossyTransferSyntax);
+      transferSyntaxes.push_back(UID_JPEG2000LosslessOnlyTransferSyntax);
+      transferSyntaxes.push_back(UID_JPEG2000TransferSyntax);
+      transferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionLosslessOnlyTransferSyntax);
+      transferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionTransferSyntax);
+      transferSyntaxes.push_back(UID_JPIPReferencedTransferSyntax);
+      transferSyntaxes.push_back(UID_JPIPReferencedDeflateTransferSyntax);
+      transferSyntaxes.push_back(UID_MPEG2MainProfileAtMainLevelTransferSyntax);
+      transferSyntaxes.push_back(UID_MPEG2MainProfileAtHighLevelTransferSyntax);
+      transferSyntaxes.push_back(UID_RLELosslessTransferSyntax);
 
       /* accept the Verification SOP Class if presented */
-      cond = ASC_acceptContextsWithPreferredTransferSyntaxes( assoc->params, &knownAbstractSyntaxes[0], knownAbstractSyntaxes.size(), transferSyntaxes, numTransferSyntaxes);
+      cond = ASC_acceptContextsWithPreferredTransferSyntaxes( assoc->params, &knownAbstractSyntaxes[0], knownAbstractSyntaxes.size(), &transferSyntaxes[0], transferSyntaxes.size());
       if (cond.bad())
       {
         LOG(INFO) << cond.text();
@@ -282,7 +314,7 @@ namespace Orthanc
       }
 
       /* the array of Storage SOP Class UIDs comes from dcuid.h */
-      cond = ASC_acceptContextsWithPreferredTransferSyntaxes( assoc->params, dcmAllStorageSOPClassUIDs, numberOfAllDcmStorageSOPClassUIDs, transferSyntaxes, numTransferSyntaxes);
+      cond = ASC_acceptContextsWithPreferredTransferSyntaxes( assoc->params, dcmAllStorageSOPClassUIDs, numberOfAllDcmStorageSOPClassUIDs, &transferSyntaxes[0], transferSyntaxes.size());
       if (cond.bad())
       {
         LOG(INFO) << cond.text();
@@ -293,7 +325,7 @@ namespace Orthanc
 #if ORTHANC_PROMISCUOUS == 1
       /* accept everything not known not to be a storage SOP class */
       cond = acceptUnknownContextsWithPreferredTransferSyntaxes(
-        assoc->params, transferSyntaxes, numTransferSyntaxes);
+        assoc->params, &transferSyntaxes[0], transferSyntaxes.size());
       if (cond.bad())
       {
         LOG(INFO) << cond.text();
@@ -326,6 +358,9 @@ namespace Orthanc
         AssociationCleanup(assoc);
         return NULL;
       }
+
+      std::string callingIP;
+      std::string callingTitle;
   
       /* check the AETs */
       {
@@ -347,15 +382,11 @@ namespace Orthanc
           return NULL;
         }
 
-        std::string callingIP(/*OFSTRING_GUARD*/(callingIP_C));
-        std::string callingTitle(/*OFSTRING_GUARD*/(callingTitle_C));
+        callingIP = std::string(/*OFSTRING_GUARD*/(callingIP_C));
+        callingTitle = std::string(/*OFSTRING_GUARD*/(callingTitle_C));
         std::string calledTitle(/*OFSTRING_GUARD*/(calledTitle_C));
-        Toolbox::ToUpperCase(callingIP);
-        Toolbox::ToUpperCase(callingTitle);
-        Toolbox::ToUpperCase(calledTitle);
 
-        if (server.HasCalledApplicationEntityTitleCheck() &&
-            calledTitle != server.GetApplicationEntityTitle())
+        if (!server.IsMyAETitle(calledTitle))
         {
           T_ASC_RejectParameters rej =
             {
@@ -369,7 +400,7 @@ namespace Orthanc
         }
 
         if (server.HasApplicationEntityFilter() &&
-            !server.GetApplicationEntityFilter().IsAllowed(callingIP, callingTitle))
+            !server.GetApplicationEntityFilter().IsAllowedConnection(callingIP, callingTitle))
         {
           T_ASC_RejectParameters rej =
             {
@@ -416,7 +447,8 @@ namespace Orthanc
           LOG(INFO) << "    (but no valid presentation contexts)";
       }
 
-      return new CommandDispatcher(server, assoc);
+      IApplicationEntityFilter* filter = server.HasApplicationEntityFilter() ? &server.GetApplicationEntityFilter() : NULL;
+      return new CommandDispatcher(server, assoc, callingIP, callingTitle, filter);
     }
 
     bool CommandDispatcher::Step()
@@ -463,56 +495,94 @@ namespace Orthanc
         // Reset the client timeout counter
         elapsedTimeSinceLastCommand_ = 0;
 
-        // in case we received a valid message, process this command
-        // note that storescp can only process a C-ECHO-RQ and a C-STORE-RQ
+        // Convert the type of request to Orthanc's internal type
+        bool supported = false;
+        DicomRequestType request;
         switch (msg.CommandField)
         {
-        case DIMSE_C_ECHO_RQ:
-          // process C-ECHO-Request
-          cond = EchoScp(assoc_, &msg, presID);
-          break;
+          case DIMSE_C_ECHO_RQ:
+            request = DicomRequestType_Echo;
+            supported = true;
+            break;
 
-        case DIMSE_C_STORE_RQ:
-          // process C-STORE-Request
-          if (server_.HasStoreRequestHandlerFactory())
-          {
-            std::auto_ptr<IStoreRequestHandler> handler
-              (server_.GetStoreRequestHandlerFactory().ConstructStoreRequestHandler());
-            cond = Internals::storeScp(assoc_, &msg, presID, *handler);
-          }
-          else
-            cond = DIMSE_BADCOMMANDTYPE;  // Should never happen
-          break;
+          case DIMSE_C_STORE_RQ:
+            request = DicomRequestType_Store;
+            supported = true;
+            break;
 
-        case DIMSE_C_MOVE_RQ:
-          // process C-MOVE-Request
-          if (server_.HasMoveRequestHandlerFactory())
-          {
-            std::auto_ptr<IMoveRequestHandler> handler
-              (server_.GetMoveRequestHandlerFactory().ConstructMoveRequestHandler());
-            cond = Internals::moveScp(assoc_, &msg, presID, *handler);
-          }
-          else
-            cond = DIMSE_BADCOMMANDTYPE;  // Should never happen
-          break;
+          case DIMSE_C_MOVE_RQ:
+            request = DicomRequestType_Move;
+            supported = true;
+            break;
 
-        case DIMSE_C_FIND_RQ:
-          // process C-FIND-Request
-          if (server_.HasFindRequestHandlerFactory())
-          {
-            std::auto_ptr<IFindRequestHandler> handler
-              (server_.GetFindRequestHandlerFactory().ConstructFindRequestHandler());
-            cond = Internals::findScp(assoc_, &msg, presID, *handler);
-          }
-          else
-            cond = DIMSE_BADCOMMANDTYPE;  // Should never happen
-          break;
+          case DIMSE_C_FIND_RQ:
+            request = DicomRequestType_Find;
+            supported = true;
+            break;
 
-        default:
-          // we cannot handle this kind of message
+          default:
+            // we cannot handle this kind of message
+            cond = DIMSE_BADCOMMANDTYPE;
+            LOG(ERROR) << "cannot handle command: 0x" << std::hex << msg.CommandField;
+            break;
+        }
+
+
+        // Check whether this request is allowed by the security filter
+        if (supported && 
+            filter_ != NULL &&
+            !filter_->IsAllowedRequest(callingIP_, callingAETitle_, request))
+        {
+          LOG(ERROR) << EnumerationToString(request) 
+                     << " requests are disallowed for the AET \"" 
+                     << callingAETitle_ << "\"";
           cond = DIMSE_BADCOMMANDTYPE;
-          LOG(ERROR) << "cannot handle command: 0x" << std::hex << msg.CommandField;
-          break;
+          supported = false;
+        }
+
+        // in case we received a supported message, process this command
+        if (supported)
+        {
+          // If anything goes wrong, there will be a "BADCOMMANDTYPE" answer
+          cond = DIMSE_BADCOMMANDTYPE;
+
+          switch (request)
+          {
+            case DicomRequestType_Echo:
+              cond = EchoScp(assoc_, &msg, presID);
+              break;
+
+            case DicomRequestType_Store:
+              if (server_.HasStoreRequestHandlerFactory()) // Should always be true
+              {
+                std::auto_ptr<IStoreRequestHandler> handler
+                  (server_.GetStoreRequestHandlerFactory().ConstructStoreRequestHandler());
+                cond = Internals::storeScp(assoc_, &msg, presID, *handler);
+              }
+              break;
+
+            case DicomRequestType_Move:
+              if (server_.HasMoveRequestHandlerFactory()) // Should always be true
+              {
+                std::auto_ptr<IMoveRequestHandler> handler
+                  (server_.GetMoveRequestHandlerFactory().ConstructMoveRequestHandler());
+                cond = Internals::moveScp(assoc_, &msg, presID, *handler);
+              }
+              break;
+
+            case DicomRequestType_Find:
+              if (server_.HasFindRequestHandlerFactory()) // Should always be true
+              {
+                std::auto_ptr<IFindRequestHandler> handler
+                  (server_.GetFindRequestHandlerFactory().ConstructFindRequestHandler());
+                cond = Internals::findScp(assoc_, &msg, presID, *handler, callingAETitle_);
+              }
+              break;
+
+            default:
+              // Should never happen
+              break;
+          }
         }
       }
       else
@@ -520,6 +590,8 @@ namespace Orthanc
         // Bad status, which indicates the closing of the connection by
         // the peer or a network error
         finished = true;
+
+        LOG(INFO) << cond.text();
       }
     
       if (finished)

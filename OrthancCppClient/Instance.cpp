@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -265,4 +265,21 @@ namespace OrthancClient
     }
   }
 
+
+  void Instance::LoadTagContent(const char* path)
+  {
+    Orthanc::HttpClient client(connection_.GetHttpClient());
+    client.SetUrl(std::string(connection_.GetOrthancUrl()) + "/instances/" + id_ + "/content/" + path);
+
+    if (!client.Apply(content_))
+    {
+      throw OrthancClientException(Orthanc::ErrorCode_UnknownResource);
+    }
+  }
+
+
+  const char* Instance::GetLoadedTagContent() const
+  {
+    return content_.c_str();
+  }
 }

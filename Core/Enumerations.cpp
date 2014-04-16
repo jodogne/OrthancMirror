@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -33,6 +33,7 @@
 #include "Enumerations.h"
 
 #include "OrthancException.h"
+#include "Toolbox.h"
 
 namespace Orthanc
 {
@@ -219,6 +220,57 @@ namespace Orthanc
       return "Not Extended";
 
     default:
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  const char* EnumerationToString(ResourceType type)
+  {
+    switch (type)
+    {
+      case ResourceType_Patient:
+        return "Patient";
+
+      case ResourceType_Study:
+        return "Study";
+
+      case ResourceType_Series:
+        return "Series";
+
+      case ResourceType_Instance:
+        return "Instance";
+      
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  ResourceType StringToResourceType(const char* type)
+  {
+    std::string s(type);
+    Toolbox::ToUpperCase(s);
+
+    if (s == "PATIENT" || s == "PATIENTS")
+    {
+      return ResourceType_Patient;
+    }
+    else if (s == "STUDY" || s == "STUDIES")
+    {
+      return ResourceType_Study;
+    }
+    else if (s == "SERIES")
+    {
+      return ResourceType_Series;
+    }
+    else if (s == "INSTANCE"  || s == "IMAGE" || 
+             s == "INSTANCES" || s == "IMAGES")
+    {
+      return ResourceType_Instance;
+    }
+    else
+    {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }

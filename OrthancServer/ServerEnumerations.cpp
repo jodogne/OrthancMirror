@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -33,6 +33,7 @@
 
 #include "../Core/OrthancException.h"
 #include "../Core/EnumerationDictionary.h"
+#include "../Core/Toolbox.h"
 
 #include <boost/thread.hpp>
 
@@ -40,6 +41,7 @@ namespace Orthanc
 {
   static boost::mutex enumerationsMutex_;
   static Toolbox::EnumerationDictionary<MetadataType> dictMetadataType_;
+  static Toolbox::EnumerationDictionary<FileContentType> dictContentType_;
 
   void InitializeServerEnumerations()
   {
@@ -52,10 +54,13 @@ namespace Orthanc
     dictMetadataType_.Add(MetadataType_ModifiedFrom, "ModifiedFrom");
     dictMetadataType_.Add(MetadataType_AnonymizedFrom, "AnonymizedFrom");
     dictMetadataType_.Add(MetadataType_LastUpdate, "LastUpdate");
+
+    dictContentType_.Add(FileContentType_Dicom, "dicom");
+    dictContentType_.Add(FileContentType_DicomAsJson, "dicom-as-json");
   }
 
   void RegisterUserMetadata(int metadata,
-                            const std::string name)
+                            const std::string& name)
   {
     boost::mutex::scoped_lock lock(enumerationsMutex_);
 
@@ -82,25 +87,32 @@ namespace Orthanc
     return dictMetadataType_.Translate(str);
   }
 
-  const char* EnumerationToString(ResourceType type)
+  void RegisterUserContentType(int contentType,
+                               const std::string& name)
   {
-    switch (type)
+    boost::mutex::scoped_lock lock(enumerationsMutex_);
+
+    if (contentType < static_cast<int>(FileContentType_StartUser) ||
+        contentType > static_cast<int>(FileContentType_EndUser))
     {
-      case ResourceType_Patient:
-        return "Patient";
-
-      case ResourceType_Study:
-        return "Study";
-
-      case ResourceType_Series:
-        return "Series";
-
-      case ResourceType_Instance:
-        return "Instance";
-      
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
+
+    dictContentType_.Add(static_cast<FileContentType>(contentType), name);
+  }
+
+  std::string EnumerationToString(FileContentType type)
+  {
+    // This function MUST return a "std::string" and not "const
+    // char*", as the result is not a static string
+    boost::mutex::scoped_lock lock(enumerationsMutex_);
+    return dictContentType_.Translate(type);
+  }
+
+  FileContentType StringToContentType(const std::string& str)
+  {
+    boost::mutex::scoped_lock lock(enumerationsMutex_);
+    return dictContentType_.Translate(str);
   }
 
   std::string GetBasePath(ResourceType type,
@@ -268,10 +280,48 @@ namespace Orthanc
       case ModalityManufacturer_ClearCanvas:
         return "ClearCanvas";
       
+      case ModalityManufacturer_MedInria:
+        return "MedInria";
+
+      case ModalityManufacturer_Dcm4Chee:
+        return "Dcm4Chee";
+      
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
+
+
+  const char* EnumerationToString(DicomRequestType type)
+  {
+    switch (type)
+    {
+      case DicomRequestType_Echo:
+        return "Echo";
+        break;
+
+      case DicomRequestType_Find:
+        return "Find";
+        break;
+
+      case DicomRequestType_Get:
+        return "Get";
+        break;
+
+      case DicomRequestType_Move:
+        return "Move";
+        break;
+
+      case DicomRequestType_Store:
+        return "Store";
+        break;
+
+
+      default: 
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
 
 
   ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer)
@@ -284,11 +334,17 @@ namespace Orthanc
     {
       return ModalityManufacturer_ClearCanvas;
     }
+    else if (manufacturer == "MedInria")
+    {
+      return ModalityManufacturer_MedInria;
+    }
+    else if (manufacturer == "Dcm4Chee")
+    {
+      return ModalityManufacturer_Dcm4Chee;
+    }
     else
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
-
-
 }

@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -33,6 +33,8 @@
 
 #include <string>
 
+#include "../Core/Enumerations.h"
+
 namespace Orthanc
 {
   enum SeriesStatus
@@ -54,7 +56,18 @@ namespace Orthanc
   enum ModalityManufacturer
   {
     ModalityManufacturer_Generic,
-    ModalityManufacturer_ClearCanvas
+    ModalityManufacturer_ClearCanvas,
+    ModalityManufacturer_MedInria,
+    ModalityManufacturer_Dcm4Chee
+  };
+
+  enum DicomRequestType
+  {
+    DicomRequestType_Echo,
+    DicomRequestType_Find,
+    DicomRequestType_Get,
+    DicomRequestType_Move,
+    DicomRequestType_Store
   };
 
 
@@ -69,14 +82,6 @@ namespace Orthanc
     GlobalProperty_DatabaseSchemaVersion = 1,
     GlobalProperty_FlushSleep = 2,
     GlobalProperty_AnonymizationSequence = 3
-  };
-
-  enum ResourceType
-  {
-    ResourceType_Patient = 1,
-    ResourceType_Study = 2,
-    ResourceType_Series = 3,
-    ResourceType_Instance = 4
   };
 
   enum MetadataType
@@ -115,16 +120,21 @@ namespace Orthanc
   void InitializeServerEnumerations();
 
   void RegisterUserMetadata(int metadata,
-                            const std::string name);
-
-  std::string GetBasePath(ResourceType type,
-                          const std::string& publicId);
+                            const std::string& name);
 
   MetadataType StringToMetadata(const std::string& str);
 
-  const char* EnumerationToString(ResourceType type);
-
   std::string EnumerationToString(MetadataType type);
+
+  void RegisterUserContentType(int contentType,
+                               const std::string& name);
+
+  FileContentType StringToContentType(const std::string& str);
+
+  std::string EnumerationToString(FileContentType type);
+
+  std::string GetBasePath(ResourceType type,
+                          const std::string& publicId);
 
   const char* EnumerationToString(SeriesStatus status);
 
@@ -133,6 +143,8 @@ namespace Orthanc
   const char* EnumerationToString(ChangeType type);
 
   const char* EnumerationToString(ModalityManufacturer manufacturer);
+
+  const char* EnumerationToString(DicomRequestType type);
 
   ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer);
 

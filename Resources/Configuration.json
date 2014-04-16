@@ -100,8 +100,8 @@
     /**
      * A fourth parameter is available to enable patches for a
      * specific PACS manufacturer. The allowed values are currently
-     * "Generic" (default value) and "ClearCanvas". This parameter is
-     * case-sensitive.
+     * "Generic" (default value), "ClearCanvas", "MedInria" and
+     * "Dcm4Chee". This parameter is case-sensitive.
      **/
     // "clearcanvas" : [ "CLEARCANVAS", "192.168.1.1", 104, "ClearCanvas" ]
   },
@@ -130,7 +130,35 @@
     // "Sample" : 1024
   },
 
+  // Dictionary of symbolic names for the user-defined types of
+  // attached files. Each entry must map a number between 1024 and
+  // 65535 to an unique string.
+  "UserContentType" : {
+    // "sample" : 1024
+  },
+
   // Number of seconds without receiving any instance before a
   // patient, a study or a series is considered as stable.
-  "StableAge" : 60
+  "StableAge" : 60,
+
+  // Enable the HTTP server. If this parameter is set to "false",
+  // Orthanc acts as a pure DICOM server. The REST API and Orthanc
+  // Explorer will not be available.
+  "HttpServerEnabled" : true,
+
+  // Enable the DICOM server. If this parameter is set to "false",
+  // Orthanc acts as a pure REST server. It will not be possible to
+  // receive files or to do query/retrieve through the DICOM protocol.
+  "DicomServerEnabled" : true,
+
+  // By default, Orthanc compares AET (Application Entity Titles) in a
+  // case-insensitive way. Setting this option to "true" will enable
+  // case-sensitive matching.
+  "StrictAetComparison" : false,
+
+  // When the following option is "true", the MD5 of the DICOM files
+  // will be computed and stored in the Orthanc database. This
+  // information can be used to detect disk corruption, at the price
+  // of a small performance overhead.
+  "StoreMD5ForAttachments" : true
 }

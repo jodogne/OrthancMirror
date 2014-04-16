@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -267,7 +267,7 @@ namespace Orthanc
     List result;
     ListAllFiles(result);
 
-    for (List::const_iterator it = result.begin(); it != result.end(); it++)
+    for (List::const_iterator it = result.begin(); it != result.end(); ++it)
     {
       Remove(*it);
     }

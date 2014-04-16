@@ -1,6 +1,71 @@
 Pending changes in the mainline
 ===============================
 
+
+
+Version 0.7.4 (2014/04/16)
+==========================
+
+* Switch to openssl-1.0.1g in static builds (cf. Heartbleed exploit)
+* Switch to boost 1.55.0 in static builds (to solve compiling errors)
+* Better logging about nonexistent tags
+* Dcm4Chee manufacturer
+* Automatic discovering of the path to the DICOM dictionaries
+* In the "DicomModalities" config, the port number can be a string
+
+
+Version 0.7.3 (2014/02/14)
+==========================
+
+Major changes
+-------------
+
+* Fixes in the implementation of the C-FIND handler for Query/Retrieve
+* Custom attachment of files to patients, studies, series or instances
+* Access to lowlevel info about the attached files through the REST API
+* Recover pixel data for more transfer syntaxes (notably JPEG)
+
+Minor changes
+-------------
+
+* AET comparison is now case-insensitive by default
+* Possibility to disable the HTTP server or the DICOM server
+* Automatic computation of MD5 hashes for the stored DICOM files
+* Maintenance tool to recover DICOM files compressed by Orthanc
+* The newline characters in the configuration file are fixed for Linux
+* Capture of the SIGTERM signal in Linux
+
+
+Version 0.7.2 (2013/11/08)
+==========================
+
+* Support of Query/Retrieve from medInria
+* Accept more transfer syntaxes for C-Store SCP and SCU (notably JPEG)
+* Create the meta-header when receiving files through C-Store SCP
+* Fixes and improvements thanks to the static analyzer cppcheck
+
+
+Version 0.7.1 (2013/10/30)
+==========================
+
+* Use ZIP64 only when required to improve compatibility (cf. issue #7)
+* Refactoring of the CMake options
+* Fix for big-endian architectures (RedHat bug #985748)
+* Use filenames with 8 characters in ZIP files for maximum compatibility
+* Possibility to build Orthanc inplace (in the source directory)
+
+
+Version 0.7.0 (2013/10/25)
+==========================
+
+Major changes
+-------------
+
+* DICOM Query/Retrieve is supported
+
+Minor changes
+-------------
+
 * Possibility to keep the PatientID during an anonymization
 * Check whether "unzip", "tar" and/or "7-zip" are installed from CMake
 

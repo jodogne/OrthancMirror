@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -49,7 +49,7 @@ namespace Orthanc
     std::auto_ptr<DcmDataset> result(new DcmDataset);
 
     for (DicomMap::Map::const_iterator 
-           it = map.map_.begin(); it != map.map_.end(); it++)
+           it = map.map_.begin(); it != map.map_.end(); ++it)
     {
       std::string s = it->second->AsString();
       DU_putStringDOElement(result.get(), Convert(it->first), s.c_str());

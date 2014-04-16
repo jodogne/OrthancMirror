@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * Redistribution and use in source and binary forms, with or without
@@ -88,6 +88,12 @@ namespace Orthanc
     {
       CheckIndex(index);
       return std::string(reinterpret_cast<const char*>(sqlite3_value_text(argv_[index])));
+    }
+
+    bool FunctionContext::IsNullValue(unsigned int index) const
+    {
+      CheckIndex(index);
+      return sqlite3_value_type(argv_[index]) == SQLITE_NULL;
     }
   
     void FunctionContext::SetNullResult()

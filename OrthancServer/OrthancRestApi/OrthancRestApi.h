@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -32,8 +32,8 @@
 
 #pragma once
 
-#include "ServerContext.h"
-#include "../Core/RestApi/RestApi.h"
+#include "../ServerContext.h"
+#include "../../Core/RestApi/RestApi.h"
 
 #include <set>
 
@@ -46,25 +46,31 @@ namespace Orthanc
 
   protected:
     ServerContext& context_;
-    SetOfStrings modalities_;
-    SetOfStrings peers_;
+
+    void RegisterSystem();
+
+    void RegisterChanges();
+
+    void RegisterResources();
+
+    void RegisterModalities();
+
+    void RegisterAnonymizeModify();
+
+    void RegisterArchive();
 
   public:
     OrthancRestApi(ServerContext& context);
 
-    ServerContext& GetContext()
+    static ServerContext& GetContext(RestApi::Call& call)
     {
-      return context_;
+      OrthancRestApi& that = dynamic_cast<OrthancRestApi&>(call.GetContext());
+      return that.context_;
     }
 
-    SetOfStrings& GetModalities()
+    static ServerIndex& GetIndex(RestApi::Call& call)
     {
-      return modalities_;
-    }
-
-    SetOfStrings& GetPeers()
-    {
-      return peers_;
+      return GetContext(call).GetIndex();
     }
   };
 }

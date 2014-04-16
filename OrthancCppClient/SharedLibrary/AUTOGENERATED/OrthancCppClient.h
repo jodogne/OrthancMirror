@@ -81,9 +81,9 @@
 
 /* cf. http://sourceforge.net/p/predef/wiki/Architectures/ */
 #ifdef __amd64__
-#define LAAW_ORTHANC_CLIENT_DEFAULT_PATH  "libOrthancClient.so.0.6"
+#define LAAW_ORTHANC_CLIENT_DEFAULT_PATH  "libOrthancClient.so.0.7"
 #else
-#define LAAW_ORTHANC_CLIENT_DEFAULT_PATH  "libOrthancClient.so.0.6"
+#define LAAW_ORTHANC_CLIENT_DEFAULT_PATH  "libOrthancClient.so.0.7"
 #endif
 
 #define LAAW_ORTHANC_CLIENT_CALL_CONV
@@ -203,7 +203,7 @@ class Library
   {
   private:
     LAAW_ORTHANC_CLIENT_HANDLE_TYPE  handle_;
-    LAAW_ORTHANC_CLIENT_FUNCTION_TYPE  functionsIndex_[60 + 1];
+    LAAW_ORTHANC_CLIENT_FUNCTION_TYPE  functionsIndex_[62 + 1];
 
 
 
@@ -239,7 +239,7 @@ class Library
     void FreeString(char* str)
     {
       typedef void (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (char*);
-      Function function = (Function) GetFunction(60);
+      Function function = (Function) GetFunction(62);
       function(str);
     }
 
@@ -372,8 +372,8 @@ inline void Finalize()
 }
 
 
-
-void ::OrthancClient::Internals::Library::LoadFunctions()
+namespace OrthancClient { namespace Internals { 
+inline void Library::LoadFunctions()
 {
   typedef const char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) ();
   Function getVersion = (Function) LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_GetVersion", "0");
@@ -386,12 +386,12 @@ void ::OrthancClient::Internals::Library::LoadFunctions()
    * It is assumed that the API does not change when the revision
    * number (MAJOR.MINOR.REVISION) changes.
    **/
-  if (strcmp(getVersion(), "0.6"))
+  if (strcmp(getVersion(), "0.7"))
   {
     throw ::OrthancClient::OrthancClientException("Mismatch between the C++ header and the library version");
   }
 
-  functionsIndex_[60] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_FreeString", "4");
+  functionsIndex_[62] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_FreeString", "4");
   functionsIndex_[3] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_557aee7b61817292a0f31269d3c35db7", "8");
   functionsIndex_[4] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_0b8dff0ce67f10954a49b059e348837e", "8");
   functionsIndex_[5] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_e05097c153f676e5a5ee54dcfc78256f", "4");
@@ -450,11 +450,13 @@ void ::OrthancClient::Internals::Library::LoadFunctions()
   functionsIndex_[57] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_6f2d77a26edc91c28d89408dbc3c271e", "8");
   functionsIndex_[58] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_c0f494b80d4ff8b232df7a75baa0700a", "4");
   functionsIndex_[59] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_d604f44bd5195e082e745e9cbc164f4c", "4");
+  functionsIndex_[60] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_1710299d1c5f3b1f2b7cf3962deebbfd", "8");
+  functionsIndex_[61] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_bb55aaf772ddceaadee36f4e54136bcb", "8");
   functionsIndex_[42] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_6c5ad02f91b583e29cebd0bd319ce21d", "12");
   functionsIndex_[43] = LAAW_ORTHANC_CLIENT_GET_FUNCTION(handle_, "LAAW_EXTERNC_4068241c44a9c1367fe0e57be523f207", "4");
   
   /* Check whether the functions were properly loaded */
-  for (unsigned int i = 0; i <= 60; i++)
+  for (unsigned int i = 0; i <= 62; i++)
   {
     if (functionsIndex_[i] == (LAAW_ORTHANC_CLIENT_FUNCTION_TYPE) NULL)
     {
@@ -462,6 +464,7 @@ void ::OrthancClient::Internals::Library::LoadFunctions()
     }
   }
 }
+}}
 namespace OrthancClient
 {
   class OrthancConnection;
@@ -598,7 +601,7 @@ namespace OrthancClient
      *
      * @param other The original object.
      **/
-    OrthancConnection(const OrthancConnection& other) : pimpl_(other.pimpl_), isReference_(true) { }
+    OrthancConnection(const OrthancConnection& other) : isReference_(true), pimpl_(other.pimpl_) { }
     inline OrthancConnection(const ::std::string& orthancUrl);
     inline OrthancConnection(const ::std::string& orthancUrl, const ::std::string& username, const ::std::string& password);
     inline ~OrthancConnection();
@@ -641,7 +644,7 @@ namespace OrthancClient
      *
      * @param other The original object.
      **/
-    Patient(const Patient& other) : pimpl_(other.pimpl_), isReference_(true) { }
+    Patient(const Patient& other) : isReference_(true), pimpl_(other.pimpl_) { }
     inline Patient(::OrthancClient::OrthancConnection& connection, const ::std::string& id);
     inline ~Patient();
     inline void Reload();
@@ -679,7 +682,7 @@ namespace OrthancClient
      *
      * @param other The original object.
      **/
-    Series(const Series& other) : pimpl_(other.pimpl_), isReference_(true) { }
+    Series(const Series& other) : isReference_(true), pimpl_(other.pimpl_) { }
     inline Series(::OrthancClient::OrthancConnection& connection, const ::std::string& id);
     inline ~Series();
     inline void Reload();
@@ -726,7 +729,7 @@ namespace OrthancClient
      *
      * @param other The original object.
      **/
-    Study(const Study& other) : pimpl_(other.pimpl_), isReference_(true) { }
+    Study(const Study& other) : isReference_(true), pimpl_(other.pimpl_) { }
     inline Study(::OrthancClient::OrthancConnection& connection, const ::std::string& id);
     inline ~Study();
     inline void Reload();
@@ -764,7 +767,7 @@ namespace OrthancClient
      *
      * @param other The original object.
      **/
-    Instance(const Instance& other) : pimpl_(other.pimpl_), isReference_(true) { }
+    Instance(const Instance& other) : isReference_(true), pimpl_(other.pimpl_) { }
     inline Instance(::OrthancClient::OrthancConnection& connection, const ::std::string& id);
     inline ~Instance();
     inline ::std::string GetId() const;
@@ -783,6 +786,8 @@ namespace OrthancClient
     inline const void* GetDicom();
     inline void DiscardImage();
     inline void DiscardDicom();
+    inline void LoadTagContent(const ::std::string& path);
+    inline ::std::string GetLoadedTagContent() const;
   };
 }
 
@@ -832,7 +837,7 @@ namespace OrthancClient
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*);
     Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(2);
     char* error = function(pimpl_);
-    ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
+    error = error;  // Remove warning about unused variable
   }
   /**
   * @brief Returns the number of threads for this connection.
@@ -1002,7 +1007,7 @@ namespace OrthancClient
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*);
     Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(13);
     char* error = function(pimpl_);
-    ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
+    error = error;  // Remove warning about unused variable
   }
   /**
   * @brief Reload the studies of this patient.
@@ -1116,7 +1121,7 @@ namespace OrthancClient
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*);
     Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(20);
     char* error = function(pimpl_);
-    ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
+    error = error;  // Remove warning about unused variable
   }
   /**
   * @brief Reload the instances of this series.
@@ -1377,7 +1382,7 @@ namespace OrthancClient
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*);
     Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(36);
     char* error = function(pimpl_);
-    ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
+    error = error;  // Remove warning about unused variable
   }
   /**
   * @brief Reload the series of this study.
@@ -1491,7 +1496,7 @@ namespace OrthancClient
     typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*);
     Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(43);
     char* error = function(pimpl_);
-    ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
+    error = error;  // Remove warning about unused variable
   }
   /**
   * @brief Get the %Orthanc identifier of this identifier.
@@ -1744,6 +1749,36 @@ namespace OrthancClient
     Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(59);
     char* error = function(pimpl_);
     ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
+  }
+  /**
+  * @brief Load a raw tag from the DICOM file.
+  *
+  * Load a raw tag from the DICOM file.
+  *
+  * @param path The path to the tag of interest (e.g. "0020-000d").
+  **/
+  inline void Instance::LoadTagContent(const ::std::string& path)
+  {
+    typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (void*, const char*);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(60);
+    char* error = function(pimpl_, path.c_str());
+    ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
+  }
+  /**
+  * @brief Return the value of the raw tag that was loaded by LoadContent.
+  *
+  * Return the value of the raw tag that was loaded by LoadContent.
+  *
+  * @return The tag value.
+  **/
+  inline ::std::string Instance::GetLoadedTagContent() const
+  {
+    const char* result_;
+    typedef char* (LAAW_ORTHANC_CLIENT_CALL_CONV* Function) (const void*, const char**);
+    Function function = (Function) ::OrthancClient::Internals::Library::GetInstance().GetFunction(61);
+    char* error = function(pimpl_, &result_);
+    ::OrthancClient::Internals::Library::GetInstance().ThrowExceptionIfNeeded(error);
+    return std::string(result_);
   }
 }
 

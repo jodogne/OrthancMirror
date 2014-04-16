@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -90,6 +90,14 @@ namespace Orthanc
     void MarkAsUnstable(int64_t id,
                         Orthanc::ResourceType type);
 
+    void GetStatisticsInternal(/* out */ uint64_t& compressedSize, 
+                               /* out */ uint64_t& uncompressedSize, 
+                               /* out */ unsigned int& countStudies, 
+                               /* out */ unsigned int& countSeries, 
+                               /* out */ unsigned int& countInstances, 
+                               /* in  */ int64_t id,
+                               /* in  */ ResourceType type);
+
   public:
     typedef std::list<FileInfo> Attachments;
 
@@ -155,6 +163,9 @@ namespace Orthanc
     void SetProtectedPatient(const std::string& publicId,
                              bool isProtected);
 
+    void GetChildren(std::list<std::string>& result,
+                     const std::string& publicId);
+
     void GetChildInstances(std::list<std::string>& result,
                            const std::string& publicId);
 
@@ -169,8 +180,12 @@ namespace Orthanc
                         const std::string& publicId,
                         MetadataType type);
 
-    bool ListAvailableMetadata(std::list<MetadataType>& target,
+    void ListAvailableMetadata(std::list<MetadataType>& target,
                                const std::string& publicId);
+
+    void ListAvailableAttachments(std::list<FileContentType>& target,
+                                  const std::string& publicId,
+                                  ResourceType expectedType);
 
     bool LookupParent(std::string& target,
                       const std::string& publicId);
@@ -187,11 +202,29 @@ namespace Orthanc
     void GetStatistics(Json::Value& target,
                        const std::string& publicId);
 
+    void GetStatistics(/* out */ uint64_t& compressedSize, 
+                       /* out */ uint64_t& uncompressedSize, 
+                       /* out */ unsigned int& countStudies, 
+                       /* out */ unsigned int& countSeries, 
+                       /* out */ unsigned int& countInstances, 
+                       const std::string& publicId);
+
+    void LookupTagValue(std::list<std::string>& result,
+                        DicomTag tag,
+                        const std::string& value,
+                        ResourceType type);
+
     void LookupTagValue(std::list<std::string>& result,
                         DicomTag tag,
                         const std::string& value);
 
     void LookupTagValue(std::list<std::string>& result,
                         const std::string& value);
+
+    StoreStatus AddAttachment(const FileInfo& attachment,
+                              const std::string& publicId);
+
+    void DeleteAttachment(const std::string& publicId,
+                          FileContentType type);
   };
 }

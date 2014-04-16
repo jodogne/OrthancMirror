@@ -1,14 +1,14 @@
-if (${STATIC_BUILD})
-  SET(BOOST_STATIC 1)
+if (STATIC_BUILD OR NOT USE_SYSTEM_BOOST)
+  set(BOOST_STATIC 1)
 else()
   include(FindBoost)
 
-  SET(BOOST_STATIC 0)
+  set(BOOST_STATIC 0)
   #set(Boost_DEBUG 1)
   #set(Boost_USE_STATIC_LIBS ON)
 
   find_package(Boost
-    COMPONENTS filesystem thread system date_time)
+    COMPONENTS filesystem thread system date_time regex)
 
   if (NOT Boost_FOUND)
     message(FATAL_ERROR "Unable to locate Boost on this system")
@@ -30,7 +30,7 @@ else()
   #if (${Boost_VERSION} LESS 104800)
   # boost::locale is only available from 1.48.00
   #message("Too old version of Boost (${Boost_LIB_VERSION}): Building the static version")
-  #  SET(BOOST_STATIC 1)
+  #  set(BOOST_STATIC 1)
   #endif()
 
   include_directories(${Boost_INCLUDE_DIRS})
@@ -39,13 +39,13 @@ endif()
 
 
 if (BOOST_STATIC)
-  # Parameters for Boost 1.54.0
-  SET(BOOST_NAME boost_1_54_0)
-  SET(BOOST_BCP_SUFFIX bcpdigest-0.6.2)
-  SET(BOOST_MD5 "a464288a976ba133f9b325f454cb503d")
-  SET(BOOST_FILESYSTEM_SOURCES_DIR "${BOOST_NAME}/libs/filesystem/src")
+  # Parameters for Boost 1.55.0
+  set(BOOST_NAME boost_1_55_0)
+  set(BOOST_BCP_SUFFIX bcpdigest-0.7.4)
+  set(BOOST_MD5 "409f7a0e4fb1f5659d07114f3133b67b")
+  set(BOOST_FILESYSTEM_SOURCES_DIR "${BOOST_NAME}/libs/filesystem/src")
   
-  SET(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
+  set(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
   DownloadPackage(
     "${BOOST_MD5}"
     "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz"
@@ -80,7 +80,10 @@ if (BOOST_STATIC)
     message(FATAL_ERROR "Support your platform here")
   endif()
 
+  aux_source_directory(${BOOST_SOURCES_DIR}/libs/regex/src BOOST_REGEX_SOURCES)
+
   list(APPEND BOOST_SOURCES
+    ${BOOST_REGEX_SOURCES}
     ${BOOST_SOURCES_DIR}/libs/date_time/src/gregorian/greg_month.cpp
     ${BOOST_FILESYSTEM_SOURCES_DIR}/codecvt_error_category.cpp
     ${BOOST_FILESYSTEM_SOURCES_DIR}/operations.cpp

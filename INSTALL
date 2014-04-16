@@ -43,29 +43,7 @@ To build Orthanc, you must:
 Native Linux Compilation
 ------------------------
 
-To build binaries with debug information:
-
-# cd ~/OrthancBuild
-# cmake -DSTATIC_BUILD=ON -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
-# make
-# make doc
-
-
-To build a release version:
-
-# cd ~/OrthancBuild
-# cmake -DSTATIC_BUILD=ON -DCMAKE_BUILD_TYPE=Release ~/Orthanc
-# make
-# make doc
-
-
-Under Linux, you have the possibility to dynamically link Orthanc
-against the shared libraries of your system, provided their version is
-recent enough. This greatly speeds up the compilation:
-
-# cd ~/OrthancBuild
-# cmake -DSTATIC_BUILD=OFF -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
-# make
+See the file "LinuxCompilation.txt".
 
 
 
@@ -104,23 +82,3 @@ Native Windows build with MinGW (VERY SLOW)
 # cd [...]\OrthancBuild
 # cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Debug [...]\Orthanc
 # mingw32-make
-
-
-
-Using ccache
-------------
-
-Under Linux, you have the opportunity to use "ccache" to dramatically
-decrease the compilation time when rebuilding Orthanc. This is
-especially useful for developers. Under Debian/Ubuntu, you would use:
-
-# CC="ccache gcc" CXX="ccache g++" cmake "-DDCMTK_LIBRARIES=wrap;oflog" \
-  -DSTATIC_BUILD=OFF -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
-
-
-
-Troubleshooting
----------------
-
-The build instructions for specific Linux distributions are available at the following place:
-https://code.google.com/p/orthanc/wiki/FAQ#I_use_the_Linux_distribution_XXX,_how_can_I_build_Orthanc?
