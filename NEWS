@@ -1,6 +1,11 @@
 Pending changes in the mainline
 ===============================
 
+
+
+Version 0.7.4 (2014/04/16)
+==========================
+
 * Switch to openssl-1.0.1g in static builds (cf. Heartbleed exploit)
 * Switch to boost 1.55.0 in static builds (to solve compiling errors)
 * Better logging about nonexistent tags
