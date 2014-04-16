@@ -67,10 +67,10 @@ namespace Orthanc
                             int64_t since,
                             unsigned int maxResults);
 
-    void GetExportedResources(Json::Value& target,
-                              SQLite::Statement& s,
-                              int64_t since,
-                              unsigned int maxResults);
+    void GetExportedResourcesInternal(Json::Value& target,
+                                      SQLite::Statement& s,
+                                      int64_t since,
+                                      unsigned int maxResults);
 
   public:
     void SetGlobalProperty(GlobalProperty property,
@@ -115,7 +115,7 @@ namespace Orthanc
                         int64_t id,
                         MetadataType type);
 
-    bool ListAvailableMetadata(std::list<MetadataType>& target,
+    void ListAvailableMetadata(std::list<MetadataType>& target,
                                int64_t id);
 
     std::string GetMetadata(int64_t id,

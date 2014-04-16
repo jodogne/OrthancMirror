@@ -1,4 +1,16 @@
-add_definitions(-DDCMTK_DICTIONARY_DIR="${DCMTK_DICTIONARY_DIR}")
+# Lookup for DICOM dictionaries, if none is specified by the user
+if (DCMTK_DICTIONARY_DIR STREQUAL "")
+  find_path(DCMTK_DICTIONARY_DIR_AUTO dicom.dic
+    /usr/share/dcmtk
+    /usr/share/libdcmtk2
+    )
+
+  message("Autodetected path to the DICOM dictionaries: ${DCMTK_DICTIONARY_DIR_AUTO}")
+  add_definitions(-DDCMTK_DICTIONARY_DIR="${DCMTK_DICTIONARY_DIR_AUTO}")
+else()
+  add_definitions(-DDCMTK_DICTIONARY_DIR="${DCMTK_DICTIONARY_DIR}")
+endif()
+
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   SET(DCMTK_VERSION_NUMBER 360)
