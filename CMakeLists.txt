@@ -166,10 +166,12 @@ add_library(CoreLibrary
   Core/RestApi/RestApiPath.cpp
   Core/RestApi/RestApiOutput.cpp
   Core/RestApi/RestApi.cpp
+  Core/MultiThreading/ArrayFilledByThreads.cpp
   Core/MultiThreading/BagOfRunnablesBySteps.cpp
+  Core/MultiThreading/Mutex.cpp
+  Core/MultiThreading/ReaderWriterLock.cpp
   Core/MultiThreading/SharedMessageQueue.cpp
   Core/MultiThreading/ThreadedCommandProcessor.cpp
-  Core/MultiThreading/ArrayFilledByThreads.cpp
   Core/FileFormats/PngReader.cpp
   Core/FileFormats/PngWriter.cpp
   Core/SQLite/Connection.cpp

@@ -3,6 +3,9 @@
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
 #include "../Core/MultiThreading/ArrayFilledByThreads.h"
+#include "../Core/MultiThreading/Locker.h"
+#include "../Core/MultiThreading/Mutex.h"
+#include "../Core/MultiThreading/ReaderWriterLock.h"
 #include "../Core/MultiThreading/ThreadedCommandProcessor.h"
 
 using namespace Orthanc;
@@ -183,5 +186,27 @@ TEST(MultiThreading, CommandProcessor)
       ASSERT_TRUE(s.find(i) == s.end());
     else
       ASSERT_TRUE(s.find(i) != s.end());
+  }
+}
+
+
+TEST(MultiThreading, Mutex)
+{
+  Mutex mutex;
+  Locker locker(mutex);
+}
+
+
+TEST(MultiThreading, ReaderWriterLock)
+{
+  ReaderWriterLock lock;
+
+  {
+    Locker locker1(lock.ForReader());
+    Locker locker2(lock.ForReader());
+  }
+
+  {
+    Locker locker3(lock.ForWriter());
   }
 }

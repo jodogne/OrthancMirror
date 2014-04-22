@@ -588,7 +588,6 @@ TEST(Toolbox, Endianness)
 }
 
 
-
 int main(int argc, char **argv)
 {
   // Initialize Google's logging library.
