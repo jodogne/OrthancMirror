@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -58,13 +58,13 @@ namespace Orthanc
 
   void EmbeddedResourceHttpHandler::Handle(
     HttpOutput& output,
-    Orthanc_HttpMethod method,
+    HttpMethod method,
     const UriComponents& uri,
     const Arguments& headers,
     const Arguments& arguments,
     const std::string&)
   {
-    if (method != Orthanc_HttpMethod_Get)
+    if (method != HttpMethod_Get)
     {
       output.SendMethodNotAllowedError("GET");
       return;
@@ -79,10 +79,10 @@ namespace Orthanc
       size_t size = EmbeddedResources::GetDirectoryResourceSize(resourceId_, resourcePath.c_str());
       output.AnswerBufferWithContentType(buffer, size, contentType);
     }
-    catch (OrthancException& e)
+    catch (OrthancException&)
     {
       LOG(WARNING) << "Unable to find HTTP resource: " << resourcePath;
-      output.SendHeader(Orthanc_HttpStatus_404_NotFound);
+      output.SendHeader(HttpStatus_404_NotFound);
     }
   } 
 }

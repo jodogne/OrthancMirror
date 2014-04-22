@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -46,21 +46,20 @@ namespace Orthanc
   public:
     static const char* GetDescription(ErrorCode error);
 
-    OrthancException(const char* custom)
+    OrthancException(const char* custom) : 
+      error_(ErrorCode_Custom),
+      custom_(custom)
     {
-      error_ = ErrorCode_Custom;
-      custom_ = custom;
     }
 
-    OrthancException(const std::string& custom)
+    OrthancException(const std::string& custom) : 
+      error_(ErrorCode_Custom),
+      custom_(custom)
     {
-      error_ = ErrorCode_Custom;
-      custom_ = custom;
     }
 
-    OrthancException(ErrorCode error)
+    OrthancException(ErrorCode error) : error_(error)
     {
-      error_ = error;
     }
 
     ErrorCode GetErrorCode() const

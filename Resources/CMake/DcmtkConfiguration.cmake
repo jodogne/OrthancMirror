@@ -1,7 +1,25 @@
-if (${STATIC_BUILD})
+# Lookup for DICOM dictionaries, if none is specified by the user
+if (DCMTK_DICTIONARY_DIR STREQUAL "")
+  find_path(DCMTK_DICTIONARY_DIR_AUTO dicom.dic
+    /usr/share/dcmtk
+    /usr/share/libdcmtk2
+    )
+
+  message("Autodetected path to the DICOM dictionaries: ${DCMTK_DICTIONARY_DIR_AUTO}")
+  add_definitions(-DDCMTK_DICTIONARY_DIR="${DCMTK_DICTIONARY_DIR_AUTO}")
+else()
+  add_definitions(-DDCMTK_DICTIONARY_DIR="${DCMTK_DICTIONARY_DIR}")
+endif()
+
+
+
+if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   SET(DCMTK_VERSION_NUMBER 360)
   SET(DCMTK_SOURCES_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.0)
-  DownloadPackage("http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/dcmtk-3.6.0.zip" "${DCMTK_SOURCES_DIR}" "" "")
+  DownloadPackage(
+    "219ad631b82031806147e4abbfba4fa4"
+    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/dcmtk-3.6.0.zip" 
+    "${DCMTK_SOURCES_DIR}")
 
   IF(CMAKE_CROSSCOMPILING)
     SET(C_CHAR_UNSIGNED 1 CACHE INTERNAL "Whether char is unsigned.")
@@ -42,6 +60,15 @@ if (${STATIC_BUILD})
     list(REMOVE_ITEM DCMTK_SOURCES 
       ${DCMTK_SOURCES_DIR}/oflog/libsrc/unixsock.cc
       )
+
+    if (${CMAKE_COMPILER_IS_GNUCXX})
+      # This is a patch for MinGW64
+      execute_process(
+        COMMAND patch -p0 -i ${CMAKE_SOURCE_DIR}/Resources/Patches/dcmtk-mingw64.patch
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        )
+    endif()
+
   endif()
 
   list(REMOVE_ITEM DCMTK_SOURCES 

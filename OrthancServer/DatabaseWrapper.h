@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -67,10 +67,10 @@ namespace Orthanc
                             int64_t since,
                             unsigned int maxResults);
 
-    void GetExportedResources(Json::Value& target,
-                              SQLite::Statement& s,
-                              int64_t since,
-                              unsigned int maxResults);
+    void GetExportedResourcesInternal(Json::Value& target,
+                                      SQLite::Statement& s,
+                                      int64_t since,
+                                      unsigned int maxResults);
 
   public:
     void SetGlobalProperty(GlobalProperty property,
@@ -108,9 +108,15 @@ namespace Orthanc
                      MetadataType type,
                      const std::string& value);
 
+    void DeleteMetadata(int64_t id,
+                        MetadataType type);
+
     bool LookupMetadata(std::string& target,
                         int64_t id,
                         MetadataType type);
+
+    void ListAvailableMetadata(std::list<MetadataType>& target,
+                               int64_t id);
 
     std::string GetMetadata(int64_t id,
                             MetadataType type,
@@ -122,6 +128,12 @@ namespace Orthanc
 
     void AddAttachment(int64_t id,
                        const FileInfo& attachment);
+
+    void DeleteAttachment(int64_t id,
+                          FileContentType attachment);
+
+    void ListAvailableAttachments(std::list<FileContentType>& result,
+                                  int64_t id);
 
     bool LookupAttachment(FileInfo& attachment,
                           int64_t id,
@@ -212,5 +224,16 @@ namespace Orthanc
     }
 
     uint64_t IncrementGlobalSequence(GlobalProperty property);
+
+    void ClearTable(const std::string& tableName);
+
+    bool IsExistingResource(int64_t internalId);
+
+    void LookupTagValue(std::list<int64_t>& result,
+                        DicomTag tag,
+                        const std::string& value);
+
+    void LookupTagValue(std::list<int64_t>& result,
+                        const std::string& value);
   };
 }

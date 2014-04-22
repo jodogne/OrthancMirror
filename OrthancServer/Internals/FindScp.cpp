@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -49,6 +49,7 @@ namespace Orthanc
       DicomMap input_;
       DicomFindAnswers answers_;
       DcmDataset* lastRequest_;
+      const std::string* callingAETitle_;
     };
 
 
@@ -67,14 +68,14 @@ namespace Orthanc
       bzero(response, sizeof(T_DIMSE_C_FindRSP));
       *statusDetail = NULL;
 
-      FindScpData& data = *(FindScpData*) callbackData;
+      FindScpData& data = *reinterpret_cast<FindScpData*>(callbackData);
       if (data.lastRequest_ == NULL)
       {
         FromDcmtkBridge::Convert(data.input_, *requestIdentifiers);
 
         try
         {
-          data.handler_->Handle(data.input_, data.answers_);
+          data.handler_->Handle(data.answers_, data.input_, *data.callingAETitle_);
         }
         catch (OrthancException& e)
         {
@@ -94,7 +95,7 @@ namespace Orthanc
         *responseIdentifiers = NULL;   
         return;
       }
-  
+
       if (responseCount <= static_cast<int>(data.answers_.GetSize()))
       {
         response->DimseStatus = STATUS_Pending;
@@ -112,11 +113,13 @@ namespace Orthanc
   OFCondition Internals::findScp(T_ASC_Association * assoc, 
                                  T_DIMSE_Message * msg, 
                                  T_ASC_PresentationContextID presID,
-                                 IFindRequestHandler& handler)
+                                 IFindRequestHandler& handler,
+                                 const std::string& callingAETitle)
   {
     FindScpData data;
     data.lastRequest_ = NULL;
     data.handler_ = &handler;
+    data.callingAETitle_ = &callingAETitle;
 
     OFCondition cond = DIMSE_findProvider(assoc, presID, &msg->msg.CFindRQ, 
                                           FindScpCallback, &data,

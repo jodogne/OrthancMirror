@@ -2,11 +2,137 @@ Pending changes in the mainline
 ===============================
 
 
-* Store-SCU for patients and studies in Orthanc Explorer.
+
+Version 0.7.4 (2014/04/16)
+==========================
+
+* Switch to openssl-1.0.1g in static builds (cf. Heartbleed exploit)
+* Switch to boost 1.55.0 in static builds (to solve compiling errors)
+* Better logging about nonexistent tags
+* Dcm4Chee manufacturer
+* Automatic discovering of the path to the DICOM dictionaries
+* In the "DicomModalities" config, the port number can be a string
+
+
+Version 0.7.3 (2014/02/14)
+==========================
+
+Major changes
+-------------
+
+* Fixes in the implementation of the C-FIND handler for Query/Retrieve
+* Custom attachment of files to patients, studies, series or instances
+* Access to lowlevel info about the attached files through the REST API
+* Recover pixel data for more transfer syntaxes (notably JPEG)
+
+Minor changes
+-------------
+
+* AET comparison is now case-insensitive by default
+* Possibility to disable the HTTP server or the DICOM server
+* Automatic computation of MD5 hashes for the stored DICOM files
+* Maintenance tool to recover DICOM files compressed by Orthanc
+* The newline characters in the configuration file are fixed for Linux
+* Capture of the SIGTERM signal in Linux
+
+
+Version 0.7.2 (2013/11/08)
+==========================
+
+* Support of Query/Retrieve from medInria
+* Accept more transfer syntaxes for C-Store SCP and SCU (notably JPEG)
+* Create the meta-header when receiving files through C-Store SCP
+* Fixes and improvements thanks to the static analyzer cppcheck
+
+
+Version 0.7.1 (2013/10/30)
+==========================
+
+* Use ZIP64 only when required to improve compatibility (cf. issue #7)
+* Refactoring of the CMake options
+* Fix for big-endian architectures (RedHat bug #985748)
+* Use filenames with 8 characters in ZIP files for maximum compatibility
+* Possibility to build Orthanc inplace (in the source directory)
+
+
+Version 0.7.0 (2013/10/25)
+==========================
+
+Major changes
+-------------
+
+* DICOM Query/Retrieve is supported
+
+Minor changes
+-------------
+
+* Possibility to keep the PatientID during an anonymization
+* Check whether "unzip", "tar" and/or "7-zip" are installed from CMake
+
+
+Version 0.6.2 (2013/10/04)
+==========================
+
+* Build of the C++ client as a shared library
+* Improvements and documentation of the C++ client API
+* Fix of Debian bug #724947 (licensing issue with the SHA-1 library)
+* Switch to Boost 1.54.0 (cf. issue #9)
+* "make uninstall" is now possible
+
+
+Version 0.6.1 (2013/09/16)
+==========================
+
+* Detection of stable patients/studies/series
+* C-Find SCU at the instance level
+* Link from modified to original resource in Orthanc Explorer
+* Fix of issue #8
+* Anonymization of the medical alerts tag (0010,2000)
+
+
+Version 0.6.0 (2013/07/16)
+==========================
+
+Major changes
+-------------
+
+* Introduction of the C++ client
+* Send DICOM resources to other Orthanc instances through HTTP
+* Access to signed images (instances/.../image-int16)
+  (Closes: Debian #716958)
+
+Minor changes
+-------------
+
+* Export of DICOM files to the host filesystem (instances/.../export)
+* Statistics about patients, studies, series and instances
+* Link from anonymized to original resource in Orthanc Explorer
+* Fixes for Red Hat and Debian packaging
+* Fixes for history in Orthanc Explorer
+* Fixes for boost::thread, as reported by Cyril Paulus
+* Fix licensing (Closes: Debian #712038)
+
+Metadata
+--------
+
+* Access to the metadata through the REST API (.../metadata)
+* Support of user-defined metadata
+* "LastUpdate" metadata for patients, studies and series
+* "/tools/now" to be used in combination with "LastUpdate"
+* Improved support of series with temporal positions
+
+
+Version 0.5.2 (2013/05/07)
+==========================
+
 * "Bulk" Store-SCU (send several DICOM instances with the same
-  DICOM connexion).
-* Filtering of incoming DICOM instances (through Lua scripting).
-* Filtering of incoming HTTP requests (through Lua scripting).
+  DICOM connexion)
+* Store-SCU for patients and studies in Orthanc Explorer
+* Filtering of incoming DICOM instances (through Lua scripting)
+* Filtering of incoming HTTP requests (through Lua scripting)
+* Clearing of "/exports" and "/changes"
+* Check MD5 of third party downloads
+* Faking of the HTTP methods PUT and DELETE
 
 
 Version 0.5.1 (2013/04/17)

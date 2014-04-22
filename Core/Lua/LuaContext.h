@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -53,15 +53,28 @@ namespace Orthanc
 
     lua_State *lua_;
     boost::mutex mutex_;
+    std::string log_;
 
     static int PrintToLog(lua_State *L);
+
+    void Execute(std::string* output,
+                 const std::string& command);
 
   public:
     LuaContext();
 
     ~LuaContext();
 
-    void Execute(const std::string& command);
+    void Execute(const std::string& command)
+    {
+      Execute(NULL, command);
+    }
+
+    void Execute(std::string& output,
+                 const std::string& command)
+    {
+      Execute(&output, command);
+    }
 
     void Execute(EmbeddedResources::FileResourceId resource);
 

@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -34,12 +34,15 @@
 
 #include "OrthancException.h"
 
+#include <stdint.h>
 #include <string.h>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/uuid/sha1.hpp>
 #include <algorithm>
 #include <ctype.h>
+#include <boost/regex.hpp> 
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -64,7 +67,19 @@
 
 #include "../Resources/md5/md5.h"
 #include "../Resources/base64/base64.h"
-#include "../Resources/sha1/sha1.h"
+
+
+#ifdef _MSC_VER
+// Patch for the missing "_strtoll" symbol when compiling with Visual Studio
+extern "C"
+{
+int64_t _strtoi64(const char *nptr, char **endptr, int base);
+int64_t strtoll(const char *nptr, char **endptr, int base)
+{
+    return _strtoi64(nptr, endptr, base);
+} 
+}
+#endif
 
 
 #if BOOST_HAS_LOCALE == 0
@@ -131,9 +146,9 @@ namespace Orthanc
 #if defined(_WIN32)
   static BOOL WINAPI ConsoleControlHandler(DWORD dwCtrlType)
   {
-	// http://msdn.microsoft.com/en-us/library/ms683242(v=vs.85).aspx
-	finish = true;
-	return true;
+    // http://msdn.microsoft.com/en-us/library/ms683242(v=vs.85).aspx
+    finish = true;
+    return true;
   }
 #else
   static void SignalHandler(int)
@@ -141,17 +156,6 @@ namespace Orthanc
     finish = true;
   }
 #endif
-
-  void Toolbox::Sleep(uint32_t seconds)
-  {
-#if defined(_WIN32)
-    ::Sleep(static_cast<DWORD>(seconds) * static_cast<DWORD>(1000));
-#elif defined(__linux)
-    usleep(static_cast<uint64_t>(seconds) * static_cast<uint64_t>(1000000));
-#else
-#error Support your platform here
-#endif
-  }
 
   void Toolbox::USleep(uint64_t microSeconds)
   {
@@ -168,10 +172,11 @@ namespace Orthanc
   void Toolbox::ServerBarrier()
   {
 #if defined(_WIN32)
-	SetConsoleCtrlHandler(ConsoleControlHandler, true);
+    SetConsoleCtrlHandler(ConsoleControlHandler, true);
 #else
     signal(SIGINT, SignalHandler);
     signal(SIGQUIT, SignalHandler);
+    signal(SIGTERM, SignalHandler);
 #endif
   
     finish = false;
@@ -181,10 +186,11 @@ namespace Orthanc
     }
 
 #if defined(_WIN32)
-	SetConsoleCtrlHandler(ConsoleControlHandler, false);
+    SetConsoleCtrlHandler(ConsoleControlHandler, false);
 #else
     signal(SIGINT, NULL);
     signal(SIGQUIT, NULL);
+    signal(SIGTERM, NULL);
 #endif
   }
 
@@ -202,15 +208,29 @@ namespace Orthanc
   }
 
 
+  void Toolbox::ToUpperCase(std::string& result,
+                            const std::string& source)
+  {
+    result = source;
+    ToUpperCase(result);
+  }
+
+  void Toolbox::ToLowerCase(std::string& result,
+                            const std::string& source)
+  {
+    result = source;
+    ToLowerCase(result);
+  }
+
 
   void Toolbox::ReadFile(std::string& content,
                          const std::string& path) 
   {
     boost::filesystem::ifstream f;
-    f.open(path, std::ifstream::in | std::ios::binary);
+    f.open(path, std::ifstream::in | std::ifstream::binary);
     if (!f.good())
     {
-      throw OrthancException("Unable to open a file");
+      throw OrthancException(ErrorCode_InexistentFile);
     }
 
     // http://www.cplusplus.com/reference/iostream/istream/tellg/
@@ -226,6 +246,26 @@ namespace Orthanc
 
     f.close();
   }
+
+
+  void Toolbox::WriteFile(const std::string& content,
+                          const std::string& path)
+  {
+    boost::filesystem::ofstream f;
+    f.open(path, std::ofstream::binary);
+    if (!f.good())
+    {
+      throw OrthancException(ErrorCode_CannotWriteFile);
+    }
+
+    if (content.size() != 0)
+    {
+      f.write(content.c_str(), content.size());
+    }
+
+    f.close();
+  }
+
 
 
   void Toolbox::RemoveFile(const std::string& path)
@@ -414,13 +454,29 @@ namespace Orthanc
   void Toolbox::ComputeMD5(std::string& result,
                            const std::string& data)
   {
+    if (data.size() > 0)
+    {
+      ComputeMD5(result, &data[0], data.size());
+    }
+    else
+    {
+      ComputeMD5(result, NULL, 0);
+    }
+  }
+
+
+  void Toolbox::ComputeMD5(std::string& result,
+                           const void* data,
+                           size_t length)
+  {
     md5_state_s state;
     md5_init(&state);
 
-    if (data.size() > 0)
+    if (length > 0)
     {
-      md5_append(&state, reinterpret_cast<const md5_byte_t*>(&data[0]), 
-                 static_cast<int>(data.size()));
+      md5_append(&state, 
+                 reinterpret_cast<const md5_byte_t*>(data), 
+                 static_cast<int>(length));
     }
 
     md5_byte_t actualHash[16];
@@ -538,31 +594,27 @@ namespace Orthanc
   void Toolbox::ComputeSHA1(std::string& result,
                             const std::string& data)
   {
-    SHA1 sha1;
+    boost::uuids::detail::sha1 sha1;
+
     if (data.size() > 0)
     {
-      sha1.Input(&data[0], data.size());
+      sha1.process_bytes(&data[0], data.size());
     }
 
-    unsigned digest[5];
+    unsigned int digest[5];
 
     // Sanity check for the memory layout: A SHA-1 digest is 160 bits wide
-    assert(sizeof(unsigned) == 4 && sizeof(digest) == (160 / 8)); 
+    assert(sizeof(unsigned int) == 4 && sizeof(digest) == (160 / 8)); 
     
-    if (sha1.Result(digest))
-    {
-      result.resize(8 * 5 + 4);
-      sprintf(&result[0], "%08x-%08x-%08x-%08x-%08x",
-              digest[0],
-              digest[1],
-              digest[2],
-              digest[3],
-              digest[4]);
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
+    sha1.get_digest(digest);
+
+    result.resize(8 * 5 + 4);
+    sprintf(&result[0], "%08x-%08x-%08x-%08x-%08x",
+            digest[0],
+            digest[1],
+            digest[2],
+            digest[3],
+            digest[4]);
   }
 
   bool Toolbox::IsSHA1(const std::string& str)
@@ -671,4 +723,85 @@ namespace Orthanc
 
     s.resize(target);
   }
+
+
+  Endianness Toolbox::DetectEndianness()
+  {
+    // http://sourceforge.net/p/predef/wiki/Endianness/
+
+    uint8_t buffer[4];
+
+    buffer[0] = 0x00;
+    buffer[1] = 0x01;
+    buffer[2] = 0x02;
+    buffer[3] = 0x03;
+
+    switch (*((uint32_t *)buffer)) 
+    {
+      case 0x00010203: 
+        return Endianness_Big;
+
+      case 0x03020100: 
+        return Endianness_Little;
+        
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
+
+
+  std::string Toolbox::WildcardToRegularExpression(const std::string& source)
+  {
+    // TODO - Speed up this with a regular expression
+
+    std::string result = source;
+
+    // Escape all special characters
+    boost::replace_all(result, "\\", "\\\\");
+    boost::replace_all(result, "^", "\\^");
+    boost::replace_all(result, ".", "\\.");
+    boost::replace_all(result, "$", "\\$");
+    boost::replace_all(result, "|", "\\|");
+    boost::replace_all(result, "(", "\\(");
+    boost::replace_all(result, ")", "\\)");
+    boost::replace_all(result, "[", "\\[");
+    boost::replace_all(result, "]", "\\]");
+    boost::replace_all(result, "+", "\\+");
+    boost::replace_all(result, "/", "\\/");
+    boost::replace_all(result, "{", "\\{");
+    boost::replace_all(result, "}", "\\}");
+
+    // Convert wildcards '*' and '?' to their regex equivalents
+    boost::replace_all(result, "?", ".");
+    boost::replace_all(result, "*", ".*");
+
+    return result;
+  }
+
+
+
+  void Toolbox::TokenizeString(std::vector<std::string>& result,
+                               const std::string& value,
+                               char separator)
+  {
+    result.clear();
+
+    std::string currentItem;
+
+    for (size_t i = 0; i < value.size(); i++)
+    {
+      if (value[i] == separator)
+      {
+        result.push_back(currentItem);
+        currentItem.clear();
+      }
+      else
+      {
+        currentItem.push_back(value[i]);
+      }
+    }
+
+    result.push_back(currentItem);
+  }
 }
+

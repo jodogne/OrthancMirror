@@ -1,3 +1,21 @@
+# Orthanc - A Lightweight, RESTful DICOM Store
+# Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
+# Belgium
+#
+# This program is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+
 import httplib2
 import json
 from urllib import urlencode
@@ -13,7 +31,7 @@ def _SetupCredentials(h):
     if _credentials != None:
         h.add_credentials(_credentials[0], _credentials[1])
 
-def DoGet(uri, data = {}):
+def DoGet(uri, data = {}, interpretAsJson = True):
     d = ''
     if len(data.keys()) > 0:
         d = '?' + urlencode(data)
@@ -23,6 +41,8 @@ def DoGet(uri, data = {}):
     resp, content = h.request(uri + d, 'GET')
     if not (resp.status in [ 200 ]):
         raise Exception(resp.status)
+    elif not interpretAsJson:
+        return content
     else:
         try:
             return json.loads(content)

@@ -1,4 +1,4 @@
-if (DEBIAN_USE_GTEST_SOURCE_PACKAGE)
+if (USE_GTEST_DEBIAN_SOURCE_PACKAGE)
   set(GTEST_SOURCES /usr/src/gtest/src/gtest-all.cc)
   include_directories(/usr/src/gtest)
 
@@ -7,9 +7,12 @@ if (DEBIAN_USE_GTEST_SOURCE_PACKAGE)
     message(FATAL_ERROR "Please install the libgtest-dev package")
   endif()
 
-elseif (STATIC_BUILD OR NOT USE_DYNAMIC_GOOGLE_TEST)
+elseif (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_TEST)
   SET(GTEST_SOURCES_DIR ${CMAKE_BINARY_DIR}/gtest-1.6.0)
-  DownloadPackage("http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/gtest-1.6.0.zip" "${GTEST_SOURCES_DIR}" "" "")
+  DownloadPackage(
+    "4577b49f2973c90bf9ba69aa8166b786"
+    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/gtest-1.6.0.zip"
+    "${GTEST_SOURCES_DIR}")
 
   include_directories(
     ${GTEST_SOURCES_DIR}/include

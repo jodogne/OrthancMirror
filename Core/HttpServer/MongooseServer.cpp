@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -49,6 +49,9 @@
 #include "HttpOutput.h"
 #include "mongoose.h"
 
+#if ORTHANC_SSL_ENABLED == 1
+#include <openssl/opensslv.h>
+#endif
 
 #define ORTHANC_REALM "Orthanc Secure Area"
 
@@ -129,7 +132,7 @@ namespace Orthanc
     void Clear()
     {
       for (Content::iterator it = content_.begin();
-           it != content_.end(); it++)
+           it != content_.end(); ++it)
       {
         delete *it;
       }
@@ -138,7 +141,7 @@ namespace Orthanc
     Content::iterator Find(const std::string& filename)
     {
       for (Content::iterator it = content_.begin();
-           it != content_.end(); it++)
+           it != content_.end(); ++it)
       {
         if ((*it)->GetFilename() == filename)
         {
@@ -254,7 +257,7 @@ namespace Orthanc
   HttpHandler* MongooseServer::FindHandler(const UriComponents& forUri) const
   {
     for (Handlers::const_iterator it = 
-           handlers_.begin(); it != handlers_.end(); it++) 
+           handlers_.begin(); it != handlers_.end(); ++it) 
     {
       if ((*it)->IsServedUri(forUri))
       {
@@ -268,9 +271,9 @@ namespace Orthanc
 
 
 
-  static PostDataStatus ReadPostData(std::string& postData,
-                                     struct mg_connection *connection,
-                                     const HttpHandler::Arguments& headers)
+  static PostDataStatus ReadBody(std::string& postData,
+                                 struct mg_connection *connection,
+                                 const HttpHandler::Arguments& headers)
   {
     HttpHandler::Arguments::const_iterator cs = headers.find("content-length");
     if (cs == headers.end())
@@ -303,6 +306,7 @@ namespace Orthanc
       {
         return PostDataStatus_Failure;
       }
+
       assert(r <= length);
       length -= r;
       pos += r;
@@ -322,7 +326,7 @@ namespace Orthanc
     std::string boundary = "--" + contentType.substr(multipartLength);
 
     std::string postData;
-    PostDataStatus status = ReadPostData(postData, connection, headers);
+    PostDataStatus status = ReadBody(postData, connection, headers);
 
     if (status != PostDataStatus_Success)
     {
@@ -485,6 +489,83 @@ namespace Orthanc
   }
 
 
+  static bool ExtractMethod(HttpMethod& method,
+                            const struct mg_request_info *request,
+                            const HttpHandler::Arguments& headers,
+                            const HttpHandler::Arguments& argumentsGET)
+  {
+    std::string overriden;
+
+    // Check whether some PUT/DELETE faking is done
+
+    // 1. Faking with Google's approach
+    HttpHandler::Arguments::const_iterator methodOverride =
+      headers.find("x-http-method-override");
+
+    if (methodOverride != headers.end())
+    {
+      overriden = methodOverride->second;
+    }
+    else if (!strcmp(request->request_method, "GET"))
+    {
+      // 2. Faking with Ruby on Rail's approach
+      // GET /my/resource?_method=delete <=> DELETE /my/resource
+      methodOverride = argumentsGET.find("_method");
+      if (methodOverride != argumentsGET.end())
+      {
+        overriden = methodOverride->second;
+      }
+    }
+
+    if (overriden.size() > 0)
+    {
+      // A faking has been done within this request
+      Toolbox::ToUpperCase(overriden);
+
+      LOG(INFO) << "HTTP method faking has been detected for " << overriden;
+
+      if (overriden == "PUT")
+      {
+        method = HttpMethod_Put;
+        return true;
+      }
+      else if (overriden == "DELETE")
+      {
+        method = HttpMethod_Delete;
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }
+
+    // No PUT/DELETE faking was present
+    if (!strcmp(request->request_method, "GET"))
+    {
+      method = HttpMethod_Get;
+    }
+    else if (!strcmp(request->request_method, "POST"))
+    {
+      method = HttpMethod_Post;
+    }
+    else if (!strcmp(request->request_method, "DELETE"))
+    {
+      method = HttpMethod_Delete;
+    }
+    else if (!strcmp(request->request_method, "PUT"))
+    {
+      method = HttpMethod_Put;
+    }
+    else
+    {
+      return false;
+    }    
+
+    return true;
+  }
+
+
 
   static void* Callback(enum mg_event event,
                         struct mg_connection *connection,
@@ -492,33 +573,10 @@ namespace Orthanc
   {
     if (event == MG_NEW_REQUEST) 
     {
-      MongooseServer* that = (MongooseServer*) (request->user_data);
+      MongooseServer* that = reinterpret_cast<MongooseServer*>(request->user_data);
       MongooseOutput output(connection);
 
-      // Compute the method
-      Orthanc_HttpMethod method;
-      if (!strcmp(request->request_method, "GET"))
-      {
-        method = Orthanc_HttpMethod_Get;
-      }
-      else if (!strcmp(request->request_method, "POST"))
-      {
-        method = Orthanc_HttpMethod_Post;
-      }
-      else if (!strcmp(request->request_method, "DELETE"))
-      {
-        method = Orthanc_HttpMethod_Delete;
-      }
-      else if (!strcmp(request->request_method, "PUT"))
-      {
-        method = Orthanc_HttpMethod_Put;
-      }
-      else
-      {
-        output.SendHeader(Orthanc_HttpStatus_405_MethodNotAllowed);
-        return (void*) "";
-      }      
-
+      // Check remote calls
       if (!that->IsRemoteAccessAllowed() &&
           request->remote_ip != LOCALHOST)
       {
@@ -526,14 +584,33 @@ namespace Orthanc
         return (void*) "";
       }
 
-      HttpHandler::Arguments arguments, headers;
 
+      // Extract the HTTP headers
+      HttpHandler::Arguments headers;
       for (int i = 0; i < request->num_headers; i++)
       {
         std::string name = request->http_headers[i].name;
         std::transform(name.begin(), name.end(), name.begin(), ::tolower);
         headers.insert(std::make_pair(name, request->http_headers[i].value));
       }
+
+
+      // Extract the GET arguments
+      HttpHandler::Arguments argumentsGET;
+      if (!strcmp(request->request_method, "GET"))
+      {
+        HttpHandler::ParseGetQuery(argumentsGET, request->query_string);
+      }
+
+
+      // Compute the HTTP method, taking method faking into consideration
+      HttpMethod method;
+      if (!ExtractMethod(method, request, headers, argumentsGET))
+      {
+        output.SendHeader(HttpStatus_400_BadRequest);
+        return (void*) "";
+      }
+
 
       // Authenticate this connection
       if (that->IsAuthenticationEnabled() &&
@@ -564,83 +641,93 @@ namespace Orthanc
       }
 
 
-      std::string postData;
+      // Extract the body of the request for PUT and POST
+      std::string body;
+      if (method == HttpMethod_Post ||
+          method == HttpMethod_Put)
+      {
+        PostDataStatus status;
 
-      if (method == Orthanc_HttpMethod_Get)
-      {
-        HttpHandler::ParseGetQuery(arguments, request->query_string);
-      }
-      else if (method == Orthanc_HttpMethod_Post ||
-               method == Orthanc_HttpMethod_Put)
-      {
         HttpHandler::Arguments::const_iterator ct = headers.find("content-type");
         if (ct == headers.end())
         {
-          output.SendHeader(Orthanc_HttpStatus_400_BadRequest);
-          return (void*) "";
-        }
-
-        PostDataStatus status;
-      
-        std::string contentType = ct->second;
-        if (contentType.size() >= multipartLength &&
-            !memcmp(contentType.c_str(), multipart, multipartLength))
-        {
-          status = ParseMultipartPost(postData, connection, headers, contentType, that->GetChunkStore());
+          // No content-type specified. Assume no multi-part content occurs at this point.
+          status = ReadBody(body, connection, headers);          
         }
         else
         {
-          status = ReadPostData(postData, connection, headers);
+          std::string contentType = ct->second;
+          if (contentType.size() >= multipartLength &&
+              !memcmp(contentType.c_str(), multipart, multipartLength))
+          {
+            status = ParseMultipartPost(body, connection, headers, contentType, that->GetChunkStore());
+          }
+          else
+          {
+            status = ReadBody(body, connection, headers);
+          }
         }
 
         switch (status)
         {
-        case PostDataStatus_NoLength:
-          output.SendHeader(Orthanc_HttpStatus_411_LengthRequired);
-          return (void*) "";
+          case PostDataStatus_NoLength:
+            output.SendHeader(HttpStatus_411_LengthRequired);
+            return (void*) "";
 
-        case PostDataStatus_Failure:
-          output.SendHeader(Orthanc_HttpStatus_400_BadRequest);
-          return (void*) "";
+          case PostDataStatus_Failure:
+            output.SendHeader(HttpStatus_400_BadRequest);
+            return (void*) "";
 
-        case PostDataStatus_Pending:
-          output.AnswerBufferWithContentType(NULL, 0, "");
-          return (void*) "";
+          case PostDataStatus_Pending:
+            output.AnswerBufferWithContentType(NULL, 0, "");
+            return (void*) "";
 
-        default:
-          break;
+          default:
+            break;
         }
       }
 
+
+      // Call the proper handler for this URI
       UriComponents uri;
-      Toolbox::SplitUriComponents(uri, request->uri);
+      try
+      {
+        Toolbox::SplitUriComponents(uri, request->uri);
+      }
+      catch (OrthancException)
+      {
+        output.SendHeader(HttpStatus_400_BadRequest);
+        return (void*) "";
+      }
+
 
       HttpHandler* handler = that->FindHandler(uri);
       if (handler)
       {
         try
         {
-          handler->Handle(output, method, uri, headers, arguments, postData);
+          LOG(INFO) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
+          handler->Handle(output, method, uri, headers, argumentsGET, body);
         }
         catch (OrthancException& e)
         {
           LOG(ERROR) << "MongooseServer Exception [" << e.What() << "]";
-          output.SendHeader(Orthanc_HttpStatus_500_InternalServerError);        
+          output.SendHeader(HttpStatus_500_InternalServerError);        
         }
         catch (boost::bad_lexical_cast&)
         {
           LOG(ERROR) << "MongooseServer Exception: Bad lexical cast";
-          output.SendHeader(Orthanc_HttpStatus_400_BadRequest);
+          output.SendHeader(HttpStatus_400_BadRequest);
         }
         catch (std::runtime_error&)
         {
           LOG(ERROR) << "MongooseServer Exception: Presumably a bad JSON request";
-          output.SendHeader(Orthanc_HttpStatus_400_BadRequest);
+          output.SendHeader(HttpStatus_400_BadRequest);
         }
       }
       else
       {
-        output.SendHeader(Orthanc_HttpStatus_404_NotFound);
+        output.SendHeader(HttpStatus_404_NotFound);
       }
 
       // Mark as processed
@@ -666,6 +753,17 @@ namespace Orthanc
     authentication_ = false;
     ssl_ = false;
     port_ = 8000;
+    filter_ = NULL;
+
+#if ORTHANC_SSL_ENABLED == 1
+    // Check for the Heartbleed exploit
+    // https://en.wikipedia.org/wiki/OpenSSL#Heartbleed_bug
+    if (OPENSSL_VERSION_NUMBER <  0x1000107fL  /* openssl-1.0.1g */ &&
+        OPENSSL_VERSION_NUMBER >= 0x1000100fL  /* openssl-1.0.1 */) 
+    {
+      LOG(WARNING) << "This version of OpenSSL is vulnerable to the Heartbleed exploit";
+    }
+#endif
   }
 
 
@@ -731,7 +829,7 @@ namespace Orthanc
     Stop();
 
     for (Handlers::iterator it = 
-           handlers_.begin(); it != handlers_.end(); it++)
+           handlers_.begin(); it != handlers_.end(); ++it)
     {
       delete *it;
     }

@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * Copyright (c) 2012 The Chromium Authors. All rights reserved.
@@ -39,6 +39,7 @@
 #include "../OrthancException.h"
 
 #include <cassert>
+#include <glog/logging.h>
 #include "sqlite3.h"
 
 namespace Orthanc
@@ -103,8 +104,11 @@ namespace Orthanc
       {
         if (refCount_ != 0)
         {
-          // There remain references to this object
-          throw OrthancException(ErrorCode_InternalError);
+          // There remain references to this object. We cannot throw
+          // an exception because:
+          // http://www.parashift.com/c++-faq/dtors-shouldnt-throw.html
+
+          LOG(ERROR) << "Bad value of the reference counter";
         }
         else if (statement_ != NULL)
         {
@@ -115,7 +119,11 @@ namespace Orthanc
       {
         if (root_->refCount_ == 0)
         {
-          throw OrthancException(ErrorCode_InternalError);
+          // There remain references to this object. We cannot throw
+          // an exception because:
+          // http://www.parashift.com/c++-faq/dtors-shouldnt-throw.html
+
+          LOG(ERROR) << "Bad value of the reference counter";
         }
         else
         {

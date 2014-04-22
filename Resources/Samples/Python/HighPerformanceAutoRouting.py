@@ -1,6 +1,24 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+# Orthanc - A Lightweight, RESTful DICOM Store
+# Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
+# Belgium
+#
+# This program is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+
 
 URL = 'http://localhost:8042'
 TARGET = 'sample'
@@ -98,6 +116,10 @@ def Consumer(queue):
             # Remove all the instances from Orthanc
             for instance in instances:
                 RestToolbox.DoDelete('%s/instances/%s' % (URL, instance))
+
+            # Clear the log of the exported instances (to prevent the
+            # SQLite database from growing indefinitely)
+            RestToolbox.DoDelete('%s/exports' % URL)
 
             end = time.time()
             print 'The packet of %d instances has been sent in %d seconds' % (len(instances), end - start)
