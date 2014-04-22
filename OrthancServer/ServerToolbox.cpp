@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -35,6 +35,7 @@
 #include "../Core/OrthancException.h"
 
 #include <cassert>
+#include <glog/logging.h>
 
 namespace Orthanc
 {
@@ -80,6 +81,73 @@ namespace Orthanc
       {
         assert(0);
       }
+    }
+  }
+
+
+  void LogMissingRequiredTag(const DicomMap& summary)
+  {
+    std::string s, t;
+
+    if (summary.HasTag(DICOM_TAG_PATIENT_ID))
+    {
+      if (t.size() > 0)
+        t += ", ";
+      t += "PatientID=" + summary.GetValue(DICOM_TAG_PATIENT_ID).AsString();
+    }
+    else
+    {
+      if (s.size() > 0)
+        s += ", ";
+      s += "PatientID";
+    }
+
+    if (summary.HasTag(DICOM_TAG_STUDY_INSTANCE_UID))
+    {
+      if (t.size() > 0)
+        t += ", ";
+      t += "StudyInstanceUID=" + summary.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString();
+    }
+    else
+    {
+      if (s.size() > 0)
+        s += ", ";
+      s += "StudyInstanceUID";
+    }
+
+    if (summary.HasTag(DICOM_TAG_SERIES_INSTANCE_UID))
+    {
+      if (t.size() > 0)
+        t += ", ";
+      t += "SeriesInstanceUID=" + summary.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).AsString();
+    }
+    else
+    {
+      if (s.size() > 0)
+        s += ", ";
+      s += "SeriesInstanceUID";
+    }
+
+    if (summary.HasTag(DICOM_TAG_SOP_INSTANCE_UID))
+    {
+      if (t.size() > 0)
+        t += ", ";
+      t += "SOPInstanceUID=" + summary.GetValue(DICOM_TAG_SOP_INSTANCE_UID).AsString();
+    }
+    else
+    {
+      if (s.size() > 0)
+        s += ", ";
+      s += "SOPInstanceUID";
+    }
+
+    if (t.size() == 0)
+    {
+      LOG(ERROR) << "Store has failed because all the required tags (" << s << ") are missing (is it a DICOMDIR file?)";
+    }
+    else
+    {
+      LOG(ERROR) << "Store has failed because required tags (" << s << ") are missing for the following instance: " << t;
     }
   }
 }

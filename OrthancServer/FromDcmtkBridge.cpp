@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -29,6 +29,49 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
+
+
+/*=========================================================================
+
+  This file is based on portions of the following project:
+
+  Program: GDCM (Grassroots DICOM). A DICOM library
+  Module:  http://gdcm.sourceforge.net/Copyright.html
+
+Copyright (c) 2006-2011 Mathieu Malaterre
+Copyright (c) 1993-2005 CREATIS
+(CREATIS = Centre de Recherche et d'Applications en Traitement de l'Image)
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+ * Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+ * Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+ * Neither name of Mathieu Malaterre, or CREATIS, nor the names of any
+   contributors (CNRS, INSERM, UCB, Universite Lyon I), may be used to
+   endorse or promote products derived from this software without specific
+   prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS''
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+=========================================================================*/
+
+
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -38,7 +81,7 @@
 #include "ToDcmtkBridge.h"
 #include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"
-#include "../Core/PngWriter.h"
+#include "../Core/FileFormats/PngWriter.h"
 #include "../Core/Uuid.h"
 #include "../Core/DicomFormat/DicomString.h"
 #include "../Core/DicomFormat/DicomNullValue.h"
@@ -55,6 +98,7 @@
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcuid.h>
+#include <dcmtk/dcmdata/dcmetinf.h>
 
 #include <dcmtk/dcmdata/dcvrae.h>
 #include <dcmtk/dcmdata/dcvras.h>
@@ -77,10 +121,19 @@
 #include <dcmtk/dcmdata/dcvrul.h>
 #include <dcmtk/dcmdata/dcvrus.h>
 #include <dcmtk/dcmdata/dcvrut.h>
+#include <dcmtk/dcmdata/dcpixel.h>
+#include <dcmtk/dcmdata/dcpixseq.h>
+#include <dcmtk/dcmdata/dcpxitem.h>
+
 
 #include <boost/math/special_functions/round.hpp>
 #include <glog/logging.h>
 #include <dcmtk/dcmdata/dcostrmb.h>
+
+
+static const char* CONTENT_TYPE_OCTET_STREAM = "application/octet-stream";
+
+
 
 namespace Orthanc
 {
@@ -165,16 +218,34 @@ namespace Orthanc
     output.AnswerJson(v);
   }
 
-  static void AnswerDicomField(RestApiOutput& output,
-                               DcmElement& element)
+
+  static unsigned int GetPixelDataBlockCount(DcmPixelData& pixelData,
+                                             E_TransferSyntax transferSyntax)
   {
-    // This element is not a sequence
+    DcmPixelSequence* pixelSequence = NULL;
+    if (pixelData.getEncapsulatedRepresentation
+        (transferSyntax, NULL, pixelSequence).good() && pixelSequence)
+    {
+      return pixelSequence->card();
+    }
+    else
+    {
+      return 1;
+    }
+  }
+
+
+  static void AnswerDicomField(RestApiOutput& output,
+                               DcmElement& element,
+                               E_TransferSyntax transferSyntax)
+  {
+    // This element is nor a sequence, neither a pixel-data
     std::string buffer;
     buffer.resize(65536);
-    Uint32 length = element.getLength();
+    Uint32 length = element.getLength(transferSyntax);
     Uint32 offset = 0;
 
-    output.GetLowLevelOutput().SendOkHeader("application/octet-stream", true, length, NULL);
+    output.GetLowLevelOutput().SendOkHeader(CONTENT_TYPE_OCTET_STREAM, true, length, NULL);
 
     while (offset < length)
     {
@@ -188,14 +259,16 @@ namespace Orthanc
         nbytes = buffer.size();
       }
 
-      if (element.getPartialValue(&buffer[0], offset, nbytes).good())
+      OFCondition cond = element.getPartialValue(&buffer[0], offset, nbytes);
+
+      if (cond.good())
       {
         output.GetLowLevelOutput().Send(&buffer[0], nbytes);
         offset += nbytes;
       }
       else
       {
-        LOG(ERROR) << "Error while sending a DICOM field";
+        LOG(ERROR) << "Error while sending a DICOM field: " << cond.text();
         return;
       }
     }
@@ -203,9 +276,96 @@ namespace Orthanc
     output.MarkLowLevelOutputDone();
   }
 
+
+  static bool AnswerPixelData(RestApiOutput& output,
+                              DcmItem& dicom,
+                              E_TransferSyntax transferSyntax,
+                              const std::string* blockUri)
+  {
+    DcmTag k(DICOM_TAG_PIXEL_DATA.GetGroup(),
+             DICOM_TAG_PIXEL_DATA.GetElement());
+
+    DcmElement *element = NULL;
+    if (!dicom.findAndGetElement(k, element).good() ||
+        element == NULL)
+    {
+      return false;
+    }
+
+    try
+    {
+      DcmPixelData& pixelData = dynamic_cast<DcmPixelData&>(*element);
+      if (blockUri == NULL)
+      {
+        // The user asks how many blocks are presents in this pixel data
+        unsigned int blocks = GetPixelDataBlockCount(pixelData, transferSyntax);
+
+        Json::Value result(Json::arrayValue);
+        for (unsigned int i = 0; i < blocks; i++)
+        {
+          result.append(boost::lexical_cast<std::string>(i));
+        }
+        
+        output.AnswerJson(result);
+        return true;
+      }
+
+
+      unsigned int block = boost::lexical_cast<unsigned int>(*blockUri);
+
+      if (block < GetPixelDataBlockCount(pixelData, transferSyntax))
+      {
+        DcmPixelSequence* pixelSequence = NULL;
+        if (pixelData.getEncapsulatedRepresentation
+            (transferSyntax, NULL, pixelSequence).good() && pixelSequence)
+        {
+          // This is the case for JPEG transfer syntaxes
+          if (block < pixelSequence->card())
+          {
+            DcmPixelItem* pixelItem = NULL;
+            if (pixelSequence->getItem(pixelItem, block).good() && pixelItem)
+            {
+              if (pixelItem->getLength() == 0)
+              {
+                output.AnswerBuffer(NULL, 0, CONTENT_TYPE_OCTET_STREAM);
+                return true;
+              }
+
+              Uint8* buffer = NULL;
+              if (pixelItem->getUint8Array(buffer).good() && buffer)
+              {
+                output.AnswerBuffer(buffer, pixelItem->getLength(), CONTENT_TYPE_OCTET_STREAM);
+                return true;
+              }
+            }
+          }
+        }
+        else
+        {
+          // This is the case for raw, uncompressed image buffers
+          assert(*blockUri == "0");
+          AnswerDicomField(output, *element, transferSyntax);
+        }
+      }
+    }
+    catch (boost::bad_lexical_cast&)
+    {
+      // The URI entered by the user is not a number
+    }
+    catch (std::bad_cast&)
+    {
+      // This should never happen
+    }
+
+    return false;
+  }
+
+
+
   static void SendPathValueForLeaf(RestApiOutput& output,
                                    const std::string& tag,
-                                   DcmItem& dicom)
+                                   DcmItem& dicom,
+                                   E_TransferSyntax transferSyntax)
   {
     DcmTagKey k;
     ParseTagAndGroup(k, tag);
@@ -225,7 +385,7 @@ namespace Orthanc
         //element->getVR() != EVR_UNKNOWN &&  // This would forbid private tags
         element->getVR() != EVR_SQ)
     {
-      AnswerDicomField(output, *element);
+      AnswerDicomField(output, *element, transferSyntax);
     }
   }
 
@@ -233,6 +393,22 @@ namespace Orthanc
                                       const UriComponents& uri)
   {
     DcmItem* dicom = file_->getDataset();
+    E_TransferSyntax transferSyntax = file_->getDataset()->getOriginalXfer();
+
+    // Special case: Accessing the pixel data
+    if (uri.size() == 1 || 
+        uri.size() == 2)
+    {
+      DcmTagKey tag;
+      ParseTagAndGroup(tag, uri[0]);
+
+      if (tag.getGroup() == DICOM_TAG_PIXEL_DATA.GetGroup() &&
+          tag.getElement() == DICOM_TAG_PIXEL_DATA.GetElement())
+      {
+        AnswerPixelData(output, *dicom, transferSyntax, uri.size() == 1 ? NULL : &uri[1]);
+        return;
+      }
+    }        
 
     // Go down in the tag hierarchy according to the URI
     for (size_t pos = 0; pos < uri.size() / 2; pos++)
@@ -266,7 +442,7 @@ namespace Orthanc
     }
     else
     {
-      SendPathValueForLeaf(output, uri.back(), *dicom);
+      SendPathValueForLeaf(output, uri.back(), *dicom, transferSyntax);
     }
   }
 
@@ -580,7 +756,7 @@ namespace Orthanc
     }
 
     for (Tags::iterator it = privateTags.begin(); 
-         it != privateTags.end(); it++)
+         it != privateTags.end(); ++it)
     {
       DcmElement* tmp = dataset.remove(*it);
       if (tmp != NULL)
@@ -657,7 +833,7 @@ namespace Orthanc
     std::string serialized;
     if (FromDcmtkBridge::SaveToMemoryBuffer(serialized, file_->getDataset()))
     {
-      output.AnswerBuffer(serialized, "application/octet-stream");
+      output.AnswerBuffer(serialized, CONTENT_TYPE_OCTET_STREAM);
     }
   }
 
@@ -1097,9 +1273,9 @@ namespace Orthanc
       for (unsigned int x = 0; x < accessor.GetWidth(); x++, pixel++)
       {
         int32_t v = accessor.GetValue(x, y);
-        if (v < std::numeric_limits<T>::min())
+        if (v < static_cast<int32_t>(std::numeric_limits<T>::min()))
           *pixel = std::numeric_limits<T>::min();
-        else if (v > std::numeric_limits<T>::max())
+        else if (v > static_cast<int32_t>(std::numeric_limits<T>::max()))
           *pixel = std::numeric_limits<T>::max();
         else
           *pixel = static_cast<T>(v);
@@ -1240,6 +1416,11 @@ namespace Orthanc
       accessor.reset(new DicomIntegerPixelAccessor(m, pixData, privateContent.size()));
       accessor->SetCurrentFrame(frame);
     }
+    
+    if (accessor.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
 
     PixelFormat format;
     bool supported = false;
@@ -1261,6 +1442,11 @@ namespace Orthanc
         case ImageExtractionMode_UInt16:
           supported = true;
           format = PixelFormat_Grayscale16;
+          break;
+
+        case ImageExtractionMode_Int16:
+          supported = true;
+          format = PixelFormat_SignedGrayscale16;
           break;
 
         default:
@@ -1312,6 +1498,10 @@ namespace Orthanc
 
         case ImageExtractionMode_UInt16:
           ExtractPngImageTruncate<uint16_t>(result, *accessor, format);
+          break;
+
+        case ImageExtractionMode_Int16:
+          ExtractPngImageTruncate<int16_t>(result, *accessor, format);
           break;
 
         default:
@@ -1436,7 +1626,7 @@ namespace Orthanc
   void FromDcmtkBridge::Print(FILE* fp, const DicomMap& m)
   {
     for (DicomMap::Map::const_iterator 
-           it = m.map_.begin(); it != m.map_.end(); it++)
+           it = m.map_.begin(); it != m.map_.end(); ++it)
     {
       DicomTag t = it->first;
       std::string s = it->second->AsString();
@@ -1456,7 +1646,7 @@ namespace Orthanc
     result.clear();
 
     for (DicomMap::Map::const_iterator 
-           it = values.map_.begin(); it != values.map_.end(); it++)
+           it = values.map_.begin(); it != values.map_.end(); ++it)
     {
       result[GetName(it->first)] = it->second->AsString();
     }
@@ -1497,25 +1687,41 @@ namespace Orthanc
     // syntax, with explicit length.
 
     // http://support.dcmtk.org/docs/dcxfer_8h-source.html
-    E_TransferSyntax xfer = EXS_LittleEndianExplicit;
+
+
+    /**
+     * Note that up to Orthanc 0.7.1 (inclusive), the
+     * "EXS_LittleEndianExplicit" was always used to save the DICOM
+     * dataset into memory. We now keep the original transfer syntax
+     * (if available).
+     **/
+    E_TransferSyntax xfer = dataSet->getOriginalXfer();
+    if (xfer == EXS_Unknown)
+    {
+      // No information about the original transfer syntax: This is
+      // most probably a DICOM dataset that was read from memory.
+      xfer = EXS_LittleEndianExplicit;
+    }
+
     E_EncodingType encodingType = /*opt_sequenceType*/ EET_ExplicitLength;
 
-    uint32_t s = dataSet->getLength(xfer, encodingType);
+    // Create the meta-header information
+    DcmFileFormat ff(dataSet);
+    ff.validateMetaInfo(xfer);
 
+    // Create a memory buffer with the proper size
+    uint32_t s = ff.calcElementLength(xfer, encodingType);
     buffer.resize(s);
     DcmOutputBufferStream ob(&buffer[0], s);
 
-    dataSet->transferInit();
+    // Fill the memory buffer with the meta-header and the dataset
+    ff.transferInit();
+    OFCondition c = ff.write(ob, xfer, encodingType, NULL,
+                             /*opt_groupLength*/ EGL_recalcGL,
+                             /*opt_paddingType*/ EPD_withoutPadding);
+    ff.transferEnd();
 
-#if DCMTK_VERSION_NUMBER >= 360
-    OFCondition c = dataSet->write(ob, xfer, encodingType, NULL,
-                                   /*opt_groupLength*/ EGL_recalcGL,
-                                   /*opt_paddingType*/ EPD_withoutPadding);
-#else
-    OFCondition c = dataSet->write(ob, xfer, encodingType, NULL);
-#endif
-
-    dataSet->transferEnd();
+    // Handle errors
     if (c.good())
     {
       return true;
@@ -1525,15 +1731,5 @@ namespace Orthanc
       buffer.clear();
       return false;
     }
-
-#if 0
-    OFCondition cond = cbdata->dcmff->saveFile(fileName.c_str(), xfer, 
-                                               encodingType, 
-                                               /*opt_groupLength*/ EGL_recalcGL,
-                                               /*opt_paddingType*/ EPD_withoutPadding,
-                                               OFstatic_cast(Uint32, /*opt_filepad*/ 0), 
-                                               OFstatic_cast(Uint32, /*opt_itempad*/ 0),
-                                               (opt_useMetaheader) ? EWM_fileformat : EWM_dataset);
-#endif
   }
 }

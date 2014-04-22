@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -33,6 +33,8 @@
 
 #include <string>
 
+#include "../Core/Enumerations.h"
+
 namespace Orthanc
 {
   enum SeriesStatus
@@ -51,6 +53,23 @@ namespace Orthanc
     StoreStatus_FilteredOut     // Removed by NewInstanceFilter
   };
 
+  enum ModalityManufacturer
+  {
+    ModalityManufacturer_Generic,
+    ModalityManufacturer_ClearCanvas,
+    ModalityManufacturer_MedInria,
+    ModalityManufacturer_Dcm4Chee
+  };
+
+  enum DicomRequestType
+  {
+    DicomRequestType_Echo,
+    DicomRequestType_Find,
+    DicomRequestType_Get,
+    DicomRequestType_Move,
+    DicomRequestType_Store
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations
@@ -65,14 +84,6 @@ namespace Orthanc
     GlobalProperty_AnonymizationSequence = 3
   };
 
-  enum ResourceType
-  {
-    ResourceType_Patient = 1,
-    ResourceType_Study = 2,
-    ResourceType_Series = 3,
-    ResourceType_Instance = 4
-  };
-
   enum MetadataType
   {
     MetadataType_Instance_IndexInSeries = 1,
@@ -80,7 +91,12 @@ namespace Orthanc
     MetadataType_Instance_RemoteAet = 3,
     MetadataType_Series_ExpectedNumberOfInstances = 4,
     MetadataType_ModifiedFrom = 5,
-    MetadataType_AnonymizedFrom = 6
+    MetadataType_AnonymizedFrom = 6,
+    MetadataType_LastUpdate = 7,
+
+    // Make sure that the value "65535" can be stored into this enumeration
+    MetadataType_StartUser = 1024,
+    MetadataType_EndUser = 65535
   };
 
   enum ChangeType
@@ -95,19 +111,42 @@ namespace Orthanc
     ChangeType_ModifiedStudy = 8,
     ChangeType_ModifiedSeries = 9,
     ChangeType_AnonymizedPatient = 10,
-    ChangeType_ModifiedPatient = 11
+    ChangeType_ModifiedPatient = 11,
+    ChangeType_StablePatient = 12,
+    ChangeType_StableStudy = 13,
+    ChangeType_StableSeries = 14
   };
+
+  void InitializeServerEnumerations();
+
+  void RegisterUserMetadata(int metadata,
+                            const std::string& name);
+
+  MetadataType StringToMetadata(const std::string& str);
+
+  std::string EnumerationToString(MetadataType type);
+
+  void RegisterUserContentType(int contentType,
+                               const std::string& name);
+
+  FileContentType StringToContentType(const std::string& str);
+
+  std::string EnumerationToString(FileContentType type);
 
   std::string GetBasePath(ResourceType type,
                           const std::string& publicId);
 
-  const char* ToString(ResourceType type);
+  const char* EnumerationToString(SeriesStatus status);
 
-  const char* ToString(SeriesStatus status);
+  const char* EnumerationToString(StoreStatus status);
 
-  const char* ToString(StoreStatus status);
+  const char* EnumerationToString(ChangeType type);
 
-  const char* ToString(ChangeType type);
+  const char* EnumerationToString(ModalityManufacturer manufacturer);
+
+  const char* EnumerationToString(DicomRequestType type);
+
+  ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer);
 
   ResourceType GetParentResourceType(ResourceType type);
 

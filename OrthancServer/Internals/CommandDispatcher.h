@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -50,12 +50,21 @@ namespace Orthanc
       uint32_t elapsedTimeSinceLastCommand_;
       const DicomServer& server_;
       T_ASC_Association* assoc_;
+      std::string callingIP_;
+      std::string callingAETitle_;
+      IApplicationEntityFilter* filter_;
 
     public:
       CommandDispatcher(const DicomServer& server,
-                        T_ASC_Association* assoc) : 
+                        T_ASC_Association* assoc,
+                        const std::string& callingIP,
+                        const std::string& callingAETitle,
+                        IApplicationEntityFilter* filter) :
         server_(server),
-        assoc_(assoc)
+        assoc_(assoc),
+        callingIP_(callingIP),
+        callingAETitle_(callingAETitle),
+        filter_(filter)
       {
         clientTimeout_ = server.GetClientTimeout();
         elapsedTimeSinceLastCommand_ = 0;

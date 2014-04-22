@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -81,12 +81,12 @@ namespace Orthanc
     std::string result;
 
     Stack::const_iterator it = stack_.begin();
-    it++;  // Skip the root node (to avoid absolute paths)
+    ++it;  // Skip the root node (to avoid absolute paths)
 
     while (it != stack_.end())
     {
       result += (*it)->name_ + "/";
-      it++;
+      ++it;
     }
 
     return result;
@@ -118,7 +118,7 @@ namespace Orthanc
 
   HierarchicalZipWriter::Index::~Index()
   {
-    for (Stack::iterator it = stack_.begin(); it != stack_.end(); it++)
+    for (Stack::iterator it = stack_.begin(); it != stack_.end(); ++it)
     {
       delete *it;
     }

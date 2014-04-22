@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "Enumerations.h"
+
 #include <stdint.h>
 #include <vector>
 #include <string>
@@ -48,14 +50,21 @@ namespace Orthanc
   {
     void ServerBarrier();
 
-    void ToUpperCase(std::string& s);
+    void ToUpperCase(std::string& s);  // Inplace version
 
-    void ToLowerCase(std::string& s);
+    void ToLowerCase(std::string& s);  // Inplace version
+
+    void ToUpperCase(std::string& result,
+                     const std::string& source);
+
+    void ToLowerCase(std::string& result,
+                     const std::string& source);
 
     void ReadFile(std::string& content,
                   const std::string& path);
 
-    void Sleep(uint32_t seconds);
+    void WriteFile(const std::string& content,
+                   const std::string& path);
 
     void USleep(uint64_t microSeconds);
 
@@ -76,6 +85,10 @@ namespace Orthanc
 
     void ComputeMD5(std::string& result,
                     const std::string& data);
+
+    void ComputeMD5(std::string& result,
+                    const void* data,
+                    size_t length);
 
     void ComputeSHA1(std::string& result,
                      const std::string& data);
@@ -101,5 +114,13 @@ namespace Orthanc
 
     // In-place percent-decoding for URL
     void UrlDecode(std::string& s);
+
+    Endianness DetectEndianness();
+
+    std::string WildcardToRegularExpression(const std::string& s);
+
+    void TokenizeString(std::vector<std::string>& result,
+                        const std::string& source,
+                        char separator);
   }
 }

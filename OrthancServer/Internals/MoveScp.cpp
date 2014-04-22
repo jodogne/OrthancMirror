@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -74,7 +74,7 @@ namespace Orthanc
       *statusDetail = NULL;
       *responseIdentifiers = NULL;   
 
-      MoveScpData& data = *(MoveScpData*) callbackData;
+      MoveScpData& data = *reinterpret_cast<MoveScpData*>(callbackData);
       if (data.lastRequest_ == NULL)
       {
         FromDcmtkBridge::Convert(data.input_, *requestIdentifiers);
@@ -82,6 +82,14 @@ namespace Orthanc
         try
         {
           data.iterator_.reset(data.handler_->Handle(data.target_, data.input_));
+
+          if (data.iterator_.get() == NULL)
+          {
+            // Internal error!
+            response->DimseStatus = STATUS_MOVE_Failed_UnableToProcess;
+            return;
+          }
+
           data.subOperationCount_ = data.iterator_->GetSubOperationCount();
           data.failureCount_ = 0;
           data.warningCount_ = 0;

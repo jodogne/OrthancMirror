@@ -1,6 +1,21 @@
-if (STATIC_BUILD OR NOT USE_DYNAMIC_GOOGLE_LOG)
+if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
   SET(GOOGLE_LOG_SOURCES_DIR ${CMAKE_BINARY_DIR}/glog-0.3.2)
-  DownloadPackage("http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/glog-0.3.2.tar.gz" "${GOOGLE_LOG_SOURCES_DIR}" "" "")
+  DownloadPackage(
+    "897fbff90d91ea2b6d6e78c8cea641cc"
+    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/glog-0.3.2.tar.gz"
+    "${GOOGLE_LOG_SOURCES_DIR}")
+
+
+  # Glog 0.3.3 fails to build with old versions of MinGW, such as the
+  # one installed on our Continuous Integration Server that runs
+  # Debian Squeeze. We thus stick to Glog 0.3.2 for the time being.
+
+  #SET(GOOGLE_LOG_SOURCES_DIR ${CMAKE_BINARY_DIR}/glog-0.3.3)
+  #DownloadPackage(
+  #  "a6fd2c22f8996846e34c763422717c18"
+  #  "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/glog-0.3.3.tar.gz"
+  #  "${GOOGLE_LOG_SOURCES_DIR}")
+
 
   set(GOOGLE_LOG_HEADERS
     ${GOOGLE_LOG_SOURCES_DIR}/src/glog/logging.h
@@ -46,10 +61,18 @@ if (STATIC_BUILD OR NOT USE_DYNAMIC_GOOGLE_LOG)
     )
 
   if (CMAKE_COMPILER_IS_GNUCXX)
-    execute_process(
-      COMMAND patch utilities.cc ${CMAKE_SOURCE_DIR}/Resources/Patches/glog-utilities.diff
-      WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src
-      )
+    if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
+      execute_process(
+        COMMAND patch utilities.cc ${CMAKE_SOURCE_DIR}/Resources/Patches/glog-utilities-lsb.diff
+        WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src
+        )
+    else()
+      execute_process(
+        COMMAND patch utilities.cc ${CMAKE_SOURCE_DIR}/Resources/Patches/glog-utilities.diff
+        WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src
+        )
+    endif()
+
     execute_process(
       COMMAND patch port.h ${CMAKE_SOURCE_DIR}/Resources/Patches/glog-port-h.diff 
       WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src/windows
@@ -61,10 +84,18 @@ if (STATIC_BUILD OR NOT USE_DYNAMIC_GOOGLE_LOG)
   endif()
 
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    configure_file(
-      ${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfiguration.h
-      ${GOOGLE_LOG_SOURCES_DIR}/src/config.h
-      COPYONLY)
+    if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
+      # Install the specific configuration for LSB SDK
+      configure_file(
+        ${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfigurationLSB.h
+        ${GOOGLE_LOG_SOURCES_DIR}/src/config.h
+        COPYONLY)
+    else()
+      configure_file(
+        ${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfiguration.h
+        ${GOOGLE_LOG_SOURCES_DIR}/src/config.h
+        COPYONLY)
+    endif()
 
     set(GOOGLE_LOG_SOURCES
       ${GOOGLE_LOG_SOURCES_DIR}/src/demangle.cc
@@ -94,8 +125,16 @@ if (STATIC_BUILD OR NOT USE_DYNAMIC_GOOGLE_LOG)
       -DNO_FRAME_POINTER=1
       -DGOOGLE_GLOG_DLL_DECL=
       )
+
+    if (${CMAKE_COMPILER_IS_GNUCXX})
+      # This is a patch for MinGW64
+      add_definitions(-D_TIME_H__S=1)
+    endif()
+
   endif()
  
+
+
   add_library(GoogleLog STATIC ${GOOGLE_LOG_SOURCES})
   link_libraries(GoogleLog)
 

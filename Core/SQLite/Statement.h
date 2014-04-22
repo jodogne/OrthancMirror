@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * Copyright (c) 2012 The Chromium Authors. All rights reserved.
@@ -89,10 +89,6 @@ namespace Orthanc
         return reference_.GetWrappedObject();
       }
 
-      // Resets the statement to its initial condition. This includes any current
-      // result row, and also the bound variables if the |clear_bound_vars| is true.
-      void Reset(bool clear_bound_vars = true);
-
     public:
       Statement(Connection& database,
                 const std::string& sql);
@@ -166,9 +162,12 @@ namespace Orthanc
       const void* ColumnBlob(int col) const;
       bool ColumnBlobAsString(int col, std::string* blob);
       //bool ColumnBlobAsString16(int col, string16* val) const;
-      bool ColumnBlobAsVector(int col, std::vector<char>* val) const;
-      bool ColumnBlobAsVector(int col, std::vector<unsigned char>* val) const;
+      //bool ColumnBlobAsVector(int col, std::vector<char>* val) const;
+      //bool ColumnBlobAsVector(int col, std::vector<unsigned char>* val) const;
 
+      // Resets the statement to its initial condition. This includes any current
+      // result row, and also the bound variables if the |clear_bound_vars| is true.
+      void Reset(bool clear_bound_vars = true);
     };
   }
 }

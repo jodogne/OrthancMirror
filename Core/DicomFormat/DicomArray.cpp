@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -41,7 +41,7 @@ namespace Orthanc
     elements_.reserve(map.map_.size());
     
     for (DicomMap::Map::const_iterator it = 
-           map.map_.begin(); it != map.map_.end(); it++)
+           map.map_.begin(); it != map.map_.end(); ++it)
     {
       elements_.push_back(new DicomElement(it->first, *it->second));
     }

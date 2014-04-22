@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -33,6 +33,7 @@
 #pragma once
 
 #include "DicomFindAnswers.h"
+#include "../ServerEnumerations.h"
 
 #include <stdint.h>
 #include <boost/shared_ptr.hpp>
@@ -55,14 +56,16 @@ namespace Orthanc
     boost::shared_ptr<PImpl> pimpl_;
 
     // Connection parameters
+    std::string preferredTransferSyntax_;
     std::string localAet_;
     std::string distantAet_;
     std::string distantHost_;
     uint16_t distantPort_;
+    ModalityManufacturer manufacturer_;
 
     void CheckIsOpen() const;
 
-    void SetupPresentationContexts();
+    void SetupPresentationContexts(const std::string& preferredTransferSyntax);
 
     void Find(DicomFindAnswers& result,
               FindRootModel model,
@@ -104,6 +107,22 @@ namespace Orthanc
     uint16_t GetDistantPort() const
     {
       return distantPort_;
+    }
+
+    void SetDistantManufacturer(ModalityManufacturer manufacturer);
+
+    ModalityManufacturer GetDistantManufacturer() const
+    {
+      return manufacturer_;
+    }
+
+    void ResetPreferredTransferSyntax();
+
+    void SetPreferredTransferSyntax(const std::string& preferredTransferSyntax);
+
+    const std::string& GetPreferredTransferSyntax() const
+    {
+      return preferredTransferSyntax_;
     }
 
     void Open();

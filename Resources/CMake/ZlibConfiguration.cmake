@@ -1,12 +1,15 @@
 # This is the minizip distribution to create ZIP files
 list(APPEND THIRD_PARTY_SOURCES 
-  ${CMAKE_SOURCE_DIR}/Resources/minizip/ioapi.c
-  ${CMAKE_SOURCE_DIR}/Resources/minizip/zip.c
+  ${ORTHANC_ROOT}/Resources/minizip/ioapi.c
+  ${ORTHANC_ROOT}/Resources/minizip/zip.c
   )
 
-if (${STATIC_BUILD})
+if (STATIC_BUILD OR NOT USE_SYSTEM_ZLIB)
   SET(ZLIB_SOURCES_DIR ${CMAKE_BINARY_DIR}/zlib-1.2.7)
-  DownloadPackage("http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/zlib-1.2.7.tar.gz" "${ZLIB_SOURCES_DIR}" "${ZLIB_PRELOADED}" "")
+  DownloadPackage(
+    "60df6a37c56e7c1366cca812414f7b85"
+    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/zlib-1.2.7.tar.gz"
+    "${ZLIB_SOURCES_DIR}")
 
   include_directories(
     ${ZLIB_SOURCES_DIR}

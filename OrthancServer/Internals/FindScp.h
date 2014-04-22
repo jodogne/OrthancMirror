@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -43,6 +43,7 @@ namespace Orthanc
     OFCondition findScp(T_ASC_Association * assoc, 
                         T_DIMSE_Message * msg, 
                         T_ASC_PresentationContextID presID,
-                        IFindRequestHandler& handler);
+                        IFindRequestHandler& handler,
+                        const std::string& callingAETitle);
   }
 }

@@ -1,6 +1,6 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2013 Medical Physics Department, CHU of Liege,
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -141,15 +141,15 @@ namespace Orthanc
     }
 
 
-    TemporaryFile::TemporaryFile()
+    TemporaryFile::TemporaryFile() : 
+      path_(CreateTemporaryPath(NULL))
     {
-      path_ = CreateTemporaryPath(NULL);
     }
 
 
-    TemporaryFile::TemporaryFile(const char* extension)
+    TemporaryFile::TemporaryFile(const char* extension) :
+      path_(CreateTemporaryPath(extension))
     {
-      path_ = CreateTemporaryPath(extension);
     }
 
 
