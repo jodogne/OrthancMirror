@@ -796,10 +796,10 @@ public:
 };
 
 
-static void Tata(ServerScheduler* s, ServerJob* j)
+static void Tata(ServerScheduler* s, ServerJob* j, bool* done)
 {
 #if 1
-  for (;;)
+  while (!(*done))
   {
     ListOfStrings l;
     s->GetListOfJobs(l);
@@ -840,7 +840,8 @@ TEST(Toto, Toto)
 
   job.SetDescription("tutu");
 
-  boost::thread t(Tata, &scheduler, &job);
+  bool done = false;
+  boost::thread t(Tata, &scheduler, &job, &done);
 
 
   //scheduler.Submit(job);
@@ -856,5 +857,6 @@ TEST(Toto, Toto)
   //Toolbox::ServerBarrier();
   //Toolbox::USleep(3000000);
 
-  //t.join();
+  done = true;
+  t.join();
 }
