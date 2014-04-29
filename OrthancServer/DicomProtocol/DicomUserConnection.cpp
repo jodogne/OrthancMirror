@@ -60,6 +60,15 @@
 
 static const char* DEFAULT_PREFERRED_TRANSFER_SYNTAX = UID_LittleEndianImplicitTransferSyntax;
 
+/**
+ * "If we have more than 64 storage SOP classes, tools such as
+ * storescu will fail because they attempt to negotiate two
+ * presentation contexts for each SOP class, and there is a total
+ * limit of 128 contexts for one association."
+ **/
+static const unsigned int MAXIMUM_STORAGE_SOP_CLASSES = 64;
+
+
 namespace Orthanc
 {
   struct DicomUserConnection::PImpl
@@ -103,55 +112,38 @@ namespace Orthanc
   }
 
 
-  void DicomUserConnection::CopyParameters(const DicomUserConnection& other)
+  static void RegisterStorageSOPClass(T_ASC_Parameters* params,
+                                      unsigned int& presentationContextId,
+                                      const std::string& sopClass,
+                                      const char* asPreferred[],
+                                      std::vector<const char*>& asFallback)
   {
-    Close();
-    localAet_ = other.localAet_;
-    distantAet_ = other.distantAet_;
-    distantHost_ = other.distantHost_;
-    distantPort_ = other.distantPort_;
-    manufacturer_ = other.manufacturer_;
-    preferredTransferSyntax_ = other.preferredTransferSyntax_;
+    Check(ASC_addPresentationContext(params, presentationContextId, 
+                                     sopClass.c_str(), asPreferred, 1));
+    presentationContextId += 2;
+
+    if (asFallback.size() > 0)
+    {
+      Check(ASC_addPresentationContext(params, presentationContextId, 
+                                       sopClass.c_str(), &asFallback[0], asFallback.size()));
+      presentationContextId += 2;
+    }
   }
-
-
+  
+    
   void DicomUserConnection::SetupPresentationContexts(const std::string& preferredTransferSyntax)
   {
-    // Fallback transfer syntaxes
+    // Flatten an array with the preferred transfer syntax
+    const char* asPreferred[1] = { preferredTransferSyntax.c_str() };
+
+    // Setup the fallback transfer syntaxes
     std::set<std::string> fallbackSyntaxes;
     fallbackSyntaxes.insert(UID_LittleEndianExplicitTransferSyntax);
     fallbackSyntaxes.insert(UID_BigEndianExplicitTransferSyntax);
     fallbackSyntaxes.insert(UID_LittleEndianImplicitTransferSyntax);
-
-    // Transfer syntaxes for C-ECHO, C-FIND and C-MOVE
-    std::vector<std::string> transferSyntaxes;
-    transferSyntaxes.push_back(UID_VerificationSOPClass);
-    transferSyntaxes.push_back(UID_FINDPatientRootQueryRetrieveInformationModel);
-    transferSyntaxes.push_back(UID_FINDStudyRootQueryRetrieveInformationModel);
-    transferSyntaxes.push_back(UID_MOVEStudyRootQueryRetrieveInformationModel);
-
-    // TODO: Allow the set below to be configured
-    std::set<std::string> uselessSyntaxes;
-    uselessSyntaxes.insert(UID_BlendingSoftcopyPresentationStateStorage);
-    uselessSyntaxes.insert(UID_GrayscaleSoftcopyPresentationStateStorage);
-    uselessSyntaxes.insert(UID_ColorSoftcopyPresentationStateStorage);
-    uselessSyntaxes.insert(UID_PseudoColorSoftcopyPresentationStateStorage);
-
-    // Add the transfer syntaxes for C-STORE
-    for (int i = 0; i < numberOfDcmShortSCUStorageSOPClassUIDs - 1; i++)
-    {
-      // Test to make some room to allow the ECHO and FIND requests
-      if (uselessSyntaxes.find(dcmShortSCUStorageSOPClassUIDs[i]) == uselessSyntaxes.end())
-      {
-        transferSyntaxes.push_back(dcmShortSCUStorageSOPClassUIDs[i]);
-      }
-    }
-
-    // Flatten the fallback transfer syntaxes array
-    const char* asPreferred[1] = { preferredTransferSyntax.c_str() };
-
     fallbackSyntaxes.erase(preferredTransferSyntax);
 
+    // Flatten an array with the fallback transfer syntaxes
     std::vector<const char*> asFallback;
     asFallback.reserve(fallbackSyntaxes.size());
     for (std::set<std::string>::const_iterator 
@@ -160,19 +152,28 @@ namespace Orthanc
       asFallback.push_back(it->c_str());
     }
 
+    CheckStorageSOPClassesInvariant();
     unsigned int presentationContextId = 1;
-    for (size_t i = 0; i < transferSyntaxes.size(); i++)
-    {
-      Check(ASC_addPresentationContext(pimpl_->params_, presentationContextId, 
-                                       transferSyntaxes[i].c_str(), asPreferred, 1));
-      presentationContextId += 2;
 
-      if (asFallback.size() > 0)
-      {
-        Check(ASC_addPresentationContext(pimpl_->params_, presentationContextId, 
-                                         transferSyntaxes[i].c_str(), &asFallback[0], asFallback.size()));
-        presentationContextId += 2;
-      }
+    for (std::list<std::string>::const_iterator it = reservedStorageSOPClasses_.begin();
+         it != reservedStorageSOPClasses_.end(); it++)
+    {
+      RegisterStorageSOPClass(pimpl_->params_, presentationContextId, 
+                              *it, asPreferred, asFallback);
+    }
+
+    for (std::set<std::string>::const_iterator it = storageSOPClasses_.begin();
+         it != storageSOPClasses_.end(); it++)
+    {
+      RegisterStorageSOPClass(pimpl_->params_, presentationContextId, 
+                              *it, asPreferred, asFallback);
+    }
+
+    for (std::set<std::string>::const_iterator it = defaultStorageSOPClasses_.begin();
+         it != defaultStorageSOPClasses_.end(); it++)
+    {
+      RegisterStorageSOPClass(pimpl_->params_, presentationContextId, 
+                              *it, asPreferred, asFallback);
     }
   }
 
@@ -192,8 +193,16 @@ namespace Orthanc
     DcmFileFormat dcmff;
     Check(dcmff.read(is, EXS_Unknown, EGL_noChange, DCM_MaxReadLength));
 
+    // Determine the storage SOP class UID for this instance
+    static const DcmTagKey DCM_SOP_CLASS_UID(0x0008, 0x0016);
+    OFString sopClassUid;
+    if (dcmff.getDataset()->findAndGetOFString(DCM_SOP_CLASS_UID, sopClassUid).good())
+    {
+      connection.AddStorageSOPClass(sopClassUid.c_str());
+    }
+
     // Determine whether a new presentation context must be
-    // negociated, depending on the transfer syntax of this instance
+    // negotiated, depending on the transfer syntax of this instance
     DcmXfer xfer(dcmff.getDataset()->getOriginalXfer());
     const std::string syntax(xfer.getXferID());
     bool isGeneric = IsGenericTransferSyntax(syntax);
@@ -201,8 +210,8 @@ namespace Orthanc
     if (isGeneric ^ IsGenericTransferSyntax(connection.GetPreferredTransferSyntax()))
     {
       // Making a generic-to-specific or specific-to-generic change of
-      // the transfer syntax. Renegociate the connection.
-      LOG(INFO) << "Renegociating a C-Store association due to a change in the transfer syntax";
+      // the transfer syntax. Renegotiate the connection.
+      LOG(INFO) << "Change in the transfer syntax: the C-Store associated must be renegotiated";
 
       if (isGeneric)
       {
@@ -212,7 +221,11 @@ namespace Orthanc
       {
         connection.SetPreferredTransferSyntax(syntax);
       }
+    }
 
+    if (!connection.IsOpen())
+    {
+      LOG(INFO) << "Renegotiating a C-Store association due to a change in the parameters";
       connection.Open();
     }
 
@@ -232,7 +245,7 @@ namespace Orthanc
       if (!modalityName) modalityName = dcmFindNameOfUID(sopClass);
       if (!modalityName) modalityName = "unknown SOP class";
       throw OrthancException("DicomUserConnection: No presentation context for modality " + 
-                              std::string(modalityName));
+                             std::string(modalityName));
     }
 
     // Prepare the transmission of data
@@ -288,88 +301,88 @@ namespace Orthanc
     std::auto_ptr<DcmDataset> dataset(ToDcmtkBridge::Convert(fields));
     switch (model)
     {
-    case FindRootModel_Patient:
-      DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "PATIENT");
-      sopClass = UID_FINDPatientRootQueryRetrieveInformationModel;
+      case FindRootModel_Patient:
+        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "PATIENT");
+        sopClass = UID_FINDPatientRootQueryRetrieveInformationModel;
       
-      // Accession number
-      if (!fields.HasTag(0x0008, 0x0050))
-        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0050), "");
+        // Accession number
+        if (!fields.HasTag(0x0008, 0x0050))
+          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0050), "");
 
-      // Patient ID
-      if (!fields.HasTag(0x0010, 0x0020))
-        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0010, 0x0020), "");
+        // Patient ID
+        if (!fields.HasTag(0x0010, 0x0020))
+          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0010, 0x0020), "");
 
-      break;
+        break;
 
-    case FindRootModel_Study:
-      DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "STUDY");
-      sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
+      case FindRootModel_Study:
+        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "STUDY");
+        sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
 
-      // Accession number
-      if (!fields.HasTag(0x0008, 0x0050))
-        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0050), "");
+        // Accession number
+        if (!fields.HasTag(0x0008, 0x0050))
+          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0050), "");
 
-      // Study instance UID
-      if (!fields.HasTag(0x0020, 0x000d))
-        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0020, 0x000d), "");
+        // Study instance UID
+        if (!fields.HasTag(0x0020, 0x000d))
+          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0020, 0x000d), "");
 
-      break;
+        break;
 
-    case FindRootModel_Series:
-      DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "SERIES");
-      sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
+      case FindRootModel_Series:
+        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "SERIES");
+        sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
 
-      // Accession number
-      if (!fields.HasTag(0x0008, 0x0050))
-        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0050), "");
+        // Accession number
+        if (!fields.HasTag(0x0008, 0x0050))
+          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0050), "");
 
-      // Study instance UID
-      if (!fields.HasTag(0x0020, 0x000d))
-        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0020, 0x000d), "");
+        // Study instance UID
+        if (!fields.HasTag(0x0020, 0x000d))
+          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0020, 0x000d), "");
 
-      // Series instance UID
-      if (!fields.HasTag(0x0020, 0x000e))
-        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0020, 0x000e), "");
+        // Series instance UID
+        if (!fields.HasTag(0x0020, 0x000e))
+          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0020, 0x000e), "");
 
-      break;
+        break;
 
-    case FindRootModel_Instance:
-      if (manufacturer_ == ModalityManufacturer_ClearCanvas ||
-          manufacturer_ == ModalityManufacturer_Dcm4Chee)
-      {
-        // This is a particular case for ClearCanvas, thanks to Peter Somlo <peter.somlo@gmail.com>.
-        // https://groups.google.com/d/msg/orthanc-users/j-6C3MAVwiw/iolB9hclom8J
-        // http://www.clearcanvas.ca/Home/Community/OldForums/tabid/526/aff/11/aft/14670/afv/topic/Default.aspx
-        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "IMAGE");
-      }
-      else
-      {
-        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "INSTANCE");
-      }
+      case FindRootModel_Instance:
+        if (manufacturer_ == ModalityManufacturer_ClearCanvas ||
+            manufacturer_ == ModalityManufacturer_Dcm4Chee)
+        {
+          // This is a particular case for ClearCanvas, thanks to Peter Somlo <peter.somlo@gmail.com>.
+          // https://groups.google.com/d/msg/orthanc-users/j-6C3MAVwiw/iolB9hclom8J
+          // http://www.clearcanvas.ca/Home/Community/OldForums/tabid/526/aff/11/aft/14670/afv/topic/Default.aspx
+          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "IMAGE");
+        }
+        else
+        {
+          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "INSTANCE");
+        }
 
-      sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
+        sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
 
-      // Accession number
-      if (!fields.HasTag(0x0008, 0x0050))
-        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0050), "");
+        // Accession number
+        if (!fields.HasTag(0x0008, 0x0050))
+          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0050), "");
 
-      // Study instance UID
-      if (!fields.HasTag(0x0020, 0x000d))
-        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0020, 0x000d), "");
+        // Study instance UID
+        if (!fields.HasTag(0x0020, 0x000d))
+          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0020, 0x000d), "");
 
-      // Series instance UID
-      if (!fields.HasTag(0x0020, 0x000e))
-        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0020, 0x000e), "");
+        // Series instance UID
+        if (!fields.HasTag(0x0020, 0x000e))
+          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0020, 0x000e), "");
 
-      // SOP Instance UID
-      if (!fields.HasTag(0x0008, 0x0018))
-        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0018), "");
+        // SOP Instance UID
+        if (!fields.HasTag(0x0008, 0x0018))
+          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0018), "");
 
-      break;
+        break;
 
-    default:
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
     // Figure out which of the accepted presentation contexts should be used
@@ -501,6 +514,35 @@ namespace Orthanc
   }
 
 
+  void DicomUserConnection::ResetStorageSOPClasses()
+  {
+    CheckStorageSOPClassesInvariant();
+
+    storageSOPClasses_.clear();
+    defaultStorageSOPClasses_.clear();
+
+    // Copy the short list of storage SOP classes from DCMTK, making
+    // room for the 4 SOP classes reserved for C-ECHO, C-FIND, C-MOVE.
+
+    std::set<std::string> uncommon;
+    uncommon.insert(UID_BlendingSoftcopyPresentationStateStorage);
+    uncommon.insert(UID_GrayscaleSoftcopyPresentationStateStorage);
+    uncommon.insert(UID_ColorSoftcopyPresentationStateStorage);
+    uncommon.insert(UID_PseudoColorSoftcopyPresentationStateStorage);
+
+    // Add the storage syntaxes for C-STORE
+    for (int i = 0; i < numberOfDcmShortSCUStorageSOPClassUIDs - 1; i++)
+    {
+      if (uncommon.find(dcmShortSCUStorageSOPClassUIDs[i]) == uncommon.end())
+      {
+        defaultStorageSOPClasses_.insert(dcmShortSCUStorageSOPClassUIDs[i]);
+      }
+    }
+
+    CheckStorageSOPClassesInvariant();
+  }
+
+
   DicomUserConnection::DicomUserConnection() : 
     pimpl_(new PImpl),
     preferredTransferSyntax_(DEFAULT_PREFERRED_TRANSFER_SYNTAX),
@@ -514,6 +556,14 @@ namespace Orthanc
     pimpl_->net_ = NULL;
     pimpl_->params_ = NULL;
     pimpl_->assoc_ = NULL;
+
+    // SOP classes for C-ECHO, C-FIND and C-MOVE
+    reservedStorageSOPClasses_.push_back(UID_VerificationSOPClass);
+    reservedStorageSOPClasses_.push_back(UID_FINDPatientRootQueryRetrieveInformationModel);
+    reservedStorageSOPClasses_.push_back(UID_FINDStudyRootQueryRetrieveInformationModel);
+    reservedStorageSOPClasses_.push_back(UID_MOVEStudyRootQueryRetrieveInformationModel);
+
+    ResetStorageSOPClasses();
   }
 
   DicomUserConnection::~DicomUserConnection()
@@ -607,11 +657,11 @@ namespace Orthanc
     char distantHostAndPort[HOST_NAME_MAX];
 
 #ifdef _MSC_VER
-	_snprintf
+    _snprintf
 #else
-	snprintf
+      snprintf
 #endif
-		(distantHostAndPort, HOST_NAME_MAX - 1, "%s:%d", distantHost_.c_str(), distantPort_);
+      (distantHostAndPort, HOST_NAME_MAX - 1, "%s:%d", distantHost_.c_str(), distantPort_);
 
     Check(ASC_setPresentationAddresses(pimpl_->params_, localHost, distantHostAndPort));
 
@@ -740,6 +790,62 @@ namespace Orthanc
   void DicomUserConnection::SetConnectionTimeout(uint32_t seconds)
   {
     dcmConnectionTimeout.set(seconds);
+  }
+
+
+  void DicomUserConnection::CheckStorageSOPClassesInvariant() const
+  {
+    assert(storageSOPClasses_.size() + 
+           defaultStorageSOPClasses_.size() + 
+           reservedStorageSOPClasses_.size() <= MAXIMUM_STORAGE_SOP_CLASSES);
+  }
+
+  void DicomUserConnection::AddStorageSOPClass(const char* sop)
+  {
+    CheckStorageSOPClassesInvariant();
+
+    if (storageSOPClasses_.find(sop) != storageSOPClasses_.end())
+    {
+      // This storage SOP class is already explicitly registered. Do
+      // nothing.
+      return;
+    }
+
+    if (defaultStorageSOPClasses_.find(sop) != defaultStorageSOPClasses_.end())
+    {
+      // This storage SOP class is not explicitly registered, but is
+      // used by default. Just register it explicitly.
+      defaultStorageSOPClasses_.erase(sop);
+      storageSOPClasses_.insert(sop);
+
+      CheckStorageSOPClassesInvariant();
+      return;
+    }
+
+    // This storage SOP class is neither explicitly, nor implicitly
+    // registered. Close the connection and register it explicitly.
+
+    Close();
+
+    if (reservedStorageSOPClasses_.size() + 
+        storageSOPClasses_.size() >= MAXIMUM_STORAGE_SOP_CLASSES)  // (*)
+    {
+      // The maximum number of SOP classes is reached
+      ResetStorageSOPClasses();
+      defaultStorageSOPClasses_.erase(sop);
+    }
+    else if (reservedStorageSOPClasses_.size() + storageSOPClasses_.size() + 
+             defaultStorageSOPClasses_.size() >= MAXIMUM_STORAGE_SOP_CLASSES)
+    {
+      // Make room in the default storage syntaxes
+      assert(defaultStorageSOPClasses_.size() > 0);  // Necessarily true because condition (*) is false
+      defaultStorageSOPClasses_.erase(*defaultStorageSOPClasses_.rbegin());
+    }
+
+    // Explicitly register the new storage syntax
+    storageSOPClasses_.insert(sop);
+
+    CheckStorageSOPClassesInvariant();
   }
 
 }
