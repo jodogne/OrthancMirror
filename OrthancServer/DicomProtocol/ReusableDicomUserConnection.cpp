@@ -55,6 +55,7 @@ namespace Orthanc
         connection_->GetDistantManufacturer() == manufacturer)
     {
       // The current connection can be reused
+      LOG(INFO) << "Reusing the previous SCU connection";
       return;
     }
 
@@ -92,7 +93,7 @@ namespace Orthanc
       {
         boost::mutex::scoped_lock lock(that->mutex_);
         if (that->connection_ != NULL &&
-            Now() > that->lastUse_ + that->timeBeforeClose_)
+            Now() >= that->lastUse_ + that->timeBeforeClose_)
         {
           LOG(INFO) << "Closing the global SCU connection after timeout";
           that->Close();
