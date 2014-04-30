@@ -37,7 +37,7 @@
 #include <json/json.h>
 #include <stdint.h>
 #include "../Core/HttpServer/MongooseServer.h"
-#include "DicomProtocol/DicomUserConnection.h"
+#include "DicomProtocol/RemoteModalityParameters.h"
 #include "ServerEnumerations.h"
 
 namespace Orthanc
@@ -86,14 +86,12 @@ namespace Orthanc
   void GetGlobalListOfStringsParameter(std::list<std::string>& target,
                                        const std::string& key);
 
-  void ConnectToModalityUsingSymbolicName(DicomUserConnection& connection,
-                                          const std::string& name);
-
-  void ConnectToModalityUsingAETitle(DicomUserConnection& connection,
-                                     const std::string& aet);
-
   bool IsKnownAETitle(const std::string& aet);
 
   bool IsSameAETitle(const std::string& aet1,
                      const std::string& aet2);
+
+  RemoteModalityParameters GetModalityUsingSymbolicName(const std::string& name);
+
+  RemoteModalityParameters GetModalityUsingAet(const std::string& aet);
 }

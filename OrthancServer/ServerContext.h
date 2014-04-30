@@ -39,6 +39,7 @@
 #include "../Core/Lua/LuaContext.h"
 #include "ServerIndex.h"
 #include "FromDcmtkBridge.h"
+#include "DicomProtocol/ReusableDicomUserConnection.h"
 
 namespace Orthanc
 {
@@ -70,6 +71,7 @@ namespace Orthanc
     
     DicomCacheProvider provider_;
     MemoryCache dicomCache_;
+    ReusableDicomUserConnection scu_;
 
     LuaContext lua_;
 
@@ -149,6 +151,11 @@ namespace Orthanc
     bool IsStoreMD5ForAttachments() const
     {
       return accessor_.IsStoreMD5();
+    }
+
+    ReusableDicomUserConnection& GetReusableDicomUserConnection()
+    {
+      return scu_;
     }
   };
 }

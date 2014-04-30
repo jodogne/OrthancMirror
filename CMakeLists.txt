@@ -203,6 +203,7 @@ add_library(ServerLibrary
   OrthancServer/DicomProtocol/DicomFindAnswers.cpp
   OrthancServer/DicomProtocol/DicomServer.cpp
   OrthancServer/DicomProtocol/DicomUserConnection.cpp
+  OrthancServer/DicomProtocol/ReusableDicomUserConnection.cpp
   OrthancServer/FromDcmtkBridge.cpp
   OrthancServer/Internals/CommandDispatcher.cpp
   OrthancServer/Internals/FindScp.cpp

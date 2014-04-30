@@ -36,7 +36,7 @@
 
 namespace Orthanc
 {
-  class Locker
+  class Locker : public boost::noncopyable
   {
   private:
     ILockable& lockable_;

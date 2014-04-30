@@ -30,96 +30,74 @@
  **/
 
 
-#include "ReaderWriterLock.h"
+#pragma once
 
-#include <boost/thread/shared_mutex.hpp>
+#include "DicomUserConnection.h"
+#include "../../Core/MultiThreading/Locker.h"
+
+#include <boost/thread.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 namespace Orthanc
 {
-  namespace
+  class ReusableDicomUserConnection : public ILockable
   {
-    // Anonymous namespace to avoid clashes between compilation
-    // modules.
+  private:
+    boost::mutex mutex_;
+    DicomUserConnection* connection_;
+    bool continue_;
+    boost::posix_time::time_duration timeBeforeClose_;
+    boost::posix_time::ptime lastUse_;
+    boost::thread closeThread_;
+    std::string localAet_;
 
-    class ReaderLockable : public ILockable
+    void Open(const std::string& remoteAet,
+              const std::string& address,
+              int port,
+              ModalityManufacturer manufacturer);
+    
+    void Close();
+
+    static void CloseThread(ReusableDicomUserConnection* that);
+
+  protected:
+    virtual void Lock();
+
+    virtual void Unlock();
+    
+  public:
+    class Connection : public Locker
     {
     private:
-      boost::shared_mutex& lock_;
-
-    protected:
-      virtual void Lock()
-      {
-        lock_.lock_shared();
-      }
-
-      virtual void Unlock()
-      {
-        lock_.unlock_shared();        
-      }
+      DicomUserConnection* connection_;
 
     public:
-      ReaderLockable(boost::shared_mutex& lock) : lock_(lock)
-      {
-      }
+      Connection(ReusableDicomUserConnection& that,
+                 const RemoteModalityParameters& remote);
+
+      Connection(ReusableDicomUserConnection& that,
+                 const std::string& aet,
+                 const std::string& address,
+                 int port,
+                 ModalityManufacturer manufacturer);
+
+      DicomUserConnection& GetConnection();
     };
 
+    ReusableDicomUserConnection();
 
-    class WriterLockable : public ILockable
+    virtual ~ReusableDicomUserConnection();
+
+    unsigned int GetMillisecondsBeforeClose() const
     {
-    private:
-      boost::shared_mutex& lock_;
-
-    protected:
-      virtual void Lock()
-      {
-        lock_.lock();
-      }
-
-      virtual void Unlock()
-      {
-        lock_.unlock();        
-      }
-
-    public:
-      WriterLockable(boost::shared_mutex& lock) : lock_(lock)
-      {
-      }
-
-    };
-  }
-
-  struct ReaderWriterLock::PImpl
-  {
-    boost::shared_mutex lock_;
-    ReaderLockable reader_;
-    WriterLockable writer_;
-
-    PImpl() : reader_(lock_), writer_(lock_)
-    {
+      return timeBeforeClose_.total_milliseconds();
     }
+
+    void SetMillisecondsBeforeClose(unsigned int ms);
+
+    const std::string& GetLocalApplicationEntityTitle() const;
+
+    void SetLocalApplicationEntityTitle(const std::string& aet);
   };
-
-
-  ReaderWriterLock::ReaderWriterLock()
-  {
-    pimpl_ = new PImpl;
-  }
-
-
-  ReaderWriterLock::~ReaderWriterLock()
-  {
-    delete pimpl_;
-  }
-
-
-  ILockable&  ReaderWriterLock::ForReader()
-  {
-    return pimpl_->reader_;
-  }
-
-
-  ILockable&  ReaderWriterLock::ForWriter()
-  {
-    return pimpl_->writer_;
-  }
 }
+

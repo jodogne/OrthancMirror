@@ -41,7 +41,7 @@
 #include "../Core/Lua/LuaFunctionCall.h"
 #include "../Core/DicomFormat/DicomArray.h"
 #include "DicomProtocol/DicomServer.h"
-#include "DicomProtocol/DicomUserConnection.h"
+#include "DicomProtocol/ReusableDicomUserConnection.h"
 #include "OrthancInitialization.h"
 #include "ServerContext.h"
 #include "OrthancFindRequestHandler.h"

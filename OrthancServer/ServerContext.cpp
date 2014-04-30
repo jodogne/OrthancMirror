@@ -35,6 +35,7 @@
 #include "../Core/HttpServer/FilesystemHttpSender.h"
 #include "../Core/Lua/LuaFunctionCall.h"
 #include "ServerToolbox.h"
+#include "OrthancInitialization.h"
 
 #include <glog/logging.h>
 #include <EmbeddedResources.h>
@@ -65,6 +66,9 @@ namespace Orthanc
     provider_(*this),
     dicomCache_(provider_, DICOM_CACHE_SIZE)
   {
+    scu_.SetLocalApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
+    //scu_.SetMillisecondsBeforeClose(1);  // The connection is always released
+
     lua_.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
   }
 
