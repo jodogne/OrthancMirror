@@ -43,13 +43,14 @@ namespace Orthanc
 
     PImpl *pimpl_;
 
+  protected:
+    virtual void Lock();
+
+    virtual void Unlock();
+    
   public:
     Mutex();
 
     ~Mutex();
-
-    virtual void Lock();
-
-    virtual void Unlock();
   };
 }

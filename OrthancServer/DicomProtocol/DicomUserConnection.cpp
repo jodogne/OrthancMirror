@@ -692,6 +692,11 @@ namespace Orthanc
       return;
     }
 
+    LOG(INFO) << "Opening a DICOM SCU connection from AET \"" << GetLocalApplicationEntityTitle() 
+              << "\" to AET \"" << GetDistantApplicationEntityTitle() << "\" on host "
+              << GetDistantHost() << ":" << GetDistantPort() 
+              << " (manufacturer: " << EnumerationToString(GetDistantManufacturer()) << ")";
+
     Check(ASC_initializeNetwork(NET_REQUESTOR, 0, /*opt_acse_timeout*/ 30, &pimpl_->net_));
     Check(ASC_createAssociationParameters(&pimpl_->params_, /*opt_maxReceivePDULength*/ ASC_DEFAULTMAXPDU));
 
