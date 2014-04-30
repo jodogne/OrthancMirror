@@ -40,6 +40,7 @@
 #include "ServerIndex.h"
 #include "FromDcmtkBridge.h"
 #include "DicomProtocol/ReusableDicomUserConnection.h"
+#include "Scheduler/ServerScheduler.h"
 
 namespace Orthanc
 {
@@ -72,6 +73,7 @@ namespace Orthanc
     DicomCacheProvider provider_;
     MemoryCache dicomCache_;
     ReusableDicomUserConnection scu_;
+    ServerScheduler scheduler_;
 
     LuaContext lua_;
 
@@ -156,6 +158,11 @@ namespace Orthanc
     ReusableDicomUserConnection& GetReusableDicomUserConnection()
     {
       return scu_;
+    }
+
+    ServerScheduler& GetScheduler()
+    {
+      return scheduler_;
     }
   };
 }

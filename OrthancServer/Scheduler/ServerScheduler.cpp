@@ -132,6 +132,8 @@ namespace Orthanc
   {
     static const int32_t TIMEOUT = 100;
 
+    LOG(WARNING) << "The server scheduler has started";
+
     while (!that->finish_)
     {
       std::auto_ptr<IDynamicObject> object(that->queue_.Dequeue(TIMEOUT));
