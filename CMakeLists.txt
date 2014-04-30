@@ -220,6 +220,9 @@ add_library(ServerLibrary
   OrthancServer/ServerIndex.cpp
   OrthancServer/ToDcmtkBridge.cpp
   OrthancServer/DatabaseWrapper.cpp
+  OrthancServer/Scheduler/ServerFilterInstance.cpp
+  OrthancServer/Scheduler/ServerJob.cpp
+  OrthancServer/Scheduler/ServerScheduler.cpp
   OrthancServer/ServerContext.cpp
   OrthancServer/ServerEnumerations.cpp
   OrthancServer/ServerToolbox.cpp
