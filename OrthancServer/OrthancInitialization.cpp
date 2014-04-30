@@ -585,4 +585,34 @@ namespace Orthanc
     
     return LookupDicomModalityUsingAETitle(aet, symbolicName, address, port, manufacturer);
   }
+
+
+
+  RemoteModalityParameters GetModalityUsingSymbolicName(const std::string& name)
+  {
+    std::string aet, address;
+    int port;
+    ModalityManufacturer manufacturer;
+
+    GetDicomModalityUsingSymbolicName(name, aet, address, port, manufacturer);
+
+    return RemoteModalityParameters(name, aet, address, port, manufacturer);
+  }
+
+  RemoteModalityParameters GetModalityUsingAet(const std::string& aet)
+  {
+    std::string name, address;
+    int port;
+    ModalityManufacturer manufacturer;
+
+    if (LookupDicomModalityUsingAETitle(aet, name, address, port, manufacturer))
+    {
+      return RemoteModalityParameters(name, aet, address, port, manufacturer);
+    }
+    else
+    {
+      throw OrthancException("Unknown modality for AET: " + aet);
+    }
+
+  }
 }

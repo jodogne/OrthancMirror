@@ -93,4 +93,8 @@ namespace Orthanc
 
   bool IsSameAETitle(const std::string& aet1,
                      const std::string& aet2);
+
+  RemoteModalityParameters GetModalityUsingSymbolicName(const std::string& name);
+
+  RemoteModalityParameters GetModalityUsingAet(const std::string& aet);
 }

@@ -34,6 +34,7 @@
 
 #include "DicomFindAnswers.h"
 #include "../ServerEnumerations.h"
+#include "RemoteModalityParameters.h"
 
 #include <stdint.h>
 #include <boost/shared_ptr.hpp>
@@ -86,6 +87,8 @@ namespace Orthanc
     DicomUserConnection();
 
     ~DicomUserConnection();
+
+    void Connect(const RemoteModalityParameters& parameters);
 
     void SetLocalApplicationEntityTitle(const std::string& aet);
 

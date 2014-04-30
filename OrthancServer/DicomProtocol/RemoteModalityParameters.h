@@ -32,72 +32,81 @@
 
 #pragma once
 
-#include "DicomUserConnection.h"
-#include "../../Core/MultiThreading/Locker.h"
+#include "../ServerEnumerations.h"
 
-#include <boost/thread.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
+#include <string>
 
 namespace Orthanc
 {
-  class ReusableDicomUserConnection : public ILockable
+  class RemoteModalityParameters
   {
+    // TODO Use the flyweight pattern for this class
+
   private:
-    boost::mutex mutex_;
-    DicomUserConnection* connection_;
-    bool continue_;
-    boost::posix_time::time_duration timeBeforeClose_;
-    boost::posix_time::ptime lastUse_;
-    boost::thread closeThread_;
-    std::string localAet_;
+    std::string  symbolicName_;
+    std::string  aet_;
+    std::string  host_;
+    int  port_;
+    ModalityManufacturer  manufacturer_;
 
-    void Open(const std::string& remoteAet,
-              const std::string& address,
-              int port,
-              ModalityManufacturer manufacturer);
-    
-    void Close();
-
-    static void CloseThread(ReusableDicomUserConnection* that);
-
-  protected:
-    virtual void Lock();
-
-    virtual void Unlock();
-    
   public:
-    class Connection : public Locker
+    RemoteModalityParameters() :
+      symbolicName_(""),
+      aet_(""),
+      host_(""),
+      port_(104),
+      manufacturer_(ModalityManufacturer_Generic)
     {
-    private:
-      DicomUserConnection* connection_;
-
-    public:
-      Connection(ReusableDicomUserConnection& that,
-                 const RemoteModalityParameters& remote);
-
-      Connection(ReusableDicomUserConnection& that,
-                 const std::string& aet,
-                 const std::string& address,
-                 int port,
-                 ModalityManufacturer manufacturer);
-
-      DicomUserConnection& GetConnection();
-    };
-
-    ReusableDicomUserConnection();
-
-    virtual ~ReusableDicomUserConnection();
-
-    unsigned int GetMillisecondsBeforeClose() const
-    {
-      return timeBeforeClose_.total_milliseconds();
     }
 
-    void SetMillisecondsBeforeClose(unsigned int ms);
+    RemoteModalityParameters(const std::string& symbolic,
+                             const std::string& aet,
+                             const std::string& host,
+                             int port,
+                             ModalityManufacturer manufacturer) :
+      symbolicName_(symbolic),
+      aet_(aet),
+      host_(host),
+      port_(port),
+      manufacturer_(manufacturer)
+    {
+    }
 
-    const std::string& GetLocalApplicationEntityTitle() const;
+    RemoteModalityParameters(const std::string& aet,
+                             const std::string& host,
+                             int port,
+                             ModalityManufacturer manufacturer) :
+      symbolicName_(""),
+      aet_(aet),
+      host_(host),
+      port_(port),
+      manufacturer_(manufacturer)
+    {
+    }
 
-    void SetLocalApplicationEntityTitle(const std::string& aet);
+    const std::string& GetSymbolicName() const
+    {
+      return symbolicName_;
+    }
+
+    const std::string& GetApplicationEntityTitle() const
+    {
+      return aet_;
+    }
+
+    const std::string& GetHost() const
+    {
+      return host_;
+    }
+
+    int GetPort() const
+    {
+      return port_;
+    }
+
+    ModalityManufacturer GetManufacturer() const
+    {
+      return manufacturer_;
+    }
   };
 }
-
