@@ -32,7 +32,6 @@
 
 #include "OrthancRestApi.h"
 
-#include "../DicomProtocol/DicomUserConnection.h"
 #include "../OrthancInitialization.h"
 #include "../../Core/HttpClient.h"
 
@@ -66,6 +65,8 @@ namespace Orthanc
 
   static void DicomFindPatient(RestApi::PostCall& call)
   {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
     DicomMap m;
     DicomMap::SetupFindPatientTemplate(m);
     if (!MergeQueryAndTemplate(m, call.GetPostBody()))
@@ -73,11 +74,11 @@ namespace Orthanc
       return;
     }
 
-    DicomUserConnection connection;
-    ConnectToModalityUsingSymbolicName(connection, call.GetUriComponent("id", ""));
+    RemoteModalityParameters remote = GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+    ReusableDicomUserConnection::Connection connection(context.GetReusableDicomUserConnection(), remote);
 
     DicomFindAnswers answers;
-    connection.FindPatient(answers, m);
+    connection.GetConnection().FindPatient(answers, m);
 
     Json::Value result;
     answers.ToJson(result);
@@ -86,6 +87,8 @@ namespace Orthanc
 
   static void DicomFindStudy(RestApi::PostCall& call)
   {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
     DicomMap m;
     DicomMap::SetupFindStudyTemplate(m);
     if (!MergeQueryAndTemplate(m, call.GetPostBody()))
@@ -99,11 +102,11 @@ namespace Orthanc
       return;
     }        
       
-    DicomUserConnection connection;
-    ConnectToModalityUsingSymbolicName(connection, call.GetUriComponent("id", ""));
-  
+    RemoteModalityParameters remote = GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+    ReusableDicomUserConnection::Connection connection(context.GetReusableDicomUserConnection(), remote);
+
     DicomFindAnswers answers;
-    connection.FindStudy(answers, m);
+    connection.GetConnection().FindStudy(answers, m);
 
     Json::Value result;
     answers.ToJson(result);
@@ -112,6 +115,8 @@ namespace Orthanc
 
   static void DicomFindSeries(RestApi::PostCall& call)
   {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
     DicomMap m;
     DicomMap::SetupFindSeriesTemplate(m);
     if (!MergeQueryAndTemplate(m, call.GetPostBody()))
@@ -126,11 +131,11 @@ namespace Orthanc
       return;
     }        
          
-    DicomUserConnection connection;
-    ConnectToModalityUsingSymbolicName(connection, call.GetUriComponent("id", ""));
-  
+    RemoteModalityParameters remote = GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+    ReusableDicomUserConnection::Connection connection(context.GetReusableDicomUserConnection(), remote);
+
     DicomFindAnswers answers;
-    connection.FindSeries(answers, m);
+    connection.GetConnection().FindSeries(answers, m);
 
     Json::Value result;
     answers.ToJson(result);
@@ -139,6 +144,8 @@ namespace Orthanc
 
   static void DicomFindInstance(RestApi::PostCall& call)
   {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
     DicomMap m;
     DicomMap::SetupFindInstanceTemplate(m);
     if (!MergeQueryAndTemplate(m, call.GetPostBody()))
@@ -154,11 +161,11 @@ namespace Orthanc
       return;
     }        
          
-    DicomUserConnection connection;
-    ConnectToModalityUsingSymbolicName(connection, call.GetUriComponent("id", ""));
-  
+    RemoteModalityParameters remote = GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+    ReusableDicomUserConnection::Connection connection(context.GetReusableDicomUserConnection(), remote);
+
     DicomFindAnswers answers;
-    connection.FindInstance(answers, m);
+    connection.GetConnection().FindInstance(answers, m);
 
     Json::Value result;
     answers.ToJson(result);
@@ -167,6 +174,8 @@ namespace Orthanc
 
   static void DicomFind(RestApi::PostCall& call)
   {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
     DicomMap m;
     DicomMap::SetupFindPatientTemplate(m);
     if (!MergeQueryAndTemplate(m, call.GetPostBody()))
@@ -174,11 +183,11 @@ namespace Orthanc
       return;
     }
  
-    DicomUserConnection connection;
-    ConnectToModalityUsingSymbolicName(connection, call.GetUriComponent("id", ""));
-  
+    RemoteModalityParameters remote = GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+    ReusableDicomUserConnection::Connection connection(context.GetReusableDicomUserConnection(), remote);
+
     DicomFindAnswers patients;
-    connection.FindPatient(patients, m);
+    connection.GetConnection().FindPatient(patients, m);
 
     // Loop over the found patients
     Json::Value result = Json::arrayValue;
@@ -195,7 +204,7 @@ namespace Orthanc
       m.CopyTagIfExists(patients.GetAnswer(i), DICOM_TAG_PATIENT_ID);
 
       DicomFindAnswers studies;
-      connection.FindStudy(studies, m);
+      connection.GetConnection().FindStudy(studies, m);
 
       patient["Studies"] = Json::arrayValue;
       
@@ -214,7 +223,7 @@ namespace Orthanc
         m.CopyTagIfExists(studies.GetAnswer(j), DICOM_TAG_STUDY_INSTANCE_UID);
 
         DicomFindAnswers series;
-        connection.FindSeries(series, m);
+        connection.GetConnection().FindSeries(series, m);
 
         // Loop over the found series
         study["Series"] = Json::arrayValue;
@@ -309,8 +318,8 @@ namespace Orthanc
       return;
     }
 
-    DicomUserConnection connection;
-    ConnectToModalityUsingSymbolicName(connection, remote);
+    RemoteModalityParameters p = GetModalityUsingSymbolicName(remote);
+    ReusableDicomUserConnection::Connection connection(context.GetReusableDicomUserConnection(), p);
 
     for (std::list<std::string>::const_iterator 
            it = instances.begin(); it != instances.end(); ++it)
@@ -319,7 +328,7 @@ namespace Orthanc
 
       std::string dicom;
       context.ReadFile(dicom, *it, FileContentType_Dicom);
-      connection.Store(dicom);
+      connection.GetConnection().Store(dicom);
     }
 
     call.GetOutput().AnswerBuffer("{}", "application/json");
