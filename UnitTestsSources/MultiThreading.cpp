@@ -251,17 +251,19 @@ TEST(ReusableDicomUserConnection, DISABLED_Basic)
 
 namespace Orthanc
 {
-  typedef std::list<std::string>  ListOfStrings;
-
   class IServerFilter
   {
   public:
+    typedef std::list<std::string>  ListOfStrings;
+
     virtual ~IServerFilter()
     {
     }
 
     virtual bool Apply(ListOfStrings& outputs,
                        const ListOfStrings& inputs) = 0;
+
+    virtual bool SendOutputsToSink() const = 0;
   };
 
 
@@ -273,6 +275,11 @@ namespace Orthanc
   public:
     Sink(ListOfStrings& target) : target_(target)
     {
+    }
+
+    virtual bool SendOutputsToSink() const
+    {
+      return false;
     }
 
     virtual bool Apply(ListOfStrings& outputs,
@@ -303,15 +310,17 @@ namespace Orthanc
   };
 
 
-  class FilterWrapper : public IDynamicObject
+  class ServerFilterInstance : public IDynamicObject
   {
     friend class ServerScheduler;
 
   private:
+    typedef IServerFilter::ListOfStrings  ListOfStrings;
+
     IServerFilter *filter_;
     std::string jobId_;
     ListOfStrings inputs_;
-    std::list<FilterWrapper*> next_;
+    std::list<ServerFilterInstance*> next_;
 
     bool Execute(IServerFilterListener& listener)
     {
@@ -322,7 +331,7 @@ namespace Orthanc
         return true;
       }
 
-      for (std::list<FilterWrapper*>::iterator
+      for (std::list<ServerFilterInstance*>::iterator
              it = next_.begin(); it != next_.end(); it++)
       {
         for (ListOfStrings::const_iterator
@@ -338,8 +347,8 @@ namespace Orthanc
 
 
   public:
-    FilterWrapper(IServerFilter *filter,
-                  const std::string& jobId) : 
+    ServerFilterInstance(IServerFilter *filter,
+                         const std::string& jobId) : 
       filter_(filter), 
       jobId_(jobId)
     {
@@ -349,7 +358,7 @@ namespace Orthanc
       }
     }
 
-    virtual ~FilterWrapper()
+    virtual ~ServerFilterInstance()
     {
       if (filter_ != NULL)
       {
@@ -367,14 +376,19 @@ namespace Orthanc
       inputs_.push_back(input);
     }
 
-    void ConnectNext(FilterWrapper& filter)
+    void ConnectNext(ServerFilterInstance& filter)
     {
       next_.push_back(&filter);
     }
 
-    const std::list<FilterWrapper*>& GetNextFilters() const
+    const std::list<ServerFilterInstance*>& GetNextFilters() const
     {
       return next_;
+    }
+
+    IServerFilter& GetFilter() const
+    {
+      return *filter_;
     }
   };
 
@@ -384,7 +398,7 @@ namespace Orthanc
     friend class ServerScheduler;
 
   private:
-    std::list<FilterWrapper*> filters_;
+    std::list<ServerFilterInstance*> filters_;
     std::string jobId_;
     bool submitted_;
     std::string description_;
@@ -392,21 +406,21 @@ namespace Orthanc
     
     void CheckOrdering()
     {
-      std::map<FilterWrapper*, unsigned int> index;
+      std::map<ServerFilterInstance*, unsigned int> index;
 
       unsigned int count = 0;
-      for (std::list<FilterWrapper*>::const_iterator
+      for (std::list<ServerFilterInstance*>::const_iterator
              it = filters_.begin(); it != filters_.end(); it++)
       {
         index[*it] = count++;
       }
 
-      for (std::list<FilterWrapper*>::const_iterator
+      for (std::list<ServerFilterInstance*>::const_iterator
              it = filters_.begin(); it != filters_.end(); it++)
       {
-        const std::list<FilterWrapper*>& nextFilters = (*it)->GetNextFilters();
+        const std::list<ServerFilterInstance*>& nextFilters = (*it)->GetNextFilters();
 
-        for (std::list<FilterWrapper*>::const_iterator
+        for (std::list<ServerFilterInstance*>::const_iterator
                next = nextFilters.begin(); next != nextFilters.end(); next++)
         {
           if (index.find(*next) == index.end() ||
@@ -433,7 +447,7 @@ namespace Orthanc
 
       size_t size = filters_.size();
 
-      for (std::list<FilterWrapper*>::iterator 
+      for (std::list<ServerFilterInstance*>::iterator 
              it = filters_.begin(); it != filters_.end(); it++)
       {
         target.Enqueue(*it);
@@ -455,7 +469,7 @@ namespace Orthanc
 
     ~ServerJob()
     {
-      for (std::list<FilterWrapper*>::iterator
+      for (std::list<ServerFilterInstance*>::iterator
              it = filters_.begin(); it != filters_.end(); it++)
       {
         delete *it;
@@ -477,14 +491,14 @@ namespace Orthanc
       return description_;
     }
 
-    FilterWrapper& AddFilter(IServerFilter* filter)
+    ServerFilterInstance& AddFilter(IServerFilter* filter)
     {
       if (submitted_)
       {
         throw OrthancException(ErrorCode_BadSequenceOfCalls);
       }
 
-      filters_.push_back(new FilterWrapper(filter, jobId_));
+      filters_.push_back(new ServerFilterInstance(filter, jobId_));
       
       return *filters_.back();
     }
@@ -511,6 +525,7 @@ namespace Orthanc
       JobStatus_Failure = 3
     };
 
+    typedef IServerFilter::ListOfStrings  ListOfStrings;
     typedef std::map<std::string, JobInfo> Jobs;
 
     boost::mutex mutex_;
@@ -584,7 +599,7 @@ namespace Orthanc
         std::auto_ptr<IDynamicObject> object(that->queue_.Dequeue(TIMEOUT));
         if (object.get() != NULL)
         {
-          FilterWrapper& filter = dynamic_cast<FilterWrapper&>(*object);
+          ServerFilterInstance& filter = dynamic_cast<ServerFilterInstance&>(*object);
 
           // Skip the execution of this filter if its parent job has
           // previously failed.
@@ -669,13 +684,14 @@ namespace Orthanc
 
       // Add a sink filter to collect all the results of the filters
       // that have no next filter.
-      FilterWrapper& sink = job.AddFilter(new Sink(outputs));
+      ServerFilterInstance& sink = job.AddFilter(new Sink(outputs));
 
-      for (std::list<FilterWrapper*>::iterator
+      for (std::list<ServerFilterInstance*>::iterator
              it = job.filters_.begin(); it != job.filters_.end(); it++)
       {
         if ((*it) != &sink &&
-            (*it)->GetNextFilters().size() == 0)
+            (*it)->GetNextFilters().size() == 0 &&
+            (*it)->GetFilter().SendOutputsToSink())
         {
           (*it)->ConnectNext(sink);
         }
@@ -817,11 +833,18 @@ public:
 
     return true;
   }
+
+  virtual bool SendOutputsToSink() const
+  {
+    return true;
+  }
 };
 
 
 static void Tata(ServerScheduler* s, ServerJob* j, bool* done)
 {
+  typedef IServerFilter::ListOfStrings  ListOfStrings;
+
 #if 1
   while (!(*done))
   {
@@ -851,10 +874,10 @@ TEST(Toto, Toto)
   ServerScheduler scheduler;
 
   ServerJob job;
-  FilterWrapper& f2 = job.AddFilter(new Tutu(2));
-  FilterWrapper& f3 = job.AddFilter(new Tutu(3));
-  FilterWrapper& f4 = job.AddFilter(new Tutu(4));
-  FilterWrapper& f5 = job.AddFilter(new Tutu(5));
+  ServerFilterInstance& f2 = job.AddFilter(new Tutu(2));
+  ServerFilterInstance& f3 = job.AddFilter(new Tutu(3));
+  ServerFilterInstance& f4 = job.AddFilter(new Tutu(4));
+  ServerFilterInstance& f5 = job.AddFilter(new Tutu(5));
   f2.AddInput(boost::lexical_cast<std::string>(42));
   //f3.AddInput(boost::lexical_cast<std::string>(42));
   //f4.AddInput(boost::lexical_cast<std::string>(42));
@@ -870,10 +893,10 @@ TEST(Toto, Toto)
 
   //scheduler.Submit(job);
 
-  ListOfStrings l;
+  IServerFilter::ListOfStrings l;
   scheduler.SubmitAndWait(l, job);
 
-  for (ListOfStrings::iterator i = l.begin(); i != l.end(); i++)
+  for (IServerFilter::ListOfStrings::iterator i = l.begin(); i != l.end(); i++)
   {
     printf("** %s\n", i->c_str());
   }
