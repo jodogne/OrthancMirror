@@ -38,13 +38,16 @@ namespace Orthanc
 {
   class ILockable : public boost::noncopyable
   {
+    friend class Locker;
+
+  protected:
+    virtual void Lock() = 0;
+
+    virtual void Unlock() = 0;
+
   public:
     virtual ~ILockable()
     {
     }
-
-    virtual void Lock() = 0;
-
-    virtual void Unlock() = 0;
   };
 }
