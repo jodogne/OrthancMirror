@@ -67,6 +67,8 @@ namespace Orthanc
     dicomCache_(provider_, DICOM_CACHE_SIZE)
   {
     scu_.SetLocalApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
+    //scu_.SetMillisecondsBeforeClose(1);  // The connection is always released
+
     lua_.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
   }
 

@@ -86,7 +86,7 @@ namespace Orthanc
       boost::this_thread::sleep(boost::posix_time::milliseconds(100));
       if (!that->continue_)
       {
-        LOG(INFO) << "Finishing the thread watching the global SCU connection";
+        //LOG(INFO) << "Finishing the thread watching the global SCU connection";
         return;
       }
 
