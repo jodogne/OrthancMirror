@@ -585,27 +585,4 @@ namespace Orthanc
     
     return LookupDicomModalityUsingAETitle(aet, symbolicName, address, port, manufacturer);
   }
-
-
-  void ConnectToModalityUsingAETitle(DicomUserConnection& connection,
-                                     const std::string& aet)
-  {
-    std::string symbolicName, address;
-    int port;
-    ModalityManufacturer manufacturer;
-
-    if (!LookupDicomModalityUsingAETitle(aet, symbolicName, address, port, manufacturer))
-    {
-      throw OrthancException("Unknown modality: " + aet);
-    }
-
-    LOG(WARNING) << "Connecting to remote DICOM modality: AET=" << aet << ", address=" << address << ", port=" << port;
-
-    connection.SetLocalApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
-    connection.SetDistantApplicationEntityTitle(aet);
-    connection.SetDistantHost(address);
-    connection.SetDistantPort(port);
-    connection.SetDistantManufacturer(manufacturer);
-    connection.Open();
-  }
 }

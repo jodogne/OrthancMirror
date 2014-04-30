@@ -89,9 +89,6 @@ namespace Orthanc
   void ConnectToModalityUsingSymbolicName(DicomUserConnection& connection,
                                           const std::string& name);
 
-  void ConnectToModalityUsingAETitle(DicomUserConnection& connection,
-                                     const std::string& aet);
-
   bool IsKnownAETitle(const std::string& aet);
 
   bool IsSameAETitle(const std::string& aet1,
