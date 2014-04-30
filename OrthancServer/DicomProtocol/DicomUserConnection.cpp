@@ -619,6 +619,16 @@ namespace Orthanc
     Close();
   }
 
+
+  void DicomUserConnection::Connect(const RemoteModalityParameters& parameters)
+  {
+    SetDistantApplicationEntityTitle(parameters.GetApplicationEntityTitle());
+    SetDistantHost(parameters.GetHost());
+    SetDistantPort(parameters.GetPort());
+    SetDistantManufacturer(parameters.GetManufacturer());
+  }
+
+
   void DicomUserConnection::SetLocalApplicationEntityTitle(const std::string& aet)
   {
     if (localAet_ != aet)

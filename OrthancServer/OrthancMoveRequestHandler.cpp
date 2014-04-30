@@ -33,7 +33,6 @@
 
 #include <glog/logging.h>
 
-#include "DicomProtocol/DicomUserConnection.h"
 #include "OrthancInitialization.h"
 
 namespace Orthanc
@@ -48,18 +47,14 @@ namespace Orthanc
       ServerContext& context_;
       std::vector<std::string> instances_;
       size_t position_;
-
-      std::string aet_, address_;
-      int port_;
-      ModalityManufacturer manufacturer_;
+      RemoteModalityParameters remote_;
 
     public:
       OrthancMoveRequestIterator(ServerContext& context,
                                  const std::string& aet,
                                  const std::string& publicId) :
         context_(context),
-        position_(0),
-        aet_(aet)
+        position_(0)
       {
         LOG(INFO) << "Sending resource " << publicId << " to modality \"" << aet << "\"";
 
@@ -72,11 +67,7 @@ namespace Orthanc
           instances_.push_back(*it);
         }
 
-        std::string symbolicName;
-        if (!LookupDicomModalityUsingAETitle(aet_, symbolicName, address_, port_, manufacturer_))
-        {
-          throw OrthancException("Unknown modality: " + aet_);
-        }
+        remote_ = GetModalityUsingAet(aet);
       }
 
       virtual unsigned int GetSubOperationCount() const
@@ -97,8 +88,8 @@ namespace Orthanc
         context_.ReadFile(dicom, id, FileContentType_Dicom);
 
         {
-          ReusableDicomUserConnection::Connection connection(context_.GetReusableDicomUserConnection(),
-                                                             aet_, address_, port_, manufacturer_);
+          ReusableDicomUserConnection::Connection connection
+            (context_.GetReusableDicomUserConnection(), remote_);
           connection.GetConnection().Store(dicom);
         }
 

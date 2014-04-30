@@ -101,17 +101,27 @@ namespace Orthanc
     }
   }
     
-  ReusableDicomUserConnection::Connection::Connection
-  (ReusableDicomUserConnection& that,
-   const std::string& aet,
-   const std::string& address,
-   int port,
-   ModalityManufacturer manufacturer) : 
+  ReusableDicomUserConnection::Connection::Connection(ReusableDicomUserConnection& that,
+                                                      const std::string& aet,
+                                                      const std::string& address,
+                                                      int port,
+                                                      ModalityManufacturer manufacturer) :
     Locker(that)
   {
     that.Open(aet, address, port, manufacturer);
     connection_ = that.connection_;
   }
+
+
+  ReusableDicomUserConnection::Connection::Connection(ReusableDicomUserConnection& that,
+                                                      const RemoteModalityParameters& remote) :
+    Locker(that)
+  {
+    that.Open(remote.GetApplicationEntityTitle(), remote.GetHost(), 
+              remote.GetPort(), remote.GetManufacturer());
+    connection_ = that.connection_;    
+  }
+
 
   DicomUserConnection& ReusableDicomUserConnection::Connection::GetConnection()
   {
