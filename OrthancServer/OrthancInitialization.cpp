@@ -508,25 +508,6 @@ namespace Orthanc
   }
 
 
-  void ConnectToModalityUsingSymbolicName(DicomUserConnection& connection,
-                                          const std::string& name)
-  {
-    std::string aet, address;
-    int port;
-    ModalityManufacturer manufacturer;
-    GetDicomModalityUsingSymbolicName(name, aet, address, port, manufacturer);
-
-    LOG(WARNING) << "Connecting to remote DICOM modality: AET=" << aet << ", address=" << address << ", port=" << port;
-
-    connection.SetLocalApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
-    connection.SetDistantApplicationEntityTitle(aet);
-    connection.SetDistantHost(address);
-    connection.SetDistantPort(port);
-    connection.SetDistantManufacturer(manufacturer);
-    connection.Open();
-  }
-
-
   bool IsSameAETitle(const std::string& aet1,
                      const std::string& aet2)
   {
@@ -587,25 +568,31 @@ namespace Orthanc
   }
 
 
-  void ConnectToModalityUsingAETitle(DicomUserConnection& connection,
-                                     const std::string& aet)
+  RemoteModalityParameters GetModalityUsingSymbolicName(const std::string& name)
   {
-    std::string symbolicName, address;
+    std::string aet, address;
     int port;
     ModalityManufacturer manufacturer;
 
-    if (!LookupDicomModalityUsingAETitle(aet, symbolicName, address, port, manufacturer))
+    GetDicomModalityUsingSymbolicName(name, aet, address, port, manufacturer);
+
+    return RemoteModalityParameters(name, aet, address, port, manufacturer);
+  }
+
+
+  RemoteModalityParameters GetModalityUsingAet(const std::string& aet)
+  {
+    std::string name, address;
+    int port;
+    ModalityManufacturer manufacturer;
+
+    if (LookupDicomModalityUsingAETitle(aet, name, address, port, manufacturer))
     {
-      throw OrthancException("Unknown modality: " + aet);
+      return RemoteModalityParameters(name, aet, address, port, manufacturer);
     }
-
-    LOG(WARNING) << "Connecting to remote DICOM modality: AET=" << aet << ", address=" << address << ", port=" << port;
-
-    connection.SetLocalApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
-    connection.SetDistantApplicationEntityTitle(aet);
-    connection.SetDistantHost(address);
-    connection.SetDistantPort(port);
-    connection.SetDistantManufacturer(manufacturer);
-    connection.Open();
+    else
+    {
+      throw OrthancException("Unknown modality for AET: " + aet);
+    }
   }
 }

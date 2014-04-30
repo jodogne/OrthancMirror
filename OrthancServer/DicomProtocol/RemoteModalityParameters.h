@@ -30,96 +30,83 @@
  **/
 
 
-#include "ReaderWriterLock.h"
+#pragma once
 
-#include <boost/thread/shared_mutex.hpp>
+#include "../ServerEnumerations.h"
+
+#include <string>
 
 namespace Orthanc
 {
-  namespace
+  class RemoteModalityParameters
   {
-    // Anonymous namespace to avoid clashes between compilation
-    // modules.
+    // TODO Use the flyweight pattern for this class
 
-    class ReaderLockable : public ILockable
-    {
-    private:
-      boost::shared_mutex& lock_;
+  private:
+    std::string  symbolicName_;
+    std::string  aet_;
+    std::string  host_;
+    int  port_;
+    ModalityManufacturer  manufacturer_;
 
-    protected:
-      virtual void Lock()
-      {
-        lock_.lock_shared();
-      }
-
-      virtual void Unlock()
-      {
-        lock_.unlock_shared();        
-      }
-
-    public:
-      ReaderLockable(boost::shared_mutex& lock) : lock_(lock)
-      {
-      }
-    };
-
-
-    class WriterLockable : public ILockable
-    {
-    private:
-      boost::shared_mutex& lock_;
-
-    protected:
-      virtual void Lock()
-      {
-        lock_.lock();
-      }
-
-      virtual void Unlock()
-      {
-        lock_.unlock();        
-      }
-
-    public:
-      WriterLockable(boost::shared_mutex& lock) : lock_(lock)
-      {
-      }
-
-    };
-  }
-
-  struct ReaderWriterLock::PImpl
-  {
-    boost::shared_mutex lock_;
-    ReaderLockable reader_;
-    WriterLockable writer_;
-
-    PImpl() : reader_(lock_), writer_(lock_)
+  public:
+    RemoteModalityParameters() :
+      symbolicName_(""),
+      aet_(""),
+      host_(""),
+      port_(104),
+      manufacturer_(ModalityManufacturer_Generic)
     {
     }
+
+    RemoteModalityParameters(const std::string& symbolic,
+                             const std::string& aet,
+                             const std::string& host,
+                             int port,
+                             ModalityManufacturer manufacturer) :
+      symbolicName_(symbolic),
+      aet_(aet),
+      host_(host),
+      port_(port),
+      manufacturer_(manufacturer)
+    {
+    }
+
+    RemoteModalityParameters(const std::string& aet,
+                             const std::string& host,
+                             int port,
+                             ModalityManufacturer manufacturer) :
+      symbolicName_(""),
+      aet_(aet),
+      host_(host),
+      port_(port),
+      manufacturer_(manufacturer)
+    {
+    }
+
+    const std::string& GetSymbolicName() const
+    {
+      return symbolicName_;
+    }
+
+    const std::string& GetApplicationEntityTitle() const
+    {
+      return aet_;
+    }
+
+    const std::string& GetHost() const
+    {
+      return host_;
+    }
+
+    int GetPort() const
+    {
+      return port_;
+    }
+
+    ModalityManufacturer GetManufacturer() const
+    {
+      return manufacturer_;
+    }
   };
-
-
-  ReaderWriterLock::ReaderWriterLock()
-  {
-    pimpl_ = new PImpl;
-  }
-
-
-  ReaderWriterLock::~ReaderWriterLock()
-  {
-    delete pimpl_;
-  }
-
-
-  ILockable&  ReaderWriterLock::ForReader()
-  {
-    return pimpl_->reader_;
-  }
-
-
-  ILockable&  ReaderWriterLock::ForWriter()
-  {
-    return pimpl_->writer_;
-  }
 }

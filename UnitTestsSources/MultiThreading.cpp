@@ -214,7 +214,31 @@ TEST(MultiThreading, ReaderWriterLock)
 
 
 
+#include "../OrthancServer/DicomProtocol/ReusableDicomUserConnection.h"
 
+TEST(ReusableDicomUserConnection, DISABLED_Basic)
+{
+  ReusableDicomUserConnection c;
+  c.SetMillisecondsBeforeClose(200);
+  printf("START\n"); fflush(stdout);
+
+  {
+    ReusableDicomUserConnection::Connection cc(c, "STORESCP", "localhost", 2000, ModalityManufacturer_Generic);
+    cc.GetConnection().StoreFile("/home/jodogne/DICOM/Cardiac/MR.X.1.2.276.0.7230010.3.1.4.2831157719.2256.1336386844.676281");
+  }
+
+  printf("**\n"); fflush(stdout);
+  Toolbox::USleep(1000000);
+  printf("**\n"); fflush(stdout);
+
+  {
+    ReusableDicomUserConnection::Connection cc(c, "STORESCP", "localhost", 2000, ModalityManufacturer_Generic);
+    cc.GetConnection().StoreFile("/home/jodogne/DICOM/Cardiac/MR.X.1.2.276.0.7230010.3.1.4.2831157719.2256.1336386844.676277");
+  }
+
+  Toolbox::ServerBarrier();
+  printf("DONE\n"); fflush(stdout);
+}
 
 
 

@@ -34,10 +34,12 @@
 
 #include "DicomFindAnswers.h"
 #include "../ServerEnumerations.h"
+#include "RemoteModalityParameters.h"
 
 #include <stdint.h>
 #include <boost/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
+#include <list>
 
 namespace Orthanc
 {
@@ -62,6 +64,9 @@ namespace Orthanc
     std::string distantHost_;
     uint16_t distantPort_;
     ModalityManufacturer manufacturer_;
+    std::set<std::string> storageSOPClasses_;
+    std::list<std::string> reservedStorageSOPClasses_;
+    std::set<std::string> defaultStorageSOPClasses_;
 
     void CheckIsOpen() const;
 
@@ -74,12 +79,16 @@ namespace Orthanc
     void Move(const std::string& targetAet,
               const DicomMap& fields);
 
+    void ResetStorageSOPClasses();
+
+    void CheckStorageSOPClassesInvariant() const;
+
   public:
     DicomUserConnection();
 
     ~DicomUserConnection();
 
-    void CopyParameters(const DicomUserConnection& other);
+    void Connect(const RemoteModalityParameters& parameters);
 
     void SetLocalApplicationEntityTitle(const std::string& aet);
 
@@ -124,6 +133,8 @@ namespace Orthanc
     {
       return preferredTransferSyntax_;
     }
+
+    void AddStorageSOPClass(const char* sop);
 
     void Open();
 
