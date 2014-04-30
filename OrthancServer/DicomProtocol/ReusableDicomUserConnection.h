@@ -66,20 +66,20 @@ namespace Orthanc
     virtual void Unlock();
     
   public:
-    class Connection : public Locker
+    class Locker : public ::Orthanc::Locker
     {
     private:
       DicomUserConnection* connection_;
 
     public:
-      Connection(ReusableDicomUserConnection& that,
-                 const RemoteModalityParameters& remote);
+      Locker(ReusableDicomUserConnection& that,
+             const RemoteModalityParameters& remote);
 
-      Connection(ReusableDicomUserConnection& that,
-                 const std::string& aet,
-                 const std::string& address,
-                 int port,
-                 ModalityManufacturer manufacturer);
+      Locker(ReusableDicomUserConnection& that,
+             const std::string& aet,
+             const std::string& address,
+             int port,
+             ModalityManufacturer manufacturer);
 
       DicomUserConnection& GetConnection();
     };
