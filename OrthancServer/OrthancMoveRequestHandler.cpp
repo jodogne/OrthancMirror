@@ -88,9 +88,9 @@ namespace Orthanc
         context_.ReadFile(dicom, id, FileContentType_Dicom);
 
         {
-          ReusableDicomUserConnection::Connection connection
+          ReusableDicomUserConnection::Locker locker
             (context_.GetReusableDicomUserConnection(), remote_);
-          connection.GetConnection().Store(dicom);
+          locker.GetConnection().Store(dicom);
         }
 
         return Status_Success;

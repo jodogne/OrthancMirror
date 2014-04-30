@@ -75,10 +75,10 @@ namespace Orthanc
     }
 
     RemoteModalityParameters remote = GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-    ReusableDicomUserConnection::Connection connection(context.GetReusableDicomUserConnection(), remote);
+    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
 
     DicomFindAnswers answers;
-    connection.GetConnection().FindPatient(answers, m);
+    locker.GetConnection().FindPatient(answers, m);
 
     Json::Value result;
     answers.ToJson(result);
@@ -103,10 +103,10 @@ namespace Orthanc
     }        
       
     RemoteModalityParameters remote = GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-    ReusableDicomUserConnection::Connection connection(context.GetReusableDicomUserConnection(), remote);
+    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
 
     DicomFindAnswers answers;
-    connection.GetConnection().FindStudy(answers, m);
+    locker.GetConnection().FindStudy(answers, m);
 
     Json::Value result;
     answers.ToJson(result);
@@ -132,10 +132,10 @@ namespace Orthanc
     }        
          
     RemoteModalityParameters remote = GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-    ReusableDicomUserConnection::Connection connection(context.GetReusableDicomUserConnection(), remote);
+    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
 
     DicomFindAnswers answers;
-    connection.GetConnection().FindSeries(answers, m);
+    locker.GetConnection().FindSeries(answers, m);
 
     Json::Value result;
     answers.ToJson(result);
@@ -162,10 +162,10 @@ namespace Orthanc
     }        
          
     RemoteModalityParameters remote = GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-    ReusableDicomUserConnection::Connection connection(context.GetReusableDicomUserConnection(), remote);
+    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
 
     DicomFindAnswers answers;
-    connection.GetConnection().FindInstance(answers, m);
+    locker.GetConnection().FindInstance(answers, m);
 
     Json::Value result;
     answers.ToJson(result);
@@ -184,10 +184,10 @@ namespace Orthanc
     }
  
     RemoteModalityParameters remote = GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-    ReusableDicomUserConnection::Connection connection(context.GetReusableDicomUserConnection(), remote);
+    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
 
     DicomFindAnswers patients;
-    connection.GetConnection().FindPatient(patients, m);
+    locker.GetConnection().FindPatient(patients, m);
 
     // Loop over the found patients
     Json::Value result = Json::arrayValue;
@@ -204,7 +204,7 @@ namespace Orthanc
       m.CopyTagIfExists(patients.GetAnswer(i), DICOM_TAG_PATIENT_ID);
 
       DicomFindAnswers studies;
-      connection.GetConnection().FindStudy(studies, m);
+      locker.GetConnection().FindStudy(studies, m);
 
       patient["Studies"] = Json::arrayValue;
       
@@ -223,7 +223,7 @@ namespace Orthanc
         m.CopyTagIfExists(studies.GetAnswer(j), DICOM_TAG_STUDY_INSTANCE_UID);
 
         DicomFindAnswers series;
-        connection.GetConnection().FindSeries(series, m);
+        locker.GetConnection().FindSeries(series, m);
 
         // Loop over the found series
         study["Series"] = Json::arrayValue;
@@ -319,7 +319,7 @@ namespace Orthanc
     }
 
     RemoteModalityParameters p = GetModalityUsingSymbolicName(remote);
-    ReusableDicomUserConnection::Connection connection(context.GetReusableDicomUserConnection(), p);
+    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), p);
 
     for (std::list<std::string>::const_iterator 
            it = instances.begin(); it != instances.end(); ++it)
@@ -328,7 +328,7 @@ namespace Orthanc
 
       std::string dicom;
       context.ReadFile(dicom, *it, FileContentType_Dicom);
-      connection.GetConnection().Store(dicom);
+      locker.GetConnection().Store(dicom);
     }
 
     call.GetOutput().AnswerBuffer("{}", "application/json");
