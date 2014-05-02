@@ -36,22 +36,15 @@
 
 namespace Orthanc
 {
-  // TODO IMPROVE MULTITHREADING
-  // Every call to "ParsedDicomFile" must lock this mutex!!!
-  static boost::mutex cacheMutex_;
-
-
   // Raw access to the DICOM tags of an instance ------------------------------
 
   static void GetRawContent(RestApi::GetCall& call)
   {
-    boost::mutex::scoped_lock lock(cacheMutex_);
-
-    ServerContext& context = OrthancRestApi::GetContext(call);
-
     std::string id = call.GetUriComponent("id", "");
-    ParsedDicomFile& dicom = context.GetDicomFile(id);
-    dicom.SendPathValue(call.GetOutput(), call.GetTrailingUri());
+
+    ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), id);
+
+    locker.GetDicom().SendPathValue(call.GetOutput(), call.GetTrailingUri());
   }
 
 
@@ -338,13 +331,11 @@ namespace Orthanc
                                         bool removePrivateTags,
                                         RestApi::PostCall& call)
   {
-    boost::mutex::scoped_lock lock(cacheMutex_);
-    ServerContext& context = OrthancRestApi::GetContext(call);
-
     std::string id = call.GetUriComponent("id", "");
-    ParsedDicomFile& dicom = context.GetDicomFile(id);
-    
-    std::auto_ptr<ParsedDicomFile> modified(dicom.Clone());
+
+    ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), id);
+
+    std::auto_ptr<ParsedDicomFile> modified(locker.GetDicom().Clone());
     ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent, removePrivateTags);
     modified->Answer(call.GetOutput());
   }
@@ -416,7 +407,6 @@ namespace Orthanc
     bool isFirst = true;
     Json::Value result(Json::objectValue);
 
-    boost::mutex::scoped_lock lock(cacheMutex_);
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     Instances instances;
@@ -437,7 +427,20 @@ namespace Orthanc
          it != instances.end(); ++it)
     {
       LOG(INFO) << "Modifying instance " << *it;
-      ParsedDicomFile& original = context.GetDicomFile(*it);
+
+      std::auto_ptr<ServerContext::DicomCacheLocker> locker;
+
+      try
+      {
+        locker.reset(new ServerContext::DicomCacheLocker(OrthancRestApi::GetContext(call), *it));
+      }
+      catch (OrthancException&)
+      {
+        // This child instance has been removed in between
+        continue;
+      }
+
+      ParsedDicomFile& original = locker->GetDicom();
 
       DicomInstanceHasher originalHasher = original.GetHasher();
 
