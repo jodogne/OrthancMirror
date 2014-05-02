@@ -70,12 +70,31 @@ namespace Orthanc
     bool compressionEnabled_;
     
     DicomCacheProvider provider_;
+    boost::mutex dicomCacheMutex_;
     MemoryCache dicomCache_;
     ReusableDicomUserConnection scu_;
 
     LuaContext lua_;
 
   public:
+    class DicomCacheLocker
+    {
+    private:
+      ServerContext& that_;
+      ParsedDicomFile *dicom_;
+
+    public:
+      DicomCacheLocker(ServerContext& that,
+                       const std::string& instancePublicId);
+
+      ~DicomCacheLocker();
+
+      ParsedDicomFile& GetDicom()
+      {
+        return *dicom_;
+      }
+    };
+
     ServerContext(const boost::filesystem::path& storagePath,
                   const boost::filesystem::path& indexPath);
 
@@ -137,9 +156,6 @@ namespace Orthanc
                   const std::string& instancePublicId,
                   FileContentType content,
                   bool uncompressIfNeeded = true);
-
-    // TODO IMPLEMENT MULTITHREADING FOR THIS METHOD
-    ParsedDicomFile& GetDicomFile(const std::string& instancePublicId);
 
     LuaContext& GetLuaContext()
     {
