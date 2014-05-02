@@ -1732,4 +1732,24 @@ namespace Orthanc
       return false;
     }
   }
+
+
+  void ParsedDicomFile::SaveToFile(const std::string& path)
+  {
+    // TODO Avoid using a temporary memory buffer, write directly on disk
+    std::string content;
+    SaveToMemoryBuffer(content);
+    Toolbox::WriteFile(content, path);
+  }
+
+
+  ParsedDicomFile::ParsedDicomFile()
+  {
+    file_.reset(new DcmFileFormat);
+    Replace(DICOM_TAG_PATIENT_ID, FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Patient));
+    Replace(DICOM_TAG_STUDY_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Study));
+    Replace(DICOM_TAG_SERIES_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series));
+    Replace(DICOM_TAG_SOP_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Instance));
+  }
+
 }
