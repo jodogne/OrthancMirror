@@ -1,9 +1,10 @@
 Pending changes in the mainline
 ===============================
 
-* Reuse of the previous SCU connection to avoid unecessary handshakes
 * Dynamic negotiation of SOP classes for C-Store SCU
+* Reuse of the previous SCU connection to avoid unecessary handshakes
 * Fix missing licensing terms about reuse of some DCMTK code
+* Some refactorings
 
 
 Version 0.7.4 (2014/04/16)
