@@ -297,7 +297,7 @@ namespace Orthanc
         toModify.Replace(it->first, it->second, DicomReplaceMode_InsertIfAbsent);
       }
 
-      // Update the DICOM identifiers
+      // (4) Update the DICOM identifiers
       if (level_ <= DicomRootLevel_Study)
       {
         MapDicomIdentifier(toModify, DicomRootLevel_Study);
@@ -327,12 +327,12 @@ TEST(DicomModification, Basic)
   //m.Replace(DICOM_TAG_PATIENT_NAME, "coucou");
 
   ParsedDicomFile o;
-  o.SaveToFile("/tmp/tutu.dcm");
+  o.SaveToFile("anon.dcm");
 
   for (int i = 0; i < 10; i++)
   {
     char b[1024];
-    sprintf(b, "/tmp/tutu%06d.dcm", i);
+    sprintf(b, "anon%06d.dcm", i);
     std::auto_ptr<ParsedDicomFile> f(o.Clone());
     if (i > 4)
       o.Replace(DICOM_TAG_SERIES_INSTANCE_UID, "coucou");
