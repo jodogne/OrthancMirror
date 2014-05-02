@@ -263,6 +263,7 @@ add_executable(UnitTests
   ${GTEST_SOURCES}
   UnitTestsSources/DicomMap.cpp
   UnitTestsSources/FileStorage.cpp
+  UnitTestsSources/FromDcmtk.cpp
   UnitTestsSources/MemoryCache.cpp
   UnitTestsSources/Png.cpp
   UnitTestsSources/RestApi.cpp

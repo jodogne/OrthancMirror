@@ -36,19 +36,6 @@
 
 namespace Orthanc
 {
-  // Raw access to the DICOM tags of an instance ------------------------------
-
-  static void GetRawContent(RestApi::GetCall& call)
-  {
-    std::string id = call.GetUriComponent("id", "");
-
-    ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), id);
-
-    locker.GetDicom().SendPathValue(call.GetOutput(), call.GetTrailingUri());
-  }
-
-
-
   // Modification of DICOM instances ------------------------------------------
 
   namespace
@@ -61,7 +48,6 @@ namespace Orthanc
   static void ReplaceInstanceInternal(ParsedDicomFile& toModify,
                                       const Removals& removals,
                                       const Replacements& replacements,
-                                      DicomReplaceMode mode,
                                       bool removePrivateTags)
   {
     if (removePrivateTags)
@@ -78,7 +64,7 @@ namespace Orthanc
     for (Replacements::const_iterator it = replacements.begin(); 
          it != replacements.end(); ++it)
     {
-      toModify.Replace(it->first, it->second, mode);
+      toModify.Replace(it->first, it->second, DicomReplaceMode_InsertIfAbsent);
     }
 
     // A new SOP instance UID is automatically generated
@@ -336,7 +322,7 @@ namespace Orthanc
     ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), id);
 
     std::auto_ptr<ParsedDicomFile> modified(locker.GetDicom().Clone());
-    ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent, removePrivateTags);
+    ReplaceInstanceInternal(*modified, removals, replacements, removePrivateTags);
     modified->Answer(call.GetOutput());
   }
 
@@ -460,7 +446,7 @@ namespace Orthanc
        **/
 
       std::auto_ptr<ParsedDicomFile> modified(original.Clone());
-      ReplaceInstanceInternal(*modified, removals, replacements, DicomReplaceMode_InsertIfAbsent, removePrivateTags);
+      ReplaceInstanceInternal(*modified, removals, replacements, removePrivateTags);
 
       std::string modifiedInstance;
       if (context.Store(modifiedInstance, modified->GetDicom()) != StoreStatus_Success)
@@ -680,8 +666,6 @@ namespace Orthanc
 
   void OrthancRestApi::RegisterAnonymizeModify()
   {
-    Register("/instances/{id}/content/*", GetRawContent);
-
     Register("/instances/{id}/modify", ModifyInstance);
     Register("/series/{id}/modify", ModifySeriesInplace);
     Register("/studies/{id}/modify", ModifyStudyInplace);

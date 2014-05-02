@@ -541,6 +541,17 @@ namespace Orthanc
   }
 
 
+  // Raw access to the DICOM tags of an instance ------------------------------
+
+  static void GetRawContent(RestApi::GetCall& call)
+  {
+    std::string id = call.GetUriComponent("id", "");
+
+    ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), id);
+
+    locker.GetDicom().SendPathValue(call.GetOutput(), call.GetTrailingUri());
+  }
+
 
 
   void OrthancRestApi::RegisterResources()
@@ -598,5 +609,7 @@ namespace Orthanc
     Register("/{resourceType}/{id}/attachments/{name}/size", GetAttachmentSize);
     Register("/{resourceType}/{id}/attachments/{name}/verify-md5", VerifyAttachment);
     Register("/{resourceType}/{id}/attachments/{name}", UploadAttachment);
+
+    Register("/instances/{id}/content/*", GetRawContent);
   }
 }
