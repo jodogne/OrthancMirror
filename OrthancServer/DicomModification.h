@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include "FromDcmtkBridge.h"
+#include "ParsedDicomFile.h"
 
 namespace Orthanc
 {
