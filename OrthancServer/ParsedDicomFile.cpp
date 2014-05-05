@@ -1035,4 +1035,22 @@ namespace Orthanc
     Replace(DICOM_TAG_SOP_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Instance));
   }
 
+
+  ParsedDicomFile::ParsedDicomFile(const char* content,
+                                   size_t size)
+  {
+    Setup(content, size);
+  }
+
+  ParsedDicomFile::ParsedDicomFile(const std::string& content)
+  {
+    if (content.size() == 0)
+    {
+      Setup(NULL, 0);
+    }
+    else
+    {
+      Setup(&content[0], content.size());
+    }
+  }
 }

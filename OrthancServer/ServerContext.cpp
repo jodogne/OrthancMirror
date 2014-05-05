@@ -247,12 +247,12 @@ namespace Orthanc
 
 
   StoreStatus ServerContext::Store(std::string& resultPublicId,
-                                   DcmFileFormat& dicomInstance,
+                                   ParsedDicomFile& dicomInstance,
                                    const char* dicomBuffer,
                                    size_t dicomSize)
   {
     DicomMap dicomSummary;
-    FromDcmtkBridge::Convert(dicomSummary, *dicomInstance.getDataset());
+    FromDcmtkBridge::Convert(dicomSummary, *dicomInstance.GetDicom().getDataset());
 
     try
     {
@@ -260,7 +260,7 @@ namespace Orthanc
       resultPublicId = hasher.HashInstance();
 
       Json::Value dicomJson;
-      FromDcmtkBridge::ToJson(dicomJson, *dicomInstance.getDataset());
+      FromDcmtkBridge::ToJson(dicomJson, *dicomInstance.GetDicom().getDataset());
       
       StoreStatus status = StoreStatus_Failure;
       if (dicomSize > 0)
@@ -283,10 +283,10 @@ namespace Orthanc
 
 
   StoreStatus ServerContext::Store(std::string& resultPublicId,
-                                   DcmFileFormat& dicomInstance)
+                                   ParsedDicomFile& dicomInstance)
   {
     std::string buffer;
-    if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, dicomInstance.getDataset()))
+    if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, dicomInstance.GetDicom().getDataset()))
     {
       throw OrthancException(ErrorCode_InternalError);
     }
@@ -303,8 +303,23 @@ namespace Orthanc
                                    size_t dicomSize)
   {
     ParsedDicomFile dicom(dicomBuffer, dicomSize);
-    return Store(resultPublicId, dicom.GetDicom(), dicomBuffer, dicomSize);
+    return Store(resultPublicId, dicom, dicomBuffer, dicomSize);
   }
+
+
+  StoreStatus ServerContext::Store(std::string& resultPublicId,
+                                   const std::string& dicomContent)
+  {
+    if (dicomContent.size() == 0)
+    {
+      return Store(resultPublicId, NULL, 0);
+    }
+    else
+    {
+      return Store(resultPublicId, &dicomContent[0], dicomContent.size());
+    }
+  }
+
 
   void ServerContext::SetStoreMD5ForAttachments(bool storeMD5)
   {

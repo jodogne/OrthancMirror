@@ -256,7 +256,7 @@ namespace Orthanc
       modification.Apply(*modified);
 
       std::string modifiedInstance;
-      if (context.Store(modifiedInstance, modified->GetDicom()) != StoreStatus_Success)
+      if (context.Store(modifiedInstance, *modified) != StoreStatus_Success)
       {
         LOG(ERROR) << "Error while storing a modified instance " << *it;
         return;
