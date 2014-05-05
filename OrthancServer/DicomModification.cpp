@@ -37,21 +37,21 @@
 namespace Orthanc
 {
   void DicomModification::MapDicomIdentifier(ParsedDicomFile& dicom,
-                                             DicomRootLevel level)
+                                             ResourceType level)
   {
     std::auto_ptr<DicomTag> tag;
 
     switch (level)
     {
-      case DicomRootLevel_Study:
+      case ResourceType_Study:
         tag.reset(new DicomTag(DICOM_TAG_STUDY_INSTANCE_UID));
         break;
 
-      case DicomRootLevel_Series:
+      case ResourceType_Series:
         tag.reset(new DicomTag(DICOM_TAG_SERIES_INSTANCE_UID));
         break;
 
-      case DicomRootLevel_Instance:
+      case ResourceType_Instance:
         tag.reset(new DicomTag(DICOM_TAG_SOP_INSTANCE_UID));
         break;
 
@@ -84,7 +84,7 @@ namespace Orthanc
   DicomModification::DicomModification()
   {
     removePrivateTags_ = false;
-    level_ = DicomRootLevel_Instance;
+    level_ = ResourceType_Instance;
   }
 
   void DicomModification::Keep(const DicomTag& tag)
@@ -135,7 +135,7 @@ namespace Orthanc
     removePrivateTags_ = removed;
   }
 
-  void DicomModification::SetLevel(DicomRootLevel level)
+  void DicomModification::SetLevel(ResourceType level)
   {
     uidMap_.clear();
     level_ = level;
@@ -146,7 +146,7 @@ namespace Orthanc
     removals_.clear();
     replacements_.clear();
     removePrivateTags_ = true;
-    level_ = DicomRootLevel_Patient;
+    level_ = ResourceType_Patient;
     uidMap_.clear();
 
     // This is Table E.1-1 from PS 3.15-2008 - DICOM Part 15: Security and System Management Profiles
@@ -212,7 +212,7 @@ namespace Orthanc
     replacements_.insert(std::make_pair(DicomTag(0x0012, 0x0062), "YES"));
 
     // (*) Choose a random patient name and ID
-    std::string patientId = FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Patient);
+    std::string patientId = FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Patient);
     replacements_[DICOM_TAG_PATIENT_ID] = patientId;
     replacements_[DICOM_TAG_PATIENT_NAME] = patientId;
   }
@@ -220,9 +220,9 @@ namespace Orthanc
   void DicomModification::Apply(ParsedDicomFile& toModify)
   {
     // Check the request
-    assert(DicomRootLevel_Patient + 1 == DicomRootLevel_Study &&
-           DicomRootLevel_Study + 1 == DicomRootLevel_Series &&
-           DicomRootLevel_Series + 1 == DicomRootLevel_Instance);
+    assert(ResourceType_Patient + 1 == ResourceType_Study &&
+           ResourceType_Study + 1 == ResourceType_Series &&
+           ResourceType_Series + 1 == ResourceType_Instance);
 
     if (IsRemoved(DICOM_TAG_PATIENT_ID) ||
         IsRemoved(DICOM_TAG_STUDY_INSTANCE_UID) ||
@@ -232,22 +232,22 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadRequest);
     }
 
-    if (level_ == DicomRootLevel_Patient && !IsReplaced(DICOM_TAG_PATIENT_ID))
+    if (level_ == ResourceType_Patient && !IsReplaced(DICOM_TAG_PATIENT_ID))
     {
       throw OrthancException(ErrorCode_BadRequest);
     }
 
-    if (level_ > DicomRootLevel_Patient && IsReplaced(DICOM_TAG_PATIENT_ID))
+    if (level_ > ResourceType_Patient && IsReplaced(DICOM_TAG_PATIENT_ID))
     {
       throw OrthancException(ErrorCode_BadRequest);
     }
 
-    if (level_ > DicomRootLevel_Study && IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
+    if (level_ > ResourceType_Study && IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
     {
       throw OrthancException(ErrorCode_BadRequest);
     }
 
-    if (level_ > DicomRootLevel_Series && IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
+    if (level_ > ResourceType_Series && IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
     {
       throw OrthancException(ErrorCode_BadRequest);
     }
@@ -269,23 +269,23 @@ namespace Orthanc
     for (Replacements::const_iterator it = replacements_.begin(); 
          it != replacements_.end(); ++it)
     {
-      toModify.Replace(it->first, it->second, DicomReplaceMode_InsertIfAbsent);
+      toModify.Replace(it->first, it->second, FromDcmtkBridge::ReplaceMode_InsertIfAbsent);
     }
 
     // (4) Update the DICOM identifiers
-    if (level_ <= DicomRootLevel_Study)
+    if (level_ <= ResourceType_Study)
     {
-      MapDicomIdentifier(toModify, DicomRootLevel_Study);
+      MapDicomIdentifier(toModify, ResourceType_Study);
     }
 
-    if (level_ <= DicomRootLevel_Series)
+    if (level_ <= ResourceType_Series)
     {
-      MapDicomIdentifier(toModify, DicomRootLevel_Series);
+      MapDicomIdentifier(toModify, ResourceType_Series);
     }
 
-    if (level_ <= DicomRootLevel_Instance)  // Always true
+    if (level_ <= ResourceType_Instance)  // Always true
     {
-      MapDicomIdentifier(toModify, DicomRootLevel_Instance);
+      MapDicomIdentifier(toModify, ResourceType_Instance);
     }
   }
 }

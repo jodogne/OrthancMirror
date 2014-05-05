@@ -335,7 +335,7 @@ namespace Orthanc
   {
     DicomModification modification;
 
-    // TODO : modification.SetLevel(DicomRootLevel_Series); ?????
+    // TODO : modification.SetLevel(ResourceType_Series); ?????
 
     if (ParseModifyRequest(modification, call))
     {
@@ -364,15 +364,15 @@ namespace Orthanc
     switch (resourceType)
     {
       case ResourceType_Series:
-        modification.SetLevel(DicomRootLevel_Series);
+        modification.SetLevel(ResourceType_Series);
         break;
 
       case ResourceType_Study:
-        modification.SetLevel(DicomRootLevel_Study);
+        modification.SetLevel(ResourceType_Study);
         break;
 
       case ResourceType_Patient:
-        modification.SetLevel(DicomRootLevel_Patient);
+        modification.SetLevel(ResourceType_Patient);
         break;
 
       default:

@@ -784,7 +784,7 @@ namespace Orthanc
 
   void ParsedDicomFile::Replace(const DicomTag& tag,
                                 const std::string& value,
-                                DicomReplaceMode mode)
+                                FromDcmtkBridge::ReplaceMode mode)
   {
     DcmTagKey key(tag.GetGroup(), tag.GetElement());
     DcmElement* element = NULL;
@@ -795,14 +795,14 @@ namespace Orthanc
       // This field does not exist, act wrt. the specified "mode"
       switch (mode)
       {
-        case DicomReplaceMode_InsertIfAbsent:
+        case FromDcmtkBridge::ReplaceMode_InsertIfAbsent:
           Insert(tag, value);
           break;
 
-        case DicomReplaceMode_ThrowIfAbsent:
+        case FromDcmtkBridge::ReplaceMode_ThrowIfAbsent:
           throw OrthancException(ErrorCode_InexistentItem);
 
-        case DicomReplaceMode_IgnoreIfAbsent:
+        case FromDcmtkBridge::ReplaceMode_IgnoreIfAbsent:
           return;
       }
     }
@@ -820,11 +820,18 @@ namespace Orthanc
      * options. You can disable this behaviour by using the -nmu
      * option.
      **/
+
     if (tag == DICOM_TAG_SOP_CLASS_UID)
-      Replace(DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID, value, DicomReplaceMode_InsertIfAbsent);
+    {
+      Replace(DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID, value,
+              FromDcmtkBridge::ReplaceMode_InsertIfAbsent);
+    }
 
     if (tag == DICOM_TAG_SOP_INSTANCE_UID)
-      Replace(DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID, value, DicomReplaceMode_InsertIfAbsent);
+    {
+      Replace(DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID, value, 
+              FromDcmtkBridge::ReplaceMode_InsertIfAbsent);
+    }
   }
 
     
@@ -1653,25 +1660,25 @@ namespace Orthanc
   }
 
 
-  std::string FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel level)
+  std::string FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType level)
   {
     char uid[100];
 
     switch (level)
     {
-      case DicomRootLevel_Patient:
+      case ResourceType_Patient:
         // The "PatientID" field is of type LO (Long String), 64
         // Bytes Maximum. An UUID is of length 36, thus it can be used
         // as a random PatientID.
         return Toolbox::GenerateUuid();
 
-      case DicomRootLevel_Instance:
+      case ResourceType_Instance:
         return dcmGenerateUniqueIdentifier(uid, SITE_INSTANCE_UID_ROOT);
 
-      case DicomRootLevel_Series:
+      case ResourceType_Series:
         return dcmGenerateUniqueIdentifier(uid, SITE_SERIES_UID_ROOT);
 
-      case DicomRootLevel_Study:
+      case ResourceType_Study:
         return dcmGenerateUniqueIdentifier(uid, SITE_STUDY_UID_ROOT);
 
       default:
@@ -1746,10 +1753,10 @@ namespace Orthanc
   ParsedDicomFile::ParsedDicomFile()
   {
     file_.reset(new DcmFileFormat);
-    Replace(DICOM_TAG_PATIENT_ID, FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Patient));
-    Replace(DICOM_TAG_STUDY_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Study));
-    Replace(DICOM_TAG_SERIES_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series));
-    Replace(DICOM_TAG_SOP_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Instance));
+    Replace(DICOM_TAG_PATIENT_ID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Patient));
+    Replace(DICOM_TAG_STUDY_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Study));
+    Replace(DICOM_TAG_SERIES_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Series));
+    Replace(DICOM_TAG_SOP_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Instance));
   }
 
 }

@@ -43,24 +43,16 @@
 
 namespace Orthanc
 {
-  enum DicomRootLevel
-  {
-    DicomRootLevel_Patient,
-    DicomRootLevel_Study,
-    DicomRootLevel_Series,
-    DicomRootLevel_Instance
-  };
-
-  enum DicomReplaceMode
-  {
-    DicomReplaceMode_InsertIfAbsent,
-    DicomReplaceMode_ThrowIfAbsent,
-    DicomReplaceMode_IgnoreIfAbsent
-  };
-
   class FromDcmtkBridge
   {
   public:
+    enum ReplaceMode
+    {
+      ReplaceMode_InsertIfAbsent,
+      ReplaceMode_ThrowIfAbsent,
+      ReplaceMode_IgnoreIfAbsent
+    };
+
     static void Convert(DicomMap& target, DcmDataset& dataset);
 
     static DicomTag GetTag(const DcmElement& element);
@@ -119,7 +111,7 @@ namespace Orthanc
     static void ToJson(Json::Value& result,
                        const DicomMap& values);
 
-    static std::string GenerateUniqueIdentifier(DicomRootLevel level);
+    static std::string GenerateUniqueIdentifier(ResourceType level);
 
     static bool SaveToMemoryBuffer(std::string& buffer,
                                    DcmDataset* dataSet);
@@ -177,7 +169,7 @@ namespace Orthanc
 
     void Replace(const DicomTag& tag,
                  const std::string& value,
-                 DicomReplaceMode mode = DicomReplaceMode_InsertIfAbsent);
+                 FromDcmtkBridge::ReplaceMode mode = FromDcmtkBridge::ReplaceMode_InsertIfAbsent);
 
     void RemovePrivateTags();
 
