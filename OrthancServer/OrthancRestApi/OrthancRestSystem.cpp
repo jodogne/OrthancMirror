@@ -68,19 +68,19 @@ namespace Orthanc
     std::string level = call.GetArgument("level", "");
     if (level == "patient")
     {
-      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Patient), "text/plain");
+      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Patient), "text/plain");
     }
     else if (level == "study")
     {
-      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Study), "text/plain");
+      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Study), "text/plain");
     }
     else if (level == "series")
     {
-      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Series), "text/plain");
+      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Series), "text/plain");
     }
     else if (level == "instance")
     {
-      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(DicomRootLevel_Instance), "text/plain");
+      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Instance), "text/plain");
     }
   }
 
