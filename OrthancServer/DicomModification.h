@@ -62,7 +62,7 @@ namespace Orthanc
   public:
     DicomModification();
 
-    void Reset(const DicomTag& tag);
+    void Keep(const DicomTag& tag);
 
     void Remove(const DicomTag& tag);
 
