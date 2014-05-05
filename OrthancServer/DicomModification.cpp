@@ -269,7 +269,7 @@ namespace Orthanc
     for (Replacements::const_iterator it = replacements_.begin(); 
          it != replacements_.end(); ++it)
     {
-      toModify.Replace(it->first, it->second, FromDcmtkBridge::ReplaceMode_InsertIfAbsent);
+      toModify.Replace(it->first, it->second, DicomReplaceMode_InsertIfAbsent);
     }
 
     // (4) Update the DICOM identifiers
