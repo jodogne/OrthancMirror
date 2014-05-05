@@ -87,7 +87,7 @@ namespace Orthanc
     level_ = DicomRootLevel_Instance;
   }
 
-  void DicomModification::Reset(const DicomTag& tag)
+  void DicomModification::Keep(const DicomTag& tag)
   {
     removals_.erase(tag);
     replacements_.erase(tag);
