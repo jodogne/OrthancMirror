@@ -60,18 +60,9 @@ namespace Orthanc
     ParsedDicomFile();  // Create a minimal DICOM instance
 
     ParsedDicomFile(const char* content,
-                    size_t size)
-    {
-      Setup(content, size);
-    }
+                    size_t size);
 
-    ParsedDicomFile(const std::string& content)
-    {
-      if (content.size() == 0)
-        Setup(NULL, 0);
-      else
-        Setup(&content[0], content.size());
-    }
+    ParsedDicomFile(const std::string& content);
 
     DcmFileFormat& GetDicom()
     {

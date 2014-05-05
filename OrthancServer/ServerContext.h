@@ -125,25 +125,19 @@ namespace Orthanc
                       const std::string& remoteAet);
 
     StoreStatus Store(std::string& resultPublicId,
-                      DcmFileFormat& dicomInstance,
+                      ParsedDicomFile& dicomInstance,
                       const char* dicomBuffer,
                       size_t dicomSize);
 
     StoreStatus Store(std::string& resultPublicId,
-                      DcmFileFormat& dicomInstance);
+                      ParsedDicomFile& dicomInstance);
 
     StoreStatus Store(std::string& resultPublicId,
                       const char* dicomBuffer,
                       size_t dicomSize);
 
     StoreStatus Store(std::string& resultPublicId,
-                      const std::string& dicomContent)
-    {
-      if (dicomContent.size() == 0)
-        return Store(resultPublicId, NULL, 0);
-      else
-        return Store(resultPublicId, &dicomContent[0], dicomContent.size());
-    }
+                      const std::string& dicomContent);
 
     void AnswerDicomFile(RestApiOutput& output,
                          const std::string& instancePublicId,

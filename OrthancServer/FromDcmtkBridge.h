@@ -32,13 +32,11 @@
 
 #pragma once
 
-#include "../Core/DicomFormat/DicomInstanceHasher.h"
-#include "../Core/RestApi/RestApiOutput.h"
-#include "../Core/Toolbox.h"
 #include "ServerEnumerations.h"
 
+#include "../Core/DicomFormat/DicomMap.h"
+
 #include <dcmtk/dcmdata/dcdatset.h>
-#include <dcmtk/dcmdata/dcfilefo.h>
 #include <json/json.h>
 #include <memory>
 
