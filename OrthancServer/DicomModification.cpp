@@ -33,6 +33,7 @@
 #include "DicomModification.h"
 
 #include "../Core/OrthancException.h"
+#include "FromDcmtkBridge.h"
 
 namespace Orthanc
 {
