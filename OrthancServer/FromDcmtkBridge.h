@@ -35,6 +35,7 @@
 #include "../Core/DicomFormat/DicomInstanceHasher.h"
 #include "../Core/RestApi/RestApiOutput.h"
 #include "../Core/Toolbox.h"
+#include "ServerEnumerations.h"
 
 #include <dcmtk/dcmdata/dcdatset.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
@@ -46,13 +47,6 @@ namespace Orthanc
   class FromDcmtkBridge
   {
   public:
-    enum ReplaceMode
-    {
-      ReplaceMode_InsertIfAbsent,
-      ReplaceMode_ThrowIfAbsent,
-      ReplaceMode_IgnoreIfAbsent
-    };
-
     static void Convert(DicomMap& target, DcmDataset& dataset);
 
     static DicomTag GetTag(const DcmElement& element);
@@ -169,7 +163,7 @@ namespace Orthanc
 
     void Replace(const DicomTag& tag,
                  const std::string& value,
-                 FromDcmtkBridge::ReplaceMode mode = FromDcmtkBridge::ReplaceMode_InsertIfAbsent);
+                 DicomReplaceMode mode = DicomReplaceMode_InsertIfAbsent);
 
     void RemovePrivateTags();
 

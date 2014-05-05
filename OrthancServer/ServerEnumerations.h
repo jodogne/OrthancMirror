@@ -70,6 +70,13 @@ namespace Orthanc
     DicomRequestType_Store
   };
 
+  enum DicomReplaceMode
+  {
+    DicomReplaceMode_InsertIfAbsent,
+    DicomReplaceMode_ThrowIfAbsent,
+    DicomReplaceMode_IgnoreIfAbsent
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations

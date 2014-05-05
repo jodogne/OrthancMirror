@@ -784,7 +784,7 @@ namespace Orthanc
 
   void ParsedDicomFile::Replace(const DicomTag& tag,
                                 const std::string& value,
-                                FromDcmtkBridge::ReplaceMode mode)
+                                DicomReplaceMode mode)
   {
     DcmTagKey key(tag.GetGroup(), tag.GetElement());
     DcmElement* element = NULL;
@@ -795,14 +795,14 @@ namespace Orthanc
       // This field does not exist, act wrt. the specified "mode"
       switch (mode)
       {
-        case FromDcmtkBridge::ReplaceMode_InsertIfAbsent:
+        case DicomReplaceMode_InsertIfAbsent:
           Insert(tag, value);
           break;
 
-        case FromDcmtkBridge::ReplaceMode_ThrowIfAbsent:
+        case DicomReplaceMode_ThrowIfAbsent:
           throw OrthancException(ErrorCode_InexistentItem);
 
-        case FromDcmtkBridge::ReplaceMode_IgnoreIfAbsent:
+        case DicomReplaceMode_IgnoreIfAbsent:
           return;
       }
     }
@@ -823,14 +823,12 @@ namespace Orthanc
 
     if (tag == DICOM_TAG_SOP_CLASS_UID)
     {
-      Replace(DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID, value,
-              FromDcmtkBridge::ReplaceMode_InsertIfAbsent);
+      Replace(DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID, value, DicomReplaceMode_InsertIfAbsent);
     }
 
     if (tag == DICOM_TAG_SOP_INSTANCE_UID)
     {
-      Replace(DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID, value, 
-              FromDcmtkBridge::ReplaceMode_InsertIfAbsent);
+      Replace(DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID, value, DicomReplaceMode_InsertIfAbsent);
     }
   }
 
