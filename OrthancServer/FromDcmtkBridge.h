@@ -38,7 +38,6 @@
 
 #include <dcmtk/dcmdata/dcdatset.h>
 #include <json/json.h>
-#include <memory>
 
 namespace Orthanc
 {

@@ -34,6 +34,7 @@
 
 #include "../OrthancInitialization.h"
 #include "../../Core/HttpClient.h"
+#include "../FromDcmtkBridge.h"
 
 #include <glog/logging.h>
 

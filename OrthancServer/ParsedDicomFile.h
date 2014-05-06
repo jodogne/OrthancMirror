@@ -34,7 +34,6 @@
 
 #include "../Core/DicomFormat/DicomInstanceHasher.h"
 #include "../Core/RestApi/RestApiOutput.h"
-#include "../Core/Toolbox.h"
 #include "ServerEnumerations.h"
 
 namespace Orthanc
