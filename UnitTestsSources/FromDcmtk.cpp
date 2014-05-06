@@ -52,7 +52,7 @@ TEST(DicomModification, Basic)
 }
 
 
-#include <dcmdata/dcuid.h>
+#include <dcmtk/dcmdata/dcuid.h>
 
 TEST(DicomModification, Png)
 {
