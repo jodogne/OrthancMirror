@@ -65,15 +65,9 @@ namespace Orthanc
 
     ~ParsedDicomFile();
 
-    void* GetDcmtkObject()
-    {
-      return file_.get();
-    }
+    void* GetDcmtkObject();
 
-    ParsedDicomFile* Clone()
-    {
-      return new ParsedDicomFile(*file_);
-    }
+    ParsedDicomFile* Clone();
 
     void SendPathValue(RestApiOutput& output,
                        const UriComponents& uri);
