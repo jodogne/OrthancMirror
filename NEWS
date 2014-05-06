@@ -2,8 +2,9 @@ Pending changes in the mainline
 ===============================
 
 * Dynamic negotiation of SOP classes for C-Store SCU
+* Creation of DICOM instances using the REST API
 * Reuse of the previous SCU connection to avoid unecessary handshakes
-* Fix missing licensing terms about reuse of some DCMTK code
+* Fix missing licensing terms about reuse of some code from DCMTK
 * Various code refactorings
 
 
