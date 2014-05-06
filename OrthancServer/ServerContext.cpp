@@ -39,6 +39,7 @@
 
 #include <glog/logging.h>
 #include <EmbeddedResources.h>
+#include <dcmtk/dcmdata/dcfilefo.h>
 
 #define ENABLE_DICOM_CACHE  1
 
