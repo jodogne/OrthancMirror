@@ -95,8 +95,11 @@ namespace Orthanc
       const std::string& name = members[i];
       std::string value = replacements[name].asString();
 
-      DicomTag tag = FromDcmtkBridge::ParseTag(name);      
-      target.Replace(tag, value);
+      DicomTag tag = FromDcmtkBridge::ParseTag(name);
+      if (tag != DICOM_TAG_PIXEL_DATA)
+      {
+        target.Replace(tag, value);
+      }
 
       VLOG(1) << "Replace: " << name << " " << tag << " == " << value << std::endl;
     }
@@ -336,10 +339,25 @@ namespace Orthanc
   {
     DicomModification modification;
 
-    // TODO : modification.SetLevel(ResourceType_Series); ?????
-
     if (ParseModifyRequest(modification, call))
     {
+      if (modification.IsReplaced(DICOM_TAG_PATIENT_ID))
+      {
+        modification.SetLevel(ResourceType_Patient);
+      }
+      else if (modification.IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
+      {
+        modification.SetLevel(ResourceType_Study);
+      }
+      else if (modification.IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
+      {
+        modification.SetLevel(ResourceType_Series);
+      }
+      else
+      {
+        modification.SetLevel(ResourceType_Instance);
+      }
+
       AnonymizeOrModifyInstance(modification, call);
     }
   }
@@ -362,26 +380,9 @@ namespace Orthanc
   {
     DicomModification modification;
 
-    switch (resourceType)
-    {
-      case ResourceType_Series:
-        modification.SetLevel(ResourceType_Series);
-        break;
-
-      case ResourceType_Study:
-        modification.SetLevel(ResourceType_Study);
-        break;
-
-      case ResourceType_Patient:
-        modification.SetLevel(ResourceType_Patient);
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_InternalError);
-    }
-
     if (ParseModifyRequest(modification, call))
     {
+      modification.SetLevel(resourceType);
       AnonymizeOrModifyResource(modification, MetadataType_ModifiedFrom, 
                                 changeType, resourceType, call);
     }
@@ -402,16 +403,45 @@ namespace Orthanc
   }
 
 
+  static void Create(RestApi::PostCall& call)
+  {
+    // curl http://localhost:8042/tools/create-dicom -X POST -d '{"PatientName":"Hello^World"}'
+
+    Json::Value request;
+    if (call.ParseJsonRequest(request) && request.isObject())
+    {
+      DicomModification modification;
+      ParseReplacements(modification, request);
+
+      ParsedDicomFile dicom;
+      modification.Apply(dicom);
+
+      std::string id;
+      StoreStatus status = OrthancRestApi::GetContext(call).Store(id, dicom);
+
+      if (status == StoreStatus_Failure)
+      {
+        LOG(ERROR) << "Error while storing a manually-created instance";
+        return;
+      }
+
+      OrthancRestApi::GetApi(call).AnswerStoredInstance(call, id, status);
+    }
+  }
+
+
   void OrthancRestApi::RegisterAnonymizeModify()
   {
     Register("/instances/{id}/modify", ModifyInstance);
     Register("/series/{id}/modify", ModifyResource<ChangeType_ModifiedSeries, ResourceType_Series>);
     Register("/studies/{id}/modify", ModifyResource<ChangeType_ModifiedStudy, ResourceType_Study>);
-    //Register("/patients/{id}/modify", ModifyResource<ChangeType_ModifiedPatient, ResourceType_Patient>);
+    Register("/patients/{id}/modify", ModifyResource<ChangeType_ModifiedPatient, ResourceType_Patient>);
 
     Register("/instances/{id}/anonymize", AnonymizeInstance);
     Register("/series/{id}/anonymize", AnonymizeResource<ChangeType_ModifiedSeries, ResourceType_Series>);
     Register("/studies/{id}/anonymize", AnonymizeResource<ChangeType_ModifiedStudy, ResourceType_Study>);
     Register("/patients/{id}/anonymize", AnonymizeResource<ChangeType_ModifiedPatient, ResourceType_Patient>);
+
+    Register("/tools/create-dicom", Create);
   }
 }
