@@ -32,40 +32,74 @@
 
 #pragma once
 
-#include "ImageAccessor.h"
-
 #include "../Enumerations.h"
-
-#include <vector>
-#include <stdint.h>
-#include <boost/shared_ptr.hpp>
 
 namespace Orthanc
 {
-  class PngReader : public ImageAccessor
+  class ImageAccessor
   {
   private:
-    struct PngRabi;
-
-    std::vector<uint8_t> data_;
-
-    void CheckHeader(const void* header);
-
-    void Read(PngRabi& rabi);
+    bool readOnly_;
+    PixelFormat format_;
+    unsigned int width_;
+    unsigned int height_;
+    unsigned int pitch_;
+    void *buffer_;
 
   public:
-    PngReader();
-
-    void ReadFromFile(const char* filename);
-
-    void ReadFromFile(const std::string& filename)
+    ImageAccessor()
     {
-      ReadFromFile(filename.c_str());
+      AssignEmpty(PixelFormat_Grayscale8);
     }
 
-    void ReadFromMemory(const void* buffer,
-                        size_t size);
+    bool IsReadOnly() const
+    {
+      return readOnly_;
+    }
 
-    void ReadFromMemory(const std::string& buffer);
+    PixelFormat GetFormat() const
+    {
+      return format_;
+    }
+
+    unsigned int GetWidth() const
+    {
+      return width_;
+    }
+
+    unsigned int GetHeight() const
+    {
+      return height_;
+    }
+
+    unsigned int GetPitch() const
+    {
+      return pitch_;
+    }
+
+    const void* GetConstBuffer() const
+    {
+      return buffer_;
+    }
+
+    void* GetBuffer();
+
+    const void* GetConstRow(unsigned int y) const;
+
+    void* GetRow(unsigned int y);
+
+    void AssignEmpty(PixelFormat format);
+
+    void AssignReadOnly(PixelFormat format,
+                        unsigned int width,
+                        unsigned int height,
+                        unsigned int pitch,
+                        const void *buffer);
+
+    void AssignWritable(PixelFormat format,
+                        unsigned int width,
+                        unsigned int height,
+                        unsigned int pitch,
+                        void *buffer);
   };
 }
