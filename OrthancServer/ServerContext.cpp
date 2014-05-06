@@ -246,13 +246,19 @@ namespace Orthanc
   }
 
 
+  static DcmFileFormat& GetDicom(ParsedDicomFile& file)
+  {
+    return *reinterpret_cast<DcmFileFormat*>(file.GetDcmtkObject());
+  }
+
+
   StoreStatus ServerContext::Store(std::string& resultPublicId,
                                    ParsedDicomFile& dicomInstance,
                                    const char* dicomBuffer,
                                    size_t dicomSize)
   {
     DicomMap dicomSummary;
-    FromDcmtkBridge::Convert(dicomSummary, *dicomInstance.GetDicom().getDataset());
+    FromDcmtkBridge::Convert(dicomSummary, *GetDicom(dicomInstance).getDataset());
 
     try
     {
@@ -260,7 +266,7 @@ namespace Orthanc
       resultPublicId = hasher.HashInstance();
 
       Json::Value dicomJson;
-      FromDcmtkBridge::ToJson(dicomJson, *dicomInstance.GetDicom().getDataset());
+      FromDcmtkBridge::ToJson(dicomJson, *GetDicom(dicomInstance).getDataset());
       
       StoreStatus status = StoreStatus_Failure;
       if (dicomSize > 0)
@@ -286,7 +292,7 @@ namespace Orthanc
                                    ParsedDicomFile& dicomInstance)
   {
     std::string buffer;
-    if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, dicomInstance.GetDicom().getDataset()))
+    if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, GetDicom(dicomInstance).getDataset()))
     {
       throw OrthancException(ErrorCode_InternalError);
     }
