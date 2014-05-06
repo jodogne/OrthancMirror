@@ -178,13 +178,13 @@ namespace OrthancClient
   const void* Instance::GetBuffer()
   {
     DownloadImage();
-    return reader_->GetBuffer();
+    return reader_->GetConstBuffer();
   }
 
   const void* Instance::GetBuffer(unsigned int y)
   {
     DownloadImage();
-    return reader_->GetBuffer(y);
+    return reader_->GetConstRow(y);
   }
 
   void Instance::DiscardImage()

@@ -131,10 +131,6 @@ namespace Orthanc
 
   PngReader::PngReader()
   {
-    width_ = 0;
-    height_ = 0;
-    pitch_ = 0;
-    format_ = PixelFormat_Grayscale8;
   }
 
   void PngReader::Read(PngRabi& rabi)
@@ -152,18 +148,18 @@ namespace Orthanc
                  &bit_depth, &color_type, &interlace_type,
                  &compression_type, &filter_method);
 
-    width_ = width;
-    height_ = height;
+    PixelFormat format;
+    unsigned int pitch;
 
     if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth == 8)
     {
-      format_ = PixelFormat_Grayscale8;
-      pitch_ = width_;
+      format = PixelFormat_Grayscale8;
+      pitch = width;
     }
     else if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth == 16)
     {
-      format_ = PixelFormat_Grayscale16;
-      pitch_ = 2 * width_;
+      format = PixelFormat_Grayscale16;
+      pitch = 2 * width;
 
       if (Toolbox::DetectEndianness() == Endianness_Little)
       {
@@ -172,31 +168,34 @@ namespace Orthanc
     }
     else if (color_type == PNG_COLOR_TYPE_RGB && bit_depth == 8)
     {
-      format_ = PixelFormat_Grayscale8;
-      pitch_ = 3 * width_;
+      format = PixelFormat_RGB24;
+      pitch = 3 * width;
     }
     else
     {
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
-    buffer_.resize(height_ * pitch_);
+    data_.resize(height * pitch);
 
-    if (height_ == 0 || width_ == 0)
+    if (height == 0 || width == 0)
     {
       // Empty image, we are done
+      AssignEmpty(format);
       return;
     }
-
+    
     png_read_update_info(rabi.png_, rabi.info_);
 
-    std::vector<png_bytep> rows(height_);
-    for (size_t i = 0; i < height_; i++)
+    std::vector<png_bytep> rows(height);
+    for (size_t i = 0; i < height; i++)
     {
-      rows[i] = &buffer_[0] + i * pitch_;
+      rows[i] = &data_[0] + i * pitch;
     }
 
     png_read_image(rabi.png_, &rows[0]);
+
+    AssignReadOnly(format, width, height, pitch, &data_[0]);
   }
 
   void PngReader::ReadFromFile(const char* filename)
@@ -222,6 +221,89 @@ namespace Orthanc
     png_init_io(rabi.png_, f.fp_);
 
     Read(rabi);
+  }
+
+
+  void* ImageAccessor::GetBuffer()
+  {
+    if (readOnly_)
+    {
+      throw OrthancException(ErrorCode_ReadOnly);
+    }
+
+    return buffer_;
+  }
+
+
+  const void* ImageAccessor::GetConstRow(unsigned int y) const
+  {
+    if (buffer_ != NULL)
+    {
+      return reinterpret_cast<const uint8_t*>(buffer_) + y * pitch_;
+    }
+    else
+    {
+      return NULL;
+    }
+  }
+
+
+  void* ImageAccessor::GetRow(unsigned int y) 
+  {
+    if (readOnly_)
+    {
+      throw OrthancException(ErrorCode_ReadOnly);
+    }
+
+    if (buffer_ != NULL)
+    {
+      return reinterpret_cast<uint8_t*>(buffer_) + y * pitch_;
+    }
+    else
+    {
+      return NULL;
+    }
+  }
+
+
+  void ImageAccessor::AssignEmpty(PixelFormat format)
+  {
+    readOnly_ = false;
+    format_ = format;
+    width_ = 0;
+    height_ = 0;
+    pitch_ = 0;
+    buffer_ = NULL;
+  }
+
+
+  void ImageAccessor::AssignReadOnly(PixelFormat format,
+                                     unsigned int width,
+                                     unsigned int height,
+                                     unsigned int pitch,
+                                     const void *buffer)
+  {
+    readOnly_ = true;
+    format_ = format;
+    width_ = width;
+    height_ = height;
+    pitch_ = pitch;
+    buffer_ = const_cast<void*>(buffer);
+  }
+
+
+  void ImageAccessor::AssignWritable(PixelFormat format,
+                                     unsigned int width,
+                                     unsigned int height,
+                                     unsigned int pitch,
+                                     void *buffer)
+  {
+    readOnly_ = false;
+    format_ = format;
+    width_ = width;
+    height_ = height;
+    pitch_ = pitch;
+    buffer_ = buffer;
   }
 
 
@@ -298,8 +380,12 @@ namespace Orthanc
   void PngReader::ReadFromMemory(const std::string& buffer)
   {
     if (buffer.size() != 0)
+    {
       ReadFromMemory(&buffer[0], buffer.size());
+    }
     else
+    {
       ReadFromMemory(NULL, 0);
+    }
   }
 }

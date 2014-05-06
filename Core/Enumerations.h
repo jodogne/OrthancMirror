@@ -68,7 +68,8 @@ namespace Orthanc
     ErrorCode_IncompatibleDatabaseVersion,
     ErrorCode_FullStorage,
     ErrorCode_CorruptedFile,
-    ErrorCode_InexistentTag
+    ErrorCode_InexistentTag,
+    ErrorCode_ReadOnly
   };
 
   /**

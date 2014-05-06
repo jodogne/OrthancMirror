@@ -111,6 +111,9 @@ namespace Orthanc
       case ErrorCode_InexistentTag:
         return "Inexistent tag";
 
+      case ErrorCode_ReadOnly:
+        return "Cannot modify a read-only data structure";
+
       case ErrorCode_Custom:
       default:
         return "???";
