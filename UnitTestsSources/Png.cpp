@@ -1,8 +1,8 @@
 #include "gtest/gtest.h"
 
 #include <stdint.h>
-#include "../Core/FileFormats/PngReader.h"
-#include "../Core/FileFormats/PngWriter.h"
+#include "../Core/ImageFormats/PngReader.h"
+#include "../Core/ImageFormats/PngWriter.h"
 #include "../Core/Toolbox.h"
 #include "../Core/Uuid.h"
 
