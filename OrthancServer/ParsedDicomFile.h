@@ -47,11 +47,10 @@ namespace Orthanc
   private:
     // TODO Move this as pimpl
     std::auto_ptr<DcmFileFormat> file_;
+    //struct PImpl;
+    //PImpl* pimpl_;
 
-    ParsedDicomFile(DcmFileFormat& other) :
-      file_(dynamic_cast<DcmFileFormat*>(other.clone()))
-    {
-    }
+    ParsedDicomFile(DcmFileFormat& other);
 
     void Setup(const char* content,
                size_t size);
@@ -64,9 +63,11 @@ namespace Orthanc
 
     ParsedDicomFile(const std::string& content);
 
-    DcmFileFormat& GetDicom()
+    ~ParsedDicomFile();
+
+    void* GetDcmtkObject()
     {
-      return *file_;
+      return file_.get();
     }
 
     ParsedDicomFile* Clone()

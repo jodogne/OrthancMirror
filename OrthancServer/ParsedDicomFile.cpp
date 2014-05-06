@@ -1053,4 +1053,16 @@ namespace Orthanc
       Setup(&content[0], content.size());
     }
   }
+
+
+  ParsedDicomFile::ParsedDicomFile(DcmFileFormat& other) :
+    file_(dynamic_cast<DcmFileFormat*>(other.clone()))
+  {
+  }
+
+
+  ParsedDicomFile::~ParsedDicomFile()
+  {
+  }
+
 }
