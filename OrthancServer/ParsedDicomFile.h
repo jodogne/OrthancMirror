@@ -35,6 +35,7 @@
 #include "../Core/DicomFormat/DicomInstanceHasher.h"
 #include "../Core/RestApi/RestApiOutput.h"
 #include "ServerEnumerations.h"
+#include "../Core/ImageFormats/ImageAccessor.h"
 
 namespace Orthanc
 {
@@ -87,6 +88,10 @@ namespace Orthanc
     void SaveToMemoryBuffer(std::string& buffer);
 
     void SaveToFile(const std::string& path);
+
+    void EmbedImage(const ImageAccessor& accessor);
+
+    void EmbedImage(const std::string& dataUriScheme);
   };
 
 }

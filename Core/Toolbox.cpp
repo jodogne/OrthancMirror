@@ -803,5 +803,26 @@ namespace Orthanc
 
     result.push_back(currentItem);
   }
+
+
+  void Toolbox::DecodeDataUriScheme(std::string& mime,
+                                    std::string& content,
+                                    const std::string& source)
+  {
+    boost::regex pattern("data:([^;]+);base64,([a-zA-Z0-9=+/]*)",
+                         boost::regex::icase /* case insensitive search */);
+
+    boost::cmatch what;
+    if (regex_match(source.c_str(), what, pattern))
+    {
+      mime = what[1];
+      content = what[2];
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+  }
+
 }
 

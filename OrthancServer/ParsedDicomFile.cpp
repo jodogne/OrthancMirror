@@ -87,6 +87,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Core/DicomFormat/DicomString.h"
 #include "../Core/DicomFormat/DicomNullValue.h"
 #include "../Core/DicomFormat/DicomIntegerPixelAccessor.h"
+#include "../Core/ImageFormats/PngReader.h"
 
 #include <list>
 #include <limits>
@@ -1086,5 +1087,133 @@ namespace Orthanc
   ParsedDicomFile* ParsedDicomFile::Clone()
   {
     return new ParsedDicomFile(*this);
+  }
+
+
+  void ParsedDicomFile::EmbedImage(const std::string& dataUriScheme)
+  {
+    std::string mime, content;
+    Toolbox::DecodeDataUriScheme(mime, content, dataUriScheme);
+
+    std::string decoded = Toolbox::DecodeBase64(content);
+
+    if (mime == "image/png")
+    {
+      PngReader reader;
+      reader.ReadFromMemory(decoded);
+      EmbedImage(reader);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
+
+
+  void ParsedDicomFile::EmbedImage(const ImageAccessor& accessor)
+  {
+    if (accessor.GetFormat() != PixelFormat_Grayscale8 &&
+        accessor.GetFormat() != PixelFormat_Grayscale16 &&
+        accessor.GetFormat() != PixelFormat_RGB24 &&
+        accessor.GetFormat() != PixelFormat_RGBA32)
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+    if (accessor.GetFormat() == PixelFormat_RGBA32)
+    {
+      LOG(WARNING) << "Getting rid of the alpha channel when embedding a RGBA image inside DICOM";
+    }
+
+    // http://dicomiseasy.blogspot.be/2012/08/chapter-12-pixel-data.html
+
+    Remove(DICOM_TAG_PIXEL_DATA);
+    Replace(DICOM_TAG_COLUMNS, boost::lexical_cast<std::string>(accessor.GetWidth()));
+    Replace(DICOM_TAG_ROWS, boost::lexical_cast<std::string>(accessor.GetHeight()));
+    Replace(DICOM_TAG_SAMPLES_PER_PIXEL, "1");
+    Replace(DICOM_TAG_NUMBER_OF_FRAMES, "1");
+    Replace(DICOM_TAG_PIXEL_REPRESENTATION, "0");  // Unsigned pixels
+    Replace(DICOM_TAG_PLANAR_CONFIGURATION, "0");  // Color channels are interleaved
+    Replace(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "MONOCHROME2");
+    Replace(DICOM_TAG_BITS_ALLOCATED, "8");
+    Replace(DICOM_TAG_BITS_STORED, "8");
+    Replace(DICOM_TAG_HIGH_BIT, "7");
+
+    unsigned int bytesPerPixel = 1;
+
+    switch (accessor.GetFormat())
+    {
+      case PixelFormat_RGB24:
+      case PixelFormat_RGBA32:
+        Replace(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "RGB");
+        Replace(DICOM_TAG_SAMPLES_PER_PIXEL, "3");
+        bytesPerPixel = 3;
+        break;
+
+      case PixelFormat_Grayscale8:
+        break;
+
+      case PixelFormat_Grayscale16:
+        Replace(DICOM_TAG_BITS_ALLOCATED, "16");
+        Replace(DICOM_TAG_BITS_STORED, "16");
+        Replace(DICOM_TAG_HIGH_BIT, "15");
+        bytesPerPixel = 2;
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+    DcmTag key(DICOM_TAG_PIXEL_DATA.GetGroup(), 
+               DICOM_TAG_PIXEL_DATA.GetElement());
+
+    std::auto_ptr<DcmPixelData> pixels(new DcmPixelData(key));
+
+    unsigned int pitch = accessor.GetWidth() * bytesPerPixel;
+    Uint8* target = NULL;
+    pixels->createUint8Array(accessor.GetHeight() * pitch, target);
+
+    for (unsigned int y = 0; y < accessor.GetHeight(); y++)
+    {
+      switch (accessor.GetFormat())
+      {
+        case PixelFormat_RGB24:
+        case PixelFormat_Grayscale8:
+        case PixelFormat_Grayscale16:
+        case PixelFormat_SignedGrayscale16:
+        {
+          if (Toolbox::DetectEndianness() != Endianness_Little)
+          {
+            throw OrthancException(ErrorCode_NotImplemented);
+          }
+
+          memcpy(target, reinterpret_cast<const Uint8*>(accessor.GetConstRow(y)), pitch);
+          target += pitch;
+          break;
+        }
+
+        case PixelFormat_RGBA32:
+        {
+          // The alpha channel is not supported by the DICOM standard
+          const Uint8* source = reinterpret_cast<const Uint8*>(accessor.GetConstRow(y));
+          for (unsigned int x = 0; x < accessor.GetWidth(); x++, target += 3, source += 4)
+          {
+            target[0] = source[0];
+            target[1] = source[1];
+            target[2] = source[2];
+          }
+
+          break;
+        }
+          
+        default:
+          throw OrthancException(ErrorCode_NotImplemented);
+      }
+    }
+
+    if (!pimpl_->file_->getDataset()->insert(pixels.release(), false, false).good())
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }    
   }
 }

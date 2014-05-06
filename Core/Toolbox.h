@@ -122,5 +122,9 @@ namespace Orthanc
     void TokenizeString(std::vector<std::string>& result,
                         const std::string& source,
                         char separator);
+
+    void DecodeDataUriScheme(std::string& mime,
+                             std::string& content,
+                             const std::string& source);
   }
 }

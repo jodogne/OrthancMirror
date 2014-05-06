@@ -44,15 +44,6 @@
 
 namespace Orthanc
 {
-  static const DicomTag COLUMNS(0x0028, 0x0011);
-  static const DicomTag ROWS(0x0028, 0x0010);
-  static const DicomTag SAMPLES_PER_PIXEL(0x0028, 0x0002);
-  static const DicomTag BITS_ALLOCATED(0x0028, 0x0100);
-  static const DicomTag BITS_STORED(0x0028, 0x0101);
-  static const DicomTag HIGH_BIT(0x0028, 0x0102);
-  static const DicomTag PIXEL_REPRESENTATION(0x0028, 0x0103);
-  static const DicomTag PLANAR_CONFIGURATION(0x0028, 0x0006);
-
   DicomIntegerPixelAccessor::DicomIntegerPixelAccessor(const DicomMap& values,
                                                        const void* pixelData,
                                                        size_t size) :
@@ -67,19 +58,19 @@ namespace Orthanc
 
     try
     {
-      width_ = boost::lexical_cast<unsigned int>(values.GetValue(COLUMNS).AsString());
-      height_ = boost::lexical_cast<unsigned int>(values.GetValue(ROWS).AsString());
-      samplesPerPixel_ = boost::lexical_cast<unsigned int>(values.GetValue(SAMPLES_PER_PIXEL).AsString());
-      bitsAllocated = boost::lexical_cast<unsigned int>(values.GetValue(BITS_ALLOCATED).AsString());
-      bitsStored = boost::lexical_cast<unsigned int>(values.GetValue(BITS_STORED).AsString());
-      highBit = boost::lexical_cast<unsigned int>(values.GetValue(HIGH_BIT).AsString());
-      pixelRepresentation = boost::lexical_cast<unsigned int>(values.GetValue(PIXEL_REPRESENTATION).AsString());
+      width_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_COLUMNS).AsString());
+      height_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_ROWS).AsString());
+      samplesPerPixel_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_SAMPLES_PER_PIXEL).AsString());
+      bitsAllocated = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_BITS_ALLOCATED).AsString());
+      bitsStored = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_BITS_STORED).AsString());
+      highBit = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_HIGH_BIT).AsString());
+      pixelRepresentation = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_PIXEL_REPRESENTATION).AsString());
 
       if (samplesPerPixel_ > 1)
       {
         // The "Planar Configuration" is only set when "Samples per Pixels" is greater than 1
         // https://www.dabsoft.ch/dicom/3/C.7.6.3.1.3/
-        planarConfiguration_ = boost::lexical_cast<unsigned int>(values.GetValue(PLANAR_CONFIGURATION).AsString());
+        planarConfiguration_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_PLANAR_CONFIGURATION).AsString());
       }
     }
     catch (boost::bad_lexical_cast)

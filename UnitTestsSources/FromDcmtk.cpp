@@ -4,6 +4,9 @@
 #include "../OrthancServer/OrthancInitialization.h"
 #include "../OrthancServer/DicomModification.h"
 #include "../Core/OrthancException.h"
+#include "../Core/ImageFormats/ImageBuffer.h"
+#include "../Core/ImageFormats/PngReader.h"
+#include "../Core/ImageFormats/PngWriter.h"
 
 using namespace Orthanc;
 
@@ -45,5 +48,69 @@ TEST(DicomModification, Basic)
       o.Replace(DICOM_TAG_SERIES_INSTANCE_UID, "coucou");
     m.Apply(*f);
     f->SaveToFile(b);
+  }
+}
+
+
+#include <dcmdata/dcuid.h>
+
+TEST(DicomModification, Png)
+{
+  // Red dot in http://en.wikipedia.org/wiki/Data_URI_scheme (RGBA image)
+  std::string s = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==";
+
+  std::string m, c;
+  Toolbox::DecodeDataUriScheme(m, c, s);
+
+  ASSERT_EQ("image/png", m);
+  ASSERT_EQ(116, c.size());
+
+  std::string cc = Toolbox::DecodeBase64(c);
+
+  Toolbox::WriteFile(cc, "/tmp/tata.png");
+
+  PngReader reader;
+  reader.ReadFromMemory(cc);
+
+  ASSERT_EQ(5, reader.GetHeight());
+  ASSERT_EQ(5, reader.GetWidth());
+  ASSERT_EQ(PixelFormat_RGBA32, reader.GetFormat());
+
+  ParsedDicomFile o;
+  o.EmbedImage(s);
+  o.SaveToFile("png1.dcm");
+
+  // Red dot, without alpha channel
+  s = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAIAAAACDbGyAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gUGDTcIn2+8BgAAACJJREFUCNdj/P//PwMjIwME/P/P+J8BBTAxEOL/R9Lx/z8AynoKAXOeiV8AAAAASUVORK5CYII=";
+  o.EmbedImage(s);
+  o.SaveToFile("png2.dcm");
+
+  // Check box in Graylevel8
+  s = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAAAAAA6mKC9AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gUGDDcB53FulQAAAElJREFUGNNtj0sSAEEEQ1+U+185s1CtmRkblQ9CZldsKHJDk6DLGLJa6chjh0ooQmpjXMM86zPwydGEj6Ed/UGykkEM8X+p3u8/8LcOJIWLGeMAAAAASUVORK5CYII=";
+  o.EmbedImage(s);
+  //o.Replace(DICOM_TAG_SOP_CLASS_UID, UID_DigitalXRayImageStorageForProcessing);
+  o.SaveToFile("png3.dcm");
+
+
+  {
+    // Gradient in Graylevel16
+
+    ImageBuffer img;
+    img.SetWidth(256);
+    img.SetHeight(256);
+    img.SetFormat(PixelFormat_Grayscale16);
+
+    int v = 0;
+    for (unsigned int y = 0; y < img.GetHeight(); y++)
+    {
+      uint16_t *p = reinterpret_cast<uint16_t*>(img.GetAccessor().GetRow(y));
+      for (unsigned int x = 0; x < img.GetWidth(); x++, p++, v++)
+      {
+        *p = v;
+      }
+    }
+
+    o.EmbedImage(img.GetAccessor());
+    o.SaveToFile("png4.dcm");
   }
 }
