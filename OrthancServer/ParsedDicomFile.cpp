@@ -1065,4 +1065,15 @@ namespace Orthanc
   {
   }
 
+
+  void* ParsedDicomFile::GetDcmtkObject()
+  {
+    return file_.get();
+  }
+
+
+  ParsedDicomFile* ParsedDicomFile::Clone()
+  {
+    return new ParsedDicomFile(*file_);
+  }
 }
