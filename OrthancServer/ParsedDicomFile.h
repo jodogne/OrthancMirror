@@ -37,20 +37,15 @@
 #include "../Core/Toolbox.h"
 #include "ServerEnumerations.h"
 
-#include <memory>
-#include <dcmtk/dcmdata/dcfilefo.h>
-
 namespace Orthanc
 {
   class ParsedDicomFile : public IDynamicObject
   {
   private:
-    // TODO Move this as pimpl
-    std::auto_ptr<DcmFileFormat> file_;
-    //struct PImpl;
-    //PImpl* pimpl_;
+    struct PImpl;
+    PImpl* pimpl_;
 
-    ParsedDicomFile(DcmFileFormat& other);
+    ParsedDicomFile(ParsedDicomFile& other);
 
     void Setup(const char* content,
                size_t size);

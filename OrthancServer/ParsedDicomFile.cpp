@@ -138,6 +138,13 @@ static const char* CONTENT_TYPE_OCTET_STREAM = "application/octet-stream";
 
 namespace Orthanc
 {
+  struct ParsedDicomFile::PImpl
+  {
+    std::auto_ptr<DcmFileFormat> file_;
+  };
+
+
+  // This method can only be called from the constructors!
   void ParsedDicomFile::Setup(const char* buffer, size_t size)
   {
     DcmInputBufferStream is;
@@ -147,14 +154,17 @@ namespace Orthanc
     }
     is.setEos();
 
-    file_.reset(new DcmFileFormat);
-    file_->transferInit();
-    if (!file_->read(is).good())
+    pimpl_->file_.reset(new DcmFileFormat);
+    pimpl_->file_->transferInit();
+    if (!pimpl_->file_->read(is).good())
     {
+      delete pimpl_;  // Avoid a memory leak due to exception
+                      // throwing, as we are in the constructor
+
       throw OrthancException(ErrorCode_BadFileFormat);
     }
-    file_->loadAllDataIntoMemory();
-    file_->transferEnd();
+    pimpl_->file_->loadAllDataIntoMemory();
+    pimpl_->file_->transferEnd();
   }
 
 
@@ -393,8 +403,8 @@ namespace Orthanc
   void ParsedDicomFile::SendPathValue(RestApiOutput& output,
                                       const UriComponents& uri)
   {
-    DcmItem* dicom = file_->getDataset();
-    E_TransferSyntax transferSyntax = file_->getDataset()->getOriginalXfer();
+    DcmItem* dicom = pimpl_->file_->getDataset();
+    E_TransferSyntax transferSyntax = pimpl_->file_->getDataset()->getOriginalXfer();
 
     // Special case: Accessing the pixel data
     if (uri.size() == 1 || 
@@ -729,7 +739,7 @@ namespace Orthanc
   void ParsedDicomFile::Remove(const DicomTag& tag)
   {
     DcmTagKey key(tag.GetGroup(), tag.GetElement());
-    DcmElement* element = file_->getDataset()->remove(key);
+    DcmElement* element = pimpl_->file_->getDataset()->remove(key);
     if (element != NULL)
     {
       delete element;
@@ -744,7 +754,7 @@ namespace Orthanc
 
     Tags privateTags;
 
-    DcmDataset& dataset = *file_->getDataset();
+    DcmDataset& dataset = *pimpl_->file_->getDataset();
     for (unsigned long i = 0; i < dataset.card(); i++)
     {
       DcmElement* element = dataset.getElement(i);
@@ -775,7 +785,7 @@ namespace Orthanc
     std::auto_ptr<DcmElement> element(CreateElementForTag(tag));
     FillElementWithString(*element, tag, value);
 
-    if (!file_->getDataset()->insert(element.release(), false, false).good())
+    if (!pimpl_->file_->getDataset()->insert(element.release(), false, false).good())
     {
       // This field already exists
       throw OrthancException(ErrorCode_InternalError);
@@ -790,7 +800,7 @@ namespace Orthanc
     DcmTagKey key(tag.GetGroup(), tag.GetElement());
     DcmElement* element = NULL;
 
-    if (!file_->getDataset()->findAndGetElement(key, element).good() ||
+    if (!pimpl_->file_->getDataset()->findAndGetElement(key, element).good() ||
         element == NULL)
     {
       // This field does not exist, act wrt. the specified "mode"
@@ -837,7 +847,7 @@ namespace Orthanc
   void ParsedDicomFile::Answer(RestApiOutput& output)
   {
     std::string serialized;
-    if (FromDcmtkBridge::SaveToMemoryBuffer(serialized, file_->getDataset()))
+    if (FromDcmtkBridge::SaveToMemoryBuffer(serialized, pimpl_->file_->getDataset()))
     {
       output.AnswerBuffer(serialized, CONTENT_TYPE_OCTET_STREAM);
     }
@@ -849,7 +859,7 @@ namespace Orthanc
                                     const DicomTag& tag)
   {
     DcmTagKey k(tag.GetGroup(), tag.GetElement());
-    DcmDataset& dataset = *file_->getDataset();
+    DcmDataset& dataset = *pimpl_->file_->getDataset();
     DcmElement* element = NULL;
     if (!dataset.findAndGetElement(k, element).good() ||
         element == NULL)
@@ -1013,7 +1023,7 @@ namespace Orthanc
 
   void ParsedDicomFile::SaveToMemoryBuffer(std::string& buffer)
   {
-    FromDcmtkBridge::SaveToMemoryBuffer(buffer, file_->getDataset());
+    FromDcmtkBridge::SaveToMemoryBuffer(buffer, pimpl_->file_->getDataset());
   }
 
 
@@ -1026,9 +1036,9 @@ namespace Orthanc
   }
 
 
-  ParsedDicomFile::ParsedDicomFile()
+  ParsedDicomFile::ParsedDicomFile() : pimpl_(new PImpl)
   {
-    file_.reset(new DcmFileFormat);
+    pimpl_->file_.reset(new DcmFileFormat);
     Replace(DICOM_TAG_PATIENT_ID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Patient));
     Replace(DICOM_TAG_STUDY_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Study));
     Replace(DICOM_TAG_SERIES_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Series));
@@ -1036,13 +1046,12 @@ namespace Orthanc
   }
 
 
-  ParsedDicomFile::ParsedDicomFile(const char* content,
-                                   size_t size)
+  ParsedDicomFile::ParsedDicomFile(const char* content, size_t size) : pimpl_(new PImpl)
   {
     Setup(content, size);
   }
 
-  ParsedDicomFile::ParsedDicomFile(const std::string& content)
+  ParsedDicomFile::ParsedDicomFile(const std::string& content) : pimpl_(new PImpl)
   {
     if (content.size() == 0)
     {
@@ -1055,25 +1064,27 @@ namespace Orthanc
   }
 
 
-  ParsedDicomFile::ParsedDicomFile(DcmFileFormat& other) :
-    file_(dynamic_cast<DcmFileFormat*>(other.clone()))
+  ParsedDicomFile::ParsedDicomFile(ParsedDicomFile& other) : 
+    pimpl_(new PImpl)
   {
+    pimpl_->file_.reset(dynamic_cast<DcmFileFormat*>(other.pimpl_->file_->clone()));
   }
 
 
   ParsedDicomFile::~ParsedDicomFile()
   {
+    delete pimpl_;
   }
 
 
   void* ParsedDicomFile::GetDcmtkObject()
   {
-    return file_.get();
+    return pimpl_->file_.get();
   }
 
 
   ParsedDicomFile* ParsedDicomFile::Clone()
   {
-    return new ParsedDicomFile(*file_);
+    return new ParsedDicomFile(*this);
   }
 }
