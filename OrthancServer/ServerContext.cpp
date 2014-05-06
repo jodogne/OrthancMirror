@@ -34,6 +34,7 @@
 
 #include "../Core/HttpServer/FilesystemHttpSender.h"
 #include "../Core/Lua/LuaFunctionCall.h"
+#include "FromDcmtkBridge.h"
 #include "ServerToolbox.h"
 #include "OrthancInitialization.h"
 

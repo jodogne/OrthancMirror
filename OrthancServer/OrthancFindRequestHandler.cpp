@@ -37,6 +37,7 @@
 #include "../Core/DicomFormat/DicomArray.h"
 #include "ServerToolbox.h"
 #include "OrthancInitialization.h"
+#include "FromDcmtkBridge.h"
 
 namespace Orthanc
 {

@@ -33,6 +33,7 @@
 #include "OrthancRestApi.h"
 
 #include "../DicomModification.h"
+#include "../FromDcmtkBridge.h"
 
 #include <glog/logging.h>
 

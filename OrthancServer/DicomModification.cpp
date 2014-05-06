@@ -35,6 +35,8 @@
 #include "../Core/OrthancException.h"
 #include "FromDcmtkBridge.h"
 
+#include <memory>   // For std::auto_ptr
+
 namespace Orthanc
 {
   void DicomModification::MapDicomIdentifier(ParsedDicomFile& dicom,

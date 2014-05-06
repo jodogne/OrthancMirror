@@ -33,6 +33,7 @@
 #include "OrthancRestApi.h"
 
 #include "../OrthancInitialization.h"
+#include "../FromDcmtkBridge.h"
 
 #include <glog/logging.h>
 

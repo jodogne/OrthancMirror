@@ -38,7 +38,6 @@
 #include "../Core/RestApi/RestApiOutput.h"
 #include "../Core/Lua/LuaContext.h"
 #include "ServerIndex.h"
-#include "FromDcmtkBridge.h"
 #include "ParsedDicomFile.h"
 #include "DicomProtocol/ReusableDicomUserConnection.h"
 
