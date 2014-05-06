@@ -40,23 +40,26 @@
 
 namespace Orthanc
 {
-  class PngReader
+  class ImageAccessor
   {
   private:
-    struct PngRabi;
-
+    bool readOnly_;
     PixelFormat format_;
     unsigned int width_;
     unsigned int height_;
     unsigned int pitch_;
-    std::vector<uint8_t> buffer_;
-
-    void CheckHeader(const void* header);
-
-    void Read(PngRabi& rabi);
+    void *buffer_;
 
   public:
-    PngReader();
+    ImageAccessor()
+    {
+      AssignEmpty(PixelFormat_Grayscale8);
+    }
+
+    bool IsReadOnly() const
+    {
+      return readOnly_;
+    }
 
     PixelFormat GetFormat() const
     {
@@ -78,21 +81,46 @@ namespace Orthanc
       return pitch_;
     }
 
-    const void* GetBuffer() const
+    const void* GetConstBuffer() const
     {
-      if (buffer_.size() > 0)
-        return &buffer_[0];
-      else
-        return NULL;
+      return buffer_;
     }
 
-    const void* GetBuffer(unsigned int y) const
-    {
-      if (buffer_.size() > 0)
-        return &buffer_[y * pitch_];
-      else
-        return NULL;
-    }
+    void* GetBuffer();
+
+    const void* GetConstRow(unsigned int y) const;
+
+    void* GetRow(unsigned int y);
+
+    void AssignEmpty(PixelFormat format);
+
+    void AssignReadOnly(PixelFormat format,
+                        unsigned int width,
+                        unsigned int height,
+                        unsigned int pitch,
+                        const void *buffer);
+
+    void AssignWritable(PixelFormat format,
+                        unsigned int width,
+                        unsigned int height,
+                        unsigned int pitch,
+                        void *buffer);
+  };
+
+
+  class PngReader : public ImageAccessor
+  {
+  private:
+    struct PngRabi;
+
+    std::vector<uint8_t> data_;
+
+    void CheckHeader(const void* header);
+
+    void Read(PngRabi& rabi);
+
+  public:
+    PngReader();
 
     void ReadFromFile(const char* filename);
 
