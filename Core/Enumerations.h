@@ -85,6 +85,13 @@ namespace Orthanc
     PixelFormat_RGB24,
 
     /**
+     * {summary}{Color image in RGBA32 format.}
+     * {description}{This format describes a color image. The pixels are stored in 4
+     * consecutive bytes. The memory layout is RGBA.
+     **/
+    PixelFormat_RGBA32,
+
+    /**
      * {summary}{Graylevel 8bpp image.}
      * {description}{The image is graylevel. Each pixel is unsigned and stored in one byte.}
      **/
@@ -213,6 +220,12 @@ namespace Orthanc
   };
 
 
+  enum ImageFormat
+  {
+    ImageFormat_Png = 1
+  };
+
+
   /**
    * WARNING: Do not change the explicit values in the enumerations
    * below this point. This would result in incompatible databases
@@ -250,5 +263,11 @@ namespace Orthanc
 
   const char* EnumerationToString(ResourceType type);
 
+  const char* EnumerationToString(ImageFormat format);
+
   ResourceType StringToResourceType(const char* type);
+
+  ImageFormat StringToImageFormat(const char* format);
+
+  unsigned int GetBytesPerPixel(PixelFormat format);
 }

@@ -173,6 +173,7 @@ add_library(CoreLibrary
   Core/MultiThreading/SharedMessageQueue.cpp
   Core/MultiThreading/ThreadedCommandProcessor.cpp
   Core/ImageFormats/ImageAccessor.cpp
+  Core/ImageFormats/ImageBuffer.cpp
   Core/ImageFormats/PngReader.cpp
   Core/ImageFormats/PngWriter.cpp
   Core/SQLite/Connection.cpp
@@ -333,6 +334,7 @@ if (BUILD_CLIENT_LIBRARY)
     ${ORTHANC_ROOT}/Core/MultiThreading/ThreadedCommandProcessor.cpp
     ${ORTHANC_ROOT}/Core/MultiThreading/SharedMessageQueue.cpp
     ${ORTHANC_ROOT}/Core/ImageFormats/ImageAccessor.cpp
+    ${ORTHANC_ROOT}/Core/ImageFormats/ImageBuffer.cpp
     ${ORTHANC_ROOT}/Core/ImageFormats/PngReader.cpp
     ${ORTHANC_ROOT}/OrthancCppClient/OrthancConnection.cpp
     ${ORTHANC_ROOT}/OrthancCppClient/Series.cpp

@@ -171,6 +171,11 @@ namespace Orthanc
       format = PixelFormat_RGB24;
       pitch = 3 * width;
     }
+    else if (color_type == PNG_COLOR_TYPE_RGBA && bit_depth == 8)
+    {
+      format = PixelFormat_RGBA32;
+      pitch = 4 * width;
+    }
     else
     {
       throw OrthancException(ErrorCode_NotImplemented);
