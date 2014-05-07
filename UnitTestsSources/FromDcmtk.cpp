@@ -66,9 +66,6 @@ TEST(DicomModification, Png)
   ASSERT_EQ(116, c.size());
 
   std::string cc = Toolbox::DecodeBase64(c);
-
-  Toolbox::WriteFile(cc, "/tmp/tata.png");
-
   PngReader reader;
   reader.ReadFromMemory(cc);
 
