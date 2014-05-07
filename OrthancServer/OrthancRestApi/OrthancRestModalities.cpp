@@ -484,6 +484,26 @@ namespace Orthanc
   }
 
 
+  static void UpdatePeer(RestApi::PutCall& call)
+  {
+    Json::Value json;
+    Json::Reader reader;
+    if (reader.parse(call.GetPutBody(), json))
+    {
+      OrthancPeerParameters peer;
+      peer.FromJson(json);
+      peer.SetName(call.GetUriComponent("id", ""));
+      UpdatePeer(peer);
+    }
+  }
+
+
+  static void DeletePeer(RestApi::DeleteCall& call)
+  {
+    RemovePeer(call.GetUriComponent("id", ""));
+  }
+
+
   void OrthancRestApi::RegisterModalities()
   {
     Register("/modalities", ListModalities);
@@ -499,7 +519,8 @@ namespace Orthanc
 
     Register("/peers", ListPeers);
     Register("/peers/{id}", ListPeerOperations);
+    Register("/peers/{id}", UpdatePeer);
+    Register("/peers/{id}", DeletePeer);
     Register("/peers/{id}/store", PeerStore);
-
   }
 }

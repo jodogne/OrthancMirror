@@ -215,6 +215,7 @@ add_library(ServerLibrary
   OrthancServer/Internals/MoveScp.cpp
   OrthancServer/Internals/StoreScp.cpp
   OrthancServer/OrthancInitialization.cpp
+  OrthancServer/OrthancPeerParameters.cpp
   OrthancServer/OrthancRestApi/OrthancRestAnonymizeModify.cpp
   OrthancServer/OrthancRestApi/OrthancRestApi.cpp
   OrthancServer/OrthancRestApi/OrthancRestArchive.cpp

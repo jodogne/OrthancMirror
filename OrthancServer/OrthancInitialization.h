@@ -39,64 +39,10 @@
 #include "../Core/HttpServer/MongooseServer.h"
 #include "DicomProtocol/RemoteModalityParameters.h"
 #include "ServerEnumerations.h"
+#include "OrthancPeerParameters.h"
 
 namespace Orthanc
 {
-  class OrthancPeerParameters
-  {
-  private:
-    std::string name_;
-    std::string url_;
-    std::string username_;
-    std::string password_;
-
-  public:
-    OrthancPeerParameters() : url_("http://localhost:8042/")
-    {
-    }
-
-    const std::string& GetName() const
-    {
-      return name_;
-    }
-
-    void SetName(const std::string& name)
-    {
-      name_ = name;
-    }
-
-    const std::string& GetUrl() const
-    {
-      return url_;
-    }
-
-    void SetUrl(const std::string& url)
-    {
-      url_ = url;
-    }
-
-    const std::string& GetUsername() const
-    {
-      return username_;
-    }
-
-    void SetUsername(const std::string& username)
-    {
-      username_ = username;
-    }
-    
-    const std::string& GetPassword() const
-    {
-      return password_;
-    }
-
-    void SetPassword(const std::string& password)
-    {
-      password_ = password;
-    }
-  };
-
-
   void OrthancInitialize(const char* configurationFile = NULL);
 
   void OrthancFinalize();
@@ -145,4 +91,8 @@ namespace Orthanc
   void UpdateModality(const RemoteModalityParameters& modality);
 
   void RemoveModality(const std::string& symbolicName);
+
+  void UpdatePeer(const OrthancPeerParameters& peer);
+
+  void RemovePeer(const std::string& symbolicName);
 }
