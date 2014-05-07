@@ -34,6 +34,9 @@
 
 #include "../../Core/OrthancException.h"
 
+#include <boost/lexical_cast.hpp>
+#include <stdexcept>
+
 namespace Orthanc
 {
   RemoteModalityParameters::RemoteModalityParameters()
@@ -53,5 +56,52 @@ namespace Orthanc
     }
 
     port_ = port;
+  }
+
+  void RemoteModalityParameters::FromJson(const Json::Value& modality)
+  {
+    if (!modality.isArray() ||
+        (modality.size() != 3 && modality.size() != 4))
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    SetApplicationEntityTitle(modality.get(0u, "").asString());
+    SetHost(modality.get(1u, "").asString());
+
+    const Json::Value& portValue = modality.get(2u, "");
+    try
+    {
+      SetPort(portValue.asInt());
+    }
+    catch (std::runtime_error /* error inside JsonCpp */)
+    {
+      try
+      {
+        SetPort(boost::lexical_cast<int>(portValue.asString()));
+      }
+      catch (boost::bad_lexical_cast)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+    }
+
+    if (modality.size() == 4)
+    {
+      SetManufacturer(modality.get(3u, "").asString());
+    }
+    else
+    {
+      SetManufacturer(ModalityManufacturer_Generic);
+    }
+  }
+
+  void RemoteModalityParameters::ToJson(Json::Value& value) const
+  {
+    value = Json::arrayValue;
+    value.append(GetApplicationEntityTitle());
+    value.append(GetHost());
+    value.append(GetPort());
+    value.append(EnumerationToString(GetManufacturer()));
   }
 }

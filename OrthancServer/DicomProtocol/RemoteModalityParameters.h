@@ -35,6 +35,7 @@
 #include "../ServerEnumerations.h"
 
 #include <string>
+#include <json/json.h>
 
 namespace Orthanc
 {
@@ -103,5 +104,9 @@ namespace Orthanc
     {
       manufacturer_ = StringToModalityManufacturer(manufacturer);
     }
+
+    void FromJson(const Json::Value& modality);
+
+    void ToJson(Json::Value& value) const;
   };
 }
