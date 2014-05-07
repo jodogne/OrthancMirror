@@ -30,78 +30,28 @@
  **/
 
 
-#pragma once
+#include "RemoteModalityParameters.h"
 
-#include "../ServerEnumerations.h"
-
-#include <string>
+#include "../../Core/OrthancException.h"
 
 namespace Orthanc
 {
-  class RemoteModalityParameters
+  RemoteModalityParameters::RemoteModalityParameters()
   {
-    // TODO Use the flyweight pattern for this class
+    name_ = "";
+    aet_ = "ORTHANC";
+    host_ = "localhost";
+    port_ = 104;
+    manufacturer_ = ModalityManufacturer_Generic;
+  }
 
-  private:
-    std::string name_;
-    std::string aet_;
-    std::string host_;
-    int port_;
-    ModalityManufacturer manufacturer_;
-
-  public:
-    RemoteModalityParameters();
-
-    const std::string& GetName() const
+  void RemoteModalityParameters::SetPort(int port)
+  {
+    if (port <= 0 || port >= 65535)
     {
-      return name_;
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    void SetName(const std::string& name)
-    {
-      name_ = name;
-    }
-
-    const std::string& GetApplicationEntityTitle() const
-    {
-      return aet_;
-    }
-
-    void SetApplicationEntityTitle(const std::string& aet)
-    {
-      aet_ = aet;
-    }
-
-    const std::string& GetHost() const
-    {
-      return host_;
-    }
-
-    void SetHost(const std::string& host)
-    {
-      host_ = host;
-    }
-    
-    int GetPort() const
-    {
-      return port_;
-    }
-
-    void SetPort(int port);
-
-    ModalityManufacturer GetManufacturer() const
-    {
-      return manufacturer_;
-    }
-
-    void SetManufacturer(ModalityManufacturer manufacturer)
-    {
-      manufacturer_ = manufacturer;
-    }    
-
-    void SetManufacturer(const std::string& manufacturer)
-    {
-      manufacturer_ = StringToModalityManufacturer(manufacturer);
-    }
-  };
+    port_ = port;
+  }
 }

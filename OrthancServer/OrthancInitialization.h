@@ -42,6 +42,61 @@
 
 namespace Orthanc
 {
+  class OrthancPeerParameters
+  {
+  private:
+    std::string name_;
+    std::string url_;
+    std::string username_;
+    std::string password_;
+
+  public:
+    OrthancPeerParameters() : url_("http://localhost:8042/")
+    {
+    }
+
+    const std::string& GetName() const
+    {
+      return name_;
+    }
+
+    void SetName(const std::string& name)
+    {
+      name_ = name;
+    }
+
+    const std::string& GetUrl() const
+    {
+      return url_;
+    }
+
+    void SetUrl(const std::string& url)
+    {
+      url_ = url;
+    }
+
+    const std::string& GetUsername() const
+    {
+      return username_;
+    }
+
+    void SetUsername(const std::string& username)
+    {
+      username_ = username;
+    }
+    
+    const std::string& GetPassword() const
+    {
+      return password_;
+    }
+
+    void SetPassword(const std::string& password)
+    {
+      password_ = password;
+    }
+  };
+
+
   void OrthancInitialize(const char* configurationFile = NULL);
 
   void OrthancFinalize();
@@ -55,22 +110,14 @@ namespace Orthanc
   bool GetGlobalBoolParameter(const std::string& parameter,
                               bool defaultValue);
 
-  void GetDicomModalityUsingSymbolicName(const std::string& name,
-                                         std::string& aet,
-                                         std::string& address,
-                                         int& port,
-                                         ModalityManufacturer& manufacturer);
+  void GetDicomModalityUsingSymbolicName(RemoteModalityParameters& modality,
+                                         const std::string& name);
 
-  bool LookupDicomModalityUsingAETitle(const std::string& aet,
-                                       std::string& symbolicName,
-                                       std::string& address,
-                                       int& port,
-                                       ModalityManufacturer& manufacturer);
+  bool LookupDicomModalityUsingAETitle(RemoteModalityParameters& modality,
+                                       const std::string& aet);
 
-  void GetOrthancPeer(const std::string& name,
-                      std::string& url,
-                      std::string& username,
-                      std::string& password);
+  void GetOrthancPeer(OrthancPeerParameters& peer,
+                      const std::string& name);
 
   void GetListOfDicomModalities(std::set<std::string>& target);
 

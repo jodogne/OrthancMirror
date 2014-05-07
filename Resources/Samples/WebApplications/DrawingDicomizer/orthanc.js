@@ -39,7 +39,7 @@ $(document).ready(function() {
       }
     })
       .success(function( msg ) {
-        alert('The image has been dicomized! ' + msg);
+        alert('Your drawing has been dicomized!\n\n' + msg);
       });
 
     return false;
