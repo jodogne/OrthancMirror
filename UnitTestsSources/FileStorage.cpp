@@ -27,7 +27,7 @@ static void StringToVector(std::vector<uint8_t>& v,
 
 TEST(FileStorage, Basic)
 {
-  FileStorage s("FileStorageUnitTests");
+  FileStorage s("UnitTestsStorage");
 
   std::string data = Toolbox::GenerateUuid();
   std::string uid = s.Create(data);
@@ -40,7 +40,7 @@ TEST(FileStorage, Basic)
 
 TEST(FileStorage, Basic2)
 {
-  FileStorage s("FileStorageUnitTests");
+  FileStorage s("UnitTestsStorage");
 
   std::vector<uint8_t> data;
   StringToVector(data, Toolbox::GenerateUuid());
@@ -54,7 +54,7 @@ TEST(FileStorage, Basic2)
 
 TEST(FileStorage, EndToEnd)
 {
-  FileStorage s("FileStorageUnitTests");
+  FileStorage s("UnitTestsStorage");
   s.Clear();
 
   std::list<std::string> u;
@@ -87,7 +87,7 @@ TEST(FileStorage, EndToEnd)
 
 TEST(FileStorageAccessor, Simple)
 {
-  FileStorage s("FileStorageUnitTests");
+  FileStorage s("UnitTestsStorage");
   FileStorageAccessor accessor(s);
 
   std::string data = "Hello world";
@@ -106,7 +106,7 @@ TEST(FileStorageAccessor, Simple)
 
 TEST(FileStorageAccessor, NoCompression)
 {
-  FileStorage s("FileStorageUnitTests");
+  FileStorage s("UnitTestsStorage");
   CompressedFileStorageAccessor accessor(s);
 
   accessor.SetCompressionForNextOperations(CompressionType_None);
@@ -126,7 +126,7 @@ TEST(FileStorageAccessor, NoCompression)
 
 TEST(FileStorageAccessor, NoCompression2)
 {
-  FileStorage s("FileStorageUnitTests");
+  FileStorage s("UnitTestsStorage");
   CompressedFileStorageAccessor accessor(s);
 
   accessor.SetCompressionForNextOperations(CompressionType_None);
@@ -147,7 +147,7 @@ TEST(FileStorageAccessor, NoCompression2)
 
 TEST(FileStorageAccessor, Compression)
 {
-  FileStorage s("FileStorageUnitTests");
+  FileStorage s("UnitTestsStorage");
   CompressedFileStorageAccessor accessor(s);
 
   accessor.SetCompressionForNextOperations(CompressionType_Zlib);
@@ -166,7 +166,7 @@ TEST(FileStorageAccessor, Compression)
 
 TEST(FileStorageAccessor, Mix)
 {
-  FileStorage s("FileStorageUnitTests");
+  FileStorage s("UnitTestsStorage");
   CompressedFileStorageAccessor accessor(s);
 
   std::string r;
