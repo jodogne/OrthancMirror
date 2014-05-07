@@ -523,7 +523,7 @@ TEST_P(DatabaseWrapperTest, LookupTagValue)
 
 TEST(ServerIndex, AttachmentRecycling)
 {
-  const std::string path = "OrthancStorageUnitTests";
+  const std::string path = "UnitTestsStorage";
   Toolbox::RemoveFile(path + "/index");
   ServerContext context(path, ":memory:");   // The SQLite DB is in memory
   ServerIndex& index = context.GetIndex();

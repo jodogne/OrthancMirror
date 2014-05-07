@@ -11,7 +11,7 @@ using namespace Orthanc;
 TEST(ZipWriter, Basic)
 {
   Orthanc::ZipWriter w;
-  w.SetOutputPath("hello.zip");
+  w.SetOutputPath("UnitTestsResults/hello.zip");
   w.Open();
   w.OpenFile("world/hello");
   w.Write("Hello world");
@@ -21,7 +21,7 @@ TEST(ZipWriter, Basic)
 TEST(ZipWriter, Basic64)
 {
   Orthanc::ZipWriter w;
-  w.SetOutputPath("hello64.zip");
+  w.SetOutputPath("UnitTestsResults/hello64.zip");
   w.SetZip64(true);
   w.Open();
   w.OpenFile("world/hello");
@@ -33,7 +33,7 @@ TEST(ZipWriter, Exceptions)
 {
   Orthanc::ZipWriter w;
   ASSERT_THROW(w.Open(), Orthanc::OrthancException);
-  w.SetOutputPath("hello3.zip");
+  w.SetOutputPath("UnitTestsResults/hello3.zip");
   w.Open();
   ASSERT_THROW(w.Write("hello world"), Orthanc::OrthancException);
 }
@@ -91,7 +91,7 @@ TEST(HierarchicalZipWriter, Basic)
 {
   static const std::string SPACES = "                             ";
 
-  HierarchicalZipWriter w("hello2.zip");
+  HierarchicalZipWriter w("UnitTestsResults/hello2.zip");
 
   w.SetCompressionLevel(0);
 

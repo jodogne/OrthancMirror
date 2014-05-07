@@ -582,6 +582,8 @@ int main(int argc, char **argv)
 
   google::InitGoogleLogging("Orthanc");
 
+  Toolbox::CreateDirectory("UnitTestsResults");
+
   OrthancInitialize();
   ::testing::InitGoogleTest(&argc, argv);
   int result = RUN_ALL_TESTS();
