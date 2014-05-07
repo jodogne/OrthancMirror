@@ -385,17 +385,19 @@ namespace Orthanc
       return;
     }
 
-    std::string url, username, password;
-    GetOrthancPeer(remote, url, username, password);
+    OrthancPeerParameters peer;
+    GetOrthancPeer(peer, remote);
 
     // Configure the HTTP client
     HttpClient client;
-    if (username.size() != 0 && password.size() != 0)
+    if (peer.GetUsername().size() != 0 && 
+        peer.GetPassword().size() != 0)
     {
-      client.SetCredentials(username.c_str(), password.c_str());
+      client.SetCredentials(peer.GetUsername().c_str(), 
+                            peer.GetPassword().c_str());
     }
 
-    client.SetUrl(url + "instances");
+    client.SetUrl(peer.GetUrl() + "instances");
     client.SetMethod(HttpMethod_Post);
 
     // Loop over the instances that are to be sent

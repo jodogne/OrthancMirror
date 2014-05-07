@@ -451,13 +451,14 @@ namespace Orthanc
     ModalityManufacturer manufacturer;
 
     {
-      std::string symbolicName, address;
-      int port;
+      RemoteModalityParameters modality;
 
-      if (!LookupDicomModalityUsingAETitle(callingAETitle, symbolicName, address, port, manufacturer))
+      if (!LookupDicomModalityUsingAETitle(modality, callingAETitle))
       {
         throw OrthancException("Unknown modality");
       }
+
+      manufacturer = modality.GetManufacturer();
     }
 
 

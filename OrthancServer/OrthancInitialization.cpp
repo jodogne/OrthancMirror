@@ -50,6 +50,7 @@ namespace Orthanc
   static std::auto_ptr<Json::Value> configuration_;
   static boost::filesystem::path defaultDirectory_;
 
+
   static void ReadGlobalConfiguration(const char* configurationFile)
   {
     configuration_.reset(new Json::Value);
@@ -242,11 +243,8 @@ namespace Orthanc
 
 
 
-  void GetDicomModalityUsingSymbolicName(const std::string& name,
-                                         std::string& aet,
-                                         std::string& address,
-                                         int& port,
-                                         ModalityManufacturer& manufacturer)
+  void GetDicomModalityUsingSymbolicName(RemoteModalityParameters& modality,
+                                         const std::string& name)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
@@ -265,19 +263,19 @@ namespace Orthanc
 
     try
     {
-      aet = modalities[name].get(0u, "").asString();
-      address = modalities[name].get(1u, "").asString();
+      modality.SetApplicationEntityTitle(modalities[name].get(0u, "").asString());
+      modality.SetHost(modalities[name].get(1u, "").asString());
 
       const Json::Value& portValue = modalities[name].get(2u, "");
       try
       {
-        port = portValue.asInt();
+        modality.SetPort(portValue.asInt());
       }
       catch (std::runtime_error /* error inside JsonCpp */)
       {
         try
         {
-          port = boost::lexical_cast<int>(portValue.asString());
+          modality.SetPort(boost::lexical_cast<int>(portValue.asString()));
         }
         catch (boost::bad_lexical_cast)
         {
@@ -287,11 +285,11 @@ namespace Orthanc
 
       if (modalities[name].size() == 4)
       {
-        manufacturer = StringToModalityManufacturer(modalities[name].get(3u, "").asString());
+        modality.SetManufacturer(modalities[name].get(3u, "").asString());
       }
       else
       {
-        manufacturer = ModalityManufacturer_Generic;
+        modality.SetManufacturer(ModalityManufacturer_Generic);
       }
     }
     catch (OrthancException& e)
@@ -304,10 +302,8 @@ namespace Orthanc
 
 
 
-  void GetOrthancPeer(const std::string& name,
-                      std::string& url,
-                      std::string& username,
-                      std::string& password)
+  void GetOrthancPeer(OrthancPeerParameters& peer,
+                      const std::string& name)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
@@ -325,19 +321,21 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadFileFormat);
       }
 
+      std::string url;
+
       try
       {
         url = modalities[name].get(0u, "").asString();
 
         if (modalities[name].size() == 1)
         {
-          username = "";
-          password = "";
+          peer.SetUsername("");
+          peer.SetPassword("");
         }
         else if (modalities[name].size() == 3)
         {
-          username = modalities[name].get(1u, "").asString();
-          password = modalities[name].get(2u, "").asString();
+          peer.SetUsername(modalities[name].get(1u, "").asString());
+          peer.SetPassword(modalities[name].get(2u, "").asString());
         }
         else
         {
@@ -353,6 +351,8 @@ namespace Orthanc
       {
         url += '/';
       }
+
+      peer.SetUrl(url);
     }
     catch (OrthancException& e)
     {
@@ -527,11 +527,8 @@ namespace Orthanc
   }
 
 
-  bool LookupDicomModalityUsingAETitle(const std::string& aet,
-                                       std::string& symbolicName,
-                                       std::string& address,
-                                       int& port,
-                                       ModalityManufacturer& manufacturer)
+  bool LookupDicomModalityUsingAETitle(RemoteModalityParameters& modality,
+                                       const std::string& aet)
   {
     std::set<std::string> modalities;
     GetListOfDicomModalities(modalities);
@@ -541,10 +538,9 @@ namespace Orthanc
     {
       try
       {
-        std::string thisAet;
-        GetDicomModalityUsingSymbolicName(*it, thisAet, address, port, manufacturer);
+        GetDicomModalityUsingSymbolicName(modality, *it);
 
-        if (IsSameAETitle(aet, thisAet))
+        if (IsSameAETitle(aet, modality.GetApplicationEntityTitle()))
         {
           return true;
         }
@@ -560,35 +556,27 @@ namespace Orthanc
 
   bool IsKnownAETitle(const std::string& aet)
   {
-    std::string symbolicName, address;
-    int port;
-    ModalityManufacturer manufacturer;
-    
-    return LookupDicomModalityUsingAETitle(aet, symbolicName, address, port, manufacturer);
+    RemoteModalityParameters modality;
+    return LookupDicomModalityUsingAETitle(modality, aet);
   }
 
 
   RemoteModalityParameters GetModalityUsingSymbolicName(const std::string& name)
   {
-    std::string aet, address;
-    int port;
-    ModalityManufacturer manufacturer;
+    RemoteModalityParameters modality;
+    GetDicomModalityUsingSymbolicName(modality, name);
 
-    GetDicomModalityUsingSymbolicName(name, aet, address, port, manufacturer);
-
-    return RemoteModalityParameters(name, aet, address, port, manufacturer);
+    return modality;
   }
 
 
   RemoteModalityParameters GetModalityUsingAet(const std::string& aet)
   {
-    std::string name, address;
-    int port;
-    ModalityManufacturer manufacturer;
+    RemoteModalityParameters modality;
 
-    if (LookupDicomModalityUsingAETitle(aet, name, address, port, manufacturer))
+    if (LookupDicomModalityUsingAETitle(modality, aet))
     {
-      return RemoteModalityParameters(name, aet, address, port, manufacturer);
+      return modality;
     }
     else
     {

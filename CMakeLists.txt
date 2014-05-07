@@ -205,6 +205,7 @@ add_library(ServerLibrary
   OrthancServer/DicomProtocol/DicomFindAnswers.cpp
   OrthancServer/DicomProtocol/DicomServer.cpp
   OrthancServer/DicomProtocol/DicomUserConnection.cpp
+  OrthancServer/DicomProtocol/RemoteModalityParameters.cpp
   OrthancServer/DicomProtocol/ReusableDicomUserConnection.cpp
   OrthancServer/DicomModification.cpp
   OrthancServer/FromDcmtkBridge.cpp
