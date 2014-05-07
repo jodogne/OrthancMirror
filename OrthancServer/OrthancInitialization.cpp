@@ -293,38 +293,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadFileFormat);
       }
 
-      std::string url;
-
-      try
-      {
-        url = modalities[name].get(0u, "").asString();
-
-        if (modalities[name].size() == 1)
-        {
-          peer.SetUsername("");
-          peer.SetPassword("");
-        }
-        else if (modalities[name].size() == 3)
-        {
-          peer.SetUsername(modalities[name].get(1u, "").asString());
-          peer.SetPassword(modalities[name].get(2u, "").asString());
-        }
-        else
-        {
-          throw OrthancException(ErrorCode_BadFileFormat);
-        }
-      }
-      catch (...)
-      {
-        throw OrthancException(ErrorCode_BadFileFormat);
-      }
-
-      if (url.size() != 0 && url[url.size() - 1] != '/')
-      {
-        url += '/';
-      }
-
-      peer.SetUrl(url);
+      peer.FromJson(modalities[name]);
     }
     catch (OrthancException& e)
     {
@@ -596,5 +565,47 @@ namespace Orthanc
     }
 
     modalities.removeMember(symbolicName.c_str());
+  }
+
+
+  void UpdatePeer(const OrthancPeerParameters& peer)
+  {
+    boost::mutex::scoped_lock lock(globalMutex_);
+
+    if (!configuration_->isMember("OrthancPeers"))
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    Json::Value& peers = (*configuration_) ["OrthancPeers"];
+    if (peers.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    peers.removeMember(peer.GetName().c_str());
+
+    Json::Value v;
+    peer.ToJson(v);
+    peers[peer.GetName()] = v;
+  }
+  
+
+  void RemovePeer(const std::string& symbolicName)
+  {
+    boost::mutex::scoped_lock lock(globalMutex_);
+
+    if (!configuration_->isMember("OrthancPeers"))
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    Json::Value& peers = (*configuration_) ["OrthancPeers"];
+    if (peers.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    peers.removeMember(symbolicName.c_str());
   }
 }
