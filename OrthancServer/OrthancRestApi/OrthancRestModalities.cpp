@@ -75,7 +75,7 @@ namespace Orthanc
       return;
     }
 
-    RemoteModalityParameters remote = GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+    RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
     ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
 
     DicomFindAnswers answers;
@@ -103,7 +103,7 @@ namespace Orthanc
       return;
     }        
       
-    RemoteModalityParameters remote = GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+    RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
     ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
 
     DicomFindAnswers answers;
@@ -132,7 +132,7 @@ namespace Orthanc
       return;
     }        
          
-    RemoteModalityParameters remote = GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+    RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
     ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
 
     DicomFindAnswers answers;
@@ -162,7 +162,7 @@ namespace Orthanc
       return;
     }        
          
-    RemoteModalityParameters remote = GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+    RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
     ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
 
     DicomFindAnswers answers;
@@ -184,7 +184,7 @@ namespace Orthanc
       return;
     }
  
-    RemoteModalityParameters remote = GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+    RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
     ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
 
     DicomFindAnswers patients;
@@ -319,7 +319,7 @@ namespace Orthanc
       return;
     }
 
-    RemoteModalityParameters p = GetModalityUsingSymbolicName(remote);
+    RemoteModalityParameters p = Configuration::GetModalityUsingSymbolicName(remote);
     ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), p);
 
     for (std::list<std::string>::const_iterator 
@@ -347,7 +347,7 @@ namespace Orthanc
   static void ListPeers(RestApi::GetCall& call)
   {
     OrthancRestApi::SetOfStrings peers;
-    GetListOfOrthancPeers(peers);
+    Configuration::GetListOfOrthancPeers(peers);
 
     Json::Value result = Json::arrayValue;
     for (OrthancRestApi::SetOfStrings::const_iterator 
@@ -362,7 +362,7 @@ namespace Orthanc
   static void ListPeerOperations(RestApi::GetCall& call)
   {
     OrthancRestApi::SetOfStrings peers;
-    GetListOfOrthancPeers(peers);
+    Configuration::GetListOfOrthancPeers(peers);
 
     std::string id = call.GetUriComponent("id", "");
     if (IsExistingPeer(peers, id))
@@ -386,7 +386,7 @@ namespace Orthanc
     }
 
     OrthancPeerParameters peer;
-    GetOrthancPeer(peer, remote);
+    Configuration::GetOrthancPeer(peer, remote);
 
     // Configure the HTTP client
     HttpClient client;
@@ -431,7 +431,7 @@ namespace Orthanc
   static void ListModalities(RestApi::GetCall& call)
   {
     OrthancRestApi::SetOfStrings modalities;
-    GetListOfDicomModalities(modalities);
+    Configuration::GetListOfDicomModalities(modalities);
 
     Json::Value result = Json::arrayValue;
     for (OrthancRestApi::SetOfStrings::const_iterator 
@@ -447,7 +447,7 @@ namespace Orthanc
   static void ListModalityOperations(RestApi::GetCall& call)
   {
     OrthancRestApi::SetOfStrings modalities;
-    GetListOfDicomModalities(modalities);
+    Configuration::GetListOfDicomModalities(modalities);
 
     std::string id = call.GetUriComponent("id", "");
     if (IsExistingModality(modalities, id))
@@ -473,14 +473,14 @@ namespace Orthanc
       RemoteModalityParameters modality;
       modality.FromJson(json);
       modality.SetName(call.GetUriComponent("id", ""));
-      UpdateModality(modality);
+      Configuration::UpdateModality(modality);
     }
   }
 
 
   static void DeleteModality(RestApi::DeleteCall& call)
   {
-    RemoveModality(call.GetUriComponent("id", ""));
+    Configuration::RemoveModality(call.GetUriComponent("id", ""));
   }
 
 
@@ -493,14 +493,14 @@ namespace Orthanc
       OrthancPeerParameters peer;
       peer.FromJson(json);
       peer.SetName(call.GetUriComponent("id", ""));
-      UpdatePeer(peer);
+      Configuration::UpdatePeer(peer);
     }
   }
 
 
   static void DeletePeer(RestApi::DeleteCall& call)
   {
-    RemovePeer(call.GetUriComponent("id", ""));
+    Configuration::RemovePeer(call.GetUriComponent("id", ""));
   }
 
 

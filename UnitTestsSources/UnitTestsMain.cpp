@@ -424,8 +424,8 @@ TEST(Toolbox, UrlDecode)
 #if defined(__linux)
 TEST(OrthancInitialization, AbsoluteDirectory)
 {
-  ASSERT_EQ("/tmp/hello", InterpretRelativePath("/tmp", "hello"));
-  ASSERT_EQ("/tmp", InterpretRelativePath("/tmp", "/tmp"));
+  ASSERT_EQ("/tmp/hello", Configuration::InterpretRelativePath("/tmp", "hello"));
+  ASSERT_EQ("/tmp", Configuration::InterpretRelativePath("/tmp", "/tmp"));
 }
 #endif
 

@@ -453,7 +453,7 @@ namespace Orthanc
     {
       RemoteModalityParameters modality;
 
-      if (!LookupDicomModalityUsingAETitle(modality, callingAETitle))
+      if (!Configuration::LookupDicomModalityUsingAETitle(modality, callingAETitle))
       {
         throw OrthancException("Unknown modality");
       }
