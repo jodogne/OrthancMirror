@@ -1095,7 +1095,8 @@ namespace Orthanc
     std::string mime, content;
     Toolbox::DecodeDataUriScheme(mime, content, dataUriScheme);
 
-    std::string decoded = Toolbox::DecodeBase64(content);
+    std::string decoded;
+    Toolbox::DecodeBase64(decoded, content);
 
     if (mime == "image/png")
     {

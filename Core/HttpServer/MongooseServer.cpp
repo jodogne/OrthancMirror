@@ -474,7 +474,8 @@ namespace Orthanc
     }
 
     std::string b64 = s.substr(6);
-    std::string decoded = Toolbox::DecodeBase64(b64);
+    std::string decoded;
+    Toolbox::DecodeBase64(decoded, b64);
     size_t semicolons = decoded.find(':');
 
     if (semicolons == std::string::npos)
@@ -849,7 +850,9 @@ namespace Orthanc
     Stop();
 
     std::string tag = std::string(username) + ":" + std::string(password);
-    registeredUsers_.insert(Toolbox::EncodeBase64(tag));
+    std::string encoded;
+    Toolbox::EncodeBase64(encoded, tag);
+    registeredUsers_.insert(encoded);
   }
 
   void MongooseServer::SetSslEnabled(bool enabled)

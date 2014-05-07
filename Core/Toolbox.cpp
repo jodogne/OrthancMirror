@@ -491,14 +491,16 @@ namespace Orthanc
   }
 
 
-  std::string Toolbox::EncodeBase64(const std::string& data)
+  void Toolbox::EncodeBase64(std::string& result, 
+                             const std::string& data)
   {
-    return base64_encode(data);
+    result = base64_encode(data);
   }
 
-  std::string Toolbox::DecodeBase64(const std::string& data)
+  void Toolbox::DecodeBase64(std::string& result, 
+                             const std::string& data)
   {
-    return base64_decode(data);
+    result = base64_decode(data);
   }
 
 

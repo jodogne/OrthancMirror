@@ -306,14 +306,25 @@ TEST(Toolbox, ComputeSHA1)
 }
 
 
+static std::string EncodeBase64Bis(const std::string& s)
+{
+  std::string result;
+  Toolbox::EncodeBase64(result, s);
+  return result;
+}
+
+
 TEST(Toolbox, Base64)
 {
-  ASSERT_EQ("", Toolbox::EncodeBase64(""));
-  ASSERT_EQ("YQ==", Toolbox::EncodeBase64("a"));
+  ASSERT_EQ("", EncodeBase64Bis(""));
+  ASSERT_EQ("YQ==", EncodeBase64Bis("a"));
 
   const std::string hello = "SGVsbG8gd29ybGQ=";
-  ASSERT_EQ(hello, Toolbox::EncodeBase64("Hello world"));
-  ASSERT_EQ("Hello world", Toolbox::DecodeBase64(hello));
+  ASSERT_EQ(hello, EncodeBase64Bis("Hello world"));
+
+  std::string decoded;
+  Toolbox::DecodeBase64(decoded, hello);
+  ASSERT_EQ("Hello world", decoded);
 }
 
 TEST(Toolbox, PathToExecutable)
