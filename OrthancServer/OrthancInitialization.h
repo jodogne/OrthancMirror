@@ -141,4 +141,8 @@ namespace Orthanc
   RemoteModalityParameters GetModalityUsingSymbolicName(const std::string& name);
 
   RemoteModalityParameters GetModalityUsingAet(const std::string& aet);
+
+  void UpdateModality(const RemoteModalityParameters& modality);
+
+  void RemoveModality(const std::string& symbolicName);
 }

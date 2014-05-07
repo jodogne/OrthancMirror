@@ -464,10 +464,32 @@ namespace Orthanc
   }
 
 
+  static void UpdateModality(RestApi::PutCall& call)
+  {
+    Json::Value json;
+    Json::Reader reader;
+    if (reader.parse(call.GetPutBody(), json))
+    {
+      RemoteModalityParameters modality;
+      modality.FromJson(json);
+      modality.SetName(call.GetUriComponent("id", ""));
+      UpdateModality(modality);
+    }
+  }
+
+
+  static void DeleteModality(RestApi::DeleteCall& call)
+  {
+    RemoveModality(call.GetUriComponent("id", ""));
+  }
+
+
   void OrthancRestApi::RegisterModalities()
   {
     Register("/modalities", ListModalities);
     Register("/modalities/{id}", ListModalityOperations);
+    Register("/modalities/{id}", UpdateModality);
+    Register("/modalities/{id}", DeleteModality);
     Register("/modalities/{id}/find-patient", DicomFindPatient);
     Register("/modalities/{id}/find-study", DicomFindStudy);
     Register("/modalities/{id}/find-series", DicomFindSeries);
@@ -478,5 +500,6 @@ namespace Orthanc
     Register("/peers", ListPeers);
     Register("/peers/{id}", ListPeerOperations);
     Register("/peers/{id}/store", PeerStore);
+
   }
 }

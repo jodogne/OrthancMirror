@@ -255,42 +255,14 @@ namespace Orthanc
 
     const Json::Value& modalities = (*configuration_) ["DicomModalities"];
     if (modalities.type() != Json::objectValue ||
-        !modalities.isMember(name) ||
-        (modalities[name].size() != 3 && modalities[name].size() != 4))
+        !modalities.isMember(name))
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
     try
     {
-      modality.SetApplicationEntityTitle(modalities[name].get(0u, "").asString());
-      modality.SetHost(modalities[name].get(1u, "").asString());
-
-      const Json::Value& portValue = modalities[name].get(2u, "");
-      try
-      {
-        modality.SetPort(portValue.asInt());
-      }
-      catch (std::runtime_error /* error inside JsonCpp */)
-      {
-        try
-        {
-          modality.SetPort(boost::lexical_cast<int>(portValue.asString()));
-        }
-        catch (boost::bad_lexical_cast)
-        {
-          throw OrthancException(ErrorCode_BadFileFormat);
-        }
-      }
-
-      if (modalities[name].size() == 4)
-      {
-        modality.SetManufacturer(modalities[name].get(3u, "").asString());
-      }
-      else
-      {
-        modality.SetManufacturer(ModalityManufacturer_Generic);
-      }
+      modality.FromJson(modalities[name]);
     }
     catch (OrthancException& e)
     {
@@ -582,5 +554,47 @@ namespace Orthanc
     {
       throw OrthancException("Unknown modality for AET: " + aet);
     }
+  }
+
+
+  void UpdateModality(const RemoteModalityParameters& modality)
+  {
+    boost::mutex::scoped_lock lock(globalMutex_);
+
+    if (!configuration_->isMember("DicomModalities"))
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    Json::Value& modalities = (*configuration_) ["DicomModalities"];
+    if (modalities.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    modalities.removeMember(modality.GetName().c_str());
+
+    Json::Value v;
+    modality.ToJson(v);
+    modalities[modality.GetName()] = v;
+  }
+  
+
+  void RemoveModality(const std::string& symbolicName)
+  {
+    boost::mutex::scoped_lock lock(globalMutex_);
+
+    if (!configuration_->isMember("DicomModalities"))
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    Json::Value& modalities = (*configuration_) ["DicomModalities"];
+    if (modalities.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    modalities.removeMember(symbolicName.c_str());
   }
 }
