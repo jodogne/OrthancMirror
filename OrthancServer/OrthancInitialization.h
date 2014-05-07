@@ -47,52 +47,56 @@ namespace Orthanc
 
   void OrthancFinalize();
 
-  std::string GetGlobalStringParameter(const std::string& parameter,
-                                       const std::string& defaultValue);
+  class Configuration
+  {
+  public:
+    static std::string GetGlobalStringParameter(const std::string& parameter,
+                                                const std::string& defaultValue);
 
-  int GetGlobalIntegerParameter(const std::string& parameter,
-                                int defaultValue);
+    static int GetGlobalIntegerParameter(const std::string& parameter,
+                                         int defaultValue);
 
-  bool GetGlobalBoolParameter(const std::string& parameter,
-                              bool defaultValue);
+    static bool GetGlobalBoolParameter(const std::string& parameter,
+                                       bool defaultValue);
 
-  void GetDicomModalityUsingSymbolicName(RemoteModalityParameters& modality,
-                                         const std::string& name);
+    static void GetDicomModalityUsingSymbolicName(RemoteModalityParameters& modality,
+                                                  const std::string& name);
 
-  bool LookupDicomModalityUsingAETitle(RemoteModalityParameters& modality,
-                                       const std::string& aet);
+    static bool LookupDicomModalityUsingAETitle(RemoteModalityParameters& modality,
+                                                const std::string& aet);
 
-  void GetOrthancPeer(OrthancPeerParameters& peer,
-                      const std::string& name);
+    static void GetOrthancPeer(OrthancPeerParameters& peer,
+                               const std::string& name);
 
-  void GetListOfDicomModalities(std::set<std::string>& target);
+    static void GetListOfDicomModalities(std::set<std::string>& target);
 
-  void GetListOfOrthancPeers(std::set<std::string>& target);
+    static void GetListOfOrthancPeers(std::set<std::string>& target);
 
-  void SetupRegisteredUsers(MongooseServer& httpServer);
+    static void SetupRegisteredUsers(MongooseServer& httpServer);
 
-  std::string InterpretRelativePath(const std::string& baseDirectory,
-                                    const std::string& relativePath);
+    static std::string InterpretRelativePath(const std::string& baseDirectory,
+                                             const std::string& relativePath);
 
-  std::string InterpretStringParameterAsPath(const std::string& parameter);
+    static std::string InterpretStringParameterAsPath(const std::string& parameter);
 
-  void GetGlobalListOfStringsParameter(std::list<std::string>& target,
-                                       const std::string& key);
+    static void GetGlobalListOfStringsParameter(std::list<std::string>& target,
+                                                const std::string& key);
 
-  bool IsKnownAETitle(const std::string& aet);
+    static bool IsKnownAETitle(const std::string& aet);
 
-  bool IsSameAETitle(const std::string& aet1,
-                     const std::string& aet2);
+    static bool IsSameAETitle(const std::string& aet1,
+                              const std::string& aet2);
 
-  RemoteModalityParameters GetModalityUsingSymbolicName(const std::string& name);
+    static RemoteModalityParameters GetModalityUsingSymbolicName(const std::string& name);
 
-  RemoteModalityParameters GetModalityUsingAet(const std::string& aet);
+    static RemoteModalityParameters GetModalityUsingAet(const std::string& aet);
 
-  void UpdateModality(const RemoteModalityParameters& modality);
+    static void UpdateModality(const RemoteModalityParameters& modality);
 
-  void RemoveModality(const std::string& symbolicName);
+    static void RemoveModality(const std::string& symbolicName);
 
-  void UpdatePeer(const OrthancPeerParameters& peer);
+    static void UpdatePeer(const OrthancPeerParameters& peer);
 
-  void RemovePeer(const std::string& symbolicName);
+    static void RemovePeer(const std::string& symbolicName);
+  };
 }

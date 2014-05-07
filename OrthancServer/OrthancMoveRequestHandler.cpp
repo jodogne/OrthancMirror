@@ -67,7 +67,7 @@ namespace Orthanc
           instances_.push_back(*it);
         }
 
-        remote_ = GetModalityUsingAet(aet);
+        remote_ = Configuration::GetModalityUsingAet(aet);
       }
 
       virtual unsigned int GetSubOperationCount() const

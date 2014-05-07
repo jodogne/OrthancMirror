@@ -1497,7 +1497,7 @@ namespace Orthanc
 
   void ServerIndex::UnstableResourcesMonitorThread(ServerIndex* that)
   {
-    int stableAge = GetGlobalIntegerParameter("StableAge", 60);
+    int stableAge = Configuration::GetGlobalIntegerParameter("StableAge", 60);
     if (stableAge <= 0)
     {
       stableAge = 60;

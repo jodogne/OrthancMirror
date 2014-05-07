@@ -414,7 +414,7 @@ namespace Orthanc
       return true;
     }
 
-    return Orthanc::IsSameAETitle(aet, GetApplicationEntityTitle());
+    return Configuration::IsSameAETitle(aet, GetApplicationEntityTitle());
   }
 
 }

@@ -194,8 +194,8 @@ namespace Orthanc
 
 
 
-  std::string GetGlobalStringParameter(const std::string& parameter,
-                                       const std::string& defaultValue)
+  std::string Configuration::GetGlobalStringParameter(const std::string& parameter,
+                                                      const std::string& defaultValue)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
@@ -210,8 +210,8 @@ namespace Orthanc
   }
 
 
-  int GetGlobalIntegerParameter(const std::string& parameter,
-                                int defaultValue)
+  int Configuration::GetGlobalIntegerParameter(const std::string& parameter,
+                                               int defaultValue)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
@@ -225,8 +225,9 @@ namespace Orthanc
     }
   }
 
-  bool GetGlobalBoolParameter(const std::string& parameter,
-                              bool defaultValue)
+
+  bool Configuration::GetGlobalBoolParameter(const std::string& parameter,
+                                             bool defaultValue)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
@@ -241,10 +242,8 @@ namespace Orthanc
   }
 
 
-
-
-  void GetDicomModalityUsingSymbolicName(RemoteModalityParameters& modality,
-                                         const std::string& name)
+  void Configuration::GetDicomModalityUsingSymbolicName(RemoteModalityParameters& modality,
+                                                        const std::string& name)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
@@ -274,8 +273,8 @@ namespace Orthanc
 
 
 
-  void GetOrthancPeer(OrthancPeerParameters& peer,
-                      const std::string& name)
+  void Configuration::GetOrthancPeer(OrthancPeerParameters& peer,
+                                     const std::string& name)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
@@ -344,7 +343,7 @@ namespace Orthanc
   }
 
 
-  void GetListOfDicomModalities(std::set<std::string>& target)
+  void Configuration::GetListOfDicomModalities(std::set<std::string>& target)
   {
     if (!ReadKeys(target, "DicomModalities", true))
     {
@@ -353,7 +352,7 @@ namespace Orthanc
   }
 
 
-  void GetListOfOrthancPeers(std::set<std::string>& target)
+  void Configuration::GetListOfOrthancPeers(std::set<std::string>& target)
   {
     if (!ReadKeys(target, "OrthancPeers", true))
     {
@@ -363,7 +362,7 @@ namespace Orthanc
 
 
 
-  void SetupRegisteredUsers(MongooseServer& httpServer)
+  void Configuration::SetupRegisteredUsers(MongooseServer& httpServer)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
@@ -390,8 +389,8 @@ namespace Orthanc
   }
 
 
-  std::string InterpretRelativePath(const std::string& baseDirectory,
-                                    const std::string& relativePath)
+  std::string Configuration::InterpretRelativePath(const std::string& baseDirectory,
+                                                   const std::string& relativePath)
   {
     boost::filesystem::path base(baseDirectory);
     boost::filesystem::path relative(relativePath);
@@ -416,15 +415,15 @@ namespace Orthanc
     }
   }
 
-  std::string InterpretStringParameterAsPath(const std::string& parameter)
+  std::string Configuration::InterpretStringParameterAsPath(const std::string& parameter)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
     return InterpretRelativePath(defaultDirectory_.string(), parameter);
   }
 
 
-  void GetGlobalListOfStringsParameter(std::list<std::string>& target,
-                                       const std::string& key)
+  void Configuration::GetGlobalListOfStringsParameter(std::list<std::string>& target,
+                                                      const std::string& key)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
@@ -449,8 +448,8 @@ namespace Orthanc
   }
 
 
-  bool IsSameAETitle(const std::string& aet1,
-                     const std::string& aet2)
+  bool Configuration::IsSameAETitle(const std::string& aet1,
+                                    const std::string& aet2)
   {
     if (GetGlobalBoolParameter("StrictAetComparison", false))
     {
@@ -468,8 +467,8 @@ namespace Orthanc
   }
 
 
-  bool LookupDicomModalityUsingAETitle(RemoteModalityParameters& modality,
-                                       const std::string& aet)
+  bool Configuration::LookupDicomModalityUsingAETitle(RemoteModalityParameters& modality,
+                                                      const std::string& aet)
   {
     std::set<std::string> modalities;
     GetListOfDicomModalities(modalities);
@@ -495,14 +494,14 @@ namespace Orthanc
   }
 
 
-  bool IsKnownAETitle(const std::string& aet)
+  bool Configuration::IsKnownAETitle(const std::string& aet)
   {
     RemoteModalityParameters modality;
     return LookupDicomModalityUsingAETitle(modality, aet);
   }
 
 
-  RemoteModalityParameters GetModalityUsingSymbolicName(const std::string& name)
+  RemoteModalityParameters Configuration::GetModalityUsingSymbolicName(const std::string& name)
   {
     RemoteModalityParameters modality;
     GetDicomModalityUsingSymbolicName(modality, name);
@@ -511,7 +510,7 @@ namespace Orthanc
   }
 
 
-  RemoteModalityParameters GetModalityUsingAet(const std::string& aet)
+  RemoteModalityParameters Configuration::GetModalityUsingAet(const std::string& aet)
   {
     RemoteModalityParameters modality;
 
@@ -526,7 +525,7 @@ namespace Orthanc
   }
 
 
-  void UpdateModality(const RemoteModalityParameters& modality)
+  void Configuration::UpdateModality(const RemoteModalityParameters& modality)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
@@ -549,7 +548,7 @@ namespace Orthanc
   }
   
 
-  void RemoveModality(const std::string& symbolicName)
+  void Configuration::RemoveModality(const std::string& symbolicName)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
@@ -568,7 +567,7 @@ namespace Orthanc
   }
 
 
-  void UpdatePeer(const OrthancPeerParameters& peer)
+  void Configuration::UpdatePeer(const OrthancPeerParameters& peer)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
@@ -591,7 +590,7 @@ namespace Orthanc
   }
   
 
-  void RemovePeer(const std::string& symbolicName)
+  void Configuration::RemovePeer(const std::string& symbolicName)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 

@@ -52,7 +52,7 @@ namespace Orthanc
     Json::Value result = Json::objectValue;
 
     result["Version"] = ORTHANC_VERSION;
-    result["Name"] = GetGlobalStringParameter("Name", "");
+    result["Name"] = Configuration::GetGlobalStringParameter("Name", "");
 
     call.GetOutput().AnswerJson(result);
   }
