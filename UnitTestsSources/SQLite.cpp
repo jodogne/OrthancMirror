@@ -18,9 +18,9 @@ TEST(SQLite, Configuration)
 
 TEST(SQLite, Connection)
 {
-  Toolbox::RemoveFile("coucou");
+  Toolbox::RemoveFile("UnitTestsResults/coucou");
   SQLite::Connection c;
-  c.Open("coucou");
+  c.Open("UnitTestsResults/coucou");
   c.Execute("CREATE TABLE c(k INTEGER PRIMARY KEY AUTOINCREMENT, v INTEGER)");
   c.Execute("INSERT INTO c VALUES(NULL, 42);");
 }

@@ -126,5 +126,7 @@ namespace Orthanc
     void DecodeDataUriScheme(std::string& mime,
                              std::string& content,
                              const std::string& source);
+
+    void CreateDirectory(const std::string& path);
   }
 }

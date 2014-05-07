@@ -824,5 +824,23 @@ namespace Orthanc
     }
   }
 
+
+  void Toolbox::CreateDirectory(const std::string& path)
+  {
+    if (boost::filesystem::exists(path))
+    {
+      if (!boost::filesystem::is_directory(path))
+      {
+        throw OrthancException("Cannot create the directory over an existing file: " + path);
+      }
+    }
+    else
+    {
+      if (!boost::filesystem::create_directories(path))
+      {
+        throw OrthancException("Unable to create the directory: " + path);
+      }
+    }
+  }
 }
 

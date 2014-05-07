@@ -78,25 +78,10 @@ namespace Orthanc
 
   FileStorage::FileStorage(std::string root)
   {
-    namespace fs = boost::filesystem;
-
     //root_ = boost::filesystem::absolute(root).string();
     root_ = root;
 
-    if (fs::exists(root))
-    {
-      if (!fs::is_directory(root))
-      {
-        throw OrthancException("The file storage root directory is a file");
-      }
-    }
-    else
-    {
-      if (!fs::create_directories(root))
-      {
-        throw OrthancException("Unable to create the file storage root directory");
-      }
-    }
+    Toolbox::CreateDirectory(root);
   }
 
   std::string FileStorage::CreateFileWithoutCompression(const void* content, size_t size)
