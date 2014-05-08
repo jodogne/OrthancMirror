@@ -532,7 +532,7 @@ namespace Orthanc
 
     if (!configuration_->isMember("DicomModalities"))
     {
-      throw OrthancException(ErrorCode_BadFileFormat);
+      (*configuration_) ["DicomModalities"] = Json::objectValue;
     }
 
     Json::Value& modalities = (*configuration_) ["DicomModalities"];
@@ -575,7 +575,7 @@ namespace Orthanc
 
     if (!configuration_->isMember("OrthancPeers"))
     {
-      throw OrthancException(ErrorCode_BadFileFormat);
+      (*configuration_) ["OrthancPeers"] = Json::objectValue;
     }
 
     Json::Value& peers = (*configuration_) ["OrthancPeers"];
