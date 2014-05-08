@@ -473,6 +473,7 @@ namespace Orthanc
       RemoteModalityParameters modality;
       modality.FromJson(json);
       Configuration::UpdateModality(call.GetUriComponent("id", ""), modality);
+      call.GetOutput().AnswerBuffer("", "text/plain");
     }
   }
 
@@ -480,6 +481,7 @@ namespace Orthanc
   static void DeleteModality(RestApi::DeleteCall& call)
   {
     Configuration::RemoveModality(call.GetUriComponent("id", ""));
+    call.GetOutput().AnswerBuffer("", "text/plain");
   }
 
 
@@ -492,6 +494,7 @@ namespace Orthanc
       OrthancPeerParameters peer;
       peer.FromJson(json);
       Configuration::UpdatePeer(call.GetUriComponent("id", ""), peer);
+      call.GetOutput().AnswerBuffer("", "text/plain");
     }
   }
 
@@ -499,6 +502,7 @@ namespace Orthanc
   static void DeletePeer(RestApi::DeleteCall& call)
   {
     Configuration::RemovePeer(call.GetUriComponent("id", ""));
+    call.GetOutput().AnswerBuffer("", "text/plain");
   }
 
 
