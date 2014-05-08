@@ -525,7 +525,8 @@ namespace Orthanc
   }
 
 
-  void Configuration::UpdateModality(const RemoteModalityParameters& modality)
+  void Configuration::UpdateModality(const std::string& symbolicName,
+                                     const RemoteModalityParameters& modality)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
@@ -540,11 +541,11 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
-    modalities.removeMember(modality.GetName().c_str());
+    modalities.removeMember(symbolicName);
 
     Json::Value v;
     modality.ToJson(v);
-    modalities[modality.GetName()] = v;
+    modalities[symbolicName] = v;
   }
   
 
@@ -567,7 +568,8 @@ namespace Orthanc
   }
 
 
-  void Configuration::UpdatePeer(const OrthancPeerParameters& peer)
+  void Configuration::UpdatePeer(const std::string& symbolicName,
+                                 const OrthancPeerParameters& peer)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
@@ -582,11 +584,11 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
-    peers.removeMember(peer.GetName().c_str());
+    peers.removeMember(symbolicName);
 
     Json::Value v;
     peer.ToJson(v);
-    peers[peer.GetName()] = v;
+    peers[symbolicName] = v;
   }
   
 

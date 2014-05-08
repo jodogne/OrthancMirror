@@ -40,23 +40,12 @@ namespace Orthanc
   class OrthancPeerParameters
   {
   private:
-    std::string name_;
     std::string url_;
     std::string username_;
     std::string password_;
 
   public:
     OrthancPeerParameters();
-
-    const std::string& GetName() const
-    {
-      return name_;
-    }
-
-    void SetName(const std::string& name)
-    {
-      name_ = name;
-    }
 
     const std::string& GetUrl() const
     {

@@ -472,8 +472,7 @@ namespace Orthanc
     {
       RemoteModalityParameters modality;
       modality.FromJson(json);
-      modality.SetName(call.GetUriComponent("id", ""));
-      Configuration::UpdateModality(modality);
+      Configuration::UpdateModality(call.GetUriComponent("id", ""), modality);
     }
   }
 
@@ -492,8 +491,7 @@ namespace Orthanc
     {
       OrthancPeerParameters peer;
       peer.FromJson(json);
-      peer.SetName(call.GetUriComponent("id", ""));
-      Configuration::UpdatePeer(peer);
+      Configuration::UpdatePeer(call.GetUriComponent("id", ""), peer);
     }
   }
 
