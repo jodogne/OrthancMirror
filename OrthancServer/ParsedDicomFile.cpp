@@ -1183,11 +1183,6 @@ namespace Orthanc
         case PixelFormat_Grayscale16:
         case PixelFormat_SignedGrayscale16:
         {
-          /*if (Toolbox::DetectEndianness() != Endianness_Little)
-          {
-            throw OrthancException(ErrorCode_NotImplemented);
-            }*/
-
           memcpy(target, reinterpret_cast<const Uint8*>(accessor.GetConstRow(y)), pitch);
           target += pitch;
           break;
