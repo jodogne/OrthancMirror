@@ -507,7 +507,7 @@ namespace Orthanc
     * The image is graylevel. Each pixel is signed and stored in two bytes.
     *
     **/
-    PixelFormat_SignedGrayscale16 = 3,
+    PixelFormat_SignedGrayscale16 = 4,
     /**
     * @brief Color image in RGB24 format.
     *
@@ -516,19 +516,26 @@ namespace Orthanc
     **/
     PixelFormat_RGB24 = 0,
     /**
+    * @brief Color image in RGBA32 format.
+    *
+    * Color image in RGBA32 format.
+    *
+    **/
+    PixelFormat_RGBA32 = 1,
+    /**
     * @brief Graylevel 8bpp image.
     *
     * The image is graylevel. Each pixel is unsigned and stored in one byte.
     *
     **/
-    PixelFormat_Grayscale8 = 1,
+    PixelFormat_Grayscale8 = 2,
     /**
     * @brief Graylevel, unsigned 16bpp image.
     *
     * The image is graylevel. Each pixel is unsigned and stored in two bytes.
     *
     **/
-    PixelFormat_Grayscale16 = 2
+    PixelFormat_Grayscale16 = 3
   };
 }
 
