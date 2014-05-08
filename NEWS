@@ -1,6 +1,10 @@
 Pending changes in the mainline
 ===============================
 
+
+Version 0.7.5 (2014/05/08)
+==========================
+
 * Dynamic negotiation of SOP classes for C-Store SCU
 * Creation of DICOM instances using the REST API
 * Embedding of images within DICOM instances
