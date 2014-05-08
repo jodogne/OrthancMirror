@@ -6,6 +6,7 @@ Pending changes in the mainline
 * Embedding of images within DICOM instances
 * Adding/removal/modification of remote modalities/peers through REST
 * Reuse of the previous SCU connection to avoid unecessary handshakes
+* Fix problems with anonymization and modification
 * Fix missing licensing terms about reuse of some code from DCMTK
 * Various code refactorings
 
