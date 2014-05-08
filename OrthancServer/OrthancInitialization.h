@@ -91,11 +91,13 @@ namespace Orthanc
 
     static RemoteModalityParameters GetModalityUsingAet(const std::string& aet);
 
-    static void UpdateModality(const RemoteModalityParameters& modality);
+    static void UpdateModality(const std::string& symbolicName,
+                               const RemoteModalityParameters& modality);
 
     static void RemoveModality(const std::string& symbolicName);
 
-    static void UpdatePeer(const OrthancPeerParameters& peer);
+    static void UpdatePeer(const std::string& symbolicName,
+                           const OrthancPeerParameters& peer);
 
     static void RemovePeer(const std::string& symbolicName);
   };

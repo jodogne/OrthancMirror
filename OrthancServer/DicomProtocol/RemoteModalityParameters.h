@@ -44,7 +44,6 @@ namespace Orthanc
     // TODO Use the flyweight pattern for this class
 
   private:
-    std::string name_;
     std::string aet_;
     std::string host_;
     int port_;
@@ -52,16 +51,6 @@ namespace Orthanc
 
   public:
     RemoteModalityParameters();
-
-    const std::string& GetName() const
-    {
-      return name_;
-    }
-
-    void SetName(const std::string& name)
-    {
-      name_ = name;
-    }
 
     const std::string& GetApplicationEntityTitle() const
     {
