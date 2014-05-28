@@ -13,4 +13,9 @@ include_directories(
   ${PLUSTACHE_SOURCES_DIR}
   )
 
+execute_process(
+  COMMAND patch -p0 -i ${CMAKE_SOURCE_DIR}/Resources/CMake/PlustacheConfiguration.patch
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  )
+
 source_group(ThirdParty\\Plustache REGULAR_EXPRESSION ${PLUSTACHE_SOURCES_DIR}/.*)
