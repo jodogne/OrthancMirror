@@ -76,6 +76,7 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/JsonCppConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibPngConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LuaConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibCurlConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/PlustacheConfiguration.cmake)
 
 
 if (${ENABLE_SSL})
@@ -281,6 +282,7 @@ add_executable(UnitTests
   UnitTestsSources/Lua.cpp
   UnitTestsSources/MultiThreading.cpp
   UnitTestsSources/UnitTestsMain.cpp
+  UnitTestsSources/Plustache.cpp
   )
 target_link_libraries(UnitTests ServerLibrary CoreLibrary)
 
