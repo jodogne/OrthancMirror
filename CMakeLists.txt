@@ -146,6 +146,24 @@ set(ORTHANC_SERVER_SOURCES
   )
 
 
+set(ORTHANC_UNIT_TESTS_SOURCES
+  UnitTestsSources/DicomMap.cpp
+  UnitTestsSources/FileStorage.cpp
+  UnitTestsSources/FromDcmtk.cpp
+  UnitTestsSources/MemoryCache.cpp
+  UnitTestsSources/Png.cpp
+  UnitTestsSources/RestApi.cpp
+  UnitTestsSources/SQLite.cpp
+  UnitTestsSources/SQLiteChromium.cpp
+  UnitTestsSources/ServerIndexTests.cpp
+  UnitTestsSources/Versions.cpp
+  UnitTestsSources/Zip.cpp
+  UnitTestsSources/Lua.cpp
+  UnitTestsSources/MultiThreading.cpp
+  UnitTestsSources/UnitTestsMain.cpp
+  )
+
+
 
 #####################################################################
 ## Inclusion of third-party dependencies
@@ -222,7 +240,11 @@ endif()
 
 # Setup precompiled headers for Microsoft Visual Studio
 if (${MSVC})
-  set(ORTHANC_SOURCES ${ORTHANC_CORE_SOURCES} ${ORTHANC_SERVER_SOURCES})
+  set(ORTHANC_SOURCES 
+    ${ORTHANC_CORE_SOURCES} 
+    ${ORTHANC_SERVER_SOURCES} 
+    ${ORTHANC_UNIT_TESTS_SOURCES}
+    )
   ADD_VISUAL_STUDIO_PRECOMPILED_HEADERS("PrecompiledHeaders.h" "Core/PrecompiledHeaders.cpp" ORTHANC_SOURCES)
   list(APPEND ORTHANC_CORE_SOURCES "Core/PrecompiledHeaders.cpp")
 endif()
@@ -290,20 +312,7 @@ add_definitions(-DORTHANC_BUILD_UNIT_TESTS=1)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
 add_executable(UnitTests
   ${GTEST_SOURCES}
-  UnitTestsSources/DicomMap.cpp
-  UnitTestsSources/FileStorage.cpp
-  UnitTestsSources/FromDcmtk.cpp
-  UnitTestsSources/MemoryCache.cpp
-  UnitTestsSources/Png.cpp
-  UnitTestsSources/RestApi.cpp
-  UnitTestsSources/SQLite.cpp
-  UnitTestsSources/SQLiteChromium.cpp
-  UnitTestsSources/ServerIndexTests.cpp
-  UnitTestsSources/Versions.cpp
-  UnitTestsSources/Zip.cpp
-  UnitTestsSources/Lua.cpp
-  UnitTestsSources/MultiThreading.cpp
-  UnitTestsSources/UnitTestsMain.cpp
+  ${ORTHANC_UNIT_TESTS_SOURCES}
   )
 target_link_libraries(UnitTests ServerLibrary CoreLibrary)
 
