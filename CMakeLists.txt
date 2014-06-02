@@ -363,22 +363,7 @@ if (BUILD_CLIENT_LIBRARY)
   endif()
 
   add_library(OrthancClient SHARED
-    ${ORTHANC_ROOT}/Core/OrthancException.cpp
-    ${ORTHANC_ROOT}/Core/Enumerations.cpp
-    ${ORTHANC_ROOT}/Core/Toolbox.cpp
-    ${ORTHANC_ROOT}/Core/HttpClient.cpp
-    ${ORTHANC_ROOT}/Core/MultiThreading/ArrayFilledByThreads.cpp
-    ${ORTHANC_ROOT}/Core/MultiThreading/ThreadedCommandProcessor.cpp
-    ${ORTHANC_ROOT}/Core/MultiThreading/SharedMessageQueue.cpp
-    ${ORTHANC_ROOT}/Core/ImageFormats/ImageAccessor.cpp
-    ${ORTHANC_ROOT}/Core/ImageFormats/ImageBuffer.cpp
-    ${ORTHANC_ROOT}/Core/ImageFormats/PngReader.cpp
-    ${ORTHANC_ROOT}/OrthancCppClient/OrthancConnection.cpp
-    ${ORTHANC_ROOT}/OrthancCppClient/Series.cpp
-    ${ORTHANC_ROOT}/OrthancCppClient/Study.cpp
-    ${ORTHANC_ROOT}/OrthancCppClient/Instance.cpp
-    ${ORTHANC_ROOT}/OrthancCppClient/Patient.cpp
-    ${ORTHANC_ROOT}/OrthancCppClient/SharedLibrary/SharedLibrary.cpp
+    ${ORTHANC_ROOT}/OrthancCppClient/OrthancCppClient.cpp
     ${ORTHANC_ROOT}/Resources/md5/md5.c
     ${ORTHANC_ROOT}/Resources/base64/base64.cpp
     ${ORTHANC_CPP_CLIENT_AUX}
