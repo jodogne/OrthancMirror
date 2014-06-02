@@ -247,7 +247,7 @@ if (${MSVC})
     "PrecompiledHeadersServer.h" "OrthancServer/PrecompiledHeadersServer.cpp" ORTHANC_SERVER_SOURCES)
 
   ADD_VISUAL_STUDIO_PRECOMPILED_HEADERS(
-    "PrecompiledHeadersUnitTests.h" "OrthancUnitTests/PrecompiledHeadersUnitTests.cpp" ORTHANC_UNIT_TESTS_SOURCES)
+    "PrecompiledHeadersUnitTests.h" "UnitTestsSources/PrecompiledHeadersUnitTests.cpp" ORTHANC_UNIT_TESTS_SOURCES)
 endif()
 
 
