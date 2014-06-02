@@ -224,7 +224,7 @@ endif()
 if (${MSVC})
   set(ORTHANC_SOURCES ${ORTHANC_CORE_SOURCES} ${ORTHANC_SERVER_SOURCES})
   ADD_VISUAL_STUDIO_PRECOMPILED_HEADERS("PrecompiledHeaders.h" "Core/PrecompiledHeaders.cpp" ORTHANC_SOURCES)
-  list(APPEND ORTHANC_CORE_SOURCES "Core/PrecompiledHeaders.h")
+  list(APPEND ORTHANC_CORE_SOURCES "Core/PrecompiledHeaders.cpp")
 endif()
 
 
