@@ -47,7 +47,7 @@
 #include <boost/thread/shared_mutex.hpp>
 
 #include <glog/logging.h>
-#include <json/json_value.h>
+#include <json/value.h>
 
 #include "Enumerations.h"
 #include "OrthancException.h"
