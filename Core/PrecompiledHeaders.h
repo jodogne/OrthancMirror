@@ -32,9 +32,11 @@
 
 #pragma once
 
-#define ORTHANC_PRECOMPILED_HEADERS_INCLUDED 1
-
 #if ORTHANC_USE_PRECOMPILED_HEADERS == 1
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem.hpp>
