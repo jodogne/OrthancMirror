@@ -30,6 +30,7 @@
  **/
 
 
+#include "PrecompiledHeadersServer.h"
 #include "ServerIndex.h"
 
 #ifndef NOMINMAX

@@ -30,6 +30,8 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
+
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif

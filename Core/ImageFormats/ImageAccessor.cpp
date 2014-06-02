@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "ImageAccessor.h"
 
 #include "../OrthancException.h"

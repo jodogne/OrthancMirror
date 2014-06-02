@@ -34,6 +34,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "StatementId.h"
 
 #include <string.h>

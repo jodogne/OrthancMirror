@@ -30,6 +30,7 @@
  **/
 
 
+#include "PrecompiledHeaders.h"
 #include "Enumerations.h"
 
 #include "OrthancException.h"

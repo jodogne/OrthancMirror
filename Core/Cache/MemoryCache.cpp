@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "MemoryCache.h"
 
 #include <stdlib.h>  // This fixes a problem in glog for recent

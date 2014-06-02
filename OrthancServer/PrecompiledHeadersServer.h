@@ -30,44 +30,48 @@
  **/
 
 
-#include "../PrecompiledHeaders.h"
-#include "BufferCompressor.h"
+#pragma once
 
-namespace Orthanc
-{
-  void BufferCompressor::Compress(std::string& output,
-                                  const std::vector<uint8_t>& input)
-  {
-    if (input.size() > 0)
-      Compress(output, &input[0], input.size());
-    else
-      Compress(output, NULL, 0);
-  }
+#include "../Core/PrecompiledHeaders.h"
 
-  void BufferCompressor::Uncompress(std::string& output,
-                                    const std::vector<uint8_t>& input)
-  {
-    if (input.size() > 0)
-      Uncompress(output, &input[0], input.size());
-    else
-      Uncompress(output, NULL, 0);
-  }
+#if ORTHANC_USE_PRECOMPILED_HEADERS == 1
 
-  void BufferCompressor::Compress(std::string& output,
-                                  const std::string& input)
-  {
-    if (input.size() > 0)
-      Compress(output, &input[0], input.size());
-    else
-      Compress(output, NULL, 0);
-  }
+// DCMTK
+#include <dcmtk/dcmdata/dcchrstr.h>
+#include <dcmtk/dcmdata/dcdeftag.h>
+#include <dcmtk/dcmdata/dcdicent.h>
+#include <dcmtk/dcmdata/dcdict.h>
+#include <dcmtk/dcmdata/dcfilefo.h>
+#include <dcmtk/dcmdata/dcistrmb.h>
+#include <dcmtk/dcmdata/dcistrmf.h>
+#include <dcmtk/dcmdata/dcmetinf.h>
+#include <dcmtk/dcmdata/dcostrmb.h>
+#include <dcmtk/dcmdata/dcpixel.h>
+#include <dcmtk/dcmdata/dcpixseq.h>
+#include <dcmtk/dcmdata/dcpxitem.h>
+#include <dcmtk/dcmdata/dcuid.h>
+#include <dcmtk/dcmdata/dcvrae.h>
+#include <dcmtk/dcmdata/dcvras.h>
+#include <dcmtk/dcmdata/dcvrcs.h>
+#include <dcmtk/dcmdata/dcvrda.h>
+#include <dcmtk/dcmdata/dcvrds.h>
+#include <dcmtk/dcmdata/dcvrdt.h>
+#include <dcmtk/dcmdata/dcvrfd.h>
+#include <dcmtk/dcmdata/dcvrfl.h>
+#include <dcmtk/dcmdata/dcvris.h>
+#include <dcmtk/dcmdata/dcvrlo.h>
+#include <dcmtk/dcmdata/dcvrlt.h>
+#include <dcmtk/dcmdata/dcvrpn.h>
+#include <dcmtk/dcmdata/dcvrsh.h>
+#include <dcmtk/dcmdata/dcvrsl.h>
+#include <dcmtk/dcmdata/dcvrss.h>
+#include <dcmtk/dcmdata/dcvrst.h>
+#include <dcmtk/dcmdata/dcvrtm.h>
+#include <dcmtk/dcmdata/dcvrui.h>
+#include <dcmtk/dcmdata/dcvrul.h>
+#include <dcmtk/dcmdata/dcvrus.h>
+#include <dcmtk/dcmdata/dcvrut.h>
+#include <dcmtk/dcmnet/dcasccfg.h>
+#include <dcmtk/dcmnet/diutil.h>
 
-  void BufferCompressor::Uncompress(std::string& output,
-                                    const std::string& input)
-  {
-    if (input.size() > 0)
-      Uncompress(output, &input[0], input.size());
-    else
-      Uncompress(output, NULL, 0);
-  }
-}
+#endif

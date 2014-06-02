@@ -72,6 +72,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =========================================================================*/
 
 
+#include "PrecompiledHeadersServer.h"
+
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
