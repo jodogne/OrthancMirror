@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "RestApiPath.h"
 
 #include <cassert>

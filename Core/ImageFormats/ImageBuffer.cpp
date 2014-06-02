@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "ImageBuffer.h"
 
 namespace Orthanc

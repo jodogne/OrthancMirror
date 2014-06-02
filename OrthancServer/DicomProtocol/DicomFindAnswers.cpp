@@ -30,6 +30,7 @@
  **/
 
 
+#include "../../Core/PrecompiledHeaders.h"
 #include "DicomFindAnswers.h"
 
 #include "../FromDcmtkBridge.h"

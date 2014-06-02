@@ -30,6 +30,7 @@
  **/
 
 
+#include "PrecompiledHeaders.h"
 #include "OrthancException.h"
 
 namespace Orthanc

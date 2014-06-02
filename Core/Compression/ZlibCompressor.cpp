@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "ZlibCompressor.h"
 
 #include <stdio.h>

@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "Mutex.h"
 
 #include "../OrthancException.h"

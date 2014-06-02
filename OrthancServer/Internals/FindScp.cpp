@@ -79,6 +79,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 
+#include "../../Core/PrecompiledHeaders.h"
 #include "FindScp.h"
 
 #include "../FromDcmtkBridge.h"

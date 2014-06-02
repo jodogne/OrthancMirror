@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "HttpOutput.h"
 
 #include <iostream>

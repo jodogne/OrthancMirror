@@ -30,6 +30,7 @@
  **/
 
 
+#include "PrecompiledHeaders.h"
 #include "ChunkedBuffer.h"
 
 #include <cassert>

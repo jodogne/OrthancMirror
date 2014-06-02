@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "HierarchicalZipWriter.h"
 
 #include "../Toolbox.h"

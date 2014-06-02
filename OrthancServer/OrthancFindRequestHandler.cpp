@@ -29,6 +29,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
+
+#include "../Core/PrecompiledHeaders.h"
 #include "OrthancFindRequestHandler.h"
 
 #include <glog/logging.h>

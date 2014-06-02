@@ -30,6 +30,7 @@
  **/
 
 
+#include "../../Core/PrecompiledHeaders.h"
 #include "OrthancRestApi.h"
 
 #include "../OrthancInitialization.h"
