@@ -30,7 +30,7 @@
  **/
 
 
-#include "../../Core/PrecompiledHeaders.h"
+#include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
 #include "../../Core/Compression/HierarchicalZipWriter.h"

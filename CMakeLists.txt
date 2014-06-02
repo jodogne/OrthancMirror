@@ -240,10 +240,14 @@ endif()
 
 # Setup precompiled headers for Microsoft Visual Studio
 if (${MSVC})
-  add_definitions(-DORTHANC_USE_PRECOMPILED_HEADERS=1)
-  ADD_VISUAL_STUDIO_PRECOMPILED_HEADERS("PrecompiledHeaders.h" "Core/PrecompiledHeaders.cpp" ORTHANC_CORE_SOURCES)
-  ADD_VISUAL_STUDIO_PRECOMPILED_HEADERS("PrecompiledHeaders.h" "Core/PrecompiledHeaders.cpp" ORTHANC_SERVER_SOURCES)
-  ADD_VISUAL_STUDIO_PRECOMPILED_HEADERS("PrecompiledHeaders.h" "Core/PrecompiledHeaders.cpp" ORTHANC_UNIT_TESTS_SOURCES)
+  ADD_VISUAL_STUDIO_PRECOMPILED_HEADERS(
+    "PrecompiledHeaders.h" "Core/PrecompiledHeaders.cpp" ORTHANC_CORE_SOURCES)
+
+  ADD_VISUAL_STUDIO_PRECOMPILED_HEADERS(
+    "PrecompiledHeadersServer.h" "Core/PrecompiledHeadersServer.cpp" ORTHANC_SERVER_SOURCES)
+
+  ADD_VISUAL_STUDIO_PRECOMPILED_HEADERS(
+    "PrecompiledHeadersUnitTests.h" "Core/PrecompiledHeadersUnitTests.cpp" ORTHANC_UNIT_TESTS_SOURCES)
 endif()
 
 

@@ -30,7 +30,7 @@
  **/
 
 
-#include "../Core/PrecompiledHeaders.h"
+#include "PrecompiledHeadersServer.h"
 #include "OrthancPeerParameters.h"
 
 #include "../Core/OrthancException.h"

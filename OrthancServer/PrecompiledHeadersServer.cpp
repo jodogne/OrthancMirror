@@ -30,38 +30,4 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
-#include "DicomFindAnswers.h"
-
-#include "../FromDcmtkBridge.h"
-
-namespace Orthanc
-{
-  void DicomFindAnswers::Clear()
-  {
-    for (size_t i = 0; i < items_.size(); i++)
-    {
-      delete items_[i];
-    }
-  }
-
-  void DicomFindAnswers::Reserve(size_t size)
-  {
-    if (size > items_.size())
-    {
-      items_.reserve(size);
-    }
-  }
-
-  void DicomFindAnswers::ToJson(Json::Value& target) const
-  {
-    target = Json::arrayValue;
-
-    for (size_t i = 0; i < GetSize(); i++)
-    {
-      Json::Value answer(Json::objectValue);
-      FromDcmtkBridge::ToJson(answer, GetAnswer(i));
-      target.append(answer);
-    }
-  }
-}
+#include "PrecompiledHeadersServer.h"
