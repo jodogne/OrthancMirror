@@ -34,6 +34,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "StatementReference.h"
 
 #include "../OrthancException.h"

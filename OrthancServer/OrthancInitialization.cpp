@@ -30,6 +30,7 @@
  **/
 
 
+#include "PrecompiledHeadersServer.h"
 #include "OrthancInitialization.h"
 
 #include "../Core/HttpClient.h"

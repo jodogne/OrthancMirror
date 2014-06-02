@@ -30,44 +30,11 @@
  **/
 
 
-#include "../PrecompiledHeaders.h"
-#include "BufferCompressor.h"
+#pragma once
 
-namespace Orthanc
-{
-  void BufferCompressor::Compress(std::string& output,
-                                  const std::vector<uint8_t>& input)
-  {
-    if (input.size() > 0)
-      Compress(output, &input[0], input.size());
-    else
-      Compress(output, NULL, 0);
-  }
+#include "../OrthancServer/PrecompiledHeadersServer.h"
 
-  void BufferCompressor::Uncompress(std::string& output,
-                                    const std::vector<uint8_t>& input)
-  {
-    if (input.size() > 0)
-      Uncompress(output, &input[0], input.size());
-    else
-      Uncompress(output, NULL, 0);
-  }
-
-  void BufferCompressor::Compress(std::string& output,
-                                  const std::string& input)
-  {
-    if (input.size() > 0)
-      Compress(output, &input[0], input.size());
-    else
-      Compress(output, NULL, 0);
-  }
-
-  void BufferCompressor::Uncompress(std::string& output,
-                                    const std::string& input)
-  {
-    if (input.size() > 0)
-      Uncompress(output, &input[0], input.size());
-    else
-      Uncompress(output, NULL, 0);
-  }
-}
+#if ORTHANC_USE_PRECOMPILED_HEADERS == 1
+#include "../Core/EnumerationDictionary.h"
+#include <gtest/gtest.h>
+#endif

@@ -78,6 +78,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =========================================================================*/
 
 
+#include "../PrecompiledHeadersServer.h"
 #include "DicomUserConnection.h"
 
 #include "../../Core/OrthancException.h"

@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "FileStorage.h"
 
 // http://stackoverflow.com/questions/1576272/storing-large-number-of-files-in-file-system

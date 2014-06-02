@@ -30,6 +30,7 @@
  **/
 
 
+#include "PrecompiledHeadersServer.h"
 #include "ServerContext.h"
 
 #include "../Core/HttpServer/FilesystemHttpSender.h"

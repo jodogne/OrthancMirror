@@ -30,44 +30,23 @@
  **/
 
 
-#include "../PrecompiledHeaders.h"
-#include "BufferCompressor.h"
+/**
+ * The sources of the C++ client library must be put in this file to
+ * avoid problems with precompiled headers.
+ **/
 
-namespace Orthanc
-{
-  void BufferCompressor::Compress(std::string& output,
-                                  const std::vector<uint8_t>& input)
-  {
-    if (input.size() > 0)
-      Compress(output, &input[0], input.size());
-    else
-      Compress(output, NULL, 0);
-  }
-
-  void BufferCompressor::Uncompress(std::string& output,
-                                    const std::vector<uint8_t>& input)
-  {
-    if (input.size() > 0)
-      Uncompress(output, &input[0], input.size());
-    else
-      Uncompress(output, NULL, 0);
-  }
-
-  void BufferCompressor::Compress(std::string& output,
-                                  const std::string& input)
-  {
-    if (input.size() > 0)
-      Compress(output, &input[0], input.size());
-    else
-      Compress(output, NULL, 0);
-  }
-
-  void BufferCompressor::Uncompress(std::string& output,
-                                    const std::string& input)
-  {
-    if (input.size() > 0)
-      Uncompress(output, &input[0], input.size());
-    else
-      Uncompress(output, NULL, 0);
-  }
-}
+#include "../Core/Enumerations.cpp"
+#include "../Core/HttpClient.cpp"
+#include "../Core/ImageFormats/ImageAccessor.cpp"
+#include "../Core/ImageFormats/ImageBuffer.cpp"
+#include "../Core/ImageFormats/PngReader.cpp"
+#include "../Core/MultiThreading/ArrayFilledByThreads.cpp"
+#include "../Core/MultiThreading/SharedMessageQueue.cpp"
+#include "../Core/MultiThreading/ThreadedCommandProcessor.cpp"
+#include "../Core/OrthancException.cpp"
+#include "../Core/Toolbox.cpp"
+#include "../OrthancCppClient/Instance.cpp"
+#include "../OrthancCppClient/OrthancConnection.cpp"
+#include "../OrthancCppClient/Patient.cpp"
+#include "../OrthancCppClient/Series.cpp"
+#include "../OrthancCppClient/Study.cpp"

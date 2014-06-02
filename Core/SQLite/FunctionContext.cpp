@@ -31,6 +31,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "FunctionContext.h"
 
 #include <sqlite3.h>
