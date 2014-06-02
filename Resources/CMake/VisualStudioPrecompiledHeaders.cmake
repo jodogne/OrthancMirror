@@ -8,7 +8,7 @@ macro(ADD_VISUAL_STUDIO_PRECOMPILED_HEADERS PrecompiledHeaders PrecompiledSource
 
   set_source_files_properties(${${Sources}}
     PROPERTIES COMPILE_FLAGS "/Yu\"${PrecompiledHeaders}\" /FI\"${PrecompiledHeaders}\" /Fp\"${PrecompiledBinary}\""
-    OBJECT_DEPENDS "${PrecompiledBinary}")  
+    OBJECT_DEPENDS "${PrecompiledBinary}")
 
-  add_definitions(-DORTHANC_USE_PRECOMPILED_HEADERS=1)
+  list(APPEND ${Sources} ${PrecompiledSource})
 endmacro()
