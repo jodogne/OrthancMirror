@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "ReaderWriterLock.h"
 
 #include <boost/thread/shared_mutex.hpp>

@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "DicomTag.h"
 
 #include "../OrthancException.h"

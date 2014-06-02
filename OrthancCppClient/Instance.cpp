@@ -30,6 +30,7 @@
  **/
 
 
+#include "../Core/PrecompiledHeaders.h"
 #include "Instance.h"
 
 #include "OrthancConnection.h"

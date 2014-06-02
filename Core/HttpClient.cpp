@@ -30,6 +30,7 @@
  **/
 
 
+#include "PrecompiledHeaders.h"
 #include "HttpClient.h"
 
 #include "../Core/Toolbox.h"

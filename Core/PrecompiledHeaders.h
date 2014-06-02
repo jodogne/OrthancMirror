@@ -30,44 +30,23 @@
  **/
 
 
-#include "../PrecompiledHeaders.h"
-#include "BufferCompressor.h"
+#pragma once
 
-namespace Orthanc
-{
-  void BufferCompressor::Compress(std::string& output,
-                                  const std::vector<uint8_t>& input)
-  {
-    if (input.size() > 0)
-      Compress(output, &input[0], input.size());
-    else
-      Compress(output, NULL, 0);
-  }
+#define ORTHANC_PRECOMPILED_HEADERS_INCLUDED 1
 
-  void BufferCompressor::Uncompress(std::string& output,
-                                    const std::vector<uint8_t>& input)
-  {
-    if (input.size() > 0)
-      Uncompress(output, &input[0], input.size());
-    else
-      Uncompress(output, NULL, 0);
-  }
+#if ORTHANC_USE_PRECOMPILED_HEADERS == 1
 
-  void BufferCompressor::Compress(std::string& output,
-                                  const std::string& input)
-  {
-    if (input.size() > 0)
-      Compress(output, &input[0], input.size());
-    else
-      Compress(output, NULL, 0);
-  }
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/locale.hpp>
+#include <boost/regex.hpp>
+#include <boost/thread.hpp>
+#include <boost/thread/shared_mutex.hpp>
 
-  void BufferCompressor::Uncompress(std::string& output,
-                                    const std::string& input)
-  {
-    if (input.size() > 0)
-      Uncompress(output, &input[0], input.size());
-    else
-      Uncompress(output, NULL, 0);
-  }
-}
+#include "Enumerations.h"
+#include "OrthancException.h"
+#include "Toolbox.h"
+#include "Uuid.h"
+
+#endif

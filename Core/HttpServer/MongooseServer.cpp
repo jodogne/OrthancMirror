@@ -32,6 +32,7 @@
 
 // http://en.highscore.de/cpp/boost/stringhandling.html
 
+#include "../PrecompiledHeaders.h"
 #include "MongooseServer.h"
 
 #include <algorithm>

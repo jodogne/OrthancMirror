@@ -30,6 +30,7 @@
  **/
 
 
+#include "../../Core/PrecompiledHeaders.h"
 #include "RemoteModalityParameters.h"
 
 #include "../../Core/OrthancException.h"

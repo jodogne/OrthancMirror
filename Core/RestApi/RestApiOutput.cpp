@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "RestApiOutput.h"
 
 #include <boost/lexical_cast.hpp>

@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "BagOfRunnablesBySteps.h"
 
 #include <stack>

@@ -30,6 +30,7 @@
  **/
 
 
+#include "../../Core/PrecompiledHeaders.h"
 #include "ReusableDicomUserConnection.h"
 
 #include "../../Core/OrthancException.h"
