@@ -30,7 +30,7 @@
  **/
 
 
-#include "../Core/PrecompiledHeaders.h"
+#include "PrecompiledHeadersUnitTests.h"
 #include "../Core/EnumerationDictionary.h"
 
 #include "gtest/gtest.h"

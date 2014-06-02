@@ -30,7 +30,7 @@
  **/
 
 
-#include "../Core/PrecompiledHeaders.h"
+#include "PrecompiledHeadersServer.h"
 #include "DatabaseWrapper.h"
 
 #include "../Core/DicomFormat/DicomArray.h"
