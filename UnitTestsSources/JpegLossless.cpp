@@ -33,10 +33,16 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
-#include <dcmjpls/djdecode.h>
+#include <dcmtk/dcmjpls/djlsutil.h>
+#include <dcmtk/dcmjpls/djdecode.h>
+
+#include "../Core/Toolbox.h"
 
 using namespace Orthanc;
 
 TEST(JpegLossless, Basic)
 {
+  DJLSDecoderRegistration::registerCodecs(EJLSUC_default /*opt_uidcreation*/, EJLSPC_restore /*opt_planarconfig*/, OFFalse /*opt_ignoreOffsetTable*/);
+
+  DJLSDecoderRegistration::cleanup();
 }
