@@ -56,6 +56,8 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       ${DCMTK_SOURCES_DIR}/dcmjpls/include
       ${DCMTK_SOURCES_DIR}/dcmjpls/libcharls
       )
+    list(REMOVE_ITEM DCMTK_SOURCES 
+      ${DCMTK_SOURCES_DIR}/dcmjpls/libsrc/djcodece.cc)
   endif()
 
 
