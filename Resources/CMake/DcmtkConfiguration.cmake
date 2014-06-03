@@ -49,6 +49,16 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmdata/libsrc DCMTK_SOURCES)
   AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/ofstd/libsrc DCMTK_SOURCES)
 
+  if (ENABLE_JPEG_LOSSLESS)
+    AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmjpls/libsrc DCMTK_SOURCES)
+    AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmjpls/libcharls DCMTK_SOURCES)
+    include_directories(
+      ${DCMTK_SOURCES_DIR}/dcmjpls/include
+      ${DCMTK_SOURCES_DIR}/dcmjpls/libcharls
+      )
+  endif()
+
+
   # Source for the logging facility of DCMTK
   AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/oflog/libsrc DCMTK_SOURCES)
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
