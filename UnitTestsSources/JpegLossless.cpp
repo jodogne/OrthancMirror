@@ -37,14 +37,69 @@
 
 #include <dcmtk/dcmjpls/djlsutil.h>
 #include <dcmtk/dcmjpls/djdecode.h>
+#include <dcmtk/dcmdata/dcfilefo.h>
 
-#include "../Core/Toolbox.h"
+#include <dcmtk/dcmjpls/djcodecd.h>
+
+#include "../OrthancServer/ParsedDicomFile.h"
+#include "../OrthancServer/FromDcmtkBridge.h"
 
 using namespace Orthanc;
 
 TEST(JpegLossless, Basic)
 {
-  DJLSDecoderRegistration::registerCodecs(EJLSUC_default /*opt_uidcreation*/, EJLSPC_restore /*opt_planarconfig*/, OFFalse /*opt_ignoreOffsetTable*/);
+  DJLSDecoderRegistration::registerCodecs( EJLSUC_default, EJLSPC_restore,OFFalse );
+
+#if 0
+  std::string s;
+  Toolbox::ReadFile(s, "IM-0001-1001-0001.dcm");
+
+  ParsedDicomFile parsed(s);
+  DcmFileFormat& dicom = *reinterpret_cast<DcmFileFormat*>(parsed.GetDcmtkObject());
+
+  DcmDataset* dataset = dicom.getDataset();
+
+  dataset->chooseRepresentation(EXS_LittleEndianExplicit, NULL);
+
+  if (dataset->canWriteXfer(EXS_LittleEndianExplicit))
+  {
+    printf("ICI\n");
+
+    parsed.SaveToFile("tutu.dcm");
+
+    FromDcmtkBridge::ExtractPngImage(s, *dataset, 1, ImageExtractionMode_Preview);
+    //fileformat.saveFile("test_decompressed.dcm", EXS_LittleEndianExplicit);
+  }
+#else
+  DcmFileFormat fileformat;
+  if (fileformat.loadFile("IM-0001-1001-0001.dcm").good())
+  {
+    DcmDataset *dataset = fileformat.getDataset();
+
+    // decompress data set if compressed
+    dataset->chooseRepresentation(EXS_LittleEndianExplicit, NULL);
+
+    DcmXfer original_xfer(dataset->getOriginalXfer());
+    std::cout << original_xfer.getXferName() << std::endl;
+
+    printf("OK1\n");
+
+    // check if everything went well
+    if (1) //dataset->canWriteXfer(EXS_LittleEndianExplicit))
+    {
+      printf("OK2\n");
+
+      fileformat.saveFile("tutu.dcm", EXS_LittleEndianExplicit);
+    }
+  }
+
+
+#endif
+
+
+  // http://support.dcmtk.org/docs/classDJLSLosslessDecoder.html
+  //DJLSDecoderBase b;
+  DJLSLosslessDecoder bb;
 
   DJLSDecoderRegistration::cleanup();
 }
