@@ -33,6 +33,8 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
+#if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
+
 #include <dcmtk/dcmjpls/djlsutil.h>
 #include <dcmtk/dcmjpls/djdecode.h>
 
@@ -46,3 +48,6 @@ TEST(JpegLossless, Basic)
 
   DJLSDecoderRegistration::cleanup();
 }
+
+
+#endif

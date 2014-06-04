@@ -162,14 +162,8 @@ set(ORTHANC_UNIT_TESTS_SOURCES
   UnitTestsSources/Lua.cpp
   UnitTestsSources/MultiThreading.cpp
   UnitTestsSources/UnitTestsMain.cpp
+  UnitTestsSources/JpegLossless.cpp
   )
-
-
-if (ENABLE_JPEG_LOSSLESS)
-  list(APPEND ORTHANC_UNIT_TESTS_SOURCES
-    UnitTestsSources/JpegLossless.cpp
-    )
-endif()
 
 
 
