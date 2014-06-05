@@ -45,6 +45,17 @@
 #include <boost/thread.hpp>
 #include <glog/logging.h>
 
+
+#if ORTHANC_JPEG_ENABLED == 1
+#include <dcmtk/dcmjpeg/djdecode.h>
+#endif
+
+
+#if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
+#include <dcmtk/dcmjpls/djdecode.h>
+#endif
+
+
 namespace Orthanc
 {
   static boost::mutex globalMutex_;
@@ -182,6 +193,16 @@ namespace Orthanc
     RegisterUserContentType();
 
     DicomServer::InitializeDictionary();
+
+#if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
+    LOG(WARNING) << "Registering JPEG Lossless codecs";
+    DJLSDecoderRegistration::registerCodecs();    
+#endif
+
+#if ORTHANC_JPEG_ENABLED == 1
+    LOG(WARNING) << "Registering JPEG codecs";
+    DJDecoderRegistration::registerCodecs(); 
+#endif
   }
 
 
@@ -191,6 +212,16 @@ namespace Orthanc
     boost::mutex::scoped_lock lock(globalMutex_);
     HttpClient::GlobalFinalize();
     configuration_.reset(NULL);
+
+#if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
+    // Unregister JPEG-LS codecs
+    DJLSDecoderRegistration::cleanup();
+#endif
+
+#if ORTHANC_JPEG_ENABLED == 1
+    // Unregister JPEG codecs
+    DJDecoderRegistration::cleanup();
+#endif
   }
 
 

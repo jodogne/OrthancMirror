@@ -49,8 +49,6 @@ using namespace Orthanc;
 
 TEST(JpegLossless, Basic)
 {
-  //DJLSDecoderRegistration::registerCodecs( EJLSUC_default, EJLSPC_restore,OFFalse );
-
 #if 0
   // Fallback
 
@@ -89,7 +87,8 @@ TEST(JpegLossless, Basic)
     ASSERT_TRUE(DicomImageDecoder::IsJpegLossless(dataset));
 
     ImageBuffer image;
-    DicomImageDecoder::DecodeJpegLossless(image, dataset);
+    //DicomImageDecoder::DecodeJpegLossless(image, dataset, 0);
+    DicomImageDecoder::Decode(image, dataset, 0);
 
     ImageAccessor accessor(image.GetAccessor());
 
@@ -108,9 +107,6 @@ TEST(JpegLossless, Basic)
   }
 
 #endif
-
-
-  //DJLSDecoderRegistration::cleanup();
 }
 
 

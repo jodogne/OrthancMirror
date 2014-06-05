@@ -78,14 +78,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "../../Core/OrthancException.h"
+#include "../../Core/DicomFormat/DicomIntegerPixelAccessor.h"
 #include "../ToDcmtkBridge.h"
+#include "../FromDcmtkBridge.h"
 
-#include <dcmtk/dcmjpls/djcodecd.h>
-#include <dcmtk/dcmjpls/djcparam.h>
-#include <dcmtk/dcmjpeg/djrplol.h>
+#include <glog/logging.h>
+
 #include <boost/lexical_cast.hpp>
 
 #if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
+#include <dcmtk/dcmjpls/djcodecd.h>
+#include <dcmtk/dcmjpls/djcparam.h>
+#include <dcmtk/dcmjpeg/djrplol.h>
 #endif
 
 
@@ -274,9 +278,183 @@ namespace Orthanc
   }
 
 
+  bool DicomImageDecoder::IsUncompressedImage(const DcmDataset& dataset)
+  {
+    return (dataset.getOriginalXfer() == EXS_Unknown ||
+            dataset.getOriginalXfer() == EXS_LittleEndianImplicit ||
+            dataset.getOriginalXfer() == EXS_BigEndianImplicit ||
+            dataset.getOriginalXfer() == EXS_LittleEndianExplicit ||
+            dataset.getOriginalXfer() == EXS_BigEndianExplicit);
+  }
+
+
+  template <typename PixelType>
+  static void CopyPixels(ImageAccessor& target,
+                         const DicomIntegerPixelAccessor& source)
+  {
+    const PixelType minValue = std::numeric_limits<PixelType>::min();
+    const PixelType maxValue = std::numeric_limits<PixelType>::max();
+
+    for (unsigned int y = 0; y < source.GetHeight(); y++)
+    {
+      PixelType* pixel = reinterpret_cast<PixelType*>(target.GetRow(y));
+      for (unsigned int x = 0; x < source.GetWidth(); x++)
+      {
+        for (unsigned int c = 0; c < source.GetChannelCount(); c++, pixel++)
+        {
+          int32_t v = source.GetValue(x, y, c);
+          if (v < static_cast<int32_t>(minValue))
+          {
+            *pixel = minValue;
+          }
+          else if (v > static_cast<int32_t>(maxValue))
+          {
+            *pixel = maxValue;
+          }
+          else
+          {
+            *pixel = static_cast<PixelType>(v);
+          }
+        }
+      }
+    }
+  }
+
+
+  void DicomImageDecoder::DecodeUncompressedImage(ImageBuffer& target,
+                                                  DcmDataset& dataset,
+                                                  unsigned int frame)
+  {
+    if (!IsUncompressedImage(dataset))
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+
+    DecodeUncompressedImageInternal(target, dataset, frame);
+  }
+
+
+  void DicomImageDecoder::DecodeUncompressedImageInternal(ImageBuffer& target,
+                                                          DcmDataset& dataset,
+                                                          unsigned int frame)
+  {
+    // See also: http://support.dcmtk.org/wiki/dcmtk/howto/accessing-compressed-data
+
+    std::auto_ptr<DicomIntegerPixelAccessor> source;
+
+    DicomMap m;
+    FromDcmtkBridge::Convert(m, dataset);
+
+
+    /**
+     * Create an accessor to the raw values of the DICOM image.
+     **/
+
+    std::string privateContent;
+
+    DcmElement* e;
+    if (dataset.findAndGetElement(ToDcmtkBridge::Convert(DICOM_TAG_PIXEL_DATA), e).good() &&
+        e != NULL)
+    {
+      Uint8* pixData = NULL;
+      if (e->getUint8Array(pixData) == EC_Normal)
+      {    
+        source.reset(new DicomIntegerPixelAccessor(m, pixData, e->getLength()));
+      }
+    }
+    else if (DicomImageDecoder::DecodePsmctRle1(privateContent, dataset))
+    {
+      LOG(INFO) << "The PMSCT_RLE1 decoding has succeeded";
+      Uint8* pixData = NULL;
+      if (privateContent.size() > 0)
+      {
+        pixData = reinterpret_cast<Uint8*>(&privateContent[0]);
+      }
+
+      source.reset(new DicomIntegerPixelAccessor(m, pixData, privateContent.size()));
+    }
+    
+    if (source.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    source->SetCurrentFrame(frame);
+
+
+    /**
+     * Resize the target image, with some sanity checks.
+     **/
+
+    SetupImageBuffer(target, dataset);
+
+    if (target.GetWidth() != target.GetWidth() ||
+        target.GetHeight() != target.GetHeight())
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    bool ok;
+    switch (target.GetFormat())
+    {
+      case PixelFormat_RGB24:
+        ok = source->GetChannelCount() == 3;
+        break;
+
+      case PixelFormat_RGBA32:
+        ok = source->GetChannelCount() == 4;
+        break;
+
+      case PixelFormat_Grayscale8:
+      case PixelFormat_Grayscale16:
+      case PixelFormat_SignedGrayscale16:
+        ok = source->GetChannelCount() == 1;
+        break;
+
+      default:
+        ok = false;   // (*)
+        break;
+    }
+
+    if (!ok)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+
+    /**
+     * Loop over the DICOM buffer, storing its value into the target
+     * image.
+     **/
+
+    ImageAccessor accessor(target.GetAccessor());
+
+    switch (target.GetFormat())
+    {
+      case PixelFormat_RGB24:
+      case PixelFormat_RGBA32:
+      case PixelFormat_Grayscale8:
+        CopyPixels<uint8_t>(accessor, *source);
+        break;
+
+      case PixelFormat_Grayscale16:
+        CopyPixels<uint16_t>(accessor, *source);
+        break;
+
+      case PixelFormat_SignedGrayscale16:
+        CopyPixels<int16_t>(accessor, *source);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
 #if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
   void DicomImageDecoder::DecodeJpegLossless(ImageBuffer& target,
-                                             DcmDataset& dataset)
+                                             DcmDataset& dataset,
+                                             unsigned int frame)
   {
     if (!IsJpegLossless(dataset))
     {
@@ -315,7 +493,7 @@ namespace Orthanc
     OFString decompressedColorModel;  // Out
     DJ_RPLossless representationParameter;
     OFCondition c = decoder.decodeFrame(&representationParameter, pixelSequence, &parameters, 
-                                        &dataset, 0, startFragment, accessor.GetBuffer(), 
+                                        &dataset, frame, startFragment, accessor.GetBuffer(), 
                                         accessor.GetSize(), decompressedColorModel);
 
     if (!c.good())
@@ -326,4 +504,47 @@ namespace Orthanc
 #endif
 
 
+
+  bool DicomImageDecoder::Decode(ImageBuffer& target,
+                                 DcmDataset& dataset,
+                                 unsigned int frame)
+  {
+    if (IsUncompressedImage(dataset))
+    {
+      DecodeUncompressedImage(target, dataset, frame);
+      return true;
+    }
+
+#if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
+    if (IsJpegLossless(dataset))
+    {
+      LOG(INFO) << "Decoding a JPEG-LS image";
+      DecodeJpegLossless(target, dataset, frame);
+      return true;
+    }
+#endif
+
+    /**
+     * This DICOM image format is not natively supported by
+     * Orthanc. As a last resort, try and decode it through
+     * DCMTK. This will result in higher memory consumption. This is
+     * actually the second example of the following page:
+     * http://support.dcmtk.org/docs/mod_dcmjpeg.html#Examples
+     **/
+    
+    {
+      LOG(INFO) << "Using DCMTK to decode a compressed image";
+
+      std::auto_ptr<DcmDataset> converted(dynamic_cast<DcmDataset*>(dataset.clone()));
+      converted->chooseRepresentation(EXS_LittleEndianExplicit, NULL);
+
+      if (converted->canWriteXfer(EXS_LittleEndianExplicit))
+      {
+        DecodeUncompressedImageInternal(target, *converted, frame);
+        return true;
+      }
+    }
+
+    return false;
+  }
 }
