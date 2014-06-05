@@ -39,6 +39,13 @@ namespace Orthanc
   {
     if (changed_)
     {
+      /*
+        if (forceMinimalPitch_)
+        {
+        TODO: Align pitch and memory buffer to optimal size for SIMD.
+        }
+      */
+
       pitch_ = GetBytesPerPixel() * width_;
 
       data_.resize(pitch_ * height_);
@@ -59,6 +66,7 @@ namespace Orthanc
   ImageBuffer::ImageBuffer() : changed_(false)
   {
     changed_ = false;
+    forceMinimalPitch_ = true;
     format_ = PixelFormat_Grayscale8;
     width_ = 0;
     height_ = 0;
@@ -105,5 +113,12 @@ namespace Orthanc
     ImageAccessor accessor;
     accessor.AssignReadOnly(format_, width_, height_, pitch_, buffer_);
     return accessor;
+  }
+
+
+  void ImageBuffer::SetMinimalPitchForced(bool force)
+  {
+    changed_ = true;
+    forceMinimalPitch_ = force;
   }
 }
