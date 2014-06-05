@@ -80,32 +80,30 @@ TEST(JpegLossless, Basic)
 #else
   DcmFileFormat fileformat;
   //if (fileformat.loadFile("IM-0001-1001-0001.dcm").good())
-  if (fileformat.loadFile("tata.dcm").good())
+  ASSERT_TRUE(fileformat.loadFile("tata.dcm").good());
+
+  DcmDataset& dataset = *fileformat.getDataset();
+
+  ASSERT_TRUE(DicomImageDecoder::IsJpegLossless(dataset));
+
+  ImageBuffer image;
+  //DicomImageDecoder::DecodeJpegLossless(image, dataset, 0);
+  DicomImageDecoder::Decode(image, dataset, 0);
+
+  ImageAccessor accessor(image.GetAccessor());
+
+  for (unsigned int y = 0; y < accessor.GetHeight(); y++)
   {
-    DcmDataset& dataset = *fileformat.getDataset();
-
-    ASSERT_TRUE(DicomImageDecoder::IsJpegLossless(dataset));
-
-    ImageBuffer image;
-    //DicomImageDecoder::DecodeJpegLossless(image, dataset, 0);
-    DicomImageDecoder::Decode(image, dataset, 0);
-
-    ImageAccessor accessor(image.GetAccessor());
-
-    for (unsigned int y = 0; y < accessor.GetHeight(); y++)
+    int16_t *p = reinterpret_cast<int16_t*>(accessor.GetRow(y));
+    for (unsigned int x = 0; x < accessor.GetWidth(); x++, p ++)
     {
-      int16_t *p = reinterpret_cast<int16_t*>(accessor.GetRow(y));
-      for (unsigned int x = 0; x < accessor.GetWidth(); x++, p ++)
-      {
-        if (*p < 0)
-          *p = 0;
-      }
+      if (*p < 0)
+        *p = 0;
     }
-
-    PngWriter w;
-    w.WriteToFile("tata.png", accessor);
   }
 
+  PngWriter w;
+  w.WriteToFile("tata.png", accessor);
 #endif
 }
 
