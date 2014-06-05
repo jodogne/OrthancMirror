@@ -42,6 +42,10 @@ namespace Orthanc
   {
   public:   // TODO SWITCH TO PRIVATE
     //private:
+    static void DecodeUncompressedImageInternal(ImageBuffer& target,
+                                                DcmDataset& dataset,
+                                                unsigned int frame);
+
     static bool IsPsmctRle1(DcmDataset& dataset);
 
     static void SetupImageBuffer(ImageBuffer& target,
@@ -51,12 +55,22 @@ namespace Orthanc
                                 DcmDataset& dataset);
 
   public:
+    static bool IsUncompressedImage(const DcmDataset& dataset);
+
     static bool IsJpegLossless(const DcmDataset& dataset);
+
+    static void DecodeUncompressedImage(ImageBuffer& target,
+                                        DcmDataset& dataset,
+                                        unsigned int frame);
 
 #if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
     static void DecodeJpegLossless(ImageBuffer& target,
-                                   DcmDataset& dataset);
+                                   DcmDataset& dataset,
+                                   unsigned int frame);
 #endif
 
+    static bool Decode(ImageBuffer& target,
+                       DcmDataset& dataset,
+                       unsigned int frame);
   };
 }
