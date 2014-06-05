@@ -31,55 +31,15 @@
 
 
 
-/*=========================================================================
-
-  This file is based on portions of the following project:
-
-  Program: GDCM (Grassroots DICOM). A DICOM library
-  Module:  http://gdcm.sourceforge.net/Copyright.html
-
-Copyright (c) 2006-2011 Mathieu Malaterre
-Copyright (c) 1993-2005 CREATIS
-(CREATIS = Centre de Recherche et d'Applications en Traitement de l'Image)
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
- * Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
- * Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
- * Neither name of Mathieu Malaterre, or CREATIS, nor the names of any
-   contributors (CNRS, INSERM, UCB, Universite Lyon I), may be used to
-   endorse or promote products derived from this software without specific
-   prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS''
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-=========================================================================*/
-
-
 #include "PrecompiledHeadersServer.h"
 
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
 
-#include "FromDcmtkBridge.h"
+#include "Internals/DicomImageDecoder.h"
 
+#include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
 #include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"
@@ -559,99 +519,6 @@ namespace Orthanc
   }
 
 
-  static bool DecodePsmctRle1(std::string& output,
-                              DcmDataset& dataset)
-  {
-    static const DicomTag tagContent(0x07a1, 0x100a);
-    static const DicomTag tagCompressionType(0x07a1, 0x1011);
-
-    DcmElement* e;
-    char* c;
-
-    // Check whether the DICOM instance contains an image encoded with
-    // the PMSCT_RLE1 scheme.
-    if (!dataset.findAndGetElement(ToDcmtkBridge::Convert(tagCompressionType), e).good() ||
-        e == NULL ||
-        !e->isaString() ||
-        !e->getString(c).good() ||
-        c == NULL ||
-        strcmp("PMSCT_RLE1", c))
-    {
-      return false;
-    }
-
-    // OK, this is a custom RLE encoding from Philips. Get the pixel
-    // data from the appropriate private DICOM tag.
-    Uint8* pixData = NULL;
-    if (!dataset.findAndGetElement(ToDcmtkBridge::Convert(tagContent), e).good() ||
-        e == NULL ||
-        e->getUint8Array(pixData) != EC_Normal)
-    {
-      return false;
-    }    
-
-    // The "unsigned" below IS VERY IMPORTANT
-    const uint8_t* inbuffer = reinterpret_cast<const uint8_t*>(pixData);
-    const size_t length = e->getLength();
-
-    /**
-     * The code below is an adaptation of a sample code for GDCM by
-     * Mathieu Malaterre (under a BSD license).
-     * http://gdcm.sourceforge.net/html/rle2img_8cxx-example.html
-     **/
-
-    // RLE pass
-    std::vector<uint8_t> temp;
-    temp.reserve(length);
-    for (size_t i = 0; i < length; i++)
-    {
-      if (inbuffer[i] == 0xa5)
-      {
-        temp.push_back(inbuffer[i+2]);
-        for (uint8_t repeat = inbuffer[i + 1]; repeat != 0; repeat--)
-        {
-          temp.push_back(inbuffer[i+2]);
-        }
-        i += 2;
-      }
-      else
-      {
-        temp.push_back(inbuffer[i]);
-      }
-    }
-
-    // Delta encoding pass
-    uint16_t delta = 0;
-    output.clear();
-    output.reserve(temp.size());
-    for (size_t i = 0; i < temp.size(); i++)
-    {
-      uint16_t value;
-
-      if (temp[i] == 0x5a)
-      {
-        uint16_t v1 = temp[i + 1];
-        uint16_t v2 = temp[i + 2];
-        value = (v2 << 8) + v1;
-        i += 2;
-      }
-      else
-      {
-        value = delta + (int8_t) temp[i];
-      }
-
-      output.push_back(value & 0xff);
-      output.push_back(value >> 8);
-      delta = value;
-    }
-
-    if (output.size() % 2)
-    {
-      output.resize(output.size() - 1);
-    }
-
-    return true;
-  }
 
 
   void FromDcmtkBridge::ExtractPngImage(std::string& result,
@@ -679,7 +546,7 @@ namespace Orthanc
         accessor->SetCurrentFrame(frame);
       }
     }
-    else if (DecodePsmctRle1(privateContent, dataset))
+    else if (DicomImageDecoder::DecodePsmctRle1(privateContent, dataset))
     {
       LOG(INFO) << "The PMSCT_RLE1 decoding has succeeded";
       Uint8* pixData = NULL;

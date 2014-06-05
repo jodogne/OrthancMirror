@@ -40,10 +40,17 @@ namespace Orthanc
 {
   class DicomImageDecoder
   {
-  public:
+  public:   // TODO SWITCH TO PRIVATE
+    //private:
+    static bool IsPsmctRle1(DcmDataset& dataset);
+
     static void SetupImageBuffer(ImageBuffer& target,
                                  DcmDataset& dataset);
 
+    static bool DecodePsmctRle1(std::string& output,
+                                DcmDataset& dataset);
+
+  public:
     static bool IsJpegLossless(const DcmDataset& dataset);
 
 #if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
