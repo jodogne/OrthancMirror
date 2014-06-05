@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include "../Enumerations.h"
+#include "ImageAccessor.h"
 
 #include <boost/shared_ptr.hpp>
 #include <string>
@@ -74,5 +74,19 @@ namespace Orthanc
                        unsigned int pitch,
                        PixelFormat format,
                        const void* buffer);
+
+    void WriteToFile(const char* filename,
+                     const ImageAccessor& accessor)
+    {
+      WriteToFile(filename, accessor.GetWidth(), accessor.GetHeight(),
+                  accessor.GetPitch(), accessor.GetFormat(), accessor.GetBuffer());
+    }
+
+    void WriteToMemory(std::string& png,
+                       const ImageAccessor& accessor)
+    {
+      WriteToMemory(png, accessor.GetWidth(), accessor.GetHeight(),
+                    accessor.GetPitch(), accessor.GetFormat(), accessor.GetBuffer());
+    }
   };
 }

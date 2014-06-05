@@ -40,17 +40,29 @@
 #include <dcmtk/dcmdata/dcfilefo.h>
 
 #include <dcmtk/dcmjpls/djcodecd.h>
+#include <dcmtk/dcmjpls/djcparam.h>
+#include <dcmtk/dcmjpeg/djrplol.h>
+#include <dcmtk/dcmdata/dcstack.h>
+#include <dcmtk/dcmdata/dcpixseq.h>
 
 #include "../OrthancServer/ParsedDicomFile.h"
 #include "../OrthancServer/FromDcmtkBridge.h"
+#include "../OrthancServer/ToDcmtkBridge.h"
+#include "../Core/OrthancException.h"
+#include "../Core/ImageFormats/ImageBuffer.h"
+#include "../Core/ImageFormats/PngWriter.h"
+
+#include <boost/lexical_cast.hpp>
 
 using namespace Orthanc;
 
 TEST(JpegLossless, Basic)
 {
-  DJLSDecoderRegistration::registerCodecs( EJLSUC_default, EJLSPC_restore,OFFalse );
+  //DJLSDecoderRegistration::registerCodecs( EJLSUC_default, EJLSPC_restore,OFFalse );
 
 #if 0
+  // Fallback
+
   std::string s;
   Toolbox::ReadFile(s, "IM-0001-1001-0001.dcm");
 
@@ -67,41 +79,130 @@ TEST(JpegLossless, Basic)
 
     parsed.SaveToFile("tutu.dcm");
 
-    FromDcmtkBridge::ExtractPngImage(s, *dataset, 1, ImageExtractionMode_Preview);
-    //fileformat.saveFile("test_decompressed.dcm", EXS_LittleEndianExplicit);
-  }
-#else
-  DcmFileFormat fileformat;
-  if (fileformat.loadFile("IM-0001-1001-0001.dcm").good())
-  {
-    DcmDataset *dataset = fileformat.getDataset();
-
     // decompress data set if compressed
     dataset->chooseRepresentation(EXS_LittleEndianExplicit, NULL);
 
     DcmXfer original_xfer(dataset->getOriginalXfer());
     std::cout << original_xfer.getXferName() << std::endl;
 
-    printf("OK1\n");
+    FromDcmtkBridge::ExtractPngImage(s, *dataset, 1, ImageExtractionMode_Preview);
+    //fileformat.saveFile("test_decompressed.dcm", EXS_LittleEndianExplicit);
+  }
+#else
+  DcmFileFormat fileformat;
+  //if (fileformat.loadFile("IM-0001-1001-0001.dcm").good())
+  if (fileformat.loadFile("tata.dcm").good())
+  {
+    DcmDataset *dataset = fileformat.getDataset();
 
-    // check if everything went well
-    if (1) //dataset->canWriteXfer(EXS_LittleEndianExplicit))
+    // <data-set xfer="1.2.840.10008.1.2.4.80" name="JPEG-LS Lossless">
+
+    DcmTag k(DICOM_TAG_PIXEL_DATA.GetGroup(),
+             DICOM_TAG_PIXEL_DATA.GetElement());
+
+    DcmElement *element = NULL;
+    if (dataset->findAndGetElement(k, element).good())
     {
-      printf("OK2\n");
+      DcmPixelData& pixelData = dynamic_cast<DcmPixelData&>(*element);
+      DcmPixelSequence* pixelSequence = NULL;
+      if (pixelData.getEncapsulatedRepresentation
+          (dataset->getOriginalXfer(), NULL, pixelSequence).good())
+      {
+        OFString value;
 
-      fileformat.saveFile("tutu.dcm", EXS_LittleEndianExplicit);
+        if (!dataset->findAndGetOFString(ToDcmtkBridge::Convert(DICOM_TAG_COLUMNS), value).good())
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);
+        }
+
+        unsigned int width = boost::lexical_cast<unsigned int>(value.c_str());
+
+        if (!dataset->findAndGetOFString(ToDcmtkBridge::Convert(DICOM_TAG_ROWS), value).good())
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);
+        }
+
+        unsigned int height = boost::lexical_cast<unsigned int>(value.c_str());
+
+        if (!dataset->findAndGetOFString(ToDcmtkBridge::Convert(DICOM_TAG_BITS_STORED), value).good())
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);
+        }
+
+        unsigned int bitsStored = boost::lexical_cast<unsigned int>(value.c_str());
+
+        if (!dataset->findAndGetOFString(ToDcmtkBridge::Convert(DICOM_TAG_PIXEL_REPRESENTATION), value).good())
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);
+        }
+
+        bool isSigned = (boost::lexical_cast<unsigned int>(value.c_str()) != 0);
+
+        unsigned int samplesPerPixel = 1; // By default
+        if (dataset->findAndGetOFString(ToDcmtkBridge::Convert(DICOM_TAG_SAMPLES_PER_PIXEL), value).good())
+        {
+          samplesPerPixel = boost::lexical_cast<unsigned int>(value.c_str());
+        }
+
+        ImageBuffer buffer;
+        buffer.SetHeight(height);
+        buffer.SetWidth(width);
+
+        if (bitsStored == 8 && samplesPerPixel == 1 && !isSigned)
+        {
+          buffer.SetFormat(PixelFormat_Grayscale8);
+        }
+        else if (bitsStored == 8 && samplesPerPixel == 3 && !isSigned)
+        {
+          buffer.SetFormat(PixelFormat_RGB24);
+        }
+        else if (bitsStored == 16 && samplesPerPixel == 1 && !isSigned)
+        {
+          buffer.SetFormat(PixelFormat_Grayscale16);
+        }
+        else if (bitsStored == 16 && samplesPerPixel == 1 && isSigned)
+        {
+          buffer.SetFormat(PixelFormat_SignedGrayscale16);
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_NotImplemented);
+        }
+
+        ImageAccessor accessor(buffer.GetAccessor());
+
+        // http://support.dcmtk.org/docs/classDJLSLosslessDecoder.html
+        DJLSLosslessDecoder bb; DJLSCodecParameter cp;
+        //DJLSNearLosslessDecoder bb; DJLSCodecParameter cp;
+
+        Uint32 startFragment = 0;  // Default 
+        OFString decompressedColorModel;  // Out
+        DJ_RPLossless rp;
+        OFCondition c = bb.decodeFrame(&rp, pixelSequence, &cp, dataset, 0, startFragment, 
+                                       accessor.GetBuffer(), accessor.GetSize(), decompressedColorModel);
+
+
+
+        for (unsigned int y = 0; y < accessor.GetHeight(); y++)
+        {
+          int16_t *p = reinterpret_cast<int16_t*>(accessor.GetRow(y));
+          for (unsigned int x = 0; x < accessor.GetWidth(); x++, p ++)
+          {
+            if (*p < 0)
+              *p = 0;
+          }
+        }
+
+        PngWriter w;
+        w.WriteToFile("tata.png", accessor);
+      }
     }
   }
-
 
 #endif
 
 
-  // http://support.dcmtk.org/docs/classDJLSLosslessDecoder.html
-  //DJLSDecoderBase b;
-  DJLSLosslessDecoder bb;
-
-  DJLSDecoderRegistration::cleanup();
+  //DJLSDecoderRegistration::cleanup();
 }
 
 

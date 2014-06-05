@@ -58,6 +58,8 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       )
     list(REMOVE_ITEM DCMTK_SOURCES 
       ${DCMTK_SOURCES_DIR}/dcmjpls/libsrc/djcodece.cc)
+    list(APPEND DCMTK_SOURCES 
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djrplol.cc)
   endif()
 
 

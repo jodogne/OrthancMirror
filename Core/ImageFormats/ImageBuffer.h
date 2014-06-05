@@ -45,6 +45,7 @@ namespace Orthanc
     bool changed_;
     std::vector<uint8_t> data_;
 
+    bool forceMinimalPitch_;  // Currently unused
     PixelFormat format_;
     unsigned int width_;
     unsigned int height_;
@@ -85,5 +86,12 @@ namespace Orthanc
     ImageAccessor GetAccessor();
 
     ImageAccessor GetConstAccessor();
+
+    bool IsMinimalPitchForced() const
+    {
+      return forceMinimalPitch_;
+    }
+
+    void SetMinimalPitchForced(bool force);
   };
 }

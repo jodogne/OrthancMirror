@@ -77,6 +77,11 @@ namespace Orthanc
       return pitch_;
     }
 
+    unsigned int GetSize() const
+    {
+      return GetHeight() * GetPitch();
+    }
+
     const void* GetConstBuffer() const
     {
       return buffer_;
