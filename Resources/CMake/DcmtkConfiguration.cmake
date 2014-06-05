@@ -53,6 +53,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmjpls/libsrc DCMTK_SOURCES)
     AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmjpls/libcharls DCMTK_SOURCES)
     include_directories(
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/include
       ${DCMTK_SOURCES_DIR}/dcmjpls/include
       ${DCMTK_SOURCES_DIR}/dcmjpls/libcharls
       )
