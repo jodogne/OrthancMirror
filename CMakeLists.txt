@@ -127,6 +127,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/Internals/FindScp.cpp
   OrthancServer/Internals/MoveScp.cpp
   OrthancServer/Internals/StoreScp.cpp
+  OrthancServer/Internals/DicomImageDecoder.cpp
   OrthancServer/OrthancInitialization.cpp
   OrthancServer/OrthancPeerParameters.cpp
   OrthancServer/OrthancRestApi/OrthancRestAnonymizeModify.cpp

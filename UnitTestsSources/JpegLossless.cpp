@@ -33,28 +33,19 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
+#include "../OrthancServer/Internals/DicomImageDecoder.h"
+
 #if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
 
-#include <dcmtk/dcmjpls/djlsutil.h>
-#include <dcmtk/dcmjpls/djdecode.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
 
-#include <dcmtk/dcmjpls/djcodecd.h>
-#include <dcmtk/dcmjpls/djcparam.h>
-#include <dcmtk/dcmjpeg/djrplol.h>
-#include <dcmtk/dcmdata/dcstack.h>
-#include <dcmtk/dcmdata/dcpixseq.h>
-
 #include "../OrthancServer/ParsedDicomFile.h"
-#include "../OrthancServer/FromDcmtkBridge.h"
-#include "../OrthancServer/ToDcmtkBridge.h"
 #include "../Core/OrthancException.h"
 #include "../Core/ImageFormats/ImageBuffer.h"
 #include "../Core/ImageFormats/PngWriter.h"
 
-#include <boost/lexical_cast.hpp>
-
 using namespace Orthanc;
+
 
 TEST(JpegLossless, Basic)
 {
@@ -93,110 +84,27 @@ TEST(JpegLossless, Basic)
   //if (fileformat.loadFile("IM-0001-1001-0001.dcm").good())
   if (fileformat.loadFile("tata.dcm").good())
   {
-    DcmDataset *dataset = fileformat.getDataset();
+    DcmDataset& dataset = *fileformat.getDataset();
 
-    // <data-set xfer="1.2.840.10008.1.2.4.80" name="JPEG-LS Lossless">
+    ASSERT_TRUE(DicomImageDecoder::IsJpegLossless(dataset));
 
-    DcmTag k(DICOM_TAG_PIXEL_DATA.GetGroup(),
-             DICOM_TAG_PIXEL_DATA.GetElement());
+    ImageBuffer image;
+    DicomImageDecoder::DecodeJpegLossless(image, dataset);
 
-    DcmElement *element = NULL;
-    if (dataset->findAndGetElement(k, element).good())
+    ImageAccessor accessor(image.GetAccessor());
+
+    for (unsigned int y = 0; y < accessor.GetHeight(); y++)
     {
-      DcmPixelData& pixelData = dynamic_cast<DcmPixelData&>(*element);
-      DcmPixelSequence* pixelSequence = NULL;
-      if (pixelData.getEncapsulatedRepresentation
-          (dataset->getOriginalXfer(), NULL, pixelSequence).good())
+      int16_t *p = reinterpret_cast<int16_t*>(accessor.GetRow(y));
+      for (unsigned int x = 0; x < accessor.GetWidth(); x++, p ++)
       {
-        OFString value;
-
-        if (!dataset->findAndGetOFString(ToDcmtkBridge::Convert(DICOM_TAG_COLUMNS), value).good())
-        {
-          throw OrthancException(ErrorCode_BadFileFormat);
-        }
-
-        unsigned int width = boost::lexical_cast<unsigned int>(value.c_str());
-
-        if (!dataset->findAndGetOFString(ToDcmtkBridge::Convert(DICOM_TAG_ROWS), value).good())
-        {
-          throw OrthancException(ErrorCode_BadFileFormat);
-        }
-
-        unsigned int height = boost::lexical_cast<unsigned int>(value.c_str());
-
-        if (!dataset->findAndGetOFString(ToDcmtkBridge::Convert(DICOM_TAG_BITS_STORED), value).good())
-        {
-          throw OrthancException(ErrorCode_BadFileFormat);
-        }
-
-        unsigned int bitsStored = boost::lexical_cast<unsigned int>(value.c_str());
-
-        if (!dataset->findAndGetOFString(ToDcmtkBridge::Convert(DICOM_TAG_PIXEL_REPRESENTATION), value).good())
-        {
-          throw OrthancException(ErrorCode_BadFileFormat);
-        }
-
-        bool isSigned = (boost::lexical_cast<unsigned int>(value.c_str()) != 0);
-
-        unsigned int samplesPerPixel = 1; // By default
-        if (dataset->findAndGetOFString(ToDcmtkBridge::Convert(DICOM_TAG_SAMPLES_PER_PIXEL), value).good())
-        {
-          samplesPerPixel = boost::lexical_cast<unsigned int>(value.c_str());
-        }
-
-        ImageBuffer buffer;
-        buffer.SetHeight(height);
-        buffer.SetWidth(width);
-
-        if (bitsStored == 8 && samplesPerPixel == 1 && !isSigned)
-        {
-          buffer.SetFormat(PixelFormat_Grayscale8);
-        }
-        else if (bitsStored == 8 && samplesPerPixel == 3 && !isSigned)
-        {
-          buffer.SetFormat(PixelFormat_RGB24);
-        }
-        else if (bitsStored == 16 && samplesPerPixel == 1 && !isSigned)
-        {
-          buffer.SetFormat(PixelFormat_Grayscale16);
-        }
-        else if (bitsStored == 16 && samplesPerPixel == 1 && isSigned)
-        {
-          buffer.SetFormat(PixelFormat_SignedGrayscale16);
-        }
-        else
-        {
-          throw OrthancException(ErrorCode_NotImplemented);
-        }
-
-        ImageAccessor accessor(buffer.GetAccessor());
-
-        // http://support.dcmtk.org/docs/classDJLSLosslessDecoder.html
-        DJLSLosslessDecoder bb; DJLSCodecParameter cp;
-        //DJLSNearLosslessDecoder bb; DJLSCodecParameter cp;
-
-        Uint32 startFragment = 0;  // Default 
-        OFString decompressedColorModel;  // Out
-        DJ_RPLossless rp;
-        OFCondition c = bb.decodeFrame(&rp, pixelSequence, &cp, dataset, 0, startFragment, 
-                                       accessor.GetBuffer(), accessor.GetSize(), decompressedColorModel);
-
-
-
-        for (unsigned int y = 0; y < accessor.GetHeight(); y++)
-        {
-          int16_t *p = reinterpret_cast<int16_t*>(accessor.GetRow(y));
-          for (unsigned int x = 0; x < accessor.GetWidth(); x++, p ++)
-          {
-            if (*p < 0)
-              *p = 0;
-          }
-        }
-
-        PngWriter w;
-        w.WriteToFile("tata.png", accessor);
+        if (*p < 0)
+          *p = 0;
       }
     }
+
+    PngWriter w;
+    w.WriteToFile("tata.png", accessor);
   }
 
 #endif
