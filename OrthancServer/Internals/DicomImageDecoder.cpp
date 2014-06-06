@@ -275,6 +275,7 @@ namespace Orthanc
 
   bool DicomImageDecoder::IsJpegLossless(const DcmDataset& dataset)
   {
+    // http://support.dcmtk.org/docs/dcxfer_8h-source.html
     return (dataset.getOriginalXfer() == EXS_JPEGLSLossless ||
             dataset.getOriginalXfer() == EXS_JPEGLSLossy);
   }
@@ -282,6 +283,7 @@ namespace Orthanc
 
   bool DicomImageDecoder::IsUncompressedImage(const DcmDataset& dataset)
   {
+    // http://support.dcmtk.org/docs/dcxfer_8h-source.html
     return (dataset.getOriginalXfer() == EXS_Unknown ||
             dataset.getOriginalXfer() == EXS_LittleEndianImplicit ||
             dataset.getOriginalXfer() == EXS_BigEndianImplicit ||
