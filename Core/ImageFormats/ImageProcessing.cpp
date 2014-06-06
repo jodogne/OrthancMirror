@@ -37,9 +37,45 @@
 
 #include <cassert>
 #include <string.h>
+#include <limits>
+#include <stdint.h>
+
+#include <stdio.h>
 
 namespace Orthanc
 {
+  template <typename TargetType, typename SourceType>
+  static void ConvertInternal(ImageAccessor& target,
+                              const ImageAccessor& source)
+  {
+    const TargetType minValue = std::numeric_limits<TargetType>::min();
+    const TargetType maxValue = std::numeric_limits<TargetType>::max();
+
+    for (unsigned int y = 0; y < source.GetHeight(); y++)
+    {
+      TargetType* t = reinterpret_cast<TargetType*>(target.GetRow(y));
+      const SourceType* s = reinterpret_cast<const SourceType*>(source.GetConstRow(y));
+
+      for (unsigned int x = 0; x < source.GetWidth(); x++, t++, s++)
+      {
+        if (static_cast<int32_t>(*s) < static_cast<int32_t>(minValue))
+        {
+          *t = minValue;
+        }
+        else if (static_cast<int32_t>(*s) > static_cast<int32_t>(maxValue))
+        {
+          *t = maxValue;
+        }
+        else
+        {
+          *t = static_cast<TargetType>(*s);
+        }
+      }
+    }
+  }
+
+
+
   void ImageProcessing::Copy(ImageAccessor& target,
                              const ImageAccessor& source)
   {
@@ -77,6 +113,50 @@ namespace Orthanc
     if (source.GetFormat() == target.GetFormat())
     {
       Copy(target, source);
+      return;
+    }
+
+    if (target.GetFormat() == PixelFormat_Grayscale16 &&
+        source.GetFormat() == PixelFormat_Grayscale8)
+    {
+      ConvertInternal<uint16_t, uint8_t>(target, source);
+      return;
+    }
+
+    if (target.GetFormat() == PixelFormat_SignedGrayscale16 &&
+        source.GetFormat() == PixelFormat_Grayscale8)
+    {
+      ConvertInternal<int16_t, uint8_t>(target, source);
+      return;
+    }
+
+    if (target.GetFormat() == PixelFormat_Grayscale8 &&
+        source.GetFormat() == PixelFormat_Grayscale16)
+    {
+      printf("ICI\n");
+      ConvertInternal<uint8_t, uint16_t>(target, source);
+      return;
+    }
+
+    if (target.GetFormat() == PixelFormat_SignedGrayscale16 &&
+        source.GetFormat() == PixelFormat_Grayscale16)
+    {
+      ConvertInternal<int16_t, uint16_t>(target, source);
+      return;
+    }
+
+    if (target.GetFormat() == PixelFormat_Grayscale8 &&
+        source.GetFormat() == PixelFormat_SignedGrayscale16)
+    {
+      printf("ICI2\n");
+      ConvertInternal<uint8_t, int16_t>(target, source);
+      return;
+    }
+
+    if (target.GetFormat() == PixelFormat_Grayscale16 &&
+        source.GetFormat() == PixelFormat_SignedGrayscale16)
+    {
+      ConvertInternal<uint16_t, int16_t>(target, source);
       return;
     }
 

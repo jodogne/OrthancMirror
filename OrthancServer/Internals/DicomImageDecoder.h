@@ -40,8 +40,14 @@ namespace Orthanc
 {
   class DicomImageDecoder
   {
-  public:   // TODO SWITCH TO PRIVATE
-    //private:
+  public:
+    enum Mode
+    {
+      Mode_Truncate,
+      Mode_Stretch
+    };
+
+  private:
     class ImageSource;
 
     static void DecodeUncompressedImageInternal(ImageBuffer& target,
@@ -53,6 +59,7 @@ namespace Orthanc
     static void SetupImageBuffer(ImageBuffer& target,
                                  DcmDataset& dataset);
 
+  public:   // TODO SWITCH TO PRIVATE
     static bool DecodePsmctRle1(std::string& output,
                                 DcmDataset& dataset);
 
@@ -65,6 +72,12 @@ namespace Orthanc
                                         DcmDataset& dataset,
                                         unsigned int frame);
 
+    static void DecodeUncompressedImage(ImageBuffer& target,
+                                        DcmDataset& dataset,
+                                        unsigned int frame,
+                                        PixelFormat format,
+                                        Mode mode);
+
 #if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
     static void DecodeJpegLossless(ImageBuffer& target,
                                    DcmDataset& dataset,
@@ -74,5 +87,12 @@ namespace Orthanc
     static bool Decode(ImageBuffer& target,
                        DcmDataset& dataset,
                        unsigned int frame);
+
+    static bool Decode(ImageBuffer& target,
+                       DcmDataset& dataset,
+                       unsigned int frame,
+                       PixelFormat format,
+                       Mode mode);
+
   };
 }

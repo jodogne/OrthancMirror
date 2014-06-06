@@ -447,14 +447,14 @@ namespace Orthanc
       }
       catch (OrthancException&)
       {
-        // Unsupported conversion
+        // Unsupported conversion, use the slow version
       }
     }
 
 
     /**
-     * Loop over the DICOM buffer, storing its value into the target
-     * image.
+     * Slow version : loop over the DICOM buffer, storing its value
+     * into the target image.
      **/
 
     if (!fastVersionSuccess)
@@ -536,6 +536,7 @@ namespace Orthanc
 
 
 
+
   bool DicomImageDecoder::Decode(ImageBuffer& target,
                                  DcmDataset& dataset,
                                  unsigned int frame)
@@ -585,4 +586,45 @@ namespace Orthanc
 
     return false;
   }
+
+
+  bool DicomImageDecoder::Decode(ImageBuffer& target,
+                                 DcmDataset& dataset,
+                                 unsigned int frame,
+                                 PixelFormat format,
+                                 Mode mode)
+  {
+    // TODO OPTIMIZE THIS !!!
+
+    ImageBuffer tmp;
+    if (!Decode(tmp, dataset, frame))
+    {
+      return false;
+    }
+
+    target.SetFormat(format);
+    target.SetWidth(tmp.GetWidth());
+    target.SetHeight(tmp.GetHeight());
+
+    switch (mode)
+    {
+      case Mode_Truncate:
+      {
+        ImageAccessor a(target.GetAccessor());
+        ImageAccessor b(tmp.GetAccessor());
+        printf("IN\n");
+        ImageProcessing::Convert(a, b);
+        printf("OUT\n");
+        return true;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+    return false;
+  }
+
+
+
 }
