@@ -60,6 +60,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg8
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg12
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg16
+      ${DCMTK_SOURCES_DIR}/dcmimgle/include
       )
   endif()
 
