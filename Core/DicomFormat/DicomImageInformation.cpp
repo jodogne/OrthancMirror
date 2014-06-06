@@ -55,8 +55,16 @@ namespace Orthanc
     {
       width_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_COLUMNS).AsString());
       height_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_ROWS).AsString());
-      samplesPerPixel_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_SAMPLES_PER_PIXEL).AsString());
       bitsAllocated_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_BITS_ALLOCATED).AsString());
+
+      try
+      {
+        samplesPerPixel_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_SAMPLES_PER_PIXEL).AsString());
+      }
+      catch (OrthancException&)
+      {
+        samplesPerPixel_ = 1;  // Assume 1 color channel
+      }
 
       try
       {
@@ -146,5 +154,40 @@ namespace Orthanc
 
     isPlanar_ = (planarConfiguration != 0 ? true : false);
     isSigned_ = (pixelRepresentation != 0 ? true : false);
+  }
+
+
+  bool DicomImageInformation::ExtractPixelFormat(PixelFormat& format) const
+  {
+    if (IsPlanar())
+    {
+      return false;
+    }
+
+    if (GetBitsStored() == 8 && GetChannelCount() == 1 && !IsSigned())
+    {
+      format = PixelFormat_Grayscale8;
+      return true;
+    }
+
+    if (GetBitsStored() == 8 && GetChannelCount() == 3 && !IsSigned())
+    {
+      format = PixelFormat_RGB24;
+      return true;
+    }
+
+    if (GetBitsStored() >= 9 && GetBitsStored() <= 16 && GetChannelCount() == 1 && !IsSigned())
+    {
+      format = PixelFormat_Grayscale16;
+      return true;
+    }
+
+    if (GetBitsStored() >= 9 && GetBitsStored() <= 16 && GetChannelCount() == 1 && IsSigned())
+    {
+      format = PixelFormat_SignedGrayscale16;
+      return true;
+    }
+
+    return false;
   }
 }

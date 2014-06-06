@@ -55,7 +55,7 @@ namespace Orthanc
   {
     frame_ = 0;
     frameOffset_ = (information_.GetHeight() * information_.GetWidth() * 
-                    information_.GetBytesPerPixel() * information_.GetSamplesPerPixel());
+                    information_.GetBytesPerPixel() * information_.GetChannelCount());
 
     if (information_.GetNumberOfFrames() * frameOffset_ > size)
     {
@@ -83,7 +83,7 @@ namespace Orthanc
        * means the order of the pixel values sent shall be R1, G1, B1,
        * R2, G2, B2, ..., etc.
        **/
-      rowOffset_ = information_.GetWidth() * information_.GetBytesPerPixel() * information_.GetSamplesPerPixel();
+      rowOffset_ = information_.GetWidth() * information_.GetBytesPerPixel() * information_.GetChannelCount();
     }
     else
     {
@@ -130,7 +130,7 @@ namespace Orthanc
                                               unsigned int y,
                                               unsigned int channel) const
   {
-    assert(x < information_.GetWidth() && y < information_.GetHeight() && channel < information_.GetSamplesPerPixel());
+    assert(x < information_.GetWidth() && y < information_.GetHeight() && channel < information_.GetChannelCount());
     
     const uint8_t* pixel = reinterpret_cast<const uint8_t*>(pixelData_) + 
       y * rowOffset_ + frame_ * frameOffset_;
@@ -144,7 +144,7 @@ namespace Orthanc
        * means the order of the pixel values sent shall be R1, G1, B1,
        * R2, G2, B2, ..., etc.
        **/
-      pixel += channel * information_.GetBytesPerPixel() + x * information_.GetSamplesPerPixel() * information_.GetBytesPerPixel();
+      pixel += channel * information_.GetBytesPerPixel() + x * information_.GetChannelCount() * information_.GetBytesPerPixel();
     }
     else
     {
@@ -153,8 +153,8 @@ namespace Orthanc
        * this means the order of the pixel values sent is R1, R2, R3,
        * ..., G1, G2, G3, ..., B1, B2, B3, etc.
        **/
-      assert(frameOffset_ % information_.GetSamplesPerPixel() == 0);
-      pixel += channel * frameOffset_ / information_.GetSamplesPerPixel() + x * information_.GetBytesPerPixel();
+      assert(frameOffset_ % information_.GetChannelCount() == 0);
+      pixel += channel * frameOffset_ / information_.GetChannelCount() + x * information_.GetBytesPerPixel();
     }
 
     uint32_t v;

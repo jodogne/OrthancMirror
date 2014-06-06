@@ -102,11 +102,6 @@ namespace Orthanc
       return highBit_;
     }
 
-    unsigned int GetSamplesPerPixel() const
-    {
-      return samplesPerPixel_;
-    }
-
     bool IsPlanar() const
     {
       return isPlanar_;
@@ -116,5 +111,7 @@ namespace Orthanc
     {
       return highBit_ + 1 - bitsStored_;
     }
+
+    bool ExtractPixelFormat(PixelFormat& format) const;
   };
 }

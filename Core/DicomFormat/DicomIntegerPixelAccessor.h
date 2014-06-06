@@ -75,5 +75,10 @@ namespace Orthanc
                           int32_t& max) const;
 
     int32_t GetValue(unsigned int x, unsigned int y, unsigned int channel = 0) const;
+
+    const void* GetPixelData() const
+    {
+      return pixelData_;
+    }
   };
 }
