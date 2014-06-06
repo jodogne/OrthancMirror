@@ -95,6 +95,69 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace Orthanc
 {
+  class DicomImageDecoder::ImageSource
+  {
+  private:
+    std::string psmct_;
+    std::auto_ptr<DicomIntegerPixelAccessor> accessor_;
+ 
+  public:
+    void Setup(DcmDataset& dataset,
+               unsigned int frame)
+    {
+      // See also: http://support.dcmtk.org/wiki/dcmtk/howto/accessing-compressed-data
+
+      DicomMap m;
+      FromDcmtkBridge::Convert(m, dataset);
+
+      /**
+       * Create an accessor to the raw values of the DICOM image.
+       **/
+
+      DcmElement* e;
+      if (dataset.findAndGetElement(ToDcmtkBridge::Convert(DICOM_TAG_PIXEL_DATA), e).good() &&
+          e != NULL)
+      {
+        Uint8* pixData = NULL;
+        if (e->getUint8Array(pixData) == EC_Normal)
+        {    
+          accessor_.reset(new DicomIntegerPixelAccessor(m, pixData, e->getLength()));
+        }
+      }
+      else if (DicomImageDecoder::DecodePsmctRle1(psmct_, dataset))
+      {
+        LOG(INFO) << "The PMSCT_RLE1 decoding has succeeded";
+        Uint8* pixData = NULL;
+        if (psmct_.size() > 0)
+        {
+          pixData = reinterpret_cast<Uint8*>(&psmct_[0]);
+        }
+
+        accessor_.reset(new DicomIntegerPixelAccessor(m, pixData, psmct_.size()));
+      }
+    
+      if (accessor_.get() == NULL)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      accessor_->SetCurrentFrame(frame);
+    }
+
+    unsigned int GetChannelCount() const
+    {
+      assert(accessor_.get() != NULL);
+      return accessor_->GetChannelCount();
+    }
+
+    const DicomIntegerPixelAccessor GetAccessor() const
+    {
+      assert(accessor_.get() != NULL);
+      return *accessor_;
+    }
+  };
+
+
   static const DicomTag DICOM_TAG_CONTENT(0x07a1, 0x100a);
   static const DicomTag DICOM_TAG_COMPRESSION_TYPE(0x07a1, 0x1011);
 
@@ -342,49 +405,8 @@ namespace Orthanc
                                                           DcmDataset& dataset,
                                                           unsigned int frame)
   {
-    // See also: http://support.dcmtk.org/wiki/dcmtk/howto/accessing-compressed-data
-
-    std::auto_ptr<DicomIntegerPixelAccessor> source;
-
-    DicomMap m;
-    FromDcmtkBridge::Convert(m, dataset);
-
-
-    /**
-     * Create an accessor to the raw values of the DICOM image.
-     **/
-
-    std::string privateContent;
-
-    DcmElement* e;
-    if (dataset.findAndGetElement(ToDcmtkBridge::Convert(DICOM_TAG_PIXEL_DATA), e).good() &&
-        e != NULL)
-    {
-      Uint8* pixData = NULL;
-      if (e->getUint8Array(pixData) == EC_Normal)
-      {    
-        source.reset(new DicomIntegerPixelAccessor(m, pixData, e->getLength()));
-      }
-    }
-    else if (DicomImageDecoder::DecodePsmctRle1(privateContent, dataset))
-    {
-      LOG(INFO) << "The PMSCT_RLE1 decoding has succeeded";
-      Uint8* pixData = NULL;
-      if (privateContent.size() > 0)
-      {
-        pixData = reinterpret_cast<Uint8*>(&privateContent[0]);
-      }
-
-      source.reset(new DicomIntegerPixelAccessor(m, pixData, privateContent.size()));
-    }
-    
-    if (source.get() == NULL)
-    {
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-
-    source->SetCurrentFrame(frame);
-
+    ImageSource source;
+    source.Setup(dataset, frame);
 
     /**
      * Resize the target image, with some sanity checks.
@@ -402,21 +424,21 @@ namespace Orthanc
     switch (target.GetFormat())
     {
       case PixelFormat_RGB24:
-        ok = source->GetChannelCount() == 3;
+        ok = source.GetChannelCount() == 3;
         break;
 
       case PixelFormat_RGBA32:
-        ok = source->GetChannelCount() == 4;
+        ok = source.GetChannelCount() == 4;
         break;
 
       case PixelFormat_Grayscale8:
       case PixelFormat_Grayscale16:
       case PixelFormat_SignedGrayscale16:
-        ok = source->GetChannelCount() == 1;
+        ok = source.GetChannelCount() == 1;
         break;
 
       default:
-        ok = false;   // (*)
+        ok = false;
         break;
     }
 
@@ -438,15 +460,15 @@ namespace Orthanc
       case PixelFormat_RGB24:
       case PixelFormat_RGBA32:
       case PixelFormat_Grayscale8:
-        CopyPixels<uint8_t>(accessor, *source);
+        CopyPixels<uint8_t>(accessor, source.GetAccessor());
         break;
 
       case PixelFormat_Grayscale16:
-        CopyPixels<uint16_t>(accessor, *source);
+        CopyPixels<uint16_t>(accessor, source.GetAccessor());
         break;
 
       case PixelFormat_SignedGrayscale16:
-        CopyPixels<int16_t>(accessor, *source);
+        CopyPixels<int16_t>(accessor, source.GetAccessor());
         break;
 
       default:
@@ -519,6 +541,7 @@ namespace Orthanc
       return true;
     }
 
+
 #if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
     if (IsJpegLossless(dataset))
     {
@@ -527,6 +550,12 @@ namespace Orthanc
       return true;
     }
 #endif
+
+
+#if ORTHANC_JPEG_ENABLED == 1
+    // TODO Implement this part to speed up JPEG decompression
+#endif
+
 
     /**
      * This DICOM image format is not natively supported by

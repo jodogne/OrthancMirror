@@ -42,6 +42,8 @@ namespace Orthanc
   {
   public:   // TODO SWITCH TO PRIVATE
     //private:
+    class ImageSource;
+
     static void DecodeUncompressedImageInternal(ImageBuffer& target,
                                                 DcmDataset& dataset,
                                                 unsigned int frame);
