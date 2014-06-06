@@ -78,21 +78,21 @@ namespace Orthanc
     if (information_.IsPlanar())
     {
       /**
+       * Each color plane shall be sent contiguously. For RGB images,
+       * this means the order of the pixel values sent is R1, R2, R3,
+       * ..., G1, G2, G3, ..., B1, B2, B3, etc.
+       **/
+      rowOffset_ = information_.GetWidth() * information_.GetBytesPerPixel();
+    }
+    else
+    {
+      /**
        * The sample values for the first pixel are followed by the
        * sample values for the second pixel, etc. For RGB images, this
        * means the order of the pixel values sent shall be R1, G1, B1,
        * R2, G2, B2, ..., etc.
        **/
       rowOffset_ = information_.GetWidth() * information_.GetBytesPerPixel() * information_.GetChannelCount();
-    }
-    else
-    {
-      /**
-       * Each color plane shall be sent contiguously. For RGB images,
-       * this means the order of the pixel values sent is R1, R2, R3,
-       * ..., G1, G2, G3, ..., B1, B2, B3, etc.
-       **/
-      rowOffset_ = information_.GetWidth() * information_.GetBytesPerPixel();
     }
   }
 
@@ -130,23 +130,15 @@ namespace Orthanc
                                               unsigned int y,
                                               unsigned int channel) const
   {
-    assert(x < information_.GetWidth() && y < information_.GetHeight() && channel < information_.GetChannelCount());
+    assert(x < information_.GetWidth() && 
+           y < information_.GetHeight() && 
+           channel < information_.GetChannelCount());
     
     const uint8_t* pixel = reinterpret_cast<const uint8_t*>(pixelData_) + 
       y * rowOffset_ + frame_ * frameOffset_;
 
     // https://www.dabsoft.ch/dicom/3/C.7.6.3.1.3/
-    if (information_.IsPlanar() == 0)
-    {
-      /**
-       * The sample values for the first pixel are followed by the
-       * sample values for the second pixel, etc. For RGB images, this
-       * means the order of the pixel values sent shall be R1, G1, B1,
-       * R2, G2, B2, ..., etc.
-       **/
-      pixel += channel * information_.GetBytesPerPixel() + x * information_.GetChannelCount() * information_.GetBytesPerPixel();
-    }
-    else
+    if (information_.IsPlanar())
     {
       /**
        * Each color plane shall be sent contiguously. For RGB images,
@@ -155,6 +147,16 @@ namespace Orthanc
        **/
       assert(frameOffset_ % information_.GetChannelCount() == 0);
       pixel += channel * frameOffset_ / information_.GetChannelCount() + x * information_.GetBytesPerPixel();
+    }
+    else
+    {
+      /**
+       * The sample values for the first pixel are followed by the
+       * sample values for the second pixel, etc. For RGB images, this
+       * means the order of the pixel values sent shall be R1, G1, B1,
+       * R2, G2, B2, ..., etc.
+       **/
+      pixel += channel * information_.GetBytesPerPixel() + x * information_.GetChannelCount() * information_.GetBytesPerPixel();
     }
 
     uint32_t v;
