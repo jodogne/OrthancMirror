@@ -68,6 +68,7 @@ set(ORTHANC_CORE_SOURCES
   Core/DicomFormat/DicomArray.cpp
   Core/DicomFormat/DicomMap.cpp
   Core/DicomFormat/DicomTag.cpp
+  Core/DicomFormat/DicomImageInformation.cpp
   Core/DicomFormat/DicomIntegerPixelAccessor.cpp
   Core/DicomFormat/DicomInstanceHasher.cpp
   Core/Enumerations.cpp
@@ -94,6 +95,7 @@ set(ORTHANC_CORE_SOURCES
   Core/MultiThreading/ThreadedCommandProcessor.cpp
   Core/ImageFormats/ImageAccessor.cpp
   Core/ImageFormats/ImageBuffer.cpp
+  Core/ImageFormats/ImageProcessing.cpp
   Core/ImageFormats/PngReader.cpp
   Core/ImageFormats/PngWriter.cpp
   Core/SQLite/Connection.cpp
@@ -164,6 +166,7 @@ set(ORTHANC_UNIT_TESTS_SOURCES
   UnitTestsSources/Lua.cpp
   UnitTestsSources/MultiThreading.cpp
   UnitTestsSources/UnitTestsMain.cpp
+  UnitTestsSources/ImageProcessingTests.cpp
   UnitTestsSources/JpegLossless.cpp
   )
 

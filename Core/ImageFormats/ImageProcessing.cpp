@@ -30,77 +30,53 @@
  **/
 
 
-#pragma once
+#include "../PrecompiledHeaders.h"
+#include "ImageProcessing.h"
 
-#include "ImageAccessor.h"
+#include "../OrthancException.h"
 
-#include <vector>
-#include <stdint.h>
+#include <cassert>
+#include <string.h>
 
 namespace Orthanc
 {
-  class ImageBuffer
+  void ImageProcessing::Copy(ImageAccessor& target,
+                             const ImageAccessor& source)
   {
-  private:
-    bool changed_;
-    std::vector<uint8_t> data_;
-
-    bool forceMinimalPitch_;  // Currently unused
-    PixelFormat format_;
-    unsigned int width_;
-    unsigned int height_;
-    unsigned int pitch_;
-    uint8_t *buffer_;
-
-    void Initialize();
-    
-    void Allocate();
-
-  public:
-    ImageBuffer(unsigned int width,
-                unsigned int height,
-                PixelFormat format);
-
-    ImageBuffer()
+    if (target.GetWidth() != source.GetWidth() ||
+        target.GetHeight() != source.GetHeight())
     {
-      Initialize();
+      throw OrthancException(ErrorCode_IncompatibleImageSize);
     }
 
-    PixelFormat GetFormat() const
+    if (target.GetFormat() != source.GetFormat())
     {
-      return format_;
+      throw OrthancException(ErrorCode_IncompatibleImageFormat);
     }
 
-    void SetFormat(PixelFormat format);
+    unsigned int lineSize = GetBytesPerPixel(source.GetFormat()) * source.GetWidth();
 
-    unsigned int GetWidth() const
+    assert(source.GetPitch() >= lineSize && target.GetPitch() >= lineSize);
+
+    for (unsigned int y = 0; y < source.GetHeight(); y++)
     {
-      return width_;
+      memcpy(target.GetRow(y), source.GetRow(y), lineSize);
+    }
+  }
+
+  void ImageProcessing::Convert(ImageAccessor& target,
+                                const ImageAccessor& source)
+  {
+    if (target.GetWidth() != source.GetWidth() ||
+        target.GetHeight() != source.GetHeight())
+    {
+      throw OrthancException(ErrorCode_IncompatibleImageSize);
     }
 
-    void SetWidth(unsigned int width);
-
-    unsigned int GetHeight() const
+    if (source.GetFormat() == target.GetFormat())
     {
-      return height_;
+      Copy(target, source);
+      return;
     }
-
-    void SetHeight(unsigned int height);
-
-    unsigned int GetBytesPerPixel() const
-    {
-      return ::Orthanc::GetBytesPerPixel(format_);
-    }
-
-    ImageAccessor GetAccessor();
-
-    ImageAccessor GetConstAccessor();
-
-    bool IsMinimalPitchForced() const
-    {
-      return forceMinimalPitch_;
-    }
-
-    void SetMinimalPitchForced(bool force);
-  };
+  }
 }

@@ -431,15 +431,15 @@ namespace Orthanc
   static void ExtractPngImageColorPreview(std::string& result,
                                           DicomIntegerPixelAccessor& accessor)
   {
-    assert(accessor.GetChannelCount() == 3);
+    assert(accessor.GetInformation().GetChannelCount() == 3);
     PngWriter w;
 
-    std::vector<uint8_t> image(accessor.GetWidth() * accessor.GetHeight() * 3, 0);
+    std::vector<uint8_t> image(accessor.GetInformation().GetWidth() * accessor.GetInformation().GetHeight() * 3, 0);
     uint8_t* pixel = &image[0];
 
-    for (unsigned int y = 0; y < accessor.GetHeight(); y++)
+    for (unsigned int y = 0; y < accessor.GetInformation().GetHeight(); y++)
     {
-      for (unsigned int x = 0; x < accessor.GetWidth(); x++)
+      for (unsigned int x = 0; x < accessor.GetInformation().GetWidth(); x++)
       {
         for (unsigned int c = 0; c < 3; c++, pixel++)
         {
@@ -454,27 +454,27 @@ namespace Orthanc
       }
     }
 
-    w.WriteToMemory(result, accessor.GetWidth(), accessor.GetHeight(),
-                    accessor.GetWidth() * 3, PixelFormat_RGB24, &image[0]);
+    w.WriteToMemory(result, accessor.GetInformation().GetWidth(), accessor.GetInformation().GetHeight(),
+                    accessor.GetInformation().GetWidth() * 3, PixelFormat_RGB24, &image[0]);
   }
 
 
   static void ExtractPngImageGrayscalePreview(std::string& result,
                                               DicomIntegerPixelAccessor& accessor)
   {
-    assert(accessor.GetChannelCount() == 1);
+    assert(accessor.GetInformation().GetChannelCount() == 1);
     PngWriter w;
 
     int32_t min, max;
     accessor.GetExtremeValues(min, max);
 
-    std::vector<uint8_t> image(accessor.GetWidth() * accessor.GetHeight(), 0);
+    std::vector<uint8_t> image(accessor.GetInformation().GetWidth() * accessor.GetInformation().GetHeight(), 0);
     if (min != max)
     {
       uint8_t* pixel = &image[0];
-      for (unsigned int y = 0; y < accessor.GetHeight(); y++)
+      for (unsigned int y = 0; y < accessor.GetInformation().GetHeight(); y++)
       {
-        for (unsigned int x = 0; x < accessor.GetWidth(); x++, pixel++)
+        for (unsigned int x = 0; x < accessor.GetInformation().GetWidth(); x++, pixel++)
         {
           int32_t v = accessor.GetValue(x, y);
           *pixel = static_cast<uint8_t>(
@@ -484,8 +484,8 @@ namespace Orthanc
       }
     }
 
-    w.WriteToMemory(result, accessor.GetWidth(), accessor.GetHeight(),
-                    accessor.GetWidth(), PixelFormat_Grayscale8, &image[0]);
+    w.WriteToMemory(result, accessor.GetInformation().GetWidth(), accessor.GetInformation().GetHeight(),
+                    accessor.GetInformation().GetWidth(), PixelFormat_Grayscale8, &image[0]);
   }
 
 
@@ -494,15 +494,15 @@ namespace Orthanc
                                       DicomIntegerPixelAccessor& accessor,
                                       PixelFormat format)
   {
-    assert(accessor.GetChannelCount() == 1);
+    assert(accessor.GetInformation().GetChannelCount() == 1);
 
     PngWriter w;
 
-    std::vector<T> image(accessor.GetWidth() * accessor.GetHeight(), 0);
+    std::vector<T> image(accessor.GetInformation().GetWidth() * accessor.GetInformation().GetHeight(), 0);
     T* pixel = &image[0];
-    for (unsigned int y = 0; y < accessor.GetHeight(); y++)
+    for (unsigned int y = 0; y < accessor.GetInformation().GetHeight(); y++)
     {
-      for (unsigned int x = 0; x < accessor.GetWidth(); x++, pixel++)
+      for (unsigned int x = 0; x < accessor.GetInformation().GetWidth(); x++, pixel++)
       {
         int32_t v = accessor.GetValue(x, y);
         if (v < static_cast<int32_t>(std::numeric_limits<T>::min()))
@@ -514,8 +514,8 @@ namespace Orthanc
       }
     }
 
-    w.WriteToMemory(result, accessor.GetWidth(), accessor.GetHeight(),
-                    accessor.GetWidth() * sizeof(T), format, &image[0]);
+    w.WriteToMemory(result, accessor.GetInformation().GetWidth(), accessor.GetInformation().GetHeight(),
+                    accessor.GetInformation().GetWidth() * sizeof(T), format, &image[0]);
   }
 
 
@@ -564,7 +564,7 @@ namespace Orthanc
     PixelFormat format;
     bool supported = false;
 
-    if (accessor->GetChannelCount() == 1)
+    if (accessor->GetInformation().GetChannelCount() == 1)
     {
       switch (mode)
       {
@@ -593,7 +593,7 @@ namespace Orthanc
           break;
       }
     }
-    else if (accessor->GetChannelCount() == 3)
+    else if (accessor->GetInformation().GetChannelCount() == 3)
     {
       switch (mode)
       {
@@ -614,8 +614,8 @@ namespace Orthanc
     }   
 
     if (accessor.get() == NULL ||
-        accessor->GetWidth() == 0 ||
-        accessor->GetHeight() == 0)
+        accessor->GetInformation().GetWidth() == 0 ||
+        accessor->GetInformation().GetHeight() == 0)
     {
       PngWriter w;
       w.WriteToMemory(result, 0, 0, 0, format, NULL);

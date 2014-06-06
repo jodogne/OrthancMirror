@@ -32,75 +32,89 @@
 
 #pragma once
 
-#include "ImageAccessor.h"
+#include "DicomMap.h"
 
-#include <vector>
 #include <stdint.h>
 
 namespace Orthanc
 {
-  class ImageBuffer
+  class DicomImageInformation
   {
   private:
-    bool changed_;
-    std::vector<uint8_t> data_;
-
-    bool forceMinimalPitch_;  // Currently unused
-    PixelFormat format_;
     unsigned int width_;
     unsigned int height_;
-    unsigned int pitch_;
-    uint8_t *buffer_;
+    unsigned int samplesPerPixel_;
+    unsigned int numberOfFrames_;
 
-    void Initialize();
-    
-    void Allocate();
+    bool isPlanar_;
+    bool isSigned_;
+    size_t bytesPerPixel_;
+
+    unsigned int bitsAllocated_;
+    unsigned int bitsStored_;
+    unsigned int highBit_;
 
   public:
-    ImageBuffer(unsigned int width,
-                unsigned int height,
-                PixelFormat format);
-
-    ImageBuffer()
-    {
-      Initialize();
-    }
-
-    PixelFormat GetFormat() const
-    {
-      return format_;
-    }
-
-    void SetFormat(PixelFormat format);
+    DicomImageInformation(const DicomMap& values);
 
     unsigned int GetWidth() const
     {
       return width_;
     }
 
-    void SetWidth(unsigned int width);
-
     unsigned int GetHeight() const
     {
       return height_;
     }
 
-    void SetHeight(unsigned int height);
-
-    unsigned int GetBytesPerPixel() const
+    unsigned int GetNumberOfFrames() const
     {
-      return ::Orthanc::GetBytesPerPixel(format_);
+      return numberOfFrames_;
     }
 
-    ImageAccessor GetAccessor();
-
-    ImageAccessor GetConstAccessor();
-
-    bool IsMinimalPitchForced() const
+    unsigned int GetChannelCount() const
     {
-      return forceMinimalPitch_;
+      return samplesPerPixel_;
     }
 
-    void SetMinimalPitchForced(bool force);
+    unsigned int GetBitsStored() const
+    {
+      return bitsStored_;
+    }
+
+    size_t GetBytesPerPixel() const
+    {
+      return bytesPerPixel_;
+    }
+
+    bool IsSigned() const
+    {
+      return isSigned_;
+    }
+
+    unsigned int GetBitsAllocated() const
+    {
+      return bitsAllocated_;
+    }
+
+    unsigned int GetHighBit() const
+    {
+      return highBit_;
+    }
+
+    unsigned int GetSamplesPerPixel() const
+    {
+      return samplesPerPixel_;
+    }
+
+    bool IsPlanar() const
+    {
+      return isPlanar_;
+    }
+
+    unsigned int GetShift() const
+    {
+      return highBit_ + 1 - bitsStored_;
+    }
   };
 }
