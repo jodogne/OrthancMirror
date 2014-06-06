@@ -125,7 +125,7 @@ namespace Orthanc
       // If the tag "NumberOfFrames" is absent, assume there is a single frame
       numberOfFrames_ = 1;
     }
-    catch (boost::bad_lexical_cast)
+    catch (boost::bad_lexical_cast&)
     {
       throw OrthancException(ErrorCode_NotImplemented);
     }

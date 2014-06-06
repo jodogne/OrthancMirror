@@ -79,9 +79,9 @@ TEST(JpegLossless, Basic)
   }
 #else
   DcmFileFormat fileformat;
-  ASSERT_TRUE(fileformat.loadFile("IM-0001-1001-0001.dcm").good());
+  //ASSERT_TRUE(fileformat.loadFile("IM-0001-1001-0001.dcm").good());
   //ASSERT_TRUE(fileformat.loadFile("tata.dcm").good());
-  //ASSERT_TRUE(fileformat.loadFile("RG2_JPLY").good());
+  ASSERT_TRUE(fileformat.loadFile("RG2_JPLY").good());
   
   DcmDataset& dataset = *fileformat.getDataset();
 

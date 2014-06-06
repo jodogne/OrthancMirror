@@ -50,7 +50,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/ofstd/libsrc DCMTK_SOURCES)
 
 
-  if (ENABLE_JPEG_LOSSLESS)
+  if (ENABLE_JPEG)
     AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc DCMTK_SOURCES)
     AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmjpeg/libijg8 DCMTK_SOURCES)
     AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmjpeg/libijg12 DCMTK_SOURCES)
@@ -61,6 +61,9 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg12
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg16
       ${DCMTK_SOURCES_DIR}/dcmimgle/include
+      )
+    list(REMOVE_ITEM DCMTK_SOURCES 
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/ddpiimpl.cc
       )
   endif()
 
@@ -74,9 +77,11 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       ${DCMTK_SOURCES_DIR}/dcmjpls/libcharls
       )
     list(REMOVE_ITEM DCMTK_SOURCES 
-      ${DCMTK_SOURCES_DIR}/dcmjpls/libsrc/djcodece.cc)
+      ${DCMTK_SOURCES_DIR}/dcmjpls/libsrc/djcodece.cc
+      )
     list(APPEND DCMTK_SOURCES 
-      ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djrplol.cc)
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djrplol.cc
+      )
   endif()
 
 
