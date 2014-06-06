@@ -30,77 +30,15 @@
  **/
 
 
-#pragma once
+#include "PrecompiledHeadersUnitTests.h"
+#include "gtest/gtest.h"
 
-#include "ImageAccessor.h"
+#include "../Core/ImageFormats/ImageBuffer.h"
+#include "../Core/ImageFormats/ImageProcessing.h"
 
-#include <vector>
-#include <stdint.h>
+using namespace Orthanc;
 
-namespace Orthanc
+
+TEST(ImageProcessing, Copy)
 {
-  class ImageBuffer
-  {
-  private:
-    bool changed_;
-    std::vector<uint8_t> data_;
-
-    bool forceMinimalPitch_;  // Currently unused
-    PixelFormat format_;
-    unsigned int width_;
-    unsigned int height_;
-    unsigned int pitch_;
-    uint8_t *buffer_;
-
-    void Initialize();
-    
-    void Allocate();
-
-  public:
-    ImageBuffer(unsigned int width,
-                unsigned int height,
-                PixelFormat format);
-
-    ImageBuffer()
-    {
-      Initialize();
-    }
-
-    PixelFormat GetFormat() const
-    {
-      return format_;
-    }
-
-    void SetFormat(PixelFormat format);
-
-    unsigned int GetWidth() const
-    {
-      return width_;
-    }
-
-    void SetWidth(unsigned int width);
-
-    unsigned int GetHeight() const
-    {
-      return height_;
-    }
-
-    void SetHeight(unsigned int height);
-
-    unsigned int GetBytesPerPixel() const
-    {
-      return ::Orthanc::GetBytesPerPixel(format_);
-    }
-
-    ImageAccessor GetAccessor();
-
-    ImageAccessor GetConstAccessor();
-
-    bool IsMinimalPitchForced() const
-    {
-      return forceMinimalPitch_;
-    }
-
-    void SetMinimalPitchForced(bool force);
-  };
 }

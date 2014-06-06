@@ -63,7 +63,18 @@ namespace Orthanc
   }
 
 
-  ImageBuffer::ImageBuffer() : changed_(false)
+  ImageBuffer::ImageBuffer(unsigned int width,
+                           unsigned int height,
+                           PixelFormat format)
+  {
+    Initialize();
+    SetWidth(width);
+    SetHeight(height);
+    SetFormat(format);
+  }
+
+
+  void ImageBuffer::Initialize()
   {
     changed_ = false;
     forceMinimalPitch_ = true;

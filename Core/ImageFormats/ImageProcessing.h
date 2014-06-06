@@ -34,73 +34,15 @@
 
 #include "ImageAccessor.h"
 
-#include <vector>
-#include <stdint.h>
-
 namespace Orthanc
 {
-  class ImageBuffer
+  class ImageProcessing
   {
-  private:
-    bool changed_;
-    std::vector<uint8_t> data_;
-
-    bool forceMinimalPitch_;  // Currently unused
-    PixelFormat format_;
-    unsigned int width_;
-    unsigned int height_;
-    unsigned int pitch_;
-    uint8_t *buffer_;
-
-    void Initialize();
-    
-    void Allocate();
-
   public:
-    ImageBuffer(unsigned int width,
-                unsigned int height,
-                PixelFormat format);
+    static void Copy(ImageAccessor& target,
+                     const ImageAccessor& source);
 
-    ImageBuffer()
-    {
-      Initialize();
-    }
-
-    PixelFormat GetFormat() const
-    {
-      return format_;
-    }
-
-    void SetFormat(PixelFormat format);
-
-    unsigned int GetWidth() const
-    {
-      return width_;
-    }
-
-    void SetWidth(unsigned int width);
-
-    unsigned int GetHeight() const
-    {
-      return height_;
-    }
-
-    void SetHeight(unsigned int height);
-
-    unsigned int GetBytesPerPixel() const
-    {
-      return ::Orthanc::GetBytesPerPixel(format_);
-    }
-
-    ImageAccessor GetAccessor();
-
-    ImageAccessor GetConstAccessor();
-
-    bool IsMinimalPitchForced() const
-    {
-      return forceMinimalPitch_;
-    }
-
-    void SetMinimalPitchForced(bool force);
+    static void Convert(ImageAccessor& target,
+                        const ImageAccessor& source);
   };
 }

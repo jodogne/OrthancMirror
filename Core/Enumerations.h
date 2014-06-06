@@ -69,7 +69,9 @@ namespace Orthanc
     ErrorCode_FullStorage,
     ErrorCode_CorruptedFile,
     ErrorCode_InexistentTag,
-    ErrorCode_ReadOnly
+    ErrorCode_ReadOnly,
+    ErrorCode_IncompatibleImageFormat,
+    ErrorCode_IncompatibleImageSize
   };
 
   /**

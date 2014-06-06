@@ -99,12 +99,17 @@ namespace Orthanc
   {
   private:
     std::string psmct_;
-    std::auto_ptr<DicomIntegerPixelAccessor> accessor_;
- 
+    std::auto_ptr<DicomIntegerPixelAccessor> slowAccessor_;
+    std::auto_ptr<ImageAccessor> fastAccessor_;
+
   public:
     void Setup(DcmDataset& dataset,
                unsigned int frame)
     {
+      psmct_.clear();
+      slowAccessor_.reset(NULL);
+      fastAccessor_.reset(NULL);
+
       // See also: http://support.dcmtk.org/wiki/dcmtk/howto/accessing-compressed-data
 
       DicomMap m;
@@ -121,7 +126,7 @@ namespace Orthanc
         Uint8* pixData = NULL;
         if (e->getUint8Array(pixData) == EC_Normal)
         {    
-          accessor_.reset(new DicomIntegerPixelAccessor(m, pixData, e->getLength()));
+          slowAccessor_.reset(new DicomIntegerPixelAccessor(m, pixData, e->getLength()));
         }
       }
       else if (DicomImageDecoder::DecodePsmctRle1(psmct_, dataset))
@@ -133,27 +138,63 @@ namespace Orthanc
           pixData = reinterpret_cast<Uint8*>(&psmct_[0]);
         }
 
-        accessor_.reset(new DicomIntegerPixelAccessor(m, pixData, psmct_.size()));
+        slowAccessor_.reset(new DicomIntegerPixelAccessor(m, pixData, psmct_.size()));
       }
     
-      if (accessor_.get() == NULL)
+      if (slowAccessor_.get() == NULL)
       {
         throw OrthancException(ErrorCode_BadFileFormat);
       }
 
-      accessor_->SetCurrentFrame(frame);
+      slowAccessor_->SetCurrentFrame(frame);
+
+
+      /**
+       * If possible, create a fast ImageAccessor to the image buffer.
+       **/
+
+      
+    }
+
+    unsigned int GetWidth() const
+    {
+      assert(slowAccessor_.get() != NULL);
+      return slowAccessor_->GetInformation().GetWidth();
+    }
+
+    unsigned int GetHeight() const
+    {
+      assert(slowAccessor_.get() != NULL);
+      return slowAccessor_->GetInformation().GetHeight();
+    }
+
+    unsigned int GetBytesPerPixel() const
+    {
+      assert(slowAccessor_.get() != NULL);
+      return slowAccessor_->GetInformation().GetBytesPerPixel();
     }
 
     unsigned int GetChannelCount() const
     {
-      assert(accessor_.get() != NULL);
-      return accessor_->GetChannelCount();
+      assert(slowAccessor_.get() != NULL);
+      return slowAccessor_->GetInformation().GetChannelCount();
     }
 
     const DicomIntegerPixelAccessor GetAccessor() const
     {
-      assert(accessor_.get() != NULL);
-      return *accessor_;
+      assert(slowAccessor_.get() != NULL);
+      return *slowAccessor_;
+    }
+
+    bool HasFastAccessor() const
+    {
+      return fastAccessor_.get() != NULL;
+    }
+
+    const ImageAccessor& GetFastAccessor() const
+    {
+      assert(HasFastAccessor());
+      return *fastAccessor_;
     }
   };
 
@@ -362,12 +403,12 @@ namespace Orthanc
     const PixelType minValue = std::numeric_limits<PixelType>::min();
     const PixelType maxValue = std::numeric_limits<PixelType>::max();
 
-    for (unsigned int y = 0; y < source.GetHeight(); y++)
+    for (unsigned int y = 0; y < source.GetInformation().GetHeight(); y++)
     {
       PixelType* pixel = reinterpret_cast<PixelType*>(target.GetRow(y));
-      for (unsigned int x = 0; x < source.GetWidth(); x++)
+      for (unsigned int x = 0; x < source.GetInformation().GetWidth(); x++)
       {
-        for (unsigned int c = 0; c < source.GetChannelCount(); c++, pixel++)
+        for (unsigned int c = 0; c < source.GetInformation().GetChannelCount(); c++, pixel++)
         {
           int32_t v = source.GetValue(x, y, c);
           if (v < static_cast<int32_t>(minValue))
