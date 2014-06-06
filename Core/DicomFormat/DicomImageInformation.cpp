@@ -176,13 +176,13 @@ namespace Orthanc
       return true;
     }
 
-    if (GetBitsStored() >= 9 && GetBitsStored() <= 16 && GetChannelCount() == 1 && !IsSigned())
+    if (GetBitsAllocated() == 16 && GetChannelCount() == 1 && !IsSigned())
     {
       format = PixelFormat_Grayscale16;
       return true;
     }
 
-    if (GetBitsStored() >= 9 && GetBitsStored() <= 16 && GetChannelCount() == 1 && IsSigned())
+    if (GetBitsAllocated() == 16 && GetChannelCount() == 1 && IsSigned())
     {
       format = PixelFormat_SignedGrayscale16;
       return true;

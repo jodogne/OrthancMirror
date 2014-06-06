@@ -33,12 +33,46 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
+#include "../Core/DicomFormat/DicomImageInformation.h"
 #include "../Core/ImageFormats/ImageBuffer.h"
 #include "../Core/ImageFormats/ImageProcessing.h"
 
 using namespace Orthanc;
 
 
-TEST(ImageProcessing, Copy)
+TEST(DicomImageInformation, ExtractPixelFormat1)
 {
+  // Cardiac/MR*
+  DicomMap m;
+  m.SetValue(DICOM_TAG_ROWS, "24");
+  m.SetValue(DICOM_TAG_COLUMNS, "16");
+  m.SetValue(DICOM_TAG_BITS_ALLOCATED, "16");
+  m.SetValue(DICOM_TAG_SAMPLES_PER_PIXEL, "1");
+  m.SetValue(DICOM_TAG_BITS_STORED, "12");
+  m.SetValue(DICOM_TAG_HIGH_BIT, "11");
+  m.SetValue(DICOM_TAG_PIXEL_REPRESENTATION, "0");
+
+  DicomImageInformation info(m);
+  PixelFormat format;
+  ASSERT_TRUE(info.ExtractPixelFormat(format));
+  ASSERT_EQ(PixelFormat_Grayscale16, format);
+}
+
+
+TEST(DicomImageInformation, ExtractPixelFormat2)
+{
+  // Delphine CT
+  DicomMap m;
+  m.SetValue(DICOM_TAG_ROWS, "24");
+  m.SetValue(DICOM_TAG_COLUMNS, "16");
+  m.SetValue(DICOM_TAG_BITS_ALLOCATED, "16");
+  m.SetValue(DICOM_TAG_SAMPLES_PER_PIXEL, "1");
+  m.SetValue(DICOM_TAG_BITS_STORED, "16");
+  m.SetValue(DICOM_TAG_HIGH_BIT, "15");
+  m.SetValue(DICOM_TAG_PIXEL_REPRESENTATION, "1");
+
+  DicomImageInformation info(m);
+  PixelFormat format;
+  ASSERT_TRUE(info.ExtractPixelFormat(format));
+  ASSERT_EQ(PixelFormat_SignedGrayscale16, format);
 }
