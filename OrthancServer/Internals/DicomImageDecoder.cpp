@@ -256,16 +256,18 @@ namespace Orthanc
     {
       target.SetFormat(PixelFormat_RGB24);
     }
-    else if (bitsStored == 16 && samplesPerPixel == 1 && !isSigned)
+    else if (bitsStored >= 9 && bitsStored <= 16 && samplesPerPixel == 1 && !isSigned)
     {
       target.SetFormat(PixelFormat_Grayscale16);
     }
-    else if (bitsStored == 16 && samplesPerPixel == 1 && isSigned)
+    else if (bitsStored >= 9 && bitsStored <= 16 && samplesPerPixel == 1 && isSigned)
     {
       target.SetFormat(PixelFormat_SignedGrayscale16);
     }
     else
     {
+      LOG(WARNING) << "Unsupported DICOM image: " << bitsStored << "bpp, " 
+      << samplesPerPixel << " channels, " << (isSigned ? "signed" : "unsigned");
       throw OrthancException(ErrorCode_NotImplemented);
     }
   }
