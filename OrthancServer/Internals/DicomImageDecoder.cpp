@@ -406,41 +406,15 @@ namespace Orthanc
     ImageSource source;
     source.Setup(dataset, frame);
 
+
     /**
-     * Resize the target image, with some sanity checks.
+     * Resize the target image.
      **/
 
     SetupImageBuffer(target, dataset);
 
     if (source.GetWidth() != target.GetWidth() ||
         source.GetHeight() != target.GetHeight())
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    bool ok;
-    switch (target.GetFormat())
-    {
-      case PixelFormat_RGB24:
-        ok = source.GetChannelCount() == 3;
-        break;
-
-      case PixelFormat_RGBA32:
-        ok = source.GetChannelCount() == 4;
-        break;
-
-      case PixelFormat_Grayscale8:
-      case PixelFormat_Grayscale16:
-      case PixelFormat_SignedGrayscale16:
-        ok = source.GetChannelCount() == 1;
-        break;
-
-      default:
-        ok = false;
-        break;
-    }
-
-    if (!ok)
     {
       throw OrthancException(ErrorCode_InternalError);
     }
