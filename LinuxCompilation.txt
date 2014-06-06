@@ -136,24 +136,25 @@ SUPPORTED - Ubuntu 12.10
        	       	       libsqlite3-dev libssl-dev zlib1g-dev \
        	       	       libdcmtk2-dev libboost-all-dev libwrap0-dev libcharls-dev
 
-With JPEG Lossless:
+With JPEG:
 
 # cmake "-DDCMTK_LIBRARIES=CharLS;dcmjpls;wrap;oflog" \
         -DALLOW_DOWNLOADS=ON \
 	-DUSE_SYSTEM_MONGOOSE=OFF \
 	-DUSE_SYSTEM_JSONCPP=OFF \
         -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
-        -DENABLE_JPEG_LOSSLESS=ON \
 	~/Orthanc
 
 
-Without JPEG Lossless:
+Without JPEG:
 
 # cmake "-DDCMTK_LIBRARIES=wrap;oflog" \
         -DALLOW_DOWNLOADS=ON \
 	-DUSE_SYSTEM_MONGOOSE=OFF \
 	-DUSE_SYSTEM_JSONCPP=OFF \
         -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
+        -DENABLE_JPEG=OFF \
+        -DENABLE_JPEG_LOSSLESS=OFF \
 	~/Orthanc
 
 

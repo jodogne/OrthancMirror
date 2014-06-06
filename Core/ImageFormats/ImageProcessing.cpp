@@ -60,9 +60,10 @@ namespace Orthanc
 
     for (unsigned int y = 0; y < source.GetHeight(); y++)
     {
-      memcpy(target.GetRow(y), source.GetRow(y), lineSize);
+      memcpy(target.GetRow(y), source.GetConstRow(y), lineSize);
     }
   }
+
 
   void ImageProcessing::Convert(ImageAccessor& target,
                                 const ImageAccessor& source)
@@ -78,5 +79,23 @@ namespace Orthanc
       Copy(target, source);
       return;
     }
+
+    throw OrthancException(ErrorCode_NotImplemented);
   }
+
+
+  void ImageProcessing::ShiftRight(ImageAccessor& image,
+                                   unsigned int shift)
+  {
+    if (image.GetWidth() == 0 ||
+        image.GetHeight() == 0 ||
+        shift == 0)
+    {
+      // Nothing to do
+      return;
+    }
+
+    throw OrthancException(ErrorCode_NotImplemented);
+  }
+
 }

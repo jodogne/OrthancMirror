@@ -78,6 +78,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "../../Core/OrthancException.h"
+#include "../../Core/ImageFormats/ImageProcessing.h"
 #include "../../Core/DicomFormat/DicomIntegerPixelAccessor.h"
 #include "../ToDcmtkBridge.h"
 #include "../FromDcmtkBridge.h"
@@ -180,7 +181,7 @@ namespace Orthanc
       return slowAccessor_->GetInformation().GetChannelCount();
     }
 
-    const DicomIntegerPixelAccessor GetAccessor() const
+    const DicomIntegerPixelAccessor& GetAccessor() const
     {
       assert(slowAccessor_.get() != NULL);
       return *slowAccessor_;
@@ -313,67 +314,23 @@ namespace Orthanc
   void DicomImageDecoder::SetupImageBuffer(ImageBuffer& target,
                                            DcmDataset& dataset)
   {
-    OFString value;
+    DicomMap m;
+    FromDcmtkBridge::Convert(m, dataset);
 
-    if (!dataset.findAndGetOFString(ToDcmtkBridge::Convert(DICOM_TAG_COLUMNS), value).good())
+    DicomImageInformation info(m);
+    PixelFormat format;
+    
+    if (!info.ExtractPixelFormat(format))
     {
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-
-    unsigned int width = boost::lexical_cast<unsigned int>(value.c_str());
-
-    if (!dataset.findAndGetOFString(ToDcmtkBridge::Convert(DICOM_TAG_ROWS), value).good())
-    {
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-
-    unsigned int height = boost::lexical_cast<unsigned int>(value.c_str());
-
-    if (!dataset.findAndGetOFString(ToDcmtkBridge::Convert(DICOM_TAG_BITS_STORED), value).good())
-    {
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-
-    unsigned int bitsStored = boost::lexical_cast<unsigned int>(value.c_str());
-
-    if (!dataset.findAndGetOFString(ToDcmtkBridge::Convert(DICOM_TAG_PIXEL_REPRESENTATION), value).good())
-    {
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-
-    bool isSigned = (boost::lexical_cast<unsigned int>(value.c_str()) != 0);
-
-    unsigned int samplesPerPixel = 1; // By default
-    if (dataset.findAndGetOFString(ToDcmtkBridge::Convert(DICOM_TAG_SAMPLES_PER_PIXEL), value).good())
-    {
-      samplesPerPixel = boost::lexical_cast<unsigned int>(value.c_str());
-    }
-
-    target.SetHeight(height);
-    target.SetWidth(width);
-
-    if (bitsStored == 8 && samplesPerPixel == 1 && !isSigned)
-    {
-      target.SetFormat(PixelFormat_Grayscale8);
-    }
-    else if (bitsStored == 8 && samplesPerPixel == 3 && !isSigned)
-    {
-      target.SetFormat(PixelFormat_RGB24);
-    }
-    else if (bitsStored >= 9 && bitsStored <= 16 && samplesPerPixel == 1 && !isSigned)
-    {
-      target.SetFormat(PixelFormat_Grayscale16);
-    }
-    else if (bitsStored >= 9 && bitsStored <= 16 && samplesPerPixel == 1 && isSigned)
-    {
-      target.SetFormat(PixelFormat_SignedGrayscale16);
-    }
-    else
-    {
-      LOG(WARNING) << "Unsupported DICOM image: " << bitsStored << "bpp, " 
-      << samplesPerPixel << " channels, " << (isSigned ? "signed" : "unsigned");
+      LOG(WARNING) << "Unsupported DICOM image: " << info.GetBitsStored() 
+                   << "bpp, " << info.GetChannelCount() << " channels, " 
+                   << (info.IsSigned() ? "signed" : "unsigned");
       throw OrthancException(ErrorCode_NotImplemented);
     }
+    
+    target.SetHeight(info.GetHeight());
+    target.SetWidth(info.GetWidth());
+    target.SetFormat(format);
   }
 
 
@@ -455,8 +412,8 @@ namespace Orthanc
 
     SetupImageBuffer(target, dataset);
 
-    if (target.GetWidth() != target.GetWidth() ||
-        target.GetHeight() != target.GetHeight())
+    if (source.GetWidth() != target.GetWidth() ||
+        source.GetHeight() != target.GetHeight())
     {
       throw OrthancException(ErrorCode_InternalError);
     }
@@ -490,30 +447,63 @@ namespace Orthanc
 
 
     /**
+     * If the format of the DICOM buffer is natively supported, use a
+     * direct access to copy its values.
+     **/
+
+    ImageAccessor targetAccessor(target.GetAccessor());
+    const DicomImageInformation& info = source.GetAccessor().GetInformation();
+
+    bool fastVersionSuccess = false;
+    PixelFormat sourceFormat;
+    if (info.ExtractPixelFormat(sourceFormat))
+    {
+      try
+      {
+        ImageAccessor sourceImage;
+        sourceImage.AssignReadOnly(sourceFormat, 
+                                   info.GetWidth(), 
+                                   info.GetHeight(),
+                                   info.GetWidth() * info.GetBytesPerPixel(),
+                                   source.GetAccessor().GetPixelData());                                   
+
+        ImageProcessing::Convert(targetAccessor, sourceImage);
+        ImageProcessing::ShiftRight(targetAccessor, info.GetShift());
+        fastVersionSuccess = true;
+      }
+      catch (OrthancException&)
+      {
+        // Unsupported conversion
+      }
+    }
+
+
+    /**
      * Loop over the DICOM buffer, storing its value into the target
      * image.
      **/
 
-    ImageAccessor accessor(target.GetAccessor());
-
-    switch (target.GetFormat())
+    if (!fastVersionSuccess)
     {
-      case PixelFormat_RGB24:
-      case PixelFormat_RGBA32:
-      case PixelFormat_Grayscale8:
-        CopyPixels<uint8_t>(accessor, source.GetAccessor());
+      switch (target.GetFormat())
+      {
+        case PixelFormat_RGB24:
+        case PixelFormat_RGBA32:
+        case PixelFormat_Grayscale8:
+        CopyPixels<uint8_t>(targetAccessor, source.GetAccessor());
         break;
 
-      case PixelFormat_Grayscale16:
-        CopyPixels<uint16_t>(accessor, source.GetAccessor());
+        case PixelFormat_Grayscale16:
+        CopyPixels<uint16_t>(targetAccessor, source.GetAccessor());
         break;
 
-      case PixelFormat_SignedGrayscale16:
-        CopyPixels<int16_t>(accessor, source.GetAccessor());
+        case PixelFormat_SignedGrayscale16:
+        CopyPixels<int16_t>(targetAccessor, source.GetAccessor());
         break;
 
-      default:
+        default:
         throw OrthancException(ErrorCode_InternalError);
+      }
     }
   }
 
@@ -544,7 +534,7 @@ namespace Orthanc
 
     SetupImageBuffer(target, dataset);
 
-    ImageAccessor accessor(target.GetAccessor());
+    ImageAccessor targetAccessor(target.GetAccessor());
 
     /**
      * The "DJLSLosslessDecoder" and "DJLSNearLosslessDecoder" in DCMTK
@@ -560,8 +550,8 @@ namespace Orthanc
     OFString decompressedColorModel;  // Out
     DJ_RPLossless representationParameter;
     OFCondition c = decoder.decodeFrame(&representationParameter, pixelSequence, &parameters, 
-                                        &dataset, frame, startFragment, accessor.GetBuffer(), 
-                                        accessor.GetSize(), decompressedColorModel);
+                                        &dataset, frame, startFragment, targetAccessor.GetBuffer(), 
+                                        targetAccessor.GetSize(), decompressedColorModel);
 
     if (!c.good())
     {

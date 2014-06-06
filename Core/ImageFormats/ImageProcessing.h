@@ -44,5 +44,8 @@ namespace Orthanc
 
     static void Convert(ImageAccessor& target,
                         const ImageAccessor& source);
+
+    static void ShiftRight(ImageAccessor& target,
+                           unsigned int shift);
   };
 }
