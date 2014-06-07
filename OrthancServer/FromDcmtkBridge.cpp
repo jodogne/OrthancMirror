@@ -532,7 +532,6 @@ namespace Orthanc
       ImageBuffer tmp;
       if (DicomImageDecoder::Decode(tmp, dataset, frame, PixelFormat_Grayscale8, DicomImageDecoder::Mode_Truncate))
       {
-        printf("%d %d %d\n", tmp.GetWidth(), tmp.GetHeight(), tmp.GetFormat());
         ImageAccessor accessor(tmp.GetAccessor());
         PngWriter writer;
         writer.WriteToMemory(result, accessor);

@@ -36,6 +36,7 @@
 #include "../OrthancException.h"
 
 #include <stdint.h>
+#include <cassert>
 
 namespace Orthanc
 {
@@ -104,6 +105,8 @@ namespace Orthanc
     height_ = height;
     pitch_ = pitch;
     buffer_ = const_cast<void*>(buffer);
+
+    assert(GetBytesPerPixel(format_) * width_ <= pitch_);
   }
 
 
@@ -119,5 +122,7 @@ namespace Orthanc
     height_ = height;
     pitch_ = pitch;
     buffer_ = buffer;
+
+    assert(GetBytesPerPixel(format_) * width_ <= pitch_);
   }
 }

@@ -169,12 +169,6 @@ namespace Orthanc
       return slowAccessor_->GetInformation().GetHeight();
     }
 
-    unsigned int GetBytesPerPixel() const
-    {
-      assert(slowAccessor_.get() != NULL);
-      return slowAccessor_->GetInformation().GetBytesPerPixel();
-    }
-
     unsigned int GetChannelCount() const
     {
       assert(slowAccessor_.get() != NULL);
@@ -324,7 +318,8 @@ namespace Orthanc
     {
       LOG(WARNING) << "Unsupported DICOM image: " << info.GetBitsStored() 
                    << "bpp, " << info.GetChannelCount() << " channels, " 
-                   << (info.IsSigned() ? "signed" : "unsigned");
+                   << (info.IsSigned() ? "signed" : "unsigned")
+                   << (info.IsPlanar() ? ", planar" : ", non-planar");
       throw OrthancException(ErrorCode_NotImplemented);
     }
     
@@ -438,7 +433,7 @@ namespace Orthanc
         sourceImage.AssignReadOnly(sourceFormat, 
                                    info.GetWidth(), 
                                    info.GetHeight(),
-                                   info.GetWidth() * info.GetBytesPerPixel(),
+                                   info.GetWidth() * GetBytesPerPixel(sourceFormat),
                                    source.GetAccessor().GetPixelData());                                   
 
         ImageProcessing::Convert(targetAccessor, sourceImage);
@@ -466,7 +461,7 @@ namespace Orthanc
         case PixelFormat_Grayscale8:
         CopyPixels<uint8_t>(targetAccessor, source.GetAccessor());
         break;
-
+        
         case PixelFormat_Grayscale16:
         CopyPixels<uint16_t>(targetAccessor, source.GetAccessor());
         break;
@@ -612,9 +607,7 @@ namespace Orthanc
       {
         ImageAccessor a(target.GetAccessor());
         ImageAccessor b(tmp.GetAccessor());
-        printf("IN\n");
         ImageProcessing::Convert(a, b);
-        printf("OUT\n");
         return true;
       }
 
