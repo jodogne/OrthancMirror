@@ -133,7 +133,31 @@ namespace Orthanc
     if (target.GetFormat() == PixelFormat_Grayscale8 &&
         source.GetFormat() == PixelFormat_Grayscale16)
     {
+      printf("ICI2\n");
       ConvertInternal<uint8_t, uint16_t>(target, source);
+
+      /*for (unsigned int y = 0; y < source.GetHeight(); y++)
+      {
+        uint8_t* t = reinterpret_cast<uint8_t*>(target.GetRow(y));
+        const uint16_t* s = reinterpret_cast<const uint16_t*>(source.GetConstRow(y));
+
+        for (unsigned int x = 0; x < source.GetWidth(); x++, t++, s++)
+        {
+          if (*s < 0)
+          {
+            *t = 0;
+          }
+          else if (*s > 255)
+          {
+            *t = 255;
+          }
+          else
+          {
+            *t = static_cast<uint8_t>(*s);
+          }
+        }
+        }*/
+        
       return;
     }
 
