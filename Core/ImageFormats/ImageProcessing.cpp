@@ -133,7 +133,6 @@ namespace Orthanc
     if (target.GetFormat() == PixelFormat_Grayscale8 &&
         source.GetFormat() == PixelFormat_Grayscale16)
     {
-      printf("ICI\n");
       ConvertInternal<uint8_t, uint16_t>(target, source);
       return;
     }
@@ -148,7 +147,6 @@ namespace Orthanc
     if (target.GetFormat() == PixelFormat_Grayscale8 &&
         source.GetFormat() == PixelFormat_SignedGrayscale16)
     {
-      printf("ICI2\n");
       ConvertInternal<uint8_t, int16_t>(target, source);
       return;
     }

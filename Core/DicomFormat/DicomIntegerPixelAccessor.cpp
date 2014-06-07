@@ -55,7 +55,7 @@ namespace Orthanc
   {
     frame_ = 0;
     frameOffset_ = (information_.GetHeight() * information_.GetWidth() * 
-                    information_.GetBytesPerPixel() * information_.GetChannelCount());
+                    information_.GetBytesPerValue() * information_.GetChannelCount());
 
     if (information_.GetNumberOfFrames() * frameOffset_ > size)
     {
@@ -82,7 +82,7 @@ namespace Orthanc
        * this means the order of the pixel values sent is R1, R2, R3,
        * ..., G1, G2, G3, ..., B1, B2, B3, etc.
        **/
-      rowOffset_ = information_.GetWidth() * information_.GetBytesPerPixel();
+      rowOffset_ = information_.GetWidth() * information_.GetBytesPerValue();
     }
     else
     {
@@ -92,7 +92,7 @@ namespace Orthanc
        * means the order of the pixel values sent shall be R1, G1, B1,
        * R2, G2, B2, ..., etc.
        **/
-      rowOffset_ = information_.GetWidth() * information_.GetBytesPerPixel() * information_.GetChannelCount();
+      rowOffset_ = information_.GetWidth() * information_.GetBytesPerValue() * information_.GetChannelCount();
     }
   }
 
@@ -146,7 +146,7 @@ namespace Orthanc
        * ..., G1, G2, G3, ..., B1, B2, B3, etc.
        **/
       assert(frameOffset_ % information_.GetChannelCount() == 0);
-      pixel += channel * frameOffset_ / information_.GetChannelCount() + x * information_.GetBytesPerPixel();
+      pixel += channel * frameOffset_ / information_.GetChannelCount() + x * information_.GetBytesPerValue();
     }
     else
     {
@@ -156,16 +156,16 @@ namespace Orthanc
        * means the order of the pixel values sent shall be R1, G1, B1,
        * R2, G2, B2, ..., etc.
        **/
-      pixel += channel * information_.GetBytesPerPixel() + x * information_.GetChannelCount() * information_.GetBytesPerPixel();
+      pixel += channel * information_.GetBytesPerValue() + x * information_.GetChannelCount() * information_.GetBytesPerValue();
     }
 
     uint32_t v;
     v = pixel[0];
-    if (information_.GetBytesPerPixel() >= 2)
+    if (information_.GetBytesPerValue() >= 2)
       v = v + (static_cast<uint32_t>(pixel[1]) << 8);
-    if (information_.GetBytesPerPixel() >= 3)
+    if (information_.GetBytesPerValue() >= 3)
       v = v + (static_cast<uint32_t>(pixel[2]) << 16);
-    if (information_.GetBytesPerPixel() >= 4)
+    if (information_.GetBytesPerValue() >= 4)
       v = v + (static_cast<uint32_t>(pixel[3]) << 24);
 
     v = v >> information_.GetShift();

@@ -150,7 +150,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
-    bytesPerPixel_ = bitsAllocated_ / 8;
+    bytesPerValue_ = bitsAllocated_ / 8;
 
     isPlanar_ = (planarConfiguration != 0 ? true : false);
     isSigned_ = (pixelRepresentation != 0 ? true : false);

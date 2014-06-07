@@ -33,6 +33,8 @@
 #include "../PrecompiledHeaders.h"
 #include "ImageBuffer.h"
 
+#include <stdio.h>
+
 namespace Orthanc
 {
   void ImageBuffer::Allocate()

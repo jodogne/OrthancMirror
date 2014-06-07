@@ -48,7 +48,7 @@ namespace Orthanc
 
     bool isPlanar_;
     bool isSigned_;
-    size_t bytesPerPixel_;
+    size_t bytesPerValue_;
 
     unsigned int bitsAllocated_;
     unsigned int bitsStored_;
@@ -82,9 +82,9 @@ namespace Orthanc
       return bitsStored_;
     }
 
-    size_t GetBytesPerPixel() const
+    size_t GetBytesPerValue() const
     {
-      return bytesPerPixel_;
+      return bytesPerValue_;
     }
 
     bool IsSigned() const
