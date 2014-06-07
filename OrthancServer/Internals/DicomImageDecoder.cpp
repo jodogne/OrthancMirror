@@ -79,6 +79,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../../Core/OrthancException.h"
 #include "../../Core/ImageFormats/ImageProcessing.h"
+#include "../../Core/ImageFormats/PngWriter.h"  // TODO REMOVE THIS
 #include "../../Core/DicomFormat/DicomIntegerPixelAccessor.h"
 #include "../ToDcmtkBridge.h"
 #include "../FromDcmtkBridge.h"
@@ -589,12 +590,20 @@ namespace Orthanc
                                  PixelFormat format,
                                  Mode mode)
   {
-    // TODO OPTIMIZE THIS !!!
+    // TODO OPTIMIZE THIS (avoid unnecessary image copies) !!!
 
     ImageBuffer tmp;
     if (!Decode(tmp, dataset, frame))
     {
       return false;
+    }
+
+    if (!IsUncompressedImage(dataset) && !IsJpegLossless(dataset))
+    {
+      printf("ICI\n");
+      PngWriter w;
+      ImageAccessor b(tmp.GetConstAccessor());
+      w.WriteToFile("toto.png", b);
     }
 
     target.SetFormat(format);
@@ -605,8 +614,12 @@ namespace Orthanc
     {
       case Mode_Truncate:
       {
+        if (!IsUncompressedImage(dataset) && !IsJpegLossless(dataset))
+        {
+          printf("%d => %d\n", tmp.GetFormat(), target.GetFormat());
+        }
         ImageAccessor a(target.GetAccessor());
-        ImageAccessor b(tmp.GetAccessor());
+        ImageAccessor b(tmp.GetConstAccessor());
         ImageProcessing::Convert(a, b);
         return true;
       }
