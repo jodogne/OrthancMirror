@@ -37,6 +37,7 @@
 
 #include <stdint.h>
 #include <cassert>
+#include <glog/logging.h>
 
 namespace Orthanc
 {
@@ -44,6 +45,7 @@ namespace Orthanc
   {
     if (readOnly_)
     {
+      LOG(ERROR) << "Trying to write on a read-only image";
       throw OrthancException(ErrorCode_ReadOnly);
     }
 
@@ -68,6 +70,7 @@ namespace Orthanc
   {
     if (readOnly_)
     {
+      LOG(ERROR) << "Trying to write on a read-only image";
       throw OrthancException(ErrorCode_ReadOnly);
     }
 

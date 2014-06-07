@@ -529,14 +529,17 @@ namespace Orthanc
     // TODO CONTINUE THIS
     if (mode == ImageExtractionMode_UInt8)
     {
+      printf(">>>>>>>>\n");
       ImageBuffer tmp;
       if (DicomImageDecoder::Decode(tmp, dataset, frame, PixelFormat_Grayscale8, DicomImageDecoder::Mode_Truncate))
       {
         ImageAccessor accessor(tmp.GetAccessor());
         PngWriter writer;
         writer.WriteToMemory(result, accessor);
+        printf("<<<<<<<< OK\n");
         return;
       }
+      printf("<<<<<<<< FAILURE\n");
     }
 
     // See also: http://support.dcmtk.org/wiki/dcmtk/howto/accessing-compressed-data

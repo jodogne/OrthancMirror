@@ -79,14 +79,14 @@ namespace Orthanc
                      const ImageAccessor& accessor)
     {
       WriteToFile(filename, accessor.GetWidth(), accessor.GetHeight(),
-                  accessor.GetPitch(), accessor.GetFormat(), accessor.GetBuffer());
+                  accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
     }
 
     void WriteToMemory(std::string& png,
                        const ImageAccessor& accessor)
     {
       WriteToMemory(png, accessor.GetWidth(), accessor.GetHeight(),
-                    accessor.GetPitch(), accessor.GetFormat(), accessor.GetBuffer());
+                    accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
     }
   };
 }
