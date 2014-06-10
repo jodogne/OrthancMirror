@@ -47,66 +47,8 @@
 using namespace Orthanc;
 
 
-TEST(JpegLossless, Basic)
-{
-#if 0
-  // Fallback
 
-  std::string s;
-  Toolbox::ReadFile(s, "IM-0001-1001-0001.dcm");
-
-  ParsedDicomFile parsed(s);
-  DcmFileFormat& dicom = *reinterpret_cast<DcmFileFormat*>(parsed.GetDcmtkObject());
-
-  DcmDataset* dataset = dicom.getDataset();
-
-  dataset->chooseRepresentation(EXS_LittleEndianExplicit, NULL);
-
-  if (dataset->canWriteXfer(EXS_LittleEndianExplicit))
-  {
-    printf("ICI\n");
-
-    parsed.SaveToFile("tutu.dcm");
-
-    // decompress data set if compressed
-    dataset->chooseRepresentation(EXS_LittleEndianExplicit, NULL);
-
-    DcmXfer original_xfer(dataset->getOriginalXfer());
-    std::cout << original_xfer.getXferName() << std::endl;
-
-    FromDcmtkBridge::ExtractPngImage(s, *dataset, 1, ImageExtractionMode_Preview);
-    //fileformat.saveFile("test_decompressed.dcm", EXS_LittleEndianExplicit);
-  }
-#else
-  DcmFileFormat fileformat;
-  //ASSERT_TRUE(fileformat.loadFile("IM-0001-1001-0001.dcm").good());
-  //ASSERT_TRUE(fileformat.loadFile("tata.dcm").good());
-  ASSERT_TRUE(fileformat.loadFile("RG2_JPLY").good());
-  
-  DcmDataset& dataset = *fileformat.getDataset();
-
-  //ASSERT_TRUE(DicomImageDecoder::IsJpegLossless(dataset));
-
-  ImageBuffer image;
-  //DicomImageDecoder::DecodeJpegLossless(image, dataset, 0);
-  DicomImageDecoder::Decode(image, dataset, 0);
-
-  ImageAccessor accessor(image.GetAccessor());
-
-  for (unsigned int y = 0; y < accessor.GetHeight(); y++)
-  {
-    int16_t *p = reinterpret_cast<int16_t*>(accessor.GetRow(y));
-    for (unsigned int x = 0; x < accessor.GetWidth(); x++, p ++)
-    {
-      if (*p < 0)
-        *p = 0;
-    }
-  }
-
-  PngWriter w;
-  w.WriteToFile("tata.png", accessor);
-#endif
-}
+// TODO Write a test
 
 
 #endif
