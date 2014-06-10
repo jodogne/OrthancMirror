@@ -999,15 +999,15 @@ namespace Orthanc
                                       DicomIntegerPixelAccessor& accessor,
                                       PixelFormat format)
   {
-    assert(accessor.GetChannelCount() == 1);
+    assert(accessor.GetInformation().GetChannelCount() == 1);
 
     PngWriter w;
 
-    std::vector<T> image(accessor.GetWidth() * accessor.GetHeight(), 0);
+    std::vector<T> image(accessor.GetInformation().GetWidth() * accessor.GetInformation().GetHeight(), 0);
     T* pixel = &image[0];
-    for (unsigned int y = 0; y < accessor.GetHeight(); y++)
+    for (unsigned int y = 0; y < accessor.GetInformation().GetHeight(); y++)
     {
-      for (unsigned int x = 0; x < accessor.GetWidth(); x++, pixel++)
+      for (unsigned int x = 0; x < accessor.GetInformation().GetWidth(); x++, pixel++)
       {
         int32_t v = accessor.GetValue(x, y);
         if (v < static_cast<int32_t>(std::numeric_limits<T>::min()))
@@ -1019,8 +1019,8 @@ namespace Orthanc
       }
     }
 
-    w.WriteToMemory(result, accessor.GetWidth(), accessor.GetHeight(),
-                    accessor.GetWidth() * sizeof(T), format, &image[0]);
+    w.WriteToMemory(result, accessor.GetInformation().GetWidth(), accessor.GetInformation().GetHeight(),
+                    accessor.GetInformation().GetWidth() * sizeof(T), format, &image[0]);
   }
 
 

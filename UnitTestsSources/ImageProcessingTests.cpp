@@ -30,86 +30,49 @@
  **/
 
 
-#pragma once
+#include "PrecompiledHeadersUnitTests.h"
+#include "gtest/gtest.h"
 
-#include "ImageAccessor.h"
+#include "../Core/DicomFormat/DicomImageInformation.h"
+#include "../Core/ImageFormats/ImageBuffer.h"
+#include "../Core/ImageFormats/ImageProcessing.h"
 
-#include <vector>
-#include <stdint.h>
-#include <boost/noncopyable.hpp>
+using namespace Orthanc;
 
-namespace Orthanc
+
+TEST(DicomImageInformation, ExtractPixelFormat1)
 {
-  class ImageBuffer : public boost::noncopyable
-  {
-  private:
-    bool changed_;
+  // Cardiac/MR*
+  DicomMap m;
+  m.SetValue(DICOM_TAG_ROWS, "24");
+  m.SetValue(DICOM_TAG_COLUMNS, "16");
+  m.SetValue(DICOM_TAG_BITS_ALLOCATED, "16");
+  m.SetValue(DICOM_TAG_SAMPLES_PER_PIXEL, "1");
+  m.SetValue(DICOM_TAG_BITS_STORED, "12");
+  m.SetValue(DICOM_TAG_HIGH_BIT, "11");
+  m.SetValue(DICOM_TAG_PIXEL_REPRESENTATION, "0");
 
-    bool forceMinimalPitch_;  // Currently unused
-    PixelFormat format_;
-    unsigned int width_;
-    unsigned int height_;
-    unsigned int pitch_;
-    void *buffer_;
+  DicomImageInformation info(m);
+  PixelFormat format;
+  ASSERT_TRUE(info.ExtractPixelFormat(format));
+  ASSERT_EQ(PixelFormat_Grayscale16, format);
+}
 
-    void Initialize();
-    
-    void Allocate();
 
-    void Deallocate();
+TEST(DicomImageInformation, ExtractPixelFormat2)
+{
+  // Delphine CT
+  DicomMap m;
+  m.SetValue(DICOM_TAG_ROWS, "24");
+  m.SetValue(DICOM_TAG_COLUMNS, "16");
+  m.SetValue(DICOM_TAG_BITS_ALLOCATED, "16");
+  m.SetValue(DICOM_TAG_SAMPLES_PER_PIXEL, "1");
+  m.SetValue(DICOM_TAG_BITS_STORED, "16");
+  m.SetValue(DICOM_TAG_HIGH_BIT, "15");
+  m.SetValue(DICOM_TAG_PIXEL_REPRESENTATION, "1");
 
-  public:
-    ImageBuffer(unsigned int width,
-                unsigned int height,
-                PixelFormat format);
-
-    ImageBuffer()
-    {
-      Initialize();
-    }
-
-    ~ImageBuffer()
-    {
-      Deallocate();
-    }
-
-    PixelFormat GetFormat() const
-    {
-      return format_;
-    }
-
-    void SetFormat(PixelFormat format);
-
-    unsigned int GetWidth() const
-    {
-      return width_;
-    }
-
-    void SetWidth(unsigned int width);
-
-    unsigned int GetHeight() const
-    {
-      return height_;
-    }
-
-    void SetHeight(unsigned int height);
-
-    unsigned int GetBytesPerPixel() const
-    {
-      return ::Orthanc::GetBytesPerPixel(format_);
-    }
-
-    ImageAccessor GetAccessor();
-
-    ImageAccessor GetConstAccessor();
-
-    bool IsMinimalPitchForced() const
-    {
-      return forceMinimalPitch_;
-    }
-
-    void SetMinimalPitchForced(bool force);
-
-    void AcquireOwnership(ImageBuffer& other);
-  };
+  DicomImageInformation info(m);
+  PixelFormat format;
+  ASSERT_TRUE(info.ExtractPixelFormat(format));
+  ASSERT_EQ(PixelFormat_SignedGrayscale16, format);
 }
