@@ -34,59 +34,37 @@
 
 #include "ImageAccessor.h"
 
-#include <boost/shared_ptr.hpp>
-#include <string>
+#include <stdint.h>
 
 namespace Orthanc
 {
-  class PngWriter
+  class ImageProcessing
   {
-  private:
-    struct PImpl;
-    boost::shared_ptr<PImpl> pimpl_;
-
-    void Compress(unsigned int width,
-                  unsigned int height,
-                  unsigned int pitch,
-                  PixelFormat format);
-
-    void Prepare(unsigned int width,
-                 unsigned int height,
-                 unsigned int pitch,
-                 PixelFormat format,
-                 const void* buffer);
-
   public:
-    PngWriter();
+    static void Copy(ImageAccessor& target,
+                     const ImageAccessor& source);
 
-    ~PngWriter();
+    static void Convert(ImageAccessor& target,
+                        const ImageAccessor& source);
 
-    void WriteToFile(const char* filename,
-                     unsigned int width,
-                     unsigned int height,
-                     unsigned int pitch,
-                     PixelFormat format,
-                     const void* buffer);
+    static void Set(ImageAccessor& image,
+                    int64_t value);
 
-    void WriteToMemory(std::string& png,
-                       unsigned int width,
-                       unsigned int height,
-                       unsigned int pitch,
-                       PixelFormat format,
-                       const void* buffer);
+    static void ShiftRight(ImageAccessor& target,
+                           unsigned int shift);
 
-    void WriteToFile(const char* filename,
-                     const ImageAccessor& accessor)
-    {
-      WriteToFile(filename, accessor.GetWidth(), accessor.GetHeight(),
-                  accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
-    }
+    static void GetMinMaxValue(int64_t& minValue,
+                               int64_t& maxValue,
+                               const ImageAccessor& image);
 
-    void WriteToMemory(std::string& png,
-                       const ImageAccessor& accessor)
-    {
-      WriteToMemory(png, accessor.GetWidth(), accessor.GetHeight(),
-                    accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
-    }
+    static void AddConstant(ImageAccessor& image,
+                            int64_t value);
+
+    static void MultiplyConstant(ImageAccessor& image,
+                                 float factor);
+
+    static void ShiftScale(ImageAccessor& image,
+                           float offset,
+                           float scaling);
   };
 }

@@ -36,6 +36,8 @@
 #include "../OrthancException.h"
 
 #include <stdint.h>
+#include <cassert>
+#include <glog/logging.h>
 
 namespace Orthanc
 {
@@ -43,6 +45,7 @@ namespace Orthanc
   {
     if (readOnly_)
     {
+      LOG(ERROR) << "Trying to write on a read-only image";
       throw OrthancException(ErrorCode_ReadOnly);
     }
 
@@ -67,6 +70,7 @@ namespace Orthanc
   {
     if (readOnly_)
     {
+      LOG(ERROR) << "Trying to write on a read-only image";
       throw OrthancException(ErrorCode_ReadOnly);
     }
 
@@ -104,6 +108,8 @@ namespace Orthanc
     height_ = height;
     pitch_ = pitch;
     buffer_ = const_cast<void*>(buffer);
+
+    assert(GetBytesPerPixel(format_) * width_ <= pitch_);
   }
 
 
@@ -119,5 +125,7 @@ namespace Orthanc
     height_ = height;
     pitch_ = pitch;
     buffer_ = buffer;
+
+    assert(GetBytesPerPixel(format_) * width_ <= pitch_);
   }
 }

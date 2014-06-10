@@ -31,55 +31,15 @@
 
 
 
-/*=========================================================================
-
-  This file is based on portions of the following project:
-
-  Program: GDCM (Grassroots DICOM). A DICOM library
-  Module:  http://gdcm.sourceforge.net/Copyright.html
-
-Copyright (c) 2006-2011 Mathieu Malaterre
-Copyright (c) 1993-2005 CREATIS
-(CREATIS = Centre de Recherche et d'Applications en Traitement de l'Image)
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
- * Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
- * Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
- * Neither name of Mathieu Malaterre, or CREATIS, nor the names of any
-   contributors (CNRS, INSERM, UCB, Universite Lyon I), may be used to
-   endorse or promote products derived from this software without specific
-   prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS''
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-=========================================================================*/
-
-
 #include "PrecompiledHeadersServer.h"
 
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
 
-#include "FromDcmtkBridge.h"
+#include "Internals/DicomImageDecoder.h"
 
+#include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
 #include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"
@@ -468,318 +428,44 @@ namespace Orthanc
   }
 
 
-  static void ExtractPngImageColorPreview(std::string& result,
-                                          DicomIntegerPixelAccessor& accessor)
-  {
-    assert(accessor.GetChannelCount() == 3);
-    PngWriter w;
-
-    std::vector<uint8_t> image(accessor.GetWidth() * accessor.GetHeight() * 3, 0);
-    uint8_t* pixel = &image[0];
-
-    for (unsigned int y = 0; y < accessor.GetHeight(); y++)
-    {
-      for (unsigned int x = 0; x < accessor.GetWidth(); x++)
-      {
-        for (unsigned int c = 0; c < 3; c++, pixel++)
-        {
-          int32_t v = accessor.GetValue(x, y, c);
-          if (v < 0)
-            *pixel = 0;
-          else if (v > 255)
-            *pixel = 255;
-          else
-            *pixel = v;
-        }
-      }
-    }
-
-    w.WriteToMemory(result, accessor.GetWidth(), accessor.GetHeight(),
-                    accessor.GetWidth() * 3, PixelFormat_RGB24, &image[0]);
-  }
-
-
-  static void ExtractPngImageGrayscalePreview(std::string& result,
-                                              DicomIntegerPixelAccessor& accessor)
-  {
-    assert(accessor.GetChannelCount() == 1);
-    PngWriter w;
-
-    int32_t min, max;
-    accessor.GetExtremeValues(min, max);
-
-    std::vector<uint8_t> image(accessor.GetWidth() * accessor.GetHeight(), 0);
-    if (min != max)
-    {
-      uint8_t* pixel = &image[0];
-      for (unsigned int y = 0; y < accessor.GetHeight(); y++)
-      {
-        for (unsigned int x = 0; x < accessor.GetWidth(); x++, pixel++)
-        {
-          int32_t v = accessor.GetValue(x, y);
-          *pixel = static_cast<uint8_t>(
-            boost::math::lround(static_cast<float>(v - min) / 
-                                static_cast<float>(max - min) * 255.0f));
-        }
-      }
-    }
-
-    w.WriteToMemory(result, accessor.GetWidth(), accessor.GetHeight(),
-                    accessor.GetWidth(), PixelFormat_Grayscale8, &image[0]);
-  }
-
-
-  template <typename T>
-  static void ExtractPngImageTruncate(std::string& result,
-                                      DicomIntegerPixelAccessor& accessor,
-                                      PixelFormat format)
-  {
-    assert(accessor.GetChannelCount() == 1);
-
-    PngWriter w;
-
-    std::vector<T> image(accessor.GetWidth() * accessor.GetHeight(), 0);
-    T* pixel = &image[0];
-    for (unsigned int y = 0; y < accessor.GetHeight(); y++)
-    {
-      for (unsigned int x = 0; x < accessor.GetWidth(); x++, pixel++)
-      {
-        int32_t v = accessor.GetValue(x, y);
-        if (v < static_cast<int32_t>(std::numeric_limits<T>::min()))
-          *pixel = std::numeric_limits<T>::min();
-        else if (v > static_cast<int32_t>(std::numeric_limits<T>::max()))
-          *pixel = std::numeric_limits<T>::max();
-        else
-          *pixel = static_cast<T>(v);
-      }
-    }
-
-    w.WriteToMemory(result, accessor.GetWidth(), accessor.GetHeight(),
-                    accessor.GetWidth() * sizeof(T), format, &image[0]);
-  }
-
-
-  static bool DecodePsmctRle1(std::string& output,
-                              DcmDataset& dataset)
-  {
-    static const DicomTag tagContent(0x07a1, 0x100a);
-    static const DicomTag tagCompressionType(0x07a1, 0x1011);
-
-    DcmElement* e;
-    char* c;
-
-    // Check whether the DICOM instance contains an image encoded with
-    // the PMSCT_RLE1 scheme.
-    if (!dataset.findAndGetElement(ToDcmtkBridge::Convert(tagCompressionType), e).good() ||
-        e == NULL ||
-        !e->isaString() ||
-        !e->getString(c).good() ||
-        c == NULL ||
-        strcmp("PMSCT_RLE1", c))
-    {
-      return false;
-    }
-
-    // OK, this is a custom RLE encoding from Philips. Get the pixel
-    // data from the appropriate private DICOM tag.
-    Uint8* pixData = NULL;
-    if (!dataset.findAndGetElement(ToDcmtkBridge::Convert(tagContent), e).good() ||
-        e == NULL ||
-        e->getUint8Array(pixData) != EC_Normal)
-    {
-      return false;
-    }    
-
-    // The "unsigned" below IS VERY IMPORTANT
-    const uint8_t* inbuffer = reinterpret_cast<const uint8_t*>(pixData);
-    const size_t length = e->getLength();
-
-    /**
-     * The code below is an adaptation of a sample code for GDCM by
-     * Mathieu Malaterre (under a BSD license).
-     * http://gdcm.sourceforge.net/html/rle2img_8cxx-example.html
-     **/
-
-    // RLE pass
-    std::vector<uint8_t> temp;
-    temp.reserve(length);
-    for (size_t i = 0; i < length; i++)
-    {
-      if (inbuffer[i] == 0xa5)
-      {
-        temp.push_back(inbuffer[i+2]);
-        for (uint8_t repeat = inbuffer[i + 1]; repeat != 0; repeat--)
-        {
-          temp.push_back(inbuffer[i+2]);
-        }
-        i += 2;
-      }
-      else
-      {
-        temp.push_back(inbuffer[i]);
-      }
-    }
-
-    // Delta encoding pass
-    uint16_t delta = 0;
-    output.clear();
-    output.reserve(temp.size());
-    for (size_t i = 0; i < temp.size(); i++)
-    {
-      uint16_t value;
-
-      if (temp[i] == 0x5a)
-      {
-        uint16_t v1 = temp[i + 1];
-        uint16_t v2 = temp[i + 2];
-        value = (v2 << 8) + v1;
-        i += 2;
-      }
-      else
-      {
-        value = delta + (int8_t) temp[i];
-      }
-
-      output.push_back(value & 0xff);
-      output.push_back(value >> 8);
-      delta = value;
-    }
-
-    if (output.size() % 2)
-    {
-      output.resize(output.size() - 1);
-    }
-
-    return true;
-  }
-
-
   void FromDcmtkBridge::ExtractPngImage(std::string& result,
                                         DcmDataset& dataset,
                                         unsigned int frame,
                                         ImageExtractionMode mode)
   {
-    // See also: http://support.dcmtk.org/wiki/dcmtk/howto/accessing-compressed-data
+    ImageBuffer tmp;
+    bool ok = false;
 
-    std::auto_ptr<DicomIntegerPixelAccessor> accessor;
-
-    DicomMap m;
-    FromDcmtkBridge::Convert(m, dataset);
-
-    std::string privateContent;
-
-    DcmElement* e;
-    if (dataset.findAndGetElement(ToDcmtkBridge::Convert(DICOM_TAG_PIXEL_DATA), e).good() &&
-        e != NULL)
+    switch (mode)
     {
-      Uint8* pixData = NULL;
-      if (e->getUint8Array(pixData) == EC_Normal)
-      {    
-        accessor.reset(new DicomIntegerPixelAccessor(m, pixData, e->getLength()));
-        accessor->SetCurrentFrame(frame);
-      }
+      case ImageExtractionMode_UInt8:
+        ok = DicomImageDecoder::DecodeAndTruncate(tmp, dataset, frame, PixelFormat_Grayscale8);
+        break;
+
+      case ImageExtractionMode_UInt16:
+        ok = DicomImageDecoder::DecodeAndTruncate(tmp, dataset, frame, PixelFormat_Grayscale16);
+        break;
+
+      case ImageExtractionMode_Int16:
+        ok = DicomImageDecoder::DecodeAndTruncate(tmp, dataset, frame, PixelFormat_SignedGrayscale16);
+        break;
+
+      case ImageExtractionMode_Preview:
+        ok = DicomImageDecoder::DecodePreview(tmp, dataset, frame);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
-    else if (DecodePsmctRle1(privateContent, dataset))
-    {
-      LOG(INFO) << "The PMSCT_RLE1 decoding has succeeded";
-      Uint8* pixData = NULL;
-      if (privateContent.size() > 0)
-        pixData = reinterpret_cast<Uint8*>(&privateContent[0]);
-      accessor.reset(new DicomIntegerPixelAccessor(m, pixData, privateContent.size()));
-      accessor->SetCurrentFrame(frame);
-    }
-    
-    if (accessor.get() == NULL)
+
+    if (!ok)
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
-    PixelFormat format;
-    bool supported = false;
-
-    if (accessor->GetChannelCount() == 1)
-    {
-      switch (mode)
-      {
-        case ImageExtractionMode_Preview:
-          supported = true;
-          format = PixelFormat_Grayscale8;
-          break;
-
-        case ImageExtractionMode_UInt8:
-          supported = true;
-          format = PixelFormat_Grayscale8;
-          break;
-
-        case ImageExtractionMode_UInt16:
-          supported = true;
-          format = PixelFormat_Grayscale16;
-          break;
-
-        case ImageExtractionMode_Int16:
-          supported = true;
-          format = PixelFormat_SignedGrayscale16;
-          break;
-
-        default:
-          supported = false;
-          break;
-      }
-    }
-    else if (accessor->GetChannelCount() == 3)
-    {
-      switch (mode)
-      {
-        case ImageExtractionMode_Preview:
-          supported = true;
-          format = PixelFormat_RGB24;
-          break;
-
-        default:
-          supported = false;
-          break;
-      }
-    }
-
-    if (!supported)
-    {
-      throw OrthancException(ErrorCode_NotImplemented);
-    }   
-
-    if (accessor.get() == NULL ||
-        accessor->GetWidth() == 0 ||
-        accessor->GetHeight() == 0)
-    {
-      PngWriter w;
-      w.WriteToMemory(result, 0, 0, 0, format, NULL);
-    }
-    else
-    {
-      switch (mode)
-      {
-        case ImageExtractionMode_Preview:
-          if (format == PixelFormat_Grayscale8)
-            ExtractPngImageGrayscalePreview(result, *accessor);
-          else
-            ExtractPngImageColorPreview(result, *accessor);
-          break;
-
-        case ImageExtractionMode_UInt8:
-          ExtractPngImageTruncate<uint8_t>(result, *accessor, format);
-          break;
-
-        case ImageExtractionMode_UInt16:
-          ExtractPngImageTruncate<uint16_t>(result, *accessor, format);
-          break;
-
-        case ImageExtractionMode_Int16:
-          ExtractPngImageTruncate<int16_t>(result, *accessor, format);
-          break;
-
-        default:
-          throw OrthancException(ErrorCode_NotImplemented);
-      }
-    }
+    ImageAccessor accessor(tmp.GetAccessor());
+    PngWriter writer;
+    writer.WriteToMemory(result, accessor);
   }
 
 
