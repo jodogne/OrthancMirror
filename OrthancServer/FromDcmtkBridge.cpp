@@ -428,106 +428,11 @@ namespace Orthanc
   }
 
 
-  static void ExtractPngImageColorPreview(std::string& result,
-                                          DicomIntegerPixelAccessor& accessor)
-  {
-    assert(accessor.GetInformation().GetChannelCount() == 3);
-    PngWriter w;
-
-    std::vector<uint8_t> image(accessor.GetInformation().GetWidth() * accessor.GetInformation().GetHeight() * 3, 0);
-    uint8_t* pixel = &image[0];
-
-    for (unsigned int y = 0; y < accessor.GetInformation().GetHeight(); y++)
-    {
-      for (unsigned int x = 0; x < accessor.GetInformation().GetWidth(); x++)
-      {
-        for (unsigned int c = 0; c < 3; c++, pixel++)
-        {
-          int32_t v = accessor.GetValue(x, y, c);
-          if (v < 0)
-            *pixel = 0;
-          else if (v > 255)
-            *pixel = 255;
-          else
-            *pixel = v;
-        }
-      }
-    }
-
-    w.WriteToMemory(result, accessor.GetInformation().GetWidth(), accessor.GetInformation().GetHeight(),
-                    accessor.GetInformation().GetWidth() * 3, PixelFormat_RGB24, &image[0]);
-  }
-
-
-  static void ExtractPngImageGrayscalePreview(std::string& result,
-                                              DicomIntegerPixelAccessor& accessor)
-  {
-    assert(accessor.GetInformation().GetChannelCount() == 1);
-    PngWriter w;
-
-    int32_t min, max;
-    accessor.GetExtremeValues(min, max);
-
-    std::vector<uint8_t> image(accessor.GetInformation().GetWidth() * accessor.GetInformation().GetHeight(), 0);
-    if (min != max)
-    {
-      uint8_t* pixel = &image[0];
-      for (unsigned int y = 0; y < accessor.GetInformation().GetHeight(); y++)
-      {
-        for (unsigned int x = 0; x < accessor.GetInformation().GetWidth(); x++, pixel++)
-        {
-          int32_t v = accessor.GetValue(x, y);
-          *pixel = static_cast<uint8_t>(
-            boost::math::lround(static_cast<float>(v - min) / 
-                                static_cast<float>(max - min) * 255.0f));
-        }
-      }
-    }
-
-    w.WriteToMemory(result, accessor.GetInformation().GetWidth(), accessor.GetInformation().GetHeight(),
-                    accessor.GetInformation().GetWidth(), PixelFormat_Grayscale8, &image[0]);
-  }
-
-
-  template <typename T>
-  static void ExtractPngImageTruncate(std::string& result,
-                                      DicomIntegerPixelAccessor& accessor,
-                                      PixelFormat format)
-  {
-    assert(accessor.GetInformation().GetChannelCount() == 1);
-
-    PngWriter w;
-
-    std::vector<T> image(accessor.GetInformation().GetWidth() * accessor.GetInformation().GetHeight(), 0);
-    T* pixel = &image[0];
-    for (unsigned int y = 0; y < accessor.GetInformation().GetHeight(); y++)
-    {
-      for (unsigned int x = 0; x < accessor.GetInformation().GetWidth(); x++, pixel++)
-      {
-        int32_t v = accessor.GetValue(x, y);
-        if (v < static_cast<int32_t>(std::numeric_limits<T>::min()))
-          *pixel = std::numeric_limits<T>::min();
-        else if (v > static_cast<int32_t>(std::numeric_limits<T>::max()))
-          *pixel = std::numeric_limits<T>::max();
-        else
-          *pixel = static_cast<T>(v);
-      }
-    }
-
-    w.WriteToMemory(result, accessor.GetInformation().GetWidth(), accessor.GetInformation().GetHeight(),
-                    accessor.GetInformation().GetWidth() * sizeof(T), format, &image[0]);
-  }
-
-
-
-
   void FromDcmtkBridge::ExtractPngImage(std::string& result,
                                         DcmDataset& dataset,
                                         unsigned int frame,
                                         ImageExtractionMode mode)
   {
-    // TODO CONTINUE THIS
-
     ImageBuffer tmp;
     bool ok = false;
 
@@ -553,140 +458,14 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    if (ok)
-    {
-      ImageAccessor accessor(tmp.GetAccessor());
-      PngWriter writer;
-      writer.WriteToMemory(result, accessor);
-      return;
-    }
-    else
+    if (!ok)
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
-
-    // See also: http://support.dcmtk.org/wiki/dcmtk/howto/accessing-compressed-data
-
-    std::auto_ptr<DicomIntegerPixelAccessor> accessor;
-
-    DicomMap m;
-    FromDcmtkBridge::Convert(m, dataset);
-
-    std::string privateContent;
-
-    DcmElement* e;
-    if (dataset.findAndGetElement(ToDcmtkBridge::Convert(DICOM_TAG_PIXEL_DATA), e).good() &&
-        e != NULL)
-    {
-      Uint8* pixData = NULL;
-      if (e->getUint8Array(pixData) == EC_Normal)
-      {    
-        accessor.reset(new DicomIntegerPixelAccessor(m, pixData, e->getLength()));
-        accessor->SetCurrentFrame(frame);
-      }
-    }
-    else if (DicomImageDecoder::DecodePsmctRle1(privateContent, dataset))
-    {
-      LOG(INFO) << "The PMSCT_RLE1 decoding has succeeded";
-      Uint8* pixData = NULL;
-      if (privateContent.size() > 0)
-        pixData = reinterpret_cast<Uint8*>(&privateContent[0]);
-      accessor.reset(new DicomIntegerPixelAccessor(m, pixData, privateContent.size()));
-      accessor->SetCurrentFrame(frame);
-    }
-    
-    if (accessor.get() == NULL)
-    {
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-
-    PixelFormat format;
-    bool supported = false;
-
-    if (accessor->GetInformation().GetChannelCount() == 1)
-    {
-      switch (mode)
-      {
-        case ImageExtractionMode_Preview:
-          supported = true;
-          format = PixelFormat_Grayscale8;
-          break;
-
-        case ImageExtractionMode_UInt8:
-          supported = true;
-          format = PixelFormat_Grayscale8;
-          break;
-
-        case ImageExtractionMode_UInt16:
-          supported = true;
-          format = PixelFormat_Grayscale16;
-          break;
-
-        case ImageExtractionMode_Int16:
-          supported = true;
-          format = PixelFormat_SignedGrayscale16;
-          break;
-
-        default:
-          supported = false;
-          break;
-      }
-    }
-    else if (accessor->GetInformation().GetChannelCount() == 3)
-    {
-      switch (mode)
-      {
-        case ImageExtractionMode_Preview:
-          supported = true;
-          format = PixelFormat_RGB24;
-          break;
-
-        default:
-          supported = false;
-          break;
-      }
-    }
-
-    if (!supported)
-    {
-      throw OrthancException(ErrorCode_NotImplemented);
-    }   
-
-    if (accessor.get() == NULL ||
-        accessor->GetInformation().GetWidth() == 0 ||
-        accessor->GetInformation().GetHeight() == 0)
-    {
-      PngWriter w;
-      w.WriteToMemory(result, 0, 0, 0, format, NULL);
-    }
-    else
-    {
-      switch (mode)
-      {
-        case ImageExtractionMode_Preview:
-          if (format == PixelFormat_Grayscale8)
-            ExtractPngImageGrayscalePreview(result, *accessor);
-          else
-            ExtractPngImageColorPreview(result, *accessor);
-          break;
-
-        case ImageExtractionMode_UInt8:
-          ExtractPngImageTruncate<uint8_t>(result, *accessor, format);
-          break;
-
-        case ImageExtractionMode_UInt16:
-          ExtractPngImageTruncate<uint16_t>(result, *accessor, format);
-          break;
-
-        case ImageExtractionMode_Int16:
-          ExtractPngImageTruncate<int16_t>(result, *accessor, format);
-          break;
-
-        default:
-          throw OrthancException(ErrorCode_NotImplemented);
-      }
-    }
+    ImageAccessor accessor(tmp.GetAccessor());
+    PngWriter writer;
+    writer.WriteToMemory(result, accessor);
   }
 
 
