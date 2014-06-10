@@ -527,20 +527,44 @@ namespace Orthanc
                                         ImageExtractionMode mode)
   {
     // TODO CONTINUE THIS
-    if (mode == ImageExtractionMode_UInt8)
+
+    ImageBuffer tmp;
+    bool ok = false;
+
+    switch (mode)
     {
-      printf(">>>>>>>>\n");
-      ImageBuffer tmp;
-      if (DicomImageDecoder::Decode(tmp, dataset, frame, PixelFormat_Grayscale8, DicomImageDecoder::Mode_Truncate))
-      {
-        ImageAccessor accessor(tmp.GetAccessor());
-        PngWriter writer;
-        writer.WriteToMemory(result, accessor);
-        printf("<<<<<<<< OK\n");
-        return;
-      }
-      printf("<<<<<<<< FAILURE\n");
+      case ImageExtractionMode_UInt8:
+        ok = DicomImageDecoder::DecodeAndTruncate(tmp, dataset, frame, PixelFormat_Grayscale8);
+        break;
+
+      case ImageExtractionMode_UInt16:
+        ok = DicomImageDecoder::DecodeAndTruncate(tmp, dataset, frame, PixelFormat_Grayscale16);
+        break;
+
+      case ImageExtractionMode_Int16:
+        ok = DicomImageDecoder::DecodeAndTruncate(tmp, dataset, frame, PixelFormat_SignedGrayscale16);
+        break;
+
+      case ImageExtractionMode_Preview:
+        ok = DicomImageDecoder::DecodePreview(tmp, dataset, frame);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
+
+    if (ok)
+    {
+      ImageAccessor accessor(tmp.GetAccessor());
+      PngWriter writer;
+      writer.WriteToMemory(result, accessor);
+      return;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
 
     // See also: http://support.dcmtk.org/wiki/dcmtk/howto/accessing-compressed-data
 

@@ -42,38 +42,38 @@
   Program: GDCM (Grassroots DICOM). A DICOM library
   Module:  http://gdcm.sourceforge.net/Copyright.html
 
-Copyright (c) 2006-2011 Mathieu Malaterre
-Copyright (c) 1993-2005 CREATIS
-(CREATIS = Centre de Recherche et d'Applications en Traitement de l'Image)
-All rights reserved.
+  Copyright (c) 2006-2011 Mathieu Malaterre
+  Copyright (c) 1993-2005 CREATIS
+  (CREATIS = Centre de Recherche et d'Applications en Traitement de l'Image)
+  All rights reserved.
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions are met:
 
- * Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
+  * Redistributions of source code must retain the above copyright notice,
+  this list of conditions and the following disclaimer.
 
- * Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+  * Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
 
- * Neither name of Mathieu Malaterre, or CREATIS, nor the names of any
-   contributors (CNRS, INSERM, UCB, Universite Lyon I), may be used to
-   endorse or promote products derived from this software without specific
-   prior written permission.
+  * Neither name of Mathieu Malaterre, or CREATIS, nor the names of any
+  contributors (CNRS, INSERM, UCB, Universite Lyon I), may be used to
+  endorse or promote products derived from this software without specific
+  prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS''
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS''
+  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE FOR
+  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-=========================================================================*/
+  =========================================================================*/
 
 
 
@@ -426,7 +426,8 @@ namespace Orthanc
 
     bool fastVersionSuccess = false;
     PixelFormat sourceFormat;
-    if (info.ExtractPixelFormat(sourceFormat))
+    if (!info.IsPlanar() &&
+        info.ExtractPixelFormat(sourceFormat))
     {
       try
       {
@@ -460,19 +461,19 @@ namespace Orthanc
         case PixelFormat_RGB24:
         case PixelFormat_RGBA32:
         case PixelFormat_Grayscale8:
-        CopyPixels<uint8_t>(targetAccessor, source.GetAccessor());
-        break;
+          CopyPixels<uint8_t>(targetAccessor, source.GetAccessor());
+          break;
         
         case PixelFormat_Grayscale16:
-        CopyPixels<uint16_t>(targetAccessor, source.GetAccessor());
-        break;
+          CopyPixels<uint16_t>(targetAccessor, source.GetAccessor());
+          break;
 
         case PixelFormat_SignedGrayscale16:
-        CopyPixels<int16_t>(targetAccessor, source.GetAccessor());
-        break;
+          CopyPixels<int16_t>(targetAccessor, source.GetAccessor());
+          break;
 
         default:
-        throw OrthancException(ErrorCode_InternalError);
+          throw OrthancException(ErrorCode_InternalError);
       }
     }
   }
@@ -584,53 +585,97 @@ namespace Orthanc
   }
 
 
-  bool DicomImageDecoder::Decode(ImageBuffer& target,
-                                 DcmDataset& dataset,
-                                 unsigned int frame,
-                                 PixelFormat format,
-                                 Mode mode)
+  bool DicomImageDecoder::DecodeAndTruncate(ImageBuffer& target,
+                                            DcmDataset& dataset,
+                                            unsigned int frame,
+                                            PixelFormat format)
   {
-    // TODO OPTIMIZE THIS (avoid unnecessary image copies) !!!
-
-    ImageBuffer tmp;
-    if (!Decode(tmp, dataset, frame))
+    // TODO Special case for uncompressed images
+    
+    ImageBuffer source;
+    if (!Decode(source, dataset, frame))
     {
       return false;
     }
 
-    if (!IsUncompressedImage(dataset) && !IsJpegLossless(dataset))
+    if (source.GetFormat() == format)
     {
-      printf("ICI\n");
-      PngWriter w;
-      ImageAccessor b(tmp.GetConstAccessor());
-      w.WriteToFile("toto.png", b);
+      // No conversion is required, return the temporary image
+      target.AcquireOwnership(source);
+      return true;
     }
 
     target.SetFormat(format);
-    target.SetWidth(tmp.GetWidth());
-    target.SetHeight(tmp.GetHeight());
+    target.SetWidth(source.GetWidth());
+    target.SetHeight(source.GetHeight());
 
-    switch (mode)
-    {
-      case Mode_Truncate:
-      {
-        if (!IsUncompressedImage(dataset) && !IsJpegLossless(dataset))
-        {
-          printf("%d => %d\n", tmp.GetFormat(), target.GetFormat());
-        }
-        ImageAccessor a(target.GetAccessor());
-        ImageAccessor b(tmp.GetConstAccessor());
-        ImageProcessing::Convert(a, b);
-        return true;
-      }
+    ImageAccessor targetAccessor(target.GetAccessor());
+    ImageAccessor sourceAccessor(source.GetAccessor());
+    ImageProcessing::Convert(targetAccessor, sourceAccessor);
 
-      default:
-        throw OrthancException(ErrorCode_NotImplemented);
-    }
-
-    return false;
+    return true;
   }
 
 
+  bool DicomImageDecoder::DecodePreview(ImageBuffer& target,
+                                        DcmDataset& dataset,
+                                        unsigned int frame)
+  {
+    // TODO Special case for uncompressed images
+    
+    ImageBuffer source;
+    if (!Decode(source, dataset, frame))
+    {
+      return false;
+    }
 
+    switch (source.GetFormat())
+    {
+      case PixelFormat_RGB24:
+      {
+        // Directly return color images (RGB)
+        target.AcquireOwnership(source);
+        return true;
+      }
+
+      case PixelFormat_Grayscale8:
+      case PixelFormat_Grayscale16:
+      case PixelFormat_SignedGrayscale16:
+      {
+        // Grayscale image: Stretch its dynamics to the [0,255] range
+        target.SetFormat(PixelFormat_Grayscale8);
+        target.SetWidth(source.GetWidth());
+        target.SetHeight(source.GetHeight());
+
+        ImageAccessor targetAccessor(target.GetAccessor());
+        ImageAccessor sourceAccessor(source.GetAccessor());
+
+        int64_t a, b;
+        ImageProcessing::GetMinMaxValue(a, b, sourceAccessor);
+        
+        if (a == b)
+        {
+          ImageProcessing::Set(targetAccessor, 0);
+        }
+        else
+        {
+          ImageProcessing::ShiftScale(sourceAccessor, -a, 255.0f / static_cast<float>(b - a));
+
+          if (source.GetFormat() == PixelFormat_Grayscale8)
+          {
+            target.AcquireOwnership(source);
+          }
+          else
+          {
+            ImageProcessing::Convert(targetAccessor, sourceAccessor);
+          }
+        }
+
+        return true;
+      }
+      
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
 }

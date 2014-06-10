@@ -34,6 +34,8 @@
 
 #include "ImageAccessor.h"
 
+#include <stdint.h>
+
 namespace Orthanc
 {
   class ImageProcessing
@@ -45,7 +47,24 @@ namespace Orthanc
     static void Convert(ImageAccessor& target,
                         const ImageAccessor& source);
 
+    static void Set(ImageAccessor& image,
+                    int64_t value);
+
     static void ShiftRight(ImageAccessor& target,
                            unsigned int shift);
+
+    static void GetMinMaxValue(int64_t& minValue,
+                               int64_t& maxValue,
+                               const ImageAccessor& image);
+
+    static void AddConstant(ImageAccessor& image,
+                            int64_t value);
+
+    static void MultiplyConstant(ImageAccessor& image,
+                                 float factor);
+
+    static void ShiftScale(ImageAccessor& image,
+                           float offset,
+                           float scaling);
   };
 }

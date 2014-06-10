@@ -36,25 +36,27 @@
 
 #include <vector>
 #include <stdint.h>
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class ImageBuffer
+  class ImageBuffer : public boost::noncopyable
   {
   private:
     bool changed_;
-    std::vector<uint8_t> data_;
 
     bool forceMinimalPitch_;  // Currently unused
     PixelFormat format_;
     unsigned int width_;
     unsigned int height_;
     unsigned int pitch_;
-    uint8_t *buffer_;
+    void *buffer_;
 
     void Initialize();
     
     void Allocate();
+
+    void Deallocate();
 
   public:
     ImageBuffer(unsigned int width,
@@ -64,6 +66,11 @@ namespace Orthanc
     ImageBuffer()
     {
       Initialize();
+    }
+
+    ~ImageBuffer()
+    {
+      Deallocate();
     }
 
     PixelFormat GetFormat() const
@@ -102,5 +109,7 @@ namespace Orthanc
     }
 
     void SetMinimalPitchForced(bool force);
+
+    void AcquireOwnership(ImageBuffer& other);
   };
 }

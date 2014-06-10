@@ -40,13 +40,6 @@ namespace Orthanc
 {
   class DicomImageDecoder
   {
-  public:
-    enum Mode
-    {
-      Mode_Truncate,
-      Mode_Stretch
-    };
-
   private:
     class ImageSource;
 
@@ -72,12 +65,6 @@ namespace Orthanc
                                         DcmDataset& dataset,
                                         unsigned int frame);
 
-    static void DecodeUncompressedImage(ImageBuffer& target,
-                                        DcmDataset& dataset,
-                                        unsigned int frame,
-                                        PixelFormat format,
-                                        Mode mode);
-
 #if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
     static void DecodeJpegLossless(ImageBuffer& target,
                                    DcmDataset& dataset,
@@ -88,11 +75,13 @@ namespace Orthanc
                        DcmDataset& dataset,
                        unsigned int frame);
 
-    static bool Decode(ImageBuffer& target,
-                       DcmDataset& dataset,
-                       unsigned int frame,
-                       PixelFormat format,
-                       Mode mode);
+    static bool DecodeAndTruncate(ImageBuffer& target,
+                                  DcmDataset& dataset,
+                                  unsigned int frame,
+                                  PixelFormat format);
 
+    static bool DecodePreview(ImageBuffer& target,
+                              DcmDataset& dataset,
+                              unsigned int frame);
   };
 }

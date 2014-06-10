@@ -33,7 +33,10 @@
 #include "../PrecompiledHeaders.h"
 #include "ImageBuffer.h"
 
+#include "../OrthancException.h"
+
 #include <stdio.h>
+#include <stdlib.h>
 
 namespace Orthanc
 {
@@ -41,6 +44,8 @@ namespace Orthanc
   {
     if (changed_)
     {
+      Deallocate();
+
       /*
         if (forceMinimalPitch_)
         {
@@ -49,18 +54,33 @@ namespace Orthanc
       */
 
       pitch_ = GetBytesPerPixel() * width_;
+      size_t size = pitch_ * height_;
 
-      data_.resize(pitch_ * height_);
-      if (data_.size() > 0)
+      if (size == 0)
       {
-        buffer_ = &data_[0];
+        buffer_ = NULL;
       }
       else
       {
-        buffer_ = 0;
+        buffer_ = malloc(size);
+        if (buffer_ == NULL)
+        {
+          throw OrthancException(ErrorCode_NotEnoughMemory);
+        }
       }
 
       changed_ = false;
+    }
+  }
+
+
+  void ImageBuffer::Deallocate()
+  {
+    if (buffer_ != NULL)
+    {
+      free(buffer_);
+      buffer_ = NULL;
+      changed_ = true;
     }
   }
 
@@ -90,22 +110,31 @@ namespace Orthanc
 
   void ImageBuffer::SetFormat(PixelFormat format)
   {
-    changed_ = true;
-    format_ = format;
+    if (format != format_)
+    {
+      changed_ = true;
+      format_ = format;
+    }
   }
 
 
   void ImageBuffer::SetWidth(unsigned int width)
   {
-    changed_ = true;
-    width_ = width;     
+    if (width != width_)
+    {
+      changed_ = true;
+      width_ = width;     
+    }
   }
 
 
   void ImageBuffer::SetHeight(unsigned int height)
   {
-    changed_ = true;
-    height_ = height;     
+    if (height != height_)
+    {
+      changed_ = true;
+      height_ = height;     
+    }
   }
 
 
@@ -131,7 +160,33 @@ namespace Orthanc
 
   void ImageBuffer::SetMinimalPitchForced(bool force)
   {
-    changed_ = true;
-    forceMinimalPitch_ = force;
+    if (force != forceMinimalPitch_)
+    {
+      changed_ = true;
+      forceMinimalPitch_ = force;
+    }
+  }
+
+
+  void ImageBuffer::AcquireOwnership(ImageBuffer& other)
+  {
+    // Remove the content of the current image
+    Deallocate();
+
+    // Force the allocation of the other image (if not already
+    // allocated)
+    other.Allocate();
+
+    // Transfer the content of the other image
+    changed_ = false;
+    forceMinimalPitch_ = other.forceMinimalPitch_;
+    format_ = other.format_;
+    width_ = other.width_;
+    height_ = other.height_;
+    pitch_ = other.pitch_;
+    buffer_ = other.buffer_;
+
+    // Force the reinitialization of the other image
+    other.Initialize();
   }
 }
