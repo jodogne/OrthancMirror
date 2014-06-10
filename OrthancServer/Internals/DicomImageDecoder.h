@@ -52,11 +52,9 @@ namespace Orthanc
     static void SetupImageBuffer(ImageBuffer& target,
                                  DcmDataset& dataset);
 
-  public:   // TODO SWITCH TO PRIVATE
     static bool DecodePsmctRle1(std::string& output,
                                 DcmDataset& dataset);
 
-  public:
     static bool IsUncompressedImage(const DcmDataset& dataset);
 
     static bool IsJpegLossless(const DcmDataset& dataset);
@@ -71,6 +69,7 @@ namespace Orthanc
                                    unsigned int frame);
 #endif
 
+  public:
     static bool Decode(ImageBuffer& target,
                        DcmDataset& dataset,
                        unsigned int frame);
