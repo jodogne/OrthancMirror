@@ -1,6 +1,7 @@
 Pending changes in the mainline
 ===============================
 
+* Support of JPEG and JPEG-LS decompression
 * Precompiled headers for Microsoft Visual Studio
 
 
