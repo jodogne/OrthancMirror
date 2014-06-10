@@ -159,11 +159,6 @@ namespace Orthanc
 
   bool DicomImageInformation::ExtractPixelFormat(PixelFormat& format) const
   {
-    if (IsPlanar())
-    {
-      return false;
-    }
-
     if (GetBitsStored() == 8 && GetChannelCount() == 1 && !IsSigned())
     {
       format = PixelFormat_Grayscale8;

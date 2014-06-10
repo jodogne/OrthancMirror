@@ -35,12 +35,12 @@
 
 #include "../OrthancException.h"
 
+#include <boost/math/special_functions/round.hpp>
+
 #include <cassert>
 #include <string.h>
 #include <limits>
 #include <stdint.h>
-
-#include <stdio.h>
 
 namespace Orthanc
 {
@@ -74,6 +74,167 @@ namespace Orthanc
     }
   }
 
+
+  template <typename PixelType>
+  static void SetInternal(ImageAccessor& image,
+                          int64_t constant)
+  {
+    for (unsigned int y = 0; y < image.GetHeight(); y++)
+    {
+      PixelType* p = reinterpret_cast<PixelType*>(image.GetRow(y));
+
+      for (unsigned int x = 0; x < image.GetWidth(); x++, p++)
+      {
+        *p = static_cast<PixelType>(constant);
+      }
+    }
+  }
+
+
+  template <typename PixelType>
+  static void GetMinMaxValueInternal(PixelType& minValue,
+                                     PixelType& maxValue,
+                                     const ImageAccessor& source)
+  {
+    // Deal with the special case of empty image
+    if (source.GetWidth() == 0 ||
+        source.GetHeight() == 0)
+    {
+      minValue = 0;
+      maxValue = 0;
+      return;
+    }
+
+    minValue = std::numeric_limits<PixelType>::max();
+    maxValue = std::numeric_limits<PixelType>::min();
+
+    for (unsigned int y = 0; y < source.GetHeight(); y++)
+    {
+      const PixelType* p = reinterpret_cast<const PixelType*>(source.GetConstRow(y));
+
+      for (unsigned int x = 0; x < source.GetWidth(); x++, p++)
+      {
+        if (*p < minValue)
+        {
+          minValue = *p;
+        }
+
+        if (*p > maxValue)
+        {
+          maxValue = *p;
+        }
+      }
+    }
+  }
+
+
+
+  template <typename PixelType>
+  static void AddConstantInternal(ImageAccessor& image,
+                                  int64_t constant)
+  {
+    if (constant == 0)
+    {
+      return;
+    }
+
+    const int64_t minValue = std::numeric_limits<PixelType>::min();
+    const int64_t maxValue = std::numeric_limits<PixelType>::max();
+
+    for (unsigned int y = 0; y < image.GetHeight(); y++)
+    {
+      PixelType* p = reinterpret_cast<PixelType*>(image.GetRow(y));
+
+      for (unsigned int x = 0; x < image.GetWidth(); x++, p++)
+      {
+        int64_t v = static_cast<int64_t>(*p) + constant;
+
+        if (v > maxValue)
+        {
+          *p = maxValue;
+        }
+        else if (v < minValue)
+        {
+          *p = minValue;
+        }
+        else
+        {
+          *p = static_cast<PixelType>(v);
+        }
+      }
+    }
+  }
+
+
+
+  template <typename PixelType>
+  void MultiplyConstantInternal(ImageAccessor& image,
+                                float factor)
+  {
+    if (abs(factor - 1.0f) <= std::numeric_limits<float>::epsilon())
+    {
+      return;
+    }
+
+    const int64_t minValue = std::numeric_limits<PixelType>::min();
+    const int64_t maxValue = std::numeric_limits<PixelType>::max();
+
+    for (unsigned int y = 0; y < image.GetHeight(); y++)
+    {
+      PixelType* p = reinterpret_cast<PixelType*>(image.GetRow(y));
+
+      for (unsigned int x = 0; x < image.GetWidth(); x++, p++)
+      {
+        int64_t v = boost::math::llround(static_cast<float>(*p) * factor);
+
+        if (v > maxValue)
+        {
+          *p = maxValue;
+        }
+        else if (v < minValue)
+        {
+          *p = minValue;
+        }
+        else
+        {
+          *p = static_cast<PixelType>(v);
+        }
+      }
+    }
+  }
+
+
+  template <typename PixelType>
+  void ShiftScaleInternal(ImageAccessor& image,
+                          float offset,
+                          float scaling)
+  {
+    const float minValue = static_cast<float>(std::numeric_limits<PixelType>::min());
+    const float maxValue = static_cast<float>(std::numeric_limits<PixelType>::max());
+
+    for (unsigned int y = 0; y < image.GetHeight(); y++)
+    {
+      PixelType* p = reinterpret_cast<PixelType*>(image.GetRow(y));
+
+      for (unsigned int x = 0; x < image.GetWidth(); x++, p++)
+      {
+        float v = (static_cast<float>(*p) + offset) * scaling;
+
+        if (v > maxValue)
+        {
+          *p = std::numeric_limits<PixelType>::max();
+        }
+        else if (v < minValue)
+        {
+          *p = std::numeric_limits<PixelType>::min();
+        }
+        else
+        {
+          *p = static_cast<PixelType>(boost::math::iround(v));
+        }
+      }
+    }
+  }
 
 
   void ImageProcessing::Copy(ImageAccessor& target,
@@ -133,31 +294,7 @@ namespace Orthanc
     if (target.GetFormat() == PixelFormat_Grayscale8 &&
         source.GetFormat() == PixelFormat_Grayscale16)
     {
-      printf("ICI2\n");
       ConvertInternal<uint8_t, uint16_t>(target, source);
-
-      /*for (unsigned int y = 0; y < source.GetHeight(); y++)
-      {
-        uint8_t* t = reinterpret_cast<uint8_t*>(target.GetRow(y));
-        const uint16_t* s = reinterpret_cast<const uint16_t*>(source.GetConstRow(y));
-
-        for (unsigned int x = 0; x < source.GetWidth(); x++, t++, s++)
-        {
-          if (*s < 0)
-          {
-            *t = 0;
-          }
-          else if (*s > 255)
-          {
-            *t = 255;
-          }
-          else
-          {
-            *t = static_cast<uint8_t>(*s);
-          }
-        }
-        }*/
-        
       return;
     }
 
@@ -186,6 +323,30 @@ namespace Orthanc
   }
 
 
+
+  void ImageProcessing::Set(ImageAccessor& image,
+                            int64_t value)
+  {
+    switch (image.GetFormat())
+    {
+      case PixelFormat_Grayscale8:
+        SetInternal<uint8_t>(image, value);
+        return;
+
+      case PixelFormat_Grayscale16:
+        SetInternal<uint16_t>(image, value);
+        return;
+
+      case PixelFormat_SignedGrayscale16:
+        SetInternal<int16_t>(image, value);
+        return;
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
+
+
   void ImageProcessing::ShiftRight(ImageAccessor& image,
                                    unsigned int shift)
   {
@@ -200,4 +361,113 @@ namespace Orthanc
     throw OrthancException(ErrorCode_NotImplemented);
   }
 
+
+  void ImageProcessing::GetMinMaxValue(int64_t& minValue,
+                                       int64_t& maxValue,
+                                       const ImageAccessor& image)
+  {
+    switch (image.GetFormat())
+    {
+      case PixelFormat_Grayscale8:
+      {
+        uint8_t a, b;
+        GetMinMaxValueInternal<uint8_t>(a, b, image);
+        minValue = a;
+        maxValue = b;
+        break;
+      }
+
+      case PixelFormat_Grayscale16:
+      {
+        uint16_t a, b;
+        GetMinMaxValueInternal<uint16_t>(a, b, image);
+        minValue = a;
+        maxValue = b;
+        break;
+      }
+
+      case PixelFormat_SignedGrayscale16:
+      {
+        int16_t a, b;
+        GetMinMaxValueInternal<int16_t>(a, b, image);
+        minValue = a;
+        maxValue = b;
+        break;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
+
+
+
+  void ImageProcessing::AddConstant(ImageAccessor& image,
+                                    int64_t value)
+  {
+    switch (image.GetFormat())
+    {
+      case PixelFormat_Grayscale8:
+        AddConstantInternal<uint8_t>(image, value);
+        return;
+
+      case PixelFormat_Grayscale16:
+        AddConstantInternal<uint16_t>(image, value);
+        return;
+
+      case PixelFormat_SignedGrayscale16:
+        AddConstantInternal<int16_t>(image, value);
+        return;
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
+
+
+  void ImageProcessing::MultiplyConstant(ImageAccessor& image,
+                                         float factor)
+  {
+    switch (image.GetFormat())
+    {
+      case PixelFormat_Grayscale8:
+        MultiplyConstantInternal<uint8_t>(image, factor);
+        return;
+
+      case PixelFormat_Grayscale16:
+        MultiplyConstantInternal<uint16_t>(image, factor);
+        return;
+
+      case PixelFormat_SignedGrayscale16:
+        MultiplyConstantInternal<int16_t>(image, factor);
+        return;
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
+
+
+  void ImageProcessing::ShiftScale(ImageAccessor& image,
+                                   float offset,
+                                   float scaling)
+  {
+    switch (image.GetFormat())
+    {
+      case PixelFormat_Grayscale8:
+        ShiftScaleInternal<uint8_t>(image, offset, scaling);
+        return;
+
+      case PixelFormat_Grayscale16:
+        ShiftScaleInternal<uint16_t>(image, offset, scaling);
+        return;
+
+      case PixelFormat_SignedGrayscale16:
+        ShiftScaleInternal<int16_t>(image, offset, scaling);
+        return;
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
 }
