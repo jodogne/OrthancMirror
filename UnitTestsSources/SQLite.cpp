@@ -316,7 +316,7 @@ TEST(SQLite, Types)
     ASSERT_EQ(42ll, s.ColumnInt64(1));
     ASSERT_TRUE(s.Step());
     ASSERT_EQ(SQLite::COLUMN_TYPE_FLOAT, s.GetColumnType(1));
-    ASSERT_FLOAT_EQ(42.5, s.ColumnDouble(1));
+    ASSERT_DOUBLE_EQ(42.5, s.ColumnDouble(1));
     ASSERT_TRUE(s.Step());
     ASSERT_EQ(SQLite::COLUMN_TYPE_TEXT, s.GetColumnType(1));
     ASSERT_EQ("Hello", s.ColumnString(1));
