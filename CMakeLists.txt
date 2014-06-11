@@ -309,7 +309,7 @@ add_executable(Orthanc
   OrthancServer/main.cpp
   )
 
-target_link_libraries(Orthanc ServerLibrary CoreLibrary)
+target_link_libraries(Orthanc ServerLibrary CoreLibrary ${STATIC_LUA} ${STATIC_GOOGLE_LOG})
 
 if (${OPENSSL_SOURCES_LENGTH} GREATER 0)
   target_link_libraries(Orthanc OpenSSL)
@@ -338,7 +338,7 @@ add_executable(UnitTests
   ${GTEST_SOURCES}
   ${ORTHANC_UNIT_TESTS_SOURCES}
   )
-target_link_libraries(UnitTests ServerLibrary CoreLibrary)
+target_link_libraries(UnitTests ServerLibrary CoreLibrary ${STATIC_LUA} ${STATIC_GOOGLE_LOG})
 
 if (${OPENSSL_SOURCES_LENGTH} GREATER 0)
   target_link_libraries(UnitTests OpenSSL)
@@ -390,6 +390,7 @@ if (BUILD_CLIENT_LIBRARY)
     ${ORTHANC_CPP_CLIENT_AUX}
     ${THIRD_PARTY_SOURCES}
     ${CURL_SOURCES}
+    ${GOOGLE_LOG_SOURCES}
     )
 
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
