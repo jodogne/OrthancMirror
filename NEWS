@@ -1,6 +1,11 @@
 Pending changes in the mainline
 ===============================
 
+
+
+Version 0.7.6 (2014/06/11)
+==========================
+
 * Support of JPEG and JPEG-LS decompression
 * Download DICOM images as Matlab/Octave arrays
 * Precompiled headers for Microsoft Visual Studio
