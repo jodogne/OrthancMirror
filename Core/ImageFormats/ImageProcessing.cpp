@@ -151,11 +151,11 @@ namespace Orthanc
 
         if (v > maxValue)
         {
-          *p = maxValue;
+          *p = std::numeric_limits<PixelType>::max();
         }
         else if (v < minValue)
         {
-          *p = minValue;
+          *p = std::numeric_limits<PixelType>::min();
         }
         else
         {
@@ -189,11 +189,11 @@ namespace Orthanc
 
         if (v > maxValue)
         {
-          *p = maxValue;
+          *p = std::numeric_limits<PixelType>::max();
         }
         else if (v < minValue)
         {
-          *p = minValue;
+          *p = std::numeric_limits<PixelType>::min();
         }
         else
         {

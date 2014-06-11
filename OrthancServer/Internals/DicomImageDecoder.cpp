@@ -662,7 +662,7 @@ namespace Orthanc
         }
         else
         {
-          ImageProcessing::ShiftScale(sourceAccessor, -a, 255.0f / static_cast<float>(b - a));
+          ImageProcessing::ShiftScale(sourceAccessor, static_cast<float>(-a), 255.0f / static_cast<float>(b - a));
 
           if (source.GetFormat() == PixelFormat_Grayscale8)
           {
