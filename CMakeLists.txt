@@ -385,6 +385,7 @@ if (BUILD_CLIENT_LIBRARY)
 
   add_library(OrthancClient SHARED
     ${ORTHANC_ROOT}/OrthancCppClient/OrthancCppClient.cpp
+    ${ORTHANC_ROOT}/OrthancCppClient/SharedLibrary/SharedLibrary.cpp
     ${ORTHANC_ROOT}/Resources/md5/md5.c
     ${ORTHANC_ROOT}/Resources/base64/base64.cpp
     ${ORTHANC_CPP_CLIENT_AUX}
