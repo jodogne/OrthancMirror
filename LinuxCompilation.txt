@@ -73,6 +73,8 @@ SUPPORTED - Debian Squeeze (6.x)
 	-DUSE_SYSTEM_DCMTK=OFF \
 	-DUSE_SYSTEM_MONGOOSE=OFF \
 	-DUSE_SYSTEM_JSONCPP=OFF \
+        -DENABLE_JPEG=OFF \
+        -DENABLE_JPEG_LOSSLESS=OFF \
 	~/Orthanc 
 
 
@@ -89,6 +91,8 @@ SUPPORTED - Debian Wheezy (7.x)
         -DUSE_SYSTEM_GOOGLE_LOG=OFF \
 	-DUSE_SYSTEM_MONGOOSE=OFF \
         -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
+        -DENABLE_JPEG=OFF \
+        -DENABLE_JPEG_LOSSLESS=OFF \
 	~/Orthanc
 
 
@@ -104,6 +108,8 @@ SUPPORTED - Debian Jessie/Sid
 # cmake -DALLOW_DOWNLOADS=ON \
 	-DUSE_SYSTEM_MONGOOSE=OFF \
         -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
+        -DENABLE_JPEG=OFF \
+        -DENABLE_JPEG_LOSSLESS=OFF \
 	~/Orthanc
 
 Note: Have also a look at the official package:
@@ -124,6 +130,8 @@ SUPPORTED - Ubuntu 12.04 LTS
 	-DUSE_SYSTEM_JSONCPP=OFF \
 	-DUSE_SYSTEM_GOOGLE_LOG=OFF \
         -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
+        -DENABLE_JPEG=OFF \
+        -DENABLE_JPEG_LOSSLESS=OFF \
 	~/Orthanc
 
 
@@ -171,6 +179,8 @@ SUPPORTED - Ubuntu 13.10
         -DALLOW_DOWNLOADS=ON \
 	-DUSE_SYSTEM_MONGOOSE=OFF \
         -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
+        -DENABLE_JPEG=OFF \
+        -DENABLE_JPEG_LOSSLESS=OFF \
 	~/Orthanc
 
 
@@ -183,8 +193,10 @@ SUPPORTED - Fedora 18/19/20
                    gtest-devel libpng-devel libsqlite3x-devel libuuid-devel \
                    mongoose-devel openssl-devel jsoncpp-devel lua-devel
 
-# cmake ~/Orthanc
-
+# cmake -DENABLE_JPEG=OFF \
+        -DENABLE_JPEG_LOSSLESS=OFF \
+        ~/Orthanc
+       
 Note: Have also a look at the official package:
 http://pkgs.fedoraproject.org/cgit/orthanc.git/tree/?h=f18
 
