@@ -77,6 +77,9 @@
 
 
 
+#include "../PrecompiledHeadersServer.h"
+#include "DicomImageDecoder.h"
+
 #include "../../Core/OrthancException.h"
 #include "../../Core/ImageFormats/ImageProcessing.h"
 #include "../../Core/ImageFormats/PngWriter.h"  // TODO REMOVE THIS
@@ -323,7 +326,7 @@ namespace Orthanc
                    << (info.IsPlanar() ? ", planar" : ", non-planar");
       throw OrthancException(ErrorCode_NotImplemented);
     }
-    
+
     target.SetHeight(info.GetHeight());
     target.SetWidth(info.GetWidth());
     target.SetFormat(format);

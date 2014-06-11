@@ -34,13 +34,72 @@
 #include "ImageAccessor.h"
 
 #include "../OrthancException.h"
+#include "../ChunkedBuffer.h"
 
 #include <stdint.h>
 #include <cassert>
 #include <glog/logging.h>
+#include <boost/lexical_cast.hpp>
 
 namespace Orthanc
 {
+  template <typename PixelType>
+  static void ToMatlabStringInternal(ChunkedBuffer& target,
+                                     const ImageAccessor& source)
+  {
+    target.AddChunk("double([ ");
+
+    for (unsigned int y = 0; y < source.GetHeight(); y++)
+    {
+      const PixelType* p = reinterpret_cast<const PixelType*>(source.GetConstRow(y));
+
+      std::string s;
+      if (y > 0)
+      {
+        s = "; ";
+      }
+
+      s.reserve(source.GetWidth() * 8);
+
+      for (unsigned int x = 0; x < source.GetWidth(); x++, p++)
+      {
+        s += boost::lexical_cast<std::string>(static_cast<int>(*p)) + " ";
+      }
+
+      target.AddChunk(s);
+    }
+
+    target.AddChunk("])");
+  }
+
+
+  static void RGB24ToMatlabString(ChunkedBuffer& target,
+                                  const ImageAccessor& source)
+  {
+    assert(source.GetFormat() == PixelFormat_RGB24);
+
+    target.AddChunk("double(permute(reshape([ ");
+
+    for (unsigned int y = 0; y < source.GetHeight(); y++)
+    {
+      const uint8_t* p = reinterpret_cast<const uint8_t*>(source.GetConstRow(y));
+      
+      std::string s;
+      s.reserve(source.GetWidth() * 3 * 8);
+      
+      for (unsigned int x = 0; x < 3 * source.GetWidth(); x++, p++)
+      {
+        s += boost::lexical_cast<std::string>(static_cast<int>(*p)) + " ";
+      }
+      
+      target.AddChunk(s);
+    }
+
+    target.AddChunk("], [ 3 " + boost::lexical_cast<std::string>(source.GetHeight()) +
+                    " " + boost::lexical_cast<std::string>(source.GetWidth()) + " ]), [ 3 2 1 ]))");
+  }
+
+
   void* ImageAccessor::GetBuffer() const
   {
     if (readOnly_)
@@ -128,4 +187,35 @@ namespace Orthanc
 
     assert(GetBytesPerPixel(format_) * width_ <= pitch_);
   }
+
+
+  void ImageAccessor::ToMatlabString(std::string& target) const
+  {
+    ChunkedBuffer buffer;
+
+    switch (GetFormat())
+    {
+      case PixelFormat_Grayscale8:
+        ToMatlabStringInternal<uint8_t>(buffer, *this);
+        break;
+
+      case PixelFormat_Grayscale16:
+        ToMatlabStringInternal<uint16_t>(buffer, *this);
+        break;
+
+      case PixelFormat_SignedGrayscale16:
+        ToMatlabStringInternal<int16_t>(buffer, *this);
+        break;
+
+      case PixelFormat_RGB24:
+        RGB24ToMatlabString(buffer, *this);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }   
+
+    buffer.Flatten(target);
+  }
+
 }

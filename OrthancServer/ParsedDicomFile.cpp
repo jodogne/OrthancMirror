@@ -82,8 +82,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
+#include "Internals/DicomImageDecoder.h"
 #include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"
+#include "../Core/ImageFormats/ImageBuffer.h"
 #include "../Core/ImageFormats/PngWriter.h"
 #include "../Core/Uuid.h"
 #include "../Core/DicomFormat/DicomString.h"
@@ -1214,4 +1216,67 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }    
   }
+
+  
+  void ParsedDicomFile::ExtractImage(ImageBuffer& result,
+                                     unsigned int frame)
+  {
+    DcmDataset& dataset = *pimpl_->file_->getDataset();
+
+    if (!DicomImageDecoder::Decode(result, dataset, frame))
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+  }
+
+
+  void ParsedDicomFile::ExtractImage(ImageBuffer& result,
+                                     unsigned int frame,
+                                     ImageExtractionMode mode)
+  {
+    DcmDataset& dataset = *pimpl_->file_->getDataset();
+
+    bool ok = false;
+
+    switch (mode)
+    {
+      case ImageExtractionMode_UInt8:
+        ok = DicomImageDecoder::DecodeAndTruncate(result, dataset, frame, PixelFormat_Grayscale8);
+        break;
+
+      case ImageExtractionMode_UInt16:
+        ok = DicomImageDecoder::DecodeAndTruncate(result, dataset, frame, PixelFormat_Grayscale16);
+        break;
+
+      case ImageExtractionMode_Int16:
+        ok = DicomImageDecoder::DecodeAndTruncate(result, dataset, frame, PixelFormat_SignedGrayscale16);
+        break;
+
+      case ImageExtractionMode_Preview:
+        ok = DicomImageDecoder::DecodePreview(result, dataset, frame);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    if (!ok)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+  }
+
+
+  void ParsedDicomFile::ExtractPngImage(std::string& result,
+                                        unsigned int frame,
+                                        ImageExtractionMode mode)
+  {
+    ImageBuffer buffer;
+    ExtractImage(buffer, frame, mode);
+
+    ImageAccessor accessor(buffer.GetConstAccessor());
+    PngWriter writer;
+    writer.WriteToMemory(result, accessor);
+  }
+
 }

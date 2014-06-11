@@ -35,6 +35,7 @@
  * avoid problems with precompiled headers.
  **/
 
+#include "../Core/ChunkedBuffer.cpp"
 #include "../Core/Enumerations.cpp"
 #include "../Core/HttpClient.cpp"
 #include "../Core/ImageFormats/ImageAccessor.cpp"

@@ -106,5 +106,7 @@ namespace Orthanc
                         unsigned int height,
                         unsigned int pitch,
                         void *buffer);
+
+    void ToMatlabString(std::string& target) const; 
   };
 }
