@@ -130,13 +130,10 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
       # This is a patch for MinGW64
       add_definitions(-D_TIME_H__S=1)
     endif()
-
   endif()
- 
-
 
   add_library(GoogleLog STATIC ${GOOGLE_LOG_SOURCES})
-  link_libraries(GoogleLog)
+  set(STATIC_GOOGLE_LOG GoogleLog)
 
 else()
   CHECK_INCLUDE_FILE_CXX(glog/logging.h HAVE_GOOGLE_LOG_H)
