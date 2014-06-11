@@ -65,6 +65,15 @@ namespace Orthanc
   }
 
 
+  void ChunkedBuffer::AddChunk(const std::string& chunk)
+  {
+    if (chunk.size() > 0)
+    {
+      AddChunk(&chunk[0], chunk.size());
+    }
+  }
+
+
   void ChunkedBuffer::Flatten(std::string& result)
   {
     result.resize(numBytes_);

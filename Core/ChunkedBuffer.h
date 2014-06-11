@@ -64,6 +64,8 @@ namespace Orthanc
     void AddChunk(const char* chunkData,
                   size_t chunkSize);
 
+    void AddChunk(const std::string& chunk);
+
     void Flatten(std::string& result);
   };
 }
