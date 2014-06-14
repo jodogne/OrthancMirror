@@ -46,7 +46,9 @@
 
 namespace Orthanc
 {
-  SharedLibrary::SharedLibrary(const std::string& path) : handle_(NULL)
+  SharedLibrary::SharedLibrary(const std::string& path) : 
+    path_(path),
+    handle_(NULL)
   {
 #if defined(_WIN32)
     handle_ = ::LoadLibraryA(path.c_str());

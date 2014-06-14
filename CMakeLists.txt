@@ -116,6 +116,7 @@ set(ORTHANC_CORE_SOURCES
   OrthancCppClient/Patient.cpp
 
   Plugins/Engine/SharedLibrary.cpp
+  Plugins/Engine/PluginsManager.cpp
   )
 
 
