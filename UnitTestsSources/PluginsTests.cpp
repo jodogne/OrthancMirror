@@ -33,7 +33,10 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
+#include <glog/logging.h>
+
 #include "../Plugins/Engine/SharedLibrary.h"
+#include "../Plugins/OrthancCPlugin/OrthancCPlugin.h"
 
 using namespace Orthanc;
 
@@ -48,6 +51,77 @@ TEST(SharedLibrary, Basic)
   ASSERT_TRUE(l.GetFunction("dlopen") != NULL);
   ASSERT_TRUE(l.HasFunction("dlclose"));
   ASSERT_FALSE(l.HasFunction("world"));
+
+#else
+#error Support your platform here
+#endif
+
+}
+
+
+
+static void LogError(const char* str)
+{
+  LOG(ERROR) << str;
+}
+
+static void LogWarning(const char* str)
+{
+  LOG(WARNING) << str;
+}
+
+static void LogInfo(const char* str)
+{
+  LOG(INFO) << str;
+}
+
+static int32_t InvokeService(const char* serviceName,
+                             const void* serviceParameters)
+{
+  return 0;
+}
+
+
+
+TEST(SharedLibrary, Development)
+{
+#if defined(_WIN32)
+#error Support your platform here
+
+#elif defined(__linux)
+  SharedLibrary l("./libPluginTest.so");
+  ASSERT_TRUE(l.HasFunction("OrthancPluginFinalize"));
+  ASSERT_TRUE(l.HasFunction("OrthancPluginInitialize"));
+
+  OrthancPluginContext context;
+  context.orthancVersion = ORTHANC_VERSION;
+  context.InvokeService = InvokeService;
+  context.LogError = LogError;
+  context.LogWarning = LogWarning;
+  context.LogInfo = LogInfo;
+
+  typedef void (*Finalize) ();
+  typedef int32_t (*Initialize) (const OrthancPluginContext*);
+
+  /**
+   * gcc would complain about "ISO C++ forbids casting between
+   * pointer-to-function and pointer-to-object" without the trick
+   * below, that is known as "the POSIX.1-2003 (Technical Corrigendum
+   * 1) workaround". See the man page of "dlsym()".
+   * http://www.trilithium.com/johan/2004/12/problem-with-dlsym/
+   * http://stackoverflow.com/a/14543811/881731
+   **/
+
+  Finalize finalize;
+  *(void **) (&finalize) = l.GetFunction("OrthancPluginFinalize");
+  assert(finalize != NULL);
+
+  Initialize initialize;
+  *(void **) (&initialize) = l.GetFunction("OrthancPluginInitialize");
+  assert(initialize != NULL);
+
+  initialize(&context);
+  finalize();
 
 #else
 #error Support your platform here
