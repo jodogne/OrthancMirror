@@ -30,12 +30,28 @@
  **/
 
 
-#include "DynamicLibrary.h"
+#pragma once
+
+#include "../../Core/OrthancException.h"
+
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  DynamicLibrary::DynamicLibrary(const std::string& path)
+  class SharedLibrary : boost::noncopyable
   {
+  private:
+    void *handle_;
 
-  }
+    void* GetFunctionInternal(const std::string& name);
+
+  public:
+    SharedLibrary(const std::string& path);
+
+    ~SharedLibrary();
+
+    bool HasFunction(const std::string& name);
+
+    void* GetFunction(const std::string& name);
+  };
 }

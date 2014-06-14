@@ -845,5 +845,12 @@ namespace Orthanc
       }
     }
   }
+
+
+  bool Toolbox::IsExistingFile(const std::string& path)
+  {
+    return boost::filesystem::exists(path);
+  }
+
 }
 

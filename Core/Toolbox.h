@@ -130,5 +130,7 @@ namespace Orthanc
                              const std::string& source);
 
     void CreateDirectory(const std::string& path);
+
+    bool IsExistingFile(const std::string& path);
   }
 }
