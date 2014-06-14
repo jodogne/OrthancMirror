@@ -53,3 +53,14 @@ ORTHANC_PLUGINS_API void OrthancPluginFinalize()
 }
 
 
+ORTHANC_PLUGINS_API const char* OrthancPluginGetName()
+{
+  return "sample";
+}
+
+
+ORTHANC_PLUGINS_API const char* OrthancPluginGetVersion()
+{
+  return "1.0";
+}
+

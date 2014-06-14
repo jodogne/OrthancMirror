@@ -35,14 +35,14 @@
 #include "SharedLibrary.h"
 #include "../OrthancCPlugin/OrthancCPlugin.h"
 
-#include <list>
+#include <map>
 
 namespace Orthanc
 {
   class PluginsManager : boost::noncopyable
   {
   private:
-    typedef std::list<SharedLibrary*>  Plugins;
+    typedef std::map<std::string, SharedLibrary*>  Plugins;
 
     OrthancPluginContext  context_;
     Plugins  plugins_;
@@ -53,5 +53,8 @@ namespace Orthanc
     ~PluginsManager();
 
     void RegisterPlugin(const std::string& path);
+
+    void ScanFolderForPlugins(const std::string& path,
+                              bool isRecursive);
   };
 }

@@ -66,7 +66,10 @@ TEST(SharedLibrary, Development)
 #error Support your platform here
 
 #elif defined(__linux)
-  manager.RegisterPlugin("./libPluginTest.so");
+  //manager.RegisterPlugin("./libPluginTest.so");
+  //ASSERT_THROW(manager.RegisterPlugin("./libPluginTest.so"), OrthancException);
+
+  manager.ScanFolderForPlugins(".", true);
 
 #else
 #error Support your platform here

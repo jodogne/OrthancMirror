@@ -78,9 +78,11 @@ extern "C"
 
 
   /**
-     Each plugin must define 2 functions, whose signature is:
+     Each plugin must define 4 functions, whose signature is:
      - int32_t OrthancPluginInitialize(const OrthancPluginContext*);
      - void OrthancPluginFinalize();
+     - const char* OrthancPluginGetName();
+     - const char* OrthancPluginGetVersion();
 
      nm -C -D --defined-only libPluginTest.so
    **/
