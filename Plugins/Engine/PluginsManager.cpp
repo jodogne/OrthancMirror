@@ -193,28 +193,30 @@ namespace Orthanc
   }
 
 
-  void PluginsManager::ScanFolderForPlugins(const std::string& path,
+  void PluginsManager::ScanFolderForPlugins(const std::string& folder,
                                             bool isRecursive)
   {
     using namespace boost::filesystem;
 
-    if (!exists(path))
+    if (!exists(folder))
     {
       return;
     }
 
-    LOG(INFO) << "Scanning folder " << path << " for plugins";
+    LOG(INFO) << "Scanning folder " << folder << " for plugins";
 
     directory_iterator end_it; // default construction yields past-the-end
-    for (directory_iterator it(path);
+    for (directory_iterator it(folder);
           it != end_it;
           ++it)
     {
+      std::string path = it->path().string();
+
       if (is_directory(it->status()))
       {
         if (isRecursive)
         {
-          ScanFolderForPlugins(it->path().string(), true);
+          ScanFolderForPlugins(path, true);
         }
       }
       else
@@ -225,10 +227,10 @@ namespace Orthanc
 
           try
           {
-            SharedLibrary plugin(it->path().string());
+            SharedLibrary plugin(path);
             if (IsOrthancPlugin(plugin))
             {
-              RegisterPlugin(it->path().string());
+              RegisterPlugin(path);
             }
           }
           catch (OrthancException&)
