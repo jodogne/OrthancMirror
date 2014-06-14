@@ -114,6 +114,8 @@ set(ORTHANC_CORE_SOURCES
   OrthancCppClient/Series.cpp
   OrthancCppClient/Instance.cpp
   OrthancCppClient/Patient.cpp
+
+  Plugins/Engine/DynamicLibrary.cpp
   )
 
 
