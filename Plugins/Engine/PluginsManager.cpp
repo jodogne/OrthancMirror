@@ -35,6 +35,16 @@
 #include <glog/logging.h>
 #include <cassert>
 #include <memory>
+#include <boost/filesystem.hpp>
+
+#ifdef WIN32
+#define PLUGIN_EXTENSION ".dll"
+#elif defined(__linux)
+#define PLUGIN_EXTENSION ".so"
+#else
+#error Support your platform here
+#endif
+
 
 namespace Orthanc
 {
@@ -79,6 +89,30 @@ namespace Orthanc
   }
 
 
+  static const char* CallGetName(SharedLibrary& plugin)
+  {
+    typedef const char* (*GetName) ();
+
+    GetName getName;
+    *(void **) (&getName) = plugin.GetFunction("OrthancPluginGetName");
+    assert(getName != NULL);
+
+    return getName();
+  }
+
+
+  static const char* CallGetVersion(SharedLibrary& plugin)
+  {
+    typedef const char* (*GetVersion) ();
+
+    GetVersion getVersion;
+    *(void **) (&getVersion) = plugin.GetFunction("OrthancPluginGetVersion");
+    assert(getVersion != NULL);
+
+    return getVersion();
+  }
+
+
   static void LogError(const char* str)
   {
     LOG(ERROR) << str;
@@ -114,12 +148,21 @@ namespace Orthanc
   {
     for (Plugins::iterator it = plugins_.begin(); it != plugins_.end(); it++)
     {
-      if (*it != NULL)
+      if (it->second != NULL)
       {
-        CallFinalize(**it);
-        delete *it;
+        CallFinalize(*(it->second));
+        delete it->second;
       }
     }
+  }
+
+
+  static bool IsOrthancPlugin(SharedLibrary& library)
+  {
+    return (library.HasFunction("OrthancPluginInitialize") &&
+            library.HasFunction("OrthancPluginFinalize") &&
+            library.HasFunction("OrthancPluginGetName") &&
+            library.HasFunction("OrthancPluginGetVersion"));
   }
 
   
@@ -127,19 +170,73 @@ namespace Orthanc
   {
     std::auto_ptr<SharedLibrary> plugin(new SharedLibrary(path));
 
-    if (!plugin->HasFunction("OrthancPluginInitialize") ||
-        !plugin->HasFunction("OrthancPluginFinalize"))
+    if (!IsOrthancPlugin(*plugin))
     {
       LOG(ERROR) << "Plugin " << plugin->GetPath()
                  << " does not declare the proper entry functions";
       throw OrthancException(ErrorCode_SharedLibrary);
     }
 
-    LOG(WARNING) << "Registering plugin " << path;
+    std::string name(CallGetName(*plugin));
+    if (plugins_.find(name) != plugins_.end())
+    {
+      LOG(ERROR) << "Plugin '" << name << "' already registered";
+      throw OrthancException(ErrorCode_SharedLibrary);
+    }
+
+    LOG(WARNING) << "Registering plugin '" << name
+                 << "' (version " << CallGetVersion(*plugin) << ")";
 
     CallInitialize(*plugin, context_);
 
-    plugins_.push_back(plugin.release());
+    plugins_[name] = plugin.release();
+  }
+
+
+  void PluginsManager::ScanFolderForPlugins(const std::string& path,
+                                            bool isRecursive)
+  {
+    using namespace boost::filesystem;
+
+    if (!exists(path))
+    {
+      return;
+    }
+
+    LOG(INFO) << "Scanning folder " << path << " for plugins";
+
+    directory_iterator end_it; // default construction yields past-the-end
+    for (directory_iterator it(path);
+          it != end_it;
+          ++it)
+    {
+      if (is_directory(it->status()))
+      {
+        if (isRecursive)
+        {
+          ScanFolderForPlugins(it->path().string(), true);
+        }
+      }
+      else
+      {
+        if (boost::filesystem::extension(it->path()) == PLUGIN_EXTENSION)
+        {
+          LOG(INFO) << "Found a shared library: " << it->path();
+
+          try
+          {
+            SharedLibrary plugin(it->path().string());
+            if (IsOrthancPlugin(plugin))
+            {
+              RegisterPlugin(it->path().string());
+            }
+          }
+          catch (OrthancException&)
+          {
+          }
+        }
+      }
+    }
   }
 
 }
