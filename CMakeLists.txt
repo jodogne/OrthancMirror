@@ -115,7 +115,7 @@ set(ORTHANC_CORE_SOURCES
   OrthancCppClient/Instance.cpp
   OrthancCppClient/Patient.cpp
 
-  Plugins/Engine/DynamicLibrary.cpp
+  Plugins/Engine/SharedLibrary.cpp
   )
 
 
@@ -170,6 +170,7 @@ set(ORTHANC_UNIT_TESTS_SOURCES
   UnitTestsSources/UnitTestsMain.cpp
   UnitTestsSources/ImageProcessingTests.cpp
   UnitTestsSources/JpegLossless.cpp
+  UnitTestsSources/PluginsTests.cpp
   )
 
 

@@ -30,20 +30,27 @@
  **/
 
 
-#pragma once
+#include "PrecompiledHeadersUnitTests.h"
+#include "gtest/gtest.h"
 
-#include "../../Core/OrthancException.h"
+#include "../Plugins/Engine/SharedLibrary.h"
 
-#include <boost/noncopyable.hpp>
+using namespace Orthanc;
 
-namespace Orthanc
+TEST(SharedLibrary, Basic)
 {
-  class DynamicLibrary : boost::noncopyable
-  {
-  private:
-    void *handle_;
+#if defined(_WIN32)
+#error Support your platform here
 
-  public:
-    DynamicLibrary(const std::string& path);
-  };
+#elif defined(__linux)
+  SharedLibrary l("libdl.so");
+  ASSERT_THROW(l.GetFunction("world"), OrthancException);
+  ASSERT_TRUE(l.GetFunction("dlopen") != NULL);
+  ASSERT_TRUE(l.HasFunction("dlclose"));
+  ASSERT_FALSE(l.HasFunction("world"));
+
+#else
+#error Support your platform here
+#endif
+
 }
