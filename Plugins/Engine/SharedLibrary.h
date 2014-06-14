@@ -41,6 +41,7 @@ namespace Orthanc
   class SharedLibrary : boost::noncopyable
   {
   private:
+    std::string path_;
     void *handle_;
 
     void* GetFunctionInternal(const std::string& name);
@@ -49,6 +50,11 @@ namespace Orthanc
     SharedLibrary(const std::string& path);
 
     ~SharedLibrary();
+
+    const std::string& GetPath() const
+    {
+      return path_;
+    }
 
     bool HasFunction(const std::string& name);
 

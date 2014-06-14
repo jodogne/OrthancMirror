@@ -30,45 +30,28 @@
  **/
 
 
-#include "PrecompiledHeadersUnitTests.h"
-#include "gtest/gtest.h"
+#pragma once
 
-#include <glog/logging.h>
+#include "SharedLibrary.h"
+#include "../OrthancCPlugin/OrthancCPlugin.h"
 
-#include "../Plugins/Engine/PluginsManager.h"
+#include <list>
 
-using namespace Orthanc;
-
-TEST(SharedLibrary, Basic)
+namespace Orthanc
 {
-#if defined(_WIN32)
-#error Support your platform here
+  class PluginsManager : boost::noncopyable
+  {
+  private:
+    typedef std::list<SharedLibrary*>  Plugins;
 
-#elif defined(__linux)
-  SharedLibrary l("libdl.so");
-  ASSERT_THROW(l.GetFunction("world"), OrthancException);
-  ASSERT_TRUE(l.GetFunction("dlopen") != NULL);
-  ASSERT_TRUE(l.HasFunction("dlclose"));
-  ASSERT_FALSE(l.HasFunction("world"));
+    OrthancPluginContext  context_;
+    Plugins  plugins_;
 
-#else
-#error Support your platform here
-#endif
+  public:
+    PluginsManager();
 
-}
+    ~PluginsManager();
 
-
-TEST(SharedLibrary, Development)
-{
-  PluginsManager manager;
-
-#if defined(_WIN32)
-#error Support your platform here
-
-#elif defined(__linux)
-  manager.RegisterPlugin("./libPluginTest.so");
-
-#else
-#error Support your platform here
-#endif  
+    void RegisterPlugin(const std::string& path);
+  };
 }
