@@ -180,7 +180,7 @@ namespace Orthanc
             IsDeleteAccepted(uri));
   }
 
-  void RestApi::Handle(HttpOutput& output,
+  bool RestApi::Handle(HttpOutput& output,
                        HttpMethod method,
                        const UriComponents& uri,
                        const Arguments& headers,
@@ -255,6 +255,8 @@ namespace Orthanc
                 << " not allowed on: " << Toolbox::FlattenUri(uri);
       output.SendMethodNotAllowedError(GetAcceptedMethods(uri));
     }
+
+    return true;
   }
 
   void RestApi::Register(const std::string& path,
