@@ -53,6 +53,9 @@ namespace Orthanc
   {
     typedef int32_t (*Initialize) (const OrthancPluginContext*);
 
+#if defined(_WIN32)
+    Initialize initialize = (Initialize) plugin.GetFunction("OrthancPluginInitialize");
+#else
     /**
      * gcc would complain about "ISO C++ forbids casting between
      * pointer-to-function and pointer-to-object" without the trick
@@ -64,8 +67,9 @@ namespace Orthanc
 
     Initialize initialize;
     *(void **) (&initialize) = plugin.GetFunction("OrthancPluginInitialize");
-    assert(initialize != NULL);
+#endif
 
+    assert(initialize != NULL);
     int32_t error = initialize(&context);
 
     if (error != 0)
@@ -81,10 +85,14 @@ namespace Orthanc
   {
     typedef void (*Finalize) ();
 
+#if defined(_WIN32)
+    Finalize finalize = (Finalize) plugin.GetFunction("OrthancPluginFinalize");
+#else
     Finalize finalize;
     *(void **) (&finalize) = plugin.GetFunction("OrthancPluginFinalize");
-    assert(finalize != NULL);
+#endif
 
+    assert(finalize != NULL);
     finalize();
   }
 
@@ -93,10 +101,14 @@ namespace Orthanc
   {
     typedef const char* (*GetName) ();
 
+#if defined(_WIN32)
+    GetName getName = (GetName) plugin.GetFunction("OrthancPluginGetName");
+#else
     GetName getName;
     *(void **) (&getName) = plugin.GetFunction("OrthancPluginGetName");
-    assert(getName != NULL);
+#endif
 
+    assert(getName != NULL);
     return getName();
   }
 
@@ -105,10 +117,14 @@ namespace Orthanc
   {
     typedef const char* (*GetVersion) ();
 
+#if defined(_WIN32)
+    GetVersion getVersion = (GetVersion) plugin.GetFunction("OrthancPluginGetVersion");
+#else
     GetVersion getVersion;
     *(void **) (&getVersion) = plugin.GetFunction("OrthancPluginGetVersion");
-    assert(getVersion != NULL);
+#endif
 
+    assert(getVersion != NULL);
     return getVersion();
   }
 
@@ -150,6 +166,9 @@ namespace Orthanc
     {
       if (it->second != NULL)
       {
+        LOG(WARNING) << "Unregistering plugin '" << CallGetName(*it->second)
+                     << "' (version " << CallGetVersion(*it->second) << ")";
+
         CallFinalize(*(it->second));
         delete it->second;
       }

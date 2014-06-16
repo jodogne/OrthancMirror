@@ -52,7 +52,7 @@ namespace Orthanc
   {
 #if defined(_WIN32)
     handle_ = ::LoadLibraryA(path.c_str());
-    if (handle == NULL)
+    if (handle_ == NULL)
     {
       LOG(ERROR) << "LoadLibrary(" << path << ") failed: Error " << ::GetLastError();
       throw OrthancException(ErrorCode_SharedLibrary);
@@ -93,7 +93,7 @@ namespace Orthanc
   }
 
 
-  void* SharedLibrary::GetFunctionInternal(const std::string& name)
+  SharedLibrary::FunctionPointer SharedLibrary::GetFunctionInternal(const std::string& name)
   {
     if (!handle_)
     {
@@ -110,9 +110,9 @@ namespace Orthanc
   }
 
 
-  void* SharedLibrary::GetFunction(const std::string& name)
+  SharedLibrary::FunctionPointer SharedLibrary::GetFunction(const std::string& name)
   {
-    void* result = GetFunctionInternal(name);
+    SharedLibrary::FunctionPointer result = GetFunctionInternal(name);
   
     if (result == NULL)
     {

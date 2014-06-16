@@ -48,6 +48,7 @@
 #include "OrthancFindRequestHandler.h"
 #include "OrthancMoveRequestHandler.h"
 #include "ServerToolbox.h"
+#include "../Plugins/Engine/PluginsManager.h"
 
 using namespace Orthanc;
 
@@ -204,7 +205,7 @@ public:
 };
 
 
-void PrintHelp(char* path)
+static void PrintHelp(char* path)
 {
   std::cout 
     << "Usage: " << path << " [OPTION]... [CONFIGURATION]" << std::endl
@@ -231,7 +232,7 @@ void PrintHelp(char* path)
 }
 
 
-void PrintVersion(char* path)
+static void PrintVersion(char* path)
 {
   std::cout
     << path << " " << ORTHANC_VERSION << std::endl
@@ -242,6 +243,39 @@ void PrintVersion(char* path)
     << std::endl
     << "Written by Sebastien Jodogne <s.jodogne@gmail.com>" << std::endl;
 }
+
+
+
+static void LoadLuaScripts(ServerContext& context)
+{
+  std::list<std::string> luaScripts;
+  Configuration::GetGlobalListOfStringsParameter(luaScripts, "LuaScripts");
+  for (std::list<std::string>::const_iterator
+         it = luaScripts.begin(); it != luaScripts.end(); ++it)
+  {
+    std::string path = Configuration::InterpretStringParameterAsPath(*it);
+    LOG(WARNING) << "Installing the Lua scripts from: " << path;
+    std::string script;
+    Toolbox::ReadFile(script, path);
+    context.GetLuaContext().Execute(script);
+  }
+}
+
+
+static void LoadPlugins(PluginsManager& pluginsManager)
+{
+  std::list<std::string> plugins;
+  Configuration::GetGlobalListOfStringsParameter(plugins, "Plugins");
+  for (std::list<std::string>::const_iterator
+         it = plugins.begin(); it != plugins.end(); ++it)
+  {
+    std::string path = Configuration::InterpretStringParameterAsPath(*it);
+    LOG(WARNING) << "Registering a plugin from: " << path;
+    pluginsManager.RegisterPlugin(path);
+  }  
+}
+
+
 
 
 int main(int argc, char* argv[]) 
@@ -337,18 +371,10 @@ int main(int argc, char* argv[])
     context.SetCompressionEnabled(Configuration::GetGlobalBoolParameter("StorageCompression", false));
     context.SetStoreMD5ForAttachments(Configuration::GetGlobalBoolParameter("StoreMD5ForAttachments", true));
 
-    std::list<std::string> luaScripts;
-    Configuration::GetGlobalListOfStringsParameter(luaScripts, "LuaScripts");
-    for (std::list<std::string>::const_iterator
-           it = luaScripts.begin(); it != luaScripts.end(); ++it)
-    {
-      std::string path = Configuration::InterpretStringParameterAsPath(*it);
-      LOG(WARNING) << "Installing the Lua scripts from: " << path;
-      std::string script;
-      Toolbox::ReadFile(script, path);
-      context.GetLuaContext().Execute(script);
-    }
+    LoadLuaScripts(context);
 
+    PluginsManager pluginsManager;
+    LoadPlugins(pluginsManager);
 
     try
     {

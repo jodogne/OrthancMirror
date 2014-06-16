@@ -40,11 +40,18 @@ namespace Orthanc
 {
   class SharedLibrary : boost::noncopyable
   {
+  public:
+#if defined(_WIN32)
+    typedef FARPROC FunctionPointer;
+#else
+    typedef void* FunctionPointer;
+#endif
+
   private:
     std::string path_;
     void *handle_;
 
-    void* GetFunctionInternal(const std::string& name);
+    FunctionPointer GetFunctionInternal(const std::string& name);
 
   public:
     SharedLibrary(const std::string& path);
@@ -58,6 +65,6 @@ namespace Orthanc
 
     bool HasFunction(const std::string& name);
 
-    void* GetFunction(const std::string& name);
+    FunctionPointer GetFunction(const std::string& name);
   };
 }
