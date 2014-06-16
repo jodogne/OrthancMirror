@@ -36,6 +36,7 @@
 #include "../OrthancCPlugin/OrthancCPlugin.h"
 
 #include <map>
+#include <list>
 
 namespace Orthanc
 {
@@ -43,9 +44,15 @@ namespace Orthanc
   {
   private:
     typedef std::map<std::string, SharedLibrary*>  Plugins;
+    typedef std::list<OrthancRestCallback>  RestCallbacks;
 
     OrthancPluginContext  context_;
     Plugins  plugins_;
+    RestCallbacks  restCallbacks_;
+
+    static void RegisterRestCallback(const OrthancPluginContext* context,
+                                     const char* path, 
+                                     OrthancRestCallback callback);
 
   public:
     PluginsManager();

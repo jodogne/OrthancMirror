@@ -32,6 +32,8 @@
 
 #include "PluginsManager.h"
 
+#include "../../Core/Toolbox.h"
+
 #include <glog/logging.h>
 #include <cassert>
 #include <memory>
@@ -144,20 +146,70 @@ namespace Orthanc
     LOG(INFO) << str;
   }
 
-  static int32_t InvokeService(const char* serviceName,
-                               const void* serviceParameters)
+  void PluginsManager::RegisterRestCallback(const OrthancPluginContext* context,
+                                            const char* path, 
+                                            OrthancRestCallback callback)
   {
     // TODO
-    return 0;
+    LOG(INFO) << "Plugin has registered a REST callback on: " << path;
+
+    PluginsManager* manager = reinterpret_cast<PluginsManager*>(context->pimpl);
+    manager->restCallbacks_.push_back(callback);
+
+
+    const char* pp = "/hello/world";
+
+    UriComponents components;
+    Toolbox::SplitUriComponents(components, pp);
+
+    OrthancRestUrl url;
+    url.path = pp;
+
+    std::vector<const char*> c(components.size());
+    for (unsigned int i = 0; i < components.size(); i++)
+    {
+      c[i] = components[i].c_str();
+    }
+
+    if (components.size() == 0)
+    {
+      url.components = NULL;
+      url.componentsSize = 0;
+    }
+    else
+    {
+      url.components = &c[0];
+      url.componentsSize = components.size();
+    }
+
+    // TODO
+    url.parameters = NULL;
+    url.parametersSize = 0;
+
+    callback(NULL, OrthancHttpMethod_Get, &url, NULL, 0);
   }
+
+
+  static void AnswerBuffer(OrthancRestOutput* output,
+                           const char* answer,
+                           uint32_t answerSize,
+                           const char* mimeType)
+  {
+    std::cout << "MIME " << mimeType << ": " << answer << std::endl;
+  }
+
 
   PluginsManager::PluginsManager()
   {
+    memset(&context_, 0, sizeof(context_));
+    context_.pimpl = this;
     context_.orthancVersion = ORTHANC_VERSION;
-    context_.InvokeService = InvokeService;
+    context_.FreeBuffer = ::free;
     context_.LogError = LogError;
     context_.LogWarning = LogWarning;
     context_.LogInfo = LogInfo;
+    context_.RegisterRestCallback = RegisterRestCallback;
+    context_.AnswerBuffer = AnswerBuffer;
   }
 
   PluginsManager::~PluginsManager()

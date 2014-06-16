@@ -58,7 +58,6 @@ TEST(SharedLibrary, Basic)
 #else
 #error Support your platform here
 #endif
-
 }
 
 
@@ -70,10 +69,10 @@ TEST(SharedLibrary, Development)
 //#error Support your platform here
 
 #elif defined(__linux)
-  //manager.RegisterPlugin("./libPluginTest.so");
-  //ASSERT_THROW(manager.RegisterPlugin("./libPluginTest.so"), OrthancException);
+  manager.RegisterPlugin("./libPluginTest.so");
+  ASSERT_THROW(manager.RegisterPlugin("./libPluginTest.so"), OrthancException);
 
-  manager.ScanFolderForPlugins(".", true);
+  //manager.ScanFolderForPlugins(".", true);
 
 #else
 #error Support your platform here

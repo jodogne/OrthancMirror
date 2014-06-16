@@ -33,15 +33,31 @@
 static const OrthancPluginContext* context = NULL;
 
 
+ORTHANC_PLUGINS_API int32_t Callback(OrthancRestOutput* output,
+                                     OrthancHttpMethod method,
+                                     const OrthancRestUrl* url,
+                                     const char* body,
+                                     uint32_t bodySize)
+{
+  char buffer[1024];
+  sprintf(buffer, "Callback on URL [%s]\n", url->path);
+  context->LogInfo(buffer);
+  context->AnswerBuffer(output, buffer, strlen(buffer), "text/plain");
+  return 1;
+}
+
+
 ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(const OrthancPluginContext* c)
 {
+  char info[1024];
+
   context = c;
   context->LogWarning("Plugin is initializing");
 
-  char info[1024];
   sprintf(info, "The version of Orthanc is '%s'", context->orthancVersion);
-
   context->LogInfo(info);
+
+  context->RegisterRestCallback(c, "/plugin/hello", Callback);
 
   return 0;
 }

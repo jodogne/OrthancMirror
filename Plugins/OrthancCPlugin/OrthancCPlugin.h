@@ -55,30 +55,61 @@ extern "C"
 {
 #endif
 
-  typedef void (*OrthancPluginLogError) (const char* str);
+  typedef struct OrthancRestOutput_t OrthancRestOutput;
 
-  typedef void (*OrthancPluginLogWarning) (const char* str);
+  typedef enum
+  {
+    OrthancHttpMethod_Get = 1,
+    OrthancHttpMethod_Post = 2,
+    OrthancHttpMethod_Put = 3,
+    OrthancHttpMethod_Delete = 4
+  } OrthancHttpMethod;
 
-  typedef void (*OrthancPluginLogInfo) (const char* str);
+  typedef struct OrthancRestUrl_t
+  {
+    const char* path;
+    const char* const* components;
+    uint32_t componentsSize;
+    const char* const* parameters;
+    uint32_t parametersSize;                                          
+  } OrthancRestUrl;
+
 
   typedef int32_t (*OrthancPluginService) (const char* serviceName,
                                            const void* serviceParameters);
 
-  typedef struct OrthancPluginContext
+  typedef int32_t (*OrthancRestCallback) (OrthancRestOutput* output,
+                                          OrthancHttpMethod method,
+                                          const OrthancRestUrl* url,
+                                          const char* body,
+                                          uint32_t bodySize);
+
+  typedef struct OrthancPluginContext_t
   {
+    void* pimpl;
+
     const char* orthancVersion;
-    OrthancPluginService InvokeService;
-    OrthancPluginLogError LogError;
-    OrthancPluginLogWarning LogWarning;
-    OrthancPluginLogInfo LogInfo;
+    void (*FreeBuffer) (void* buffer);
 
-    /* TODO REGISTER */
+    /* Logging functions */
+    void (*LogError) (const char* str);
+    void (*LogWarning) (const char* str);
+    void (*LogInfo) (const char* str);
 
+    /* REST API */
+    void (*RegisterRestCallback) (const struct OrthancPluginContext_t* context,
+                                  const char* path, 
+                                  OrthancRestCallback callback);
+
+    void (*AnswerBuffer) (OrthancRestOutput* output,
+                          const char* answer,
+                          uint32_t answerSize,
+                          const char* mimeType);
   } OrthancPluginContext;
 
 
   /**
-     Each plugin must define 4 functions, whose signature is:
+     Each plugin must define 4 functions, whose signature are:
      - int32_t OrthancPluginInitialize(const OrthancPluginContext*);
      - void OrthancPluginFinalize();
      - const char* OrthancPluginGetName();
