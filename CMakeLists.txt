@@ -394,7 +394,8 @@ if (BUILD_CLIENT_LIBRARY)
     ${GOOGLE_LOG_SOURCES}
     )
 
-  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
     set_target_properties(OrthancClient
       PROPERTIES LINK_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined -Wl,--as-needed -Wl,--version-script=${ORTHANC_ROOT}/OrthancCppClient/SharedLibrary/Laaw/VersionScript.map"
       )

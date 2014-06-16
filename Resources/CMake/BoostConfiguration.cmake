@@ -53,7 +53,8 @@ if (BOOST_STATIC)
     )
 
   set(BOOST_SOURCES)
-  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
     list(APPEND BOOST_SOURCES
       ${BOOST_SOURCES_DIR}/libs/thread/src/pthread/once.cpp
       ${BOOST_SOURCES_DIR}/libs/thread/src/pthread/thread.cpp
