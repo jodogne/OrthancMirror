@@ -28,13 +28,14 @@
   // of patients)
   "MaximumPatientCount" : 0,
   
-  // List of paths to the custom Lua scripts to load into this
-  // instance of Orthanc
+  // List of paths to the custom Lua scripts that are to be loaded
+  // into this instance of Orthanc
   "LuaScripts" : [
   ],
 
+  // List of paths to the plugins that are to be loaded into this
+  // instance of Orthanc
   "Plugins" : [
-    
   ],
 
 

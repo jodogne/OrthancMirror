@@ -42,7 +42,11 @@ using namespace Orthanc;
 TEST(SharedLibrary, Basic)
 {
 #if defined(_WIN32)
-#error Support your platform here
+  SharedLibrary l("kernel32.dll");
+  ASSERT_THROW(l.GetFunction("world"), OrthancException);
+  ASSERT_TRUE(l.GetFunction("GetVersionExW") != NULL);
+  ASSERT_TRUE(l.HasFunction("GetVersionExW"));
+  ASSERT_FALSE(l.HasFunction("world"));
 
 #elif defined(__linux)
   SharedLibrary l("libdl.so");
@@ -63,7 +67,7 @@ TEST(SharedLibrary, Development)
   PluginsManager manager;
 
 #if defined(_WIN32)
-#error Support your platform here
+//#error Support your platform here
 
 #elif defined(__linux)
   //manager.RegisterPlugin("./libPluginTest.so");
