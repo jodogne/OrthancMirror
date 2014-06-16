@@ -126,7 +126,7 @@ namespace Orthanc
   }
 
 
-  void FilesystemHttpHandler::Handle(
+  bool FilesystemHttpHandler::Handle(
     HttpOutput& output,
     HttpMethod method,
     const UriComponents& uri,
@@ -137,7 +137,7 @@ namespace Orthanc
     if (method != HttpMethod_Get)
     {
       output.SendMethodNotAllowedError("GET");
-      return;
+      return true;
     }
 
     namespace fs = boost::filesystem;
@@ -164,5 +164,7 @@ namespace Orthanc
     {
       output.SendHeader(HttpStatus_404_NotFound);
     }
+
+    return true;
   } 
 }

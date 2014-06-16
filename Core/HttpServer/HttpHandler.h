@@ -52,7 +52,7 @@ namespace Orthanc
 
     virtual bool IsServedUri(const UriComponents& uri) = 0;
 
-    virtual void Handle(HttpOutput& output,
+    virtual bool Handle(HttpOutput& output,
                         HttpMethod method,
                         const UriComponents& uri,
                         const Arguments& headers,

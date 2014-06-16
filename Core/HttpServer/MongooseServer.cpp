@@ -255,18 +255,17 @@ namespace Orthanc
 
 
 
-  HttpHandler* MongooseServer::FindHandler(const UriComponents& forUri) const
+  void MongooseServer::FindHandlers(std::list<HttpHandler*>& result,
+                                    const UriComponents& forUri) const
   {
     for (Handlers::const_iterator it = 
            handlers_.begin(); it != handlers_.end(); ++it) 
     {
       if ((*it)->IsServedUri(forUri))
       {
-        return *it;
+        result.push_back(*it);
       }
     }
-
-    return NULL;
   }
 
 
@@ -703,31 +702,40 @@ namespace Orthanc
       }
 
 
-      HttpHandler* handler = that->FindHandler(uri);
-      if (handler)
+      std::list<HttpHandler*> handlers;
+      that->FindHandlers(handlers, uri);
+
+      bool found = false;
+
+      for (std::list<HttpHandler*>::const_iterator
+             it = handlers.begin(); it != handlers.end() && !found; it++)
       {
         try
         {
           LOG(INFO) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
-          handler->Handle(output, method, uri, headers, argumentsGET, body);
+          found = (*it)->Handle(output, method, uri, headers, argumentsGET, body);
         }
         catch (OrthancException& e)
         {
           LOG(ERROR) << "MongooseServer Exception [" << e.What() << "]";
-          output.SendHeader(HttpStatus_500_InternalServerError);        
+          output.SendHeader(HttpStatus_500_InternalServerError);
+          found = true;
         }
         catch (boost::bad_lexical_cast&)
         {
           LOG(ERROR) << "MongooseServer Exception: Bad lexical cast";
           output.SendHeader(HttpStatus_400_BadRequest);
+          found = true;
         }
         catch (std::runtime_error&)
         {
           LOG(ERROR) << "MongooseServer Exception: Presumably a bad JSON request";
           output.SendHeader(HttpStatus_400_BadRequest);
+          found = true;
         }
       }
-      else
+      
+      if (!found)
       {
         output.SendHeader(HttpStatus_404_NotFound);
       }

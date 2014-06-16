@@ -139,8 +139,8 @@ namespace Orthanc
 
     void ClearHandlers();
 
-    // Can return NULL if no handler is associated to this URI
-    HttpHandler* FindHandler(const UriComponents& forUri) const;
+    void FindHandlers(std::list<HttpHandler*>& result,
+                      const UriComponents& forUri) const;
 
     ChunkStore& GetChunkStore();
 
