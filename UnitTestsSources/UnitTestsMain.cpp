@@ -595,7 +595,7 @@ TEST(Toolbox, Endianness)
 #if defined(_WIN32)
   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
 
-#elif defined(__linux)
+#elif defined(__linux) || defined(__FreeBSD_kernel__)
 
 #if !defined(__BYTE_ORDER)
 #  error Support your platform here

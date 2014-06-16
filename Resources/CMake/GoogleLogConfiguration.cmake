@@ -28,7 +28,8 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
   set(ac_google_start_namespace "namespace google {")
   set(ac_google_end_namespace "}")
 
-  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
     set(ac_cv_have_unistd_h 1)
     set(ac_cv_have_stdint_h 1)
     set(ac_cv_have_systypes_h 0)
@@ -83,7 +84,8 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
       )
   endif()
 
-  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
     if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
       # Install the specific configuration for LSB SDK
       configure_file(

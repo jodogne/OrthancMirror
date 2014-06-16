@@ -107,6 +107,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif 
 
 
+#if defined(__FreeBSD_kernel__)
+/**
+ * TO IMPROVE: "_POSIX_HOST_NAME_MAX is only the minimum value that
+ * HOST_NAME_MAX can ever have [...] Therefore you cannot allocate an
+ * array of size _POSIX_HOST_NAME_MAX, invoke gethostname() and expect
+ * that the result will fit."
+ * http://lists.gnu.org/archive/html/bug-gnulib/2009-08/msg00128.html
+ **/
+#define HOST_NAME_MAX _POSIX_HOST_NAME_MAX
+#endif
+
+
 static const char* DEFAULT_PREFERRED_TRANSFER_SYNTAX = UID_LittleEndianImplicitTransferSyntax;
 
 /**
