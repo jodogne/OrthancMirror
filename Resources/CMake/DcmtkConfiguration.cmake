@@ -87,7 +87,8 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
 
   # Source for the logging facility of DCMTK
   AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/oflog/libsrc DCMTK_SOURCES)
-  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
     list(REMOVE_ITEM DCMTK_SOURCES 
       ${DCMTK_SOURCES_DIR}/oflog/libsrc/windebap.cc
       ${DCMTK_SOURCES_DIR}/oflog/libsrc/winsock.cc

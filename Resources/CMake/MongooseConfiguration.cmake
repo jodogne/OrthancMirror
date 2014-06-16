@@ -24,7 +24,8 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_MONGOOSE)
     add_definitions(
       -DNO_SSL_DL=1
       )
-    if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
+        ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
       link_libraries(dl)
     endif()
 
