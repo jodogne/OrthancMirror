@@ -44,7 +44,7 @@ namespace Orthanc
   {
   private:
     typedef std::map<std::string, SharedLibrary*>  Plugins;
-    typedef std::list<OrthancRestCallback>  RestCallbacks;
+    typedef std::list<OrthancPluginRestCallback>  RestCallbacks;
 
     OrthancPluginContext  context_;
     Plugins  plugins_;
@@ -52,7 +52,7 @@ namespace Orthanc
 
     static void RegisterRestCallback(const OrthancPluginContext* context,
                                      const char* path, 
-                                     OrthancRestCallback callback);
+                                     OrthancPluginRestCallback callback);
 
   public:
     PluginsManager();

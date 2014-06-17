@@ -55,34 +55,24 @@ extern "C"
 {
 #endif
 
-  typedef struct OrthancRestOutput_t OrthancRestOutput;
+  typedef struct OrthancPluginRestOutput_t OrthancPluginRestOutput;
 
   typedef enum
   {
-    OrthancHttpMethod_Get = 1,
-    OrthancHttpMethod_Post = 2,
-    OrthancHttpMethod_Put = 3,
-    OrthancHttpMethod_Delete = 4
-  } OrthancHttpMethod;
-
-  typedef struct OrthancRestUrl_t
-  {
-    const char* path;
-    const char* const* components;
-    uint32_t componentsSize;
-    const char* const* parameters;
-    uint32_t parametersSize;                                          
-  } OrthancRestUrl;
-
+    OrthancPluginHttpMethod_Get = 1,
+    OrthancPluginHttpMethod_Post = 2,
+    OrthancPluginHttpMethod_Put = 3,
+    OrthancPluginHttpMethod_Delete = 4
+  } OrthancPluginHttpMethod;
 
   typedef int32_t (*OrthancPluginService) (const char* serviceName,
                                            const void* serviceParameters);
 
-  typedef int32_t (*OrthancRestCallback) (OrthancRestOutput* output,
-                                          OrthancHttpMethod method,
-                                          const OrthancRestUrl* url,
-                                          const char* body,
-                                          uint32_t bodySize);
+  typedef int32_t (*OrthancPluginRestCallback) (OrthancPluginRestOutput* output,
+                                                OrthancPluginHttpMethod method,
+                                                const char* url,
+                                                const char* body,
+                                                uint32_t bodySize);
 
   typedef struct OrthancPluginContext_t
   {
@@ -98,10 +88,10 @@ extern "C"
 
     /* REST API */
     void (*RegisterRestCallback) (const struct OrthancPluginContext_t* context,
-                                  const char* path, 
-                                  OrthancRestCallback callback);
+                                  const char* pathRegularExpression, 
+                                  OrthancPluginRestCallback callback);
 
-    void (*AnswerBuffer) (OrthancRestOutput* output,
+    void (*AnswerBuffer) (OrthancPluginRestOutput* output,
                           const char* answer,
                           uint32_t answerSize,
                           const char* mimeType);
@@ -116,7 +106,7 @@ extern "C"
      - const char* OrthancPluginGetVersion();
 
      nm -C -D --defined-only libPluginTest.so
-   **/
+  **/
 
 #ifdef  __cplusplus
 }
