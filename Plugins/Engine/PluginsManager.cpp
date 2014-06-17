@@ -33,6 +33,7 @@
 #include "PluginsManager.h"
 
 #include "../../Core/Toolbox.h"
+#include "../../Core/HttpServer/HttpOutput.h"
 
 #include <glog/logging.h>
 #include <cassert>
@@ -150,13 +151,9 @@ namespace Orthanc
                                             const char* pathRegularExpression, 
                                             OrthancPluginRestCallback callback)
   {
-    // TODO
     LOG(INFO) << "Plugin has registered a REST callback on: " << pathRegularExpression;
-
     PluginsManager* manager = reinterpret_cast<PluginsManager*>(context->pimpl);
-    manager->restCallbacks_.push_back(callback);
-
-    callback(NULL, OrthancPluginHttpMethod_Get, "/hello/world", NULL, 0);
+    manager->restCallbacks_.push_back(std::make_pair(pathRegularExpression, callback));
   }
 
 
@@ -165,7 +162,8 @@ namespace Orthanc
                            uint32_t answerSize,
                            const char* mimeType)
   {
-    std::cout << "MIME " << mimeType << ": " << answer << std::endl;
+    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(output);
+    translatedOutput->AnswerBufferWithContentType(answer, answerSize, mimeType);
   }
 
 

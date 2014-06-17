@@ -71,8 +71,10 @@ extern "C"
   typedef int32_t (*OrthancPluginRestCallback) (OrthancPluginRestOutput* output,
                                                 OrthancPluginHttpMethod method,
                                                 const char* url,
-                                                const char* body,
-                                                uint32_t bodySize);
+                                                const char* const* getKeys,
+                                                const char* const* getValues,
+                                                uint32_t getSize,
+                                                const char* body, uint32_t bodySize);
 
   typedef struct OrthancPluginContext_t
   {

@@ -117,6 +117,7 @@ set(ORTHANC_CORE_SOURCES
 
   Plugins/Engine/SharedLibrary.cpp
   Plugins/Engine/PluginsManager.cpp
+  Plugins/Engine/PluginsHttpHandler.cpp
   )
 
 

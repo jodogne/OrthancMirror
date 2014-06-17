@@ -49,6 +49,7 @@
 #include "OrthancMoveRequestHandler.h"
 #include "ServerToolbox.h"
 #include "../Plugins/Engine/PluginsManager.h"
+#include "../Plugins/Engine/PluginsHttpHandler.h"
 
 using namespace Orthanc;
 
@@ -430,6 +431,8 @@ int main(int argc, char* argv[])
       {
         httpServer.SetSslEnabled(false);
       }
+
+      httpServer.RegisterHandler(new PluginsHttpHandler(pluginsManager));
 
 #if ORTHANC_STANDALONE == 1
       httpServer.RegisterHandler(new EmbeddedResourceHttpHandler("/app", EmbeddedResources::ORTHANC_EXPLORER));
