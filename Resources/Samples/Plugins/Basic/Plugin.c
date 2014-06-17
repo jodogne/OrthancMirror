@@ -36,13 +36,26 @@ static const OrthancPluginContext* context = NULL;
 ORTHANC_PLUGINS_API int32_t Callback(OrthancPluginRestOutput* output,
                                      OrthancPluginHttpMethod method,
                                      const char* url,
+                                     const char* const* getKeys,
+                                     const char* const* getValues,
+                                     uint32_t getSize,
                                      const char* body,
                                      uint32_t bodySize)
 {
   char buffer[1024];
-  sprintf(buffer, "Callback on URL [%s]\n", url);
+  uint32_t i;
+
+  sprintf(buffer, "Callback on URL [%s] with body [%s]", url, body);
   context->LogInfo(buffer);
+
   context->AnswerBuffer(output, buffer, strlen(buffer), "text/plain");
+
+  for (i = 0; i < getSize; i++)
+  {
+    sprintf(buffer, "  [%s] = [%s]", getKeys[i], getValues[i]);
+    context->LogInfo(buffer);    
+  }
+
   return 1;
 }
 

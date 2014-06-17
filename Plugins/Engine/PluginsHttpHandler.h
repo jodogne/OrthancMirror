@@ -32,42 +32,33 @@
 
 #pragma once
 
-#include "SharedLibrary.h"
-#include "../OrthancCPlugin/OrthancCPlugin.h"
+#include "PluginsManager.h"
+#include "../../Core/HttpServer/HttpHandler.h"
 
-#include <map>
 #include <list>
+#include <boost/shared_ptr.hpp>
 
 namespace Orthanc
 {
-  class PluginsManager : boost::noncopyable
+  class PluginsHttpHandler : public HttpHandler
   {
-  public:
-    typedef std::list< std::pair<std::string, OrthancPluginRestCallback> >  RestCallbacks;
-
   private:
-    typedef std::map<std::string, SharedLibrary*>  Plugins;
-    OrthancPluginContext  context_;
-    Plugins  plugins_;
-    RestCallbacks  restCallbacks_;
+    struct PImpl;
 
-    static void RegisterRestCallback(const OrthancPluginContext* context,
-                                     const char* path, 
-                                     OrthancPluginRestCallback callback);
+    boost::shared_ptr<PImpl> pimpl_;
 
   public:
-    PluginsManager();
+    PluginsHttpHandler(const PluginsManager& manager);
 
-    ~PluginsManager();
+    virtual ~PluginsHttpHandler();
 
-    void RegisterPlugin(const std::string& path);
+    virtual bool IsServedUri(const UriComponents& uri);
 
-    void ScanFolderForPlugins(const std::string& path,
-                              bool isRecursive);
-
-    const RestCallbacks& GetRestCallbacks() const
-    {
-      return restCallbacks_;
-    }
+    virtual bool Handle(HttpOutput& output,
+                        HttpMethod method,
+                        const UriComponents& uri,
+                        const Arguments& headers,
+                        const Arguments& getArguments,
+                        const std::string& postData);
   };
 }
