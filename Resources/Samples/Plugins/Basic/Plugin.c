@@ -25,7 +25,7 @@
  **/
 
 
-#include "../../../../Plugins/OrthancCPlugin/OrthancCPlugin.h"
+#include <OrthancCPlugin.h>
 
 #include <string.h>
 #include <stdio.h>
@@ -33,14 +33,14 @@
 static const OrthancPluginContext* context = NULL;
 
 
-ORTHANC_PLUGINS_API int32_t Callback(OrthancRestOutput* output,
-                                     OrthancHttpMethod method,
-                                     const OrthancRestUrl* url,
+ORTHANC_PLUGINS_API int32_t Callback(OrthancPluginRestOutput* output,
+                                     OrthancPluginHttpMethod method,
+                                     const char* url,
                                      const char* body,
                                      uint32_t bodySize)
 {
   char buffer[1024];
-  sprintf(buffer, "Callback on URL [%s]\n", url->path);
+  sprintf(buffer, "Callback on URL [%s]\n", url);
   context->LogInfo(buffer);
   context->AnswerBuffer(output, buffer, strlen(buffer), "text/plain");
   return 1;
@@ -57,7 +57,7 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(const OrthancPluginContext* 
   sprintf(info, "The version of Orthanc is '%s'", context->orthancVersion);
   context->LogInfo(info);
 
-  context->RegisterRestCallback(c, "/plugin/hello", Callback);
+  context->RegisterRestCallback(c, "/plu.*/hello", Callback);
 
   return 0;
 }

@@ -147,50 +147,20 @@ namespace Orthanc
   }
 
   void PluginsManager::RegisterRestCallback(const OrthancPluginContext* context,
-                                            const char* path, 
-                                            OrthancRestCallback callback)
+                                            const char* pathRegularExpression, 
+                                            OrthancPluginRestCallback callback)
   {
     // TODO
-    LOG(INFO) << "Plugin has registered a REST callback on: " << path;
+    LOG(INFO) << "Plugin has registered a REST callback on: " << pathRegularExpression;
 
     PluginsManager* manager = reinterpret_cast<PluginsManager*>(context->pimpl);
     manager->restCallbacks_.push_back(callback);
 
-
-    const char* pp = "/hello/world";
-
-    UriComponents components;
-    Toolbox::SplitUriComponents(components, pp);
-
-    OrthancRestUrl url;
-    url.path = pp;
-
-    std::vector<const char*> c(components.size());
-    for (unsigned int i = 0; i < components.size(); i++)
-    {
-      c[i] = components[i].c_str();
-    }
-
-    if (components.size() == 0)
-    {
-      url.components = NULL;
-      url.componentsSize = 0;
-    }
-    else
-    {
-      url.components = &c[0];
-      url.componentsSize = components.size();
-    }
-
-    // TODO
-    url.parameters = NULL;
-    url.parametersSize = 0;
-
-    callback(NULL, OrthancHttpMethod_Get, &url, NULL, 0);
+    callback(NULL, OrthancPluginHttpMethod_Get, "/hello/world", NULL, 0);
   }
 
 
-  static void AnswerBuffer(OrthancRestOutput* output,
+  static void AnswerBuffer(OrthancPluginRestOutput* output,
                            const char* answer,
                            uint32_t answerSize,
                            const char* mimeType)
@@ -311,5 +281,4 @@ namespace Orthanc
       }
     }
   }
-
 }

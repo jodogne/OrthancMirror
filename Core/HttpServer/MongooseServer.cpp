@@ -689,7 +689,7 @@ namespace Orthanc
       }
 
 
-      // Call the proper handler for this URI
+      // Decompose the URI into its components
       UriComponents uri;
       try
       {
@@ -702,43 +702,60 @@ namespace Orthanc
       }
 
 
+      // Locate the candidate handlers for this URI
+      LOG(INFO) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
       std::list<HttpHandler*> handlers;
       that->FindHandlers(handlers, uri);
 
       bool found = false;
+      bool isError = false;
+      HttpStatus errorStatus;
+      std::string errorDescription;
 
+
+      // Loop over the candidate handlers for this URI
       for (std::list<HttpHandler*>::const_iterator
              it = handlers.begin(); it != handlers.end() && !found; it++)
       {
         try
         {
-          LOG(INFO) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
           found = (*it)->Handle(output, method, uri, headers, argumentsGET, body);
         }
         catch (OrthancException& e)
         {
-          LOG(ERROR) << "MongooseServer Exception [" << e.What() << "]";
-          output.SendHeader(HttpStatus_500_InternalServerError);
-          found = true;
+          // Using this candidate handler results in an exception, try
+          // another handler before failing
+          isError = true;
+          errorStatus = HttpStatus_500_InternalServerError;
+          errorDescription = e.What();
         }
         catch (boost::bad_lexical_cast&)
         {
-          LOG(ERROR) << "MongooseServer Exception: Bad lexical cast";
-          output.SendHeader(HttpStatus_400_BadRequest);
-          found = true;
+          isError = true;
+          errorStatus = HttpStatus_400_BadRequest;
+          errorDescription = "Bad lexical cast";
         }
         catch (std::runtime_error&)
         {
-          LOG(ERROR) << "MongooseServer Exception: Presumably a bad JSON request";
-          output.SendHeader(HttpStatus_400_BadRequest);
-          found = true;
+          isError = true;
+          errorStatus = HttpStatus_400_BadRequest;
+          errorDescription = "Presumably a bad JSON request";
         }
       }
       
       if (!found)
       {
-        output.SendHeader(HttpStatus_404_NotFound);
+        if (isError)
+        {
+          LOG(ERROR) << "Exception in the HTTP handler: " << errorDescription;
+          output.SendHeader(errorStatus);
+        }
+        else
+        {
+          output.SendHeader(HttpStatus_404_NotFound);
+        }
       }
+
 
       // Mark as processed
       return (void*) "";
