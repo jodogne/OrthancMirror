@@ -1,4 +1,12 @@
 /**
+ * @defgroup CInterface C Interface 
+ * @brief The C interface to create Orthanc plugins.
+ * 
+ * These functions must be used to create C plugins for Orthanc.
+ **/
+
+
+/**
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
  * Belgium
@@ -32,6 +40,9 @@
 
 #pragma once
 
+
+#include <stdio.h>
+#include <string.h>
 
 #ifdef WIN32
 #define ORTHANC_PLUGINS_API __declspec(dllexport)
@@ -93,12 +104,12 @@
  ** Definition of the Orthanc Plugin API.
  ********************************************************************/
 
+/** @{ */
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-  typedef struct OrthancPluginRestOutput_t OrthancPluginRestOutput;
 
   typedef enum
   {
@@ -107,20 +118,6 @@ extern "C"
     OrthancPluginHttpMethod_Put = 3,
     OrthancPluginHttpMethod_Delete = 4
   } OrthancPluginHttpMethod;
-
-  typedef enum 
-  {
-    /* Generic services */
-    OrthancPluginService_LogInfo = 1,
-    OrthancPluginService_LogWarning = 2,
-    OrthancPluginService_LogError = 3,
-
-    /* Registration of callbacks */
-    OrthancPluginService_RegisterRestCallback = 1000,
-
-    /* Sending answers to REST calls */
-    OrthancPluginService_AnswerBuffer = 2000
-  } OrthancPluginService;
 
   typedef struct
   {
@@ -136,19 +133,38 @@ extern "C"
     uint32_t                bodySize;
   } OrthancPluginHttpRequest;
 
-  typedef int32_t (*OrthancPluginRestCallback) (OrthancPluginRestOutput* output,
-                                                const char* url,
-                                                const OrthancPluginHttpRequest* request);
-
-  typedef struct OrthancPluginContext_t
+  typedef enum 
   {
-    void* pluginsManager;
+    /* Generic services */
+    OrthancPluginService_LogInfo = 1,
+    OrthancPluginService_LogWarning = 2,
+    OrthancPluginService_LogError = 3,
 
-    const char* orthancVersion;
-    void (*FreeBuffer) (void* buffer);
-    int32_t (*InvokeService) (struct OrthancPluginContext_t* context,
-                              OrthancPluginService service,
-                              const void* params);
+    /* Registration of callbacks */
+    OrthancPluginService_RegisterRestCallback = 1000,
+
+    /* Sending answers to REST calls */
+    OrthancPluginService_AnswerBuffer = 2000
+  } OrthancPluginService;
+
+
+
+
+  typedef struct _OrthancPluginRestOutput_t OrthancPluginRestOutput;
+
+  typedef int32_t (*OrthancPluginRestCallback) (
+    OrthancPluginRestOutput* output,
+    const char* url,
+    const OrthancPluginHttpRequest* request);
+
+  typedef struct _OrthancPluginContext_t
+  {
+    void*        pluginsManager;
+    const char*  orthancVersion;
+    void       (*FreeBuffer) (void* buffer);
+    int32_t    (*InvokeService) (struct _OrthancPluginContext_t* context,
+                                 OrthancPluginService service,
+                                 const void* params);
   } OrthancPluginContext;
 
 
@@ -156,7 +172,7 @@ extern "C"
   {
     const char* pathRegularExpression;
     OrthancPluginRestCallback callback;
-  } OrthancPluginRestCallbackParams;
+  } _OrthancPluginRestCallbackParams;
 
 
   typedef struct
@@ -165,48 +181,53 @@ extern "C"
     const char*              answer;
     uint32_t                 answerSize;
     const char*              mimeType;
-  } OrthancPluginAnswerBufferParams;
+  } _OrthancPluginAnswerBufferParams;
 
 
-  ORTHANC_PLUGIN_INLINE void OrthancPluginLogError(OrthancPluginContext* context,
-                                                   const char* str)
+  ORTHANC_PLUGIN_INLINE void OrthancPluginLogError(
+    OrthancPluginContext* context,
+    const char* str)
   {
     context->InvokeService(context, OrthancPluginService_LogError, str);
   }
 
 
-  ORTHANC_PLUGIN_INLINE void OrthancPluginLogWarning(OrthancPluginContext* context,
-                                                     const char* str)
+  ORTHANC_PLUGIN_INLINE void OrthancPluginLogWarning(
+    OrthancPluginContext* context,
+    const char* str)
   {
     context->InvokeService(context, OrthancPluginService_LogWarning, str);
   }
 
 
-  ORTHANC_PLUGIN_INLINE void OrthancPluginLogInfo(OrthancPluginContext* context,
-                                                  const char* str)
+  ORTHANC_PLUGIN_INLINE void OrthancPluginLogInfo(
+    OrthancPluginContext* context,
+    const char* str)
   {
     context->InvokeService(context, OrthancPluginService_LogInfo, str);
   }
 
 
-  ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterRestCallback(OrthancPluginContext* context,
-                                                               const char* pathRegularExpression,
-                                                               OrthancPluginRestCallback callback)
+  ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterRestCallback(
+    OrthancPluginContext*     context,
+    const char*               pathRegularExpression,
+    OrthancPluginRestCallback callback)
   {
-    OrthancPluginRestCallbackParams params;
+    _OrthancPluginRestCallbackParams params;
     params.pathRegularExpression = pathRegularExpression;
     params.callback = callback;
     context->InvokeService(context, OrthancPluginService_RegisterRestCallback, &params);
   }
 
 
-  ORTHANC_PLUGIN_INLINE void OrthancPluginAnswerBuffer(OrthancPluginContext*    context,
-                                                       OrthancPluginRestOutput* output,
-                                                       const char*              answer,
-                                                       uint32_t                 answerSize,
-                                                       const char*              mimeType)
+  ORTHANC_PLUGIN_INLINE void OrthancPluginAnswerBuffer(
+    OrthancPluginContext*    context,
+    OrthancPluginRestOutput* output,
+    const char*              answer,
+    uint32_t                 answerSize,
+    const char*              mimeType)
   {
-    OrthancPluginAnswerBufferParams params;
+    _OrthancPluginAnswerBufferParams params;
     params.output = output;
     params.answer = answer;
     params.answerSize = answerSize;
@@ -229,3 +250,7 @@ extern "C"
 #ifdef  __cplusplus
 }
 #endif
+
+
+/** @} */
+
