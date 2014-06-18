@@ -34,6 +34,7 @@
 
 #include "../../Core/OrthancException.h"
 #include "../../Core/Toolbox.h"
+#include "../../Core/HttpServer/HttpOutput.h"
 
 #include <boost/regex.hpp> 
 #include <glog/logging.h>
@@ -54,15 +55,9 @@ namespace Orthanc
   };
 
 
-  PluginsHttpHandler::PluginsHttpHandler(const PluginsManager& manager)
+  PluginsHttpHandler::PluginsHttpHandler()
   {
     pimpl_.reset(new PImpl);
-
-    for (PluginsManager::RestCallbacks::const_iterator
-           it = manager.GetRestCallbacks().begin(); it != manager.GetRestCallbacks().end(); ++it)
-    {
-      pimpl_->callbacks_.push_back(std::make_pair(new boost::regex(it->first), it->second));
-    }
   }
 
   
@@ -108,12 +103,14 @@ namespace Orthanc
     std::vector<const char*> getKeys(getArguments.size());
     std::vector<const char*> getValues(getArguments.size());
 
-    OrthancPluginHttpMethod methodPlugin;
+    OrthancPluginHttpRequest request;
+    memset(&request, 0, sizeof(OrthancPluginHttpRequest));
+
     switch (method)
     {
       case HttpMethod_Get:
       {
-        methodPlugin = OrthancPluginHttpMethod_Get;
+        request.method = OrthancPluginHttpMethod_Get;
 
         size_t i = 0;
         for (Arguments::const_iterator it = getArguments.begin(); 
@@ -127,29 +124,36 @@ namespace Orthanc
       }
 
       case HttpMethod_Post:
-        methodPlugin = OrthancPluginHttpMethod_Post;
+        request.method = OrthancPluginHttpMethod_Post;
         break;
 
       case HttpMethod_Delete:
-        methodPlugin = OrthancPluginHttpMethod_Delete;
+        request.method = OrthancPluginHttpMethod_Delete;
         break;
 
       case HttpMethod_Put:
-        methodPlugin = OrthancPluginHttpMethod_Put;
+        request.method = OrthancPluginHttpMethod_Put;
         break;
 
       default:
         throw OrthancException(ErrorCode_InternalError);
     }
 
+
+    request.getCount = getArguments.size();
+    request.body = (postData.size() ? &postData[0] : NULL);
+    request.bodySize = postData.size();
+
+    if (getArguments.size() > 0)
+    {
+      request.getKeys = &getKeys[0];
+      request.getValues = &getValues[0];
+    }
+
     assert(pimpl_->currentCallback_ != NULL);
-    assert(getKeys.size() == getValues.size());
     int32_t error = (*pimpl_->currentCallback_) (reinterpret_cast<OrthancPluginRestOutput*>(&output), 
-                                                 methodPlugin, flatUri.c_str(), 
-                                                 getKeys.size() ? &getKeys[0] : NULL,
-                                                 getKeys.size() ? &getValues[0] : NULL,
-                                                 getKeys.size(), 
-                                                 postData.size() ? &postData[0] : NULL, postData.size());
+                                                 flatUri.c_str(), 
+                                                 &request);
 
     if (error < 0)
     {
@@ -166,4 +170,68 @@ namespace Orthanc
       return true;
     }
   }
+
+
+  bool PluginsHttpHandler::InvokeService(OrthancPluginService service,
+                                         const void* parameters)
+  {
+
+
+    /*void PluginsManager::RegisterRestCallback(const OrthancPluginContext* context,
+      const char* pathRegularExpression, 
+      OrthancPluginRestCallback callback)
+      {
+      LOG(INFO) << "Plugin has registered a REST callback on: " << pathRegularExpression;
+      PluginsManager* manager = reinterpret_cast<PluginsManager*>(context->pluginsManager);
+      manager->restCallbacks_.push_back(std::make_pair(pathRegularExpression, callback));
+      }*/
+
+
+    /*static void AnswerBuffer(OrthancPluginRestOutput* output,
+      const char* answer,
+      uint32_t answerSize,
+      const char* mimeType)
+      {
+      HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(output);
+      translatedOutput->AnswerBufferWithContentType(answer, answerSize, mimeType);
+      }*/
+
+
+
+    /*for (PluginsManager::RestCallbacks::const_iterator
+           it = manager.GetRestCallbacks().begin(); it != manager.GetRestCallbacks().end(); ++it)
+    {
+      pimpl_->callbacks_.push_back(std::make_pair(new boost::regex(it->first), it->second));
+      }*/
+
+
+    switch (service)
+    {
+      case OrthancPluginService_RegisterRestCallback:
+      {
+        const OrthancPluginRestCallbackParams& p = 
+          *reinterpret_cast<const OrthancPluginRestCallbackParams*>(parameters);
+
+        LOG(INFO) << "Plugin has registered a REST callback on: " << p.pathRegularExpression;
+        pimpl_->callbacks_.push_back(std::make_pair(new boost::regex(p.pathRegularExpression), p.callback));
+
+        return true;
+      }
+
+      case OrthancPluginService_AnswerBuffer:
+      {
+        const OrthancPluginAnswerBufferParams& p = 
+          *reinterpret_cast<const OrthancPluginAnswerBufferParams*>(parameters);
+
+        HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
+        translatedOutput->AnswerBufferWithContentType(p.answer, p.answerSize, p.mimeType);
+
+        return true;
+      }
+
+      default:
+        return false;
+    }
+  }
+
 }

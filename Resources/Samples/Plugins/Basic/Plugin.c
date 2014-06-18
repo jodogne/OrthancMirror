@@ -34,25 +34,20 @@ static OrthancPluginContext* context = NULL;
 
 
 ORTHANC_PLUGINS_API int32_t Callback(OrthancPluginRestOutput* output,
-                                     OrthancPluginHttpMethod method,
                                      const char* url,
-                                     const char* const* getKeys,
-                                     const char* const* getValues,
-                                     uint32_t getSize,
-                                     const char* body,
-                                     uint32_t bodySize)
+                                     const OrthancPluginHttpRequest* request)
 {
   char buffer[1024];
   uint32_t i;
 
-  sprintf(buffer, "Callback on URL [%s] with body [%s]", url, body);
+  sprintf(buffer, "Callback on URL [%s] with body [%s]", url, request->body);
   OrthancPluginLogInfo(context, buffer);
 
-  context->AnswerBuffer(output, buffer, strlen(buffer), "text/plain");
+  OrthancPluginAnswerBuffer(context, output, buffer, strlen(buffer), "text/plain");
 
-  for (i = 0; i < getSize; i++)
+  for (i = 0; i < request->getCount; i++)
   {
-    sprintf(buffer, "  [%s] = [%s]", getKeys[i], getValues[i]);
+    sprintf(buffer, "  [%s] = [%s]", request->getKeys[i], request->getValues[i]);
     OrthancPluginLogInfo(context, buffer);    
   }
 
@@ -70,7 +65,7 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   sprintf(info, "The version of Orthanc is '%s'", context->orthancVersion);
   OrthancPluginLogInfo(context, info);
 
-  context->RegisterRestCallback(c, "/plu.*/hello", Callback);
+  OrthancPluginRegisterRestCallback(context, "/plu.*/hello", Callback);
 
   return 0;
 }
