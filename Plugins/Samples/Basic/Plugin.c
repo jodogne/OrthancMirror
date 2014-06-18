@@ -92,7 +92,7 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   char info[1024];
 
   context = c;
-  OrthancPluginLogWarning(context, "Plugin is initializing");
+  OrthancPluginLogWarning(context, "Sample plugin is initializing");
 
   sprintf(info, "The version of Orthanc is '%s'", context->orthancVersion);
   OrthancPluginLogInfo(context, info);
@@ -106,7 +106,7 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
 
 ORTHANC_PLUGINS_API void OrthancPluginFinalize()
 {
-  OrthancPluginLogWarning(context, "Plugin is finalizing");
+  OrthancPluginLogWarning(context, "Sample plugin is finalizing");
 }
 
 

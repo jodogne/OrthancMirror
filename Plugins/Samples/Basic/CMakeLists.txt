@@ -7,7 +7,7 @@ if (${CMAKE_COMPILER_IS_GNUCXX})
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Werror")
 endif()
 
-include_directories(${CMAKE_SOURCE_DIR}/../../../../Plugins/OrthancCPlugin/)
+include_directories(${CMAKE_SOURCE_DIR}/../../OrthancCPlugin/)
 add_library(PluginTest SHARED Plugin.c)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
