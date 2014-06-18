@@ -51,12 +51,6 @@ namespace Orthanc
   }
 
 
-  bool EmbeddedResourceHttpHandler::IsServedUri(const UriComponents& uri)
-  {
-    return Toolbox::IsChildUri(baseUri_, uri);
-  }
-
-
   bool EmbeddedResourceHttpHandler::Handle(
     HttpOutput& output,
     HttpMethod method,
@@ -65,6 +59,12 @@ namespace Orthanc
     const Arguments& arguments,
     const std::string&)
   {
+    if (!Toolbox::IsChildUri(baseUri_, uri))
+    {
+      // This URI is not served by this handler
+      return false;
+    }
+
     if (method != HttpMethod_Get)
     {
       output.SendMethodNotAllowedError("GET");

@@ -35,6 +35,7 @@
 #include "../../Core/OrthancException.h"
 #include "../../Core/Toolbox.h"
 #include "../../Core/HttpServer/HttpOutput.h"
+#include "../../Core/ImageFormats/PngWriter.h"
 
 #include <boost/regex.hpp> 
 #include <glog/logging.h>
@@ -47,11 +48,6 @@ namespace Orthanc
     typedef std::list<Callback>  Callbacks;
 
     Callbacks callbacks_;
-    OrthancPluginRestCallback currentCallback_;
-
-    PImpl() : currentCallback_(NULL)
-    {
-    }
   };
 
 
@@ -71,24 +67,6 @@ namespace Orthanc
   }
 
 
-  bool PluginsHttpHandler::IsServedUri(const UriComponents& uri)
-  {
-    pimpl_->currentCallback_ = NULL;    
-    std::string tmp = Toolbox::FlattenUri(uri);
-
-    for (PImpl::Callbacks::const_iterator it = pimpl_->callbacks_.begin(); 
-         it != pimpl_->callbacks_.end(); it++)
-    {
-      if (boost::regex_match(tmp, *(it->first)))
-      {
-        pimpl_->currentCallback_ = it->second;
-        return true;
-      }
-    }
-
-    return false;
-  }
-
   bool PluginsHttpHandler::Handle(HttpOutput& output,
                                   HttpMethod method,
                                   const UriComponents& uri,
@@ -97,6 +75,39 @@ namespace Orthanc
                                   const std::string& postData)
   {
     std::string flatUri = Toolbox::FlattenUri(uri);
+    OrthancPluginRestCallback callback = NULL;
+
+    std::vector<std::string> groups;
+    std::vector<const char*> cgroups;
+
+    bool found = false;
+    for (PImpl::Callbacks::const_iterator it = pimpl_->callbacks_.begin(); 
+         it != pimpl_->callbacks_.end() && !found; it++)
+    {
+      boost::cmatch what;
+      if (boost::regex_match(flatUri.c_str(), what, *(it->first)))
+      {
+        callback = it->second;
+
+        if (what.size() > 1)
+        {
+          groups.resize(what.size() - 1);
+          cgroups.resize(what.size() - 1);
+          for (size_t i = 1; i < what.size(); i++)
+          {
+            groups[i - 1] = what[i];
+            cgroups[i - 1] = groups[i - 1].c_str();
+          }
+        }
+
+        found = true;
+      }
+    }
+
+    if (!found)
+    {
+      return false;
+    }
 
     LOG(INFO) << "Delegating HTTP request to plugin for URI: " << flatUri;
 
@@ -140,6 +151,8 @@ namespace Orthanc
     }
 
 
+    request.groupValues = (cgroups.size() ? &cgroups[0] : NULL);
+    request.groupCount = cgroups.size();
     request.getCount = getArguments.size();
     request.body = (postData.size() ? &postData[0] : NULL);
     request.bodySize = postData.size();
@@ -150,10 +163,10 @@ namespace Orthanc
       request.getValues = &getValues[0];
     }
 
-    assert(pimpl_->currentCallback_ != NULL);
-    int32_t error = (*pimpl_->currentCallback_) (reinterpret_cast<OrthancPluginRestOutput*>(&output), 
-                                                 flatUri.c_str(), 
-                                                 &request);
+    assert(callback != NULL);
+    int32_t error = callback(reinterpret_cast<OrthancPluginRestOutput*>(&output), 
+                             flatUri.c_str(), 
+                             &request);
 
     if (error < 0)
     {
@@ -175,36 +188,6 @@ namespace Orthanc
   bool PluginsHttpHandler::InvokeService(OrthancPluginService service,
                                          const void* parameters)
   {
-
-
-    /*void PluginsManager::RegisterRestCallback(const OrthancPluginContext* context,
-      const char* pathRegularExpression, 
-      OrthancPluginRestCallback callback)
-      {
-      LOG(INFO) << "Plugin has registered a REST callback on: " << pathRegularExpression;
-      PluginsManager* manager = reinterpret_cast<PluginsManager*>(context->pluginsManager);
-      manager->restCallbacks_.push_back(std::make_pair(pathRegularExpression, callback));
-      }*/
-
-
-    /*static void AnswerBuffer(OrthancPluginRestOutput* output,
-      const char* answer,
-      uint32_t answerSize,
-      const char* mimeType)
-      {
-      HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(output);
-      translatedOutput->AnswerBufferWithContentType(answer, answerSize, mimeType);
-      }*/
-
-
-
-    /*for (PluginsManager::RestCallbacks::const_iterator
-           it = manager.GetRestCallbacks().begin(); it != manager.GetRestCallbacks().end(); ++it)
-    {
-      pimpl_->callbacks_.push_back(std::make_pair(new boost::regex(it->first), it->second));
-      }*/
-
-
     switch (service)
     {
       case OrthancPluginService_RegisterRestCallback:
@@ -225,6 +208,52 @@ namespace Orthanc
 
         HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
         translatedOutput->AnswerBufferWithContentType(p.answer, p.answerSize, p.mimeType);
+
+        return true;
+      }
+
+      case OrthancPluginService_CompressAndAnswerPngImage:
+      {
+        const _OrthancPluginCompressAndAnswerPngImageParams& p = 
+          *reinterpret_cast<const _OrthancPluginCompressAndAnswerPngImageParams*>(parameters);
+
+        HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
+
+        PixelFormat format;
+        switch (p.format)
+        {
+          case OrthancPluginPixelFormat_Grayscale8:  
+            format = PixelFormat_Grayscale8;
+            break;
+
+          case OrthancPluginPixelFormat_Grayscale16:  
+            format = PixelFormat_Grayscale16;
+            break;
+
+          case OrthancPluginPixelFormat_SignedGrayscale16:  
+            format = PixelFormat_SignedGrayscale16;
+            break;
+
+          case OrthancPluginPixelFormat_RGB24:  
+            format = PixelFormat_RGB24;
+            break;
+
+          case OrthancPluginPixelFormat_RGBA32:  
+            format = PixelFormat_RGBA32;
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+
+        ImageAccessor accessor;
+        accessor.AssignReadOnly(format, p.width, p.height, p.pitch, p.buffer);
+
+        PngWriter writer;
+        std::string png;
+        writer.WriteToMemory(png, accessor);
+
+        translatedOutput->AnswerBufferWithContentType(png, "image/png");
 
         return true;
       }

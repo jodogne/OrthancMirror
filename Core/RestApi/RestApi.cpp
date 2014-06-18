@@ -172,13 +172,6 @@ namespace Orthanc
     } 
   }
 
-  bool RestApi::IsServedUri(const UriComponents& uri)
-  {
-    return (IsGetAccepted(uri) ||
-            IsPutAccepted(uri) ||
-            IsPostAccepted(uri) ||
-            IsDeleteAccepted(uri));
-  }
 
   bool RestApi::Handle(HttpOutput& output,
                        HttpMethod method,
@@ -187,6 +180,16 @@ namespace Orthanc
                        const Arguments& getArguments,
                        const std::string& postData)
   {
+    if (!IsGetAccepted(uri) &&
+        !IsPutAccepted(uri) &&
+        !IsPostAccepted(uri) &&
+        !IsDeleteAccepted(uri))
+    {
+      // This URI is not served by this handler
+      return false;
+    }
+
+
     bool ok = false;
     RestApiOutput restOutput(output);
     RestApiPath::Components components;

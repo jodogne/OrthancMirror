@@ -255,22 +255,6 @@ namespace Orthanc
 
 
 
-  void MongooseServer::FindHandlers(std::list<HttpHandler*>& result,
-                                    const UriComponents& forUri) const
-  {
-    for (Handlers::const_iterator it = 
-           handlers_.begin(); it != handlers_.end(); ++it) 
-    {
-      if ((*it)->IsServedUri(forUri))
-      {
-        result.push_back(*it);
-      }
-    }
-  }
-
-
-
-
   static PostDataStatus ReadBody(std::string& postData,
                                  struct mg_connection *connection,
                                  const HttpHandler::Arguments& headers)
@@ -702,20 +686,15 @@ namespace Orthanc
       }
 
 
-      // Locate the candidate handlers for this URI
+      // Loop over the candidate handlers for this URI
       LOG(INFO) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
-      std::list<HttpHandler*> handlers;
-      that->FindHandlers(handlers, uri);
-
       bool found = false;
       bool isError = false;
       HttpStatus errorStatus;
       std::string errorDescription;
 
-
-      // Loop over the candidate handlers for this URI
-      for (std::list<HttpHandler*>::const_iterator
-             it = handlers.begin(); it != handlers.end() && !found; it++)
+      for (MongooseServer::Handlers::const_iterator it = 
+             that->GetHandlers().begin(); it != that->GetHandlers().end(); ++it) 
       {
         try
         {

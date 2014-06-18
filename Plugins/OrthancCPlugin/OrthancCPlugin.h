@@ -123,6 +123,10 @@ extern "C"
   {
     OrthancPluginHttpMethod method;
 
+    /* Groups of the regular expression */
+    const char* const*      groupValues;
+    uint32_t                groupCount;
+
     /* For GET requests */
     const char* const*      getKeys;
     const char* const*      getValues;
@@ -144,10 +148,57 @@ extern "C"
     OrthancPluginService_RegisterRestCallback = 1000,
 
     /* Sending answers to REST calls */
-    OrthancPluginService_AnswerBuffer = 2000
+    OrthancPluginService_AnswerBuffer = 2000,
+    OrthancPluginService_CompressAndAnswerPngImage = 2001
   } OrthancPluginService;
 
 
+
+  /**
+   * The memory layout of the pixels of an image.
+   **/
+  typedef enum
+  {
+    /**
+     * @brief Graylevel 8bpp image.
+     *
+     * The image is graylevel. Each pixel is unsigned and stored in
+     * one byte.
+     **/
+    OrthancPluginPixelFormat_Grayscale8 = 1,
+
+    /**
+     * @brief Graylevel, unsigned 16bpp image.
+     *
+     * The image is graylevel. Each pixel is unsigned and stored in
+     * two bytes.
+     **/
+    OrthancPluginPixelFormat_Grayscale16 = 2,
+
+    /**
+     * @brief Graylevel, signed 16bpp image.
+     *
+     * The image is graylevel. Each pixel is signed and stored in two
+     * bytes.
+     **/
+    OrthancPluginPixelFormat_SignedGrayscale16 = 3,
+
+    /**
+     * @brief Color image in RGB24 format.
+     *
+     * This format describes a color image. The pixels are stored in 3
+     * consecutive bytes. The memory layout is RGB.
+     **/
+    OrthancPluginPixelFormat_RGB24 = 4,
+
+    /**
+     * @brief Color image in RGBA32 format.
+     *
+     * This format describes a color image. The pixels are stored in 4
+     * consecutive bytes. The memory layout is RGBA.
+     **/
+    OrthancPluginPixelFormat_RGBA32 = 5
+  } OrthancPluginPixelFormat;
 
 
   typedef struct _OrthancPluginRestOutput_t OrthancPluginRestOutput;
@@ -166,22 +217,6 @@ extern "C"
                                  OrthancPluginService service,
                                  const void* params);
   } OrthancPluginContext;
-
-
-  typedef struct
-  {
-    const char* pathRegularExpression;
-    OrthancPluginRestCallback callback;
-  } _OrthancPluginRestCallbackParams;
-
-
-  typedef struct
-  {
-    OrthancPluginRestOutput* output;
-    const char*              answer;
-    uint32_t                 answerSize;
-    const char*              mimeType;
-  } _OrthancPluginAnswerBufferParams;
 
 
   ORTHANC_PLUGIN_INLINE void OrthancPluginLogError(
@@ -208,6 +243,13 @@ extern "C"
   }
 
 
+  typedef struct
+  {
+    const char* pathRegularExpression;
+    OrthancPluginRestCallback callback;
+  } _OrthancPluginRestCallbackParams;
+
+
   ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterRestCallback(
     OrthancPluginContext*     context,
     const char*               pathRegularExpression,
@@ -219,6 +261,14 @@ extern "C"
     context->InvokeService(context, OrthancPluginService_RegisterRestCallback, &params);
   }
 
+
+  typedef struct
+  {
+    OrthancPluginRestOutput* output;
+    const char*              answer;
+    uint32_t                 answerSize;
+    const char*              mimeType;
+  } _OrthancPluginAnswerBufferParams;
 
   ORTHANC_PLUGIN_INLINE void OrthancPluginAnswerBuffer(
     OrthancPluginContext*    context,
@@ -233,6 +283,36 @@ extern "C"
     params.answerSize = answerSize;
     params.mimeType = mimeType;
     context->InvokeService(context, OrthancPluginService_AnswerBuffer, &params);
+  }
+
+
+  typedef struct
+  {
+    OrthancPluginRestOutput*  output;
+    OrthancPluginPixelFormat  format;
+    uint32_t                  width;
+    uint32_t                  height;
+    uint32_t                  pitch;
+    const void*               buffer;
+  } _OrthancPluginCompressAndAnswerPngImageParams;
+
+  ORTHANC_PLUGIN_INLINE void OrthancPluginCompressAndAnswerPngImage(
+    OrthancPluginContext*     context,
+    OrthancPluginRestOutput*  output,
+    OrthancPluginPixelFormat  format,
+    uint32_t                  width,
+    uint32_t                  height,
+    uint32_t                  pitch,
+    const void*               buffer)
+  {
+    _OrthancPluginCompressAndAnswerPngImageParams params;
+    params.output = output;
+    params.format = format;
+    params.width = width;
+    params.height = height;
+    params.pitch = pitch;
+    params.buffer = buffer;
+    context->InvokeService(context, OrthancPluginService_CompressAndAnswerPngImage, &params);
   }
 
 
