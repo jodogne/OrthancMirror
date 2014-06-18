@@ -193,7 +193,7 @@ namespace Orthanc
     memset(&context_, 0, sizeof(context_));
     context_.pluginsManager = this;
     context_.orthancVersion = ORTHANC_VERSION;
-    context_.FreeBuffer = ::free;
+    context_.Free = ::free;
     context_.InvokeService = InvokeService;
   }
 

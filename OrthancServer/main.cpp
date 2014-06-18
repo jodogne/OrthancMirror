@@ -374,7 +374,7 @@ int main(int argc, char* argv[])
 
     LoadLuaScripts(context);
 
-    PluginsHttpHandler httpPlugins;
+    PluginsHttpHandler httpPlugins(context);
 
     PluginsManager pluginsManager;
     pluginsManager.RegisterServiceProvider(httpPlugins);
