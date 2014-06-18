@@ -209,8 +209,8 @@ namespace Orthanc
     {
       case OrthancPluginService_RegisterRestCallback:
       {
-        const OrthancPluginRestCallbackParams& p = 
-          *reinterpret_cast<const OrthancPluginRestCallbackParams*>(parameters);
+        const _OrthancPluginRestCallbackParams& p = 
+          *reinterpret_cast<const _OrthancPluginRestCallbackParams*>(parameters);
 
         LOG(INFO) << "Plugin has registered a REST callback on: " << p.pathRegularExpression;
         pimpl_->callbacks_.push_back(std::make_pair(new boost::regex(p.pathRegularExpression), p.callback));
@@ -220,8 +220,8 @@ namespace Orthanc
 
       case OrthancPluginService_AnswerBuffer:
       {
-        const OrthancPluginAnswerBufferParams& p = 
-          *reinterpret_cast<const OrthancPluginAnswerBufferParams*>(parameters);
+        const _OrthancPluginAnswerBufferParams& p = 
+          *reinterpret_cast<const _OrthancPluginAnswerBufferParams*>(parameters);
 
         HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
         translatedOutput->AnswerBufferWithContentType(p.answer, p.answerSize, p.mimeType);
