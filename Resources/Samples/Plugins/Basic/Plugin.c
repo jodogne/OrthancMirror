@@ -30,7 +30,7 @@
 #include <string.h>
 #include <stdio.h>
 
-static const OrthancPluginContext* context = NULL;
+static OrthancPluginContext* context = NULL;
 
 
 ORTHANC_PLUGINS_API int32_t Callback(OrthancPluginRestOutput* output,
@@ -46,29 +46,29 @@ ORTHANC_PLUGINS_API int32_t Callback(OrthancPluginRestOutput* output,
   uint32_t i;
 
   sprintf(buffer, "Callback on URL [%s] with body [%s]", url, body);
-  context->LogInfo(buffer);
+  OrthancPluginLogInfo(context, buffer);
 
   context->AnswerBuffer(output, buffer, strlen(buffer), "text/plain");
 
   for (i = 0; i < getSize; i++)
   {
     sprintf(buffer, "  [%s] = [%s]", getKeys[i], getValues[i]);
-    context->LogInfo(buffer);    
+    OrthancPluginLogInfo(context, buffer);    
   }
 
   return 1;
 }
 
 
-ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(const OrthancPluginContext* c)
+ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
 {
   char info[1024];
 
   context = c;
-  context->LogWarning("Plugin is initializing");
+  OrthancPluginLogWarning(context, "Plugin is initializing");
 
   sprintf(info, "The version of Orthanc is '%s'", context->orthancVersion);
-  context->LogInfo(info);
+  OrthancPluginLogInfo(context, info);
 
   context->RegisterRestCallback(c, "/plu.*/hello", Callback);
 
@@ -78,7 +78,7 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(const OrthancPluginContext* 
 
 ORTHANC_PLUGINS_API void OrthancPluginFinalize()
 {
-  context->LogWarning("Plugin is finalizing");
+  OrthancPluginLogWarning(context, "Plugin is finalizing");
 }
 
 
