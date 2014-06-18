@@ -124,8 +124,8 @@ extern "C"
     OrthancPluginHttpMethod method;
 
     /* Groups of the regular expression */
-    const char* const*      groupValues;
-    uint32_t                groupCount;
+    const char* const*      groups;
+    uint32_t                groupsCount;
 
     /* For GET requests */
     const char* const*      getKeys;
@@ -149,7 +149,10 @@ extern "C"
 
     /* Sending answers to REST calls */
     OrthancPluginService_AnswerBuffer = 2000,
-    OrthancPluginService_CompressAndAnswerPngImage = 2001
+    OrthancPluginService_CompressAndAnswerPngImage = 2001,
+
+    /* Access to the Orthanc database */
+    OrthancPluginService_GetDicomForInstance = 3000
   } OrthancPluginService;
 
 
@@ -201,6 +204,15 @@ extern "C"
   } OrthancPluginPixelFormat;
 
 
+  typedef struct
+  {
+    void*      data;
+    uint32_t   size;
+  } OrthancPluginMemoryBuffer;
+
+
+
+
   typedef struct _OrthancPluginRestOutput_t OrthancPluginRestOutput;
 
   typedef int32_t (*OrthancPluginRestCallback) (
@@ -212,11 +224,27 @@ extern "C"
   {
     void*        pluginsManager;
     const char*  orthancVersion;
-    void       (*FreeBuffer) (void* buffer);
+    void       (*Free) (void* buffer);
     int32_t    (*InvokeService) (struct _OrthancPluginContext_t* context,
                                  OrthancPluginService service,
                                  const void* params);
   } OrthancPluginContext;
+
+
+  ORTHANC_PLUGIN_INLINE void  OrthancPluginFreeString(
+    OrthancPluginContext* context, 
+    char* str)
+  {
+    context->Free(str);
+  }
+
+
+  ORTHANC_PLUGIN_INLINE void  OrthancPluginFreeMemoryBuffer(
+    OrthancPluginContext* context, 
+    OrthancPluginMemoryBuffer* buffer)
+  {
+    context->Free(buffer->data);
+  }
 
 
   ORTHANC_PLUGIN_INLINE void OrthancPluginLogError(
@@ -247,7 +275,7 @@ extern "C"
   {
     const char* pathRegularExpression;
     OrthancPluginRestCallback callback;
-  } _OrthancPluginRestCallbackParams;
+  } _OrthancPluginRestCallback;
 
 
   ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterRestCallback(
@@ -255,7 +283,7 @@ extern "C"
     const char*               pathRegularExpression,
     OrthancPluginRestCallback callback)
   {
-    _OrthancPluginRestCallbackParams params;
+    _OrthancPluginRestCallback params;
     params.pathRegularExpression = pathRegularExpression;
     params.callback = callback;
     context->InvokeService(context, OrthancPluginService_RegisterRestCallback, &params);
@@ -268,7 +296,7 @@ extern "C"
     const char*              answer;
     uint32_t                 answerSize;
     const char*              mimeType;
-  } _OrthancPluginAnswerBufferParams;
+  } _OrthancPluginAnswerBuffer;
 
   ORTHANC_PLUGIN_INLINE void OrthancPluginAnswerBuffer(
     OrthancPluginContext*    context,
@@ -277,7 +305,7 @@ extern "C"
     uint32_t                 answerSize,
     const char*              mimeType)
   {
-    _OrthancPluginAnswerBufferParams params;
+    _OrthancPluginAnswerBuffer params;
     params.output = output;
     params.answer = answer;
     params.answerSize = answerSize;
@@ -294,7 +322,7 @@ extern "C"
     uint32_t                  height;
     uint32_t                  pitch;
     const void*               buffer;
-  } _OrthancPluginCompressAndAnswerPngImageParams;
+  } _OrthancPluginCompressAndAnswerPngImage;
 
   ORTHANC_PLUGIN_INLINE void OrthancPluginCompressAndAnswerPngImage(
     OrthancPluginContext*     context,
@@ -305,7 +333,7 @@ extern "C"
     uint32_t                  pitch,
     const void*               buffer)
   {
-    _OrthancPluginCompressAndAnswerPngImageParams params;
+    _OrthancPluginCompressAndAnswerPngImage params;
     params.output = output;
     params.format = format;
     params.width = width;
@@ -315,6 +343,23 @@ extern "C"
     context->InvokeService(context, OrthancPluginService_CompressAndAnswerPngImage, &params);
   }
 
+
+  typedef struct
+  {
+    OrthancPluginMemoryBuffer*  target;
+    const char*                 instanceId;
+  } _OrthancPluginGetDicomForInstance;
+
+  ORTHANC_PLUGIN_INLINE int  OrthancPluginGetDicomForInstance(
+    OrthancPluginContext*       context,
+    OrthancPluginMemoryBuffer*  target,
+    const char*                 instanceId)
+  {
+    _OrthancPluginGetDicomForInstance params;
+    params.target = target;
+    params.instanceId = instanceId;
+    return context->InvokeService(context, OrthancPluginService_GetDicomForInstance, &params);
+  }
 
 
   /**

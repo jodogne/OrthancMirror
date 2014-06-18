@@ -47,13 +47,18 @@ namespace Orthanc
     typedef std::pair<boost::regex*, OrthancPluginRestCallback> Callback;
     typedef std::list<Callback>  Callbacks;
 
+    ServerContext& context_;
     Callbacks callbacks_;
+
+    PImpl(ServerContext& context) : context_(context)
+    {
+    }
   };
 
 
-  PluginsHttpHandler::PluginsHttpHandler()
+  PluginsHttpHandler::PluginsHttpHandler(ServerContext& context)
   {
-    pimpl_.reset(new PImpl);
+    pimpl_.reset(new PImpl(context));
   }
 
   
@@ -151,8 +156,8 @@ namespace Orthanc
     }
 
 
-    request.groupValues = (cgroups.size() ? &cgroups[0] : NULL);
-    request.groupCount = cgroups.size();
+    request.groups = (cgroups.size() ? &cgroups[0] : NULL);
+    request.groupsCount = cgroups.size();
     request.getCount = getArguments.size();
     request.body = (postData.size() ? &postData[0] : NULL);
     request.bodySize = postData.size();
@@ -192,8 +197,8 @@ namespace Orthanc
     {
       case OrthancPluginService_RegisterRestCallback:
       {
-        const _OrthancPluginRestCallbackParams& p = 
-          *reinterpret_cast<const _OrthancPluginRestCallbackParams*>(parameters);
+        const _OrthancPluginRestCallback& p = 
+          *reinterpret_cast<const _OrthancPluginRestCallback*>(parameters);
 
         LOG(INFO) << "Plugin has registered a REST callback on: " << p.pathRegularExpression;
         pimpl_->callbacks_.push_back(std::make_pair(new boost::regex(p.pathRegularExpression), p.callback));
@@ -203,8 +208,8 @@ namespace Orthanc
 
       case OrthancPluginService_AnswerBuffer:
       {
-        const _OrthancPluginAnswerBufferParams& p = 
-          *reinterpret_cast<const _OrthancPluginAnswerBufferParams*>(parameters);
+        const _OrthancPluginAnswerBuffer& p = 
+          *reinterpret_cast<const _OrthancPluginAnswerBuffer*>(parameters);
 
         HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
         translatedOutput->AnswerBufferWithContentType(p.answer, p.answerSize, p.mimeType);
@@ -214,8 +219,8 @@ namespace Orthanc
 
       case OrthancPluginService_CompressAndAnswerPngImage:
       {
-        const _OrthancPluginCompressAndAnswerPngImageParams& p = 
-          *reinterpret_cast<const _OrthancPluginCompressAndAnswerPngImageParams*>(parameters);
+        const _OrthancPluginCompressAndAnswerPngImage& p = 
+          *reinterpret_cast<const _OrthancPluginCompressAndAnswerPngImage*>(parameters);
 
         HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
 
@@ -254,6 +259,36 @@ namespace Orthanc
         writer.WriteToMemory(png, accessor);
 
         translatedOutput->AnswerBufferWithContentType(png, "image/png");
+
+        return true;
+      }
+
+      case OrthancPluginService_GetDicomForInstance:
+      {
+        const _OrthancPluginGetDicomForInstance& p = 
+          *reinterpret_cast<const _OrthancPluginGetDicomForInstance*>(parameters);
+
+        std::string dicom;
+        pimpl_->context_.ReadFile(dicom, p.instanceId, FileContentType_Dicom);
+
+        p.target->size = dicom.size();
+
+        if (dicom.size() == 0)
+        {
+          p.target->data = NULL;
+        }
+        else
+        {
+          p.target->data = malloc(dicom.size());
+          if (p.target->data != NULL)
+          {
+            memcpy(p.target->data, &dicom[0], dicom.size());
+          }
+          else
+          {
+            return false;
+          }
+        }
 
         return true;
       }

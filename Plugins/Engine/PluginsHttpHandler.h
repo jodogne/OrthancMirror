@@ -34,6 +34,7 @@
 
 #include "PluginsManager.h"
 #include "../../Core/HttpServer/HttpHandler.h"
+#include "../../OrthancServer/ServerContext.h"
 
 #include <list>
 #include <boost/shared_ptr.hpp>
@@ -48,7 +49,7 @@ namespace Orthanc
     boost::shared_ptr<PImpl> pimpl_;
 
   public:
-    PluginsHttpHandler();
+    PluginsHttpHandler(ServerContext& context);
 
     virtual ~PluginsHttpHandler();
 

@@ -51,10 +51,10 @@ ORTHANC_PLUGINS_API int32_t Callback1(OrthancPluginRestOutput* output,
     OrthancPluginLogInfo(context, buffer);    
   }
 
-  printf("** %d\n", request->groupCount);
-  for (i = 0; i < request->groupCount; i++)
+  printf("** %d\n", request->groupsCount);
+  for (i = 0; i < request->groupsCount; i++)
   {
-    printf("** [%s]\n",  request->groupValues[i]);
+    printf("** [%s]\n",  request->groups[i]);
   }
 
   return 1;
@@ -65,9 +65,7 @@ ORTHANC_PLUGINS_API int32_t Callback2(OrthancPluginRestOutput* output,
                                       const char* url,
                                       const OrthancPluginHttpRequest* request)
 {
-  /**
-   * Answer with a sample 16bpp image.
-   **/
+  /* Answer with a sample 16bpp image. */
 
   uint16_t buffer[256 * 256];
   uint32_t x, y, value;
@@ -87,6 +85,48 @@ ORTHANC_PLUGINS_API int32_t Callback2(OrthancPluginRestOutput* output,
 }
 
 
+ORTHANC_PLUGINS_API int32_t Callback3(OrthancPluginRestOutput* output,
+                                      const char* url,
+                                      const OrthancPluginHttpRequest* request)
+{
+  OrthancPluginMemoryBuffer dicom;
+  if (!OrthancPluginGetDicomForInstance(context, &dicom, request->groups[0]))
+  {
+    /* No error, forward the DICOM file */
+    OrthancPluginAnswerBuffer(context, output, dicom.data, dicom.size, "application/dicom");
+
+    /* Free memory */
+    OrthancPluginFreeMemoryBuffer(context, &dicom);
+  }
+
+  return 0;
+}
+
+
+ORTHANC_PLUGINS_API int32_t Callback4(OrthancPluginRestOutput* output,
+                                      const char* url,
+                                      const OrthancPluginHttpRequest* request)
+{
+  /* Answer with a sample 8bpp image. */
+
+  uint8_t  buffer[256 * 256];
+  uint32_t x, y, value;
+
+  value = 0;
+  for (y = 0; y < 256; y++)
+  {
+    for (x = 0; x < 256; x++, value++)
+    {
+      buffer[value] = x;
+    }
+  }
+
+  OrthancPluginCompressAndAnswerPngImage(context, output, OrthancPluginPixelFormat_Grayscale8,
+                                         256, 256, 256, buffer);
+  return 0;
+}
+
+
 ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
 {
   char info[1024];
@@ -99,6 +139,9 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
 
   OrthancPluginRegisterRestCallback(context, "/(plu.*)/hello", Callback1);
   OrthancPluginRegisterRestCallback(context, "/plu.*/image", Callback2);
+  OrthancPluginRegisterRestCallback(context, "/plugin/instances/([^/]+)/info", Callback3);
+
+  OrthancPluginRegisterRestCallback(context, "/instances/([^/]+)/preview", Callback4);
 
   return 0;
 }
