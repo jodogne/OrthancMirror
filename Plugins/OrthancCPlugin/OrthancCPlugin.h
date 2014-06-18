@@ -33,13 +33,6 @@
 #pragma once
 
 
-#ifdef _MSC_VER
-#include "../../Resources/VisualStudio/stdint.h"
-#else
-#include <stdint.h>
-#endif
-
-
 #ifdef WIN32
 #define ORTHANC_PLUGINS_API __declspec(dllexport)
 #else
@@ -47,8 +40,58 @@
 #endif
 
 
+
+/********************************************************************
+ ** Check that function inlining is properly supported. The use of
+ ** inlining is required, to avoid the duplication of object code
+ ** between two compilation modules that would use the Orthanc Plugin
+ ** API.
+ ********************************************************************/
+
+/* If the auto-detection of the "inline" keyword below does not work
+   automatically and that your compiler is known to properly support
+   inlining, uncomment the following #define and adapt the definition
+   of "static inline". */
+
+/* #define ORTHANC_PLUGIN_INLINE static inline */
+
+#ifndef ORTHANC_PLUGIN_INLINE
+#  if __STDC_VERSION__ >= 199901L
+/*   This is C99 or above: http://predef.sourceforge.net/prestd.html */
+#    define ORTHANC_PLUGIN_INLINE static inline
+#  elif defined(__cplusplus)
+/*   This is C++ */
+#    define ORTHANC_PLUGIN_INLINE static inline
+#  elif defined(__GNUC__)
+/*   This is GCC running in C89 mode */
+#    define ORTHANC_PLUGIN_INLINE static __inline
+#  elif defined(_MSC_VER)
+/*   This is Visual Studio running in C89 mode */
+#    define ORTHANC_PLUGIN_INLINE static __inline
+#  else
+#    error Your compiler is not known to support the "inline" keyword
+#  endif
+#endif
+
+
+
+/********************************************************************
+ ** Inclusion of standard libaries.
+ ********************************************************************/
+
+#ifdef _MSC_VER
+#include "../../Resources/VisualStudio/stdint.h"
+#else
+#include <stdint.h>
+#endif
+
 #include <stdlib.h>
 
+
+
+/********************************************************************
+ ** Definition of the Orthanc Plugin API.
+ ********************************************************************/
 
 #ifdef __cplusplus
 extern "C"
@@ -65,8 +108,12 @@ extern "C"
     OrthancPluginHttpMethod_Delete = 4
   } OrthancPluginHttpMethod;
 
-  typedef int32_t (*OrthancPluginService) (const char* serviceName,
-                                           const void* serviceParameters);
+  typedef enum 
+  {
+    OrthancPluginService_LogInfo = 1,
+    OrthancPluginService_LogWarning = 2,
+    OrthancPluginService_LogError = 3
+  } OrthancPluginService;
 
   typedef int32_t (*OrthancPluginRestCallback) (OrthancPluginRestOutput* output,
                                                 OrthancPluginHttpMethod method,
@@ -78,15 +125,13 @@ extern "C"
 
   typedef struct OrthancPluginContext_t
   {
-    void* pimpl;
+    void* pluginsManager;
 
     const char* orthancVersion;
     void (*FreeBuffer) (void* buffer);
-
-    /* Logging functions */
-    void (*LogError) (const char* str);
-    void (*LogWarning) (const char* str);
-    void (*LogInfo) (const char* str);
+    int32_t (*InvokeService) (struct OrthancPluginContext_t* context,
+                              OrthancPluginService service,
+                              const void* parameters);
 
     /* REST API */
     void (*RegisterRestCallback) (const struct OrthancPluginContext_t* context,
@@ -98,6 +143,28 @@ extern "C"
                           uint32_t answerSize,
                           const char* mimeType);
   } OrthancPluginContext;
+
+
+  ORTHANC_PLUGIN_INLINE void OrthancPluginLogError(OrthancPluginContext* context,
+                                                   const char* str)
+  {
+    context->InvokeService(context, OrthancPluginService_LogError, str);
+  }
+
+
+  ORTHANC_PLUGIN_INLINE void OrthancPluginLogWarning(OrthancPluginContext* context,
+                                                     const char* str)
+  {
+    context->InvokeService(context, OrthancPluginService_LogWarning, str);
+  }
+
+
+  ORTHANC_PLUGIN_INLINE void OrthancPluginLogInfo(OrthancPluginContext* context,
+                                                  const char* str)
+  {
+    context->InvokeService(context, OrthancPluginService_LogInfo, str);
+  }
+
 
 
   /**

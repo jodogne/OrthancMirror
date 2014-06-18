@@ -32,60 +32,18 @@
 
 #pragma once
 
-#include "SharedLibrary.h"
-#include "IPluginServiceProvider.h"
+#include "../OrthancCPlugin/OrthancCPlugin.h"
 
-#include <map>
-#include <list>
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class PluginsManager : boost::noncopyable
+  class IPluginServiceProvider : boost::noncopyable
   {
   public:
-    typedef std::list< std::pair<std::string, OrthancPluginRestCallback> >  RestCallbacks;
+    virtual ~IPluginServiceProvider();
 
-  private:
-    typedef std::map<std::string, SharedLibrary*>  Plugins;
-
-    OrthancPluginContext  context_;
-    Plugins  plugins_;
-    RestCallbacks  restCallbacks_;
-    IPluginServiceProvider *serviceProvider_;
-
-    static int32_t InvokeService(OrthancPluginContext* context,
-                                 OrthancPluginService service,
-                                 const void* parameters);
-
-    static void RegisterRestCallback(const OrthancPluginContext* context,
-                                     const char* path, 
-                                     OrthancPluginRestCallback callback);
-
-  public:
-    PluginsManager();
-
-    ~PluginsManager();
-
-    void RegisterPlugin(const std::string& path);
-
-    void ScanFolderForPlugins(const std::string& path,
-                              bool isRecursive);
-
-    void SetServiceProvider(IPluginServiceProvider& provider)
-    {
-      serviceProvider_ = &provider;
-    }
-
-    bool HasServiceProvider() const
-    {
-      return serviceProvider_ != NULL;
-    }
-
-    IPluginServiceProvider& GetServiceProvider() const;
-
-    const RestCallbacks& GetRestCallbacks() const
-    {
-      return restCallbacks_;
-    }
+    virtual bool Handle(OrthancPluginService service,
+                        const void* parameters) = 0;
   };
 }
