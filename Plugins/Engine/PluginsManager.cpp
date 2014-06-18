@@ -134,20 +134,20 @@ namespace Orthanc
 
   int32_t PluginsManager::InvokeService(OrthancPluginContext* context,
                                         OrthancPluginService service, 
-                                        const void* parameters)
+                                        const void* params)
   {
     switch (service)
     {
       case OrthancPluginService_LogError:
-        LOG(ERROR) << reinterpret_cast<const char*>(parameters);
+        LOG(ERROR) << reinterpret_cast<const char*>(params);
         return 0;
 
       case OrthancPluginService_LogWarning:
-        LOG(WARNING) << reinterpret_cast<const char*>(parameters);
+        LOG(WARNING) << reinterpret_cast<const char*>(params);
         return 0;
 
       case OrthancPluginService_LogInfo:
-        LOG(INFO) << reinterpret_cast<const char*>(parameters);
+        LOG(INFO) << reinterpret_cast<const char*>(params);
         return 0;
 
       default:
@@ -156,10 +156,21 @@ namespace Orthanc
 
     PluginsManager* that = reinterpret_cast<PluginsManager*>(context->pluginsManager);
 
-    if (that->HasServiceProvider() &&
-        that->serviceProvider_->Handle(service, parameters))
+    for (std::list<IPluginServiceProvider*>::iterator
+           it = that->serviceProviders_.begin(); 
+         it != that->serviceProviders_.end(); it++)
     {
-      return 0;
+      try
+      {
+        if ((*it)->InvokeService(service, params))
+        {
+          return 0;
+        }
+      }
+      catch (OrthancException&)
+      {
+        // This service provider has failed, go to the next
+      }
     }
 
     LOG(ERROR) << "Plugin invoking unknown service " << service;
@@ -167,36 +178,13 @@ namespace Orthanc
   }
 
 
-  void PluginsManager::RegisterRestCallback(const OrthancPluginContext* context,
-                                            const char* pathRegularExpression, 
-                                            OrthancPluginRestCallback callback)
-  {
-    LOG(INFO) << "Plugin has registered a REST callback on: " << pathRegularExpression;
-    PluginsManager* manager = reinterpret_cast<PluginsManager*>(context->pluginsManager);
-    manager->restCallbacks_.push_back(std::make_pair(pathRegularExpression, callback));
-  }
-
-
-  static void AnswerBuffer(OrthancPluginRestOutput* output,
-                           const char* answer,
-                           uint32_t answerSize,
-                           const char* mimeType)
-  {
-    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(output);
-    translatedOutput->AnswerBufferWithContentType(answer, answerSize, mimeType);
-  }
-
-
-  PluginsManager::PluginsManager() : 
-    serviceProvider_(NULL)
+  PluginsManager::PluginsManager()
   {
     memset(&context_, 0, sizeof(context_));
     context_.pluginsManager = this;
     context_.orthancVersion = ORTHANC_VERSION;
     context_.FreeBuffer = ::free;
     context_.InvokeService = InvokeService;
-    context_.RegisterRestCallback = RegisterRestCallback;
-    context_.AnswerBuffer = AnswerBuffer;
   }
 
   PluginsManager::~PluginsManager()
@@ -296,19 +284,6 @@ namespace Orthanc
           }
         }
       }
-    }
-  }
-
-
-  IPluginServiceProvider& PluginsManager::GetServiceProvider() const
-  {
-    if (!HasServiceProvider())
-    {
-      throw OrthancException(ErrorCode_BadRequest);
-    }
-    else
-    {
-      return *serviceProvider_;
     }
   }
 }

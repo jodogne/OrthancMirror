@@ -374,7 +374,10 @@ int main(int argc, char* argv[])
 
     LoadLuaScripts(context);
 
+    PluginsHttpHandler httpPlugins;
+
     PluginsManager pluginsManager;
+    pluginsManager.RegisterServiceProvider(httpPlugins);
     LoadPlugins(pluginsManager);
 
     try
@@ -432,15 +435,17 @@ int main(int argc, char* argv[])
         httpServer.SetSslEnabled(false);
       }
 
-      httpServer.RegisterHandler(new PluginsHttpHandler(pluginsManager));
+      OrthancRestApi restApi(context);
 
 #if ORTHANC_STANDALONE == 1
-      httpServer.RegisterHandler(new EmbeddedResourceHttpHandler("/app", EmbeddedResources::ORTHANC_EXPLORER));
+      EmbeddedResourceHttpHandler staticResources("/app", EmbeddedResources::ORTHANC_EXPLORER);
 #else
-      httpServer.RegisterHandler(new FilesystemHttpHandler("/app", ORTHANC_PATH "/OrthancExplorer"));
+      FilesystemHttpHandler staticResources("/app", ORTHANC_PATH "/OrthancExplorer");
 #endif
 
-      httpServer.RegisterHandler(new OrthancRestApi(context));
+      httpServer.RegisterHandler(httpPlugins);
+      httpServer.RegisterHandler(staticResources);
+      httpServer.RegisterHandler(restApi);
 
       // GO !!! Start the requested servers
       if (Configuration::GetGlobalBoolParameter("HttpServerEnabled", true))

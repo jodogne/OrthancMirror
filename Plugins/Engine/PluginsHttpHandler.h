@@ -40,7 +40,7 @@
 
 namespace Orthanc
 {
-  class PluginsHttpHandler : public HttpHandler
+  class PluginsHttpHandler : public HttpHandler, public IPluginServiceProvider
   {
   private:
     struct PImpl;
@@ -48,7 +48,7 @@ namespace Orthanc
     boost::shared_ptr<PImpl> pimpl_;
 
   public:
-    PluginsHttpHandler(const PluginsManager& manager);
+    PluginsHttpHandler();
 
     virtual ~PluginsHttpHandler();
 
@@ -60,5 +60,8 @@ namespace Orthanc
                         const Arguments& headers,
                         const Arguments& getArguments,
                         const std::string& postData);
+
+    virtual bool InvokeService(OrthancPluginService service,
+                               const void* parameters);
   };
 }

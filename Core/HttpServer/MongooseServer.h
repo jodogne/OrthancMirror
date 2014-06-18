@@ -100,7 +100,7 @@ namespace Orthanc
     void RegisterUser(const char* username,
                       const char* password);
 
-    void RegisterHandler(HttpHandler* handler);  // This takes the ownership
+    void RegisterHandler(HttpHandler& handler);
 
     bool IsAuthenticationEnabled() const
     {

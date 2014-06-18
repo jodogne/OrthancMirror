@@ -843,23 +843,17 @@ namespace Orthanc
   }
 
 
-  void MongooseServer::RegisterHandler(HttpHandler* handler)
+  void MongooseServer::RegisterHandler(HttpHandler& handler)
   {
     Stop();
 
-    handlers_.push_back(handler);
+    handlers_.push_back(&handler);
   }
 
 
   void MongooseServer::ClearHandlers()
   {
     Stop();
-
-    for (Handlers::iterator it = 
-           handlers_.begin(); it != handlers_.end(); ++it)
-    {
-      delete *it;
-    }
   }
 
 

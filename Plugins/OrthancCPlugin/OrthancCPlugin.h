@@ -110,18 +110,35 @@ extern "C"
 
   typedef enum 
   {
+    /* Generic services */
     OrthancPluginService_LogInfo = 1,
     OrthancPluginService_LogWarning = 2,
-    OrthancPluginService_LogError = 3
+    OrthancPluginService_LogError = 3,
+
+    /* Registration of callbacks */
+    OrthancPluginService_RegisterRestCallback = 1000,
+
+    /* Sending answers to REST calls */
+    OrthancPluginService_AnswerBuffer = 2000
   } OrthancPluginService;
 
+  typedef struct
+  {
+    OrthancPluginHttpMethod method;
+
+    /* For GET requests */
+    const char* const*      getKeys;
+    const char* const*      getValues;
+    uint32_t                getCount;
+
+    /* For POST and PUT requests */
+    const char*             body;
+    uint32_t                bodySize;
+  } OrthancPluginHttpRequest;
+
   typedef int32_t (*OrthancPluginRestCallback) (OrthancPluginRestOutput* output,
-                                                OrthancPluginHttpMethod method,
                                                 const char* url,
-                                                const char* const* getKeys,
-                                                const char* const* getValues,
-                                                uint32_t getSize,
-                                                const char* body, uint32_t bodySize);
+                                                const OrthancPluginHttpRequest* request);
 
   typedef struct OrthancPluginContext_t
   {
@@ -131,18 +148,24 @@ extern "C"
     void (*FreeBuffer) (void* buffer);
     int32_t (*InvokeService) (struct OrthancPluginContext_t* context,
                               OrthancPluginService service,
-                              const void* parameters);
-
-    /* REST API */
-    void (*RegisterRestCallback) (const struct OrthancPluginContext_t* context,
-                                  const char* pathRegularExpression, 
-                                  OrthancPluginRestCallback callback);
-
-    void (*AnswerBuffer) (OrthancPluginRestOutput* output,
-                          const char* answer,
-                          uint32_t answerSize,
-                          const char* mimeType);
+                              const void* params);
   } OrthancPluginContext;
+
+
+  typedef struct
+  {
+    const char* pathRegularExpression;
+    OrthancPluginRestCallback callback;
+  } OrthancPluginRestCallbackParams;
+
+
+  typedef struct
+  {
+    OrthancPluginRestOutput* output;
+    const char*              answer;
+    uint32_t                 answerSize;
+    const char*              mimeType;
+  } OrthancPluginAnswerBufferParams;
 
 
   ORTHANC_PLUGIN_INLINE void OrthancPluginLogError(OrthancPluginContext* context,
@@ -163,6 +186,32 @@ extern "C"
                                                   const char* str)
   {
     context->InvokeService(context, OrthancPluginService_LogInfo, str);
+  }
+
+
+  ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterRestCallback(OrthancPluginContext* context,
+                                                               const char* pathRegularExpression,
+                                                               OrthancPluginRestCallback callback)
+  {
+    OrthancPluginRestCallbackParams params;
+    params.pathRegularExpression = pathRegularExpression;
+    params.callback = callback;
+    context->InvokeService(context, OrthancPluginService_RegisterRestCallback, &params);
+  }
+
+
+  ORTHANC_PLUGIN_INLINE void OrthancPluginAnswerBuffer(OrthancPluginContext*    context,
+                                                       OrthancPluginRestOutput* output,
+                                                       const char*              answer,
+                                                       uint32_t                 answerSize,
+                                                       const char*              mimeType)
+  {
+    OrthancPluginAnswerBufferParams params;
+    params.output = output;
+    params.answer = answer;
+    params.answerSize = answerSize;
+    params.mimeType = mimeType;
+    context->InvokeService(context, OrthancPluginService_AnswerBuffer, &params);
   }
 
 

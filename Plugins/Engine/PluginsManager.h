@@ -42,24 +42,16 @@ namespace Orthanc
 {
   class PluginsManager : boost::noncopyable
   {
-  public:
-    typedef std::list< std::pair<std::string, OrthancPluginRestCallback> >  RestCallbacks;
-
   private:
     typedef std::map<std::string, SharedLibrary*>  Plugins;
 
     OrthancPluginContext  context_;
     Plugins  plugins_;
-    RestCallbacks  restCallbacks_;
-    IPluginServiceProvider *serviceProvider_;
+    std::list<IPluginServiceProvider*> serviceProviders_;
 
     static int32_t InvokeService(OrthancPluginContext* context,
                                  OrthancPluginService service,
                                  const void* parameters);
-
-    static void RegisterRestCallback(const OrthancPluginContext* context,
-                                     const char* path, 
-                                     OrthancPluginRestCallback callback);
 
   public:
     PluginsManager();
@@ -71,21 +63,9 @@ namespace Orthanc
     void ScanFolderForPlugins(const std::string& path,
                               bool isRecursive);
 
-    void SetServiceProvider(IPluginServiceProvider& provider)
+    void RegisterServiceProvider(IPluginServiceProvider& provider)
     {
-      serviceProvider_ = &provider;
-    }
-
-    bool HasServiceProvider() const
-    {
-      return serviceProvider_ != NULL;
-    }
-
-    IPluginServiceProvider& GetServiceProvider() const;
-
-    const RestCallbacks& GetRestCallbacks() const
-    {
-      return restCallbacks_;
+      serviceProviders_.push_back(&provider);
     }
   };
 }

@@ -41,9 +41,11 @@ namespace Orthanc
   class IPluginServiceProvider : boost::noncopyable
   {
   public:
-    virtual ~IPluginServiceProvider();
+    virtual ~IPluginServiceProvider()
+    {
+    }
 
-    virtual bool Handle(OrthancPluginService service,
-                        const void* parameters) = 0;
+    virtual bool InvokeService(OrthancPluginService service,
+                               const void* parameters) = 0;
   };
 }
