@@ -155,6 +155,7 @@ namespace Orthanc
     }
 
     PluginsManager* that = reinterpret_cast<PluginsManager*>(context->pluginsManager);
+    bool error = false;
 
     for (std::list<IPluginServiceProvider*>::iterator
            it = that->serviceProviders_.begin(); 
@@ -170,10 +171,19 @@ namespace Orthanc
       catch (OrthancException&)
       {
         // This service provider has failed, go to the next
+        error = true;
       }
     }
 
-    LOG(ERROR) << "Plugin invoking unknown service " << service;
+    if (error)
+    {
+      LOG(ERROR) << "Exception when dealing with service " << service;
+    }
+    else
+    {
+      LOG(ERROR) << "Plugin invoking unknown service " << service;
+    }
+
     return -1;
   }
 

@@ -33,9 +33,9 @@
 static OrthancPluginContext* context = NULL;
 
 
-ORTHANC_PLUGINS_API int32_t Callback(OrthancPluginRestOutput* output,
-                                     const char* url,
-                                     const OrthancPluginHttpRequest* request)
+ORTHANC_PLUGINS_API int32_t Callback1(OrthancPluginRestOutput* output,
+                                      const char* url,
+                                      const OrthancPluginHttpRequest* request)
 {
   char buffer[1024];
   uint32_t i;
@@ -51,7 +51,39 @@ ORTHANC_PLUGINS_API int32_t Callback(OrthancPluginRestOutput* output,
     OrthancPluginLogInfo(context, buffer);    
   }
 
+  printf("** %d\n", request->groupCount);
+  for (i = 0; i < request->groupCount; i++)
+  {
+    printf("** [%s]\n",  request->groupValues[i]);
+  }
+
   return 1;
+}
+
+
+ORTHANC_PLUGINS_API int32_t Callback2(OrthancPluginRestOutput* output,
+                                      const char* url,
+                                      const OrthancPluginHttpRequest* request)
+{
+  /**
+   * Answer with a sample 16bpp image.
+   **/
+
+  uint16_t buffer[256 * 256];
+  uint32_t x, y, value;
+
+  value = 0;
+  for (y = 0; y < 256; y++)
+  {
+    for (x = 0; x < 256; x++, value++)
+    {
+      buffer[value] = value;
+    }
+  }
+
+  OrthancPluginCompressAndAnswerPngImage(context, output, OrthancPluginPixelFormat_Grayscale16,
+                                         256, 256, sizeof(uint16_t) * 256, buffer);
+  return 0;
 }
 
 
@@ -65,7 +97,8 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   sprintf(info, "The version of Orthanc is '%s'", context->orthancVersion);
   OrthancPluginLogInfo(context, info);
 
-  OrthancPluginRegisterRestCallback(context, "/plu.*/hello", Callback);
+  OrthancPluginRegisterRestCallback(context, "/(plu.*)/hello", Callback1);
+  OrthancPluginRegisterRestCallback(context, "/plu.*/image", Callback2);
 
   return 0;
 }

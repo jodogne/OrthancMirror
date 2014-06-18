@@ -120,12 +120,6 @@ namespace Orthanc
   }
 
 
-  bool FilesystemHttpHandler::IsServedUri(const UriComponents& uri)
-  {
-    return Toolbox::IsChildUri(pimpl_->baseUri_, uri);
-  }
-
-
   bool FilesystemHttpHandler::Handle(
     HttpOutput& output,
     HttpMethod method,
@@ -134,6 +128,12 @@ namespace Orthanc
     const Arguments& arguments,
     const std::string&)
   {
+    if (!Toolbox::IsChildUri(pimpl_->baseUri_, uri))
+    {
+      // This URI is not served by this handler
+      return false;
+    }
+
     if (method != HttpMethod_Get)
     {
       output.SendMethodNotAllowedError("GET");
