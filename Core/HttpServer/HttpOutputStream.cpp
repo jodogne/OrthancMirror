@@ -29,42 +29,76 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
-#pragma once
 
-#include "HttpFileSender.h"
+#include "HttpOutputStream.h"
+
+#include "../OrthancException.h"
+
+#include <boost/lexical_cast.hpp>
 
 namespace Orthanc
 {
-  class BufferHttpSender : public HttpFileSender
+  void HttpOutputStream::SendHttpStatus(HttpStatus status)
   {
-  private:
-    std::string buffer_;
-
-  protected:
-    virtual uint64_t GetFileSize()
+    if (state_ != State_WaitingHttpStatus)
     {
-      return buffer_.size();
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
-    virtual bool SendData(HttpOutput& output)
-    {
-      if (buffer_.size())
-      {
-        output.SendBodyData(&buffer_[0], buffer_.size());
-      }
+    OnHttpStatusReceived(status);
+    state_ = State_WritingHeader;
 
-      return true;
+    std::string s = "HTTP/1.1 " + 
+      boost::lexical_cast<std::string>(status) +
+      " " + std::string(EnumerationToString(status)) +
+      "\r\n";
+
+    SendHeader(&s[0], s.size());
+  }
+
+  void HttpOutputStream::SendHeaderData(const void* buffer, size_t length)
+  {
+    if (state_ != State_WritingHeader)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
-  public:
-    std::string& GetBuffer() 
+    SendHeader(buffer, length);
+  }
+
+  void HttpOutputStream::SendHeaderString(const std::string& str)
+  {
+    if (str.size() > 0)
     {
-      return buffer_;
+      SendHeaderData(&str[0], str.size());
+    }
+  }
+
+  void HttpOutputStream::SendBodyData(const void* buffer, size_t length)
+  {
+    if (state_ == State_WaitingHttpStatus)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
-    const std::string& GetBuffer() const
+    if (state_ == State_WritingHeader)
     {
-      return buffer_;
+      // Close the HTTP header before writing the body
+      SendHeader("\r\n", 2);
+      state_ = State_WritingBody;
     }
-  };
+
+    if (length > 0)
+    {
+      SendBody(buffer, length);
+    }
+  }
+
+  void HttpOutputStream::SendBodyString(const std::string& str)
+  {
+    if (str.size() > 0)
+    {
+      SendBodyData(&str[0], str.size());
+    }
+  }
 }

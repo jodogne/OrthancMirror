@@ -446,6 +446,7 @@ int main(int argc, char* argv[])
       httpServer.RegisterHandler(httpPlugins);
       httpServer.RegisterHandler(staticResources);
       httpServer.RegisterHandler(restApi);
+      httpPlugins.SetOrthancRestApi(restApi);
 
       // GO !!! Start the requested servers
       if (Configuration::GetGlobalBoolParameter("HttpServerEnabled", true))
