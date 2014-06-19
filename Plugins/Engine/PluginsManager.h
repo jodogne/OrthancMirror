@@ -50,7 +50,7 @@ namespace Orthanc
     std::list<IPluginServiceProvider*> serviceProviders_;
 
     static int32_t InvokeService(OrthancPluginContext* context,
-                                 OrthancPluginService service,
+                                 _OrthancPluginService service,
                                  const void* parameters);
 
   public:

@@ -59,22 +59,3 @@ TEST(SharedLibrary, Basic)
 #error Support your platform here
 #endif
 }
-
-
-TEST(SharedLibrary, Development)
-{
-  PluginsManager manager;
-
-#if defined(_WIN32)
-//#error Support your platform here
-
-#elif defined(__linux)
-  manager.RegisterPlugin("./libPluginTest.so");
-  ASSERT_THROW(manager.RegisterPlugin("./libPluginTest.so"), OrthancException);
-
-  //manager.ScanFolderForPlugins(".", true);
-
-#else
-#error Support your platform here
-#endif  
-}

@@ -1,16 +1,28 @@
 /**
  * \mainpage
  *
- * This SDK allows external developers to create plugins that can be
- * loaded into Orthanc to extend its functionality. Each Orthanc
- * plugin must expose 4 public functions with the following
+ * This C/C++ SDK allows external developers to create plugins that
+ * can be loaded into Orthanc to extend its functionality. Each
+ * Orthanc plugin must expose 4 public functions with the following
  * signatures:
  * 
- * - <tt>int32_t OrthancPluginInitialize(const OrthancPluginContext*)</tt>:
- *   This function is invoked by Orthanc
- * - <tt>void OrthancPluginFinalize()</tt>
- * - <tt>const char* OrthancPluginGetName()</tt>
- * - <tt>const char* OrthancPluginGetVersion()</tt>
+ * -# <tt>int32_t OrthancPluginInitialize(const OrthancPluginContext* context)</tt>:
+ *    This function is invoked by Orthanc when it loads the plugin on startup.
+ *    The plugin must store the context pointer so that it can use the plugin 
+ *    services of Orthanc. It must also register all its callbacks using
+ *    ::OrthancPluginRegisterRestCallback().
+ * -# <tt>void OrthancPluginFinalize()</tt>:
+ *    This function is invoked by Orthanc during its shutdown. The plugin
+ *    must free all its memory.
+ * -# <tt>const char* OrthancPluginGetName()</tt>:
+ *    The plugin must return a short string to identify itself.
+ * -# <tt>const char* OrthancPluginGetVersion()</tt>
+ *    The plugin must return a string containing its version number.
+ *
+ * The name and the version of a plugin is only used to prevent it
+ * from being loaded twice.
+ * 
+ * 
  **/
 
 
@@ -106,7 +118,7 @@
 
 
 /********************************************************************
- ** Inclusion of standard libaries.
+ ** Inclusion of standard libraries.
  ********************************************************************/
 
 #ifdef _MSC_VER
@@ -130,49 +142,81 @@ extern "C"
 {
 #endif
 
+  /**
+   * The various HTTP methods for a REST call.
+   **/
   typedef enum
   {
-    OrthancPluginHttpMethod_Get = 1,
-    OrthancPluginHttpMethod_Post = 2,
-    OrthancPluginHttpMethod_Put = 3,
-    OrthancPluginHttpMethod_Delete = 4
+    OrthancPluginHttpMethod_Get = 1,    /*!< GET request */
+    OrthancPluginHttpMethod_Post = 2,   /*!< POST request */
+    OrthancPluginHttpMethod_Put = 3,    /*!< PUT request */
+    OrthancPluginHttpMethod_Delete = 4  /*!< DELETE request */
   } OrthancPluginHttpMethod;
 
+
+  /**
+   * @brief The parameters of a REST request.
+   **/
   typedef struct
   {
-    OrthancPluginHttpMethod method;
+    /**
+     * @brief The HTTP method.
+     **/
+    OrthancPluginHttpMethod method;    
 
-    /* Groups of the regular expression */
-    const char* const*      groups;
+    /**
+     * @brief The number of groups of the regular expression.
+     **/
     uint32_t                groupsCount;
 
-    /* For GET requests */
-    const char* const*      getKeys;
-    const char* const*      getValues;
+    /**
+     * @brief The matched values for the groups of the regular expression.
+     **/
+    const char* const*      groups;
+
+    /**
+     * @brief For a GET request, the number of GET parameters.
+     **/
     uint32_t                getCount;
 
-    /* For POST and PUT requests */
+    /**
+     * @brief For a GET request, the keys of the GET parameters.
+     **/
+    const char* const*      getKeys;
+
+    /**
+     * @brief For a GET request, the values of the GET parameters.
+     **/
+    const char* const*      getValues;
+
+    /**
+     * @brief For a PUT or POST request, the content of the body.
+     **/
     const char*             body;
+
+    /**
+     * @brief For a PUT or POST request, the number of bytes of the body.
+     **/
     uint32_t                bodySize;
   } OrthancPluginHttpRequest;
 
   typedef enum 
   {
     /* Generic services */
-    OrthancPluginService_LogInfo = 1,
-    OrthancPluginService_LogWarning = 2,
-    OrthancPluginService_LogError = 3,
+    _OrthancPluginService_LogInfo = 1,
+    _OrthancPluginService_LogWarning = 2,
+    _OrthancPluginService_LogError = 3,
 
     /* Registration of callbacks */
-    OrthancPluginService_RegisterRestCallback = 1000,
+    _OrthancPluginService_RegisterRestCallback = 1000,
 
     /* Sending answers to REST calls */
-    OrthancPluginService_AnswerBuffer = 2000,
-    OrthancPluginService_CompressAndAnswerPngImage = 2001,
+    _OrthancPluginService_AnswerBuffer = 2000,
+    _OrthancPluginService_CompressAndAnswerPngImage = 2001,
 
     /* Access to the Orthanc database */
-    OrthancPluginService_GetDicomForInstance = 3000
-  } OrthancPluginService;
+    _OrthancPluginService_GetDicomForInstance = 3000
+  } _OrthancPluginService;
 
 
 
@@ -223,33 +267,67 @@ extern "C"
   } OrthancPluginPixelFormat;
 
 
+  /**
+   * @brief A memory buffer allocated by the core system of Orthanc.
+   *
+   * A memory buffer allocated by the core system of Orthanc. When the
+   * content of the buffer is not useful anymore, it must be free by a
+   * call to ::OrthancPluginFreeMemoryBuffer().
+   **/
   typedef struct
   {
+    /**
+     * @brief The content of the buffer.
+     **/
     void*      data;
+
+    /**
+     * @brief The number of bytes in the buffer.
+     **/
     uint32_t   size;
   } OrthancPluginMemoryBuffer;
 
 
 
 
+  /**
+   * @brief Opaque structure that represents the HTTP connection to the client application.
+   **/
   typedef struct _OrthancPluginRestOutput_t OrthancPluginRestOutput;
 
+
+  /**
+   * @brief Signature of a function that answers to a REST request.
+   **/
   typedef int32_t (*OrthancPluginRestCallback) (
     OrthancPluginRestOutput* output,
     const char* url,
     const OrthancPluginHttpRequest* request);
 
+
+  /**
+   * @brief Opaque structure that contains information about the Orthanc core.
+   **/
   typedef struct _OrthancPluginContext_t
   {
     void*        pluginsManager;
     const char*  orthancVersion;
     void       (*Free) (void* buffer);
     int32_t    (*InvokeService) (struct _OrthancPluginContext_t* context,
-                                 OrthancPluginService service,
+                                 _OrthancPluginService service,
                                  const void* params);
   } OrthancPluginContext;
 
 
+
+  /**
+   * @brief Free a string.
+   * 
+   * Free a string that was allocated by the core system of Orthanc.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param str The string to be freed.
+   **/
   ORTHANC_PLUGIN_INLINE void  OrthancPluginFreeString(
     OrthancPluginContext* context, 
     char* str)
@@ -258,6 +336,14 @@ extern "C"
   }
 
 
+  /**
+   * @brief Free a memory buffer.
+   * 
+   * Free a memory buffer that was allocated by the core system of Orthanc.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param buffer The memory buffer to release.
+   **/
   ORTHANC_PLUGIN_INLINE void  OrthancPluginFreeMemoryBuffer(
     OrthancPluginContext* context, 
     OrthancPluginMemoryBuffer* buffer)
@@ -266,27 +352,51 @@ extern "C"
   }
 
 
+  /**
+   * @brief Log an error.
+   *
+   * Log an error message using the Orthanc logging system.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param message The message to be logged.
+   **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginLogError(
     OrthancPluginContext* context,
-    const char* str)
+    const char* message)
   {
-    context->InvokeService(context, OrthancPluginService_LogError, str);
+    context->InvokeService(context, _OrthancPluginService_LogError, message);
   }
 
 
+  /**
+   * @brief Log a warning.
+   *
+   * Log a warning message using the Orthanc logging system.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param message The message to be logged.
+   **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginLogWarning(
     OrthancPluginContext* context,
-    const char* str)
+    const char* message)
   {
-    context->InvokeService(context, OrthancPluginService_LogWarning, str);
+    context->InvokeService(context, _OrthancPluginService_LogWarning, message);
   }
 
 
+  /**
+   * @brief Log an information.
+   *
+   * Log an information message using the Orthanc logging system.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param message The message to be logged.
+   **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginLogInfo(
     OrthancPluginContext* context,
-    const char* str)
+    const char* message)
   {
-    context->InvokeService(context, OrthancPluginService_LogInfo, str);
+    context->InvokeService(context, _OrthancPluginService_LogInfo, message);
   }
 
 
@@ -297,6 +407,18 @@ extern "C"
   } _OrthancPluginRestCallback;
 
 
+  /**
+   * @brief Register a REST callback.
+   *
+   * This function registers a REST callback against a regular
+   * expression for a URI. This function must be called during the
+   * initialization of the plugin, i.e. inside the
+   * OrthancPluginInitialize() public function.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param pathRegularExpression Regular expression for the URI. May contain groups.
+   * @param callback The callback function to handle the REST call.
+   **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterRestCallback(
     OrthancPluginContext*     context,
     const char*               pathRegularExpression,
@@ -305,7 +427,7 @@ extern "C"
     _OrthancPluginRestCallback params;
     params.pathRegularExpression = pathRegularExpression;
     params.callback = callback;
-    context->InvokeService(context, OrthancPluginService_RegisterRestCallback, &params);
+    context->InvokeService(context, _OrthancPluginService_RegisterRestCallback, &params);
   }
 
 
@@ -317,6 +439,18 @@ extern "C"
     const char*              mimeType;
   } _OrthancPluginAnswerBuffer;
 
+
+  /**
+   * @brief Answer to a REST request.
+   *
+   * This function answers to a REST request with the content of a memory buffer.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param output The HTTP connection to the client application.
+   * @param answer Pointer to the memory buffer containing the answer.
+   * @param answerSize Number of bytes of the answer.
+   * @param mimeType The MIME type of the answer.
+   **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginAnswerBuffer(
     OrthancPluginContext*    context,
     OrthancPluginRestOutput* output,
@@ -329,7 +463,7 @@ extern "C"
     params.answer = answer;
     params.answerSize = answerSize;
     params.mimeType = mimeType;
-    context->InvokeService(context, OrthancPluginService_AnswerBuffer, &params);
+    context->InvokeService(context, _OrthancPluginService_AnswerBuffer, &params);
   }
 
 
@@ -343,6 +477,23 @@ extern "C"
     const void*               buffer;
   } _OrthancPluginCompressAndAnswerPngImage;
 
+  /**
+   * @brief Answer to a REST request with a PNG image.
+   *
+   * This function answers to a REST request with a PNG image. The
+   * parameters of this function describe a memory buffer that
+   * contains an uncompressed image. The image will be automatically compressed
+   * as a PNG image by the core system of Orthanc.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param output The HTTP connection to the client application.
+   * @param format The memory layout of the uncompressed image.
+   * @param width The width of the image.
+   * @param height The height of the image.
+   * @param pitch The pitch of the image (i.e. the number of bytes
+   * between 2 successive lines of the image in the memory buffer.
+   * @param buffer The memory buffer containing the uncompressed image.
+   **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginCompressAndAnswerPngImage(
     OrthancPluginContext*     context,
     OrthancPluginRestOutput*  output,
@@ -359,7 +510,7 @@ extern "C"
     params.height = height;
     params.pitch = pitch;
     params.buffer = buffer;
-    context->InvokeService(context, OrthancPluginService_CompressAndAnswerPngImage, &params);
+    context->InvokeService(context, _OrthancPluginService_CompressAndAnswerPngImage, &params);
   }
 
 
@@ -369,6 +520,18 @@ extern "C"
     const char*                 instanceId;
   } _OrthancPluginGetDicomForInstance;
 
+
+  /**
+   * @brief Retrieve a DICOM instance using its Orthanc identifier.
+   * 
+   * Retrieve a DICOM instance using its Orthanc identifier. The DICOM
+   * file is stored into a newly allocated memory buffer.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target The target memory buffer.
+   * @param instanceId The Orthanc identifier of the DICOM instance of interest.
+   * @return 0 if success, other value if error.
+   **/
   ORTHANC_PLUGIN_INLINE int  OrthancPluginGetDicomForInstance(
     OrthancPluginContext*       context,
     OrthancPluginMemoryBuffer*  target,
@@ -377,7 +540,7 @@ extern "C"
     _OrthancPluginGetDicomForInstance params;
     params.target = target;
     params.instanceId = instanceId;
-    return context->InvokeService(context, OrthancPluginService_GetDicomForInstance, &params);
+    return context->InvokeService(context, _OrthancPluginService_GetDicomForInstance, &params);
   }
 
 
