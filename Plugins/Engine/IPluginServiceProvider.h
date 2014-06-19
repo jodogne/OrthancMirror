@@ -45,7 +45,7 @@ namespace Orthanc
     {
     }
 
-    virtual bool InvokeService(OrthancPluginService service,
+    virtual bool InvokeService(_OrthancPluginService service,
                                const void* parameters) = 0;
   };
 }

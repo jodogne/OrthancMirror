@@ -60,7 +60,7 @@ namespace Orthanc
                         const Arguments& getArguments,
                         const std::string& postData);
 
-    virtual bool InvokeService(OrthancPluginService service,
+    virtual bool InvokeService(_OrthancPluginService service,
                                const void* parameters);
   };
 }

@@ -133,20 +133,20 @@ namespace Orthanc
 
 
   int32_t PluginsManager::InvokeService(OrthancPluginContext* context,
-                                        OrthancPluginService service, 
+                                        _OrthancPluginService service, 
                                         const void* params)
   {
     switch (service)
     {
-      case OrthancPluginService_LogError:
+      case _OrthancPluginService_LogError:
         LOG(ERROR) << reinterpret_cast<const char*>(params);
         return 0;
 
-      case OrthancPluginService_LogWarning:
+      case _OrthancPluginService_LogWarning:
         LOG(WARNING) << reinterpret_cast<const char*>(params);
         return 0;
 
-      case OrthancPluginService_LogInfo:
+      case _OrthancPluginService_LogInfo:
         LOG(INFO) << reinterpret_cast<const char*>(params);
         return 0;
 

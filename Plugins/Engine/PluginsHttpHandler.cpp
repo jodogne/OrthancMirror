@@ -190,12 +190,12 @@ namespace Orthanc
   }
 
 
-  bool PluginsHttpHandler::InvokeService(OrthancPluginService service,
+  bool PluginsHttpHandler::InvokeService(_OrthancPluginService service,
                                          const void* parameters)
   {
     switch (service)
     {
-      case OrthancPluginService_RegisterRestCallback:
+      case _OrthancPluginService_RegisterRestCallback:
       {
         const _OrthancPluginRestCallback& p = 
           *reinterpret_cast<const _OrthancPluginRestCallback*>(parameters);
@@ -206,7 +206,7 @@ namespace Orthanc
         return true;
       }
 
-      case OrthancPluginService_AnswerBuffer:
+      case _OrthancPluginService_AnswerBuffer:
       {
         const _OrthancPluginAnswerBuffer& p = 
           *reinterpret_cast<const _OrthancPluginAnswerBuffer*>(parameters);
@@ -217,7 +217,7 @@ namespace Orthanc
         return true;
       }
 
-      case OrthancPluginService_CompressAndAnswerPngImage:
+      case _OrthancPluginService_CompressAndAnswerPngImage:
       {
         const _OrthancPluginCompressAndAnswerPngImage& p = 
           *reinterpret_cast<const _OrthancPluginCompressAndAnswerPngImage*>(parameters);
@@ -263,7 +263,7 @@ namespace Orthanc
         return true;
       }
 
-      case OrthancPluginService_GetDicomForInstance:
+      case _OrthancPluginService_GetDicomForInstance:
       {
         const _OrthancPluginGetDicomForInstance& p = 
           *reinterpret_cast<const _OrthancPluginGetDicomForInstance*>(parameters);
