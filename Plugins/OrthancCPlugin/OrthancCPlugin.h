@@ -1,9 +1,27 @@
 /**
+ * \mainpage
+ *
+ * This SDK allows external developers to create plugins that can be
+ * loaded into Orthanc to extend its functionality. Each Orthanc
+ * plugin must expose 4 public functions with the following
+ * signatures:
+ * 
+ * - <tt>int32_t OrthancPluginInitialize(const OrthancPluginContext*)</tt>:
+ *   This function is invoked by Orthanc
+ * - <tt>void OrthancPluginFinalize()</tt>
+ * - <tt>const char* OrthancPluginGetName()</tt>
+ * - <tt>const char* OrthancPluginGetVersion()</tt>
+ **/
+
+
+
+/**
  * @defgroup CInterface C Interface 
  * @brief The C interface to create Orthanc plugins.
  * 
  * These functions must be used to create C plugins for Orthanc.
  **/
+
 
 
 /**
@@ -36,6 +54,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
+
 
 
 #pragma once
@@ -361,16 +380,6 @@ extern "C"
     return context->InvokeService(context, OrthancPluginService_GetDicomForInstance, &params);
   }
 
-
-  /**
-     Each plugin must define 4 functions, whose signature are:
-     - int32_t OrthancPluginInitialize(const OrthancPluginContext*);
-     - void OrthancPluginFinalize();
-     - const char* OrthancPluginGetName();
-     - const char* OrthancPluginGetVersion();
-
-     nm -C -D --defined-only libPluginTest.so
-  **/
 
 #ifdef  __cplusplus
 }
