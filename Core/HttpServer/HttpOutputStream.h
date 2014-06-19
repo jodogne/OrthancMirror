@@ -29,42 +29,55 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
+
 #pragma once
 
-#include "HttpFileSender.h"
+#include "../Enumerations.h"
+
+#include <string>
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class BufferHttpSender : public HttpFileSender
+  class HttpOutputStream : public boost::noncopyable
   {
+  protected:
+    enum State
+    {
+      State_WaitingHttpStatus,
+      State_WritingHeader,      
+      State_WritingBody
+    };
+
   private:
-    std::string buffer_;
+    State state_;
 
   protected:
-    virtual uint64_t GetFileSize()
+    virtual void OnHttpStatusReceived(HttpStatus status)
     {
-      return buffer_.size();
     }
 
-    virtual bool SendData(HttpOutput& output)
-    {
-      if (buffer_.size())
-      {
-        output.SendBodyData(&buffer_[0], buffer_.size());
-      }
+    virtual void SendHeader(const void* buffer, size_t length) = 0;
 
-      return true;
-    }
+    virtual void SendBody(const void* buffer, size_t length) = 0;
 
   public:
-    std::string& GetBuffer() 
+    HttpOutputStream() : state_(State_WaitingHttpStatus)
     {
-      return buffer_;
     }
 
-    const std::string& GetBuffer() const
+    virtual ~HttpOutputStream()
     {
-      return buffer_;
     }
+
+    void SendHttpStatus(HttpStatus status);
+
+    void SendHeaderData(const void* buffer, size_t length);
+
+    void SendHeaderString(const std::string& str);
+
+    void SendBodyData(const void* buffer, size_t length);
+
+    void SendBodyString(const std::string& str);
   };
 }

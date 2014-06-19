@@ -35,6 +35,7 @@
 #include "PluginsManager.h"
 #include "../../Core/HttpServer/HttpHandler.h"
 #include "../../OrthancServer/ServerContext.h"
+#include "../../OrthancServer/OrthancRestApi/OrthancRestApi.h"
 
 #include <list>
 #include <boost/shared_ptr.hpp>
@@ -62,5 +63,7 @@ namespace Orthanc
 
     virtual bool InvokeService(_OrthancPluginService service,
                                const void* parameters);
+
+    void SetOrthancRestApi(OrthancRestApi& restApi);
   };
 }

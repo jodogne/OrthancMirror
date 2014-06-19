@@ -297,7 +297,7 @@ extern "C"
 
 
   /**
-   * @brief Signature of a function that answers to a REST request.
+   * @brief Signature of a callback function that answers to a REST request.
    **/
   typedef int32_t (*OrthancPluginRestCallback) (
     OrthancPluginRestOutput* output,

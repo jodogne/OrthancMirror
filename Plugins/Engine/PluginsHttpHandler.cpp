@@ -42,6 +42,39 @@
 
 namespace Orthanc
 {
+  namespace
+  {
+    // Anonymous namespace to avoid clashes between compilation modules
+    class StringHttpOutput : public HttpOutput
+    {
+    private:
+      std::string target_;
+
+    public:
+      const std::string& GetOutput() const
+      {
+        return target_;
+      }
+
+      virtual void SendHeaderData(const void* buffer, size_t length)
+      {
+      }
+
+      virtual void SendBodyData(const void* buffer, size_t length)
+      {
+        size_t pos = target_.size();
+        target_.resize(pos + length);
+
+        if (length > 0)
+        {
+          memcpy(&target_[pos], buffer, length);
+        }
+      }
+    };
+  }
+
+
+
   struct PluginsHttpHandler::PImpl
   {
     typedef std::pair<boost::regex*, OrthancPluginRestCallback> Callback;
@@ -49,8 +82,9 @@ namespace Orthanc
 
     ServerContext& context_;
     Callbacks callbacks_;
+    OrthancRestApi* restApi_;
 
-    PImpl(ServerContext& context) : context_(context)
+    PImpl(ServerContext& context) : context_(context), restApi_(NULL)
     {
     }
   };
@@ -296,6 +330,12 @@ namespace Orthanc
       default:
         return false;
     }
+  }
+
+
+  void PluginsHttpHandler::SetOrthancRestApi(OrthancRestApi& restApi)
+  {
+    pimpl_->restApi_ = &restApi;
   }
 
 }

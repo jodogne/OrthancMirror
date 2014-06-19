@@ -36,6 +36,7 @@
 #include <string>
 #include <stdint.h>
 #include "../Enumerations.h"
+#include "HttpOutputStream.h"
 #include "HttpHandler.h"
 
 namespace Orthanc
@@ -44,8 +45,6 @@ namespace Orthanc
   {
   private:
     typedef std::list< std::pair<std::string, std::string> >  Header;
-
-    void SendHeaderInternal(HttpStatus status);
 
     void PrepareOkHeader(Header& header,
                          const char* contentType,
@@ -58,25 +57,35 @@ namespace Orthanc
     void PrepareCookies(Header& header,
                         const HttpHandler::Arguments& cookies);
 
+    HttpOutputStream& stream_;
+
   public:
-    virtual ~HttpOutput()
+    HttpOutput(HttpOutputStream& stream) : stream_(stream)
     {
     }
-
-    virtual void Send(const void* buffer, size_t length) = 0;
 
     void SendOkHeader(const char* contentType,
                       bool hasContentLength,
                       uint64_t contentLength,
                       const char* contentFilename);
 
-    void SendString(const std::string& s);
+    void SendBodyData(const void* buffer, size_t length)
+    {
+      stream_.SendBodyData(buffer, length);
+    }
+
+    void SendBodyString(const std::string& str)
+    {
+      stream_.SendBodyString(str);
+    }
 
     void SendMethodNotAllowedError(const std::string& allowed);
 
     void SendHeader(HttpStatus status);
 
     void Redirect(const std::string& path);
+
+    void SendUnauthorized(const std::string& realm);
 
     // Higher-level constructs to send entire buffers ----------------------------
 

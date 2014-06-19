@@ -68,22 +68,28 @@ namespace Orthanc
   namespace
   {
     // Anonymous namespace to avoid clashes between compilation modules
-    class MongooseOutput : public HttpOutput
+    class MongooseOutputStream : public HttpOutputStream
     {
     private:
       struct mg_connection* connection_;
 
-    public:
-      MongooseOutput(struct mg_connection* connection) : connection_(connection)
-      {
-      }
-
-      virtual void Send(const void* buffer, size_t length)
+    protected:
+      virtual void SendBody(const void* buffer, size_t length)
       {
         if (length > 0)
         {
           mg_write(connection_, buffer, length);
         }
+      }
+
+      virtual void SendHeader(const void* buffer, size_t length)
+      {
+        SendBody(buffer, length);
+      }
+
+    public:
+      MongooseOutputStream(struct mg_connection* connection) : connection_(connection)
+      {
       }
     };
 
@@ -404,15 +410,6 @@ namespace Orthanc
   }
 
 
-  static void SendUnauthorized(HttpOutput& output)
-  {
-    std::string s = "HTTP/1.1 401 Unauthorized\r\n" 
-      "WWW-Authenticate: Basic realm=\"" ORTHANC_REALM "\""
-      "\r\n\r\n";
-    output.Send(&s[0], s.size());
-  }
-
-
   static bool Authorize(const MongooseServer& that,
                         const HttpHandler::Arguments& headers,
                         HttpOutput& output)
@@ -432,7 +429,7 @@ namespace Orthanc
 
     if (!granted)
     {
-      SendUnauthorized(output);
+      output.SendUnauthorized(ORTHANC_REALM);
       return false;
     }
     else
@@ -559,13 +556,14 @@ namespace Orthanc
     if (event == MG_NEW_REQUEST) 
     {
       MongooseServer* that = reinterpret_cast<MongooseServer*>(request->user_data);
-      MongooseOutput output(connection);
+      MongooseOutputStream stream(connection);
+      HttpOutput output(stream);
 
       // Check remote calls
       if (!that->IsRemoteAccessAllowed() &&
           request->remote_ip != LOCALHOST)
       {
-        SendUnauthorized(output);
+        output.SendUnauthorized(ORTHANC_REALM);
         return (void*) "";
       }
 
@@ -620,7 +618,7 @@ namespace Orthanc
 
         if (!filter->IsAllowed(method, request->uri, remoteIp, username.c_str()))
         {
-          SendUnauthorized(output);
+          output.SendUnauthorized(ORTHANC_REALM);
           return (void*) "";
         }
       }
@@ -689,12 +687,9 @@ namespace Orthanc
       // Loop over the candidate handlers for this URI
       LOG(INFO) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
       bool found = false;
-      bool isError = false;
-      HttpStatus errorStatus;
-      std::string errorDescription;
 
       for (MongooseServer::Handlers::const_iterator it = 
-             that->GetHandlers().begin(); it != that->GetHandlers().end(); ++it) 
+             that->GetHandlers().begin(); it != that->GetHandlers().end() && !found; ++it) 
       {
         try
         {
@@ -702,39 +697,26 @@ namespace Orthanc
         }
         catch (OrthancException& e)
         {
-          // Using this candidate handler results in an exception, try
-          // another handler before failing
-          isError = true;
-          errorStatus = HttpStatus_500_InternalServerError;
-          errorDescription = e.What();
+          // Using this candidate handler results in an exception
+          LOG(ERROR) << "Exception in the HTTP handler: " << e.What();
+          return (void*) "";
         }
         catch (boost::bad_lexical_cast&)
         {
-          isError = true;
-          errorStatus = HttpStatus_400_BadRequest;
-          errorDescription = "Bad lexical cast";
+          LOG(ERROR) << "Exception in the HTTP handler: Bad lexical cast";
+          return (void*) "";
         }
         catch (std::runtime_error&)
         {
-          isError = true;
-          errorStatus = HttpStatus_400_BadRequest;
-          errorDescription = "Presumably a bad JSON request";
+          LOG(ERROR) << "Exception in the HTTP handler: Presumably a bad JSON request";
+          return (void*) "";
         }
       }
       
       if (!found)
       {
-        if (isError)
-        {
-          LOG(ERROR) << "Exception in the HTTP handler: " << errorDescription;
-          output.SendHeader(errorStatus);
-        }
-        else
-        {
-          output.SendHeader(HttpStatus_404_NotFound);
-        }
+        output.SendHeader(HttpStatus_404_NotFound);
       }
-
 
       // Mark as processed
       return (void*) "";
