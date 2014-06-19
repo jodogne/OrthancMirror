@@ -36,6 +36,8 @@
   // List of paths to the plugins that are to be loaded into this
   // instance of Orthanc
   "Plugins" : [
+    // "./libPluginTest.so" (for Linux) 
+    // "./PluginTest.dll" (for Windows)
   ],
 
 
