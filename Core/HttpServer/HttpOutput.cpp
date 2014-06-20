@@ -42,6 +42,103 @@
 
 namespace Orthanc
 {
+  class HttpOutput::StateMachine : public boost::noncopyable
+  {
+  protected:
+    enum State
+    {
+      State_WaitingHttpStatus,
+      State_WritingHeader,      
+      State_WritingBody
+    };
+
+  private:
+    IHttpOutputStream& stream_;
+    State state_;
+
+  public:
+    HttpStateMachine() : 
+      state_(State_WaitingHttpStatus)
+    {
+    }
+
+    void SendHttpStatus(HttpStatus status);
+
+    void SendHeaderData(const void* buffer, size_t length);
+
+    void SendHeaderString(const std::string& str);
+
+    void SendBodyData(const void* buffer, size_t length);
+
+    void SendBodyString(const std::string& str);
+  };
+
+
+  void HttpOutput::StateMachine::SendHttpStatus(HttpStatus status)
+  {
+    if (state_ != State_WaitingHttpStatus)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    OnHttpStatusReceived(status);
+    state_ = State_WritingHeader;
+
+    std::string s = "HTTP/1.1 " + 
+      boost::lexical_cast<std::string>(status) +
+      " " + std::string(EnumerationToString(status)) +
+      "\r\n";
+
+    Send(true, &s[0], s.size());
+  }
+
+  void HttpOutput::StateMachine::SendHeaderData(const void* buffer, size_t length)
+  {
+    if (state_ != State_WritingHeader)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    Send(true, buffer, length);
+  }
+
+  void HttpOutput::StateMachine::SendHeaderString(const std::string& str)
+  {
+    if (str.size() > 0)
+    {
+      SendHeaderData(&str[0], str.size());
+    }
+  }
+
+  void HttpOutput::StateMachine::SendBodyData(const void* buffer, size_t length)
+  {
+    if (state_ == State_WaitingHttpStatus)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    if (state_ == State_WritingHeader)
+    {
+      // Close the HTTP header before writing the body
+      Send(true, "\r\n", 2);
+      state_ = State_WritingBody;
+    }
+
+    if (length > 0)
+    {
+      Send(false, buffer, length);
+    }
+  }
+
+  void HttpOutput::StateMachine::SendBodyString(const std::string& str)
+  {
+    if (str.size() > 0)
+    {
+      SendBodyData(&str[0], str.size());
+    }
+  }
+
+
   void HttpOutput::PrepareOkHeader(Header& header,
                                    const char* contentType,
                                    bool hasContentLength,

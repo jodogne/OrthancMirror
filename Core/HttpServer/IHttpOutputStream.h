@@ -39,43 +39,15 @@
 
 namespace Orthanc
 {
-  class HttpOutputStream : public boost::noncopyable
+  class IHttpOutputStream : public boost::noncopyable
   {
-  protected:
-    enum State
-    {
-      State_WaitingHttpStatus,
-      State_WritingHeader,      
-      State_WritingBody
-    };
-
-  private:
-    State state_;
-
-  protected:
-    virtual void OnHttpStatusReceived(HttpStatus status)
+  public:
+    virtual ~IHttpOutputStream()
     {
     }
+
+    virtual void OnHttpStatusReceived(HttpStatus status) = 0;
 
     virtual void Send(bool isHeader, const void* buffer, size_t length) = 0;
-
-  public:
-    HttpOutputStream() : state_(State_WaitingHttpStatus)
-    {
-    }
-
-    virtual ~HttpOutputStream()
-    {
-    }
-
-    void SendHttpStatus(HttpStatus status);
-
-    void SendHeaderData(const void* buffer, size_t length);
-
-    void SendHeaderString(const std::string& str);
-
-    void SendBodyData(const void* buffer, size_t length);
-
-    void SendBodyString(const std::string& str);
   };
 }
