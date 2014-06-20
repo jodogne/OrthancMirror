@@ -374,12 +374,6 @@ int main(int argc, char* argv[])
 
     LoadLuaScripts(context);
 
-    PluginsHttpHandler httpPlugins(context);
-
-    PluginsManager pluginsManager;
-    pluginsManager.RegisterServiceProvider(httpPlugins);
-    LoadPlugins(pluginsManager);
-
     try
     {
       context.GetIndex().SetMaximumPatientCount(Configuration::GetGlobalIntegerParameter("MaximumPatientCount", 0));
@@ -442,6 +436,13 @@ int main(int argc, char* argv[])
 #else
       FilesystemHttpHandler staticResources("/app", ORTHANC_PATH "/OrthancExplorer");
 #endif
+
+      PluginsHttpHandler httpPlugins(context);
+      httpPlugins.SetOrthancRestApi(restApi);
+
+      PluginsManager pluginsManager;
+      pluginsManager.RegisterServiceProvider(httpPlugins);
+      LoadPlugins(pluginsManager);
 
       httpServer.RegisterHandler(httpPlugins);
       httpServer.RegisterHandler(staticResources);

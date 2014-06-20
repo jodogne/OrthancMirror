@@ -174,40 +174,67 @@ TEST(Zlib, Empty)
 }
 
 
-TEST(ParseGetQuery, Basic)
+TEST(ParseGetArguments, Basic)
 {
   HttpHandler::Arguments a;
-  HttpHandler::ParseGetQuery(a, "aaa=baaa&bb=a&aa=c");
+  HttpHandler::ParseGetArguments(a, "aaa=baaa&bb=a&aa=c");
   ASSERT_EQ(3u, a.size());
   ASSERT_EQ(a["aaa"], "baaa");
   ASSERT_EQ(a["bb"], "a");
   ASSERT_EQ(a["aa"], "c");
 }
 
-TEST(ParseGetQuery, BasicEmpty)
+TEST(ParseGetArguments, BasicEmpty)
 {
   HttpHandler::Arguments a;
-  HttpHandler::ParseGetQuery(a, "aaa&bb=aa&aa");
+  HttpHandler::ParseGetArguments(a, "aaa&bb=aa&aa");
   ASSERT_EQ(3u, a.size());
   ASSERT_EQ(a["aaa"], "");
   ASSERT_EQ(a["bb"], "aa");
   ASSERT_EQ(a["aa"], "");
 }
 
-TEST(ParseGetQuery, Single)
+TEST(ParseGetArguments, Single)
 {
   HttpHandler::Arguments a;
-  HttpHandler::ParseGetQuery(a, "aaa=baaa");
+  HttpHandler::ParseGetArguments(a, "aaa=baaa");
   ASSERT_EQ(1u, a.size());
   ASSERT_EQ(a["aaa"], "baaa");
 }
 
-TEST(ParseGetQuery, SingleEmpty)
+TEST(ParseGetArguments, SingleEmpty)
 {
   HttpHandler::Arguments a;
-  HttpHandler::ParseGetQuery(a, "aaa");
+  HttpHandler::ParseGetArguments(a, "aaa");
   ASSERT_EQ(1u, a.size());
   ASSERT_EQ(a["aaa"], "");
+}
+
+TEST(ParseGetQuery, Test1)
+{
+  UriComponents uri;
+  HttpHandler::Arguments a;
+  HttpHandler::ParseGetQuery(uri, a, "/instances/test/world?aaa=baaa&bb=a&aa=c");
+  ASSERT_EQ(3u, uri.size());
+  ASSERT_EQ("instances", uri[0]);
+  ASSERT_EQ("test", uri[1]);
+  ASSERT_EQ("world", uri[2]);
+  ASSERT_EQ(3u, a.size());
+  ASSERT_EQ(a["aaa"], "baaa");
+  ASSERT_EQ(a["bb"], "a");
+  ASSERT_EQ(a["aa"], "c");
+}
+
+TEST(ParseGetQuery, Test2)
+{
+  UriComponents uri;
+  HttpHandler::Arguments a;
+  HttpHandler::ParseGetQuery(uri, a, "/instances/test/world");
+  ASSERT_EQ(3u, uri.size());
+  ASSERT_EQ("instances", uri[0]);
+  ASSERT_EQ("test", uri[1]);
+  ASSERT_EQ("world", uri[2]);
+  ASSERT_EQ(0u, a.size());
 }
 
 TEST(Uri, SplitUriComponents)

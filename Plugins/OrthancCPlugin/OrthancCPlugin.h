@@ -214,8 +214,12 @@ extern "C"
     _OrthancPluginService_AnswerBuffer = 2000,
     _OrthancPluginService_CompressAndAnswerPngImage = 2001,
 
-    /* Access to the Orthanc database */
-    _OrthancPluginService_GetDicomForInstance = 3000
+    /* Access to the Orthanc database and API */
+    _OrthancPluginService_GetDicomForInstance = 3000,
+    _OrthancPluginService_RestApiGet = 3001,
+    _OrthancPluginService_RestApiPost = 3002,
+    _OrthancPluginService_RestApiDelete = 3003,
+    _OrthancPluginService_RestApiPut = 3004
   } _OrthancPluginService;
 
 
@@ -541,6 +545,25 @@ extern "C"
     params.target = target;
     params.instanceId = instanceId;
     return context->InvokeService(context, _OrthancPluginService_GetDicomForInstance, &params);
+  }
+
+
+
+  typedef struct
+  {
+    OrthancPluginMemoryBuffer*  target;
+    const char*                 uri;
+  } _OrthancPluginRestApiGet;
+
+  ORTHANC_PLUGIN_INLINE int  OrthancPluginRestApiGet(
+    OrthancPluginContext*       context,
+    OrthancPluginMemoryBuffer*  target,
+    const char*                 uri)
+  {
+    _OrthancPluginRestApiGet params;
+    params.target = target;
+    params.uri = uri;
+    return context->InvokeService(context, _OrthancPluginService_RestApiGet, &params);
   }
 
 

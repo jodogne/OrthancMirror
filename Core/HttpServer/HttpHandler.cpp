@@ -34,6 +34,8 @@
 #include "HttpHandler.h"
 
 #include <string.h>
+#include <iostream>
+
 
 namespace Orthanc
 {
@@ -62,7 +64,7 @@ namespace Orthanc
   }
 
 
-  void HttpHandler::ParseGetQuery(HttpHandler::Arguments& result, const char* query)
+  void HttpHandler::ParseGetArguments(HttpHandler::Arguments& result, const char* query)
   {
     const char* pos = query;
 
@@ -83,6 +85,24 @@ namespace Orthanc
     }
   }
 
+
+  void  HttpHandler::ParseGetQuery(UriComponents& uri,
+                                   HttpHandler::Arguments& getArguments, 
+                                   const char* query)
+  {
+    const char *questionMark = ::strchr(query, '?');
+    if (questionMark == NULL)
+    {
+      // No question mark in the string
+      Toolbox::SplitUriComponents(uri, query);
+      getArguments.clear();
+    }
+    else
+    {
+      Toolbox::SplitUriComponents(uri, std::string(query, questionMark));
+      HttpHandler::ParseGetArguments(getArguments, questionMark + 1);
+    }    
+  }
 
 
   std::string HttpHandler::GetArgument(const Arguments& getArguments,
