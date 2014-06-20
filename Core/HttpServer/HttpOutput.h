@@ -48,7 +48,7 @@ namespace Orthanc
 
     class StateMachine : public boost::noncopyable
     {
-    protected:
+    private:
       enum State
       {
         State_WaitingHttpStatus,
@@ -56,13 +56,12 @@ namespace Orthanc
         State_WritingBody
       };
 
-    private:
       IHttpOutputStream& stream_;
       State state_;
 
     public:
-      HttpStateMachine(IHttpOutputStream& stream) : 
-        stream_(stream)
+      StateMachine(IHttpOutputStream& stream) : 
+        stream_(stream),
         state_(State_WaitingHttpStatus)
       {
       }
@@ -103,12 +102,12 @@ namespace Orthanc
 
     void SendBodyData(const void* buffer, size_t length)
     {
-      stream_.SendBodyData(buffer, length);
+      stateMachine_.SendBodyData(buffer, length);
     }
 
     void SendBodyString(const std::string& str)
     {
-      stream_.SendBodyString(str);
+      stateMachine_.SendBodyString(str);
     }
 
     void SendMethodNotAllowedError(const std::string& allowed);
