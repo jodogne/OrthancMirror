@@ -68,12 +68,16 @@ namespace Orthanc
   namespace
   {
     // Anonymous namespace to avoid clashes between compilation modules
-    class MongooseOutputStream : public HttpOutputStream
+    class MongooseOutputStream : public IHttpOutputStream
     {
     private:
       struct mg_connection* connection_;
 
-    protected:
+    public:
+      MongooseOutputStream(struct mg_connection* connection) : connection_(connection)
+      {
+      }
+
       virtual void Send(bool isHeader, const void* buffer, size_t length)
       {
         if (length > 0)
@@ -82,9 +86,9 @@ namespace Orthanc
         }
       }
 
-    public:
-      MongooseOutputStream(struct mg_connection* connection) : connection_(connection)
+      virtual void OnHttpStatusReceived(HttpStatus status)
       {
+        // Ignore this
       }
     };
 
