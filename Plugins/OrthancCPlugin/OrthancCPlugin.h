@@ -404,12 +404,12 @@ extern "C"
   }
 
 
+
   typedef struct
   {
     const char* pathRegularExpression;
     OrthancPluginRestCallback callback;
   } _OrthancPluginRestCallback;
-
 
   /**
    * @brief Register a REST callback.
@@ -435,6 +435,7 @@ extern "C"
   }
 
 
+
   typedef struct
   {
     OrthancPluginRestOutput* output;
@@ -442,7 +443,6 @@ extern "C"
     uint32_t                 answerSize;
     const char*              mimeType;
   } _OrthancPluginAnswerBuffer;
-
 
   /**
    * @brief Answer to a REST request.
@@ -518,12 +518,12 @@ extern "C"
   }
 
 
+
   typedef struct
   {
     OrthancPluginMemoryBuffer*  target;
     const char*                 instanceId;
   } _OrthancPluginGetDicomForInstance;
-
 
   /**
    * @brief Retrieve a DICOM instance using its Orthanc identifier.
@@ -555,6 +555,17 @@ extern "C"
     const char*                 uri;
   } _OrthancPluginRestApiGet;
 
+  /**
+   * @brief Make a GET call to the built-in Orthanc REST API.
+   * 
+   * Make a GET call to the built-in Orthanc REST API. The result to
+   * the query is stored into a newly allocated memory buffer.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target The target memory buffer.
+   * @param uri The URI in the built-in Orthanc API.
+   * @return 0 if success, other value if error.
+   **/
   ORTHANC_PLUGIN_INLINE int  OrthancPluginRestApiGet(
     OrthancPluginContext*       context,
     OrthancPluginMemoryBuffer*  target,
@@ -564,6 +575,92 @@ extern "C"
     params.target = target;
     params.uri = uri;
     return context->InvokeService(context, _OrthancPluginService_RestApiGet, &params);
+  }
+
+
+
+  typedef struct
+  {
+    OrthancPluginMemoryBuffer*  target;
+    const char*                 uri;
+    const char*                 body;
+    uint32_t                    bodySize;
+  } _OrthancPluginRestApiPostPut;
+
+  /**
+   * @brief Make a POST call to the built-in Orthanc REST API.
+   * 
+   * Make a POST call to the built-in Orthanc REST API. The result to
+   * the query is stored into a newly allocated memory buffer.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target The target memory buffer.
+   * @param uri The URI in the built-in Orthanc API.
+   * @param body The body of the POST request.
+   * @param bodySize The size of the body.
+   * @return 0 if success, other value if error.
+   **/
+  ORTHANC_PLUGIN_INLINE int  OrthancPluginRestApiPost(
+    OrthancPluginContext*       context,
+    OrthancPluginMemoryBuffer*  target,
+    const char*                 uri,
+    const char*                 body,
+    uint32_t                    bodySize)
+  {
+    _OrthancPluginRestApiPostPut params;
+    params.target = target;
+    params.uri = uri;
+    params.body = body;
+    params.bodySize = bodySize;
+    return context->InvokeService(context, _OrthancPluginService_RestApiPost, &params);
+  }
+
+
+
+  /**
+   * @brief Make a DELETE call to the built-in Orthanc REST API.
+   * 
+   * Make a DELETE call to the built-in Orthanc REST API.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param uri The URI to delete in the built-in Orthanc API.
+   * @return 0 if success, other value if error.
+   **/
+  ORTHANC_PLUGIN_INLINE int  OrthancPluginRestApiDelete(
+    OrthancPluginContext*       context,
+    const char*                 uri)
+  {
+    return context->InvokeService(context, _OrthancPluginService_RestApiDelete, uri);
+  }
+
+
+
+  /**
+   * @brief Make a PUT call to the built-in Orthanc REST API.
+   * 
+   * Make a PUT call to the built-in Orthanc REST API. The result to
+   * the query is stored into a newly allocated memory buffer.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target The target memory buffer.
+   * @param uri The URI in the built-in Orthanc API.
+   * @param body The body of the PUT request.
+   * @param bodySize The size of the body.
+   * @return 0 if success, other value if error.
+   **/
+  ORTHANC_PLUGIN_INLINE int  OrthancPluginRestApiPut(
+    OrthancPluginContext*       context,
+    OrthancPluginMemoryBuffer*  target,
+    const char*                 uri,
+    const char*                 body,
+    uint32_t                    bodySize)
+  {
+    _OrthancPluginRestApiPostPut params;
+    params.target = target;
+    params.uri = uri;
+    params.body = body;
+    params.bodySize = bodySize;
+    return context->InvokeService(context, _OrthancPluginService_RestApiPut, &params);
   }
 
 

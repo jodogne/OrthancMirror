@@ -358,7 +358,7 @@ namespace Orthanc
     StringHttpOutput stream;
     HttpOutput http(stream);
 
-    LOG(INFO) << "Plugin making REST call on URI " << p.uri;
+    LOG(INFO) << "Plugin making REST GET call on URI " << p.uri;
 
     if (pimpl_->restApi_ != NULL &&
         pimpl_->restApi_->Handle(http, HttpMethod_Get, uri, headers, getArguments, body))
@@ -374,40 +374,100 @@ namespace Orthanc
   }
 
 
+  void PluginsHttpHandler::RestApiPostPut(bool isPost, const void* parameters)
+  {
+    const _OrthancPluginRestApiPostPut& p = 
+      *reinterpret_cast<const _OrthancPluginRestApiPostPut*>(parameters);
+
+    HttpHandler::Arguments headers;  // No HTTP header
+    HttpHandler::Arguments getArguments;  // No GET argument for POST/PUT
+
+    UriComponents uri;
+    Toolbox::SplitUriComponents(uri, p.uri);
+
+    // TODO Avoid unecessary memcpy
+    std::string body(p.body, p.bodySize);
+
+    StringHttpOutput stream;
+    HttpOutput http(stream);
+
+    HttpMethod method = (isPost ? HttpMethod_Post : HttpMethod_Put);
+    LOG(INFO) << "Plugin making REST " << EnumerationToString(method) << " call on URI " << p.uri;
+
+    if (pimpl_->restApi_ != NULL &&
+        pimpl_->restApi_->Handle(http, method, uri, headers, getArguments, body))
+    {
+      std::string result;
+      stream.GetOutput(result);
+      CopyToMemoryBuffer(*p.target, result);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadRequest);
+    }
+  }
+
+
+  void PluginsHttpHandler::RestApiDelete(const void* parameters)
+  {
+    // The "parameters" point to the URI
+    UriComponents uri;
+    Toolbox::SplitUriComponents(uri, reinterpret_cast<const char*>(parameters));
+
+    HttpHandler::Arguments headers;  // No HTTP header
+    HttpHandler::Arguments getArguments;  // No GET argument for POST/PUT
+    std::string body;  // No body for DELETE
+
+    StringHttpOutput stream;
+    HttpOutput http(stream);
+
+    LOG(INFO) << "Plugin making REST DELETE call on URI " 
+              << reinterpret_cast<const char*>(parameters);
+
+    if (pimpl_->restApi_ == NULL ||
+        !pimpl_->restApi_->Handle(http, HttpMethod_Delete, uri, headers, getArguments, body))
+    {
+      throw OrthancException(ErrorCode_BadRequest);
+    }
+  }
+
+
   bool PluginsHttpHandler::InvokeService(_OrthancPluginService service,
                                          const void* parameters)
   {
     switch (service)
     {
       case _OrthancPluginService_RegisterRestCallback:
-      {
         RegisterRestCallback(parameters);
         return true;
-      }
 
       case _OrthancPluginService_AnswerBuffer:
-      {
         AnswerBuffer(parameters);
         return true;
-      }
 
       case _OrthancPluginService_CompressAndAnswerPngImage:
-      {
         CompressAndAnswerPngImage(parameters);
         return true;
-      }
 
       case _OrthancPluginService_GetDicomForInstance:
-      {
         GetDicomForInstance(parameters);
         return true;
-      }
 
       case _OrthancPluginService_RestApiGet:
-      {
         RestApiGet(parameters);
         return true;
-      }
+
+      case _OrthancPluginService_RestApiPost:
+        RestApiPostPut(true, parameters);
+        return true;
+
+      case _OrthancPluginService_RestApiDelete:
+        RestApiDelete(parameters);
+        return true;
+
+      case _OrthancPluginService_RestApiPut:
+        RestApiPostPut(false, parameters);
+        return true;
 
       default:
         return false;
