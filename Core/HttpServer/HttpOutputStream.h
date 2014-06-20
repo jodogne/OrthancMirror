@@ -57,9 +57,7 @@ namespace Orthanc
     {
     }
 
-    virtual void SendHeader(const void* buffer, size_t length) = 0;
-
-    virtual void SendBody(const void* buffer, size_t length) = 0;
+    virtual void Send(bool isHeader, const void* buffer, size_t length) = 0;
 
   public:
     HttpOutputStream() : state_(State_WaitingHttpStatus)
