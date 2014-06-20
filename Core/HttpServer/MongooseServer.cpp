@@ -74,17 +74,12 @@ namespace Orthanc
       struct mg_connection* connection_;
 
     protected:
-      virtual void SendBody(const void* buffer, size_t length)
+      virtual void Send(bool isHeader, const void* buffer, size_t length)
       {
         if (length > 0)
         {
           mg_write(connection_, buffer, length);
         }
-      }
-
-      virtual void SendHeader(const void* buffer, size_t length)
-      {
-        SendBody(buffer, length);
       }
 
     public:

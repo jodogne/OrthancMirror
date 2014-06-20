@@ -53,7 +53,7 @@ namespace Orthanc
       " " + std::string(EnumerationToString(status)) +
       "\r\n";
 
-    SendHeader(&s[0], s.size());
+    Send(true, &s[0], s.size());
   }
 
   void HttpOutputStream::SendHeaderData(const void* buffer, size_t length)
@@ -63,7 +63,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
-    SendHeader(buffer, length);
+    Send(true, buffer, length);
   }
 
   void HttpOutputStream::SendHeaderString(const std::string& str)
@@ -84,13 +84,13 @@ namespace Orthanc
     if (state_ == State_WritingHeader)
     {
       // Close the HTTP header before writing the body
-      SendHeader("\r\n", 2);
+      Send(true, "\r\n", 2);
       state_ = State_WritingBody;
     }
 
     if (length > 0)
     {
-      SendBody(buffer, length);
+      Send(false, buffer, length);
     }
   }
 

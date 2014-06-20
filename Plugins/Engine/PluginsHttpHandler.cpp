@@ -56,12 +56,13 @@ namespace Orthanc
         return target_;
       }
 
-      virtual void SendHeaderData(const void* buffer, size_t length)
+      virtual void Send(bool isHeader, const void* buffer, size_t length)
       {
-      }
+        if (isHeader)
+        {
+          return;
+        }
 
-      virtual void SendBodyData(const void* buffer, size_t length)
-      {
         size_t pos = target_.size();
         target_.resize(pos + length);
 
