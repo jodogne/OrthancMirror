@@ -36,7 +36,7 @@
 #include <string>
 #include <stdint.h>
 #include "../Enumerations.h"
-#include "HttpOutputStream.h"
+#include "IHttpOutputStream.h"
 #include "HttpHandler.h"
 
 namespace Orthanc
@@ -45,6 +45,38 @@ namespace Orthanc
   {
   private:
     typedef std::list< std::pair<std::string, std::string> >  Header;
+
+    class StateMachine : public boost::noncopyable
+    {
+    protected:
+      enum State
+      {
+        State_WaitingHttpStatus,
+        State_WritingHeader,      
+        State_WritingBody
+      };
+
+    private:
+      IHttpOutputStream& stream_;
+      State state_;
+
+    public:
+      HttpStateMachine(IHttpOutputStream& stream) : 
+        stream_(stream)
+        state_(State_WaitingHttpStatus)
+      {
+      }
+
+      void SendHttpStatus(HttpStatus status);
+
+      void SendHeaderData(const void* buffer, size_t length);
+
+      void SendHeaderString(const std::string& str);
+
+      void SendBodyData(const void* buffer, size_t length);
+
+      void SendBodyString(const std::string& str);
+    };
 
     void PrepareOkHeader(Header& header,
                          const char* contentType,
@@ -57,10 +89,10 @@ namespace Orthanc
     void PrepareCookies(Header& header,
                         const HttpHandler::Arguments& cookies);
 
-    HttpOutputStream& stream_;
+    StateMachine stateMachine_;
 
   public:
-    HttpOutput(HttpOutputStream& stream) : stream_(stream)
+    HttpOutput(IHttpOutputStream& stream) : stateMachine_(stream)
     {
     }
 
