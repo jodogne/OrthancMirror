@@ -36,6 +36,7 @@
 #include "../../Core/HttpServer/HttpHandler.h"
 #include "../../OrthancServer/ServerContext.h"
 #include "../../OrthancServer/OrthancRestApi/OrthancRestApi.h"
+#include "../OrthancCPlugin/OrthancCPlugin.h"
 
 #include <list>
 #include <boost/shared_ptr.hpp>
@@ -48,6 +49,16 @@ namespace Orthanc
     struct PImpl;
 
     boost::shared_ptr<PImpl> pimpl_;
+
+    void RegisterRestCallback(const void* parameters);
+
+    void AnswerBuffer(const void* parameters);
+
+    void CompressAndAnswerPngImage(const void* parameters);
+
+    void GetDicomForInstance(const void* parameters);
+
+    void RestApiGet(const void* parameters);
 
   public:
     PluginsHttpHandler(ServerContext& context);

@@ -32,6 +32,7 @@
 
 #include "PluginsHttpHandler.h"
 
+#include "../../Core/ChunkedBuffer.h"
 #include "../../Core/OrthancException.h"
 #include "../../Core/Toolbox.h"
 #include "../../Core/HttpServer/HttpOutput.h"
@@ -45,30 +46,30 @@ namespace Orthanc
   namespace
   {
     // Anonymous namespace to avoid clashes between compilation modules
-    class StringHttpOutput : public HttpOutput
+    class StringHttpOutput : public IHttpOutputStream
     {
     private:
-      std::string target_;
+      ChunkedBuffer buffer_;
 
     public:
-      const std::string& GetOutput() const
+      void GetOutput(std::string& output)
       {
-        return target_;
+        buffer_.Flatten(output);
+      }
+
+      virtual void OnHttpStatusReceived(HttpStatus status)
+      {
+        if (status != HttpStatus_200_Ok)
+        {
+          throw OrthancException(ErrorCode_BadRequest);
+        }
       }
 
       virtual void Send(bool isHeader, const void* buffer, size_t length)
       {
-        if (isHeader)
+        if (!isHeader)
         {
-          return;
-        }
-
-        size_t pos = target_.size();
-        target_.resize(pos + length);
-
-        if (length > 0)
-        {
-          memcpy(&target_[pos], buffer, length);
+          buffer_.AddChunk(reinterpret_cast<const char*>(buffer), length);
         }
       }
     };
@@ -225,6 +226,154 @@ namespace Orthanc
   }
 
 
+  static void CopyToMemoryBuffer(OrthancPluginMemoryBuffer& target,
+                                 const void* data,
+                                 size_t size)
+  {
+    target.size = size;
+
+    if (size == 0)
+    {
+      target.data = NULL;
+    }
+    else
+    {
+      target.data = malloc(size);
+      if (target.data != NULL)
+      {
+        memcpy(target.data, data, size);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_NotEnoughMemory);
+      }
+    }
+  }
+
+
+  static void CopyToMemoryBuffer(OrthancPluginMemoryBuffer& target,
+                                 const std::string& str)
+  {
+    if (str.size() == 0)
+    {
+      target.size = 0;
+      target.data = NULL;
+    }
+    else
+    {
+      CopyToMemoryBuffer(target, str.c_str(), str.size());
+    }
+  }
+
+
+  void PluginsHttpHandler::RegisterRestCallback(const void* parameters)
+  {
+    const _OrthancPluginRestCallback& p = 
+      *reinterpret_cast<const _OrthancPluginRestCallback*>(parameters);
+
+    LOG(INFO) << "Plugin has registered a REST callback on: " << p.pathRegularExpression;
+    pimpl_->callbacks_.push_back(std::make_pair(new boost::regex(p.pathRegularExpression), p.callback));
+  }
+
+
+
+  void PluginsHttpHandler::AnswerBuffer(const void* parameters)
+  {
+    const _OrthancPluginAnswerBuffer& p = 
+      *reinterpret_cast<const _OrthancPluginAnswerBuffer*>(parameters);
+
+    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
+    translatedOutput->AnswerBufferWithContentType(p.answer, p.answerSize, p.mimeType);
+  }
+
+
+  void PluginsHttpHandler::CompressAndAnswerPngImage(const void* parameters)
+  {
+    const _OrthancPluginCompressAndAnswerPngImage& p = 
+      *reinterpret_cast<const _OrthancPluginCompressAndAnswerPngImage*>(parameters);
+
+    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
+
+    PixelFormat format;
+    switch (p.format)
+    {
+      case OrthancPluginPixelFormat_Grayscale8:  
+        format = PixelFormat_Grayscale8;
+        break;
+
+      case OrthancPluginPixelFormat_Grayscale16:  
+        format = PixelFormat_Grayscale16;
+        break;
+
+      case OrthancPluginPixelFormat_SignedGrayscale16:  
+        format = PixelFormat_SignedGrayscale16;
+        break;
+
+      case OrthancPluginPixelFormat_RGB24:  
+        format = PixelFormat_RGB24;
+        break;
+
+      case OrthancPluginPixelFormat_RGBA32:  
+        format = PixelFormat_RGBA32;
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    ImageAccessor accessor;
+    accessor.AssignReadOnly(format, p.width, p.height, p.pitch, p.buffer);
+
+    PngWriter writer;
+    std::string png;
+    writer.WriteToMemory(png, accessor);
+
+    translatedOutput->AnswerBufferWithContentType(png, "image/png");
+  }
+
+
+  void PluginsHttpHandler::GetDicomForInstance(const void* parameters)
+  {
+    const _OrthancPluginGetDicomForInstance& p = 
+      *reinterpret_cast<const _OrthancPluginGetDicomForInstance*>(parameters);
+
+    std::string dicom;
+    pimpl_->context_.ReadFile(dicom, p.instanceId, FileContentType_Dicom);
+    CopyToMemoryBuffer(*p.target, dicom);
+  }
+
+
+  void PluginsHttpHandler::RestApiGet(const void* parameters)
+  {
+    const _OrthancPluginRestApiGet& p = 
+      *reinterpret_cast<const _OrthancPluginRestApiGet*>(parameters);
+        
+    HttpHandler::Arguments headers;  // No HTTP header
+    std::string body;  // No body for a GET request
+
+    UriComponents uri;
+    HttpHandler::Arguments getArguments;
+    HttpHandler::ParseGetQuery(uri, getArguments, p.uri);
+
+    StringHttpOutput stream;
+    HttpOutput http(stream);
+
+    LOG(INFO) << "Plugin making REST call on URI " << p.uri;
+
+    if (pimpl_->restApi_ != NULL &&
+        pimpl_->restApi_->Handle(http, HttpMethod_Get, uri, headers, getArguments, body))
+    {
+      std::string result;
+      stream.GetOutput(result);
+      CopyToMemoryBuffer(*p.target, result);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadRequest);
+    }
+  }
+
+
   bool PluginsHttpHandler::InvokeService(_OrthancPluginService service,
                                          const void* parameters)
   {
@@ -232,99 +381,31 @@ namespace Orthanc
     {
       case _OrthancPluginService_RegisterRestCallback:
       {
-        const _OrthancPluginRestCallback& p = 
-          *reinterpret_cast<const _OrthancPluginRestCallback*>(parameters);
-
-        LOG(INFO) << "Plugin has registered a REST callback on: " << p.pathRegularExpression;
-        pimpl_->callbacks_.push_back(std::make_pair(new boost::regex(p.pathRegularExpression), p.callback));
-
+        RegisterRestCallback(parameters);
         return true;
       }
 
       case _OrthancPluginService_AnswerBuffer:
       {
-        const _OrthancPluginAnswerBuffer& p = 
-          *reinterpret_cast<const _OrthancPluginAnswerBuffer*>(parameters);
-
-        HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
-        translatedOutput->AnswerBufferWithContentType(p.answer, p.answerSize, p.mimeType);
-
+        AnswerBuffer(parameters);
         return true;
       }
 
       case _OrthancPluginService_CompressAndAnswerPngImage:
       {
-        const _OrthancPluginCompressAndAnswerPngImage& p = 
-          *reinterpret_cast<const _OrthancPluginCompressAndAnswerPngImage*>(parameters);
-
-        HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
-
-        PixelFormat format;
-        switch (p.format)
-        {
-          case OrthancPluginPixelFormat_Grayscale8:  
-            format = PixelFormat_Grayscale8;
-            break;
-
-          case OrthancPluginPixelFormat_Grayscale16:  
-            format = PixelFormat_Grayscale16;
-            break;
-
-          case OrthancPluginPixelFormat_SignedGrayscale16:  
-            format = PixelFormat_SignedGrayscale16;
-            break;
-
-          case OrthancPluginPixelFormat_RGB24:  
-            format = PixelFormat_RGB24;
-            break;
-
-          case OrthancPluginPixelFormat_RGBA32:  
-            format = PixelFormat_RGBA32;
-            break;
-
-          default:
-            throw OrthancException(ErrorCode_ParameterOutOfRange);
-        }
-
-        ImageAccessor accessor;
-        accessor.AssignReadOnly(format, p.width, p.height, p.pitch, p.buffer);
-
-        PngWriter writer;
-        std::string png;
-        writer.WriteToMemory(png, accessor);
-
-        translatedOutput->AnswerBufferWithContentType(png, "image/png");
-
+        CompressAndAnswerPngImage(parameters);
         return true;
       }
 
       case _OrthancPluginService_GetDicomForInstance:
       {
-        const _OrthancPluginGetDicomForInstance& p = 
-          *reinterpret_cast<const _OrthancPluginGetDicomForInstance*>(parameters);
+        GetDicomForInstance(parameters);
+        return true;
+      }
 
-        std::string dicom;
-        pimpl_->context_.ReadFile(dicom, p.instanceId, FileContentType_Dicom);
-
-        p.target->size = dicom.size();
-
-        if (dicom.size() == 0)
-        {
-          p.target->data = NULL;
-        }
-        else
-        {
-          p.target->data = malloc(dicom.size());
-          if (p.target->data != NULL)
-          {
-            memcpy(p.target->data, &dicom[0], dicom.size());
-          }
-          else
-          {
-            return false;
-          }
-        }
-
+      case _OrthancPluginService_RestApiGet:
+      {
+        RestApiGet(parameters);
         return true;
       }
 

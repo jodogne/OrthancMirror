@@ -129,6 +129,7 @@ ORTHANC_PLUGINS_API int32_t Callback4(OrthancPluginRestOutput* output,
 
 ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
 {
+  OrthancPluginMemoryBuffer tmp;
   char info[1024];
 
   context = c;
@@ -142,6 +143,11 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   OrthancPluginRegisterRestCallback(context, "/plugin/instances/([^/]+)/info", Callback3);
 
   OrthancPluginRegisterRestCallback(context, "/instances/([^/]+)/preview", Callback4);
+
+  
+  printf(">> %d\n", OrthancPluginRestApiGet(context, &tmp, "/instances"));
+  printf(">> [%s]\n", (const char*) tmp.data);
+  OrthancPluginFreeMemoryBuffer(context, &tmp);
 
   return 0;
 }

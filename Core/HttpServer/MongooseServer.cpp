@@ -581,7 +581,7 @@ namespace Orthanc
       HttpHandler::Arguments argumentsGET;
       if (!strcmp(request->request_method, "GET"))
       {
-        HttpHandler::ParseGetQuery(argumentsGET, request->query_string);
+        HttpHandler::ParseGetArguments(argumentsGET, request->query_string);
       }
 
 
