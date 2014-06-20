@@ -60,6 +60,10 @@ namespace Orthanc
 
     void RestApiGet(const void* parameters);
 
+    void RestApiPostPut(bool isPost, const void* parameters);
+
+    void RestApiDelete(const void* parameters);
+
   public:
     PluginsHttpHandler(ServerContext& context);
 
