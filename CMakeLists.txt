@@ -410,6 +410,10 @@ if (BUILD_CLIENT_LIBRARY)
         )
     endif()
 
+  elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+    # TODO
+    target_link_libraries(OrthancClient pthread)
+
   else()
     message(FATAL_ERROR "Support your platform here")
   endif()

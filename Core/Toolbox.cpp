@@ -105,7 +105,7 @@ namespace Orthanc
   {
 #if defined(_WIN32)
     ::Sleep(static_cast<DWORD>(microSeconds / static_cast<uint64_t>(1000)));
-#elif defined(__linux) || defined(__FreeBSD_kernel__)
+#elif defined(__linux) || defined(__APPLE__) || defined(__FreeBSD_kernel__)
     usleep(microSeconds);
 #else
 #error Support your platform here

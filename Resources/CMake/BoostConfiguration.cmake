@@ -53,7 +53,9 @@ if (BOOST_STATIC)
     )
 
   set(BOOST_SOURCES)
+
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
     list(APPEND BOOST_SOURCES
       ${BOOST_SOURCES_DIR}/libs/thread/src/pthread/once.cpp
@@ -77,8 +79,15 @@ if (BOOST_STATIC)
     add_definitions(
       -DBOOST_LOCALE_WITH_WCONV=1
       )
+
   else()
     message(FATAL_ERROR "Support your platform here")
+  endif()
+
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+    list(APPEND BOOST_SOURCES
+      ${BOOST_SOURCES_DIR}/libs/filesystem/src/utf8_codecvt_facet.cpp
+      )
   endif()
 
   aux_source_directory(${BOOST_SOURCES_DIR}/libs/regex/src BOOST_REGEX_SOURCES)
