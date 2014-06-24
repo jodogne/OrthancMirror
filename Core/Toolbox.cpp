@@ -60,11 +60,11 @@
 #include <unistd.h>
 #endif
 
-#if BOOST_HAS_LOCALE == 1
-#include <boost/locale.hpp>
-#else
-#include <iconv.h>
+#if BOOST_HAS_LOCALE != 1
+#error Since version 0.7.6, Orthanc entirely relies on boost::locale
 #endif
+
+#include <boost/locale.hpp>
 
 #include "../Resources/md5/md5.h"
 #include "../Resources/base64/base64.h"
@@ -74,68 +74,11 @@
 // Patch for the missing "_strtoll" symbol when compiling with Visual Studio
 extern "C"
 {
-int64_t _strtoi64(const char *nptr, char **endptr, int base);
-int64_t strtoll(const char *nptr, char **endptr, int base)
-{
-    return _strtoi64(nptr, endptr, base);
-} 
-}
-#endif
-
-
-#if BOOST_HAS_LOCALE == 0
-namespace
-{
-  class IconvRabi
+  int64_t _strtoi64(const char *nptr, char **endptr, int base);
+  int64_t strtoll(const char *nptr, char **endptr, int base)
   {
-  private:
-    iconv_t context_;
-
-  public:
-    IconvRabi(const char* tocode, const char* fromcode)
-    {
-      context_ = iconv_open(tocode, fromcode);
-      if (!context_)
-      {
-        throw Orthanc::OrthancException("Unknown code page");
-      }
-    }
-    
-    ~IconvRabi()
-    {
-      iconv_close(context_);
-    }
-
-    std::string Convert(const std::string& source)
-    {
-      if (source.size() == 0)
-      {
-        return "";
-      }
-
-      std::string result;
-      char* sourcePos = const_cast<char*>(&source[0]);
-      size_t sourceLeft = source.size();
-
-      std::vector<char> storage(source.size() + 10);
-      
-      while (sourceLeft > 0)
-      {
-        char* tmp = &storage[0];
-        size_t outputLeft = storage.size();
-        size_t err = iconv(context_, &sourcePos, &sourceLeft, &tmp, &outputLeft);
-        if (err < 0)
-        {
-          throw Orthanc::OrthancException("Bad character in sequence");
-        }
-
-        size_t count = storage.size() - outputLeft;
-        result += std::string(&storage[0], count);
-      }
-
-      return result;
-    }
-  };
+    return _strtoi64(nptr, endptr, base);
+  } 
 }
 #endif
 
@@ -554,7 +497,6 @@ namespace Orthanc
   std::string Toolbox::ConvertToUtf8(const std::string& source,
                                      const char* fromEncoding)
   {
-#if BOOST_HAS_LOCALE == 1
     try
     {
       return boost::locale::conv::to_utf<char>(source, fromEncoding);
@@ -564,17 +506,6 @@ namespace Orthanc
       // Bad input string or bad encoding
       return ConvertToAscii(source);
     }
-#else
-    IconvRabi iconv("UTF-8", fromEncoding);
-    try
-    {
-      return iconv.Convert(source);
-    }
-    catch (OrthancException)
-    {
-      return ConvertToAscii(source);
-    }
-#endif
   }
 
 
