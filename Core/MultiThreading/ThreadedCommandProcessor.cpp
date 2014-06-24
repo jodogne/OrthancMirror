@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "ThreadedCommandProcessor.h"
 
 #include "../OrthancException.h"

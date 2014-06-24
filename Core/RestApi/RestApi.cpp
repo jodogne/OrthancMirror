@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "RestApi.h"
 
 #include <stdlib.h>   // To define "_exit()" under Windows

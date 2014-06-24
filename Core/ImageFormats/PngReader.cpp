@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "PngReader.h"
 
 #include "../OrthancException.h"
@@ -131,10 +132,6 @@ namespace Orthanc
 
   PngReader::PngReader()
   {
-    width_ = 0;
-    height_ = 0;
-    pitch_ = 0;
-    format_ = PixelFormat_Grayscale8;
   }
 
   void PngReader::Read(PngRabi& rabi)
@@ -152,18 +149,18 @@ namespace Orthanc
                  &bit_depth, &color_type, &interlace_type,
                  &compression_type, &filter_method);
 
-    width_ = width;
-    height_ = height;
+    PixelFormat format;
+    unsigned int pitch;
 
     if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth == 8)
     {
-      format_ = PixelFormat_Grayscale8;
-      pitch_ = width_;
+      format = PixelFormat_Grayscale8;
+      pitch = width;
     }
     else if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth == 16)
     {
-      format_ = PixelFormat_Grayscale16;
-      pitch_ = 2 * width_;
+      format = PixelFormat_Grayscale16;
+      pitch = 2 * width;
 
       if (Toolbox::DetectEndianness() == Endianness_Little)
       {
@@ -172,31 +169,39 @@ namespace Orthanc
     }
     else if (color_type == PNG_COLOR_TYPE_RGB && bit_depth == 8)
     {
-      format_ = PixelFormat_Grayscale8;
-      pitch_ = 3 * width_;
+      format = PixelFormat_RGB24;
+      pitch = 3 * width;
+    }
+    else if (color_type == PNG_COLOR_TYPE_RGBA && bit_depth == 8)
+    {
+      format = PixelFormat_RGBA32;
+      pitch = 4 * width;
     }
     else
     {
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
-    buffer_.resize(height_ * pitch_);
+    data_.resize(height * pitch);
 
-    if (height_ == 0 || width_ == 0)
+    if (height == 0 || width == 0)
     {
       // Empty image, we are done
+      AssignEmpty(format);
       return;
     }
-
+    
     png_read_update_info(rabi.png_, rabi.info_);
 
-    std::vector<png_bytep> rows(height_);
-    for (size_t i = 0; i < height_; i++)
+    std::vector<png_bytep> rows(height);
+    for (size_t i = 0; i < height; i++)
     {
-      rows[i] = &buffer_[0] + i * pitch_;
+      rows[i] = &data_[0] + i * pitch;
     }
 
     png_read_image(rabi.png_, &rows[0]);
+
+    AssignReadOnly(format, width, height, pitch, &data_[0]);
   }
 
   void PngReader::ReadFromFile(const char* filename)
@@ -223,7 +228,6 @@ namespace Orthanc
 
     Read(rabi);
   }
-
 
 
   namespace
@@ -298,8 +302,12 @@ namespace Orthanc
   void PngReader::ReadFromMemory(const std::string& buffer)
   {
     if (buffer.size() != 0)
+    {
       ReadFromMemory(&buffer[0], buffer.size());
+    }
     else
+    {
       ReadFromMemory(NULL, 0);
+    }
   }
 }

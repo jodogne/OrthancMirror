@@ -29,6 +29,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
+
+#include "PrecompiledHeadersServer.h"
 #include "ServerEnumerations.h"
 
 #include "../Core/OrthancException.h"

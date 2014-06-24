@@ -30,49 +30,92 @@
  **/
 
 
-#pragma once
+#include "../PrecompiledHeaders.h"
+#include "Mutex.h"
 
-#include "../Enumerations.h"
+#include "../OrthancException.h"
 
-#include <boost/shared_ptr.hpp>
-#include <string>
+#if defined(_WIN32)
+#include <windows.h>
+#elif defined(__linux) || defined(__FreeBSD_kernel__)
+#include <pthread.h>
+#else
+#error Support your platform here
+#endif
 
 namespace Orthanc
 {
-  class PngWriter
+#if defined (_WIN32)
+
+  struct Mutex::PImpl
   {
-  private:
-    struct PImpl;
-    boost::shared_ptr<PImpl> pimpl_;
-
-    void Compress(unsigned int width,
-                  unsigned int height,
-                  unsigned int pitch,
-                  PixelFormat format);
-
-    void Prepare(unsigned int width,
-                 unsigned int height,
-                 unsigned int pitch,
-                 PixelFormat format,
-                 const void* buffer);
-
-  public:
-    PngWriter();
-
-    ~PngWriter();
-
-    void WriteToFile(const char* filename,
-                     unsigned int width,
-                     unsigned int height,
-                     unsigned int pitch,
-                     PixelFormat format,
-                     const void* buffer);
-
-    void WriteToMemory(std::string& png,
-                       unsigned int width,
-                       unsigned int height,
-                       unsigned int pitch,
-                       PixelFormat format,
-                       const void* buffer);
+    CRITICAL_SECTION criticalSection_;
   };
+
+  Mutex::Mutex()
+  {
+    pimpl_ = new PImpl;
+    ::InitializeCriticalSection(&pimpl_->criticalSection_);
+  }
+
+  Mutex::~Mutex()
+  {
+    ::DeleteCriticalSection(&pimpl_->criticalSection_);
+    delete pimpl_;
+  }
+
+  void Mutex::Lock()
+  {
+    ::EnterCriticalSection(&pimpl_->criticalSection_);
+  }
+
+  void Mutex::Unlock()
+  {
+    ::LeaveCriticalSection(&pimpl_->criticalSection_);
+  }
+
+
+#elif defined(__linux) || defined(__FreeBSD_kernel__)
+
+  struct Mutex::PImpl
+  {
+    pthread_mutex_t mutex_;
+  };
+
+  Mutex::Mutex()
+  {
+    pimpl_ = new PImpl;
+
+    if (pthread_mutex_init(&pimpl_->mutex_, NULL) != 0)
+    {
+      delete pimpl_;
+      throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+  Mutex::~Mutex()
+  {
+    pthread_mutex_destroy(&pimpl_->mutex_);
+    delete pimpl_;
+  }
+
+  void Mutex::Lock()
+  {
+    if (pthread_mutex_lock(&pimpl_->mutex_) != 0)
+    {
+      throw OrthancException(ErrorCode_InternalError);    
+    }
+  }
+
+  void Mutex::Unlock()
+  {
+    if (pthread_mutex_unlock(&pimpl_->mutex_) != 0)
+    {
+      throw OrthancException(ErrorCode_InternalError);    
+    }
+  }
+
+#else
+#error Support your plateform here
+#endif
 }
