@@ -8,7 +8,7 @@ else()
   #set(Boost_USE_STATIC_LIBS ON)
 
   find_package(Boost
-    COMPONENTS filesystem thread system date_time regex)
+    COMPONENTS filesystem thread system date_time regex locale)
 
   if (NOT Boost_FOUND)
     message(FATAL_ERROR "Unable to locate Boost on this system")
@@ -121,6 +121,6 @@ if (BOOST_STATIC)
   source_group(ThirdParty\\Boost REGULAR_EXPRESSION ${BOOST_SOURCES_DIR}/.*)
 else()
   add_definitions(
-    -DBOOST_HAS_LOCALE=0
+    -DBOOST_HAS_LOCALE=1
     )
 endif()
