@@ -29,11 +29,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
+
+#include "PrecompiledHeadersServer.h"
 #include "OrthancMoveRequestHandler.h"
 
 #include <glog/logging.h>
 
-#include "DicomProtocol/DicomUserConnection.h"
 #include "OrthancInitialization.h"
 
 namespace Orthanc
@@ -47,17 +48,17 @@ namespace Orthanc
     private:
       ServerContext& context_;
       std::vector<std::string> instances_;
-      DicomUserConnection connection_;
       size_t position_;
+      RemoteModalityParameters remote_;
 
     public:
       OrthancMoveRequestIterator(ServerContext& context,
-                                 const std::string& target,
+                                 const std::string& aet,
                                  const std::string& publicId) :
         context_(context),
         position_(0)
       {
-        LOG(INFO) << "Sending resource " << publicId << " to modality \"" << target << "\"";
+        LOG(INFO) << "Sending resource " << publicId << " to modality \"" << aet << "\"";
 
         std::list<std::string> tmp;
         context_.GetIndex().GetChildInstances(tmp, publicId);
@@ -67,8 +68,8 @@ namespace Orthanc
         {
           instances_.push_back(*it);
         }
-    
-        ConnectToModalityUsingAETitle(connection_, target);
+
+        remote_ = Configuration::GetModalityUsingAet(aet);
       }
 
       virtual unsigned int GetSubOperationCount() const
@@ -87,7 +88,12 @@ namespace Orthanc
 
         std::string dicom;
         context_.ReadFile(dicom, id, FileContentType_Dicom);
-        connection_.Store(dicom);
+
+        {
+          ReusableDicomUserConnection::Locker locker
+            (context_.GetReusableDicomUserConnection(), remote_);
+          locker.GetConnection().Store(dicom);
+        }
 
         return Status_Success;
       }
@@ -121,10 +127,10 @@ namespace Orthanc
   }
 
 
-  IMoveRequestIterator* OrthancMoveRequestHandler::Handle(const std::string& target,
+  IMoveRequestIterator* OrthancMoveRequestHandler::Handle(const std::string& aet,
                                                           const DicomMap& input)
   {
-    LOG(WARNING) << "Move-SCU request received for AET \"" << target << "\"";
+    LOG(WARNING) << "Move-SCU request received for AET \"" << aet << "\"";
 
 
     /**
@@ -173,6 +179,6 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadRequest);
     }
 
-    return new OrthancMoveRequestIterator(context_, target, publicId);
+    return new OrthancMoveRequestIterator(context_, aet, publicId);
   }
 }

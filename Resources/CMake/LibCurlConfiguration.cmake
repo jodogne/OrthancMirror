@@ -41,7 +41,8 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
   endif()
 
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
-      ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+      ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
     if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
       SET(TMP_OS "x86_64")
     else()

@@ -29,6 +29,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
+
+#include "PrecompiledHeadersServer.h"
 #include "OrthancFindRequestHandler.h"
 
 #include <glog/logging.h>
@@ -37,6 +39,7 @@
 #include "../Core/DicomFormat/DicomArray.h"
 #include "ServerToolbox.h"
 #include "OrthancInitialization.h"
+#include "FromDcmtkBridge.h"
 
 namespace Orthanc
 {
@@ -450,13 +453,14 @@ namespace Orthanc
     ModalityManufacturer manufacturer;
 
     {
-      std::string symbolicName, address;
-      int port;
+      RemoteModalityParameters modality;
 
-      if (!LookupDicomModalityUsingAETitle(callingAETitle, symbolicName, address, port, manufacturer))
+      if (!Configuration::LookupDicomModalityUsingAETitle(modality, callingAETitle))
       {
         throw OrthancException("Unknown modality");
       }
+
+      manufacturer = modality.GetManufacturer();
     }
 
 

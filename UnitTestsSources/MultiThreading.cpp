@@ -1,8 +1,46 @@
+/**
+ * Orthanc - A Lightweight, RESTful DICOM Store
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
+ * Belgium
+ *
+ * This program is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * In addition, as a special exception, the copyright holders of this
+ * program give permission to link the code of its release with the
+ * OpenSSL project's "OpenSSL" library (or with modified versions of it
+ * that use the same license as the "OpenSSL" library), and distribute
+ * the linked executables. You must obey the GNU General Public License
+ * in all respects for all of the code used other than "OpenSSL". If you
+ * modify file(s) with this exception, you may extend this exception to
+ * your version of the file(s), but you are not obligated to do so. If
+ * you do not wish to do so, delete this exception statement from your
+ * version. If you delete this exception statement from all source files
+ * in the program, then also delete it here.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ **/
+
+
+#include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
+
+#include <glog/logging.h>
 
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
 #include "../Core/MultiThreading/ArrayFilledByThreads.h"
+#include "../Core/MultiThreading/Locker.h"
+#include "../Core/MultiThreading/Mutex.h"
+#include "../Core/MultiThreading/ReaderWriterLock.h"
 #include "../Core/MultiThreading/ThreadedCommandProcessor.h"
 
 using namespace Orthanc;
@@ -184,4 +222,55 @@ TEST(MultiThreading, CommandProcessor)
     else
       ASSERT_TRUE(s.find(i) != s.end());
   }
+}
+
+
+TEST(MultiThreading, Mutex)
+{
+  Mutex mutex;
+  Locker locker(mutex);
+}
+
+
+TEST(MultiThreading, ReaderWriterLock)
+{
+  ReaderWriterLock lock;
+
+  {
+    Locker locker1(lock.ForReader());
+    Locker locker2(lock.ForReader());
+  }
+
+  {
+    Locker locker3(lock.ForWriter());
+  }
+}
+
+
+
+
+
+#include "../OrthancServer/DicomProtocol/ReusableDicomUserConnection.h"
+
+TEST(ReusableDicomUserConnection, DISABLED_Basic)
+{
+  ReusableDicomUserConnection c;
+  c.SetMillisecondsBeforeClose(200);
+  printf("START\n"); fflush(stdout);
+  {
+    ReusableDicomUserConnection::Locker lock(c, "STORESCP", "localhost", 2000, ModalityManufacturer_Generic);
+    lock.GetConnection().StoreFile("/home/jodogne/DICOM/Cardiac/MR.X.1.2.276.0.7230010.3.1.4.2831157719.2256.1336386844.676281");
+  }
+
+  printf("**\n"); fflush(stdout);
+  Toolbox::USleep(1000000);
+  printf("**\n"); fflush(stdout);
+
+  {
+    ReusableDicomUserConnection::Locker lock(c, "STORESCP", "localhost", 2000, ModalityManufacturer_Generic);
+    lock.GetConnection().StoreFile("/home/jodogne/DICOM/Cardiac/MR.X.1.2.276.0.7230010.3.1.4.2831157719.2256.1336386844.676277");
+  }
+
+  Toolbox::ServerBarrier();
+  printf("DONE\n"); fflush(stdout);
 }

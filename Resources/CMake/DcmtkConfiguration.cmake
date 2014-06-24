@@ -48,10 +48,47 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmdata/libsrc DCMTK_SOURCES)
   AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/ofstd/libsrc DCMTK_SOURCES)
 
+
+  if (ENABLE_JPEG)
+    AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc DCMTK_SOURCES)
+    AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmjpeg/libijg8 DCMTK_SOURCES)
+    AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmjpeg/libijg12 DCMTK_SOURCES)
+    AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmjpeg/libijg16 DCMTK_SOURCES)
+    include_directories(
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/include
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg8
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg12
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg16
+      ${DCMTK_SOURCES_DIR}/dcmimgle/include
+      )
+    list(REMOVE_ITEM DCMTK_SOURCES 
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/ddpiimpl.cc
+      )
+  endif()
+
+
+  if (ENABLE_JPEG_LOSSLESS)
+    AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmjpls/libsrc DCMTK_SOURCES)
+    AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmjpls/libcharls DCMTK_SOURCES)
+    include_directories(
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/include
+      ${DCMTK_SOURCES_DIR}/dcmjpls/include
+      ${DCMTK_SOURCES_DIR}/dcmjpls/libcharls
+      )
+    list(REMOVE_ITEM DCMTK_SOURCES 
+      ${DCMTK_SOURCES_DIR}/dcmjpls/libsrc/djcodece.cc
+      )
+    list(APPEND DCMTK_SOURCES 
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djrplol.cc
+      )
+  endif()
+
+
   # Source for the logging facility of DCMTK
   AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/oflog/libsrc DCMTK_SOURCES)
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
-      ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+      ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
     list(REMOVE_ITEM DCMTK_SOURCES 
       ${DCMTK_SOURCES_DIR}/oflog/libsrc/windebap.cc
       ${DCMTK_SOURCES_DIR}/oflog/libsrc/winsock.cc

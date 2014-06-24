@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "BufferCompressor.h"
 
 namespace Orthanc

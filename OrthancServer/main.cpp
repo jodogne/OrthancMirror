@@ -30,6 +30,7 @@
  **/
 
 
+#include "PrecompiledHeadersServer.h"
 #include "OrthancRestApi/OrthancRestApi.h"
 
 #include <fstream>
@@ -41,7 +42,7 @@
 #include "../Core/Lua/LuaFunctionCall.h"
 #include "../Core/DicomFormat/DicomArray.h"
 #include "DicomProtocol/DicomServer.h"
-#include "DicomProtocol/DicomUserConnection.h"
+#include "DicomProtocol/ReusableDicomUserConnection.h"
 #include "OrthancInitialization.h"
 #include "ServerContext.h"
 #include "OrthancFindRequestHandler.h"
@@ -130,7 +131,7 @@ public:
       return true;
     }
 
-    if (!IsKnownAETitle(callingAet))
+    if (!Configuration::IsKnownAETitle(callingAet))
     {
       LOG(ERROR) << "Unknown remote DICOM modality AET: \"" << callingAet << "\"";
       return false;
@@ -324,24 +325,24 @@ int main(int argc, char* argv[])
       OrthancInitialize();
     }
 
-    std::string storageDirectoryStr = GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
-    boost::filesystem::path storageDirectory = InterpretStringParameterAsPath(storageDirectoryStr);
-    boost::filesystem::path indexDirectory = 
-      InterpretStringParameterAsPath(GetGlobalStringParameter("IndexDirectory", storageDirectoryStr));
+    std::string storageDirectoryStr = Configuration::GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
+    boost::filesystem::path storageDirectory = Configuration::InterpretStringParameterAsPath(storageDirectoryStr);
+    boost::filesystem::path indexDirectory = Configuration::InterpretStringParameterAsPath(
+        Configuration::GetGlobalStringParameter("IndexDirectory", storageDirectoryStr));
     ServerContext context(storageDirectory, indexDirectory);
 
     LOG(WARNING) << "Storage directory: " << storageDirectory;
     LOG(WARNING) << "Index directory: " << indexDirectory;
 
-    context.SetCompressionEnabled(GetGlobalBoolParameter("StorageCompression", false));
-    context.SetStoreMD5ForAttachments(GetGlobalBoolParameter("StoreMD5ForAttachments", true));
+    context.SetCompressionEnabled(Configuration::GetGlobalBoolParameter("StorageCompression", false));
+    context.SetStoreMD5ForAttachments(Configuration::GetGlobalBoolParameter("StoreMD5ForAttachments", true));
 
     std::list<std::string> luaScripts;
-    GetGlobalListOfStringsParameter(luaScripts, "LuaScripts");
+    Configuration::GetGlobalListOfStringsParameter(luaScripts, "LuaScripts");
     for (std::list<std::string>::const_iterator
            it = luaScripts.begin(); it != luaScripts.end(); ++it)
     {
-      std::string path = InterpretStringParameterAsPath(*it);
+      std::string path = Configuration::InterpretStringParameterAsPath(*it);
       LOG(WARNING) << "Installing the Lua scripts from: " << path;
       std::string script;
       Toolbox::ReadFile(script, path);
@@ -351,7 +352,7 @@ int main(int argc, char* argv[])
 
     try
     {
-      context.GetIndex().SetMaximumPatientCount(GetGlobalIntegerParameter("MaximumPatientCount", 0));
+      context.GetIndex().SetMaximumPatientCount(Configuration::GetGlobalIntegerParameter("MaximumPatientCount", 0));
     }
     catch (...)
     {
@@ -360,7 +361,7 @@ int main(int argc, char* argv[])
 
     try
     {
-      uint64_t size = GetGlobalIntegerParameter("MaximumStorageSize", 0);
+      uint64_t size = Configuration::GetGlobalIntegerParameter("MaximumStorageSize", 0);
       context.GetIndex().SetMaximumStorageSize(size * 1024 * 1024);
     }
     catch (...)
@@ -374,28 +375,28 @@ int main(int argc, char* argv[])
       // DICOM server
       DicomServer dicomServer;
       OrthancApplicationEntityFilter dicomFilter;
-      dicomServer.SetCalledApplicationEntityTitleCheck(GetGlobalBoolParameter("DicomCheckCalledAet", false));
+      dicomServer.SetCalledApplicationEntityTitleCheck(Configuration::GetGlobalBoolParameter("DicomCheckCalledAet", false));
       dicomServer.SetStoreRequestHandlerFactory(serverFactory);
       dicomServer.SetMoveRequestHandlerFactory(serverFactory);
       dicomServer.SetFindRequestHandlerFactory(serverFactory);
-      dicomServer.SetPortNumber(GetGlobalIntegerParameter("DicomPort", 4242));
-      dicomServer.SetApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
+      dicomServer.SetPortNumber(Configuration::GetGlobalIntegerParameter("DicomPort", 4242));
+      dicomServer.SetApplicationEntityTitle(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"));
       dicomServer.SetApplicationEntityFilter(dicomFilter);
 
       // HTTP server
       MyIncomingHttpRequestFilter httpFilter(context);
       MongooseServer httpServer;
-      httpServer.SetPortNumber(GetGlobalIntegerParameter("HttpPort", 8042));
-      httpServer.SetRemoteAccessAllowed(GetGlobalBoolParameter("RemoteAccessAllowed", false));
+      httpServer.SetPortNumber(Configuration::GetGlobalIntegerParameter("HttpPort", 8042));
+      httpServer.SetRemoteAccessAllowed(Configuration::GetGlobalBoolParameter("RemoteAccessAllowed", false));
       httpServer.SetIncomingHttpRequestFilter(httpFilter);
 
-      httpServer.SetAuthenticationEnabled(GetGlobalBoolParameter("AuthenticationEnabled", false));
-      SetupRegisteredUsers(httpServer);
+      httpServer.SetAuthenticationEnabled(Configuration::GetGlobalBoolParameter("AuthenticationEnabled", false));
+      Configuration::SetupRegisteredUsers(httpServer);
 
-      if (GetGlobalBoolParameter("SslEnabled", false))
+      if (Configuration::GetGlobalBoolParameter("SslEnabled", false))
       {
-        std::string certificate = 
-          InterpretStringParameterAsPath(GetGlobalStringParameter("SslCertificate", "certificate.pem"));
+        std::string certificate = Configuration::InterpretStringParameterAsPath(
+          Configuration::GetGlobalStringParameter("SslCertificate", "certificate.pem"));
         httpServer.SetSslEnabled(true);
         httpServer.SetSslCertificate(certificate.c_str());
       }
@@ -413,7 +414,7 @@ int main(int argc, char* argv[])
       httpServer.RegisterHandler(new OrthancRestApi(context));
 
       // GO !!! Start the requested servers
-      if (GetGlobalBoolParameter("HttpServerEnabled", true))
+      if (Configuration::GetGlobalBoolParameter("HttpServerEnabled", true))
       {
         httpServer.Start();
         LOG(WARNING) << "HTTP server listening on port: " << httpServer.GetPortNumber();
@@ -423,7 +424,7 @@ int main(int argc, char* argv[])
         LOG(WARNING) << "The HTTP server is disabled";
       }
 
-      if (GetGlobalBoolParameter("DicomServerEnabled", true))
+      if (Configuration::GetGlobalBoolParameter("DicomServerEnabled", true))
       {
         dicomServer.Start();
         LOG(WARNING) << "DICOM server listening on port: " << dicomServer.GetPortNumber();

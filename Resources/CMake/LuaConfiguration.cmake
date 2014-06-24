@@ -51,7 +51,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LUA)
     )
 
   add_library(Lua STATIC ${LUA_SOURCES})
-  link_libraries(Lua)
+  set(STATIC_LUA Lua)
 
   source_group(ThirdParty\\Lua REGULAR_EXPRESSION ${LUA_SOURCES_DIR}/.*)
 
