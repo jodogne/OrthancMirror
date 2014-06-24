@@ -107,7 +107,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif 
 
 
-#if defined(__FreeBSD_kernel__)
+#if !defined(HOST_NAME_MAX) && defined(_POSIX_HOST_NAME_MAX)
 /**
  * TO IMPROVE: "_POSIX_HOST_NAME_MAX is only the minimum value that
  * HOST_NAME_MAX can ever have [...] Therefore you cannot allocate an
