@@ -146,6 +146,7 @@ namespace Orthanc
   struct ParsedDicomFile::PImpl
   {
     std::auto_ptr<DcmFileFormat> file_;
+    Encoding encoding_;
   };
 
 
@@ -170,6 +171,8 @@ namespace Orthanc
     }
     pimpl_->file_->loadAllDataIntoMemory();
     pimpl_->file_->transferEnd();
+
+    pimpl_->encoding_ = FromDcmtkBridge::DetectEncoding(*pimpl_->file_->getDataset());
   }
 
 
@@ -872,7 +875,7 @@ namespace Orthanc
       return false;
     }
 
-    std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(*element));
+    std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(*element, pimpl_->encoding_));
 
     if (v.get() == NULL)
     {
@@ -885,7 +888,6 @@ namespace Orthanc
 
     return true;
   }
-
 
 
   DicomInstanceHasher ParsedDicomFile::GetHasher()
@@ -901,98 +903,6 @@ namespace Orthanc
     }
 
     return DicomInstanceHasher(patientId, studyUid, seriesUid, instanceUid);
-  }
-
-
-  static void StoreElement(Json::Value& target,
-                           DcmElement& element,
-                           unsigned int maxStringLength);
-
-  static void StoreItem(Json::Value& target,
-                        DcmItem& item,
-                        unsigned int maxStringLength)
-  {
-    target = Json::Value(Json::objectValue);
-
-    for (unsigned long i = 0; i < item.card(); i++)
-    {
-      DcmElement* element = item.getElement(i);
-      StoreElement(target, *element, maxStringLength);
-    }
-  }
-
-
-  static void StoreElement(Json::Value& target,
-                           DcmElement& element,
-                           unsigned int maxStringLength)
-  {
-    assert(target.type() == Json::objectValue);
-
-    DicomTag tag(FromDcmtkBridge::GetTag(element));
-    const std::string formattedTag = tag.Format();
-
-#if 0
-    const std::string tagName = FromDcmtkBridge::GetName(tag);
-#else
-    // This version of the code gives access to the name of the private tags
-    DcmTag tagbis(element.getTag());
-    const std::string tagName(tagbis.getTagName());      
-#endif
-
-    if (element.isLeaf())
-    {
-      Json::Value value(Json::objectValue);
-      value["Name"] = tagName;
-
-      if (tagbis.getPrivateCreator() != NULL)
-      {
-        value["PrivateCreator"] = tagbis.getPrivateCreator();
-      }
-
-      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element));
-      if (v->IsNull())
-      {
-        value["Type"] = "Null";
-        value["Value"] = Json::nullValue;
-      }
-      else
-      {
-        std::string s = v->AsString();
-        if (maxStringLength == 0 ||
-            s.size() <= maxStringLength)
-        {
-          value["Type"] = "String";
-          value["Value"] = s;
-        }
-        else
-        {
-          value["Type"] = "TooLong";
-          value["Value"] = Json::nullValue;
-        }
-      }
-
-      target[formattedTag] = value;
-    }
-    else
-    {
-      Json::Value children(Json::arrayValue);
-
-      // "All subclasses of DcmElement except for DcmSequenceOfItems
-      // are leaf nodes, while DcmSequenceOfItems, DcmItem, DcmDataset
-      // etc. are not." The following cast is thus OK.
-      DcmSequenceOfItems& sequence = dynamic_cast<DcmSequenceOfItems&>(element);
-
-      for (unsigned long i = 0; i < sequence.card(); i++)
-      {
-        DcmItem* child = sequence.getItem(i);
-        Json::Value& v = children.append(Json::objectValue);
-        StoreItem(v, *child, maxStringLength);
-      }  
-
-      target[formattedTag]["Name"] = tagName;
-      target[formattedTag]["Type"] = "Sequence";
-      target[formattedTag]["Value"] = children;
-    }
   }
 
 
@@ -1044,6 +954,7 @@ namespace Orthanc
   ParsedDicomFile::ParsedDicomFile() : pimpl_(new PImpl)
   {
     pimpl_->file_.reset(new DcmFileFormat);
+    pimpl_->encoding_ = Encoding_Ascii;
     Replace(DICOM_TAG_PATIENT_ID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Patient));
     Replace(DICOM_TAG_STUDY_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Study));
     Replace(DICOM_TAG_SERIES_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Series));
@@ -1073,6 +984,8 @@ namespace Orthanc
     pimpl_(new PImpl)
   {
     pimpl_->file_.reset(dynamic_cast<DcmFileFormat*>(other.pimpl_->file_->clone()));
+
+    pimpl_->encoding_ = other.pimpl_->encoding_;
   }
 
 
@@ -1279,4 +1192,9 @@ namespace Orthanc
     writer.WriteToMemory(result, accessor);
   }
 
+
+  Encoding ParsedDicomFile::GetEncoding() const
+  {
+    return pimpl_->encoding_;
+  }
 }

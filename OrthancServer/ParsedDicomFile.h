@@ -104,6 +104,8 @@ namespace Orthanc
     void ExtractPngImage(std::string& result,
                          unsigned int frame,
                          ImageExtractionMode mode);
+
+    Encoding GetEncoding() const;
   };
 
 }

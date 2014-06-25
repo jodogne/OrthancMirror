@@ -115,8 +115,18 @@ namespace Orthanc
             GetCharValue(c[3]));
   }
 
+
+  Encoding FromDcmtkBridge::DetectEncoding(DcmDataset& dataset)
+  {
+    // TODO Implement this!
+    return Encoding_Latin1;
+  }
+
+
   void FromDcmtkBridge::Convert(DicomMap& target, DcmDataset& dataset)
   {
+    Encoding encoding = DetectEncoding(dataset);
+
     target.Clear();
     for (unsigned long i = 0; i < dataset.card(); i++)
     {
@@ -125,7 +135,7 @@ namespace Orthanc
       {
         target.SetValue(element->getTag().getGTag(),
                         element->getTag().getETag(),
-                        ConvertLeafElement(*element));
+                        ConvertLeafElement(*element, encoding));
       }
     }
   }
@@ -137,7 +147,8 @@ namespace Orthanc
   }
 
 
-  DicomValue* FromDcmtkBridge::ConvertLeafElement(DcmElement& element)
+  DicomValue* FromDcmtkBridge::ConvertLeafElement(DcmElement& element,
+                                                  Encoding encoding)
   {
     if (!element.isLeaf())
     {
@@ -151,7 +162,7 @@ namespace Orthanc
           c != NULL)
       {
         std::string s(c);
-        std::string utf8 = Toolbox::ConvertToUtf8(s, Encoding_Latin1); // TODO Parameter?
+        std::string utf8 = Toolbox::ConvertToUtf8(s, encoding);
         return new DicomString(utf8);
       }
       else
@@ -313,25 +324,28 @@ namespace Orthanc
 
   static void StoreElement(Json::Value& target,
                            DcmElement& element,
-                           unsigned int maxStringLength);
+                           unsigned int maxStringLength,
+                           Encoding encoding);
 
   static void StoreItem(Json::Value& target,
                         DcmItem& item,
-                        unsigned int maxStringLength)
+                        unsigned int maxStringLength,
+                        Encoding encoding)
   {
     target = Json::Value(Json::objectValue);
 
     for (unsigned long i = 0; i < item.card(); i++)
     {
       DcmElement* element = item.getElement(i);
-      StoreElement(target, *element, maxStringLength);
+      StoreElement(target, *element, maxStringLength, encoding);
     }
   }
 
 
   static void StoreElement(Json::Value& target,
                            DcmElement& element,
-                           unsigned int maxStringLength)
+                           unsigned int maxStringLength,
+                           Encoding encoding)
   {
     assert(target.type() == Json::objectValue);
 
@@ -356,7 +370,7 @@ namespace Orthanc
         value["PrivateCreator"] = tagbis.getPrivateCreator();
       }
 
-      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element));
+      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element, encoding));
       if (v->IsNull())
       {
         value["Type"] = "Null";
@@ -393,7 +407,7 @@ namespace Orthanc
       {
         DcmItem* child = sequence.getItem(i);
         Json::Value& v = children.append(Json::objectValue);
-        StoreItem(v, *child, maxStringLength);
+        StoreItem(v, *child, maxStringLength, encoding);
       }  
 
       target[formattedTag]["Name"] = tagName;
@@ -407,7 +421,7 @@ namespace Orthanc
                                DcmDataset& dataset,
                                unsigned int maxStringLength)
   {
-    StoreItem(root, dataset, maxStringLength);
+    StoreItem(root, dataset, maxStringLength, DetectEncoding(dataset));
   }
 
 

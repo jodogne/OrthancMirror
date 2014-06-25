@@ -230,6 +230,7 @@ namespace Orthanc
 
   enum Encoding
   {
+    Encoding_Ascii,
     Encoding_Utf8,
     Encoding_Latin1
   };

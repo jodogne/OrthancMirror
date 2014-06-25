@@ -505,6 +505,9 @@ namespace Orthanc
         // Already in UTF-8: No conversion is required
         return source;
 
+      case Encoding_Ascii:
+        return ConvertToAscii(source);;
+
       case Encoding_Latin1:
         encoding = "ISO-8859-1";
         break;
