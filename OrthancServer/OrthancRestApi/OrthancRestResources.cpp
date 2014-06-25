@@ -591,6 +591,72 @@ namespace Orthanc
 
 
 
+  static void GetSharedTags(RestApi::GetCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+    std::string publicId = call.GetUriComponent("id", "");
+
+    // Retrieve all the instances of this patient/study/series
+    typedef std::list<std::string> Instances;
+    Instances instances;
+    context.GetIndex().GetChildInstances(instances, publicId);
+
+    // Loop over the instances
+    bool isFirst = true;
+    Json::Value shared = Json::objectValue;
+
+    for (Instances::const_iterator it = instances.begin();
+         it != instances.end(); it++)
+    {
+      // Get the tags of the current instance, in the simplified format
+      Json::Value full, simplified;
+      context.ReadJson(full, *it);
+      SimplifyTags(simplified, full);
+
+      if (simplified.type() != Json::objectValue)
+      {
+        return;   // Error
+      }
+
+      // Only keep the tags that are mapped to a string
+      Json::Value::Members members = simplified.getMemberNames();
+      for (size_t i = 0; i < members.size(); i++)
+      {
+        Json::ValueType type = simplified[members[i]].type();
+        if (type != Json::stringValue)
+        {
+          simplified.removeMember(members[i]);
+        }
+      }
+
+      if (isFirst)
+      {
+        // This is the first instance, keep its tags as such
+        shared = simplified;
+        isFirst = false;
+      }
+      else
+      {
+        // Loop over all the members of the shared tags extracted so
+        // far. If the value of one of these tags does not match its
+        // value in the current instance, remove it.
+        members = shared.getMemberNames();
+        for (size_t i = 0; i < members.size(); i++)
+        {
+          if (!simplified.isMember(members[i]) ||
+              simplified[members[i]].asString() != shared[members[i]].asString())
+          {
+            shared.removeMember(members[i]);
+          }
+        }
+      }
+    }
+
+    // Success: Send the value of the shared tags
+    call.GetOutput().AnswerJson(shared);
+  }
+
+
   void OrthancRestApi::RegisterResources()
   {
     Register("/instances", ListResources<ResourceType_Instance>);
@@ -611,6 +677,10 @@ namespace Orthanc
     Register("/patients/{id}/statistics", GetResourceStatistics);
     Register("/studies/{id}/statistics", GetResourceStatistics);
     Register("/series/{id}/statistics", GetResourceStatistics);
+
+    Register("/patients/{id}/shared-tags", GetSharedTags);
+    Register("/series/{id}/shared-tags", GetSharedTags);
+    Register("/studies/{id}/shared-tags", GetSharedTags);
 
     Register("/instances/{id}/file", GetInstanceFile);
     Register("/instances/{id}/export", ExportInstanceFile);
