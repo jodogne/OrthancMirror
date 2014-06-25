@@ -52,12 +52,7 @@ namespace Orthanc
     static void SetupImageBuffer(ImageBuffer& target,
                                  DcmDataset& dataset);
 
-    static bool DecodePsmctRle1(std::string& output,
-                                DcmDataset& dataset);
-
     static bool IsUncompressedImage(const DcmDataset& dataset);
-
-    static bool IsJpegLossless(const DcmDataset& dataset);
 
     static void DecodeUncompressedImage(ImageBuffer& target,
                                         DcmDataset& dataset,

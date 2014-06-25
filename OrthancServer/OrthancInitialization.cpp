@@ -299,7 +299,7 @@ namespace Orthanc
     {
       LOG(ERROR) << "Syntax error in the definition of modality \"" << name 
                  << "\". Please check your configuration file.";
-      throw e;
+      throw;
     }
   }
 
@@ -330,7 +330,7 @@ namespace Orthanc
     {
       LOG(ERROR) << "Syntax error in the definition of peer \"" << name 
                  << "\". Please check your configuration file.";
-      throw e;
+      throw;
     }
   }
 
