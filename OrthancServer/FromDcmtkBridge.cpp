@@ -151,7 +151,7 @@ namespace Orthanc
           c != NULL)
       {
         std::string s(c);
-        std::string utf8 = Toolbox::ConvertToUtf8(s, "ISO-8859-1"); // TODO Parameter?
+        std::string utf8 = Toolbox::ConvertToUtf8(s, Encoding_Latin1); // TODO Parameter?
         return new DicomString(utf8);
       }
       else

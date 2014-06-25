@@ -1,7 +1,7 @@
 # This is the minizip distribution to create ZIP files
 list(APPEND THIRD_PARTY_SOURCES 
-  ${ORTHANC_ROOT}/Resources/minizip/ioapi.c
-  ${ORTHANC_ROOT}/Resources/minizip/zip.c
+  ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/ioapi.c
+  ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/zip.c
   )
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_ZLIB)

@@ -106,7 +106,7 @@ namespace Orthanc
     std::string GetDirectoryOfExecutable();
 
     std::string ConvertToUtf8(const std::string& source,
-                              const char* fromEncoding);
+                              const Encoding sourceEncoding);
 
     std::string ConvertToAscii(const std::string& source);
 

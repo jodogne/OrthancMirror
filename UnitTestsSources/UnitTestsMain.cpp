@@ -441,7 +441,7 @@ TEST(Toolbox, ConvertFromLatin1)
   ASSERT_EQ("&abc", Toolbox::ConvertToAscii(s));
 
   // Open in Emacs, then save with UTF-8 encoding, then "hexdump -C"
-  std::string utf8 = Toolbox::ConvertToUtf8(s, "ISO-8859-1");
+  std::string utf8 = Toolbox::ConvertToUtf8(s, Encoding_Latin1);
   ASSERT_EQ(15u, utf8.size());
   ASSERT_EQ(0xc3, static_cast<unsigned char>(utf8[0]));
   ASSERT_EQ(0xa0, static_cast<unsigned char>(utf8[1]));
