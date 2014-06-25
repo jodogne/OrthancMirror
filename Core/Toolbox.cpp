@@ -66,8 +66,8 @@
 
 #include <boost/locale.hpp>
 
-#include "../Resources/md5/md5.h"
-#include "../Resources/base64/base64.h"
+#include "../Resources/ThirdParty/md5/md5.h"
+#include "../Resources/ThirdParty/base64/base64.h"
 
 
 #ifdef _MSC_VER
