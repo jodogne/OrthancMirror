@@ -30,6 +30,7 @@
  **/
 
 
+#include "PrecompiledHeaders.h"
 #include "Uuid.h"
 
 // http://stackoverflow.com/a/1626302

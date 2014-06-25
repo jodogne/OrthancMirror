@@ -30,6 +30,56 @@
  **/
 
 
+
+/*=========================================================================
+
+  This file is based on portions of the following project:
+
+  Program: DCMTK 3.6.0
+  Module:  http://dicom.offis.de/dcmtk.php.en
+
+Copyright (C) 1994-2011, OFFIS e.V.
+All rights reserved.
+
+This software and supporting documentation were developed by
+
+  OFFIS e.V.
+  R&D Division Health
+  Escherweg 2
+  26121 Oldenburg, Germany
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+- Redistributions of source code must retain the above copyright
+  notice, this list of conditions and the following disclaimer.
+
+- Redistributions in binary form must reproduce the above copyright
+  notice, this list of conditions and the following disclaimer in the
+  documentation and/or other materials provided with the distribution.
+
+- Neither the name of OFFIS nor the names of its contributors may be
+  used to endorse or promote products derived from this software
+  without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+=========================================================================*/
+
+
+
+#include "../PrecompiledHeadersServer.h"
 #include "FindScp.h"
 
 #include "../FromDcmtkBridge.h"
@@ -50,6 +100,7 @@ namespace Orthanc
       DicomFindAnswers answers_;
       DcmDataset* lastRequest_;
       const std::string* callingAETitle_;
+      bool noCroppingOfResults_;
     };
 
 
@@ -75,12 +126,12 @@ namespace Orthanc
 
         try
         {
-          data.handler_->Handle(data.answers_, data.input_, *data.callingAETitle_);
+          data.noCroppingOfResults_ = data.handler_->Handle(data.answers_, data.input_, *data.callingAETitle_);
         }
         catch (OrthancException& e)
         {
           // Internal error!
-          LOG(ERROR) <<  "IFindRequestHandler Failed: " << e.What();
+          LOG(ERROR) <<  "C-FIND request handler has failed: " << e.What();
           response->DimseStatus = STATUS_FIND_Failed_UnableToProcess;
           *responseIdentifiers = NULL;   
           return;
@@ -98,12 +149,21 @@ namespace Orthanc
 
       if (responseCount <= static_cast<int>(data.answers_.GetSize()))
       {
+        // There are pending results that are still to be sent
         response->DimseStatus = STATUS_Pending;
         *responseIdentifiers = ToDcmtkBridge::Convert(data.answers_.GetAnswer(responseCount - 1));
       }
+      else if (data.noCroppingOfResults_)
+      {
+        // Success: All the results have been sent
+        response->DimseStatus = STATUS_Success;
+        *responseIdentifiers = NULL;
+      }
       else
       {
-        response->DimseStatus = STATUS_Success;
+        // Success, but the results were too numerous and had to be cropped
+        LOG(WARNING) <<  "Too many results for an incoming C-FIND query";
+        response->DimseStatus = STATUS_FIND_Cancel_MatchingTerminatedDueToCancelRequest;
         *responseIdentifiers = NULL;
       }
     }
@@ -120,6 +180,7 @@ namespace Orthanc
     data.lastRequest_ = NULL;
     data.handler_ = &handler;
     data.callingAETitle_ = &callingAETitle;
+    data.noCroppingOfResults_ = true;
 
     OFCondition cond = DIMSE_findProvider(assoc, presID, &msg->msg.CFindRQ, 
                                           FindScpCallback, &data,

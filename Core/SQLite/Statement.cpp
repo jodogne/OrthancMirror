@@ -34,6 +34,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "Statement.h"
 
 #include "Connection.h"

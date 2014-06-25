@@ -30,6 +30,7 @@
  **/
 
 
+#include "../Core/PrecompiledHeaders.h"
 #include "Patient.h"
 
 #include "OrthancConnection.h"

@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "CompressedFileStorageAccessor.h"
 
 #include "../OrthancException.h"

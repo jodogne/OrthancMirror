@@ -95,9 +95,11 @@ namespace Orthanc
 
     bool IsSHA1(const std::string& str);
 
-    std::string DecodeBase64(const std::string& data);
+    void DecodeBase64(std::string& result, 
+                      const std::string& data);
 
-    std::string EncodeBase64(const std::string& data);
+    void EncodeBase64(std::string& result, 
+                      const std::string& data);
 
     std::string GetPathToExecutable();
 
@@ -122,5 +124,11 @@ namespace Orthanc
     void TokenizeString(std::vector<std::string>& result,
                         const std::string& source,
                         char separator);
+
+    void DecodeDataUriScheme(std::string& mime,
+                             std::string& content,
+                             const std::string& source);
+
+    void CreateDirectory(const std::string& path);
   }
 }

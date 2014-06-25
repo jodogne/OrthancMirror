@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "SharedMessageQueue.h"
 
 namespace Orthanc

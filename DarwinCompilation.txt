@@ -1,0 +1,52 @@
+This file is a complement to "INSTALL", which contains instructions
+that are specific to Mac OS X (Darwin).
+
+
+Static linking for OS X using XCode
+===================================
+
+The most simple way of building Orthanc under OS X consists in
+statically linking against all the third-party dependencies. In this
+case, no package manager such as Homebrew or MacPorts is required.
+The build tool (CMake) will download the sources of all the required
+packages and automatically compile them.
+
+
+Prerequisites
+-------------
+
+1) XCode must be installed.
+
+2) CMake must be installed (http://www.cmake.org/).
+
+3) It is assumed that Orthanc source code is placed in the folder
+   "~/Orthanc" and that the binaries will be compiled to
+   "~/OrthancBuild".
+
+
+Prepare the build with CMake
+----------------------------
+
+# cd ~/OrthancBuild
+# cmake -GXcode -DCMAKE_OSX_DEPLOYMENT_TARGET=10.8 -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON ..
+
+NB: Adapt the value of "CMAKE_OSX_DEPLOYMENT_TARGET" with respect to
+your version of XCode.
+
+
+Build the Debug version of Orthanc
+----------------------------------
+
+# xcodebuild
+# ./Debug/UnitTests
+
+The binaries of Orthanc are located at "~/OrthancBuild/Debug/Orthanc".
+
+
+Build the Release version of Orthanc
+------------------------------------
+
+# xcodebuild -configuration Release
+# ./Debug/UnitTests
+
+The binaries of Orthanc are located at "~/OrthancBuild/Release/Orthanc".

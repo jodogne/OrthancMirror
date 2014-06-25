@@ -278,8 +278,10 @@ namespace Orthanc
                                     const Json::Value& roi,
                                     unsigned int index)
   {
-    boost::mutex::scoped_lock lock(context.GetDicomFileMutex());
-    ParsedDicomFile& dicom = context.GetDicomFile(instanceId);
+    std::string content;
+    context.ReadFile(content, instanceId, FileContentType_Dicom);
+
+    ParsedDicomFile dicom(content);
 
     ParsedDicomFile::SequencePath path;
     path.push_back(std::make_pair(DicomTag(0x3006, 0x0039 /* ROIContourSequence */), roi["InternalIndex"].asInt()));
@@ -810,4 +812,5 @@ namespace Orthanc
 /**
    storescu localhost 4242 ~/DICOM/Akos/data1/*.dcm
    curl http://localhost:8042/series/10668f4a-fcc8fd1c-832e409c-5c7c018f-7ac8d3d9/rt-structures
+   curl http://localhost:8042/series/10668f4a-fcc8fd1c-832e409c-5c7c018f-7ac8d3d9/rt-structures/roi/5/closed-planar/19/vertices
 **/

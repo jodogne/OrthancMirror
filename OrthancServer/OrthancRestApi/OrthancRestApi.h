@@ -64,15 +64,23 @@ namespace Orthanc
   public:
     OrthancRestApi(ServerContext& context);
 
+    static OrthancRestApi& GetApi(RestApi::Call& call)
+    {
+      return dynamic_cast<OrthancRestApi&>(call.GetContext());
+    }
+
     static ServerContext& GetContext(RestApi::Call& call)
     {
-      OrthancRestApi& that = dynamic_cast<OrthancRestApi&>(call.GetContext());
-      return that.context_;
+      return GetApi(call).context_;
     }
 
     static ServerIndex& GetIndex(RestApi::Call& call)
     {
       return GetContext(call).GetIndex();
     }
+
+    void AnswerStoredInstance(RestApi::PostCall& call,
+                              const std::string& publicId,
+                              StoreStatus status);
   };
 }

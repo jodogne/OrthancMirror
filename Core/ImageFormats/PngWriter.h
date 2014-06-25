@@ -32,78 +32,61 @@
 
 #pragma once
 
-#include "../Enumerations.h"
+#include "ImageAccessor.h"
 
-#include <vector>
-#include <stdint.h>
 #include <boost/shared_ptr.hpp>
+#include <string>
 
 namespace Orthanc
 {
-  class PngReader
+  class PngWriter
   {
   private:
-    struct PngRabi;
+    struct PImpl;
+    boost::shared_ptr<PImpl> pimpl_;
 
-    PixelFormat format_;
-    unsigned int width_;
-    unsigned int height_;
-    unsigned int pitch_;
-    std::vector<uint8_t> buffer_;
+    void Compress(unsigned int width,
+                  unsigned int height,
+                  unsigned int pitch,
+                  PixelFormat format);
 
-    void CheckHeader(const void* header);
-
-    void Read(PngRabi& rabi);
+    void Prepare(unsigned int width,
+                 unsigned int height,
+                 unsigned int pitch,
+                 PixelFormat format,
+                 const void* buffer);
 
   public:
-    PngReader();
+    PngWriter();
 
-    PixelFormat GetFormat() const
+    ~PngWriter();
+
+    void WriteToFile(const char* filename,
+                     unsigned int width,
+                     unsigned int height,
+                     unsigned int pitch,
+                     PixelFormat format,
+                     const void* buffer);
+
+    void WriteToMemory(std::string& png,
+                       unsigned int width,
+                       unsigned int height,
+                       unsigned int pitch,
+                       PixelFormat format,
+                       const void* buffer);
+
+    void WriteToFile(const char* filename,
+                     const ImageAccessor& accessor)
     {
-      return format_;
+      WriteToFile(filename, accessor.GetWidth(), accessor.GetHeight(),
+                  accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
     }
 
-    unsigned int GetWidth() const
+    void WriteToMemory(std::string& png,
+                       const ImageAccessor& accessor)
     {
-      return width_;
+      WriteToMemory(png, accessor.GetWidth(), accessor.GetHeight(),
+                    accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
     }
-
-    unsigned int GetHeight() const
-    {
-      return height_;
-    }
-
-    unsigned int GetPitch() const
-    {
-      return pitch_;
-    }
-
-    const void* GetBuffer() const
-    {
-      if (buffer_.size() > 0)
-        return &buffer_[0];
-      else
-        return NULL;
-    }
-
-    const void* GetBuffer(unsigned int y) const
-    {
-      if (buffer_.size() > 0)
-        return &buffer_[y * pitch_];
-      else
-        return NULL;
-    }
-
-    void ReadFromFile(const char* filename);
-
-    void ReadFromFile(const std::string& filename)
-    {
-      ReadFromFile(filename.c_str());
-    }
-
-    void ReadFromMemory(const void* buffer,
-                        size_t size);
-
-    void ReadFromMemory(const std::string& buffer);
   };
 }

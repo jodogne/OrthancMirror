@@ -115,4 +115,15 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_SPECIFIC_CHARACTER_SET(0x0008, 0x0005);
   static const DicomTag DICOM_TAG_QUERY_RETRIEVE_LEVEL(0x0008, 0x0052);
   static const DicomTag DICOM_TAG_MODALITIES_IN_STUDY(0x0008, 0x0061);
+
+  // Tags for images
+  static const DicomTag DICOM_TAG_COLUMNS(0x0028, 0x0011);
+  static const DicomTag DICOM_TAG_ROWS(0x0028, 0x0010);
+  static const DicomTag DICOM_TAG_SAMPLES_PER_PIXEL(0x0028, 0x0002);
+  static const DicomTag DICOM_TAG_BITS_ALLOCATED(0x0028, 0x0100);
+  static const DicomTag DICOM_TAG_BITS_STORED(0x0028, 0x0101);
+  static const DicomTag DICOM_TAG_HIGH_BIT(0x0028, 0x0102);
+  static const DicomTag DICOM_TAG_PIXEL_REPRESENTATION(0x0028, 0x0103);
+  static const DicomTag DICOM_TAG_PLANAR_CONFIGURATION(0x0028, 0x0006);
+  static const DicomTag DICOM_TAG_PHOTOMETRIC_INTERPRETATION(0x0028, 0x0004);
 }

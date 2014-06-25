@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "DicomArray.h"
 
 #include <stdio.h>
