@@ -32,61 +32,86 @@
 
 #pragma once
 
-#include "ImageAccessor.h"
+#include "DicomMap.h"
 
-#include <boost/shared_ptr.hpp>
-#include <string>
+#include <stdint.h>
 
 namespace Orthanc
 {
-  class PngWriter
+  class DicomImageInformation
   {
   private:
-    struct PImpl;
-    boost::shared_ptr<PImpl> pimpl_;
+    unsigned int width_;
+    unsigned int height_;
+    unsigned int samplesPerPixel_;
+    unsigned int numberOfFrames_;
 
-    void Compress(unsigned int width,
-                  unsigned int height,
-                  unsigned int pitch,
-                  PixelFormat format);
+    bool isPlanar_;
+    bool isSigned_;
+    size_t bytesPerValue_;
 
-    void Prepare(unsigned int width,
-                 unsigned int height,
-                 unsigned int pitch,
-                 PixelFormat format,
-                 const void* buffer);
+    unsigned int bitsAllocated_;
+    unsigned int bitsStored_;
+    unsigned int highBit_;
 
   public:
-    PngWriter();
+    DicomImageInformation(const DicomMap& values);
 
-    ~PngWriter();
-
-    void WriteToFile(const char* filename,
-                     unsigned int width,
-                     unsigned int height,
-                     unsigned int pitch,
-                     PixelFormat format,
-                     const void* buffer);
-
-    void WriteToMemory(std::string& png,
-                       unsigned int width,
-                       unsigned int height,
-                       unsigned int pitch,
-                       PixelFormat format,
-                       const void* buffer);
-
-    void WriteToFile(const char* filename,
-                     const ImageAccessor& accessor)
+    unsigned int GetWidth() const
     {
-      WriteToFile(filename, accessor.GetWidth(), accessor.GetHeight(),
-                  accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
+      return width_;
     }
 
-    void WriteToMemory(std::string& png,
-                       const ImageAccessor& accessor)
+    unsigned int GetHeight() const
     {
-      WriteToMemory(png, accessor.GetWidth(), accessor.GetHeight(),
-                    accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
+      return height_;
     }
+
+    unsigned int GetNumberOfFrames() const
+    {
+      return numberOfFrames_;
+    }
+
+    unsigned int GetChannelCount() const
+    {
+      return samplesPerPixel_;
+    }
+
+    unsigned int GetBitsStored() const
+    {
+      return bitsStored_;
+    }
+
+    size_t GetBytesPerValue() const
+    {
+      return bytesPerValue_;
+    }
+
+    bool IsSigned() const
+    {
+      return isSigned_;
+    }
+
+    unsigned int GetBitsAllocated() const
+    {
+      return bitsAllocated_;
+    }
+
+    unsigned int GetHighBit() const
+    {
+      return highBit_;
+    }
+
+    bool IsPlanar() const
+    {
+      return isPlanar_;
+    }
+
+    unsigned int GetShift() const
+    {
+      return highBit_ + 1 - bitsStored_;
+    }
+
+    bool ExtractPixelFormat(PixelFormat& format) const;
   };
 }

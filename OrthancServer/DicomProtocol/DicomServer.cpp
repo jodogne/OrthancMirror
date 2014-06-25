@@ -116,7 +116,7 @@ namespace Orthanc
     LoadEmbeddedDictionary(d, EmbeddedResources::DICTIONARY_DICOM);
     LoadEmbeddedDictionary(d, EmbeddedResources::DICTIONARY_PRIVATE);
 
-#elif defined(__linux)
+#elif defined(__linux) || defined(__FreeBSD_kernel__)
     std::string path = DCMTK_DICTIONARY_DIR;
 
     const char* env = std::getenv(DCM_DICT_ENVIRONMENT_VARIABLE);

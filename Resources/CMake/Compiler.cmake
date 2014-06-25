@@ -37,7 +37,8 @@ elseif (${MSVC})
 endif()
 
 
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
+    ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
   if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --lsb-target-version=${LSB_TARGET_VERSION} -I${LSB_PATH}/include")
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --lsb-target-version=${LSB_TARGET_VERSION} -nostdinc++ -I${LSB_PATH}/include -I${LSB_PATH}/include/c++ -I${LSB_PATH}/include/c++/backward -fpermissive")
@@ -68,6 +69,12 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     # This is a patch for MinGW64
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--allow-multiple-definition -static-libgcc -static-libstdc++")
   endif()
+
+elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+  add_definitions(
+    -D_XOPEN_SOURCE=1
+    )
+  link_libraries(iconv)
 
 endif()
 

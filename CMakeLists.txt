@@ -18,6 +18,8 @@ SET(BUILD_CLIENT_LIBRARY ON CACHE BOOL "Build the client library")
 SET(DCMTK_DICTIONARY_DIR "" CACHE PATH "Directory containing the DCMTK dictionaries \"dicom.dic\" and \"private.dic\" (only when using system version of DCMTK)") 
 SET(ALLOW_DOWNLOADS OFF CACHE BOOL "Allow CMake to download packages")
 SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
+SET(ENABLE_JPEG ON CACHE BOOL "Enable JPEG decompression")
+SET(ENABLE_JPEG_LOSSLESS ON CACHE BOOL "Enable JPEG-LS (Lossless) decompression")
 
 # Advanced parameters to fine-tune linking against system libraries
 SET(USE_SYSTEM_JSONCPP ON CACHE BOOL "Use the system version of JsonCpp")
@@ -66,6 +68,7 @@ set(ORTHANC_CORE_SOURCES
   Core/DicomFormat/DicomArray.cpp
   Core/DicomFormat/DicomMap.cpp
   Core/DicomFormat/DicomTag.cpp
+  Core/DicomFormat/DicomImageInformation.cpp
   Core/DicomFormat/DicomIntegerPixelAccessor.cpp
   Core/DicomFormat/DicomInstanceHasher.cpp
   Core/Enumerations.cpp
@@ -92,6 +95,7 @@ set(ORTHANC_CORE_SOURCES
   Core/MultiThreading/ThreadedCommandProcessor.cpp
   Core/ImageFormats/ImageAccessor.cpp
   Core/ImageFormats/ImageBuffer.cpp
+  Core/ImageFormats/ImageProcessing.cpp
   Core/ImageFormats/PngReader.cpp
   Core/ImageFormats/PngWriter.cpp
   Core/SQLite/Connection.cpp
@@ -126,6 +130,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/Internals/FindScp.cpp
   OrthancServer/Internals/MoveScp.cpp
   OrthancServer/Internals/StoreScp.cpp
+  OrthancServer/Internals/DicomImageDecoder.cpp
   OrthancServer/OrthancInitialization.cpp
   OrthancServer/OrthancPeerParameters.cpp
   OrthancServer/OrthancRestApi/OrthancRestAnonymizeModify.cpp
@@ -161,6 +166,9 @@ set(ORTHANC_UNIT_TESTS_SOURCES
   UnitTestsSources/Lua.cpp
   UnitTestsSources/MultiThreading.cpp
   UnitTestsSources/UnitTestsMain.cpp
+  UnitTestsSources/ImageProcessingTests.cpp
+  UnitTestsSources/JpegLossless.cpp
+
   UnitTestsSources/Plustache.cpp
   )
 
@@ -200,6 +208,20 @@ if (${ENABLE_SSL})
   include(${CMAKE_SOURCE_DIR}/Resources/CMake/OpenSslConfiguration.cmake)
 else()
   add_definitions(-DORTHANC_SSL_ENABLED=0)
+endif()
+
+
+if (ENABLE_JPEG)
+  add_definitions(-DORTHANC_JPEG_ENABLED=1)
+else()
+  add_definitions(-DORTHANC_JPEG_ENABLED=0)
+endif()
+
+
+if (ENABLE_JPEG_LOSSLESS)
+  add_definitions(-DORTHANC_JPEG_LOSSLESS_ENABLED=1)
+else()
+  add_definitions(-DORTHANC_JPEG_LOSSLESS_ENABLED=0)
 endif()
 
 
@@ -290,7 +312,7 @@ add_executable(Orthanc
   OrthancServer/main.cpp
   )
 
-target_link_libraries(Orthanc ServerLibrary CoreLibrary)
+target_link_libraries(Orthanc ServerLibrary CoreLibrary ${STATIC_LUA} ${STATIC_GOOGLE_LOG})
 
 if (${OPENSSL_SOURCES_LENGTH} GREATER 0)
   target_link_libraries(Orthanc OpenSSL)
@@ -319,7 +341,7 @@ add_executable(UnitTests
   ${GTEST_SOURCES}
   ${ORTHANC_UNIT_TESTS_SOURCES}
   )
-target_link_libraries(UnitTests ServerLibrary CoreLibrary)
+target_link_libraries(UnitTests ServerLibrary CoreLibrary ${STATIC_LUA} ${STATIC_GOOGLE_LOG})
 
 if (${OPENSSL_SOURCES_LENGTH} GREATER 0)
   target_link_libraries(UnitTests OpenSSL)
@@ -366,14 +388,17 @@ if (BUILD_CLIENT_LIBRARY)
 
   add_library(OrthancClient SHARED
     ${ORTHANC_ROOT}/OrthancCppClient/OrthancCppClient.cpp
+    ${ORTHANC_ROOT}/OrthancCppClient/SharedLibrary/SharedLibrary.cpp
     ${ORTHANC_ROOT}/Resources/md5/md5.c
     ${ORTHANC_ROOT}/Resources/base64/base64.cpp
     ${ORTHANC_CPP_CLIENT_AUX}
     ${THIRD_PARTY_SOURCES}
     ${CURL_SOURCES}
+    ${GOOGLE_LOG_SOURCES}
     )
 
-  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
     set_target_properties(OrthancClient
       PROPERTIES LINK_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined -Wl,--as-needed -Wl,--version-script=${ORTHANC_ROOT}/OrthancCppClient/SharedLibrary/Laaw/VersionScript.map"
       )
@@ -387,6 +412,10 @@ if (BUILD_CLIENT_LIBRARY)
         PROPERTIES LINK_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--allow-multiple-definition -static-libgcc -static-libstdc++"
         )
     endif()
+
+  elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+    # TODO
+    target_link_libraries(OrthancClient pthread)
 
   else()
     message(FATAL_ERROR "Support your platform here")

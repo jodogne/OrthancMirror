@@ -28,7 +28,9 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
   set(ac_google_start_namespace "namespace google {")
   set(ac_google_end_namespace "}")
 
-  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
     set(ac_cv_have_unistd_h 1)
     set(ac_cv_have_stdint_h 1)
     set(ac_cv_have_systypes_h 0)
@@ -83,11 +85,19 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
       )
   endif()
 
-  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
     if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
       # Install the specific configuration for LSB SDK
       configure_file(
         ${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfigurationLSB.h
+        ${GOOGLE_LOG_SOURCES_DIR}/src/config.h
+        COPYONLY)
+    elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+      # Install the specific configuration for Mac OS
+      configure_file(
+        ${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfigurationDarwin.h
         ${GOOGLE_LOG_SOURCES_DIR}/src/config.h
         COPYONLY)
     else()
@@ -130,13 +140,10 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
       # This is a patch for MinGW64
       add_definitions(-D_TIME_H__S=1)
     endif()
-
   endif()
- 
-
 
   add_library(GoogleLog STATIC ${GOOGLE_LOG_SOURCES})
-  link_libraries(GoogleLog)
+  set(STATIC_GOOGLE_LOG GoogleLog)
 
 else()
   CHECK_INCLUDE_FILE_CXX(glog/logging.h HAVE_GOOGLE_LOG_H)

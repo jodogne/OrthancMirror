@@ -32,61 +32,50 @@
 
 #pragma once
 
-#include "ImageAccessor.h"
+#include <dcmtk/dcmdata/dcfilefo.h>
 
-#include <boost/shared_ptr.hpp>
-#include <string>
+#include "../../Core/ImageFormats/ImageBuffer.h"
 
 namespace Orthanc
 {
-  class PngWriter
+  class DicomImageDecoder
   {
   private:
-    struct PImpl;
-    boost::shared_ptr<PImpl> pimpl_;
+    class ImageSource;
 
-    void Compress(unsigned int width,
-                  unsigned int height,
-                  unsigned int pitch,
-                  PixelFormat format);
+    static void DecodeUncompressedImageInternal(ImageBuffer& target,
+                                                DcmDataset& dataset,
+                                                unsigned int frame);
 
-    void Prepare(unsigned int width,
-                 unsigned int height,
-                 unsigned int pitch,
-                 PixelFormat format,
-                 const void* buffer);
+    static bool IsPsmctRle1(DcmDataset& dataset);
+
+    static void SetupImageBuffer(ImageBuffer& target,
+                                 DcmDataset& dataset);
+
+    static bool IsUncompressedImage(const DcmDataset& dataset);
+
+    static void DecodeUncompressedImage(ImageBuffer& target,
+                                        DcmDataset& dataset,
+                                        unsigned int frame);
+
+#if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
+    static void DecodeJpegLossless(ImageBuffer& target,
+                                   DcmDataset& dataset,
+                                   unsigned int frame);
+#endif
 
   public:
-    PngWriter();
+    static bool Decode(ImageBuffer& target,
+                       DcmDataset& dataset,
+                       unsigned int frame);
 
-    ~PngWriter();
+    static bool DecodeAndTruncate(ImageBuffer& target,
+                                  DcmDataset& dataset,
+                                  unsigned int frame,
+                                  PixelFormat format);
 
-    void WriteToFile(const char* filename,
-                     unsigned int width,
-                     unsigned int height,
-                     unsigned int pitch,
-                     PixelFormat format,
-                     const void* buffer);
-
-    void WriteToMemory(std::string& png,
-                       unsigned int width,
-                       unsigned int height,
-                       unsigned int pitch,
-                       PixelFormat format,
-                       const void* buffer);
-
-    void WriteToFile(const char* filename,
-                     const ImageAccessor& accessor)
-    {
-      WriteToFile(filename, accessor.GetWidth(), accessor.GetHeight(),
-                  accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
-    }
-
-    void WriteToMemory(std::string& png,
-                       const ImageAccessor& accessor)
-    {
-      WriteToMemory(png, accessor.GetWidth(), accessor.GetHeight(),
-                    accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
-    }
+    static bool DecodePreview(ImageBuffer& target,
+                              DcmDataset& dataset,
+                              unsigned int frame);
   };
 }
