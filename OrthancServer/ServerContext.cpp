@@ -286,7 +286,7 @@ namespace Orthanc
         LogMissingRequiredTag(dicomSummary);
       }
 
-      throw e;
+      throw;
     }
   }
 

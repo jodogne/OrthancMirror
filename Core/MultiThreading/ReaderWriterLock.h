@@ -34,9 +34,11 @@
 
 #include "ILockable.h"
 
+#include <boost/noncopyable.hpp>
+
 namespace Orthanc
 {
-  class ReaderWriterLock
+  class ReaderWriterLock : public boost::noncopyable
   {
   private:
     struct PImpl;
