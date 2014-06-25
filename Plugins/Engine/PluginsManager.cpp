@@ -159,7 +159,7 @@ namespace Orthanc
 
     for (std::list<IPluginServiceProvider*>::iterator
            it = that->serviceProviders_.begin(); 
-         it != that->serviceProviders_.end(); it++)
+         it != that->serviceProviders_.end(); ++it)
     {
       try
       {
@@ -199,7 +199,7 @@ namespace Orthanc
 
   PluginsManager::~PluginsManager()
   {
-    for (Plugins::iterator it = plugins_.begin(); it != plugins_.end(); it++)
+    for (Plugins::iterator it = plugins_.begin(); it != plugins_.end(); ++it)
     {
       if (it->second != NULL)
       {

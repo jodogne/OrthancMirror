@@ -101,7 +101,7 @@ namespace Orthanc
   PluginsHttpHandler::~PluginsHttpHandler()
   {
     for (PImpl::Callbacks::iterator it = pimpl_->callbacks_.begin(); 
-         it != pimpl_->callbacks_.end(); it++)
+         it != pimpl_->callbacks_.end(); ++it)
     {
       delete it->first;
     }
@@ -123,7 +123,7 @@ namespace Orthanc
 
     bool found = false;
     for (PImpl::Callbacks::const_iterator it = pimpl_->callbacks_.begin(); 
-         it != pimpl_->callbacks_.end() && !found; it++)
+         it != pimpl_->callbacks_.end() && !found; ++it)
     {
       boost::cmatch what;
       if (boost::regex_match(flatUri.c_str(), what, *(it->first)))
@@ -166,7 +166,7 @@ namespace Orthanc
 
         size_t i = 0;
         for (Arguments::const_iterator it = getArguments.begin(); 
-             it != getArguments.end(); it++, i++)
+             it != getArguments.end(); ++it, ++i)
         {
           getKeys[i] = it->first.c_str();
           getValues[i] = it->second.c_str();
