@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "HttpHandler.h"
 
 #include <string.h>

@@ -1,3 +1,36 @@
+/**
+ * Orthanc - A Lightweight, RESTful DICOM Store
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
+ * Belgium
+ *
+ * This program is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * In addition, as a special exception, the copyright holders of this
+ * program give permission to link the code of its release with the
+ * OpenSSL project's "OpenSSL" library (or with modified versions of it
+ * that use the same license as the "OpenSSL" library), and distribute
+ * the linked executables. You must obey the GNU General Public License
+ * in all respects for all of the code used other than "OpenSSL". If you
+ * modify file(s) with this exception, you may extend this exception to
+ * your version of the file(s), but you are not obligated to do so. If
+ * you do not wish to do so, delete this exception statement from your
+ * version. If you delete this exception statement from all source files
+ * in the program, then also delete it here.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ **/
+
+
+#include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
 #include "../Core/OrthancException.h"
@@ -11,7 +44,7 @@ using namespace Orthanc;
 TEST(ZipWriter, Basic)
 {
   Orthanc::ZipWriter w;
-  w.SetOutputPath("hello.zip");
+  w.SetOutputPath("UnitTestsResults/hello.zip");
   w.Open();
   w.OpenFile("world/hello");
   w.Write("Hello world");
@@ -21,7 +54,7 @@ TEST(ZipWriter, Basic)
 TEST(ZipWriter, Basic64)
 {
   Orthanc::ZipWriter w;
-  w.SetOutputPath("hello64.zip");
+  w.SetOutputPath("UnitTestsResults/hello64.zip");
   w.SetZip64(true);
   w.Open();
   w.OpenFile("world/hello");
@@ -33,7 +66,7 @@ TEST(ZipWriter, Exceptions)
 {
   Orthanc::ZipWriter w;
   ASSERT_THROW(w.Open(), Orthanc::OrthancException);
-  w.SetOutputPath("hello3.zip");
+  w.SetOutputPath("UnitTestsResults/hello3.zip");
   w.Open();
   ASSERT_THROW(w.Write("hello world"), Orthanc::OrthancException);
 }
@@ -91,7 +124,7 @@ TEST(HierarchicalZipWriter, Basic)
 {
   static const std::string SPACES = "                             ";
 
-  HierarchicalZipWriter w("hello2.zip");
+  HierarchicalZipWriter w("UnitTestsResults/hello2.zip");
 
   w.SetCompressionLevel(0);
 

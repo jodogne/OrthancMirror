@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "PngWriter.h"
 
 #include <vector>
@@ -138,6 +139,11 @@ namespace Orthanc
     case PixelFormat_RGB24:
       pimpl_->bitDepth_ = 8;
       pimpl_->colorType_ = PNG_COLOR_TYPE_RGB;
+      break;
+
+    case PixelFormat_RGBA32:
+      pimpl_->bitDepth_ = 8;
+      pimpl_->colorType_ = PNG_COLOR_TYPE_RGBA;
       break;
 
     case PixelFormat_Grayscale8:

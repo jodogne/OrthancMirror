@@ -29,6 +29,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
+
+#include "PrecompiledHeadersServer.h"
 #include "OrthancFindRequestHandler.h"
 
 #include <glog/logging.h>
@@ -37,6 +39,7 @@
 #include "../Core/DicomFormat/DicomArray.h"
 #include "ServerToolbox.h"
 #include "OrthancInitialization.h"
+#include "FromDcmtkBridge.h"
 
 namespace Orthanc
 {
@@ -439,7 +442,26 @@ namespace Orthanc
   }
 
 
-  void OrthancFindRequestHandler::Handle(DicomFindAnswers& answers,
+  bool OrthancFindRequestHandler::HasReachedLimit(const DicomFindAnswers& answers,
+                                                  ResourceType level) const
+  {
+    switch (level)
+    {
+      case ResourceType_Patient:
+      case ResourceType_Study:
+      case ResourceType_Series:
+        return (maxResults_ != 0 && answers.GetSize() >= maxResults_);
+
+      case ResourceType_Instance:
+        return (maxInstances_ != 0 && answers.GetSize() >= maxInstances_);
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
+  bool OrthancFindRequestHandler::Handle(DicomFindAnswers& answers,
                                          const DicomMap& input,
                                          const std::string& callingAETitle)
   {
@@ -450,13 +472,14 @@ namespace Orthanc
     ModalityManufacturer manufacturer;
 
     {
-      std::string symbolicName, address;
-      int port;
+      RemoteModalityParameters modality;
 
-      if (!LookupDicomModalityUsingAETitle(callingAETitle, symbolicName, address, port, manufacturer))
+      if (!Configuration::LookupDicomModalityUsingAETitle(modality, callingAETitle))
       {
         throw OrthancException("Unknown modality");
       }
+
+      manufacturer = modality.GetManufacturer();
     }
 
 
@@ -576,6 +599,12 @@ namespace Orthanc
         
           if (Matches(info, query))
           {
+            if (HasReachedLimit(answers, level))
+            {
+              // Too many results, stop before recording this new match
+              return false;
+            }
+
             AddAnswer(answers, info, query);
           }
         }
@@ -585,6 +614,8 @@ namespace Orthanc
         // This resource has probably been deleted during the find request
       }
     }
+
+    return true;  // All the matching resources have been returned
   }
 }
 

@@ -47,6 +47,13 @@ See the file "LinuxCompilation.txt".
 
 
 
+Native OS X Compilation
+-----------------------
+
+See the file "DarwinCompilation.txt".
+
+
+
 Native Windows build with Microsoft Visual Studio 2005
 ------------------------------------------------------
 
@@ -71,7 +78,7 @@ To cross-compile Windows binaries under Linux using MinGW, please use
 the following command:
 
 # cd ~/OrthancBuild
-# cmake -DCMAKE_TOOLCHAIN_FILE=~/Orthanc/Resources/MinGWToolchain.cmake -DSTANDALONE_BUILD=ON -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
+# cmake -DCMAKE_TOOLCHAIN_FILE=~/Orthanc/Resources/MinGWToolchain.cmake -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
 # make
 
 

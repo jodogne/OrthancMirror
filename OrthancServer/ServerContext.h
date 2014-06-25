@@ -38,7 +38,8 @@
 #include "../Core/RestApi/RestApiOutput.h"
 #include "../Core/Lua/LuaContext.h"
 #include "ServerIndex.h"
-#include "FromDcmtkBridge.h"
+#include "ParsedDicomFile.h"
+#include "DicomProtocol/ReusableDicomUserConnection.h"
 
 namespace Orthanc
 {
@@ -69,11 +70,31 @@ namespace Orthanc
     bool compressionEnabled_;
     
     DicomCacheProvider provider_;
+    boost::mutex dicomCacheMutex_;
     MemoryCache dicomCache_;
+    ReusableDicomUserConnection scu_;
 
     LuaContext lua_;
 
   public:
+    class DicomCacheLocker
+    {
+    private:
+      ServerContext& that_;
+      ParsedDicomFile *dicom_;
+
+    public:
+      DicomCacheLocker(ServerContext& that,
+                       const std::string& instancePublicId);
+
+      ~DicomCacheLocker();
+
+      ParsedDicomFile& GetDicom()
+      {
+        return *dicom_;
+      }
+    };
+
     ServerContext(const boost::filesystem::path& storagePath,
                   const boost::filesystem::path& indexPath);
 
@@ -103,25 +124,19 @@ namespace Orthanc
                       const std::string& remoteAet);
 
     StoreStatus Store(std::string& resultPublicId,
-                      DcmFileFormat& dicomInstance,
+                      ParsedDicomFile& dicomInstance,
                       const char* dicomBuffer,
                       size_t dicomSize);
 
     StoreStatus Store(std::string& resultPublicId,
-                      DcmFileFormat& dicomInstance);
+                      ParsedDicomFile& dicomInstance);
 
     StoreStatus Store(std::string& resultPublicId,
                       const char* dicomBuffer,
                       size_t dicomSize);
 
     StoreStatus Store(std::string& resultPublicId,
-                      const std::string& dicomContent)
-    {
-      if (dicomContent.size() == 0)
-        return Store(resultPublicId, NULL, 0);
-      else
-        return Store(resultPublicId, &dicomContent[0], dicomContent.size());
-    }
+                      const std::string& dicomContent);
 
     void AnswerDicomFile(RestApiOutput& output,
                          const std::string& instancePublicId,
@@ -136,9 +151,6 @@ namespace Orthanc
                   FileContentType content,
                   bool uncompressIfNeeded = true);
 
-    // TODO IMPLEMENT MULTITHREADING FOR THIS METHOD
-    ParsedDicomFile& GetDicomFile(const std::string& instancePublicId);
-
     LuaContext& GetLuaContext()
     {
       return lua_;
@@ -149,6 +161,11 @@ namespace Orthanc
     bool IsStoreMD5ForAttachments() const
     {
       return accessor_.IsStoreMD5();
+    }
+
+    ReusableDicomUserConnection& GetReusableDicomUserConnection()
+    {
+      return scu_;
     }
   };
 }
