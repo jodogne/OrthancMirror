@@ -12,6 +12,10 @@ case, the system-wide libraries will not be used. The build tool
 automatically compile them. This process should work on all the Linux
 distributions.
 
+We make the assumption that Orthanc source code is placed in the
+folder "~/Orthanc" and that the binaries will be compiled to
+"~/OrthancBuild".
+
 
 To build binaries with debug information:
 

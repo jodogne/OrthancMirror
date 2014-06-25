@@ -107,7 +107,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif 
 
 
-#if defined(__FreeBSD_kernel__)
+#if !defined(HOST_NAME_MAX) && defined(_POSIX_HOST_NAME_MAX)
 /**
  * TO IMPROVE: "_POSIX_HOST_NAME_MAX is only the minimum value that
  * HOST_NAME_MAX can ever have [...] Therefore you cannot allocate an
@@ -217,21 +217,21 @@ namespace Orthanc
     unsigned int presentationContextId = 1;
 
     for (std::list<std::string>::const_iterator it = reservedStorageSOPClasses_.begin();
-         it != reservedStorageSOPClasses_.end(); it++)
+         it != reservedStorageSOPClasses_.end(); ++it)
     {
       RegisterStorageSOPClass(pimpl_->params_, presentationContextId, 
                               *it, asPreferred, asFallback);
     }
 
     for (std::set<std::string>::const_iterator it = storageSOPClasses_.begin();
-         it != storageSOPClasses_.end(); it++)
+         it != storageSOPClasses_.end(); ++it)
     {
       RegisterStorageSOPClass(pimpl_->params_, presentationContextId, 
                               *it, asPreferred, asFallback);
     }
 
     for (std::set<std::string>::const_iterator it = defaultStorageSOPClasses_.begin();
-         it != defaultStorageSOPClasses_.end(); it++)
+         it != defaultStorageSOPClasses_.end(); ++it)
     {
       RegisterStorageSOPClass(pimpl_->params_, presentationContextId, 
                               *it, asPreferred, asFallback);

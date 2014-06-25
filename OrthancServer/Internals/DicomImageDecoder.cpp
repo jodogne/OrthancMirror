@@ -100,108 +100,19 @@
 
 namespace Orthanc
 {
-  class DicomImageDecoder::ImageSource
-  {
-  private:
-    std::string psmct_;
-    std::auto_ptr<DicomIntegerPixelAccessor> slowAccessor_;
-    std::auto_ptr<ImageAccessor> fastAccessor_;
-
-  public:
-    void Setup(DcmDataset& dataset,
-               unsigned int frame)
-    {
-      psmct_.clear();
-      slowAccessor_.reset(NULL);
-      fastAccessor_.reset(NULL);
-
-      // See also: http://support.dcmtk.org/wiki/dcmtk/howto/accessing-compressed-data
-
-      DicomMap m;
-      FromDcmtkBridge::Convert(m, dataset);
-
-      /**
-       * Create an accessor to the raw values of the DICOM image.
-       **/
-
-      DcmElement* e;
-      if (dataset.findAndGetElement(ToDcmtkBridge::Convert(DICOM_TAG_PIXEL_DATA), e).good() &&
-          e != NULL)
-      {
-        Uint8* pixData = NULL;
-        if (e->getUint8Array(pixData) == EC_Normal)
-        {    
-          slowAccessor_.reset(new DicomIntegerPixelAccessor(m, pixData, e->getLength()));
-        }
-      }
-      else if (DicomImageDecoder::DecodePsmctRle1(psmct_, dataset))
-      {
-        LOG(INFO) << "The PMSCT_RLE1 decoding has succeeded";
-        Uint8* pixData = NULL;
-        if (psmct_.size() > 0)
-        {
-          pixData = reinterpret_cast<Uint8*>(&psmct_[0]);
-        }
-
-        slowAccessor_.reset(new DicomIntegerPixelAccessor(m, pixData, psmct_.size()));
-      }
-    
-      if (slowAccessor_.get() == NULL)
-      {
-        throw OrthancException(ErrorCode_BadFileFormat);
-      }
-
-      slowAccessor_->SetCurrentFrame(frame);
-
-
-      /**
-       * If possible, create a fast ImageAccessor to the image buffer.
-       **/
-
-      
-    }
-
-    unsigned int GetWidth() const
-    {
-      assert(slowAccessor_.get() != NULL);
-      return slowAccessor_->GetInformation().GetWidth();
-    }
-
-    unsigned int GetHeight() const
-    {
-      assert(slowAccessor_.get() != NULL);
-      return slowAccessor_->GetInformation().GetHeight();
-    }
-
-    unsigned int GetChannelCount() const
-    {
-      assert(slowAccessor_.get() != NULL);
-      return slowAccessor_->GetInformation().GetChannelCount();
-    }
-
-    const DicomIntegerPixelAccessor& GetAccessor() const
-    {
-      assert(slowAccessor_.get() != NULL);
-      return *slowAccessor_;
-    }
-
-    bool HasFastAccessor() const
-    {
-      return fastAccessor_.get() != NULL;
-    }
-
-    const ImageAccessor& GetFastAccessor() const
-    {
-      assert(HasFastAccessor());
-      return *fastAccessor_;
-    }
-  };
-
-
   static const DicomTag DICOM_TAG_CONTENT(0x07a1, 0x100a);
   static const DicomTag DICOM_TAG_COMPRESSION_TYPE(0x07a1, 0x1011);
 
-  bool DicomImageDecoder::IsPsmctRle1(DcmDataset& dataset)
+
+  static bool IsJpegLossless(const DcmDataset& dataset)
+  {
+    // http://support.dcmtk.org/docs/dcxfer_8h-source.html
+    return (dataset.getOriginalXfer() == EXS_JPEGLSLossless ||
+            dataset.getOriginalXfer() == EXS_JPEGLSLossy);
+  }
+
+
+  static bool IsPsmctRle1(DcmDataset& dataset)
   {
     DcmElement* e;
     char* c;
@@ -224,8 +135,8 @@ namespace Orthanc
   }
 
 
-  bool DicomImageDecoder::DecodePsmctRle1(std::string& output,
-                                          DcmDataset& dataset)
+  static bool DecodePsmctRle1(std::string& output,
+                              DcmDataset& dataset)
   {
     // Check whether the DICOM instance contains an image encoded with
     // the PMSCT_RLE1 scheme.
@@ -309,6 +220,104 @@ namespace Orthanc
   }
 
 
+  class DicomImageDecoder::ImageSource
+  {
+  private:
+    std::string psmct_;
+    std::auto_ptr<DicomIntegerPixelAccessor> slowAccessor_;
+    std::auto_ptr<ImageAccessor> fastAccessor_;
+
+  public:
+    void Setup(DcmDataset& dataset,
+               unsigned int frame)
+    {
+      psmct_.clear();
+      slowAccessor_.reset(NULL);
+      fastAccessor_.reset(NULL);
+
+      // See also: http://support.dcmtk.org/wiki/dcmtk/howto/accessing-compressed-data
+
+      DicomMap m;
+      FromDcmtkBridge::Convert(m, dataset);
+
+      /**
+       * Create an accessor to the raw values of the DICOM image.
+       **/
+
+      DcmElement* e;
+      if (dataset.findAndGetElement(ToDcmtkBridge::Convert(DICOM_TAG_PIXEL_DATA), e).good() &&
+          e != NULL)
+      {
+        Uint8* pixData = NULL;
+        if (e->getUint8Array(pixData) == EC_Normal)
+        {    
+          slowAccessor_.reset(new DicomIntegerPixelAccessor(m, pixData, e->getLength()));
+        }
+      }
+      else if (DecodePsmctRle1(psmct_, dataset))
+      {
+        LOG(INFO) << "The PMSCT_RLE1 decoding has succeeded";
+        Uint8* pixData = NULL;
+        if (psmct_.size() > 0)
+        {
+          pixData = reinterpret_cast<Uint8*>(&psmct_[0]);
+        }
+
+        slowAccessor_.reset(new DicomIntegerPixelAccessor(m, pixData, psmct_.size()));
+      }
+    
+      if (slowAccessor_.get() == NULL)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      slowAccessor_->SetCurrentFrame(frame);
+
+
+      /**
+       * If possible, create a fast ImageAccessor to the image buffer.
+       **/
+
+      
+    }
+
+    unsigned int GetWidth() const
+    {
+      assert(slowAccessor_.get() != NULL);
+      return slowAccessor_->GetInformation().GetWidth();
+    }
+
+    unsigned int GetHeight() const
+    {
+      assert(slowAccessor_.get() != NULL);
+      return slowAccessor_->GetInformation().GetHeight();
+    }
+
+    unsigned int GetChannelCount() const
+    {
+      assert(slowAccessor_.get() != NULL);
+      return slowAccessor_->GetInformation().GetChannelCount();
+    }
+
+    const DicomIntegerPixelAccessor& GetAccessor() const
+    {
+      assert(slowAccessor_.get() != NULL);
+      return *slowAccessor_;
+    }
+
+    bool HasFastAccessor() const
+    {
+      return fastAccessor_.get() != NULL;
+    }
+
+    const ImageAccessor& GetFastAccessor() const
+    {
+      assert(HasFastAccessor());
+      return *fastAccessor_;
+    }
+  };
+
+
   void DicomImageDecoder::SetupImageBuffer(ImageBuffer& target,
                                            DcmDataset& dataset)
   {
@@ -330,14 +339,6 @@ namespace Orthanc
     target.SetHeight(info.GetHeight());
     target.SetWidth(info.GetWidth());
     target.SetFormat(format);
-  }
-
-
-  bool DicomImageDecoder::IsJpegLossless(const DcmDataset& dataset)
-  {
-    // http://support.dcmtk.org/docs/dcxfer_8h-source.html
-    return (dataset.getOriginalXfer() == EXS_JPEGLSLossless ||
-            dataset.getOriginalXfer() == EXS_JPEGLSLossy);
   }
 
 

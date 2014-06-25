@@ -47,7 +47,13 @@ namespace Orthanc
     {
     }
 
-    virtual void Handle(DicomFindAnswers& answers,
+    /**
+     * Can throw exceptions. Returns "false" iff too many results have
+     * to be returned. In such a case, a "Matching terminated due to
+     * Cancel request" DIMSE code would be returned.
+     * https://www.dabsoft.ch/dicom/4/V.4.1/
+     **/
+    virtual bool Handle(DicomFindAnswers& answers,
                         const DicomMap& input,
                         const std::string& callingAETitle) = 0;
   };

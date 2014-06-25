@@ -40,12 +40,12 @@
 
 namespace Orthanc
 {
-  RemoteModalityParameters::RemoteModalityParameters()
+  RemoteModalityParameters::RemoteModalityParameters() :
+    aet_("ORTHANC"),
+    host_("localhost"),
+    port_(104),
+    manufacturer_(ModalityManufacturer_Generic)
   {
-    aet_ = "ORTHANC";
-    host_ = "localhost";
-    port_ = 104;
-    manufacturer_ = ModalityManufacturer_Generic;
   }
 
   void RemoteModalityParameters::SetPort(int port)

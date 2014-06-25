@@ -2,6 +2,8 @@ Pending changes in the mainline
 ===============================
 
 * Introduction of the Orthanc Plugin SDK
+* Official support of OS X (Darwin)
+* Options to limit the number of results for an incoming C-FIND query
 * Support of kFreeBSD
 
 
