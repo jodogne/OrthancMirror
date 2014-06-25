@@ -495,11 +495,27 @@ namespace Orthanc
 
 
   std::string Toolbox::ConvertToUtf8(const std::string& source,
-                                     const char* fromEncoding)
+                                     const Encoding sourceEncoding)
   {
+    const char* encoding;
+
+    switch (sourceEncoding)
+    {
+      case Encoding_Utf8:
+        // Already in UTF-8: No conversion is required
+        return source;
+
+      case Encoding_Latin1:
+        encoding = "ISO-8859-1";
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
     try
     {
-      return boost::locale::conv::to_utf<char>(source, fromEncoding);
+      return boost::locale::conv::to_utf<char>(source, encoding);
     }
     catch (std::runtime_error&)
     {
