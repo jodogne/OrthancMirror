@@ -30,15 +30,18 @@
  **/
 
 
+#include "PrecompiledHeadersServer.h"
 #include "ServerContext.h"
 
 #include "../Core/HttpServer/FilesystemHttpSender.h"
 #include "../Core/Lua/LuaFunctionCall.h"
+#include "FromDcmtkBridge.h"
 #include "ServerToolbox.h"
 #include "OrthancInitialization.h"
 
 #include <glog/logging.h>
 #include <EmbeddedResources.h>
+#include <dcmtk/dcmdata/dcfilefo.h>
 
 #define ENABLE_DICOM_CACHE  1
 
@@ -66,7 +69,7 @@ namespace Orthanc
     provider_(*this),
     dicomCache_(provider_, DICOM_CACHE_SIZE)
   {
-    scu_.SetLocalApplicationEntityTitle(GetGlobalStringParameter("DicomAet", "ORTHANC"));
+    scu_.SetLocalApplicationEntityTitle(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"));
     //scu_.SetMillisecondsBeforeClose(1);  // The connection is always released
 
     lua_.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
@@ -222,25 +225,43 @@ namespace Orthanc
   }
 
 
-  ParsedDicomFile& ServerContext::GetDicomFile(const std::string& instancePublicId)
+  ServerContext::DicomCacheLocker::DicomCacheLocker(ServerContext& that,
+                                                    const std::string& instancePublicId) : 
+    that_(that)
   {
 #if ENABLE_DICOM_CACHE == 0
     static std::auto_ptr<IDynamicObject> p;
     p.reset(provider_.Provide(instancePublicId));
-    return dynamic_cast<ParsedDicomFile&>(*p);
+    dicom_ = dynamic_cast<ParsedDicomFile*>(p.get());
 #else
-    return dynamic_cast<ParsedDicomFile&>(dicomCache_.Access(instancePublicId));
+    that_.dicomCacheMutex_.lock();
+    dicom_ = &dynamic_cast<ParsedDicomFile&>(that_.dicomCache_.Access(instancePublicId));
 #endif
   }
 
 
+  ServerContext::DicomCacheLocker::~DicomCacheLocker()
+  {
+#if ENABLE_DICOM_CACHE == 0
+#else
+    that_.dicomCacheMutex_.unlock();
+#endif
+  }
+
+
+  static DcmFileFormat& GetDicom(ParsedDicomFile& file)
+  {
+    return *reinterpret_cast<DcmFileFormat*>(file.GetDcmtkObject());
+  }
+
+
   StoreStatus ServerContext::Store(std::string& resultPublicId,
-                                   DcmFileFormat& dicomInstance,
+                                   ParsedDicomFile& dicomInstance,
                                    const char* dicomBuffer,
                                    size_t dicomSize)
   {
     DicomMap dicomSummary;
-    FromDcmtkBridge::Convert(dicomSummary, *dicomInstance.getDataset());
+    FromDcmtkBridge::Convert(dicomSummary, *GetDicom(dicomInstance).getDataset());
 
     try
     {
@@ -248,7 +269,7 @@ namespace Orthanc
       resultPublicId = hasher.HashInstance();
 
       Json::Value dicomJson;
-      FromDcmtkBridge::ToJson(dicomJson, *dicomInstance.getDataset());
+      FromDcmtkBridge::ToJson(dicomJson, *GetDicom(dicomInstance).getDataset());
       
       StoreStatus status = StoreStatus_Failure;
       if (dicomSize > 0)
@@ -265,16 +286,16 @@ namespace Orthanc
         LogMissingRequiredTag(dicomSummary);
       }
 
-      throw e;
+      throw;
     }
   }
 
 
   StoreStatus ServerContext::Store(std::string& resultPublicId,
-                                   DcmFileFormat& dicomInstance)
+                                   ParsedDicomFile& dicomInstance)
   {
     std::string buffer;
-    if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, dicomInstance.getDataset()))
+    if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, GetDicom(dicomInstance).getDataset()))
     {
       throw OrthancException(ErrorCode_InternalError);
     }
@@ -291,8 +312,23 @@ namespace Orthanc
                                    size_t dicomSize)
   {
     ParsedDicomFile dicom(dicomBuffer, dicomSize);
-    return Store(resultPublicId, dicom.GetDicom(), dicomBuffer, dicomSize);
+    return Store(resultPublicId, dicom, dicomBuffer, dicomSize);
   }
+
+
+  StoreStatus ServerContext::Store(std::string& resultPublicId,
+                                   const std::string& dicomContent)
+  {
+    if (dicomContent.size() == 0)
+    {
+      return Store(resultPublicId, NULL, 0);
+    }
+    else
+    {
+      return Store(resultPublicId, &dicomContent[0], dicomContent.size());
+    }
+  }
+
 
   void ServerContext::SetStoreMD5ForAttachments(bool storeMD5)
   {

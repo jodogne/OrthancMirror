@@ -30,9 +30,11 @@
  **/
 
 
+#include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
 #include "../ServerToolbox.h"
+#include "../FromDcmtkBridge.h"
 
 #include <glog/logging.h>
 
@@ -200,9 +202,11 @@ namespace Orthanc
     std::string dicomContent, png;
     context.ReadFile(dicomContent, publicId, FileContentType_Dicom);
 
+    ParsedDicomFile dicom(dicomContent);
+
     try
     {
-      FromDcmtkBridge::ExtractPngImage(png, dicomContent, frame, mode);
+      dicom.ExtractPngImage(png, frame, mode);
       call.GetOutput().AnswerBuffer(png, "image/png");
     }
     catch (OrthancException& e)
@@ -223,6 +227,39 @@ namespace Orthanc
         call.GetOutput().Redirect(root + "app/images/unsupported.png");
       }
     }
+  }
+
+
+  static void GetMatlabImage(RestApi::GetCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    std::string frameId = call.GetUriComponent("frame", "0");
+
+    unsigned int frame;
+    try
+    {
+      frame = boost::lexical_cast<unsigned int>(frameId);
+    }
+    catch (boost::bad_lexical_cast)
+    {
+      return;
+    }
+
+    std::string publicId = call.GetUriComponent("id", "");
+    std::string dicomContent;
+    context.ReadFile(dicomContent, publicId, FileContentType_Dicom);
+
+    ParsedDicomFile dicom(dicomContent);
+    ImageBuffer buffer;
+    dicom.ExtractImage(buffer, frame);
+
+    ImageAccessor accessor(buffer.GetConstAccessor());
+
+    std::string result;
+    accessor.ToMatlabString(result);
+
+    call.GetOutput().AnswerBuffer(result, "text/plain");
   }
 
 
@@ -541,6 +578,17 @@ namespace Orthanc
   }
 
 
+  // Raw access to the DICOM tags of an instance ------------------------------
+
+  static void GetRawContent(RestApi::GetCall& call)
+  {
+    std::string id = call.GetUriComponent("id", "");
+
+    ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), id);
+
+    locker.GetDicom().SendPathValue(call.GetOutput(), call.GetTrailingUri());
+  }
+
 
 
   void OrthancRestApi::RegisterResources()
@@ -574,10 +622,12 @@ namespace Orthanc
     Register("/instances/{id}/frames/{frame}/image-uint8", GetImage<ImageExtractionMode_UInt8>);
     Register("/instances/{id}/frames/{frame}/image-uint16", GetImage<ImageExtractionMode_UInt16>);
     Register("/instances/{id}/frames/{frame}/image-int16", GetImage<ImageExtractionMode_Int16>);
+    Register("/instances/{id}/frames/{frame}/matlab", GetMatlabImage);
     Register("/instances/{id}/preview", GetImage<ImageExtractionMode_Preview>);
     Register("/instances/{id}/image-uint8", GetImage<ImageExtractionMode_UInt8>);
     Register("/instances/{id}/image-uint16", GetImage<ImageExtractionMode_UInt16>);
     Register("/instances/{id}/image-int16", GetImage<ImageExtractionMode_Int16>);
+    Register("/instances/{id}/matlab", GetMatlabImage);
 
     Register("/patients/{id}/protected", IsProtectedPatient);
     Register("/patients/{id}/protected", SetPatientProtection);
@@ -598,5 +648,7 @@ namespace Orthanc
     Register("/{resourceType}/{id}/attachments/{name}/size", GetAttachmentSize);
     Register("/{resourceType}/{id}/attachments/{name}/verify-md5", VerifyAttachment);
     Register("/{resourceType}/{id}/attachments/{name}", UploadAttachment);
+
+    Register("/instances/{id}/content/*", GetRawContent);
   }
 }

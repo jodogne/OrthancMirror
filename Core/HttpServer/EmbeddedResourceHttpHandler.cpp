@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "EmbeddedResourceHttpHandler.h"
 
 #include "../OrthancException.h"

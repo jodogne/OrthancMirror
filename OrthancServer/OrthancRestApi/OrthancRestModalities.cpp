@@ -30,10 +30,12 @@
  **/
 
 
+#include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
 #include "../OrthancInitialization.h"
 #include "../../Core/HttpClient.h"
+#include "../FromDcmtkBridge.h"
 
 #include <glog/logging.h>
 
@@ -74,7 +76,7 @@ namespace Orthanc
       return;
     }
 
-    RemoteModalityParameters remote = GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+    RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
     ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
 
     DicomFindAnswers answers;
@@ -102,7 +104,7 @@ namespace Orthanc
       return;
     }        
       
-    RemoteModalityParameters remote = GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+    RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
     ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
 
     DicomFindAnswers answers;
@@ -131,7 +133,7 @@ namespace Orthanc
       return;
     }        
          
-    RemoteModalityParameters remote = GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+    RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
     ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
 
     DicomFindAnswers answers;
@@ -161,7 +163,7 @@ namespace Orthanc
       return;
     }        
          
-    RemoteModalityParameters remote = GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+    RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
     ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
 
     DicomFindAnswers answers;
@@ -183,7 +185,7 @@ namespace Orthanc
       return;
     }
  
-    RemoteModalityParameters remote = GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+    RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
     ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
 
     DicomFindAnswers patients;
@@ -318,7 +320,7 @@ namespace Orthanc
       return;
     }
 
-    RemoteModalityParameters p = GetModalityUsingSymbolicName(remote);
+    RemoteModalityParameters p = Configuration::GetModalityUsingSymbolicName(remote);
     ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), p);
 
     for (std::list<std::string>::const_iterator 
@@ -346,7 +348,7 @@ namespace Orthanc
   static void ListPeers(RestApi::GetCall& call)
   {
     OrthancRestApi::SetOfStrings peers;
-    GetListOfOrthancPeers(peers);
+    Configuration::GetListOfOrthancPeers(peers);
 
     Json::Value result = Json::arrayValue;
     for (OrthancRestApi::SetOfStrings::const_iterator 
@@ -361,7 +363,7 @@ namespace Orthanc
   static void ListPeerOperations(RestApi::GetCall& call)
   {
     OrthancRestApi::SetOfStrings peers;
-    GetListOfOrthancPeers(peers);
+    Configuration::GetListOfOrthancPeers(peers);
 
     std::string id = call.GetUriComponent("id", "");
     if (IsExistingPeer(peers, id))
@@ -384,17 +386,19 @@ namespace Orthanc
       return;
     }
 
-    std::string url, username, password;
-    GetOrthancPeer(remote, url, username, password);
+    OrthancPeerParameters peer;
+    Configuration::GetOrthancPeer(peer, remote);
 
     // Configure the HTTP client
     HttpClient client;
-    if (username.size() != 0 && password.size() != 0)
+    if (peer.GetUsername().size() != 0 && 
+        peer.GetPassword().size() != 0)
     {
-      client.SetCredentials(username.c_str(), password.c_str());
+      client.SetCredentials(peer.GetUsername().c_str(), 
+                            peer.GetPassword().c_str());
     }
 
-    client.SetUrl(url + "instances");
+    client.SetUrl(peer.GetUrl() + "instances");
     client.SetMethod(HttpMethod_Post);
 
     // Loop over the instances that are to be sent
@@ -428,7 +432,7 @@ namespace Orthanc
   static void ListModalities(RestApi::GetCall& call)
   {
     OrthancRestApi::SetOfStrings modalities;
-    GetListOfDicomModalities(modalities);
+    Configuration::GetListOfDicomModalities(modalities);
 
     Json::Value result = Json::arrayValue;
     for (OrthancRestApi::SetOfStrings::const_iterator 
@@ -444,7 +448,7 @@ namespace Orthanc
   static void ListModalityOperations(RestApi::GetCall& call)
   {
     OrthancRestApi::SetOfStrings modalities;
-    GetListOfDicomModalities(modalities);
+    Configuration::GetListOfDicomModalities(modalities);
 
     std::string id = call.GetUriComponent("id", "");
     if (IsExistingModality(modalities, id))
@@ -461,10 +465,54 @@ namespace Orthanc
   }
 
 
+  static void UpdateModality(RestApi::PutCall& call)
+  {
+    Json::Value json;
+    Json::Reader reader;
+    if (reader.parse(call.GetPutBody(), json))
+    {
+      RemoteModalityParameters modality;
+      modality.FromJson(json);
+      Configuration::UpdateModality(call.GetUriComponent("id", ""), modality);
+      call.GetOutput().AnswerBuffer("", "text/plain");
+    }
+  }
+
+
+  static void DeleteModality(RestApi::DeleteCall& call)
+  {
+    Configuration::RemoveModality(call.GetUriComponent("id", ""));
+    call.GetOutput().AnswerBuffer("", "text/plain");
+  }
+
+
+  static void UpdatePeer(RestApi::PutCall& call)
+  {
+    Json::Value json;
+    Json::Reader reader;
+    if (reader.parse(call.GetPutBody(), json))
+    {
+      OrthancPeerParameters peer;
+      peer.FromJson(json);
+      Configuration::UpdatePeer(call.GetUriComponent("id", ""), peer);
+      call.GetOutput().AnswerBuffer("", "text/plain");
+    }
+  }
+
+
+  static void DeletePeer(RestApi::DeleteCall& call)
+  {
+    Configuration::RemovePeer(call.GetUriComponent("id", ""));
+    call.GetOutput().AnswerBuffer("", "text/plain");
+  }
+
+
   void OrthancRestApi::RegisterModalities()
   {
     Register("/modalities", ListModalities);
     Register("/modalities/{id}", ListModalityOperations);
+    Register("/modalities/{id}", UpdateModality);
+    Register("/modalities/{id}", DeleteModality);
     Register("/modalities/{id}/find-patient", DicomFindPatient);
     Register("/modalities/{id}/find-study", DicomFindStudy);
     Register("/modalities/{id}/find-series", DicomFindSeries);
@@ -474,6 +522,8 @@ namespace Orthanc
 
     Register("/peers", ListPeers);
     Register("/peers/{id}", ListPeerOperations);
+    Register("/peers/{id}", UpdatePeer);
+    Register("/peers/{id}", DeletePeer);
     Register("/peers/{id}/store", PeerStore);
   }
 }

@@ -34,6 +34,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "Transaction.h"
 
 namespace Orthanc

@@ -1,3 +1,36 @@
+/**
+ * Orthanc - A Lightweight, RESTful DICOM Store
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
+ * Belgium
+ *
+ * This program is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * In addition, as a special exception, the copyright holders of this
+ * program give permission to link the code of its release with the
+ * OpenSSL project's "OpenSSL" library (or with modified versions of it
+ * that use the same license as the "OpenSSL" library), and distribute
+ * the linked executables. You must obey the GNU General Public License
+ * in all respects for all of the code used other than "OpenSSL". If you
+ * modify file(s) with this exception, you may extend this exception to
+ * your version of the file(s), but you are not obligated to do so. If
+ * you do not wish to do so, delete this exception statement from your
+ * version. If you delete this exception statement from all source files
+ * in the program, then also delete it here.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ **/
+
+
+#include "PrecompiledHeadersUnitTests.h"
 #include "../Core/EnumerationDictionary.h"
 
 #include "gtest/gtest.h"
@@ -10,7 +43,6 @@
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
 #include "../Core/Uuid.h"
-#include "../OrthancServer/FromDcmtkBridge.h"
 #include "../OrthancServer/OrthancInitialization.h"
 
 using namespace Orthanc;
@@ -178,24 +210,6 @@ TEST(ParseGetQuery, SingleEmpty)
   ASSERT_EQ(a["aaa"], "");
 }
 
-TEST(DicomFormat, Tag)
-{
-  ASSERT_EQ("PatientName", FromDcmtkBridge::GetName(DicomTag(0x0010, 0x0010)));
-
-  DicomTag t = FromDcmtkBridge::ParseTag("SeriesDescription");
-  ASSERT_EQ(0x0008, t.GetGroup());
-  ASSERT_EQ(0x103E, t.GetElement());
-
-  t = FromDcmtkBridge::ParseTag("0020-e040");
-  ASSERT_EQ(0x0020, t.GetGroup());
-  ASSERT_EQ(0xe040, t.GetElement());
-
-  // Test ==() and !=() operators
-  ASSERT_TRUE(DICOM_TAG_PATIENT_ID == DicomTag(0x0010, 0x0020));
-  ASSERT_FALSE(DICOM_TAG_PATIENT_ID != DicomTag(0x0010, 0x0020));
-}
-
-
 TEST(Uri, SplitUriComponents)
 {
   UriComponents c;
@@ -325,14 +339,25 @@ TEST(Toolbox, ComputeSHA1)
 }
 
 
+static std::string EncodeBase64Bis(const std::string& s)
+{
+  std::string result;
+  Toolbox::EncodeBase64(result, s);
+  return result;
+}
+
+
 TEST(Toolbox, Base64)
 {
-  ASSERT_EQ("", Toolbox::EncodeBase64(""));
-  ASSERT_EQ("YQ==", Toolbox::EncodeBase64("a"));
+  ASSERT_EQ("", EncodeBase64Bis(""));
+  ASSERT_EQ("YQ==", EncodeBase64Bis("a"));
 
   const std::string hello = "SGVsbG8gd29ybGQ=";
-  ASSERT_EQ(hello, Toolbox::EncodeBase64("Hello world"));
-  ASSERT_EQ("Hello world", Toolbox::DecodeBase64(hello));
+  ASSERT_EQ(hello, EncodeBase64Bis("Hello world"));
+
+  std::string decoded;
+  Toolbox::DecodeBase64(decoded, hello);
+  ASSERT_EQ("Hello world", decoded);
 }
 
 TEST(Toolbox, PathToExecutable)
@@ -432,8 +457,8 @@ TEST(Toolbox, UrlDecode)
 #if defined(__linux)
 TEST(OrthancInitialization, AbsoluteDirectory)
 {
-  ASSERT_EQ("/tmp/hello", InterpretRelativePath("/tmp", "hello"));
-  ASSERT_EQ("/tmp", InterpretRelativePath("/tmp", "/tmp"));
+  ASSERT_EQ("/tmp/hello", Configuration::InterpretRelativePath("/tmp", "hello"));
+  ASSERT_EQ("/tmp", Configuration::InterpretRelativePath("/tmp", "/tmp"));
 }
 #endif
 
@@ -570,7 +595,10 @@ TEST(Toolbox, Endianness)
 #if defined(_WIN32)
   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
 
-#elif defined(__linux)
+#elif defined(__APPLE__)
+  ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
+
+#elif defined(__linux) || defined(__FreeBSD_kernel__)
 
 #if !defined(__BYTE_ORDER)
 #  error Support your platform here
@@ -600,6 +628,8 @@ int main(int argc, char **argv)
   Toolbox::DetectEndianness();
 
   google::InitGoogleLogging("Orthanc");
+
+  Toolbox::CreateDirectory("UnitTestsResults");
 
   OrthancInitialize();
   ::testing::InitGoogleTest(&argc, argv);

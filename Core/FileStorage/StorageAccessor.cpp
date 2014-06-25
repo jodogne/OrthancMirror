@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "StorageAccessor.h"
 
 namespace Orthanc

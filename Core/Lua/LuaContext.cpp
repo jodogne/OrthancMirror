@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "LuaContext.h"
 
 #include <glog/logging.h>

@@ -90,7 +90,7 @@ namespace Orthanc
 
     unsigned int GetMillisecondsBeforeClose() const
     {
-      return timeBeforeClose_.total_milliseconds();
+      return static_cast<unsigned int>(timeBeforeClose_.total_milliseconds());
     }
 
     void SetMillisecondsBeforeClose(unsigned int ms);
