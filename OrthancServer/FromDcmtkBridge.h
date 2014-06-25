@@ -44,11 +44,14 @@ namespace Orthanc
   class FromDcmtkBridge
   {
   public:
+    static Encoding DetectEncoding(DcmDataset& dataset);
+
     static void Convert(DicomMap& target, DcmDataset& dataset);
 
     static DicomTag GetTag(const DcmElement& element);
 
-    static DicomValue* ConvertLeafElement(DcmElement& element);
+    static DicomValue* ConvertLeafElement(DcmElement& element,
+                                          Encoding encoding);
 
     static void ToJson(Json::Value& target, 
                        DcmDataset& dataset,
