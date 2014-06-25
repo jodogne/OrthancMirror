@@ -599,7 +599,7 @@ namespace Orthanc
     // Retrieve all the instances of this patient/study/series
     typedef std::list<std::string> Instances;
     Instances instances;
-    context.GetIndex().GetChildInstances(instances, publicId);
+    context.GetIndex().GetChildInstances(instances, publicId);  // (*)
 
     // Loop over the instances
     bool isFirst = true;
@@ -610,7 +610,18 @@ namespace Orthanc
     {
       // Get the tags of the current instance, in the simplified format
       Json::Value full, simplified;
-      context.ReadJson(full, *it);
+
+      try
+      {
+        context.ReadJson(full, *it);
+      }
+      catch (OrthancException&)
+      {
+        // Race condition: This instance has been removed since
+        // (*). Ignore this instance.
+        continue;
+      }
+
       SimplifyTags(simplified, full);
 
       if (simplified.type() != Json::objectValue)
