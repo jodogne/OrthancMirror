@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "DicomMap.h"
 
 #include <stdio.h>

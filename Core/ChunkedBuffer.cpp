@@ -30,6 +30,7 @@
  **/
 
 
+#include "PrecompiledHeaders.h"
 #include "ChunkedBuffer.h"
 
 #include <cassert>
@@ -61,6 +62,15 @@ namespace Orthanc
     assert(chunkData != NULL);
     chunks_.push_back(new std::string(chunkData, chunkSize));
     numBytes_ += chunkSize;
+  }
+
+
+  void ChunkedBuffer::AddChunk(const std::string& chunk)
+  {
+    if (chunk.size() > 0)
+    {
+      AddChunk(&chunk[0], chunk.size());
+    }
   }
 
 

@@ -30,12 +30,33 @@
  **/
 
 
+#include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
+
+#include "../DicomModification.h"
 
 #include <glog/logging.h>
 
 namespace Orthanc
 {
+  void OrthancRestApi::AnswerStoredInstance(RestApi::PostCall& call,
+                                            const std::string& publicId,
+                                            StoreStatus status)
+  {
+    Json::Value result = Json::objectValue;
+
+    if (status != StoreStatus_Failure)
+    {
+      result["ID"] = publicId;
+      result["Path"] = GetBasePath(ResourceType_Instance, publicId);
+    }
+
+    result["Status"] = EnumerationToString(status);
+    call.GetOutput().AnswerJson(result);
+  }
+
+
+
   // Upload of DICOM files through HTTP ---------------------------------------
 
   static void UploadDicomFile(RestApi::PostCall& call)
@@ -52,16 +73,8 @@ namespace Orthanc
 
     std::string publicId;
     StoreStatus status = context.Store(publicId, postData);
-    Json::Value result = Json::objectValue;
 
-    if (status != StoreStatus_Failure)
-    {
-      result["ID"] = publicId;
-      result["Path"] = GetBasePath(ResourceType_Instance, publicId);
-    }
-
-    result["Status"] = EnumerationToString(status);
-    call.GetOutput().AnswerJson(result);
+    OrthancRestApi::GetApi(call).AnswerStoredInstance(call, publicId, status);
   }
 
 

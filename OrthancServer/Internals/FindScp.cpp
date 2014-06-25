@@ -79,6 +79,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 
+#include "../PrecompiledHeadersServer.h"
 #include "FindScp.h"
 
 #include "../FromDcmtkBridge.h"
@@ -99,6 +100,7 @@ namespace Orthanc
       DicomFindAnswers answers_;
       DcmDataset* lastRequest_;
       const std::string* callingAETitle_;
+      bool noCroppingOfResults_;
     };
 
 
@@ -124,12 +126,12 @@ namespace Orthanc
 
         try
         {
-          data.handler_->Handle(data.answers_, data.input_, *data.callingAETitle_);
+          data.noCroppingOfResults_ = data.handler_->Handle(data.answers_, data.input_, *data.callingAETitle_);
         }
         catch (OrthancException& e)
         {
           // Internal error!
-          LOG(ERROR) <<  "IFindRequestHandler Failed: " << e.What();
+          LOG(ERROR) <<  "C-FIND request handler has failed: " << e.What();
           response->DimseStatus = STATUS_FIND_Failed_UnableToProcess;
           *responseIdentifiers = NULL;   
           return;
@@ -147,12 +149,21 @@ namespace Orthanc
 
       if (responseCount <= static_cast<int>(data.answers_.GetSize()))
       {
+        // There are pending results that are still to be sent
         response->DimseStatus = STATUS_Pending;
         *responseIdentifiers = ToDcmtkBridge::Convert(data.answers_.GetAnswer(responseCount - 1));
       }
+      else if (data.noCroppingOfResults_)
+      {
+        // Success: All the results have been sent
+        response->DimseStatus = STATUS_Success;
+        *responseIdentifiers = NULL;
+      }
       else
       {
-        response->DimseStatus = STATUS_Success;
+        // Success, but the results were too numerous and had to be cropped
+        LOG(WARNING) <<  "Too many results for an incoming C-FIND query";
+        response->DimseStatus = STATUS_FIND_Cancel_MatchingTerminatedDueToCancelRequest;
         *responseIdentifiers = NULL;
       }
     }
@@ -169,6 +180,7 @@ namespace Orthanc
     data.lastRequest_ = NULL;
     data.handler_ = &handler;
     data.callingAETitle_ = &callingAETitle;
+    data.noCroppingOfResults_ = true;
 
     OFCondition cond = DIMSE_findProvider(assoc, presID, &msg->msg.CFindRQ, 
                                           FindScpCallback, &data,

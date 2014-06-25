@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "HttpFileSender.h"
 
 #include <boost/lexical_cast.hpp>

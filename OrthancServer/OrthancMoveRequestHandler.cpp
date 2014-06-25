@@ -29,6 +29,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
+
+#include "PrecompiledHeadersServer.h"
 #include "OrthancMoveRequestHandler.h"
 
 #include <glog/logging.h>
@@ -67,7 +69,7 @@ namespace Orthanc
           instances_.push_back(*it);
         }
 
-        remote_ = GetModalityUsingAet(aet);
+        remote_ = Configuration::GetModalityUsingAet(aet);
       }
 
       virtual unsigned int GetSubOperationCount() const

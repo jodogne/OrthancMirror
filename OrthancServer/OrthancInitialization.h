@@ -39,6 +39,7 @@
 #include "../Core/HttpServer/MongooseServer.h"
 #include "DicomProtocol/RemoteModalityParameters.h"
 #include "ServerEnumerations.h"
+#include "OrthancPeerParameters.h"
 
 namespace Orthanc
 {
@@ -46,52 +47,58 @@ namespace Orthanc
 
   void OrthancFinalize();
 
-  std::string GetGlobalStringParameter(const std::string& parameter,
-                                       const std::string& defaultValue);
+  class Configuration
+  {
+  public:
+    static std::string GetGlobalStringParameter(const std::string& parameter,
+                                                const std::string& defaultValue);
 
-  int GetGlobalIntegerParameter(const std::string& parameter,
-                                int defaultValue);
+    static int GetGlobalIntegerParameter(const std::string& parameter,
+                                         int defaultValue);
 
-  bool GetGlobalBoolParameter(const std::string& parameter,
-                              bool defaultValue);
+    static bool GetGlobalBoolParameter(const std::string& parameter,
+                                       bool defaultValue);
 
-  void GetDicomModalityUsingSymbolicName(const std::string& name,
-                                         std::string& aet,
-                                         std::string& address,
-                                         int& port,
-                                         ModalityManufacturer& manufacturer);
+    static void GetDicomModalityUsingSymbolicName(RemoteModalityParameters& modality,
+                                                  const std::string& name);
 
-  bool LookupDicomModalityUsingAETitle(const std::string& aet,
-                                       std::string& symbolicName,
-                                       std::string& address,
-                                       int& port,
-                                       ModalityManufacturer& manufacturer);
+    static bool LookupDicomModalityUsingAETitle(RemoteModalityParameters& modality,
+                                                const std::string& aet);
 
-  void GetOrthancPeer(const std::string& name,
-                      std::string& url,
-                      std::string& username,
-                      std::string& password);
+    static void GetOrthancPeer(OrthancPeerParameters& peer,
+                               const std::string& name);
 
-  void GetListOfDicomModalities(std::set<std::string>& target);
+    static void GetListOfDicomModalities(std::set<std::string>& target);
 
-  void GetListOfOrthancPeers(std::set<std::string>& target);
+    static void GetListOfOrthancPeers(std::set<std::string>& target);
 
-  void SetupRegisteredUsers(MongooseServer& httpServer);
+    static void SetupRegisteredUsers(MongooseServer& httpServer);
 
-  std::string InterpretRelativePath(const std::string& baseDirectory,
-                                    const std::string& relativePath);
+    static std::string InterpretRelativePath(const std::string& baseDirectory,
+                                             const std::string& relativePath);
 
-  std::string InterpretStringParameterAsPath(const std::string& parameter);
+    static std::string InterpretStringParameterAsPath(const std::string& parameter);
 
-  void GetGlobalListOfStringsParameter(std::list<std::string>& target,
-                                       const std::string& key);
+    static void GetGlobalListOfStringsParameter(std::list<std::string>& target,
+                                                const std::string& key);
 
-  bool IsKnownAETitle(const std::string& aet);
+    static bool IsKnownAETitle(const std::string& aet);
 
-  bool IsSameAETitle(const std::string& aet1,
-                     const std::string& aet2);
+    static bool IsSameAETitle(const std::string& aet1,
+                              const std::string& aet2);
 
-  RemoteModalityParameters GetModalityUsingSymbolicName(const std::string& name);
+    static RemoteModalityParameters GetModalityUsingSymbolicName(const std::string& name);
 
-  RemoteModalityParameters GetModalityUsingAet(const std::string& aet);
+    static RemoteModalityParameters GetModalityUsingAet(const std::string& aet);
+
+    static void UpdateModality(const std::string& symbolicName,
+                               const RemoteModalityParameters& modality);
+
+    static void RemoveModality(const std::string& symbolicName);
+
+    static void UpdatePeer(const std::string& symbolicName,
+                           const OrthancPeerParameters& peer);
+
+    static void RemovePeer(const std::string& symbolicName);
+  };
 }

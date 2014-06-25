@@ -78,6 +78,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =========================================================================*/
 
 
+#include "../PrecompiledHeadersServer.h"
 #include "DicomUserConnection.h"
 
 #include "../../Core/OrthancException.h"
@@ -104,6 +105,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 #define HOST_NAME_MAX 256
 #endif 
+
+
+#if !defined(HOST_NAME_MAX) && defined(_POSIX_HOST_NAME_MAX)
+/**
+ * TO IMPROVE: "_POSIX_HOST_NAME_MAX is only the minimum value that
+ * HOST_NAME_MAX can ever have [...] Therefore you cannot allocate an
+ * array of size _POSIX_HOST_NAME_MAX, invoke gethostname() and expect
+ * that the result will fit."
+ * http://lists.gnu.org/archive/html/bug-gnulib/2009-08/msg00128.html
+ **/
+#define HOST_NAME_MAX _POSIX_HOST_NAME_MAX
+#endif
 
 
 static const char* DEFAULT_PREFERRED_TRANSFER_SYNTAX = UID_LittleEndianImplicitTransferSyntax;
@@ -204,21 +217,21 @@ namespace Orthanc
     unsigned int presentationContextId = 1;
 
     for (std::list<std::string>::const_iterator it = reservedStorageSOPClasses_.begin();
-         it != reservedStorageSOPClasses_.end(); it++)
+         it != reservedStorageSOPClasses_.end(); ++it)
     {
       RegisterStorageSOPClass(pimpl_->params_, presentationContextId, 
                               *it, asPreferred, asFallback);
     }
 
     for (std::set<std::string>::const_iterator it = storageSOPClasses_.begin();
-         it != storageSOPClasses_.end(); it++)
+         it != storageSOPClasses_.end(); ++it)
     {
       RegisterStorageSOPClass(pimpl_->params_, presentationContextId, 
                               *it, asPreferred, asFallback);
     }
 
     for (std::set<std::string>::const_iterator it = defaultStorageSOPClasses_.begin();
-         it != defaultStorageSOPClasses_.end(); it++)
+         it != defaultStorageSOPClasses_.end(); ++it)
     {
       RegisterStorageSOPClass(pimpl_->params_, presentationContextId, 
                               *it, asPreferred, asFallback);

@@ -30,6 +30,7 @@
  **/
 
 
+#include "PrecompiledHeadersServer.h"
 #include "ToDcmtkBridge.h"
 
 #include <memory>

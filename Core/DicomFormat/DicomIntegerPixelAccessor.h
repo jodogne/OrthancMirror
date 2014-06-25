@@ -34,6 +34,8 @@
 
 #include "DicomMap.h"
 
+#include "DicomImageInformation.h"
+
 #include <stdint.h>
 
 namespace Orthanc
@@ -41,20 +43,14 @@ namespace Orthanc
   class DicomIntegerPixelAccessor
   {
   private:
-    unsigned int width_;
-    unsigned int height_;
-    unsigned int samplesPerPixel_;
-    unsigned int numberOfFrames_;
-    unsigned int planarConfiguration_;
-    const void* pixelData_;
-    size_t size_;
+    DicomImageInformation information_;
 
-    uint8_t shift_;
     uint32_t signMask_;
     uint32_t mask_;
-    size_t bytesPerPixel_;
-    unsigned int frame_;
 
+    const void* pixelData_;
+    size_t size_;
+    unsigned int frame_;
     size_t frameOffset_;
     size_t rowOffset_;
 
@@ -63,19 +59,9 @@ namespace Orthanc
                               const void* pixelData,
                               size_t size);
 
-    unsigned int GetWidth() const
+    const DicomImageInformation GetInformation() const
     {
-      return width_;
-    }
-
-    unsigned int GetHeight() const
-    {
-      return height_;
-    }
-
-    unsigned int GetNumberOfFrames() const
-    {
-      return numberOfFrames_;
+      return information_;
     }
 
     unsigned int GetCurrentFrame() const
@@ -88,11 +74,11 @@ namespace Orthanc
     void GetExtremeValues(int32_t& min, 
                           int32_t& max) const;
 
-    unsigned int GetChannelCount() const
-    {
-      return samplesPerPixel_;
-    }
-
     int32_t GetValue(unsigned int x, unsigned int y, unsigned int channel = 0) const;
+
+    const void* GetPixelData() const
+    {
+      return pixelData_;
+    }
   };
 }

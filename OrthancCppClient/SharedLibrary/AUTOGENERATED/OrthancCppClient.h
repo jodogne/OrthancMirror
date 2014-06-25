@@ -507,28 +507,35 @@ namespace Orthanc
     * The image is graylevel. Each pixel is signed and stored in two bytes.
     *
     **/
-    PixelFormat_SignedGrayscale16 = 3,
+    PixelFormat_SignedGrayscale16 = 5,
     /**
     * @brief Color image in RGB24 format.
     *
-    * Color image in RGB24 format.
+    * This format describes a color image. The pixels are stored in 3 consecutive bytes. The memory layout is RGB.
     *
     **/
-    PixelFormat_RGB24 = 0,
+    PixelFormat_RGB24 = 1,
+    /**
+    * @brief Color image in RGBA32 format.
+    *
+    * This format describes a color image. The pixels are stored in 4 consecutive bytes. The memory layout is RGBA.
+    *
+    **/
+    PixelFormat_RGBA32 = 2,
     /**
     * @brief Graylevel 8bpp image.
     *
     * The image is graylevel. Each pixel is unsigned and stored in one byte.
     *
     **/
-    PixelFormat_Grayscale8 = 1,
+    PixelFormat_Grayscale8 = 3,
     /**
     * @brief Graylevel, unsigned 16bpp image.
     *
     * The image is graylevel. Each pixel is unsigned and stored in two bytes.
     *
     **/
-    PixelFormat_Grayscale16 = 2
+    PixelFormat_Grayscale16 = 4
   };
 }
 
@@ -549,28 +556,28 @@ namespace Orthanc
     * Truncation to the [-32768, 32767] range.
     *
     **/
-    ImageExtractionMode_Int16 = 3,
+    ImageExtractionMode_Int16 = 4,
     /**
     * @brief Rescaled to 8bpp.
     *
     * The minimum value of the image is set to 0, and its maximum value is set to 255.
     *
     **/
-    ImageExtractionMode_Preview = 0,
+    ImageExtractionMode_Preview = 1,
     /**
     * @brief Truncation to the [0, 255] range.
     *
     * Truncation to the [0, 255] range.
     *
     **/
-    ImageExtractionMode_UInt8 = 1,
+    ImageExtractionMode_UInt8 = 2,
     /**
     * @brief Truncation to the [0, 65535] range.
     *
     * Truncation to the [0, 65535] range.
     *
     **/
-    ImageExtractionMode_UInt16 = 2
+    ImageExtractionMode_UInt16 = 3
   };
 }
 

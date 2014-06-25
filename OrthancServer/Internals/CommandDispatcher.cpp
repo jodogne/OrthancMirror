@@ -79,6 +79,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =========================================================================*/
 
 
+#include "../PrecompiledHeadersServer.h"
 #include "CommandDispatcher.h"
 
 #include "FindScp.h"

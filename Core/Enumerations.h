@@ -68,7 +68,10 @@ namespace Orthanc
     ErrorCode_IncompatibleDatabaseVersion,
     ErrorCode_FullStorage,
     ErrorCode_CorruptedFile,
-    ErrorCode_InexistentTag
+    ErrorCode_InexistentTag,
+    ErrorCode_ReadOnly,
+    ErrorCode_IncompatibleImageFormat,
+    ErrorCode_IncompatibleImageSize
   };
 
   /**
@@ -79,27 +82,34 @@ namespace Orthanc
     /**
      * {summary}{Color image in RGB24 format.}
      * {description}{This format describes a color image. The pixels are stored in 3
-     * consecutive bytes. The memory layout is RGB.
+     * consecutive bytes. The memory layout is RGB.}
      **/
-    PixelFormat_RGB24,
+    PixelFormat_RGB24 = 1,
+
+    /**
+     * {summary}{Color image in RGBA32 format.}
+     * {description}{This format describes a color image. The pixels are stored in 4
+     * consecutive bytes. The memory layout is RGBA.}
+     **/
+    PixelFormat_RGBA32 = 2,
 
     /**
      * {summary}{Graylevel 8bpp image.}
      * {description}{The image is graylevel. Each pixel is unsigned and stored in one byte.}
      **/
-    PixelFormat_Grayscale8,
+    PixelFormat_Grayscale8 = 3,
       
     /**
      * {summary}{Graylevel, unsigned 16bpp image.}
      * {description}{The image is graylevel. Each pixel is unsigned and stored in two bytes.}
      **/
-    PixelFormat_Grayscale16,
+    PixelFormat_Grayscale16 = 4,
       
     /**
      * {summary}{Graylevel, signed 16bpp image.}
      * {description}{The image is graylevel. Each pixel is signed and stored in two bytes.}
      **/
-    PixelFormat_SignedGrayscale16
+    PixelFormat_SignedGrayscale16 = 5
   };
 
 
@@ -112,22 +122,22 @@ namespace Orthanc
      * {summary}{Rescaled to 8bpp.}
      * {description}{The minimum value of the image is set to 0, and its maximum value is set to 255.}
      **/
-    ImageExtractionMode_Preview,
+    ImageExtractionMode_Preview = 1,
 
     /**
      * {summary}{Truncation to the [0, 255] range.}
      **/
-    ImageExtractionMode_UInt8,
+    ImageExtractionMode_UInt8 = 2,
 
     /**
      * {summary}{Truncation to the [0, 65535] range.}
      **/
-    ImageExtractionMode_UInt16,
+    ImageExtractionMode_UInt16 = 3,
 
     /**
      * {summary}{Truncation to the [-32768, 32767] range.}
      **/
-    ImageExtractionMode_Int16
+    ImageExtractionMode_Int16 = 4
   };
 
 
@@ -212,6 +222,12 @@ namespace Orthanc
   };
 
 
+  enum ImageFormat
+  {
+    ImageFormat_Png = 1
+  };
+
+
   /**
    * WARNING: Do not change the explicit values in the enumerations
    * below this point. This would result in incompatible databases
@@ -249,5 +265,11 @@ namespace Orthanc
 
   const char* EnumerationToString(ResourceType type);
 
+  const char* EnumerationToString(ImageFormat format);
+
   ResourceType StringToResourceType(const char* type);
+
+  ImageFormat StringToImageFormat(const char* format);
+
+  unsigned int GetBytesPerPixel(PixelFormat format);
 }

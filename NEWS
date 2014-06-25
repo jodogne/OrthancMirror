@@ -1,9 +1,30 @@
 Pending changes in the mainline
 ===============================
 
-* Reuse of the previous SCU connection to avoid unecessary handshakes
+* Official support of OS X (Darwin)
+* Options to limit the number of results for an incoming C-FIND query
+* Support of kFreeBSD
+
+
+Version 0.7.6 (2014/06/11)
+==========================
+
+* Support of JPEG and JPEG-LS decompression
+* Download DICOM images as Matlab/Octave arrays
+* Precompiled headers for Microsoft Visual Studio
+
+
+Version 0.7.5 (2014/05/08)
+==========================
+
 * Dynamic negotiation of SOP classes for C-Store SCU
-* Fix missing licensing terms about reuse of some DCMTK code
+* Creation of DICOM instances using the REST API
+* Embedding of images within DICOM instances
+* Adding/removal/modification of remote modalities/peers through REST
+* Reuse of the previous SCU connection to avoid unecessary handshakes
+* Fix problems with anonymization and modification
+* Fix missing licensing terms about reuse of some code from DCMTK
+* Various code refactorings
 
 
 Version 0.7.4 (2014/04/16)

@@ -35,6 +35,7 @@
 #include "../ServerEnumerations.h"
 
 #include <string>
+#include <json/json.h>
 
 namespace Orthanc
 {
@@ -43,55 +44,22 @@ namespace Orthanc
     // TODO Use the flyweight pattern for this class
 
   private:
-    std::string  symbolicName_;
-    std::string  aet_;
-    std::string  host_;
-    int  port_;
-    ModalityManufacturer  manufacturer_;
+    std::string aet_;
+    std::string host_;
+    int port_;
+    ModalityManufacturer manufacturer_;
 
   public:
-    RemoteModalityParameters() :
-      symbolicName_(""),
-      aet_(""),
-      host_(""),
-      port_(104),
-      manufacturer_(ModalityManufacturer_Generic)
-    {
-    }
-
-    RemoteModalityParameters(const std::string& symbolic,
-                             const std::string& aet,
-                             const std::string& host,
-                             int port,
-                             ModalityManufacturer manufacturer) :
-      symbolicName_(symbolic),
-      aet_(aet),
-      host_(host),
-      port_(port),
-      manufacturer_(manufacturer)
-    {
-    }
-
-    RemoteModalityParameters(const std::string& aet,
-                             const std::string& host,
-                             int port,
-                             ModalityManufacturer manufacturer) :
-      symbolicName_(""),
-      aet_(aet),
-      host_(host),
-      port_(port),
-      manufacturer_(manufacturer)
-    {
-    }
-
-    const std::string& GetSymbolicName() const
-    {
-      return symbolicName_;
-    }
+    RemoteModalityParameters();
 
     const std::string& GetApplicationEntityTitle() const
     {
       return aet_;
+    }
+
+    void SetApplicationEntityTitle(const std::string& aet)
+    {
+      aet_ = aet;
     }
 
     const std::string& GetHost() const
@@ -99,14 +67,35 @@ namespace Orthanc
       return host_;
     }
 
+    void SetHost(const std::string& host)
+    {
+      host_ = host;
+    }
+    
     int GetPort() const
     {
       return port_;
     }
 
+    void SetPort(int port);
+
     ModalityManufacturer GetManufacturer() const
     {
       return manufacturer_;
     }
+
+    void SetManufacturer(ModalityManufacturer manufacturer)
+    {
+      manufacturer_ = manufacturer;
+    }    
+
+    void SetManufacturer(const std::string& manufacturer)
+    {
+      manufacturer_ = StringToModalityManufacturer(manufacturer);
+    }
+
+    void FromJson(const Json::Value& modality);
+
+    void ToJson(Json::Value& value) const;
   };
 }
