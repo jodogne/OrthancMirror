@@ -1,8 +1,41 @@
+/**
+ * Orthanc - A Lightweight, RESTful DICOM Store
+ * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
+ * Belgium
+ *
+ * This program is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * In addition, as a special exception, the copyright holders of this
+ * program give permission to link the code of its release with the
+ * OpenSSL project's "OpenSSL" library (or with modified versions of it
+ * that use the same license as the "OpenSSL" library), and distribute
+ * the linked executables. You must obey the GNU General Public License
+ * in all respects for all of the code used other than "OpenSSL". If you
+ * modify file(s) with this exception, you may extend this exception to
+ * your version of the file(s), but you are not obligated to do so. If
+ * you do not wish to do so, delete this exception statement from your
+ * version. If you delete this exception statement from all source files
+ * in the program, then also delete it here.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ **/
+
+
+#include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
 #include <stdint.h>
-#include "../Core/FileFormats/PngReader.h"
-#include "../Core/FileFormats/PngWriter.h"
+#include "../Core/ImageFormats/PngReader.h"
+#include "../Core/ImageFormats/PngWriter.h"
 #include "../Core/Toolbox.h"
 #include "../Core/Uuid.h"
 
@@ -26,10 +59,10 @@ TEST(PngWriter, ColorPattern)
     }
   }
 
-  w.WriteToFile("ColorPattern.png", width, height, pitch, Orthanc::PixelFormat_RGB24, &image[0]);
+  w.WriteToFile("UnitTestsResults/ColorPattern.png", width, height, pitch, Orthanc::PixelFormat_RGB24, &image[0]);
 
   std::string f, md5;
-  Orthanc::Toolbox::ReadFile(f, "ColorPattern.png");
+  Orthanc::Toolbox::ReadFile(f, "UnitTestsResults/ColorPattern.png");
   Orthanc::Toolbox::ComputeMD5(md5, f);
   ASSERT_EQ("604e785f53c99cae6ea4584870b2c41d", md5);
 }
@@ -51,10 +84,10 @@ TEST(PngWriter, Gray8Pattern)
     }
   }
 
-  w.WriteToFile("Gray8Pattern.png", width, height, pitch, Orthanc::PixelFormat_Grayscale8, &image[0]);
+  w.WriteToFile("UnitTestsResults/Gray8Pattern.png", width, height, pitch, Orthanc::PixelFormat_Grayscale8, &image[0]);
 
   std::string f, md5;
-  Orthanc::Toolbox::ReadFile(f, "Gray8Pattern.png");
+  Orthanc::Toolbox::ReadFile(f, "UnitTestsResults/Gray8Pattern.png");
   Orthanc::Toolbox::ComputeMD5(md5, f);
   ASSERT_EQ("5a9b98bea3d0a6d983980cc38bfbcdb3", md5);
 }
@@ -78,10 +111,10 @@ TEST(PngWriter, Gray16Pattern)
     }
   }
 
-  w.WriteToFile("Gray16Pattern.png", width, height, pitch, Orthanc::PixelFormat_Grayscale16, &image[0]);
+  w.WriteToFile("UnitTestsResults/Gray16Pattern.png", width, height, pitch, Orthanc::PixelFormat_Grayscale16, &image[0]);
 
   std::string f, md5;
-  Orthanc::Toolbox::ReadFile(f, "Gray16Pattern.png");
+  Orthanc::Toolbox::ReadFile(f, "UnitTestsResults/Gray16Pattern.png");
   Orthanc::Toolbox::ComputeMD5(md5, f);
   ASSERT_EQ("0785866a08bf0a02d2eeff87f658571c", md5);
 }
@@ -119,8 +152,8 @@ TEST(PngWriter, EndToEnd)
     v = 0;
     for (int y = 0; y < height; y++)
     {
-      uint16_t *p = reinterpret_cast<uint16_t*>((uint8_t*) r.GetBuffer() + y * r.GetPitch());
-      ASSERT_EQ(p, r.GetBuffer(y));
+      const uint16_t *p = reinterpret_cast<const uint16_t*>((const uint8_t*) r.GetConstBuffer() + y * r.GetPitch());
+      ASSERT_EQ(p, r.GetConstRow(y));
       for (int x = 0; x < width; x++, p++, v++)
       {
         ASSERT_EQ(*p, v);
@@ -142,8 +175,8 @@ TEST(PngWriter, EndToEnd)
     v = 0;
     for (int y = 0; y < height; y++)
     {
-      uint16_t *p = reinterpret_cast<uint16_t*>((uint8_t*) r2.GetBuffer() + y * r2.GetPitch());
-      ASSERT_EQ(p, r2.GetBuffer(y));
+      const uint16_t *p = reinterpret_cast<const uint16_t*>((const uint8_t*) r2.GetConstBuffer() + y * r2.GetPitch());
+      ASSERT_EQ(p, r2.GetConstRow(y));
       for (int x = 0; x < width; x++, p++, v++)
       {
         ASSERT_EQ(*p, v);

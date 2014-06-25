@@ -160,5 +160,14 @@
   // will be computed and stored in the Orthanc database. This
   // information can be used to detect disk corruption, at the price
   // of a small performance overhead.
-  "StoreMD5ForAttachments" : true
+  "StoreMD5ForAttachments" : true,
+
+  // The maximum number of results for a single C-FIND request at the
+  // Patient, Study or Series level. Setting this option to "0" means
+  // no limit.
+  "LimitFindResults" : 0,
+
+  // The maximum number of results for a single C-FIND request at the
+  // Instance level. Setting this option to "0" means no limit.
+  "LimitFindInstances" : 0
 }

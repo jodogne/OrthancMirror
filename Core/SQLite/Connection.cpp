@@ -34,6 +34,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "Connection.h"
 
 #include <memory>

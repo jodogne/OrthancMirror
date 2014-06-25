@@ -37,7 +37,7 @@
 
 #include "OrthancClientException.h"
 #include "../Core/IDynamicObject.h"
-#include "../Core/FileFormats/PngReader.h"
+#include "../Core/ImageFormats/PngReader.h"
 
 namespace OrthancClient
 {

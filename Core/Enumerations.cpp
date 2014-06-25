@@ -30,6 +30,7 @@
  **/
 
 
+#include "PrecompiledHeaders.h"
 #include "Enumerations.h"
 
 #include "OrthancException.h"
@@ -247,6 +248,19 @@ namespace Orthanc
   }
 
 
+  const char* EnumerationToString(ImageFormat format)
+  {
+    switch (format)
+    {
+      case ImageFormat_Png:
+        return "Png";
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
   ResourceType StringToResourceType(const char* type)
   {
     std::string s(type);
@@ -269,9 +283,44 @@ namespace Orthanc
     {
       return ResourceType_Instance;
     }
-    else
+
+    throw OrthancException(ErrorCode_ParameterOutOfRange);
+  }
+
+
+  ImageFormat StringToImageFormat(const char* format)
+  {
+    std::string s(format);
+    Toolbox::ToUpperCase(s);
+
+    if (s == "PNG")
     {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      return ImageFormat_Png;
+    }
+
+    throw OrthancException(ErrorCode_ParameterOutOfRange);
+  }
+
+
+  unsigned int GetBytesPerPixel(PixelFormat format)
+  {
+    switch (format)
+    {
+      case PixelFormat_Grayscale8:
+        return 1;
+
+      case PixelFormat_Grayscale16:
+      case PixelFormat_SignedGrayscale16:
+        return 2;
+
+      case PixelFormat_RGB24:
+        return 3;
+
+      case PixelFormat_RGBA32:
+        return 4;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
 }

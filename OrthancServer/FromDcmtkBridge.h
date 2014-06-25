@@ -32,92 +32,15 @@
 
 #pragma once
 
-#include "../Core/DicomFormat/DicomInstanceHasher.h"
-#include "../Core/RestApi/RestApiOutput.h"
-#include "../Core/Toolbox.h"
+#include "ServerEnumerations.h"
+
+#include "../Core/DicomFormat/DicomMap.h"
 
 #include <dcmtk/dcmdata/dcdatset.h>
-#include <dcmtk/dcmdata/dcfilefo.h>
 #include <json/json.h>
-#include <memory>
 
 namespace Orthanc
 {
-  enum DicomRootLevel
-  {
-    DicomRootLevel_Patient,
-    DicomRootLevel_Study,
-    DicomRootLevel_Series,
-    DicomRootLevel_Instance
-  };
-
-  enum DicomReplaceMode
-  {
-    DicomReplaceMode_InsertIfAbsent,
-    DicomReplaceMode_ThrowIfAbsent,
-    DicomReplaceMode_IgnoreIfAbsent
-  };
-
-  class ParsedDicomFile : public IDynamicObject
-  {
-  private:
-    std::auto_ptr<DcmFileFormat> file_;
-
-    ParsedDicomFile(DcmFileFormat& other) :
-      file_(dynamic_cast<DcmFileFormat*>(other.clone()))
-    {
-    }
-
-    void Setup(const char* content,
-               size_t size);
-
-  public:
-    ParsedDicomFile(const char* content,
-                    size_t size)
-    {
-      Setup(content, size);
-    }
-
-    ParsedDicomFile(const std::string& content)
-    {
-      if (content.size() == 0)
-        Setup(NULL, 0);
-      else
-        Setup(&content[0], content.size());
-    }
-
-    DcmFileFormat& GetDicom()
-    {
-      return *file_;
-    }
-
-    ParsedDicomFile* Clone()
-    {
-      return new ParsedDicomFile(*file_);
-    }
-
-    void SendPathValue(RestApiOutput& output,
-                       const UriComponents& uri);
-
-    void Answer(RestApiOutput& output);
-
-    void Remove(const DicomTag& tag);
-
-    void Insert(const DicomTag& tag,
-                const std::string& value);
-
-    void Replace(const DicomTag& tag,
-                 const std::string& value,
-                 DicomReplaceMode mode);
-
-    void RemovePrivateTags();
-
-    bool GetTagValue(std::string& value,
-                     const DicomTag& tag);
-
-    DicomInstanceHasher GetHasher();
-  };
-
   class FromDcmtkBridge
   {
   public:
@@ -134,16 +57,6 @@ namespace Orthanc
     static void ToJson(Json::Value& target, 
                        const std::string& path,
                        unsigned int maxStringLength = 256);
-
-    static void ExtractPngImage(std::string& result,
-                                DcmDataset& dataset,
-                                unsigned int frame,
-                                ImageExtractionMode mode);
-
-    static void ExtractPngImage(std::string& result,
-                                const std::string& dicomContent,
-                                unsigned int frame,
-                                ImageExtractionMode mode);
 
     static std::string GetName(const DicomTag& tag);
 
@@ -179,7 +92,7 @@ namespace Orthanc
     static void ToJson(Json::Value& result,
                        const DicomMap& values);
 
-    static std::string GenerateUniqueIdentifier(DicomRootLevel level);
+    static std::string GenerateUniqueIdentifier(ResourceType level);
 
     static bool SaveToMemoryBuffer(std::string& buffer,
                                    DcmDataset* dataSet);

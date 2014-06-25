@@ -30,49 +30,25 @@
  **/
 
 
-#pragma once
+#include "PrecompiledHeadersUnitTests.h"
+#include "gtest/gtest.h"
 
-#include "../Enumerations.h"
+#include "../OrthancServer/Internals/DicomImageDecoder.h"
 
-#include <boost/shared_ptr.hpp>
-#include <string>
+#if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
 
-namespace Orthanc
-{
-  class PngWriter
-  {
-  private:
-    struct PImpl;
-    boost::shared_ptr<PImpl> pimpl_;
+#include <dcmtk/dcmdata/dcfilefo.h>
 
-    void Compress(unsigned int width,
-                  unsigned int height,
-                  unsigned int pitch,
-                  PixelFormat format);
+#include "../OrthancServer/ParsedDicomFile.h"
+#include "../Core/OrthancException.h"
+#include "../Core/ImageFormats/ImageBuffer.h"
+#include "../Core/ImageFormats/PngWriter.h"
 
-    void Prepare(unsigned int width,
-                 unsigned int height,
-                 unsigned int pitch,
-                 PixelFormat format,
-                 const void* buffer);
+using namespace Orthanc;
 
-  public:
-    PngWriter();
 
-    ~PngWriter();
 
-    void WriteToFile(const char* filename,
-                     unsigned int width,
-                     unsigned int height,
-                     unsigned int pitch,
-                     PixelFormat format,
-                     const void* buffer);
+// TODO Write a test
 
-    void WriteToMemory(std::string& png,
-                       unsigned int width,
-                       unsigned int height,
-                       unsigned int pitch,
-                       PixelFormat format,
-                       const void* buffer);
-  };
-}
+
+#endif
