@@ -513,7 +513,7 @@ namespace Orthanc
         break;
 
       default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
+        throw OrthancException(ErrorCode_NotImplemented);
     }
 
     try

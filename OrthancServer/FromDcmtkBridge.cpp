@@ -61,6 +61,7 @@
 #include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcuid.h>
 #include <dcmtk/dcmdata/dcmetinf.h>
+#include <dcmtk/dcmdata/dcdeftag.h>
 
 #include <dcmtk/dcmdata/dcvrae.h>
 #include <dcmtk/dcmdata/dcvras.h>
@@ -118,8 +119,34 @@ namespace Orthanc
 
   Encoding FromDcmtkBridge::DetectEncoding(DcmDataset& dataset)
   {
-    // TODO Implement this!
-    return Encoding_Latin1;
+    // By default, assume UTF-8 encoding (as in dcm2xml.cc)
+    Encoding encoding = Encoding_Utf8;
+
+    OFString tmp;
+    if (dataset.findAndGetOFString(DCM_SpecificCharacterSet, tmp).good())
+    {
+      std::string characterSet = Toolbox::StripSpaces(std::string(tmp.c_str()));
+
+      // TODO Add more encodings
+
+      if (characterSet == "ISO_IR 6" ||
+          characterSet == "ISO_IR 192")
+      {
+        encoding = Encoding_Utf8;
+      }
+      else if (characterSet == "ISO_IR 100")
+      {
+        encoding = Encoding_Latin1;
+      }
+      else if (!characterSet.empty())
+      {
+        LOG(WARNING) << "Value of Specific Character Set (0008,0005) is not supported: " << characterSet;
+        // Fallback to ASCII (remove all special characters)
+        encoding = Encoding_Ascii;
+      }
+    }
+
+    return encoding;
   }
 
 
