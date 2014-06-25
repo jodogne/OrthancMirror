@@ -228,6 +228,13 @@ namespace Orthanc
   };
 
 
+  enum Encoding
+  {
+    Encoding_Utf8,
+    Encoding_Latin1
+  };
+
+
   /**
    * WARNING: Do not change the explicit values in the enumerations
    * below this point. This would result in incompatible databases

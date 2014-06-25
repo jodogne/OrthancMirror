@@ -38,7 +38,7 @@
 
 #include "ZipWriter.h"
 
-#include "../../Resources/minizip/zip.h"
+#include "../../Resources/ThirdParty/minizip/zip.h"
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <limits>
 
