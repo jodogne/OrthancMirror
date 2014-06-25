@@ -184,8 +184,8 @@ endif()
 
 # Prepare the third-party dependencies
 SET(THIRD_PARTY_SOURCES
-  ${CMAKE_SOURCE_DIR}/Resources/md5/md5.c
-  ${CMAKE_SOURCE_DIR}/Resources/base64/base64.cpp
+  ${CMAKE_SOURCE_DIR}/Resources/ThirdParty/md5/md5.c
+  ${CMAKE_SOURCE_DIR}/Resources/ThirdParty/base64/base64.cpp
   )
 
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfiguration.cmake)
@@ -386,8 +386,8 @@ if (BUILD_CLIENT_LIBRARY)
   add_library(OrthancClient SHARED
     ${ORTHANC_ROOT}/OrthancCppClient/OrthancCppClient.cpp
     ${ORTHANC_ROOT}/OrthancCppClient/SharedLibrary/SharedLibrary.cpp
-    ${ORTHANC_ROOT}/Resources/md5/md5.c
-    ${ORTHANC_ROOT}/Resources/base64/base64.cpp
+    ${ORTHANC_ROOT}/Resources/ThirdParty/md5/md5.c
+    ${ORTHANC_ROOT}/Resources/ThirdParty/base64/base64.cpp
     ${ORTHANC_CPP_CLIENT_AUX}
     ${THIRD_PARTY_SOURCES}
     ${CURL_SOURCES}
