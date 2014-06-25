@@ -36,6 +36,7 @@
 #include "../Core/RestApi/RestApiOutput.h"
 #include "ServerEnumerations.h"
 #include "../Core/ImageFormats/ImageAccessor.h"
+#include "../Core/ImageFormats/ImageBuffer.h"
 
 namespace Orthanc
 {
@@ -92,6 +93,17 @@ namespace Orthanc
     void EmbedImage(const ImageAccessor& accessor);
 
     void EmbedImage(const std::string& dataUriScheme);
+
+    void ExtractImage(ImageBuffer& result,
+                      unsigned int frame);
+
+    void ExtractImage(ImageBuffer& result,
+                      unsigned int frame,
+                      ImageExtractionMode mode);
+
+    void ExtractPngImage(std::string& result,
+                         unsigned int frame,
+                         ImageExtractionMode mode);
   };
 
 }

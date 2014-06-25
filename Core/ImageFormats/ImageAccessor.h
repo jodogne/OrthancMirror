@@ -77,6 +77,11 @@ namespace Orthanc
       return pitch_;
     }
 
+    unsigned int GetSize() const
+    {
+      return GetHeight() * GetPitch();
+    }
+
     const void* GetConstBuffer() const
     {
       return buffer_;
@@ -101,5 +106,7 @@ namespace Orthanc
                         unsigned int height,
                         unsigned int pitch,
                         void *buffer);
+
+    void ToMatlabString(std::string& target) const; 
   };
 }

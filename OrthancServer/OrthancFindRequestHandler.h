@@ -41,15 +41,42 @@ namespace Orthanc
   {
   private:
     ServerContext& context_;
+    unsigned int maxResults_;
+    unsigned int maxInstances_;
+
+    bool HasReachedLimit(const DicomFindAnswers& answers,
+                         ResourceType level) const;
 
   public:
     OrthancFindRequestHandler(ServerContext& context) :
-    context_(context)
+      context_(context), 
+      maxResults_(0),
+      maxInstances_(0)
     {
     }
 
-    virtual void Handle(DicomFindAnswers& answers,
+    virtual bool Handle(DicomFindAnswers& answers,
                         const DicomMap& input,
                         const std::string& callingAETitle);
+
+    unsigned int GetMaxResults() const
+    {
+      return maxResults_;
+    }
+
+    void SetMaxResults(unsigned int results)
+    {
+      maxResults_ = results;
+    }
+
+    unsigned int GetMaxInstances() const
+    {
+      return maxInstances_;
+    }
+
+    void SetMaxInstances(unsigned int instances)
+    {
+      maxInstances_ = instances;
+    }
   };
 }

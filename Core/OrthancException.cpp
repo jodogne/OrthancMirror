@@ -115,6 +115,12 @@ namespace Orthanc
       case ErrorCode_ReadOnly:
         return "Cannot modify a read-only data structure";
 
+      case ErrorCode_IncompatibleImageSize:
+        return "Incompatible size of the images";
+
+      case ErrorCode_IncompatibleImageFormat:
+        return "Incompatible format of the images";
+
       case ErrorCode_Custom:
       default:
         return "???";

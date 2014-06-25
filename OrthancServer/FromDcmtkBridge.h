@@ -58,16 +58,6 @@ namespace Orthanc
                        const std::string& path,
                        unsigned int maxStringLength = 256);
 
-    static void ExtractPngImage(std::string& result,
-                                DcmDataset& dataset,
-                                unsigned int frame,
-                                ImageExtractionMode mode);
-
-    static void ExtractPngImage(std::string& result,
-                                const std::string& dicomContent,
-                                unsigned int frame,
-                                ImageExtractionMode mode);
-
     static std::string GetName(const DicomTag& tag);
 
     static DicomTag ParseTag(const char* name);

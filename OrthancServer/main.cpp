@@ -98,7 +98,32 @@ public:
 
   virtual IFindRequestHandler* ConstructFindRequestHandler()
   {
-    return new OrthancFindRequestHandler(context_);
+    std::auto_ptr<OrthancFindRequestHandler> result(new OrthancFindRequestHandler(context_));
+
+    result->SetMaxResults(Configuration::GetGlobalIntegerParameter("LimitFindResults", 0));
+    result->SetMaxInstances(Configuration::GetGlobalIntegerParameter("LimitFindInstances", 0));
+
+    if (result->GetMaxResults() == 0)
+    {
+      LOG(INFO) << "No limit on the number of C-FIND results at the Patient, Study and Series levels";
+    }
+    else
+    {
+      LOG(INFO) << "Maximum " << result->GetMaxResults() 
+                << " results for C-FIND queries at the Patient, Study and Series levels";
+    }
+
+    if (result->GetMaxInstances() == 0)
+    {
+      LOG(INFO) << "No limit on the number of C-FIND results at the Instance level";
+    }
+    else
+    {
+      LOG(INFO) << "Maximum " << result->GetMaxInstances() 
+                << " instances will be returned for C-FIND queries at the Instance level";
+    }
+
+    return result.release();
   }
 
   virtual IMoveRequestHandler* ConstructMoveRequestHandler()

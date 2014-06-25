@@ -37,6 +37,7 @@
 #include "FromDcmtkBridge.h"
 
 #include <memory>   // For std::auto_ptr
+#include <glog/logging.h>
 
 namespace Orthanc
 {
@@ -238,6 +239,7 @@ namespace Orthanc
 
     if (level_ == ResourceType_Patient && !IsReplaced(DICOM_TAG_PATIENT_ID))
     {
+      LOG(ERROR) << "When modifying a patient, her PatientID is required to be modified";
       throw OrthancException(ErrorCode_BadRequest);
     }
 

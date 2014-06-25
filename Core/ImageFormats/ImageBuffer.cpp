@@ -33,22 +33,40 @@
 #include "../PrecompiledHeaders.h"
 #include "ImageBuffer.h"
 
+#include "../OrthancException.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+
 namespace Orthanc
 {
   void ImageBuffer::Allocate()
   {
     if (changed_)
     {
-      pitch_ = GetBytesPerPixel() * width_;
+      Deallocate();
 
-      data_.resize(pitch_ * height_);
-      if (data_.size() > 0)
+      /*
+        if (forceMinimalPitch_)
+        {
+        TODO: Align pitch and memory buffer to optimal size for SIMD.
+        }
+      */
+
+      pitch_ = GetBytesPerPixel() * width_;
+      size_t size = pitch_ * height_;
+
+      if (size == 0)
       {
-        buffer_ = &data_[0];
+        buffer_ = NULL;
       }
       else
       {
-        buffer_ = 0;
+        buffer_ = malloc(size);
+        if (buffer_ == NULL)
+        {
+          throw OrthancException(ErrorCode_NotEnoughMemory);
+        }
       }
 
       changed_ = false;
@@ -56,9 +74,32 @@ namespace Orthanc
   }
 
 
-  ImageBuffer::ImageBuffer() : changed_(false)
+  void ImageBuffer::Deallocate()
+  {
+    if (buffer_ != NULL)
+    {
+      free(buffer_);
+      buffer_ = NULL;
+      changed_ = true;
+    }
+  }
+
+
+  ImageBuffer::ImageBuffer(unsigned int width,
+                           unsigned int height,
+                           PixelFormat format)
+  {
+    Initialize();
+    SetWidth(width);
+    SetHeight(height);
+    SetFormat(format);
+  }
+
+
+  void ImageBuffer::Initialize()
   {
     changed_ = false;
+    forceMinimalPitch_ = true;
     format_ = PixelFormat_Grayscale8;
     width_ = 0;
     height_ = 0;
@@ -69,22 +110,31 @@ namespace Orthanc
 
   void ImageBuffer::SetFormat(PixelFormat format)
   {
-    changed_ = true;
-    format_ = format;
+    if (format != format_)
+    {
+      changed_ = true;
+      format_ = format;
+    }
   }
 
 
   void ImageBuffer::SetWidth(unsigned int width)
   {
-    changed_ = true;
-    width_ = width;     
+    if (width != width_)
+    {
+      changed_ = true;
+      width_ = width;     
+    }
   }
 
 
   void ImageBuffer::SetHeight(unsigned int height)
   {
-    changed_ = true;
-    height_ = height;     
+    if (height != height_)
+    {
+      changed_ = true;
+      height_ = height;     
+    }
   }
 
 
@@ -105,5 +155,38 @@ namespace Orthanc
     ImageAccessor accessor;
     accessor.AssignReadOnly(format_, width_, height_, pitch_, buffer_);
     return accessor;
+  }
+
+
+  void ImageBuffer::SetMinimalPitchForced(bool force)
+  {
+    if (force != forceMinimalPitch_)
+    {
+      changed_ = true;
+      forceMinimalPitch_ = force;
+    }
+  }
+
+
+  void ImageBuffer::AcquireOwnership(ImageBuffer& other)
+  {
+    // Remove the content of the current image
+    Deallocate();
+
+    // Force the allocation of the other image (if not already
+    // allocated)
+    other.Allocate();
+
+    // Transfer the content of the other image
+    changed_ = false;
+    forceMinimalPitch_ = other.forceMinimalPitch_;
+    format_ = other.format_;
+    width_ = other.width_;
+    height_ = other.height_;
+    pitch_ = other.pitch_;
+    buffer_ = other.buffer_;
+
+    // Force the reinitialization of the other image
+    other.Initialize();
   }
 }

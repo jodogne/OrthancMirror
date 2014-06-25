@@ -30,70 +30,25 @@
  **/
 
 
-#include "PrecompiledHeaders.h"
-#include "ChunkedBuffer.h"
+#include "PrecompiledHeadersUnitTests.h"
+#include "gtest/gtest.h"
 
-#include <cassert>
-#include <string.h>
+#include "../OrthancServer/Internals/DicomImageDecoder.h"
 
+#if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
 
-namespace Orthanc
-{
-  void ChunkedBuffer::Clear()
-  {
-    numBytes_ = 0;
+#include <dcmtk/dcmdata/dcfilefo.h>
 
-    for (Chunks::iterator it = chunks_.begin(); 
-         it != chunks_.end(); ++it)
-    {
-      delete *it;
-    }
-  }
+#include "../OrthancServer/ParsedDicomFile.h"
+#include "../Core/OrthancException.h"
+#include "../Core/ImageFormats/ImageBuffer.h"
+#include "../Core/ImageFormats/PngWriter.h"
+
+using namespace Orthanc;
 
 
-  void ChunkedBuffer::AddChunk(const char* chunkData,
-                               size_t chunkSize)
-  {
-    if (chunkSize == 0)
-    {
-      return;
-    }
 
-    assert(chunkData != NULL);
-    chunks_.push_back(new std::string(chunkData, chunkSize));
-    numBytes_ += chunkSize;
-  }
+// TODO Write a test
 
 
-  void ChunkedBuffer::AddChunk(const std::string& chunk)
-  {
-    if (chunk.size() > 0)
-    {
-      AddChunk(&chunk[0], chunk.size());
-    }
-  }
-
-
-  void ChunkedBuffer::Flatten(std::string& result)
-  {
-    result.resize(numBytes_);
-
-    size_t pos = 0;
-    for (Chunks::iterator it = chunks_.begin(); 
-         it != chunks_.end(); ++it)
-    {
-      assert(*it != NULL);
-
-      size_t s = (*it)->size();
-      if (s != 0)
-      {
-        memcpy(&result[pos], (*it)->c_str(), s);
-        pos += s;
-      }
-
-      delete *it;
-    }
-
-    chunks_.clear();
-  }
-}
+#endif

@@ -30,70 +30,49 @@
  **/
 
 
-#include "PrecompiledHeaders.h"
-#include "ChunkedBuffer.h"
+#include "PrecompiledHeadersUnitTests.h"
+#include "gtest/gtest.h"
 
-#include <cassert>
-#include <string.h>
+#include "../Core/DicomFormat/DicomImageInformation.h"
+#include "../Core/ImageFormats/ImageBuffer.h"
+#include "../Core/ImageFormats/ImageProcessing.h"
+
+using namespace Orthanc;
 
 
-namespace Orthanc
+TEST(DicomImageInformation, ExtractPixelFormat1)
 {
-  void ChunkedBuffer::Clear()
-  {
-    numBytes_ = 0;
+  // Cardiac/MR*
+  DicomMap m;
+  m.SetValue(DICOM_TAG_ROWS, "24");
+  m.SetValue(DICOM_TAG_COLUMNS, "16");
+  m.SetValue(DICOM_TAG_BITS_ALLOCATED, "16");
+  m.SetValue(DICOM_TAG_SAMPLES_PER_PIXEL, "1");
+  m.SetValue(DICOM_TAG_BITS_STORED, "12");
+  m.SetValue(DICOM_TAG_HIGH_BIT, "11");
+  m.SetValue(DICOM_TAG_PIXEL_REPRESENTATION, "0");
 
-    for (Chunks::iterator it = chunks_.begin(); 
-         it != chunks_.end(); ++it)
-    {
-      delete *it;
-    }
-  }
-
-
-  void ChunkedBuffer::AddChunk(const char* chunkData,
-                               size_t chunkSize)
-  {
-    if (chunkSize == 0)
-    {
-      return;
-    }
-
-    assert(chunkData != NULL);
-    chunks_.push_back(new std::string(chunkData, chunkSize));
-    numBytes_ += chunkSize;
-  }
+  DicomImageInformation info(m);
+  PixelFormat format;
+  ASSERT_TRUE(info.ExtractPixelFormat(format));
+  ASSERT_EQ(PixelFormat_Grayscale16, format);
+}
 
 
-  void ChunkedBuffer::AddChunk(const std::string& chunk)
-  {
-    if (chunk.size() > 0)
-    {
-      AddChunk(&chunk[0], chunk.size());
-    }
-  }
+TEST(DicomImageInformation, ExtractPixelFormat2)
+{
+  // Delphine CT
+  DicomMap m;
+  m.SetValue(DICOM_TAG_ROWS, "24");
+  m.SetValue(DICOM_TAG_COLUMNS, "16");
+  m.SetValue(DICOM_TAG_BITS_ALLOCATED, "16");
+  m.SetValue(DICOM_TAG_SAMPLES_PER_PIXEL, "1");
+  m.SetValue(DICOM_TAG_BITS_STORED, "16");
+  m.SetValue(DICOM_TAG_HIGH_BIT, "15");
+  m.SetValue(DICOM_TAG_PIXEL_REPRESENTATION, "1");
 
-
-  void ChunkedBuffer::Flatten(std::string& result)
-  {
-    result.resize(numBytes_);
-
-    size_t pos = 0;
-    for (Chunks::iterator it = chunks_.begin(); 
-         it != chunks_.end(); ++it)
-    {
-      assert(*it != NULL);
-
-      size_t s = (*it)->size();
-      if (s != 0)
-      {
-        memcpy(&result[pos], (*it)->c_str(), s);
-        pos += s;
-      }
-
-      delete *it;
-    }
-
-    chunks_.clear();
-  }
+  DicomImageInformation info(m);
+  PixelFormat format;
+  ASSERT_TRUE(info.ExtractPixelFormat(format));
+  ASSERT_EQ(PixelFormat_SignedGrayscale16, format);
 }
