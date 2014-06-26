@@ -691,6 +691,60 @@ namespace Orthanc
   }
 
 
+  template <enum ResourceType resourceType, bool simplify>
+  static void GetModule(RestApi::GetCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+    std::string publicId = call.GetUriComponent("id", "");
+
+    typedef std::set<DicomTag> Module;
+    Module module;
+    DicomTag::GetTagsForModule(module, resourceType);
+
+    Json::Value tags;
+
+    if (resourceType != ResourceType_Instance)
+    {
+      // Retrieve all the instances of this patient/study/series
+      typedef std::list<std::string> Instances;
+      Instances instances;
+      context.GetIndex().GetChildInstances(instances, publicId);
+
+      if (instances.empty())
+      {
+        return;   // Error: No instance (should never happen)
+      }
+
+      // Select one child instance
+      publicId = instances.front();
+    }
+
+    context.ReadJson(tags, publicId);
+    
+    // Filter the tags of the instance according to the module
+    Json::Value result = Json::objectValue;
+    for (Module::const_iterator it = module.begin(); it != module.end(); it++)
+    {
+      std::string s = it->Format();
+      if (tags.isMember(s))
+      {
+        result[s] = tags[s];
+      }      
+    }
+
+    if (simplify)
+    {
+      Json::Value simplified;
+      SimplifyTags(simplified, result);
+      call.GetOutput().AnswerJson(simplified);
+    }
+    else
+    {
+      call.GetOutput().AnswerJson(result);
+    }
+  }
+
+
   void OrthancRestApi::RegisterResources()
   {
     Register("/instances", ListResources<ResourceType_Instance>);
@@ -718,6 +772,15 @@ namespace Orthanc
     Register("/series/{id}/simplified-shared-tags", GetSharedTags<true>);
     Register("/studies/{id}/shared-tags", GetSharedTags<false>);
     Register("/studies/{id}/simplified-shared-tags", GetSharedTags<true>);
+
+    Register("/instances/{id}/module", GetModule<ResourceType_Instance, false>);
+    Register("/patients/{id}/module", GetModule<ResourceType_Patient, false>);
+    Register("/series/{id}/module", GetModule<ResourceType_Series, false>);
+    Register("/studies/{id}/module", GetModule<ResourceType_Study, false>);
+    Register("/instances/{id}/simplified-module", GetModule<ResourceType_Instance, true>);
+    Register("/patients/{id}/simplified-module", GetModule<ResourceType_Patient, true>);
+    Register("/series/{id}/simplified-module", GetModule<ResourceType_Series, true>);
+    Register("/studies/{id}/simplified-module", GetModule<ResourceType_Study, true>);
 
     Register("/instances/{id}/file", GetInstanceFile);
     Register("/instances/{id}/export", ExportInstanceFile);
