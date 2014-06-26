@@ -116,4 +116,91 @@ namespace Orthanc
 
     return "";
   }
+
+
+  void DicomTag::GetTagsForModule(std::set<DicomTag>& target,
+                                  ResourceType module)
+  {
+    // REFERENCE: 11_03pu.pdf, DICOM PS 3.3 2011 - Information Object Definitions
+    target.clear();
+
+    switch (module)
+    {
+      case ResourceType_Patient:
+        // This is Table C.7-1 "Patient Module Attributes" (p. 373)
+        target.insert(DicomTag(0x0010, 0x0010));   // Patient's name
+        target.insert(DicomTag(0x0010, 0x0020));   // Patient ID
+        target.insert(DicomTag(0x0010, 0x0030));   // Patient's birth date
+        target.insert(DicomTag(0x0010, 0x0040));   // Patient's sex
+        target.insert(DicomTag(0x0008, 0x1120));   // Referenced patient sequence
+        target.insert(DicomTag(0x0010, 0x0032));   // Patient's birth time
+        target.insert(DicomTag(0x0010, 0x1000));   // Other patient IDs
+        target.insert(DicomTag(0x0010, 0x1002));   // Other patient IDs sequence
+        target.insert(DicomTag(0x0010, 0x1001));   // Other patient names
+        target.insert(DicomTag(0x0010, 0x2160));   // Ethnic group
+        target.insert(DicomTag(0x0010, 0x4000));   // Patient comments
+        target.insert(DicomTag(0x0010, 0x2201));   // Patient species description
+        target.insert(DicomTag(0x0010, 0x2202));   // Patient species code sequence
+        target.insert(DicomTag(0x0010, 0x2292));   // Patient breed description
+        target.insert(DicomTag(0x0010, 0x2293));   // Patient breed code sequence
+        target.insert(DicomTag(0x0010, 0x2294));   // Breed registration sequence
+        target.insert(DicomTag(0x0010, 0x2297));   // Responsible person
+        target.insert(DicomTag(0x0010, 0x2298));   // Responsible person role
+        target.insert(DicomTag(0x0010, 0x2299));   // Responsible organization
+        target.insert(DicomTag(0x0012, 0x0062));   // Patient identity removed
+        target.insert(DicomTag(0x0012, 0x0063));   // De-identification method
+        target.insert(DicomTag(0x0012, 0x0064));   // De-identification method code sequence
+
+        // Table 10-18 ISSUER OF PATIENT ID MACRO (p. 112)
+        target.insert(DicomTag(0x0010, 0x0021));   // Issuer of Patient ID
+        target.insert(DicomTag(0x0010, 0x0024));   // Issuer of Patient ID qualifiers sequence
+        break;
+
+      case ResourceType_Study:
+        // This is Table C.7-3 "General Study Module Attributes" (p. 378)
+        target.insert(DicomTag(0x0020, 0x000d));   // Study instance UID
+        target.insert(DicomTag(0x0008, 0x0020));   // Study date
+        target.insert(DicomTag(0x0008, 0x0030));   // Study time
+        target.insert(DicomTag(0x0008, 0x0090));   // Referring physician's name
+        target.insert(DicomTag(0x0008, 0x0096));   // Referring physician identification sequence
+        target.insert(DicomTag(0x0020, 0x0010));   // Study ID
+        target.insert(DicomTag(0x0008, 0x0050));   // Accession number
+        target.insert(DicomTag(0x0008, 0x0051));   // Issuer of accession number sequence
+        target.insert(DicomTag(0x0008, 0x1030));   // Study description
+        target.insert(DicomTag(0x0008, 0x1048));   // Physician(s) of record
+        target.insert(DicomTag(0x0008, 0x1049));   // Physician(s) of record identification sequence
+        target.insert(DicomTag(0x0008, 0x1060));   // Name of physician(s) reading study
+        target.insert(DicomTag(0x0008, 0x1062));   // Physician(s) reading study identification sequence
+        target.insert(DicomTag(0x0032, 0x1034));   // Requesting service code sequence
+        target.insert(DicomTag(0x0008, 0x1110));   // Referenced study sequence
+        target.insert(DicomTag(0x0008, 0x1032));   // Procedure code sequence
+        target.insert(DicomTag(0x0040, 0x1012));   // Reason for performed procedure code sequence
+        break;
+
+      case ResourceType_Series:
+        // This is Table C.7-5 "General Series Module Attributes" (p. 385)
+        target.insert(DicomTag(0x    , 0x    ));   // 
+        target.insert(DicomTag(0x    , 0x    ));   // 
+        target.insert(DicomTag(0x    , 0x    ));   // 
+        target.insert(DicomTag(0x    , 0x    ));   // 
+        target.insert(DicomTag(0x    , 0x    ));   // 
+        target.insert(DicomTag(0x    , 0x    ));   // 
+        target.insert(DicomTag(0x    , 0x    ));   // 
+        break;
+
+      case ResourceType_Instance:
+        // This is Table C.12-1 "SOP Common Module Attributes" (p. 1207)
+        target.insert(DicomTag(0x    , 0x    ));   // 
+        target.insert(DicomTag(0x    , 0x    ));   // 
+        target.insert(DicomTag(0x    , 0x    ));   // 
+        target.insert(DicomTag(0x    , 0x    ));   // 
+        target.insert(DicomTag(0x    , 0x    ));   // 
+        target.insert(DicomTag(0x    , 0x    ));   // 
+        target.insert(DicomTag(0x    , 0x    ));   // 
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
 }
