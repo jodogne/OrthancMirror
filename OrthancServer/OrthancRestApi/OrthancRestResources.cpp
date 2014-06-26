@@ -591,11 +591,10 @@ namespace Orthanc
 
 
 
-  static void GetSharedTags(RestApi::GetCall& call)
+  static bool ExtractSharedTags(Json::Value& shared,
+                                ServerContext& context,
+                                const std::string& publicId)
   {
-    ServerContext& context = OrthancRestApi::GetContext(call);
-    std::string publicId = call.GetUriComponent("id", "");
-
     // Retrieve all the instances of this patient/study/series
     typedef std::list<std::string> Instances;
     Instances instances;
@@ -603,17 +602,17 @@ namespace Orthanc
 
     // Loop over the instances
     bool isFirst = true;
-    Json::Value shared = Json::objectValue;
+    shared = Json::objectValue;
 
     for (Instances::const_iterator it = instances.begin();
          it != instances.end(); it++)
     {
       // Get the tags of the current instance, in the simplified format
-      Json::Value full, simplified;
+      Json::Value tags;
 
       try
       {
-        context.ReadJson(full, *it);
+        context.ReadJson(tags, *it);
       }
       catch (OrthancException&)
       {
@@ -622,28 +621,28 @@ namespace Orthanc
         continue;
       }
 
-      SimplifyTags(simplified, full);
-
-      if (simplified.type() != Json::objectValue)
+      if (tags.type() != Json::objectValue)
       {
-        return;   // Error
+        return false;   // Error
       }
 
       // Only keep the tags that are mapped to a string
-      Json::Value::Members members = simplified.getMemberNames();
+      Json::Value::Members members = tags.getMemberNames();
       for (size_t i = 0; i < members.size(); i++)
       {
-        Json::ValueType type = simplified[members[i]].type();
-        if (type != Json::stringValue)
+        const Json::Value& tag = tags[members[i]];
+        if (tag.type() != Json::objectValue ||
+            tag["Type"].type() != Json::stringValue ||
+            tag["Type"].asString() != "String")
         {
-          simplified.removeMember(members[i]);
+          tags.removeMember(members[i]);
         }
       }
 
       if (isFirst)
       {
         // This is the first instance, keep its tags as such
-        shared = simplified;
+        shared = tags;
         isFirst = false;
       }
       else
@@ -654,8 +653,8 @@ namespace Orthanc
         members = shared.getMemberNames();
         for (size_t i = 0; i < members.size(); i++)
         {
-          if (!simplified.isMember(members[i]) ||
-              simplified[members[i]].asString() != shared[members[i]].asString())
+          if (!tags.isMember(members[i]) ||
+              tags[members[i]]["Value"].asString() != shared[members[i]]["Value"].asString())
           {
             shared.removeMember(members[i]);
           }
@@ -663,8 +662,32 @@ namespace Orthanc
       }
     }
 
-    // Success: Send the value of the shared tags
-    call.GetOutput().AnswerJson(shared);
+    return true;
+  }
+
+
+
+  template <bool simplify>
+  static void GetSharedTags(RestApi::GetCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+    std::string publicId = call.GetUriComponent("id", "");
+
+    Json::Value sharedTags;
+    if (ExtractSharedTags(sharedTags, context, publicId))
+    {
+      // Success: Send the value of the shared tags
+      if (simplify)
+      {
+        Json::Value simplified;
+        SimplifyTags(simplified, sharedTags);
+        call.GetOutput().AnswerJson(simplified);
+      }
+      else
+      {
+        call.GetOutput().AnswerJson(sharedTags);
+      }
+    }
   }
 
 
@@ -689,9 +712,12 @@ namespace Orthanc
     Register("/studies/{id}/statistics", GetResourceStatistics);
     Register("/series/{id}/statistics", GetResourceStatistics);
 
-    Register("/patients/{id}/shared-tags", GetSharedTags);
-    Register("/series/{id}/shared-tags", GetSharedTags);
-    Register("/studies/{id}/shared-tags", GetSharedTags);
+    Register("/patients/{id}/shared-tags", GetSharedTags<false>);
+    Register("/patients/{id}/simplified-shared-tags", GetSharedTags<true>);
+    Register("/series/{id}/shared-tags", GetSharedTags<false>);
+    Register("/series/{id}/simplified-shared-tags", GetSharedTags<true>);
+    Register("/studies/{id}/shared-tags", GetSharedTags<false>);
+    Register("/studies/{id}/simplified-shared-tags", GetSharedTags<true>);
 
     Register("/instances/{id}/file", GetInstanceFile);
     Register("/instances/{id}/export", ExportInstanceFile);
