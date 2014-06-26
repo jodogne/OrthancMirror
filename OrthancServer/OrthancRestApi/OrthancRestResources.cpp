@@ -153,6 +153,21 @@ namespace Orthanc
     }
   }
 
+
+  static void GetInstanceTagsBis(RestApi::GetCall& call)
+  {
+    bool simplify = call.HasArgument("simplify");
+
+    if (simplify)
+    {
+      GetInstanceTags<true>(call);
+    }
+    else
+    {
+      GetInstanceTags<false>(call);
+    }
+  }
+
   
   static void ListFrames(RestApi::GetCall& call)
   {
@@ -666,12 +681,11 @@ namespace Orthanc
   }
 
 
-
-  template <bool simplify>
   static void GetSharedTags(RestApi::GetCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
     std::string publicId = call.GetUriComponent("id", "");
+    bool simplify = call.HasArgument("simplify");
 
     Json::Value sharedTags;
     if (ExtractSharedTags(sharedTags, context, publicId))
@@ -691,11 +705,12 @@ namespace Orthanc
   }
 
 
-  template <enum ResourceType resourceType, bool simplify>
+  template <enum ResourceType resourceType>
   static void GetModule(RestApi::GetCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
     std::string publicId = call.GetUriComponent("id", "");
+    bool simplify = call.HasArgument("simplify");
 
     typedef std::set<DicomTag> Module;
     Module module;
@@ -766,25 +781,18 @@ namespace Orthanc
     Register("/studies/{id}/statistics", GetResourceStatistics);
     Register("/series/{id}/statistics", GetResourceStatistics);
 
-    Register("/patients/{id}/shared-tags", GetSharedTags<false>);
-    Register("/patients/{id}/simplified-shared-tags", GetSharedTags<true>);
-    Register("/series/{id}/shared-tags", GetSharedTags<false>);
-    Register("/series/{id}/simplified-shared-tags", GetSharedTags<true>);
-    Register("/studies/{id}/shared-tags", GetSharedTags<false>);
-    Register("/studies/{id}/simplified-shared-tags", GetSharedTags<true>);
+    Register("/patients/{id}/shared-tags", GetSharedTags);
+    Register("/series/{id}/shared-tags", GetSharedTags);
+    Register("/studies/{id}/shared-tags", GetSharedTags);
 
-    Register("/instances/{id}/module", GetModule<ResourceType_Instance, false>);
-    Register("/patients/{id}/module", GetModule<ResourceType_Patient, false>);
-    Register("/series/{id}/module", GetModule<ResourceType_Series, false>);
-    Register("/studies/{id}/module", GetModule<ResourceType_Study, false>);
-    Register("/instances/{id}/simplified-module", GetModule<ResourceType_Instance, true>);
-    Register("/patients/{id}/simplified-module", GetModule<ResourceType_Patient, true>);
-    Register("/series/{id}/simplified-module", GetModule<ResourceType_Series, true>);
-    Register("/studies/{id}/simplified-module", GetModule<ResourceType_Study, true>);
+    Register("/instances/{id}/module", GetModule<ResourceType_Instance>);
+    Register("/patients/{id}/module", GetModule<ResourceType_Patient>);
+    Register("/series/{id}/module", GetModule<ResourceType_Series>);
+    Register("/studies/{id}/module", GetModule<ResourceType_Study>);
 
     Register("/instances/{id}/file", GetInstanceFile);
     Register("/instances/{id}/export", ExportInstanceFile);
-    Register("/instances/{id}/tags", GetInstanceTags<false>);
+    Register("/instances/{id}/tags", GetInstanceTagsBis);
     Register("/instances/{id}/simplified-tags", GetInstanceTags<true>);
     Register("/instances/{id}/frames", ListFrames);
 
