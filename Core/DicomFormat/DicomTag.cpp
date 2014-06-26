@@ -179,25 +179,66 @@ namespace Orthanc
 
       case ResourceType_Series:
         // This is Table C.7-5 "General Series Module Attributes" (p. 385)
-        target.insert(DicomTag(0x    , 0x    ));   // 
-        target.insert(DicomTag(0x    , 0x    ));   // 
-        target.insert(DicomTag(0x    , 0x    ));   // 
-        target.insert(DicomTag(0x    , 0x    ));   // 
-        target.insert(DicomTag(0x    , 0x    ));   // 
-        target.insert(DicomTag(0x    , 0x    ));   // 
-        target.insert(DicomTag(0x    , 0x    ));   // 
+        target.insert(DicomTag(0x0008, 0x0060));   // Modality 
+        target.insert(DicomTag(0x0020, 0x000e));   // Series Instance UID 
+        target.insert(DicomTag(0x0020, 0x0011));   // Series Number 
+        target.insert(DicomTag(0x0020, 0x0060));   // Laterality 
+        target.insert(DicomTag(0x0008, 0x0021));   // Series Date 
+        target.insert(DicomTag(0x0008, 0x0031));   // Series Time 
+        target.insert(DicomTag(0x0008, 0x1050));   // Performing Physicians’ Name 
+        target.insert(DicomTag(0x0008, 0x1052));   // Performing Physician Identification Sequence 
+        target.insert(DicomTag(0x0018, 0x1030));   // Protocol Name
+        target.insert(DicomTag(0x0008, 0x103e));   // Series Description 
+        target.insert(DicomTag(0x0008, 0x103f));   // Series Description Code Sequence 
+        target.insert(DicomTag(0x0008, 0x1070));   // Operators' Name 
+        target.insert(DicomTag(0x0008, 0x1072));   // Operator Identification Sequence 
+        target.insert(DicomTag(0x0008, 0x1111));   // Referenced Performed Procedure Step Sequence
+        target.insert(DicomTag(0x0008, 0x1250));   // Related Series Sequence
+        target.insert(DicomTag(0x0018, 0x0015));   // Body Part Examined
+        target.insert(DicomTag(0x0018, 0x5100));   // Patient Position
+        target.insert(DicomTag(0x0028, 0x0108));   // Smallest Pixel Value in Series 
+        target.insert(DicomTag(0x0029, 0x0109));   // Largest Pixel Value in Series 
+        target.insert(DicomTag(0x0040, 0x0275));   // Request Attributes Sequence 
+        target.insert(DicomTag(0x0010, 0x2210));   // Anatomical Orientation Type
+
+        // Table 10-16 PERFORMED PROCEDURE STEP SUMMARY MACRO ATTRIBUTES
+        target.insert(DicomTag(0x0040, 0x0253));   // Performed Procedure Step ID 
+        target.insert(DicomTag(0x0040, 0x0244));   // Performed Procedure Step Start Date 
+        target.insert(DicomTag(0x0040, 0x0245));   // Performed Procedure Step Start Time 
+        target.insert(DicomTag(0x0040, 0x0254));   // Performed Procedure Step Description 
+        target.insert(DicomTag(0x0040, 0x0260));   // Performed Protocol Code Sequence 
+        target.insert(DicomTag(0x0040, 0x0280));   // Comments on the Performed Procedure Step
         break;
 
       case ResourceType_Instance:
         // This is Table C.12-1 "SOP Common Module Attributes" (p. 1207)
-        target.insert(DicomTag(0x    , 0x    ));   // 
-        target.insert(DicomTag(0x    , 0x    ));   // 
-        target.insert(DicomTag(0x    , 0x    ));   // 
-        target.insert(DicomTag(0x    , 0x    ));   // 
-        target.insert(DicomTag(0x    , 0x    ));   // 
-        target.insert(DicomTag(0x    , 0x    ));   // 
-        target.insert(DicomTag(0x    , 0x    ));   // 
+        target.insert(DicomTag(0x0008, 0x0016));   // SOP Class UID
+        target.insert(DicomTag(0x0008, 0x0018));   // SOP Instance UID 
+        target.insert(DicomTag(0x0008, 0x0005));   // Specific Character Set 
+        target.insert(DicomTag(0x0008, 0x0012));   // Instance Creation Date 
+        target.insert(DicomTag(0x0008, 0x0013));   // Instance Creation Time 
+        target.insert(DicomTag(0x0008, 0x0014));   // Instance Creator UID 
+        target.insert(DicomTag(0x0008, 0x001a));   // Related General SOP Class UID 
+        target.insert(DicomTag(0x0008, 0x001b));   // Original Specialized SOP Class UID 
+        target.insert(DicomTag(0x0008, 0x0110));   // Coding Scheme Identification Sequence 
+        target.insert(DicomTag(0x0008, 0x0201));   // Timezone Offset From UTC 
+        target.insert(DicomTag(0x0018, 0xa001));   // Contributing Equipment Sequence
+        target.insert(DicomTag(0x0020, 0x0013));   // Instance Number 
+        target.insert(DicomTag(0x0100, 0x0410));   // SOP Instance Status 
+        target.insert(DicomTag(0x0100, 0x0420));   // SOP Authorization DateTime 
+        target.insert(DicomTag(0x0100, 0x0424));   // SOP Authorization Comment 
+        target.insert(DicomTag(0x0100, 0x0426));   // Authorization Equipment Certification Number
+        target.insert(DicomTag(0x0400, 0x0500));   // Encrypted Attributes Sequence
+        target.insert(DicomTag(0x0400, 0x0561));   // Original Attributes Sequence 
+        target.insert(DicomTag(0x0040, 0xa390));   // HL7 Structured Document Reference Sequence
+        target.insert(DicomTag(0x0028, 0x0303));   // Longitudinal Temporal Information Modified 
+
+        // Table C.12-6 "DIGITAL SIGNATURES MACRO ATTRIBUTES" (p. 1216)
+        target.insert(DicomTag(0x4ffe, 0x0001));   // MAC Parameters sequence
+        target.insert(DicomTag(0xfffa, 0xfffa));   // Digital signatures sequence
         break;
+
+        // TODO IMAGE MODULE?
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
