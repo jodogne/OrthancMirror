@@ -138,6 +138,18 @@ TEST(RestApi, RestApiPath)
     ASSERT_TRUE(uri.Match(args, trail, "/coucou/moi/d/"));
     ASSERT_FALSE(uri.Match(args, trail, "/a/moi/d"));
     ASSERT_FALSE(uri.Match(args, trail, "/coucou/moi"));
+
+    ASSERT_EQ(3u, uri.GetLevelCount());
+    ASSERT_TRUE(uri.IsUniversalTrailing());
+
+    ASSERT_EQ("coucou", uri.GetLevelName(0));
+    ASSERT_THROW(uri.GetWildcardName(0), OrthancException);
+
+    ASSERT_EQ("abc", uri.GetWildcardName(1));
+    ASSERT_THROW(uri.GetLevelName(1), OrthancException);
+
+    ASSERT_EQ("d", uri.GetLevelName(2));
+    ASSERT_THROW(uri.GetWildcardName(2), OrthancException);
   }
 
   {
@@ -147,6 +159,18 @@ TEST(RestApi, RestApiPath)
     ASSERT_EQ(1u, args.size());
     ASSERT_EQ(0u, trail.size());
     ASSERT_EQ("moi", args["abc"]);
+
+    ASSERT_EQ(3u, uri.GetLevelCount());
+    ASSERT_FALSE(uri.IsUniversalTrailing());
+
+    ASSERT_EQ("coucou", uri.GetLevelName(0));
+    ASSERT_THROW(uri.GetWildcardName(0), OrthancException);
+
+    ASSERT_EQ("abc", uri.GetWildcardName(1));
+    ASSERT_THROW(uri.GetLevelName(1), OrthancException);
+
+    ASSERT_EQ("d", uri.GetLevelName(2));
+    ASSERT_THROW(uri.GetWildcardName(2), OrthancException);
   }
 
   {
@@ -157,5 +181,139 @@ TEST(RestApi, RestApiPath)
     ASSERT_EQ("a", trail[0]);
     ASSERT_EQ("b", trail[1]);
     ASSERT_EQ("c", trail[2]);
+
+    ASSERT_EQ(0u, uri.GetLevelCount());
+    ASSERT_TRUE(uri.IsUniversalTrailing());
   }
+}
+
+
+
+
+
+
+namespace Orthanc
+{
+  class RestApiResource
+  {
+  private:
+    struct Handlers
+    {
+      std::list<RestApi::GetHandler>  getHandlers_;
+      std::list<RestApi::PutHandler>  putHandlers_;
+      std::list<RestApi::PostHandler>  postHandlers_;
+      std::list<RestApi::DeleteHandler>  deleteHandlers_;
+
+      void Register(RestApi::GetHandler handler)
+      {
+        getHandlers_.push_back(handler);
+      }
+
+      void Register(RestApi::PutHandler handler)
+      {
+        putHandlers_.push_back(handler);
+      }
+
+      void Register(RestApi::PostHandler handler)
+      {
+        postHandlers_.push_back(handler);
+      }
+
+      void Register(RestApi::DeleteHandler handler)
+      {
+        deleteHandlers_.push_back(handler);
+      }
+    };
+
+
+    typedef std::map<std::string, RestApiResource*>  Children;
+
+    Children  children_;
+    Children  wildcardChildren_;
+    Handlers  handlers_;
+    Handlers  universalHandlers_;
+
+
+    static RestApiResource& AddChild(Children& children,
+                                     const std::string& name)
+    {
+      Children::iterator it = children.find(name);
+
+      if (it == children.end())
+      {
+        // Create new child
+        RestApiResource *child = new RestApiResource;
+        children[name] = child;
+        return *child;
+      }
+      else
+      {
+        return *it->second;
+      }
+    }
+
+
+    static void DeleteChildren(Children& children)
+    {
+      for (Children::iterator it = children.begin();
+           it != children.end(); it++)
+      {
+        delete it->second;
+      }
+    }
+
+
+
+
+    template <typename Handler>
+    void RegisterInternal(const RestApiPath& path,
+                          Handler handler,
+                          size_t level)
+    {
+      if (path.GetLevelCount() == level)
+      {
+        if (path.IsUniversalTrailing())
+        {
+          universalHandlers_.Register(handler);
+        }
+        else
+        {
+          handlers_.Register(handler);
+        }
+      }
+      else if (path.IsWildcardLevel(level))
+      {
+        AddChild(wildcardChildren_, path.GetWildcardName(level));
+      }
+    }
+
+
+  public:
+    ~RestApiResource()
+    {
+      DeleteChildren(children_);
+      DeleteChildren(wildcardChildren_);
+    }
+
+    void Register(const RestApiPath& path,
+                  RestApi::GetHandler handler)
+    {
+      RegisterInternal(path, handler, 0);
+    }
+  };
+
+}
+
+
+
+static void Toto(RestApi::GetCall& get)
+{
+}
+
+
+TEST(RestApi, RestApiResource)
+{
+  RestApiResource root;
+
+  root.Register(RestApiPath("/hello/world/test"), Toto);
 }

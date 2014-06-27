@@ -284,6 +284,28 @@ namespace Orthanc
   }
 
 
+  void Toolbox::TruncateUri(UriComponents& target,
+                            const UriComponents& source,
+                            size_t fromLevel)
+  {
+    target.clear();
+
+    if (source.size() > fromLevel)
+    {
+      target.resize(source.size() - fromLevel);
+
+      size_t j = 0;
+      for (size_t i = fromLevel; i < source.size(); i++, j++)
+      {
+        target[j] = source[i];
+      }
+
+      assert(j == target.size());
+    }
+  }
+  
+
+
   bool Toolbox::IsChildUri(const UriComponents& baseUri,
                            const UriComponents& testedUri)
   {
