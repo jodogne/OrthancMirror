@@ -32,49 +32,29 @@
 
 #pragma once
 
-#include "../Toolbox.h"
-#include "../HttpServer/HttpHandler.h"
-
-#include <map>
+#include "RestApiCall.h"
 
 namespace Orthanc
 {
-  class RestApiPath
+  class RestApiDeleteCall : public RestApiCall
   {
-  private:
-    UriComponents uri_;
-    bool hasTrailing_;
-    std::vector<std::string> components_;
-
   public:
-    RestApiPath(const std::string& uri);
-
-    // This version is slower
-    bool Match(HttpHandler::Arguments& components,
-               UriComponents& trailing,
-               const std::string& uriRaw) const;
-
-    bool Match(HttpHandler::Arguments& components,
-               UriComponents& trailing,
-               const UriComponents& uri) const;
-
-    bool Match(const UriComponents& uri) const;
-
-    size_t GetLevelCount() const
+    typedef void (*Handler) (RestApiDeleteCall& call);
+    
+    RestApiDeleteCall(RestApiOutput& output,
+                      RestApi& context,
+                      const HttpHandler::Arguments& httpHeaders,
+                      const HttpHandler::Arguments& uriComponents,
+                      const UriComponents& trailing,
+                      const UriComponents& fullUri) :
+      RestApiCall(output, context, httpHeaders, uriComponents, trailing, fullUri)
     {
-      return uri_.size();
     }
 
-    bool IsWildcardLevel(size_t level) const;
-
-    bool IsUniversalTrailing() const
+    virtual bool ParseJsonRequest(Json::Value& result) const
     {
-      return hasTrailing_;
+      result.clear();
+      return true;
     }
-
-    const std::string& GetWildcardName(size_t level) const;
-
-    const std::string& GetLevelName(size_t level) const;
-
   };
 }

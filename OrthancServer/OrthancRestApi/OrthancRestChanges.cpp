@@ -42,7 +42,7 @@ namespace Orthanc
   static void GetSinceAndLimit(int64_t& since,
                                unsigned int& limit,
                                bool& last,
-                               const RestApi::GetCall& call)
+                               const RestApiGetCall& call)
   {
     static const unsigned int MAX_RESULTS = 100;
     
@@ -70,7 +70,7 @@ namespace Orthanc
     }
   }
 
-  static void GetChanges(RestApi::GetCall& call)
+  static void GetChanges(RestApiGetCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -89,7 +89,7 @@ namespace Orthanc
   }
 
 
-  static void DeleteChanges(RestApi::DeleteCall& call)
+  static void DeleteChanges(RestApiDeleteCall& call)
   {
     OrthancRestApi::GetIndex(call).DeleteChanges();
     call.GetOutput().AnswerBuffer("", "text/plain");
@@ -98,7 +98,7 @@ namespace Orthanc
 
   // Exports API --------------------------------------------------------------
  
-  static void GetExports(RestApi::GetCall& call)
+  static void GetExports(RestApiGetCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -116,7 +116,7 @@ namespace Orthanc
   }
 
 
-  static void DeleteExports(RestApi::DeleteCall& call)
+  static void DeleteExports(RestApiDeleteCall& call)
   {
     OrthancRestApi::GetIndex(call).DeleteExportedResources();
     call.GetOutput().AnswerBuffer("", "text/plain");

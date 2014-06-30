@@ -32,49 +32,41 @@
 
 #pragma once
 
-#include "../Toolbox.h"
-#include "../HttpServer/HttpHandler.h"
-
-#include <map>
+#include "RestApiCall.h"
 
 namespace Orthanc
 {
-  class RestApiPath
+  class RestApiGetCall : public RestApiCall
   {
   private:
-    UriComponents uri_;
-    bool hasTrailing_;
-    std::vector<std::string> components_;
+    const HttpHandler::Arguments& getArguments_;
 
   public:
-    RestApiPath(const std::string& uri);
+    typedef void (*Handler) (RestApiGetCall& call);   
 
-    // This version is slower
-    bool Match(HttpHandler::Arguments& components,
-               UriComponents& trailing,
-               const std::string& uriRaw) const;
-
-    bool Match(HttpHandler::Arguments& components,
-               UriComponents& trailing,
-               const UriComponents& uri) const;
-
-    bool Match(const UriComponents& uri) const;
-
-    size_t GetLevelCount() const
+    RestApiGetCall(RestApiOutput& output,
+                   RestApi& context,
+                   const HttpHandler::Arguments& httpHeaders,
+                   const HttpHandler::Arguments& uriComponents,
+                   const UriComponents& trailing,
+                   const UriComponents& fullUri,
+                   const HttpHandler::Arguments& getArguments) :
+      RestApiCall(output, context, httpHeaders, uriComponents, trailing, fullUri),
+      getArguments_(getArguments)
     {
-      return uri_.size();
     }
 
-    bool IsWildcardLevel(size_t level) const;
-
-    bool IsUniversalTrailing() const
+    std::string GetArgument(const std::string& name,
+                            const std::string& defaultValue) const
     {
-      return hasTrailing_;
+      return HttpHandler::GetArgument(getArguments_, name, defaultValue);
     }
 
-    const std::string& GetWildcardName(size_t level) const;
+    bool HasArgument(const std::string& name) const
+    {
+      return getArguments_.find(name) != getArguments_.end();
+    }
 
-    const std::string& GetLevelName(size_t level) const;
-
+    virtual bool ParseJsonRequest(Json::Value& result) const;
   };
 }
