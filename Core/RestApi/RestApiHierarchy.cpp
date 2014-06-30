@@ -203,11 +203,17 @@ namespace Orthanc
                                        IVisitor& visitor,
                                        size_t level)
   {
-    assert(uri.size() >= level);
+    if (uri.size() != 0 &&
+        level > uri.size())
+    {
+      return false;
+    }
+
     UriComponents trailing;
 
     // Look for an exact match on the resource of interest
-    if (uri.size() == level)
+      if (uri.size() == 0 ||
+          level == uri.size())
     {
       if (!handlers_.IsEmpty() &&
           visitor.Visit(handlers_, uri, components, trailing))
@@ -217,28 +223,30 @@ namespace Orthanc
     }
 
 
-    // Try and go down in the hierarchy, using an exact match for the child
-    Children::const_iterator child = children_.find(uri[level]);
-    if (child != children_.end())
+    if (level < uri.size())  // A recursive call is possible
     {
-      if (child->second->LookupResource(components, uri, visitor, level + 1))
+      // Try and go down in the hierarchy, using an exact match for the child
+      Children::const_iterator child = children_.find(uri[level]);
+      if (child != children_.end())
       {
-        return true;
+        if (child->second->LookupResource(components, uri, visitor, level + 1))
+        {
+          return true;
+        }
       }
-    }
 
-
-    // Try and go down in the hierarchy, using wildcard rules for children
-    for (child = wildcardChildren_.begin();
-         child != wildcardChildren_.end(); child++)
-    {
-      HttpHandler::Arguments subComponents = components;
-      subComponents[child->first] = uri[level];
-
-      if (child->second->LookupResource(components, uri, visitor, level + 1))
+      // Try and go down in the hierarchy, using wildcard rules for children
+      for (child = wildcardChildren_.begin();
+           child != wildcardChildren_.end(); child++)
       {
-        return true;
-      }        
+        HttpHandler::Arguments subComponents = components;
+        subComponents[child->first] = uri[level];
+
+        if (child->second->LookupResource(subComponents, uri, visitor, level + 1))
+        {
+          return true;
+        }        
+      }
     }
 
 
@@ -354,49 +362,42 @@ namespace Orthanc
 
   void RestApiHierarchy::CreateSiteMap(Json::Value& target) const
   {
-    if (children_.size() == 0)
-    {
-      /*std::string s = " ";
+    target = Json::objectValue;
+
+    /*std::string s = " ";
       if (handlers_.HasHandler(HttpMethod_Get))
       {
-        s += "GET ";
+      s += "GET ";
       }
 
       if (handlers_.HasHandler(HttpMethod_Post))
       {
-        s += "POST ";
+      s += "POST ";
       }
 
       if (handlers_.HasHandler(HttpMethod_Put))
       {
-        s += "PUT ";
+      s += "PUT ";
       }
 
       if (handlers_.HasHandler(HttpMethod_Delete))
       {
-        s += "DELETE ";
+      s += "DELETE ";
       }
 
       target = s;*/
-
-      target = Json::objectValue;
-    }
-    else
+      
+    for (Children::const_iterator it = children_.begin();
+         it != children_.end(); it++)
     {
-      target = Json::objectValue;
-      
-      for (Children::const_iterator it = children_.begin();
-           it != children_.end(); it++)
-      {
-        it->second->CreateSiteMap(target[it->first]);
-      }
+      it->second->CreateSiteMap(target[it->first]);
     }
       
-    /*for (Children::const_iterator it = wildcardChildren_.begin();
-      it != wildcardChildren_.end(); it++)
-      {
-      it->second->CreateSiteMap(target["* (" + it->first + ")"]);
-      }*/
+    for (Children::const_iterator it = wildcardChildren_.begin();
+         it != wildcardChildren_.end(); it++)
+    {
+      it->second->CreateSiteMap(target["<" + it->first + ">"]);
+    }
   }
 
 
