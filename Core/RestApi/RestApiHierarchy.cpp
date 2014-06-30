@@ -308,27 +308,31 @@ namespace Orthanc
     DeleteChildren(wildcardChildren_);
   }
 
-  void RestApiHierarchy::Register(const RestApiPath& path,
+  void RestApiHierarchy::Register(const std::string& uri,
                                   RestApi::GetHandler handler)
   {
+    RestApiPath path(uri);
     RegisterInternal(path, handler, 0);
   }
 
-  void RestApiHierarchy::Register(const RestApiPath& path,
+  void RestApiHierarchy::Register(const std::string& uri,
                                   RestApi::PutHandler handler)
   {
+    RestApiPath path(uri);
     RegisterInternal(path, handler, 0);
   }
 
-  void RestApiHierarchy::Register(const RestApiPath& path,
+  void RestApiHierarchy::Register(const std::string& uri,
                                   RestApi::PostHandler handler)
   {
+    RestApiPath path(uri);
     RegisterInternal(path, handler, 0);
   }
 
-  void RestApiHierarchy::Register(const RestApiPath& path,
+  void RestApiHierarchy::Register(const std::string& uri,
                                   RestApi::DeleteHandler handler)
   {
+    RestApiPath path(uri);
     RegisterInternal(path, handler, 0);
   }
 

@@ -143,16 +143,16 @@ namespace Orthanc
   public:
     ~RestApiHierarchy();
 
-    void Register(const RestApiPath& path,
+    void Register(const std::string& uri,
                   RestApi::GetHandler handler);
 
-    void Register(const RestApiPath& path,
+    void Register(const std::string& uri,
                   RestApi::PutHandler handler);
 
-    void Register(const RestApiPath& path,
+    void Register(const std::string& uri,
                   RestApi::PostHandler handler);
 
-    void Register(const RestApiPath& path,
+    void Register(const std::string& uri,
                   RestApi::DeleteHandler handler);
 
     void CreateSiteMap(Json::Value& target) const;
