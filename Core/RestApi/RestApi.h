@@ -43,30 +43,7 @@ namespace Orthanc
   private:
     RestApiHierarchy root_;
 
-    typedef std::list< std::pair<RestApiPath*, RestApiGetCall::Handler> > GetHandlers;
-    typedef std::list< std::pair<RestApiPath*, RestApiPutCall::Handler> > PutHandlers;
-    typedef std::list< std::pair<RestApiPath*, RestApiPostCall::Handler> > PostHandlers;
-    typedef std::list< std::pair<RestApiPath*, RestApiDeleteCall::Handler> > DeleteHandlers;
-
-    GetHandlers  getHandlers_;
-    PutHandlers  putHandlers_;
-    PostHandlers  postHandlers_;
-    DeleteHandlers  deleteHandlers_;
-
-    bool IsGetAccepted(const UriComponents& uri);
-    bool IsPutAccepted(const UriComponents& uri);
-    bool IsPostAccepted(const UriComponents& uri);
-    bool IsDeleteAccepted(const UriComponents& uri);
-
-    std::string  GetAcceptedMethods(const UriComponents& uri);
-
   public:
-    RestApi()
-    {
-    }
-
-    ~RestApi();
-
     virtual bool Handle(HttpOutput& output,
                         HttpMethod method,
                         const UriComponents& uri,
