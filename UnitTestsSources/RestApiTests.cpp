@@ -42,6 +42,7 @@
 #include "../Core/Uuid.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Compression/ZlibCompressor.h"
+#include "../Core/RestApi/RestApiHierarchy.h"
 
 using namespace Orthanc;
 
@@ -192,466 +193,31 @@ TEST(RestApi, RestApiPath)
 
 
 
-namespace Orthanc
-{
-  class RestApiHierarchy
-  {
-  private:
-    struct Handlers
-    {
-      typedef std::list<RestApi::GetHandler>  GetHandlers;
-      typedef std::list<RestApi::PostHandler>  PostHandlers;
-      typedef std::list<RestApi::PutHandler>  PutHandlers;
-      typedef std::list<RestApi::DeleteHandler>  DeleteHandlers;
-
-      GetHandlers  getHandlers_;
-      PostHandlers  postHandlers_;
-      PutHandlers  putHandlers_;
-      DeleteHandlers  deleteHandlers_;
-
-      bool HasGet() const
-      {
-        return getHandlers_.size() > 0;
-      }
-
-      void Register(RestApi::GetHandler handler)
-      {
-        getHandlers_.push_back(handler);
-      }
-
-      void Register(RestApi::PutHandler handler)
-      {
-        putHandlers_.push_back(handler);
-      }
-
-      void Register(RestApi::PostHandler handler)
-      {
-        postHandlers_.push_back(handler);
-      }
-
-      void Register(RestApi::DeleteHandler handler)
-      {
-        deleteHandlers_.push_back(handler);
-      }
-
-      bool IsEmpty() const
-      {
-        return (getHandlers_.empty() &&
-                postHandlers_.empty() &&
-                putHandlers_.empty() &&
-                deleteHandlers_.empty());
-      }
-    };
-
-
-    typedef std::map<std::string, RestApiHierarchy*>  Children;
-    typedef bool (*ResourceCallback) (Handlers&,
-                                      const UriComponents& uri,
-                                      const RestApiPath::Components& components,
-                                      const UriComponents& trailing,
-                                      void* call);
-
-    Handlers  handlers_;
-    Children  children_;
-    Children  wildcardChildren_;
-    Handlers  universalHandlers_;
-
-
-    static RestApiHierarchy& AddChild(Children& children,
-                                      const std::string& name)
-    {
-      Children::iterator it = children.find(name);
-
-      if (it == children.end())
-      {
-        // Create new child
-        RestApiHierarchy *child = new RestApiHierarchy;
-        children[name] = child;
-        return *child;
-      }
-      else
-      {
-        return *it->second;
-      }
-    }
-
-
-    static void DeleteChildren(Children& children)
-    {
-      for (Children::iterator it = children.begin();
-           it != children.end(); it++)
-      {
-        delete it->second;
-      }
-    }
-
-
-    template <typename Handler>
-    void RegisterInternal(const RestApiPath& path,
-                          Handler handler,
-                          size_t level)
-    {
-      if (path.GetLevelCount() == level)
-      {
-        if (path.IsUniversalTrailing())
-        {
-          universalHandlers_.Register(handler);
-        }
-        else
-        {
-          handlers_.Register(handler);
-        }
-      }
-      else
-      {
-        RestApiHierarchy* child;
-        if (path.IsWildcardLevel(level))
-        {
-          child = &AddChild(wildcardChildren_, path.GetWildcardName(level));
-        }
-        else
-        {
-          child = &AddChild(children_, path.GetLevelName(level));
-        }
-
-        child->RegisterInternal(path, handler, level + 1);
-      }
-    }
-
-
-    bool LookupHandler(RestApiPath::Components& components,
-                       const UriComponents& uri,
-                       ResourceCallback callback,
-                       size_t level,
-                       void* call)
-    {
-      assert(uri.size() >= level);
-      UriComponents trailing;
-
-      // Look for an exact match on the resource of interest
-      if (uri.size() == level)
-      {
-        if (!handlers_.IsEmpty() &&
-            callback(handlers_, uri, components, trailing, call))
-        {
-          return true;
-        }
-      }
-
-
-      // Try and go down in the hierarchy, using an exact match for the child
-      Children::const_iterator child = children_.find(uri[level]);
-      if (child != children_.end())
-      {
-        if (child->second->LookupHandler(components, uri, callback, level + 1, call))
-        {
-          return true;
-        }
-      }
-
-
-      // Try and go down in the hierarchy, using wildcard rules for children
-      for (child = wildcardChildren_.begin();
-           child != wildcardChildren_.end(); child++)
-      {
-        RestApiPath::Components subComponents = components;
-        subComponents[child->first] = uri[level];
-
-        if (child->second->LookupHandler(components, uri, callback, level + 1, call))
-        {
-          return true;
-        }        
-      }
-
-
-      // As a last resort, call the universal handlers, if any
-      if (!universalHandlers_.IsEmpty())
-      {
-        trailing.resize(uri.size() - level);
-        size_t pos = 0;
-        for (size_t i = level; i < uri.size(); i++, pos++)
-        {
-          trailing[pos] = uri[i];
-        }
-
-        assert(pos == trailing.size());
-
-        if (callback(universalHandlers_, uri, components, trailing, call))
-        {
-          return true;
-        }
-      }
-
-      return false;
-    }
-
-
-    bool GetDirectory(Json::Value& result,
-                      const UriComponents& uri,
-                      size_t level)
-    {
-      if (uri.size() == level)
-      {
-        if (!handlers_.HasGet() && 
-            universalHandlers_.IsEmpty() &&
-            wildcardChildren_.size() == 0)
-        {
-          result = Json::arrayValue;
-
-          for (Children::const_iterator it = children_.begin();
-               it != children_.end(); it++)
-          {
-            result.append(it->first);
-          }
-
-          return true;
-        }
-        else
-        {
-          return false;
-        }
-      }
-
-      Children::const_iterator child = children_.find(uri[level]);
-      if (child != children_.end())
-      {
-        if (child->second->GetDirectory(result, uri, level + 1))
-        {
-          return true;
-        }
-      }
-
-      for (child = wildcardChildren_.begin(); 
-           child != wildcardChildren_.end(); child++)
-      {
-        if (child->second->GetDirectory(result, uri, level + 1))
-        {
-          return true;
-        }
-      }
-
-      return false;
-    }
-                       
-
-    static bool GetCallback(Handlers& handlers,
-                            const UriComponents& uri,
-                            const RestApiPath::Components& components,
-                            const UriComponents& trailing,
-                            void* call)
-    {
-      for (Handlers::GetHandlers::iterator
-             it = handlers.getHandlers_.begin(); 
-           it != handlers.getHandlers_.end(); it++)
-      {
-        // TODO RETURN BOOL
-
-        (*it) (*reinterpret_cast<RestApi::GetCall*>(call));
-        return true;
-      }
-
-      return false;
-    }
-
-
-    static bool PostCallback(Handlers& handlers,
-                             const UriComponents& uri,
-                             const RestApiPath::Components& components,
-                             const UriComponents& trailing,
-                             void* call)
-    {
-      for (Handlers::PostHandlers::iterator
-             it = handlers.postHandlers_.begin(); 
-           it != handlers.postHandlers_.end(); it++)
-      {
-        // TODO RETURN BOOL
-
-        (*it) (*reinterpret_cast<RestApi::PostCall*>(call));
-        return true;
-      }
-
-      return false;
-    }
-
-
-    static bool PutCallback(Handlers& handlers,
-                            const UriComponents& uri,
-                            const RestApiPath::Components& components,
-                            const UriComponents& trailing,
-                            void* call)
-    {
-      for (Handlers::PutHandlers::iterator
-             it = handlers.putHandlers_.begin(); 
-           it != handlers.putHandlers_.end(); it++)
-      {
-        // TODO RETURN BOOL
-
-        (*it) (*reinterpret_cast<RestApi::PutCall*>(call));
-        return true;
-      }
-
-      return false;
-    }
-
-
-    static bool DeleteCallback(Handlers& handlers,
-                               const UriComponents& uri,
-                               const RestApiPath::Components& components,
-                               const UriComponents& trailing,
-                               void* call)
-    {
-      for (Handlers::DeleteHandlers::iterator
-             it = handlers.deleteHandlers_.begin(); 
-           it != handlers.deleteHandlers_.end(); it++)
-      {
-        // TODO RETURN BOOL
-
-        (*it) (*reinterpret_cast<RestApi::DeleteCall*>(call));
-        return true;
-      }
-
-      return false;
-    }
-
-
-  public:
-    ~RestApiHierarchy()
-    {
-      DeleteChildren(children_);
-      DeleteChildren(wildcardChildren_);
-    }
-
-    void Register(const RestApiPath& path,
-                  RestApi::GetHandler handler)
-    {
-      RegisterInternal(path, handler, 0);
-    }
-
-    void Register(const RestApiPath& path,
-                  RestApi::PutHandler handler)
-    {
-      RegisterInternal(path, handler, 0);
-    }
-
-    void Register(const RestApiPath& path,
-                  RestApi::PostHandler handler)
-    {
-      RegisterInternal(path, handler, 0);
-    }
-
-    void Register(const RestApiPath& path,
-                  RestApi::DeleteHandler handler)
-    {
-      RegisterInternal(path, handler, 0);
-    }
-
-    void CreateSiteMap(Json::Value& target) const
-    {
-      if (children_.size() == 0)
-      {
-        std::string s = " ";
-        if (handlers_.getHandlers_.size() != 0)
-        {
-          s += "GET ";
-        }
-
-        if (handlers_.postHandlers_.size() != 0)
-        {
-          s += "POST ";
-        }
-
-        if (handlers_.putHandlers_.size() != 0)
-        {
-          s += "PUT ";
-        }
-
-        if (handlers_.deleteHandlers_.size() != 0)
-        {
-          s += "DELETE ";
-        }
-
-        target = s;
-      }
-      else
-      {
-        target = Json::objectValue;
-      
-        for (Children::const_iterator it = children_.begin();
-             it != children_.end(); it++)
-        {
-          it->second->CreateSiteMap(target[it->first]);
-        }
-      }
-      
-      /*for (Children::const_iterator it = wildcardChildren_.begin();
-           it != wildcardChildren_.end(); it++)
-      {
-        it->second->CreateSiteMap(target["* (" + it->first + ")"]);
-        }*/
-    }
-
-    bool GetDirectory(Json::Value& result,
-                      const UriComponents& uri)
-    {
-      return GetDirectory(result, uri, 0);
-    }
-
-    bool GetDirectory(Json::Value& result,
-                      const std::string& uri)
-    {
-      UriComponents c;
-      Toolbox::SplitUriComponents(c, uri);
-      return GetDirectory(result, c, 0);
-    }
-
-    bool Handle(RestApi::GetCall& call,
-                const UriComponents& uri)
-    {
-      RestApiPath::Components components;
-      return LookupHandler(components, uri, GetCallback, 0, &call);
-    }    
-
-    bool Handle(RestApi::PutCall& call,
-                const UriComponents& uri)
-    {
-      RestApiPath::Components components;
-      return LookupHandler(components, uri, PutCallback, 0, &call);
-    }    
-
-    bool Handle(RestApi::PostCall& call,
-                const UriComponents& uri)
-    {
-      RestApiPath::Components components;
-      return LookupHandler(components, uri, PostCallback, 0, &call);
-    }    
-
-    bool Handle(RestApi::DeleteCall& call,
-                const UriComponents& uri)
-    {
-      RestApiPath::Components components;
-      return LookupHandler(components, uri, DeleteCallback, 0, &call);
-    }    
-
-    bool Handle(RestApi::GetCall& call,
-                const std::string& uri)
-    {
-      UriComponents c;
-      Toolbox::SplitUriComponents(c, uri);
-      return Handle(call, c);
-    }    
-  };
-
-}
-
-
-
-
 static int testValue;
 
 template <int value>
 static void SetValue(RestApi::GetCall& get)
 {
   testValue = value;
+}
+
+
+static bool GetDirectory(Json::Value& target,
+                         RestApiHierarchy& hierarchy, 
+                         const std::string& uri)
+{
+  UriComponents p;
+  Toolbox::SplitUriComponents(p, uri);
+  return hierarchy.GetDirectory(target, p);
+}
+
+
+static bool HandleGet(RestApiHierarchy& hierarchy, 
+                      const std::string& uri)
+{
+  UriComponents p;
+  Toolbox::SplitUriComponents(p, uri);
+  return hierarchy.Handle(*reinterpret_cast<RestApi::GetCall*>(NULL), p);
 }
 
 
@@ -668,32 +234,32 @@ TEST(RestApi, RestApiHierarchy)
   std::cout << m;
 
   Json::Value d;
-  ASSERT_FALSE(root.GetDirectory(d, "/hello"));
+  ASSERT_FALSE(GetDirectory(d, root, "/hello"));
 
-  ASSERT_TRUE(root.GetDirectory(d, "/hello/a")); 
+  ASSERT_TRUE(GetDirectory(d, root, "/hello/a")); 
   ASSERT_EQ(1u, d.size());
   ASSERT_EQ("test3", d[0].asString());
 
-  ASSERT_TRUE(root.GetDirectory(d, "/hello/world"));
+  ASSERT_TRUE(GetDirectory(d, root, "/hello/world"));
   ASSERT_EQ(2u, d.size());
 
-  ASSERT_TRUE(root.GetDirectory(d, "/hello/a/test3"));
+  ASSERT_TRUE(GetDirectory(d, root, "/hello/a/test3"));
   ASSERT_EQ(1u, d.size());
   ASSERT_EQ("test4", d[0].asString());
 
-  ASSERT_FALSE(root.GetDirectory(d, "/hello/world/test"));
-  ASSERT_FALSE(root.GetDirectory(d, "/hello/world/test2"));
-  ASSERT_FALSE(root.GetDirectory(d, "/hello2"));
+  ASSERT_FALSE(GetDirectory(d, root, "/hello/world/test"));
+  ASSERT_FALSE(GetDirectory(d, root, "/hello/world/test2"));
+  ASSERT_FALSE(GetDirectory(d, root, "/hello2"));
 
   testValue = 0;
-  ASSERT_TRUE(root.Handle(*reinterpret_cast<RestApi::GetCall*>(NULL), "/hello/world/test"));
+  ASSERT_TRUE(HandleGet(root, "/hello/world/test"));
   ASSERT_EQ(testValue, 1);
-  ASSERT_TRUE(root.Handle(*reinterpret_cast<RestApi::GetCall*>(NULL), "/hello/world/test2"));
+  ASSERT_TRUE(HandleGet(root, "/hello/world/test2"));
   ASSERT_EQ(testValue, 2);
-  ASSERT_TRUE(root.Handle(*reinterpret_cast<RestApi::GetCall*>(NULL), "/hello/b/test3/test4"));
+  ASSERT_TRUE(HandleGet(root, "/hello/b/test3/test4"));
   ASSERT_EQ(testValue, 3);
-  ASSERT_FALSE(root.Handle(*reinterpret_cast<RestApi::GetCall*>(NULL), "/hello/b/test3/test"));
+  ASSERT_FALSE(HandleGet(root, "/hello/b/test3/test"));
   ASSERT_EQ(testValue, 3);
-  ASSERT_TRUE(root.Handle(*reinterpret_cast<RestApi::GetCall*>(NULL), "/hello2/a/b"));
+  ASSERT_TRUE(HandleGet(root, "/hello2/a/b"));
   ASSERT_EQ(testValue, 4);
 }
