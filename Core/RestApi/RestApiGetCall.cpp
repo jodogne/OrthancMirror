@@ -30,68 +30,20 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
-#include "OrthancRestApi.h"
-
-#include "../DicomModification.h"
-
-#include <glog/logging.h>
+#include "RestApiGetCall.h"
 
 namespace Orthanc
 {
-  void OrthancRestApi::AnswerStoredInstance(RestApiPostCall& call,
-                                            const std::string& publicId,
-                                            StoreStatus status) const
+  bool RestApiGetCall::ParseJsonRequest(Json::Value& result) const
   {
-    Json::Value result = Json::objectValue;
+    result.clear();
 
-    if (status != StoreStatus_Failure)
+    for (HttpHandler::Arguments::const_iterator 
+           it = getArguments_.begin(); it != getArguments_.end(); ++it)
     {
-      result["ID"] = publicId;
-      result["Path"] = GetBasePath(ResourceType_Instance, publicId);
+      result[it->first] = it->second;
     }
 
-    result["Status"] = EnumerationToString(status);
-    call.GetOutput().AnswerJson(result);
-  }
-
-
-
-  // Upload of DICOM files through HTTP ---------------------------------------
-
-  static void UploadDicomFile(RestApiPostCall& call)
-  {
-    ServerContext& context = OrthancRestApi::GetContext(call);
-
-    const std::string& postData = call.GetPostBody();
-    if (postData.size() == 0)
-    {
-      return;
-    }
-
-    LOG(INFO) << "Receiving a DICOM file of " << postData.size() << " bytes through HTTP";
-
-    std::string publicId;
-    StoreStatus status = context.Store(publicId, postData);
-
-    OrthancRestApi::GetApi(call).AnswerStoredInstance(call, publicId, status);
-  }
-
-
-
-  // Registration of the various REST handlers --------------------------------
-
-  OrthancRestApi::OrthancRestApi(ServerContext& context) : 
-    context_(context)
-  {
-    RegisterSystem();
-
-    RegisterChanges();
-    RegisterResources();
-    RegisterModalities();
-    RegisterAnonymizeModify();
-    RegisterArchive();
-
-    Register("/instances", UploadDicomFile);
+    return true;
   }
 }

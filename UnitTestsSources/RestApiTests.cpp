@@ -196,7 +196,7 @@ TEST(RestApi, RestApiPath)
 static int testValue;
 
 template <int value>
-static void SetValue(RestApi::GetCall& get)
+static void SetValue(RestApiGetCall& get)
 {
   testValue = value;
 }
@@ -217,7 +217,7 @@ static bool HandleGet(RestApiHierarchy& hierarchy,
 {
   UriComponents p;
   Toolbox::SplitUriComponents(p, uri);
-  return hierarchy.Handle(*reinterpret_cast<RestApi::GetCall*>(NULL), p);
+  return hierarchy.Handle(*reinterpret_cast<RestApiGetCall*>(NULL), p);
 }
 
 

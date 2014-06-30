@@ -30,55 +30,15 @@
  **/
 
 
-#pragma once
-
-#include "../ServerContext.h"
-#include "../../Core/RestApi/RestApi.h"
-
-#include <set>
+#include "RestApiCall.h"
 
 namespace Orthanc
 {
-  class OrthancRestApi : public RestApi
+  bool RestApiCall::ParseJsonRequestInternal(Json::Value& result,
+                                             const char* request)
   {
-  public:
-    typedef std::set<std::string> SetOfStrings;
-
-  private:
-    ServerContext& context_;
-
-    void RegisterSystem();
-
-    void RegisterChanges();
-
-    void RegisterResources();
-
-    void RegisterModalities();
-
-    void RegisterAnonymizeModify();
-
-    void RegisterArchive();
-
-  public:
-    OrthancRestApi(ServerContext& context);
-
-    static OrthancRestApi& GetApi(RestApiCall& call)
-    {
-      return dynamic_cast<OrthancRestApi&>(call.GetContext());
-    }
-
-    static ServerContext& GetContext(RestApiCall& call)
-    {
-      return GetApi(call).context_;
-    }
-
-    static ServerIndex& GetIndex(RestApiCall& call)
-    {
-      return GetContext(call).GetIndex();
-    }
-
-    void AnswerStoredInstance(RestApiPostCall& call,
-                              const std::string& publicId,
-                              StoreStatus status) const;
-  };
+    result.clear();
+    Json::Reader reader;
+    return reader.parse(request, result);
+  }
 }
