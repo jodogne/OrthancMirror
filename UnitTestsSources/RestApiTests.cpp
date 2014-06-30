@@ -224,10 +224,10 @@ static bool HandleGet(RestApiHierarchy& hierarchy,
 TEST(RestApi, RestApiHierarchy)
 {
   RestApiHierarchy root;
-  root.Register(RestApiPath("/hello/world/test"), SetValue<1>);
-  root.Register(RestApiPath("/hello/world/test2"), SetValue<2>);
-  root.Register(RestApiPath("/hello/{world}/test3/test4"), SetValue<3>);
-  root.Register(RestApiPath("/hello2/*"), SetValue<4>);
+  root.Register("/hello/world/test", SetValue<1>);
+  root.Register("/hello/world/test2", SetValue<2>);
+  root.Register("/hello/{world}/test3/test4", SetValue<3>);
+  root.Register("/hello2/*", SetValue<4>);
 
   Json::Value m;
   root.CreateSiteMap(m);
