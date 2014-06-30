@@ -47,7 +47,7 @@ namespace Orthanc
     RestApiGetCall(RestApiOutput& output,
                    RestApi& context,
                    const HttpHandler::Arguments& httpHeaders,
-                   const RestApiPath::Components& uriComponents,
+                   const HttpHandler::Arguments& uriComponents,
                    const UriComponents& trailing,
                    const UriComponents& fullUri,
                    const HttpHandler::Arguments& getArguments) :

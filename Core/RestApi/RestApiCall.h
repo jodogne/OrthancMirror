@@ -46,7 +46,7 @@ namespace Orthanc
     RestApiOutput& output_;
     RestApi& context_;
     const HttpHandler::Arguments& httpHeaders_;
-    const RestApiPath::Components& uriComponents_;
+    const HttpHandler::Arguments& uriComponents_;
     const UriComponents& trailing_;
     const UriComponents& fullUri_;
 
@@ -58,7 +58,7 @@ namespace Orthanc
     RestApiCall(RestApiOutput& output,
                 RestApi& context,
                 const HttpHandler::Arguments& httpHeaders,
-                const RestApiPath::Components& uriComponents,
+                const HttpHandler::Arguments& uriComponents,
                 const UriComponents& trailing,
                 const UriComponents& fullUri) :
       output_(output),
