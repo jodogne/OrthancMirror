@@ -36,11 +36,13 @@
 #include "RestApiPath.h"
 #include "RestApiOutput.h"
 
+#include <boost/noncopyable.hpp>
+
 namespace Orthanc
 {
   class RestApi;
 
-  class RestApiCall
+  class RestApiCall : public boost::noncopyable
   {
   private:
     RestApiOutput& output_;

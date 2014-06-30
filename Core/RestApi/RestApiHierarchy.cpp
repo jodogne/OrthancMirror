@@ -38,7 +38,7 @@
 
 namespace Orthanc
 {
-  RestApiHierarchy::Handlers::Handlers() : 
+  RestApiHierarchy::Resource::Resource() : 
     getHandler_(NULL), 
     postHandler_(NULL),
     putHandler_(NULL), 
@@ -47,7 +47,7 @@ namespace Orthanc
   }
 
 
-  bool RestApiHierarchy::Handlers::HasHandler(HttpMethod method) const
+  bool RestApiHierarchy::Resource::HasHandler(HttpMethod method) const
   {
     switch (method)
     {
@@ -69,37 +69,12 @@ namespace Orthanc
   }
 
 
-  bool RestApiHierarchy::Handlers::IsEmpty() const
+  bool RestApiHierarchy::Resource::IsEmpty() const
   {
     return (getHandler_ == NULL &&
             postHandler_ == NULL &&
             putHandler_ == NULL &&
             deleteHandler_ == NULL);
-  }
-
-
-  RestApiGetCall::Handler RestApiHierarchy::Handlers::GetGetHandler() const
-  {
-    assert(getHandler_ != NULL);
-    return getHandler_;
-  }
-
-  RestApiPutCall::Handler RestApiHierarchy::Handlers::GetPutHandler() const
-  {
-    assert(putHandler_ != NULL);
-    return putHandler_;
-  }
-
-  RestApiPostCall::Handler RestApiHierarchy::Handlers::GetPostHandler() const
-  {
-    assert(postHandler_ != NULL);
-    return postHandler_;
-  }
-
-  RestApiDeleteCall::Handler RestApiHierarchy::Handlers::GetDeleteHandler() const
-  {
-    assert(deleteHandler_ != NULL);
-    return deleteHandler_;
   }
 
 
@@ -120,6 +95,64 @@ namespace Orthanc
       return *it->second;
     }
   }
+
+
+
+  bool RestApiHierarchy::Resource::Handle(RestApiGetCall& call) const
+  {
+    if (getHandler_ != NULL)
+    {
+      getHandler_(call);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+
+  bool RestApiHierarchy::Resource::Handle(RestApiPutCall& call) const
+  {
+    if (putHandler_ != NULL)
+    {
+      putHandler_(call);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+
+  bool RestApiHierarchy::Resource::Handle(RestApiPostCall& call) const
+  {
+    if (postHandler_ != NULL)
+    {
+      postHandler_(call);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+
+  bool RestApiHierarchy::Resource::Handle(RestApiDeleteCall& call) const
+  {
+    if (deleteHandler_ != NULL)
+    {
+      deleteHandler_(call);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
 
 
   void RestApiHierarchy::DeleteChildren(Children& children)
@@ -165,11 +198,10 @@ namespace Orthanc
   }
 
 
-  bool RestApiHierarchy::LookupHandler(HttpHandler::Arguments& components,
+  bool RestApiHierarchy::LookupResource(HttpHandler::Arguments& components,
                                        const UriComponents& uri,
-                                       ResourceCallback callback,
-                                       size_t level,
-                                       void* call)
+                                       IVisitor& visitor,
+                                       size_t level)
   {
     assert(uri.size() >= level);
     UriComponents trailing;
@@ -178,7 +210,7 @@ namespace Orthanc
     if (uri.size() == level)
     {
       if (!handlers_.IsEmpty() &&
-          callback(handlers_, uri, components, trailing, call))
+          visitor.Visit(handlers_, uri, components, trailing))
       {
         return true;
       }
@@ -189,7 +221,7 @@ namespace Orthanc
     Children::const_iterator child = children_.find(uri[level]);
     if (child != children_.end())
     {
-      if (child->second->LookupHandler(components, uri, callback, level + 1, call))
+      if (child->second->LookupResource(components, uri, visitor, level + 1))
       {
         return true;
       }
@@ -203,7 +235,7 @@ namespace Orthanc
       HttpHandler::Arguments subComponents = components;
       subComponents[child->first] = uri[level];
 
-      if (child->second->LookupHandler(components, uri, callback, level + 1, call))
+      if (child->second->LookupResource(components, uri, visitor, level + 1))
       {
         return true;
       }        
@@ -222,7 +254,7 @@ namespace Orthanc
 
       assert(pos == trailing.size());
 
-      if (callback(universalHandlers_, uri, components, trailing, call))
+      if (visitor.Visit(universalHandlers_, uri, components, trailing))
       {
         return true;
       }
@@ -232,15 +264,21 @@ namespace Orthanc
   }
 
 
+  bool RestApiHierarchy::CanGenerateDirectory() const
+  {
+    return (!handlers_.HasHandler(HttpMethod_Get) && 
+            universalHandlers_.IsEmpty() &&
+            wildcardChildren_.size() == 0);
+  }
+
+
   bool RestApiHierarchy::GetDirectory(Json::Value& result,
                                       const UriComponents& uri,
                                       size_t level)
   {
     if (uri.size() == level)
     {
-      if (!handlers_.HasHandler(HttpMethod_Get) && 
-          universalHandlers_.IsEmpty() &&
-          wildcardChildren_.size() == 0)
+      if (CanGenerateDirectory())
       {
         result = Json::arrayValue;
 
@@ -280,78 +318,6 @@ namespace Orthanc
   }
                        
 
-  bool RestApiHierarchy::GetCallback(Handlers& handlers,
-                                     const UriComponents& uri,
-                                     const HttpHandler::Arguments& components,
-                                     const UriComponents& trailing,
-                                     void* call)
-  {
-    if (handlers.HasHandler(HttpMethod_Get))
-    {
-      handlers.GetGetHandler() (*reinterpret_cast<RestApiGetCall*>(call));
-      return true;
-    }
-    else
-    {
-      return false;
-    }
-  }
-
-
-  bool RestApiHierarchy::PostCallback(Handlers& handlers,
-                                      const UriComponents& uri,
-                                      const HttpHandler::Arguments& components,
-                                      const UriComponents& trailing,
-                                      void* call)
-  {
-    if (handlers.HasHandler(HttpMethod_Post))
-    {
-      handlers.GetPostHandler() (*reinterpret_cast<RestApiPostCall*>(call));
-      return true;
-    }
-    else
-    {
-      return false;
-    }
-  }
-
-
-  bool RestApiHierarchy::PutCallback(Handlers& handlers,
-                                     const UriComponents& uri,
-                                     const HttpHandler::Arguments& components,
-                                     const UriComponents& trailing,
-                                     void* call)
-  {
-    if (handlers.HasHandler(HttpMethod_Put))
-    {
-      handlers.GetPutHandler() (*reinterpret_cast<RestApiPutCall*>(call));
-      return true;
-    }
-    else
-    {
-      return false;
-    }
-  }
-
-
-  bool RestApiHierarchy::DeleteCallback(Handlers& handlers,
-                                        const UriComponents& uri,
-                                        const HttpHandler::Arguments& components,
-                                        const UriComponents& trailing,
-                                        void* call)
-  {
-    if (handlers.HasHandler(HttpMethod_Delete))
-    {
-      handlers.GetDeleteHandler() (*reinterpret_cast<RestApiDeleteCall*>(call));
-      return true;
-    }
-    else
-    {
-      return false;
-    }
-  }
-
-
   RestApiHierarchy::~RestApiHierarchy()
   {
     DeleteChildren(children_);
@@ -390,7 +356,7 @@ namespace Orthanc
   {
     if (children_.size() == 0)
     {
-      std::string s = " ";
+      /*std::string s = " ";
       if (handlers_.HasHandler(HttpMethod_Get))
       {
         s += "GET ";
@@ -411,7 +377,9 @@ namespace Orthanc
         s += "DELETE ";
       }
 
-      target = s;
+      target = s;*/
+
+      target = Json::objectValue;
     }
     else
     {
@@ -431,32 +399,74 @@ namespace Orthanc
       }*/
   }
 
-  bool RestApiHierarchy::Handle(RestApiGetCall& call,
-                                const UriComponents& uri)
+
+  bool RestApiHierarchy::LookupResource(const UriComponents& uri,
+                                        IVisitor& visitor)
   {
     HttpHandler::Arguments components;
-    return LookupHandler(components, uri, GetCallback, 0, &call);
+    return LookupResource(components, uri, visitor, 0);
   }    
 
-  bool RestApiHierarchy::Handle(RestApiPutCall& call,
-                                const UriComponents& uri)
+
+
+  namespace
+  {
+    // Anonymous namespace to avoid clashes between compilation modules
+
+    class AcceptedMethodsVisitor : public RestApiHierarchy::IVisitor
+    {
+    private:
+      std::set<HttpMethod>& methods_;
+
+    public:
+      AcceptedMethodsVisitor(std::set<HttpMethod>& methods) : methods_(methods)
+      {
+      }
+
+      virtual bool Visit(const RestApiHierarchy::Resource& resource,
+                         const UriComponents& uri,
+                         const HttpHandler::Arguments& components,
+                         const UriComponents& trailing)
+      {
+        if (trailing.size() == 0)  // Ignore universal handlers
+        {
+          if (resource.HasHandler(HttpMethod_Get))
+          {
+            methods_.insert(HttpMethod_Get);
+          }
+
+          if (resource.HasHandler(HttpMethod_Post))
+          {
+            methods_.insert(HttpMethod_Post);
+          }
+
+          if (resource.HasHandler(HttpMethod_Put))
+          {
+            methods_.insert(HttpMethod_Put);
+          }
+
+          if (resource.HasHandler(HttpMethod_Delete))
+          {
+            methods_.insert(HttpMethod_Delete);
+          }
+        }
+
+        return false;  // Continue to check all the possible ways to access this URI
+      }
+    };
+  }
+
+  void RestApiHierarchy::GetAcceptedMethods(std::set<HttpMethod>& methods,
+                                            const UriComponents& uri)
   {
     HttpHandler::Arguments components;
-    return LookupHandler(components, uri, PutCallback, 0, &call);
-  }    
+    AcceptedMethodsVisitor visitor(methods);
+    LookupResource(components, uri, visitor, 0);
 
-  bool RestApiHierarchy::Handle(RestApiPostCall& call,
-                                const UriComponents& uri)
-  {
-    HttpHandler::Arguments components;
-    return LookupHandler(components, uri, PostCallback, 0, &call);
-  }    
-
-  bool RestApiHierarchy::Handle(RestApiDeleteCall& call,
-                                const UriComponents& uri)
-  {
-    HttpHandler::Arguments components;
-    return LookupHandler(components, uri, DeleteCallback, 0, &call);
-  }    
-
+    Json::Value d;
+    if (GetDirectory(d, uri))
+    {
+      methods.insert(HttpMethod_Get);
+    }
+  }
 }

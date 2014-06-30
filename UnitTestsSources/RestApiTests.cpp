@@ -212,12 +212,30 @@ static bool GetDirectory(Json::Value& target,
 }
 
 
+
+namespace
+{
+  class MyVisitor : public RestApiHierarchy::IVisitor
+  {
+  public:
+    virtual bool Visit(const RestApiHierarchy::Resource& resource,
+                       const UriComponents& uri,
+                       const HttpHandler::Arguments& components,
+                       const UriComponents& trailing)
+    {
+      return resource.Handle(*reinterpret_cast<RestApiGetCall*>(NULL));
+    }
+  };
+}
+
+
 static bool HandleGet(RestApiHierarchy& hierarchy, 
                       const std::string& uri)
 {
   UriComponents p;
   Toolbox::SplitUriComponents(p, uri);
-  return hierarchy.Handle(*reinterpret_cast<RestApiGetCall*>(NULL), p);
+  MyVisitor visitor;
+  return hierarchy.LookupResource(p, visitor);
 }
 
 
