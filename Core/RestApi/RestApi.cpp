@@ -242,24 +242,28 @@ namespace Orthanc
   void RestApi::Register(const std::string& path,
                          RestApiGetCall::Handler handler)
   {
+    root_.Register(path, handler);
     getHandlers_.push_back(std::make_pair(new RestApiPath(path), handler));
   }
 
   void RestApi::Register(const std::string& path,
                          RestApiPutCall::Handler handler)
   {
+    root_.Register(path, handler);
     putHandlers_.push_back(std::make_pair(new RestApiPath(path), handler));
   }
 
   void RestApi::Register(const std::string& path,
                          RestApiPostCall::Handler handler)
   {
+    root_.Register(path, handler);
     postHandlers_.push_back(std::make_pair(new RestApiPath(path), handler));
   }
 
   void RestApi::Register(const std::string& path,
                          RestApiDeleteCall::Handler handler)
   {
+    root_.Register(path, handler);
     deleteHandlers_.push_back(std::make_pair(new RestApiPath(path), handler));
   }
 }
