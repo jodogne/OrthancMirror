@@ -37,12 +37,14 @@
 #include "RestApiPutCall.h"
 #include "RestApiDeleteCall.h"
 
+#include <set>
+
 namespace Orthanc
 {
-  class RestApiHierarchy
+  class RestApiHierarchy : public boost::noncopyable
   {
-  private:
-    class Handlers
+  public:
+    class Resource : public boost::noncopyable
     {
     private:
       RestApiGetCall::Handler     getHandler_;
@@ -51,17 +53,9 @@ namespace Orthanc
       RestApiDeleteCall::Handler  deleteHandler_;
 
     public:
-      Handlers();
+      Resource();
 
       bool HasHandler(HttpMethod method) const;
-
-      RestApiGetCall::Handler GetGetHandler() const;
-
-      RestApiPutCall::Handler GetPutHandler() const;
-
-      RestApiPostCall::Handler GetPostHandler() const;
-
-      RestApiDeleteCall::Handler GetDeleteHandler() const;
 
       void Register(RestApiGetCall::Handler handler)
       {
@@ -84,21 +78,38 @@ namespace Orthanc
       }
 
       bool IsEmpty() const;
+
+      bool Handle(RestApiGetCall& call) const;
+
+      bool Handle(RestApiPutCall& call) const;
+
+      bool Handle(RestApiPostCall& call) const;
+
+      bool Handle(RestApiDeleteCall& call) const;
     };
 
 
-    typedef std::map<std::string, RestApiHierarchy*>  Children;
-    typedef bool (*ResourceCallback) (Handlers& handlers,
-                                      const UriComponents& uri,
-                                      const HttpHandler::Arguments& components,
-                                      const UriComponents& trailing,
-                                      void* call);
+    class IVisitor : public boost::noncopyable
+    {
+    public:
+      virtual ~IVisitor()
+      {
+      }
 
-    Handlers  handlers_;
+      virtual bool Visit(const Resource& resource,
+                         const UriComponents& uri,
+                         const HttpHandler::Arguments& components,
+                         const UriComponents& trailing) = 0;
+    };
+
+
+  private:
+    typedef std::map<std::string, RestApiHierarchy*>  Children;
+
+    Resource  handlers_;
     Children  children_;
     Children  wildcardChildren_;
-    Handlers  universalHandlers_;
-
+    Resource  universalHandlers_;
 
     static RestApiHierarchy& AddChild(Children& children,
                                       const std::string& name);
@@ -110,40 +121,16 @@ namespace Orthanc
                           Handler handler,
                           size_t level);
 
-    bool LookupHandler(HttpHandler::Arguments& components,
-                       const UriComponents& uri,
-                       ResourceCallback callback,
-                       size_t level,
-                       void* call);
+    bool CanGenerateDirectory() const;
+
+    bool LookupResource(HttpHandler::Arguments& components,
+                        const UriComponents& uri,
+                        IVisitor& visitor,
+                        size_t level);
 
     bool GetDirectory(Json::Value& result,
                       const UriComponents& uri,
                       size_t level);
-                     
-    static bool GetCallback(Handlers& handlers,
-                            const UriComponents& uri,
-                            const HttpHandler::Arguments& components,
-                            const UriComponents& trailing,
-                            void* call);
-
-    static bool PostCallback(Handlers& handlers,
-                             const UriComponents& uri,
-                             const HttpHandler::Arguments& components,
-                             const UriComponents& trailing,
-                             void* call);
-
-    static bool PutCallback(Handlers& handlers,
-                            const UriComponents& uri,
-                            const HttpHandler::Arguments& components,
-                            const UriComponents& trailing,
-                            void* call);
-
-    static bool DeleteCallback(Handlers& handlers,
-                               const UriComponents& uri,
-                               const HttpHandler::Arguments& components,
-                               const UriComponents& trailing,
-                               void* call);
-                       
 
   public:
     ~RestApiHierarchy();
@@ -168,16 +155,10 @@ namespace Orthanc
       return GetDirectory(result, uri, 0);
     }
 
-    bool Handle(RestApiGetCall& call,
-                const UriComponents& uri);
+    bool LookupResource(const UriComponents& uri,
+                        IVisitor& visitor);
 
-    bool Handle(RestApiPutCall& call,
-                const UriComponents& uri);
-
-    bool Handle(RestApiPostCall& call,
-                const UriComponents& uri);
-
-    bool Handle(RestApiDeleteCall& call,
-                const UriComponents& uri);
+    void GetAcceptedMethods(std::set<HttpMethod>& methods,
+                            const UriComponents& uri);
   };
 }
