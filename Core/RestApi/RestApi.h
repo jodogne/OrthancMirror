@@ -32,13 +32,7 @@
 
 #pragma once
 
-#include "../HttpServer/HttpHandler.h"
-#include "RestApiPath.h"
-#include "RestApiOutput.h"
-#include "RestApiGetCall.h"
-#include "RestApiPutCall.h"
-#include "RestApiPostCall.h"
-#include "RestApiDeleteCall.h"
+#include "RestApiHierarchy.h"
 
 #include <list>
 
@@ -47,6 +41,8 @@ namespace Orthanc
   class RestApi : public HttpHandler
   {
   private:
+    RestApiHierarchy root_;
+
     typedef std::list< std::pair<RestApiPath*, RestApiGetCall::Handler> > GetHandlers;
     typedef std::list< std::pair<RestApiPath*, RestApiPutCall::Handler> > PutHandlers;
     typedef std::list< std::pair<RestApiPath*, RestApiPostCall::Handler> > PostHandlers;
