@@ -43,7 +43,7 @@ namespace Orthanc
   // List all the patients, studies, series or instances ----------------------
  
   template <enum ResourceType resourceType>
-  static void ListResources(RestApi::GetCall& call)
+  static void ListResources(RestApiGetCall& call)
   {
     Json::Value result;
     OrthancRestApi::GetIndex(call).GetAllUuids(result, resourceType);
@@ -51,7 +51,7 @@ namespace Orthanc
   }
 
   template <enum ResourceType resourceType>
-  static void GetSingleResource(RestApi::GetCall& call)
+  static void GetSingleResource(RestApiGetCall& call)
   {
     Json::Value result;
     if (OrthancRestApi::GetIndex(call).LookupResource(result, call.GetUriComponent("id", ""), resourceType))
@@ -61,7 +61,7 @@ namespace Orthanc
   }
 
   template <enum ResourceType resourceType>
-  static void DeleteSingleResource(RestApi::DeleteCall& call)
+  static void DeleteSingleResource(RestApiDeleteCall& call)
   {
     Json::Value result;
     if (OrthancRestApi::GetIndex(call).DeleteResource(result, call.GetUriComponent("id", ""), resourceType))
@@ -73,7 +73,7 @@ namespace Orthanc
 
   // Get information about a single patient -----------------------------------
  
-  static void IsProtectedPatient(RestApi::GetCall& call)
+  static void IsProtectedPatient(RestApiGetCall& call)
   {
     std::string publicId = call.GetUriComponent("id", "");
     bool isProtected = OrthancRestApi::GetIndex(call).IsProtectedPatient(publicId);
@@ -81,7 +81,7 @@ namespace Orthanc
   }
 
 
-  static void SetPatientProtection(RestApi::PutCall& call)
+  static void SetPatientProtection(RestApiPutCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -107,7 +107,7 @@ namespace Orthanc
 
   // Get information about a single instance ----------------------------------
  
-  static void GetInstanceFile(RestApi::GetCall& call)
+  static void GetInstanceFile(RestApiGetCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -116,7 +116,7 @@ namespace Orthanc
   }
 
 
-  static void ExportInstanceFile(RestApi::PostCall& call)
+  static void ExportInstanceFile(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -132,7 +132,7 @@ namespace Orthanc
 
 
   template <bool simplify>
-  static void GetInstanceTags(RestApi::GetCall& call)
+  static void GetInstanceTags(RestApiGetCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -154,7 +154,7 @@ namespace Orthanc
   }
 
 
-  static void GetInstanceTagsBis(RestApi::GetCall& call)
+  static void GetInstanceTagsBis(RestApiGetCall& call)
   {
     bool simplify = call.HasArgument("simplify");
 
@@ -169,7 +169,7 @@ namespace Orthanc
   }
 
   
-  static void ListFrames(RestApi::GetCall& call)
+  static void ListFrames(RestApiGetCall& call)
   {
     Json::Value instance;
     if (OrthancRestApi::GetIndex(call).LookupResource(instance, call.GetUriComponent("id", ""), ResourceType_Instance))
@@ -197,7 +197,7 @@ namespace Orthanc
 
 
   template <enum ImageExtractionMode mode>
-  static void GetImage(RestApi::GetCall& call)
+  static void GetImage(RestApiGetCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -245,7 +245,7 @@ namespace Orthanc
   }
 
 
-  static void GetMatlabImage(RestApi::GetCall& call)
+  static void GetMatlabImage(RestApiGetCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -279,7 +279,7 @@ namespace Orthanc
 
 
 
-  static void GetResourceStatistics(RestApi::GetCall& call)
+  static void GetResourceStatistics(RestApiGetCall& call)
   {
     std::string publicId = call.GetUriComponent("id", "");
     Json::Value result;
@@ -291,14 +291,14 @@ namespace Orthanc
 
   // Handling of metadata -----------------------------------------------------
 
-  static void CheckValidResourceType(RestApi::Call& call)
+  static void CheckValidResourceType(RestApiCall& call)
   {
     std::string resourceType = call.GetUriComponent("resourceType", "");
     StringToResourceType(resourceType.c_str());
   }
 
 
-  static void ListMetadata(RestApi::GetCall& call)
+  static void ListMetadata(RestApiGetCall& call)
   {
     CheckValidResourceType(call);
     
@@ -318,7 +318,7 @@ namespace Orthanc
   }
 
 
-  static void GetMetadata(RestApi::GetCall& call)
+  static void GetMetadata(RestApiGetCall& call)
   {
     CheckValidResourceType(call);
     
@@ -334,7 +334,7 @@ namespace Orthanc
   }
 
 
-  static void DeleteMetadata(RestApi::DeleteCall& call)
+  static void DeleteMetadata(RestApiDeleteCall& call)
   {
     CheckValidResourceType(call);
 
@@ -352,7 +352,7 @@ namespace Orthanc
   }
 
 
-  static void SetMetadata(RestApi::PutCall& call)
+  static void SetMetadata(RestApiPutCall& call)
   {
     CheckValidResourceType(call);
 
@@ -375,7 +375,7 @@ namespace Orthanc
 
   // Handling of attached files -----------------------------------------------
 
-  static void ListAttachments(RestApi::GetCall& call)
+  static void ListAttachments(RestApiGetCall& call)
   {
     std::string resourceType = call.GetUriComponent("resourceType", "");
     std::string publicId = call.GetUriComponent("id", "");
@@ -394,7 +394,7 @@ namespace Orthanc
   }
 
 
-  static bool GetAttachmentInfo(FileInfo& info, RestApi::Call& call)
+  static bool GetAttachmentInfo(FileInfo& info, RestApiCall& call)
   {
     CheckValidResourceType(call);
  
@@ -406,7 +406,7 @@ namespace Orthanc
   }
 
 
-  static void GetAttachmentOperations(RestApi::GetCall& call)
+  static void GetAttachmentOperations(RestApiGetCall& call)
   {
     FileInfo info;
     if (GetAttachmentInfo(info, call))
@@ -442,7 +442,7 @@ namespace Orthanc
 
   
   template <int uncompress>
-  static void GetAttachmentData(RestApi::GetCall& call)
+  static void GetAttachmentData(RestApiGetCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -459,7 +459,7 @@ namespace Orthanc
   }
 
 
-  static void GetAttachmentSize(RestApi::GetCall& call)
+  static void GetAttachmentSize(RestApiGetCall& call)
   {
     FileInfo info;
     if (GetAttachmentInfo(info, call))
@@ -469,7 +469,7 @@ namespace Orthanc
   }
 
 
-  static void GetAttachmentCompressedSize(RestApi::GetCall& call)
+  static void GetAttachmentCompressedSize(RestApiGetCall& call)
   {
     FileInfo info;
     if (GetAttachmentInfo(info, call))
@@ -479,7 +479,7 @@ namespace Orthanc
   }
 
 
-  static void GetAttachmentMD5(RestApi::GetCall& call)
+  static void GetAttachmentMD5(RestApiGetCall& call)
   {
     FileInfo info;
     if (GetAttachmentInfo(info, call) &&
@@ -490,7 +490,7 @@ namespace Orthanc
   }
 
 
-  static void GetAttachmentCompressedMD5(RestApi::GetCall& call)
+  static void GetAttachmentCompressedMD5(RestApiGetCall& call)
   {
     FileInfo info;
     if (GetAttachmentInfo(info, call) &&
@@ -501,7 +501,7 @@ namespace Orthanc
   }
 
 
-  static void VerifyAttachment(RestApi::PostCall& call)
+  static void VerifyAttachment(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
     CheckValidResourceType(call);
@@ -555,7 +555,7 @@ namespace Orthanc
   }
 
 
-  static void UploadAttachment(RestApi::PutCall& call)
+  static void UploadAttachment(RestApiPutCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
     CheckValidResourceType(call);
@@ -575,7 +575,7 @@ namespace Orthanc
   }
 
 
-  static void DeleteAttachment(RestApi::DeleteCall& call)
+  static void DeleteAttachment(RestApiDeleteCall& call)
   {
     CheckValidResourceType(call);
 
@@ -595,7 +595,7 @@ namespace Orthanc
 
   // Raw access to the DICOM tags of an instance ------------------------------
 
-  static void GetRawContent(RestApi::GetCall& call)
+  static void GetRawContent(RestApiGetCall& call)
   {
     std::string id = call.GetUriComponent("id", "");
 
@@ -681,7 +681,7 @@ namespace Orthanc
   }
 
 
-  static void GetSharedTags(RestApi::GetCall& call)
+  static void GetSharedTags(RestApiGetCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
     std::string publicId = call.GetUriComponent("id", "");
@@ -706,7 +706,7 @@ namespace Orthanc
 
 
   template <enum ResourceType resourceType>
-  static void GetModule(RestApi::GetCall& call)
+  static void GetModule(RestApiGetCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
     std::string publicId = call.GetUriComponent("id", "");

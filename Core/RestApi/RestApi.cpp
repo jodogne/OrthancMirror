@@ -38,29 +38,6 @@
 
 namespace Orthanc
 {
-  bool RestApi::Call::ParseJsonRequestInternal(Json::Value& result,
-                                               const char* request)
-  {
-    result.clear();
-    Json::Reader reader;
-    return reader.parse(request, result);
-  }
-
-
-  bool RestApi::GetCall::ParseJsonRequest(Json::Value& result) const
-  {
-    result.clear();
-
-    for (HttpHandler::Arguments::const_iterator 
-           it = getArguments_.begin(); it != getArguments_.end(); ++it)
-    {
-      result[it->first] = it->second;
-    }
-
-    return true;
-  }
-
-
   bool RestApi::IsGetAccepted(const UriComponents& uri)
   {
     for (GetHandlers::const_iterator it = getHandlers_.begin();
@@ -201,7 +178,7 @@ namespace Orthanc
         {
           //LOG(INFO) << "REST GET call on: " << Toolbox::FlattenUri(uri);
           ok = true;
-          GetCall call(restOutput, *this, headers, components, trailing, uri, getArguments);
+          RestApiGetCall call(restOutput, *this, headers, components, trailing, uri, getArguments);
           it->second(call);
         }
       }
@@ -215,7 +192,7 @@ namespace Orthanc
         {
           //LOG(INFO) << "REST PUT call on: " << Toolbox::FlattenUri(uri);
           ok = true;
-          PutCall call(restOutput, *this, headers, components, trailing, uri, postData);
+          RestApiPutCall call(restOutput, *this, headers, components, trailing, uri, postData);
           it->second(call);
         }
       }
@@ -229,7 +206,7 @@ namespace Orthanc
         {
           //LOG(INFO) << "REST POST call on: " << Toolbox::FlattenUri(uri);
           ok = true;
-          PostCall call(restOutput, *this, headers, components, trailing, uri, postData);
+          RestApiPostCall call(restOutput, *this, headers, components, trailing, uri, postData);
           it->second(call);
         }
       }
@@ -243,7 +220,7 @@ namespace Orthanc
         {
           //LOG(INFO) << "REST DELETE call on: " << Toolbox::FlattenUri(uri);
           ok = true;
-          DeleteCall call(restOutput, *this, headers, components, trailing, uri);
+          RestApiDeleteCall call(restOutput, *this, headers, components, trailing, uri);
           it->second(call);
         }
       }
@@ -258,25 +235,25 @@ namespace Orthanc
   }
 
   void RestApi::Register(const std::string& path,
-                         GetHandler handler)
+                         RestApiGetCall::Handler handler)
   {
     getHandlers_.push_back(std::make_pair(new RestApiPath(path), handler));
   }
 
   void RestApi::Register(const std::string& path,
-                         PutHandler handler)
+                         RestApiPutCall::Handler handler)
   {
     putHandlers_.push_back(std::make_pair(new RestApiPath(path), handler));
   }
 
   void RestApi::Register(const std::string& path,
-                         PostHandler handler)
+                         RestApiPostCall::Handler handler)
   {
     postHandlers_.push_back(std::make_pair(new RestApiPath(path), handler));
   }
 
   void RestApi::Register(const std::string& path,
-                         DeleteHandler handler)
+                         RestApiDeleteCall::Handler handler)
   {
     deleteHandlers_.push_back(std::make_pair(new RestApiPath(path), handler));
   }

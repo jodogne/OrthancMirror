@@ -47,40 +47,40 @@ namespace Orthanc
     class Handlers
     {
     private:
-      RestApi::GetHandler  getHandler_;
-      RestApi::PostHandler  postHandler_;
-      RestApi::PutHandler  putHandler_;
-      RestApi::DeleteHandler  deleteHandler_;
+      RestApiGetCall::Handler  getHandler_;
+      RestApiPostCall::Handler  postHandler_;
+      RestApiPutCall::Handler  putHandler_;
+      RestApiDeleteCall::Handler  deleteHandler_;
 
     public:
       Handlers();
 
       bool HasHandler(HttpMethod method) const;
 
-      RestApi::GetHandler GetGetHandler() const;
+      RestApiGetCall::Handler GetGetHandler() const;
 
-      RestApi::PutHandler GetPutHandler() const;
+      RestApiPutCall::Handler GetPutHandler() const;
 
-      RestApi::PostHandler GetPostHandler() const;
+      RestApiPostCall::Handler GetPostHandler() const;
 
-      RestApi::DeleteHandler GetDeleteHandler() const;
+      RestApiDeleteCall::Handler GetDeleteHandler() const;
 
-      void Register(RestApi::GetHandler handler)
+      void Register(RestApiGetCall::Handler handler)
       {
         getHandler_ = handler;
       }
 
-      void Register(RestApi::PutHandler handler)
+      void Register(RestApiPutCall::Handler handler)
       {
         putHandler_ = handler;
       }
 
-      void Register(RestApi::PostHandler handler)
+      void Register(RestApiPostCall::Handler handler)
       {
         postHandler_ = handler;
       }
 
-      void Register(RestApi::DeleteHandler handler)
+      void Register(RestApiDeleteCall::Handler handler)
       {
         deleteHandler_ = handler;
       }
@@ -151,16 +151,16 @@ namespace Orthanc
     ~RestApiHierarchy();
 
     void Register(const std::string& uri,
-                  RestApi::GetHandler handler);
+                  RestApiGetCall::Handler handler);
 
     void Register(const std::string& uri,
-                  RestApi::PutHandler handler);
+                  RestApiPutCall::Handler handler);
 
     void Register(const std::string& uri,
-                  RestApi::PostHandler handler);
+                  RestApiPostCall::Handler handler);
 
     void Register(const std::string& uri,
-                  RestApi::DeleteHandler handler);
+                  RestApiDeleteCall::Handler handler);
 
     void CreateSiteMap(Json::Value& target) const;
 
@@ -170,16 +170,16 @@ namespace Orthanc
       return GetDirectory(result, uri, 0);
     }
 
-    bool Handle(RestApi::GetCall& call,
+    bool Handle(RestApiGetCall& call,
                 const UriComponents& uri);
 
-    bool Handle(RestApi::PutCall& call,
+    bool Handle(RestApiPutCall& call,
                 const UriComponents& uri);
 
-    bool Handle(RestApi::PostCall& call,
+    bool Handle(RestApiPostCall& call,
                 const UriComponents& uri);
 
-    bool Handle(RestApi::DeleteCall& call,
+    bool Handle(RestApiDeleteCall& call,
                 const UriComponents& uri);
   };
 }

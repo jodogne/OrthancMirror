@@ -30,68 +30,43 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
-#include "OrthancRestApi.h"
+#pragma once
 
-#include "../DicomModification.h"
-
-#include <glog/logging.h>
+#include "RestApiCall.h"
 
 namespace Orthanc
 {
-  void OrthancRestApi::AnswerStoredInstance(RestApiPostCall& call,
-                                            const std::string& publicId,
-                                            StoreStatus status) const
+  class RestApiGetCall : public RestApiCall
   {
-    Json::Value result = Json::objectValue;
+  private:
+    const HttpHandler::Arguments& getArguments_;
 
-    if (status != StoreStatus_Failure)
+  public:
+    typedef void (*Handler) (RestApiGetCall& call);   
+
+    RestApiGetCall(RestApiOutput& output,
+                   RestApi& context,
+                   const HttpHandler::Arguments& httpHeaders,
+                   const RestApiPath::Components& uriComponents,
+                   const UriComponents& trailing,
+                   const UriComponents& fullUri,
+                   const HttpHandler::Arguments& getArguments) :
+      RestApiCall(output, context, httpHeaders, uriComponents, trailing, fullUri),
+      getArguments_(getArguments)
     {
-      result["ID"] = publicId;
-      result["Path"] = GetBasePath(ResourceType_Instance, publicId);
     }
 
-    result["Status"] = EnumerationToString(status);
-    call.GetOutput().AnswerJson(result);
-  }
-
-
-
-  // Upload of DICOM files through HTTP ---------------------------------------
-
-  static void UploadDicomFile(RestApiPostCall& call)
-  {
-    ServerContext& context = OrthancRestApi::GetContext(call);
-
-    const std::string& postData = call.GetPostBody();
-    if (postData.size() == 0)
+    std::string GetArgument(const std::string& name,
+                            const std::string& defaultValue) const
     {
-      return;
+      return HttpHandler::GetArgument(getArguments_, name, defaultValue);
     }
 
-    LOG(INFO) << "Receiving a DICOM file of " << postData.size() << " bytes through HTTP";
+    bool HasArgument(const std::string& name) const
+    {
+      return getArguments_.find(name) != getArguments_.end();
+    }
 
-    std::string publicId;
-    StoreStatus status = context.Store(publicId, postData);
-
-    OrthancRestApi::GetApi(call).AnswerStoredInstance(call, publicId, status);
-  }
-
-
-
-  // Registration of the various REST handlers --------------------------------
-
-  OrthancRestApi::OrthancRestApi(ServerContext& context) : 
-    context_(context)
-  {
-    RegisterSystem();
-
-    RegisterChanges();
-    RegisterResources();
-    RegisterModalities();
-    RegisterAnonymizeModify();
-    RegisterArchive();
-
-    Register("/instances", UploadDicomFile);
-  }
+    virtual bool ParseJsonRequest(Json::Value& result) const;
+  };
 }

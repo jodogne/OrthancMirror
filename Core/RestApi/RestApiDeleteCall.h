@@ -30,68 +30,31 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
-#include "OrthancRestApi.h"
+#pragma once
 
-#include "../DicomModification.h"
-
-#include <glog/logging.h>
+#include "RestApiCall.h"
 
 namespace Orthanc
 {
-  void OrthancRestApi::AnswerStoredInstance(RestApiPostCall& call,
-                                            const std::string& publicId,
-                                            StoreStatus status) const
+  class RestApiDeleteCall : public RestApiCall
   {
-    Json::Value result = Json::objectValue;
-
-    if (status != StoreStatus_Failure)
+  public:
+    typedef void (*Handler) (RestApiDeleteCall& call);
+    
+    RestApiDeleteCall(RestApiOutput& output,
+                      RestApi& context,
+                      const HttpHandler::Arguments& httpHeaders,
+                      const RestApiPath::Components& uriComponents,
+                      const UriComponents& trailing,
+                      const UriComponents& fullUri) :
+      RestApiCall(output, context, httpHeaders, uriComponents, trailing, fullUri)
     {
-      result["ID"] = publicId;
-      result["Path"] = GetBasePath(ResourceType_Instance, publicId);
     }
 
-    result["Status"] = EnumerationToString(status);
-    call.GetOutput().AnswerJson(result);
-  }
-
-
-
-  // Upload of DICOM files through HTTP ---------------------------------------
-
-  static void UploadDicomFile(RestApiPostCall& call)
-  {
-    ServerContext& context = OrthancRestApi::GetContext(call);
-
-    const std::string& postData = call.GetPostBody();
-    if (postData.size() == 0)
+    virtual bool ParseJsonRequest(Json::Value& result) const
     {
-      return;
+      result.clear();
+      return true;
     }
-
-    LOG(INFO) << "Receiving a DICOM file of " << postData.size() << " bytes through HTTP";
-
-    std::string publicId;
-    StoreStatus status = context.Store(publicId, postData);
-
-    OrthancRestApi::GetApi(call).AnswerStoredInstance(call, publicId, status);
-  }
-
-
-
-  // Registration of the various REST handlers --------------------------------
-
-  OrthancRestApi::OrthancRestApi(ServerContext& context) : 
-    context_(context)
-  {
-    RegisterSystem();
-
-    RegisterChanges();
-    RegisterResources();
-    RegisterModalities();
-    RegisterAnonymizeModify();
-    RegisterArchive();
-
-    Register("/instances", UploadDicomFile);
-  }
+  };
 }

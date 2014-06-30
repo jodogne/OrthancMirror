@@ -233,7 +233,7 @@ namespace Orthanc
   }                                 
 
   template <enum ResourceType resourceType>
-  static void GetArchive(RestApi::GetCall& call)
+  static void GetArchive(RestApiGetCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
