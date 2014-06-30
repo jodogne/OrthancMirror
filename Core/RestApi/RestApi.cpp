@@ -166,7 +166,7 @@ namespace Orthanc
   {
     bool ok = false;
     RestApiOutput restOutput(output);
-    RestApiPath::Components components;
+    HttpHandler::Arguments components;
     UriComponents trailing;
 
     if (method == HttpMethod_Get)

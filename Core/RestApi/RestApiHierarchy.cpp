@@ -32,6 +32,8 @@
 
 #include "RestApiHierarchy.h"
 
+#include "../OrthancException.h"
+
 #include <cassert>
 
 namespace Orthanc
@@ -163,7 +165,7 @@ namespace Orthanc
   }
 
 
-  bool RestApiHierarchy::LookupHandler(RestApiPath::Components& components,
+  bool RestApiHierarchy::LookupHandler(HttpHandler::Arguments& components,
                                        const UriComponents& uri,
                                        ResourceCallback callback,
                                        size_t level,
@@ -198,7 +200,7 @@ namespace Orthanc
     for (child = wildcardChildren_.begin();
          child != wildcardChildren_.end(); child++)
     {
-      RestApiPath::Components subComponents = components;
+      HttpHandler::Arguments subComponents = components;
       subComponents[child->first] = uri[level];
 
       if (child->second->LookupHandler(components, uri, callback, level + 1, call))
@@ -280,7 +282,7 @@ namespace Orthanc
 
   bool RestApiHierarchy::GetCallback(Handlers& handlers,
                                      const UriComponents& uri,
-                                     const RestApiPath::Components& components,
+                                     const HttpHandler::Arguments& components,
                                      const UriComponents& trailing,
                                      void* call)
   {
@@ -298,7 +300,7 @@ namespace Orthanc
 
   bool RestApiHierarchy::PostCallback(Handlers& handlers,
                                       const UriComponents& uri,
-                                      const RestApiPath::Components& components,
+                                      const HttpHandler::Arguments& components,
                                       const UriComponents& trailing,
                                       void* call)
   {
@@ -316,7 +318,7 @@ namespace Orthanc
 
   bool RestApiHierarchy::PutCallback(Handlers& handlers,
                                      const UriComponents& uri,
-                                     const RestApiPath::Components& components,
+                                     const HttpHandler::Arguments& components,
                                      const UriComponents& trailing,
                                      void* call)
   {
@@ -334,7 +336,7 @@ namespace Orthanc
 
   bool RestApiHierarchy::DeleteCallback(Handlers& handlers,
                                         const UriComponents& uri,
-                                        const RestApiPath::Components& components,
+                                        const HttpHandler::Arguments& components,
                                         const UriComponents& trailing,
                                         void* call)
   {
@@ -432,28 +434,28 @@ namespace Orthanc
   bool RestApiHierarchy::Handle(RestApiGetCall& call,
                                 const UriComponents& uri)
   {
-    RestApiPath::Components components;
+    HttpHandler::Arguments components;
     return LookupHandler(components, uri, GetCallback, 0, &call);
   }    
 
   bool RestApiHierarchy::Handle(RestApiPutCall& call,
                                 const UriComponents& uri)
   {
-    RestApiPath::Components components;
+    HttpHandler::Arguments components;
     return LookupHandler(components, uri, PutCallback, 0, &call);
   }    
 
   bool RestApiHierarchy::Handle(RestApiPostCall& call,
                                 const UriComponents& uri)
   {
-    RestApiPath::Components components;
+    HttpHandler::Arguments components;
     return LookupHandler(components, uri, PostCallback, 0, &call);
   }    
 
   bool RestApiHierarchy::Handle(RestApiDeleteCall& call,
                                 const UriComponents& uri)
   {
-    RestApiPath::Components components;
+    HttpHandler::Arguments components;
     return LookupHandler(components, uri, DeleteCallback, 0, &call);
   }    
 

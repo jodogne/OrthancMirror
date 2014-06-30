@@ -33,6 +33,8 @@
 #pragma once
 
 #include "../Toolbox.h"
+#include "../HttpServer/HttpHandler.h"
+
 #include <map>
 
 namespace Orthanc
@@ -45,16 +47,14 @@ namespace Orthanc
     std::vector<std::string> components_;
 
   public:
-    typedef std::map<std::string, std::string> Components;
-
     RestApiPath(const std::string& uri);
 
     // This version is slower
-    bool Match(Components& components,
+    bool Match(HttpHandler::Arguments& components,
                UriComponents& trailing,
                const std::string& uriRaw) const;
 
-    bool Match(Components& components,
+    bool Match(HttpHandler::Arguments& components,
                UriComponents& trailing,
                const UriComponents& uri) const;
 

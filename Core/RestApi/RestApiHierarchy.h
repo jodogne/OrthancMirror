@@ -32,12 +32,10 @@
 
 #pragma once
 
-#include "RestApi.h"
-
-#include "../OrthancException.h"
-
-#include <list>
-#include <set>
+#include "RestApiGetCall.h"
+#include "RestApiPostCall.h"
+#include "RestApiPutCall.h"
+#include "RestApiDeleteCall.h"
 
 namespace Orthanc
 {
@@ -47,9 +45,9 @@ namespace Orthanc
     class Handlers
     {
     private:
-      RestApiGetCall::Handler  getHandler_;
-      RestApiPostCall::Handler  postHandler_;
-      RestApiPutCall::Handler  putHandler_;
+      RestApiGetCall::Handler     getHandler_;
+      RestApiPostCall::Handler    postHandler_;
+      RestApiPutCall::Handler     putHandler_;
       RestApiDeleteCall::Handler  deleteHandler_;
 
     public:
@@ -92,7 +90,7 @@ namespace Orthanc
     typedef std::map<std::string, RestApiHierarchy*>  Children;
     typedef bool (*ResourceCallback) (Handlers& handlers,
                                       const UriComponents& uri,
-                                      const RestApiPath::Components& components,
+                                      const HttpHandler::Arguments& components,
                                       const UriComponents& trailing,
                                       void* call);
 
@@ -112,7 +110,7 @@ namespace Orthanc
                           Handler handler,
                           size_t level);
 
-    bool LookupHandler(RestApiPath::Components& components,
+    bool LookupHandler(HttpHandler::Arguments& components,
                        const UriComponents& uri,
                        ResourceCallback callback,
                        size_t level,
@@ -124,25 +122,25 @@ namespace Orthanc
                      
     static bool GetCallback(Handlers& handlers,
                             const UriComponents& uri,
-                            const RestApiPath::Components& components,
+                            const HttpHandler::Arguments& components,
                             const UriComponents& trailing,
                             void* call);
 
     static bool PostCallback(Handlers& handlers,
                              const UriComponents& uri,
-                             const RestApiPath::Components& components,
+                             const HttpHandler::Arguments& components,
                              const UriComponents& trailing,
                              void* call);
 
     static bool PutCallback(Handlers& handlers,
                             const UriComponents& uri,
-                            const RestApiPath::Components& components,
+                            const HttpHandler::Arguments& components,
                             const UriComponents& trailing,
                             void* call);
 
     static bool DeleteCallback(Handlers& handlers,
                                const UriComponents& uri,
-                               const RestApiPath::Components& components,
+                               const HttpHandler::Arguments& components,
                                const UriComponents& trailing,
                                void* call);
                        

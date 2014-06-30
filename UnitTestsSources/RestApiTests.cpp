@@ -122,7 +122,7 @@ TEST(RestApi, ParseCookies)
 
 TEST(RestApi, RestApiPath)
 {
-  RestApiPath::Components args;
+  HttpHandler::Arguments args;
   UriComponents trail;
 
   {

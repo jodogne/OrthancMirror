@@ -78,7 +78,7 @@ namespace Orthanc
     }
   }
 
-  bool RestApiPath::Match(Components& components,
+  bool RestApiPath::Match(HttpHandler::Arguments& components,
                           UriComponents& trailing,
                           const std::string& uriRaw) const
   {
@@ -87,7 +87,7 @@ namespace Orthanc
     return Match(components, trailing, uri);
   }
 
-  bool RestApiPath::Match(Components& components,
+  bool RestApiPath::Match(HttpHandler::Arguments& components,
                           UriComponents& trailing,
                           const UriComponents& uri) const
   {
@@ -135,7 +135,7 @@ namespace Orthanc
 
   bool RestApiPath::Match(const UriComponents& uri) const
   {
-    Components components;
+    HttpHandler::Arguments components;
     UriComponents trailing;
     return Match(components, trailing, uri);
   }

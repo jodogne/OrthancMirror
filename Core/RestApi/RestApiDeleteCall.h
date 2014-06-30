@@ -44,7 +44,7 @@ namespace Orthanc
     RestApiDeleteCall(RestApiOutput& output,
                       RestApi& context,
                       const HttpHandler::Arguments& httpHeaders,
-                      const RestApiPath::Components& uriComponents,
+                      const HttpHandler::Arguments& uriComponents,
                       const UriComponents& trailing,
                       const UriComponents& fullUri) :
       RestApiCall(output, context, httpHeaders, uriComponents, trailing, fullUri)
