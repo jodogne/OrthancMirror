@@ -34,48 +34,55 @@
 
 #include "RestApi.h"
 
+#include "../OrthancException.h"
+
 #include <list>
+#include <set>
 
 namespace Orthanc
 {
   class RestApiHierarchy
   {
   private:
-    struct Handlers
+    class Handlers
     {
-      typedef std::list<RestApi::GetHandler>  GetHandlers;
-      typedef std::list<RestApi::PostHandler>  PostHandlers;
-      typedef std::list<RestApi::PutHandler>  PutHandlers;
-      typedef std::list<RestApi::DeleteHandler>  DeleteHandlers;
+    private:
+      RestApi::GetHandler  getHandler_;
+      RestApi::PostHandler  postHandler_;
+      RestApi::PutHandler  putHandler_;
+      RestApi::DeleteHandler  deleteHandler_;
 
-      GetHandlers  getHandlers_;
-      PostHandlers  postHandlers_;
-      PutHandlers  putHandlers_;
-      DeleteHandlers  deleteHandlers_;
+    public:
+      Handlers();
 
-      bool HasGet() const
-      {
-        return getHandlers_.size() > 0;
-      }
+      bool HasHandler(HttpMethod method) const;
+
+      RestApi::GetHandler GetGetHandler() const;
+
+      RestApi::PutHandler GetPutHandler() const;
+
+      RestApi::PostHandler GetPostHandler() const;
+
+      RestApi::DeleteHandler GetDeleteHandler() const;
 
       void Register(RestApi::GetHandler handler)
       {
-        getHandlers_.push_back(handler);
+        getHandler_ = handler;
       }
 
       void Register(RestApi::PutHandler handler)
       {
-        putHandlers_.push_back(handler);
+        putHandler_ = handler;
       }
 
       void Register(RestApi::PostHandler handler)
       {
-        postHandlers_.push_back(handler);
+        postHandler_ = handler;
       }
 
       void Register(RestApi::DeleteHandler handler)
       {
-        deleteHandlers_.push_back(handler);
+        deleteHandler_ = handler;
       }
 
       bool IsEmpty() const;

@@ -36,12 +36,68 @@
 
 namespace Orthanc
 {
+  RestApiHierarchy::Handlers::Handlers() : 
+    getHandler_(NULL), 
+    postHandler_(NULL),
+    putHandler_(NULL), 
+    deleteHandler_(NULL)
+  {
+  }
+
+
+  bool RestApiHierarchy::Handlers::HasHandler(HttpMethod method) const
+  {
+    switch (method)
+    {
+      case HttpMethod_Get:
+        return getHandler_ != NULL;
+
+      case HttpMethod_Post:
+        return postHandler_ != NULL;
+
+      case HttpMethod_Put:
+        return putHandler_ != NULL;
+
+      case HttpMethod_Delete:
+        return deleteHandler_ != NULL;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
   bool RestApiHierarchy::Handlers::IsEmpty() const
   {
-    return (getHandlers_.empty() &&
-            postHandlers_.empty() &&
-            putHandlers_.empty() &&
-            deleteHandlers_.empty());
+    return (getHandler_ == NULL &&
+            postHandler_ == NULL &&
+            putHandler_ == NULL &&
+            deleteHandler_ == NULL);
+  }
+
+
+  RestApi::GetHandler RestApiHierarchy::Handlers::GetGetHandler() const
+  {
+    assert(getHandler_ != NULL);
+    return getHandler_;
+  }
+
+  RestApi::PutHandler RestApiHierarchy::Handlers::GetPutHandler() const
+  {
+    assert(putHandler_ != NULL);
+    return putHandler_;
+  }
+
+  RestApi::PostHandler RestApiHierarchy::Handlers::GetPostHandler() const
+  {
+    assert(postHandler_ != NULL);
+    return postHandler_;
+  }
+
+  RestApi::DeleteHandler RestApiHierarchy::Handlers::GetDeleteHandler() const
+  {
+    assert(deleteHandler_ != NULL);
+    return deleteHandler_;
   }
 
 
@@ -180,7 +236,7 @@ namespace Orthanc
   {
     if (uri.size() == level)
     {
-      if (!handlers_.HasGet() && 
+      if (!handlers_.HasHandler(HttpMethod_Get) && 
           universalHandlers_.IsEmpty() &&
           wildcardChildren_.size() == 0)
       {
@@ -228,17 +284,15 @@ namespace Orthanc
                                      const UriComponents& trailing,
                                      void* call)
   {
-    for (Handlers::GetHandlers::iterator
-           it = handlers.getHandlers_.begin(); 
-         it != handlers.getHandlers_.end(); it++)
+    if (handlers.HasHandler(HttpMethod_Get))
     {
-      // TODO RETURN BOOL
-
-      (*it) (*reinterpret_cast<RestApi::GetCall*>(call));
+      handlers.GetGetHandler() (*reinterpret_cast<RestApi::GetCall*>(call));
       return true;
     }
-
-    return false;
+    else
+    {
+      return false;
+    }
   }
 
 
@@ -248,17 +302,15 @@ namespace Orthanc
                                       const UriComponents& trailing,
                                       void* call)
   {
-    for (Handlers::PostHandlers::iterator
-           it = handlers.postHandlers_.begin(); 
-         it != handlers.postHandlers_.end(); it++)
+    if (handlers.HasHandler(HttpMethod_Post))
     {
-      // TODO RETURN BOOL
-
-      (*it) (*reinterpret_cast<RestApi::PostCall*>(call));
+      handlers.GetPostHandler() (*reinterpret_cast<RestApi::PostCall*>(call));
       return true;
     }
-
-    return false;
+    else
+    {
+      return false;
+    }
   }
 
 
@@ -268,17 +320,15 @@ namespace Orthanc
                                      const UriComponents& trailing,
                                      void* call)
   {
-    for (Handlers::PutHandlers::iterator
-           it = handlers.putHandlers_.begin(); 
-         it != handlers.putHandlers_.end(); it++)
+    if (handlers.HasHandler(HttpMethod_Put))
     {
-      // TODO RETURN BOOL
-
-      (*it) (*reinterpret_cast<RestApi::PutCall*>(call));
+      handlers.GetPutHandler() (*reinterpret_cast<RestApi::PutCall*>(call));
       return true;
     }
-
-    return false;
+    else
+    {
+      return false;
+    }
   }
 
 
@@ -288,17 +338,15 @@ namespace Orthanc
                                         const UriComponents& trailing,
                                         void* call)
   {
-    for (Handlers::DeleteHandlers::iterator
-           it = handlers.deleteHandlers_.begin(); 
-         it != handlers.deleteHandlers_.end(); it++)
+    if (handlers.HasHandler(HttpMethod_Delete))
     {
-      // TODO RETURN BOOL
-
-      (*it) (*reinterpret_cast<RestApi::DeleteCall*>(call));
+      handlers.GetDeleteHandler() (*reinterpret_cast<RestApi::DeleteCall*>(call));
       return true;
     }
-
-    return false;
+    else
+    {
+      return false;
+    }
   }
 
 
@@ -341,22 +389,22 @@ namespace Orthanc
     if (children_.size() == 0)
     {
       std::string s = " ";
-      if (handlers_.getHandlers_.size() != 0)
+      if (handlers_.HasHandler(HttpMethod_Get))
       {
         s += "GET ";
       }
 
-      if (handlers_.postHandlers_.size() != 0)
+      if (handlers_.HasHandler(HttpMethod_Post))
       {
         s += "POST ";
       }
 
-      if (handlers_.putHandlers_.size() != 0)
+      if (handlers_.HasHandler(HttpMethod_Put))
       {
         s += "PUT ";
       }
 
-      if (handlers_.deleteHandlers_.size() != 0)
+      if (handlers_.HasHandler(HttpMethod_Delete))
       {
         s += "DELETE ";
       }
