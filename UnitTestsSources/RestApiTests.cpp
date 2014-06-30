@@ -42,6 +42,7 @@
 #include "../Core/Uuid.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Compression/ZlibCompressor.h"
+#include "../Core/RestApi/RestApiHierarchy.h"
 
 using namespace Orthanc;
 
@@ -138,6 +139,18 @@ TEST(RestApi, RestApiPath)
     ASSERT_TRUE(uri.Match(args, trail, "/coucou/moi/d/"));
     ASSERT_FALSE(uri.Match(args, trail, "/a/moi/d"));
     ASSERT_FALSE(uri.Match(args, trail, "/coucou/moi"));
+
+    ASSERT_EQ(3u, uri.GetLevelCount());
+    ASSERT_TRUE(uri.IsUniversalTrailing());
+
+    ASSERT_EQ("coucou", uri.GetLevelName(0));
+    ASSERT_THROW(uri.GetWildcardName(0), OrthancException);
+
+    ASSERT_EQ("abc", uri.GetWildcardName(1));
+    ASSERT_THROW(uri.GetLevelName(1), OrthancException);
+
+    ASSERT_EQ("d", uri.GetLevelName(2));
+    ASSERT_THROW(uri.GetWildcardName(2), OrthancException);
   }
 
   {
@@ -147,6 +160,18 @@ TEST(RestApi, RestApiPath)
     ASSERT_EQ(1u, args.size());
     ASSERT_EQ(0u, trail.size());
     ASSERT_EQ("moi", args["abc"]);
+
+    ASSERT_EQ(3u, uri.GetLevelCount());
+    ASSERT_FALSE(uri.IsUniversalTrailing());
+
+    ASSERT_EQ("coucou", uri.GetLevelName(0));
+    ASSERT_THROW(uri.GetWildcardName(0), OrthancException);
+
+    ASSERT_EQ("abc", uri.GetWildcardName(1));
+    ASSERT_THROW(uri.GetLevelName(1), OrthancException);
+
+    ASSERT_EQ("d", uri.GetLevelName(2));
+    ASSERT_THROW(uri.GetWildcardName(2), OrthancException);
   }
 
   {
@@ -157,5 +182,84 @@ TEST(RestApi, RestApiPath)
     ASSERT_EQ("a", trail[0]);
     ASSERT_EQ("b", trail[1]);
     ASSERT_EQ("c", trail[2]);
+
+    ASSERT_EQ(0u, uri.GetLevelCount());
+    ASSERT_TRUE(uri.IsUniversalTrailing());
   }
+}
+
+
+
+
+
+
+static int testValue;
+
+template <int value>
+static void SetValue(RestApi::GetCall& get)
+{
+  testValue = value;
+}
+
+
+static bool GetDirectory(Json::Value& target,
+                         RestApiHierarchy& hierarchy, 
+                         const std::string& uri)
+{
+  UriComponents p;
+  Toolbox::SplitUriComponents(p, uri);
+  return hierarchy.GetDirectory(target, p);
+}
+
+
+static bool HandleGet(RestApiHierarchy& hierarchy, 
+                      const std::string& uri)
+{
+  UriComponents p;
+  Toolbox::SplitUriComponents(p, uri);
+  return hierarchy.Handle(*reinterpret_cast<RestApi::GetCall*>(NULL), p);
+}
+
+
+TEST(RestApi, RestApiHierarchy)
+{
+  RestApiHierarchy root;
+  root.Register("/hello/world/test", SetValue<1>);
+  root.Register("/hello/world/test2", SetValue<2>);
+  root.Register("/hello/{world}/test3/test4", SetValue<3>);
+  root.Register("/hello2/*", SetValue<4>);
+
+  Json::Value m;
+  root.CreateSiteMap(m);
+  std::cout << m;
+
+  Json::Value d;
+  ASSERT_FALSE(GetDirectory(d, root, "/hello"));
+
+  ASSERT_TRUE(GetDirectory(d, root, "/hello/a")); 
+  ASSERT_EQ(1u, d.size());
+  ASSERT_EQ("test3", d[0].asString());
+
+  ASSERT_TRUE(GetDirectory(d, root, "/hello/world"));
+  ASSERT_EQ(2u, d.size());
+
+  ASSERT_TRUE(GetDirectory(d, root, "/hello/a/test3"));
+  ASSERT_EQ(1u, d.size());
+  ASSERT_EQ("test4", d[0].asString());
+
+  ASSERT_FALSE(GetDirectory(d, root, "/hello/world/test"));
+  ASSERT_FALSE(GetDirectory(d, root, "/hello/world/test2"));
+  ASSERT_FALSE(GetDirectory(d, root, "/hello2"));
+
+  testValue = 0;
+  ASSERT_TRUE(HandleGet(root, "/hello/world/test"));
+  ASSERT_EQ(testValue, 1);
+  ASSERT_TRUE(HandleGet(root, "/hello/world/test2"));
+  ASSERT_EQ(testValue, 2);
+  ASSERT_TRUE(HandleGet(root, "/hello/b/test3/test4"));
+  ASSERT_EQ(testValue, 3);
+  ASSERT_FALSE(HandleGet(root, "/hello/b/test3/test"));
+  ASSERT_EQ(testValue, 3);
+  ASSERT_TRUE(HandleGet(root, "/hello2/a/b"));
+  ASSERT_EQ(testValue, 4);
 }

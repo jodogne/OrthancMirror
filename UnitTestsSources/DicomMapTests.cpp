@@ -37,6 +37,7 @@
 #include "../Core/OrthancException.h"
 #include "../Core/DicomFormat/DicomMap.h"
 #include "../Core/DicomFormat/DicomNullValue.h"
+#include "../OrthancServer/FromDcmtkBridge.h"
 
 #include <memory>
 
@@ -127,4 +128,62 @@ TEST(DicomMap, FindTemplates)
 
   DicomMap::SetupFindInstanceTemplate(m);
   ASSERT_TRUE(m.HasTag(DICOM_TAG_SOP_INSTANCE_UID));
+}
+
+
+
+
+static void TestModule(ResourceType level)
+{
+  std::set<DicomTag> module, main;
+  DicomTag::GetTagsForModule(module, level);
+  DicomMap::GetMainDicomTags(main, level);
+  
+  // The main dicom tags are a subset of the module
+  for (std::set<DicomTag>::const_iterator it = main.begin(); it != main.end(); it++)
+  {
+    bool ok = module.find(*it) != module.end();
+
+    // Exceptions for the Series level
+    /*if ((//
+          *it == DicomTag(0x, 0x) && 
+          level == ResourceType_Series))
+    {
+      ok = true;
+      }*/
+
+    // Exceptions for the Instance level
+    if ((/* Accession number, from Image module */
+          *it == DicomTag(0x0020, 0x0012) && 
+          level == ResourceType_Instance) ||
+        (/* Image Index, from PET Image module */
+          *it == DicomTag(0x0054, 0x1330) && 
+          level == ResourceType_Instance) ||
+        (/* Temporal Position Identifier, from MR Image module */
+          *it == DicomTag(0x0020, 0x0100) && 
+          level == ResourceType_Instance) ||
+        (/* Number of Frames, from Multi-frame module attributes, related to Image IOD */
+          *it == DicomTag(0x0028, 0x0008) && 
+          level == ResourceType_Instance ))
+    {
+      ok = true;
+    }
+
+    if (!ok)
+    {
+      std::cout << it->Format() << ": " << FromDcmtkBridge::GetName(*it)
+                << " not expected at level " << EnumerationToString(level) << std::endl;
+    }
+
+    EXPECT_TRUE(ok);
+  }
+}
+
+
+TEST(DicomMap, Modules)
+{
+  TestModule(ResourceType_Patient);
+  TestModule(ResourceType_Study);
+  //TestModule(ResourceType_Series);   // TODO
+  TestModule(ResourceType_Instance);
 }

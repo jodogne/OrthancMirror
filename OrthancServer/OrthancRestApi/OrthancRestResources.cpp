@@ -153,6 +153,21 @@ namespace Orthanc
     }
   }
 
+
+  static void GetInstanceTagsBis(RestApi::GetCall& call)
+  {
+    bool simplify = call.HasArgument("simplify");
+
+    if (simplify)
+    {
+      GetInstanceTags<true>(call);
+    }
+    else
+    {
+      GetInstanceTags<false>(call);
+    }
+  }
+
   
   static void ListFrames(RestApi::GetCall& call)
   {
@@ -591,6 +606,160 @@ namespace Orthanc
 
 
 
+  static bool ExtractSharedTags(Json::Value& shared,
+                                ServerContext& context,
+                                const std::string& publicId)
+  {
+    // Retrieve all the instances of this patient/study/series
+    typedef std::list<std::string> Instances;
+    Instances instances;
+    context.GetIndex().GetChildInstances(instances, publicId);  // (*)
+
+    // Loop over the instances
+    bool isFirst = true;
+    shared = Json::objectValue;
+
+    for (Instances::const_iterator it = instances.begin();
+         it != instances.end(); it++)
+    {
+      // Get the tags of the current instance, in the simplified format
+      Json::Value tags;
+
+      try
+      {
+        context.ReadJson(tags, *it);
+      }
+      catch (OrthancException&)
+      {
+        // Race condition: This instance has been removed since
+        // (*). Ignore this instance.
+        continue;
+      }
+
+      if (tags.type() != Json::objectValue)
+      {
+        return false;   // Error
+      }
+
+      // Only keep the tags that are mapped to a string
+      Json::Value::Members members = tags.getMemberNames();
+      for (size_t i = 0; i < members.size(); i++)
+      {
+        const Json::Value& tag = tags[members[i]];
+        if (tag.type() != Json::objectValue ||
+            tag["Type"].type() != Json::stringValue ||
+            tag["Type"].asString() != "String")
+        {
+          tags.removeMember(members[i]);
+        }
+      }
+
+      if (isFirst)
+      {
+        // This is the first instance, keep its tags as such
+        shared = tags;
+        isFirst = false;
+      }
+      else
+      {
+        // Loop over all the members of the shared tags extracted so
+        // far. If the value of one of these tags does not match its
+        // value in the current instance, remove it.
+        members = shared.getMemberNames();
+        for (size_t i = 0; i < members.size(); i++)
+        {
+          if (!tags.isMember(members[i]) ||
+              tags[members[i]]["Value"].asString() != shared[members[i]]["Value"].asString())
+          {
+            shared.removeMember(members[i]);
+          }
+        }
+      }
+    }
+
+    return true;
+  }
+
+
+  static void GetSharedTags(RestApi::GetCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+    std::string publicId = call.GetUriComponent("id", "");
+    bool simplify = call.HasArgument("simplify");
+
+    Json::Value sharedTags;
+    if (ExtractSharedTags(sharedTags, context, publicId))
+    {
+      // Success: Send the value of the shared tags
+      if (simplify)
+      {
+        Json::Value simplified;
+        SimplifyTags(simplified, sharedTags);
+        call.GetOutput().AnswerJson(simplified);
+      }
+      else
+      {
+        call.GetOutput().AnswerJson(sharedTags);
+      }
+    }
+  }
+
+
+  template <enum ResourceType resourceType>
+  static void GetModule(RestApi::GetCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+    std::string publicId = call.GetUriComponent("id", "");
+    bool simplify = call.HasArgument("simplify");
+
+    typedef std::set<DicomTag> Module;
+    Module module;
+    DicomTag::GetTagsForModule(module, resourceType);
+
+    Json::Value tags;
+
+    if (resourceType != ResourceType_Instance)
+    {
+      // Retrieve all the instances of this patient/study/series
+      typedef std::list<std::string> Instances;
+      Instances instances;
+      context.GetIndex().GetChildInstances(instances, publicId);
+
+      if (instances.empty())
+      {
+        return;   // Error: No instance (should never happen)
+      }
+
+      // Select one child instance
+      publicId = instances.front();
+    }
+
+    context.ReadJson(tags, publicId);
+    
+    // Filter the tags of the instance according to the module
+    Json::Value result = Json::objectValue;
+    for (Module::const_iterator it = module.begin(); it != module.end(); it++)
+    {
+      std::string s = it->Format();
+      if (tags.isMember(s))
+      {
+        result[s] = tags[s];
+      }      
+    }
+
+    if (simplify)
+    {
+      Json::Value simplified;
+      SimplifyTags(simplified, result);
+      call.GetOutput().AnswerJson(simplified);
+    }
+    else
+    {
+      call.GetOutput().AnswerJson(result);
+    }
+  }
+
+
   void OrthancRestApi::RegisterResources()
   {
     Register("/instances", ListResources<ResourceType_Instance>);
@@ -612,9 +781,18 @@ namespace Orthanc
     Register("/studies/{id}/statistics", GetResourceStatistics);
     Register("/series/{id}/statistics", GetResourceStatistics);
 
+    Register("/patients/{id}/shared-tags", GetSharedTags);
+    Register("/series/{id}/shared-tags", GetSharedTags);
+    Register("/studies/{id}/shared-tags", GetSharedTags);
+
+    Register("/instances/{id}/module", GetModule<ResourceType_Instance>);
+    Register("/patients/{id}/module", GetModule<ResourceType_Patient>);
+    Register("/series/{id}/module", GetModule<ResourceType_Series>);
+    Register("/studies/{id}/module", GetModule<ResourceType_Study>);
+
     Register("/instances/{id}/file", GetInstanceFile);
     Register("/instances/{id}/export", ExportInstanceFile);
-    Register("/instances/{id}/tags", GetInstanceTags<false>);
+    Register("/instances/{id}/tags", GetInstanceTagsBis);
     Register("/instances/{id}/simplified-tags", GetInstanceTags<true>);
     Register("/instances/{id}/frames", ListFrames);
 

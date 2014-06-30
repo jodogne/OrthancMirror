@@ -3,6 +3,8 @@ Pending changes in the mainline
 
 * Introduction of the Orthanc Plugin SDK
 * Official support of OS X (Darwin)
+* Extraction of tags for the patient/study/series/instance DICOM modules
+* Extraction of the tags shared by all the instances of a patient/study/series
 * Options to limit the number of results for an incoming C-FIND query
 * Support of kFreeBSD
 

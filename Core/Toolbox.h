@@ -73,6 +73,10 @@ namespace Orthanc
     void SplitUriComponents(UriComponents& components,
                             const std::string& uri);
   
+    void TruncateUri(UriComponents& target,
+                     const UriComponents& source,
+                     size_t fromLevel);
+  
     bool IsChildUri(const UriComponents& baseUri,
                     const UriComponents& testedUri);
 
