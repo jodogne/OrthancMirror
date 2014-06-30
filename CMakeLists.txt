@@ -84,6 +84,7 @@ set(ORTHANC_CORE_SOURCES
   Core/HttpServer/MongooseServer.cpp
   Core/HttpServer/HttpFileSender.cpp
   Core/HttpServer/FilesystemHttpSender.cpp
+  Core/RestApi/RestApiHierarchy.cpp
   Core/RestApi/RestApiPath.cpp
   Core/RestApi/RestApiOutput.cpp
   Core/RestApi/RestApi.cpp
