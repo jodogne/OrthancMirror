@@ -239,7 +239,7 @@ TEST(ParseGetQuery, Test2)
 
 TEST(Uri, SplitUriComponents)
 {
-  UriComponents c;
+  UriComponents c, d;
   Toolbox::SplitUriComponents(c, "/cou/hello/world");
   ASSERT_EQ(3u, c.size());
   ASSERT_EQ("cou", c[0]);
@@ -277,6 +277,37 @@ TEST(Uri, SplitUriComponents)
   c.clear();
   c.push_back("test");
   ASSERT_EQ("/", Toolbox::FlattenUri(c, 10));
+}
+
+
+TEST(Uri, Truncate)
+{
+  UriComponents c, d;
+  Toolbox::SplitUriComponents(c, "/cou/hello/world");
+
+  Toolbox::TruncateUri(d, c, 0);
+  ASSERT_EQ(3u, d.size());
+  ASSERT_EQ("cou", d[0]);
+  ASSERT_EQ("hello", d[1]);
+  ASSERT_EQ("world", d[2]);
+
+  Toolbox::TruncateUri(d, c, 1);
+  ASSERT_EQ(2u, d.size());
+  ASSERT_EQ("hello", d[0]);
+  ASSERT_EQ("world", d[1]);
+
+  Toolbox::TruncateUri(d, c, 2);
+  ASSERT_EQ(1u, d.size());
+  ASSERT_EQ("world", d[0]);
+
+  Toolbox::TruncateUri(d, c, 3);
+  ASSERT_EQ(0u, d.size());
+
+  Toolbox::TruncateUri(d, c, 4);
+  ASSERT_EQ(0u, d.size());
+
+  Toolbox::TruncateUri(d, c, 5);
+  ASSERT_EQ(0u, d.size());
 }
 
 
