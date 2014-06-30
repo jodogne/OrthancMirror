@@ -39,9 +39,9 @@
 
 namespace Orthanc
 {
-  void OrthancRestApi::AnswerStoredInstance(RestApi::PostCall& call,
+  void OrthancRestApi::AnswerStoredInstance(RestApiPostCall& call,
                                             const std::string& publicId,
-                                            StoreStatus status)
+                                            StoreStatus status) const
   {
     Json::Value result = Json::objectValue;
 
@@ -59,7 +59,7 @@ namespace Orthanc
 
   // Upload of DICOM files through HTTP ---------------------------------------
 
-  static void UploadDicomFile(RestApi::PostCall& call)
+  static void UploadDicomFile(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 

@@ -112,7 +112,7 @@ namespace Orthanc
 
 
   static bool ParseModifyRequest(DicomModification& target,
-                                 const RestApi::PostCall& call)
+                                 const RestApiPostCall& call)
   {
     // curl http://localhost:8042/series/95a6e2bf-9296e2cc-bf614e2f-22b391ee-16e010e0/modify -X POST -d '{"Replace":{"InstitutionName":"My own clinic"}}'
 
@@ -144,7 +144,7 @@ namespace Orthanc
 
 
   static bool ParseAnonymizationRequest(DicomModification& target,
-                                        RestApi::PostCall& call)
+                                        RestApiPostCall& call)
   {
     // curl http://localhost:8042/instances/6e67da51-d119d6ae-c5667437-87b9a8a5-0f07c49f/anonymize -X POST -d '{"Replace":{"PatientName":"hello","0010-0020":"world"},"Keep":["StudyDescription", "SeriesDescription"],"KeepPrivateTags": null,"Remove":["Modality"]}' > Anonymized.dcm
 
@@ -191,7 +191,7 @@ namespace Orthanc
 
 
   static void AnonymizeOrModifyInstance(DicomModification& modification,
-                                        RestApi::PostCall& call)
+                                        RestApiPostCall& call)
   {
     std::string id = call.GetUriComponent("id", "");
 
@@ -207,7 +207,7 @@ namespace Orthanc
                                         MetadataType metadataType,
                                         ChangeType changeType,
                                         ResourceType resourceType,
-                                        RestApi::PostCall& call)
+                                        RestApiPostCall& call)
   {
     bool isFirst = true;
     Json::Value result(Json::objectValue);
@@ -333,7 +333,7 @@ namespace Orthanc
 
 
 
-  static void ModifyInstance(RestApi::PostCall& call)
+  static void ModifyInstance(RestApiPostCall& call)
   {
     DicomModification modification;
 
@@ -361,7 +361,7 @@ namespace Orthanc
   }
 
 
-  static void AnonymizeInstance(RestApi::PostCall& call)
+  static void AnonymizeInstance(RestApiPostCall& call)
   {
     DicomModification modification;
 
@@ -374,7 +374,7 @@ namespace Orthanc
 
   template <enum ChangeType changeType,
             enum ResourceType resourceType>
-  static void ModifyResource(RestApi::PostCall& call)
+  static void ModifyResource(RestApiPostCall& call)
   {
     DicomModification modification;
 
@@ -389,7 +389,7 @@ namespace Orthanc
 
   template <enum ChangeType changeType,
             enum ResourceType resourceType>
-  static void AnonymizeResource(RestApi::PostCall& call)
+  static void AnonymizeResource(RestApiPostCall& call)
   {
     DicomModification modification;
 
@@ -401,7 +401,7 @@ namespace Orthanc
   }
 
 
-  static void Create(RestApi::PostCall& call)
+  static void Create(RestApiPostCall& call)
   {
     // curl http://localhost:8042/tools/create-dicom -X POST -d '{"PatientName":"Hello^World"}'
     // curl http://localhost:8042/tools/create-dicom -X POST -d '{"PatientName":"Hello^World","PixelData":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAAAAAA6mKC9AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gUGDDcB53FulQAAAElJREFUGNNtj0sSAEEEQ1+U+185s1CtmRkblQ9CZldsKHJDk6DLGLJa6chjh0ooQmpjXMM86zPwydGEj6Ed/UGykkEM8X+p3u8/8LcOJIWLGeMAAAAASUVORK5CYII="}'
