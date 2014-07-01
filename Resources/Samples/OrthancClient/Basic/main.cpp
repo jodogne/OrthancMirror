@@ -54,6 +54,15 @@ int main()
           OrthancClient::Series series(study.GetSeries(k));
           std::cout << "    Series: " << series.GetId() << std::endl;
 
+          if (series.Is3DImage())
+          {
+            std::cout << "    This is a 3D image whose voxel size is " 
+                      << series.GetVoxelSizeX() << " x " 
+                      << series.GetVoxelSizeY() << " x " 
+                      << series.GetVoxelSizeZ() << ", and slice thickness is " 
+                      << series.GetSliceThickness() << std::endl;
+          }
+
           for (unsigned int l = 0; l < series.GetInstanceCount(); l++)
           {
             std::cout << "      Instance: " << series.GetInstance(l).GetId() << std::endl;
