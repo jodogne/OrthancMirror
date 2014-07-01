@@ -7,6 +7,7 @@ Pending changes in the mainline
 * Options to limit the number of results for an incoming C-FIND query
 * Support of kFreeBSD
 * Several code refactorings
+* Fix OrthancCppClient::GetVoxelSizeZ()
 
 
 Version 0.7.6 (2014/06/11)
