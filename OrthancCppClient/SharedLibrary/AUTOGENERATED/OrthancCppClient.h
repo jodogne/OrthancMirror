@@ -302,7 +302,15 @@ class Library
     {
       if (handle_ != LAAW_ORTHANC_CLIENT_HANDLE_NULL)
       {
+#if 0
+        /**
+         * Do not explicitly unload the shared library, as it might
+         * interfere with the destruction of static objects declared
+         * inside the library (e.g. this is the case of gflags that is
+         * internally used by googlelog).
+         **/
         LAAW_ORTHANC_CLIENT_CLOSER(handle_);
+#endif
         handle_ = LAAW_ORTHANC_CLIENT_HANDLE_NULL;
       }
     }
