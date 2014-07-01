@@ -21,26 +21,16 @@ include(${ORTHANC_ROOT}/Resources/CMake/GoogleLogConfiguration.cmake)
 find_package(GDCM REQUIRED)
 if (GDCM_FOUND)
   include(${GDCM_USE_FILE})
-  set(GDCM_LIBRARIES 
-    gdcmCommon
-    gdcmDICT
-    gdcmDSED
-    gdcmIOD
-    gdcmjpeg12
-    gdcmjpeg16
-    gdcmjpeg8
-    gdcmMEXD
-    gdcmMSFF
-    )
+  set(GDCM_LIBRARIES gdcmCommon gdcmMSFF)
 else(GDCM_FOUND)
   message(FATAL_ERROR "Cannot find GDCM, did you set GDCM_DIR?")
 endif(GDCM_FOUND)
-
 
 include_directories(
   ${ORTHANC_ROOT}/Plugins/OrthancCPlugin/
   ${ORTHANC_ROOT}/OrthancCppClient/SharedLibrary/Laaw
   )
+
 add_library(GdcmDecoding SHARED
   Plugin.cpp
   OrthancContext.cpp
@@ -58,6 +48,7 @@ add_library(GdcmDecoding SHARED
   ${ORTHANC_ROOT}/Resources/ThirdParty/md5/md5.c
   ${THIRD_PARTY_SOURCES}
   )
+
 target_link_libraries(GdcmDecoding ${GDCM_LIBRARIES})
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
