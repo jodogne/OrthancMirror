@@ -71,13 +71,15 @@ static bool GetOrthancPixelFormat(Orthanc::PixelFormat& format,
            image.GetPixelFormat().GetScalarType() == gdcm::PixelFormat::UINT8)
   {
     format = Orthanc::PixelFormat_RGB24;
+    return true;
   }
   else if (image.GetPixelFormat().GetSamplesPerPixel() == 4 &&
            image.GetPixelFormat().GetScalarType() == gdcm::PixelFormat::UINT8)
   {
     format = Orthanc::PixelFormat_RGBA32;
+    return true;
   }
-
+  
   return false;
 }
 
