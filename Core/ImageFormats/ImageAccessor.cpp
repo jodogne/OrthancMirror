@@ -168,7 +168,7 @@ namespace Orthanc
     pitch_ = pitch;
     buffer_ = const_cast<void*>(buffer);
 
-    assert(GetBytesPerPixel(format_) * width_ <= pitch_);
+    assert(GetBytesPerPixel() * width_ <= pitch_);
   }
 
 
@@ -185,7 +185,7 @@ namespace Orthanc
     pitch_ = pitch;
     buffer_ = buffer;
 
-    assert(GetBytesPerPixel(format_) * width_ <= pitch_);
+    assert(GetBytesPerPixel() * width_ <= pitch_);
   }
 
 
