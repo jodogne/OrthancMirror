@@ -795,6 +795,29 @@ this_->Reload();
         }
       }
 
+      LAAW_EXPORT_DLL_API char* LAAW_CALL_CONVENTION LAAW_EXTERNC_2be452e7af5bf7dfd8c5021842674497(void* thisObject, float* result)
+      {
+        try
+        {
+          #ifdef LAAW_EXTERNC_START_FUNCTION
+          LAAW_EXTERNC_START_FUNCTION;
+          #endif
+
+          OrthancClient::Series* this_ = static_cast<OrthancClient::Series*>(thisObject);
+*result = this_->GetSliceThickness();
+
+          return NULL;
+        }
+        catch (::Laaw::LaawException& e)
+        {
+          return LAAW_EXTERNC_CopyString(e.What());
+        }
+        catch (...)
+        {
+          return LAAW_EXTERNC_CopyString("...");
+        }
+      }
+
       LAAW_EXPORT_DLL_API char* LAAW_CALL_CONVENTION LAAW_EXTERNC_4dcc7a0fd025efba251ac6e9b701c2c5(void* thisObject, void* arg0, int32_t arg1, int64_t arg2, int64_t arg3)
       {
         try
