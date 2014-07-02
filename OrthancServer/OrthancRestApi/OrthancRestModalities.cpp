@@ -65,7 +65,7 @@ namespace Orthanc
     return true;
   }
 
-  static void DicomFindPatient(RestApi::PostCall& call)
+  static void DicomFindPatient(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -87,7 +87,7 @@ namespace Orthanc
     call.GetOutput().AnswerJson(result);
   }
 
-  static void DicomFindStudy(RestApi::PostCall& call)
+  static void DicomFindStudy(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -115,7 +115,7 @@ namespace Orthanc
     call.GetOutput().AnswerJson(result);
   }
 
-  static void DicomFindSeries(RestApi::PostCall& call)
+  static void DicomFindSeries(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -144,7 +144,7 @@ namespace Orthanc
     call.GetOutput().AnswerJson(result);
   }
 
-  static void DicomFindInstance(RestApi::PostCall& call)
+  static void DicomFindInstance(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -174,7 +174,7 @@ namespace Orthanc
     call.GetOutput().AnswerJson(result);
   }
 
-  static void DicomFind(RestApi::PostCall& call)
+  static void DicomFind(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -248,7 +248,7 @@ namespace Orthanc
 
   static bool GetInstancesToExport(std::list<std::string>& instances,
                                    const std::string& remote,
-                                   RestApi::PostCall& call)
+                                   RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -308,7 +308,7 @@ namespace Orthanc
   }
 
 
-  static void DicomStore(RestApi::PostCall& call)
+  static void DicomStore(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -345,7 +345,7 @@ namespace Orthanc
     return peers.find(id) != peers.end();
   }
 
-  static void ListPeers(RestApi::GetCall& call)
+  static void ListPeers(RestApiGetCall& call)
   {
     OrthancRestApi::SetOfStrings peers;
     Configuration::GetListOfOrthancPeers(peers);
@@ -360,7 +360,7 @@ namespace Orthanc
     call.GetOutput().AnswerJson(result);
   }
 
-  static void ListPeerOperations(RestApi::GetCall& call)
+  static void ListPeerOperations(RestApiGetCall& call)
   {
     OrthancRestApi::SetOfStrings peers;
     Configuration::GetListOfOrthancPeers(peers);
@@ -374,7 +374,7 @@ namespace Orthanc
     }
   }
 
-  static void PeerStore(RestApi::PostCall& call)
+  static void PeerStore(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -429,7 +429,7 @@ namespace Orthanc
     return modalities.find(id) != modalities.end();
   }
 
-  static void ListModalities(RestApi::GetCall& call)
+  static void ListModalities(RestApiGetCall& call)
   {
     OrthancRestApi::SetOfStrings modalities;
     Configuration::GetListOfDicomModalities(modalities);
@@ -445,7 +445,7 @@ namespace Orthanc
   }
 
 
-  static void ListModalityOperations(RestApi::GetCall& call)
+  static void ListModalityOperations(RestApiGetCall& call)
   {
     OrthancRestApi::SetOfStrings modalities;
     Configuration::GetListOfDicomModalities(modalities);
@@ -465,7 +465,7 @@ namespace Orthanc
   }
 
 
-  static void UpdateModality(RestApi::PutCall& call)
+  static void UpdateModality(RestApiPutCall& call)
   {
     Json::Value json;
     Json::Reader reader;
@@ -479,14 +479,14 @@ namespace Orthanc
   }
 
 
-  static void DeleteModality(RestApi::DeleteCall& call)
+  static void DeleteModality(RestApiDeleteCall& call)
   {
     Configuration::RemoveModality(call.GetUriComponent("id", ""));
     call.GetOutput().AnswerBuffer("", "text/plain");
   }
 
 
-  static void UpdatePeer(RestApi::PutCall& call)
+  static void UpdatePeer(RestApiPutCall& call)
   {
     Json::Value json;
     Json::Reader reader;
@@ -500,7 +500,7 @@ namespace Orthanc
   }
 
 
-  static void DeletePeer(RestApi::DeleteCall& call)
+  static void DeletePeer(RestApiDeleteCall& call)
   {
     Configuration::RemovePeer(call.GetUriComponent("id", ""));
     call.GetOutput().AnswerBuffer("", "text/plain");

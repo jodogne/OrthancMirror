@@ -30,51 +30,20 @@
  **/
 
 
-#pragma once
-
-#include "../Toolbox.h"
-#include "../HttpServer/HttpHandler.h"
-
-#include <map>
+#include "RestApiGetCall.h"
 
 namespace Orthanc
 {
-  class RestApiPath
+  bool RestApiGetCall::ParseJsonRequest(Json::Value& result) const
   {
-  private:
-    UriComponents uri_;
-    bool hasTrailing_;
-    std::vector<std::string> components_;
+    result.clear();
 
-  public:
-    RestApiPath(const std::string& uri);
-
-    // This version is slower
-    bool Match(HttpHandler::Arguments& components,
-               UriComponents& trailing,
-               const std::string& uriRaw) const;
-
-    bool Match(HttpHandler::Arguments& components,
-               UriComponents& trailing,
-               const UriComponents& uri) const;
-
-    bool Match(const UriComponents& uri) const;
-
-    size_t GetLevelCount() const
+    for (HttpHandler::Arguments::const_iterator 
+           it = getArguments_.begin(); it != getArguments_.end(); ++it)
     {
-      return uri_.size();
+      result[it->first] = it->second;
     }
 
-    bool IsWildcardLevel(size_t level) const;
-
-    bool IsUniversalTrailing() const
-    {
-      return hasTrailing_;
-    }
-
-    const std::string& GetWildcardName(size_t level) const;
-
-    const std::string& GetLevelName(size_t level) const;
-
-  };
+    return true;
+  }
 }

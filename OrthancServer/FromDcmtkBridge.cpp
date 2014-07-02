@@ -61,6 +61,7 @@
 #include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcuid.h>
 #include <dcmtk/dcmdata/dcmetinf.h>
+#include <dcmtk/dcmdata/dcdeftag.h>
 
 #include <dcmtk/dcmdata/dcvrae.h>
 #include <dcmtk/dcmdata/dcvras.h>
@@ -115,8 +116,44 @@ namespace Orthanc
             GetCharValue(c[3]));
   }
 
+
+  Encoding FromDcmtkBridge::DetectEncoding(DcmDataset& dataset)
+  {
+    // By default, assume UTF-8 encoding (as in dcm2xml.cc)
+    Encoding encoding = Encoding_Utf8;
+
+    OFString tmp;
+    if (dataset.findAndGetOFString(DCM_SpecificCharacterSet, tmp).good())
+    {
+      std::string characterSet = Toolbox::StripSpaces(std::string(tmp.c_str()));
+
+      // TODO Add more encodings
+
+      if (characterSet == "ISO_IR 6" ||
+          characterSet == "ISO_IR 192")
+      {
+        encoding = Encoding_Utf8;
+      }
+      else if (characterSet == "ISO_IR 100")
+      {
+        encoding = Encoding_Latin1;
+      }
+      else if (!characterSet.empty())
+      {
+        LOG(WARNING) << "Value of Specific Character Set (0008,0005) is not supported: " << characterSet;
+        // Fallback to ASCII (remove all special characters)
+        encoding = Encoding_Ascii;
+      }
+    }
+
+    return encoding;
+  }
+
+
   void FromDcmtkBridge::Convert(DicomMap& target, DcmDataset& dataset)
   {
+    Encoding encoding = DetectEncoding(dataset);
+
     target.Clear();
     for (unsigned long i = 0; i < dataset.card(); i++)
     {
@@ -125,9 +162,15 @@ namespace Orthanc
       {
         target.SetValue(element->getTag().getGTag(),
                         element->getTag().getETag(),
-                        ConvertLeafElement(*element));
+                        ConvertLeafElement(*element, encoding));
       }
     }
+  }
+
+
+  DicomTag FromDcmtkBridge::Convert(const DcmTag& tag)
+  {
+    return DicomTag(tag.getGTag(), tag.getETag());
   }
 
 
@@ -137,7 +180,22 @@ namespace Orthanc
   }
 
 
-  DicomValue* FromDcmtkBridge::ConvertLeafElement(DcmElement& element)
+  bool FromDcmtkBridge::IsPrivateTag(DcmTag& tag)
+  {
+    return (tag.getPrivateCreator() != NULL ||
+            !strcmp("PrivateCreator", tag.getTagName()));  // TODO - This may change with future versions of DCMTK
+  }
+
+
+  bool FromDcmtkBridge::IsPrivateTag(const DicomTag& tag)
+  {
+    DcmTag tmp(tag.GetGroup(), tag.GetElement());
+    return IsPrivateTag(tmp);
+  }
+
+
+  DicomValue* FromDcmtkBridge::ConvertLeafElement(DcmElement& element,
+                                                  Encoding encoding)
   {
     if (!element.isLeaf())
     {
@@ -151,7 +209,7 @@ namespace Orthanc
           c != NULL)
       {
         std::string s(c);
-        std::string utf8 = Toolbox::ConvertToUtf8(s, Encoding_Latin1); // TODO Parameter?
+        std::string utf8 = Toolbox::ConvertToUtf8(s, encoding);
         return new DicomString(utf8);
       }
       else
@@ -313,25 +371,28 @@ namespace Orthanc
 
   static void StoreElement(Json::Value& target,
                            DcmElement& element,
-                           unsigned int maxStringLength);
+                           unsigned int maxStringLength,
+                           Encoding encoding);
 
   static void StoreItem(Json::Value& target,
                         DcmItem& item,
-                        unsigned int maxStringLength)
+                        unsigned int maxStringLength,
+                        Encoding encoding)
   {
     target = Json::Value(Json::objectValue);
 
     for (unsigned long i = 0; i < item.card(); i++)
     {
       DcmElement* element = item.getElement(i);
-      StoreElement(target, *element, maxStringLength);
+      StoreElement(target, *element, maxStringLength, encoding);
     }
   }
 
 
   static void StoreElement(Json::Value& target,
                            DcmElement& element,
-                           unsigned int maxStringLength)
+                           unsigned int maxStringLength,
+                           Encoding encoding)
   {
     assert(target.type() == Json::objectValue);
 
@@ -356,7 +417,7 @@ namespace Orthanc
         value["PrivateCreator"] = tagbis.getPrivateCreator();
       }
 
-      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element));
+      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element, encoding));
       if (v->IsNull())
       {
         value["Type"] = "Null";
@@ -393,7 +454,7 @@ namespace Orthanc
       {
         DcmItem* child = sequence.getItem(i);
         Json::Value& v = children.append(Json::objectValue);
-        StoreItem(v, *child, maxStringLength);
+        StoreItem(v, *child, maxStringLength, encoding);
       }  
 
       target[formattedTag]["Name"] = tagName;
@@ -407,7 +468,7 @@ namespace Orthanc
                                DcmDataset& dataset,
                                unsigned int maxStringLength)
   {
-    StoreItem(root, dataset, maxStringLength);
+    StoreItem(root, dataset, maxStringLength, DetectEncoding(dataset));
   }
 
 
@@ -475,7 +536,7 @@ namespace Orthanc
         isxdigit(name[1]) &&
         isxdigit(name[2]) &&
         isxdigit(name[3]) &&
-        name[4] == '-' &&
+        (name[4] == '-' || name[4] == ',') &&
         isxdigit(name[5]) &&
         isxdigit(name[6]) &&
         isxdigit(name[7]) &&

@@ -96,12 +96,18 @@ namespace Orthanc
   {
     removals_.erase(tag);
     replacements_.erase(tag);
+
+    if (FromDcmtkBridge::IsPrivateTag(tag))
+    {
+      privateTagsToKeep_.insert(tag);
+    }
   }
 
   void DicomModification::Remove(const DicomTag& tag)
   {
     removals_.insert(tag);
     replacements_.erase(tag);
+    privateTagsToKeep_.erase(tag);
   }
 
   bool DicomModification::IsRemoved(const DicomTag& tag) const
@@ -113,6 +119,7 @@ namespace Orthanc
                                   const std::string& value)
   {
     removals_.erase(tag);
+    privateTagsToKeep_.erase(tag);
     replacements_[tag] = value;
   }
 
@@ -153,6 +160,7 @@ namespace Orthanc
     removePrivateTags_ = true;
     level_ = ResourceType_Patient;
     uidMap_.clear();
+    privateTagsToKeep_.clear();
 
     // This is Table E.1-1 from PS 3.15-2008 - DICOM Part 15: Security and System Management Profiles
     removals_.insert(DicomTag(0x0008, 0x0014));  // Instance Creator UID
@@ -261,11 +269,11 @@ namespace Orthanc
     // (1) Remove the private tags, if need be
     if (removePrivateTags_)
     {
-      toModify.RemovePrivateTags();
+      toModify.RemovePrivateTags(privateTagsToKeep_);
     }
 
     // (2) Remove the tags specified by the user
-    for (Removals::const_iterator it = removals_.begin(); 
+    for (SetOfTags::const_iterator it = removals_.begin(); 
          it != removals_.end(); ++it)
     {
       toModify.Remove(*it);
