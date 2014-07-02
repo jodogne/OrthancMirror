@@ -174,7 +174,8 @@ namespace Orthanc
         ParseListOfTags(target, request["Keep"], TagOperation_Keep);
       }
 
-      if (target.GetReplacement(DICOM_TAG_PATIENT_NAME) == patientName)
+      if (target.IsReplaced(DICOM_TAG_PATIENT_NAME) &&
+          target.GetReplacement(DICOM_TAG_PATIENT_NAME) == patientName)
       {
         // Overwrite the random Patient's Name by one that is more
         // user-friendly (provided none was specified by the user)

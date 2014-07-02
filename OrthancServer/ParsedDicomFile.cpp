@@ -756,24 +756,42 @@ namespace Orthanc
 
 
 
-  void ParsedDicomFile::RemovePrivateTags()
+  void ParsedDicomFile::RemovePrivateTagsInternal(const std::set<DicomTag>* toKeep)
   {
-    typedef std::list<DcmElement*> Tags;
+    DcmDataset& dataset = *pimpl_->file_->getDataset();
 
+    // Loop over the dataset to detect its private tags
+    typedef std::list<DcmElement*> Tags;
     Tags privateTags;
 
-    DcmDataset& dataset = *pimpl_->file_->getDataset();
     for (unsigned long i = 0; i < dataset.card(); i++)
     {
       DcmElement* element = dataset.getElement(i);
       DcmTag tag(element->getTag());
-      if (!strcmp("PrivateCreator", tag.getTagName()) ||  // TODO - This may change with future versions of DCMTK
-          tag.getPrivateCreator() != NULL)
+
+      // Is this a private tag?
+      if (FromDcmtkBridge::IsPrivateTag(tag))
       {
-        privateTags.push_back(element);
+        bool remove = true;
+
+        // Check whether this private tag is to be kept
+        if (toKeep != NULL)
+        {
+          DicomTag tmp = FromDcmtkBridge::Convert(tag);
+          if (toKeep->find(tmp) != toKeep->end())
+          {
+            remove = false;  // Keep it
+          }
+        }
+            
+        if (remove)
+        {
+          privateTags.push_back(element);
+        }
       }
     }
 
+    // Loop over the detected private tags to remove them
     for (Tags::iterator it = privateTags.begin(); 
          it != privateTags.end(); ++it)
     {
