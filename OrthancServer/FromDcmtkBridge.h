@@ -48,7 +48,13 @@ namespace Orthanc
 
     static void Convert(DicomMap& target, DcmDataset& dataset);
 
+    static DicomTag Convert(const DcmTag& tag);
+
     static DicomTag GetTag(const DcmElement& element);
+
+    static bool IsPrivateTag(DcmTag& tag);
+
+    static bool IsPrivateTag(const DicomTag& tag);
 
     static DicomValue* ConvertLeafElement(DcmElement& element,
                                           Encoding encoding);

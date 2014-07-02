@@ -46,15 +46,16 @@ namespace Orthanc
      **/
 
   private:
-    typedef std::set<DicomTag> Removals;
+    typedef std::set<DicomTag> SetOfTags;
     typedef std::map<DicomTag, std::string> Replacements;
     typedef std::map< std::pair<ResourceType, std::string>, std::string>  UidMap;
 
-    Removals removals_;
+    SetOfTags removals_;
     Replacements replacements_;
     bool removePrivateTags_;
     ResourceType level_;
     UidMap uidMap_;
+    SetOfTags privateTagsToKeep_;
 
     void MapDicomIdentifier(ParsedDicomFile& dicom,
                             ResourceType level);
