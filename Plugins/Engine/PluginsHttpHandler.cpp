@@ -287,6 +287,16 @@ namespace Orthanc
   }
 
 
+  void PluginsHttpHandler::Redirect(const void* parameters)
+  {
+    const _OrthancPluginRedirect& p = 
+      *reinterpret_cast<const _OrthancPluginRedirect*>(parameters);
+
+    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
+    translatedOutput->Redirect(p.redirection);
+  }
+
+
   void PluginsHttpHandler::CompressAndAnswerPngImage(const void* parameters)
   {
     const _OrthancPluginCompressAndAnswerPngImage& p = 
@@ -467,6 +477,10 @@ namespace Orthanc
 
       case _OrthancPluginService_RestApiPut:
         RestApiPostPut(false, parameters);
+        return true;
+
+      case _OrthancPluginService_Redirect:
+        Redirect(parameters);
         return true;
 
       default:
