@@ -43,12 +43,12 @@ namespace Orthanc
 {
   // System information -------------------------------------------------------
 
-  static void ServeRoot(RestApi::GetCall& call)
+  static void ServeRoot(RestApiGetCall& call)
   {
     call.GetOutput().Redirect("app/explorer.html");
   }
  
-  static void GetSystemInformation(RestApi::GetCall& call)
+  static void GetSystemInformation(RestApiGetCall& call)
   {
     Json::Value result = Json::objectValue;
 
@@ -58,14 +58,14 @@ namespace Orthanc
     call.GetOutput().AnswerJson(result);
   }
 
-  static void GetStatistics(RestApi::GetCall& call)
+  static void GetStatistics(RestApiGetCall& call)
   {
     Json::Value result = Json::objectValue;
     OrthancRestApi::GetIndex(call).ComputeStatistics(result);
     call.GetOutput().AnswerJson(result);
   }
 
-  static void GenerateUid(RestApi::GetCall& call)
+  static void GenerateUid(RestApiGetCall& call)
   {
     std::string level = call.GetArgument("level", "");
     if (level == "patient")
@@ -86,7 +86,7 @@ namespace Orthanc
     }
   }
 
-  static void ExecuteScript(RestApi::PostCall& call)
+  static void ExecuteScript(RestApiPostCall& call)
   {
     std::string result;
     ServerContext& context = OrthancRestApi::GetContext(call);
@@ -94,7 +94,7 @@ namespace Orthanc
     call.GetOutput().AnswerBuffer(result, "text/plain");
   }
 
-  static void GetNowIsoString(RestApi::GetCall& call)
+  static void GetNowIsoString(RestApiGetCall& call)
   {
     call.GetOutput().AnswerBuffer(Toolbox::GetNowIsoString(), "text/plain");
   }

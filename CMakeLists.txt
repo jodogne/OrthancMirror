@@ -84,6 +84,9 @@ set(ORTHANC_CORE_SOURCES
   Core/HttpServer/MongooseServer.cpp
   Core/HttpServer/HttpFileSender.cpp
   Core/HttpServer/FilesystemHttpSender.cpp
+  Core/RestApi/RestApiCall.cpp
+  Core/RestApi/RestApiGetCall.cpp
+  Core/RestApi/RestApiHierarchy.cpp
   Core/RestApi/RestApiPath.cpp
   Core/RestApi/RestApiOutput.cpp
   Core/RestApi/RestApi.cpp
@@ -157,22 +160,22 @@ set(ORTHANC_SERVER_SOURCES
 
 
 set(ORTHANC_UNIT_TESTS_SOURCES
-  UnitTestsSources/DicomMap.cpp
-  UnitTestsSources/FileStorage.cpp
-  UnitTestsSources/FromDcmtk.cpp
-  UnitTestsSources/MemoryCache.cpp
-  UnitTestsSources/Png.cpp
-  UnitTestsSources/RestApi.cpp
-  UnitTestsSources/SQLite.cpp
-  UnitTestsSources/SQLiteChromium.cpp
+  UnitTestsSources/DicomMapTests.cpp
+  UnitTestsSources/FileStorageTests.cpp
+  UnitTestsSources/FromDcmtkTests.cpp
+  UnitTestsSources/MemoryCacheTests.cpp
+  UnitTestsSources/PngTests.cpp
+  UnitTestsSources/RestApiTests.cpp
+  UnitTestsSources/SQLiteTests.cpp
+  UnitTestsSources/SQLiteChromiumTests.cpp
   UnitTestsSources/ServerIndexTests.cpp
-  UnitTestsSources/Versions.cpp
-  UnitTestsSources/Zip.cpp
-  UnitTestsSources/Lua.cpp
-  UnitTestsSources/MultiThreading.cpp
+  UnitTestsSources/VersionsTests.cpp
+  UnitTestsSources/ZipTests.cpp
+  UnitTestsSources/LuaTests.cpp
+  UnitTestsSources/MultiThreadingTests.cpp
   UnitTestsSources/UnitTestsMain.cpp
   UnitTestsSources/ImageProcessingTests.cpp
-  UnitTestsSources/JpegLossless.cpp
+  UnitTestsSources/JpegLosslessTests.cpp
   )
 
 

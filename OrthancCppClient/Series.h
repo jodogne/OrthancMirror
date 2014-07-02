@@ -62,11 +62,11 @@ namespace OrthancClient
     Orthanc::ArrayFilledByThreads  instances_;
     Status3DImage status_;
 
-    bool isVoxelSizeRead_;
     float voxelSizeX_;
     float voxelSizeY_;
     float voxelSizeZ_;
-  
+    float sliceThickness_;
+
     void Check3DImage();
 
     bool Is3DImageInternal();
@@ -85,8 +85,6 @@ namespace OrthancClient
                              size_t lineStride,
                              size_t stackStride,
                              Orthanc::ThreadedCommandProcessor::IListener* listener);
-
-    void LoadVoxelSize();  
 
   public:
     /**
@@ -188,6 +186,13 @@ namespace OrthancClient
      * {returns}{The voxel size.}
      **/
     float GetVoxelSizeZ();
+
+    /**
+     * {summary}{Get the slice thickness.}
+     * {description}{Get the slice thickness. This call is only valid if this series corresponds to a 3D image.}
+     * {returns}{The slice thickness.}
+     **/
+    float GetSliceThickness();
 
     LAAW_API_INTERNAL void Load3DImage(void* target,
                                        Orthanc::PixelFormat format,

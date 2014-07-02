@@ -33,8 +33,10 @@
 #pragma once
 
 #include <string>
+#include <set>
 #include <stdint.h>
 
+#include "../Enumerations.h"
 
 namespace Orthanc
 {
@@ -81,6 +83,9 @@ namespace Orthanc
     std::string Format() const;
 
     friend std::ostream& operator<< (std::ostream& o, const DicomTag& tag);
+
+    static void GetTagsForModule(std::set<DicomTag>& target,
+                                 ResourceType module);
   };
 
   // Aliases for the most useful tags
