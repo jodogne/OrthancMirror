@@ -54,6 +54,8 @@ namespace Orthanc
 
     void AnswerBuffer(const void* parameters);
 
+    void Redirect(const void* parameters);
+
     void CompressAndAnswerPngImage(const void* parameters);
 
     void GetDicomForInstance(const void* parameters);

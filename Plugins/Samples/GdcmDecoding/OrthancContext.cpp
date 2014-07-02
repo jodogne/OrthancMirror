@@ -156,3 +156,12 @@ void OrthancContext::CompressAndAnswerPngImage(OrthancPluginRestOutput* output,
   OrthancPluginCompressAndAnswerPngImage(context_, output, format, accessor.GetWidth(),
                                          accessor.GetHeight(), accessor.GetPitch(), accessor.GetConstBuffer());
 }
+
+
+
+void OrthancContext::Redirect(OrthancPluginRestOutput* output,
+                              const std::string& s)
+{
+  Check();
+  OrthancPluginRedirect(context_, output, s.c_str());
+}

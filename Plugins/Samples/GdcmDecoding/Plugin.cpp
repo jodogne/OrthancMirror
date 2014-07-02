@@ -35,6 +35,13 @@
 
 #include <gdcmReader.h>
 #include <gdcmImageReader.h>
+#include <gdcmImageChangePlanarConfiguration.h>
+
+
+static void AnswerUnsupportedImage(OrthancPluginRestOutput* output)
+{
+  OrthancContext::GetInstance().Redirect(output, "/app/images/unsupported.png");
+}
 
 
 static bool GetOrthancPixelFormat(Orthanc::PixelFormat& format,
@@ -105,10 +112,12 @@ ORTHANC_PLUGINS_API int32_t DecodeImage(OrthancPluginRestOutput* output,
   if (!imageReader.Read())
   {
     OrthancContext::GetInstance().LogError("GDCM cannot extract an image from this DICOM instance");
-    return -1;  // Error
+    AnswerUnsupportedImage(output);
+    return 0;
   }
 
   gdcm::Image& image = imageReader.GetImage();
+
 
   // Log information about the decoded image
   char tmp[1024];
@@ -116,12 +125,26 @@ ORTHANC_PLUGINS_API int32_t DecodeImage(OrthancPluginRestOutput* output,
           image.GetPixelFormat().GetScalarTypeAsString(), image.GetPixelFormat().GetSamplesPerPixel());
   OrthancContext::GetInstance().LogWarning(tmp);
 
+
+  // Convert planar configuration
+  gdcm::ImageChangePlanarConfiguration planar;
+  if (image.GetPlanarConfiguration() != 0 && 
+      image.GetPixelFormat().GetSamplesPerPixel() != 1)
+  {
+    OrthancContext::GetInstance().LogWarning("Converting planar configuration to interleaved");
+    planar.SetInput(imageReader.GetImage());
+    planar.Change();
+    image = planar.GetOutput();
+  }
+
+
   // Create a read-only accessor to the bitmap decoded by GDCM
   Orthanc::PixelFormat format;
   if (!GetOrthancPixelFormat(format, image))
   {
     OrthancContext::GetInstance().LogError("This sample plugin does not support this image format");
-    return -1;  // Error
+    AnswerUnsupportedImage(output);
+    return 0;
   }
 
   Orthanc::ImageAccessor decodedImage;
@@ -166,27 +189,38 @@ ORTHANC_PLUGINS_API int32_t DecodeImage(OrthancPluginRestOutput* output,
       Orthanc::ImageProcessing::ShiftScale(decodedImage, offset, scaling);
     }
   }
-  else if (outputFormat == "image-uint8")
-  {
-    converted.SetFormat(Orthanc::PixelFormat_Grayscale8);
-  }
-  else if (outputFormat == "image-uint16")
-  {
-    converted.SetFormat(Orthanc::PixelFormat_Grayscale16);
-  }
-  else if (outputFormat == "image-int16")
-  {
-    converted.SetFormat(Orthanc::PixelFormat_SignedGrayscale16);
-  }
   else
   {
-    OrthancContext::GetInstance().LogError("Unknown output format: " + outputFormat);
-    return -1;
+    if (format == Orthanc::PixelFormat_RGB24 ||
+        format == Orthanc::PixelFormat_RGBA32)
+    {
+      // Do not convert color images to grayscale values (this is Orthanc convention)
+      AnswerUnsupportedImage(output);
+      return 0;
+    }
+
+    if (outputFormat == "image-uint8")
+    {
+      converted.SetFormat(Orthanc::PixelFormat_Grayscale8);
+    }
+    else if (outputFormat == "image-uint16")
+    {
+      converted.SetFormat(Orthanc::PixelFormat_Grayscale16);
+    }
+    else if (outputFormat == "image-int16")
+    {
+      converted.SetFormat(Orthanc::PixelFormat_SignedGrayscale16);
+    }
+    else
+    {
+      OrthancContext::GetInstance().LogError("Unknown output format: " + outputFormat);
+      AnswerUnsupportedImage(output);
+      return 0;
+    }
   }
 
   Orthanc::ImageAccessor convertedAccessor(converted.GetAccessor());
   Orthanc::ImageProcessing::Convert(convertedAccessor, decodedImage);
-
 
   // Compress the converted image as a PNG file
   OrthancContext::GetInstance().CompressAndAnswerPngImage(output, convertedAccessor);

@@ -213,6 +213,7 @@ extern "C"
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
     _OrthancPluginService_CompressAndAnswerPngImage = 2001,
+    _OrthancPluginService_Redirect = 2002,
 
     /* Access to the Orthanc database and API */
     _OrthancPluginService_GetDicomForInstance = 3000,
@@ -661,6 +662,34 @@ extern "C"
     params.body = body;
     params.bodySize = bodySize;
     return context->InvokeService(context, _OrthancPluginService_RestApiPut, &params);
+  }
+
+
+  typedef struct
+  {
+    OrthancPluginRestOutput* output;
+    const char*              redirection;
+  } _OrthancPluginRedirect;
+
+  /**
+   * @brief Redirect a GET request.
+   *
+   * This function answers to a REST request by redirecting the user
+   * to another URI using HTTP status 301.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param output The HTTP connection to the client application.
+   * @param redirection Where to redirect.
+   **/
+  ORTHANC_PLUGIN_INLINE void OrthancPluginRedirect(
+    OrthancPluginContext*    context,
+    OrthancPluginRestOutput* output,
+    const char*              redirection)
+  {
+    _OrthancPluginRedirect params;
+    params.output = output;
+    params.redirection = redirection;
+    context->InvokeService(context, _OrthancPluginService_Redirect, &params);
   }
 
 

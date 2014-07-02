@@ -81,4 +81,7 @@ public:
 
   void CompressAndAnswerPngImage(OrthancPluginRestOutput* output,
                                  const Orthanc::ImageAccessor& accessor);
+
+  void Redirect(OrthancPluginRestOutput* output,
+                const std::string& s);
 };
