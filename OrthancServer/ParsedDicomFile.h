@@ -51,6 +51,8 @@ namespace Orthanc
     void Setup(const char* content,
                size_t size);
 
+    void RemovePrivateTagsInternal(const std::set<DicomTag>* toKeep);
+
   public:
     ParsedDicomFile();  // Create a minimal DICOM instance
 
@@ -79,7 +81,15 @@ namespace Orthanc
                  const std::string& value,
                  DicomReplaceMode mode = DicomReplaceMode_InsertIfAbsent);
 
-    void RemovePrivateTags();
+    void RemovePrivateTags()
+    {
+      RemovePrivateTagsInternal(NULL);
+    }
+
+    void RemovePrivateTags(const std::set<DicomTag>& toKeep)
+    {
+      RemovePrivateTagsInternal(&toKeep);
+    }
 
     bool GetTagValue(std::string& value,
                      const DicomTag& tag);
