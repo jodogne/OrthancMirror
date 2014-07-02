@@ -168,9 +168,29 @@ namespace Orthanc
   }
 
 
+  DicomTag FromDcmtkBridge::Convert(const DcmTag& tag)
+  {
+    return DicomTag(tag.getGTag(), tag.getETag());
+  }
+
+
   DicomTag FromDcmtkBridge::GetTag(const DcmElement& element)
   {
     return DicomTag(element.getGTag(), element.getETag());
+  }
+
+
+  bool FromDcmtkBridge::IsPrivateTag(DcmTag& tag)
+  {
+    return (tag.getPrivateCreator() != NULL ||
+            !strcmp("PrivateCreator", tag.getTagName()));  // TODO - This may change with future versions of DCMTK
+  }
+
+
+  bool FromDcmtkBridge::IsPrivateTag(const DicomTag& tag)
+  {
+    DcmTag tmp(tag.GetGroup(), tag.GetElement());
+    return IsPrivateTag(tmp);
   }
 
 
@@ -516,7 +536,7 @@ namespace Orthanc
         isxdigit(name[1]) &&
         isxdigit(name[2]) &&
         isxdigit(name[3]) &&
-        name[4] == '-' &&
+        (name[4] == '-' || name[4] == ',') &&
         isxdigit(name[5]) &&
         isxdigit(name[6]) &&
         isxdigit(name[7]) &&
