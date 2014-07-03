@@ -93,16 +93,13 @@ namespace Orthanc
   }
 
 
-  bool ServerContext::ApplyReceivedInstanceFilter(const Json::Value& dicomJson,
+  bool ServerContext::ApplyReceivedInstanceFilter(const Json::Value& simplified,
                                                   const std::string& remoteAet)
   {
     LuaContextLocker locker(*this);
 
     if (locker.GetLua().IsExistingFunction(RECEIVED_INSTANCE_FILTER))
     {
-      Json::Value simplified;
-      SimplifyTags(simplified, dicomJson);
-
       LuaFunctionCall call(locker.GetLua(), RECEIVED_INSTANCE_FILTER);
       call.PushJson(simplified);
       call.PushString(remoteAet);
@@ -117,14 +114,37 @@ namespace Orthanc
   }
 
 
+  void ServerContext::ApplyOnStoredInstance(const Json::Value& simplified,
+                                            const std::string& instanceId)
+  {
+    LuaContextLocker locker(*this);
+
+    if (locker.GetLua().IsExistingFunction(ON_STORED_INSTANCE))
+    {
+      LuaFunctionCall call(locker.GetLua(), ON_STORED_INSTANCE);
+      call.PushJson(simplified);
+      call.PushString(instanceId);
+
+      Json::Value result;
+      call.ExecuteToJson(result);
+
+      printf("TODO\n");
+      std::cout << result;
+    }
+  }
+
+
   StoreStatus ServerContext::Store(const char* dicomInstance,
                                    size_t dicomSize,
                                    const DicomMap& dicomSummary,
                                    const Json::Value& dicomJson,
                                    const std::string& remoteAet)
   {
+    Json::Value simplified;
+    SimplifyTags(simplified, dicomJson);
+
     // Test if the instance must be filtered out
-    if (!ApplyReceivedInstanceFilter(dicomJson, remoteAet))
+    if (!ApplyReceivedInstanceFilter(simplified, remoteAet))
     {
       LOG(INFO) << "An incoming instance has been discarded by the filter";
       return StoreStatus_FilteredOut;
@@ -171,6 +191,13 @@ namespace Orthanc
       default:
         // This should never happen
         break;
+    }
+
+    if (status == StoreStatus_Success ||
+        status == StoreStatus_AlreadyStored)
+    {
+      DicomInstanceHasher hasher(dicomSummary);
+      ApplyOnStoredInstance(simplified, hasher.HashInstance());
     }
 
     return status;
