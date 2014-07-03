@@ -34,6 +34,7 @@
 #include "LuaContext.h"
 
 #include <glog/logging.h>
+#include <cassert>
 
 extern "C" 
 {
@@ -111,8 +112,6 @@ namespace Orthanc
   void LuaContext::Execute(std::string* output,
                            const std::string& command)
   {
-    boost::mutex::scoped_lock lock(mutex_);
-
     log_.clear();
     int error = (luaL_loadbuffer(lua_, command.c_str(), command.size(), "line") ||
                  lua_pcall(lua_, 0, 0, 0));
@@ -143,7 +142,6 @@ namespace Orthanc
 
   bool LuaContext::IsExistingFunction(const char* name)
   {
-    boost::mutex::scoped_lock lock(mutex_);
     lua_settop(lua_, 0);
     lua_getglobal(lua_, name);
     return lua_type(lua_, -1) == LUA_TFUNCTION;

@@ -65,6 +65,9 @@ namespace Orthanc
       virtual IDynamicObject* Provide(const std::string& id);
     };
 
+    bool ApplyReceivedInstanceFilter(const Json::Value& dicomJson,
+                                     const std::string& remoteAet);
+
     FileStorage storage_;
     ServerIndex index_;
     CompressedFileStorageAccessor accessor_;
@@ -76,10 +79,11 @@ namespace Orthanc
     ReusableDicomUserConnection scu_;
     ServerScheduler scheduler_;
 
+    boost::mutex luaMutex_;
     LuaContext lua_;
 
   public:
-    class DicomCacheLocker
+    class DicomCacheLocker : public boost::noncopyable
     {
     private:
       ServerContext& that_;
@@ -94,6 +98,28 @@ namespace Orthanc
       ParsedDicomFile& GetDicom()
       {
         return *dicom_;
+      }
+    };
+
+    class LuaContextLocker : public boost::noncopyable
+    {
+    private:
+      ServerContext& that_;
+
+    public:
+      LuaContextLocker(ServerContext& that) : that_(that)
+      {
+        that.luaMutex_.lock();
+      }
+
+      ~LuaContextLocker()
+      {
+        that_.luaMutex_.unlock();
+      }
+
+      LuaContext& GetLua()
+      {
+        return that_.lua_;
       }
     };
 
@@ -152,11 +178,6 @@ namespace Orthanc
                   const std::string& instancePublicId,
                   FileContentType content,
                   bool uncompressIfNeeded = true);
-
-    LuaContext& GetLuaContext()
-    {
-      return lua_;
-    }
 
     void SetStoreMD5ForAttachments(bool storeMD5);
 
