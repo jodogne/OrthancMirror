@@ -345,7 +345,7 @@ static void Tata(ServerScheduler* s, ServerJob* j, bool* done)
 
 TEST(Toto, Toto)
 {
-  ServerScheduler scheduler;
+  ServerScheduler scheduler(10);
 
   ServerJob job;
   ServerFilterInstance& f2 = job.AddFilter(new Tutu(2));

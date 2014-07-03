@@ -67,7 +67,8 @@ namespace Orthanc
     accessor_(storage_),
     compressionEnabled_(false),
     provider_(*this),
-    dicomCache_(provider_, DICOM_CACHE_SIZE)
+    dicomCache_(provider_, DICOM_CACHE_SIZE),
+    scheduler_(Configuration::GetGlobalIntegerParameter("LimitJobs", 10))
   {
     scu_.SetLocalApplicationEntityTitle(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"));
     //scu_.SetMillisecondsBeforeClose(1);  // The connection is always released

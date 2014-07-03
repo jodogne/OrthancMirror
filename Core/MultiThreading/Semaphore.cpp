@@ -30,38 +30,38 @@
  **/
 
 
-#pragma once
+#include "Semaphore.h"
 
-#include "../IDynamicObject.h"
+#include "../OrthancException.h"
 
-#include <stdint.h>
-#include <list>
-#include <boost/thread.hpp>
 
 namespace Orthanc
 {
-  class SharedMessageQueue : public boost::noncopyable
+  Semaphore::Semaphore(unsigned int count) : count_(count)
   {
-  private:
-    typedef std::list<IDynamicObject*>  Queue;
+    if (count == 0)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
 
-    unsigned int maxSize_;
-    Queue queue_;
-    boost::mutex mutex_;
-    boost::condition_variable elementAvailable_;
-    boost::condition_variable emptied_;
+  void Semaphore::Release()
+  {
+    boost::mutex::scoped_lock lock(mutex_);
 
-  public:
-    explicit SharedMessageQueue(unsigned int maxSize = 0);
-    
-    ~SharedMessageQueue();
+    count_++;
+    condition_.notify_one(); 
+  }
 
-    // This transfers the ownership of the message
-    void Enqueue(IDynamicObject* message);
+  void Semaphore::Acquire()
+  {
+    boost::mutex::scoped_lock lock(mutex_);
 
-    // The caller is responsible to delete the dequeud message!
-    IDynamicObject* Dequeue(int32_t millisecondsTimeout);
+    while (count_ == 0)
+    {
+      condition_.wait(lock);
+    }
 
-    bool WaitEmpty(int32_t millisecondsTimeout);
-  };
+    count_++;
+  }
 }
