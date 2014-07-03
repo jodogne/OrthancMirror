@@ -65,8 +65,11 @@ namespace Orthanc
       virtual IDynamicObject* Provide(const std::string& id);
     };
 
-    bool ApplyReceivedInstanceFilter(const Json::Value& dicomJson,
+    bool ApplyReceivedInstanceFilter(const Json::Value& simplified,
                                      const std::string& remoteAet);
+
+    void ApplyOnStoredInstance(const Json::Value& simplified,
+                               const std::string& instanceId);
 
     FileStorage storage_;
     ServerIndex index_;
