@@ -34,6 +34,8 @@
 
 #include "ServerJob.h"
 
+#include "../../Core/MultiThreading/Semaphore.h"
+
 namespace Orthanc
 {
   class ServerScheduler : public ServerFilterInstance::IListener
@@ -60,12 +62,13 @@ namespace Orthanc
     typedef std::map<std::string, JobInfo> Jobs;
 
     boost::mutex mutex_;
-    boost::condition_variable jobFinished_;
+    boost::condition_variable watchedJobFinished_;
     Jobs jobs_;
     SharedMessageQueue queue_;
     bool finish_;
     boost::thread worker_;
     std::map<std::string, JobStatus> watchedJobStatus_;
+    Semaphore availableJob_;
 
     JobInfo& GetJobInfo(const std::string& jobId);
 
@@ -79,7 +82,7 @@ namespace Orthanc
                         bool watched);
 
   public:
-    ServerScheduler();
+    ServerScheduler(unsigned int maxjobs);
 
     ~ServerScheduler();
 

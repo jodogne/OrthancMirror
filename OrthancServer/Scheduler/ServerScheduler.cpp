@@ -98,11 +98,13 @@ namespace Orthanc
       if (info.watched_)
       {
         watchedJobStatus_[jobId] = JobStatus_Success;
-        jobFinished_.notify_all();
+        watchedJobFinished_.notify_all();
       }
 
       LOG(INFO) << "Job successfully finished (" << info.description_ << ")";
       jobs_.erase(jobId);
+
+      availableJob_.Release();
     }
   }
 
@@ -119,11 +121,13 @@ namespace Orthanc
       if (info.watched_)
       {
         watchedJobStatus_[jobId] = JobStatus_Failure;
-        jobFinished_.notify_all();
+        watchedJobFinished_.notify_all();
       }
 
       LOG(ERROR) << "Job has failed (" << info.description_ << ")";
       jobs_.erase(jobId);
+
+      availableJob_.Release();
     }
   }
 
@@ -166,6 +170,8 @@ namespace Orthanc
   void ServerScheduler::SubmitInternal(ServerJob& job,
                                        bool watched)
   {
+    availableJob_.Acquire();
+
     boost::mutex::scoped_lock lock(mutex_);
 
     JobInfo info;
@@ -189,7 +195,7 @@ namespace Orthanc
   }
 
 
-  ServerScheduler::ServerScheduler()
+  ServerScheduler::ServerScheduler(unsigned int maxJobs) : availableJob_(maxJobs)
   {
     finish_ = false;
     worker_ = boost::thread(Worker, this);
@@ -254,7 +260,7 @@ namespace Orthanc
         
       while (watchedJobStatus_[jobId] == JobStatus_Running)
       {
-        jobFinished_.wait(lock);
+        watchedJobFinished_.wait(lock);
       }
 
       status = watchedJobStatus_[jobId];

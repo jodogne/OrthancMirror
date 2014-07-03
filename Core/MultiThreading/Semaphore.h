@@ -32,36 +32,23 @@
 
 #pragma once
 
-#include "../IDynamicObject.h"
-
-#include <stdint.h>
-#include <list>
+#include <boost/noncopyable.hpp>
 #include <boost/thread.hpp>
 
 namespace Orthanc
 {
-  class SharedMessageQueue : public boost::noncopyable
+  class Semaphore : public boost::noncopyable
   {
   private:
-    typedef std::list<IDynamicObject*>  Queue;
-
-    unsigned int maxSize_;
-    Queue queue_;
+    unsigned int count_;
     boost::mutex mutex_;
-    boost::condition_variable elementAvailable_;
-    boost::condition_variable emptied_;
+    boost::condition_variable condition_;
 
   public:
-    explicit SharedMessageQueue(unsigned int maxSize = 0);
-    
-    ~SharedMessageQueue();
+    explicit Semaphore(unsigned int count);
 
-    // This transfers the ownership of the message
-    void Enqueue(IDynamicObject* message);
+    void Release();
 
-    // The caller is responsible to delete the dequeud message!
-    IDynamicObject* Dequeue(int32_t millisecondsTimeout);
-
-    bool WaitEmpty(int32_t millisecondsTimeout);
+    void Acquire();
   };
 }
