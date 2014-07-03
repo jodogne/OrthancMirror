@@ -104,7 +104,7 @@ namespace Orthanc
       SimplifyTags(simplified, dicomJson);
 
       LuaFunctionCall call(locker.GetLua(), RECEIVED_INSTANCE_FILTER);
-      call.PushJSON(simplified);
+      call.PushJson(simplified);
       call.PushString(remoteAet);
 
       if (!call.ExecutePredicate())

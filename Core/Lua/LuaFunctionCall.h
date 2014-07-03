@@ -46,6 +46,8 @@ namespace Orthanc
 
     void CheckAlreadyExecuted();
 
+    void ExecuteInternal(int numOutputs);
+
   public:
     LuaFunctionCall(LuaContext& context,
                     const char* functionName);
@@ -58,10 +60,15 @@ namespace Orthanc
 
     void PushDouble(double value);
 
-    void PushJSON(const Json::Value& value);
+    void PushJson(const Json::Value& value);
 
-    void Execute(int numOutputs = 0);
+    void Execute()
+    {
+      ExecuteInternal(0);
+    }
 
     bool ExecutePredicate();
+
+    void ExecuteToJson(Json::Value& result);                    
   };
 }
