@@ -36,14 +36,12 @@
 
 #include <json/json.h>
 
-
 namespace Orthanc
 {
   class LuaFunctionCall : public boost::noncopyable
   {
   private:
     LuaContext& context_;
-    boost::mutex::scoped_lock lock_;
     bool isExecuted_;
 
     void CheckAlreadyExecuted();

@@ -46,6 +46,7 @@
 #define ENABLE_DICOM_CACHE  1
 
 static const char* RECEIVED_INSTANCE_FILTER = "ReceivedInstanceFilter";
+static const char* ON_STORED_INSTANCE = "OnStoredInstance";
 
 static const size_t DICOM_CACHE_SIZE = 2;
 
@@ -91,6 +92,31 @@ namespace Orthanc
     storage_.Remove(fileUuid);
   }
 
+
+  bool ServerContext::ApplyReceivedInstanceFilter(const Json::Value& dicomJson,
+                                                  const std::string& remoteAet)
+  {
+    LuaContextLocker locker(*this);
+
+    if (locker.GetLua().IsExistingFunction(RECEIVED_INSTANCE_FILTER))
+    {
+      Json::Value simplified;
+      SimplifyTags(simplified, dicomJson);
+
+      LuaFunctionCall call(locker.GetLua(), RECEIVED_INSTANCE_FILTER);
+      call.PushJSON(simplified);
+      call.PushString(remoteAet);
+
+      if (!call.ExecutePredicate())
+      {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+
   StoreStatus ServerContext::Store(const char* dicomInstance,
                                    size_t dicomSize,
                                    const DicomMap& dicomSummary,
@@ -98,20 +124,10 @@ namespace Orthanc
                                    const std::string& remoteAet)
   {
     // Test if the instance must be filtered out
-    if (lua_.IsExistingFunction(RECEIVED_INSTANCE_FILTER))
+    if (!ApplyReceivedInstanceFilter(dicomJson, remoteAet))
     {
-      Json::Value simplified;
-      SimplifyTags(simplified, dicomJson);
-
-      LuaFunctionCall call(lua_, RECEIVED_INSTANCE_FILTER);
-      call.PushJSON(simplified);
-      call.PushString(remoteAet);
-
-      if (!call.ExecutePredicate())
-      {
-        LOG(INFO) << "An incoming instance has been discarded by the filter";
-        return StoreStatus_FilteredOut;
-      }
+      LOG(INFO) << "An incoming instance has been discarded by the filter";
+      return StoreStatus_FilteredOut;
     }
 
     if (compressionEnabled_)

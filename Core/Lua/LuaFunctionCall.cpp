@@ -33,6 +33,8 @@
 #include "../PrecompiledHeaders.h"
 #include "LuaFunctionCall.h"
 
+#include <cassert>
+
 
 namespace Orthanc
 {
@@ -47,7 +49,6 @@ namespace Orthanc
   LuaFunctionCall::LuaFunctionCall(LuaContext& context,
                                    const char* functionName) : 
     context_(context),
-    lock_(context.mutex_),
     isExecuted_(false)
   {
     // Clear the stack to fulfill the invariant

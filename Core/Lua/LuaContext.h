@@ -34,8 +34,6 @@
 
 #include "LuaException.h"
 
-#include <boost/thread.hpp>
-
 extern "C" 
 {
 #include <lua.h>
@@ -43,6 +41,7 @@ extern "C"
 
 #include <EmbeddedResources.h>
 
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
@@ -52,7 +51,6 @@ namespace Orthanc
     friend class LuaFunctionCall;
 
     lua_State *lua_;
-    boost::mutex mutex_;
     std::string log_;
 
     static int PrintToLog(lua_State *L);

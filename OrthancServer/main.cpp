@@ -186,10 +186,12 @@ public:
   {
     static const char* HTTP_FILTER = "IncomingHttpRequestFilter";
 
+    ServerContext::LuaContextLocker locker(context_);
+
     // Test if the instance must be filtered out
-    if (context_.GetLuaContext().IsExistingFunction(HTTP_FILTER))
+    if (locker.GetLua().IsExistingFunction(HTTP_FILTER))
     {
-      LuaFunctionCall call(context_.GetLuaContext(), HTTP_FILTER);
+      LuaFunctionCall call(locker.GetLua(), HTTP_FILTER);
 
       switch (method)
       {
@@ -371,7 +373,9 @@ int main(int argc, char* argv[])
       LOG(WARNING) << "Installing the Lua scripts from: " << path;
       std::string script;
       Toolbox::ReadFile(script, path);
-      context.GetLuaContext().Execute(script);
+
+      ServerContext::LuaContextLocker locker(context);
+      locker.GetLua().Execute(script);
     }
 
 
