@@ -30,69 +30,36 @@
  **/
 
 
-#pragma once
+#include "StoreScuCommand.h"
 
-#include "../../Core/IDynamicObject.h"
-#include "IServerFilter.h"
+#include <glog/logging.h>
 
 namespace Orthanc
 {
-  class ServerFilterInstance : public IDynamicObject
+  StoreScuCommand::StoreScuCommand(ServerContext& context,
+                                 const RemoteModalityParameters& modality) : 
+    context_(context),
+    modality_(modality)
   {
-    friend class ServerScheduler;
+  }
 
-  public:
-    class IListener
+  bool StoreScuCommand::Apply(ListOfStrings& outputs,
+                             const ListOfStrings& inputs)
+  {
+
+    ReusableDicomUserConnection::Locker locker(context_.GetReusableDicomUserConnection(), modality_);
+
+    for (ListOfStrings::const_iterator
+           it = inputs.begin(); it != inputs.end(); ++it)
     {
-    public:
-      virtual ~IListener()
-      {
-      }
+      LOG(INFO) << "Sending resource " << *it << " to modality \"" 
+                << modality_.GetApplicationEntityTitle() << "\"";
 
-      virtual void SignalSuccess(const std::string& jobId) = 0;
-
-      virtual void SignalFailure(const std::string& jobId) = 0;
-    };
-
-  private:
-    typedef IServerFilter::ListOfStrings  ListOfStrings;
-
-    IServerFilter *filter_;
-    std::string jobId_;
-    ListOfStrings inputs_;
-    std::list<ServerFilterInstance*> next_;
-
-    bool Execute(IListener& listener);
-
-  public:
-    ServerFilterInstance(IServerFilter *filter,
-                         const std::string& jobId);
-
-    virtual ~ServerFilterInstance();
-
-    const std::string& GetJobId() const
-    {
-      return jobId_;
+      std::string dicom;
+      context_.ReadFile(dicom, *it, FileContentType_Dicom);
+      locker.GetConnection().Store(dicom);
     }
 
-    void AddInput(const std::string& input)
-    {
-      inputs_.push_back(input);
-    }
-
-    void ConnectNext(ServerFilterInstance& filter)
-    {
-      next_.push_back(&filter);
-    }
-
-    const std::list<ServerFilterInstance*>& GetNextFilters() const
-    {
-      return next_;
-    }
-
-    IServerFilter& GetFilter() const
-    {
-      return *filter_;
-    }
-  };
+    return true;
+  }
 }

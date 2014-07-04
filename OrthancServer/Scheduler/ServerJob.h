@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include "ServerFilterInstance.h"
+#include "ServerCommandInstance.h"
 #include "../../Core/MultiThreading/SharedMessageQueue.h"
 
 namespace Orthanc
@@ -42,7 +42,7 @@ namespace Orthanc
     friend class ServerScheduler;
 
   private:
-    std::list<ServerFilterInstance*> filters_;
+    std::list<ServerCommandInstance*> filters_;
     std::string jobId_;
     bool submitted_;
     std::string description_;
@@ -50,7 +50,7 @@ namespace Orthanc
     void CheckOrdering();
 
     size_t Submit(SharedMessageQueue& target,
-                  ServerFilterInstance::IListener& listener);
+                  ServerCommandInstance::IListener& listener);
 
   public:
     ServerJob();
@@ -72,6 +72,6 @@ namespace Orthanc
       return description_;
     }
 
-    ServerFilterInstance& AddFilter(IServerFilter* filter);
+    ServerCommandInstance& AddCommand(IServerCommand* filter);
   };
 }

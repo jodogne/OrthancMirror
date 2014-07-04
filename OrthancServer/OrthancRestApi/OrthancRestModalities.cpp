@@ -37,7 +37,7 @@
 #include "../../Core/HttpClient.h"
 #include "../FromDcmtkBridge.h"
 #include "../Scheduler/ServerJob.h"
-#include "../Scheduler/StoreScuFilter.h"
+#include "../Scheduler/StoreScuCommand.h"
 
 #include <glog/logging.h>
 
@@ -328,7 +328,7 @@ namespace Orthanc
     for (std::list<std::string>::const_iterator 
            it = instances.begin(); it != instances.end(); ++it)
     {
-      job.AddFilter(new StoreScuFilter(context, p)).AddInput(*it);
+      job.AddCommand(new StoreScuCommand(context, p)).AddInput(*it);
     }
 
     job.SetDescription("Store-SCU from HTTP to modality \"" + remote + "\"");

@@ -30,36 +30,29 @@
  **/
 
 
-#include "StoreScuFilter.h"
+#pragma once
 
-#include <glog/logging.h>
+#include "IServerCommand.h"
+#include "../ServerContext.h"
 
 namespace Orthanc
 {
-  StoreScuFilter::StoreScuFilter(ServerContext& context,
-                                 const RemoteModalityParameters& modality) : 
-    context_(context),
-    modality_(modality)
+  class StoreScuCommand : public IServerCommand
   {
-  }
+  private:
+    ServerContext& context_;
+    RemoteModalityParameters modality_;
 
-  bool StoreScuFilter::Apply(ListOfStrings& outputs,
-                             const ListOfStrings& inputs)
-  {
+  public:
+    StoreScuCommand(ServerContext& context,
+                   const RemoteModalityParameters& modality);
 
-    ReusableDicomUserConnection::Locker locker(context_.GetReusableDicomUserConnection(), modality_);
+    bool Apply(ListOfStrings& outputs,
+               const ListOfStrings& inputs);
 
-    for (ListOfStrings::const_iterator
-           it = inputs.begin(); it != inputs.end(); ++it)
+    bool SendOutputsToSink() const
     {
-      LOG(INFO) << "Sending resource " << *it << " to modality \"" 
-                << modality_.GetApplicationEntityTitle() << "\"";
-
-      std::string dicom;
-      context_.ReadFile(dicom, *it, FileContentType_Dicom);
-      locker.GetConnection().Store(dicom);
+      return false;
     }
-
-    return true;
-  }
+  };
 }
