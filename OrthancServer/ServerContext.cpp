@@ -43,6 +43,12 @@
 #include <EmbeddedResources.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
 
+
+#include "Scheduler/DeleteInstanceCommand.h"
+#include "Scheduler/StoreScuCommand.h"
+
+
+
 #define ENABLE_DICOM_CACHE  1
 
 static const char* RECEIVED_INSTANCE_FILTER = "ReceivedInstanceFilter";
@@ -131,6 +137,20 @@ namespace Orthanc
       printf("TODO\n");
       std::cout << result;
     }
+
+    {
+      // Autorouting test
+      RemoteModalityParameters p = Configuration::GetModalityUsingSymbolicName("sample");
+
+      ServerJob job;
+      ServerCommandInstance& a = job.AddCommand(new StoreScuCommand(*this, p));
+      ServerCommandInstance& b = job.AddCommand(new DeleteInstanceCommand(*this));
+      a.AddInput(instanceId);
+      a.ConnectNext(b);
+
+      job.SetDescription("Autorouting test");
+      scheduler_.Submit(job);
+    }
   }
 
 
@@ -196,8 +216,15 @@ namespace Orthanc
     if (status == StoreStatus_Success ||
         status == StoreStatus_AlreadyStored)
     {
-      DicomInstanceHasher hasher(dicomSummary);
-      ApplyOnStoredInstance(simplified, hasher.HashInstance());
+      try
+      {
+        DicomInstanceHasher hasher(dicomSummary);
+        ApplyOnStoredInstance(simplified, hasher.HashInstance());
+      }
+      catch (OrthancException&)
+      {
+        LOG(ERROR) << "Error when dealing with OnStoredInstance";
+      }
     }
 
     return status;

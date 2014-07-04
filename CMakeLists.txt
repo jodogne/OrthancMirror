@@ -154,6 +154,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/OrthancMoveRequestHandler.cpp
 
   # From "lua-scripting" branch
+  OrthancServer/Scheduler/DeleteInstanceCommand.cpp
   OrthancServer/Scheduler/ServerCommandInstance.cpp
   OrthancServer/Scheduler/ServerJob.cpp
   OrthancServer/Scheduler/ServerScheduler.cpp

@@ -39,7 +39,21 @@ namespace Orthanc
   bool ServerCommandInstance::Execute(IListener& listener)
   {
     ListOfStrings outputs;
-    if (!filter_->Apply(outputs, inputs_))
+
+    bool success = false;
+
+    try
+    {
+      if (filter_->Apply(outputs, inputs_))
+      {
+        success = true;
+      }
+    }
+    catch (OrthancException&)
+    {
+    }
+
+    if (!success)
     {
       listener.SignalFailure(jobId_);
       return true;
