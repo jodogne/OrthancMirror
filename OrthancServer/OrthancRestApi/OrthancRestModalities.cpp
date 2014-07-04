@@ -36,6 +36,8 @@
 #include "../OrthancInitialization.h"
 #include "../../Core/HttpClient.h"
 #include "../FromDcmtkBridge.h"
+#include "../Scheduler/ServerJob.h"
+#include "../Scheduler/StoreScuFilter.h"
 
 #include <glog/logging.h>
 
@@ -321,17 +323,16 @@ namespace Orthanc
     }
 
     RemoteModalityParameters p = Configuration::GetModalityUsingSymbolicName(remote);
-    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), p);
 
+    ServerJob job;
     for (std::list<std::string>::const_iterator 
            it = instances.begin(); it != instances.end(); ++it)
     {
-      LOG(INFO) << "Sending resource " << *it << " to modality \"" << remote << "\"";
-
-      std::string dicom;
-      context.ReadFile(dicom, *it, FileContentType_Dicom);
-      locker.GetConnection().Store(dicom);
+      job.AddFilter(new StoreScuFilter(context, p)).AddInput(*it);
     }
+
+    job.SetDescription("Store-SCU from HTTP to modality \"" + remote + "\"");
+    context.GetScheduler().SubmitAndWait(job);
 
     call.GetOutput().AnswerBuffer("{}", "application/json");
   }

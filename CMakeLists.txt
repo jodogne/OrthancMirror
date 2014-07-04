@@ -157,6 +157,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/Scheduler/ServerFilterInstance.cpp
   OrthancServer/Scheduler/ServerJob.cpp
   OrthancServer/Scheduler/ServerScheduler.cpp
+  OrthancServer/Scheduler/StoreScuFilter.cpp
   )
 
 

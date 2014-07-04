@@ -30,26 +30,36 @@
  **/
 
 
-#pragma once
+#include "StoreScuFilter.h"
 
-#include <list>
-#include <string>
-#include <boost/noncopyable.hpp>
+#include <glog/logging.h>
 
 namespace Orthanc
 {
-  class IServerFilter : public boost::noncopyable
+  StoreScuFilter::StoreScuFilter(ServerContext& context,
+                                 const RemoteModalityParameters& modality) : 
+    context_(context),
+    modality_(modality)
   {
-  public:
-    typedef std::list<std::string>  ListOfStrings;
+  }
 
-    virtual ~IServerFilter()
+  bool StoreScuFilter::Apply(ListOfStrings& outputs,
+                             const ListOfStrings& inputs)
+  {
+
+    ReusableDicomUserConnection::Locker locker(context_.GetReusableDicomUserConnection(), modality_);
+
+    for (ListOfStrings::const_iterator
+           it = inputs.begin(); it != inputs.end(); ++it)
     {
+      LOG(INFO) << "Sending resource " << *it << " to modality \"" 
+                << modality_.GetApplicationEntityTitle() << "\"";
+
+      std::string dicom;
+      context_.ReadFile(dicom, *it, FileContentType_Dicom);
+      locker.GetConnection().Store(dicom);
     }
 
-    virtual bool Apply(ListOfStrings& outputs,
-                       const ListOfStrings& inputs) = 0;
-
-    virtual bool SendOutputsToSink() const = 0;
-  };
+    return true;
+  }
 }
