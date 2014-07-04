@@ -68,8 +68,9 @@ namespace Orthanc
     bool ApplyReceivedInstanceFilter(const Json::Value& simplified,
                                      const std::string& remoteAet);
 
-    void ApplyOnStoredInstance(const Json::Value& simplified,
-                               const std::string& instanceId);
+    void ApplyOnStoredInstance(const std::string& instanceId,
+                               const Json::Value& simplifiedDicom,
+                               const Json::Value& metadata);
 
     FileStorage storage_;
     ServerIndex index_;
@@ -148,26 +149,33 @@ namespace Orthanc
                        const void* data,
                        size_t size);
 
+
+    // TODO SIMPLIFY THESE MANY "Store" methods!
     StoreStatus Store(const char* dicomInstance,
                       size_t dicomSize,
                       const DicomMap& dicomSummary,
                       const Json::Value& dicomJson,
-                      const std::string& remoteAet);
+                      const std::string& remoteAet,
+                      const ServerIndex::MetadataMap& metadata = ServerIndex::MetadataMap());
 
     StoreStatus Store(std::string& resultPublicId,
                       ParsedDicomFile& dicomInstance,
                       const char* dicomBuffer,
-                      size_t dicomSize);
+                      size_t dicomSize,
+                      const ServerIndex::MetadataMap& metadata = ServerIndex::MetadataMap());
 
     StoreStatus Store(std::string& resultPublicId,
-                      ParsedDicomFile& dicomInstance);
+                      ParsedDicomFile& dicomInstance,
+                      const ServerIndex::MetadataMap& metadata = ServerIndex::MetadataMap());
 
     StoreStatus Store(std::string& resultPublicId,
                       const char* dicomBuffer,
-                      size_t dicomSize);
+                      size_t dicomSize,
+                      const ServerIndex::MetadataMap& metadata = ServerIndex::MetadataMap());
 
     StoreStatus Store(std::string& resultPublicId,
-                      const std::string& dicomContent);
+                      const std::string& dicomContent,
+                      const ServerIndex::MetadataMap& metadata = ServerIndex::MetadataMap());
 
     void AnswerDicomFile(RestApiOutput& output,
                          const std::string& instancePublicId,

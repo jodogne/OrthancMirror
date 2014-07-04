@@ -252,47 +252,53 @@ namespace Orthanc
 
 
       /**
-       * Compute the resulting DICOM instance and store it into the Orthanc store.
+       * Compute the resulting DICOM instance.
        **/
 
       std::auto_ptr<ParsedDicomFile> modified(original.Clone());
       modification.Apply(*modified);
 
+
+      /**
+       * Prepare the metadata information to associate with the
+       * resulting DICOM instance (AnonymizedFrom/ModifiedFrom).
+       **/
+
+      DicomInstanceHasher modifiedHasher = modified->GetHasher();
+      ServerIndex::MetadataMap metadata;
+
+      if (originalHasher.HashSeries() != modifiedHasher.HashSeries())
+      {
+        metadata[std::make_pair(ResourceType_Series, metadataType)] = originalHasher.HashSeries();
+      }
+
+      if (originalHasher.HashStudy() != modifiedHasher.HashStudy())
+      {
+        metadata[std::make_pair(ResourceType_Study, metadataType)] = originalHasher.HashStudy();
+      }
+
+      if (originalHasher.HashPatient() != modifiedHasher.HashPatient())
+      {
+        metadata[std::make_pair(ResourceType_Patient, metadataType)] = originalHasher.HashPatient();
+      }
+
+      assert(*it == originalHasher.HashInstance());
+      metadata[std::make_pair(ResourceType_Instance, metadataType)] = *it;
+
+
+      /**
+       * Store the resulting DICOM instance into the Orthanc store.
+       **/
+
       std::string modifiedInstance;
-      if (context.Store(modifiedInstance, *modified) != StoreStatus_Success)
+      if (context.Store(modifiedInstance, *modified, metadata) != StoreStatus_Success)
       {
         LOG(ERROR) << "Error while storing a modified instance " << *it;
         return;
       }
 
-
-      /**
-       * Record metadata information (AnonymizedFrom/ModifiedFrom).
-       **/
-
-      DicomInstanceHasher modifiedHasher = modified->GetHasher();
-
-      if (originalHasher.HashSeries() != modifiedHasher.HashSeries())
-      {
-        context.GetIndex().SetMetadata(modifiedHasher.HashSeries(), 
-                                       metadataType, originalHasher.HashSeries());
-      }
-
-      if (originalHasher.HashStudy() != modifiedHasher.HashStudy())
-      {
-        context.GetIndex().SetMetadata(modifiedHasher.HashStudy(), 
-                                       metadataType, originalHasher.HashStudy());
-      }
-
-      if (originalHasher.HashPatient() != modifiedHasher.HashPatient())
-      {
-        context.GetIndex().SetMetadata(modifiedHasher.HashPatient(), 
-                                       metadataType, originalHasher.HashPatient());
-      }
-
-      assert(*it == originalHasher.HashInstance());
+      // Sanity checks in debug mode
       assert(modifiedInstance == modifiedHasher.HashInstance());
-      context.GetIndex().SetMetadata(modifiedInstance, metadataType, *it);
 
 
       /**

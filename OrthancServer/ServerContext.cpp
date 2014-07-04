@@ -120,16 +120,18 @@ namespace Orthanc
   }
 
 
-  void ServerContext::ApplyOnStoredInstance(const Json::Value& simplified,
-                                            const std::string& instanceId)
+  void ServerContext::ApplyOnStoredInstance(const std::string& instanceId,
+                                            const Json::Value& simplifiedDicom,
+                                            const Json::Value& metadata)
   {
     LuaContextLocker locker(*this);
 
     if (locker.GetLua().IsExistingFunction(ON_STORED_INSTANCE))
     {
       LuaFunctionCall call(locker.GetLua(), ON_STORED_INSTANCE);
-      call.PushJson(simplified);
       call.PushString(instanceId);
+      call.PushJson(simplifiedDicom);
+      call.PushJson(metadata);
 
       Json::Value result;
       call.ExecuteToJson(result);
@@ -138,19 +140,22 @@ namespace Orthanc
       std::cout << result;
     }
 
+#if 1
     {
       // Autorouting test
       RemoteModalityParameters p = Configuration::GetModalityUsingSymbolicName("sample");
 
       ServerJob job;
       ServerCommandInstance& a = job.AddCommand(new StoreScuCommand(*this, p));
-      ServerCommandInstance& b = job.AddCommand(new DeleteInstanceCommand(*this));
       a.AddInput(instanceId);
-      a.ConnectNext(b);
+
+      /*ServerCommandInstance& b = job.AddCommand(new DeleteInstanceCommand(*this));
+        a.ConnectNext(b);*/
 
       job.SetDescription("Autorouting test");
       scheduler_.Submit(job);
     }
+#endif
   }
 
 
@@ -158,7 +163,8 @@ namespace Orthanc
                                    size_t dicomSize,
                                    const DicomMap& dicomSummary,
                                    const Json::Value& dicomJson,
-                                   const std::string& remoteAet)
+                                   const std::string& remoteAet,
+                                   const ServerIndex::MetadataMap& metadata)
   {
     Json::Value simplified;
     SimplifyTags(simplified, dicomJson);
@@ -186,7 +192,7 @@ namespace Orthanc
     attachments.push_back(dicomInfo);
     attachments.push_back(jsonInfo);
 
-    StoreStatus status = index_.Store(dicomSummary, attachments, remoteAet);
+    StoreStatus status = index_.Store(dicomSummary, attachments, remoteAet, metadata);
 
     if (status != StoreStatus_Success)
     {
@@ -219,7 +225,12 @@ namespace Orthanc
       try
       {
         DicomInstanceHasher hasher(dicomSummary);
-        ApplyOnStoredInstance(simplified, hasher.HashInstance());
+        std::string instanceId = hasher.HashInstance();
+
+        Json::Value metadata;
+        index_.GetMetadata(metadata, instanceId);
+
+        ApplyOnStoredInstance(instanceId, simplified, metadata);
       }
       catch (OrthancException&)
       {
@@ -329,7 +340,8 @@ namespace Orthanc
   StoreStatus ServerContext::Store(std::string& resultPublicId,
                                    ParsedDicomFile& dicomInstance,
                                    const char* dicomBuffer,
-                                   size_t dicomSize)
+                                   size_t dicomSize,
+                                   const ServerIndex::MetadataMap& metadata)
   {
     DicomMap dicomSummary;
     FromDcmtkBridge::Convert(dicomSummary, *GetDicom(dicomInstance).getDataset());
@@ -345,7 +357,7 @@ namespace Orthanc
       StoreStatus status = StoreStatus_Failure;
       if (dicomSize > 0)
       {
-        status = Store(dicomBuffer, dicomSize, dicomSummary, dicomJson, "");
+        status = Store(dicomBuffer, dicomSize, dicomSummary, dicomJson, "", metadata);
       }   
 
       return status;
@@ -363,7 +375,8 @@ namespace Orthanc
 
 
   StoreStatus ServerContext::Store(std::string& resultPublicId,
-                                   ParsedDicomFile& dicomInstance)
+                                   ParsedDicomFile& dicomInstance,
+                                   const ServerIndex::MetadataMap& metadata)
   {
     std::string buffer;
     if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, GetDicom(dicomInstance).getDataset()))
@@ -372,23 +385,25 @@ namespace Orthanc
     }
 
     if (buffer.size() == 0)
-      return Store(resultPublicId, dicomInstance, NULL, 0);
+      return Store(resultPublicId, dicomInstance, NULL, 0, metadata);
     else
-      return Store(resultPublicId, dicomInstance, &buffer[0], buffer.size());
+      return Store(resultPublicId, dicomInstance, &buffer[0], buffer.size(), metadata);
   }
 
 
   StoreStatus ServerContext::Store(std::string& resultPublicId,
                                    const char* dicomBuffer,
-                                   size_t dicomSize)
+                                   size_t dicomSize,
+                                   const ServerIndex::MetadataMap& metadata)
   {
     ParsedDicomFile dicom(dicomBuffer, dicomSize);
-    return Store(resultPublicId, dicom, dicomBuffer, dicomSize);
+    return Store(resultPublicId, dicom, dicomBuffer, dicomSize, metadata);
   }
 
 
   StoreStatus ServerContext::Store(std::string& resultPublicId,
-                                   const std::string& dicomContent)
+                                   const std::string& dicomContent,
+                                   const ServerIndex::MetadataMap& metadata)
   {
     if (dicomContent.size() == 0)
     {
@@ -396,7 +411,7 @@ namespace Orthanc
     }
     else
     {
-      return Store(resultPublicId, &dicomContent[0], dicomContent.size());
+      return Store(resultPublicId, &dicomContent[0], dicomContent.size(), metadata);
     }
   }
 

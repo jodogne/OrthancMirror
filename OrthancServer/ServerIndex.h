@@ -54,6 +54,10 @@ namespace Orthanc
 
   class ServerIndex : public boost::noncopyable
   {
+  public:
+    typedef std::list<FileInfo> Attachments;
+    typedef std::map< std::pair<ResourceType, MetadataType>, std::string>  MetadataMap;
+
   private:
     class Transaction;
     struct UnstableResourcePayload;
@@ -98,9 +102,12 @@ namespace Orthanc
                                /* in  */ int64_t id,
                                /* in  */ ResourceType type);
 
-  public:
-    typedef std::list<FileInfo> Attachments;
+    StoreStatus Store(const DicomMap& dicomSummary,
+                      const Attachments& attachments,
+                      const std::string& remoteAet,
+                      const MetadataMap* metadata);
 
+  public:
     ServerIndex(ServerContext& context,
                 const std::string& dbPath);
 
@@ -124,7 +131,18 @@ namespace Orthanc
 
     StoreStatus Store(const DicomMap& dicomSummary,
                       const Attachments& attachments,
-                      const std::string& remoteAet);
+                      const std::string& remoteAet)
+    {
+      return Store(dicomSummary, attachments, remoteAet, NULL);
+    }
+
+    StoreStatus Store(const DicomMap& dicomSummary,
+                      const Attachments& attachments,
+                      const std::string& remoteAet,
+                      const MetadataMap& metadata)
+    {
+      return Store(dicomSummary, attachments, remoteAet, &metadata);
+    }
 
     void ComputeStatistics(Json::Value& target);                        
 
@@ -182,6 +200,9 @@ namespace Orthanc
 
     void ListAvailableMetadata(std::list<MetadataType>& target,
                                const std::string& publicId);
+
+    bool GetMetadata(Json::Value& target,
+                     const std::string& publicId);
 
     void ListAvailableAttachments(std::list<FileContentType>& target,
                                   const std::string& publicId,
