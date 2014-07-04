@@ -127,6 +127,7 @@ namespace Orthanc
       }
     };
 
+
     ServerContext(const boost::filesystem::path& storagePath,
                   const boost::filesystem::path& indexPath);
 
