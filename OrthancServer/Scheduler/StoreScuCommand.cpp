@@ -58,6 +58,8 @@ namespace Orthanc
       std::string dicom;
       context_.ReadFile(dicom, *it, FileContentType_Dicom);
       locker.GetConnection().Store(dicom);
+
+      outputs.push_back(*it);
     }
 
     return true;
