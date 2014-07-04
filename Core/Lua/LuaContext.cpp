@@ -79,7 +79,7 @@ namespace Orthanc
       lua_pop(state, 1);
     }
 
-    LOG(INFO) << "Lua says: " << result;         
+    LOG(WARNING) << "Lua says: " << result;         
     that->log_.append(result);
     that->log_.append("\n");
 

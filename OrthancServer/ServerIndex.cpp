@@ -384,7 +384,8 @@ namespace Orthanc
 
   StoreStatus ServerIndex::Store(const DicomMap& dicomSummary,
                                  const Attachments& attachments,
-                                 const std::string& remoteAet)
+                                 const std::string& remoteAet,
+                                 const MetadataMap* metadata)
   {
     boost::mutex::scoped_lock lock(mutex_);
     listener_->Reset();
@@ -519,7 +520,37 @@ namespace Orthanc
         db_->AddAttachment(instance, *it);
       }
 
-      // Attach the metadata
+      // Attach the user-specified metadata
+      if (metadata)
+      {
+        for (MetadataMap::const_iterator 
+               it = metadata->begin(); it != metadata->end(); ++it)
+        {
+          switch (it->first.first)
+          {
+            case ResourceType_Patient:
+              db_->SetMetadata(patient, it->first.second, it->second);
+              break;
+
+            case ResourceType_Study:
+              db_->SetMetadata(study, it->first.second, it->second);
+              break;
+
+            case ResourceType_Series:
+              db_->SetMetadata(series, it->first.second, it->second);
+              break;
+
+            case ResourceType_Instance:
+              db_->SetMetadata(instance, it->first.second, it->second);
+              break;
+
+            default:
+              throw OrthancException(ErrorCode_ParameterOutOfRange);
+          }
+        }
+      }
+
+      // Attach the auto-computer metadata
       std::string now = Toolbox::GetNowIsoString();
       db_->SetMetadata(instance, MetadataType_Instance_ReceptionDate, now);
       db_->SetMetadata(series, MetadataType_LastUpdate, now);
@@ -1691,6 +1722,35 @@ namespace Orthanc
     db_->DeleteAttachment(id, type);
 
     t.Commit(0);
+  }
+
+
+  bool ServerIndex::GetMetadata(Json::Value& target,
+                                const std::string& publicId)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    target = Json::objectValue;
+
+    ResourceType type;
+    int64_t id;
+    if (!db_->LookupResource(publicId, id, type))
+    {
+      return false;
+    }
+
+    std::list<MetadataType> metadata;
+    db_->ListAvailableMetadata(metadata, id);
+
+    for (std::list<MetadataType>::const_iterator
+           it = metadata.begin(); it != metadata.end(); it++)
+    {
+      std::string key = EnumerationToString(*it);
+      std::string value = db_->GetMetadata(id, *it);
+      target[key] = value;
+    }
+
+    return true;
   }
 
 
