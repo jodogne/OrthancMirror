@@ -32,27 +32,67 @@
 
 #pragma once
 
-#include "IServerFilter.h"
-#include "../ServerContext.h"
+#include "../../Core/IDynamicObject.h"
+#include "IServerCommand.h"
 
 namespace Orthanc
 {
-  class StoreScuFilter : public IServerFilter
+  class ServerCommandInstance : public IDynamicObject
   {
-  private:
-    ServerContext& context_;
-    RemoteModalityParameters modality_;
+    friend class ServerScheduler;
 
   public:
-    StoreScuFilter(ServerContext& context,
-                   const RemoteModalityParameters& modality);
-
-    bool Apply(ListOfStrings& outputs,
-               const ListOfStrings& inputs);
-
-    bool SendOutputsToSink() const
+    class IListener
     {
-      return false;
+    public:
+      virtual ~IListener()
+      {
+      }
+
+      virtual void SignalSuccess(const std::string& jobId) = 0;
+
+      virtual void SignalFailure(const std::string& jobId) = 0;
+    };
+
+  private:
+    typedef IServerCommand::ListOfStrings  ListOfStrings;
+
+    IServerCommand *filter_;
+    std::string jobId_;
+    ListOfStrings inputs_;
+    std::list<ServerCommandInstance*> next_;
+
+    bool Execute(IListener& listener);
+
+  public:
+    ServerCommandInstance(IServerCommand *filter,
+                         const std::string& jobId);
+
+    virtual ~ServerCommandInstance();
+
+    const std::string& GetJobId() const
+    {
+      return jobId_;
+    }
+
+    void AddInput(const std::string& input)
+    {
+      inputs_.push_back(input);
+    }
+
+    void ConnectNext(ServerCommandInstance& filter)
+    {
+      next_.push_back(&filter);
+    }
+
+    const std::list<ServerCommandInstance*>& GetNextCommands() const
+    {
+      return next_;
+    }
+
+    IServerCommand& GetCommand() const
+    {
+      return *filter_;
     }
   };
 }

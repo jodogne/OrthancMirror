@@ -277,7 +277,7 @@ TEST(ReusableDicomUserConnection, DISABLED_Basic)
 
 
 
-class Tutu : public IServerFilter
+class Tutu : public IServerCommand
 {
 private:
   int factor_;
@@ -317,7 +317,7 @@ public:
 
 static void Tata(ServerScheduler* s, ServerJob* j, bool* done)
 {
-  typedef IServerFilter::ListOfStrings  ListOfStrings;
+  typedef IServerCommand::ListOfStrings  ListOfStrings;
 
 #if 1
   while (!(*done))
@@ -348,10 +348,10 @@ TEST(Toto, Toto)
   ServerScheduler scheduler(10);
 
   ServerJob job;
-  ServerFilterInstance& f2 = job.AddFilter(new Tutu(2));
-  ServerFilterInstance& f3 = job.AddFilter(new Tutu(3));
-  ServerFilterInstance& f4 = job.AddFilter(new Tutu(4));
-  ServerFilterInstance& f5 = job.AddFilter(new Tutu(5));
+  ServerCommandInstance& f2 = job.AddCommand(new Tutu(2));
+  ServerCommandInstance& f3 = job.AddCommand(new Tutu(3));
+  ServerCommandInstance& f4 = job.AddCommand(new Tutu(4));
+  ServerCommandInstance& f5 = job.AddCommand(new Tutu(5));
   f2.AddInput(boost::lexical_cast<std::string>(42));
   //f3.AddInput(boost::lexical_cast<std::string>(42));
   //f4.AddInput(boost::lexical_cast<std::string>(42));
@@ -367,10 +367,10 @@ TEST(Toto, Toto)
 
   //scheduler.Submit(job);
 
-  IServerFilter::ListOfStrings l;
+  IServerCommand::ListOfStrings l;
   scheduler.SubmitAndWait(l, job);
 
-  for (IServerFilter::ListOfStrings::iterator i = l.begin(); i != l.end(); i++)
+  for (IServerCommand::ListOfStrings::iterator i = l.begin(); i != l.end(); i++)
   {
     printf("** %s\n", i->c_str());
   }

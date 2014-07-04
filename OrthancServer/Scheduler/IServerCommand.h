@@ -30,53 +30,26 @@
  **/
 
 
-#include "ServerFilterInstance.h"
+#pragma once
 
-#include "../../Core/OrthancException.h"
+#include <list>
+#include <string>
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  bool ServerFilterInstance::Execute(IListener& listener)
+  class IServerCommand : public boost::noncopyable
   {
-    ListOfStrings outputs;
-    if (!filter_->Apply(outputs, inputs_))
+  public:
+    typedef std::list<std::string>  ListOfStrings;
+
+    virtual ~IServerCommand()
     {
-      listener.SignalFailure(jobId_);
-      return true;
     }
 
-    for (std::list<ServerFilterInstance*>::iterator
-           it = next_.begin(); it != next_.end(); it++)
-    {
-      for (ListOfStrings::const_iterator
-             output = outputs.begin(); output != outputs.end(); output++)
-      {
-        (*it)->AddInput(*output);
-      }
-    }
+    virtual bool Apply(ListOfStrings& outputs,
+                       const ListOfStrings& inputs) = 0;
 
-    listener.SignalSuccess(jobId_);
-    return true;
-  }
-
-
-  ServerFilterInstance::ServerFilterInstance(IServerFilter *filter,
-                                             const std::string& jobId) : 
-    filter_(filter), 
-    jobId_(jobId)
-  {
-    if (filter_ == NULL)
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
-
-  ServerFilterInstance::~ServerFilterInstance()
-  {
-    if (filter_ != NULL)
-    {
-      delete filter_;
-    }
-  }
+    virtual bool SendOutputsToSink() const = 0;
+  };
 }

@@ -40,27 +40,27 @@ namespace Orthanc
 {
   void ServerJob::CheckOrdering()
   {
-    std::map<ServerFilterInstance*, unsigned int> index;
+    std::map<ServerCommandInstance*, unsigned int> index;
 
     unsigned int count = 0;
-    for (std::list<ServerFilterInstance*>::const_iterator
+    for (std::list<ServerCommandInstance*>::const_iterator
            it = filters_.begin(); it != filters_.end(); it++)
     {
       index[*it] = count++;
     }
 
-    for (std::list<ServerFilterInstance*>::const_iterator
+    for (std::list<ServerCommandInstance*>::const_iterator
            it = filters_.begin(); it != filters_.end(); it++)
     {
-      const std::list<ServerFilterInstance*>& nextFilters = (*it)->GetNextFilters();
+      const std::list<ServerCommandInstance*>& nextCommands = (*it)->GetNextCommands();
 
-      for (std::list<ServerFilterInstance*>::const_iterator
-             next = nextFilters.begin(); next != nextFilters.end(); next++)
+      for (std::list<ServerCommandInstance*>::const_iterator
+             next = nextCommands.begin(); next != nextCommands.end(); next++)
       {
         if (index.find(*next) == index.end() ||
             index[*next] <= index[*it])
         {
-          // You must reorder your calls to "ServerJob::AddFilter"
+          // You must reorder your calls to "ServerJob::AddCommand"
           throw OrthancException("Bad ordering of filters in a job");
         }
       }
@@ -69,7 +69,7 @@ namespace Orthanc
 
 
   size_t ServerJob::Submit(SharedMessageQueue& target,
-                           ServerFilterInstance::IListener& listener)
+                           ServerCommandInstance::IListener& listener)
   {
     if (submitted_)
     {
@@ -81,7 +81,7 @@ namespace Orthanc
 
     size_t size = filters_.size();
 
-    for (std::list<ServerFilterInstance*>::iterator 
+    for (std::list<ServerCommandInstance*>::iterator 
            it = filters_.begin(); it != filters_.end(); it++)
     {
       target.Enqueue(*it);
@@ -104,7 +104,7 @@ namespace Orthanc
 
   ServerJob::~ServerJob()
   {
-    for (std::list<ServerFilterInstance*>::iterator
+    for (std::list<ServerCommandInstance*>::iterator
            it = filters_.begin(); it != filters_.end(); it++)
     {
       delete *it;
@@ -112,14 +112,14 @@ namespace Orthanc
   }
 
 
-  ServerFilterInstance& ServerJob::AddFilter(IServerFilter* filter)
+  ServerCommandInstance& ServerJob::AddCommand(IServerCommand* filter)
   {
     if (submitted_)
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
-    filters_.push_back(new ServerFilterInstance(filter, jobId_));
+    filters_.push_back(new ServerCommandInstance(filter, jobId_));
       
     return *filters_.back();
   }

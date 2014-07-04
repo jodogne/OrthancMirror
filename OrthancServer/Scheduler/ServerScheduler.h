@@ -38,7 +38,7 @@
 
 namespace Orthanc
 {
-  class ServerScheduler : public ServerFilterInstance::IListener
+  class ServerScheduler : public ServerCommandInstance::IListener
   {
   private:
     struct JobInfo
@@ -58,7 +58,7 @@ namespace Orthanc
       JobStatus_Failure = 3
     };
 
-    typedef IServerFilter::ListOfStrings  ListOfStrings;
+    typedef IServerCommand::ListOfStrings  ListOfStrings;
     typedef std::map<std::string, JobInfo> Jobs;
 
     boost::mutex mutex_;

@@ -41,7 +41,7 @@ namespace Orthanc
   namespace
   {
     // Anonymous namespace to avoid clashes between compilation modules
-    class Sink : public IServerFilter
+    class Sink : public IServerCommand
     {
     private:
       ListOfStrings& target_;
@@ -143,7 +143,7 @@ namespace Orthanc
       std::auto_ptr<IDynamicObject> object(that->queue_.Dequeue(TIMEOUT));
       if (object.get() != NULL)
       {
-        ServerFilterInstance& filter = dynamic_cast<ServerFilterInstance&>(*object);
+        ServerCommandInstance& filter = dynamic_cast<ServerCommandInstance&>(*object);
 
         // Skip the execution of this filter if its parent job has
         // previously failed.
@@ -234,14 +234,14 @@ namespace Orthanc
 
     // Add a sink filter to collect all the results of the filters
     // that have no next filter.
-    ServerFilterInstance& sink = job.AddFilter(new Sink(outputs));
+    ServerCommandInstance& sink = job.AddCommand(new Sink(outputs));
 
-    for (std::list<ServerFilterInstance*>::iterator
+    for (std::list<ServerCommandInstance*>::iterator
            it = job.filters_.begin(); it != job.filters_.end(); it++)
     {
       if ((*it) != &sink &&
-          (*it)->GetNextFilters().size() == 0 &&
-          (*it)->GetFilter().SendOutputsToSink())
+          (*it)->GetNextCommands().size() == 0 &&
+          (*it)->GetCommand().SendOutputsToSink())
       {
         (*it)->ConnectNext(sink);
       }
