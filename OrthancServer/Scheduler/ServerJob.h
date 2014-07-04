@@ -62,7 +62,7 @@ namespace Orthanc
       return jobId_;
     }
 
-    void SetDescription(const char* description)
+    void SetDescription(const std::string& description)
     {
       description_ = description;
     }

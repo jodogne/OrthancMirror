@@ -91,6 +91,8 @@ namespace Orthanc
     bool SubmitAndWait(ListOfStrings& outputs,
                        ServerJob& job);
 
+    bool SubmitAndWait(ServerJob& job);
+
     bool IsRunning(const std::string& jobId);
 
     void Cancel(const std::string& jobId);

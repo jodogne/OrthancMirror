@@ -32,24 +32,27 @@
 
 #pragma once
 
-#include <list>
-#include <string>
-#include <boost/noncopyable.hpp>
+#include "IServerFilter.h"
+#include "../ServerContext.h"
 
 namespace Orthanc
 {
-  class IServerFilter : public boost::noncopyable
+  class StoreScuFilter : public IServerFilter
   {
+  private:
+    ServerContext& context_;
+    RemoteModalityParameters modality_;
+
   public:
-    typedef std::list<std::string>  ListOfStrings;
+    StoreScuFilter(ServerContext& context,
+                   const RemoteModalityParameters& modality);
 
-    virtual ~IServerFilter()
+    bool Apply(ListOfStrings& outputs,
+               const ListOfStrings& inputs);
+
+    bool SendOutputsToSink() const
     {
+      return false;
     }
-
-    virtual bool Apply(ListOfStrings& outputs,
-                       const ListOfStrings& inputs) = 0;
-
-    virtual bool SendOutputsToSink() const = 0;
   };
 }

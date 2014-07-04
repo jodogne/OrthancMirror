@@ -271,6 +271,13 @@ namespace Orthanc
   }
 
 
+  bool ServerScheduler::SubmitAndWait(ServerJob& job)
+  {
+    ListOfStrings ignoredSink;
+    return SubmitAndWait(ignoredSink, job);
+  }
+
+
   bool ServerScheduler::IsRunning(const std::string& jobId)
   {
     boost::mutex::scoped_lock lock(mutex_);
