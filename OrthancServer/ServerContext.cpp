@@ -193,7 +193,9 @@ namespace Orthanc
       attachments.push_back(dicomInfo);
       attachments.push_back(jsonInfo);
 
-      StoreStatus status = index_.Store(dicom.GetSummary(), attachments, dicom.GetRemoteAet(), dicom.GetMetadata());
+      std::map<MetadataType, std::string> instanceMetadata;
+      StoreStatus status = index_.Store(instanceMetadata, dicom.GetSummary(), attachments, 
+                                        dicom.GetRemoteAet(), dicom.GetMetadata());
 
       if (status != StoreStatus_Success)
       {
@@ -225,16 +227,20 @@ namespace Orthanc
       {
         try
         {
+#if 1
           Json::Value metadata = Json::objectValue;
-          for (ServerIndex::MetadataMap::const_iterator 
-                 it = dicom.GetMetadata().begin(); 
-               it != dicom.GetMetadata().end(); ++it)
+          for (std::map<MetadataType, std::string>::const_iterator 
+                 it = instanceMetadata.begin(); 
+               it != instanceMetadata.end(); ++it)
           {
-            if (it->first.first == ResourceType_Instance)
-            {
-              metadata[EnumerationToString(it->first.second)] = it->second;
-            }
+            metadata[EnumerationToString(it->first)] = it->second;
           }
+#else
+          Json::Value metadata;
+          index_.GetMetadata(metadata, resultPublicId);
+#endif
+
+          std::cout << metadata;
 
           ApplyOnStoredInstance(resultPublicId, simplified, metadata);
         }

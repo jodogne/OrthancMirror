@@ -382,13 +382,16 @@ namespace Orthanc
   }
 
 
-  StoreStatus ServerIndex::Store(const DicomMap& dicomSummary,
+  StoreStatus ServerIndex::Store(std::map<MetadataType, std::string>& instanceMetadata,
+                                 const DicomMap& dicomSummary,
                                  const Attachments& attachments,
                                  const std::string& remoteAet,
-                                 MetadataMap* metadata)
+                                 const MetadataMap& metadata)
   {
     boost::mutex::scoped_lock lock(mutex_);
     listener_->Reset();
+
+    instanceMetadata.clear();
 
     DicomInstanceHasher hasher(dicomSummary);
 
@@ -403,6 +406,7 @@ namespace Orthanc
         if (db_->LookupResource(hasher.HashInstance(), tmp, type))
         {
           assert(type == ResourceType_Instance);
+          db_->GetAllMetadata(instanceMetadata, tmp);
           return StoreStatus_AlreadyStored;
         }
       }
@@ -521,32 +525,30 @@ namespace Orthanc
       }
 
       // Attach the user-specified metadata
-      if (metadata)
+      for (MetadataMap::const_iterator 
+             it = metadata.begin(); it != metadata.end(); ++it)
       {
-        for (MetadataMap::const_iterator 
-               it = metadata->begin(); it != metadata->end(); ++it)
+        switch (it->first.first)
         {
-          switch (it->first.first)
-          {
-            case ResourceType_Patient:
-              db_->SetMetadata(patient, it->first.second, it->second);
-              break;
+          case ResourceType_Patient:
+            db_->SetMetadata(patient, it->first.second, it->second);
+            break;
 
-            case ResourceType_Study:
-              db_->SetMetadata(study, it->first.second, it->second);
-              break;
+          case ResourceType_Study:
+            db_->SetMetadata(study, it->first.second, it->second);
+            break;
 
-            case ResourceType_Series:
-              db_->SetMetadata(series, it->first.second, it->second);
-              break;
+          case ResourceType_Series:
+            db_->SetMetadata(series, it->first.second, it->second);
+            break;
 
-            case ResourceType_Instance:
-              db_->SetMetadata(instance, it->first.second, it->second);
-              break;
+          case ResourceType_Instance:
+            db_->SetMetadata(instance, it->first.second, it->second);
+            instanceMetadata[it->first.second] = it->second;
+            break;
 
-            default:
-              throw OrthancException(ErrorCode_ParameterOutOfRange);
-          }
+          default:
+            throw OrthancException(ErrorCode_ParameterOutOfRange);
         }
       }
 
@@ -559,24 +561,17 @@ namespace Orthanc
       // Attach the auto-computed metadata for the instance level,
       // reflecting these additions into the input metadata map
       db_->SetMetadata(instance, MetadataType_Instance_ReceptionDate, now);
-      db_->SetMetadata(instance, MetadataType_Instance_RemoteAet, remoteAet);
+      instanceMetadata[MetadataType_Instance_ReceptionDate] = now;
 
-      if (metadata)
-      {
-        (*metadata) [std::make_pair(ResourceType_Instance, MetadataType_Instance_ReceptionDate)] = now;
-        (*metadata) [std::make_pair(ResourceType_Instance, MetadataType_Instance_RemoteAet)] = remoteAet;
-      }
+      db_->SetMetadata(instance, MetadataType_Instance_RemoteAet, remoteAet);
+      instanceMetadata[MetadataType_Instance_RemoteAet] = remoteAet;
 
       const DicomValue* value;
       if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_INSTANCE_NUMBER)) != NULL ||
           (value = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGE_INDEX)) != NULL)
       {
         db_->SetMetadata(instance, MetadataType_Instance_IndexInSeries, value->AsString());
-
-        if (metadata)
-        {
-          (*metadata) [std::make_pair(ResourceType_Instance, MetadataType_Instance_IndexInSeries)] = value->AsString();
-        }
+        instanceMetadata[MetadataType_Instance_IndexInSeries] = value->AsString();
       }
 
       // Check whether the series of this new instance is now completed

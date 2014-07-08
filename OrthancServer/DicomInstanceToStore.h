@@ -138,49 +138,6 @@ namespace Orthanc
     };
 
 
-    /*class MemoryBuffer
-    {
-    private:
-      const char* buffer_;
-      size_t size_;
-
-    public:
-      MemoryBuffer() : buffer_(NULL), size_(0)
-      {
-      }
-
-      const char* GetBuffer() const
-      {
-        return buffer_;
-      }
-
-      size_t GetSize() const
-      {
-        return size_;
-      }
-
-      void Assign(const char* buffer, size_t size)
-      {
-        buffer_ = buffer;
-        size_ = size;
-      }
-
-      void Assign(const std::string& buffer)
-      {
-        size_ = buffer.size();
-
-        if (size_ == 0)
-        {
-          buffer_ = NULL;
-        }
-        else
-        {
-          buffer_ = &buffer[0];
-        }
-      }
-    };*/
-
-
     SmartContainer<std::string>  buffer_;
     SmartContainer<ParsedDicomFile>  parsed_;
     SmartContainer<DicomMap>  summary_;

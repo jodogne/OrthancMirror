@@ -1045,4 +1045,21 @@ namespace Orthanc
       result.push_back(s.ColumnInt64(0));
     }
   }
+
+
+  void DatabaseWrapper::GetAllMetadata(std::map<MetadataType, std::string>& result,
+                                       int64_t id)
+  {
+    result.clear();
+
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT type, value FROM Metadata WHERE id=?");
+    s.BindInt64(0, id);
+
+    while (s.Step())
+    {
+      MetadataType key = static_cast<MetadataType>(s.ColumnInt(0));
+      result[key] = s.ColumnString(1);
+    }
+  }
+
 }

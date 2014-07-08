@@ -102,11 +102,6 @@ namespace Orthanc
                                /* in  */ int64_t id,
                                /* in  */ ResourceType type);
 
-    StoreStatus Store(const DicomMap& dicomSummary,
-                      const Attachments& attachments,
-                      const std::string& remoteAet,
-                      MetadataMap* metadata);
-
   public:
     ServerIndex(ServerContext& context,
                 const std::string& dbPath);
@@ -129,20 +124,11 @@ namespace Orthanc
     // "count == 0" means no limit on the number of patients
     void SetMaximumPatientCount(unsigned int count);
 
-    StoreStatus Store(const DicomMap& dicomSummary,
-                      const Attachments& attachments,
-                      const std::string& remoteAet)
-    {
-      return Store(dicomSummary, attachments, remoteAet, NULL);
-    }
-
-    StoreStatus Store(const DicomMap& dicomSummary,
+    StoreStatus Store(std::map<MetadataType, std::string>& instanceMetadata,
+                      const DicomMap& dicomSummary,
                       const Attachments& attachments,
                       const std::string& remoteAet,
-                      MetadataMap& metadata)
-    {
-      return Store(dicomSummary, attachments, remoteAet, &metadata);
-    }
+                      const MetadataMap& metadata);
 
     void ComputeStatistics(Json::Value& target);                        
 
