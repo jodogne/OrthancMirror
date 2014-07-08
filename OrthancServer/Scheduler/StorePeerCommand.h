@@ -30,37 +30,30 @@
  **/
 
 
-#include "StoreScuCommand.h"
+#pragma once
 
-#include <glog/logging.h>
+#include "IServerCommand.h"
+#include "../ServerContext.h"
+#include "../OrthancInitialization.h"
 
 namespace Orthanc
 {
-  StoreScuCommand::StoreScuCommand(ServerContext& context,
-                                 const RemoteModalityParameters& modality) : 
-    context_(context),
-    modality_(modality)
+  class StorePeerCommand : public IServerCommand
   {
-  }
+  private:
+    ServerContext& context_;
+    OrthancPeerParameters peer_;
 
-  bool StoreScuCommand::Apply(ListOfStrings& outputs,
-                             const ListOfStrings& inputs)
-  {
-    ReusableDicomUserConnection::Locker locker(context_.GetReusableDicomUserConnection(), modality_);
+  public:
+    StorePeerCommand(ServerContext& context,
+                     const OrthancPeerParameters& peer);
 
-    for (ListOfStrings::const_iterator
-           it = inputs.begin(); it != inputs.end(); ++it)
+    bool Apply(ListOfStrings& outputs,
+               const ListOfStrings& inputs);
+
+    bool SendOutputsToSink() const
     {
-      LOG(INFO) << "Sending resource " << *it << " to modality \"" 
-                << modality_.GetApplicationEntityTitle() << "\"";
-
-      std::string dicom;
-      context_.ReadFile(dicom, *it, FileContentType_Dicom);
-      locker.GetConnection().Store(dicom);
-
-      outputs.push_back(*it);
+      return false;
     }
-
-    return true;
-  }
+  };
 }

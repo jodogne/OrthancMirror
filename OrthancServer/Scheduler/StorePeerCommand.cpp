@@ -30,33 +30,50 @@
  **/
 
 
-#include "StoreScuCommand.h"
+#include "StorePeerCommand.h"
+
+#include "../../Core/HttpClient.h"
 
 #include <glog/logging.h>
 
 namespace Orthanc
 {
-  StoreScuCommand::StoreScuCommand(ServerContext& context,
-                                 const RemoteModalityParameters& modality) : 
+  StorePeerCommand::StorePeerCommand(ServerContext& context,
+                                     const OrthancPeerParameters& peer) : 
     context_(context),
-    modality_(modality)
+    peer_(peer)
   {
   }
 
-  bool StoreScuCommand::Apply(ListOfStrings& outputs,
-                             const ListOfStrings& inputs)
+  bool StorePeerCommand::Apply(ListOfStrings& outputs,
+                               const ListOfStrings& inputs)
   {
-    ReusableDicomUserConnection::Locker locker(context_.GetReusableDicomUserConnection(), modality_);
+    // Configure the HTTP client
+    HttpClient client;
+    if (peer_.GetUsername().size() != 0 && 
+        peer_.GetPassword().size() != 0)
+    {
+      client.SetCredentials(peer_.GetUsername().c_str(), 
+                            peer_.GetPassword().c_str());
+    }
+
+    client.SetUrl(peer_.GetUrl() + "instances");
+    client.SetMethod(HttpMethod_Post);
 
     for (ListOfStrings::const_iterator
            it = inputs.begin(); it != inputs.end(); ++it)
     {
-      LOG(INFO) << "Sending resource " << *it << " to modality \"" 
-                << modality_.GetApplicationEntityTitle() << "\"";
+      LOG(INFO) << "Sending resource " << *it << " to peer \"" 
+                << peer_.GetUrl() << "\"";
 
-      std::string dicom;
-      context_.ReadFile(dicom, *it, FileContentType_Dicom);
-      locker.GetConnection().Store(dicom);
+      context_.ReadFile(client.AccessPostData(), *it, FileContentType_Dicom);
+
+      std::string answer;
+      if (!client.Apply(answer))
+      {
+        LOG(ERROR) << "Unable to send resource " << *it << " to peer \"" << peer_.GetUrl() << "\"";
+        throw OrthancException(ErrorCode_NetworkProtocol);
+      }
 
       outputs.push_back(*it);
     }
