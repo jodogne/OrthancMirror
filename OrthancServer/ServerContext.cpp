@@ -159,6 +159,106 @@ namespace Orthanc
   }
 
 
+  StoreStatus ServerContext::Store(std::string& resultPublicId,
+                                   DicomInstanceToStore& dicom)
+  {
+    try
+    {
+      DicomInstanceHasher hasher(dicom.GetSummary());
+      resultPublicId = hasher.HashInstance();
+
+      Json::Value simplified;
+      SimplifyTags(simplified, dicom.GetJson());
+
+      // Test if the instance must be filtered out
+      if (!ApplyReceivedInstanceFilter(simplified, dicom.GetRemoteAet()))
+      {
+        LOG(INFO) << "An incoming instance has been discarded by the filter";
+        return StoreStatus_FilteredOut;
+      }
+
+      if (compressionEnabled_)
+      {
+        accessor_.SetCompressionForNextOperations(CompressionType_Zlib);
+      }
+      else
+      {
+        accessor_.SetCompressionForNextOperations(CompressionType_None);
+      }      
+
+      FileInfo dicomInfo = accessor_.Write(dicom.GetBufferData(), dicom.GetBufferSize(), FileContentType_Dicom);
+      FileInfo jsonInfo = accessor_.Write(dicom.GetJson().toStyledString(), FileContentType_DicomAsJson);
+
+      ServerIndex::Attachments attachments;
+      attachments.push_back(dicomInfo);
+      attachments.push_back(jsonInfo);
+
+      StoreStatus status = index_.Store(dicom.GetSummary(), attachments, dicom.GetRemoteAet(), dicom.GetMetadata());
+
+      if (status != StoreStatus_Success)
+      {
+        storage_.Remove(dicomInfo.GetUuid());
+        storage_.Remove(jsonInfo.GetUuid());
+      }
+
+      switch (status)
+      {
+        case StoreStatus_Success:
+          LOG(INFO) << "New instance stored";
+          break;
+
+        case StoreStatus_AlreadyStored:
+          LOG(INFO) << "Already stored";
+          break;
+
+        case StoreStatus_Failure:
+          LOG(ERROR) << "Store failure";
+          break;
+
+        default:
+          // This should never happen
+          break;
+      }
+
+      if (status == StoreStatus_Success ||
+          status == StoreStatus_AlreadyStored)
+      {
+        try
+        {
+          Json::Value metadata = Json::objectValue;
+          for (ServerIndex::MetadataMap::const_iterator 
+                 it = dicom.GetMetadata().begin(); 
+               it != dicom.GetMetadata().end(); ++it)
+          {
+            if (it->first.first == ResourceType_Instance)
+            {
+              metadata[EnumerationToString(it->first.second)] = it->second;
+            }
+          }
+
+          ApplyOnStoredInstance(resultPublicId, simplified, metadata);
+        }
+        catch (OrthancException&)
+        {
+          LOG(ERROR) << "Error when dealing with OnStoredInstance";
+        }
+      }
+
+      return status;
+    }
+    catch (OrthancException& e)
+    {
+      if (e.GetErrorCode() == ErrorCode_InexistentTag)
+      {
+        LogMissingRequiredTag(dicom.GetSummary());
+      }
+
+      throw;
+    }
+  }
+
+
+
   StoreStatus ServerContext::Store(const char* dicomInstance,
                                    size_t dicomSize,
                                    const DicomMap& dicomSummary,
@@ -192,7 +292,8 @@ namespace Orthanc
     attachments.push_back(dicomInfo);
     attachments.push_back(jsonInfo);
 
-    StoreStatus status = index_.Store(dicomSummary, attachments, remoteAet, metadata);
+    // TODO REMOVE CONST_CAST !!!!
+    StoreStatus status = index_.Store(dicomSummary, attachments, remoteAet, const_cast<ServerIndex::MetadataMap&>(metadata));
 
     if (status != StoreStatus_Success)
     {
@@ -379,7 +480,7 @@ namespace Orthanc
                                    const ServerIndex::MetadataMap& metadata)
   {
     std::string buffer;
-    if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, GetDicom(dicomInstance).getDataset()))
+    if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, *GetDicom(dicomInstance).getDataset()))
     {
       throw OrthancException(ErrorCode_InternalError);
     }

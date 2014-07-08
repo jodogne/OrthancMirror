@@ -32,42 +32,21 @@
 
 #include "DicomInstanceToStore.h"
 
+#include "FromDcmtkBridge.h"
+
+#include <dcmtk/dcmdata/dcfilefo.h>
+#include <glog/logging.h>
+
+
 namespace Orthanc
 {
-  DicomInstanceToStore::DicomInstanceToStore() :
-    hasBuffer_(false),
-    parsed_(NULL),
-    summary_(NULL),
-    json_(NULL)
+  static DcmDataset& GetDataset(ParsedDicomFile& file)
   {
-  }
-
-  void DicomInstanceToStore::SetBuffer(const std::string& dicom)
-  {
-    hasBuffer_ = true;
-    bufferSize_ = dicom.size();
-
-    if (dicom.size() == 0)
-    {
-      buffer_ = NULL;
-    }
-    else
-    {
-      buffer_ = &dicom[0];
-    }
+    return *reinterpret_cast<DcmFileFormat*>(file.GetDcmtkObject())->getDataset();
   }
 
 
-  void DicomInstanceToStore::SetBuffer(const char* buffer, 
-                                       size_t size)
-  {
-    hasBuffer_ = true;
-    buffer_ = buffer;
-    bufferSize_ = size;
-  }
-
-
-  void DicomInstanceToStore::SetMetadata(ResourceType level,
+  void DicomInstanceToStore::AddMetadata(ResourceType level,
                                          MetadataType metadata,
                                          const std::string& value)
   {
@@ -77,23 +56,119 @@ namespace Orthanc
 
   void DicomInstanceToStore::ComputeMissingInformation()
   {
-    // TODO
+    if (buffer_.HasContent() &&
+        summary_.HasContent() &&
+        json_.HasContent())
+    {
+      // Fine, everything is available
+      return; 
+    }
+    
+    if (!buffer_.HasContent())
+    {
+      if (!parsed_.HasContent())
+      {
+        throw OrthancException(ErrorCode_NotImplemented);
+      }
+      else
+      {
+        // Serialize the parsed DICOM file
+        buffer_.Allocate();
+        if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer_.GetContent(), GetDataset(parsed_.GetContent())))
+        {
+          LOG(ERROR) << "Unable to serialize a DICOM file to a memory buffer";
+          throw OrthancException(ErrorCode_InternalError);
+        }
+      }
+    }
 
-    assert(hasBuffer_ && (buffer_ != NULL || bufferSize_ == 0));
+    if (summary_.HasContent() &&
+        json_.HasContent())
+    {
+      return;
+    }
+
+    // At this point, we know that the DICOM file is available as a
+    // memory buffer, but that its summary or its JSON version is
+    // missing
+
+    if (!parsed_.HasContent())
+    {
+      parsed_.TakeOwnership(new ParsedDicomFile(buffer_.GetContent()));
+    }
+
+    // At this point, we have parsed the DICOM file
+    
+    if (!summary_.HasContent())
+    {
+      summary_.Allocate();
+      FromDcmtkBridge::Convert(summary_.GetContent(), GetDataset(parsed_.GetContent()));
+    }
+    
+    if (!json_.HasContent())
+    {
+      json_.Allocate();
+      FromDcmtkBridge::ToJson(json_.GetContent(), GetDataset(parsed_.GetContent()));
+    }
   }
 
 
 
-  const char* DicomInstanceToStore::GetBuffer()
+  const char* DicomInstanceToStore::GetBufferData()
   {
     ComputeMissingInformation();
-    return buffer_;
+    
+    if (!buffer_.HasContent())
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    if (buffer_.GetConstContent().size() == 0)
+    {
+      return NULL;
+    }
+    else
+    {
+      return buffer_.GetConstContent().c_str();
+    }
   }
 
 
   size_t DicomInstanceToStore::GetBufferSize()
   {
     ComputeMissingInformation();
-    return bufferSize_;
+    
+    if (!buffer_.HasContent())
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    return buffer_.GetConstContent().size();
+  }
+
+
+  const DicomMap& DicomInstanceToStore::GetSummary()
+  {
+    ComputeMissingInformation();
+    
+    if (!summary_.HasContent())
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    return summary_.GetConstContent();
+  }
+
+    
+  const Json::Value& DicomInstanceToStore::GetJson()
+  {
+    ComputeMissingInformation();
+    
+    if (!json_.HasContent())
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    return json_.GetConstContent();
   }
 }

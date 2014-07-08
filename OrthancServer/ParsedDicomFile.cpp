@@ -873,7 +873,7 @@ namespace Orthanc
   void ParsedDicomFile::Answer(RestApiOutput& output)
   {
     std::string serialized;
-    if (FromDcmtkBridge::SaveToMemoryBuffer(serialized, pimpl_->file_->getDataset()))
+    if (FromDcmtkBridge::SaveToMemoryBuffer(serialized, *pimpl_->file_->getDataset()))
     {
       output.AnswerBuffer(serialized, CONTENT_TYPE_OCTET_STREAM);
     }
@@ -956,7 +956,7 @@ namespace Orthanc
 
   void ParsedDicomFile::SaveToMemoryBuffer(std::string& buffer)
   {
-    FromDcmtkBridge::SaveToMemoryBuffer(buffer, pimpl_->file_->getDataset());
+    FromDcmtkBridge::SaveToMemoryBuffer(buffer, *pimpl_->file_->getDataset());
   }
 
 

@@ -41,6 +41,7 @@
 #include "ParsedDicomFile.h"
 #include "DicomProtocol/ReusableDicomUserConnection.h"
 #include "Scheduler/ServerScheduler.h"
+#include "DicomInstanceToStore.h"
 
 namespace Orthanc
 {
@@ -85,6 +86,11 @@ namespace Orthanc
 
     boost::mutex luaMutex_;
     LuaContext lua_;
+
+    StoreStatus Store(std::string& resultPublicId,
+                      const char* dicomBuffer,
+                      size_t dicomSize,
+                      const ServerIndex::MetadataMap& metadata = ServerIndex::MetadataMap());
 
   public:
     class DicomCacheLocker : public boost::noncopyable
@@ -152,6 +158,9 @@ namespace Orthanc
 
 
     // TODO SIMPLIFY THESE MANY "Store" methods!
+    StoreStatus Store(std::string& resultPublicId,
+                      DicomInstanceToStore& dicom);
+
     StoreStatus Store(const char* dicomInstance,
                       size_t dicomSize,
                       const DicomMap& dicomSummary,
@@ -167,11 +176,6 @@ namespace Orthanc
 
     StoreStatus Store(std::string& resultPublicId,
                       ParsedDicomFile& dicomInstance,
-                      const ServerIndex::MetadataMap& metadata = ServerIndex::MetadataMap());
-
-    StoreStatus Store(std::string& resultPublicId,
-                      const char* dicomBuffer,
-                      size_t dicomSize,
                       const ServerIndex::MetadataMap& metadata = ServerIndex::MetadataMap());
 
     StoreStatus Store(std::string& resultPublicId,

@@ -105,7 +105,7 @@ namespace Orthanc
     StoreStatus Store(const DicomMap& dicomSummary,
                       const Attachments& attachments,
                       const std::string& remoteAet,
-                      const MetadataMap* metadata);
+                      MetadataMap* metadata);
 
   public:
     ServerIndex(ServerContext& context,
@@ -139,7 +139,7 @@ namespace Orthanc
     StoreStatus Store(const DicomMap& dicomSummary,
                       const Attachments& attachments,
                       const std::string& remoteAet,
-                      const MetadataMap& metadata)
+                      MetadataMap& metadata)
     {
       return Store(dicomSummary, attachments, remoteAet, &metadata);
     }
