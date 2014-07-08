@@ -94,7 +94,7 @@ namespace Orthanc
 
     if (!parsed_.HasContent())
     {
-      parsed_.TakeOwnership(new ParsedDicomFile(buffer_.GetContent()));
+      parsed_.TakeOwnership(new ParsedDicomFile(buffer_.GetConstContent()));
     }
 
     // At this point, we have parsed the DICOM file

@@ -87,11 +87,6 @@ namespace Orthanc
     boost::mutex luaMutex_;
     LuaContext lua_;
 
-    StoreStatus Store(std::string& resultPublicId,
-                      const char* dicomBuffer,
-                      size_t dicomSize,
-                      const ServerIndex::MetadataMap& metadata = ServerIndex::MetadataMap());
-
   public:
     class DicomCacheLocker : public boost::noncopyable
     {
@@ -156,31 +151,8 @@ namespace Orthanc
                        const void* data,
                        size_t size);
 
-
-    // TODO SIMPLIFY THESE MANY "Store" methods!
     StoreStatus Store(std::string& resultPublicId,
                       DicomInstanceToStore& dicom);
-
-    StoreStatus Store(const char* dicomInstance,
-                      size_t dicomSize,
-                      const DicomMap& dicomSummary,
-                      const Json::Value& dicomJson,
-                      const std::string& remoteAet,
-                      const ServerIndex::MetadataMap& metadata = ServerIndex::MetadataMap());
-
-    StoreStatus Store(std::string& resultPublicId,
-                      ParsedDicomFile& dicomInstance,
-                      const char* dicomBuffer,
-                      size_t dicomSize,
-                      const ServerIndex::MetadataMap& metadata = ServerIndex::MetadataMap());
-
-    StoreStatus Store(std::string& resultPublicId,
-                      ParsedDicomFile& dicomInstance,
-                      const ServerIndex::MetadataMap& metadata = ServerIndex::MetadataMap());
-
-    StoreStatus Store(std::string& resultPublicId,
-                      const std::string& dicomContent,
-                      const ServerIndex::MetadataMap& metadata = ServerIndex::MetadataMap());
 
     void AnswerDicomFile(RestApiOutput& output,
                          const std::string& instancePublicId,

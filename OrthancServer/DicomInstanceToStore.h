@@ -87,10 +87,18 @@ namespace Orthanc
         Deallocate();
         content_ = content;
         toDelete_ = true;
-        isReadOnly_ = true;
+        isReadOnly_ = false;
       }
 
-      void SetReference(const T& content)   // Read-only assign, without transfering ownership
+      void SetReference(T& content)   // Read and write assign, without transfering ownership
+      {
+        Deallocate();
+        content_ = &content;
+        toDelete_ = false;
+        isReadOnly_ = false;
+      }
+
+      void SetConstReference(const T& content)   // Read-only assign, without transfering ownership
       {
         Deallocate();
         content_ = &const_cast<T&>(content);
@@ -186,7 +194,7 @@ namespace Orthanc
   public:
     void SetBuffer(const std::string& dicom)
     {
-      buffer_.SetReference(dicom);
+      buffer_.SetConstReference(dicom);
     }
 
     void SetParsedDicomFile(ParsedDicomFile& parsed)
@@ -196,12 +204,12 @@ namespace Orthanc
 
     void SetSummary(const DicomMap& summary)
     {
-      summary_.SetReference(summary);
+      summary_.SetConstReference(summary);
     }
 
     void SetJson(const Json::Value& json)
     {
-      json_.SetReference(json);
+      json_.SetConstReference(json);
     }
 
     const std::string GetRemoteAet() const

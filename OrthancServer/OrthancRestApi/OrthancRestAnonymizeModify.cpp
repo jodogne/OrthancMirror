@@ -258,6 +258,9 @@ namespace Orthanc
       std::auto_ptr<ParsedDicomFile> modified(original.Clone());
       modification.Apply(*modified);
 
+      DicomInstanceToStore toStore;
+      toStore.SetParsedDicomFile(*modified);
+
 
       /**
        * Prepare the metadata information to associate with the
@@ -265,25 +268,24 @@ namespace Orthanc
        **/
 
       DicomInstanceHasher modifiedHasher = modified->GetHasher();
-      ServerIndex::MetadataMap metadata;
 
       if (originalHasher.HashSeries() != modifiedHasher.HashSeries())
       {
-        metadata[std::make_pair(ResourceType_Series, metadataType)] = originalHasher.HashSeries();
+        toStore.AddMetadata(ResourceType_Series, metadataType, originalHasher.HashSeries());
       }
 
       if (originalHasher.HashStudy() != modifiedHasher.HashStudy())
       {
-        metadata[std::make_pair(ResourceType_Study, metadataType)] = originalHasher.HashStudy();
+        toStore.AddMetadata(ResourceType_Study, metadataType, originalHasher.HashStudy());
       }
 
       if (originalHasher.HashPatient() != modifiedHasher.HashPatient())
       {
-        metadata[std::make_pair(ResourceType_Patient, metadataType)] = originalHasher.HashPatient();
+        toStore.AddMetadata(ResourceType_Patient, metadataType, originalHasher.HashPatient());
       }
 
       assert(*it == originalHasher.HashInstance());
-      metadata[std::make_pair(ResourceType_Instance, metadataType)] = *it;
+      toStore.AddMetadata(ResourceType_Instance, metadataType, *it);
 
 
       /**
@@ -291,7 +293,7 @@ namespace Orthanc
        **/
 
       std::string modifiedInstance;
-      if (context.Store(modifiedInstance, *modified, metadata) != StoreStatus_Success)
+      if (context.Store(modifiedInstance, toStore) != StoreStatus_Success)
       {
         LOG(ERROR) << "Error while storing a modified instance " << *it;
         return;
@@ -429,8 +431,11 @@ namespace Orthanc
 
       modification.Apply(dicom);
 
+      DicomInstanceToStore toStore;
+      toStore.SetParsedDicomFile(dicom);
+
       std::string id;
-      StoreStatus status = OrthancRestApi::GetContext(call).Store(id, dicom);
+      StoreStatus status = OrthancRestApi::GetContext(call).Store(id, toStore);
 
       if (status == StoreStatus_Failure)
       {

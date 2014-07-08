@@ -343,7 +343,7 @@ static void Tata(ServerScheduler* s, ServerJob* j, bool* done)
 }
 
 
-TEST(Toto, Toto)
+TEST(MultiThreading, DISABLED_ServerScheduler)
 {
   ServerScheduler scheduler(10);
 

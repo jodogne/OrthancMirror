@@ -71,8 +71,11 @@ namespace Orthanc
 
     LOG(INFO) << "Receiving a DICOM file of " << postData.size() << " bytes through HTTP";
 
+    DicomInstanceToStore toStore;
+    toStore.SetBuffer(postData);
+
     std::string publicId;
-    StoreStatus status = context.Store(publicId, postData);
+    StoreStatus status = context.Store(publicId, toStore);
 
     OrthancRestApi::GetApi(call).AnswerStoredInstance(call, publicId, status);
   }
