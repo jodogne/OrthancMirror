@@ -1,8 +1,9 @@
 function OnStoredInstance(instance, tags, metadata)
    --PrintRecursive(tags)
-  PrintRecursive(metadata)
-  return { 
-    { "store", instance, "pacs" }, 
-    { "delete", instance } 
-  }
+   PrintRecursive(metadata)
+   print(metadata['RemoteAET'])
+   return { 
+      { "store", instance, "pacs" }, 
+      { "delete", instance } 
+   }
 end

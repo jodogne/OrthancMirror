@@ -235,5 +235,8 @@ namespace Orthanc
 
     void LookupTagValue(std::list<int64_t>& result,
                         const std::string& value);
+
+    void GetAllMetadata(std::map<MetadataType, std::string>& result,
+                        int64_t id);
   };
 }

@@ -32,6 +32,7 @@
 #pragma once
 
 #include <string>
+#include <map>
 
 #include "../Core/Enumerations.h"
 
@@ -123,6 +124,8 @@ namespace Orthanc
     ChangeType_StableStudy = 13,
     ChangeType_StableSeries = 14
   };
+
+
 
   void InitializeServerEnumerations();
 

@@ -579,7 +579,13 @@ TEST(ServerIndex, AttachmentRecycling)
     instance.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "study-" + id);
     instance.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, "series-" + id);
     instance.SetValue(DICOM_TAG_SOP_INSTANCE_UID, "instance-" + id);
-    ASSERT_EQ(StoreStatus_Success, index.Store(instance, attachments, ""));
+
+    std::map<MetadataType, std::string> instanceMetadata;
+    ServerIndex::MetadataMap metadata;
+    ASSERT_EQ(StoreStatus_Success, index.Store(instanceMetadata, instance, attachments, "", metadata));
+    ASSERT_EQ(2, instanceMetadata.size());
+    ASSERT_NE(instanceMetadata.end(), instanceMetadata.find(MetadataType_Instance_RemoteAet));
+    ASSERT_NE(instanceMetadata.end(), instanceMetadata.find(MetadataType_Instance_ReceptionDate));
 
     DicomInstanceHasher hasher(instance);
     ids.push_back(hasher.HashPatient());

@@ -6,7 +6,8 @@ Source: https://gist.github.com/stuby/5445834#file-rprint-lua
 --]]
 
 function PrintRecursive(s, l, i) -- recursive Print (structure, limit, indent)
-   l = (l) or 100; i = i or "";	-- default item limit, indent string
+   l = (l) or 100;  -- default item limit
+   i = i or "";     -- indent string
    if (l<1) then print "ERROR: Item limit reached."; return l-1 end;
    local ts = type(s);
    if (ts ~= "table") then print (i,ts,s); return l-1 end
