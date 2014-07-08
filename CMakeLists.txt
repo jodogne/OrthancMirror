@@ -156,11 +156,12 @@ set(ORTHANC_SERVER_SOURCES
   # From "lua-scripting" branch
   OrthancServer/DicomInstanceToStore.cpp
   OrthancServer/Scheduler/DeleteInstanceCommand.cpp
+  OrthancServer/Scheduler/ModifyInstanceCommand.cpp
   OrthancServer/Scheduler/ServerCommandInstance.cpp
   OrthancServer/Scheduler/ServerJob.cpp
   OrthancServer/Scheduler/ServerScheduler.cpp
-  OrthancServer/Scheduler/StoreScuCommand.cpp
   OrthancServer/Scheduler/StorePeerCommand.cpp
+  OrthancServer/Scheduler/StoreScuCommand.cpp
   )
 
 

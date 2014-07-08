@@ -69,12 +69,14 @@ function OnStoredInstance(instanceId, tags, metadata)
    --PrintRecursive(metadata)
    --print(metadata['RemoteAET'])
 
-   if true then
+   if (metadata['ModifiedFrom'] == nil and
+       metadata['AnonymizedFrom'] == nil) then
       local patientName = string.lower(tags['PatientName'])
       if string.find(patientName, 'david') ~= nil then
          --Delete(SendToModality(instanceId, 'sample'))
          --Delete(SendToPeer(instanceId, 'peer'))
-         Delete(SendToModality(Modify(instanceId, { PatientName = 'Hello^World' }), 'sample'))
+         SendToModality(Modify(instanceId, { PatientName = 'Hello^World' }), 'sample')
+         Delete(instanceId)
       else
          Delete(instanceId)
       end

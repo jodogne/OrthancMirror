@@ -45,6 +45,7 @@
 
 
 #include "Scheduler/DeleteInstanceCommand.h"
+#include "Scheduler/ModifyInstanceCommand.h"
 #include "Scheduler/StoreScuCommand.h"
 #include "Scheduler/StorePeerCommand.h"
 
@@ -150,6 +151,33 @@ namespace Orthanc
       return new StorePeerCommand(context, parameters);
     }
 
+    if (operation == "modify")
+    {
+      LOG(INFO) << "Lua script to modify instance " << parameters["instance"].asString();
+      std::auto_ptr<ModifyInstanceCommand> command(new ModifyInstanceCommand(context));
+
+      if (parameters.isMember("replacements"))
+      {
+        const Json::Value& replacements = parameters["replacements"];
+        if (replacements.type() != Json::objectValue)
+        {
+          throw OrthancException(ErrorCode_BadParameterType);
+        }
+
+        Json::Value::Members members = replacements.getMemberNames();
+        for (Json::Value::Members::const_iterator
+               it = members.begin(); it != members.end(); ++it)
+        {
+          command->GetModification().Replace(FromDcmtkBridge::ParseTag(*it),
+                                             replacements[*it].asString());
+        }
+
+        // TODO OTHER PARAMETERS OF MODIFY
+      }
+
+      return command.release();
+    }
+
     throw OrthancException(ErrorCode_ParameterOutOfRange);
   }
 
@@ -208,6 +236,13 @@ namespace Orthanc
         {
           throw OrthancException(ErrorCode_InternalError);
         }
+
+        /*
+          TODO
+if (previousCommand != NULL)
+        {
+          previousCommand->ConnectNext(command);
+          }*/
 
         previousCommand = &command;
       }
