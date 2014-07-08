@@ -46,6 +46,7 @@
 
 #include "Scheduler/DeleteInstanceCommand.h"
 #include "Scheduler/StoreScuCommand.h"
+#include "Scheduler/StorePeerCommand.h"
 
 
 
@@ -120,6 +121,39 @@ namespace Orthanc
   }
 
 
+  static IServerCommand* ParseOperation(ServerContext& context,
+                                        const std::string& operation,
+                                        const Json::Value& parameters)
+  {
+    if (operation == "delete")
+    {
+      LOG(INFO) << "Lua script to delete instance " << parameters["instance"].asString();
+      return new DeleteInstanceCommand(context);
+    }
+
+    if (operation == "store-scu")
+    {
+      std::string modality = parameters["modality"].asString();
+      LOG(INFO) << "Lua script to send instance " << parameters["instance"].asString()
+                << " to modality " << modality << " using Store-SCU";
+      return new StoreScuCommand(context, Configuration::GetModalityUsingSymbolicName(modality));
+    }
+
+    if (operation == "store-peer")
+    {
+      std::string peer = parameters["peer"].asString();
+      LOG(INFO) << "Lua script to send instance " << parameters["instance"].asString()
+                << " to peer " << peer << " using HTTP";
+
+      OrthancPeerParameters parameters;
+      Configuration::GetOrthancPeer(parameters, peer);
+      return new StorePeerCommand(context, parameters);
+    }
+
+    throw OrthancException(ErrorCode_ParameterOutOfRange);
+  }
+
+
   void ServerContext::ApplyOnStoredInstance(const std::string& instanceId,
                                             const Json::Value& simplifiedDicom,
                                             const Json::Value& metadata)
@@ -128,34 +162,59 @@ namespace Orthanc
 
     if (locker.GetLua().IsExistingFunction(ON_STORED_INSTANCE))
     {
+      locker.GetLua().Execute("_InitializeJob()");
+
       LuaFunctionCall call(locker.GetLua(), ON_STORED_INSTANCE);
       call.PushString(instanceId);
       call.PushJson(simplifiedDicom);
       call.PushJson(metadata);
+      call.Execute();
 
-      Json::Value result;
-      call.ExecuteToJson(result);
-
-      printf("TODO\n");
-      std::cout << result;
-    }
-
-#if 0
-    {
-      // Autorouting test
-      RemoteModalityParameters p = Configuration::GetModalityUsingSymbolicName("sample");
+      Json::Value operations;
+      LuaFunctionCall call2(locker.GetLua(), "_AccessJob");
+      call2.ExecuteToJson(operations);
+     
+      if (operations.type() != Json::arrayValue)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
 
       ServerJob job;
-      ServerCommandInstance& a = job.AddCommand(new StoreScuCommand(*this, p));
-      a.AddInput(instanceId);
+      ServerCommandInstance* previousCommand = NULL;
 
-      /*ServerCommandInstance& b = job.AddCommand(new DeleteInstanceCommand(*this));
-        a.ConnectNext(b);*/
+      for (Json::Value::ArrayIndex i = 0; i < operations.size(); ++i)
+      {
+        if (operations[i].type() != Json::objectValue ||
+            !operations[i].isMember("operation"))
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
 
-      job.SetDescription("Autorouting test");
+        const Json::Value& parameters = operations[i];
+        std::string operation = parameters["operation"].asString();
+
+        ServerCommandInstance& command = job.AddCommand(ParseOperation(*this, operation, operations[i]));
+        
+        if (parameters.isMember("instance") &&
+            parameters["instance"].asString() != "")
+        {
+          command.AddInput(parameters["instance"].asString());
+        }
+        else if (previousCommand != NULL)
+        {
+          previousCommand->ConnectNext(command);
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+
+        previousCommand = &command;
+      }
+
+      job.SetDescription(std::string("Lua script: ") + ON_STORED_INSTANCE);
       scheduler_.Submit(job);
     }
-#endif
   }
 
 
@@ -225,28 +284,21 @@ namespace Orthanc
       if (status == StoreStatus_Success ||
           status == StoreStatus_AlreadyStored)
       {
+        Json::Value metadata = Json::objectValue;
+        for (std::map<MetadataType, std::string>::const_iterator 
+               it = instanceMetadata.begin(); 
+             it != instanceMetadata.end(); ++it)
+        {
+          metadata[EnumerationToString(it->first)] = it->second;
+        }
+
         try
         {
-#if 1
-          Json::Value metadata = Json::objectValue;
-          for (std::map<MetadataType, std::string>::const_iterator 
-                 it = instanceMetadata.begin(); 
-               it != instanceMetadata.end(); ++it)
-          {
-            metadata[EnumerationToString(it->first)] = it->second;
-          }
-#else
-          Json::Value metadata;
-          index_.GetMetadata(metadata, resultPublicId);
-#endif
-
-          std::cout << metadata;
-
           ApplyOnStoredInstance(resultPublicId, simplified, metadata);
         }
-        catch (OrthancException&)
+        catch (OrthancException& e)
         {
-          LOG(ERROR) << "Error when dealing with OnStoredInstance";
+          LOG(ERROR) << "Lua error in OnStoredInstance: " << e.What();
         }
       }
 
