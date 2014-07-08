@@ -71,7 +71,14 @@ public:
   {
     if (dicomFile.size() > 0)
     {
-      server_.Store(&dicomFile[0], dicomFile.size(), dicomSummary, dicomJson, remoteAet);
+      DicomInstanceToStore toStore;
+      toStore.SetBuffer(dicomFile);
+      toStore.SetSummary(dicomSummary);
+      toStore.SetJson(dicomJson);
+      toStore.SetRemoteAet(remoteAet);
+
+      std::string id;
+      server_.Store(id, toStore);
     }
   }
 };
