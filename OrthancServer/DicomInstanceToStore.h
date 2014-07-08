@@ -34,19 +34,149 @@
 
 #include "ParsedDicomFile.h"
 #include "ServerIndex.h"
+#include "../Core/OrthancException.h"
 
 namespace Orthanc
 {
   class DicomInstanceToStore
   {
   private:
-    bool hasBuffer_;
-    const char* buffer_;
-    size_t bufferSize_;
+    template <typename T>
+    class SmartContainer
+    {
+    private:
+      T* content_;
+      bool toDelete_;
+      bool isReadOnly_;
 
-    ParsedDicomFile* parsed_;
-    const DicomMap* summary_;
-    const Json::Value*  json_;
+      void Deallocate()
+      {
+        if (content_ && toDelete_)
+        {
+          delete content_;
+          toDelete_ = false;
+          content_ = NULL;
+        }
+      }
+
+    public:
+      SmartContainer() : content_(NULL), toDelete_(false)
+      {
+      }
+
+      ~SmartContainer()
+      {
+        Deallocate();
+      }
+
+      void Allocate()
+      {
+        Deallocate();
+        content_ = new T;
+        toDelete_ = true;
+        isReadOnly_ = false;
+      }
+
+      void TakeOwnership(T* content)
+      {
+        if (content == NULL)
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+
+        Deallocate();
+        content_ = content;
+        toDelete_ = true;
+        isReadOnly_ = true;
+      }
+
+      void SetReference(const T& content)   // Read-only assign, without transfering ownership
+      {
+        Deallocate();
+        content_ = &const_cast<T&>(content);
+        toDelete_ = false;
+        isReadOnly_ = true;
+      }
+
+      bool HasContent() const
+      {
+        return content_ != NULL;
+      }
+
+      T& GetContent()
+      {
+        if (content_ == NULL)
+        {
+          throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
+
+        if (isReadOnly_)
+        {
+          throw OrthancException(ErrorCode_ReadOnly);
+        }
+
+        return *content_;
+      }
+
+      const T& GetConstContent() const
+      {
+        if (content_ == NULL)
+        {
+          throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
+
+        return *content_;
+      }
+    };
+
+
+    /*class MemoryBuffer
+    {
+    private:
+      const char* buffer_;
+      size_t size_;
+
+    public:
+      MemoryBuffer() : buffer_(NULL), size_(0)
+      {
+      }
+
+      const char* GetBuffer() const
+      {
+        return buffer_;
+      }
+
+      size_t GetSize() const
+      {
+        return size_;
+      }
+
+      void Assign(const char* buffer, size_t size)
+      {
+        buffer_ = buffer;
+        size_ = size;
+      }
+
+      void Assign(const std::string& buffer)
+      {
+        size_ = buffer.size();
+
+        if (size_ == 0)
+        {
+          buffer_ = NULL;
+        }
+        else
+        {
+          buffer_ = &buffer[0];
+        }
+      }
+    };*/
+
+
+    SmartContainer<std::string>  buffer_;
+    SmartContainer<ParsedDicomFile>  parsed_;
+    SmartContainer<DicomMap>  summary_;
+    SmartContainer<Json::Value>  json_;
 
     std::string remoteAet_;
     ServerIndex::MetadataMap metadata_;
@@ -54,26 +184,24 @@ namespace Orthanc
     void ComputeMissingInformation();
 
   public:
-    DicomInstanceToStore();
-
-    void SetBuffer(const std::string& dicom);
-
-    void SetBuffer(const char* buffer, 
-                   size_t size);
+    void SetBuffer(const std::string& dicom)
+    {
+      buffer_.SetReference(dicom);
+    }
 
     void SetParsedDicomFile(ParsedDicomFile& parsed)
     {
-      parsed_ = &parsed;
+      parsed_.SetReference(parsed);
     }
 
     void SetSummary(const DicomMap& summary)
     {
-      summary_ = &summary;
+      summary_.SetReference(summary);
     }
 
     void SetJson(const Json::Value& json)
     {
-      json_ = &json;
+      json_.SetReference(json);
     }
 
     const std::string GetRemoteAet() const
@@ -86,7 +214,7 @@ namespace Orthanc
       remoteAet_ = aet;
     }
 
-    void SetMetadata(ResourceType level,
+    void AddMetadata(ResourceType level,
                      MetadataType metadata,
                      const std::string& value);
 
@@ -95,8 +223,17 @@ namespace Orthanc
       return metadata_;
     }
 
-    const char* GetBuffer();
+    ServerIndex::MetadataMap& GetMetadata()
+    {
+      return metadata_;
+    }
+
+    const char* GetBufferData();
 
     size_t GetBufferSize();
+
+    const DicomMap& GetSummary();
+    
+    const Json::Value& GetJson();
   };
 }

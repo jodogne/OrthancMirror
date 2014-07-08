@@ -385,7 +385,7 @@ namespace Orthanc
   StoreStatus ServerIndex::Store(const DicomMap& dicomSummary,
                                  const Attachments& attachments,
                                  const std::string& remoteAet,
-                                 const MetadataMap* metadata)
+                                 MetadataMap* metadata)
   {
     boost::mutex::scoped_lock lock(mutex_);
     listener_->Reset();
@@ -550,27 +550,41 @@ namespace Orthanc
         }
       }
 
-      // Attach the auto-computer metadata
+      // Attach the auto-computed metadata for the patient/study/series levels
       std::string now = Toolbox::GetNowIsoString();
-      db_->SetMetadata(instance, MetadataType_Instance_ReceptionDate, now);
       db_->SetMetadata(series, MetadataType_LastUpdate, now);
       db_->SetMetadata(study, MetadataType_LastUpdate, now);
       db_->SetMetadata(patient, MetadataType_LastUpdate, now);
+
+      // Attach the auto-computed metadata for the instance level,
+      // reflecting these additions into the input metadata map
+      db_->SetMetadata(instance, MetadataType_Instance_ReceptionDate, now);
       db_->SetMetadata(instance, MetadataType_Instance_RemoteAet, remoteAet);
+
+      if (metadata)
+      {
+        (*metadata) [std::make_pair(ResourceType_Instance, MetadataType_Instance_ReceptionDate)] = now;
+        (*metadata) [std::make_pair(ResourceType_Instance, MetadataType_Instance_RemoteAet)] = remoteAet;
+      }
 
       const DicomValue* value;
       if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_INSTANCE_NUMBER)) != NULL ||
           (value = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGE_INDEX)) != NULL)
       {
         db_->SetMetadata(instance, MetadataType_Instance_IndexInSeries, value->AsString());
+
+        if (metadata)
+        {
+          (*metadata) [std::make_pair(ResourceType_Instance, MetadataType_Instance_IndexInSeries)] = value->AsString();
+        }
       }
 
+      // Check whether the series of this new instance is now completed
       if (isNewSeries)
       {
         ComputeExpectedNumberOfInstances(*db_, series, dicomSummary);
       }
 
-      // Check whether the series of this new instance is now completed
       SeriesStatus seriesStatus = GetSeriesStatus(series);
       if (seriesStatus == SeriesStatus_Complete)
       {
