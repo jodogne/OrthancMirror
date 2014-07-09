@@ -32,8 +32,9 @@
 
 #pragma once
 
-#include "../ServerContext.h"
 #include "../../Core/RestApi/RestApi.h"
+#include "../DicomModification.h"
+#include "../ServerContext.h"
 
 #include <set>
 
@@ -80,5 +81,8 @@ namespace Orthanc
     void AnswerStoredInstance(RestApiPostCall& call,
                               const std::string& publicId,
                               StoreStatus status) const;
+
+    static bool ParseModifyRequest(DicomModification& target,
+                                   const Json::Value& request);
   };
 }

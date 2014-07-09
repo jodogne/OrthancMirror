@@ -19,4 +19,79 @@ function PrintRecursive(s, l, i) -- recursive Print (structure, limit, indent)
    return l
 end	
 
+
+
+
+function _InitializeJob()
+   _job = {}
+end
+
+
+function _AccessJob()
+   return _job
+end
+
+
+function SendToModality(instanceId, modality)
+   if instanceId == nil then
+      error('Cannot send a nonexistent instance')
+   end
+
+   table.insert(_job, { 
+                   Operation = 'store-scu', 
+                   Instance = instanceId,
+                   Modality = modality 
+                })
+   return instanceId
+end
+
+
+function SendToPeer(instanceId, peer)
+   if instanceId == nil then
+      error('Cannot send a nonexistent instance')
+   end
+
+   table.insert(_job, { 
+                   Operation = 'store-peer', 
+                   Instance = instanceId,
+                   Peer = peer
+                })
+   return instanceId
+end
+
+
+function Delete(instanceId)
+   if instanceId == nil then
+      error('Cannot delete a nonexistent instance')
+   end
+
+   table.insert(_job, { 
+                   Operation = 'delete', 
+                   Instance = instanceId
+                })
+   return nil  -- Forbid chaining
+end
+
+
+function ModifyInstance(instanceId, replacements, removals, removePrivateTags)
+   if instanceId == nil then
+      error('Cannot modify a nonexistent instance')
+   end
+
+   if instanceId == '' then
+      error('Cannot modify twice an instance');
+   end
+
+   table.insert(_job, { 
+                   Operation = 'modify', 
+                   Instance = instanceId,
+                   Replace = replacements, 
+                   Remove = removals,
+                   RemovePrivateTags = removePrivateTags 
+                })
+   return ''  -- Chain with another operation
+end
+
+
+
 print('Lua toolbox installed')

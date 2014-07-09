@@ -266,6 +266,10 @@ namespace Orthanc
     {
       result = std::string(lua_tostring(lua, top));
     }
+    else if (lua_isboolean(lua, top))
+    {
+      result = static_cast<bool>(lua_toboolean(lua, top));
+    }
     else
     {
       LOG(WARNING) << "Unsupported Lua type when returning Json";

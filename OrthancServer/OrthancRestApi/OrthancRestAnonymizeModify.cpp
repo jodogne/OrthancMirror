@@ -33,7 +33,6 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
-#include "../DicomModification.h"
 #include "../FromDcmtkBridge.h"
 
 #include <glog/logging.h>
@@ -111,13 +110,11 @@ namespace Orthanc
   }
 
 
-  static bool ParseModifyRequest(DicomModification& target,
-                                 const RestApiPostCall& call)
-  {
-    // curl http://localhost:8042/series/95a6e2bf-9296e2cc-bf614e2f-22b391ee-16e010e0/modify -X POST -d '{"Replace":{"InstitutionName":"My own clinic"}}'
 
-    Json::Value request;
-    if (call.ParseJsonRequest(request) && request.isObject())
+  bool OrthancRestApi::ParseModifyRequest(DicomModification& target,
+                                          const Json::Value& request)
+  {
+    if (request.isObject())
     {
       if (request.isMember("RemovePrivateTags"))
       {
@@ -135,6 +132,23 @@ namespace Orthanc
       }
 
       return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+
+  static bool ParseModifyRequest(DicomModification& target,
+                                 const RestApiPostCall& call)
+  {
+    // curl http://localhost:8042/series/95a6e2bf-9296e2cc-bf614e2f-22b391ee-16e010e0/modify -X POST -d '{"Replace":{"InstitutionName":"My own clinic"}}'
+
+    Json::Value request;
+    if (call.ParseJsonRequest(request))
+    {
+      return OrthancRestApi::ParseModifyRequest(target, request);
     }
     else
     {
