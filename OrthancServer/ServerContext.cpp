@@ -48,6 +48,7 @@
 #include "Scheduler/ModifyInstanceCommand.h"
 #include "Scheduler/StoreScuCommand.h"
 #include "Scheduler/StorePeerCommand.h"
+#include "OrthancRestApi/OrthancRestApi.h"
 
 
 
@@ -128,22 +129,22 @@ namespace Orthanc
   {
     if (operation == "delete")
     {
-      LOG(INFO) << "Lua script to delete instance " << parameters["instance"].asString();
+      LOG(INFO) << "Lua script to delete instance " << parameters["Instance"].asString();
       return new DeleteInstanceCommand(context);
     }
 
     if (operation == "store-scu")
     {
-      std::string modality = parameters["modality"].asString();
-      LOG(INFO) << "Lua script to send instance " << parameters["instance"].asString()
+      std::string modality = parameters["Modality"].asString();
+      LOG(INFO) << "Lua script to send instance " << parameters["Instance"].asString()
                 << " to modality " << modality << " using Store-SCU";
       return new StoreScuCommand(context, Configuration::GetModalityUsingSymbolicName(modality));
     }
 
     if (operation == "store-peer")
     {
-      std::string peer = parameters["peer"].asString();
-      LOG(INFO) << "Lua script to send instance " << parameters["instance"].asString()
+      std::string peer = parameters["Peer"].asString();
+      LOG(INFO) << "Lua script to send instance " << parameters["Instance"].asString()
                 << " to peer " << peer << " using HTTP";
 
       OrthancPeerParameters parameters;
@@ -153,28 +154,9 @@ namespace Orthanc
 
     if (operation == "modify")
     {
-      LOG(INFO) << "Lua script to modify instance " << parameters["instance"].asString();
+      LOG(INFO) << "Lua script to modify instance " << parameters["Instance"].asString();
       std::auto_ptr<ModifyInstanceCommand> command(new ModifyInstanceCommand(context));
-
-      if (parameters.isMember("replacements"))
-      {
-        const Json::Value& replacements = parameters["replacements"];
-        if (replacements.type() != Json::objectValue)
-        {
-          throw OrthancException(ErrorCode_BadParameterType);
-        }
-
-        Json::Value::Members members = replacements.getMemberNames();
-        for (Json::Value::Members::const_iterator
-               it = members.begin(); it != members.end(); ++it)
-        {
-          command->GetModification().Replace(FromDcmtkBridge::ParseTag(*it),
-                                             replacements[*it].asString());
-        }
-
-        // TODO OTHER PARAMETERS OF MODIFY
-      }
-
+      OrthancRestApi::ParseModifyRequest(command->GetModification(), parameters);
       return command.release();
     }
 
@@ -213,36 +195,30 @@ namespace Orthanc
       for (Json::Value::ArrayIndex i = 0; i < operations.size(); ++i)
       {
         if (operations[i].type() != Json::objectValue ||
-            !operations[i].isMember("operation"))
+            !operations[i].isMember("Operation"))
         {
           throw OrthancException(ErrorCode_InternalError);
         }
 
         const Json::Value& parameters = operations[i];
-        std::string operation = parameters["operation"].asString();
+        std::string operation = parameters["Operation"].asString();
 
         ServerCommandInstance& command = job.AddCommand(ParseOperation(*this, operation, operations[i]));
         
-        if (parameters.isMember("instance") &&
-            parameters["instance"].asString() != "")
-        {
-          command.AddInput(parameters["instance"].asString());
-        }
-        else if (previousCommand != NULL)
-        {
-          previousCommand->ConnectOutput(command);
-        }
-        else
+        if (!parameters.isMember("Instance"))
         {
           throw OrthancException(ErrorCode_InternalError);
         }
 
-        /*
-          TODO
-if (previousCommand != NULL)
+        std::string instance = parameters["Instance"].asString();
+        if (instance.empty())
         {
-          previousCommand->ConnectNext(command);
-          }*/
+          previousCommand->ConnectOutput(command);
+        }
+        else 
+        {
+          command.AddInput(instance);
+        }
 
         previousCommand = &command;
       }
@@ -333,7 +309,7 @@ if (previousCommand != NULL)
         }
         catch (OrthancException& e)
         {
-          LOG(ERROR) << "Lua error in OnStoredInstance: " << e.What();
+          LOG(ERROR) << "Error in OnStoredInstance callback (Lua): " << e.What();
         }
       }
 
