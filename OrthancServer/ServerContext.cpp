@@ -230,7 +230,7 @@ namespace Orthanc
         }
         else if (previousCommand != NULL)
         {
-          previousCommand->ConnectNext(command);
+          previousCommand->ConnectOutput(command);
         }
         else
         {

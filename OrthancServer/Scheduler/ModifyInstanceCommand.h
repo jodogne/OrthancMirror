@@ -60,12 +60,7 @@ namespace Orthanc
       return modification_;
     }
 
-    bool Apply(ListOfStrings& outputs,
-               const ListOfStrings& inputs);
-
-    bool SendOutputsToSink() const
-    {
-      return false;
-    }
+    virtual bool Apply(ListOfStrings& outputs,
+                       const ListOfStrings& inputs);
   };
 }

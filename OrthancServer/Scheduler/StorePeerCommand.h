@@ -47,13 +47,8 @@ namespace Orthanc
   public:
     StorePeerCommand(ServerContext& context,
                      const OrthancPeerParameters& peer);
-
-    bool Apply(ListOfStrings& outputs,
-               const ListOfStrings& inputs);
-
-    bool SendOutputsToSink() const
-    {
-      return false;
-    }
+    
+    virtual bool Apply(ListOfStrings& outputs,
+                       const ListOfStrings& inputs);
   };
 }

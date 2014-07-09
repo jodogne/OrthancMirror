@@ -44,7 +44,7 @@ namespace Orthanc
 
     try
     {
-      if (filter_->Apply(outputs, inputs_))
+      if (command_->Apply(outputs, inputs_))
       {
         success = true;
       }
@@ -74,12 +74,13 @@ namespace Orthanc
   }
 
 
-  ServerCommandInstance::ServerCommandInstance(IServerCommand *filter,
-                                             const std::string& jobId) : 
-    filter_(filter), 
-    jobId_(jobId)
+  ServerCommandInstance::ServerCommandInstance(IServerCommand *command,
+                                               const std::string& jobId) : 
+    command_(command), 
+    jobId_(jobId),
+    connectedToSink_(false)
   {
-    if (filter_ == NULL)
+    if (command_ == NULL)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -88,9 +89,9 @@ namespace Orthanc
 
   ServerCommandInstance::~ServerCommandInstance()
   {
-    if (filter_ != NULL)
+    if (command_ != NULL)
     {
-      delete filter_;
+      delete command_;
     }
   }
 }

@@ -303,13 +303,8 @@ public:
       outputs.push_back(boost::lexical_cast<std::string>(b));
     }
 
-    Toolbox::USleep(1000000);
+    Toolbox::USleep(100000);
 
-    return true;
-  }
-
-  virtual bool SendOutputsToSink() const
-  {
     return true;
   }
 };
@@ -319,31 +314,18 @@ static void Tata(ServerScheduler* s, ServerJob* j, bool* done)
 {
   typedef IServerCommand::ListOfStrings  ListOfStrings;
 
-#if 1
   while (!(*done))
   {
     ListOfStrings l;
     s->GetListOfJobs(l);
     for (ListOfStrings::iterator i = l.begin(); i != l.end(); i++)
       printf(">> %s: %0.1f\n", i->c_str(), 100.0f * s->GetProgress(*i));
-    Toolbox::USleep(100000);
+    Toolbox::USleep(10000);
   }
-#else
-  ListOfStrings l;
-  s->GetListOfJobs(l);
-  for (ListOfStrings::iterator i = l.begin(); i != l.end(); i++)
-    printf(">> %s\n", i->c_str());
-  Toolbox::USleep(1500000);
-  s->Cancel(*j);
-  Toolbox::USleep(1000000);
-  s->GetListOfJobs(l);
-  for (ListOfStrings::iterator i = l.begin(); i != l.end(); i++)
-    printf(">> %s\n", i->c_str());
-#endif
 }
 
 
-TEST(MultiThreading, DISABLED_ServerScheduler)
+TEST(MultiThreading, ServerScheduler)
 {
   ServerScheduler scheduler(10);
 
@@ -355,9 +337,12 @@ TEST(MultiThreading, DISABLED_ServerScheduler)
   f2.AddInput(boost::lexical_cast<std::string>(42));
   //f3.AddInput(boost::lexical_cast<std::string>(42));
   //f4.AddInput(boost::lexical_cast<std::string>(42));
-  f2.ConnectNext(f3);
-  f3.ConnectNext(f4);
-  f4.ConnectNext(f5);
+  f2.ConnectOutput(f3);
+  f3.ConnectOutput(f4);
+  f4.ConnectOutput(f5);
+
+  f3.SetConnectedToSink(true);
+  f5.SetConnectedToSink(true);
 
   job.SetDescription("tutu");
 
@@ -369,6 +354,10 @@ TEST(MultiThreading, DISABLED_ServerScheduler)
 
   IServerCommand::ListOfStrings l;
   scheduler.SubmitAndWait(l, job);
+
+  ASSERT_EQ(2, l.size());
+  ASSERT_EQ(42 * 2 * 3, boost::lexical_cast<int>(l.front()));
+  ASSERT_EQ(42 * 2 * 3 * 4 * 5, boost::lexical_cast<int>(l.back()));
 
   for (IServerCommand::ListOfStrings::iterator i = l.begin(); i != l.end(); i++)
   {

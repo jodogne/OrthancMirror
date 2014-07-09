@@ -57,16 +57,17 @@ namespace Orthanc
   private:
     typedef IServerCommand::ListOfStrings  ListOfStrings;
 
-    IServerCommand *filter_;
+    IServerCommand *command_;
     std::string jobId_;
     ListOfStrings inputs_;
     std::list<ServerCommandInstance*> next_;
+    bool connectedToSink_;
 
     bool Execute(IListener& listener);
 
   public:
-    ServerCommandInstance(IServerCommand *filter,
-                         const std::string& jobId);
+    ServerCommandInstance(IServerCommand *command,
+                          const std::string& jobId);
 
     virtual ~ServerCommandInstance();
 
@@ -80,19 +81,24 @@ namespace Orthanc
       inputs_.push_back(input);
     }
 
-    void ConnectNext(ServerCommandInstance& filter)
+    void ConnectOutput(ServerCommandInstance& next)
     {
-      next_.push_back(&filter);
+      next_.push_back(&next);
+    }
+
+    void SetConnectedToSink(bool connected = true)
+    {
+      connectedToSink_ = connected;
+    }
+
+    bool IsConnectedToSink() const
+    {
+      return connectedToSink_;
     }
 
     const std::list<ServerCommandInstance*>& GetNextCommands() const
     {
       return next_;
-    }
-
-    IServerCommand& GetCommand() const
-    {
-      return *filter_;
     }
   };
 }

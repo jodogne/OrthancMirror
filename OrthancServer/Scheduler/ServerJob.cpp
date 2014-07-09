@@ -109,6 +109,12 @@ namespace Orthanc
     {
       delete *it;
     }
+
+    for (std::list<IDynamicObject*>::iterator
+           it = payloads_.begin(); it != payloads_.end(); it++)
+    {
+      delete *it;
+    }
   }
 
 
@@ -123,4 +129,18 @@ namespace Orthanc
       
     return *filters_.back();
   }
+
+
+  IDynamicObject& ServerJob::AddPayload(IDynamicObject* payload)
+  {
+    if (submitted_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    payloads_.push_back(payload);
+      
+    return *filters_.back();
+  }
+
 }
