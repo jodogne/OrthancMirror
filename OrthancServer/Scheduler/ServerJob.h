@@ -43,6 +43,7 @@ namespace Orthanc
 
   private:
     std::list<ServerCommandInstance*> filters_;
+    std::list<IDynamicObject*> payloads_;
     std::string jobId_;
     bool submitted_;
     std::string description_;
@@ -73,5 +74,9 @@ namespace Orthanc
     }
 
     ServerCommandInstance& AddCommand(IServerCommand* filter);
+
+    // Take the ownership of a payload to a job. This payload will be
+    // automatically freed when the job succeeds or fails.
+    IDynamicObject& AddPayload(IDynamicObject* payload);
   };
 }

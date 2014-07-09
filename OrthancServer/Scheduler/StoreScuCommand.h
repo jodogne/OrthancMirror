@@ -47,12 +47,7 @@ namespace Orthanc
     StoreScuCommand(ServerContext& context,
                    const RemoteModalityParameters& modality);
 
-    bool Apply(ListOfStrings& outputs,
-               const ListOfStrings& inputs);
-
-    bool SendOutputsToSink() const
-    {
-      return false;
-    }
+    virtual bool Apply(ListOfStrings& outputs,
+                       const ListOfStrings& inputs);
   };
 }

@@ -51,11 +51,6 @@ namespace Orthanc
       {
       }
 
-      virtual bool SendOutputsToSink() const
-      {
-        return false;
-      }
-
       virtual bool Apply(ListOfStrings& outputs,
                          const ListOfStrings& inputs)
       {
@@ -240,10 +235,9 @@ namespace Orthanc
            it = job.filters_.begin(); it != job.filters_.end(); it++)
     {
       if ((*it) != &sink &&
-          (*it)->GetNextCommands().size() == 0 &&
-          (*it)->GetCommand().SendOutputsToSink())
+          (*it)->IsConnectedToSink())
       {
-        (*it)->ConnectNext(sink);
+        (*it)->ConnectOutput(sink);
       }
     }
 

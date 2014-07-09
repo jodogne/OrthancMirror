@@ -49,7 +49,5 @@ namespace Orthanc
 
     virtual bool Apply(ListOfStrings& outputs,
                        const ListOfStrings& inputs) = 0;
-
-    virtual bool SendOutputsToSink() const = 0;
   };
 }
