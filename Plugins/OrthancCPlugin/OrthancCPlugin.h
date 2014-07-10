@@ -122,7 +122,7 @@
  ********************************************************************/
 
 #ifdef _MSC_VER
-#include "../../Resources/VisualStudio/stdint.h"
+#include "../../Resources/ThirdParty/VisualStudio/stdint.h"
 #else
 #include <stdint.h>
 #endif
