@@ -57,6 +57,7 @@ namespace Orthanc
   enum ModalityManufacturer
   {
     ModalityManufacturer_Generic,
+    ModalityManufacturer_StoreScp,
     ModalityManufacturer_ClearCanvas,
     ModalityManufacturer_MedInria,
     ModalityManufacturer_Dcm4Chee
