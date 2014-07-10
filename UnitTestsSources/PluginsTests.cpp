@@ -55,6 +55,13 @@ TEST(SharedLibrary, Basic)
   ASSERT_TRUE(l.HasFunction("dlclose"));
   ASSERT_FALSE(l.HasFunction("world"));
 
+#elif defined(__APPLE__) && defined(__MACH__)
+  SharedLibrary l("libdl.dylib");
+  ASSERT_THROW(l.GetFunction("world"), OrthancException);
+  ASSERT_TRUE(l.GetFunction("dlopen") != NULL);
+  ASSERT_TRUE(l.HasFunction("dlclose"));
+  ASSERT_FALSE(l.HasFunction("world"));
+
 #else
 #error Support your platform here
 #endif

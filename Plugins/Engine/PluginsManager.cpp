@@ -44,6 +44,8 @@
 #define PLUGIN_EXTENSION ".dll"
 #elif defined(__linux)
 #define PLUGIN_EXTENSION ".so"
+#elif defined(__APPLE__) && defined(__MACH__)
+#define PLUGIN_EXTENSION ".dylib"
 #else
 #error Support your platform here
 #endif
