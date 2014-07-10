@@ -56,15 +56,15 @@ namespace Orthanc
     namespace fs = boost::filesystem;
 
     output.SendOkHeader("text/html", false, 0, NULL);
-    output.SendString("<html>");
-    output.SendString("  <body>");
-    output.SendString("    <h1>Subdirectories</h1>");
-    output.SendString("    <ul>");
+    output.SendBodyString("<html>");
+    output.SendBodyString("  <body>");
+    output.SendBodyString("    <h1>Subdirectories</h1>");
+    output.SendBodyString("    <ul>");
 
     if (uri.size() > 0)
     {
       std::string h = Toolbox::FlattenUri(uri) + "/..";
-      output.SendString("<li><a href=\"" + h + "\">..</a></li>");
+      output.SendBodyString("<li><a href=\"" + h + "\">..</a></li>");
     }
 
     fs::directory_iterator end;
@@ -78,12 +78,12 @@ namespace Orthanc
 
       std::string h = Toolbox::FlattenUri(uri) + "/" + f;
       if (fs::is_directory(it->status()))
-        output.SendString("<li><a href=\"" + h + "\">" + f + "</a></li>");
+        output.SendBodyString("<li><a href=\"" + h + "\">" + f + "</a></li>");
     }      
 
-    output.SendString("    </ul>");      
-    output.SendString("    <h1>Files</h1>");
-    output.SendString("    <ul>");
+    output.SendBodyString("    </ul>");      
+    output.SendBodyString("    <h1>Files</h1>");
+    output.SendBodyString("    <ul>");
 
     for (fs::directory_iterator it(p) ; it != end; ++it)
     {
@@ -95,12 +95,12 @@ namespace Orthanc
 
       std::string h = Toolbox::FlattenUri(uri) + "/" + f;
       if (fs::is_regular_file(it->status()))
-        output.SendString("<li><a href=\"" + h + "\">" + f + "</a></li>");
+        output.SendBodyString("<li><a href=\"" + h + "\">" + f + "</a></li>");
     }      
 
-    output.SendString("    </ul>");
-    output.SendString("  </body>");
-    output.SendString("</html>");
+    output.SendBodyString("    </ul>");
+    output.SendBodyString("  </body>");
+    output.SendBodyString("</html>");
   }
 
 
@@ -120,13 +120,7 @@ namespace Orthanc
   }
 
 
-  bool FilesystemHttpHandler::IsServedUri(const UriComponents& uri)
-  {
-    return Toolbox::IsChildUri(pimpl_->baseUri_, uri);
-  }
-
-
-  void FilesystemHttpHandler::Handle(
+  bool FilesystemHttpHandler::Handle(
     HttpOutput& output,
     HttpMethod method,
     const UriComponents& uri,
@@ -134,10 +128,16 @@ namespace Orthanc
     const Arguments& arguments,
     const std::string&)
   {
+    if (!Toolbox::IsChildUri(pimpl_->baseUri_, uri))
+    {
+      // This URI is not served by this handler
+      return false;
+    }
+
     if (method != HttpMethod_Get)
     {
       output.SendMethodNotAllowedError("GET");
-      return;
+      return true;
     }
 
     namespace fs = boost::filesystem;
@@ -164,5 +164,7 @@ namespace Orthanc
     {
       output.SendHeader(HttpStatus_404_NotFound);
     }
+
+    return true;
   } 
 }

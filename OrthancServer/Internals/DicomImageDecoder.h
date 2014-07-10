@@ -72,7 +72,8 @@ namespace Orthanc
     static bool DecodeAndTruncate(ImageBuffer& target,
                                   DcmDataset& dataset,
                                   unsigned int frame,
-                                  PixelFormat format);
+                                  PixelFormat format,
+                                  bool allowColorConversion);
 
     static bool DecodePreview(ImageBuffer& target,
                               DcmDataset& dataset,

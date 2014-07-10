@@ -121,6 +121,9 @@ namespace Orthanc
       case ErrorCode_IncompatibleImageFormat:
         return "Incompatible format of the images";
 
+      case ErrorCode_SharedLibrary:
+        return "Error while using a shared library (plugin)";
+
       case ErrorCode_Custom:
       default:
         return "???";

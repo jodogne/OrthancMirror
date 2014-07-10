@@ -62,6 +62,11 @@ namespace Orthanc
       return format_;
     }
 
+    unsigned int GetBytesPerPixel() const
+    {
+      return ::Orthanc::GetBytesPerPixel(format_);
+    }
+
     unsigned int GetWidth() const
     {
       return width_;

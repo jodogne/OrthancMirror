@@ -49,7 +49,9 @@ namespace Orthanc
     virtual bool SendData(HttpOutput& output)
     {
       if (buffer_.size())
-        output.Send(&buffer_[0], buffer_.size());
+      {
+        output.SendBodyData(&buffer_[0], buffer_.size());
+      }
 
       return true;
     }
