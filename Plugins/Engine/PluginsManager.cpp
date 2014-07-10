@@ -42,7 +42,7 @@
 
 #ifdef WIN32
 #define PLUGIN_EXTENSION ".dll"
-#elif defined(__linux)
+#elif defined(__linux) || defined(__FreeBSD_kernel__)
 #define PLUGIN_EXTENSION ".so"
 #elif defined(__APPLE__) && defined(__MACH__)
 #define PLUGIN_EXTENSION ".dylib"
