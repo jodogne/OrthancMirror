@@ -1172,15 +1172,15 @@ namespace Orthanc
     switch (mode)
     {
       case ImageExtractionMode_UInt8:
-        ok = DicomImageDecoder::DecodeAndTruncate(result, dataset, frame, PixelFormat_Grayscale8);
+        ok = DicomImageDecoder::DecodeAndTruncate(result, dataset, frame, PixelFormat_Grayscale8, false);
         break;
 
       case ImageExtractionMode_UInt16:
-        ok = DicomImageDecoder::DecodeAndTruncate(result, dataset, frame, PixelFormat_Grayscale16);
+        ok = DicomImageDecoder::DecodeAndTruncate(result, dataset, frame, PixelFormat_Grayscale16, false);
         break;
 
       case ImageExtractionMode_Int16:
-        ok = DicomImageDecoder::DecodeAndTruncate(result, dataset, frame, PixelFormat_SignedGrayscale16);
+        ok = DicomImageDecoder::DecodeAndTruncate(result, dataset, frame, PixelFormat_SignedGrayscale16, false);
         break;
 
       case ImageExtractionMode_Preview:
