@@ -54,6 +54,10 @@ namespace Orthanc
 
   class ServerIndex : public boost::noncopyable
   {
+  public:
+    typedef std::list<FileInfo> Attachments;
+    typedef std::map< std::pair<ResourceType, MetadataType>, std::string>  MetadataMap;
+
   private:
     class Transaction;
     struct UnstableResourcePayload;
@@ -99,8 +103,6 @@ namespace Orthanc
                                /* in  */ ResourceType type);
 
   public:
-    typedef std::list<FileInfo> Attachments;
-
     ServerIndex(ServerContext& context,
                 const std::string& dbPath);
 
@@ -122,9 +124,11 @@ namespace Orthanc
     // "count == 0" means no limit on the number of patients
     void SetMaximumPatientCount(unsigned int count);
 
-    StoreStatus Store(const DicomMap& dicomSummary,
+    StoreStatus Store(std::map<MetadataType, std::string>& instanceMetadata,
+                      const DicomMap& dicomSummary,
                       const Attachments& attachments,
-                      const std::string& remoteAet);
+                      const std::string& remoteAet,
+                      const MetadataMap& metadata);
 
     void ComputeStatistics(Json::Value& target);                        
 
@@ -182,6 +186,9 @@ namespace Orthanc
 
     void ListAvailableMetadata(std::list<MetadataType>& target,
                                const std::string& publicId);
+
+    bool GetMetadata(Json::Value& target,
+                     const std::string& publicId);
 
     void ListAvailableAttachments(std::list<FileContentType>& target,
                                   const std::string& publicId,

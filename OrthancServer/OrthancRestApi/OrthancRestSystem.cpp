@@ -90,7 +90,12 @@ namespace Orthanc
   {
     std::string result;
     ServerContext& context = OrthancRestApi::GetContext(call);
-    context.GetLuaContext().Execute(result, call.GetPostBody());
+
+    {
+      ServerContext::LuaContextLocker locker(context);
+      locker.GetLua().Execute(result, call.GetPostBody());
+    }
+
     call.GetOutput().AnswerBuffer(result, "text/plain");
   }
 

@@ -32,50 +32,22 @@
 
 #pragma once
 
-#include "LuaException.h"
-
-extern "C" 
-{
-#include <lua.h>
-}
-
-#include <EmbeddedResources.h>
-
+#include <list>
+#include <string>
 #include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class LuaContext : public boost::noncopyable
+  class IServerCommand : public boost::noncopyable
   {
-  private:
-    friend class LuaFunctionCall;
-
-    lua_State *lua_;
-    std::string log_;
-
-    static int PrintToLog(lua_State *L);
-
-    void Execute(std::string* output,
-                 const std::string& command);
-
   public:
-    LuaContext();
+    typedef std::list<std::string>  ListOfStrings;
 
-    ~LuaContext();
-
-    void Execute(const std::string& command)
+    virtual ~IServerCommand()
     {
-      Execute(NULL, command);
     }
 
-    void Execute(std::string& output,
-                 const std::string& command)
-    {
-      Execute(&output, command);
-    }
-
-    void Execute(EmbeddedResources::FileResourceId resource);
-
-    bool IsExistingFunction(const char* name);
+    virtual bool Apply(ListOfStrings& outputs,
+                       const ListOfStrings& inputs) = 0;
   };
 }

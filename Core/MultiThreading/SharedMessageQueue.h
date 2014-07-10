@@ -40,7 +40,7 @@
 
 namespace Orthanc
 {
-  class SharedMessageQueue
+  class SharedMessageQueue : public boost::noncopyable
   {
   private:
     typedef std::list<IDynamicObject*>  Queue;
@@ -52,8 +52,8 @@ namespace Orthanc
     boost::condition_variable emptied_;
 
   public:
-    SharedMessageQueue(unsigned int maxSize = 0);
-
+    explicit SharedMessageQueue(unsigned int maxSize = 0);
+    
     ~SharedMessageQueue();
 
     // This transfers the ownership of the message

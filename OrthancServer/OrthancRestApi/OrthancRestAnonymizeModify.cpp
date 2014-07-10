@@ -33,7 +33,6 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
-#include "../DicomModification.h"
 #include "../FromDcmtkBridge.h"
 
 #include <glog/logging.h>
@@ -111,13 +110,11 @@ namespace Orthanc
   }
 
 
-  static bool ParseModifyRequest(DicomModification& target,
-                                 const RestApiPostCall& call)
-  {
-    // curl http://localhost:8042/series/95a6e2bf-9296e2cc-bf614e2f-22b391ee-16e010e0/modify -X POST -d '{"Replace":{"InstitutionName":"My own clinic"}}'
 
-    Json::Value request;
-    if (call.ParseJsonRequest(request) && request.isObject())
+  bool OrthancRestApi::ParseModifyRequest(DicomModification& target,
+                                          const Json::Value& request)
+  {
+    if (request.isObject())
     {
       if (request.isMember("RemovePrivateTags"))
       {
@@ -135,6 +132,23 @@ namespace Orthanc
       }
 
       return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+
+  static bool ParseModifyRequest(DicomModification& target,
+                                 const RestApiPostCall& call)
+  {
+    // curl http://localhost:8042/series/95a6e2bf-9296e2cc-bf614e2f-22b391ee-16e010e0/modify -X POST -d '{"Replace":{"InstitutionName":"My own clinic"}}'
+
+    Json::Value request;
+    if (call.ParseJsonRequest(request))
+    {
+      return OrthancRestApi::ParseModifyRequest(target, request);
     }
     else
     {
@@ -252,47 +266,55 @@ namespace Orthanc
 
 
       /**
-       * Compute the resulting DICOM instance and store it into the Orthanc store.
+       * Compute the resulting DICOM instance.
        **/
 
       std::auto_ptr<ParsedDicomFile> modified(original.Clone());
       modification.Apply(*modified);
 
-      std::string modifiedInstance;
-      if (context.Store(modifiedInstance, *modified) != StoreStatus_Success)
-      {
-        LOG(ERROR) << "Error while storing a modified instance " << *it;
-        return;
-      }
+      DicomInstanceToStore toStore;
+      toStore.SetParsedDicomFile(*modified);
 
 
       /**
-       * Record metadata information (AnonymizedFrom/ModifiedFrom).
+       * Prepare the metadata information to associate with the
+       * resulting DICOM instance (AnonymizedFrom/ModifiedFrom).
        **/
 
       DicomInstanceHasher modifiedHasher = modified->GetHasher();
 
       if (originalHasher.HashSeries() != modifiedHasher.HashSeries())
       {
-        context.GetIndex().SetMetadata(modifiedHasher.HashSeries(), 
-                                       metadataType, originalHasher.HashSeries());
+        toStore.AddMetadata(ResourceType_Series, metadataType, originalHasher.HashSeries());
       }
 
       if (originalHasher.HashStudy() != modifiedHasher.HashStudy())
       {
-        context.GetIndex().SetMetadata(modifiedHasher.HashStudy(), 
-                                       metadataType, originalHasher.HashStudy());
+        toStore.AddMetadata(ResourceType_Study, metadataType, originalHasher.HashStudy());
       }
 
       if (originalHasher.HashPatient() != modifiedHasher.HashPatient())
       {
-        context.GetIndex().SetMetadata(modifiedHasher.HashPatient(), 
-                                       metadataType, originalHasher.HashPatient());
+        toStore.AddMetadata(ResourceType_Patient, metadataType, originalHasher.HashPatient());
       }
 
       assert(*it == originalHasher.HashInstance());
+      toStore.AddMetadata(ResourceType_Instance, metadataType, *it);
+
+
+      /**
+       * Store the resulting DICOM instance into the Orthanc store.
+       **/
+
+      std::string modifiedInstance;
+      if (context.Store(modifiedInstance, toStore) != StoreStatus_Success)
+      {
+        LOG(ERROR) << "Error while storing a modified instance " << *it;
+        return;
+      }
+
+      // Sanity checks in debug mode
       assert(modifiedInstance == modifiedHasher.HashInstance());
-      context.GetIndex().SetMetadata(modifiedInstance, metadataType, *it);
 
 
       /**
@@ -423,8 +445,11 @@ namespace Orthanc
 
       modification.Apply(dicom);
 
+      DicomInstanceToStore toStore;
+      toStore.SetParsedDicomFile(dicom);
+
       std::string id;
-      StoreStatus status = OrthancRestApi::GetContext(call).Store(id, dicom);
+      StoreStatus status = OrthancRestApi::GetContext(call).Store(id, toStore);
 
       if (status == StoreStatus_Failure)
       {

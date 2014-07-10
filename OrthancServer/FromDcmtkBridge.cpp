@@ -634,7 +634,7 @@ namespace Orthanc
   }
 
   bool FromDcmtkBridge::SaveToMemoryBuffer(std::string& buffer,
-                                           DcmDataset* dataSet)
+                                           DcmDataset& dataSet)
   {
     // Determine the transfer syntax which shall be used to write the
     // information to the file. We always switch to the Little Endian
@@ -649,7 +649,7 @@ namespace Orthanc
      * dataset into memory. We now keep the original transfer syntax
      * (if available).
      **/
-    E_TransferSyntax xfer = dataSet->getOriginalXfer();
+    E_TransferSyntax xfer = dataSet.getOriginalXfer();
     if (xfer == EXS_Unknown)
     {
       // No information about the original transfer syntax: This is
@@ -660,7 +660,7 @@ namespace Orthanc
     E_EncodingType encodingType = /*opt_sequenceType*/ EET_ExplicitLength;
 
     // Create the meta-header information
-    DcmFileFormat ff(dataSet);
+    DcmFileFormat ff(&dataSet);
     ff.validateMetaInfo(xfer);
 
     // Create a memory buffer with the proper size

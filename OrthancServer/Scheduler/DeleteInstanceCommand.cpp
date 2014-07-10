@@ -30,71 +30,24 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
-#include "OrthancRestApi.h"
-
-#include "../DicomModification.h"
+#include "DeleteInstanceCommand.h"
 
 #include <glog/logging.h>
 
 namespace Orthanc
 {
-  void OrthancRestApi::AnswerStoredInstance(RestApiPostCall& call,
-                                            const std::string& publicId,
-                                            StoreStatus status) const
+  bool DeleteInstanceCommand::Apply(ListOfStrings& outputs,
+                                    const ListOfStrings& inputs)
   {
-    Json::Value result = Json::objectValue;
-
-    if (status != StoreStatus_Failure)
+    for (ListOfStrings::const_iterator
+           it = inputs.begin(); it != inputs.end(); ++it)
     {
-      result["ID"] = publicId;
-      result["Path"] = GetBasePath(ResourceType_Instance, publicId);
+      LOG(INFO) << "Deleting instance " << *it;
+
+      Json::Value tmp;
+      context_.GetIndex().DeleteResource(tmp, *it, ResourceType_Instance);
     }
 
-    result["Status"] = EnumerationToString(status);
-    call.GetOutput().AnswerJson(result);
-  }
-
-
-
-  // Upload of DICOM files through HTTP ---------------------------------------
-
-  static void UploadDicomFile(RestApiPostCall& call)
-  {
-    ServerContext& context = OrthancRestApi::GetContext(call);
-
-    const std::string& postData = call.GetPostBody();
-    if (postData.size() == 0)
-    {
-      return;
-    }
-
-    LOG(INFO) << "Receiving a DICOM file of " << postData.size() << " bytes through HTTP";
-
-    DicomInstanceToStore toStore;
-    toStore.SetBuffer(postData);
-
-    std::string publicId;
-    StoreStatus status = context.Store(publicId, toStore);
-
-    OrthancRestApi::GetApi(call).AnswerStoredInstance(call, publicId, status);
-  }
-
-
-
-  // Registration of the various REST handlers --------------------------------
-
-  OrthancRestApi::OrthancRestApi(ServerContext& context) : 
-    context_(context)
-  {
-    RegisterSystem();
-
-    RegisterChanges();
-    RegisterResources();
-    RegisterModalities();
-    RegisterAnonymizeModify();
-    RegisterArchive();
-
-    Register("/instances", UploadDicomFile);
+    return true;
   }
 }

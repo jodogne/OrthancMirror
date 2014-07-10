@@ -32,50 +32,73 @@
 
 #pragma once
 
-#include "LuaException.h"
-
-extern "C" 
-{
-#include <lua.h>
-}
-
-#include <EmbeddedResources.h>
-
-#include <boost/noncopyable.hpp>
+#include "../../Core/IDynamicObject.h"
+#include "IServerCommand.h"
 
 namespace Orthanc
 {
-  class LuaContext : public boost::noncopyable
+  class ServerCommandInstance : public IDynamicObject
   {
-  private:
-    friend class LuaFunctionCall;
-
-    lua_State *lua_;
-    std::string log_;
-
-    static int PrintToLog(lua_State *L);
-
-    void Execute(std::string* output,
-                 const std::string& command);
+    friend class ServerScheduler;
 
   public:
-    LuaContext();
-
-    ~LuaContext();
-
-    void Execute(const std::string& command)
+    class IListener
     {
-      Execute(NULL, command);
+    public:
+      virtual ~IListener()
+      {
+      }
+
+      virtual void SignalSuccess(const std::string& jobId) = 0;
+
+      virtual void SignalFailure(const std::string& jobId) = 0;
+    };
+
+  private:
+    typedef IServerCommand::ListOfStrings  ListOfStrings;
+
+    IServerCommand *command_;
+    std::string jobId_;
+    ListOfStrings inputs_;
+    std::list<ServerCommandInstance*> next_;
+    bool connectedToSink_;
+
+    bool Execute(IListener& listener);
+
+  public:
+    ServerCommandInstance(IServerCommand *command,
+                          const std::string& jobId);
+
+    virtual ~ServerCommandInstance();
+
+    const std::string& GetJobId() const
+    {
+      return jobId_;
     }
 
-    void Execute(std::string& output,
-                 const std::string& command)
+    void AddInput(const std::string& input)
     {
-      Execute(&output, command);
+      inputs_.push_back(input);
     }
 
-    void Execute(EmbeddedResources::FileResourceId resource);
+    void ConnectOutput(ServerCommandInstance& next)
+    {
+      next_.push_back(&next);
+    }
 
-    bool IsExistingFunction(const char* name);
+    void SetConnectedToSink(bool connected = true)
+    {
+      connectedToSink_ = connected;
+    }
+
+    bool IsConnectedToSink() const
+    {
+      return connectedToSink_;
+    }
+
+    const std::list<ServerCommandInstance*>& GetNextCommands() const
+    {
+      return next_;
+    }
   };
 }

@@ -36,6 +36,9 @@
 #include "../OrthancInitialization.h"
 #include "../../Core/HttpClient.h"
 #include "../FromDcmtkBridge.h"
+#include "../Scheduler/ServerJob.h"
+#include "../Scheduler/StoreScuCommand.h"
+#include "../Scheduler/StorePeerCommand.h"
 
 #include <glog/logging.h>
 
@@ -321,17 +324,16 @@ namespace Orthanc
     }
 
     RemoteModalityParameters p = Configuration::GetModalityUsingSymbolicName(remote);
-    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), p);
 
+    ServerJob job;
     for (std::list<std::string>::const_iterator 
            it = instances.begin(); it != instances.end(); ++it)
     {
-      LOG(INFO) << "Sending resource " << *it << " to modality \"" << remote << "\"";
-
-      std::string dicom;
-      context.ReadFile(dicom, *it, FileContentType_Dicom);
-      locker.GetConnection().Store(dicom);
+      job.AddCommand(new StoreScuCommand(context, p)).AddInput(*it);
     }
+
+    job.SetDescription("HTTP request: Store-SCU to peer \"" + remote + "\"");
+    context.GetScheduler().SubmitAndWait(job);
 
     call.GetOutput().AnswerBuffer("{}", "application/json");
   }
@@ -389,33 +391,15 @@ namespace Orthanc
     OrthancPeerParameters peer;
     Configuration::GetOrthancPeer(peer, remote);
 
-    // Configure the HTTP client
-    HttpClient client;
-    if (peer.GetUsername().size() != 0 && 
-        peer.GetPassword().size() != 0)
-    {
-      client.SetCredentials(peer.GetUsername().c_str(), 
-                            peer.GetPassword().c_str());
-    }
-
-    client.SetUrl(peer.GetUrl() + "instances");
-    client.SetMethod(HttpMethod_Post);
-
-    // Loop over the instances that are to be sent
+    ServerJob job;
     for (std::list<std::string>::const_iterator 
            it = instances.begin(); it != instances.end(); ++it)
     {
-      LOG(INFO) << "Sending resource " << *it << " to peer \"" << remote << "\"";
-
-      context.ReadFile(client.AccessPostData(), *it, FileContentType_Dicom);
-
-      std::string answer;
-      if (!client.Apply(answer))
-      {
-        LOG(ERROR) << "Unable to send resource " << *it << " to peer \"" << remote << "\"";
-        return;
-      }
+      job.AddCommand(new StorePeerCommand(context, peer)).AddInput(*it);
     }
+
+    job.SetDescription("HTTP request: POST to peer \"" + remote + "\"");
+    context.GetScheduler().SubmitAndWait(job);
 
     call.GetOutput().AnswerBuffer("{}", "application/json");
   }

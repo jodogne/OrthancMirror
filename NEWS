@@ -4,6 +4,7 @@ Pending changes in the mainline
 Major changes
 -------------
 
+* Routing images with Lua scripts
 * Introduction of the Orthanc Plugin SDK
 * Official support of OS X (Darwin)
 

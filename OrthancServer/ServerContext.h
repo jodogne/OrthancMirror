@@ -40,6 +40,8 @@
 #include "ServerIndex.h"
 #include "ParsedDicomFile.h"
 #include "DicomProtocol/ReusableDicomUserConnection.h"
+#include "Scheduler/ServerScheduler.h"
+#include "DicomInstanceToStore.h"
 
 namespace Orthanc
 {
@@ -64,6 +66,13 @@ namespace Orthanc
       virtual IDynamicObject* Provide(const std::string& id);
     };
 
+    bool ApplyReceivedInstanceFilter(const Json::Value& simplified,
+                                     const std::string& remoteAet);
+
+    void ApplyOnStoredInstance(const std::string& instanceId,
+                               const Json::Value& simplifiedDicom,
+                               const Json::Value& metadata);
+
     FileStorage storage_;
     ServerIndex index_;
     CompressedFileStorageAccessor accessor_;
@@ -73,11 +82,13 @@ namespace Orthanc
     boost::mutex dicomCacheMutex_;
     MemoryCache dicomCache_;
     ReusableDicomUserConnection scu_;
+    ServerScheduler scheduler_;
 
+    boost::mutex luaMutex_;
     LuaContext lua_;
 
   public:
-    class DicomCacheLocker
+    class DicomCacheLocker : public boost::noncopyable
     {
     private:
       ServerContext& that_;
@@ -94,6 +105,29 @@ namespace Orthanc
         return *dicom_;
       }
     };
+
+    class LuaContextLocker : public boost::noncopyable
+    {
+    private:
+      ServerContext& that_;
+
+    public:
+      LuaContextLocker(ServerContext& that) : that_(that)
+      {
+        that.luaMutex_.lock();
+      }
+
+      ~LuaContextLocker()
+      {
+        that_.luaMutex_.unlock();
+      }
+
+      LuaContext& GetLua()
+      {
+        return that_.lua_;
+      }
+    };
+
 
     ServerContext(const boost::filesystem::path& storagePath,
                   const boost::filesystem::path& indexPath);
@@ -117,26 +151,8 @@ namespace Orthanc
                        const void* data,
                        size_t size);
 
-    StoreStatus Store(const char* dicomInstance,
-                      size_t dicomSize,
-                      const DicomMap& dicomSummary,
-                      const Json::Value& dicomJson,
-                      const std::string& remoteAet);
-
     StoreStatus Store(std::string& resultPublicId,
-                      ParsedDicomFile& dicomInstance,
-                      const char* dicomBuffer,
-                      size_t dicomSize);
-
-    StoreStatus Store(std::string& resultPublicId,
-                      ParsedDicomFile& dicomInstance);
-
-    StoreStatus Store(std::string& resultPublicId,
-                      const char* dicomBuffer,
-                      size_t dicomSize);
-
-    StoreStatus Store(std::string& resultPublicId,
-                      const std::string& dicomContent);
+                      DicomInstanceToStore& dicom);
 
     void AnswerDicomFile(RestApiOutput& output,
                          const std::string& instancePublicId,
@@ -151,11 +167,6 @@ namespace Orthanc
                   FileContentType content,
                   bool uncompressIfNeeded = true);
 
-    LuaContext& GetLuaContext()
-    {
-      return lua_;
-    }
-
     void SetStoreMD5ForAttachments(bool storeMD5);
 
     bool IsStoreMD5ForAttachments() const
@@ -166,6 +177,11 @@ namespace Orthanc
     ReusableDicomUserConnection& GetReusableDicomUserConnection()
     {
       return scu_;
+    }
+
+    ServerScheduler& GetScheduler()
+    {
+      return scheduler_;
     }
   };
 }

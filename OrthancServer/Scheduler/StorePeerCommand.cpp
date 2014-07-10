@@ -30,71 +30,54 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
-#include "OrthancRestApi.h"
+#include "StorePeerCommand.h"
 
-#include "../DicomModification.h"
+#include "../../Core/HttpClient.h"
 
 #include <glog/logging.h>
 
 namespace Orthanc
 {
-  void OrthancRestApi::AnswerStoredInstance(RestApiPostCall& call,
-                                            const std::string& publicId,
-                                            StoreStatus status) const
+  StorePeerCommand::StorePeerCommand(ServerContext& context,
+                                     const OrthancPeerParameters& peer) : 
+    context_(context),
+    peer_(peer)
   {
-    Json::Value result = Json::objectValue;
-
-    if (status != StoreStatus_Failure)
-    {
-      result["ID"] = publicId;
-      result["Path"] = GetBasePath(ResourceType_Instance, publicId);
-    }
-
-    result["Status"] = EnumerationToString(status);
-    call.GetOutput().AnswerJson(result);
   }
 
-
-
-  // Upload of DICOM files through HTTP ---------------------------------------
-
-  static void UploadDicomFile(RestApiPostCall& call)
+  bool StorePeerCommand::Apply(ListOfStrings& outputs,
+                               const ListOfStrings& inputs)
   {
-    ServerContext& context = OrthancRestApi::GetContext(call);
-
-    const std::string& postData = call.GetPostBody();
-    if (postData.size() == 0)
+    // Configure the HTTP client
+    HttpClient client;
+    if (peer_.GetUsername().size() != 0 && 
+        peer_.GetPassword().size() != 0)
     {
-      return;
+      client.SetCredentials(peer_.GetUsername().c_str(), 
+                            peer_.GetPassword().c_str());
     }
 
-    LOG(INFO) << "Receiving a DICOM file of " << postData.size() << " bytes through HTTP";
+    client.SetUrl(peer_.GetUrl() + "instances");
+    client.SetMethod(HttpMethod_Post);
 
-    DicomInstanceToStore toStore;
-    toStore.SetBuffer(postData);
+    for (ListOfStrings::const_iterator
+           it = inputs.begin(); it != inputs.end(); ++it)
+    {
+      LOG(INFO) << "Sending resource " << *it << " to peer \"" 
+                << peer_.GetUrl() << "\"";
 
-    std::string publicId;
-    StoreStatus status = context.Store(publicId, toStore);
+      context_.ReadFile(client.AccessPostData(), *it, FileContentType_Dicom);
 
-    OrthancRestApi::GetApi(call).AnswerStoredInstance(call, publicId, status);
-  }
+      std::string answer;
+      if (!client.Apply(answer))
+      {
+        LOG(ERROR) << "Unable to send resource " << *it << " to peer \"" << peer_.GetUrl() << "\"";
+        throw OrthancException(ErrorCode_NetworkProtocol);
+      }
 
+      outputs.push_back(*it);
+    }
 
-
-  // Registration of the various REST handlers --------------------------------
-
-  OrthancRestApi::OrthancRestApi(ServerContext& context) : 
-    context_(context)
-  {
-    RegisterSystem();
-
-    RegisterChanges();
-    RegisterResources();
-    RegisterModalities();
-    RegisterAnonymizeModify();
-    RegisterArchive();
-
-    Register("/instances", UploadDicomFile);
+    return true;
   }
 }

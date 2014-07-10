@@ -279,6 +279,9 @@ namespace Orthanc
       case ModalityManufacturer_Generic:
         return "Generic";
 
+      case ModalityManufacturer_StoreScp:
+        return "StoreScp";
+      
       case ModalityManufacturer_ClearCanvas:
         return "ClearCanvas";
       
@@ -335,6 +338,10 @@ namespace Orthanc
     else if (manufacturer == "ClearCanvas")
     {
       return ModalityManufacturer_ClearCanvas;
+    }
+    else if (manufacturer == "StoreScp")
+    {
+      return ModalityManufacturer_StoreScp;
     }
     else if (manufacturer == "MedInria")
     {

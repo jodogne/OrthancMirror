@@ -94,6 +94,7 @@ set(ORTHANC_CORE_SOURCES
   Core/MultiThreading/BagOfRunnablesBySteps.cpp
   Core/MultiThreading/Mutex.cpp
   Core/MultiThreading/ReaderWriterLock.cpp
+  Core/MultiThreading/Semaphore.cpp
   Core/MultiThreading/SharedMessageQueue.cpp
   Core/MultiThreading/ThreadedCommandProcessor.cpp
   Core/ImageFormats/ImageAccessor.cpp
@@ -155,6 +156,16 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/ServerToolbox.cpp
   OrthancServer/OrthancFindRequestHandler.cpp
   OrthancServer/OrthancMoveRequestHandler.cpp
+
+  # From "lua-scripting" branch
+  OrthancServer/DicomInstanceToStore.cpp
+  OrthancServer/Scheduler/DeleteInstanceCommand.cpp
+  OrthancServer/Scheduler/ModifyInstanceCommand.cpp
+  OrthancServer/Scheduler/ServerCommandInstance.cpp
+  OrthancServer/Scheduler/ServerJob.cpp
+  OrthancServer/Scheduler/ServerScheduler.cpp
+  OrthancServer/Scheduler/StorePeerCommand.cpp
+  OrthancServer/Scheduler/StoreScuCommand.cpp
   )
 
 

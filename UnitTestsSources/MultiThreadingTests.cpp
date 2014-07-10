@@ -32,8 +32,9 @@
 
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
-
 #include <glog/logging.h>
+
+#include "../OrthancServer/Scheduler/ServerScheduler.h"
 
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
@@ -248,8 +249,6 @@ TEST(MultiThreading, ReaderWriterLock)
 
 
 
-
-
 #include "../OrthancServer/DicomProtocol/ReusableDicomUserConnection.h"
 
 TEST(ReusableDicomUserConnection, DISABLED_Basic)
@@ -257,6 +256,7 @@ TEST(ReusableDicomUserConnection, DISABLED_Basic)
   ReusableDicomUserConnection c;
   c.SetMillisecondsBeforeClose(200);
   printf("START\n"); fflush(stdout);
+
   {
     ReusableDicomUserConnection::Locker lock(c, "STORESCP", "localhost", 2000, ModalityManufacturer_Generic);
     lock.GetConnection().StoreFile("/home/jodogne/DICOM/Cardiac/MR.X.1.2.276.0.7230010.3.1.4.2831157719.2256.1336386844.676281");
@@ -273,4 +273,100 @@ TEST(ReusableDicomUserConnection, DISABLED_Basic)
 
   Toolbox::ServerBarrier();
   printf("DONE\n"); fflush(stdout);
+}
+
+
+
+class Tutu : public IServerCommand
+{
+private:
+  int factor_;
+
+public:
+  Tutu(int f) : factor_(f)
+  {
+  }
+
+  virtual bool Apply(ListOfStrings& outputs,
+                     const ListOfStrings& inputs)
+  {
+    for (ListOfStrings::const_iterator 
+           it = inputs.begin(); it != inputs.end(); it++)
+    {
+      int a = boost::lexical_cast<int>(*it);
+      int b = factor_ * a;
+
+      printf("%d * %d = %d\n", a, factor_, b);
+
+      //if (a == 84) { printf("BREAK\n"); return false; }
+
+      outputs.push_back(boost::lexical_cast<std::string>(b));
+    }
+
+    Toolbox::USleep(100000);
+
+    return true;
+  }
+};
+
+
+static void Tata(ServerScheduler* s, ServerJob* j, bool* done)
+{
+  typedef IServerCommand::ListOfStrings  ListOfStrings;
+
+  while (!(*done))
+  {
+    ListOfStrings l;
+    s->GetListOfJobs(l);
+    for (ListOfStrings::iterator i = l.begin(); i != l.end(); i++)
+      printf(">> %s: %0.1f\n", i->c_str(), 100.0f * s->GetProgress(*i));
+    Toolbox::USleep(10000);
+  }
+}
+
+
+TEST(MultiThreading, ServerScheduler)
+{
+  ServerScheduler scheduler(10);
+
+  ServerJob job;
+  ServerCommandInstance& f2 = job.AddCommand(new Tutu(2));
+  ServerCommandInstance& f3 = job.AddCommand(new Tutu(3));
+  ServerCommandInstance& f4 = job.AddCommand(new Tutu(4));
+  ServerCommandInstance& f5 = job.AddCommand(new Tutu(5));
+  f2.AddInput(boost::lexical_cast<std::string>(42));
+  //f3.AddInput(boost::lexical_cast<std::string>(42));
+  //f4.AddInput(boost::lexical_cast<std::string>(42));
+  f2.ConnectOutput(f3);
+  f3.ConnectOutput(f4);
+  f4.ConnectOutput(f5);
+
+  f3.SetConnectedToSink(true);
+  f5.SetConnectedToSink(true);
+
+  job.SetDescription("tutu");
+
+  bool done = false;
+  boost::thread t(Tata, &scheduler, &job, &done);
+
+
+  //scheduler.Submit(job);
+
+  IServerCommand::ListOfStrings l;
+  scheduler.SubmitAndWait(l, job);
+
+  ASSERT_EQ(2, l.size());
+  ASSERT_EQ(42 * 2 * 3, boost::lexical_cast<int>(l.front()));
+  ASSERT_EQ(42 * 2 * 3 * 4 * 5, boost::lexical_cast<int>(l.back()));
+
+  for (IServerCommand::ListOfStrings::iterator i = l.begin(); i != l.end(); i++)
+  {
+    printf("** %s\n", i->c_str());
+  }
+
+  //Toolbox::ServerBarrier();
+  //Toolbox::USleep(3000000);
+
+  done = true;
+  t.join();
 }
