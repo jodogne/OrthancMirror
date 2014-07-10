@@ -32,35 +32,20 @@
 
 #pragma once
 
-#include "RestApiHierarchy.h"
+#include "../OrthancCPlugin/OrthancCPlugin.h"
 
-#include <list>
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class RestApi : public HttpHandler
+  class IPluginServiceProvider : boost::noncopyable
   {
-  private:
-    RestApiHierarchy root_;
-
   public:
-    virtual bool Handle(HttpOutput& output,
-                        HttpMethod method,
-                        const UriComponents& uri,
-                        const Arguments& headers,
-                        const Arguments& getArguments,
-                        const std::string& postData);
+    virtual ~IPluginServiceProvider()
+    {
+    }
 
-    void Register(const std::string& path,
-                  RestApiGetCall::Handler handler);
-
-    void Register(const std::string& path,
-                  RestApiPutCall::Handler handler);
-
-    void Register(const std::string& path,
-                  RestApiPostCall::Handler handler);
-
-    void Register(const std::string& path,
-                  RestApiDeleteCall::Handler handler);
+    virtual bool InvokeService(_OrthancPluginService service,
+                               const void* parameters) = 0;
   };
 }

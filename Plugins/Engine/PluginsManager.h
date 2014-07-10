@@ -32,35 +32,40 @@
 
 #pragma once
 
-#include "RestApiHierarchy.h"
+#include "SharedLibrary.h"
+#include "IPluginServiceProvider.h"
 
+#include <map>
 #include <list>
 
 namespace Orthanc
 {
-  class RestApi : public HttpHandler
+  class PluginsManager : boost::noncopyable
   {
   private:
-    RestApiHierarchy root_;
+    typedef std::map<std::string, SharedLibrary*>  Plugins;
+
+    OrthancPluginContext  context_;
+    Plugins  plugins_;
+    std::list<IPluginServiceProvider*> serviceProviders_;
+
+    static int32_t InvokeService(OrthancPluginContext* context,
+                                 _OrthancPluginService service,
+                                 const void* parameters);
 
   public:
-    virtual bool Handle(HttpOutput& output,
-                        HttpMethod method,
-                        const UriComponents& uri,
-                        const Arguments& headers,
-                        const Arguments& getArguments,
-                        const std::string& postData);
+    PluginsManager();
 
-    void Register(const std::string& path,
-                  RestApiGetCall::Handler handler);
+    ~PluginsManager();
 
-    void Register(const std::string& path,
-                  RestApiPutCall::Handler handler);
+    void RegisterPlugin(const std::string& path);
 
-    void Register(const std::string& path,
-                  RestApiPostCall::Handler handler);
+    void ScanFolderForPlugins(const std::string& path,
+                              bool isRecursive);
 
-    void Register(const std::string& path,
-                  RestApiDeleteCall::Handler handler);
+    void RegisterServiceProvider(IPluginServiceProvider& provider)
+    {
+      serviceProviders_.push_back(&provider);
+    }
   };
 }
