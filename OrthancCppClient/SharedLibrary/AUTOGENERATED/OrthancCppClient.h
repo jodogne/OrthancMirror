@@ -81,9 +81,9 @@
 
 /* cf. http://sourceforge.net/p/predef/wiki/Architectures/ */
 #ifdef __amd64__
-#define LAAW_ORTHANC_CLIENT_DEFAULT_PATH  "libOrthancClient.so.0.7"
+#define LAAW_ORTHANC_CLIENT_DEFAULT_PATH  "libOrthancClient.so.0.8"
 #else
-#define LAAW_ORTHANC_CLIENT_DEFAULT_PATH  "libOrthancClient.so.0.7"
+#define LAAW_ORTHANC_CLIENT_DEFAULT_PATH  "libOrthancClient.so.0.8"
 #endif
 
 #define LAAW_ORTHANC_CLIENT_CALL_CONV
@@ -394,7 +394,7 @@ inline void Library::LoadFunctions()
    * It is assumed that the API does not change when the revision
    * number (MAJOR.MINOR.REVISION) changes.
    **/
-  if (strcmp(getVersion(), "0.7"))
+  if (strcmp(getVersion(), "0.8"))
   {
     throw ::OrthancClient::OrthancClientException("Mismatch between the C++ header and the library version");
   }
