@@ -220,10 +220,22 @@ TEST_P(DatabaseWrapperTest, Simple)
   index_->SetMetadata(a[4], MetadataType_ModifiedFrom, "TUTU");
   index_->ListAvailableMetadata(md, a[4]);
   ASSERT_EQ(2u, md.size());
+
+  std::map<MetadataType, std::string> md2;
+  index_->GetAllMetadata(md2, a[4]);
+  ASSERT_EQ(2u, md2.size());
+  ASSERT_EQ("TUTU", md2[MetadataType_ModifiedFrom]);
+  ASSERT_EQ("PINNACLE", md2[MetadataType_Instance_RemoteAet]);
+
   index_->DeleteMetadata(a[4], MetadataType_ModifiedFrom);
   index_->ListAvailableMetadata(md, a[4]);
   ASSERT_EQ(1u, md.size());
   ASSERT_EQ(MetadataType_Instance_RemoteAet, md.front());
+
+  index_->GetAllMetadata(md2, a[4]);
+  ASSERT_EQ(1u, md2.size());
+  ASSERT_EQ("PINNACLE", md2[MetadataType_Instance_RemoteAet]);
+
 
   ASSERT_EQ(21u + 42u + 44u, index_->GetTotalCompressedSize());
   ASSERT_EQ(42u + 42u + 44u, index_->GetTotalUncompressedSize());
