@@ -1504,17 +1504,17 @@ this_->LoadTagContent(reinterpret_cast< const char* >(arg0));
 
   LAAW_EXPORT_DLL_API const char* LAAW_CALL_CONVENTION LAAW_EXTERNC_GetVersion()
   {
-    return "0.7";
+    return "0.8";
   }
 
   LAAW_EXPORT_DLL_API const char* LAAW_CALL_CONVENTION LAAW_EXTERNC_GetFileVersion()
   {
-    return "0.7.0.6";
+    return "0.8.0.0";
   }
 
   LAAW_EXPORT_DLL_API const char* LAAW_CALL_CONVENTION LAAW_EXTERNC_GetFullVersion()
   {
-    return "0.7.6";
+    return "0.8.0";
   }
 
   LAAW_EXPORT_DLL_API void LAAW_CALL_CONVENTION LAAW_EXTERNC_FreeString(char* str)
