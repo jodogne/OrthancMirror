@@ -68,22 +68,27 @@ namespace Orthanc
   namespace
   {
     // Anonymous namespace to avoid clashes between compilation modules
-    class MongooseOutput : public HttpOutput
+    class MongooseOutputStream : public IHttpOutputStream
     {
     private:
       struct mg_connection* connection_;
 
     public:
-      MongooseOutput(struct mg_connection* connection) : connection_(connection)
+      MongooseOutputStream(struct mg_connection* connection) : connection_(connection)
       {
       }
 
-      virtual void Send(const void* buffer, size_t length)
+      virtual void Send(bool isHeader, const void* buffer, size_t length)
       {
         if (length > 0)
         {
           mg_write(connection_, buffer, length);
         }
+      }
+
+      virtual void OnHttpStatusReceived(HttpStatus status)
+      {
+        // Ignore this
       }
     };
 
@@ -255,23 +260,6 @@ namespace Orthanc
 
 
 
-  HttpHandler* MongooseServer::FindHandler(const UriComponents& forUri) const
-  {
-    for (Handlers::const_iterator it = 
-           handlers_.begin(); it != handlers_.end(); ++it) 
-    {
-      if ((*it)->IsServedUri(forUri))
-      {
-        return *it;
-      }
-    }
-
-    return NULL;
-  }
-
-
-
-
   static PostDataStatus ReadBody(std::string& postData,
                                  struct mg_connection *connection,
                                  const HttpHandler::Arguments& headers)
@@ -421,15 +409,6 @@ namespace Orthanc
   }
 
 
-  static void SendUnauthorized(HttpOutput& output)
-  {
-    std::string s = "HTTP/1.1 401 Unauthorized\r\n" 
-      "WWW-Authenticate: Basic realm=\"" ORTHANC_REALM "\""
-      "\r\n\r\n";
-    output.Send(&s[0], s.size());
-  }
-
-
   static bool Authorize(const MongooseServer& that,
                         const HttpHandler::Arguments& headers,
                         HttpOutput& output)
@@ -449,7 +428,7 @@ namespace Orthanc
 
     if (!granted)
     {
-      SendUnauthorized(output);
+      output.SendUnauthorized(ORTHANC_REALM);
       return false;
     }
     else
@@ -576,13 +555,14 @@ namespace Orthanc
     if (event == MG_NEW_REQUEST) 
     {
       MongooseServer* that = reinterpret_cast<MongooseServer*>(request->user_data);
-      MongooseOutput output(connection);
+      MongooseOutputStream stream(connection);
+      HttpOutput output(stream);
 
       // Check remote calls
       if (!that->IsRemoteAccessAllowed() &&
           request->remote_ip != LOCALHOST)
       {
-        SendUnauthorized(output);
+        output.SendUnauthorized(ORTHANC_REALM);
         return (void*) "";
       }
 
@@ -601,7 +581,7 @@ namespace Orthanc
       HttpHandler::Arguments argumentsGET;
       if (!strcmp(request->request_method, "GET"))
       {
-        HttpHandler::ParseGetQuery(argumentsGET, request->query_string);
+        HttpHandler::ParseGetArguments(argumentsGET, request->query_string);
       }
 
 
@@ -637,7 +617,7 @@ namespace Orthanc
 
         if (!filter->IsAllowed(method, request->uri, remoteIp, username.c_str()))
         {
-          SendUnauthorized(output);
+          output.SendUnauthorized(ORTHANC_REALM);
           return (void*) "";
         }
       }
@@ -690,7 +670,7 @@ namespace Orthanc
       }
 
 
-      // Call the proper handler for this URI
+      // Decompose the URI into its components
       UriComponents uri;
       try
       {
@@ -703,31 +683,36 @@ namespace Orthanc
       }
 
 
-      HttpHandler* handler = that->FindHandler(uri);
-      if (handler)
+      // Loop over the candidate handlers for this URI
+      LOG(INFO) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
+      bool found = false;
+
+      for (MongooseServer::Handlers::const_iterator it = 
+             that->GetHandlers().begin(); it != that->GetHandlers().end() && !found; ++it) 
       {
         try
         {
-          LOG(INFO) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
-          handler->Handle(output, method, uri, headers, argumentsGET, body);
+          found = (*it)->Handle(output, method, uri, headers, argumentsGET, body);
         }
         catch (OrthancException& e)
         {
-          LOG(ERROR) << "MongooseServer Exception [" << e.What() << "]";
-          output.SendHeader(HttpStatus_500_InternalServerError);        
+          // Using this candidate handler results in an exception
+          LOG(ERROR) << "Exception in the HTTP handler: " << e.What();
+          return (void*) "";
         }
         catch (boost::bad_lexical_cast&)
         {
-          LOG(ERROR) << "MongooseServer Exception: Bad lexical cast";
-          output.SendHeader(HttpStatus_400_BadRequest);
+          LOG(ERROR) << "Exception in the HTTP handler: Bad lexical cast";
+          return (void*) "";
         }
         catch (std::runtime_error&)
         {
-          LOG(ERROR) << "MongooseServer Exception: Presumably a bad JSON request";
-          output.SendHeader(HttpStatus_400_BadRequest);
+          LOG(ERROR) << "Exception in the HTTP handler: Presumably a bad JSON request";
+          return (void*) "";
         }
       }
-      else
+      
+      if (!found)
       {
         output.SendHeader(HttpStatus_404_NotFound);
       }
@@ -818,23 +803,17 @@ namespace Orthanc
   }
 
 
-  void MongooseServer::RegisterHandler(HttpHandler* handler)
+  void MongooseServer::RegisterHandler(HttpHandler& handler)
   {
     Stop();
 
-    handlers_.push_back(handler);
+    handlers_.push_back(&handler);
   }
 
 
   void MongooseServer::ClearHandlers()
   {
     Stop();
-
-    for (Handlers::iterator it = 
-           handlers_.begin(); it != handlers_.end(); ++it)
-    {
-      delete *it;
-    }
   }
 
 

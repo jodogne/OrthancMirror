@@ -174,45 +174,72 @@ TEST(Zlib, Empty)
 }
 
 
-TEST(ParseGetQuery, Basic)
+TEST(ParseGetArguments, Basic)
 {
   HttpHandler::Arguments a;
-  HttpHandler::ParseGetQuery(a, "aaa=baaa&bb=a&aa=c");
+  HttpHandler::ParseGetArguments(a, "aaa=baaa&bb=a&aa=c");
   ASSERT_EQ(3u, a.size());
   ASSERT_EQ(a["aaa"], "baaa");
   ASSERT_EQ(a["bb"], "a");
   ASSERT_EQ(a["aa"], "c");
 }
 
-TEST(ParseGetQuery, BasicEmpty)
+TEST(ParseGetArguments, BasicEmpty)
 {
   HttpHandler::Arguments a;
-  HttpHandler::ParseGetQuery(a, "aaa&bb=aa&aa");
+  HttpHandler::ParseGetArguments(a, "aaa&bb=aa&aa");
   ASSERT_EQ(3u, a.size());
   ASSERT_EQ(a["aaa"], "");
   ASSERT_EQ(a["bb"], "aa");
   ASSERT_EQ(a["aa"], "");
 }
 
-TEST(ParseGetQuery, Single)
+TEST(ParseGetArguments, Single)
 {
   HttpHandler::Arguments a;
-  HttpHandler::ParseGetQuery(a, "aaa=baaa");
+  HttpHandler::ParseGetArguments(a, "aaa=baaa");
   ASSERT_EQ(1u, a.size());
   ASSERT_EQ(a["aaa"], "baaa");
 }
 
-TEST(ParseGetQuery, SingleEmpty)
+TEST(ParseGetArguments, SingleEmpty)
 {
   HttpHandler::Arguments a;
-  HttpHandler::ParseGetQuery(a, "aaa");
+  HttpHandler::ParseGetArguments(a, "aaa");
   ASSERT_EQ(1u, a.size());
   ASSERT_EQ(a["aaa"], "");
 }
 
+TEST(ParseGetQuery, Test1)
+{
+  UriComponents uri;
+  HttpHandler::Arguments a;
+  HttpHandler::ParseGetQuery(uri, a, "/instances/test/world?aaa=baaa&bb=a&aa=c");
+  ASSERT_EQ(3u, uri.size());
+  ASSERT_EQ("instances", uri[0]);
+  ASSERT_EQ("test", uri[1]);
+  ASSERT_EQ("world", uri[2]);
+  ASSERT_EQ(3u, a.size());
+  ASSERT_EQ(a["aaa"], "baaa");
+  ASSERT_EQ(a["bb"], "a");
+  ASSERT_EQ(a["aa"], "c");
+}
+
+TEST(ParseGetQuery, Test2)
+{
+  UriComponents uri;
+  HttpHandler::Arguments a;
+  HttpHandler::ParseGetQuery(uri, a, "/instances/test/world");
+  ASSERT_EQ(3u, uri.size());
+  ASSERT_EQ("instances", uri[0]);
+  ASSERT_EQ("test", uri[1]);
+  ASSERT_EQ("world", uri[2]);
+  ASSERT_EQ(0u, a.size());
+}
+
 TEST(Uri, SplitUriComponents)
 {
-  UriComponents c;
+  UriComponents c, d;
   Toolbox::SplitUriComponents(c, "/cou/hello/world");
   ASSERT_EQ(3u, c.size());
   ASSERT_EQ("cou", c[0]);
@@ -250,6 +277,37 @@ TEST(Uri, SplitUriComponents)
   c.clear();
   c.push_back("test");
   ASSERT_EQ("/", Toolbox::FlattenUri(c, 10));
+}
+
+
+TEST(Uri, Truncate)
+{
+  UriComponents c, d;
+  Toolbox::SplitUriComponents(c, "/cou/hello/world");
+
+  Toolbox::TruncateUri(d, c, 0);
+  ASSERT_EQ(3u, d.size());
+  ASSERT_EQ("cou", d[0]);
+  ASSERT_EQ("hello", d[1]);
+  ASSERT_EQ("world", d[2]);
+
+  Toolbox::TruncateUri(d, c, 1);
+  ASSERT_EQ(2u, d.size());
+  ASSERT_EQ("hello", d[0]);
+  ASSERT_EQ("world", d[1]);
+
+  Toolbox::TruncateUri(d, c, 2);
+  ASSERT_EQ(1u, d.size());
+  ASSERT_EQ("world", d[0]);
+
+  Toolbox::TruncateUri(d, c, 3);
+  ASSERT_EQ(0u, d.size());
+
+  Toolbox::TruncateUri(d, c, 4);
+  ASSERT_EQ(0u, d.size());
+
+  Toolbox::TruncateUri(d, c, 5);
+  ASSERT_EQ(0u, d.size());
 }
 
 
@@ -414,7 +472,7 @@ TEST(Toolbox, ConvertFromLatin1)
   ASSERT_EQ("&abc", Toolbox::ConvertToAscii(s));
 
   // Open in Emacs, then save with UTF-8 encoding, then "hexdump -C"
-  std::string utf8 = Toolbox::ConvertToUtf8(s, "ISO-8859-1");
+  std::string utf8 = Toolbox::ConvertToUtf8(s, Encoding_Latin1);
   ASSERT_EQ(15u, utf8.size());
   ASSERT_EQ(0xc3, static_cast<unsigned char>(utf8[0]));
   ASSERT_EQ(0xa0, static_cast<unsigned char>(utf8[1]));

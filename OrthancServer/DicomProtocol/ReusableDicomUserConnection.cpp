@@ -172,6 +172,14 @@ namespace Orthanc
 
   void ReusableDicomUserConnection::Unlock()
   {
+    if (connection_ != NULL &&
+        connection_->GetDistantManufacturer() == ModalityManufacturer_StoreScp)
+    {
+      // "storescp" from DCMTK has problems when reusing a
+      // connection. Always close.
+      Close();
+    }
+
     lastUse_ = Now();
     mutex_.unlock();
   }

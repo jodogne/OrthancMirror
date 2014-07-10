@@ -28,11 +28,16 @@
   // of patients)
   "MaximumPatientCount" : 0,
   
-  // List of paths to the custom Lua scripts to load into this
-  // instance of Orthanc
+  // List of paths to the custom Lua scripts that are to be loaded
+  // into this instance of Orthanc
   "LuaScripts" : [
   ],
 
+  // List of paths to the plugins that are to be loaded into this
+  // instance of Orthanc (e.g. "/libPluginTest.so" for Linux, or
+  // "./PluginTest.dll" for Windows).
+  "Plugins" : [
+  ],
 
 
   /**
@@ -100,8 +105,9 @@
     /**
      * A fourth parameter is available to enable patches for a
      * specific PACS manufacturer. The allowed values are currently
-     * "Generic" (default value), "ClearCanvas", "MedInria" and
-     * "Dcm4Chee". This parameter is case-sensitive.
+     * "Generic" (default value), "StoreScp" (storescp tool from
+     * DCMTK), "ClearCanvas", "MedInria" and "Dcm4Chee". This
+     * parameter is case-sensitive.
      **/
     // "clearcanvas" : [ "CLEARCANVAS", "192.168.1.1", 104, "ClearCanvas" ]
   },
@@ -169,5 +175,10 @@
 
   // The maximum number of results for a single C-FIND request at the
   // Instance level. Setting this option to "0" means no limit.
-  "LimitFindInstances" : 0
+  "LimitFindInstances" : 0,
+
+  // The maximum number of active jobs in the Orthanc scheduler. When
+  // this limit is reached, the addition of new jobs is blocked until
+  // some job finishes.
+  "LimitJobs" : 10
 }

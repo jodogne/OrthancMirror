@@ -589,10 +589,18 @@ namespace Orthanc
   }
 
 
+  static bool IsColorImage(PixelFormat format)
+  {
+    return (format == PixelFormat_RGB24 ||
+            format == PixelFormat_RGBA32);
+  }
+
+
   bool DicomImageDecoder::DecodeAndTruncate(ImageBuffer& target,
                                             DcmDataset& dataset,
                                             unsigned int frame,
-                                            PixelFormat format)
+                                            PixelFormat format,
+                                            bool allowColorConversion)
   {
     // TODO Special case for uncompressed images
     
@@ -600,6 +608,19 @@ namespace Orthanc
     if (!Decode(source, dataset, frame))
     {
       return false;
+    }
+
+    // If specified, prevent the conversion between color and
+    // grayscale images
+    bool isSourceColor = IsColorImage(source.GetFormat());
+    bool isTargetColor = IsColorImage(format);
+
+    if (!allowColorConversion)
+    {
+      if (isSourceColor ^ isTargetColor)
+      {
+        return false;
+      }
     }
 
     if (source.GetFormat() == format)

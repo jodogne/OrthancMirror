@@ -73,6 +73,10 @@ namespace Orthanc
     void SplitUriComponents(UriComponents& components,
                             const std::string& uri);
   
+    void TruncateUri(UriComponents& target,
+                     const UriComponents& source,
+                     size_t fromLevel);
+  
     bool IsChildUri(const UriComponents& baseUri,
                     const UriComponents& testedUri);
 
@@ -106,7 +110,7 @@ namespace Orthanc
     std::string GetDirectoryOfExecutable();
 
     std::string ConvertToUtf8(const std::string& source,
-                              const char* fromEncoding);
+                              const Encoding sourceEncoding);
 
     std::string ConvertToAscii(const std::string& source);
 
@@ -130,5 +134,7 @@ namespace Orthanc
                              const std::string& source);
 
     void CreateDirectory(const std::string& path);
+
+    bool IsExistingFile(const std::string& path);
   }
 }

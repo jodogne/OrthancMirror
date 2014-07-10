@@ -71,7 +71,8 @@ namespace Orthanc
     ErrorCode_InexistentTag,
     ErrorCode_ReadOnly,
     ErrorCode_IncompatibleImageFormat,
-    ErrorCode_IncompatibleImageSize
+    ErrorCode_IncompatibleImageSize,
+    ErrorCode_SharedLibrary
   };
 
   /**
@@ -225,6 +226,14 @@ namespace Orthanc
   enum ImageFormat
   {
     ImageFormat_Png = 1
+  };
+
+
+  enum Encoding
+  {
+    Encoding_Ascii,
+    Encoding_Utf8,
+    Encoding_Latin1
   };
 
 

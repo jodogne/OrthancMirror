@@ -168,7 +168,7 @@ namespace Orthanc
             FromDcmtkBridge::Convert(summary, **imageDataSet);
             FromDcmtkBridge::ToJson(dicomJson, **imageDataSet);       
 
-            if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, *imageDataSet))
+            if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, **imageDataSet))
             {
               LOG(ERROR) << "cannot write DICOM file to memory";
               rsp->DimseStatus = STATUS_STORE_Refused_OutOfResources;

@@ -44,11 +44,20 @@ namespace Orthanc
   class FromDcmtkBridge
   {
   public:
+    static Encoding DetectEncoding(DcmDataset& dataset);
+
     static void Convert(DicomMap& target, DcmDataset& dataset);
+
+    static DicomTag Convert(const DcmTag& tag);
 
     static DicomTag GetTag(const DcmElement& element);
 
-    static DicomValue* ConvertLeafElement(DcmElement& element);
+    static bool IsPrivateTag(DcmTag& tag);
+
+    static bool IsPrivateTag(const DicomTag& tag);
+
+    static DicomValue* ConvertLeafElement(DcmElement& element,
+                                          Encoding encoding);
 
     static void ToJson(Json::Value& target, 
                        DcmDataset& dataset,
@@ -95,6 +104,6 @@ namespace Orthanc
     static std::string GenerateUniqueIdentifier(ResourceType level);
 
     static bool SaveToMemoryBuffer(std::string& buffer,
-                                   DcmDataset* dataSet);
+                                   DcmDataset& dataSet);
   };
 }

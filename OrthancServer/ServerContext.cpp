@@ -43,9 +43,19 @@
 #include <EmbeddedResources.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
 
+
+#include "Scheduler/DeleteInstanceCommand.h"
+#include "Scheduler/ModifyInstanceCommand.h"
+#include "Scheduler/StoreScuCommand.h"
+#include "Scheduler/StorePeerCommand.h"
+#include "OrthancRestApi/OrthancRestApi.h"
+
+
+
 #define ENABLE_DICOM_CACHE  1
 
 static const char* RECEIVED_INSTANCE_FILTER = "ReceivedInstanceFilter";
+static const char* ON_STORED_INSTANCE = "OnStoredInstance";
 
 static const size_t DICOM_CACHE_SIZE = 2;
 
@@ -67,7 +77,8 @@ namespace Orthanc
     accessor_(storage_),
     compressionEnabled_(false),
     provider_(*this),
-    dicomCache_(provider_, DICOM_CACHE_SIZE)
+    dicomCache_(provider_, DICOM_CACHE_SIZE),
+    scheduler_(Configuration::GetGlobalIntegerParameter("LimitJobs", 10))
   {
     scu_.SetLocalApplicationEntityTitle(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"));
     //scu_.SetMillisecondsBeforeClose(1);  // The connection is always released
@@ -90,76 +101,233 @@ namespace Orthanc
     storage_.Remove(fileUuid);
   }
 
-  StoreStatus ServerContext::Store(const char* dicomInstance,
-                                   size_t dicomSize,
-                                   const DicomMap& dicomSummary,
-                                   const Json::Value& dicomJson,
-                                   const std::string& remoteAet)
-  {
-    // Test if the instance must be filtered out
-    if (lua_.IsExistingFunction(RECEIVED_INSTANCE_FILTER))
-    {
-      Json::Value simplified;
-      SimplifyTags(simplified, dicomJson);
 
-      LuaFunctionCall call(lua_, RECEIVED_INSTANCE_FILTER);
-      call.PushJSON(simplified);
+  bool ServerContext::ApplyReceivedInstanceFilter(const Json::Value& simplified,
+                                                  const std::string& remoteAet)
+  {
+    LuaContextLocker locker(*this);
+
+    if (locker.GetLua().IsExistingFunction(RECEIVED_INSTANCE_FILTER))
+    {
+      LuaFunctionCall call(locker.GetLua(), RECEIVED_INSTANCE_FILTER);
+      call.PushJson(simplified);
       call.PushString(remoteAet);
 
       if (!call.ExecutePredicate())
       {
-        LOG(INFO) << "An incoming instance has been discarded by the filter";
-        return StoreStatus_FilteredOut;
+        return false;
       }
     }
 
-    if (compressionEnabled_)
-    {
-      accessor_.SetCompressionForNextOperations(CompressionType_Zlib);
-    }
-    else
-    {
-      accessor_.SetCompressionForNextOperations(CompressionType_None);
-    }      
-
-    FileInfo dicomInfo = accessor_.Write(dicomInstance, dicomSize, FileContentType_Dicom);
-    FileInfo jsonInfo = accessor_.Write(dicomJson.toStyledString(), FileContentType_DicomAsJson);
-
-    ServerIndex::Attachments attachments;
-    attachments.push_back(dicomInfo);
-    attachments.push_back(jsonInfo);
-
-    StoreStatus status = index_.Store(dicomSummary, attachments, remoteAet);
-
-    if (status != StoreStatus_Success)
-    {
-      storage_.Remove(dicomInfo.GetUuid());
-      storage_.Remove(jsonInfo.GetUuid());
-    }
-
-    switch (status)
-    {
-      case StoreStatus_Success:
-        LOG(INFO) << "New instance stored";
-        break;
-
-      case StoreStatus_AlreadyStored:
-        LOG(INFO) << "Already stored";
-        break;
-
-      case StoreStatus_Failure:
-        LOG(ERROR) << "Store failure";
-        break;
-
-      default:
-        // This should never happen
-        break;
-    }
-
-    return status;
+    return true;
   }
 
-  
+
+  static IServerCommand* ParseOperation(ServerContext& context,
+                                        const std::string& operation,
+                                        const Json::Value& parameters)
+  {
+    if (operation == "delete")
+    {
+      LOG(INFO) << "Lua script to delete instance " << parameters["Instance"].asString();
+      return new DeleteInstanceCommand(context);
+    }
+
+    if (operation == "store-scu")
+    {
+      std::string modality = parameters["Modality"].asString();
+      LOG(INFO) << "Lua script to send instance " << parameters["Instance"].asString()
+                << " to modality " << modality << " using Store-SCU";
+      return new StoreScuCommand(context, Configuration::GetModalityUsingSymbolicName(modality));
+    }
+
+    if (operation == "store-peer")
+    {
+      std::string peer = parameters["Peer"].asString();
+      LOG(INFO) << "Lua script to send instance " << parameters["Instance"].asString()
+                << " to peer " << peer << " using HTTP";
+
+      OrthancPeerParameters parameters;
+      Configuration::GetOrthancPeer(parameters, peer);
+      return new StorePeerCommand(context, parameters);
+    }
+
+    if (operation == "modify")
+    {
+      LOG(INFO) << "Lua script to modify instance " << parameters["Instance"].asString();
+      std::auto_ptr<ModifyInstanceCommand> command(new ModifyInstanceCommand(context));
+      OrthancRestApi::ParseModifyRequest(command->GetModification(), parameters);
+      return command.release();
+    }
+
+    throw OrthancException(ErrorCode_ParameterOutOfRange);
+  }
+
+
+  void ServerContext::ApplyOnStoredInstance(const std::string& instanceId,
+                                            const Json::Value& simplifiedDicom,
+                                            const Json::Value& metadata)
+  {
+    LuaContextLocker locker(*this);
+
+    if (locker.GetLua().IsExistingFunction(ON_STORED_INSTANCE))
+    {
+      locker.GetLua().Execute("_InitializeJob()");
+
+      LuaFunctionCall call(locker.GetLua(), ON_STORED_INSTANCE);
+      call.PushString(instanceId);
+      call.PushJson(simplifiedDicom);
+      call.PushJson(metadata);
+      call.Execute();
+
+      Json::Value operations;
+      LuaFunctionCall call2(locker.GetLua(), "_AccessJob");
+      call2.ExecuteToJson(operations);
+     
+      if (operations.type() != Json::arrayValue)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      ServerJob job;
+      ServerCommandInstance* previousCommand = NULL;
+
+      for (Json::Value::ArrayIndex i = 0; i < operations.size(); ++i)
+      {
+        if (operations[i].type() != Json::objectValue ||
+            !operations[i].isMember("Operation"))
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+
+        const Json::Value& parameters = operations[i];
+        std::string operation = parameters["Operation"].asString();
+
+        ServerCommandInstance& command = job.AddCommand(ParseOperation(*this, operation, operations[i]));
+        
+        if (!parameters.isMember("Instance"))
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+
+        std::string instance = parameters["Instance"].asString();
+        if (instance.empty())
+        {
+          previousCommand->ConnectOutput(command);
+        }
+        else 
+        {
+          command.AddInput(instance);
+        }
+
+        previousCommand = &command;
+      }
+
+      job.SetDescription(std::string("Lua script: ") + ON_STORED_INSTANCE);
+      scheduler_.Submit(job);
+    }
+  }
+
+
+  StoreStatus ServerContext::Store(std::string& resultPublicId,
+                                   DicomInstanceToStore& dicom)
+  {
+    try
+    {
+      DicomInstanceHasher hasher(dicom.GetSummary());
+      resultPublicId = hasher.HashInstance();
+
+      Json::Value simplified;
+      SimplifyTags(simplified, dicom.GetJson());
+
+      // Test if the instance must be filtered out
+      if (!ApplyReceivedInstanceFilter(simplified, dicom.GetRemoteAet()))
+      {
+        LOG(INFO) << "An incoming instance has been discarded by the filter";
+        return StoreStatus_FilteredOut;
+      }
+
+      if (compressionEnabled_)
+      {
+        accessor_.SetCompressionForNextOperations(CompressionType_Zlib);
+      }
+      else
+      {
+        accessor_.SetCompressionForNextOperations(CompressionType_None);
+      }      
+
+      FileInfo dicomInfo = accessor_.Write(dicom.GetBufferData(), dicom.GetBufferSize(), FileContentType_Dicom);
+      FileInfo jsonInfo = accessor_.Write(dicom.GetJson().toStyledString(), FileContentType_DicomAsJson);
+
+      ServerIndex::Attachments attachments;
+      attachments.push_back(dicomInfo);
+      attachments.push_back(jsonInfo);
+
+      std::map<MetadataType, std::string> instanceMetadata;
+      StoreStatus status = index_.Store(instanceMetadata, dicom.GetSummary(), attachments, 
+                                        dicom.GetRemoteAet(), dicom.GetMetadata());
+
+      if (status != StoreStatus_Success)
+      {
+        storage_.Remove(dicomInfo.GetUuid());
+        storage_.Remove(jsonInfo.GetUuid());
+      }
+
+      switch (status)
+      {
+        case StoreStatus_Success:
+          LOG(INFO) << "New instance stored";
+          break;
+
+        case StoreStatus_AlreadyStored:
+          LOG(INFO) << "Already stored";
+          break;
+
+        case StoreStatus_Failure:
+          LOG(ERROR) << "Store failure";
+          break;
+
+        default:
+          // This should never happen
+          break;
+      }
+
+      if (status == StoreStatus_Success ||
+          status == StoreStatus_AlreadyStored)
+      {
+        Json::Value metadata = Json::objectValue;
+        for (std::map<MetadataType, std::string>::const_iterator 
+               it = instanceMetadata.begin(); 
+             it != instanceMetadata.end(); ++it)
+        {
+          metadata[EnumerationToString(it->first)] = it->second;
+        }
+
+        try
+        {
+          ApplyOnStoredInstance(resultPublicId, simplified, metadata);
+        }
+        catch (OrthancException& e)
+        {
+          LOG(ERROR) << "Error in OnStoredInstance callback (Lua): " << e.What();
+        }
+      }
+
+      return status;
+    }
+    catch (OrthancException& e)
+    {
+      if (e.GetErrorCode() == ErrorCode_InexistentTag)
+      {
+        LogMissingRequiredTag(dicom.GetSummary());
+      }
+
+      throw;
+    }
+  }
+
+
+
   void ServerContext::AnswerDicomFile(RestApiOutput& output,
                                       const std::string& instancePublicId,
                                       FileContentType content)
@@ -246,87 +414,6 @@ namespace Orthanc
 #else
     that_.dicomCacheMutex_.unlock();
 #endif
-  }
-
-
-  static DcmFileFormat& GetDicom(ParsedDicomFile& file)
-  {
-    return *reinterpret_cast<DcmFileFormat*>(file.GetDcmtkObject());
-  }
-
-
-  StoreStatus ServerContext::Store(std::string& resultPublicId,
-                                   ParsedDicomFile& dicomInstance,
-                                   const char* dicomBuffer,
-                                   size_t dicomSize)
-  {
-    DicomMap dicomSummary;
-    FromDcmtkBridge::Convert(dicomSummary, *GetDicom(dicomInstance).getDataset());
-
-    try
-    {
-      DicomInstanceHasher hasher(dicomSummary);
-      resultPublicId = hasher.HashInstance();
-
-      Json::Value dicomJson;
-      FromDcmtkBridge::ToJson(dicomJson, *GetDicom(dicomInstance).getDataset());
-      
-      StoreStatus status = StoreStatus_Failure;
-      if (dicomSize > 0)
-      {
-        status = Store(dicomBuffer, dicomSize, dicomSummary, dicomJson, "");
-      }   
-
-      return status;
-    }
-    catch (OrthancException& e)
-    {
-      if (e.GetErrorCode() == ErrorCode_InexistentTag)
-      {
-        LogMissingRequiredTag(dicomSummary);
-      }
-
-      throw;
-    }
-  }
-
-
-  StoreStatus ServerContext::Store(std::string& resultPublicId,
-                                   ParsedDicomFile& dicomInstance)
-  {
-    std::string buffer;
-    if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, GetDicom(dicomInstance).getDataset()))
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    if (buffer.size() == 0)
-      return Store(resultPublicId, dicomInstance, NULL, 0);
-    else
-      return Store(resultPublicId, dicomInstance, &buffer[0], buffer.size());
-  }
-
-
-  StoreStatus ServerContext::Store(std::string& resultPublicId,
-                                   const char* dicomBuffer,
-                                   size_t dicomSize)
-  {
-    ParsedDicomFile dicom(dicomBuffer, dicomSize);
-    return Store(resultPublicId, dicom, dicomBuffer, dicomSize);
-  }
-
-
-  StoreStatus ServerContext::Store(std::string& resultPublicId,
-                                   const std::string& dicomContent)
-  {
-    if (dicomContent.size() == 0)
-    {
-      return Store(resultPublicId, NULL, 0);
-    }
-    else
-    {
-      return Store(resultPublicId, &dicomContent[0], dicomContent.size());
-    }
   }
 
 

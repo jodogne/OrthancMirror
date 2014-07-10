@@ -36,17 +36,17 @@
 
 #include <json/json.h>
 
-
 namespace Orthanc
 {
   class LuaFunctionCall : public boost::noncopyable
   {
   private:
     LuaContext& context_;
-    boost::mutex::scoped_lock lock_;
     bool isExecuted_;
 
     void CheckAlreadyExecuted();
+
+    void ExecuteInternal(int numOutputs);
 
   public:
     LuaFunctionCall(LuaContext& context,
@@ -60,10 +60,15 @@ namespace Orthanc
 
     void PushDouble(double value);
 
-    void PushJSON(const Json::Value& value);
+    void PushJson(const Json::Value& value);
 
-    void Execute(int numOutputs = 0);
+    void Execute()
+    {
+      ExecuteInternal(0);
+    }
 
     bool ExecutePredicate();
+
+    void ExecuteToJson(Json::Value& result);                    
   };
 }

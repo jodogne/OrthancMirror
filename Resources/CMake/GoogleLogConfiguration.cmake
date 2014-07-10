@@ -65,22 +65,22 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
   if (CMAKE_COMPILER_IS_GNUCXX)
     if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
       execute_process(
-        COMMAND patch utilities.cc ${CMAKE_SOURCE_DIR}/Resources/Patches/glog-utilities-lsb.diff
+        COMMAND patch utilities.cc ${ORTHANC_ROOT}/Resources/Patches/glog-utilities-lsb.diff
         WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src
         )
     else()
       execute_process(
-        COMMAND patch utilities.cc ${CMAKE_SOURCE_DIR}/Resources/Patches/glog-utilities.diff
+        COMMAND patch utilities.cc ${ORTHANC_ROOT}/Resources/Patches/glog-utilities.diff
         WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src
         )
     endif()
 
     execute_process(
-      COMMAND patch port.h ${CMAKE_SOURCE_DIR}/Resources/Patches/glog-port-h.diff 
+      COMMAND patch port.h ${ORTHANC_ROOT}/Resources/Patches/glog-port-h.diff 
       WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src/windows
       )
     execute_process(
-      COMMAND patch port.cc ${CMAKE_SOURCE_DIR}/Resources/Patches/glog-port-cc.diff 
+      COMMAND patch port.cc ${ORTHANC_ROOT}/Resources/Patches/glog-port-cc.diff 
       WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src/windows
       )
   endif()
@@ -91,18 +91,18 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
     if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
       # Install the specific configuration for LSB SDK
       configure_file(
-        ${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfigurationLSB.h
+        ${ORTHANC_ROOT}/Resources/CMake/GoogleLogConfigurationLSB.h
         ${GOOGLE_LOG_SOURCES_DIR}/src/config.h
         COPYONLY)
     elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
       # Install the specific configuration for Mac OS
       configure_file(
-        ${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfigurationDarwin.h
+        ${ORTHANC_ROOT}/Resources/CMake/GoogleLogConfigurationDarwin.h
         ${GOOGLE_LOG_SOURCES_DIR}/src/config.h
         COPYONLY)
     else()
       configure_file(
-        ${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfiguration.h
+        ${ORTHANC_ROOT}/Resources/CMake/GoogleLogConfiguration.h
         ${GOOGLE_LOG_SOURCES_DIR}/src/config.h
         COPYONLY)
     endif()

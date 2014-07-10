@@ -36,6 +36,9 @@
 #include "../OrthancInitialization.h"
 #include "../../Core/HttpClient.h"
 #include "../FromDcmtkBridge.h"
+#include "../Scheduler/ServerJob.h"
+#include "../Scheduler/StoreScuCommand.h"
+#include "../Scheduler/StorePeerCommand.h"
 
 #include <glog/logging.h>
 
@@ -65,7 +68,7 @@ namespace Orthanc
     return true;
   }
 
-  static void DicomFindPatient(RestApi::PostCall& call)
+  static void DicomFindPatient(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -87,7 +90,7 @@ namespace Orthanc
     call.GetOutput().AnswerJson(result);
   }
 
-  static void DicomFindStudy(RestApi::PostCall& call)
+  static void DicomFindStudy(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -115,7 +118,7 @@ namespace Orthanc
     call.GetOutput().AnswerJson(result);
   }
 
-  static void DicomFindSeries(RestApi::PostCall& call)
+  static void DicomFindSeries(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -144,7 +147,7 @@ namespace Orthanc
     call.GetOutput().AnswerJson(result);
   }
 
-  static void DicomFindInstance(RestApi::PostCall& call)
+  static void DicomFindInstance(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -174,7 +177,7 @@ namespace Orthanc
     call.GetOutput().AnswerJson(result);
   }
 
-  static void DicomFind(RestApi::PostCall& call)
+  static void DicomFind(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -248,7 +251,7 @@ namespace Orthanc
 
   static bool GetInstancesToExport(std::list<std::string>& instances,
                                    const std::string& remote,
-                                   RestApi::PostCall& call)
+                                   RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -308,7 +311,7 @@ namespace Orthanc
   }
 
 
-  static void DicomStore(RestApi::PostCall& call)
+  static void DicomStore(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -321,17 +324,16 @@ namespace Orthanc
     }
 
     RemoteModalityParameters p = Configuration::GetModalityUsingSymbolicName(remote);
-    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), p);
 
+    ServerJob job;
     for (std::list<std::string>::const_iterator 
            it = instances.begin(); it != instances.end(); ++it)
     {
-      LOG(INFO) << "Sending resource " << *it << " to modality \"" << remote << "\"";
-
-      std::string dicom;
-      context.ReadFile(dicom, *it, FileContentType_Dicom);
-      locker.GetConnection().Store(dicom);
+      job.AddCommand(new StoreScuCommand(context, p)).AddInput(*it);
     }
+
+    job.SetDescription("HTTP request: Store-SCU to peer \"" + remote + "\"");
+    context.GetScheduler().SubmitAndWait(job);
 
     call.GetOutput().AnswerBuffer("{}", "application/json");
   }
@@ -345,7 +347,7 @@ namespace Orthanc
     return peers.find(id) != peers.end();
   }
 
-  static void ListPeers(RestApi::GetCall& call)
+  static void ListPeers(RestApiGetCall& call)
   {
     OrthancRestApi::SetOfStrings peers;
     Configuration::GetListOfOrthancPeers(peers);
@@ -360,7 +362,7 @@ namespace Orthanc
     call.GetOutput().AnswerJson(result);
   }
 
-  static void ListPeerOperations(RestApi::GetCall& call)
+  static void ListPeerOperations(RestApiGetCall& call)
   {
     OrthancRestApi::SetOfStrings peers;
     Configuration::GetListOfOrthancPeers(peers);
@@ -374,7 +376,7 @@ namespace Orthanc
     }
   }
 
-  static void PeerStore(RestApi::PostCall& call)
+  static void PeerStore(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -389,33 +391,15 @@ namespace Orthanc
     OrthancPeerParameters peer;
     Configuration::GetOrthancPeer(peer, remote);
 
-    // Configure the HTTP client
-    HttpClient client;
-    if (peer.GetUsername().size() != 0 && 
-        peer.GetPassword().size() != 0)
-    {
-      client.SetCredentials(peer.GetUsername().c_str(), 
-                            peer.GetPassword().c_str());
-    }
-
-    client.SetUrl(peer.GetUrl() + "instances");
-    client.SetMethod(HttpMethod_Post);
-
-    // Loop over the instances that are to be sent
+    ServerJob job;
     for (std::list<std::string>::const_iterator 
            it = instances.begin(); it != instances.end(); ++it)
     {
-      LOG(INFO) << "Sending resource " << *it << " to peer \"" << remote << "\"";
-
-      context.ReadFile(client.AccessPostData(), *it, FileContentType_Dicom);
-
-      std::string answer;
-      if (!client.Apply(answer))
-      {
-        LOG(ERROR) << "Unable to send resource " << *it << " to peer \"" << remote << "\"";
-        return;
-      }
+      job.AddCommand(new StorePeerCommand(context, peer)).AddInput(*it);
     }
+
+    job.SetDescription("HTTP request: POST to peer \"" + remote + "\"");
+    context.GetScheduler().SubmitAndWait(job);
 
     call.GetOutput().AnswerBuffer("{}", "application/json");
   }
@@ -429,7 +413,7 @@ namespace Orthanc
     return modalities.find(id) != modalities.end();
   }
 
-  static void ListModalities(RestApi::GetCall& call)
+  static void ListModalities(RestApiGetCall& call)
   {
     OrthancRestApi::SetOfStrings modalities;
     Configuration::GetListOfDicomModalities(modalities);
@@ -445,7 +429,7 @@ namespace Orthanc
   }
 
 
-  static void ListModalityOperations(RestApi::GetCall& call)
+  static void ListModalityOperations(RestApiGetCall& call)
   {
     OrthancRestApi::SetOfStrings modalities;
     Configuration::GetListOfDicomModalities(modalities);
@@ -465,7 +449,7 @@ namespace Orthanc
   }
 
 
-  static void UpdateModality(RestApi::PutCall& call)
+  static void UpdateModality(RestApiPutCall& call)
   {
     Json::Value json;
     Json::Reader reader;
@@ -479,14 +463,14 @@ namespace Orthanc
   }
 
 
-  static void DeleteModality(RestApi::DeleteCall& call)
+  static void DeleteModality(RestApiDeleteCall& call)
   {
     Configuration::RemoveModality(call.GetUriComponent("id", ""));
     call.GetOutput().AnswerBuffer("", "text/plain");
   }
 
 
-  static void UpdatePeer(RestApi::PutCall& call)
+  static void UpdatePeer(RestApiPutCall& call)
   {
     Json::Value json;
     Json::Reader reader;
@@ -500,7 +484,7 @@ namespace Orthanc
   }
 
 
-  static void DeletePeer(RestApi::DeleteCall& call)
+  static void DeletePeer(RestApiDeleteCall& call)
   {
     Configuration::RemovePeer(call.GetUriComponent("id", ""));
     call.GetOutput().AnswerBuffer("", "text/plain");
