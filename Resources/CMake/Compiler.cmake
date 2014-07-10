@@ -56,7 +56,7 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
   # Remove the "-rdynamic" option
   # http://www.mail-archive.com/cmake@cmake.org/msg08837.html
   set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
-  link_libraries(uuid pthread rt)
+  link_libraries(uuid pthread rt dl)
 
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
   add_definitions(
