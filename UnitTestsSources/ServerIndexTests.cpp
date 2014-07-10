@@ -584,8 +584,8 @@ TEST(ServerIndex, AttachmentRecycling)
     ServerIndex::MetadataMap metadata;
     ASSERT_EQ(StoreStatus_Success, index.Store(instanceMetadata, instance, attachments, "", metadata));
     ASSERT_EQ(2, instanceMetadata.size());
-    ASSERT_NE(instanceMetadata.end(), instanceMetadata.find(MetadataType_Instance_RemoteAet));
-    ASSERT_NE(instanceMetadata.end(), instanceMetadata.find(MetadataType_Instance_ReceptionDate));
+    ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_RemoteAet) != instanceMetadata.end());
+    ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_ReceptionDate) != instanceMetadata.end());
 
     DicomInstanceHasher hasher(instance);
     ids.push_back(hasher.HashPatient());
