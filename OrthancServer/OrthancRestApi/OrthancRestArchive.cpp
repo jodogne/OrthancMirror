@@ -38,6 +38,7 @@
 #include "../../Core/Uuid.h"
 
 #include <glog/logging.h>
+#include <stdio.h>
 
 #if defined(_MSC_VER)
 #define snprintf _snprintf
@@ -233,7 +234,7 @@ namespace Orthanc
   }                                 
 
   template <enum ResourceType resourceType>
-  static void GetArchive(RestApi::GetCall& call)
+  static void GetArchive(RestApiGetCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 

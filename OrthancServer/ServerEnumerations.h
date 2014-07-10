@@ -32,6 +32,7 @@
 #pragma once
 
 #include <string>
+#include <map>
 
 #include "../Core/Enumerations.h"
 
@@ -56,6 +57,7 @@ namespace Orthanc
   enum ModalityManufacturer
   {
     ModalityManufacturer_Generic,
+    ModalityManufacturer_StoreScp,
     ModalityManufacturer_ClearCanvas,
     ModalityManufacturer_MedInria,
     ModalityManufacturer_Dcm4Chee
@@ -123,6 +125,8 @@ namespace Orthanc
     ChangeType_StableStudy = 13,
     ChangeType_StableSeries = 14
   };
+
+
 
   void InitializeServerEnumerations();
 

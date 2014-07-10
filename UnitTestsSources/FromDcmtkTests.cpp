@@ -40,6 +40,7 @@
 #include "../Core/ImageFormats/ImageBuffer.h"
 #include "../Core/ImageFormats/PngReader.h"
 #include "../Core/ImageFormats/PngWriter.h"
+#include "../Core/Uuid.h"
 
 using namespace Orthanc;
 
@@ -82,6 +83,36 @@ TEST(DicomModification, Basic)
     m.Apply(*f);
     f->SaveToFile(b);
   }
+}
+
+
+TEST(DicomModification, Anonymization)
+{
+  const DicomTag privateTag(0x0045, 0x0010);
+  ASSERT_TRUE(FromDcmtkBridge::IsPrivateTag(privateTag));
+
+  ParsedDicomFile o;
+  o.Replace(DICOM_TAG_PATIENT_NAME, "coucou");
+  o.Replace(privateTag, "private tag");
+
+  std::string s;
+  ASSERT_TRUE(o.GetTagValue(s, DICOM_TAG_PATIENT_NAME));
+  ASSERT_FALSE(Toolbox::IsUuid(s));
+
+  DicomModification m;
+  m.SetupAnonymization();
+  m.Keep(privateTag);
+
+  m.Apply(o);
+
+  ASSERT_TRUE(o.GetTagValue(s, DICOM_TAG_PATIENT_NAME));
+  ASSERT_TRUE(Toolbox::IsUuid(s));
+  ASSERT_TRUE(o.GetTagValue(s, privateTag));
+  ASSERT_EQ("private tag", s);
+  
+  m.SetupAnonymization();
+  m.Apply(o);
+  ASSERT_FALSE(o.GetTagValue(s, privateTag));
 }
 
 

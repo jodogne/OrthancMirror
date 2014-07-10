@@ -66,8 +66,8 @@
 
 #include <boost/locale.hpp>
 
-#include "../Resources/md5/md5.h"
-#include "../Resources/base64/base64.h"
+#include "../Resources/ThirdParty/md5/md5.h"
+#include "../Resources/ThirdParty/base64/base64.h"
 
 
 #ifdef _MSC_VER
@@ -284,6 +284,28 @@ namespace Orthanc
   }
 
 
+  void Toolbox::TruncateUri(UriComponents& target,
+                            const UriComponents& source,
+                            size_t fromLevel)
+  {
+    target.clear();
+
+    if (source.size() > fromLevel)
+    {
+      target.resize(source.size() - fromLevel);
+
+      size_t j = 0;
+      for (size_t i = fromLevel; i < source.size(); i++, j++)
+      {
+        target[j] = source[i];
+      }
+
+      assert(j == target.size());
+    }
+  }
+  
+
+
   bool Toolbox::IsChildUri(const UriComponents& baseUri,
                            const UriComponents& testedUri)
   {
@@ -495,11 +517,30 @@ namespace Orthanc
 
 
   std::string Toolbox::ConvertToUtf8(const std::string& source,
-                                     const char* fromEncoding)
+                                     const Encoding sourceEncoding)
   {
+    const char* encoding;
+
+    switch (sourceEncoding)
+    {
+      case Encoding_Utf8:
+        // Already in UTF-8: No conversion is required
+        return source;
+
+      case Encoding_Ascii:
+        return ConvertToAscii(source);;
+
+      case Encoding_Latin1:
+        encoding = "ISO-8859-1";
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
+
     try
     {
-      return boost::locale::conv::to_utf<char>(source, fromEncoding);
+      return boost::locale::conv::to_utf<char>(source, encoding);
     }
     catch (std::runtime_error&)
     {
@@ -776,5 +817,12 @@ namespace Orthanc
       }
     }
   }
+
+
+  bool Toolbox::IsExistingFile(const std::string& path)
+  {
+    return boost::filesystem::exists(path);
+  }
+
 }
 

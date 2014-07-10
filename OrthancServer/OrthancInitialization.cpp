@@ -288,7 +288,8 @@ namespace Orthanc
     if (modalities.type() != Json::objectValue ||
         !modalities.isMember(name))
     {
-      throw OrthancException(ErrorCode_BadFileFormat);
+      LOG(ERROR) << "No modality with symbolic name: " << name;
+      throw OrthancException(ErrorCode_InexistentItem);
     }
 
     try
@@ -321,7 +322,8 @@ namespace Orthanc
       if (modalities.type() != Json::objectValue ||
           !modalities.isMember(name))
       {
-        throw OrthancException(ErrorCode_BadFileFormat);
+        LOG(ERROR) << "No peer with symbolic name: " << name;
+        throw OrthancException(ErrorCode_InexistentItem);
       }
 
       peer.FromJson(modalities[name]);

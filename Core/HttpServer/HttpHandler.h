@@ -50,16 +50,18 @@ namespace Orthanc
     {
     }
 
-    virtual bool IsServedUri(const UriComponents& uri) = 0;
-
-    virtual void Handle(HttpOutput& output,
+    virtual bool Handle(HttpOutput& output,
                         HttpMethod method,
                         const UriComponents& uri,
                         const Arguments& headers,
                         const Arguments& getArguments,
                         const std::string& postData) = 0;
 
-    static void ParseGetQuery(HttpHandler::Arguments& result, 
+    static void ParseGetArguments(HttpHandler::Arguments& result, 
+                                  const char* query);
+
+    static void ParseGetQuery(UriComponents& uri,
+                              HttpHandler::Arguments& getArguments, 
                               const char* query);
 
     static std::string GetArgument(const Arguments& getArguments,

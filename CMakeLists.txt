@@ -84,6 +84,9 @@ set(ORTHANC_CORE_SOURCES
   Core/HttpServer/MongooseServer.cpp
   Core/HttpServer/HttpFileSender.cpp
   Core/HttpServer/FilesystemHttpSender.cpp
+  Core/RestApi/RestApiCall.cpp
+  Core/RestApi/RestApiGetCall.cpp
+  Core/RestApi/RestApiHierarchy.cpp
   Core/RestApi/RestApiPath.cpp
   Core/RestApi/RestApiOutput.cpp
   Core/RestApi/RestApi.cpp
@@ -91,6 +94,7 @@ set(ORTHANC_CORE_SOURCES
   Core/MultiThreading/BagOfRunnablesBySteps.cpp
   Core/MultiThreading/Mutex.cpp
   Core/MultiThreading/ReaderWriterLock.cpp
+  Core/MultiThreading/Semaphore.cpp
   Core/MultiThreading/SharedMessageQueue.cpp
   Core/MultiThreading/ThreadedCommandProcessor.cpp
   Core/ImageFormats/ImageAccessor.cpp
@@ -114,6 +118,10 @@ set(ORTHANC_CORE_SOURCES
   OrthancCppClient/Series.cpp
   OrthancCppClient/Instance.cpp
   OrthancCppClient/Patient.cpp
+
+  Plugins/Engine/SharedLibrary.cpp
+  Plugins/Engine/PluginsManager.cpp
+  Plugins/Engine/PluginsHttpHandler.cpp
   )
 
 
@@ -148,27 +156,37 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/ServerToolbox.cpp
   OrthancServer/OrthancFindRequestHandler.cpp
   OrthancServer/OrthancMoveRequestHandler.cpp
+
+  # From "lua-scripting" branch
+  OrthancServer/DicomInstanceToStore.cpp
+  OrthancServer/Scheduler/DeleteInstanceCommand.cpp
+  OrthancServer/Scheduler/ModifyInstanceCommand.cpp
+  OrthancServer/Scheduler/ServerCommandInstance.cpp
+  OrthancServer/Scheduler/ServerJob.cpp
+  OrthancServer/Scheduler/ServerScheduler.cpp
+  OrthancServer/Scheduler/StorePeerCommand.cpp
+  OrthancServer/Scheduler/StoreScuCommand.cpp
   )
 
 
 set(ORTHANC_UNIT_TESTS_SOURCES
-  UnitTestsSources/DicomMap.cpp
-  UnitTestsSources/FileStorage.cpp
-  UnitTestsSources/FromDcmtk.cpp
-  UnitTestsSources/MemoryCache.cpp
-  UnitTestsSources/Png.cpp
-  UnitTestsSources/RestApi.cpp
-  UnitTestsSources/SQLite.cpp
-  UnitTestsSources/SQLiteChromium.cpp
+  UnitTestsSources/DicomMapTests.cpp
+  UnitTestsSources/FileStorageTests.cpp
+  UnitTestsSources/FromDcmtkTests.cpp
+  UnitTestsSources/MemoryCacheTests.cpp
+  UnitTestsSources/PngTests.cpp
+  UnitTestsSources/RestApiTests.cpp
+  UnitTestsSources/SQLiteTests.cpp
+  UnitTestsSources/SQLiteChromiumTests.cpp
   UnitTestsSources/ServerIndexTests.cpp
-  UnitTestsSources/Versions.cpp
-  UnitTestsSources/Zip.cpp
-  UnitTestsSources/Lua.cpp
-  UnitTestsSources/MultiThreading.cpp
+  UnitTestsSources/VersionsTests.cpp
+  UnitTestsSources/ZipTests.cpp
+  UnitTestsSources/LuaTests.cpp
+  UnitTestsSources/MultiThreadingTests.cpp
   UnitTestsSources/UnitTestsMain.cpp
   UnitTestsSources/ImageProcessingTests.cpp
-  UnitTestsSources/JpegLossless.cpp
-
+  UnitTestsSources/JpegLosslessTests.cpp
+  UnitTestsSources/PluginsTests.cpp
   UnitTestsSources/Plustache.cpp
   )
 
@@ -186,8 +204,8 @@ endif()
 
 # Prepare the third-party dependencies
 SET(THIRD_PARTY_SOURCES
-  ${CMAKE_SOURCE_DIR}/Resources/md5/md5.c
-  ${CMAKE_SOURCE_DIR}/Resources/base64/base64.cpp
+  ${CMAKE_SOURCE_DIR}/Resources/ThirdParty/md5/md5.c
+  ${CMAKE_SOURCE_DIR}/Resources/ThirdParty/base64/base64.cpp
   )
 
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfiguration.cmake)
@@ -389,8 +407,8 @@ if (BUILD_CLIENT_LIBRARY)
   add_library(OrthancClient SHARED
     ${ORTHANC_ROOT}/OrthancCppClient/OrthancCppClient.cpp
     ${ORTHANC_ROOT}/OrthancCppClient/SharedLibrary/SharedLibrary.cpp
-    ${ORTHANC_ROOT}/Resources/md5/md5.c
-    ${ORTHANC_ROOT}/Resources/base64/base64.cpp
+    ${ORTHANC_ROOT}/Resources/ThirdParty/md5/md5.c
+    ${ORTHANC_ROOT}/Resources/ThirdParty/base64/base64.cpp
     ${ORTHANC_CPP_CLIENT_AUX}
     ${THIRD_PARTY_SOURCES}
     ${CURL_SOURCES}
@@ -464,8 +482,15 @@ if (DOXYGEN_FOUND)
     ${CMAKE_CURRENT_BINARY_DIR}/Orthanc.doxygen
     @ONLY)
 
+  configure_file(
+    ${CMAKE_SOURCE_DIR}/Resources/OrthancPlugin.doxygen
+    ${CMAKE_CURRENT_BINARY_DIR}/OrthancPlugin.doxygen
+    @ONLY)
+
   add_custom_target(doc
     ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Orthanc.doxygen
+    COMMAND
+    ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/OrthancPlugin.doxygen
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Generating internal documentation with Doxygen" VERBATIM
     )

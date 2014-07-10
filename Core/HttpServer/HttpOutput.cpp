@@ -42,13 +42,70 @@
 
 namespace Orthanc
 {
-  void HttpOutput::SendString(const std::string& s)
+  void HttpOutput::StateMachine::SendHttpStatus(HttpStatus status)
   {
-    if (s.size() > 0)
+    if (state_ != State_WaitingHttpStatus)
     {
-      Send(&s[0], s.size());
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    stream_.OnHttpStatusReceived(status);
+    state_ = State_WritingHeader;
+
+    std::string s = "HTTP/1.1 " + 
+      boost::lexical_cast<std::string>(status) +
+      " " + std::string(EnumerationToString(status)) +
+      "\r\n";
+
+    stream_.Send(true, &s[0], s.size());
+  }
+
+  void HttpOutput::StateMachine::SendHeaderData(const void* buffer, size_t length)
+  {
+    if (state_ != State_WritingHeader)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    stream_.Send(true, buffer, length);
+  }
+
+  void HttpOutput::StateMachine::SendHeaderString(const std::string& str)
+  {
+    if (str.size() > 0)
+    {
+      SendHeaderData(&str[0], str.size());
     }
   }
+
+  void HttpOutput::StateMachine::SendBodyData(const void* buffer, size_t length)
+  {
+    if (state_ == State_WaitingHttpStatus)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    if (state_ == State_WritingHeader)
+    {
+      // Close the HTTP header before writing the body
+      stream_.Send(true, "\r\n", 2);
+      state_ = State_WritingBody;
+    }
+
+    if (length > 0)
+    {
+      stream_.Send(false, buffer, length);
+    }
+  }
+
+  void HttpOutput::StateMachine::SendBodyString(const std::string& str)
+  {
+    if (str.size() > 0)
+    {
+      SendBodyData(&str[0], str.size());
+    }
+  }
+
 
   void HttpOutput::PrepareOkHeader(Header& header,
                                    const char* contentType,
@@ -87,49 +144,37 @@ namespace Orthanc
 
   void HttpOutput::SendOkHeader(const Header& header)
   {
-    std::string s = "HTTP/1.1 200 OK\r\n";
+    stateMachine_.SendHttpStatus(HttpStatus_200_Ok);
 
+    std::string s;
     for (Header::const_iterator 
            it = header.begin(); it != header.end(); ++it)
     {
       s += it->first + ": " + it->second + "\r\n";
     }
 
-    s += "\r\n";
-
-    Send(&s[0], s.size());
+    stateMachine_.SendHeaderString(s);
   }
 
 
   void HttpOutput::SendMethodNotAllowedError(const std::string& allowed)
   {
-    std::string s = 
-      "HTTP/1.1 405 " + std::string(EnumerationToString(HttpStatus_405_MethodNotAllowed)) +
-      "\r\nAllow: " + allowed + 
-      "\r\n\r\n";
-    Send(&s[0], s.size());
+    stateMachine_.SendHttpStatus(HttpStatus_405_MethodNotAllowed);
+    stateMachine_.SendHeaderString("Allow: " + allowed + "\r\n");
   }
 
 
   void HttpOutput::SendHeader(HttpStatus status)
   {
     if (status == HttpStatus_200_Ok ||
+        status == HttpStatus_301_MovedPermanently ||
+        status == HttpStatus_401_Unauthorized ||
         status == HttpStatus_405_MethodNotAllowed)
     {
       throw OrthancException("Please use the dedicated methods to this HTTP status code in HttpOutput");
     }
     
-    SendHeaderInternal(status);
-  }
-
-
-  void HttpOutput::SendHeaderInternal(HttpStatus status)
-  {
-    std::string s = "HTTP/1.1 " + 
-      boost::lexical_cast<std::string>(status) +
-      " " + std::string(EnumerationToString(status)) +
-      "\r\n\r\n";
-    Send(&s[0], s.size());
+    stateMachine_.SendHttpStatus(status);
   }
 
 
@@ -137,7 +182,7 @@ namespace Orthanc
                                                const std::string& contentType)
   {
     SendOkHeader(contentType.c_str(), true, buffer.size(), NULL);
-    SendString(buffer);
+    SendBodyString(buffer);
   }
 
 
@@ -160,7 +205,7 @@ namespace Orthanc
     PrepareOkHeader(header, contentType.c_str(), true, buffer.size(), NULL);
     PrepareCookies(header, cookies);
     SendOkHeader(header);
-    SendString(buffer);
+    SendBodyString(buffer);
   }
 
 
@@ -169,7 +214,7 @@ namespace Orthanc
                                                const std::string& contentType)
   {
     SendOkHeader(contentType.c_str(), true, size, NULL);
-    Send(buffer, size);
+    SendBodyData(buffer, size);
   }
 
 
@@ -182,17 +227,21 @@ namespace Orthanc
     PrepareOkHeader(header, contentType.c_str(), true, size, NULL);
     PrepareCookies(header, cookies);
     SendOkHeader(header);
-    Send(buffer, size);
+    SendBodyData(buffer, size);
   }
-
 
 
   void HttpOutput::Redirect(const std::string& path)
   {
-    std::string s = 
-      "HTTP/1.1 301 " + std::string(EnumerationToString(HttpStatus_301_MovedPermanently)) + 
-      "\r\nLocation: " + path +
-      "\r\n\r\n";
-    Send(&s[0], s.size());  
+    stateMachine_.SendHttpStatus(HttpStatus_301_MovedPermanently);
+    stateMachine_.SendHeaderString("Location: " + path + "\r\n");
   }
+
+
+  void HttpOutput::SendUnauthorized(const std::string& realm)
+  {
+    stateMachine_.SendHttpStatus(HttpStatus_401_Unauthorized);
+    stateMachine_.SendHeaderString("WWW-Authenticate: Basic realm=\"" + realm + "\"\r\n");
+  }
+
 }

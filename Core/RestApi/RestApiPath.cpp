@@ -33,6 +33,8 @@
 #include "../PrecompiledHeaders.h"
 #include "RestApiPath.h"
 
+#include "../OrthancException.h"
+
 #include <cassert>
 
 namespace Orthanc
@@ -76,7 +78,7 @@ namespace Orthanc
     }
   }
 
-  bool RestApiPath::Match(Components& components,
+  bool RestApiPath::Match(HttpHandler::Arguments& components,
                           UriComponents& trailing,
                           const std::string& uriRaw) const
   {
@@ -85,10 +87,12 @@ namespace Orthanc
     return Match(components, trailing, uri);
   }
 
-  bool RestApiPath::Match(Components& components,
+  bool RestApiPath::Match(HttpHandler::Arguments& components,
                           UriComponents& trailing,
                           const UriComponents& uri) const
   {
+    assert(uri_.size() == components_.size());
+
     if (uri.size() < uri_.size())
     {
       return false;
@@ -131,8 +135,46 @@ namespace Orthanc
 
   bool RestApiPath::Match(const UriComponents& uri) const
   {
-    Components components;
+    HttpHandler::Arguments components;
     UriComponents trailing;
     return Match(components, trailing, uri);
   }
+
+
+  bool RestApiPath::IsWildcardLevel(size_t level) const
+  {
+    assert(uri_.size() == components_.size());
+
+    if (level >= uri_.size())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    return uri_[level].length() == 0;
+  }
+
+  const std::string& RestApiPath::GetWildcardName(size_t level) const
+  {
+    assert(uri_.size() == components_.size());
+
+    if (!IsWildcardLevel(level))
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+
+    return components_[level];
+  }
+
+  const std::string& RestApiPath::GetLevelName(size_t level) const
+  {
+    assert(uri_.size() == components_.size());
+
+    if (IsWildcardLevel(level))
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+
+    return uri_[level];
+  }
 }
+

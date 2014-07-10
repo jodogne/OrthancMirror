@@ -32,8 +32,9 @@
 
 #pragma once
 
-#include "../ServerContext.h"
 #include "../../Core/RestApi/RestApi.h"
+#include "../DicomModification.h"
+#include "../ServerContext.h"
 
 #include <set>
 
@@ -62,23 +63,26 @@ namespace Orthanc
   public:
     OrthancRestApi(ServerContext& context);
 
-    static OrthancRestApi& GetApi(RestApi::Call& call)
+    static OrthancRestApi& GetApi(RestApiCall& call)
     {
       return dynamic_cast<OrthancRestApi&>(call.GetContext());
     }
 
-    static ServerContext& GetContext(RestApi::Call& call)
+    static ServerContext& GetContext(RestApiCall& call)
     {
       return GetApi(call).context_;
     }
 
-    static ServerIndex& GetIndex(RestApi::Call& call)
+    static ServerIndex& GetIndex(RestApiCall& call)
     {
       return GetContext(call).GetIndex();
     }
 
-    void AnswerStoredInstance(RestApi::PostCall& call,
+    void AnswerStoredInstance(RestApiPostCall& call,
                               const std::string& publicId,
-                              StoreStatus status);
+                              StoreStatus status) const;
+
+    static bool ParseModifyRequest(DicomModification& target,
+                                   const Json::Value& request);
   };
 }
