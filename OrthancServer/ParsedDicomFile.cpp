@@ -282,7 +282,7 @@ namespace Orthanc
 
       if (cond.good())
       {
-        output.GetLowLevelOutput().Send(&buffer[0], nbytes);
+        output.GetLowLevelOutput().SendBodyData(&buffer[0], nbytes);
         offset += nbytes;
       }
       else

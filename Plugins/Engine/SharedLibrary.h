@@ -32,35 +32,39 @@
 
 #pragma once
 
-#include "RestApiHierarchy.h"
+#include "../../Core/OrthancException.h"
 
-#include <list>
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class RestApi : public HttpHandler
+  class SharedLibrary : boost::noncopyable
   {
+  public:
+#if defined(_WIN32)
+    typedef FARPROC FunctionPointer;
+#else
+    typedef void* FunctionPointer;
+#endif
+
   private:
-    RestApiHierarchy root_;
+    std::string path_;
+    void *handle_;
+
+    FunctionPointer GetFunctionInternal(const std::string& name);
 
   public:
-    virtual bool Handle(HttpOutput& output,
-                        HttpMethod method,
-                        const UriComponents& uri,
-                        const Arguments& headers,
-                        const Arguments& getArguments,
-                        const std::string& postData);
+    SharedLibrary(const std::string& path);
 
-    void Register(const std::string& path,
-                  RestApiGetCall::Handler handler);
+    ~SharedLibrary();
 
-    void Register(const std::string& path,
-                  RestApiPutCall::Handler handler);
+    const std::string& GetPath() const
+    {
+      return path_;
+    }
 
-    void Register(const std::string& path,
-                  RestApiPostCall::Handler handler);
+    bool HasFunction(const std::string& name);
 
-    void Register(const std::string& path,
-                  RestApiDeleteCall::Handler handler);
+    FunctionPointer GetFunction(const std::string& name);
   };
 }

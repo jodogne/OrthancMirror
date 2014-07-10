@@ -32,18 +32,45 @@
 
 #pragma once
 
-#include "RestApiHierarchy.h"
+#include "PluginsManager.h"
+#include "../../Core/HttpServer/HttpHandler.h"
+#include "../../OrthancServer/ServerContext.h"
+#include "../../OrthancServer/OrthancRestApi/OrthancRestApi.h"
+#include "../OrthancCPlugin/OrthancCPlugin.h"
 
 #include <list>
+#include <boost/shared_ptr.hpp>
 
 namespace Orthanc
 {
-  class RestApi : public HttpHandler
+  class PluginsHttpHandler : public HttpHandler, public IPluginServiceProvider
   {
   private:
-    RestApiHierarchy root_;
+    struct PImpl;
+
+    boost::shared_ptr<PImpl> pimpl_;
+
+    void RegisterRestCallback(const void* parameters);
+
+    void AnswerBuffer(const void* parameters);
+
+    void Redirect(const void* parameters);
+
+    void CompressAndAnswerPngImage(const void* parameters);
+
+    void GetDicomForInstance(const void* parameters);
+
+    void RestApiGet(const void* parameters);
+
+    void RestApiPostPut(bool isPost, const void* parameters);
+
+    void RestApiDelete(const void* parameters);
 
   public:
+    PluginsHttpHandler(ServerContext& context);
+
+    virtual ~PluginsHttpHandler();
+
     virtual bool Handle(HttpOutput& output,
                         HttpMethod method,
                         const UriComponents& uri,
@@ -51,16 +78,9 @@ namespace Orthanc
                         const Arguments& getArguments,
                         const std::string& postData);
 
-    void Register(const std::string& path,
-                  RestApiGetCall::Handler handler);
+    virtual bool InvokeService(_OrthancPluginService service,
+                               const void* parameters);
 
-    void Register(const std::string& path,
-                  RestApiPutCall::Handler handler);
-
-    void Register(const std::string& path,
-                  RestApiPostCall::Handler handler);
-
-    void Register(const std::string& path,
-                  RestApiDeleteCall::Handler handler);
+    void SetOrthancRestApi(OrthancRestApi& restApi);
   };
 }
