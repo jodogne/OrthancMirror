@@ -104,6 +104,6 @@ namespace Orthanc
     static std::string GenerateUniqueIdentifier(ResourceType level);
 
     static bool SaveToMemoryBuffer(std::string& buffer,
-                                   DcmDataset* dataSet);
+                                   DcmDataset& dataSet);
   };
 }

@@ -30,71 +30,38 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
-#include "OrthancRestApi.h"
+#include "Semaphore.h"
 
-#include "../DicomModification.h"
+#include "../OrthancException.h"
 
-#include <glog/logging.h>
 
 namespace Orthanc
 {
-  void OrthancRestApi::AnswerStoredInstance(RestApiPostCall& call,
-                                            const std::string& publicId,
-                                            StoreStatus status) const
+  Semaphore::Semaphore(unsigned int count) : count_(count)
   {
-    Json::Value result = Json::objectValue;
-
-    if (status != StoreStatus_Failure)
+    if (count == 0)
     {
-      result["ID"] = publicId;
-      result["Path"] = GetBasePath(ResourceType_Instance, publicId);
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
-
-    result["Status"] = EnumerationToString(status);
-    call.GetOutput().AnswerJson(result);
   }
 
-
-
-  // Upload of DICOM files through HTTP ---------------------------------------
-
-  static void UploadDicomFile(RestApiPostCall& call)
+  void Semaphore::Release()
   {
-    ServerContext& context = OrthancRestApi::GetContext(call);
+    boost::mutex::scoped_lock lock(mutex_);
 
-    const std::string& postData = call.GetPostBody();
-    if (postData.size() == 0)
-    {
-      return;
-    }
-
-    LOG(INFO) << "Receiving a DICOM file of " << postData.size() << " bytes through HTTP";
-
-    DicomInstanceToStore toStore;
-    toStore.SetBuffer(postData);
-
-    std::string publicId;
-    StoreStatus status = context.Store(publicId, toStore);
-
-    OrthancRestApi::GetApi(call).AnswerStoredInstance(call, publicId, status);
+    count_++;
+    condition_.notify_one(); 
   }
 
-
-
-  // Registration of the various REST handlers --------------------------------
-
-  OrthancRestApi::OrthancRestApi(ServerContext& context) : 
-    context_(context)
+  void Semaphore::Acquire()
   {
-    RegisterSystem();
+    boost::mutex::scoped_lock lock(mutex_);
 
-    RegisterChanges();
-    RegisterResources();
-    RegisterModalities();
-    RegisterAnonymizeModify();
-    RegisterArchive();
+    while (count_ == 0)
+    {
+      condition_.wait(lock);
+    }
 
-    Register("/instances", UploadDicomFile);
+    count_++;
   }
 }

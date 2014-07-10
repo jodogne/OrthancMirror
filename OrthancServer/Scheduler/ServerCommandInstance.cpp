@@ -30,71 +30,68 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
-#include "OrthancRestApi.h"
+#include "ServerCommandInstance.h"
 
-#include "../DicomModification.h"
-
-#include <glog/logging.h>
+#include "../../Core/OrthancException.h"
 
 namespace Orthanc
 {
-  void OrthancRestApi::AnswerStoredInstance(RestApiPostCall& call,
-                                            const std::string& publicId,
-                                            StoreStatus status) const
+  bool ServerCommandInstance::Execute(IListener& listener)
   {
-    Json::Value result = Json::objectValue;
+    ListOfStrings outputs;
 
-    if (status != StoreStatus_Failure)
+    bool success = false;
+
+    try
     {
-      result["ID"] = publicId;
-      result["Path"] = GetBasePath(ResourceType_Instance, publicId);
+      if (command_->Apply(outputs, inputs_))
+      {
+        success = true;
+      }
+    }
+    catch (OrthancException&)
+    {
     }
 
-    result["Status"] = EnumerationToString(status);
-    call.GetOutput().AnswerJson(result);
+    if (!success)
+    {
+      listener.SignalFailure(jobId_);
+      return true;
+    }
+
+    for (std::list<ServerCommandInstance*>::iterator
+           it = next_.begin(); it != next_.end(); it++)
+    {
+      for (ListOfStrings::const_iterator
+             output = outputs.begin(); output != outputs.end(); output++)
+      {
+        (*it)->AddInput(*output);
+      }
+    }
+
+    listener.SignalSuccess(jobId_);
+    return true;
   }
 
 
-
-  // Upload of DICOM files through HTTP ---------------------------------------
-
-  static void UploadDicomFile(RestApiPostCall& call)
+  ServerCommandInstance::ServerCommandInstance(IServerCommand *command,
+                                               const std::string& jobId) : 
+    command_(command), 
+    jobId_(jobId),
+    connectedToSink_(false)
   {
-    ServerContext& context = OrthancRestApi::GetContext(call);
-
-    const std::string& postData = call.GetPostBody();
-    if (postData.size() == 0)
+    if (command_ == NULL)
     {
-      return;
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
-
-    LOG(INFO) << "Receiving a DICOM file of " << postData.size() << " bytes through HTTP";
-
-    DicomInstanceToStore toStore;
-    toStore.SetBuffer(postData);
-
-    std::string publicId;
-    StoreStatus status = context.Store(publicId, toStore);
-
-    OrthancRestApi::GetApi(call).AnswerStoredInstance(call, publicId, status);
   }
 
 
-
-  // Registration of the various REST handlers --------------------------------
-
-  OrthancRestApi::OrthancRestApi(ServerContext& context) : 
-    context_(context)
+  ServerCommandInstance::~ServerCommandInstance()
   {
-    RegisterSystem();
-
-    RegisterChanges();
-    RegisterResources();
-    RegisterModalities();
-    RegisterAnonymizeModify();
-    RegisterArchive();
-
-    Register("/instances", UploadDicomFile);
+    if (command_ != NULL)
+    {
+      delete command_;
+    }
   }
 }

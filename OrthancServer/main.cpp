@@ -73,7 +73,14 @@ public:
   {
     if (dicomFile.size() > 0)
     {
-      server_.Store(&dicomFile[0], dicomFile.size(), dicomSummary, dicomJson, remoteAet);
+      DicomInstanceToStore toStore;
+      toStore.SetBuffer(dicomFile);
+      toStore.SetSummary(dicomSummary);
+      toStore.SetJson(dicomJson);
+      toStore.SetRemoteAet(remoteAet);
+
+      std::string id;
+      server_.Store(id, toStore);
     }
   }
 };
@@ -188,10 +195,12 @@ public:
   {
     static const char* HTTP_FILTER = "IncomingHttpRequestFilter";
 
+    ServerContext::LuaContextLocker locker(context_);
+
     // Test if the instance must be filtered out
-    if (context_.GetLuaContext().IsExistingFunction(HTTP_FILTER))
+    if (locker.GetLua().IsExistingFunction(HTTP_FILTER))
     {
-      LuaFunctionCall call(context_.GetLuaContext(), HTTP_FILTER);
+      LuaFunctionCall call(locker.GetLua(), HTTP_FILTER);
 
       switch (method)
       {
@@ -283,7 +292,9 @@ static void LoadLuaScripts(ServerContext& context)
     LOG(WARNING) << "Installing the Lua scripts from: " << path;
     std::string script;
     Toolbox::ReadFile(script, path);
-    context.GetLuaContext().Execute(script);
+
+    ServerContext::LuaContextLocker locker(context);
+    locker.GetLua().Execute(script);
   }
 }
 

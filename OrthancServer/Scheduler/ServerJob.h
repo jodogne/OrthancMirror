@@ -32,50 +32,51 @@
 
 #pragma once
 
-#include "LuaException.h"
-
-extern "C" 
-{
-#include <lua.h>
-}
-
-#include <EmbeddedResources.h>
-
-#include <boost/noncopyable.hpp>
+#include "ServerCommandInstance.h"
+#include "../../Core/MultiThreading/SharedMessageQueue.h"
 
 namespace Orthanc
 {
-  class LuaContext : public boost::noncopyable
+  class ServerJob
   {
+    friend class ServerScheduler;
+
   private:
-    friend class LuaFunctionCall;
+    std::list<ServerCommandInstance*> filters_;
+    std::list<IDynamicObject*> payloads_;
+    std::string jobId_;
+    bool submitted_;
+    std::string description_;
 
-    lua_State *lua_;
-    std::string log_;
+    void CheckOrdering();
 
-    static int PrintToLog(lua_State *L);
-
-    void Execute(std::string* output,
-                 const std::string& command);
+    size_t Submit(SharedMessageQueue& target,
+                  ServerCommandInstance::IListener& listener);
 
   public:
-    LuaContext();
+    ServerJob();
 
-    ~LuaContext();
+    ~ServerJob();
 
-    void Execute(const std::string& command)
+    const std::string& GetId() const
     {
-      Execute(NULL, command);
+      return jobId_;
     }
 
-    void Execute(std::string& output,
-                 const std::string& command)
+    void SetDescription(const std::string& description)
     {
-      Execute(&output, command);
+      description_ = description;
     }
 
-    void Execute(EmbeddedResources::FileResourceId resource);
+    const std::string& GetDescription() const
+    {
+      return description_;
+    }
 
-    bool IsExistingFunction(const char* name);
+    ServerCommandInstance& AddCommand(IServerCommand* filter);
+
+    // Take the ownership of a payload to a job. This payload will be
+    // automatically freed when the job succeeds or fails.
+    IDynamicObject& AddPayload(IDynamicObject* payload);
   };
 }

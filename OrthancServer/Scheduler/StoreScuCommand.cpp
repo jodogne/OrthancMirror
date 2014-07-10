@@ -30,71 +30,37 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
-#include "OrthancRestApi.h"
-
-#include "../DicomModification.h"
+#include "StoreScuCommand.h"
 
 #include <glog/logging.h>
 
 namespace Orthanc
 {
-  void OrthancRestApi::AnswerStoredInstance(RestApiPostCall& call,
-                                            const std::string& publicId,
-                                            StoreStatus status) const
+  StoreScuCommand::StoreScuCommand(ServerContext& context,
+                                 const RemoteModalityParameters& modality) : 
+    context_(context),
+    modality_(modality)
   {
-    Json::Value result = Json::objectValue;
-
-    if (status != StoreStatus_Failure)
-    {
-      result["ID"] = publicId;
-      result["Path"] = GetBasePath(ResourceType_Instance, publicId);
-    }
-
-    result["Status"] = EnumerationToString(status);
-    call.GetOutput().AnswerJson(result);
   }
 
-
-
-  // Upload of DICOM files through HTTP ---------------------------------------
-
-  static void UploadDicomFile(RestApiPostCall& call)
+  bool StoreScuCommand::Apply(ListOfStrings& outputs,
+                             const ListOfStrings& inputs)
   {
-    ServerContext& context = OrthancRestApi::GetContext(call);
+    ReusableDicomUserConnection::Locker locker(context_.GetReusableDicomUserConnection(), modality_);
 
-    const std::string& postData = call.GetPostBody();
-    if (postData.size() == 0)
+    for (ListOfStrings::const_iterator
+           it = inputs.begin(); it != inputs.end(); ++it)
     {
-      return;
+      LOG(INFO) << "Sending resource " << *it << " to modality \"" 
+                << modality_.GetApplicationEntityTitle() << "\"";
+
+      std::string dicom;
+      context_.ReadFile(dicom, *it, FileContentType_Dicom);
+      locker.GetConnection().Store(dicom);
+
+      outputs.push_back(*it);
     }
 
-    LOG(INFO) << "Receiving a DICOM file of " << postData.size() << " bytes through HTTP";
-
-    DicomInstanceToStore toStore;
-    toStore.SetBuffer(postData);
-
-    std::string publicId;
-    StoreStatus status = context.Store(publicId, toStore);
-
-    OrthancRestApi::GetApi(call).AnswerStoredInstance(call, publicId, status);
-  }
-
-
-
-  // Registration of the various REST handlers --------------------------------
-
-  OrthancRestApi::OrthancRestApi(ServerContext& context) : 
-    context_(context)
-  {
-    RegisterSystem();
-
-    RegisterChanges();
-    RegisterResources();
-    RegisterModalities();
-    RegisterAnonymizeModify();
-    RegisterArchive();
-
-    Register("/instances", UploadDicomFile);
+    return true;
   }
 }

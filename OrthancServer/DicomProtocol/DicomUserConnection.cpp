@@ -154,7 +154,8 @@ namespace Orthanc
   {
     if (cond.bad())
     {
-      throw OrthancException("DicomUserConnection: " + std::string(cond.text()));
+      LOG(ERROR) << "DicomUserConnection: " << std::string(cond.text());
+       throw OrthancException(ErrorCode_NetworkProtocol);
     }
   }
 
@@ -162,7 +163,8 @@ namespace Orthanc
   {
     if (!IsOpen())
     {
-      throw OrthancException("DicomUserConnection: First open the connection");
+      LOG(ERROR) << "DicomUserConnection: First open the connection";
+      throw OrthancException(ErrorCode_NetworkProtocol);
     }
   }
 
