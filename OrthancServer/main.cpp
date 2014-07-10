@@ -48,6 +48,8 @@
 #include "OrthancFindRequestHandler.h"
 #include "OrthancMoveRequestHandler.h"
 #include "ServerToolbox.h"
+#include "../Plugins/Engine/PluginsManager.h"
+#include "../Plugins/Engine/PluginsHttpHandler.h"
 
 using namespace Orthanc;
 
@@ -229,7 +231,7 @@ public:
 };
 
 
-void PrintHelp(char* path)
+static void PrintHelp(char* path)
 {
   std::cout 
     << "Usage: " << path << " [OPTION]... [CONFIGURATION]" << std::endl
@@ -256,7 +258,7 @@ void PrintHelp(char* path)
 }
 
 
-void PrintVersion(char* path)
+static void PrintVersion(char* path)
 {
   std::cout
     << path << " " << ORTHANC_VERSION << std::endl
@@ -267,6 +269,39 @@ void PrintVersion(char* path)
     << std::endl
     << "Written by Sebastien Jodogne <s.jodogne@gmail.com>" << std::endl;
 }
+
+
+
+static void LoadLuaScripts(ServerContext& context)
+{
+  std::list<std::string> luaScripts;
+  Configuration::GetGlobalListOfStringsParameter(luaScripts, "LuaScripts");
+  for (std::list<std::string>::const_iterator
+         it = luaScripts.begin(); it != luaScripts.end(); ++it)
+  {
+    std::string path = Configuration::InterpretStringParameterAsPath(*it);
+    LOG(WARNING) << "Installing the Lua scripts from: " << path;
+    std::string script;
+    Toolbox::ReadFile(script, path);
+    context.GetLuaContext().Execute(script);
+  }
+}
+
+
+static void LoadPlugins(PluginsManager& pluginsManager)
+{
+  std::list<std::string> plugins;
+  Configuration::GetGlobalListOfStringsParameter(plugins, "Plugins");
+  for (std::list<std::string>::const_iterator
+         it = plugins.begin(); it != plugins.end(); ++it)
+  {
+    std::string path = Configuration::InterpretStringParameterAsPath(*it);
+    LOG(WARNING) << "Registering a plugin from: " << path;
+    pluginsManager.RegisterPlugin(path);
+  }  
+}
+
+
 
 
 int main(int argc, char* argv[]) 
@@ -362,18 +397,7 @@ int main(int argc, char* argv[])
     context.SetCompressionEnabled(Configuration::GetGlobalBoolParameter("StorageCompression", false));
     context.SetStoreMD5ForAttachments(Configuration::GetGlobalBoolParameter("StoreMD5ForAttachments", true));
 
-    std::list<std::string> luaScripts;
-    Configuration::GetGlobalListOfStringsParameter(luaScripts, "LuaScripts");
-    for (std::list<std::string>::const_iterator
-           it = luaScripts.begin(); it != luaScripts.end(); ++it)
-    {
-      std::string path = Configuration::InterpretStringParameterAsPath(*it);
-      LOG(WARNING) << "Installing the Lua scripts from: " << path;
-      std::string script;
-      Toolbox::ReadFile(script, path);
-      context.GetLuaContext().Execute(script);
-    }
-
+    LoadLuaScripts(context);
 
     try
     {
@@ -430,13 +454,25 @@ int main(int argc, char* argv[])
         httpServer.SetSslEnabled(false);
       }
 
+      OrthancRestApi restApi(context);
+
 #if ORTHANC_STANDALONE == 1
-      httpServer.RegisterHandler(new EmbeddedResourceHttpHandler("/app", EmbeddedResources::ORTHANC_EXPLORER));
+      EmbeddedResourceHttpHandler staticResources("/app", EmbeddedResources::ORTHANC_EXPLORER);
 #else
-      httpServer.RegisterHandler(new FilesystemHttpHandler("/app", ORTHANC_PATH "/OrthancExplorer"));
+      FilesystemHttpHandler staticResources("/app", ORTHANC_PATH "/OrthancExplorer");
 #endif
 
-      httpServer.RegisterHandler(new OrthancRestApi(context));
+      PluginsHttpHandler httpPlugins(context);
+      httpPlugins.SetOrthancRestApi(restApi);
+
+      PluginsManager pluginsManager;
+      pluginsManager.RegisterServiceProvider(httpPlugins);
+      LoadPlugins(pluginsManager);
+
+      httpServer.RegisterHandler(httpPlugins);
+      httpServer.RegisterHandler(staticResources);
+      httpServer.RegisterHandler(restApi);
+      httpPlugins.SetOrthancRestApi(restApi);
 
       // GO !!! Start the requested servers
       if (Configuration::GetGlobalBoolParameter("HttpServerEnabled", true))

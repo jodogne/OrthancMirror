@@ -52,9 +52,7 @@ namespace Orthanc
     FilesystemHttpHandler(const std::string& baseUri,
                           const std::string& root);
 
-    virtual bool IsServedUri(const UriComponents& uri);
-
-    virtual void Handle(
+    virtual bool Handle(
       HttpOutput& output,
       HttpMethod method,
       const UriComponents& uri,

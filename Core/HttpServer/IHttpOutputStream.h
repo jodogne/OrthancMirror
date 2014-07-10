@@ -32,35 +32,22 @@
 
 #pragma once
 
-#include "RestApiHierarchy.h"
+#include "../Enumerations.h"
 
-#include <list>
+#include <string>
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class RestApi : public HttpHandler
+  class IHttpOutputStream : public boost::noncopyable
   {
-  private:
-    RestApiHierarchy root_;
-
   public:
-    virtual bool Handle(HttpOutput& output,
-                        HttpMethod method,
-                        const UriComponents& uri,
-                        const Arguments& headers,
-                        const Arguments& getArguments,
-                        const std::string& postData);
+    virtual ~IHttpOutputStream()
+    {
+    }
 
-    void Register(const std::string& path,
-                  RestApiGetCall::Handler handler);
+    virtual void OnHttpStatusReceived(HttpStatus status) = 0;
 
-    void Register(const std::string& path,
-                  RestApiPutCall::Handler handler);
-
-    void Register(const std::string& path,
-                  RestApiPostCall::Handler handler);
-
-    void Register(const std::string& path,
-                  RestApiDeleteCall::Handler handler);
+    virtual void Send(bool isHeader, const void* buffer, size_t length) = 0;
   };
 }

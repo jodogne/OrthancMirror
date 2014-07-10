@@ -50,9 +50,7 @@ namespace Orthanc
       const std::string& baseUri,
       EmbeddedResources::DirectoryResourceId resourceId);
 
-    virtual bool IsServedUri(const UriComponents& uri);
-
-    virtual void Handle(
+    virtual bool Handle(
       HttpOutput& output,
       HttpMethod method,
       const UriComponents& uri,

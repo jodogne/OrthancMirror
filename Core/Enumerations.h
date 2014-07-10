@@ -71,7 +71,8 @@ namespace Orthanc
     ErrorCode_InexistentTag,
     ErrorCode_ReadOnly,
     ErrorCode_IncompatibleImageFormat,
-    ErrorCode_IncompatibleImageSize
+    ErrorCode_IncompatibleImageSize,
+    ErrorCode_SharedLibrary
   };
 
   /**

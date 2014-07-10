@@ -38,6 +38,7 @@
 #include "../../Core/Uuid.h"
 
 #include <glog/logging.h>
+#include <stdio.h>
 
 #if defined(_MSC_VER)
 #define snprintf _snprintf

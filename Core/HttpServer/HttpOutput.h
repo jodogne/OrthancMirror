@@ -36,16 +36,46 @@
 #include <string>
 #include <stdint.h>
 #include "../Enumerations.h"
+#include "IHttpOutputStream.h"
 #include "HttpHandler.h"
 
 namespace Orthanc
 {
-  class HttpOutput
+  class HttpOutput : public boost::noncopyable
   {
   private:
     typedef std::list< std::pair<std::string, std::string> >  Header;
 
-    void SendHeaderInternal(HttpStatus status);
+    class StateMachine : public boost::noncopyable
+    {
+    private:
+      enum State
+      {
+        State_WaitingHttpStatus,
+        State_WritingHeader,      
+        State_WritingBody
+      };
+
+      IHttpOutputStream& stream_;
+      State state_;
+
+    public:
+      StateMachine(IHttpOutputStream& stream) : 
+        stream_(stream),
+        state_(State_WaitingHttpStatus)
+      {
+      }
+
+      void SendHttpStatus(HttpStatus status);
+
+      void SendHeaderData(const void* buffer, size_t length);
+
+      void SendHeaderString(const std::string& str);
+
+      void SendBodyData(const void* buffer, size_t length);
+
+      void SendBodyString(const std::string& str);
+    };
 
     void PrepareOkHeader(Header& header,
                          const char* contentType,
@@ -58,25 +88,35 @@ namespace Orthanc
     void PrepareCookies(Header& header,
                         const HttpHandler::Arguments& cookies);
 
+    StateMachine stateMachine_;
+
   public:
-    virtual ~HttpOutput()
+    HttpOutput(IHttpOutputStream& stream) : stateMachine_(stream)
     {
     }
-
-    virtual void Send(const void* buffer, size_t length) = 0;
 
     void SendOkHeader(const char* contentType,
                       bool hasContentLength,
                       uint64_t contentLength,
                       const char* contentFilename);
 
-    void SendString(const std::string& s);
+    void SendBodyData(const void* buffer, size_t length)
+    {
+      stateMachine_.SendBodyData(buffer, length);
+    }
+
+    void SendBodyString(const std::string& str)
+    {
+      stateMachine_.SendBodyString(str);
+    }
 
     void SendMethodNotAllowedError(const std::string& allowed);
 
     void SendHeader(HttpStatus status);
 
     void Redirect(const std::string& path);
+
+    void SendUnauthorized(const std::string& realm);
 
     // Higher-level constructs to send entire buffers ----------------------------
 

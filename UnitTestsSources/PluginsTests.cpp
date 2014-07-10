@@ -30,37 +30,32 @@
  **/
 
 
-#pragma once
+#include "PrecompiledHeadersUnitTests.h"
+#include "gtest/gtest.h"
 
-#include "RestApiHierarchy.h"
+#include <glog/logging.h>
 
-#include <list>
+#include "../Plugins/Engine/PluginsManager.h"
 
-namespace Orthanc
+using namespace Orthanc;
+
+TEST(SharedLibrary, Basic)
 {
-  class RestApi : public HttpHandler
-  {
-  private:
-    RestApiHierarchy root_;
+#if defined(_WIN32)
+  SharedLibrary l("kernel32.dll");
+  ASSERT_THROW(l.GetFunction("world"), OrthancException);
+  ASSERT_TRUE(l.GetFunction("GetVersionExW") != NULL);
+  ASSERT_TRUE(l.HasFunction("GetVersionExW"));
+  ASSERT_FALSE(l.HasFunction("world"));
 
-  public:
-    virtual bool Handle(HttpOutput& output,
-                        HttpMethod method,
-                        const UriComponents& uri,
-                        const Arguments& headers,
-                        const Arguments& getArguments,
-                        const std::string& postData);
+#elif defined(__linux)
+  SharedLibrary l("libdl.so");
+  ASSERT_THROW(l.GetFunction("world"), OrthancException);
+  ASSERT_TRUE(l.GetFunction("dlopen") != NULL);
+  ASSERT_TRUE(l.HasFunction("dlclose"));
+  ASSERT_FALSE(l.HasFunction("world"));
 
-    void Register(const std::string& path,
-                  RestApiGetCall::Handler handler);
-
-    void Register(const std::string& path,
-                  RestApiPutCall::Handler handler);
-
-    void Register(const std::string& path,
-                  RestApiPostCall::Handler handler);
-
-    void Register(const std::string& path,
-                  RestApiDeleteCall::Handler handler);
-  };
+#else
+#error Support your platform here
+#endif
 }
