@@ -1,0 +1,42 @@
+diff -r -u plustache-0.3.0.orig/include/template.hpp plustache-0.3.0/include/template.hpp
+--- plustache-0.3.0.orig/include/template.hpp	2014-01-29 13:26:52.000000000 +0100
++++ plustache-0.3.0/include/template.hpp	2014-05-28 17:51:51.623305914 +0200
+@@ -21,7 +21,7 @@
+     public:
+         template_t ();
+         template_t (std::string& tmpl_path);
+-        ~template_t ();
++        virtual ~template_t ();
+         std::string render(const std::string& tmplate, const Context& ctx);
+         std::string render(const std::string& tmplate, const ObjectType& ctx);
+ 
+@@ -42,11 +42,13 @@
+         std::string render_sections(const std::string& tmplate,
+                                     const Context& ctx);
+         std::string html_escape(const std::string& s);
+-        std::string get_partial(const std::string& partial) const;
+         void change_delimiter(const std::string& opentag,
+                               const std::string& closetag);
+         void compile_data();
+-        std::string get_template(const std::string& tmpl);
++
++    protected:
++        virtual std::string get_partial(const std::string& partial) const;
++        virtual std::string get_template(const std::string& tmpl);
+     };
+ } // namespace Plustache
+ #endif
+Only in plustache-0.3.0/include: template.hpp~
+diff -r -u plustache-0.3.0.orig/src/template.cpp plustache-0.3.0/src/template.cpp
+--- plustache-0.3.0.orig/src/template.cpp	2014-01-29 13:26:52.000000000 +0100
++++ plustache-0.3.0/src/template.cpp	2014-05-28 17:51:32.599306393 +0200
+@@ -126,7 +126,7 @@
+         // found a partial
+         else if (modifier == ">")
+         {
+-            std::string partial = template_t::get_partial(key);
++            std::string partial = get_partial(key);
+             repl.assign(template_t::render(partial, ctx));
+         }
+         // normal tag
+Only in plustache-0.3.0/src: template.cpp~
