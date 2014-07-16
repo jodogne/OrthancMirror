@@ -220,7 +220,11 @@ extern "C"
     _OrthancPluginService_RestApiGet = 3001,
     _OrthancPluginService_RestApiPost = 3002,
     _OrthancPluginService_RestApiDelete = 3003,
-    _OrthancPluginService_RestApiPut = 3004
+    _OrthancPluginService_RestApiPut = 3004,
+    _OrthancPluginService_LookupPatient = 3005,
+    _OrthancPluginService_LookupStudy = 3006,
+    _OrthancPluginService_LookupSeries = 3007,
+    _OrthancPluginService_LookupInstance = 3008
   } _OrthancPluginService;
 
 
@@ -337,7 +341,10 @@ extern "C"
     OrthancPluginContext* context, 
     char* str)
   {
-    context->Free(str);
+    if (str != NULL)
+    {
+      context->Free(str);
+    }
   }
 
 
@@ -690,6 +697,137 @@ extern "C"
     params.output = output;
     params.redirection = redirection;
     context->InvokeService(context, _OrthancPluginService_Redirect, &params);
+  }
+
+
+
+  typedef struct
+  {
+    char** result;
+    const char* identifier;
+  } _OrthancPluginLookupResource;
+
+  /**
+   * @brief Look for a patient.
+   *
+   * Look for a patient stored in Orthanc, using its Patient ID tag (0x0010, 0x0020).
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param patientID The Patient ID of interest.
+   * @return The NULL string if the patient is non-existent, or a string containing the 
+   * Orthanc ID of the patient. This string must be freed by OrthancPluginFreeString().
+   **/
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginLookupPatient(
+    OrthancPluginContext*  context,
+    const char*            patientID)
+  {
+    char* result;
+
+    _OrthancPluginLookupResource params;
+    params.result = &result;
+    params.identifier = patientID;
+
+    if (context->InvokeService(context, _OrthancPluginService_LookupPatient, &params))
+    {
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  /**
+   * @brief Look for a study.
+   *
+   * Look for a study stored in Orthanc, using its Study Instance UID tag (0x0020, 0x000d).
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param studyUID The Study Instance UID of interest.
+   * @return The NULL string if the study is non-existent, or a string containing the 
+   * Orthanc ID of the study. This string must be freed by OrthancPluginFreeString().
+   **/
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginLookupStudy(
+    OrthancPluginContext*  context,
+    const char*            studyUID)
+  {
+    char* result;
+
+    _OrthancPluginLookupResource params;
+    params.result = &result;
+    params.identifier = studyUID;
+
+    if (context->InvokeService(context, _OrthancPluginService_LookupStudy, &params))
+    {
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  /**
+   * @brief Look for a series.
+   *
+   * Look for a series stored in Orthanc, using its Series Instance UID tag (0x0020, 0x000e).
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param seriesUID The Series Instance UID of interest.
+   * @return The NULL string if the series is non-existent, or a string containing the 
+   * Orthanc ID of the series. This string must be freed by OrthancPluginFreeString().
+   **/
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginLookupSeries(
+    OrthancPluginContext*  context,
+    const char*            seriesUID)
+  {
+    char* result;
+
+    _OrthancPluginLookupResource params;
+    params.result = &result;
+    params.identifier = seriesUID;
+
+    if (context->InvokeService(context, _OrthancPluginService_LookupSeries, &params))
+    {
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  /**
+   * @brief Look for an instance.
+   *
+   * Look for an instance stored in Orthanc, using its SOP Instance UID tag (0x0008, 0x0018).
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param sopInstanceUID The SOP Instance UID of interest.
+   * @return The NULL string if the instance is non-existent, or a string containing the 
+   * Orthanc ID of the instance. This string must be freed by OrthancPluginFreeString().
+   **/
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginLookupInstance(
+    OrthancPluginContext*  context,
+    const char*            sopInstanceUID)
+  {
+    char* result;
+
+    _OrthancPluginLookupResource params;
+    params.result = &result;
+    params.identifier = sopInstanceUID;
+
+    if (context->InvokeService(context, _OrthancPluginService_LookupInstance, &params))
+    {
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
   }
 
 
