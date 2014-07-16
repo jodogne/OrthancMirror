@@ -442,6 +442,70 @@ namespace Orthanc
   }
 
 
+  void PluginsHttpHandler::LookupResource(ResourceType level,
+                                          const void* parameters)
+  {
+    const _OrthancPluginLookupResource& p = 
+      *reinterpret_cast<const _OrthancPluginLookupResource*>(parameters);
+
+    DicomTag tag(0, 0);
+    switch (level)
+    {
+      case ResourceType_Patient:
+        tag = DICOM_TAG_PATIENT_ID;
+        break;
+
+      case ResourceType_Study:
+        tag = DICOM_TAG_STUDY_INSTANCE_UID;
+        break;
+
+      case ResourceType_Series:
+        tag = DICOM_TAG_SERIES_INSTANCE_UID;
+        break;
+
+      case ResourceType_Instance:
+        tag = DICOM_TAG_SOP_INSTANCE_UID;
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+
+    std::list<std::string> result;
+    pimpl_->context_.GetIndex().LookupTagValue(result, tag, p.identifier, level);
+
+    if (result.size() == 1)
+    {
+      *p.result = CopyString(result.front());
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+  }
+
+
+  char* PluginsHttpHandler::CopyString(const std::string& str) const
+  {
+    char *result = reinterpret_cast<char*>(malloc(str.size() + 1));
+    if (result == NULL)
+    {
+      throw OrthancException(ErrorCode_NotEnoughMemory);
+    }
+
+    if (str.size() == 0)
+    {
+      result[0] = '\0';
+    }
+    else
+    {
+      memcpy(result, &str[0], str.size() + 1);
+    }
+
+    return result;
+  }
+
+
   bool PluginsHttpHandler::InvokeService(_OrthancPluginService service,
                                          const void* parameters)
   {
@@ -481,6 +545,22 @@ namespace Orthanc
 
       case _OrthancPluginService_Redirect:
         Redirect(parameters);
+        return true;
+
+      case _OrthancPluginService_LookupPatient:
+        LookupResource(ResourceType_Patient, parameters);
+        return true;
+
+      case _OrthancPluginService_LookupStudy:
+        LookupResource(ResourceType_Study, parameters);
+        return true;
+
+      case _OrthancPluginService_LookupSeries:
+        LookupResource(ResourceType_Series, parameters);
+        return true;
+
+      case _OrthancPluginService_LookupInstance:
+        LookupResource(ResourceType_Instance, parameters);
         return true;
 
       default:

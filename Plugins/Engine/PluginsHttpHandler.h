@@ -50,6 +50,8 @@ namespace Orthanc
 
     boost::shared_ptr<PImpl> pimpl_;
 
+    char* CopyString(const std::string& str) const;
+
     void RegisterRestCallback(const void* parameters);
 
     void AnswerBuffer(const void* parameters);
@@ -65,6 +67,9 @@ namespace Orthanc
     void RestApiPostPut(bool isPost, const void* parameters);
 
     void RestApiDelete(const void* parameters);
+
+    void LookupResource(ResourceType level,
+                        const void* parameters);
 
   public:
     PluginsHttpHandler(ServerContext& context);
