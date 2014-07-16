@@ -1,6 +1,8 @@
 Pending changes in the mainline
 ===============================
 
+* Lookup for DICOM UIDs in the plugin SDK
+
 
 Version 0.8.0 (2014/07/10)
 ==========================
