@@ -88,20 +88,22 @@ ORTHANC_PLUGINS_API int32_t Callback2(OrthancPluginRestOutput* output,
   if (request->method != OrthancPluginHttpMethod_Get)
   {
     OrthancPluginSendMethodNotAllowed(context, output, "GET");
-    return -1;
   }
-
-  value = 0;
-  for (y = 0; y < 256; y++)
+  else
   {
-    for (x = 0; x < 256; x++, value++)
+    value = 0;
+    for (y = 0; y < 256; y++)
     {
-      buffer[value] = value;
+      for (x = 0; x < 256; x++, value++)
+      {
+        buffer[value] = value;
+      }
     }
+
+    OrthancPluginCompressAndAnswerPngImage(context, output, OrthancPluginPixelFormat_Grayscale16,
+                                           256, 256, sizeof(uint16_t) * 256, buffer);
   }
 
-  OrthancPluginCompressAndAnswerPngImage(context, output, OrthancPluginPixelFormat_Grayscale16,
-                                         256, 256, sizeof(uint16_t) * 256, buffer);
   return 0;
 }
 
