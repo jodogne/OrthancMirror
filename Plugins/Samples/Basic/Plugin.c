@@ -40,22 +40,36 @@ ORTHANC_PLUGINS_API int32_t Callback1(OrthancPluginRestOutput* output,
   char buffer[1024];
   uint32_t i;
 
-  sprintf(buffer, "Callback on URL [%s] with body [%s]", url, request->body);
-  OrthancPluginLogInfo(context, buffer);
+  sprintf(buffer, "Callback on URL [%s] with body [%s]\n", url, request->body);
+  OrthancPluginLogWarning(context, buffer);
 
   OrthancPluginAnswerBuffer(context, output, buffer, strlen(buffer), "text/plain");
 
-  for (i = 0; i < request->getCount; i++)
-  {
-    sprintf(buffer, "  [%s] = [%s]", request->getKeys[i], request->getValues[i]);
-    OrthancPluginLogInfo(context, buffer);    
-  }
+  OrthancPluginLogWarning(context, "");    
 
-  printf("** %d\n", request->groupsCount);
   for (i = 0; i < request->groupsCount; i++)
   {
-    printf("** [%s]\n",  request->groups[i]);
+    sprintf(buffer, "  REGEX GROUP %d = [%s]", i, request->groups[i]);
+    OrthancPluginLogWarning(context, buffer);    
   }
+
+  OrthancPluginLogWarning(context, "");    
+
+  for (i = 0; i < request->getCount; i++)
+  {
+    sprintf(buffer, "  GET [%s] = [%s]", request->getKeys[i], request->getValues[i]);
+    OrthancPluginLogWarning(context, buffer);    
+  }
+
+  OrthancPluginLogWarning(context, "");    
+
+  for (i = 0; i < request->headersCount; i++)
+  {
+    sprintf(buffer, "  HEADERS [%s] = [%s]", request->headersKeys[i], request->headersValues[i]);
+    OrthancPluginLogWarning(context, buffer);    
+  }
+
+  OrthancPluginLogWarning(context, "");    
 
   return 1;
 }

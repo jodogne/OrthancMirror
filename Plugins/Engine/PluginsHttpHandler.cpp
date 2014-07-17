@@ -103,7 +103,26 @@ namespace Orthanc
     for (PImpl::Callbacks::iterator it = pimpl_->callbacks_.begin(); 
          it != pimpl_->callbacks_.end(); ++it)
     {
+      // Delete the regular expression associated with this callback
       delete it->first;
+    }
+  }
+
+
+  static void ArgumentsToPlugin(std::vector<const char*>& keys,
+                                std::vector<const char*>& values,
+                                const HttpHandler::Arguments& arguments)
+  {
+    keys.resize(arguments.size());
+    values.resize(arguments.size());
+
+    size_t pos = 0;
+    for (HttpHandler::Arguments::const_iterator 
+           it = arguments.begin(); it != arguments.end(); ++it)
+    {
+      keys[pos] = it->first.c_str();
+      values[pos] = it->second.c_str();
+      pos++;
     }
   }
 
@@ -121,15 +140,19 @@ namespace Orthanc
     std::vector<std::string> groups;
     std::vector<const char*> cgroups;
 
+    // Loop over the callbacks registered by the plugins
     bool found = false;
     for (PImpl::Callbacks::const_iterator it = pimpl_->callbacks_.begin(); 
          it != pimpl_->callbacks_.end() && !found; ++it)
     {
+      // Check whether the regular expression associated to this
+      // callback matches the URI
       boost::cmatch what;
       if (boost::regex_match(flatUri.c_str(), what, *(it->first)))
       {
         callback = it->second;
 
+        // Extract the value of the free parameters of the regular expression
         if (what.size() > 1)
         {
           groups.resize(what.size() - 1);
@@ -152,28 +175,19 @@ namespace Orthanc
 
     LOG(INFO) << "Delegating HTTP request to plugin for URI: " << flatUri;
 
-    std::vector<const char*> getKeys(getArguments.size());
-    std::vector<const char*> getValues(getArguments.size());
+    std::vector<const char*> getKeys, getValues, headersKeys, headersValues;
 
     OrthancPluginHttpRequest request;
     memset(&request, 0, sizeof(OrthancPluginHttpRequest));
 
+    ArgumentsToPlugin(headersKeys, headersValues, headers);
+
     switch (method)
     {
       case HttpMethod_Get:
-      {
         request.method = OrthancPluginHttpMethod_Get;
-
-        size_t i = 0;
-        for (Arguments::const_iterator it = getArguments.begin(); 
-             it != getArguments.end(); ++it, ++i)
-        {
-          getKeys[i] = it->first.c_str();
-          getValues[i] = it->second.c_str();
-        }
-
+        ArgumentsToPlugin(getKeys, getValues, getArguments);
         break;
-      }
 
       case HttpMethod_Post:
         request.method = OrthancPluginHttpMethod_Post;
@@ -197,11 +211,18 @@ namespace Orthanc
     request.getCount = getArguments.size();
     request.body = (postData.size() ? &postData[0] : NULL);
     request.bodySize = postData.size();
-
+    request.headersCount = headers.size();
+    
     if (getArguments.size() > 0)
     {
       request.getKeys = &getKeys[0];
       request.getValues = &getValues[0];
+    }
+    
+    if (headers.size() > 0)
+    {
+      request.headersKeys = &headersKeys[0];
+      request.headersValues = &headersValues[0];
     }
 
     assert(callback != NULL);

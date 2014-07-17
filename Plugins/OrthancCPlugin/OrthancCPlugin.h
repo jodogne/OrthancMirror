@@ -8,15 +8,18 @@
  * 
  * -# <tt>int32_t OrthancPluginInitialize(const OrthancPluginContext* context)</tt>:
  *    This function is invoked by Orthanc when it loads the plugin on startup.
- *    The plugin must store the context pointer so that it can use the plugin 
- *    services of Orthanc. It must also register all its callbacks using
- *    ::OrthancPluginRegisterRestCallback().
+ *    The plugin must:
+ *    - Check its compatibility with the Orthanc version using
+ *      ::OrthancPluginCheckVersion().
+ *    - Store the context pointer so that it can use the plugin 
+ *      services of Orthanc.
+ *    - Register all its REST callbacks using ::OrthancPluginRegisterRestCallback().
  * -# <tt>void OrthancPluginFinalize()</tt>:
  *    This function is invoked by Orthanc during its shutdown. The plugin
  *    must free all its memory.
  * -# <tt>const char* OrthancPluginGetName()</tt>:
  *    The plugin must return a short string to identify itself.
- * -# <tt>const char* OrthancPluginGetVersion()</tt>
+ * -# <tt>const char* OrthancPluginGetVersion()</tt>:
  *    The plugin must return a string containing its version number.
  *
  * The name and the version of a plugin is only used to prevent it
@@ -202,7 +205,29 @@ extern "C"
      * @brief For a PUT or POST request, the number of bytes of the body.
      **/
     uint32_t                bodySize;
+
+
+    /* --------------------------------------------------
+       New in version 0.8.1
+       -------------------------------------------------- */
+
+    /**
+     * @brief The number of HTTP headers.
+     **/
+    uint32_t                headersCount;
+
+    /**
+     * @brief The keys of the HTTP headers (always converted to low-case).
+     **/
+    const char* const*      headersKeys;
+
+    /**
+     * @brief The values of the HTTP headers.
+     **/
+    const char* const*      headersValues;
+
   } OrthancPluginHttpRequest;
+
 
   typedef enum 
   {
@@ -353,7 +378,7 @@ extern "C"
 
 
   /**
-   * @brief Check the version of Orthanc.
+   * @brief Check the compatibility of the plugin wrt. the version of its hosting Orthanc.
    * 
    * This function checks whether the version of this C header is
    * compatible with the current version of Orthanc. The result of
