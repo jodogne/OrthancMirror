@@ -714,7 +714,13 @@ namespace Orthanc
       
       if (!found)
       {
-        output.SendHeader(HttpStatus_404_NotFound);
+        try
+        {
+          output.SendHeader(HttpStatus_404_NotFound);
+        }
+        catch (OrthancException&)
+        {
+        }
       }
 
       // Mark as processed

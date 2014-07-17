@@ -243,6 +243,10 @@ extern "C"
     _OrthancPluginService_AnswerBuffer = 2000,
     _OrthancPluginService_CompressAndAnswerPngImage = 2001,
     _OrthancPluginService_Redirect = 2002,
+    _OrthancPluginService_SendHttpStatusCode = 2003,
+    _OrthancPluginService_SendUnauthorized = 2004,
+    _OrthancPluginService_SendMethodNotAllowed = 2005,
+    _OrthancPluginService_SetCookie = 2006,
 
     /* Access to the Orthanc database and API */
     _OrthancPluginService_GetDicomForInstance = 3000,
@@ -773,14 +777,15 @@ extern "C"
   }
 
 
+
   typedef struct
   {
     OrthancPluginRestOutput* output;
-    const char*              redirection;
-  } _OrthancPluginRedirect;
+    const char*              argument;
+  } _OrthancPluginOutputPlusArgument;
 
   /**
-   * @brief Redirect a GET request.
+   * @brief Redirect a REST request.
    *
    * This function answers to a REST request by redirecting the user
    * to another URI using HTTP status 301.
@@ -794,9 +799,9 @@ extern "C"
     OrthancPluginRestOutput* output,
     const char*              redirection)
   {
-    _OrthancPluginRedirect params;
+    _OrthancPluginOutputPlusArgument params;
     params.output = output;
-    params.redirection = redirection;
+    params.argument = redirection;
     context->InvokeService(context, _OrthancPluginService_Redirect, &params);
   }
 
@@ -929,6 +934,114 @@ extern "C"
     {
       return result;
     }
+  }
+
+
+
+  typedef struct
+  {
+    OrthancPluginRestOutput* output;
+    uint16_t                 status;
+  } _OrthancPluginSendHttpStatusCode;
+
+  /**
+   * @brief Send a HTTP status code.
+   *
+   * This function answers to a REST request by sending a HTTP status
+   * code (such as "400 - Bad Request"). Note that:
+   * - Successful requests (status 200) must use ::OrthancPluginAnswerBuffer().
+   * - Redirections (status 301) must use ::OrthancPluginRedirect().
+   * - Unauthorized access (status 401) must use ::OrthancPluginSendUnauthorized().
+   * - Methods not allowed (status 405) must use ::OrthancPluginSendMethodNotAllowed().
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param output The HTTP connection to the client application.
+   * @param status The HTTP status code to be sent.
+   **/
+  ORTHANC_PLUGIN_INLINE void OrthancPluginSendHttpStatusCode(
+    OrthancPluginContext*    context,
+    OrthancPluginRestOutput* output,
+    uint16_t                 status)
+  {
+    _OrthancPluginSendHttpStatusCode params;
+    params.output = output;
+    params.status = status;
+    context->InvokeService(context, _OrthancPluginService_SendHttpStatusCode, &params);
+  }
+
+
+  /**
+   * @brief Signal that a REST request is not authorized.
+   *
+   * This function answers to a REST request by signaling that it is
+   * not authorized.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param output The HTTP connection to the client application.
+   * @param realm The realm for the authorization process.
+   **/
+  ORTHANC_PLUGIN_INLINE void OrthancPluginSendUnauthorized(
+    OrthancPluginContext*    context,
+    OrthancPluginRestOutput* output,
+    const char*              realm)
+  {
+    _OrthancPluginOutputPlusArgument params;
+    params.output = output;
+    params.argument = realm;
+    context->InvokeService(context, _OrthancPluginService_SendUnauthorized, &params);
+  }
+
+
+  /**
+   * @brief Signal that this URI does not support this HTTP method.
+   *
+   * This function answers to a REST request by signaling that the
+   * queried URI does not support this method.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param output The HTTP connection to the client application.
+   * @param allowedMethods The allowed methods for this URI (e.g. "GET,POST" after a PUT or a POST request).
+   **/
+  ORTHANC_PLUGIN_INLINE void OrthancPluginSendMethodNotAllowed(
+    OrthancPluginContext*    context,
+    OrthancPluginRestOutput* output,
+    const char*              allowedMethods)
+  {
+    _OrthancPluginOutputPlusArgument params;
+    params.output = output;
+    params.argument = allowedMethods;
+    context->InvokeService(context, _OrthancPluginService_SendMethodNotAllowed, &params);
+  }
+
+
+  typedef struct
+  {
+    OrthancPluginRestOutput* output;
+    const char*              cookie;
+    const char*              value;
+  } _OrthancPluginSetCookie;
+
+  /**
+   * @brief Set a cookie.
+   *
+   * This function sets a cookie in the HTTP client.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param output The HTTP connection to the client application.
+   * @param cookie The cookie to be set.
+   * @param value The value of the cookie.
+   **/
+  ORTHANC_PLUGIN_INLINE void OrthancPluginSetCookie(
+    OrthancPluginContext*    context,
+    OrthancPluginRestOutput* output,
+    const char*              cookie,
+    const char*              value)
+  {
+    _OrthancPluginSetCookie params;
+    params.output = output;
+    params.cookie = cookie;
+    params.value = value;
+    context->InvokeService(context, _OrthancPluginService_SetCookie, &params);
   }
 
 

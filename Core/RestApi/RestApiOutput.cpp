@@ -73,7 +73,7 @@ namespace Orthanc
     CheckStatus();
     Json::StyledWriter writer;
     std::string s = writer.write(value);
-    output_.AnswerBufferWithContentType(s, "application/json", cookies_);
+    output_.AnswerBufferWithContentType(s, "application/json");
     alreadySent_ = true;
   }
 
@@ -81,7 +81,7 @@ namespace Orthanc
                                    const std::string& contentType)
   {
     CheckStatus();
-    output_.AnswerBufferWithContentType(buffer, contentType, cookies_);
+    output_.AnswerBufferWithContentType(buffer, contentType);
     alreadySent_ = true;
   }
 
@@ -90,7 +90,7 @@ namespace Orthanc
                                    const std::string& contentType)
   {
     CheckStatus();
-    output_.AnswerBufferWithContentType(buffer, length, contentType, cookies_);
+    output_.AnswerBufferWithContentType(buffer, length, contentType);
     alreadySent_ = true;
   }
 
@@ -135,7 +135,7 @@ namespace Orthanc
       v += ";max-age=" + boost::lexical_cast<std::string>(maxAge);
     }
 
-    cookies_[name] = v;
+    output_.SetCookie(name, v);
   }
 
   void RestApiOutput::ResetCookie(const std::string& name)

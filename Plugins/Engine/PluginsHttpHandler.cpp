@@ -232,14 +232,14 @@ namespace Orthanc
 
     if (error < 0)
     {
-      LOG(ERROR) << "Plugin failed with error code " << error;
+      LOG(ERROR) << "Plugin callback failed with error code " << error;
       return false;
     }
     else
     {
       if (error > 0)
       {
-        LOG(WARNING) << "Plugin finished with warning code " << error;
+        LOG(WARNING) << "Plugin callback finished with warning code " << error;
       }
 
       return true;
@@ -310,11 +310,51 @@ namespace Orthanc
 
   void PluginsHttpHandler::Redirect(const void* parameters)
   {
-    const _OrthancPluginRedirect& p = 
-      *reinterpret_cast<const _OrthancPluginRedirect*>(parameters);
+    const _OrthancPluginOutputPlusArgument& p = 
+      *reinterpret_cast<const _OrthancPluginOutputPlusArgument*>(parameters);
 
     HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
-    translatedOutput->Redirect(p.redirection);
+    translatedOutput->Redirect(p.argument);
+  }
+
+
+  void PluginsHttpHandler::SendHttpStatusCode(const void* parameters)
+  {
+    const _OrthancPluginSendHttpStatusCode& p = 
+      *reinterpret_cast<const _OrthancPluginSendHttpStatusCode*>(parameters);
+
+    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
+    translatedOutput->SendHeader(static_cast<HttpStatus>(p.status));
+  }
+
+
+  void PluginsHttpHandler::SendUnauthorized(const void* parameters)
+  {
+    const _OrthancPluginOutputPlusArgument& p = 
+      *reinterpret_cast<const _OrthancPluginOutputPlusArgument*>(parameters);
+
+    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
+    translatedOutput->SendUnauthorized(p.argument);
+  }
+
+
+  void PluginsHttpHandler::SendMethodNotAllowed(const void* parameters)
+  {
+    const _OrthancPluginOutputPlusArgument& p = 
+      *reinterpret_cast<const _OrthancPluginOutputPlusArgument*>(parameters);
+
+    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
+    translatedOutput->SendMethodNotAllowed(p.argument);
+  }
+
+
+  void PluginsHttpHandler::SetCookie(const void* parameters)
+  {
+    const _OrthancPluginSetCookie& p = 
+      *reinterpret_cast<const _OrthancPluginSetCookie*>(parameters);
+
+    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
+    translatedOutput->SetCookie(p.cookie, p.value);
   }
 
 
@@ -566,6 +606,22 @@ namespace Orthanc
 
       case _OrthancPluginService_Redirect:
         Redirect(parameters);
+        return true;
+
+      case _OrthancPluginService_SendUnauthorized:
+        SendUnauthorized(parameters);
+        return true;
+
+      case _OrthancPluginService_SendMethodNotAllowed:
+        SendMethodNotAllowed(parameters);
+        return true;
+
+      case _OrthancPluginService_SendHttpStatusCode:
+        SendHttpStatusCode(parameters);
+        return true;
+
+      case _OrthancPluginService_SetCookie:
+        SetCookie(parameters);
         return true;
 
       case _OrthancPluginService_LookupPatient:
