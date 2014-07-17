@@ -46,15 +46,6 @@ OrthancContext& OrthancContext::GetInstance()
 }
 
 
-OrthancContext::~OrthancContext()
-{
-  if (context_ != NULL)
-  {
-    throw std::runtime_error("The Orthanc plugin was not properly finalized");
-  }
-}
-
-
 void OrthancContext::ExtractGetArguments(Arguments& arguments,
                                          const OrthancPluginHttpRequest& request)
 {

@@ -29,6 +29,7 @@
 #include <string>
 #include <stdexcept>
 #include <sstream>
+#include <boost/lexical_cast.hpp>
 
 #include "OrthancContext.h"
 #include "../../../Core/ImageFormats/ImageProcessing.h"
@@ -235,6 +236,19 @@ extern "C"
   {
     OrthancContext::GetInstance().Initialize(context);
     OrthancContext::GetInstance().LogWarning("Initializing GDCM decoding");
+
+    // Check the version of the Orthanc core
+    if (OrthancPluginCheckVersion(context) == 0)
+    {
+      OrthancContext::GetInstance().LogError(
+        "Your version of Orthanc (" + std::string(context->orthancVersion) +
+        ") must be above " + boost::lexical_cast<std::string>(ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER) +
+        "." + boost::lexical_cast<std::string>(ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER) +
+        "." + boost::lexical_cast<std::string>(ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER) +
+        " to run this plugin");
+      return -1;
+    }
+
     OrthancContext::GetInstance().Register("/instances/([^/]+)/(preview|image-uint8|image-uint16|image-int16)", DecodeImage);
     return 0;
   }

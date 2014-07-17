@@ -372,7 +372,6 @@ extern "C"
     /* Assume compatibility with the mainline */
     if (!strcmp(context->orthancVersion, "mainline"))
     {
-      printf("mainline\n");
       return 1;
     }
 
@@ -414,7 +413,7 @@ extern "C"
 
     /* Check the revision number of the version */
 
-    if (revision >= ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER)
+    if (revision >= ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER)
     {
       return 1;
     }

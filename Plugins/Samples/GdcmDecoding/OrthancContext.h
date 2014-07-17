@@ -52,8 +52,6 @@ public:
 
   static OrthancContext& GetInstance();
 
-  ~OrthancContext();
-
   void Initialize(OrthancPluginContext* context)
   {
     context_ = context;
