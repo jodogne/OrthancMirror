@@ -44,7 +44,6 @@ namespace Orthanc
   private:
     HttpOutput& output_;
     bool alreadySent_;
-    HttpHandler::Arguments cookies_;
 
     void CheckStatus();
 

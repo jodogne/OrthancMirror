@@ -85,10 +85,8 @@ namespace Orthanc
 
     void SendOkHeader(const Header& header);
 
-    void PrepareCookies(Header& header,
-                        const HttpHandler::Arguments& cookies);
-
     StateMachine stateMachine_;
+    HttpHandler::Arguments cookies_;
 
   public:
     HttpOutput(IHttpOutputStream& stream) : stateMachine_(stream)
@@ -110,7 +108,7 @@ namespace Orthanc
       stateMachine_.SendBodyString(str);
     }
 
-    void SendMethodNotAllowedError(const std::string& allowed);
+    void SendMethodNotAllowed(const std::string& allowed);
 
     void SendHeader(HttpStatus status);
 
@@ -118,22 +116,19 @@ namespace Orthanc
 
     void SendUnauthorized(const std::string& realm);
 
+    void SetCookie(const std::string& cookie,
+                   const std::string& value)
+    {
+      cookies_[cookie] = value;
+    }
+
     // Higher-level constructs to send entire buffers ----------------------------
 
     void AnswerBufferWithContentType(const std::string& buffer,
                                      const std::string& contentType);
 
-    void AnswerBufferWithContentType(const std::string& buffer,
-                                     const std::string& contentType,
-                                     const HttpHandler::Arguments& cookies);
-
     void AnswerBufferWithContentType(const void* buffer,
                                      size_t size,
                                      const std::string& contentType);
-
-    void AnswerBufferWithContentType(const void* buffer,
-                                     size_t size,
-                                     const std::string& contentType,
-                                     const HttpHandler::Arguments& cookies);
   };
 }

@@ -71,6 +71,14 @@ namespace Orthanc
     void LookupResource(ResourceType level,
                         const void* parameters);
 
+    void SendHttpStatusCode(const void* parameters);
+
+    void SendUnauthorized(const void* parameters);
+
+    void SendMethodNotAllowed(const void* parameters);
+
+    void SetCookie(const void* parameters);
+
   public:
     PluginsHttpHandler(ServerContext& context);
 

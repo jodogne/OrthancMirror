@@ -43,6 +43,7 @@ ORTHANC_PLUGINS_API int32_t Callback1(OrthancPluginRestOutput* output,
   sprintf(buffer, "Callback on URL [%s] with body [%s]\n", url, request->body);
   OrthancPluginLogWarning(context, buffer);
 
+  OrthancPluginSetCookie(context, output, "hello", "world");
   OrthancPluginAnswerBuffer(context, output, buffer, strlen(buffer), "text/plain");
 
   OrthancPluginLogWarning(context, "");    
@@ -69,7 +70,7 @@ ORTHANC_PLUGINS_API int32_t Callback1(OrthancPluginRestOutput* output,
     OrthancPluginLogWarning(context, buffer);    
   }
 
-  OrthancPluginLogWarning(context, "");    
+  OrthancPluginLogWarning(context, "");
 
   return 1;
 }
@@ -83,6 +84,12 @@ ORTHANC_PLUGINS_API int32_t Callback2(OrthancPluginRestOutput* output,
 
   uint16_t buffer[256 * 256];
   uint32_t x, y, value;
+
+  if (request->method != OrthancPluginHttpMethod_Get)
+  {
+    OrthancPluginSendMethodNotAllowed(context, output, "GET");
+    return -1;
+  }
 
   value = 0;
   for (y = 0; y < 256; y++)

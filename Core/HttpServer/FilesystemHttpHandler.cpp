@@ -136,7 +136,7 @@ namespace Orthanc
 
     if (method != HttpMethod_Get)
     {
-      output.SendMethodNotAllowedError("GET");
+      output.SendMethodNotAllowed("GET");
       return true;
     }
 

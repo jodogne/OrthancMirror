@@ -36,6 +36,7 @@
 #include <iostream>
 #include <vector>
 #include <stdio.h>
+#include <glog/logging.h>
 #include <boost/lexical_cast.hpp>
 #include "../OrthancException.h"
 #include "../Toolbox.h"
@@ -46,7 +47,8 @@ namespace Orthanc
   {
     if (state_ != State_WaitingHttpStatus)
     {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      LOG(ERROR) << "Sending twice an HTTP status";
+      return;
     }
 
     stream_.OnHttpStatusReceived(status);
@@ -153,11 +155,17 @@ namespace Orthanc
       s += it->first + ": " + it->second + "\r\n";
     }
 
+    for (HttpHandler::Arguments::const_iterator 
+           it = cookies_.begin(); it != cookies_.end(); ++it)
+    {
+      s += "Set-Cookie: " + it->first + "=" + it->second + "\r\n";
+    }
+
     stateMachine_.SendHeaderString(s);
   }
 
 
-  void HttpOutput::SendMethodNotAllowedError(const std::string& allowed)
+  void HttpOutput::SendMethodNotAllowed(const std::string& allowed)
   {
     stateMachine_.SendHttpStatus(HttpStatus_405_MethodNotAllowed);
     stateMachine_.SendHeaderString("Allow: " + allowed + "\r\n");
@@ -181,29 +189,8 @@ namespace Orthanc
   void HttpOutput::AnswerBufferWithContentType(const std::string& buffer,
                                                const std::string& contentType)
   {
-    SendOkHeader(contentType.c_str(), true, buffer.size(), NULL);
-    SendBodyString(buffer);
-  }
-
-
-  void HttpOutput::PrepareCookies(Header& header,
-                                  const HttpHandler::Arguments& cookies)
-  {
-    for (HttpHandler::Arguments::const_iterator it = cookies.begin();
-         it != cookies.end(); ++it)
-    {
-      header.push_back(std::make_pair("Set-Cookie", it->first + "=" + it->second));
-    }
-  }
-
-
-  void HttpOutput::AnswerBufferWithContentType(const std::string& buffer,
-                                               const std::string& contentType,
-                                               const HttpHandler::Arguments& cookies)
-  {
     Header header;
     PrepareOkHeader(header, contentType.c_str(), true, buffer.size(), NULL);
-    PrepareCookies(header, cookies);
     SendOkHeader(header);
     SendBodyString(buffer);
   }
@@ -213,19 +200,8 @@ namespace Orthanc
                                                size_t size,
                                                const std::string& contentType)
   {
-    SendOkHeader(contentType.c_str(), true, size, NULL);
-    SendBodyData(buffer, size);
-  }
-
-
-  void HttpOutput::AnswerBufferWithContentType(const void* buffer,
-                                               size_t size,
-                                               const std::string& contentType,
-                                               const HttpHandler::Arguments& cookies)
-  {
     Header header;
     PrepareOkHeader(header, contentType.c_str(), true, size, NULL);
-    PrepareCookies(header, cookies);
     SendOkHeader(header);
     SendBodyData(buffer, size);
   }

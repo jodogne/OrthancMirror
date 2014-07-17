@@ -192,7 +192,7 @@ namespace Orthanc
       LOG(INFO) << "REST method " << EnumerationToString(method) 
                 << " not allowed on: " << Toolbox::FlattenUri(uri);
 
-      output.SendMethodNotAllowedError(MethodsToString(methods));
+      output.SendMethodNotAllowed(MethodsToString(methods));
 
       return true;
     }
