@@ -134,20 +134,20 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   char info[1024];
   char *id, *eos;
 
-  char error[256];
+  context = c;
+  OrthancPluginLogWarning(context, "Sample plugin is initializing");
+
+  /* Check the version of the Orthanc core */
   if (OrthancPluginCheckVersion(c) == 0)
   {
-    sprintf(error, "Your version of Orthanc (%s) must be above %d.%d.%d to run this plugin",
+    sprintf(info, "Your version of Orthanc (%s) must be above %d.%d.%d to run this plugin",
             c->orthancVersion,
             ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER,
             ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER,
             ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER);
-    OrthancPluginLogError(context, error);
+    OrthancPluginLogError(context, info);
     return -1;
   }
-
-  context = c;
-  OrthancPluginLogWarning(context, "Sample plugin is initializing");
 
   sprintf(info, "The version of Orthanc is '%s'", context->orthancVersion);
   OrthancPluginLogInfo(context, info);
