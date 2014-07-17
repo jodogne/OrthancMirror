@@ -81,6 +81,10 @@
 #define ORTHANC_PLUGINS_API
 #endif
 
+#define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     0
+#define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     8
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  1
+
 
 
 /********************************************************************
@@ -344,6 +348,79 @@ extern "C"
     if (str != NULL)
     {
       context->Free(str);
+    }
+  }
+
+
+  /**
+   * @brief Check the version of Orthanc.
+   * 
+   * This function checks whether the version of this C header is
+   * compatible with the current version of Orthanc. The result of
+   * this function should always be checked in the
+   * OrthancPluginInitialize() entry point of the plugin.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @return 1 if and only if the versions are compatible. If the
+   * result is 0, the initialization of the plugin should fail.
+   **/
+  ORTHANC_PLUGIN_INLINE int  OrthancPluginCheckVersion(
+    OrthancPluginContext* context)
+  {
+    int major, minor, revision;
+
+    /* Assume compatibility with the mainline */
+    if (!strcmp(context->orthancVersion, "mainline"))
+    {
+      printf("mainline\n");
+      return 1;
+    }
+
+    /* Parse the version of the Orthanc core */
+    if ( 
+#ifdef _MSC_VER
+      sscanf_s
+#else
+      sscanf
+#endif
+      (context->orthancVersion, "%d.%d.%d", &major, &minor, &revision) != 3)
+    {
+      return 0;
+    }
+
+    /* Check the major number of the version */
+
+    if (major > ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER)
+    {
+      return 1;
+    }
+
+    if (major < ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER)
+    {
+      return 0;
+    }
+
+    /* Check the minor number of the version */
+
+    if (minor > ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER)
+    {
+      return 1;
+    }
+
+    if (minor < ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER)
+    {
+      return 0;
+    }
+
+    /* Check the revision number of the version */
+
+    if (revision >= ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER)
+    {
+      return 1;
+    }
+    else
+    {
+      return 0;
     }
   }
 
