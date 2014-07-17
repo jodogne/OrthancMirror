@@ -112,14 +112,21 @@ ORTHANC_PLUGINS_API int32_t Callback3(OrthancPluginRestOutput* output,
                                       const char* url,
                                       const OrthancPluginHttpRequest* request)
 {
-  OrthancPluginMemoryBuffer dicom;
-  if (!OrthancPluginGetDicomForInstance(context, &dicom, request->groups[0]))
+  if (request->method != OrthancPluginHttpMethod_Get)
   {
-    /* No error, forward the DICOM file */
-    OrthancPluginAnswerBuffer(context, output, dicom.data, dicom.size, "application/dicom");
+    OrthancPluginSendMethodNotAllowed(context, output, "GET");
+  }
+  else
+  {
+    OrthancPluginMemoryBuffer dicom;
+    if (!OrthancPluginGetDicomForInstance(context, &dicom, request->groups[0]))
+    {
+      /* No error, forward the DICOM file */
+      OrthancPluginAnswerBuffer(context, output, dicom.data, dicom.size, "application/dicom");
 
-    /* Free memory */
-    OrthancPluginFreeMemoryBuffer(context, &dicom);
+      /* Free memory */
+      OrthancPluginFreeMemoryBuffer(context, &dicom);
+    }
   }
 
   return 0;
@@ -135,17 +142,25 @@ ORTHANC_PLUGINS_API int32_t Callback4(OrthancPluginRestOutput* output,
   uint8_t  buffer[256 * 256];
   uint32_t x, y, value;
 
-  value = 0;
-  for (y = 0; y < 256; y++)
+  if (request->method != OrthancPluginHttpMethod_Get)
   {
-    for (x = 0; x < 256; x++, value++)
+    OrthancPluginSendMethodNotAllowed(context, output, "GET");
+  }
+  else
+  {
+    value = 0;
+    for (y = 0; y < 256; y++)
     {
-      buffer[value] = x;
+      for (x = 0; x < 256; x++, value++)
+      {
+        buffer[value] = x;
+      }
     }
+
+    OrthancPluginCompressAndAnswerPngImage(context, output, OrthancPluginPixelFormat_Grayscale8,
+                                           256, 256, 256, buffer);
   }
 
-  OrthancPluginCompressAndAnswerPngImage(context, output, OrthancPluginPixelFormat_Grayscale8,
-                                         256, 256, 256, buffer);
   return 0;
 }
 
