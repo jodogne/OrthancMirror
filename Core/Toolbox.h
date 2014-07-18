@@ -37,6 +37,7 @@
 #include <stdint.h>
 #include <vector>
 #include <string>
+#include <json/json.h>
 
 namespace Orthanc
 {
@@ -136,5 +137,12 @@ namespace Orthanc
     void CreateDirectory(const std::string& path);
 
     bool IsExistingFile(const std::string& path);
+
+#if ORTHANC_PUGIXML_ENABLED == 1
+    void JsonToXml(std::string& target,
+                   const Json::Value& source,
+                   const std::string& rootElement = "root",
+                   const std::string& arrayElement = "item");
+#endif
   }
 }

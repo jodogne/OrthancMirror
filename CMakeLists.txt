@@ -21,9 +21,6 @@ SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP
 SET(ENABLE_JPEG ON CACHE BOOL "Enable JPEG decompression")
 SET(ENABLE_JPEG_LOSSLESS ON CACHE BOOL "Enable JPEG-LS (Lossless) decompression")
 
-# Experimental options
-SET(USE_PLUSTACHE OFF CACHE BOOL "Use the Plustache templating engine (experimental)")
-
 # Advanced parameters to fine-tune linking against system libraries
 SET(USE_SYSTEM_JSONCPP ON CACHE BOOL "Use the system version of JsonCpp")
 SET(USE_SYSTEM_GOOGLE_LOG ON CACHE BOOL "Use the system version of Google Log")
@@ -37,7 +34,12 @@ SET(USE_SYSTEM_LIBPNG ON CACHE BOOL "Use the system version of LibPng")
 SET(USE_SYSTEM_CURL ON CACHE BOOL "Use the system version of LibCurl")
 SET(USE_SYSTEM_OPENSSL ON CACHE BOOL "Use the system version of OpenSSL")
 SET(USE_SYSTEM_ZLIB ON CACHE BOOL "Use the system version of ZLib")
+
+# Experimental options
+SET(USE_PLUSTACHE OFF CACHE BOOL "Use the Plustache templating engine (experimental)")
+SET(USE_PUGIXML OFF CACHE BOOL "Use the Pugixml parser (experimental)")
 SET(USE_SYSTEM_PLUSTACHE OFF CACHE BOOL "Use the system version of Plustache (experimental)")
+SET(USE_SYSTEM_PUGIXML OFF CACHE BOOL "Use the system version of Pugixml (experimental)")
 
 # Distribution-specific settings
 SET(USE_GTEST_DEBIAN_SOURCE_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
@@ -223,6 +225,7 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibPngConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LuaConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibCurlConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/PlustacheConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/PugixmlConfiguration.cmake)
 
 
 if (${ENABLE_SSL})
