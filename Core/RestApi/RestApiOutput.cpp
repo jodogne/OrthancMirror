@@ -40,7 +40,8 @@
 namespace Orthanc
 {
   RestApiOutput::RestApiOutput(HttpOutput& output) : 
-    output_(output)
+    output_(output),
+    convertJsonToXml_(false)
   {
     alreadySent_ = false;
   }
@@ -71,9 +72,25 @@ namespace Orthanc
   void RestApiOutput::AnswerJson(const Json::Value& value)
   {
     CheckStatus();
-    Json::StyledWriter writer;
-    std::string s = writer.write(value);
-    output_.AnswerBufferWithContentType(s, "application/json");
+
+    if (convertJsonToXml_)
+    {
+#if ORTHANC_PUGIXML_ENABLED == 1
+      std::string s;
+      Toolbox::JsonToXml(s, value);
+      output_.AnswerBufferWithContentType(s, "application/xml");
+#else
+      LOG(ERROR) << "Orthanc was compiled without XML support";
+      throw OrthancException(ErrorCode_InternalError);
+#endif
+    }
+    else
+    {
+      Json::StyledWriter writer;
+      std::string s = writer.write(value);
+      output_.AnswerBufferWithContentType(s, "application/json");
+    }
+
     alreadySent_ = true;
   }
 
