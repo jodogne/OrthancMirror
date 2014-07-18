@@ -49,6 +49,10 @@
 #include <glog/logging.h>
 #include <json/value.h>
 
+#if ORTHANC_PUGIXML_ENABLED == 1
+#include <pugixml.hpp>
+#endif
+
 #include "Enumerations.h"
 #include "OrthancException.h"
 #include "Toolbox.h"

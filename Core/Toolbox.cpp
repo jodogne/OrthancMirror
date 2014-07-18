@@ -83,6 +83,12 @@ extern "C"
 #endif
 
 
+#if ORTHANC_PUGIXML_ENABLED == 1
+#include "ChunkedBuffer.h"
+#include <pugixml.hpp>
+#endif
+
+
 namespace Orthanc
 {
   static bool finish;
@@ -824,5 +830,126 @@ namespace Orthanc
     return boost::filesystem::exists(path);
   }
 
+
+#if ORTHANC_PUGIXML_ENABLED == 1
+  class ChunkedBufferWriter : public pugi::xml_writer
+  {
+  private:
+    ChunkedBuffer buffer_;
+
+  public:
+    virtual void write(const void *data, size_t size)
+    {
+      if (size > 0)
+      {
+        buffer_.AddChunk(reinterpret_cast<const char*>(data), size);
+      }
+    }
+
+    void Flatten(std::string& s)
+    {
+      buffer_.Flatten(s);
+    }
+  };
+
+
+  static void JsonToXmlInternal(pugi::xml_node& target,
+                                const Json::Value& source,
+                                const std::string& arrayElement)
+  {
+    // http://jsoncpp.sourceforge.net/value_8h_source.html#l00030
+
+    switch (source.type())
+    {
+      case Json::nullValue:
+      {
+        target.append_child(pugi::node_pcdata).set_value("null");
+        break;
+      }
+
+      case Json::intValue:
+      {
+        std::string s = boost::lexical_cast<std::string>(source.asInt());
+        target.append_child(pugi::node_pcdata).set_value(s.c_str());
+        break;
+      }
+
+      case Json::uintValue:
+      {
+        std::string s = boost::lexical_cast<std::string>(source.asUInt());
+        target.append_child(pugi::node_pcdata).set_value(s.c_str());
+        break;
+      }
+
+      case Json::realValue:
+      {
+        std::string s = boost::lexical_cast<std::string>(source.asFloat());
+        target.append_child(pugi::node_pcdata).set_value(s.c_str());
+        break;
+      }
+
+      case Json::stringValue:
+      {
+        target.append_child(pugi::node_pcdata).set_value(source.asString().c_str());
+        break;
+      }
+
+      case Json::booleanValue:
+      {
+        target.append_child(pugi::node_pcdata).set_value(source.asBool() ? "true" : "false");
+        break;
+      }
+
+      case Json::arrayValue:
+      {
+        for (Json::Value::ArrayIndex i = 0; i < source.size(); i++)
+        {
+          pugi::xml_node node = target.append_child();
+          node.set_name(arrayElement.c_str());
+          JsonToXmlInternal(node, source[i], arrayElement);
+        }
+        break;
+      }
+        
+      case Json::objectValue:
+      {
+        Json::Value::Members members = source.getMemberNames();
+
+        for (size_t i = 0; i < members.size(); i++)
+        {
+          pugi::xml_node node = target.append_child();
+          node.set_name(members[i].c_str());
+          JsonToXmlInternal(node, source[members[i]], arrayElement);          
+        }
+
+        break;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
+
+
+  void Toolbox::JsonToXml(std::string& target,
+                          const Json::Value& source,
+                          const std::string& rootElement,
+                          const std::string& arrayElement)
+  {
+    pugi::xml_document doc;
+
+    pugi::xml_node n = doc.append_child(rootElement.c_str());
+    JsonToXmlInternal(n, source, arrayElement);
+
+    pugi::xml_node decl = doc.prepend_child(pugi::node_declaration);
+    decl.append_attribute("version").set_value("1.0");
+    decl.append_attribute("encoding").set_value("utf-8");
+
+    ChunkedBufferWriter writer;
+    doc.save(writer, "  ", pugi::format_default, pugi::encoding_utf8);
+    writer.Flatten(target);
+  }
+
+#endif
 }
 

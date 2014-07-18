@@ -674,6 +674,25 @@ TEST(Toolbox, Endianness)
 }
 
 
+#if ORTHANC_PUGIXML_ENABLED == 1
+TEST(Toolbox, Xml)
+{
+  Json::Value a;
+  a["hello"] = "world";
+  a["42"] = 43;
+  a["b"] = Json::arrayValue;
+  a["b"].append("test");
+  a["b"].append("test2");
+
+  std::string s;
+  Toolbox::JsonToXml(s, a);
+
+  std::cout << s;
+}
+
+#endif
+
+
 int main(int argc, char **argv)
 {
   // Initialize Google's logging library.
