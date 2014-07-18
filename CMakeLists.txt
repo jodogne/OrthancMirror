@@ -34,12 +34,12 @@ SET(USE_SYSTEM_LIBPNG ON CACHE BOOL "Use the system version of LibPng")
 SET(USE_SYSTEM_CURL ON CACHE BOOL "Use the system version of LibCurl")
 SET(USE_SYSTEM_OPENSSL ON CACHE BOOL "Use the system version of OpenSSL")
 SET(USE_SYSTEM_ZLIB ON CACHE BOOL "Use the system version of ZLib")
+SET(USE_SYSTEM_PUGIXML ON CACHE BOOL "Use the system version of Pugixml)")
 
 # Experimental options
 SET(USE_PLUSTACHE OFF CACHE BOOL "Use the Plustache templating engine (experimental)")
-SET(USE_PUGIXML OFF CACHE BOOL "Use the Pugixml parser (experimental)")
+SET(USE_PUGIXML ON CACHE BOOL "Use the Pugixml parser (turn off only for debug)")
 SET(USE_SYSTEM_PLUSTACHE OFF CACHE BOOL "Use the system version of Plustache (experimental)")
-SET(USE_SYSTEM_PUGIXML OFF CACHE BOOL "Use the system version of Pugixml (experimental)")
 
 # Distribution-specific settings
 SET(USE_GTEST_DEBIAN_SOURCE_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")

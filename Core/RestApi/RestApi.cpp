@@ -47,7 +47,7 @@ namespace Orthanc
     {
     private:
       RestApi& api_;
-      HttpOutput& output_;
+      RestApiOutput& output_;
       HttpMethod method_;
       const HttpHandler::Arguments& headers_;
       const HttpHandler::Arguments& getArguments_;
@@ -55,7 +55,7 @@ namespace Orthanc
 
     public:
       HttpHandlerVisitor(RestApi& api,
-                         HttpOutput& output,
+                         RestApiOutput& output,
                          HttpMethod method,
                          const HttpHandler::Arguments& headers,
                          const HttpHandler::Arguments& getArguments,
@@ -76,34 +76,32 @@ namespace Orthanc
       {
         if (resource.HasHandler(method_))
         {
-          RestApiOutput output(output_);
-
           switch (method_)
           {
             case HttpMethod_Get:
             {
-              RestApiGetCall call(output, api_, headers_, components, trailing, uri, getArguments_);
+              RestApiGetCall call(output_, api_, headers_, components, trailing, uri, getArguments_);
               resource.Handle(call);
               return true;
             }
 
             case HttpMethod_Post:
             {
-              RestApiPostCall call(output, api_, headers_, components, trailing, uri, postData_);
+              RestApiPostCall call(output_, api_, headers_, components, trailing, uri, postData_);
               resource.Handle(call);
               return true;
             }
 
             case HttpMethod_Delete:
             {
-              RestApiDeleteCall call(output, api_, headers_, components, trailing, uri);
+              RestApiDeleteCall call(output_, api_, headers_, components, trailing, uri);
               resource.Handle(call);
               return true;
             }
 
             case HttpMethod_Put:
             {
-              RestApiPutCall call(output, api_, headers_, components, trailing, uri, postData_);
+              RestApiPutCall call(output_, api_, headers_, components, trailing, uri, postData_);
               resource.Handle(call);
               return true;
             }
@@ -165,7 +163,32 @@ namespace Orthanc
                        const Arguments& getArguments,
                        const std::string& postData)
   {
-    HttpHandlerVisitor visitor(*this, output, method, headers, getArguments, postData);
+    RestApiOutput wrappedOutput(output);
+
+#if ORTHANC_PUGIXML_ENABLED == 1
+    // Look if the user wishes XML answers instead of JSON
+    // http://www.w3.org/Protocols/HTTP/HTRQ_Headers.html#z3
+    Arguments::const_iterator it = headers.find("accept");
+    if (it != headers.end())
+    {
+      std::vector<std::string> accepted;
+      Toolbox::TokenizeString(accepted, it->second, ';');
+      for (size_t i = 0; i < accepted.size(); i++)
+      {
+        if (accepted[i] == "application/xml")
+        {
+          wrappedOutput.SetConvertJsonToXml(true);
+        }
+
+        if (accepted[i] == "application/json")
+        {
+          wrappedOutput.SetConvertJsonToXml(false);
+        }
+      }
+    }
+#endif
+
+    HttpHandlerVisitor visitor(*this, wrappedOutput, method, headers, getArguments, postData);
 
     if (root_.LookupResource(uri, visitor))
     {
@@ -175,8 +198,7 @@ namespace Orthanc
     Json::Value directory;
     if (root_.GetDirectory(directory, uri))
     {
-      RestApiOutput tmp(output);
-      tmp.AnswerJson(directory);
+      wrappedOutput.AnswerJson(directory);
       return true;
     }
 

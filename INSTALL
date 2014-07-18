@@ -58,7 +58,7 @@ Native Windows build with Microsoft Visual Studio 2005
 ------------------------------------------------------
 
 # cd [...]\OrthancBuild
-# cmake -DSTANDALONE_BUILD=ON -G "Visual Studio 8 2005" [...]\Orthanc
+# cmake -DSTANDALONE_BUILD=ON -DSTATIC_BUILD=ON -G "Visual Studio 8 2005" [...]\Orthanc
 
 Then open the "[...]/OrthancBuild/Orthanc.sln" with Visual Studio.
 

@@ -44,6 +44,7 @@ namespace Orthanc
   private:
     HttpOutput& output_;
     bool alreadySent_;
+    bool convertJsonToXml_;
 
     void CheckStatus();
 
@@ -60,6 +61,16 @@ namespace Orthanc
     void MarkLowLevelOutputDone()
     {
       alreadySent_ = true;
+    }
+
+    void SetConvertJsonToXml(bool convert)
+    {
+      convertJsonToXml_ = convert;
+    }
+
+    bool IsConvertJsonToXml() const
+    {
+      return convertJsonToXml_;
     }
 
     void AnswerFile(HttpFileSender& sender);
