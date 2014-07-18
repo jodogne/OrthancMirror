@@ -3,6 +3,7 @@ Pending changes in the mainline
 
 * Lookup for DICOM UIDs in the plugin SDK
 * Plugins have access to the HTTP headers and can answer with HTTP status codes
+* On-the-fly conversion of JSON to XML according to the HTTP Accept header
 
 
 Version 0.8.0 (2014/07/10)
