@@ -68,6 +68,27 @@ namespace Orthanc
     return true;
   }
 
+
+  static void DicomEcho(RestApiPostCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
+
+    try
+    {
+      if (locker.GetConnection().Echo())
+      {
+        call.GetOutput().AnswerBuffer("{}", "application/json");
+      }
+    }
+    catch (OrthancException&)
+    {
+    }
+  }
+
+
   static void DicomFindPatient(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
@@ -438,6 +459,7 @@ namespace Orthanc
     if (IsExistingModality(modalities, id))
     {
       Json::Value result = Json::arrayValue;
+      result.append("echo");
       result.append("find-patient");
       result.append("find-study");
       result.append("find-series");
@@ -497,6 +519,7 @@ namespace Orthanc
     Register("/modalities/{id}", ListModalityOperations);
     Register("/modalities/{id}", UpdateModality);
     Register("/modalities/{id}", DeleteModality);
+    Register("/modalities/{id}/echo", DicomEcho);
     Register("/modalities/{id}/find-patient", DicomFindPatient);
     Register("/modalities/{id}/find-study", DicomFindStudy);
     Register("/modalities/{id}/find-series", DicomFindSeries);
