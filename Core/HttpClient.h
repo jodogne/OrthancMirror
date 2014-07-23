@@ -89,6 +89,11 @@ namespace Orthanc
       return method_;
     }
 
+    void SetPostData(const std::string& data)
+    {
+      postData_ = data;
+    }
+
     std::string& AccessPostData()
     {
       return postData_;

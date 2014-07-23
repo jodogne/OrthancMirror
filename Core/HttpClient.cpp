@@ -161,7 +161,15 @@ namespace Orthanc
     answer.clear();
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_URL, url_.c_str()));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_WRITEDATA, &answer));
+
+    // Reset the parameters from previous calls to Apply()
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPHEADER, NULL));
+    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPGET, 0L));
+    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POST, 0L));
+    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_NOBODY, 0L));
+    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CUSTOMREQUEST, NULL));
+    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDS, NULL));
+    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDSIZE, 0));
 
     if (credentials_.size() != 0)
     {
@@ -177,7 +185,31 @@ namespace Orthanc
     case HttpMethod_Post:
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POST, 1L));
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPHEADER, pimpl_->postHeaders_));
+      break;
 
+    case HttpMethod_Delete:
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_NOBODY, 1L));
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CUSTOMREQUEST, "DELETE"));
+      break;
+
+    case HttpMethod_Put:
+      // http://stackoverflow.com/a/7570281/881731: Don't use
+      // CURLOPT_PUT if there is a body
+
+      // CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_PUT, 1L));
+
+      curl_easy_setopt(pimpl_->curl_, CURLOPT_CUSTOMREQUEST, "PUT"); /* !!! */
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPHEADER, pimpl_->postHeaders_));      
+      break;
+
+    default:
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+
+    if (method_ == HttpMethod_Post ||
+        method_ == HttpMethod_Put)
+    {
       if (postData_.size() > 0)
       {
         CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDS, postData_.c_str()));
@@ -188,21 +220,8 @@ namespace Orthanc
         CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDS, NULL));
         CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDSIZE, 0));
       }
-
-      break;
-
-    case HttpMethod_Delete:
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_NOBODY, 1L));
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CUSTOMREQUEST, "DELETE"));
-      break;
-
-    case HttpMethod_Put:
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_PUT, 1L));
-      break;
-
-    default:
-      throw OrthancException(ErrorCode_InternalError);
     }
+
 
     // Do the actual request
     CheckCode(curl_easy_perform(pimpl_->curl_));
