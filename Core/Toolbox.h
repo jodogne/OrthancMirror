@@ -144,5 +144,8 @@ namespace Orthanc
                    const std::string& rootElement = "root",
                    const std::string& arrayElement = "item");
 #endif
+
+    void ExecuteSystemCommand(const std::string& command,
+                              const std::vector<std::string>& arguments);
   }
 }

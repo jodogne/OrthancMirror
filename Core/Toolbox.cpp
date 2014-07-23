@@ -44,9 +44,14 @@
 #include <algorithm>
 #include <ctype.h>
 #include <boost/regex.hpp> 
+#include <glog/logging.h>
 
 #if defined(_WIN32)
 #include <windows.h>
+#include <process.h>   // For "_spawnvp()"
+#else
+#include <unistd.h>    // For "execvp()"
+#include <sys/wait.h>  // For "waitpid()"
 #endif
 
 #if defined(__APPLE__) && defined(__MACH__)
@@ -951,5 +956,58 @@ namespace Orthanc
   }
 
 #endif
+
+
+  void Toolbox::ExecuteSystemCommand(const std::string& command,
+                                     const std::vector<std::string>& arguments)
+  {
+    // Convert the arguments as a C array
+    std::vector<char*>  args(arguments.size() + 2);
+
+    args.front() = const_cast<char*>(command.c_str());
+
+    for (size_t i = 0; i < arguments.size(); i++)
+    {
+      args[i + 1] = const_cast<char*>(arguments[i].c_str());
+    }
+
+    args.back() = NULL;
+
+    int status;
+
+#if defined(_WIN32)
+    // http://msdn.microsoft.com/en-us/library/275khfab.aspx
+    status = static_cast<int>(_spawnvp(_P_OVERLAY, command.c_str(), &args[0]));
+
+#else
+    int pid = fork();
+
+    if (pid == -1)
+    {
+      // Error in fork()
+      LOG(ERROR) << "Cannot fork a child process";
+      throw OrthancException(ErrorCode_SystemCommand);
+    }
+    else if (pid == 0)
+    {
+      // Execute the system command in the child process
+      execvp(command.c_str(), &args[0]);
+
+      // We should never get here
+      _exit(1);
+    }
+    else
+    {
+      // Wait for the system command to exit
+      waitpid(pid, &status, 0);
+    }
+#endif
+
+    if (status != 0)
+    {
+      LOG(ERROR) << "System command failed with status code " << status;
+      throw OrthancException(ErrorCode_SystemCommand);
+    }
+  }
 }
 
