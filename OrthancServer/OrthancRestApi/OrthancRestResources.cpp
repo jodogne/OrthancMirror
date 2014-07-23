@@ -705,16 +705,23 @@ namespace Orthanc
   }
 
 
-  template <enum ResourceType resourceType>
-  static void GetModule(RestApiGetCall& call)
+  static void GetModuleInternal(RestApiGetCall& call,
+                                ResourceType resourceType,
+                                ResourceType queryLevel)
   {
+    if (resourceType != queryLevel &&
+        !(resourceType == ResourceType_Study && queryLevel == ResourceType_Patient))
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
     std::string publicId = call.GetUriComponent("id", "");
     bool simplify = call.HasArgument("simplify");
 
     typedef std::set<DicomTag> Module;
     Module module;
-    DicomTag::GetTagsForModule(module, resourceType);
+    DicomTag::GetTagsForModule(module, queryLevel);
 
     Json::Value tags;
 
@@ -756,7 +763,21 @@ namespace Orthanc
     else
     {
       call.GetOutput().AnswerJson(result);
-    }
+    }    
+  }
+    
+
+
+  template <enum ResourceType resourceType>
+  static void GetModule(RestApiGetCall& call)
+  {
+    GetModuleInternal(call, resourceType, resourceType);
+  }
+
+
+  static void GetPatientModuleForStudy(RestApiGetCall& call)
+  {
+    GetModuleInternal(call, ResourceType_Study, ResourceType_Patient);
   }
 
 
@@ -789,6 +810,7 @@ namespace Orthanc
     Register("/patients/{id}/module", GetModule<ResourceType_Patient>);
     Register("/series/{id}/module", GetModule<ResourceType_Series>);
     Register("/studies/{id}/module", GetModule<ResourceType_Study>);
+    Register("/studies/{id}/module-patient", GetPatientModuleForStudy);
 
     Register("/instances/{id}/file", GetInstanceFile);
     Register("/instances/{id}/export", ExportInstanceFile);

@@ -1,10 +1,19 @@
 Pending changes in the mainline
 ===============================
 
-* Lookup for DICOM UIDs in the plugin SDK
-* Plugins have access to the HTTP headers and can answer with HTTP status codes
+
+General
+-------
+
+* Access patient module at the study level to cope with PatientID collisions
 * On-the-fly conversion of JSON to XML according to the HTTP Accept header
 * C-Echo SCU in the REST API
+
+Plugins
+-------
+
+* Lookup for DICOM UIDs in the plugin SDK
+* Plugins have access to the HTTP headers and can answer with HTTP status codes
 
 
 Version 0.8.0 (2014/07/10)
@@ -43,7 +52,7 @@ Version 0.7.5 (2014/05/08)
 * Creation of DICOM instances using the REST API
 * Embedding of images within DICOM instances
 * Adding/removal/modification of remote modalities/peers through REST
-* Reuse of the previous SCU connection to avoid unecessary handshakes
+* Reuse of the previous SCU connection to avoid unnecessary handshakes
 * Fix problems with anonymization and modification
 * Fix missing licensing terms about reuse of some code from DCMTK
 * Various code refactorings
@@ -172,7 +181,7 @@ Version 0.5.2 (2013/05/07)
 ==========================
 
 * "Bulk" Store-SCU (send several DICOM instances with the same
-  DICOM connexion)
+  DICOM connection)
 * Store-SCU for patients and studies in Orthanc Explorer
 * Filtering of incoming DICOM instances (through Lua scripting)
 * Filtering of incoming HTTP requests (through Lua scripting)
@@ -197,7 +206,7 @@ Major changes
 -------------
 
 * Download of modified or anonymized DICOM instances
-* Inplace modification and anymization of DICOM series, studies and patients
+* Inplace modification and anonymization of DICOM series, studies and patients
 
 Minor changes
 -------------
