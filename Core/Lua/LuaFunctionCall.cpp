@@ -85,71 +85,7 @@ namespace Orthanc
   void LuaFunctionCall::PushJson(const Json::Value& value)
   {
     CheckAlreadyExecuted();
-
-    if (value.isString())
-    {
-      lua_pushstring(context_.lua_, value.asCString());
-    }
-    else if (value.isDouble())
-    {
-      lua_pushnumber(context_.lua_, value.asDouble());
-    }
-    else if (value.isInt())
-    {
-      lua_pushinteger(context_.lua_, value.asInt());
-    }
-    else if (value.isUInt())
-    {
-      lua_pushinteger(context_.lua_, value.asUInt());
-    }
-    else if (value.isBool())
-    {
-      lua_pushboolean(context_.lua_, value.asBool());
-    }
-    else if (value.isNull())
-    {
-      lua_pushnil(context_.lua_);
-    }
-    else if (value.isArray())
-    {
-      lua_newtable(context_.lua_);
-
-      // http://lua-users.org/wiki/SimpleLuaApiExample
-      for (Json::Value::ArrayIndex i = 0; i < value.size(); i++)
-      {
-        // Push the table index (note the "+1" because of Lua conventions)
-        lua_pushnumber(context_.lua_, i + 1);
-
-        // Push the value of the cell
-        PushJson(value[i]);
-
-        // Stores the pair in the table
-        lua_rawset(context_.lua_, -3);
-      }
-    }
-    else if (value.isObject())
-    {
-      lua_newtable(context_.lua_);
-
-      Json::Value::Members members = value.getMemberNames();
-
-      for (Json::Value::Members::const_iterator 
-             it = members.begin(); it != members.end(); ++it)
-      {
-        // Push the index of the cell
-        lua_pushstring(context_.lua_, it->c_str());
-
-        // Push the value of the cell
-        PushJson(value[*it]);
-
-        // Stores the pair in the table
-        lua_rawset(context_.lua_, -3);
-      }
-    }
-    else
-    {
-      throw LuaException("Unsupported JSON conversion");
-    }
+    context_.PushJson(value);
   }
 
   void LuaFunctionCall::ExecuteInternal(int numOutputs)
