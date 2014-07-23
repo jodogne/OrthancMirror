@@ -57,6 +57,7 @@ namespace Orthanc
     ErrorCode_InexistentItem,
     ErrorCode_BadRequest,
     ErrorCode_NetworkProtocol,
+    ErrorCode_SystemCommand,
 
     // Specific error codes
     ErrorCode_UriSyntax,

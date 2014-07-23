@@ -689,7 +689,18 @@ TEST(Toolbox, Xml)
 
   std::cout << s;
 }
+#endif
 
+
+#if !defined(_WIN32)
+TEST(Toolbox, ExecuteSystemCommand)
+{
+  std::vector<std::string> args(2);
+  args[0] = "Hello";
+  args[1] = "World";
+
+  Toolbox::ExecuteSystemCommand("echo", args);
+}
 #endif
 
 

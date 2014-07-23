@@ -124,6 +124,9 @@ namespace Orthanc
       case ErrorCode_SharedLibrary:
         return "Error while using a shared library (plugin)";
 
+      case ErrorCode_SystemCommand:
+        return "Error while calling a system command";
+
       case ErrorCode_Custom:
       default:
         return "???";
