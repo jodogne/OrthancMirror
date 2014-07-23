@@ -44,7 +44,7 @@ extern "C"
 
 namespace Orthanc
 {
-  int LuaContext::PrintToLog(lua_State *state)
+  LuaContext& LuaContext::GetLuaContext(lua_State *state)
   {
     // Get the pointer to the "LuaContext" underlying object
     lua_getglobal(state, "_LuaContext");
@@ -52,6 +52,13 @@ namespace Orthanc
     LuaContext* that = const_cast<LuaContext*>(reinterpret_cast<const LuaContext*>(lua_topointer(state, -1)));
     assert(that != NULL);
     lua_pop(state, 1);
+
+    return *that;
+  }
+
+  int LuaContext::PrintToLog(lua_State *state)
+  {
+    LuaContext& that = GetLuaContext(state);
 
     // http://medek.wordpress.com/2009/02/03/wrapping-lua-errors-and-print-function/
     int nArgs = lua_gettop(state);
@@ -80,10 +87,138 @@ namespace Orthanc
     }
 
     LOG(WARNING) << "Lua says: " << result;         
-    that->log_.append(result);
-    that->log_.append("\n");
+    that.log_.append(result);
+    that.log_.append("\n");
 
     return 0;
+  }
+
+  
+  int LuaContext::CallHttpGet(lua_State *state)
+  {
+    LuaContext& that = GetLuaContext(state);
+
+    // Check that there is 1 string argument
+    int nArgs = lua_gettop(state);
+    if ((nArgs != 1 && nArgs != 2) ||
+        !lua_isstring(state, 1) ||
+        (nArgs == 2 && !lua_isboolean(state, 2)))
+    {
+      LOG(ERROR) << "Lua: Bad URL in HttpGet";
+
+      lua_pushstring(state, "ERROR");
+      return 1;
+    }
+
+    // Configure the HTTP client class
+    const char* url = lua_tostring(state, 1);
+    bool isJson = (nArgs == 2 && lua_toboolean(state, 2));
+    that.httpClient_.SetMethod(HttpMethod_Get);
+    that.httpClient_.SetUrl(url);
+
+    // Do the HTTP GET request
+    std::string str;
+    Json::Value json;
+
+    try
+    {
+      if (isJson)
+      {
+        that.httpClient_.Apply(json);
+      }
+      else
+      {
+        that.httpClient_.Apply(str);
+      }
+    }
+    catch (OrthancException& e)
+    {
+      LOG(ERROR) << "Lua: Error in HttpGet for URL " << url << ": " << e.What();
+      
+      lua_pushstring(state, "ERROR");
+      return 1;
+    }
+
+    // Return the result of the HTTP GET
+    if (isJson)
+    {
+      that.PushJson(json);
+    }
+    else
+    {
+      lua_pushstring(state, str.c_str());
+    }
+
+    return 1;
+  }
+
+
+  void LuaContext::PushJson(const Json::Value& value)
+  {
+    if (value.isString())
+    {
+      lua_pushstring(lua_, value.asCString());
+    }
+    else if (value.isDouble())
+    {
+      lua_pushnumber(lua_, value.asDouble());
+    }
+    else if (value.isInt())
+    {
+      lua_pushinteger(lua_, value.asInt());
+    }
+    else if (value.isUInt())
+    {
+      lua_pushinteger(lua_, value.asUInt());
+    }
+    else if (value.isBool())
+    {
+      lua_pushboolean(lua_, value.asBool());
+    }
+    else if (value.isNull())
+    {
+      lua_pushnil(lua_);
+    }
+    else if (value.isArray())
+    {
+      lua_newtable(lua_);
+
+      // http://lua-users.org/wiki/SimpleLuaApiExample
+      for (Json::Value::ArrayIndex i = 0; i < value.size(); i++)
+      {
+        // Push the table index (note the "+1" because of Lua conventions)
+        lua_pushnumber(lua_, i + 1);
+
+        // Push the value of the cell
+        PushJson(value[i]);
+
+        // Stores the pair in the table
+        lua_rawset(lua_, -3);
+      }
+    }
+    else if (value.isObject())
+    {
+      lua_newtable(lua_);
+
+      Json::Value::Members members = value.getMemberNames();
+
+      for (Json::Value::Members::const_iterator 
+             it = members.begin(); it != members.end(); ++it)
+      {
+        // Push the index of the cell
+        lua_pushstring(lua_, it->c_str());
+
+        // Push the value of the cell
+        PushJson(value[*it]);
+
+        // Stores the pair in the table
+        lua_rawset(lua_, -3);
+      }
+    }
+    else
+    {
+      throw LuaException("Unsupported JSON conversion");
+    }
   }
 
 
@@ -97,6 +232,7 @@ namespace Orthanc
 
     luaL_openlibs(lua_);
     lua_register(lua_, "print", PrintToLog);
+    lua_register(lua_, "HttpGet", CallHttpGet);
     
     lua_pushlightuserdata(lua_, this);
     lua_setglobal(lua_, "_LuaContext");

@@ -33,9 +33,14 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
+#include "../Core/Toolbox.h"
 #include "../Core/Lua/LuaFunctionCall.h"
 
 #include <boost/lexical_cast.hpp>
+
+#if !defined(UNIT_TESTS_WITH_HTTP_CONNEXIONS)
+#error "Please set UNIT_TESTS_WITH_HTTP_CONNEXIONS"
+#endif
 
 
 TEST(Lua, Json)
@@ -231,4 +236,24 @@ TEST(Lua, ReturnJson)
     ASSERT_EQ("test1", v["List"][1][1].asString());
     ASSERT_EQ("test2", v["List"][1][2].asString());
   }
+}
+
+TEST(Lua, Http)
+{
+  const std::string url("http://orthanc.googlecode.com/hg/Resources/Configuration.json");
+
+  Orthanc::LuaContext lua;
+  std::string s;
+  lua.Execute(s, "print(HttpGet({}))");
+  ASSERT_EQ("ERROR", Orthanc::Toolbox::StripSpaces(s));
+
+#if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1  
+  lua.Execute(s, "print(string.len(HttpGet(\"" + url + "\")))");
+  ASSERT_LE(1000, boost::lexical_cast<int>(Orthanc::Toolbox::StripSpaces(s)));
+
+  // Parse a JSON file
+  lua.Execute(s, "print(HttpGet(\"" + url + "\", true)['Name'])");
+  ASSERT_EQ("MyOrthanc", Orthanc::Toolbox::StripSpaces(s));
+#endif
+
 }

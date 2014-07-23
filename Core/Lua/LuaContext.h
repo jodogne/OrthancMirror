@@ -33,6 +33,7 @@
 #pragma once
 
 #include "LuaException.h"
+#include "../HttpClient.h"
 
 extern "C" 
 {
@@ -40,7 +41,6 @@ extern "C"
 }
 
 #include <EmbeddedResources.h>
-
 #include <boost/noncopyable.hpp>
 
 namespace Orthanc
@@ -52,12 +52,19 @@ namespace Orthanc
 
     lua_State *lua_;
     std::string log_;
+    HttpClient httpClient_;
+
+    static LuaContext& GetLuaContext(lua_State *state);
 
     static int PrintToLog(lua_State *L);
+
+    static int CallHttpGet(lua_State *L);
 
     void Execute(std::string* output,
                  const std::string& command);
 
+    void PushJson(const Json::Value& value);
+    
   public:
     LuaContext();
 
