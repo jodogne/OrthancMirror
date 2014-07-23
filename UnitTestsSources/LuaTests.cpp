@@ -264,7 +264,7 @@ TEST(Lua, Http)
   ASSERT_EQ("42", Orthanc::Toolbox::StripSpaces(s));
 #endif
 
-#if 1
+#if 0
   lua.Execute(s, "print(HttpGet('http://localhost:8042/modalities'))");
   lua.Execute(s, "print(HttpPut('http://localhost:8042/modalities/lua', '[ \"ORTHANC\", \"localhost\", 4242 ]'))");
   lua.Execute(s, "print(HttpGet('http://localhost:8042/modalities'))");
