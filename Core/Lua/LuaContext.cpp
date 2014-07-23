@@ -93,30 +93,10 @@ namespace Orthanc
     return 0;
   }
 
-  
-  int LuaContext::CallHttpGet(lua_State *state)
+
+  bool LuaContext::DoHttpQuery(lua_State* state,
+                               bool isJson)
   {
-    LuaContext& that = GetLuaContext(state);
-
-    // Check that there is 1 string argument
-    int nArgs = lua_gettop(state);
-    if ((nArgs != 1 && nArgs != 2) ||
-        !lua_isstring(state, 1) ||
-        (nArgs == 2 && !lua_isboolean(state, 2)))
-    {
-      LOG(ERROR) << "Lua: Bad URL in HttpGet";
-
-      lua_pushstring(state, "ERROR");
-      return 1;
-    }
-
-    // Configure the HTTP client class
-    const char* url = lua_tostring(state, 1);
-    bool isJson = (nArgs == 2 && lua_toboolean(state, 2));
-    that.httpClient_.SetMethod(HttpMethod_Get);
-    that.httpClient_.SetUrl(url);
-
-    // Do the HTTP GET request
     std::string str;
     Json::Value json;
 
@@ -124,29 +104,147 @@ namespace Orthanc
     {
       if (isJson)
       {
-        that.httpClient_.Apply(json);
+        httpClient_.Apply(json);
       }
       else
       {
-        that.httpClient_.Apply(str);
+        httpClient_.Apply(str);
       }
     }
     catch (OrthancException& e)
     {
-      LOG(ERROR) << "Lua: Error in HttpGet for URL " << url << ": " << e.What();
-      
-      lua_pushstring(state, "ERROR");
-      return 1;
+      return false;
     }
 
-    // Return the result of the HTTP GET
+    // Return the result of the HTTP request
     if (isJson)
     {
-      that.PushJson(json);
+      PushJson(json);
     }
     else
     {
       lua_pushstring(state, str.c_str());
+    }
+
+    return true;
+  }
+
+  
+  int LuaContext::CallHttpGet(lua_State *state)
+  {
+    LuaContext& that = GetLuaContext(state);
+
+    // Check the types of the arguments
+    int nArgs = lua_gettop(state);
+    if ((nArgs != 1 && nArgs != 2) ||
+        !lua_isstring(state, 1) ||                 // URL
+        (nArgs >= 2 && !lua_isboolean(state, 2)))  // Interpret result as JSON
+    {
+      LOG(ERROR) << "Lua: Bad parameters to HttpGet()";
+      lua_pushstring(state, "ERROR");
+      return 1;
+    }
+
+    // Configure the HTTP client class
+    const char* url = lua_tostring(state, 1);
+    bool isJson = (nArgs >= 2 && lua_toboolean(state, 2));
+    that.httpClient_.SetMethod(HttpMethod_Get);
+    that.httpClient_.SetUrl(url);
+
+    // Do the HTTP GET request
+    if (!that.DoHttpQuery(state, isJson))
+    {
+      LOG(ERROR) << "Lua: Error in HttpGet() for URL " << url;
+      lua_pushstring(state, "ERROR");
+    }
+
+    return 1;
+  }
+
+
+  int LuaContext::CallHttpPostOrPut(lua_State *state,
+                                    HttpMethod method)
+  {
+    LuaContext& that = GetLuaContext(state);
+
+    // Check the types of the arguments
+    int nArgs = lua_gettop(state);
+    if ((nArgs != 1 && nArgs != 2 && nArgs != 3) ||
+        !lua_isstring(state, 1) ||                  // URL
+        (nArgs >= 2 && !lua_isstring(state, 2)) ||  // Body data
+        (nArgs >= 3 && !lua_isboolean(state, 3)))   // Interpret result as JSON
+    {
+      LOG(ERROR) << "Lua: Bad parameters to HttpPost() or HttpPut()";
+      lua_pushstring(state, "ERROR");
+      return 1;
+    }
+
+    // Configure the HTTP client class
+    const char* url = lua_tostring(state, 1);
+    bool isJson = (nArgs >= 3 && lua_toboolean(state, 3));
+    that.httpClient_.SetMethod(method);
+    that.httpClient_.SetUrl(url);
+
+    if (nArgs >= 2)
+    {
+      that.httpClient_.SetPostData(lua_tostring(state, 2));
+    }
+    else
+    {
+      that.httpClient_.AccessPostData().clear();
+    }
+
+    // Do the HTTP POST/PUT request
+    if (!that.DoHttpQuery(state, isJson))
+    {
+      LOG(ERROR) << "Lua: Error in HttpPost() or HttpPut() for URL " << url;
+      lua_pushstring(state, "ERROR");
+    }
+
+    return 1;
+  }
+
+
+  int LuaContext::CallHttpPost(lua_State *state)
+  {
+    return CallHttpPostOrPut(state, HttpMethod_Post);
+  }
+
+
+  int LuaContext::CallHttpPut(lua_State *state)
+  {
+    return CallHttpPostOrPut(state, HttpMethod_Put);
+  }
+
+
+  int LuaContext::CallHttpDelete(lua_State *state)
+  {
+    LuaContext& that = GetLuaContext(state);
+
+    // Check the types of the arguments
+    int nArgs = lua_gettop(state);
+    if (nArgs != 1 || !lua_isstring(state, 1))  // URL
+    {
+      LOG(ERROR) << "Lua: Bad parameters to HttpDelete()";
+      lua_pushstring(state, "ERROR");
+      return 1;
+    }
+
+    // Configure the HTTP client class
+    const char* url = lua_tostring(state, 1);
+    that.httpClient_.SetMethod(HttpMethod_Delete);
+    that.httpClient_.SetUrl(url);
+
+    // Do the HTTP DELETE request
+    std::string s;
+    if (!that.httpClient_.Apply(s))
+    {
+      LOG(ERROR) << "Lua: Error in HttpPost() for URL " << url;
+      lua_pushstring(state, "ERROR");
+    }
+    else
+    {
+      lua_pushstring(state, "SUCCESS");
     }
 
     return 1;
@@ -233,6 +331,9 @@ namespace Orthanc
     luaL_openlibs(lua_);
     lua_register(lua_, "print", PrintToLog);
     lua_register(lua_, "HttpGet", CallHttpGet);
+    lua_register(lua_, "HttpPost", CallHttpPost);
+    lua_register(lua_, "HttpPut", CallHttpPut);
+    lua_register(lua_, "HttpDelete", CallHttpDelete);
     
     lua_pushlightuserdata(lua_, this);
     lua_setglobal(lua_, "_LuaContext");

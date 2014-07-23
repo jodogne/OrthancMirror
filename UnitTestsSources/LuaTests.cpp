@@ -256,4 +256,19 @@ TEST(Lua, Http)
   ASSERT_EQ("MyOrthanc", Orthanc::Toolbox::StripSpaces(s));
 #endif
 
+#if 0
+  lua.Execute(s, "print(HttpPost(\"http://localhost:8042/tools/execute-script\", \"print('hello world')\"))");
+  ASSERT_EQ("hello world", Orthanc::Toolbox::StripSpaces(s));
+
+  lua.Execute(s, "print(HttpPost(\"http://localhost:8042/tools/execute-script\", \"print('[10,42,1000]')\", true)[2])");
+  ASSERT_EQ("42", Orthanc::Toolbox::StripSpaces(s));
+#endif
+
+#if 1
+  lua.Execute(s, "print(HttpGet('http://localhost:8042/modalities'))");
+  lua.Execute(s, "print(HttpPut('http://localhost:8042/modalities/lua', '[ \"ORTHANC\", \"localhost\", 4242 ]'))");
+  lua.Execute(s, "print(HttpGet('http://localhost:8042/modalities'))");
+  lua.Execute(s, "print(HttpDelete('http://localhost:8042/modalities/lua'))");
+  lua.Execute(s, "print(HttpGet('http://localhost:8042/modalities'))");
+#endif
 }

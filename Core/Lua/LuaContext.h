@@ -56,9 +56,17 @@ namespace Orthanc
 
     static LuaContext& GetLuaContext(lua_State *state);
 
-    static int PrintToLog(lua_State *L);
+    static int PrintToLog(lua_State *state);
 
-    static int CallHttpGet(lua_State *L);
+    static int CallHttpPostOrPut(lua_State *state,
+                                 HttpMethod method);
+    static int CallHttpGet(lua_State *state);
+    static int CallHttpPost(lua_State *state);
+    static int CallHttpPut(lua_State *state);
+    static int CallHttpDelete(lua_State *state);
+
+    bool DoHttpQuery(lua_State* state,
+                     bool isJson);
 
     void Execute(std::string* output,
                  const std::string& command);
@@ -84,5 +92,11 @@ namespace Orthanc
     void Execute(EmbeddedResources::FileResourceId resource);
 
     bool IsExistingFunction(const char* name);
+
+    void SetHttpCredentials(const char* username,
+                            const char* password)
+    {
+      httpClient_.SetCredentials(username, password);
+    }
   };
 }
