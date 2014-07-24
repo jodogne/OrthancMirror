@@ -240,35 +240,51 @@ TEST(Lua, ReturnJson)
 
 TEST(Lua, Http)
 {
-  const std::string url("http://orthanc.googlecode.com/hg/Resources/Configuration.json");
-
   Orthanc::LuaContext lua;
+
+#if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1  
+  lua.Execute("JSON = loadstring(HttpGet('http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/JSON.lua')) ()");
+  const std::string url("http://orthanc.googlecode.com/hg/OrthancCppClient/SharedLibrary/Product.json");
+#endif
+
   std::string s;
   lua.Execute(s, "print(HttpGet({}))");
   ASSERT_EQ("ERROR", Orthanc::Toolbox::StripSpaces(s));
 
 #if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1  
   lua.Execute(s, "print(string.len(HttpGet(\"" + url + "\")))");
-  ASSERT_LE(1000, boost::lexical_cast<int>(Orthanc::Toolbox::StripSpaces(s)));
+  ASSERT_LE(100, boost::lexical_cast<int>(Orthanc::Toolbox::StripSpaces(s)));
 
   // Parse a JSON file
-  lua.Execute(s, "print(HttpGet(\"" + url + "\", true)['Name'])");
-  ASSERT_EQ("MyOrthanc", Orthanc::Toolbox::StripSpaces(s));
-#endif
+  lua.Execute(s, "print(JSON:decode(HttpGet(\"" + url + "\")) ['Product'])");
+  ASSERT_EQ("OrthancClient", Orthanc::Toolbox::StripSpaces(s));
 
-#if 0
+#if 1
+  // This part of the test can only be executed if one instance of
+  // Orthanc is running on the localhost
+
+  lua.Execute("modality = {}");
+  lua.Execute("table.insert(modality, 'ORTHANC')");
+  lua.Execute("table.insert(modality, 'localhost')");
+  lua.Execute("table.insert(modality, 4242)");
+  
   lua.Execute(s, "print(HttpPost(\"http://localhost:8042/tools/execute-script\", \"print('hello world')\"))");
   ASSERT_EQ("hello world", Orthanc::Toolbox::StripSpaces(s));
 
-  lua.Execute(s, "print(HttpPost(\"http://localhost:8042/tools/execute-script\", \"print('[10,42,1000]')\", true)[2])");
+  lua.Execute(s, "print(JSON:decode(HttpPost(\"http://localhost:8042/tools/execute-script\", \"print('[10,42,1000]')\")) [2])");
   ASSERT_EQ("42", Orthanc::Toolbox::StripSpaces(s));
+
+  // Add/remove a modality with Lua
+  Json::Value v;
+  lua.Execute(s, "print(HttpGet('http://localhost:8042/modalities/lua'))");
+  ASSERT_EQ(0, Orthanc::Toolbox::StripSpaces(s).size());
+  lua.Execute(s, "print(HttpPut('http://localhost:8042/modalities/lua', JSON:encode(modality)))");
+  lua.Execute(v, "print(HttpGet('http://localhost:8042/modalities/lua'))");
+  ASSERT_TRUE(v.type() == Json::arrayValue);
+  lua.Execute(s, "print(HttpDelete('http://localhost:8042/modalities/lua'))");
+  lua.Execute(s, "print(HttpGet('http://localhost:8042/modalities/lua'))");
+  ASSERT_EQ(0, Orthanc::Toolbox::StripSpaces(s).size());
 #endif
 
-#if 0
-  lua.Execute(s, "print(HttpGet('http://localhost:8042/modalities'))");
-  lua.Execute(s, "print(HttpPut('http://localhost:8042/modalities/lua', '[ \"ORTHANC\", \"localhost\", 4242 ]'))");
-  lua.Execute(s, "print(HttpGet('http://localhost:8042/modalities'))");
-  lua.Execute(s, "print(HttpDelete('http://localhost:8042/modalities/lua'))");
-  lua.Execute(s, "print(HttpGet('http://localhost:8042/modalities'))");
 #endif
 }
