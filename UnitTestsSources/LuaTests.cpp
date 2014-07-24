@@ -259,7 +259,7 @@ TEST(Lua, Http)
   lua.Execute(s, "print(JSON:decode(HttpGet(\"" + url + "\")) ['Product'])");
   ASSERT_EQ("OrthancClient", Orthanc::Toolbox::StripSpaces(s));
 
-#if 1
+#if 0
   // This part of the test can only be executed if one instance of
   // Orthanc is running on the localhost
 
