@@ -58,6 +58,8 @@ namespace Orthanc
 
     static int PrintToLog(lua_State *state);
 
+    static int SetHttpCredentials(lua_State *state);
+
     static int CallHttpPostOrPut(lua_State *state,
                                  HttpMethod method);
     static int CallHttpGet(lua_State *state);
@@ -65,11 +67,10 @@ namespace Orthanc
     static int CallHttpPut(lua_State *state);
     static int CallHttpDelete(lua_State *state);
 
-    bool DoHttpQuery(lua_State* state,
-                     bool isJson);
+    bool AnswerHttpQuery(lua_State* state);
 
-    void Execute(std::string* output,
-                 const std::string& command);
+    void ExecuteInternal(std::string* output,
+                         const std::string& command);
 
     void PushJson(const Json::Value& value);
     
@@ -80,14 +81,17 @@ namespace Orthanc
 
     void Execute(const std::string& command)
     {
-      Execute(NULL, command);
+      ExecuteInternal(NULL, command);
     }
 
     void Execute(std::string& output,
                  const std::string& command)
     {
-      Execute(&output, command);
+      ExecuteInternal(&output, command);
     }
+
+    void Execute(Json::Value& output,
+                 const std::string& command);
 
     void Execute(EmbeddedResources::FileResourceId resource);
 
