@@ -37,6 +37,7 @@
 #include "../../Core/Toolbox.h"
 #include "../../Core/HttpServer/HttpOutput.h"
 #include "../../Core/ImageFormats/PngWriter.h"
+#include "../../OrthancServer/ServerToolbox.h"
 
 #include <boost/regex.hpp> 
 #include <glog/logging.h>
@@ -79,17 +80,40 @@ namespace Orthanc
 
   struct PluginsHttpHandler::PImpl
   {
-    typedef std::pair<boost::regex*, OrthancPluginRestCallback> Callback;
-    typedef std::list<Callback>  Callbacks;
+    typedef std::pair<boost::regex*, OrthancPluginRestCallback> RestCallback;
+    typedef std::list<RestCallback>  RestCallbacks;
+    typedef std::list<OrthancPluginOnStoredInstanceCallback>  OnStoredCallbacks;
 
     ServerContext& context_;
-    Callbacks callbacks_;
+    RestCallbacks restCallbacks_;
     OrthancRestApi* restApi_;
+    OnStoredCallbacks  onStoredCallbacks_;
 
     PImpl(ServerContext& context) : context_(context), restApi_(NULL)
     {
     }
   };
+
+
+  static char* CopyString(const std::string& str)
+  {
+    char *result = reinterpret_cast<char*>(malloc(str.size() + 1));
+    if (result == NULL)
+    {
+      throw OrthancException(ErrorCode_NotEnoughMemory);
+    }
+
+    if (str.size() == 0)
+    {
+      result[0] = '\0';
+    }
+    else
+    {
+      memcpy(result, &str[0], str.size() + 1);
+    }
+
+    return result;
+  }
 
 
   PluginsHttpHandler::PluginsHttpHandler(ServerContext& context)
@@ -100,8 +124,8 @@ namespace Orthanc
   
   PluginsHttpHandler::~PluginsHttpHandler()
   {
-    for (PImpl::Callbacks::iterator it = pimpl_->callbacks_.begin(); 
-         it != pimpl_->callbacks_.end(); ++it)
+    for (PImpl::RestCallbacks::iterator it = pimpl_->restCallbacks_.begin(); 
+         it != pimpl_->restCallbacks_.end(); ++it)
     {
       // Delete the regular expression associated with this callback
       delete it->first;
@@ -142,8 +166,8 @@ namespace Orthanc
 
     // Loop over the callbacks registered by the plugins
     bool found = false;
-    for (PImpl::Callbacks::const_iterator it = pimpl_->callbacks_.begin(); 
-         it != pimpl_->callbacks_.end() && !found; ++it)
+    for (PImpl::RestCallbacks::const_iterator it = pimpl_->restCallbacks_.begin(); 
+         it != pimpl_->restCallbacks_.end() && !found; ++it)
     {
       // Check whether the regular expression associated to this
       // callback matches the URI
@@ -247,6 +271,20 @@ namespace Orthanc
   }
 
 
+  void PluginsHttpHandler::SignalStoredInstance(DicomInstanceToStore& instance,
+                                                const std::string& instanceId)                                                  
+  {
+    for (PImpl::OnStoredCallbacks::const_iterator
+           callback = pimpl_->onStoredCallbacks_.begin(); 
+         callback != pimpl_->onStoredCallbacks_.end(); ++callback)
+    {
+      (*callback) (reinterpret_cast<OrthancPluginDicomInstance*>(&instance),
+                   instanceId.c_str());
+    }
+  }
+
+
+
   static void CopyToMemoryBuffer(OrthancPluginMemoryBuffer& target,
                                  const void* data,
                                  size_t size)
@@ -293,7 +331,18 @@ namespace Orthanc
       *reinterpret_cast<const _OrthancPluginRestCallback*>(parameters);
 
     LOG(INFO) << "Plugin has registered a REST callback on: " << p.pathRegularExpression;
-    pimpl_->callbacks_.push_back(std::make_pair(new boost::regex(p.pathRegularExpression), p.callback));
+    pimpl_->restCallbacks_.push_back(std::make_pair(new boost::regex(p.pathRegularExpression), p.callback));
+  }
+
+
+
+  void PluginsHttpHandler::RegisterOnStoredInstanceCallback(const void* parameters)
+  {
+    const _OrthancPluginOnStoredInstanceCallback& p = 
+      *reinterpret_cast<const _OrthancPluginOnStoredInstanceCallback*>(parameters);
+
+    LOG(INFO) << "Plugin has registered an OnStoredInstance callback";
+    pimpl_->onStoredCallbacks_.push_back(p.callback);
   }
 
 
@@ -546,24 +595,53 @@ namespace Orthanc
   }
 
 
-  char* PluginsHttpHandler::CopyString(const std::string& str) const
+  static void AccessDicomInstance(_OrthancPluginService service,
+                                  const void* parameters)
   {
-    char *result = reinterpret_cast<char*>(malloc(str.size() + 1));
-    if (result == NULL)
-    {
-      throw OrthancException(ErrorCode_NotEnoughMemory);
-    }
+    const _OrthancPluginAccessDicomInstance& p = 
+      *reinterpret_cast<const _OrthancPluginAccessDicomInstance*>(parameters);
 
-    if (str.size() == 0)
-    {
-      result[0] = '\0';
-    }
-    else
-    {
-      memcpy(result, &str[0], str.size() + 1);
-    }
+    DicomInstanceToStore& instance =
+      *reinterpret_cast<DicomInstanceToStore*>(p.instance);
 
-    return result;
+    switch (service)
+    {
+      case _OrthancPluginService_GetInstanceRemoteAet:
+        *p.resultString = instance.GetRemoteAet().c_str();
+        return;
+
+      case _OrthancPluginService_GetInstanceSize:
+        *p.resultInt64 = instance.GetBufferSize();
+        return;
+
+      case _OrthancPluginService_GetInstanceData:
+        *p.resultString = instance.GetBufferData();
+        return;
+
+      case _OrthancPluginService_GetInstanceJson:
+      case _OrthancPluginService_GetInstanceSimplifiedJson:
+      {
+        Json::StyledWriter writer;
+        std::string s;
+
+        if (service == _OrthancPluginService_GetInstanceJson)
+        {
+          s = writer.write(instance.GetJson());
+        }
+        else
+        {
+          Json::Value simplified;
+          SimplifyTags(simplified, instance.GetJson());
+          s = writer.write(simplified);
+        }
+
+        *p.resultStringToFree = CopyString(s);
+        return;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
   }
 
 
@@ -574,6 +652,10 @@ namespace Orthanc
     {
       case _OrthancPluginService_RegisterRestCallback:
         RegisterRestCallback(parameters);
+        return true;
+
+      case _OrthancPluginService_RegisterOnStoredInstanceCallback:
+        RegisterOnStoredInstanceCallback(parameters);
         return true;
 
       case _OrthancPluginService_AnswerBuffer:
@@ -638,6 +720,14 @@ namespace Orthanc
 
       case _OrthancPluginService_LookupInstance:
         LookupResource(ResourceType_Instance, parameters);
+        return true;
+
+      case _OrthancPluginService_GetInstanceRemoteAet:
+      case _OrthancPluginService_GetInstanceSize:
+      case _OrthancPluginService_GetInstanceData:
+      case _OrthancPluginService_GetInstanceJson:
+      case _OrthancPluginService_GetInstanceSimplifiedJson:
+        AccessDicomInstance(service, parameters);
         return true;
 
       default:

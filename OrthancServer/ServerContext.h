@@ -45,6 +45,8 @@
 
 namespace Orthanc
 {
+  class PluginsHttpHandler;
+
   /**
    * This class is responsible for maintaining the storage area on the
    * filesystem (including compression), as well as the index of the
@@ -69,9 +71,9 @@ namespace Orthanc
     bool ApplyReceivedInstanceFilter(const Json::Value& simplified,
                                      const std::string& remoteAet);
 
-    void ApplyOnStoredInstance(const std::string& instanceId,
-                               const Json::Value& simplifiedDicom,
-                               const Json::Value& metadata);
+    void ApplyLuaOnStoredInstance(const std::string& instanceId,
+                                  const Json::Value& simplifiedDicom,
+                                  const Json::Value& metadata);
 
     FileStorage storage_;
     ServerIndex index_;
@@ -86,6 +88,7 @@ namespace Orthanc
 
     boost::mutex luaMutex_;
     LuaContext lua_;
+    PluginsHttpHandler* plugins_;  // TODO Turn it into a listener pattern (idem for Lua callbacks)
 
   public:
     class DicomCacheLocker : public boost::noncopyable
@@ -182,6 +185,11 @@ namespace Orthanc
     ServerScheduler& GetScheduler()
     {
       return scheduler_;
+    }
+
+    void SetPluginsHttpHandler(PluginsHttpHandler& plugin)
+    {
+      plugins_ = &plugin;
     }
   };
 }

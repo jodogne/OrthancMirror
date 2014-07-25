@@ -50,7 +50,7 @@
 #include "Scheduler/StoreScuCommand.h"
 #include "Scheduler/StorePeerCommand.h"
 #include "OrthancRestApi/OrthancRestApi.h"
-
+#include "../Plugins/Engine/PluginsHttpHandler.h"
 
 
 #define ENABLE_DICOM_CACHE  1
@@ -79,7 +79,8 @@ namespace Orthanc
     compressionEnabled_(false),
     provider_(*this),
     dicomCache_(provider_, DICOM_CACHE_SIZE),
-    scheduler_(Configuration::GetGlobalIntegerParameter("LimitJobs", 10))
+    scheduler_(Configuration::GetGlobalIntegerParameter("LimitJobs", 10)),
+    plugins_(NULL)
   {
     scu_.SetLocalApplicationEntityTitle(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"));
     //scu_.SetMillisecondsBeforeClose(1);  // The connection is always released
@@ -206,9 +207,9 @@ namespace Orthanc
   }
 
 
-  void ServerContext::ApplyOnStoredInstance(const std::string& instanceId,
-                                            const Json::Value& simplifiedDicom,
-                                            const Json::Value& metadata)
+  void ServerContext::ApplyLuaOnStoredInstance(const std::string& instanceId,
+                                               const Json::Value& simplifiedDicom,
+                                               const Json::Value& metadata)
   {
     LuaContextLocker locker(*this);
 
@@ -347,11 +348,23 @@ namespace Orthanc
 
         try
         {
-          ApplyOnStoredInstance(resultPublicId, simplified, metadata);
+          ApplyLuaOnStoredInstance(resultPublicId, simplified, metadata);
         }
         catch (OrthancException& e)
         {
           LOG(ERROR) << "Error in OnStoredInstance callback (Lua): " << e.What();
+        }
+
+        if (plugins_ != NULL)
+        {
+          try
+          {
+            plugins_->SignalStoredInstance(dicom, resultPublicId);
+          }
+          catch (OrthancException& e)
+          {
+            LOG(ERROR) << "Error in OnStoredInstance callback (Lua): " << e.What();
+          }
         }
       }
 
