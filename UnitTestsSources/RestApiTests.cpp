@@ -265,8 +265,8 @@ TEST(RestApi, RestApiHierarchy)
   ASSERT_EQ(1u, d.size());
   ASSERT_EQ("test4", d[0].asString());
 
-  ASSERT_FALSE(GetDirectory(d, root, "/hello/world/test"));
-  ASSERT_FALSE(GetDirectory(d, root, "/hello/world/test2"));
+  ASSERT_TRUE(GetDirectory(d, root, "/hello/world/test"));
+  ASSERT_TRUE(GetDirectory(d, root, "/hello/world/test2"));
   ASSERT_FALSE(GetDirectory(d, root, "/hello2"));
 
   testValue = 0;
