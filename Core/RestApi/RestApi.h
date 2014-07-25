@@ -44,6 +44,8 @@ namespace Orthanc
     RestApiHierarchy root_;
 
   public:
+    static void AutoListChildren(RestApiGetCall& call);
+
     virtual bool Handle(HttpOutput& output,
                         HttpMethod method,
                         const UriComponents& uri,

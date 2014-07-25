@@ -391,9 +391,7 @@ namespace Orthanc
     std::string id = call.GetUriComponent("id", "");
     if (IsExistingPeer(peers, id))
     {
-      Json::Value result = Json::arrayValue;
-      result.append("store");
-      call.GetOutput().AnswerJson(result);
+      RestApi::AutoListChildren(call);
     }
   }
 
@@ -458,15 +456,7 @@ namespace Orthanc
     std::string id = call.GetUriComponent("id", "");
     if (IsExistingModality(modalities, id))
     {
-      Json::Value result = Json::arrayValue;
-      result.append("echo");
-      result.append("find-patient");
-      result.append("find-study");
-      result.append("find-series");
-      result.append("find-instance");
-      result.append("find");
-      result.append("store");
-      call.GetOutput().AnswerJson(result);
+      RestApi::AutoListChildren(call);
     }
   }
 

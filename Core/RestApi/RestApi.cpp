@@ -195,13 +195,6 @@ namespace Orthanc
       return true;
     }
 
-    Json::Value directory;
-    if (root_.GetDirectory(directory, uri))
-    {
-      wrappedOutput.AnswerJson(directory);
-      return true;
-    }
-
     std::set<HttpMethod> methods;
     root_.GetAcceptedMethods(methods, uri);
 
@@ -242,5 +235,16 @@ namespace Orthanc
                          RestApiDeleteCall::Handler handler)
   {
     root_.Register(path, handler);
+  }
+  
+  void RestApi::AutoListChildren(RestApiGetCall& call)
+  {
+    RestApi& context = call.GetContext();
+
+    Json::Value directory;
+    if (context.root_.GetDirectory(directory, call.GetFullUri()))
+    {
+      call.GetOutput().AnswerJson(directory);
+    }    
   }
 }
