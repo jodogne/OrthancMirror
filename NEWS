@@ -9,6 +9,7 @@ General
 * On-the-fly conversion of JSON to XML according to the HTTP Accept header
 * C-Echo SCU in the REST API
 * Lua scripts can do HTTP requests, and thus can call Web services
+* Fix build of Google Log with Visual Studio >= 11.0
 
 Plugins
 -------
