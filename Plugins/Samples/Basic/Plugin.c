@@ -165,6 +165,33 @@ ORTHANC_PLUGINS_API int32_t Callback4(OrthancPluginRestOutput* output,
 }
 
 
+ORTHANC_PLUGINS_API int32_t OnStoredCallback(OrthancPluginDicomInstance* instance,
+                                             const char* instanceId)
+{
+  char buffer[256];
+  FILE* fp;
+  char* json;
+
+  sprintf(buffer, "Just received a DICOM instance of size %d and ID %s from AET %s", 
+          (int) OrthancPluginGetInstanceSize(context, instance), instanceId, 
+          OrthancPluginGetInstanceRemoteAet(context, instance));
+
+  OrthancPluginLogWarning(context, buffer);  
+
+  fp = fopen("PluginReceivedInstance.dcm", "wb");
+  fwrite(OrthancPluginGetInstanceData(context, instance),
+         OrthancPluginGetInstanceSize(context, instance), 1, fp);
+  fclose(fp);
+
+  json = OrthancPluginGetInstanceSimplifiedJson(context, instance);
+  printf("[%s]\n", json);
+  OrthancPluginFreeString(context, json);
+
+  return 0;
+}
+
+
+
 ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
 {
   const char* pathLocator = "\"Path\" : \"";
@@ -193,8 +220,9 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   OrthancPluginRegisterRestCallback(context, "/(plu.*)/hello", Callback1);
   OrthancPluginRegisterRestCallback(context, "/plu.*/image", Callback2);
   OrthancPluginRegisterRestCallback(context, "/plugin/instances/([^/]+)/info", Callback3);
-
   OrthancPluginRegisterRestCallback(context, "/instances/([^/]+)/preview", Callback4);
+
+  OrthancPluginRegisterOnStoredInstanceCallback(context, OnStoredCallback);
 
   /* Make REST requests to the built-in Orthanc API */
   OrthancPluginRestApiGet(context, &tmp, "/changes");

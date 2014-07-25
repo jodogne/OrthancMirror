@@ -50,9 +50,9 @@ namespace Orthanc
 
     boost::shared_ptr<PImpl> pimpl_;
 
-    char* CopyString(const std::string& str) const;
-
     void RegisterRestCallback(const void* parameters);
+
+    void RegisterOnStoredInstanceCallback(const void* parameters);
 
     void AnswerBuffer(const void* parameters);
 
@@ -93,6 +93,9 @@ namespace Orthanc
 
     virtual bool InvokeService(_OrthancPluginService service,
                                const void* parameters);
+
+    void SignalStoredInstance(DicomInstanceToStore& instance,
+                              const std::string& instanceId);
 
     void SetOrthancRestApi(OrthancRestApi& restApi);
   };

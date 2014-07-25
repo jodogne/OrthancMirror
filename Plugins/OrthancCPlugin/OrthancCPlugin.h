@@ -238,6 +238,7 @@ extern "C"
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
+    _OrthancPluginService_RegisterOnStoredInstanceCallback = 1001,
 
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
@@ -257,7 +258,16 @@ extern "C"
     _OrthancPluginService_LookupPatient = 3005,
     _OrthancPluginService_LookupStudy = 3006,
     _OrthancPluginService_LookupSeries = 3007,
-    _OrthancPluginService_LookupInstance = 3008
+    _OrthancPluginService_LookupInstance = 3008,
+
+    /* Access to DICOM instances */
+    _OrthancPluginService_GetInstanceRemoteAet = 4000,
+    _OrthancPluginService_GetInstanceSize = 4001,
+    _OrthancPluginService_GetInstanceData = 4002,
+    _OrthancPluginService_GetInstanceJson = 4003,
+    _OrthancPluginService_GetInstanceSimplifiedJson = 4004
+    
+    /* + METADATA !!! */
   } _OrthancPluginService;
 
 
@@ -338,6 +348,14 @@ extern "C"
   typedef struct _OrthancPluginRestOutput_t OrthancPluginRestOutput;
 
 
+
+  /**
+   * @brief Opaque structure that represents a DICOM instance received by Orthanc.
+   **/
+  typedef struct _OrthancPluginDicomInstance_t OrthancPluginDicomInstance;
+
+
+
   /**
    * @brief Signature of a callback function that answers to a REST request.
    **/
@@ -345,6 +363,16 @@ extern "C"
     OrthancPluginRestOutput* output,
     const char* url,
     const OrthancPluginHttpRequest* request);
+
+
+
+  /**
+   * @brief Signature of a callback function that is triggered when Orthanc receives a DICOM instance.
+   **/
+  typedef int32_t (*OrthancPluginOnStoredInstanceCallback) (
+    OrthancPluginDicomInstance* instance,
+    const char* instanceId);
+
 
 
   /**
@@ -545,6 +573,32 @@ extern "C"
     params.pathRegularExpression = pathRegularExpression;
     params.callback = callback;
     context->InvokeService(context, _OrthancPluginService_RegisterRestCallback, &params);
+  }
+
+
+
+  typedef struct
+  {
+    OrthancPluginOnStoredInstanceCallback callback;
+  } _OrthancPluginOnStoredInstanceCallback;
+
+  /**
+   * @brief Register a callback for received instances.
+   *
+   * This function registers a callback function that is called
+   * whenever a new DICOM instance is stored into the Orthanc core.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param callback The callback function.
+   **/
+  ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterOnStoredInstanceCallback(
+    OrthancPluginContext*                  context,
+    OrthancPluginOnStoredInstanceCallback  callback)
+  {
+    _OrthancPluginOnStoredInstanceCallback params;
+    params.callback = callback;
+
+    context->InvokeService(context, _OrthancPluginService_RegisterOnStoredInstanceCallback, &params);
   }
 
 
@@ -1043,6 +1097,134 @@ extern "C"
     params.value = value;
     context->InvokeService(context, _OrthancPluginService_SetCookie, &params);
   }
+
+
+  typedef struct
+  {
+    char**                      resultStringToFree;
+    const char**                resultString;
+    int64_t*                    resultInt64;
+    const char*                 key;
+    OrthancPluginDicomInstance* instance;
+  } _OrthancPluginAccessDicomInstance;
+
+
+  ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetInstanceRemoteAet(
+    OrthancPluginContext*        context,
+    OrthancPluginDicomInstance*  instance)
+  {
+    const char* result;
+
+    _OrthancPluginAccessDicomInstance params;
+    memset(&params, 0, sizeof(params));
+    params.resultString = &result;
+    params.instance = instance;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetInstanceRemoteAet, &params))
+    {
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  ORTHANC_PLUGIN_INLINE int64_t OrthancPluginGetInstanceSize(
+    OrthancPluginContext*       context,
+    OrthancPluginDicomInstance* instance)
+  {
+    int64_t size;
+
+    _OrthancPluginAccessDicomInstance params;
+    memset(&params, 0, sizeof(params));
+    params.resultInt64 = &size;
+    params.instance = instance;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetInstanceSize, &params))
+    {
+      return -1;
+    }
+    else
+    {
+      return size;
+    }
+  }
+
+
+  ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetInstanceData(
+    OrthancPluginContext*        context,
+    OrthancPluginDicomInstance*  instance)
+  {
+    const char* result;
+
+    _OrthancPluginAccessDicomInstance params;
+    memset(&params, 0, sizeof(params));
+    params.resultString = &result;
+    params.instance = instance;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetInstanceData, &params))
+    {
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginGetInstanceJson(
+    OrthancPluginContext*        context,
+    OrthancPluginDicomInstance*  instance)
+  {
+    char* result;
+
+    _OrthancPluginAccessDicomInstance params;
+    memset(&params, 0, sizeof(params));
+    params.resultStringToFree = &result;
+    params.instance = instance;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetInstanceJson, &params))
+    {
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginGetInstanceSimplifiedJson(
+    OrthancPluginContext*        context,
+    OrthancPluginDicomInstance*  instance)
+  {
+    char* result;
+
+    _OrthancPluginAccessDicomInstance params;
+    memset(&params, 0, sizeof(params));
+    params.resultStringToFree = &result;
+    params.instance = instance;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetInstanceSimplifiedJson, &params))
+    {
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+
+
+  /*
+    TODO :  METADATA !!!
+    TODO : DOCUMENTATION !!!
+  */
 
 
 #ifdef  __cplusplus
