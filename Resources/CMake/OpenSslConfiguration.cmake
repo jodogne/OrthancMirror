@@ -188,7 +188,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
 
   elseif ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
     execute_process(
-      COMMAND patch ui_openssl.c ${CMAKE_SOURCE_DIR}/Resources/Patches/openssl-lsb.diff
+      COMMAND patch ui_openssl.c ${ORTHANC_ROOT}/Resources/Patches/openssl-lsb.diff
       WORKING_DIRECTORY ${OPENSSL_SOURCES_DIR}/crypto/ui
       )
 

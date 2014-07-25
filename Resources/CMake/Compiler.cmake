@@ -32,7 +32,7 @@ elseif (${MSVC})
     -D_CRT_SECURE_NO_WARNINGS=1
     -D_CRT_SECURE_NO_DEPRECATE=1
     )
-  include_directories(${CMAKE_SOURCE_DIR}/Resources/ThirdParty/VisualStudio)
+  include_directories(${ORTHANC_ROOT}/Resources/ThirdParty/VisualStudio)
   link_libraries(netapi32)
 endif()
 
