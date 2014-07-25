@@ -23,6 +23,11 @@ elseif (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_TEST)
     ${GTEST_SOURCES_DIR}/src/gtest-all.cc
     )
 
+  # https://code.google.com/p/googletest/issues/detail?id=412
+  if (MSVC) # VS2012 does not support tuples correctly yet
+    add_definitions(/D _VARIADIC_MAX=10)
+  endif()
+
 else()
   include(FindGTest)
   if (NOT GTEST_FOUND)
