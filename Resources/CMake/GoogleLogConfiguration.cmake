@@ -83,7 +83,16 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
       COMMAND patch port.cc ${ORTHANC_ROOT}/Resources/Patches/glog-port-cc.diff 
       WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src/windows
       )
+
+  else(${MSVC})
+    # https://code.google.com/p/google-glog/issues/detail?id=117
+    configure_file(
+      ${ORTHANC_ROOT}/Resources/Patches/glog-visual-studio-port.h
+      ${GOOGLE_LOG_SOURCES_DIR}/src/windows/port.h
+      COPYONLY)
+
   endif()
+
 
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
