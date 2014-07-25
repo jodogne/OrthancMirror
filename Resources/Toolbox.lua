@@ -93,5 +93,20 @@ function ModifyInstance(instanceId, replacements, removals, removePrivateTags)
 end
 
 
+function CallSystem(instanceId, command, args)
+   if instanceId == nil then
+      error('Cannot modify a nonexistent instance')
+   end
+
+   table.insert(_job, { 
+                   Operation = 'call-system', 
+                   Instance = instanceId,
+                   Command = command,
+                   Arguments = args
+                })
+
+   return instanceId
+end
+
 
 print('Lua toolbox installed')

@@ -32,55 +32,24 @@
 
 #pragma once
 
-#include <string>
-
-/**
- * GUID vs. UUID
- * The simple answer is: no difference, they are the same thing. Treat
- * them as a 16 byte (128 bits) value that is used as a unique
- * value. In Microsoft-speak they are called GUIDs, but call them
- * UUIDs when not using Microsoft-speak.
- * http://stackoverflow.com/questions/246930/is-there-any-difference-between-a-guid-and-a-uuid
- **/
-
-#include "Toolbox.h"
+#include "IServerCommand.h"
+#include "../ServerContext.h"
 
 namespace Orthanc
 {
-  namespace Toolbox
+  class CallSystemCommand : public IServerCommand
   {
-    std::string GenerateUuid();
+  private:
+    ServerContext& context_;
+    std::string command_;
+    std::vector<std::string> arguments_;
 
-    bool IsUuid(const std::string& str);
+  public:
+    CallSystemCommand(ServerContext& context,
+                      const std::string& command,
+                      const std::vector<std::string>& arguments);
 
-    bool StartsWithUuid(const std::string& str);
-
-    class TemporaryFile
-    {
-    private:
-      std::string path_;
-
-    public:
-      TemporaryFile();
-
-      TemporaryFile(const char* extension);
-
-      ~TemporaryFile();
-
-      const std::string& GetPath() const
-      {
-        return path_;
-      }
-
-      void Write(const std::string& content)
-      {
-        Toolbox::WriteFile(content, path_);
-      }
-
-      void Read(std::string& content) const
-      {
-        Toolbox::ReadFile(content, path_);
-      }
-    };
-  }
+    virtual bool Apply(ListOfStrings& outputs,
+                       const ListOfStrings& inputs);
+  };
 }
