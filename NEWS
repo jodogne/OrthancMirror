@@ -9,13 +9,18 @@ General
 * On-the-fly conversion of JSON to XML according to the HTTP Accept header
 * C-Echo SCU in the REST API
 * Lua scripts can do HTTP requests, and thus can call Web services
-* Fix build of Google Log with Visual Studio >= 11.0
 
 Plugins
 -------
 
 * Lookup for DICOM UIDs in the plugin SDK
 * Plugins have access to the HTTP headers and can answer with HTTP status codes
+
+Fixes
+-----
+
+* Fix build of Google Log with Visual Studio >= 11.0
+* Fix automated generation of the list of resource children in the REST API
 
 
 Version 0.8.0 (2014/07/10)

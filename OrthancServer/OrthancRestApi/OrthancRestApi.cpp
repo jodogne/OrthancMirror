@@ -96,5 +96,9 @@ namespace Orthanc
     RegisterArchive();
 
     Register("/instances", UploadDicomFile);
+
+    // Auto-generated directories
+    Register("/tools", RestApi::AutoListChildren);
+    Register("/instances/{id}/frames/{frame}", RestApi::AutoListChildren);
   }
 }

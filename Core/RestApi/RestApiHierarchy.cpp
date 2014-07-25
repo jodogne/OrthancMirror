@@ -35,6 +35,7 @@
 #include "../OrthancException.h"
 
 #include <cassert>
+#include <stdio.h>
 
 namespace Orthanc
 {
@@ -274,8 +275,7 @@ namespace Orthanc
 
   bool RestApiHierarchy::CanGenerateDirectory() const
   {
-    return (!handlers_.HasHandler(HttpMethod_Get) && 
-            universalHandlers_.IsEmpty() &&
+    return (universalHandlers_.IsEmpty() &&
             wildcardChildren_.size() == 0);
   }
 
