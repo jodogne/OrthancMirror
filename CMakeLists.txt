@@ -173,6 +173,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/Scheduler/ServerScheduler.cpp
   OrthancServer/Scheduler/StorePeerCommand.cpp
   OrthancServer/Scheduler/StoreScuCommand.cpp
+  OrthancServer/Scheduler/CallSystemCommand.cpp
   )
 
 

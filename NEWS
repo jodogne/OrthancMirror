@@ -8,7 +8,12 @@ General
 * Access patient module at the study level to cope with PatientID collisions
 * On-the-fly conversion of JSON to XML according to the HTTP Accept header
 * C-Echo SCU in the REST API
+
+Lua scripts
+-----------
+
 * Lua scripts can do HTTP requests, and thus can call Web services
+* Lua scripts can invoke system commands, with CallSystem()
 
 Plugins
 -------

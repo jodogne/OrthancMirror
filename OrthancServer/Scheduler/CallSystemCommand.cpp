@@ -30,57 +30,43 @@
  **/
 
 
-#pragma once
+#include "CallSystemCommand.h"
 
-#include <string>
-
-/**
- * GUID vs. UUID
- * The simple answer is: no difference, they are the same thing. Treat
- * them as a 16 byte (128 bits) value that is used as a unique
- * value. In Microsoft-speak they are called GUIDs, but call them
- * UUIDs when not using Microsoft-speak.
- * http://stackoverflow.com/questions/246930/is-there-any-difference-between-a-guid-and-a-uuid
- **/
-
-#include "Toolbox.h"
+#include <glog/logging.h>
+#include "../../Core/Toolbox.h"
+#include "../../Core/Uuid.h"
 
 namespace Orthanc
 {
-  namespace Toolbox
+  CallSystemCommand::CallSystemCommand(ServerContext& context,
+                                       const std::string& command,
+                                       const std::vector<std::string>& arguments) : 
+    context_(context),
+    command_(command),
+    arguments_(arguments)
   {
-    std::string GenerateUuid();
+  }
 
-    bool IsUuid(const std::string& str);
-
-    bool StartsWithUuid(const std::string& str);
-
-    class TemporaryFile
+  bool CallSystemCommand::Apply(ListOfStrings& outputs,
+                                const ListOfStrings& inputs)
+  {
+    for (ListOfStrings::const_iterator
+           it = inputs.begin(); it != inputs.end(); ++it)
     {
-    private:
-      std::string path_;
+      LOG(INFO) << "Calling system command " << command_ << " on instance " << *it;
 
-    public:
-      TemporaryFile();
+      std::string dicom;
+      context_.ReadFile(dicom, *it, FileContentType_Dicom);
 
-      TemporaryFile(const char* extension);
+      Toolbox::TemporaryFile tmp;
+      tmp.Write(dicom);
 
-      ~TemporaryFile();
+      std::vector<std::string> args = arguments_;
+      args.push_back(tmp.GetPath());
 
-      const std::string& GetPath() const
-      {
-        return path_;
-      }
+      Toolbox::ExecuteSystemCommand(command_, args);
+    }
 
-      void Write(const std::string& content)
-      {
-        Toolbox::WriteFile(content, path_);
-      }
-
-      void Read(std::string& content) const
-      {
-        Toolbox::ReadFile(content, path_);
-      }
-    };
+    return true;
   }
 }

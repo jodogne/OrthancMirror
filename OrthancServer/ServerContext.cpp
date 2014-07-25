@@ -44,6 +44,7 @@
 #include <dcmtk/dcmdata/dcfilefo.h>
 
 
+#include "Scheduler/CallSystemCommand.h"
 #include "Scheduler/DeleteInstanceCommand.h"
 #include "Scheduler/ModifyInstanceCommand.h"
 #include "Scheduler/StoreScuCommand.h"
@@ -158,6 +159,47 @@ namespace Orthanc
       std::auto_ptr<ModifyInstanceCommand> command(new ModifyInstanceCommand(context));
       OrthancRestApi::ParseModifyRequest(command->GetModification(), parameters);
       return command.release();
+    }
+
+    if (operation == "call-system")
+    {
+      LOG(INFO) << "Lua script to call system command on " << parameters["Instance"].asString();
+
+      const Json::Value& argsIn = parameters["Arguments"];
+      if (argsIn.type() != Json::arrayValue)
+      {
+        throw OrthancException(ErrorCode_BadParameterType);
+      }
+
+      std::vector<std::string> args;
+      args.reserve(argsIn.size());
+      for (Json::Value::ArrayIndex i = 0; i < argsIn.size(); ++i)
+      {
+        // http://jsoncpp.sourceforge.net/namespace_json.html#7d654b75c16a57007925868e38212b4e
+        switch (argsIn[i].type())
+        {
+          case Json::stringValue:
+            args.push_back(argsIn[i].asString());
+            break;
+
+          case Json::intValue:
+            args.push_back(boost::lexical_cast<std::string>(argsIn[i].asInt()));
+            break;
+
+          case Json::uintValue:
+            args.push_back(boost::lexical_cast<std::string>(argsIn[i].asUInt()));
+            break;
+
+          case Json::realValue:
+            args.push_back(boost::lexical_cast<std::string>(argsIn[i].asFloat()));
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_BadParameterType);
+        }
+      }
+
+      return new CallSystemCommand(context, parameters["Command"].asString(), args);
     }
 
     throw OrthancException(ErrorCode_ParameterOutOfRange);
