@@ -18,7 +18,7 @@ if (USE_PLUSTACHE)
       )
 
     execute_process(
-      COMMAND patch -p0 -i ${CMAKE_SOURCE_DIR}/Resources/CMake/PlustacheConfiguration.patch
+      COMMAND patch -p0 -i ${ORTHANC_ROOT}/Resources/CMake/PlustacheConfiguration.patch
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       )
 
