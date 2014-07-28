@@ -628,5 +628,25 @@ namespace Orthanc
  * Reference: DICOM PS 3.4
  *   - C.2.2.2.1 ("Single Value Matching") 
  *   - C.2.2.2.4 ("Wild Card Matching")
- * http://medical.nema.org/Dicom/2011/11_04pu.pdf (
+ * http://medical.nema.org/Dicom/2011/11_04pu.pdf
+ *
+ * "Except for Attributes with a PN Value Representation, only
+ * entities with values which match exactly the value specified in the
+ * request shall match. This matching is case-sensitive, i.e.,
+ * sensitive to the exact encoding of the key attribute value in
+ * character sets where a letter may have multiple encodings (e.g.,
+ * based on its case, its position in a word, or whether it is
+ * accented)
+ * 
+ * For Attributes with a PN Value Representation (e.g., Patient Name
+ * (0010,0010)), an application may perform literal matching that is
+ * either case-sensitive, or that is insensitive to some or all
+ * aspects of case, position, accent, or other character encoding
+ * variants."
+ *
+ * (0008,0018) UI SOPInstanceUID     => Case-sensitive
+ * (0008,0050) SH AccessionNumber    => Case-sensitive
+ * (0010,0020) LO PatientID          => Case-sensitive
+ * (0020,000D) UI StudyInstanceUID   => Case-sensitive
+ * (0020,000E) UI SeriesInstanceUID  => Case-sensitive
  **/
