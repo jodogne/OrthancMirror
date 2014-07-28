@@ -552,29 +552,46 @@ namespace Orthanc
   }
 
 
-  void PluginsHttpHandler::LookupResource(ResourceType level,
+  void PluginsHttpHandler::LookupResource(_OrthancPluginService service,
                                           const void* parameters)
   {
     const _OrthancPluginLookupResource& p = 
       *reinterpret_cast<const _OrthancPluginLookupResource*>(parameters);
 
+    /**
+     * The enumeration below only uses the tags that are indexed in
+     * the Orthanc database. It reflects the
+     * "CandidateResources::ApplyFilter()" method of the
+     * "OrthancFindRequestHandler" class.
+     **/
+
     DicomTag tag(0, 0);
-    switch (level)
+    ResourceType level;
+    switch (service)
     {
-      case ResourceType_Patient:
+      case _OrthancPluginService_LookupPatient:
         tag = DICOM_TAG_PATIENT_ID;
+        level = ResourceType_Patient;
         break;
 
-      case ResourceType_Study:
+      case _OrthancPluginService_LookupStudy:
         tag = DICOM_TAG_STUDY_INSTANCE_UID;
+        level = ResourceType_Study;
         break;
 
-      case ResourceType_Series:
+      case _OrthancPluginService_LookupStudyWithAccessionNumber:
+        tag = DICOM_TAG_ACCESSION_NUMBER;
+        level = ResourceType_Study;
+        break;
+
+      case _OrthancPluginService_LookupSeries:
         tag = DICOM_TAG_SERIES_INSTANCE_UID;
+        level = ResourceType_Series;
         break;
 
-      case ResourceType_Instance:
+      case _OrthancPluginService_LookupInstance:
         tag = DICOM_TAG_SOP_INSTANCE_UID;
+        level = ResourceType_Instance;
         break;
 
       default:
@@ -769,19 +786,11 @@ namespace Orthanc
         return true;
 
       case _OrthancPluginService_LookupPatient:
-        LookupResource(ResourceType_Patient, parameters);
-        return true;
-
       case _OrthancPluginService_LookupStudy:
-        LookupResource(ResourceType_Study, parameters);
-        return true;
-
+      case _OrthancPluginService_LookupStudyWithAccessionNumber:
       case _OrthancPluginService_LookupSeries:
-        LookupResource(ResourceType_Series, parameters);
-        return true;
-
       case _OrthancPluginService_LookupInstance:
-        LookupResource(ResourceType_Instance, parameters);
+        LookupResource(service, parameters);
         return true;
 
       case _OrthancPluginService_GetInstanceRemoteAet:

@@ -260,6 +260,7 @@ extern "C"
     _OrthancPluginService_LookupStudy = 3006,
     _OrthancPluginService_LookupSeries = 3007,
     _OrthancPluginService_LookupInstance = 3008,
+    _OrthancPluginService_LookupStudyWithAccessionNumber = 3009,
 
     /* Access to DICOM instances */
     _OrthancPluginService_GetInstanceRemoteAet = 4000,
@@ -872,6 +873,8 @@ extern "C"
    * @brief Look for a patient.
    *
    * Look for a patient stored in Orthanc, using its Patient ID tag (0x0010, 0x0020).
+   * This function uses the database index to run as fast as possible (it does not loop
+   * over all the stored patients).
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param patientID The Patient ID of interest.
@@ -904,6 +907,8 @@ extern "C"
    * @brief Look for a study.
    *
    * Look for a study stored in Orthanc, using its Study Instance UID tag (0x0020, 0x000d).
+   * This function uses the database index to run as fast as possible (it does not loop
+   * over all the stored studies).
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param studyUID The Study Instance UID of interest.
@@ -933,9 +938,45 @@ extern "C"
 
 
   /**
+   * @brief Look for a study, using the accession number.
+   *
+   * Look for a study stored in Orthanc, using its Accession Number tag (0x0008, 0x0050).
+   * This function uses the database index to run as fast as possible (it does not loop
+   * over all the stored studies).
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param accessionNumber The Accession Number of interest.
+   * @return The NULL value if the study is non-existent, or a string containing the 
+   * Orthanc ID of the study. This string must be freed by OrthancPluginFreeString().
+   **/
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginLookupStudyWithAccessionNumber(
+    OrthancPluginContext*  context,
+    const char*            accessionNumber)
+  {
+    char* result;
+
+    _OrthancPluginLookupResource params;
+    params.result = &result;
+    params.identifier = accessionNumber;
+
+    if (context->InvokeService(context, _OrthancPluginService_LookupStudyWithAccessionNumber, &params))
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  /**
    * @brief Look for a series.
    *
    * Look for a series stored in Orthanc, using its Series Instance UID tag (0x0020, 0x000e).
+   * This function uses the database index to run as fast as possible (it does not loop
+   * over all the stored series).
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param seriesUID The Series Instance UID of interest.
@@ -968,6 +1009,8 @@ extern "C"
    * @brief Look for an instance.
    *
    * Look for an instance stored in Orthanc, using its SOP Instance UID tag (0x0008, 0x0018).
+   * This function uses the database index to run as fast as possible (it does not loop
+   * over all the stored instances).
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param sopInstanceUID The SOP Instance UID of interest.
