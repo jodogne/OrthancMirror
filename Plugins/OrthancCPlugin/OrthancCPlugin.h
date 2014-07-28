@@ -265,9 +265,9 @@ extern "C"
     _OrthancPluginService_GetInstanceSize = 4001,
     _OrthancPluginService_GetInstanceData = 4002,
     _OrthancPluginService_GetInstanceJson = 4003,
-    _OrthancPluginService_GetInstanceSimplifiedJson = 4004
-    
-    /* + METADATA !!! */
+    _OrthancPluginService_GetInstanceSimplifiedJson = 4004,
+    _OrthancPluginService_HasInstanceMetadata = 4005,
+    _OrthancPluginService_GetInstanceMetadata = 4006
   } _OrthancPluginService;
 
 
@@ -889,6 +889,7 @@ extern "C"
 
     if (context->InvokeService(context, _OrthancPluginService_LookupPatient, &params))
     {
+      /* Error */
       return NULL;
     }
     else
@@ -920,6 +921,7 @@ extern "C"
 
     if (context->InvokeService(context, _OrthancPluginService_LookupStudy, &params))
     {
+      /* Error */
       return NULL;
     }
     else
@@ -951,6 +953,7 @@ extern "C"
 
     if (context->InvokeService(context, _OrthancPluginService_LookupSeries, &params))
     {
+      /* Error */
       return NULL;
     }
     else
@@ -982,6 +985,7 @@ extern "C"
 
     if (context->InvokeService(context, _OrthancPluginService_LookupInstance, &params))
     {
+      /* Error */
       return NULL;
     }
     else
@@ -1122,6 +1126,7 @@ extern "C"
 
     if (context->InvokeService(context, _OrthancPluginService_GetInstanceRemoteAet, &params))
     {
+      /* Error */
       return NULL;
     }
     else
@@ -1144,6 +1149,7 @@ extern "C"
 
     if (context->InvokeService(context, _OrthancPluginService_GetInstanceSize, &params))
     {
+      /* Error */
       return -1;
     }
     else
@@ -1166,6 +1172,7 @@ extern "C"
 
     if (context->InvokeService(context, _OrthancPluginService_GetInstanceData, &params))
     {
+      /* Error */
       return NULL;
     }
     else
@@ -1188,6 +1195,7 @@ extern "C"
 
     if (context->InvokeService(context, _OrthancPluginService_GetInstanceJson, &params))
     {
+      /* Error */
       return NULL;
     }
     else
@@ -1210,6 +1218,7 @@ extern "C"
 
     if (context->InvokeService(context, _OrthancPluginService_GetInstanceSimplifiedJson, &params))
     {
+      /* Error */
       return NULL;
     }
     else
@@ -1219,12 +1228,55 @@ extern "C"
   }
 
 
+  ORTHANC_PLUGIN_INLINE int  OrthancPluginHasInstanceMetadata(
+    OrthancPluginContext*        context,
+    OrthancPluginDicomInstance*  instance,
+    const char*                  key)
+  {
+    int64_t result;
+
+    _OrthancPluginAccessDicomInstance params;
+    memset(&params, 0, sizeof(params));
+    params.resultInt64 = &result;
+    params.instance = instance;
+    params.key = key;
+
+    if (context->InvokeService(context, _OrthancPluginService_HasInstanceMetadata, &params))
+    {
+      /* Error */
+      return -1;
+    }
+    else
+    {
+      return (result != 0);
+    }
+  }
 
 
-  /*
-    TODO :  METADATA !!!
-    TODO : DOCUMENTATION !!!
-  */
+  ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetInstanceMetadata(
+    OrthancPluginContext*        context,
+    OrthancPluginDicomInstance*  instance,
+    const char*                  key)
+  {
+    const char* result;
+
+    _OrthancPluginAccessDicomInstance params;
+    memset(&params, 0, sizeof(params));
+    params.resultString = &result;
+    params.instance = instance;
+    params.key = key;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetInstanceMetadata, &params))
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
 
 
 #ifdef  __cplusplus

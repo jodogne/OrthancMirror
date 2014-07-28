@@ -306,10 +306,20 @@ namespace Orthanc
       attachments.push_back(dicomInfo);
       attachments.push_back(jsonInfo);
 
-      std::map<MetadataType, std::string> instanceMetadata;
+      typedef std::map<MetadataType, std::string>  InstanceMetadata;
+      InstanceMetadata  instanceMetadata;
       StoreStatus status = index_.Store(instanceMetadata, dicom.GetSummary(), attachments, 
                                         dicom.GetRemoteAet(), dicom.GetMetadata());
 
+      dicom.GetMetadata().clear();
+
+      for (InstanceMetadata::const_iterator it = instanceMetadata.begin();
+           it != instanceMetadata.end(); it++)
+      {
+        dicom.GetMetadata().insert(std::make_pair(std::make_pair(ResourceType_Instance, it->first),
+                                                  it->second));
+      }
+            
       if (status != StoreStatus_Success)
       {
         storage_.Remove(dicomInfo.GetUuid());
