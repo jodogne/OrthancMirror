@@ -20,6 +20,7 @@ Plugins
 
 * Lookup for DICOM UIDs in the plugin SDK
 * Plugins have access to the HTTP headers and can answer with HTTP status codes
+* Callback to react to the incoming of DICOM instances
 
 Fixes
 -----
