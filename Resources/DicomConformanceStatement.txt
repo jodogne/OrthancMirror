@@ -1,0 +1,90 @@
+*** WORK IN PROGRESS, UNSTABLE FILE!!! ***
+
+
+======================================
+DICOM Conformance Statement of Orthanc
+======================================
+
+
+---------------------
+Echo SCU Conformance
+---------------------
+
+Orthanc supports the following SOP Classes as an SCU for C-Echo:
+
+
+---------------------
+Store SCU Conformance
+---------------------
+
+Orthanc supports the following SOP Classes as an SCU for C-Store:
+
+
+
+--------------------
+Find SCU Conformance
+--------------------
+
+Orthanc supports the following SOP Classes as an SCU for C-Find:
+
+
+
+--------------------
+Move SCU Conformance
+--------------------
+
+Orthanc supports the following SOP Classes as an SCU for C-Move:
+
+
+
+
+
+---------------------
+Echo SCP Conformance
+---------------------
+
+Orthanc supports the following SOP Classes as an SCP for C-Echo:
+
+VerificationSOPClass                                        | 
+
+
+---------------------
+Store SCP Conformance
+---------------------
+
+Orthanc supports the following SOP Classes as an SCP for C-Store:
+
+
+
+
+--------------------
+Find SCP Conformance
+--------------------
+
+Orthanc supports the following SOP Classes as an SCP for C-Find:
+
+FINDPatientRootQueryRetrieveInformationModel                |
+FINDStudyRootQueryRetrieveInformationModel                  |
+
+
+--------------------
+Move SCP Conformance
+--------------------
+
+Orthanc supports the following SOP Classes as an SCP for C-Move:
+
+MOVEStudyRootQueryRetrieveInformationModel                  |
+MOVEPatientRootQueryRetrieveInformationModel                |
+
+
+
+----------------------------
+Implementation notes for SCP
+----------------------------
+
+The supported SOP classes for Echo SCP, Store SCP, Find SCP and Move
+SCP can be found in the function
+"Orthanc::Internals::AcceptAssociation()" from file
+"OrthancServer/Internals/CommandDispatcher.cpp".
+
+
