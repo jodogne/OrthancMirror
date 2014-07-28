@@ -68,7 +68,7 @@ namespace Orthanc
 
     void RestApiDelete(const void* parameters);
 
-    void LookupResource(ResourceType level,
+    void LookupResource(_OrthancPluginService service,
                         const void* parameters);
 
     void SendHttpStatusCode(const void* parameters);
