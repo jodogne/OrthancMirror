@@ -595,6 +595,60 @@ namespace Orthanc
   }
 
 
+  static void AccessInstanceMetadataInternal(bool checkExistence,
+                                             const _OrthancPluginAccessDicomInstance& params,
+                                             const DicomInstanceToStore& instance)
+  {
+    MetadataType metadata;
+
+    try
+    {
+      metadata = StringToMetadata(params.key);
+    }
+    catch (OrthancException&)
+    {
+      // Unknown metadata
+      if (checkExistence)
+      {
+        *params.resultInt64 = -1;
+      }
+      else
+      {
+        *params.resultString = NULL;
+      }
+
+      return;
+    }
+
+    ServerIndex::MetadataMap::const_iterator it = 
+      instance.GetMetadata().find(std::make_pair(ResourceType_Instance, metadata));
+
+    if (checkExistence)
+    {
+      if (it != instance.GetMetadata().end())
+      {
+        *params.resultInt64 = 1;
+      }
+      else
+      {
+        *params.resultInt64 = 0;
+      }
+    }
+    else
+    {
+      if (it != instance.GetMetadata().end())
+      {      
+        *params.resultString = it->second.c_str();
+      }
+      else
+      {
+        // Error: Missing metadata
+        *params.resultString = NULL;
+      }
+    }
+  }
+
+
   static void AccessDicomInstance(_OrthancPluginService service,
                                   const void* parameters)
   {
@@ -616,6 +670,14 @@ namespace Orthanc
 
       case _OrthancPluginService_GetInstanceData:
         *p.resultString = instance.GetBufferData();
+        return;
+
+      case _OrthancPluginService_HasInstanceMetadata:
+        AccessInstanceMetadataInternal(true, p, instance);
+        return;
+
+      case _OrthancPluginService_GetInstanceMetadata:
+        AccessInstanceMetadataInternal(false, p, instance);
         return;
 
       case _OrthancPluginService_GetInstanceJson:
@@ -727,6 +789,8 @@ namespace Orthanc
       case _OrthancPluginService_GetInstanceData:
       case _OrthancPluginService_GetInstanceJson:
       case _OrthancPluginService_GetInstanceSimplifiedJson:
+      case _OrthancPluginService_HasInstanceMetadata:
+      case _OrthancPluginService_GetInstanceMetadata:
         AccessDicomInstance(service, parameters);
         return true;
 

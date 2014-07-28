@@ -187,6 +187,15 @@ ORTHANC_PLUGINS_API int32_t OnStoredCallback(OrthancPluginDicomInstance* instanc
   printf("[%s]\n", json);
   OrthancPluginFreeString(context, json);
 
+  if (OrthancPluginHasInstanceMetadata(context, instance, "ReceptionDate"))
+  {
+    printf("Received on [%s]\n", OrthancPluginGetInstanceMetadata(context, instance, "ReceptionDate"));
+  }
+  else
+  {
+    OrthancPluginLogError(context, "Instance has no reception date, should never happen!");
+  }
+
   return 0;
 }
 
