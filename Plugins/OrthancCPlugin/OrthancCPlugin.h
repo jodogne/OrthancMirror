@@ -14,6 +14,7 @@
  *    - Store the context pointer so that it can use the plugin 
  *      services of Orthanc.
  *    - Register all its REST callbacks using ::OrthancPluginRegisterRestCallback().
+ *    - Register all its callbacks for received instances using ::OrthancPluginRegisterOnStoredInstanceCallback().
  * -# <tt>void OrthancPluginFinalize()</tt>:
  *    This function is invoked by Orthanc during its shutdown. The plugin
  *    must free all its memory.
@@ -874,7 +875,7 @@ extern "C"
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param patientID The Patient ID of interest.
-   * @return The NULL string if the patient is non-existent, or a string containing the 
+   * @return The NULL value if the patient is non-existent, or a string containing the 
    * Orthanc ID of the patient. This string must be freed by OrthancPluginFreeString().
    **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginLookupPatient(
@@ -906,7 +907,7 @@ extern "C"
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param studyUID The Study Instance UID of interest.
-   * @return The NULL string if the study is non-existent, or a string containing the 
+   * @return The NULL value if the study is non-existent, or a string containing the 
    * Orthanc ID of the study. This string must be freed by OrthancPluginFreeString().
    **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginLookupStudy(
@@ -938,7 +939,7 @@ extern "C"
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param seriesUID The Series Instance UID of interest.
-   * @return The NULL string if the series is non-existent, or a string containing the 
+   * @return The NULL value if the series is non-existent, or a string containing the 
    * Orthanc ID of the series. This string must be freed by OrthancPluginFreeString().
    **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginLookupSeries(
@@ -970,7 +971,7 @@ extern "C"
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param sopInstanceUID The SOP Instance UID of interest.
-   * @return The NULL string if the instance is non-existent, or a string containing the 
+   * @return The NULL value if the instance is non-existent, or a string containing the 
    * Orthanc ID of the instance. This string must be freed by OrthancPluginFreeString().
    **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginLookupInstance(
@@ -1113,6 +1114,16 @@ extern "C"
   } _OrthancPluginAccessDicomInstance;
 
 
+  /**
+   * @brief Get the AET of a DICOM instance.
+   *
+   * This function returns the Application Entity Title (AET) of the
+   * DICOM modality from which a DICOM instance originates.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param instance The instance of interest.
+   * @return The AET if success, NULL if error.
+   **/
   ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetInstanceRemoteAet(
     OrthancPluginContext*        context,
     OrthancPluginDicomInstance*  instance)
@@ -1136,6 +1147,15 @@ extern "C"
   }
 
 
+  /**
+   * @brief Get the size of a DICOM file.
+   *
+   * This function returns the number of bytes of the given DICOM instance.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param instance The instance of interest.
+   * @return The size of the file, -1 in case of error.
+   **/
   ORTHANC_PLUGIN_INLINE int64_t OrthancPluginGetInstanceSize(
     OrthancPluginContext*       context,
     OrthancPluginDicomInstance* instance)
@@ -1159,6 +1179,15 @@ extern "C"
   }
 
 
+  /**
+   * @brief Get the data of a DICOM file.
+   *
+   * This function returns a pointer to the content of the given DICOM instance.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param instance The instance of interest.
+   * @return The pointer to the DICOM data, NULL in case of error.
+   **/
   ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetInstanceData(
     OrthancPluginContext*        context,
     OrthancPluginDicomInstance*  instance)
@@ -1182,6 +1211,18 @@ extern "C"
   }
 
 
+  /**
+   * @brief Get the DICOM tag hierarchy as a JSON file.
+   *
+   * This function returns a pointer to a newly created string
+   * containing a JSON file. This JSON file encodes the tag hierarchy
+   * of the given DICOM instance.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param instance The instance of interest.
+   * @return The NULL value in case of error, or a string containing the JSON file.
+   * This string must be freed by OrthancPluginFreeString().
+   **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginGetInstanceJson(
     OrthancPluginContext*        context,
     OrthancPluginDicomInstance*  instance)
@@ -1205,6 +1246,20 @@ extern "C"
   }
 
 
+  /**
+   * @brief Get the DICOM tag hierarchy as a JSON file (with simplification).
+   *
+   * This function returns a pointer to a newly created string
+   * containing a JSON file. This JSON file encodes the tag hierarchy
+   * of the given DICOM instance. In contrast with
+   * ::OrthancPluginGetInstanceJson(), the returned JSON file is in
+   * its simplified version.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param instance The instance of interest.
+   * @return The NULL value in case of error, or a string containing the JSON file.
+   * This string must be freed by OrthancPluginFreeString().
+   **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginGetInstanceSimplifiedJson(
     OrthancPluginContext*        context,
     OrthancPluginDicomInstance*  instance)
@@ -1228,10 +1283,25 @@ extern "C"
   }
 
 
+  /**
+   * @brief Check whether a DICOM instance is associated with some metadata.
+   *
+   * This function checks whether the DICOM instance of interest is
+   * associated with some metadata. As of Orthanc 0.8.1, in the
+   * callbacks registered by
+   * ::OrthancPluginRegisterOnStoredInstanceCallback(), the only
+   * possibly available metadata are "ReceptionDate", "RemoteAET" and
+   * "IndexInSeries".
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param instance The instance of interest.
+   * @param metadata The metadata of interest.
+   * @return 1 if the metadata is present, 0 if it is absent, -1 in case of error.
+   **/
   ORTHANC_PLUGIN_INLINE int  OrthancPluginHasInstanceMetadata(
     OrthancPluginContext*        context,
     OrthancPluginDicomInstance*  instance,
-    const char*                  key)
+    const char*                  metadata)
   {
     int64_t result;
 
@@ -1239,7 +1309,7 @@ extern "C"
     memset(&params, 0, sizeof(params));
     params.resultInt64 = &result;
     params.instance = instance;
-    params.key = key;
+    params.key = metadata;
 
     if (context->InvokeService(context, _OrthancPluginService_HasInstanceMetadata, &params))
     {
@@ -1253,10 +1323,22 @@ extern "C"
   }
 
 
+  /**
+   * @brief Get the value of some metadata associated with a given DICOM instance.
+   *
+   * This functions returns the value of some metadata that is associated with the DICOM instance of interest.
+   * Before calling this function, the existence of the metadata must have been checked with
+   * ::OrthancPluginHasInstanceMetadata().
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param instance The instance of interest.
+   * @param metadata The metadata of interest.
+   * @return The metadata value if success, NULL if error.
+   **/
   ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetInstanceMetadata(
     OrthancPluginContext*        context,
     OrthancPluginDicomInstance*  instance,
-    const char*                  key)
+    const char*                  metadata)
   {
     const char* result;
 
@@ -1264,7 +1346,7 @@ extern "C"
     memset(&params, 0, sizeof(params));
     params.resultString = &result;
     params.instance = instance;
-    params.key = key;
+    params.key = metadata;
 
     if (context->InvokeService(context, _OrthancPluginService_GetInstanceMetadata, &params))
     {
