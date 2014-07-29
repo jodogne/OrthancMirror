@@ -22,7 +22,7 @@ if (USE_PUGIXML)
       )
 
   else()
-    CHECK_INCLUDE_FILE_CXX(pugixml.h HAVE_PUGIXML_H)
+    CHECK_INCLUDE_FILE_CXX(pugixml.hpp HAVE_PUGIXML_H)
     if (NOT HAVE_PUGIXML_H)
       message(FATAL_ERROR "Please install the libpugixml-dev package")
     endif()
