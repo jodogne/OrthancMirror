@@ -38,7 +38,7 @@ Major changes
 
 * Routing images with Lua scripts
 * Introduction of the Orthanc Plugin SDK
-* Official support of OS X (Darwin)
+* Official support of OS X (Darwin) 10.8
 
 Minor changes
 -------------
