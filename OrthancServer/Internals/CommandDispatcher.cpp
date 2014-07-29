@@ -234,10 +234,156 @@ static OFCondition acceptUnknownContextsWithPreferredTransferSyntaxes(
 #endif
 
 
+
 namespace Orthanc
 {
   namespace Internals
   {
+    /**
+     * EXTRACT OF FILE "dcmdata/libsrc/dcuid.cc" FROM DCMTK 3.6.0
+     * (dcmAllStorageSOPClassUIDs).
+     *
+     * an array of const strings containing all known Storage SOP
+     * Classes that fit into the conventional
+     * PATIENT-STUDY-SERIES-INSTANCE information model,
+     * i.e. everything a Storage SCP might want to store in a PACS.
+     * Special cases such as hanging protocol storage or the Storage
+     * SOP Class are not included in this list.
+     *
+     * THIS LIST CONTAINS ALL STORAGE SOP CLASSES INCLUDING RETIRED
+     * ONES AND IS LARGER THAN 64 ENTRIES.
+     */
+
+    const char* orthancStorageSOPClassUIDs[] =
+    {
+      UID_AmbulatoryECGWaveformStorage,
+      UID_ArterialPulseWaveformStorage,
+      UID_AutorefractionMeasurementsStorage,
+      UID_BasicStructuredDisplayStorage,
+      UID_BasicTextSRStorage,
+      UID_BasicVoiceAudioWaveformStorage,
+      UID_BlendingSoftcopyPresentationStateStorage,
+      UID_BreastTomosynthesisImageStorage,
+      UID_CardiacElectrophysiologyWaveformStorage,
+      UID_ChestCADSRStorage,
+      UID_ColonCADSRStorage,
+      UID_ColorSoftcopyPresentationStateStorage,
+      UID_ComprehensiveSRStorage,
+      UID_ComputedRadiographyImageStorage,
+      UID_CTImageStorage,
+      UID_DeformableSpatialRegistrationStorage,
+      UID_DigitalIntraOralXRayImageStorageForPresentation,
+      UID_DigitalIntraOralXRayImageStorageForProcessing,
+      UID_DigitalMammographyXRayImageStorageForPresentation,
+      UID_DigitalMammographyXRayImageStorageForProcessing,
+      UID_DigitalXRayImageStorageForPresentation,
+      UID_DigitalXRayImageStorageForProcessing,
+      UID_EncapsulatedCDAStorage,
+      UID_EncapsulatedPDFStorage,
+      UID_EnhancedCTImageStorage,
+      UID_EnhancedMRColorImageStorage,
+      UID_EnhancedMRImageStorage,
+      UID_EnhancedPETImageStorage,
+      UID_EnhancedSRStorage,
+      UID_EnhancedUSVolumeStorage,
+      UID_EnhancedXAImageStorage,
+      UID_EnhancedXRFImageStorage,
+      UID_GeneralAudioWaveformStorage,
+      UID_GeneralECGWaveformStorage,
+      UID_GenericImplantTemplateStorage,
+      UID_GrayscaleSoftcopyPresentationStateStorage,
+      UID_HemodynamicWaveformStorage,
+      UID_ImplantAssemblyTemplateStorage,
+      UID_ImplantationPlanSRDocumentStorage,
+      UID_ImplantTemplateGroupStorage,
+      UID_IntraocularLensCalculationsStorage,
+      UID_KeratometryMeasurementsStorage,
+      UID_KeyObjectSelectionDocumentStorage,
+      UID_LensometryMeasurementsStorage,
+      UID_MacularGridThicknessAndVolumeReportStorage,
+      UID_MammographyCADSRStorage,
+      UID_MRImageStorage,
+      UID_MRSpectroscopyStorage,
+      UID_MultiframeGrayscaleByteSecondaryCaptureImageStorage,
+      UID_MultiframeGrayscaleWordSecondaryCaptureImageStorage,
+      UID_MultiframeSingleBitSecondaryCaptureImageStorage,
+      UID_MultiframeTrueColorSecondaryCaptureImageStorage,
+      UID_NuclearMedicineImageStorage,
+      UID_OphthalmicAxialMeasurementsStorage,
+      UID_OphthalmicPhotography16BitImageStorage,
+      UID_OphthalmicPhotography8BitImageStorage,
+      UID_OphthalmicTomographyImageStorage,
+      UID_OphthalmicVisualFieldStaticPerimetryMeasurementsStorage,
+      UID_PositronEmissionTomographyImageStorage,
+      UID_ProcedureLogStorage,
+      UID_PseudoColorSoftcopyPresentationStateStorage,
+      UID_RawDataStorage,
+      UID_RealWorldValueMappingStorage,
+      UID_RespiratoryWaveformStorage,
+      UID_RTBeamsTreatmentRecordStorage,
+      UID_RTBrachyTreatmentRecordStorage,
+      UID_RTDoseStorage,
+      UID_RTImageStorage,
+      UID_RTIonBeamsTreatmentRecordStorage,
+      UID_RTIonPlanStorage,
+      UID_RTPlanStorage,
+      UID_RTStructureSetStorage,
+      UID_RTTreatmentSummaryRecordStorage,
+      UID_SecondaryCaptureImageStorage,
+      UID_SegmentationStorage,
+      UID_SpatialFiducialsStorage,
+      UID_SpatialRegistrationStorage,
+      UID_SpectaclePrescriptionReportStorage,
+      UID_StereometricRelationshipStorage,
+      UID_SubjectiveRefractionMeasurementsStorage,
+      UID_SurfaceSegmentationStorage,
+      UID_TwelveLeadECGWaveformStorage,
+      UID_UltrasoundImageStorage,
+      UID_UltrasoundMultiframeImageStorage,
+      UID_VideoEndoscopicImageStorage,
+      UID_VideoMicroscopicImageStorage,
+      UID_VideoPhotographicImageStorage,
+      UID_VisualAcuityMeasurementsStorage,
+      UID_VLEndoscopicImageStorage,
+      UID_VLMicroscopicImageStorage,
+      UID_VLPhotographicImageStorage,
+      UID_VLSlideCoordinatesMicroscopicImageStorage,
+      UID_VLWholeSlideMicroscopyImageStorage,
+      UID_XAXRFGrayscaleSoftcopyPresentationStateStorage,
+      UID_XRay3DAngiographicImageStorage,
+      UID_XRay3DCraniofacialImageStorage,
+      UID_XRayAngiographicImageStorage,
+      UID_XRayRadiationDoseSRStorage,
+      UID_XRayRadiofluoroscopicImageStorage,
+      // retired
+      UID_RETIRED_HardcopyColorImageStorage,
+      UID_RETIRED_HardcopyGrayscaleImageStorage,
+      UID_RETIRED_NuclearMedicineImageStorage,
+      UID_RETIRED_StandaloneCurveStorage,
+      UID_RETIRED_StandaloneModalityLUTStorage,
+      UID_RETIRED_StandaloneOverlayStorage,
+      UID_RETIRED_StandalonePETCurveStorage,
+      UID_RETIRED_StandaloneVOILUTStorage,
+      UID_RETIRED_StoredPrintStorage,
+      UID_RETIRED_UltrasoundImageStorage,
+      UID_RETIRED_UltrasoundMultiframeImageStorage,
+      UID_RETIRED_VLImageStorage,
+      UID_RETIRED_VLMultiFrameImageStorage,
+      UID_RETIRED_XRayAngiographicBiPlaneImageStorage,
+      // draft
+      UID_DRAFT_SRAudioStorage,
+      UID_DRAFT_SRComprehensiveStorage,
+      UID_DRAFT_SRDetailStorage,
+      UID_DRAFT_SRTextStorage,
+      UID_DRAFT_WaveformStorage,
+      UID_DRAFT_RTBeamsDeliveryInstructionStorage,
+      NULL
+    };
+
+    const int orthancStorageSOPClassUIDsCount = (sizeof(orthancStorageSOPClassUIDs) / sizeof(const char*)) - 1;
+
+
+
     OFCondition AssociationCleanup(T_ASC_Association *assoc)
     {
       OFString temp_str;
@@ -355,7 +501,7 @@ namespace Orthanc
       transferSyntaxes.push_back(UID_RLELosslessTransferSyntax);
 
       /* accept the Verification SOP Class if presented */
-      cond = ASC_acceptContextsWithPreferredTransferSyntaxes( assoc->params, &knownAbstractSyntaxes[0], knownAbstractSyntaxes.size(), &transferSyntaxes[0], transferSyntaxes.size());
+      cond = ASC_acceptContextsWithPreferredTransferSyntaxes(assoc->params, &knownAbstractSyntaxes[0], knownAbstractSyntaxes.size(), &transferSyntaxes[0], transferSyntaxes.size());
       if (cond.bad())
       {
         LOG(INFO) << cond.text();
@@ -364,7 +510,7 @@ namespace Orthanc
       }
 
       /* the array of Storage SOP Class UIDs comes from dcuid.h */
-      cond = ASC_acceptContextsWithPreferredTransferSyntaxes( assoc->params, dcmAllStorageSOPClassUIDs, numberOfAllDcmStorageSOPClassUIDs, &transferSyntaxes[0], transferSyntaxes.size());
+      cond = ASC_acceptContextsWithPreferredTransferSyntaxes(assoc->params, orthancStorageSOPClassUIDs, orthancStorageSOPClassUIDsCount, &transferSyntaxes[0], transferSyntaxes.size());
       if (cond.bad())
       {
         LOG(INFO) << cond.text();
@@ -668,7 +814,7 @@ namespace Orthanc
     }
 
 
-    OFCondition EchoScp( T_ASC_Association * assoc, T_DIMSE_Message * msg, T_ASC_PresentationContextID presID)
+    OFCondition EchoScp(T_ASC_Association * assoc, T_DIMSE_Message * msg, T_ASC_PresentationContextID presID)
     {
       OFString temp_str;
       LOG(INFO) << "Received Echo Request";

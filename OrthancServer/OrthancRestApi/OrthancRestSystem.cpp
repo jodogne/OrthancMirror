@@ -104,6 +104,15 @@ namespace Orthanc
     call.GetOutput().AnswerBuffer(Toolbox::GetNowIsoString(), "text/plain");
   }
 
+
+  static void GetDicomConformanceStatement(RestApiGetCall& call)
+  {
+    std::string statement;
+    GetFileResource(statement, EmbeddedResources::DICOM_CONFORMANCE_STATEMENT);
+    call.GetOutput().AnswerBuffer(statement, "text/plain");
+  }
+
+
   void OrthancRestApi::RegisterSystem()
   {
     Register("/", ServeRoot);
@@ -112,5 +121,6 @@ namespace Orthanc
     Register("/tools/generate-uid", GenerateUid);
     Register("/tools/execute-script", ExecuteScript);
     Register("/tools/now", GetNowIsoString);
+    Register("/tools/dicom-conformance", GetDicomConformanceStatement);
   }
 }

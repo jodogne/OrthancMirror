@@ -1,4 +1,4 @@
-*** WORK IN PROGRESS, UNSTABLE FILE!!! ***
+*** WORK IN PROGRESS, EXPERIMENTAL INFORMATION!!! ***
 
 
 ======================================
@@ -7,45 +7,12 @@ DICOM Conformance Statement of Orthanc
 
 
 ---------------------
-Echo SCU Conformance
----------------------
-
-Orthanc supports the following SOP Classes as an SCU for C-Echo:
-
-
----------------------
-Store SCU Conformance
----------------------
-
-Orthanc supports the following SOP Classes as an SCU for C-Store:
-
-
-
---------------------
-Find SCU Conformance
---------------------
-
-Orthanc supports the following SOP Classes as an SCU for C-Find:
-
-
-
---------------------
-Move SCU Conformance
---------------------
-
-Orthanc supports the following SOP Classes as an SCU for C-Move:
-
-
-
-
-
----------------------
 Echo SCP Conformance
 ---------------------
 
 Orthanc supports the following SOP Classes as an SCP for C-Echo:
 
-VerificationSOPClass                                        | 
+  VerificationSOPClass      | 1.2.840.10008.1.1
 
 
 ---------------------
@@ -54,7 +21,127 @@ Store SCP Conformance
 
 Orthanc supports the following SOP Classes as an SCP for C-Store:
 
+  AmbulatoryECGWaveformStorage                             |
+  ArterialPulseWaveformStorage                             |
+  AutorefractionMeasurementsStorage                        |
+  BasicStructuredDisplayStorage                            |
+  BasicTextSRStorage                                       |
+  BasicVoiceAudioWaveformStorage                           |
+  BlendingSoftcopyPresentationStateStorage                 |
+  BreastTomosynthesisImageStorage                          |
+  CardiacElectrophysiologyWaveformStorage                  |
+  ChestCADSRStorage                                        |
+  ColonCADSRStorage                                        |
+  ColorSoftcopyPresentationStateStorage                    |
+  ComprehensiveSRStorage                                   |
+  ComputedRadiographyImageStorage                          |
+  CTImageStorage                                           |
+  DeformableSpatialRegistrationStorage                     |
+  DigitalIntraOralXRayImageStorageForPresentation          |
+  DigitalIntraOralXRayImageStorageForProcessing            |
+  DigitalMammographyXRayImageStorageForPresentation        |
+  DigitalMammographyXRayImageStorageForProcessing          |
+  DigitalXRayImageStorageForPresentation                   |
+  DigitalXRayImageStorageForProcessing                     |
+  EncapsulatedCDAStorage                                   |
+  EncapsulatedPDFStorage                                   |
+  EnhancedCTImageStorage                                   |
+  EnhancedMRColorImageStorage                              |
+  EnhancedMRImageStorage                                   |
+  EnhancedPETImageStorage                                  |
+  EnhancedSRStorage                                        |
+  EnhancedUSVolumeStorage                                  |
+  EnhancedXAImageStorage                                   |
+  EnhancedXRFImageStorage                                  |
+  GeneralAudioWaveformStorage                              |
+  GeneralECGWaveformStorage                                |
+  GenericImplantTemplateStorage                            |
+  GrayscaleSoftcopyPresentationStateStorage                |
+  HemodynamicWaveformStorage                               |
+  ImplantAssemblyTemplateStorage                           |
+  ImplantationPlanSRDocumentStorage                        |
+  ImplantTemplateGroupStorage                              |
+  IntraocularLensCalculationsStorage                       |
+  KeratometryMeasurementsStorage                           |
+  KeyObjectSelectionDocumentStorage                        |
+  LensometryMeasurementsStorage                            |
+  MacularGridThicknessAndVolumeReportStorage               |
+  MammographyCADSRStorage                                  |
+  MRImageStorage                                           |
+  MRSpectroscopyStorage                                    |
+  MultiframeGrayscaleByteSecondaryCaptureImageStorage      |
+  MultiframeGrayscaleWordSecondaryCaptureImageStorage      |
+  MultiframeSingleBitSecondaryCaptureImageStorage          |
+  MultiframeTrueColorSecondaryCaptureImageStorage          |
+  NuclearMedicineImageStorage                              |
+  OphthalmicAxialMeasurementsStorage                       |
+  OphthalmicPhotography16BitImageStorage                   |
+  OphthalmicPhotography8BitImageStorage                    |
+  OphthalmicTomographyImageStorage                         |
+  OphthalmicVisualFieldStaticPerimetryMeasurementsStorage  |
+  PositronEmissionTomographyImageStorage                   |
+  ProcedureLogStorage                                      |
+  PseudoColorSoftcopyPresentationStateStorage              |
+  RawDataStorage                                           |
+  RealWorldValueMappingStorage                             |
+  RespiratoryWaveformStorage                               |
+  RTBeamsTreatmentRecordStorage                            |
+  RTBrachyTreatmentRecordStorage                           |
+  RTDoseStorage                                            |
+  RTImageStorage                                           |
+  RTIonBeamsTreatmentRecordStorage                         |
+  RTIonPlanStorage                                         |
+  RTPlanStorage                                            |
+  RTStructureSetStorage                                    |
+  RTTreatmentSummaryRecordStorage                          |
+  SecondaryCaptureImageStorage                             |
+  SegmentationStorage                                      |
+  SpatialFiducialsStorage                                  |
+  SpatialRegistrationStorage                               |
+  SpectaclePrescriptionReportStorage                       |
+  StereometricRelationshipStorage                          |
+  SubjectiveRefractionMeasurementsStorage                  |
+  SurfaceSegmentationStorage                               |
+  TwelveLeadECGWaveformStorage                             |
+  UltrasoundImageStorage                                   |
+  UltrasoundMultiframeImageStorage                         |
+  VideoEndoscopicImageStorage                              |
+  VideoMicroscopicImageStorage                             |
+  VideoPhotographicImageStorage                            |
+  VisualAcuityMeasurementsStorage                          |
+  VLEndoscopicImageStorage                                 |
+  VLMicroscopicImageStorage                                |
+  VLPhotographicImageStorage                               |
+  VLSlideCoordinatesMicroscopicImageStorage                |
+  VLWholeSlideMicroscopyImageStorage                       |
+  XAXRFGrayscaleSoftcopyPresentationStateStorage           |
+  XRay3DAngiographicImageStorage                           |
+  XRay3DCraniofacialImageStorage                           |
+  XRayAngiographicImageStorage                             |
+  XRayRadiationDoseSRStorage                               |
+  XRayRadiofluoroscopicImageStorage                        |
 
+  RETIRED_HardcopyColorImageStorage                        |
+  RETIRED_HardcopyGrayscaleImageStorage                    |
+  RETIRED_NuclearMedicineImageStorage                      |
+  RETIRED_StandaloneCurveStorage                           |
+  RETIRED_StandaloneModalityLUTStorage                     |
+  RETIRED_StandaloneOverlayStorage                         |
+  RETIRED_StandalonePETCurveStorage                        | 
+  RETIRED_StandaloneVOILUTStorage                          |
+  RETIRED_StoredPrintStorage                               |
+  RETIRED_UltrasoundImageStorage                           | 
+  RETIRED_UltrasoundMultiframeImageStorage                 |
+  RETIRED_VLImageStorage                                   |
+  RETIRED_VLMultiFrameImageStorage                         |
+  RETIRED_XRayAngiographicBiPlaneImageStorage              |
+
+  DRAFT_SRAudioStorage                                     |
+  DRAFT_SRComprehensiveStorage                             |
+  DRAFT_SRDetailStorage                                    |
+  DRAFT_SRTextStorage                                      |
+  DRAFT_WaveformStorage                                    |
+  DRAFT_RTBeamsDeliveryInstructionStorage                  |
 
 
 --------------------
@@ -63,8 +150,8 @@ Find SCP Conformance
 
 Orthanc supports the following SOP Classes as an SCP for C-Find:
 
-FINDPatientRootQueryRetrieveInformationModel                |
-FINDStudyRootQueryRetrieveInformationModel                  |
+  FINDPatientRootQueryRetrieveInformationModel   | 1.2.840.10008.5.1.4.1.2.1.1
+  FINDStudyRootQueryRetrieveInformationModel     | 1.2.840.10008.5.1.4.1.2.2.1
 
 
 --------------------
@@ -73,18 +160,104 @@ Move SCP Conformance
 
 Orthanc supports the following SOP Classes as an SCP for C-Move:
 
-MOVEStudyRootQueryRetrieveInformationModel                  |
-MOVEPatientRootQueryRetrieveInformationModel                |
+  MOVEPatientRootQueryRetrieveInformationModel   | 1.2.840.10008.5.1.4.1.2.1.2
+  MOVEStudyRootQueryRetrieveInformationModel     | 1.2.840.10008.5.1.4.1.2.2.2
 
 
+---------------------
+Echo SCU Conformance
+---------------------
 
-----------------------------
-Implementation notes for SCP
-----------------------------
+Orthanc supports the following SOP Classes as an SCU for C-Echo:
 
-The supported SOP classes for Echo SCP, Store SCP, Find SCP and Move
-SCP can be found in the function
-"Orthanc::Internals::AcceptAssociation()" from file
+  VerificationSOPClass      | 1.2.840.10008.1.1
+
+
+---------------------
+Store SCU Conformance
+---------------------
+
+All the SOP Classes that are listed in the "Store SCP Conformance"
+(see above) section are available as an SCU for C-Store.
+
+
+--------------------
+Find SCU Conformance
+--------------------
+
+Orthanc supports the following SOP Classes as an SCU for C-Find:
+
+  FINDPatientRootQueryRetrieveInformationModel  |
+  FINDStudyRootQueryRetrieveInformationModel    |
+  FINDStudyRootQueryRetrieveInformationModel    |
+
+
+--------------------
+Move SCU Conformance
+--------------------
+
+Orthanc supports the following SOP Classes as an SCU for C-Move:
+
+  MOVEStudyRootQueryRetrieveInformationModel    |
+
+
+-----------------
+Transfer Syntaxes
+-----------------
+
+Orthanc will accept and negociate presentation contexts for all of the
+abovementioned supported SOP Classes using any of the following
+transfer syntaxes:
+
+  LittleEndianExplicitTransferSyntax                                    |
+  BigEndianExplicitTransferSyntax                                       |
+  LittleEndianImplicitTransferSyntax                                    |
+  DeflatedExplicitVRLittleEndianTransferSyntax                          |
+  JPEGProcess1TransferSyntax                                            |
+  JPEGProcess2_4TransferSyntax                                          |
+  JPEGProcess3_5TransferSyntax                                          |
+  JPEGProcess6_8TransferSyntax                                          |
+  JPEGProcess7_9TransferSyntax                                          |
+  JPEGProcess10_12TransferSyntax                                        |
+  JPEGProcess11_13TransferSyntax                                        |
+  JPEGProcess14TransferSyntax                                           |
+  JPEGProcess15TransferSyntax                                           |
+  JPEGProcess16_18TransferSyntax                                        |
+  JPEGProcess17_19TransferSyntax                                        |
+  JPEGProcess20_22TransferSyntax                                        |
+  JPEGProcess21_23TransferSyntax                                        |
+  JPEGProcess24_26TransferSyntax                                        |
+  JPEGProcess25_27TransferSyntax                                        |
+  JPEGProcess28TransferSyntax                                           |
+  JPEGProcess29TransferSyntax                                           |
+  JPEGProcess14SV1TransferSyntax                                        |
+  JPEGLSLosslessTransferSyntax                                          |
+  JPEGLSLossyTransferSyntax                                             |
+  JPEG2000LosslessOnlyTransferSyntax                                    |
+  JPEG2000TransferSyntax                                                |
+  JPEG2000Part2MulticomponentImageCompressionLosslessOnlyTransferSyntax |
+  JPEG2000Part2MulticomponentImageCompressionTransferSyntax             |
+  JPIPReferencedTransferSyntax                                          |
+  JPIPReferencedDeflateTransferSyntax                                   |
+  MPEG2MainProfileAtMainLevelTransferSyntax                             |
+  MPEG2MainProfileAtHighLevelTransferSyntax                             |
+  RLELosslessTransferSyntax                                             |
+
+When possible, Orthanc will prefer the
+LittleEndianImplicitTransferSyntax transfer syntax
+(1.2.840.10008.1.2).
+
+Orthanc does not support extended negotiation.
+
+
+--------------------
+Implementation notes
+--------------------
+
+The information above about the SCP support is readily extracted from
+the function "Orthanc::Internals::AcceptAssociation()" from file
 "OrthancServer/Internals/CommandDispatcher.cpp".
 
-
+The information above about the SCU support is derived from the class
+"Orthanc::DicomUserConnection" from file
+"OrthancServer/DicomProtocol/DicomUserConnection.cpp".
