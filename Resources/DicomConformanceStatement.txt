@@ -1,6 +1,3 @@
-*** WORK IN PROGRESS, EXPERIMENTAL INFORMATION!!! ***
-
-
 ======================================
 DICOM Conformance Statement of Orthanc
 ======================================
