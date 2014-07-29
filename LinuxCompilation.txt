@@ -114,9 +114,7 @@ SUPPORTED - Debian Jessie/Sid
 # cmake -DALLOW_DOWNLOADS=ON \
 	-DUSE_SYSTEM_MONGOOSE=OFF \
         -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
-	-DUSE_SYSTEM_PUGIXML=OFF \
-        -DENABLE_JPEG=OFF \
-        -DENABLE_JPEG_LOSSLESS=OFF \
+        -DDCMTK_LIBRARIES=dcmjpls \
 	~/Orthanc
 
 Note: Have also a look at the official package:
@@ -138,8 +136,6 @@ SUPPORTED - Ubuntu 12.04 LTS
 	-DUSE_SYSTEM_GOOGLE_LOG=OFF \
 	-DUSE_SYSTEM_PUGIXML=OFF \
         -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
-        -DENABLE_JPEG=OFF \
-        -DENABLE_JPEG_LOSSLESS=OFF \
 	~/Orthanc
 
 
@@ -196,17 +192,15 @@ SUPPORTED - Ubuntu 13.10
 
 
 
-SUPPORTED - Fedora 18/19/20
----------------------------
+SUPPORTED - Fedora 19/20
+------------------------
 
 # sudo yum install make automake gcc gcc-c++ python cmake \
                    boost-devel curl-devel dcmtk-devel glog-devel \
                    gtest-devel libpng-devel libsqlite3x-devel libuuid-devel \
-                   mongoose-devel openssl-devel jsoncpp-devel lua-devel
+                   mongoose-devel openssl-devel jsoncpp-devel lua-devel pugixml-devel
 
-# cmake -DENABLE_JPEG=OFF \
-        -DENABLE_JPEG_LOSSLESS=OFF \
-        ~/Orthanc
+# cmake "-DDCMTK_LIBRARIES=CharLS" ~/Orthanc
        
 Note: Have also a look at the official package:
 http://pkgs.fedoraproject.org/cgit/orthanc.git/tree/?h=f18
