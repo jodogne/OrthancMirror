@@ -1,7 +1,7 @@
 Pending changes in the mainline
 ===============================
 
-
+* Parameter to set the default encoding for DICOM files without SpecificCharacterSet
 
 
 Version 0.8.1 (2014/07/29)

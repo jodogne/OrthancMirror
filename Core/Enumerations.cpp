@@ -261,6 +261,47 @@ namespace Orthanc
   }
 
 
+  const char* EnumerationToString(Encoding encoding)
+  {
+    switch (encoding)
+    {
+      case Encoding_Utf8:
+        return "Utf8";
+
+      case Encoding_Latin1:
+        return "Latin1";
+
+      case Encoding_Ascii:
+        return "Ascii";
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  Encoding StringToEncoding(const char* encoding)
+  {
+    std::string s(encoding);
+    Toolbox::ToUpperCase(s);
+
+    if (s == "UTF8")
+    {
+      return Encoding_Utf8;
+    }
+    else if (s == "LATIN1")
+    {
+      return Encoding_Latin1;
+    }
+    else if (s == "ASCII")
+    {
+      return Encoding_Ascii;
+    }
+
+    throw OrthancException(ErrorCode_ParameterOutOfRange);
+  }
+
+
   ResourceType StringToResourceType(const char* type)
   {
     std::string s(type);

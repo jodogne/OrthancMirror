@@ -277,6 +277,10 @@ namespace Orthanc
 
   const char* EnumerationToString(ImageFormat format);
 
+  const char* EnumerationToString(Encoding encoding);
+
+  Encoding StringToEncoding(const char* encoding);
+
   ResourceType StringToResourceType(const char* type);
 
   ImageFormat StringToImageFormat(const char* format);

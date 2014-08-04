@@ -41,6 +41,7 @@
 
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
+#include "OrthancInitialization.h"
 #include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"
 #include "../Core/ImageFormats/PngWriter.h"
@@ -119,8 +120,9 @@ namespace Orthanc
 
   Encoding FromDcmtkBridge::DetectEncoding(DcmDataset& dataset)
   {
-    // By default, assume UTF-8 encoding (as in dcm2xml.cc)
-    Encoding encoding = Encoding_Utf8;
+    // By default, Ascii encoding is assumed (this removes all the special charaters)
+    std::string s = Configuration::GetGlobalStringParameter("DefaultEncoding", "");
+    Encoding encoding = s.empty() ? Encoding_Ascii : StringToEncoding(s.c_str());
 
     OFString tmp;
     if (dataset.findAndGetOFString(DCM_SpecificCharacterSet, tmp).good())

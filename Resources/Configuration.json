@@ -180,5 +180,10 @@
   // The maximum number of active jobs in the Orthanc scheduler. When
   // this limit is reached, the addition of new jobs is blocked until
   // some job finishes.
-  "LimitJobs" : 10
+  "LimitJobs" : 10,
+
+  // The default encoding that is assumed for DICOM files without
+  // "SpecificCharacterSet" DICOM tag. The allowed values are
+  // currently "Latin1", "Utf8" and "Ascii".
+  "DefaultEncoding" : "Latin1"
 }
