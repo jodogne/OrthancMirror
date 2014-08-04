@@ -265,14 +265,38 @@ namespace Orthanc
   {
     switch (encoding)
     {
+      case Encoding_Ascii:
+        return "Ascii";
+
       case Encoding_Utf8:
         return "Utf8";
 
       case Encoding_Latin1:
         return "Latin1";
 
-      case Encoding_Ascii:
-        return "Ascii";
+      case Encoding_Latin2:
+        return "Latin2";
+
+      case Encoding_Latin3:
+        return "Latin3";
+
+      case Encoding_Latin4:
+        return "Latin4";
+
+      case Encoding_Latin5:
+        return "Latin5";
+
+      case Encoding_Cyrillic:
+        return "Cyrillic";
+
+      case Encoding_Arabic:
+        return "Arabic";
+
+      case Encoding_Greek:
+        return "Greek";
+
+      case Encoding_Hebrew:
+        return "Hebrew";
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -289,13 +313,55 @@ namespace Orthanc
     {
       return Encoding_Utf8;
     }
-    else if (s == "LATIN1")
+
+    if (s == "ASCII")
+    {
+      return Encoding_Ascii;
+    }
+
+    if (s == "LATIN1")
     {
       return Encoding_Latin1;
     }
-    else if (s == "ASCII")
+
+    if (s == "LATIN2")
     {
-      return Encoding_Ascii;
+      return Encoding_Latin2;
+    }
+
+    if (s == "LATIN3")
+    {
+      return Encoding_Latin3;
+    }
+
+    if (s == "LATIN4")
+    {
+      return Encoding_Latin4;
+    }
+
+    if (s == "LATIN5")
+    {
+      return Encoding_Latin5;
+    }
+
+    if (s == "CYRILLIC")
+    {
+      return Encoding_Cyrillic;
+    }
+
+    if (s == "ARABIC")
+    {
+      return Encoding_Arabic;
+    }
+
+    if (s == "GREEK")
+    {
+      return Encoding_Greek;
+    }
+
+    if (s == "HEBREW")
+    {
+      return Encoding_Hebrew;
     }
 
     throw OrthancException(ErrorCode_ParameterOutOfRange);

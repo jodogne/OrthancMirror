@@ -644,6 +644,14 @@ TEST(Toolbox, Enumerations)
   ASSERT_EQ(Encoding_Utf8, StringToEncoding(EnumerationToString(Encoding_Utf8)));
   ASSERT_EQ(Encoding_Ascii, StringToEncoding(EnumerationToString(Encoding_Ascii)));
   ASSERT_EQ(Encoding_Latin1, StringToEncoding(EnumerationToString(Encoding_Latin1)));
+  ASSERT_EQ(Encoding_Latin2, StringToEncoding(EnumerationToString(Encoding_Latin2)));
+  ASSERT_EQ(Encoding_Latin3, StringToEncoding(EnumerationToString(Encoding_Latin3)));
+  ASSERT_EQ(Encoding_Latin4, StringToEncoding(EnumerationToString(Encoding_Latin4)));
+  ASSERT_EQ(Encoding_Latin5, StringToEncoding(EnumerationToString(Encoding_Latin5)));
+  ASSERT_EQ(Encoding_Cyrillic, StringToEncoding(EnumerationToString(Encoding_Cyrillic)));
+  ASSERT_EQ(Encoding_Arabic, StringToEncoding(EnumerationToString(Encoding_Arabic)));
+  ASSERT_EQ(Encoding_Greek, StringToEncoding(EnumerationToString(Encoding_Greek)));
+  ASSERT_EQ(Encoding_Hebrew, StringToEncoding(EnumerationToString(Encoding_Hebrew)));
 
   ASSERT_EQ(ResourceType_Patient, StringToResourceType(EnumerationToString(ResourceType_Patient)));
   ASSERT_EQ(ResourceType_Study, StringToResourceType(EnumerationToString(ResourceType_Study)));
