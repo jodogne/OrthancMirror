@@ -128,8 +128,7 @@ namespace Orthanc
     if (dataset.findAndGetOFString(DCM_SpecificCharacterSet, tmp).good())
     {
       std::string characterSet = Toolbox::StripSpaces(std::string(tmp.c_str()));
-
-      // TODO Add more encodings
+      Toolbox::ToUpperCase(characterSet);
 
       if (characterSet == "ISO_IR 6" ||
           characterSet == "ISO_IR 192")
@@ -139,6 +138,38 @@ namespace Orthanc
       else if (characterSet == "ISO_IR 100")
       {
         encoding = Encoding_Latin1;
+      }
+      else if (characterSet == "ISO_IR 101")
+      {
+        encoding = Encoding_Latin2;
+      }
+      else if (characterSet == "ISO_IR 109")
+      {
+        encoding = Encoding_Latin3;
+      }
+      else if (characterSet == "ISO_IR 110")
+      {
+        encoding = Encoding_Latin4;
+      }
+      else if (characterSet == "ISO_IR 148")
+      {
+        encoding = Encoding_Latin5;
+      }
+      else if (characterSet == "ISO_IR 144")
+      {
+        encoding = Encoding_Cyrillic;
+      }
+      else if (characterSet == "ISO_IR 127")
+      {
+        encoding = Encoding_Arabic;
+      }
+      else if (characterSet == "ISO_IR 126")
+      {
+        encoding = Encoding_Greek;
+      }
+      else if (characterSet == "ISO_IR 138")
+      {
+        encoding = Encoding_Hebrew;
       }
       else if (!characterSet.empty())
       {

@@ -234,7 +234,15 @@ namespace Orthanc
   {
     Encoding_Ascii,
     Encoding_Utf8,
-    Encoding_Latin1
+    Encoding_Latin1,
+    Encoding_Latin2,
+    Encoding_Latin3,
+    Encoding_Latin4,
+    Encoding_Latin5,
+    Encoding_Cyrillic,
+    Encoding_Arabic,
+    Encoding_Greek,
+    Encoding_Hebrew
   };
 
 

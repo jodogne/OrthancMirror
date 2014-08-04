@@ -539,10 +539,42 @@ namespace Orthanc
         return source;
 
       case Encoding_Ascii:
-        return ConvertToAscii(source);;
+        return ConvertToAscii(source);
 
       case Encoding_Latin1:
         encoding = "ISO-8859-1";
+        break;
+
+      case Encoding_Latin2:
+        encoding = "ISO-8859-2";
+        break;
+
+      case Encoding_Latin3:
+        encoding = "ISO-8859-3";
+        break;
+
+      case Encoding_Latin4:
+        encoding = "ISO-8859-4";
+        break;
+
+      case Encoding_Latin5:
+        encoding = "ISO-8859-9";
+        break;
+
+      case Encoding_Cyrillic:
+        encoding = "ISO-8859-5";
+        break;
+
+      case Encoding_Arabic:
+        encoding = "ISO-8859-6";
+        break;
+
+      case Encoding_Greek:
+        encoding = "ISO-8859-7";
+        break;
+
+      case Encoding_Hebrew:
+        encoding = "ISO-8859-8";
         break;
 
       default:
