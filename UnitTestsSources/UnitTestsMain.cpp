@@ -639,6 +639,20 @@ TEST(Toolbox, Tokenize)
   ASSERT_EQ("", t[3]);
 }
 
+TEST(Toolbox, Enumerations)
+{
+  ASSERT_EQ(Encoding_Utf8, StringToEncoding(EnumerationToString(Encoding_Utf8)));
+  ASSERT_EQ(Encoding_Ascii, StringToEncoding(EnumerationToString(Encoding_Ascii)));
+  ASSERT_EQ(Encoding_Latin1, StringToEncoding(EnumerationToString(Encoding_Latin1)));
+
+  ASSERT_EQ(ResourceType_Patient, StringToResourceType(EnumerationToString(ResourceType_Patient)));
+  ASSERT_EQ(ResourceType_Study, StringToResourceType(EnumerationToString(ResourceType_Study)));
+  ASSERT_EQ(ResourceType_Series, StringToResourceType(EnumerationToString(ResourceType_Series)));
+  ASSERT_EQ(ResourceType_Instance, StringToResourceType(EnumerationToString(ResourceType_Instance)));
+
+  ASSERT_EQ(ImageFormat_Png, StringToImageFormat(EnumerationToString(ImageFormat_Png)));
+}
+
 
 
 #if defined(__linux)
