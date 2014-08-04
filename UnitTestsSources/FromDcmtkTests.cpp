@@ -41,6 +41,7 @@
 #include "../Core/ImageFormats/PngReader.h"
 #include "../Core/ImageFormats/PngWriter.h"
 #include "../Core/Uuid.h"
+#include "../Resources/EncodingTests.h"
 
 using namespace Orthanc;
 
@@ -174,5 +175,17 @@ TEST(DicomModification, Png)
 
     o.EmbedImage(img.GetAccessor());
     o.SaveToFile("UnitTestsResults/png4.dcm");
+  }
+}
+
+
+TEST(Toolbox, Encodings1)
+{
+  for (unsigned int i = 0; i < testEncodingsCount; i++)
+  {
+    std::string source(testEncodingsEncoded[i]);
+    std::string expected(testEncodingsExpected[i]);
+    std::string s = Toolbox::ConvertToUtf8(source, testEncodings[i]);
+    ASSERT_EQ(expected, s);
   }
 }
