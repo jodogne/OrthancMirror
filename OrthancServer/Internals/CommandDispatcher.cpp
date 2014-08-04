@@ -726,14 +726,16 @@ namespace Orthanc
 
         // Check whether this request is allowed by the security filter
         if (supported && 
+            request != DicomRequestType_Echo &&  // Always allow incoming ECHO requests
             filter_ != NULL &&
             !filter_->IsAllowedRequest(callingIP_, callingAETitle_, request))
         {
           LOG(ERROR) << EnumerationToString(request) 
                      << " requests are disallowed for the AET \"" 
                      << callingAETitle_ << "\"";
-          cond = DIMSE_BADCOMMANDTYPE;
+          cond = DIMSE_ILLEGALASSOCIATION;
           supported = false;
+          finished = true;
         }
 
         // in case we received a supported message, process this command
