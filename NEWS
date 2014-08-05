@@ -1,7 +1,9 @@
 Pending changes in the mainline
 ===============================
 
+* Support of the most common encodings
 * Parameter to set the default encoding for DICOM files without SpecificCharacterSet
+* Upgrade to Google Test 1.7.0
 
 
 Version 0.8.1 (2014/07/29)
