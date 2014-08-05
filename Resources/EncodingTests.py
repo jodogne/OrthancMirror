@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-source = u'éäöòДΘĝדصķћ๛ﾈİ'
+source = u'TestéäöòДΘĝדصķћ๛ﾈİ'
 
 encodings = {
     'UTF-8' : 'Utf8',
@@ -17,7 +17,7 @@ encodings = {
     'ISO-8859-8' : 'Hebrew',
     'TIS-620' : 'Thai',
     'SHIFT-JIS' : 'Japanese',
-    #'GB18030' : 'Chinese',
+    #'GB18030' : 'Chinese',  # Done manually below (*)
 }
 
 #from encodings.aliases import aliases
@@ -44,7 +44,7 @@ for encoding, orthancEnumeration in encodings.iteritems():
     expected.append(ToArray(s.decode(encoding).encode('utf-8')))
 
 
-# https://en.wikipedia.org/wiki/GB_18030#Technical_details
+# https://en.wikipedia.org/wiki/GB_18030#Technical_details  (*)
 l.append('::Orthanc::Encoding_Chinese')
 expected.append(ToArray('Þßàáâã'))
 encoded.append('"\\x81\\x30\\x89\\x37\\x81\\x30\\x89\\x38\\xA8\\xA4\\xA8\\xA2\\x81\\x30\\x89\\x39\\x81\\x30\\x8A\\x30"')

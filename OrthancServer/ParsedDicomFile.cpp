@@ -1265,11 +1265,13 @@ namespace Orthanc
         s = "ISO_IR 138";
         break;
 
-        /*
-          case Encoding_Japanese:
-          s = "ISO_IR 13";
-          break;
-        */
+      case Encoding_Japanese:
+        s = "ISO_IR 13";
+        break;
+
+      case Encoding_Chinese:
+        s = "GB18030";
+        break;
 
       case Encoding_Thai:
         s = "ISO_IR 166";
@@ -1279,7 +1281,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    Replace(DICOM_TAG_SPECIFIC_CHARACTER_SET, "", DicomReplaceMode_InsertIfAbsent);
+    Replace(DICOM_TAG_SPECIFIC_CHARACTER_SET, s, DicomReplaceMode_InsertIfAbsent);
   }
 
 }

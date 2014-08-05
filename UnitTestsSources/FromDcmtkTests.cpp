@@ -237,17 +237,33 @@ TEST(FromDcmtkBridge, Enumerations)
 }
 
 
-TEST(FromDcmtkBridge, DISABLED_Encodings3)
+TEST(FromDcmtkBridge, Encodings3)
 {
   for (unsigned int i = 0; i < testEncodingsCount; i++)
   {
-    ParsedDicomFile f;
-    f.SetEncoding(testEncodings[i]);
-
-    std::string source(testEncodingsEncoded[i]);
-    std::string expected(testEncodingsExpected[i]);
-    std::string s = Toolbox::ConvertToUtf8(source, testEncodings[i]);
     std::cout << EnumerationToString(testEncodings[i]) << std::endl;
-    EXPECT_EQ(expected, s);
+    std::string dicom;
+
+    {
+      ParsedDicomFile f;
+      f.SetEncoding(testEncodings[i]);
+      f.Insert(DICOM_TAG_PATIENT_NAME, testEncodingsEncoded[i]);
+      f.SaveToMemoryBuffer(dicom);
+    }
+
+    {
+      ParsedDicomFile g(dicom);
+
+      if (testEncodings[i] != Encoding_Ascii)
+      {
+        ASSERT_EQ(testEncodings[i], g.GetEncoding());
+      }
+
+      std::string tag;
+      ASSERT_TRUE(g.GetTagValue(tag, DICOM_TAG_PATIENT_NAME));
+
+      std::string expected();
+      ASSERT_EQ(std::string(testEncodingsExpected[i]), tag);
+    }
   }
 }
