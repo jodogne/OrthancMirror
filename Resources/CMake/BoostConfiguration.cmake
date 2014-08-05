@@ -95,6 +95,16 @@ if (BOOST_STATIC)
       )
   endif()
 
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    # This is a patch to compile Boost 1.55.0 with Clang 3.4 and later
+    # (including XCode 5.1). Fixes issue 14 of Orthanc.
+    # https://trac.macports.org/ticket/42282#comment:10
+    execute_process(
+      COMMAND patch -p0 -i ${ORTHANC_ROOT}/Resources/Patches/boost-1.55.0-clang-atomic.patch
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      )
+  endif()
+
   aux_source_directory(${BOOST_SOURCES_DIR}/libs/regex/src BOOST_REGEX_SOURCES)
 
   list(APPEND BOOST_SOURCES
