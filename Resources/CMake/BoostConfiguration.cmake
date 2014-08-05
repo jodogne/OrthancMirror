@@ -101,7 +101,7 @@ if (BOOST_STATIC)
     # https://trac.macports.org/ticket/42282#comment:10
     execute_process(
       COMMAND patch -p0 -i ${ORTHANC_ROOT}/Resources/Patches/boost-1.55.0-clang-atomic.patch
-      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      WORKING_DIRECTORY ${BOOST_SOURCES_DIR}
       )
   endif()
 
