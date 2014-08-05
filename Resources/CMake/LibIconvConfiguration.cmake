@@ -4,7 +4,7 @@ DownloadPackage(
   "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/libiconv-1.14.tar.gz"
   "${LIBICONV_SOURCES_DIR}")
 
-# https://groups.google.com/forum/#!topic/android-ndk/AS1nkxnk6m4
+# https://groups.google.com/d/msg/android-ndk/AS1nkxnk6m4/EQm09hD1tigJ
 add_definitions(
   -DBOOST_LOCALE_WITH_ICONV=1
   -DBUILDING_LIBICONV=1
@@ -40,9 +40,6 @@ include_directories(
   )
 
 list(APPEND BOOST_SOURCES
-  ${LIBICONV_SOURCES_DIR}/lib/genaliases2.c  
-  ${LIBICONV_SOURCES_DIR}/lib/genflags.c
-  ${LIBICONV_SOURCES_DIR}/lib/gentranslit.c
   ${LIBICONV_SOURCES_DIR}/lib/iconv.c  
   ${LIBICONV_SOURCES_DIR}/lib/relocatable.c
   ${LIBICONV_SOURCES_DIR}/libcharset/lib/localcharset.c  
