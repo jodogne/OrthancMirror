@@ -120,9 +120,9 @@ namespace Orthanc
 
   Encoding FromDcmtkBridge::DetectEncoding(DcmDataset& dataset)
   {
-    // By default, Ascii encoding is assumed (this removes all the special charaters)
+    // By default, Latin1 encoding is assumed
     std::string s = Configuration::GetGlobalStringParameter("DefaultEncoding", "");
-    Encoding encoding = s.empty() ? Encoding_Ascii : StringToEncoding(s.c_str());
+    Encoding encoding = s.empty() ? Encoding_Latin1 : StringToEncoding(s.c_str());
 
     OFString tmp;
     if (dataset.findAndGetOFString(DCM_SpecificCharacterSet, tmp).good())
