@@ -186,6 +186,7 @@ TEST(Toolbox, Encodings1)
     std::string source(testEncodingsEncoded[i]);
     std::string expected(testEncodingsExpected[i]);
     std::string s = Toolbox::ConvertToUtf8(source, testEncodings[i]);
-    ASSERT_EQ(expected, s);
+    std::cout << EnumerationToString(testEncodings[i]) << std::endl;
+    EXPECT_EQ(expected, s);
   }
 }
