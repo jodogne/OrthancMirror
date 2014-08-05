@@ -183,7 +183,9 @@
   "LimitJobs" : 10,
 
   // The default encoding that is assumed for DICOM files without
-  // "SpecificCharacterSet" DICOM tag. The allowed values are
-  // currently "Latin1", "Utf8" and "Ascii".
+  // "SpecificCharacterSet" DICOM tag. The allowed values are "Ascii",
+  // "Utf8", "Latin1", "Latin2", "Latin3", "Latin4", "Latin5",
+  // "Cyrillic", "Arabic", "Greek", "Hebrew", "Thai", "Japanese",
+  // and "Chinese".
   "DefaultEncoding" : "Latin1"
 }

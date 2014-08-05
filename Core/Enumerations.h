@@ -230,6 +230,7 @@ namespace Orthanc
   };
 
 
+  // http://www.dabsoft.ch/dicom/3/C.12.1.1.2/
   enum Encoding
   {
     Encoding_Ascii,
@@ -238,11 +239,17 @@ namespace Orthanc
     Encoding_Latin2,
     Encoding_Latin3,
     Encoding_Latin4,
-    Encoding_Latin5,
+    Encoding_Latin5,                        // Turkish
     Encoding_Cyrillic,
     Encoding_Arabic,
     Encoding_Greek,
-    Encoding_Hebrew
+    Encoding_Hebrew,
+    Encoding_Thai,                          // TIS 620-2533
+    Encoding_Japanese,                      // JIS X 0201 (Shift JIS): Katakana
+    Encoding_Chinese                        // GB18030 - Chinese simplified
+    //Encoding_JapaneseKanji,               // Multibyte - JIS X 0208: Kanji
+    //Encoding_JapaneseSupplementaryKanji,  // Multibyte - JIS X 0212: Supplementary Kanji set
+    //Encoding_Korean,                      // Multibyte - KS X 1001: Hangul and Hanja
   };
 
 
@@ -294,4 +301,7 @@ namespace Orthanc
   ImageFormat StringToImageFormat(const char* format);
 
   unsigned int GetBytesPerPixel(PixelFormat format);
+
+  bool GetDicomEncoding(Encoding& encoding,
+                        const char* specificCharacterSet);
 }
