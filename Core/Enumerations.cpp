@@ -298,6 +298,15 @@ namespace Orthanc
       case Encoding_Hebrew:
         return "Hebrew";
 
+      case Encoding_Thai:
+        return "Thai";
+
+      case Encoding_Japanese:
+        return "Japanese";
+
+      case Encoding_Chinese:
+        return "Chinese";
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -362,6 +371,21 @@ namespace Orthanc
     if (s == "HEBREW")
     {
       return Encoding_Hebrew;
+    }
+
+    if (s == "THAI")
+    {
+      return Encoding_Thai;
+    }
+
+    if (s == "JAPANESE")
+    {
+      return Encoding_Japanese;
+    }
+
+    if (s == "CHINESE")
+    {
+      return Encoding_Chinese;
     }
 
     throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -429,5 +453,100 @@ namespace Orthanc
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
+  }
+
+
+  bool GetDicomEncoding(Encoding& encoding,
+                        const char* specificCharacterSet)
+  {
+    std::string s = specificCharacterSet;
+    Toolbox::ToUpperCase(s);
+
+    // http://www.dabsoft.ch/dicom/3/C.12.1.1.2/
+    // https://github.com/dcm4che/dcm4che/blob/master/dcm4che-core/src/main/java/org/dcm4che3/data/SpecificCharacterSet.java
+    if (s == "ISO_IR 6" ||
+        s == "ISO_IR 192" ||
+        s == "ISO 2022 IR 6")
+    {
+      encoding = Encoding_Utf8;
+    }
+    else if (s == "ISO_IR 100" ||
+             s == "ISO 2022 IR 100")
+    {
+      encoding = Encoding_Latin1;
+    }
+    else if (s == "ISO_IR 101" ||
+             s == "ISO 2022 IR 101")
+    {
+      encoding = Encoding_Latin2;
+    }
+    else if (s == "ISO_IR 109" ||
+             s == "ISO 2022 IR 109")
+    {
+      encoding = Encoding_Latin3;
+    }
+    else if (s == "ISO_IR 110" ||
+             s == "ISO 2022 IR 110")
+    {
+      encoding = Encoding_Latin4;
+    }
+    else if (s == "ISO_IR 148" ||
+             s == "ISO 2022 IR 148")
+    {
+      encoding = Encoding_Latin5;
+    }
+    else if (s == "ISO_IR 144" ||
+             s == "ISO 2022 IR 144")
+    {
+      encoding = Encoding_Cyrillic;
+    }
+    else if (s == "ISO_IR 127" ||
+             s == "ISO 2022 IR 127")
+    {
+      encoding = Encoding_Arabic;
+    }
+    else if (s == "ISO_IR 126" ||
+             s == "ISO 2022 IR 126")
+    {
+      encoding = Encoding_Greek;
+    }
+    else if (s == "ISO_IR 138" ||
+             s == "ISO 2022 IR 138")
+    {
+      encoding = Encoding_Hebrew;
+    }
+    else if (s == "ISO_IR 166" || s == "ISO 2022 IR 166")
+    {
+      encoding = Encoding_Thai;
+    }
+    else if (s == "ISO_IR 13" || s == "ISO 2022 IR 13")
+    {
+      encoding = Encoding_Japanese;
+    }
+    else if (s == "GB18030")
+    {
+      encoding = Encoding_Chinese;
+    }
+    /*
+      else if (s == "ISO 2022 IR 149")
+      {
+      TODO
+      }
+      else if (s == "ISO 2022 IR 159")
+      {
+      TODO
+      }
+      else if (s == "ISO 2022 IR 87")
+      {
+      TODO
+      }
+    */
+    else
+    {
+      return false;
+    }
+
+    // The encoding was properly detected
+    return true;
   }
 }

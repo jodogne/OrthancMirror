@@ -532,6 +532,8 @@ namespace Orthanc
   {
     const char* encoding;
 
+
+    // http://bradleyross.users.sourceforge.net/docs/dicom/doc/src-html/org/dcm4che2/data/SpecificCharacterSet.html
     switch (sourceEncoding)
     {
       case Encoding_Utf8:
@@ -575,6 +577,18 @@ namespace Orthanc
 
       case Encoding_Hebrew:
         encoding = "ISO-8859-8";
+        break;
+        
+      case Encoding_Japanese:
+        encoding = "SHIFT-JIS";
+        break;
+
+      case Encoding_Chinese:
+        encoding = "GB18030";
+        break;
+
+      case Encoding_Thai:
+        encoding = "TIS620.2533-0";
         break;
 
       default:

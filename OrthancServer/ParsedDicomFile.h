@@ -116,6 +116,8 @@ namespace Orthanc
                          ImageExtractionMode mode);
 
     Encoding GetEncoding() const;
+
+    void SetEncoding(Encoding encoding);
   };
 
 }

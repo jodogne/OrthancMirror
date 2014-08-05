@@ -128,55 +128,25 @@ namespace Orthanc
     if (dataset.findAndGetOFString(DCM_SpecificCharacterSet, tmp).good())
     {
       std::string characterSet = Toolbox::StripSpaces(std::string(tmp.c_str()));
-      Toolbox::ToUpperCase(characterSet);
 
-      if (characterSet == "ISO_IR 6" ||
-          characterSet == "ISO_IR 192")
+      if (characterSet.empty())
       {
-        encoding = Encoding_Utf8;
+        // Empty specific character set tag: Use the default encoding
       }
-      else if (characterSet == "ISO_IR 100")
+      else if (GetDicomEncoding(encoding, characterSet.c_str()))
       {
-        encoding = Encoding_Latin1;
+        // The specific character set is supported by the Orthanc core
       }
-      else if (characterSet == "ISO_IR 101")
+      else
       {
-        encoding = Encoding_Latin2;
-      }
-      else if (characterSet == "ISO_IR 109")
-      {
-        encoding = Encoding_Latin3;
-      }
-      else if (characterSet == "ISO_IR 110")
-      {
-        encoding = Encoding_Latin4;
-      }
-      else if (characterSet == "ISO_IR 148")
-      {
-        encoding = Encoding_Latin5;
-      }
-      else if (characterSet == "ISO_IR 144")
-      {
-        encoding = Encoding_Cyrillic;
-      }
-      else if (characterSet == "ISO_IR 127")
-      {
-        encoding = Encoding_Arabic;
-      }
-      else if (characterSet == "ISO_IR 126")
-      {
-        encoding = Encoding_Greek;
-      }
-      else if (characterSet == "ISO_IR 138")
-      {
-        encoding = Encoding_Hebrew;
-      }
-      else if (!characterSet.empty())
-      {
-        LOG(WARNING) << "Value of Specific Character Set (0008,0005) is not supported: " << characterSet;
-        // Fallback to ASCII (remove all special characters)
+        LOG(WARNING) << "Value of Specific Character Set (0008,0005) is not supported: " << characterSet
+                     << ", fallback to ASCII (remove all special characters)";
         encoding = Encoding_Ascii;
       }
+    }
+    else
+    {
+      // No specific character set tag: Use the default encoding
     }
 
     return encoding;
