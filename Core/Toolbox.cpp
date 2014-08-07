@@ -124,7 +124,7 @@ namespace Orthanc
   }
 
 
-  static void ServerBarrierInternal(bool* stopFlag)
+  static void ServerBarrierInternal(const bool* stopFlag)
   {
 #if defined(_WIN32)
     SetConsoleCtrlHandler(ConsoleControlHandler, true);
@@ -151,14 +151,14 @@ namespace Orthanc
   }
 
 
-  void Toolbox::ServerBarrier(bool& stopFlag)
+  void Toolbox::ServerBarrier(const bool& stopFlag)
   {
     ServerBarrierInternal(&stopFlag);
   }
 
   void Toolbox::ServerBarrier()
   {
-    bool stopFlag = false;
+    const bool stopFlag = false;
     ServerBarrierInternal(&stopFlag);
   }
 

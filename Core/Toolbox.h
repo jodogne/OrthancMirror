@@ -49,7 +49,7 @@ namespace Orthanc
 
   namespace Toolbox
   {
-    void ServerBarrier(bool& stopFlag);
+    void ServerBarrier(const bool& stopFlag);
 
     void ServerBarrier();
 

@@ -54,6 +54,12 @@ namespace Orthanc
       StringToEnumeration stringToEnumeration_;
 
     public:
+      void Clear()
+      {
+        enumerationToString_.clear();
+        stringToEnumeration_.clear();
+      }
+
       void Add(Enumeration value, const std::string& str)
       {
         // Check if these values are free

@@ -1,8 +1,9 @@
 Pending changes in the mainline
 ===============================
 
-* More fault-tolerant commands in Lua scripts
 * Support of the standard text encodings
+* Hot restart of Orthanc by posting to "/tools/reset"
+* More fault-tolerant commands in Lua scripts
 * Parameter to set the default encoding for DICOM files without SpecificCharacterSet
 * Fix of issue #14 (support of XCode 5.1)
 * Upgrade to Google Test 1.7.0

@@ -56,6 +56,15 @@ namespace Orthanc
   }
 
 
+  void OrthancRestApi::ResetOrthanc(RestApiPostCall& call)
+  {
+    OrthancRestApi::GetApi(call).resetRequestReceived_ = true;
+    call.GetOutput().AnswerBuffer("{}", "application/json");
+  }
+
+
+
+
 
   // Upload of DICOM files through HTTP ---------------------------------------
 
@@ -85,7 +94,8 @@ namespace Orthanc
   // Registration of the various REST handlers --------------------------------
 
   OrthancRestApi::OrthancRestApi(ServerContext& context) : 
-    context_(context)
+    context_(context),
+    resetRequestReceived_(false)
   {
     RegisterSystem();
 
@@ -99,6 +109,7 @@ namespace Orthanc
 
     // Auto-generated directories
     Register("/tools", RestApi::AutoListChildren);
+    Register("/tools/reset", ResetOrthanc);
     Register("/instances/{id}/frames/{frame}", RestApi::AutoListChildren);
   }
 }
