@@ -49,6 +49,8 @@ namespace Orthanc
 
   namespace Toolbox
   {
+    void ServerBarrier(bool& stopFlag);
+
     void ServerBarrier();
 
     void ToUpperCase(std::string& s);  // Inplace version
