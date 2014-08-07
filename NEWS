@@ -1,6 +1,10 @@
 Pending changes in the mainline
 ===============================
 
+
+Version 0.8.2 (2014/08/07)
+==========================
+
 * Support of the standard text encodings
 * Hot restart of Orthanc by posting to "/tools/reset"
 * More fault-tolerant commands in Lua scripts
