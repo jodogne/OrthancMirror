@@ -711,7 +711,7 @@ namespace Orthanc
           return (void*) "";
         }
       }
-      
+
       if (!found)
       {
         try

@@ -49,10 +49,6 @@ namespace Orthanc
 
   RestApiOutput::~RestApiOutput()
   {
-    if (!alreadySent_)
-    {
-      output_.SendHeader(HttpStatus_400_BadRequest);
-    }
   }
   
   void RestApiOutput::CheckStatus()
