@@ -55,16 +55,27 @@ namespace Orthanc
     {
       LOG(INFO) << "Calling system command " << command_ << " on instance " << *it;
 
-      std::string dicom;
-      context_.ReadFile(dicom, *it, FileContentType_Dicom);
+      try
+      {
+        std::string dicom;
+        context_.ReadFile(dicom, *it, FileContentType_Dicom);
 
-      Toolbox::TemporaryFile tmp;
-      tmp.Write(dicom);
+        Toolbox::TemporaryFile tmp;
+        tmp.Write(dicom);
 
-      std::vector<std::string> args = arguments_;
-      args.push_back(tmp.GetPath());
+        std::vector<std::string> args = arguments_;
+        args.push_back(tmp.GetPath());
 
-      Toolbox::ExecuteSystemCommand(command_, args);
+        Toolbox::ExecuteSystemCommand(command_, args);
+
+        // Only chain with other commands if this command succeeds
+        outputs.push_back(*it);
+      }
+      catch (OrthancException& e)
+      {
+        LOG(ERROR) << "Unable to call system command " << command_ 
+                   << " on instance " << *it << " in a Lua script: " << e.What();
+      }
     }
 
     return true;

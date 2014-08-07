@@ -66,16 +66,25 @@ namespace Orthanc
       LOG(INFO) << "Sending resource " << *it << " to peer \"" 
                 << peer_.GetUrl() << "\"";
 
-      context_.ReadFile(client.AccessPostData(), *it, FileContentType_Dicom);
-
-      std::string answer;
-      if (!client.Apply(answer))
+      try
       {
-        LOG(ERROR) << "Unable to send resource " << *it << " to peer \"" << peer_.GetUrl() << "\"";
-        throw OrthancException(ErrorCode_NetworkProtocol);
-      }
+        context_.ReadFile(client.AccessPostData(), *it, FileContentType_Dicom);
 
-      outputs.push_back(*it);
+        std::string answer;
+        if (!client.Apply(answer))
+        {
+          LOG(ERROR) << "Unable to send resource " << *it << " to peer \"" << peer_.GetUrl() << "\"";
+          throw OrthancException(ErrorCode_NetworkProtocol);
+        }
+
+        // Only chain with other commands if this command succeeds
+        outputs.push_back(*it);
+      }
+      catch (OrthancException& e)
+      {
+        LOG(ERROR) << "Unable to forward to an Orthanc peer in a Lua script (instance " 
+                   << *it << ", peer " << peer_.GetUrl() << "): " << e.What();
+      }
     }
 
     return true;
