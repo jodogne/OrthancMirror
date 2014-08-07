@@ -44,24 +44,32 @@ namespace Orthanc
     {
       LOG(INFO) << "Modifying resource " << *it;
 
-      std::auto_ptr<ParsedDicomFile> modified;
-
+      try
       {
-        ServerContext::DicomCacheLocker lock(context_, *it);
-        modified.reset(lock.GetDicom().Clone());
+        std::auto_ptr<ParsedDicomFile> modified;
+
+        {
+          ServerContext::DicomCacheLocker lock(context_, *it);
+          modified.reset(lock.GetDicom().Clone());
+        }
+
+        modification_.Apply(*modified);
+
+        DicomInstanceToStore toStore;
+        toStore.SetParsedDicomFile(*modified);
+        // TODO other metadata
+        toStore.AddMetadata(ResourceType_Instance, MetadataType_ModifiedFrom, *it);
+
+        std::string modifiedId;
+        context_.Store(modifiedId, toStore);
+
+        // Only chain with other commands if this command succeeds
+        outputs.push_back(modifiedId);
       }
-
-      modification_.Apply(*modified);
-
-      DicomInstanceToStore toStore;
-      toStore.SetParsedDicomFile(*modified);
-      // TODO other metadata
-      toStore.AddMetadata(ResourceType_Instance, MetadataType_ModifiedFrom, *it);
-
-      std::string modifiedId;
-      context_.Store(modifiedId, toStore);
-
-      outputs.push_back(modifiedId);
+      catch (OrthancException& e)
+      {
+        LOG(ERROR) << "Unable to modify instance " << *it << " in a Lua script: " << e.What();
+      }
     }
 
     return true;

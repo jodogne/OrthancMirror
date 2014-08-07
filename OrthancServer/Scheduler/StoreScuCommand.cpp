@@ -54,11 +54,22 @@ namespace Orthanc
       LOG(INFO) << "Sending resource " << *it << " to modality \"" 
                 << modality_.GetApplicationEntityTitle() << "\"";
 
-      std::string dicom;
-      context_.ReadFile(dicom, *it, FileContentType_Dicom);
-      locker.GetConnection().Store(dicom);
+      try
+      {
+        std::string dicom;
+        context_.ReadFile(dicom, *it, FileContentType_Dicom);
+        locker.GetConnection().Store(dicom);
 
-      outputs.push_back(*it);
+        // Only chain with other commands if this command succeeds
+        outputs.push_back(*it);
+      }
+      catch (OrthancException& e)
+      {
+        // Ignore transmission errors (e.g. if the remote modality is
+        // powered off)
+        LOG(ERROR) << "Unable to forward to a modality in a Lua script (instance " 
+                   << *it << "): " << e.What();
+      }
     }
 
     return true;

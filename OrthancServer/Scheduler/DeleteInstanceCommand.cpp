@@ -44,8 +44,15 @@ namespace Orthanc
     {
       LOG(INFO) << "Deleting instance " << *it;
 
-      Json::Value tmp;
-      context_.GetIndex().DeleteResource(tmp, *it, ResourceType_Instance);
+      try
+      {
+        Json::Value tmp;
+        context_.GetIndex().DeleteResource(tmp, *it, ResourceType_Instance);
+      }
+      catch (OrthancException& e)
+      {
+        LOG(ERROR) << "Unable to delete instance " << *it << " in a Lua script: " << e.What();
+      }
     }
 
     return true;
