@@ -729,6 +729,19 @@ TEST(Toolbox, ExecuteSystemCommand)
 #endif
 
 
+TEST(Toolbox, IsInteger)
+{
+  ASSERT_TRUE(Toolbox::IsInteger("00236"));
+  ASSERT_TRUE(Toolbox::IsInteger("-0042"));
+  ASSERT_TRUE(Toolbox::IsInteger("0"));
+  ASSERT_TRUE(Toolbox::IsInteger("-0"));
+
+  ASSERT_FALSE(Toolbox::IsInteger(""));
+  ASSERT_FALSE(Toolbox::IsInteger("42a"));
+  ASSERT_FALSE(Toolbox::IsInteger("42-"));
+}
+
+
 int main(int argc, char **argv)
 {
   // Initialize Google's logging library.

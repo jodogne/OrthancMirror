@@ -149,5 +149,7 @@ namespace Orthanc
 
     void ExecuteSystemCommand(const std::string& command,
                               const std::vector<std::string>& arguments);
+
+    bool IsInteger(const std::string& str);
   }
 }

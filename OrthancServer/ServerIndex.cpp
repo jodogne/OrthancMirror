@@ -252,18 +252,21 @@ namespace Orthanc
 
   void ServerIndex::FlushThread(ServerIndex* that)
   {
-    unsigned int sleep;
+    // By default, wait for 10 seconds before flushing
+    unsigned int sleep = 10;
 
     try
     {
       boost::mutex::scoped_lock lock(that->mutex_);
       std::string sleepString = that->db_->GetGlobalProperty(GlobalProperty_FlushSleep);
-      sleep = boost::lexical_cast<unsigned int>(sleepString);
+
+      if (Toolbox::IsInteger(sleepString))
+      {
+        sleep = boost::lexical_cast<unsigned int>(sleepString);
+      }
     }
     catch (boost::bad_lexical_cast&)
     {
-      // By default, wait for 10 seconds before flushing
-      sleep = 10;
     }
 
     LOG(INFO) << "Starting the database flushing thread (sleep = " << sleep << ")";

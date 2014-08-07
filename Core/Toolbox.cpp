@@ -1067,5 +1067,39 @@ namespace Orthanc
       throw OrthancException(ErrorCode_SystemCommand);
     }
   }
+
+  
+  bool Toolbox::IsInteger(const std::string& str)
+  {
+    std::string s = StripSpaces(str);
+
+    if (s.size() == 0)
+    {
+      return false;
+    }
+
+    size_t pos = 0;
+    if (s[0] == '-')
+    {
+      if (s.size() == 1)
+      {
+        return false;
+      }
+
+      pos = 1;
+    }
+
+    while (pos < s.size())
+    {
+      if (!isdigit(s[pos]))
+      {
+        return false;
+      }
+
+      pos++;
+    }
+
+    return true;
+  }
 }
 
