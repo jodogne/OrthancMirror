@@ -314,6 +314,140 @@ static void LoadPlugins(PluginsManager& pluginsManager)
 
 
 
+static bool StartOrthanc()
+{
+  std::string storageDirectoryStr = Configuration::GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
+  boost::filesystem::path storageDirectory = Configuration::InterpretStringParameterAsPath(storageDirectoryStr);
+  boost::filesystem::path indexDirectory = Configuration::InterpretStringParameterAsPath(
+    Configuration::GetGlobalStringParameter("IndexDirectory", storageDirectoryStr));
+  ServerContext context(storageDirectory, indexDirectory);
+
+  LOG(WARNING) << "Storage directory: " << storageDirectory;
+  LOG(WARNING) << "Index directory: " << indexDirectory;
+
+  context.SetCompressionEnabled(Configuration::GetGlobalBoolParameter("StorageCompression", false));
+  context.SetStoreMD5ForAttachments(Configuration::GetGlobalBoolParameter("StoreMD5ForAttachments", true));
+
+  LoadLuaScripts(context);
+
+  try
+  {
+    context.GetIndex().SetMaximumPatientCount(Configuration::GetGlobalIntegerParameter("MaximumPatientCount", 0));
+  }
+  catch (...)
+  {
+    context.GetIndex().SetMaximumPatientCount(0);
+  }
+
+  try
+  {
+    uint64_t size = Configuration::GetGlobalIntegerParameter("MaximumStorageSize", 0);
+    context.GetIndex().SetMaximumStorageSize(size * 1024 * 1024);
+  }
+  catch (...)
+  {
+    context.GetIndex().SetMaximumStorageSize(0);
+  }
+
+  MyDicomServerFactory serverFactory(context);
+  bool isReset = false;
+    
+  {
+    // DICOM server
+    DicomServer dicomServer;
+    OrthancApplicationEntityFilter dicomFilter;
+    dicomServer.SetCalledApplicationEntityTitleCheck(Configuration::GetGlobalBoolParameter("DicomCheckCalledAet", false));
+    dicomServer.SetStoreRequestHandlerFactory(serverFactory);
+    dicomServer.SetMoveRequestHandlerFactory(serverFactory);
+    dicomServer.SetFindRequestHandlerFactory(serverFactory);
+    dicomServer.SetPortNumber(Configuration::GetGlobalIntegerParameter("DicomPort", 4242));
+    dicomServer.SetApplicationEntityTitle(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"));
+    dicomServer.SetApplicationEntityFilter(dicomFilter);
+
+    // HTTP server
+    MyIncomingHttpRequestFilter httpFilter(context);
+    MongooseServer httpServer;
+    httpServer.SetPortNumber(Configuration::GetGlobalIntegerParameter("HttpPort", 8042));
+    httpServer.SetRemoteAccessAllowed(Configuration::GetGlobalBoolParameter("RemoteAccessAllowed", false));
+    httpServer.SetIncomingHttpRequestFilter(httpFilter);
+
+    httpServer.SetAuthenticationEnabled(Configuration::GetGlobalBoolParameter("AuthenticationEnabled", false));
+    Configuration::SetupRegisteredUsers(httpServer);
+
+    if (Configuration::GetGlobalBoolParameter("SslEnabled", false))
+    {
+      std::string certificate = Configuration::InterpretStringParameterAsPath(
+        Configuration::GetGlobalStringParameter("SslCertificate", "certificate.pem"));
+      httpServer.SetSslEnabled(true);
+      httpServer.SetSslCertificate(certificate.c_str());
+    }
+    else
+    {
+      httpServer.SetSslEnabled(false);
+    }
+
+    OrthancRestApi restApi(context);
+
+#if ORTHANC_STANDALONE == 1
+    EmbeddedResourceHttpHandler staticResources("/app", EmbeddedResources::ORTHANC_EXPLORER);
+#else
+    FilesystemHttpHandler staticResources("/app", ORTHANC_PATH "/OrthancExplorer");
+#endif
+
+    PluginsHttpHandler httpPlugins(context);
+    httpPlugins.SetOrthancRestApi(restApi);
+
+    PluginsManager pluginsManager;
+    pluginsManager.RegisterServiceProvider(httpPlugins);
+    LoadPlugins(pluginsManager);
+
+    httpServer.RegisterHandler(httpPlugins);
+    httpServer.RegisterHandler(staticResources);
+    httpServer.RegisterHandler(restApi);
+    httpPlugins.SetOrthancRestApi(restApi);
+    context.SetPluginsHttpHandler(httpPlugins);
+
+    // GO !!! Start the requested servers
+    if (Configuration::GetGlobalBoolParameter("HttpServerEnabled", true))
+    {
+      httpServer.Start();
+      LOG(WARNING) << "HTTP server listening on port: " << httpServer.GetPortNumber();
+    }
+    else
+    {
+      LOG(WARNING) << "The HTTP server is disabled";
+    }
+
+    if (Configuration::GetGlobalBoolParameter("DicomServerEnabled", true))
+    {
+      dicomServer.Start();
+      LOG(WARNING) << "DICOM server listening on port: " << dicomServer.GetPortNumber();
+    }
+    else
+    {
+      LOG(WARNING) << "The DICOM server is disabled";
+    }
+
+    LOG(WARNING) << "Orthanc has started";
+    Toolbox::ServerBarrier(restApi.ResetRequestReceivedFlag());
+    isReset = restApi.ResetRequestReceivedFlag();
+
+    if (isReset)
+    {
+      LOG(WARNING) << "Reset request received, restarting Orthanc";
+    }
+
+    // We're done
+    LOG(WARNING) << "Orthanc is stopping";
+  }
+
+  serverFactory.Done();
+
+  return isReset;
+}
+
+
+
 
 int main(int argc, char* argv[]) 
 {
@@ -388,136 +522,29 @@ int main(int argc, char* argv[])
   int status = 0;
   try
   {
-    OrthancInitialize(configurationFile);
-
-    std::string storageDirectoryStr = Configuration::GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
-    boost::filesystem::path storageDirectory = Configuration::InterpretStringParameterAsPath(storageDirectoryStr);
-    boost::filesystem::path indexDirectory = Configuration::InterpretStringParameterAsPath(
-        Configuration::GetGlobalStringParameter("IndexDirectory", storageDirectoryStr));
-    ServerContext context(storageDirectory, indexDirectory);
-
-    LOG(WARNING) << "Storage directory: " << storageDirectory;
-    LOG(WARNING) << "Index directory: " << indexDirectory;
-
-    context.SetCompressionEnabled(Configuration::GetGlobalBoolParameter("StorageCompression", false));
-    context.SetStoreMD5ForAttachments(Configuration::GetGlobalBoolParameter("StoreMD5ForAttachments", true));
-
-    LoadLuaScripts(context);
-
-    try
+    for (;;)
     {
-      context.GetIndex().SetMaximumPatientCount(Configuration::GetGlobalIntegerParameter("MaximumPatientCount", 0));
-    }
-    catch (...)
-    {
-      context.GetIndex().SetMaximumPatientCount(0);
-    }
+      OrthancInitialize(configurationFile);
 
-    try
-    {
-      uint64_t size = Configuration::GetGlobalIntegerParameter("MaximumStorageSize", 0);
-      context.GetIndex().SetMaximumStorageSize(size * 1024 * 1024);
-    }
-    catch (...)
-    {
-      context.GetIndex().SetMaximumStorageSize(0);
-    }
-
-    MyDicomServerFactory serverFactory(context);
-    
-    {
-      // DICOM server
-      DicomServer dicomServer;
-      OrthancApplicationEntityFilter dicomFilter;
-      dicomServer.SetCalledApplicationEntityTitleCheck(Configuration::GetGlobalBoolParameter("DicomCheckCalledAet", false));
-      dicomServer.SetStoreRequestHandlerFactory(serverFactory);
-      dicomServer.SetMoveRequestHandlerFactory(serverFactory);
-      dicomServer.SetFindRequestHandlerFactory(serverFactory);
-      dicomServer.SetPortNumber(Configuration::GetGlobalIntegerParameter("DicomPort", 4242));
-      dicomServer.SetApplicationEntityTitle(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"));
-      dicomServer.SetApplicationEntityFilter(dicomFilter);
-
-      // HTTP server
-      MyIncomingHttpRequestFilter httpFilter(context);
-      MongooseServer httpServer;
-      httpServer.SetPortNumber(Configuration::GetGlobalIntegerParameter("HttpPort", 8042));
-      httpServer.SetRemoteAccessAllowed(Configuration::GetGlobalBoolParameter("RemoteAccessAllowed", false));
-      httpServer.SetIncomingHttpRequestFilter(httpFilter);
-
-      httpServer.SetAuthenticationEnabled(Configuration::GetGlobalBoolParameter("AuthenticationEnabled", false));
-      Configuration::SetupRegisteredUsers(httpServer);
-
-      if (Configuration::GetGlobalBoolParameter("SslEnabled", false))
+      bool reset = StartOrthanc();
+      if (reset)
       {
-        std::string certificate = Configuration::InterpretStringParameterAsPath(
-          Configuration::GetGlobalStringParameter("SslCertificate", "certificate.pem"));
-        httpServer.SetSslEnabled(true);
-        httpServer.SetSslCertificate(certificate.c_str());
+        OrthancFinalize();
       }
       else
       {
-        httpServer.SetSslEnabled(false);
+        break;
       }
-
-      OrthancRestApi restApi(context);
-
-#if ORTHANC_STANDALONE == 1
-      EmbeddedResourceHttpHandler staticResources("/app", EmbeddedResources::ORTHANC_EXPLORER);
-#else
-      FilesystemHttpHandler staticResources("/app", ORTHANC_PATH "/OrthancExplorer");
-#endif
-
-      PluginsHttpHandler httpPlugins(context);
-      httpPlugins.SetOrthancRestApi(restApi);
-
-      PluginsManager pluginsManager;
-      pluginsManager.RegisterServiceProvider(httpPlugins);
-      LoadPlugins(pluginsManager);
-
-      httpServer.RegisterHandler(httpPlugins);
-      httpServer.RegisterHandler(staticResources);
-      httpServer.RegisterHandler(restApi);
-      httpPlugins.SetOrthancRestApi(restApi);
-      context.SetPluginsHttpHandler(httpPlugins);
-
-      // GO !!! Start the requested servers
-      if (Configuration::GetGlobalBoolParameter("HttpServerEnabled", true))
-      {
-        httpServer.Start();
-        LOG(WARNING) << "HTTP server listening on port: " << httpServer.GetPortNumber();
-      }
-      else
-      {
-        LOG(WARNING) << "The HTTP server is disabled";
-      }
-
-      if (Configuration::GetGlobalBoolParameter("DicomServerEnabled", true))
-      {
-        dicomServer.Start();
-        LOG(WARNING) << "DICOM server listening on port: " << dicomServer.GetPortNumber();
-      }
-      else
-      {
-        LOG(WARNING) << "The DICOM server is disabled";
-      }
-
-      LOG(WARNING) << "Orthanc has started";
-      Toolbox::ServerBarrier();
-
-      // We're done
-      LOG(WARNING) << "Orthanc is stopping";
     }
-
-    serverFactory.Done();
   }
   catch (OrthancException& e)
   {
-    LOG(ERROR) << "EXCEPTION [" << e.What() << "]";
+    LOG(ERROR) << "Uncaught exception, stopping now: [" << e.What() << "]";
     status = -1;
   }
   catch (...)
   {
-    LOG(ERROR) << "NATIVE EXCEPTION";
+    LOG(ERROR) << "Native exception, stopping now";
     status = -1;
   }
 

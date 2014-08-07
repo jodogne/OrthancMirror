@@ -47,6 +47,7 @@ namespace Orthanc
 
   private:
     ServerContext& context_;
+    bool resetRequestReceived_;
 
     void RegisterSystem();
 
@@ -60,8 +61,15 @@ namespace Orthanc
 
     void RegisterArchive();
 
+    static void ResetOrthanc(RestApiPostCall& call);
+
   public:
     OrthancRestApi(ServerContext& context);
+
+    const bool& ResetRequestReceivedFlag() const
+    {
+      return resetRequestReceived_;
+    }
 
     static OrthancRestApi& GetApi(RestApiCall& call)
     {
