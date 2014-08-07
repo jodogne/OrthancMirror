@@ -124,7 +124,7 @@ namespace Orthanc
   }
 
 
-  void Toolbox::ServerBarrier()
+  static void ServerBarrierInternal(bool* stopFlag)
   {
 #if defined(_WIN32)
     SetConsoleCtrlHandler(ConsoleControlHandler, true);
@@ -134,10 +134,11 @@ namespace Orthanc
     signal(SIGTERM, SignalHandler);
 #endif
   
+    // Active loop that awakens every 100ms
     finish = false;
-    while (!finish)
+    while (!(*stopFlag || finish))
     {
-      USleep(100000);
+      Toolbox::USleep(100 * 1000);
     }
 
 #if defined(_WIN32)
@@ -149,6 +150,17 @@ namespace Orthanc
 #endif
   }
 
+
+  void Toolbox::ServerBarrier(bool& stopFlag)
+  {
+    ServerBarrierInternal(&stopFlag);
+  }
+
+  void Toolbox::ServerBarrier()
+  {
+    bool stopFlag = false;
+    ServerBarrierInternal(&stopFlag);
+  }
 
 
   void Toolbox::ToUpperCase(std::string& s)
