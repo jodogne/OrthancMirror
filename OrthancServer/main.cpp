@@ -373,28 +373,22 @@ int main(int argc, char* argv[])
 
   google::InitGoogleLogging("Orthanc");
 
+  const char* configurationFile = NULL;
+  for (int i = 1; i < argc; i++)
+  {
+    // Use the first argument that does not start with a "-" as
+    // the configuration file
+    if (argv[i][0] != '-')
+    {
+      configurationFile = argv[i];
+    }
+  }
+
+
   int status = 0;
   try
   {
-    bool isInitialized = false;
-    if (argc >= 2)
-    {
-      for (int i = 1; i < argc; i++)
-      {
-        // Use the first argument that does not start with a "-" as
-        // the configuration file
-        if (argv[i][0] != '-')
-        {
-          OrthancInitialize(argv[i]);
-          isInitialized = true;
-        }
-      }
-    }
-
-    if (!isInitialized)
-    {
-      OrthancInitialize();
-    }
+    OrthancInitialize(configurationFile);
 
     std::string storageDirectoryStr = Configuration::GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
     boost::filesystem::path storageDirectory = Configuration::InterpretStringParameterAsPath(storageDirectoryStr);
