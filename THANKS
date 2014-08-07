@@ -8,8 +8,8 @@ various improvements, or submitting actual code. Please help keep it
 complete and exempt or errors.
 
 
-Code contributors
------------------
+Contributors
+------------
 
 * Cyril Paulus <cyril.paulus@student.ulg.ac.be>, for the build process
   and suggestions about the REST API.
@@ -20,6 +20,8 @@ Code contributors
 * 12maksqwe@gmail.com, for fixing issue #8.
 * Julien Nabet, for various suggestions to improve the source code.
 * Karsten Hilbert <Karsten.Hilbert@gmx.net>, for in-depth testing.
+* Marek Swiecicki <mswiecicki@archimedic.pl>, for various suggestions
+  and sample DICOM files.
 
 Thanks also to all the contributors active in our Google Group:
 https://groups.google.com/forum/#!forum/orthanc-users
