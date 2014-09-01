@@ -547,190 +547,214 @@ namespace Orthanc
   }
 
 
+  static void InternalCallback(struct mg_connection *connection,
+                               const struct mg_request_info *request)
+  {
+    MongooseServer* that = reinterpret_cast<MongooseServer*>(request->user_data);
+    MongooseOutputStream stream(connection);
+    HttpOutput output(stream);
 
+    // Check remote calls
+    if (!that->IsRemoteAccessAllowed() &&
+        request->remote_ip != LOCALHOST)
+    {
+      output.SendUnauthorized(ORTHANC_REALM);
+      return;
+    }
+
+
+    // Extract the HTTP headers
+    HttpHandler::Arguments headers;
+    for (int i = 0; i < request->num_headers; i++)
+    {
+      std::string name = request->http_headers[i].name;
+      std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+      headers.insert(std::make_pair(name, request->http_headers[i].value));
+    }
+
+
+    // Extract the GET arguments
+    HttpHandler::Arguments argumentsGET;
+    if (!strcmp(request->request_method, "GET"))
+    {
+      HttpHandler::ParseGetArguments(argumentsGET, request->query_string);
+    }
+
+
+    // Compute the HTTP method, taking method faking into consideration
+    HttpMethod method;
+    if (!ExtractMethod(method, request, headers, argumentsGET))
+    {
+      output.SendHeader(HttpStatus_400_BadRequest);
+      return;
+    }
+
+
+    // Authenticate this connection
+    if (that->IsAuthenticationEnabled() &&
+        !Authorize(*that, headers, output))
+    {
+      return;
+    }
+
+
+    // Apply the filter, if it is installed
+    const IIncomingHttpRequestFilter *filter = that->GetIncomingHttpRequestFilter();
+    if (filter != NULL)
+    {
+      std::string username = GetAuthenticatedUsername(headers);
+
+      char remoteIp[24];
+      sprintf(remoteIp, "%d.%d.%d.%d", 
+              reinterpret_cast<const uint8_t*>(&request->remote_ip) [3], 
+              reinterpret_cast<const uint8_t*>(&request->remote_ip) [2], 
+              reinterpret_cast<const uint8_t*>(&request->remote_ip) [1], 
+              reinterpret_cast<const uint8_t*>(&request->remote_ip) [0]);
+
+      if (!filter->IsAllowed(method, request->uri, remoteIp, username.c_str()))
+      {
+        output.SendUnauthorized(ORTHANC_REALM);
+        return;
+      }
+    }
+
+
+    // Extract the body of the request for PUT and POST
+    std::string body;
+    if (method == HttpMethod_Post ||
+        method == HttpMethod_Put)
+    {
+      PostDataStatus status;
+
+      HttpHandler::Arguments::const_iterator ct = headers.find("content-type");
+      if (ct == headers.end())
+      {
+        // No content-type specified. Assume no multi-part content occurs at this point.
+        status = ReadBody(body, connection, headers);          
+      }
+      else
+      {
+        std::string contentType = ct->second;
+        if (contentType.size() >= multipartLength &&
+            !memcmp(contentType.c_str(), multipart, multipartLength))
+        {
+          status = ParseMultipartPost(body, connection, headers, contentType, that->GetChunkStore());
+        }
+        else
+        {
+          status = ReadBody(body, connection, headers);
+        }
+      }
+
+      switch (status)
+      {
+        case PostDataStatus_NoLength:
+          output.SendHeader(HttpStatus_411_LengthRequired);
+          return;
+
+        case PostDataStatus_Failure:
+          output.SendHeader(HttpStatus_400_BadRequest);
+          return;
+
+        case PostDataStatus_Pending:
+          output.AnswerBufferWithContentType(NULL, 0, "");
+          return;
+
+        default:
+          break;
+      }
+    }
+
+
+    // Decompose the URI into its components
+    UriComponents uri;
+    try
+    {
+      Toolbox::SplitUriComponents(uri, request->uri);
+    }
+    catch (OrthancException)
+    {
+      output.SendHeader(HttpStatus_400_BadRequest);
+      return;
+    }
+
+
+    // Loop over the candidate handlers for this URI
+    LOG(INFO) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
+    bool found = false;
+
+    for (MongooseServer::Handlers::const_iterator it = 
+           that->GetHandlers().begin(); it != that->GetHandlers().end() && !found; ++it) 
+    {
+      try
+      {
+        found = (*it)->Handle(output, method, uri, headers, argumentsGET, body);
+      }
+      catch (OrthancException& e)
+      {
+        // Using this candidate handler results in an exception
+        LOG(ERROR) << "Exception in the HTTP handler: " << e.What();
+        return;
+      }
+      catch (boost::bad_lexical_cast&)
+      {
+        LOG(ERROR) << "Exception in the HTTP handler: Bad lexical cast";
+        return;
+      }
+      catch (std::runtime_error&)
+      {
+        LOG(ERROR) << "Exception in the HTTP handler: Presumably a bad JSON request";
+        return;
+      }
+    }
+
+    if (!found)
+    {
+      try
+      {
+        output.SendHeader(HttpStatus_404_NotFound);
+      }
+      catch (OrthancException&)
+      {
+      }
+    }
+  }
+
+
+#if MONGOOSE_USE_CALLBACKS == 0
   static void* Callback(enum mg_event event,
                         struct mg_connection *connection,
                         const struct mg_request_info *request)
   {
     if (event == MG_NEW_REQUEST) 
     {
-      MongooseServer* that = reinterpret_cast<MongooseServer*>(request->user_data);
-      MongooseOutputStream stream(connection);
-      HttpOutput output(stream);
-
-      // Check remote calls
-      if (!that->IsRemoteAccessAllowed() &&
-          request->remote_ip != LOCALHOST)
-      {
-        output.SendUnauthorized(ORTHANC_REALM);
-        return (void*) "";
-      }
-
-
-      // Extract the HTTP headers
-      HttpHandler::Arguments headers;
-      for (int i = 0; i < request->num_headers; i++)
-      {
-        std::string name = request->http_headers[i].name;
-        std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-        headers.insert(std::make_pair(name, request->http_headers[i].value));
-      }
-
-
-      // Extract the GET arguments
-      HttpHandler::Arguments argumentsGET;
-      if (!strcmp(request->request_method, "GET"))
-      {
-        HttpHandler::ParseGetArguments(argumentsGET, request->query_string);
-      }
-
-
-      // Compute the HTTP method, taking method faking into consideration
-      HttpMethod method;
-      if (!ExtractMethod(method, request, headers, argumentsGET))
-      {
-        output.SendHeader(HttpStatus_400_BadRequest);
-        return (void*) "";
-      }
-
-
-      // Authenticate this connection
-      if (that->IsAuthenticationEnabled() &&
-          !Authorize(*that, headers, output))
-      {
-        return (void*) "";
-      }
-
-
-      // Apply the filter, if it is installed
-      const IIncomingHttpRequestFilter *filter = that->GetIncomingHttpRequestFilter();
-      if (filter != NULL)
-      {
-        std::string username = GetAuthenticatedUsername(headers);
-
-        char remoteIp[24];
-        sprintf(remoteIp, "%d.%d.%d.%d", 
-                reinterpret_cast<const uint8_t*>(&request->remote_ip) [3], 
-                reinterpret_cast<const uint8_t*>(&request->remote_ip) [2], 
-                reinterpret_cast<const uint8_t*>(&request->remote_ip) [1], 
-                reinterpret_cast<const uint8_t*>(&request->remote_ip) [0]);
-
-        if (!filter->IsAllowed(method, request->uri, remoteIp, username.c_str()))
-        {
-          output.SendUnauthorized(ORTHANC_REALM);
-          return (void*) "";
-        }
-      }
-
-
-      // Extract the body of the request for PUT and POST
-      std::string body;
-      if (method == HttpMethod_Post ||
-          method == HttpMethod_Put)
-      {
-        PostDataStatus status;
-
-        HttpHandler::Arguments::const_iterator ct = headers.find("content-type");
-        if (ct == headers.end())
-        {
-          // No content-type specified. Assume no multi-part content occurs at this point.
-          status = ReadBody(body, connection, headers);          
-        }
-        else
-        {
-          std::string contentType = ct->second;
-          if (contentType.size() >= multipartLength &&
-              !memcmp(contentType.c_str(), multipart, multipartLength))
-          {
-            status = ParseMultipartPost(body, connection, headers, contentType, that->GetChunkStore());
-          }
-          else
-          {
-            status = ReadBody(body, connection, headers);
-          }
-        }
-
-        switch (status)
-        {
-          case PostDataStatus_NoLength:
-            output.SendHeader(HttpStatus_411_LengthRequired);
-            return (void*) "";
-
-          case PostDataStatus_Failure:
-            output.SendHeader(HttpStatus_400_BadRequest);
-            return (void*) "";
-
-          case PostDataStatus_Pending:
-            output.AnswerBufferWithContentType(NULL, 0, "");
-            return (void*) "";
-
-          default:
-            break;
-        }
-      }
-
-
-      // Decompose the URI into its components
-      UriComponents uri;
-      try
-      {
-        Toolbox::SplitUriComponents(uri, request->uri);
-      }
-      catch (OrthancException)
-      {
-        output.SendHeader(HttpStatus_400_BadRequest);
-        return (void*) "";
-      }
-
-
-      // Loop over the candidate handlers for this URI
-      LOG(INFO) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
-      bool found = false;
-
-      for (MongooseServer::Handlers::const_iterator it = 
-             that->GetHandlers().begin(); it != that->GetHandlers().end() && !found; ++it) 
-      {
-        try
-        {
-          found = (*it)->Handle(output, method, uri, headers, argumentsGET, body);
-        }
-        catch (OrthancException& e)
-        {
-          // Using this candidate handler results in an exception
-          LOG(ERROR) << "Exception in the HTTP handler: " << e.What();
-          return (void*) "";
-        }
-        catch (boost::bad_lexical_cast&)
-        {
-          LOG(ERROR) << "Exception in the HTTP handler: Bad lexical cast";
-          return (void*) "";
-        }
-        catch (std::runtime_error&)
-        {
-          LOG(ERROR) << "Exception in the HTTP handler: Presumably a bad JSON request";
-          return (void*) "";
-        }
-      }
-
-      if (!found)
-      {
-        try
-        {
-          output.SendHeader(HttpStatus_404_NotFound);
-        }
-        catch (OrthancException&)
-        {
-        }
-      }
+      InternalCallback(connection, request);
 
       // Mark as processed
       return (void*) "";
-    } 
-    else 
+    }
+    else
     {
       return NULL;
     }
   }
+
+#elif MONGOOSE_USE_CALLBACKS == 1
+  static int Callback(struct mg_connection *connection)
+  {
+    struct mg_request_info *request = mg_get_request_info(connection);
+
+    InternalCallback(connection, request);
+
+    return 1;  // Do not let Mongoose handle the request by itself
+  }
+
+#else
+#error Please set MONGOOSE_USE_CALLBACKS
+#endif
+
+
+
 
 
   bool MongooseServer::IsRunning() const
@@ -798,7 +822,19 @@ namespace Orthanc
         NULL
       };
 
+#if MONGOOSE_USE_CALLBACKS == 0
       pimpl_->context_ = mg_start(&Callback, this, options);
+
+#elif MONGOOSE_USE_CALLBACKS == 1
+      struct mg_callbacks callbacks;
+      memset(&callbacks, 0, sizeof(callbacks));
+      callbacks.begin_request = Callback;
+      pimpl_->context_ = mg_start(&callbacks, this, options);
+
+#else
+#error Please set MONGOOSE_USE_CALLBACKS
+#endif
+
       if (!pimpl_->context_)
       {
         throw OrthancException("Unable to launch the Mongoose server");
