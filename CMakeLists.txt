@@ -44,6 +44,8 @@ SET(USE_SYSTEM_PLUSTACHE OFF CACHE BOOL "Use the system version of Plustache (ex
 # Distribution-specific settings
 SET(USE_GTEST_DEBIAN_SOURCE_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
 mark_as_advanced(USE_GTEST_DEBIAN_SOURCE_PACKAGE)
+SET(SYSTEM_MONGOOSE_USE_CALLBACKS ON CACHE BOOL "The system version of Mongoose uses callbacks (version >= 3.7)")
+mark_as_advanced(SYSTEM_MONGOOSE_USE_CALLBACKS)
 
 # Path to the root folder of the Orthanc distribution
 set(ORTHANC_ROOT ${CMAKE_SOURCE_DIR})

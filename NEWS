@@ -1,6 +1,9 @@
 Pending changes in the mainline
 ===============================
 
+* Upgrade to Mongoose 3.8 (the last release under the MIT license)
+* Fixes for Visual Studio 2013 and Visual Studio 64bit
+
 
 Version 0.8.2 (2014/08/07)
 ==========================

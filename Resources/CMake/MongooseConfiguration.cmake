@@ -1,13 +1,30 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_MONGOOSE)
   SET(MONGOOSE_SOURCES_DIR ${CMAKE_BINARY_DIR}/mongoose)
-  DownloadPackage(
-    "e718fc287b4eb1bd523be3fa00942bb0"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/mongoose-3.1.tgz"
-    "${MONGOOSE_SOURCES_DIR}")
+
+  if (0)
+    # Use Mongoose 3.1
+    DownloadPackage(
+      "e718fc287b4eb1bd523be3fa00942bb0"
+      "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/mongoose-3.1.tgz"
+      "${MONGOOSE_SOURCES_DIR}")
+    
+    add_definitions(-DMONGOOSE_USE_CALLBACKS=0)
+    set(MONGOOSE_PATCH ${ORTHANC_ROOT}/Resources/Patches/mongoose-3.1-patch.diff)
+
+  else() 
+    # Use Mongoose 3.8
+    DownloadPackage(
+      "7e3296295072792cdc3c633f9404e0c3"
+      "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/mongoose-3.8.tgz"
+      "${MONGOOSE_SOURCES_DIR}")
+    
+    add_definitions(-DMONGOOSE_USE_CALLBACKS=1)
+    set(MONGOOSE_PATCH ${ORTHANC_ROOT}/Resources/Patches/mongoose-3.8-patch.diff)
+  endif()
 
   # Patch mongoose
   execute_process(
-    COMMAND patch mongoose.c ${ORTHANC_ROOT}/Resources/Patches/mongoose-3.1-patch.diff
+    COMMAND patch mongoose.c ${MONGOOSE_PATCH}
     WORKING_DIRECTORY ${MONGOOSE_SOURCES_DIR}
     )
 
@@ -56,5 +73,13 @@ else()
     message(FATAL_ERROR "Please install the mongoose-devel package")
   endif()
 
+  if (SYSTEM_MONGOOSE_USE_CALLBACKS)
+    add_definitions(-DMONGOOSE_USE_CALLBACKS=1)
+  else()
+    add_definitions(-DMONGOOSE_USE_CALLBACKS=0)
+  endif()
+
   link_libraries(mongoose)
 endif()
+
+
