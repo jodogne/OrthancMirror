@@ -59,6 +59,12 @@
  * used by both C and C++ code, so we put all the C++ together.
  */
 
+// Fix by Sebastien Jodogne for Visual Studio 2013
+// https://code.google.com/p/google-glog/issues/detail?id=212
+#if defined(_MSC_VER) && (_MSC_VER >= 1800)
+#include <algorithm>
+#endif
+
 /* 4244: otherwise we get problems when substracting two size_t's to an int
  * 4251: it's complaining about a private struct I've chosen not to dllexport
  * 4355: we use this in a constructor, but we do it safely
