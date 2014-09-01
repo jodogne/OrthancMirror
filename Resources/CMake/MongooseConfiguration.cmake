@@ -7,7 +7,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_MONGOOSE)
 
   # Patch mongoose
   execute_process(
-    COMMAND patch mongoose.c ${ORTHANC_ROOT}/Resources/Patches/mongoose-patch.diff
+    COMMAND patch mongoose.c ${ORTHANC_ROOT}/Resources/Patches/mongoose-3.1-patch.diff
     WORKING_DIRECTORY ${MONGOOSE_SOURCES_DIR}
     )
 

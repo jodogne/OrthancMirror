@@ -785,7 +785,14 @@ namespace Orthanc
       }
 
       const char *options[] = {
+        // Set the TCP port for the HTTP server
         "listening_ports", port.c_str(), 
+        
+        // Optimization reported by Chris Hafey
+        // https://groups.google.com/d/msg/orthanc-users/CKueKX0pJ9E/_UCbl8T-VjIJ
+        // "enable_keep_alive", "yes",
+
+        // Set the SSL certificate, if any. This must be the last option.
         ssl_ ? "ssl_certificate" : NULL,
         certificate_.c_str(),
         NULL
