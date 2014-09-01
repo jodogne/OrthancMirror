@@ -75,8 +75,8 @@
 #include "../Resources/ThirdParty/base64/base64.h"
 
 
-#ifdef _MSC_VER
-// Patch for the missing "_strtoll" symbol when compiling with Visual Studio
+#if defined(_MSC_VER) && (_MSC_VER < 1800)
+// Patch for the missing "_strtoll" symbol when compiling with Visual Studio < 2013
 extern "C"
 {
   int64_t _strtoi64(const char *nptr, char **endptr, int base);
