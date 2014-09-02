@@ -353,7 +353,8 @@ namespace Orthanc
       *reinterpret_cast<const _OrthancPluginAnswerBuffer*>(parameters);
 
     HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
-    translatedOutput->AnswerBufferWithContentType(p.answer, p.answerSize, p.mimeType);
+    translatedOutput->SetContentType(p.mimeType);
+    translatedOutput->SendBody(p.answer, p.answerSize);
   }
 
 
@@ -373,7 +374,7 @@ namespace Orthanc
       *reinterpret_cast<const _OrthancPluginSendHttpStatusCode*>(parameters);
 
     HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
-    translatedOutput->SendHeader(static_cast<HttpStatus>(p.status));
+    translatedOutput->SendStatus(static_cast<HttpStatus>(p.status));
   }
 
 
@@ -448,7 +449,8 @@ namespace Orthanc
     std::string png;
     writer.WriteToMemory(png, accessor);
 
-    translatedOutput->AnswerBufferWithContentType(png, "image/png");
+    translatedOutput->SetContentType("image/png");
+    translatedOutput->SendBody(png);
   }
 
 

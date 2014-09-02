@@ -93,5 +93,7 @@ namespace Orthanc
                    unsigned int maxAge = 0);
 
     void ResetCookie(const std::string& name);
+
+    void Finalize();
   };
 }

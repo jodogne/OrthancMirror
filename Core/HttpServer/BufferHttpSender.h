@@ -50,7 +50,7 @@ namespace Orthanc
     {
       if (buffer_.size())
       {
-        output.SendBodyData(&buffer_[0], buffer_.size());
+        output.SendBody(&buffer_[0], buffer_.size());
       }
 
       return true;
