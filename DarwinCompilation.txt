@@ -28,7 +28,7 @@ Prepare the build with CMake
 ----------------------------
 
 # cd ~/OrthancBuild
-# cmake -GXcode -DCMAKE_OSX_DEPLOYMENT_TARGET=10.8 -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON ~/Orthanc
+# cmake -GXcode -DCMAKE_OSX_DEPLOYMENT_TARGET=10.8 -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON -DALLOW_DOWNLOADS=ON ~/Orthanc
 
 NB: Adapt the value of "CMAKE_OSX_DEPLOYMENT_TARGET" with respect to
 your version of XCode.
