@@ -1,7 +1,7 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_MONGOOSE)
   SET(MONGOOSE_SOURCES_DIR ${CMAKE_BINARY_DIR}/mongoose)
 
-  if (0)
+  if (1)
     # Use Mongoose 3.1
     DownloadPackage(
       "e718fc287b4eb1bd523be3fa00942bb0"
