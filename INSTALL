@@ -54,16 +54,18 @@ See the file "DarwinCompilation.txt".
 
 
 
-Native Windows build with Microsoft Visual Studio 2005
-------------------------------------------------------
+Native Windows build with Microsoft Visual Studio
+-------------------------------------------------
 
 # cd [...]\OrthancBuild
-# cmake -DSTANDALONE_BUILD=ON -DSTATIC_BUILD=ON -G "Visual Studio 8 2005" [...]\Orthanc
+# cmake -DSTANDALONE_BUILD=ON -DSTATIC_BUILD=ON -DALLOW_DOWNLOADS=ON -G "Visual Studio 8 2005" [...]\Orthanc
 
 Then open the "[...]/OrthancBuild/Orthanc.sln" with Visual Studio.
 
 NOTES:
-* More recent versions of Visual Studio should also work.
+* More recent versions of Visual Studio than 2005 should also
+  work. Type "cmake" without arguments to have the list of generators
+  that are available on your computer.
 * You will have to install the Platform SDK (version 6 or above) for
   Visual Studio 2005:
   http://en.wikipedia.org/wiki/Microsoft_Windows_SDK.
