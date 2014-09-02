@@ -552,7 +552,7 @@ namespace Orthanc
   {
     MongooseServer* that = reinterpret_cast<MongooseServer*>(request->user_data);
     MongooseOutputStream stream(connection);
-    HttpOutput output(stream);
+    HttpOutput output(stream, that->IsKeepAliveEnabled());
 
     // Check remote calls
     if (!that->IsRemoteAccessAllowed() &&
@@ -786,6 +786,7 @@ namespace Orthanc
     ssl_ = false;
     port_ = 8000;
     filter_ = NULL;
+    keepAlive_ = false;
 
 #if ORTHANC_SSL_ENABLED == 1
     // Check for the Heartbleed exploit
@@ -829,7 +830,7 @@ namespace Orthanc
         
         // Optimization reported by Chris Hafey
         // https://groups.google.com/d/msg/orthanc-users/CKueKX0pJ9E/_UCbl8T-VjIJ
-        // "enable_keep_alive", "yes",
+        "enable_keep_alive", (keepAlive_ ? "yes" : "no"),
 
         // Set the SSL certificate, if any. This must be the last option.
         ssl_ ? "ssl_certificate" : NULL,
@@ -916,6 +917,15 @@ namespace Orthanc
     ssl_ = enabled;
 #endif
   }
+
+
+  void MongooseServer::SetKeepAliveEnabled(bool enabled)
+  {
+    Stop();
+    keepAlive_ = enabled;
+    LOG(WARNING) << "HTTP keep alive is " << (enabled ? "enabled" : "disabled");
+  }
+
 
   void MongooseServer::SetAuthenticationEnabled(bool enabled)
   {

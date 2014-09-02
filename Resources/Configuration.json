@@ -62,6 +62,13 @@
   // The DICOM port
   "DicomPort" : 4242,
 
+  // The default encoding that is assumed for DICOM files without
+  // "SpecificCharacterSet" DICOM tag. The allowed values are "Ascii",
+  // "Utf8", "Latin1", "Latin2", "Latin3", "Latin4", "Latin5",
+  // "Cyrillic", "Arabic", "Greek", "Hebrew", "Thai", "Japanese",
+  // and "Chinese".
+  "DefaultEncoding" : "Latin1",
+
 
 
   /**
@@ -182,10 +189,7 @@
   // some job finishes.
   "LimitJobs" : 10,
 
-  // The default encoding that is assumed for DICOM files without
-  // "SpecificCharacterSet" DICOM tag. The allowed values are "Ascii",
-  // "Utf8", "Latin1", "Latin2", "Latin3", "Latin4", "Latin5",
-  // "Cyrillic", "Arabic", "Greek", "Hebrew", "Thai", "Japanese",
-  // and "Chinese".
-  "DefaultEncoding" : "Latin1"
+  // Enable or disable HTTP Keep-Alive (experimental). Set this option
+  // to "true" only in the case of high HTTP loads.
+  "KeepAlive" : false
 }
