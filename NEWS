@@ -4,6 +4,7 @@ Pending changes in the mainline
 * Refactoring of HttpOutput ("Content-Length" header is now always sent)
 * Fixes for Visual Studio 2013 and Windows 64bit
 * Experimental "KeepAlive" configuration option to enable HTTP Keep-Alive
+* Upgrade to Mongoose 3.8
 
 
 Version 0.8.2 (2014/08/07)
