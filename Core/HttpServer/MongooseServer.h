@@ -78,6 +78,7 @@ namespace Orthanc
     std::string certificate_;
     uint16_t port_;
     IIncomingHttpRequestFilter* filter_;
+    bool keepAlive_;
   
     bool IsRunning() const;
 
@@ -117,6 +118,13 @@ namespace Orthanc
     }
 
     void SetSslEnabled(bool enabled);
+
+    bool IsKeepAliveEnabled() const
+    {
+      return keepAlive_;
+    }
+
+    void SetKeepAliveEnabled(bool enabled);
 
     const std::string& GetSslCertificate() const
     {

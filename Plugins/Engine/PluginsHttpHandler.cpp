@@ -478,7 +478,7 @@ namespace Orthanc
     HttpHandler::ParseGetQuery(uri, getArguments, p.uri);
 
     StringHttpOutput stream;
-    HttpOutput http(stream);
+    HttpOutput http(stream, false /* no keep alive */);
 
     LOG(INFO) << "Plugin making REST GET call on URI " << p.uri;
 
@@ -511,7 +511,7 @@ namespace Orthanc
     std::string body(p.body, p.bodySize);
 
     StringHttpOutput stream;
-    HttpOutput http(stream);
+    HttpOutput http(stream, false /* no keep alive */);
 
     HttpMethod method = (isPost ? HttpMethod_Post : HttpMethod_Put);
     LOG(INFO) << "Plugin making REST " << EnumerationToString(method) << " call on URI " << p.uri;
@@ -541,7 +541,7 @@ namespace Orthanc
     std::string body;  // No body for DELETE
 
     StringHttpOutput stream;
-    HttpOutput http(stream);
+    HttpOutput http(stream, false /* no keep alive */);
 
     LOG(INFO) << "Plugin making REST DELETE call on URI " 
               << reinterpret_cast<const char*>(parameters);

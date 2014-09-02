@@ -43,12 +43,14 @@
 
 namespace Orthanc
 {
-  HttpOutput::StateMachine::StateMachine(IHttpOutputStream& stream) : 
+  HttpOutput::StateMachine::StateMachine(IHttpOutputStream& stream,
+                                         bool isKeepAlive) : 
     stream_(stream),
     state_(State_WritingHeader),
     status_(HttpStatus_200_Ok),
     hasContentLength_(false),
-    contentPosition_(0)
+    contentPosition_(0),
+    keepAlive_(isKeepAlive)
   {
   }
 
@@ -160,15 +162,20 @@ namespace Orthanc
         " " + std::string(EnumerationToString(status_)) +
         "\r\n";
 
-      if (status_ != HttpStatus_200_Ok)
+      if (keepAlive_)
       {
-        hasContentLength_ = false;
+        s += "Connection: keep-alive\r\n";
       }
 
       for (std::list<std::string>::const_iterator
              it = headers_.begin(); it != headers_.end(); ++it)
       {
         s += *it;
+      }
+
+      if (status_ != HttpStatus_200_Ok)
+      {
+        hasContentLength_ = false;
       }
 
       uint64_t contentLength = (hasContentLength_ ? contentLength_ : length);

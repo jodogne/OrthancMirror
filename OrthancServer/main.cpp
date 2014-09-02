@@ -369,6 +369,7 @@ static bool StartOrthanc()
     MongooseServer httpServer;
     httpServer.SetPortNumber(Configuration::GetGlobalIntegerParameter("HttpPort", 8042));
     httpServer.SetRemoteAccessAllowed(Configuration::GetGlobalBoolParameter("RemoteAccessAllowed", false));
+    httpServer.SetKeepAliveEnabled(Configuration::GetGlobalBoolParameter("KeepAlive", false));
     httpServer.SetIncomingHttpRequestFilter(httpFilter);
 
     httpServer.SetAuthenticationEnabled(Configuration::GetGlobalBoolParameter("AuthenticationEnabled", false));

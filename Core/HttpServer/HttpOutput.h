@@ -63,10 +63,12 @@ namespace Orthanc
       bool hasContentLength_;
       uint64_t contentLength_;
       uint64_t contentPosition_;
+      bool keepAlive_;
       std::list<std::string> headers_;
 
     public:
-      StateMachine(IHttpOutputStream& stream);
+      StateMachine(IHttpOutputStream& stream,
+                   bool isKeepAlive);
 
       ~StateMachine();
 
@@ -92,7 +94,9 @@ namespace Orthanc
     StateMachine stateMachine_;
 
   public:
-    HttpOutput(IHttpOutputStream& stream) : stateMachine_(stream)
+    HttpOutput(IHttpOutputStream& stream,
+               bool isKeepAlive) : 
+      stateMachine_(stream, isKeepAlive)
     {
     }
 
