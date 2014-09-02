@@ -866,7 +866,7 @@ namespace Orthanc
     ResourceType type;
     if (!db_->LookupResource(instanceUuid, id, type))
     {
-      throw OrthancException(ErrorCode_InternalError);
+      throw OrthancException(ErrorCode_UnknownResource);
     }
 
     if (db_->LookupAttachment(attachment, id, contentType))

@@ -50,6 +50,14 @@ namespace Orthanc
   RestApiOutput::~RestApiOutput()
   {
   }
+
+  void RestApiOutput::Finalize()
+  {
+    if (!alreadySent_)
+    {
+      output_.SendStatus(HttpStatus_404_NotFound);
+    }
+  }
   
   void RestApiOutput::CheckStatus()
   {
@@ -75,7 +83,8 @@ namespace Orthanc
 #if ORTHANC_PUGIXML_ENABLED == 1
       std::string s;
       Toolbox::JsonToXml(s, value);
-      output_.AnswerBufferWithContentType(s, "application/xml");
+      output_.SetContentType("application/xml");
+      output_.SendBody(s);
 #else
       LOG(ERROR) << "Orthanc was compiled without XML support";
       throw OrthancException(ErrorCode_InternalError);
@@ -84,8 +93,8 @@ namespace Orthanc
     else
     {
       Json::StyledWriter writer;
-      std::string s = writer.write(value);
-      output_.AnswerBufferWithContentType(s, "application/json");
+      output_.SetContentType("application/json");
+      output_.SendBody(writer.write(value));
     }
 
     alreadySent_ = true;
@@ -95,7 +104,8 @@ namespace Orthanc
                                    const std::string& contentType)
   {
     CheckStatus();
-    output_.AnswerBufferWithContentType(buffer, contentType);
+    output_.SetContentType(contentType.c_str());
+    output_.SendBody(buffer);
     alreadySent_ = true;
   }
 
@@ -104,7 +114,8 @@ namespace Orthanc
                                    const std::string& contentType)
   {
     CheckStatus();
-    output_.AnswerBufferWithContentType(buffer, length, contentType);
+    output_.SetContentType(contentType.c_str());
+    output_.SendBody(buffer, length);
     alreadySent_ = true;
   }
 
@@ -124,7 +135,7 @@ namespace Orthanc
     }
 
     CheckStatus();
-    output_.SendHeader(status);
+    output_.SendStatus(status);
     alreadySent_ = true;    
   }
 

@@ -264,7 +264,8 @@ namespace Orthanc
     Uint32 length = element.getLength(transferSyntax);
     Uint32 offset = 0;
 
-    output.GetLowLevelOutput().SendOkHeader(CONTENT_TYPE_OCTET_STREAM, true, length, NULL);
+    output.GetLowLevelOutput().SetContentType(CONTENT_TYPE_OCTET_STREAM);
+    output.GetLowLevelOutput().SetContentLength(length);
 
     while (offset < length)
     {
@@ -282,7 +283,7 @@ namespace Orthanc
 
       if (cond.good())
       {
-        output.GetLowLevelOutput().SendBodyData(&buffer[0], nbytes);
+        output.GetLowLevelOutput().SendBody(&buffer[0], nbytes);
         offset += nbytes;
       }
       else

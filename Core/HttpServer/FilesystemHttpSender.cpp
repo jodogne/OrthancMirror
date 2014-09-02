@@ -73,7 +73,7 @@ namespace Orthanc
       }
       else
       {
-        output.SendBodyData(&buffer[0], nbytes);
+        output.SendBody(&buffer[0], nbytes);
       }
     }
 

@@ -192,6 +192,7 @@ namespace Orthanc
 
     if (root_.LookupResource(uri, visitor))
     {
+      wrappedOutput.Finalize();
       return true;
     }
 

@@ -1,7 +1,7 @@
 Pending changes in the mainline
 ===============================
 
-* Upgrade to Mongoose 3.8 (the last release under the MIT license)
+* Refactoring of HttpOutput ("Content-Length" header is now always sent)
 * Fixes for Visual Studio 2013 and Visual Studio 64bit
 
 

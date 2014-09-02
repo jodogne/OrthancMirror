@@ -51,84 +51,84 @@ namespace Orthanc
     private:
       enum State
       {
-        State_WaitingHttpStatus,
         State_WritingHeader,      
-        State_WritingBody
+        State_WritingBody,
+        State_Done
       };
 
       IHttpOutputStream& stream_;
       State state_;
 
+      HttpStatus status_;
+      bool hasContentLength_;
+      uint64_t contentLength_;
+      uint64_t contentPosition_;
+      std::list<std::string> headers_;
+
     public:
-      StateMachine(IHttpOutputStream& stream) : 
-        stream_(stream),
-        state_(State_WaitingHttpStatus)
-      {
-      }
+      StateMachine(IHttpOutputStream& stream);
 
-      void SendHttpStatus(HttpStatus status);
+      ~StateMachine();
 
-      void SendHeaderData(const void* buffer, size_t length);
+      void SetHttpStatus(HttpStatus status);
 
-      void SendHeaderString(const std::string& str);
+      void SetContentLength(uint64_t length);
 
-      void SendBodyData(const void* buffer, size_t length);
+      void SetContentType(const char* contentType);
 
-      void SendBodyString(const std::string& str);
+      void SetContentFilename(const char* filename);
+
+      void SetCookie(const std::string& cookie,
+                     const std::string& value);
+
+      void AddHeader(const std::string& header,
+                     const std::string& value);
+
+      void ClearHeaders();
+
+      void SendBody(const void* buffer, size_t length);
     };
 
-    void PrepareOkHeader(Header& header,
-                         const char* contentType,
-                         bool hasContentLength,
-                         uint64_t contentLength,
-                         const char* contentFilename);
-
-    void SendOkHeader(const Header& header);
-
     StateMachine stateMachine_;
-    HttpHandler::Arguments cookies_;
 
   public:
     HttpOutput(IHttpOutputStream& stream) : stateMachine_(stream)
     {
     }
 
-    void SendOkHeader(const char* contentType,
-                      bool hasContentLength,
-                      uint64_t contentLength,
-                      const char* contentFilename);
+    void SendStatus(HttpStatus status);
 
-    void SendBodyData(const void* buffer, size_t length)
+    void SetContentType(const char* contentType)
     {
-      stateMachine_.SendBodyData(buffer, length);
+      stateMachine_.SetContentType(contentType);
     }
 
-    void SendBodyString(const std::string& str)
+    void SetContentFilename(const char* filename)
     {
-      stateMachine_.SendBodyString(str);
+      stateMachine_.SetContentFilename(filename);
     }
 
-    void SendMethodNotAllowed(const std::string& allowed);
-
-    void SendHeader(HttpStatus status);
-
-    void Redirect(const std::string& path);
-
-    void SendUnauthorized(const std::string& realm);
+    void SetContentLength(uint64_t length)
+    {
+      stateMachine_.SetContentLength(length);
+    }
 
     void SetCookie(const std::string& cookie,
                    const std::string& value)
     {
-      cookies_[cookie] = value;
+      stateMachine_.SetCookie(cookie, value);
     }
 
-    // Higher-level constructs to send entire buffers ----------------------------
+    void SendBody(const void* buffer, size_t length);
 
-    void AnswerBufferWithContentType(const std::string& buffer,
-                                     const std::string& contentType);
+    void SendBody(const std::string& str);
 
-    void AnswerBufferWithContentType(const void* buffer,
-                                     size_t size,
-                                     const std::string& contentType);
+    void SendBody();
+
+    void SendMethodNotAllowed(const std::string& allowed);
+
+    void Redirect(const std::string& path);
+
+    void SendUnauthorized(const std::string& realm);
   };
 }

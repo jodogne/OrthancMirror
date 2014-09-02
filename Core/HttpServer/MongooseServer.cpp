@@ -585,7 +585,7 @@ namespace Orthanc
     HttpMethod method;
     if (!ExtractMethod(method, request, headers, argumentsGET))
     {
-      output.SendHeader(HttpStatus_400_BadRequest);
+      output.SendStatus(HttpStatus_400_BadRequest);
       return;
     }
 
@@ -594,6 +594,7 @@ namespace Orthanc
     if (that->IsAuthenticationEnabled() &&
         !Authorize(*that, headers, output))
     {
+      output.SendUnauthorized(ORTHANC_REALM);
       return;
     }
 
@@ -649,15 +650,15 @@ namespace Orthanc
       switch (status)
       {
         case PostDataStatus_NoLength:
-          output.SendHeader(HttpStatus_411_LengthRequired);
+          output.SendStatus(HttpStatus_411_LengthRequired);
           return;
 
         case PostDataStatus_Failure:
-          output.SendHeader(HttpStatus_400_BadRequest);
+          output.SendStatus(HttpStatus_400_BadRequest);
           return;
 
         case PostDataStatus_Pending:
-          output.AnswerBufferWithContentType(NULL, 0, "");
+          output.SendBody();
           return;
 
         default:
@@ -674,7 +675,7 @@ namespace Orthanc
     }
     catch (OrthancException)
     {
-      output.SendHeader(HttpStatus_400_BadRequest);
+      output.SendStatus(HttpStatus_400_BadRequest);
       return;
     }
 
@@ -694,29 +695,43 @@ namespace Orthanc
       {
         // Using this candidate handler results in an exception
         LOG(ERROR) << "Exception in the HTTP handler: " << e.What();
+
+        switch (e.GetErrorCode())
+        {
+          case ErrorCode_InexistentFile:
+          case ErrorCode_InexistentItem:
+          case ErrorCode_UnknownResource:
+            output.SendStatus(HttpStatus_404_NotFound);
+            break;
+
+          case ErrorCode_BadRequest:
+          case ErrorCode_UriSyntax:
+            output.SendStatus(HttpStatus_400_BadRequest);
+            break;
+
+          default:
+            output.SendStatus(HttpStatus_500_InternalServerError);
+        }
+
         return;
       }
       catch (boost::bad_lexical_cast&)
       {
         LOG(ERROR) << "Exception in the HTTP handler: Bad lexical cast";
+        output.SendStatus(HttpStatus_400_BadRequest);
         return;
       }
       catch (std::runtime_error&)
       {
         LOG(ERROR) << "Exception in the HTTP handler: Presumably a bad JSON request";
+        output.SendStatus(HttpStatus_400_BadRequest);
         return;
       }
     }
 
     if (!found)
     {
-      try
-      {
-        output.SendHeader(HttpStatus_404_NotFound);
-      }
-      catch (OrthancException&)
-      {
-      }
+      output.SendStatus(HttpStatus_404_NotFound);
     }
   }
 

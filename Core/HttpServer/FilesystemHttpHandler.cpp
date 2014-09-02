@@ -55,16 +55,18 @@ namespace Orthanc
   {
     namespace fs = boost::filesystem;
 
-    output.SendOkHeader("text/html", false, 0, NULL);
-    output.SendBodyString("<html>");
-    output.SendBodyString("  <body>");
-    output.SendBodyString("    <h1>Subdirectories</h1>");
-    output.SendBodyString("    <ul>");
+    output.SetContentType("text/html");
+
+    std::string s;
+    s += "<html>";
+    s += "  <body>";
+    s += "    <h1>Subdirectories</h1>";
+    s += "    <ul>";
 
     if (uri.size() > 0)
     {
       std::string h = Toolbox::FlattenUri(uri) + "/..";
-      output.SendBodyString("<li><a href=\"" + h + "\">..</a></li>");
+      s += "<li><a href=\"" + h + "\">..</a></li>";
     }
 
     fs::directory_iterator end;
@@ -78,12 +80,12 @@ namespace Orthanc
 
       std::string h = Toolbox::FlattenUri(uri) + "/" + f;
       if (fs::is_directory(it->status()))
-        output.SendBodyString("<li><a href=\"" + h + "\">" + f + "</a></li>");
+        s += "<li><a href=\"" + h + "\">" + f + "</a></li>";
     }      
 
-    output.SendBodyString("    </ul>");      
-    output.SendBodyString("    <h1>Files</h1>");
-    output.SendBodyString("    <ul>");
+    s += "    </ul>";      
+    s += "    <h1>Files</h1>";
+    s += "    <ul>";
 
     for (fs::directory_iterator it(p) ; it != end; ++it)
     {
@@ -95,12 +97,14 @@ namespace Orthanc
 
       std::string h = Toolbox::FlattenUri(uri) + "/" + f;
       if (fs::is_regular_file(it->status()))
-        output.SendBodyString("<li><a href=\"" + h + "\">" + f + "</a></li>");
+        s += "<li><a href=\"" + h + "\">" + f + "</a></li>";
     }      
 
-    output.SendBodyString("    </ul>");
-    output.SendBodyString("  </body>");
-    output.SendBodyString("</html>");
+    s += "    </ul>";
+    s += "  </body>";
+    s += "</html>";
+
+    output.SendBody(s);
   }
 
 
@@ -162,7 +166,7 @@ namespace Orthanc
     }
     else
     {
-      output.SendHeader(HttpStatus_404_NotFound);
+      output.SendStatus(HttpStatus_404_NotFound);
     }
 
     return true;

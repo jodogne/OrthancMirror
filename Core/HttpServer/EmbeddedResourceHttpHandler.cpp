@@ -78,12 +78,14 @@ namespace Orthanc
     {
       const void* buffer = EmbeddedResources::GetDirectoryResourceBuffer(resourceId_, resourcePath.c_str());
       size_t size = EmbeddedResources::GetDirectoryResourceSize(resourceId_, resourcePath.c_str());
-      output.AnswerBufferWithContentType(buffer, size, contentType);
+
+      output.SetContentType(contentType.c_str());
+      output.SendBody(buffer, size);
     }
     catch (OrthancException&)
     {
       LOG(WARNING) << "Unable to find HTTP resource: " << resourcePath;
-      output.SendHeader(HttpStatus_404_NotFound);
+      output.SendStatus(HttpStatus_404_NotFound);
     }
 
     return true;
