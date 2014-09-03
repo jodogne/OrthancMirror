@@ -35,15 +35,24 @@ function ForwardGetRequest(orthanc, path, res) {
   opts.method = 'GET';
 
   http.get(opts, function(response) {
-    response.setEncoding('utf-8');
-    response.on('data', function(chunk) {
-      res.write(chunk);
-    });
-    response.on('end', function() {
+    if (response.statusCode == 200) {
+      response.setEncoding('utf-8');
+      response.on('data', function(chunk) {
+        res.write(chunk);
+      });
+      response.on('end', function() {
+        res.end();
+      });
+    } else {
+      console.log('Got error on GET forwarding: ' + 
+                  response.statusCode + ' (' + path + ')');
+      res.writeHead(response.statusCode);
       res.end();
-    });
+    }
   }).on('error', function(e) {
-    console.log('Got error on GET forwarding: ' + e.message + ' (' + path + ')');
+    console.log('Unable to contact Orthanc: ' + e.message);
+    res.writeHead(503);  // Service Unavailable
+    res.end();
   });
 }
 
@@ -57,15 +66,24 @@ function ForwardPostRequest(orthanc, path, body, res) {
   }
 
   var req = http.request(opts, function(response) {
-    response.setEncoding('utf-8');
-    response.on('data', function(chunk) {
-      res.write(chunk);
-    });
-    response.on('end', function() {
+    if (response.statusCode == 200) {
+      response.setEncoding('utf-8');
+      response.on('data', function(chunk) {
+        res.write(chunk);
+      });
+      response.on('end', function() {
+        res.end();
+      });
+    } else {
+      console.log('Got error on POST forwarding: ' + 
+                  response.statusCode + ' (' + path + ')');
+      res.writeHead(response.statusCode);
       res.end();
-    });
+    }
   }).on('error', function(e) {
-    console.log('Got error on POST forwarding: ' + e.message + ' (' + path + ')');
+    console.log('Unable to contact Orthanc: ' + e.message);
+    res.writeHead(503);  // Service Unavailable
+    res.end();
   });
 
   req.write(body);

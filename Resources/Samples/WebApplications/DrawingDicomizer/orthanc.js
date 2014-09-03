@@ -24,23 +24,43 @@
  * SOFTWARE.
  **/
 
+function guid4Block() {
+  return Math.floor((1 + Math.random()) * 0x10000)
+    .toString(16)
+    .substring(1);
+}
+ 
+function guid() {
+  return (guid4Block() + guid4Block() + '-' + guid4Block() + '-' + guid4Block() + '-' +
+          guid4Block() + '-' + guid4Block() + guid4Block() + guid4Block());
+}
+
 
 $(document).ready(function() {
+  $('#patientID').val(guid());
+
   $('#submit').click(function(event) {
     var png = context.canvas.toDataURL();
 
     $.ajax({
       type: 'POST',
       url: '/orthanc/tools/create-dicom',
+      dataType: 'text',
       data: { 
+        PatientID: $('#patientID').val(),
         PatientName: $('#patientName').val(),
+        StudyDescription: $('#studyDescription').val(),
+        SeriesDescription: $('#seriesDescription').val(),
         PixelData: png,
-        Modality: 'RX' 
+        Modality: 'RX'
+      },
+      success : function(msg) {
+        alert('Your drawing has been DICOM-ized!\n\n' + msg);
+      },
+      error : function() {
+        alert('Error while DICOM-izing the drawing');
       }
-    })
-      .success(function( msg ) {
-        alert('Your drawing has been dicomized!\n\n' + msg);
-      });
+    });
 
     return false;
   });
