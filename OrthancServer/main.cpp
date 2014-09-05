@@ -37,6 +37,7 @@
 #include <glog/logging.h>
 #include <boost/algorithm/string/predicate.hpp>
 
+#include "../Core/Uuid.h"
 #include "../Core/FileStorage/FilesystemStorage.h"
 #include "../Core/HttpServer/EmbeddedResourceHttpHandler.h"
 #include "../Core/HttpServer/FilesystemHttpHandler.h"
@@ -315,6 +316,55 @@ static void LoadPlugins(PluginsManager& pluginsManager)
 
 
 
+class FilesystemStorageWithoutDicom : public IStorageArea
+{
+private:
+  FilesystemStorage storage_;
+
+public:
+  FilesystemStorageWithoutDicom(const std::string& path) : storage_(path)
+  {
+  }
+
+  virtual std::string Create(const void* content, 
+                             size_t size,
+                             FileContentType type)
+  {
+    if (type != FileContentType_Dicom)
+    {
+      return storage_.Create(content, size, type);
+    }
+    else
+    {
+      return Toolbox::GenerateUuid();
+    }
+  }
+
+  virtual void Read(std::string& content,
+                    const std::string& uuid,
+                    FileContentType type) const
+  {
+    if (type != FileContentType_Dicom)
+    {
+      storage_.Read(content, uuid, type);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+  }
+
+  virtual void Remove(const std::string& uuid,
+                      FileContentType type) 
+  {
+    if (type != FileContentType_Dicom)
+    {
+      storage_.Remove(uuid, type);
+    }
+  }
+};
+
+
 static bool StartOrthanc()
 {
   std::string storageDirectoryStr = Configuration::GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
@@ -322,7 +372,10 @@ static bool StartOrthanc()
   boost::filesystem::path indexDirectory = Configuration::InterpretStringParameterAsPath(
     Configuration::GetGlobalStringParameter("IndexDirectory", storageDirectoryStr));
 
+  // TODO HERE
   FilesystemStorage storage(storageDirectory.string());
+  //FilesystemStorageWithoutDicom storage(storageDirectory.string());
+
   ServerContext context(storage, indexDirectory);
 
   LOG(WARNING) << "Storage directory: " << storageDirectory;
