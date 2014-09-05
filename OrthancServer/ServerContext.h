@@ -77,7 +77,6 @@ namespace Orthanc
                                   const Json::Value& simplifiedDicom,
                                   const Json::Value& metadata);
 
-    IStorageArea& storage_;
     ServerIndex index_;
     CompressedFileStorageAccessor accessor_;
     bool compressionEnabled_;
@@ -149,7 +148,8 @@ namespace Orthanc
       return compressionEnabled_;
     }
 
-    void RemoveFile(const std::string& fileUuid);
+    void RemoveFile(const std::string& fileUuid,
+                    FileContentType type);
 
     bool AddAttachment(const std::string& resourceId,
                        FileContentType attachmentType,

@@ -73,9 +73,8 @@ namespace Orthanc
 {
   ServerContext::ServerContext(IStorageArea& storage,
                                const boost::filesystem::path& indexPath) :
-    storage_(storage),
     index_(*this, indexPath.string()),
-    accessor_(storage_),
+    accessor_(storage),
     compressionEnabled_(false),
     provider_(*this),
     dicomCache_(provider_, DICOM_CACHE_SIZE),
@@ -98,9 +97,10 @@ namespace Orthanc
     compressionEnabled_ = enabled;
   }
 
-  void ServerContext::RemoveFile(const std::string& fileUuid)
+  void ServerContext::RemoveFile(const std::string& fileUuid,
+                                 FileContentType type)
   {
-    storage_.Remove(fileUuid);
+    accessor_.Remove(fileUuid, type);
   }
 
 
@@ -322,8 +322,8 @@ namespace Orthanc
             
       if (status != StoreStatus_Success)
       {
-        storage_.Remove(dicomInfo.GetUuid());
-        storage_.Remove(jsonInfo.GetUuid());
+        accessor_.Remove(dicomInfo.GetUuid(), FileContentType_Dicom);
+        accessor_.Remove(jsonInfo.GetUuid(), FileContentType_DicomAsJson);
       }
 
       switch (status)
@@ -405,7 +405,7 @@ namespace Orthanc
 
     accessor_.SetCompressionForNextOperations(attachment.GetCompressionType());
 
-    std::auto_ptr<HttpFileSender> sender(accessor_.ConstructHttpFileSender(attachment.GetUuid()));
+    std::auto_ptr<HttpFileSender> sender(accessor_.ConstructHttpFileSender(attachment.GetUuid(), attachment.GetContentType()));
     sender->SetContentType("application/dicom");
     sender->SetDownloadFilename(instancePublicId + ".dcm");
     output.AnswerFile(*sender);
@@ -446,7 +446,7 @@ namespace Orthanc
       accessor_.SetCompressionForNextOperations(CompressionType_None);
     }
 
-    accessor_.Read(result, attachment.GetUuid());
+    accessor_.Read(result, attachment.GetUuid(), attachment.GetContentType());
   }
 
 
@@ -510,7 +510,7 @@ namespace Orthanc
 
     if (status != StoreStatus_Success)
     {
-      storage_.Remove(info.GetUuid());
+      accessor_.Remove(info.GetUuid(), info.GetContentType());
       return false;
     }
     else

@@ -85,7 +85,9 @@ namespace Orthanc
     Toolbox::CreateDirectory(root);
   }
 
-  std::string FilesystemStorage::Create(const void* content, size_t size)
+  std::string FilesystemStorage::Create(const void* content, 
+                                        size_t size,
+                                        FileContentType /*type*/)
   {
     std::string uuid;
     boost::filesystem::path path;
@@ -144,7 +146,8 @@ namespace Orthanc
 
 
   void FilesystemStorage::Read(std::string& content,
-                               const std::string& uuid) const
+                               const std::string& uuid,
+                               FileContentType /*type*/) const
   {
     content.clear();
     Toolbox::ReadFile(content, GetPath(uuid).string());
@@ -209,12 +212,13 @@ namespace Orthanc
 
     for (List::const_iterator it = result.begin(); it != result.end(); ++it)
     {
-      Remove(*it);
+      Remove(*it, FileContentType_Unknown /*ignored in this class*/);
     }
   }
 
 
-  void FilesystemStorage::Remove(const std::string& uuid)
+  void FilesystemStorage::Remove(const std::string& uuid,
+                                 FileContentType /*type*/)
   {
     LOG(INFO) << "Deleting file " << uuid;
     namespace fs = boost::filesystem;

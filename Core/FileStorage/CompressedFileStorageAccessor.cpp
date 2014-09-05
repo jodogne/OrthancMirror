@@ -56,7 +56,7 @@ namespace Orthanc
     {
     case CompressionType_None:
     {
-      std::string uuid = storage_.Create(data, size);
+      std::string uuid = storage_.Create(data, size, type);
       return FileInfo(uuid, type, size, md5);
     }
 
@@ -75,11 +75,11 @@ namespace Orthanc
       std::string uuid;
       if (compressed.size() > 0)
       {
-        uuid = storage_.Create(&compressed[0], compressed.size());
+        uuid = storage_.Create(&compressed[0], compressed.size(), type);
       }
       else
       {
-        uuid = storage_.Create(NULL, 0);
+        uuid = storage_.Create(NULL, 0, type);
       }
 
       return FileInfo(uuid, type, size, md5,
@@ -98,18 +98,19 @@ namespace Orthanc
   }
 
   void CompressedFileStorageAccessor::Read(std::string& content,
-                                           const std::string& uuid)
+                                           const std::string& uuid,
+                                           FileContentType type)
   {
     switch (compressionType_)
     {
     case CompressionType_None:
-      storage_.Read(content, uuid);
+      storage_.Read(content, uuid, type);
       break;
 
     case CompressionType_Zlib:
     {
       std::string compressed;
-      storage_.Read(compressed, uuid);
+      storage_.Read(compressed, uuid, type);
       zlib_.Uncompress(content, compressed);
       break;
     }
@@ -119,20 +120,21 @@ namespace Orthanc
     }
   }
 
-  HttpFileSender* CompressedFileStorageAccessor::ConstructHttpFileSender(const std::string& uuid)
+  HttpFileSender* CompressedFileStorageAccessor::ConstructHttpFileSender(const std::string& uuid,
+                                                                         FileContentType type)
   {
     switch (compressionType_)
     {
     case CompressionType_None:
     {
       FileStorageAccessor uncompressedAccessor(storage_);
-      return uncompressedAccessor.ConstructHttpFileSender(uuid);
+      return uncompressedAccessor.ConstructHttpFileSender(uuid, type);
     }
 
     case CompressionType_Zlib:
     {
       std::string compressed;
-      storage_.Read(compressed, uuid);
+      storage_.Read(compressed, uuid, type);
 
       std::auto_ptr<BufferHttpSender> sender(new BufferHttpSender);
       zlib_.Uncompress(sender->GetBuffer(), compressed);
