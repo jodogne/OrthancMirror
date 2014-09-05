@@ -582,7 +582,7 @@ namespace Orthanc
 
 
     // Compute the HTTP method, taking method faking into consideration
-    HttpMethod method;
+    HttpMethod method = HttpMethod_Get;
     if (!ExtractMethod(method, request, headers, argumentsGET))
     {
       output.SendStatus(HttpStatus_400_BadRequest);

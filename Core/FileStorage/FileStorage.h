@@ -35,8 +35,6 @@
 #include <boost/filesystem.hpp>
 #include <set>
 
-#include "../Compression/BufferCompressor.h"
-
 namespace Orthanc
 {
   class FileStorage : public boost::noncopyable
@@ -46,26 +44,12 @@ namespace Orthanc
     friend class FileStorageAccessor;
 
   private:
-    std::auto_ptr<BufferCompressor> compressor_;
-
     boost::filesystem::path root_;
 
     boost::filesystem::path GetPath(const std::string& uuid) const;
 
-    std::string CreateFileWithoutCompression(const void* content, size_t size);
-
   public:
     FileStorage(std::string root);
-
-    void SetBufferCompressor(BufferCompressor* compressor)  // Takes the ownership
-    {
-      compressor_.reset(compressor);
-    }
-
-    bool HasBufferCompressor() const
-    {
-      return compressor_.get() != NULL;
-    }
 
     std::string Create(const void* content, size_t size);
 
@@ -73,12 +57,12 @@ namespace Orthanc
 
     std::string Create(const std::string& content);
 
-    void ReadFile(std::string& content,
-                  const std::string& uuid) const;
+    void Read(std::string& content,
+              const std::string& uuid) const;
 
     void ListAllFiles(std::set<std::string>& result) const;
 
-    uintmax_t GetCompressedSize(const std::string& uuid) const;
+    uintmax_t GetSize(const std::string& uuid) const;
 
     void Clear();
 
@@ -87,10 +71,5 @@ namespace Orthanc
     uintmax_t GetCapacity() const;
 
     uintmax_t GetAvailableSpace() const;
-
-    std::string GetPath() const
-    {
-      return root_.string();
-    }
   };
 }
