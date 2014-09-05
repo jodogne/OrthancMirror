@@ -31,7 +31,7 @@
 
 
 #include "../PrecompiledHeaders.h"
-#include "FileStorage.h"
+#include "FilesystemStorage.h"
 
 // http://stackoverflow.com/questions/1576272/storing-large-number-of-files-in-file-system
 // http://stackoverflow.com/questions/446358/storing-a-large-number-of-images
@@ -55,7 +55,7 @@ static std::string ToString(const boost::filesystem::path& p)
 
 namespace Orthanc
 {
-  boost::filesystem::path FileStorage::GetPath(const std::string& uuid) const
+  boost::filesystem::path FilesystemStorage::GetPath(const std::string& uuid) const
   {
     namespace fs = boost::filesystem;
 
@@ -77,7 +77,7 @@ namespace Orthanc
     return path;
   }
 
-  FileStorage::FileStorage(std::string root)
+  FilesystemStorage::FilesystemStorage(std::string root)
   {
     //root_ = boost::filesystem::absolute(root).string();
     root_ = root;
@@ -85,7 +85,7 @@ namespace Orthanc
     Toolbox::CreateDirectory(root);
   }
 
-  std::string FileStorage::Create(const void* content, size_t size)
+  std::string FilesystemStorage::Create(const void* content, size_t size)
   {
     std::string uuid;
     boost::filesystem::path path;
@@ -143,7 +143,7 @@ namespace Orthanc
   }
 
 
-  std::string FileStorage::Create(const std::vector<uint8_t>& content)
+  std::string FilesystemStorage::Create(const std::vector<uint8_t>& content)
   {
     if (content.size() == 0)
       return Create(NULL, 0);
@@ -151,7 +151,7 @@ namespace Orthanc
       return Create(&content[0], content.size());
   }
 
-  std::string FileStorage::Create(const std::string& content)
+  std::string FilesystemStorage::Create(const std::string& content)
   {
     if (content.size() == 0)
       return Create(NULL, 0);
@@ -159,7 +159,7 @@ namespace Orthanc
       return Create(&content[0], content.size());
   }
 
-  void FileStorage::Read(std::string& content,
+  void FilesystemStorage::Read(std::string& content,
                          const std::string& uuid) const
   {
     content.clear();
@@ -167,7 +167,7 @@ namespace Orthanc
   }
 
 
-  uintmax_t FileStorage::GetSize(const std::string& uuid) const
+  uintmax_t FilesystemStorage::GetSize(const std::string& uuid) const
   {
     boost::filesystem::path path = GetPath(uuid);
     return boost::filesystem::file_size(path);
@@ -175,7 +175,7 @@ namespace Orthanc
 
 
 
-  void FileStorage::ListAllFiles(std::set<std::string>& result) const
+  void FilesystemStorage::ListAllFiles(std::set<std::string>& result) const
   {
     namespace fs = boost::filesystem;
 
@@ -215,7 +215,7 @@ namespace Orthanc
   }
 
 
-  void FileStorage::Clear()
+  void FilesystemStorage::Clear()
   {
     namespace fs = boost::filesystem;
     typedef std::set<std::string> List;
@@ -230,7 +230,7 @@ namespace Orthanc
   }
 
 
-  void FileStorage::Remove(const std::string& uuid)
+  void FilesystemStorage::Remove(const std::string& uuid)
   {
     LOG(INFO) << "Deleting file " << uuid;
     namespace fs = boost::filesystem;
@@ -267,12 +267,12 @@ namespace Orthanc
   }
 
 
-  uintmax_t FileStorage::GetCapacity() const
+  uintmax_t FilesystemStorage::GetCapacity() const
   {
     return boost::filesystem::space(root_).capacity;
   }
 
-  uintmax_t FileStorage::GetAvailableSpace() const
+  uintmax_t FilesystemStorage::GetAvailableSpace() const
   {
     return boost::filesystem::space(root_).available;
   }

@@ -81,7 +81,7 @@ set(ORTHANC_CORE_SOURCES
   Core/DicomFormat/DicomIntegerPixelAccessor.cpp
   Core/DicomFormat/DicomInstanceHasher.cpp
   Core/Enumerations.cpp
-  Core/FileStorage/FileStorage.cpp
+  Core/FileStorage/FilesystemStorage.cpp
   Core/FileStorage/StorageAccessor.cpp
   Core/FileStorage/CompressedFileStorageAccessor.cpp
   Core/FileStorage/FileStorageAccessor.cpp

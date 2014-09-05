@@ -33,7 +33,7 @@
 #pragma once
 
 #include "StorageAccessor.h"
-#include "FileStorage.h"
+#include "FilesystemStorage.h"
 #include "../HttpServer/FilesystemHttpSender.h"
 
 namespace Orthanc
@@ -41,7 +41,7 @@ namespace Orthanc
   class FileStorageAccessor : public StorageAccessor
   {
   private:
-    FileStorage& storage_;
+    FilesystemStorage& storage_;
     
   protected:
     virtual FileInfo WriteInternal(const void* data,
@@ -49,7 +49,7 @@ namespace Orthanc
                                    FileContentType type);
 
   public:
-    FileStorageAccessor(FileStorage& storage) : storage_(storage)
+    FileStorageAccessor(FilesystemStorage& storage) : storage_(storage)
     {
     }
 

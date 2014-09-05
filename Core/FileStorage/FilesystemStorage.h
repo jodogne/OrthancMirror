@@ -37,7 +37,7 @@
 
 namespace Orthanc
 {
-  class FileStorage : public boost::noncopyable
+  class FilesystemStorage : public boost::noncopyable
   {
     // TODO REMOVE THIS
     friend class FilesystemHttpSender;
@@ -49,7 +49,7 @@ namespace Orthanc
     boost::filesystem::path GetPath(const std::string& uuid) const;
 
   public:
-    FileStorage(std::string root);
+    FilesystemStorage(std::string root);
 
     std::string Create(const void* content, size_t size);
 

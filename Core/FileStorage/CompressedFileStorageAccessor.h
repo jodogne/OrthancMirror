@@ -33,7 +33,7 @@
 #pragma once
 
 #include "StorageAccessor.h"
-#include "FileStorage.h"
+#include "FilesystemStorage.h"
 #include "../Compression/ZlibCompressor.h"
 
 namespace Orthanc
@@ -41,7 +41,7 @@ namespace Orthanc
   class CompressedFileStorageAccessor : public StorageAccessor
   {
   private:
-    FileStorage& storage_;
+    FilesystemStorage& storage_;
     ZlibCompressor zlib_;
     CompressionType compressionType_;
 
@@ -51,7 +51,7 @@ namespace Orthanc
                                    FileContentType type);
 
   public: 
-    CompressedFileStorageAccessor(FileStorage& storage);
+    CompressedFileStorageAccessor(FilesystemStorage& storage);
 
     void SetCompressionForNextOperations(CompressionType compression)
     {
