@@ -85,7 +85,7 @@ namespace Orthanc
     Toolbox::CreateDirectory(root);
   }
 
-  std::string FileStorage::CreateFileWithoutCompression(const void* content, size_t size)
+  std::string FileStorage::Create(const void* content, size_t size)
   {
     std::string uuid;
     boost::filesystem::path path;
@@ -140,22 +140,6 @@ namespace Orthanc
     f.close();
 
     return uuid;
-  } 
-
-
-  std::string FileStorage::Create(const void* content, size_t size)
-  {
-    if (!HasBufferCompressor() || size == 0)
-    {
-      return CreateFileWithoutCompression(content, size);
-    }
-    else
-    {
-      std::string compressed;
-      compressor_->Compress(compressed, content, size);
-      assert(compressed.size() > 0);
-      return CreateFileWithoutCompression(&compressed[0], compressed.size());
-    }
   }
 
 
@@ -175,29 +159,15 @@ namespace Orthanc
       return Create(&content[0], content.size());
   }
 
-  void FileStorage::ReadFile(std::string& content,
-                             const std::string& uuid) const
+  void FileStorage::Read(std::string& content,
+                         const std::string& uuid) const
   {
     content.clear();
-
-    if (HasBufferCompressor())
-    {
-      std::string compressed;
-      Toolbox::ReadFile(compressed, ToString(GetPath(uuid)));
-
-      if (compressed.size() != 0)
-      {
-        compressor_->Uncompress(content, compressed);
-      }
-    }
-    else
-    {
-      Toolbox::ReadFile(content, GetPath(uuid).string());
-    }
+    Toolbox::ReadFile(content, GetPath(uuid).string());
   }
 
 
-  uintmax_t FileStorage::GetCompressedSize(const std::string& uuid) const
+  uintmax_t FileStorage::GetSize(const std::string& uuid) const
   {
     boost::filesystem::path path = GetPath(uuid);
     return boost::filesystem::file_size(path);

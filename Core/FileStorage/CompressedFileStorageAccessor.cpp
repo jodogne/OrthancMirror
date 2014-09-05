@@ -92,13 +92,13 @@ namespace Orthanc
     switch (compressionType_)
     {
     case CompressionType_None:
-      storage_.ReadFile(content, uuid);
+      storage_.Read(content, uuid);
       break;
 
     case CompressionType_Zlib:
     {
       std::string compressed;
-      storage_.ReadFile(compressed, uuid);
+      storage_.Read(compressed, uuid);
       zlib_.Uncompress(content, compressed);
       break;
     }
@@ -121,7 +121,7 @@ namespace Orthanc
     case CompressionType_Zlib:
     {
       std::string compressed;
-      storage_.ReadFile(compressed, uuid);
+      storage_.Read(compressed, uuid);
 
       std::auto_ptr<BufferHttpSender> sender(new BufferHttpSender);
       zlib_.Uncompress(sender->GetBuffer(), compressed);

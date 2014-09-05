@@ -56,7 +56,7 @@ namespace Orthanc
     virtual void Read(std::string& content,
                       const std::string& uuid)
     {
-      storage_.ReadFile(content, uuid);
+      storage_.Read(content, uuid);
     }
 
     virtual HttpFileSender* ConstructHttpFileSender(const std::string& uuid)

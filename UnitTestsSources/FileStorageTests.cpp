@@ -65,10 +65,10 @@ TEST(FileStorage, Basic)
   std::string data = Toolbox::GenerateUuid();
   std::string uid = s.Create(data);
   std::string d;
-  s.ReadFile(d, uid);
+  s.Read(d, uid);
   ASSERT_EQ(d.size(), data.size());
   ASSERT_FALSE(memcmp(&d[0], &data[0], data.size()));
-  ASSERT_EQ(s.GetCompressedSize(uid), data.size());
+  ASSERT_EQ(s.GetSize(uid), data.size());
 }
 
 TEST(FileStorage, Basic2)
@@ -79,10 +79,10 @@ TEST(FileStorage, Basic2)
   StringToVector(data, Toolbox::GenerateUuid());
   std::string uid = s.Create(data);
   std::string d;
-  s.ReadFile(d, uid);
+  s.Read(d, uid);
   ASSERT_EQ(d.size(), data.size());
   ASSERT_FALSE(memcmp(&d[0], &data[0], data.size()));
-  ASSERT_EQ(s.GetCompressedSize(uid), data.size());
+  ASSERT_EQ(s.GetSize(uid), data.size());
 }
 
 TEST(FileStorage, EndToEnd)
