@@ -80,7 +80,7 @@ namespace Orthanc
     }
   }
 
-  CompressedFileStorageAccessor::CompressedFileStorageAccessor(FileStorage& storage) : 
+  CompressedFileStorageAccessor::CompressedFileStorageAccessor(FilesystemStorage& storage) : 
     storage_(storage)
   {
     compressionType_ = CompressionType_None;

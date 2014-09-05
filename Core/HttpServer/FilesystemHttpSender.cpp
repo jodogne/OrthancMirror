@@ -94,7 +94,7 @@ namespace Orthanc
     Setup();
   }
 
-  FilesystemHttpSender::FilesystemHttpSender(const FileStorage& storage,
+  FilesystemHttpSender::FilesystemHttpSender(const FilesystemStorage& storage,
                                              const std::string& uuid)
   {
     path_ = storage.GetPath(uuid).string();

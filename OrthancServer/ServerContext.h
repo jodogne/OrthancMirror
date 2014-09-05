@@ -34,7 +34,7 @@
 
 #include "../Core/Cache/MemoryCache.h"
 #include "../Core/FileStorage/CompressedFileStorageAccessor.h"
-#include "../Core/FileStorage/FileStorage.h"
+#include "../Core/FileStorage/FilesystemStorage.h"
 #include "../Core/RestApi/RestApiOutput.h"
 #include "../Core/Lua/LuaContext.h"
 #include "ServerIndex.h"
@@ -75,7 +75,7 @@ namespace Orthanc
                                   const Json::Value& simplifiedDicom,
                                   const Json::Value& metadata);
 
-    FileStorage storage_;
+    FilesystemStorage storage_;
     ServerIndex index_;
     CompressedFileStorageAccessor accessor_;
     bool compressionEnabled_;
