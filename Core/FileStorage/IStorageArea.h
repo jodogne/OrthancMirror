@@ -32,7 +32,8 @@
 
 #pragma once
 
-#include <string>
+#include "../Enumerations.h"
+
 #include <boost/noncopyable.hpp>
 
 namespace Orthanc
@@ -44,11 +45,15 @@ namespace Orthanc
     {
     }
 
-    virtual std::string Create(const void* content, size_t size) = 0;
+    virtual std::string Create(const void* content, 
+                               size_t size,
+                               FileContentType type) = 0;
 
     virtual void Read(std::string& content,
-                      const std::string& uuid) const = 0;
+                      const std::string& uuid,
+                      FileContentType type) const = 0;
 
-    virtual void Remove(const std::string& uuid) = 0;
+    virtual void Remove(const std::string& uuid,
+                        FileContentType type) = 0;
   };
 }

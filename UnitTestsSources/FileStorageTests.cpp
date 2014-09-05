@@ -63,9 +63,9 @@ TEST(FilesystemStorage, Basic)
   FilesystemStorage s("UnitTestsStorage");
 
   std::string data = Toolbox::GenerateUuid();
-  std::string uid = s.Create(&data[0], data.size());
+  std::string uid = s.Create(&data[0], data.size(), FileContentType_Unknown);
   std::string d;
-  s.Read(d, uid);
+  s.Read(d, uid, FileContentType_Unknown);
   ASSERT_EQ(d.size(), data.size());
   ASSERT_FALSE(memcmp(&d[0], &data[0], data.size()));
   ASSERT_EQ(s.GetSize(uid), data.size());
@@ -77,9 +77,9 @@ TEST(FilesystemStorage, Basic2)
 
   std::vector<uint8_t> data;
   StringToVector(data, Toolbox::GenerateUuid());
-  std::string uid = s.Create(&data[0], data.size());
+  std::string uid = s.Create(&data[0], data.size(), FileContentType_Unknown);
   std::string d;
-  s.Read(d, uid);
+  s.Read(d, uid, FileContentType_Unknown);
   ASSERT_EQ(d.size(), data.size());
   ASSERT_FALSE(memcmp(&d[0], &data[0], data.size()));
   ASSERT_EQ(s.GetSize(uid), data.size());
@@ -94,7 +94,7 @@ TEST(FilesystemStorage, EndToEnd)
   for (unsigned int i = 0; i < 10; i++)
   {
     std::string t = Toolbox::GenerateUuid();
-    u.push_back(s.Create(&t[0], t.size()));
+    u.push_back(s.Create(&t[0], t.size(), FileContentType_Unknown));
   }
 
   std::set<std::string> ss;
@@ -107,7 +107,7 @@ TEST(FilesystemStorage, EndToEnd)
   {
     ASSERT_TRUE(ss.find(*i) != ss.end());
     if (c < 5)
-      s.Remove(*i);
+      s.Remove(*i, FileContentType_Unknown);
   }
 
   s.ListAllFiles(ss);
@@ -128,7 +128,7 @@ TEST(FileStorageAccessor, Simple)
   FileInfo info = accessor.Write(data, FileContentType_Dicom);
   
   std::string r;
-  accessor.Read(r, info.GetUuid());
+  accessor.Read(r, info.GetUuid(), FileContentType_Unknown);
 
   ASSERT_EQ(data, r);
   ASSERT_EQ(CompressionType_None, info.GetCompressionType());
@@ -148,7 +148,7 @@ TEST(FileStorageAccessor, NoCompression)
   FileInfo info = accessor.Write(data, FileContentType_Dicom);
   
   std::string r;
-  accessor.Read(r, info.GetUuid());
+  accessor.Read(r, info.GetUuid(), FileContentType_Unknown);
 
   ASSERT_EQ(data, r);
   ASSERT_EQ(CompressionType_None, info.GetCompressionType());
@@ -169,7 +169,7 @@ TEST(FileStorageAccessor, NoCompression2)
   FileInfo info = accessor.Write(data, FileContentType_Dicom);
   
   std::string r;
-  accessor.Read(r, info.GetUuid());
+  accessor.Read(r, info.GetUuid(), FileContentType_Unknown);
 
   ASSERT_EQ(0, memcmp(&r[0], &data[0], data.size()));
   ASSERT_EQ(CompressionType_None, info.GetCompressionType());
@@ -189,7 +189,7 @@ TEST(FileStorageAccessor, Compression)
   FileInfo info = accessor.Write(data, FileContentType_Dicom);
   
   std::string r;
-  accessor.Read(r, info.GetUuid());
+  accessor.Read(r, info.GetUuid(), FileContentType_Unknown);
 
   ASSERT_EQ(data, r);
   ASSERT_EQ(CompressionType_Zlib, info.GetCompressionType());
@@ -214,16 +214,16 @@ TEST(FileStorageAccessor, Mix)
   FileInfo uncompressedInfo = accessor.Write(uncompressedData, FileContentType_Dicom);
   
   accessor.SetCompressionForNextOperations(CompressionType_Zlib);
-  accessor.Read(r, compressedInfo.GetUuid());
+  accessor.Read(r, compressedInfo.GetUuid(), FileContentType_Unknown);
   ASSERT_EQ(compressedData, r);
 
   accessor.SetCompressionForNextOperations(CompressionType_None);
-  accessor.Read(r, compressedInfo.GetUuid());
+  accessor.Read(r, compressedInfo.GetUuid(), FileContentType_Unknown);
   ASSERT_NE(compressedData, r);
 
   /*
   // This test is too slow on Windows
   accessor.SetCompressionForNextOperations(CompressionType_Zlib);
-  ASSERT_THROW(accessor.Read(r, uncompressedInfo.GetUuid()), OrthancException);
+  ASSERT_THROW(accessor.Read(r, uncompressedInfo.GetUuid(), FileContentType_Unknown), OrthancException);
   */
 }

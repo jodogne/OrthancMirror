@@ -85,8 +85,13 @@ namespace Orthanc
                    FileContentType type);
 
     virtual void Read(std::string& content,
-                      const std::string& uuid) = 0;
+                      const std::string& uuid,
+                      FileContentType type) = 0;
 
-    virtual HttpFileSender* ConstructHttpFileSender(const std::string& uuid) = 0;
+    virtual void Remove(const std::string& uuid,
+                        FileContentType type) = 0;
+
+    virtual HttpFileSender* ConstructHttpFileSender(const std::string& uuid,
+                                                    FileContentType type) = 0;
   };
 }

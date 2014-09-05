@@ -59,11 +59,22 @@ namespace Orthanc
     class ServerIndexListener : public IServerIndexListener
     {
     private:
+      struct FileToRemove
+      {
+        std::string  uuid_;
+        FileContentType  type_;
+
+        FileToRemove(const FileInfo& info) : uuid_(info.GetUuid()), 
+                                             type_(info.GetContentType())
+        {
+        }
+      };
+
       ServerContext& context_;
       bool hasRemainingLevel_;
       ResourceType remainingType_;
       std::string remainingPublicId_;
-      std::list<std::string> pendingFilesToRemove_;
+      std::list<FileToRemove> pendingFilesToRemove_;
       uint64_t sizeOfFilesToRemove_;
 
     public:
@@ -90,11 +101,11 @@ namespace Orthanc
 
       void CommitFilesToRemove()
       {
-        for (std::list<std::string>::iterator 
+        for (std::list<FileToRemove>::iterator 
                it = pendingFilesToRemove_.begin();
              it != pendingFilesToRemove_.end(); ++it)
         {
-          context_.RemoveFile(*it);
+          context_.RemoveFile(it->uuid_, it->type_);
         }
       }
 
@@ -122,7 +133,7 @@ namespace Orthanc
       virtual void SignalFileDeleted(const FileInfo& info)
       {
         assert(Toolbox::IsUuid(info.GetUuid()));
-        pendingFilesToRemove_.push_back(info.GetUuid());
+        pendingFilesToRemove_.push_back(FileToRemove(info));
         sizeOfFilesToRemove_ += info.GetCompressedSize();
       }
 

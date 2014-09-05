@@ -52,15 +52,16 @@ namespace Orthanc
       Toolbox::ComputeMD5(md5, data, size);
     }
 
-    return FileInfo(storage_.Create(data, size), type, size, md5);
+    return FileInfo(storage_.Create(data, size, type), type, size, md5);
   }
 
 
-  HttpFileSender* FileStorageAccessor::ConstructHttpFileSender(const std::string& uuid)
+  HttpFileSender* FileStorageAccessor::ConstructHttpFileSender(const std::string& uuid,
+                                                               FileContentType type)
   {
     std::auto_ptr<BufferHttpSender> sender(new BufferHttpSender);
 
-    storage_.Read(sender->GetBuffer(), uuid);
+    storage_.Read(sender->GetBuffer(), uuid, type);
       
     return sender.release();
   }
