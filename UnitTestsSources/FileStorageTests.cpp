@@ -63,7 +63,7 @@ TEST(FilesystemStorage, Basic)
   FilesystemStorage s("UnitTestsStorage");
 
   std::string data = Toolbox::GenerateUuid();
-  std::string uid = s.Create(data);
+  std::string uid = s.Create(&data[0], data.size());
   std::string d;
   s.Read(d, uid);
   ASSERT_EQ(d.size(), data.size());
@@ -77,7 +77,7 @@ TEST(FilesystemStorage, Basic2)
 
   std::vector<uint8_t> data;
   StringToVector(data, Toolbox::GenerateUuid());
-  std::string uid = s.Create(data);
+  std::string uid = s.Create(&data[0], data.size());
   std::string d;
   s.Read(d, uid);
   ASSERT_EQ(d.size(), data.size());
@@ -93,7 +93,8 @@ TEST(FilesystemStorage, EndToEnd)
   std::list<std::string> u;
   for (unsigned int i = 0; i < 10; i++)
   {
-    u.push_back(s.Create(Toolbox::GenerateUuid()));
+    std::string t = Toolbox::GenerateUuid();
+    u.push_back(s.Create(&t[0], t.size()));
   }
 
   std::set<std::string> ss;

@@ -34,7 +34,7 @@
 
 #include "../Core/Cache/MemoryCache.h"
 #include "../Core/FileStorage/CompressedFileStorageAccessor.h"
-#include "../Core/FileStorage/FilesystemStorage.h"
+#include "../Core/FileStorage/IStorageArea.h"
 #include "../Core/RestApi/RestApiOutput.h"
 #include "../Core/Lua/LuaContext.h"
 #include "ServerIndex.h"
@@ -42,6 +42,8 @@
 #include "DicomProtocol/ReusableDicomUserConnection.h"
 #include "Scheduler/ServerScheduler.h"
 #include "DicomInstanceToStore.h"
+
+#include <boost/filesystem.hpp>
 
 namespace Orthanc
 {
@@ -75,7 +77,7 @@ namespace Orthanc
                                   const Json::Value& simplifiedDicom,
                                   const Json::Value& metadata);
 
-    FilesystemStorage storage_;
+    IStorageArea& storage_;
     ServerIndex index_;
     CompressedFileStorageAccessor accessor_;
     bool compressionEnabled_;
@@ -132,7 +134,7 @@ namespace Orthanc
     };
 
 
-    ServerContext(const boost::filesystem::path& storagePath,
+    ServerContext(IStorageArea& storage,
                   const boost::filesystem::path& indexPath);
 
     ServerIndex& GetIndex()

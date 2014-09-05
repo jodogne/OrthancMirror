@@ -37,6 +37,7 @@
 #include <glog/logging.h>
 #include <boost/algorithm/string/predicate.hpp>
 
+#include "../Core/FileStorage/FilesystemStorage.h"
 #include "../Core/HttpServer/EmbeddedResourceHttpHandler.h"
 #include "../Core/HttpServer/FilesystemHttpHandler.h"
 #include "../Core/Lua/LuaFunctionCall.h"
@@ -320,7 +321,9 @@ static bool StartOrthanc()
   boost::filesystem::path storageDirectory = Configuration::InterpretStringParameterAsPath(storageDirectoryStr);
   boost::filesystem::path indexDirectory = Configuration::InterpretStringParameterAsPath(
     Configuration::GetGlobalStringParameter("IndexDirectory", storageDirectoryStr));
-  ServerContext context(storageDirectory, indexDirectory);
+
+  FilesystemStorage storage(storageDirectory.string());
+  ServerContext context(storage, indexDirectory);
 
   LOG(WARNING) << "Storage directory: " << storageDirectory;
   LOG(WARNING) << "Index directory: " << indexDirectory;

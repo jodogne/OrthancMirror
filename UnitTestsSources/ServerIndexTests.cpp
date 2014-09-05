@@ -38,6 +38,7 @@
 #include "../OrthancServer/ServerIndex.h"
 #include "../Core/Uuid.h"
 #include "../Core/DicomFormat/DicomNullValue.h"
+#include "../Core/FileStorage/FilesystemStorage.h"
 
 #include <ctype.h>
 #include <glog/logging.h>
@@ -569,8 +570,10 @@ TEST_P(DatabaseWrapperTest, LookupTagValue)
 TEST(ServerIndex, AttachmentRecycling)
 {
   const std::string path = "UnitTestsStorage";
+
   Toolbox::RemoveFile(path + "/index");
-  ServerContext context(path, ":memory:");   // The SQLite DB is in memory
+  FilesystemStorage storage(path);
+  ServerContext context(storage, ":memory:");   // The SQLite DB is in memory
   ServerIndex& index = context.GetIndex();
 
   index.SetMaximumStorageSize(10);

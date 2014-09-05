@@ -33,6 +33,12 @@
 #include "../PrecompiledHeaders.h"
 #include "FileStorageAccessor.h"
 
+#include "../HttpServer/BufferHttpSender.h"
+
+#include <memory>
+
+#include <stdio.h>
+
 namespace Orthanc
 {
   FileInfo FileStorageAccessor::WriteInternal(const void* data,
@@ -48,4 +54,15 @@ namespace Orthanc
 
     return FileInfo(storage_.Create(data, size), type, size, md5);
   }
+
+
+  HttpFileSender* FileStorageAccessor::ConstructHttpFileSender(const std::string& uuid)
+  {
+    std::auto_ptr<BufferHttpSender> sender(new BufferHttpSender);
+
+    storage_.Read(sender->GetBuffer(), uuid);
+      
+    return sender.release();
+  }
+
 }

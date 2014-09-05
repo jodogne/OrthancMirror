@@ -267,6 +267,7 @@ namespace Orthanc
 
   enum FileContentType
   {
+    FileContentType_Unknown = 0,
     FileContentType_Dicom = 1,
     FileContentType_DicomAsJson = 2,
 
