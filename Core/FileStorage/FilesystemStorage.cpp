@@ -143,24 +143,8 @@ namespace Orthanc
   }
 
 
-  std::string FilesystemStorage::Create(const std::vector<uint8_t>& content)
-  {
-    if (content.size() == 0)
-      return Create(NULL, 0);
-    else
-      return Create(&content[0], content.size());
-  }
-
-  std::string FilesystemStorage::Create(const std::string& content)
-  {
-    if (content.size() == 0)
-      return Create(NULL, 0);
-    else
-      return Create(&content[0], content.size());
-  }
-
   void FilesystemStorage::Read(std::string& content,
-                         const std::string& uuid) const
+                               const std::string& uuid) const
   {
     content.clear();
     Toolbox::ReadFile(content, GetPath(uuid).string());

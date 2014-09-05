@@ -37,6 +37,8 @@
 #include "FileStorageAccessor.h"
 #include "../HttpServer/BufferHttpSender.h"
 
+#include <memory>
+
 namespace Orthanc
 {
   FileInfo CompressedFileStorageAccessor::WriteInternal(const void* data,
@@ -70,7 +72,16 @@ namespace Orthanc
         Toolbox::ComputeMD5(compressedMD5, compressed);
       }
 
-      std::string uuid = storage_.Create(compressed);
+      std::string uuid;
+      if (compressed.size() > 0)
+      {
+        uuid = storage_.Create(&compressed[0], compressed.size());
+      }
+      else
+      {
+        uuid = storage_.Create(NULL, 0);
+      }
+
       return FileInfo(uuid, type, size, md5,
                       CompressionType_Zlib, compressed.size(), compressedMD5);
     }
@@ -80,7 +91,7 @@ namespace Orthanc
     }
   }
 
-  CompressedFileStorageAccessor::CompressedFileStorageAccessor(FilesystemStorage& storage) : 
+  CompressedFileStorageAccessor::CompressedFileStorageAccessor(IStorageArea& storage) : 
     storage_(storage)
   {
     compressionType_ = CompressionType_None;

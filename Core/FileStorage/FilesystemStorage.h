@@ -32,12 +32,14 @@
 
 #pragma once
 
+#include "IStorageArea.h"
+
 #include <boost/filesystem.hpp>
 #include <set>
 
 namespace Orthanc
 {
-  class FilesystemStorage : public boost::noncopyable
+  class FilesystemStorage : public IStorageArea
   {
     // TODO REMOVE THIS
     friend class FilesystemHttpSender;
@@ -51,22 +53,18 @@ namespace Orthanc
   public:
     FilesystemStorage(std::string root);
 
-    std::string Create(const void* content, size_t size);
+    virtual std::string Create(const void* content, size_t size);
 
-    std::string Create(const std::vector<uint8_t>& content);
+    virtual void Read(std::string& content,
+                      const std::string& uuid) const;
 
-    std::string Create(const std::string& content);
-
-    void Read(std::string& content,
-              const std::string& uuid) const;
+    virtual void Remove(const std::string& uuid);
 
     void ListAllFiles(std::set<std::string>& result) const;
 
     uintmax_t GetSize(const std::string& uuid) const;
 
     void Clear();
-
-    void Remove(const std::string& uuid);
 
     uintmax_t GetCapacity() const;
 
