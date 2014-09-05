@@ -143,6 +143,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/DicomModification.cpp
   OrthancServer/FromDcmtkBridge.cpp
   OrthancServer/ParsedDicomFile.cpp
+  OrthancServer/DicomDirWriter.cpp
   OrthancServer/Internals/CommandDispatcher.cpp
   OrthancServer/Internals/FindScp.cpp
   OrthancServer/Internals/MoveScp.cpp
