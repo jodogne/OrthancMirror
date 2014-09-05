@@ -63,8 +63,6 @@ namespace Orthanc
   
       Stack stack_;
 
-      std::string GetCurrentDirectoryPath() const;
-
       std::string EnsureUniqueFilename(const char* filename);
 
     public:
@@ -82,6 +80,8 @@ namespace Orthanc
       void OpenDirectory(const char* name);
 
       void CloseDirectory();
+
+      std::string GetCurrentDirectoryPath() const;
 
       static std::string KeepAlphanumeric(const std::string& source);
     };
@@ -119,6 +119,11 @@ namespace Orthanc
     void OpenDirectory(const char* name);
 
     void CloseDirectory();
+
+    std::string GetCurrentDirectoryPath() const
+    {
+      return indexer_.GetCurrentDirectoryPath();
+    }
 
     void Write(const char* data, size_t length)
     {

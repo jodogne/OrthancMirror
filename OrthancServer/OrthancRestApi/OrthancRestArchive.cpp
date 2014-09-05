@@ -33,6 +33,7 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
+#include "../DicomDirWriter.h"
 #include "../../Core/Compression/HierarchicalZipWriter.h"
 #include "../../Core/HttpServer/FilesystemHttpSender.h"
 #include "../../Core/Uuid.h"
@@ -54,30 +55,38 @@ namespace Orthanc
   static std::string GetDirectoryNameInArchive(const Json::Value& resource,
                                                ResourceType resourceType)
   {
+    std::string s;
+
     switch (resourceType)
     {
       case ResourceType_Patient:
       {
         std::string p = resource["MainDicomTags"]["PatientID"].asString();
         std::string n = resource["MainDicomTags"]["PatientName"].asString();
-        return p + " " + n;
+        s = p + " " + n;
+        break;
       }
 
       case ResourceType_Study:
       {
-        return resource["MainDicomTags"]["StudyDescription"].asString();
+        s = resource["MainDicomTags"]["StudyDescription"].asString();
+        break;
       }
         
       case ResourceType_Series:
       {
         std::string d = resource["MainDicomTags"]["SeriesDescription"].asString();
         std::string m = resource["MainDicomTags"]["Modality"].asString();
-        return m + " " + d;
+        s = m + " " + d;
+        break;
       }
         
       default:
         throw OrthancException(ErrorCode_InternalError);
     }
+
+    // Get rid of special characters
+    return Toolbox::ConvertToAscii(s);
   }
 
   static bool CreateRootDirectoryInArchive(HierarchicalZipWriter& writer,
@@ -126,13 +135,6 @@ namespace Orthanc
                               const std::string& instancePublicId,
                               const char* filename)
   {
-    Json::Value instance;
-
-    if (!context.GetIndex().LookupResource(instance, instancePublicId, ResourceType_Instance))
-    {
-      return false;
-    }
-
     writer.OpenFile(filename);
 
     std::string dicom;
@@ -233,13 +235,10 @@ namespace Orthanc
     return true;
   }                                 
 
-  template <enum ResourceType resourceType>
-  static void GetArchive(RestApiGetCall& call)
+
+  static bool IsZip64Required(ServerIndex& index,
+                              const std::string& id)
   {
-    ServerContext& context = OrthancRestApi::GetContext(call);
-
-    std::string id = call.GetUriComponent("id", "");
-
     /**
      * Determine whether ZIP64 is required. Original ZIP format can
      * store up to 2GB of data (some implementation supporting up to
@@ -252,14 +251,26 @@ namespace Orthanc
     unsigned int countStudies;
     unsigned int countSeries;
     unsigned int countInstances;
-    context.GetIndex().GetStatistics(compressedSize, uncompressedSize, 
-                                     countStudies, countSeries, countInstances, id);
+    index.GetStatistics(compressedSize, uncompressedSize, 
+                        countStudies, countSeries, countInstances, id);
     const bool isZip64 = (uncompressedSize >= 2 * GIGA_BYTES ||
                           countInstances >= 65535);
 
     LOG(INFO) << "Creating a ZIP file with " << countInstances << " files of size "
               << (uncompressedSize / MEGA_BYTES) << "MB using the "
               << (isZip64 ? "ZIP64" : "ZIP32") << " file format";
+
+    return isZip64;
+  }
+                              
+
+  template <enum ResourceType resourceType>
+  static void GetArchive(RestApiGetCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    std::string id = call.GetUriComponent("id", "");
+    bool isZip64 = IsZip64Required(context.GetIndex(), id);
 
     // Create a RAII for the temporary file to manage the ZIP file
     Toolbox::TemporaryFile tmp;
@@ -288,10 +299,75 @@ namespace Orthanc
   }
 
 
+  static void GetMediaArchive(RestApiGetCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    std::string id = call.GetUriComponent("id", "");
+    bool isZip64 = IsZip64Required(context.GetIndex(), id);
+
+    // Create a RAII for the temporary file to manage the ZIP file
+    Toolbox::TemporaryFile tmp;
+
+    {
+      // Create a ZIP writer
+      HierarchicalZipWriter writer(tmp.GetPath().c_str());
+      writer.SetZip64(isZip64);
+      writer.OpenDirectory("IMAGES");
+
+      // Create the DICOMDIR writer
+      DicomDirWriter dicomDir;
+
+      // Retrieve the list of the instances
+      std::list<std::string> instances;
+      context.GetIndex().GetChildInstances(instances, id);
+
+      size_t pos = 0;
+      for (std::list<std::string>::const_iterator
+             it = instances.begin(); it != instances.end(); it++, pos++)
+      {
+        // "DICOM restricts the filenames on DICOM media to 8
+        // characters (some systems wrongly use 8.3, but this does not
+        // conform to the standard)."
+        std::string filename = "IM" + boost::lexical_cast<std::string>(pos);
+        writer.OpenFile(filename.c_str());
+
+        std::string dicom;
+        context.ReadFile(dicom, *it, FileContentType_Dicom);
+        writer.Write(dicom);
+
+        ParsedDicomFile parsed(dicom);
+        dicomDir.Add("IMAGES", filename, parsed);
+      }
+
+      // Add the DICOMDIR
+      writer.CloseDirectory();
+      writer.OpenFile("DICOMDIR");
+      std::string s;
+      dicomDir.Encode(s);
+      writer.Write(s);
+    }
+
+    // Prepare the sending of the ZIP file
+    FilesystemHttpSender sender(tmp.GetPath().c_str());
+    sender.SetContentType("application/zip");
+    sender.SetDownloadFilename(id + ".zip");
+
+    // Send the ZIP
+    call.GetOutput().AnswerFile(sender);
+
+    // The temporary file is automatically removed thanks to the RAII
+  }
+
+
   void OrthancRestApi::RegisterArchive()
   {
     Register("/patients/{id}/archive", GetArchive<ResourceType_Patient>);
     Register("/studies/{id}/archive", GetArchive<ResourceType_Study>);
     Register("/series/{id}/archive", GetArchive<ResourceType_Series>);
+
+    Register("/patients/{id}/media", GetMediaArchive);
+    Register("/studies/{id}/media", GetMediaArchive);
+    Register("/series/{id}/media", GetMediaArchive);
   }
 }
