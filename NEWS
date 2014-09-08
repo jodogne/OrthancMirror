@@ -14,6 +14,7 @@ Minor
 * "/tools/create-dicom" now accepts the "PatientID" DICOM tag (+ updated sample)
 * Upgrade to Mongoose 3.8
 * Fixes for Visual Studio 2013 and Windows 64bit
+* Fix issue 16: Handling of "AT" value representations in JSON
 * Fix issue 17
 
 
