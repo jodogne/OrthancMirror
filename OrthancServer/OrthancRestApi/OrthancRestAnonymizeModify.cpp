@@ -262,6 +262,7 @@ namespace Orthanc
         continue;
       }
 
+
       ParsedDicomFile& original = locker->GetDicom();
       DicomInstanceHasher originalHasher = original.GetHasher();
 
