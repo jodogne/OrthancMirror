@@ -601,9 +601,9 @@ namespace Orthanc
       }
 
       // Mark the parent resources of this instance as unstable
-      MarkAsUnstable(patient, ResourceType_Patient);
-      MarkAsUnstable(study, ResourceType_Study);
       MarkAsUnstable(series, ResourceType_Series);
+      MarkAsUnstable(study, ResourceType_Study);
+      MarkAsUnstable(patient, ResourceType_Patient);
 
       t.Commit(instanceSize);
 

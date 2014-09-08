@@ -1,12 +1,20 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
 * Creation of ZIP archives for media storage, with DICOMDIR
 * Refactoring of HttpOutput ("Content-Length" header is now always sent)
+
+Minor
+-----
+
+* Configuration option to enable HTTP Keep-Alive
 * "/tools/create-dicom" now accepts the "PatientID" DICOM tag (+ updated sample)
-* Fixes for Visual Studio 2013 and Windows 64bit
 * Upgrade to Mongoose 3.8
-* Experimental "KeepAlive" configuration option to enable HTTP Keep-Alive
+* Fixes for Visual Studio 2013 and Windows 64bit
+* Fix issue 17
 
 
 Version 0.8.2 (2014/08/07)
