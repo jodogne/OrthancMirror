@@ -460,14 +460,14 @@ namespace Orthanc
 
   ServerContext::DicomCacheLocker::DicomCacheLocker(ServerContext& that,
                                                     const std::string& instancePublicId) : 
-    that_(that)
+    that_(that),
+    lock_(that_.dicomCacheMutex_)
   {
 #if ENABLE_DICOM_CACHE == 0
     static std::auto_ptr<IDynamicObject> p;
     p.reset(provider_.Provide(instancePublicId));
     dicom_ = dynamic_cast<ParsedDicomFile*>(p.get());
 #else
-    that_.dicomCacheMutex_.lock();
     dicom_ = &dynamic_cast<ParsedDicomFile&>(that_.dicomCache_.Access(instancePublicId));
 #endif
   }
@@ -475,10 +475,6 @@ namespace Orthanc
 
   ServerContext::DicomCacheLocker::~DicomCacheLocker()
   {
-#if ENABLE_DICOM_CACHE == 0
-#else
-    that_.dicomCacheMutex_.unlock();
-#endif
   }
 
 

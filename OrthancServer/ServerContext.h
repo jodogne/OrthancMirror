@@ -97,6 +97,7 @@ namespace Orthanc
     private:
       ServerContext& that_;
       ParsedDicomFile *dicom_;
+      boost::mutex::scoped_lock lock_;
 
     public:
       DicomCacheLocker(ServerContext& that,
