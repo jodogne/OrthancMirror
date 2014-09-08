@@ -551,18 +551,6 @@ namespace Orthanc
         }
       }
     }
-
-
-    {
-      // DEBUG
-      static unsigned int count = 0;
-      char buf[1024];
-      sprintf(buf, "/tmp/dicomdir-%06d.dcm", count++);
-
-      std::string s;
-      pimpl_->Read(s);
-      Toolbox::WriteFile(s, buf);
-    }
   }
 
   void DicomDirWriter::Encode(std::string& target)
