@@ -88,6 +88,7 @@
 #include <dcmtk/dcmdata/dcpixel.h>
 #include <dcmtk/dcmdata/dcpixseq.h>
 #include <dcmtk/dcmdata/dcpxitem.h>
+#include <dcmtk/dcmdata/dcvrat.h>
 
 
 #include <boost/math/special_functions/round.hpp>
@@ -234,9 +235,8 @@ namespace Orthanc
         case EVR_OB:  // other byte
         case EVR_OF:  // other float
         case EVR_OW:  // other word
-        case EVR_AT:  // attribute tag
         case EVR_UN:  // unknown value representation
-          return new DicomNullValue();
+          return new DicomNullValue;
     
           /**
            * String types, should never happen at this point because of
@@ -258,11 +258,11 @@ namespace Orthanc
         case EVR_UT:  // unlimited text
         case EVR_PN:  // person name
         case EVR_UI:  // unique identifier
-          return new DicomNullValue();
+          return new DicomNullValue;
 
 
           /**
-           * Numerical types
+           * Numberic types
            **/ 
       
         case EVR_SL:  // signed long
@@ -271,7 +271,7 @@ namespace Orthanc
           if (dynamic_cast<DcmSignedLong&>(element).getSint32(f).good())
             return new DicomString(boost::lexical_cast<std::string>(f));
           else
-            return new DicomNullValue();
+            return new DicomNullValue;
         }
 
         case EVR_SS:  // signed short
@@ -280,7 +280,7 @@ namespace Orthanc
           if (dynamic_cast<DcmSignedShort&>(element).getSint16(f).good())
             return new DicomString(boost::lexical_cast<std::string>(f));
           else
-            return new DicomNullValue();
+            return new DicomNullValue;
         }
 
         case EVR_UL:  // unsigned long
@@ -289,7 +289,7 @@ namespace Orthanc
           if (dynamic_cast<DcmUnsignedLong&>(element).getUint32(f).good())
             return new DicomString(boost::lexical_cast<std::string>(f));
           else
-            return new DicomNullValue();
+            return new DicomNullValue;
         }
 
         case EVR_US:  // unsigned short
@@ -298,7 +298,7 @@ namespace Orthanc
           if (dynamic_cast<DcmUnsignedShort&>(element).getUint16(f).good())
             return new DicomString(boost::lexical_cast<std::string>(f));
           else
-            return new DicomNullValue();
+            return new DicomNullValue;
         }
 
         case EVR_FL:  // float single-precision
@@ -307,7 +307,7 @@ namespace Orthanc
           if (dynamic_cast<DcmFloatingPointSingle&>(element).getFloat32(f).good())
             return new DicomString(boost::lexical_cast<std::string>(f));
           else
-            return new DicomNullValue();
+            return new DicomNullValue;
         }
 
         case EVR_FD:  // float double-precision
@@ -316,7 +316,21 @@ namespace Orthanc
           if (dynamic_cast<DcmFloatingPointDouble&>(element).getFloat64(f).good())
             return new DicomString(boost::lexical_cast<std::string>(f));
           else
-            return new DicomNullValue();
+            return new DicomNullValue;
+        }
+
+
+        /**
+         * Attribute tag.
+         **/
+
+        case EVR_AT:
+        {
+          OFString s;
+          if (dynamic_cast<DcmAttributeTag&>(element).getOFString(s, 0).good())
+            return new DicomString(s.c_str());
+          else
+            return new DicomNullValue;
         }
 
 
