@@ -73,7 +73,8 @@ namespace Orthanc
     ErrorCode_ReadOnly,
     ErrorCode_IncompatibleImageFormat,
     ErrorCode_IncompatibleImageSize,
-    ErrorCode_SharedLibrary
+    ErrorCode_SharedLibrary,
+    ErrorCode_Plugin
   };
 
   /**
@@ -267,6 +268,8 @@ namespace Orthanc
 
   enum FileContentType
   {
+    // If you add a value below, insert it in "PluginStorageArea" in
+    // the file "Plugins/Engine/OrthancPlugins.cpp"
     FileContentType_Unknown = 0,
     FileContentType_Dicom = 1,
     FileContentType_DicomAsJson = 2,

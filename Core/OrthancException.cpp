@@ -127,6 +127,9 @@ namespace Orthanc
       case ErrorCode_SystemCommand:
         return "Error while calling a system command";
 
+      case ErrorCode_Plugin:
+        return "Error encountered inside a plugin";
+
       case ErrorCode_Custom:
       default:
         return "???";

@@ -53,9 +53,10 @@ namespace Orthanc
   public:
     FilesystemStorage(std::string root);
 
-    virtual std::string Create(const void* content, 
-                               size_t size,
-                               FileContentType type);
+    virtual void Create(const std::string& uuid,
+                        const void* content, 
+                        size_t size,
+                        FileContentType type);
 
     virtual void Read(std::string& content,
                       const std::string& uuid,

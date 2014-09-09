@@ -34,9 +34,9 @@
 #include "FileStorageAccessor.h"
 
 #include "../HttpServer/BufferHttpSender.h"
+#include "../Uuid.h"
 
 #include <memory>
-
 #include <stdio.h>
 
 namespace Orthanc
@@ -52,7 +52,10 @@ namespace Orthanc
       Toolbox::ComputeMD5(md5, data, size);
     }
 
-    return FileInfo(storage_.Create(data, size, type), type, size, md5);
+    std::string uuid = Toolbox::GenerateUuid();
+    storage_.Create(uuid.c_str(), data, size, type);
+
+    return FileInfo(uuid, type, size, md5);
   }
 
 

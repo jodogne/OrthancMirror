@@ -5,12 +5,14 @@ General
 -------
 
 * Creation of ZIP archives for media storage, with DICOMDIR
-* Refactoring of HttpOutput ("Content-Length" header is now always sent)
+* Support of index-only mode (using the "StoreDicom" option)
+* Plugins can implement a custom storage area
 
 Minor
 -----
 
 * Configuration option to enable HTTP Keep-Alive
+* Refactoring of HttpOutput ("Content-Length" header is now always sent)
 * "/tools/create-dicom" now accepts the "PatientID" DICOM tag (+ updated sample)
 * Upgrade to Mongoose 3.8
 * Fixes for Visual Studio 2013 and Windows 64bit
