@@ -1508,7 +1508,13 @@ extern "C"
     params.create_ = create;
     params.read_ = read;
     params.remove_ = remove;
+
+#ifdef  __cplusplus
     params.free_ = free;
+#else
+    params.free_ = ::free;
+#endif
+
     context->InvokeService(context, _OrthancPluginService_RegisterStorageArea, &params);
   }
 
