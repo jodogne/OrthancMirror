@@ -817,6 +817,7 @@ namespace Orthanc
           *reinterpret_cast<const _OrthancPluginRegisterStorageArea*>(parameters);
         
         pimpl_->storageArea_ = p;
+        pimpl_->hasStorageArea_ = true;
         return true;
       }
 
