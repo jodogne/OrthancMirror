@@ -251,6 +251,7 @@ extern "C"
     _OrthancPluginService_SendUnauthorized = 2004,
     _OrthancPluginService_SendMethodNotAllowed = 2005,
     _OrthancPluginService_SetCookie = 2006,
+    _OrthancPluginService_SetHttpHeader = 2007,
 
     /* Access to the Orthanc database and API */
     _OrthancPluginService_GetDicomForInstance = 3000,
@@ -1194,9 +1195,9 @@ extern "C"
   typedef struct
   {
     OrthancPluginRestOutput* output;
-    const char*              cookie;
+    const char*              key;
     const char*              value;
-  } _OrthancPluginSetCookie;
+  } _OrthancPluginSetHttpHeader;
 
   /**
    * @brief Set a cookie.
@@ -1214,11 +1215,35 @@ extern "C"
     const char*              cookie,
     const char*              value)
   {
-    _OrthancPluginSetCookie params;
+    _OrthancPluginSetHttpHeader params;
     params.output = output;
-    params.cookie = cookie;
+    params.key = cookie;
     params.value = value;
     context->InvokeService(context, _OrthancPluginService_SetCookie, &params);
+  }
+
+
+  /**
+   * @brief Set some HTTP header.
+   *
+   * This function sets a HTTP header in the HTTP answer.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param output The HTTP connection to the client application.
+   * @param key The HTTP header to be set.
+   * @param value The value of the HTTP header.
+   **/
+  ORTHANC_PLUGIN_INLINE void OrthancPluginSetHttpHeader(
+    OrthancPluginContext*    context,
+    OrthancPluginRestOutput* output,
+    const char*              key,
+    const char*              value)
+  {
+    _OrthancPluginSetHttpHeader params;
+    params.output = output;
+    params.key = key;
+    params.value = value;
+    context->InvokeService(context, _OrthancPluginService_SetHttpHeader, &params);
   }
 
 
@@ -1510,9 +1535,9 @@ extern "C"
     params.remove_ = remove;
 
 #ifdef  __cplusplus
-    params.free_ = free;
-#else
     params.free_ = ::free;
+#else
+    params.free_ = free;
 #endif
 
     context->InvokeService(context, _OrthancPluginService_RegisterStorageArea, &params);

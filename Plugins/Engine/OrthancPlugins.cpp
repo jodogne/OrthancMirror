@@ -406,11 +406,21 @@ namespace Orthanc
 
   void OrthancPlugins::SetCookie(const void* parameters)
   {
-    const _OrthancPluginSetCookie& p = 
-      *reinterpret_cast<const _OrthancPluginSetCookie*>(parameters);
+    const _OrthancPluginSetHttpHeader& p = 
+      *reinterpret_cast<const _OrthancPluginSetHttpHeader*>(parameters);
 
     HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
-    translatedOutput->SetCookie(p.cookie, p.value);
+    translatedOutput->SetCookie(p.key, p.value);
+  }
+
+
+  void OrthancPlugins::SetHttpHeader(const void* parameters)
+  {
+    const _OrthancPluginSetHttpHeader& p = 
+      *reinterpret_cast<const _OrthancPluginSetHttpHeader*>(parameters);
+
+    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
+    translatedOutput->AddHeader(p.key, p.value);
   }
 
 
@@ -791,6 +801,10 @@ namespace Orthanc
 
       case _OrthancPluginService_SetCookie:
         SetCookie(parameters);
+        return true;
+
+      case _OrthancPluginService_SetHttpHeader:
+        SetHttpHeader(parameters);
         return true;
 
       case _OrthancPluginService_LookupPatient:

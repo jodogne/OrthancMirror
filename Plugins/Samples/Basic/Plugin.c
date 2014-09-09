@@ -165,6 +165,50 @@ ORTHANC_PLUGINS_API int32_t Callback4(OrthancPluginRestOutput* output,
 }
 
 
+ORTHANC_PLUGINS_API int32_t CallbackCreateDicom(OrthancPluginRestOutput* output,
+                                                const char* url,
+                                                const OrthancPluginHttpRequest* request)
+{
+  const char* pathLocator = "\"Path\" : \"";
+  char info[1024];
+  char *id, *eos;
+  OrthancPluginMemoryBuffer tmp;
+
+  if (request->method != OrthancPluginHttpMethod_Post)
+  {
+    OrthancPluginSendMethodNotAllowed(context, output, "POST");
+  }
+  else
+  {
+    /* Make POST request to create a new DICOM instance */
+    sprintf(info, "{\"PatientName\":\"Test\"}");
+    OrthancPluginRestApiPost(context, &tmp, "/tools/create-dicom", info, strlen(info));
+
+    /**
+     * Recover the ID of the created instance is constructed by a
+     * quick-and-dirty parsing of a JSON string.
+     **/
+    id = strstr((char*) tmp.data, pathLocator) + strlen(pathLocator);
+    eos = strchr(id, '\"');
+    eos[0] = '\0';
+
+    /* Delete the newly created DICOM instance. */
+    OrthancPluginRestApiDelete(context, id);
+    OrthancPluginFreeMemoryBuffer(context, &tmp);
+
+    /* Set some cookie */
+    OrthancPluginSetCookie(context, output, "hello", "world");
+
+    /* Set some HTTP header */
+    OrthancPluginSetHttpHeader(context, output, "Cache-Control", "max-age=0, no-cache");
+    
+    OrthancPluginAnswerBuffer(context, output, "OK\n", 3, "text/plain");
+  }
+
+  return 0;
+}
+
+
 ORTHANC_PLUGINS_API int32_t OnStoredCallback(OrthancPluginDicomInstance* instance,
                                              const char* instanceId)
 {
@@ -203,10 +247,8 @@ ORTHANC_PLUGINS_API int32_t OnStoredCallback(OrthancPluginDicomInstance* instanc
 
 ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
 {
-  const char* pathLocator = "\"Path\" : \"";
   OrthancPluginMemoryBuffer tmp;
   char info[1024];
-  char *id, *eos;
 
   context = c;
   OrthancPluginLogWarning(context, "Sample plugin is initializing");
@@ -230,6 +272,7 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   OrthancPluginRegisterRestCallback(context, "/plu.*/image", Callback2);
   OrthancPluginRegisterRestCallback(context, "/plugin/instances/([^/]+)/info", Callback3);
   OrthancPluginRegisterRestCallback(context, "/instances/([^/]+)/preview", Callback4);
+  OrthancPluginRegisterRestCallback(context, "/plugin/create", CallbackCreateDicom);
 
   OrthancPluginRegisterOnStoredInstanceCallback(context, OnStoredCallback);
 
@@ -238,27 +281,11 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   OrthancPluginFreeMemoryBuffer(context, &tmp);
   OrthancPluginRestApiGet(context, &tmp, "/changes?limit=1");
   OrthancPluginFreeMemoryBuffer(context, &tmp);
- 
-  /* Make POST request to create a new DICOM instance */
-  sprintf(info, "{\"PatientName\":\"Test\"}");
-  OrthancPluginRestApiPost(context, &tmp, "/tools/create-dicom", info, strlen(info));
-
-  /**
-   * Recover he ID of the created instance is constructed by a
-   * quick-and-dirty parsing of a JSON string.
-   **/
-  id = strstr((char*) tmp.data, pathLocator) + strlen(pathLocator);
-  eos = strchr(id, '\"');
-  eos[0] = '\0';
-
-  /* Delete the newly created DICOM instance. */
-  OrthancPluginRestApiDelete(context, id);
-  OrthancPluginFreeMemoryBuffer(context, &tmp);
-
+  
   /* Play with PUT by defining a new target modality. */
   sprintf(info, "[ \"STORESCP\", \"localhost\", 2000 ]");
   OrthancPluginRestApiPut(context, &tmp, "/modalities/demo", info, strlen(info));
-
+ 
   return 0;
 }
 
