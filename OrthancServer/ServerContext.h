@@ -134,8 +134,12 @@ namespace Orthanc
     };
 
 
-    ServerContext(IStorageArea& storage,
-                  const boost::filesystem::path& indexPath);
+    ServerContext(const boost::filesystem::path& indexPath);
+
+    void SetStorageArea(IStorageArea& storage)
+    {
+      accessor_.SetStorageArea(storage);
+    }
 
     ServerIndex& GetIndex()
     {

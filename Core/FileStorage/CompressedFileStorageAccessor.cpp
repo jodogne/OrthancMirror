@@ -56,7 +56,7 @@ namespace Orthanc
     {
     case CompressionType_None:
     {
-      std::string uuid = storage_.Create(data, size, type);
+      std::string uuid = GetStorageArea().Create(data, size, type);
       return FileInfo(uuid, type, size, md5);
     }
 
@@ -75,11 +75,11 @@ namespace Orthanc
       std::string uuid;
       if (compressed.size() > 0)
       {
-        uuid = storage_.Create(&compressed[0], compressed.size(), type);
+        uuid = GetStorageArea().Create(&compressed[0], compressed.size(), type);
       }
       else
       {
-        uuid = storage_.Create(NULL, 0, type);
+        uuid = GetStorageArea().Create(NULL, 0, type);
       }
 
       return FileInfo(uuid, type, size, md5,
@@ -91,11 +91,31 @@ namespace Orthanc
     }
   }
 
-  CompressedFileStorageAccessor::CompressedFileStorageAccessor(IStorageArea& storage) : 
-    storage_(storage)
+
+  CompressedFileStorageAccessor::CompressedFileStorageAccessor() : 
+    storage_(NULL),
+    compressionType_(CompressionType_None)
   {
-    compressionType_ = CompressionType_None;
   }
+
+
+  CompressedFileStorageAccessor::CompressedFileStorageAccessor(IStorageArea& storage) : 
+    storage_(&storage),
+    compressionType_(CompressionType_None)
+  {
+  }
+
+
+  IStorageArea& CompressedFileStorageAccessor::GetStorageArea()
+  {
+    if (storage_ == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    return *storage_;
+  }
+
 
   void CompressedFileStorageAccessor::Read(std::string& content,
                                            const std::string& uuid,
@@ -104,13 +124,13 @@ namespace Orthanc
     switch (compressionType_)
     {
     case CompressionType_None:
-      storage_.Read(content, uuid, type);
+      GetStorageArea().Read(content, uuid, type);
       break;
 
     case CompressionType_Zlib:
     {
       std::string compressed;
-      storage_.Read(compressed, uuid, type);
+      GetStorageArea().Read(compressed, uuid, type);
       zlib_.Uncompress(content, compressed);
       break;
     }
@@ -127,14 +147,14 @@ namespace Orthanc
     {
     case CompressionType_None:
     {
-      FileStorageAccessor uncompressedAccessor(storage_);
+      FileStorageAccessor uncompressedAccessor(GetStorageArea());
       return uncompressedAccessor.ConstructHttpFileSender(uuid, type);
     }
 
     case CompressionType_Zlib:
     {
       std::string compressed;
-      storage_.Read(compressed, uuid, type);
+      GetStorageArea().Read(compressed, uuid, type);
 
       std::auto_ptr<BufferHttpSender> sender(new BufferHttpSender);
       zlib_.Uncompress(sender->GetBuffer(), compressed);
@@ -145,5 +165,12 @@ namespace Orthanc
     default:
       throw OrthancException(ErrorCode_NotImplemented);
     }
+  }
+
+
+  void  CompressedFileStorageAccessor::Remove(const std::string& uuid,
+                                              FileContentType type)
+  {
+    GetStorageArea().Remove(uuid, type);
   }
 }

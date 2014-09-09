@@ -573,7 +573,8 @@ TEST(ServerIndex, AttachmentRecycling)
 
   Toolbox::RemoveFile(path + "/index");
   FilesystemStorage storage(path);
-  ServerContext context(storage, ":memory:");   // The SQLite DB is in memory
+  ServerContext context(":memory:");   // The SQLite DB is in memory
+  context.SetStorageArea(storage);
   ServerIndex& index = context.GetIndex();
 
   index.SetMaximumStorageSize(10);

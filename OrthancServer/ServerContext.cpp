@@ -71,10 +71,8 @@ static const size_t DICOM_CACHE_SIZE = 2;
 
 namespace Orthanc
 {
-  ServerContext::ServerContext(IStorageArea& storage,
-                               const boost::filesystem::path& indexPath) :
+  ServerContext::ServerContext(const boost::filesystem::path& indexPath) :
     index_(*this, indexPath.string()),
-    accessor_(storage),
     compressionEnabled_(false),
     provider_(*this),
     dicomCache_(provider_, DICOM_CACHE_SIZE),
