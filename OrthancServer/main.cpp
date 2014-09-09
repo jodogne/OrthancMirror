@@ -51,7 +51,7 @@
 #include "OrthancMoveRequestHandler.h"
 #include "ServerToolbox.h"
 #include "../Plugins/Engine/PluginsManager.h"
-#include "../Plugins/Engine/PluginsHttpHandler.h"
+#include "../Plugins/Engine/OrthancPlugins.h"
 
 using namespace Orthanc;
 
@@ -451,18 +451,18 @@ static bool StartOrthanc()
     FilesystemHttpHandler staticResources("/app", ORTHANC_PATH "/OrthancExplorer");
 #endif
 
-    PluginsHttpHandler httpPlugins(context);
-    httpPlugins.SetOrthancRestApi(restApi);
+    OrthancPlugins orthancPlugins(context);
+    orthancPlugins.SetOrthancRestApi(restApi);
 
     PluginsManager pluginsManager;
-    pluginsManager.RegisterServiceProvider(httpPlugins);
+    pluginsManager.RegisterServiceProvider(orthancPlugins);
     LoadPlugins(pluginsManager);
 
-    httpServer.RegisterHandler(httpPlugins);
+    httpServer.RegisterHandler(orthancPlugins);
     httpServer.RegisterHandler(staticResources);
     httpServer.RegisterHandler(restApi);
-    httpPlugins.SetOrthancRestApi(restApi);
-    context.SetPluginsHttpHandler(httpPlugins);
+    orthancPlugins.SetOrthancRestApi(restApi);
+    context.SetOrthancPlugins(orthancPlugins);
 
     // GO !!! Start the requested servers
     if (Configuration::GetGlobalBoolParameter("HttpServerEnabled", true))
