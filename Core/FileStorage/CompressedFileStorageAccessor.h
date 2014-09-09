@@ -41,7 +41,7 @@ namespace Orthanc
   class CompressedFileStorageAccessor : public StorageAccessor
   {
   private:
-    IStorageArea& storage_;
+    IStorageArea* storage_;
     ZlibCompressor zlib_;
     CompressionType compressionType_;
 
@@ -51,7 +51,21 @@ namespace Orthanc
                                    FileContentType type);
 
   public: 
+    CompressedFileStorageAccessor();
+
     CompressedFileStorageAccessor(IStorageArea& storage);
+
+    void SetStorageArea(IStorageArea& storage)
+    {
+      storage_ = &storage;
+    }
+
+    bool HasStorageArea() const
+    {
+      return storage_ != NULL;
+    }
+
+    IStorageArea& GetStorageArea();
 
     void SetCompressionForNextOperations(CompressionType compression)
     {
@@ -71,9 +85,6 @@ namespace Orthanc
                                                     FileContentType type);
 
     virtual void Remove(const std::string& uuid,
-                        FileContentType type)
-    {
-      storage_.Remove(uuid, type);
-    }
+                        FileContentType type);
   };
 }

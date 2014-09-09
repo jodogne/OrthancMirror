@@ -376,7 +376,8 @@ static bool StartOrthanc()
   FilesystemStorage storage(storageDirectory.string());
   //FilesystemStorageWithoutDicom storage(storageDirectory.string());
 
-  ServerContext context(storage, indexDirectory);
+  ServerContext context(indexDirectory);
+  context.SetStorageArea(storage);
 
   LOG(WARNING) << "Storage directory: " << storageDirectory;
   LOG(WARNING) << "Index directory: " << indexDirectory;
