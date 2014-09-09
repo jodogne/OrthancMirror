@@ -123,6 +123,12 @@ namespace Orthanc
       stateMachine_.SetCookie(cookie, value);
     }
 
+    void AddHeader(const std::string& key,
+                   const std::string& value)
+    {
+      stateMachine_.AddHeader(key, value);
+    }
+
     void SendBody(const void* buffer, size_t length);
 
     void SendBody(const std::string& str);

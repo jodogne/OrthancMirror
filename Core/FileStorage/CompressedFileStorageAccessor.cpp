@@ -39,6 +39,7 @@
 #include "../Uuid.h"
 
 #include <memory>
+#include <glog/logging.h>
 
 namespace Orthanc
 {
@@ -112,6 +113,7 @@ namespace Orthanc
   {
     if (storage_ == NULL)
     {
+      LOG(ERROR) << "No storage area is currently available";
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 

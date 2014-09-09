@@ -78,6 +78,8 @@ namespace Orthanc
 
     void SetCookie(const void* parameters);
 
+    void SetHttpHeader(const void* parameters);
+
   public:
     OrthancPlugins(ServerContext& context);
 
