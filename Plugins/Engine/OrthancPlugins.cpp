@@ -30,7 +30,7 @@
  **/
 
 
-#include "PluginsHttpHandler.h"
+#include "OrthancPlugins.h"
 
 #include "../../Core/ChunkedBuffer.h"
 #include "../../Core/OrthancException.h"
@@ -78,7 +78,7 @@ namespace Orthanc
 
 
 
-  struct PluginsHttpHandler::PImpl
+  struct OrthancPlugins::PImpl
   {
     typedef std::pair<boost::regex*, OrthancPluginRestCallback> RestCallback;
     typedef std::list<RestCallback>  RestCallbacks;
@@ -116,13 +116,13 @@ namespace Orthanc
   }
 
 
-  PluginsHttpHandler::PluginsHttpHandler(ServerContext& context)
+  OrthancPlugins::OrthancPlugins(ServerContext& context)
   {
     pimpl_.reset(new PImpl(context));
   }
 
   
-  PluginsHttpHandler::~PluginsHttpHandler()
+  OrthancPlugins::~OrthancPlugins()
   {
     for (PImpl::RestCallbacks::iterator it = pimpl_->restCallbacks_.begin(); 
          it != pimpl_->restCallbacks_.end(); ++it)
@@ -151,7 +151,7 @@ namespace Orthanc
   }
 
 
-  bool PluginsHttpHandler::Handle(HttpOutput& output,
+  bool OrthancPlugins::Handle(HttpOutput& output,
                                   HttpMethod method,
                                   const UriComponents& uri,
                                   const Arguments& headers,
@@ -271,7 +271,7 @@ namespace Orthanc
   }
 
 
-  void PluginsHttpHandler::SignalStoredInstance(DicomInstanceToStore& instance,
+  void OrthancPlugins::SignalStoredInstance(DicomInstanceToStore& instance,
                                                 const std::string& instanceId)                                                  
   {
     for (PImpl::OnStoredCallbacks::const_iterator
@@ -325,7 +325,7 @@ namespace Orthanc
   }
 
 
-  void PluginsHttpHandler::RegisterRestCallback(const void* parameters)
+  void OrthancPlugins::RegisterRestCallback(const void* parameters)
   {
     const _OrthancPluginRestCallback& p = 
       *reinterpret_cast<const _OrthancPluginRestCallback*>(parameters);
@@ -336,7 +336,7 @@ namespace Orthanc
 
 
 
-  void PluginsHttpHandler::RegisterOnStoredInstanceCallback(const void* parameters)
+  void OrthancPlugins::RegisterOnStoredInstanceCallback(const void* parameters)
   {
     const _OrthancPluginOnStoredInstanceCallback& p = 
       *reinterpret_cast<const _OrthancPluginOnStoredInstanceCallback*>(parameters);
@@ -347,7 +347,7 @@ namespace Orthanc
 
 
 
-  void PluginsHttpHandler::AnswerBuffer(const void* parameters)
+  void OrthancPlugins::AnswerBuffer(const void* parameters)
   {
     const _OrthancPluginAnswerBuffer& p = 
       *reinterpret_cast<const _OrthancPluginAnswerBuffer*>(parameters);
@@ -358,7 +358,7 @@ namespace Orthanc
   }
 
 
-  void PluginsHttpHandler::Redirect(const void* parameters)
+  void OrthancPlugins::Redirect(const void* parameters)
   {
     const _OrthancPluginOutputPlusArgument& p = 
       *reinterpret_cast<const _OrthancPluginOutputPlusArgument*>(parameters);
@@ -368,7 +368,7 @@ namespace Orthanc
   }
 
 
-  void PluginsHttpHandler::SendHttpStatusCode(const void* parameters)
+  void OrthancPlugins::SendHttpStatusCode(const void* parameters)
   {
     const _OrthancPluginSendHttpStatusCode& p = 
       *reinterpret_cast<const _OrthancPluginSendHttpStatusCode*>(parameters);
@@ -378,7 +378,7 @@ namespace Orthanc
   }
 
 
-  void PluginsHttpHandler::SendUnauthorized(const void* parameters)
+  void OrthancPlugins::SendUnauthorized(const void* parameters)
   {
     const _OrthancPluginOutputPlusArgument& p = 
       *reinterpret_cast<const _OrthancPluginOutputPlusArgument*>(parameters);
@@ -388,7 +388,7 @@ namespace Orthanc
   }
 
 
-  void PluginsHttpHandler::SendMethodNotAllowed(const void* parameters)
+  void OrthancPlugins::SendMethodNotAllowed(const void* parameters)
   {
     const _OrthancPluginOutputPlusArgument& p = 
       *reinterpret_cast<const _OrthancPluginOutputPlusArgument*>(parameters);
@@ -398,7 +398,7 @@ namespace Orthanc
   }
 
 
-  void PluginsHttpHandler::SetCookie(const void* parameters)
+  void OrthancPlugins::SetCookie(const void* parameters)
   {
     const _OrthancPluginSetCookie& p = 
       *reinterpret_cast<const _OrthancPluginSetCookie*>(parameters);
@@ -408,7 +408,7 @@ namespace Orthanc
   }
 
 
-  void PluginsHttpHandler::CompressAndAnswerPngImage(const void* parameters)
+  void OrthancPlugins::CompressAndAnswerPngImage(const void* parameters)
   {
     const _OrthancPluginCompressAndAnswerPngImage& p = 
       *reinterpret_cast<const _OrthancPluginCompressAndAnswerPngImage*>(parameters);
@@ -454,7 +454,7 @@ namespace Orthanc
   }
 
 
-  void PluginsHttpHandler::GetDicomForInstance(const void* parameters)
+  void OrthancPlugins::GetDicomForInstance(const void* parameters)
   {
     const _OrthancPluginGetDicomForInstance& p = 
       *reinterpret_cast<const _OrthancPluginGetDicomForInstance*>(parameters);
@@ -465,7 +465,7 @@ namespace Orthanc
   }
 
 
-  void PluginsHttpHandler::RestApiGet(const void* parameters)
+  void OrthancPlugins::RestApiGet(const void* parameters)
   {
     const _OrthancPluginRestApiGet& p = 
       *reinterpret_cast<const _OrthancPluginRestApiGet*>(parameters);
@@ -496,7 +496,7 @@ namespace Orthanc
   }
 
 
-  void PluginsHttpHandler::RestApiPostPut(bool isPost, const void* parameters)
+  void OrthancPlugins::RestApiPostPut(bool isPost, const void* parameters)
   {
     const _OrthancPluginRestApiPostPut& p = 
       *reinterpret_cast<const _OrthancPluginRestApiPostPut*>(parameters);
@@ -530,7 +530,7 @@ namespace Orthanc
   }
 
 
-  void PluginsHttpHandler::RestApiDelete(const void* parameters)
+  void OrthancPlugins::RestApiDelete(const void* parameters)
   {
     // The "parameters" point to the URI
     UriComponents uri;
@@ -554,7 +554,7 @@ namespace Orthanc
   }
 
 
-  void PluginsHttpHandler::LookupResource(_OrthancPluginService service,
+  void OrthancPlugins::LookupResource(_OrthancPluginService service,
                                           const void* parameters)
   {
     const _OrthancPluginLookupResource& p = 
@@ -726,7 +726,7 @@ namespace Orthanc
   }
 
 
-  bool PluginsHttpHandler::InvokeService(_OrthancPluginService service,
+  bool OrthancPlugins::InvokeService(_OrthancPluginService service,
                                          const void* parameters)
   {
     switch (service)
@@ -811,7 +811,7 @@ namespace Orthanc
   }
 
 
-  void PluginsHttpHandler::SetOrthancRestApi(OrthancRestApi& restApi)
+  void OrthancPlugins::SetOrthancRestApi(OrthancRestApi& restApi)
   {
     pimpl_->restApi_ = &restApi;
   }

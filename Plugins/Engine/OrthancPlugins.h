@@ -43,7 +43,7 @@
 
 namespace Orthanc
 {
-  class PluginsHttpHandler : public HttpHandler, public IPluginServiceProvider
+  class OrthancPlugins : public HttpHandler, public IPluginServiceProvider
   {
   private:
     struct PImpl;
@@ -80,9 +80,9 @@ namespace Orthanc
     void SetCookie(const void* parameters);
 
   public:
-    PluginsHttpHandler(ServerContext& context);
+    OrthancPlugins(ServerContext& context);
 
-    virtual ~PluginsHttpHandler();
+    virtual ~OrthancPlugins();
 
     virtual bool Handle(HttpOutput& output,
                         HttpMethod method,

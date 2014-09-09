@@ -50,7 +50,7 @@
 #include "Scheduler/StoreScuCommand.h"
 #include "Scheduler/StorePeerCommand.h"
 #include "OrthancRestApi/OrthancRestApi.h"
-#include "../Plugins/Engine/PluginsHttpHandler.h"
+#include "../Plugins/Engine/OrthancPlugins.h"
 
 
 #define ENABLE_DICOM_CACHE  1
