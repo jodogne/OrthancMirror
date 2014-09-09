@@ -36,6 +36,7 @@
 #include "../OrthancException.h"
 #include "FileStorageAccessor.h"
 #include "../HttpServer/BufferHttpSender.h"
+#include "../Uuid.h"
 
 #include <memory>
 
@@ -45,6 +46,8 @@ namespace Orthanc
                                                         size_t size,
                                                         FileContentType type)
   {
+    std::string uuid = Toolbox::GenerateUuid();
+
     std::string md5;
 
     if (storeMD5_)
@@ -56,7 +59,7 @@ namespace Orthanc
     {
     case CompressionType_None:
     {
-      std::string uuid = GetStorageArea().Create(data, size, type);
+      GetStorageArea().Create(uuid.c_str(), data, size, type);
       return FileInfo(uuid, type, size, md5);
     }
 
@@ -72,14 +75,13 @@ namespace Orthanc
         Toolbox::ComputeMD5(compressedMD5, compressed);
       }
 
-      std::string uuid;
       if (compressed.size() > 0)
       {
-        uuid = GetStorageArea().Create(&compressed[0], compressed.size(), type);
+        GetStorageArea().Create(uuid.c_str(), &compressed[0], compressed.size(), type);
       }
       else
       {
-        uuid = GetStorageArea().Create(NULL, 0, type);
+        GetStorageArea().Create(uuid.c_str(), NULL, 0, type);
       }
 
       return FileInfo(uuid, type, size, md5,

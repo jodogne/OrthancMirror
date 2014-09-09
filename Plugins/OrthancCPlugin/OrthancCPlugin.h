@@ -15,6 +15,7 @@
  *      services of Orthanc.
  *    - Register all its REST callbacks using ::OrthancPluginRegisterRestCallback().
  *    - Register all its callbacks for received instances using ::OrthancPluginRegisterOnStoredInstanceCallback().
+ *    - Possibly register a custom storage area using ::OrthancPluginRegisterStorageArea().
  * -# <tt>void OrthancPluginFinalize()</tt>:
  *    This function is invoked by Orthanc during its shutdown. The plugin
  *    must free all its memory.
@@ -87,7 +88,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     0
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     8
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  1
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  3
 
 
 
@@ -240,6 +241,7 @@ extern "C"
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
     _OrthancPluginService_RegisterOnStoredInstanceCallback = 1001,
+    _OrthancPluginService_RegisterStorageArea = 1002,
 
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
@@ -321,6 +323,19 @@ extern "C"
   } OrthancPluginPixelFormat;
 
 
+
+  /**
+   * The content types that are supported by Orthanc plugins.
+   **/
+  typedef enum
+  {
+    OrthancPluginContentType_Unknown = 0,      /*!< Unknown content type */
+    OrthancPluginContentType_Dicom = 1,        /*!< DICOM */
+    OrthancPluginContentType_DicomAsJson = 2   /*!< JSON summary of a DICOM file */
+  } OrthancPluginContentType;
+
+
+
   /**
    * @brief A memory buffer allocated by the core system of Orthanc.
    *
@@ -378,16 +393,76 @@ extern "C"
 
 
   /**
+   * @brief Signature of a function to free dynamic memory.
+   **/
+  typedef void (*OrthancPluginFree) (void* buffer);
+
+
+
+  /**
+   * @brief Callback for writing to the storage area.
+   *
+   * Signature of a callback function that is triggered when Orthanc writes a file to the storage area.
+   *
+   * @param uuid The UUID of the file.
+   * @param content The content of the file.
+   * @param size The size of the file.
+   * @param type The content type corresponding to this file. 
+   * @return 0 if success, other value if error.
+   **/
+  typedef int32_t (*OrthancPluginStorageCreate) (
+    const char* uuid,
+    const void* content,
+    int64_t size,
+    OrthancPluginContentType type);
+
+
+
+  /**
+   * @brief Callback for reading from the storage area.
+   *
+   * Signature of a callback function that is triggered when Orthanc reads a file from the storage area.
+   *
+   * @param content The content of the file (output).
+   * @param size The size of the file (output).
+   * @param uuid The UUID of the file of interest.
+   * @param type The content type corresponding to this file. 
+   * @return 0 if success, other value if error.
+   **/
+  typedef int32_t (*OrthancPluginStorageRead) (
+    void** content,
+    int64_t* size,
+    const char* uuid,
+    OrthancPluginContentType type);
+
+
+
+  /**
+   * @brief Callback for removing a file from the storage area.
+   *
+   * Signature of a callback function that is triggered when Orthanc deletes a file from the storage area.
+   *
+   * @param uuid The UUID of the file to be removed.
+   * @param type The content type corresponding to this file. 
+   * @return 0 if success, other value if error.
+   **/
+  typedef int32_t (*OrthancPluginStorageRemove) (
+    const char* uuid,
+    OrthancPluginContentType type);
+
+
+
+  /**
    * @brief Opaque structure that contains information about the Orthanc core.
    **/
   typedef struct _OrthancPluginContext_t
   {
-    void*        pluginsManager;
-    const char*  orthancVersion;
-    void       (*Free) (void* buffer);
-    int32_t    (*InvokeService) (struct _OrthancPluginContext_t* context,
-                                 _OrthancPluginService service,
-                                 const void* params);
+    void*              pluginsManager;
+    const char*        orthancVersion;
+    OrthancPluginFree  Free;
+    int32_t          (*InvokeService) (struct _OrthancPluginContext_t* context,
+                                       _OrthancPluginService service,
+                                       const void* params);
   } OrthancPluginContext;
 
 
@@ -1402,6 +1477,40 @@ extern "C"
     }
   }
 
+
+
+  typedef struct
+  {
+    OrthancPluginStorageCreate  create_;
+    OrthancPluginStorageRead    read_;
+    OrthancPluginStorageRemove  remove_;
+    OrthancPluginFree           free_;
+  } _OrthancPluginRegisterStorageArea;
+
+  /**
+   * @brief Register a custom storage area.
+   *
+   * This function registers a custom storage area, to replace the
+   * built-in way Orthanc stores its files on the filesystem. This
+   * function must be called during the initialization of the plugin,
+   * i.e. inside the OrthancPluginInitialize() public function.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param 
+   **/
+  ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterStorageArea(
+    OrthancPluginContext*       context,
+    OrthancPluginStorageCreate  create,
+    OrthancPluginStorageRead    read,
+    OrthancPluginStorageRemove  remove)
+  {
+    _OrthancPluginRegisterStorageArea params;
+    params.create_ = create;
+    params.read_ = read;
+    params.remove_ = remove;
+    params.free_ = free;
+    context->InvokeService(context, _OrthancPluginService_RegisterStorageArea, &params);
+  }
 
 
 #ifdef  __cplusplus

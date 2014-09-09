@@ -88,9 +88,15 @@ namespace Orthanc
     RestCallbacks restCallbacks_;
     OrthancRestApi* restApi_;
     OnStoredCallbacks  onStoredCallbacks_;
+    bool hasStorageArea_;
+    _OrthancPluginRegisterStorageArea storageArea_;
 
-    PImpl(ServerContext& context) : context_(context), restApi_(NULL)
+    PImpl(ServerContext& context) : 
+      context_(context), 
+      restApi_(NULL),
+      hasStorageArea_(false)
     {
+      memset(&storageArea_, 0, sizeof(storageArea_));
     }
   };
 
@@ -805,6 +811,15 @@ namespace Orthanc
         AccessDicomInstance(service, parameters);
         return true;
 
+      case _OrthancPluginService_RegisterStorageArea:
+      {
+        const _OrthancPluginRegisterStorageArea& p = 
+          *reinterpret_cast<const _OrthancPluginRegisterStorageArea*>(parameters);
+        
+        pimpl_->storageArea_ = p;
+        return true;
+      }
+
       default:
         return false;
     }
@@ -816,4 +831,108 @@ namespace Orthanc
     pimpl_->restApi_ = &restApi;
   }
 
+  
+  bool OrthancPlugins::HasStorageArea() const
+  {
+    return pimpl_->hasStorageArea_;
+  }
+
+
+  namespace
+  {
+    class PluginStorageArea : public IStorageArea
+    {
+    private:
+      _OrthancPluginRegisterStorageArea params_;
+
+      void Free(void* buffer) const
+      {
+        if (buffer != NULL)
+        {
+          params_.free_(buffer);
+        }
+      }
+
+      OrthancPluginContentType Convert(FileContentType type) const
+      {
+        switch (type)
+        {
+          case FileContentType_Dicom:
+            return OrthancPluginContentType_Dicom;
+
+          case FileContentType_DicomAsJson:
+            return OrthancPluginContentType_DicomAsJson;
+
+          default:
+            return OrthancPluginContentType_Unknown;
+        }
+      }
+
+    public:
+      PluginStorageArea(const _OrthancPluginRegisterStorageArea& params) : params_(params)
+      {
+      }
+
+      virtual void Create(const std::string& uuid,
+                          const void* content, 
+                          size_t size,
+                          FileContentType type)
+      {
+        if (params_.create_(uuid.c_str(), content, size, Convert(type)) != 0)
+        {
+          throw OrthancException(ErrorCode_Plugin);
+        }
+      }
+
+      virtual void Read(std::string& content,
+                        const std::string& uuid,
+                        FileContentType type) const
+      {
+        void* buffer = NULL;
+        int64_t size = 0;
+
+        if (params_.read_(&buffer, &size, uuid.c_str(), Convert(type)) != 0)
+        {
+          throw OrthancException(ErrorCode_Plugin);
+        }        
+
+        try
+        {
+          content.resize(size);
+        }
+        catch (OrthancException&)
+        {
+          Free(buffer);
+          throw;
+        }
+
+        if (size > 0)
+        {
+          memcpy(&content[0], buffer, size);
+        }
+
+        Free(buffer);
+      }
+
+      virtual void Remove(const std::string& uuid,
+                          FileContentType type) 
+      {
+        if (params_.remove_(uuid.c_str(), Convert(type)) != 0)
+        {
+          throw OrthancException(ErrorCode_Plugin);
+        }        
+      }
+    };
+  }
+
+
+  IStorageArea* OrthancPlugins::GetStorageArea()
+  {
+    if (!HasStorageArea())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    return new PluginStorageArea(pimpl_->storageArea_);;
+  }
 }

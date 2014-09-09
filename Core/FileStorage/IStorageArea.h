@@ -45,9 +45,10 @@ namespace Orthanc
     {
     }
 
-    virtual std::string Create(const void* content, 
-                               size_t size,
-                               FileContentType type) = 0;
+    virtual void Create(const std::string& uuid,
+                        const void* content,
+                        size_t size,
+                        FileContentType type) = 0;
 
     virtual void Read(std::string& content,
                       const std::string& uuid,

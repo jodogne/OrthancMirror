@@ -85,26 +85,20 @@ namespace Orthanc
     Toolbox::CreateDirectory(root);
   }
 
-  std::string FilesystemStorage::Create(const void* content, 
-                                        size_t size,
-                                        FileContentType /*type*/)
+  void FilesystemStorage::Create(const std::string& uuid,
+                                 const void* content, 
+                                 size_t size,
+                                 FileContentType /*type*/)
   {
-    std::string uuid;
     boost::filesystem::path path;
     
-    for (;;)
+    path = GetPath(uuid);
+
+    if (boost::filesystem::exists(path))
     {
-      uuid = Toolbox::GenerateUuid();
-      path = GetPath(uuid);
-
-      if (!boost::filesystem::exists(path))
-      {
-        // OK, this is indeed a new file
-        break;
-      }
-
-      // Extremely improbable case: This Uuid has already been created
-      // in the past. Try again.
+      // Extremely unlikely case: This Uuid has already been created
+      // in the past.
+      throw OrthancException(ErrorCode_InternalError);
     }
 
     if (boost::filesystem::exists(path.parent_path()))
@@ -140,8 +134,6 @@ namespace Orthanc
     }
 
     f.close();
-
-    return uuid;
   }
 
 

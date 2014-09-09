@@ -326,17 +326,14 @@ public:
   {
   }
 
-  virtual std::string Create(const void* content, 
-                             size_t size,
-                             FileContentType type)
+  virtual void Create(const std::string& uuid,
+                      const void* content, 
+                      size_t size,
+                      FileContentType type)
   {
     if (type != FileContentType_Dicom)
     {
-      return storage_.Create(content, size, type);
-    }
-    else
-    {
-      return Toolbox::GenerateUuid();
+      storage_.Create(uuid, content, size, type);
     }
   }
 
@@ -368,18 +365,14 @@ public:
 static bool StartOrthanc()
 {
   std::string storageDirectoryStr = Configuration::GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
-  boost::filesystem::path storageDirectory = Configuration::InterpretStringParameterAsPath(storageDirectoryStr);
   boost::filesystem::path indexDirectory = Configuration::InterpretStringParameterAsPath(
     Configuration::GetGlobalStringParameter("IndexDirectory", storageDirectoryStr));
 
-  // TODO HERE
-  FilesystemStorage storage(storageDirectory.string());
-  //FilesystemStorageWithoutDicom storage(storageDirectory.string());
-
+  // "storage" must be declared BEFORE "ServerContext context", to
+  // avoid mess in the invokation order of the destructors.
+  std::auto_ptr<IStorageArea>  storage;
   ServerContext context(indexDirectory);
-  context.SetStorageArea(storage);
 
-  LOG(WARNING) << "Storage directory: " << storageDirectory;
   LOG(WARNING) << "Index directory: " << indexDirectory;
 
   context.SetCompressionEnabled(Configuration::GetGlobalBoolParameter("StorageCompression", false));
@@ -464,6 +457,31 @@ static bool StartOrthanc()
     httpServer.RegisterHandler(restApi);
     orthancPlugins.SetOrthancRestApi(restApi);
     context.SetOrthancPlugins(orthancPlugins);
+
+
+    // Prepare the storage area
+    if (orthancPlugins.HasStorageArea())
+    {
+      LOG(WARNING) << "Using a custom storage area from plugins";
+      storage.reset(orthancPlugins.GetStorageArea());
+    }
+    else
+    {
+      boost::filesystem::path storageDirectory = Configuration::InterpretStringParameterAsPath(storageDirectoryStr);
+      LOG(WARNING) << "Storage directory: " << storageDirectory;
+      if (Configuration::GetGlobalBoolParameter("StoreDicom", true))
+      {
+        storage.reset(new FilesystemStorage(storageDirectory.string()));
+      }
+      else
+      {
+        LOG(WARNING) << "The DICOM files will not be stored, Orthanc running in index-only mode";
+        storage.reset(new FilesystemStorageWithoutDicom(storageDirectory.string()));
+      }
+    }
+    
+    context.SetStorageArea(*storage);
+
 
     // GO !!! Start the requested servers
     if (Configuration::GetGlobalBoolParameter("HttpServerEnabled", true))

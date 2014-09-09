@@ -47,7 +47,6 @@ namespace Orthanc
   {
   private:
     struct PImpl;
-
     boost::shared_ptr<PImpl> pimpl_;
 
     void RegisterRestCallback(const void* parameters);
@@ -98,5 +97,9 @@ namespace Orthanc
                               const std::string& instanceId);
 
     void SetOrthancRestApi(OrthancRestApi& restApi);
+
+    bool HasStorageArea() const;
+
+    IStorageArea* GetStorageArea();
   };
 }
