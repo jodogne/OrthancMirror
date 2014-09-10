@@ -225,7 +225,7 @@ namespace Orthanc
                         DicomTag tag,
                         const std::string& value);
 
-    void LookupTagValue(std::list<std::string>& result,
+    void LookupTagValue(std::list< std::pair<ResourceType, std::string> >& result,
                         const std::string& value);
 
     StoreStatus AddAttachment(const FileInfo& attachment,

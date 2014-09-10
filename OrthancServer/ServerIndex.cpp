@@ -1663,7 +1663,7 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::LookupTagValue(std::list<std::string>& result,
+  void ServerIndex::LookupTagValue(std::list< std::pair<ResourceType, std::string> >& result,
                                    const std::string& value)
   {
     result.clear();
@@ -1676,7 +1676,8 @@ namespace Orthanc
     for (std::list<int64_t>::const_iterator 
            it = id.begin(); it != id.end(); ++it)
     {
-      result.push_back(db_->GetPublicId(*it));
+      result.push_back(std::make_pair(db_->GetResourceType(*it),
+                                      db_->GetPublicId(*it)));
     }
   }
 
