@@ -5,9 +5,10 @@ General
 -------
 
 * Creation of ZIP archives for media storage, with DICOMDIR
+* URIs to get all the children of a given resource in a single REST call
+* "/tools/lookup" URI to map DICOM UIDs to Orthanc identifiers
 * Support of index-only mode (using the "StoreDicom" option)
 * Plugins can implement a custom storage area
-* "/tools/lookup" URI to map DICOM UIDs to Orthanc identifiers
 
 Minor
 -----
