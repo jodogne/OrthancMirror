@@ -810,6 +810,67 @@ namespace Orthanc
   }
 
 
+  template <enum ResourceType start, 
+            enum ResourceType end>
+  static void GetChildResources(RestApiGetCall& call)
+  {
+    ServerIndex& index = OrthancRestApi::GetIndex(call);
+
+    std::list<std::string> a, b, c;
+    a.push_back(call.GetUriComponent("id", ""));
+
+    ResourceType type = start;
+    while (type != end)
+    {
+      b.clear();
+
+      for (std::list<std::string>::const_iterator
+             it = a.begin(); it != a.end(); it++)
+      {
+        index.GetChildren(c, *it);
+        b.splice(b.begin(), c);
+      }
+
+      switch (type)
+      {
+        case ResourceType_Patient:
+          type = ResourceType_Study;
+          break;
+
+        case ResourceType_Study:
+          type = ResourceType_Series;
+          break;
+
+        case ResourceType_Series:
+          type = ResourceType_Instance;
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+
+      a.clear();
+      a.splice(a.begin(), b);
+    }
+
+    Json::Value result = Json::arrayValue;
+
+    for (std::list<std::string>::const_iterator
+           it = a.begin(); it != a.end(); it++)
+    {
+      Json::Value item;
+
+      if (OrthancRestApi::GetIndex(call).LookupResource(item, *it, end))
+      {
+        result.append(item);
+      }
+    }
+
+    call.GetOutput().AnswerJson(result);
+  }
+
+
+
   void OrthancRestApi::RegisterResources()
   {
     Register("/instances", ListResources<ResourceType_Instance>);
@@ -879,6 +940,13 @@ namespace Orthanc
     Register("/{resourceType}/{id}/attachments/{name}", UploadAttachment);
 
     Register("/tools/lookup", Lookup);
+
+    Register("/patients/{id}/studies", GetChildResources<ResourceType_Patient, ResourceType_Study>);
+    Register("/patients/{id}/series", GetChildResources<ResourceType_Patient, ResourceType_Series>);
+    Register("/patients/{id}/instances", GetChildResources<ResourceType_Patient, ResourceType_Instance>);
+    Register("/studies/{id}/series", GetChildResources<ResourceType_Study, ResourceType_Series>);
+    Register("/studies/{id}/instances", GetChildResources<ResourceType_Study, ResourceType_Instance>);
+    Register("/series/{id}/instances", GetChildResources<ResourceType_Series, ResourceType_Instance>);
 
     Register("/instances/{id}/content/*", GetRawContent);
   }
