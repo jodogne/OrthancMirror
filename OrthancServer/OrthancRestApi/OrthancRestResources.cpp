@@ -781,6 +781,35 @@ namespace Orthanc
   }
 
 
+  static void Lookup(RestApiPostCall& call)
+  {
+    typedef std::list< std::pair<ResourceType, std::string> >  Resources;
+
+    std::string tag = call.GetPostBody();
+    Resources resources;
+
+    OrthancRestApi::GetIndex(call).LookupTagValue(resources, tag);
+
+    Json::Value result = Json::arrayValue;
+    
+    for (Resources::const_iterator it = resources.begin();
+         it != resources.end(); it++)
+    {     
+      ResourceType type = it->first;
+      const std::string& id = it->second;
+      
+      Json::Value item = Json::objectValue;
+      item["Type"] = EnumerationToString(type);
+      item["ID"] = id;
+      item["Path"] = GetBasePath(type, id);
+    
+      result.append(item);
+    }
+
+    call.GetOutput().AnswerJson(result);
+  }
+
+
   void OrthancRestApi::RegisterResources()
   {
     Register("/instances", ListResources<ResourceType_Instance>);
@@ -848,6 +877,8 @@ namespace Orthanc
     Register("/{resourceType}/{id}/attachments/{name}/size", GetAttachmentSize);
     Register("/{resourceType}/{id}/attachments/{name}/verify-md5", VerifyAttachment);
     Register("/{resourceType}/{id}/attachments/{name}", UploadAttachment);
+
+    Register("/tools/lookup", Lookup);
 
     Register("/instances/{id}/content/*", GetRawContent);
   }
