@@ -22,6 +22,9 @@ Contributors
 * Karsten Hilbert <Karsten.Hilbert@gmx.net>, for in-depth testing.
 * Marek Swiecicki <mswiecicki@archimedic.pl>, for various suggestions
   and sample DICOM files.
+* Chris Hafey <chafey@gmail.com>, for suggesting many features and
+  improvements.
+* Manabu Tokunaga <manabu@lury.net>, for the Windows service and installer.
 
 Thanks also to all the contributors active in our Google Group:
 https://groups.google.com/forum/#!forum/orthanc-users
