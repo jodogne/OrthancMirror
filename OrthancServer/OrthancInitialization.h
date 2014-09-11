@@ -100,5 +100,7 @@ namespace Orthanc
                            const OrthancPeerParameters& peer);
 
     static void RemovePeer(const std::string& symbolicName);
+
+    static const std::string& GetConfigurationAbsolutePath();
   };
 }

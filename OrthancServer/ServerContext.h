@@ -198,5 +198,9 @@ namespace Orthanc
     {
       plugins_ = &plugins;
     }
+
+    bool DeleteResource(Json::Value& target,
+                        const std::string& uuid,
+                        ResourceType expectedType);
   };
 }

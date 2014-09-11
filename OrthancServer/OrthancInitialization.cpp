@@ -61,6 +61,7 @@ namespace Orthanc
   static boost::mutex globalMutex_;
   static std::auto_ptr<Json::Value> configuration_;
   static boost::filesystem::path defaultDirectory_;
+  static std::string configurationAbsolutePath_;
 
 
   static void ReadGlobalConfiguration(const char* configurationFile)
@@ -74,6 +75,7 @@ namespace Orthanc
       Toolbox::ReadFile(content, configurationFile);
       defaultDirectory_ = boost::filesystem::path(configurationFile).parent_path();
       LOG(WARNING) << "Using the configuration from: " << configurationFile;
+      configurationAbsolutePath_ = boost::filesystem::absolute(configurationFile).string();
     }
     else
     {
@@ -93,6 +95,7 @@ namespace Orthanc
         p /= "Configuration.json";
         Toolbox::ReadFile(content, p.string());
         LOG(WARNING) << "Using the configuration from: " << p.string();
+        configurationAbsolutePath_ = boost::filesystem::absolute(p).string();
       }
       catch (OrthancException&)
       {
@@ -102,6 +105,7 @@ namespace Orthanc
       }
 #endif
     }
+
 
     Json::Reader reader;
     if (!reader.parse(content, *configuration_))
@@ -642,5 +646,12 @@ namespace Orthanc
     }
 
     peers.removeMember(symbolicName.c_str());
+  }
+
+
+  
+  const std::string& Configuration::GetConfigurationAbsolutePath()
+  {
+    return configurationAbsolutePath_;
   }
 }

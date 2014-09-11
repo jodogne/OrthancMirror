@@ -15,6 +15,7 @@ Minor
 
 * Configuration option to enable HTTP Keep-Alive
 * Configuration option to disable the logging of exported resources in "/exports"
+* Plugins can retrieve the path to Orthanc and to its configuration file
 * Refactoring of HttpOutput ("Content-Length" header is now always sent)
 * "/tools/create-dicom" now accepts the "PatientID" DICOM tag (+ updated sample)
 * Upgrade to Mongoose 3.8

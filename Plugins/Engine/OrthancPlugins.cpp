@@ -38,6 +38,7 @@
 #include "../../Core/HttpServer/HttpOutput.h"
 #include "../../Core/ImageFormats/PngWriter.h"
 #include "../../OrthancServer/ServerToolbox.h"
+#include "../../OrthancServer/OrthancInitialization.h"
 
 #include <boost/regex.hpp> 
 #include <glog/logging.h>
@@ -573,8 +574,8 @@ namespace Orthanc
   void OrthancPlugins::LookupResource(_OrthancPluginService service,
                                           const void* parameters)
   {
-    const _OrthancPluginLookupResource& p = 
-      *reinterpret_cast<const _OrthancPluginLookupResource*>(parameters);
+    const _OrthancPluginRetrieveDynamicString& p = 
+      *reinterpret_cast<const _OrthancPluginRetrieveDynamicString*>(parameters);
 
     /**
      * The enumeration below only uses the tags that are indexed in
@@ -617,7 +618,7 @@ namespace Orthanc
     }
 
     std::list<std::string> result;
-    pimpl_->context_.GetIndex().LookupTagValue(result, tag, p.identifier, level);
+    pimpl_->context_.GetIndex().LookupTagValue(result, tag, p.argument, level);
 
     if (result.size() == 1)
     {
@@ -743,10 +744,31 @@ namespace Orthanc
 
 
   bool OrthancPlugins::InvokeService(_OrthancPluginService service,
-                                         const void* parameters)
+                                     const void* parameters)
   {
     switch (service)
     {
+      case _OrthancPluginService_GetOrthancPath:
+      {
+        std::string s = Toolbox::GetPathToExecutable();
+        *reinterpret_cast<const _OrthancPluginRetrieveDynamicString*>(parameters)->result = CopyString(s);
+        return true;
+      }
+
+      case _OrthancPluginService_GetOrthancDirectory:
+      {
+        std::string s = Toolbox::GetDirectoryOfExecutable();
+        *reinterpret_cast<const _OrthancPluginRetrieveDynamicString*>(parameters)->result = CopyString(s);
+        return true;
+      }
+
+      case _OrthancPluginService_GetConfigurationPath:
+      {
+        *reinterpret_cast<const _OrthancPluginRetrieveDynamicString*>(parameters)->result = 
+          CopyString(Configuration::GetConfigurationAbsolutePath());
+        return true;
+      }
+
       case _OrthancPluginService_RegisterRestCallback:
         RegisterRestCallback(parameters);
         return true;

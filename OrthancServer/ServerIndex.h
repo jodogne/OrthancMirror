@@ -143,7 +143,7 @@ namespace Orthanc
     void GetAllUuids(Json::Value& target,
                      ResourceType resourceType);
 
-    bool DeleteResource(Json::Value& target,
+    bool DeleteResource(Json::Value& target /* out */,
                         const std::string& uuid,
                         ResourceType expectedType);
 

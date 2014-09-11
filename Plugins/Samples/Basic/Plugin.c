@@ -248,7 +248,7 @@ ORTHANC_PLUGINS_API int32_t OnStoredCallback(OrthancPluginDicomInstance* instanc
 ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
 {
   OrthancPluginMemoryBuffer tmp;
-  char info[1024];
+  char info[1024], *s;
 
   context = c;
   OrthancPluginLogWarning(context, "Sample plugin is initializing");
@@ -265,9 +265,26 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
     return -1;
   }
 
+  /* Print some information about Orthanc */
   sprintf(info, "The version of Orthanc is '%s'", context->orthancVersion);
-  OrthancPluginLogInfo(context, info);
+  OrthancPluginLogWarning(context, info);
 
+  s = OrthancPluginGetOrthancPath(context);
+  sprintf(info, "  Path to Orthanc: %s", s);
+  OrthancPluginLogWarning(context, info);
+  OrthancPluginFreeString(context, s);
+
+  s = OrthancPluginGetOrthancDirectory(context);
+  sprintf(info, "  Directory of Orthanc: %s", s);
+  OrthancPluginLogWarning(context, info);
+  OrthancPluginFreeString(context, s);
+
+  s = OrthancPluginGetConfigurationPath(context);
+  sprintf(info, "  Path to configuration file: %s", s);
+  OrthancPluginLogWarning(context, info);
+  OrthancPluginFreeString(context, s);
+
+  /* Register the callbacks */
   OrthancPluginRegisterRestCallback(context, "/(plu.*)/hello", Callback1);
   OrthancPluginRegisterRestCallback(context, "/plu.*/image", Callback2);
   OrthancPluginRegisterRestCallback(context, "/plugin/instances/([^/]+)/info", Callback3);

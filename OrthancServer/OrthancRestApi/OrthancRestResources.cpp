@@ -64,7 +64,7 @@ namespace Orthanc
   static void DeleteSingleResource(RestApiDeleteCall& call)
   {
     Json::Value result;
-    if (OrthancRestApi::GetIndex(call).DeleteResource(result, call.GetUriComponent("id", ""), resourceType))
+    if (OrthancRestApi::GetContext(call).DeleteResource(result, call.GetUriComponent("id", ""), resourceType))
     {
       call.GetOutput().AnswerJson(result);
     }
