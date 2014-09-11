@@ -120,7 +120,7 @@ def Consumer(queue):
             # Clear the log of the exported instances (to prevent the
             # SQLite database from growing indefinitely). More simply,
             # you could also set the "LogExportedResources" option to
-            # "false" in the configuration file.
+            # "false" in the configuration file since Orthanc 0.8.3.
             RestToolbox.DoDelete('%s/exports' % URL)
 
             end = time.time()
