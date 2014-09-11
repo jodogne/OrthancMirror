@@ -308,4 +308,6 @@ namespace Orthanc
 
   bool GetDicomEncoding(Encoding& encoding,
                         const char* specificCharacterSet);
+
+  const char* GetMimeType(FileContentType type);
 }

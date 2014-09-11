@@ -549,4 +549,20 @@ namespace Orthanc
     // The encoding was properly detected
     return true;
   }
+
+
+  const char* GetMimeType(FileContentType type)
+  {
+    switch (type)
+    {
+      case FileContentType_Dicom:
+        return "application/dicom";
+
+      case FileContentType_DicomAsJson:
+        return "application/json";
+
+      default:
+        return "application/octet-stream";
+    }
+  }
 }

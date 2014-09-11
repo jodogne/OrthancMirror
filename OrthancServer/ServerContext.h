@@ -164,9 +164,9 @@ namespace Orthanc
     StoreStatus Store(std::string& resultPublicId,
                       DicomInstanceToStore& dicom);
 
-    void AnswerDicomFile(RestApiOutput& output,
-                         const std::string& instancePublicId,
-                         FileContentType content);
+    void AnswerAttachment(RestApiOutput& output,
+                          const std::string& instancePublicId,
+                          FileContentType content);
 
     void ReadJson(Json::Value& result,
                   const std::string& instancePublicId);

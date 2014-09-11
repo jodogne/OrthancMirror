@@ -391,9 +391,9 @@ namespace Orthanc
 
 
 
-  void ServerContext::AnswerDicomFile(RestApiOutput& output,
-                                      const std::string& instancePublicId,
-                                      FileContentType content)
+  void ServerContext::AnswerAttachment(RestApiOutput& output,
+                                       const std::string& instancePublicId,
+                                       FileContentType content)
   {
     FileInfo attachment;
     if (!index_.LookupAttachment(attachment, instancePublicId, content))
@@ -404,7 +404,7 @@ namespace Orthanc
     accessor_.SetCompressionForNextOperations(attachment.GetCompressionType());
 
     std::auto_ptr<HttpFileSender> sender(accessor_.ConstructHttpFileSender(attachment.GetUuid(), attachment.GetContentType()));
-    sender->SetContentType("application/dicom");
+    sender->SetContentType(GetMimeType(content));
     sender->SetDownloadFilename(instancePublicId + ".dcm");
     output.AnswerFile(*sender);
   }
