@@ -112,7 +112,7 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string publicId = call.GetUriComponent("id", "");
-    context.AnswerDicomFile(call.GetOutput(), publicId, FileContentType_Dicom);
+    context.AnswerAttachment(call.GetOutput(), publicId, FileContentType_Dicom);
   }
 
 
@@ -138,18 +138,18 @@ namespace Orthanc
 
     std::string publicId = call.GetUriComponent("id", "");
     
-    Json::Value full;
-    context.ReadJson(full, publicId);
-
     if (simplify)
     {
+      Json::Value full;
+      context.ReadJson(full, publicId);
+
       Json::Value simplified;
       SimplifyTags(simplified, full);
       call.GetOutput().AnswerJson(simplified);
     }
     else
     {
-      call.GetOutput().AnswerJson(full);
+      context.AnswerAttachment(call.GetOutput(), publicId, FileContentType_DicomAsJson);
     }
   }
 
@@ -449,13 +449,19 @@ namespace Orthanc
     CheckValidResourceType(call);
  
     std::string publicId = call.GetUriComponent("id", "");
-    std::string name = call.GetUriComponent("name", "");
+    FileContentType type = StringToContentType(call.GetUriComponent("name", ""));
 
-    std::string content;
-    context.ReadFile(content, publicId, StringToContentType(name),
-                     (uncompress == 1));
-
-    call.GetOutput().AnswerBuffer(content, "application/octet-stream");
+    if (uncompress)
+    {
+      context.AnswerAttachment(call.GetOutput(), publicId, type);
+    }
+    else
+    {
+      // Return the raw data (possibly compressed), as stored on the filesystem
+      std::string content;
+      context.ReadFile(content, publicId, type, false);
+      call.GetOutput().AnswerBuffer(content, "application/octet-stream");
+    }
   }
 
 
