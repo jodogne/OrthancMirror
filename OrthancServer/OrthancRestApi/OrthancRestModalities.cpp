@@ -292,7 +292,11 @@ namespace Orthanc
 
     if (request.isString())
     {
-      context.GetIndex().LogExportedResource(request.asString(), remote);
+      if (Configuration::GetGlobalBoolParameter("LogExportedResources", true))
+      {
+        context.GetIndex().LogExportedResource(request.asString(), remote);
+      }
+
       context.GetIndex().GetChildInstances(instances, request.asString());
     }
     else if (request.isArray())
@@ -310,7 +314,10 @@ namespace Orthanc
           return false;
         }
 
-        context.GetIndex().LogExportedResource(stripped, remote);
+        if (Configuration::GetGlobalBoolParameter("LogExportedResources", true))
+        {
+          context.GetIndex().LogExportedResource(stripped, remote);
+        }
        
         std::list<std::string> tmp;
         context.GetIndex().GetChildInstances(tmp, stripped);
