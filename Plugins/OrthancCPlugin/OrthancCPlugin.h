@@ -237,6 +237,9 @@ extern "C"
     _OrthancPluginService_LogInfo = 1,
     _OrthancPluginService_LogWarning = 2,
     _OrthancPluginService_LogError = 3,
+    _OrthancPluginService_GetOrthancPath = 4,
+    _OrthancPluginService_GetOrthancDirectory = 5,
+    _OrthancPluginService_GetConfigurationPath = 6,
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -941,9 +944,9 @@ extern "C"
 
   typedef struct
   {
-    char** result;
-    const char* identifier;
-  } _OrthancPluginLookupResource;
+    char**       result;
+    const char*  argument;
+  } _OrthancPluginRetrieveDynamicString;
 
   /**
    * @brief Look for a patient.
@@ -963,9 +966,9 @@ extern "C"
   {
     char* result;
 
-    _OrthancPluginLookupResource params;
+    _OrthancPluginRetrieveDynamicString params;
     params.result = &result;
-    params.identifier = patientID;
+    params.argument = patientID;
 
     if (context->InvokeService(context, _OrthancPluginService_LookupPatient, &params))
     {
@@ -997,9 +1000,9 @@ extern "C"
   {
     char* result;
 
-    _OrthancPluginLookupResource params;
+    _OrthancPluginRetrieveDynamicString params;
     params.result = &result;
-    params.identifier = studyUID;
+    params.argument = studyUID;
 
     if (context->InvokeService(context, _OrthancPluginService_LookupStudy, &params))
     {
@@ -1031,9 +1034,9 @@ extern "C"
   {
     char* result;
 
-    _OrthancPluginLookupResource params;
+    _OrthancPluginRetrieveDynamicString params;
     params.result = &result;
-    params.identifier = accessionNumber;
+    params.argument = accessionNumber;
 
     if (context->InvokeService(context, _OrthancPluginService_LookupStudyWithAccessionNumber, &params))
     {
@@ -1065,9 +1068,9 @@ extern "C"
   {
     char* result;
 
-    _OrthancPluginLookupResource params;
+    _OrthancPluginRetrieveDynamicString params;
     params.result = &result;
-    params.identifier = seriesUID;
+    params.argument = seriesUID;
 
     if (context->InvokeService(context, _OrthancPluginService_LookupSeries, &params))
     {
@@ -1099,9 +1102,9 @@ extern "C"
   {
     char* result;
 
-    _OrthancPluginLookupResource params;
+    _OrthancPluginRetrieveDynamicString params;
     params.result = &result;
-    params.identifier = sopInstanceUID;
+    params.argument = sopInstanceUID;
 
     if (context->InvokeService(context, _OrthancPluginService_LookupInstance, &params))
     {
@@ -1544,6 +1547,99 @@ extern "C"
 
     context->InvokeService(context, _OrthancPluginService_RegisterStorageArea, &params);
   }
+
+
+
+  /**
+   * @brief Return the path to the Orthanc executable.
+   *
+   * This function returns the path to the Orthanc executable.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @return NULL in the case of an error, or a newly allocated string
+   * containing the path. This string must be freed by
+   * OrthancPluginFreeString().
+   **/
+  ORTHANC_PLUGIN_INLINE char *OrthancPluginGetOrthancPath(OrthancPluginContext* context)
+  {
+    char* result;
+
+    _OrthancPluginRetrieveDynamicString params;
+    params.result = &result;
+    params.argument = NULL;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetOrthancPath, &params))
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  /**
+   * @brief Return the directory containing the Orthanc.
+   *
+   * This function returns the path to the directory containing the Orthanc executable.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @return NULL in the case of an error, or a newly allocated string
+   * containing the path. This string must be freed by
+   * OrthancPluginFreeString().
+   **/
+  ORTHANC_PLUGIN_INLINE char *OrthancPluginGetOrthancDirectory(OrthancPluginContext* context)
+  {
+    char* result;
+
+    _OrthancPluginRetrieveDynamicString params;
+    params.result = &result;
+    params.argument = NULL;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetOrthancDirectory, &params))
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  /**
+   * @brief Return the path to the configuration file.
+   *
+   * This function returns the path to the configuration file that was
+   * specified when starting Orthanc.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @return NULL in the case of an error, or a newly allocated string
+   * containing the path. This string must be freed by
+   * OrthancPluginFreeString().
+   **/
+  ORTHANC_PLUGIN_INLINE char *OrthancPluginGetConfigurationPath(OrthancPluginContext* context)
+  {
+    char* result;
+
+    _OrthancPluginRetrieveDynamicString params;
+    params.result = &result;
+    params.argument = NULL;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetConfigurationPath, &params))
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
 
 
 #ifdef  __cplusplus

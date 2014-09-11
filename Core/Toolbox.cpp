@@ -494,7 +494,7 @@ namespace Orthanc
 
 
 #if defined(_WIN32)
-  std::string Toolbox::GetPathToExecutable()
+  static std::string GetPathToExecutableInternal()
   {
     // Yes, this is ugly, but there is no simple way to get the 
     // required buffer size, so we use a big constant
@@ -504,7 +504,7 @@ namespace Orthanc
   }
 
 #elif defined(__linux) || defined(__FreeBSD_kernel__)
-  std::string Toolbox::GetPathToExecutable()
+  static std::string GetPathToExecutableInternal()
   {
     std::vector<char> buffer(PATH_MAX + 1);
     ssize_t bytes = readlink("/proc/self/exe", &buffer[0], buffer.size() - 1);
@@ -517,7 +517,7 @@ namespace Orthanc
   }
 
 #elif defined(__APPLE__) && defined(__MACH__)
-  std::string Toolbox::GetPathToExecutable()
+  static std::string GetPathToExecutableInternal()
   {
     char pathbuf[PATH_MAX + 1];
     unsigned int  bufsize = static_cast<int>(sizeof(pathbuf));
@@ -532,10 +532,17 @@ namespace Orthanc
 #endif
 
 
+  std::string Toolbox::GetPathToExecutable()
+  {
+    boost::filesystem::path p(GetPathToExecutableInternal());
+    return boost::filesystem::absolute(p).string();
+  }
+
+
   std::string Toolbox::GetDirectoryOfExecutable()
   {
-    boost::filesystem::path p(GetPathToExecutable());
-    return p.parent_path().string();
+    boost::filesystem::path p(GetPathToExecutableInternal());
+    return boost::filesystem::absolute(p.parent_path()).string();
   }
 
 

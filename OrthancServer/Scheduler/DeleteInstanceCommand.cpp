@@ -47,7 +47,7 @@ namespace Orthanc
       try
       {
         Json::Value tmp;
-        context_.GetIndex().DeleteResource(tmp, *it, ResourceType_Instance);
+        context_.DeleteResource(tmp, *it, ResourceType_Instance);
       }
       catch (OrthancException& e)
       {

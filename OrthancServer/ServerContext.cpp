@@ -512,4 +512,12 @@ namespace Orthanc
       return true;
     }
   }
+
+
+  bool ServerContext::DeleteResource(Json::Value& target,
+                                     const std::string& uuid,
+                                     ResourceType expectedType)
+  {
+    return index_.DeleteResource(target, uuid, expectedType);
+  }
 }
