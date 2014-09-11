@@ -1521,7 +1521,9 @@ extern "C"
    * i.e. inside the OrthancPluginInitialize() public function.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param 
+   * @param create The callback function to store a file on the custom storage area.
+   * @param read The callback function to read a file from the custom storage area.
+   * @param remove The callback function to remove a file from the custom storage area.
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterStorageArea(
     OrthancPluginContext*       context,
