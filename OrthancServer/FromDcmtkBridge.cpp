@@ -326,11 +326,16 @@ namespace Orthanc
 
         case EVR_AT:
         {
-          OFString s;
-          if (dynamic_cast<DcmAttributeTag&>(element).getOFString(s, 0).good())
-            return new DicomString(s.c_str());
+          DcmTagKey tag;
+          if (dynamic_cast<DcmAttributeTag&>(element).getTagVal(tag, 0).good())
+          {
+            DicomTag t(tag.getGroup(), tag.getElement());
+            return new DicomString(t.Format());
+          }
           else
+          {
             return new DicomNullValue;
+          }
         }
 
 
