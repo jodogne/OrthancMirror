@@ -40,6 +40,10 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     set(HAVE_PROTOTYPE_GETSOCKNAME 1)
   endif()
 
+  set(DCMTK_PACKAGE_VERSION "3.6.0")
+  set(DCMTK_PACKAGE_VERSION_SUFFIX "")
+  set(DCMTK_PACKAGE_VERSION_NUMBER 360)
+
   CONFIGURE_FILE(
     ${DCMTK_SOURCES_DIR}/CMake/osconfig.h.in
     ${DCMTK_SOURCES_DIR}/config/include/dcmtk/config/osconfig.h)
@@ -113,6 +117,10 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/mkdeftag.cc
     ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/dcdictbi.cc
     )
+
+  #set_source_files_properties(${DCMTK_SOURCES}
+  #  PROPERTIES COMPILE_DEFINITIONS
+  #  "PACKAGE_VERSION=\"3.6.0\";PACKAGE_VERSION_NUMBER=\"360\"")
 
   # This fixes crashes related to the destruction of the DCMTK OFLogger
   # http://support.dcmtk.org/docs-snapshot/file_macros.html
