@@ -118,7 +118,9 @@ def Consumer(queue):
                 RestToolbox.DoDelete('%s/instances/%s' % (URL, instance))
 
             # Clear the log of the exported instances (to prevent the
-            # SQLite database from growing indefinitely)
+            # SQLite database from growing indefinitely). More simply,
+            # you could also set the "LogExportedResources" option to
+            # "false" in the configuration file.
             RestToolbox.DoDelete('%s/exports' % URL)
 
             end = time.time()
