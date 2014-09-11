@@ -861,6 +861,10 @@ namespace Orthanc
         type == ResourceType_Series)
     {
       result["IsStable"] = !unstableResources_.Contains(id);
+
+      tmp = db_->GetMetadata(id, MetadataType_LastUpdate);
+      if (tmp.size() != 0)
+        result["LastUpdate"] = tmp;
     }
 
     return true;

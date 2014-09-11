@@ -1,8 +1,9 @@
 Pending changes in the mainline
 ===============================
 
-General
--------
+
+Major
+-----
 
 * Creation of ZIP archives for media storage, with DICOMDIR
 * URIs to get all the children of a given resource in a single REST call
@@ -16,10 +17,15 @@ Minor
 * Configuration option to enable HTTP Keep-Alive
 * Configuration option to disable the logging of exported resources in "/exports"
 * Plugins can retrieve the path to Orthanc and to its configuration file
-* Refactoring of HttpOutput ("Content-Length" header is now always sent)
 * "/tools/create-dicom" now accepts the "PatientID" DICOM tag (+ updated sample)
-* Upgrade to Mongoose 3.8
 * Possibility to set HTTP headers from plugins
+* "LastUpdate" metadata is now always returned for patients, studies and series
+
+Maintenance
+-----------
+
+* Refactoring of HttpOutput ("Content-Length" header is now always sent)
+* Upgrade to Mongoose 3.8
 * Fixes for Visual Studio 2013 and Windows 64bit
 * Fix issue 16: Handling of "AT" value representations in JSON
 * Fix issue 17
