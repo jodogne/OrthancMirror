@@ -200,7 +200,9 @@ SUPPORTED - Fedora 19/20
                    gtest-devel libpng-devel libsqlite3x-devel libuuid-devel \
                    mongoose-devel openssl-devel jsoncpp-devel lua-devel pugixml-devel
 
-# cmake "-DDCMTK_LIBRARIES=CharLS" ~/Orthanc
+# cmake  "-DDCMTK_LIBRARIES=CharLS" \
+         -DSYSTEM_MONGOOSE_USE_CALLBACKS=OFF \
+         ~/Orthanc
        
 Note: Have also a look at the official package:
 http://pkgs.fedoraproject.org/cgit/orthanc.git/tree/?h=f18
