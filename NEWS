@@ -1,6 +1,8 @@
 Pending changes in the mainline
 ===============================
 
+* Installation of plugin SDK in CMake
+
 
 Version 0.8.3 (2014/09/11)
 ==========================
