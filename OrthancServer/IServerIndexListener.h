@@ -47,6 +47,9 @@ namespace Orthanc
     virtual void SignalRemainingAncestor(ResourceType parentType,
                                          const std::string& publicId) = 0;
 
+    virtual void SignalResourceDeleted(ResourceType type,
+                                       const std::string& publicId) = 0;
+
     virtual void SignalFileDeleted(const FileInfo& info) = 0;
   };
 }
