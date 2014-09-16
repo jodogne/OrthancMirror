@@ -92,6 +92,34 @@ namespace Orthanc
       }
     };
 
+    class SignalResourceDeleted : public SQLite::IScalarFunction
+    {
+    private:
+      IServerIndexListener& listener_;
+
+    public:
+      SignalResourceDeleted(IServerIndexListener& listener) :
+        listener_(listener)
+      {
+      }
+
+      virtual const char* GetName() const
+      {
+        return "SignalResourceDeleted";
+      }
+
+      virtual unsigned int GetCardinality() const
+      {
+        return 2;
+      }
+
+      virtual void Compute(SQLite::FunctionContext& context)
+      {
+        ResourceType type = static_cast<ResourceType>(context.GetIntValue(1));
+        listener_.SignalResourceDeleted(type, context.GetStringValue(0));
+      }
+    };
+
     class SignalRemainingAncestor : public SQLite::IScalarFunction
     {
     private:
@@ -852,11 +880,12 @@ namespace Orthanc
       /**
        * History of the database versions:
        *  - Version 3: from Orthanc 0.3.2 to Orthanc 0.7.2 (inclusive)
-       *  - Version 4: from Orthanc 0.7.3 (inclusive)
+       *  - Version 4: from Orthanc 0.7.3 to Orthanc 0.8.3 (inclusive)
+       *  - Version 5: from Orthanc 0.8.4 (inclusive)
        **/
 
-      // This version of Orthanc is only compatible with versions 3 of 4 of the DB schema
-      ok = (v == 3 || v == 4);
+      // This version of Orthanc is only compatible with versions 3, 4 and 5 of the DB schema
+      ok = (v == 3 || v == 4 || v == 5);
 
       if (v == 3)
       {
@@ -866,6 +895,18 @@ namespace Orthanc
         db_.BeginTransaction();
         db_.Execute(upgrade);
         db_.CommitTransaction();
+        v = 4;
+      }
+
+      if (v == 4)
+      {
+        LOG(WARNING) << "Upgrading database version from 4 to 5";
+        std::string upgrade;
+        EmbeddedResources::GetFileResource(upgrade, EmbeddedResources::UPGRADE_DATABASE_4_TO_5);
+        db_.BeginTransaction();
+        db_.Execute(upgrade);
+        db_.CommitTransaction();
+        v = 5;
       }
     }
     catch (boost::bad_lexical_cast&)
@@ -881,6 +922,7 @@ namespace Orthanc
     signalRemainingAncestor_ = new Internals::SignalRemainingAncestor;
     db_.Register(signalRemainingAncestor_);
     db_.Register(new Internals::SignalFileDeleted(listener_));
+    db_.Register(new Internals::SignalResourceDeleted(listener_));
   }
 
   uint64_t DatabaseWrapper::GetResourceCount(ResourceType resourceType)

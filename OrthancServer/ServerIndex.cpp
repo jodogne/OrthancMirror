@@ -137,6 +137,13 @@ namespace Orthanc
         sizeOfFilesToRemove_ += info.GetCompressedSize();
       }
 
+      virtual void SignalResourceDeleted(ResourceType type,
+                                         const std::string& publicId)
+      {
+        LOG(INFO) << "Resource " << publicId << " of type " << EnumerationToString(type) << " is deleted";
+      }
+
+
       bool HasRemainingLevel() const
       {
         return hasRemainingLevel_;

@@ -10,7 +10,15 @@ CREATE TABLE Resources(
        parentId INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE
        );
 
-CREATE TABLE MainDicomTags(
+CREATE TABLE MainResourcesTags(
+       id INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE,
+       tagGroup INTEGER,
+       tagElement INTEGER,
+       value TEXT,
+       PRIMARY KEY(id, tagGroup, tagElement)
+       );
+
+CREATE TABLE MainInstancesTags(
        id INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE,
        tagGroup INTEGER,
        tagElement INTEGER,
@@ -67,9 +75,10 @@ CREATE INDEX PublicIndex ON Resources(publicId);
 CREATE INDEX ResourceTypeIndex ON Resources(resourceType);
 CREATE INDEX PatientRecyclingIndex ON PatientRecyclingOrder(patientId);
 
-CREATE INDEX MainDicomTagsIndex1 ON MainDicomTags(id);
-CREATE INDEX MainDicomTagsIndex2 ON MainDicomTags(tagGroup, tagElement);
-CREATE INDEX MainDicomTagsIndexValues ON MainDicomTags(value COLLATE BINARY);
+CREATE INDEX MainResourcesTagsIndex1 ON MainResourcesTags(id);
+CREATE INDEX MainResourcesTagsIndex2 ON MainResourcesTags(tagGroup, tagElement);
+CREATE INDEX MainResourcesTagsIndexValues ON MainResourcesTags(value COLLATE BINARY);
+CREATE INDEX MainInstancesTagsIndex ON MainInstancesTags(id);
 
 CREATE INDEX ChangesIndex ON Changes(internalId);
 
@@ -85,6 +94,7 @@ END;
 CREATE TRIGGER ResourceDeleted
 AFTER DELETE ON Resources
 BEGIN
+  SELECT SignalResourceDeleted(old.publicId, old.resourceType);  -- New in Orthanc 0.8.4 (db v5)
   SELECT SignalRemainingAncestor(parent.publicId, parent.resourceType) 
     FROM Resources AS parent WHERE internalId = old.parentId;
 END;
@@ -107,4 +117,4 @@ END;
 
 -- Set the version of the database schema
 -- The "1" corresponds to the "GlobalProperty_DatabaseSchemaVersion" enumeration
-INSERT INTO GlobalProperties VALUES (1, "4");
+INSERT INTO GlobalProperties VALUES (1, "5");
