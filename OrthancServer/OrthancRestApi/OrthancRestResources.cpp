@@ -794,7 +794,7 @@ namespace Orthanc
     std::string tag = call.GetPostBody();
     Resources resources;
 
-    OrthancRestApi::GetIndex(call).LookupTagValue(resources, tag);
+    OrthancRestApi::GetIndex(call).LookupIdentifier(resources, tag);
 
     Json::Value result = Json::arrayValue;
     

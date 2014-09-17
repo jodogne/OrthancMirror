@@ -1632,17 +1632,17 @@ namespace Orthanc
 
 
 
-  void ServerIndex::LookupTagValue(std::list<std::string>& result,
-                                   DicomTag tag,
-                                   const std::string& value,
-                                   ResourceType type)
+  void ServerIndex::LookupIdentifier(std::list<std::string>& result,
+                                     const DicomTag& tag,
+                                     const std::string& value,
+                                     ResourceType type)
   {
     result.clear();
 
     boost::mutex::scoped_lock lock(mutex_);
 
     std::list<int64_t> id;
-    db_->LookupTagValue(id, tag, value);
+    db_->LookupIdentifier(id, tag, value);
 
     for (std::list<int64_t>::const_iterator 
            it = id.begin(); it != id.end(); ++it)
@@ -1655,16 +1655,16 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::LookupTagValue(std::list<std::string>& result,
-                                   DicomTag tag,
-                                   const std::string& value)
+  void ServerIndex::LookupIdentifier(std::list<std::string>& result,
+                                     const DicomTag& tag,
+                                     const std::string& value)
   {
     result.clear();
 
     boost::mutex::scoped_lock lock(mutex_);
 
     std::list<int64_t> id;
-    db_->LookupTagValue(id, tag, value);
+    db_->LookupIdentifier(id, tag, value);
 
     for (std::list<int64_t>::const_iterator 
            it = id.begin(); it != id.end(); ++it)
@@ -1674,15 +1674,15 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::LookupTagValue(std::list< std::pair<ResourceType, std::string> >& result,
-                                   const std::string& value)
+  void ServerIndex::LookupIdentifier(std::list< std::pair<ResourceType, std::string> >& result,
+                                     const std::string& value)
   {
     result.clear();
 
     boost::mutex::scoped_lock lock(mutex_);
 
     std::list<int64_t> id;
-    db_->LookupTagValue(id, value);
+    db_->LookupIdentifier(id, value);
 
     for (std::list<int64_t>::const_iterator 
            it = id.begin(); it != id.end(); ++it)

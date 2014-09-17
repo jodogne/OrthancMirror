@@ -101,7 +101,7 @@ namespace Orthanc
   }
 
 
-  bool OrthancMoveRequestHandler::LookupResource(std::string& publicId,
+  bool OrthancMoveRequestHandler::LookupIdentifier(std::string& publicId,
                                                  DicomTag tag,
                                                  const DicomMap& input)
   {
@@ -113,7 +113,7 @@ namespace Orthanc
     std::string value = input.GetValue(tag).AsString();
 
     std::list<std::string> ids;
-    context_.GetIndex().LookupTagValue(ids, tag, value);
+    context_.GetIndex().LookupIdentifier(ids, tag, value);
 
     if (ids.size() != 1)
     {
@@ -155,19 +155,19 @@ namespace Orthanc
     switch (level)
     {
       case ResourceType_Patient:
-        ok = LookupResource(publicId, DICOM_TAG_PATIENT_ID, input);
+        ok = LookupIdentifier(publicId, DICOM_TAG_PATIENT_ID, input);
         break;
 
       case ResourceType_Study:
-        ok = LookupResource(publicId, DICOM_TAG_STUDY_INSTANCE_UID, input);
+        ok = LookupIdentifier(publicId, DICOM_TAG_STUDY_INSTANCE_UID, input);
         break;
 
       case ResourceType_Series:
-        ok = LookupResource(publicId, DICOM_TAG_SERIES_INSTANCE_UID, input);
+        ok = LookupIdentifier(publicId, DICOM_TAG_SERIES_INSTANCE_UID, input);
         break;
 
       case ResourceType_Instance:
-        ok = LookupResource(publicId, DICOM_TAG_SOP_INSTANCE_UID, input);
+        ok = LookupIdentifier(publicId, DICOM_TAG_SOP_INSTANCE_UID, input);
         break;
 
       default:

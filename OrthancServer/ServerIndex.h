@@ -216,17 +216,17 @@ namespace Orthanc
                        /* out */ unsigned int& countInstances, 
                        const std::string& publicId);
 
-    void LookupTagValue(std::list<std::string>& result,
-                        DicomTag tag,
-                        const std::string& value,
-                        ResourceType type);
+    void LookupIdentifier(std::list<std::string>& result,
+                          const DicomTag& tag,
+                          const std::string& value,
+                          ResourceType type);
 
-    void LookupTagValue(std::list<std::string>& result,
-                        DicomTag tag,
-                        const std::string& value);
+    void LookupIdentifier(std::list<std::string>& result,
+                          const DicomTag& tag,
+                          const std::string& value);
 
-    void LookupTagValue(std::list< std::pair<ResourceType, std::string> >& result,
-                        const std::string& value);
+    void LookupIdentifier(std::list< std::pair<ResourceType, std::string> >& result,
+                          const std::string& value);
 
     StoreStatus AddAttachment(const FileInfo& attachment,
                               const std::string& publicId);

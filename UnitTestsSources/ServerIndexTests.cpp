@@ -545,7 +545,7 @@ TEST_P(DatabaseWrapperTest, Sequence)
 
 
 
-TEST_P(DatabaseWrapperTest, LookupTagValue)
+TEST_P(DatabaseWrapperTest, LookupIdentifier)
 {
   int64_t a[] = {
     index_->CreateResource("a", ResourceType_Study),   // 0
@@ -562,29 +562,29 @@ TEST_P(DatabaseWrapperTest, LookupTagValue)
 
   std::list<int64_t> s;
 
-  index_->LookupTagValue(s, DICOM_TAG_STUDY_INSTANCE_UID, "0");
+  index_->LookupIdentifier(s, DICOM_TAG_STUDY_INSTANCE_UID, "0");
   ASSERT_EQ(2u, s.size());
   ASSERT_TRUE(std::find(s.begin(), s.end(), a[0]) != s.end());
   ASSERT_TRUE(std::find(s.begin(), s.end(), a[2]) != s.end());
 
-  index_->LookupTagValue(s, "0");
+  index_->LookupIdentifier(s, "0");
   ASSERT_EQ(3u, s.size());
   ASSERT_TRUE(std::find(s.begin(), s.end(), a[0]) != s.end());
   ASSERT_TRUE(std::find(s.begin(), s.end(), a[2]) != s.end());
   ASSERT_TRUE(std::find(s.begin(), s.end(), a[3]) != s.end());
 
-  index_->LookupTagValue(s, DICOM_TAG_STUDY_INSTANCE_UID, "1");
+  index_->LookupIdentifier(s, DICOM_TAG_STUDY_INSTANCE_UID, "1");
   ASSERT_EQ(1u, s.size());
   ASSERT_TRUE(std::find(s.begin(), s.end(), a[1]) != s.end());
 
-  index_->LookupTagValue(s, "1");
+  index_->LookupIdentifier(s, "1");
   ASSERT_EQ(1u, s.size());
   ASSERT_TRUE(std::find(s.begin(), s.end(), a[1]) != s.end());
 
 
   /*{
       std::list<std::string> s;
-      context.GetIndex().LookupTagValue(s, DICOM_TAG_STUDY_INSTANCE_UID, "1.2.250.1.74.20130819132500.29000036381059");
+      context.GetIndex().LookupIdentifier(s, DICOM_TAG_STUDY_INSTANCE_UID, "1.2.250.1.74.20130819132500.29000036381059");
       for (std::list<std::string>::iterator i = s.begin(); i != s.end(); i++)
       {
         std::cout << "*** " << *i << std::endl;;

@@ -539,18 +539,35 @@ namespace Orthanc
     }
   }
 
+
+  static void SetMainDicomTagsInternal(SQLite::Statement& s,
+                                       int64_t id,
+                                       const DicomElement& element)
+  {
+    s.BindInt64(0, id);
+    s.BindInt(1, element.GetTag().GetGroup());
+    s.BindInt(2, element.GetTag().GetElement());
+    s.BindString(3, element.GetValue().AsString());
+    s.Run();
+  }
+
+
   void DatabaseWrapper::SetMainDicomTags(int64_t id,
                                          const DicomMap& tags)
   {
     DicomArray flattened(tags);
     for (size_t i = 0; i < flattened.GetSize(); i++)
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO MainDicomTags VALUES(?, ?, ?, ?)");
-      s.BindInt64(0, id);
-      s.BindInt(1, flattened.GetElement(i).GetTag().GetGroup());
-      s.BindInt(2, flattened.GetElement(i).GetTag().GetElement());
-      s.BindString(3, flattened.GetElement(i).GetValue().AsString());
-      s.Run();
+      if (flattened.GetElement(i).GetTag().IsIdentifier())
+      {
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO MainDicomTags VALUES(?, ?, ?, ?)");
+        SetMainDicomTagsInternal(s, id, flattened.GetElement(i));
+      }
+      else
+      {
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO DicomIdentifier VALUES(?, ?, ?, ?)");
+        SetMainDicomTagsInternal(s, id, flattened.GetElement(i));
+      }
     }
   }
 
@@ -566,6 +583,15 @@ namespace Orthanc
       map.SetValue(s.ColumnInt(1),
                    s.ColumnInt(2),
                    s.ColumnString(3));
+    }
+
+    SQLite::Statement s2(db_, SQLITE_FROM_HERE, "SELECT * FROM DicomIdentifiers WHERE id=?");
+    s2.BindInt64(0, id);
+    while (s2.Step())
+    {
+      map.SetValue(s2.ColumnInt(1),
+                   s2.ColumnInt(2),
+                   s2.ColumnString(3));
     }
   }
 
@@ -1052,12 +1078,17 @@ namespace Orthanc
   }
 
 
-  void  DatabaseWrapper::LookupTagValue(std::list<int64_t>& result,
-                                        DicomTag tag,
-                                        const std::string& value)
+  void  DatabaseWrapper::LookupIdentifier(std::list<int64_t>& result,
+                                          const DicomTag& tag,
+                                          const std::string& value)
   {
+    if (!tag.IsIdentifier())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-                        "SELECT id FROM MainDicomTags WHERE tagGroup=? AND tagElement=? and value=?");
+                        "SELECT id FROM DicomIdentifiers WHERE tagGroup=? AND tagElement=? and value=?");
 
     s.BindInt(0, tag.GetGroup());
     s.BindInt(1, tag.GetElement());
@@ -1072,11 +1103,11 @@ namespace Orthanc
   }
 
 
-  void  DatabaseWrapper::LookupTagValue(std::list<int64_t>& result,
-                                        const std::string& value)
+  void  DatabaseWrapper::LookupIdentifier(std::list<int64_t>& result,
+                                          const std::string& value)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-                        "SELECT id FROM MainDicomTags WHERE value=?");
+                        "SELECT id FROM DicomIdentifiers WHERE value=?");
 
     s.BindString(0, value);
 
