@@ -431,28 +431,27 @@ namespace Orthanc
     // curl http://localhost:8042/tools/create-dicom -X POST -d '{"PatientName":"Hello^World"}'
     // curl http://localhost:8042/tools/create-dicom -X POST -d '{"PatientName":"Hello^World","PixelData":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAAAAAA6mKC9AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gUGDDcB53FulQAAAElJREFUGNNtj0sSAEEEQ1+U+185s1CtmRkblQ9CZldsKHJDk6DLGLJa6chjh0ooQmpjXMM86zPwydGEj6Ed/UGykkEM8X+p3u8/8LcOJIWLGeMAAAAASUVORK5CYII="}'
 
-    Json::Value request;
-    if (call.ParseJsonRequest(request) && request.isObject())
+    Json::Value replacements;
+    if (call.ParseJsonRequest(replacements) && replacements.isObject())
     {
-      DicomModification modification;
-      modification.SetLevel(ResourceType_Patient);
-      ParseReplacements(modification, request);
-
-      // If no PatientID is specified, create a random one
-      if (!modification.IsReplaced(DICOM_TAG_PATIENT_ID))
-      {
-        modification.Replace(DICOM_TAG_PATIENT_ID, Toolbox::GenerateUuid());
-      }
-
       ParsedDicomFile dicom;
 
-      if (modification.IsReplaced(DICOM_TAG_PIXEL_DATA))
+      Json::Value::Members members = replacements.getMemberNames();
+      for (size_t i = 0; i < members.size(); i++)
       {
-        dicom.EmbedImage(modification.GetReplacement(DICOM_TAG_PIXEL_DATA));
-        modification.Keep(DICOM_TAG_PIXEL_DATA);
-      }
+        const std::string& name = members[i];
+        std::string value = replacements[name].asString();
 
-      modification.Apply(dicom);
+        DicomTag tag = FromDcmtkBridge::ParseTag(name);
+        if (tag == DICOM_TAG_PIXEL_DATA)
+        {
+          dicom.EmbedImage(value);
+        }
+        else
+        {
+          dicom.Replace(tag, value);
+        }
+      }
 
       DicomInstanceToStore toStore;
       toStore.SetParsedDicomFile(dicom);
