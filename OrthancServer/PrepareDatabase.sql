@@ -10,7 +10,7 @@ CREATE TABLE Resources(
        parentId INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE
        );
 
-CREATE TABLE MainResourcesTags(
+CREATE TABLE MainDicomTags(
        id INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE,
        tagGroup INTEGER,
        tagElement INTEGER,
@@ -18,7 +18,8 @@ CREATE TABLE MainResourcesTags(
        PRIMARY KEY(id, tagGroup, tagElement)
        );
 
-CREATE TABLE MainInstancesTags(
+-- The following table was added in Orthanc 0.8.4 (database v5)
+CREATE TABLE DicomIdentifiers(
        id INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE,
        tagGroup INTEGER,
        tagElement INTEGER,
@@ -75,10 +76,15 @@ CREATE INDEX PublicIndex ON Resources(publicId);
 CREATE INDEX ResourceTypeIndex ON Resources(resourceType);
 CREATE INDEX PatientRecyclingIndex ON PatientRecyclingOrder(patientId);
 
-CREATE INDEX MainResourcesTagsIndex1 ON MainResourcesTags(id);
-CREATE INDEX MainResourcesTagsIndex2 ON MainResourcesTags(tagGroup, tagElement);
-CREATE INDEX MainResourcesTagsIndexValues ON MainResourcesTags(value COLLATE BINARY);
-CREATE INDEX MainInstancesTagsIndex ON MainInstancesTags(id);
+CREATE INDEX MainDicomTagsIndex1 ON MainDicomTags(id);
+-- The 2 following indexes were removed in Orthanc 0.8.4 (database v5), to speed up
+-- CREATE INDEX MainDicomTagsIndex2 ON MainDicomTags(tagGroup, tagElement);
+-- CREATE INDEX MainDicomTagsIndexValues ON MainDicomTags(value COLLATE BINARY);
+
+-- The 3 following indexes were added in Orthanc 0.8.4 (database v5)
+CREATE INDEX DicomIdentifiersIndex1 ON DicomIdentifiers(id);
+CREATE INDEX DicomIdentifiersIndex2 ON DicomIdentifiers(tagGroup, tagElement);
+CREATE INDEX DicomIdentifiersIndexValues ON DicomIdentifiers(value COLLATE BINARY);
 
 CREATE INDEX ChangesIndex ON Changes(internalId);
 

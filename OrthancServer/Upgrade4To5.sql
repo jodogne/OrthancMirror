@@ -1,7 +1,15 @@
 -- This SQLite script updates the version of the Orthanc database from 4 to 5.
 
 
-CREATE TABLE MainResourcesTags(
+-- Remove 2 indexes to speed up
+
+DROP INDEX MainDicomTagsIndex2;
+DROP INDEX MainDicomTagsIndexValues;
+
+
+-- Add a new table to index the DICOM identifiers
+
+CREATE TABLE DicomIdentifiers(
        id INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE,
        tagGroup INTEGER,
        tagElement INTEGER,
@@ -9,42 +17,26 @@ CREATE TABLE MainResourcesTags(
        PRIMARY KEY(id, tagGroup, tagElement)
        );
 
-CREATE TABLE MainInstancesTags(
-       id INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE,
-       tagGroup INTEGER,
-       tagElement INTEGER,
-       value TEXT,
-       PRIMARY KEY(id, tagGroup, tagElement)
-       );
-
-CREATE INDEX MainResourcesTagsIndex1 ON MainResourcesTags(id);
-CREATE INDEX MainResourcesTagsIndex2 ON MainResourcesTags(tagGroup, tagElement);
-CREATE INDEX MainResourcesTagsIndexValues ON MainResourcesTags(value COLLATE BINARY);
-CREATE INDEX MainInstancesTagsIndex ON MainInstancesTags(id);
+CREATE INDEX DicomIdentifiersIndex1 ON DicomIdentifiers(id);
+CREATE INDEX DicomIdentifiersIndex2 ON DicomIdentifiers(tagGroup, tagElement);
+CREATE INDEX DicomIdentifiersIndexValues ON DicomIdentifiers(value COLLATE BINARY);
 
 
 -- Migrate data from MainDicomTags to MainResourcesTags and MainInstancesTags
--- Below, the value "4" corresponds to "ResourceType_Instance".
--- The "8" and "24" correspond to SOPInstanceUID (0x0008, 0x0018)
 
-INSERT INTO MainResourcesTags SELECT MainDicomTags.* FROM MainDicomTags
-       INNER JOIN Resources ON Resources.internalId = MainDicomTags.id
-       WHERE (Resources.resourceType != 4 OR
-              (MainDicomTags.tagGroup = 8 AND
-               MainDicomTags.tagElement = 24));
+INSERT INTO DicomIdentifiers SELECT * FROM MainDicomTags
+       WHERE ((tagGroup = 16 AND tagElement = 32) OR  -- PatientID (0x0010, 0x0020)
+              (tagGroup = 32 AND tagElement = 13) OR  -- StudyInstanceUID (0x0020, 0x000d)
+              (tagGroup = 8  AND tagElement = 80) OR  -- AccessionNumber (0x0008, 0x0050)
+              (tagGroup = 32 AND tagElement = 14) OR  -- SeriesInstanceUID (0x0020, 0x000e)
+              (tagGroup = 8  AND tagElement = 24));   -- SOPInstanceUID (0x0008, 0x0018)
 
-INSERT INTO MainInstancesTags SELECT MainDicomTags.* FROM MainDicomTags
-       INNER JOIN Resources ON Resources.internalId = MainDicomTags.id
-       WHERE (Resources.resourceType = 4 AND
-              (MainDicomTags.tagGroup != 8 OR
-               MainDicomTags.tagElement != 24));
-
--- Remove the MainDicomTags table
-
-DROP INDEX MainDicomTagsIndex1;
-DROP INDEX MainDicomTagsIndex2;
-DROP INDEX MainDicomTagsIndexValues;
-DROP TABLE MainDicomTags;
+DELETE FROM MainDicomTags
+       WHERE ((tagGroup = 16 AND tagElement = 32) OR  -- PatientID (0x0010, 0x0020)
+              (tagGroup = 32 AND tagElement = 13) OR  -- StudyInstanceUID (0x0020, 0x000d)
+              (tagGroup = 8  AND tagElement = 80) OR  -- AccessionNumber (0x0008, 0x0050)
+              (tagGroup = 32 AND tagElement = 14) OR  -- SeriesInstanceUID (0x0020, 0x000e)
+              (tagGroup = 8  AND tagElement = 24));   -- SOPInstanceUID (0x0008, 0x0018)
 
 
 -- Upgrade the "ResourceDeleted" trigger
