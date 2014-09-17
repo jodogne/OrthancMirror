@@ -177,6 +177,13 @@ public:
       return true;
     }
   }
+
+  virtual bool IsAllowedTransferSyntax(const std::string& callingAet,
+                                       TransferSyntax syntax)
+  {
+    // TODO - https://trello.com/c/8GxcTR0n
+    return true;
+  }
 };
 
 

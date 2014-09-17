@@ -459,7 +459,38 @@ namespace Orthanc
         return NULL;
       }
 
-      LOG(INFO) << "Association Received";
+      // Retrieve the AET and the IP address of the remote modality
+      std::string callingAet;
+      std::string callingIP;
+      std::string calledAet;
+  
+      {
+        DIC_AE callingAet_C;
+        DIC_AE calledAet_C;
+        DIC_AE callingIP_C;
+        DIC_AE calledIP_C;
+        if (ASC_getAPTitles(assoc->params, callingAet_C, calledAet_C, NULL).bad() ||
+            ASC_getPresentationAddresses(assoc->params, callingIP_C, calledIP_C).bad())
+        {
+          T_ASC_RejectParameters rej =
+            {
+              ASC_RESULT_REJECTEDPERMANENT,
+              ASC_SOURCE_SERVICEUSER,
+              ASC_REASON_SU_NOREASON
+            };
+          ASC_rejectAssociation(assoc, &rej);
+          AssociationCleanup(assoc);
+          return NULL;
+        }
+
+        callingIP = std::string(/*OFSTRING_GUARD*/(callingIP_C));
+        callingAet = std::string(/*OFSTRING_GUARD*/(callingAet_C));
+        calledAet = (/*OFSTRING_GUARD*/(calledAet_C));
+      }
+
+      LOG(INFO) << "Association Received from AET " << callingAet 
+                << " on IP " << callingIP;
+
 
       std::vector<const char*> transferSyntaxes;
 
@@ -469,36 +500,72 @@ namespace Orthanc
       transferSyntaxes.push_back(UID_LittleEndianImplicitTransferSyntax);
 
       // New transfer syntaxes supported since Orthanc 0.7.2
-      transferSyntaxes.push_back(UID_DeflatedExplicitVRLittleEndianTransferSyntax); 
-      transferSyntaxes.push_back(UID_JPEGProcess1TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess2_4TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess3_5TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess6_8TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess7_9TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess10_12TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess11_13TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess14TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess15TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess16_18TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess17_19TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess20_22TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess21_23TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess24_26TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess25_27TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess28TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess29TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess14SV1TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGLSLosslessTransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGLSLossyTransferSyntax);
-      transferSyntaxes.push_back(UID_JPEG2000LosslessOnlyTransferSyntax);
-      transferSyntaxes.push_back(UID_JPEG2000TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionLosslessOnlyTransferSyntax);
-      transferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionTransferSyntax);
-      transferSyntaxes.push_back(UID_JPIPReferencedTransferSyntax);
-      transferSyntaxes.push_back(UID_JPIPReferencedDeflateTransferSyntax);
-      transferSyntaxes.push_back(UID_MPEG2MainProfileAtMainLevelTransferSyntax);
-      transferSyntaxes.push_back(UID_MPEG2MainProfileAtHighLevelTransferSyntax);
-      transferSyntaxes.push_back(UID_RLELosslessTransferSyntax);
+      if (!server.HasApplicationEntityFilter() ||
+          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(callingAet, TransferSyntax_Deflated))
+      {
+        transferSyntaxes.push_back(UID_DeflatedExplicitVRLittleEndianTransferSyntax); 
+      }
+
+      if (!server.HasApplicationEntityFilter() ||
+          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(callingAet, TransferSyntax_Jpeg))
+      {
+        transferSyntaxes.push_back(UID_JPEGProcess1TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess2_4TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess3_5TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess6_8TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess7_9TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess10_12TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess11_13TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess14TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess15TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess16_18TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess17_19TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess20_22TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess21_23TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess24_26TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess25_27TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess28TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess29TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess14SV1TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGLSLosslessTransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGLSLossyTransferSyntax);
+      }
+
+      if (!server.HasApplicationEntityFilter() ||
+          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(callingAet, TransferSyntax_Jpeg2000))
+      {
+        transferSyntaxes.push_back(UID_JPEG2000LosslessOnlyTransferSyntax);
+        transferSyntaxes.push_back(UID_JPEG2000TransferSyntax);
+      }
+
+      if (!server.HasApplicationEntityFilter() ||
+          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(callingAet, TransferSyntax_JpegLossless))
+      {
+        transferSyntaxes.push_back(UID_JPEG2000LosslessOnlyTransferSyntax);
+        transferSyntaxes.push_back(UID_JPEG2000TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionLosslessOnlyTransferSyntax);
+        transferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionTransferSyntax);
+      }
+
+      if (!server.HasApplicationEntityFilter() ||
+          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(callingAet, TransferSyntax_Jpip))
+      {
+        transferSyntaxes.push_back(UID_JPIPReferencedTransferSyntax);
+        transferSyntaxes.push_back(UID_JPIPReferencedDeflateTransferSyntax);
+      }
+
+      if (!server.HasApplicationEntityFilter() ||
+          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(callingAet, TransferSyntax_Mpeg2))
+      {
+        transferSyntaxes.push_back(UID_MPEG2MainProfileAtMainLevelTransferSyntax);
+        transferSyntaxes.push_back(UID_MPEG2MainProfileAtHighLevelTransferSyntax);
+      }
+
+      if (!server.HasApplicationEntityFilter() ||
+          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(callingAet, TransferSyntax_Rle))
+      {
+        transferSyntaxes.push_back(UID_RLELosslessTransferSyntax);
+      }
 
       /* accept the Verification SOP Class if presented */
       cond = ASC_acceptContextsWithPreferredTransferSyntaxes(assoc->params, &knownAbstractSyntaxes[0], knownAbstractSyntaxes.size(), &transferSyntaxes[0], transferSyntaxes.size());
@@ -555,62 +622,38 @@ namespace Orthanc
         return NULL;
       }
 
-      std::string callingIP;
-      std::string callingTitle;
-  
       /* check the AETs */
+      if (!server.IsMyAETitle(calledAet))
       {
-        DIC_AE callingTitle_C;
-        DIC_AE calledTitle_C;
-        DIC_AE callingIP_C;
-        DIC_AE calledIP_C;
-        if (ASC_getAPTitles(assoc->params, callingTitle_C, calledTitle_C, NULL).bad() ||
-            ASC_getPresentationAddresses(assoc->params, callingIP_C, calledIP_C).bad())
-        {
-          T_ASC_RejectParameters rej =
-            {
-              ASC_RESULT_REJECTEDPERMANENT,
-              ASC_SOURCE_SERVICEUSER,
-              ASC_REASON_SU_NOREASON
-            };
-          ASC_rejectAssociation(assoc, &rej);
-          AssociationCleanup(assoc);
-          return NULL;
-        }
-
-        callingIP = std::string(/*OFSTRING_GUARD*/(callingIP_C));
-        callingTitle = std::string(/*OFSTRING_GUARD*/(callingTitle_C));
-        std::string calledTitle(/*OFSTRING_GUARD*/(calledTitle_C));
-
-        if (!server.IsMyAETitle(calledTitle))
-        {
-          T_ASC_RejectParameters rej =
-            {
-              ASC_RESULT_REJECTEDPERMANENT,
-              ASC_SOURCE_SERVICEUSER,
-              ASC_REASON_SU_CALLEDAETITLENOTRECOGNIZED
-            };
-          ASC_rejectAssociation(assoc, &rej);
-          AssociationCleanup(assoc);
-          return NULL;
-        }
-
-        if (server.HasApplicationEntityFilter() &&
-            !server.GetApplicationEntityFilter().IsAllowedConnection(callingIP, callingTitle))
-        {
-          T_ASC_RejectParameters rej =
-            {
-              ASC_RESULT_REJECTEDPERMANENT,
-              ASC_SOURCE_SERVICEUSER,
-              ASC_REASON_SU_CALLINGAETITLENOTRECOGNIZED
-            };
-          ASC_rejectAssociation(assoc, &rej);
-          AssociationCleanup(assoc);
-          return NULL;
-        }
+        LOG(WARNING) << "Rejected association, because of a bad called AET in the request (" << calledAet << ")";
+        T_ASC_RejectParameters rej =
+          {
+            ASC_RESULT_REJECTEDPERMANENT,
+            ASC_SOURCE_SERVICEUSER,
+            ASC_REASON_SU_CALLEDAETITLENOTRECOGNIZED
+          };
+        ASC_rejectAssociation(assoc, &rej);
+        AssociationCleanup(assoc);
+        return NULL;
       }
 
-      if (opt_rejectWithoutImplementationUID && strlen(assoc->params->theirImplementationClassUID) == 0)
+      if (server.HasApplicationEntityFilter() &&
+          !server.GetApplicationEntityFilter().IsAllowedConnection(callingIP, callingAet))
+      {
+        LOG(WARNING) << "Rejected association for remote AET " << callingAet << " on IP " << callingIP;
+        T_ASC_RejectParameters rej =
+          {
+            ASC_RESULT_REJECTEDPERMANENT,
+            ASC_SOURCE_SERVICEUSER,
+            ASC_REASON_SU_CALLINGAETITLENOTRECOGNIZED
+          };
+        ASC_rejectAssociation(assoc, &rej);
+        AssociationCleanup(assoc);
+        return NULL;
+      }
+
+      if (opt_rejectWithoutImplementationUID && 
+          strlen(assoc->params->theirImplementationClassUID) == 0)
       {
         /* reject: the no implementation Class UID provided */
         T_ASC_RejectParameters rej =
@@ -644,7 +687,7 @@ namespace Orthanc
       }
 
       IApplicationEntityFilter* filter = server.HasApplicationEntityFilter() ? &server.GetApplicationEntityFilter() : NULL;
-      return new CommandDispatcher(server, assoc, callingIP, callingTitle, filter);
+      return new CommandDispatcher(server, assoc, callingIP, callingAet, filter);
     }
 
     bool CommandDispatcher::Step()
