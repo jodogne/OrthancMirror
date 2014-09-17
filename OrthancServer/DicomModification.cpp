@@ -244,27 +244,87 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_BadRequest);
     }
+    
 
+    // Sanity checks
     if (level_ == ResourceType_Patient && !IsReplaced(DICOM_TAG_PATIENT_ID))
     {
       LOG(ERROR) << "When modifying a patient, her PatientID is required to be modified";
       throw OrthancException(ErrorCode_BadRequest);
     }
 
-    if (level_ > ResourceType_Patient && IsReplaced(DICOM_TAG_PATIENT_ID))
+    if (level_ == ResourceType_Patient && IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
     {
+      LOG(ERROR) << "When modifying a patient, the StudyInstanceUID cannot be manually modified";
       throw OrthancException(ErrorCode_BadRequest);
     }
 
-    if (level_ > ResourceType_Study && IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
+    if (level_ == ResourceType_Patient && IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
     {
+      LOG(ERROR) << "When modifying a patient, the SeriesInstanceUID cannot be manually modified";
       throw OrthancException(ErrorCode_BadRequest);
     }
 
-    if (level_ > ResourceType_Series && IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
+    if (level_ == ResourceType_Patient && IsReplaced(DICOM_TAG_SOP_INSTANCE_UID))
     {
+      LOG(ERROR) << "When modifying a patient, the SopInstanceUID cannot be manually modified";
       throw OrthancException(ErrorCode_BadRequest);
     }
+
+    if (level_ == ResourceType_Study && IsReplaced(DICOM_TAG_PATIENT_ID))
+    {
+      LOG(ERROR) << "When modifying a study, the parent PatientID cannot be manually modified";
+      throw OrthancException(ErrorCode_BadRequest);
+    }
+
+    if (level_ == ResourceType_Study && IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
+    {
+      LOG(ERROR) << "When modifying a study, the SeriesInstanceUID cannot be manually modified";
+      throw OrthancException(ErrorCode_BadRequest);
+    }
+
+    if (level_ == ResourceType_Study && IsReplaced(DICOM_TAG_SOP_INSTANCE_UID))
+    {
+      LOG(ERROR) << "When modifying a study, the SopInstanceUID cannot be manually modified";
+      throw OrthancException(ErrorCode_BadRequest);
+    }
+
+    if (level_ == ResourceType_Series && IsReplaced(DICOM_TAG_PATIENT_ID))
+    {
+      LOG(ERROR) << "When modifying a series, the parent PatientID cannot be manually modified";
+      throw OrthancException(ErrorCode_BadRequest);
+    }
+
+    if (level_ == ResourceType_Series && IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
+    {
+      LOG(ERROR) << "When modifying a series, the parent StudyInstanceUID cannot be manually modified";
+      throw OrthancException(ErrorCode_BadRequest);
+    }
+
+    if (level_ == ResourceType_Series && IsReplaced(DICOM_TAG_SOP_INSTANCE_UID))
+    {
+      LOG(ERROR) << "When modifying a series, the SopInstanceUID cannot be manually modified";
+      throw OrthancException(ErrorCode_BadRequest);
+    }
+
+    if (level_ == ResourceType_Instance && IsReplaced(DICOM_TAG_PATIENT_ID))
+    {
+      LOG(ERROR) << "When modifying an instance, the parent PatientID cannot be manually modified";
+      throw OrthancException(ErrorCode_BadRequest);
+    }
+
+    if (level_ == ResourceType_Instance && IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
+    {
+      LOG(ERROR) << "When modifying an instance, the parent StudyInstanceUID cannot be manually modified";
+      throw OrthancException(ErrorCode_BadRequest);
+    }
+
+    if (level_ == ResourceType_Instance && IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
+    {
+      LOG(ERROR) << "When modifying an instance, the parent SeriesInstanceUID cannot be manually modified";
+      throw OrthancException(ErrorCode_BadRequest);
+    }
+
 
     // (1) Remove the private tags, if need be
     if (removePrivateTags_)

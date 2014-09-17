@@ -118,6 +118,9 @@ namespace Orthanc
     Encoding GetEncoding() const;
 
     void SetEncoding(Encoding encoding);
+
+    void ToJson(Json::Value& target, 
+                bool simplify);
   };
 
 }

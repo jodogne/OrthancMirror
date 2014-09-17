@@ -80,6 +80,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParsedDicomFile.h"
 
+#include "ServerToolbox.h"
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
 #include "Internals/DicomImageDecoder.h"
@@ -1285,4 +1286,17 @@ namespace Orthanc
     Replace(DICOM_TAG_SPECIFIC_CHARACTER_SET, s, DicomReplaceMode_InsertIfAbsent);
   }
 
+  void ParsedDicomFile::ToJson(Json::Value& target, bool simplify)
+  {
+    if (simplify)
+    {
+      Json::Value tmp;
+      FromDcmtkBridge::ToJson(tmp, *pimpl_->file_->getDataset());
+      SimplifyTags(target, tmp);
+    }
+    else
+    {
+      FromDcmtkBridge::ToJson(target, *pimpl_->file_->getDataset());
+    }
+  }
 }
