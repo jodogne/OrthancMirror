@@ -618,7 +618,7 @@ namespace Orthanc
     }
 
     std::list<std::string> result;
-    pimpl_->context_.GetIndex().LookupTagValue(result, tag, p.argument, level);
+    pimpl_->context_.GetIndex().LookupIdentifier(result, tag, p.argument, level);
 
     if (result.size() == 1)
     {

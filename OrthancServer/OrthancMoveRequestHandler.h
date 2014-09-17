@@ -41,9 +41,9 @@ namespace Orthanc
   private:
     ServerContext& context_;
 
-    bool LookupResource(std::string& publicId,
-                        DicomTag tag,
-                        const DicomMap& input);
+    bool LookupIdentifier(std::string& publicId,
+                          DicomTag tag,
+                          const DicomMap& input);
 
   public:
     OrthancMoveRequestHandler(ServerContext& context) :
