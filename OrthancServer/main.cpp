@@ -150,7 +150,14 @@ public:
 
 class OrthancApplicationEntityFilter : public IApplicationEntityFilter
 {
+private:
+  ServerContext& context_;
+
 public:
+  OrthancApplicationEntityFilter(ServerContext& context) : context_(context)
+  {
+  }
+
   virtual bool IsAllowedConnection(const std::string& /*callingIp*/,
                                    const std::string& /*callingAet*/)
   {
@@ -178,11 +185,61 @@ public:
     }
   }
 
-  virtual bool IsAllowedTransferSyntax(const std::string& callingAet,
+  virtual bool IsAllowedTransferSyntax(const std::string& callingIp,
+                                       const std::string& callingAet,
                                        TransferSyntax syntax)
   {
-    // TODO - https://trello.com/c/8GxcTR0n
-    return true;
+    std::string configuration;
+
+    switch (syntax)
+    {
+      case TransferSyntax_Deflated:
+        configuration = "DeflatedTransferSyntaxAccepted";
+        break;
+
+      case TransferSyntax_Jpeg:
+        configuration = "JpegTransferSyntaxAccepted";
+        break;
+
+      case TransferSyntax_Jpeg2000:
+        configuration = "Jpeg2000TransferSyntaxAccepted";
+        break;
+
+      case TransferSyntax_JpegLossless:
+        configuration = "JpegLosslessTransferSyntaxAccepted";
+        break;
+
+      case TransferSyntax_Jpip:
+        configuration = "JpipTransferSyntaxAccepted";
+        break;
+
+      case TransferSyntax_Mpeg2:
+        configuration = "Mpeg2TransferSyntaxAccepted";
+        break;
+
+      case TransferSyntax_Rle:
+        configuration = "RleTransferSyntaxAccepted";
+        break;
+
+      default: 
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    {
+      std::string lua = "Is" + configuration;
+
+      ServerContext::LuaContextLocker locker(context_);
+      
+      if (locker.GetLua().IsExistingFunction(lua.c_str()))
+      {
+        LuaFunctionCall call(locker.GetLua(), lua.c_str());
+        call.PushString(callingAet);
+        call.PushString(callingIp);
+        return call.ExecutePredicate();
+      }
+    }
+
+    return Configuration::GetGlobalBoolParameter(configuration, true);
   }
 };
 
@@ -412,7 +469,7 @@ static bool StartOrthanc()
   {
     // DICOM server
     DicomServer dicomServer;
-    OrthancApplicationEntityFilter dicomFilter;
+    OrthancApplicationEntityFilter dicomFilter(context);
     dicomServer.SetCalledApplicationEntityTitleCheck(Configuration::GetGlobalBoolParameter("DicomCheckCalledAet", false));
     dicomServer.SetStoreRequestHandlerFactory(serverFactory);
     dicomServer.SetMoveRequestHandlerFactory(serverFactory);

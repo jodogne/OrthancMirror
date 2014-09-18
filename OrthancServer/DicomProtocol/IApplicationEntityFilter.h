@@ -52,7 +52,8 @@ namespace Orthanc
                                   const std::string& callingAet,
                                   DicomRequestType type) = 0;
 
-    virtual bool IsAllowedTransferSyntax(const std::string& callingAet,
+    virtual bool IsAllowedTransferSyntax(const std::string& callingIp,
+                                         const std::string& callingAet,
                                          TransferSyntax syntax) = 0;
   };
 }
