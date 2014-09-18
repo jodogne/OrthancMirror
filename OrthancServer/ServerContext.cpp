@@ -138,7 +138,7 @@ namespace Orthanc
       std::string modality = parameters["Modality"].asString();
       LOG(INFO) << "Lua script to send instance " << parameters["Instance"].asString()
                 << " to modality " << modality << " using Store-SCU";
-      return new StoreScuCommand(context, Configuration::GetModalityUsingSymbolicName(modality));
+      return new StoreScuCommand(context, Configuration::GetModalityUsingSymbolicName(modality), true);
     }
 
     if (operation == "store-peer")
@@ -149,7 +149,7 @@ namespace Orthanc
 
       OrthancPeerParameters parameters;
       Configuration::GetOrthancPeer(parameters, peer);
-      return new StorePeerCommand(context, parameters);
+      return new StorePeerCommand(context, parameters, true);
     }
 
     if (operation == "modify")

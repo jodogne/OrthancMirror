@@ -2,6 +2,7 @@ Pending changes in the mainline
 ===============================
 
 * Configuration/Lua to select the accepted C-Store SCP transfer syntaxes
+* Fix reporting of errors in Orthanc Explorer when sending images to peers/modalities
 * Installation of plugin SDK in CMake
 
 
