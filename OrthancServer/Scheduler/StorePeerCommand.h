@@ -43,10 +43,12 @@ namespace Orthanc
   private:
     ServerContext& context_;
     OrthancPeerParameters peer_;
+    bool ignoreExceptions_;
 
   public:
     StorePeerCommand(ServerContext& context,
-                     const OrthancPeerParameters& peer);
+                     const OrthancPeerParameters& peer,
+                     bool ignoreExceptions);
     
     virtual bool Apply(ListOfStrings& outputs,
                        const ListOfStrings& inputs);
