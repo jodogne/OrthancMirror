@@ -1,6 +1,7 @@
 Pending changes in the mainline
 ===============================
 
+* Configuration/Lua to select the accepted C-Store SCP transfer syntaxes
 * Installation of plugin SDK in CMake
 
 
