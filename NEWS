@@ -1,6 +1,10 @@
 Pending changes in the mainline
 ===============================
 
+
+Version 0.8.4 (2014/09/19)
+==========================
+
 * "/instances-tags" to get the tags of all the child instances of a
   patient/study/series with a single REST call (bulk tags retrieval)
 * Configuration/Lua to select the accepted C-Store SCP transfer syntaxes
