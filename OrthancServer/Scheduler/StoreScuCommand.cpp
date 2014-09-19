@@ -37,9 +37,11 @@
 namespace Orthanc
 {
   StoreScuCommand::StoreScuCommand(ServerContext& context,
-                                 const RemoteModalityParameters& modality) : 
+                                   const RemoteModalityParameters& modality,
+                                   bool ignoreExceptions) : 
     context_(context),
-    modality_(modality)
+    modality_(modality),
+    ignoreExceptions_(ignoreExceptions)
   {
   }
 
@@ -69,6 +71,11 @@ namespace Orthanc
         // powered off)
         LOG(ERROR) << "Unable to forward to a modality in a Lua script (instance " 
                    << *it << "): " << e.What();
+
+        if (!ignoreExceptions_)
+        {
+          throw;
+        }
       }
     }
 

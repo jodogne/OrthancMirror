@@ -79,6 +79,17 @@ namespace Orthanc
     DicomReplaceMode_IgnoreIfAbsent
   };
 
+  enum TransferSyntax
+  {
+    TransferSyntax_Deflated,
+    TransferSyntax_Jpeg,
+    TransferSyntax_Jpeg2000,
+    TransferSyntax_JpegLossless,
+    TransferSyntax_Jpip,
+    TransferSyntax_Mpeg2,
+    TransferSyntax_Rle
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations
@@ -156,6 +167,8 @@ namespace Orthanc
   const char* EnumerationToString(ModalityManufacturer manufacturer);
 
   const char* EnumerationToString(DicomRequestType type);
+
+  const char* EnumerationToString(TransferSyntax syntax);
 
   ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer);
 

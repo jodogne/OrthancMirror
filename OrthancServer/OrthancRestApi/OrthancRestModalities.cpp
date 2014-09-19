@@ -80,12 +80,17 @@ namespace Orthanc
     {
       if (locker.GetConnection().Echo())
       {
+        // Echo has succeeded
         call.GetOutput().AnswerBuffer("{}", "application/json");
+        return;
       }
     }
     catch (OrthancException&)
     {
     }
+
+    // Echo has failed
+    call.GetOutput().SignalError(HttpStatus_500_InternalServerError);
   }
 
 
@@ -357,13 +362,20 @@ namespace Orthanc
     for (std::list<std::string>::const_iterator 
            it = instances.begin(); it != instances.end(); ++it)
     {
-      job.AddCommand(new StoreScuCommand(context, p)).AddInput(*it);
+      job.AddCommand(new StoreScuCommand(context, p, false)).AddInput(*it);
     }
 
     job.SetDescription("HTTP request: Store-SCU to peer \"" + remote + "\"");
-    context.GetScheduler().SubmitAndWait(job);
 
-    call.GetOutput().AnswerBuffer("{}", "application/json");
+    if (context.GetScheduler().SubmitAndWait(job))
+    {
+      // Success
+      call.GetOutput().AnswerBuffer("{}", "application/json");
+    }
+    else
+    {
+      call.GetOutput().SignalError(HttpStatus_500_InternalServerError);
+    }
   }
 
 
@@ -421,13 +433,20 @@ namespace Orthanc
     for (std::list<std::string>::const_iterator 
            it = instances.begin(); it != instances.end(); ++it)
     {
-      job.AddCommand(new StorePeerCommand(context, peer)).AddInput(*it);
+      job.AddCommand(new StorePeerCommand(context, peer, false)).AddInput(*it);
     }
 
     job.SetDescription("HTTP request: POST to peer \"" + remote + "\"");
-    context.GetScheduler().SubmitAndWait(job);
 
-    call.GetOutput().AnswerBuffer("{}", "application/json");
+    if (context.GetScheduler().SubmitAndWait(job))
+    {
+      // Success
+      call.GetOutput().AnswerBuffer("{}", "application/json");
+    }
+    else
+    {
+      call.GetOutput().SignalError(HttpStatus_500_InternalServerError);
+    }
   }
 
 
