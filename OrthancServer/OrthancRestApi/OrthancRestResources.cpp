@@ -876,6 +876,42 @@ namespace Orthanc
   }
 
 
+  static void GetChildInstancesTags(RestApiGetCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+    std::string publicId = call.GetUriComponent("id", "");
+    bool simplify = call.HasArgument("simplify");
+
+    // Retrieve all the instances of this patient/study/series
+    typedef std::list<std::string> Instances;
+    Instances instances;
+
+    context.GetIndex().GetChildInstances(instances, publicId);  // (*)
+
+    Json::Value result = Json::arrayValue;
+
+    for (Instances::const_iterator it = instances.begin();
+         it != instances.end(); it++)
+    {
+      Json::Value full;
+      context.ReadJson(full, *it);
+
+      if (simplify)
+      {
+        Json::Value simplified;
+        SimplifyTags(simplified, full);
+        result.append(simplified);
+      }
+      else
+      {
+        result.append(full);
+      }
+    }
+    
+    call.GetOutput().AnswerJson(result);
+  }
+
+
 
   void OrthancRestApi::RegisterResources()
   {
@@ -953,6 +989,10 @@ namespace Orthanc
     Register("/studies/{id}/series", GetChildResources<ResourceType_Study, ResourceType_Series>);
     Register("/studies/{id}/instances", GetChildResources<ResourceType_Study, ResourceType_Instance>);
     Register("/series/{id}/instances", GetChildResources<ResourceType_Series, ResourceType_Instance>);
+
+    Register("/patients/{id}/instances-tags", GetChildInstancesTags);
+    Register("/studies/{id}/instances-tags", GetChildInstancesTags);
+    Register("/series/{id}/instances-tags", GetChildInstancesTags);
 
     Register("/instances/{id}/content/*", GetRawContent);
   }

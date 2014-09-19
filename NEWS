@@ -1,6 +1,8 @@
 Pending changes in the mainline
 ===============================
 
+* "/instances-tags" to get the tags of all the child instances of a
+  patient/study/series with a single REST call (bulk tags retrieval)
 * Configuration/Lua to select the accepted C-Store SCP transfer syntaxes
 * Fix reporting of errors in Orthanc Explorer when sending images to peers/modalities
 * Installation of plugin SDK in CMake
