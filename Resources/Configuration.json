@@ -69,6 +69,14 @@
   // and "Chinese".
   "DefaultEncoding" : "Latin1",
 
+  // The transfer syntaxes that are accepted by Orthanc C-Store SCP
+  "DeflatedTransferSyntaxAccepted"     : true,
+  "JpegTransferSyntaxAccepted"         : true,
+  "Jpeg2000TransferSyntaxAccepted"     : true,
+  "JpegLosslessTransferSyntaxAccepted" : true,
+  "JpipTransferSyntaxAccepted"         : true,
+  "Mpeg2TransferSyntaxAccepted"        : true,
+  "RleTransferSyntaxAccepted"          : true,
 
 
   /**

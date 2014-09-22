@@ -42,10 +42,12 @@ namespace Orthanc
   private:
     ServerContext& context_;
     RemoteModalityParameters modality_;
+    bool ignoreExceptions_;
 
   public:
     StoreScuCommand(ServerContext& context,
-                   const RemoteModalityParameters& modality);
+                    const RemoteModalityParameters& modality,
+                    bool ignoreExceptions);
 
     virtual bool Apply(ListOfStrings& outputs,
                        const ListOfStrings& inputs);

@@ -39,9 +39,11 @@
 namespace Orthanc
 {
   StorePeerCommand::StorePeerCommand(ServerContext& context,
-                                     const OrthancPeerParameters& peer) : 
+                                     const OrthancPeerParameters& peer,
+                                     bool ignoreExceptions) : 
     context_(context),
-    peer_(peer)
+    peer_(peer),
+    ignoreExceptions_(ignoreExceptions)
   {
   }
 
@@ -84,6 +86,11 @@ namespace Orthanc
       {
         LOG(ERROR) << "Unable to forward to an Orthanc peer in a Lua script (instance " 
                    << *it << ", peer " << peer_.GetUrl() << "): " << e.What();
+
+        if (!ignoreExceptions_)
+        {
+          throw;
+        }
       }
     }
 
