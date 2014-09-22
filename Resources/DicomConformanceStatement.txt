@@ -231,6 +231,9 @@ transfer syntaxes:
   MPEG2MainProfileAtHighLevelTransferSyntax                             | 1.2.840.10008.1.2.4.101
   RLELosslessTransferSyntax                                             | 1.2.840.10008.1.2.5
 
+It is possible to disable a subset of these transfer syntaxes thanks to the
+"*TransferSyntaxAccepted" options in the Orthanc configuration file.
+
 When possible, Orthanc will prefer the
 LittleEndianImplicitTransferSyntax transfer syntax
 (1.2.840.10008.1.2).
