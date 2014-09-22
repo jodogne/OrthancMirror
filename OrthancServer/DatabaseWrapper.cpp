@@ -560,12 +560,12 @@ namespace Orthanc
     {
       if (flattened.GetElement(i).GetTag().IsIdentifier())
       {
-        SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO MainDicomTags VALUES(?, ?, ?, ?)");
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO DicomIdentifiers VALUES(?, ?, ?, ?)");
         SetMainDicomTagsInternal(s, id, flattened.GetElement(i));
       }
       else
       {
-        SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO DicomIdentifier VALUES(?, ?, ?, ?)");
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO MainDicomTags VALUES(?, ?, ?, ?)");
         SetMainDicomTagsInternal(s, id, flattened.GetElement(i));
       }
     }
