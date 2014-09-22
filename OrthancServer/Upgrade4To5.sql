@@ -42,6 +42,7 @@ DELETE FROM MainDicomTags
 -- Upgrade the "ResourceDeleted" trigger
 
 DROP TRIGGER ResourceDeleted;
+DROP TRIGGER ResourceDeletedParentCleaning;
 
 CREATE TRIGGER ResourceDeleted
 AFTER DELETE ON Resources
@@ -49,6 +50,13 @@ BEGIN
   SELECT SignalResourceDeleted(old.publicId, old.resourceType);
   SELECT SignalRemainingAncestor(parent.publicId, parent.resourceType) 
     FROM Resources AS parent WHERE internalId = old.parentId;
+END;
+
+CREATE TRIGGER ResourceDeletedParentCleaning
+AFTER DELETE ON Resources
+FOR EACH ROW WHEN (SELECT COUNT(*) FROM Resources WHERE parentId = old.parentId) = 0
+BEGIN
+  DELETE FROM Resources WHERE internalId = old.parentId;
 END;
 
 
