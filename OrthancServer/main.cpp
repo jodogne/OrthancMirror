@@ -658,6 +658,7 @@ int main(int argc, char* argv[])
     }
   }
 
+  LOG(WARNING) << "Orthanc version: " << ORTHANC_VERSION;
 
   int status = 0;
   try
