@@ -61,12 +61,57 @@ namespace Orthanc
     private:
       struct FileToRemove
       {
+      private:
         std::string  uuid_;
         FileContentType  type_;
 
+      public:
         FileToRemove(const FileInfo& info) : uuid_(info.GetUuid()), 
                                              type_(info.GetContentType())
         {
+        }
+
+        const std::string& GetUuid() const
+        {
+          return uuid_;
+        }
+
+        FileContentType GetContentType() const 
+        {
+          return type_;
+        }
+      };
+
+      struct Change
+      {
+      private:
+        ChangeType   changeType_;
+        ResourceType resourceType_;
+        std::string  publicId_;
+
+      public:
+        Change(ChangeType changeType,
+               ResourceType resourceType,
+               const std::string&  publicId) :
+          changeType_(changeType),
+          resourceType_(resourceType),
+          publicId_(publicId)
+        {
+        }
+
+        ChangeType  GetChangeType() const
+        {
+          return changeType_;
+        }
+
+        ResourceType  GetResourceType() const
+        {
+          return resourceType_;
+        }
+
+        const std::string&  GetPublicId() const
+        {
+          return publicId_;
         }
       };
 
@@ -75,6 +120,7 @@ namespace Orthanc
       ResourceType remainingType_;
       std::string remainingPublicId_;
       std::list<FileToRemove> pendingFilesToRemove_;
+      std::list<Change> pendingChanges_;
       uint64_t sizeOfFilesToRemove_;
 
     public:
@@ -105,7 +151,7 @@ namespace Orthanc
                it = pendingFilesToRemove_.begin();
              it != pendingFilesToRemove_.end(); ++it)
         {
-          context_.RemoveFile(it->uuid_, it->type_);
+          context_.RemoveFile(it->GetUuid(), it->GetContentType());
         }
       }
 
@@ -137,12 +183,15 @@ namespace Orthanc
         sizeOfFilesToRemove_ += info.GetCompressedSize();
       }
 
-      virtual void SignalResourceDeleted(ResourceType type,
-                                         const std::string& publicId)
+      virtual void SignalChange(ChangeType changeType,
+                                ResourceType resourceType,
+                                const std::string& publicId)
       {
-        LOG(INFO) << "Resource " << publicId << " of type " << EnumerationToString(type) << " is deleted";
-      }
+        LOG(INFO) << "Change related to resource " << publicId << " of type " 
+                  << EnumerationToString(resourceType) << ": " << EnumerationToString(changeType);
 
+        pendingChanges_.push_back(Change(changeType, resourceType, publicId));
+      }
 
       bool HasRemainingLevel() const
       {
@@ -207,16 +256,22 @@ namespace Orthanc
   };
 
 
-  struct ServerIndex::UnstableResourcePayload
+  class ServerIndex::UnstableResourcePayload
   {
-    Orthanc::ResourceType type_;
+  private:
+    ResourceType type_;
+    std::string publicId_;
     boost::posix_time::ptime time_;
 
-    UnstableResourcePayload() : type_(Orthanc::ResourceType_Instance)
+  public:
+    UnstableResourcePayload() : type_(ResourceType_Instance)
     {
     }
 
-    UnstableResourcePayload(Orthanc::ResourceType type) : type_(type)
+    UnstableResourcePayload(Orthanc::ResourceType type,
+                            const std::string& publicId) : 
+      type_(type),
+      publicId_(publicId)
     {
       time_ = boost::posix_time::second_clock::local_time();
     }
@@ -224,6 +279,16 @@ namespace Orthanc
     unsigned int GetAge() const
     {
       return (boost::posix_time::second_clock::local_time() - time_).total_seconds();
+    }
+
+    ResourceType GetResourceType() const
+    {
+      return type_;
+    }
+    
+    const std::string& GetPublicId() const
+    {
+      return publicId_;
     }
   };
 
@@ -604,13 +669,13 @@ namespace Orthanc
       SeriesStatus seriesStatus = GetSeriesStatus(series);
       if (seriesStatus == SeriesStatus_Complete)
       {
-        db_->LogChange(ChangeType_CompletedSeries, series, ResourceType_Series);
+        db_->LogChange(ChangeType_CompletedSeries, series, ResourceType_Series, hasher.HashSeries());
       }
 
       // Mark the parent resources of this instance as unstable
-      MarkAsUnstable(series, ResourceType_Series);
-      MarkAsUnstable(study, ResourceType_Study);
-      MarkAsUnstable(patient, ResourceType_Patient);
+      MarkAsUnstable(series, ResourceType_Series, hasher.HashSeries());
+      MarkAsUnstable(study, ResourceType_Study, hasher.HashStudy());
+      MarkAsUnstable(patient, ResourceType_Patient, hasher.HashPatient());
 
       t.Commit(instanceSize);
 
@@ -1393,7 +1458,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_UnknownResource);
     }
 
-    db_->LogChange(changeType, id, type);
+    db_->LogChange(changeType, id, type, publicId);
 
     transaction->Commit();
   }
@@ -1590,18 +1655,18 @@ namespace Orthanc
         // Ensure that the resource is still existing before logging the change
         if (that->db_->IsExistingResource(id))
         {
-          switch (payload.type_)
+          switch (payload.GetResourceType())
           {
-            case Orthanc::ResourceType_Patient:
-              that->db_->LogChange(ChangeType_StablePatient, id, ResourceType_Patient);
+            case ResourceType_Patient:
+              that->db_->LogChange(ChangeType_StablePatient, id, ResourceType_Patient, payload.GetPublicId());
               break;
 
-            case Orthanc::ResourceType_Study:
-              that->db_->LogChange(ChangeType_StableStudy, id, ResourceType_Study);
+            case ResourceType_Study:
+              that->db_->LogChange(ChangeType_StableStudy, id, ResourceType_Study, payload.GetPublicId());
               break;
 
-            case Orthanc::ResourceType_Series:
-              that->db_->LogChange(ChangeType_StableSeries, id, ResourceType_Series);
+            case ResourceType_Series:
+              that->db_->LogChange(ChangeType_StableSeries, id, ResourceType_Series, payload.GetPublicId());
               break;
 
             default:
@@ -1618,7 +1683,8 @@ namespace Orthanc
   
 
   void ServerIndex::MarkAsUnstable(int64_t id,
-                                   Orthanc::ResourceType type)
+                                   Orthanc::ResourceType type,
+                                   const std::string& publicId)
   {
     // WARNING: Before calling this method, "mutex_" must be locked.
 
@@ -1626,7 +1692,8 @@ namespace Orthanc
            type == Orthanc::ResourceType_Study ||
            type == Orthanc::ResourceType_Series);
 
-    unstableResources_.AddOrMakeMostRecent(id, type);
+    UnstableResourcePayload payload(type, publicId);
+    unstableResources_.AddOrMakeMostRecent(id, payload);
     //LOG(INFO) << "Unstable resource: " << EnumerationToString(type) << " " << id;
   }
 
@@ -1787,6 +1854,4 @@ namespace Orthanc
 
     return true;
   }
-
-
 }

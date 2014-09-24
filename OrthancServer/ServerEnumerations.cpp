@@ -231,6 +231,9 @@ namespace Orthanc
       case ChangeType_StableSeries:
         return "StableSeries";
 
+      case ChangeType_Deleted:
+        return "Deleted";
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }

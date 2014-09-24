@@ -88,7 +88,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     0
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     8
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  3
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  5
 
 
 
@@ -245,6 +245,7 @@ extern "C"
     _OrthancPluginService_RegisterRestCallback = 1000,
     _OrthancPluginService_RegisterOnStoredInstanceCallback = 1001,
     _OrthancPluginService_RegisterStorageArea = 1002,
+    _OrthancPluginService_RegisterOnChangeCallback = 1003,
 
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
@@ -341,6 +342,43 @@ extern "C"
 
 
   /**
+   * The supported type of DICOM resources.
+   **/
+  typedef enum
+  {
+    OrthancPluginResourceType_Patient = 0,     /*!< Patient */
+    OrthancPluginResourceType_Study = 1,       /*!< Study */
+    OrthancPluginResourceType_Series = 2,      /*!< Series */
+    OrthancPluginResourceType_Instance = 3     /*!< Instance */
+  } OrthancPluginResourceType;
+
+
+
+  /**
+   * The supported type of changes that can happen to DICOM resources.
+   **/
+  typedef enum
+  {
+    OrthancPluginChangeType_AnonymizedPatient = 0,  /*!< Patient resulting from an anomyization */
+    OrthancPluginChangeType_AnonymizedSeries = 1,   /*!< Series resulting from an anonymization */
+    OrthancPluginChangeType_AnonymizedStudy = 2,    /*!< Study resulting from an anomyization */
+    OrthancPluginChangeType_CompletedSeries = 3,    /*!< Series is now complete */
+    OrthancPluginChangeType_Deleted = 4,            /*!< Deleted resource */
+    OrthancPluginChangeType_ModifiedPatient = 5,    /*!< Patient resulting from a modification */
+    OrthancPluginChangeType_ModifiedSeries = 6,     /*!< Series resulting from a modification */
+    OrthancPluginChangeType_ModifiedStudy = 7,      /*!< Study resulting from a modification */
+    OrthancPluginChangeType_NewInstance = 8,        /*!< New instance received */
+    OrthancPluginChangeType_NewPatient = 9,         /*!< New patient created */
+    OrthancPluginChangeType_NewSeries = 10,         /*!< New series created */
+    OrthancPluginChangeType_NewStudy = 11,          /*!< New study created */
+    OrthancPluginChangeType_StablePatient = 12,     /*!< No new instance received for this patient */
+    OrthancPluginChangeType_StableSeries = 13,      /*!< No new instance received for this series */
+    OrthancPluginChangeType_StableStudy = 14        /*!< No new instance received for this study */
+  } OrthancPluginChangeType;
+
+
+
+  /**
    * @brief A memory buffer allocated by the core system of Orthanc.
    *
    * A memory buffer allocated by the core system of Orthanc. When the
@@ -393,6 +431,16 @@ extern "C"
   typedef int32_t (*OrthancPluginOnStoredInstanceCallback) (
     OrthancPluginDicomInstance* instance,
     const char* instanceId);
+
+
+
+  /**
+   * @brief Signature of a callback function that is triggered when a change happens to some DICOM resource.
+   **/
+  typedef int32_t (*OrthancPluginOnChangeCallback) (
+    OrthancPluginChangeType changeType,
+    OrthancPluginResourceType resourceType,
+    const char* resourceId);
 
 
 
@@ -1639,6 +1687,33 @@ extern "C"
       return result;
     }
   }
+
+
+
+  typedef struct
+  {
+    OrthancPluginOnChangeCallback callback;
+  } _OrthancPluginOnChangeCallback;
+
+  /**
+   * @brief Register a callback to monitor changes.
+   *
+   * This function registers a callback function that is called
+   * whenever a change happens to some DICOM resource.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param callback The callback function.
+   **/
+  ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterOnChangeCallback(
+    OrthancPluginContext*          context,
+    OrthancPluginOnChangeCallback  callback)
+  {
+    _OrthancPluginOnChangeCallback params;
+    params.callback = callback;
+
+    context->InvokeService(context, _OrthancPluginService_RegisterOnChangeCallback, &params);
+  }
+
 
 
 

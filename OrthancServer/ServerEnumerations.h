@@ -134,7 +134,8 @@ namespace Orthanc
     ChangeType_ModifiedPatient = 11,
     ChangeType_StablePatient = 12,
     ChangeType_StableStudy = 13,
-    ChangeType_StableSeries = 14
+    ChangeType_StableSeries = 14,
+    ChangeType_Deleted = 15   // Not logged in the index
   };
 
 

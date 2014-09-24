@@ -53,6 +53,8 @@ namespace Orthanc
 
     void RegisterOnStoredInstanceCallback(const void* parameters);
 
+    void RegisterOnChangeCallback(const void* parameters);
+
     void AnswerBuffer(const void* parameters);
 
     void Redirect(const void* parameters);
@@ -94,6 +96,10 @@ namespace Orthanc
 
     virtual bool InvokeService(_OrthancPluginService service,
                                const void* parameters);
+
+    void SignalChange(ChangeType changeType,
+                      ResourceType resourceType,
+                      const std::string& publicId);
 
     void SignalStoredInstance(DicomInstanceToStore& instance,
                               const std::string& instanceId);

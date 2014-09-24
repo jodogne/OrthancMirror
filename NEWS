@@ -1,6 +1,9 @@
 Pending changes in the mainline
 ===============================
 
+* Speed-up thanks to a new database schema
+* Plugins can monitor changes through callbacks
+
 
 Version 0.8.4 (2014/09/19)
 ==========================
