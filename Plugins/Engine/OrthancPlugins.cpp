@@ -375,18 +375,25 @@ namespace Orthanc
                                     ResourceType resourceType,
                                     const std::string& publicId)
   {
+    OrthancPluginChangeType c;
+    OrthancPluginResourceType r;
+
+    try
+    {
+      c = Convert(changeType);
+      r = Convert(resourceType);
+    }
+    catch (OrthancException&)
+    {
+      // This change type or resource type is not supported by the plugin SDK
+      return;
+    }
+
     for (PImpl::OnChangeCallbacks::const_iterator
            callback = pimpl_->onChangeCallbacks_.begin(); 
          callback != pimpl_->onChangeCallbacks_.end(); ++callback)
     {
-      try
-      {
-        (*callback) (Convert(changeType), Convert(resourceType), publicId.c_str());
-      }
-      catch (OrthancException&)
-      {
-        // This change type or resource type is not supported by the plugin SDK
-      }
+      (*callback) (c, r, publicId.c_str());
     }
   }
 
