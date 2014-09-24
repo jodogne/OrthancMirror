@@ -82,13 +82,19 @@ namespace
       LOG(INFO) << "A file must be removed: " << fileUuid;
     }       
 
-    virtual void SignalResourceDeleted(ResourceType type,
-                                       const std::string& publicId)
+    virtual void SignalChange(ChangeType changeType,
+                              ResourceType resourceType,
+                              const std::string& publicId)
     {
-      deletedResources_.push_back(publicId);
-      LOG(INFO) << "A resource was removed: " << publicId;
+      if (changeType == ChangeType_Deleted)
+      {
+        deletedResources_.push_back(publicId);        
+      }
+
+      LOG(INFO) << "Change related to resource " << publicId << " of type " 
+                << EnumerationToString(resourceType) << ": " << EnumerationToString(changeType);
     }
-                         
+
   };
 
 

@@ -84,11 +84,13 @@ namespace Orthanc
     typedef std::pair<boost::regex*, OrthancPluginRestCallback> RestCallback;
     typedef std::list<RestCallback>  RestCallbacks;
     typedef std::list<OrthancPluginOnStoredInstanceCallback>  OnStoredCallbacks;
+    typedef std::list<OrthancPluginOnChangeCallback>  OnChangeCallbacks;
 
     ServerContext& context_;
     RestCallbacks restCallbacks_;
     OrthancRestApi* restApi_;
     OnStoredCallbacks  onStoredCallbacks_;
+    OnChangeCallbacks  onChangeCallbacks_;
     bool hasStorageArea_;
     _OrthancPluginRegisterStorageArea storageArea_;
 
@@ -120,6 +122,83 @@ namespace Orthanc
     }
 
     return result;
+  }
+
+
+  static OrthancPluginResourceType Convert(ResourceType type)
+  {
+    switch (type)
+    {
+      case ResourceType_Patient:
+        return OrthancPluginResourceType_Patient;
+
+      case ResourceType_Study:
+        return OrthancPluginResourceType_Study;
+
+      case ResourceType_Series:
+        return OrthancPluginResourceType_Series;
+
+      case ResourceType_Instance:
+        return OrthancPluginResourceType_Instance;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  static OrthancPluginChangeType Convert(ChangeType type)
+  {
+    switch (type)
+    {
+      case ChangeType_AnonymizedPatient:
+        return OrthancPluginChangeType_AnonymizedPatient;
+
+      case ChangeType_AnonymizedSeries:
+        return OrthancPluginChangeType_AnonymizedSeries;
+
+      case ChangeType_AnonymizedStudy:
+        return OrthancPluginChangeType_AnonymizedStudy;
+
+      case ChangeType_CompletedSeries:
+        return OrthancPluginChangeType_CompletedSeries;
+
+      case ChangeType_Deleted:
+        return OrthancPluginChangeType_Deleted;
+
+      case ChangeType_ModifiedPatient:
+        return OrthancPluginChangeType_ModifiedPatient;
+
+      case ChangeType_ModifiedSeries:
+        return OrthancPluginChangeType_ModifiedSeries;
+
+      case ChangeType_ModifiedStudy:
+        return OrthancPluginChangeType_ModifiedStudy;
+
+      case ChangeType_NewInstance:
+        return OrthancPluginChangeType_NewInstance;
+
+      case ChangeType_NewPatient:
+        return OrthancPluginChangeType_NewPatient;
+
+      case ChangeType_NewSeries:
+        return OrthancPluginChangeType_NewSeries;
+
+      case ChangeType_NewStudy:
+        return OrthancPluginChangeType_NewStudy;
+
+      case ChangeType_StablePatient:
+        return OrthancPluginChangeType_StablePatient;
+
+      case ChangeType_StableSeries:
+        return OrthancPluginChangeType_StableSeries;
+
+      case ChangeType_StableStudy:
+        return OrthancPluginChangeType_StableStudy;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
   }
 
 
@@ -279,7 +358,7 @@ namespace Orthanc
 
 
   void OrthancPlugins::SignalStoredInstance(DicomInstanceToStore& instance,
-                                                const std::string& instanceId)                                                  
+                                            const std::string& instanceId)                                                  
   {
     for (PImpl::OnStoredCallbacks::const_iterator
            callback = pimpl_->onStoredCallbacks_.begin(); 
@@ -287,6 +366,27 @@ namespace Orthanc
     {
       (*callback) (reinterpret_cast<OrthancPluginDicomInstance*>(&instance),
                    instanceId.c_str());
+    }
+  }
+
+
+
+  void OrthancPlugins::SignalChange(ChangeType changeType,
+                                    ResourceType resourceType,
+                                    const std::string& publicId)
+  {
+    for (PImpl::OnChangeCallbacks::const_iterator
+           callback = pimpl_->onChangeCallbacks_.begin(); 
+         callback != pimpl_->onChangeCallbacks_.end(); ++callback)
+    {
+      try
+      {
+        (*callback) (Convert(changeType), Convert(resourceType), publicId.c_str());
+      }
+      catch (OrthancException&)
+      {
+        // This change type or resource type is not supported by the plugin SDK
+      }
     }
   }
 
@@ -350,6 +450,16 @@ namespace Orthanc
 
     LOG(INFO) << "Plugin has registered an OnStoredInstance callback";
     pimpl_->onStoredCallbacks_.push_back(p.callback);
+  }
+
+
+  void OrthancPlugins::RegisterOnChangeCallback(const void* parameters)
+  {
+    const _OrthancPluginOnChangeCallback& p = 
+      *reinterpret_cast<const _OrthancPluginOnChangeCallback*>(parameters);
+
+    LOG(INFO) << "Plugin has registered an OnChange callback";
+    pimpl_->onChangeCallbacks_.push_back(p.callback);
   }
 
 
@@ -775,6 +885,10 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterOnStoredInstanceCallback:
         RegisterOnStoredInstanceCallback(parameters);
+        return true;
+
+      case _OrthancPluginService_RegisterOnChangeCallback:
+        RegisterOnChangeCallback(parameters);
         return true;
 
       case _OrthancPluginService_AnswerBuffer:

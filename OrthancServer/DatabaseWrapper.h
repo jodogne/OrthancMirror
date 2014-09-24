@@ -157,7 +157,7 @@ namespace Orthanc
     void LogChange(ChangeType changeType,
                    int64_t internalId,
                    ResourceType resourceType,
-                   const boost::posix_time::ptime& date = boost::posix_time::second_clock::local_time());
+                   const std::string& publicId);
 
     void GetChanges(Json::Value& target,
                     int64_t since,
