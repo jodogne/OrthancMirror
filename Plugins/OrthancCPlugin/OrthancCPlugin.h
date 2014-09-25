@@ -27,7 +27,8 @@
  * The name and the version of a plugin is only used to prevent it
  * from being loaded twice.
  * 
- * 
+ * The various callbacks are guaranteed to be executed in mutual
+ * exclusion since Orthanc 0.8.5.
  **/
 
 
