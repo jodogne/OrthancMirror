@@ -368,13 +368,14 @@ extern "C"
     OrthancPluginChangeType_ModifiedPatient = 5,    /*!< Patient resulting from a modification */
     OrthancPluginChangeType_ModifiedSeries = 6,     /*!< Series resulting from a modification */
     OrthancPluginChangeType_ModifiedStudy = 7,      /*!< Study resulting from a modification */
-    OrthancPluginChangeType_NewInstance = 8,        /*!< New instance received */
-    OrthancPluginChangeType_NewPatient = 9,         /*!< New patient created */
-    OrthancPluginChangeType_NewSeries = 10,         /*!< New series created */
-    OrthancPluginChangeType_NewStudy = 11,          /*!< New study created */
-    OrthancPluginChangeType_StablePatient = 12,     /*!< No new instance received for this patient */
-    OrthancPluginChangeType_StableSeries = 13,      /*!< No new instance received for this series */
-    OrthancPluginChangeType_StableStudy = 14        /*!< No new instance received for this study */
+    OrthancPluginChangeType_NewChildInstance = 8,   /*!< A new instance was added to this resource */
+    OrthancPluginChangeType_NewInstance = 9,        /*!< New instance received */
+    OrthancPluginChangeType_NewPatient = 10,        /*!< New patient created */
+    OrthancPluginChangeType_NewSeries = 11,         /*!< New series created */
+    OrthancPluginChangeType_NewStudy = 12,          /*!< New study created */
+    OrthancPluginChangeType_StablePatient = 13,     /*!< Timeout: No new instance in this patient */
+    OrthancPluginChangeType_StableSeries = 14,      /*!< Timeout: No new instance in this series */
+    OrthancPluginChangeType_StableStudy = 15        /*!< Timeout: No new instance in this study */
   } OrthancPluginChangeType;
 
 

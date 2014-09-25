@@ -138,6 +138,7 @@ namespace Orthanc
         sizeOfFilesToRemove_ = 0;
         hasRemainingLevel_ = false;
         pendingFilesToRemove_.clear();
+        pendingChanges_.clear();
       }
 
       uint64_t GetSizeOfFilesToRemove()
@@ -147,11 +148,21 @@ namespace Orthanc
 
       void CommitFilesToRemove()
       {
-        for (std::list<FileToRemove>::iterator 
+        for (std::list<FileToRemove>::const_iterator 
                it = pendingFilesToRemove_.begin();
              it != pendingFilesToRemove_.end(); ++it)
         {
           context_.RemoveFile(it->GetUuid(), it->GetContentType());
+        }
+      }
+
+      void CommitChanges()
+      {
+        for (std::list<Change>::const_iterator 
+               it = pendingChanges_.begin(); 
+             it != pendingChanges_.end(); it++)
+        {
+          context_.SignalChange(it->GetChangeType(), it->GetResourceType(), it->GetPublicId());
         }
       }
 
@@ -249,6 +260,9 @@ namespace Orthanc
         index_.currentStorageSize_ -= index_.listener_->GetSizeOfFilesToRemove();
 
         assert(index_.currentStorageSize_ == index_.db_->GetTotalCompressedSize());
+
+        // Send all the pending changes to the Orthanc plugins
+        index_.listener_->CommitChanges();
 
         isCommitted_ = true;
       }
@@ -1695,6 +1709,8 @@ namespace Orthanc
     UnstableResourcePayload payload(type, publicId);
     unstableResources_.AddOrMakeMostRecent(id, payload);
     //LOG(INFO) << "Unstable resource: " << EnumerationToString(type) << " " << id;
+
+    db_->LogChange(ChangeType_NewChildInstance, id, type, publicId);
   }
 
 
