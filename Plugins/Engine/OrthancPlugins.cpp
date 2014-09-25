@@ -40,6 +40,7 @@
 #include "../../OrthancServer/ServerToolbox.h"
 #include "../../OrthancServer/OrthancInitialization.h"
 
+#include <boost/thread.hpp>
 #include <boost/regex.hpp> 
 #include <glog/logging.h>
 
@@ -93,6 +94,7 @@ namespace Orthanc
     OnChangeCallbacks  onChangeCallbacks_;
     bool hasStorageArea_;
     _OrthancPluginRegisterStorageArea storageArea_;
+    boost::mutex callbackMutex_;
 
     PImpl(ServerContext& context) : 
       context_(context), 
@@ -336,9 +338,14 @@ namespace Orthanc
     }
 
     assert(callback != NULL);
-    int32_t error = callback(reinterpret_cast<OrthancPluginRestOutput*>(&output), 
-                             flatUri.c_str(), 
-                             &request);
+    int32_t error;
+
+    {
+      boost::mutex::scoped_lock lock(pimpl_->callbackMutex_);
+      error = callback(reinterpret_cast<OrthancPluginRestOutput*>(&output), 
+                       flatUri.c_str(), 
+                       &request);
+    }
 
     if (error < 0)
     {
@@ -360,6 +367,8 @@ namespace Orthanc
   void OrthancPlugins::SignalStoredInstance(DicomInstanceToStore& instance,
                                             const std::string& instanceId)                                                  
   {
+    boost::mutex::scoped_lock lock(pimpl_->callbackMutex_);
+
     for (PImpl::OnStoredCallbacks::const_iterator
            callback = pimpl_->onStoredCallbacks_.begin(); 
          callback != pimpl_->onStoredCallbacks_.end(); ++callback)
@@ -388,6 +397,8 @@ namespace Orthanc
       // This change type or resource type is not supported by the plugin SDK
       return;
     }
+
+    boost::mutex::scoped_lock lock(pimpl_->callbackMutex_);
 
     for (PImpl::OnChangeCallbacks::const_iterator
            callback = pimpl_->onChangeCallbacks_.begin(); 
