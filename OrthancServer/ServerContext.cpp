@@ -371,7 +371,7 @@ namespace Orthanc
           }
           catch (OrthancException& e)
           {
-            LOG(ERROR) << "Error in OnStoredInstance callback (Lua): " << e.What();
+            LOG(ERROR) << "Error in OnStoredInstance callback (plugins): " << e.What();
           }
         }
       }
@@ -520,4 +520,23 @@ namespace Orthanc
   {
     return index_.DeleteResource(target, uuid, expectedType);
   }
+
+
+  void ServerContext::SignalChange(ChangeType changeType,
+                                   ResourceType resourceType,
+                                   const std::string&  publicId)
+  {
+    if (plugins_ != NULL)
+    {
+      try
+      {
+        plugins_->SignalChange(changeType, resourceType, publicId);
+      }
+      catch (OrthancException& e)
+      {
+        LOG(ERROR) << "Error in OnChangeCallback (plugins): " << e.What();
+      }
+    }
+  }
+
 }

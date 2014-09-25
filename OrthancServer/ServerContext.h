@@ -202,5 +202,9 @@ namespace Orthanc
     bool DeleteResource(Json::Value& target,
                         const std::string& uuid,
                         ResourceType expectedType);
+
+    void SignalChange(ChangeType changeType,
+                      ResourceType resourceType,
+                      const std::string&  publicId);
   };
 }

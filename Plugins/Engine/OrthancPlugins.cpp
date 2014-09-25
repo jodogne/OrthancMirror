@@ -177,6 +177,9 @@ namespace Orthanc
       case ChangeType_ModifiedStudy:
         return OrthancPluginChangeType_ModifiedStudy;
 
+      case ChangeType_NewChildInstance:
+        return OrthancPluginChangeType_NewChildInstance;
+
       case ChangeType_NewInstance:
         return OrthancPluginChangeType_NewInstance;
 

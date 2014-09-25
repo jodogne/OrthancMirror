@@ -652,19 +652,17 @@ namespace Orthanc
                                   ResourceType resourceType,
                                   const std::string& publicId)
   {
-    if (changeType == ChangeType_Deleted)
+    if (changeType <= ChangeType_INTERNAL_LastLogged)
     {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      const boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
+
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Changes VALUES(NULL, ?, ?, ?, ?)");
+      s.BindInt(0, changeType);
+      s.BindInt64(1, internalId);
+      s.BindInt(2, resourceType);
+      s.BindString(3, boost::posix_time::to_iso_string(now));
+      s.Run();
     }
-
-    const boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
-
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Changes VALUES(NULL, ?, ?, ?, ?)");
-    s.BindInt(0, changeType);
-    s.BindInt64(1, internalId);
-    s.BindInt(2, resourceType);
-    s.BindString(3, boost::posix_time::to_iso_string(now));
-    s.Run();
 
     listener_.SignalChange(changeType, resourceType, publicId);
   }

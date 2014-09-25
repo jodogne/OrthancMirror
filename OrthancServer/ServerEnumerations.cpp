@@ -234,6 +234,9 @@ namespace Orthanc
       case ChangeType_Deleted:
         return "Deleted";
 
+      case ChangeType_NewChildInstance:
+        return "NewChildInstance";
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
