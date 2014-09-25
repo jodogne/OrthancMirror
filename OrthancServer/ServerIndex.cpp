@@ -122,16 +122,7 @@ namespace Orthanc
       std::list<FileToRemove> pendingFilesToRemove_;
       std::list<Change> pendingChanges_;
       uint64_t sizeOfFilesToRemove_;
-
-    public:
-      ServerIndexListener(ServerContext& context) : 
-        context_(context)
-      {
-        Reset();
-        assert(ResourceType_Patient < ResourceType_Study &&
-               ResourceType_Study < ResourceType_Series &&
-               ResourceType_Series < ResourceType_Instance);
-      }
+      bool insideTransaction_;
 
       void Reset()
       {
@@ -139,6 +130,27 @@ namespace Orthanc
         hasRemainingLevel_ = false;
         pendingFilesToRemove_.clear();
         pendingChanges_.clear();
+      }
+
+    public:
+      ServerIndexListener(ServerContext& context) : context_(context),
+                                                    insideTransaction_(false)      
+      {
+        Reset();
+        assert(ResourceType_Patient < ResourceType_Study &&
+               ResourceType_Study < ResourceType_Series &&
+               ResourceType_Series < ResourceType_Instance);
+      }
+
+      void StartTransaction()
+      {
+        Reset();
+        insideTransaction_ = true;
+      }
+
+      void EndTransaction()
+      {
+        insideTransaction_ = false;
       }
 
       uint64_t GetSizeOfFilesToRemove()
@@ -201,7 +213,14 @@ namespace Orthanc
         LOG(INFO) << "Change related to resource " << publicId << " of type " 
                   << EnumerationToString(resourceType) << ": " << EnumerationToString(changeType);
 
-        pendingChanges_.push_back(Change(changeType, resourceType, publicId));
+        if (insideTransaction_)
+        {
+          pendingChanges_.push_back(Change(changeType, resourceType, publicId));
+        }
+        else
+        {
+          context_.SignalChange(changeType, resourceType, publicId);
+        }
       }
 
       bool HasRemainingLevel() const
@@ -238,9 +257,15 @@ namespace Orthanc
     {
       assert(index_.currentStorageSize_ == index_.db_->GetTotalCompressedSize());
 
-      index_.listener_->Reset();
       transaction_.reset(index_.db_->StartTransaction());
       transaction_->Begin();
+
+      index_.listener_->StartTransaction();
+    }
+
+    ~Transaction()
+    {
+      index_.listener_->EndTransaction();
     }
 
     void Commit(uint64_t sizeOfAddedFiles)
@@ -312,7 +337,6 @@ namespace Orthanc
                                    ResourceType expectedType)
   {
     boost::mutex::scoped_lock lock(mutex_);
-    listener_->Reset();
 
     Transaction t(*this);
 
@@ -489,7 +513,6 @@ namespace Orthanc
                                  const MetadataMap& metadata)
   {
     boost::mutex::scoped_lock lock(mutex_);
-    listener_->Reset();
 
     instanceMetadata.clear();
 
@@ -1826,7 +1849,6 @@ namespace Orthanc
                                      FileContentType type)
   {
     boost::mutex::scoped_lock lock(mutex_);
-    listener_->Reset();
 
     Transaction t(*this);
 
