@@ -42,7 +42,7 @@ for patient in RestToolbox.DoGet('%s/patients' % URL):
     if name.startswith('anonymized'):
 
         # Trigger the download
-        print 'Downloading %s' % name
+        print('Downloading %s' % name)
         zipContent = RestToolbox.DoGet('%s/patients/%s/archive' % (URL, patient))
         f = open(os.path.join('/tmp', name + '.zip'), 'wb')
         f.write(zipContent)
