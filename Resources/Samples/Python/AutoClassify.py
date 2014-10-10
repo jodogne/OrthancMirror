@@ -43,10 +43,52 @@ parser.add_argument('--remove', action = 'store_true',
 parser.set_defaults(remove = False)
 
 
+def FixPath(p):
+    return p.encode('ascii', 'ignore').strip()
+
+def GetTag(resource, tag):
+    if ('MainDicomTags' in resource and
+        tag in resource['MainDicomTags']):
+        return resource['MainDicomTags'][tag]
+    else:
+        return 'No' + tag
+
+def ClassifyInstance(instanceId):
+    # Extract the patient, study, series and instance information
+    instance = RestToolbox.DoGet('%s/instances/%s' % (URL, instanceId))
+    series = RestToolbox.DoGet('%s/series/%s' % (URL, instance['ParentSeries']))
+    study = RestToolbox.DoGet('%s/studies/%s' % (URL, series['ParentStudy']))
+    patient = RestToolbox.DoGet('%s/patients/%s' % (URL, study['ParentPatient']))
+
+    # Construct a target path
+    a = '%s - %s' % (GetTag(patient, 'PatientID'),
+                     GetTag(patient, 'PatientName'))
+    b = GetTag(study, 'StudyDescription')
+    c = '%s - %s' % (GetTag(series, 'Modality'),
+                     GetTag(series, 'SeriesDescription'))
+    d = '%s.dcm' % GetTag(instance, 'SOPInstanceUID')
+    
+    p = os.path.join(args.target, FixPath(a), FixPath(b), FixPath(c))
+    f = os.path.join(p, FixPath(d))
+                             
+    # Copy the DICOM file to the target path
+    print('Writing new DICOM file: %s' % f)
+    
+    try:
+        os.makedirs(p)
+    except:
+        # Already existing directory, ignore the error
+        pass
+    
+    dcm = RestToolbox.DoGet('%s/instances/%s/file' % (URL, instanceId))
+    with open(f, 'wb') as g:
+        g.write(dcm)
+
+
 # Parse the arguments
 args = parser.parse_args()
 URL = 'http://%s:%d' % (args.host, args.port)
-print 'Connecting to Orthanc on address: %s' % URL
+print('Connecting to Orthanc on address: %s' % URL)
 
 # Compute the starting point for the changes loop
 if args.all:
@@ -54,7 +96,7 @@ if args.all:
 else:
     current = RestToolbox.DoGet(URL + '/changes?last')['Last']
 
-# Polling loop using the "changes" API of Orthanc, waiting for the
+# Polling loop using the 'changes' API of Orthanc, waiting for the
 # incoming of new DICOM files
 while True:
     r = RestToolbox.DoGet(URL + '/changes', {
@@ -65,43 +107,11 @@ while True:
     for change in r['Changes']:
         # We are only interested interested in the arrival of new instances
         if change['ChangeType'] == 'NewInstance':
-            # Extract the patient, study, series and instance information
-            instance = RestToolbox.DoGet('%s/instances/%s' % (URL, change['ID']))
-            series = RestToolbox.DoGet('%s/series/%s' % (URL, instance['ParentSeries']))
-            study = RestToolbox.DoGet('%s/studies/%s' % (URL, series['ParentStudy']))
-            patient = RestToolbox.DoGet('%s/patients/%s' % (URL, study['ParentPatient']))
-
-            # Construct a target path
-            a = '%s - %s' % (patient['MainDicomTags']['PatientID'], 
-                             patient['MainDicomTags']['PatientName'])
-            b = study['MainDicomTags']['StudyDescription']
-            c = '%s - %s' % (series['MainDicomTags']['Modality'],
-                             series['MainDicomTags']['SeriesDescription'])
-            d = '%s.dcm' % instance['MainDicomTags']['SOPInstanceUID']
-
-            p = os.path.join(
-                args.target,
-                a.encode('ascii', 'ignore'),
-                b.encode('ascii', 'ignore'),
-                c.encode('ascii', 'ignore')
-                )
-
-            f = os.path.join(p, d.encode('ascii', 'ignore'))
-                             
-
-            # Copy the DICOM file to the target path
-            print('Writing new DICOM file: %s' % f)
-
             try:
-                os.makedirs(p)
+                ClassifyInstance(change['ID'])
             except:
-                # Already existing directory, ignore the error
-                pass
+                print('Unable to write instance %s to the disk' % change['ID'])
 
-            dcm = RestToolbox.DoGet('%s/instances/%s/file' % (URL, change['ID']))
-            with open(f, 'wb') as g:
-                g.write(dcm)
-            
             # If requested, remove the instance once it has been copied
             if args.remove:
                 RestToolbox.DoDelete('%s/instances/%s' % (URL, change['ID']))
@@ -109,5 +119,5 @@ while True:
     current = r['Last']
 
     if r['Done']:
-        print "Everything has been processed: Waiting..."
+        print('Everything has been processed: Waiting...')
         time.sleep(1)
