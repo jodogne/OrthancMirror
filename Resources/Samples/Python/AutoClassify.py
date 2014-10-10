@@ -23,6 +23,7 @@ import argparse
 import time
 import os
 import os.path
+import sys
 import RestToolbox
 
 parser = argparse.ArgumentParser(
@@ -44,7 +45,7 @@ parser.set_defaults(remove = False)
 
 
 def FixPath(p):
-    return p.encode('ascii', 'ignore').strip()
+    return p.encode('ascii', 'ignore').strip().decode()
 
 def GetTag(resource, tag):
     if ('MainDicomTags' in resource and
@@ -70,7 +71,7 @@ def ClassifyInstance(instanceId):
     
     p = os.path.join(args.target, FixPath(a), FixPath(b), FixPath(c))
     f = os.path.join(p, FixPath(d))
-                             
+
     # Copy the DICOM file to the target path
     print('Writing new DICOM file: %s' % f)
     
