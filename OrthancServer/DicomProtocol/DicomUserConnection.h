@@ -177,6 +177,8 @@ namespace Orthanc
                       const std::string& seriesUid,
                       const std::string& instanceUid);
 
-    static void SetConnectionTimeout(uint32_t seconds);
+    void SetTimeout(uint32_t seconds);
+
+    void DisableTimeout();
   };
 }
