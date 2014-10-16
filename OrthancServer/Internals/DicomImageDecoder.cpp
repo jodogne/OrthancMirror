@@ -225,7 +225,6 @@ namespace Orthanc
   private:
     std::string psmct_;
     std::auto_ptr<DicomIntegerPixelAccessor> slowAccessor_;
-    std::auto_ptr<ImageAccessor> fastAccessor_;
 
   public:
     void Setup(DcmDataset& dataset,
@@ -233,7 +232,6 @@ namespace Orthanc
     {
       psmct_.clear();
       slowAccessor_.reset(NULL);
-      fastAccessor_.reset(NULL);
 
       // See also: http://support.dcmtk.org/wiki/dcmtk/howto/accessing-compressed-data
 
@@ -272,13 +270,6 @@ namespace Orthanc
       }
 
       slowAccessor_->SetCurrentFrame(frame);
-
-
-      /**
-       * If possible, create a fast ImageAccessor to the image buffer.
-       **/
-
-      
     }
 
     unsigned int GetWidth() const
@@ -305,15 +296,10 @@ namespace Orthanc
       return *slowAccessor_;
     }
 
-    bool HasFastAccessor() const
+    unsigned int GetSize() const
     {
-      return fastAccessor_.get() != NULL;
-    }
-
-    const ImageAccessor& GetFastAccessor() const
-    {
-      assert(HasFastAccessor());
-      return *fastAccessor_;
+      assert(slowAccessor_.get() != NULL);
+      return slowAccessor_->GetSize();
     }
   };
 
@@ -435,23 +421,28 @@ namespace Orthanc
     {
       try
       {
-        ImageAccessor sourceImage;
-        sourceImage.AssignReadOnly(sourceFormat, 
-                                   info.GetWidth(), 
-                                   info.GetHeight(),
-                                   info.GetWidth() * GetBytesPerPixel(sourceFormat),
-                                   source.GetAccessor().GetPixelData());                                   
+        size_t frameSize = info.GetHeight() * info.GetWidth() * GetBytesPerPixel(sourceFormat);
+        if ((frame + 1) * frameSize <= source.GetSize())
+        {
+          const uint8_t* buffer = reinterpret_cast<const uint8_t*>(source.GetAccessor().GetPixelData());
 
-        ImageProcessing::Convert(targetAccessor, sourceImage);
-        ImageProcessing::ShiftRight(targetAccessor, info.GetShift());
-        fastVersionSuccess = true;
+          ImageAccessor sourceImage;
+          sourceImage.AssignReadOnly(sourceFormat, 
+                                     info.GetWidth(), 
+                                     info.GetHeight(),
+                                     info.GetWidth() * GetBytesPerPixel(sourceFormat),
+                                     buffer + frame * frameSize);
+
+          ImageProcessing::Convert(targetAccessor, sourceImage);
+          ImageProcessing::ShiftRight(targetAccessor, info.GetShift());
+          fastVersionSuccess = true;
+        }
       }
       catch (OrthancException&)
       {
         // Unsupported conversion, use the slow version
       }
     }
-
 
     /**
      * Slow version : loop over the DICOM buffer, storing its value

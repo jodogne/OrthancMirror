@@ -80,5 +80,10 @@ namespace Orthanc
     {
       return pixelData_;
     }
+
+    size_t GetSize() const
+    {
+      return size_;
+    }
   };
 }
