@@ -1,6 +1,7 @@
 Pending changes in the mainline
 ===============================
 
+* Download ZIP + DICOMDIR from Orthanc Explorer
 * Sample plugin framework to serve static resources
 * Fix issue 21 (Microsoft Visual Studio precompiled headers)
 
