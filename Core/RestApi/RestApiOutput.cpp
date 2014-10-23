@@ -128,7 +128,8 @@ namespace Orthanc
 
   void RestApiOutput::SignalError(HttpStatus status)
   {
-    if (status != HttpStatus_403_Forbidden &&
+    if (status != HttpStatus_400_BadRequest &&
+        status != HttpStatus_403_Forbidden &&
         status != HttpStatus_500_InternalServerError &&
         status != HttpStatus_415_UnsupportedMediaType)
     {
