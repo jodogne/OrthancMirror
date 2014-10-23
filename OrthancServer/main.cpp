@@ -56,6 +56,8 @@
 using namespace Orthanc;
 
 
+#define ENABLE_PLUGINS  1
+
 
 class OrthancStoreRequestHandler : public IStoreRequestHandler
 {
@@ -509,20 +511,22 @@ static bool StartOrthanc()
     FilesystemHttpHandler staticResources("/app", ORTHANC_PATH "/OrthancExplorer");
 #endif
 
+#if ENABLE_PLUGINS == 1
     OrthancPlugins orthancPlugins(context);
     orthancPlugins.SetOrthancRestApi(restApi);
 
     PluginsManager pluginsManager;
     pluginsManager.RegisterServiceProvider(orthancPlugins);
     LoadPlugins(pluginsManager);
-
     httpServer.RegisterHandler(orthancPlugins);
+    context.SetOrthancPlugins(orthancPlugins);
+#endif
+
     httpServer.RegisterHandler(staticResources);
     httpServer.RegisterHandler(restApi);
-    orthancPlugins.SetOrthancRestApi(restApi);
-    context.SetOrthancPlugins(orthancPlugins);
 
 
+#if ENABLE_PLUGINS == 1
     // Prepare the storage area
     if (orthancPlugins.HasStorageArea())
     {
@@ -530,6 +534,7 @@ static bool StartOrthanc()
       storage.reset(orthancPlugins.GetStorageArea());
     }
     else
+#endif
     {
       boost::filesystem::path storageDirectory = Configuration::InterpretStringParameterAsPath(storageDirectoryStr);
       LOG(WARNING) << "Storage directory: " << storageDirectory;
@@ -579,6 +584,9 @@ static bool StartOrthanc()
 
     // We're done
     LOG(WARNING) << "Orthanc is stopping";
+
+    dicomServer.Stop();
+    httpServer.Stop();
   }
 
   serverFactory.Done();

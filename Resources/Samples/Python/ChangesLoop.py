@@ -54,7 +54,7 @@ def NewInstanceReceived(path):
     # Remove the possible trailing characters due to DICOM padding
     patientName = patientName.strip()
 
-    print 'New instance received for patient "%s": "%s"' % (patientName, path)
+    print('New instance received for patient "%s": "%s"' % (patientName, path))
 
 
 
@@ -82,5 +82,5 @@ while True:
     current = r['Last']
 
     if r['Done']:
-        print "Everything has been processed: Waiting..."
+        print('Everything has been processed: Waiting...')
         time.sleep(1)

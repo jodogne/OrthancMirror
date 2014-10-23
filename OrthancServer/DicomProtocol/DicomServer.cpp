@@ -190,6 +190,11 @@ namespace Orthanc
 
     LOG(INFO) << "DICOM server stopping";
 
+    if (server->isThreaded_)
+    {
+      server->bagOfDispatchers_.StopAll();
+    }
+
     /* drop the network, i.e. free memory of T_ASC_Network* structure. This call */
     /* is the counterpart of ASC_initializeNetwork(...) which was called above. */
     cond = ASC_dropNetwork(&net);
@@ -403,8 +408,6 @@ namespace Orthanc
     {
       pimpl_->thread_.join();
     }
-
-    bagOfDispatchers_.StopAll();
   }
 
   bool DicomServer::IsMyAETitle(const std::string& aet) const

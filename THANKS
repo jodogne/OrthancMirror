@@ -23,8 +23,12 @@ Contributors
 * Marek Swiecicki <mswiecicki@archimedic.pl>, for various suggestions
   and sample DICOM files.
 * Chris Hafey <chafey@gmail.com>, for suggesting many features and
-  improvements.
-* Manabu Tokunaga <manabu@lury.net>, for the Windows service and installer.
+  improvements, for a Windows service+installer with .NET/NSIS.
+* Manabu Tokunaga <manabu@lury.net>, for a Windows service with .NET.
+* Vincent Kersten <vincent1234567@gmail.com>, for DICOMDIR in the GUI.
+* Emsy Chan <emlscs@yahoo.com>, for various contributions
+  and sample DICOM files.
+
 
 Thanks also to all the contributors active in our Google Group:
 https://groups.google.com/forum/#!forum/orthanc-users

@@ -935,6 +935,24 @@ $('#series-archive').live('click', function(e) {
   window.location.href = '../series/' + $.mobile.pageData.uuid + '/archive';
 });
 
+
+$('#patient-media').live('click', function(e) {
+  e.preventDefault();  //stop the browser from following
+  window.location.href = '../patients/' + $.mobile.pageData.uuid + '/media';
+});
+
+$('#study-media').live('click', function(e) {
+  e.preventDefault();  //stop the browser from following
+  window.location.href = '../studies/' + $.mobile.pageData.uuid + '/media';
+});
+
+$('#series-media').live('click', function(e) {
+  e.preventDefault();  //stop the browser from following
+  window.location.href = '../series/' + $.mobile.pageData.uuid + '/media';
+});
+
+
+
 $('#protection').live('change', function(e) {
   var isProtected = e.target.value == "on";
   $.ajax({
