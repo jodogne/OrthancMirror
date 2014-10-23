@@ -82,17 +82,16 @@ namespace
       LOG(INFO) << "A file must be removed: " << fileUuid;
     }       
 
-    virtual void SignalChange(ChangeType changeType,
-                              ResourceType resourceType,
-                              const std::string& publicId)
+    virtual void SignalChange(const ServerIndexChange& change)
     {
-      if (changeType == ChangeType_Deleted)
+      if (change.GetChangeType() == ChangeType_Deleted)
       {
-        deletedResources_.push_back(publicId);        
+        deletedResources_.push_back(change.GetPublicId());        
       }
 
-      LOG(INFO) << "Change related to resource " << publicId << " of type " 
-                << EnumerationToString(resourceType) << ": " << EnumerationToString(changeType);
+      LOG(INFO) << "Change related to resource " << change.GetPublicId() << " of type " 
+                << EnumerationToString(change.GetResourceType()) << ": " 
+                << EnumerationToString(change.GetChangeType());
     }
 
   };

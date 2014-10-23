@@ -42,6 +42,7 @@
 #include "DicomProtocol/ReusableDicomUserConnection.h"
 #include "Scheduler/ServerScheduler.h"
 #include "DicomInstanceToStore.h"
+#include "ServerIndexChange.h"
 
 #include <boost/filesystem.hpp>
 
@@ -203,8 +204,6 @@ namespace Orthanc
                         const std::string& uuid,
                         ResourceType expectedType);
 
-    void SignalChange(ChangeType changeType,
-                      ResourceType resourceType,
-                      const std::string&  publicId);
+    void SignalChange(const ServerIndexChange& change);
   };
 }

@@ -360,22 +360,16 @@ extern "C"
    **/
   typedef enum
   {
-    OrthancPluginChangeType_AnonymizedPatient = 0,  /*!< Patient resulting from an anomyization */
-    OrthancPluginChangeType_AnonymizedSeries = 1,   /*!< Series resulting from an anonymization */
-    OrthancPluginChangeType_AnonymizedStudy = 2,    /*!< Study resulting from an anomyization */
-    OrthancPluginChangeType_CompletedSeries = 3,    /*!< Series is now complete */
-    OrthancPluginChangeType_Deleted = 4,            /*!< Deleted resource */
-    OrthancPluginChangeType_ModifiedPatient = 5,    /*!< Patient resulting from a modification */
-    OrthancPluginChangeType_ModifiedSeries = 6,     /*!< Series resulting from a modification */
-    OrthancPluginChangeType_ModifiedStudy = 7,      /*!< Study resulting from a modification */
-    OrthancPluginChangeType_NewChildInstance = 8,   /*!< A new instance was added to this resource */
-    OrthancPluginChangeType_NewInstance = 9,        /*!< New instance received */
-    OrthancPluginChangeType_NewPatient = 10,        /*!< New patient created */
-    OrthancPluginChangeType_NewSeries = 11,         /*!< New series created */
-    OrthancPluginChangeType_NewStudy = 12,          /*!< New study created */
-    OrthancPluginChangeType_StablePatient = 13,     /*!< Timeout: No new instance in this patient */
-    OrthancPluginChangeType_StableSeries = 14,      /*!< Timeout: No new instance in this series */
-    OrthancPluginChangeType_StableStudy = 15        /*!< Timeout: No new instance in this study */
+    OrthancPluginChangeType_CompletedSeries = 0,    /*!< Series is now complete */
+    OrthancPluginChangeType_Deleted = 1,            /*!< Deleted resource */
+    OrthancPluginChangeType_NewChildInstance = 2,   /*!< A new instance was added to this resource */
+    OrthancPluginChangeType_NewInstance = 3,        /*!< New instance received */
+    OrthancPluginChangeType_NewPatient = 4,         /*!< New patient created */
+    OrthancPluginChangeType_NewSeries = 5,          /*!< New series created */
+    OrthancPluginChangeType_NewStudy = 6,           /*!< New study created */
+    OrthancPluginChangeType_StablePatient = 7,      /*!< Timeout: No new instance in this patient */
+    OrthancPluginChangeType_StableSeries = 8,       /*!< Timeout: No new instance in this series */
+    OrthancPluginChangeType_StableStudy = 9         /*!< Timeout: No new instance in this study */
   } OrthancPluginChangeType;
 
 

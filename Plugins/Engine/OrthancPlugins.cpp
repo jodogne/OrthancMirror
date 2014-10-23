@@ -153,29 +153,11 @@ namespace Orthanc
   {
     switch (type)
     {
-      case ChangeType_AnonymizedPatient:
-        return OrthancPluginChangeType_AnonymizedPatient;
-
-      case ChangeType_AnonymizedSeries:
-        return OrthancPluginChangeType_AnonymizedSeries;
-
-      case ChangeType_AnonymizedStudy:
-        return OrthancPluginChangeType_AnonymizedStudy;
-
       case ChangeType_CompletedSeries:
         return OrthancPluginChangeType_CompletedSeries;
 
       case ChangeType_Deleted:
         return OrthancPluginChangeType_Deleted;
-
-      case ChangeType_ModifiedPatient:
-        return OrthancPluginChangeType_ModifiedPatient;
-
-      case ChangeType_ModifiedSeries:
-        return OrthancPluginChangeType_ModifiedSeries;
-
-      case ChangeType_ModifiedStudy:
-        return OrthancPluginChangeType_ModifiedStudy;
 
       case ChangeType_NewChildInstance:
         return OrthancPluginChangeType_NewChildInstance;
@@ -383,17 +365,15 @@ namespace Orthanc
 
 
 
-  void OrthancPlugins::SignalChange(ChangeType changeType,
-                                    ResourceType resourceType,
-                                    const std::string& publicId)
+  void OrthancPlugins::SignalChange(const ServerIndexChange& change)
   {
     OrthancPluginChangeType c;
     OrthancPluginResourceType r;
 
     try
     {
-      c = Convert(changeType);
-      r = Convert(resourceType);
+      c = Convert(change.GetChangeType());
+      r = Convert(change.GetResourceType());
     }
     catch (OrthancException&)
     {
@@ -407,7 +387,7 @@ namespace Orthanc
            callback = pimpl_->onChangeCallbacks_.begin(); 
          callback != pimpl_->onChangeCallbacks_.end(); ++callback)
     {
-      (*callback) (c, r, publicId.c_str());
+      (*callback) (c, r, change.GetPublicId().c_str());
     }
   }
 
