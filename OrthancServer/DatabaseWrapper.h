@@ -154,10 +154,17 @@ namespace Orthanc
     void GetChildrenInternalId(std::list<int64_t>& result,
                                int64_t id);
 
-    void LogChange(ChangeType changeType,
-                   int64_t internalId,
+    void LogChange(int64_t internalId,
+                   ChangeType changeType,
                    ResourceType resourceType,
-                   const std::string& publicId);
+                   const std::string& publicId)
+    {
+      ServerIndexChange change(changeType, resourceType, publicId);
+      LogChange(internalId, change);
+    }
+
+    void LogChange(int64_t internalId,
+                   const ServerIndexChange& change);
 
     void GetChanges(Json::Value& target,
                     int64_t since,

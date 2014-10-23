@@ -97,9 +97,7 @@ namespace Orthanc
     virtual bool InvokeService(_OrthancPluginService service,
                                const void* parameters);
 
-    void SignalChange(ChangeType changeType,
-                      ResourceType resourceType,
-                      const std::string& publicId);
+    void SignalChange(const ServerIndexChange& change);
 
     void SignalStoredInstance(DicomInstanceToStore& instance,
                               const std::string& instanceId);

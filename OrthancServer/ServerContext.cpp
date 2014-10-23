@@ -522,15 +522,13 @@ namespace Orthanc
   }
 
 
-  void ServerContext::SignalChange(ChangeType changeType,
-                                   ResourceType resourceType,
-                                   const std::string&  publicId)
+  void ServerContext::SignalChange(const ServerIndexChange& change)
   {
     if (plugins_ != NULL)
     {
       try
       {
-        plugins_->SignalChange(changeType, resourceType, publicId);
+        plugins_->SignalChange(change);
       }
       catch (OrthancException& e)
       {
@@ -538,5 +536,4 @@ namespace Orthanc
       }
     }
   }
-
 }

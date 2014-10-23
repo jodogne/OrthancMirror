@@ -37,6 +37,7 @@
 #define NOMINMAX
 #endif
 
+#include "ServerIndexChange.h"
 #include "EmbeddedResources.h"
 #include "OrthancInitialization.h"
 #include "../Core/Toolbox.h"
@@ -79,39 +80,6 @@ namespace Orthanc
         FileContentType GetContentType() const 
         {
           return type_;
-        }
-      };
-
-      struct ServerIndexChange
-      {
-      private:
-        ChangeType   changeType_;
-        ResourceType resourceType_;
-        std::string  publicId_;
-
-      public:
-        ServerIndexChange(ChangeType changeType,
-               ResourceType resourceType,
-               const std::string&  publicId) :
-          changeType_(changeType),
-          resourceType_(resourceType),
-          publicId_(publicId)
-        {
-        }
-
-        ChangeType  GetChangeType() const
-        {
-          return changeType_;
-        }
-
-        ResourceType  GetResourceType() const
-        {
-          return resourceType_;
-        }
-
-        const std::string&  GetPublicId() const
-        {
-          return publicId_;
         }
       };
 
@@ -174,7 +142,7 @@ namespace Orthanc
                it = pendingChanges_.begin(); 
              it != pendingChanges_.end(); it++)
         {
-          context_.SignalChange(it->GetChangeType(), it->GetResourceType(), it->GetPublicId());
+          context_.SignalChange(*it);
         }
       }
 
@@ -206,20 +174,19 @@ namespace Orthanc
         sizeOfFilesToRemove_ += info.GetCompressedSize();
       }
 
-      virtual void SignalChange(ChangeType changeType,
-                                ResourceType resourceType,
-                                const std::string& publicId)
+      virtual void SignalChange(const ServerIndexChange& change)
       {
-        LOG(INFO) << "Change related to resource " << publicId << " of type " 
-                  << EnumerationToString(resourceType) << ": " << EnumerationToString(changeType);
+        LOG(INFO) << "Change related to resource " << change.GetPublicId() << " of type " 
+                  << EnumerationToString(change.GetResourceType()) << ": " 
+                  << EnumerationToString(change.GetChangeType());
 
         if (insideTransaction_)
         {
-          pendingChanges_.push_back(ServerIndexChange(changeType, resourceType, publicId));
+          pendingChanges_.push_back(change);
         }
         else
         {
-          context_.SignalChange(changeType, resourceType, publicId);
+          context_.SignalChange(change);
         }
       }
 
@@ -706,7 +673,7 @@ namespace Orthanc
       SeriesStatus seriesStatus = GetSeriesStatus(series);
       if (seriesStatus == SeriesStatus_Complete)
       {
-        db_->LogChange(ChangeType_CompletedSeries, series, ResourceType_Series, hasher.HashSeries());
+        db_->LogChange(series, ChangeType_CompletedSeries, ResourceType_Series, hasher.HashSeries());
       }
 
       // Mark the parent resources of this instance as unstable
@@ -1495,7 +1462,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_UnknownResource);
     }
 
-    db_->LogChange(changeType, id, type, publicId);
+    db_->LogChange(id, changeType, type, publicId);
 
     transaction->Commit();
   }
@@ -1695,15 +1662,15 @@ namespace Orthanc
           switch (payload.GetResourceType())
           {
             case ResourceType_Patient:
-              that->db_->LogChange(ChangeType_StablePatient, id, ResourceType_Patient, payload.GetPublicId());
+              that->db_->LogChange(id, ChangeType_StablePatient, ResourceType_Patient, payload.GetPublicId());
               break;
 
             case ResourceType_Study:
-              that->db_->LogChange(ChangeType_StableStudy, id, ResourceType_Study, payload.GetPublicId());
+              that->db_->LogChange(id, ChangeType_StableStudy, ResourceType_Study, payload.GetPublicId());
               break;
 
             case ResourceType_Series:
-              that->db_->LogChange(ChangeType_StableSeries, id, ResourceType_Series, payload.GetPublicId());
+              that->db_->LogChange(id, ChangeType_StableSeries, ResourceType_Series, payload.GetPublicId());
               break;
 
             default:
@@ -1733,7 +1700,7 @@ namespace Orthanc
     unstableResources_.AddOrMakeMostRecent(id, payload);
     //LOG(INFO) << "Unstable resource: " << EnumerationToString(type) << " " << id;
 
-    db_->LogChange(ChangeType_NewChildInstance, id, type, publicId);
+    db_->LogChange(id, ChangeType_NewChildInstance, type, publicId);
   }
 
 

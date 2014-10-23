@@ -116,7 +116,8 @@ namespace Orthanc
       virtual void Compute(SQLite::FunctionContext& context)
       {
         ResourceType type = static_cast<ResourceType>(context.GetIntValue(1));
-        listener_.SignalChange(ChangeType_Deleted, type, context.GetStringValue(0));
+        ServerIndexChange change(ChangeType_Deleted, type, context.GetStringValue(0));
+        listener_.SignalChange(change);
       }
     };
 
@@ -258,7 +259,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
 
-    LogChange(changeType, id, type, publicId);
+    LogChange(id, changeType, type, publicId);
     return id;
   }
 
@@ -647,24 +648,22 @@ namespace Orthanc
   }
 
 
-  void DatabaseWrapper::LogChange(ChangeType changeType,
-                                  int64_t internalId,
-                                  ResourceType resourceType,
-                                  const std::string& publicId)
+  void DatabaseWrapper::LogChange(int64_t internalId,
+                                  const ServerIndexChange& change)
   {
-    if (changeType <= ChangeType_INTERNAL_LastLogged)
+    if (change.GetChangeType() <= ChangeType_INTERNAL_LastLogged)
     {
       const boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
 
       SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Changes VALUES(NULL, ?, ?, ?, ?)");
-      s.BindInt(0, changeType);
+      s.BindInt(0, change.GetChangeType());
       s.BindInt64(1, internalId);
-      s.BindInt(2, resourceType);
+      s.BindInt(2, change.GetResourceType());
       s.BindString(3, boost::posix_time::to_iso_string(now));
       s.Run();
     }
 
-    listener_.SignalChange(changeType, resourceType, publicId);
+    listener_.SignalChange(change);
   }
 
 
