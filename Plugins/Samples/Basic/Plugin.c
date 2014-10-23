@@ -262,11 +262,11 @@ ORTHANC_PLUGINS_API int32_t OnChangeCallback(OrthancPluginChangeType changeType,
 
   if (changeType == OrthancPluginChangeType_NewInstance)
   {
-    sprintf(info, "/instances/%s/metadata/ReceptionDate", resourceId);
+    sprintf(info, "/instances/%s/metadata/AnonymizedFrom", resourceId);
     if (OrthancPluginRestApiGet(context, &tmp, info) == 0)
     {
-      sprintf(info, "  Instance %s comes from the anonymization of instance %s", 
-              resourceId, (const char*) tmp.data);
+      sprintf(info, "  Instance %s comes from the anonymization of instance", resourceId);
+      strncat(info, (const char*) tmp.data, tmp.size);
       OrthancPluginLogWarning(context, info);
       OrthancPluginFreeMemoryBuffer(context, &tmp);
     }
