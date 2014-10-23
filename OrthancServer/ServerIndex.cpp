@@ -82,7 +82,7 @@ namespace Orthanc
         }
       };
 
-      struct Change
+      struct ServerIndexChange
       {
       private:
         ChangeType   changeType_;
@@ -90,7 +90,7 @@ namespace Orthanc
         std::string  publicId_;
 
       public:
-        Change(ChangeType changeType,
+        ServerIndexChange(ChangeType changeType,
                ResourceType resourceType,
                const std::string&  publicId) :
           changeType_(changeType),
@@ -120,7 +120,7 @@ namespace Orthanc
       ResourceType remainingType_;
       std::string remainingPublicId_;
       std::list<FileToRemove> pendingFilesToRemove_;
-      std::list<Change> pendingChanges_;
+      std::list<ServerIndexChange> pendingChanges_;
       uint64_t sizeOfFilesToRemove_;
       bool insideTransaction_;
 
@@ -170,7 +170,7 @@ namespace Orthanc
 
       void CommitChanges()
       {
-        for (std::list<Change>::const_iterator 
+        for (std::list<ServerIndexChange>::const_iterator 
                it = pendingChanges_.begin(); 
              it != pendingChanges_.end(); it++)
         {
@@ -215,7 +215,7 @@ namespace Orthanc
 
         if (insideTransaction_)
         {
-          pendingChanges_.push_back(Change(changeType, resourceType, publicId));
+          pendingChanges_.push_back(ServerIndexChange(changeType, resourceType, publicId));
         }
         else
         {
