@@ -135,6 +135,8 @@ namespace Orthanc
   struct DicomUserConnection::PImpl
   {
     // Connection state
+    uint32_t dimseTimeout_;
+    uint32_t acseTimeout_;
     T_ASC_Network* net_;
     T_ASC_Parameters* params_;
     T_ASC_Association* assoc_;
@@ -325,7 +327,7 @@ namespace Orthanc
     DcmDataset* statusDetail = NULL;
     Check(DIMSE_storeUser(assoc_, presID, &req,
                           NULL, dcmff.getDataset(), /*progressCallback*/ NULL, NULL,
-                          /*opt_blockMode*/ DIMSE_BLOCKING, /*opt_dimse_timeout*/ 0,
+                          /*opt_blockMode*/ DIMSE_BLOCKING, /*opt_dimse_timeout*/ dimseTimeout_,
                           &rsp, &statusDetail, NULL));
 
     if (statusDetail != NULL) 
@@ -466,7 +468,8 @@ namespace Orthanc
     DcmDataset* statusDetail = NULL;
     OFCondition cond = DIMSE_findUser(pimpl_->assoc_, presID, &request, dataset.get(),
                                       FindCallback, &result,
-                                      /*opt_blockMode*/ DIMSE_BLOCKING, /*opt_dimse_timeout*/ 0,
+                                      /*opt_blockMode*/ DIMSE_BLOCKING, 
+                                      /*opt_dimse_timeout*/ pimpl_->dimseTimeout_,
                                       &response, &statusDetail);
 
     if (statusDetail)
@@ -559,7 +562,8 @@ namespace Orthanc
     DcmDataset* responseIdentifiers = NULL;
     OFCondition cond = DIMSE_moveUser(pimpl_->assoc_, presID, &request, dataset.get(),
                                       NULL, NULL,
-                                      /*opt_blockMode*/ DIMSE_BLOCKING, /*opt_dimse_timeout*/ 0,
+                                      /*opt_blockMode*/ DIMSE_BLOCKING, 
+                                      /*opt_dimse_timeout*/ pimpl_->dimseTimeout_,
                                       pimpl_->net_, NULL, NULL,
                                       &response, &statusDetail, &responseIdentifiers);
 
@@ -616,6 +620,7 @@ namespace Orthanc
     distantPort_ = 104;
     manufacturer_ = ModalityManufacturer_Generic;
 
+    SetTimeout(10); 
     pimpl_->net_ = NULL;
     pimpl_->params_ = NULL;
     pimpl_->assoc_ = NULL;
@@ -722,7 +727,7 @@ namespace Orthanc
               << GetDistantHost() << ":" << GetDistantPort() 
               << " (manufacturer: " << EnumerationToString(GetDistantManufacturer()) << ")";
 
-    Check(ASC_initializeNetwork(NET_REQUESTOR, 0, /*opt_acse_timeout*/ 30, &pimpl_->net_));
+    Check(ASC_initializeNetwork(NET_REQUESTOR, 0, /*opt_acse_timeout*/ pimpl_->acseTimeout_, &pimpl_->net_));
     Check(ASC_createAssociationParameters(&pimpl_->params_, /*opt_maxReceivePDULength*/ ASC_DEFAULTMAXPDU));
 
     // Set this application's title and the called application's title in the params
@@ -818,7 +823,8 @@ namespace Orthanc
     CheckIsOpen();
     DIC_US status;
     Check(DIMSE_echoUser(pimpl_->assoc_, pimpl_->assoc_->nextMsgID++, 
-                         /*opt_blockMode*/ DIMSE_BLOCKING, /*opt_dimse_timeout*/ 0,
+                         /*opt_blockMode*/ DIMSE_BLOCKING, 
+                         /*opt_dimse_timeout*/ pimpl_->dimseTimeout_,
                          &status, NULL));
     return status == STATUS_Success;
   }
@@ -865,9 +871,29 @@ namespace Orthanc
     Move(targetAet, map);
   }
 
-  void DicomUserConnection::SetConnectionTimeout(uint32_t seconds)
+
+  void DicomUserConnection::SetTimeout(uint32_t seconds)
   {
+    if (seconds <= 0)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
     dcmConnectionTimeout.set(seconds);
+    pimpl_->dimseTimeout_ = seconds;
+    pimpl_->acseTimeout_ = 10;
+  }
+
+
+  void DicomUserConnection::DisableTimeout()
+  {
+    /**
+     * Global timeout (seconds) for connecting to remote hosts.
+     * Default value is -1 which selects infinite timeout, i.e. blocking connect().
+     */
+    dcmConnectionTimeout.set(-1);
+    pimpl_->dimseTimeout_ = 0;
+    pimpl_->acseTimeout_ = 10;
   }
 
 

@@ -52,6 +52,7 @@ namespace Orthanc
     HttpStatus lastStatus_;
     std::string postData_;
     bool isVerbose_;
+    long timeout_;
 
     void Setup();
 
@@ -87,6 +88,16 @@ namespace Orthanc
     HttpMethod GetMethod() const
     {
       return method_;
+    }
+
+    void SetTimeout(long seconds)
+    {
+      timeout_ = seconds;
+    }
+
+    long GetTimeout() const
+    {
+      return timeout_;
     }
 
     void SetPostData(const std::string& data)

@@ -18,9 +18,26 @@
 
 import httplib2
 import json
-from urllib import urlencode
+import sys
+
+if (sys.version_info >= (3, 0)):
+    from urllib.parse import urlencode
+else:
+    from urllib import urlencode
+
 
 _credentials = None
+
+
+def _DecodeJson(s):
+    try:
+        if (sys.version_info >= (3, 0)):
+            return json.loads(s.decode())
+        else:
+            return json.loads(s)
+    except:
+        return s
+
 
 def SetCredentials(username, password):
     global _credentials
@@ -42,12 +59,9 @@ def DoGet(uri, data = {}, interpretAsJson = True):
     if not (resp.status in [ 200 ]):
         raise Exception(resp.status)
     elif not interpretAsJson:
-        return content
+        return content.decode()
     else:
-        try:
-            return json.loads(content)
-        except:
-            return content
+        return _DecodeJson(content)
 
 
 def _DoPutOrPost(uri, method, data, contentType):
@@ -72,10 +86,7 @@ def _DoPutOrPost(uri, method, data, contentType):
     if not (resp.status in [ 200, 302 ]):
         raise Exception(resp.status)
     else:
-        try:
-            return json.loads(content)
-        except:
-            return content
+        return _DecodeJson(content)
 
 
 def DoDelete(uri):
@@ -86,10 +97,7 @@ def DoDelete(uri):
     if not (resp.status in [ 200 ]):
         raise Exception(resp.status)
     else:
-        try:
-            return json.loads(content)
-        except:
-            return content
+        return _DecodeJson(content)
 
 
 def DoPut(uri, data = {}, contentType = ''):
