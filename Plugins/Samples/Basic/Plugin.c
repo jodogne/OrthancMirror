@@ -255,8 +255,23 @@ ORTHANC_PLUGINS_API int32_t OnChangeCallback(OrthancPluginChangeType changeType,
                                              const char* resourceId)
 {
   char info[1024];
+  OrthancPluginMemoryBuffer tmp;
+
   sprintf(info, "Change %d on resource %s of type %d", changeType, resourceId, resourceType);
   OrthancPluginLogWarning(context, info);
+
+  if (changeType == OrthancPluginChangeType_NewInstance)
+  {
+    sprintf(info, "/instances/%s/metadata/ReceptionDate", resourceId);
+    if (OrthancPluginRestApiGet(context, &tmp, info) == 0)
+    {
+      sprintf(info, "  Instance %s comes from the anonymization of instance %s", 
+              resourceId, (const char*) tmp.data);
+      OrthancPluginLogWarning(context, info);
+      OrthancPluginFreeMemoryBuffer(context, &tmp);
+    }
+  }
+
   return 0;
 }
 

@@ -107,5 +107,7 @@ namespace Orthanc
     bool HasStorageArea() const;
 
     IStorageArea* GetStorageArea();
+
+    void Stop();
   };
 }
