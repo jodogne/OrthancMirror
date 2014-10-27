@@ -409,9 +409,8 @@ namespace Orthanc
   }
 
 
-  static bool Authorize(const MongooseServer& that,
-                        const HttpHandler::Arguments& headers,
-                        HttpOutput& output)
+  static bool IsAccessGranted(const MongooseServer& that,
+                              const HttpHandler::Arguments& headers)
   {
     bool granted = false;
 
@@ -426,15 +425,7 @@ namespace Orthanc
       }
     }
 
-    if (!granted)
-    {
-      output.SendUnauthorized(ORTHANC_REALM);
-      return false;
-    }
-    else
-    {
-      return true;
-    }
+    return granted;
   }
 
 
@@ -591,8 +582,7 @@ namespace Orthanc
 
 
     // Authenticate this connection
-    if (that->IsAuthenticationEnabled() &&
-        !Authorize(*that, headers, output))
+    if (that->IsAuthenticationEnabled() && !IsAccessGranted(*that, headers))
     {
       output.SendUnauthorized(ORTHANC_REALM);
       return;
