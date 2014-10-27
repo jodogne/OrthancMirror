@@ -5,6 +5,7 @@ Pending changes in the mainline
 * Sample plugin framework to serve static resources
 * Fix issue 21 (Microsoft Visual Studio precompiled headers)
 * Fix issue 22 (Error decoding multi-frame instances)
+* Fix crash when bad HTTP credentials are provided
 
 
 Version 0.8.4 (2014/09/19)
