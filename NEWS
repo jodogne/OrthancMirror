@@ -3,6 +3,7 @@ Pending changes in the mainline
 
 * Download ZIP + DICOMDIR from Orthanc Explorer
 * Sample plugin framework to serve static resources
+* Fix issue 19 (YBR_FULL are decoded incorrectly)
 * Fix issue 21 (Microsoft Visual Studio precompiled headers)
 * Fix issue 22 (Error decoding multi-frame instances)
 * Fix issue 24 (Build fails on OSX when directory has .DS_Store files)

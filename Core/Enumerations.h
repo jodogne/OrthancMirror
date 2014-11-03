@@ -254,6 +254,26 @@ namespace Orthanc
   };
 
 
+  // https://www.dabsoft.ch/dicom/3/C.7.6.3.1.2/
+  enum PhotometricInterpretation
+  {
+    PhotometricInterpretation_ARGB,  // Retired
+    PhotometricInterpretation_CMYK,  // Retired
+    PhotometricInterpretation_HSV,   // Retired
+    PhotometricInterpretation_Monochrome1,
+    PhotometricInterpretation_Monochrome2,
+    PhotometricInterpretation_Palette,
+    PhotometricInterpretation_RGB,
+    PhotometricInterpretation_YBRFull,
+    PhotometricInterpretation_YBRFull422,
+    PhotometricInterpretation_YBRPartial420,
+    PhotometricInterpretation_YBRPartial422,
+    PhotometricInterpretation_YBR_ICT,
+    PhotometricInterpretation_YBR_RCT,
+    PhotometricInterpretation_Unknown
+  };
+
+
   /**
    * WARNING: Do not change the explicit values in the enumerations
    * below this point. This would result in incompatible databases
@@ -297,6 +317,8 @@ namespace Orthanc
   const char* EnumerationToString(ImageFormat format);
 
   const char* EnumerationToString(Encoding encoding);
+
+  const char* EnumerationToString(PhotometricInterpretation photometric);
 
   Encoding StringToEncoding(const char* encoding);
 
