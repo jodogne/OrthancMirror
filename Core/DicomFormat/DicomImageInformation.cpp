@@ -39,6 +39,7 @@
 #include "DicomImageInformation.h"
 
 #include "../OrthancException.h"
+#include "../Toolbox.h"
 #include <boost/lexical_cast.hpp>
 #include <limits>
 #include <cassert>
@@ -53,6 +54,66 @@ namespace Orthanc
 
     try
     {
+      std::string p = values.GetValue(DICOM_TAG_PHOTOMETRIC_INTERPRETATION).AsString();
+      Toolbox::ToUpperCase(p);
+
+      if (p == "RGB")
+      {
+        photometric_ = PhotometricInterpretation_RGB;
+      }
+      else if (p == "MONOCHROME1")
+      {
+        photometric_ = PhotometricInterpretation_Monochrome1;
+      }
+      else if (p == "MONOCHROME2")
+      {
+        photometric_ = PhotometricInterpretation_Monochrome2;
+      }
+      else if (p == "PALETTE COLOR")
+      {
+        photometric_ = PhotometricInterpretation_Palette;
+      }
+      else if (p == "HSV")
+      {
+        photometric_ = PhotometricInterpretation_HSV;
+      }
+      else if (p == "ARGB")
+      {
+        photometric_ = PhotometricInterpretation_ARGB;
+      }
+      else if (p == "CMYK")
+      {
+        photometric_ = PhotometricInterpretation_CMYK;
+      }
+      else if (p == "YBR_FULL")
+      {
+        photometric_ = PhotometricInterpretation_YBRFull;
+      }
+      else if (p == "YBR_FULL_422")
+      {
+        photometric_ = PhotometricInterpretation_YBRFull422;
+      }
+      else if (p == "YBR_PARTIAL_420")
+      {
+        photometric_ = PhotometricInterpretation_YBRPartial420;
+      }
+      else if (p == "YBR_PARTIAL_422")
+      {
+        photometric_ = PhotometricInterpretation_YBRPartial422;
+      }
+      else if (p == "YBR_ICT")
+      {
+        photometric_ = PhotometricInterpretation_YBR_ICT;
+      }
+      else if (p == "YBR_RCT")
+      {
+        photometric_ = PhotometricInterpretation_YBR_RCT;
+      }
+      else
+      {
+        photometric_ = PhotometricInterpretation_Unknown;
+      }
+
       width_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_COLUMNS).AsString());
       height_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_ROWS).AsString());
       bitsAllocated_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_BITS_ALLOCATED).AsString());
@@ -159,27 +220,34 @@ namespace Orthanc
 
   bool DicomImageInformation::ExtractPixelFormat(PixelFormat& format) const
   {
-    if (GetBitsStored() == 8 && GetChannelCount() == 1 && !IsSigned())
+    if (photometric_ == PhotometricInterpretation_Monochrome1 ||
+        photometric_ == PhotometricInterpretation_Monochrome2)
     {
-      format = PixelFormat_Grayscale8;
-      return true;
+      if (GetBitsStored() == 8 && GetChannelCount() == 1 && !IsSigned())
+      {
+        format = PixelFormat_Grayscale8;
+        return true;
+      }
+      
+      if (GetBitsAllocated() == 16 && GetChannelCount() == 1 && !IsSigned())
+      {
+        format = PixelFormat_Grayscale16;
+        return true;
+      }
+
+      if (GetBitsAllocated() == 16 && GetChannelCount() == 1 && IsSigned())
+      {
+        format = PixelFormat_SignedGrayscale16;
+        return true;
+      }
     }
 
-    if (GetBitsStored() == 8 && GetChannelCount() == 3 && !IsSigned())
+    if (GetBitsStored() == 8 && 
+        GetChannelCount() == 3 && 
+        !IsSigned() &&
+        photometric_ == PhotometricInterpretation_RGB)
     {
       format = PixelFormat_RGB24;
-      return true;
-    }
-
-    if (GetBitsAllocated() == 16 && GetChannelCount() == 1 && !IsSigned())
-    {
-      format = PixelFormat_Grayscale16;
-      return true;
-    }
-
-    if (GetBitsAllocated() == 16 && GetChannelCount() == 1 && IsSigned())
-    {
-      format = PixelFormat_SignedGrayscale16;
       return true;
     }
 

@@ -160,5 +160,7 @@ namespace Orthanc
     static void GetMainDicomTags(std::set<DicomTag>& result, ResourceType level);
 
     static void GetMainDicomTags(std::set<DicomTag>& result);
+
+    void Print(FILE* fp) const;
   };
 }

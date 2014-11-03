@@ -313,6 +313,58 @@ namespace Orthanc
   }
 
 
+  const char* EnumerationToString(PhotometricInterpretation photometric)
+  {
+    switch (photometric)
+    {
+      case PhotometricInterpretation_RGB:
+        return "RGB";
+
+      case PhotometricInterpretation_Monochrome1:
+        return "Monochrome1";
+
+      case PhotometricInterpretation_Monochrome2:
+        return "Monochrome2";
+
+      case PhotometricInterpretation_ARGB:
+        return "ARGB";
+
+      case PhotometricInterpretation_CMYK:
+        return "CMYK";
+
+      case PhotometricInterpretation_HSV:
+        return "HSV";
+
+      case PhotometricInterpretation_Palette:
+        return "Palette color";
+
+      case PhotometricInterpretation_YBRFull:
+        return "YBR full";
+
+      case PhotometricInterpretation_YBRFull422:
+        return "YBR full 422";
+
+      case PhotometricInterpretation_YBRPartial420:
+        return "YBR partial 420"; 
+
+      case PhotometricInterpretation_YBRPartial422:
+        return "YBR partial 422"; 
+
+      case PhotometricInterpretation_YBR_ICT:
+        return "YBR ICT"; 
+
+      case PhotometricInterpretation_YBR_RCT:
+        return "YBR RCT"; 
+
+      case PhotometricInterpretation_Unknown:
+        return "Unknown";
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
   Encoding StringToEncoding(const char* encoding)
   {
     std::string s(encoding);
