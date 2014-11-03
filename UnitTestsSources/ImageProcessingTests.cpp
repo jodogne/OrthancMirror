@@ -51,6 +51,7 @@ TEST(DicomImageInformation, ExtractPixelFormat1)
   m.SetValue(DICOM_TAG_BITS_STORED, "12");
   m.SetValue(DICOM_TAG_HIGH_BIT, "11");
   m.SetValue(DICOM_TAG_PIXEL_REPRESENTATION, "0");
+  m.SetValue(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "MONOCHROME2");
 
   DicomImageInformation info(m);
   PixelFormat format;
@@ -70,6 +71,7 @@ TEST(DicomImageInformation, ExtractPixelFormat2)
   m.SetValue(DICOM_TAG_BITS_STORED, "16");
   m.SetValue(DICOM_TAG_HIGH_BIT, "15");
   m.SetValue(DICOM_TAG_PIXEL_REPRESENTATION, "1");
+  m.SetValue(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "MONOCHROME2");
 
   DicomImageInformation info(m);
   PixelFormat format;
