@@ -9,15 +9,17 @@ The most simple way of building Orthanc under Linux consists in
 statically linking against all the third-party dependencies. In this
 case, the system-wide libraries will not be used. The build tool
 (CMake) will download the sources of all the required packages and
-automatically compile them. This process should work on all the Linux
-distributions.
+automatically compile them.
 
-We make the assumption that Orthanc source code is placed in the
+This process should work on any Linux distribution, provided that a
+C/C++ compiler ("build-essential" in Debian-based systems), the Python
+interpreter, CMake, the "unzip" system tool, and the development
+package for libuuid ("uuid-dev" in Debian) are installed.
+
+
+We now make the assumption that Orthanc source code is placed in the
 folder "~/Orthanc" and that the binaries will be compiled to
-"~/OrthancBuild".
-
-
-To build binaries with debug information:
+"~/OrthancBuild". To build binaries with debug information:
 
 # cd ~/OrthancBuild
 # cmake -DSTATIC_BUILD=ON -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
@@ -33,9 +35,14 @@ To build a release version:
 # make doc
 
 
-Note: When the "STATIC_BUILD" option is set to "ON", the build tool
+Note 1- When the "STATIC_BUILD" option is set to "ON", the build tool
 will not ask you the permission to download packages from the
 Internet.
+
+Note 2- If the development package of libuuid was not installed when
+first invoking cmake, you will have to manually remove the build
+directory ("rm -rf ~/OrthancBuild") after installing this package,
+then run cmake again.
 
 
 Use system-wide libraries under Linux
