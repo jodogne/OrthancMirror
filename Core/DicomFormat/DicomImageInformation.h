@@ -54,6 +54,8 @@ namespace Orthanc
     unsigned int bitsStored_;
     unsigned int highBit_;
 
+    PhotometricInterpretation  photometric_;
+
   public:
     DicomImageInformation(const DicomMap& values);
 
@@ -110,6 +112,11 @@ namespace Orthanc
     unsigned int GetShift() const
     {
       return highBit_ + 1 - bitsStored_;
+    }
+
+    PhotometricInterpretation GetPhotometricInterpretation() const
+    {
+      return photometric_;
     }
 
     bool ExtractPixelFormat(PixelFormat& format) const;

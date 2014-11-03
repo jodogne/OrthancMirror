@@ -318,7 +318,9 @@ namespace Orthanc
       LOG(WARNING) << "Unsupported DICOM image: " << info.GetBitsStored() 
                    << "bpp, " << info.GetChannelCount() << " channels, " 
                    << (info.IsSigned() ? "signed" : "unsigned")
-                   << (info.IsPlanar() ? ", planar" : ", non-planar");
+                   << (info.IsPlanar() ? ", planar, " : ", non-planar, ")
+                   << EnumerationToString(info.GetPhotometricInterpretation())
+                   << " photometric interpretation";
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
