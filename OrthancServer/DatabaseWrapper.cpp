@@ -867,6 +867,16 @@ namespace Orthanc
     }
   }
 
+  static void UpgradeDatabase(SQLite::Connection& db,
+                              EmbeddedResources::FileResourceId script)
+  {
+    std::string upgrade;
+    EmbeddedResources::GetFileResource(upgrade, script);
+    db.BeginTransaction();
+    db.Execute(upgrade);
+    db.CommitTransaction();    
+  }
+
 
   DatabaseWrapper::DatabaseWrapper(const std::string& path,
                                    IServerIndexListener& listener) :
@@ -911,9 +921,11 @@ namespace Orthanc
 
       /**
        * History of the database versions:
+       *  - Orthanc before Orthanc 0.3.0 (inclusive) had no version
+       *  - Version 2: only Orthanc 0.3.1
        *  - Version 3: from Orthanc 0.3.2 to Orthanc 0.7.2 (inclusive)
-       *  - Version 4: from Orthanc 0.7.3 to Orthanc 0.8.3 (inclusive)
-       *  - Version 5: from Orthanc 0.8.4 (inclusive)
+       *  - Version 4: from Orthanc 0.7.3 to Orthanc 0.8.4 (inclusive)
+       *  - Version 5: from Orthanc 0.8.5 (inclusive)
        **/
 
       // This version of Orthanc is only compatible with versions 3, 4 and 5 of the DB schema
@@ -922,27 +934,20 @@ namespace Orthanc
       if (v == 3)
       {
         LOG(WARNING) << "Upgrading database version from 3 to 4";
-        std::string upgrade;
-        EmbeddedResources::GetFileResource(upgrade, EmbeddedResources::UPGRADE_DATABASE_3_TO_4);
-        db_.BeginTransaction();
-        db_.Execute(upgrade);
-        db_.CommitTransaction();
+        UpgradeDatabase(db_, EmbeddedResources::UPGRADE_DATABASE_3_TO_4);
         v = 4;
       }
 
       if (v == 4)
       {
         LOG(WARNING) << "Upgrading database version from 4 to 5";
-        std::string upgrade;
-        EmbeddedResources::GetFileResource(upgrade, EmbeddedResources::UPGRADE_DATABASE_4_TO_5);
-        db_.BeginTransaction();
-        db_.Execute(upgrade);
-        db_.CommitTransaction();
+        UpgradeDatabase(db_, EmbeddedResources::UPGRADE_DATABASE_4_TO_5);
         v = 5;
       }
     }
     catch (boost::bad_lexical_cast&)
     {
+      ok = false;
     }
 
     if (!ok)
