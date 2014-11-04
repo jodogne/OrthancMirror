@@ -59,7 +59,7 @@ namespace Orthanc
     if (state_ != State_Done)
     {
       //asm volatile ("int3;");
-      LOG(ERROR) << "This HTTP answer does not contain any body";
+      //LOG(ERROR) << "This HTTP answer does not contain any body";
     }
 
     if (hasContentLength_ && contentPosition_ != contentLength_)

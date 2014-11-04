@@ -42,6 +42,7 @@
 #include "DicomProtocol/ReusableDicomUserConnection.h"
 #include "Scheduler/ServerScheduler.h"
 #include "DicomInstanceToStore.h"
+#include "ServerIndexChange.h"
 
 #include <boost/filesystem.hpp>
 
@@ -202,5 +203,7 @@ namespace Orthanc
     bool DeleteResource(Json::Value& target,
                         const std::string& uuid,
                         ResourceType expectedType);
+
+    void SignalChange(const ServerIndexChange& change);
   };
 }

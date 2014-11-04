@@ -215,6 +215,7 @@ ORTHANC_PLUGINS_API int32_t OnStoredCallback(OrthancPluginDicomInstance* instanc
   char buffer[256];
   FILE* fp;
   char* json;
+  static int first = 1;
 
   sprintf(buffer, "Just received a DICOM instance of size %d and ID %s from AET %s", 
           (int) OrthancPluginGetInstanceSize(context, instance), instanceId, 
@@ -228,7 +229,12 @@ ORTHANC_PLUGINS_API int32_t OnStoredCallback(OrthancPluginDicomInstance* instanc
   fclose(fp);
 
   json = OrthancPluginGetInstanceSimplifiedJson(context, instance);
-  printf("[%s]\n", json);
+  if (first)
+  {
+    /* Only print the first DICOM instance */
+    printf("[%s]\n", json);
+    first = 0;
+  }
   OrthancPluginFreeString(context, json);
 
   if (OrthancPluginHasInstanceMetadata(context, instance, "ReceptionDate"))
@@ -243,6 +249,31 @@ ORTHANC_PLUGINS_API int32_t OnStoredCallback(OrthancPluginDicomInstance* instanc
   return 0;
 }
 
+
+ORTHANC_PLUGINS_API int32_t OnChangeCallback(OrthancPluginChangeType changeType,
+                                             OrthancPluginResourceType resourceType,
+                                             const char* resourceId)
+{
+  char info[1024];
+  OrthancPluginMemoryBuffer tmp;
+
+  sprintf(info, "Change %d on resource %s of type %d", changeType, resourceId, resourceType);
+  OrthancPluginLogWarning(context, info);
+
+  if (changeType == OrthancPluginChangeType_NewInstance)
+  {
+    sprintf(info, "/instances/%s/metadata/AnonymizedFrom", resourceId);
+    if (OrthancPluginRestApiGet(context, &tmp, info) == 0)
+    {
+      sprintf(info, "  Instance %s comes from the anonymization of instance", resourceId);
+      strncat(info, (const char*) tmp.data, tmp.size);
+      OrthancPluginLogWarning(context, info);
+      OrthancPluginFreeMemoryBuffer(context, &tmp);
+    }
+  }
+
+  return 0;
+}
 
 
 ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
@@ -292,6 +323,8 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   OrthancPluginRegisterRestCallback(context, "/plugin/create", CallbackCreateDicom);
 
   OrthancPluginRegisterOnStoredInstanceCallback(context, OnStoredCallback);
+
+  OrthancPluginRegisterOnChangeCallback(context, OnChangeCallback);
 
   /* Make REST requests to the built-in Orthanc API */
   OrthancPluginRestApiGet(context, &tmp, "/changes");

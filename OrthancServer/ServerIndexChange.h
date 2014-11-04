@@ -32,24 +32,42 @@
 
 #pragma once
 
-#include <string>
 #include "ServerEnumerations.h"
-#include "ServerIndexChange.h"
+
+#include <string>
 
 namespace Orthanc
 {
-  class IServerIndexListener
+  struct ServerIndexChange
   {
+  private:
+    ChangeType   changeType_;
+    ResourceType resourceType_;
+    std::string  publicId_;
+
   public:
-    virtual ~IServerIndexListener()
+    ServerIndexChange(ChangeType changeType,
+                      ResourceType resourceType,
+                      const std::string&  publicId) :
+      changeType_(changeType),
+      resourceType_(resourceType),
+      publicId_(publicId)
     {
     }
 
-    virtual void SignalRemainingAncestor(ResourceType parentType,
-                                         const std::string& publicId) = 0;
+    ChangeType  GetChangeType() const
+    {
+      return changeType_;
+    }
 
-    virtual void SignalFileDeleted(const FileInfo& info) = 0;
+    ResourceType  GetResourceType() const
+    {
+      return resourceType_;
+    }
 
-    virtual void SignalChange(const ServerIndexChange& change) = 0;
+    const std::string&  GetPublicId() const
+    {
+      return publicId_;
+    }
   };
 }

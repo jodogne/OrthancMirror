@@ -1,7 +1,9 @@
 Pending changes in the mainline
 ===============================
 
+* Major speed-up thanks to a new database schema
 * Download ZIP + DICOMDIR from Orthanc Explorer
+* Plugins can monitor changes through callbacks
 * Sample plugin framework to serve static resources
 * Fix issue 19 (YBR_FULL are decoded incorrectly)
 * Fix issue 21 (Microsoft Visual Studio precompiled headers)

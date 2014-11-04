@@ -154,10 +154,17 @@ namespace Orthanc
     void GetChildrenInternalId(std::list<int64_t>& result,
                                int64_t id);
 
-    void LogChange(ChangeType changeType,
-                   int64_t internalId,
+    void LogChange(int64_t internalId,
+                   ChangeType changeType,
                    ResourceType resourceType,
-                   const boost::posix_time::ptime& date = boost::posix_time::second_clock::local_time());
+                   const std::string& publicId)
+    {
+      ServerIndexChange change(changeType, resourceType, publicId);
+      LogChange(internalId, change);
+    }
+
+    void LogChange(int64_t internalId,
+                   const ServerIndexChange& change);
 
     void GetChanges(Json::Value& target,
                     int64_t since,
@@ -229,12 +236,12 @@ namespace Orthanc
 
     bool IsExistingResource(int64_t internalId);
 
-    void LookupTagValue(std::list<int64_t>& result,
-                        DicomTag tag,
-                        const std::string& value);
+    void LookupIdentifier(std::list<int64_t>& result,
+                          const DicomTag& tag,
+                          const std::string& value);
 
-    void LookupTagValue(std::list<int64_t>& result,
-                        const std::string& value);
+    void LookupIdentifier(std::list<int64_t>& result,
+                          const std::string& value);
 
     void GetAllMetadata(std::map<MetadataType, std::string>& result,
                         int64_t id);

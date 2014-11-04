@@ -585,8 +585,16 @@ static bool StartOrthanc()
     // We're done
     LOG(WARNING) << "Orthanc is stopping";
 
+#if ENABLE_PLUGINS == 1
+    orthancPlugins.Stop();
+    LOG(WARNING) << "    Plugins have stopped";
+#endif
+
     dicomServer.Stop();
+    LOG(WARNING) << "    DICOM server has stopped";
+
     httpServer.Stop();
+    LOG(WARNING) << "    HTTP server has stopped";
   }
 
   serverFactory.Done();

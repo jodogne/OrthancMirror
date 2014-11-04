@@ -92,6 +92,35 @@ namespace Orthanc
       }
     };
 
+    class SignalResourceDeleted : public SQLite::IScalarFunction
+    {
+    private:
+      IServerIndexListener& listener_;
+
+    public:
+      SignalResourceDeleted(IServerIndexListener& listener) :
+        listener_(listener)
+      {
+      }
+
+      virtual const char* GetName() const
+      {
+        return "SignalResourceDeleted";
+      }
+
+      virtual unsigned int GetCardinality() const
+      {
+        return 2;
+      }
+
+      virtual void Compute(SQLite::FunctionContext& context)
+      {
+        ResourceType type = static_cast<ResourceType>(context.GetIntValue(1));
+        ServerIndexChange change(ChangeType_Deleted, type, context.GetStringValue(0));
+        listener_.SignalChange(change);
+      }
+    };
+
     class SignalRemainingAncestor : public SQLite::IScalarFunction
     {
     private:
@@ -230,7 +259,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
 
-    LogChange(changeType, id, type);
+    LogChange(id, changeType, type, publicId);
     return id;
   }
 
@@ -511,18 +540,35 @@ namespace Orthanc
     }
   }
 
+
+  static void SetMainDicomTagsInternal(SQLite::Statement& s,
+                                       int64_t id,
+                                       const DicomElement& element)
+  {
+    s.BindInt64(0, id);
+    s.BindInt(1, element.GetTag().GetGroup());
+    s.BindInt(2, element.GetTag().GetElement());
+    s.BindString(3, element.GetValue().AsString());
+    s.Run();
+  }
+
+
   void DatabaseWrapper::SetMainDicomTags(int64_t id,
                                          const DicomMap& tags)
   {
     DicomArray flattened(tags);
     for (size_t i = 0; i < flattened.GetSize(); i++)
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO MainDicomTags VALUES(?, ?, ?, ?)");
-      s.BindInt64(0, id);
-      s.BindInt(1, flattened.GetElement(i).GetTag().GetGroup());
-      s.BindInt(2, flattened.GetElement(i).GetTag().GetElement());
-      s.BindString(3, flattened.GetElement(i).GetValue().AsString());
-      s.Run();
+      if (flattened.GetElement(i).GetTag().IsIdentifier())
+      {
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO DicomIdentifiers VALUES(?, ?, ?, ?)");
+        SetMainDicomTagsInternal(s, id, flattened.GetElement(i));
+      }
+      else
+      {
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO MainDicomTags VALUES(?, ?, ?, ?)");
+        SetMainDicomTagsInternal(s, id, flattened.GetElement(i));
+      }
     }
   }
 
@@ -538,6 +584,15 @@ namespace Orthanc
       map.SetValue(s.ColumnInt(1),
                    s.ColumnInt(2),
                    s.ColumnString(3));
+    }
+
+    SQLite::Statement s2(db_, SQLITE_FROM_HERE, "SELECT * FROM DicomIdentifiers WHERE id=?");
+    s2.BindInt64(0, id);
+    while (s2.Step())
+    {
+      map.SetValue(s2.ColumnInt(1),
+                   s2.ColumnInt(2),
+                   s2.ColumnString(3));
     }
   }
 
@@ -593,17 +648,22 @@ namespace Orthanc
   }
 
 
-  void DatabaseWrapper::LogChange(ChangeType changeType,
-                                  int64_t internalId,
-                                  ResourceType resourceType,
-                                  const boost::posix_time::ptime& date)
+  void DatabaseWrapper::LogChange(int64_t internalId,
+                                  const ServerIndexChange& change)
   {
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Changes VALUES(NULL, ?, ?, ?, ?)");
-    s.BindInt(0, changeType);
-    s.BindInt64(1, internalId);
-    s.BindInt(2, resourceType);
-    s.BindString(3, boost::posix_time::to_iso_string(date));
-    s.Run();      
+    if (change.GetChangeType() <= ChangeType_INTERNAL_LastLogged)
+    {
+      const boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
+
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Changes VALUES(NULL, ?, ?, ?, ?)");
+      s.BindInt(0, change.GetChangeType());
+      s.BindInt64(1, internalId);
+      s.BindInt(2, change.GetResourceType());
+      s.BindString(3, boost::posix_time::to_iso_string(now));
+      s.Run();
+    }
+
+    listener_.SignalChange(change);
   }
 
 
@@ -807,6 +867,16 @@ namespace Orthanc
     }
   }
 
+  static void UpgradeDatabase(SQLite::Connection& db,
+                              EmbeddedResources::FileResourceId script)
+  {
+    std::string upgrade;
+    EmbeddedResources::GetFileResource(upgrade, script);
+    db.BeginTransaction();
+    db.Execute(upgrade);
+    db.CommitTransaction();    
+  }
+
 
   DatabaseWrapper::DatabaseWrapper(const std::string& path,
                                    IServerIndexListener& listener) :
@@ -851,25 +921,33 @@ namespace Orthanc
 
       /**
        * History of the database versions:
+       *  - Orthanc before Orthanc 0.3.0 (inclusive) had no version
+       *  - Version 2: only Orthanc 0.3.1
        *  - Version 3: from Orthanc 0.3.2 to Orthanc 0.7.2 (inclusive)
-       *  - Version 4: from Orthanc 0.7.3 (inclusive)
+       *  - Version 4: from Orthanc 0.7.3 to Orthanc 0.8.4 (inclusive)
+       *  - Version 5: from Orthanc 0.8.5 (inclusive)
        **/
 
-      // This version of Orthanc is only compatible with versions 3 of 4 of the DB schema
-      ok = (v == 3 || v == 4);
+      // This version of Orthanc is only compatible with versions 3, 4 and 5 of the DB schema
+      ok = (v == 3 || v == 4 || v == 5);
 
       if (v == 3)
       {
         LOG(WARNING) << "Upgrading database version from 3 to 4";
-        std::string upgrade;
-        EmbeddedResources::GetFileResource(upgrade, EmbeddedResources::UPGRADE_DATABASE_3_TO_4);
-        db_.BeginTransaction();
-        db_.Execute(upgrade);
-        db_.CommitTransaction();
+        UpgradeDatabase(db_, EmbeddedResources::UPGRADE_DATABASE_3_TO_4);
+        v = 4;
+      }
+
+      if (v == 4)
+      {
+        LOG(WARNING) << "Upgrading database version from 4 to 5";
+        UpgradeDatabase(db_, EmbeddedResources::UPGRADE_DATABASE_4_TO_5);
+        v = 5;
       }
     }
     catch (boost::bad_lexical_cast&)
     {
+      ok = false;
     }
 
     if (!ok)
@@ -881,6 +959,7 @@ namespace Orthanc
     signalRemainingAncestor_ = new Internals::SignalRemainingAncestor;
     db_.Register(signalRemainingAncestor_);
     db_.Register(new Internals::SignalFileDeleted(listener_));
+    db_.Register(new Internals::SignalResourceDeleted(listener_));
   }
 
   uint64_t DatabaseWrapper::GetResourceCount(ResourceType resourceType)
@@ -1010,12 +1089,17 @@ namespace Orthanc
   }
 
 
-  void  DatabaseWrapper::LookupTagValue(std::list<int64_t>& result,
-                                        DicomTag tag,
-                                        const std::string& value)
+  void  DatabaseWrapper::LookupIdentifier(std::list<int64_t>& result,
+                                          const DicomTag& tag,
+                                          const std::string& value)
   {
+    if (!tag.IsIdentifier())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-                        "SELECT id FROM MainDicomTags WHERE tagGroup=? AND tagElement=? and value=?");
+                        "SELECT id FROM DicomIdentifiers WHERE tagGroup=? AND tagElement=? and value=?");
 
     s.BindInt(0, tag.GetGroup());
     s.BindInt(1, tag.GetElement());
@@ -1030,11 +1114,11 @@ namespace Orthanc
   }
 
 
-  void  DatabaseWrapper::LookupTagValue(std::list<int64_t>& result,
-                                        const std::string& value)
+  void  DatabaseWrapper::LookupIdentifier(std::list<int64_t>& result,
+                                          const std::string& value)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-                        "SELECT id FROM MainDicomTags WHERE value=?");
+                        "SELECT id FROM DicomIdentifiers WHERE value=?");
 
     s.BindString(0, value);
 

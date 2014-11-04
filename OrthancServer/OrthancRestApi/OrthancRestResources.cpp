@@ -794,7 +794,7 @@ namespace Orthanc
     std::string tag = call.GetPostBody();
     Resources resources;
 
-    OrthancRestApi::GetIndex(call).LookupTagValue(resources, tag);
+    OrthancRestApi::GetIndex(call).LookupIdentifier(resources, tag);
 
     Json::Value result = Json::arrayValue;
     
@@ -888,7 +888,7 @@ namespace Orthanc
 
     context.GetIndex().GetChildInstances(instances, publicId);  // (*)
 
-    Json::Value result = Json::arrayValue;
+    Json::Value result = Json::objectValue;
 
     for (Instances::const_iterator it = instances.begin();
          it != instances.end(); it++)
@@ -900,11 +900,11 @@ namespace Orthanc
       {
         Json::Value simplified;
         SimplifyTags(simplified, full);
-        result.append(simplified);
+        result[*it] = simplified;
       }
       else
       {
-        result.append(full);
+        result[*it] = full;
       }
     }
     

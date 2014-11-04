@@ -39,12 +39,76 @@
 #include "../../Core/ImageFormats/PngWriter.h"
 #include "../../OrthancServer/ServerToolbox.h"
 #include "../../OrthancServer/OrthancInitialization.h"
+#include "../../Core/MultiThreading/SharedMessageQueue.h"
 
+#include <boost/thread.hpp>
 #include <boost/regex.hpp> 
 #include <glog/logging.h>
 
 namespace Orthanc
 {
+  static OrthancPluginResourceType Convert(ResourceType type)
+  {
+    switch (type)
+    {
+      case ResourceType_Patient:
+        return OrthancPluginResourceType_Patient;
+
+      case ResourceType_Study:
+        return OrthancPluginResourceType_Study;
+
+      case ResourceType_Series:
+        return OrthancPluginResourceType_Series;
+
+      case ResourceType_Instance:
+        return OrthancPluginResourceType_Instance;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  static OrthancPluginChangeType Convert(ChangeType type)
+  {
+    switch (type)
+    {
+      case ChangeType_CompletedSeries:
+        return OrthancPluginChangeType_CompletedSeries;
+
+      case ChangeType_Deleted:
+        return OrthancPluginChangeType_Deleted;
+
+      case ChangeType_NewChildInstance:
+        return OrthancPluginChangeType_NewChildInstance;
+
+      case ChangeType_NewInstance:
+        return OrthancPluginChangeType_NewInstance;
+
+      case ChangeType_NewPatient:
+        return OrthancPluginChangeType_NewPatient;
+
+      case ChangeType_NewSeries:
+        return OrthancPluginChangeType_NewSeries;
+
+      case ChangeType_NewStudy:
+        return OrthancPluginChangeType_NewStudy;
+
+      case ChangeType_StablePatient:
+        return OrthancPluginChangeType_StablePatient;
+
+      case ChangeType_StableSeries:
+        return OrthancPluginChangeType_StableSeries;
+
+      case ChangeType_StableStudy:
+        return OrthancPluginChangeType_StableStudy;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
   namespace
   {
     // Anonymous namespace to avoid clashes between compilation modules
@@ -75,6 +139,33 @@ namespace Orthanc
         }
       }
     };
+
+
+    class PendingChange : public IDynamicObject
+    {
+    private:
+      OrthancPluginChangeType changeType_;
+      OrthancPluginResourceType resourceType_;
+      std::string publicId_;
+
+    public:
+      PendingChange(const ServerIndexChange& change)
+      {
+        changeType_ = Convert(change.GetChangeType());
+        resourceType_ = Convert(change.GetResourceType());
+        publicId_ = change.GetPublicId();
+      }
+
+      void Submit(std::list<OrthancPluginOnChangeCallback>& callbacks)
+      {
+        for (std::list<OrthancPluginOnChangeCallback>::const_iterator 
+               callback = callbacks.begin(); 
+             callback != callbacks.end(); ++callback)
+        {
+          (*callback) (changeType_, resourceType_, publicId_.c_str());
+        }
+      }
+    };
   }
 
 
@@ -84,24 +175,48 @@ namespace Orthanc
     typedef std::pair<boost::regex*, OrthancPluginRestCallback> RestCallback;
     typedef std::list<RestCallback>  RestCallbacks;
     typedef std::list<OrthancPluginOnStoredInstanceCallback>  OnStoredCallbacks;
+    typedef std::list<OrthancPluginOnChangeCallback>  OnChangeCallbacks;
 
     ServerContext& context_;
     RestCallbacks restCallbacks_;
     OrthancRestApi* restApi_;
     OnStoredCallbacks  onStoredCallbacks_;
+    OnChangeCallbacks  onChangeCallbacks_;
     bool hasStorageArea_;
     _OrthancPluginRegisterStorageArea storageArea_;
+    boost::mutex callbackMutex_;
+    SharedMessageQueue  pendingChanges_;
+    boost::thread  changeThread_;
+    bool done_;
 
     PImpl(ServerContext& context) : 
       context_(context), 
       restApi_(NULL),
-      hasStorageArea_(false)
+      hasStorageArea_(false),
+      done_(false)
     {
       memset(&storageArea_, 0, sizeof(storageArea_));
+    }
+
+
+    static void ChangeThread(PImpl* that)
+    {
+      while (!that->done_)
+      {
+        std::auto_ptr<IDynamicObject> obj(that->pendingChanges_.Dequeue(500));
+        
+        if (obj.get() != NULL)
+        {
+          boost::mutex::scoped_lock lock(that->callbackMutex_);
+          PendingChange& change = *dynamic_cast<PendingChange*>(obj.get());
+          change.Submit(that->onChangeCallbacks_);
+        }
+      }
     }
   };
 
 
+  
   static char* CopyString(const std::string& str)
   {
     char *result = reinterpret_cast<char*>(malloc(str.size() + 1));
@@ -126,11 +241,14 @@ namespace Orthanc
   OrthancPlugins::OrthancPlugins(ServerContext& context)
   {
     pimpl_.reset(new PImpl(context));
+    pimpl_->changeThread_ = boost::thread(PImpl::ChangeThread, pimpl_.get());
   }
 
   
   OrthancPlugins::~OrthancPlugins()
   {
+    Stop();
+
     for (PImpl::RestCallbacks::iterator it = pimpl_->restCallbacks_.begin(); 
          it != pimpl_->restCallbacks_.end(); ++it)
     {
@@ -138,6 +256,17 @@ namespace Orthanc
       delete it->first;
     }
   }
+
+
+  void OrthancPlugins::Stop()
+  {
+    if (!pimpl_->done_)
+    {
+      pimpl_->done_ = true;
+      pimpl_->changeThread_.join();
+    }
+  }
+
 
 
   static void ArgumentsToPlugin(std::vector<const char*>& keys,
@@ -257,9 +386,14 @@ namespace Orthanc
     }
 
     assert(callback != NULL);
-    int32_t error = callback(reinterpret_cast<OrthancPluginRestOutput*>(&output), 
-                             flatUri.c_str(), 
-                             &request);
+    int32_t error;
+
+    {
+      boost::mutex::scoped_lock lock(pimpl_->callbackMutex_);
+      error = callback(reinterpret_cast<OrthancPluginRestOutput*>(&output), 
+                       flatUri.c_str(), 
+                       &request);
+    }
 
     if (error < 0)
     {
@@ -279,14 +413,31 @@ namespace Orthanc
 
 
   void OrthancPlugins::SignalStoredInstance(DicomInstanceToStore& instance,
-                                                const std::string& instanceId)                                                  
+                                            const std::string& instanceId)                                                  
   {
+    boost::mutex::scoped_lock lock(pimpl_->callbackMutex_);
+
     for (PImpl::OnStoredCallbacks::const_iterator
            callback = pimpl_->onStoredCallbacks_.begin(); 
          callback != pimpl_->onStoredCallbacks_.end(); ++callback)
     {
       (*callback) (reinterpret_cast<OrthancPluginDicomInstance*>(&instance),
                    instanceId.c_str());
+    }
+  }
+
+
+
+  void OrthancPlugins::SignalChange(const ServerIndexChange& change)
+  {
+    try
+    {
+      pimpl_->pendingChanges_.Enqueue(new PendingChange(change));
+    }
+    catch (OrthancException&)
+    {
+      // This change type or resource type is not supported by the plugin SDK
+      return;
     }
   }
 
@@ -350,6 +501,16 @@ namespace Orthanc
 
     LOG(INFO) << "Plugin has registered an OnStoredInstance callback";
     pimpl_->onStoredCallbacks_.push_back(p.callback);
+  }
+
+
+  void OrthancPlugins::RegisterOnChangeCallback(const void* parameters)
+  {
+    const _OrthancPluginOnChangeCallback& p = 
+      *reinterpret_cast<const _OrthancPluginOnChangeCallback*>(parameters);
+
+    LOG(INFO) << "Plugin has registered an OnChange callback";
+    pimpl_->onChangeCallbacks_.push_back(p.callback);
   }
 
 
@@ -572,7 +733,7 @@ namespace Orthanc
 
 
   void OrthancPlugins::LookupResource(_OrthancPluginService service,
-                                          const void* parameters)
+                                      const void* parameters)
   {
     const _OrthancPluginRetrieveDynamicString& p = 
       *reinterpret_cast<const _OrthancPluginRetrieveDynamicString*>(parameters);
@@ -618,7 +779,7 @@ namespace Orthanc
     }
 
     std::list<std::string> result;
-    pimpl_->context_.GetIndex().LookupTagValue(result, tag, p.argument, level);
+    pimpl_->context_.GetIndex().LookupIdentifier(result, tag, p.argument, level);
 
     if (result.size() == 1)
     {
@@ -775,6 +936,10 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterOnStoredInstanceCallback:
         RegisterOnStoredInstanceCallback(parameters);
+        return true;
+
+      case _OrthancPluginService_RegisterOnChangeCallback:
+        RegisterOnChangeCallback(parameters);
         return true;
 
       case _OrthancPluginService_AnswerBuffer:
