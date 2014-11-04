@@ -418,7 +418,8 @@ namespace Orthanc
     if (auth != headers.end())
     {
       std::string s = auth->second;
-      if (s.substr(0, 6) == "Basic ")
+      if (s.size() > 6 &&
+          s.substr(0, 6) == "Basic ")
       {
         std::string b64 = s.substr(6);
         granted = that.IsValidBasicHttpAuthentication(b64);
@@ -439,7 +440,8 @@ namespace Orthanc
     }
 
     std::string s = auth->second;
-    if (s.substr(0, 6) != "Basic ")
+    if (s.size() <= 6 ||
+        s.substr(0, 6) != "Basic ")
     {
       return "";
     }
