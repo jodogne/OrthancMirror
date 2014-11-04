@@ -58,6 +58,7 @@ namespace
   {
   public:
     std::vector<std::string> deletedFiles_;
+    std::vector<std::string> deletedResources_;
     std::string ancestorId_;
     ResourceType ancestorType_;
 
@@ -79,7 +80,20 @@ namespace
       const std::string fileUuid = info.GetUuid();
       deletedFiles_.push_back(fileUuid);
       LOG(INFO) << "A file must be removed: " << fileUuid;
-    }                                
+    }       
+
+    virtual void SignalChange(const ServerIndexChange& change)
+    {
+      if (change.GetChangeType() == ChangeType_Deleted)
+      {
+        deletedResources_.push_back(change.GetPublicId());        
+      }
+
+      LOG(INFO) << "Change related to resource " << change.GetPublicId() << " of type " 
+                << EnumerationToString(change.GetResourceType()) << ": " 
+                << EnumerationToString(change.GetChangeType());
+    }
+
   };
 
 
@@ -281,12 +295,14 @@ TEST_P(DatabaseWrapperTest, Simple)
   ASSERT_EQ(CompressionType_None, att.GetCompressionType());
 
   ASSERT_EQ(0u, listener_->deletedFiles_.size());
+  ASSERT_EQ(0u, listener_->deletedResources_.size());
   ASSERT_EQ(7u, index_->GetTableRecordCount("Resources")); 
   ASSERT_EQ(3u, index_->GetTableRecordCount("AttachedFiles"));
   ASSERT_EQ(1u, index_->GetTableRecordCount("Metadata"));
   ASSERT_EQ(1u, index_->GetTableRecordCount("MainDicomTags"));
-  index_->DeleteResource(a[0]);
 
+  index_->DeleteResource(a[0]);
+  ASSERT_EQ(5u, listener_->deletedResources_.size());
   ASSERT_EQ(2u, listener_->deletedFiles_.size());
   ASSERT_FALSE(std::find(listener_->deletedFiles_.begin(), 
                          listener_->deletedFiles_.end(),
@@ -300,6 +316,7 @@ TEST_P(DatabaseWrapperTest, Simple)
   ASSERT_EQ(1u, index_->GetTableRecordCount("AttachedFiles"));
   ASSERT_EQ(0u, index_->GetTableRecordCount("MainDicomTags"));
   index_->DeleteResource(a[5]);
+  ASSERT_EQ(7u, listener_->deletedResources_.size());
   ASSERT_EQ(0u, index_->GetTableRecordCount("Resources"));
   ASSERT_EQ(0u, index_->GetTableRecordCount("AttachedFiles"));
   ASSERT_EQ(2u, index_->GetTableRecordCount("GlobalProperties"));
@@ -395,9 +412,11 @@ TEST_P(DatabaseWrapperTest, PatientRecycling)
   ASSERT_EQ(10u, index_->GetTableRecordCount("PatientRecyclingOrder")); 
 
   listener_->Reset();
+  ASSERT_EQ(0u, listener_->deletedResources_.size());
 
   index_->DeleteResource(patients[5]);
   index_->DeleteResource(patients[0]);
+  ASSERT_EQ(2u, listener_->deletedResources_.size());
   ASSERT_EQ(8u, index_->GetTableRecordCount("Resources")); 
   ASSERT_EQ(8u, index_->GetTableRecordCount("PatientRecyclingOrder"));
 
@@ -408,20 +427,27 @@ TEST_P(DatabaseWrapperTest, PatientRecycling)
   int64_t p;
   ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[1]);
   index_->DeleteResource(p);
+  ASSERT_EQ(3u, listener_->deletedResources_.size());
   ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[2]);
   index_->DeleteResource(p);
+  ASSERT_EQ(4u, listener_->deletedResources_.size());
   ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[3]);
   index_->DeleteResource(p);
+  ASSERT_EQ(5u, listener_->deletedResources_.size());
   ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[4]);
   index_->DeleteResource(p);
+  ASSERT_EQ(6u, listener_->deletedResources_.size());
   ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[6]);
   index_->DeleteResource(p);
   index_->DeleteResource(patients[8]);
+  ASSERT_EQ(8u, listener_->deletedResources_.size());
   ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[7]);
   index_->DeleteResource(p);
+  ASSERT_EQ(9u, listener_->deletedResources_.size());
   ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[9]);
   index_->DeleteResource(p);
   ASSERT_FALSE(index_->SelectPatientToRecycle(p));
+  ASSERT_EQ(10u, listener_->deletedResources_.size());
 
   ASSERT_EQ(10u, listener_->deletedFiles_.size());
   ASSERT_EQ(0u, index_->GetTableRecordCount("Resources")); 
@@ -477,16 +503,21 @@ TEST_P(DatabaseWrapperTest, PatientProtection)
 
   // Unprotecting a patient puts it at the last position in the recycling queue
   int64_t p;
+  ASSERT_EQ(0u, listener_->deletedResources_.size());
   ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[0]);
   index_->DeleteResource(p);
+  ASSERT_EQ(1u, listener_->deletedResources_.size());
   ASSERT_TRUE(index_->SelectPatientToRecycle(p, patients[1])); ASSERT_EQ(p, patients[4]);
   ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[1]);
   index_->DeleteResource(p);
+  ASSERT_EQ(2u, listener_->deletedResources_.size());
   ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[4]);
   index_->DeleteResource(p);
+  ASSERT_EQ(3u, listener_->deletedResources_.size());
   ASSERT_FALSE(index_->SelectPatientToRecycle(p, patients[2]));
   ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[2]);
   index_->DeleteResource(p);
+  ASSERT_EQ(4u, listener_->deletedResources_.size());
   // "patients[3]" is still protected
   ASSERT_FALSE(index_->SelectPatientToRecycle(p));
 
@@ -500,6 +531,7 @@ TEST_P(DatabaseWrapperTest, PatientProtection)
   ASSERT_TRUE(index_->SelectPatientToRecycle(p, patients[2]));
   ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[3]);
   index_->DeleteResource(p);
+  ASSERT_EQ(5u, listener_->deletedResources_.size());
 
   ASSERT_EQ(5u, listener_->deletedFiles_.size());
   ASSERT_EQ(0u, index_->GetTableRecordCount("Resources")); 
@@ -518,7 +550,7 @@ TEST_P(DatabaseWrapperTest, Sequence)
 
 
 
-TEST_P(DatabaseWrapperTest, LookupTagValue)
+TEST_P(DatabaseWrapperTest, LookupIdentifier)
 {
   int64_t a[] = {
     index_->CreateResource("a", ResourceType_Study),   // 0
@@ -535,29 +567,29 @@ TEST_P(DatabaseWrapperTest, LookupTagValue)
 
   std::list<int64_t> s;
 
-  index_->LookupTagValue(s, DICOM_TAG_STUDY_INSTANCE_UID, "0");
+  index_->LookupIdentifier(s, DICOM_TAG_STUDY_INSTANCE_UID, "0");
   ASSERT_EQ(2u, s.size());
   ASSERT_TRUE(std::find(s.begin(), s.end(), a[0]) != s.end());
   ASSERT_TRUE(std::find(s.begin(), s.end(), a[2]) != s.end());
 
-  index_->LookupTagValue(s, "0");
+  index_->LookupIdentifier(s, "0");
   ASSERT_EQ(3u, s.size());
   ASSERT_TRUE(std::find(s.begin(), s.end(), a[0]) != s.end());
   ASSERT_TRUE(std::find(s.begin(), s.end(), a[2]) != s.end());
   ASSERT_TRUE(std::find(s.begin(), s.end(), a[3]) != s.end());
 
-  index_->LookupTagValue(s, DICOM_TAG_STUDY_INSTANCE_UID, "1");
+  index_->LookupIdentifier(s, DICOM_TAG_STUDY_INSTANCE_UID, "1");
   ASSERT_EQ(1u, s.size());
   ASSERT_TRUE(std::find(s.begin(), s.end(), a[1]) != s.end());
 
-  index_->LookupTagValue(s, "1");
+  index_->LookupIdentifier(s, "1");
   ASSERT_EQ(1u, s.size());
   ASSERT_TRUE(std::find(s.begin(), s.end(), a[1]) != s.end());
 
 
   /*{
       std::list<std::string> s;
-      context.GetIndex().LookupTagValue(s, DICOM_TAG_STUDY_INSTANCE_UID, "1.2.250.1.74.20130819132500.29000036381059");
+      context.GetIndex().LookupIdentifier(s, DICOM_TAG_STUDY_INSTANCE_UID, "1.2.250.1.74.20130819132500.29000036381059");
       for (std::list<std::string>::iterator i = s.begin(); i != s.end(); i++)
       {
         std::cout << "*** " << *i << std::endl;;

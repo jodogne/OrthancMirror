@@ -134,7 +134,13 @@ namespace Orthanc
     ChangeType_ModifiedPatient = 11,
     ChangeType_StablePatient = 12,
     ChangeType_StableStudy = 13,
-    ChangeType_StableSeries = 14
+    ChangeType_StableSeries = 14,
+
+    ChangeType_INTERNAL_LastLogged = 4095,
+
+    // The changes below this point are not logged into the database
+    ChangeType_Deleted = 4096,
+    ChangeType_NewChildInstance = 4097
   };
 
 

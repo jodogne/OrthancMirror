@@ -244,4 +244,14 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
+
+
+  bool DicomTag::IsIdentifier() const
+  {
+    return (*this == DICOM_TAG_PATIENT_ID ||
+            *this == DICOM_TAG_STUDY_INSTANCE_UID ||
+            *this == DICOM_TAG_ACCESSION_NUMBER ||
+            *this == DICOM_TAG_SERIES_INSTANCE_UID ||
+            *this == DICOM_TAG_SOP_INSTANCE_UID);
+  }
 }

@@ -179,7 +179,7 @@ namespace Orthanc
 
     if (error)
     {
-      LOG(ERROR) << "Exception when dealing with service " << service;
+      // LOG(ERROR) << "Exception when dealing with service " << service;
     }
     else
     {

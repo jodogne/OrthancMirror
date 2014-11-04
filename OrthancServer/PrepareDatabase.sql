@@ -18,6 +18,15 @@ CREATE TABLE MainDicomTags(
        PRIMARY KEY(id, tagGroup, tagElement)
        );
 
+-- The following table was added in Orthanc 0.8.5 (database v5)
+CREATE TABLE DicomIdentifiers(
+       id INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE,
+       tagGroup INTEGER,
+       tagElement INTEGER,
+       value TEXT,
+       PRIMARY KEY(id, tagGroup, tagElement)
+       );
+
 CREATE TABLE Metadata(
        id INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE,
        type INTEGER,
@@ -68,8 +77,14 @@ CREATE INDEX ResourceTypeIndex ON Resources(resourceType);
 CREATE INDEX PatientRecyclingIndex ON PatientRecyclingOrder(patientId);
 
 CREATE INDEX MainDicomTagsIndex1 ON MainDicomTags(id);
-CREATE INDEX MainDicomTagsIndex2 ON MainDicomTags(tagGroup, tagElement);
-CREATE INDEX MainDicomTagsIndexValues ON MainDicomTags(value COLLATE BINARY);
+-- The 2 following indexes were removed in Orthanc 0.8.5 (database v5), to speed up
+-- CREATE INDEX MainDicomTagsIndex2 ON MainDicomTags(tagGroup, tagElement);
+-- CREATE INDEX MainDicomTagsIndexValues ON MainDicomTags(value COLLATE BINARY);
+
+-- The 3 following indexes were added in Orthanc 0.8.5 (database v5)
+CREATE INDEX DicomIdentifiersIndex1 ON DicomIdentifiers(id);
+CREATE INDEX DicomIdentifiersIndex2 ON DicomIdentifiers(tagGroup, tagElement);
+CREATE INDEX DicomIdentifiersIndexValues ON DicomIdentifiers(value COLLATE BINARY);
 
 CREATE INDEX ChangesIndex ON Changes(internalId);
 
@@ -85,6 +100,7 @@ END;
 CREATE TRIGGER ResourceDeleted
 AFTER DELETE ON Resources
 BEGIN
+  SELECT SignalResourceDeleted(old.publicId, old.resourceType);  -- New in Orthanc 0.8.5 (db v5)
   SELECT SignalRemainingAncestor(parent.publicId, parent.resourceType) 
     FROM Resources AS parent WHERE internalId = old.parentId;
 END;
@@ -107,4 +123,4 @@ END;
 
 -- Set the version of the database schema
 -- The "1" corresponds to the "GlobalProperty_DatabaseSchemaVersion" enumeration
-INSERT INTO GlobalProperties VALUES (1, "4");
+INSERT INTO GlobalProperties VALUES (1, "5");
