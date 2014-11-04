@@ -1,10 +1,17 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
 * Major speed-up thanks to a new database schema
-* Download ZIP + DICOMDIR from Orthanc Explorer
 * Plugins can monitor changes through callbacks
-* Sample plugin framework to serve static resources
+* Download ZIP + DICOMDIR from Orthanc Explorer
+* Sample plugin framework to serve static resources (./Plugins/Samples/WebSkeleton/)
+
+Fixes
+-----
+
 * Fix issue 19 (YBR_FULL are decoded incorrectly)
 * Fix issue 21 (Microsoft Visual Studio precompiled headers)
 * Fix issue 22 (Error decoding multi-frame instances)
