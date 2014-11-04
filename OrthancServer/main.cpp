@@ -587,10 +587,14 @@ static bool StartOrthanc()
 
 #if ENABLE_PLUGINS == 1
     orthancPlugins.Stop();
+    LOG(WARNING) << "    Plugins have stopped";
 #endif
 
     dicomServer.Stop();
+    LOG(WARNING) << "    DICOM server has stopped";
+
     httpServer.Stop();
+    LOG(WARNING) << "    HTTP server has stopped";
   }
 
   serverFactory.Done();
