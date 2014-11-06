@@ -234,5 +234,8 @@ namespace Orthanc
 
     void DeleteAttachment(const std::string& publicId,
                           FileContentType type);
+
+    std::string GetGlobalProperty(GlobalProperty property,
+                                  const std::string& defaultValue);
   };
 }
