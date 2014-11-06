@@ -274,7 +274,7 @@ TEST_P(DatabaseWrapperTest, Simple)
   ASSERT_TRUE(index_->LookupGlobalProperty(s, GlobalProperty_FlushSleep));
   ASSERT_FALSE(index_->LookupGlobalProperty(s, static_cast<GlobalProperty>(42)));
   ASSERT_EQ("World", s);
-  ASSERT_EQ("World", index_->GetGlobalProperty(GlobalProperty_FlushSleep));
+  ASSERT_EQ("World", index_->GetGlobalProperty(GlobalProperty_FlushSleep, ""));
   ASSERT_EQ("None", index_->GetGlobalProperty(static_cast<GlobalProperty>(42), "None"));
 
   FileInfo att;

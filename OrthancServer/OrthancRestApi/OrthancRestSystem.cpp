@@ -54,6 +54,7 @@ namespace Orthanc
 
     result["Version"] = ORTHANC_VERSION;
     result["Name"] = Configuration::GetGlobalStringParameter("Name", "");
+    result["DatabaseVersion"] = boost::lexical_cast<int>(OrthancRestApi::GetIndex(call).GetGlobalProperty(GlobalProperty_DatabaseSchemaVersion, "0"));
 
     call.GetOutput().AnswerJson(result);
   }
