@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ *
+ * Copyright (C) 2012-2014 Sebastien Jodogne <s.jodogne@gmail.com>,
+ * Medical Physics Department, CHU of Liege, Belgium
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -31,8 +32,12 @@
  **/
 
 
+#if ORTHANC_SQLITE_STANDALONE != 1
 #include "../PrecompiledHeaders.h"
+#endif
+
 #include "FunctionContext.h"
+#include "OrthancSQLiteException.h"
 
 #include <sqlite3.h>
 
@@ -57,7 +62,7 @@ namespace Orthanc
     {
       if (index >= argc_)
       {
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
+        throw OrthancSQLiteException("Parameter out of range");
       }
     }
 

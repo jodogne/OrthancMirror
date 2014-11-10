@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ *
+ * Copyright (C) 2012-2014 Sebastien Jodogne <s.jodogne@gmail.com>,
+ * Medical Physics Department, CHU of Liege, Belgium
  *
  * Copyright (c) 2012 The Chromium Authors. All rights reserved.
  *
@@ -34,8 +35,12 @@
  **/
 
 
+#if ORTHANC_SQLITE_STANDALONE != 1
 #include "../PrecompiledHeaders.h"
+#endif
+
 #include "Transaction.h"
+#include "OrthancSQLiteException.h"
 
 namespace Orthanc
 {
@@ -59,13 +64,13 @@ namespace Orthanc
     {
       if (isOpen_) 
       {
-        throw OrthancException("SQLite: Beginning a transaction twice!");
+        throw OrthancSQLiteException("SQLite: Beginning a transaction twice!");
       }
 
       isOpen_ = connection_.BeginTransaction();
       if (!isOpen_)
       {
-        throw OrthancException("SQLite: Unable to create a transaction");
+        throw OrthancSQLiteException("SQLite: Unable to create a transaction");
       }
     }
 
@@ -73,8 +78,8 @@ namespace Orthanc
     {
       if (!isOpen_) 
       {
-        throw OrthancException("SQLite: Attempting to roll back a nonexistent transaction. "
-                                "Did you remember to call Begin()?");
+        throw OrthancSQLiteException("SQLite: Attempting to roll back a nonexistent transaction. "
+                                     "Did you remember to call Begin()?");
       }
 
       isOpen_ = false;
@@ -86,15 +91,15 @@ namespace Orthanc
     {
       if (!isOpen_) 
       {
-        throw OrthancException("SQLite: Attempting to roll back a nonexistent transaction. "
-                                "Did you remember to call Begin()?");
+        throw OrthancSQLiteException("SQLite: Attempting to roll back a nonexistent transaction. "
+                                     "Did you remember to call Begin()?");
       }
 
       isOpen_ = false;
 
       if (!connection_.CommitTransaction())
       {
-        throw OrthancException("SQLite: Failure when committing the transaction");
+        throw OrthancSQLiteException("SQLite: Failure when committing the transaction");
       }
     }
   }

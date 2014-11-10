@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ *
+ * Copyright (C) 2012-2014 Sebastien Jodogne <s.jodogne@gmail.com>,
+ * Medical Physics Department, CHU of Liege, Belgium
  *
  * Copyright (c) 2012 The Chromium Authors. All rights reserved.
  *
@@ -34,13 +35,15 @@
  **/
 
 
+#if ORTHANC_SQLITE_STANDALONE != 1
 #include "../PrecompiledHeaders.h"
-#include "StatementReference.h"
+#include <glog/logging.h>
+#endif
 
-#include "../OrthancException.h"
+#include "StatementReference.h"
+#include "OrthancSQLiteException.h"
 
 #include <cassert>
-#include <glog/logging.h>
 #include "sqlite3.h"
 
 namespace Orthanc
@@ -65,7 +68,7 @@ namespace Orthanc
     {
       if (database == NULL || sql == NULL)
       {
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
+        throw OrthancSQLiteException("Parameter out of range");
       }
 
       root_ = NULL;
@@ -74,7 +77,7 @@ namespace Orthanc
       int error = sqlite3_prepare_v2(database, sql, -1, &statement_, NULL);
       if (error != SQLITE_OK)
       {
-        throw OrthancException("SQLite: " + std::string(sqlite3_errmsg(database)));
+        throw OrthancSQLiteException("SQLite: " + std::string(sqlite3_errmsg(database)));
       }
 
       assert(IsRoot());
@@ -109,7 +112,9 @@ namespace Orthanc
           // an exception because:
           // http://www.parashift.com/c++-faq/dtors-shouldnt-throw.html
 
+#if ORTHANC_SQLITE_STANDALONE != 1
           LOG(ERROR) << "Bad value of the reference counter";
+#endif
         }
         else if (statement_ != NULL)
         {
@@ -124,7 +129,9 @@ namespace Orthanc
           // an exception because:
           // http://www.parashift.com/c++-faq/dtors-shouldnt-throw.html
 
+#if ORTHANC_SQLITE_STANDALONE != 1
           LOG(ERROR) << "Bad value of the reference counter";
+#endif
         }
         else
         {
