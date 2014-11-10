@@ -14,9 +14,10 @@
  * copyright notice, this list of conditions and the following disclaimer
  * in the documentation and/or other materials provided with the
  * distribution.
- *    * Neither the name of the CHU of Liege, nor the names of its
- * contributors may be used to endorse or promote products derived
- * from this software without specific prior written permission.
+ *    * Neither the name of Google Inc., the name of the CHU of Liege,
+ * nor the names of its contributors may be used to endorse or promote
+ * products derived from this software without specific prior written
+ * permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -34,25 +35,26 @@
 
 #pragma once
 
-#include "NonCopyable.h"
-#include "FunctionContext.h"
-
 namespace Orthanc
 {
   namespace SQLite
   {
-    class IScalarFunction : public NonCopyable
+    // This class mimics "boost::noncopyable"
+    class NonCopyable
     {
-    public:
-      virtual ~IScalarFunction()
+    private:
+      NonCopyable(const NonCopyable&);
+
+      NonCopyable& operator= (const NonCopyable&);
+
+    protected:
+      NonCopyable()
       {
       }
 
-      virtual const char* GetName() const = 0;
-
-      virtual unsigned int GetCardinality() const = 0;
-
-      virtual void Compute(FunctionContext& context) = 0;
+      ~NonCopyable()
+      {
+      }
     };
   }
 }

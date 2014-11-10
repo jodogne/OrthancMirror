@@ -41,7 +41,6 @@
 #include "IScalarFunction.h"
 
 #include <string>
-#include <boost/noncopyable.hpp>
 #include <map>
 
 struct sqlite3;
@@ -53,7 +52,7 @@ namespace Orthanc
 {
   namespace SQLite
   {
-    class Connection : boost::noncopyable
+    class Connection : NonCopyable
     {
       friend class Statement;
       friend class Transaction;

@@ -43,7 +43,7 @@ namespace Orthanc
 {
   namespace SQLite
   {
-    class Transaction : public boost::noncopyable
+    class Transaction : public NonCopyable
     {
     private:
       Connection& connection_;
