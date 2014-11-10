@@ -37,13 +37,13 @@
 
 #pragma once
 
+#include "NonCopyable.h"
 #include "OrthancSQLiteException.h"
 #include "StatementId.h"
 #include "StatementReference.h"
 
 #include <vector>
 #include <stdint.h>
-#include <boost/noncopyable.hpp>
 
 #if ORTHANC_BUILD_UNIT_TESTS == 1
 #include <gtest/gtest_prod.h>
@@ -69,7 +69,7 @@ namespace Orthanc
       COLUMN_TYPE_NULL = 5
     };
 
-    class Statement : public boost::noncopyable
+    class Statement : public NonCopyable
     {
       friend class Connection;
 

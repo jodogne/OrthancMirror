@@ -43,9 +43,10 @@
 #include "Statement.h"
 #include "Connection.h"
 
-#include <boost/lexical_cast.hpp>
 #include <sqlite3.h>
 #include <string.h>
+#include <stdio.h>
+#include <algorithm>
 
 namespace Orthanc
 {
@@ -56,7 +57,9 @@ namespace Orthanc
       bool succeeded = (err == SQLITE_OK || err == SQLITE_ROW || err == SQLITE_DONE);
       if (!succeeded)
       {
-        throw OrthancSQLiteException("SQLite error code " + boost::lexical_cast<std::string>(err));
+        char buffer[128];
+        snprintf(buffer, sizeof(buffer) - 1, "SQLite error code %d", err);
+        throw OrthancSQLiteException(buffer);
       }
 
       return err;
@@ -71,7 +74,9 @@ namespace Orthanc
       }
       else if (err != SQLITE_OK)
       {
-        throw OrthancSQLiteException("SQLite error code " + boost::lexical_cast<std::string>(err));
+        char buffer[128];
+        snprintf(buffer, sizeof(buffer) - 1, "SQLite error code %d", err);
+        throw OrthancSQLiteException(buffer);
       }
     }
 

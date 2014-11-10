@@ -34,8 +34,6 @@
 
 #pragma once
 
-#include <boost/noncopyable.hpp>
-
 #include "Statement.h"
 
 struct sqlite3_context;
@@ -45,7 +43,7 @@ namespace Orthanc
 {
   namespace SQLite
   {
-    class FunctionContext : public boost::noncopyable
+    class FunctionContext : public NonCopyable
     {
       friend class Connection;
 

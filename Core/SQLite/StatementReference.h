@@ -37,7 +37,8 @@
 
 #pragma once
 
-#include <boost/noncopyable.hpp>
+#include "NonCopyable.h"
+
 #include <stdint.h>
 #include <cassert>
 #include <stdlib.h>
@@ -49,7 +50,7 @@ namespace Orthanc
 {
   namespace SQLite
   {
-    class StatementReference : boost::noncopyable
+    class StatementReference : NonCopyable
     {
     private:
       StatementReference* root_;   // Only used for non-root nodes
