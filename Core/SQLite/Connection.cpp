@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ *
+ * Copyright (C) 2012-2014 Sebastien Jodogne <s.jodogne@gmail.com>,
+ * Medical Physics Department, CHU of Liege, Belgium
  *
  * Copyright (c) 2012 The Chromium Authors. All rights reserved.
  *
@@ -34,16 +35,18 @@
  **/
 
 
+#if ORTHANC_SQLITE_STANDALONE != 1
 #include "../PrecompiledHeaders.h"
+#include <glog/logging.h>
+#endif
+
 #include "Connection.h"
+#include "OrthancSQLiteException.h"
 
 #include <memory>
 #include <cassert>
 #include <sqlite3.h>
 #include <string.h>
-
-#include <glog/logging.h>
-
 
 namespace Orthanc
 {
@@ -67,7 +70,7 @@ namespace Orthanc
     {
       if (!db_)
       {
-        throw OrthancException("SQLite: The database is not opened");
+        throw OrthancSQLiteException("SQLite: The database is not opened");
       }
     }
 
@@ -75,7 +78,7 @@ namespace Orthanc
     {
       if (db_) 
       {
-        throw OrthancException("SQLite: Connection is already open");
+        throw OrthancSQLiteException("SQLite: Connection is already open");
       }
 
       int err = sqlite3_open(path.c_str(), &db_);
@@ -83,7 +86,7 @@ namespace Orthanc
       {
         Close();
         db_ = NULL;
-        throw OrthancException("SQLite: Unable to open the database");
+        throw OrthancSQLiteException("SQLite: Unable to open the database");
       }
 
       // Execute PRAGMAs at this point
@@ -129,7 +132,7 @@ namespace Orthanc
       {
         if (i->second->GetReferenceCount() >= 1)
         {
-          throw OrthancException("SQLite: This cached statement is already being referred to");
+          throw OrthancSQLiteException("SQLite: This cached statement is already being referred to");
         }
 
         return *i->second;
@@ -145,13 +148,16 @@ namespace Orthanc
 
     bool Connection::Execute(const char* sql) 
     {
+#if ORTHANC_SQLITE_STANDALONE != 1
       VLOG(1) << "SQLite::Connection::Execute " << sql;
+#endif
+
       CheckIsOpen();
 
       int error = sqlite3_exec(db_, sql, NULL, NULL, NULL);
       if (error == SQLITE_ERROR)
       {
-        throw OrthancException("SQLite Execute error: " + std::string(sqlite3_errmsg(db_)));
+        throw OrthancSQLiteException("SQLite Execute error: " + std::string(sqlite3_errmsg(db_)));
       }
       else
       {
@@ -272,7 +278,7 @@ namespace Orthanc
     {
       if (!transactionNesting_)
       {
-        throw OrthancException("Rolling back a nonexistent transaction");
+        throw OrthancSQLiteException("Rolling back a nonexistent transaction");
       }
 
       transactionNesting_--;
@@ -291,7 +297,7 @@ namespace Orthanc
     {
       if (!transactionNesting_) 
       {
-        throw OrthancException("Committing a nonexistent transaction");
+        throw OrthancSQLiteException("Committing a nonexistent transaction");
       }
       transactionNesting_--;
 
@@ -359,7 +365,7 @@ namespace Orthanc
       if (err != SQLITE_OK)
       {
         delete func;
-        throw OrthancException("SQLite: Unable to register a function");
+        throw OrthancSQLiteException("SQLite: Unable to register a function");
       }
 
       return func;
@@ -368,12 +374,15 @@ namespace Orthanc
 
     void Connection::FlushToDisk()
     {
+#if ORTHANC_SQLITE_STANDALONE != 1
       VLOG(1) << "SQLite::Connection::FlushToDisk";
+#endif
+
       int err = sqlite3_wal_checkpoint(db_, NULL);
 
       if (err != SQLITE_OK)
       {
-        throw OrthancException("SQLite: Unable to flush the database");
+        throw OrthancSQLiteException("SQLite: Unable to flush the database");
       }
     }
   }

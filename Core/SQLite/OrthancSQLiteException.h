@@ -35,24 +35,33 @@
  **/
 
 
-#if ORTHANC_SQLITE_STANDALONE != 1
-#include "../PrecompiledHeaders.h"
-#endif
+#pragma once
 
-#include "StatementId.h"
 
-#include <string.h>
+#if ORTHANC_SQLITE_STANDALONE == 1
+#include <stdexcept>
 
 namespace Orthanc
 {
   namespace SQLite
   {
-    bool StatementId::operator< (const StatementId& other) const
+    class OrthancSQLiteException : public ::std::runtime_error
     {
-      if (line_ != other.line_)
-        return line_ < other.line_;
+    public:
+      OrthancSQLiteException(const std::string& what) :
+        ::std::runtime_error(what)
+      {
+      }
 
-      return strcmp(file_, other.file_) < 0;
-    }
+      OrthancSQLiteException(const char* what) : 
+        ::std::runtime_error(what)
+      {
+      }
+    };
   }
 }
+
+#else
+#  include "../OrthancException.h"
+#  define OrthancSQLiteException ::Orthanc::OrthancException
+#endif
