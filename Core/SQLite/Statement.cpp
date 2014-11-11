@@ -48,6 +48,10 @@
 #include <stdio.h>
 #include <algorithm>
 
+#if defined(_MSC_VER)
+#define snprintf _snprintf
+#endif
+
 namespace Orthanc
 {
   namespace SQLite
