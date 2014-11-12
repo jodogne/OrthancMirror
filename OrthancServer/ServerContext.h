@@ -200,6 +200,11 @@ namespace Orthanc
       plugins_ = &plugins;
     }
 
+    void ResetOrthancPlugins()
+    {
+      plugins_ = NULL;
+    }
+
     bool DeleteResource(Json::Value& target,
                         const std::string& uuid,
                         ResourceType expectedType);
