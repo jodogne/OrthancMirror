@@ -586,6 +586,7 @@ static bool StartOrthanc()
     LOG(WARNING) << "Orthanc is stopping";
 
 #if ENABLE_PLUGINS == 1
+    context.ResetOrthancPlugins();
     orthancPlugins.Stop();
     LOG(WARNING) << "    Plugins have stopped";
 #endif
@@ -701,7 +702,7 @@ int main(int argc, char* argv[])
   }
   catch (...)
   {
-    LOG(ERROR) << "Native exception, stopping now";
+    LOG(ERROR) << "Native exception, stopping now. Check your plugins, if any.";
     status = -1;
   }
 
