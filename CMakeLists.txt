@@ -37,9 +37,7 @@ SET(USE_SYSTEM_ZLIB ON CACHE BOOL "Use the system version of ZLib")
 SET(USE_SYSTEM_PUGIXML ON CACHE BOOL "Use the system version of Pugixml)")
 
 # Experimental options
-SET(USE_PLUSTACHE OFF CACHE BOOL "Use the Plustache templating engine (experimental)")
 SET(USE_PUGIXML ON CACHE BOOL "Use the Pugixml parser (turn off only for debug)")
-SET(USE_SYSTEM_PLUSTACHE OFF CACHE BOOL "Use the system version of Plustache (experimental)")
 
 # Distribution-specific settings
 SET(USE_GTEST_DEBIAN_SOURCE_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
@@ -198,7 +196,6 @@ set(ORTHANC_UNIT_TESTS_SOURCES
   UnitTestsSources/ImageProcessingTests.cpp
   UnitTestsSources/JpegLosslessTests.cpp
   UnitTestsSources/PluginsTests.cpp
-  UnitTestsSources/PlustacheTests.cpp
   )
 
 
@@ -229,7 +226,6 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/JsonCppConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibPngConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LuaConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibCurlConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/PlustacheConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/PugixmlConfiguration.cmake)
 
 
