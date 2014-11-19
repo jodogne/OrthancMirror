@@ -37,7 +37,6 @@
 
 #if ORTHANC_SQLITE_STANDALONE != 1
 #include "../PrecompiledHeaders.h"
-#include <glog/logging.h>
 #endif
 
 #include "Statement.h"
@@ -47,6 +46,10 @@
 #include <string.h>
 #include <stdio.h>
 #include <algorithm>
+
+#if ORTHANC_SQLITE_STANDALONE != 1
+#include <glog/logging.h>
+#endif
 
 #if defined(_MSC_VER)
 #define snprintf _snprintf
