@@ -37,11 +37,14 @@
 
 #if ORTHANC_SQLITE_STANDALONE != 1
 #include "../PrecompiledHeaders.h"
-#include <glog/logging.h>
 #endif
 
 #include "StatementReference.h"
 #include "OrthancSQLiteException.h"
+
+#if ORTHANC_SQLITE_STANDALONE != 1
+#include <glog/logging.h>
+#endif
 
 #include <cassert>
 #include "sqlite3.h"
