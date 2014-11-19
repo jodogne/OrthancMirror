@@ -37,7 +37,6 @@
 
 #if ORTHANC_SQLITE_STANDALONE != 1
 #include "../PrecompiledHeaders.h"
-#include <glog/logging.h>
 #endif
 
 #include "Connection.h"
@@ -47,6 +46,11 @@
 #include <cassert>
 #include <sqlite3.h>
 #include <string.h>
+
+#if ORTHANC_SQLITE_STANDALONE != 1
+#include <glog/logging.h>
+#endif
+
 
 namespace Orthanc
 {
