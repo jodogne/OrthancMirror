@@ -33,11 +33,40 @@
 #include "../PrecompiledHeaders.h"
 #include "SharedMessageQueue.h"
 
+
+
+/**
+ * FIFO (queue):
+ * 
+ *            back                         front
+ *            +--+--+--+--+--+--+--+--+--+--+--+
+ * Enqueue -> |  |  |  |  |  |  |  |  |  |  |  |
+ *            |  |  |  |  |  |  |  |  |  |  |  | -> Dequeue
+ *            +--+--+--+--+--+--+--+--+--+--+--+
+ *                                            ^
+ *                                            |
+ *                                      Make room here
+ *
+ *
+ * LIFO (stack):
+ * 
+ *            back                         front
+ *            +--+--+--+--+--+--+--+--+--+--+--+
+ *            |  |  |  |  |  |  |  |  |  |  |  | <- Enqueue
+ *            |  |  |  |  |  |  |  |  |  |  |  | -> Dequeue
+ *            +--+--+--+--+--+--+--+--+--+--+--+
+ *              ^
+ *              |
+ *        Make room here
+ **/
+
+
 namespace Orthanc
 {
-  SharedMessageQueue::SharedMessageQueue(unsigned int maxSize)
+  SharedMessageQueue::SharedMessageQueue(unsigned int maxSize) :
+    isFifo_(true),
+    maxSize_(maxSize)
   {
-    maxSize_ = maxSize;
   }
 
 
@@ -56,12 +85,31 @@ namespace Orthanc
 
     if (maxSize_ != 0 && queue_.size() > maxSize_)
     {
-      // Too many elements in the queue: First remove the oldest
-      delete queue_.front();
-      queue_.pop_front();
+      if (isFifo_)
+      {
+        // Too many elements in the queue: Make room
+        delete queue_.front();
+        queue_.pop_front();
+      }
+      else
+      {
+        // Too many elements in the stack: Make room
+        delete queue_.back();
+        queue_.pop_back();
+      }
     }
 
-    queue_.push_back(message);
+    if (isFifo_)
+    {
+      // Queue policy (FIFO)
+      queue_.push_back(message);
+    }
+    else
+    {
+      // Stack policy (LIFO)
+      queue_.push_front(message);
+    }
+
     elementAvailable_.notify_one();
   }
 
@@ -123,5 +171,18 @@ namespace Orthanc
     }
 
     return true;
+  }
+
+
+  void SharedMessageQueue::SetFifoPolicy()
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    isFifo_ = true;
+  }
+
+  void SharedMessageQueue::SetLifoPolicy()
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    isFifo_ = false;
   }
 }
