@@ -45,6 +45,7 @@ namespace Orthanc
   private:
     typedef std::list<IDynamicObject*>  Queue;
 
+    bool isFifo_;
     unsigned int maxSize_;
     Queue queue_;
     boost::mutex mutex_;
@@ -63,5 +64,19 @@ namespace Orthanc
     IDynamicObject* Dequeue(int32_t millisecondsTimeout);
 
     bool WaitEmpty(int32_t millisecondsTimeout);
+
+    bool IsFifoPolicy() const
+    {
+      return isFifo_;
+    }
+
+    bool IsLifoPolicy() const
+    {
+      return !isFifo_;
+    }
+
+    void SetFifoPolicy();
+
+    void SetLifoPolicy();
   };
 }
