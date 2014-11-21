@@ -1,6 +1,7 @@
 Pending changes in the mainline
 ===============================
 
+* Instances without PatientID are now allowed
 
 
 Version 0.8.5 (2014/11/04)
