@@ -48,8 +48,7 @@ namespace Orthanc
     seriesUid_ = seriesUid;
     instanceUid_ = instanceUid;
 
-    if (patientId_.size() == 0 ||
-        studyUid_.size() == 0 ||
+    if (studyUid_.size() == 0 ||
         seriesUid_.size() == 0 ||
         instanceUid_.size() == 0)
     {
@@ -59,7 +58,9 @@ namespace Orthanc
 
   DicomInstanceHasher::DicomInstanceHasher(const DicomMap& instance)
   {
-    Setup(instance.GetValue(DICOM_TAG_PATIENT_ID).AsString(),
+    const DicomValue* patientId = instance.TestAndGetValue(DICOM_TAG_PATIENT_ID);
+
+    Setup(patientId == NULL ? "" : patientId->AsString(),
           instance.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString(),
           instance.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).AsString(),
           instance.GetValue(DICOM_TAG_SOP_INSTANCE_UID).AsString());

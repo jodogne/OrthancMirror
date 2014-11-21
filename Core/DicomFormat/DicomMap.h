@@ -125,11 +125,13 @@ namespace Orthanc
 
     const DicomValue& GetValue(const DicomTag& tag) const;
 
+    // DO NOT delete the returned value!
     const DicomValue* TestAndGetValue(uint16_t group, uint16_t element) const
     {
       return TestAndGetValue(DicomTag(group, element));
     }       
 
+    // DO NOT delete the returned value!
     const DicomValue* TestAndGetValue(const DicomTag& tag) const;
 
     void Remove(const DicomTag& tag);
