@@ -2,6 +2,7 @@ Pending changes in the mainline
 ===============================
 
 * Instances without PatientID are now allowed
+* Support of Tudor DICOM in Query/Retrieve
 
 
 Version 0.8.5 (2014/11/04)

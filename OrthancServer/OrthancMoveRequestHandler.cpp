@@ -102,8 +102,8 @@ namespace Orthanc
 
 
   bool OrthancMoveRequestHandler::LookupIdentifier(std::string& publicId,
-                                                 DicomTag tag,
-                                                 const DicomMap& input)
+                                                   DicomTag tag,
+                                                   const DicomMap& input)
   {
     if (!input.HasTag(tag))
     {
@@ -132,18 +132,42 @@ namespace Orthanc
   {
     LOG(WARNING) << "Move-SCU request received for AET \"" << aet << "\"";
 
-
     /**
      * Retrieve the query level.
      **/
 
+    ResourceType level;
     const DicomValue* levelTmp = input.TestAndGetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL);
-    if (levelTmp == NULL) 
+
+    if (levelTmp != NULL) 
     {
-      throw OrthancException(ErrorCode_BadRequest);
+      level = StringToResourceType(levelTmp->AsString().c_str());
+    }
+    else
+    {
+      // The query level is not present in the C-Move request, which
+      // does not follow the DICOM standard. This is for instance the
+      // behavior of Tudor DICOM. Try and automatically deduce the
+      // query level: Start from the instance level, going up to the
+      // patient level until a valid DICOM identifier is found.
+
+      std::string publicId;
+
+      if (LookupIdentifier(publicId, DICOM_TAG_SOP_INSTANCE_UID, input) ||
+          LookupIdentifier(publicId, DICOM_TAG_SERIES_INSTANCE_UID, input) ||
+          LookupIdentifier(publicId, DICOM_TAG_STUDY_INSTANCE_UID, input) ||
+          LookupIdentifier(publicId, DICOM_TAG_PATIENT_ID, input))
+      {
+        return new OrthancMoveRequestIterator(context_, aet, publicId);
+      }
+      else
+      {
+        // No identifier is present in the request.
+        throw OrthancException(ErrorCode_BadRequest);
+      }
     }
 
-    ResourceType level = StringToResourceType(levelTmp->AsString().c_str());
+
 
     /**
      * Lookup for the resource to be sent.
