@@ -122,6 +122,8 @@ namespace Orthanc
   {
     Json::Value v = Json::arrayValue;
 
+    v.append("explorer.js");
+
     if (OrthancRestApi::GetContext(call).HasPlugins())
     {
       std::list<std::string> plugins;
