@@ -519,7 +519,7 @@ static bool StartOrthanc()
     pluginsManager.RegisterServiceProvider(orthancPlugins);
     LoadPlugins(pluginsManager);
     httpServer.RegisterHandler(orthancPlugins);
-    context.SetOrthancPlugins(orthancPlugins);
+    context.SetOrthancPlugins(pluginsManager, orthancPlugins);
 #endif
 
     httpServer.RegisterHandler(staticResources);

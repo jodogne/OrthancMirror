@@ -43,7 +43,34 @@ namespace Orthanc
   class PluginsManager : boost::noncopyable
   {
   private:
-    typedef std::map<std::string, SharedLibrary*>  Plugins;
+    class Plugin
+    {
+    private:
+      SharedLibrary library_;
+      std::string  version_;
+
+    public:
+      Plugin(const std::string& path) : library_(path)
+      {
+      }
+
+      SharedLibrary& GetLibrary()
+      {
+        return library_;
+      }
+
+      void SetVersion(const std::string& version)
+      {
+        version_ = version;
+      }
+
+      const std::string& GetVersion() const
+      {
+        return version_;
+      }
+    };
+
+    typedef std::map<std::string, Plugin*>  Plugins;
 
     OrthancPluginContext  context_;
     Plugins  plugins_;
@@ -67,5 +94,11 @@ namespace Orthanc
     {
       serviceProviders_.push_back(&provider);
     }
+
+    void ListPlugins(std::list<std::string>& result) const;
+
+    bool HasPlugin(const std::string& name) const;
+
+    const std::string& GetPluginVersion(const std::string& name) const;
   };
 }

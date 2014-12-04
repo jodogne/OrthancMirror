@@ -77,7 +77,8 @@ namespace Orthanc
     provider_(*this),
     dicomCache_(provider_, DICOM_CACHE_SIZE),
     scheduler_(Configuration::GetGlobalIntegerParameter("LimitJobs", 10)),
-    plugins_(NULL)
+    plugins_(NULL),
+    pluginsManager_(NULL)
   {
     scu_.SetLocalApplicationEntityTitle(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"));
     //scu_.SetMillisecondsBeforeClose(1);  // The connection is always released
@@ -534,6 +535,38 @@ namespace Orthanc
       {
         LOG(ERROR) << "Error in OnChangeCallback (plugins): " << e.What();
       }
+    }
+  }
+
+
+  bool ServerContext::HasPlugins() const
+  {
+    return (pluginsManager_ && plugins_);
+  }
+
+
+  const PluginsManager& ServerContext::GetPluginsManager() const
+  {
+    if (HasPlugins())
+    {
+      return *pluginsManager_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
+  const OrthancPlugins& ServerContext::GetOrthancPlugins() const
+  {
+    if (HasPlugins())
+    {
+      return *plugins_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InternalError);
     }
   }
 }
