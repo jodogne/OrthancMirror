@@ -109,5 +109,8 @@ namespace Orthanc
     IStorageArea* GetStorageArea();
 
     void Stop();
+
+    const char* GetProperty(const char* plugin,
+                            _OrthancPluginProperty property) const;
   };
 }

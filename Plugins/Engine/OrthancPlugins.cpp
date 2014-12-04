@@ -172,10 +172,13 @@ namespace Orthanc
 
   struct OrthancPlugins::PImpl
   {
+    typedef std::pair<std::string, _OrthancPluginProperty>  Property;
+
     typedef std::pair<boost::regex*, OrthancPluginRestCallback> RestCallback;
     typedef std::list<RestCallback>  RestCallbacks;
     typedef std::list<OrthancPluginOnStoredInstanceCallback>  OnStoredCallbacks;
     typedef std::list<OrthancPluginOnChangeCallback>  OnChangeCallbacks;
+    typedef std::map<Property, std::string>  Properties;
 
     ServerContext& context_;
     RestCallbacks restCallbacks_;
@@ -188,6 +191,7 @@ namespace Orthanc
     SharedMessageQueue  pendingChanges_;
     boost::thread  changeThread_;
     bool done_;
+    Properties properties_;
 
     PImpl(ServerContext& context) : 
       context_(context), 
@@ -1022,6 +1026,14 @@ namespace Orthanc
         return true;
       }
 
+      case _OrthancPluginService_SetProperty:
+      {
+        const _OrthancPluginSetProperty& p = 
+          *reinterpret_cast<const _OrthancPluginSetProperty*>(parameters);
+        pimpl_->properties_[std::make_pair(p.plugin, p.property)] = p.value;
+        return true;
+      }
+
       default:
         return false;
     }
@@ -1136,5 +1148,23 @@ namespace Orthanc
     }
 
     return new PluginStorageArea(pimpl_->storageArea_);;
+  }
+
+
+
+  const char* OrthancPlugins::GetProperty(const char* plugin,
+                                          _OrthancPluginProperty property) const
+  {
+    PImpl::Property p = std::make_pair(plugin, property);
+    PImpl::Properties::const_iterator it = pimpl_->properties_.find(p);
+
+    if (it == pimpl_->properties_.end())
+    {
+      return NULL;
+    }
+    else
+    {
+      return it->second.c_str();
+    }
   }
 }

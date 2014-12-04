@@ -326,6 +326,11 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
 
   OrthancPluginRegisterOnChangeCallback(context, OnChangeCallback);
 
+  /* Declare several properties of the plugin */
+  OrthancPluginSetRootUri(context, "/plugin/hello");
+  OrthancPluginSetDescription(context, "This is the description of the sample plugin that can be seen in Orthanc Explorer.");
+  OrthancPluginExtendOrthancExplorer(context, "alert('Hello Orthanc! From sample plugin with love.');");
+
   /* Make REST requests to the built-in Orthanc API */
   OrthancPluginRestApiGet(context, &tmp, "/changes");
   OrthancPluginFreeMemoryBuffer(context, &tmp);

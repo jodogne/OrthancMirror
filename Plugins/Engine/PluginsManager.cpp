@@ -205,10 +205,10 @@ namespace Orthanc
     {
       if (it->second != NULL)
       {
-        LOG(WARNING) << "Unregistering plugin '" << CallGetName(*it->second)
-                     << "' (version " << CallGetVersion(*it->second) << ")";
+        LOG(WARNING) << "Unregistering plugin '" << it->first
+                     << "' (version " << it->second->GetVersion() << ")";
 
-        CallFinalize(*(it->second));
+        CallFinalize(it->second->GetLibrary());
         delete it->second;
       }
     }
@@ -226,26 +226,27 @@ namespace Orthanc
   
   void PluginsManager::RegisterPlugin(const std::string& path)
   {
-    std::auto_ptr<SharedLibrary> plugin(new SharedLibrary(path));
+    std::auto_ptr<Plugin> plugin(new Plugin(path));
 
-    if (!IsOrthancPlugin(*plugin))
+    if (!IsOrthancPlugin(plugin->GetLibrary()))
     {
-      LOG(ERROR) << "Plugin " << plugin->GetPath()
+      LOG(ERROR) << "Plugin " << plugin->GetLibrary().GetPath()
                  << " does not declare the proper entry functions";
       throw OrthancException(ErrorCode_SharedLibrary);
     }
 
-    std::string name(CallGetName(*plugin));
+    std::string name(CallGetName(plugin->GetLibrary()));
     if (plugins_.find(name) != plugins_.end())
     {
       LOG(ERROR) << "Plugin '" << name << "' already registered";
       throw OrthancException(ErrorCode_SharedLibrary);
     }
 
+    plugin->SetVersion(CallGetVersion(plugin->GetLibrary()));
     LOG(WARNING) << "Registering plugin '" << name
-                 << "' (version " << CallGetVersion(*plugin) << ")";
+                 << "' (version " << plugin->GetVersion() << ")";
 
-    CallInitialize(*plugin, context_);
+    CallInitialize(plugin->GetLibrary(), context_);
 
     plugins_[name] = plugin.release();
   }
@@ -298,4 +299,37 @@ namespace Orthanc
       }
     }
   }
+
+
+  void PluginsManager::ListPlugins(std::list<std::string>& result) const
+  {
+    result.clear();
+
+    for (Plugins::const_iterator it = plugins_.begin(); 
+         it != plugins_.end(); it++)
+    {
+      result.push_back(it->first);
+    }
+  }
+
+
+  bool PluginsManager::HasPlugin(const std::string& name) const
+  {
+    return plugins_.find(name) != plugins_.end();
+  }
+
+
+  const std::string& PluginsManager::GetPluginVersion(const std::string& name) const
+  {
+    Plugins::const_iterator it = plugins_.find(name);
+    if (it == plugins_.end())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      return it->second->GetVersion();
+    }
+  }
+
 }

@@ -153,6 +153,13 @@ extern "C"
 #endif
 
   /**
+   * Forward declaration of one of the mandatory functions for Orthanc
+   * plugins.
+   **/
+  ORTHANC_PLUGINS_API const char* OrthancPluginGetName();
+
+
+  /**
    * The various HTTP methods for a REST call.
    **/
   typedef enum
@@ -241,6 +248,7 @@ extern "C"
     _OrthancPluginService_GetOrthancPath = 4,
     _OrthancPluginService_GetOrthancDirectory = 5,
     _OrthancPluginService_GetConfigurationPath = 6,
+    _OrthancPluginService_SetProperty = 7,
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -279,6 +287,14 @@ extern "C"
     _OrthancPluginService_HasInstanceMetadata = 4005,
     _OrthancPluginService_GetInstanceMetadata = 4006
   } _OrthancPluginService;
+
+
+  typedef enum
+  {
+    _OrthancPluginProperty_Description = 1,
+    _OrthancPluginProperty_RootUri = 2,
+    _OrthancPluginProperty_OrthancExplorer = 3
+  } _OrthancPluginProperty;
 
 
 
@@ -1712,6 +1728,62 @@ extern "C"
 
 
 
+  typedef struct
+  {
+    const char* plugin;
+    _OrthancPluginProperty property;
+    const char* value;
+  } _OrthancPluginSetProperty;
+
+
+  /**
+   * @brief Set the URI where the plugin provides its Web interface.
+   *
+   * For plugins that come with a Web interface, this function
+   * declares the entry path where to find this interface. This
+   * information is notably used in the "Plugins" page of Orthanc
+   * Explorer.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param uri The root URI for this plugin.
+   **/ 
+  ORTHANC_PLUGIN_INLINE void OrthancPluginSetRootUri(
+    OrthancPluginContext*  context,
+    const char*            uri)
+  {
+    _OrthancPluginSetProperty params;
+    params.plugin = OrthancPluginGetName();
+    params.property = _OrthancPluginProperty_RootUri;
+    params.value = uri;
+
+    context->InvokeService(context, _OrthancPluginService_SetProperty, &params);
+  }
+
+
+  ORTHANC_PLUGIN_INLINE void OrthancPluginSetDescription(
+    OrthancPluginContext*  context,
+    const char*            description)
+  {
+    _OrthancPluginSetProperty params;
+    params.plugin = OrthancPluginGetName();
+    params.property = _OrthancPluginProperty_Description;
+    params.value = description;
+
+    context->InvokeService(context, _OrthancPluginService_SetProperty, &params);
+  }
+
+
+  ORTHANC_PLUGIN_INLINE void OrthancPluginExtendOrthancExplorer(
+    OrthancPluginContext*  context,
+    const char*            javascript)
+  {
+    _OrthancPluginSetProperty params;
+    params.plugin = OrthancPluginGetName();
+    params.property = _OrthancPluginProperty_OrthancExplorer;
+    params.value = javascript;
+
+    context->InvokeService(context, _OrthancPluginService_SetProperty, &params);
+  }
 
 #ifdef  __cplusplus
 }

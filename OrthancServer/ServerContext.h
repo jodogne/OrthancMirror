@@ -49,6 +49,7 @@
 namespace Orthanc
 {
   class OrthancPlugins;
+  class PluginsManager;
 
   /**
    * This class is responsible for maintaining the storage area on the
@@ -91,6 +92,7 @@ namespace Orthanc
     boost::mutex luaMutex_;
     LuaContext lua_;
     OrthancPlugins* plugins_;  // TODO Turn it into a listener pattern (idem for Lua callbacks)
+    const PluginsManager* pluginsManager_;
 
   public:
     class DicomCacheLocker : public boost::noncopyable
@@ -195,13 +197,16 @@ namespace Orthanc
       return scheduler_;
     }
 
-    void SetOrthancPlugins(OrthancPlugins& plugins)
+    void SetOrthancPlugins(const PluginsManager& manager,
+                           OrthancPlugins& plugins)
     {
+      pluginsManager_ = &manager;
       plugins_ = &plugins;
     }
 
     void ResetOrthancPlugins()
     {
+      pluginsManager_ = NULL;
       plugins_ = NULL;
     }
 
@@ -210,5 +215,11 @@ namespace Orthanc
                         ResourceType expectedType);
 
     void SignalChange(const ServerIndexChange& change);
+
+    bool HasPlugins() const;
+
+    const PluginsManager& GetPluginsManager() const;
+
+    const OrthancPlugins& GetOrthancPlugins() const;
   };
 }

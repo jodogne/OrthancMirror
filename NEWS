@@ -1,6 +1,8 @@
 Pending changes in the mainline
 ===============================
 
+* Introspection of plugins
+* Plugins can extend Orthanc Explorer with custom JavaScript
 * Instances without PatientID are now allowed
 * Support of Tudor DICOM in Query/Retrieve
 
