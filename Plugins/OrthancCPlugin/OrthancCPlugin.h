@@ -1760,6 +1760,15 @@ extern "C"
   }
 
 
+  /**
+   * @brief Set a description for this plugin.
+   *
+   * Set a description for this plugin. It is displayed in the
+   * "Plugins" page of Orthanc Explorer.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param description The description.
+   **/ 
   ORTHANC_PLUGIN_INLINE void OrthancPluginSetDescription(
     OrthancPluginContext*  context,
     const char*            description)
@@ -1773,6 +1782,15 @@ extern "C"
   }
 
 
+  /**
+   * @brief Extend the JavaScript code of Orthanc Explorer.
+   *
+   * Add JavaScript code to customize the default behavior of Orthanc
+   * Explorer. This can for instance be used to add new buttons.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param javascript The custom JavaScript code.
+   **/ 
   ORTHANC_PLUGIN_INLINE void OrthancPluginExtendOrthancExplorer(
     OrthancPluginContext*  context,
     const char*            javascript)
