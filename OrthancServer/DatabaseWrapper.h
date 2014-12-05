@@ -215,7 +215,7 @@ namespace Orthanc
 
     DatabaseWrapper(IServerIndexListener& listener);
 
-    SQLite::Transaction* StartTransaction()
+    SQLite::ITransaction* StartTransaction()
     {
       return new SQLite::Transaction(db_);
     }
