@@ -694,6 +694,16 @@ namespace Orthanc
       ResourceType resourceType = static_cast<ResourceType>(s.ColumnInt(1));
       std::string publicId = s.ColumnString(2);
 
+      ExportedResource resource(seq, 
+                                resourceType,
+                                publicId,
+                                s.ColumnString(3),  // modality
+                                s.ColumnString(8),  // date
+                                s.ColumnString(4),  // patient ID
+                                s.ColumnString(5),  // study instance UID
+                                s.ColumnString(6),  // series instance UID
+                                s.ColumnString(7)); // sop instance UID
+
       Json::Value item = Json::objectValue;
       item["Seq"] = static_cast<int>(seq);
       item["ResourceType"] = EnumerationToString(resourceType);

@@ -40,48 +40,44 @@
 
 namespace Orthanc
 {
-  struct ServerIndexChange
+  struct ExportedResource
   {
   private:
     int64_t      seq_;
-    ChangeType   changeType_;
     ResourceType resourceType_;
     std::string  publicId_;
+    std::string  modality_;
     std::string  date_;
+    std::string  patientId_;
+    std::string  studyInstanceUid_;
+    std::string  seriesInstanceUid_;
+    std::string  sopInstanceUid_;
 
   public:
-    ServerIndexChange(ChangeType changeType,
-                      ResourceType resourceType,
-                      const std::string& publicId) :
-      seq_(-1),
-      changeType_(changeType),
-      resourceType_(resourceType),
-      publicId_(publicId),
-      date_(Toolbox::GetNowIsoString())
-    {
-    }
-
-    ServerIndexChange(int64_t seq,
-                      ChangeType changeType,
-                      ResourceType resourceType,
-                      const std::string& publicId,
-                      const std::string& date) :
+    ExportedResource(int64_t seq,
+                     ResourceType resourceType,
+                     const std::string& publicId,
+                     const std::string& modality,
+                     const std::string& date,
+                     const std::string& patientId,
+                     const std::string& studyInstanceUid,
+                     const std::string& seriesInstanceUid,
+                     const std::string& sopInstanceUid) :
       seq_(seq),
-      changeType_(changeType),
       resourceType_(resourceType),
       publicId_(publicId),
-      date_(date)
+      modality_(modality),
+      date_(date),
+      patientId_(patientId),
+      studyInstanceUid_(studyInstanceUid),
+      seriesInstanceUid_(seriesInstanceUid),
+      sopInstanceUid_(sopInstanceUid)
     {
     }
 
     int64_t  GetSeq() const
     {
       return seq_;
-    }
-
-    ChangeType  GetChangeType() const
-    {
-      return changeType_;
     }
 
     ResourceType  GetResourceType() const
@@ -94,6 +90,11 @@ namespace Orthanc
       return publicId_;
     }
 
+    const std::string& GetModality() const
+    {
+      return modality_;
+    }
+
     const std::string& GetDate() const
     {
       return date_;
@@ -103,11 +104,31 @@ namespace Orthanc
     {
       item = Json::objectValue;
       item["Seq"] = static_cast<int>(seq_);
-      item["ChangeType"] = EnumerationToString(changeType_);
       item["ResourceType"] = EnumerationToString(resourceType_);
       item["ID"] = publicId_;
       item["Path"] = GetBasePath(resourceType_, publicId_);
+      item["RemoteModality"] = modality_;
       item["Date"] = date_;
+
+      // WARNING: Do not add "break" below and do not reorder the case items!
+      switch (resourceType_)
+      {
+      case ResourceType_Instance:
+        item["SopInstanceUid"] = sopInstanceUid_;
+
+      case ResourceType_Series:
+        item["SeriesInstanceUid"] = seriesInstanceUid_;
+
+      case ResourceType_Study:
+        item["StudyInstanceUid"] = studyInstanceUid_;
+
+      case ResourceType_Patient:
+        item["PatientId"] = patientId_;
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
   };
 }
