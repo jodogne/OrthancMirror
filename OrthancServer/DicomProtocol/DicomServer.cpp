@@ -278,11 +278,19 @@ namespace Orthanc
       throw OrthancException("Too short AET");
     }
 
+    if (aet.size() > 16)
+    {
+      throw OrthancException("AET must be shorter than 16 characters");
+    }
+
     for (size_t i = 0; i < aet.size(); i++)
     {
-      if (!isalnum(aet[i]) && aet[i] != '-')
+      if (!isalnum(aet[i]) && 
+          aet[i] != '-' && 
+          aet[i] != '_')
       {
-        throw OrthancException("Only alphanumeric characters are allowed in AET");
+        LOG(WARNING) << "For best interoperability, only upper case, alphanumeric characters should be present in AET: \"" << aet << "\"";
+        break;
       }
     }
 
