@@ -540,12 +540,20 @@ TEST_P(DatabaseWrapperTest, PatientProtection)
 
 
 
-TEST_P(DatabaseWrapperTest, Sequence)
+TEST(ServerIndex, Sequence)
 {
-  ASSERT_EQ(1u, index_->IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
-  ASSERT_EQ(2u, index_->IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
-  ASSERT_EQ(3u, index_->IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
-  ASSERT_EQ(4u, index_->IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
+  const std::string path = "UnitTestsStorage";
+
+  Toolbox::RemoveFile(path + "/index");
+  FilesystemStorage storage(path);
+  ServerContext context(":memory:");   // The SQLite DB is in memory
+  context.SetStorageArea(storage);
+  ServerIndex& index = context.GetIndex();
+
+  ASSERT_EQ(1u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
+  ASSERT_EQ(2u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
+  ASSERT_EQ(3u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
+  ASSERT_EQ(4u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
 }
 
 
