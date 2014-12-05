@@ -1022,8 +1022,19 @@ namespace Orthanc
   void ServerIndex::GetAllUuids(Json::Value& target,
                                 ResourceType resourceType)
   {
-    boost::mutex::scoped_lock lock(mutex_);
-    db_->GetAllPublicIds(target, resourceType);
+    std::list<std::string> lst;
+
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+      db_->GetAllPublicIds(lst, resourceType);
+    }
+
+    target = Json::arrayValue;
+    for (std::list<std::string>::const_iterator
+           it = lst.begin(); it != lst.end(); it++)
+    {
+      target.append(*it);
+    }
   }
 
 
