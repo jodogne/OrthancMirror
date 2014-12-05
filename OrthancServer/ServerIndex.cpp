@@ -418,6 +418,60 @@ namespace Orthanc
   }
 
 
+
+
+  bool ServerIndex::GetMetadataAsInteger(int& result,
+                                         int64_t id,
+                                         MetadataType type)
+  {
+    std::string s = db_->GetMetadata(id, type, "");
+    if (s.size() == 0)
+    {
+      return false;
+    }
+
+    try
+    {
+      result = boost::lexical_cast<int>(s);
+      return true;
+    }
+    catch (boost::bad_lexical_cast&)
+    {
+      return false;
+    }
+  }
+
+
+
+  uint64_t ServerIndex::IncrementGlobalSequenceInternal(GlobalProperty property)
+  {
+    std::string oldValue;
+
+    if (db_->LookupGlobalProperty(oldValue, property))
+    {
+      uint64_t oldNumber;
+
+      try
+      {
+        oldNumber = boost::lexical_cast<uint64_t>(oldValue);
+        db_->SetGlobalProperty(property, boost::lexical_cast<std::string>(oldNumber + 1));
+        return oldNumber + 1;
+      }
+      catch (boost::bad_lexical_cast&)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+    else
+    {
+      // Initialize the sequence at "1"
+      db_->SetGlobalProperty(property, "1");
+      return 1;
+    }
+  }
+
+
+
   ServerIndex::ServerIndex(ServerContext& context,
                            const std::string& dbPath) : 
     done_(false),
@@ -672,7 +726,7 @@ namespace Orthanc
       SeriesStatus seriesStatus = GetSeriesStatus(series);
       if (seriesStatus == SeriesStatus_Complete)
       {
-        db_->LogChange(series, ChangeType_CompletedSeries, ResourceType_Series, hasher.HashSeries());
+        LogChange(series, ChangeType_CompletedSeries, ResourceType_Series, hasher.HashSeries());
       }
 
       // Mark the parent resources of this instance as unstable
@@ -883,7 +937,7 @@ namespace Orthanc
         result["Status"] = EnumerationToString(GetSeriesStatus(id));
 
         int i;
-        if (db_->GetMetadataAsInteger(i, id, MetadataType_Series_ExpectedNumberOfInstances))
+        if (GetMetadataAsInteger(i, id, MetadataType_Series_ExpectedNumberOfInstances))
           result["ExpectedNumberOfInstances"] = i;
         else
           result["ExpectedNumberOfInstances"] = Json::nullValue;
@@ -905,7 +959,7 @@ namespace Orthanc
         result["FileUuid"] = attachment.GetUuid();
 
         int i;
-        if (db_->GetMetadataAsInteger(i, id, MetadataType_Instance_IndexInSeries))
+        if (GetMetadataAsInteger(i, id, MetadataType_Instance_IndexInSeries))
           result["IndexInSeries"] = i;
         else
           result["IndexInSeries"] = Json::nullValue;
@@ -1446,7 +1500,7 @@ namespace Orthanc
     std::auto_ptr<SQLite::ITransaction> transaction(db_->StartTransaction());
 
     transaction->Begin();
-    uint64_t seq = db_->IncrementGlobalSequence(sequence);
+    uint64_t seq = IncrementGlobalSequenceInternal(sequence);
     transaction->Commit();
 
     return seq;
@@ -1468,7 +1522,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_UnknownResource);
     }
 
-    db_->LogChange(id, changeType, type, publicId);
+    LogChange(id, changeType, type, publicId);
 
     transaction->Commit();
   }
@@ -1668,15 +1722,15 @@ namespace Orthanc
           switch (payload.GetResourceType())
           {
             case ResourceType_Patient:
-              that->db_->LogChange(id, ChangeType_StablePatient, ResourceType_Patient, payload.GetPublicId());
+              that->LogChange(id, ChangeType_StablePatient, ResourceType_Patient, payload.GetPublicId());
               break;
 
             case ResourceType_Study:
-              that->db_->LogChange(id, ChangeType_StableStudy, ResourceType_Study, payload.GetPublicId());
+              that->LogChange(id, ChangeType_StableStudy, ResourceType_Study, payload.GetPublicId());
               break;
 
             case ResourceType_Series:
-              that->db_->LogChange(id, ChangeType_StableSeries, ResourceType_Series, payload.GetPublicId());
+              that->LogChange(id, ChangeType_StableSeries, ResourceType_Series, payload.GetPublicId());
               break;
 
             default:
@@ -1706,7 +1760,7 @@ namespace Orthanc
     unstableResources_.AddOrMakeMostRecent(id, payload);
     //LOG(INFO) << "Unstable resource: " << EnumerationToString(type) << " " << id;
 
-    db_->LogChange(id, ChangeType_NewChildInstance, type, publicId);
+    LogChange(id, ChangeType_NewChildInstance, type, publicId);
   }
 
 

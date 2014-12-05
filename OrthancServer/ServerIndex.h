@@ -103,6 +103,22 @@ namespace Orthanc
                                /* in  */ int64_t id,
                                /* in  */ ResourceType type);
 
+    bool GetMetadataAsInteger(int& result,
+                              int64_t id,
+                              MetadataType type);
+
+    void LogChange(int64_t internalId,
+                   ChangeType changeType,
+                   ResourceType resourceType,
+                   const std::string& publicId)
+    {
+      ServerIndexChange change(changeType, resourceType, publicId);
+      db_->LogChange(internalId, change);
+    }
+
+    uint64_t IncrementGlobalSequenceInternal(GlobalProperty property);
+
+
   public:
     ServerIndex(ServerContext& context,
                 const std::string& dbPath);

@@ -122,10 +122,6 @@ namespace Orthanc
                             MetadataType type,
                             const std::string& defaultValue);
 
-    bool GetMetadataAsInteger(int& result,
-                              int64_t id,
-                              MetadataType type);
-
     void AddAttachment(int64_t id,
                        const FileInfo& attachment);
 
@@ -153,15 +149,6 @@ namespace Orthanc
 
     void GetChildrenInternalId(std::list<int64_t>& result,
                                int64_t id);
-
-    void LogChange(int64_t internalId,
-                   ChangeType changeType,
-                   ResourceType resourceType,
-                   const std::string& publicId)
-    {
-      ServerIndexChange change(changeType, resourceType, publicId);
-      LogChange(internalId, change);
-    }
 
     void LogChange(int64_t internalId,
                    const ServerIndexChange& change);
@@ -228,8 +215,6 @@ namespace Orthanc
     {
       db_.FlushToDisk();
     }
-
-    uint64_t IncrementGlobalSequence(GlobalProperty property);
 
     void ClearTable(const std::string& tableName);
 
