@@ -345,9 +345,10 @@ namespace Orthanc
     try
     {
       boost::mutex::scoped_lock lock(that->mutex_);
-      std::string sleepString = that->db_->GetGlobalProperty(GlobalProperty_FlushSleep, "");
+      std::string sleepString;
 
-      if (Toolbox::IsInteger(sleepString))
+      if (that->db_->LookupGlobalProperty(sleepString, GlobalProperty_FlushSleep) &&
+          Toolbox::IsInteger(sleepString))
       {
         sleep = boost::lexical_cast<unsigned int>(sleepString);
       }
@@ -1917,7 +1918,16 @@ namespace Orthanc
                                              const std::string& defaultValue)
   {
     boost::mutex::scoped_lock lock(mutex_);
-    return db_->GetGlobalProperty(property, defaultValue);
+
+    std::string value;
+    if (db_->LookupGlobalProperty(value, property))
+    {
+      return value;
+    }
+    else
+    {
+      return defaultValue;
+    }
   }
 
 }

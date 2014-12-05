@@ -213,20 +213,6 @@ namespace Orthanc
     }
   }
 
-  std::string DatabaseWrapper::GetGlobalProperty(GlobalProperty property,
-                                                 const std::string& defaultValue)
-  {
-    std::string s;
-    if (LookupGlobalProperty(s, property))
-    {
-      return s;
-    }
-    else
-    {
-      return defaultValue;
-    }
-  }
-
   int64_t DatabaseWrapper::CreateResource(const std::string& publicId,
                                           ResourceType type)
   {
@@ -874,7 +860,12 @@ namespace Orthanc
     }
 
     // Check the version of the database
-    std::string version = GetGlobalProperty(GlobalProperty_DatabaseSchemaVersion, "Unknown");
+    std::string version;
+    if (!LookupGlobalProperty(version, GlobalProperty_DatabaseSchemaVersion))
+    {
+      version = "Unknown";
+    }
+
     bool ok = false;
     try
     {

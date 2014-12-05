@@ -79,9 +79,6 @@ namespace Orthanc
     bool LookupGlobalProperty(std::string& target,
                               GlobalProperty property);
 
-    std::string GetGlobalProperty(GlobalProperty property,
-                                  const std::string& defaultValue);
-
     int64_t CreateResource(const std::string& publicId,
                            ResourceType type);
 
