@@ -120,7 +120,7 @@ namespace Orthanc
 
     std::string GetMetadata(int64_t id,
                             MetadataType type,
-                            const std::string& defaultValue = "");
+                            const std::string& defaultValue);
 
     bool GetMetadataAsInteger(int& result,
                               int64_t id,
@@ -179,8 +179,7 @@ namespace Orthanc
                              const std::string& studyInstanceUid,
                              const std::string& seriesInstanceUid,
                              const std::string& sopInstanceUid,
-                             const boost::posix_time::ptime& date = 
-                             boost::posix_time::second_clock::local_time());
+                             const boost::posix_time::ptime& date);
     
     void GetExportedResources(Json::Value& target,
                               int64_t since,
