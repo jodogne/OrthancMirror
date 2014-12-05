@@ -336,16 +336,17 @@ namespace Orthanc
     s.Run();
   }
 
-  void DatabaseWrapper::GetChildren(Json::Value& childrenPublicIds,
+
+  void DatabaseWrapper::GetChildren(std::list<std::string>& childrenPublicIds,
                                     int64_t id)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT publicId FROM Resources WHERE parentId=?");
     s.BindInt64(0, id);
 
-    childrenPublicIds = Json::arrayValue;
+    childrenPublicIds.clear();
     while (s.Step())
     {
-      childrenPublicIds.append(s.ColumnString(0));
+      childrenPublicIds.push_back(s.ColumnString(0));
     }
   }
 
@@ -788,16 +789,16 @@ namespace Orthanc
     return static_cast<uint64_t>(s.ColumnInt64(0));
   }
 
-  void DatabaseWrapper::GetAllPublicIds(Json::Value& target,
+  void DatabaseWrapper::GetAllPublicIds(std::list<std::string>& target,
                                         ResourceType resourceType)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT publicId FROM Resources WHERE resourceType=?");
     s.BindInt(0, resourceType);
 
-    target = Json::arrayValue;
+    target.clear();
     while (s.Step())
     {
-      target.append(s.ColumnString(0));
+      target.push_back(s.ColumnString(0));
     }
   }
 

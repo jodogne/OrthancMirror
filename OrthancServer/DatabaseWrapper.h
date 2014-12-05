@@ -96,9 +96,6 @@ namespace Orthanc
     void AttachChild(int64_t parent,
                      int64_t child);
 
-    void GetChildren(Json::Value& childrenPublicIds,
-                     int64_t id);
-
     void DeleteResource(int64_t id);
 
     void SetMetadata(int64_t id,
@@ -134,9 +131,6 @@ namespace Orthanc
     void GetMainDicomTags(DicomMap& map,
                           int64_t id);
 
-    bool GetParentPublicId(std::string& result,
-                           int64_t id);
-
     void GetChildrenPublicId(std::list<std::string>& result,
                              int64_t id);
 
@@ -168,16 +162,13 @@ namespace Orthanc
 
     void GetLastExportedResource(Json::Value& target);
 
-    // For unit testing only!
-    int64_t GetTableRecordCount(const std::string& table);
-    
     uint64_t GetTotalCompressedSize();
     
     uint64_t GetTotalUncompressedSize();
 
     uint64_t GetResourceCount(ResourceType resourceType);
 
-    void GetAllPublicIds(Json::Value& target,
+    void GetAllPublicIds(std::list<std::string>& target,
                          ResourceType resourceType);
 
     bool SelectPatientToRecycle(int64_t& internalId);
@@ -223,5 +214,21 @@ namespace Orthanc
 
     void GetAllMetadata(std::map<MetadataType, std::string>& result,
                         int64_t id);
+
+
+
+
+    /**
+     * The methods declared below are for unit testing only!
+     **/
+
+    void GetChildren(std::list<std::string>& childrenPublicIds,
+                     int64_t id);
+
+    int64_t GetTableRecordCount(const std::string& table);
+    
+    bool GetParentPublicId(std::string& result,
+                           int64_t id);
+
   };
 }

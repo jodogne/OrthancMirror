@@ -156,15 +156,15 @@ TEST_P(DatabaseWrapperTest, Simple)
   ASSERT_EQ(ResourceType_Study, index_->GetResourceType(a[6]));
 
   {
-    Json::Value t;
+    std::list<std::string> t;
     index_->GetAllPublicIds(t, ResourceType_Patient);
 
     ASSERT_EQ(1u, t.size());
-    ASSERT_EQ("a", t[0u].asString());
+    ASSERT_EQ("a", t.front());
 
     index_->GetAllPublicIds(t, ResourceType_Series);
     ASSERT_EQ(1u, t.size());
-    ASSERT_EQ("c", t[0u].asString());
+    ASSERT_EQ("c", t.front());
 
     index_->GetAllPublicIds(t, ResourceType_Study);
     ASSERT_EQ(2u, t.size());
@@ -353,25 +353,25 @@ TEST_P(DatabaseWrapperTest, Upward)
   index_->AttachChild(a[5], a[7]);
 
   {
-    Json::Value j;
+    std::list<std::string> j;
     index_->GetChildren(j, a[0]);
     ASSERT_EQ(2u, j.size());
-    ASSERT_TRUE((j[0u] == "b" && j[1u] == "f") ||
-                (j[1u] == "b" && j[0u] == "f"));
+    ASSERT_TRUE((j.front() == "b" && j.back() == "f") ||
+                (j.back() == "b" && j.front() == "f"));
 
     index_->GetChildren(j, a[1]);
     ASSERT_EQ(2u, j.size());
-    ASSERT_TRUE((j[0u] == "c" && j[1u] == "g") ||
-                (j[1u] == "c" && j[0u] == "g"));
+    ASSERT_TRUE((j.front() == "c" && j.back() == "g") ||
+                (j.back() == "c" && j.front() == "g"));
 
     index_->GetChildren(j, a[2]);
     ASSERT_EQ(2u, j.size());
-    ASSERT_TRUE((j[0u] == "d" && j[1u] == "e") ||
-                (j[1u] == "d" && j[0u] == "e"));
+    ASSERT_TRUE((j.front() == "d" && j.back() == "e") ||
+                (j.back() == "d" && j.front() == "e"));
 
     index_->GetChildren(j, a[3]); ASSERT_EQ(0u, j.size());
     index_->GetChildren(j, a[4]); ASSERT_EQ(0u, j.size());
-    index_->GetChildren(j, a[5]); ASSERT_EQ(1u, j.size()); ASSERT_EQ("h", j[0u].asString());
+    index_->GetChildren(j, a[5]); ASSERT_EQ(1u, j.size()); ASSERT_EQ("h", j.front());
     index_->GetChildren(j, a[6]); ASSERT_EQ(0u, j.size());
     index_->GetChildren(j, a[7]); ASSERT_EQ(0u, j.size());
   }
