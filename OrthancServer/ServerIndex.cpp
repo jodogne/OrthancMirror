@@ -43,7 +43,6 @@
 #include "../Core/Toolbox.h"
 #include "../Core/Uuid.h"
 #include "../Core/DicomFormat/DicomArray.h"
-#include "../Core/SQLite/Transaction.h"
 #include "FromDcmtkBridge.h"
 #include "ServerContext.h"
 
@@ -214,7 +213,7 @@ namespace Orthanc
   {
   private:
     ServerIndex& index_;
-    std::auto_ptr<SQLite::Transaction> transaction_;
+    std::auto_ptr<SQLite::ITransaction> transaction_;
     bool isCommitted_;
 
   public:
@@ -1059,7 +1058,7 @@ namespace Orthanc
       }
     }
 
-    // No need for a SQLite::Transaction here, as we only insert 1 record
+    // No need for a SQLite::ITransaction here, as we only insert 1 record
     db_->LogExportedResource(type,
                              publicId,
                              remoteModality,
@@ -1233,7 +1232,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    // No need for a SQLite::Transaction here, as we only make 1 write to the DB
+    // No need for a SQLite::ITransaction here, as we only make 1 write to the DB
     db_->SetProtectedPatient(id, isProtected);
 
     if (isProtected)
@@ -1437,7 +1436,7 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(mutex_);
 
-    std::auto_ptr<SQLite::Transaction> transaction(db_->StartTransaction());
+    std::auto_ptr<SQLite::ITransaction> transaction(db_->StartTransaction());
 
     transaction->Begin();
     uint64_t seq = db_->IncrementGlobalSequence(sequence);
@@ -1452,7 +1451,7 @@ namespace Orthanc
                               const std::string& publicId)
   {
     boost::mutex::scoped_lock lock(mutex_);
-    std::auto_ptr<SQLite::Transaction> transaction(db_->StartTransaction());
+    std::auto_ptr<SQLite::ITransaction> transaction(db_->StartTransaction());
     transaction->Begin();
 
     int64_t id;

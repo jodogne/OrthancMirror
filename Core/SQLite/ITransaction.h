@@ -37,35 +37,30 @@
 
 #pragma once
 
-#include "Connection.h"
-#include "ITransaction.h"
+#include "NonCopyable.h"
 
 namespace Orthanc
 {
   namespace SQLite
   {
-    class Transaction : public ITransaction
+    class ITransaction : public NonCopyable
     {
-    private:
-      Connection& connection_;
-
-      // True when the transaction is open, false when it's already been committed
-      // or rolled back.
-      bool isOpen_;
-
     public:
-      explicit Transaction(Connection& connection);
+      virtual ~ITransaction()
+      {
+      }
 
-      virtual ~Transaction();
+      // Begins the transaction. This uses the default sqlite "deferred" transaction
+      // type, which means that the DB lock is lazily acquired the next time the
+      // database is accessed, not in the begin transaction command.
+      virtual void Begin() = 0;
 
-      // Returns true when there is a transaction that has been successfully begun.
-      bool IsOpen() const { return isOpen_; }
+      // Rolls back the transaction. This will happen automatically if you do
+      // nothing when the transaction goes out of scope.
+      virtual void Rollback() = 0;
 
-      virtual void Begin();
-
-      virtual void Rollback();
-
-      virtual void Commit();
+      // Commits the transaction, returning true on success.
+      virtual void Commit() = 0;
     };
   }
 }
