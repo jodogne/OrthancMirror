@@ -268,8 +268,11 @@ TEST_P(DatabaseWrapperTest, Simple)
   ASSERT_TRUE(index_->LookupMetadata(s, a[4], MetadataType_Instance_RemoteAet));
   ASSERT_FALSE(index_->LookupMetadata(s, a[4], MetadataType_Instance_IndexInSeries));
   ASSERT_EQ("PINNACLE", s);
-  ASSERT_EQ("PINNACLE", index_->GetMetadata(a[4], MetadataType_Instance_RemoteAet, ""));
-  ASSERT_EQ("None", index_->GetMetadata(a[4], MetadataType_Instance_IndexInSeries, "None"));
+
+  std::string u;
+  ASSERT_TRUE(index_->LookupMetadata(u, a[4], MetadataType_Instance_RemoteAet));
+  ASSERT_EQ("PINNACLE", u);
+  ASSERT_FALSE(index_->LookupMetadata(u, a[4], MetadataType_Instance_IndexInSeries));
 
   ASSERT_TRUE(index_->LookupGlobalProperty(s, GlobalProperty_FlushSleep));
   ASSERT_FALSE(index_->LookupGlobalProperty(s, static_cast<GlobalProperty>(42)));

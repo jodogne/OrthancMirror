@@ -118,10 +118,6 @@ namespace Orthanc
     void ListAvailableMetadata(std::list<MetadataType>& target,
                                int64_t id);
 
-    std::string GetMetadata(int64_t id,
-                            MetadataType type,
-                            const std::string& defaultValue);
-
     void AddAttachment(int64_t id,
                        const FileInfo& attachment);
 

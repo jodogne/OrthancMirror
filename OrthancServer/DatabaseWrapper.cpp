@@ -434,23 +434,6 @@ namespace Orthanc
   }
 
 
-  std::string DatabaseWrapper::GetMetadata(int64_t id,
-                                           MetadataType type,
-                                           const std::string& defaultValue)
-  {
-    std::string s;
-    if (LookupMetadata(s, id, type))
-    {
-      return s;
-    }
-    else
-    {
-      return defaultValue;
-    }
-  }
-
-
-
   void DatabaseWrapper::AddAttachment(int64_t id,
                                       const FileInfo& attachment)
   {

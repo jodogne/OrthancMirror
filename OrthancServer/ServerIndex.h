@@ -103,7 +103,7 @@ namespace Orthanc
                                /* in  */ int64_t id,
                                /* in  */ ResourceType type);
 
-    bool GetMetadataAsInteger(int& result,
+    bool GetMetadataAsInteger(int64_t& result,
                               int64_t id,
                               MetadataType type);
 
