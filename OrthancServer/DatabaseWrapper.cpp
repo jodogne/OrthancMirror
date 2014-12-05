@@ -601,13 +601,11 @@ namespace Orthanc
   {
     if (change.GetChangeType() <= ChangeType_INTERNAL_LastLogged)
     {
-      const boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
-
       SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Changes VALUES(NULL, ?, ?, ?, ?)");
       s.BindInt(0, change.GetChangeType());
       s.BindInt64(1, internalId);
       s.BindInt(2, change.GetResourceType());
-      s.BindString(3, boost::posix_time::to_iso_string(now));
+      s.BindString(3, change.GetDate());
       s.Run();
     }
 
@@ -615,56 +613,44 @@ namespace Orthanc
   }
 
 
-  void DatabaseWrapper::GetChangesInternal(Json::Value& target,
+  void DatabaseWrapper::GetChangesInternal(std::list<ServerIndexChange>& target,
+                                           bool& done,
                                            SQLite::Statement& s,
-                                           int64_t since,
                                            unsigned int maxResults)
   {
-    Json::Value changes = Json::arrayValue;
-    int64_t last = since;
-
-    while (changes.size() < maxResults && s.Step())
+    while (target.size() < maxResults && s.Step())
     {
       int64_t seq = s.ColumnInt64(0);
       ChangeType changeType = static_cast<ChangeType>(s.ColumnInt(1));
-      int64_t internalId = s.ColumnInt64(2);
       ResourceType resourceType = static_cast<ResourceType>(s.ColumnInt(3));
       const std::string& date = s.ColumnString(4);
+
+      int64_t internalId = s.ColumnInt64(2);
       std::string publicId = GetPublicId(internalId);
 
-      Json::Value item = Json::objectValue;
-      item["Seq"] = static_cast<int>(seq);
-      item["ChangeType"] = EnumerationToString(changeType);
-      item["ResourceType"] = EnumerationToString(resourceType);
-      item["ID"] = publicId;
-      item["Path"] = GetBasePath(resourceType, publicId);
-      item["Date"] = date;
-      last = seq;
-
-      changes.append(item);
+      target.push_back(ServerIndexChange(seq, changeType, resourceType, publicId, date));
     }
 
-    target = Json::objectValue;
-    target["Changes"] = changes;
-    target["Done"] = !(changes.size() == maxResults && s.Step());
-    target["Last"] = static_cast<int>(last);
+    done = !(target.size() == maxResults && s.Step());
   }
 
 
-  void DatabaseWrapper::GetChanges(Json::Value& target,
+  void DatabaseWrapper::GetChanges(std::list<ServerIndexChange>& target,
+                                   bool& done,
                                    int64_t since,
                                    unsigned int maxResults)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT * FROM Changes WHERE seq>? ORDER BY seq LIMIT ?");
     s.BindInt64(0, since);
     s.BindInt(1, maxResults + 1);
-    GetChangesInternal(target, s, since, maxResults);
+    GetChangesInternal(target, done, s, maxResults);
   }
 
-  void DatabaseWrapper::GetLastChange(Json::Value& target)
+  void DatabaseWrapper::GetLastChange(std::list<ServerIndexChange>& target)
   {
+    bool done;  // Ignored
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT * FROM Changes ORDER BY seq DESC LIMIT 1");
-    GetChangesInternal(target, s, 0, 1);
+    GetChangesInternal(target, done, s, 1);
   }
 
 

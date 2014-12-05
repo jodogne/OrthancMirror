@@ -62,9 +62,9 @@ namespace Orthanc
 
     void Open();
 
-    void GetChangesInternal(Json::Value& target,
+    void GetChangesInternal(std::list<ServerIndexChange>& target,
+                            bool& done,
                             SQLite::Statement& s,
-                            int64_t since,
                             unsigned int maxResults);
 
     void GetExportedResourcesInternal(Json::Value& target,
@@ -146,11 +146,12 @@ namespace Orthanc
     void LogChange(int64_t internalId,
                    const ServerIndexChange& change);
 
-    void GetChanges(Json::Value& target,
+    void GetChanges(std::list<ServerIndexChange>& target /* out */,
+                    bool& done /* out */,
                     int64_t since,
                     unsigned int maxResults);
 
-    void GetLastChange(Json::Value& target);
+    void GetLastChange(std::list<ServerIndexChange>& target /* out */);
 
     void LogExportedResource(ResourceType resourceType,
                              const std::string& publicId,

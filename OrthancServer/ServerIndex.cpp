@@ -1027,21 +1027,59 @@ namespace Orthanc
   }
 
 
+  static void FormatChanges(Json::Value& target,
+                            const std::list<ServerIndexChange>& changes,
+                            bool done,
+                            int64_t since)
+  {
+    Json::Value items = Json::arrayValue;
+    for (std::list<ServerIndexChange>::const_iterator
+           it = changes.begin(); it != changes.end(); it++)
+    {
+      Json::Value item;
+      it->Format(item);
+      items.append(item);
+    }
+
+    target = Json::objectValue;
+    target["Changes"] = items;
+    target["Done"] = done;
+
+    int64_t last = (changes.size() == 0 ? since : changes.back().GetSeq());
+    target["Last"] = static_cast<int>(last);
+  }
+
+
   bool ServerIndex::GetChanges(Json::Value& target,
                                int64_t since,                               
                                unsigned int maxResults)
   {
-    boost::mutex::scoped_lock lock(mutex_);
-    db_->GetChanges(target, since, maxResults);
+    std::list<ServerIndexChange> changes;
+    bool done;
+
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+      db_->GetChanges(changes, done, since, maxResults);
+    }
+
+    FormatChanges(target, changes, done, since);
     return true;
   }
 
+
   bool ServerIndex::GetLastChange(Json::Value& target)
   {
-    boost::mutex::scoped_lock lock(mutex_);
-    db_->GetLastChange(target);
+    std::list<ServerIndexChange> changes;
+
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+      db_->GetLastChange(changes);
+    }
+
+    FormatChanges(target, changes, true, 0);
     return true;
   }
+
 
   void ServerIndex::LogExportedResource(const std::string& publicId,
                                         const std::string& remoteModality)

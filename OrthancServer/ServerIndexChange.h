@@ -33,26 +33,55 @@
 #pragma once
 
 #include "ServerEnumerations.h"
+#include "../Core/Toolbox.h"
 
 #include <string>
+#include <json/value.h>
 
 namespace Orthanc
 {
   struct ServerIndexChange
   {
   private:
+    int64_t      seq_;
     ChangeType   changeType_;
     ResourceType resourceType_;
     std::string  publicId_;
+    std::string  date_;
 
   public:
     ServerIndexChange(ChangeType changeType,
                       ResourceType resourceType,
-                      const std::string&  publicId) :
+                      const std::string& publicId) :
+      seq_(-1),
       changeType_(changeType),
       resourceType_(resourceType),
-      publicId_(publicId)
+      publicId_(publicId),
+      date_(Toolbox::GetNowIsoString())
     {
+    }
+
+    ServerIndexChange(int64_t seq,
+                      ChangeType changeType,
+                      ResourceType resourceType,
+                      const std::string& publicId,
+                      const std::string& date) :
+      seq_(seq),
+      changeType_(changeType),
+      resourceType_(resourceType),
+      publicId_(publicId),
+      date_(date)
+    {
+    }
+
+    int64_t  GetSeq() const
+    {
+      return seq_;
+    }
+
+    void  SetSeq(int64_t seq)
+    {
+      seq_ = seq;
     }
 
     ChangeType  GetChangeType() const
@@ -68,6 +97,22 @@ namespace Orthanc
     const std::string&  GetPublicId() const
     {
       return publicId_;
+    }
+
+    const std::string& GetDate() const
+    {
+      return date_;
+    }
+
+    void Format(Json::Value& item) const
+    {
+      item = Json::objectValue;
+      item["Seq"] = static_cast<int>(seq_);
+      item["ChangeType"] = EnumerationToString(changeType_);
+      item["ResourceType"] = EnumerationToString(resourceType_);
+      item["ID"] = publicId_;
+      item["Path"] = GetBasePath(resourceType_, publicId_);
+      item["Date"] = date_;
     }
   };
 }
