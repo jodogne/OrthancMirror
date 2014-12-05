@@ -718,7 +718,7 @@ namespace Orthanc
   SeriesStatus ServerIndex::GetSeriesStatus(int64_t id)
   {
     // Get the expected number of instances in this series (from the metadata)
-    std::string s = db_->GetMetadata(id, MetadataType_Series_ExpectedNumberOfInstances);
+    std::string s = db_->GetMetadata(id, MetadataType_Series_ExpectedNumberOfInstances, "");
 
     size_t expected;
     try
@@ -739,7 +739,7 @@ namespace Orthanc
            it = children.begin(); it != children.end(); ++it)
     {
       // Get the index of this instance in the series
-      s = db_->GetMetadata(*it, MetadataType_Instance_IndexInSeries);
+      s = db_->GetMetadata(*it, MetadataType_Instance_IndexInSeries, "");
       size_t index;
       try
       {
@@ -923,13 +923,17 @@ namespace Orthanc
 
     std::string tmp;
 
-    tmp = db_->GetMetadata(id, MetadataType_AnonymizedFrom);
+    tmp = db_->GetMetadata(id, MetadataType_AnonymizedFrom, "");
     if (tmp.size() != 0)
+    {
       result["AnonymizedFrom"] = tmp;
+    }
 
-    tmp = db_->GetMetadata(id, MetadataType_ModifiedFrom);
+    tmp = db_->GetMetadata(id, MetadataType_ModifiedFrom, "");
     if (tmp.size() != 0)
+    {
       result["ModifiedFrom"] = tmp;
+    }
 
     if (type == ResourceType_Patient ||
         type == ResourceType_Study ||
@@ -937,9 +941,11 @@ namespace Orthanc
     {
       result["IsStable"] = !unstableResources_.Contains(id);
 
-      tmp = db_->GetMetadata(id, MetadataType_LastUpdate);
+      tmp = db_->GetMetadata(id, MetadataType_LastUpdate, "");
       if (tmp.size() != 0)
+      {
         result["LastUpdate"] = tmp;
+      }
     }
 
     return true;
@@ -1065,7 +1071,8 @@ namespace Orthanc
                              patientId,
                              studyInstanceUid,
                              seriesInstanceUid,
-                             sopInstanceUid);
+                             sopInstanceUid,
+                             boost::posix_time::second_clock::local_time());
   }
 
 
@@ -1852,7 +1859,7 @@ namespace Orthanc
            it = metadata.begin(); it != metadata.end(); it++)
     {
       std::string key = EnumerationToString(*it);
-      std::string value = db_->GetMetadata(id, *it);
+      std::string value = db_->GetMetadata(id, *it, "");
       target[key] = value;
     }
 
