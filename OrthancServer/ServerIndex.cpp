@@ -420,19 +420,19 @@ namespace Orthanc
 
 
 
-  bool ServerIndex::GetMetadataAsInteger(int& result,
+  bool ServerIndex::GetMetadataAsInteger(int64_t& result,
                                          int64_t id,
                                          MetadataType type)
   {
-    std::string s = db_->GetMetadata(id, type, "");
-    if (s.size() == 0)
+    std::string s;
+    if (!db_->LookupMetadata(s, id, type))
     {
       return false;
     }
 
     try
     {
-      result = boost::lexical_cast<int>(s);
+      result = boost::lexical_cast<int64_t>(s);
       return true;
     }
     catch (boost::bad_lexical_cast&)
@@ -772,14 +772,8 @@ namespace Orthanc
   SeriesStatus ServerIndex::GetSeriesStatus(int64_t id)
   {
     // Get the expected number of instances in this series (from the metadata)
-    std::string s = db_->GetMetadata(id, MetadataType_Series_ExpectedNumberOfInstances, "");
-
-    size_t expected;
-    try
-    {
-      expected = boost::lexical_cast<size_t>(s);
-    }
-    catch (boost::bad_lexical_cast&)
+    int64_t expected;
+    if (!GetMetadataAsInteger(expected, id, MetadataType_Series_ExpectedNumberOfInstances))
     {
       return SeriesStatus_Unknown;
     }
@@ -788,18 +782,13 @@ namespace Orthanc
     std::list<int64_t> children;
     db_->GetChildrenInternalId(children, id);
 
-    std::set<size_t> instances;
+    std::set<int64_t> instances;
     for (std::list<int64_t>::const_iterator 
            it = children.begin(); it != children.end(); ++it)
     {
       // Get the index of this instance in the series
-      s = db_->GetMetadata(*it, MetadataType_Instance_IndexInSeries, "");
-      size_t index;
-      try
-      {
-        index = boost::lexical_cast<size_t>(s);
-      }
-      catch (boost::bad_lexical_cast&)
+      int64_t index;
+      if (!GetMetadataAsInteger(index, *it, MetadataType_Instance_IndexInSeries))
       {
         return SeriesStatus_Unknown;
       }
@@ -819,7 +808,7 @@ namespace Orthanc
       instances.insert(index);
     }
 
-    if (instances.size() == expected)
+    if (static_cast<int64_t>(instances.size()) == expected)
     {
       return SeriesStatus_Complete;
     }
@@ -936,9 +925,9 @@ namespace Orthanc
         result["Type"] = "Series";
         result["Status"] = EnumerationToString(GetSeriesStatus(id));
 
-        int i;
+        int64_t i;
         if (GetMetadataAsInteger(i, id, MetadataType_Series_ExpectedNumberOfInstances))
-          result["ExpectedNumberOfInstances"] = i;
+          result["ExpectedNumberOfInstances"] = static_cast<int>(i);
         else
           result["ExpectedNumberOfInstances"] = Json::nullValue;
 
@@ -958,9 +947,9 @@ namespace Orthanc
         result["FileSize"] = static_cast<unsigned int>(attachment.GetUncompressedSize());
         result["FileUuid"] = attachment.GetUuid();
 
-        int i;
+        int64_t i;
         if (GetMetadataAsInteger(i, id, MetadataType_Instance_IndexInSeries))
-          result["IndexInSeries"] = i;
+          result["IndexInSeries"] = static_cast<int>(i);
         else
           result["IndexInSeries"] = Json::nullValue;
 
@@ -977,14 +966,12 @@ namespace Orthanc
 
     std::string tmp;
 
-    tmp = db_->GetMetadata(id, MetadataType_AnonymizedFrom, "");
-    if (tmp.size() != 0)
+    if (db_->LookupMetadata(tmp, id, MetadataType_AnonymizedFrom))
     {
       result["AnonymizedFrom"] = tmp;
     }
 
-    tmp = db_->GetMetadata(id, MetadataType_ModifiedFrom, "");
-    if (tmp.size() != 0)
+    if (db_->LookupMetadata(tmp, id, MetadataType_ModifiedFrom))
     {
       result["ModifiedFrom"] = tmp;
     }
@@ -995,8 +982,7 @@ namespace Orthanc
     {
       result["IsStable"] = !unstableResources_.Contains(id);
 
-      tmp = db_->GetMetadata(id, MetadataType_LastUpdate, "");
-      if (tmp.size() != 0)
+      if (db_->LookupMetadata(tmp, id, MetadataType_LastUpdate))
       {
         result["LastUpdate"] = tmp;
       }
@@ -1913,7 +1899,13 @@ namespace Orthanc
            it = metadata.begin(); it != metadata.end(); it++)
     {
       std::string key = EnumerationToString(*it);
-      std::string value = db_->GetMetadata(id, *it, "");
+
+      std::string value;
+      if (!db_->LookupMetadata(value, id, *it))
+      {
+        value.clear();
+      }
+
       target[key] = value;
     }
 
