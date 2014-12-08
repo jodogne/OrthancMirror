@@ -50,6 +50,7 @@
 #include "OrthancFindRequestHandler.h"
 #include "OrthancMoveRequestHandler.h"
 #include "ServerToolbox.h"
+#include "DatabaseWrapper.h"
 #include "../Plugins/Engine/PluginsManager.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
 
@@ -431,13 +432,29 @@ public:
 static bool StartOrthanc()
 {
   std::string storageDirectoryStr = Configuration::GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
+
+
+  // Open the database
   boost::filesystem::path indexDirectory = Configuration::InterpretStringParameterAsPath(
     Configuration::GetGlobalStringParameter("IndexDirectory", storageDirectoryStr));
+
+  std::auto_ptr<IDatabaseWrapper> database;
+  try
+  {
+    boost::filesystem::create_directories(indexDirectory);
+  }
+  catch (boost::filesystem::filesystem_error)
+  {
+  }
+
+  database.reset(new DatabaseWrapper(indexDirectory.string() + "/index"));
+
 
   // "storage" must be declared BEFORE "ServerContext context", to
   // avoid mess in the invokation order of the destructors.
   std::auto_ptr<IStorageArea>  storage;
-  ServerContext context(indexDirectory);
+
+  ServerContext context(*database);
 
   LOG(WARNING) << "Index directory: " << indexDirectory;
 

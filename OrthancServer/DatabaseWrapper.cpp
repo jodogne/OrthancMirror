@@ -39,6 +39,7 @@
 
 #include <glog/logging.h>
 #include <stdio.h>
+#include <boost/lexical_cast.hpp>
 
 namespace Orthanc
 {
@@ -359,10 +360,11 @@ namespace Orthanc
     s.BindInt64(0, id);
     s.Run();
 
-    if (signalRemainingAncestor_->HasRemainingAncestor())
+    if (signalRemainingAncestor_->HasRemainingAncestor() &&
+        listener_ != NULL)
     {
-      listener_.SignalRemainingAncestor(signalRemainingAncestor_->GetRemainingAncestorType(),
-                                        signalRemainingAncestor_->GetRemainingAncestorId());
+      listener_->SignalRemainingAncestor(signalRemainingAncestor_->GetRemainingAncestorType(),
+                                         signalRemainingAncestor_->GetRemainingAncestorId());
     }
   }
 
@@ -610,7 +612,8 @@ namespace Orthanc
       s.Run();
     }
 
-    listener_.SignalChange(change);
+    assert(listener_ != NULL);
+    listener_->SignalChange(change);
   }
 
 
@@ -785,16 +788,13 @@ namespace Orthanc
   }
 
 
-  DatabaseWrapper::DatabaseWrapper(const std::string& path,
-                                   IServerIndexListener& listener) :
-    listener_(listener)
+  DatabaseWrapper::DatabaseWrapper(const std::string& path) : listener_(NULL)
   {
     db_.Open(path);
     Open();
   }
 
-  DatabaseWrapper::DatabaseWrapper(IServerIndexListener& listener) :
-    listener_(listener)
+  DatabaseWrapper::DatabaseWrapper() : listener_(NULL)
   {
     db_.OpenInMemory();
     Open();
@@ -870,8 +870,13 @@ namespace Orthanc
 
     signalRemainingAncestor_ = new Internals::SignalRemainingAncestor;
     db_.Register(signalRemainingAncestor_);
-    db_.Register(new Internals::SignalFileDeleted(listener_));
-    db_.Register(new Internals::SignalResourceDeleted(listener_));
+  }
+
+  void DatabaseWrapper::SetListener(IServerIndexListener& listener)
+  {
+    listener_ = &listener;
+    db_.Register(new Internals::SignalFileDeleted(listener));
+    db_.Register(new Internals::SignalResourceDeleted(listener));
   }
 
   uint64_t DatabaseWrapper::GetResourceCount(ResourceType resourceType)

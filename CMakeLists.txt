@@ -164,6 +164,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/ServerToolbox.cpp
   OrthancServer/OrthancFindRequestHandler.cpp
   OrthancServer/OrthancMoveRequestHandler.cpp
+  OrthancServer/ExportedResource.cpp
 
   # From "lua-scripting" branch
   OrthancServer/DicomInstanceToStore.cpp

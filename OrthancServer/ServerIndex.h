@@ -40,7 +40,7 @@
 #include "../Core/DicomFormat/DicomInstanceHasher.h"
 #include "ServerEnumerations.h"
 
-#include "DatabaseWrapper.h"
+#include "IDatabaseWrapper.h"
 
 
 namespace Orthanc
@@ -68,7 +68,7 @@ namespace Orthanc
     boost::thread unstableResourcesMonitorThread_;
 
     std::auto_ptr<Internals::ServerIndexListener> listener_;
-    std::auto_ptr<DatabaseWrapper> db_;
+    IDatabaseWrapper& db_;
     LeastRecentlyUsedIndex<int64_t, UnstableResourcePayload>  unstableResources_;
 
     uint64_t currentStorageSize_;
@@ -113,7 +113,7 @@ namespace Orthanc
                    const std::string& publicId)
     {
       ServerIndexChange change(changeType, resourceType, publicId);
-      db_->LogChange(internalId, change);
+      db_.LogChange(internalId, change);
     }
 
     uint64_t IncrementGlobalSequenceInternal(GlobalProperty property);
@@ -121,7 +121,7 @@ namespace Orthanc
 
   public:
     ServerIndex(ServerContext& context,
-                const std::string& dbPath);
+                IDatabaseWrapper& database);
 
     ~ServerIndex();
 
@@ -164,20 +164,20 @@ namespace Orthanc
                         const std::string& uuid,
                         ResourceType expectedType);
 
-    bool GetChanges(Json::Value& target,
+    void GetChanges(Json::Value& target,
                     int64_t since,
                     unsigned int maxResults);
 
-    bool GetLastChange(Json::Value& target);
+    void GetLastChange(Json::Value& target);
 
     void LogExportedResource(const std::string& publicId,
                              const std::string& remoteModality);
 
-    bool GetExportedResources(Json::Value& target,
+    void GetExportedResources(Json::Value& target,
                               int64_t since,
                               unsigned int maxResults);
 
-    bool GetLastExportedResource(Json::Value& target);
+    void GetLastExportedResource(Json::Value& target);
 
     bool IsProtectedPatient(const std::string& publicId);
 

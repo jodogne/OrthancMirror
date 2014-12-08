@@ -137,7 +137,7 @@ namespace Orthanc
     };
 
 
-    ServerContext(const boost::filesystem::path& indexPath);
+    ServerContext(IDatabaseWrapper& database);
 
     void SetStorageArea(IStorageArea& storage)
     {

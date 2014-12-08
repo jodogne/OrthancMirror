@@ -221,9 +221,9 @@ namespace Orthanc
       index_(index),
       isCommitted_(false)
     {
-      assert(index_.currentStorageSize_ == index_.db_->GetTotalCompressedSize());
+      assert(index_.currentStorageSize_ == index_.db_.GetTotalCompressedSize());
 
-      transaction_.reset(index_.db_->StartTransaction());
+      transaction_.reset(index_.db_.StartTransaction());
       transaction_->Begin();
 
       index_.listener_->StartTransaction();
@@ -250,7 +250,7 @@ namespace Orthanc
         assert(index_.currentStorageSize_ >= index_.listener_->GetSizeOfFilesToRemove());
         index_.currentStorageSize_ -= index_.listener_->GetSizeOfFilesToRemove();
 
-        assert(index_.currentStorageSize_ == index_.db_->GetTotalCompressedSize());
+        assert(index_.currentStorageSize_ == index_.db_.GetTotalCompressedSize());
 
         // Send all the pending changes to the Orthanc plugins
         index_.listener_->CommitChanges();
@@ -308,13 +308,13 @@ namespace Orthanc
 
     int64_t id;
     ResourceType type;
-    if (!db_->LookupResource(uuid, id, type) ||
+    if (!db_.LookupResource(uuid, id, type) ||
         expectedType != type)
     {
       return false;
     }
       
-    db_->DeleteResource(id);
+    db_.DeleteResource(id);
 
     if (listener_->HasRemainingLevel())
     {
@@ -347,7 +347,7 @@ namespace Orthanc
       boost::mutex::scoped_lock lock(that->mutex_);
       std::string sleepString;
 
-      if (that->db_->LookupGlobalProperty(sleepString, GlobalProperty_FlushSleep) &&
+      if (that->db_.LookupGlobalProperty(sleepString, GlobalProperty_FlushSleep) &&
           Toolbox::IsInteger(sleepString))
       {
         sleep = boost::lexical_cast<unsigned int>(sleepString);
@@ -371,7 +371,7 @@ namespace Orthanc
       }
 
       boost::mutex::scoped_lock lock(that->mutex_);
-      that->db_->FlushToDisk();
+      that->db_.FlushToDisk();
       count = 0;
     }
 
@@ -379,7 +379,7 @@ namespace Orthanc
   }
 
 
-  static void ComputeExpectedNumberOfInstances(DatabaseWrapper& db,
+  static void ComputeExpectedNumberOfInstances(IDatabaseWrapper& db,
                                                int64_t series,
                                                const DicomMap& dicomSummary)
   {
@@ -426,7 +426,7 @@ namespace Orthanc
                                          MetadataType type)
   {
     std::string s;
-    if (!db_->LookupMetadata(s, id, type))
+    if (!db_.LookupMetadata(s, id, type))
     {
       return false;
     }
@@ -448,14 +448,14 @@ namespace Orthanc
   {
     std::string oldValue;
 
-    if (db_->LookupGlobalProperty(oldValue, property))
+    if (db_.LookupGlobalProperty(oldValue, property))
     {
       uint64_t oldNumber;
 
       try
       {
         oldNumber = boost::lexical_cast<uint64_t>(oldValue);
-        db_->SetGlobalProperty(property, boost::lexical_cast<std::string>(oldNumber + 1));
+        db_.SetGlobalProperty(property, boost::lexical_cast<std::string>(oldNumber + 1));
         return oldNumber + 1;
       }
       catch (boost::bad_lexical_cast&)
@@ -466,7 +466,7 @@ namespace Orthanc
     else
     {
       // Initialize the sequence at "1"
-      db_->SetGlobalProperty(property, "1");
+      db_.SetGlobalProperty(property, "1");
       return 1;
     }
   }
@@ -474,33 +474,16 @@ namespace Orthanc
 
 
   ServerIndex::ServerIndex(ServerContext& context,
-                           const std::string& dbPath) : 
+                           IDatabaseWrapper& db) : 
     done_(false),
+    db_(db),
     maximumStorageSize_(0),
     maximumPatients_(0)
   {
     listener_.reset(new Internals::ServerIndexListener(context));
+    db_.SetListener(*listener_);
 
-    if (dbPath == ":memory:")
-    {
-      db_.reset(new DatabaseWrapper(*listener_));
-    }
-    else
-    {
-      boost::filesystem::path p = dbPath;
-
-      try
-      {
-        boost::filesystem::create_directories(p);
-      }
-      catch (boost::filesystem::filesystem_error)
-      {
-      }
-
-      db_.reset(new DatabaseWrapper(p.string() + "/index", *listener_));
-    }
-
-    currentStorageSize_ = db_->GetTotalCompressedSize();
+    currentStorageSize_ = db_.GetTotalCompressedSize();
 
     // Initial recycling if the parameters have changed since the last
     // execution of Orthanc
@@ -547,10 +530,10 @@ namespace Orthanc
       {
         ResourceType type;
         int64_t tmp;
-        if (db_->LookupResource(hasher.HashInstance(), tmp, type))
+        if (db_.LookupResource(hasher.HashInstance(), tmp, type))
         {
           assert(type == ResourceType_Instance);
-          db_->GetAllMetadata(instanceMetadata, tmp);
+          db_.GetAllMetadata(instanceMetadata, tmp);
           return StoreStatus_AlreadyStored;
         }
       }
@@ -566,11 +549,11 @@ namespace Orthanc
       Recycle(instanceSize, hasher.HashPatient());
 
       // Create the instance
-      int64_t instance = db_->CreateResource(hasher.HashInstance(), ResourceType_Instance);
+      int64_t instance = db_.CreateResource(hasher.HashInstance(), ResourceType_Instance);
 
       DicomMap dicom;
       dicomSummary.ExtractInstanceInformation(dicom);
-      db_->SetMainDicomTags(instance, dicom);
+      db_.SetMainDicomTags(instance, dicom);
 
       // Detect up to which level the patient/study/series/instance
       // hierarchy must be created
@@ -582,26 +565,26 @@ namespace Orthanc
       {
         ResourceType dummy;
 
-        if (db_->LookupResource(hasher.HashSeries(), series, dummy))
+        if (db_.LookupResource(hasher.HashSeries(), series, dummy))
         {
           assert(dummy == ResourceType_Series);
           // The patient, the study and the series already exist
 
-          bool ok = (db_->LookupResource(hasher.HashPatient(), patient, dummy) &&
-                     db_->LookupResource(hasher.HashStudy(), study, dummy));
+          bool ok = (db_.LookupResource(hasher.HashPatient(), patient, dummy) &&
+                     db_.LookupResource(hasher.HashStudy(), study, dummy));
           assert(ok);
         }
-        else if (db_->LookupResource(hasher.HashStudy(), study, dummy))
+        else if (db_.LookupResource(hasher.HashStudy(), study, dummy))
         {
           assert(dummy == ResourceType_Study);
 
           // New series: The patient and the study already exist
           isNewSeries = true;
 
-          bool ok = db_->LookupResource(hasher.HashPatient(), patient, dummy);
+          bool ok = db_.LookupResource(hasher.HashPatient(), patient, dummy);
           assert(ok);
         }
-        else if (db_->LookupResource(hasher.HashPatient(), patient, dummy))
+        else if (db_.LookupResource(hasher.HashPatient(), patient, dummy))
         {
           assert(dummy == ResourceType_Patient);
 
@@ -621,38 +604,38 @@ namespace Orthanc
       // Create the series if needed
       if (isNewSeries)
       {
-        series = db_->CreateResource(hasher.HashSeries(), ResourceType_Series);
+        series = db_.CreateResource(hasher.HashSeries(), ResourceType_Series);
         dicomSummary.ExtractSeriesInformation(dicom);
-        db_->SetMainDicomTags(series, dicom);
+        db_.SetMainDicomTags(series, dicom);
       }
 
       // Create the study if needed
       if (isNewStudy)
       {
-        study = db_->CreateResource(hasher.HashStudy(), ResourceType_Study);
+        study = db_.CreateResource(hasher.HashStudy(), ResourceType_Study);
         dicomSummary.ExtractStudyInformation(dicom);
-        db_->SetMainDicomTags(study, dicom);
+        db_.SetMainDicomTags(study, dicom);
       }
 
       // Create the patient if needed
       if (isNewPatient)
       {
-        patient = db_->CreateResource(hasher.HashPatient(), ResourceType_Patient);
+        patient = db_.CreateResource(hasher.HashPatient(), ResourceType_Patient);
         dicomSummary.ExtractPatientInformation(dicom);
-        db_->SetMainDicomTags(patient, dicom);
+        db_.SetMainDicomTags(patient, dicom);
       }
 
       // Create the parent-to-child links
-      db_->AttachChild(series, instance);
+      db_.AttachChild(series, instance);
 
       if (isNewSeries)
       {
-        db_->AttachChild(study, series);
+        db_.AttachChild(study, series);
       }
 
       if (isNewStudy)
       {
-        db_->AttachChild(patient, study);
+        db_.AttachChild(patient, study);
       }
 
       // Sanity checks
@@ -665,7 +648,7 @@ namespace Orthanc
       for (Attachments::const_iterator it = attachments.begin();
            it != attachments.end(); ++it)
       {
-        db_->AddAttachment(instance, *it);
+        db_.AddAttachment(instance, *it);
       }
 
       // Attach the user-specified metadata
@@ -675,19 +658,19 @@ namespace Orthanc
         switch (it->first.first)
         {
           case ResourceType_Patient:
-            db_->SetMetadata(patient, it->first.second, it->second);
+            db_.SetMetadata(patient, it->first.second, it->second);
             break;
 
           case ResourceType_Study:
-            db_->SetMetadata(study, it->first.second, it->second);
+            db_.SetMetadata(study, it->first.second, it->second);
             break;
 
           case ResourceType_Series:
-            db_->SetMetadata(series, it->first.second, it->second);
+            db_.SetMetadata(series, it->first.second, it->second);
             break;
 
           case ResourceType_Instance:
-            db_->SetMetadata(instance, it->first.second, it->second);
+            db_.SetMetadata(instance, it->first.second, it->second);
             instanceMetadata[it->first.second] = it->second;
             break;
 
@@ -698,30 +681,30 @@ namespace Orthanc
 
       // Attach the auto-computed metadata for the patient/study/series levels
       std::string now = Toolbox::GetNowIsoString();
-      db_->SetMetadata(series, MetadataType_LastUpdate, now);
-      db_->SetMetadata(study, MetadataType_LastUpdate, now);
-      db_->SetMetadata(patient, MetadataType_LastUpdate, now);
+      db_.SetMetadata(series, MetadataType_LastUpdate, now);
+      db_.SetMetadata(study, MetadataType_LastUpdate, now);
+      db_.SetMetadata(patient, MetadataType_LastUpdate, now);
 
       // Attach the auto-computed metadata for the instance level,
       // reflecting these additions into the input metadata map
-      db_->SetMetadata(instance, MetadataType_Instance_ReceptionDate, now);
+      db_.SetMetadata(instance, MetadataType_Instance_ReceptionDate, now);
       instanceMetadata[MetadataType_Instance_ReceptionDate] = now;
 
-      db_->SetMetadata(instance, MetadataType_Instance_RemoteAet, remoteAet);
+      db_.SetMetadata(instance, MetadataType_Instance_RemoteAet, remoteAet);
       instanceMetadata[MetadataType_Instance_RemoteAet] = remoteAet;
 
       const DicomValue* value;
       if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_INSTANCE_NUMBER)) != NULL ||
           (value = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGE_INDEX)) != NULL)
       {
-        db_->SetMetadata(instance, MetadataType_Instance_IndexInSeries, value->AsString());
+        db_.SetMetadata(instance, MetadataType_Instance_IndexInSeries, value->AsString());
         instanceMetadata[MetadataType_Instance_IndexInSeries] = value->AsString();
       }
 
       // Check whether the series of this new instance is now completed
       if (isNewSeries)
       {
-        ComputeExpectedNumberOfInstances(*db_, series, dicomSummary);
+        ComputeExpectedNumberOfInstances(db_, series, dicomSummary);
       }
 
       SeriesStatus seriesStatus = GetSeriesStatus(series);
@@ -741,8 +724,7 @@ namespace Orthanc
     }
     catch (OrthancException& e)
     {
-      LOG(ERROR) << "EXCEPTION [" << e.What() << "]" 
-                 << " (SQLite status: " << db_->GetErrorMessage() << ")";
+      LOG(ERROR) << "EXCEPTION [" << e.What() << "]";
     }
 
     return StoreStatus_Failure;
@@ -755,17 +737,17 @@ namespace Orthanc
     target = Json::objectValue;
 
     uint64_t cs = currentStorageSize_;
-    assert(cs == db_->GetTotalCompressedSize());
-    uint64_t us = db_->GetTotalUncompressedSize();
+    assert(cs == db_.GetTotalCompressedSize());
+    uint64_t us = db_.GetTotalUncompressedSize();
     target["TotalDiskSize"] = boost::lexical_cast<std::string>(cs);
     target["TotalUncompressedSize"] = boost::lexical_cast<std::string>(us);
     target["TotalDiskSizeMB"] = boost::lexical_cast<unsigned int>(cs / MEGA_BYTES);
     target["TotalUncompressedSizeMB"] = boost::lexical_cast<unsigned int>(us / MEGA_BYTES);
 
-    target["CountPatients"] = static_cast<unsigned int>(db_->GetResourceCount(ResourceType_Patient));
-    target["CountStudies"] = static_cast<unsigned int>(db_->GetResourceCount(ResourceType_Study));
-    target["CountSeries"] = static_cast<unsigned int>(db_->GetResourceCount(ResourceType_Series));
-    target["CountInstances"] = static_cast<unsigned int>(db_->GetResourceCount(ResourceType_Instance));
+    target["CountPatients"] = static_cast<unsigned int>(db_.GetResourceCount(ResourceType_Patient));
+    target["CountStudies"] = static_cast<unsigned int>(db_.GetResourceCount(ResourceType_Study));
+    target["CountSeries"] = static_cast<unsigned int>(db_.GetResourceCount(ResourceType_Series));
+    target["CountInstances"] = static_cast<unsigned int>(db_.GetResourceCount(ResourceType_Instance));
   }          
 
 
@@ -781,7 +763,7 @@ namespace Orthanc
 
     // Loop over the instances of this series
     std::list<int64_t> children;
-    db_->GetChildrenInternalId(children, id);
+    db_.GetChildrenInternalId(children, id);
 
     std::set<int64_t> instances;
     for (std::list<int64_t>::const_iterator 
@@ -825,7 +807,7 @@ namespace Orthanc
                                         int64_t resourceId)
   {
     DicomMap tags;
-    db_->GetMainDicomTags(tags, resourceId);
+    db_.GetMainDicomTags(tags, resourceId);
     target["MainDicomTags"] = Json::objectValue;
     FromDcmtkBridge::ToJson(target["MainDicomTags"], tags);
   }
@@ -841,7 +823,7 @@ namespace Orthanc
     // Lookup for the requested resource
     int64_t id;
     ResourceType type;
-    if (!db_->LookupResource(publicId, id, type) ||
+    if (!db_.LookupResource(publicId, id, type) ||
         type != expectedType)
     {
       return false;
@@ -851,12 +833,12 @@ namespace Orthanc
     if (type != ResourceType_Patient)
     {
       int64_t parentId;
-      if (!db_->LookupParent(parentId, id))
+      if (!db_.LookupParent(parentId, id))
       {
         throw OrthancException(ErrorCode_InternalError);
       }
 
-      std::string parent = db_->GetPublicId(parentId);
+      std::string parent = db_.GetPublicId(parentId);
 
       switch (type)
       {
@@ -879,7 +861,7 @@ namespace Orthanc
 
     // List the children resources
     std::list<std::string> children;
-    db_->GetChildrenPublicId(children, id);
+    db_.GetChildrenPublicId(children, id);
 
     if (type != ResourceType_Instance)
     {
@@ -940,7 +922,7 @@ namespace Orthanc
         result["Type"] = "Instance";
 
         FileInfo attachment;
-        if (!db_->LookupAttachment(attachment, id, FileContentType_Dicom))
+        if (!db_.LookupAttachment(attachment, id, FileContentType_Dicom))
         {
           throw OrthancException(ErrorCode_InternalError);
         }
@@ -967,12 +949,12 @@ namespace Orthanc
 
     std::string tmp;
 
-    if (db_->LookupMetadata(tmp, id, MetadataType_AnonymizedFrom))
+    if (db_.LookupMetadata(tmp, id, MetadataType_AnonymizedFrom))
     {
       result["AnonymizedFrom"] = tmp;
     }
 
-    if (db_->LookupMetadata(tmp, id, MetadataType_ModifiedFrom))
+    if (db_.LookupMetadata(tmp, id, MetadataType_ModifiedFrom))
     {
       result["ModifiedFrom"] = tmp;
     }
@@ -983,7 +965,7 @@ namespace Orthanc
     {
       result["IsStable"] = !unstableResources_.Contains(id);
 
-      if (db_->LookupMetadata(tmp, id, MetadataType_LastUpdate))
+      if (db_.LookupMetadata(tmp, id, MetadataType_LastUpdate))
       {
         result["LastUpdate"] = tmp;
       }
@@ -1001,12 +983,12 @@ namespace Orthanc
 
     int64_t id;
     ResourceType type;
-    if (!db_->LookupResource(instanceUuid, id, type))
+    if (!db_.LookupResource(instanceUuid, id, type))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
 
-    if (db_->LookupAttachment(attachment, id, contentType))
+    if (db_.LookupAttachment(attachment, id, contentType))
     {
       assert(attachment.GetContentType() == contentType);
       return true;
@@ -1026,7 +1008,7 @@ namespace Orthanc
 
     {
       boost::mutex::scoped_lock lock(mutex_);
-      db_->GetAllPublicIds(lst, resourceType);
+      db_.GetAllPublicIds(lst, resourceType);
     }
 
     target = Json::arrayValue;
@@ -1063,7 +1045,7 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::GetChanges(Json::Value& target,
+  void ServerIndex::GetChanges(Json::Value& target,
                                int64_t since,                               
                                unsigned int maxResults)
   {
@@ -1072,25 +1054,23 @@ namespace Orthanc
 
     {
       boost::mutex::scoped_lock lock(mutex_);
-      db_->GetChanges(changes, done, since, maxResults);
+      db_.GetChanges(changes, done, since, maxResults);
     }
 
     FormatLog(target, changes, "Changes", done, since);
-    return true;
   }
 
 
-  bool ServerIndex::GetLastChange(Json::Value& target)
+  void ServerIndex::GetLastChange(Json::Value& target)
   {
     std::list<ServerIndexChange> changes;
 
     {
       boost::mutex::scoped_lock lock(mutex_);
-      db_->GetLastChange(changes);
+      db_.GetLastChange(changes);
     }
 
     FormatLog(target, changes, "Changes", true, 0);
-    return true;
   }
 
 
@@ -1101,7 +1081,7 @@ namespace Orthanc
 
     int64_t id;
     ResourceType type;
-    if (!db_->LookupResource(publicId, id, type))
+    if (!db_.LookupResource(publicId, id, type))
     {
       throw OrthancException(ErrorCode_InternalError);
     }
@@ -1119,7 +1099,7 @@ namespace Orthanc
     while (!done)
     {
       DicomMap map;
-      db_->GetMainDicomTags(map, currentId);
+      db_.GetMainDicomTags(map, currentId);
 
       switch (currentType)
       {
@@ -1151,7 +1131,7 @@ namespace Orthanc
       // the current resource
       if (!done)
       {
-        bool ok = db_->LookupParent(currentId, currentId);
+        bool ok = db_.LookupParent(currentId, currentId);
         assert(ok);
       }
     }
@@ -1166,11 +1146,11 @@ namespace Orthanc
                               studyInstanceUid,
                               seriesInstanceUid,
                               sopInstanceUid);
-    db_->LogExportedResource(resource);
+    db_.LogExportedResource(resource);
   }
 
 
-  bool ServerIndex::GetExportedResources(Json::Value& target,
+  void ServerIndex::GetExportedResources(Json::Value& target,
                                          int64_t since,
                                          unsigned int maxResults)
   {
@@ -1179,25 +1159,23 @@ namespace Orthanc
 
     {
       boost::mutex::scoped_lock lock(mutex_);
-      db_->GetExportedResources(exported, done, since, maxResults);
+      db_.GetExportedResources(exported, done, since, maxResults);
     }
 
     FormatLog(target, exported, "Exports", done, since);
-    return true;
   }
 
 
-  bool ServerIndex::GetLastExportedResource(Json::Value& target)
+  void ServerIndex::GetLastExportedResource(Json::Value& target)
   {
     std::list<ExportedResource> exported;
 
     {
       boost::mutex::scoped_lock lock(mutex_);
-      db_->GetLastExportedResource(exported);
+      db_.GetLastExportedResource(exported);
     }
 
     FormatLog(target, exported, "Exports", true, 0);
-    return true;
   }
 
 
@@ -1206,7 +1184,7 @@ namespace Orthanc
     if (maximumStorageSize_ != 0)
     {
       uint64_t currentSize = currentStorageSize_ - listener_->GetSizeOfFilesToRemove();
-      assert(db_->GetTotalCompressedSize() == currentSize);
+      assert(db_.GetTotalCompressedSize() == currentSize);
 
       if (currentSize + instanceSize > maximumStorageSize_)
       {
@@ -1216,7 +1194,7 @@ namespace Orthanc
 
     if (maximumPatients_ != 0)
     {
-      uint64_t patientCount = db_->GetResourceCount(ResourceType_Patient);
+      uint64_t patientCount = db_.GetResourceCount(ResourceType_Patient);
       if (patientCount > maximumPatients_)
       {
         return true;
@@ -1239,7 +1217,7 @@ namespace Orthanc
     // already stored
     int64_t patientToAvoid;
     ResourceType type;
-    bool hasPatientToAvoid = db_->LookupResource(newPatientId, patientToAvoid, type);
+    bool hasPatientToAvoid = db_.LookupResource(newPatientId, patientToAvoid, type);
 
     if (hasPatientToAvoid && type != ResourceType_Patient)
     {
@@ -1254,8 +1232,8 @@ namespace Orthanc
       // If other instances of this patient are already in the store,
       // we must avoid to recycle them
       bool ok = hasPatientToAvoid ?
-        db_->SelectPatientToRecycle(patientToRecycle, patientToAvoid) :
-        db_->SelectPatientToRecycle(patientToRecycle);
+        db_.SelectPatientToRecycle(patientToRecycle, patientToAvoid) :
+        db_.SelectPatientToRecycle(patientToRecycle);
         
       if (!ok)
       {
@@ -1263,7 +1241,7 @@ namespace Orthanc
       }
       
       LOG(INFO) << "Recycling one patient";
-      db_->DeleteResource(patientToRecycle);
+      db_.DeleteResource(patientToRecycle);
 
       if (!IsRecyclingNeeded(instanceSize))
       {
@@ -1323,13 +1301,13 @@ namespace Orthanc
     // Lookup for the requested resource
     int64_t id;
     ResourceType type;
-    if (!db_->LookupResource(publicId, id, type) ||
+    if (!db_.LookupResource(publicId, id, type) ||
         type != ResourceType_Patient)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    return db_->IsProtectedPatient(id);
+    return db_.IsProtectedPatient(id);
   }
      
 
@@ -1341,14 +1319,14 @@ namespace Orthanc
     // Lookup for the requested resource
     int64_t id;
     ResourceType type;
-    if (!db_->LookupResource(publicId, id, type) ||
+    if (!db_.LookupResource(publicId, id, type) ||
         type != ResourceType_Patient)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
     // No need for a SQLite::ITransaction here, as we only make 1 write to the DB
-    db_->SetProtectedPatient(id, isProtected);
+    db_.SetProtectedPatient(id, isProtected);
 
     if (isProtected)
       LOG(INFO) << "Patient " << publicId << " has been protected";
@@ -1366,7 +1344,7 @@ namespace Orthanc
 
     ResourceType type;
     int64_t resource;
-    if (!db_->LookupResource(publicId, resource, type))
+    if (!db_.LookupResource(publicId, resource, type))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
@@ -1378,12 +1356,12 @@ namespace Orthanc
     }
 
     std::list<int64_t> tmp;
-    db_->GetChildrenInternalId(tmp, resource);
+    db_.GetChildrenInternalId(tmp, resource);
 
     for (std::list<int64_t>::const_iterator 
            it = tmp.begin(); it != tmp.end(); ++it)
     {
-      result.push_back(db_->GetPublicId(*it));
+      result.push_back(db_.GetPublicId(*it));
     }
   }
 
@@ -1397,7 +1375,7 @@ namespace Orthanc
 
     ResourceType type;
     int64_t top;
-    if (!db_->LookupResource(publicId, top, type))
+    if (!db_.LookupResource(publicId, top, type))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
@@ -1420,14 +1398,14 @@ namespace Orthanc
       int64_t resource = toExplore.top();
       toExplore.pop();
 
-      if (db_->GetResourceType(resource) == ResourceType_Instance)
+      if (db_.GetResourceType(resource) == ResourceType_Instance)
       {
-        result.push_back(db_->GetPublicId(resource));
+        result.push_back(db_.GetPublicId(resource));
       }
       else
       {
         // Tag all the children of this resource as to be explored
-        db_->GetChildrenInternalId(tmp, resource);
+        db_.GetChildrenInternalId(tmp, resource);
         for (std::list<int64_t>::const_iterator 
                it = tmp.begin(); it != tmp.end(); ++it)
         {
@@ -1446,12 +1424,12 @@ namespace Orthanc
 
     ResourceType rtype;
     int64_t id;
-    if (!db_->LookupResource(publicId, id, rtype))
+    if (!db_.LookupResource(publicId, id, rtype))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
 
-    db_->SetMetadata(id, type, value);
+    db_.SetMetadata(id, type, value);
   }
 
 
@@ -1462,12 +1440,12 @@ namespace Orthanc
 
     ResourceType rtype;
     int64_t id;
-    if (!db_->LookupResource(publicId, id, rtype))
+    if (!db_.LookupResource(publicId, id, rtype))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
 
-    db_->DeleteMetadata(id, type);
+    db_.DeleteMetadata(id, type);
   }
 
 
@@ -1479,12 +1457,12 @@ namespace Orthanc
 
     ResourceType rtype;
     int64_t id;
-    if (!db_->LookupResource(publicId, id, rtype))
+    if (!db_.LookupResource(publicId, id, rtype))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
 
-    return db_->LookupMetadata(target, id, type);
+    return db_.LookupMetadata(target, id, type);
   }
 
 
@@ -1495,12 +1473,12 @@ namespace Orthanc
 
     ResourceType rtype;
     int64_t id;
-    if (!db_->LookupResource(publicId, id, rtype))
+    if (!db_.LookupResource(publicId, id, rtype))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
 
-    db_->ListAvailableMetadata(target, id);
+    db_.ListAvailableMetadata(target, id);
   }
 
 
@@ -1512,13 +1490,13 @@ namespace Orthanc
 
     ResourceType type;
     int64_t id;
-    if (!db_->LookupResource(publicId, id, type) ||
+    if (!db_.LookupResource(publicId, id, type) ||
         expectedType != type)
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
 
-    db_->ListAvailableAttachments(target, id);
+    db_.ListAvailableAttachments(target, id);
   }
 
 
@@ -1529,15 +1507,15 @@ namespace Orthanc
 
     ResourceType type;
     int64_t id;
-    if (!db_->LookupResource(publicId, id, type))
+    if (!db_.LookupResource(publicId, id, type))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
 
     int64_t parentId;
-    if (db_->LookupParent(parentId, id))
+    if (db_.LookupParent(parentId, id))
     {
-      target = db_->GetPublicId(parentId);
+      target = db_.GetPublicId(parentId);
       return true;
     }
     else
@@ -1551,7 +1529,7 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(mutex_);
 
-    std::auto_ptr<SQLite::ITransaction> transaction(db_->StartTransaction());
+    std::auto_ptr<SQLite::ITransaction> transaction(db_.StartTransaction());
 
     transaction->Begin();
     uint64_t seq = IncrementGlobalSequenceInternal(sequence);
@@ -1566,12 +1544,12 @@ namespace Orthanc
                               const std::string& publicId)
   {
     boost::mutex::scoped_lock lock(mutex_);
-    std::auto_ptr<SQLite::ITransaction> transaction(db_->StartTransaction());
+    std::auto_ptr<SQLite::ITransaction> transaction(db_.StartTransaction());
     transaction->Begin();
 
     int64_t id;
     ResourceType type;
-    if (!db_->LookupResource(publicId, id, type))
+    if (!db_.LookupResource(publicId, id, type))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
@@ -1585,13 +1563,13 @@ namespace Orthanc
   void ServerIndex::DeleteChanges()
   {
     boost::mutex::scoped_lock lock(mutex_);
-    db_->ClearTable("Changes");
+    db_.ClearTable("Changes");
   }
 
   void ServerIndex::DeleteExportedResources()
   {
     boost::mutex::scoped_lock lock(mutex_);
-    db_->ClearTable("ExportedResources");
+    db_.ClearTable("ExportedResources");
   }
 
 
@@ -1618,16 +1596,16 @@ namespace Orthanc
       int64_t resource = toExplore.top();
       toExplore.pop();
 
-      ResourceType thisType = db_->GetResourceType(resource);
+      ResourceType thisType = db_.GetResourceType(resource);
 
       std::list<FileContentType> f;
-      db_->ListAvailableAttachments(f, resource);
+      db_.ListAvailableAttachments(f, resource);
 
       for (std::list<FileContentType>::const_iterator
              it = f.begin(); it != f.end(); ++it)
       {
         FileInfo attachment;
-        if (db_->LookupAttachment(attachment, resource, *it))
+        if (db_.LookupAttachment(attachment, resource, *it))
         {
           compressedSize += attachment.GetCompressedSize();
           uncompressedSize += attachment.GetUncompressedSize();
@@ -1656,7 +1634,7 @@ namespace Orthanc
 
         // Tag all the children of this resource as to be explored
         std::list<int64_t> tmp;
-        db_->GetChildrenInternalId(tmp, resource);
+        db_.GetChildrenInternalId(tmp, resource);
         for (std::list<int64_t>::const_iterator 
                it = tmp.begin(); it != tmp.end(); ++it)
         {
@@ -1685,7 +1663,7 @@ namespace Orthanc
 
     ResourceType type;
     int64_t top;
-    if (!db_->LookupResource(publicId, top, type))
+    if (!db_.LookupResource(publicId, top, type))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
@@ -1734,7 +1712,7 @@ namespace Orthanc
 
     ResourceType type;
     int64_t top;
-    if (!db_->LookupResource(publicId, top, type))
+    if (!db_.LookupResource(publicId, top, type))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
@@ -1771,7 +1749,7 @@ namespace Orthanc
         int64_t id = that->unstableResources_.RemoveOldest(payload);
 
         // Ensure that the resource is still existing before logging the change
-        if (that->db_->IsExistingResource(id))
+        if (that->db_.IsExistingResource(id))
         {
           switch (payload.GetResourceType())
           {
@@ -1829,14 +1807,14 @@ namespace Orthanc
     boost::mutex::scoped_lock lock(mutex_);
 
     std::list<int64_t> id;
-    db_->LookupIdentifier(id, tag, value);
+    db_.LookupIdentifier(id, tag, value);
 
     for (std::list<int64_t>::const_iterator 
            it = id.begin(); it != id.end(); ++it)
     {
-      if (db_->GetResourceType(*it) == type)
+      if (db_.GetResourceType(*it) == type)
       {
-        result.push_back(db_->GetPublicId(*it));
+        result.push_back(db_.GetPublicId(*it));
       }
     }
   }
@@ -1851,12 +1829,12 @@ namespace Orthanc
     boost::mutex::scoped_lock lock(mutex_);
 
     std::list<int64_t> id;
-    db_->LookupIdentifier(id, tag, value);
+    db_.LookupIdentifier(id, tag, value);
 
     for (std::list<int64_t>::const_iterator 
            it = id.begin(); it != id.end(); ++it)
     {
-      result.push_back(db_->GetPublicId(*it));
+      result.push_back(db_.GetPublicId(*it));
     }
   }
 
@@ -1869,13 +1847,13 @@ namespace Orthanc
     boost::mutex::scoped_lock lock(mutex_);
 
     std::list<int64_t> id;
-    db_->LookupIdentifier(id, value);
+    db_.LookupIdentifier(id, value);
 
     for (std::list<int64_t>::const_iterator 
            it = id.begin(); it != id.end(); ++it)
     {
-      result.push_back(std::make_pair(db_->GetResourceType(*it),
-                                      db_->GetPublicId(*it)));
+      result.push_back(std::make_pair(db_.GetResourceType(*it),
+                                      db_.GetPublicId(*it)));
     }
   }
 
@@ -1889,20 +1867,20 @@ namespace Orthanc
 
     ResourceType resourceType;
     int64_t resourceId;
-    if (!db_->LookupResource(publicId, resourceId, resourceType))
+    if (!db_.LookupResource(publicId, resourceId, resourceType))
     {
       return StoreStatus_Failure;  // Inexistent resource
     }
 
     // Remove possible previous attachment
-    db_->DeleteAttachment(resourceId, attachment.GetContentType());
+    db_.DeleteAttachment(resourceId, attachment.GetContentType());
 
     // Locate the patient of the target resource
     int64_t patientId = resourceId;
     for (;;)
     {
       int64_t parent;
-      if (db_->LookupParent(parent, patientId))
+      if (db_.LookupParent(parent, patientId))
       {
         // We have not reached the patient level yet
         patientId = parent;
@@ -1915,10 +1893,10 @@ namespace Orthanc
     }
 
     // Possibly apply the recycling mechanism while preserving this patient
-    assert(db_->GetResourceType(patientId) == ResourceType_Patient);
-    Recycle(attachment.GetCompressedSize(), db_->GetPublicId(patientId));
+    assert(db_.GetResourceType(patientId) == ResourceType_Patient);
+    Recycle(attachment.GetCompressedSize(), db_.GetPublicId(patientId));
 
-    db_->AddAttachment(resourceId, attachment);
+    db_.AddAttachment(resourceId, attachment);
 
     t.Commit(attachment.GetCompressedSize());
 
@@ -1935,12 +1913,12 @@ namespace Orthanc
 
     ResourceType rtype;
     int64_t id;
-    if (!db_->LookupResource(publicId, id, rtype))
+    if (!db_.LookupResource(publicId, id, rtype))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
 
-    db_->DeleteAttachment(id, type);
+    db_.DeleteAttachment(id, type);
 
     t.Commit(0);
   }
@@ -1955,13 +1933,13 @@ namespace Orthanc
 
     ResourceType type;
     int64_t id;
-    if (!db_->LookupResource(publicId, id, type))
+    if (!db_.LookupResource(publicId, id, type))
     {
       return false;
     }
 
     std::list<MetadataType> metadata;
-    db_->ListAvailableMetadata(metadata, id);
+    db_.ListAvailableMetadata(metadata, id);
 
     for (std::list<MetadataType>::const_iterator
            it = metadata.begin(); it != metadata.end(); it++)
@@ -1969,7 +1947,7 @@ namespace Orthanc
       std::string key = EnumerationToString(*it);
 
       std::string value;
-      if (!db_->LookupMetadata(value, id, *it))
+      if (!db_.LookupMetadata(value, id, *it))
       {
         value.clear();
       }
@@ -1987,7 +1965,7 @@ namespace Orthanc
     boost::mutex::scoped_lock lock(mutex_);
 
     std::string value;
-    if (db_->LookupGlobalProperty(value, property))
+    if (db_.LookupGlobalProperty(value, property))
     {
       return value;
     }
