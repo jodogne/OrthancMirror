@@ -81,11 +81,16 @@ namespace Orthanc
     GetSinceAndLimit(since, limit, last, call);
 
     Json::Value result;
-    if ((!last && context.GetIndex().GetChanges(result, since, limit)) ||
-        ( last && context.GetIndex().GetLastChange(result)))
+    if (last)
     {
-      call.GetOutput().AnswerJson(result);
+      context.GetIndex().GetLastChange(result);
     }
+    else
+    {
+      context.GetIndex().GetChanges(result, since, limit);
+    }
+
+    call.GetOutput().AnswerJson(result);
   }
 
 
@@ -108,11 +113,16 @@ namespace Orthanc
     GetSinceAndLimit(since, limit, last, call);
 
     Json::Value result;
-    if ((!last && context.GetIndex().GetExportedResources(result, since, limit)) ||
-        ( last && context.GetIndex().GetLastExportedResource(result)))
+    if (last)
     {
-      call.GetOutput().AnswerJson(result);
+      context.GetIndex().GetLastExportedResource(result);
     }
+    else
+    {
+      context.GetIndex().GetExportedResources(result, since, limit);
+    }
+
+    call.GetOutput().AnswerJson(result);
   }
 
 

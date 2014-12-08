@@ -40,7 +40,7 @@
 
 namespace Orthanc
 {
-  struct ExportedResource
+  class ExportedResource
   {
   private:
     int64_t      seq_;
@@ -120,35 +120,6 @@ namespace Orthanc
       return sopInstanceUid_;
     }
 
-    void Format(Json::Value& item) const
-    {
-      item = Json::objectValue;
-      item["Seq"] = static_cast<int>(seq_);
-      item["ResourceType"] = EnumerationToString(resourceType_);
-      item["ID"] = publicId_;
-      item["Path"] = GetBasePath(resourceType_, publicId_);
-      item["RemoteModality"] = modality_;
-      item["Date"] = date_;
-
-      // WARNING: Do not add "break" below and do not reorder the case items!
-      switch (resourceType_)
-      {
-      case ResourceType_Instance:
-        item["SOPInstanceUID"] = sopInstanceUid_;
-
-      case ResourceType_Series:
-        item["SeriesInstanceUID"] = seriesInstanceUid_;
-
-      case ResourceType_Study:
-        item["StudyInstanceUID"] = studyInstanceUid_;
-
-      case ResourceType_Patient:
-        item["PatientID"] = patientId_;
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_InternalError);
-      }
-    }
+    void Format(Json::Value& item) const;
   };
 }

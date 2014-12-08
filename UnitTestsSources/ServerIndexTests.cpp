@@ -110,7 +110,8 @@ namespace
     virtual void SetUp() 
     {
       listener_.reset(new ServerIndexListener);
-      index_.reset(new DatabaseWrapper(*listener_));
+      index_.reset(new DatabaseWrapper());
+      index_->SetListener(*listener_);
     }
 
     virtual void TearDown()
@@ -547,7 +548,8 @@ TEST(ServerIndex, Sequence)
 
   Toolbox::RemoveFile(path + "/index");
   FilesystemStorage storage(path);
-  ServerContext context(":memory:");   // The SQLite DB is in memory
+  DatabaseWrapper db;   // The SQLite DB is in memory
+  ServerContext context(db);
   context.SetStorageArea(storage);
   ServerIndex& index = context.GetIndex();
 
@@ -614,7 +616,8 @@ TEST(ServerIndex, AttachmentRecycling)
 
   Toolbox::RemoveFile(path + "/index");
   FilesystemStorage storage(path);
-  ServerContext context(":memory:");   // The SQLite DB is in memory
+  DatabaseWrapper db;   // The SQLite DB is in memory
+  ServerContext context(db);
   context.SetStorageArea(storage);
   ServerIndex& index = context.GetIndex();
 
