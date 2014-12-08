@@ -619,6 +619,8 @@ namespace Orthanc
                                            SQLite::Statement& s,
                                            unsigned int maxResults)
   {
+    target.clear();
+
     while (target.size() < maxResults && s.Step())
     {
       int64_t seq = s.ColumnInt64(0);
@@ -680,15 +682,14 @@ namespace Orthanc
   }
 
 
-  void DatabaseWrapper::GetExportedResourcesInternal(Json::Value& target,
+  void DatabaseWrapper::GetExportedResourcesInternal(std::list<ExportedResource>& target,
+                                                     bool& done,
                                                      SQLite::Statement& s,
-                                                     int64_t since,
                                                      unsigned int maxResults)
   {
-    Json::Value changes = Json::arrayValue;
-    int64_t last = since;
+    target.clear();
 
-    while (changes.size() < maxResults && s.Step())
+    while (target.size() < maxResults && s.Step())
     {
       int64_t seq = s.ColumnInt64(0);
       ResourceType resourceType = static_cast<ResourceType>(s.ColumnInt(1));
@@ -704,47 +705,15 @@ namespace Orthanc
                                 s.ColumnString(6),  // series instance UID
                                 s.ColumnString(7)); // sop instance UID
 
-      Json::Value item = Json::objectValue;
-      item["Seq"] = static_cast<int>(seq);
-      item["ResourceType"] = EnumerationToString(resourceType);
-      item["ID"] = publicId;
-      item["Path"] = GetBasePath(resourceType, publicId);
-      item["RemoteModality"] = s.ColumnString(3);
-      item["Date"] = s.ColumnString(8);
-
-      // WARNING: Do not add "break" below and do not reorder the case items!
-      switch (resourceType)
-      {
-      case ResourceType_Instance:
-        item["SopInstanceUid"] = s.ColumnString(7);
-
-      case ResourceType_Series:
-        item["SeriesInstanceUid"] = s.ColumnString(6);
-
-      case ResourceType_Study:
-        item["StudyInstanceUid"] = s.ColumnString(5);
-
-      case ResourceType_Patient:
-        item["PatientId"] = s.ColumnString(4);
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
-      last = seq;
-
-      changes.append(item);
+      target.push_back(resource);
     }
 
-    target = Json::objectValue;
-    target["Exports"] = changes;
-    target["Done"] = !(changes.size() == maxResults && s.Step());
-    target["Last"] = static_cast<int>(last);
+    done = !(target.size() == maxResults && s.Step());
   }
 
 
-  void DatabaseWrapper::GetExportedResources(Json::Value& target,
+  void DatabaseWrapper::GetExportedResources(std::list<ExportedResource>& target,
+                                             bool& done,
                                              int64_t since,
                                              unsigned int maxResults)
   {
@@ -752,15 +721,16 @@ namespace Orthanc
                         "SELECT * FROM ExportedResources WHERE seq>? ORDER BY seq LIMIT ?");
     s.BindInt64(0, since);
     s.BindInt(1, maxResults + 1);
-    GetExportedResourcesInternal(target, s, since, maxResults);
+    GetExportedResourcesInternal(target, done, s, maxResults);
   }
 
     
-  void DatabaseWrapper::GetLastExportedResource(Json::Value& target)
+  void DatabaseWrapper::GetLastExportedResource(std::list<ExportedResource>& target)
   {
+    bool done;  // Ignored
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT * FROM ExportedResources ORDER BY seq DESC LIMIT 1");
-    GetExportedResourcesInternal(target, s, 0, 1);
+    GetExportedResourcesInternal(target, done, s, 1);
   }
 
 
