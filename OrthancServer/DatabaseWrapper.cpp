@@ -657,27 +657,19 @@ namespace Orthanc
   }
 
 
-  void DatabaseWrapper::LogExportedResource(ResourceType resourceType,
-                                            const std::string& publicId,
-                                            const std::string& remoteModality,
-                                            const std::string& patientId,
-                                            const std::string& studyInstanceUid,
-                                            const std::string& seriesInstanceUid,
-                                            const std::string& sopInstanceUid,
-                                            const boost::posix_time::ptime& date)
+  void DatabaseWrapper::LogExportedResource(const ExportedResource& resource)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "INSERT INTO ExportedResources VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-    s.BindInt(0, resourceType);
-    s.BindString(1, publicId);
-    s.BindString(2, remoteModality);
-    s.BindString(3, patientId);
-    s.BindString(4, studyInstanceUid);
-    s.BindString(5, seriesInstanceUid);
-    s.BindString(6, sopInstanceUid);
-    s.BindString(7, boost::posix_time::to_iso_string(date));
-
+    s.BindInt(0, resource.GetResourceType());
+    s.BindString(1, resource.GetPublicId());
+    s.BindString(2, resource.GetModality());
+    s.BindString(3, resource.GetPatientId());
+    s.BindString(4, resource.GetStudyInstanceUid());
+    s.BindString(5, resource.GetSeriesInstanceUid());
+    s.BindString(6, resource.GetSopInstanceUid());
+    s.BindString(7, resource.GetDate());
     s.Run();      
   }
 

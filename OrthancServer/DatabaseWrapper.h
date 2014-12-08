@@ -142,28 +142,21 @@ namespace Orthanc
     void LogChange(int64_t internalId,
                    const ServerIndexChange& change);
 
-    void GetChanges(std::list<ServerIndexChange>& target /* out */,
-                    bool& done /* out */,
+    void GetChanges(std::list<ServerIndexChange>& target /*out*/,
+                    bool& done /*out*/,
                     int64_t since,
                     unsigned int maxResults);
 
-    void GetLastChange(std::list<ServerIndexChange>& target /* out */);
+    void GetLastChange(std::list<ServerIndexChange>& target /*out*/);
 
-    void LogExportedResource(ResourceType resourceType,
-                             const std::string& publicId,
-                             const std::string& remoteModality,
-                             const std::string& patientId,
-                             const std::string& studyInstanceUid,
-                             const std::string& seriesInstanceUid,
-                             const std::string& sopInstanceUid,
-                             const boost::posix_time::ptime& date);
+    void LogExportedResource(const ExportedResource& resource);
     
-    void GetExportedResources(std::list<ExportedResource>& target /* out */,
-                              bool& done /* out */,
+    void GetExportedResources(std::list<ExportedResource>& target /*out*/,
+                              bool& done /*out*/,
                               int64_t since,
                               unsigned int maxResults);
 
-    void GetLastExportedResource(std::list<ExportedResource>& target /* out */);
+    void GetLastExportedResource(std::list<ExportedResource>& target /*out*/);
 
     uint64_t GetTotalCompressedSize();
     

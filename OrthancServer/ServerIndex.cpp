@@ -1157,14 +1157,16 @@ namespace Orthanc
     }
 
     // No need for a SQLite::ITransaction here, as we only insert 1 record
-    db_->LogExportedResource(type,
-                             publicId,
-                             remoteModality,
-                             patientId,
-                             studyInstanceUid,
-                             seriesInstanceUid,
-                             sopInstanceUid,
-                             boost::posix_time::second_clock::local_time());
+    ExportedResource resource(-1, 
+                              type,
+                              publicId,
+                              remoteModality,
+                              Toolbox::GetNowIsoString(),
+                              patientId,
+                              studyInstanceUid,
+                              seriesInstanceUid,
+                              sopInstanceUid);
+    db_->LogExportedResource(resource);
   }
 
 

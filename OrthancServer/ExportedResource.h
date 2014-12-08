@@ -100,6 +100,26 @@ namespace Orthanc
       return date_;
     }
 
+    const std::string& GetPatientId() const
+    {
+      return patientId_;
+    }
+
+    const std::string& GetStudyInstanceUid() const
+    {
+      return studyInstanceUid_;
+    }
+
+    const std::string& GetSeriesInstanceUid() const
+    {
+      return seriesInstanceUid_;
+    }
+
+    const std::string& GetSopInstanceUid() const
+    {
+      return sopInstanceUid_;
+    }
+
     void Format(Json::Value& item) const
     {
       item = Json::objectValue;
