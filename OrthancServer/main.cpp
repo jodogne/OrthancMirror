@@ -695,9 +695,19 @@ int main(int argc, char* argv[])
       }
     }
   }
-  catch (OrthancException& e)
+  catch (const OrthancException& e)
   {
     LOG(ERROR) << "Uncaught exception, stopping now: [" << e.What() << "]";
+    status = -1;
+  }
+  catch (const std::exception& e) 
+  {
+    LOG(ERROR) << "Uncaught exception, stopping now: [" << e.what() << "]";
+    status = -1;
+  }
+  catch (const std::string& s) 
+  {
+    LOG(ERROR) << "Uncaught exception, stopping now: [" << s << "]";
     status = -1;
   }
   catch (...)
