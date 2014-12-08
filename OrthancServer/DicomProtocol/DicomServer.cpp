@@ -285,9 +285,10 @@ namespace Orthanc
 
     for (size_t i = 0; i < aet.size(); i++)
     {
-      if (!isalnum(aet[i]) && 
-          aet[i] != '-' && 
-          aet[i] != '_')
+      if (!(aet[i] == '-' ||
+            aet[i] == '_' ||
+            isdigit(aet[i]) ||
+            (aet[i] >= 'A' && aet[i] <= 'Z')))
       {
         LOG(WARNING) << "For best interoperability, only upper case, alphanumeric characters should be present in AET: \"" << aet << "\"";
         break;
