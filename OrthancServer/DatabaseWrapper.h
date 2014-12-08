@@ -69,9 +69,9 @@ namespace Orthanc
                             SQLite::Statement& s,
                             unsigned int maxResults);
 
-    void GetExportedResourcesInternal(Json::Value& target,
+    void GetExportedResourcesInternal(std::list<ExportedResource>& target,
+                                      bool& done,
                                       SQLite::Statement& s,
-                                      int64_t since,
                                       unsigned int maxResults);
 
   public:
@@ -158,11 +158,12 @@ namespace Orthanc
                              const std::string& sopInstanceUid,
                              const boost::posix_time::ptime& date);
     
-    void GetExportedResources(Json::Value& target,
+    void GetExportedResources(std::list<ExportedResource>& target /* out */,
+                              bool& done /* out */,
                               int64_t since,
                               unsigned int maxResults);
 
-    void GetLastExportedResource(Json::Value& target);
+    void GetLastExportedResource(std::list<ExportedResource>& target /* out */);
 
     uint64_t GetTotalCompressedSize();
     

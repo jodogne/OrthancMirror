@@ -114,16 +114,16 @@ namespace Orthanc
       switch (resourceType_)
       {
       case ResourceType_Instance:
-        item["SopInstanceUid"] = sopInstanceUid_;
+        item["SOPInstanceUID"] = sopInstanceUid_;
 
       case ResourceType_Series:
-        item["SeriesInstanceUid"] = seriesInstanceUid_;
+        item["SeriesInstanceUID"] = seriesInstanceUid_;
 
       case ResourceType_Study:
-        item["StudyInstanceUid"] = studyInstanceUid_;
+        item["StudyInstanceUID"] = studyInstanceUid_;
 
       case ResourceType_Patient:
-        item["PatientId"] = patientId_;
+        item["PatientID"] = patientId_;
         break;
 
       default:

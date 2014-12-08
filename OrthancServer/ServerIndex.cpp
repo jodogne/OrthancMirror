@@ -1038,14 +1038,16 @@ namespace Orthanc
   }
 
 
-  static void FormatChanges(Json::Value& target,
-                            const std::list<ServerIndexChange>& changes,
-                            bool done,
-                            int64_t since)
+  template <typename T>
+  static void FormatLog(Json::Value& target,
+                        const std::list<T>& log,
+                        const std::string& name,
+                        bool done,
+                        int64_t since)
   {
     Json::Value items = Json::arrayValue;
-    for (std::list<ServerIndexChange>::const_iterator
-           it = changes.begin(); it != changes.end(); it++)
+    for (typename std::list<T>::const_iterator
+           it = log.begin(); it != log.end(); it++)
     {
       Json::Value item;
       it->Format(item);
@@ -1053,10 +1055,10 @@ namespace Orthanc
     }
 
     target = Json::objectValue;
-    target["Changes"] = items;
+    target[name] = items;
     target["Done"] = done;
 
-    int64_t last = (changes.size() == 0 ? since : changes.back().GetSeq());
+    int64_t last = (log.size() == 0 ? since : log.back().GetSeq());
     target["Last"] = static_cast<int>(last);
   }
 
@@ -1073,7 +1075,7 @@ namespace Orthanc
       db_->GetChanges(changes, done, since, maxResults);
     }
 
-    FormatChanges(target, changes, done, since);
+    FormatLog(target, changes, "Changes", done, since);
     return true;
   }
 
@@ -1087,7 +1089,7 @@ namespace Orthanc
       db_->GetLastChange(changes);
     }
 
-    FormatChanges(target, changes, true, 0);
+    FormatLog(target, changes, "Changes", true, 0);
     return true;
   }
 
@@ -1170,15 +1172,29 @@ namespace Orthanc
                                          int64_t since,
                                          unsigned int maxResults)
   {
-    boost::mutex::scoped_lock lock(mutex_);
-    db_->GetExportedResources(target, since, maxResults);
+    std::list<ExportedResource> exported;
+    bool done;
+
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+      db_->GetExportedResources(exported, done, since, maxResults);
+    }
+
+    FormatLog(target, exported, "Exports", done, since);
     return true;
   }
 
+
   bool ServerIndex::GetLastExportedResource(Json::Value& target)
   {
-    boost::mutex::scoped_lock lock(mutex_);
-    db_->GetLastExportedResource(target);
+    std::list<ExportedResource> exported;
+
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+      db_->GetLastExportedResource(exported);
+    }
+
+    FormatLog(target, exported, "Exports", true, 0);
     return true;
   }
 
