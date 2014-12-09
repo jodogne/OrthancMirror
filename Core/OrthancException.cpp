@@ -130,6 +130,9 @@ namespace Orthanc
       case ErrorCode_Plugin:
         return "Error encountered inside a plugin";
 
+      case ErrorCode_Database:
+        return "Error with the database engine";
+
       case ErrorCode_Custom:
       default:
         return "???";

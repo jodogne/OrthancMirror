@@ -58,6 +58,7 @@ namespace Orthanc
     ErrorCode_BadRequest,
     ErrorCode_NetworkProtocol,
     ErrorCode_SystemCommand,
+    ErrorCode_Database,
 
     // Specific error codes
     ErrorCode_UriSyntax,
