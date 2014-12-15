@@ -280,6 +280,7 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
 {
   OrthancPluginMemoryBuffer tmp;
   char info[1024], *s;
+  int counter;
 
   context = c;
   OrthancPluginLogWarning(context, "Sample plugin is initializing");
@@ -340,7 +341,18 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   /* Play with PUT by defining a new target modality. */
   sprintf(info, "[ \"STORESCP\", \"localhost\", 2000 ]");
   OrthancPluginRestApiPut(context, &tmp, "/modalities/demo", info, strlen(info));
- 
+
+  /* Play with global properties: A global counter is incremented 
+     each time the plugin starts. */
+  s = OrthancPluginGetGlobalProperty(context, 1024, "0");
+  sscanf(s, "%d", &counter);
+  sprintf(info, "Number of times this plugin was started: %d", counter);
+  OrthancPluginLogWarning(context, info);
+  counter++;
+  sprintf(info, "%d", counter);
+  OrthancPluginSetGlobalProperty(context, 1024, info);
+  OrthancPluginFreeString(context, s);
+
   return 0;
 }
 

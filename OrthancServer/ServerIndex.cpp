@@ -1959,6 +1959,14 @@ namespace Orthanc
   }
 
 
+  void ServerIndex::SetGlobalProperty(GlobalProperty property,
+                                      const std::string& value)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    db_.SetGlobalProperty(property, value);
+  }
+
+
   std::string ServerIndex::GetGlobalProperty(GlobalProperty property,
                                              const std::string& defaultValue)
   {
