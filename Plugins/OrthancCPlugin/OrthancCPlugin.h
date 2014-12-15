@@ -89,7 +89,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     0
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     8
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  5
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  6
 
 
 
@@ -248,7 +248,9 @@ extern "C"
     _OrthancPluginService_GetOrthancPath = 4,
     _OrthancPluginService_GetOrthancDirectory = 5,
     _OrthancPluginService_GetConfigurationPath = 6,
-    _OrthancPluginService_SetProperty = 7,
+    _OrthancPluginService_SetPluginProperty = 7,
+    _OrthancPluginService_GetGlobalProperty = 8,
+    _OrthancPluginService_SetGlobalProperty = 9,
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -1733,7 +1735,7 @@ extern "C"
     const char* plugin;
     _OrthancPluginProperty property;
     const char* value;
-  } _OrthancPluginSetProperty;
+  } _OrthancPluginSetPluginProperty;
 
 
   /**
@@ -1751,12 +1753,12 @@ extern "C"
     OrthancPluginContext*  context,
     const char*            uri)
   {
-    _OrthancPluginSetProperty params;
+    _OrthancPluginSetPluginProperty params;
     params.plugin = OrthancPluginGetName();
     params.property = _OrthancPluginProperty_RootUri;
     params.value = uri;
 
-    context->InvokeService(context, _OrthancPluginService_SetProperty, &params);
+    context->InvokeService(context, _OrthancPluginService_SetPluginProperty, &params);
   }
 
 
@@ -1773,12 +1775,12 @@ extern "C"
     OrthancPluginContext*  context,
     const char*            description)
   {
-    _OrthancPluginSetProperty params;
+    _OrthancPluginSetPluginProperty params;
     params.plugin = OrthancPluginGetName();
     params.property = _OrthancPluginProperty_Description;
     params.value = description;
 
-    context->InvokeService(context, _OrthancPluginService_SetProperty, &params);
+    context->InvokeService(context, _OrthancPluginService_SetPluginProperty, &params);
   }
 
 
@@ -1795,13 +1797,97 @@ extern "C"
     OrthancPluginContext*  context,
     const char*            javascript)
   {
-    _OrthancPluginSetProperty params;
+    _OrthancPluginSetPluginProperty params;
     params.plugin = OrthancPluginGetName();
     params.property = _OrthancPluginProperty_OrthancExplorer;
     params.value = javascript;
 
-    context->InvokeService(context, _OrthancPluginService_SetProperty, &params);
+    context->InvokeService(context, _OrthancPluginService_SetPluginProperty, &params);
   }
+
+
+  typedef struct
+  {
+    char**       result;
+    int32_t      property;
+    const char*  value;
+  } _OrthancPluginGlobalProperty;
+
+
+  /**
+   * @brief Get the value of a global property.
+   *
+   * Get the value of a global property that is stored in the Orthanc database. Global
+   * properties whose index is below 1024 are reserved by Orthanc.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param property The global property of interest.
+   * @param defaultValue The value to return, if the global property is unset.
+   * @return The value of the global property, or NULL in the case of an error. This
+   * string must be freed by OrthancPluginFreeString().
+   **/
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginGetGlobalProperty(
+    OrthancPluginContext*  context,
+    int32_t                property,
+    const char*            defaultValue)
+  {
+    char* result;
+
+    _OrthancPluginGlobalProperty params;
+    params.result = &result;
+    params.property = property;
+    params.value = defaultValue;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetGlobalProperty, &params))
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  /**
+   * @brief Set the value of a global property.
+   *
+   * Set the value of a global property into the Orthanc
+   * database. Setting a global property can be used by plugins to
+   * save their internal parameters. Plugins are only allowed to set
+   * properties whose index are above or equal to 1024 (properties
+   * below 1024 are read-only and reserved by Orthanc).
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param property The global property of interest.
+   * @param value The value to be set in the global property.
+   * @return 0 if success, -1 in case of error.
+   **/
+  ORTHANC_PLUGIN_INLINE int32_t OrthancPluginSetGlobalProperty(
+    OrthancPluginContext*  context,
+    int32_t                property,
+    const char*            value)
+  {
+    _OrthancPluginGlobalProperty params;
+    params.result = NULL;
+    params.property = property;
+    params.value = value;
+
+    if (context->InvokeService(context, _OrthancPluginService_SetGlobalProperty, &params))
+    {
+      /* Error */
+      return -1;
+    }
+    else
+    {
+      return 0;
+    }
+  }
+
+
+
+
 
 #ifdef  __cplusplus
 }

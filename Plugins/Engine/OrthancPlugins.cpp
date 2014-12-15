@@ -1026,11 +1026,35 @@ namespace Orthanc
         return true;
       }
 
-      case _OrthancPluginService_SetProperty:
+      case _OrthancPluginService_SetPluginProperty:
       {
-        const _OrthancPluginSetProperty& p = 
-          *reinterpret_cast<const _OrthancPluginSetProperty*>(parameters);
+        const _OrthancPluginSetPluginProperty& p = 
+          *reinterpret_cast<const _OrthancPluginSetPluginProperty*>(parameters);
         pimpl_->properties_[std::make_pair(p.plugin, p.property)] = p.value;
+        return true;
+      }
+
+      case _OrthancPluginService_SetGlobalProperty:
+      {
+        const _OrthancPluginGlobalProperty& p = 
+          *reinterpret_cast<const _OrthancPluginGlobalProperty*>(parameters);
+        if (p.property < 1024)
+        {
+          return false;
+        }
+        else
+        {
+          pimpl_->context_.GetIndex().SetGlobalProperty(static_cast<GlobalProperty>(p.property), p.value);
+          return true;
+        }
+      }
+
+      case _OrthancPluginService_GetGlobalProperty:
+      {
+        const _OrthancPluginGlobalProperty& p = 
+          *reinterpret_cast<const _OrthancPluginGlobalProperty*>(parameters);
+        std::string result = pimpl_->context_.GetIndex().GetGlobalProperty(static_cast<GlobalProperty>(p.property), p.value);
+        *(p.result) = CopyString(result);
         return true;
       }
 
