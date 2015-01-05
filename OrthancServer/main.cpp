@@ -406,7 +406,7 @@ public:
 
   virtual void Read(std::string& content,
                     const std::string& uuid,
-                    FileContentType type) const
+                    FileContentType type)
   {
     if (type != FileContentType_Dicom)
     {

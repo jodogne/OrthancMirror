@@ -60,7 +60,7 @@ namespace Orthanc
 
     virtual void Read(std::string& content,
                       const std::string& uuid,
-                      FileContentType type) const;
+                      FileContentType type);
 
     virtual void Remove(const std::string& uuid,
                         FileContentType type);

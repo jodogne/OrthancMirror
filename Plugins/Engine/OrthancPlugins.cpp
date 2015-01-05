@@ -1124,7 +1124,7 @@ namespace Orthanc
 
       virtual void Read(std::string& content,
                         const std::string& uuid,
-                        FileContentType type) const
+                        FileContentType type)
       {
         void* buffer = NULL;
         int64_t size = 0;
@@ -1171,7 +1171,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
-    return new PluginStorageArea(pimpl_->storageArea_);;
+    return new PluginStorageArea(pimpl_->storageArea_);
   }
 
 
