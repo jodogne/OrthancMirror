@@ -139,7 +139,7 @@ namespace Orthanc
 
   void FilesystemStorage::Read(std::string& content,
                                const std::string& uuid,
-                               FileContentType /*type*/) const
+                               FileContentType /*type*/)
   {
     content.clear();
     Toolbox::ReadFile(content, GetPath(uuid).string());
