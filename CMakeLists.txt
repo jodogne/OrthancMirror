@@ -200,6 +200,16 @@ set(ORTHANC_UNIT_TESTS_SOURCES
   )
 
 
+set(ORTHANC_EMBEDDED_FILES
+  PREPARE_DATABASE            ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/PrepareDatabase.sql
+  UPGRADE_DATABASE_3_TO_4     ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/Upgrade3To4.sql
+  UPGRADE_DATABASE_4_TO_5     ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/Upgrade4To5.sql
+  CONFIGURATION_SAMPLE        ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Configuration.json
+  DICOM_CONFORMANCE_STATEMENT ${CMAKE_CURRENT_SOURCE_DIR}/Resources/DicomConformanceStatement.txt
+  LUA_TOOLBOX                 ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Toolbox.lua
+  )
+
+
 
 #####################################################################
 ## Inclusion of third-party dependencies
@@ -257,21 +267,11 @@ endif()
 ## Autogeneration of files
 #####################################################################
 
-# Prepare the embedded files
-set(EMBEDDED_FILES
-  PREPARE_DATABASE ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/PrepareDatabase.sql
-  UPGRADE_DATABASE_3_TO_4 ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/Upgrade3To4.sql
-  UPGRADE_DATABASE_4_TO_5 ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/Upgrade4To5.sql
-  CONFIGURATION_SAMPLE ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Configuration.json
-  DICOM_CONFORMANCE_STATEMENT ${CMAKE_CURRENT_SOURCE_DIR}/Resources/DicomConformanceStatement.txt
-  LUA_TOOLBOX ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Toolbox.lua
-  )
-
 if (${STANDALONE_BUILD})
   # We embed all the resources in the binaries for standalone builds
   add_definitions(-DORTHANC_STANDALONE=1)
   EmbedResources(
-    ${EMBEDDED_FILES}
+    ${ORTHANC_EMBEDDED_FILES}
     ORTHANC_EXPLORER ${CMAKE_CURRENT_SOURCE_DIR}/OrthancExplorer
     ${DCMTK_DICTIONARIES}
     )
@@ -281,7 +281,7 @@ else()
     -DORTHANC_PATH=\"${CMAKE_SOURCE_DIR}\"
     )
   EmbedResources(
-    ${EMBEDDED_FILES}
+    ${ORTHANC_EMBEDDED_FILES}
     )
 endif()
 
