@@ -213,13 +213,13 @@ namespace Orthanc
       return db_.GetErrorMessage();
     }
 
-    void GetChildren(std::list<std::string>& childrenPublicIds,
-                     int64_t id);
+    virtual void GetChildren(std::list<std::string>& childrenPublicIds,
+                             int64_t id);
 
-    int64_t GetTableRecordCount(const std::string& table);
+    virtual int64_t GetTableRecordCount(const std::string& table);
     
-    bool GetParentPublicId(std::string& result,
-                           int64_t id);
+    virtual bool GetParentPublicId(std::string& result,
+                                   int64_t id);
 
   };
 }

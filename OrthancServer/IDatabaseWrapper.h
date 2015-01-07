@@ -172,5 +172,18 @@ namespace Orthanc
     virtual SQLite::ITransaction* StartTransaction() = 0;
 
     virtual void SetListener(IServerIndexListener& listener) = 0;
+
+
+    // For unit tests only!
+    virtual void GetChildren(std::list<std::string>& childrenPublicIds,
+                             int64_t id) = 0;
+
+    // For unit tests only!
+    virtual int64_t GetTableRecordCount(const std::string& table) = 0;
+
+    // For unit tests only!
+    virtual bool GetParentPublicId(std::string& result,
+                                   int64_t id) = 0;
+
   };
 }

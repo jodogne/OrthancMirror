@@ -101,7 +101,7 @@ namespace
   {
   protected:
     std::auto_ptr<ServerIndexListener> listener_;
-    std::auto_ptr<DatabaseWrapper> index_;
+    std::auto_ptr<IDatabaseWrapper> index_;
 
     DatabaseWrapperTest()
     {
