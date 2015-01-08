@@ -1,0 +1,24 @@
+language: cpp
+
+os:
+  - linux
+
+compiler:
+  - gcc
+
+install:
+  - libboost-all-dev
+  - libcurl4-openssl-dev
+  - libdcmtk2-dev
+  - libgtest-dev
+  - liblua5.1-0-dev
+  - libpng-dev
+  - libsqlite3-dev
+  - libssl-dev
+  - libwrap0-dev
+  - unzip
+  - uuid-dev
+  - zlib1g-dev
+
+# Travis-CI uses Ubuntu 12.04 virtual machines
+script: ./Resources/TravisUbuntu-12.04.sh
