@@ -1,24 +1,45 @@
 language: cpp
 
 compiler:
-#  - gcc
+  - gcc
   - clang
 
 os:
   - osx
-#  - linux
+  - linux
 
 osx_image: xcode61
 
+matrix:
+  exclude:
+    - env: TRAVIS_OS_NAME=osx
+      compiler: gcc
+
 before_install:
-  - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get update -qq && sudo apt-get install -qq build-essential unzip cmake mercurial uuid-dev libcurl4-openssl-dev liblua5.1-0-dev libgtest-dev libpng-dev libsqlite3-dev libssl-dev zlib1g-dev libdcmtk2-dev libwrap0-dev libcharls-dev; fi
+  - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get update -qq && sudo apt-get install
+    -qq build-essential unzip cmake mercurial uuid-dev libcurl4-openssl-dev liblua5.1-0-dev
+    libgtest-dev libpng-dev libsqlite3-dev libssl-dev zlib1g-dev libdcmtk2-dev libwrap0-dev
+    libcharls-dev; fi
 
 before_script:
   - mkdir Build
   - cd Build
-  - if [ $TRAVIS_OS_NAME == linux ]; then cmake "-DDCMTK_LIBRARIES=CharLS;dcmjpls;wrap;oflog" -DALLOW_DOWNLOADS=ON -DUSE_SYSTEM_BOOST=OFF -DUSE_SYSTEM_MONGOOSE=OFF -DUSE_SYSTEM_JSONCPP=OFF -DUSE_SYSTEM_GOOGLE_LOG=OFF -DUSE_SYSTEM_PUGIXML=OFF -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON ..; fi
-  - if [ $TRAVIS_OS_NAME == osx ]; then cmake -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON -DALLOW_DOWNLOADS=ON ..; fi
+  - if [ $TRAVIS_OS_NAME == linux ]; then cmake "-DDCMTK_LIBRARIES=CharLS;dcmjpls;wrap;oflog"
+    -DALLOW_DOWNLOADS=ON -DUSE_SYSTEM_BOOST=OFF -DUSE_SYSTEM_MONGOOSE=OFF -DUSE_SYSTEM_JSONCPP=OFF
+    -DUSE_SYSTEM_GOOGLE_LOG=OFF -DUSE_SYSTEM_PUGIXML=OFF -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON
+    ..; fi
+  - if [ $TRAVIS_OS_NAME == osx ]; then cmake -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON
+    -DALLOW_DOWNLOADS=ON ..; fi
 
-# Travis-CI uses Ubuntu 12.04 virtual machines, with Boost 1.46.0
-# (whereas Orthanc expects Boost >= 1.48.0)
 script: make && ./UnitTests
+
+deploy:
+  provider: releases
+  api_key:
+    secure: WU+niKLAKMoJHST5EK23BayK4qXSrXELKlJYc8wRjMO4ay1KSgvzlY2UGKeW1EPClBfZZ0Uh5VKF8l34exsfirFuwCX2qceozduZproUszZ4Z88X8wt8Ctu8tBuuKLZYFc9iNH4zw+QZyRuPyXK9iWpS0L9O20pqy5upTsagM3o=
+  file:
+    - 'Build/Orthanc'
+    - 'Build/UnitTests'
+  on:
+    repo: jodogne/OrthancMirror
+    branch: ''
