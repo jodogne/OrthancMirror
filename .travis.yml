@@ -5,8 +5,8 @@ compiler:
   - clang
 
 os:
-  - linux
   - osx
+#  - linux
 
 osx_image: xcode61
 
