@@ -5,7 +5,7 @@ compiler:
   - clang
 
 os:
-  - osx
+#  - osx
   - linux
 
 osx_image: xcode61
@@ -20,7 +20,7 @@ before_install:
   - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get update -qq && sudo apt-get install
     -qq build-essential unzip cmake mercurial uuid-dev libcurl4-openssl-dev liblua5.1-0-dev
     libgtest-dev libpng-dev libsqlite3-dev libssl-dev zlib1g-dev libdcmtk2-dev libwrap0-dev
-    libcharls-dev; fi
+    libcharls-dev mingw32; fi
 
 before_script:
   - mkdir Build
@@ -31,8 +31,15 @@ before_script:
     ..; fi
   - if [ $TRAVIS_OS_NAME == osx ]; then cmake -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON
     -DALLOW_DOWNLOADS=ON ..; fi
+  - cd ..
 
-script: make && ./UnitTests
+  - mkdir BuildMinGW32
+  - cd BuildMinGW32
+  - if [ $TRAVIS_OS_NAME == linux ]; then cmake -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON
+    -DALLOW_DOWNLOADS=ON -DCMAKE_TOOLCHAIN_FILE=../Resources/MinGWToolchain.cmake ..; fi
+  - cd ..
+
+script: ./Resources/TravisBuild.sh
 
 deploy:
   provider: releases
@@ -41,6 +48,7 @@ deploy:
   file:
     - 'Build/Orthanc'
     - 'Build/UnitTests'
+  skip_cleanup: true
   on:
-    repo: jodogne/OrthancMirror
-    branch: ''
+    tags: true
+    all_branches: true
