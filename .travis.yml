@@ -37,12 +37,12 @@ before_install:
 before_script:
   - mkdir Build
   - cd Build
-  - if [ $TRAVIS_OS_NAME == linux -a $TRAVIS_MINGW=OFF ]; then cmake
+  - if [ $TRAVIS_OS_NAME == linux -a $TRAVIS_MINGW == OFF ]; then cmake
     -DCMAKE_BUILD_TYPE=Debug "-DDCMTK_LIBRARIES=CharLS;dcmjpls;wrap;oflog"
     -DALLOW_DOWNLOADS=ON -DUSE_SYSTEM_BOOST=OFF -DUSE_SYSTEM_MONGOOSE=OFF -DUSE_SYSTEM_JSONCPP=OFF
     -DUSE_SYSTEM_GOOGLE_LOG=OFF -DUSE_SYSTEM_PUGIXML=OFF -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON
     ..; fi
-  - if [ $TRAVIS_OS_NAME == linux -a $TRAVIS_MINGW=ON ]; then cmake
+  - if [ $TRAVIS_OS_NAME == linux -a $TRAVIS_MINGW == ON ]; then cmake
     -DCMAKE_BUILD_TYPE=Debug -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON -DALLOW_DOWNLOADS=ON
     -DCMAKE_TOOLCHAIN_FILE=Resources/MinGWToolchain.cmake
     ..; fi
