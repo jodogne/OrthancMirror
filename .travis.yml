@@ -6,19 +6,9 @@ os:
 compiler:
   - gcc
 
-install:
-  - libboost-all-dev
-  - libcurl4-openssl-dev
-  - libdcmtk2-dev
-  - libgtest-dev
-  - liblua5.1-0-dev
-  - libpng-dev
-  - libsqlite3-dev
-  - libssl-dev
-  - libwrap0-dev
-  - unzip
-  - uuid-dev
-  - zlib1g-dev
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq build-essential unzip cmake mercurial uuid-dev libcurl4-openssl-dev liblua5.1-0-dev libgtest-dev libpng-dev libsqlite3-dev libssl-dev zlib1g-dev libdcmtk2-dev libboost-all-dev libwrap0-dev libcharls-dev
 
 # Travis-CI uses Ubuntu 12.04 virtual machines
 script: ./Resources/TravisUbuntu-12.04.sh
