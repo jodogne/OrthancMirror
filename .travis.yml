@@ -69,5 +69,4 @@ deploy:
     - 'BuildMinGW32/UnitTests.exe'
   skip_cleanup: true
   on:
-    tags: true
     all_branches: true
