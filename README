@@ -78,8 +78,9 @@ This archive contains the following directories:
 * OrthancCppClient/   - Code of the C++ client
 * OrthancExplorer/    - Code of the Web application (HTML5/Javascript)
 * OrthancServer/      - Code of the Orthanc server (depends on DCMTK)
+* Plugins/            - Code of the plugin framework
 * Resources/          - Scripts, resources for building third-party code
-* UnitTests/          - Unit tests
+* UnitTestsSources/   - Unit tests
 
 This archive contains the following files:
 
