@@ -9,7 +9,7 @@ compiler:
   - clang
 
 os:
-#  - osx
+  - osx
   - linux
 
 osx_image: xcode61
@@ -63,5 +63,4 @@ deploy:
     - 'BuildMinGW32/UnitTests.exe'
   skip_cleanup: true
   on:
-    tags: true
     all_branches: true
