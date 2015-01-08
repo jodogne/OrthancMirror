@@ -10,9 +10,10 @@ os:
 
 osx_image: xcode61
 
+ # This excludes OSX builds from the build matrix for gcc
 matrix:
   exclude:
-    - env: TRAVIS_OS_NAME=osx
+    - os: osx
       compiler: gcc
 
 before_install:
