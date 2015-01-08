@@ -1,5 +1,4 @@
-#! /bin/sh
-
+#!/bin/sh
 
 set -e
 
@@ -9,6 +8,7 @@ cd Build
 cmake \
     "-DDCMTK_LIBRARIES=CharLS;dcmjpls;wrap;oflog" \
     -DALLOW_DOWNLOADS=ON \
+    -DUSE_SYSTEM_BOOST=OFF \
     -DUSE_SYSTEM_MONGOOSE=OFF \
     -DUSE_SYSTEM_JSONCPP=OFF \
     -DUSE_SYSTEM_GOOGLE_LOG=OFF \
