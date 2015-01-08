@@ -1,5 +1,9 @@
 language: cpp
 
+env:
+  - TRAVIS_MINGW=OFF
+  - TRAVIS_MINGW=ON
+
 compiler:
   - gcc
   - clang
@@ -10,36 +14,43 @@ os:
 
 osx_image: xcode61
 
- # This excludes OSX builds from the build matrix for gcc
 matrix:
   exclude:
+    # This excludes OSX builds from the build matrix for gcc
     - os: osx
       compiler: gcc
+
+    # Do not compile for OS X or clang when MinGW is enabled
+    - os: osx
+      env: TRAVIS_MINGW=ON
+    - compiler: clang
+      env: TRAVIS_MINGW=ON
 
 before_install:
   - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get update -qq && sudo apt-get install
     -qq build-essential unzip cmake mercurial uuid-dev libcurl4-openssl-dev liblua5.1-0-dev
     libgtest-dev libpng-dev libsqlite3-dev libssl-dev zlib1g-dev libdcmtk2-dev libwrap0-dev
-    libcharls-dev mingw32; fi
+    libcharls-dev; fi
+  - if [ $TRAVIS_OS_NAME == linux -a $TRAVIS_MINGW == ON ]; then sudo apt-get install mingw32; fi
+
 
 before_script:
   - mkdir Build
   - cd Build
-  - if [ $TRAVIS_OS_NAME == linux ]; then cmake "-DDCMTK_LIBRARIES=CharLS;dcmjpls;wrap;oflog"
+  - if [ $TRAVIS_OS_NAME == linux -a $TRAVIS_MINGW=OFF ]; then cmake
+    -DCMAKE_BUILD_TYPE=Debug "-DDCMTK_LIBRARIES=CharLS;dcmjpls;wrap;oflog"
     -DALLOW_DOWNLOADS=ON -DUSE_SYSTEM_BOOST=OFF -DUSE_SYSTEM_MONGOOSE=OFF -DUSE_SYSTEM_JSONCPP=OFF
     -DUSE_SYSTEM_GOOGLE_LOG=OFF -DUSE_SYSTEM_PUGIXML=OFF -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON
     ..; fi
-  - if [ $TRAVIS_OS_NAME == osx ]; then cmake -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON
-    -DALLOW_DOWNLOADS=ON ..; fi
-  - cd ..
+  - if [ $TRAVIS_OS_NAME == linux -a $TRAVIS_MINGW=ON ]; then cmake
+    -DCMAKE_BUILD_TYPE=Debug -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON -DALLOW_DOWNLOADS=ON
+    -DCMAKE_TOOLCHAIN_FILE=Resources/MinGWToolchain.cmake
+    ..; fi
+  - if [ $TRAVIS_OS_NAME == osx ]; then cmake 
+    -DCMAKE_BUILD_TYPE=Debug -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON -DALLOW_DOWNLOADS=ON
+    ..; fi
 
-  - mkdir BuildMinGW32
-  - cd BuildMinGW32
-  - if [ $TRAVIS_OS_NAME == linux ]; then cmake -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON
-    -DALLOW_DOWNLOADS=ON -DCMAKE_TOOLCHAIN_FILE=../Resources/MinGWToolchain.cmake ..; fi
-  - cd ..
-
-script: ./Resources/TravisBuild.sh
+script: make && if [ $TRAVIS_MINGW == OFF ]; then ./UnitTests; fi
 
 deploy:
   provider: releases
@@ -48,6 +59,8 @@ deploy:
   file:
     - 'Build/Orthanc'
     - 'Build/UnitTests'
+    - 'BuildMinGW32/Orthanc.exe'
+    - 'BuildMinGW32/UnitTests.exe'
   skip_cleanup: true
   on:
     tags: true
