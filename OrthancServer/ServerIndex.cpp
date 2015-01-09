@@ -250,8 +250,6 @@ namespace Orthanc
         assert(index_.currentStorageSize_ >= index_.listener_->GetSizeOfFilesToRemove());
         index_.currentStorageSize_ -= index_.listener_->GetSizeOfFilesToRemove();
 
-        assert(index_.currentStorageSize_ == index_.db_.GetTotalCompressedSize());
-
         // Send all the pending changes to the Orthanc plugins
         index_.listener_->CommitChanges();
 
