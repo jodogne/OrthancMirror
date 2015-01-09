@@ -221,10 +221,10 @@ namespace Orthanc
       index_(index),
       isCommitted_(false)
     {
-      assert(index_.currentStorageSize_ == index_.db_.GetTotalCompressedSize());
-
       transaction_.reset(index_.db_.StartTransaction());
       transaction_->Begin();
+
+      assert(index_.currentStorageSize_ == index_.db_.GetTotalCompressedSize());
 
       index_.listener_->StartTransaction();
     }
