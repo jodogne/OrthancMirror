@@ -226,6 +226,18 @@ namespace Orthanc
   
   void PluginsManager::RegisterPlugin(const std::string& path)
   {
+    if (!boost::filesystem::exists(path))
+    {
+      LOG(ERROR) << "Inexistent path to plugins: " << path;
+      return;
+    }
+
+    if (boost::filesystem::is_directory(path))
+    {
+      ScanFolderForPlugins(path, false);
+      return;
+    }
+
     std::auto_ptr<Plugin> plugin(new Plugin(path));
 
     if (!IsOrthancPlugin(plugin->GetLibrary()))

@@ -1,12 +1,20 @@
 Pending changes in the mainline
 ===============================
 
-* Introspection of plugins
-* Plugins can extend Orthanc Explorer with custom JavaScript
-* Plugins can get/set global properties to save their configuration
+General
+-------
+
 * Instances without PatientID are now allowed
 * Support of Tudor DICOM in Query/Retrieve
 * Fix issue 25 (AET with underscore not allowed)
+
+Plugins
+-------
+
+* Introspection of plugins
+* Plugins can extend Orthanc Explorer with custom JavaScript
+* Plugins can get/set global properties to save their configuration
+* Scan of folders for plugins
 
 
 Version 0.8.5 (2014/11/04)
