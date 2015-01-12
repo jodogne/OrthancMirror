@@ -35,7 +35,9 @@
 
   // List of paths to the plugins that are to be loaded into this
   // instance of Orthanc (e.g. "./libPluginTest.so" for Linux, or
-  // "./PluginTest.dll" for Windows).
+  // "./PluginTest.dll" for Windows). These paths can refer to
+  // folders, in which case they will be scanned non-recursively to
+  // find shared libraries.
   "Plugins" : [
   ],
 
