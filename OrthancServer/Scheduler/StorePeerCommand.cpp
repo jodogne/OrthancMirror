@@ -52,6 +52,7 @@ namespace Orthanc
   {
     // Configure the HTTP client
     HttpClient client;
+    client.SetProxy(Configuration::GetGlobalStringParameter("HttpProxy", ""));
     if (peer_.GetUsername().size() != 0 && 
         peer_.GetPassword().size() != 0)
     {

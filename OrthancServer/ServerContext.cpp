@@ -84,6 +84,7 @@ namespace Orthanc
     //scu_.SetMillisecondsBeforeClose(1);  // The connection is always released
 
     lua_.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
+    lua_.SetHttpProxy(Configuration::GetGlobalStringParameter("HttpProxy", ""));
   }
 
   void ServerContext::SetCompressionEnabled(bool enabled)

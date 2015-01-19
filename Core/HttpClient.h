@@ -53,6 +53,7 @@ namespace Orthanc
     std::string postData_;
     bool isVerbose_;
     long timeout_;
+    std::string proxy_;
 
     void Setup();
 
@@ -133,6 +134,11 @@ namespace Orthanc
 
     void SetCredentials(const char* username,
                         const char* password);
+
+    void SetProxy(const std::string& proxy)
+    {
+      proxy_ = proxy;
+    }
 
     static void GlobalInitialize();
   
