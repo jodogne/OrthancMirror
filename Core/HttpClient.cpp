@@ -171,6 +171,7 @@ namespace Orthanc
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CUSTOMREQUEST, NULL));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDS, NULL));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDSIZE, 0));
+    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_PROXY, NULL));
 
     // Set timeouts
     if (timeout_ <= 0)
@@ -187,6 +188,11 @@ namespace Orthanc
     if (credentials_.size() != 0)
     {
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_USERPWD, credentials_.c_str()));
+    }
+
+    if (proxy_.size() != 0)
+    {
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_PROXY, proxy_.c_str()));
     }
 
     switch (method_)

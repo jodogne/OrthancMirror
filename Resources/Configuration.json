@@ -140,6 +140,11 @@
     // "peer2" : [ "http://localhost:8044/" ]
   },
 
+  // Parameters of the HTTP proxy to be used by Orthanc. If set to the
+  // empty string, no HTTP proxy is used. For instance:
+  //   "HttpProxy" : "192.168.0.1:3128"
+  //   "HttpProxy" : "proxyUser:proxyPassword@192.168.0.1:3128"
+  "HttpProxy" : "",
 
 
   /**

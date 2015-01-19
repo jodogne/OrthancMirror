@@ -102,5 +102,10 @@ namespace Orthanc
     {
       httpClient_.SetCredentials(username, password);
     }
+
+    void SetHttpProxy(const std::string& proxy)
+    {
+      httpClient_.SetProxy(proxy);
+    }
   };
 }

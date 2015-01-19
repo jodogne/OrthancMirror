@@ -4,6 +4,7 @@ Pending changes in the mainline
 General
 -------
 
+* Support of HTTP proxy
 * Instances without PatientID are now allowed
 * Support of Tudor DICOM in Query/Retrieve
 * Fix issue 25 (AET with underscore not allowed)
