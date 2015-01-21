@@ -38,7 +38,6 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "../Core/Uuid.h"
-#include "../Core/FileStorage/FilesystemStorage.h"
 #include "../Core/HttpServer/EmbeddedResourceHttpHandler.h"
 #include "../Core/HttpServer/FilesystemHttpHandler.h"
 #include "../Core/Lua/LuaFunctionCall.h"
@@ -50,7 +49,6 @@
 #include "OrthancFindRequestHandler.h"
 #include "OrthancMoveRequestHandler.h"
 #include "ServerToolbox.h"
-#include "DatabaseWrapper.h"
 #include "../Plugins/Engine/PluginsManager.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
 
@@ -383,71 +381,10 @@ static void LoadPlugins(PluginsManager& pluginsManager)
 
 
 
-class FilesystemStorageWithoutDicom : public IStorageArea
-{
-private:
-  FilesystemStorage storage_;
-
-public:
-  FilesystemStorageWithoutDicom(const std::string& path) : storage_(path)
-  {
-  }
-
-  virtual void Create(const std::string& uuid,
-                      const void* content, 
-                      size_t size,
-                      FileContentType type)
-  {
-    if (type != FileContentType_Dicom)
-    {
-      storage_.Create(uuid, content, size, type);
-    }
-  }
-
-  virtual void Read(std::string& content,
-                    const std::string& uuid,
-                    FileContentType type)
-  {
-    if (type != FileContentType_Dicom)
-    {
-      storage_.Read(content, uuid, type);
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-  }
-
-  virtual void Remove(const std::string& uuid,
-                      FileContentType type) 
-  {
-    if (type != FileContentType_Dicom)
-    {
-      storage_.Remove(uuid, type);
-    }
-  }
-};
-
-
 static bool StartOrthanc()
 {
-  std::string storageDirectoryStr = Configuration::GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
-
-
-  // Open the database
-  boost::filesystem::path indexDirectory = Configuration::InterpretStringParameterAsPath(
-    Configuration::GetGlobalStringParameter("IndexDirectory", storageDirectoryStr));
-
   std::auto_ptr<IDatabaseWrapper> database;
-  try
-  {
-    boost::filesystem::create_directories(indexDirectory);
-  }
-  catch (boost::filesystem::filesystem_error)
-  {
-  }
-
-  database.reset(new DatabaseWrapper(indexDirectory.string() + "/index"));
+  database.reset(Configuration::CreateDatabaseWrapper());
 
 
   // "storage" must be declared BEFORE "ServerContext context", to
@@ -455,8 +392,6 @@ static bool StartOrthanc()
   std::auto_ptr<IStorageArea>  storage;
 
   ServerContext context(*database);
-
-  LOG(WARNING) << "Index directory: " << indexDirectory;
 
   context.SetCompressionEnabled(Configuration::GetGlobalBoolParameter("StorageCompression", false));
   context.SetStoreMD5ForAttachments(Configuration::GetGlobalBoolParameter("StoreMD5ForAttachments", true));
@@ -553,17 +488,7 @@ static bool StartOrthanc()
     else
 #endif
     {
-      boost::filesystem::path storageDirectory = Configuration::InterpretStringParameterAsPath(storageDirectoryStr);
-      LOG(WARNING) << "Storage directory: " << storageDirectory;
-      if (Configuration::GetGlobalBoolParameter("StoreDicom", true))
-      {
-        storage.reset(new FilesystemStorage(storageDirectory.string()));
-      }
-      else
-      {
-        LOG(WARNING) << "The DICOM files will not be stored, Orthanc running in index-only mode";
-        storage.reset(new FilesystemStorageWithoutDicom(storageDirectory.string()));
-      }
+      storage.reset(Configuration::CreateStorageArea());
     }
     
     context.SetStorageArea(*storage);

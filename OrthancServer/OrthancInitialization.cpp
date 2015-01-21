@@ -45,6 +45,9 @@
 #include <boost/thread.hpp>
 #include <glog/logging.h>
 
+#include "DatabaseWrapper.h"
+#include "../Core/FileStorage/FilesystemStorage.h"
+
 
 #if ORTHANC_JPEG_ENABLED == 1
 #include <dcmtk/dcmjpeg/djdecode.h>
@@ -654,4 +657,108 @@ namespace Orthanc
   {
     return configurationAbsolutePath_;
   }
+
+
+  static IDatabaseWrapper* CreateSQLiteWrapper()
+  {
+    std::string storageDirectoryStr = Configuration::GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
+
+    // Open the database
+    boost::filesystem::path indexDirectory = Configuration::InterpretStringParameterAsPath(
+      Configuration::GetGlobalStringParameter("IndexDirectory", storageDirectoryStr));
+
+    LOG(WARNING) << "SQLite index directory: " << indexDirectory;
+
+    try
+    {
+      boost::filesystem::create_directories(indexDirectory);
+    }
+    catch (boost::filesystem::filesystem_error)
+    {
+    }
+
+    return new DatabaseWrapper(indexDirectory.string() + "/index");
+  }
+
+
+  namespace
+  {
+    // Anonymous namespace to avoid clashes between compilation modules
+
+    class FilesystemStorageWithoutDicom : public IStorageArea
+    {
+    private:
+      FilesystemStorage storage_;
+
+    public:
+      FilesystemStorageWithoutDicom(const std::string& path) : storage_(path)
+      {
+      }
+
+      virtual void Create(const std::string& uuid,
+                          const void* content, 
+                          size_t size,
+                          FileContentType type)
+      {
+        if (type != FileContentType_Dicom)
+        {
+          storage_.Create(uuid, content, size, type);
+        }
+      }
+
+      virtual void Read(std::string& content,
+                        const std::string& uuid,
+                        FileContentType type)
+      {
+        if (type != FileContentType_Dicom)
+        {
+          storage_.Read(content, uuid, type);
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+      }
+
+      virtual void Remove(const std::string& uuid,
+                          FileContentType type) 
+      {
+        if (type != FileContentType_Dicom)
+        {
+          storage_.Remove(uuid, type);
+        }
+      }
+    };
+  }
+
+
+  static IStorageArea* CreateFilesystemStorage()
+  {
+    std::string storageDirectoryStr = Configuration::GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
+
+    boost::filesystem::path storageDirectory = Configuration::InterpretStringParameterAsPath(storageDirectoryStr);
+    LOG(WARNING) << "Storage directory: " << storageDirectory;
+
+    if (Configuration::GetGlobalBoolParameter("StoreDicom", true))
+    {
+      return new FilesystemStorage(storageDirectory.string());
+    }
+    else
+    {
+      LOG(WARNING) << "The DICOM files will not be stored, Orthanc running in index-only mode";
+      return new FilesystemStorageWithoutDicom(storageDirectory.string());
+    }
+  }
+
+
+  IDatabaseWrapper* Configuration::CreateDatabaseWrapper()
+  {
+    return CreateSQLiteWrapper();
+  }
+
+
+  IStorageArea* Configuration::CreateStorageArea()
+  {
+    return CreateFilesystemStorage();
+  }  
 }
