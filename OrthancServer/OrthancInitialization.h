@@ -40,6 +40,8 @@
 #include "DicomProtocol/RemoteModalityParameters.h"
 #include "ServerEnumerations.h"
 #include "OrthancPeerParameters.h"
+#include "IDatabaseWrapper.h"
+#include "../Core/FileStorage/IStorageArea.h"
 
 namespace Orthanc
 {
@@ -102,5 +104,9 @@ namespace Orthanc
     static void RemovePeer(const std::string& symbolicName);
 
     static const std::string& GetConfigurationAbsolutePath();
+
+    static IDatabaseWrapper* CreateDatabaseWrapper();
+
+    static IStorageArea* CreateStorageArea();
   };
 }
