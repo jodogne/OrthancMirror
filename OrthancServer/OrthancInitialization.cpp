@@ -186,6 +186,52 @@ namespace Orthanc
   }
 
 
+  static std::string GetStringValue(const Json::Value& configuration,
+                                    const std::string& key,
+                                    const std::string& defaultValue)
+  {
+    if (configuration.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    if (!configuration.isMember(key))
+    {
+      return defaultValue;
+    }
+
+    if (configuration[key].type() != Json::stringValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    return configuration[key].asString();
+  }
+
+
+  static int GetIntegerValue(const Json::Value& configuration,
+                             const std::string& key,
+                             int defaultValue)
+  {
+    if (configuration.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    if (!configuration.isMember(key))
+    {
+      return defaultValue;
+    }
+
+    if (configuration[key].type() != Json::intValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    return configuration[key].asInt();
+  }
+
+
   void OrthancInitialize(const char* configurationFile)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
