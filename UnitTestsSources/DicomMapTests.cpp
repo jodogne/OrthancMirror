@@ -133,16 +133,17 @@ TEST(DicomMap, FindTemplates)
 
 
 
-static void TestModule(ResourceType level)
+static void TestModule(ResourceType level,
+                       DicomModule module)
 {
-  std::set<DicomTag> module, main;
-  DicomTag::GetTagsForModule(module, level);
+  std::set<DicomTag> moduleTags, main;
+  DicomTag::GetTagsForModule(moduleTags, module);
   DicomMap::GetMainDicomTags(main, level);
   
   // The main dicom tags are a subset of the module
   for (std::set<DicomTag>::const_iterator it = main.begin(); it != main.end(); it++)
   {
-    bool ok = module.find(*it) != module.end();
+    bool ok = moduleTags.find(*it) != moduleTags.end();
 
     // Exceptions for the Series level
     /*if ((//
@@ -182,8 +183,8 @@ static void TestModule(ResourceType level)
 
 TEST(DicomMap, Modules)
 {
-  TestModule(ResourceType_Patient);
-  TestModule(ResourceType_Study);
-  //TestModule(ResourceType_Series);   // TODO
-  TestModule(ResourceType_Instance);
+  TestModule(ResourceType_Patient, DicomModule_Patient);
+  TestModule(ResourceType_Study, DicomModule_Study);
+  //TestModule(ResourceType_Series, DicomModule_Series);   // TODO
+  TestModule(ResourceType_Instance, DicomModule_Instance);
 }

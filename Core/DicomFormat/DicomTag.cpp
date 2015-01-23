@@ -119,14 +119,14 @@ namespace Orthanc
 
 
   void DicomTag::GetTagsForModule(std::set<DicomTag>& target,
-                                  ResourceType module)
+                                  DicomModule module)
   {
     // REFERENCE: 11_03pu.pdf, DICOM PS 3.3 2011 - Information Object Definitions
     target.clear();
 
     switch (module)
     {
-      case ResourceType_Patient:
+      case DicomModule_Patient:
         // This is Table C.7-1 "Patient Module Attributes" (p. 373)
         target.insert(DicomTag(0x0010, 0x0010));   // Patient's name
         target.insert(DicomTag(0x0010, 0x0020));   // Patient ID
@@ -156,7 +156,7 @@ namespace Orthanc
         target.insert(DicomTag(0x0010, 0x0024));   // Issuer of Patient ID qualifiers sequence
         break;
 
-      case ResourceType_Study:
+      case DicomModule_Study:
         // This is Table C.7-3 "General Study Module Attributes" (p. 378)
         target.insert(DicomTag(0x0020, 0x000d));   // Study instance UID
         target.insert(DicomTag(0x0008, 0x0020));   // Study date
@@ -177,7 +177,7 @@ namespace Orthanc
         target.insert(DicomTag(0x0040, 0x1012));   // Reason for performed procedure code sequence
         break;
 
-      case ResourceType_Series:
+      case DicomModule_Series:
         // This is Table C.7-5 "General Series Module Attributes" (p. 385)
         target.insert(DicomTag(0x0008, 0x0060));   // Modality 
         target.insert(DicomTag(0x0020, 0x000e));   // Series Instance UID 
@@ -210,7 +210,7 @@ namespace Orthanc
         target.insert(DicomTag(0x0040, 0x0280));   // Comments on the Performed Procedure Step
         break;
 
-      case ResourceType_Instance:
+      case DicomModule_Instance:
         // This is Table C.12-1 "SOP Common Module Attributes" (p. 1207)
         target.insert(DicomTag(0x0008, 0x0016));   // SOP Class UID
         target.insert(DicomTag(0x0008, 0x0018));   // SOP Instance UID 
