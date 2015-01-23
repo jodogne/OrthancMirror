@@ -85,7 +85,7 @@ namespace Orthanc
     friend std::ostream& operator<< (std::ostream& o, const DicomTag& tag);
 
     static void GetTagsForModule(std::set<DicomTag>& target,
-                                 ResourceType module);
+                                 DicomModule module);
 
     bool IsIdentifier() const;
   };

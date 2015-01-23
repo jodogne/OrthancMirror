@@ -274,6 +274,15 @@ namespace Orthanc
     PhotometricInterpretation_Unknown
   };
 
+  enum DicomModule
+  {
+    DicomModule_Patient,
+    DicomModule_Study,
+    DicomModule_Series,
+    DicomModule_Instance,
+    DicomModule_Image
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations
