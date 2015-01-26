@@ -50,6 +50,7 @@ namespace Orthanc
 
     bool isZip64_;
     bool hasFileInZip_;
+    bool append_;
     uint8_t compressionLevel_;
     std::string path_;
 
@@ -70,6 +71,13 @@ namespace Orthanc
     uint8_t GetCompressionLevel() const
     {
       return compressionLevel_;
+    }
+
+    void SetAppendToExisting(bool append);
+    
+    bool IsAppendToExisting() const
+    {
+      return append_;
     }
     
     void Open();
