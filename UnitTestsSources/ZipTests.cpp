@@ -72,6 +72,28 @@ TEST(ZipWriter, Exceptions)
 }
 
 
+TEST(ZipWriter, Append)
+{
+  {
+    Orthanc::ZipWriter w;
+    w.SetAppendToExisting(false);
+    w.SetOutputPath("UnitTestsResults/append.zip");
+    w.Open();
+    w.OpenFile("world/hello");
+    w.Write("Hello world 1");
+  }
+
+  {
+    Orthanc::ZipWriter w;
+    w.SetAppendToExisting(true);
+    w.SetOutputPath("UnitTestsResults/append.zip");
+    w.Open();
+    w.OpenFile("world/appended");
+    w.Write("Hello world 2");
+  }
+}
+
+
 
 
 

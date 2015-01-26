@@ -114,6 +114,16 @@ namespace Orthanc
       return writer_.GetCompressionLevel();
     }
 
+    void SetAppendToExisting(bool append)
+    {
+      writer_.SetAppendToExisting(append);
+    }
+    
+    bool IsAppendToExisting() const
+    {
+      return writer_.IsAppendToExisting();
+    }
+    
     void OpenFile(const char* name);
 
     void OpenDirectory(const char* name);

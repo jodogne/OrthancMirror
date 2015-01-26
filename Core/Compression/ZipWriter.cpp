@@ -77,15 +77,19 @@ namespace Orthanc
   struct ZipWriter::PImpl
   {
     zipFile file_;
+
+    PImpl() : file_(NULL)
+    {
+    }
   };
 
-  ZipWriter::ZipWriter() : pimpl_(new PImpl)
+  ZipWriter::ZipWriter() :
+    pimpl_(new PImpl),
+    isZip64_(false),
+    hasFileInZip_(false),
+    append_(false),
+    compressionLevel_(6)
   {
-    compressionLevel_ = 6;
-    hasFileInZip_ = false;
-    isZip64_ = false;
-
-    pimpl_->file_ = NULL;
   }
 
   ZipWriter::~ZipWriter()
@@ -122,13 +126,15 @@ namespace Orthanc
 
     hasFileInZip_ = false;
 
+    int mode = (append_ ? APPEND_STATUS_ADDINZIP : APPEND_STATUS_CREATE);
+
     if (isZip64_)
     {
-      pimpl_->file_ = zipOpen64(path_.c_str(), APPEND_STATUS_CREATE);
+      pimpl_->file_ = zipOpen64(path_.c_str(), mode);
     }
     else
     {
-      pimpl_->file_ = zipOpen(path_.c_str(), APPEND_STATUS_CREATE);
+      pimpl_->file_ = zipOpen(path_.c_str(), mode);
     }
 
     if (!pimpl_->file_)
@@ -230,4 +236,13 @@ namespace Orthanc
       length -= bytes;
     }
   }
+
+
+  void ZipWriter::SetAppendToExisting(bool append)
+  {
+    Close();
+    append_ = append;
+  }
+    
+
 }
