@@ -38,10 +38,11 @@
 
 #include "ZipWriter.h"
 
-#include "../../Resources/ThirdParty/minizip/zip.h"
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <limits>
+#include <boost/filesystem.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
+#include "../../Resources/ThirdParty/minizip/zip.h"
 #include "../OrthancException.h"
 
 
@@ -126,7 +127,12 @@ namespace Orthanc
 
     hasFileInZip_ = false;
 
-    int mode = (append_ ? APPEND_STATUS_ADDINZIP : APPEND_STATUS_CREATE);
+    int mode = APPEND_STATUS_CREATE;
+    if (append_ && 
+        boost::filesystem::exists(path_))
+    {
+      mode = APPEND_STATUS_ADDINZIP;
+    }
 
     if (isZip64_)
     {
