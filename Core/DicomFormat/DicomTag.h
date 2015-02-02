@@ -109,10 +109,11 @@ namespace Orthanc
 
   static const DicomTag DICOM_TAG_PATIENT_NAME(0x0010, 0x0010);
 
-  // The following is used for "modify" operations
+  // The following is used for "modify/anonymize" operations
   static const DicomTag DICOM_TAG_SOP_CLASS_UID(0x0008, 0x0016);
   static const DicomTag DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID(0x0002, 0x0002);
   static const DicomTag DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID(0x0002, 0x0003);
+  static const DicomTag DICOM_TAG_DEIDENTIFICATION_METHOD(0x0012, 0x0063);
 
   // DICOM tags used for fMRI (thanks to Will Ryder)
   static const DicomTag DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS(0x0020, 0x0105);
