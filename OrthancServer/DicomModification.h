@@ -56,9 +56,12 @@ namespace Orthanc
     ResourceType level_;
     UidMap uidMap_;
     SetOfTags privateTagsToKeep_;
+    bool allowManualIdentifiers_;
 
     void MapDicomIdentifier(ParsedDicomFile& dicom,
                             ResourceType level);
+
+    void MarkNotOrthancAnonymization();
 
   public:
     DicomModification();
@@ -70,7 +73,8 @@ namespace Orthanc
     bool IsRemoved(const DicomTag& tag) const;
 
     void Replace(const DicomTag& tag,
-                 const std::string& value);
+                 const std::string& value,
+                 bool safeForAnonymization = false);
 
     bool IsReplaced(const DicomTag& tag) const;
 
@@ -93,5 +97,15 @@ namespace Orthanc
     void SetupAnonymization();
 
     void Apply(ParsedDicomFile& toModify);
+
+    void SetAllowManualIdentifiers(bool check)
+    {
+      allowManualIdentifiers_ = check;
+    }
+
+    bool AreAllowManualIdentifiers() const
+    {
+      return allowManualIdentifiers_;
+    }
   };
 }

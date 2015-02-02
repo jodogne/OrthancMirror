@@ -9,6 +9,7 @@ General
 * Support of Tudor DICOM in Query/Retrieve
 * Fix issue 25 (AET with underscore not allowed)
 * Code refactorings
+* More flexible "/modify" and "/anonymize" for single instance
 
 Plugins
 -------

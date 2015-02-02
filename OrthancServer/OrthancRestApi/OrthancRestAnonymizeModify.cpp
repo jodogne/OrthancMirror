@@ -194,7 +194,7 @@ namespace Orthanc
       {
         // Overwrite the random Patient's Name by one that is more
         // user-friendly (provided none was specified by the user)
-        target.Replace(DICOM_TAG_PATIENT_NAME, GeneratePatientName(OrthancRestApi::GetContext(call)));
+        target.Replace(DICOM_TAG_PATIENT_NAME, GeneratePatientName(OrthancRestApi::GetContext(call)), true);
       }
 
       return true;
@@ -361,6 +361,7 @@ namespace Orthanc
   static void ModifyInstance(RestApiPostCall& call)
   {
     DicomModification modification;
+    modification.SetAllowManualIdentifiers(true);
 
     if (ParseModifyRequest(modification, call))
     {
@@ -389,6 +390,7 @@ namespace Orthanc
   static void AnonymizeInstance(RestApiPostCall& call)
   {
     DicomModification modification;
+    modification.SetAllowManualIdentifiers(true);
 
     if (ParseAnonymizationRequest(modification, call))
     {

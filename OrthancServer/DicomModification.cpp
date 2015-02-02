@@ -39,8 +39,23 @@
 #include <memory>   // For std::auto_ptr
 #include <glog/logging.h>
 
+
+static const std::string ORTHANC_DEIDENTIFICATION_METHOD = "Orthanc " ORTHANC_VERSION " - PS 3.15-2008 Table E.1-1";
+
 namespace Orthanc
 {
+  void DicomModification::MarkNotOrthancAnonymization()
+  {
+    Replacements::iterator it = replacements_.find(DICOM_TAG_DEIDENTIFICATION_METHOD);
+
+    if (it != replacements_.end() &&
+        it->second == ORTHANC_DEIDENTIFICATION_METHOD)
+    {
+      replacements_.erase(it);
+    }
+  }
+
+
   void DicomModification::MapDicomIdentifier(ParsedDicomFile& dicom,
                                              ResourceType level)
   {
@@ -90,6 +105,7 @@ namespace Orthanc
   {
     removePrivateTags_ = false;
     level_ = ResourceType_Instance;
+    allowManualIdentifiers_ = true;
   }
 
   void DicomModification::Keep(const DicomTag& tag)
@@ -101,6 +117,8 @@ namespace Orthanc
     {
       privateTagsToKeep_.insert(tag);
     }
+
+    MarkNotOrthancAnonymization();
   }
 
   void DicomModification::Remove(const DicomTag& tag)
@@ -108,6 +126,8 @@ namespace Orthanc
     removals_.insert(tag);
     replacements_.erase(tag);
     privateTagsToKeep_.erase(tag);
+
+    MarkNotOrthancAnonymization();
   }
 
   bool DicomModification::IsRemoved(const DicomTag& tag) const
@@ -116,11 +136,17 @@ namespace Orthanc
   }
 
   void DicomModification::Replace(const DicomTag& tag,
-                                  const std::string& value)
+                                  const std::string& value,
+                                  bool safeForAnonymization)
   {
     removals_.erase(tag);
     privateTagsToKeep_.erase(tag);
     replacements_[tag] = value;
+
+    if (!safeForAnonymization)
+    {
+      MarkNotOrthancAnonymization();
+    }
   }
 
   bool DicomModification::IsReplaced(const DicomTag& tag) const
@@ -145,12 +171,22 @@ namespace Orthanc
   void DicomModification::SetRemovePrivateTags(bool removed)
   {
     removePrivateTags_ = removed;
+
+    if (!removed)
+    {
+      MarkNotOrthancAnonymization();
+    }
   }
 
   void DicomModification::SetLevel(ResourceType level)
   {
     uidMap_.clear();
     level_ = level;
+
+    if (level != ResourceType_Patient)
+    {
+      MarkNotOrthancAnonymization();
+    }
   }
 
   void DicomModification::SetupAnonymization()
@@ -219,7 +255,7 @@ namespace Orthanc
     removals_.insert(DicomTag(0x0010, 0x2000));  // Medical Alerts
 
     // Set the DeidentificationMethod tag
-    replacements_.insert(std::make_pair(DicomTag(0x0012, 0x0063), "Orthanc " ORTHANC_VERSION " - PS 3.15-2008 Table E.1-1"));
+    replacements_.insert(std::make_pair(DICOM_TAG_DEIDENTIFICATION_METHOD, ORTHANC_DEIDENTIFICATION_METHOD));
 
     // Set the PatientIdentityRemoved tag
     replacements_.insert(std::make_pair(DicomTag(0x0012, 0x0062), "YES"));
@@ -246,49 +282,59 @@ namespace Orthanc
     }
     
 
-    // Sanity checks
+    // Sanity checks at the patient level
     if (level_ == ResourceType_Patient && !IsReplaced(DICOM_TAG_PATIENT_ID))
     {
       LOG(ERROR) << "When modifying a patient, her PatientID is required to be modified";
       throw OrthancException(ErrorCode_BadRequest);
     }
 
-    if (level_ == ResourceType_Patient && IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
+    if (!allowManualIdentifiers_)
     {
-      LOG(ERROR) << "When modifying a patient, the StudyInstanceUID cannot be manually modified";
-      throw OrthancException(ErrorCode_BadRequest);
+      if (level_ == ResourceType_Patient && IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
+      {
+        LOG(ERROR) << "When modifying a patient, the StudyInstanceUID cannot be manually modified";
+        throw OrthancException(ErrorCode_BadRequest);
+      }
+
+      if (level_ == ResourceType_Patient && IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
+      {
+        LOG(ERROR) << "When modifying a patient, the SeriesInstanceUID cannot be manually modified";
+        throw OrthancException(ErrorCode_BadRequest);
+      }
+
+      if (level_ == ResourceType_Patient && IsReplaced(DICOM_TAG_SOP_INSTANCE_UID))
+      {
+        LOG(ERROR) << "When modifying a patient, the SopInstanceUID cannot be manually modified";
+        throw OrthancException(ErrorCode_BadRequest);
+      }
     }
 
-    if (level_ == ResourceType_Patient && IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
-    {
-      LOG(ERROR) << "When modifying a patient, the SeriesInstanceUID cannot be manually modified";
-      throw OrthancException(ErrorCode_BadRequest);
-    }
 
-    if (level_ == ResourceType_Patient && IsReplaced(DICOM_TAG_SOP_INSTANCE_UID))
-    {
-      LOG(ERROR) << "When modifying a patient, the SopInstanceUID cannot be manually modified";
-      throw OrthancException(ErrorCode_BadRequest);
-    }
-
+    // Sanity checks at the study level
     if (level_ == ResourceType_Study && IsReplaced(DICOM_TAG_PATIENT_ID))
     {
       LOG(ERROR) << "When modifying a study, the parent PatientID cannot be manually modified";
       throw OrthancException(ErrorCode_BadRequest);
     }
 
-    if (level_ == ResourceType_Study && IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
+    if (!allowManualIdentifiers_)
     {
-      LOG(ERROR) << "When modifying a study, the SeriesInstanceUID cannot be manually modified";
-      throw OrthancException(ErrorCode_BadRequest);
+      if (level_ == ResourceType_Study && IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
+      {
+        LOG(ERROR) << "When modifying a study, the SeriesInstanceUID cannot be manually modified";
+        throw OrthancException(ErrorCode_BadRequest);
+      }
+
+      if (level_ == ResourceType_Study && IsReplaced(DICOM_TAG_SOP_INSTANCE_UID))
+      {
+        LOG(ERROR) << "When modifying a study, the SopInstanceUID cannot be manually modified";
+        throw OrthancException(ErrorCode_BadRequest);
+      }
     }
 
-    if (level_ == ResourceType_Study && IsReplaced(DICOM_TAG_SOP_INSTANCE_UID))
-    {
-      LOG(ERROR) << "When modifying a study, the SopInstanceUID cannot be manually modified";
-      throw OrthancException(ErrorCode_BadRequest);
-    }
 
+    // Sanity checks at the series level
     if (level_ == ResourceType_Series && IsReplaced(DICOM_TAG_PATIENT_ID))
     {
       LOG(ERROR) << "When modifying a series, the parent PatientID cannot be manually modified";
@@ -301,12 +347,17 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadRequest);
     }
 
-    if (level_ == ResourceType_Series && IsReplaced(DICOM_TAG_SOP_INSTANCE_UID))
+    if (!allowManualIdentifiers_)
     {
-      LOG(ERROR) << "When modifying a series, the SopInstanceUID cannot be manually modified";
-      throw OrthancException(ErrorCode_BadRequest);
+      if (level_ == ResourceType_Series && IsReplaced(DICOM_TAG_SOP_INSTANCE_UID))
+      {
+        LOG(ERROR) << "When modifying a series, the SopInstanceUID cannot be manually modified";
+        throw OrthancException(ErrorCode_BadRequest);
+      }
     }
 
+
+    // Sanity checks at the instance level
     if (level_ == ResourceType_Instance && IsReplaced(DICOM_TAG_PATIENT_ID))
     {
       LOG(ERROR) << "When modifying an instance, the parent PatientID cannot be manually modified";
@@ -347,17 +398,20 @@ namespace Orthanc
     }
 
     // (4) Update the DICOM identifiers
-    if (level_ <= ResourceType_Study)
+    if (level_ <= ResourceType_Study &&
+        !IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
     {
       MapDicomIdentifier(toModify, ResourceType_Study);
     }
 
-    if (level_ <= ResourceType_Series)
+    if (level_ <= ResourceType_Series &&
+        !IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
     {
       MapDicomIdentifier(toModify, ResourceType_Series);
     }
 
-    if (level_ <= ResourceType_Instance)  // Always true
+    if (level_ <= ResourceType_Instance &&  // Always true
+        !IsReplaced(DICOM_TAG_SOP_INSTANCE_UID))
     {
       MapDicomIdentifier(toModify, ResourceType_Instance);
     }
