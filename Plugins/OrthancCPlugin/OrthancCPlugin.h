@@ -251,6 +251,8 @@ extern "C"
     _OrthancPluginService_SetPluginProperty = 7,
     _OrthancPluginService_GetGlobalProperty = 8,
     _OrthancPluginService_SetGlobalProperty = 9,
+    _OrthancPluginService_GetCommandLineArgumentsCount = 10,
+    _OrthancPluginService_GetCommandLineArgument = 11,
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -1885,6 +1887,79 @@ extern "C"
     }
   }
 
+
+
+  typedef struct
+  {
+    int32_t   *resultInt32;
+    uint32_t  *resultUint32;
+    int64_t   *resultInt64;
+    uint64_t  *resultUint64;
+  } _OrthancPluginReturnSingleValue;
+
+  /**
+   * @brief Get the number of command-line arguments.
+   *
+   * Retrieve the number of command-line arguments that were used to launch Orthanc.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @return The number of arguments.
+   **/
+  ORTHANC_PLUGIN_INLINE uint32_t OrthancPluginGetCommandLineArgumentsCount(
+    OrthancPluginContext*  context)
+  {
+    uint32_t count = 0;
+
+    _OrthancPluginReturnSingleValue params;
+    memset(&params, 0, sizeof(params));
+    params.resultUint32 = &count;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetCommandLineArgumentsCount, &params))
+    {
+      /* Error */
+      return 0;
+    }
+    else
+    {
+      return count;
+    }
+  }
+
+
+
+  /**
+   * @brief Get the value of a command-line argument.
+   *
+   * Get the value of one of the command-line arguments that were used
+   * to launch Orthanc. The number of available arguments can be
+   * retrieved by OrthancPluginGetCommandLineArgumentsCount().
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param argument The index of the argument.
+   * @return The value of the argument, or NULL in the case of an error. This
+   * string must be freed by OrthancPluginFreeString().
+   **/
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginGetCommandLineArgument(
+    OrthancPluginContext*  context,
+    uint32_t               argument)
+  {
+    char* result;
+
+    _OrthancPluginGlobalProperty params;
+    params.result = &result;
+    params.property = (int32_t) argument;
+    params.value = NULL;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetCommandLineArgument, &params))
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
 
 
 

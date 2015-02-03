@@ -280,7 +280,7 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
 {
   OrthancPluginMemoryBuffer tmp;
   char info[1024], *s;
-  int counter;
+  int counter, i;
 
   context = c;
   OrthancPluginLogWarning(context, "Sample plugin is initializing");
@@ -315,6 +315,16 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   sprintf(info, "  Path to configuration file: %s", s);
   OrthancPluginLogWarning(context, info);
   OrthancPluginFreeString(context, s);
+
+  /* Print the command-line arguments of Orthanc */
+  counter = OrthancPluginGetCommandLineArgumentsCount(context);
+  for (i = 0; i < counter; i++)
+  {
+    s = OrthancPluginGetCommandLineArgument(context, i);
+    sprintf(info, "  Command-line argument %d: \"%s\"", i, s);
+    OrthancPluginLogWarning(context, info);
+    OrthancPluginFreeString(context, s);    
+  }
 
   /* Register the callbacks */
   OrthancPluginRegisterRestCallback(context, "/(plu.*)/hello", Callback1);
