@@ -187,7 +187,7 @@ namespace Orthanc
     OnChangeCallbacks  onChangeCallbacks_;
     bool hasStorageArea_;
     _OrthancPluginRegisterStorageArea storageArea_;
-    boost::mutex callbackMutex_;
+    boost::recursive_mutex callbackMutex_;
     SharedMessageQueue  pendingChanges_;
     boost::thread  changeThread_;
     bool done_;
@@ -215,7 +215,7 @@ namespace Orthanc
         
         if (obj.get() != NULL)
         {
-          boost::mutex::scoped_lock lock(that->callbackMutex_);
+          boost::recursive_mutex::scoped_lock lock(that->callbackMutex_);
           PendingChange& change = *dynamic_cast<PendingChange*>(obj.get());
           change.Submit(that->onChangeCallbacks_);
         }
@@ -397,7 +397,7 @@ namespace Orthanc
     int32_t error;
 
     {
-      boost::mutex::scoped_lock lock(pimpl_->callbackMutex_);
+      boost::recursive_mutex::scoped_lock lock(pimpl_->callbackMutex_);
       error = callback(reinterpret_cast<OrthancPluginRestOutput*>(&output), 
                        flatUri.c_str(), 
                        &request);
@@ -423,7 +423,7 @@ namespace Orthanc
   void OrthancPlugins::SignalStoredInstance(DicomInstanceToStore& instance,
                                             const std::string& instanceId)                                                  
   {
-    boost::mutex::scoped_lock lock(pimpl_->callbackMutex_);
+    boost::recursive_mutex::scoped_lock lock(pimpl_->callbackMutex_);
 
     for (PImpl::OnStoredCallbacks::const_iterator
            callback = pimpl_->onStoredCallbacks_.begin(); 
@@ -651,7 +651,8 @@ namespace Orthanc
   }
 
 
-  void OrthancPlugins::RestApiGet(const void* parameters)
+  void OrthancPlugins::RestApiGet(const void* parameters,
+                                  bool afterPlugins)
   {
     const _OrthancPluginRestApiGet& p = 
       *reinterpret_cast<const _OrthancPluginRestApiGet*>(parameters);
@@ -666,12 +667,25 @@ namespace Orthanc
     StringHttpOutput stream;
     HttpOutput http(stream, false /* no keep alive */);
 
-    LOG(INFO) << "Plugin making REST GET call on URI " << p.uri;
+    LOG(INFO) << "Plugin making REST GET call on URI " << p.uri
+              << (afterPlugins ? " (after plugins)" : " (built-in API)");
 
-    if (pimpl_->restApi_ != NULL &&
-        pimpl_->restApi_->Handle(http, HttpMethod_Get, uri, headers, getArguments, body))
+    bool ok = false;
+    std::string result;
+
+    if (afterPlugins)
     {
-      std::string result;
+      ok = Handle(http, HttpMethod_Get, uri, headers, getArguments, body);
+    }
+
+    if (!ok)
+    {
+      ok = (pimpl_->restApi_ != NULL &&
+            pimpl_->restApi_->Handle(http, HttpMethod_Get, uri, headers, getArguments, body));
+    }
+
+    if (ok)
+    {
       stream.GetOutput(result);
       CopyToMemoryBuffer(*p.target, result);
     }
@@ -682,7 +696,9 @@ namespace Orthanc
   }
 
 
-  void OrthancPlugins::RestApiPostPut(bool isPost, const void* parameters)
+  void OrthancPlugins::RestApiPostPut(bool isPost, 
+                                      const void* parameters,
+                                      bool afterPlugins)
   {
     const _OrthancPluginRestApiPostPut& p = 
       *reinterpret_cast<const _OrthancPluginRestApiPostPut*>(parameters);
@@ -700,12 +716,25 @@ namespace Orthanc
     HttpOutput http(stream, false /* no keep alive */);
 
     HttpMethod method = (isPost ? HttpMethod_Post : HttpMethod_Put);
-    LOG(INFO) << "Plugin making REST " << EnumerationToString(method) << " call on URI " << p.uri;
+    LOG(INFO) << "Plugin making REST " << EnumerationToString(method) << " call on URI " << p.uri
+              << (afterPlugins ? " (after plugins)" : " (built-in API)");
 
-    if (pimpl_->restApi_ != NULL &&
-        pimpl_->restApi_->Handle(http, method, uri, headers, getArguments, body))
+    bool ok = false;
+    std::string result;
+
+    if (afterPlugins)
     {
-      std::string result;
+      ok = Handle(http, method, uri, headers, getArguments, body);
+    }
+    
+    if (!ok)
+    {
+      ok = (pimpl_->restApi_ != NULL &&
+            pimpl_->restApi_->Handle(http, method, uri, headers, getArguments, body));
+    }
+
+    if (ok)
+    {
       stream.GetOutput(result);
       CopyToMemoryBuffer(*p.target, result);
     }
@@ -716,7 +745,8 @@ namespace Orthanc
   }
 
 
-  void OrthancPlugins::RestApiDelete(const void* parameters)
+  void OrthancPlugins::RestApiDelete(const void* parameters,
+                                     bool afterPlugins)
   {
     // The "parameters" point to the URI
     UriComponents uri;
@@ -730,10 +760,23 @@ namespace Orthanc
     HttpOutput http(stream, false /* no keep alive */);
 
     LOG(INFO) << "Plugin making REST DELETE call on URI " 
-              << reinterpret_cast<const char*>(parameters);
+              << reinterpret_cast<const char*>(parameters)
+              << (afterPlugins ? " (after plugins)" : " (built-in API)");
 
-    if (pimpl_->restApi_ == NULL ||
-        !pimpl_->restApi_->Handle(http, HttpMethod_Delete, uri, headers, getArguments, body))
+    bool ok = false;
+
+    if (afterPlugins)
+    {
+      ok = Handle(http, HttpMethod_Delete, uri, headers, getArguments, body);
+    }
+
+    if (!ok)
+    {
+      ok = (pimpl_->restApi_ != NULL &&
+            pimpl_->restApi_->Handle(http, HttpMethod_Delete, uri, headers, getArguments, body));
+    }
+
+    if (!ok)
     {
       throw OrthancException(ErrorCode_BadRequest);
     }
@@ -963,19 +1006,35 @@ namespace Orthanc
         return true;
 
       case _OrthancPluginService_RestApiGet:
-        RestApiGet(parameters);
+        RestApiGet(parameters, false);
+        return true;
+
+      case _OrthancPluginService_RestApiGetAfterPlugins:
+        RestApiGet(parameters, true);
         return true;
 
       case _OrthancPluginService_RestApiPost:
-        RestApiPostPut(true, parameters);
+        RestApiPostPut(true, parameters, false);
+        return true;
+
+      case _OrthancPluginService_RestApiPostAfterPlugins:
+        RestApiPostPut(true, parameters, true);
         return true;
 
       case _OrthancPluginService_RestApiDelete:
-        RestApiDelete(parameters);
+        RestApiDelete(parameters, false);
+        return true;
+
+      case _OrthancPluginService_RestApiDeleteAfterPlugins:
+        RestApiDelete(parameters, true);
         return true;
 
       case _OrthancPluginService_RestApiPut:
-        RestApiPostPut(false, parameters);
+        RestApiPostPut(false, parameters, false);
+        return true;
+
+      case _OrthancPluginService_RestApiPutAfterPlugins:
+        RestApiPostPut(false, parameters, true);
         return true;
 
       case _OrthancPluginService_Redirect:

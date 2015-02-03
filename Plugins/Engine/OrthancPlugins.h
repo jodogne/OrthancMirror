@@ -63,11 +63,15 @@ namespace Orthanc
 
     void GetDicomForInstance(const void* parameters);
 
-    void RestApiGet(const void* parameters);
+    void RestApiGet(const void* parameters,
+                    bool afterPlugins);
 
-    void RestApiPostPut(bool isPost, const void* parameters);
+    void RestApiPostPut(bool isPost, 
+                        const void* parameters,
+                        bool afterPlugins);
 
-    void RestApiDelete(const void* parameters);
+    void RestApiDelete(const void* parameters,
+                       bool afterPlugins);
 
     void LookupResource(_OrthancPluginService service,
                         const void* parameters);

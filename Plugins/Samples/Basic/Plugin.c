@@ -165,6 +165,58 @@ ORTHANC_PLUGINS_API int32_t Callback4(OrthancPluginRestOutput* output,
 }
 
 
+ORTHANC_PLUGINS_API int32_t Callback5(OrthancPluginRestOutput* output,
+                                      const char* url,
+                                      const OrthancPluginHttpRequest* request)
+{
+  /**
+   * Demonstration the difference between the
+   * "OrthancPluginRestApiXXX()" and the
+   * "OrthancPluginRestApiXXXAfterPlugins()" mechanisms to forward
+   * REST calls.
+   *
+   * # curl http://localhost:8042/forward/built-in/system
+   * # curl http://localhost:8042/forward/plugins/system
+   * # curl http://localhost:8042/forward/built-in/plugin/image
+   *   => FAILURE (because the "/plugin/image" URI is implemented by this plugin)
+   * # curl http://localhost:8042/forward/plugins/plugin/image  => SUCCESS
+   **/
+
+  OrthancPluginMemoryBuffer tmp;
+  int isBuiltIn, error;
+
+  if (request->method != OrthancPluginHttpMethod_Get)
+  {
+    OrthancPluginSendMethodNotAllowed(context, output, "GET");
+    return 0;
+  }
+
+  isBuiltIn = strcmp("plugins", request->groups[0]);
+ 
+  if (isBuiltIn)
+  {
+    error = OrthancPluginRestApiGet(context, &tmp, request->groups[1]);
+  }
+  else
+  {
+    printf("ICI1\n");
+    error = OrthancPluginRestApiGetAfterPlugins(context, &tmp, request->groups[1]);
+    printf("ICI2\n");
+  }
+
+  if (error)
+  {
+    return -1;
+  }
+  else
+  {
+    OrthancPluginAnswerBuffer(context, output, tmp.data, tmp.size, "application/octet-stream");
+    OrthancPluginFreeMemoryBuffer(context, &tmp);
+    return 0;
+  }
+}
+
+
 ORTHANC_PLUGINS_API int32_t CallbackCreateDicom(OrthancPluginRestOutput* output,
                                                 const char* url,
                                                 const OrthancPluginHttpRequest* request)
@@ -331,6 +383,8 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   OrthancPluginRegisterRestCallback(context, "/plu.*/image", Callback2);
   OrthancPluginRegisterRestCallback(context, "/plugin/instances/([^/]+)/info", Callback3);
   OrthancPluginRegisterRestCallback(context, "/instances/([^/]+)/preview", Callback4);
+  OrthancPluginRegisterRestCallback(context, "/forward/(built-in)(/.+)", Callback5);
+  OrthancPluginRegisterRestCallback(context, "/forward/(plugins)(/.+)", Callback5);
   OrthancPluginRegisterRestCallback(context, "/plugin/create", CallbackCreateDicom);
 
   OrthancPluginRegisterOnStoredInstanceCallback(context, OnStoredCallback);
