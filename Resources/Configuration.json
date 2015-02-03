@@ -210,7 +210,7 @@
   // to grow indefinitely in auto-routing tasks.
   "LogExportedResources" : true,
 
-  // Enable or disable HTTP Keep-Alive (experimental). Set this option
+  // Enable or disable HTTP Keep-Alive (deprecated). Set this option
   // to "true" only in the case of high HTTP loads.
   "KeepAlive" : false,
 
