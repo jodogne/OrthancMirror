@@ -4,6 +4,7 @@ Pending changes in the mainline
 General
 -------
 
+* URIs to get all the parents of a given resource in a single REST call
 * Support of HTTP proxy
 * Instances without PatientID are now allowed
 * Support of Tudor DICOM in Query/Retrieve
