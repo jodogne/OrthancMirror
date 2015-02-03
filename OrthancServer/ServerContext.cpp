@@ -211,7 +211,9 @@ namespace Orthanc
 
   void ServerContext::ApplyLuaOnStoredInstance(const std::string& instanceId,
                                                const Json::Value& simplifiedDicom,
-                                               const Json::Value& metadata)
+                                               const Json::Value& metadata,
+                                               const std::string& remoteAet,
+                                               const std::string& calledAet)
   {
     LuaContextLocker locker(*this);
 
@@ -223,6 +225,8 @@ namespace Orthanc
       call.PushString(instanceId);
       call.PushJson(simplifiedDicom);
       call.PushJson(metadata);
+      call.PushJson(remoteAet);
+      call.PushJson(calledAet);
       call.Execute();
 
       Json::Value operations;
@@ -360,11 +364,12 @@ namespace Orthanc
 
         try
         {
-          ApplyLuaOnStoredInstance(resultPublicId, simplified, metadata);
+          ApplyLuaOnStoredInstance(resultPublicId, simplified, metadata, 
+                                   dicom.GetRemoteAet(), dicom.GetCalledAet());
         }
         catch (OrthancException& e)
         {
-          LOG(ERROR) << "Error in OnStoredInstance callback (Lua): " << e.What();
+          LOG(ERROR) << "Error in " << ON_STORED_INSTANCE << " callback (Lua): " << e.What();
         }
 
         if (plugins_ != NULL)
@@ -375,7 +380,7 @@ namespace Orthanc
           }
           catch (OrthancException& e)
           {
-            LOG(ERROR) << "Error in OnStoredInstance callback (plugins): " << e.What();
+            LOG(ERROR) << "Error in " << ON_STORED_INSTANCE << " callback (plugins): " << e.What();
           }
         }
       }

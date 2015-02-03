@@ -102,7 +102,8 @@ namespace Orthanc
     struct StoreCallbackData
     {
       IStoreRequestHandler* handler;
-      const char* distantAET;
+      const char* remoteAET;
+      const char* calledAET;
       const char* modality;
       const char* affectedSOPInstanceUID;
       uint32_t messageID;
@@ -201,7 +202,7 @@ namespace Orthanc
             {
               try
               {
-                cbdata->handler->Handle(buffer, summary, dicomJson, cbdata->distantAET);
+                cbdata->handler->Handle(buffer, summary, dicomJson, cbdata->remoteAET, cbdata->calledAET);
               }
               catch (OrthancException& e)
               {
@@ -255,11 +256,13 @@ namespace Orthanc
     callbackData.messageID = req->MessageID;
     if (assoc && assoc->params)
     {
-      callbackData.distantAET = assoc->params->DULparams.callingAPTitle;
+      callbackData.remoteAET = assoc->params->DULparams.callingAPTitle;
+      callbackData.calledAET = assoc->params->DULparams.calledAPTitle;
     }
     else
     {
-      callbackData.distantAET = "";
+      callbackData.remoteAET = "";
+      callbackData.calledAET = "";
     }
 
     DcmFileFormat dcmff;

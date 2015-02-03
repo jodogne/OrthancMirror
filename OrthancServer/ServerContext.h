@@ -77,7 +77,9 @@ namespace Orthanc
 
     void ApplyLuaOnStoredInstance(const std::string& instanceId,
                                   const Json::Value& simplifiedDicom,
-                                  const Json::Value& metadata);
+                                  const Json::Value& metadata,
+                                  const std::string& remoteAet,
+                                  const std::string& calledAet);
 
     ServerIndex index_;
     CompressedFileStorageAccessor accessor_;

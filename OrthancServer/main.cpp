@@ -72,7 +72,8 @@ public:
   virtual void Handle(const std::string& dicomFile,
                       const DicomMap& dicomSummary,
                       const Json::Value& dicomJson,
-                      const std::string& remoteAet)
+                      const std::string& remoteAet,
+                      const std::string& calledAet)
   {
     if (dicomFile.size() > 0)
     {
@@ -81,6 +82,7 @@ public:
       toStore.SetSummary(dicomSummary);
       toStore.SetJson(dicomJson);
       toStore.SetRemoteAet(remoteAet);
+      toStore.SetCalledAet(calledAet);
 
       std::string id;
       server_.Store(id, toStore);

@@ -144,6 +144,7 @@ namespace Orthanc
     SmartContainer<Json::Value>  json_;
 
     std::string remoteAet_;
+    std::string calledAet_;
     ServerIndex::MetadataMap metadata_;
 
     void ComputeMissingInformation();
@@ -169,7 +170,7 @@ namespace Orthanc
       json_.SetConstReference(json);
     }
 
-    const std::string GetRemoteAet() const
+    const std::string& GetRemoteAet() const
     {
       return remoteAet_;
     }
@@ -177,6 +178,16 @@ namespace Orthanc
     void SetRemoteAet(const std::string& aet)
     {
       remoteAet_ = aet;
+    }
+
+    const std::string& GetCalledAet() const
+    {
+      return calledAet_;
+    }
+
+    void SetCalledAet(const std::string& aet)
+    {
+      calledAet_ = aet;
     }
 
     void AddMetadata(ResourceType level,

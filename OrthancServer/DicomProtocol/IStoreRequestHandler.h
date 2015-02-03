@@ -50,6 +50,7 @@ namespace Orthanc
     virtual void Handle(const std::string& dicomFile,
                         const DicomMap& dicomSummary,
                         const Json::Value& dicomJson,
-                        const std::string& distantAet) = 0;
+                        const std::string& remoteAet,
+                        const std::string& calledAet) = 0;
   };
 }
