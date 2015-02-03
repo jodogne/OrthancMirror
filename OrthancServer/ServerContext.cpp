@@ -81,7 +81,9 @@ namespace Orthanc
     pluginsManager_(NULL)
   {
     scu_.SetLocalApplicationEntityTitle(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"));
-    //scu_.SetMillisecondsBeforeClose(1);  // The connection is always released
+
+    uint64_t s = Configuration::GetGlobalIntegerParameter("DicomAssociationCloseDelay", 5);  // In seconds
+    scu_.SetMillisecondsBeforeClose(s * 1000);  // Milliseconds are expected here
 
     lua_.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
     lua_.SetHttpProxy(Configuration::GetGlobalStringParameter("HttpProxy", ""));
