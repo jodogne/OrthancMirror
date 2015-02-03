@@ -281,6 +281,10 @@ extern "C"
     _OrthancPluginService_LookupSeries = 3007,
     _OrthancPluginService_LookupInstance = 3008,
     _OrthancPluginService_LookupStudyWithAccessionNumber = 3009,
+    _OrthancPluginService_RestApiGetAfterPlugins = 3010,
+    _OrthancPluginService_RestApiPostAfterPlugins = 3011,
+    _OrthancPluginService_RestApiDeleteAfterPlugins = 3012,
+    _OrthancPluginService_RestApiPutAfterPlugins = 3013,
 
     /* Access to DICOM instances */
     _OrthancPluginService_GetInstanceRemoteAet = 4000,
@@ -891,6 +895,33 @@ extern "C"
 
 
 
+  /**
+   * @brief Make a GET call to the REST API, as tainted by the plugins.
+   * 
+   * Make a GET call to the Orthanc REST API, after all the plugins
+   * are applied. In other words, if some plugin overrides or adds the
+   * called URI to the built-in Orthanc REST API, this call will
+   * return the result provided by this plugin. The result to the
+   * query is stored into a newly allocated memory buffer.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target The target memory buffer.
+   * @param uri The URI in the built-in Orthanc API.
+   * @return 0 if success, other value if error.
+   **/
+  ORTHANC_PLUGIN_INLINE int  OrthancPluginRestApiGetAfterPlugins(
+    OrthancPluginContext*       context,
+    OrthancPluginMemoryBuffer*  target,
+    const char*                 uri)
+  {
+    _OrthancPluginRestApiGet params;
+    params.target = target;
+    params.uri = uri;
+    return context->InvokeService(context, _OrthancPluginService_RestApiGetAfterPlugins, &params);
+  }
+
+
+
   typedef struct
   {
     OrthancPluginMemoryBuffer*  target;
@@ -928,6 +959,38 @@ extern "C"
   }
 
 
+  /**
+   * @brief Make a POST call to the REST API, as tainted by the plugins.
+   * 
+   * Make a POST call to the Orthanc REST API, after all the plugins
+   * are applied. In other words, if some plugin overrides or adds the
+   * called URI to the built-in Orthanc REST API, this call will
+   * return the result provided by this plugin. The result to the
+   * query is stored into a newly allocated memory buffer.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target The target memory buffer.
+   * @param uri The URI in the built-in Orthanc API.
+   * @param body The body of the POST request.
+   * @param bodySize The size of the body.
+   * @return 0 if success, other value if error.
+   **/
+  ORTHANC_PLUGIN_INLINE int  OrthancPluginRestApiPostAfterPlugins(
+    OrthancPluginContext*       context,
+    OrthancPluginMemoryBuffer*  target,
+    const char*                 uri,
+    const char*                 body,
+    uint32_t                    bodySize)
+  {
+    _OrthancPluginRestApiPostPut params;
+    params.target = target;
+    params.uri = uri;
+    params.body = body;
+    params.bodySize = bodySize;
+    return context->InvokeService(context, _OrthancPluginService_RestApiPostAfterPlugins, &params);
+  }
+
+
 
   /**
    * @brief Make a DELETE call to the built-in Orthanc REST API.
@@ -943,6 +1006,26 @@ extern "C"
     const char*                 uri)
   {
     return context->InvokeService(context, _OrthancPluginService_RestApiDelete, uri);
+  }
+
+
+  /**
+   * @brief Make a DELETE call to the REST API, as tainted by the plugins.
+   * 
+   * Make a DELETE call to the Orthanc REST API, after all the plugins
+   * are applied. In other words, if some plugin overrides or adds the
+   * called URI to the built-in Orthanc REST API, this call will
+   * return the result provided by this plugin. 
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param uri The URI to delete in the built-in Orthanc API.
+   * @return 0 if success, other value if error.
+   **/
+  ORTHANC_PLUGIN_INLINE int  OrthancPluginRestApiDeleteAfterPlugins(
+    OrthancPluginContext*       context,
+    const char*                 uri)
+  {
+    return context->InvokeService(context, _OrthancPluginService_RestApiDeleteAfterPlugins, uri);
   }
 
 
@@ -973,6 +1056,39 @@ extern "C"
     params.body = body;
     params.bodySize = bodySize;
     return context->InvokeService(context, _OrthancPluginService_RestApiPut, &params);
+  }
+
+
+
+  /**
+   * @brief Make a PUT call to the REST API, as tainted by the plugins.
+   * 
+   * Make a PUT call to the Orthanc REST API, after all the plugins
+   * are applied. In other words, if some plugin overrides or adds the
+   * called URI to the built-in Orthanc REST API, this call will
+   * return the result provided by this plugin. The result to the
+   * query is stored into a newly allocated memory buffer.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target The target memory buffer.
+   * @param uri The URI in the built-in Orthanc API.
+   * @param body The body of the PUT request.
+   * @param bodySize The size of the body.
+   * @return 0 if success, other value if error.
+   **/
+  ORTHANC_PLUGIN_INLINE int  OrthancPluginRestApiPutAfterPlugins(
+    OrthancPluginContext*       context,
+    OrthancPluginMemoryBuffer*  target,
+    const char*                 uri,
+    const char*                 body,
+    uint32_t                    bodySize)
+  {
+    _OrthancPluginRestApiPostPut params;
+    params.target = target;
+    params.uri = uri;
+    params.body = body;
+    params.bodySize = bodySize;
+    return context->InvokeService(context, _OrthancPluginService_RestApiPutAfterPlugins, &params);
   }
 
 

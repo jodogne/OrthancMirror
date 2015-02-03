@@ -15,10 +15,11 @@ General
 Plugins
 -------
 
-* Introspection of plugins
+* Introspection of plugins (cf. the "/plugins" URI)
 * Plugins can access the command-line arguments used to launch Orthanc
 * Plugins can extend Orthanc Explorer with custom JavaScript
 * Plugins can get/set global properties to save their configuration
+* Plugins can do REST calls to other plugins (cf. "xxxAfterPlugins()")
 * Scan of folders for plugins
 
 
