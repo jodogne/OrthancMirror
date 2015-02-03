@@ -912,6 +912,47 @@ namespace Orthanc
 
 
 
+  template <enum ResourceType start, 
+            enum ResourceType end>
+  static void GetParentResource(RestApiGetCall& call)
+  {
+    assert(start > end);
+
+    ServerIndex& index = OrthancRestApi::GetIndex(call);
+    
+    std::string current = call.GetUriComponent("id", "");
+    ResourceType currentType = start;
+    while (currentType > end)
+    {
+      std::string parent;
+      if (!index.LookupParent(parent, current))
+      {
+        // Error that could happen if the resource gets deleted by
+        // another concurrent call
+        return;
+      }
+      
+      current = parent;
+      switch (currentType)
+      {
+        case ResourceType_Instance:  currentType = ResourceType_Series; break;
+        case ResourceType_Series:    currentType = ResourceType_Study; break;
+        case ResourceType_Study:     currentType = ResourceType_Patient; break;
+        default:                     throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    assert(currentType == end);
+
+    Json::Value result;
+    if (index.LookupResource(result, current, end))
+    {
+      call.GetOutput().AnswerJson(result);
+    }
+  }
+
+
+
   void OrthancRestApi::RegisterResources()
   {
     Register("/instances", ListResources<ResourceType_Instance>);
@@ -988,6 +1029,13 @@ namespace Orthanc
     Register("/studies/{id}/series", GetChildResources<ResourceType_Study, ResourceType_Series>);
     Register("/studies/{id}/instances", GetChildResources<ResourceType_Study, ResourceType_Instance>);
     Register("/series/{id}/instances", GetChildResources<ResourceType_Series, ResourceType_Instance>);
+
+    Register("/studies/{id}/patient", GetParentResource<ResourceType_Study, ResourceType_Patient>);
+    Register("/series/{id}/patient", GetParentResource<ResourceType_Series, ResourceType_Patient>);
+    Register("/series/{id}/study", GetParentResource<ResourceType_Series, ResourceType_Study>);
+    Register("/instances/{id}/patient", GetParentResource<ResourceType_Instance, ResourceType_Patient>);
+    Register("/instances/{id}/study", GetParentResource<ResourceType_Instance, ResourceType_Study>);
+    Register("/instances/{id}/series", GetParentResource<ResourceType_Instance, ResourceType_Series>);
 
     Register("/patients/{id}/instances-tags", GetChildInstancesTags);
     Register("/studies/{id}/instances-tags", GetChildInstancesTags);
