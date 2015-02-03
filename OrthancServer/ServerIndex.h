@@ -118,6 +118,8 @@ namespace Orthanc
 
     uint64_t IncrementGlobalSequenceInternal(GlobalProperty property);
 
+    void SetMainDicomTags(int64_t resource,
+                          const DicomMap& tags);
 
   public:
     ServerIndex(ServerContext& context,

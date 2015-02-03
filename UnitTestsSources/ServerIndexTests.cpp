@@ -119,6 +119,16 @@ namespace
       index_.reset(NULL);
       listener_.reset(NULL);
     }
+
+    void CheckTableRecordCount(uint32_t expected, const char* table)
+    {
+      if (GetParam() == DatabaseWrapperClass_SQLite)
+      {
+        DatabaseWrapper* sqlite = dynamic_cast<DatabaseWrapper*>(index_.get());
+        ASSERT_EQ(expected, sqlite->GetTableRecordCount(table));
+      }
+    }
+
   };
 }
 
@@ -130,6 +140,12 @@ INSTANTIATE_TEST_CASE_P(DatabaseWrapperName,
 
 TEST_P(DatabaseWrapperTest, Simple)
 {
+  DatabaseWrapper* sqlite_ = NULL;
+  if (GetParam() == DatabaseWrapperClass_SQLite)
+  {
+    sqlite_ = dynamic_cast<DatabaseWrapper*>(index_.get());
+  }
+
   int64_t a[] = {
     index_->CreateResource("a", ResourceType_Patient),   // 0
     index_->CreateResource("b", ResourceType_Study),     // 1
@@ -192,14 +208,17 @@ TEST_P(DatabaseWrapperTest, Simple)
   ASSERT_FALSE(index_->LookupParent(parent, a[6]));
 
   std::string s;
-  
-  ASSERT_FALSE(index_->GetParentPublicId(s, a[0]));
-  ASSERT_FALSE(index_->GetParentPublicId(s, a[6]));
-  ASSERT_TRUE(index_->GetParentPublicId(s, a[1])); ASSERT_EQ("a", s);
-  ASSERT_TRUE(index_->GetParentPublicId(s, a[2])); ASSERT_EQ("b", s);
-  ASSERT_TRUE(index_->GetParentPublicId(s, a[3])); ASSERT_EQ("c", s);
-  ASSERT_TRUE(index_->GetParentPublicId(s, a[4])); ASSERT_EQ("c", s);
-  ASSERT_TRUE(index_->GetParentPublicId(s, a[5])); ASSERT_EQ("g", s);
+
+  if (sqlite_ != NULL)
+  {
+    ASSERT_FALSE(sqlite_->GetParentPublicId(s, a[0]));
+    ASSERT_FALSE(sqlite_->GetParentPublicId(s, a[6]));
+    ASSERT_TRUE(sqlite_->GetParentPublicId(s, a[1])); ASSERT_EQ("a", s);
+    ASSERT_TRUE(sqlite_->GetParentPublicId(s, a[2])); ASSERT_EQ("b", s);
+    ASSERT_TRUE(sqlite_->GetParentPublicId(s, a[3])); ASSERT_EQ("c", s);
+    ASSERT_TRUE(sqlite_->GetParentPublicId(s, a[4])); ASSERT_EQ("c", s);
+    ASSERT_TRUE(sqlite_->GetParentPublicId(s, a[5])); ASSERT_EQ("g", s);
+  }
 
   std::list<std::string> l;
   index_->GetChildrenPublicId(l, a[0]); ASSERT_EQ(1u, l.size()); ASSERT_EQ("b", l.front());
@@ -256,9 +275,7 @@ TEST_P(DatabaseWrapperTest, Simple)
   ASSERT_EQ(21u + 42u + 44u, index_->GetTotalCompressedSize());
   ASSERT_EQ(42u + 42u + 44u, index_->GetTotalUncompressedSize());
 
-  DicomMap m;
-  m.SetValue(0x0010, 0x0010, "PatientName");
-  index_->SetMainDicomTags(a[3], m);
+  index_->SetMainDicomTag(a[3], DicomTag(0x0010, 0x0010), "PatientName");
 
   int64_t b;
   ResourceType t;
@@ -298,10 +315,11 @@ TEST_P(DatabaseWrapperTest, Simple)
 
   ASSERT_EQ(0u, listener_->deletedFiles_.size());
   ASSERT_EQ(0u, listener_->deletedResources_.size());
-  ASSERT_EQ(7u, index_->GetTableRecordCount("Resources")); 
-  ASSERT_EQ(3u, index_->GetTableRecordCount("AttachedFiles"));
-  ASSERT_EQ(1u, index_->GetTableRecordCount("Metadata"));
-  ASSERT_EQ(1u, index_->GetTableRecordCount("MainDicomTags"));
+
+  CheckTableRecordCount(7, "Resources");
+  CheckTableRecordCount(3, "AttachedFiles");
+  CheckTableRecordCount(1, "Metadata");
+  CheckTableRecordCount(1, "MainDicomTags");
 
   index_->DeleteResource(a[0]);
   ASSERT_EQ(5u, listener_->deletedResources_.size());
@@ -313,15 +331,17 @@ TEST_P(DatabaseWrapperTest, Simple)
                          listener_->deletedFiles_.end(),
                          "my dicom file") == listener_->deletedFiles_.end());
 
-  ASSERT_EQ(2u, index_->GetTableRecordCount("Resources"));
-  ASSERT_EQ(0u, index_->GetTableRecordCount("Metadata"));
-  ASSERT_EQ(1u, index_->GetTableRecordCount("AttachedFiles"));
-  ASSERT_EQ(0u, index_->GetTableRecordCount("MainDicomTags"));
+  CheckTableRecordCount(2, "Resources");
+  CheckTableRecordCount(0, "Metadata");
+  CheckTableRecordCount(1, "AttachedFiles");
+  CheckTableRecordCount(0, "MainDicomTags");
+
   index_->DeleteResource(a[5]);
   ASSERT_EQ(7u, listener_->deletedResources_.size());
-  ASSERT_EQ(0u, index_->GetTableRecordCount("Resources"));
-  ASSERT_EQ(0u, index_->GetTableRecordCount("AttachedFiles"));
-  ASSERT_EQ(2u, index_->GetTableRecordCount("GlobalProperties"));
+
+  CheckTableRecordCount(0, "Resources");
+  CheckTableRecordCount(0, "AttachedFiles");
+  CheckTableRecordCount(2, "GlobalProperties");
 
   ASSERT_EQ(3u, listener_->deletedFiles_.size());
   ASSERT_FALSE(std::find(listener_->deletedFiles_.begin(), 
@@ -334,6 +354,12 @@ TEST_P(DatabaseWrapperTest, Simple)
 
 TEST_P(DatabaseWrapperTest, Upward)
 {
+  DatabaseWrapper* sqlite_ = NULL;
+  if (GetParam() == DatabaseWrapperClass_SQLite)
+  {
+    sqlite_ = dynamic_cast<DatabaseWrapper*>(index_.get());
+  }
+
   int64_t a[] = {
     index_->CreateResource("a", ResourceType_Patient),   // 0
     index_->CreateResource("b", ResourceType_Study),     // 1
@@ -353,28 +379,29 @@ TEST_P(DatabaseWrapperTest, Upward)
   index_->AttachChild(a[0], a[5]);
   index_->AttachChild(a[5], a[7]);
 
+  if (sqlite_ != NULL)
   {
     std::list<std::string> j;
-    index_->GetChildren(j, a[0]);
+    sqlite_->GetChildren(j, a[0]);
     ASSERT_EQ(2u, j.size());
     ASSERT_TRUE((j.front() == "b" && j.back() == "f") ||
                 (j.back() == "b" && j.front() == "f"));
 
-    index_->GetChildren(j, a[1]);
+    sqlite_->GetChildren(j, a[1]);
     ASSERT_EQ(2u, j.size());
     ASSERT_TRUE((j.front() == "c" && j.back() == "g") ||
                 (j.back() == "c" && j.front() == "g"));
 
-    index_->GetChildren(j, a[2]);
+    sqlite_->GetChildren(j, a[2]);
     ASSERT_EQ(2u, j.size());
     ASSERT_TRUE((j.front() == "d" && j.back() == "e") ||
                 (j.back() == "d" && j.front() == "e"));
 
-    index_->GetChildren(j, a[3]); ASSERT_EQ(0u, j.size());
-    index_->GetChildren(j, a[4]); ASSERT_EQ(0u, j.size());
-    index_->GetChildren(j, a[5]); ASSERT_EQ(1u, j.size()); ASSERT_EQ("h", j.front());
-    index_->GetChildren(j, a[6]); ASSERT_EQ(0u, j.size());
-    index_->GetChildren(j, a[7]); ASSERT_EQ(0u, j.size());
+    sqlite_->GetChildren(j, a[3]); ASSERT_EQ(0u, j.size());
+    sqlite_->GetChildren(j, a[4]); ASSERT_EQ(0u, j.size());
+    sqlite_->GetChildren(j, a[5]); ASSERT_EQ(1u, j.size()); ASSERT_EQ("h", j.front());
+    sqlite_->GetChildren(j, a[6]); ASSERT_EQ(0u, j.size());
+    sqlite_->GetChildren(j, a[7]); ASSERT_EQ(0u, j.size());
   }
 
   listener_->Reset();
@@ -410,8 +437,8 @@ TEST_P(DatabaseWrapperTest, PatientRecycling)
     ASSERT_FALSE(index_->IsProtectedPatient(patients[i]));
   }
 
-  ASSERT_EQ(10u, index_->GetTableRecordCount("Resources")); 
-  ASSERT_EQ(10u, index_->GetTableRecordCount("PatientRecyclingOrder")); 
+  CheckTableRecordCount(10u, "Resources");
+  CheckTableRecordCount(10u, "PatientRecyclingOrder");
 
   listener_->Reset();
   ASSERT_EQ(0u, listener_->deletedResources_.size());
@@ -419,8 +446,9 @@ TEST_P(DatabaseWrapperTest, PatientRecycling)
   index_->DeleteResource(patients[5]);
   index_->DeleteResource(patients[0]);
   ASSERT_EQ(2u, listener_->deletedResources_.size());
-  ASSERT_EQ(8u, index_->GetTableRecordCount("Resources")); 
-  ASSERT_EQ(8u, index_->GetTableRecordCount("PatientRecyclingOrder"));
+
+  CheckTableRecordCount(8u, "Resources");
+  CheckTableRecordCount(8u, "PatientRecyclingOrder");
 
   ASSERT_EQ(2u, listener_->deletedFiles_.size());
   ASSERT_EQ("Patient 5", listener_->deletedFiles_[0]);
@@ -452,8 +480,9 @@ TEST_P(DatabaseWrapperTest, PatientRecycling)
   ASSERT_EQ(10u, listener_->deletedResources_.size());
 
   ASSERT_EQ(10u, listener_->deletedFiles_.size());
-  ASSERT_EQ(0u, index_->GetTableRecordCount("Resources")); 
-  ASSERT_EQ(0u, index_->GetTableRecordCount("PatientRecyclingOrder")); 
+
+  CheckTableRecordCount(0, "Resources");
+  CheckTableRecordCount(0, "PatientRecyclingOrder");
 }
 
 
@@ -469,38 +498,36 @@ TEST_P(DatabaseWrapperTest, PatientProtection)
     ASSERT_FALSE(index_->IsProtectedPatient(patients[i]));
   }
 
-  ASSERT_EQ(5u, index_->GetTableRecordCount("Resources")); 
-  ASSERT_EQ(5u, index_->GetTableRecordCount("PatientRecyclingOrder")); 
+  CheckTableRecordCount(5, "Resources");
+  CheckTableRecordCount(5, "PatientRecyclingOrder");
 
   ASSERT_FALSE(index_->IsProtectedPatient(patients[2]));
   index_->SetProtectedPatient(patients[2], true);
   ASSERT_TRUE(index_->IsProtectedPatient(patients[2]));
-  ASSERT_EQ(4u, index_->GetTableRecordCount("PatientRecyclingOrder"));
-  ASSERT_EQ(5u, index_->GetTableRecordCount("Resources")); 
+  CheckTableRecordCount(5, "Resources");
+  CheckTableRecordCount(4, "PatientRecyclingOrder");
 
   index_->SetProtectedPatient(patients[2], true);
   ASSERT_TRUE(index_->IsProtectedPatient(patients[2]));
-  ASSERT_EQ(4u, index_->GetTableRecordCount("PatientRecyclingOrder")); 
+  CheckTableRecordCount(4, "PatientRecyclingOrder");
   index_->SetProtectedPatient(patients[2], false);
   ASSERT_FALSE(index_->IsProtectedPatient(patients[2]));
-  ASSERT_EQ(5u, index_->GetTableRecordCount("PatientRecyclingOrder")); 
+  CheckTableRecordCount(5, "PatientRecyclingOrder");
   index_->SetProtectedPatient(patients[2], false);
   ASSERT_FALSE(index_->IsProtectedPatient(patients[2]));
-  ASSERT_EQ(5u, index_->GetTableRecordCount("PatientRecyclingOrder")); 
-
-  ASSERT_EQ(5u, index_->GetTableRecordCount("Resources")); 
-  ASSERT_EQ(5u, index_->GetTableRecordCount("PatientRecyclingOrder")); 
+  CheckTableRecordCount(5, "PatientRecyclingOrder");
+  CheckTableRecordCount(5, "Resources");
   index_->SetProtectedPatient(patients[2], true);
   ASSERT_TRUE(index_->IsProtectedPatient(patients[2]));
-  ASSERT_EQ(4u, index_->GetTableRecordCount("PatientRecyclingOrder"));
+  CheckTableRecordCount(4, "PatientRecyclingOrder");
   index_->SetProtectedPatient(patients[2], false);
   ASSERT_FALSE(index_->IsProtectedPatient(patients[2]));
-  ASSERT_EQ(5u, index_->GetTableRecordCount("PatientRecyclingOrder")); 
+  CheckTableRecordCount(5, "PatientRecyclingOrder");
   index_->SetProtectedPatient(patients[3], true);
   ASSERT_TRUE(index_->IsProtectedPatient(patients[3]));
-  ASSERT_EQ(4u, index_->GetTableRecordCount("PatientRecyclingOrder")); 
+  CheckTableRecordCount(4, "PatientRecyclingOrder");
 
-  ASSERT_EQ(5u, index_->GetTableRecordCount("Resources")); 
+  CheckTableRecordCount(5, "Resources");
   ASSERT_EQ(0u, listener_->deletedFiles_.size());
 
   // Unprotecting a patient puts it at the last position in the recycling queue
@@ -524,11 +551,11 @@ TEST_P(DatabaseWrapperTest, PatientProtection)
   ASSERT_FALSE(index_->SelectPatientToRecycle(p));
 
   ASSERT_EQ(4u, listener_->deletedFiles_.size());
-  ASSERT_EQ(1u, index_->GetTableRecordCount("Resources")); 
-  ASSERT_EQ(0u, index_->GetTableRecordCount("PatientRecyclingOrder")); 
+  CheckTableRecordCount(1, "Resources");
+  CheckTableRecordCount(0, "PatientRecyclingOrder");
 
   index_->SetProtectedPatient(patients[3], false);
-  ASSERT_EQ(1u, index_->GetTableRecordCount("PatientRecyclingOrder")); 
+  CheckTableRecordCount(1, "PatientRecyclingOrder");
   ASSERT_FALSE(index_->SelectPatientToRecycle(p, patients[3]));
   ASSERT_TRUE(index_->SelectPatientToRecycle(p, patients[2]));
   ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[3]);
@@ -536,8 +563,8 @@ TEST_P(DatabaseWrapperTest, PatientProtection)
   ASSERT_EQ(5u, listener_->deletedResources_.size());
 
   ASSERT_EQ(5u, listener_->deletedFiles_.size());
-  ASSERT_EQ(0u, index_->GetTableRecordCount("Resources")); 
-  ASSERT_EQ(0u, index_->GetTableRecordCount("PatientRecyclingOrder")); 
+  CheckTableRecordCount(0, "Resources");
+  CheckTableRecordCount(0, "PatientRecyclingOrder");
 }
 
 
@@ -570,11 +597,10 @@ TEST_P(DatabaseWrapperTest, LookupIdentifier)
     index_->CreateResource("d", ResourceType_Series)   // 3
   };
 
-  DicomMap m;
-  m.Clear(); m.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "0"); index_->SetMainDicomTags(a[0], m);
-  m.Clear(); m.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "1"); index_->SetMainDicomTags(a[1], m);
-  m.Clear(); m.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "0"); index_->SetMainDicomTags(a[2], m);
-  m.Clear(); m.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, "0"); index_->SetMainDicomTags(a[3], m);
+  index_->SetMainDicomTag(a[0], DICOM_TAG_STUDY_INSTANCE_UID, "0");
+  index_->SetMainDicomTag(a[1], DICOM_TAG_STUDY_INSTANCE_UID, "1");
+  index_->SetMainDicomTag(a[2], DICOM_TAG_STUDY_INSTANCE_UID, "0");
+  index_->SetMainDicomTag(a[3], DICOM_TAG_SERIES_INSTANCE_UID, "0");
 
   std::list<int64_t> s;
 

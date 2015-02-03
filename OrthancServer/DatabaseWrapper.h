@@ -68,6 +68,8 @@ namespace Orthanc
                                       SQLite::Statement& s,
                                       unsigned int maxResults);
 
+    void ClearTable(const std::string& tableName);
+
   public:
     DatabaseWrapper(const std::string& path);
 
@@ -127,8 +129,9 @@ namespace Orthanc
                                   int64_t id,
                                   FileContentType contentType);
 
-    virtual void SetMainDicomTags(int64_t id,
-                                  const DicomMap& tags);
+    virtual void SetMainDicomTag(int64_t id,
+                                 const DicomTag& tag,
+                                 const std::string& value);
 
     virtual void GetMainDicomTags(DicomMap& map,
                                   int64_t id);
@@ -187,7 +190,15 @@ namespace Orthanc
       db_.FlushToDisk();
     }
 
-    virtual void ClearTable(const std::string& tableName);
+    virtual void ClearChanges()
+    {
+      ClearTable("Changes");
+    }
+
+    virtual void ClearExportedResources()
+    {
+      ClearTable("ExportedResources");
+    }
 
     virtual bool IsExistingResource(int64_t internalId);
 
@@ -213,13 +224,13 @@ namespace Orthanc
       return db_.GetErrorMessage();
     }
 
-    virtual void GetChildren(std::list<std::string>& childrenPublicIds,
-                             int64_t id);
+    void GetChildren(std::list<std::string>& childrenPublicIds,
+                     int64_t id);
 
-    virtual int64_t GetTableRecordCount(const std::string& table);
+    int64_t GetTableRecordCount(const std::string& table);
     
-    virtual bool GetParentPublicId(std::string& result,
-                                   int64_t id);
+    bool GetParentPublicId(std::string& result,
+                           int64_t id);
 
   };
 }
