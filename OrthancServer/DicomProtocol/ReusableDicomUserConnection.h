@@ -88,12 +88,12 @@ namespace Orthanc
 
     virtual ~ReusableDicomUserConnection();
 
-    unsigned int GetMillisecondsBeforeClose() const
+    uint64_t GetMillisecondsBeforeClose() const
     {
-      return static_cast<unsigned int>(timeBeforeClose_.total_milliseconds());
+      return static_cast<uint64_t>(timeBeforeClose_.total_milliseconds());
     }
 
-    void SetMillisecondsBeforeClose(unsigned int ms);
+    void SetMillisecondsBeforeClose(uint64_t ms);
 
     const std::string& GetLocalApplicationEntityTitle() const;
 

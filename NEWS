@@ -1,16 +1,20 @@
 Pending changes in the mainline
 ===============================
 
-General
--------
+Major
+-----
 
 * URIs to get all the parents of a given resource in a single REST call
 * Support of HTTP proxy
 * Instances without PatientID are now allowed
+
+Minor
+-----
 * Support of Tudor DICOM in Query/Retrieve
 * Fix issue 25 (AET with underscore not allowed)
-* Code refactorings
 * More flexible "/modify" and "/anonymize" for single instance
+* Code refactorings
+* Option "DicomAssociationCloseDelay" to set delay before closing DICOM association
 
 Plugins
 -------

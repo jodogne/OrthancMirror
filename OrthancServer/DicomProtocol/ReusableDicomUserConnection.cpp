@@ -152,9 +152,15 @@ namespace Orthanc
     Close();
   }
 
-  void ReusableDicomUserConnection::SetMillisecondsBeforeClose(unsigned int ms)
+  void ReusableDicomUserConnection::SetMillisecondsBeforeClose(uint64_t ms)
   {
     boost::mutex::scoped_lock lock(mutex_);
+
+    if (ms == 0)
+    {
+      ms = 1;
+    }
+
     timeBeforeClose_ = boost::posix_time::milliseconds(ms);
   }
 
