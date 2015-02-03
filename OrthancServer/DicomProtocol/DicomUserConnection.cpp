@@ -454,7 +454,7 @@ namespace Orthanc
     int presID = ASC_findAcceptedPresentationContextID(pimpl_->assoc_, sopClass);
     if (presID == 0)
     {
-      throw OrthancException("DicomUserConnection: The C-FIND command is not supported by the distant AET");
+      throw OrthancException("DicomUserConnection: The C-FIND command is not supported by the remote AET");
     }
 
     T_DIMSE_C_FindRQ request;
@@ -546,7 +546,7 @@ namespace Orthanc
     int presID = ASC_findAcceptedPresentationContextID(pimpl_->assoc_, sopClass);
     if (presID == 0)
     {
-      throw OrthancException("DicomUserConnection: The C-MOVE command is not supported by the distant AET");
+      throw OrthancException("DicomUserConnection: The C-MOVE command is not supported by the remote AET");
     }
 
     T_DIMSE_C_MoveRQ request;
@@ -614,10 +614,10 @@ namespace Orthanc
     pimpl_(new PImpl),
     preferredTransferSyntax_(DEFAULT_PREFERRED_TRANSFER_SYNTAX),
     localAet_("STORESCU"),
-    distantAet_("ANY-SCP"),
-    distantHost_("127.0.0.1")
+    remoteAet_("ANY-SCP"),
+    remoteHost_("127.0.0.1")
   {
-    distantPort_ = 104;
+    remotePort_ = 104;
     manufacturer_ = ModalityManufacturer_Generic;
 
     SetTimeout(10); 
@@ -642,10 +642,10 @@ namespace Orthanc
 
   void DicomUserConnection::Connect(const RemoteModalityParameters& parameters)
   {
-    SetDistantApplicationEntityTitle(parameters.GetApplicationEntityTitle());
-    SetDistantHost(parameters.GetHost());
-    SetDistantPort(parameters.GetPort());
-    SetDistantManufacturer(parameters.GetManufacturer());
+    SetRemoteApplicationEntityTitle(parameters.GetApplicationEntityTitle());
+    SetRemoteHost(parameters.GetHost());
+    SetRemotePort(parameters.GetPort());
+    SetRemoteManufacturer(parameters.GetManufacturer());
   }
 
 
@@ -658,16 +658,16 @@ namespace Orthanc
     }
   }
 
-  void DicomUserConnection::SetDistantApplicationEntityTitle(const std::string& aet)
+  void DicomUserConnection::SetRemoteApplicationEntityTitle(const std::string& aet)
   {
-    if (distantAet_ != aet)
+    if (remoteAet_ != aet)
     {
       Close();
-      distantAet_ = aet;
+      remoteAet_ = aet;
     }
   }
 
-  void DicomUserConnection::SetDistantManufacturer(ModalityManufacturer manufacturer)
+  void DicomUserConnection::SetRemoteManufacturer(ModalityManufacturer manufacturer)
   {
     if (manufacturer_ != manufacturer)
     {
@@ -691,26 +691,26 @@ namespace Orthanc
   }
 
 
-  void DicomUserConnection::SetDistantHost(const std::string& host)
+  void DicomUserConnection::SetRemoteHost(const std::string& host)
   {
-    if (distantHost_ != host)
+    if (remoteHost_ != host)
     {
       if (host.size() > HOST_NAME_MAX - 10)
       {
-        throw OrthancException("Distant host name is too long");
+        throw OrthancException("Remote host name is too long");
       }
 
       Close();
-      distantHost_ = host;
+      remoteHost_ = host;
     }
   }
 
-  void DicomUserConnection::SetDistantPort(uint16_t port)
+  void DicomUserConnection::SetRemotePort(uint16_t port)
   {
-    if (distantPort_ != port)
+    if (remotePort_ != port)
     {
       Close();
-      distantPort_ = port;
+      remotePort_ = port;
     }
   }
 
@@ -723,30 +723,30 @@ namespace Orthanc
     }
 
     LOG(INFO) << "Opening a DICOM SCU connection from AET \"" << GetLocalApplicationEntityTitle() 
-              << "\" to AET \"" << GetDistantApplicationEntityTitle() << "\" on host "
-              << GetDistantHost() << ":" << GetDistantPort() 
-              << " (manufacturer: " << EnumerationToString(GetDistantManufacturer()) << ")";
+              << "\" to AET \"" << GetRemoteApplicationEntityTitle() << "\" on host "
+              << GetRemoteHost() << ":" << GetRemotePort() 
+              << " (manufacturer: " << EnumerationToString(GetRemoteManufacturer()) << ")";
 
     Check(ASC_initializeNetwork(NET_REQUESTOR, 0, /*opt_acse_timeout*/ pimpl_->acseTimeout_, &pimpl_->net_));
     Check(ASC_createAssociationParameters(&pimpl_->params_, /*opt_maxReceivePDULength*/ ASC_DEFAULTMAXPDU));
 
     // Set this application's title and the called application's title in the params
-    Check(ASC_setAPTitles(pimpl_->params_, localAet_.c_str(), distantAet_.c_str(), NULL));
+    Check(ASC_setAPTitles(pimpl_->params_, localAet_.c_str(), remoteAet_.c_str(), NULL));
 
-    // Set the network addresses of the local and distant entities
+    // Set the network addresses of the local and remote entities
     char localHost[HOST_NAME_MAX];
     gethostname(localHost, HOST_NAME_MAX - 1);
 
-    char distantHostAndPort[HOST_NAME_MAX];
+    char remoteHostAndPort[HOST_NAME_MAX];
 
 #ifdef _MSC_VER
     _snprintf
 #else
       snprintf
 #endif
-      (distantHostAndPort, HOST_NAME_MAX - 1, "%s:%d", distantHost_.c_str(), distantPort_);
+      (remoteHostAndPort, HOST_NAME_MAX - 1, "%s:%d", remoteHost_.c_str(), remotePort_);
 
-    Check(ASC_setPresentationAddresses(pimpl_->params_, localHost, distantHostAndPort));
+    Check(ASC_setPresentationAddresses(pimpl_->params_, localHost, remoteHostAndPort));
 
     // Set various options
     Check(ASC_setTransportLayerType(pimpl_->params_, /*opt_secureConnection*/ false));

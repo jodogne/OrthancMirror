@@ -50,10 +50,10 @@ namespace Orthanc
                                          ModalityManufacturer manufacturer)
   {
     if (connection_ != NULL &&
-        connection_->GetDistantApplicationEntityTitle() == remoteAet &&
-        connection_->GetDistantHost() == address &&
-        connection_->GetDistantPort() == port &&
-        connection_->GetDistantManufacturer() == manufacturer)
+        connection_->GetRemoteApplicationEntityTitle() == remoteAet &&
+        connection_->GetRemoteHost() == address &&
+        connection_->GetRemotePort() == port &&
+        connection_->GetRemoteManufacturer() == manufacturer)
     {
       // The current connection can be reused
       LOG(INFO) << "Reusing the previous SCU connection";
@@ -64,10 +64,10 @@ namespace Orthanc
 
     connection_ = new DicomUserConnection();
     connection_->SetLocalApplicationEntityTitle(localAet_);
-    connection_->SetDistantApplicationEntityTitle(remoteAet);
-    connection_->SetDistantHost(address);
-    connection_->SetDistantPort(port);
-    connection_->SetDistantManufacturer(manufacturer);
+    connection_->SetRemoteApplicationEntityTitle(remoteAet);
+    connection_->SetRemoteHost(address);
+    connection_->SetRemotePort(port);
+    connection_->SetRemoteManufacturer(manufacturer);
     connection_->Open();
   }
     
@@ -179,7 +179,7 @@ namespace Orthanc
   void ReusableDicomUserConnection::Unlock()
   {
     if (connection_ != NULL &&
-        connection_->GetDistantManufacturer() == ModalityManufacturer_StoreScp)
+        connection_->GetRemoteManufacturer() == ModalityManufacturer_StoreScp)
     {
       // "storescp" from DCMTK has problems when reusing a
       // connection. Always close.

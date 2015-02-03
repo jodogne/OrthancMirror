@@ -15,6 +15,7 @@ Minor
 * More flexible "/modify" and "/anonymize" for single instance
 * Code refactorings
 * Option "DicomAssociationCloseDelay" to set delay before closing DICOM association
+* Access to called AET and remote AET from Lua scripts ("OnStoredInstance")
 
 Plugins
 -------
