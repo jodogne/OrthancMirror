@@ -192,12 +192,16 @@ namespace Orthanc
     boost::thread  changeThread_;
     bool done_;
     Properties properties_;
+    int argc_;
+    char** argv_;
 
     PImpl(ServerContext& context) : 
       context_(context), 
       restApi_(NULL),
       hasStorageArea_(false),
-      done_(false)
+      done_(false),
+      argc_(1),
+      argv_(NULL)
     {
       memset(&storageArea_, 0, sizeof(storageArea_));
     }
@@ -1058,6 +1062,31 @@ namespace Orthanc
         return true;
       }
 
+      case _OrthancPluginService_GetCommandLineArgumentsCount:
+      {
+        const _OrthancPluginReturnSingleValue& p =
+          *reinterpret_cast<const _OrthancPluginReturnSingleValue*>(parameters);
+        *(p.resultUint32) = pimpl_->argc_ - 1;
+        return true;
+      }
+
+      case _OrthancPluginService_GetCommandLineArgument:
+      {
+        const _OrthancPluginGlobalProperty& p =
+          *reinterpret_cast<const _OrthancPluginGlobalProperty*>(parameters);
+        
+        if (p.property + 1 > pimpl_->argc_)
+        {
+          return false;
+        }
+        else
+        {
+          std::string arg = std::string(pimpl_->argv_[p.property + 1]);
+          *(p.result) = CopyString(arg);
+          return true;
+        }
+      }
+
       default:
         return false;
     }
@@ -1190,5 +1219,17 @@ namespace Orthanc
     {
       return it->second.c_str();
     }
+  }
+
+
+  void OrthancPlugins::SetCommandLineArguments(int argc, char* argv[])
+  {
+    if (argc < 1 || argv == NULL)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    pimpl_->argc_ = argc;
+    pimpl_->argv_ = argv;
   }
 }

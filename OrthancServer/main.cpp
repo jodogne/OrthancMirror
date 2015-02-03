@@ -381,7 +381,7 @@ static void LoadPlugins(PluginsManager& pluginsManager)
 
 
 
-static bool StartOrthanc()
+static bool StartOrthanc(int argc, char *argv[])
 {
   std::auto_ptr<IDatabaseWrapper> database;
   database.reset(Configuration::CreateDatabaseWrapper());
@@ -465,6 +465,7 @@ static bool StartOrthanc()
 
 #if ENABLE_PLUGINS == 1
     OrthancPlugins orthancPlugins(context);
+    orthancPlugins.SetCommandLineArguments(argc, argv);
     orthancPlugins.SetOrthancRestApi(restApi);
 
     PluginsManager pluginsManager;
@@ -626,7 +627,7 @@ int main(int argc, char* argv[])
     {
       OrthancInitialize(configurationFile);
 
-      bool reset = StartOrthanc();
+      bool reset = StartOrthanc(argc, argv);
       if (reset)
       {
         OrthancFinalize();

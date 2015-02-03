@@ -15,6 +15,7 @@ Plugins
 -------
 
 * Introspection of plugins
+* Plugins can access the command-line arguments used to launch Orthanc
 * Plugins can extend Orthanc Explorer with custom JavaScript
 * Plugins can get/set global properties to save their configuration
 * Scan of folders for plugins
