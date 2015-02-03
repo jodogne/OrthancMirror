@@ -471,6 +471,19 @@ namespace Orthanc
 
 
 
+  void ServerIndex::SetMainDicomTags(int64_t resource,
+                                     const DicomMap& tags)
+  {
+    DicomArray flattened(tags);
+    for (size_t i = 0; i < flattened.GetSize(); i++)
+    {
+      const DicomElement& element = flattened.GetElement(i);
+      db_.SetMainDicomTag(resource, element.GetTag(), element.GetValue().AsString());
+    }
+  }
+
+
+
   ServerIndex::ServerIndex(ServerContext& context,
                            IDatabaseWrapper& db) : 
     done_(false),
@@ -551,7 +564,7 @@ namespace Orthanc
 
       DicomMap dicom;
       dicomSummary.ExtractInstanceInformation(dicom);
-      db_.SetMainDicomTags(instance, dicom);
+      SetMainDicomTags(instance, dicom);
 
       // Detect up to which level the patient/study/series/instance
       // hierarchy must be created
@@ -604,7 +617,7 @@ namespace Orthanc
       {
         series = db_.CreateResource(hasher.HashSeries(), ResourceType_Series);
         dicomSummary.ExtractSeriesInformation(dicom);
-        db_.SetMainDicomTags(series, dicom);
+        SetMainDicomTags(series, dicom);
       }
 
       // Create the study if needed
@@ -612,7 +625,7 @@ namespace Orthanc
       {
         study = db_.CreateResource(hasher.HashStudy(), ResourceType_Study);
         dicomSummary.ExtractStudyInformation(dicom);
-        db_.SetMainDicomTags(study, dicom);
+        SetMainDicomTags(study, dicom);
       }
 
       // Create the patient if needed
@@ -620,7 +633,7 @@ namespace Orthanc
       {
         patient = db_.CreateResource(hasher.HashPatient(), ResourceType_Patient);
         dicomSummary.ExtractPatientInformation(dicom);
-        db_.SetMainDicomTags(patient, dicom);
+        SetMainDicomTags(patient, dicom);
       }
 
       // Create the parent-to-child links
@@ -1561,13 +1574,13 @@ namespace Orthanc
   void ServerIndex::DeleteChanges()
   {
     boost::mutex::scoped_lock lock(mutex_);
-    db_.ClearTable("Changes");
+    db_.ClearChanges();
   }
 
   void ServerIndex::DeleteExportedResources()
   {
     boost::mutex::scoped_lock lock(mutex_);
-    db_.ClearTable("ExportedResources");
+    db_.ClearExportedResources();
   }
 
 

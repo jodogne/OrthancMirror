@@ -5,17 +5,16 @@ Major
 -----
 
 * URIs to get all the parents of a given resource in a single REST call
-* Support of HTTP proxy
 * Instances without PatientID are now allowed
+* Support of HTTP proxy to access Orthanc peers
 
 Minor
 -----
+
 * Support of Tudor DICOM in Query/Retrieve
-* Fix issue 25 (AET with underscore not allowed)
 * More flexible "/modify" and "/anonymize" for single instance
-* Code refactorings
-* Option "DicomAssociationCloseDelay" to set delay before closing DICOM association
 * Access to called AET and remote AET from Lua scripts ("OnStoredInstance")
+* Option "DicomAssociationCloseDelay" to set delay before closing DICOM association
 
 Plugins
 -------
@@ -26,6 +25,12 @@ Plugins
 * Plugins can get/set global properties to save their configuration
 * Plugins can do REST calls to other plugins (cf. "xxxAfterPlugins()")
 * Scan of folders for plugins
+
+Fixes
+-----
+
+* Code refactorings
+* Fix issue 25 (AET with underscore not allowed)
 
 
 Version 0.8.5 (2014/11/04)

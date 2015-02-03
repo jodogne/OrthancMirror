@@ -56,7 +56,9 @@ namespace Orthanc
     virtual void AttachChild(int64_t parent,
                              int64_t child) = 0;
 
-    virtual void ClearTable(const std::string& tableName) = 0;
+    virtual void ClearChanges() = 0;
+
+    virtual void ClearExportedResources() = 0;
 
     virtual int64_t CreateResource(const std::string& publicId,
                                    ResourceType type) = 0;
@@ -159,8 +161,9 @@ namespace Orthanc
     virtual void SetGlobalProperty(GlobalProperty property,
                                    const std::string& value) = 0;
 
-    virtual void SetMainDicomTags(int64_t id,
-                                  const DicomMap& tags) = 0;
+    virtual void SetMainDicomTag(int64_t id,
+                                 const DicomTag& tag,
+                                 const std::string& value) = 0;
 
     virtual void SetMetadata(int64_t id,
                              MetadataType type,
@@ -172,18 +175,5 @@ namespace Orthanc
     virtual SQLite::ITransaction* StartTransaction() = 0;
 
     virtual void SetListener(IServerIndexListener& listener) = 0;
-
-
-    // For unit tests only!
-    virtual void GetChildren(std::list<std::string>& childrenPublicIds,
-                             int64_t id) = 0;
-
-    // For unit tests only!
-    virtual int64_t GetTableRecordCount(const std::string& table) = 0;
-
-    // For unit tests only!
-    virtual bool GetParentPublicId(std::string& result,
-                                   int64_t id) = 0;
-
   };
 }
