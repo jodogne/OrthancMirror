@@ -110,7 +110,17 @@ namespace
     virtual void SetUp() 
     {
       listener_.reset(new ServerIndexListener);
-      index_.reset(new DatabaseWrapper());
+
+      switch (GetParam())
+      {
+        case DatabaseWrapperClass_SQLite:
+          index_.reset(new DatabaseWrapper());
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+
       index_->SetListener(*listener_);
     }
 
@@ -122,13 +132,118 @@ namespace
 
     void CheckTableRecordCount(uint32_t expected, const char* table)
     {
-      if (GetParam() == DatabaseWrapperClass_SQLite)
+      switch (GetParam())
       {
-        DatabaseWrapper* sqlite = dynamic_cast<DatabaseWrapper*>(index_.get());
-        ASSERT_EQ(expected, sqlite->GetTableRecordCount(table));
+        case DatabaseWrapperClass_SQLite:
+        {
+          DatabaseWrapper* sqlite = dynamic_cast<DatabaseWrapper*>(index_.get());
+          ASSERT_EQ(expected, sqlite->GetTableRecordCount(table));
+          break;
+        }
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
       }
     }
 
+    void CheckNoParent(int64_t id)
+    {
+      std::string s;
+
+      switch (GetParam())
+      {
+        case DatabaseWrapperClass_SQLite:
+        {
+          DatabaseWrapper* sqlite = dynamic_cast<DatabaseWrapper*>(index_.get());
+          ASSERT_FALSE(sqlite->GetParentPublicId(s, id));
+          break;
+        }
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    void CheckParentPublicId(const char* expected, int64_t id)
+    {
+      std::string s;
+
+      switch (GetParam())
+      {
+        case DatabaseWrapperClass_SQLite:
+        {
+          DatabaseWrapper* sqlite = dynamic_cast<DatabaseWrapper*>(index_.get());
+          ASSERT_TRUE(sqlite->GetParentPublicId(s, id));
+          ASSERT_EQ(expected, s);
+          break;
+        }
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    void CheckNoChild(int64_t id)
+    {
+      std::list<std::string> j;
+
+      switch (GetParam())
+      {
+        case DatabaseWrapperClass_SQLite:
+        {
+          DatabaseWrapper* sqlite = dynamic_cast<DatabaseWrapper*>(index_.get());
+          sqlite->GetChildren(j, id);
+          ASSERT_EQ(0, j.size());
+          break;
+        }
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    void CheckOneChild(const char* expected, int64_t id)
+    {
+      std::list<std::string> j;
+
+      switch (GetParam())
+      {
+        case DatabaseWrapperClass_SQLite:
+        {
+          DatabaseWrapper* sqlite = dynamic_cast<DatabaseWrapper*>(index_.get());
+          sqlite->GetChildren(j, id);
+          ASSERT_EQ(1, j.size());
+          ASSERT_EQ(expected, j.front());
+          break;
+        }
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    void CheckTwoChildren(const char* expected1,
+                          const char* expected2,
+                          int64_t id)
+    {
+      std::list<std::string> j;
+
+      switch (GetParam())
+      {
+        case DatabaseWrapperClass_SQLite:
+        {
+          DatabaseWrapper* sqlite = dynamic_cast<DatabaseWrapper*>(index_.get());
+          sqlite->GetChildren(j, id);
+          ASSERT_EQ(2, j.size());
+          ASSERT_TRUE((expected1 == j.front() && expected2 == j.back()) ||
+                      (expected1 == j.back() && expected2 == j.front()));                    
+          break;
+        }
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+    }
   };
 }
 
@@ -140,12 +255,6 @@ INSTANTIATE_TEST_CASE_P(DatabaseWrapperName,
 
 TEST_P(DatabaseWrapperTest, Simple)
 {
-  DatabaseWrapper* sqlite_ = NULL;
-  if (GetParam() == DatabaseWrapperClass_SQLite)
-  {
-    sqlite_ = dynamic_cast<DatabaseWrapper*>(index_.get());
-  }
-
   int64_t a[] = {
     index_->CreateResource("a", ResourceType_Patient),   // 0
     index_->CreateResource("b", ResourceType_Study),     // 1
@@ -209,16 +318,13 @@ TEST_P(DatabaseWrapperTest, Simple)
 
   std::string s;
 
-  if (sqlite_ != NULL)
-  {
-    ASSERT_FALSE(sqlite_->GetParentPublicId(s, a[0]));
-    ASSERT_FALSE(sqlite_->GetParentPublicId(s, a[6]));
-    ASSERT_TRUE(sqlite_->GetParentPublicId(s, a[1])); ASSERT_EQ("a", s);
-    ASSERT_TRUE(sqlite_->GetParentPublicId(s, a[2])); ASSERT_EQ("b", s);
-    ASSERT_TRUE(sqlite_->GetParentPublicId(s, a[3])); ASSERT_EQ("c", s);
-    ASSERT_TRUE(sqlite_->GetParentPublicId(s, a[4])); ASSERT_EQ("c", s);
-    ASSERT_TRUE(sqlite_->GetParentPublicId(s, a[5])); ASSERT_EQ("g", s);
-  }
+  CheckNoParent(a[0]);
+  CheckNoParent(a[6]);
+  CheckParentPublicId("a", a[1]);
+  CheckParentPublicId("b", a[2]);
+  CheckParentPublicId("c", a[3]);
+  CheckParentPublicId("c", a[4]);
+  CheckParentPublicId("g", a[5]);
 
   std::list<std::string> l;
   index_->GetChildrenPublicId(l, a[0]); ASSERT_EQ(1u, l.size()); ASSERT_EQ("b", l.front());
@@ -244,7 +350,7 @@ TEST_P(DatabaseWrapperTest, Simple)
   ASSERT_EQ(0u, md.size());
 
   index_->AddAttachment(a[4], FileInfo("my json file", FileContentType_DicomAsJson, 42, "md5", 
-                                     CompressionType_Zlib, 21, "compressedMD5"));
+                                       CompressionType_Zlib, 21, "compressedMD5"));
   index_->AddAttachment(a[4], FileInfo("my dicom file", FileContentType_Dicom, 42, "md5"));
   index_->AddAttachment(a[6], FileInfo("world", FileContentType_Dicom, 44, "md5"));
   index_->SetMetadata(a[4], MetadataType_Instance_RemoteAet, "PINNACLE");
@@ -354,12 +460,6 @@ TEST_P(DatabaseWrapperTest, Simple)
 
 TEST_P(DatabaseWrapperTest, Upward)
 {
-  DatabaseWrapper* sqlite_ = NULL;
-  if (GetParam() == DatabaseWrapperClass_SQLite)
-  {
-    sqlite_ = dynamic_cast<DatabaseWrapper*>(index_.get());
-  }
-
   int64_t a[] = {
     index_->CreateResource("a", ResourceType_Patient),   // 0
     index_->CreateResource("b", ResourceType_Study),     // 1
@@ -379,30 +479,14 @@ TEST_P(DatabaseWrapperTest, Upward)
   index_->AttachChild(a[0], a[5]);
   index_->AttachChild(a[5], a[7]);
 
-  if (sqlite_ != NULL)
-  {
-    std::list<std::string> j;
-    sqlite_->GetChildren(j, a[0]);
-    ASSERT_EQ(2u, j.size());
-    ASSERT_TRUE((j.front() == "b" && j.back() == "f") ||
-                (j.back() == "b" && j.front() == "f"));
-
-    sqlite_->GetChildren(j, a[1]);
-    ASSERT_EQ(2u, j.size());
-    ASSERT_TRUE((j.front() == "c" && j.back() == "g") ||
-                (j.back() == "c" && j.front() == "g"));
-
-    sqlite_->GetChildren(j, a[2]);
-    ASSERT_EQ(2u, j.size());
-    ASSERT_TRUE((j.front() == "d" && j.back() == "e") ||
-                (j.back() == "d" && j.front() == "e"));
-
-    sqlite_->GetChildren(j, a[3]); ASSERT_EQ(0u, j.size());
-    sqlite_->GetChildren(j, a[4]); ASSERT_EQ(0u, j.size());
-    sqlite_->GetChildren(j, a[5]); ASSERT_EQ(1u, j.size()); ASSERT_EQ("h", j.front());
-    sqlite_->GetChildren(j, a[6]); ASSERT_EQ(0u, j.size());
-    sqlite_->GetChildren(j, a[7]); ASSERT_EQ(0u, j.size());
-  }
+  CheckTwoChildren("b", "f", a[0]);
+  CheckTwoChildren("c", "g", a[1]);
+  CheckTwoChildren("d", "e", a[2]);
+  CheckNoChild(a[3]);
+  CheckNoChild(a[4]);
+  CheckOneChild("h", a[5]);
+  CheckNoChild(a[6]);
+  CheckNoChild(a[7]);
 
   listener_->Reset();
   index_->DeleteResource(a[3]);
@@ -433,7 +517,7 @@ TEST_P(DatabaseWrapperTest, PatientRecycling)
     std::string p = "Patient " + boost::lexical_cast<std::string>(i);
     patients.push_back(index_->CreateResource(p, ResourceType_Patient));
     index_->AddAttachment(patients[i], FileInfo(p, FileContentType_Dicom, i + 10, 
-                                              "md5-" + boost::lexical_cast<std::string>(i)));
+                                                "md5-" + boost::lexical_cast<std::string>(i)));
     ASSERT_FALSE(index_->IsProtectedPatient(patients[i]));
   }
 
@@ -494,7 +578,7 @@ TEST_P(DatabaseWrapperTest, PatientProtection)
     std::string p = "Patient " + boost::lexical_cast<std::string>(i);
     patients.push_back(index_->CreateResource(p, ResourceType_Patient));
     index_->AddAttachment(patients[i], FileInfo(p, FileContentType_Dicom, i + 10,
-                                              "md5-" + boost::lexical_cast<std::string>(i)));
+                                                "md5-" + boost::lexical_cast<std::string>(i)));
     ASSERT_FALSE(index_->IsProtectedPatient(patients[i]));
   }
 
@@ -625,13 +709,13 @@ TEST_P(DatabaseWrapperTest, LookupIdentifier)
 
 
   /*{
-      std::list<std::string> s;
-      context.GetIndex().LookupIdentifier(s, DICOM_TAG_STUDY_INSTANCE_UID, "1.2.250.1.74.20130819132500.29000036381059");
-      for (std::list<std::string>::iterator i = s.begin(); i != s.end(); i++)
-      {
-        std::cout << "*** " << *i << std::endl;;
-      }      
-      }*/
+    std::list<std::string> s;
+    context.GetIndex().LookupIdentifier(s, DICOM_TAG_STUDY_INSTANCE_UID, "1.2.250.1.74.20130819132500.29000036381059");
+    for (std::list<std::string>::iterator i = s.begin(); i != s.end(); i++)
+    {
+    std::cout << "*** " << *i << std::endl;;
+    }      
+    }*/
 }
 
 
