@@ -1489,7 +1489,7 @@ this_->LoadTagContent(reinterpret_cast< const char* >(arg0));
 
   LAAW_EXPORT_DLL_API const char* LAAW_CALL_CONVENTION LAAW_EXTERNC_GetCompany()
   {
-    return "CHU of Liege";
+    return "University Hospital of Liege";
   }
 
   LAAW_EXPORT_DLL_API const char* LAAW_CALL_CONVENTION LAAW_EXTERNC_GetProduct()
@@ -1499,7 +1499,7 @@ this_->LoadTagContent(reinterpret_cast< const char* >(arg0));
 
   LAAW_EXPORT_DLL_API const char* LAAW_CALL_CONVENTION LAAW_EXTERNC_GetCopyright()
   {
-    return "(c) 2012-2014, Sebastien Jodogne, University Hospital of Liege";
+    return "(c) 2012-2015, Sebastien Jodogne, University Hospital of Liege";
   }
 
   LAAW_EXPORT_DLL_API const char* LAAW_CALL_CONVENTION LAAW_EXTERNC_GetVersion()
