@@ -385,7 +385,7 @@ TEST_P(DatabaseWrapperTest, Simple)
 
   int64_t b;
   ResourceType t;
-  ASSERT_TRUE(index_->LookupResource("g", b, t));
+  ASSERT_TRUE(index_->LookupResource(b, t, "g"));
   ASSERT_EQ(7, b);
   ASSERT_EQ(ResourceType_Study, t);
 

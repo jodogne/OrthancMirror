@@ -251,9 +251,9 @@ namespace Orthanc
     return id;
   }
 
-  bool DatabaseWrapper::LookupResource(const std::string& publicId,
-                                       int64_t& id,
-                                       ResourceType& type)
+  bool DatabaseWrapper::LookupResource(int64_t& id,
+                                       ResourceType& type,
+                                       const std::string& publicId)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT internalId, resourceType FROM Resources WHERE publicId=?");
