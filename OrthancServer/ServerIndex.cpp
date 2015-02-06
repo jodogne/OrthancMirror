@@ -447,7 +447,14 @@ namespace Orthanc
                               const std::string& publicId)
   {
     ServerIndexChange change(changeType, resourceType, publicId);
-    db_.LogChange(internalId, change);
+
+    if (changeType <= ChangeType_INTERNAL_LastLogged)
+    {
+      db_.LogChange(internalId, change);
+    }
+
+    assert(listener_.get() != NULL);
+    listener_->SignalChange(change);
   }
 
 
@@ -522,6 +529,10 @@ namespace Orthanc
 
     ServerIndexChange change(changeType, type, publicId);
     db_.LogChange(id, change);
+
+    assert(listener_.get() != NULL);
+    listener_->SignalChange(change);
+
     return id;
   }
 

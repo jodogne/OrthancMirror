@@ -573,18 +573,12 @@ namespace Orthanc
   void DatabaseWrapper::LogChange(int64_t internalId,
                                   const ServerIndexChange& change)
   {
-    if (change.GetChangeType() <= ChangeType_INTERNAL_LastLogged)
-    {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Changes VALUES(NULL, ?, ?, ?, ?)");
-      s.BindInt(0, change.GetChangeType());
-      s.BindInt64(1, internalId);
-      s.BindInt(2, change.GetResourceType());
-      s.BindString(3, change.GetDate());
-      s.Run();
-    }
-
-    assert(listener_ != NULL);
-    listener_->SignalChange(change);
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Changes VALUES(NULL, ?, ?, ?, ?)");
+    s.BindInt(0, change.GetChangeType());
+    s.BindInt64(1, internalId);
+    s.BindInt(2, change.GetResourceType());
+    s.BindString(3, change.GetDate());
+    s.Run();
   }
 
 
