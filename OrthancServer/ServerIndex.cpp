@@ -306,7 +306,7 @@ namespace Orthanc
 
     int64_t id;
     ResourceType type;
-    if (!db_.LookupResource(uuid, id, type) ||
+    if (!db_.LookupResource(id, type, uuid) ||
         expectedType != type)
     {
       return false;
@@ -541,7 +541,7 @@ namespace Orthanc
       {
         ResourceType type;
         int64_t tmp;
-        if (db_.LookupResource(hasher.HashInstance(), tmp, type))
+        if (db_.LookupResource(tmp, type, hasher.HashInstance()))
         {
           assert(type == ResourceType_Instance);
           db_.GetAllMetadata(instanceMetadata, tmp);
@@ -576,26 +576,26 @@ namespace Orthanc
       {
         ResourceType dummy;
 
-        if (db_.LookupResource(hasher.HashSeries(), series, dummy))
+        if (db_.LookupResource(series, dummy, hasher.HashSeries()))
         {
           assert(dummy == ResourceType_Series);
           // The patient, the study and the series already exist
 
-          bool ok = (db_.LookupResource(hasher.HashPatient(), patient, dummy) &&
-                     db_.LookupResource(hasher.HashStudy(), study, dummy));
+          bool ok = (db_.LookupResource(patient, dummy, hasher.HashPatient()) &&
+                     db_.LookupResource(study, dummy, hasher.HashStudy()));
           assert(ok);
         }
-        else if (db_.LookupResource(hasher.HashStudy(), study, dummy))
+        else if (db_.LookupResource(study, dummy, hasher.HashStudy()))
         {
           assert(dummy == ResourceType_Study);
 
           // New series: The patient and the study already exist
           isNewSeries = true;
 
-          bool ok = db_.LookupResource(hasher.HashPatient(), patient, dummy);
+          bool ok = db_.LookupResource(patient, dummy, hasher.HashPatient());
           assert(ok);
         }
-        else if (db_.LookupResource(hasher.HashPatient(), patient, dummy))
+        else if (db_.LookupResource(patient, dummy, hasher.HashPatient()))
         {
           assert(dummy == ResourceType_Patient);
 
@@ -834,7 +834,7 @@ namespace Orthanc
     // Lookup for the requested resource
     int64_t id;
     ResourceType type;
-    if (!db_.LookupResource(publicId, id, type) ||
+    if (!db_.LookupResource(id, type, publicId) ||
         type != expectedType)
     {
       return false;
@@ -994,7 +994,7 @@ namespace Orthanc
 
     int64_t id;
     ResourceType type;
-    if (!db_.LookupResource(instanceUuid, id, type))
+    if (!db_.LookupResource(id, type, instanceUuid))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
@@ -1092,7 +1092,7 @@ namespace Orthanc
 
     int64_t id;
     ResourceType type;
-    if (!db_.LookupResource(publicId, id, type))
+    if (!db_.LookupResource(id, type, publicId))
     {
       throw OrthancException(ErrorCode_InternalError);
     }
@@ -1228,7 +1228,7 @@ namespace Orthanc
     // already stored
     int64_t patientToAvoid;
     ResourceType type;
-    bool hasPatientToAvoid = db_.LookupResource(newPatientId, patientToAvoid, type);
+    bool hasPatientToAvoid = db_.LookupResource(patientToAvoid, type, newPatientId);
 
     if (hasPatientToAvoid && type != ResourceType_Patient)
     {
@@ -1312,7 +1312,7 @@ namespace Orthanc
     // Lookup for the requested resource
     int64_t id;
     ResourceType type;
-    if (!db_.LookupResource(publicId, id, type) ||
+    if (!db_.LookupResource(id, type, publicId) ||
         type != ResourceType_Patient)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -1330,7 +1330,7 @@ namespace Orthanc
     // Lookup for the requested resource
     int64_t id;
     ResourceType type;
-    if (!db_.LookupResource(publicId, id, type) ||
+    if (!db_.LookupResource(id, type, publicId) ||
         type != ResourceType_Patient)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -1355,7 +1355,7 @@ namespace Orthanc
 
     ResourceType type;
     int64_t resource;
-    if (!db_.LookupResource(publicId, resource, type))
+    if (!db_.LookupResource(resource, type, publicId))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
@@ -1386,7 +1386,7 @@ namespace Orthanc
 
     ResourceType type;
     int64_t top;
-    if (!db_.LookupResource(publicId, top, type))
+    if (!db_.LookupResource(top, type, publicId))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
@@ -1435,7 +1435,7 @@ namespace Orthanc
 
     ResourceType rtype;
     int64_t id;
-    if (!db_.LookupResource(publicId, id, rtype))
+    if (!db_.LookupResource(id, rtype, publicId))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
@@ -1451,7 +1451,7 @@ namespace Orthanc
 
     ResourceType rtype;
     int64_t id;
-    if (!db_.LookupResource(publicId, id, rtype))
+    if (!db_.LookupResource(id, rtype, publicId))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
@@ -1468,7 +1468,7 @@ namespace Orthanc
 
     ResourceType rtype;
     int64_t id;
-    if (!db_.LookupResource(publicId, id, rtype))
+    if (!db_.LookupResource(id, rtype, publicId))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
@@ -1484,7 +1484,7 @@ namespace Orthanc
 
     ResourceType rtype;
     int64_t id;
-    if (!db_.LookupResource(publicId, id, rtype))
+    if (!db_.LookupResource(id, rtype, publicId))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
@@ -1501,7 +1501,7 @@ namespace Orthanc
 
     ResourceType type;
     int64_t id;
-    if (!db_.LookupResource(publicId, id, type) ||
+    if (!db_.LookupResource(id, type, publicId) ||
         expectedType != type)
     {
       throw OrthancException(ErrorCode_UnknownResource);
@@ -1518,7 +1518,7 @@ namespace Orthanc
 
     ResourceType type;
     int64_t id;
-    if (!db_.LookupResource(publicId, id, type))
+    if (!db_.LookupResource(id, type, publicId))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
@@ -1560,7 +1560,7 @@ namespace Orthanc
 
     int64_t id;
     ResourceType type;
-    if (!db_.LookupResource(publicId, id, type))
+    if (!db_.LookupResource(id, type, publicId))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
@@ -1674,7 +1674,7 @@ namespace Orthanc
 
     ResourceType type;
     int64_t top;
-    if (!db_.LookupResource(publicId, top, type))
+    if (!db_.LookupResource(top, type, publicId))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
@@ -1723,7 +1723,7 @@ namespace Orthanc
 
     ResourceType type;
     int64_t top;
-    if (!db_.LookupResource(publicId, top, type))
+    if (!db_.LookupResource(top, type, publicId))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
@@ -1878,7 +1878,7 @@ namespace Orthanc
 
     ResourceType resourceType;
     int64_t resourceId;
-    if (!db_.LookupResource(publicId, resourceId, resourceType))
+    if (!db_.LookupResource(resourceId, resourceType, publicId))
     {
       return StoreStatus_Failure;  // Inexistent resource
     }
@@ -1924,7 +1924,7 @@ namespace Orthanc
 
     ResourceType rtype;
     int64_t id;
-    if (!db_.LookupResource(publicId, id, rtype))
+    if (!db_.LookupResource(id, rtype, publicId))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
@@ -1944,7 +1944,7 @@ namespace Orthanc
 
     ResourceType type;
     int64_t id;
-    if (!db_.LookupResource(publicId, id, type))
+    if (!db_.LookupResource(id, type, publicId))
     {
       return false;
     }

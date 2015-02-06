@@ -149,9 +149,9 @@ namespace Orthanc
     virtual bool LookupParent(int64_t& parentId,
                               int64_t resourceId) = 0;
 
-    virtual bool LookupResource(const std::string& publicId,
-                                int64_t& id,
-                                ResourceType& type) = 0;
+    virtual bool LookupResource(int64_t& id,
+                                ResourceType& type,
+                                const std::string& publicId) = 0;
 
     virtual bool SelectPatientToRecycle(int64_t& internalId) = 0;
 
