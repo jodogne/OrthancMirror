@@ -525,7 +525,7 @@ extern "C"
 
 
   /**
-   * @brief Opaque structure that contains information about the Orthanc core.
+   * @brief Data structure that contains information about the Orthanc core.
    **/
   typedef struct _OrthancPluginContext_t
   {
@@ -2076,8 +2076,6 @@ extern "C"
       return result;
     }
   }
-
-
 
 
 #ifdef  __cplusplus
