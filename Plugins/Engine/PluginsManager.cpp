@@ -296,16 +296,10 @@ namespace Orthanc
         {
           LOG(INFO) << "Found a shared library: " << it->path();
 
-          try
+          SharedLibrary plugin(path);
+          if (IsOrthancPlugin(plugin))
           {
-            SharedLibrary plugin(path);
-            if (IsOrthancPlugin(plugin))
-            {
-              RegisterPlugin(path);
-            }
-          }
-          catch (OrthancException&)
-          {
+            RegisterPlugin(path);
           }
         }
       }

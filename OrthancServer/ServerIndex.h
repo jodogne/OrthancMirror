@@ -110,11 +110,7 @@ namespace Orthanc
     void LogChange(int64_t internalId,
                    ChangeType changeType,
                    ResourceType resourceType,
-                   const std::string& publicId)
-    {
-      ServerIndexChange change(changeType, resourceType, publicId);
-      db_.LogChange(internalId, change);
-    }
+                   const std::string& publicId);
 
     uint64_t IncrementGlobalSequenceInternal(GlobalProperty property);
 
