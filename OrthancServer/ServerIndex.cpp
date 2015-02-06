@@ -492,6 +492,39 @@ namespace Orthanc
   }
 
 
+  int64_t ServerIndex::CreateResource(const std::string& publicId,
+                                      ResourceType type)
+  {
+    int64_t id = db_.CreateResource(publicId, type);
+
+    ChangeType changeType;
+    switch (type)
+    {
+    case ResourceType_Patient: 
+      changeType = ChangeType_NewPatient; 
+      break;
+
+    case ResourceType_Study: 
+      changeType = ChangeType_NewStudy; 
+      break;
+
+    case ResourceType_Series: 
+      changeType = ChangeType_NewSeries; 
+      break;
+
+    case ResourceType_Instance: 
+      changeType = ChangeType_NewInstance; 
+      break;
+
+    default:
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    ServerIndexChange change(changeType, type, publicId);
+    db_.LogChange(id, change);
+    return id;
+  }
+
 
   ServerIndex::ServerIndex(ServerContext& context,
                            IDatabaseWrapper& db) : 
@@ -569,7 +602,7 @@ namespace Orthanc
       Recycle(instanceSize, hasher.HashPatient());
 
       // Create the instance
-      int64_t instance = db_.CreateResource(hasher.HashInstance(), ResourceType_Instance);
+      int64_t instance = CreateResource(hasher.HashInstance(), ResourceType_Instance);
 
       DicomMap dicom;
       dicomSummary.ExtractInstanceInformation(dicom);
@@ -624,7 +657,7 @@ namespace Orthanc
       // Create the series if needed
       if (isNewSeries)
       {
-        series = db_.CreateResource(hasher.HashSeries(), ResourceType_Series);
+        series = CreateResource(hasher.HashSeries(), ResourceType_Series);
         dicomSummary.ExtractSeriesInformation(dicom);
         SetMainDicomTags(series, dicom);
       }
@@ -632,7 +665,7 @@ namespace Orthanc
       // Create the study if needed
       if (isNewStudy)
       {
-        study = db_.CreateResource(hasher.HashStudy(), ResourceType_Study);
+        study = CreateResource(hasher.HashStudy(), ResourceType_Study);
         dicomSummary.ExtractStudyInformation(dicom);
         SetMainDicomTags(study, dicom);
       }
@@ -640,7 +673,7 @@ namespace Orthanc
       // Create the patient if needed
       if (isNewPatient)
       {
-        patient = db_.CreateResource(hasher.HashPatient(), ResourceType_Patient);
+        patient = CreateResource(hasher.HashPatient(), ResourceType_Patient);
         dicomSummary.ExtractPatientInformation(dicom);
         SetMainDicomTags(patient, dicom);
       }
