@@ -36,7 +36,7 @@
 #include "../../Core/HttpServer/HttpHandler.h"
 #include "../../OrthancServer/ServerContext.h"
 #include "../../OrthancServer/OrthancRestApi/OrthancRestApi.h"
-#include "../OrthancCPlugin/OrthancCPlugin.h"
+#include "../Include/OrthancCPlugin.h"
 
 #include <list>
 #include <boost/shared_ptr.hpp>
