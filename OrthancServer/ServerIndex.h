@@ -117,6 +117,9 @@ namespace Orthanc
     void SetMainDicomTags(int64_t resource,
                           const DicomMap& tags);
 
+    int64_t CreateResource(const std::string& publicId,
+                           ResourceType type);
+
   public:
     ServerIndex(ServerContext& context,
                 IDatabaseWrapper& database);

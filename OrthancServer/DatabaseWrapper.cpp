@@ -221,34 +221,7 @@ namespace Orthanc
     s.BindInt(0, type);
     s.BindString(1, publicId);
     s.Run();
-    int64_t id = db_.GetLastInsertRowId();
-
-    ChangeType changeType;
-    switch (type)
-    {
-    case ResourceType_Patient: 
-      changeType = ChangeType_NewPatient; 
-      break;
-
-    case ResourceType_Study: 
-      changeType = ChangeType_NewStudy; 
-      break;
-
-    case ResourceType_Series: 
-      changeType = ChangeType_NewSeries; 
-      break;
-
-    case ResourceType_Instance: 
-      changeType = ChangeType_NewInstance; 
-      break;
-
-    default:
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    ServerIndexChange change(changeType, type, publicId);
-    LogChange(id, change);
-    return id;
+    return db_.GetLastInsertRowId();
   }
 
   bool DatabaseWrapper::LookupResource(int64_t& id,
