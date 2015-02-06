@@ -1175,7 +1175,7 @@ namespace Orthanc
       {
         if (buffer != NULL)
         {
-          params_.free_(buffer);
+          params_.free(buffer);
         }
       }
 
@@ -1204,7 +1204,7 @@ namespace Orthanc
                           size_t size,
                           FileContentType type)
       {
-        if (params_.create_(uuid.c_str(), content, size, Convert(type)) != 0)
+        if (params_.create(uuid.c_str(), content, size, Convert(type)) != 0)
         {
           throw OrthancException(ErrorCode_Plugin);
         }
@@ -1217,7 +1217,7 @@ namespace Orthanc
         void* buffer = NULL;
         int64_t size = 0;
 
-        if (params_.read_(&buffer, &size, uuid.c_str(), Convert(type)) != 0)
+        if (params_.read(&buffer, &size, uuid.c_str(), Convert(type)) != 0)
         {
           throw OrthancException(ErrorCode_Plugin);
         }        
@@ -1243,7 +1243,7 @@ namespace Orthanc
       virtual void Remove(const std::string& uuid,
                           FileContentType type) 
       {
-        if (params_.remove_(uuid.c_str(), Convert(type)) != 0)
+        if (params_.remove(uuid.c_str(), Convert(type)) != 0)
         {
           throw OrthancException(ErrorCode_Plugin);
         }        
