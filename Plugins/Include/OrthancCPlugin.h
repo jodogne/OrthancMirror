@@ -1689,10 +1689,10 @@ extern "C"
 
   typedef struct
   {
-    OrthancPluginStorageCreate  create_;
-    OrthancPluginStorageRead    read_;
-    OrthancPluginStorageRemove  remove_;
-    OrthancPluginFree           free_;
+    OrthancPluginStorageCreate  create;
+    OrthancPluginStorageRead    read;
+    OrthancPluginStorageRemove  remove;
+    OrthancPluginFree           free;
   } _OrthancPluginRegisterStorageArea;
 
   /**
@@ -1715,14 +1715,14 @@ extern "C"
     OrthancPluginStorageRemove  remove)
   {
     _OrthancPluginRegisterStorageArea params;
-    params.create_ = create;
-    params.read_ = read;
-    params.remove_ = remove;
+    params.create = create;
+    params.read = read;
+    params.remove = remove;
 
 #ifdef  __cplusplus
-    params.free_ = ::free;
+    params.free = ::free;
 #else
-    params.free_ = free;
+    params.free = free;
 #endif
 
     context->InvokeService(context, _OrthancPluginService_RegisterStorageArea, &params);

@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include "../OrthancCPlugin/OrthancCPlugin.h"
+#include "../Include/OrthancCPlugin.h"
 
 #include <boost/noncopyable.hpp>
 
