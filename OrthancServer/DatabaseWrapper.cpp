@@ -423,10 +423,10 @@ namespace Orthanc
 
 
 
-  void DatabaseWrapper::ListAvailableAttachments(std::list<FileContentType>& result,
+  void DatabaseWrapper::ListAvailableAttachments(std::list<FileContentType>& target,
                                                  int64_t id)
   {
-    result.clear();
+    target.clear();
 
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT fileType FROM AttachedFiles WHERE id=?");
@@ -434,7 +434,7 @@ namespace Orthanc
 
     while (s.Step())
     {
-      result.push_back(static_cast<FileContentType>(s.ColumnInt(0)));
+      target.push_back(static_cast<FileContentType>(s.ColumnInt(0)));
     }
   }
 
@@ -519,7 +519,7 @@ namespace Orthanc
   }
 
 
-  bool DatabaseWrapper::GetParentPublicId(std::string& result,
+  bool DatabaseWrapper::GetParentPublicId(std::string& target,
                                           int64_t id)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT a.publicId FROM Resources AS a, Resources AS b "
@@ -528,7 +528,7 @@ namespace Orthanc
 
     if (s.Step())
     {
-      result = s.ColumnString(0);
+      target = s.ColumnString(0);
       return true;
     }
     else
@@ -538,34 +538,34 @@ namespace Orthanc
   }
 
 
-  void DatabaseWrapper::GetChildrenPublicId(std::list<std::string>& result,
+  void DatabaseWrapper::GetChildrenPublicId(std::list<std::string>& target,
                                             int64_t id)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT a.publicId FROM Resources AS a, Resources AS b  "
                         "WHERE a.parentId = b.internalId AND b.internalId = ?");     
     s.BindInt64(0, id);
 
-    result.clear();
+    target.clear();
 
     while (s.Step())
     {
-      result.push_back(s.ColumnString(0));
+      target.push_back(s.ColumnString(0));
     }
   }
 
 
-  void DatabaseWrapper::GetChildrenInternalId(std::list<int64_t>& result,
+  void DatabaseWrapper::GetChildrenInternalId(std::list<int64_t>& target,
                                               int64_t id)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT a.internalId FROM Resources AS a, Resources AS b  "
                         "WHERE a.parentId = b.internalId AND b.internalId = ?");     
     s.BindInt64(0, id);
 
-    result.clear();
+    target.clear();
 
     while (s.Step())
     {
-      result.push_back(s.ColumnInt64(0));
+      target.push_back(s.ColumnInt64(0));
     }
   }
 
@@ -944,7 +944,7 @@ namespace Orthanc
   }
 
 
-  void  DatabaseWrapper::LookupIdentifier(std::list<int64_t>& result,
+  void  DatabaseWrapper::LookupIdentifier(std::list<int64_t>& target,
                                           const DicomTag& tag,
                                           const std::string& value)
   {
@@ -960,16 +960,16 @@ namespace Orthanc
     s.BindInt(1, tag.GetElement());
     s.BindString(2, value);
 
-    result.clear();
+    target.clear();
 
     while (s.Step())
     {
-      result.push_back(s.ColumnInt64(0));
+      target.push_back(s.ColumnInt64(0));
     }
   }
 
 
-  void  DatabaseWrapper::LookupIdentifier(std::list<int64_t>& result,
+  void  DatabaseWrapper::LookupIdentifier(std::list<int64_t>& target,
                                           const std::string& value)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
@@ -977,19 +977,19 @@ namespace Orthanc
 
     s.BindString(0, value);
 
-    result.clear();
+    target.clear();
 
     while (s.Step())
     {
-      result.push_back(s.ColumnInt64(0));
+      target.push_back(s.ColumnInt64(0));
     }
   }
 
 
-  void DatabaseWrapper::GetAllMetadata(std::map<MetadataType, std::string>& result,
+  void DatabaseWrapper::GetAllMetadata(std::map<MetadataType, std::string>& target,
                                        int64_t id)
   {
-    result.clear();
+    target.clear();
 
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT type, value FROM Metadata WHERE id=?");
     s.BindInt64(0, id);
@@ -997,7 +997,7 @@ namespace Orthanc
     while (s.Step())
     {
       MetadataType key = static_cast<MetadataType>(s.ColumnInt(0));
-      result[key] = s.ColumnString(1);
+      target[key] = s.ColumnString(1);
     }
   }
 

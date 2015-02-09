@@ -73,7 +73,7 @@ namespace Orthanc
 
     virtual void FlushToDisk() = 0;
 
-    virtual void GetAllMetadata(std::map<MetadataType, std::string>& result,
+    virtual void GetAllMetadata(std::map<MetadataType, std::string>& target,
                                 int64_t id) = 0;
 
     virtual void GetAllPublicIds(std::list<std::string>& target,
@@ -85,10 +85,10 @@ namespace Orthanc
                             int64_t since,
                             unsigned int maxResults) = 0;
 
-    virtual void GetChildrenInternalId(std::list<int64_t>& result,
+    virtual void GetChildrenInternalId(std::list<int64_t>& target,
                                        int64_t id) = 0;
 
-    virtual void GetChildrenPublicId(std::list<std::string>& result,
+    virtual void GetChildrenPublicId(std::list<std::string>& target,
                                      int64_t id) = 0;
 
     virtual void GetExportedResources(std::list<ExportedResource>& target /*out*/,
@@ -120,7 +120,7 @@ namespace Orthanc
     virtual void ListAvailableMetadata(std::list<MetadataType>& target,
                                        int64_t id) = 0;
 
-    virtual void ListAvailableAttachments(std::list<FileContentType>& result,
+    virtual void ListAvailableAttachments(std::list<FileContentType>& target,
                                           int64_t id) = 0;
 
     virtual void LogChange(int64_t internalId,
@@ -135,11 +135,11 @@ namespace Orthanc
     virtual bool LookupGlobalProperty(std::string& target,
                                       GlobalProperty property) = 0;
 
-    virtual void LookupIdentifier(std::list<int64_t>& result,
+    virtual void LookupIdentifier(std::list<int64_t>& target,
                                   const DicomTag& tag,
                                   const std::string& value) = 0;
 
-    virtual void LookupIdentifier(std::list<int64_t>& result,
+    virtual void LookupIdentifier(std::list<int64_t>& target,
                                   const std::string& value) = 0;
 
     virtual bool LookupMetadata(std::string& target,

@@ -122,7 +122,7 @@ namespace Orthanc
     virtual void DeleteAttachment(int64_t id,
                                   FileContentType attachment);
 
-    virtual void ListAvailableAttachments(std::list<FileContentType>& result,
+    virtual void ListAvailableAttachments(std::list<FileContentType>& target,
                                           int64_t id);
 
     virtual bool LookupAttachment(FileInfo& attachment,
@@ -136,10 +136,10 @@ namespace Orthanc
     virtual void GetMainDicomTags(DicomMap& map,
                                   int64_t id);
 
-    virtual void GetChildrenPublicId(std::list<std::string>& result,
+    virtual void GetChildrenPublicId(std::list<std::string>& target,
                                      int64_t id);
 
-    virtual void GetChildrenInternalId(std::list<int64_t>& result,
+    virtual void GetChildrenInternalId(std::list<int64_t>& target,
                                        int64_t id);
 
     virtual void LogChange(int64_t internalId,
@@ -202,14 +202,14 @@ namespace Orthanc
 
     virtual bool IsExistingResource(int64_t internalId);
 
-    virtual void LookupIdentifier(std::list<int64_t>& result,
+    virtual void LookupIdentifier(std::list<int64_t>& target,
                                   const DicomTag& tag,
                                   const std::string& value);
 
-    virtual void LookupIdentifier(std::list<int64_t>& result,
+    virtual void LookupIdentifier(std::list<int64_t>& target,
                                   const std::string& value);
 
-    virtual void GetAllMetadata(std::map<MetadataType, std::string>& result,
+    virtual void GetAllMetadata(std::map<MetadataType, std::string>& target,
                                 int64_t id);
 
 
@@ -229,7 +229,7 @@ namespace Orthanc
 
     int64_t GetTableRecordCount(const std::string& table);
     
-    bool GetParentPublicId(std::string& result,
+    bool GetParentPublicId(std::string& target,
                            int64_t id);
 
   };
