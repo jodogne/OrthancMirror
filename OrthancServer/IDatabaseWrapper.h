@@ -73,6 +73,8 @@ namespace Orthanc
 
     virtual void FlushToDisk() = 0;
 
+    virtual bool HasFlushToDisk() const = 0;
+
     virtual void GetAllMetadata(std::map<MetadataType, std::string>& target,
                                 int64_t id) = 0;
 
