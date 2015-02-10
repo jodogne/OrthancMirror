@@ -942,7 +942,7 @@ namespace Orthanc
              defaultStorageSOPClasses_.size() >= MAXIMUM_STORAGE_SOP_CLASSES)
     {
       // Make room in the default storage syntaxes
-      assert(defaultStorageSOPClasses_.size() > 0);  // Necessarily true because condition (*) is false
+      assert(!defaultStorageSOPClasses_.empty());  // Necessarily true because condition (*) is false
       defaultStorageSOPClasses_.erase(*defaultStorageSOPClasses_.rbegin());
     }
 

@@ -130,7 +130,7 @@ namespace Orthanc
       OrthancRestApi::GetContext(call).GetPluginsManager().ListPlugins(plugins);
 
       for (std::list<std::string>::const_iterator 
-             it = plugins.begin(); it != plugins.end(); it++)
+             it = plugins.begin(); it != plugins.end(); ++it)
       {
         v.append(*it);
       }
@@ -190,7 +190,7 @@ namespace Orthanc
       OrthancRestApi::GetContext(call).GetPluginsManager().ListPlugins(lst);
 
       for (std::list<std::string>::const_iterator
-             it = lst.begin(); it != lst.end(); it++)
+             it = lst.begin(); it != lst.end(); ++it)
       {
         const char* tmp = plugins.GetProperty(it->c_str(), _OrthancPluginProperty_OrthancExplorer);
         if (tmp != NULL)

@@ -60,7 +60,7 @@ namespace Orthanc
       }
 
     public:
-      SmartContainer() : content_(NULL), toDelete_(false)
+      SmartContainer() : content_(NULL), toDelete_(false), isReadOnly_(true)
       {
       }
 
