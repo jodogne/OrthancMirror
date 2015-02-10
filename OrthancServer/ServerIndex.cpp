@@ -1104,7 +1104,7 @@ namespace Orthanc
     target[name] = items;
     target["Done"] = done;
 
-    int64_t last = (log.size() == 0 ? since : log.back().GetSeq());
+    int64_t last = (log.empty() ? since : log.back().GetSeq());
     target["Last"] = static_cast<int>(last);
   }
 
