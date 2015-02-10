@@ -190,6 +190,11 @@ namespace Orthanc
       db_.FlushToDisk();
     }
 
+    virtual bool HasFlushToDisk() const
+    {
+      return true;
+    }
+
     virtual void ClearChanges()
     {
       ClearTable("Changes");

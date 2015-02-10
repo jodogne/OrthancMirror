@@ -553,7 +553,11 @@ namespace Orthanc
     // execution of Orthanc
     StandaloneRecycling();
 
-    flushThread_ = boost::thread(FlushThread, this);
+    if (db.HasFlushToDisk())
+    {
+      flushThread_ = boost::thread(FlushThread, this);
+    }
+
     unstableResourcesMonitorThread_ = boost::thread(UnstableResourcesMonitorThread, this);
   }
 
@@ -562,7 +566,8 @@ namespace Orthanc
   {
     done_ = true;
 
-    if (flushThread_.joinable())
+    if (db_.HasFlushToDisk() &&
+        flushThread_.joinable())
     {
       flushThread_.join();
     }
