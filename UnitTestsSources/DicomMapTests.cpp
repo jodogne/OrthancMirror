@@ -141,7 +141,7 @@ static void TestModule(ResourceType level,
   DicomMap::GetMainDicomTags(main, level);
   
   // The main dicom tags are a subset of the module
-  for (std::set<DicomTag>::const_iterator it = main.begin(); it != main.end(); it++)
+  for (std::set<DicomTag>::const_iterator it = main.begin(); it != main.end(); ++it)
   {
     bool ok = moduleTags.find(*it) != moduleTags.end();
 

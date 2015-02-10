@@ -139,7 +139,7 @@ namespace Orthanc
       {
         for (std::list<ServerIndexChange>::const_iterator 
                it = pendingChanges_.begin(); 
-             it != pendingChanges_.end(); it++)
+             it != pendingChanges_.end(); ++it)
         {
           context_.SignalChange(*it);
         }
@@ -1077,7 +1077,7 @@ namespace Orthanc
 
     target = Json::arrayValue;
     for (std::list<std::string>::const_iterator
-           it = lst.begin(); it != lst.end(); it++)
+           it = lst.begin(); it != lst.end(); ++it)
     {
       target.append(*it);
     }
@@ -1093,7 +1093,7 @@ namespace Orthanc
   {
     Json::Value items = Json::arrayValue;
     for (typename std::list<T>::const_iterator
-           it = log.begin(); it != log.end(); it++)
+           it = log.begin(); it != log.end(); ++it)
     {
       Json::Value item;
       it->Format(item);
@@ -2006,7 +2006,7 @@ namespace Orthanc
     db_.ListAvailableMetadata(metadata, id);
 
     for (std::list<MetadataType>::const_iterator
-           it = metadata.begin(); it != metadata.end(); it++)
+           it = metadata.begin(); it != metadata.end(); ++it)
     {
       std::string key = EnumerationToString(*it);
 

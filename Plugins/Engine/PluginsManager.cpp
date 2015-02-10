@@ -312,7 +312,7 @@ namespace Orthanc
     result.clear();
 
     for (Plugins::const_iterator it = plugins_.begin(); 
-         it != plugins_.end(); it++)
+         it != plugins_.end(); ++it)
     {
       result.push_back(it->first);
     }

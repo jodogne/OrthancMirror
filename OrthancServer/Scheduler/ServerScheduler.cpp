@@ -55,7 +55,7 @@ namespace Orthanc
                          const ListOfStrings& inputs)
       {
         for (ListOfStrings::const_iterator 
-               it = inputs.begin(); it != inputs.end(); it++)
+               it = inputs.begin(); it != inputs.end(); ++it)
         {
           target_.push_back(*it);
         }
@@ -232,7 +232,7 @@ namespace Orthanc
     ServerCommandInstance& sink = job.AddCommand(new Sink(outputs));
 
     for (std::list<ServerCommandInstance*>::iterator
-           it = job.filters_.begin(); it != job.filters_.end(); it++)
+           it = job.filters_.begin(); it != job.filters_.end(); ++it)
     {
       if ((*it) != &sink &&
           (*it)->IsConnectedToSink())
@@ -328,7 +328,7 @@ namespace Orthanc
     jobs.clear();
 
     for (Jobs::const_iterator 
-           it = jobs_.begin(); it != jobs_.end(); it++)
+           it = jobs_.begin(); it != jobs_.end(); ++it)
     {
       jobs.push_back(it->first);
     }

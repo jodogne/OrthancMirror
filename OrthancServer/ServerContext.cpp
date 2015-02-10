@@ -320,7 +320,7 @@ namespace Orthanc
       dicom.GetMetadata().clear();
 
       for (InstanceMetadata::const_iterator it = instanceMetadata.begin();
-           it != instanceMetadata.end(); it++)
+           it != instanceMetadata.end(); ++it)
       {
         dicom.GetMetadata().insert(std::make_pair(std::make_pair(ResourceType_Instance, it->first),
                                                   it->second));
