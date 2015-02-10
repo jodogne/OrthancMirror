@@ -61,12 +61,12 @@ namespace Orthanc
     void GetChangesInternal(std::list<ServerIndexChange>& target,
                             bool& done,
                             SQLite::Statement& s,
-                            unsigned int maxResults);
+                            uint32_t maxResults);
 
     void GetExportedResourcesInternal(std::list<ExportedResource>& target,
                                       bool& done,
                                       SQLite::Statement& s,
-                                      unsigned int maxResults);
+                                      uint32_t maxResults);
 
     void ClearTable(const std::string& tableName);
 
@@ -148,7 +148,7 @@ namespace Orthanc
     virtual void GetChanges(std::list<ServerIndexChange>& target /*out*/,
                             bool& done /*out*/,
                             int64_t since,
-                            unsigned int maxResults);
+                            uint32_t maxResults);
 
     virtual void GetLastChange(std::list<ServerIndexChange>& target /*out*/);
 
@@ -157,7 +157,7 @@ namespace Orthanc
     virtual void GetExportedResources(std::list<ExportedResource>& target /*out*/,
                                       bool& done /*out*/,
                                       int64_t since,
-                                      unsigned int maxResults);
+                                      uint32_t maxResults);
 
     virtual void GetLastExportedResource(std::list<ExportedResource>& target /*out*/);
 

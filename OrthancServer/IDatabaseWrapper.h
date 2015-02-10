@@ -83,7 +83,7 @@ namespace Orthanc
     virtual void GetChanges(std::list<ServerIndexChange>& target /*out*/,
                             bool& done /*out*/,
                             int64_t since,
-                            unsigned int maxResults) = 0;
+                            uint32_t maxResults) = 0;
 
     virtual void GetChildrenInternalId(std::list<int64_t>& target,
                                        int64_t id) = 0;
@@ -94,7 +94,7 @@ namespace Orthanc
     virtual void GetExportedResources(std::list<ExportedResource>& target /*out*/,
                                       bool& done /*out*/,
                                       int64_t since,
-                                      unsigned int maxResults) = 0;
+                                      uint32_t maxResults) = 0;
 
     virtual void GetLastChange(std::list<ServerIndexChange>& target /*out*/) = 0;
 
