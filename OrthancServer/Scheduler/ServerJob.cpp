@@ -44,18 +44,18 @@ namespace Orthanc
 
     unsigned int count = 0;
     for (std::list<ServerCommandInstance*>::const_iterator
-           it = filters_.begin(); it != filters_.end(); it++)
+           it = filters_.begin(); it != filters_.end(); ++it)
     {
       index[*it] = count++;
     }
 
     for (std::list<ServerCommandInstance*>::const_iterator
-           it = filters_.begin(); it != filters_.end(); it++)
+           it = filters_.begin(); it != filters_.end(); ++it)
     {
       const std::list<ServerCommandInstance*>& nextCommands = (*it)->GetNextCommands();
 
       for (std::list<ServerCommandInstance*>::const_iterator
-             next = nextCommands.begin(); next != nextCommands.end(); next++)
+             next = nextCommands.begin(); next != nextCommands.end(); ++next)
       {
         if (index.find(*next) == index.end() ||
             index[*next] <= index[*it])
@@ -82,7 +82,7 @@ namespace Orthanc
     size_t size = filters_.size();
 
     for (std::list<ServerCommandInstance*>::iterator 
-           it = filters_.begin(); it != filters_.end(); it++)
+           it = filters_.begin(); it != filters_.end(); ++it)
     {
       target.Enqueue(*it);
     }
@@ -94,24 +94,24 @@ namespace Orthanc
   }
 
 
-  ServerJob::ServerJob()
+  ServerJob::ServerJob() :
+    jobId_(Toolbox::GenerateUuid()),
+    submitted_(false),
+    description_("no description")
   {
-    jobId_ = Toolbox::GenerateUuid();      
-    submitted_ = false;
-    description_ = "no description";
   }
 
 
   ServerJob::~ServerJob()
   {
     for (std::list<ServerCommandInstance*>::iterator
-           it = filters_.begin(); it != filters_.end(); it++)
+           it = filters_.begin(); it != filters_.end(); ++it)
     {
       delete *it;
     }
 
     for (std::list<IDynamicObject*>::iterator
-           it = payloads_.begin(); it != payloads_.end(); it++)
+           it = payloads_.begin(); it != payloads_.end(); ++it)
     {
       delete *it;
     }

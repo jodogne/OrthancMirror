@@ -291,7 +291,7 @@ public:
                      const ListOfStrings& inputs)
   {
     for (ListOfStrings::const_iterator 
-           it = inputs.begin(); it != inputs.end(); it++)
+           it = inputs.begin(); it != inputs.end(); ++it)
     {
       int a = boost::lexical_cast<int>(*it);
       int b = factor_ * a;
@@ -318,8 +318,10 @@ static void Tata(ServerScheduler* s, ServerJob* j, bool* done)
   {
     ListOfStrings l;
     s->GetListOfJobs(l);
-    for (ListOfStrings::iterator i = l.begin(); i != l.end(); i++)
-      printf(">> %s: %0.1f\n", i->c_str(), 100.0f * s->GetProgress(*i));
+    for (ListOfStrings::iterator it = l.begin(); it != l.end(); ++it)
+    {
+      printf(">> %s: %0.1f\n", it->c_str(), 100.0f * s->GetProgress(*it));
+    }
     Toolbox::USleep(10000);
   }
 }

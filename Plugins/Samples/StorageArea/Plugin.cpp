@@ -96,7 +96,7 @@ static int32_t StorageRead(void** content,
   else
   {
     *content = malloc(*size);
-    if (content == NULL ||
+    if (*content == NULL ||
         fread(*content, *size, 1, fp) != 1)
     {
       ok = false;
@@ -121,14 +121,13 @@ extern "C"
 {
   ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   {
-    char info[1024];
-
     context = c;
     OrthancPluginLogWarning(context, "Storage plugin is initializing");
 
     /* Check the version of the Orthanc core */
     if (OrthancPluginCheckVersion(c) == 0)
     {
+      char info[1024];
       sprintf(info, "Your version of Orthanc (%s) must be above %d.%d.%d to run this plugin",
               c->orthancVersion,
               ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER,
