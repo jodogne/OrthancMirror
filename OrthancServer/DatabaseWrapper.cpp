@@ -585,7 +585,7 @@ namespace Orthanc
   void DatabaseWrapper::GetChangesInternal(std::list<ServerIndexChange>& target,
                                            bool& done,
                                            SQLite::Statement& s,
-                                           unsigned int maxResults)
+                                           uint32_t maxResults)
   {
     target.clear();
 
@@ -609,7 +609,7 @@ namespace Orthanc
   void DatabaseWrapper::GetChanges(std::list<ServerIndexChange>& target,
                                    bool& done,
                                    int64_t since,
-                                   unsigned int maxResults)
+                                   uint32_t maxResults)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT * FROM Changes WHERE seq>? ORDER BY seq LIMIT ?");
     s.BindInt64(0, since);
@@ -645,7 +645,7 @@ namespace Orthanc
   void DatabaseWrapper::GetExportedResourcesInternal(std::list<ExportedResource>& target,
                                                      bool& done,
                                                      SQLite::Statement& s,
-                                                     unsigned int maxResults)
+                                                     uint32_t maxResults)
   {
     target.clear();
 
@@ -675,7 +675,7 @@ namespace Orthanc
   void DatabaseWrapper::GetExportedResources(std::list<ExportedResource>& target,
                                              bool& done,
                                              int64_t since,
-                                             unsigned int maxResults)
+                                             uint32_t maxResults)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT * FROM ExportedResources WHERE seq>? ORDER BY seq LIMIT ?");
