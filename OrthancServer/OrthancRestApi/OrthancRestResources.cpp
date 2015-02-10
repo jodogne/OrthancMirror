@@ -626,7 +626,7 @@ namespace Orthanc
     shared = Json::objectValue;
 
     for (Instances::const_iterator it = instances.begin();
-         it != instances.end(); it++)
+         it != instances.end(); ++it)
     {
       // Get the tags of the current instance, in the simplified format
       Json::Value tags;
@@ -755,7 +755,7 @@ namespace Orthanc
     
     // Filter the tags of the instance according to the module
     Json::Value result = Json::objectValue;
-    for (ModuleTags::const_iterator tag = moduleTags.begin(); tag != moduleTags.end(); tag++)
+    for (ModuleTags::const_iterator tag = moduleTags.begin(); tag != moduleTags.end(); ++tag)
     {
       std::string s = tag->Format();
       if (tags.isMember(s))
@@ -798,7 +798,7 @@ namespace Orthanc
     Json::Value result = Json::arrayValue;
     
     for (Resources::const_iterator it = resources.begin();
-         it != resources.end(); it++)
+         it != resources.end(); ++it)
     {     
       ResourceType type = it->first;
       const std::string& id = it->second;
@@ -830,7 +830,7 @@ namespace Orthanc
       b.clear();
 
       for (std::list<std::string>::const_iterator
-             it = a.begin(); it != a.end(); it++)
+             it = a.begin(); it != a.end(); ++it)
       {
         index.GetChildren(c, *it);
         b.splice(b.begin(), c);
@@ -861,7 +861,7 @@ namespace Orthanc
     Json::Value result = Json::arrayValue;
 
     for (std::list<std::string>::const_iterator
-           it = a.begin(); it != a.end(); it++)
+           it = a.begin(); it != a.end(); ++it)
     {
       Json::Value item;
 
@@ -890,7 +890,7 @@ namespace Orthanc
     Json::Value result = Json::objectValue;
 
     for (Instances::const_iterator it = instances.begin();
-         it != instances.end(); it++)
+         it != instances.end(); ++it)
     {
       Json::Value full;
       context.ReadJson(full, *it);

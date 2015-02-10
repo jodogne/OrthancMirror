@@ -324,7 +324,7 @@ namespace Orthanc
 
       size_t pos = 0;
       for (std::list<std::string>::const_iterator
-             it = instances.begin(); it != instances.end(); it++, pos++)
+             it = instances.begin(); it != instances.end(); ++it, ++pos)
       {
         // "DICOM restricts the filenames on DICOM media to 8
         // characters (some systems wrongly use 8.3, but this does not

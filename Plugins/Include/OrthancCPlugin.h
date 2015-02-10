@@ -588,7 +588,7 @@ extern "C"
 #else
       sscanf
 #endif
-      (context->orthancVersion, "%d.%d.%d", &major, &minor, &revision) != 3)
+      (context->orthancVersion, "%4d.%4d.%4d", &major, &minor, &revision) != 3)
     {
       return 0;
     }

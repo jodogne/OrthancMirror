@@ -159,7 +159,7 @@ namespace Orthanc
   void RestApiHierarchy::DeleteChildren(Children& children)
   {
     for (Children::iterator it = children.begin();
-         it != children.end(); it++)
+         it != children.end(); ++it)
     {
       delete it->second;
     }
@@ -238,7 +238,7 @@ namespace Orthanc
 
       // Try and go down in the hierarchy, using wildcard rules for children
       for (child = wildcardChildren_.begin();
-           child != wildcardChildren_.end(); child++)
+           child != wildcardChildren_.end(); ++child)
       {
         HttpHandler::Arguments subComponents = components;
         subComponents[child->first] = uri[level];
@@ -276,7 +276,7 @@ namespace Orthanc
   bool RestApiHierarchy::CanGenerateDirectory() const
   {
     return (universalHandlers_.IsEmpty() &&
-            wildcardChildren_.size() == 0);
+            wildcardChildren_.empty());
   }
 
 
@@ -291,7 +291,7 @@ namespace Orthanc
         result = Json::arrayValue;
 
         for (Children::const_iterator it = children_.begin();
-             it != children_.end(); it++)
+             it != children_.end(); ++it)
         {
           result.append(it->first);
         }
@@ -314,7 +314,7 @@ namespace Orthanc
     }
 
     for (child = wildcardChildren_.begin(); 
-         child != wildcardChildren_.end(); child++)
+         child != wildcardChildren_.end(); ++child)
     {
       if (child->second->GetDirectory(result, uri, level + 1))
       {
@@ -388,13 +388,13 @@ namespace Orthanc
       target = s;*/
       
     for (Children::const_iterator it = children_.begin();
-         it != children_.end(); it++)
+         it != children_.end(); ++it)
     {
       it->second->CreateSiteMap(target[it->first]);
     }
       
     for (Children::const_iterator it = wildcardChildren_.begin();
-         it != wildcardChildren_.end(); it++)
+         it != wildcardChildren_.end(); ++it)
     {
       it->second->CreateSiteMap(target["<" + it->first + ">"]);
     }

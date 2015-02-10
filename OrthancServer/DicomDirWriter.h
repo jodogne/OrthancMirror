@@ -34,9 +34,11 @@
 
 #include "ParsedDicomFile.h"
 
+#include <boost/noncopyable.hpp>
+
 namespace Orthanc
 {
-  class DicomDirWriter
+  class DicomDirWriter : public boost::noncopyable
   {
   private:
     class PImpl;
