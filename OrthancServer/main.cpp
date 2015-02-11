@@ -385,47 +385,61 @@ static void LoadPlugins(PluginsManager& pluginsManager)
 
 static bool StartOrthanc(int argc, char *argv[])
 {
+#if ENABLE_PLUGINS == 1
+  OrthancPlugins orthancPlugins;
+  orthancPlugins.SetCommandLineArguments(argc, argv);
+  PluginsManager pluginsManager;
+  pluginsManager.RegisterServiceProvider(orthancPlugins);
+  LoadPlugins(pluginsManager);
+#endif
+
+  // "storage" and "database" must be declared BEFORE "ServerContext
+  // context", to avoid mess in the invokation order of the destructors.
   std::auto_ptr<IDatabaseWrapper> database;
-  database.reset(Configuration::CreateDatabaseWrapper());
-
-
-  // "storage" must be declared BEFORE "ServerContext context", to
-  // avoid mess in the invokation order of the destructors.
   std::auto_ptr<IStorageArea>  storage;
+  std::auto_ptr<ServerContext> context;
 
-  ServerContext context(*database);
+  if (orthancPlugins.HasDatabase())
+  {
+    context.reset(new ServerContext(orthancPlugins.GetDatabase()));
+  }
+  else
+  {
+    database.reset(Configuration::CreateDatabaseWrapper());
+    context.reset(new ServerContext(*database));
+  }
 
-  context.SetCompressionEnabled(Configuration::GetGlobalBoolParameter("StorageCompression", false));
-  context.SetStoreMD5ForAttachments(Configuration::GetGlobalBoolParameter("StoreMD5ForAttachments", true));
+  context->SetCompressionEnabled(Configuration::GetGlobalBoolParameter("StorageCompression", false));
+  context->SetStoreMD5ForAttachments(Configuration::GetGlobalBoolParameter("StoreMD5ForAttachments", true));
 
-  LoadLuaScripts(context);
+  LoadLuaScripts(*context);
 
   try
   {
-    context.GetIndex().SetMaximumPatientCount(Configuration::GetGlobalIntegerParameter("MaximumPatientCount", 0));
+    context->GetIndex().SetMaximumPatientCount(Configuration::GetGlobalIntegerParameter("MaximumPatientCount", 0));
   }
   catch (...)
   {
-    context.GetIndex().SetMaximumPatientCount(0);
+    context->GetIndex().SetMaximumPatientCount(0);
   }
 
   try
   {
     uint64_t size = Configuration::GetGlobalIntegerParameter("MaximumStorageSize", 0);
-    context.GetIndex().SetMaximumStorageSize(size * 1024 * 1024);
+    context->GetIndex().SetMaximumStorageSize(size * 1024 * 1024);
   }
   catch (...)
   {
-    context.GetIndex().SetMaximumStorageSize(0);
+    context->GetIndex().SetMaximumStorageSize(0);
   }
 
-  MyDicomServerFactory serverFactory(context);
+  MyDicomServerFactory serverFactory(*context);
   bool isReset = false;
     
   {
     // DICOM server
     DicomServer dicomServer;
-    OrthancApplicationEntityFilter dicomFilter(context);
+    OrthancApplicationEntityFilter dicomFilter(*context);
     dicomServer.SetCalledApplicationEntityTitleCheck(Configuration::GetGlobalBoolParameter("DicomCheckCalledAet", false));
     dicomServer.SetStoreRequestHandlerFactory(serverFactory);
     dicomServer.SetMoveRequestHandlerFactory(serverFactory);
@@ -435,7 +449,7 @@ static bool StartOrthanc(int argc, char *argv[])
     dicomServer.SetApplicationEntityFilter(dicomFilter);
 
     // HTTP server
-    MyIncomingHttpRequestFilter httpFilter(context);
+    MyIncomingHttpRequestFilter httpFilter(*context);
     MongooseServer httpServer;
     httpServer.SetPortNumber(Configuration::GetGlobalIntegerParameter("HttpPort", 8042));
     httpServer.SetRemoteAccessAllowed(Configuration::GetGlobalBoolParameter("RemoteAccessAllowed", false));
@@ -457,7 +471,7 @@ static bool StartOrthanc(int argc, char *argv[])
       httpServer.SetSslEnabled(false);
     }
 
-    OrthancRestApi restApi(context);
+    OrthancRestApi restApi(*context);
 
 #if ORTHANC_STANDALONE == 1
     EmbeddedResourceHttpHandler staticResources("/app", EmbeddedResources::ORTHANC_EXPLORER);
@@ -466,15 +480,10 @@ static bool StartOrthanc(int argc, char *argv[])
 #endif
 
 #if ENABLE_PLUGINS == 1
-    OrthancPlugins orthancPlugins(context);
-    orthancPlugins.SetCommandLineArguments(argc, argv);
+    orthancPlugins.SetServerContext(*context);
     orthancPlugins.SetOrthancRestApi(restApi);
-
-    PluginsManager pluginsManager;
-    pluginsManager.RegisterServiceProvider(orthancPlugins);
-    LoadPlugins(pluginsManager);
     httpServer.RegisterHandler(orthancPlugins);
-    context.SetOrthancPlugins(pluginsManager, orthancPlugins);
+    context->SetOrthancPlugins(pluginsManager, orthancPlugins);
 #endif
 
     httpServer.RegisterHandler(staticResources);
@@ -494,7 +503,7 @@ static bool StartOrthanc(int argc, char *argv[])
       storage.reset(Configuration::CreateStorageArea());
     }
     
-    context.SetStorageArea(*storage);
+    context->SetStorageArea(*storage);
 
 
     // GO !!! Start the requested servers
@@ -531,7 +540,7 @@ static bool StartOrthanc(int argc, char *argv[])
     LOG(WARNING) << "Orthanc is stopping";
 
 #if ENABLE_PLUGINS == 1
-    context.ResetOrthancPlugins();
+    context->ResetOrthancPlugins();
     orthancPlugins.Stop();
     LOG(WARNING) << "    Plugins have stopped";
 #endif

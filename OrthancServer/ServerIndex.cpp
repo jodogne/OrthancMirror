@@ -232,6 +232,11 @@ namespace Orthanc
     ~Transaction()
     {
       index_.listener_->EndTransaction();
+
+      if (!isCommitted_)
+      {
+        transaction_->Rollback();
+      }
     }
 
     void Commit(uint64_t sizeOfAddedFiles)
@@ -810,8 +815,8 @@ namespace Orthanc
     uint64_t us = db_.GetTotalUncompressedSize();
     target["TotalDiskSize"] = boost::lexical_cast<std::string>(cs);
     target["TotalUncompressedSize"] = boost::lexical_cast<std::string>(us);
-    target["TotalDiskSizeMB"] = boost::lexical_cast<unsigned int>(cs / MEGA_BYTES);
-    target["TotalUncompressedSizeMB"] = boost::lexical_cast<unsigned int>(us / MEGA_BYTES);
+    target["TotalDiskSizeMB"] = static_cast<unsigned int>(cs / MEGA_BYTES);
+    target["TotalUncompressedSizeMB"] = static_cast<unsigned int>(us / MEGA_BYTES);
 
     target["CountPatients"] = static_cast<unsigned int>(db_.GetResourceCount(ResourceType_Patient));
     target["CountStudies"] = static_cast<unsigned int>(db_.GetResourceCount(ResourceType_Study));
@@ -1147,6 +1152,7 @@ namespace Orthanc
                                         const std::string& remoteModality)
   {
     boost::mutex::scoped_lock lock(mutex_);
+    Transaction transaction(*this);
 
     int64_t id;
     ResourceType type;
@@ -1205,7 +1211,6 @@ namespace Orthanc
       }
     }
 
-    // No need for a SQLite::ITransaction here, as we only insert 1 record
     ExportedResource resource(-1, 
                               type,
                               publicId,
@@ -1215,7 +1220,9 @@ namespace Orthanc
                               studyInstanceUid,
                               seriesInstanceUid,
                               sopInstanceUid);
+
     db_.LogExportedResource(resource);
+    transaction.Commit(0);
   }
 
 
@@ -1384,6 +1391,7 @@ namespace Orthanc
                                         bool isProtected)
   {
     boost::mutex::scoped_lock lock(mutex_);
+    Transaction transaction(*this);
 
     // Lookup for the requested resource
     int64_t id;
@@ -1394,8 +1402,8 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    // No need for a SQLite::ITransaction here, as we only make 1 write to the DB
     db_.SetProtectedPatient(id, isProtected);
+    transaction.Commit(0);
 
     if (isProtected)
       LOG(INFO) << "Patient " << publicId << " has been protected";
@@ -1597,12 +1605,10 @@ namespace Orthanc
   uint64_t ServerIndex::IncrementGlobalSequence(GlobalProperty sequence)
   {
     boost::mutex::scoped_lock lock(mutex_);
+    Transaction transaction(*this);
 
-    std::auto_ptr<SQLite::ITransaction> transaction(db_.StartTransaction());
-
-    transaction->Begin();
     uint64_t seq = IncrementGlobalSequenceInternal(sequence);
-    transaction->Commit();
+    transaction.Commit(0);
 
     return seq;
   }
@@ -1613,8 +1619,7 @@ namespace Orthanc
                               const std::string& publicId)
   {
     boost::mutex::scoped_lock lock(mutex_);
-    std::auto_ptr<SQLite::ITransaction> transaction(db_.StartTransaction());
-    transaction->Begin();
+    Transaction transaction(*this);
 
     int64_t id;
     ResourceType type;
@@ -1624,8 +1629,7 @@ namespace Orthanc
     }
 
     LogChange(id, changeType, type, publicId);
-
-    transaction->Commit();
+    transaction.Commit(0);
   }
 
 
@@ -1747,9 +1751,9 @@ namespace Orthanc
 
     target = Json::objectValue;
     target["DiskSize"] = boost::lexical_cast<std::string>(compressedSize);
-    target["DiskSizeMB"] = boost::lexical_cast<unsigned int>(compressedSize / MEGA_BYTES);
+    target["DiskSizeMB"] = static_cast<unsigned int>(compressedSize / MEGA_BYTES);
     target["UncompressedSize"] = boost::lexical_cast<std::string>(uncompressedSize);
-    target["UncompressedSizeMB"] = boost::lexical_cast<unsigned int>(uncompressedSize / MEGA_BYTES);
+    target["UncompressedSizeMB"] = static_cast<unsigned int>(uncompressedSize / MEGA_BYTES);
 
     switch (type)
     {
@@ -1977,7 +1981,6 @@ namespace Orthanc
                                      FileContentType type)
   {
     boost::mutex::scoped_lock lock(mutex_);
-
     Transaction t(*this);
 
     ResourceType rtype;
