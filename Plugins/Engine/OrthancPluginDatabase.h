@@ -77,13 +77,7 @@ namespace Orthanc
 
   public:
     OrthancPluginDatabase(const OrthancPluginDatabaseBackend& backend,
-                          void *payload) : 
-    type_(_OrthancPluginDatabaseAnswerType_None),
-    backend_(backend),
-    payload_(payload),
-    listener_(NULL)
-    {
-    }
+                          void *payload);
 
     virtual void AddAttachment(int64_t id,
                                const FileInfo& attachment);
