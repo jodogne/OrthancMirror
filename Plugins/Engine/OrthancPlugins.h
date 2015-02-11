@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -36,7 +36,7 @@
 #include "../../Core/HttpServer/HttpHandler.h"
 #include "../../OrthancServer/ServerContext.h"
 #include "../../OrthancServer/OrthancRestApi/OrthancRestApi.h"
-#include "../OrthancCPlugin/OrthancCPlugin.h"
+#include "../Include/OrthancCPlugin.h"
 
 #include <list>
 #include <boost/shared_ptr.hpp>
@@ -63,11 +63,15 @@ namespace Orthanc
 
     void GetDicomForInstance(const void* parameters);
 
-    void RestApiGet(const void* parameters);
+    void RestApiGet(const void* parameters,
+                    bool afterPlugins);
 
-    void RestApiPostPut(bool isPost, const void* parameters);
+    void RestApiPostPut(bool isPost, 
+                        const void* parameters,
+                        bool afterPlugins);
 
-    void RestApiDelete(const void* parameters);
+    void RestApiDelete(const void* parameters,
+                       bool afterPlugins);
 
     void LookupResource(_OrthancPluginService service,
                         const void* parameters);
@@ -109,5 +113,10 @@ namespace Orthanc
     IStorageArea* GetStorageArea();
 
     void Stop();
+
+    const char* GetProperty(const char* plugin,
+                            _OrthancPluginProperty property) const;
+
+    void SetCommandLineArguments(int argc, char* argv[]);
   };
 }

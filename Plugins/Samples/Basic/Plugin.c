@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -165,6 +165,58 @@ ORTHANC_PLUGINS_API int32_t Callback4(OrthancPluginRestOutput* output,
 }
 
 
+ORTHANC_PLUGINS_API int32_t Callback5(OrthancPluginRestOutput* output,
+                                      const char* url,
+                                      const OrthancPluginHttpRequest* request)
+{
+  /**
+   * Demonstration the difference between the
+   * "OrthancPluginRestApiXXX()" and the
+   * "OrthancPluginRestApiXXXAfterPlugins()" mechanisms to forward
+   * REST calls.
+   *
+   * # curl http://localhost:8042/forward/built-in/system
+   * # curl http://localhost:8042/forward/plugins/system
+   * # curl http://localhost:8042/forward/built-in/plugin/image
+   *   => FAILURE (because the "/plugin/image" URI is implemented by this plugin)
+   * # curl http://localhost:8042/forward/plugins/plugin/image  => SUCCESS
+   **/
+
+  OrthancPluginMemoryBuffer tmp;
+  int isBuiltIn, error;
+
+  if (request->method != OrthancPluginHttpMethod_Get)
+  {
+    OrthancPluginSendMethodNotAllowed(context, output, "GET");
+    return 0;
+  }
+
+  isBuiltIn = strcmp("plugins", request->groups[0]);
+ 
+  if (isBuiltIn)
+  {
+    error = OrthancPluginRestApiGet(context, &tmp, request->groups[1]);
+  }
+  else
+  {
+    printf("ICI1\n");
+    error = OrthancPluginRestApiGetAfterPlugins(context, &tmp, request->groups[1]);
+    printf("ICI2\n");
+  }
+
+  if (error)
+  {
+    return -1;
+  }
+  else
+  {
+    OrthancPluginAnswerBuffer(context, output, tmp.data, tmp.size, "application/octet-stream");
+    OrthancPluginFreeMemoryBuffer(context, &tmp);
+    return 0;
+  }
+}
+
+
 ORTHANC_PLUGINS_API int32_t CallbackCreateDicom(OrthancPluginRestOutput* output,
                                                 const char* url,
                                                 const OrthancPluginHttpRequest* request)
@@ -280,6 +332,7 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
 {
   OrthancPluginMemoryBuffer tmp;
   char info[1024], *s;
+  int counter, i;
 
   context = c;
   OrthancPluginLogWarning(context, "Sample plugin is initializing");
@@ -315,16 +368,33 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   OrthancPluginLogWarning(context, info);
   OrthancPluginFreeString(context, s);
 
+  /* Print the command-line arguments of Orthanc */
+  counter = OrthancPluginGetCommandLineArgumentsCount(context);
+  for (i = 0; i < counter; i++)
+  {
+    s = OrthancPluginGetCommandLineArgument(context, i);
+    sprintf(info, "  Command-line argument %d: \"%s\"", i, s);
+    OrthancPluginLogWarning(context, info);
+    OrthancPluginFreeString(context, s);    
+  }
+
   /* Register the callbacks */
   OrthancPluginRegisterRestCallback(context, "/(plu.*)/hello", Callback1);
   OrthancPluginRegisterRestCallback(context, "/plu.*/image", Callback2);
   OrthancPluginRegisterRestCallback(context, "/plugin/instances/([^/]+)/info", Callback3);
   OrthancPluginRegisterRestCallback(context, "/instances/([^/]+)/preview", Callback4);
+  OrthancPluginRegisterRestCallback(context, "/forward/(built-in)(/.+)", Callback5);
+  OrthancPluginRegisterRestCallback(context, "/forward/(plugins)(/.+)", Callback5);
   OrthancPluginRegisterRestCallback(context, "/plugin/create", CallbackCreateDicom);
 
   OrthancPluginRegisterOnStoredInstanceCallback(context, OnStoredCallback);
 
   OrthancPluginRegisterOnChangeCallback(context, OnChangeCallback);
+
+  /* Declare several properties of the plugin */
+  OrthancPluginSetRootUri(context, "/plugin/hello");
+  OrthancPluginSetDescription(context, "This is the description of the sample plugin that can be seen in Orthanc Explorer.");
+  OrthancPluginExtendOrthancExplorer(context, "alert('Hello Orthanc! From sample plugin with love.');");
 
   /* Make REST requests to the built-in Orthanc API */
   OrthancPluginRestApiGet(context, &tmp, "/changes");
@@ -335,7 +405,18 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   /* Play with PUT by defining a new target modality. */
   sprintf(info, "[ \"STORESCP\", \"localhost\", 2000 ]");
   OrthancPluginRestApiPut(context, &tmp, "/modalities/demo", info, strlen(info));
- 
+
+  /* Play with global properties: A global counter is incremented 
+     each time the plugin starts. */
+  s = OrthancPluginGetGlobalProperty(context, 1024, "0");
+  sscanf(s, "%d", &counter);
+  sprintf(info, "Number of times this plugin was started: %d", counter);
+  OrthancPluginLogWarning(context, info);
+  counter++;
+  sprintf(info, "%d", counter);
+  OrthancPluginSetGlobalProperty(context, 1024, info);
+  OrthancPluginFreeString(context, s);
+
   return 0;
 }
 

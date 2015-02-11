@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ *
+ * Copyright (C) 2012-2015 Sebastien Jodogne <s.jodogne@gmail.com>,
+ * Medical Physics Department, CHU of Liege, Belgium
  *
  * Copyright (c) 2012 The Chromium Authors. All rights reserved.
  *
@@ -36,7 +37,8 @@
 
 #pragma once
 
-#include <boost/noncopyable.hpp>
+#include "NonCopyable.h"
+
 #include <stdint.h>
 #include <cassert>
 #include <stdlib.h>
@@ -48,7 +50,7 @@ namespace Orthanc
 {
   namespace SQLite
   {
-    class StatementReference : boost::noncopyable
+    class StatementReference : NonCopyable
     {
     private:
       StatementReference* root_;   // Only used for non-root nodes

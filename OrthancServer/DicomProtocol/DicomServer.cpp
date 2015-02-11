@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -278,11 +278,20 @@ namespace Orthanc
       throw OrthancException("Too short AET");
     }
 
+    if (aet.size() > 16)
+    {
+      throw OrthancException("AET must be shorter than 16 characters");
+    }
+
     for (size_t i = 0; i < aet.size(); i++)
     {
-      if (!isalnum(aet[i]) && aet[i] != '-')
+      if (!(aet[i] == '-' ||
+            aet[i] == '_' ||
+            isdigit(aet[i]) ||
+            (aet[i] >= 'A' && aet[i] <= 'Z')))
       {
-        throw OrthancException("Only alphanumeric characters are allowed in AET");
+        LOG(WARNING) << "For best interoperability, only upper case, alphanumeric characters should be present in AET: \"" << aet << "\"";
+        break;
       }
     }
 

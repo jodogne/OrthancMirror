@@ -35,7 +35,9 @@
 
   // List of paths to the plugins that are to be loaded into this
   // instance of Orthanc (e.g. "./libPluginTest.so" for Linux, or
-  // "./PluginTest.dll" for Windows).
+  // "./PluginTest.dll" for Windows). These paths can refer to
+  // folders, in which case they will be scanned non-recursively to
+  // find shared libraries.
   "Plugins" : [
   ],
 
@@ -138,6 +140,11 @@
     // "peer2" : [ "http://localhost:8044/" ]
   },
 
+  // Parameters of the HTTP proxy to be used by Orthanc. If set to the
+  // empty string, no HTTP proxy is used. For instance:
+  //   "HttpProxy" : "192.168.0.1:3128"
+  //   "HttpProxy" : "proxyUser:proxyPassword@192.168.0.1:3128"
+  "HttpProxy" : "",
 
 
   /**
@@ -203,11 +210,17 @@
   // to grow indefinitely in auto-routing tasks.
   "LogExportedResources" : true,
 
-  // Enable or disable HTTP Keep-Alive (experimental). Set this option
+  // Enable or disable HTTP Keep-Alive (deprecated). Set this option
   // to "true" only in the case of high HTTP loads.
   "KeepAlive" : false,
 
   // If this option is set to "false", Orthanc will run in index-only
   // mode. The DICOM files will not be stored on the drive.
-  "StoreDicom" : true
+  "StoreDicom" : true,
+
+  // DICOM associations are kept open as long as new DICOM commands
+  // are issued. This option sets the number of seconds of inactivity
+  // to wait before automatically closing a DICOM association. If set
+  // to 0, the connection is closed immediately.
+  "DicomAssociationCloseDelay" : 5
 }

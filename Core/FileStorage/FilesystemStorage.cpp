@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -139,7 +139,7 @@ namespace Orthanc
 
   void FilesystemStorage::Read(std::string& content,
                                const std::string& uuid,
-                               FileContentType /*type*/) const
+                               FileContentType /*type*/)
   {
     content.clear();
     Toolbox::ReadFile(content, GetPath(uuid).string());

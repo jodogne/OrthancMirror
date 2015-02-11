@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -53,6 +53,7 @@ namespace Orthanc
     std::string postData_;
     bool isVerbose_;
     long timeout_;
+    std::string proxy_;
 
     void Setup();
 
@@ -133,6 +134,11 @@ namespace Orthanc
 
     void SetCredentials(const char* username,
                         const char* password);
+
+    void SetProxy(const std::string& proxy)
+    {
+      proxy_ = proxy;
+    }
 
     static void GlobalInitialize();
   

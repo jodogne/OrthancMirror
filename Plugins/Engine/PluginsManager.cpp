@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -205,10 +205,10 @@ namespace Orthanc
     {
       if (it->second != NULL)
       {
-        LOG(WARNING) << "Unregistering plugin '" << CallGetName(*it->second)
-                     << "' (version " << CallGetVersion(*it->second) << ")";
+        LOG(WARNING) << "Unregistering plugin '" << it->first
+                     << "' (version " << it->second->GetVersion() << ")";
 
-        CallFinalize(*(it->second));
+        CallFinalize(it->second->GetLibrary());
         delete it->second;
       }
     }
@@ -226,26 +226,39 @@ namespace Orthanc
   
   void PluginsManager::RegisterPlugin(const std::string& path)
   {
-    std::auto_ptr<SharedLibrary> plugin(new SharedLibrary(path));
-
-    if (!IsOrthancPlugin(*plugin))
+    if (!boost::filesystem::exists(path))
     {
-      LOG(ERROR) << "Plugin " << plugin->GetPath()
+      LOG(ERROR) << "Inexistent path to plugins: " << path;
+      return;
+    }
+
+    if (boost::filesystem::is_directory(path))
+    {
+      ScanFolderForPlugins(path, false);
+      return;
+    }
+
+    std::auto_ptr<Plugin> plugin(new Plugin(path));
+
+    if (!IsOrthancPlugin(plugin->GetLibrary()))
+    {
+      LOG(ERROR) << "Plugin " << plugin->GetLibrary().GetPath()
                  << " does not declare the proper entry functions";
       throw OrthancException(ErrorCode_SharedLibrary);
     }
 
-    std::string name(CallGetName(*plugin));
+    std::string name(CallGetName(plugin->GetLibrary()));
     if (plugins_.find(name) != plugins_.end())
     {
       LOG(ERROR) << "Plugin '" << name << "' already registered";
       throw OrthancException(ErrorCode_SharedLibrary);
     }
 
+    plugin->SetVersion(CallGetVersion(plugin->GetLibrary()));
     LOG(WARNING) << "Registering plugin '" << name
-                 << "' (version " << CallGetVersion(*plugin) << ")";
+                 << "' (version " << plugin->GetVersion() << ")";
 
-    CallInitialize(*plugin, context_);
+    CallInitialize(plugin->GetLibrary(), context_);
 
     plugins_[name] = plugin.release();
   }
@@ -283,19 +296,46 @@ namespace Orthanc
         {
           LOG(INFO) << "Found a shared library: " << it->path();
 
-          try
+          SharedLibrary plugin(path);
+          if (IsOrthancPlugin(plugin))
           {
-            SharedLibrary plugin(path);
-            if (IsOrthancPlugin(plugin))
-            {
-              RegisterPlugin(path);
-            }
-          }
-          catch (OrthancException&)
-          {
+            RegisterPlugin(path);
           }
         }
       }
     }
   }
+
+
+  void PluginsManager::ListPlugins(std::list<std::string>& result) const
+  {
+    result.clear();
+
+    for (Plugins::const_iterator it = plugins_.begin(); 
+         it != plugins_.end(); ++it)
+    {
+      result.push_back(it->first);
+    }
+  }
+
+
+  bool PluginsManager::HasPlugin(const std::string& name) const
+  {
+    return plugins_.find(name) != plugins_.end();
+  }
+
+
+  const std::string& PluginsManager::GetPluginVersion(const std::string& name) const
+  {
+    Plugins::const_iterator it = plugins_.find(name);
+    if (it == plugins_.end())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      return it->second->GetVersion();
+    }
+  }
+
 }

@@ -1,10 +1,53 @@
 Pending changes in the mainline
 ===============================
 
+Major
+-----
+
+* URIs to get all the parents of a given resource in a single REST call
+* Instances without PatientID are now allowed
+* Support of HTTP proxy to access Orthanc peers
+
+Minor
+-----
+
+* Support of Tudor DICOM in Query/Retrieve
+* More flexible "/modify" and "/anonymize" for single instance
+* Access to called AET and remote AET from Lua scripts ("OnStoredInstance")
+* Option "DicomAssociationCloseDelay" to set delay before closing DICOM association
+
+Plugins
+-------
+
+* Introspection of plugins (cf. the "/plugins" URI)
+* Plugins can access the command-line arguments used to launch Orthanc
+* Plugins can extend Orthanc Explorer with custom JavaScript
+* Plugins can get/set global properties to save their configuration
+* Plugins can do REST calls to other plugins (cf. "xxxAfterPlugins()")
+* Scan of folders for plugins
+
+Fixes
+-----
+
+* Code refactorings
+* Fix issue 25 (AET with underscore not allowed)
+* Fix replacement and insertion of private DICOM tags
+
+
+Version 0.8.5 (2014/11/04)
+==========================
+
+General
+-------
+
 * Major speed-up thanks to a new database schema
-* Download ZIP + DICOMDIR from Orthanc Explorer
 * Plugins can monitor changes through callbacks
-* Sample plugin framework to serve static resources
+* Download ZIP + DICOMDIR from Orthanc Explorer
+* Sample plugin framework to serve static resources (./Plugins/Samples/WebSkeleton/)
+
+Fixes
+-----
+
 * Fix issue 19 (YBR_FULL are decoded incorrectly)
 * Fix issue 21 (Microsoft Visual Studio precompiled headers)
 * Fix issue 22 (Error decoding multi-frame instances)

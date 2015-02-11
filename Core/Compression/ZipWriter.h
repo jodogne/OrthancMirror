@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -50,6 +50,7 @@ namespace Orthanc
 
     bool isZip64_;
     bool hasFileInZip_;
+    bool append_;
     uint8_t compressionLevel_;
     std::string path_;
 
@@ -70,6 +71,13 @@ namespace Orthanc
     uint8_t GetCompressionLevel() const
     {
       return compressionLevel_;
+    }
+
+    void SetAppendToExisting(bool append);
+    
+    bool IsAppendToExisting() const
+    {
+      return append_;
     }
     
     void Open();

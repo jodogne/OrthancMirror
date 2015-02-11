@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -194,7 +194,7 @@ namespace Orthanc
       {
         // Overwrite the random Patient's Name by one that is more
         // user-friendly (provided none was specified by the user)
-        target.Replace(DICOM_TAG_PATIENT_NAME, GeneratePatientName(OrthancRestApi::GetContext(call)));
+        target.Replace(DICOM_TAG_PATIENT_NAME, GeneratePatientName(OrthancRestApi::GetContext(call)), true);
       }
 
       return true;
@@ -361,6 +361,7 @@ namespace Orthanc
   static void ModifyInstance(RestApiPostCall& call)
   {
     DicomModification modification;
+    modification.SetAllowManualIdentifiers(true);
 
     if (ParseModifyRequest(modification, call))
     {
@@ -389,6 +390,7 @@ namespace Orthanc
   static void AnonymizeInstance(RestApiPostCall& call)
   {
     DicomModification modification;
+    modification.SetAllowManualIdentifiers(true);
 
     if (ParseAnonymizationRequest(modification, call))
     {

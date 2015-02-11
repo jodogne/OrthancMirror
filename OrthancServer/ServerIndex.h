@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -40,7 +40,7 @@
 #include "../Core/DicomFormat/DicomInstanceHasher.h"
 #include "ServerEnumerations.h"
 
-#include "DatabaseWrapper.h"
+#include "IDatabaseWrapper.h"
 
 
 namespace Orthanc
@@ -68,7 +68,7 @@ namespace Orthanc
     boost::thread unstableResourcesMonitorThread_;
 
     std::auto_ptr<Internals::ServerIndexListener> listener_;
-    std::auto_ptr<DatabaseWrapper> db_;
+    IDatabaseWrapper& db_;
     LeastRecentlyUsedIndex<int64_t, UnstableResourcePayload>  unstableResources_;
 
     uint64_t currentStorageSize_;
@@ -103,9 +103,26 @@ namespace Orthanc
                                /* in  */ int64_t id,
                                /* in  */ ResourceType type);
 
+    bool GetMetadataAsInteger(int64_t& result,
+                              int64_t id,
+                              MetadataType type);
+
+    void LogChange(int64_t internalId,
+                   ChangeType changeType,
+                   ResourceType resourceType,
+                   const std::string& publicId);
+
+    uint64_t IncrementGlobalSequenceInternal(GlobalProperty property);
+
+    void SetMainDicomTags(int64_t resource,
+                          const DicomMap& tags);
+
+    int64_t CreateResource(const std::string& publicId,
+                           ResourceType type);
+
   public:
     ServerIndex(ServerContext& context,
-                const std::string& dbPath);
+                IDatabaseWrapper& database);
 
     ~ServerIndex();
 
@@ -148,20 +165,20 @@ namespace Orthanc
                         const std::string& uuid,
                         ResourceType expectedType);
 
-    bool GetChanges(Json::Value& target,
+    void GetChanges(Json::Value& target,
                     int64_t since,
                     unsigned int maxResults);
 
-    bool GetLastChange(Json::Value& target);
+    void GetLastChange(Json::Value& target);
 
     void LogExportedResource(const std::string& publicId,
                              const std::string& remoteModality);
 
-    bool GetExportedResources(Json::Value& target,
+    void GetExportedResources(Json::Value& target,
                               int64_t since,
                               unsigned int maxResults);
 
-    bool GetLastExportedResource(Json::Value& target);
+    void GetLastExportedResource(Json::Value& target);
 
     bool IsProtectedPatient(const std::string& publicId);
 
@@ -234,5 +251,11 @@ namespace Orthanc
 
     void DeleteAttachment(const std::string& publicId,
                           FileContentType type);
+
+    void SetGlobalProperty(GlobalProperty property,
+                           const std::string& value);
+
+    std::string GetGlobalProperty(GlobalProperty property,
+                                  const std::string& defaultValue);
   };
 }

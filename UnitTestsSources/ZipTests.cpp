@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -69,6 +69,28 @@ TEST(ZipWriter, Exceptions)
   w.SetOutputPath("UnitTestsResults/hello3.zip");
   w.Open();
   ASSERT_THROW(w.Write("hello world"), Orthanc::OrthancException);
+}
+
+
+TEST(ZipWriter, Append)
+{
+  {
+    Orthanc::ZipWriter w;
+    w.SetAppendToExisting(false);
+    w.SetOutputPath("UnitTestsResults/append.zip");
+    w.Open();
+    w.OpenFile("world/hello");
+    w.Write("Hello world 1");
+  }
+
+  {
+    Orthanc::ZipWriter w;
+    w.SetAppendToExisting(true);
+    w.SetOutputPath("UnitTestsResults/append.zip");
+    w.Open();
+    w.OpenFile("world/appended");
+    w.Write("Hello world 2");
+  }
 }
 
 
