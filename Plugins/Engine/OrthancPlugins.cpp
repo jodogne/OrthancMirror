@@ -180,7 +180,7 @@ namespace Orthanc
     typedef std::list<OrthancPluginOnChangeCallback>  OnChangeCallbacks;
     typedef std::map<Property, std::string>  Properties;
 
-    ServerContext& context_;
+    ServerContext* context_;
     RestCallbacks restCallbacks_;
     OrthancRestApi* restApi_;
     OnStoredCallbacks  onStoredCallbacks_;
@@ -194,9 +194,10 @@ namespace Orthanc
     Properties properties_;
     int argc_;
     char** argv_;
+    std::auto_ptr<OrthancPluginDatabase>  database_;
 
-    PImpl(ServerContext& context) : 
-      context_(context), 
+    PImpl() : 
+      context_(NULL), 
       restApi_(NULL),
       hasStorageArea_(false),
       done_(false),
@@ -246,11 +247,18 @@ namespace Orthanc
   }
 
 
-  OrthancPlugins::OrthancPlugins(ServerContext& context)
+  OrthancPlugins::OrthancPlugins()
   {
-    pimpl_.reset(new PImpl(context));
+    pimpl_.reset(new PImpl());
     pimpl_->changeThread_ = boost::thread(PImpl::ChangeThread, pimpl_.get());
   }
+
+  
+  void OrthancPlugins::SetServerContext(ServerContext& context)
+  {
+    pimpl_->context_ = &context;
+  }
+
 
   
   OrthancPlugins::~OrthancPlugins()
@@ -642,11 +650,13 @@ namespace Orthanc
 
   void OrthancPlugins::GetDicomForInstance(const void* parameters)
   {
+    assert(pimpl_->context_ != NULL);
+
     const _OrthancPluginGetDicomForInstance& p = 
       *reinterpret_cast<const _OrthancPluginGetDicomForInstance*>(parameters);
 
     std::string dicom;
-    pimpl_->context_.ReadFile(dicom, p.instanceId, FileContentType_Dicom);
+    pimpl_->context_->ReadFile(dicom, p.instanceId, FileContentType_Dicom);
     CopyToMemoryBuffer(*p.target, dicom);
   }
 
@@ -829,8 +839,10 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
     }
 
+    assert(pimpl_->context_ != NULL);
+
     std::list<std::string> result;
-    pimpl_->context_.GetIndex().LookupIdentifier(result, tag, p.argument, level);
+    pimpl_->context_->GetIndex().LookupIdentifier(result, tag, p.argument, level);
 
     if (result.size() == 1)
     {
@@ -1081,6 +1093,7 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterStorageArea:
       {
+        LOG(INFO) << "Plugin has registered a custom storage area";
         const _OrthancPluginRegisterStorageArea& p = 
           *reinterpret_cast<const _OrthancPluginRegisterStorageArea*>(parameters);
         
@@ -1107,16 +1120,19 @@ namespace Orthanc
         }
         else
         {
-          pimpl_->context_.GetIndex().SetGlobalProperty(static_cast<GlobalProperty>(p.property), p.value);
+          assert(pimpl_->context_ != NULL);
+          pimpl_->context_->GetIndex().SetGlobalProperty(static_cast<GlobalProperty>(p.property), p.value);
           return true;
         }
       }
 
       case _OrthancPluginService_GetGlobalProperty:
       {
+        assert(pimpl_->context_ != NULL);
+
         const _OrthancPluginGlobalProperty& p = 
           *reinterpret_cast<const _OrthancPluginGlobalProperty*>(parameters);
-        std::string result = pimpl_->context_.GetIndex().GetGlobalProperty(static_cast<GlobalProperty>(p.property), p.value);
+        std::string result = pimpl_->context_->GetIndex().GetGlobalProperty(static_cast<GlobalProperty>(p.property), p.value);
         *(p.result) = CopyString(result);
         return true;
       }
@@ -1146,6 +1162,34 @@ namespace Orthanc
         }
       }
 
+      case _OrthancPluginService_RegisterDatabaseBackend:
+      {
+        LOG(INFO) << "Plugin has registered a custom database back-end";
+        const _OrthancPluginRegisterDatabaseBackend& p =
+          *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackend*>(parameters);
+
+        pimpl_->database_.reset(new OrthancPluginDatabase(*p.backend, p.payload));
+        *(p.result) = reinterpret_cast<OrthancPluginDatabaseContext*>(pimpl_->database_.get());
+
+        return true;
+      }
+
+      case _OrthancPluginService_DatabaseAnswer:
+      {
+        const _OrthancPluginDatabaseAnswer& p =
+          *reinterpret_cast<const _OrthancPluginDatabaseAnswer*>(parameters);
+        if (pimpl_->database_.get() != NULL)
+        {
+          pimpl_->database_->AnswerReceived(p);
+          return true;
+        }
+        else
+        {
+          LOG(ERROR) << "Cannot invoke this service without a custom database back-end";
+          throw OrthancException(ErrorCode_BadRequest);
+        }
+      }
+
       default:
         return false;
     }
@@ -1162,6 +1206,12 @@ namespace Orthanc
   {
     return pimpl_->hasStorageArea_;
   }
+  
+  bool OrthancPlugins::HasDatabase() const
+  {
+    return pimpl_->database_.get() != NULL;
+  }
+
 
 
   namespace
@@ -1261,6 +1311,19 @@ namespace Orthanc
 
     return new PluginStorageArea(pimpl_->storageArea_);
   }
+
+
+  IDatabaseWrapper& OrthancPlugins::GetDatabase()
+  {
+    if (!HasDatabase())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    return *pimpl_->database_;
+  }
+
+
 
 
 
