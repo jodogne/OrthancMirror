@@ -119,7 +119,7 @@ namespace Orthanc
     if (type_ == _OrthancPluginDatabaseAnswerType_Int64)
     {
       for (std::list<int64_t>::const_iterator 
-             it = answerInt64_.begin(); it != answerInt64_.end(); it++)
+             it = answerInt64_.begin(); it != answerInt64_.end(); ++it)
       {
         target.push_back(*it);
       }
@@ -140,7 +140,7 @@ namespace Orthanc
     if (type_ == _OrthancPluginDatabaseAnswerType_String)
     {
       for (std::list<std::string>::const_iterator 
-             it = answerStrings_.begin(); it != answerStrings_.end(); it++)
+             it = answerStrings_.begin(); it != answerStrings_.end(); ++it)
       {
         target.push_back(*it);
       }
@@ -183,6 +183,20 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_Plugin);
     }
+  }
+
+
+  OrthancPluginDatabase::OrthancPluginDatabase(const OrthancPluginDatabaseBackend& backend,
+                                               void *payload) : 
+    type_(_OrthancPluginDatabaseAnswerType_None),
+    backend_(backend),
+    payload_(payload),
+    listener_(NULL),
+    answerDicomMap_(NULL),
+    answerChanges_(NULL),
+    answerExportedResources_(NULL),
+    answerDone_(NULL)
+  {
   }
 
 
@@ -285,7 +299,7 @@ namespace Orthanc
     target.clear();
 
     for (std::list<MetadataType>::const_iterator
-           it = metadata.begin(); it != metadata.end(); it++)
+           it = metadata.begin(); it != metadata.end(); ++it)
     {
       std::string value;
       if (!LookupMetadata(value, id, *it))
@@ -532,7 +546,7 @@ namespace Orthanc
     if (type_ == _OrthancPluginDatabaseAnswerType_Int32)
     {
       for (std::list<int32_t>::const_iterator 
-             it = answerInt32_.begin(); it != answerInt32_.end(); it++)
+             it = answerInt32_.begin(); it != answerInt32_.end(); ++it)
       {
         target.push_back(static_cast<MetadataType>(*it));
       }
@@ -561,7 +575,7 @@ namespace Orthanc
     if (type_ == _OrthancPluginDatabaseAnswerType_Int32)
     {
       for (std::list<int32_t>::const_iterator 
-             it = answerInt32_.begin(); it != answerInt32_.end(); it++)
+             it = answerInt32_.begin(); it != answerInt32_.end(); ++it)
       {
         target.push_back(static_cast<FileContentType>(*it));
       }
