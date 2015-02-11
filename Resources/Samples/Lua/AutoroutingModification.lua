@@ -7,6 +7,7 @@ function OnStoredInstance(instanceId, tags, metadata)
       -- The tags to be replaced
       local replace = {}
       replace['StationName'] = 'My Medical Device'
+      replace['0031-1020'] = 'Some private tag'
 
       -- The tags to be removed
       local remove = { 'MilitaryRank' }

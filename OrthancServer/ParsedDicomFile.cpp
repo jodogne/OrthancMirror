@@ -807,13 +807,30 @@ namespace Orthanc
 
 
 
+
   void ParsedDicomFile::Insert(const DicomTag& tag,
                                const std::string& value)
   {
-    std::auto_ptr<DcmElement> element(CreateElementForTag(tag));
-    FillElementWithString(*element, tag, value);
+    OFCondition cond;
 
-    if (!pimpl_->file_->getDataset()->insert(element.release(), false, false).good())
+    if (FromDcmtkBridge::IsPrivateTag(tag))
+    {
+      // This is a private tag
+      // http://support.dcmtk.org/redmine/projects/dcmtk/wiki/howto_addprivatedata
+
+      DcmTag key(tag.GetGroup(), tag.GetElement(), EVR_OB);
+      cond = pimpl_->file_->getDataset()->putAndInsertUint8Array
+        (key, (const Uint8*) value.c_str(), value.size(), false);
+    }
+    else
+    {
+      std::auto_ptr<DcmElement> element(CreateElementForTag(tag));
+      FillElementWithString(*element, tag, value);
+
+      cond = pimpl_->file_->getDataset()->insert(element.release(), false, false);
+    }
+
+    if (!cond.good())
     {
       // This field already exists
       throw OrthancException(ErrorCode_InternalError);
@@ -847,7 +864,17 @@ namespace Orthanc
     }
     else
     {
-      FillElementWithString(*element, tag, value);
+      if (FromDcmtkBridge::IsPrivateTag(tag))
+      {
+        if (!element->putUint8Array((const Uint8*) value.c_str(), value.size()).good())
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+      }
+      else
+      {
+        FillElementWithString(*element, tag, value);
+      }
     }
 
 
@@ -888,25 +915,53 @@ namespace Orthanc
   {
     DcmTagKey k(tag.GetGroup(), tag.GetElement());
     DcmDataset& dataset = *pimpl_->file_->getDataset();
-    DcmElement* element = NULL;
-    if (!dataset.findAndGetElement(k, element).good() ||
-        element == NULL)
-    {
-      return false;
-    }
 
-    std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(*element, pimpl_->encoding_));
-
-    if (v.get() == NULL)
+    if (FromDcmtkBridge::IsPrivateTag(tag))
     {
-      value = "";
+      const Uint8* data = NULL;   // This is freed in the destructor of the dataset
+      long unsigned int count = 0;
+
+      if (dataset.findAndGetUint8Array(k, data, &count).good())
+      {
+        if (count > 0)
+        {
+          assert(data != NULL);
+          value.assign(reinterpret_cast<const char*>(data), count);
+        }
+        else
+        {
+          value.clear();
+        }
+
+        return true;
+      }
+      else
+      {
+        return false;
+      }
     }
     else
     {
-      value = v->AsString();
-    }
+      DcmElement* element = NULL;
+      if (!dataset.findAndGetElement(k, element).good() ||
+          element == NULL)
+      {
+        return false;
+      }
 
-    return true;
+      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(*element, pimpl_->encoding_));
+
+      if (v.get() == NULL)
+      {
+        value = "";
+      }
+      else
+      {
+        value = v->AsString();
+      }
+
+      return true;
+    }
   }
 
 

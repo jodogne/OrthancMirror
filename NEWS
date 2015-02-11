@@ -31,6 +31,7 @@ Fixes
 
 * Code refactorings
 * Fix issue 25 (AET with underscore not allowed)
+* Fix replacement and insertion of private DICOM tags
 
 
 Version 0.8.5 (2014/11/04)

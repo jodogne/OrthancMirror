@@ -186,15 +186,27 @@ namespace Orthanc
 
   bool FromDcmtkBridge::IsPrivateTag(DcmTag& tag)
   {
+#if 1
+    DcmTagKey tmp(tag.getGTag(), tag.getETag());
+    return tmp.isPrivate();
+#else
+    // Implementation for Orthanc versions <= 0.8.5
     return (tag.getPrivateCreator() != NULL ||
             !strcmp("PrivateCreator", tag.getTagName()));  // TODO - This may change with future versions of DCMTK
+#endif
   }
 
 
   bool FromDcmtkBridge::IsPrivateTag(const DicomTag& tag)
   {
+#if 1
+    DcmTagKey tmp(tag.GetGroup(), tag.GetElement());
+    return tmp.isPrivate();
+#else
+    // Implementation for Orthanc versions <= 0.8.5
     DcmTag tmp(tag.GetGroup(), tag.GetElement());
     return IsPrivateTag(tmp);
+#endif
   }
 
 
