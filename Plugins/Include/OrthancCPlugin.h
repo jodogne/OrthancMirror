@@ -132,11 +132,10 @@
  ** Inclusion of standard libraries.
  ********************************************************************/
 
-#ifdef _MSC_VER
-#include "../../Resources/ThirdParty/VisualStudio/stdint.h"
-#else
+// For Microsoft Visual Studio, a compatibility "stdint.h" can be
+// downloaded at the following URL:
+// https://orthanc.googlecode.com/hg/Resources/ThirdParty/VisualStudio/stdint.h
 #include <stdint.h>
-#endif
 
 #include <stdlib.h>
 
