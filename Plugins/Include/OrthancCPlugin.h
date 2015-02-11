@@ -16,6 +16,7 @@
  *    - Register all its REST callbacks using ::OrthancPluginRegisterRestCallback().
  *    - Register all its callbacks for received instances using ::OrthancPluginRegisterOnStoredInstanceCallback().
  *    - Possibly register a custom storage area using ::OrthancPluginRegisterStorageArea().
+ *    - Possibly register a custom database back-end area using ::OrthancPluginRegisterDatabaseBackend().
  * -# <tt>void OrthancPluginFinalize()</tt>:
  *    This function is invoked by Orthanc during its shutdown. The plugin
  *    must free all its memory.
@@ -293,7 +294,12 @@ extern "C"
     _OrthancPluginService_GetInstanceJson = 4003,
     _OrthancPluginService_GetInstanceSimplifiedJson = 4004,
     _OrthancPluginService_HasInstanceMetadata = 4005,
-    _OrthancPluginService_GetInstanceMetadata = 4006
+    _OrthancPluginService_GetInstanceMetadata = 4006,
+
+    /* Services for plugins implementing a database back-end */
+    _OrthancPluginService_RegisterDatabaseBackend = 5000,
+    _OrthancPluginService_DatabaseAnswer = 5001
+
   } _OrthancPluginService;
 
 
