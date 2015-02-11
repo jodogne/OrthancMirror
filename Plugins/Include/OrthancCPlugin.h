@@ -44,8 +44,8 @@
 
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -89,7 +89,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     0
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     8
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  5
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  6
 
 
 
@@ -151,6 +151,13 @@
 extern "C"
 {
 #endif
+
+  /**
+   * Forward declaration of one of the mandatory functions for Orthanc
+   * plugins.
+   **/
+  ORTHANC_PLUGINS_API const char* OrthancPluginGetName();
+
 
   /**
    * The various HTTP methods for a REST call.
@@ -241,6 +248,11 @@ extern "C"
     _OrthancPluginService_GetOrthancPath = 4,
     _OrthancPluginService_GetOrthancDirectory = 5,
     _OrthancPluginService_GetConfigurationPath = 6,
+    _OrthancPluginService_SetPluginProperty = 7,
+    _OrthancPluginService_GetGlobalProperty = 8,
+    _OrthancPluginService_SetGlobalProperty = 9,
+    _OrthancPluginService_GetCommandLineArgumentsCount = 10,
+    _OrthancPluginService_GetCommandLineArgument = 11,
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -269,6 +281,10 @@ extern "C"
     _OrthancPluginService_LookupSeries = 3007,
     _OrthancPluginService_LookupInstance = 3008,
     _OrthancPluginService_LookupStudyWithAccessionNumber = 3009,
+    _OrthancPluginService_RestApiGetAfterPlugins = 3010,
+    _OrthancPluginService_RestApiPostAfterPlugins = 3011,
+    _OrthancPluginService_RestApiDeleteAfterPlugins = 3012,
+    _OrthancPluginService_RestApiPutAfterPlugins = 3013,
 
     /* Access to DICOM instances */
     _OrthancPluginService_GetInstanceRemoteAet = 4000,
@@ -279,6 +295,14 @@ extern "C"
     _OrthancPluginService_HasInstanceMetadata = 4005,
     _OrthancPluginService_GetInstanceMetadata = 4006
   } _OrthancPluginService;
+
+
+  typedef enum
+  {
+    _OrthancPluginProperty_Description = 1,
+    _OrthancPluginProperty_RootUri = 2,
+    _OrthancPluginProperty_OrthancExplorer = 3
+  } _OrthancPluginProperty;
 
 
 
@@ -501,7 +525,7 @@ extern "C"
 
 
   /**
-   * @brief Opaque structure that contains information about the Orthanc core.
+   * @brief Data structure that contains information about the Orthanc core.
    **/
   typedef struct _OrthancPluginContext_t
   {
@@ -564,7 +588,7 @@ extern "C"
 #else
       sscanf
 #endif
-      (context->orthancVersion, "%d.%d.%d", &major, &minor, &revision) != 3)
+      (context->orthancVersion, "%4d.%4d.%4d", &major, &minor, &revision) != 3)
     {
       return 0;
     }
@@ -871,6 +895,33 @@ extern "C"
 
 
 
+  /**
+   * @brief Make a GET call to the REST API, as tainted by the plugins.
+   * 
+   * Make a GET call to the Orthanc REST API, after all the plugins
+   * are applied. In other words, if some plugin overrides or adds the
+   * called URI to the built-in Orthanc REST API, this call will
+   * return the result provided by this plugin. The result to the
+   * query is stored into a newly allocated memory buffer.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target The target memory buffer.
+   * @param uri The URI in the built-in Orthanc API.
+   * @return 0 if success, other value if error.
+   **/
+  ORTHANC_PLUGIN_INLINE int  OrthancPluginRestApiGetAfterPlugins(
+    OrthancPluginContext*       context,
+    OrthancPluginMemoryBuffer*  target,
+    const char*                 uri)
+  {
+    _OrthancPluginRestApiGet params;
+    params.target = target;
+    params.uri = uri;
+    return context->InvokeService(context, _OrthancPluginService_RestApiGetAfterPlugins, &params);
+  }
+
+
+
   typedef struct
   {
     OrthancPluginMemoryBuffer*  target;
@@ -908,6 +959,38 @@ extern "C"
   }
 
 
+  /**
+   * @brief Make a POST call to the REST API, as tainted by the plugins.
+   * 
+   * Make a POST call to the Orthanc REST API, after all the plugins
+   * are applied. In other words, if some plugin overrides or adds the
+   * called URI to the built-in Orthanc REST API, this call will
+   * return the result provided by this plugin. The result to the
+   * query is stored into a newly allocated memory buffer.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target The target memory buffer.
+   * @param uri The URI in the built-in Orthanc API.
+   * @param body The body of the POST request.
+   * @param bodySize The size of the body.
+   * @return 0 if success, other value if error.
+   **/
+  ORTHANC_PLUGIN_INLINE int  OrthancPluginRestApiPostAfterPlugins(
+    OrthancPluginContext*       context,
+    OrthancPluginMemoryBuffer*  target,
+    const char*                 uri,
+    const char*                 body,
+    uint32_t                    bodySize)
+  {
+    _OrthancPluginRestApiPostPut params;
+    params.target = target;
+    params.uri = uri;
+    params.body = body;
+    params.bodySize = bodySize;
+    return context->InvokeService(context, _OrthancPluginService_RestApiPostAfterPlugins, &params);
+  }
+
+
 
   /**
    * @brief Make a DELETE call to the built-in Orthanc REST API.
@@ -923,6 +1006,26 @@ extern "C"
     const char*                 uri)
   {
     return context->InvokeService(context, _OrthancPluginService_RestApiDelete, uri);
+  }
+
+
+  /**
+   * @brief Make a DELETE call to the REST API, as tainted by the plugins.
+   * 
+   * Make a DELETE call to the Orthanc REST API, after all the plugins
+   * are applied. In other words, if some plugin overrides or adds the
+   * called URI to the built-in Orthanc REST API, this call will
+   * return the result provided by this plugin. 
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param uri The URI to delete in the built-in Orthanc API.
+   * @return 0 if success, other value if error.
+   **/
+  ORTHANC_PLUGIN_INLINE int  OrthancPluginRestApiDeleteAfterPlugins(
+    OrthancPluginContext*       context,
+    const char*                 uri)
+  {
+    return context->InvokeService(context, _OrthancPluginService_RestApiDeleteAfterPlugins, uri);
   }
 
 
@@ -953,6 +1056,39 @@ extern "C"
     params.body = body;
     params.bodySize = bodySize;
     return context->InvokeService(context, _OrthancPluginService_RestApiPut, &params);
+  }
+
+
+
+  /**
+   * @brief Make a PUT call to the REST API, as tainted by the plugins.
+   * 
+   * Make a PUT call to the Orthanc REST API, after all the plugins
+   * are applied. In other words, if some plugin overrides or adds the
+   * called URI to the built-in Orthanc REST API, this call will
+   * return the result provided by this plugin. The result to the
+   * query is stored into a newly allocated memory buffer.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target The target memory buffer.
+   * @param uri The URI in the built-in Orthanc API.
+   * @param body The body of the PUT request.
+   * @param bodySize The size of the body.
+   * @return 0 if success, other value if error.
+   **/
+  ORTHANC_PLUGIN_INLINE int  OrthancPluginRestApiPutAfterPlugins(
+    OrthancPluginContext*       context,
+    OrthancPluginMemoryBuffer*  target,
+    const char*                 uri,
+    const char*                 body,
+    uint32_t                    bodySize)
+  {
+    _OrthancPluginRestApiPostPut params;
+    params.target = target;
+    params.uri = uri;
+    params.body = body;
+    params.bodySize = bodySize;
+    return context->InvokeService(context, _OrthancPluginService_RestApiPutAfterPlugins, &params);
   }
 
 
@@ -1553,10 +1689,10 @@ extern "C"
 
   typedef struct
   {
-    OrthancPluginStorageCreate  create_;
-    OrthancPluginStorageRead    read_;
-    OrthancPluginStorageRemove  remove_;
-    OrthancPluginFree           free_;
+    OrthancPluginStorageCreate  create;
+    OrthancPluginStorageRead    read;
+    OrthancPluginStorageRemove  remove;
+    OrthancPluginFree           free;
   } _OrthancPluginRegisterStorageArea;
 
   /**
@@ -1579,14 +1715,14 @@ extern "C"
     OrthancPluginStorageRemove  remove)
   {
     _OrthancPluginRegisterStorageArea params;
-    params.create_ = create;
-    params.read_ = read;
-    params.remove_ = remove;
+    params.create = create;
+    params.read = read;
+    params.remove = remove;
 
 #ifdef  __cplusplus
-    params.free_ = ::free;
+    params.free = ::free;
 #else
-    params.free_ = free;
+    params.free = free;
 #endif
 
     context->InvokeService(context, _OrthancPluginService_RegisterStorageArea, &params);
@@ -1711,6 +1847,235 @@ extern "C"
   }
 
 
+
+  typedef struct
+  {
+    const char* plugin;
+    _OrthancPluginProperty property;
+    const char* value;
+  } _OrthancPluginSetPluginProperty;
+
+
+  /**
+   * @brief Set the URI where the plugin provides its Web interface.
+   *
+   * For plugins that come with a Web interface, this function
+   * declares the entry path where to find this interface. This
+   * information is notably used in the "Plugins" page of Orthanc
+   * Explorer.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param uri The root URI for this plugin.
+   **/ 
+  ORTHANC_PLUGIN_INLINE void OrthancPluginSetRootUri(
+    OrthancPluginContext*  context,
+    const char*            uri)
+  {
+    _OrthancPluginSetPluginProperty params;
+    params.plugin = OrthancPluginGetName();
+    params.property = _OrthancPluginProperty_RootUri;
+    params.value = uri;
+
+    context->InvokeService(context, _OrthancPluginService_SetPluginProperty, &params);
+  }
+
+
+  /**
+   * @brief Set a description for this plugin.
+   *
+   * Set a description for this plugin. It is displayed in the
+   * "Plugins" page of Orthanc Explorer.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param description The description.
+   **/ 
+  ORTHANC_PLUGIN_INLINE void OrthancPluginSetDescription(
+    OrthancPluginContext*  context,
+    const char*            description)
+  {
+    _OrthancPluginSetPluginProperty params;
+    params.plugin = OrthancPluginGetName();
+    params.property = _OrthancPluginProperty_Description;
+    params.value = description;
+
+    context->InvokeService(context, _OrthancPluginService_SetPluginProperty, &params);
+  }
+
+
+  /**
+   * @brief Extend the JavaScript code of Orthanc Explorer.
+   *
+   * Add JavaScript code to customize the default behavior of Orthanc
+   * Explorer. This can for instance be used to add new buttons.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param javascript The custom JavaScript code.
+   **/ 
+  ORTHANC_PLUGIN_INLINE void OrthancPluginExtendOrthancExplorer(
+    OrthancPluginContext*  context,
+    const char*            javascript)
+  {
+    _OrthancPluginSetPluginProperty params;
+    params.plugin = OrthancPluginGetName();
+    params.property = _OrthancPluginProperty_OrthancExplorer;
+    params.value = javascript;
+
+    context->InvokeService(context, _OrthancPluginService_SetPluginProperty, &params);
+  }
+
+
+  typedef struct
+  {
+    char**       result;
+    int32_t      property;
+    const char*  value;
+  } _OrthancPluginGlobalProperty;
+
+
+  /**
+   * @brief Get the value of a global property.
+   *
+   * Get the value of a global property that is stored in the Orthanc database. Global
+   * properties whose index is below 1024 are reserved by Orthanc.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param property The global property of interest.
+   * @param defaultValue The value to return, if the global property is unset.
+   * @return The value of the global property, or NULL in the case of an error. This
+   * string must be freed by OrthancPluginFreeString().
+   **/
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginGetGlobalProperty(
+    OrthancPluginContext*  context,
+    int32_t                property,
+    const char*            defaultValue)
+  {
+    char* result;
+
+    _OrthancPluginGlobalProperty params;
+    params.result = &result;
+    params.property = property;
+    params.value = defaultValue;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetGlobalProperty, &params))
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  /**
+   * @brief Set the value of a global property.
+   *
+   * Set the value of a global property into the Orthanc
+   * database. Setting a global property can be used by plugins to
+   * save their internal parameters. Plugins are only allowed to set
+   * properties whose index are above or equal to 1024 (properties
+   * below 1024 are read-only and reserved by Orthanc).
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param property The global property of interest.
+   * @param value The value to be set in the global property.
+   * @return 0 if success, -1 in case of error.
+   **/
+  ORTHANC_PLUGIN_INLINE int32_t OrthancPluginSetGlobalProperty(
+    OrthancPluginContext*  context,
+    int32_t                property,
+    const char*            value)
+  {
+    _OrthancPluginGlobalProperty params;
+    params.result = NULL;
+    params.property = property;
+    params.value = value;
+
+    if (context->InvokeService(context, _OrthancPluginService_SetGlobalProperty, &params))
+    {
+      /* Error */
+      return -1;
+    }
+    else
+    {
+      return 0;
+    }
+  }
+
+
+
+  typedef struct
+  {
+    int32_t   *resultInt32;
+    uint32_t  *resultUint32;
+    int64_t   *resultInt64;
+    uint64_t  *resultUint64;
+  } _OrthancPluginReturnSingleValue;
+
+  /**
+   * @brief Get the number of command-line arguments.
+   *
+   * Retrieve the number of command-line arguments that were used to launch Orthanc.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @return The number of arguments.
+   **/
+  ORTHANC_PLUGIN_INLINE uint32_t OrthancPluginGetCommandLineArgumentsCount(
+    OrthancPluginContext*  context)
+  {
+    uint32_t count = 0;
+
+    _OrthancPluginReturnSingleValue params;
+    memset(&params, 0, sizeof(params));
+    params.resultUint32 = &count;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetCommandLineArgumentsCount, &params))
+    {
+      /* Error */
+      return 0;
+    }
+    else
+    {
+      return count;
+    }
+  }
+
+
+
+  /**
+   * @brief Get the value of a command-line argument.
+   *
+   * Get the value of one of the command-line arguments that were used
+   * to launch Orthanc. The number of available arguments can be
+   * retrieved by OrthancPluginGetCommandLineArgumentsCount().
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param argument The index of the argument.
+   * @return The value of the argument, or NULL in the case of an error. This
+   * string must be freed by OrthancPluginFreeString().
+   **/
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginGetCommandLineArgument(
+    OrthancPluginContext*  context,
+    uint32_t               argument)
+  {
+    char* result;
+
+    _OrthancPluginGlobalProperty params;
+    params.result = &result;
+    params.property = (int32_t) argument;
+    params.value = NULL;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetCommandLineArgument, &params))
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
 
 
 #ifdef  __cplusplus

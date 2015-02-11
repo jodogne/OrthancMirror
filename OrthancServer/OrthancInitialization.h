@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -40,6 +40,8 @@
 #include "DicomProtocol/RemoteModalityParameters.h"
 #include "ServerEnumerations.h"
 #include "OrthancPeerParameters.h"
+#include "IDatabaseWrapper.h"
+#include "../Core/FileStorage/IStorageArea.h"
 
 namespace Orthanc
 {
@@ -102,5 +104,9 @@ namespace Orthanc
     static void RemovePeer(const std::string& symbolicName);
 
     static const std::string& GetConfigurationAbsolutePath();
+
+    static IDatabaseWrapper* CreateDatabaseWrapper();
+
+    static IStorageArea* CreateStorageArea();
   };
 }

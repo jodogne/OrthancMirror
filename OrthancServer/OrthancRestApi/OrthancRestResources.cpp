@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -626,7 +626,7 @@ namespace Orthanc
     shared = Json::objectValue;
 
     for (Instances::const_iterator it = instances.begin();
-         it != instances.end(); it++)
+         it != instances.end(); ++it)
     {
       // Get the tags of the current instance, in the simplified format
       Json::Value tags;
@@ -713,10 +713,14 @@ namespace Orthanc
 
   static void GetModuleInternal(RestApiGetCall& call,
                                 ResourceType resourceType,
-                                ResourceType queryLevel)
+                                DicomModule module)
   {
-    if (resourceType != queryLevel &&
-        !(resourceType == ResourceType_Study && queryLevel == ResourceType_Patient))
+    if (!((resourceType == ResourceType_Patient && module == DicomModule_Patient) ||
+          (resourceType == ResourceType_Study && module == DicomModule_Patient) ||
+          (resourceType == ResourceType_Study && module == DicomModule_Study) ||
+          (resourceType == ResourceType_Series && module == DicomModule_Series) ||
+          (resourceType == ResourceType_Instance && module == DicomModule_Instance) ||
+          (resourceType == ResourceType_Instance && module == DicomModule_Image)))
     {
       throw OrthancException(ErrorCode_NotImplemented);
     }
@@ -725,9 +729,9 @@ namespace Orthanc
     std::string publicId = call.GetUriComponent("id", "");
     bool simplify = call.HasArgument("simplify");
 
-    typedef std::set<DicomTag> Module;
-    Module module;
-    DicomTag::GetTagsForModule(module, queryLevel);
+    typedef std::set<DicomTag> ModuleTags;
+    ModuleTags moduleTags;
+    DicomTag::GetTagsForModule(moduleTags, module);
 
     Json::Value tags;
 
@@ -751,9 +755,9 @@ namespace Orthanc
     
     // Filter the tags of the instance according to the module
     Json::Value result = Json::objectValue;
-    for (Module::const_iterator it = module.begin(); it != module.end(); it++)
+    for (ModuleTags::const_iterator tag = moduleTags.begin(); tag != moduleTags.end(); ++tag)
     {
-      std::string s = it->Format();
+      std::string s = tag->Format();
       if (tags.isMember(s))
       {
         result[s] = tags[s];
@@ -774,16 +778,11 @@ namespace Orthanc
     
 
 
-  template <enum ResourceType resourceType>
+  template <enum ResourceType resourceType, 
+            enum DicomModule module>
   static void GetModule(RestApiGetCall& call)
   {
-    GetModuleInternal(call, resourceType, resourceType);
-  }
-
-
-  static void GetPatientModuleForStudy(RestApiGetCall& call)
-  {
-    GetModuleInternal(call, ResourceType_Study, ResourceType_Patient);
+    GetModuleInternal(call, resourceType, module);
   }
 
 
@@ -799,7 +798,7 @@ namespace Orthanc
     Json::Value result = Json::arrayValue;
     
     for (Resources::const_iterator it = resources.begin();
-         it != resources.end(); it++)
+         it != resources.end(); ++it)
     {     
       ResourceType type = it->first;
       const std::string& id = it->second;
@@ -831,7 +830,7 @@ namespace Orthanc
       b.clear();
 
       for (std::list<std::string>::const_iterator
-             it = a.begin(); it != a.end(); it++)
+             it = a.begin(); it != a.end(); ++it)
       {
         index.GetChildren(c, *it);
         b.splice(b.begin(), c);
@@ -862,7 +861,7 @@ namespace Orthanc
     Json::Value result = Json::arrayValue;
 
     for (std::list<std::string>::const_iterator
-           it = a.begin(); it != a.end(); it++)
+           it = a.begin(); it != a.end(); ++it)
     {
       Json::Value item;
 
@@ -891,7 +890,7 @@ namespace Orthanc
     Json::Value result = Json::objectValue;
 
     for (Instances::const_iterator it = instances.begin();
-         it != instances.end(); it++)
+         it != instances.end(); ++it)
     {
       Json::Value full;
       context.ReadJson(full, *it);
@@ -909,6 +908,47 @@ namespace Orthanc
     }
     
     call.GetOutput().AnswerJson(result);
+  }
+
+
+
+  template <enum ResourceType start, 
+            enum ResourceType end>
+  static void GetParentResource(RestApiGetCall& call)
+  {
+    assert(start > end);
+
+    ServerIndex& index = OrthancRestApi::GetIndex(call);
+    
+    std::string current = call.GetUriComponent("id", "");
+    ResourceType currentType = start;
+    while (currentType > end)
+    {
+      std::string parent;
+      if (!index.LookupParent(parent, current))
+      {
+        // Error that could happen if the resource gets deleted by
+        // another concurrent call
+        return;
+      }
+      
+      current = parent;
+      switch (currentType)
+      {
+        case ResourceType_Instance:  currentType = ResourceType_Series; break;
+        case ResourceType_Series:    currentType = ResourceType_Study; break;
+        case ResourceType_Study:     currentType = ResourceType_Patient; break;
+        default:                     throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    assert(currentType == end);
+
+    Json::Value result;
+    if (index.LookupResource(result, current, end))
+    {
+      call.GetOutput().AnswerJson(result);
+    }
   }
 
 
@@ -938,11 +978,11 @@ namespace Orthanc
     Register("/series/{id}/shared-tags", GetSharedTags);
     Register("/studies/{id}/shared-tags", GetSharedTags);
 
-    Register("/instances/{id}/module", GetModule<ResourceType_Instance>);
-    Register("/patients/{id}/module", GetModule<ResourceType_Patient>);
-    Register("/series/{id}/module", GetModule<ResourceType_Series>);
-    Register("/studies/{id}/module", GetModule<ResourceType_Study>);
-    Register("/studies/{id}/module-patient", GetPatientModuleForStudy);
+    Register("/instances/{id}/module", GetModule<ResourceType_Instance, DicomModule_Instance>);
+    Register("/patients/{id}/module", GetModule<ResourceType_Patient, DicomModule_Patient>);
+    Register("/series/{id}/module", GetModule<ResourceType_Series, DicomModule_Series>);
+    Register("/studies/{id}/module", GetModule<ResourceType_Study, DicomModule_Study>);
+    Register("/studies/{id}/module-patient", GetModule<ResourceType_Study, DicomModule_Patient>);
 
     Register("/instances/{id}/file", GetInstanceFile);
     Register("/instances/{id}/export", ExportInstanceFile);
@@ -989,6 +1029,13 @@ namespace Orthanc
     Register("/studies/{id}/series", GetChildResources<ResourceType_Study, ResourceType_Series>);
     Register("/studies/{id}/instances", GetChildResources<ResourceType_Study, ResourceType_Instance>);
     Register("/series/{id}/instances", GetChildResources<ResourceType_Series, ResourceType_Instance>);
+
+    Register("/studies/{id}/patient", GetParentResource<ResourceType_Study, ResourceType_Patient>);
+    Register("/series/{id}/patient", GetParentResource<ResourceType_Series, ResourceType_Patient>);
+    Register("/series/{id}/study", GetParentResource<ResourceType_Series, ResourceType_Study>);
+    Register("/instances/{id}/patient", GetParentResource<ResourceType_Instance, ResourceType_Patient>);
+    Register("/instances/{id}/study", GetParentResource<ResourceType_Instance, ResourceType_Study>);
+    Register("/instances/{id}/series", GetParentResource<ResourceType_Instance, ResourceType_Series>);
 
     Register("/patients/{id}/instances-tags", GetChildInstancesTags);
     Register("/studies/{id}/instances-tags", GetChildInstancesTags);

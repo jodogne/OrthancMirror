@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -38,7 +38,6 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "../Core/Uuid.h"
-#include "../Core/FileStorage/FilesystemStorage.h"
 #include "../Core/HttpServer/EmbeddedResourceHttpHandler.h"
 #include "../Core/HttpServer/FilesystemHttpHandler.h"
 #include "../Core/Lua/LuaFunctionCall.h"
@@ -73,7 +72,8 @@ public:
   virtual void Handle(const std::string& dicomFile,
                       const DicomMap& dicomSummary,
                       const Json::Value& dicomJson,
-                      const std::string& remoteAet)
+                      const std::string& remoteAet,
+                      const std::string& calledAet)
   {
     if (dicomFile.size() > 0)
     {
@@ -82,6 +82,7 @@ public:
       toStore.SetSummary(dicomSummary);
       toStore.SetJson(dicomJson);
       toStore.SetRemoteAet(remoteAet);
+      toStore.SetCalledAet(calledAet);
 
       std::string id;
       server_.Store(id, toStore);
@@ -339,7 +340,7 @@ static void PrintVersion(char* path)
 {
   std::cout
     << path << " " << ORTHANC_VERSION << std::endl
-    << "Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege (Belgium) " << std::endl
+    << "Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics Department, University Hospital of Liege (Belgium)" << std::endl
     << "Licensing GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>, with OpenSSL exception." << std::endl
     << "This is free software: you are free to change and redistribute it." << std::endl
     << "There is NO WARRANTY, to the extent permitted by law." << std::endl
@@ -382,64 +383,17 @@ static void LoadPlugins(PluginsManager& pluginsManager)
 
 
 
-class FilesystemStorageWithoutDicom : public IStorageArea
+static bool StartOrthanc(int argc, char *argv[])
 {
-private:
-  FilesystemStorage storage_;
+  std::auto_ptr<IDatabaseWrapper> database;
+  database.reset(Configuration::CreateDatabaseWrapper());
 
-public:
-  FilesystemStorageWithoutDicom(const std::string& path) : storage_(path)
-  {
-  }
-
-  virtual void Create(const std::string& uuid,
-                      const void* content, 
-                      size_t size,
-                      FileContentType type)
-  {
-    if (type != FileContentType_Dicom)
-    {
-      storage_.Create(uuid, content, size, type);
-    }
-  }
-
-  virtual void Read(std::string& content,
-                    const std::string& uuid,
-                    FileContentType type) const
-  {
-    if (type != FileContentType_Dicom)
-    {
-      storage_.Read(content, uuid, type);
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-  }
-
-  virtual void Remove(const std::string& uuid,
-                      FileContentType type) 
-  {
-    if (type != FileContentType_Dicom)
-    {
-      storage_.Remove(uuid, type);
-    }
-  }
-};
-
-
-static bool StartOrthanc()
-{
-  std::string storageDirectoryStr = Configuration::GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
-  boost::filesystem::path indexDirectory = Configuration::InterpretStringParameterAsPath(
-    Configuration::GetGlobalStringParameter("IndexDirectory", storageDirectoryStr));
 
   // "storage" must be declared BEFORE "ServerContext context", to
   // avoid mess in the invokation order of the destructors.
   std::auto_ptr<IStorageArea>  storage;
-  ServerContext context(indexDirectory);
 
-  LOG(WARNING) << "Index directory: " << indexDirectory;
+  ServerContext context(*database);
 
   context.SetCompressionEnabled(Configuration::GetGlobalBoolParameter("StorageCompression", false));
   context.SetStoreMD5ForAttachments(Configuration::GetGlobalBoolParameter("StoreMD5ForAttachments", true));
@@ -513,13 +467,14 @@ static bool StartOrthanc()
 
 #if ENABLE_PLUGINS == 1
     OrthancPlugins orthancPlugins(context);
+    orthancPlugins.SetCommandLineArguments(argc, argv);
     orthancPlugins.SetOrthancRestApi(restApi);
 
     PluginsManager pluginsManager;
     pluginsManager.RegisterServiceProvider(orthancPlugins);
     LoadPlugins(pluginsManager);
     httpServer.RegisterHandler(orthancPlugins);
-    context.SetOrthancPlugins(orthancPlugins);
+    context.SetOrthancPlugins(pluginsManager, orthancPlugins);
 #endif
 
     httpServer.RegisterHandler(staticResources);
@@ -536,17 +491,7 @@ static bool StartOrthanc()
     else
 #endif
     {
-      boost::filesystem::path storageDirectory = Configuration::InterpretStringParameterAsPath(storageDirectoryStr);
-      LOG(WARNING) << "Storage directory: " << storageDirectory;
-      if (Configuration::GetGlobalBoolParameter("StoreDicom", true))
-      {
-        storage.reset(new FilesystemStorage(storageDirectory.string()));
-      }
-      else
-      {
-        LOG(WARNING) << "The DICOM files will not be stored, Orthanc running in index-only mode";
-        storage.reset(new FilesystemStorageWithoutDicom(storageDirectory.string()));
-      }
+      storage.reset(Configuration::CreateStorageArea());
     }
     
     context.SetStorageArea(*storage);
@@ -586,6 +531,7 @@ static bool StartOrthanc()
     LOG(WARNING) << "Orthanc is stopping";
 
 #if ENABLE_PLUGINS == 1
+    context.ResetOrthancPlugins();
     orthancPlugins.Stop();
     LOG(WARNING) << "    Plugins have stopped";
 #endif
@@ -683,7 +629,7 @@ int main(int argc, char* argv[])
     {
       OrthancInitialize(configurationFile);
 
-      bool reset = StartOrthanc();
+      bool reset = StartOrthanc(argc, argv);
       if (reset)
       {
         OrthancFinalize();
@@ -694,14 +640,24 @@ int main(int argc, char* argv[])
       }
     }
   }
-  catch (OrthancException& e)
+  catch (const OrthancException& e)
   {
     LOG(ERROR) << "Uncaught exception, stopping now: [" << e.What() << "]";
     status = -1;
   }
+  catch (const std::exception& e) 
+  {
+    LOG(ERROR) << "Uncaught exception, stopping now: [" << e.what() << "]";
+    status = -1;
+  }
+  catch (const std::string& s) 
+  {
+    LOG(ERROR) << "Uncaught exception, stopping now: [" << s << "]";
+    status = -1;
+  }
   catch (...)
   {
-    LOG(ERROR) << "Native exception, stopping now";
+    LOG(ERROR) << "Native exception, stopping now. Check your plugins, if any.";
     status = -1;
   }
 

@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -71,18 +71,22 @@ static const size_t DICOM_CACHE_SIZE = 2;
 
 namespace Orthanc
 {
-  ServerContext::ServerContext(const boost::filesystem::path& indexPath) :
-    index_(*this, indexPath.string()),
+  ServerContext::ServerContext(IDatabaseWrapper& database) :
+    index_(*this, database),
     compressionEnabled_(false),
     provider_(*this),
     dicomCache_(provider_, DICOM_CACHE_SIZE),
     scheduler_(Configuration::GetGlobalIntegerParameter("LimitJobs", 10)),
-    plugins_(NULL)
+    plugins_(NULL),
+    pluginsManager_(NULL)
   {
     scu_.SetLocalApplicationEntityTitle(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"));
-    //scu_.SetMillisecondsBeforeClose(1);  // The connection is always released
+
+    uint64_t s = Configuration::GetGlobalIntegerParameter("DicomAssociationCloseDelay", 5);  // In seconds
+    scu_.SetMillisecondsBeforeClose(s * 1000);  // Milliseconds are expected here
 
     lua_.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
+    lua_.SetHttpProxy(Configuration::GetGlobalStringParameter("HttpProxy", ""));
   }
 
   void ServerContext::SetCompressionEnabled(bool enabled)
@@ -207,7 +211,9 @@ namespace Orthanc
 
   void ServerContext::ApplyLuaOnStoredInstance(const std::string& instanceId,
                                                const Json::Value& simplifiedDicom,
-                                               const Json::Value& metadata)
+                                               const Json::Value& metadata,
+                                               const std::string& remoteAet,
+                                               const std::string& calledAet)
   {
     LuaContextLocker locker(*this);
 
@@ -219,6 +225,8 @@ namespace Orthanc
       call.PushString(instanceId);
       call.PushJson(simplifiedDicom);
       call.PushJson(metadata);
+      call.PushJson(remoteAet);
+      call.PushJson(calledAet);
       call.Execute();
 
       Json::Value operations;
@@ -312,7 +320,7 @@ namespace Orthanc
       dicom.GetMetadata().clear();
 
       for (InstanceMetadata::const_iterator it = instanceMetadata.begin();
-           it != instanceMetadata.end(); it++)
+           it != instanceMetadata.end(); ++it)
       {
         dicom.GetMetadata().insert(std::make_pair(std::make_pair(ResourceType_Instance, it->first),
                                                   it->second));
@@ -356,11 +364,12 @@ namespace Orthanc
 
         try
         {
-          ApplyLuaOnStoredInstance(resultPublicId, simplified, metadata);
+          ApplyLuaOnStoredInstance(resultPublicId, simplified, metadata, 
+                                   dicom.GetRemoteAet(), dicom.GetCalledAet());
         }
         catch (OrthancException& e)
         {
-          LOG(ERROR) << "Error in OnStoredInstance callback (Lua): " << e.What();
+          LOG(ERROR) << "Error in " << ON_STORED_INSTANCE << " callback (Lua): " << e.What();
         }
 
         if (plugins_ != NULL)
@@ -371,7 +380,7 @@ namespace Orthanc
           }
           catch (OrthancException& e)
           {
-            LOG(ERROR) << "Error in OnStoredInstance callback (plugins): " << e.What();
+            LOG(ERROR) << "Error in " << ON_STORED_INSTANCE << " callback (plugins): " << e.What();
           }
         }
       }
@@ -534,6 +543,38 @@ namespace Orthanc
       {
         LOG(ERROR) << "Error in OnChangeCallback (plugins): " << e.What();
       }
+    }
+  }
+
+
+  bool ServerContext::HasPlugins() const
+  {
+    return (pluginsManager_ && plugins_);
+  }
+
+
+  const PluginsManager& ServerContext::GetPluginsManager() const
+  {
+    if (HasPlugins())
+    {
+      return *pluginsManager_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
+  const OrthancPlugins& ServerContext::GetOrthancPlugins() const
+  {
+    if (HasPlugins())
+    {
+      return *plugins_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InternalError);
     }
   }
 }

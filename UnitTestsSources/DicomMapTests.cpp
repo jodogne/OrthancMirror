@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -133,16 +133,17 @@ TEST(DicomMap, FindTemplates)
 
 
 
-static void TestModule(ResourceType level)
+static void TestModule(ResourceType level,
+                       DicomModule module)
 {
-  std::set<DicomTag> module, main;
-  DicomTag::GetTagsForModule(module, level);
+  std::set<DicomTag> moduleTags, main;
+  DicomTag::GetTagsForModule(moduleTags, module);
   DicomMap::GetMainDicomTags(main, level);
   
   // The main dicom tags are a subset of the module
-  for (std::set<DicomTag>::const_iterator it = main.begin(); it != main.end(); it++)
+  for (std::set<DicomTag>::const_iterator it = main.begin(); it != main.end(); ++it)
   {
-    bool ok = module.find(*it) != module.end();
+    bool ok = moduleTags.find(*it) != moduleTags.end();
 
     // Exceptions for the Series level
     /*if ((//
@@ -182,8 +183,8 @@ static void TestModule(ResourceType level)
 
 TEST(DicomMap, Modules)
 {
-  TestModule(ResourceType_Patient);
-  TestModule(ResourceType_Study);
-  //TestModule(ResourceType_Series);   // TODO
-  TestModule(ResourceType_Instance);
+  TestModule(ResourceType_Patient, DicomModule_Patient);
+  TestModule(ResourceType_Study, DicomModule_Study);
+  //TestModule(ResourceType_Series, DicomModule_Series);   // TODO
+  TestModule(ResourceType_Instance, DicomModule_Instance);
 }

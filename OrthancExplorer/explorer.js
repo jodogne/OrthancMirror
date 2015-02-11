@@ -1023,3 +1023,46 @@ $('#patient-anonymize').live('click', function() {
   OpenAnonymizeResourceDialog('../patients/' + $.mobile.pageData.uuid,
                               'Anonymize this patient?');
 });
+
+
+$('#plugins').live('pagebeforeshow', function() {
+  $.ajax({
+    url: '../plugins',
+    dataType: 'json',
+    async: false,
+    cache: false,
+    success: function(plugins) {
+      var target = $('#all-plugins');
+      $('li', target).remove();
+
+      plugins.map(function(id) {
+        return $.ajax({
+          url: '../plugins/' + id,
+          dataType: 'json',
+          async: false,
+          cache: false,
+          success: function(plugin) {
+            var li = $('<li>');
+            var item = li;
+
+            if ('RootUri' in plugin)
+            {
+              item = $('<a>');
+              li.append(item);
+              item.click(function() {
+                window.open(plugin.RootUri);
+              });
+            }
+
+            item.append($('<h1>').text(plugin.ID));
+            item.append($('<p>').text(plugin.Description));
+            item.append($('<span>').addClass('ui-li-count').text(plugin.Version));
+            target.append(li);
+          }
+        });
+      });
+
+      target.listview('refresh');
+    }
+  });
+});

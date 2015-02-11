@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -172,10 +172,13 @@ namespace Orthanc
 
   struct OrthancPlugins::PImpl
   {
+    typedef std::pair<std::string, _OrthancPluginProperty>  Property;
+
     typedef std::pair<boost::regex*, OrthancPluginRestCallback> RestCallback;
     typedef std::list<RestCallback>  RestCallbacks;
     typedef std::list<OrthancPluginOnStoredInstanceCallback>  OnStoredCallbacks;
     typedef std::list<OrthancPluginOnChangeCallback>  OnChangeCallbacks;
+    typedef std::map<Property, std::string>  Properties;
 
     ServerContext& context_;
     RestCallbacks restCallbacks_;
@@ -184,16 +187,21 @@ namespace Orthanc
     OnChangeCallbacks  onChangeCallbacks_;
     bool hasStorageArea_;
     _OrthancPluginRegisterStorageArea storageArea_;
-    boost::mutex callbackMutex_;
+    boost::recursive_mutex callbackMutex_;
     SharedMessageQueue  pendingChanges_;
     boost::thread  changeThread_;
     bool done_;
+    Properties properties_;
+    int argc_;
+    char** argv_;
 
     PImpl(ServerContext& context) : 
       context_(context), 
       restApi_(NULL),
       hasStorageArea_(false),
-      done_(false)
+      done_(false),
+      argc_(1),
+      argv_(NULL)
     {
       memset(&storageArea_, 0, sizeof(storageArea_));
     }
@@ -207,7 +215,7 @@ namespace Orthanc
         
         if (obj.get() != NULL)
         {
-          boost::mutex::scoped_lock lock(that->callbackMutex_);
+          boost::recursive_mutex::scoped_lock lock(that->callbackMutex_);
           PendingChange& change = *dynamic_cast<PendingChange*>(obj.get());
           change.Submit(that->onChangeCallbacks_);
         }
@@ -389,7 +397,7 @@ namespace Orthanc
     int32_t error;
 
     {
-      boost::mutex::scoped_lock lock(pimpl_->callbackMutex_);
+      boost::recursive_mutex::scoped_lock lock(pimpl_->callbackMutex_);
       error = callback(reinterpret_cast<OrthancPluginRestOutput*>(&output), 
                        flatUri.c_str(), 
                        &request);
@@ -415,7 +423,7 @@ namespace Orthanc
   void OrthancPlugins::SignalStoredInstance(DicomInstanceToStore& instance,
                                             const std::string& instanceId)                                                  
   {
-    boost::mutex::scoped_lock lock(pimpl_->callbackMutex_);
+    boost::recursive_mutex::scoped_lock lock(pimpl_->callbackMutex_);
 
     for (PImpl::OnStoredCallbacks::const_iterator
            callback = pimpl_->onStoredCallbacks_.begin(); 
@@ -643,7 +651,8 @@ namespace Orthanc
   }
 
 
-  void OrthancPlugins::RestApiGet(const void* parameters)
+  void OrthancPlugins::RestApiGet(const void* parameters,
+                                  bool afterPlugins)
   {
     const _OrthancPluginRestApiGet& p = 
       *reinterpret_cast<const _OrthancPluginRestApiGet*>(parameters);
@@ -658,12 +667,25 @@ namespace Orthanc
     StringHttpOutput stream;
     HttpOutput http(stream, false /* no keep alive */);
 
-    LOG(INFO) << "Plugin making REST GET call on URI " << p.uri;
+    LOG(INFO) << "Plugin making REST GET call on URI " << p.uri
+              << (afterPlugins ? " (after plugins)" : " (built-in API)");
 
-    if (pimpl_->restApi_ != NULL &&
-        pimpl_->restApi_->Handle(http, HttpMethod_Get, uri, headers, getArguments, body))
+    bool ok = false;
+    std::string result;
+
+    if (afterPlugins)
     {
-      std::string result;
+      ok = Handle(http, HttpMethod_Get, uri, headers, getArguments, body);
+    }
+
+    if (!ok)
+    {
+      ok = (pimpl_->restApi_ != NULL &&
+            pimpl_->restApi_->Handle(http, HttpMethod_Get, uri, headers, getArguments, body));
+    }
+
+    if (ok)
+    {
       stream.GetOutput(result);
       CopyToMemoryBuffer(*p.target, result);
     }
@@ -674,7 +696,9 @@ namespace Orthanc
   }
 
 
-  void OrthancPlugins::RestApiPostPut(bool isPost, const void* parameters)
+  void OrthancPlugins::RestApiPostPut(bool isPost, 
+                                      const void* parameters,
+                                      bool afterPlugins)
   {
     const _OrthancPluginRestApiPostPut& p = 
       *reinterpret_cast<const _OrthancPluginRestApiPostPut*>(parameters);
@@ -692,12 +716,25 @@ namespace Orthanc
     HttpOutput http(stream, false /* no keep alive */);
 
     HttpMethod method = (isPost ? HttpMethod_Post : HttpMethod_Put);
-    LOG(INFO) << "Plugin making REST " << EnumerationToString(method) << " call on URI " << p.uri;
+    LOG(INFO) << "Plugin making REST " << EnumerationToString(method) << " call on URI " << p.uri
+              << (afterPlugins ? " (after plugins)" : " (built-in API)");
 
-    if (pimpl_->restApi_ != NULL &&
-        pimpl_->restApi_->Handle(http, method, uri, headers, getArguments, body))
+    bool ok = false;
+    std::string result;
+
+    if (afterPlugins)
     {
-      std::string result;
+      ok = Handle(http, method, uri, headers, getArguments, body);
+    }
+    
+    if (!ok)
+    {
+      ok = (pimpl_->restApi_ != NULL &&
+            pimpl_->restApi_->Handle(http, method, uri, headers, getArguments, body));
+    }
+
+    if (ok)
+    {
       stream.GetOutput(result);
       CopyToMemoryBuffer(*p.target, result);
     }
@@ -708,7 +745,8 @@ namespace Orthanc
   }
 
 
-  void OrthancPlugins::RestApiDelete(const void* parameters)
+  void OrthancPlugins::RestApiDelete(const void* parameters,
+                                     bool afterPlugins)
   {
     // The "parameters" point to the URI
     UriComponents uri;
@@ -722,10 +760,23 @@ namespace Orthanc
     HttpOutput http(stream, false /* no keep alive */);
 
     LOG(INFO) << "Plugin making REST DELETE call on URI " 
-              << reinterpret_cast<const char*>(parameters);
+              << reinterpret_cast<const char*>(parameters)
+              << (afterPlugins ? " (after plugins)" : " (built-in API)");
 
-    if (pimpl_->restApi_ == NULL ||
-        !pimpl_->restApi_->Handle(http, HttpMethod_Delete, uri, headers, getArguments, body))
+    bool ok = false;
+
+    if (afterPlugins)
+    {
+      ok = Handle(http, HttpMethod_Delete, uri, headers, getArguments, body);
+    }
+
+    if (!ok)
+    {
+      ok = (pimpl_->restApi_ != NULL &&
+            pimpl_->restApi_->Handle(http, HttpMethod_Delete, uri, headers, getArguments, body));
+    }
+
+    if (!ok)
     {
       throw OrthancException(ErrorCode_BadRequest);
     }
@@ -955,19 +1006,35 @@ namespace Orthanc
         return true;
 
       case _OrthancPluginService_RestApiGet:
-        RestApiGet(parameters);
+        RestApiGet(parameters, false);
+        return true;
+
+      case _OrthancPluginService_RestApiGetAfterPlugins:
+        RestApiGet(parameters, true);
         return true;
 
       case _OrthancPluginService_RestApiPost:
-        RestApiPostPut(true, parameters);
+        RestApiPostPut(true, parameters, false);
+        return true;
+
+      case _OrthancPluginService_RestApiPostAfterPlugins:
+        RestApiPostPut(true, parameters, true);
         return true;
 
       case _OrthancPluginService_RestApiDelete:
-        RestApiDelete(parameters);
+        RestApiDelete(parameters, false);
+        return true;
+
+      case _OrthancPluginService_RestApiDeleteAfterPlugins:
+        RestApiDelete(parameters, true);
         return true;
 
       case _OrthancPluginService_RestApiPut:
-        RestApiPostPut(false, parameters);
+        RestApiPostPut(false, parameters, false);
+        return true;
+
+      case _OrthancPluginService_RestApiPutAfterPlugins:
+        RestApiPostPut(false, parameters, true);
         return true;
 
       case _OrthancPluginService_Redirect:
@@ -1022,6 +1089,63 @@ namespace Orthanc
         return true;
       }
 
+      case _OrthancPluginService_SetPluginProperty:
+      {
+        const _OrthancPluginSetPluginProperty& p = 
+          *reinterpret_cast<const _OrthancPluginSetPluginProperty*>(parameters);
+        pimpl_->properties_[std::make_pair(p.plugin, p.property)] = p.value;
+        return true;
+      }
+
+      case _OrthancPluginService_SetGlobalProperty:
+      {
+        const _OrthancPluginGlobalProperty& p = 
+          *reinterpret_cast<const _OrthancPluginGlobalProperty*>(parameters);
+        if (p.property < 1024)
+        {
+          return false;
+        }
+        else
+        {
+          pimpl_->context_.GetIndex().SetGlobalProperty(static_cast<GlobalProperty>(p.property), p.value);
+          return true;
+        }
+      }
+
+      case _OrthancPluginService_GetGlobalProperty:
+      {
+        const _OrthancPluginGlobalProperty& p = 
+          *reinterpret_cast<const _OrthancPluginGlobalProperty*>(parameters);
+        std::string result = pimpl_->context_.GetIndex().GetGlobalProperty(static_cast<GlobalProperty>(p.property), p.value);
+        *(p.result) = CopyString(result);
+        return true;
+      }
+
+      case _OrthancPluginService_GetCommandLineArgumentsCount:
+      {
+        const _OrthancPluginReturnSingleValue& p =
+          *reinterpret_cast<const _OrthancPluginReturnSingleValue*>(parameters);
+        *(p.resultUint32) = pimpl_->argc_ - 1;
+        return true;
+      }
+
+      case _OrthancPluginService_GetCommandLineArgument:
+      {
+        const _OrthancPluginGlobalProperty& p =
+          *reinterpret_cast<const _OrthancPluginGlobalProperty*>(parameters);
+        
+        if (p.property + 1 > pimpl_->argc_)
+        {
+          return false;
+        }
+        else
+        {
+          std::string arg = std::string(pimpl_->argv_[p.property + 1]);
+          *(p.result) = CopyString(arg);
+          return true;
+        }
+      }
+
       default:
         return false;
     }
@@ -1051,7 +1175,7 @@ namespace Orthanc
       {
         if (buffer != NULL)
         {
-          params_.free_(buffer);
+          params_.free(buffer);
         }
       }
 
@@ -1080,7 +1204,7 @@ namespace Orthanc
                           size_t size,
                           FileContentType type)
       {
-        if (params_.create_(uuid.c_str(), content, size, Convert(type)) != 0)
+        if (params_.create(uuid.c_str(), content, size, Convert(type)) != 0)
         {
           throw OrthancException(ErrorCode_Plugin);
         }
@@ -1088,12 +1212,12 @@ namespace Orthanc
 
       virtual void Read(std::string& content,
                         const std::string& uuid,
-                        FileContentType type) const
+                        FileContentType type)
       {
         void* buffer = NULL;
         int64_t size = 0;
 
-        if (params_.read_(&buffer, &size, uuid.c_str(), Convert(type)) != 0)
+        if (params_.read(&buffer, &size, uuid.c_str(), Convert(type)) != 0)
         {
           throw OrthancException(ErrorCode_Plugin);
         }        
@@ -1119,7 +1243,7 @@ namespace Orthanc
       virtual void Remove(const std::string& uuid,
                           FileContentType type) 
       {
-        if (params_.remove_(uuid.c_str(), Convert(type)) != 0)
+        if (params_.remove(uuid.c_str(), Convert(type)) != 0)
         {
           throw OrthancException(ErrorCode_Plugin);
         }        
@@ -1135,6 +1259,36 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
-    return new PluginStorageArea(pimpl_->storageArea_);;
+    return new PluginStorageArea(pimpl_->storageArea_);
+  }
+
+
+
+  const char* OrthancPlugins::GetProperty(const char* plugin,
+                                          _OrthancPluginProperty property) const
+  {
+    PImpl::Property p = std::make_pair(plugin, property);
+    PImpl::Properties::const_iterator it = pimpl_->properties_.find(p);
+
+    if (it == pimpl_->properties_.end())
+    {
+      return NULL;
+    }
+    else
+    {
+      return it->second.c_str();
+    }
+  }
+
+
+  void OrthancPlugins::SetCommandLineArguments(int argc, char* argv[])
+  {
+    if (argc < 1 || argv == NULL)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    pimpl_->argc_ = argc;
+    pimpl_->argv_ = argv;
   }
 }

@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ *
+ * Copyright (C) 2012-2015 Sebastien Jodogne <s.jodogne@gmail.com>,
+ * Medical Physics Department, CHU of Liege, Belgium
  *
  * Copyright (c) 2012 The Chromium Authors. All rights reserved.
  *
@@ -34,16 +35,25 @@
  **/
 
 
+#if ORTHANC_SQLITE_STANDALONE != 1
 #include "../PrecompiledHeaders.h"
+#endif
+
 #include "Statement.h"
-
 #include "Connection.h"
-#include "../Toolbox.h"
 
-#include <boost/lexical_cast.hpp>
 #include <sqlite3.h>
 #include <string.h>
+#include <stdio.h>
+#include <algorithm>
+
+#if ORTHANC_SQLITE_STANDALONE != 1
 #include <glog/logging.h>
+#endif
+
+#if defined(_MSC_VER)
+#define snprintf _snprintf
+#endif
 
 namespace Orthanc
 {
@@ -54,7 +64,9 @@ namespace Orthanc
       bool succeeded = (err == SQLITE_OK || err == SQLITE_ROW || err == SQLITE_DONE);
       if (!succeeded)
       {
-        throw OrthancException("SQLite error code " + boost::lexical_cast<std::string>(err));
+        char buffer[128];
+        snprintf(buffer, sizeof(buffer) - 1, "SQLite error code %d", err);
+        throw OrthancSQLiteException(buffer);
       }
 
       return err;
@@ -65,11 +77,13 @@ namespace Orthanc
       if (err == SQLITE_RANGE)
       {
         // Binding to a non-existent variable is evidence of a serious error.
-        throw OrthancException("Bind value out of range");
+        throw OrthancSQLiteException("Bind value out of range");
       }
       else if (err != SQLITE_OK)
       {
-        throw OrthancException("SQLite error code " + boost::lexical_cast<std::string>(err));
+        char buffer[128];
+        snprintf(buffer, sizeof(buffer) - 1, "SQLite error code %d", err);
+        throw OrthancSQLiteException(buffer);
       }
     }
 
@@ -108,13 +122,19 @@ namespace Orthanc
 
     bool Statement::Run()
     {
+#if ORTHANC_SQLITE_STANDALONE != 1
       VLOG(1) << "SQLite::Statement::Run " << sqlite3_sql(GetStatement());
+#endif
+
       return CheckError(sqlite3_step(GetStatement())) == SQLITE_DONE;
     }
 
     bool Statement::Step()
     {
+#if ORTHANC_SQLITE_STANDALONE != 1
       VLOG(1) << "SQLite::Statement::Step " << sqlite3_sql(GetStatement());
+#endif
+
       return CheckError(sqlite3_step(GetStatement())) == SQLITE_ROW;
     }
 
@@ -206,7 +226,7 @@ namespace Orthanc
     ColumnType Statement::GetDeclaredColumnType(int col) const 
     {
       std::string column_type(sqlite3_column_decltype(GetStatement(), col));
-      Toolbox::ToLowerCase(column_type);
+      std::transform(column_type.begin(), column_type.end(), column_type.begin(), tolower);
 
       if (column_type == "integer")
         return COLUMN_TYPE_INTEGER;

@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ *
+ * Copyright (C) 2012-2015 Sebastien Jodogne <s.jodogne@gmail.com>,
+ * Medical Physics Department, CHU of Liege, Belgium
  *
  * Copyright (c) 2012 The Chromium Authors. All rights reserved.
  *
@@ -36,13 +37,13 @@
 
 #pragma once
 
-#include "../OrthancException.h"
+#include "NonCopyable.h"
+#include "OrthancSQLiteException.h"
 #include "StatementId.h"
 #include "StatementReference.h"
 
 #include <vector>
 #include <stdint.h>
-#include <boost/noncopyable.hpp>
 
 #if ORTHANC_BUILD_UNIT_TESTS == 1
 #include <gtest/gtest_prod.h>
@@ -68,7 +69,7 @@ namespace Orthanc
       COLUMN_TYPE_NULL = 5
     };
 
-    class Statement : public boost::noncopyable
+    class Statement : public NonCopyable
     {
       friend class Connection;
 

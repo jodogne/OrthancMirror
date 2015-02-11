@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -60,7 +60,7 @@ namespace Orthanc
       }
 
     public:
-      SmartContainer() : content_(NULL), toDelete_(false)
+      SmartContainer() : content_(NULL), toDelete_(false), isReadOnly_(true)
       {
       }
 
@@ -144,6 +144,7 @@ namespace Orthanc
     SmartContainer<Json::Value>  json_;
 
     std::string remoteAet_;
+    std::string calledAet_;
     ServerIndex::MetadataMap metadata_;
 
     void ComputeMissingInformation();
@@ -169,7 +170,7 @@ namespace Orthanc
       json_.SetConstReference(json);
     }
 
-    const std::string GetRemoteAet() const
+    const std::string& GetRemoteAet() const
     {
       return remoteAet_;
     }
@@ -177,6 +178,16 @@ namespace Orthanc
     void SetRemoteAet(const std::string& aet)
     {
       remoteAet_ = aet;
+    }
+
+    const std::string& GetCalledAet() const
+    {
+      return calledAet_;
+    }
+
+    void SetCalledAet(const std::string& aet)
+    {
+      calledAet_ = aet;
     }
 
     void AddMetadata(ResourceType level,

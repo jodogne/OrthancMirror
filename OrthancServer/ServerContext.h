@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -49,6 +49,7 @@
 namespace Orthanc
 {
   class OrthancPlugins;
+  class PluginsManager;
 
   /**
    * This class is responsible for maintaining the storage area on the
@@ -76,7 +77,9 @@ namespace Orthanc
 
     void ApplyLuaOnStoredInstance(const std::string& instanceId,
                                   const Json::Value& simplifiedDicom,
-                                  const Json::Value& metadata);
+                                  const Json::Value& metadata,
+                                  const std::string& remoteAet,
+                                  const std::string& calledAet);
 
     ServerIndex index_;
     CompressedFileStorageAccessor accessor_;
@@ -91,6 +94,7 @@ namespace Orthanc
     boost::mutex luaMutex_;
     LuaContext lua_;
     OrthancPlugins* plugins_;  // TODO Turn it into a listener pattern (idem for Lua callbacks)
+    const PluginsManager* pluginsManager_;
 
   public:
     class DicomCacheLocker : public boost::noncopyable
@@ -135,7 +139,7 @@ namespace Orthanc
     };
 
 
-    ServerContext(const boost::filesystem::path& indexPath);
+    ServerContext(IDatabaseWrapper& database);
 
     void SetStorageArea(IStorageArea& storage)
     {
@@ -195,9 +199,17 @@ namespace Orthanc
       return scheduler_;
     }
 
-    void SetOrthancPlugins(OrthancPlugins& plugins)
+    void SetOrthancPlugins(const PluginsManager& manager,
+                           OrthancPlugins& plugins)
     {
+      pluginsManager_ = &manager;
       plugins_ = &plugins;
+    }
+
+    void ResetOrthancPlugins()
+    {
+      pluginsManager_ = NULL;
+      plugins_ = NULL;
     }
 
     bool DeleteResource(Json::Value& target,
@@ -205,5 +217,11 @@ namespace Orthanc
                         ResourceType expectedType);
 
     void SignalChange(const ServerIndexChange& change);
+
+    bool HasPlugins() const;
+
+    const PluginsManager& GetPluginsManager() const;
+
+    const OrthancPlugins& GetOrthancPlugins() const;
   };
 }
