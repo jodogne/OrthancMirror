@@ -77,8 +77,10 @@ namespace Orthanc
     {
       Clear();
     }
-
+    
     DicomMap* Clone() const;
+
+    void Assign(const DicomMap& other);
 
     void Clear();
 
