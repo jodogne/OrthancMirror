@@ -89,14 +89,35 @@ TEST(DicomModification, Basic)
 
 TEST(DicomModification, Anonymization)
 {
-  const DicomTag privateTag(0x0045, 0x0010);
-  ASSERT_TRUE(FromDcmtkBridge::IsPrivateTag(privateTag));
+  ASSERT_EQ(DICOM_TAG_PATIENT_NAME, FromDcmtkBridge::ParseTag("PatientName"));
 
-  ParsedDicomFile o;
-  o.Replace(DICOM_TAG_PATIENT_NAME, "coucou");
-  o.Replace(privateTag, "private tag");
+  const DicomTag privateTag(0x0045, 0x0010);
+  const DicomTag privateTag2(FromDcmtkBridge::ParseTag("0031-1020"));
+  ASSERT_TRUE(FromDcmtkBridge::IsPrivateTag(privateTag));
+  ASSERT_TRUE(FromDcmtkBridge::IsPrivateTag(privateTag2));
+  ASSERT_EQ(0x0031, privateTag2.GetGroup());
+  ASSERT_EQ(0x1020, privateTag2.GetElement());
 
   std::string s;
+  ParsedDicomFile o;
+  o.Replace(DICOM_TAG_PATIENT_NAME, "coucou");
+  ASSERT_FALSE(o.GetTagValue(s, privateTag));
+  o.Insert(privateTag, "private tag");
+  ASSERT_TRUE(o.GetTagValue(s, privateTag));
+  ASSERT_STREQ("private tag", s.c_str());
+
+  ASSERT_FALSE(o.GetTagValue(s, privateTag2));
+  ASSERT_THROW(o.Replace(privateTag2, "hello", DicomReplaceMode_ThrowIfAbsent), OrthancException);
+  ASSERT_FALSE(o.GetTagValue(s, privateTag2));
+  o.Replace(privateTag2, "hello", DicomReplaceMode_IgnoreIfAbsent);
+  ASSERT_FALSE(o.GetTagValue(s, privateTag2));
+  o.Replace(privateTag2, "hello", DicomReplaceMode_InsertIfAbsent);
+  ASSERT_TRUE(o.GetTagValue(s, privateTag2));
+  ASSERT_STREQ("hello", s.c_str());
+  o.Replace(privateTag2, "hello world");
+  ASSERT_TRUE(o.GetTagValue(s, privateTag2));
+  ASSERT_STREQ("hello world", s.c_str());
+
   ASSERT_TRUE(o.GetTagValue(s, DICOM_TAG_PATIENT_NAME));
   ASSERT_FALSE(Toolbox::IsUuid(s));
 
@@ -109,7 +130,7 @@ TEST(DicomModification, Anonymization)
   ASSERT_TRUE(o.GetTagValue(s, DICOM_TAG_PATIENT_NAME));
   ASSERT_TRUE(Toolbox::IsUuid(s));
   ASSERT_TRUE(o.GetTagValue(s, privateTag));
-  ASSERT_EQ("private tag", s);
+  ASSERT_STREQ("private tag", s.c_str());
   
   m.SetupAnonymization();
   m.Apply(o);
