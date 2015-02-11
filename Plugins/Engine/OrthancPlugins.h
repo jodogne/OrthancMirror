@@ -36,7 +36,7 @@
 #include "../../Core/HttpServer/HttpHandler.h"
 #include "../../OrthancServer/ServerContext.h"
 #include "../../OrthancServer/OrthancRestApi/OrthancRestApi.h"
-#include "../Include/OrthancCPlugin.h"
+#include "OrthancPluginDatabase.h"
 
 #include <list>
 #include <boost/shared_ptr.hpp>
@@ -87,9 +87,11 @@ namespace Orthanc
     void SetHttpHeader(const void* parameters);
 
   public:
-    OrthancPlugins(ServerContext& context);
+    OrthancPlugins();
 
     virtual ~OrthancPlugins();
+
+    void SetServerContext(ServerContext& context);
 
     virtual bool Handle(HttpOutput& output,
                         HttpMethod method,
@@ -110,7 +112,11 @@ namespace Orthanc
 
     bool HasStorageArea() const;
 
-    IStorageArea* GetStorageArea();
+    IStorageArea* GetStorageArea();  // To be freed after use
+
+    bool HasDatabase() const;
+
+    IDatabaseWrapper& GetDatabase();
 
     void Stop();
 

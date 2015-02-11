@@ -191,6 +191,17 @@ namespace Orthanc
   }
 
 
+  void DicomMap::Assign(const DicomMap& other)
+  {
+    Clear();
+
+    for (Map::const_iterator it = other.map_.begin(); it != other.map_.end(); ++it)
+    {
+      map_.insert(std::make_pair(it->first, it->second->Clone()));
+    }
+  }
+
+
   const DicomValue& DicomMap::GetValue(const DicomTag& tag) const
   {
     const DicomValue* value = TestAndGetValue(tag);
