@@ -15,6 +15,7 @@ Minor
 * More flexible "/modify" and "/anonymize" for single instance
 * Access to called AET and remote AET from Lua scripts ("OnStoredInstance")
 * Option "DicomAssociationCloseDelay" to set delay before closing DICOM association
+* ZIP archives now display the accession number of the studies
 
 Plugins
 -------
