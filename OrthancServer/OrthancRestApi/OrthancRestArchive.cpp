@@ -56,27 +56,34 @@ namespace Orthanc
                                                ResourceType resourceType)
   {
     std::string s;
+    const Json::Value& tags = resource["MainDicomTags"];
 
     switch (resourceType)
     {
       case ResourceType_Patient:
       {
-        std::string p = resource["MainDicomTags"]["PatientID"].asString();
-        std::string n = resource["MainDicomTags"]["PatientName"].asString();
+        std::string p = tags["PatientID"].asString();
+        std::string n = tags["PatientName"].asString();
         s = p + " " + n;
         break;
       }
 
       case ResourceType_Study:
       {
-        s = resource["MainDicomTags"]["StudyDescription"].asString();
+        std::string p;
+        if (tags.isMember("AccessionNumber"))
+        {
+          p = tags["AccessionNumber"].asString() + " ";
+        }
+
+        s = p + tags["StudyDescription"].asString();
         break;
       }
         
       case ResourceType_Series:
       {
-        std::string d = resource["MainDicomTags"]["SeriesDescription"].asString();
-        std::string m = resource["MainDicomTags"]["Modality"].asString();
+        std::string d = tags["SeriesDescription"].asString();
+        std::string m = tags["Modality"].asString();
         s = m + " " + d;
         break;
       }
