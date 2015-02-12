@@ -1,7 +1,7 @@
 #include <winver.h>
 
 VS_VERSION_INFO VERSIONINFO
-   FILEVERSION 0,8,0,5
+   FILEVERSION 0,8,0,6
    PRODUCTVERSION 0,8,0,0
    FILEOS VOS_NT_WINDOWS32
    FILETYPE VFT_DLL
@@ -10,13 +10,13 @@ VS_VERSION_INFO VERSIONINFO
       BEGIN
          BLOCK "040904E4"
          BEGIN
-            VALUE "Comments", "Release 0.8.5"
+            VALUE "Comments", "Release 0.8.6"
             VALUE "CompanyName", "University Hospital of Liege"
             VALUE "FileDescription", "Native client to the REST API of Orthanc"
-            VALUE "FileVersion", "0.8.0.5"
+            VALUE "FileVersion", "0.8.0.6"
             VALUE "InternalName", "OrthancClient"
             VALUE "LegalCopyright", "(c) 2012-2015, Sebastien Jodogne, University Hospital of Liege"
-            VALUE "LegalTrademarks", "Licensing information is available on http://www.orthanc-server.com/"
+            VALUE "LegalTrademarks", "Licensing information is available at http://www.orthanc-server.com/"
             VALUE "OriginalFilename", "OrthancClient_Windows64.dll"
             VALUE "ProductName", "OrthancClient"
             VALUE "ProductVersion", "0.8"
