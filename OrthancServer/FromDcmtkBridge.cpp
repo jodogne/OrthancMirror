@@ -696,6 +696,7 @@ namespace Orthanc
     // Create the meta-header information
     DcmFileFormat ff(&dataSet);
     ff.validateMetaInfo(xfer);
+    ff.removeInvalidGroups();
 
     // Create a memory buffer with the proper size
     uint32_t s = ff.calcElementLength(xfer, encodingType);
