@@ -132,9 +132,11 @@
  ** Inclusion of standard libraries.
  ********************************************************************/
 
-// For Microsoft Visual Studio, a compatibility "stdint.h" can be
-// downloaded at the following URL:
-// https://orthanc.googlecode.com/hg/Resources/ThirdParty/VisualStudio/stdint.h
+/**
+ * For Microsoft Visual Studio, a compatibility "stdint.h" can be
+ * downloaded at the following URL:
+ * https://orthanc.googlecode.com/hg/Resources/ThirdParty/VisualStudio/stdint.h
+ **/
 #include <stdint.h>
 
 #include <stdlib.h>
