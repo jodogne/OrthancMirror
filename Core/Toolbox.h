@@ -37,7 +37,10 @@
 #include <stdint.h>
 #include <vector>
 #include <string>
+
+#if ORTHANC_PUGIXML_ENABLED == 1
 #include <json/json.h>
+#endif
 
 namespace Orthanc
 {

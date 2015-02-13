@@ -27,7 +27,7 @@ else(GDCM_FOUND)
 endif(GDCM_FOUND)
 
 include_directories(
-  ${ORTHANC_ROOT}/Plugins/OrthancCPlugin/
+  ${ORTHANC_ROOT}/Plugins/Include/
   ${ORTHANC_ROOT}/OrthancCppClient/SharedLibrary/Laaw
   )
 
