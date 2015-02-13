@@ -41,9 +41,12 @@ SET(USE_PUGIXML ON CACHE BOOL "Use the Pugixml parser (turn off only for debug)"
 
 # Distribution-specific settings
 SET(USE_GTEST_DEBIAN_SOURCE_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
-mark_as_advanced(USE_GTEST_DEBIAN_SOURCE_PACKAGE)
 SET(SYSTEM_MONGOOSE_USE_CALLBACKS ON CACHE BOOL "The system version of Mongoose uses callbacks (version >= 3.7)")
+SET(USE_BOOST_ICONV ON CACHE BOOL "Use iconv instead of wconv (Windows only)")
+
+mark_as_advanced(USE_GTEST_DEBIAN_SOURCE_PACKAGE)
 mark_as_advanced(SYSTEM_MONGOOSE_USE_CALLBACKS)
+mark_as_advanced(USE_BOOST_ICONV)
 
 # Path to the root folder of the Orthanc distribution
 set(ORTHANC_ROOT ${CMAKE_SOURCE_DIR})
