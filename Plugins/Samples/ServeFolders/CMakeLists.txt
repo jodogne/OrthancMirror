@@ -23,7 +23,7 @@ if (CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 include_directories(${CMAKE_SOURCE_DIR}/../../Include/)
-add_library(ServerFolders SHARED 
+add_library(ServeFolders SHARED 
   Plugin.cpp
   ${THIRD_PARTY_SOURCES}
   )
@@ -31,5 +31,5 @@ add_library(ServerFolders SHARED
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   # Linking with "pthread" is necessary, otherwise the software crashes
   # http://sourceware.org/bugzilla/show_bug.cgi?id=10652#c17
-  target_link_libraries(ServerFolders dl rt)
+  target_link_libraries(ServeFolders dl rt)
 endif()
