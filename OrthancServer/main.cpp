@@ -376,7 +376,7 @@ static void LoadPlugins(PluginsManager& pluginsManager)
          it = plugins.begin(); it != plugins.end(); ++it)
   {
     std::string path = Configuration::InterpretStringParameterAsPath(*it);
-    LOG(WARNING) << "Registering a plugin from: " << path;
+    LOG(WARNING) << "Loading plugin(s) from: " << path;
     pluginsManager.RegisterPlugin(path);
   }  
 }
