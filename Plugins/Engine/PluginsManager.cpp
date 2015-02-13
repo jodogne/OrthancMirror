@@ -292,7 +292,10 @@ namespace Orthanc
       }
       else
       {
-        if (boost::filesystem::extension(it->path()) == PLUGIN_EXTENSION)
+        std::string extension = boost::filesystem::extension(it->path());
+        Toolbox::ToLowerCase(extension);
+
+        if (extension == PLUGIN_EXTENSION)
         {
           LOG(INFO) << "Found a shared library: " << it->path();
 

@@ -82,8 +82,11 @@ if (BOOST_STATIC)
     # Windows XP seems not to support properly several codepages
     # (notably "Latin3", "Hebrew", and "Arabic").
 
-    # add_definitions(-DBOOST_LOCALE_WITH_WCONV=1)
-    include(${ORTHANC_ROOT}/Resources/CMake/LibIconvConfiguration.cmake)
+    if (USE_BOOST_ICONV)
+      include(${ORTHANC_ROOT}/Resources/CMake/LibIconvConfiguration.cmake)
+    else()
+      add_definitions(-DBOOST_LOCALE_WITH_WCONV=1)
+    endif()
 
   else()
     message(FATAL_ERROR "Support your platform here")

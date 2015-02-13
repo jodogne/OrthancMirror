@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 2.8)
 
 project(ServeFolders)
 
+set(ALLOW_DOWNLOADS ON)
+set(USE_SYSTEM_JSONCPP OFF)
+include(../../../Resources/CMake/DownloadPackage.cmake)
+include(../../../Resources/CMake/JsonCppConfiguration.cmake)
+
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   link_libraries(uuid)
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
@@ -18,10 +23,13 @@ if (CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 include_directories(${CMAKE_SOURCE_DIR}/../../Include/)
-add_library(PluginTest SHARED Plugin.cpp)
+add_library(ServerFolders SHARED 
+  Plugin.cpp
+  ${THIRD_PARTY_SOURCES}
+  )
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   # Linking with "pthread" is necessary, otherwise the software crashes
   # http://sourceware.org/bugzilla/show_bug.cgi?id=10652#c17
-  target_link_libraries(PluginTest pthread dl)
+  target_link_libraries(ServerFolders dl rt)
 endif()
