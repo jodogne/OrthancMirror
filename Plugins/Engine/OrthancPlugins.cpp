@@ -1201,6 +1201,12 @@ namespace Orthanc
     pimpl_->restApi_ = &restApi;
   }
 
+
+  void  OrthancPlugins::ResetOrthancRestApi()
+  {
+    pimpl_->restApi_ = NULL;
+  }
+
   
   bool OrthancPlugins::HasStorageArea() const
   {

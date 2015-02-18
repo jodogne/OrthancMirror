@@ -110,6 +110,8 @@ namespace Orthanc
 
     void SetOrthancRestApi(OrthancRestApi& restApi);
 
+    void ResetOrthancRestApi();
+
     bool HasStorageArea() const;
 
     IStorageArea* GetStorageArea();  // To be freed after use
