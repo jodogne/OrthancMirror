@@ -481,7 +481,6 @@ static bool StartOrthanc(int argc, char *argv[])
 
 #if ENABLE_PLUGINS == 1
     orthancPlugins.SetServerContext(*context);
-    orthancPlugins.SetOrthancRestApi(restApi);
     httpServer.RegisterHandler(orthancPlugins);
     context->SetOrthancPlugins(pluginsManager, orthancPlugins);
 #endif
@@ -509,6 +508,10 @@ static bool StartOrthanc(int argc, char *argv[])
     // GO !!! Start the requested servers
     if (Configuration::GetGlobalBoolParameter("HttpServerEnabled", true))
     {
+#if ENABLE_PLUGINS == 1
+      orthancPlugins.SetOrthancRestApi(restApi);
+#endif
+
       httpServer.Start();
       LOG(WARNING) << "HTTP server listening on port: " << httpServer.GetPortNumber();
     }
@@ -542,6 +545,7 @@ static bool StartOrthanc(int argc, char *argv[])
 #if ENABLE_PLUGINS == 1
     context->ResetOrthancPlugins();
     orthancPlugins.Stop();
+    orthancPlugins.ResetOrthancRestApi();
     LOG(WARNING) << "    Plugins have stopped";
 #endif
 
