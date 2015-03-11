@@ -304,11 +304,11 @@ namespace Orthanc
 
 
   bool OrthancPlugins::Handle(HttpOutput& output,
-                                  HttpMethod method,
-                                  const UriComponents& uri,
-                                  const Arguments& headers,
-                                  const Arguments& getArguments,
-                                  const std::string& postData)
+                              HttpMethod method,
+                              const UriComponents& uri,
+                              const Arguments& headers,
+                              const Arguments& getArguments,
+                              const std::string& postData)
   {
     std::string flatUri = Toolbox::FlattenUri(uri);
     OrthancPluginRestCallback callback = NULL;
@@ -321,11 +321,15 @@ namespace Orthanc
     for (PImpl::RestCallbacks::const_iterator it = pimpl_->restCallbacks_.begin(); 
          it != pimpl_->restCallbacks_.end() && !found; ++it)
     {
+      printf(">> [%s]\n", flatUri.c_str());
+      std::cout << "   [" << *(it->first) << "]" << std::endl;
+
       // Check whether the regular expression associated to this
       // callback matches the URI
       boost::cmatch what;
       if (boost::regex_match(flatUri.c_str(), what, *(it->first)))
       {
+        printf("ICI\n");
         callback = it->second;
 
         // Extract the value of the free parameters of the regular expression
