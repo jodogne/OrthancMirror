@@ -148,7 +148,7 @@ namespace Orthanc
       virtual void SignalRemainingAncestor(ResourceType parentType,
                                            const std::string& publicId)
       {
-        LOG(INFO) << "Remaining ancestor \"" << publicId << "\" (" << parentType << ")";
+        VLOG(1) << "Remaining ancestor \"" << publicId << "\" (" << parentType << ")";
 
         if (hasRemainingLevel_)
         {
@@ -175,9 +175,9 @@ namespace Orthanc
 
       virtual void SignalChange(const ServerIndexChange& change)
       {
-        LOG(INFO) << "Change related to resource " << change.GetPublicId() << " of type " 
-                  << EnumerationToString(change.GetResourceType()) << ": " 
-                  << EnumerationToString(change.GetChangeType());
+        VLOG(1) << "Change related to resource " << change.GetPublicId() << " of type " 
+                << EnumerationToString(change.GetResourceType()) << ": " 
+                << EnumerationToString(change.GetChangeType());
 
         if (insideTransaction_)
         {
@@ -1316,7 +1316,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_FullStorage);
       }
       
-      LOG(INFO) << "Recycling one patient";
+      VLOG(1) << "Recycling one patient";
       db_.DeleteResource(patientToRecycle);
 
       if (!IsRecyclingNeeded(instanceSize))

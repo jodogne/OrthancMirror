@@ -197,7 +197,8 @@ namespace Orthanc
 
   static void AddAnswer(DicomFindAnswers& answers,
                         const Json::Value& resource,
-                        const DicomArray& query)
+                        const DicomArray& query,
+                        bool isFirst)
   {
     DicomMap result;
 
@@ -220,7 +221,17 @@ namespace Orthanc
       }
     }
 
-    answers.Add(result);
+    if (result.GetSize() == 0)
+    {
+      if (isFirst)
+      {
+        LOG(WARNING) << "The C-FIND request does not return any DICOM tag";
+      }
+    }
+    else
+    {
+      answers.Add(result);
+    }
   }
 
 
@@ -563,7 +574,6 @@ namespace Orthanc
     std::list<std::string>  resources;
     candidates.Flatten(resources);
 
-    LOG(INFO) << "Number of candidate resources after exact filtering: " << resources.size();
 
     /**
      * Apply filtering on modalities for studies, if asked (this is an
@@ -581,11 +591,14 @@ namespace Orthanc
       }
     }
 
-
     /**
      * Loop over all the resources for this query level.
      **/
 
+    LOG(INFO) << "Number of candidate resources after exact filtering on the identifiers only: " << resources.size();
+
+    bool isFirst = true;
+    
     for (std::list<std::string>::const_iterator 
            resource = resources.begin(); resource != resources.end(); ++resource)
     {
@@ -596,7 +609,7 @@ namespace Orthanc
         {
           Json::Value info;
           context_.ReadJson(info, instance);
-        
+
           if (Matches(info, query))
           {
             if (HasReachedLimit(answers, level))
@@ -605,7 +618,8 @@ namespace Orthanc
               return false;
             }
 
-            AddAnswer(answers, info, query);
+            AddAnswer(answers, info, query, isFirst);
+            isFirst = false;
           }
         }
       }
@@ -614,6 +628,8 @@ namespace Orthanc
         // This resource has probably been deleted during the find request
       }
     }
+
+    LOG(INFO) << "Number of candidate resources after filtering on all tags: " << answers.GetSize();
 
     return true;  // All the matching resources have been returned
   }
