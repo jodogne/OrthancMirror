@@ -1,6 +1,8 @@
 Pending changes in the mainline
 ===============================
 
+* Prevent freeze on C-FIND if no DICOM tag is to be returned
+
 
 Version 0.8.6 (2015/02/12)
 ==========================

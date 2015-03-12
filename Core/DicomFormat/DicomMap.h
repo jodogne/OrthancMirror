@@ -77,6 +77,11 @@ namespace Orthanc
     {
       Clear();
     }
+
+    size_t GetSize() const
+    {
+      return map_.size();
+    }
     
     DicomMap* Clone() const;
 
