@@ -282,8 +282,6 @@ TEST(FromDcmtkBridge, Encodings3)
 
       std::string tag;
       ASSERT_TRUE(g.GetTagValue(tag, DICOM_TAG_PATIENT_NAME));
-
-      std::string expected();
       ASSERT_EQ(std::string(testEncodingsExpected[i]), tag);
     }
   }
