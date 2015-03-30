@@ -3,6 +3,7 @@ if (DCMTK_DICTIONARY_DIR STREQUAL "")
   find_path(DCMTK_DICTIONARY_DIR_AUTO dicom.dic
     /usr/share/dcmtk
     /usr/share/libdcmtk2
+    /usr/local/share/dcmtk
     )
 
   message("Autodetected path to the DICOM dictionaries: ${DCMTK_DICTIONARY_DIR_AUTO}")

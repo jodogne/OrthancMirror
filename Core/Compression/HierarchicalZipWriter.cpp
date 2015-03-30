@@ -53,7 +53,7 @@ namespace Orthanc
       if (c == '^')
         c = ' ';
 
-      if (c < 128 && 
+      if (c <= 127 && 
           c >= 0)
       {
         if (isspace(c)) 

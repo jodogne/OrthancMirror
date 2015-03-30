@@ -175,7 +175,7 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(mutex_);
 
-    while (!remainingCommands_ == 0)
+    while (remainingCommands_ != 0)
     {
       processedCommand_.wait(lock);
     }
