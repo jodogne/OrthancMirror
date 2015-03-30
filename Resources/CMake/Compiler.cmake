@@ -61,6 +61,13 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
   set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
   link_libraries(uuid pthread rt dl)
 
+  find_path(LIBUUID_INCLUDE_DIR uuid.h
+    /usr/include
+    /usr/include/uuid
+    )
+  message("libuuid include dir: ${LIBUUID_INCLUDE_DIR}")
+  include_directories(${LIBUUID_INCLUDE_DIR})
+
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
   add_definitions(
     -DWINVER=0x0501
@@ -85,7 +92,7 @@ endif()
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
   CHECK_INCLUDE_FILES(rpc.h HAVE_UUID_H)
 else()
-  CHECK_INCLUDE_FILES(uuid/uuid.h HAVE_UUID_H)
+  CHECK_INCLUDE_FILES(uuid.h HAVE_UUID_H)
 endif()
 
 if (NOT HAVE_UUID_H)
