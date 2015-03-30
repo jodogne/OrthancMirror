@@ -28,7 +28,10 @@ else()
     message(FATAL_ERROR "Please install the libsqlite3-dev package")
   endif()
 
-  find_path(SQLITE_INCLUDE_DIR sqlite3.h)
+  find_path(SQLITE_INCLUDE_DIR sqlite3.h
+    /usr/include
+    /usr/local/include
+    )
   message("SQLite include dir: ${SQLITE_INCLUDE_DIR}")
 
   # Autodetection of the version of SQLite
