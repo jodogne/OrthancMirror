@@ -40,7 +40,7 @@ extern "C"
 #ifdef WIN32
 #include <rpc.h>
 #else
-#include <uuid.h>
+#include <uuid/uuid.h>
 #endif
 }
 
