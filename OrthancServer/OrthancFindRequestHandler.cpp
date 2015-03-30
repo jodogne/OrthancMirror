@@ -204,8 +204,9 @@ namespace Orthanc
 
     for (size_t i = 0; i < query.GetSize(); i++)
     {
-      if (query.GetElement(i).GetTag() != DICOM_TAG_QUERY_RETRIEVE_LEVEL &&
-          query.GetElement(i).GetTag() != DICOM_TAG_SPECIFIC_CHARACTER_SET)
+      // Fix issue 30 (QR response missing "Query/Retrieve Level" (008,0052))
+      /*if (query.GetElement(i).GetTag() != DICOM_TAG_QUERY_RETRIEVE_LEVEL &&
+        query.GetElement(i).GetTag() != DICOM_TAG_SPECIFIC_CHARACTER_SET)*/
       {
         std::string tag = query.GetElement(i).GetTag().Format();
         std::string value;
