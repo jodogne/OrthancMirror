@@ -219,6 +219,17 @@ http://pkgs.fedoraproject.org/cgit/orthanc.git/tree/?h=f18
 
 
 
+SUPPORTED - FreeBSD 10.1
+------------------------
+
+# pkg install jsoncpp pugixml lua51 curl googletest dcmtk cmake \
+              e2fsprogs-libuuid glog boost-libs sqlite3 python libiconv
+
+# cmake -DALLOW_DOWNLOADS=ON \
+        -DUSE_SYSTEM_MONGOOSE=OFF \
+        -DDCMTK_LIBRARIES="dcmdsig;charls;dcmjpls" \
+	~/Orthanc
+
 
 
 Other Linux distributions?

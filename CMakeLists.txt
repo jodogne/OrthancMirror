@@ -345,7 +345,7 @@ add_executable(Orthanc
   OrthancServer/main.cpp
   )
 
-target_link_libraries(Orthanc ServerLibrary CoreLibrary ${STATIC_LUA} ${STATIC_GOOGLE_LOG})
+target_link_libraries(Orthanc ServerLibrary CoreLibrary ${STATIC_LUA} ${STATIC_GOOGLE_LOG} ${DCMTK_LIBRARIES})
 
 if (${OPENSSL_SOURCES_LENGTH} GREATER 0)
   target_link_libraries(Orthanc OpenSSL)
@@ -374,7 +374,7 @@ add_executable(UnitTests
   ${GTEST_SOURCES}
   ${ORTHANC_UNIT_TESTS_SOURCES}
   )
-target_link_libraries(UnitTests ServerLibrary CoreLibrary ${STATIC_LUA} ${STATIC_GOOGLE_LOG})
+target_link_libraries(UnitTests ServerLibrary CoreLibrary ${STATIC_LUA} ${STATIC_GOOGLE_LOG} ${DCMTK_LIBRARIES})
 
 if (${OPENSSL_SOURCES_LENGTH} GREATER 0)
   target_link_libraries(UnitTests OpenSSL)
@@ -431,7 +431,8 @@ if (BUILD_CLIENT_LIBRARY)
     )
 
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
-      ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
+      ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
     set_target_properties(OrthancClient
       PROPERTIES LINK_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined -Wl,--as-needed -Wl,--version-script=${ORTHANC_ROOT}/OrthancCppClient/SharedLibrary/Laaw/VersionScript.map"
       )

@@ -41,25 +41,24 @@ endif()
 
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
-    ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
-  if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
-    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --lsb-target-version=${LSB_TARGET_VERSION} -I${LSB_PATH}/include")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --lsb-target-version=${LSB_TARGET_VERSION} -nostdinc++ -I${LSB_PATH}/include -I${LSB_PATH}/include/c++ -I${LSB_PATH}/include/c++/backward -fpermissive")
-    SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} --lsb-target-version=${LSB_TARGET_VERSION} -L${LSB_LIBPATH}")
-  endif()
-
-  add_definitions(
-    -D_LARGEFILE64_SOURCE=1 
-    -D_FILE_OFFSET_BITS=64
-    )
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--as-needed")
+    ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD" OR
+    ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
   set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,--no-undefined")
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined")
 
   # Remove the "-rdynamic" option
   # http://www.mail-archive.com/cmake@cmake.org/msg08837.html
   set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
-  link_libraries(uuid pthread rt dl)
+  link_libraries(uuid pthread rt)
+
+  if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--as-needed")
+    add_definitions(
+      -D_LARGEFILE64_SOURCE=1 
+      -D_FILE_OFFSET_BITS=64
+      )
+    link_libraries(dl)
+  endif()
 
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
   add_definitions(
@@ -82,6 +81,22 @@ elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
 endif()
 
 
+if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --lsb-target-version=${LSB_TARGET_VERSION} -I${LSB_PATH}/include")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --lsb-target-version=${LSB_TARGET_VERSION} -nostdinc++ -I${LSB_PATH}/include -I${LSB_PATH}/include/c++ -I${LSB_PATH}/include/c++/backward -fpermissive")
+  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} --lsb-target-version=${LSB_TARGET_VERSION} -L${LSB_LIBPATH}")
+endif()
+
+
+if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
+  # In FreeBSD, the "/usr/local/" folder contains the ports and need to be imported
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I/usr/local/include")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -I/usr/local/include -I/usr/local/include/jsoncpp")
+  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/local/lib")
+  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -L/usr/local/lib")
+endif()
+
+
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
   CHECK_INCLUDE_FILES(rpc.h HAVE_UUID_H)
 else()
@@ -91,6 +106,7 @@ endif()
 if (NOT HAVE_UUID_H)
   message(FATAL_ERROR "Please install the uuid-dev package")
 endif()
+
 
 if (${STATIC_BUILD})
   add_definitions(-DORTHANC_STATIC=1)

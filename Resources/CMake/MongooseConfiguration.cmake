@@ -24,7 +24,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_MONGOOSE)
 
   # Patch mongoose
   execute_process(
-    COMMAND patch mongoose.c ${MONGOOSE_PATCH}
+    COMMAND patch -N mongoose.c ${MONGOOSE_PATCH}
     WORKING_DIRECTORY ${MONGOOSE_SOURCES_DIR}
     )
 

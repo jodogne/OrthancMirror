@@ -45,6 +45,7 @@
 #include "../Core/Uuid.h"
 #include "../OrthancServer/OrthancInitialization.h"
 
+
 using namespace Orthanc;
 
 
@@ -668,19 +669,29 @@ TEST(Toolbox, Enumerations)
 
 #if defined(__linux)
 #include <endian.h>
+#elif defined(__FreeBSD__)
+#include <machine/endian.h>
 #endif
+
 
 TEST(Toolbox, Endianness)
 {
   // Parts of this test come from Adam Conrad
   // http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=728822#5
 
-#if defined(_WIN32)
+
+  /**
+   * Windows and OS X are assumed to always little-endian.
+   **/
+  
+#if defined(_WIN32) || defined(__APPLE__)
   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
 
-#elif defined(__APPLE__)
-  ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
 
+  /**
+   * Linux.
+   **/
+  
 #elif defined(__linux) || defined(__FreeBSD_kernel__)
 
 #if !defined(__BYTE_ORDER)
@@ -691,6 +702,18 @@ TEST(Toolbox, Endianness)
   ASSERT_EQ(Endianness_Big, Toolbox::DetectEndianness());
 #  else // __LITTLE_ENDIAN
   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
+#  endif
+
+  
+  /**
+   * FreeBSD.
+   **/
+  
+#elif defined(__FreeBSD__)
+#  if _BYTE_ORDER == _BIG_ENDIAN
+   ASSERT_EQ(Endianness_Big, Toolbox::DetectEndianness());
+#  else // _LITTLE_ENDIAN
+   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
 #  endif
 
 #else
