@@ -1365,7 +1365,7 @@ namespace OrthancPlugins
 
       try
       {
-        backend->SetProtectedPatient(id, isProtected);
+        backend->SetProtectedPatient(id, (isProtected != 0));
         return 0;
       }
       catch (std::runtime_error& e)
