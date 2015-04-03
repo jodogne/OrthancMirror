@@ -159,8 +159,10 @@ namespace Orthanc
     if (operation == "modify")
     {
       LOG(INFO) << "Lua script to modify instance " << parameters["Instance"].asString();
-      std::auto_ptr<ModifyInstanceCommand> command(new ModifyInstanceCommand(context));
-      OrthancRestApi::ParseModifyRequest(command->GetModification(), parameters);
+      DicomModification modification;
+      OrthancRestApi::ParseModifyRequest(modification, parameters);
+
+      std::auto_ptr<ModifyInstanceCommand> command(new ModifyInstanceCommand(context, modification));
       return command.release();
     }
 
