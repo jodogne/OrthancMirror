@@ -45,9 +45,29 @@ namespace Orthanc
   template <enum ResourceType resourceType>
   static void ListResources(RestApiGetCall& call)
   {
+    ServerIndex& index = OrthancRestApi::GetIndex(call);
+
     Json::Value result;
-    OrthancRestApi::GetIndex(call).GetAllUuids(result, resourceType);
-    call.GetOutput().AnswerJson(result);
+    index.GetAllUuids(result, resourceType);
+
+    if (call.HasArgument("expand"))
+    {
+      Json::Value expanded = Json::arrayValue;
+      for (Json::Value::ArrayIndex i = 0; i < result.size(); i++)
+      {
+        Json::Value item;
+        if (index.LookupResource(item, result[i].asString(), resourceType))
+        {
+          expanded.append(item);
+        }
+      }
+
+      call.GetOutput().AnswerJson(expanded);
+    }
+    else
+    {
+      call.GetOutput().AnswerJson(result);
+    }
   }
 
   template <enum ResourceType resourceType>
