@@ -1,6 +1,7 @@
 Pending changes in the mainline
 ===============================
 
+* Huge speed-up in Orthanc Explorer for large amount of images
 * "?expand" flag for URIs "/patients", "/studies" and "/series"
 * Support of FreeBSD
 * Prevent freeze on C-FIND if no DICOM tag is to be returned
