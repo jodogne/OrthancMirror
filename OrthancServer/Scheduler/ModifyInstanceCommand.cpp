@@ -36,6 +36,32 @@
 
 namespace Orthanc
 {
+  ModifyInstanceCommand::ModifyInstanceCommand(ServerContext& context,
+                                               const DicomModification& modification) :
+    context_(context),
+    modification_(modification)
+  {
+    modification_.SetAllowManualIdentifiers(true);
+
+    if (modification_.IsReplaced(DICOM_TAG_PATIENT_ID))
+    {
+      modification_.SetLevel(ResourceType_Patient);
+    }
+    else if (modification_.IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
+    {
+      modification_.SetLevel(ResourceType_Study);
+    }
+    else if (modification_.IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
+    {
+      modification_.SetLevel(ResourceType_Series);
+    }
+    else
+    {
+      modification_.SetLevel(ResourceType_Instance);
+    }
+  }
+
+
   bool ModifyInstanceCommand::Apply(ListOfStrings& outputs,
                                     const ListOfStrings& inputs)
   {

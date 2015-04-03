@@ -3,6 +3,7 @@ Pending changes in the mainline
 
 * Support of FreeBSD
 * Prevent freeze on C-FIND if no DICOM tag is to be returned
+* Allow replacing PatientID/StudyInstanceUID/SeriesInstanceUID from Lua scripts
 * Fix issue 30 (QR response missing "Query/Retrieve Level" (008,0052))
 
 

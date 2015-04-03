@@ -45,15 +45,8 @@ namespace Orthanc
     DicomModification modification_;
 
   public:
-    ModifyInstanceCommand(ServerContext& context) :
-      context_(context)
-    {
-    }
-
-    DicomModification& GetModification()
-    {
-      return modification_;
-    }
+    ModifyInstanceCommand(ServerContext& context,
+                          const DicomModification& modification);
 
     const DicomModification& GetModification() const
     {
