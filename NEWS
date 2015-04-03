@@ -1,6 +1,7 @@
 Pending changes in the mainline
 ===============================
 
+* "?expand" flag for URIs "/patients", "/studies" and "/series"
 * Support of FreeBSD
 * Prevent freeze on C-FIND if no DICOM tag is to be returned
 * Allow replacing PatientID/StudyInstanceUID/SeriesInstanceUID from Lua scripts
