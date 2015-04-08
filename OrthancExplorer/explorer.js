@@ -142,11 +142,10 @@ function SortOnDicomTag(arr, tag, isInteger, reverse)
 
 
 
-function GetSingleResource(type, uuid, callback)
+function GetResource(uri, callback)
 {
-  var resource = null;
   $.ajax({
-    url: '../' + type + '/' + uuid,
+    url: '..' + uri,
     dataType: 'json',
     async: false,
     cache: false,
@@ -308,12 +307,7 @@ $('[data-role="page"]').live('pagebeforeshow', function() {
 
 
 $('#find-patients').live('pagebeforeshow', function() {
-  $.ajax({
-    url: '/patients?expand',
-    dataType: 'json',
-    async: false,
-    cache: false,
-    success: function(patients) {
+  GetResource('/patients?expand', function(patients) {
       var target = $('#all-patients');
       $('li', target).remove();
     
@@ -325,8 +319,7 @@ $('#find-patients').live('pagebeforeshow', function() {
       }
 
       target.listview('refresh');
-    }
-  });        
+  });
 });
 
 
@@ -351,55 +344,49 @@ function SetupAnonymizedOrModifiedFrom(buttonSelector, resource, resourceType, f
 function RefreshPatient()
 {
   if ($.mobile.pageData) {
-    GetSingleResource('patients', $.mobile.pageData.uuid, function(patient) {
-      $.ajax({
-        url: '/patients/' + $.mobile.pageData.uuid + '/studies',
-        dataType: 'json',
-        async: false,
-        cache: false,
-        success: function(studies) {
-          SortOnDicomTag(studies, 'StudyDate', false, true);
+    GetResource('/patients/' + $.mobile.pageData.uuid, function(patient) {
+      GetResource('/patients/' + $.mobile.pageData.uuid + '/studies', function(studies) {
+        SortOnDicomTag(studies, 'StudyDate', false, true);
 
-          $('#patient-info li').remove();
-          $('#patient-info')
-            .append('<li data-role="list-divider">Patient</li>')
-            .append(FormatPatient(patient))
-            .listview('refresh');
+        $('#patient-info li').remove();
+        $('#patient-info')
+          .append('<li data-role="list-divider">Patient</li>')
+          .append(FormatPatient(patient))
+          .listview('refresh');
 
-          var target = $('#list-studies');
-          $('li', target).remove();
-          
-          for (var i = 0; i < studies.length; i++) {
-            if (i == 0 || studies[i].MainDicomTags.StudyDate != studies[i - 1].MainDicomTags.StudyDate)
-            {
-              target.append('<li data-role="list-divider">{0}</li>'.format
-                            (FormatDicomDate(studies[i].MainDicomTags.StudyDate)));
-            }
-
-            target.append(FormatStudy(studies[i], '#study?uuid=' + studies[i].ID));
+        var target = $('#list-studies');
+        $('li', target).remove();
+        
+        for (var i = 0; i < studies.length; i++) {
+          if (i == 0 || studies[i].MainDicomTags.StudyDate != studies[i - 1].MainDicomTags.StudyDate)
+          {
+            target.append('<li data-role="list-divider">{0}</li>'.format
+                          (FormatDicomDate(studies[i].MainDicomTags.StudyDate)));
           }
 
-          SetupAnonymizedOrModifiedFrom('#patient-anonymized-from', patient, 'patient', 'AnonymizedFrom');
-          SetupAnonymizedOrModifiedFrom('#patient-modified-from', patient, 'patient', 'ModifiedFrom');
-
-          target.listview('refresh');
-
-          // Check whether this patient is protected
-          $.ajax({
-            url: '../patients/' + $.mobile.pageData.uuid + '/protected',
-            type: 'GET',
-            dataType: 'text',
-            async: false,
-            cache: false,
-            success: function (s) {
-              var v = (s == '1') ? 'on' : 'off';
-              $('#protection').val(v).slider('refresh');
-            }
-          });
-
-          currentPage = 'patient';
-          currentUuid = $.mobile.pageData.uuid;
+          target.append(FormatStudy(studies[i], '#study?uuid=' + studies[i].ID));
         }
+
+        SetupAnonymizedOrModifiedFrom('#patient-anonymized-from', patient, 'patient', 'AnonymizedFrom');
+        SetupAnonymizedOrModifiedFrom('#patient-modified-from', patient, 'patient', 'ModifiedFrom');
+
+        target.listview('refresh');
+
+        // Check whether this patient is protected
+        $.ajax({
+          url: '../patients/' + $.mobile.pageData.uuid + '/protected',
+          type: 'GET',
+          dataType: 'text',
+          async: false,
+          cache: false,
+          success: function (s) {
+            var v = (s == '1') ? 'on' : 'off';
+            $('#protection').val(v).slider('refresh');
+          }
+        });
+
+        currentPage = 'patient';
+        currentUuid = $.mobile.pageData.uuid;
       });
     });
   }
@@ -409,43 +396,37 @@ function RefreshPatient()
 function RefreshStudy()
 {
   if ($.mobile.pageData) {
-    GetSingleResource('studies', $.mobile.pageData.uuid, function(study) {
-      GetSingleResource('patients', study.ParentPatient, function(patient) {
-        $.ajax({
-          url: '/studies/' + $.mobile.pageData.uuid + '/series',
-          dataType: 'json',
-          async: false,
-          cache: false,
-          success: function(series) {
-            SortOnDicomTag(series, 'SeriesDate', false, true);
+    GetResource('/studies/' + $.mobile.pageData.uuid, function(study) {
+      GetResource('/patients/' + study.ParentPatient, function(patient) {
+        GetResource('/studies/' + $.mobile.pageData.uuid + '/series', function(series) {
+          SortOnDicomTag(series, 'SeriesDate', false, true);
 
-            $('#study .patient-link').attr('href', '#patient?uuid=' + patient.ID);
-            $('#study-info li').remove();
-            $('#study-info')
-              .append('<li data-role="list-divider">Patient</li>')
-              .append(FormatPatient(patient, '#patient?uuid=' + patient.ID, true))
-              .append('<li data-role="list-divider">Study</li>')
-              .append(FormatStudy(study))
-              .listview('refresh');
+          $('#study .patient-link').attr('href', '#patient?uuid=' + patient.ID);
+          $('#study-info li').remove();
+          $('#study-info')
+            .append('<li data-role="list-divider">Patient</li>')
+            .append(FormatPatient(patient, '#patient?uuid=' + patient.ID, true))
+            .append('<li data-role="list-divider">Study</li>')
+            .append(FormatStudy(study))
+            .listview('refresh');
 
-            SetupAnonymizedOrModifiedFrom('#study-anonymized-from', study, 'study', 'AnonymizedFrom');
-            SetupAnonymizedOrModifiedFrom('#study-modified-from', study, 'study', 'ModifiedFrom');
+          SetupAnonymizedOrModifiedFrom('#study-anonymized-from', study, 'study', 'AnonymizedFrom');
+          SetupAnonymizedOrModifiedFrom('#study-modified-from', study, 'study', 'ModifiedFrom');
 
-            var target = $('#list-series');
-            $('li', target).remove();
-            for (var i = 0; i < series.length; i++) {
-              if (i == 0 || series[i].MainDicomTags.SeriesDate != series[i - 1].MainDicomTags.SeriesDate)
-              {
-                target.append('<li data-role="list-divider">{0}</li>'.format
-                              (FormatDicomDate(series[i].MainDicomTags.SeriesDate)));
-              }
-              target.append(FormatSeries(series[i], '#series?uuid=' + series[i].ID));
+          var target = $('#list-series');
+          $('li', target).remove();
+          for (var i = 0; i < series.length; i++) {
+            if (i == 0 || series[i].MainDicomTags.SeriesDate != series[i - 1].MainDicomTags.SeriesDate)
+            {
+              target.append('<li data-role="list-divider">{0}</li>'.format
+                            (FormatDicomDate(series[i].MainDicomTags.SeriesDate)));
             }
-            target.listview('refresh');
-
-            currentPage = 'study';
-            currentUuid = $.mobile.pageData.uuid;
+            target.append(FormatSeries(series[i], '#series?uuid=' + series[i].ID));
           }
+          target.listview('refresh');
+
+          currentPage = 'study';
+          currentUuid = $.mobile.pageData.uuid;
         });
       });
     });
@@ -456,43 +437,37 @@ function RefreshStudy()
 function RefreshSeries() 
 {
   if ($.mobile.pageData) {
-    GetSingleResource('series', $.mobile.pageData.uuid, function(series) {
-      GetSingleResource('studies', series.ParentStudy, function(study) {
-        GetSingleResource('patients', study.ParentPatient, function(patient) {
-          $.ajax({
-            url: '/series/' + $.mobile.pageData.uuid + '/instances',
-            dataType: 'json',
-            async: false,
-            cache: false,
-            success: function(instances) {
-              Sort(instances, function(x) { return x.IndexInSeries; }, true, false);
+    GetResource('/series/' + $.mobile.pageData.uuid, function(series) {
+      GetResource('/studies/' + series.ParentStudy, function(study) {
+        GetResource('/patients/' + study.ParentPatient, function(patient) {
+          GetResource('/series/' + $.mobile.pageData.uuid + '/instances', function(instances) {
+            Sort(instances, function(x) { return x.IndexInSeries; }, true, false);
 
-              $('#series .patient-link').attr('href', '#patient?uuid=' + patient.ID);
-              $('#series .study-link').attr('href', '#study?uuid=' + study.ID);
+            $('#series .patient-link').attr('href', '#patient?uuid=' + patient.ID);
+            $('#series .study-link').attr('href', '#study?uuid=' + study.ID);
 
-              $('#series-info li').remove();
-              $('#series-info')
-                .append('<li data-role="list-divider">Patient</li>')
-                .append(FormatPatient(patient, '#patient?uuid=' + patient.ID, true))
-                .append('<li data-role="list-divider">Study</li>')
-                .append(FormatStudy(study, '#study?uuid=' + study.ID, true))
-                .append('<li data-role="list-divider">Series</li>')
-                .append(FormatSeries(series))
-                .listview('refresh');
+            $('#series-info li').remove();
+            $('#series-info')
+              .append('<li data-role="list-divider">Patient</li>')
+              .append(FormatPatient(patient, '#patient?uuid=' + patient.ID, true))
+              .append('<li data-role="list-divider">Study</li>')
+              .append(FormatStudy(study, '#study?uuid=' + study.ID, true))
+              .append('<li data-role="list-divider">Series</li>')
+              .append(FormatSeries(series))
+              .listview('refresh');
 
-              SetupAnonymizedOrModifiedFrom('#series-anonymized-from', series, 'series', 'AnonymizedFrom');
-              SetupAnonymizedOrModifiedFrom('#series-modified-from', series, 'series', 'ModifiedFrom');
+            SetupAnonymizedOrModifiedFrom('#series-anonymized-from', series, 'series', 'AnonymizedFrom');
+            SetupAnonymizedOrModifiedFrom('#series-modified-from', series, 'series', 'ModifiedFrom');
 
-              var target = $('#list-instances');
-              $('li', target).remove();
-              for (var i = 0; i < instances.length; i++) {
-                target.append(FormatInstance(instances[i], '#instance?uuid=' + instances[i].ID));
-              }
-              target.listview('refresh');
-
-              currentPage = 'series';
-              currentUuid = $.mobile.pageData.uuid;
+            var target = $('#list-instances');
+            $('li', target).remove();
+            for (var i = 0; i < instances.length; i++) {
+              target.append(FormatInstance(instances[i], '#instance?uuid=' + instances[i].ID));
             }
+            target.listview('refresh');
+
+            currentPage = 'series';
+            currentUuid = $.mobile.pageData.uuid;
           });
         });
       });
@@ -556,10 +531,10 @@ function ConvertForTree(dicom)
 function RefreshInstance()
 {
   if ($.mobile.pageData) {
-    GetSingleResource('instances', $.mobile.pageData.uuid, function(instance) {
-      GetSingleResource('series', instance.ParentSeries, function(series) {
-        GetSingleResource('studies', series.ParentStudy, function(study) {
-          GetSingleResource('patients', study.ParentPatient, function(patient) {
+    GetResource('/instances/' + $.mobile.pageData.uuid, function(instance) {
+      GetResource('/series/' + instance.ParentSeries, function(series) {
+        GetResource('/studies/' + series.ParentStudy, function(study) {
+          GetResource('/patients/' + study.ParentPatient, function(patient) {
 
             $('#instance .patient-link').attr('href', '#patient?uuid=' + patient.ID);
             $('#instance .study-link').attr('href', '#study?uuid=' + study.ID);
@@ -577,13 +552,8 @@ function RefreshInstance()
               .append(FormatInstance(instance))
               .listview('refresh');
 
-            $.ajax({
-              url: '../instances/' + instance.ID + '/tags',
-              cache: false,
-              dataType: 'json',
-              success: function(s) {
-                $('#dicom-tree').tree('loadData', ConvertForTree(s));
-              }
+            GetResource('/instances/' + instance.ID + '/tags', function(s) {
+              $('#dicom-tree').tree('loadData', ConvertForTree(s));
             });
 
             SetupAnonymizedOrModifiedFrom('#instance-anonymized-from', instance, 'instance', 'AnonymizedFrom');
@@ -716,7 +686,7 @@ $('#instance-download-json').live('click', function(e) {
 
 $('#instance-preview').live('click', function(e) {
   if ($.mobile.pageData) {
-    GetSingleResource('instances', $.mobile.pageData.uuid + '/frames', function(frames) {
+    GetResource('/instances/' + $.mobile.pageData.uuid + '/frames', function(frames) {
       if (frames.length == 1)
       {
         // Viewing a single-frame image
@@ -748,35 +718,29 @@ $('#instance-preview').live('click', function(e) {
 });
 
 
+
 $('#series-preview').live('click', function(e) {
   if ($.mobile.pageData) {
-    GetSingleResource('series', $.mobile.pageData.uuid, function(series) {
-      $.ajax({
-        url: '/series/' + $.mobile.pageData.uuid + '/instances',
-        dataType: 'json',
-        async: false,
-        cache: false,
-        success: function(instances) {
-          Sort(instances, function(x) { return x.IndexInSeries; }, true, false);
+    GetResource('/series/' + $.mobile.pageData.uuid, function(series) {
+      GetResource('/series/' + $.mobile.pageData.uuid + '/instances', function(instances) {
+        Sort(instances, function(x) { return x.IndexInSeries; }, true, false);
 
-          var images = [];
-          for (var i = 0; i < instances.length; i++) {
-            images.push([ '../instances/' + instances[i].ID + '/preview',
-                          '{0}/{1}'.format(i + 1, instances.length) ])
-          }
-
-          jQuery.slimbox(images, 0, {
-            overlayFadeDuration : 1,
-            resizeDuration : 1,
-            imageFadeDuration : 1,
-            loop : true
-          });
+        var images = [];
+        for (var i = 0; i < instances.length; i++) {
+          images.push([ '../instances/' + instances[i].ID + '/preview',
+                        '{0}/{1}'.format(i + 1, instances.length) ])
         }
+
+        jQuery.slimbox(images, 0, {
+          overlayFadeDuration : 1,
+          resizeDuration : 1,
+          imageFadeDuration : 1,
+          loop : true
+        });
       });
     });
   }
 });
-
 
 
 
