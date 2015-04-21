@@ -1286,6 +1286,11 @@ namespace Orthanc
         s = "ISO_IR 192";
         break;
 
+      case Encoding_Windows1251:
+        // This Cyrillic codepage is not officially supported by the
+        // DICOM standard. Do not set the SpecificCharacterSet tag.
+        return;
+
       case Encoding_Latin1:
         s = "ISO_IR 100";
         break;

@@ -7,6 +7,7 @@ Pending changes in the mainline
 * Prevent freeze on C-FIND if no DICOM tag is to be returned
 * Allow replacing PatientID/StudyInstanceUID/SeriesInstanceUID from Lua scripts
 * Fix issue 30 (QR response missing "Query/Retrieve Level" (008,0052))
+* Fix issue 32 (Cyrillic symbols): Introduction of the "Windows1251" encoding
 
 
 Version 0.8.6 (2015/02/12)

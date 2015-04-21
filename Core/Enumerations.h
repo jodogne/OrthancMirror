@@ -243,6 +243,7 @@ namespace Orthanc
     Encoding_Latin4,
     Encoding_Latin5,                        // Turkish
     Encoding_Cyrillic,
+    Encoding_Windows1251,                   // Windows-1251 (commonly used for Cyrillic)
     Encoding_Arabic,
     Encoding_Greek,
     Encoding_Hebrew,
