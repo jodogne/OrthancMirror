@@ -586,6 +586,10 @@ namespace Orthanc
         encoding = "ISO-8859-5";
         break;
 
+      case Encoding_Windows1251:
+        encoding = "WINDOWS-1251";
+        break;
+
       case Encoding_Arabic:
         encoding = "ISO-8859-6";
         break;

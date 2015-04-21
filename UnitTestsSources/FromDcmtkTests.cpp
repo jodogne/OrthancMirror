@@ -272,6 +272,7 @@ TEST(FromDcmtkBridge, Encodings3)
       f.SaveToMemoryBuffer(dicom);
     }
 
+    if (testEncodings[i] != Encoding_Windows1251)
     {
       ParsedDicomFile g(dicom);
 

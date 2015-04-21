@@ -67,8 +67,8 @@
   // The default encoding that is assumed for DICOM files without
   // "SpecificCharacterSet" DICOM tag. The allowed values are "Ascii",
   // "Utf8", "Latin1", "Latin2", "Latin3", "Latin4", "Latin5",
-  // "Cyrillic", "Arabic", "Greek", "Hebrew", "Thai", "Japanese",
-  // and "Chinese".
+  // "Cyrillic", "Windows1251", "Arabic", "Greek", "Hebrew", "Thai",
+  // "Japanese", and "Chinese".
   "DefaultEncoding" : "Latin1",
 
   // The transfer syntaxes that are accepted by Orthanc C-Store SCP

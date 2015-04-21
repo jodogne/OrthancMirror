@@ -12,6 +12,7 @@ encodings = {
     'ISO-8859-4' : 'Latin4',
     'ISO-8859-9' : 'Latin5',
     'ISO-8859-5' : 'Cyrillic',
+    'WINDOWS-1251' : 'Windows1251',
     'ISO-8859-6' : 'Arabic',
     'ISO-8859-7' : 'Greek',
     'ISO-8859-8' : 'Hebrew',
@@ -48,6 +49,18 @@ for encoding, orthancEnumeration in encodings.iteritems():
 l.append('::Orthanc::Encoding_Chinese')
 expected.append(ToArray('Þßàáâã'))
 encoded.append('"\\x81\\x30\\x89\\x37\\x81\\x30\\x89\\x38\\xA8\\xA4\\xA8\\xA2\\x81\\x30\\x89\\x39\\x81\\x30\\x8A\\x30"')
+
+# Issue 32
+# "encoded" is the copy/paste from "dcm2xml +Ca cyrillic Issue32.dcm"
+l.append('::Orthanc::Encoding_Windows1251')
+encoded.append('"\\xd0\\xe5\\xed\\xf2\\xe3\\xe5\\xed\\xee\\xe3\\xf0\\xe0\\xf4\\xe8\\xff"')
+expected.append(ToArray('Рентгенография'))
+l.append('::Orthanc::Encoding_Windows1251')
+encoded.append('"\\xD2\\xE0\\xE7"')
+expected.append(ToArray('Таз'))
+l.append('::Orthanc::Encoding_Windows1251')
+encoded.append('"\\xcf\\xf0\\xff\\xec\\xe0\\xff"')
+expected.append(ToArray('Прямая'))
 
 
 if True:

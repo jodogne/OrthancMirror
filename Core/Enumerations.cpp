@@ -289,6 +289,9 @@ namespace Orthanc
       case Encoding_Cyrillic:
         return "Cyrillic";
 
+      case Encoding_Windows1251:
+        return "Windows1251";
+
       case Encoding_Arabic:
         return "Arabic";
 
@@ -408,6 +411,11 @@ namespace Orthanc
     if (s == "CYRILLIC")
     {
       return Encoding_Cyrillic;
+    }
+
+    if (s == "WINDOWS1251")
+    {
+      return Encoding_Windows1251;
     }
 
     if (s == "ARABIC")
