@@ -131,15 +131,16 @@ Note: Have also a look at the official package:
 http://anonscm.debian.org/viewvc/debian-med/trunk/packages/orthanc/trunk/debian/
 
 
-SUPPORTED - Ubuntu 12.04 LTS
-----------------------------
+SUPPORTED - Ubuntu 12.04.5 LTS
+------------------------------
 
 # sudo apt-get install build-essential unzip cmake mercurial \
        	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
        	       	       libgtest-dev libpng-dev libsqlite3-dev libssl-dev \
-		       zlib1g-dev libdcmtk2-dev libboost-all-dev libwrap0-dev
+		       zlib1g-dev libdcmtk2-dev libboost1.48-all-dev libwrap0-dev \
+                       libcharls-dev
 
-# cmake "-DDCMTK_LIBRARIES=wrap;oflog" \
+# cmake "-DDCMTK_LIBRARIES=boost_locale;CharLS;dcmjpls;wrap;oflog" \
         -DALLOW_DOWNLOADS=ON \
 	-DUSE_SYSTEM_MONGOOSE=OFF \
 	-DUSE_SYSTEM_JSONCPP=OFF \
