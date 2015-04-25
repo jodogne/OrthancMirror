@@ -220,6 +220,17 @@ http://pkgs.fedoraproject.org/cgit/orthanc.git/tree/?h=f18
 
 
 
+SUPPORTED - Ubuntu 14.04 LTS
+----------------------------
+
+# cmake -DALLOW_DOWNLOADS=ON \
+        -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
+        -DUSE_SYSTEM_MONGOOSE=OFF \
+        -DDCMTK_LIBRARIES=dcmjpls \
+        ~/Orthanc
+
+
+
 SUPPORTED - FreeBSD 10.1
 ------------------------
 
