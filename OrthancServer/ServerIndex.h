@@ -257,5 +257,9 @@ namespace Orthanc
 
     std::string GetGlobalProperty(GlobalProperty property,
                                   const std::string& defaultValue);
+
+    bool GetMainDicomTags(DicomMap& result,
+                          const std::string& publicId,
+                          ResourceType expectedType);
   };
 }
