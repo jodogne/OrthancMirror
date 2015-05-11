@@ -2055,4 +2055,27 @@ namespace Orthanc
     }
   }
 
+
+  bool ServerIndex::GetMainDicomTags(DicomMap& result,
+                                     const std::string& publicId,
+                                     ResourceType expectedType)
+  {
+    result.Clear();
+
+    boost::mutex::scoped_lock lock(mutex_);
+
+    // Lookup for the requested resource
+    int64_t id;
+    ResourceType type;
+    if (!db_.LookupResource(id, type, publicId) ||
+        type != expectedType)
+    {
+      return false;
+    }
+    else
+    {
+      db_.GetMainDicomTags(result, id);
+      return true;
+    }    
+  }
 }
