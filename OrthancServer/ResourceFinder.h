@@ -40,14 +40,17 @@ namespace Orthanc
 {
   class ResourceFinder : public boost::noncopyable
   {
-  public:
+  private:
     typedef std::map<DicomTag, std::string>  Query;
 
-  private:
     ServerContext&  context_;
     ResourceType    level_;
     bool            caseSensitive_;
     Query           query_;
+
+    static void GetTagsForLevel(Query& result,
+                                const Query& source,
+                                ResourceType level);
 
   public:
     ResourceFinder(ServerContext& context);
