@@ -60,6 +60,8 @@ namespace Orthanc
     class CandidateResources
     {
     private:
+      typedef std::map<DicomTag, std::string>  Query;
+
       ServerIndex&  index_;
       ResourceType  level_;
       bool  isFilterApplied_;
@@ -73,6 +75,58 @@ namespace Orthanc
                it = source.begin(); it != source.end(); ++it)
         {
           target.insert(*it);
+        }
+      }
+
+
+      void RestrictIdentifier(const DicomTag& tag, 
+                              const std::string& value)
+      {
+        assert((level_ == ResourceType_Patient && tag == DICOM_TAG_PATIENT_ID) ||
+               (level_ == ResourceType_Study && tag == DICOM_TAG_STUDY_INSTANCE_UID) ||
+               (level_ == ResourceType_Study && tag == DICOM_TAG_ACCESSION_NUMBER) ||
+               (level_ == ResourceType_Series && tag == DICOM_TAG_SERIES_INSTANCE_UID) ||
+               (level_ == ResourceType_Instance && tag == DICOM_TAG_SOP_INSTANCE_UID));
+
+        LOG(INFO) << "Lookup for identifier tag "
+                  << FromDcmtkBridge::GetName(tag) << " (value: " << value << ")";
+
+        std::list<std::string> resources;
+        index_.LookupIdentifier(resources, tag, value, level_);
+
+        if (isFilterApplied_)
+        {
+          std::set<std::string>  s;
+          ListToSet(s, resources);
+
+          std::set<std::string> tmp = filtered_;
+          filtered_.clear();
+
+          for (std::set<std::string>::const_iterator 
+                 it = tmp.begin(); it != tmp.end(); ++it)
+          {
+            if (s.find(*it) != s.end())
+            {
+              filtered_.insert(*it);
+            }
+          }
+        }
+        else
+        {
+          assert(filtered_.empty());
+          isFilterApplied_ = true;
+          ListToSet(filtered_, resources);
+        }
+      }
+
+
+      void RestrictIdentifier(const Query& query,
+                              const DicomTag& tag)
+      {
+        Query::const_iterator it = query.find(tag);
+        if (it != query.end())
+        {
+          RestrictIdentifier(it->first, it->second);
         }
       }
 
@@ -153,50 +207,49 @@ namespace Orthanc
       }
 
 
-      void RestrictIdentifier(const DicomTag& tag, 
-                              const std::string& value)
+      void RestrictIdentifier(const Query& query)
       {
-        assert((level_ == ResourceType_Patient && tag == DICOM_TAG_PATIENT_ID) ||
-               (level_ == ResourceType_Study && tag == DICOM_TAG_STUDY_INSTANCE_UID) ||
-               (level_ == ResourceType_Study && tag == DICOM_TAG_ACCESSION_NUMBER) ||
-               (level_ == ResourceType_Series && tag == DICOM_TAG_SERIES_INSTANCE_UID) ||
-               (level_ == ResourceType_Instance && tag == DICOM_TAG_SOP_INSTANCE_UID));
-
-        LOG(INFO) << "Lookup for identifier tag "
-                  << FromDcmtkBridge::GetName(tag) << " (value: " << value << ")";
-
-        std::list<std::string> resources;
-        index_.LookupIdentifier(resources, tag, value, level_);
-
-        if (isFilterApplied_)
+        switch (level_)
         {
-          std::set<std::string>  s;
-          ListToSet(s, resources);
-
-          std::set<std::string> tmp = filtered_;
-          filtered_.clear();
-
-          for (std::set<std::string>::const_iterator 
-                 it = tmp.begin(); it != tmp.end(); ++it)
+          case ResourceType_Patient:
           {
-            if (s.find(*it) != s.end())
-            {
-              filtered_.insert(*it);
-            }
+            RestrictIdentifier(query, DICOM_TAG_PATIENT_ID);
+            break;
           }
-        }
-        else
-        {
-          assert(filtered_.empty());
-          isFilterApplied_ = true;
-          ListToSet(filtered_, resources);
+
+          case ResourceType_Study:
+          {
+            RestrictIdentifier(query, DICOM_TAG_STUDY_INSTANCE_UID);
+            RestrictIdentifier(query, DICOM_TAG_ACCESSION_NUMBER);
+            break;
+          }
+
+          case ResourceType_Series:
+          {
+            RestrictIdentifier(query, DICOM_TAG_SERIES_INSTANCE_UID);
+            break;
+          }
+
+          case ResourceType_Instance:
+          {
+            RestrictIdentifier(query, DICOM_TAG_SOP_INSTANCE_UID);
+            break;
+          }
+
+          default:
+            throw OrthancException(ErrorCode_InternalError);
         }
       }
 
 
-      void RestrictMainDicomTags(const ResourceFinder::Query& query,
+      void RestrictMainDicomTags(const Query& query,
                                  bool caseSensitive)
       {
+        if (query.size() == 0)
+        {
+          return;
+        }
+
         std::list<std::string> resources;
         Flatten(resources);
 
@@ -209,18 +262,25 @@ namespace Orthanc
           DicomMap mainTags;
           if (index_.GetMainDicomTags(mainTags, *it, level_))
           {
-            for (ResourceFinder::Query::const_iterator 
-                   tag = query.begin(); tag != query.end(); ++tag)
+            for (Query::const_iterator tag = query.begin(); 
+                 tag != query.end(); ++tag)
             {
               assert(DicomMap::IsMainDicomTag(tag->first, level_));
-              LOG(INFO) << "Lookup for main DICOM tag "
-                        << FromDcmtkBridge::GetName(tag->first) << " (value: " << tag->second << ")";
-
-              const DicomValue* value = mainTags.TestAndGetValue(tag->first);
-              if (value != NULL &&
-                  Compare(value->AsString(), tag->second, caseSensitive))
+              if (tag->first != DICOM_TAG_PATIENT_ID &&
+                  tag->first != DICOM_TAG_STUDY_INSTANCE_UID &&
+                  tag->first != DICOM_TAG_ACCESSION_NUMBER &&
+                  tag->first != DICOM_TAG_SERIES_INSTANCE_UID &&
+                  tag->first != DICOM_TAG_SOP_INSTANCE_UID)
               {
-                filtered_.insert(*it);
+                LOG(INFO) << "Lookup for main DICOM tag "
+                          << FromDcmtkBridge::GetName(tag->first) << " (value: " << tag->second << ")";
+                
+                const DicomValue* value = mainTags.TestAndGetValue(tag->first);
+                if (value != NULL &&
+                    Compare(value->AsString(), tag->second, caseSensitive))
+                {
+                  filtered_.insert(*it);
+                }
               }
             }            
           }
@@ -245,8 +305,29 @@ namespace Orthanc
   }
 
 
+  void ResourceFinder::GetTagsForLevel(Query& result,
+                                       const Query& source,
+                                       ResourceType level)
+  {
+    typedef std::set<DicomTag>  Tags;
+
+    Tags  tags;
+    DicomMap::GetMainDicomTags(tags, level);
+
+    for (Tags::const_iterator tag = tags.begin(); tag != tags.end(); tag++)
+    {
+      Query::const_iterator value = source.find(*tag);
+      if (value != source.end())
+      {
+        result.insert(*value);
+      }
+    }
+  }
+
+
   void ResourceFinder::Apply(std::list<std::string>& result)
   {
     result.clear();
+
   }
 }
