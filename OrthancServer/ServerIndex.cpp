@@ -1078,19 +1078,8 @@ namespace Orthanc
   void ServerIndex::GetAllUuids(std::list<std::string>& target,
                                 ResourceType resourceType)
   {
-    std::list<std::string> lst;
-
-    {
-      boost::mutex::scoped_lock lock(mutex_);
-      db_.GetAllPublicIds(lst, resourceType);
-    }
-
-    target.clear();
-    for (std::list<std::string>::const_iterator
-           it = lst.begin(); it != lst.end(); ++it)
-    {
-      target.push_back(*it);
-    }
+    boost::mutex::scoped_lock lock(mutex_);
+    db_.GetAllPublicIds(target, resourceType);
   }
 
 

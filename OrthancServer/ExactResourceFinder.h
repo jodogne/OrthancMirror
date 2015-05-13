@@ -40,46 +40,48 @@ namespace Orthanc
 {
   class ExactResourceFinder : public boost::noncopyable
   {
+  public:
+    class IMainTagsFilter : public boost::noncopyable
+    {
+    public:
+      virtual ~IMainTagsFilter()
+      {
+      }
+
+      bool Apply(const DicomMap& mainTags,
+                 ResourceType level);
+    };
+
+
+    class IInstanceFilter : public boost::noncopyable
+    {
+    public:
+      virtual ~IInstanceFilter()
+      {
+      }
+
+      bool Apply(const std::string& instanceId,
+                 const Json::Value& content);
+    };
+
+
   private:
-    typedef std::map<DicomTag, std::string>  Query;
+    typedef std::map<DicomTag, std::string>  Identifiers;
 
     class CandidateResources;
 
-    ServerIndex&  index_;
-    ResourceType  level_;
-    bool          caseSensitive_;
-    bool          nonMainTagsIgnored_;
-    Query         query_;
-
-    static void ExtractTagsForLevel(Query& result,
-                                    Query& source,
-                                    ResourceType level);
+    ServerContext&    context_;
+    ResourceType      level_;
+    size_t            maxResults_;
+    Identifiers       identifiers_;
+    IMainTagsFilter  *mainTagsFilter_;
+    IInstanceFilter  *instanceFilter_;
 
     void ApplyAtLevel(CandidateResources& candidates,
                       ResourceType level);
 
   public:
-    ExactResourceFinder(ServerIndex& index);
-
-    bool IsCaseSensitive() const
-    {
-      return caseSensitive_;
-    }
-
-    void SetCaseSensitive(bool sensitive)
-    {
-      caseSensitive_ = sensitive;
-    }
-
-    bool NonMainTagsIgnored() const
-    {
-      return nonMainTagsIgnored_;
-    }
-
-    void SetNonMainTagsIgnored(bool ignored)
-    {
-      nonMainTagsIgnored_ = ignored;
-    }
+    ExactResourceFinder(ServerContext& context);
 
     ResourceType GetLevel() const
     {
@@ -91,16 +93,33 @@ namespace Orthanc
       level_ = level;
     }
 
-    void AddTag(const DicomTag& tag,
-                const std::string& value)
+    void SetIdentifier(const DicomTag& tag,
+                       const std::string& value);
+
+    void SetMainTagsFilter(IMainTagsFilter& filter)
     {
-      query_.insert(std::make_pair(tag, value));
+      mainTagsFilter_ = &filter;
     }
 
-    void AddTag(const std::string& tag,
-                const std::string& value);
+    void SetInstanceFilter(IInstanceFilter& filter)
+    {
+      instanceFilter_ = &filter;
+    }
 
-    void Apply(std::list<std::string>& result);
+    void SetMaxResults(size_t value)
+    {
+      maxResults_ = value;
+    }
+
+    size_t GetMaxResults() const
+    {
+      return maxResults_;
+    }
+
+    // Returns "true" iff. all the matching resources have been
+    // returned. Will be "false" if the results were truncated by
+    // "SetMaxResults()".
+    bool Apply(std::list<std::string>& result);
   };
 
 }
