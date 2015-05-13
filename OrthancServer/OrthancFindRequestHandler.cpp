@@ -432,12 +432,7 @@ namespace Orthanc
         }
         else
         {
-          Json::Value tmp;
-          index_.GetAllUuids(tmp, level_);
-          for (Json::Value::ArrayIndex i = 0; i < tmp.size(); i++)
-          {
-            resources.push_back(tmp[i].asString());
-          }
+          index_.GetAllUuids(resources, level_);
         }
       }
 
