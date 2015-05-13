@@ -31,7 +31,7 @@
 
 
 #include "PrecompiledHeadersServer.h"
-#include "ResourceFinder.h"
+#include "ExactResourceFinder.h"
 
 #include "FromDcmtkBridge.h"
 
@@ -55,7 +55,7 @@ namespace Orthanc
   }
 
 
-  class ResourceFinder::CandidateResources
+  class ExactResourceFinder::CandidateResources
   {
   private:
     typedef std::map<DicomTag, std::string>  Query;
@@ -283,7 +283,7 @@ namespace Orthanc
   };
 
 
-  ResourceFinder::ResourceFinder(ServerIndex& index) : 
+  ExactResourceFinder::ExactResourceFinder(ServerIndex& index) : 
     index_(index),
     level_(ResourceType_Patient),
     caseSensitive_(true),
@@ -292,14 +292,14 @@ namespace Orthanc
   }
 
 
-  void ResourceFinder::AddTag(const std::string& tag,
+  void ExactResourceFinder::AddTag(const std::string& tag,
                               const std::string& value)
   {
     AddTag(FromDcmtkBridge::ParseTag(tag.c_str()), value);
   }
 
 
-  void ResourceFinder::ExtractTagsForLevel(Query& target,
+  void ExactResourceFinder::ExtractTagsForLevel(Query& target,
                                            Query& source,
                                            ResourceType level)
   {
@@ -322,7 +322,7 @@ namespace Orthanc
   }
 
 
-  void ResourceFinder::ApplyAtLevel(CandidateResources& candidates,
+  void ExactResourceFinder::ApplyAtLevel(CandidateResources& candidates,
                                     ResourceType level)
   {
     if (level != ResourceType_Patient)
@@ -338,7 +338,7 @@ namespace Orthanc
   }
 
 
-  void ResourceFinder::Apply(std::list<std::string>& result)
+  void ExactResourceFinder::Apply(std::list<std::string>& result)
   {
     CandidateResources candidates(index_);
 
