@@ -31,7 +31,7 @@
 
 
 #include "PrecompiledHeadersServer.h"
-#include "ExactResourceFinder.h"
+#include "BaseResourceFinder.h"
 
 #include "FromDcmtkBridge.h"
 #include "ServerContext.h"
@@ -41,12 +41,12 @@
 
 namespace Orthanc
 {
-  class ExactResourceFinder::CandidateResources
+  class BaseResourceFinder::CandidateResources
   {
   private:
     typedef std::map<DicomTag, std::string>  Query;
 
-    ExactResourceFinder&   finder_;
+    BaseResourceFinder&   finder_;
     ServerIndex&           index_;
     ResourceType           level_;
     bool                   isFilterApplied_;
@@ -106,7 +106,7 @@ namespace Orthanc
 
 
   public:
-    CandidateResources(ExactResourceFinder& finder) : 
+    CandidateResources(BaseResourceFinder& finder) : 
       finder_(finder),
       index_(finder.context_.GetIndex()),
       level_(ResourceType_Patient), 
@@ -223,7 +223,7 @@ namespace Orthanc
   };
 
 
-  ExactResourceFinder::ExactResourceFinder(ServerContext& context) : 
+  BaseResourceFinder::BaseResourceFinder(ServerContext& context) : 
     context_(context),
     level_(ResourceType_Patient),
     maxResults_(0)
@@ -231,8 +231,8 @@ namespace Orthanc
   }
 
 
-  void ExactResourceFinder::ApplyAtLevel(CandidateResources& candidates,
-                                         ResourceType level)
+  void BaseResourceFinder::ApplyAtLevel(CandidateResources& candidates,
+                                        ResourceType level)
   {
     if (level != ResourceType_Patient)
     {
@@ -275,8 +275,8 @@ namespace Orthanc
 
 
 
-  void ExactResourceFinder::SetIdentifier(const DicomTag& tag,
-                                          const std::string& value)
+  void BaseResourceFinder::SetIdentifier(const DicomTag& tag,
+                                         const std::string& value)
   {
     assert((level_ >= ResourceType_Patient && tag == DICOM_TAG_PATIENT_ID) ||
            (level_ >= ResourceType_Study && tag == DICOM_TAG_STUDY_INSTANCE_UID) ||
@@ -317,7 +317,7 @@ namespace Orthanc
   }
 
 
-  bool ExactResourceFinder::Apply(std::list<std::string>& result)
+  bool BaseResourceFinder::Apply(std::list<std::string>& result)
   {
     CandidateResources candidates(*this);
 
