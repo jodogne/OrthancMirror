@@ -35,7 +35,7 @@
 
 #include "../ServerToolbox.h"
 #include "../FromDcmtkBridge.h"
-#include "../ExactResourceFinder.h"
+#include "../ResourceFinder.h"
 
 #include <glog/logging.h>
 
@@ -850,7 +850,7 @@ namespace Orthanc
 
   static void Find(RestApiPostCall& call)
   {
-    ServerIndex& index = OrthancRestApi::GetIndex(call);
+    ServerContext& context = OrthancRestApi::GetContext(call);
 
     Json::Value request;
     if (call.ParseJsonRequest(request) &&
@@ -862,18 +862,18 @@ namespace Orthanc
     {
       std::string level = request["Level"].asString();
 
-      ExactResourceFinder finder(index);
+      ResourceFinder finder(context);
       finder.SetLevel(StringToResourceType(level.c_str()));
-
-      if (request.isMember("CaseSensitive"))
-      {
-        finder.SetCaseSensitive(request["CaseSensitive"].asBool());
-      }
 
       bool expand = false;
       if (request.isMember("Expand"))
       {
         expand = request["Expand"].asBool();
+      }
+
+      /*if (request.isMember("CaseSensitive"))
+      {
+        finder.SetCaseSensitive(request["CaseSensitive"].asBool());
       }
 
       Json::Value::Members members = request["Query"].getMemberNames();
@@ -885,11 +885,11 @@ namespace Orthanc
         }
 
         finder.AddTag(members[i], request["Query"][members[i]].asString());
-      }
+        }*/
 
       std::list<std::string> resources;
       finder.Apply(resources);
-      AnswerListOfResources(call.GetOutput(), index, resources, finder.GetLevel(), expand);
+      AnswerListOfResources(call.GetOutput(), context.GetIndex(), resources, finder.GetLevel(), expand);
     }
     else
     {
