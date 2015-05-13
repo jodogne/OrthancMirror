@@ -35,7 +35,7 @@
 
 #include "../ServerToolbox.h"
 #include "../FromDcmtkBridge.h"
-#include "../ResourceFinder.h"
+#include "../ExactResourceFinder.h"
 
 #include <glog/logging.h>
 
@@ -862,7 +862,7 @@ namespace Orthanc
     {
       std::string level = request["Level"].asString();
 
-      ResourceFinder finder(index);
+      ExactResourceFinder finder(index);
       finder.SetLevel(StringToResourceType(level.c_str()));
 
       if (request.isMember("CaseSensitive"))

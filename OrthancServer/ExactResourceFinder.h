@@ -38,7 +38,7 @@
 
 namespace Orthanc
 {
-  class ResourceFinder : public boost::noncopyable
+  class ExactResourceFinder : public boost::noncopyable
   {
   private:
     typedef std::map<DicomTag, std::string>  Query;
@@ -59,7 +59,7 @@ namespace Orthanc
                       ResourceType level);
 
   public:
-    ResourceFinder(ServerIndex& index);
+    ExactResourceFinder(ServerIndex& index);
 
     bool IsCaseSensitive() const
     {

@@ -170,7 +170,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/OrthancFindRequestHandler.cpp
   OrthancServer/OrthancMoveRequestHandler.cpp
   OrthancServer/ExportedResource.cpp
-  OrthancServer/ResourceFinder.cpp
+  OrthancServer/ExactResourceFinder.cpp
 
   # From "lua-scripting" branch
   OrthancServer/DicomInstanceToStore.cpp
