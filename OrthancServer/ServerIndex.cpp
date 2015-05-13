@@ -1075,7 +1075,7 @@ namespace Orthanc
 
 
 
-  void ServerIndex::GetAllUuids(Json::Value& target,
+  void ServerIndex::GetAllUuids(std::list<std::string>& target,
                                 ResourceType resourceType)
   {
     std::list<std::string> lst;
@@ -1085,11 +1085,11 @@ namespace Orthanc
       db_.GetAllPublicIds(lst, resourceType);
     }
 
-    target = Json::arrayValue;
+    target.clear();
     for (std::list<std::string>::const_iterator
            it = lst.begin(); it != lst.end(); ++it)
     {
-      target.append(*it);
+      target.push_back(*it);
     }
   }
 

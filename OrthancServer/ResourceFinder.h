@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include "ServerContext.h"
+#include "ServerIndex.h"
 
 #include <boost/noncopyable.hpp>
 
@@ -43,17 +43,22 @@ namespace Orthanc
   private:
     typedef std::map<DicomTag, std::string>  Query;
 
-    ServerContext&  context_;
-    ResourceType    level_;
-    bool            caseSensitive_;
-    Query           query_;
+    class CandidateResources;
 
-    static void GetTagsForLevel(Query& result,
-                                const Query& source,
-                                ResourceType level);
+    ServerIndex&  index_;
+    ResourceType  level_;
+    bool          caseSensitive_;
+    Query         query_;
+
+    static void ExtractTagsForLevel(Query& result,
+                                    Query& source,
+                                    ResourceType level);
+
+    void ApplyAtLevel(CandidateResources& candidates,
+                      ResourceType level);
 
   public:
-    ResourceFinder(ServerContext& context);
+    ResourceFinder(ServerIndex& index);
 
     bool IsCaseSensitive() const
     {
@@ -62,7 +67,7 @@ namespace Orthanc
 
     void SetCaseSensitive(bool sensitive)
     {
-      caseSensitive_ = true;
+      caseSensitive_ = sensitive;
     }
 
     ResourceType GetLevel() const

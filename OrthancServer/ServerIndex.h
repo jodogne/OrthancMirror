@@ -158,7 +158,7 @@ namespace Orthanc
                           const std::string& instanceUuid,
                           FileContentType contentType);
 
-    void GetAllUuids(Json::Value& target,
+    void GetAllUuids(std::list<std::string>& target,
                      ResourceType resourceType);
 
     bool DeleteResource(Json::Value& target /* out */,

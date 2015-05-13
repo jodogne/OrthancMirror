@@ -35,6 +35,7 @@
 
 #include "../ServerToolbox.h"
 #include "../FromDcmtkBridge.h"
+#include "../ResourceFinder.h"
 
 #include <glog/logging.h>
 
@@ -42,32 +43,44 @@ namespace Orthanc
 {
   // List all the patients, studies, series or instances ----------------------
  
+  static void AnswerListOfResources(RestApiOutput& output,
+                                    ServerIndex& index,
+                                    const std::list<std::string>& resources,
+                                    ResourceType level,
+                                    bool expand)
+  {
+    Json::Value answer = Json::arrayValue;
+
+    for (std::list<std::string>::const_iterator
+           resource = resources.begin(); resource != resources.end(); resource++)
+    {
+      if (expand)
+      {
+        Json::Value item;
+        if (index.LookupResource(item, *resource, level))
+        {
+          answer.append(item);
+        }
+      }
+      else
+      {
+        answer.append(*resource);
+      }
+    }
+
+    output.AnswerJson(answer);
+  }
+
+
   template <enum ResourceType resourceType>
   static void ListResources(RestApiGetCall& call)
   {
     ServerIndex& index = OrthancRestApi::GetIndex(call);
 
-    Json::Value result;
+    std::list<std::string> result;
     index.GetAllUuids(result, resourceType);
 
-    if (call.HasArgument("expand"))
-    {
-      Json::Value expanded = Json::arrayValue;
-      for (Json::Value::ArrayIndex i = 0; i < result.size(); i++)
-      {
-        Json::Value item;
-        if (index.LookupResource(item, result[i].asString(), resourceType))
-        {
-          expanded.append(item);
-        }
-      }
-
-      call.GetOutput().AnswerJson(expanded);
-    }
-    else
-    {
-      call.GetOutput().AnswerJson(result);
-    }
+    AnswerListOfResources(call.GetOutput(), index, result, resourceType, call.HasArgument("expand"));
   }
 
   template <enum ResourceType resourceType>
@@ -835,6 +848,56 @@ namespace Orthanc
   }
 
 
+  static void Find(RestApiPostCall& call)
+  {
+    ServerIndex& index = OrthancRestApi::GetIndex(call);
+
+    Json::Value request;
+    if (call.ParseJsonRequest(request) &&
+        request.type() == Json::objectValue &&
+        request.isMember("Level") &&
+        request.isMember("Query") &&
+        request["Level"].type() == Json::stringValue &&
+        request["Query"].type() == Json::objectValue)
+    {
+      std::string level = request["Level"].asString();
+
+      ResourceFinder finder(index);
+      finder.SetLevel(StringToResourceType(level.c_str()));
+
+      if (request.isMember("CaseSensitive"))
+      {
+        finder.SetCaseSensitive(request["CaseSensitive"].asBool());
+      }
+
+      bool expand = false;
+      if (request.isMember("Expand"))
+      {
+        expand = request["Expand"].asBool();
+      }
+
+      Json::Value::Members members = request["Query"].getMemberNames();
+      for (size_t i = 0; i < members.size(); i++)
+      {
+        if (request["Query"][members[i]].type() != Json::stringValue)
+        {
+          throw OrthancException(ErrorCode_BadRequest);
+        }
+
+        finder.AddTag(members[i], request["Query"][members[i]].asString());
+      }
+
+      std::list<std::string> resources;
+      finder.Apply(resources);
+      AnswerListOfResources(call.GetOutput(), index, resources, finder.GetLevel(), expand);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadRequest);
+    }
+  }
+
+
   template <enum ResourceType start, 
             enum ResourceType end>
   static void GetChildResources(RestApiGetCall& call)
@@ -1042,6 +1105,7 @@ namespace Orthanc
     Register("/{resourceType}/{id}/attachments/{name}", UploadAttachment);
 
     Register("/tools/lookup", Lookup);
+    Register("/tools/find", Find);
 
     Register("/patients/{id}/studies", GetChildResources<ResourceType_Patient, ResourceType_Study>);
     Register("/patients/{id}/series", GetChildResources<ResourceType_Patient, ResourceType_Series>);
