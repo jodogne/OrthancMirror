@@ -286,7 +286,8 @@ namespace Orthanc
   ResourceFinder::ResourceFinder(ServerIndex& index) : 
     index_(index),
     level_(ResourceType_Patient),
-    caseSensitive_(true)
+    caseSensitive_(true),
+    nonMainTagsIgnored_(false)
   {
   }
 
@@ -361,7 +362,8 @@ namespace Orthanc
       ApplyAtLevel(candidates, ResourceType_Instance);
     }
         
-    if (!query_.empty())
+    if (!nonMainTagsIgnored_ &&
+        !query_.empty())
     {
       LOG(ERROR) << "Invalid query: Searching against a tag that is not valid for the requested level";
       throw OrthancException(ErrorCode_BadRequest);

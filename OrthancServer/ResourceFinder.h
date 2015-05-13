@@ -48,6 +48,7 @@ namespace Orthanc
     ServerIndex&  index_;
     ResourceType  level_;
     bool          caseSensitive_;
+    bool          nonMainTagsIgnored_;
     Query         query_;
 
     static void ExtractTagsForLevel(Query& result,
@@ -68,6 +69,16 @@ namespace Orthanc
     void SetCaseSensitive(bool sensitive)
     {
       caseSensitive_ = sensitive;
+    }
+
+    bool NonMainTagsIgnored() const
+    {
+      return nonMainTagsIgnored_;
+    }
+
+    void SetNonMainTagsIgnored(bool ignored)
+    {
+      nonMainTagsIgnored_ = ignored;
     }
 
     ResourceType GetLevel() const
