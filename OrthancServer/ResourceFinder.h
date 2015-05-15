@@ -32,45 +32,94 @@
 
 #pragma once
 
-#include "BaseResourceFinder.h"
+#include "ServerIndex.h"
+
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class ResourceFinder : public boost::noncopyable
+  class BaseResourceFinder : public boost::noncopyable
   {
+  public:
+    class IMainTagsFilter : public boost::noncopyable
+    {
+    public:
+      virtual ~IMainTagsFilter()
+      {
+      }
+
+      virtual bool Apply(const DicomMap& mainTags,
+                         ResourceType level) = 0;
+    };
+
+
+    class IInstanceFilter : public boost::noncopyable
+    {
+    public:
+      virtual ~IInstanceFilter()
+      {
+      }
+
+      virtual bool Apply(const std::string& instanceId,
+                         const Json::Value& content) = 0;
+    };
+
+
   private:
-    BaseResourceFinder  finder_;
+    typedef std::map<DicomTag, std::string>  Identifiers;
+
+    class CandidateResources;
+
+    ServerContext&    context_;
+    ResourceType      level_;
+    size_t            maxResults_;
+    Identifiers       identifiers_;
+    IMainTagsFilter  *mainTagsFilter_;
+    IInstanceFilter  *instanceFilter_;
+
+    void ApplyAtLevel(CandidateResources& candidates,
+                      ResourceType level);
 
   public:
-    ResourceFinder(ServerContext& context) :
-      finder_(context)
-    {
-    }
+    BaseResourceFinder(ServerContext& context);
 
     ResourceType GetLevel() const
     {
-      return finder_.GetLevel();
+      return level_;
     }
 
     void SetLevel(ResourceType level)
     {
-      finder_.SetLevel(level);
+      level_ = level;
+    }
+
+    void SetIdentifier(const DicomTag& tag,
+                       const std::string& value);
+
+    void SetMainTagsFilter(IMainTagsFilter& filter)
+    {
+      mainTagsFilter_ = &filter;
+    }
+
+    void SetInstanceFilter(IInstanceFilter& filter)
+    {
+      instanceFilter_ = &filter;
     }
 
     void SetMaxResults(size_t value)
     {
-      finder_.SetMaxResults(value);
+      maxResults_ = value;
     }
 
     size_t GetMaxResults() const
     {
-      return finder_.GetMaxResults();
+      return maxResults_;
     }
 
-    bool Apply(std::list<std::string>& result)
-    {
-      return finder_.Apply(result);
-    }
+    // Returns "true" iff. all the matching resources have been
+    // returned. Will be "false" if the results were truncated by
+    // "SetMaxResults()".
+    bool Apply(std::list<std::string>& result);
   };
 
 }
