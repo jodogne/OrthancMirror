@@ -310,8 +310,9 @@ namespace Orthanc
     return filteredLevels_.find(level) != filteredLevels_.end();
   }
 
-  bool DicomFindQuery::FilterMainDicomTags(const DicomMap& mainTags,
-                                           ResourceType level) const
+  bool DicomFindQuery::FilterMainDicomTags(const std::string& resourceId,
+                                           ResourceType level,
+                                           const DicomMap& mainTags) const
   {
     std::set<DicomTag> tags;
     mainTags.GetTags(tags);
@@ -320,7 +321,8 @@ namespace Orthanc
            it = tags.begin(); it != tags.end(); ++it)
     {
       Constraints::const_iterator constraint = constraints_.find(*it);
-      if (!constraint->second->Apply(mainTags.GetValue(*it).AsString()))
+      if (constraint != constraints_.end() &&
+          !constraint->second->Apply(mainTags.GetValue(*it).AsString()))
       {
         return false;
       }

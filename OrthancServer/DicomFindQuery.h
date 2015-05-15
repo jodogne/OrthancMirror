@@ -98,8 +98,9 @@ namespace Orthanc
 
     virtual bool HasMainDicomTagsFilter(ResourceType level) const;
 
-    virtual bool FilterMainDicomTags(const DicomMap& mainTags,
-                                     ResourceType level) const;
+    virtual bool FilterMainDicomTags(const std::string& resourceId,
+                                     ResourceType level,
+                                     const DicomMap& mainTags) const;
 
     virtual bool HasInstanceFilter() const;
 

@@ -209,7 +209,7 @@ namespace Orthanc
         DicomMap mainTags;
         if (index_.GetMainDicomTags(mainTags, *it, level_))
         {
-          if (query.FilterMainDicomTags(mainTags, level_))
+          if (query.FilterMainDicomTags(*it, level_, mainTags))
           {
             filtered_.insert(*it);
           }

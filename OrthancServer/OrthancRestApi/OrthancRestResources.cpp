@@ -36,6 +36,7 @@
 #include "../ServerToolbox.h"
 #include "../FromDcmtkBridge.h"
 #include "../ResourceFinder.h"
+#include "../DicomFindQuery.h"
 
 #include <glog/logging.h>
 
@@ -868,13 +869,8 @@ namespace Orthanc
 
       std::string level = request["Level"].asString();
 
-      /*ResourceFinder finder(context);
-      finder.SetLevel(StringToResourceType(level.c_str()));
-
-      if (request.isMember("CaseSensitive"))
-      {
-        finder.SetCaseSensitive(request["CaseSensitive"].asBool());
-      }
+      DicomFindQuery query;
+      query.SetLevel(StringToResourceType(level.c_str()));
 
       Json::Value::Members members = request["Query"].getMemberNames();
       for (size_t i = 0; i < members.size(); i++)
@@ -884,12 +880,14 @@ namespace Orthanc
           throw OrthancException(ErrorCode_BadRequest);
         }
 
-        finder.AddTag(members[i], request["Query"][members[i]].asString());
-        }
-
+        query.SetConstraint(FromDcmtkBridge::ParseTag(members[i]), 
+                            request["Query"][members[i]].asString());
+      }
+      
       std::list<std::string> resources;
-      finder.Apply(resources);
-      AnswerListOfResources(call.GetOutput(), context.GetIndex(), resources, finder.GetLevel(), expand);*/
+      ResourceFinder finder(context);
+      finder.Apply(resources, query);
+      AnswerListOfResources(call.GetOutput(), context.GetIndex(), resources, query.GetLevel(), expand);
     }
     else
     {
