@@ -31,7 +31,7 @@
 
 
 #include "PrecompiledHeadersServer.h"
-#include "BaseResourceFinder.h"
+#include "ResourceFinder.h"
 
 #include "FromDcmtkBridge.h"
 #include "ServerContext.h"
@@ -41,12 +41,12 @@
 
 namespace Orthanc
 {
-  class BaseResourceFinder::CandidateResources
+  class ResourceFinder::CandidateResources
   {
   private:
     typedef std::map<DicomTag, std::string>  Query;
 
-    BaseResourceFinder&   finder_;
+    ResourceFinder&        finder_;
     ServerIndex&           index_;
     ResourceType           level_;
     bool                   isFilterApplied_;
@@ -64,49 +64,8 @@ namespace Orthanc
     }
 
 
-    void RestrictIdentifier(const DicomTag& tag,
-                            const std::string& value)
-    {
-      assert((level_ == ResourceType_Patient && tag == DICOM_TAG_PATIENT_ID) ||
-             (level_ == ResourceType_Study && tag == DICOM_TAG_STUDY_INSTANCE_UID) ||
-             (level_ == ResourceType_Study && tag == DICOM_TAG_ACCESSION_NUMBER) ||
-             (level_ == ResourceType_Series && tag == DICOM_TAG_SERIES_INSTANCE_UID) ||
-             (level_ == ResourceType_Instance && tag == DICOM_TAG_SOP_INSTANCE_UID));
-
-      LOG(INFO) << "Lookup for identifier tag "
-                << FromDcmtkBridge::GetName(tag) << " (value: " << value << ")";
-
-      std::list<std::string> resources;
-      index_.LookupIdentifier(resources, tag, value, level_);
-
-      if (isFilterApplied_)
-      {
-        std::set<std::string>  s;
-        ListToSet(s, resources);
-
-        std::set<std::string> tmp = filtered_;
-        filtered_.clear();
-
-        for (std::set<std::string>::const_iterator 
-               it = tmp.begin(); it != tmp.end(); ++it)
-        {
-          if (s.find(*it) != s.end())
-          {
-            filtered_.insert(*it);
-          }
-        }
-      }
-      else
-      {
-        assert(filtered_.empty());
-        isFilterApplied_ = true;
-        ListToSet(filtered_, resources);
-      }
-    }
-
-
   public:
-    CandidateResources(BaseResourceFinder& finder) : 
+    CandidateResources(ResourceFinder& finder) : 
       finder_(finder),
       index_(finder.context_.GetIndex()),
       level_(ResourceType_Patient), 
@@ -184,19 +143,56 @@ namespace Orthanc
     }
 
     
-    void RestrictIdentifier(const DicomTag& tag)
+    void RestrictIdentifier(const IQuery& query,
+                            const DicomTag& tag)
     {
-      Identifiers::const_iterator it = finder_.identifiers_.find(tag);
-      if (it != finder_.identifiers_.end())
+      assert((level_ == ResourceType_Patient && tag == DICOM_TAG_PATIENT_ID) ||
+             (level_ == ResourceType_Study && tag == DICOM_TAG_STUDY_INSTANCE_UID) ||
+             (level_ == ResourceType_Study && tag == DICOM_TAG_ACCESSION_NUMBER) ||
+             (level_ == ResourceType_Series && tag == DICOM_TAG_SERIES_INSTANCE_UID) ||
+             (level_ == ResourceType_Instance && tag == DICOM_TAG_SOP_INSTANCE_UID));
+
+      std::string value;
+      if (!query.RestrictIdentifier(value, tag))
       {
-        RestrictIdentifier(it->first, it->second);
+        return;
+      }
+
+      LOG(INFO) << "Lookup for identifier tag "
+                << FromDcmtkBridge::GetName(tag) << " (value: " << value << ")";
+
+      std::list<std::string> resources;
+      index_.LookupIdentifier(resources, tag, value, level_);
+
+      if (isFilterApplied_)
+      {
+        std::set<std::string>  s;
+        ListToSet(s, resources);
+
+        std::set<std::string> tmp = filtered_;
+        filtered_.clear();
+
+        for (std::set<std::string>::const_iterator 
+               it = tmp.begin(); it != tmp.end(); ++it)
+        {
+          if (s.find(*it) != s.end())
+          {
+            filtered_.insert(*it);
+          }
+        }
+      }
+      else
+      {
+        assert(filtered_.empty());
+        isFilterApplied_ = true;
+        ListToSet(filtered_, resources);
       }
     }
 
 
-    void RestrictMainDicomTags()
+    void RestrictMainDicomTags(const IQuery& query)
     {
-      if (finder_.mainTagsFilter_ == NULL)
+      if (!query.HasMainDicomTagsFilter(level_))
       {
         return;
       }
@@ -213,7 +209,7 @@ namespace Orthanc
         DicomMap mainTags;
         if (index_.GetMainDicomTags(mainTags, *it, level_))
         {
-          if (finder_.mainTagsFilter_->Apply(mainTags, level_))
+          if (query.FilterMainDicomTags(mainTags, level_))
           {
             filtered_.insert(*it);
           }
@@ -223,46 +219,46 @@ namespace Orthanc
   };
 
 
-  BaseResourceFinder::BaseResourceFinder(ServerContext& context) : 
+  ResourceFinder::ResourceFinder(ServerContext& context) : 
     context_(context),
-    level_(ResourceType_Patient),
     maxResults_(0)
   {
   }
 
 
-  void BaseResourceFinder::ApplyAtLevel(CandidateResources& candidates,
-                                        ResourceType level)
+  void ResourceFinder::ApplyAtLevel(CandidateResources& candidates,
+                                    const IQuery& query,
+                                    ResourceType level)
   {
     if (level != ResourceType_Patient)
     {
       candidates.GoDown();
     }
 
-    switch (level_)
+    switch (level)
     {
       case ResourceType_Patient:
       {
-        candidates.RestrictIdentifier(DICOM_TAG_PATIENT_ID);
+        candidates.RestrictIdentifier(query, DICOM_TAG_PATIENT_ID);
         break;
       }
 
       case ResourceType_Study:
       {
-        candidates.RestrictIdentifier(DICOM_TAG_STUDY_INSTANCE_UID);
-        candidates.RestrictIdentifier(DICOM_TAG_ACCESSION_NUMBER);
+        candidates.RestrictIdentifier(query, DICOM_TAG_STUDY_INSTANCE_UID);
+        candidates.RestrictIdentifier(query, DICOM_TAG_ACCESSION_NUMBER);
         break;
       }
 
       case ResourceType_Series:
       {
-        candidates.RestrictIdentifier(DICOM_TAG_SERIES_INSTANCE_UID);
+        candidates.RestrictIdentifier(query, DICOM_TAG_SERIES_INSTANCE_UID);
         break;
       }
 
       case ResourceType_Instance:
       {
-        candidates.RestrictIdentifier(DICOM_TAG_SOP_INSTANCE_UID);
+        candidates.RestrictIdentifier(query, DICOM_TAG_SOP_INSTANCE_UID);
         break;
       }
 
@@ -270,22 +266,9 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
     }
 
-    candidates.RestrictMainDicomTags();
+    candidates.RestrictMainDicomTags(query);
   }
 
-
-
-  void BaseResourceFinder::SetIdentifier(const DicomTag& tag,
-                                         const std::string& value)
-  {
-    assert((level_ >= ResourceType_Patient && tag == DICOM_TAG_PATIENT_ID) ||
-           (level_ >= ResourceType_Study && tag == DICOM_TAG_STUDY_INSTANCE_UID) ||
-           (level_ >= ResourceType_Study && tag == DICOM_TAG_ACCESSION_NUMBER) ||
-           (level_ >= ResourceType_Series && tag == DICOM_TAG_SERIES_INSTANCE_UID) ||
-           (level_ >= ResourceType_Instance && tag == DICOM_TAG_SOP_INSTANCE_UID));
-
-    identifiers_[tag] = value;
-  }
 
 
   static bool LookupOneInstance(std::string& result,
@@ -317,31 +300,34 @@ namespace Orthanc
   }
 
 
-  bool BaseResourceFinder::Apply(std::list<std::string>& result)
+  bool ResourceFinder::Apply(std::list<std::string>& result,
+                             const IQuery& query)
   {
     CandidateResources candidates(*this);
 
-    ApplyAtLevel(candidates, ResourceType_Patient);
+    ApplyAtLevel(candidates, query, ResourceType_Patient);
 
-    if (level_ == ResourceType_Study ||
-        level_ == ResourceType_Series ||
-        level_ == ResourceType_Instance)
+    const ResourceType level = query.GetLevel();
+
+    if (level == ResourceType_Study ||
+        level == ResourceType_Series ||
+        level == ResourceType_Instance)
     {
-      ApplyAtLevel(candidates, ResourceType_Study);
+      ApplyAtLevel(candidates, query, ResourceType_Study);
     }
         
-    if (level_ == ResourceType_Series ||
-        level_ == ResourceType_Instance)
+    if (level == ResourceType_Series ||
+        level == ResourceType_Instance)
     {
-      ApplyAtLevel(candidates, ResourceType_Series);
+      ApplyAtLevel(candidates, query, ResourceType_Series);
     }
         
-    if (level_ == ResourceType_Instance)
+    if (level == ResourceType_Instance)
     {
-      ApplyAtLevel(candidates, ResourceType_Instance);
+      ApplyAtLevel(candidates, query, ResourceType_Instance);
     }
 
-    if (instanceFilter_ == NULL)
+    if (!query.HasInstanceFilter())
     {
       candidates.Flatten(result);
 
@@ -368,11 +354,11 @@ namespace Orthanc
         try
         {
           std::string instance;
-          if (LookupOneInstance(instance, context_.GetIndex(), *resource, level_))
+          if (LookupOneInstance(instance, context_.GetIndex(), *resource, level))
           {
             Json::Value content;
             context_.ReadJson(content, instance);
-            if (instanceFilter_->Apply(*resource, content))
+            if (query.FilterInstance(*resource, content))
             {
               result.push_back(*resource);
 

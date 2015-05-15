@@ -406,4 +406,16 @@ namespace Orthanc
     DicomArray a(*this);
     a.Print(fp);
   }
+
+
+  void DicomMap::GetTags(std::set<DicomTag>& tags) const
+  {
+    tags.clear();
+
+    for (Map::const_iterator it = map_.begin();
+         it != map_.end(); ++it)
+    {
+      tags.insert(it->first);
+    }
+  }
 }

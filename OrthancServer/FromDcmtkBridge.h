@@ -105,5 +105,7 @@ namespace Orthanc
 
     static bool SaveToMemoryBuffer(std::string& buffer,
                                    DcmDataset& dataSet);
+
+    static bool IsPNValueRepresentation(const DicomTag& tag);
   };
 }

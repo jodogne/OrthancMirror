@@ -171,5 +171,7 @@ namespace Orthanc
     static void GetMainDicomTags(std::set<DicomTag>& result);
 
     void Print(FILE* fp) const;
+
+    void GetTags(std::set<DicomTag>& tags) const;
   };
 }
