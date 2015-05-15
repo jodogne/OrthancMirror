@@ -99,6 +99,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       ${DCMTK_SOURCES_DIR}/oflog/libsrc/windebap.cc
       ${DCMTK_SOURCES_DIR}/oflog/libsrc/winsock.cc
       )
+    
   elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     list(REMOVE_ITEM DCMTK_SOURCES 
       ${DCMTK_SOURCES_DIR}/oflog/libsrc/unixsock.cc
