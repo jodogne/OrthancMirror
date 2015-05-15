@@ -1,11 +1,26 @@
 Pending changes in the mainline
 ===============================
 
-* Huge speed-up in Orthanc Explorer for large amount of images
+Major
+-----
+
 * "?expand" flag for URIs "/patients", "/studies" and "/series"
+* "/tools/find" URI to search for DICOM resources from REST
 * Support of FreeBSD
-* Prevent freeze on C-FIND if no DICOM tag is to be returned
+
+Minor
+-----
+
+* Speed-up in Orthanc Explorer for large amount of images
+* Speed-up of the C-Find SCP server of Orthanc
 * Allow replacing PatientID/StudyInstanceUID/SeriesInstanceUID from Lua scripts
+
+Fixes
+-----
+
+* Prevent freeze on C-FIND if no DICOM tag is to be returned
+* Fix slow C-Store SCP on recent versions of Linux, if
+  USE_SYSTEM_DCMTK is set to OFF (http://forum.dcmtk.org/viewtopic.php?f=1&t=4009)
 * Fix issue 30 (QR response missing "Query/Retrieve Level" (008,0052))
 * Fix issue 32 (Cyrillic symbols): Introduction of the "Windows1251" encoding
 

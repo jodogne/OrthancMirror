@@ -104,7 +104,7 @@ if (BOOST_STATIC)
     # (including XCode 5.1). Fixes issue 14 of Orthanc.
     # https://trac.macports.org/ticket/42282#comment:10
     execute_process(
-      COMMAND patch -p0 -i ${ORTHANC_ROOT}/Resources/Patches/boost-1.55.0-clang-atomic.patch
+      COMMAND patch -p0 -N -i ${ORTHANC_ROOT}/Resources/Patches/boost-1.55.0-clang-atomic.patch
       WORKING_DIRECTORY ${BOOST_SOURCES_DIR}
       )
   endif()
