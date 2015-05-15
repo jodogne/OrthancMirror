@@ -860,18 +860,18 @@ namespace Orthanc
         request["Level"].type() == Json::stringValue &&
         request["Query"].type() == Json::objectValue)
     {
-      std::string level = request["Level"].asString();
-
-      ResourceFinder finder(context);
-      finder.SetLevel(StringToResourceType(level.c_str()));
-
       bool expand = false;
       if (request.isMember("Expand"))
       {
         expand = request["Expand"].asBool();
       }
 
-      /*if (request.isMember("CaseSensitive"))
+      std::string level = request["Level"].asString();
+
+      /*ResourceFinder finder(context);
+      finder.SetLevel(StringToResourceType(level.c_str()));
+
+      if (request.isMember("CaseSensitive"))
       {
         finder.SetCaseSensitive(request["CaseSensitive"].asBool());
       }
@@ -885,11 +885,11 @@ namespace Orthanc
         }
 
         finder.AddTag(members[i], request["Query"][members[i]].asString());
-        }*/
+        }
 
       std::list<std::string> resources;
       finder.Apply(resources);
-      AnswerListOfResources(call.GetOutput(), context.GetIndex(), resources, finder.GetLevel(), expand);
+      AnswerListOfResources(call.GetOutput(), context.GetIndex(), resources, finder.GetLevel(), expand);*/
     }
     else
     {

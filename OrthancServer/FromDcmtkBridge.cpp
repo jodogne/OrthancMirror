@@ -721,4 +721,12 @@ namespace Orthanc
       return false;
     }
   }
+
+
+  bool FromDcmtkBridge::IsPNValueRepresentation(const DicomTag& tag)
+  {
+    DcmTag t(tag.GetGroup(), tag.GetElement());
+    return t.getEVR() == EVR_PN;
+  }
+
 }

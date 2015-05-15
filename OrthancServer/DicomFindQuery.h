@@ -32,69 +32,78 @@
 
 #pragma once
 
-#include "ServerIndex.h"
-
-#include <boost/noncopyable.hpp>
+#include "ResourceFinder.h"
 
 namespace Orthanc
 {
-  class ResourceFinder : public boost::noncopyable
+  class DicomFindQuery : public ResourceFinder::IQuery
   {
-  public:
-    class IQuery : public boost::noncopyable
+  private:
+    class  IConstraint : public boost::noncopyable
     {
     public:
-      virtual ~IQuery()
+      virtual ~IConstraint()
       {
       }
 
-      virtual ResourceType GetLevel() const = 0;
+      virtual bool IsExactConstraint() const
+      {
+        return false;
+      }
 
-      virtual bool RestrictIdentifier(std::string& value,
-                                      DicomTag identifier) const = 0;
-
-      virtual bool HasMainDicomTagsFilter(ResourceType level) const = 0;
-
-      virtual bool FilterMainDicomTags(const DicomMap& mainTags,
-                                       ResourceType level) const = 0;
-
-      virtual bool HasInstanceFilter() const = 0;
-
-      virtual bool FilterInstance(const std::string& instanceId,
-                                  const Json::Value& content) const = 0;
+      virtual bool Apply(const std::string& value) const = 0;
     };
 
 
-  private:
-    typedef std::map<DicomTag, std::string>  Identifiers;
+    class ValueConstraint;
+    class RangeConstraint;
+    class ListConstraint;
+    class WildcardConstraint;
 
-    class CandidateResources;
+    typedef std::map<DicomTag, IConstraint*>  Constraints;
+    typedef std::map<DicomTag, ResourceType>  MainDicomTags;
 
-    ServerContext&    context_;
-    size_t            maxResults_;
+    MainDicomTags           mainDicomTags_;
+    ResourceType            level_;
+    bool                    filterJson_;
+    Constraints             constraints_;
+    std::set<ResourceType>  filteredLevels_;
 
-    void ApplyAtLevel(CandidateResources& candidates,
-                      const IQuery& query,
-                      ResourceType level);
+    void AssignConstraint(const DicomTag& tag,
+                          IConstraint* constraint);
+
+    void PrepareMainDicomTags(ResourceType level);
+
 
   public:
-    ResourceFinder(ServerContext& context);
+    DicomFindQuery();
 
-    void SetMaxResults(size_t value)
+    virtual ~DicomFindQuery();
+
+    void SetLevel(ResourceType level)
     {
-      maxResults_ = value;
+      level_ = level;
     }
 
-    size_t GetMaxResults() const
+    virtual ResourceType GetLevel() const
     {
-      return maxResults_;
+      return level_;
     }
 
-    // Returns "true" iff. all the matching resources have been
-    // returned. Will be "false" if the results were truncated by
-    // "SetMaxResults()".
-    bool Apply(std::list<std::string>& result,
-               const IQuery& query);
+    void SetConstraint(const DicomTag& tag,
+                       const std::string& constraint);
+
+    virtual bool RestrictIdentifier(std::string& value,
+                                    DicomTag identifier) const;
+
+    virtual bool HasMainDicomTagsFilter(ResourceType level) const;
+
+    virtual bool FilterMainDicomTags(const DicomMap& mainTags,
+                                     ResourceType level) const;
+
+    virtual bool HasInstanceFilter() const;
+
+    virtual bool FilterInstance(const std::string& instanceId,
+                                const Json::Value& content) const;
   };
-
 }

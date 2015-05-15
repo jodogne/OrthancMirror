@@ -287,3 +287,10 @@ TEST(FromDcmtkBridge, Encodings3)
     }
   }
 }
+
+
+TEST(FromDcmtkBridge, VR)
+{
+  ASSERT_TRUE(FromDcmtkBridge::IsPNValueRepresentation(DICOM_TAG_PATIENT_NAME));
+  ASSERT_FALSE(FromDcmtkBridge::IsPNValueRepresentation(DICOM_TAG_PATIENT_ID));
+}
