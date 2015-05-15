@@ -100,6 +100,11 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       ${DCMTK_SOURCES_DIR}/oflog/libsrc/winsock.cc
       )
     
+    execute_process(
+      COMMAND patch -p0 -N -i ${ORTHANC_ROOT}/Resources/Patches/dcmtk-linux-speed.patch
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      )
+
   elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     list(REMOVE_ITEM DCMTK_SOURCES 
       ${DCMTK_SOURCES_DIR}/oflog/libsrc/unixsock.cc
@@ -108,7 +113,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     if (${CMAKE_COMPILER_IS_GNUCXX})
       # This is a patch for MinGW64
       execute_process(
-        COMMAND patch -p0 -i ${ORTHANC_ROOT}/Resources/Patches/dcmtk-mingw64.patch
+        COMMAND patch -p0 -N -i ${ORTHANC_ROOT}/Resources/Patches/dcmtk-mingw64.patch
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         )
     endif()
