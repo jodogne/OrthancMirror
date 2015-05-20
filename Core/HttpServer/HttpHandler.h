@@ -44,7 +44,8 @@ namespace Orthanc
   class HttpHandler
   {
   public:
-    typedef std::map<std::string, std::string> Arguments;
+    typedef std::map<std::string, std::string>                  Arguments;
+    typedef std::vector< std::pair<std::string, std::string> >  GetArguments;
 
     virtual ~HttpHandler()
     {
@@ -54,21 +55,28 @@ namespace Orthanc
                         HttpMethod method,
                         const UriComponents& uri,
                         const Arguments& headers,
-                        const Arguments& getArguments,
+                        const GetArguments& getArguments,
                         const std::string& postData) = 0;
 
-    static void ParseGetArguments(HttpHandler::Arguments& result, 
+    static void ParseGetArguments(HttpHandler::GetArguments& result, 
                                   const char* query);
 
     static void ParseGetQuery(UriComponents& uri,
-                              HttpHandler::Arguments& getArguments, 
+                              HttpHandler::GetArguments& getArguments, 
                               const char* query);
 
     static std::string GetArgument(const Arguments& getArguments,
                                    const std::string& name,
                                    const std::string& defaultValue);
 
+    static std::string GetArgument(const GetArguments& getArguments,
+                                   const std::string& name,
+                                   const std::string& defaultValue);
+
     static void ParseCookies(HttpHandler::Arguments& result, 
                              const HttpHandler::Arguments& httpHeaders);
+
+    static void CompileGetArguments(Arguments& compiled,
+                                    const GetArguments& source);
   };
 }

@@ -303,11 +303,26 @@ namespace Orthanc
   }
 
 
+  static void ArgumentsToPlugin(std::vector<const char*>& keys,
+                                std::vector<const char*>& values,
+                                const HttpHandler::GetArguments& arguments)
+  {
+    keys.resize(arguments.size());
+    values.resize(arguments.size());
+
+    for (size_t i = 0; i < arguments.size(); i++)
+    {
+      keys[i] = arguments[i].first.c_str();
+      values[i] = arguments[i].second.c_str();
+    }
+  }
+
+
   bool OrthancPlugins::Handle(HttpOutput& output,
                               HttpMethod method,
                               const UriComponents& uri,
                               const Arguments& headers,
-                              const Arguments& getArguments,
+                              const GetArguments& getArguments,
                               const std::string& postData)
   {
     std::string flatUri = Toolbox::FlattenUri(uri);
@@ -671,7 +686,7 @@ namespace Orthanc
     std::string body;  // No body for a GET request
 
     UriComponents uri;
-    HttpHandler::Arguments getArguments;
+    HttpHandler::GetArguments getArguments;
     HttpHandler::ParseGetQuery(uri, getArguments, p.uri);
 
     StringHttpOutput stream;
@@ -714,7 +729,7 @@ namespace Orthanc
       *reinterpret_cast<const _OrthancPluginRestApiPostPut*>(parameters);
 
     HttpHandler::Arguments headers;  // No HTTP header
-    HttpHandler::Arguments getArguments;  // No GET argument for POST/PUT
+    HttpHandler::GetArguments getArguments;  // No GET argument for POST/PUT
 
     UriComponents uri;
     Toolbox::SplitUriComponents(uri, p.uri);
@@ -763,7 +778,7 @@ namespace Orthanc
     Toolbox::SplitUriComponents(uri, reinterpret_cast<const char*>(parameters));
 
     HttpHandler::Arguments headers;  // No HTTP header
-    HttpHandler::Arguments getArguments;  // No GET argument for POST/PUT
+    HttpHandler::GetArguments getArguments;  // No GET argument for POST/PUT
     std::string body;  // No body for DELETE
 
     StringHttpOutput stream;

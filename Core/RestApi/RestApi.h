@@ -50,7 +50,7 @@ namespace Orthanc
                         HttpMethod method,
                         const UriComponents& uri,
                         const Arguments& headers,
-                        const Arguments& getArguments,
+                        const GetArguments& getArguments,
                         const std::string& postData);
 
     void Register(const std::string& path,

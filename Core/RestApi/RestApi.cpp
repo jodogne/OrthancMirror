@@ -160,7 +160,7 @@ namespace Orthanc
                        HttpMethod method,
                        const UriComponents& uri,
                        const Arguments& headers,
-                       const Arguments& getArguments,
+                       const GetArguments& getArguments,
                        const std::string& postData)
   {
     RestApiOutput wrappedOutput(output);
@@ -188,7 +188,10 @@ namespace Orthanc
     }
 #endif
 
-    HttpHandlerVisitor visitor(*this, wrappedOutput, method, headers, getArguments, postData);
+    Arguments compiled;
+    HttpHandler::CompileGetArguments(compiled, getArguments);
+
+    HttpHandlerVisitor visitor(*this, wrappedOutput, method, headers, compiled, postData);
 
     if (root_.LookupResource(uri, visitor))
     {

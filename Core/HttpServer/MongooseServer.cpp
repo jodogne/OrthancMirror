@@ -466,7 +466,7 @@ namespace Orthanc
   static bool ExtractMethod(HttpMethod& method,
                             const struct mg_request_info *request,
                             const HttpHandler::Arguments& headers,
-                            const HttpHandler::Arguments& argumentsGET)
+                            const HttpHandler::GetArguments& argumentsGET)
   {
     std::string overriden;
 
@@ -484,10 +484,13 @@ namespace Orthanc
     {
       // 2. Faking with Ruby on Rail's approach
       // GET /my/resource?_method=delete <=> DELETE /my/resource
-      methodOverride = argumentsGET.find("_method");
-      if (methodOverride != argumentsGET.end())
+      for (size_t i = 0; i < argumentsGET.size(); i++)
       {
-        overriden = methodOverride->second;
+        if (argumentsGET[i].first == "_method")
+        {
+          overriden = argumentsGET[i].second;
+          break;
+        }
       }
     }
 
@@ -567,7 +570,7 @@ namespace Orthanc
 
 
     // Extract the GET arguments
-    HttpHandler::Arguments argumentsGET;
+    HttpHandler::GetArguments argumentsGET;
     if (!strcmp(request->request_method, "GET"))
     {
       HttpHandler::ParseGetArguments(argumentsGET, request->query_string);
