@@ -177,8 +177,12 @@ TEST(Zlib, Empty)
 
 TEST(ParseGetArguments, Basic)
 {
+  HttpHandler::GetArguments b;
+  HttpHandler::ParseGetArguments(b, "aaa=baaa&bb=a&aa=c");
+
   HttpHandler::Arguments a;
-  HttpHandler::ParseGetArguments(a, "aaa=baaa&bb=a&aa=c");
+  HttpHandler::CompileGetArguments(a, b);
+
   ASSERT_EQ(3u, a.size());
   ASSERT_EQ(a["aaa"], "baaa");
   ASSERT_EQ(a["bb"], "a");
@@ -187,8 +191,12 @@ TEST(ParseGetArguments, Basic)
 
 TEST(ParseGetArguments, BasicEmpty)
 {
+  HttpHandler::GetArguments b;
+  HttpHandler::ParseGetArguments(b, "aaa&bb=aa&aa");
+
   HttpHandler::Arguments a;
-  HttpHandler::ParseGetArguments(a, "aaa&bb=aa&aa");
+  HttpHandler::CompileGetArguments(a, b);
+
   ASSERT_EQ(3u, a.size());
   ASSERT_EQ(a["aaa"], "");
   ASSERT_EQ(a["bb"], "aa");
@@ -197,16 +205,24 @@ TEST(ParseGetArguments, BasicEmpty)
 
 TEST(ParseGetArguments, Single)
 {
+  HttpHandler::GetArguments b;
+  HttpHandler::ParseGetArguments(b, "aaa=baaa");
+
   HttpHandler::Arguments a;
-  HttpHandler::ParseGetArguments(a, "aaa=baaa");
+  HttpHandler::CompileGetArguments(a, b);
+
   ASSERT_EQ(1u, a.size());
   ASSERT_EQ(a["aaa"], "baaa");
 }
 
 TEST(ParseGetArguments, SingleEmpty)
 {
+  HttpHandler::GetArguments b;
+  HttpHandler::ParseGetArguments(b, "aaa");
+
   HttpHandler::Arguments a;
-  HttpHandler::ParseGetArguments(a, "aaa");
+  HttpHandler::CompileGetArguments(a, b);
+
   ASSERT_EQ(1u, a.size());
   ASSERT_EQ(a["aaa"], "");
 }
@@ -214,8 +230,12 @@ TEST(ParseGetArguments, SingleEmpty)
 TEST(ParseGetQuery, Test1)
 {
   UriComponents uri;
+  HttpHandler::GetArguments b;
+  HttpHandler::ParseGetQuery(uri, b, "/instances/test/world?aaa=baaa&bb=a&aa=c");
+
   HttpHandler::Arguments a;
-  HttpHandler::ParseGetQuery(uri, a, "/instances/test/world?aaa=baaa&bb=a&aa=c");
+  HttpHandler::CompileGetArguments(a, b);
+
   ASSERT_EQ(3u, uri.size());
   ASSERT_EQ("instances", uri[0]);
   ASSERT_EQ("test", uri[1]);
@@ -229,8 +249,12 @@ TEST(ParseGetQuery, Test1)
 TEST(ParseGetQuery, Test2)
 {
   UriComponents uri;
+  HttpHandler::GetArguments b;
+  HttpHandler::ParseGetQuery(uri, b, "/instances/test/world");
+
   HttpHandler::Arguments a;
-  HttpHandler::ParseGetQuery(uri, a, "/instances/test/world");
+  HttpHandler::CompileGetArguments(a, b);
+
   ASSERT_EQ(3u, uri.size());
   ASSERT_EQ("instances", uri[0]);
   ASSERT_EQ("test", uri[1]);

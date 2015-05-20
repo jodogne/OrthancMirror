@@ -23,6 +23,7 @@ Fixes
   USE_SYSTEM_DCMTK is set to OFF (http://forum.dcmtk.org/viewtopic.php?f=1&t=4009)
 * Fix issue 30 (QR response missing "Query/Retrieve Level" (008,0052))
 * Fix issue 32 (Cyrillic symbols): Introduction of the "Windows1251" encoding
+* Plugins now receive duplicated GET arguments in their REST callbacks
 
 
 Version 0.8.6 (2015/02/12)

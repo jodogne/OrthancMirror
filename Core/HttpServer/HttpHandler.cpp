@@ -39,7 +39,7 @@
 
 namespace Orthanc
 {
-  static void SplitGETNameValue(HttpHandler::Arguments& result,
+  static void SplitGETNameValue(HttpHandler::GetArguments& result,
                                 const char* start,
                                 const char* end)
   {
@@ -60,11 +60,12 @@ namespace Orthanc
     Toolbox::UrlDecode(name);
     Toolbox::UrlDecode(value);
 
-    result.insert(std::make_pair(name, value));
+    result.push_back(std::make_pair(name, value));
   }
 
 
-  void HttpHandler::ParseGetArguments(HttpHandler::Arguments& result, const char* query)
+  void HttpHandler::ParseGetArguments(HttpHandler::GetArguments& result, 
+                                      const char* query)
   {
     const char* pos = query;
 
@@ -87,7 +88,7 @@ namespace Orthanc
 
 
   void  HttpHandler::ParseGetQuery(UriComponents& uri,
-                                   HttpHandler::Arguments& getArguments, 
+                                   HttpHandler::GetArguments& getArguments, 
                                    const char* query)
   {
     const char *questionMark = ::strchr(query, '?');
@@ -104,7 +105,7 @@ namespace Orthanc
     }    
   }
 
-
+ 
   std::string HttpHandler::GetArgument(const Arguments& getArguments,
                                        const std::string& name,
                                        const std::string& defaultValue)
@@ -118,6 +119,22 @@ namespace Orthanc
     {
       return it->second;
     }
+  }
+
+
+  std::string HttpHandler::GetArgument(const GetArguments& getArguments,
+                                       const std::string& name,
+                                       const std::string& defaultValue)
+  {
+    for (size_t i = 0; i < getArguments.size(); i++)
+    {
+      if (getArguments[i].first == name)
+      {
+        return getArguments[i].second;
+      }
+    }
+
+    return defaultValue;
   }
 
 
@@ -157,6 +174,18 @@ namespace Orthanc
           result[name] = value;
         }
       }
+    }
+  }
+
+
+  void HttpHandler::CompileGetArguments(Arguments& compiled,
+                                        const GetArguments& source)
+  {
+    compiled.clear();
+
+    for (size_t i = 0; i < source.size(); i++)
+    {
+      compiled[source[i].first] = source[i].second;
     }
   }
 }

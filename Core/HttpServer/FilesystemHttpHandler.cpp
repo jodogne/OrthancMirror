@@ -129,7 +129,7 @@ namespace Orthanc
     HttpMethod method,
     const UriComponents& uri,
     const Arguments& headers,
-    const Arguments& arguments,
+    const GetArguments& arguments,
     const std::string&)
   {
     if (!Toolbox::IsChildUri(pimpl_->baseUri_, uri))

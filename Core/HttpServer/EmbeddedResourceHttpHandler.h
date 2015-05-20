@@ -55,7 +55,7 @@ namespace Orthanc
       HttpMethod method,
       const UriComponents& uri,
       const Arguments& headers,
-      const Arguments& arguments,
+      const GetArguments& arguments,
       const std::string&);
   };
 }
