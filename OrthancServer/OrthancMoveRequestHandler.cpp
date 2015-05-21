@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -101,9 +101,9 @@ namespace Orthanc
   }
 
 
-  bool OrthancMoveRequestHandler::LookupResource(std::string& publicId,
-                                                 DicomTag tag,
-                                                 const DicomMap& input)
+  bool OrthancMoveRequestHandler::LookupIdentifier(std::string& publicId,
+                                                   DicomTag tag,
+                                                   const DicomMap& input)
   {
     if (!input.HasTag(tag))
     {
@@ -113,7 +113,7 @@ namespace Orthanc
     std::string value = input.GetValue(tag).AsString();
 
     std::list<std::string> ids;
-    context_.GetIndex().LookupTagValue(ids, tag, value);
+    context_.GetIndex().LookupIdentifier(ids, tag, value);
 
     if (ids.size() != 1)
     {
@@ -132,18 +132,42 @@ namespace Orthanc
   {
     LOG(WARNING) << "Move-SCU request received for AET \"" << aet << "\"";
 
-
     /**
      * Retrieve the query level.
      **/
 
+    ResourceType level;
     const DicomValue* levelTmp = input.TestAndGetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL);
-    if (levelTmp == NULL) 
+
+    if (levelTmp != NULL) 
     {
-      throw OrthancException(ErrorCode_BadRequest);
+      level = StringToResourceType(levelTmp->AsString().c_str());
+    }
+    else
+    {
+      // The query level is not present in the C-Move request, which
+      // does not follow the DICOM standard. This is for instance the
+      // behavior of Tudor DICOM. Try and automatically deduce the
+      // query level: Start from the instance level, going up to the
+      // patient level until a valid DICOM identifier is found.
+
+      std::string publicId;
+
+      if (LookupIdentifier(publicId, DICOM_TAG_SOP_INSTANCE_UID, input) ||
+          LookupIdentifier(publicId, DICOM_TAG_SERIES_INSTANCE_UID, input) ||
+          LookupIdentifier(publicId, DICOM_TAG_STUDY_INSTANCE_UID, input) ||
+          LookupIdentifier(publicId, DICOM_TAG_PATIENT_ID, input))
+      {
+        return new OrthancMoveRequestIterator(context_, aet, publicId);
+      }
+      else
+      {
+        // No identifier is present in the request.
+        throw OrthancException(ErrorCode_BadRequest);
+      }
     }
 
-    ResourceType level = StringToResourceType(levelTmp->AsString().c_str());
+
 
     /**
      * Lookup for the resource to be sent.
@@ -155,19 +179,19 @@ namespace Orthanc
     switch (level)
     {
       case ResourceType_Patient:
-        ok = LookupResource(publicId, DICOM_TAG_PATIENT_ID, input);
+        ok = LookupIdentifier(publicId, DICOM_TAG_PATIENT_ID, input);
         break;
 
       case ResourceType_Study:
-        ok = LookupResource(publicId, DICOM_TAG_STUDY_INSTANCE_UID, input);
+        ok = LookupIdentifier(publicId, DICOM_TAG_STUDY_INSTANCE_UID, input);
         break;
 
       case ResourceType_Series:
-        ok = LookupResource(publicId, DICOM_TAG_SERIES_INSTANCE_UID, input);
+        ok = LookupIdentifier(publicId, DICOM_TAG_SERIES_INSTANCE_UID, input);
         break;
 
       case ResourceType_Instance:
-        ok = LookupResource(publicId, DICOM_TAG_SOP_INSTANCE_UID, input);
+        ok = LookupIdentifier(publicId, DICOM_TAG_SOP_INSTANCE_UID, input);
         break;
 
       default:

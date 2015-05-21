@@ -23,7 +23,13 @@ else()
     message(FATAL_ERROR "Please install the libjsoncpp-dev package")
   endif()
 
-  include_directories(/usr/include/jsoncpp)
+  find_path(JSONCPP_INCLUDE_DIR json/reader.h
+    /usr/include/jsoncpp
+    /usr/local/include/jsoncpp
+    )
+
+  message("JsonCpp include dir: ${JSONCPP_INCLUDE_DIR}")
+  include_directories(${JSONCPP_INCLUDE_DIR})
   link_libraries(jsoncpp)
 
 endif()

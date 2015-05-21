@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ *
+ * Copyright (C) 2012-2015 Sebastien Jodogne <s.jodogne@gmail.com>,
+ * Medical Physics Department, CHU of Liege, Belgium
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -33,8 +34,6 @@
 
 #pragma once
 
-#include <boost/noncopyable.hpp>
-
 #include "Statement.h"
 
 struct sqlite3_context;
@@ -44,7 +43,7 @@ namespace Orthanc
 {
   namespace SQLite
   {
-    class FunctionContext : public boost::noncopyable
+    class FunctionContext : public NonCopyable
     {
       friend class Connection;
 

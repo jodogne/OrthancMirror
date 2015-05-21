@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -32,8 +32,8 @@
 
 #pragma once
 
+#include "IStorageArea.h"
 #include "StorageAccessor.h"
-#include "FileStorage.h"
 #include "../Compression/ZlibCompressor.h"
 
 namespace Orthanc
@@ -41,7 +41,7 @@ namespace Orthanc
   class CompressedFileStorageAccessor : public StorageAccessor
   {
   private:
-    FileStorage& storage_;
+    IStorageArea* storage_;
     ZlibCompressor zlib_;
     CompressionType compressionType_;
 
@@ -51,7 +51,21 @@ namespace Orthanc
                                    FileContentType type);
 
   public: 
-    CompressedFileStorageAccessor(FileStorage& storage);
+    CompressedFileStorageAccessor();
+
+    CompressedFileStorageAccessor(IStorageArea& storage);
+
+    void SetStorageArea(IStorageArea& storage)
+    {
+      storage_ = &storage;
+    }
+
+    bool HasStorageArea() const
+    {
+      return storage_ != NULL;
+    }
+
+    IStorageArea& GetStorageArea();
 
     void SetCompressionForNextOperations(CompressionType compression)
     {
@@ -64,8 +78,13 @@ namespace Orthanc
     }
 
     virtual void Read(std::string& content,
-                      const std::string& uuid);
+                      const std::string& uuid,
+                      FileContentType type);
 
-    virtual HttpFileSender* ConstructHttpFileSender(const std::string& uuid);
+    virtual HttpFileSender* ConstructHttpFileSender(const std::string& uuid,
+                                                    FileContentType type);
+
+    virtual void Remove(const std::string& uuid,
+                        FileContentType type);
   };
 }

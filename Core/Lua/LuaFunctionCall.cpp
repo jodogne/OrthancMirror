@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,6 +33,10 @@
 #include "../PrecompiledHeaders.h"
 #include "LuaFunctionCall.h"
 
+#include <cassert>
+#include <stdio.h>
+#include <boost/lexical_cast.hpp>
+#include <glog/logging.h>
 
 namespace Orthanc
 {
@@ -47,7 +51,6 @@ namespace Orthanc
   LuaFunctionCall::LuaFunctionCall(LuaContext& context,
                                    const char* functionName) : 
     context_(context),
-    lock_(context.mutex_),
     isExecuted_(false)
   {
     // Clear the stack to fulfill the invariant
@@ -79,77 +82,13 @@ namespace Orthanc
     lua_pushnumber(context_.lua_, value);
   }
 
-  void LuaFunctionCall::PushJSON(const Json::Value& value)
+  void LuaFunctionCall::PushJson(const Json::Value& value)
   {
     CheckAlreadyExecuted();
-
-    if (value.isString())
-    {
-      lua_pushstring(context_.lua_, value.asCString());
-    }
-    else if (value.isDouble())
-    {
-      lua_pushnumber(context_.lua_, value.asDouble());
-    }
-    else if (value.isInt())
-    {
-      lua_pushinteger(context_.lua_, value.asInt());
-    }
-    else if (value.isUInt())
-    {
-      lua_pushinteger(context_.lua_, value.asUInt());
-    }
-    else if (value.isBool())
-    {
-      lua_pushboolean(context_.lua_, value.asBool());
-    }
-    else if (value.isNull())
-    {
-      lua_pushnil(context_.lua_);
-    }
-    else if (value.isArray())
-    {
-      lua_newtable(context_.lua_);
-
-      // http://lua-users.org/wiki/SimpleLuaApiExample
-      for (Json::Value::ArrayIndex i = 0; i < value.size(); i++)
-      {
-        // Push the table index (note the "+1" because of Lua conventions)
-        lua_pushnumber(context_.lua_, i + 1);
-
-        // Push the value of the cell
-        PushJSON(value[i]);
-
-        // Stores the pair in the table
-        lua_rawset(context_.lua_, -3);
-      }
-    }
-    else if (value.isObject())
-    {
-      lua_newtable(context_.lua_);
-
-      Json::Value::Members members = value.getMemberNames();
-
-      for (Json::Value::Members::const_iterator 
-             it = members.begin(); it != members.end(); ++it)
-      {
-        // Push the index of the cell
-        lua_pushstring(context_.lua_, it->c_str());
-
-        // Push the value of the cell
-        PushJSON(value[*it]);
-
-        // Stores the pair in the table
-        lua_rawset(context_.lua_, -3);
-      }
-    }
-    else
-    {
-      throw LuaException("Unsupported JSON conversion");
-    }
+    context_.PushJson(value);
   }
 
-  void LuaFunctionCall::Execute(int numOutputs)
+  void LuaFunctionCall::ExecuteInternal(int numOutputs)
   {
     CheckAlreadyExecuted();
 
@@ -176,18 +115,108 @@ namespace Orthanc
 
   bool LuaFunctionCall::ExecutePredicate()
   {
-    Execute(1);
-        
-    if (lua_gettop(context_.lua_) == 0)
-    {
-      throw LuaException("No output was provided by the function");
-    }
-
+    ExecuteInternal(1);
+    
     if (!lua_isboolean(context_.lua_, 1))
     {
       throw LuaException("The function is not a predicate (only true/false outputs allowed)");
     }
 
     return lua_toboolean(context_.lua_, 1) != 0;
+  }
+
+
+  static void PopJson(Json::Value& result,
+                      lua_State* lua,
+                      int top)
+  {
+    if (lua_istable(lua, top))
+    {
+      Json::Value tmp = Json::objectValue;
+      bool isArray = true;
+      size_t size = 0;
+
+      // http://stackoverflow.com/a/6142700/881731
+      
+      // Push another reference to the table on top of the stack (so we know
+      // where it is, and this function can work for negative, positive and
+      // pseudo indices
+      lua_pushvalue(lua, top);
+      // stack now contains: -1 => table
+      lua_pushnil(lua);
+      // stack now contains: -1 => nil; -2 => table
+      while (lua_next(lua, -2))
+      {
+        // stack now contains: -1 => value; -2 => key; -3 => table
+        // copy the key so that lua_tostring does not modify the original
+        lua_pushvalue(lua, -2);
+        // stack now contains: -1 => key; -2 => value; -3 => key; -4 => table
+        std::string key(lua_tostring(lua, -1));
+        Json::Value v;
+        PopJson(v, lua, -2);
+
+        tmp[key] = v;
+
+        size += 1;
+        try
+        {
+          if (boost::lexical_cast<size_t>(key) != size)
+          {
+            isArray = false;
+          }
+        }
+        catch (boost::bad_lexical_cast&)
+        {
+          isArray = false;
+        }
+        
+        // pop value + copy of key, leaving original key
+        lua_pop(lua, 2);
+        // stack now contains: -1 => key; -2 => table
+      }
+      // stack now contains: -1 => table (when lua_next returns 0 it pops the key
+      // but does not push anything.)
+      // Pop table
+      lua_pop(lua, 1);
+
+      // Stack is now the same as it was on entry to this function
+
+      if (isArray)
+      {
+        result = Json::arrayValue;
+        for (size_t i = 0; i < size; i++)
+        {
+          result.append(tmp[boost::lexical_cast<std::string>(i + 1)]);
+        }
+      }
+      else
+      {
+        result = tmp;
+      }
+    }
+    else if (lua_isnumber(lua, top))
+    {
+      result = static_cast<float>(lua_tonumber(lua, top));
+    }
+    else if (lua_isstring(lua, top))
+    {
+      result = std::string(lua_tostring(lua, top));
+    }
+    else if (lua_isboolean(lua, top))
+    {
+      result = static_cast<bool>(lua_toboolean(lua, top));
+    }
+    else
+    {
+      LOG(WARNING) << "Unsupported Lua type when returning Json";
+      result = Json::nullValue;
+    }
+  }
+
+
+  void LuaFunctionCall::ExecuteToJson(Json::Value& result)
+  {
+    ExecuteInternal(1);
+    PopJson(result, context_.lua_, lua_gettop(context_.lua_));
   }
 }

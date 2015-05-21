@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -44,6 +44,7 @@
 #include "../Core/Toolbox.h"
 #include "../Core/Uuid.h"
 #include "../OrthancServer/OrthancInitialization.h"
+
 
 using namespace Orthanc;
 
@@ -174,45 +175,96 @@ TEST(Zlib, Empty)
 }
 
 
-TEST(ParseGetQuery, Basic)
+TEST(ParseGetArguments, Basic)
 {
+  HttpHandler::GetArguments b;
+  HttpHandler::ParseGetArguments(b, "aaa=baaa&bb=a&aa=c");
+
   HttpHandler::Arguments a;
-  HttpHandler::ParseGetQuery(a, "aaa=baaa&bb=a&aa=c");
+  HttpHandler::CompileGetArguments(a, b);
+
   ASSERT_EQ(3u, a.size());
   ASSERT_EQ(a["aaa"], "baaa");
   ASSERT_EQ(a["bb"], "a");
   ASSERT_EQ(a["aa"], "c");
 }
 
-TEST(ParseGetQuery, BasicEmpty)
+TEST(ParseGetArguments, BasicEmpty)
 {
+  HttpHandler::GetArguments b;
+  HttpHandler::ParseGetArguments(b, "aaa&bb=aa&aa");
+
   HttpHandler::Arguments a;
-  HttpHandler::ParseGetQuery(a, "aaa&bb=aa&aa");
+  HttpHandler::CompileGetArguments(a, b);
+
   ASSERT_EQ(3u, a.size());
   ASSERT_EQ(a["aaa"], "");
   ASSERT_EQ(a["bb"], "aa");
   ASSERT_EQ(a["aa"], "");
 }
 
-TEST(ParseGetQuery, Single)
+TEST(ParseGetArguments, Single)
 {
+  HttpHandler::GetArguments b;
+  HttpHandler::ParseGetArguments(b, "aaa=baaa");
+
   HttpHandler::Arguments a;
-  HttpHandler::ParseGetQuery(a, "aaa=baaa");
+  HttpHandler::CompileGetArguments(a, b);
+
   ASSERT_EQ(1u, a.size());
   ASSERT_EQ(a["aaa"], "baaa");
 }
 
-TEST(ParseGetQuery, SingleEmpty)
+TEST(ParseGetArguments, SingleEmpty)
 {
+  HttpHandler::GetArguments b;
+  HttpHandler::ParseGetArguments(b, "aaa");
+
   HttpHandler::Arguments a;
-  HttpHandler::ParseGetQuery(a, "aaa");
+  HttpHandler::CompileGetArguments(a, b);
+
   ASSERT_EQ(1u, a.size());
   ASSERT_EQ(a["aaa"], "");
 }
 
+TEST(ParseGetQuery, Test1)
+{
+  UriComponents uri;
+  HttpHandler::GetArguments b;
+  HttpHandler::ParseGetQuery(uri, b, "/instances/test/world?aaa=baaa&bb=a&aa=c");
+
+  HttpHandler::Arguments a;
+  HttpHandler::CompileGetArguments(a, b);
+
+  ASSERT_EQ(3u, uri.size());
+  ASSERT_EQ("instances", uri[0]);
+  ASSERT_EQ("test", uri[1]);
+  ASSERT_EQ("world", uri[2]);
+  ASSERT_EQ(3u, a.size());
+  ASSERT_EQ(a["aaa"], "baaa");
+  ASSERT_EQ(a["bb"], "a");
+  ASSERT_EQ(a["aa"], "c");
+}
+
+TEST(ParseGetQuery, Test2)
+{
+  UriComponents uri;
+  HttpHandler::GetArguments b;
+  HttpHandler::ParseGetQuery(uri, b, "/instances/test/world");
+
+  HttpHandler::Arguments a;
+  HttpHandler::CompileGetArguments(a, b);
+
+  ASSERT_EQ(3u, uri.size());
+  ASSERT_EQ("instances", uri[0]);
+  ASSERT_EQ("test", uri[1]);
+  ASSERT_EQ("world", uri[2]);
+  ASSERT_EQ(0u, a.size());
+}
+
 TEST(Uri, SplitUriComponents)
 {
-  UriComponents c;
+  UriComponents c, d;
   Toolbox::SplitUriComponents(c, "/cou/hello/world");
   ASSERT_EQ(3u, c.size());
   ASSERT_EQ("cou", c[0]);
@@ -250,6 +302,37 @@ TEST(Uri, SplitUriComponents)
   c.clear();
   c.push_back("test");
   ASSERT_EQ("/", Toolbox::FlattenUri(c, 10));
+}
+
+
+TEST(Uri, Truncate)
+{
+  UriComponents c, d;
+  Toolbox::SplitUriComponents(c, "/cou/hello/world");
+
+  Toolbox::TruncateUri(d, c, 0);
+  ASSERT_EQ(3u, d.size());
+  ASSERT_EQ("cou", d[0]);
+  ASSERT_EQ("hello", d[1]);
+  ASSERT_EQ("world", d[2]);
+
+  Toolbox::TruncateUri(d, c, 1);
+  ASSERT_EQ(2u, d.size());
+  ASSERT_EQ("hello", d[0]);
+  ASSERT_EQ("world", d[1]);
+
+  Toolbox::TruncateUri(d, c, 2);
+  ASSERT_EQ(1u, d.size());
+  ASSERT_EQ("world", d[0]);
+
+  Toolbox::TruncateUri(d, c, 3);
+  ASSERT_EQ(0u, d.size());
+
+  Toolbox::TruncateUri(d, c, 4);
+  ASSERT_EQ(0u, d.size());
+
+  Toolbox::TruncateUri(d, c, 5);
+  ASSERT_EQ(0u, d.size());
 }
 
 
@@ -581,23 +664,58 @@ TEST(Toolbox, Tokenize)
   ASSERT_EQ("", t[3]);
 }
 
+TEST(Toolbox, Enumerations)
+{
+  ASSERT_EQ(Encoding_Utf8, StringToEncoding(EnumerationToString(Encoding_Utf8)));
+  ASSERT_EQ(Encoding_Ascii, StringToEncoding(EnumerationToString(Encoding_Ascii)));
+  ASSERT_EQ(Encoding_Latin1, StringToEncoding(EnumerationToString(Encoding_Latin1)));
+  ASSERT_EQ(Encoding_Latin2, StringToEncoding(EnumerationToString(Encoding_Latin2)));
+  ASSERT_EQ(Encoding_Latin3, StringToEncoding(EnumerationToString(Encoding_Latin3)));
+  ASSERT_EQ(Encoding_Latin4, StringToEncoding(EnumerationToString(Encoding_Latin4)));
+  ASSERT_EQ(Encoding_Latin5, StringToEncoding(EnumerationToString(Encoding_Latin5)));
+  ASSERT_EQ(Encoding_Cyrillic, StringToEncoding(EnumerationToString(Encoding_Cyrillic)));
+  ASSERT_EQ(Encoding_Arabic, StringToEncoding(EnumerationToString(Encoding_Arabic)));
+  ASSERT_EQ(Encoding_Greek, StringToEncoding(EnumerationToString(Encoding_Greek)));
+  ASSERT_EQ(Encoding_Hebrew, StringToEncoding(EnumerationToString(Encoding_Hebrew)));
+  ASSERT_EQ(Encoding_Japanese, StringToEncoding(EnumerationToString(Encoding_Japanese)));
+  ASSERT_EQ(Encoding_Chinese, StringToEncoding(EnumerationToString(Encoding_Chinese)));
+  ASSERT_EQ(Encoding_Thai, StringToEncoding(EnumerationToString(Encoding_Thai)));
+
+  ASSERT_EQ(ResourceType_Patient, StringToResourceType(EnumerationToString(ResourceType_Patient)));
+  ASSERT_EQ(ResourceType_Study, StringToResourceType(EnumerationToString(ResourceType_Study)));
+  ASSERT_EQ(ResourceType_Series, StringToResourceType(EnumerationToString(ResourceType_Series)));
+  ASSERT_EQ(ResourceType_Instance, StringToResourceType(EnumerationToString(ResourceType_Instance)));
+
+  ASSERT_EQ(ImageFormat_Png, StringToImageFormat(EnumerationToString(ImageFormat_Png)));
+}
+
 
 
 #if defined(__linux)
 #include <endian.h>
+#elif defined(__FreeBSD__)
+#include <machine/endian.h>
 #endif
+
 
 TEST(Toolbox, Endianness)
 {
   // Parts of this test come from Adam Conrad
   // http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=728822#5
 
-#if defined(_WIN32)
+
+  /**
+   * Windows and OS X are assumed to always little-endian.
+   **/
+  
+#if defined(_WIN32) || defined(__APPLE__)
   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
 
-#elif defined(__APPLE__)
-  ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
 
+  /**
+   * Linux.
+   **/
+  
 #elif defined(__linux) || defined(__FreeBSD_kernel__)
 
 #if !defined(__BYTE_ORDER)
@@ -610,9 +728,64 @@ TEST(Toolbox, Endianness)
   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
 #  endif
 
+  
+  /**
+   * FreeBSD.
+   **/
+  
+#elif defined(__FreeBSD__)
+#  if _BYTE_ORDER == _BIG_ENDIAN
+   ASSERT_EQ(Endianness_Big, Toolbox::DetectEndianness());
+#  else // _LITTLE_ENDIAN
+   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
+#  endif
+
 #else
 #error Support your platform here
 #endif
+}
+
+
+#if ORTHANC_PUGIXML_ENABLED == 1
+TEST(Toolbox, Xml)
+{
+  Json::Value a;
+  a["hello"] = "world";
+  a["42"] = 43;
+  a["b"] = Json::arrayValue;
+  a["b"].append("test");
+  a["b"].append("test2");
+
+  std::string s;
+  Toolbox::JsonToXml(s, a);
+
+  std::cout << s;
+}
+#endif
+
+
+#if !defined(_WIN32)
+TEST(Toolbox, ExecuteSystemCommand)
+{
+  std::vector<std::string> args(2);
+  args[0] = "Hello";
+  args[1] = "World";
+
+  Toolbox::ExecuteSystemCommand("echo", args);
+}
+#endif
+
+
+TEST(Toolbox, IsInteger)
+{
+  ASSERT_TRUE(Toolbox::IsInteger("00236"));
+  ASSERT_TRUE(Toolbox::IsInteger("-0042"));
+  ASSERT_TRUE(Toolbox::IsInteger("0"));
+  ASSERT_TRUE(Toolbox::IsInteger("-0"));
+
+  ASSERT_FALSE(Toolbox::IsInteger(""));
+  ASSERT_FALSE(Toolbox::IsInteger("42a"));
+  ASSERT_FALSE(Toolbox::IsInteger("42-"));
 }
 
 

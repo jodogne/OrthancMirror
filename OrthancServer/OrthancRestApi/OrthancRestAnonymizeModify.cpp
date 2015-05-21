@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,8 +33,8 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
-#include "../DicomModification.h"
 #include "../FromDcmtkBridge.h"
+#include "../../Core/Uuid.h"
 
 #include <glog/logging.h>
 
@@ -111,13 +111,11 @@ namespace Orthanc
   }
 
 
-  static bool ParseModifyRequest(DicomModification& target,
-                                 const RestApi::PostCall& call)
-  {
-    // curl http://localhost:8042/series/95a6e2bf-9296e2cc-bf614e2f-22b391ee-16e010e0/modify -X POST -d '{"Replace":{"InstitutionName":"My own clinic"}}'
 
-    Json::Value request;
-    if (call.ParseJsonRequest(request) && request.isObject())
+  bool OrthancRestApi::ParseModifyRequest(DicomModification& target,
+                                          const Json::Value& request)
+  {
+    if (request.isObject())
     {
       if (request.isMember("RemovePrivateTags"))
       {
@@ -143,8 +141,25 @@ namespace Orthanc
   }
 
 
+  static bool ParseModifyRequest(DicomModification& target,
+                                 const RestApiPostCall& call)
+  {
+    // curl http://localhost:8042/series/95a6e2bf-9296e2cc-bf614e2f-22b391ee-16e010e0/modify -X POST -d '{"Replace":{"InstitutionName":"My own clinic"}}'
+
+    Json::Value request;
+    if (call.ParseJsonRequest(request))
+    {
+      return OrthancRestApi::ParseModifyRequest(target, request);
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+
   static bool ParseAnonymizationRequest(DicomModification& target,
-                                        RestApi::PostCall& call)
+                                        RestApiPostCall& call)
   {
     // curl http://localhost:8042/instances/6e67da51-d119d6ae-c5667437-87b9a8a5-0f07c49f/anonymize -X POST -d '{"Replace":{"PatientName":"hello","0010-0020":"world"},"Keep":["StudyDescription", "SeriesDescription"],"KeepPrivateTags": null,"Remove":["Modality"]}' > Anonymized.dcm
 
@@ -174,11 +189,12 @@ namespace Orthanc
         ParseListOfTags(target, request["Keep"], TagOperation_Keep);
       }
 
-      if (target.GetReplacement(DICOM_TAG_PATIENT_NAME) == patientName)
+      if (target.IsReplaced(DICOM_TAG_PATIENT_NAME) &&
+          target.GetReplacement(DICOM_TAG_PATIENT_NAME) == patientName)
       {
         // Overwrite the random Patient's Name by one that is more
         // user-friendly (provided none was specified by the user)
-        target.Replace(DICOM_TAG_PATIENT_NAME, GeneratePatientName(OrthancRestApi::GetContext(call)));
+        target.Replace(DICOM_TAG_PATIENT_NAME, GeneratePatientName(OrthancRestApi::GetContext(call)), true);
       }
 
       return true;
@@ -191,7 +207,7 @@ namespace Orthanc
 
 
   static void AnonymizeOrModifyInstance(DicomModification& modification,
-                                        RestApi::PostCall& call)
+                                        RestApiPostCall& call)
   {
     std::string id = call.GetUriComponent("id", "");
 
@@ -207,7 +223,7 @@ namespace Orthanc
                                         MetadataType metadataType,
                                         ChangeType changeType,
                                         ResourceType resourceType,
-                                        RestApi::PostCall& call)
+                                        RestApiPostCall& call)
   {
     bool isFirst = true;
     Json::Value result(Json::objectValue);
@@ -246,52 +262,61 @@ namespace Orthanc
         continue;
       }
 
+
       ParsedDicomFile& original = locker->GetDicom();
       DicomInstanceHasher originalHasher = original.GetHasher();
 
 
       /**
-       * Compute the resulting DICOM instance and store it into the Orthanc store.
+       * Compute the resulting DICOM instance.
        **/
 
       std::auto_ptr<ParsedDicomFile> modified(original.Clone());
       modification.Apply(*modified);
 
-      std::string modifiedInstance;
-      if (context.Store(modifiedInstance, *modified) != StoreStatus_Success)
-      {
-        LOG(ERROR) << "Error while storing a modified instance " << *it;
-        return;
-      }
+      DicomInstanceToStore toStore;
+      toStore.SetParsedDicomFile(*modified);
 
 
       /**
-       * Record metadata information (AnonymizedFrom/ModifiedFrom).
+       * Prepare the metadata information to associate with the
+       * resulting DICOM instance (AnonymizedFrom/ModifiedFrom).
        **/
 
       DicomInstanceHasher modifiedHasher = modified->GetHasher();
 
       if (originalHasher.HashSeries() != modifiedHasher.HashSeries())
       {
-        context.GetIndex().SetMetadata(modifiedHasher.HashSeries(), 
-                                       metadataType, originalHasher.HashSeries());
+        toStore.AddMetadata(ResourceType_Series, metadataType, originalHasher.HashSeries());
       }
 
       if (originalHasher.HashStudy() != modifiedHasher.HashStudy())
       {
-        context.GetIndex().SetMetadata(modifiedHasher.HashStudy(), 
-                                       metadataType, originalHasher.HashStudy());
+        toStore.AddMetadata(ResourceType_Study, metadataType, originalHasher.HashStudy());
       }
 
       if (originalHasher.HashPatient() != modifiedHasher.HashPatient())
       {
-        context.GetIndex().SetMetadata(modifiedHasher.HashPatient(), 
-                                       metadataType, originalHasher.HashPatient());
+        toStore.AddMetadata(ResourceType_Patient, metadataType, originalHasher.HashPatient());
       }
 
       assert(*it == originalHasher.HashInstance());
+      toStore.AddMetadata(ResourceType_Instance, metadataType, *it);
+
+
+      /**
+       * Store the resulting DICOM instance into the Orthanc store.
+       **/
+
+      std::string modifiedInstance;
+      if (context.Store(modifiedInstance, toStore) != StoreStatus_Success)
+      {
+        LOG(ERROR) << "Error while storing a modified instance " << *it;
+        return;
+      }
+
+      // Sanity checks in debug mode
       assert(modifiedInstance == modifiedHasher.HashInstance());
-      context.GetIndex().SetMetadata(modifiedInstance, metadataType, *it);
 
 
       /**
@@ -333,9 +358,10 @@ namespace Orthanc
 
 
 
-  static void ModifyInstance(RestApi::PostCall& call)
+  static void ModifyInstance(RestApiPostCall& call)
   {
     DicomModification modification;
+    modification.SetAllowManualIdentifiers(true);
 
     if (ParseModifyRequest(modification, call))
     {
@@ -361,9 +387,10 @@ namespace Orthanc
   }
 
 
-  static void AnonymizeInstance(RestApi::PostCall& call)
+  static void AnonymizeInstance(RestApiPostCall& call)
   {
     DicomModification modification;
+    modification.SetAllowManualIdentifiers(true);
 
     if (ParseAnonymizationRequest(modification, call))
     {
@@ -374,7 +401,7 @@ namespace Orthanc
 
   template <enum ChangeType changeType,
             enum ResourceType resourceType>
-  static void ModifyResource(RestApi::PostCall& call)
+  static void ModifyResource(RestApiPostCall& call)
   {
     DicomModification modification;
 
@@ -389,7 +416,7 @@ namespace Orthanc
 
   template <enum ChangeType changeType,
             enum ResourceType resourceType>
-  static void AnonymizeResource(RestApi::PostCall& call)
+  static void AnonymizeResource(RestApiPostCall& call)
   {
     DicomModification modification;
 
@@ -401,29 +428,38 @@ namespace Orthanc
   }
 
 
-  static void Create(RestApi::PostCall& call)
+  static void CreateDicom(RestApiPostCall& call)
   {
     // curl http://localhost:8042/tools/create-dicom -X POST -d '{"PatientName":"Hello^World"}'
     // curl http://localhost:8042/tools/create-dicom -X POST -d '{"PatientName":"Hello^World","PixelData":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAAAAAA6mKC9AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gUGDDcB53FulQAAAElJREFUGNNtj0sSAEEEQ1+U+185s1CtmRkblQ9CZldsKHJDk6DLGLJa6chjh0ooQmpjXMM86zPwydGEj6Ed/UGykkEM8X+p3u8/8LcOJIWLGeMAAAAASUVORK5CYII="}'
 
-    Json::Value request;
-    if (call.ParseJsonRequest(request) && request.isObject())
+    Json::Value replacements;
+    if (call.ParseJsonRequest(replacements) && replacements.isObject())
     {
-      DicomModification modification;
-      ParseReplacements(modification, request);
-
       ParsedDicomFile dicom;
 
-      if (modification.IsReplaced(DICOM_TAG_PIXEL_DATA))
+      Json::Value::Members members = replacements.getMemberNames();
+      for (size_t i = 0; i < members.size(); i++)
       {
-        dicom.EmbedImage(modification.GetReplacement(DICOM_TAG_PIXEL_DATA));
-        modification.Keep(DICOM_TAG_PIXEL_DATA);
+        const std::string& name = members[i];
+        std::string value = replacements[name].asString();
+
+        DicomTag tag = FromDcmtkBridge::ParseTag(name);
+        if (tag == DICOM_TAG_PIXEL_DATA)
+        {
+          dicom.EmbedImage(value);
+        }
+        else
+        {
+          dicom.Replace(tag, value);
+        }
       }
 
-      modification.Apply(dicom);
+      DicomInstanceToStore toStore;
+      toStore.SetParsedDicomFile(dicom);
 
       std::string id;
-      StoreStatus status = OrthancRestApi::GetContext(call).Store(id, dicom);
+      StoreStatus status = OrthancRestApi::GetContext(call).Store(id, toStore);
 
       if (status == StoreStatus_Failure)
       {
@@ -448,6 +484,6 @@ namespace Orthanc
     Register("/studies/{id}/anonymize", AnonymizeResource<ChangeType_ModifiedStudy, ResourceType_Study>);
     Register("/patients/{id}/anonymize", AnonymizeResource<ChangeType_ModifiedPatient, ResourceType_Patient>);
 
-    Register("/tools/create-dicom", Create);
+    Register("/tools/create-dicom", CreateDicom);
   }
 }

@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -48,6 +48,9 @@ namespace Orthanc
   void InitializeServerEnumerations()
   {
     boost::mutex::scoped_lock lock(enumerationsMutex_);
+
+    dictMetadataType_.Clear();
+    dictContentType_.Clear();
     
     dictMetadataType_.Add(MetadataType_Instance_IndexInSeries, "IndexInSeries");
     dictMetadataType_.Add(MetadataType_Instance_ReceptionDate, "ReceptionDate");
@@ -228,6 +231,12 @@ namespace Orthanc
       case ChangeType_StableSeries:
         return "StableSeries";
 
+      case ChangeType_Deleted:
+        return "Deleted";
+
+      case ChangeType_NewChildInstance:
+        return "NewChildInstance";
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -279,6 +288,9 @@ namespace Orthanc
       case ModalityManufacturer_Generic:
         return "Generic";
 
+      case ModalityManufacturer_StoreScp:
+        return "StoreScp";
+      
       case ModalityManufacturer_ClearCanvas:
         return "ClearCanvas";
       
@@ -318,7 +330,6 @@ namespace Orthanc
         return "Store";
         break;
 
-
       default: 
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -336,6 +347,10 @@ namespace Orthanc
     {
       return ModalityManufacturer_ClearCanvas;
     }
+    else if (manufacturer == "StoreScp")
+    {
+      return ModalityManufacturer_StoreScp;
+    }
     else if (manufacturer == "MedInria")
     {
       return ModalityManufacturer_MedInria;
@@ -349,4 +364,36 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
+
+
+  const char* EnumerationToString(TransferSyntax syntax)
+  {
+    switch (syntax)
+    {
+      case TransferSyntax_Deflated:
+        return "Deflated";
+
+      case TransferSyntax_Jpeg:
+        return "JPEG";
+
+      case TransferSyntax_Jpeg2000:
+        return "JPEG2000";
+
+      case TransferSyntax_JpegLossless:
+        return "JPEG Lossless";
+
+      case TransferSyntax_Jpip:
+        return "JPIP";
+
+      case TransferSyntax_Mpeg2:
+        return "MPEG2";
+
+      case TransferSyntax_Rle:
+        return "RLE";
+
+      default: 
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
 }

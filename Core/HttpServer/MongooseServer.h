@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -59,12 +59,14 @@ namespace Orthanc
 
   class MongooseServer
   {
+  public:
+    typedef std::list<HttpHandler*> Handlers;
+
   private:
     // http://stackoverflow.com/questions/311166/stdauto-ptr-or-boostshared-ptr-for-pimpl-idiom
     struct PImpl;
     boost::shared_ptr<PImpl> pimpl_;
 
-    typedef std::list<HttpHandler*> Handlers;
     Handlers handlers_;
 
     typedef std::set<std::string> RegisteredUsers;
@@ -76,6 +78,7 @@ namespace Orthanc
     std::string certificate_;
     uint16_t port_;
     IIncomingHttpRequestFilter* filter_;
+    bool keepAlive_;
   
     bool IsRunning() const;
 
@@ -100,7 +103,7 @@ namespace Orthanc
     void RegisterUser(const char* username,
                       const char* password);
 
-    void RegisterHandler(HttpHandler* handler);  // This takes the ownership
+    void RegisterHandler(HttpHandler& handler);
 
     bool IsAuthenticationEnabled() const
     {
@@ -115,6 +118,13 @@ namespace Orthanc
     }
 
     void SetSslEnabled(bool enabled);
+
+    bool IsKeepAliveEnabled() const
+    {
+      return keepAlive_;
+    }
+
+    void SetKeepAliveEnabled(bool enabled);
 
     const std::string& GetSslCertificate() const
     {
@@ -139,11 +149,13 @@ namespace Orthanc
 
     void ClearHandlers();
 
-    // Can return NULL if no handler is associated to this URI
-    HttpHandler* FindHandler(const UriComponents& forUri) const;
-
     ChunkStore& GetChunkStore();
 
     bool IsValidBasicHttpAuthentication(const std::string& basic) const;
+
+    const Handlers& GetHandlers() const
+    {
+      return handlers_;
+    }
   };
 }

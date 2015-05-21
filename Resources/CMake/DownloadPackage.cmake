@@ -15,7 +15,12 @@ endmacro()
 ##
 
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
-  find_program(ZIP_EXECUTABLE 7z PATHS "$ENV{ProgramFiles}/7-Zip")
+  find_program(ZIP_EXECUTABLE 7z 
+    PATHS 
+    "$ENV{ProgramFiles}/7-Zip"
+    "$ENV{ProgramW6432}/7-Zip"
+    )
+
   if (${ZIP_EXECUTABLE} MATCHES "ZIP_EXECUTABLE-NOTFOUND")
     message(FATAL_ERROR "Please install the '7-zip' software (http://www.7-zip.org/)")
   endif()

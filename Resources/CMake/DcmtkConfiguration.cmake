@@ -3,6 +3,7 @@ if (DCMTK_DICTIONARY_DIR STREQUAL "")
   find_path(DCMTK_DICTIONARY_DIR_AUTO dicom.dic
     /usr/share/dcmtk
     /usr/share/libdcmtk2
+    /usr/local/share/dcmtk
     )
 
   message("Autodetected path to the DICOM dictionaries: ${DCMTK_DICTIONARY_DIR_AUTO}")
@@ -39,6 +40,10 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     set(HAVE_PROTOTYPE_SETSOCKNAME 1)
     set(HAVE_PROTOTYPE_GETSOCKNAME 1)
   endif()
+
+  set(DCMTK_PACKAGE_VERSION "3.6.0")
+  set(DCMTK_PACKAGE_VERSION_SUFFIX "")
+  set(DCMTK_PACKAGE_VERSION_NUMBER 360)
 
   CONFIGURE_FILE(
     ${DCMTK_SOURCES_DIR}/CMake/osconfig.h.in
@@ -88,11 +93,18 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/oflog/libsrc DCMTK_SOURCES)
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
     list(REMOVE_ITEM DCMTK_SOURCES 
       ${DCMTK_SOURCES_DIR}/oflog/libsrc/windebap.cc
       ${DCMTK_SOURCES_DIR}/oflog/libsrc/winsock.cc
       )
+    
+    execute_process(
+      COMMAND patch -p0 -N -i ${ORTHANC_ROOT}/Resources/Patches/dcmtk-linux-speed.patch
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      )
+
   elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     list(REMOVE_ITEM DCMTK_SOURCES 
       ${DCMTK_SOURCES_DIR}/oflog/libsrc/unixsock.cc
@@ -101,7 +113,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     if (${CMAKE_COMPILER_IS_GNUCXX})
       # This is a patch for MinGW64
       execute_process(
-        COMMAND patch -p0 -i ${CMAKE_SOURCE_DIR}/Resources/Patches/dcmtk-mingw64.patch
+        COMMAND patch -p0 -N -i ${ORTHANC_ROOT}/Resources/Patches/dcmtk-mingw64.patch
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         )
     endif()
@@ -113,6 +125,10 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/mkdeftag.cc
     ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/dcdictbi.cc
     )
+
+  #set_source_files_properties(${DCMTK_SOURCES}
+  #  PROPERTIES COMPILE_DEFINITIONS
+  #  "PACKAGE_VERSION=\"3.6.0\";PACKAGE_VERSION_NUMBER=\"360\"")
 
   # This fixes crashes related to the destruction of the DCMTK OFLogger
   # http://support.dcmtk.org/docs-snapshot/file_macros.html
@@ -154,7 +170,6 @@ else()
   list(APPEND DCMTK_LIBRARIES "${tmp}")
 
   include_directories(${DCMTK_INCLUDE_DIR})
-  link_libraries(${DCMTK_LIBRARIES})
 
   add_definitions(
     -DHAVE_CONFIG_H=1

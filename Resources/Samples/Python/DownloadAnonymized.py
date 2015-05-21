@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 # Orthanc - A Lightweight, RESTful DICOM Store
-# Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
-# Belgium
+# Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+# Department, University Hospital of Liege, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -42,7 +42,7 @@ for patient in RestToolbox.DoGet('%s/patients' % URL):
     if name.startswith('anonymized'):
 
         # Trigger the download
-        print 'Downloading %s' % name
+        print('Downloading %s' % name)
         zipContent = RestToolbox.DoGet('%s/patients/%s/archive' % (URL, patient))
         f = open(os.path.join('/tmp', name + '.zip'), 'wb')
         f.write(zipContent)

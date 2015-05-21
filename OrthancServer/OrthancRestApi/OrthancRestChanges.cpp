@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -42,7 +42,7 @@ namespace Orthanc
   static void GetSinceAndLimit(int64_t& since,
                                unsigned int& limit,
                                bool& last,
-                               const RestApi::GetCall& call)
+                               const RestApiGetCall& call)
   {
     static const unsigned int MAX_RESULTS = 100;
     
@@ -70,7 +70,7 @@ namespace Orthanc
     }
   }
 
-  static void GetChanges(RestApi::GetCall& call)
+  static void GetChanges(RestApiGetCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -81,15 +81,20 @@ namespace Orthanc
     GetSinceAndLimit(since, limit, last, call);
 
     Json::Value result;
-    if ((!last && context.GetIndex().GetChanges(result, since, limit)) ||
-        ( last && context.GetIndex().GetLastChange(result)))
+    if (last)
     {
-      call.GetOutput().AnswerJson(result);
+      context.GetIndex().GetLastChange(result);
     }
+    else
+    {
+      context.GetIndex().GetChanges(result, since, limit);
+    }
+
+    call.GetOutput().AnswerJson(result);
   }
 
 
-  static void DeleteChanges(RestApi::DeleteCall& call)
+  static void DeleteChanges(RestApiDeleteCall& call)
   {
     OrthancRestApi::GetIndex(call).DeleteChanges();
     call.GetOutput().AnswerBuffer("", "text/plain");
@@ -98,7 +103,7 @@ namespace Orthanc
 
   // Exports API --------------------------------------------------------------
  
-  static void GetExports(RestApi::GetCall& call)
+  static void GetExports(RestApiGetCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -108,15 +113,20 @@ namespace Orthanc
     GetSinceAndLimit(since, limit, last, call);
 
     Json::Value result;
-    if ((!last && context.GetIndex().GetExportedResources(result, since, limit)) ||
-        ( last && context.GetIndex().GetLastExportedResource(result)))
+    if (last)
     {
-      call.GetOutput().AnswerJson(result);
+      context.GetIndex().GetLastExportedResource(result);
     }
+    else
+    {
+      context.GetIndex().GetExportedResources(result, since, limit);
+    }
+
+    call.GetOutput().AnswerJson(result);
   }
 
 
-  static void DeleteExports(RestApi::DeleteCall& call)
+  static void DeleteExports(RestApiDeleteCall& call)
   {
     OrthancRestApi::GetIndex(call).DeleteExportedResources();
     call.GetOutput().AnswerBuffer("", "text/plain");

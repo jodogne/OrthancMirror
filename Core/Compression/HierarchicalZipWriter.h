@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -63,8 +63,6 @@ namespace Orthanc
   
       Stack stack_;
 
-      std::string GetCurrentDirectoryPath() const;
-
       std::string EnsureUniqueFilename(const char* filename);
 
     public:
@@ -82,6 +80,8 @@ namespace Orthanc
       void OpenDirectory(const char* name);
 
       void CloseDirectory();
+
+      std::string GetCurrentDirectoryPath() const;
 
       static std::string KeepAlphanumeric(const std::string& source);
     };
@@ -114,11 +114,26 @@ namespace Orthanc
       return writer_.GetCompressionLevel();
     }
 
+    void SetAppendToExisting(bool append)
+    {
+      writer_.SetAppendToExisting(append);
+    }
+    
+    bool IsAppendToExisting() const
+    {
+      return writer_.IsAppendToExisting();
+    }
+    
     void OpenFile(const char* name);
 
     void OpenDirectory(const char* name);
 
     void CloseDirectory();
+
+    std::string GetCurrentDirectoryPath() const
+    {
+      return indexer_.GetCurrentDirectoryPath();
+    }
 
     void Write(const char* data, size_t length)
     {

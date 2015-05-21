@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -135,6 +135,8 @@ namespace Orthanc
   struct DicomUserConnection::PImpl
   {
     // Connection state
+    uint32_t dimseTimeout_;
+    uint32_t acseTimeout_;
     T_ASC_Network* net_;
     T_ASC_Parameters* params_;
     T_ASC_Association* assoc_;
@@ -154,7 +156,8 @@ namespace Orthanc
   {
     if (cond.bad())
     {
-      throw OrthancException("DicomUserConnection: " + std::string(cond.text()));
+      LOG(ERROR) << "DicomUserConnection: " << std::string(cond.text());
+       throw OrthancException(ErrorCode_NetworkProtocol);
     }
   }
 
@@ -162,7 +165,8 @@ namespace Orthanc
   {
     if (!IsOpen())
     {
-      throw OrthancException("DicomUserConnection: First open the connection");
+      LOG(ERROR) << "DicomUserConnection: First open the connection";
+      throw OrthancException(ErrorCode_NetworkProtocol);
     }
   }
 
@@ -323,7 +327,7 @@ namespace Orthanc
     DcmDataset* statusDetail = NULL;
     Check(DIMSE_storeUser(assoc_, presID, &req,
                           NULL, dcmff.getDataset(), /*progressCallback*/ NULL, NULL,
-                          /*opt_blockMode*/ DIMSE_BLOCKING, /*opt_dimse_timeout*/ 0,
+                          /*opt_blockMode*/ DIMSE_BLOCKING, /*opt_dimse_timeout*/ dimseTimeout_,
                           &rsp, &statusDetail, NULL));
 
     if (statusDetail != NULL) 
@@ -450,7 +454,7 @@ namespace Orthanc
     int presID = ASC_findAcceptedPresentationContextID(pimpl_->assoc_, sopClass);
     if (presID == 0)
     {
-      throw OrthancException("DicomUserConnection: The C-FIND command is not supported by the distant AET");
+      throw OrthancException("DicomUserConnection: The C-FIND command is not supported by the remote AET");
     }
 
     T_DIMSE_C_FindRQ request;
@@ -464,7 +468,8 @@ namespace Orthanc
     DcmDataset* statusDetail = NULL;
     OFCondition cond = DIMSE_findUser(pimpl_->assoc_, presID, &request, dataset.get(),
                                       FindCallback, &result,
-                                      /*opt_blockMode*/ DIMSE_BLOCKING, /*opt_dimse_timeout*/ 0,
+                                      /*opt_blockMode*/ DIMSE_BLOCKING, 
+                                      /*opt_dimse_timeout*/ pimpl_->dimseTimeout_,
                                       &response, &statusDetail);
 
     if (statusDetail)
@@ -541,7 +546,7 @@ namespace Orthanc
     int presID = ASC_findAcceptedPresentationContextID(pimpl_->assoc_, sopClass);
     if (presID == 0)
     {
-      throw OrthancException("DicomUserConnection: The C-MOVE command is not supported by the distant AET");
+      throw OrthancException("DicomUserConnection: The C-MOVE command is not supported by the remote AET");
     }
 
     T_DIMSE_C_MoveRQ request;
@@ -557,7 +562,8 @@ namespace Orthanc
     DcmDataset* responseIdentifiers = NULL;
     OFCondition cond = DIMSE_moveUser(pimpl_->assoc_, presID, &request, dataset.get(),
                                       NULL, NULL,
-                                      /*opt_blockMode*/ DIMSE_BLOCKING, /*opt_dimse_timeout*/ 0,
+                                      /*opt_blockMode*/ DIMSE_BLOCKING, 
+                                      /*opt_dimse_timeout*/ pimpl_->dimseTimeout_,
                                       pimpl_->net_, NULL, NULL,
                                       &response, &statusDetail, &responseIdentifiers);
 
@@ -608,12 +614,13 @@ namespace Orthanc
     pimpl_(new PImpl),
     preferredTransferSyntax_(DEFAULT_PREFERRED_TRANSFER_SYNTAX),
     localAet_("STORESCU"),
-    distantAet_("ANY-SCP"),
-    distantHost_("127.0.0.1")
+    remoteAet_("ANY-SCP"),
+    remoteHost_("127.0.0.1")
   {
-    distantPort_ = 104;
+    remotePort_ = 104;
     manufacturer_ = ModalityManufacturer_Generic;
 
+    SetTimeout(10); 
     pimpl_->net_ = NULL;
     pimpl_->params_ = NULL;
     pimpl_->assoc_ = NULL;
@@ -635,10 +642,10 @@ namespace Orthanc
 
   void DicomUserConnection::Connect(const RemoteModalityParameters& parameters)
   {
-    SetDistantApplicationEntityTitle(parameters.GetApplicationEntityTitle());
-    SetDistantHost(parameters.GetHost());
-    SetDistantPort(parameters.GetPort());
-    SetDistantManufacturer(parameters.GetManufacturer());
+    SetRemoteApplicationEntityTitle(parameters.GetApplicationEntityTitle());
+    SetRemoteHost(parameters.GetHost());
+    SetRemotePort(parameters.GetPort());
+    SetRemoteManufacturer(parameters.GetManufacturer());
   }
 
 
@@ -651,16 +658,16 @@ namespace Orthanc
     }
   }
 
-  void DicomUserConnection::SetDistantApplicationEntityTitle(const std::string& aet)
+  void DicomUserConnection::SetRemoteApplicationEntityTitle(const std::string& aet)
   {
-    if (distantAet_ != aet)
+    if (remoteAet_ != aet)
     {
       Close();
-      distantAet_ = aet;
+      remoteAet_ = aet;
     }
   }
 
-  void DicomUserConnection::SetDistantManufacturer(ModalityManufacturer manufacturer)
+  void DicomUserConnection::SetRemoteManufacturer(ModalityManufacturer manufacturer)
   {
     if (manufacturer_ != manufacturer)
     {
@@ -684,26 +691,26 @@ namespace Orthanc
   }
 
 
-  void DicomUserConnection::SetDistantHost(const std::string& host)
+  void DicomUserConnection::SetRemoteHost(const std::string& host)
   {
-    if (distantHost_ != host)
+    if (remoteHost_ != host)
     {
       if (host.size() > HOST_NAME_MAX - 10)
       {
-        throw OrthancException("Distant host name is too long");
+        throw OrthancException("Remote host name is too long");
       }
 
       Close();
-      distantHost_ = host;
+      remoteHost_ = host;
     }
   }
 
-  void DicomUserConnection::SetDistantPort(uint16_t port)
+  void DicomUserConnection::SetRemotePort(uint16_t port)
   {
-    if (distantPort_ != port)
+    if (remotePort_ != port)
     {
       Close();
-      distantPort_ = port;
+      remotePort_ = port;
     }
   }
 
@@ -716,30 +723,30 @@ namespace Orthanc
     }
 
     LOG(INFO) << "Opening a DICOM SCU connection from AET \"" << GetLocalApplicationEntityTitle() 
-              << "\" to AET \"" << GetDistantApplicationEntityTitle() << "\" on host "
-              << GetDistantHost() << ":" << GetDistantPort() 
-              << " (manufacturer: " << EnumerationToString(GetDistantManufacturer()) << ")";
+              << "\" to AET \"" << GetRemoteApplicationEntityTitle() << "\" on host "
+              << GetRemoteHost() << ":" << GetRemotePort() 
+              << " (manufacturer: " << EnumerationToString(GetRemoteManufacturer()) << ")";
 
-    Check(ASC_initializeNetwork(NET_REQUESTOR, 0, /*opt_acse_timeout*/ 30, &pimpl_->net_));
+    Check(ASC_initializeNetwork(NET_REQUESTOR, 0, /*opt_acse_timeout*/ pimpl_->acseTimeout_, &pimpl_->net_));
     Check(ASC_createAssociationParameters(&pimpl_->params_, /*opt_maxReceivePDULength*/ ASC_DEFAULTMAXPDU));
 
     // Set this application's title and the called application's title in the params
-    Check(ASC_setAPTitles(pimpl_->params_, localAet_.c_str(), distantAet_.c_str(), NULL));
+    Check(ASC_setAPTitles(pimpl_->params_, localAet_.c_str(), remoteAet_.c_str(), NULL));
 
-    // Set the network addresses of the local and distant entities
+    // Set the network addresses of the local and remote entities
     char localHost[HOST_NAME_MAX];
     gethostname(localHost, HOST_NAME_MAX - 1);
 
-    char distantHostAndPort[HOST_NAME_MAX];
+    char remoteHostAndPort[HOST_NAME_MAX];
 
 #ifdef _MSC_VER
     _snprintf
 #else
       snprintf
 #endif
-      (distantHostAndPort, HOST_NAME_MAX - 1, "%s:%d", distantHost_.c_str(), distantPort_);
+      (remoteHostAndPort, HOST_NAME_MAX - 1, "%s:%d", remoteHost_.c_str(), remotePort_);
 
-    Check(ASC_setPresentationAddresses(pimpl_->params_, localHost, distantHostAndPort));
+    Check(ASC_setPresentationAddresses(pimpl_->params_, localHost, remoteHostAndPort));
 
     // Set various options
     Check(ASC_setTransportLayerType(pimpl_->params_, /*opt_secureConnection*/ false));
@@ -816,7 +823,8 @@ namespace Orthanc
     CheckIsOpen();
     DIC_US status;
     Check(DIMSE_echoUser(pimpl_->assoc_, pimpl_->assoc_->nextMsgID++, 
-                         /*opt_blockMode*/ DIMSE_BLOCKING, /*opt_dimse_timeout*/ 0,
+                         /*opt_blockMode*/ DIMSE_BLOCKING, 
+                         /*opt_dimse_timeout*/ pimpl_->dimseTimeout_,
                          &status, NULL));
     return status == STATUS_Success;
   }
@@ -863,9 +871,29 @@ namespace Orthanc
     Move(targetAet, map);
   }
 
-  void DicomUserConnection::SetConnectionTimeout(uint32_t seconds)
+
+  void DicomUserConnection::SetTimeout(uint32_t seconds)
   {
+    if (seconds <= 0)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
     dcmConnectionTimeout.set(seconds);
+    pimpl_->dimseTimeout_ = seconds;
+    pimpl_->acseTimeout_ = 10;
+  }
+
+
+  void DicomUserConnection::DisableTimeout()
+  {
+    /**
+     * Global timeout (seconds) for connecting to remote hosts.
+     * Default value is -1 which selects infinite timeout, i.e. blocking connect().
+     */
+    dcmConnectionTimeout.set(-1);
+    pimpl_->dimseTimeout_ = 0;
+    pimpl_->acseTimeout_ = 10;
   }
 
 
@@ -914,7 +942,7 @@ namespace Orthanc
              defaultStorageSOPClasses_.size() >= MAXIMUM_STORAGE_SOP_CLASSES)
     {
       // Make room in the default storage syntaxes
-      assert(defaultStorageSOPClasses_.size() > 0);  // Necessarily true because condition (*) is false
+      assert(!defaultStorageSOPClasses_.empty());  // Necessarily true because condition (*) is false
       defaultStorageSOPClasses_.erase(*defaultStorageSOPClasses_.rbegin());
     }
 

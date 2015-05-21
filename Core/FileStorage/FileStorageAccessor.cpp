@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,6 +33,12 @@
 #include "../PrecompiledHeaders.h"
 #include "FileStorageAccessor.h"
 
+#include "../HttpServer/BufferHttpSender.h"
+#include "../Uuid.h"
+
+#include <memory>
+#include <stdio.h>
+
 namespace Orthanc
 {
   FileInfo FileStorageAccessor::WriteInternal(const void* data,
@@ -46,6 +52,21 @@ namespace Orthanc
       Toolbox::ComputeMD5(md5, data, size);
     }
 
-    return FileInfo(storage_.Create(data, size), type, size, md5);
+    std::string uuid = Toolbox::GenerateUuid();
+    storage_.Create(uuid.c_str(), data, size, type);
+
+    return FileInfo(uuid, type, size, md5);
   }
+
+
+  HttpFileSender* FileStorageAccessor::ConstructHttpFileSender(const std::string& uuid,
+                                                               FileContentType type)
+  {
+    std::auto_ptr<BufferHttpSender> sender(new BufferHttpSender);
+
+    storage_.Read(sender->GetBuffer(), uuid, type);
+      
+    return sender.release();
+  }
+
 }

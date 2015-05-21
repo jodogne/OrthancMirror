@@ -142,11 +142,10 @@ function SortOnDicomTag(arr, tag, isInteger, reverse)
 
 
 
-function GetSingleResource(type, uuid, callback)
+function GetResource(uri, callback)
 {
-  var resource = null;
   $.ajax({
-    url: '../' + type + '/' + uuid,
+    url: '..' + uri,
     dataType: 'json',
     async: false,
     cache: false,
@@ -155,42 +154,6 @@ function GetSingleResource(type, uuid, callback)
     }
   });
 }
-
-
-function GetMultipleResources(type, uuids, callback)
-{
-  if (uuids == null)
-  {
-    $.ajax({
-      url: '../' + type,
-      dataType: 'json',
-      async: false,
-      cache: false,
-      success: function(s) {
-        uuids = s;
-      }
-    });
-  }
-
-  var resources = [];
-  var ajaxRequests = uuids.map(function(uuid) {
-    return $.ajax({
-      url: '../' + type + '/' + uuid,
-      dataType: 'json',
-      async: true,
-      cache: false,
-      success: function(s) {
-        resources.push(s);
-      }
-    });
-  });
-
-  // Wait for all the AJAX requests to end
-  $.when.apply($, ajaxRequests).then(function() {
-    callback(resources);
-  });
-}
-
 
 
 function CompleteFormatting(s, link, isReverse)
@@ -344,18 +307,18 @@ $('[data-role="page"]').live('pagebeforeshow', function() {
 
 
 $('#find-patients').live('pagebeforeshow', function() {
-  GetMultipleResources('patients', null, function(patients) {
-    var target = $('#all-patients');
-    $('li', target).remove();
+  GetResource('/patients?expand', function(patients) {
+      var target = $('#all-patients');
+      $('li', target).remove();
     
-    SortOnDicomTag(patients, 'PatientName', false, false);
+      SortOnDicomTag(patients, 'PatientName', false, false);
 
-    for (var i = 0; i < patients.length; i++) {
-      var p = FormatPatient(patients[i], '#patient?uuid=' + patients[i].ID);
-      target.append(p);
-    }
+      for (var i = 0; i < patients.length; i++) {
+        var p = FormatPatient(patients[i], '#patient?uuid=' + patients[i].ID);
+        target.append(p);
+      }
 
-    target.listview('refresh');
+      target.listview('refresh');
   });
 });
 
@@ -381,8 +344,8 @@ function SetupAnonymizedOrModifiedFrom(buttonSelector, resource, resourceType, f
 function RefreshPatient()
 {
   if ($.mobile.pageData) {
-    GetSingleResource('patients', $.mobile.pageData.uuid, function(patient) {
-      GetMultipleResources('studies', patient.Studies, function(studies) {
+    GetResource('/patients/' + $.mobile.pageData.uuid, function(patient) {
+      GetResource('/patients/' + $.mobile.pageData.uuid + '/studies', function(studies) {
         SortOnDicomTag(studies, 'StudyDate', false, true);
 
         $('#patient-info li').remove();
@@ -433,9 +396,9 @@ function RefreshPatient()
 function RefreshStudy()
 {
   if ($.mobile.pageData) {
-    GetSingleResource('studies', $.mobile.pageData.uuid, function(study) {
-      GetSingleResource('patients', study.ParentPatient, function(patient) {
-        GetMultipleResources('series', study.Series, function(series) {
+    GetResource('/studies/' + $.mobile.pageData.uuid, function(study) {
+      GetResource('/patients/' + study.ParentPatient, function(patient) {
+        GetResource('/studies/' + $.mobile.pageData.uuid + '/series', function(series) {
           SortOnDicomTag(series, 'SeriesDate', false, true);
 
           $('#study .patient-link').attr('href', '#patient?uuid=' + patient.ID);
@@ -465,7 +428,7 @@ function RefreshStudy()
           currentPage = 'study';
           currentUuid = $.mobile.pageData.uuid;
         });
-      });  
+      });
     });
   }
 }
@@ -474,10 +437,10 @@ function RefreshStudy()
 function RefreshSeries() 
 {
   if ($.mobile.pageData) {
-    GetSingleResource('series', $.mobile.pageData.uuid, function(series) {
-      GetSingleResource('studies', series.ParentStudy, function(study) {
-        GetSingleResource('patients', study.ParentPatient, function(patient) {
-          GetMultipleResources('instances', series.Instances, function(instances) {
+    GetResource('/series/' + $.mobile.pageData.uuid, function(series) {
+      GetResource('/studies/' + series.ParentStudy, function(study) {
+        GetResource('/patients/' + study.ParentPatient, function(patient) {
+          GetResource('/series/' + $.mobile.pageData.uuid + '/instances', function(instances) {
             Sort(instances, function(x) { return x.IndexInSeries; }, true, false);
 
             $('#series .patient-link').attr('href', '#patient?uuid=' + patient.ID);
@@ -568,10 +531,10 @@ function ConvertForTree(dicom)
 function RefreshInstance()
 {
   if ($.mobile.pageData) {
-    GetSingleResource('instances', $.mobile.pageData.uuid, function(instance) {
-      GetSingleResource('series', instance.ParentSeries, function(series) {
-        GetSingleResource('studies', series.ParentStudy, function(study) {
-          GetSingleResource('patients', study.ParentPatient, function(patient) {
+    GetResource('/instances/' + $.mobile.pageData.uuid, function(instance) {
+      GetResource('/series/' + instance.ParentSeries, function(series) {
+        GetResource('/studies/' + series.ParentStudy, function(study) {
+          GetResource('/patients/' + study.ParentPatient, function(patient) {
 
             $('#instance .patient-link').attr('href', '#patient?uuid=' + patient.ID);
             $('#instance .study-link').attr('href', '#study?uuid=' + study.ID);
@@ -589,13 +552,8 @@ function RefreshInstance()
               .append(FormatInstance(instance))
               .listview('refresh');
 
-            $.ajax({
-              url: '../instances/' + instance.ID + '/tags',
-              cache: false,
-              dataType: 'json',
-              success: function(s) {
-                $('#dicom-tree').tree('loadData', ConvertForTree(s));
-              }
+            GetResource('/instances/' + instance.ID + '/tags', function(s) {
+              $('#dicom-tree').tree('loadData', ConvertForTree(s));
             });
 
             SetupAnonymizedOrModifiedFrom('#instance-anonymized-from', instance, 'instance', 'AnonymizedFrom');
@@ -728,7 +686,7 @@ $('#instance-download-json').live('click', function(e) {
 
 $('#instance-preview').live('click', function(e) {
   if ($.mobile.pageData) {
-    GetSingleResource('instances', $.mobile.pageData.uuid + '/frames', function(frames) {
+    GetResource('/instances/' + $.mobile.pageData.uuid + '/frames', function(frames) {
       if (frames.length == 1)
       {
         // Viewing a single-frame image
@@ -759,10 +717,12 @@ $('#instance-preview').live('click', function(e) {
   }
 });
 
+
+
 $('#series-preview').live('click', function(e) {
   if ($.mobile.pageData) {
-    GetSingleResource('series', $.mobile.pageData.uuid, function(series) {
-      GetMultipleResources('instances', series.Instances, function(instances) {
+    GetResource('/series/' + $.mobile.pageData.uuid, function(series) {
+      GetResource('/series/' + $.mobile.pageData.uuid + '/instances', function(instances) {
         Sort(instances, function(x) { return x.IndexInSeries; }, true, false);
 
         var images = [];
@@ -777,11 +737,10 @@ $('#series-preview').live('click', function(e) {
           imageFadeDuration : 1,
           loop : true
         });
-      })
+      });
     });
   }
 });
-
 
 
 
@@ -935,6 +894,24 @@ $('#series-archive').live('click', function(e) {
   window.location.href = '../series/' + $.mobile.pageData.uuid + '/archive';
 });
 
+
+$('#patient-media').live('click', function(e) {
+  e.preventDefault();  //stop the browser from following
+  window.location.href = '../patients/' + $.mobile.pageData.uuid + '/media';
+});
+
+$('#study-media').live('click', function(e) {
+  e.preventDefault();  //stop the browser from following
+  window.location.href = '../studies/' + $.mobile.pageData.uuid + '/media';
+});
+
+$('#series-media').live('click', function(e) {
+  e.preventDefault();  //stop the browser from following
+  window.location.href = '../series/' + $.mobile.pageData.uuid + '/media';
+});
+
+
+
 $('#protection').live('change', function(e) {
   var isProtected = e.target.value == "on";
   $.ajax({
@@ -1004,4 +981,47 @@ $('#series-anonymize').live('click', function() {
 $('#patient-anonymize').live('click', function() {
   OpenAnonymizeResourceDialog('../patients/' + $.mobile.pageData.uuid,
                               'Anonymize this patient?');
+});
+
+
+$('#plugins').live('pagebeforeshow', function() {
+  $.ajax({
+    url: '../plugins',
+    dataType: 'json',
+    async: false,
+    cache: false,
+    success: function(plugins) {
+      var target = $('#all-plugins');
+      $('li', target).remove();
+
+      plugins.map(function(id) {
+        return $.ajax({
+          url: '../plugins/' + id,
+          dataType: 'json',
+          async: false,
+          cache: false,
+          success: function(plugin) {
+            var li = $('<li>');
+            var item = li;
+
+            if ('RootUri' in plugin)
+            {
+              item = $('<a>');
+              li.append(item);
+              item.click(function() {
+                window.open(plugin.RootUri);
+              });
+            }
+
+            item.append($('<h1>').text(plugin.ID));
+            item.append($('<p>').text(plugin.Description));
+            item.append($('<span>').addClass('ui-li-count').text(plugin.Version));
+            target.append(li);
+          }
+        });
+      });
+
+      target.listview('refresh');
+    }
+  });
 });

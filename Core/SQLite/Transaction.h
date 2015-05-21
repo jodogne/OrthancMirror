@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ *
+ * Copyright (C) 2012-2015 Sebastien Jodogne <s.jodogne@gmail.com>,
+ * Medical Physics Department, CHU of Liege, Belgium
  *
  * Copyright (c) 2012 The Chromium Authors. All rights reserved.
  *
@@ -37,12 +38,13 @@
 #pragma once
 
 #include "Connection.h"
+#include "ITransaction.h"
 
 namespace Orthanc
 {
   namespace SQLite
   {
-    class Transaction : public boost::noncopyable
+    class Transaction : public ITransaction
     {
     private:
       Connection& connection_;
@@ -53,22 +55,17 @@ namespace Orthanc
 
     public:
       explicit Transaction(Connection& connection);
-      ~Transaction();
+
+      virtual ~Transaction();
 
       // Returns true when there is a transaction that has been successfully begun.
       bool IsOpen() const { return isOpen_; }
 
-      // Begins the transaction. This uses the default sqlite "deferred" transaction
-      // type, which means that the DB lock is lazily acquired the next time the
-      // database is accessed, not in the begin transaction command.
-      void Begin();
+      virtual void Begin();
 
-      // Rolls back the transaction. This will happen automatically if you do
-      // nothing when the transaction goes out of scope.
-      void Rollback();
+      virtual void Rollback();
 
-      // Commits the transaction, returning true on success.
-      void Commit();
+      virtual void Commit();
     };
   }
 }

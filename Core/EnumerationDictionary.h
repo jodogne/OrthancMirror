@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -34,6 +34,7 @@
 
 #include "OrthancException.h"
 
+#include "Toolbox.h"
 #include <boost/lexical_cast.hpp>
 #include <string>
 #include <map>
@@ -53,26 +54,23 @@ namespace Orthanc
       StringToEnumeration stringToEnumeration_;
 
     public:
+      void Clear()
+      {
+        enumerationToString_.clear();
+        stringToEnumeration_.clear();
+      }
+
       void Add(Enumeration value, const std::string& str)
       {
         // Check if these values are free
         if (enumerationToString_.find(value) != enumerationToString_.end() ||
-            stringToEnumeration_.find(str) != stringToEnumeration_.end())
+            stringToEnumeration_.find(str) != stringToEnumeration_.end() ||
+            Toolbox::IsInteger(str) /* Prevent the registration of a number */)
         {
           throw OrthancException(ErrorCode_BadRequest);
         }
 
-        // Prevent the registration of a number
-        try
-        {
-          boost::lexical_cast<int>(str);
-          throw OrthancException(ErrorCode_BadRequest);
-        }
-        catch (boost::bad_lexical_cast)
-        {
-          // OK, the string is not a number
-        }
-
+        // OK, the string is free and is not a number
         enumerationToString_[value] = str;
         stringToEnumeration_[str] = value;
         stringToEnumeration_[boost::lexical_cast<std::string>(static_cast<int>(value))] = value;

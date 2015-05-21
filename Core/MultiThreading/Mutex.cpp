@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -37,7 +37,7 @@
 
 #if defined(_WIN32)
 #include <windows.h>
-#elif defined(__linux) || defined(__FreeBSD_kernel__) || defined(__APPLE__)
+#elif defined(__linux) || defined(__FreeBSD_kernel__) || defined(__APPLE__) || defined(__FreeBSD__)
 #include <pthread.h>
 #else
 #error Support your platform here
@@ -75,7 +75,7 @@ namespace Orthanc
   }
 
 
-#elif defined(__linux) || defined(__FreeBSD_kernel__) || defined(__APPLE__)
+#elif defined(__linux) || defined(__FreeBSD_kernel__) || defined(__APPLE__) || defined(__FreeBSD__)
 
   struct Mutex::PImpl
   {

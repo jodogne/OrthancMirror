@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -41,6 +41,7 @@
 
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
+#include "OrthancInitialization.h"
 #include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"
 #include "../Core/ImageFormats/PngWriter.h"
@@ -61,6 +62,7 @@
 #include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcuid.h>
 #include <dcmtk/dcmdata/dcmetinf.h>
+#include <dcmtk/dcmdata/dcdeftag.h>
 
 #include <dcmtk/dcmdata/dcvrae.h>
 #include <dcmtk/dcmdata/dcvras.h>
@@ -86,6 +88,7 @@
 #include <dcmtk/dcmdata/dcpixel.h>
 #include <dcmtk/dcmdata/dcpixseq.h>
 #include <dcmtk/dcmdata/dcpxitem.h>
+#include <dcmtk/dcmdata/dcvrat.h>
 
 
 #include <boost/math/special_functions/round.hpp>
@@ -115,8 +118,46 @@ namespace Orthanc
             GetCharValue(c[3]));
   }
 
+
+  Encoding FromDcmtkBridge::DetectEncoding(DcmDataset& dataset)
+  {
+    // By default, Latin1 encoding is assumed
+    std::string s = Configuration::GetGlobalStringParameter("DefaultEncoding", "");
+    Encoding encoding = s.empty() ? Encoding_Latin1 : StringToEncoding(s.c_str());
+
+    OFString tmp;
+    if (dataset.findAndGetOFString(DCM_SpecificCharacterSet, tmp).good())
+    {
+      std::string characterSet = Toolbox::StripSpaces(std::string(tmp.c_str()));
+
+      if (characterSet.empty())
+      {
+        // Empty specific character set tag: Use the default encoding
+      }
+      else if (GetDicomEncoding(encoding, characterSet.c_str()))
+      {
+        // The specific character set is supported by the Orthanc core
+      }
+      else
+      {
+        LOG(WARNING) << "Value of Specific Character Set (0008,0005) is not supported: " << characterSet
+                     << ", fallback to ASCII (remove all special characters)";
+        encoding = Encoding_Ascii;
+      }
+    }
+    else
+    {
+      // No specific character set tag: Use the default encoding
+    }
+
+    return encoding;
+  }
+
+
   void FromDcmtkBridge::Convert(DicomMap& target, DcmDataset& dataset)
   {
+    Encoding encoding = DetectEncoding(dataset);
+
     target.Clear();
     for (unsigned long i = 0; i < dataset.card(); i++)
     {
@@ -125,9 +166,15 @@ namespace Orthanc
       {
         target.SetValue(element->getTag().getGTag(),
                         element->getTag().getETag(),
-                        ConvertLeafElement(*element));
+                        ConvertLeafElement(*element, encoding));
       }
     }
+  }
+
+
+  DicomTag FromDcmtkBridge::Convert(const DcmTag& tag)
+  {
+    return DicomTag(tag.getGTag(), tag.getETag());
   }
 
 
@@ -137,7 +184,34 @@ namespace Orthanc
   }
 
 
-  DicomValue* FromDcmtkBridge::ConvertLeafElement(DcmElement& element)
+  bool FromDcmtkBridge::IsPrivateTag(DcmTag& tag)
+  {
+#if 1
+    DcmTagKey tmp(tag.getGTag(), tag.getETag());
+    return tmp.isPrivate();
+#else
+    // Implementation for Orthanc versions <= 0.8.5
+    return (tag.getPrivateCreator() != NULL ||
+            !strcmp("PrivateCreator", tag.getTagName()));  // TODO - This may change with future versions of DCMTK
+#endif
+  }
+
+
+  bool FromDcmtkBridge::IsPrivateTag(const DicomTag& tag)
+  {
+#if 1
+    DcmTagKey tmp(tag.GetGroup(), tag.GetElement());
+    return tmp.isPrivate();
+#else
+    // Implementation for Orthanc versions <= 0.8.5
+    DcmTag tmp(tag.GetGroup(), tag.GetElement());
+    return IsPrivateTag(tmp);
+#endif
+  }
+
+
+  DicomValue* FromDcmtkBridge::ConvertLeafElement(DcmElement& element,
+                                                  Encoding encoding)
   {
     if (!element.isLeaf())
     {
@@ -151,7 +225,7 @@ namespace Orthanc
           c != NULL)
       {
         std::string s(c);
-        std::string utf8 = Toolbox::ConvertToUtf8(s, Encoding_Latin1); // TODO Parameter?
+        std::string utf8 = Toolbox::ConvertToUtf8(s, encoding);
         return new DicomString(utf8);
       }
       else
@@ -173,9 +247,8 @@ namespace Orthanc
         case EVR_OB:  // other byte
         case EVR_OF:  // other float
         case EVR_OW:  // other word
-        case EVR_AT:  // attribute tag
         case EVR_UN:  // unknown value representation
-          return new DicomNullValue();
+          return new DicomNullValue;
     
           /**
            * String types, should never happen at this point because of
@@ -197,11 +270,11 @@ namespace Orthanc
         case EVR_UT:  // unlimited text
         case EVR_PN:  // person name
         case EVR_UI:  // unique identifier
-          return new DicomNullValue();
+          return new DicomNullValue;
 
 
           /**
-           * Numerical types
+           * Numberic types
            **/ 
       
         case EVR_SL:  // signed long
@@ -210,7 +283,7 @@ namespace Orthanc
           if (dynamic_cast<DcmSignedLong&>(element).getSint32(f).good())
             return new DicomString(boost::lexical_cast<std::string>(f));
           else
-            return new DicomNullValue();
+            return new DicomNullValue;
         }
 
         case EVR_SS:  // signed short
@@ -219,7 +292,7 @@ namespace Orthanc
           if (dynamic_cast<DcmSignedShort&>(element).getSint16(f).good())
             return new DicomString(boost::lexical_cast<std::string>(f));
           else
-            return new DicomNullValue();
+            return new DicomNullValue;
         }
 
         case EVR_UL:  // unsigned long
@@ -228,7 +301,7 @@ namespace Orthanc
           if (dynamic_cast<DcmUnsignedLong&>(element).getUint32(f).good())
             return new DicomString(boost::lexical_cast<std::string>(f));
           else
-            return new DicomNullValue();
+            return new DicomNullValue;
         }
 
         case EVR_US:  // unsigned short
@@ -237,7 +310,7 @@ namespace Orthanc
           if (dynamic_cast<DcmUnsignedShort&>(element).getUint16(f).good())
             return new DicomString(boost::lexical_cast<std::string>(f));
           else
-            return new DicomNullValue();
+            return new DicomNullValue;
         }
 
         case EVR_FL:  // float single-precision
@@ -246,7 +319,7 @@ namespace Orthanc
           if (dynamic_cast<DcmFloatingPointSingle&>(element).getFloat32(f).good())
             return new DicomString(boost::lexical_cast<std::string>(f));
           else
-            return new DicomNullValue();
+            return new DicomNullValue;
         }
 
         case EVR_FD:  // float double-precision
@@ -255,7 +328,26 @@ namespace Orthanc
           if (dynamic_cast<DcmFloatingPointDouble&>(element).getFloat64(f).good())
             return new DicomString(boost::lexical_cast<std::string>(f));
           else
-            return new DicomNullValue();
+            return new DicomNullValue;
+        }
+
+
+        /**
+         * Attribute tag.
+         **/
+
+        case EVR_AT:
+        {
+          DcmTagKey tag;
+          if (dynamic_cast<DcmAttributeTag&>(element).getTagVal(tag, 0).good())
+          {
+            DicomTag t(tag.getGroup(), tag.getElement());
+            return new DicomString(t.Format());
+          }
+          else
+          {
+            return new DicomNullValue;
+          }
         }
 
 
@@ -313,25 +405,28 @@ namespace Orthanc
 
   static void StoreElement(Json::Value& target,
                            DcmElement& element,
-                           unsigned int maxStringLength);
+                           unsigned int maxStringLength,
+                           Encoding encoding);
 
   static void StoreItem(Json::Value& target,
                         DcmItem& item,
-                        unsigned int maxStringLength)
+                        unsigned int maxStringLength,
+                        Encoding encoding)
   {
     target = Json::Value(Json::objectValue);
 
     for (unsigned long i = 0; i < item.card(); i++)
     {
       DcmElement* element = item.getElement(i);
-      StoreElement(target, *element, maxStringLength);
+      StoreElement(target, *element, maxStringLength, encoding);
     }
   }
 
 
   static void StoreElement(Json::Value& target,
                            DcmElement& element,
-                           unsigned int maxStringLength)
+                           unsigned int maxStringLength,
+                           Encoding encoding)
   {
     assert(target.type() == Json::objectValue);
 
@@ -356,7 +451,7 @@ namespace Orthanc
         value["PrivateCreator"] = tagbis.getPrivateCreator();
       }
 
-      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element));
+      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element, encoding));
       if (v->IsNull())
       {
         value["Type"] = "Null";
@@ -393,7 +488,7 @@ namespace Orthanc
       {
         DcmItem* child = sequence.getItem(i);
         Json::Value& v = children.append(Json::objectValue);
-        StoreItem(v, *child, maxStringLength);
+        StoreItem(v, *child, maxStringLength, encoding);
       }  
 
       target[formattedTag]["Name"] = tagName;
@@ -407,7 +502,7 @@ namespace Orthanc
                                DcmDataset& dataset,
                                unsigned int maxStringLength)
   {
-    StoreItem(root, dataset, maxStringLength);
+    StoreItem(root, dataset, maxStringLength, DetectEncoding(dataset));
   }
 
 
@@ -475,7 +570,7 @@ namespace Orthanc
         isxdigit(name[1]) &&
         isxdigit(name[2]) &&
         isxdigit(name[3]) &&
-        name[4] == '-' &&
+        (name[4] == '-' || name[4] == ',') &&
         isxdigit(name[5]) &&
         isxdigit(name[6]) &&
         isxdigit(name[7]) &&
@@ -573,7 +668,7 @@ namespace Orthanc
   }
 
   bool FromDcmtkBridge::SaveToMemoryBuffer(std::string& buffer,
-                                           DcmDataset* dataSet)
+                                           DcmDataset& dataSet)
   {
     // Determine the transfer syntax which shall be used to write the
     // information to the file. We always switch to the Little Endian
@@ -588,7 +683,7 @@ namespace Orthanc
      * dataset into memory. We now keep the original transfer syntax
      * (if available).
      **/
-    E_TransferSyntax xfer = dataSet->getOriginalXfer();
+    E_TransferSyntax xfer = dataSet.getOriginalXfer();
     if (xfer == EXS_Unknown)
     {
       // No information about the original transfer syntax: This is
@@ -599,8 +694,9 @@ namespace Orthanc
     E_EncodingType encodingType = /*opt_sequenceType*/ EET_ExplicitLength;
 
     // Create the meta-header information
-    DcmFileFormat ff(dataSet);
+    DcmFileFormat ff(&dataSet);
     ff.validateMetaInfo(xfer);
+    ff.removeInvalidGroups();
 
     // Create a memory buffer with the proper size
     uint32_t s = ff.calcElementLength(xfer, encodingType);
@@ -625,4 +721,12 @@ namespace Orthanc
       return false;
     }
   }
+
+
+  bool FromDcmtkBridge::IsPNValueRepresentation(const DicomTag& tag)
+  {
+    DcmTag t(tag.GetGroup(), tag.GetElement());
+    return t.getEVR() == EVR_PN;
+  }
+
 }

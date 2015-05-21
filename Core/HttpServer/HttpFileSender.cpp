@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,13 +33,25 @@
 #include "../PrecompiledHeaders.h"
 #include "HttpFileSender.h"
 
+#include "../OrthancException.h"
+
 #include <boost/lexical_cast.hpp>
 
 namespace Orthanc
 {
   void HttpFileSender::SendHeader(HttpOutput& output)
   {
-    output.SendOkHeader(contentType_.c_str(), true, GetFileSize(), downloadFilename_.c_str());
+    if (contentType_.size() > 0)
+    {
+      output.SetContentType(contentType_.c_str());
+    }
+
+    if (downloadFilename_.size() > 0)
+    {
+      output.SetContentFilename(downloadFilename_.c_str());
+    }
+
+    output.SetContentLength(GetFileSize());
   }
 
   void HttpFileSender::Send(HttpOutput& output)
@@ -48,7 +60,8 @@ namespace Orthanc
 
     if (!SendData(output))
     {
-      output.SendHeader(HttpStatus_500_InternalServerError);
+      throw OrthancException(ErrorCode_InternalError);
+      //output.SendHeader(HttpStatus_500_InternalServerError);
     }
   }
 }

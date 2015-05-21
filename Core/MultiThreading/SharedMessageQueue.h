@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -40,11 +40,12 @@
 
 namespace Orthanc
 {
-  class SharedMessageQueue
+  class SharedMessageQueue : public boost::noncopyable
   {
   private:
     typedef std::list<IDynamicObject*>  Queue;
 
+    bool isFifo_;
     unsigned int maxSize_;
     Queue queue_;
     boost::mutex mutex_;
@@ -52,8 +53,8 @@ namespace Orthanc
     boost::condition_variable emptied_;
 
   public:
-    SharedMessageQueue(unsigned int maxSize = 0);
-
+    explicit SharedMessageQueue(unsigned int maxSize = 0);
+    
     ~SharedMessageQueue();
 
     // This transfers the ownership of the message
@@ -63,5 +64,19 @@ namespace Orthanc
     IDynamicObject* Dequeue(int32_t millisecondsTimeout);
 
     bool WaitEmpty(int32_t millisecondsTimeout);
+
+    bool IsFifoPolicy() const
+    {
+      return isFifo_;
+    }
+
+    bool IsLifoPolicy() const
+    {
+      return !isFifo_;
+    }
+
+    void SetFifoPolicy();
+
+    void SetLifoPolicy();
   };
 }

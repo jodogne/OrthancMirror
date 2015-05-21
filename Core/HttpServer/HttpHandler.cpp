@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -34,10 +34,12 @@
 #include "HttpHandler.h"
 
 #include <string.h>
+#include <iostream>
+
 
 namespace Orthanc
 {
-  static void SplitGETNameValue(HttpHandler::Arguments& result,
+  static void SplitGETNameValue(HttpHandler::GetArguments& result,
                                 const char* start,
                                 const char* end)
   {
@@ -58,11 +60,12 @@ namespace Orthanc
     Toolbox::UrlDecode(name);
     Toolbox::UrlDecode(value);
 
-    result.insert(std::make_pair(name, value));
+    result.push_back(std::make_pair(name, value));
   }
 
 
-  void HttpHandler::ParseGetQuery(HttpHandler::Arguments& result, const char* query)
+  void HttpHandler::ParseGetArguments(HttpHandler::GetArguments& result, 
+                                      const char* query)
   {
     const char* pos = query;
 
@@ -84,7 +87,25 @@ namespace Orthanc
   }
 
 
+  void  HttpHandler::ParseGetQuery(UriComponents& uri,
+                                   HttpHandler::GetArguments& getArguments, 
+                                   const char* query)
+  {
+    const char *questionMark = ::strchr(query, '?');
+    if (questionMark == NULL)
+    {
+      // No question mark in the string
+      Toolbox::SplitUriComponents(uri, query);
+      getArguments.clear();
+    }
+    else
+    {
+      Toolbox::SplitUriComponents(uri, std::string(query, questionMark));
+      HttpHandler::ParseGetArguments(getArguments, questionMark + 1);
+    }    
+  }
 
+ 
   std::string HttpHandler::GetArgument(const Arguments& getArguments,
                                        const std::string& name,
                                        const std::string& defaultValue)
@@ -98,6 +119,22 @@ namespace Orthanc
     {
       return it->second;
     }
+  }
+
+
+  std::string HttpHandler::GetArgument(const GetArguments& getArguments,
+                                       const std::string& name,
+                                       const std::string& defaultValue)
+  {
+    for (size_t i = 0; i < getArguments.size(); i++)
+    {
+      if (getArguments[i].first == name)
+      {
+        return getArguments[i].second;
+      }
+    }
+
+    return defaultValue;
   }
 
 
@@ -137,6 +174,18 @@ namespace Orthanc
           result[name] = value;
         }
       }
+    }
+  }
+
+
+  void HttpHandler::CompileGetArguments(Arguments& compiled,
+                                        const GetArguments& source)
+  {
+    compiled.clear();
+
+    for (size_t i = 0; i < source.size(); i++)
+    {
+      compiled[source[i].first] = source[i].second;
     }
   }
 }

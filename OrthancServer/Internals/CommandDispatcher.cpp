@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -234,10 +234,156 @@ static OFCondition acceptUnknownContextsWithPreferredTransferSyntaxes(
 #endif
 
 
+
 namespace Orthanc
 {
   namespace Internals
   {
+    /**
+     * EXTRACT OF FILE "dcmdata/libsrc/dcuid.cc" FROM DCMTK 3.6.0
+     * (dcmAllStorageSOPClassUIDs).
+     *
+     * an array of const strings containing all known Storage SOP
+     * Classes that fit into the conventional
+     * PATIENT-STUDY-SERIES-INSTANCE information model,
+     * i.e. everything a Storage SCP might want to store in a PACS.
+     * Special cases such as hanging protocol storage or the Storage
+     * SOP Class are not included in this list.
+     *
+     * THIS LIST CONTAINS ALL STORAGE SOP CLASSES INCLUDING RETIRED
+     * ONES AND IS LARGER THAN 64 ENTRIES.
+     */
+
+    const char* orthancStorageSOPClassUIDs[] =
+    {
+      UID_AmbulatoryECGWaveformStorage,
+      UID_ArterialPulseWaveformStorage,
+      UID_AutorefractionMeasurementsStorage,
+      UID_BasicStructuredDisplayStorage,
+      UID_BasicTextSRStorage,
+      UID_BasicVoiceAudioWaveformStorage,
+      UID_BlendingSoftcopyPresentationStateStorage,
+      UID_BreastTomosynthesisImageStorage,
+      UID_CardiacElectrophysiologyWaveformStorage,
+      UID_ChestCADSRStorage,
+      UID_ColonCADSRStorage,
+      UID_ColorSoftcopyPresentationStateStorage,
+      UID_ComprehensiveSRStorage,
+      UID_ComputedRadiographyImageStorage,
+      UID_CTImageStorage,
+      UID_DeformableSpatialRegistrationStorage,
+      UID_DigitalIntraOralXRayImageStorageForPresentation,
+      UID_DigitalIntraOralXRayImageStorageForProcessing,
+      UID_DigitalMammographyXRayImageStorageForPresentation,
+      UID_DigitalMammographyXRayImageStorageForProcessing,
+      UID_DigitalXRayImageStorageForPresentation,
+      UID_DigitalXRayImageStorageForProcessing,
+      UID_EncapsulatedCDAStorage,
+      UID_EncapsulatedPDFStorage,
+      UID_EnhancedCTImageStorage,
+      UID_EnhancedMRColorImageStorage,
+      UID_EnhancedMRImageStorage,
+      UID_EnhancedPETImageStorage,
+      UID_EnhancedSRStorage,
+      UID_EnhancedUSVolumeStorage,
+      UID_EnhancedXAImageStorage,
+      UID_EnhancedXRFImageStorage,
+      UID_GeneralAudioWaveformStorage,
+      UID_GeneralECGWaveformStorage,
+      UID_GenericImplantTemplateStorage,
+      UID_GrayscaleSoftcopyPresentationStateStorage,
+      UID_HemodynamicWaveformStorage,
+      UID_ImplantAssemblyTemplateStorage,
+      UID_ImplantationPlanSRDocumentStorage,
+      UID_ImplantTemplateGroupStorage,
+      UID_IntraocularLensCalculationsStorage,
+      UID_KeratometryMeasurementsStorage,
+      UID_KeyObjectSelectionDocumentStorage,
+      UID_LensometryMeasurementsStorage,
+      UID_MacularGridThicknessAndVolumeReportStorage,
+      UID_MammographyCADSRStorage,
+      UID_MRImageStorage,
+      UID_MRSpectroscopyStorage,
+      UID_MultiframeGrayscaleByteSecondaryCaptureImageStorage,
+      UID_MultiframeGrayscaleWordSecondaryCaptureImageStorage,
+      UID_MultiframeSingleBitSecondaryCaptureImageStorage,
+      UID_MultiframeTrueColorSecondaryCaptureImageStorage,
+      UID_NuclearMedicineImageStorage,
+      UID_OphthalmicAxialMeasurementsStorage,
+      UID_OphthalmicPhotography16BitImageStorage,
+      UID_OphthalmicPhotography8BitImageStorage,
+      UID_OphthalmicTomographyImageStorage,
+      UID_OphthalmicVisualFieldStaticPerimetryMeasurementsStorage,
+      UID_PositronEmissionTomographyImageStorage,
+      UID_ProcedureLogStorage,
+      UID_PseudoColorSoftcopyPresentationStateStorage,
+      UID_RawDataStorage,
+      UID_RealWorldValueMappingStorage,
+      UID_RespiratoryWaveformStorage,
+      UID_RTBeamsTreatmentRecordStorage,
+      UID_RTBrachyTreatmentRecordStorage,
+      UID_RTDoseStorage,
+      UID_RTImageStorage,
+      UID_RTIonBeamsTreatmentRecordStorage,
+      UID_RTIonPlanStorage,
+      UID_RTPlanStorage,
+      UID_RTStructureSetStorage,
+      UID_RTTreatmentSummaryRecordStorage,
+      UID_SecondaryCaptureImageStorage,
+      UID_SegmentationStorage,
+      UID_SpatialFiducialsStorage,
+      UID_SpatialRegistrationStorage,
+      UID_SpectaclePrescriptionReportStorage,
+      UID_StereometricRelationshipStorage,
+      UID_SubjectiveRefractionMeasurementsStorage,
+      UID_SurfaceSegmentationStorage,
+      UID_TwelveLeadECGWaveformStorage,
+      UID_UltrasoundImageStorage,
+      UID_UltrasoundMultiframeImageStorage,
+      UID_VideoEndoscopicImageStorage,
+      UID_VideoMicroscopicImageStorage,
+      UID_VideoPhotographicImageStorage,
+      UID_VisualAcuityMeasurementsStorage,
+      UID_VLEndoscopicImageStorage,
+      UID_VLMicroscopicImageStorage,
+      UID_VLPhotographicImageStorage,
+      UID_VLSlideCoordinatesMicroscopicImageStorage,
+      UID_VLWholeSlideMicroscopyImageStorage,
+      UID_XAXRFGrayscaleSoftcopyPresentationStateStorage,
+      UID_XRay3DAngiographicImageStorage,
+      UID_XRay3DCraniofacialImageStorage,
+      UID_XRayAngiographicImageStorage,
+      UID_XRayRadiationDoseSRStorage,
+      UID_XRayRadiofluoroscopicImageStorage,
+      // retired
+      UID_RETIRED_HardcopyColorImageStorage,
+      UID_RETIRED_HardcopyGrayscaleImageStorage,
+      UID_RETIRED_NuclearMedicineImageStorage,
+      UID_RETIRED_StandaloneCurveStorage,
+      UID_RETIRED_StandaloneModalityLUTStorage,
+      UID_RETIRED_StandaloneOverlayStorage,
+      UID_RETIRED_StandalonePETCurveStorage,
+      UID_RETIRED_StandaloneVOILUTStorage,
+      UID_RETIRED_StoredPrintStorage,
+      UID_RETIRED_UltrasoundImageStorage,
+      UID_RETIRED_UltrasoundMultiframeImageStorage,
+      UID_RETIRED_VLImageStorage,
+      UID_RETIRED_VLMultiFrameImageStorage,
+      UID_RETIRED_XRayAngiographicBiPlaneImageStorage,
+      // draft
+      UID_DRAFT_SRAudioStorage,
+      UID_DRAFT_SRComprehensiveStorage,
+      UID_DRAFT_SRDetailStorage,
+      UID_DRAFT_SRTextStorage,
+      UID_DRAFT_WaveformStorage,
+      UID_DRAFT_RTBeamsDeliveryInstructionStorage,
+      NULL
+    };
+
+    const int orthancStorageSOPClassUIDsCount = (sizeof(orthancStorageSOPClassUIDs) / sizeof(const char*)) - 1;
+
+
+
     OFCondition AssociationCleanup(T_ASC_Association *assoc)
     {
       OFString temp_str;
@@ -313,7 +459,38 @@ namespace Orthanc
         return NULL;
       }
 
-      LOG(INFO) << "Association Received";
+      // Retrieve the AET and the IP address of the remote modality
+      std::string callingAet;
+      std::string callingIp;
+      std::string calledAet;
+  
+      {
+        DIC_AE callingAet_C;
+        DIC_AE calledAet_C;
+        DIC_AE callingIp_C;
+        DIC_AE calledIP_C;
+        if (ASC_getAPTitles(assoc->params, callingAet_C, calledAet_C, NULL).bad() ||
+            ASC_getPresentationAddresses(assoc->params, callingIp_C, calledIP_C).bad())
+        {
+          T_ASC_RejectParameters rej =
+            {
+              ASC_RESULT_REJECTEDPERMANENT,
+              ASC_SOURCE_SERVICEUSER,
+              ASC_REASON_SU_NOREASON
+            };
+          ASC_rejectAssociation(assoc, &rej);
+          AssociationCleanup(assoc);
+          return NULL;
+        }
+
+        callingIp = std::string(/*OFSTRING_GUARD*/(callingIp_C));
+        callingAet = std::string(/*OFSTRING_GUARD*/(callingAet_C));
+        calledAet = (/*OFSTRING_GUARD*/(calledAet_C));
+      }
+
+      LOG(INFO) << "Association Received from AET " << callingAet 
+                << " on IP " << callingIp;
+
 
       std::vector<const char*> transferSyntaxes;
 
@@ -323,39 +500,75 @@ namespace Orthanc
       transferSyntaxes.push_back(UID_LittleEndianImplicitTransferSyntax);
 
       // New transfer syntaxes supported since Orthanc 0.7.2
-      transferSyntaxes.push_back(UID_DeflatedExplicitVRLittleEndianTransferSyntax); 
-      transferSyntaxes.push_back(UID_JPEGProcess1TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess2_4TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess3_5TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess6_8TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess7_9TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess10_12TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess11_13TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess14TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess15TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess16_18TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess17_19TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess20_22TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess21_23TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess24_26TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess25_27TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess28TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess29TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGProcess14SV1TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGLSLosslessTransferSyntax);
-      transferSyntaxes.push_back(UID_JPEGLSLossyTransferSyntax);
-      transferSyntaxes.push_back(UID_JPEG2000LosslessOnlyTransferSyntax);
-      transferSyntaxes.push_back(UID_JPEG2000TransferSyntax);
-      transferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionLosslessOnlyTransferSyntax);
-      transferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionTransferSyntax);
-      transferSyntaxes.push_back(UID_JPIPReferencedTransferSyntax);
-      transferSyntaxes.push_back(UID_JPIPReferencedDeflateTransferSyntax);
-      transferSyntaxes.push_back(UID_MPEG2MainProfileAtMainLevelTransferSyntax);
-      transferSyntaxes.push_back(UID_MPEG2MainProfileAtHighLevelTransferSyntax);
-      transferSyntaxes.push_back(UID_RLELosslessTransferSyntax);
+      if (!server.HasApplicationEntityFilter() ||
+          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(callingIp, callingAet, TransferSyntax_Deflated))
+      {
+        transferSyntaxes.push_back(UID_DeflatedExplicitVRLittleEndianTransferSyntax); 
+      }
+
+      if (!server.HasApplicationEntityFilter() ||
+          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(callingIp, callingAet, TransferSyntax_Jpeg))
+      {
+        transferSyntaxes.push_back(UID_JPEGProcess1TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess2_4TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess3_5TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess6_8TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess7_9TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess10_12TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess11_13TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess14TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess15TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess16_18TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess17_19TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess20_22TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess21_23TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess24_26TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess25_27TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess28TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess29TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGProcess14SV1TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGLSLosslessTransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGLSLossyTransferSyntax);
+      }
+
+      if (!server.HasApplicationEntityFilter() ||
+          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(callingIp, callingAet, TransferSyntax_Jpeg2000))
+      {
+        transferSyntaxes.push_back(UID_JPEG2000LosslessOnlyTransferSyntax);
+        transferSyntaxes.push_back(UID_JPEG2000TransferSyntax);
+      }
+
+      if (!server.HasApplicationEntityFilter() ||
+          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(callingIp, callingAet, TransferSyntax_JpegLossless))
+      {
+        transferSyntaxes.push_back(UID_JPEG2000LosslessOnlyTransferSyntax);
+        transferSyntaxes.push_back(UID_JPEG2000TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionLosslessOnlyTransferSyntax);
+        transferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionTransferSyntax);
+      }
+
+      if (!server.HasApplicationEntityFilter() ||
+          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(callingIp, callingAet, TransferSyntax_Jpip))
+      {
+        transferSyntaxes.push_back(UID_JPIPReferencedTransferSyntax);
+        transferSyntaxes.push_back(UID_JPIPReferencedDeflateTransferSyntax);
+      }
+
+      if (!server.HasApplicationEntityFilter() ||
+          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(callingIp, callingAet, TransferSyntax_Mpeg2))
+      {
+        transferSyntaxes.push_back(UID_MPEG2MainProfileAtMainLevelTransferSyntax);
+        transferSyntaxes.push_back(UID_MPEG2MainProfileAtHighLevelTransferSyntax);
+      }
+
+      if (!server.HasApplicationEntityFilter() ||
+          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(callingIp, callingAet, TransferSyntax_Rle))
+      {
+        transferSyntaxes.push_back(UID_RLELosslessTransferSyntax);
+      }
 
       /* accept the Verification SOP Class if presented */
-      cond = ASC_acceptContextsWithPreferredTransferSyntaxes( assoc->params, &knownAbstractSyntaxes[0], knownAbstractSyntaxes.size(), &transferSyntaxes[0], transferSyntaxes.size());
+      cond = ASC_acceptContextsWithPreferredTransferSyntaxes(assoc->params, &knownAbstractSyntaxes[0], knownAbstractSyntaxes.size(), &transferSyntaxes[0], transferSyntaxes.size());
       if (cond.bad())
       {
         LOG(INFO) << cond.text();
@@ -364,7 +577,7 @@ namespace Orthanc
       }
 
       /* the array of Storage SOP Class UIDs comes from dcuid.h */
-      cond = ASC_acceptContextsWithPreferredTransferSyntaxes( assoc->params, dcmAllStorageSOPClassUIDs, numberOfAllDcmStorageSOPClassUIDs, &transferSyntaxes[0], transferSyntaxes.size());
+      cond = ASC_acceptContextsWithPreferredTransferSyntaxes(assoc->params, orthancStorageSOPClassUIDs, orthancStorageSOPClassUIDsCount, &transferSyntaxes[0], transferSyntaxes.size());
       if (cond.bad())
       {
         LOG(INFO) << cond.text();
@@ -409,62 +622,38 @@ namespace Orthanc
         return NULL;
       }
 
-      std::string callingIP;
-      std::string callingTitle;
-  
       /* check the AETs */
+      if (!server.IsMyAETitle(calledAet))
       {
-        DIC_AE callingTitle_C;
-        DIC_AE calledTitle_C;
-        DIC_AE callingIP_C;
-        DIC_AE calledIP_C;
-        if (ASC_getAPTitles(assoc->params, callingTitle_C, calledTitle_C, NULL).bad() ||
-            ASC_getPresentationAddresses(assoc->params, callingIP_C, calledIP_C).bad())
-        {
-          T_ASC_RejectParameters rej =
-            {
-              ASC_RESULT_REJECTEDPERMANENT,
-              ASC_SOURCE_SERVICEUSER,
-              ASC_REASON_SU_NOREASON
-            };
-          ASC_rejectAssociation(assoc, &rej);
-          AssociationCleanup(assoc);
-          return NULL;
-        }
-
-        callingIP = std::string(/*OFSTRING_GUARD*/(callingIP_C));
-        callingTitle = std::string(/*OFSTRING_GUARD*/(callingTitle_C));
-        std::string calledTitle(/*OFSTRING_GUARD*/(calledTitle_C));
-
-        if (!server.IsMyAETitle(calledTitle))
-        {
-          T_ASC_RejectParameters rej =
-            {
-              ASC_RESULT_REJECTEDPERMANENT,
-              ASC_SOURCE_SERVICEUSER,
-              ASC_REASON_SU_CALLEDAETITLENOTRECOGNIZED
-            };
-          ASC_rejectAssociation(assoc, &rej);
-          AssociationCleanup(assoc);
-          return NULL;
-        }
-
-        if (server.HasApplicationEntityFilter() &&
-            !server.GetApplicationEntityFilter().IsAllowedConnection(callingIP, callingTitle))
-        {
-          T_ASC_RejectParameters rej =
-            {
-              ASC_RESULT_REJECTEDPERMANENT,
-              ASC_SOURCE_SERVICEUSER,
-              ASC_REASON_SU_CALLINGAETITLENOTRECOGNIZED
-            };
-          ASC_rejectAssociation(assoc, &rej);
-          AssociationCleanup(assoc);
-          return NULL;
-        }
+        LOG(WARNING) << "Rejected association, because of a bad called AET in the request (" << calledAet << ")";
+        T_ASC_RejectParameters rej =
+          {
+            ASC_RESULT_REJECTEDPERMANENT,
+            ASC_SOURCE_SERVICEUSER,
+            ASC_REASON_SU_CALLEDAETITLENOTRECOGNIZED
+          };
+        ASC_rejectAssociation(assoc, &rej);
+        AssociationCleanup(assoc);
+        return NULL;
       }
 
-      if (opt_rejectWithoutImplementationUID && strlen(assoc->params->theirImplementationClassUID) == 0)
+      if (server.HasApplicationEntityFilter() &&
+          !server.GetApplicationEntityFilter().IsAllowedConnection(callingIp, callingAet))
+      {
+        LOG(WARNING) << "Rejected association for remote AET " << callingAet << " on IP " << callingIp;
+        T_ASC_RejectParameters rej =
+          {
+            ASC_RESULT_REJECTEDPERMANENT,
+            ASC_SOURCE_SERVICEUSER,
+            ASC_REASON_SU_CALLINGAETITLENOTRECOGNIZED
+          };
+        ASC_rejectAssociation(assoc, &rej);
+        AssociationCleanup(assoc);
+        return NULL;
+      }
+
+      if (opt_rejectWithoutImplementationUID && 
+          strlen(assoc->params->theirImplementationClassUID) == 0)
       {
         /* reject: the no implementation Class UID provided */
         T_ASC_RejectParameters rej =
@@ -498,7 +687,7 @@ namespace Orthanc
       }
 
       IApplicationEntityFilter* filter = server.HasApplicationEntityFilter() ? &server.GetApplicationEntityFilter() : NULL;
-      return new CommandDispatcher(server, assoc, callingIP, callingTitle, filter);
+      return new CommandDispatcher(server, assoc, callingIp, callingAet, filter);
     }
 
     bool CommandDispatcher::Step()
@@ -580,14 +769,16 @@ namespace Orthanc
 
         // Check whether this request is allowed by the security filter
         if (supported && 
+            request != DicomRequestType_Echo &&  // Always allow incoming ECHO requests
             filter_ != NULL &&
             !filter_->IsAllowedRequest(callingIP_, callingAETitle_, request))
         {
           LOG(ERROR) << EnumerationToString(request) 
                      << " requests are disallowed for the AET \"" 
                      << callingAETitle_ << "\"";
-          cond = DIMSE_BADCOMMANDTYPE;
+          cond = DIMSE_ILLEGALASSOCIATION;
           supported = false;
+          finished = true;
         }
 
         // in case we received a supported message, process this command
@@ -668,7 +859,7 @@ namespace Orthanc
     }
 
 
-    OFCondition EchoScp( T_ASC_Association * assoc, T_DIMSE_Message * msg, T_ASC_PresentationContextID presID)
+    OFCondition EchoScp(T_ASC_Association * assoc, T_DIMSE_Message * msg, T_ASC_PresentationContextID presID)
     {
       OFString temp_str;
       LOG(INFO) << "Received Echo Request";

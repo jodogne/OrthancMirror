@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -40,7 +40,7 @@
 #include "../Core/DicomFormat/DicomInstanceHasher.h"
 #include "ServerEnumerations.h"
 
-#include "DatabaseWrapper.h"
+#include "IDatabaseWrapper.h"
 
 
 namespace Orthanc
@@ -54,9 +54,13 @@ namespace Orthanc
 
   class ServerIndex : public boost::noncopyable
   {
+  public:
+    typedef std::list<FileInfo> Attachments;
+    typedef std::map< std::pair<ResourceType, MetadataType>, std::string>  MetadataMap;
+
   private:
     class Transaction;
-    struct UnstableResourcePayload;
+    class UnstableResourcePayload;
 
     bool done_;
     boost::mutex mutex_;
@@ -64,7 +68,7 @@ namespace Orthanc
     boost::thread unstableResourcesMonitorThread_;
 
     std::auto_ptr<Internals::ServerIndexListener> listener_;
-    std::auto_ptr<DatabaseWrapper> db_;
+    IDatabaseWrapper& db_;
     LeastRecentlyUsedIndex<int64_t, UnstableResourcePayload>  unstableResources_;
 
     uint64_t currentStorageSize_;
@@ -88,7 +92,8 @@ namespace Orthanc
     void StandaloneRecycling();
 
     void MarkAsUnstable(int64_t id,
-                        Orthanc::ResourceType type);
+                        Orthanc::ResourceType type,
+                        const std::string& publicId);
 
     void GetStatisticsInternal(/* out */ uint64_t& compressedSize, 
                                /* out */ uint64_t& uncompressedSize, 
@@ -98,11 +103,26 @@ namespace Orthanc
                                /* in  */ int64_t id,
                                /* in  */ ResourceType type);
 
-  public:
-    typedef std::list<FileInfo> Attachments;
+    bool GetMetadataAsInteger(int64_t& result,
+                              int64_t id,
+                              MetadataType type);
 
+    void LogChange(int64_t internalId,
+                   ChangeType changeType,
+                   ResourceType resourceType,
+                   const std::string& publicId);
+
+    uint64_t IncrementGlobalSequenceInternal(GlobalProperty property);
+
+    void SetMainDicomTags(int64_t resource,
+                          const DicomMap& tags);
+
+    int64_t CreateResource(const std::string& publicId,
+                           ResourceType type);
+
+  public:
     ServerIndex(ServerContext& context,
-                const std::string& dbPath);
+                IDatabaseWrapper& database);
 
     ~ServerIndex();
 
@@ -122,9 +142,11 @@ namespace Orthanc
     // "count == 0" means no limit on the number of patients
     void SetMaximumPatientCount(unsigned int count);
 
-    StoreStatus Store(const DicomMap& dicomSummary,
+    StoreStatus Store(std::map<MetadataType, std::string>& instanceMetadata,
+                      const DicomMap& dicomSummary,
                       const Attachments& attachments,
-                      const std::string& remoteAet);
+                      const std::string& remoteAet,
+                      const MetadataMap& metadata);
 
     void ComputeStatistics(Json::Value& target);                        
 
@@ -136,27 +158,27 @@ namespace Orthanc
                           const std::string& instanceUuid,
                           FileContentType contentType);
 
-    void GetAllUuids(Json::Value& target,
+    void GetAllUuids(std::list<std::string>& target,
                      ResourceType resourceType);
 
-    bool DeleteResource(Json::Value& target,
+    bool DeleteResource(Json::Value& target /* out */,
                         const std::string& uuid,
                         ResourceType expectedType);
 
-    bool GetChanges(Json::Value& target,
+    void GetChanges(Json::Value& target,
                     int64_t since,
                     unsigned int maxResults);
 
-    bool GetLastChange(Json::Value& target);
+    void GetLastChange(Json::Value& target);
 
     void LogExportedResource(const std::string& publicId,
                              const std::string& remoteModality);
 
-    bool GetExportedResources(Json::Value& target,
+    void GetExportedResources(Json::Value& target,
                               int64_t since,
                               unsigned int maxResults);
 
-    bool GetLastExportedResource(Json::Value& target);
+    void GetLastExportedResource(Json::Value& target);
 
     bool IsProtectedPatient(const std::string& publicId);
 
@@ -182,6 +204,9 @@ namespace Orthanc
 
     void ListAvailableMetadata(std::list<MetadataType>& target,
                                const std::string& publicId);
+
+    bool GetMetadata(Json::Value& target,
+                     const std::string& publicId);
 
     void ListAvailableAttachments(std::list<FileContentType>& target,
                                   const std::string& publicId,
@@ -209,22 +234,32 @@ namespace Orthanc
                        /* out */ unsigned int& countInstances, 
                        const std::string& publicId);
 
-    void LookupTagValue(std::list<std::string>& result,
-                        DicomTag tag,
-                        const std::string& value,
-                        ResourceType type);
+    void LookupIdentifier(std::list<std::string>& result,
+                          const DicomTag& tag,
+                          const std::string& value,
+                          ResourceType type);
 
-    void LookupTagValue(std::list<std::string>& result,
-                        DicomTag tag,
-                        const std::string& value);
+    void LookupIdentifier(std::list<std::string>& result,
+                          const DicomTag& tag,
+                          const std::string& value);
 
-    void LookupTagValue(std::list<std::string>& result,
-                        const std::string& value);
+    void LookupIdentifier(std::list< std::pair<ResourceType, std::string> >& result,
+                          const std::string& value);
 
     StoreStatus AddAttachment(const FileInfo& attachment,
                               const std::string& publicId);
 
     void DeleteAttachment(const std::string& publicId,
                           FileContentType type);
+
+    void SetGlobalProperty(GlobalProperty property,
+                           const std::string& value);
+
+    std::string GetGlobalProperty(GlobalProperty property,
+                                  const std::string& defaultValue);
+
+    bool GetMainDicomTags(DicomMap& result,
+                          const std::string& publicId,
+                          ResourceType expectedType);
   };
 }

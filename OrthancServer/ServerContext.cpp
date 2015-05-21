@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -43,9 +43,20 @@
 #include <EmbeddedResources.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
 
+
+#include "Scheduler/CallSystemCommand.h"
+#include "Scheduler/DeleteInstanceCommand.h"
+#include "Scheduler/ModifyInstanceCommand.h"
+#include "Scheduler/StoreScuCommand.h"
+#include "Scheduler/StorePeerCommand.h"
+#include "OrthancRestApi/OrthancRestApi.h"
+#include "../Plugins/Engine/OrthancPlugins.h"
+
+
 #define ENABLE_DICOM_CACHE  1
 
 static const char* RECEIVED_INSTANCE_FILTER = "ReceivedInstanceFilter";
+static const char* ON_STORED_INSTANCE = "OnStoredInstance";
 
 static const size_t DICOM_CACHE_SIZE = 2;
 
@@ -60,19 +71,22 @@ static const size_t DICOM_CACHE_SIZE = 2;
 
 namespace Orthanc
 {
-  ServerContext::ServerContext(const boost::filesystem::path& storagePath,
-                               const boost::filesystem::path& indexPath) :
-    storage_(storagePath.string()),
-    index_(*this, indexPath.string()),
-    accessor_(storage_),
+  ServerContext::ServerContext(IDatabaseWrapper& database) :
+    index_(*this, database),
     compressionEnabled_(false),
     provider_(*this),
-    dicomCache_(provider_, DICOM_CACHE_SIZE)
+    dicomCache_(provider_, DICOM_CACHE_SIZE),
+    scheduler_(Configuration::GetGlobalIntegerParameter("LimitJobs", 10)),
+    plugins_(NULL),
+    pluginsManager_(NULL)
   {
     scu_.SetLocalApplicationEntityTitle(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"));
-    //scu_.SetMillisecondsBeforeClose(1);  // The connection is always released
+
+    uint64_t s = Configuration::GetGlobalIntegerParameter("DicomAssociationCloseDelay", 5);  // In seconds
+    scu_.SetMillisecondsBeforeClose(s * 1000);  // Milliseconds are expected here
 
     lua_.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
+    lua_.SetHttpProxy(Configuration::GetGlobalStringParameter("HttpProxy", ""));
   }
 
   void ServerContext::SetCompressionEnabled(bool enabled)
@@ -85,84 +99,312 @@ namespace Orthanc
     compressionEnabled_ = enabled;
   }
 
-  void ServerContext::RemoveFile(const std::string& fileUuid)
+  void ServerContext::RemoveFile(const std::string& fileUuid,
+                                 FileContentType type)
   {
-    storage_.Remove(fileUuid);
+    accessor_.Remove(fileUuid, type);
   }
 
-  StoreStatus ServerContext::Store(const char* dicomInstance,
-                                   size_t dicomSize,
-                                   const DicomMap& dicomSummary,
-                                   const Json::Value& dicomJson,
-                                   const std::string& remoteAet)
-  {
-    // Test if the instance must be filtered out
-    if (lua_.IsExistingFunction(RECEIVED_INSTANCE_FILTER))
-    {
-      Json::Value simplified;
-      SimplifyTags(simplified, dicomJson);
 
-      LuaFunctionCall call(lua_, RECEIVED_INSTANCE_FILTER);
-      call.PushJSON(simplified);
+  bool ServerContext::ApplyReceivedInstanceFilter(const Json::Value& simplified,
+                                                  const std::string& remoteAet)
+  {
+    LuaContextLocker locker(*this);
+
+    if (locker.GetLua().IsExistingFunction(RECEIVED_INSTANCE_FILTER))
+    {
+      LuaFunctionCall call(locker.GetLua(), RECEIVED_INSTANCE_FILTER);
+      call.PushJson(simplified);
       call.PushString(remoteAet);
 
       if (!call.ExecutePredicate())
       {
-        LOG(INFO) << "An incoming instance has been discarded by the filter";
-        return StoreStatus_FilteredOut;
+        return false;
       }
     }
 
-    if (compressionEnabled_)
-    {
-      accessor_.SetCompressionForNextOperations(CompressionType_Zlib);
-    }
-    else
-    {
-      accessor_.SetCompressionForNextOperations(CompressionType_None);
-    }      
-
-    FileInfo dicomInfo = accessor_.Write(dicomInstance, dicomSize, FileContentType_Dicom);
-    FileInfo jsonInfo = accessor_.Write(dicomJson.toStyledString(), FileContentType_DicomAsJson);
-
-    ServerIndex::Attachments attachments;
-    attachments.push_back(dicomInfo);
-    attachments.push_back(jsonInfo);
-
-    StoreStatus status = index_.Store(dicomSummary, attachments, remoteAet);
-
-    if (status != StoreStatus_Success)
-    {
-      storage_.Remove(dicomInfo.GetUuid());
-      storage_.Remove(jsonInfo.GetUuid());
-    }
-
-    switch (status)
-    {
-      case StoreStatus_Success:
-        LOG(INFO) << "New instance stored";
-        break;
-
-      case StoreStatus_AlreadyStored:
-        LOG(INFO) << "Already stored";
-        break;
-
-      case StoreStatus_Failure:
-        LOG(ERROR) << "Store failure";
-        break;
-
-      default:
-        // This should never happen
-        break;
-    }
-
-    return status;
+    return true;
   }
 
-  
-  void ServerContext::AnswerDicomFile(RestApiOutput& output,
-                                      const std::string& instancePublicId,
-                                      FileContentType content)
+
+  static IServerCommand* ParseOperation(ServerContext& context,
+                                        const std::string& operation,
+                                        const Json::Value& parameters)
+  {
+    if (operation == "delete")
+    {
+      LOG(INFO) << "Lua script to delete instance " << parameters["Instance"].asString();
+      return new DeleteInstanceCommand(context);
+    }
+
+    if (operation == "store-scu")
+    {
+      std::string modality = parameters["Modality"].asString();
+      LOG(INFO) << "Lua script to send instance " << parameters["Instance"].asString()
+                << " to modality " << modality << " using Store-SCU";
+      return new StoreScuCommand(context, Configuration::GetModalityUsingSymbolicName(modality), true);
+    }
+
+    if (operation == "store-peer")
+    {
+      std::string peer = parameters["Peer"].asString();
+      LOG(INFO) << "Lua script to send instance " << parameters["Instance"].asString()
+                << " to peer " << peer << " using HTTP";
+
+      OrthancPeerParameters parameters;
+      Configuration::GetOrthancPeer(parameters, peer);
+      return new StorePeerCommand(context, parameters, true);
+    }
+
+    if (operation == "modify")
+    {
+      LOG(INFO) << "Lua script to modify instance " << parameters["Instance"].asString();
+      DicomModification modification;
+      OrthancRestApi::ParseModifyRequest(modification, parameters);
+
+      std::auto_ptr<ModifyInstanceCommand> command(new ModifyInstanceCommand(context, modification));
+      return command.release();
+    }
+
+    if (operation == "call-system")
+    {
+      LOG(INFO) << "Lua script to call system command on " << parameters["Instance"].asString();
+
+      const Json::Value& argsIn = parameters["Arguments"];
+      if (argsIn.type() != Json::arrayValue)
+      {
+        throw OrthancException(ErrorCode_BadParameterType);
+      }
+
+      std::vector<std::string> args;
+      args.reserve(argsIn.size());
+      for (Json::Value::ArrayIndex i = 0; i < argsIn.size(); ++i)
+      {
+        // http://jsoncpp.sourceforge.net/namespace_json.html#7d654b75c16a57007925868e38212b4e
+        switch (argsIn[i].type())
+        {
+          case Json::stringValue:
+            args.push_back(argsIn[i].asString());
+            break;
+
+          case Json::intValue:
+            args.push_back(boost::lexical_cast<std::string>(argsIn[i].asInt()));
+            break;
+
+          case Json::uintValue:
+            args.push_back(boost::lexical_cast<std::string>(argsIn[i].asUInt()));
+            break;
+
+          case Json::realValue:
+            args.push_back(boost::lexical_cast<std::string>(argsIn[i].asFloat()));
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_BadParameterType);
+        }
+      }
+
+      return new CallSystemCommand(context, parameters["Command"].asString(), args);
+    }
+
+    throw OrthancException(ErrorCode_ParameterOutOfRange);
+  }
+
+
+  void ServerContext::ApplyLuaOnStoredInstance(const std::string& instanceId,
+                                               const Json::Value& simplifiedDicom,
+                                               const Json::Value& metadata,
+                                               const std::string& remoteAet,
+                                               const std::string& calledAet)
+  {
+    LuaContextLocker locker(*this);
+
+    if (locker.GetLua().IsExistingFunction(ON_STORED_INSTANCE))
+    {
+      locker.GetLua().Execute("_InitializeJob()");
+
+      LuaFunctionCall call(locker.GetLua(), ON_STORED_INSTANCE);
+      call.PushString(instanceId);
+      call.PushJson(simplifiedDicom);
+      call.PushJson(metadata);
+      call.PushJson(remoteAet);
+      call.PushJson(calledAet);
+      call.Execute();
+
+      Json::Value operations;
+      LuaFunctionCall call2(locker.GetLua(), "_AccessJob");
+      call2.ExecuteToJson(operations);
+     
+      if (operations.type() != Json::arrayValue)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      ServerJob job;
+      ServerCommandInstance* previousCommand = NULL;
+
+      for (Json::Value::ArrayIndex i = 0; i < operations.size(); ++i)
+      {
+        if (operations[i].type() != Json::objectValue ||
+            !operations[i].isMember("Operation"))
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+
+        const Json::Value& parameters = operations[i];
+        std::string operation = parameters["Operation"].asString();
+
+        ServerCommandInstance& command = job.AddCommand(ParseOperation(*this, operation, operations[i]));
+        
+        if (!parameters.isMember("Instance"))
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+
+        std::string instance = parameters["Instance"].asString();
+        if (instance.empty())
+        {
+          previousCommand->ConnectOutput(command);
+        }
+        else 
+        {
+          command.AddInput(instance);
+        }
+
+        previousCommand = &command;
+      }
+
+      job.SetDescription(std::string("Lua script: ") + ON_STORED_INSTANCE);
+      scheduler_.Submit(job);
+    }
+  }
+
+
+  StoreStatus ServerContext::Store(std::string& resultPublicId,
+                                   DicomInstanceToStore& dicom)
+  {
+    try
+    {
+      DicomInstanceHasher hasher(dicom.GetSummary());
+      resultPublicId = hasher.HashInstance();
+
+      Json::Value simplified;
+      SimplifyTags(simplified, dicom.GetJson());
+
+      // Test if the instance must be filtered out
+      if (!ApplyReceivedInstanceFilter(simplified, dicom.GetRemoteAet()))
+      {
+        LOG(INFO) << "An incoming instance has been discarded by the filter";
+        return StoreStatus_FilteredOut;
+      }
+
+      if (compressionEnabled_)
+      {
+        accessor_.SetCompressionForNextOperations(CompressionType_Zlib);
+      }
+      else
+      {
+        accessor_.SetCompressionForNextOperations(CompressionType_None);
+      }      
+
+      FileInfo dicomInfo = accessor_.Write(dicom.GetBufferData(), dicom.GetBufferSize(), FileContentType_Dicom);
+      FileInfo jsonInfo = accessor_.Write(dicom.GetJson().toStyledString(), FileContentType_DicomAsJson);
+
+      ServerIndex::Attachments attachments;
+      attachments.push_back(dicomInfo);
+      attachments.push_back(jsonInfo);
+
+      typedef std::map<MetadataType, std::string>  InstanceMetadata;
+      InstanceMetadata  instanceMetadata;
+      StoreStatus status = index_.Store(instanceMetadata, dicom.GetSummary(), attachments, 
+                                        dicom.GetRemoteAet(), dicom.GetMetadata());
+
+      dicom.GetMetadata().clear();
+
+      for (InstanceMetadata::const_iterator it = instanceMetadata.begin();
+           it != instanceMetadata.end(); ++it)
+      {
+        dicom.GetMetadata().insert(std::make_pair(std::make_pair(ResourceType_Instance, it->first),
+                                                  it->second));
+      }
+            
+      if (status != StoreStatus_Success)
+      {
+        accessor_.Remove(dicomInfo.GetUuid(), FileContentType_Dicom);
+        accessor_.Remove(jsonInfo.GetUuid(), FileContentType_DicomAsJson);
+      }
+
+      switch (status)
+      {
+        case StoreStatus_Success:
+          LOG(INFO) << "New instance stored";
+          break;
+
+        case StoreStatus_AlreadyStored:
+          LOG(INFO) << "Already stored";
+          break;
+
+        case StoreStatus_Failure:
+          LOG(ERROR) << "Store failure";
+          break;
+
+        default:
+          // This should never happen
+          break;
+      }
+
+      if (status == StoreStatus_Success ||
+          status == StoreStatus_AlreadyStored)
+      {
+        Json::Value metadata = Json::objectValue;
+        for (std::map<MetadataType, std::string>::const_iterator 
+               it = instanceMetadata.begin(); 
+             it != instanceMetadata.end(); ++it)
+        {
+          metadata[EnumerationToString(it->first)] = it->second;
+        }
+
+        try
+        {
+          ApplyLuaOnStoredInstance(resultPublicId, simplified, metadata, 
+                                   dicom.GetRemoteAet(), dicom.GetCalledAet());
+        }
+        catch (OrthancException& e)
+        {
+          LOG(ERROR) << "Error in " << ON_STORED_INSTANCE << " callback (Lua): " << e.What();
+        }
+
+        if (plugins_ != NULL)
+        {
+          try
+          {
+            plugins_->SignalStoredInstance(dicom, resultPublicId);
+          }
+          catch (OrthancException& e)
+          {
+            LOG(ERROR) << "Error in " << ON_STORED_INSTANCE << " callback (plugins): " << e.What();
+          }
+        }
+      }
+
+      return status;
+    }
+    catch (OrthancException& e)
+    {
+      if (e.GetErrorCode() == ErrorCode_InexistentTag)
+      {
+        LogMissingRequiredTag(dicom.GetSummary());
+      }
+
+      throw;
+    }
+  }
+
+
+
+  void ServerContext::AnswerAttachment(RestApiOutput& output,
+                                       const std::string& instancePublicId,
+                                       FileContentType content)
   {
     FileInfo attachment;
     if (!index_.LookupAttachment(attachment, instancePublicId, content))
@@ -172,8 +414,8 @@ namespace Orthanc
 
     accessor_.SetCompressionForNextOperations(attachment.GetCompressionType());
 
-    std::auto_ptr<HttpFileSender> sender(accessor_.ConstructHttpFileSender(attachment.GetUuid()));
-    sender->SetContentType("application/dicom");
+    std::auto_ptr<HttpFileSender> sender(accessor_.ConstructHttpFileSender(attachment.GetUuid(), attachment.GetContentType()));
+    sender->SetContentType(GetMimeType(content));
     sender->SetDownloadFilename(instancePublicId + ".dcm");
     output.AnswerFile(*sender);
   }
@@ -213,7 +455,7 @@ namespace Orthanc
       accessor_.SetCompressionForNextOperations(CompressionType_None);
     }
 
-    accessor_.Read(result, attachment.GetUuid());
+    accessor_.Read(result, attachment.GetUuid(), attachment.GetContentType());
   }
 
 
@@ -227,14 +469,14 @@ namespace Orthanc
 
   ServerContext::DicomCacheLocker::DicomCacheLocker(ServerContext& that,
                                                     const std::string& instancePublicId) : 
-    that_(that)
+    that_(that),
+    lock_(that_.dicomCacheMutex_)
   {
 #if ENABLE_DICOM_CACHE == 0
     static std::auto_ptr<IDynamicObject> p;
     p.reset(provider_.Provide(instancePublicId));
     dicom_ = dynamic_cast<ParsedDicomFile*>(p.get());
 #else
-    that_.dicomCacheMutex_.lock();
     dicom_ = &dynamic_cast<ParsedDicomFile&>(that_.dicomCache_.Access(instancePublicId));
 #endif
   }
@@ -242,91 +484,6 @@ namespace Orthanc
 
   ServerContext::DicomCacheLocker::~DicomCacheLocker()
   {
-#if ENABLE_DICOM_CACHE == 0
-#else
-    that_.dicomCacheMutex_.unlock();
-#endif
-  }
-
-
-  static DcmFileFormat& GetDicom(ParsedDicomFile& file)
-  {
-    return *reinterpret_cast<DcmFileFormat*>(file.GetDcmtkObject());
-  }
-
-
-  StoreStatus ServerContext::Store(std::string& resultPublicId,
-                                   ParsedDicomFile& dicomInstance,
-                                   const char* dicomBuffer,
-                                   size_t dicomSize)
-  {
-    DicomMap dicomSummary;
-    FromDcmtkBridge::Convert(dicomSummary, *GetDicom(dicomInstance).getDataset());
-
-    try
-    {
-      DicomInstanceHasher hasher(dicomSummary);
-      resultPublicId = hasher.HashInstance();
-
-      Json::Value dicomJson;
-      FromDcmtkBridge::ToJson(dicomJson, *GetDicom(dicomInstance).getDataset());
-      
-      StoreStatus status = StoreStatus_Failure;
-      if (dicomSize > 0)
-      {
-        status = Store(dicomBuffer, dicomSize, dicomSummary, dicomJson, "");
-      }   
-
-      return status;
-    }
-    catch (OrthancException& e)
-    {
-      if (e.GetErrorCode() == ErrorCode_InexistentTag)
-      {
-        LogMissingRequiredTag(dicomSummary);
-      }
-
-      throw;
-    }
-  }
-
-
-  StoreStatus ServerContext::Store(std::string& resultPublicId,
-                                   ParsedDicomFile& dicomInstance)
-  {
-    std::string buffer;
-    if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, GetDicom(dicomInstance).getDataset()))
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    if (buffer.size() == 0)
-      return Store(resultPublicId, dicomInstance, NULL, 0);
-    else
-      return Store(resultPublicId, dicomInstance, &buffer[0], buffer.size());
-  }
-
-
-  StoreStatus ServerContext::Store(std::string& resultPublicId,
-                                   const char* dicomBuffer,
-                                   size_t dicomSize)
-  {
-    ParsedDicomFile dicom(dicomBuffer, dicomSize);
-    return Store(resultPublicId, dicom, dicomBuffer, dicomSize);
-  }
-
-
-  StoreStatus ServerContext::Store(std::string& resultPublicId,
-                                   const std::string& dicomContent)
-  {
-    if (dicomContent.size() == 0)
-    {
-      return Store(resultPublicId, NULL, 0);
-    }
-    else
-    {
-      return Store(resultPublicId, &dicomContent[0], dicomContent.size());
-    }
   }
 
 
@@ -358,12 +515,68 @@ namespace Orthanc
 
     if (status != StoreStatus_Success)
     {
-      storage_.Remove(info.GetUuid());
+      accessor_.Remove(info.GetUuid(), info.GetContentType());
       return false;
     }
     else
     {
       return true;
+    }
+  }
+
+
+  bool ServerContext::DeleteResource(Json::Value& target,
+                                     const std::string& uuid,
+                                     ResourceType expectedType)
+  {
+    return index_.DeleteResource(target, uuid, expectedType);
+  }
+
+
+  void ServerContext::SignalChange(const ServerIndexChange& change)
+  {
+    if (plugins_ != NULL)
+    {
+      try
+      {
+        plugins_->SignalChange(change);
+      }
+      catch (OrthancException& e)
+      {
+        LOG(ERROR) << "Error in OnChangeCallback (plugins): " << e.What();
+      }
+    }
+  }
+
+
+  bool ServerContext::HasPlugins() const
+  {
+    return (pluginsManager_ && plugins_);
+  }
+
+
+  const PluginsManager& ServerContext::GetPluginsManager() const
+  {
+    if (HasPlugins())
+    {
+      return *pluginsManager_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
+  const OrthancPlugins& ServerContext::GetOrthancPlugins() const
+  {
+    if (HasPlugins())
+    {
+      return *plugins_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InternalError);
     }
   }
 }

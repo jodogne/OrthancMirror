@@ -9,15 +9,17 @@ The most simple way of building Orthanc under Linux consists in
 statically linking against all the third-party dependencies. In this
 case, the system-wide libraries will not be used. The build tool
 (CMake) will download the sources of all the required packages and
-automatically compile them. This process should work on all the Linux
-distributions.
+automatically compile them.
 
-We make the assumption that Orthanc source code is placed in the
+This process should work on any Linux distribution, provided that a
+C/C++ compiler ("build-essential" in Debian-based systems), the Python
+interpreter, CMake, the "unzip" system tool, and the development
+package for libuuid ("uuid-dev" in Debian) are installed.
+
+
+We now make the assumption that Orthanc source code is placed in the
 folder "~/Orthanc" and that the binaries will be compiled to
-"~/OrthancBuild".
-
-
-To build binaries with debug information:
+"~/OrthancBuild". To build binaries with debug information:
 
 # cd ~/OrthancBuild
 # cmake -DSTATIC_BUILD=ON -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
@@ -33,9 +35,16 @@ To build a release version:
 # make doc
 
 
-Note: When the "STATIC_BUILD" option is set to "ON", the build tool
+Note 1- When the "STATIC_BUILD" option is set to "ON", the build tool
 will not ask you the permission to download packages from the
 Internet.
+
+Note 2- If the development package of libuuid was not installed when
+first invoking cmake, you will have to manually remove the build
+directory ("rm -rf ~/OrthancBuild") after installing this package,
+then run cmake again.
+
+Note 3- To build the documentation, you will have to install doxyen.
 
 
 Use system-wide libraries under Linux
@@ -51,6 +60,7 @@ the default behavior, you just have to use:
 # cmake -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
 # make
 
+Note that to build the documentation, you will have to install doxyen.
 
 However, on some Linux distributions, it is still required to download
 and static link against some third-party dependencies, e.g. when the
@@ -77,6 +87,7 @@ SUPPORTED - Debian Squeeze (6.x)
 	-DUSE_SYSTEM_DCMTK=OFF \
 	-DUSE_SYSTEM_MONGOOSE=OFF \
 	-DUSE_SYSTEM_JSONCPP=OFF \
+	-DUSE_SYSTEM_PUGIXML=OFF \
         -DENABLE_JPEG=OFF \
         -DENABLE_JPEG_LOSSLESS=OFF \
 	~/Orthanc 
@@ -95,6 +106,7 @@ SUPPORTED - Debian Wheezy (7.x)
         -DUSE_SYSTEM_GOOGLE_LOG=OFF \
 	-DUSE_SYSTEM_MONGOOSE=OFF \
         -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
+	-DUSE_SYSTEM_PUGIXML=OFF \
         -DENABLE_JPEG=OFF \
         -DENABLE_JPEG_LOSSLESS=OFF \
 	~/Orthanc
@@ -107,35 +119,34 @@ SUPPORTED - Debian Jessie/Sid
        	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
        	       	       libgoogle-glog-dev libgtest-dev libpng-dev \
        	       	       libsqlite3-dev libssl-dev zlib1g-dev libdcmtk2-dev \
-                       libboost-all-dev libwrap0-dev libjsoncpp-dev
+                       libboost-all-dev libwrap0-dev libjsoncpp-dev libpugixml-dev
 
 # cmake -DALLOW_DOWNLOADS=ON \
 	-DUSE_SYSTEM_MONGOOSE=OFF \
         -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
-        -DENABLE_JPEG=OFF \
-        -DENABLE_JPEG_LOSSLESS=OFF \
+        -DDCMTK_LIBRARIES=dcmjpls \
 	~/Orthanc
 
 Note: Have also a look at the official package:
 http://anonscm.debian.org/viewvc/debian-med/trunk/packages/orthanc/trunk/debian/
 
 
-SUPPORTED - Ubuntu 12.04 LTS
-----------------------------
+SUPPORTED - Ubuntu 12.04.5 LTS
+------------------------------
 
 # sudo apt-get install build-essential unzip cmake mercurial \
        	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
        	       	       libgtest-dev libpng-dev libsqlite3-dev libssl-dev \
-		       zlib1g-dev libdcmtk2-dev libboost-all-dev libwrap0-dev
+		       zlib1g-dev libdcmtk2-dev libboost1.48-all-dev libwrap0-dev \
+                       libcharls-dev
 
-# cmake "-DDCMTK_LIBRARIES=wrap;oflog" \
+# cmake "-DDCMTK_LIBRARIES=boost_locale;CharLS;dcmjpls;wrap;oflog" \
         -DALLOW_DOWNLOADS=ON \
 	-DUSE_SYSTEM_MONGOOSE=OFF \
 	-DUSE_SYSTEM_JSONCPP=OFF \
 	-DUSE_SYSTEM_GOOGLE_LOG=OFF \
+	-DUSE_SYSTEM_PUGIXML=OFF \
         -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
-        -DENABLE_JPEG=OFF \
-        -DENABLE_JPEG_LOSSLESS=OFF \
 	~/Orthanc
 
 
@@ -155,6 +166,7 @@ With JPEG:
 	-DUSE_SYSTEM_MONGOOSE=OFF \
 	-DUSE_SYSTEM_JSONCPP=OFF \
         -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
+	-DUSE_SYSTEM_PUGIXML=OFF \
 	~/Orthanc
 
 
@@ -165,6 +177,7 @@ Without JPEG:
 	-DUSE_SYSTEM_MONGOOSE=OFF \
 	-DUSE_SYSTEM_JSONCPP=OFF \
         -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
+	-DUSE_SYSTEM_PUGIXML=OFF \
         -DENABLE_JPEG=OFF \
         -DENABLE_JPEG_LOSSLESS=OFF \
 	~/Orthanc
@@ -183,28 +196,51 @@ SUPPORTED - Ubuntu 13.10
         -DALLOW_DOWNLOADS=ON \
 	-DUSE_SYSTEM_MONGOOSE=OFF \
         -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
+	-DUSE_SYSTEM_PUGIXML=OFF \
         -DENABLE_JPEG=OFF \
         -DENABLE_JPEG_LOSSLESS=OFF \
 	~/Orthanc
 
 
 
-SUPPORTED - Fedora 18/19/20
----------------------------
+SUPPORTED - Fedora 19/20
+------------------------
 
 # sudo yum install make automake gcc gcc-c++ python cmake \
                    boost-devel curl-devel dcmtk-devel glog-devel \
                    gtest-devel libpng-devel libsqlite3x-devel libuuid-devel \
-                   mongoose-devel openssl-devel jsoncpp-devel lua-devel
+                   mongoose-devel openssl-devel jsoncpp-devel lua-devel pugixml-devel
 
-# cmake -DENABLE_JPEG=OFF \
-        -DENABLE_JPEG_LOSSLESS=OFF \
-        ~/Orthanc
+# cmake  "-DDCMTK_LIBRARIES=CharLS" \
+         -DSYSTEM_MONGOOSE_USE_CALLBACKS=OFF \
+         ~/Orthanc
        
 Note: Have also a look at the official package:
 http://pkgs.fedoraproject.org/cgit/orthanc.git/tree/?h=f18
 
 
+
+SUPPORTED - Ubuntu 14.04 LTS
+----------------------------
+
+# cmake -DALLOW_DOWNLOADS=ON \
+        -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
+        -DUSE_SYSTEM_MONGOOSE=OFF \
+        -DDCMTK_LIBRARIES=dcmjpls \
+        ~/Orthanc
+
+
+
+SUPPORTED - FreeBSD 10.1
+------------------------
+
+# pkg install jsoncpp pugixml lua51 curl googletest dcmtk cmake \
+              e2fsprogs-libuuid glog boost-libs sqlite3 python libiconv
+
+# cmake -DALLOW_DOWNLOADS=ON \
+        -DUSE_SYSTEM_MONGOOSE=OFF \
+        -DDCMTK_LIBRARIES="dcmdsig;charls;dcmjpls" \
+	~/Orthanc
 
 
 

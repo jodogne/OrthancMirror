@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -109,6 +109,7 @@ namespace Orthanc
     method_ = HttpMethod_Get;
     lastStatus_ = HttpStatus_200_Ok;
     isVerbose_ = false;
+    timeout_ = 0;
   }
 
 
@@ -161,11 +162,37 @@ namespace Orthanc
     answer.clear();
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_URL, url_.c_str()));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_WRITEDATA, &answer));
+
+    // Reset the parameters from previous calls to Apply()
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPHEADER, NULL));
+    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPGET, 0L));
+    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POST, 0L));
+    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_NOBODY, 0L));
+    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CUSTOMREQUEST, NULL));
+    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDS, NULL));
+    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDSIZE, 0));
+    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_PROXY, NULL));
+
+    // Set timeouts
+    if (timeout_ <= 0)
+    {
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_TIMEOUT, 10));  /* default: 10 seconds */
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CONNECTTIMEOUT, 10));  /* default: 10 seconds */
+    }
+    else
+    {
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_TIMEOUT, timeout_));
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CONNECTTIMEOUT, timeout_));
+    }
 
     if (credentials_.size() != 0)
     {
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_USERPWD, credentials_.c_str()));
+    }
+
+    if (proxy_.size() != 0)
+    {
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_PROXY, proxy_.c_str()));
     }
 
     switch (method_)
@@ -177,7 +204,31 @@ namespace Orthanc
     case HttpMethod_Post:
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POST, 1L));
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPHEADER, pimpl_->postHeaders_));
+      break;
 
+    case HttpMethod_Delete:
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_NOBODY, 1L));
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CUSTOMREQUEST, "DELETE"));
+      break;
+
+    case HttpMethod_Put:
+      // http://stackoverflow.com/a/7570281/881731: Don't use
+      // CURLOPT_PUT if there is a body
+
+      // CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_PUT, 1L));
+
+      curl_easy_setopt(pimpl_->curl_, CURLOPT_CUSTOMREQUEST, "PUT"); /* !!! */
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPHEADER, pimpl_->postHeaders_));      
+      break;
+
+    default:
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+
+    if (method_ == HttpMethod_Post ||
+        method_ == HttpMethod_Put)
+    {
       if (postData_.size() > 0)
       {
         CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDS, postData_.c_str()));
@@ -188,21 +239,8 @@ namespace Orthanc
         CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDS, NULL));
         CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDSIZE, 0));
       }
-
-      break;
-
-    case HttpMethod_Delete:
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_NOBODY, 1L));
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CUSTOMREQUEST, "DELETE"));
-      break;
-
-    case HttpMethod_Put:
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_PUT, 1L));
-      break;
-
-    default:
-      throw OrthancException(ErrorCode_InternalError);
     }
+
 
     // Do the actual request
     CheckCode(curl_easy_perform(pimpl_->curl_));

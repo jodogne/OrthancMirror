@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -46,18 +46,22 @@ namespace Orthanc
      **/
 
   private:
-    typedef std::set<DicomTag> Removals;
+    typedef std::set<DicomTag> SetOfTags;
     typedef std::map<DicomTag, std::string> Replacements;
     typedef std::map< std::pair<ResourceType, std::string>, std::string>  UidMap;
 
-    Removals removals_;
+    SetOfTags removals_;
     Replacements replacements_;
     bool removePrivateTags_;
     ResourceType level_;
     UidMap uidMap_;
+    SetOfTags privateTagsToKeep_;
+    bool allowManualIdentifiers_;
 
     void MapDicomIdentifier(ParsedDicomFile& dicom,
                             ResourceType level);
+
+    void MarkNotOrthancAnonymization();
 
   public:
     DicomModification();
@@ -69,7 +73,8 @@ namespace Orthanc
     bool IsRemoved(const DicomTag& tag) const;
 
     void Replace(const DicomTag& tag,
-                 const std::string& value);
+                 const std::string& value,
+                 bool safeForAnonymization = false);
 
     bool IsReplaced(const DicomTag& tag) const;
 
@@ -92,5 +97,15 @@ namespace Orthanc
     void SetupAnonymization();
 
     void Apply(ParsedDicomFile& toModify);
+
+    void SetAllowManualIdentifiers(bool check)
+    {
+      allowManualIdentifiers_ = check;
+    }
+
+    bool AreAllowManualIdentifiers() const
+    {
+      return allowManualIdentifiers_;
+    }
   };
 }

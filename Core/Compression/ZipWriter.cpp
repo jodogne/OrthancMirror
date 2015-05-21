@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -38,10 +38,11 @@
 
 #include "ZipWriter.h"
 
-#include "../../Resources/ThirdParty/minizip/zip.h"
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <limits>
+#include <boost/filesystem.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
+#include "../../Resources/ThirdParty/minizip/zip.h"
 #include "../OrthancException.h"
 
 
@@ -77,15 +78,19 @@ namespace Orthanc
   struct ZipWriter::PImpl
   {
     zipFile file_;
+
+    PImpl() : file_(NULL)
+    {
+    }
   };
 
-  ZipWriter::ZipWriter() : pimpl_(new PImpl)
+  ZipWriter::ZipWriter() :
+    pimpl_(new PImpl),
+    isZip64_(false),
+    hasFileInZip_(false),
+    append_(false),
+    compressionLevel_(6)
   {
-    compressionLevel_ = 6;
-    hasFileInZip_ = false;
-    isZip64_ = false;
-
-    pimpl_->file_ = NULL;
   }
 
   ZipWriter::~ZipWriter()
@@ -122,13 +127,20 @@ namespace Orthanc
 
     hasFileInZip_ = false;
 
+    int mode = APPEND_STATUS_CREATE;
+    if (append_ && 
+        boost::filesystem::exists(path_))
+    {
+      mode = APPEND_STATUS_ADDINZIP;
+    }
+
     if (isZip64_)
     {
-      pimpl_->file_ = zipOpen64(path_.c_str(), APPEND_STATUS_CREATE);
+      pimpl_->file_ = zipOpen64(path_.c_str(), mode);
     }
     else
     {
-      pimpl_->file_ = zipOpen(path_.c_str(), APPEND_STATUS_CREATE);
+      pimpl_->file_ = zipOpen(path_.c_str(), mode);
     }
 
     if (!pimpl_->file_)
@@ -230,4 +242,13 @@ namespace Orthanc
       length -= bytes;
     }
   }
+
+
+  void ZipWriter::SetAppendToExisting(bool append)
+  {
+    Close();
+    append_ = append;
+  }
+    
+
 }

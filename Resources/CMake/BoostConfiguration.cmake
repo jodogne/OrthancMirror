@@ -56,6 +56,7 @@ if (BOOST_STATIC)
 
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
     list(APPEND BOOST_SOURCES
       ${BOOST_SOURCES_DIR}/libs/thread/src/pthread/once.cpp
@@ -76,9 +77,17 @@ if (BOOST_STATIC)
       ${BOOST_SOURCES_DIR}/libs/thread/src/win32/tss_pe.cpp
       ${BOOST_FILESYSTEM_SOURCES_DIR}/windows_file_codecvt.cpp
       )
-    add_definitions(
-      -DBOOST_LOCALE_WITH_WCONV=1
-      )
+
+    # Starting with release 0.8.2, Orthanc statically links against
+    # libiconv, even on Windows. Indeed, the "WCONV" library of
+    # Windows XP seems not to support properly several codepages
+    # (notably "Latin3", "Hebrew", and "Arabic").
+
+    if (USE_BOOST_ICONV)
+      include(${ORTHANC_ROOT}/Resources/CMake/LibIconvConfiguration.cmake)
+    else()
+      add_definitions(-DBOOST_LOCALE_WITH_WCONV=1)
+    endif()
 
   else()
     message(FATAL_ERROR "Support your platform here")
@@ -87,6 +96,16 @@ if (BOOST_STATIC)
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
     list(APPEND BOOST_SOURCES
       ${BOOST_SOURCES_DIR}/libs/filesystem/src/utf8_codecvt_facet.cpp
+      )
+  endif()
+
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    # This is a patch to compile Boost 1.55.0 with Clang 3.4 and later
+    # (including XCode 5.1). Fixes issue 14 of Orthanc.
+    # https://trac.macports.org/ticket/42282#comment:10
+    execute_process(
+      COMMAND patch -p0 -N -i ${ORTHANC_ROOT}/Resources/Patches/boost-1.55.0-clang-atomic.patch
+      WORKING_DIRECTORY ${BOOST_SOURCES_DIR}
       )
   endif()
 

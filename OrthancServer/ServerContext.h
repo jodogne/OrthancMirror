@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -34,15 +34,23 @@
 
 #include "../Core/Cache/MemoryCache.h"
 #include "../Core/FileStorage/CompressedFileStorageAccessor.h"
-#include "../Core/FileStorage/FileStorage.h"
+#include "../Core/FileStorage/IStorageArea.h"
 #include "../Core/RestApi/RestApiOutput.h"
 #include "../Core/Lua/LuaContext.h"
 #include "ServerIndex.h"
 #include "ParsedDicomFile.h"
 #include "DicomProtocol/ReusableDicomUserConnection.h"
+#include "Scheduler/ServerScheduler.h"
+#include "DicomInstanceToStore.h"
+#include "ServerIndexChange.h"
+
+#include <boost/filesystem.hpp>
 
 namespace Orthanc
 {
+  class OrthancPlugins;
+  class PluginsManager;
+
   /**
    * This class is responsible for maintaining the storage area on the
    * filesystem (including compression), as well as the index of the
@@ -64,7 +72,15 @@ namespace Orthanc
       virtual IDynamicObject* Provide(const std::string& id);
     };
 
-    FileStorage storage_;
+    bool ApplyReceivedInstanceFilter(const Json::Value& simplified,
+                                     const std::string& remoteAet);
+
+    void ApplyLuaOnStoredInstance(const std::string& instanceId,
+                                  const Json::Value& simplifiedDicom,
+                                  const Json::Value& metadata,
+                                  const std::string& remoteAet,
+                                  const std::string& calledAet);
+
     ServerIndex index_;
     CompressedFileStorageAccessor accessor_;
     bool compressionEnabled_;
@@ -73,15 +89,20 @@ namespace Orthanc
     boost::mutex dicomCacheMutex_;
     MemoryCache dicomCache_;
     ReusableDicomUserConnection scu_;
+    ServerScheduler scheduler_;
 
+    boost::mutex luaMutex_;
     LuaContext lua_;
+    OrthancPlugins* plugins_;  // TODO Turn it into a listener pattern (idem for Lua callbacks)
+    const PluginsManager* pluginsManager_;
 
   public:
-    class DicomCacheLocker
+    class DicomCacheLocker : public boost::noncopyable
     {
     private:
       ServerContext& that_;
       ParsedDicomFile *dicom_;
+      boost::mutex::scoped_lock lock_;
 
     public:
       DicomCacheLocker(ServerContext& that,
@@ -95,8 +116,35 @@ namespace Orthanc
       }
     };
 
-    ServerContext(const boost::filesystem::path& storagePath,
-                  const boost::filesystem::path& indexPath);
+    class LuaContextLocker : public boost::noncopyable
+    {
+    private:
+      ServerContext& that_;
+
+    public:
+      LuaContextLocker(ServerContext& that) : that_(that)
+      {
+        that.luaMutex_.lock();
+      }
+
+      ~LuaContextLocker()
+      {
+        that_.luaMutex_.unlock();
+      }
+
+      LuaContext& GetLua()
+      {
+        return that_.lua_;
+      }
+    };
+
+
+    ServerContext(IDatabaseWrapper& database);
+
+    void SetStorageArea(IStorageArea& storage)
+    {
+      accessor_.SetStorageArea(storage);
+    }
 
     ServerIndex& GetIndex()
     {
@@ -110,37 +158,20 @@ namespace Orthanc
       return compressionEnabled_;
     }
 
-    void RemoveFile(const std::string& fileUuid);
+    void RemoveFile(const std::string& fileUuid,
+                    FileContentType type);
 
     bool AddAttachment(const std::string& resourceId,
                        FileContentType attachmentType,
                        const void* data,
                        size_t size);
 
-    StoreStatus Store(const char* dicomInstance,
-                      size_t dicomSize,
-                      const DicomMap& dicomSummary,
-                      const Json::Value& dicomJson,
-                      const std::string& remoteAet);
-
     StoreStatus Store(std::string& resultPublicId,
-                      ParsedDicomFile& dicomInstance,
-                      const char* dicomBuffer,
-                      size_t dicomSize);
+                      DicomInstanceToStore& dicom);
 
-    StoreStatus Store(std::string& resultPublicId,
-                      ParsedDicomFile& dicomInstance);
-
-    StoreStatus Store(std::string& resultPublicId,
-                      const char* dicomBuffer,
-                      size_t dicomSize);
-
-    StoreStatus Store(std::string& resultPublicId,
-                      const std::string& dicomContent);
-
-    void AnswerDicomFile(RestApiOutput& output,
-                         const std::string& instancePublicId,
-                         FileContentType content);
+    void AnswerAttachment(RestApiOutput& output,
+                          const std::string& instancePublicId,
+                          FileContentType content);
 
     void ReadJson(Json::Value& result,
                   const std::string& instancePublicId);
@@ -150,11 +181,6 @@ namespace Orthanc
                   const std::string& instancePublicId,
                   FileContentType content,
                   bool uncompressIfNeeded = true);
-
-    LuaContext& GetLuaContext()
-    {
-      return lua_;
-    }
 
     void SetStoreMD5ForAttachments(bool storeMD5);
 
@@ -167,5 +193,35 @@ namespace Orthanc
     {
       return scu_;
     }
+
+    ServerScheduler& GetScheduler()
+    {
+      return scheduler_;
+    }
+
+    void SetOrthancPlugins(const PluginsManager& manager,
+                           OrthancPlugins& plugins)
+    {
+      pluginsManager_ = &manager;
+      plugins_ = &plugins;
+    }
+
+    void ResetOrthancPlugins()
+    {
+      pluginsManager_ = NULL;
+      plugins_ = NULL;
+    }
+
+    bool DeleteResource(Json::Value& target,
+                        const std::string& uuid,
+                        ResourceType expectedType);
+
+    void SignalChange(const ServerIndexChange& change);
+
+    bool HasPlugins() const;
+
+    const PluginsManager& GetPluginsManager() const;
+
+    const OrthancPlugins& GetOrthancPlugins() const;
   };
 }

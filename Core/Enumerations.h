@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -57,6 +57,8 @@ namespace Orthanc
     ErrorCode_InexistentItem,
     ErrorCode_BadRequest,
     ErrorCode_NetworkProtocol,
+    ErrorCode_SystemCommand,
+    ErrorCode_Database,
 
     // Specific error codes
     ErrorCode_UriSyntax,
@@ -71,7 +73,9 @@ namespace Orthanc
     ErrorCode_InexistentTag,
     ErrorCode_ReadOnly,
     ErrorCode_IncompatibleImageFormat,
-    ErrorCode_IncompatibleImageSize
+    ErrorCode_IncompatibleImageSize,
+    ErrorCode_SharedLibrary,
+    ErrorCode_Plugin
   };
 
   /**
@@ -228,10 +232,56 @@ namespace Orthanc
   };
 
 
+  // http://www.dabsoft.ch/dicom/3/C.12.1.1.2/
   enum Encoding
   {
+    Encoding_Ascii,
     Encoding_Utf8,
-    Encoding_Latin1
+    Encoding_Latin1,
+    Encoding_Latin2,
+    Encoding_Latin3,
+    Encoding_Latin4,
+    Encoding_Latin5,                        // Turkish
+    Encoding_Cyrillic,
+    Encoding_Windows1251,                   // Windows-1251 (commonly used for Cyrillic)
+    Encoding_Arabic,
+    Encoding_Greek,
+    Encoding_Hebrew,
+    Encoding_Thai,                          // TIS 620-2533
+    Encoding_Japanese,                      // JIS X 0201 (Shift JIS): Katakana
+    Encoding_Chinese                        // GB18030 - Chinese simplified
+    //Encoding_JapaneseKanji,               // Multibyte - JIS X 0208: Kanji
+    //Encoding_JapaneseSupplementaryKanji,  // Multibyte - JIS X 0212: Supplementary Kanji set
+    //Encoding_Korean,                      // Multibyte - KS X 1001: Hangul and Hanja
+  };
+
+
+  // https://www.dabsoft.ch/dicom/3/C.7.6.3.1.2/
+  enum PhotometricInterpretation
+  {
+    PhotometricInterpretation_ARGB,  // Retired
+    PhotometricInterpretation_CMYK,  // Retired
+    PhotometricInterpretation_HSV,   // Retired
+    PhotometricInterpretation_Monochrome1,
+    PhotometricInterpretation_Monochrome2,
+    PhotometricInterpretation_Palette,
+    PhotometricInterpretation_RGB,
+    PhotometricInterpretation_YBRFull,
+    PhotometricInterpretation_YBRFull422,
+    PhotometricInterpretation_YBRPartial420,
+    PhotometricInterpretation_YBRPartial422,
+    PhotometricInterpretation_YBR_ICT,
+    PhotometricInterpretation_YBR_RCT,
+    PhotometricInterpretation_Unknown
+  };
+
+  enum DicomModule
+  {
+    DicomModule_Patient,
+    DicomModule_Study,
+    DicomModule_Series,
+    DicomModule_Instance,
+    DicomModule_Image
   };
 
 
@@ -249,6 +299,9 @@ namespace Orthanc
 
   enum FileContentType
   {
+    // If you add a value below, insert it in "PluginStorageArea" in
+    // the file "Plugins/Engine/OrthancPlugins.cpp"
+    FileContentType_Unknown = 0,
     FileContentType_Dicom = 1,
     FileContentType_DicomAsJson = 2,
 
@@ -274,9 +327,20 @@ namespace Orthanc
 
   const char* EnumerationToString(ImageFormat format);
 
+  const char* EnumerationToString(Encoding encoding);
+
+  const char* EnumerationToString(PhotometricInterpretation photometric);
+
+  Encoding StringToEncoding(const char* encoding);
+
   ResourceType StringToResourceType(const char* type);
 
   ImageFormat StringToImageFormat(const char* format);
 
   unsigned int GetBytesPerPixel(PixelFormat format);
+
+  bool GetDicomEncoding(Encoding& encoding,
+                        const char* specificCharacterSet);
+
+  const char* GetMimeType(FileContentType type);
 }

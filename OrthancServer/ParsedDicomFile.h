@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -51,6 +51,8 @@ namespace Orthanc
     void Setup(const char* content,
                size_t size);
 
+    void RemovePrivateTagsInternal(const std::set<DicomTag>* toKeep);
+
   public:
     ParsedDicomFile();  // Create a minimal DICOM instance
 
@@ -79,7 +81,15 @@ namespace Orthanc
                  const std::string& value,
                  DicomReplaceMode mode = DicomReplaceMode_InsertIfAbsent);
 
-    void RemovePrivateTags();
+    void RemovePrivateTags()
+    {
+      RemovePrivateTagsInternal(NULL);
+    }
+
+    void RemovePrivateTags(const std::set<DicomTag>& toKeep)
+    {
+      RemovePrivateTagsInternal(&toKeep);
+    }
 
     bool GetTagValue(std::string& value,
                      const DicomTag& tag);
@@ -104,6 +114,13 @@ namespace Orthanc
     void ExtractPngImage(std::string& result,
                          unsigned int frame,
                          ImageExtractionMode mode);
+
+    Encoding GetEncoding() const;
+
+    void SetEncoding(Encoding encoding);
+
+    void ToJson(Json::Value& target, 
+                bool simplify);
   };
 
 }

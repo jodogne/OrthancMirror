@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -45,6 +45,9 @@
 #include <boost/thread.hpp>
 #include <glog/logging.h>
 
+#include "DatabaseWrapper.h"
+#include "../Core/FileStorage/FilesystemStorage.h"
+
 
 #if ORTHANC_JPEG_ENABLED == 1
 #include <dcmtk/dcmjpeg/djdecode.h>
@@ -61,6 +64,7 @@ namespace Orthanc
   static boost::mutex globalMutex_;
   static std::auto_ptr<Json::Value> configuration_;
   static boost::filesystem::path defaultDirectory_;
+  static std::string configurationAbsolutePath_;
 
 
   static void ReadGlobalConfiguration(const char* configurationFile)
@@ -74,6 +78,7 @@ namespace Orthanc
       Toolbox::ReadFile(content, configurationFile);
       defaultDirectory_ = boost::filesystem::path(configurationFile).parent_path();
       LOG(WARNING) << "Using the configuration from: " << configurationFile;
+      configurationAbsolutePath_ = boost::filesystem::absolute(configurationFile).string();
     }
     else
     {
@@ -93,6 +98,7 @@ namespace Orthanc
         p /= "Configuration.json";
         Toolbox::ReadFile(content, p.string());
         LOG(WARNING) << "Using the configuration from: " << p.string();
+        configurationAbsolutePath_ = boost::filesystem::absolute(p).string();
       }
       catch (OrthancException&)
       {
@@ -102,6 +108,7 @@ namespace Orthanc
       }
 #endif
     }
+
 
     Json::Reader reader;
     if (!reader.parse(content, *configuration_))
@@ -288,7 +295,8 @@ namespace Orthanc
     if (modalities.type() != Json::objectValue ||
         !modalities.isMember(name))
     {
-      throw OrthancException(ErrorCode_BadFileFormat);
+      LOG(ERROR) << "No modality with symbolic name: " << name;
+      throw OrthancException(ErrorCode_InexistentItem);
     }
 
     try
@@ -321,7 +329,8 @@ namespace Orthanc
       if (modalities.type() != Json::objectValue ||
           !modalities.isMember(name))
       {
-        throw OrthancException(ErrorCode_BadFileFormat);
+        LOG(ERROR) << "No peer with symbolic name: " << name;
+        throw OrthancException(ErrorCode_InexistentItem);
       }
 
       peer.FromJson(modalities[name]);
@@ -641,4 +650,115 @@ namespace Orthanc
 
     peers.removeMember(symbolicName.c_str());
   }
+
+
+  
+  const std::string& Configuration::GetConfigurationAbsolutePath()
+  {
+    return configurationAbsolutePath_;
+  }
+
+
+  static IDatabaseWrapper* CreateSQLiteWrapper()
+  {
+    std::string storageDirectoryStr = Configuration::GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
+
+    // Open the database
+    boost::filesystem::path indexDirectory = Configuration::InterpretStringParameterAsPath(
+      Configuration::GetGlobalStringParameter("IndexDirectory", storageDirectoryStr));
+
+    LOG(WARNING) << "SQLite index directory: " << indexDirectory;
+
+    try
+    {
+      boost::filesystem::create_directories(indexDirectory);
+    }
+    catch (boost::filesystem::filesystem_error)
+    {
+    }
+
+    return new DatabaseWrapper(indexDirectory.string() + "/index");
+  }
+
+
+  namespace
+  {
+    // Anonymous namespace to avoid clashes between compilation modules
+
+    class FilesystemStorageWithoutDicom : public IStorageArea
+    {
+    private:
+      FilesystemStorage storage_;
+
+    public:
+      FilesystemStorageWithoutDicom(const std::string& path) : storage_(path)
+      {
+      }
+
+      virtual void Create(const std::string& uuid,
+                          const void* content, 
+                          size_t size,
+                          FileContentType type)
+      {
+        if (type != FileContentType_Dicom)
+        {
+          storage_.Create(uuid, content, size, type);
+        }
+      }
+
+      virtual void Read(std::string& content,
+                        const std::string& uuid,
+                        FileContentType type)
+      {
+        if (type != FileContentType_Dicom)
+        {
+          storage_.Read(content, uuid, type);
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+      }
+
+      virtual void Remove(const std::string& uuid,
+                          FileContentType type) 
+      {
+        if (type != FileContentType_Dicom)
+        {
+          storage_.Remove(uuid, type);
+        }
+      }
+    };
+  }
+
+
+  static IStorageArea* CreateFilesystemStorage()
+  {
+    std::string storageDirectoryStr = Configuration::GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
+
+    boost::filesystem::path storageDirectory = Configuration::InterpretStringParameterAsPath(storageDirectoryStr);
+    LOG(WARNING) << "Storage directory: " << storageDirectory;
+
+    if (Configuration::GetGlobalBoolParameter("StoreDicom", true))
+    {
+      return new FilesystemStorage(storageDirectory.string());
+    }
+    else
+    {
+      LOG(WARNING) << "The DICOM files will not be stored, Orthanc running in index-only mode";
+      return new FilesystemStorageWithoutDicom(storageDirectory.string());
+    }
+  }
+
+
+  IDatabaseWrapper* Configuration::CreateDatabaseWrapper()
+  {
+    return CreateSQLiteWrapper();
+  }
+
+
+  IStorageArea* Configuration::CreateStorageArea()
+  {
+    return CreateFilesystemStorage();
+  }  
 }

@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -32,11 +32,11 @@
 
 #pragma once
 
-#if ORTHANC_USE_PRECOMPILED_HEADERS == 1
-
-#ifndef NOMINMAX
+#if defined(_WIN32) && !defined(NOMINMAX)
 #define NOMINMAX
 #endif
+
+#if ORTHANC_USE_PRECOMPILED_HEADERS == 1
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem.hpp>
@@ -48,6 +48,10 @@
 
 #include <glog/logging.h>
 #include <json/value.h>
+
+#if ORTHANC_PUGIXML_ENABLED == 1
+#include <pugixml.hpp>
+#endif
 
 #include "Enumerations.h"
 #include "OrthancException.h"

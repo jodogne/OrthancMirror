@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,8 +33,10 @@
 #pragma once
 
 #include <string>
+#include <set>
 #include <stdint.h>
 
+#include "../Enumerations.h"
 
 namespace Orthanc
 {
@@ -81,6 +83,11 @@ namespace Orthanc
     std::string Format() const;
 
     friend std::ostream& operator<< (std::ostream& o, const DicomTag& tag);
+
+    static void GetTagsForModule(std::set<DicomTag>& target,
+                                 DicomModule module);
+
+    bool IsIdentifier() const;
   };
 
   // Aliases for the most useful tags
@@ -104,10 +111,11 @@ namespace Orthanc
 
   static const DicomTag DICOM_TAG_PATIENT_NAME(0x0010, 0x0010);
 
-  // The following is used for "modify" operations
+  // The following is used for "modify/anonymize" operations
   static const DicomTag DICOM_TAG_SOP_CLASS_UID(0x0008, 0x0016);
   static const DicomTag DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID(0x0002, 0x0002);
   static const DicomTag DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID(0x0002, 0x0003);
+  static const DicomTag DICOM_TAG_DEIDENTIFICATION_METHOD(0x0012, 0x0063);
 
   // DICOM tags used for fMRI (thanks to Will Ryder)
   static const DicomTag DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS(0x0020, 0x0105);

@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 # Orthanc - A Lightweight, RESTful DICOM Store
-# Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
-# Belgium
+# Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+# Department, University Hospital of Liege, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -107,7 +107,7 @@ def Consumer(queue):
                 break
 
         if len(instances) > 0:
-            print 'Sending a packet of %d instances' % len(instances)
+            print('Sending a packet of %d instances' % len(instances))
             start = time.time()
 
             # Send all the instances with a single DICOM connexion
@@ -118,11 +118,13 @@ def Consumer(queue):
                 RestToolbox.DoDelete('%s/instances/%s' % (URL, instance))
 
             # Clear the log of the exported instances (to prevent the
-            # SQLite database from growing indefinitely)
+            # SQLite database from growing indefinitely). More simply,
+            # you could also set the "LogExportedResources" option to
+            # "false" in the configuration file since Orthanc 0.8.3.
             RestToolbox.DoDelete('%s/exports' % URL)
 
             end = time.time()
-            print 'The packet of %d instances has been sent in %d seconds' % (len(instances), end - start)
+            print('The packet of %d instances has been sent in %d seconds' % (len(instances), end - start))
 
 
 #
@@ -131,7 +133,7 @@ def Consumer(queue):
 
 def PrintProgress(queue):
     while True:
-        print 'Current queue size: %d' % (queue.qsize())
+        print('Current queue size: %d' % (queue.qsize()))
         time.sleep(1)
 
 

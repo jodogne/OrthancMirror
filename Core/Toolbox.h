@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -38,6 +38,10 @@
 #include <vector>
 #include <string>
 
+#if ORTHANC_PUGIXML_ENABLED == 1
+#include <json/json.h>
+#endif
+
 namespace Orthanc
 {
   typedef std::vector<std::string> UriComponents;
@@ -48,6 +52,8 @@ namespace Orthanc
 
   namespace Toolbox
   {
+    void ServerBarrier(const bool& stopFlag);
+
     void ServerBarrier();
 
     void ToUpperCase(std::string& s);  // Inplace version
@@ -72,6 +78,10 @@ namespace Orthanc
 
     void SplitUriComponents(UriComponents& components,
                             const std::string& uri);
+  
+    void TruncateUri(UriComponents& target,
+                     const UriComponents& source,
+                     size_t fromLevel);
   
     bool IsChildUri(const UriComponents& baseUri,
                     const UriComponents& testedUri);
@@ -130,5 +140,19 @@ namespace Orthanc
                              const std::string& source);
 
     void CreateDirectory(const std::string& path);
+
+    bool IsExistingFile(const std::string& path);
+
+#if ORTHANC_PUGIXML_ENABLED == 1
+    void JsonToXml(std::string& target,
+                   const Json::Value& source,
+                   const std::string& rootElement = "root",
+                   const std::string& arrayElement = "item");
+#endif
+
+    void ExecuteSystemCommand(const std::string& command,
+                              const std::vector<std::string>& arguments);
+
+    bool IsInteger(const std::string& str);
   }
 }

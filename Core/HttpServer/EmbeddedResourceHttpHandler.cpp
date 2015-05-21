@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -51,24 +51,24 @@ namespace Orthanc
   }
 
 
-  bool EmbeddedResourceHttpHandler::IsServedUri(const UriComponents& uri)
-  {
-    return Toolbox::IsChildUri(baseUri_, uri);
-  }
-
-
-  void EmbeddedResourceHttpHandler::Handle(
+  bool EmbeddedResourceHttpHandler::Handle(
     HttpOutput& output,
     HttpMethod method,
     const UriComponents& uri,
     const Arguments& headers,
-    const Arguments& arguments,
+    const GetArguments& arguments,
     const std::string&)
   {
+    if (!Toolbox::IsChildUri(baseUri_, uri))
+    {
+      // This URI is not served by this handler
+      return false;
+    }
+
     if (method != HttpMethod_Get)
     {
-      output.SendMethodNotAllowedError("GET");
-      return;
+      output.SendMethodNotAllowed("GET");
+      return true;
     }
 
     std::string resourcePath = Toolbox::FlattenUri(uri, baseUri_.size());
@@ -78,12 +78,16 @@ namespace Orthanc
     {
       const void* buffer = EmbeddedResources::GetDirectoryResourceBuffer(resourceId_, resourcePath.c_str());
       size_t size = EmbeddedResources::GetDirectoryResourceSize(resourceId_, resourcePath.c_str());
-      output.AnswerBufferWithContentType(buffer, size, contentType);
+
+      output.SetContentType(contentType.c_str());
+      output.SendBody(buffer, size);
     }
     catch (OrthancException&)
     {
       LOG(WARNING) << "Unable to find HTTP resource: " << resourcePath;
-      output.SendHeader(HttpStatus_404_NotFound);
+      output.SendStatus(HttpStatus_404_NotFound);
     }
+
+    return true;
   } 
 }

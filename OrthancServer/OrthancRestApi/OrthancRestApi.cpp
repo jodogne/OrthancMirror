@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -39,9 +39,9 @@
 
 namespace Orthanc
 {
-  void OrthancRestApi::AnswerStoredInstance(RestApi::PostCall& call,
+  void OrthancRestApi::AnswerStoredInstance(RestApiPostCall& call,
                                             const std::string& publicId,
-                                            StoreStatus status)
+                                            StoreStatus status) const
   {
     Json::Value result = Json::objectValue;
 
@@ -56,10 +56,19 @@ namespace Orthanc
   }
 
 
+  void OrthancRestApi::ResetOrthanc(RestApiPostCall& call)
+  {
+    OrthancRestApi::GetApi(call).resetRequestReceived_ = true;
+    call.GetOutput().AnswerBuffer("{}", "application/json");
+  }
+
+
+
+
 
   // Upload of DICOM files through HTTP ---------------------------------------
 
-  static void UploadDicomFile(RestApi::PostCall& call)
+  static void UploadDicomFile(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -71,8 +80,11 @@ namespace Orthanc
 
     LOG(INFO) << "Receiving a DICOM file of " << postData.size() << " bytes through HTTP";
 
+    DicomInstanceToStore toStore;
+    toStore.SetBuffer(postData);
+
     std::string publicId;
-    StoreStatus status = context.Store(publicId, postData);
+    StoreStatus status = context.Store(publicId, toStore);
 
     OrthancRestApi::GetApi(call).AnswerStoredInstance(call, publicId, status);
   }
@@ -82,7 +94,8 @@ namespace Orthanc
   // Registration of the various REST handlers --------------------------------
 
   OrthancRestApi::OrthancRestApi(ServerContext& context) : 
-    context_(context)
+    context_(context),
+    resetRequestReceived_(false)
   {
     RegisterSystem();
 
@@ -93,5 +106,10 @@ namespace Orthanc
     RegisterArchive();
 
     Register("/instances", UploadDicomFile);
+
+    // Auto-generated directories
+    Register("/tools", RestApi::AutoListChildren);
+    Register("/tools/reset", ResetOrthanc);
+    Register("/instances/{id}/frames/{frame}", RestApi::AutoListChildren);
   }
 }

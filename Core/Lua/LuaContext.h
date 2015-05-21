@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,8 +33,7 @@
 #pragma once
 
 #include "LuaException.h"
-
-#include <boost/thread.hpp>
+#include "../HttpClient.h"
 
 extern "C" 
 {
@@ -42,7 +41,7 @@ extern "C"
 }
 
 #include <EmbeddedResources.h>
-
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
@@ -52,14 +51,29 @@ namespace Orthanc
     friend class LuaFunctionCall;
 
     lua_State *lua_;
-    boost::mutex mutex_;
     std::string log_;
+    HttpClient httpClient_;
 
-    static int PrintToLog(lua_State *L);
+    static LuaContext& GetLuaContext(lua_State *state);
 
-    void Execute(std::string* output,
-                 const std::string& command);
+    static int PrintToLog(lua_State *state);
 
+    static int SetHttpCredentials(lua_State *state);
+
+    static int CallHttpPostOrPut(lua_State *state,
+                                 HttpMethod method);
+    static int CallHttpGet(lua_State *state);
+    static int CallHttpPost(lua_State *state);
+    static int CallHttpPut(lua_State *state);
+    static int CallHttpDelete(lua_State *state);
+
+    bool AnswerHttpQuery(lua_State* state);
+
+    void ExecuteInternal(std::string* output,
+                         const std::string& command);
+
+    void PushJson(const Json::Value& value);
+    
   public:
     LuaContext();
 
@@ -67,17 +81,31 @@ namespace Orthanc
 
     void Execute(const std::string& command)
     {
-      Execute(NULL, command);
+      ExecuteInternal(NULL, command);
     }
 
     void Execute(std::string& output,
                  const std::string& command)
     {
-      Execute(&output, command);
+      ExecuteInternal(&output, command);
     }
+
+    void Execute(Json::Value& output,
+                 const std::string& command);
 
     void Execute(EmbeddedResources::FileResourceId resource);
 
     bool IsExistingFunction(const char* name);
+
+    void SetHttpCredentials(const char* username,
+                            const char* password)
+    {
+      httpClient_.SetCredentials(username, password);
+    }
+
+    void SetHttpProxy(const std::string& proxy)
+    {
+      httpClient_.SetProxy(proxy);
+    }
   };
 }

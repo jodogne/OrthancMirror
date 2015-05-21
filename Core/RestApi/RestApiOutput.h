@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -44,7 +44,7 @@ namespace Orthanc
   private:
     HttpOutput& output_;
     bool alreadySent_;
-    HttpHandler::Arguments cookies_;
+    bool convertJsonToXml_;
 
     void CheckStatus();
 
@@ -61,6 +61,16 @@ namespace Orthanc
     void MarkLowLevelOutputDone()
     {
       alreadySent_ = true;
+    }
+
+    void SetConvertJsonToXml(bool convert)
+    {
+      convertJsonToXml_ = convert;
+    }
+
+    bool IsConvertJsonToXml() const
+    {
+      return convertJsonToXml_;
     }
 
     void AnswerFile(HttpFileSender& sender);
@@ -83,5 +93,7 @@ namespace Orthanc
                    unsigned int maxAge = 0);
 
     void ResetCookie(const std::string& name);
+
+    void Finalize();
   };
 }

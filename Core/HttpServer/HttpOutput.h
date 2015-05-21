@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -36,64 +36,109 @@
 #include <string>
 #include <stdint.h>
 #include "../Enumerations.h"
+#include "IHttpOutputStream.h"
 #include "HttpHandler.h"
 
 namespace Orthanc
 {
-  class HttpOutput
+  class HttpOutput : public boost::noncopyable
   {
   private:
     typedef std::list< std::pair<std::string, std::string> >  Header;
 
-    void SendHeaderInternal(HttpStatus status);
+    class StateMachine : public boost::noncopyable
+    {
+    private:
+      enum State
+      {
+        State_WritingHeader,      
+        State_WritingBody,
+        State_Done
+      };
 
-    void PrepareOkHeader(Header& header,
-                         const char* contentType,
-                         bool hasContentLength,
-                         uint64_t contentLength,
-                         const char* contentFilename);
+      IHttpOutputStream& stream_;
+      State state_;
 
-    void SendOkHeader(const Header& header);
+      HttpStatus status_;
+      bool hasContentLength_;
+      uint64_t contentLength_;
+      uint64_t contentPosition_;
+      bool keepAlive_;
+      std::list<std::string> headers_;
 
-    void PrepareCookies(Header& header,
-                        const HttpHandler::Arguments& cookies);
+    public:
+      StateMachine(IHttpOutputStream& stream,
+                   bool isKeepAlive);
+
+      ~StateMachine();
+
+      void SetHttpStatus(HttpStatus status);
+
+      void SetContentLength(uint64_t length);
+
+      void SetContentType(const char* contentType);
+
+      void SetContentFilename(const char* filename);
+
+      void SetCookie(const std::string& cookie,
+                     const std::string& value);
+
+      void AddHeader(const std::string& header,
+                     const std::string& value);
+
+      void ClearHeaders();
+
+      void SendBody(const void* buffer, size_t length);
+    };
+
+    StateMachine stateMachine_;
 
   public:
-    virtual ~HttpOutput()
+    HttpOutput(IHttpOutputStream& stream,
+               bool isKeepAlive) : 
+      stateMachine_(stream, isKeepAlive)
     {
     }
 
-    virtual void Send(const void* buffer, size_t length) = 0;
+    void SendStatus(HttpStatus status);
 
-    void SendOkHeader(const char* contentType,
-                      bool hasContentLength,
-                      uint64_t contentLength,
-                      const char* contentFilename);
+    void SetContentType(const char* contentType)
+    {
+      stateMachine_.SetContentType(contentType);
+    }
 
-    void SendString(const std::string& s);
+    void SetContentFilename(const char* filename)
+    {
+      stateMachine_.SetContentFilename(filename);
+    }
 
-    void SendMethodNotAllowedError(const std::string& allowed);
+    void SetContentLength(uint64_t length)
+    {
+      stateMachine_.SetContentLength(length);
+    }
 
-    void SendHeader(HttpStatus status);
+    void SetCookie(const std::string& cookie,
+                   const std::string& value)
+    {
+      stateMachine_.SetCookie(cookie, value);
+    }
+
+    void AddHeader(const std::string& key,
+                   const std::string& value)
+    {
+      stateMachine_.AddHeader(key, value);
+    }
+
+    void SendBody(const void* buffer, size_t length);
+
+    void SendBody(const std::string& str);
+
+    void SendBody();
+
+    void SendMethodNotAllowed(const std::string& allowed);
 
     void Redirect(const std::string& path);
 
-    // Higher-level constructs to send entire buffers ----------------------------
-
-    void AnswerBufferWithContentType(const std::string& buffer,
-                                     const std::string& contentType);
-
-    void AnswerBufferWithContentType(const std::string& buffer,
-                                     const std::string& contentType,
-                                     const HttpHandler::Arguments& cookies);
-
-    void AnswerBufferWithContentType(const void* buffer,
-                                     size_t size,
-                                     const std::string& contentType);
-
-    void AnswerBufferWithContentType(const void* buffer,
-                                     size_t size,
-                                     const std::string& contentType,
-                                     const HttpHandler::Arguments& cookies);
+    void SendUnauthorized(const std::string& realm);
   };
 }
