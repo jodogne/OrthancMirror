@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -36,86 +36,87 @@
 #include <stdlib.h>   // To define "_exit()" under Windows
 #include <glog/logging.h>
 
+#include <stdio.h>
+
 namespace Orthanc
 {
-  bool RestApi::Call::ParseJsonRequestInternal(Json::Value& result,
-                                               const char* request)
+  namespace
   {
-    result.clear();
-    Json::Reader reader;
-    return reader.parse(request, result);
-  }
-
-
-  bool RestApi::GetCall::ParseJsonRequest(Json::Value& result) const
-  {
-    result.clear();
-
-    for (HttpHandler::Arguments::const_iterator 
-           it = getArguments_.begin(); it != getArguments_.end(); ++it)
+    // Anonymous namespace to avoid clashes between compilation modules
+    class HttpHandlerVisitor : public RestApiHierarchy::IVisitor
     {
-      result[it->first] = it->second;
-    }
+    private:
+      RestApi& api_;
+      RestApiOutput& output_;
+      HttpMethod method_;
+      const HttpHandler::Arguments& headers_;
+      const HttpHandler::Arguments& getArguments_;
+      const std::string& postData_;
 
-    return true;
-  }
-
-
-  bool RestApi::IsGetAccepted(const UriComponents& uri)
-  {
-    for (GetHandlers::const_iterator it = getHandlers_.begin();
-         it != getHandlers_.end(); ++it)
-    {
-      if (it->first->Match(uri))
+    public:
+      HttpHandlerVisitor(RestApi& api,
+                         RestApiOutput& output,
+                         HttpMethod method,
+                         const HttpHandler::Arguments& headers,
+                         const HttpHandler::Arguments& getArguments,
+                         const std::string& postData) :
+        api_(api),
+        output_(output),
+        method_(method),
+        headers_(headers),
+        getArguments_(getArguments),
+        postData_(postData)
       {
-        return true;
       }
-    }
 
-    return false;
-  }
-
-  bool RestApi::IsPutAccepted(const UriComponents& uri)
-  {
-    for (PutHandlers::const_iterator it = putHandlers_.begin();
-         it != putHandlers_.end(); ++it)
-    {
-      if (it->first->Match(uri))
+      virtual bool Visit(const RestApiHierarchy::Resource& resource,
+                         const UriComponents& uri,
+                         const HttpHandler::Arguments& components,
+                         const UriComponents& trailing)
       {
-        return true;
-      }
-    }
+        if (resource.HasHandler(method_))
+        {
+          switch (method_)
+          {
+            case HttpMethod_Get:
+            {
+              RestApiGetCall call(output_, api_, headers_, components, trailing, uri, getArguments_);
+              resource.Handle(call);
+              return true;
+            }
 
-    return false;
+            case HttpMethod_Post:
+            {
+              RestApiPostCall call(output_, api_, headers_, components, trailing, uri, postData_);
+              resource.Handle(call);
+              return true;
+            }
+
+            case HttpMethod_Delete:
+            {
+              RestApiDeleteCall call(output_, api_, headers_, components, trailing, uri);
+              resource.Handle(call);
+              return true;
+            }
+
+            case HttpMethod_Put:
+            {
+              RestApiPutCall call(output_, api_, headers_, components, trailing, uri, postData_);
+              resource.Handle(call);
+              return true;
+            }
+
+            default:
+              return false;
+          }
+        }
+
+        return false;
+      }
+    };
   }
 
-  bool RestApi::IsPostAccepted(const UriComponents& uri)
-  {
-    for (PostHandlers::const_iterator it = postHandlers_.begin();
-         it != postHandlers_.end(); ++it)
-    {
-      if (it->first->Match(uri))
-      {
-        return true;
-      }
-    }
 
-    return false;
-  }
-
-  bool RestApi::IsDeleteAccepted(const UriComponents& uri)
-  {
-    for (DeleteHandlers::const_iterator it = deleteHandlers_.begin();
-         it != deleteHandlers_.end(); ++it)
-    {
-      if (it->first->Match(uri))
-      {
-        return true;
-      }
-    }
-
-    return false;
-  }
 
   static void AddMethod(std::string& target,
                         const std::string& method)
@@ -126,158 +127,128 @@ namespace Orthanc
       target = method;
   }
 
-  std::string  RestApi::GetAcceptedMethods(const UriComponents& uri)
+  static std::string  MethodsToString(const std::set<HttpMethod>& methods)
   {
     std::string s;
 
-    if (IsGetAccepted(uri))
+    if (methods.find(HttpMethod_Get) != methods.end())
+    {
       AddMethod(s, "GET");
+    }
 
-    if (IsPutAccepted(uri))
-      AddMethod(s, "PUT");
-
-    if (IsPostAccepted(uri))
+    if (methods.find(HttpMethod_Post) != methods.end())
+    {
       AddMethod(s, "POST");
+    }
 
-    if (IsDeleteAccepted(uri))
+    if (methods.find(HttpMethod_Put) != methods.end())
+    {
+      AddMethod(s, "PUT");
+    }
+
+    if (methods.find(HttpMethod_Delete) != methods.end())
+    {
       AddMethod(s, "DELETE");
+    }
 
     return s;
   }
 
-  RestApi::~RestApi()
-  {
-    for (GetHandlers::iterator it = getHandlers_.begin(); 
-         it != getHandlers_.end(); ++it)
-    {
-      delete it->first;
-    } 
 
-    for (PutHandlers::iterator it = putHandlers_.begin(); 
-         it != putHandlers_.end(); ++it)
-    {
-      delete it->first;
-    } 
 
-    for (PostHandlers::iterator it = postHandlers_.begin(); 
-         it != postHandlers_.end(); ++it)
-    {
-      delete it->first;
-    } 
-
-    for (DeleteHandlers::iterator it = deleteHandlers_.begin(); 
-         it != deleteHandlers_.end(); ++it)
-    {
-      delete it->first;
-    } 
-  }
-
-  bool RestApi::IsServedUri(const UriComponents& uri)
-  {
-    return (IsGetAccepted(uri) ||
-            IsPutAccepted(uri) ||
-            IsPostAccepted(uri) ||
-            IsDeleteAccepted(uri));
-  }
-
-  void RestApi::Handle(HttpOutput& output,
+  bool RestApi::Handle(HttpOutput& output,
                        HttpMethod method,
                        const UriComponents& uri,
                        const Arguments& headers,
-                       const Arguments& getArguments,
+                       const GetArguments& getArguments,
                        const std::string& postData)
   {
-    bool ok = false;
-    RestApiOutput restOutput(output);
-    RestApiPath::Components components;
-    UriComponents trailing;
+    RestApiOutput wrappedOutput(output);
 
-    if (method == HttpMethod_Get)
+#if ORTHANC_PUGIXML_ENABLED == 1
+    // Look if the user wishes XML answers instead of JSON
+    // http://www.w3.org/Protocols/HTTP/HTRQ_Headers.html#z3
+    Arguments::const_iterator it = headers.find("accept");
+    if (it != headers.end())
     {
-      for (GetHandlers::const_iterator it = getHandlers_.begin();
-           it != getHandlers_.end(); ++it)
+      std::vector<std::string> accepted;
+      Toolbox::TokenizeString(accepted, it->second, ';');
+      for (size_t i = 0; i < accepted.size(); i++)
       {
-        if (it->first->Match(components, trailing, uri))
+        if (accepted[i] == "application/xml")
         {
-          //LOG(INFO) << "REST GET call on: " << Toolbox::FlattenUri(uri);
-          ok = true;
-          GetCall call(restOutput, *this, headers, components, trailing, uri, getArguments);
-          it->second(call);
+          wrappedOutput.SetConvertJsonToXml(true);
+        }
+
+        if (accepted[i] == "application/json")
+        {
+          wrappedOutput.SetConvertJsonToXml(false);
         }
       }
     }
-    else if (method == HttpMethod_Put)
+#endif
+
+    Arguments compiled;
+    HttpHandler::CompileGetArguments(compiled, getArguments);
+
+    HttpHandlerVisitor visitor(*this, wrappedOutput, method, headers, compiled, postData);
+
+    if (root_.LookupResource(uri, visitor))
     {
-      for (PutHandlers::const_iterator it = putHandlers_.begin();
-           it != putHandlers_.end(); ++it)
-      {
-        if (it->first->Match(components, trailing, uri))
-        {
-          //LOG(INFO) << "REST PUT call on: " << Toolbox::FlattenUri(uri);
-          ok = true;
-          PutCall call(restOutput, *this, headers, components, trailing, uri, postData);
-          it->second(call);
-        }
-      }
-    }
-    else if (method == HttpMethod_Post)
-    {
-      for (PostHandlers::const_iterator it = postHandlers_.begin();
-           it != postHandlers_.end(); ++it)
-      {
-        if (it->first->Match(components, trailing, uri))
-        {
-          //LOG(INFO) << "REST POST call on: " << Toolbox::FlattenUri(uri);
-          ok = true;
-          PostCall call(restOutput, *this, headers, components, trailing, uri, postData);
-          it->second(call);
-        }
-      }
-    }
-    else if (method == HttpMethod_Delete)
-    {
-      for (DeleteHandlers::const_iterator it = deleteHandlers_.begin();
-           it != deleteHandlers_.end(); ++it)
-      {
-        if (it->first->Match(components, trailing, uri))
-        {
-          //LOG(INFO) << "REST DELETE call on: " << Toolbox::FlattenUri(uri);
-          ok = true;
-          DeleteCall call(restOutput, *this, headers, components, trailing, uri);
-          it->second(call);
-        }
-      }
+      wrappedOutput.Finalize();
+      return true;
     }
 
-    if (!ok)
+    std::set<HttpMethod> methods;
+    root_.GetAcceptedMethods(methods, uri);
+
+    if (methods.empty())
+    {
+      return false;  // This URI is not served by this REST API
+    }
+    else
     {
       LOG(INFO) << "REST method " << EnumerationToString(method) 
                 << " not allowed on: " << Toolbox::FlattenUri(uri);
-      output.SendMethodNotAllowedError(GetAcceptedMethods(uri));
+
+      output.SendMethodNotAllowed(MethodsToString(methods));
+
+      return true;
     }
   }
 
   void RestApi::Register(const std::string& path,
-                         GetHandler handler)
+                         RestApiGetCall::Handler handler)
   {
-    getHandlers_.push_back(std::make_pair(new RestApiPath(path), handler));
+    root_.Register(path, handler);
   }
 
   void RestApi::Register(const std::string& path,
-                         PutHandler handler)
+                         RestApiPutCall::Handler handler)
   {
-    putHandlers_.push_back(std::make_pair(new RestApiPath(path), handler));
+    root_.Register(path, handler);
   }
 
   void RestApi::Register(const std::string& path,
-                         PostHandler handler)
+                         RestApiPostCall::Handler handler)
   {
-    postHandlers_.push_back(std::make_pair(new RestApiPath(path), handler));
+    root_.Register(path, handler);
   }
 
   void RestApi::Register(const std::string& path,
-                         DeleteHandler handler)
+                         RestApiDeleteCall::Handler handler)
   {
-    deleteHandlers_.push_back(std::make_pair(new RestApiPath(path), handler));
+    root_.Register(path, handler);
+  }
+  
+  void RestApi::AutoListChildren(RestApiGetCall& call)
+  {
+    RestApi& context = call.GetContext();
+
+    Json::Value directory;
+    if (context.root_.GetDirectory(directory, call.GetFullUri()))
+    {
+      call.GetOutput().AnswerJson(directory);
+    }    
   }
 }

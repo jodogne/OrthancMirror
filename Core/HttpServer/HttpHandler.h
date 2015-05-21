@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -44,29 +44,39 @@ namespace Orthanc
   class HttpHandler
   {
   public:
-    typedef std::map<std::string, std::string> Arguments;
+    typedef std::map<std::string, std::string>                  Arguments;
+    typedef std::vector< std::pair<std::string, std::string> >  GetArguments;
 
     virtual ~HttpHandler()
     {
     }
 
-    virtual bool IsServedUri(const UriComponents& uri) = 0;
-
-    virtual void Handle(HttpOutput& output,
+    virtual bool Handle(HttpOutput& output,
                         HttpMethod method,
                         const UriComponents& uri,
                         const Arguments& headers,
-                        const Arguments& getArguments,
+                        const GetArguments& getArguments,
                         const std::string& postData) = 0;
 
-    static void ParseGetQuery(HttpHandler::Arguments& result, 
+    static void ParseGetArguments(HttpHandler::GetArguments& result, 
+                                  const char* query);
+
+    static void ParseGetQuery(UriComponents& uri,
+                              HttpHandler::GetArguments& getArguments, 
                               const char* query);
 
     static std::string GetArgument(const Arguments& getArguments,
                                    const std::string& name,
                                    const std::string& defaultValue);
 
+    static std::string GetArgument(const GetArguments& getArguments,
+                                   const std::string& name,
+                                   const std::string& defaultValue);
+
     static void ParseCookies(HttpHandler::Arguments& result, 
                              const HttpHandler::Arguments& httpHeaders);
+
+    static void CompileGetArguments(Arguments& compiled,
+                                    const GetArguments& source);
   };
 }

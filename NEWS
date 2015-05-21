@@ -1,9 +1,193 @@
 Pending changes in the mainline
 ===============================
 
-* Official support of OS X (Darwin)
+Major
+-----
+
+* "?expand" flag for URIs "/patients", "/studies" and "/series"
+* "/tools/find" URI to search for DICOM resources from REST
+* Support of FreeBSD
+
+Minor
+-----
+
+* Speed-up in Orthanc Explorer for large amount of images
+* Speed-up of the C-Find SCP server of Orthanc
+* Allow replacing PatientID/StudyInstanceUID/SeriesInstanceUID from Lua scripts
+
+Fixes
+-----
+
+* Prevent freeze on C-FIND if no DICOM tag is to be returned
+* Fix slow C-Store SCP on recent versions of Linux, if
+  USE_SYSTEM_DCMTK is set to OFF (http://forum.dcmtk.org/viewtopic.php?f=1&t=4009)
+* Fix issue 30 (QR response missing "Query/Retrieve Level" (008,0052))
+* Fix issue 32 (Cyrillic symbols): Introduction of the "Windows1251" encoding
+* Plugins now receive duplicated GET arguments in their REST callbacks
+
+
+Version 0.8.6 (2015/02/12)
+==========================
+
+Major
+-----
+
+* URIs to get all the parents of a given resource in a single REST call
+* Instances without PatientID are now allowed
+* Support of HTTP proxy to access Orthanc peers
+
+Minor
+-----
+
+* Support of Tudor DICOM in Query/Retrieve
+* More flexible "/modify" and "/anonymize" for single instance
+* Access to called AET and remote AET from Lua scripts ("OnStoredInstance")
+* Option "DicomAssociationCloseDelay" to set delay before closing DICOM association
+* ZIP archives now display the accession number of the studies
+
+Plugins
+-------
+
+* Introspection of plugins (cf. the "/plugins" URI)
+* Plugins can access the command-line arguments used to launch Orthanc
+* Plugins can extend Orthanc Explorer with custom JavaScript
+* Plugins can get/set global properties to save their configuration
+* Plugins can do REST calls to other plugins (cf. "xxxAfterPlugins()")
+* Scan of folders for plugins
+
+Fixes
+-----
+
+* Code refactorings
+* Fix issue 25 (AET with underscore not allowed)
+* Fix replacement and insertion of private DICOM tags
+* Fix anonymization generating non-portable DICOM files
+
+
+Version 0.8.5 (2014/11/04)
+==========================
+
+General
+-------
+
+* Major speed-up thanks to a new database schema
+* Plugins can monitor changes through callbacks
+* Download ZIP + DICOMDIR from Orthanc Explorer
+* Sample plugin framework to serve static resources (./Plugins/Samples/WebSkeleton/)
+
+Fixes
+-----
+
+* Fix issue 19 (YBR_FULL are decoded incorrectly)
+* Fix issue 21 (Microsoft Visual Studio precompiled headers)
+* Fix issue 22 (Error decoding multi-frame instances)
+* Fix issue 24 (Build fails on OSX when directory has .DS_Store files)
+* Fix crash when bad HTTP credentials are provided
+
+
+Version 0.8.4 (2014/09/19)
+==========================
+
+* "/instances-tags" to get the tags of all the child instances of a
+  patient/study/series with a single REST call (bulk tags retrieval)
+* Configuration/Lua to select the accepted C-Store SCP transfer syntaxes
+* Fix reporting of errors in Orthanc Explorer when sending images to peers/modalities
+* Installation of plugin SDK in CMake
+
+
+Version 0.8.3 (2014/09/11)
+==========================
+
+Major
+-----
+
+* Creation of ZIP archives for media storage, with DICOMDIR
+* URIs to get all the children of a given resource in a single REST call
+* "/tools/lookup" URI to map DICOM UIDs to Orthanc identifiers
+* Support of index-only mode (using the "StoreDicom" option)
+* Plugins can implement a custom storage area
+
+Minor
+-----
+
+* Configuration option to enable HTTP Keep-Alive
+* Configuration option to disable the logging of exported resources in "/exports"
+* Plugins can retrieve the path to Orthanc and to its configuration file
+* "/tools/create-dicom" now accepts the "PatientID" DICOM tag (+ updated sample)
+* Possibility to set HTTP headers from plugins
+* "LastUpdate" metadata is now always returned for patients, studies and series
+
+Maintenance
+-----------
+
+* Refactoring of HttpOutput ("Content-Length" header is now always sent)
+* Upgrade to Mongoose 3.8
+* Fixes for Visual Studio 2013 and Windows 64bit
+* Fix issue 16: Handling of "AT" value representations in JSON
+* Fix issue 17
+
+
+Version 0.8.2 (2014/08/07)
+==========================
+
+* Support of the standard text encodings
+* Hot restart of Orthanc by posting to "/tools/reset"
+* More fault-tolerant commands in Lua scripts
+* Parameter to set the default encoding for DICOM files without SpecificCharacterSet
+* Fix of issue #14 (support of XCode 5.1)
+* Upgrade to Google Test 1.7.0
+
+
+Version 0.8.1 (2014/07/29)
+==========================
+
+General
+-------
+
+* Access patient module at the study level to cope with PatientID collisions
+* On-the-fly conversion of JSON to XML according to the HTTP Accept header
+* C-Echo SCU in the REST API
+* DICOM conformance statement available at URI "/tools/dicom-conformance"
+
+Lua scripts
+-----------
+
+* Lua scripts can do HTTP requests, and thus can call Web services
+* Lua scripts can invoke system commands, with CallSystem()
+
+Plugins
+-------
+
+* Lookup for DICOM UIDs in the plugin SDK
+* Plugins have access to the HTTP headers and can answer with HTTP status codes
+* Callback to react to the incoming of DICOM instances
+
+Fixes
+-----
+
+* Fix build of Google Log with Visual Studio >= 11.0
+* Fix automated generation of the list of resource children in the REST API
+
+
+Version 0.8.0 (2014/07/10)
+==========================
+
+Major changes
+-------------
+
+* Routing images with Lua scripts
+* Introduction of the Orthanc Plugin SDK
+* Official support of OS X (Darwin) 10.8
+
+Minor changes
+-------------
+
+* Extraction of tags for the patient/study/series/instance DICOM modules
+* Extraction of the tags shared by all the instances of a patient/study/series
 * Options to limit the number of results for an incoming C-FIND query
 * Support of kFreeBSD
+* Several code refactorings
+* Fix OrthancCppClient::GetVoxelSizeZ()
 
 
 Version 0.7.6 (2014/06/11)
@@ -21,7 +205,7 @@ Version 0.7.5 (2014/05/08)
 * Creation of DICOM instances using the REST API
 * Embedding of images within DICOM instances
 * Adding/removal/modification of remote modalities/peers through REST
-* Reuse of the previous SCU connection to avoid unecessary handshakes
+* Reuse of the previous SCU connection to avoid unnecessary handshakes
 * Fix problems with anonymization and modification
 * Fix missing licensing terms about reuse of some code from DCMTK
 * Various code refactorings
@@ -150,7 +334,7 @@ Version 0.5.2 (2013/05/07)
 ==========================
 
 * "Bulk" Store-SCU (send several DICOM instances with the same
-  DICOM connexion)
+  DICOM connection)
 * Store-SCU for patients and studies in Orthanc Explorer
 * Filtering of incoming DICOM instances (through Lua scripting)
 * Filtering of incoming HTTP requests (through Lua scripting)
@@ -175,7 +359,7 @@ Major changes
 -------------
 
 * Download of modified or anonymized DICOM instances
-* Inplace modification and anymization of DICOM series, studies and patients
+* Inplace modification and anonymization of DICOM series, studies and patients
 
 Minor changes
 -------------

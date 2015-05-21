@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,15 +33,14 @@
 #pragma once
 
 #include "StorageAccessor.h"
-#include "FileStorage.h"
-#include "../HttpServer/FilesystemHttpSender.h"
+#include "IStorageArea.h"
 
 namespace Orthanc
 {
   class FileStorageAccessor : public StorageAccessor
   {
   private:
-    FileStorage& storage_;
+    IStorageArea& storage_;
     
   protected:
     virtual FileInfo WriteInternal(const void* data,
@@ -49,19 +48,24 @@ namespace Orthanc
                                    FileContentType type);
 
   public:
-    FileStorageAccessor(FileStorage& storage) : storage_(storage)
+    FileStorageAccessor(IStorageArea& storage) : storage_(storage)
     {
     }
 
     virtual void Read(std::string& content,
-                      const std::string& uuid)
+                      const std::string& uuid,
+                      FileContentType type)
     {
-      storage_.ReadFile(content, uuid);
+      storage_.Read(content, uuid, type);
     }
 
-    virtual HttpFileSender* ConstructHttpFileSender(const std::string& uuid)
+    virtual HttpFileSender* ConstructHttpFileSender(const std::string& uuid,
+                                                    FileContentType type);
+
+    virtual void Remove(const std::string& uuid,
+                        FileContentType type)
     {
-      return new FilesystemHttpSender(storage_.GetPath(uuid));
+      storage_.Remove(uuid, type);
     }
   };
 }

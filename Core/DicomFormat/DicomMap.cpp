@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include <memory>
 #include "DicomString.h"
+#include "DicomArray.h"
 #include "../OrthancException.h"
 
 
@@ -187,6 +188,17 @@ namespace Orthanc
     }
 
     return result.release();
+  }
+
+
+  void DicomMap::Assign(const DicomMap& other)
+  {
+    Clear();
+
+    for (Map::const_iterator it = other.map_.begin(); it != other.map_.end(); ++it)
+    {
+      map_.insert(std::make_pair(it->first, it->second->Clone()));
+    }
   }
 
 
@@ -389,30 +401,21 @@ namespace Orthanc
   }
 
 
-  void DicomMap::ExtractMainDicomTagsForLevel(DicomMap& result,
-                                              ResourceType level) const
+  void DicomMap::Print(FILE* fp) const
   {
-    switch (level)
-    {
-      case ResourceType_Patient:
-        ExtractPatientInformation(result);
-        break;
-
-      case ResourceType_Study:
-        ExtractStudyInformation(result);
-        break;
-
-      case ResourceType_Series:
-        ExtractSeriesInformation(result);
-        break;
-
-      case ResourceType_Instance:
-        ExtractInstanceInformation(result);
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
+    DicomArray a(*this);
+    a.Print(fp);
   }
 
+
+  void DicomMap::GetTags(std::set<DicomTag>& tags) const
+  {
+    tags.clear();
+
+    for (Map::const_iterator it = map_.begin();
+         it != map_.end(); ++it)
+    {
+      tags.insert(it->first);
+    }
+  }
 }

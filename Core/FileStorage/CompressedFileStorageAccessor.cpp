@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -36,6 +36,10 @@
 #include "../OrthancException.h"
 #include "FileStorageAccessor.h"
 #include "../HttpServer/BufferHttpSender.h"
+#include "../Uuid.h"
+
+#include <memory>
+#include <glog/logging.h>
 
 namespace Orthanc
 {
@@ -43,6 +47,8 @@ namespace Orthanc
                                                         size_t size,
                                                         FileContentType type)
   {
+    std::string uuid = Toolbox::GenerateUuid();
+
     std::string md5;
 
     if (storeMD5_)
@@ -54,7 +60,7 @@ namespace Orthanc
     {
     case CompressionType_None:
     {
-      std::string uuid = storage_.Create(data, size);
+      GetStorageArea().Create(uuid.c_str(), data, size, type);
       return FileInfo(uuid, type, size, md5);
     }
 
@@ -70,7 +76,15 @@ namespace Orthanc
         Toolbox::ComputeMD5(compressedMD5, compressed);
       }
 
-      std::string uuid = storage_.Create(compressed);
+      if (compressed.size() > 0)
+      {
+        GetStorageArea().Create(uuid.c_str(), &compressed[0], compressed.size(), type);
+      }
+      else
+      {
+        GetStorageArea().Create(uuid.c_str(), NULL, 0, type);
+      }
+
       return FileInfo(uuid, type, size, md5,
                       CompressionType_Zlib, compressed.size(), compressedMD5);
     }
@@ -80,25 +94,47 @@ namespace Orthanc
     }
   }
 
-  CompressedFileStorageAccessor::CompressedFileStorageAccessor(FileStorage& storage) : 
-    storage_(storage)
+
+  CompressedFileStorageAccessor::CompressedFileStorageAccessor() : 
+    storage_(NULL),
+    compressionType_(CompressionType_None)
   {
-    compressionType_ = CompressionType_None;
   }
 
+
+  CompressedFileStorageAccessor::CompressedFileStorageAccessor(IStorageArea& storage) : 
+    storage_(&storage),
+    compressionType_(CompressionType_None)
+  {
+  }
+
+
+  IStorageArea& CompressedFileStorageAccessor::GetStorageArea()
+  {
+    if (storage_ == NULL)
+    {
+      LOG(ERROR) << "No storage area is currently available";
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    return *storage_;
+  }
+
+
   void CompressedFileStorageAccessor::Read(std::string& content,
-                                           const std::string& uuid)
+                                           const std::string& uuid,
+                                           FileContentType type)
   {
     switch (compressionType_)
     {
     case CompressionType_None:
-      storage_.ReadFile(content, uuid);
+      GetStorageArea().Read(content, uuid, type);
       break;
 
     case CompressionType_Zlib:
     {
       std::string compressed;
-      storage_.ReadFile(compressed, uuid);
+      GetStorageArea().Read(compressed, uuid, type);
       zlib_.Uncompress(content, compressed);
       break;
     }
@@ -108,20 +144,21 @@ namespace Orthanc
     }
   }
 
-  HttpFileSender* CompressedFileStorageAccessor::ConstructHttpFileSender(const std::string& uuid)
+  HttpFileSender* CompressedFileStorageAccessor::ConstructHttpFileSender(const std::string& uuid,
+                                                                         FileContentType type)
   {
     switch (compressionType_)
     {
     case CompressionType_None:
     {
-      FileStorageAccessor uncompressedAccessor(storage_);
-      return uncompressedAccessor.ConstructHttpFileSender(uuid);
+      FileStorageAccessor uncompressedAccessor(GetStorageArea());
+      return uncompressedAccessor.ConstructHttpFileSender(uuid, type);
     }
 
     case CompressionType_Zlib:
     {
       std::string compressed;
-      storage_.ReadFile(compressed, uuid);
+      GetStorageArea().Read(compressed, uuid, type);
 
       std::auto_ptr<BufferHttpSender> sender(new BufferHttpSender);
       zlib_.Uncompress(sender->GetBuffer(), compressed);
@@ -132,5 +169,12 @@ namespace Orthanc
     default:
       throw OrthancException(ErrorCode_NotImplemented);
     }
+  }
+
+
+  void  CompressedFileStorageAccessor::Remove(const std::string& uuid,
+                                              FileContentType type)
+  {
+    GetStorageArea().Remove(uuid, type);
   }
 }

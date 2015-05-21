@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,6 +33,8 @@
 #pragma once
 
 #include "../Toolbox.h"
+#include "../HttpServer/HttpHandler.h"
+
 #include <map>
 
 namespace Orthanc
@@ -45,19 +47,34 @@ namespace Orthanc
     std::vector<std::string> components_;
 
   public:
-    typedef std::map<std::string, std::string> Components;
-
     RestApiPath(const std::string& uri);
 
     // This version is slower
-    bool Match(Components& components,
+    bool Match(HttpHandler::Arguments& components,
                UriComponents& trailing,
                const std::string& uriRaw) const;
 
-    bool Match(Components& components,
+    bool Match(HttpHandler::Arguments& components,
                UriComponents& trailing,
                const UriComponents& uri) const;
 
     bool Match(const UriComponents& uri) const;
+
+    size_t GetLevelCount() const
+    {
+      return uri_.size();
+    }
+
+    bool IsWildcardLevel(size_t level) const;
+
+    bool IsUniversalTrailing() const
+    {
+      return hasTrailing_;
+    }
+
+    const std::string& GetWildcardName(size_t level) const;
+
+    const std::string& GetLevelName(size_t level) const;
+
   };
 }

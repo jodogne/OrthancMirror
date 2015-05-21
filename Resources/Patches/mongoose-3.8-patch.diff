@@ -1,0 +1,29 @@
+--- mongoose.c.orig	2014-09-01 11:25:18.223466994 +0200
++++ mongoose.c	2014-09-01 11:30:21.807479338 +0200
+@@ -50,6 +50,14 @@
+ #define PATH_MAX FILENAME_MAX
+ #endif // __SYMBIAN32__
+ 
++#if __gnu_hurd__ == 1
++/**
++ * There is no limit on the length on a path under GNU Hurd, so we set
++ * it to an arbitrary constant.
++ **/
++#define PATH_MAX 4096
++#endif
++
+ #ifndef _WIN32_WCE // Some ANSI #includes are not available on Windows CE
+ #include <sys/types.h>
+ #include <sys/stat.h>
+@@ -108,8 +116,9 @@
+ #define strtoll(x, y, z) _atoi64(x)
+ #else
+ #define __func__  __FUNCTION__
+-#define strtoull(x, y, z) _strtoui64(x, y, z)
+-#define strtoll(x, y, z) _strtoi64(x, y, z)
++#include <stdlib.h>
++//#define strtoull(x, y, z) _strtoui64(x, y, z)
++//#define strtoll(x, y, z) _strtoi64(x, y, z)
+ #endif // _MSC_VER
+ 
+ #define ERRNO   GetLastError()

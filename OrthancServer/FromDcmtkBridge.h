@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -44,11 +44,20 @@ namespace Orthanc
   class FromDcmtkBridge
   {
   public:
+    static Encoding DetectEncoding(DcmDataset& dataset);
+
     static void Convert(DicomMap& target, DcmDataset& dataset);
+
+    static DicomTag Convert(const DcmTag& tag);
 
     static DicomTag GetTag(const DcmElement& element);
 
-    static DicomValue* ConvertLeafElement(DcmElement& element);
+    static bool IsPrivateTag(DcmTag& tag);
+
+    static bool IsPrivateTag(const DicomTag& tag);
+
+    static DicomValue* ConvertLeafElement(DcmElement& element,
+                                          Encoding encoding);
 
     static void ToJson(Json::Value& target, 
                        DcmDataset& dataset,
@@ -95,6 +104,8 @@ namespace Orthanc
     static std::string GenerateUniqueIdentifier(ResourceType level);
 
     static bool SaveToMemoryBuffer(std::string& buffer,
-                                   DcmDataset* dataSet);
+                                   DcmDataset& dataSet);
+
+    static bool IsPNValueRepresentation(const DicomTag& tag);
   };
 }

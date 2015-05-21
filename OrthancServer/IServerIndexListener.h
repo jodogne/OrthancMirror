@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -34,6 +34,7 @@
 
 #include <string>
 #include "ServerEnumerations.h"
+#include "ServerIndexChange.h"
 
 namespace Orthanc
 {
@@ -48,5 +49,7 @@ namespace Orthanc
                                          const std::string& publicId) = 0;
 
     virtual void SignalFileDeleted(const FileInfo& info) = 0;
+
+    virtual void SignalChange(const ServerIndexChange& change) = 0;
   };
 }

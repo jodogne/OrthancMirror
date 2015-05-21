@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -120,6 +120,18 @@ namespace Orthanc
 
       case ErrorCode_IncompatibleImageFormat:
         return "Incompatible format of the images";
+
+      case ErrorCode_SharedLibrary:
+        return "Error while using a shared library (plugin)";
+
+      case ErrorCode_SystemCommand:
+        return "Error while calling a system command";
+
+      case ErrorCode_Plugin:
+        return "Error encountered inside a plugin";
+
+      case ErrorCode_Database:
+        return "Error with the database engine";
 
       case ErrorCode_Custom:
       default:

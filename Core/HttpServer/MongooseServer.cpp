@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -68,22 +68,27 @@ namespace Orthanc
   namespace
   {
     // Anonymous namespace to avoid clashes between compilation modules
-    class MongooseOutput : public HttpOutput
+    class MongooseOutputStream : public IHttpOutputStream
     {
     private:
       struct mg_connection* connection_;
 
     public:
-      MongooseOutput(struct mg_connection* connection) : connection_(connection)
+      MongooseOutputStream(struct mg_connection* connection) : connection_(connection)
       {
       }
 
-      virtual void Send(const void* buffer, size_t length)
+      virtual void Send(bool isHeader, const void* buffer, size_t length)
       {
         if (length > 0)
         {
           mg_write(connection_, buffer, length);
         }
+      }
+
+      virtual void OnHttpStatusReceived(HttpStatus status)
+      {
+        // Ignore this
       }
     };
 
@@ -255,23 +260,6 @@ namespace Orthanc
 
 
 
-  HttpHandler* MongooseServer::FindHandler(const UriComponents& forUri) const
-  {
-    for (Handlers::const_iterator it = 
-           handlers_.begin(); it != handlers_.end(); ++it) 
-    {
-      if ((*it)->IsServedUri(forUri))
-      {
-        return *it;
-      }
-    }
-
-    return NULL;
-  }
-
-
-
-
   static PostDataStatus ReadBody(std::string& postData,
                                  struct mg_connection *connection,
                                  const HttpHandler::Arguments& headers)
@@ -421,18 +409,8 @@ namespace Orthanc
   }
 
 
-  static void SendUnauthorized(HttpOutput& output)
-  {
-    std::string s = "HTTP/1.1 401 Unauthorized\r\n" 
-      "WWW-Authenticate: Basic realm=\"" ORTHANC_REALM "\""
-      "\r\n\r\n";
-    output.Send(&s[0], s.size());
-  }
-
-
-  static bool Authorize(const MongooseServer& that,
-                        const HttpHandler::Arguments& headers,
-                        HttpOutput& output)
+  static bool IsAccessGranted(const MongooseServer& that,
+                              const HttpHandler::Arguments& headers)
   {
     bool granted = false;
 
@@ -440,22 +418,15 @@ namespace Orthanc
     if (auth != headers.end())
     {
       std::string s = auth->second;
-      if (s.substr(0, 6) == "Basic ")
+      if (s.size() > 6 &&
+          s.substr(0, 6) == "Basic ")
       {
         std::string b64 = s.substr(6);
         granted = that.IsValidBasicHttpAuthentication(b64);
       }
     }
 
-    if (!granted)
-    {
-      SendUnauthorized(output);
-      return false;
-    }
-    else
-    {
-      return true;
-    }
+    return granted;
   }
 
 
@@ -469,7 +440,8 @@ namespace Orthanc
     }
 
     std::string s = auth->second;
-    if (s.substr(0, 6) != "Basic ")
+    if (s.size() <= 6 ||
+        s.substr(0, 6) != "Basic ")
     {
       return "";
     }
@@ -494,7 +466,7 @@ namespace Orthanc
   static bool ExtractMethod(HttpMethod& method,
                             const struct mg_request_info *request,
                             const HttpHandler::Arguments& headers,
-                            const HttpHandler::Arguments& argumentsGET)
+                            const HttpHandler::GetArguments& argumentsGET)
   {
     std::string overriden;
 
@@ -512,10 +484,13 @@ namespace Orthanc
     {
       // 2. Faking with Ruby on Rail's approach
       // GET /my/resource?_method=delete <=> DELETE /my/resource
-      methodOverride = argumentsGET.find("_method");
-      if (methodOverride != argumentsGET.end())
+      for (size_t i = 0; i < argumentsGET.size(); i++)
       {
-        overriden = methodOverride->second;
+        if (argumentsGET[i].first == "_method")
+        {
+          overriden = argumentsGET[i].second;
+          break;
+        }
       }
     }
 
@@ -568,178 +543,228 @@ namespace Orthanc
   }
 
 
+  static void InternalCallback(struct mg_connection *connection,
+                               const struct mg_request_info *request)
+  {
+    MongooseServer* that = reinterpret_cast<MongooseServer*>(request->user_data);
+    MongooseOutputStream stream(connection);
+    HttpOutput output(stream, that->IsKeepAliveEnabled());
 
+    // Check remote calls
+    if (!that->IsRemoteAccessAllowed() &&
+        request->remote_ip != LOCALHOST)
+    {
+      output.SendUnauthorized(ORTHANC_REALM);
+      return;
+    }
+
+
+    // Extract the HTTP headers
+    HttpHandler::Arguments headers;
+    for (int i = 0; i < request->num_headers; i++)
+    {
+      std::string name = request->http_headers[i].name;
+      std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+      headers.insert(std::make_pair(name, request->http_headers[i].value));
+    }
+
+
+    // Extract the GET arguments
+    HttpHandler::GetArguments argumentsGET;
+    if (!strcmp(request->request_method, "GET"))
+    {
+      HttpHandler::ParseGetArguments(argumentsGET, request->query_string);
+    }
+
+
+    // Compute the HTTP method, taking method faking into consideration
+    HttpMethod method = HttpMethod_Get;
+    if (!ExtractMethod(method, request, headers, argumentsGET))
+    {
+      output.SendStatus(HttpStatus_400_BadRequest);
+      return;
+    }
+
+
+    // Authenticate this connection
+    if (that->IsAuthenticationEnabled() && !IsAccessGranted(*that, headers))
+    {
+      output.SendUnauthorized(ORTHANC_REALM);
+      return;
+    }
+
+
+    // Apply the filter, if it is installed
+    const IIncomingHttpRequestFilter *filter = that->GetIncomingHttpRequestFilter();
+    if (filter != NULL)
+    {
+      std::string username = GetAuthenticatedUsername(headers);
+
+      char remoteIp[24];
+      sprintf(remoteIp, "%d.%d.%d.%d", 
+              reinterpret_cast<const uint8_t*>(&request->remote_ip) [3], 
+              reinterpret_cast<const uint8_t*>(&request->remote_ip) [2], 
+              reinterpret_cast<const uint8_t*>(&request->remote_ip) [1], 
+              reinterpret_cast<const uint8_t*>(&request->remote_ip) [0]);
+
+      if (!filter->IsAllowed(method, request->uri, remoteIp, username.c_str()))
+      {
+        output.SendUnauthorized(ORTHANC_REALM);
+        return;
+      }
+    }
+
+
+    // Extract the body of the request for PUT and POST
+    std::string body;
+    if (method == HttpMethod_Post ||
+        method == HttpMethod_Put)
+    {
+      PostDataStatus status;
+
+      HttpHandler::Arguments::const_iterator ct = headers.find("content-type");
+      if (ct == headers.end())
+      {
+        // No content-type specified. Assume no multi-part content occurs at this point.
+        status = ReadBody(body, connection, headers);          
+      }
+      else
+      {
+        std::string contentType = ct->second;
+        if (contentType.size() >= multipartLength &&
+            !memcmp(contentType.c_str(), multipart, multipartLength))
+        {
+          status = ParseMultipartPost(body, connection, headers, contentType, that->GetChunkStore());
+        }
+        else
+        {
+          status = ReadBody(body, connection, headers);
+        }
+      }
+
+      switch (status)
+      {
+        case PostDataStatus_NoLength:
+          output.SendStatus(HttpStatus_411_LengthRequired);
+          return;
+
+        case PostDataStatus_Failure:
+          output.SendStatus(HttpStatus_400_BadRequest);
+          return;
+
+        case PostDataStatus_Pending:
+          output.SendBody();
+          return;
+
+        default:
+          break;
+      }
+    }
+
+
+    // Decompose the URI into its components
+    UriComponents uri;
+    try
+    {
+      Toolbox::SplitUriComponents(uri, request->uri);
+    }
+    catch (OrthancException)
+    {
+      output.SendStatus(HttpStatus_400_BadRequest);
+      return;
+    }
+
+
+    // Loop over the candidate handlers for this URI
+    LOG(INFO) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
+    bool found = false;
+
+    for (MongooseServer::Handlers::const_iterator it = 
+           that->GetHandlers().begin(); it != that->GetHandlers().end() && !found; ++it) 
+    {
+      try
+      {
+        found = (*it)->Handle(output, method, uri, headers, argumentsGET, body);
+      }
+      catch (OrthancException& e)
+      {
+        // Using this candidate handler results in an exception
+        LOG(ERROR) << "Exception in the HTTP handler: " << e.What();
+
+        switch (e.GetErrorCode())
+        {
+          case ErrorCode_InexistentFile:
+          case ErrorCode_InexistentItem:
+          case ErrorCode_UnknownResource:
+            output.SendStatus(HttpStatus_404_NotFound);
+            break;
+
+          case ErrorCode_BadRequest:
+          case ErrorCode_UriSyntax:
+            output.SendStatus(HttpStatus_400_BadRequest);
+            break;
+
+          default:
+            output.SendStatus(HttpStatus_500_InternalServerError);
+        }
+
+        return;
+      }
+      catch (boost::bad_lexical_cast&)
+      {
+        LOG(ERROR) << "Exception in the HTTP handler: Bad lexical cast";
+        output.SendStatus(HttpStatus_400_BadRequest);
+        return;
+      }
+      catch (std::runtime_error&)
+      {
+        LOG(ERROR) << "Exception in the HTTP handler: Presumably a bad JSON request";
+        output.SendStatus(HttpStatus_400_BadRequest);
+        return;
+      }
+    }
+
+    if (!found)
+    {
+      output.SendStatus(HttpStatus_404_NotFound);
+    }
+  }
+
+
+#if MONGOOSE_USE_CALLBACKS == 0
   static void* Callback(enum mg_event event,
                         struct mg_connection *connection,
                         const struct mg_request_info *request)
   {
     if (event == MG_NEW_REQUEST) 
     {
-      MongooseServer* that = reinterpret_cast<MongooseServer*>(request->user_data);
-      MongooseOutput output(connection);
-
-      // Check remote calls
-      if (!that->IsRemoteAccessAllowed() &&
-          request->remote_ip != LOCALHOST)
-      {
-        SendUnauthorized(output);
-        return (void*) "";
-      }
-
-
-      // Extract the HTTP headers
-      HttpHandler::Arguments headers;
-      for (int i = 0; i < request->num_headers; i++)
-      {
-        std::string name = request->http_headers[i].name;
-        std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-        headers.insert(std::make_pair(name, request->http_headers[i].value));
-      }
-
-
-      // Extract the GET arguments
-      HttpHandler::Arguments argumentsGET;
-      if (!strcmp(request->request_method, "GET"))
-      {
-        HttpHandler::ParseGetQuery(argumentsGET, request->query_string);
-      }
-
-
-      // Compute the HTTP method, taking method faking into consideration
-      HttpMethod method;
-      if (!ExtractMethod(method, request, headers, argumentsGET))
-      {
-        output.SendHeader(HttpStatus_400_BadRequest);
-        return (void*) "";
-      }
-
-
-      // Authenticate this connection
-      if (that->IsAuthenticationEnabled() &&
-          !Authorize(*that, headers, output))
-      {
-        return (void*) "";
-      }
-
-
-      // Apply the filter, if it is installed
-      const IIncomingHttpRequestFilter *filter = that->GetIncomingHttpRequestFilter();
-      if (filter != NULL)
-      {
-        std::string username = GetAuthenticatedUsername(headers);
-
-        char remoteIp[24];
-        sprintf(remoteIp, "%d.%d.%d.%d", 
-                reinterpret_cast<const uint8_t*>(&request->remote_ip) [3], 
-                reinterpret_cast<const uint8_t*>(&request->remote_ip) [2], 
-                reinterpret_cast<const uint8_t*>(&request->remote_ip) [1], 
-                reinterpret_cast<const uint8_t*>(&request->remote_ip) [0]);
-
-        if (!filter->IsAllowed(method, request->uri, remoteIp, username.c_str()))
-        {
-          SendUnauthorized(output);
-          return (void*) "";
-        }
-      }
-
-
-      // Extract the body of the request for PUT and POST
-      std::string body;
-      if (method == HttpMethod_Post ||
-          method == HttpMethod_Put)
-      {
-        PostDataStatus status;
-
-        HttpHandler::Arguments::const_iterator ct = headers.find("content-type");
-        if (ct == headers.end())
-        {
-          // No content-type specified. Assume no multi-part content occurs at this point.
-          status = ReadBody(body, connection, headers);          
-        }
-        else
-        {
-          std::string contentType = ct->second;
-          if (contentType.size() >= multipartLength &&
-              !memcmp(contentType.c_str(), multipart, multipartLength))
-          {
-            status = ParseMultipartPost(body, connection, headers, contentType, that->GetChunkStore());
-          }
-          else
-          {
-            status = ReadBody(body, connection, headers);
-          }
-        }
-
-        switch (status)
-        {
-          case PostDataStatus_NoLength:
-            output.SendHeader(HttpStatus_411_LengthRequired);
-            return (void*) "";
-
-          case PostDataStatus_Failure:
-            output.SendHeader(HttpStatus_400_BadRequest);
-            return (void*) "";
-
-          case PostDataStatus_Pending:
-            output.AnswerBufferWithContentType(NULL, 0, "");
-            return (void*) "";
-
-          default:
-            break;
-        }
-      }
-
-
-      // Call the proper handler for this URI
-      UriComponents uri;
-      try
-      {
-        Toolbox::SplitUriComponents(uri, request->uri);
-      }
-      catch (OrthancException)
-      {
-        output.SendHeader(HttpStatus_400_BadRequest);
-        return (void*) "";
-      }
-
-
-      HttpHandler* handler = that->FindHandler(uri);
-      if (handler)
-      {
-        try
-        {
-          LOG(INFO) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
-          handler->Handle(output, method, uri, headers, argumentsGET, body);
-        }
-        catch (OrthancException& e)
-        {
-          LOG(ERROR) << "MongooseServer Exception [" << e.What() << "]";
-          output.SendHeader(HttpStatus_500_InternalServerError);        
-        }
-        catch (boost::bad_lexical_cast&)
-        {
-          LOG(ERROR) << "MongooseServer Exception: Bad lexical cast";
-          output.SendHeader(HttpStatus_400_BadRequest);
-        }
-        catch (std::runtime_error&)
-        {
-          LOG(ERROR) << "MongooseServer Exception: Presumably a bad JSON request";
-          output.SendHeader(HttpStatus_400_BadRequest);
-        }
-      }
-      else
-      {
-        output.SendHeader(HttpStatus_404_NotFound);
-      }
+      InternalCallback(connection, request);
 
       // Mark as processed
       return (void*) "";
-    } 
-    else 
+    }
+    else
     {
       return NULL;
     }
   }
+
+#elif MONGOOSE_USE_CALLBACKS == 1
+  static int Callback(struct mg_connection *connection)
+  {
+    struct mg_request_info *request = mg_get_request_info(connection);
+
+    InternalCallback(connection, request);
+
+    return 1;  // Do not let Mongoose handle the request by itself
+  }
+
+#else
+#error Please set MONGOOSE_USE_CALLBACKS
+#endif
+
+
+
 
 
   bool MongooseServer::IsRunning() const
@@ -756,6 +781,7 @@ namespace Orthanc
     ssl_ = false;
     port_ = 8000;
     filter_ = NULL;
+    keepAlive_ = false;
 
 #if ORTHANC_SSL_ENABLED == 1
     // Check for the Heartbleed exploit
@@ -794,13 +820,32 @@ namespace Orthanc
       }
 
       const char *options[] = {
+        // Set the TCP port for the HTTP server
         "listening_ports", port.c_str(), 
+        
+        // Optimization reported by Chris Hafey
+        // https://groups.google.com/d/msg/orthanc-users/CKueKX0pJ9E/_UCbl8T-VjIJ
+        "enable_keep_alive", (keepAlive_ ? "yes" : "no"),
+
+        // Set the SSL certificate, if any. This must be the last option.
         ssl_ ? "ssl_certificate" : NULL,
         certificate_.c_str(),
         NULL
       };
 
+#if MONGOOSE_USE_CALLBACKS == 0
       pimpl_->context_ = mg_start(&Callback, this, options);
+
+#elif MONGOOSE_USE_CALLBACKS == 1
+      struct mg_callbacks callbacks;
+      memset(&callbacks, 0, sizeof(callbacks));
+      callbacks.begin_request = Callback;
+      pimpl_->context_ = mg_start(&callbacks, this, options);
+
+#else
+#error Please set MONGOOSE_USE_CALLBACKS
+#endif
+
       if (!pimpl_->context_)
       {
         throw OrthancException("Unable to launch the Mongoose server");
@@ -818,23 +863,17 @@ namespace Orthanc
   }
 
 
-  void MongooseServer::RegisterHandler(HttpHandler* handler)
+  void MongooseServer::RegisterHandler(HttpHandler& handler)
   {
     Stop();
 
-    handlers_.push_back(handler);
+    handlers_.push_back(&handler);
   }
 
 
   void MongooseServer::ClearHandlers()
   {
     Stop();
-
-    for (Handlers::iterator it = 
-           handlers_.begin(); it != handlers_.end(); ++it)
-    {
-      delete *it;
-    }
   }
 
 
@@ -873,6 +912,15 @@ namespace Orthanc
     ssl_ = enabled;
 #endif
   }
+
+
+  void MongooseServer::SetKeepAliveEnabled(bool enabled)
+  {
+    Stop();
+    keepAlive_ = enabled;
+    LOG(WARNING) << "HTTP keep alive is " << (enabled ? "enabled" : "disabled");
+  }
+
 
   void MongooseServer::SetAuthenticationEnabled(bool enabled)
   {

@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -261,6 +261,197 @@ namespace Orthanc
   }
 
 
+  const char* EnumerationToString(Encoding encoding)
+  {
+    switch (encoding)
+    {
+      case Encoding_Ascii:
+        return "Ascii";
+
+      case Encoding_Utf8:
+        return "Utf8";
+
+      case Encoding_Latin1:
+        return "Latin1";
+
+      case Encoding_Latin2:
+        return "Latin2";
+
+      case Encoding_Latin3:
+        return "Latin3";
+
+      case Encoding_Latin4:
+        return "Latin4";
+
+      case Encoding_Latin5:
+        return "Latin5";
+
+      case Encoding_Cyrillic:
+        return "Cyrillic";
+
+      case Encoding_Windows1251:
+        return "Windows1251";
+
+      case Encoding_Arabic:
+        return "Arabic";
+
+      case Encoding_Greek:
+        return "Greek";
+
+      case Encoding_Hebrew:
+        return "Hebrew";
+
+      case Encoding_Thai:
+        return "Thai";
+
+      case Encoding_Japanese:
+        return "Japanese";
+
+      case Encoding_Chinese:
+        return "Chinese";
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  const char* EnumerationToString(PhotometricInterpretation photometric)
+  {
+    switch (photometric)
+    {
+      case PhotometricInterpretation_RGB:
+        return "RGB";
+
+      case PhotometricInterpretation_Monochrome1:
+        return "Monochrome1";
+
+      case PhotometricInterpretation_Monochrome2:
+        return "Monochrome2";
+
+      case PhotometricInterpretation_ARGB:
+        return "ARGB";
+
+      case PhotometricInterpretation_CMYK:
+        return "CMYK";
+
+      case PhotometricInterpretation_HSV:
+        return "HSV";
+
+      case PhotometricInterpretation_Palette:
+        return "Palette color";
+
+      case PhotometricInterpretation_YBRFull:
+        return "YBR full";
+
+      case PhotometricInterpretation_YBRFull422:
+        return "YBR full 422";
+
+      case PhotometricInterpretation_YBRPartial420:
+        return "YBR partial 420"; 
+
+      case PhotometricInterpretation_YBRPartial422:
+        return "YBR partial 422"; 
+
+      case PhotometricInterpretation_YBR_ICT:
+        return "YBR ICT"; 
+
+      case PhotometricInterpretation_YBR_RCT:
+        return "YBR RCT"; 
+
+      case PhotometricInterpretation_Unknown:
+        return "Unknown";
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  Encoding StringToEncoding(const char* encoding)
+  {
+    std::string s(encoding);
+    Toolbox::ToUpperCase(s);
+
+    if (s == "UTF8")
+    {
+      return Encoding_Utf8;
+    }
+
+    if (s == "ASCII")
+    {
+      return Encoding_Ascii;
+    }
+
+    if (s == "LATIN1")
+    {
+      return Encoding_Latin1;
+    }
+
+    if (s == "LATIN2")
+    {
+      return Encoding_Latin2;
+    }
+
+    if (s == "LATIN3")
+    {
+      return Encoding_Latin3;
+    }
+
+    if (s == "LATIN4")
+    {
+      return Encoding_Latin4;
+    }
+
+    if (s == "LATIN5")
+    {
+      return Encoding_Latin5;
+    }
+
+    if (s == "CYRILLIC")
+    {
+      return Encoding_Cyrillic;
+    }
+
+    if (s == "WINDOWS1251")
+    {
+      return Encoding_Windows1251;
+    }
+
+    if (s == "ARABIC")
+    {
+      return Encoding_Arabic;
+    }
+
+    if (s == "GREEK")
+    {
+      return Encoding_Greek;
+    }
+
+    if (s == "HEBREW")
+    {
+      return Encoding_Hebrew;
+    }
+
+    if (s == "THAI")
+    {
+      return Encoding_Thai;
+    }
+
+    if (s == "JAPANESE")
+    {
+      return Encoding_Japanese;
+    }
+
+    if (s == "CHINESE")
+    {
+      return Encoding_Chinese;
+    }
+
+    throw OrthancException(ErrorCode_ParameterOutOfRange);
+  }
+
+
   ResourceType StringToResourceType(const char* type)
   {
     std::string s(type);
@@ -321,6 +512,117 @@ namespace Orthanc
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  bool GetDicomEncoding(Encoding& encoding,
+                        const char* specificCharacterSet)
+  {
+    std::string s = specificCharacterSet;
+    Toolbox::ToUpperCase(s);
+
+    // http://www.dabsoft.ch/dicom/3/C.12.1.1.2/
+    // https://github.com/dcm4che/dcm4che/blob/master/dcm4che-core/src/main/java/org/dcm4che3/data/SpecificCharacterSet.java
+    if (s == "ISO_IR 6" ||
+        s == "ISO_IR 192" ||
+        s == "ISO 2022 IR 6")
+    {
+      encoding = Encoding_Utf8;
+    }
+    else if (s == "ISO_IR 100" ||
+             s == "ISO 2022 IR 100")
+    {
+      encoding = Encoding_Latin1;
+    }
+    else if (s == "ISO_IR 101" ||
+             s == "ISO 2022 IR 101")
+    {
+      encoding = Encoding_Latin2;
+    }
+    else if (s == "ISO_IR 109" ||
+             s == "ISO 2022 IR 109")
+    {
+      encoding = Encoding_Latin3;
+    }
+    else if (s == "ISO_IR 110" ||
+             s == "ISO 2022 IR 110")
+    {
+      encoding = Encoding_Latin4;
+    }
+    else if (s == "ISO_IR 148" ||
+             s == "ISO 2022 IR 148")
+    {
+      encoding = Encoding_Latin5;
+    }
+    else if (s == "ISO_IR 144" ||
+             s == "ISO 2022 IR 144")
+    {
+      encoding = Encoding_Cyrillic;
+    }
+    else if (s == "ISO_IR 127" ||
+             s == "ISO 2022 IR 127")
+    {
+      encoding = Encoding_Arabic;
+    }
+    else if (s == "ISO_IR 126" ||
+             s == "ISO 2022 IR 126")
+    {
+      encoding = Encoding_Greek;
+    }
+    else if (s == "ISO_IR 138" ||
+             s == "ISO 2022 IR 138")
+    {
+      encoding = Encoding_Hebrew;
+    }
+    else if (s == "ISO_IR 166" || s == "ISO 2022 IR 166")
+    {
+      encoding = Encoding_Thai;
+    }
+    else if (s == "ISO_IR 13" || s == "ISO 2022 IR 13")
+    {
+      encoding = Encoding_Japanese;
+    }
+    else if (s == "GB18030")
+    {
+      encoding = Encoding_Chinese;
+    }
+    /*
+      else if (s == "ISO 2022 IR 149")
+      {
+      TODO
+      }
+      else if (s == "ISO 2022 IR 159")
+      {
+      TODO
+      }
+      else if (s == "ISO 2022 IR 87")
+      {
+      TODO
+      }
+    */
+    else
+    {
+      return false;
+    }
+
+    // The encoding was properly detected
+    return true;
+  }
+
+
+  const char* GetMimeType(FileContentType type)
+  {
+    switch (type)
+    {
+      case FileContentType_Dicom:
+        return "application/dicom";
+
+      case FileContentType_DicomAsJson:
+        return "application/json";
+
+      default:
+        return "application/octet-stream";
     }
   }
 }

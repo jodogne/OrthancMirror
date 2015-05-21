@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -48,8 +48,7 @@ namespace Orthanc
     seriesUid_ = seriesUid;
     instanceUid_ = instanceUid;
 
-    if (patientId_.size() == 0 ||
-        studyUid_.size() == 0 ||
+    if (studyUid_.size() == 0 ||
         seriesUid_.size() == 0 ||
         instanceUid_.size() == 0)
     {
@@ -59,7 +58,9 @@ namespace Orthanc
 
   DicomInstanceHasher::DicomInstanceHasher(const DicomMap& instance)
   {
-    Setup(instance.GetValue(DICOM_TAG_PATIENT_ID).AsString(),
+    const DicomValue* patientId = instance.TestAndGetValue(DICOM_TAG_PATIENT_ID);
+
+    Setup(patientId == NULL ? "" : patientId->AsString(),
           instance.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString(),
           instance.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).AsString(),
           instance.GetValue(DICOM_TAG_SOP_INSTANCE_UID).AsString());

@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -43,6 +43,8 @@
  * http://stackoverflow.com/questions/246930/is-there-any-difference-between-a-guid-and-a-uuid
  **/
 
+#include "Toolbox.h"
+
 namespace Orthanc
 {
   namespace Toolbox
@@ -68,6 +70,16 @@ namespace Orthanc
       const std::string& GetPath() const
       {
         return path_;
+      }
+
+      void Write(const std::string& content)
+      {
+        Toolbox::WriteFile(content, path_);
+      }
+
+      void Read(std::string& content) const
+      {
+        Toolbox::ReadFile(content, path_);
       }
     };
   }

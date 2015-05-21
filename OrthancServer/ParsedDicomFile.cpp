@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -80,6 +80,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParsedDicomFile.h"
 
+#include "ServerToolbox.h"
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
 #include "Internals/DicomImageDecoder.h"
@@ -146,6 +147,7 @@ namespace Orthanc
   struct ParsedDicomFile::PImpl
   {
     std::auto_ptr<DcmFileFormat> file_;
+    Encoding encoding_;
   };
 
 
@@ -170,6 +172,8 @@ namespace Orthanc
     }
     pimpl_->file_->loadAllDataIntoMemory();
     pimpl_->file_->transferEnd();
+
+    pimpl_->encoding_ = FromDcmtkBridge::DetectEncoding(*pimpl_->file_->getDataset());
   }
 
 
@@ -261,7 +265,8 @@ namespace Orthanc
     Uint32 length = element.getLength(transferSyntax);
     Uint32 offset = 0;
 
-    output.GetLowLevelOutput().SendOkHeader(CONTENT_TYPE_OCTET_STREAM, true, length, NULL);
+    output.GetLowLevelOutput().SetContentType(CONTENT_TYPE_OCTET_STREAM);
+    output.GetLowLevelOutput().SetContentLength(length);
 
     while (offset < length)
     {
@@ -279,7 +284,7 @@ namespace Orthanc
 
       if (cond.good())
       {
-        output.GetLowLevelOutput().Send(&buffer[0], nbytes);
+        output.GetLowLevelOutput().SendBody(&buffer[0], nbytes);
         offset += nbytes;
       }
       else
@@ -753,24 +758,42 @@ namespace Orthanc
 
 
 
-  void ParsedDicomFile::RemovePrivateTags()
+  void ParsedDicomFile::RemovePrivateTagsInternal(const std::set<DicomTag>* toKeep)
   {
-    typedef std::list<DcmElement*> Tags;
+    DcmDataset& dataset = *pimpl_->file_->getDataset();
 
+    // Loop over the dataset to detect its private tags
+    typedef std::list<DcmElement*> Tags;
     Tags privateTags;
 
-    DcmDataset& dataset = *pimpl_->file_->getDataset();
     for (unsigned long i = 0; i < dataset.card(); i++)
     {
       DcmElement* element = dataset.getElement(i);
       DcmTag tag(element->getTag());
-      if (!strcmp("PrivateCreator", tag.getTagName()) ||  // TODO - This may change with future versions of DCMTK
-          tag.getPrivateCreator() != NULL)
+
+      // Is this a private tag?
+      if (FromDcmtkBridge::IsPrivateTag(tag))
       {
-        privateTags.push_back(element);
+        bool remove = true;
+
+        // Check whether this private tag is to be kept
+        if (toKeep != NULL)
+        {
+          DicomTag tmp = FromDcmtkBridge::Convert(tag);
+          if (toKeep->find(tmp) != toKeep->end())
+          {
+            remove = false;  // Keep it
+          }
+        }
+            
+        if (remove)
+        {
+          privateTags.push_back(element);
+        }
       }
     }
 
+    // Loop over the detected private tags to remove them
     for (Tags::iterator it = privateTags.begin(); 
          it != privateTags.end(); ++it)
     {
@@ -784,13 +807,30 @@ namespace Orthanc
 
 
 
+
   void ParsedDicomFile::Insert(const DicomTag& tag,
                                const std::string& value)
   {
-    std::auto_ptr<DcmElement> element(CreateElementForTag(tag));
-    FillElementWithString(*element, tag, value);
+    OFCondition cond;
 
-    if (!pimpl_->file_->getDataset()->insert(element.release(), false, false).good())
+    if (FromDcmtkBridge::IsPrivateTag(tag))
+    {
+      // This is a private tag
+      // http://support.dcmtk.org/redmine/projects/dcmtk/wiki/howto_addprivatedata
+
+      DcmTag key(tag.GetGroup(), tag.GetElement(), EVR_OB);
+      cond = pimpl_->file_->getDataset()->putAndInsertUint8Array
+        (key, (const Uint8*) value.c_str(), value.size(), false);
+    }
+    else
+    {
+      std::auto_ptr<DcmElement> element(CreateElementForTag(tag));
+      FillElementWithString(*element, tag, value);
+
+      cond = pimpl_->file_->getDataset()->insert(element.release(), false, false);
+    }
+
+    if (!cond.good())
     {
       // This field already exists
       throw OrthancException(ErrorCode_InternalError);
@@ -824,7 +864,17 @@ namespace Orthanc
     }
     else
     {
-      FillElementWithString(*element, tag, value);
+      if (FromDcmtkBridge::IsPrivateTag(tag))
+      {
+        if (!element->putUint8Array((const Uint8*) value.c_str(), value.size()).good())
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+      }
+      else
+      {
+        FillElementWithString(*element, tag, value);
+      }
     }
 
 
@@ -852,7 +902,7 @@ namespace Orthanc
   void ParsedDicomFile::Answer(RestApiOutput& output)
   {
     std::string serialized;
-    if (FromDcmtkBridge::SaveToMemoryBuffer(serialized, pimpl_->file_->getDataset()))
+    if (FromDcmtkBridge::SaveToMemoryBuffer(serialized, *pimpl_->file_->getDataset()))
     {
       output.AnswerBuffer(serialized, CONTENT_TYPE_OCTET_STREAM);
     }
@@ -865,27 +915,54 @@ namespace Orthanc
   {
     DcmTagKey k(tag.GetGroup(), tag.GetElement());
     DcmDataset& dataset = *pimpl_->file_->getDataset();
-    DcmElement* element = NULL;
-    if (!dataset.findAndGetElement(k, element).good() ||
-        element == NULL)
-    {
-      return false;
-    }
 
-    std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(*element));
-
-    if (v.get() == NULL)
+    if (FromDcmtkBridge::IsPrivateTag(tag))
     {
-      value = "";
+      const Uint8* data = NULL;   // This is freed in the destructor of the dataset
+      long unsigned int count = 0;
+
+      if (dataset.findAndGetUint8Array(k, data, &count).good())
+      {
+        if (count > 0)
+        {
+          assert(data != NULL);
+          value.assign(reinterpret_cast<const char*>(data), count);
+        }
+        else
+        {
+          value.clear();
+        }
+
+        return true;
+      }
+      else
+      {
+        return false;
+      }
     }
     else
     {
-      value = v->AsString();
+      DcmElement* element = NULL;
+      if (!dataset.findAndGetElement(k, element).good() ||
+          element == NULL)
+      {
+        return false;
+      }
+
+      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(*element, pimpl_->encoding_));
+
+      if (v.get() == NULL)
+      {
+        value = "";
+      }
+      else
+      {
+        value = v->AsString();
+      }
+
+      return true;
     }
-
-    return true;
   }
-
 
 
   DicomInstanceHasher ParsedDicomFile::GetHasher()
@@ -901,98 +978,6 @@ namespace Orthanc
     }
 
     return DicomInstanceHasher(patientId, studyUid, seriesUid, instanceUid);
-  }
-
-
-  static void StoreElement(Json::Value& target,
-                           DcmElement& element,
-                           unsigned int maxStringLength);
-
-  static void StoreItem(Json::Value& target,
-                        DcmItem& item,
-                        unsigned int maxStringLength)
-  {
-    target = Json::Value(Json::objectValue);
-
-    for (unsigned long i = 0; i < item.card(); i++)
-    {
-      DcmElement* element = item.getElement(i);
-      StoreElement(target, *element, maxStringLength);
-    }
-  }
-
-
-  static void StoreElement(Json::Value& target,
-                           DcmElement& element,
-                           unsigned int maxStringLength)
-  {
-    assert(target.type() == Json::objectValue);
-
-    DicomTag tag(FromDcmtkBridge::GetTag(element));
-    const std::string formattedTag = tag.Format();
-
-#if 0
-    const std::string tagName = FromDcmtkBridge::GetName(tag);
-#else
-    // This version of the code gives access to the name of the private tags
-    DcmTag tagbis(element.getTag());
-    const std::string tagName(tagbis.getTagName());      
-#endif
-
-    if (element.isLeaf())
-    {
-      Json::Value value(Json::objectValue);
-      value["Name"] = tagName;
-
-      if (tagbis.getPrivateCreator() != NULL)
-      {
-        value["PrivateCreator"] = tagbis.getPrivateCreator();
-      }
-
-      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element));
-      if (v->IsNull())
-      {
-        value["Type"] = "Null";
-        value["Value"] = Json::nullValue;
-      }
-      else
-      {
-        std::string s = v->AsString();
-        if (maxStringLength == 0 ||
-            s.size() <= maxStringLength)
-        {
-          value["Type"] = "String";
-          value["Value"] = s;
-        }
-        else
-        {
-          value["Type"] = "TooLong";
-          value["Value"] = Json::nullValue;
-        }
-      }
-
-      target[formattedTag] = value;
-    }
-    else
-    {
-      Json::Value children(Json::arrayValue);
-
-      // "All subclasses of DcmElement except for DcmSequenceOfItems
-      // are leaf nodes, while DcmSequenceOfItems, DcmItem, DcmDataset
-      // etc. are not." The following cast is thus OK.
-      DcmSequenceOfItems& sequence = dynamic_cast<DcmSequenceOfItems&>(element);
-
-      for (unsigned long i = 0; i < sequence.card(); i++)
-      {
-        DcmItem* child = sequence.getItem(i);
-        Json::Value& v = children.append(Json::objectValue);
-        StoreItem(v, *child, maxStringLength);
-      }  
-
-      target[formattedTag]["Name"] = tagName;
-      target[formattedTag]["Type"] = "Sequence";
-      target[formattedTag]["Value"] = children;
-    }
   }
 
 
@@ -1028,7 +1013,7 @@ namespace Orthanc
 
   void ParsedDicomFile::SaveToMemoryBuffer(std::string& buffer)
   {
-    FromDcmtkBridge::SaveToMemoryBuffer(buffer, pimpl_->file_->getDataset());
+    FromDcmtkBridge::SaveToMemoryBuffer(buffer, *pimpl_->file_->getDataset());
   }
 
 
@@ -1044,6 +1029,7 @@ namespace Orthanc
   ParsedDicomFile::ParsedDicomFile() : pimpl_(new PImpl)
   {
     pimpl_->file_.reset(new DcmFileFormat);
+    pimpl_->encoding_ = Encoding_Ascii;
     Replace(DICOM_TAG_PATIENT_ID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Patient));
     Replace(DICOM_TAG_STUDY_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Study));
     Replace(DICOM_TAG_SERIES_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Series));
@@ -1073,6 +1059,8 @@ namespace Orthanc
     pimpl_(new PImpl)
   {
     pimpl_->file_.reset(dynamic_cast<DcmFileFormat*>(other.pimpl_->file_->clone()));
+
+    pimpl_->encoding_ = other.pimpl_->encoding_;
   }
 
 
@@ -1241,15 +1229,15 @@ namespace Orthanc
     switch (mode)
     {
       case ImageExtractionMode_UInt8:
-        ok = DicomImageDecoder::DecodeAndTruncate(result, dataset, frame, PixelFormat_Grayscale8);
+        ok = DicomImageDecoder::DecodeAndTruncate(result, dataset, frame, PixelFormat_Grayscale8, false);
         break;
 
       case ImageExtractionMode_UInt16:
-        ok = DicomImageDecoder::DecodeAndTruncate(result, dataset, frame, PixelFormat_Grayscale16);
+        ok = DicomImageDecoder::DecodeAndTruncate(result, dataset, frame, PixelFormat_Grayscale16, false);
         break;
 
       case ImageExtractionMode_Int16:
-        ok = DicomImageDecoder::DecodeAndTruncate(result, dataset, frame, PixelFormat_SignedGrayscale16);
+        ok = DicomImageDecoder::DecodeAndTruncate(result, dataset, frame, PixelFormat_SignedGrayscale16, false);
         break;
 
       case ImageExtractionMode_Preview:
@@ -1279,4 +1267,96 @@ namespace Orthanc
     writer.WriteToMemory(result, accessor);
   }
 
+
+  Encoding ParsedDicomFile::GetEncoding() const
+  {
+    return pimpl_->encoding_;
+  }
+
+
+  void ParsedDicomFile::SetEncoding(Encoding encoding)
+  {
+    std::string s;
+
+    // http://www.dabsoft.ch/dicom/3/C.12.1.1.2/
+    switch (encoding)
+    {
+      case Encoding_Utf8:
+      case Encoding_Ascii:
+        s = "ISO_IR 192";
+        break;
+
+      case Encoding_Windows1251:
+        // This Cyrillic codepage is not officially supported by the
+        // DICOM standard. Do not set the SpecificCharacterSet tag.
+        return;
+
+      case Encoding_Latin1:
+        s = "ISO_IR 100";
+        break;
+
+      case Encoding_Latin2:
+        s = "ISO_IR 101";
+        break;
+
+      case Encoding_Latin3:
+        s = "ISO_IR 109";
+        break;
+
+      case Encoding_Latin4:
+        s = "ISO_IR 110";
+        break;
+
+      case Encoding_Latin5:
+        s = "ISO_IR 148";
+        break;
+
+      case Encoding_Cyrillic:
+        s = "ISO_IR 144";
+        break;
+
+      case Encoding_Arabic:
+        s = "ISO_IR 127";
+        break;
+
+      case Encoding_Greek:
+        s = "ISO_IR 126";
+        break;
+
+      case Encoding_Hebrew:
+        s = "ISO_IR 138";
+        break;
+
+      case Encoding_Japanese:
+        s = "ISO_IR 13";
+        break;
+
+      case Encoding_Chinese:
+        s = "GB18030";
+        break;
+
+      case Encoding_Thai:
+        s = "ISO_IR 166";
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    Replace(DICOM_TAG_SPECIFIC_CHARACTER_SET, s, DicomReplaceMode_InsertIfAbsent);
+  }
+
+  void ParsedDicomFile::ToJson(Json::Value& target, bool simplify)
+  {
+    if (simplify)
+    {
+      Json::Value tmp;
+      FromDcmtkBridge::ToJson(tmp, *pimpl_->file_->getDataset());
+      SimplifyTags(target, tmp);
+    }
+    else
+    {
+      FromDcmtkBridge::ToJson(target, *pimpl_->file_->getDataset());
+    }
+  }
 }

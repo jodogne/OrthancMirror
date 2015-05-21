@@ -1,6 +1,6 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
-# Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
-# Belgium
+# Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+# Department, University Hospital of Liege, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -86,6 +86,13 @@ while i < len(SOURCES):
         content = {}
         for root, dirs, files in os.walk(pathName):
             base = os.path.relpath(root, pathName)
+
+            # Fix issue #24 (Build fails on OSX when directory has .DS_Store files):
+            # Ignore folders whose name starts with a dot (".")
+            if base.find('/.') != -1:
+                print('Ignoring folder: %s' % root)
+                continue
+
             for f in files:
                 if f.find('~') == -1:  # Ignore Emacs backup files
                     if base == '.':

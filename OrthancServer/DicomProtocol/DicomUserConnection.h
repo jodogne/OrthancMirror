@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -60,9 +60,9 @@ namespace Orthanc
     // Connection parameters
     std::string preferredTransferSyntax_;
     std::string localAet_;
-    std::string distantAet_;
-    std::string distantHost_;
-    uint16_t distantPort_;
+    std::string remoteAet_;
+    std::string remoteHost_;
+    uint16_t remotePort_;
     ModalityManufacturer manufacturer_;
     std::set<std::string> storageSOPClasses_;
     std::list<std::string> reservedStorageSOPClasses_;
@@ -97,30 +97,30 @@ namespace Orthanc
       return localAet_;
     }
 
-    void SetDistantApplicationEntityTitle(const std::string& aet);
+    void SetRemoteApplicationEntityTitle(const std::string& aet);
 
-    const std::string& GetDistantApplicationEntityTitle() const
+    const std::string& GetRemoteApplicationEntityTitle() const
     {
-      return distantAet_;
+      return remoteAet_;
     }
 
-    void SetDistantHost(const std::string& host);
+    void SetRemoteHost(const std::string& host);
 
-    const std::string& GetDistantHost() const
+    const std::string& GetRemoteHost() const
     {
-      return distantHost_;
+      return remoteHost_;
     }
 
-    void SetDistantPort(uint16_t port);
+    void SetRemotePort(uint16_t port);
 
-    uint16_t GetDistantPort() const
+    uint16_t GetRemotePort() const
     {
-      return distantPort_;
+      return remotePort_;
     }
 
-    void SetDistantManufacturer(ModalityManufacturer manufacturer);
+    void SetRemoteManufacturer(ModalityManufacturer manufacturer);
 
-    ModalityManufacturer GetDistantManufacturer() const
+    ModalityManufacturer GetRemoteManufacturer() const
     {
       return manufacturer_;
     }
@@ -177,6 +177,8 @@ namespace Orthanc
                       const std::string& seriesUid,
                       const std::string& instanceUid);
 
-    static void SetConnectionTimeout(uint32_t seconds);
+    void SetTimeout(uint32_t seconds);
+
+    void DisableTimeout();
   };
 }

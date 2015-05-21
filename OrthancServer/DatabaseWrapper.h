@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -32,14 +32,10 @@
 
 #pragma once
 
+#include "IDatabaseWrapper.h"
+
 #include "../Core/SQLite/Connection.h"
 #include "../Core/SQLite/Transaction.h"
-#include "../Core/DicomFormat/DicomInstanceHasher.h"
-#include "../Core/FileStorage/FileInfo.h"
-#include "IServerIndexListener.h"
-
-#include <list>
-#include <boost/date_time/posix_time/posix_time.hpp>
 
 namespace Orthanc
 {
@@ -53,187 +49,193 @@ namespace Orthanc
    * translates low-level requests into SQL statements. Mutual
    * exclusion MUST be implemented at a higher level.
    **/
-  class DatabaseWrapper
+  class DatabaseWrapper : public IDatabaseWrapper
   {
   private:
-    IServerIndexListener& listener_;
+    IServerIndexListener* listener_;
     SQLite::Connection db_;
     Internals::SignalRemainingAncestor* signalRemainingAncestor_;
 
     void Open();
 
-    void GetChangesInternal(Json::Value& target,
+    void GetChangesInternal(std::list<ServerIndexChange>& target,
+                            bool& done,
                             SQLite::Statement& s,
-                            int64_t since,
-                            unsigned int maxResults);
+                            uint32_t maxResults);
 
-    void GetExportedResourcesInternal(Json::Value& target,
+    void GetExportedResourcesInternal(std::list<ExportedResource>& target,
+                                      bool& done,
                                       SQLite::Statement& s,
-                                      int64_t since,
-                                      unsigned int maxResults);
+                                      uint32_t maxResults);
+
+    void ClearTable(const std::string& tableName);
 
   public:
-    void SetGlobalProperty(GlobalProperty property,
-                           const std::string& value);
+    DatabaseWrapper(const std::string& path);
 
-    bool LookupGlobalProperty(std::string& target,
-                              GlobalProperty property);
+    DatabaseWrapper();
 
-    std::string GetGlobalProperty(GlobalProperty property,
-                                  const std::string& defaultValue = "");
+    virtual void SetListener(IServerIndexListener& listener);
 
-    int64_t CreateResource(const std::string& publicId,
-                           ResourceType type);
+    virtual void SetGlobalProperty(GlobalProperty property,
+                                   const std::string& value);
 
-    bool LookupResource(const std::string& publicId,
-                        int64_t& id,
-                        ResourceType& type);
+    virtual bool LookupGlobalProperty(std::string& target,
+                                      GlobalProperty property);
 
-    bool LookupParent(int64_t& parentId,
-                      int64_t resourceId);
+    virtual int64_t CreateResource(const std::string& publicId,
+                                   ResourceType type);
 
-    std::string GetPublicId(int64_t resourceId);
+    virtual bool LookupResource(int64_t& id,
+                                ResourceType& type,
+                                const std::string& publicId);
 
-    ResourceType GetResourceType(int64_t resourceId);
+    virtual bool LookupParent(int64_t& parentId,
+                              int64_t resourceId);
 
-    void AttachChild(int64_t parent,
-                     int64_t child);
+    virtual std::string GetPublicId(int64_t resourceId);
 
-    void GetChildren(Json::Value& childrenPublicIds,
-                     int64_t id);
+    virtual ResourceType GetResourceType(int64_t resourceId);
 
-    void DeleteResource(int64_t id);
+    virtual void AttachChild(int64_t parent,
+                             int64_t child);
 
-    void SetMetadata(int64_t id,
-                     MetadataType type,
-                     const std::string& value);
+    virtual void DeleteResource(int64_t id);
 
-    void DeleteMetadata(int64_t id,
-                        MetadataType type);
+    virtual void SetMetadata(int64_t id,
+                             MetadataType type,
+                             const std::string& value);
 
-    bool LookupMetadata(std::string& target,
-                        int64_t id,
-                        MetadataType type);
+    virtual void DeleteMetadata(int64_t id,
+                                MetadataType type);
 
-    void ListAvailableMetadata(std::list<MetadataType>& target,
-                               int64_t id);
+    virtual bool LookupMetadata(std::string& target,
+                                int64_t id,
+                                MetadataType type);
 
-    std::string GetMetadata(int64_t id,
-                            MetadataType type,
-                            const std::string& defaultValue = "");
+    virtual void ListAvailableMetadata(std::list<MetadataType>& target,
+                                       int64_t id);
 
-    bool GetMetadataAsInteger(int& result,
-                              int64_t id,
-                              MetadataType type);
+    virtual void AddAttachment(int64_t id,
+                               const FileInfo& attachment);
 
-    void AddAttachment(int64_t id,
-                       const FileInfo& attachment);
+    virtual void DeleteAttachment(int64_t id,
+                                  FileContentType attachment);
 
-    void DeleteAttachment(int64_t id,
-                          FileContentType attachment);
+    virtual void ListAvailableAttachments(std::list<FileContentType>& target,
+                                          int64_t id);
 
-    void ListAvailableAttachments(std::list<FileContentType>& result,
+    virtual bool LookupAttachment(FileInfo& attachment,
+                                  int64_t id,
+                                  FileContentType contentType);
+
+    virtual void SetMainDicomTag(int64_t id,
+                                 const DicomTag& tag,
+                                 const std::string& value);
+
+    virtual void GetMainDicomTags(DicomMap& map,
                                   int64_t id);
 
-    bool LookupAttachment(FileInfo& attachment,
-                          int64_t id,
-                          FileContentType contentType);
+    virtual void GetChildrenPublicId(std::list<std::string>& target,
+                                     int64_t id);
 
-    void SetMainDicomTags(int64_t id,
-                          const DicomMap& tags);
+    virtual void GetChildrenInternalId(std::list<int64_t>& target,
+                                       int64_t id);
 
-    void GetMainDicomTags(DicomMap& map,
-                          int64_t id);
+    virtual void LogChange(int64_t internalId,
+                           const ServerIndexChange& change);
 
-    bool GetParentPublicId(std::string& result,
-                           int64_t id);
+    virtual void GetChanges(std::list<ServerIndexChange>& target /*out*/,
+                            bool& done /*out*/,
+                            int64_t since,
+                            uint32_t maxResults);
 
-    void GetChildrenPublicId(std::list<std::string>& result,
-                             int64_t id);
+    virtual void GetLastChange(std::list<ServerIndexChange>& target /*out*/);
 
-    void GetChildrenInternalId(std::list<int64_t>& result,
-                               int64_t id);
-
-    void LogChange(ChangeType changeType,
-                   int64_t internalId,
-                   ResourceType resourceType,
-                   const boost::posix_time::ptime& date = boost::posix_time::second_clock::local_time());
-
-    void GetChanges(Json::Value& target,
-                    int64_t since,
-                    unsigned int maxResults);
-
-    void GetLastChange(Json::Value& target);
-
-    void LogExportedResource(ResourceType resourceType,
-                             const std::string& publicId,
-                             const std::string& remoteModality,
-                             const std::string& patientId,
-                             const std::string& studyInstanceUid,
-                             const std::string& seriesInstanceUid,
-                             const std::string& sopInstanceUid,
-                             const boost::posix_time::ptime& date = 
-                             boost::posix_time::second_clock::local_time());
+    virtual void LogExportedResource(const ExportedResource& resource);
     
-    void GetExportedResources(Json::Value& target,
-                              int64_t since,
-                              unsigned int maxResults);
+    virtual void GetExportedResources(std::list<ExportedResource>& target /*out*/,
+                                      bool& done /*out*/,
+                                      int64_t since,
+                                      uint32_t maxResults);
 
-    void GetLastExportedResource(Json::Value& target);
+    virtual void GetLastExportedResource(std::list<ExportedResource>& target /*out*/);
 
-    // For unit testing only!
-    int64_t GetTableRecordCount(const std::string& table);
+    virtual uint64_t GetTotalCompressedSize();
     
-    uint64_t GetTotalCompressedSize();
-    
-    uint64_t GetTotalUncompressedSize();
+    virtual uint64_t GetTotalUncompressedSize();
 
-    uint64_t GetResourceCount(ResourceType resourceType);
+    virtual uint64_t GetResourceCount(ResourceType resourceType);
 
-    void GetAllPublicIds(Json::Value& target,
-                         ResourceType resourceType);
+    virtual void GetAllPublicIds(std::list<std::string>& target,
+                                 ResourceType resourceType);
 
-    bool SelectPatientToRecycle(int64_t& internalId);
+    virtual bool SelectPatientToRecycle(int64_t& internalId);
 
-    bool SelectPatientToRecycle(int64_t& internalId,
-                                int64_t patientIdToAvoid);
+    virtual bool SelectPatientToRecycle(int64_t& internalId,
+                                        int64_t patientIdToAvoid);
 
-    bool IsProtectedPatient(int64_t internalId);
+    virtual bool IsProtectedPatient(int64_t internalId);
 
-    void SetProtectedPatient(int64_t internalId, 
-                             bool isProtected);
+    virtual void SetProtectedPatient(int64_t internalId, 
+                                     bool isProtected);
 
-    DatabaseWrapper(const std::string& path,
-                    IServerIndexListener& listener);
-
-    DatabaseWrapper(IServerIndexListener& listener);
-
-    SQLite::Transaction* StartTransaction()
+    virtual SQLite::ITransaction* StartTransaction()
     {
       return new SQLite::Transaction(db_);
     }
+
+    virtual void FlushToDisk()
+    {
+      db_.FlushToDisk();
+    }
+
+    virtual bool HasFlushToDisk() const
+    {
+      return true;
+    }
+
+    virtual void ClearChanges()
+    {
+      ClearTable("Changes");
+    }
+
+    virtual void ClearExportedResources()
+    {
+      ClearTable("ExportedResources");
+    }
+
+    virtual bool IsExistingResource(int64_t internalId);
+
+    virtual void LookupIdentifier(std::list<int64_t>& target,
+                                  const DicomTag& tag,
+                                  const std::string& value);
+
+    virtual void LookupIdentifier(std::list<int64_t>& target,
+                                  const std::string& value);
+
+    virtual void GetAllMetadata(std::map<MetadataType, std::string>& target,
+                                int64_t id);
+
+
+
+
+    /**
+     * The methods declared below are for unit testing only!
+     **/
 
     const char* GetErrorMessage() const
     {
       return db_.GetErrorMessage();
     }
 
-    void FlushToDisk()
-    {
-      db_.FlushToDisk();
-    }
+    void GetChildren(std::list<std::string>& childrenPublicIds,
+                     int64_t id);
 
-    uint64_t IncrementGlobalSequence(GlobalProperty property);
+    int64_t GetTableRecordCount(const std::string& table);
+    
+    bool GetParentPublicId(std::string& target,
+                           int64_t id);
 
-    void ClearTable(const std::string& tableName);
-
-    bool IsExistingResource(int64_t internalId);
-
-    void LookupTagValue(std::list<int64_t>& result,
-                        DicomTag tag,
-                        const std::string& value);
-
-    void LookupTagValue(std::list<int64_t>& result,
-                        const std::string& value);
   };
 }

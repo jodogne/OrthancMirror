@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -69,6 +69,44 @@ namespace Orthanc
         else
         {
           *t = static_cast<TargetType>(*s);
+        }
+      }
+    }
+  }
+
+
+  template <typename TargetType>
+  static void ConvertColorToGrayscale(ImageAccessor& target,
+                              const ImageAccessor& source)
+  {
+    assert(source.GetFormat() == PixelFormat_RGB24);
+
+    const TargetType minValue = std::numeric_limits<TargetType>::min();
+    const TargetType maxValue = std::numeric_limits<TargetType>::max();
+
+    for (unsigned int y = 0; y < source.GetHeight(); y++)
+    {
+      TargetType* t = reinterpret_cast<TargetType*>(target.GetRow(y));
+      const uint8_t* s = reinterpret_cast<const uint8_t*>(source.GetConstRow(y));
+
+      for (unsigned int x = 0; x < source.GetWidth(); x++, t++, s += 3)
+      {
+        // Y = 0.2126 R + 0.7152 G + 0.0722 B
+        int32_t v = (2126 * static_cast<int32_t>(s[0]) +
+                     7152 * static_cast<int32_t>(s[1]) +
+                     0722 * static_cast<int32_t>(s[2])) / 1000;
+        
+        if (static_cast<int32_t>(v) < static_cast<int32_t>(minValue))
+        {
+          *t = minValue;
+        }
+        else if (static_cast<int32_t>(v) > static_cast<int32_t>(maxValue))
+        {
+          *t = maxValue;
+        }
+        else
+        {
+          *t = static_cast<TargetType>(v);
         }
       }
     }
@@ -171,7 +209,7 @@ namespace Orthanc
   void MultiplyConstantInternal(ImageAccessor& image,
                                 float factor)
   {
-    if (abs(factor - 1.0f) <= std::numeric_limits<float>::epsilon())
+    if (std::abs(factor - 1.0f) <= std::numeric_limits<float>::epsilon())
     {
       return;
     }
@@ -316,6 +354,27 @@ namespace Orthanc
         source.GetFormat() == PixelFormat_SignedGrayscale16)
     {
       ConvertInternal<uint16_t, int16_t>(target, source);
+      return;
+    }
+
+    if (target.GetFormat() == PixelFormat_Grayscale8 &&
+        source.GetFormat() == PixelFormat_RGB24)
+    {
+      ConvertColorToGrayscale<uint8_t>(target, source);
+      return;
+    }
+
+    if (target.GetFormat() == PixelFormat_Grayscale16 &&
+        source.GetFormat() == PixelFormat_RGB24)
+    {
+      ConvertColorToGrayscale<uint16_t>(target, source);
+      return;
+    }
+
+    if (target.GetFormat() == PixelFormat_SignedGrayscale16 &&
+        source.GetFormat() == PixelFormat_RGB24)
+    {
+      ConvertColorToGrayscale<int16_t>(target, source);
       return;
     }
 

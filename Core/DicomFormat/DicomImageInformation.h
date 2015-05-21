@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -53,6 +53,8 @@ namespace Orthanc
     unsigned int bitsAllocated_;
     unsigned int bitsStored_;
     unsigned int highBit_;
+
+    PhotometricInterpretation  photometric_;
 
   public:
     DicomImageInformation(const DicomMap& values);
@@ -110,6 +112,11 @@ namespace Orthanc
     unsigned int GetShift() const
     {
       return highBit_ + 1 - bitsStored_;
+    }
+
+    PhotometricInterpretation GetPhotometricInterpretation() const
+    {
+      return photometric_;
     }
 
     bool ExtractPixelFormat(PixelFormat& format) const;

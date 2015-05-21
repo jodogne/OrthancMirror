@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -32,7 +32,7 @@
 #pragma once
 
 #include "HttpFileSender.h"
-#include "../FileStorage/FileStorage.h"
+#include "../FileStorage/FilesystemStorage.h"
 
 namespace Orthanc
 {
@@ -53,7 +53,7 @@ namespace Orthanc
 
     FilesystemHttpSender(const boost::filesystem::path& path);
 
-    FilesystemHttpSender(const FileStorage& storage,
+    FilesystemHttpSender(const FilesystemStorage& storage,
                          const std::string& uuid);
   };
 }

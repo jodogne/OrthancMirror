@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -34,6 +34,7 @@
 #include "LuaContext.h"
 
 #include <glog/logging.h>
+#include <cassert>
 
 extern "C" 
 {
@@ -43,7 +44,7 @@ extern "C"
 
 namespace Orthanc
 {
-  int LuaContext::PrintToLog(lua_State *state)
+  LuaContext& LuaContext::GetLuaContext(lua_State *state)
   {
     // Get the pointer to the "LuaContext" underlying object
     lua_getglobal(state, "_LuaContext");
@@ -51,6 +52,13 @@ namespace Orthanc
     LuaContext* that = const_cast<LuaContext*>(reinterpret_cast<const LuaContext*>(lua_topointer(state, -1)));
     assert(that != NULL);
     lua_pop(state, 1);
+
+    return *that;
+  }
+
+  int LuaContext::PrintToLog(lua_State *state)
+  {
+    LuaContext& that = GetLuaContext(state);
 
     // http://medek.wordpress.com/2009/02/03/wrapping-lua-errors-and-print-function/
     int nArgs = lua_gettop(state);
@@ -78,11 +86,240 @@ namespace Orthanc
       lua_pop(state, 1);
     }
 
-    LOG(INFO) << "Lua says: " << result;         
-    that->log_.append(result);
-    that->log_.append("\n");
+    LOG(WARNING) << "Lua says: " << result;         
+    that.log_.append(result);
+    that.log_.append("\n");
 
     return 0;
+  }
+
+
+  int LuaContext::SetHttpCredentials(lua_State *state)
+  {
+    LuaContext& that = GetLuaContext(state);
+
+    // Check the types of the arguments
+    int nArgs = lua_gettop(state);
+    if (nArgs != 2 ||
+        !lua_isstring(state, 1) ||  // Username
+        !lua_isstring(state, 2))    // Password
+    {
+      LOG(ERROR) << "Lua: Bad parameters to SetHttpCredentials()";
+    }
+    else
+    {
+      // Configure the HTTP client
+      const char* username = lua_tostring(state, 1);
+      const char* password = lua_tostring(state, 2);
+      that.httpClient_.SetCredentials(username, password);
+    }
+
+    return 0;
+  }
+
+
+  bool LuaContext::AnswerHttpQuery(lua_State* state)
+  {
+    std::string str;
+
+    try
+    {
+      httpClient_.Apply(str);
+    }
+    catch (OrthancException& e)
+    {
+      return false;
+    }
+
+    // Return the result of the HTTP request
+    lua_pushstring(state, str.c_str());
+
+    return true;
+  }
+
+  
+  int LuaContext::CallHttpGet(lua_State *state)
+  {
+    LuaContext& that = GetLuaContext(state);
+
+    // Check the types of the arguments
+    int nArgs = lua_gettop(state);
+    if (nArgs != 1 || !lua_isstring(state, 1))  // URL
+    {
+      LOG(ERROR) << "Lua: Bad parameters to HttpGet()";
+      lua_pushstring(state, "ERROR");
+      return 1;
+    }
+
+    // Configure the HTTP client class
+    const char* url = lua_tostring(state, 1);
+    that.httpClient_.SetMethod(HttpMethod_Get);
+    that.httpClient_.SetUrl(url);
+
+    // Do the HTTP GET request
+    if (!that.AnswerHttpQuery(state))
+    {
+      LOG(ERROR) << "Lua: Error in HttpGet() for URL " << url;
+      lua_pushstring(state, "ERROR");
+    }
+
+    return 1;
+  }
+
+
+  int LuaContext::CallHttpPostOrPut(lua_State *state,
+                                    HttpMethod method)
+  {
+    LuaContext& that = GetLuaContext(state);
+
+    // Check the types of the arguments
+    int nArgs = lua_gettop(state);
+    if ((nArgs != 1 && nArgs != 2) ||
+        !lua_isstring(state, 1) ||                // URL
+        (nArgs >= 2 && !lua_isstring(state, 2)))  // Body data
+    {
+      LOG(ERROR) << "Lua: Bad parameters to HttpPost() or HttpPut()";
+      lua_pushstring(state, "ERROR");
+      return 1;
+    }
+
+    // Configure the HTTP client class
+    const char* url = lua_tostring(state, 1);
+    that.httpClient_.SetMethod(method);
+    that.httpClient_.SetUrl(url);
+
+    if (nArgs >= 2)
+    {
+      that.httpClient_.SetPostData(lua_tostring(state, 2));
+    }
+    else
+    {
+      that.httpClient_.AccessPostData().clear();
+    }
+
+    // Do the HTTP POST/PUT request
+    if (!that.AnswerHttpQuery(state))
+    {
+      LOG(ERROR) << "Lua: Error in HttpPost() or HttpPut() for URL " << url;
+      lua_pushstring(state, "ERROR");
+    }
+
+    return 1;
+  }
+
+
+  int LuaContext::CallHttpPost(lua_State *state)
+  {
+    return CallHttpPostOrPut(state, HttpMethod_Post);
+  }
+
+
+  int LuaContext::CallHttpPut(lua_State *state)
+  {
+    return CallHttpPostOrPut(state, HttpMethod_Put);
+  }
+
+
+  int LuaContext::CallHttpDelete(lua_State *state)
+  {
+    LuaContext& that = GetLuaContext(state);
+
+    // Check the types of the arguments
+    int nArgs = lua_gettop(state);
+    if (nArgs != 1 || !lua_isstring(state, 1))  // URL
+    {
+      LOG(ERROR) << "Lua: Bad parameters to HttpDelete()";
+      lua_pushstring(state, "ERROR");
+      return 1;
+    }
+
+    // Configure the HTTP client class
+    const char* url = lua_tostring(state, 1);
+    that.httpClient_.SetMethod(HttpMethod_Delete);
+    that.httpClient_.SetUrl(url);
+
+    // Do the HTTP DELETE request
+    std::string s;
+    if (!that.httpClient_.Apply(s))
+    {
+      LOG(ERROR) << "Lua: Error in HttpDelete() for URL " << url;
+      lua_pushstring(state, "ERROR");
+    }
+    else
+    {
+      lua_pushstring(state, "SUCCESS");
+    }
+
+    return 1;
+  }
+
+
+  void LuaContext::PushJson(const Json::Value& value)
+  {
+    if (value.isString())
+    {
+      lua_pushstring(lua_, value.asCString());
+    }
+    else if (value.isDouble())
+    {
+      lua_pushnumber(lua_, value.asDouble());
+    }
+    else if (value.isInt())
+    {
+      lua_pushinteger(lua_, value.asInt());
+    }
+    else if (value.isUInt())
+    {
+      lua_pushinteger(lua_, value.asUInt());
+    }
+    else if (value.isBool())
+    {
+      lua_pushboolean(lua_, value.asBool());
+    }
+    else if (value.isNull())
+    {
+      lua_pushnil(lua_);
+    }
+    else if (value.isArray())
+    {
+      lua_newtable(lua_);
+
+      // http://lua-users.org/wiki/SimpleLuaApiExample
+      for (Json::Value::ArrayIndex i = 0; i < value.size(); i++)
+      {
+        // Push the table index (note the "+1" because of Lua conventions)
+        lua_pushnumber(lua_, i + 1);
+
+        // Push the value of the cell
+        PushJson(value[i]);
+
+        // Stores the pair in the table
+        lua_rawset(lua_, -3);
+      }
+    }
+    else if (value.isObject())
+    {
+      lua_newtable(lua_);
+
+      Json::Value::Members members = value.getMemberNames();
+
+      for (Json::Value::Members::const_iterator 
+             it = members.begin(); it != members.end(); ++it)
+      {
+        // Push the index of the cell
+        lua_pushstring(lua_, it->c_str());
+
+        // Push the value of the cell
+        PushJson(value[*it]);
+
+        // Stores the pair in the table
+        lua_rawset(lua_, -3);
+      }
+    }
+    else
+    {
+      throw LuaException("Unsupported JSON conversion");
+    }
   }
 
 
@@ -96,6 +333,11 @@ namespace Orthanc
 
     luaL_openlibs(lua_);
     lua_register(lua_, "print", PrintToLog);
+    lua_register(lua_, "HttpGet", CallHttpGet);
+    lua_register(lua_, "HttpPost", CallHttpPost);
+    lua_register(lua_, "HttpPut", CallHttpPut);
+    lua_register(lua_, "HttpDelete", CallHttpDelete);
+    lua_register(lua_, "SetHttpCredentials", SetHttpCredentials);
     
     lua_pushlightuserdata(lua_, this);
     lua_setglobal(lua_, "_LuaContext");
@@ -108,11 +350,9 @@ namespace Orthanc
   }
 
 
-  void LuaContext::Execute(std::string* output,
-                           const std::string& command)
+  void LuaContext::ExecuteInternal(std::string* output,
+                                   const std::string& command)
   {
-    boost::mutex::scoped_lock lock(mutex_);
-
     log_.clear();
     int error = (luaL_loadbuffer(lua_, command.c_str(), command.size(), "line") ||
                  lua_pcall(lua_, 0, 0, 0));
@@ -123,6 +363,7 @@ namespace Orthanc
 
       std::string description(lua_tostring(lua_, -1));
       lua_pop(lua_, 1); /* pop error message from the stack */
+      LOG(ERROR) << "Error while executing Lua script: " << description;
       throw LuaException(description);
     }
 
@@ -137,15 +378,29 @@ namespace Orthanc
   {
     std::string command;
     EmbeddedResources::GetFileResource(command, resource);
-    Execute(command);
+    ExecuteInternal(NULL, command);
   }
 
 
   bool LuaContext::IsExistingFunction(const char* name)
   {
-    boost::mutex::scoped_lock lock(mutex_);
     lua_settop(lua_, 0);
     lua_getglobal(lua_, name);
     return lua_type(lua_, -1) == LUA_TFUNCTION;
   }
+
+
+  void LuaContext::Execute(Json::Value& output,
+                           const std::string& command)
+  {
+    std::string s;
+    ExecuteInternal(&s, command);
+
+    Json::Reader reader;
+    if (!reader.parse(s, output))
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+  }
+
 }

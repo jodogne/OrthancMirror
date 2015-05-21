@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -44,9 +44,14 @@
 #include <algorithm>
 #include <ctype.h>
 #include <boost/regex.hpp> 
+#include <glog/logging.h>
 
 #if defined(_WIN32)
 #include <windows.h>
+#include <process.h>   // For "_spawnvp()"
+#else
+#include <unistd.h>    // For "execvp()"
+#include <sys/wait.h>  // For "waitpid()"
 #endif
 
 #if defined(__APPLE__) && defined(__MACH__)
@@ -54,7 +59,7 @@
 #include <limits.h>      /* PATH_MAX */
 #endif
 
-#if defined(__linux) || defined(__FreeBSD_kernel__)
+#if defined(__linux) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
 #include <limits.h>      /* PATH_MAX */
 #include <signal.h>
 #include <unistd.h>
@@ -70,8 +75,8 @@
 #include "../Resources/ThirdParty/base64/base64.h"
 
 
-#ifdef _MSC_VER
-// Patch for the missing "_strtoll" symbol when compiling with Visual Studio
+#if defined(_MSC_VER) && (_MSC_VER < 1800)
+// Patch for the missing "_strtoll" symbol when compiling with Visual Studio < 2013
 extern "C"
 {
   int64_t _strtoi64(const char *nptr, char **endptr, int base);
@@ -80,6 +85,12 @@ extern "C"
     return _strtoi64(nptr, endptr, base);
   } 
 }
+#endif
+
+
+#if ORTHANC_PUGIXML_ENABLED == 1
+#include "ChunkedBuffer.h"
+#include <pugixml.hpp>
 #endif
 
 
@@ -105,7 +116,7 @@ namespace Orthanc
   {
 #if defined(_WIN32)
     ::Sleep(static_cast<DWORD>(microSeconds / static_cast<uint64_t>(1000)));
-#elif defined(__linux) || defined(__APPLE__) || defined(__FreeBSD_kernel__)
+#elif defined(__linux) || defined(__APPLE__) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
     usleep(microSeconds);
 #else
 #error Support your platform here
@@ -113,7 +124,7 @@ namespace Orthanc
   }
 
 
-  void Toolbox::ServerBarrier()
+  static void ServerBarrierInternal(const bool* stopFlag)
   {
 #if defined(_WIN32)
     SetConsoleCtrlHandler(ConsoleControlHandler, true);
@@ -123,10 +134,11 @@ namespace Orthanc
     signal(SIGTERM, SignalHandler);
 #endif
   
+    // Active loop that awakens every 100ms
     finish = false;
-    while (!finish)
+    while (!(*stopFlag || finish))
     {
-      USleep(100000);
+      Toolbox::USleep(100 * 1000);
     }
 
 #if defined(_WIN32)
@@ -138,6 +150,17 @@ namespace Orthanc
 #endif
   }
 
+
+  void Toolbox::ServerBarrier(const bool& stopFlag)
+  {
+    ServerBarrierInternal(&stopFlag);
+  }
+
+  void Toolbox::ServerBarrier()
+  {
+    const bool stopFlag = false;
+    ServerBarrierInternal(&stopFlag);
+  }
 
 
   void Toolbox::ToUpperCase(std::string& s)
@@ -282,6 +305,28 @@ namespace Orthanc
       }
     }
   }
+
+
+  void Toolbox::TruncateUri(UriComponents& target,
+                            const UriComponents& source,
+                            size_t fromLevel)
+  {
+    target.clear();
+
+    if (source.size() > fromLevel)
+    {
+      target.resize(source.size() - fromLevel);
+
+      size_t j = 0;
+      for (size_t i = fromLevel; i < source.size(); i++, j++)
+      {
+        target[j] = source[i];
+      }
+
+      assert(j == target.size());
+    }
+  }
+  
 
 
   bool Toolbox::IsChildUri(const UriComponents& baseUri,
@@ -449,7 +494,7 @@ namespace Orthanc
 
 
 #if defined(_WIN32)
-  std::string Toolbox::GetPathToExecutable()
+  static std::string GetPathToExecutableInternal()
   {
     // Yes, this is ugly, but there is no simple way to get the 
     // required buffer size, so we use a big constant
@@ -458,8 +503,8 @@ namespace Orthanc
     return std::string(&buffer[0]);
   }
 
-#elif defined(__linux) || defined(__FreeBSD_kernel__)
-  std::string Toolbox::GetPathToExecutable()
+#elif defined(__linux) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
+  static std::string GetPathToExecutableInternal()
   {
     std::vector<char> buffer(PATH_MAX + 1);
     ssize_t bytes = readlink("/proc/self/exe", &buffer[0], buffer.size() - 1);
@@ -472,7 +517,7 @@ namespace Orthanc
   }
 
 #elif defined(__APPLE__) && defined(__MACH__)
-  std::string Toolbox::GetPathToExecutable()
+  static std::string GetPathToExecutableInternal()
   {
     char pathbuf[PATH_MAX + 1];
     unsigned int  bufsize = static_cast<int>(sizeof(pathbuf));
@@ -487,10 +532,17 @@ namespace Orthanc
 #endif
 
 
+  std::string Toolbox::GetPathToExecutable()
+  {
+    boost::filesystem::path p(GetPathToExecutableInternal());
+    return boost::filesystem::absolute(p).string();
+  }
+
+
   std::string Toolbox::GetDirectoryOfExecutable()
   {
-    boost::filesystem::path p(GetPathToExecutable());
-    return p.parent_path().string();
+    boost::filesystem::path p(GetPathToExecutableInternal());
+    return boost::filesystem::absolute(p.parent_path()).string();
   }
 
 
@@ -499,18 +551,71 @@ namespace Orthanc
   {
     const char* encoding;
 
+
+    // http://bradleyross.users.sourceforge.net/docs/dicom/doc/src-html/org/dcm4che2/data/SpecificCharacterSet.html
     switch (sourceEncoding)
     {
       case Encoding_Utf8:
         // Already in UTF-8: No conversion is required
         return source;
 
+      case Encoding_Ascii:
+        return ConvertToAscii(source);
+
       case Encoding_Latin1:
         encoding = "ISO-8859-1";
         break;
 
+      case Encoding_Latin2:
+        encoding = "ISO-8859-2";
+        break;
+
+      case Encoding_Latin3:
+        encoding = "ISO-8859-3";
+        break;
+
+      case Encoding_Latin4:
+        encoding = "ISO-8859-4";
+        break;
+
+      case Encoding_Latin5:
+        encoding = "ISO-8859-9";
+        break;
+
+      case Encoding_Cyrillic:
+        encoding = "ISO-8859-5";
+        break;
+
+      case Encoding_Windows1251:
+        encoding = "WINDOWS-1251";
+        break;
+
+      case Encoding_Arabic:
+        encoding = "ISO-8859-6";
+        break;
+
+      case Encoding_Greek:
+        encoding = "ISO-8859-7";
+        break;
+
+      case Encoding_Hebrew:
+        encoding = "ISO-8859-8";
+        break;
+        
+      case Encoding_Japanese:
+        encoding = "SHIFT-JIS";
+        break;
+
+      case Encoding_Chinese:
+        encoding = "GB18030";
+        break;
+
+      case Encoding_Thai:
+        encoding = "TIS620.2533-0";
+        break;
+
       default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
+        throw OrthancException(ErrorCode_NotImplemented);
     }
 
     try
@@ -532,7 +637,7 @@ namespace Orthanc
     result.reserve(source.size() + 1);
     for (size_t i = 0; i < source.size(); i++)
     {
-      if (source[i] < 128 && source[i] >= 0 && !iscntrl(source[i]))
+      if (source[i] <= 127 && source[i] >= 0 && !iscntrl(source[i]))
       {
         result.push_back(source[i]);
       }
@@ -791,6 +896,221 @@ namespace Orthanc
         throw OrthancException("Unable to create the directory: " + path);
       }
     }
+  }
+
+
+  bool Toolbox::IsExistingFile(const std::string& path)
+  {
+    return boost::filesystem::exists(path);
+  }
+
+
+#if ORTHANC_PUGIXML_ENABLED == 1
+  class ChunkedBufferWriter : public pugi::xml_writer
+  {
+  private:
+    ChunkedBuffer buffer_;
+
+  public:
+    virtual void write(const void *data, size_t size)
+    {
+      if (size > 0)
+      {
+        buffer_.AddChunk(reinterpret_cast<const char*>(data), size);
+      }
+    }
+
+    void Flatten(std::string& s)
+    {
+      buffer_.Flatten(s);
+    }
+  };
+
+
+  static void JsonToXmlInternal(pugi::xml_node& target,
+                                const Json::Value& source,
+                                const std::string& arrayElement)
+  {
+    // http://jsoncpp.sourceforge.net/value_8h_source.html#l00030
+
+    switch (source.type())
+    {
+      case Json::nullValue:
+      {
+        target.append_child(pugi::node_pcdata).set_value("null");
+        break;
+      }
+
+      case Json::intValue:
+      {
+        std::string s = boost::lexical_cast<std::string>(source.asInt());
+        target.append_child(pugi::node_pcdata).set_value(s.c_str());
+        break;
+      }
+
+      case Json::uintValue:
+      {
+        std::string s = boost::lexical_cast<std::string>(source.asUInt());
+        target.append_child(pugi::node_pcdata).set_value(s.c_str());
+        break;
+      }
+
+      case Json::realValue:
+      {
+        std::string s = boost::lexical_cast<std::string>(source.asFloat());
+        target.append_child(pugi::node_pcdata).set_value(s.c_str());
+        break;
+      }
+
+      case Json::stringValue:
+      {
+        target.append_child(pugi::node_pcdata).set_value(source.asString().c_str());
+        break;
+      }
+
+      case Json::booleanValue:
+      {
+        target.append_child(pugi::node_pcdata).set_value(source.asBool() ? "true" : "false");
+        break;
+      }
+
+      case Json::arrayValue:
+      {
+        for (Json::Value::ArrayIndex i = 0; i < source.size(); i++)
+        {
+          pugi::xml_node node = target.append_child();
+          node.set_name(arrayElement.c_str());
+          JsonToXmlInternal(node, source[i], arrayElement);
+        }
+        break;
+      }
+        
+      case Json::objectValue:
+      {
+        Json::Value::Members members = source.getMemberNames();
+
+        for (size_t i = 0; i < members.size(); i++)
+        {
+          pugi::xml_node node = target.append_child();
+          node.set_name(members[i].c_str());
+          JsonToXmlInternal(node, source[members[i]], arrayElement);          
+        }
+
+        break;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
+
+
+  void Toolbox::JsonToXml(std::string& target,
+                          const Json::Value& source,
+                          const std::string& rootElement,
+                          const std::string& arrayElement)
+  {
+    pugi::xml_document doc;
+
+    pugi::xml_node n = doc.append_child(rootElement.c_str());
+    JsonToXmlInternal(n, source, arrayElement);
+
+    pugi::xml_node decl = doc.prepend_child(pugi::node_declaration);
+    decl.append_attribute("version").set_value("1.0");
+    decl.append_attribute("encoding").set_value("utf-8");
+
+    ChunkedBufferWriter writer;
+    doc.save(writer, "  ", pugi::format_default, pugi::encoding_utf8);
+    writer.Flatten(target);
+  }
+
+#endif
+
+
+  void Toolbox::ExecuteSystemCommand(const std::string& command,
+                                     const std::vector<std::string>& arguments)
+  {
+    // Convert the arguments as a C array
+    std::vector<char*>  args(arguments.size() + 2);
+
+    args.front() = const_cast<char*>(command.c_str());
+
+    for (size_t i = 0; i < arguments.size(); i++)
+    {
+      args[i + 1] = const_cast<char*>(arguments[i].c_str());
+    }
+
+    args.back() = NULL;
+
+    int status;
+
+#if defined(_WIN32)
+    // http://msdn.microsoft.com/en-us/library/275khfab.aspx
+    status = static_cast<int>(_spawnvp(_P_OVERLAY, command.c_str(), &args[0]));
+
+#else
+    int pid = fork();
+
+    if (pid == -1)
+    {
+      // Error in fork()
+      LOG(ERROR) << "Cannot fork a child process";
+      throw OrthancException(ErrorCode_SystemCommand);
+    }
+    else if (pid == 0)
+    {
+      // Execute the system command in the child process
+      execvp(command.c_str(), &args[0]);
+
+      // We should never get here
+      _exit(1);
+    }
+    else
+    {
+      // Wait for the system command to exit
+      waitpid(pid, &status, 0);
+    }
+#endif
+
+    if (status != 0)
+    {
+      LOG(ERROR) << "System command failed with status code " << status;
+      throw OrthancException(ErrorCode_SystemCommand);
+    }
+  }
+
+  
+  bool Toolbox::IsInteger(const std::string& str)
+  {
+    std::string s = StripSpaces(str);
+
+    if (s.size() == 0)
+    {
+      return false;
+    }
+
+    size_t pos = 0;
+    if (s[0] == '-')
+    {
+      if (s.size() == 1)
+      {
+        return false;
+      }
+
+      pos = 1;
+    }
+
+    while (pos < s.size())
+    {
+      if (!isdigit(s[pos]))
+      {
+        return false;
+      }
+
+      pos++;
+    }
+
+    return true;
   }
 }
 

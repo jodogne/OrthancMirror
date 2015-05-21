@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
 # Orthanc - A Lightweight, RESTful DICOM Store
-# Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
-# Belgium
+# Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+# Department, University Hospital of Liege, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -54,7 +54,7 @@ def NewInstanceReceived(path):
     # Remove the possible trailing characters due to DICOM padding
     patientName = patientName.strip()
 
-    print 'New instance received for patient "%s": "%s"' % (patientName, path)
+    print('New instance received for patient "%s": "%s"' % (patientName, path))
 
 
 
@@ -82,5 +82,5 @@ while True:
     current = r['Last']
 
     if r['Done']:
-        print "Everything has been processed: Waiting..."
+        print('Everything has been processed: Waiting...')
         time.sleep(1)

@@ -28,11 +28,18 @@
   // of patients)
   "MaximumPatientCount" : 0,
   
-  // List of paths to the custom Lua scripts to load into this
-  // instance of Orthanc
+  // List of paths to the custom Lua scripts that are to be loaded
+  // into this instance of Orthanc
   "LuaScripts" : [
   ],
 
+  // List of paths to the plugins that are to be loaded into this
+  // instance of Orthanc (e.g. "./libPluginTest.so" for Linux, or
+  // "./PluginTest.dll" for Windows). These paths can refer to
+  // folders, in which case they will be scanned non-recursively to
+  // find shared libraries.
+  "Plugins" : [
+  ],
 
 
   /**
@@ -57,6 +64,21 @@
   // The DICOM port
   "DicomPort" : 4242,
 
+  // The default encoding that is assumed for DICOM files without
+  // "SpecificCharacterSet" DICOM tag. The allowed values are "Ascii",
+  // "Utf8", "Latin1", "Latin2", "Latin3", "Latin4", "Latin5",
+  // "Cyrillic", "Windows1251", "Arabic", "Greek", "Hebrew", "Thai",
+  // "Japanese", and "Chinese".
+  "DefaultEncoding" : "Latin1",
+
+  // The transfer syntaxes that are accepted by Orthanc C-Store SCP
+  "DeflatedTransferSyntaxAccepted"     : true,
+  "JpegTransferSyntaxAccepted"         : true,
+  "Jpeg2000TransferSyntaxAccepted"     : true,
+  "JpegLosslessTransferSyntaxAccepted" : true,
+  "JpipTransferSyntaxAccepted"         : true,
+  "Mpeg2TransferSyntaxAccepted"        : true,
+  "RleTransferSyntaxAccepted"          : true,
 
 
   /**
@@ -100,8 +122,9 @@
     /**
      * A fourth parameter is available to enable patches for a
      * specific PACS manufacturer. The allowed values are currently
-     * "Generic" (default value), "ClearCanvas", "MedInria" and
-     * "Dcm4Chee". This parameter is case-sensitive.
+     * "Generic" (default value), "StoreScp" (storescp tool from
+     * DCMTK), "ClearCanvas", "MedInria" and "Dcm4Chee". This
+     * parameter is case-sensitive.
      **/
     // "clearcanvas" : [ "CLEARCANVAS", "192.168.1.1", 104, "ClearCanvas" ]
   },
@@ -117,6 +140,11 @@
     // "peer2" : [ "http://localhost:8044/" ]
   },
 
+  // Parameters of the HTTP proxy to be used by Orthanc. If set to the
+  // empty string, no HTTP proxy is used. For instance:
+  //   "HttpProxy" : "192.168.0.1:3128"
+  //   "HttpProxy" : "proxyUser:proxyPassword@192.168.0.1:3128"
+  "HttpProxy" : "",
 
 
   /**
@@ -169,5 +197,30 @@
 
   // The maximum number of results for a single C-FIND request at the
   // Instance level. Setting this option to "0" means no limit.
-  "LimitFindInstances" : 0
+  "LimitFindInstances" : 0,
+
+  // The maximum number of active jobs in the Orthanc scheduler. When
+  // this limit is reached, the addition of new jobs is blocked until
+  // some job finishes.
+  "LimitJobs" : 10,
+
+  // If this option is set to "false", Orthanc will not log the
+  // resources that are exported to other DICOM modalities of Orthanc
+  // peers in the URI "/exports". This is useful to prevent the index
+  // to grow indefinitely in auto-routing tasks.
+  "LogExportedResources" : true,
+
+  // Enable or disable HTTP Keep-Alive (deprecated). Set this option
+  // to "true" only in the case of high HTTP loads.
+  "KeepAlive" : false,
+
+  // If this option is set to "false", Orthanc will run in index-only
+  // mode. The DICOM files will not be stored on the drive.
+  "StoreDicom" : true,
+
+  // DICOM associations are kept open as long as new DICOM commands
+  // are issued. This option sets the number of seconds of inactivity
+  // to wait before automatically closing a DICOM association. If set
+  // to 0, the connection is closed immediately.
+  "DicomAssociationCloseDelay" : 5
 }

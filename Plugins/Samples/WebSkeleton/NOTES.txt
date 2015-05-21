@@ -1,0 +1,7 @@
+This is a sample Orthanc plugin that serves static resources (HTML,
+JavaScript, CSS, images...).
+
+The resources to serve must be stored in the folder "StaticResources".
+
+The folder "Framework" contains a reusable framework for any plugin
+whose sole objective is to serve static resources.

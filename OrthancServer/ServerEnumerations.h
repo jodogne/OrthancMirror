@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2014 Medical Physics Department, CHU of Liege,
- * Belgium
+ * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -32,6 +32,7 @@
 #pragma once
 
 #include <string>
+#include <map>
 
 #include "../Core/Enumerations.h"
 
@@ -56,6 +57,7 @@ namespace Orthanc
   enum ModalityManufacturer
   {
     ModalityManufacturer_Generic,
+    ModalityManufacturer_StoreScp,
     ModalityManufacturer_ClearCanvas,
     ModalityManufacturer_MedInria,
     ModalityManufacturer_Dcm4Chee
@@ -75,6 +77,17 @@ namespace Orthanc
     DicomReplaceMode_InsertIfAbsent,
     DicomReplaceMode_ThrowIfAbsent,
     DicomReplaceMode_IgnoreIfAbsent
+  };
+
+  enum TransferSyntax
+  {
+    TransferSyntax_Deflated,
+    TransferSyntax_Jpeg,
+    TransferSyntax_Jpeg2000,
+    TransferSyntax_JpegLossless,
+    TransferSyntax_Jpip,
+    TransferSyntax_Mpeg2,
+    TransferSyntax_Rle
   };
 
 
@@ -121,8 +134,16 @@ namespace Orthanc
     ChangeType_ModifiedPatient = 11,
     ChangeType_StablePatient = 12,
     ChangeType_StableStudy = 13,
-    ChangeType_StableSeries = 14
+    ChangeType_StableSeries = 14,
+
+    ChangeType_INTERNAL_LastLogged = 4095,
+
+    // The changes below this point are not logged into the database
+    ChangeType_Deleted = 4096,
+    ChangeType_NewChildInstance = 4097
   };
+
+
 
   void InitializeServerEnumerations();
 
@@ -152,6 +173,8 @@ namespace Orthanc
   const char* EnumerationToString(ModalityManufacturer manufacturer);
 
   const char* EnumerationToString(DicomRequestType type);
+
+  const char* EnumerationToString(TransferSyntax syntax);
 
   ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer);
 
