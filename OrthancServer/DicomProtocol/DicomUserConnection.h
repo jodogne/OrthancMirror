@@ -76,8 +76,8 @@ namespace Orthanc
               FindRootModel model,
               const DicomMap& fields);
 
-    void Move(const std::string& targetAet,
-              const DicomMap& fields);
+    void MoveInternal(const std::string& targetAet,
+                      const DicomMap& fields);
 
     void ResetStorageSOPClasses();
 
@@ -162,15 +162,18 @@ namespace Orthanc
     void FindInstance(DicomFindAnswers& result,
                       const DicomMap& fields);
 
-    void MoveSeries(const std::string& targetAet,
-                    const DicomMap& findResult);
+    void Move(const std::string& targetAet,
+              const DicomMap& findResult);
+
+    void MovePatient(const std::string& targetAet,
+                     const std::string& patientId);
+
+    void MoveStudy(const std::string& targetAet,
+                   const std::string& studyUid);
 
     void MoveSeries(const std::string& targetAet,
                     const std::string& studyUid,
                     const std::string& seriesUid);
-
-    void MoveInstance(const std::string& targetAet,
-                      const DicomMap& findResult);
 
     void MoveInstance(const std::string& targetAet,
                       const std::string& studyUid,

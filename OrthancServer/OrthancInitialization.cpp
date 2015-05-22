@@ -238,7 +238,8 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
-    if (configuration_->isMember(parameter))
+    if (configuration_.get() != NULL &&
+        configuration_->isMember(parameter))
     {
       return (*configuration_) [parameter].asString();
     }
@@ -254,7 +255,8 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
-    if (configuration_->isMember(parameter))
+    if (configuration_.get() != NULL &&
+        configuration_->isMember(parameter))
     {
       return (*configuration_) [parameter].asInt();
     }
@@ -270,7 +272,8 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
-    if (configuration_->isMember(parameter))
+    if (configuration_.get() != NULL &&
+        configuration_->isMember(parameter))
     {
       return (*configuration_) [parameter].asBool();
     }
@@ -286,6 +289,11 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
+    if (configuration_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_InexistentItem);
+    }
+       
     if (!configuration_->isMember("DicomModalities"))
     {
       throw OrthancException(ErrorCode_BadFileFormat);
@@ -318,6 +326,11 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
+    if (configuration_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_InexistentItem);
+    }
+       
     if (!configuration_->isMember("OrthancPeers"))
     {
       throw OrthancException(ErrorCode_BadFileFormat);
@@ -352,7 +365,8 @@ namespace Orthanc
 
     target.clear();
   
-    if (!configuration_->isMember(parameter))
+    if (configuration_.get() == NULL ||
+        !configuration_->isMember(parameter))
     {
       return true;
     }
@@ -409,7 +423,8 @@ namespace Orthanc
 
     httpServer.ClearUsers();
 
-    if (!configuration_->isMember("RegisteredUsers"))
+    if (configuration_.get() == NULL ||
+        !configuration_->isMember("RegisteredUsers"))
     {
       return;
     }
@@ -470,7 +485,8 @@ namespace Orthanc
 
     target.clear();
   
-    if (!configuration_->isMember(key))
+    if (configuration_.get() == NULL ||
+        !configuration_->isMember(key))
     {
       return;
     }
@@ -571,6 +587,11 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
+    if (configuration_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
     if (!configuration_->isMember("DicomModalities"))
     {
       (*configuration_) ["DicomModalities"] = Json::objectValue;
@@ -594,6 +615,11 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
+    if (configuration_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
     if (!configuration_->isMember("DicomModalities"))
     {
       throw OrthancException(ErrorCode_BadFileFormat);
@@ -613,6 +639,11 @@ namespace Orthanc
                                  const OrthancPeerParameters& peer)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
+
+    if (configuration_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
 
     if (!configuration_->isMember("OrthancPeers"))
     {
@@ -636,6 +667,11 @@ namespace Orthanc
   void Configuration::RemovePeer(const std::string& symbolicName)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
+
+    if (configuration_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
 
     if (!configuration_->isMember("OrthancPeers"))
     {
