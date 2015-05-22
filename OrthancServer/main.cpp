@@ -51,6 +51,7 @@
 #include "ServerToolbox.h"
 #include "../Plugins/Engine/PluginsManager.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
+#include "FromDcmtkBridge.h"
 
 using namespace Orthanc;
 
@@ -531,6 +532,39 @@ static bool StartOrthanc(int argc, char *argv[])
     }
 
     LOG(WARNING) << "Orthanc has started";
+
+
+    if (1)
+    {
+      DicomUserConnection c;
+      c.SetLocalApplicationEntityTitle("ORTHANC");
+      c.SetRemoteApplicationEntityTitle("ORTHANC");
+      c.SetRemoteHost("localhost");
+      c.SetRemotePort(4343);
+      c.Open();
+
+      DicomMap m; // Cardiac
+      m.SetValue(DICOM_TAG_PATIENT_ID, "3390592L");
+      //m.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "1.3.51.0.1.1.192.168.29.133.1681753.1681732");
+      //m.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, "1.3.12.2.1107.5.2.33.37097.2012041612474981424569674.0.0.0");
+      //m.SetValue(DICOM_TAG_SOP_INSTANCE_UID, "1.3.12.2.1107.5.2.33.37097.2012041612485535037669708");
+
+      DicomFindAnswers fnd;
+      c.FindPatient(fnd, m);
+      //c.FindInstance(fnd, m);
+      //c.FindSeries(fnd, m);
+      //c.FindStudy(fnd, m);
+
+      for (size_t i = 0; i < fnd.GetSize(); i++)
+      {
+        FromDcmtkBridge::Print(stdout, fnd.GetAnswer(i));
+        c.Move("ORTHANC", fnd.GetAnswer(i));
+      }
+
+      printf("ok %d\n", fnd.GetSize());
+    }
+
+
     Toolbox::ServerBarrier(restApi.ResetRequestReceivedFlag());
     isReset = restApi.ResetRequestReceivedFlag();
 
@@ -638,29 +672,6 @@ int main(int argc, char* argv[])
   int status = 0;
   try
   {
-    if (1)
-    {
-      DicomUserConnection c;
-      c.SetLocalApplicationEntityTitle("ORTHANC");
-      c.SetRemoteApplicationEntityTitle("ORTHANC");
-      c.SetRemoteHost("localhost");
-      c.SetRemotePort(4343);
-      c.Open();
-
-      DicomMap m; // Delphine
-      m.SetValue(DICOM_TAG_PATIENT_ID, "5423962");
-      m.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "1.2.840.113845.11.1000000001951524609.20121203131451.1457891");
-      m.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, "1.2.840.113619.2.278.3.262930758.589.1354512768.115");
-      m.SetValue(DICOM_TAG_SOP_INSTANCE_UID, "1.3.12.2.1107.5.2.33.37097.2012041613043195815872177");
-
-      DicomFindAnswers fnd;
-      c.FindInstance(fnd, m);
-      //c.FindSeries(fnd, m);
-
-      printf("ok %d\n", fnd.GetSize());
-    }
-
-
     for (;;)
     {
       OrthancInitialize(configurationFile);

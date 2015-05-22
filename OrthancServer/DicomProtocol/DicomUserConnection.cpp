@@ -337,6 +337,16 @@ namespace Orthanc
   }
 
 
+  namespace
+  {
+    struct FindPayload
+    {
+      DicomFindAnswers* answers;
+      std::string       level;
+    };
+  }
+
+
   static void FindCallback(
     /* in */
     void *callbackData,
@@ -346,13 +356,19 @@ namespace Orthanc
     DcmDataset *responseIdentifiers /* pending response identifiers */
     )
   {
-    DicomFindAnswers& answers = *reinterpret_cast<DicomFindAnswers*>(callbackData);
+    FindPayload& payload = *reinterpret_cast<FindPayload*>(callbackData);
 
     if (responseIdentifiers != NULL)
     {
       DicomMap m;
       FromDcmtkBridge::Convert(m, *responseIdentifiers);
-      answers.Add(m);
+
+      if (!m.HasTag(DICOM_TAG_QUERY_RETRIEVE_LEVEL))
+      {
+        m.SetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL, payload.level);
+      }
+
+      payload.answers->Add(m);
     }
   }
 
@@ -362,11 +378,15 @@ namespace Orthanc
   {
     CheckIsOpen();
 
+    FindPayload payload;
+    payload.answers = &result;
+
     const char* sopClass;
     std::auto_ptr<DcmDataset> dataset(ToDcmtkBridge::Convert(fields));
     switch (model)
     {
       case FindRootModel_Patient:
+        payload.level = "PATIENT";
         DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "PATIENT");
         sopClass = UID_FINDPatientRootQueryRetrieveInformationModel;
       
@@ -381,6 +401,7 @@ namespace Orthanc
         break;
 
       case FindRootModel_Study:
+        payload.level = "STUDY";
         DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "STUDY");
         sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
 
@@ -395,6 +416,7 @@ namespace Orthanc
         break;
 
       case FindRootModel_Series:
+        payload.level = "SERIES";
         DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "SERIES");
         sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
 
@@ -413,6 +435,7 @@ namespace Orthanc
         break;
 
       case FindRootModel_Instance:
+        payload.level = "INSTANCE";
         if (manufacturer_ == ModalityManufacturer_ClearCanvas ||
             manufacturer_ == ModalityManufacturer_Dcm4Chee)
         {
@@ -467,7 +490,7 @@ namespace Orthanc
     T_DIMSE_C_FindRSP response;
     DcmDataset* statusDetail = NULL;
     OFCondition cond = DIMSE_findUser(pimpl_->assoc_, presID, &request, dataset.get(),
-                                      FindCallback, &result,
+                                      FindCallback, &payload,
                                       /*opt_blockMode*/ DIMSE_BLOCKING, 
                                       /*opt_dimse_timeout*/ pimpl_->dimseTimeout_,
                                       &response, &statusDetail);
@@ -534,8 +557,8 @@ namespace Orthanc
   }
 
 
-  void DicomUserConnection::Move(const std::string& targetAet,
-                                 const DicomMap& fields)
+  void DicomUserConnection::MoveInternal(const std::string& targetAet,
+                                         const DicomMap& fields)
   {
     CheckIsOpen();
 
@@ -830,33 +853,86 @@ namespace Orthanc
   }
 
 
-  void DicomUserConnection::MoveSeries(const std::string& targetAet,
-                                       const DicomMap& findResult)
+  static void TestAndCopyTag(DicomMap& result,
+                             const DicomMap& source,
+                             const DicomTag& tag)
   {
-    DicomMap simplified;
-    simplified.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, findResult.GetValue(DICOM_TAG_STUDY_INSTANCE_UID));
-    simplified.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, findResult.GetValue(DICOM_TAG_SERIES_INSTANCE_UID));
-    Move(targetAet, simplified);
+    if (!source.HasTag(tag))
+    {
+      throw OrthancException(ErrorCode_BadRequest);
+    }
+    else
+    {
+      result.SetValue(tag, source.GetValue(tag));
+    }
+  }
+
+
+  void DicomUserConnection::Move(const std::string& targetAet,
+                                 const DicomMap& findResult)
+  {
+    if (!findResult.HasTag(DICOM_TAG_QUERY_RETRIEVE_LEVEL))
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    const std::string tmp = findResult.GetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL).AsString();
+    ResourceType level = StringToResourceType(tmp.c_str());
+
+    DicomMap move;
+    switch (level)
+    {
+      case ResourceType_Patient:
+        TestAndCopyTag(move, findResult, DICOM_TAG_PATIENT_ID);
+        break;
+
+      case ResourceType_Study:
+        TestAndCopyTag(move, findResult, DICOM_TAG_STUDY_INSTANCE_UID);
+        break;
+
+      case ResourceType_Series:
+        TestAndCopyTag(move, findResult, DICOM_TAG_STUDY_INSTANCE_UID);
+        TestAndCopyTag(move, findResult, DICOM_TAG_SERIES_INSTANCE_UID);
+        break;
+
+      case ResourceType_Instance:
+        TestAndCopyTag(move, findResult, DICOM_TAG_STUDY_INSTANCE_UID);
+        TestAndCopyTag(move, findResult, DICOM_TAG_SERIES_INSTANCE_UID);
+        TestAndCopyTag(move, findResult, DICOM_TAG_SOP_INSTANCE_UID);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+
+    MoveInternal(targetAet, move);
+  }
+
+
+  void DicomUserConnection::MovePatient(const std::string& targetAet,
+                                        const std::string& patientId)
+  {
+    DicomMap query;
+    query.SetValue(DICOM_TAG_PATIENT_ID, patientId);
+    MoveInternal(targetAet, query);
+  }
+
+  void DicomUserConnection::MoveStudy(const std::string& targetAet,
+                                      const std::string& studyUid)
+  {
+    DicomMap query;
+    query.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid);
+    MoveInternal(targetAet, query);
   }
 
   void DicomUserConnection::MoveSeries(const std::string& targetAet,
                                        const std::string& studyUid,
                                        const std::string& seriesUid)
   {
-    DicomMap map;
-    map.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid);
-    map.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, seriesUid);
-    Move(targetAet, map);
-  }
-
-  void DicomUserConnection::MoveInstance(const std::string& targetAet,
-                                         const DicomMap& findResult)
-  {
-    DicomMap simplified;
-    simplified.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, findResult.GetValue(DICOM_TAG_STUDY_INSTANCE_UID));
-    simplified.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, findResult.GetValue(DICOM_TAG_SERIES_INSTANCE_UID));
-    simplified.SetValue(DICOM_TAG_SOP_INSTANCE_UID, findResult.GetValue(DICOM_TAG_SOP_INSTANCE_UID));
-    Move(targetAet, simplified);
+    DicomMap query;
+    query.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid);
+    query.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, seriesUid);
+    MoveInternal(targetAet, query);
   }
 
   void DicomUserConnection::MoveInstance(const std::string& targetAet,
@@ -864,11 +940,11 @@ namespace Orthanc
                                          const std::string& seriesUid,
                                          const std::string& instanceUid)
   {
-    DicomMap map;
-    map.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid);
-    map.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, seriesUid);
-    map.SetValue(DICOM_TAG_SOP_INSTANCE_UID, instanceUid);
-    Move(targetAet, map);
+    DicomMap query;
+    query.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid);
+    query.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, seriesUid);
+    query.SetValue(DICOM_TAG_SOP_INSTANCE_UID, instanceUid);
+    MoveInternal(targetAet, query);
   }
 
 
