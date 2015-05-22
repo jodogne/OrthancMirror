@@ -70,6 +70,7 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/VisualStudioPrecompiledHeaders.cmake
 
 set(ORTHANC_CORE_SOURCES
   Core/Cache/MemoryCache.cpp
+  Core/Cache/SharedArchive.cpp
   Core/ChunkedBuffer.cpp
   Core/Compression/BufferCompressor.cpp
   Core/Compression/ZlibCompressor.cpp

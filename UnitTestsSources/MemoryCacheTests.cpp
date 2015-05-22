@@ -39,6 +39,7 @@
 #include <boost/lexical_cast.hpp>
 #include "../Core/IDynamicObject.h"
 #include "../Core/Cache/MemoryCache.h"
+#include "../Core/Cache/SharedArchive.h"
 
 
 TEST(LRU, Basic)
@@ -227,4 +228,67 @@ TEST(MemoryCache, Basic)
   }
 
   ASSERT_EQ("45 42 43 47 44 42 ", provider.log_);
+}
+
+
+
+
+
+
+
+namespace
+{
+  class S : public Orthanc::IDynamicObject
+  {
+  private:
+    std::string value_;
+
+  public:
+    S(const std::string& value) : value_(value)
+    {
+    }
+
+    const std::string& GetValue() const
+    {
+      return value_;
+    }
+
+    static const std::string& Access(const Orthanc::IDynamicObject& obj)
+    {
+      return dynamic_cast<const S&>(obj).GetValue();
+    }
+  };
+}
+
+
+TEST(LRU, SharedArchive)
+{
+  std::string first, second;
+  Orthanc::SharedArchive a(3);
+  first = a.Add(new S("First item"));
+  second = a.Add(new S("Second item"));
+
+  for (int i = 1; i < 100; i++)
+  {
+    a.Add(new S("Item " + boost::lexical_cast<std::string>(i)));
+    // Continuously protect the two first items
+    try { Orthanc::SharedArchive::Accessor(a, first);  } catch (Orthanc::OrthancException&) {}
+    try { Orthanc::SharedArchive::Accessor(a, second); } catch (Orthanc::OrthancException&) {}
+  }
+
+  std::list<std::string> i;
+  a.List(i);
+
+  size_t count = 0;
+  for (std::list<std::string>::const_iterator
+         it = i.begin(); it != i.end(); it++)
+  {
+    if (*it == first ||
+        *it == second)
+    {
+      count++;
+    }
+  }
+
+  ASSERT_EQ(2, count);
 }
