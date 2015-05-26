@@ -153,7 +153,7 @@ static void TestModule(ResourceType level,
                        DicomModule module)
 {
   std::set<DicomTag> moduleTags, main;
-  DicomTag::GetTagsForModule(moduleTags, module);
+  DicomTag::AddTagsForModule(moduleTags, module);
   DicomMap::GetMainDicomTags(main, level);
   
   // The main dicom tags are a subset of the module

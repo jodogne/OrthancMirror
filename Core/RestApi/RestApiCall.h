@@ -114,6 +114,8 @@ namespace Orthanc
       HttpHandler::ParseCookies(result, httpHeaders_);
     }
 
+    std::string FlattenUri() const;
+
     virtual bool ParseJsonRequest(Json::Value& result) const = 0;
   };
 }

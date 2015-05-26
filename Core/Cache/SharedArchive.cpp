@@ -69,6 +69,16 @@ namespace Orthanc
   }
 
 
+  SharedArchive::SharedArchive(size_t maxSize) : 
+    maxSize_(maxSize)
+  {
+    if (maxSize == 0)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
   SharedArchive::~SharedArchive()
   {
     for (Archive::iterator it = archive_.begin();

@@ -883,7 +883,7 @@ namespace Orthanc
     DicomMap tags;
     db_.GetMainDicomTags(tags, resourceId);
     target["MainDicomTags"] = Json::objectValue;
-    FromDcmtkBridge::ToJson(target["MainDicomTags"], tags);
+    FromDcmtkBridge::ToJson(target["MainDicomTags"], tags, true);
   }
 
   bool ServerIndex::LookupResource(Json::Value& result,

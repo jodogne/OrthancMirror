@@ -40,8 +40,10 @@
 
 namespace Orthanc
 {
-  RestApiOutput::RestApiOutput(HttpOutput& output) : 
+  RestApiOutput::RestApiOutput(HttpOutput& output,
+                               HttpMethod method) : 
     output_(output),
+    method_(method),
     convertJsonToXml_(false)
   {
     alreadySent_ = false;
@@ -55,7 +57,14 @@ namespace Orthanc
   {
     if (!alreadySent_)
     {
-      output_.SendStatus(HttpStatus_404_NotFound);
+      if (method_ == HttpMethod_Post)
+      {
+        output_.SendStatus(HttpStatus_400_BadRequest);
+      }
+      else
+      {
+        output_.SendStatus(HttpStatus_404_NotFound);
+      }
     }
   }
   

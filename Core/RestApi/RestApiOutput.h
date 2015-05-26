@@ -43,13 +43,15 @@ namespace Orthanc
   {
   private:
     HttpOutput& output_;
-    bool alreadySent_;
-    bool convertJsonToXml_;
+    HttpMethod  method_;
+    bool        alreadySent_;
+    bool        convertJsonToXml_;
 
     void CheckStatus();
 
   public:
-    RestApiOutput(HttpOutput& output);
+    RestApiOutput(HttpOutput& output,
+                  HttpMethod method);
 
     ~RestApiOutput();
 

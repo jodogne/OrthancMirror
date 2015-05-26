@@ -173,6 +173,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/ExportedResource.cpp
   OrthancServer/ResourceFinder.cpp
   OrthancServer/DicomFindQuery.cpp
+  OrthancServer/QueryRetrieveHandler.cpp
 
   # From "lua-scripting" branch
   OrthancServer/DicomInstanceToStore.cpp
