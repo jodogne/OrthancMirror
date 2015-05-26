@@ -78,7 +78,8 @@ namespace Orthanc
     dicomCache_(provider_, DICOM_CACHE_SIZE),
     scheduler_(Configuration::GetGlobalIntegerParameter("LimitJobs", 10)),
     plugins_(NULL),
-    pluginsManager_(NULL)
+    pluginsManager_(NULL),
+    queryRetrieveArchive_(Configuration::GetGlobalIntegerParameter("QueryRetrieveSize", 10))
   {
     scu_.SetLocalApplicationEntityTitle(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"));
 

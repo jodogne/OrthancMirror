@@ -46,14 +46,6 @@ namespace Orthanc
   class DicomUserConnection : public boost::noncopyable
   {
   private:
-    enum FindRootModel
-    {
-      FindRootModel_Patient,
-      FindRootModel_Study,
-      FindRootModel_Series,
-      FindRootModel_Instance
-    };
-
     struct PImpl;
     boost::shared_ptr<PImpl> pimpl_;
 
@@ -71,10 +63,6 @@ namespace Orthanc
     void CheckIsOpen() const;
 
     void SetupPresentationContexts(const std::string& preferredTransferSyntax);
-
-    void Find(DicomFindAnswers& result,
-              FindRootModel model,
-              const DicomMap& fields);
 
     void MoveInternal(const std::string& targetAet,
                       const DicomMap& fields);
@@ -150,17 +138,9 @@ namespace Orthanc
 
     void StoreFile(const std::string& path);
 
-    void FindPatient(DicomFindAnswers& result,
-                     const DicomMap& fields);
-
-    void FindStudy(DicomFindAnswers& result,
-                   const DicomMap& fields);
-
-    void FindSeries(DicomFindAnswers& result,
-                    const DicomMap& fields);
-
-    void FindInstance(DicomFindAnswers& result,
-                      const DicomMap& fields);
+    void Find(DicomFindAnswers& result,
+              ResourceType level,
+              const DicomMap& fields);
 
     void Move(const std::string& targetAet,
               const DicomMap& findResult);

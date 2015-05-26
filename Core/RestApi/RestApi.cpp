@@ -163,7 +163,7 @@ namespace Orthanc
                        const GetArguments& getArguments,
                        const std::string& postData)
   {
-    RestApiOutput wrappedOutput(output);
+    RestApiOutput wrappedOutput(output, method);
 
 #if ORTHANC_PUGIXML_ENABLED == 1
     // Look if the user wishes XML answers instead of JSON

@@ -32,44 +32,63 @@
 
 #pragma once
 
-#include "../../Core/DicomFormat/DicomMap.h"
-
-#include <vector>
-#include <json/json.h>
+#include "ServerContext.h"
 
 namespace Orthanc
 {
-  class DicomFindAnswers
+  class QueryRetrieveHandler : public IDynamicObject
   {
   private:
-    std::vector<DicomMap*> items_;
+    ServerContext&             context_;
+    bool                       done_;
+    RemoteModalityParameters   modality_;
+    ResourceType               level_;
+    DicomMap                   query_;
+    DicomFindAnswers           answers_;
+    std::string                modalityName_;
+
+    void Invalidate();
+
 
   public:
-    ~DicomFindAnswers()
+    QueryRetrieveHandler(ServerContext& context);
+
+    void SetModality(const std::string& symbolicName);
+
+    const RemoteModalityParameters& GetModality() const
     {
-      Clear();
+      return modality_;
     }
 
-    void Clear();
-
-    void Reserve(size_t index);
-
-    void Add(const DicomMap& map)
+    const std::string& GetModalitySymbolicName() const
     {
-      items_.push_back(map.Clone());
+      return modalityName_;
     }
 
-    size_t GetSize() const
+    void SetLevel(ResourceType level);
+
+    ResourceType GetLevel() const
     {
-      return items_.size();
+      return level_;
     }
 
-    const DicomMap& GetAnswer(size_t index) const
+    void SetQuery(const DicomTag& tag,
+                  const std::string& value);
+
+    const DicomMap& GetQuery() const
     {
-      return *items_.at(index);
+      return query_;
     }
 
-    void ToJson(Json::Value& target,
-                bool simplify) const;
+    void Run();
+
+    size_t GetAnswerCount();
+
+    const DicomMap& GetAnswer(size_t i);
+
+    void Retrieve(const std::string& target,
+                  size_t i);
+
+    void Retrieve(const std::string& target);
   };
 }

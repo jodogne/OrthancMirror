@@ -70,9 +70,7 @@ namespace Orthanc
     };
 
 
-    SharedArchive(size_t maxSize) : maxSize_(maxSize)
-    {
-    }
+    SharedArchive(size_t maxSize);
 
     ~SharedArchive();
 

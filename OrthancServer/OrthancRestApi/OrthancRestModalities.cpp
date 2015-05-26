@@ -39,35 +39,16 @@
 #include "../Scheduler/ServerJob.h"
 #include "../Scheduler/StoreScuCommand.h"
 #include "../Scheduler/StorePeerCommand.h"
+#include "../QueryRetrieveHandler.h"
+#include "../ServerToolbox.h"
 
 #include <glog/logging.h>
 
 namespace Orthanc
 {
-  // DICOM SCU ----------------------------------------------------------------
-
-  static bool MergeQueryAndTemplate(DicomMap& result,
-                                    const std::string& postData)
-  {
-    Json::Value query;
-    Json::Reader reader;
-
-    if (!reader.parse(postData, query) ||
-        query.type() != Json::objectValue)
-    {
-      return false;
-    }
-
-    Json::Value::Members members = query.getMemberNames();
-    for (size_t i = 0; i < members.size(); i++)
-    {
-      DicomTag t = FromDcmtkBridge::ParseTag(members[i]);
-      result.SetValue(t, query[members[i]].asString());
-    }
-
-    return true;
-  }
-
+  /***************************************************************************
+   * DICOM C-Echo SCU
+   ***************************************************************************/
 
   static void DicomEcho(RestApiPostCall& call)
   {
@@ -94,13 +75,100 @@ namespace Orthanc
   }
 
 
+
+  /***************************************************************************
+   * DICOM C-Find SCU => DEPRECATED!
+   ***************************************************************************/
+
+  static bool MergeQueryAndTemplate(DicomMap& result,
+                                    const std::string& postData)
+  {
+    Json::Value query;
+    Json::Reader reader;
+
+    if (!reader.parse(postData, query) ||
+        query.type() != Json::objectValue)
+    {
+      return false;
+    }
+
+    Json::Value::Members members = query.getMemberNames();
+    for (size_t i = 0; i < members.size(); i++)
+    {
+      DicomTag t = FromDcmtkBridge::ParseTag(members[i]);
+      result.SetValue(t, query[members[i]].asString());
+    }
+
+    return true;
+  }
+
+
+  static void FindPatient(DicomFindAnswers& result,
+                          DicomUserConnection& connection,
+                          const DicomMap& fields)
+  {
+    // Only keep the filters from "fields" that are related to the patient
+    DicomMap s;
+    fields.ExtractPatientInformation(s);
+    connection.Find(result, ResourceType_Patient, s);
+  }
+
+
+  static void FindStudy(DicomFindAnswers& result,
+                        DicomUserConnection& connection,
+                        const DicomMap& fields)
+  {
+    // Only keep the filters from "fields" that are related to the study
+    DicomMap s;
+    fields.ExtractStudyInformation(s);
+
+    s.CopyTagIfExists(fields, DICOM_TAG_PATIENT_ID);
+    s.CopyTagIfExists(fields, DICOM_TAG_ACCESSION_NUMBER);
+    s.CopyTagIfExists(fields, DICOM_TAG_MODALITIES_IN_STUDY);
+
+    connection.Find(result, ResourceType_Study, s);
+  }
+
+  static void FindSeries(DicomFindAnswers& result,
+                         DicomUserConnection& connection,
+                         const DicomMap& fields)
+  {
+    // Only keep the filters from "fields" that are related to the series
+    DicomMap s;
+    fields.ExtractSeriesInformation(s);
+
+    s.CopyTagIfExists(fields, DICOM_TAG_PATIENT_ID);
+    s.CopyTagIfExists(fields, DICOM_TAG_ACCESSION_NUMBER);
+    s.CopyTagIfExists(fields, DICOM_TAG_STUDY_INSTANCE_UID);
+
+    connection.Find(result, ResourceType_Series, s);
+  }
+
+  static void FindInstance(DicomFindAnswers& result,
+                           DicomUserConnection& connection,
+                           const DicomMap& fields)
+  {
+    // Only keep the filters from "fields" that are related to the instance
+    DicomMap s;
+    fields.ExtractInstanceInformation(s);
+
+    s.CopyTagIfExists(fields, DICOM_TAG_PATIENT_ID);
+    s.CopyTagIfExists(fields, DICOM_TAG_ACCESSION_NUMBER);
+    s.CopyTagIfExists(fields, DICOM_TAG_STUDY_INSTANCE_UID);
+    s.CopyTagIfExists(fields, DICOM_TAG_SERIES_INSTANCE_UID);
+
+    connection.Find(result, ResourceType_Instance, s);
+  }
+
+
   static void DicomFindPatient(RestApiPostCall& call)
   {
+    LOG(WARNING) << "This URI is deprecated: " << call.FlattenUri();
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    DicomMap m;
-    DicomMap::SetupFindPatientTemplate(m);
-    if (!MergeQueryAndTemplate(m, call.GetPostBody()))
+    DicomMap fields;
+    DicomMap::SetupFindPatientTemplate(fields);
+    if (!MergeQueryAndTemplate(fields, call.GetPostBody()))
     {
       return;
     }
@@ -109,26 +177,27 @@ namespace Orthanc
     ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
 
     DicomFindAnswers answers;
-    locker.GetConnection().FindPatient(answers, m);
+    FindPatient(answers, locker.GetConnection(), fields);
 
     Json::Value result;
-    answers.ToJson(result);
+    answers.ToJson(result, true);
     call.GetOutput().AnswerJson(result);
   }
 
   static void DicomFindStudy(RestApiPostCall& call)
   {
+    LOG(WARNING) << "This URI is deprecated: " << call.FlattenUri();
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    DicomMap m;
-    DicomMap::SetupFindStudyTemplate(m);
-    if (!MergeQueryAndTemplate(m, call.GetPostBody()))
+    DicomMap fields;
+    DicomMap::SetupFindStudyTemplate(fields);
+    if (!MergeQueryAndTemplate(fields, call.GetPostBody()))
     {
       return;
     }
 
-    if (m.GetValue(DICOM_TAG_ACCESSION_NUMBER).AsString().size() <= 2 &&
-        m.GetValue(DICOM_TAG_PATIENT_ID).AsString().size() <= 2)
+    if (fields.GetValue(DICOM_TAG_ACCESSION_NUMBER).AsString().size() <= 2 &&
+        fields.GetValue(DICOM_TAG_PATIENT_ID).AsString().size() <= 2)
     {
       return;
     }        
@@ -137,27 +206,28 @@ namespace Orthanc
     ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
 
     DicomFindAnswers answers;
-    locker.GetConnection().FindStudy(answers, m);
+    FindStudy(answers, locker.GetConnection(), fields);
 
     Json::Value result;
-    answers.ToJson(result);
+    answers.ToJson(result, true);
     call.GetOutput().AnswerJson(result);
   }
 
   static void DicomFindSeries(RestApiPostCall& call)
   {
+    LOG(WARNING) << "This URI is deprecated: " << call.FlattenUri();
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    DicomMap m;
-    DicomMap::SetupFindSeriesTemplate(m);
-    if (!MergeQueryAndTemplate(m, call.GetPostBody()))
+    DicomMap fields;
+    DicomMap::SetupFindSeriesTemplate(fields);
+    if (!MergeQueryAndTemplate(fields, call.GetPostBody()))
     {
       return;
     }
 
-    if ((m.GetValue(DICOM_TAG_ACCESSION_NUMBER).AsString().size() <= 2 &&
-         m.GetValue(DICOM_TAG_PATIENT_ID).AsString().size() <= 2) ||
-        m.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString().size() <= 2)
+    if ((fields.GetValue(DICOM_TAG_ACCESSION_NUMBER).AsString().size() <= 2 &&
+         fields.GetValue(DICOM_TAG_PATIENT_ID).AsString().size() <= 2) ||
+        fields.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString().size() <= 2)
     {
       return;
     }        
@@ -166,28 +236,29 @@ namespace Orthanc
     ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
 
     DicomFindAnswers answers;
-    locker.GetConnection().FindSeries(answers, m);
+    FindSeries(answers, locker.GetConnection(), fields);
 
     Json::Value result;
-    answers.ToJson(result);
+    answers.ToJson(result, true);
     call.GetOutput().AnswerJson(result);
   }
 
   static void DicomFindInstance(RestApiPostCall& call)
   {
+    LOG(WARNING) << "This URI is deprecated: " << call.FlattenUri();
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    DicomMap m;
-    DicomMap::SetupFindInstanceTemplate(m);
-    if (!MergeQueryAndTemplate(m, call.GetPostBody()))
+    DicomMap fields;
+    DicomMap::SetupFindInstanceTemplate(fields);
+    if (!MergeQueryAndTemplate(fields, call.GetPostBody()))
     {
       return;
     }
 
-    if ((m.GetValue(DICOM_TAG_ACCESSION_NUMBER).AsString().size() <= 2 &&
-         m.GetValue(DICOM_TAG_PATIENT_ID).AsString().size() <= 2) ||
-        m.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString().size() <= 2 ||
-        m.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).AsString().size() <= 2)
+    if ((fields.GetValue(DICOM_TAG_ACCESSION_NUMBER).AsString().size() <= 2 &&
+         fields.GetValue(DICOM_TAG_PATIENT_ID).AsString().size() <= 2) ||
+        fields.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString().size() <= 2 ||
+        fields.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).AsString().size() <= 2)
     {
       return;
     }        
@@ -196,15 +267,17 @@ namespace Orthanc
     ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
 
     DicomFindAnswers answers;
-    locker.GetConnection().FindInstance(answers, m);
+    FindInstance(answers, locker.GetConnection(), fields);
 
     Json::Value result;
-    answers.ToJson(result);
+    answers.ToJson(result, true);
     call.GetOutput().AnswerJson(result);
   }
 
+
   static void DicomFind(RestApiPostCall& call)
   {
+    LOG(WARNING) << "This URI is deprecated: " << call.FlattenUri();
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     DicomMap m;
@@ -218,14 +291,14 @@ namespace Orthanc
     ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
 
     DicomFindAnswers patients;
-    locker.GetConnection().FindPatient(patients, m);
+    FindPatient(patients, locker.GetConnection(), m);
 
     // Loop over the found patients
     Json::Value result = Json::arrayValue;
     for (size_t i = 0; i < patients.GetSize(); i++)
     {
       Json::Value patient(Json::objectValue);
-      FromDcmtkBridge::ToJson(patient, patients.GetAnswer(i));
+      FromDcmtkBridge::ToJson(patient, patients.GetAnswer(i), true);
 
       DicomMap::SetupFindStudyTemplate(m);
       if (!MergeQueryAndTemplate(m, call.GetPostBody()))
@@ -235,7 +308,7 @@ namespace Orthanc
       m.CopyTagIfExists(patients.GetAnswer(i), DICOM_TAG_PATIENT_ID);
 
       DicomFindAnswers studies;
-      locker.GetConnection().FindStudy(studies, m);
+      FindStudy(studies, locker.GetConnection(), m);
 
       patient["Studies"] = Json::arrayValue;
       
@@ -243,7 +316,7 @@ namespace Orthanc
       for (size_t j = 0; j < studies.GetSize(); j++)
       {
         Json::Value study(Json::objectValue);
-        FromDcmtkBridge::ToJson(study, studies.GetAnswer(j));
+        FromDcmtkBridge::ToJson(study, studies.GetAnswer(j), true);
 
         DicomMap::SetupFindSeriesTemplate(m);
         if (!MergeQueryAndTemplate(m, call.GetPostBody()))
@@ -254,14 +327,14 @@ namespace Orthanc
         m.CopyTagIfExists(studies.GetAnswer(j), DICOM_TAG_STUDY_INSTANCE_UID);
 
         DicomFindAnswers series;
-        locker.GetConnection().FindSeries(series, m);
+        FindSeries(series, locker.GetConnection(), m);
 
         // Loop over the found series
         study["Series"] = Json::arrayValue;
         for (size_t k = 0; k < series.GetSize(); k++)
         {
           Json::Value series2(Json::objectValue);
-          FromDcmtkBridge::ToJson(series2, series.GetAnswer(k));
+          FromDcmtkBridge::ToJson(series2, series.GetAnswer(k), true);
           study["Series"].append(series2);
         }
 
@@ -274,6 +347,205 @@ namespace Orthanc
     call.GetOutput().AnswerJson(result);
   }
 
+
+
+  /***************************************************************************
+   * DICOM C-Find and C-Move SCU => Recommended since Orthanc 0.9.0
+   ***************************************************************************/
+
+  static void DicomQuery(RestApiPostCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+    Json::Value request;
+
+    if (call.ParseJsonRequest(request) &&
+        request.type() == Json::objectValue &&
+        request.isMember("Level") && request["Level"].type() == Json::stringValue &&
+        (!request.isMember("Query") || request["Query"].type() == Json::objectValue))
+    {
+      std::auto_ptr<QueryRetrieveHandler>  handler(new QueryRetrieveHandler(context));
+
+      handler->SetModality(call.GetUriComponent("id", ""));
+      handler->SetLevel(StringToResourceType(request["Level"].asString().c_str()));
+
+      if (request.isMember("Query"))
+      {
+        Json::Value::Members tags = request["Query"].getMemberNames();
+        for (size_t i = 0; i < tags.size(); i++)
+        {
+          handler->SetQuery(FromDcmtkBridge::ParseTag(tags[i].c_str()),
+                            request["Query"][tags[i]].asString());
+        }
+      }
+
+      handler->Run();
+
+      std::string s = context.GetQueryRetrieveArchive().Add(handler.release());
+      Json::Value result = Json::objectValue;
+      result["ID"] = s;
+      result["Path"] = "/queries/" + s;
+      call.GetOutput().AnswerJson(result);      
+    }
+  }
+
+
+  static void ListQueries(RestApiGetCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    std::list<std::string> queries;
+    context.GetQueryRetrieveArchive().List(queries);
+
+    Json::Value result = Json::arrayValue;
+    for (std::list<std::string>::const_iterator
+           it = queries.begin(); it != queries.end(); ++it)
+    {
+      result.append(*it);
+    }
+
+    call.GetOutput().AnswerJson(result);
+  }
+
+
+  namespace
+  {
+    class QueryAccessor
+    {
+    private:
+      ServerContext&            context_;
+      SharedArchive::Accessor   accessor_;
+      QueryRetrieveHandler&     handler_;
+
+    public:
+      QueryAccessor(RestApiCall& call) :
+        context_(OrthancRestApi::GetContext(call)),
+        accessor_(context_.GetQueryRetrieveArchive(), call.GetUriComponent("id", "")),
+        handler_(dynamic_cast<QueryRetrieveHandler&>(accessor_.GetItem()))
+      {
+      }                     
+
+      QueryRetrieveHandler* operator->()
+      {
+        return &handler_;
+      }
+    };
+
+    static void AnswerDicomMap(RestApiCall& call,
+                               const DicomMap& value,
+                               bool simplify)
+    {
+      Json::Value full = Json::objectValue;
+      FromDcmtkBridge::ToJson(full, value, simplify);
+      call.GetOutput().AnswerJson(full);
+    }
+  }
+
+
+  static void ListQueryAnswers(RestApiGetCall& call)
+  {
+    QueryAccessor query(call);
+    size_t count = query->GetAnswerCount();
+
+    Json::Value result = Json::arrayValue;
+    for (size_t i = 0; i < count; i++)
+    {
+      result.append(boost::lexical_cast<std::string>(i));
+    }
+
+    call.GetOutput().AnswerJson(result);
+  }
+
+
+  static void GetQueryOneAnswer(RestApiGetCall& call)
+  {
+    size_t index = boost::lexical_cast<size_t>(call.GetUriComponent("index", ""));
+    QueryAccessor query(call);
+    AnswerDicomMap(call, query->GetAnswer(index), call.HasArgument("simplify"));
+  }
+
+
+  static void RetrieveOneAnswer(RestApiPostCall& call)
+  {
+    size_t index = boost::lexical_cast<size_t>(call.GetUriComponent("index", ""));
+
+    LOG(WARNING) << "Driving C-Move SCU on modality: " << call.GetPostBody();
+
+    QueryAccessor query(call);
+    query->Retrieve(call.GetPostBody(), index);
+
+    // Retrieve has succeeded
+    call.GetOutput().AnswerBuffer("{}", "application/json");
+  }
+
+
+  static void RetrieveAllAnswers(RestApiPostCall& call)
+  {
+    LOG(WARNING) << "Driving C-Move SCU on modality: " << call.GetPostBody();
+
+    QueryAccessor query(call);
+    query->Retrieve(call.GetPostBody());
+
+    // Retrieve has succeeded
+    call.GetOutput().AnswerBuffer("{}", "application/json");
+  }
+
+
+  static void GetQueryArguments(RestApiGetCall& call)
+  {
+    QueryAccessor query(call);
+    AnswerDicomMap(call, query->GetQuery(), call.HasArgument("simplify"));
+  }
+
+
+  static void GetQueryLevel(RestApiGetCall& call)
+  {
+    QueryAccessor query(call);
+    call.GetOutput().AnswerBuffer(EnumerationToString(query->GetLevel()), "text/plain");
+  }
+
+
+  static void GetQueryModality(RestApiGetCall& call)
+  {
+    QueryAccessor query(call);
+    call.GetOutput().AnswerBuffer(query->GetModalitySymbolicName(), "text/plain");
+  }
+
+
+  static void DeleteQuery(RestApiDeleteCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+    context.GetQueryRetrieveArchive().Remove(call.GetUriComponent("id", ""));
+    call.GetOutput().AnswerBuffer("", "text/plain");
+  }
+
+
+  static void ListQueryOperations(RestApiGetCall& call)
+  {
+    // Ensure that the query of interest does exist
+    QueryAccessor query(call);  
+
+    RestApi::AutoListChildren(call);
+  }
+
+
+  static void ListQueryAnswerOperations(RestApiGetCall& call)
+  {
+    // Ensure that the query of interest does exist
+    QueryAccessor query(call);
+
+    // Ensure that the answer of interest does exist
+    size_t index = boost::lexical_cast<size_t>(call.GetUriComponent("index", ""));
+    query->GetAnswer(index);
+
+    RestApi::AutoListChildren(call);
+  }
+
+
+
+
+  /***************************************************************************
+   * DICOM C-Store SCU
+   ***************************************************************************/
 
   static bool GetInstancesToExport(std::list<std::string>& instances,
                                    const std::string& remote,
@@ -379,7 +651,9 @@ namespace Orthanc
   }
 
 
-  // Orthanc Peers ------------------------------------------------------------
+  /***************************************************************************
+   * Orthanc Peers => Store client
+   ***************************************************************************/
 
   static bool IsExistingPeer(const OrthancRestApi::SetOfStrings& peers,
                              const std::string& id)
@@ -542,6 +816,20 @@ namespace Orthanc
     Register("/modalities/{id}/find-instance", DicomFindInstance);
     Register("/modalities/{id}/find", DicomFind);
     Register("/modalities/{id}/store", DicomStore);
+
+    // For Query/Retrieve
+    Register("/modalities/{id}/query", DicomQuery);
+    Register("/queries", ListQueries);
+    Register("/queries/{id}", DeleteQuery);
+    Register("/queries/{id}", ListQueryOperations);
+    Register("/queries/{id}/answers", ListQueryAnswers);
+    Register("/queries/{id}/answers/{index}", ListQueryAnswerOperations);
+    Register("/queries/{id}/answers/{index}/content", GetQueryOneAnswer);
+    Register("/queries/{id}/answers/{index}/retrieve", RetrieveOneAnswer);
+    Register("/queries/{id}/level", GetQueryLevel);
+    Register("/queries/{id}/modality", GetQueryModality);
+    Register("/queries/{id}/query", GetQueryArguments);
+    Register("/queries/{id}/retrieve", RetrieveAllAnswers);
 
     Register("/peers", ListPeers);
     Register("/peers/{id}", ListPeerOperations);

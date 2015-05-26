@@ -222,5 +222,10 @@
   // are issued. This option sets the number of seconds of inactivity
   // to wait before automatically closing a DICOM association. If set
   // to 0, the connection is closed immediately.
-  "DicomAssociationCloseDelay" : 5
+  "DicomAssociationCloseDelay" : 5,
+
+  // Maximum number of query/retrieve DICOM requests that are
+  // maintained by Orthanc. The least recently used requests get
+  // deleted as new requests are issued.
+  "QueryRetrieveSize" : 10
 }

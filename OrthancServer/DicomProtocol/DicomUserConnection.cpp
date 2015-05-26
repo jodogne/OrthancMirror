@@ -84,6 +84,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../Core/OrthancException.h"
 #include "../ToDcmtkBridge.h"
 #include "../FromDcmtkBridge.h"
+#include "../../Core/DicomFormat/DicomArray.h"
 
 #include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcistrmf.h>
@@ -372,10 +373,51 @@ namespace Orthanc
     }
   }
 
+
+  static void CheckFindQuery(ResourceType level,
+                             const DicomMap& fields)
+  {
+    std::set<DicomTag> allowedTags;
+
+    // WARNING: Do not add "break" or reorder items in this switch-case!
+    switch (level)
+    {
+      case ResourceType_Instance:
+        DicomTag::AddTagsForModule(allowedTags, DicomModule_Instance);
+
+      case ResourceType_Series:
+        DicomTag::AddTagsForModule(allowedTags, DicomModule_Series);
+
+      case ResourceType_Study:
+        DicomTag::AddTagsForModule(allowedTags, DicomModule_Study);
+
+      case ResourceType_Patient:
+        DicomTag::AddTagsForModule(allowedTags, DicomModule_Patient);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+
+    DicomArray query(fields);
+    for (size_t i = 0; i < query.GetSize(); i++)
+    {
+      const DicomTag& tag = query.GetElement(i).GetTag();
+      if (allowedTags.find(tag) == allowedTags.end())
+      {
+        LOG(ERROR) << "Tag not allowed for this C-Find level: " << tag;
+        throw OrthancException(ErrorCode_BadRequest);
+      }
+    }
+  }
+
+
   void DicomUserConnection::Find(DicomFindAnswers& result,
-                                 FindRootModel model,
+                                 ResourceType level,
                                  const DicomMap& fields)
   {
+    CheckFindQuery(level, fields);
+
     CheckIsOpen();
 
     FindPayload payload;
@@ -383,58 +425,27 @@ namespace Orthanc
 
     const char* sopClass;
     std::auto_ptr<DcmDataset> dataset(ToDcmtkBridge::Convert(fields));
-    switch (model)
+    switch (level)
     {
-      case FindRootModel_Patient:
+      case ResourceType_Patient:
         payload.level = "PATIENT";
         DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "PATIENT");
         sopClass = UID_FINDPatientRootQueryRetrieveInformationModel;
-      
-        // Accession number
-        if (!fields.HasTag(0x0008, 0x0050))
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0050), "");
-
-        // Patient ID
-        if (!fields.HasTag(0x0010, 0x0020))
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0010, 0x0020), "");
-
         break;
 
-      case FindRootModel_Study:
+      case ResourceType_Study:
         payload.level = "STUDY";
         DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "STUDY");
         sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
-
-        // Accession number
-        if (!fields.HasTag(0x0008, 0x0050))
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0050), "");
-
-        // Study instance UID
-        if (!fields.HasTag(0x0020, 0x000d))
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0020, 0x000d), "");
-
         break;
 
-      case FindRootModel_Series:
+      case ResourceType_Series:
         payload.level = "SERIES";
         DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "SERIES");
         sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
-
-        // Accession number
-        if (!fields.HasTag(0x0008, 0x0050))
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0050), "");
-
-        // Study instance UID
-        if (!fields.HasTag(0x0020, 0x000d))
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0020, 0x000d), "");
-
-        // Series instance UID
-        if (!fields.HasTag(0x0020, 0x000e))
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0020, 0x000e), "");
-
         break;
 
-      case FindRootModel_Instance:
+      case ResourceType_Instance:
         payload.level = "INSTANCE";
         if (manufacturer_ == ModalityManufacturer_ClearCanvas ||
             manufacturer_ == ModalityManufacturer_Dcm4Chee)
@@ -450,7 +461,27 @@ namespace Orthanc
         }
 
         sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
+        break;
 
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    // Add the expected tags for this query level.
+    // WARNING: Do not reorder or add "break" in this switch-case!
+    switch (level)
+    {
+      case ResourceType_Instance:
+        // SOP Instance UID
+        if (!fields.HasTag(0x0008, 0x0018))
+          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0018), "");
+
+      case ResourceType_Series:
+        // Series instance UID
+        if (!fields.HasTag(0x0020, 0x000e))
+          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0020, 0x000e), "");
+
+      case ResourceType_Study:
         // Accession number
         if (!fields.HasTag(0x0008, 0x0050))
           DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0050), "");
@@ -459,13 +490,10 @@ namespace Orthanc
         if (!fields.HasTag(0x0020, 0x000d))
           DU_putStringDOElement(dataset.get(), DcmTagKey(0x0020, 0x000d), "");
 
-        // Series instance UID
-        if (!fields.HasTag(0x0020, 0x000e))
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0020, 0x000e), "");
-
-        // SOP Instance UID
-        if (!fields.HasTag(0x0008, 0x0018))
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0018), "");
+      case ResourceType_Patient:
+        // Patient ID
+        if (!fields.HasTag(0x0010, 0x0020))
+          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0010, 0x0020), "");
 
         break;
 
@@ -501,59 +529,6 @@ namespace Orthanc
     }
 
     Check(cond);
-  }
-
-
-  void DicomUserConnection::FindPatient(DicomFindAnswers& result,
-                                        const DicomMap& fields)
-  {
-    // Only keep the filters from "fields" that are related to the patient
-    DicomMap s;
-    fields.ExtractPatientInformation(s);
-    Find(result, FindRootModel_Patient, s);
-  }
-
-  void DicomUserConnection::FindStudy(DicomFindAnswers& result,
-                                      const DicomMap& fields)
-  {
-    // Only keep the filters from "fields" that are related to the study
-    DicomMap s;
-    fields.ExtractStudyInformation(s);
-
-    s.CopyTagIfExists(fields, DICOM_TAG_PATIENT_ID);
-    s.CopyTagIfExists(fields, DICOM_TAG_ACCESSION_NUMBER);
-    s.CopyTagIfExists(fields, DICOM_TAG_MODALITIES_IN_STUDY);
-
-    Find(result, FindRootModel_Study, s);
-  }
-
-  void DicomUserConnection::FindSeries(DicomFindAnswers& result,
-                                       const DicomMap& fields)
-  {
-    // Only keep the filters from "fields" that are related to the series
-    DicomMap s;
-    fields.ExtractSeriesInformation(s);
-
-    s.CopyTagIfExists(fields, DICOM_TAG_PATIENT_ID);
-    s.CopyTagIfExists(fields, DICOM_TAG_ACCESSION_NUMBER);
-    s.CopyTagIfExists(fields, DICOM_TAG_STUDY_INSTANCE_UID);
-
-    Find(result, FindRootModel_Series, s);
-  }
-
-  void DicomUserConnection::FindInstance(DicomFindAnswers& result,
-                                         const DicomMap& fields)
-  {
-    // Only keep the filters from "fields" that are related to the instance
-    DicomMap s;
-    fields.ExtractInstanceInformation(s);
-
-    s.CopyTagIfExists(fields, DICOM_TAG_PATIENT_ID);
-    s.CopyTagIfExists(fields, DICOM_TAG_ACCESSION_NUMBER);
-    s.CopyTagIfExists(fields, DICOM_TAG_STUDY_INSTANCE_UID);
-    s.CopyTagIfExists(fields, DICOM_TAG_SERIES_INSTANCE_UID);
-
-    Find(result, FindRootModel_Instance, s);
   }
 
 
