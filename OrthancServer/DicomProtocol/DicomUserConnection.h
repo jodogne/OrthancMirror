@@ -65,6 +65,7 @@ namespace Orthanc
     void SetupPresentationContexts(const std::string& preferredTransferSyntax);
 
     void MoveInternal(const std::string& targetAet,
+                      ResourceType level,
                       const DicomMap& fields);
 
     void ResetStorageSOPClasses();

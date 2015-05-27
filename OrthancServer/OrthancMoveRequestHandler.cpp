@@ -36,6 +36,8 @@
 #include <glog/logging.h>
 
 #include "OrthancInitialization.h"
+#include "FromDcmtkBridge.h"
+#include "../Core/DicomFormat/DicomArray.h"
 
 namespace Orthanc
 {
@@ -131,6 +133,21 @@ namespace Orthanc
                                                           const DicomMap& input)
   {
     LOG(WARNING) << "Move-SCU request received for AET \"" << aet << "\"";
+
+    {
+      DicomArray query(input);
+      for (size_t i = 0; i < query.GetSize(); i++)
+      {
+        if (!query.GetElement(i).GetValue().IsNull())
+        {
+          LOG(INFO) << "  " << query.GetElement(i).GetTag()
+                    << "  " << FromDcmtkBridge::GetName(query.GetElement(i).GetTag())
+                    << " = " << query.GetElement(i).GetValue().AsString();
+        }
+      }
+    }
+
+
 
     /**
      * Retrieve the query level.

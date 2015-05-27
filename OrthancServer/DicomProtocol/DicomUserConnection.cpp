@@ -399,6 +399,13 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
     }
 
+    if (level == ResourceType_Study)
+    {
+      allowedTags.insert(DICOM_TAG_MODALITIES_IN_STUDY);
+    }
+
+    allowedTags.insert(DICOM_TAG_SPECIFIC_CHARACTER_SET);
+
     DicomArray query(fields);
     for (size_t i = 0; i < query.GetSize(); i++)
     {
@@ -533,12 +540,46 @@ namespace Orthanc
 
 
   void DicomUserConnection::MoveInternal(const std::string& targetAet,
+                                         ResourceType level,
                                          const DicomMap& fields)
   {
     CheckIsOpen();
 
     const char* sopClass = UID_MOVEStudyRootQueryRetrieveInformationModel;
     std::auto_ptr<DcmDataset> dataset(ToDcmtkBridge::Convert(fields));
+
+    switch (level)
+    {
+      case ResourceType_Patient:
+        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "PATIENT");
+        break;
+
+      case ResourceType_Study:
+        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "STUDY");
+        break;
+
+      case ResourceType_Series:
+        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "SERIES");
+        break;
+
+      case ResourceType_Instance:
+        if (manufacturer_ == ModalityManufacturer_ClearCanvas ||
+            manufacturer_ == ModalityManufacturer_Dcm4Chee)
+        {
+          // This is a particular case for ClearCanvas, thanks to Peter Somlo <peter.somlo@gmail.com>.
+          // https://groups.google.com/d/msg/orthanc-users/j-6C3MAVwiw/iolB9hclom8J
+          // http://www.clearcanvas.ca/Home/Community/OldForums/tabid/526/aff/11/aft/14670/afv/topic/Default.aspx
+          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "IMAGE");
+        }
+        else
+        {
+          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "INSTANCE");
+        }
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
 
     // Figure out which of the accepted presentation contexts should be used
     int presID = ASC_findAcceptedPresentationContextID(pimpl_->assoc_, sopClass);
@@ -880,7 +921,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
     }
 
-    MoveInternal(targetAet, move);
+    MoveInternal(targetAet, level, move);
   }
 
 
@@ -889,7 +930,7 @@ namespace Orthanc
   {
     DicomMap query;
     query.SetValue(DICOM_TAG_PATIENT_ID, patientId);
-    MoveInternal(targetAet, query);
+    MoveInternal(targetAet, ResourceType_Patient, query);
   }
 
   void DicomUserConnection::MoveStudy(const std::string& targetAet,
@@ -897,7 +938,7 @@ namespace Orthanc
   {
     DicomMap query;
     query.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid);
-    MoveInternal(targetAet, query);
+    MoveInternal(targetAet, ResourceType_Study, query);
   }
 
   void DicomUserConnection::MoveSeries(const std::string& targetAet,
@@ -907,7 +948,7 @@ namespace Orthanc
     DicomMap query;
     query.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid);
     query.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, seriesUid);
-    MoveInternal(targetAet, query);
+    MoveInternal(targetAet, ResourceType_Series, query);
   }
 
   void DicomUserConnection::MoveInstance(const std::string& targetAet,
@@ -919,7 +960,7 @@ namespace Orthanc
     query.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid);
     query.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, seriesUid);
     query.SetValue(DICOM_TAG_SOP_INSTANCE_UID, instanceUid);
-    MoveInternal(targetAet, query);
+    MoveInternal(targetAet, ResourceType_Instance, query);
   }
 
 
