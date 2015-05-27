@@ -54,9 +54,14 @@ namespace Orthanc
   {
     Json::Value result = Json::objectValue;
 
-    result["Version"] = ORTHANC_VERSION;
+    std::string dbVersion = OrthancRestApi::GetIndex(call).GetGlobalProperty(GlobalProperty_DatabaseSchemaVersion, "0");
+
+    result["DatabaseVersion"] = boost::lexical_cast<int>(dbVersion);
+    result["DicomAet"] = Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC");
+    result["DicomPort"] = Configuration::GetGlobalIntegerParameter("DicomPort", 4242);
+    result["HttpPort"] = Configuration::GetGlobalIntegerParameter("HttpPort", 8042);
     result["Name"] = Configuration::GetGlobalStringParameter("Name", "");
-    result["DatabaseVersion"] = boost::lexical_cast<int>(OrthancRestApi::GetIndex(call).GetGlobalProperty(GlobalProperty_DatabaseSchemaVersion, "0"));
+    result["Version"] = ORTHANC_VERSION;
 
     call.GetOutput().AnswerJson(result);
   }
