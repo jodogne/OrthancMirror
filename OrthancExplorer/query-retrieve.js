@@ -106,7 +106,7 @@ function Retrieve(url)
     success: function(system) {
       $('<div>').simpledialog2({
         mode: 'button',
-        headerText: 'Retrieve destination',
+        headerText: 'Target',
         headerClose: true,
         buttonPrompt: 'Enter Application Entity Title (AET):',
         buttonInput: true,
