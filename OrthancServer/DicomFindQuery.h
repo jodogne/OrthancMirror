@@ -91,7 +91,8 @@ namespace Orthanc
     }
 
     void SetConstraint(const DicomTag& tag,
-                       const std::string& constraint);
+                       const std::string& constraint,
+                       bool caseSensitivePN);
 
     virtual bool RestrictIdentifier(std::string& value,
                                     DicomTag identifier) const;

@@ -156,10 +156,19 @@ namespace Orthanc
     boost::regex pattern_;
 
   public:
-    WildcardConstraint(const std::string& wildcard)
+    WildcardConstraint(const std::string& wildcard,
+                       bool caseSensitive)
     {
-      pattern_ = boost::regex(Toolbox::WildcardToRegularExpression(wildcard),
-                              boost::regex::icase /* case insensitive search */);
+      std::string re = Toolbox::WildcardToRegularExpression(wildcard);
+
+      if (caseSensitive)
+      {
+        pattern_ = boost::regex(re);
+      }
+      else
+      {
+        pattern_ = boost::regex(re, boost::regex::icase /* case insensitive search */);
+      }
     }
 
     virtual bool Apply(const std::string& value) const
@@ -233,8 +242,11 @@ namespace Orthanc
 
 
   void DicomFindQuery::SetConstraint(const DicomTag& tag,
-                                     const std::string& constraint)
+                                     const std::string& constraint,
+                                     bool caseSensitivePN)
   {
+    bool sensitive = (FromDcmtkBridge::IsPNValueRepresentation(tag) ? caseSensitivePN : true);
+
     // http://www.itk.org/Wiki/DICOM_QueryRetrieve_Explained
     // http://dicomiseasy.blogspot.be/2012/01/dicom-queryretrieve-part-i.html  
 
@@ -249,7 +261,7 @@ namespace Orthanc
     else if (constraint.find('*') != std::string::npos ||
              constraint.find('?') != std::string::npos)
     {
-      AssignConstraint(tag, new WildcardConstraint(constraint));
+      AssignConstraint(tag, new WildcardConstraint(constraint, sensitive));
     }
     else
     {
@@ -284,7 +296,7 @@ namespace Orthanc
        * (0020,000E) UI SeriesInstanceUID  => Case-sensitive
       **/
 
-      AssignConstraint(tag, new ValueConstraint(constraint, FromDcmtkBridge::IsPNValueRepresentation(tag)));
+      AssignConstraint(tag, new ValueConstraint(constraint, sensitive));
     }
   }
 

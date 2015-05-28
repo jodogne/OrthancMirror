@@ -222,5 +222,10 @@
   // are issued. This option sets the number of seconds of inactivity
   // to wait before automatically closing a DICOM association. If set
   // to 0, the connection is closed immediately.
-  "DicomAssociationCloseDelay" : 5
+  "DicomAssociationCloseDelay" : 5,
+
+  // When handling a C-Find SCP request, setting this flag to "false"
+  // will enable case-insensitive match for PN value representation
+  // (such as PatientName). By default, the search is case-sensitive.
+  "CaseSensitivePN" : true
 }

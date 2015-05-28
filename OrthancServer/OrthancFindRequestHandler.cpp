@@ -231,6 +231,8 @@ namespace Orthanc
 
     // ModalityManufacturer manufacturer = modality.GetManufacturer();
 
+    bool caseSensitivePN = Configuration::GetGlobalBoolParameter("CaseSensitivePN", true);
+
 
     /**
      * Retrieve the query level.
@@ -293,7 +295,7 @@ namespace Orthanc
       }
       else
       {
-        findQuery.SetConstraint(tag, value);
+        findQuery.SetConstraint(tag, value, caseSensitivePN);
       }
     }
 
