@@ -43,6 +43,7 @@
 #include "Scheduler/ServerScheduler.h"
 #include "DicomInstanceToStore.h"
 #include "ServerIndexChange.h"
+#include "../Core/Cache/SharedArchive.h"
 
 #include <boost/filesystem.hpp>
 
@@ -95,6 +96,8 @@ namespace Orthanc
     LuaContext lua_;
     OrthancPlugins* plugins_;  // TODO Turn it into a listener pattern (idem for Lua callbacks)
     const PluginsManager* pluginsManager_;
+
+    SharedArchive  queryRetrieveArchive_;
 
   public:
     class DicomCacheLocker : public boost::noncopyable
@@ -223,5 +226,10 @@ namespace Orthanc
     const PluginsManager& GetPluginsManager() const;
 
     const OrthancPlugins& GetOrthancPlugins() const;
+
+    SharedArchive& GetQueryRetrieveArchive()
+    {
+      return queryRetrieveArchive_;
+    }
   };
 }

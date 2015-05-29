@@ -32,44 +32,54 @@
 
 #pragma once
 
-#include "../../Core/DicomFormat/DicomMap.h"
+#include "LeastRecentlyUsedIndex.h"
+#include "../IDynamicObject.h"
 
-#include <vector>
-#include <json/json.h>
+#include <map>
+#include <boost/thread.hpp>
 
 namespace Orthanc
 {
-  class DicomFindAnswers
+  class SharedArchive : public boost::noncopyable
   {
   private:
-    std::vector<DicomMap*> items_;
+    typedef std::map<std::string, IDynamicObject*>  Archive;
+
+    size_t         maxSize_;
+    boost::mutex   mutex_;
+    Archive        archive_;
+    Orthanc::LeastRecentlyUsedIndex<std::string> lru_;
+
+    void RemoveInternal(const std::string& id);
 
   public:
-    ~DicomFindAnswers()
+    class Accessor : public boost::noncopyable
     {
-      Clear();
-    }
+    private:
+      boost::mutex::scoped_lock  lock_;
+      IDynamicObject*            item_;
 
-    void Clear();
+    public:
+      Accessor(SharedArchive& that,
+               const std::string& id);
 
-    void Reserve(size_t index);
+      IDynamicObject& GetItem() const
+      {
+        return *item_;
+      }      
+    };
 
-    void Add(const DicomMap& map)
-    {
-      items_.push_back(map.Clone());
-    }
 
-    size_t GetSize() const
-    {
-      return items_.size();
-    }
+    SharedArchive(size_t maxSize);
 
-    const DicomMap& GetAnswer(size_t index) const
-    {
-      return *items_.at(index);
-    }
+    ~SharedArchive();
 
-    void ToJson(Json::Value& target,
-                bool simplify) const;
+    std::string Add(IDynamicObject* obj);  // Takes the ownership
+
+    void Remove(const std::string& id);
+
+    void List(std::list<std::string>& items);
   };
 }
+
+
