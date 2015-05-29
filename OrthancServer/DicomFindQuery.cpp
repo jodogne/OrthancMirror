@@ -205,7 +205,7 @@ namespace Orthanc
   DicomFindQuery::~DicomFindQuery()
   {
     for (Constraints::iterator it = constraints_.begin();
-         it != constraints_.end(); it++)
+         it != constraints_.end(); ++it)
     {
       delete it->second;
     }

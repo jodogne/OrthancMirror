@@ -53,7 +53,7 @@ namespace Orthanc
     Json::Value answer = Json::arrayValue;
 
     for (std::list<std::string>::const_iterator
-           resource = resources.begin(); resource != resources.end(); resource++)
+           resource = resources.begin(); resource != resources.end(); ++resource)
     {
       if (expand)
       {
