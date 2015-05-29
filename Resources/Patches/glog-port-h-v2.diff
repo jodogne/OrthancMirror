@@ -1,0 +1,4 @@
+124a125
+> #if !defined(__MINGW32__)
+135a137
+> #endif
