@@ -226,6 +226,6 @@
 
   // When handling a C-Find SCP request, setting this flag to "false"
   // will enable case-insensitive match for PN value representation
-  // (such as PatientName). By default, the search is case-sensitive.
-  "CaseSensitivePN" : true
+  // (such as PatientName). By default, the search is case-insensitive.
+  "CaseSensitivePN" : false
 }
