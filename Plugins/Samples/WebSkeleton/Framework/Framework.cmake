@@ -16,16 +16,6 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-if (${CMAKE_COMPILER_IS_GNUCXX})
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Werror -Wno-unused-function")
-endif()
-
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  # Linking with "pthread" is necessary, otherwise the software might crash
-  # http://sourceware.org/bugzilla/show_bug.cgi?id=10652#c17
-  link_libraries(pthread dl)
-endif()
-
 if (STANDALONE_BUILD)
   add_definitions(-DORTHANC_PLUGIN_STANDALONE=1)
 

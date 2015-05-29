@@ -2,18 +2,15 @@ cmake_minimum_required(VERSION 2.8)
 
 project(GdcmDecoding)
 
-SET(ALLOW_DOWNLOADS ON CACHE BOOL "Allow CMake to download packages")
+SET(ALLOW_DOWNLOADS OFF CACHE BOOL "Allow CMake to download packages")
 SET(USE_SYSTEM_BOOST ON CACHE BOOL "Use the system version of Boost")
-SET(USE_SYSTEM_GOOGLE_LOG OFF CACHE BOOL "Use the system version of Google Log")
+SET(USE_SYSTEM_GOOGLE_LOG ON CACHE BOOL "Use the system version of Google Log")
 
 set(ORTHANC_ROOT ${CMAKE_SOURCE_DIR}/../../..)
 
-if (${CMAKE_COMPILER_IS_GNUCXX})
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
-  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined")
-endif()
-
+include(CheckIncludeFiles)
+include(CheckIncludeFileCXX)
+include(${CMAKE_SOURCE_DIR}/../Common/OrthancPlugins.cmake)
 include(${ORTHANC_ROOT}/Resources/CMake/DownloadPackage.cmake)
 include(${ORTHANC_ROOT}/Resources/CMake/BoostConfiguration.cmake)
 include(${ORTHANC_ROOT}/Resources/CMake/GoogleLogConfiguration.cmake)
@@ -27,7 +24,6 @@ else(GDCM_FOUND)
 endif(GDCM_FOUND)
 
 include_directories(
-  ${ORTHANC_ROOT}/Plugins/Include/
   ${ORTHANC_ROOT}/OrthancCppClient/SharedLibrary/Laaw
   )
 
@@ -50,7 +46,3 @@ add_library(GdcmDecoding SHARED
   )
 
 target_link_libraries(GdcmDecoding ${GDCM_LIBRARIES})
-
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  target_link_libraries(GdcmDecoding pthread dl rt)
-endif()

@@ -210,6 +210,10 @@ def WriteResource(cpp, item):
         cpp.write("0x%02x" % c)
         pos += 1
 
+    # Zero-size array are disallowed, so we put one single void character in it.
+    if pos == 0:
+        cpp.write('  0')
+
     cpp.write('  };\n')
     cpp.write('    static const size_t resource%dSize = %d;\n' % (item['Index'], pos))
 
