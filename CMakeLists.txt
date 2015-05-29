@@ -388,6 +388,23 @@ endif()
 
 
 #####################################################################
+## Build the "ServeFolders" plugin
+#####################################################################
+
+include(ExternalProject)
+externalproject_add(ServeFolders
+  CMAKE_ARGS -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE} -DSERVE_FOLDERS_VERSION:STRING=${ORTHANC_VERSION} -DALLOW_DOWNLOADS:BOOL=ON -DUSE_SYSTEM_JSONCPP:BOOL=${USE_SYSTEM_JSONCPP} -DCMAKE_INSTALL_PREFIX=Install
+  SOURCE_DIR ${CMAKE_SOURCE_DIR}/Plugins/Samples/ServeFolders
+  )
+
+ExternalProject_Get_Property(ServeFolders binary_dir)
+install(
+  DIRECTORY ${binary_dir}/Install/share/orthanc/plugins
+  DESTINATION share/orthanc
+  )
+
+
+#####################################################################
 ## Create the standalone DLL containing the Orthanc Client API
 #####################################################################
 
