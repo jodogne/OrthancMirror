@@ -204,7 +204,7 @@ namespace Orthanc
       filtered_.clear();
 
       for (std::list<std::string>::const_iterator
-             it = resources.begin(); it != resources.end(); it++)
+             it = resources.begin(); it != resources.end(); ++it)
       {
         DicomMap mainTags;
         if (index_.GetMainDicomTags(mainTags, *it, level_))
