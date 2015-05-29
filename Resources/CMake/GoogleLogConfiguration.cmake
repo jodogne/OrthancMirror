@@ -166,3 +166,11 @@ else()
 
   link_libraries(glog)
 endif()
+
+
+CHECK_INCLUDE_FILES(sec_api/string_s.h HAVE_SECURE_STRING_EXTENSIONS)
+if (HAVE_SECURE_STRING_EXTENSIONS)
+  add_definitions(-DHAVE_SECURE_STRING_EXTENSIONS=1)
+else()
+  add_definitions(-DHAVE_SECURE_STRING_EXTENSIONS=0)
+endif()
