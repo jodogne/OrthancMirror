@@ -231,7 +231,7 @@ namespace Orthanc
 
     // ModalityManufacturer manufacturer = modality.GetManufacturer();
 
-    bool caseSensitivePN = Configuration::GetGlobalBoolParameter("CaseSensitivePN", true);
+    bool caseSensitivePN = Configuration::GetGlobalBoolParameter("CaseSensitivePN", false);
 
 
     /**
