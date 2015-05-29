@@ -76,8 +76,10 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
         )
     endif()
 
+    # Patches for MinGW
     execute_process(
-      COMMAND patch -N port.h ${ORTHANC_ROOT}/Resources/Patches/glog-port-h.diff 
+      #COMMAND patch -N port.h ${ORTHANC_ROOT}/Resources/Patches/glog-port-h.diff 
+      COMMAND patch -N port.h ${ORTHANC_ROOT}/Resources/Patches/glog-port-h-v2.diff 
       WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src/windows
       )
     execute_process(
