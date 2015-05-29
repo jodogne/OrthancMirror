@@ -118,6 +118,12 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
         )
     endif()
 
+    # This patch improves speed, even for Windows
+    execute_process(
+      COMMAND patch -p0 -N -i ${ORTHANC_ROOT}/Resources/Patches/dcmtk-linux-speed.patch
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      )
+
   endif()
 
   list(REMOVE_ITEM DCMTK_SOURCES 
