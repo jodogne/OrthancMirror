@@ -765,7 +765,7 @@ namespace Orthanc
 
     typedef std::set<DicomTag> ModuleTags;
     ModuleTags moduleTags;
-    DicomTag::GetTagsForModule(moduleTags, module);
+    DicomTag::AddTagsForModule(moduleTags, module);
 
     Json::Value tags;
 

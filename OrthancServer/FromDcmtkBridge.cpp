@@ -624,7 +624,8 @@ namespace Orthanc
 
 
   void FromDcmtkBridge::ToJson(Json::Value& result,
-                               const DicomMap& values)
+                               const DicomMap& values,
+                               bool simplify)
   {
     if (result.type() != Json::objectValue)
     {
@@ -636,7 +637,29 @@ namespace Orthanc
     for (DicomMap::Map::const_iterator 
            it = values.map_.begin(); it != values.map_.end(); ++it)
     {
-      result[GetName(it->first)] = it->second->AsString();
+      if (simplify)
+      {
+        result[GetName(it->first)] = it->second->AsString();
+      }
+      else
+      {
+        Json::Value value = Json::objectValue;
+
+        value["Name"] = GetName(it->first);
+
+        if (it->second->IsNull())
+        {
+          value["Type"] = "Null";
+          value["Value"] = Json::nullValue;
+        }
+        else
+        {
+          value["Type"] = "String";
+          value["Value"] = it->second->AsString();
+        }
+
+        result[it->first.Format()] = value;
+      }
     }
   }
 

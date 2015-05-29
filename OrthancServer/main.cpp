@@ -51,6 +51,7 @@
 #include "ServerToolbox.h"
 #include "../Plugins/Engine/PluginsManager.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
+#include "FromDcmtkBridge.h"
 
 using namespace Orthanc;
 
@@ -383,6 +384,8 @@ static void LoadPlugins(PluginsManager& pluginsManager)
 
 
 
+
+
 static bool StartOrthanc(int argc, char *argv[])
 {
 #if ENABLE_PLUGINS == 1
@@ -531,6 +534,7 @@ static bool StartOrthanc(int argc, char *argv[])
     }
 
     LOG(WARNING) << "Orthanc has started";
+
     Toolbox::ServerBarrier(restApi.ResetRequestReceivedFlag());
     isReset = restApi.ResetRequestReceivedFlag();
 

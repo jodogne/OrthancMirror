@@ -4,6 +4,8 @@ Pending changes in the mainline
 Major
 -----
 
+* DICOM Query/Retrieve available from Orthanc Explorer
+* C-Move SCU and C-Find SCU are accessible through the REST API
 * "?expand" flag for URIs "/patients", "/studies" and "/series"
 * "/tools/find" URI to search for DICOM resources from REST
 * Support of FreeBSD
