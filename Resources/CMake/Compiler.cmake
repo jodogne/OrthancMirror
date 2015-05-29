@@ -71,9 +71,15 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     # This is a patch for MinGW64
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--allow-multiple-definition -static-libgcc -static-libstdc++")
 
-    # This line is necessary to compile with recent versions of MinGW,
-    # otherwise "libwinpthread-1.dll" is not statically linked.
-    SET(CMAKE_CXX_STANDARD_LIBRARIES "${CMAKE_CXX_STANDARD_LIBRARIES} -Wl,-Bstatic -lstdc++ -lpthread -Wl,-Bdynamic")
+    CHECK_LIBRARY_EXISTS(winpthread pthread_create "" HAVE_WIN_PTHREAD)
+    if (HAVE_WIN_PTHREAD)
+      # This line is necessary to compile with recent versions of MinGW,
+      # otherwise "libwinpthread-1.dll" is not statically linked.
+      SET(CMAKE_CXX_STANDARD_LIBRARIES "${CMAKE_CXX_STANDARD_LIBRARIES} -Wl,-Bstatic -lstdc++ -lpthread -Wl,-Bdynamic")
+      add_definitions(-DHAVE_WIN_PTHREAD=1)
+    else()
+      add_definitions(-DHAVE_WIN_PTHREAD=0)
+    endif()
   endif()
 
 elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")

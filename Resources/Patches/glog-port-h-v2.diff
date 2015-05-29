@@ -1,4 +1,13 @@
-124a125,149
+124,130c124,146
+< // ----------------------------------- THREADS
+< typedef DWORD pthread_t;
+< typedef DWORD pthread_key_t;
+< typedef LONG pthread_once_t;
+< enum { PTHREAD_ONCE_INIT = 0 };   // important that this be 0! for SpinLock
+< #define pthread_self  GetCurrentThreadId
+< #define pthread_equal(pthread_t_1, pthread_t_2)  ((pthread_t_1)==(pthread_t_2))
+---
+> // ----------------------------------- SECURE STRINGS
 > 
 > #if HAVE_SECURE_STRING_EXTENSIONS == 0
 > // Emulation of "localtime_s" and "strerror_s" for old versions of MinGW
@@ -21,9 +30,23 @@
 >   return strncpy(buf, str, buflen - 1);
 > }
 > #endif
-> 
+131a148,149
 > 
 > #if !defined(__MINGW32__) || HAVE_SECURE_STRING_EXTENSIONS == 0
-135a161,162
+135a154,155
+> #endif
+> 
+140a161,173
+> 
+> 
+> // ----------------------------------- THREADS
+> 
+> #if !defined(__MINGW32__) || HAVE_WIN_PTHREAD == 0
+> typedef DWORD pthread_t;
+> typedef DWORD pthread_key_t;
+> typedef LONG pthread_once_t;
+> enum { PTHREAD_ONCE_INIT = 0 };   // important that this be 0! for SpinLock
+> #define pthread_self  GetCurrentThreadId
+> #define pthread_equal(pthread_t_1, pthread_t_2)  ((pthread_t_1)==(pthread_t_2))
 > #endif
 > 
