@@ -82,7 +82,7 @@ namespace Orthanc
   SharedArchive::~SharedArchive()
   {
     for (Archive::iterator it = archive_.begin();
-         it != archive_.end(); it++)
+         it != archive_.end(); ++it)
     {
       delete it->second;
     }
@@ -124,7 +124,7 @@ namespace Orthanc
     boost::mutex::scoped_lock lock(mutex_);
 
     for (Archive::const_iterator it = archive_.begin();
-         it != archive_.end(); it++)
+         it != archive_.end(); ++it)
     {
       items.push_back(it->first);
     }
