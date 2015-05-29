@@ -23,7 +23,7 @@
 > #endif
 > 
 > 
-> #if !defined(__MINGW32__)
+> #if !defined(__MINGW32__) || HAVE_SECURE_STRING_EXTENSIONS == 0
 135a161,162
 > #endif
 > 
