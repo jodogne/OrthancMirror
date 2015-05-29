@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 2.8)
 project(ServeFolders)
 
 SET(SERVE_FOLDERS_VERSION "0.0" CACHE STRING "Version of the plugin")
+SET(STATIC_BUILD OFF CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")
 SET(ALLOW_DOWNLOADS OFF CACHE BOOL "Allow CMake to download packages")
 SET(USE_SYSTEM_JSONCPP ON CACHE BOOL "Use the system version of JsonCpp")
 
