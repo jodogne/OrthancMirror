@@ -859,12 +859,19 @@ namespace Orthanc
         request.isMember("Level") &&
         request.isMember("Query") &&
         request["Level"].type() == Json::stringValue &&
-        request["Query"].type() == Json::objectValue)
+        request["Query"].type() == Json::objectValue &&
+        (!request.isMember("CaseSensitive") || request["CaseSensitive"].type() == Json::booleanValue))
     {
       bool expand = false;
       if (request.isMember("Expand"))
       {
         expand = request["Expand"].asBool();
+      }
+
+      bool caseSensitive = false;
+      if (request.isMember("CaseSensitive"))
+      {
+        caseSensitive = request["CaseSensitive"].asBool();
       }
 
       std::string level = request["Level"].asString();
@@ -881,7 +888,8 @@ namespace Orthanc
         }
 
         query.SetConstraint(FromDcmtkBridge::ParseTag(members[i]), 
-                            request["Query"][members[i]].asString());
+                            request["Query"][members[i]].asString(),
+                            caseSensitive);
       }
       
       std::list<std::string> resources;
