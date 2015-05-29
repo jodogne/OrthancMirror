@@ -1,4 +1,29 @@
-124a125
-> #if !defined(__MINGW32__)
-135a137
+124a125,149
+> 
+> #if HAVE_SECURE_STRING_EXTENSIONS == 0
+> // Emulation of "localtime_s" and "strerror_s" for old versions of MinGW
+> inline int localtime_s(tm * _tm, const time_t * time)
+> {
+>   tm * posix_local_time_struct = localtime(time);
+>   if (posix_local_time_struct == NULL) 
+>   {
+>     return 1;
+>   }
+> 
+>   *_tm = *posix_local_time_struct;
+> 
+>   return 0;
+> }
+> 
+> inline char* strerror_s(char* buf, size_t buflen, int errnum) 
+> {
+>   const char* str = strerror(errnum);
+>   return strncpy(buf, str, buflen - 1);
+> }
 > #endif
+> 
+> 
+> #if !defined(__MINGW32__)
+135a161,162
+> #endif
+> 
