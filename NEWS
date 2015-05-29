@@ -16,6 +16,7 @@ Minor
 * Speed-up in Orthanc Explorer for large amount of images
 * Speed-up of the C-Find SCP server of Orthanc
 * Allow replacing PatientID/StudyInstanceUID/SeriesInstanceUID from Lua scripts
+* Option "CaseSensitivePN" to enable case-insensitive C-Find SCP
 
 Fixes
 -----
