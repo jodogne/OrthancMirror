@@ -222,7 +222,7 @@ static int32_t IndexCallback(OrthancPluginRestOutput* output,
   std::string s = "<html><body><h1>Additional folders served by Orthanc</h1><ul>\n";
 
   for (std::map<std::string, std::string>::const_iterator
-         it = folders_.begin(); it != folders_.end(); it++)
+         it = folders_.begin(); it != folders_.end(); ++it)
   {
     s += "<li><a href=\"" + it->first + "/index.html\">" + it->first + "</li>\n";
   }
@@ -270,7 +270,7 @@ extern "C"
 
       // Register the callback for each base URI
       for (Json::Value::Members::const_iterator 
-             it = members.begin(); it != members.end(); it++)
+             it = members.begin(); it != members.end(); ++it)
       {
         const std::string& baseUri = *it;
         const std::string path = configuration["ServeFolders"][*it].asString();
