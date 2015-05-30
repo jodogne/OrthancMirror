@@ -35,3 +35,7 @@ endif()
 
 
 include_directories(${ORTHANC_ROOT}/Plugins/Include/)
+
+if (MSVC)
+  include_directories(${ORTHANC_ROOT}/Resources/ThirdParty/VisualStudio/)
+endif()
