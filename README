@@ -75,7 +75,6 @@ Content
 This archive contains the following directories:
 
 * Core/               - The core C++ classes (independent of DCMTK)
-* OrthancCppClient/   - Code of the C++ client
 * OrthancExplorer/    - Code of the Web application (HTML5/Javascript)
 * OrthancServer/      - Code of the Orthanc server (depends on DCMTK)
 * Plugins/            - Code of the plugin framework
