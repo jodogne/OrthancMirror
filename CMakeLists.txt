@@ -433,6 +433,21 @@ else()
 endif()
 
 
+
+#####################################################################
+## Install the plugin SDK
+#####################################################################
+
+install(
+  FILES
+  Plugins/Include/OrthancCPlugin.h 
+  Plugins/Include/OrthancCDatabasePlugin.h 
+  Plugins/Include/OrthancCppDatabasePlugin.h 
+  DESTINATION include/orthanc
+  )
+
+
+
 #####################################################################
 ## Prepare the "uninstall" target
 ## http://www.cmake.org/Wiki/CMake_FAQ#Can_I_do_.22make_uninstall.22_with_CMake.3F
