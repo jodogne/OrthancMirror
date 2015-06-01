@@ -46,6 +46,7 @@
 #include <glog/logging.h>
 #endif
 
+#include <string>
 #include <cassert>
 #include "sqlite3.h"
 
