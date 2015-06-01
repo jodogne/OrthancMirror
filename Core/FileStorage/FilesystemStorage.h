@@ -34,6 +34,7 @@
 
 #include "IStorageArea.h"
 
+#include <stdint.h>
 #include <boost/filesystem.hpp>
 #include <set>
 
