@@ -244,7 +244,7 @@ TEST(Lua, Http)
 
 #if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1  
   lua.Execute("JSON = loadstring(HttpGet('http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/JSON.lua')) ()");
-  const std::string url("http://orthanc.googlecode.com/hg/OrthancCppClient/SharedLibrary/Product.json");
+  const std::string url("http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/Product.json");
 #endif
 
   std::string s;

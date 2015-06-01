@@ -34,6 +34,8 @@
 
 #include "../Enumerations.h"
 
+#include <string>
+
 namespace Orthanc
 {
   class ImageAccessor

@@ -32,8 +32,6 @@
 
 #pragma once
 
-#include <laaw/laaw.h>
-
 namespace Orthanc
 {
   enum Endianness
@@ -78,10 +76,11 @@ namespace Orthanc
     ErrorCode_Plugin
   };
 
+
   /**
    * {summary}{The memory layout of the pixels (resp. voxels) of a 2D (resp. 3D) image.}
    **/
-  enum LAAW_API PixelFormat
+  enum PixelFormat
   {
     /**
      * {summary}{Color image in RGB24 format.}
@@ -120,7 +119,7 @@ namespace Orthanc
   /**
    * {summary}{The extraction mode specifies the way the values of the pixels are scaled when downloading a 2D image.}
    **/
-  enum LAAW_API ImageExtractionMode
+  enum ImageExtractionMode
   {
     /**
      * {summary}{Rescaled to 8bpp.}
