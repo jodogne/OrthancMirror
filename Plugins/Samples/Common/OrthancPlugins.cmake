@@ -1,4 +1,5 @@
 include(CheckLibraryExists)
+include(${ORTHANC_ROOT}/Resources/CMake/Compiler.cmake)
 
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
