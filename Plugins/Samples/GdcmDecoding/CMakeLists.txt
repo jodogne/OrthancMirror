@@ -23,10 +23,6 @@ else(GDCM_FOUND)
   message(FATAL_ERROR "Cannot find GDCM, did you set GDCM_DIR?")
 endif(GDCM_FOUND)
 
-include_directories(
-  ${ORTHANC_ROOT}/OrthancCppClient/SharedLibrary/Laaw
-  )
-
 add_library(GdcmDecoding SHARED
   Plugin.cpp
   OrthancContext.cpp
