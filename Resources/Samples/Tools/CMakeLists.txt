@@ -22,8 +22,6 @@ include(${ORTHANC_ROOT}/Resources/CMake/BoostConfiguration.cmake)
 include(${ORTHANC_ROOT}/Resources/CMake/ZlibConfiguration.cmake)
 include(${ORTHANC_ROOT}/Resources/CMake/GoogleLogConfiguration.cmake)
 
-include_directories(${ORTHANC_ROOT}/OrthancCppClient/SharedLibrary/Laaw)
-
 add_library(CommonLibraries
   ${BOOST_SOURCES}
   ${THIRD_PARTY_SOURCES}
