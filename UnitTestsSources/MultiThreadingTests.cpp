@@ -38,17 +38,15 @@
 
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
-#include "../Core/MultiThreading/ArrayFilledByThreads.h"
 #include "../Core/MultiThreading/Locker.h"
 #include "../Core/MultiThreading/Mutex.h"
 #include "../Core/MultiThreading/ReaderWriterLock.h"
-#include "../Core/MultiThreading/ThreadedCommandProcessor.h"
 
 using namespace Orthanc;
 
 namespace
 {
-  class DynamicInteger : public ICommand
+  class DynamicInteger : public IDynamicObject
   {
   private:
     int value_;
@@ -64,54 +62,8 @@ namespace
     {
       return value_;
     }
-
-    virtual bool Execute()
-    {
-      static boost::mutex mutex;
-      boost::mutex::scoped_lock lock(mutex);
-      target_.insert(value_);
-      return true;
-    }
-  };
-
-  class MyFiller : public ArrayFilledByThreads::IFiller
-  {
-  private:
-    int size_;
-    unsigned int created_;
-    std::set<int> set_;
-
-  public:
-    MyFiller(int size) : size_(size), created_(0)
-    {
-    }
-
-    virtual size_t GetFillerSize()
-    {
-      return size_;
-    }
-
-    virtual IDynamicObject* GetFillerItem(size_t index)
-    {
-      static boost::mutex mutex;
-      boost::mutex::scoped_lock lock(mutex);
-      created_++;
-      return new DynamicInteger(index * 2, set_);
-    }
-
-    unsigned int GetCreatedCount() const
-    {
-      return created_;
-    }
-
-    std::set<int> GetSet()
-    {
-      return set_;
-    }    
   };
 }
-
-
 
 
 TEST(MultiThreading, SharedMessageQueueBasic)
@@ -150,78 +102,6 @@ TEST(MultiThreading, SharedMessageQueueClean)
   }
   catch (OrthancException&)
   {
-  }
-}
-
-
-TEST(MultiThreading, ArrayFilledByThreadEmpty)
-{
-  MyFiller f(0);
-  ArrayFilledByThreads a(f);
-  a.SetThreadCount(1);
-  ASSERT_EQ(0, a.GetSize());
-}
-
-
-TEST(MultiThreading, ArrayFilledByThread1)
-{
-  MyFiller f(100);
-  ArrayFilledByThreads a(f);
-  a.SetThreadCount(1);
-  ASSERT_EQ(100, a.GetSize());
-  for (size_t i = 0; i < a.GetSize(); i++)
-  {
-    ASSERT_EQ(2 * i, dynamic_cast<DynamicInteger&>(a.GetItem(i)).GetValue());
-  }
-}
-
-
-TEST(MultiThreading, ArrayFilledByThread4)
-{
-  MyFiller f(100);
-  ArrayFilledByThreads a(f);
-  a.SetThreadCount(4);
-  ASSERT_EQ(100, a.GetSize());
-  for (size_t i = 0; i < a.GetSize(); i++)
-  {
-    ASSERT_EQ(2 * i, dynamic_cast<DynamicInteger&>(a.GetItem(i)).GetValue());
-  }
-
-  ASSERT_EQ(100u, f.GetCreatedCount());
-
-  a.Invalidate();
-
-  ASSERT_EQ(100, a.GetSize());
-  ASSERT_EQ(200u, f.GetCreatedCount());
-  ASSERT_EQ(4u, a.GetThreadCount());
-  ASSERT_TRUE(f.GetSet().empty());
-
-  for (size_t i = 0; i < a.GetSize(); i++)
-  {
-    ASSERT_EQ(2 * i, dynamic_cast<DynamicInteger&>(a.GetItem(i)).GetValue());
-  }
-}
-
-
-TEST(MultiThreading, CommandProcessor)
-{
-  ThreadedCommandProcessor p(4);
-
-  std::set<int> s;
-
-  for (size_t i = 0; i < 100; i++)
-  {
-    p.Post(new DynamicInteger(i * 2, s));
-  }
-
-  p.Join();
-
-  for (size_t i = 0; i < 200; i++)
-  {
-    if (i % 2)
-      ASSERT_TRUE(s.find(i) == s.end());
-    else
-      ASSERT_TRUE(s.find(i) != s.end());
   }
 }
 
