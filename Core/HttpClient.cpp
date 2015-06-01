@@ -33,8 +33,8 @@
 #include "PrecompiledHeaders.h"
 #include "HttpClient.h"
 
-#include "../Core/Toolbox.h"
-#include "../Core/OrthancException.h"
+#include "Toolbox.h"
+#include "OrthancException.h"
 
 #include <string.h>
 #include <curl/curl.h>
