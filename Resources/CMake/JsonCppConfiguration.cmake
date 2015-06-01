@@ -18,11 +18,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_JSONCPP)
   source_group(ThirdParty\\JsonCpp REGULAR_EXPRESSION ${JSONCPP_SOURCES_DIR}/.*)
 
 else()
-  CHECK_INCLUDE_FILE_CXX(jsoncpp/json/reader.h HAVE_JSONCPP_H)
-  if (NOT HAVE_JSONCPP_H)
-    message(FATAL_ERROR "Please install the libjsoncpp-dev package")
-  endif()
-
   find_path(JSONCPP_INCLUDE_DIR json/reader.h
     /usr/include/jsoncpp
     /usr/local/include/jsoncpp
@@ -31,5 +26,10 @@ else()
   message("JsonCpp include dir: ${JSONCPP_INCLUDE_DIR}")
   include_directories(${JSONCPP_INCLUDE_DIR})
   link_libraries(jsoncpp)
+
+  CHECK_INCLUDE_FILE_CXX(${JSONCPP_INCLUDE_DIR}/json/reader.h HAVE_JSONCPP_H)
+  if (NOT HAVE_JSONCPP_H)
+    message(FATAL_ERROR "Please install the libjsoncpp-dev package")
+  endif()
 
 endif()

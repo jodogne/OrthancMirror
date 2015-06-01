@@ -101,7 +101,7 @@ endif()
 if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
   # In FreeBSD, the "/usr/local/" folder contains the ports and need to be imported
   SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I/usr/local/include")
-  SET(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -I/usr/local/include -I/usr/local/include/jsoncpp")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -I/usr/local/include")
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/local/lib")
   SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -L/usr/local/lib")
 endif()
