@@ -36,6 +36,10 @@
 
 #include <boost/noncopyable.hpp>
 
+#if defined(_WIN32)
+#include <windows.h>
+#endif
+
 namespace Orthanc
 {
   class SharedLibrary : boost::noncopyable

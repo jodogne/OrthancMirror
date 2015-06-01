@@ -35,16 +35,27 @@
 
 #include "OrthancException.h"
 
+#include <string>
 #include <stdint.h>
 #include <string.h>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/uuid/sha1.hpp>
+#include <boost/lexical_cast.hpp>
 #include <algorithm>
 #include <ctype.h>
+
+#if BOOST_HAS_DATE_TIME == 1
+#include <boost/date_time/posix_time/posix_time.hpp>
+#endif
+
+#if BOOST_HAS_REGEX == 1
 #include <boost/regex.hpp> 
+#endif
+
+#if HAVE_GOOGLE_LOG == 1
 #include <glog/logging.h>
+#endif
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -699,11 +710,15 @@ namespace Orthanc
     return true;
   }
 
+
+#if BOOST_HAS_DATE_TIME == 1
   std::string Toolbox::GetNowIsoString()
   {
     boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
     return boost::posix_time::to_iso_string(now);
   }
+#endif
+
 
   std::string Toolbox::StripSpaces(const std::string& source)
   {
@@ -805,6 +820,7 @@ namespace Orthanc
   }
 
 
+#if BOOST_HAS_REGEX == 1
   std::string Toolbox::WildcardToRegularExpression(const std::string& source)
   {
     // TODO - Speed up this with a regular expression
@@ -832,6 +848,7 @@ namespace Orthanc
 
     return result;
   }
+#endif
 
 
 
@@ -860,6 +877,7 @@ namespace Orthanc
   }
 
 
+#if BOOST_HAS_REGEX == 1
   void Toolbox::DecodeDataUriScheme(std::string& mime,
                                     std::string& content,
                                     const std::string& source)
@@ -878,9 +896,10 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadFileFormat);
     }
   }
+#endif
 
 
-  void Toolbox::CreateDirectory(const std::string& path)
+  void Toolbox::MakeDirectory(const std::string& path)
   {
     if (boost::filesystem::exists(path))
     {
@@ -1054,7 +1073,10 @@ namespace Orthanc
     if (pid == -1)
     {
       // Error in fork()
+#if HAVE_GOOGLE_LOG == 1
       LOG(ERROR) << "Cannot fork a child process";
+#endif
+
       throw OrthancException(ErrorCode_SystemCommand);
     }
     else if (pid == 0)
@@ -1074,7 +1096,10 @@ namespace Orthanc
 
     if (status != 0)
     {
+#if HAVE_GOOGLE_LOG == 1
       LOG(ERROR) << "System command failed with status code " << status;
+#endif
+
       throw OrthancException(ErrorCode_SystemCommand);
     }
   }

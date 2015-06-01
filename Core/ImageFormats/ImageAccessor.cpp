@@ -38,8 +38,12 @@
 
 #include <stdint.h>
 #include <cassert>
-#include <glog/logging.h>
 #include <boost/lexical_cast.hpp>
+
+#if HAVE_GOOGLE_LOG == 1
+#include <glog/logging.h>
+#endif
+
 
 namespace Orthanc
 {
@@ -104,7 +108,10 @@ namespace Orthanc
   {
     if (readOnly_)
     {
+#if HAVE_GOOGLE_LOG == 1
       LOG(ERROR) << "Trying to write on a read-only image";
+#endif
+
       throw OrthancException(ErrorCode_ReadOnly);
     }
 
@@ -129,7 +136,10 @@ namespace Orthanc
   {
     if (readOnly_)
     {
+#if HAVE_GOOGLE_LOG == 1
       LOG(ERROR) << "Trying to write on a read-only image";
+#endif
+
       throw OrthancException(ErrorCode_ReadOnly);
     }
 

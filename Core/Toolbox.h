@@ -122,24 +122,30 @@ namespace Orthanc
 
     std::string StripSpaces(const std::string& source);
 
+#if BOOST_HAS_DATE_TIME == 1
     std::string GetNowIsoString();
+#endif
 
     // In-place percent-decoding for URL
     void UrlDecode(std::string& s);
 
     Endianness DetectEndianness();
 
+#if BOOST_HAS_REGEX == 1
     std::string WildcardToRegularExpression(const std::string& s);
+#endif
 
     void TokenizeString(std::vector<std::string>& result,
                         const std::string& source,
                         char separator);
 
+#if BOOST_HAS_REGEX == 1
     void DecodeDataUriScheme(std::string& mime,
                              std::string& content,
                              const std::string& source);
+#endif
 
-    void CreateDirectory(const std::string& path);
+    void MakeDirectory(const std::string& path);
 
     bool IsExistingFile(const std::string& path);
 

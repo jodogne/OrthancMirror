@@ -41,7 +41,10 @@
 #include "../Uuid.h"
 
 #include <boost/filesystem/fstream.hpp>
+
+#if HAVE_GOOGLE_LOG == 1
 #include <glog/logging.h>
+#endif
 
 static std::string ToString(const boost::filesystem::path& p)
 {
@@ -82,7 +85,7 @@ namespace Orthanc
     //root_ = boost::filesystem::absolute(root).string();
     root_ = root;
 
-    Toolbox::CreateDirectory(root);
+    Toolbox::MakeDirectory(root);
   }
 
   void FilesystemStorage::Create(const std::string& uuid,
@@ -212,7 +215,10 @@ namespace Orthanc
   void FilesystemStorage::Remove(const std::string& uuid,
                                  FileContentType /*type*/)
   {
+#if HAVE_GOOGLE_LOG == 1
     LOG(INFO) << "Deleting file " << uuid;
+#endif
+
     namespace fs = boost::filesystem;
 
     fs::path p = GetPath(uuid);

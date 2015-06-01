@@ -152,3 +152,9 @@ else()
     -DBOOST_HAS_LOCALE=1
     )
 endif()
+
+
+add_definitions(
+  -DBOOST_HAS_DATE_TIME=1
+  -DBOOST_HAS_REGEX=1
+  )
