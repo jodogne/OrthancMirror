@@ -802,7 +802,7 @@ int main(int argc, char **argv)
 
   google::InitGoogleLogging("Orthanc");
 
-  Toolbox::CreateDirectory("UnitTestsResults");
+  Toolbox::MakeDirectory("UnitTestsResults");
 
   OrthancInitialize();
   ::testing::InitGoogleTest(&argc, argv);

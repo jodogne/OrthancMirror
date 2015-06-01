@@ -174,3 +174,5 @@ if (HAVE_SECURE_STRING_EXTENSIONS)
 else()
   add_definitions(-DHAVE_SECURE_STRING_EXTENSIONS=0)
 endif()
+
+add_definitions(-DHAVE_GOOGLE_LOG=1)
