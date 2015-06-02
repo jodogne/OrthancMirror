@@ -206,7 +206,7 @@ SUPPORTED - Ubuntu 13.10
 SUPPORTED - Fedora 19/20
 ------------------------
 
-# sudo yum install make automake gcc gcc-c++ python cmake \
+# sudo yum install unzip make automake gcc gcc-c++ python cmake \
                    boost-devel curl-devel dcmtk-devel glog-devel \
                    gtest-devel libpng-devel libsqlite3x-devel libuuid-devel \
                    mongoose-devel openssl-devel jsoncpp-devel lua-devel pugixml-devel
