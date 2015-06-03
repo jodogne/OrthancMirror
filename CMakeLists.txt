@@ -5,6 +5,14 @@ project(Orthanc)
 # Version of the build, should always be "mainline" except in release branches
 set(ORTHANC_VERSION "mainline")
 
+# Version of the database schema. History:
+#   * Orthanc 0.1.0 -> Orthanc 0.3.0 = no versioning
+#   * Orthanc 0.3.1                  = version 2
+#   * Orthanc 0.4.0 -> Orthanc 0.7.2 = version 3
+#   * Orthanc 0.7.3 -> Orthanc 0.8.4 = version 4
+#   * Orthanc 0.8.5 -> mainline      = version 5
+set(ORTHANC_DATABASE_VERSION 5)
+
 
 #####################################################################
 ## CMake parameters tunable at the command line
@@ -308,6 +316,7 @@ endif()
 
 add_definitions(
   -DORTHANC_VERSION="${ORTHANC_VERSION}"
+  -DORTHANC_DATABASE_VERSION=${ORTHANC_DATABASE_VERSION}
   )
 
 list(LENGTH OPENSSL_SOURCES OPENSSL_SOURCES_LENGTH)

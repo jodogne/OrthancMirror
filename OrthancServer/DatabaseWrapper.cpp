@@ -796,15 +796,6 @@ namespace Orthanc
       LOG(INFO) << "Version of the Orthanc database: " << version;
       unsigned int v = boost::lexical_cast<unsigned int>(version);
 
-      /**
-       * History of the database versions:
-       *  - Orthanc before Orthanc 0.3.0 (inclusive) had no version
-       *  - Version 2: only Orthanc 0.3.1
-       *  - Version 3: from Orthanc 0.3.2 to Orthanc 0.7.2 (inclusive)
-       *  - Version 4: from Orthanc 0.7.3 to Orthanc 0.8.4 (inclusive)
-       *  - Version 5: from Orthanc 0.8.5 (inclusive)
-       **/
-
       // This version of Orthanc is only compatible with versions 3, 4 and 5 of the DB schema
       ok = (v == 3 || v == 4 || v == 5);
 
@@ -820,6 +811,12 @@ namespace Orthanc
         LOG(WARNING) << "Upgrading database version from 4 to 5";
         UpgradeDatabase(db_, EmbeddedResources::UPGRADE_DATABASE_4_TO_5);
         v = 5;
+      }
+
+      // Sanity check
+      if (ORTHANC_DATABASE_VERSION != v)
+      {
+        throw OrthancException(ErrorCode_InternalError);
       }
     }
     catch (boost::bad_lexical_cast&)
