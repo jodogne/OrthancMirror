@@ -87,7 +87,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
       WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src/windows
       )
 
-  else(${MSVC})
+  elseif (MSVC)
     # https://code.google.com/p/google-glog/issues/detail?id=117
     configure_file(
       ${ORTHANC_ROOT}/Resources/Patches/glog-visual-studio-port.h
@@ -149,7 +149,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
       -DGOOGLE_GLOG_DLL_DECL=
       )
 
-    if (${CMAKE_COMPILER_IS_GNUCXX})
+    if (CMAKE_COMPILER_IS_GNUCXX)
       # This is a patch for MinGW64
       add_definitions(-D_TIME_H__S=1)
     endif()

@@ -37,7 +37,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_MONGOOSE)
     )
 
 
-  if (${ENABLE_SSL})
+  if (ENABLE_SSL)
     add_definitions(
       -DNO_SSL_DL=1
       )
@@ -54,7 +54,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_MONGOOSE)
 
 
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-    if (${CMAKE_COMPILER_IS_GNUCXX})
+    if (CMAKE_COMPILER_IS_GNUCXX)
       # This is a patch for MinGW64
       add_definitions(-D_TIMESPEC_DEFINED=1)
     endif()

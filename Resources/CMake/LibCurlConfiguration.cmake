@@ -32,7 +32,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
     -DCURL_DISABLE_TFTP=1
     )
 
-  if (${ENABLE_SSL})
+  if (ENABLE_SSL)
     add_definitions(
       #-DHAVE_LIBSSL=1
       -DUSE_OPENSSL=1

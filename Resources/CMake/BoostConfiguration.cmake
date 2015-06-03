@@ -136,7 +136,7 @@ if (BOOST_STATIC)
     -DBOOST_HAS_FILESYSTEM_V3=1
     )
 
-  if (${CMAKE_COMPILER_IS_GNUCXX})
+  if (CMAKE_COMPILER_IS_GNUCXX)
     add_definitions(-isystem ${BOOST_SOURCES_DIR})
   endif()
 
