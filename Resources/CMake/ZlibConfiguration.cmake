@@ -1,5 +1,5 @@
 # This is the minizip distribution to create ZIP files
-list(APPEND THIRD_PARTY_SOURCES 
+set(ZLIB_SOURCES
   ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/ioapi.c
   ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/zip.c
   )
@@ -15,7 +15,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_ZLIB)
     ${ZLIB_SOURCES_DIR}
     )
 
-  list(APPEND THIRD_PARTY_SOURCES 
+  list(APPEND ZLIB_SOURCES 
     ${ZLIB_SOURCES_DIR}/adler32.c
     ${ZLIB_SOURCES_DIR}/compress.c
     ${ZLIB_SOURCES_DIR}/crc32.c 

@@ -5,7 +5,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_JSONCPP)
     "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/jsoncpp-src-0.6.0-rc2.tar.gz"
     "${JSONCPP_SOURCES_DIR}")
 
-  list(APPEND THIRD_PARTY_SOURCES
+  set(JSONCPP_SOURCES
     ${JSONCPP_SOURCES_DIR}/src/lib_json/json_reader.cpp
     ${JSONCPP_SOURCES_DIR}/src/lib_json/json_value.cpp
     ${JSONCPP_SOURCES_DIR}/src/lib_json/json_writer.cpp
