@@ -391,17 +391,38 @@ endif()
 ## Build the "ServeFolders" plugin
 #####################################################################
 
-include(ExternalProject)
-externalproject_add(ServeFolders
-  CMAKE_ARGS -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE} -DSERVE_FOLDERS_VERSION:STRING=${ORTHANC_VERSION} -DALLOW_DOWNLOADS:BOOL=ON -DSTATIC_BUILD:BOOL=${STATIC_BUILD} -DUSE_SYSTEM_JSONCPP:BOOL=${USE_SYSTEM_JSONCPP} -DCMAKE_INSTALL_PREFIX=Install
-  SOURCE_DIR ${CMAKE_SOURCE_DIR}/Plugins/Samples/ServeFolders
+set(ServeFoldersArgs
+  -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+  -DSERVE_FOLDERS_VERSION:STRING=${ORTHANC_VERSION}
+  -DALLOW_DOWNLOADS:BOOL=${ALLOW_DOWNLOADS}
+  -DSTATIC_BUILD:BOOL=${STATIC_BUILD}
+  -DUSE_SYSTEM_JSONCPP:BOOL=${USE_SYSTEM_JSONCPP}
   )
 
-ExternalProject_Get_Property(ServeFolders binary_dir)
-install(
-  DIRECTORY ${binary_dir}/Install/share/orthanc/plugins
-  DESTINATION share/orthanc
+if (CMAKE_TOOLCHAIN_FILE)
+  list(APPEND ServeFoldersArgs
+    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
+    )
+endif()
+
+include(ExternalProject)
+externalproject_add(ServeFolders
+  CMAKE_ARGS ${ServeFoldersArgs}
+  SOURCE_DIR ${CMAKE_SOURCE_DIR}/Plugins/Samples/ServeFolders
+  INSTALL_COMMAND  ""   # Don't install files
   )
+
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
+    ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD" OR
+    ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
+  ExternalProject_Get_Property(ServeFolders binary_dir)
+  install(
+    FILES
+    ${binary_dir}/libServeFolders.so 
+    ${binary_dir}/libServeFolders.so.${ORTHANC_VERSION}
+    DESTINATION share/orthanc/plugins
+    )
+endif()
 
 
 
