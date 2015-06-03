@@ -1,6 +1,11 @@
 Pending changes in the mainline
 ===============================
 
+
+
+Version 0.9.0 (2015/06/03)
+==========================
+
 Major
 -----
 
@@ -9,7 +14,7 @@ Major
 * "?expand" flag for URIs "/patients", "/studies" and "/series"
 * "/tools/find" URI to search for DICOM resources from REST
 * Support of FreeBSD
-* The "Orthanc Client" SDK is now managed as a separate project
+* The "Orthanc Client" SDK is now a separate project
 
 Minor
 -----
