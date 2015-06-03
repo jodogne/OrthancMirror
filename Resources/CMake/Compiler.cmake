@@ -1,6 +1,12 @@
 # This file sets all the compiler-related flags
 
-if (${CMAKE_COMPILER_IS_GNUCXX})
+if (CMAKE_CROSSCOMPILING)
+  # Cross-compilation necessarily implies standalone and static build
+  SET(STATIC_BUILD ON)
+  SET(STANDALONE_BUILD ON)
+endif()
+
+if (CMAKE_COMPILER_IS_GNUCXX)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-long-long -Wno-implicit-function-declaration")  
   # --std=c99 makes libcurl not to compile
   # -pedantic gives a lot of warnings on OpenSSL 
@@ -11,7 +17,7 @@ if (${CMAKE_COMPILER_IS_GNUCXX})
     set(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> -O coff -I<CMAKE_CURRENT_SOURCE_DIR> <SOURCE> <OBJECT>")
   endif()
 
-elseif (${MSVC})
+elseif (MSVC)
   # Use static runtime under Visual Studio
   # http://www.cmake.org/Wiki/CMake_FAQ#Dynamic_Replace
   # http://stackoverflow.com/a/6510446
@@ -67,7 +73,7 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     )
   link_libraries(rpcrt4 ws2_32)
 
-  if (${CMAKE_COMPILER_IS_GNUCXX})
+  if (CMAKE_COMPILER_IS_GNUCXX)
     # This is a patch for MinGW64
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--allow-multiple-definition -static-libgcc -static-libstdc++")
 
@@ -118,7 +124,7 @@ if (NOT HAVE_UUID_H)
 endif()
 
 
-if (${STATIC_BUILD})
+if (STATIC_BUILD)
   add_definitions(-DORTHANC_STATIC=1)
 else()
   add_definitions(-DORTHANC_STATIC=0)

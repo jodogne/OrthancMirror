@@ -122,8 +122,6 @@ if (BOOST_STATIC)
     ${BOOST_SOURCES_DIR}/libs/system/src/error_code.cpp
     )
 
-  list(APPEND THIRD_PARTY_SOURCES ${BOOST_SOURCES})
-
   add_definitions(
     # Static build of Boost
     -DBOOST_ALL_NO_LIB 

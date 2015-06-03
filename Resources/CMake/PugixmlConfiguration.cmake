@@ -14,10 +14,7 @@ if (USE_PUGIXML)
       )
 
     set(PUGIXML_SOURCES
-      ${PUGIXML_SOURCES_DIR}/src/vlog_is_on.cc
-      )
-
-    list(APPEND THIRD_PARTY_SOURCES 
+      #${PUGIXML_SOURCES_DIR}/src/vlog_is_on.cc
       ${PUGIXML_SOURCES_DIR}/src/pugixml.cpp
       )
 
