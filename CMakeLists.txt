@@ -391,38 +391,28 @@ endif()
 ## Build the "ServeFolders" plugin
 #####################################################################
 
-set(ServeFoldersArgs
-  -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-  -DSERVE_FOLDERS_VERSION:STRING=${ORTHANC_VERSION}
-  -DALLOW_DOWNLOADS:BOOL=${ALLOW_DOWNLOADS}
-  -DSTATIC_BUILD:BOOL=${STATIC_BUILD}
-  -DUSE_SYSTEM_JSONCPP:BOOL=${USE_SYSTEM_JSONCPP}
+add_definitions(-DSERVE_FOLDERS_VERSION="${ORTHANC_VERSION}")
+
+include_directories(${CMAKE_SOURCE_DIR}/Plugins/Include)
+
+add_library(
+  ServeFolders SHARED 
+  Plugins/Samples/ServeFolders/Plugin.cpp
+  ${THIRD_PARTY_SOURCES}
   )
 
-if (CMAKE_TOOLCHAIN_FILE)
-  list(APPEND ServeFoldersArgs
-    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
-    )
-endif()
-
-include(ExternalProject)
-externalproject_add(ServeFolders
-  CMAKE_ARGS ${ServeFoldersArgs}
-  SOURCE_DIR ${CMAKE_SOURCE_DIR}/Plugins/Samples/ServeFolders
-  INSTALL_COMMAND  ""   # Don't install files
+set_target_properties(
+  ServeFolders PROPERTIES 
+  VERSION ${ORTHANC_VERSION} 
+  SOVERSION ${ORTHANC_VERSION}
   )
 
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
-    ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD" OR
-    ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
-  ExternalProject_Get_Property(ServeFolders binary_dir)
-  install(
-    FILES
-    ${binary_dir}/libServeFolders.so 
-    ${binary_dir}/libServeFolders.so.${ORTHANC_VERSION}
-    DESTINATION share/orthanc/plugins
-    )
-endif()
+install(
+  TARGETS ServeFolders
+  RUNTIME DESTINATION lib    # Destination for Windows
+  LIBRARY DESTINATION share/orthanc/plugins    # Destination for Linux
+  )
+
 
 
 
