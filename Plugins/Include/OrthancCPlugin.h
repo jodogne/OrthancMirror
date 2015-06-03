@@ -89,8 +89,8 @@
 #endif
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     0
-#define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     8
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  6
+#define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     9
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  0
 
 
 
@@ -255,6 +255,7 @@ extern "C"
     _OrthancPluginService_SetGlobalProperty = 9,
     _OrthancPluginService_GetCommandLineArgumentsCount = 10,
     _OrthancPluginService_GetCommandLineArgument = 11,
+    _OrthancPluginService_GetExpectedDatabaseVersion = 12,
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -2083,6 +2084,36 @@ extern "C"
       return result;
     }
   }
+
+
+  /**
+   * @brief Get the expected version of the database schema.
+   *
+   * Retrieve the expected version of the database schema.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @return The version.
+   **/
+  ORTHANC_PLUGIN_INLINE uint32_t OrthancPluginGetExpectedDatabaseVersion(
+    OrthancPluginContext*  context)
+  {
+    uint32_t count = 0;
+
+    _OrthancPluginReturnSingleValue params;
+    memset(&params, 0, sizeof(params));
+    params.resultUint32 = &count;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetExpectedDatabaseVersion, &params))
+    {
+      /* Error */
+      return 0;
+    }
+    else
+    {
+      return count;
+    }
+  }
+
 
 
 #ifdef  __cplusplus

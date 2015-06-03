@@ -1205,6 +1205,14 @@ namespace Orthanc
         }
       }
 
+      case _OrthancPluginService_GetExpectedDatabaseVersion:
+      {
+        const _OrthancPluginReturnSingleValue& p =
+          *reinterpret_cast<const _OrthancPluginReturnSingleValue*>(parameters);
+        *(p.resultUint32) = ORTHANC_DATABASE_VERSION;
+        return true;
+      }
+
       default:
         return false;
     }
