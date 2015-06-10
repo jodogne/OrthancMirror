@@ -746,10 +746,26 @@ namespace Orthanc
   }
 
 
-  bool FromDcmtkBridge::IsPNValueRepresentation(const DicomTag& tag)
+  ValueRepresentation FromDcmtkBridge::GetValueRepresentation(const DicomTag& tag)
   {
     DcmTag t(tag.GetGroup(), tag.GetElement());
-    return t.getEVR() == EVR_PN;
+    switch (t.getEVR())
+    {
+      case EVR_PN:
+        return ValueRepresentation_PatientName;
+
+      case EVR_DA:
+        return ValueRepresentation_Date;
+
+      case EVR_DT:
+        return ValueRepresentation_DateTime;
+
+      case EVR_TM:
+        return ValueRepresentation_Time;
+
+      default:
+        return ValueRepresentation_Other;
+    }
   }
 
 }

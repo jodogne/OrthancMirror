@@ -289,8 +289,16 @@ TEST(FromDcmtkBridge, Encodings3)
 }
 
 
-TEST(FromDcmtkBridge, VR)
+TEST(FromDcmtkBridge, ValueRepresentation)
 {
-  ASSERT_TRUE(FromDcmtkBridge::IsPNValueRepresentation(DICOM_TAG_PATIENT_NAME));
-  ASSERT_FALSE(FromDcmtkBridge::IsPNValueRepresentation(DICOM_TAG_PATIENT_ID));
+  ASSERT_EQ(ValueRepresentation_PatientName, 
+            FromDcmtkBridge::GetValueRepresentation(DICOM_TAG_PATIENT_NAME));
+  ASSERT_EQ(ValueRepresentation_Date, 
+            FromDcmtkBridge::GetValueRepresentation(DicomTag(0x0008, 0x0020) /* StudyDate */));
+  ASSERT_EQ(ValueRepresentation_Time, 
+            FromDcmtkBridge::GetValueRepresentation(DicomTag(0x0008, 0x0030) /* StudyTime */));
+  ASSERT_EQ(ValueRepresentation_DateTime, 
+            FromDcmtkBridge::GetValueRepresentation(DicomTag(0x0008, 0x002a) /* AcquisitionDateTime */));
+  ASSERT_EQ(ValueRepresentation_Other, 
+            FromDcmtkBridge::GetValueRepresentation(DICOM_TAG_PATIENT_ID));
 }

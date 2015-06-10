@@ -245,13 +245,30 @@ namespace Orthanc
                                      const std::string& constraint,
                                      bool caseSensitivePN)
   {
-    bool sensitive = (FromDcmtkBridge::IsPNValueRepresentation(tag) ? caseSensitivePN : true);
+    ValueRepresentation vr = FromDcmtkBridge::GetValueRepresentation(tag);
+
+    bool sensitive = true;
+    if (vr == ValueRepresentation_PatientName)
+    {
+      sensitive = caseSensitivePN;
+    }
 
     // http://www.itk.org/Wiki/DICOM_QueryRetrieve_Explained
     // http://dicomiseasy.blogspot.be/2012/01/dicom-queryretrieve-part-i.html  
 
-    if (constraint.find('-') != std::string::npos)
+    if ((vr == ValueRepresentation_Date ||
+         vr == ValueRepresentation_DateTime ||
+         vr == ValueRepresentation_Time) &&
+        constraint.find('-') != std::string::npos)
     {
+      /**
+       * Range matching is only defined for TM, DA and DT value
+       * representations. This code fixes issues 35 and 37.
+       *
+       * Reference: "Range matching is not defined for types of
+       * Attributes other than dates and times", DICOM PS 3.4,
+       * C.2.2.2.5 ("Range Matching").
+       **/
       AssignConstraint(tag, new RangeConstraint(constraint));
     }
     else if (constraint.find('\\') != std::string::npos)
