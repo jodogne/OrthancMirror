@@ -1,6 +1,8 @@
 Pending changes in the mainline
 ===============================
 
+* Fix issue 35 (Characters in PatientID string are not protected for C-Find)
+* Fix issue 37 (Hyphens trigger range query even if datatype does not support ranges)
 
 
 Version 0.9.0 (2015/06/03)

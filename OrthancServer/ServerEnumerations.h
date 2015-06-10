@@ -90,6 +90,15 @@ namespace Orthanc
     TransferSyntax_Rle
   };
 
+  enum ValueRepresentation
+  {
+    ValueRepresentation_Other,
+    ValueRepresentation_PatientName,
+    ValueRepresentation_Date,
+    ValueRepresentation_DateTime,
+    ValueRepresentation_Time
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations
