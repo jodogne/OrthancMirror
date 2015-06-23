@@ -78,6 +78,7 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
   if (CMAKE_COMPILER_IS_GNUCXX)
     # This is a patch for MinGW64
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--allow-multiple-definition -static-libgcc -static-libstdc++")
+    SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--allow-multiple-definition -static-libgcc -static-libstdc++")
 
     CHECK_LIBRARY_EXISTS(winpthread pthread_create "" HAVE_WIN_PTHREAD)
     if (HAVE_WIN_PTHREAD)
