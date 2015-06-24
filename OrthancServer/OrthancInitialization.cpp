@@ -113,7 +113,8 @@ namespace Orthanc
     Json::Reader reader;
     if (!reader.parse(content, *configuration_))
     {
-      throw OrthancException("Unable to read the configuration file");
+      LOG(ERROR) << "Unable to read the configuration file";
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
   }
 
@@ -291,12 +292,14 @@ namespace Orthanc
 
     if (configuration_.get() == NULL)
     {
+      LOG(ERROR) << "The configuration file was not properly loaded";
       throw OrthancException(ErrorCode_InexistentItem);
     }
        
     if (!configuration_->isMember("DicomModalities"))
     {
-      throw OrthancException(ErrorCode_BadFileFormat);
+      LOG(ERROR) << "No modality with symbolic name: " << name;
+      throw OrthancException(ErrorCode_InexistentItem);
     }
 
     const Json::Value& modalities = (*configuration_) ["DicomModalities"];
@@ -328,12 +331,14 @@ namespace Orthanc
 
     if (configuration_.get() == NULL)
     {
+      LOG(ERROR) << "The configuration file was not properly loaded";
       throw OrthancException(ErrorCode_InexistentItem);
     }
        
     if (!configuration_->isMember("OrthancPeers"))
     {
-      throw OrthancException(ErrorCode_BadFileFormat);
+      LOG(ERROR) << "No peer with symbolic name: " << name;
+      throw OrthancException(ErrorCode_InexistentItem);
     }
 
     try
@@ -374,6 +379,7 @@ namespace Orthanc
     const Json::Value& modalities = (*configuration_) [parameter];
     if (modalities.type() != Json::objectValue)
     {
+      LOG(ERROR) << "Bad format of the \"DicomModalities\" configuration section";
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
@@ -402,7 +408,8 @@ namespace Orthanc
   {
     if (!ReadKeys(target, "DicomModalities", true))
     {
-      throw OrthancException("Only alphanumeric and dash characters are allowed in the names of the modalities");
+      LOG(ERROR) << "Only alphanumeric and dash characters are allowed in the names of the modalities";
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
   }
 
@@ -411,7 +418,8 @@ namespace Orthanc
   {
     if (!ReadKeys(target, "OrthancPeers", true))
     {
-      throw OrthancException("Only alphanumeric and dash characters are allowed in the names of Orthanc peers");
+      LOG(ERROR) << "Only alphanumeric and dash characters are allowed in the names of Orthanc peers";
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
   }
 
@@ -432,7 +440,8 @@ namespace Orthanc
     const Json::Value& users = (*configuration_) ["RegisteredUsers"];
     if (users.type() != Json::objectValue)
     {
-      throw OrthancException("Badly formatted list of users");
+      LOG(ERROR) << "Badly formatted list of users";
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
 
     Json::Value::Members usernames = users.getMemberNames();
@@ -495,7 +504,8 @@ namespace Orthanc
 
     if (lst.type() != Json::arrayValue)
     {
-      throw OrthancException("Badly formatted list of strings");
+      LOG(ERROR) << "Badly formatted list of strings";
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
 
     for (Json::Value::ArrayIndex i = 0; i < lst.size(); i++)
@@ -577,7 +587,8 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException("Unknown modality for AET: " + aet);
+      LOG(ERROR) << "Unknown modality for AET: " << aet;
+      throw OrthancException(ErrorCode_InexistentItem);
     }
   }
 
@@ -589,6 +600,7 @@ namespace Orthanc
 
     if (configuration_.get() == NULL)
     {
+      LOG(ERROR) << "The configuration file was not properly loaded";
       throw OrthancException(ErrorCode_InternalError);
     }
 
@@ -600,6 +612,7 @@ namespace Orthanc
     Json::Value& modalities = (*configuration_) ["DicomModalities"];
     if (modalities.type() != Json::objectValue)
     {
+      LOG(ERROR) << "Bad file format for modality: " << symbolicName;
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
@@ -617,17 +630,20 @@ namespace Orthanc
 
     if (configuration_.get() == NULL)
     {
+      LOG(ERROR) << "The configuration file was not properly loaded";
       throw OrthancException(ErrorCode_InternalError);
     }
 
     if (!configuration_->isMember("DicomModalities"))
     {
+      LOG(ERROR) << "No modality with symbolic name: " << symbolicName;
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
     Json::Value& modalities = (*configuration_) ["DicomModalities"];
     if (modalities.type() != Json::objectValue)
     {
+      LOG(ERROR) << "Bad file format for the \"DicomModalities\" configuration section";
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
@@ -642,17 +658,20 @@ namespace Orthanc
 
     if (configuration_.get() == NULL)
     {
+      LOG(ERROR) << "The configuration file was not properly loaded";
       throw OrthancException(ErrorCode_InternalError);
     }
 
     if (!configuration_->isMember("OrthancPeers"))
     {
+      LOG(ERROR) << "No peer with symbolic name: " << symbolicName;
       (*configuration_) ["OrthancPeers"] = Json::objectValue;
     }
 
     Json::Value& peers = (*configuration_) ["OrthancPeers"];
     if (peers.type() != Json::objectValue)
     {
+      LOG(ERROR) << "Bad file format for the \"OrthancPeers\" configuration section";
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
@@ -670,17 +689,20 @@ namespace Orthanc
 
     if (configuration_.get() == NULL)
     {
+      LOG(ERROR) << "The configuration file was not properly loaded";
       throw OrthancException(ErrorCode_InternalError);
     }
 
     if (!configuration_->isMember("OrthancPeers"))
     {
+      LOG(ERROR) << "No peer with symbolic name: " << symbolicName;
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
     Json::Value& peers = (*configuration_) ["OrthancPeers"];
     if (peers.type() != Json::objectValue)
     {
+      LOG(ERROR) << "Bad file format for the \"OrthancPeers\" configuration section";
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
