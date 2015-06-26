@@ -18,7 +18,7 @@
  **/
 
 
-#include <OrthancCPlugin.h>
+#include <orthanc/OrthancCPlugin.h>
 
 #include <string.h>
 #include <stdio.h>
@@ -356,9 +356,10 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   OrthancPluginLogWarning(context, info);
   OrthancPluginFreeString(context, s);
 
-  s = OrthancPluginGetConfigurationPath(context);
-  sprintf(info, "  Path to configuration file: %s", s);
+  s = OrthancPluginGetConfiguration(context);
+  sprintf(info, "  Content of the configuration file:\n");
   OrthancPluginLogWarning(context, info);
+  OrthancPluginLogWarning(context, s);
   OrthancPluginFreeString(context, s);
 
   /* Print the command-line arguments of Orthanc */
@@ -390,6 +391,7 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   OrthancPluginExtendOrthancExplorer(context, "alert('Hello Orthanc! From sample plugin with love.');");
 
   /* Make REST requests to the built-in Orthanc API */
+  memset(&tmp, 0, sizeof(tmp));
   OrthancPluginRestApiGet(context, &tmp, "/changes");
   OrthancPluginFreeMemoryBuffer(context, &tmp);
   OrthancPluginRestApiGet(context, &tmp, "/changes?limit=1");
@@ -398,17 +400,6 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   /* Play with PUT by defining a new target modality. */
   sprintf(info, "[ \"STORESCP\", \"localhost\", 2000 ]");
   OrthancPluginRestApiPut(context, &tmp, "/modalities/demo", info, strlen(info));
-
-  /* Play with global properties: A global counter is incremented 
-     each time the plugin starts. */
-  s = OrthancPluginGetGlobalProperty(context, 1024, "0");
-  sscanf(s, "%d", &counter);
-  sprintf(info, "Number of times this plugin was started: %d", counter);
-  OrthancPluginLogWarning(context, info);
-  counter++;
-  sprintf(info, "%d", counter);
-  OrthancPluginSetGlobalProperty(context, 1024, info);
-  OrthancPluginFreeString(context, s);
 
   return 0;
 }

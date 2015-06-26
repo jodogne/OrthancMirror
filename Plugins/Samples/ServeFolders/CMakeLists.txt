@@ -8,6 +8,7 @@ SET(ALLOW_DOWNLOADS OFF CACHE BOOL "Allow CMake to download packages")
 SET(USE_SYSTEM_JSONCPP ON CACHE BOOL "Use the system version of JsonCpp")
 
 set(ORTHANC_ROOT ${CMAKE_SOURCE_DIR}/../../../)
+set(SAMPLES_ROOT ${CMAKE_SOURCE_DIR}/..)
 
 include(CheckIncludeFiles)
 include(CheckIncludeFileCXX)
@@ -17,7 +18,7 @@ include(${ORTHANC_ROOT}/Resources/CMake/JsonCppConfiguration.cmake)
 
 add_library(ServeFolders SHARED 
   Plugin.cpp
-  ${THIRD_PARTY_SOURCES}
+  ${JSONCPP_SOURCES}
   )
 
 

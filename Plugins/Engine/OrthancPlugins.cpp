@@ -663,9 +663,19 @@ namespace Orthanc
   }
 
 
+  void OrthancPlugins::CheckContextAvailable()
+  {
+    if (!pimpl_->context_)
+    {
+      LOG(ERROR) << "Plugin trying to call the database during its initialization";
+      throw OrthancException(ErrorCode_Plugin);
+    }
+  }
+
+
   void OrthancPlugins::GetDicomForInstance(const void* parameters)
   {
-    assert(pimpl_->context_ != NULL);
+    CheckContextAvailable();
 
     const _OrthancPluginGetDicomForInstance& p = 
       *reinterpret_cast<const _OrthancPluginGetDicomForInstance*>(parameters);
@@ -854,7 +864,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
     }
 
-    assert(pimpl_->context_ != NULL);
+    CheckContextAvailable();
 
     std::list<std::string> result;
     pimpl_->context_->GetIndex().LookupIdentifier(result, tag, p.argument, level);
@@ -1144,7 +1154,7 @@ namespace Orthanc
         }
         else
         {
-          assert(pimpl_->context_ != NULL);
+          CheckContextAvailable();
           pimpl_->context_->GetIndex().SetGlobalProperty(static_cast<GlobalProperty>(p.property), p.value);
           return true;
         }
@@ -1152,7 +1162,7 @@ namespace Orthanc
 
       case _OrthancPluginService_GetGlobalProperty:
       {
-        assert(pimpl_->context_ != NULL);
+        CheckContextAvailable();
 
         const _OrthancPluginGlobalProperty& p = 
           *reinterpret_cast<const _OrthancPluginGlobalProperty*>(parameters);

@@ -459,9 +459,9 @@ endif()
 
 install(
   FILES
-  Plugins/Include/OrthancCPlugin.h 
-  Plugins/Include/OrthancCDatabasePlugin.h 
-  Plugins/Include/OrthancCppDatabasePlugin.h 
+  Plugins/Include/orthanc/OrthancCPlugin.h 
+  Plugins/Include/orthanc/OrthancCDatabasePlugin.h 
+  Plugins/Include/orthanc/OrthancCppDatabasePlugin.h 
   DESTINATION include/orthanc
   )
 

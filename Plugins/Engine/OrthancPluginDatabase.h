@@ -33,7 +33,7 @@
 #pragma once
 
 #include "../../OrthancServer/IDatabaseWrapper.h"
-#include "../Include/OrthancCDatabasePlugin.h"
+#include "../Include/orthanc/OrthancCDatabasePlugin.h"
 
 namespace Orthanc
 {

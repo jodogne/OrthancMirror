@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include <OrthancCPlugin.h>
+#include <orthanc/OrthancCPlugin.h>
 
 #include "../../../Core/ImageFormats/ImageBuffer.h"
 

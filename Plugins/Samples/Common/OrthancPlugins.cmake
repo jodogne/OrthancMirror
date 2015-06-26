@@ -1,5 +1,5 @@
+include(CheckIncludeFiles)
 include(CheckLibraryExists)
-include(${ORTHANC_ROOT}/Resources/CMake/Compiler.cmake)
 
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
@@ -22,7 +22,7 @@ endif ()
 
 
 if (CMAKE_COMPILER_IS_GNUCXX)
-  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--version-script=${ORTHANC_ROOT}/Plugins/Samples/Common/VersionScript.map -Wl,--no-undefined")
+  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--version-script=${SAMPLES_ROOT}/Common/VersionScript.map -Wl,--no-undefined")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -pedantic")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic")
 endif()
@@ -35,8 +35,8 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 endif()
 
 
-include_directories(${ORTHANC_ROOT}/Plugins/Include/)
+include_directories(${SAMPLES_ROOT}/../Include/)
 
 if (MSVC)
-  include_directories(${ORTHANC_ROOT}/Resources/ThirdParty/VisualStudio/)
+  include_directories(${SAMPLES_ROOT}/../../Resources/ThirdParty/VisualStudio/)
 endif()

@@ -7,6 +7,7 @@ SET(USE_SYSTEM_BOOST ON CACHE BOOL "Use the system version of Boost")
 SET(USE_SYSTEM_GOOGLE_LOG ON CACHE BOOL "Use the system version of Google Log")
 
 set(ORTHANC_ROOT ${CMAKE_SOURCE_DIR}/../../..)
+set(SAMPLES_ROOT ${CMAKE_SOURCE_DIR}/..)
 
 include(CheckIncludeFiles)
 include(CheckIncludeFileCXX)
@@ -14,6 +15,7 @@ include(${CMAKE_SOURCE_DIR}/../Common/OrthancPlugins.cmake)
 include(${ORTHANC_ROOT}/Resources/CMake/DownloadPackage.cmake)
 include(${ORTHANC_ROOT}/Resources/CMake/BoostConfiguration.cmake)
 include(${ORTHANC_ROOT}/Resources/CMake/GoogleLogConfiguration.cmake)
+include(${ORTHANC_ROOT}/Resources/CMake/JsonCppConfiguration.cmake)
 
 find_package(GDCM REQUIRED)
 if (GDCM_FOUND)
@@ -38,6 +40,7 @@ add_library(GdcmDecoding SHARED
   ${ORTHANC_ROOT}/Core/Toolbox.cpp
   ${ORTHANC_ROOT}/Resources/ThirdParty/base64/base64.cpp
   ${ORTHANC_ROOT}/Resources/ThirdParty/md5/md5.c
+  ${JSONCPP_SOURCES}
   ${THIRD_PARTY_SOURCES}
   )
 
