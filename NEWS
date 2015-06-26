@@ -1,6 +1,7 @@
 Pending changes in the mainline
 ===============================
 
+* The configuration can be splitted into several files stored inside the same folder
 * Fix issue 35 (Characters in PatientID string are not protected for C-Find)
 * Fix issue 37 (Hyphens trigger range query even if datatype does not support ranges)
 
