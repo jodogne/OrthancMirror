@@ -62,23 +62,102 @@
 namespace Orthanc
 {
   static boost::mutex globalMutex_;
-  static std::auto_ptr<Json::Value> configuration_;
+  static Json::Value configuration_;
   static boost::filesystem::path defaultDirectory_;
   static std::string configurationAbsolutePath_;
 
 
-  static void ReadGlobalConfiguration(const char* configurationFile)
+  static void AddFileToConfiguration(const boost::filesystem::path& path)
   {
-    configuration_.reset(new Json::Value);
+    LOG(WARNING) << "Reading the configuration from: " << path;
 
     std::string content;
+    Toolbox::ReadFile(content, path.string());
+
+    Json::Value tmp;
+    Json::Reader reader;
+    if (!reader.parse(content, tmp) ||
+        tmp.type() != Json::objectValue)
+    {
+      LOG(ERROR) << "Bad file format for this configuration file: " << path;
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    if (configuration_.size() == 0)
+    {
+      configuration_ = tmp;
+    }
+    else
+    {
+      Json::Value::Members members = tmp.getMemberNames();
+      for (Json::Value::ArrayIndex i = 0; i < members.size(); i++)
+      {
+        if (configuration_.isMember(members[i]))
+        {
+          LOG(ERROR) << "The configuration section \"" << members[i] << "\" is defined in 2 different configuration files";
+          throw OrthancException(ErrorCode_BadFileFormat);          
+        }
+        else
+        {
+          configuration_[members[i]] = tmp[members[i]];
+        }
+      }
+    }
+  }
+
+
+  static void ScanFolderForConfiguration(const char* folder)
+  {
+    using namespace boost::filesystem;
+
+    LOG(WARNING) << "Scanning folder \"" << folder << "\" for configuration files";
+
+    directory_iterator end_it; // default construction yields past-the-end
+    for (directory_iterator it(folder);
+         it != end_it;
+         ++it)
+    {
+      if (!is_directory(it->status()))
+      {
+        std::string extension = boost::filesystem::extension(it->path());
+        Toolbox::ToLowerCase(extension);
+
+        if (extension == ".json")
+        {
+          AddFileToConfiguration(it->path().string());
+        }
+      }
+    }
+  }
+
+
+  static void ReadGlobalConfiguration(const char* configurationFile)
+  {
+    // Prepare the default configuration
+    defaultDirectory_ = boost::filesystem::current_path();
+    configuration_ = Json::objectValue;
+    configurationAbsolutePath_ = "";
 
     if (configurationFile)
     {
-      Toolbox::ReadFile(content, configurationFile);
-      defaultDirectory_ = boost::filesystem::path(configurationFile).parent_path();
-      LOG(WARNING) << "Using the configuration from: " << configurationFile;
-      configurationAbsolutePath_ = boost::filesystem::absolute(configurationFile).string();
+      if (!boost::filesystem::exists(configurationFile))
+      {
+        LOG(ERROR) << "Inexistent path to configuration: " << configurationFile;
+        return;
+      }
+      
+      if (boost::filesystem::is_directory(configurationFile))
+      {
+        defaultDirectory_ = boost::filesystem::path(configurationFile);
+        configurationAbsolutePath_ = boost::filesystem::absolute(configurationFile).parent_path().string();
+        ScanFolderForConfiguration(configurationFile);
+      }
+      else
+      {
+        defaultDirectory_ = boost::filesystem::path(configurationFile).parent_path();
+        configurationAbsolutePath_ = boost::filesystem::absolute(configurationFile).string();
+        AddFileToConfiguration(configurationFile);
+      }
     }
     else
     {
@@ -91,39 +170,22 @@ namespace Orthanc
       // In a non-standalone build, we use the
       // "Resources/Configuration.json" from the Orthanc source code
 
-      try
-      {
-        boost::filesystem::path p = ORTHANC_PATH;
-        p /= "Resources";
-        p /= "Configuration.json";
-        Toolbox::ReadFile(content, p.string());
-        LOG(WARNING) << "Using the configuration from: " << p.string();
-        configurationAbsolutePath_ = boost::filesystem::absolute(p).string();
-      }
-      catch (OrthancException&)
-      {
-        // No configuration file found, give up with empty configuration
-        LOG(WARNING) << "Using the default Orthanc configuration";
-        return;
-      }
+      boost::filesystem::path p = ORTHANC_PATH;
+      p /= "Resources";
+      p /= "Configuration.json";
+      configurationAbsolutePath_ = boost::filesystem::absolute(p).string();
+
+      AddFileToConfiguration(p);      
 #endif
-    }
-
-
-    Json::Reader reader;
-    if (!reader.parse(content, *configuration_))
-    {
-      LOG(ERROR) << "Unable to read the configuration file";
-      throw OrthancException(ErrorCode_BadFileFormat);
     }
   }
 
 
   static void RegisterUserMetadata()
   {
-    if (configuration_->isMember("UserMetadata"))
+    if (configuration_.isMember("UserMetadata"))
     {
-      const Json::Value& parameter = (*configuration_) ["UserMetadata"];
+      const Json::Value& parameter = configuration_["UserMetadata"];
 
       Json::Value::Members members = parameter.getMemberNames();
       for (size_t i = 0; i < members.size(); i++)
@@ -155,9 +217,9 @@ namespace Orthanc
 
   static void RegisterUserContentType()
   {
-    if (configuration_->isMember("UserContentType"))
+    if (configuration_.isMember("UserContentType"))
     {
-      const Json::Value& parameter = (*configuration_) ["UserContentType"];
+      const Json::Value& parameter = configuration_["UserContentType"];
 
       Json::Value::Members members = parameter.getMemberNames();
       for (size_t i = 0; i < members.size(); i++)
@@ -192,7 +254,8 @@ namespace Orthanc
     boost::mutex::scoped_lock lock(globalMutex_);
 
     InitializeServerEnumerations();
-    defaultDirectory_ = boost::filesystem::current_path();
+
+    // Read the user-provided configuration
     ReadGlobalConfiguration(configurationFile);
 
     HttpClient::GlobalInitialize();
@@ -219,7 +282,6 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(globalMutex_);
     HttpClient::GlobalFinalize();
-    configuration_.reset(NULL);
 
 #if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
     // Unregister JPEG-LS codecs
@@ -239,10 +301,9 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
-    if (configuration_.get() != NULL &&
-        configuration_->isMember(parameter))
+    if (configuration_.isMember(parameter))
     {
-      return (*configuration_) [parameter].asString();
+      return configuration_[parameter].asString();
     }
     else
     {
@@ -256,10 +317,9 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
-    if (configuration_.get() != NULL &&
-        configuration_->isMember(parameter))
+    if (configuration_.isMember(parameter))
     {
-      return (*configuration_) [parameter].asInt();
+      return configuration_[parameter].asInt();
     }
     else
     {
@@ -273,10 +333,9 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
-    if (configuration_.get() != NULL &&
-        configuration_->isMember(parameter))
+    if (configuration_.isMember(parameter))
     {
-      return (*configuration_) [parameter].asBool();
+      return configuration_[parameter].asBool();
     }
     else
     {
@@ -290,19 +349,13 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
-    if (configuration_.get() == NULL)
-    {
-      LOG(ERROR) << "The configuration file was not properly loaded";
-      throw OrthancException(ErrorCode_InexistentItem);
-    }
-       
-    if (!configuration_->isMember("DicomModalities"))
+    if (!configuration_.isMember("DicomModalities"))
     {
       LOG(ERROR) << "No modality with symbolic name: " << name;
       throw OrthancException(ErrorCode_InexistentItem);
     }
 
-    const Json::Value& modalities = (*configuration_) ["DicomModalities"];
+    const Json::Value& modalities = configuration_["DicomModalities"];
     if (modalities.type() != Json::objectValue ||
         !modalities.isMember(name))
     {
@@ -329,13 +382,7 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
-    if (configuration_.get() == NULL)
-    {
-      LOG(ERROR) << "The configuration file was not properly loaded";
-      throw OrthancException(ErrorCode_InexistentItem);
-    }
-       
-    if (!configuration_->isMember("OrthancPeers"))
+    if (!configuration_.isMember("OrthancPeers"))
     {
       LOG(ERROR) << "No peer with symbolic name: " << name;
       throw OrthancException(ErrorCode_InexistentItem);
@@ -343,7 +390,7 @@ namespace Orthanc
 
     try
     {
-      const Json::Value& modalities = (*configuration_) ["OrthancPeers"];
+      const Json::Value& modalities = configuration_["OrthancPeers"];
       if (modalities.type() != Json::objectValue ||
           !modalities.isMember(name))
       {
@@ -370,13 +417,12 @@ namespace Orthanc
 
     target.clear();
   
-    if (configuration_.get() == NULL ||
-        !configuration_->isMember(parameter))
+    if (!configuration_.isMember(parameter))
     {
       return true;
     }
 
-    const Json::Value& modalities = (*configuration_) [parameter];
+    const Json::Value& modalities = configuration_[parameter];
     if (modalities.type() != Json::objectValue)
     {
       LOG(ERROR) << "Bad format of the \"DicomModalities\" configuration section";
@@ -431,13 +477,12 @@ namespace Orthanc
 
     httpServer.ClearUsers();
 
-    if (configuration_.get() == NULL ||
-        !configuration_->isMember("RegisteredUsers"))
+    if (!configuration_.isMember("RegisteredUsers"))
     {
       return;
     }
 
-    const Json::Value& users = (*configuration_) ["RegisteredUsers"];
+    const Json::Value& users = configuration_["RegisteredUsers"];
     if (users.type() != Json::objectValue)
     {
       LOG(ERROR) << "Badly formatted list of users";
@@ -494,13 +539,12 @@ namespace Orthanc
 
     target.clear();
   
-    if (configuration_.get() == NULL ||
-        !configuration_->isMember(key))
+    if (!configuration_.isMember(key))
     {
       return;
     }
 
-    const Json::Value& lst = (*configuration_) [key];
+    const Json::Value& lst = configuration_[key];
 
     if (lst.type() != Json::arrayValue)
     {
@@ -598,18 +642,12 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
-    if (configuration_.get() == NULL)
+    if (!configuration_.isMember("DicomModalities"))
     {
-      LOG(ERROR) << "The configuration file was not properly loaded";
-      throw OrthancException(ErrorCode_InternalError);
+      configuration_["DicomModalities"] = Json::objectValue;
     }
 
-    if (!configuration_->isMember("DicomModalities"))
-    {
-      (*configuration_) ["DicomModalities"] = Json::objectValue;
-    }
-
-    Json::Value& modalities = (*configuration_) ["DicomModalities"];
+    Json::Value& modalities = configuration_["DicomModalities"];
     if (modalities.type() != Json::objectValue)
     {
       LOG(ERROR) << "Bad file format for modality: " << symbolicName;
@@ -628,19 +666,13 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
-    if (configuration_.get() == NULL)
-    {
-      LOG(ERROR) << "The configuration file was not properly loaded";
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    if (!configuration_->isMember("DicomModalities"))
+    if (!configuration_.isMember("DicomModalities"))
     {
       LOG(ERROR) << "No modality with symbolic name: " << symbolicName;
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
-    Json::Value& modalities = (*configuration_) ["DicomModalities"];
+    Json::Value& modalities = configuration_["DicomModalities"];
     if (modalities.type() != Json::objectValue)
     {
       LOG(ERROR) << "Bad file format for the \"DicomModalities\" configuration section";
@@ -656,19 +688,13 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
-    if (configuration_.get() == NULL)
-    {
-      LOG(ERROR) << "The configuration file was not properly loaded";
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    if (!configuration_->isMember("OrthancPeers"))
+    if (!configuration_.isMember("OrthancPeers"))
     {
       LOG(ERROR) << "No peer with symbolic name: " << symbolicName;
-      (*configuration_) ["OrthancPeers"] = Json::objectValue;
+      configuration_["OrthancPeers"] = Json::objectValue;
     }
 
-    Json::Value& peers = (*configuration_) ["OrthancPeers"];
+    Json::Value& peers = configuration_["OrthancPeers"];
     if (peers.type() != Json::objectValue)
     {
       LOG(ERROR) << "Bad file format for the \"OrthancPeers\" configuration section";
@@ -687,19 +713,13 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(globalMutex_);
 
-    if (configuration_.get() == NULL)
-    {
-      LOG(ERROR) << "The configuration file was not properly loaded";
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    if (!configuration_->isMember("OrthancPeers"))
+    if (!configuration_.isMember("OrthancPeers"))
     {
       LOG(ERROR) << "No peer with symbolic name: " << symbolicName;
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
-    Json::Value& peers = (*configuration_) ["OrthancPeers"];
+    Json::Value& peers = configuration_["OrthancPeers"];
     if (peers.type() != Json::objectValue)
     {
       LOG(ERROR) << "Bad file format for the \"OrthancPeers\" configuration section";

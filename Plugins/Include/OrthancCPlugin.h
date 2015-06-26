@@ -1799,10 +1799,12 @@ extern "C"
 
 
   /**
-   * @brief Return the path to the configuration file.
+   * @brief Return the path to the configuration file(s).
    *
-   * This function returns the path to the configuration file that was
-   * specified when starting Orthanc.
+   * This function returns the path to the configuration file(s) that
+   * was specified when starting Orthanc. Since version 0.9.1, this
+   * path can refer to a folder that stores a set of configuration
+   * files.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @return NULL in the case of an error, or a newly allocated string
