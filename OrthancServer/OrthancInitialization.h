@@ -108,5 +108,7 @@ namespace Orthanc
     static IDatabaseWrapper* CreateDatabaseWrapper();
 
     static IStorageArea* CreateStorageArea();
+
+    static void FormatConfiguration(std::string& result);
   };
 }

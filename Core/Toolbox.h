@@ -160,5 +160,8 @@ namespace Orthanc
                               const std::vector<std::string>& arguments);
 
     bool IsInteger(const std::string& str);
+
+    void CopyJsonWithoutComments(Json::Value& target,
+                                 const Json::Value& source);
   }
 }

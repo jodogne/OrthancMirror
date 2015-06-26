@@ -256,6 +256,7 @@ extern "C"
     _OrthancPluginService_GetCommandLineArgumentsCount = 10,
     _OrthancPluginService_GetCommandLineArgument = 11,
     _OrthancPluginService_GetExpectedDatabaseVersion = 12,
+    _OrthancPluginService_GetConfiguration = 13,
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -1804,12 +1805,14 @@ extern "C"
    * This function returns the path to the configuration file(s) that
    * was specified when starting Orthanc. Since version 0.9.1, this
    * path can refer to a folder that stores a set of configuration
-   * files.
+   * files. This function is deprecated in favor of
+   * OrthancPluginGetConfiguration().
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @return NULL in the case of an error, or a newly allocated string
    * containing the path. This string must be freed by
    * OrthancPluginFreeString().
+   * @see OrthancPluginGetConfiguration()
    **/
   ORTHANC_PLUGIN_INLINE char *OrthancPluginGetConfigurationPath(OrthancPluginContext* context)
   {
@@ -2113,6 +2116,38 @@ extern "C"
     else
     {
       return count;
+    }
+  }
+
+
+
+  /**
+   * @brief Return the content of the configuration file(s).
+   *
+   * This function returns the content of the configuration that is
+   * used by Orthanc, formatted as a JSON string.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @return NULL in the case of an error, or a newly allocated string
+   * containing the configuration. This string must be freed by
+   * OrthancPluginFreeString().
+   **/
+  ORTHANC_PLUGIN_INLINE char *OrthancPluginGetConfiguration(OrthancPluginContext* context)
+  {
+    char* result;
+
+    _OrthancPluginRetrieveDynamicString params;
+    params.result = &result;
+    params.argument = NULL;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetConfiguration, &params))
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
     }
   }
 
