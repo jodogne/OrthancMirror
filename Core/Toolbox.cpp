@@ -1137,5 +1137,65 @@ namespace Orthanc
 
     return true;
   }
+
+
+  void Toolbox::CopyJsonWithoutComments(Json::Value& target,
+                                        const Json::Value& source)
+  {
+    switch (source.type())
+    {
+      case Json::nullValue:
+        target = Json::nullValue;
+        break;
+
+      case Json::intValue:
+        target = source.asInt64();
+        break;
+
+      case Json::uintValue:
+        target = source.asUInt64();
+        break;
+
+      case Json::realValue:
+        target = source.asDouble();
+        break;
+
+      case Json::stringValue:
+        target = source.asString();
+        break;
+
+      case Json::booleanValue:
+        target = source.asBool();
+        break;
+
+      case Json::arrayValue:
+      {
+        target = Json::arrayValue;
+        for (Json::Value::ArrayIndex i = 0; i < source.size(); i++)
+        {
+          Json::Value& item = target.append(Json::nullValue);
+          CopyJsonWithoutComments(item, source[i]);
+        }
+
+        break;
+      }
+
+      case Json::objectValue:
+      {
+        target = Json::objectValue;
+        Json::Value::Members members = source.getMemberNames();
+        for (Json::Value::ArrayIndex i = 0; i < members.size(); i++)
+        {
+          const std::string item = members[i];
+          CopyJsonWithoutComments(target[item], source[item]);
+        }
+
+        break;
+      }
+
+      default:
+        break;
+    }
+  }
 }
 

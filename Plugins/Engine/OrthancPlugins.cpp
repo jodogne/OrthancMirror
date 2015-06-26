@@ -1008,6 +1008,15 @@ namespace Orthanc
         return true;
       }
 
+      case _OrthancPluginService_GetConfiguration:
+      {
+        std::string s;
+        Configuration::FormatConfiguration(s);
+
+        *reinterpret_cast<const _OrthancPluginRetrieveDynamicString*>(parameters)->result = CopyString(s);
+        return true;
+      }
+
       case _OrthancPluginService_RegisterRestCallback:
         RegisterRestCallback(parameters);
         return true;

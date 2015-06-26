@@ -71,25 +71,31 @@ namespace Orthanc
   {
     LOG(WARNING) << "Reading the configuration from: " << path;
 
-    std::string content;
-    Toolbox::ReadFile(content, path.string());
+    Json::Value config;
 
-    Json::Value tmp;
-    Json::Reader reader;
-    if (!reader.parse(content, tmp) ||
-        tmp.type() != Json::objectValue)
     {
-      LOG(ERROR) << "Bad file format for this configuration file: " << path;
-      throw OrthancException(ErrorCode_BadFileFormat);
+      std::string content;
+      Toolbox::ReadFile(content, path.string());
+
+      Json::Value tmp;
+      Json::Reader reader;
+      if (!reader.parse(content, tmp) ||
+          tmp.type() != Json::objectValue)
+      {
+        LOG(ERROR) << "Bad file format for this configuration file: " << path;
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      Toolbox::CopyJsonWithoutComments(config, tmp);
     }
 
     if (configuration_.size() == 0)
     {
-      configuration_ = tmp;
+      configuration_ = config;
     }
     else
     {
-      Json::Value::Members members = tmp.getMemberNames();
+      Json::Value::Members members = config.getMemberNames();
       for (Json::Value::ArrayIndex i = 0; i < members.size(); i++)
       {
         if (configuration_.isMember(members[i]))
@@ -99,7 +105,7 @@ namespace Orthanc
         }
         else
         {
-          configuration_[members[i]] = tmp[members[i]];
+          configuration_[members[i]] = config[members[i]];
         }
       }
     }
@@ -839,4 +845,18 @@ namespace Orthanc
   {
     return CreateFilesystemStorage();
   }  
+
+
+  void Configuration::FormatConfiguration(std::string& result)
+  {
+    Json::Value config;
+
+    {
+      boost::mutex::scoped_lock lock(globalMutex_);
+      config = configuration_;
+    }
+
+    Json::StyledWriter w;
+    result = w.write(config);
+  }
 }
