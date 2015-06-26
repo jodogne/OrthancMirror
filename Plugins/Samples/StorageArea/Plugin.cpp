@@ -18,7 +18,7 @@
  **/
 
 
-#include <OrthancCPlugin.h>
+#include <orthanc/OrthancCPlugin.h>
 
 #include <string.h>
 #include <stdio.h>

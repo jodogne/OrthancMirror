@@ -49,6 +49,8 @@ namespace Orthanc
     struct PImpl;
     boost::shared_ptr<PImpl> pimpl_;
 
+    void CheckContextAvailable();
+
     void RegisterRestCallback(const void* parameters);
 
     void RegisterOnStoredInstanceCallback(const void* parameters);
