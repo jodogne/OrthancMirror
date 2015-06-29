@@ -553,20 +553,20 @@ namespace Orthanc
    * DICOM C-Store SCU
    ***************************************************************************/
 
-  static bool GetInstancesToExport(Json::Value& request,
+  static bool GetInstancesToExport(Json::Value& otherArguments,
                                    std::list<std::string>& instances,
                                    const std::string& remote,
                                    RestApiPostCall& call)
   {
+    otherArguments = Json::objectValue;
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    std::string stripped = Toolbox::StripSpaces(call.GetPostBody());
-
-    request = Json::objectValue;
-    if (Toolbox::IsSHA1(stripped))
+    Json::Value request;
+    if (Toolbox::IsSHA1(call.GetPostBody()))
     {
       // This is for compatibility with Orthanc <= 0.5.1.
-      request = stripped;
+      request = Json::arrayValue;
+      request.append(Toolbox::StripSpaces(call.GetPostBody()));
     }
     else if (!call.ParseJsonRequest(request))
     {
@@ -576,13 +576,9 @@ namespace Orthanc
 
     if (request.isString())
     {
-      if (Configuration::GetGlobalBoolParameter("LogExportedResources", true))
-      {
-        context.GetIndex().LogExportedResource(request.asString(), remote);
-      }
-
-      context.GetIndex().GetChildInstances(instances, request.asString());
-      return true;
+      std::string item = request.asString();
+      request = Json::arrayValue;
+      request.append(item);
     }
 
     const Json::Value* resources;
@@ -602,6 +598,13 @@ namespace Orthanc
       if (!resources->isArray())
       {
         return false;
+      }
+
+      // Copy the remaining arguments
+      Json::Value::Members members = request.getMemberNames();
+      for (Json::Value::ArrayIndex i = 0; i < members.size(); i++)
+      {
+        otherArguments[members[i]] = request[members[i]];
       }
     }
 

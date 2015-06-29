@@ -78,6 +78,17 @@ TEST(Toolbox, IsSHA1)
   ASSERT_FALSE(Toolbox::IsSHA1("012345678901234567890123456789012345678901234"));
   ASSERT_TRUE(Toolbox::IsSHA1("b5ed549f-956400ce-69a8c063-bf5b78be-2732a4b9"));
 
+  std::string sha = "         b5ed549f-956400ce-69a8c063-bf5b78be-2732a4b9          ";
+  ASSERT_TRUE(Toolbox::IsSHA1(sha));
+  sha[3] = '\0';
+  sha[53] = '\0';
+  ASSERT_TRUE(Toolbox::IsSHA1(sha));
+  sha[40] = '\0';
+  ASSERT_FALSE(Toolbox::IsSHA1(sha));
+  ASSERT_FALSE(Toolbox::IsSHA1("       "));
+
+  ASSERT_TRUE(Toolbox::IsSHA1("16738bc3-e47ed42a-43ce044c-a3414a45-cb069bd0"));
+
   std::string s;
   Toolbox::ComputeSHA1(s, "The quick brown fox jumps over the lazy dog");
   ASSERT_TRUE(Toolbox::IsSHA1(s));

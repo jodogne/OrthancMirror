@@ -685,7 +685,43 @@ namespace Orthanc
 
   bool Toolbox::IsSHA1(const std::string& str)
   {
-    if (str.size() != 44)
+    if (str.size() == 0)
+    {
+      return false;
+    }
+
+    const char* start = &str[0];
+    const char* end = start + str.size();
+
+    // Trim the beginning of the string
+    while (start < end)
+    {
+      if (*start == '\0' ||
+          isspace(*start))
+      {
+        start++;
+      }
+      else
+      {
+        break;
+      }
+    }
+
+    // Trim the trailing of the string
+    while (start < end)
+    {
+      if (*(end - 1) == '\0' ||
+          isspace(*(end - 1)))
+      {
+        end--;
+      }
+      else
+      {
+        break;
+      }
+    }
+
+    if (end - start != 44)
     {
       return false;
     }
@@ -697,12 +733,12 @@ namespace Orthanc
           i == 26 ||
           i == 35)
       {
-        if (str[i] != '-')
+        if (start[i] != '-')
           return false;
       }
       else
       {
-        if (!isalnum(str[i]))
+        if (!isalnum(start[i]))
           return false;
       }
     }
