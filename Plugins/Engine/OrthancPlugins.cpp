@@ -426,6 +426,12 @@ namespace Orthanc
                        &request);
     }
 
+    if (error == 0 && 
+        output.IsWritingMultipart())
+    {
+      output.CloseMultipart();
+    }
+
     if (error < 0)
     {
       LOG(ERROR) << "Plugin callback failed with error code " << error;
@@ -1229,6 +1235,26 @@ namespace Orthanc
         const _OrthancPluginReturnSingleValue& p =
           *reinterpret_cast<const _OrthancPluginReturnSingleValue*>(parameters);
         *(p.resultUint32) = ORTHANC_DATABASE_VERSION;
+        return true;
+      }
+
+      case _OrthancPluginService_StartMultipartAnswer:
+      {
+        const _OrthancPluginStartMultipartAnswer& p =
+          *reinterpret_cast<const _OrthancPluginStartMultipartAnswer*>(parameters);
+        HttpOutput* output = reinterpret_cast<HttpOutput*>(p.output);
+        output->StartMultipart(p.subType, p.contentType);
+        return true;
+      }
+
+      case _OrthancPluginService_SendMultipartItem:
+      {
+        // An exception might be raised in this function if the
+        // connection was closed by the HTTP client.
+        const _OrthancPluginAnswerBuffer& p =
+          *reinterpret_cast<const _OrthancPluginAnswerBuffer*>(parameters);
+        HttpOutput* output = reinterpret_cast<HttpOutput*>(p.output);
+        output->SendMultipartItem(p.answer, p.answerSize);
         return true;
       }
 

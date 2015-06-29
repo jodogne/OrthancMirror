@@ -82,7 +82,12 @@ namespace Orthanc
       {
         if (length > 0)
         {
-          mg_write(connection_, buffer, length);
+          int status = mg_write(connection_, buffer, length);
+          if (status != static_cast<int>(length))
+          {
+            // status == 0 when the connection has been closed, -1 on error
+            throw OrthancException(ErrorCode_NetworkProtocol);
+          }
         }
       }
 

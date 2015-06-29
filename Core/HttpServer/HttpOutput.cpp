@@ -151,6 +151,11 @@ namespace Orthanc
       }
     }
 
+    if (state_ == State_WritingMultipart)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
     if (state_ == State_WritingHeader)
     {
       // Send the HTTP header before writing the body
@@ -269,5 +274,110 @@ namespace Orthanc
   void HttpOutput::SendBody()
   {
     stateMachine_.SendBody(NULL, 0);
+  }
+
+
+  void HttpOutput::StateMachine::StartMultipart(const std::string& subType,
+                                                const std::string& contentType)
+  {
+    if (subType != "mixed" &&
+        subType != "related")
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    if (keepAlive_)
+    {
+      LOG(ERROR) << "Multipart answers are not implemented together with keep-alive connections";
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+    if (state_ != State_WritingHeader)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    if (status_ != HttpStatus_200_Ok)
+    {
+      SendBody(NULL, 0);
+      return;
+    }
+
+    stream_.OnHttpStatusReceived(status_);
+
+    std::string header = "HTTP/1.1 200 OK\r\n";
+
+    // Possibly add the cookies
+    for (std::list<std::string>::const_iterator
+           it = headers_.begin(); it != headers_.end(); ++it)
+    {
+      if (!Toolbox::StartsWith(*it, "Set-Cookie: "))
+      {
+        LOG(ERROR) << "The only headers that can be set in multipart answers are Set-Cookie (here: " << *it << " is set)";
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+
+      header += *it;
+    }
+
+    multipartBoundary_ = Toolbox::GenerateUuid();
+    multipartContentType_ = contentType;
+    header += "Content-Type: multipart/related; type=multipart/" + subType + "; boundary=" + multipartBoundary_ + "\r\n\r\n";
+
+    stream_.Send(true, header.c_str(), header.size());
+    state_ = State_WritingMultipart;
+  }
+
+
+  void HttpOutput::StateMachine::SendMultipartItem(const void* item, size_t length)
+  {
+    std::string header = "--" + multipartBoundary_ + "\n";
+    header += "Content-Type: " + multipartContentType_ + "\n";
+    header += "Content-Length: " + boost::lexical_cast<std::string>(length) + "\n";
+    header += "MIME-Version: 1.0\n\n";
+
+    stream_.Send(false, header.c_str(), header.size());
+
+    if (length > 0)
+    {
+      stream_.Send(false, item, length);
+    }
+
+    stream_.Send(false, "\n", 1);
+  }
+
+
+  void HttpOutput::StateMachine::CloseMultipart()
+  {
+    if (state_ != State_WritingMultipart)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    // The two lines below might throw an exception, if the client has
+    // closed the connection. Such an error is ignored.
+    try
+    {
+      std::string header = "--" + multipartBoundary_ + "--\n";
+      stream_.Send(false, header.c_str(), header.size());
+    }
+    catch (OrthancException&)
+    {
+    }
+
+    state_ = State_Done;
+  }
+
+
+  void HttpOutput::SendMultipartItem(const std::string& item)
+  {
+    if (item.size() > 0)
+    {
+      stateMachine_.SendMultipartItem(item.c_str(), item.size());
+    }
+    else
+    {
+      stateMachine_.SendMultipartItem(NULL, 0);
+    }
   }
 }

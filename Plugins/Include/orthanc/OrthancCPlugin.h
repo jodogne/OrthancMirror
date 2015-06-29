@@ -273,6 +273,8 @@ extern "C"
     _OrthancPluginService_SendMethodNotAllowed = 2005,
     _OrthancPluginService_SetCookie = 2006,
     _OrthancPluginService_SetHttpHeader = 2007,
+    _OrthancPluginService_StartMultipartAnswer = 2008,
+    _OrthancPluginService_SendMultipartItem = 2009,
 
     /* Access to the Orthanc database and API */
     _OrthancPluginService_GetDicomForInstance = 3000,
@@ -2152,6 +2154,66 @@ extern "C"
   }
 
 
+
+  typedef struct
+  {
+    OrthancPluginRestOutput* output;
+    const char*              subType;
+    const char*              contentType;
+  } _OrthancPluginStartMultipartAnswer;
+
+  /**
+   * @brief Start an HTTP multipart answer.
+   *
+   * Initiates a HTTP multipart answer, as the result of a REST request.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param output The HTTP connection to the client application.
+   * @param subType The sub-type of the multipart answer ("mixed" or "related").
+   * @param contentType The MIME type of the items in the multipart answer.
+   * @return 0 if success, other value if error.
+   * @see OrthancPluginSendMultipartItem()
+   **/
+  ORTHANC_PLUGIN_INLINE int32_t OrthancPluginStartMultipartAnswer(
+    OrthancPluginContext*    context,
+    OrthancPluginRestOutput* output,
+    const char*              subType,
+    const char*              contentType)
+  {
+    _OrthancPluginStartMultipartAnswer params;
+    params.output = output;
+    params.subType = subType;
+    params.contentType = contentType;
+    return context->InvokeService(context, _OrthancPluginService_StartMultipartAnswer, &params);
+  }
+
+
+  /**
+   * @brief Send an item as a part of some HTTP multipart answer.
+   *
+   * This function sends an item as a part of some HTTP multipart
+   * answer that was initiated by OrthancPluginStartMultipartAnswer().
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param output The HTTP connection to the client application.
+   * @param answer Pointer to the memory buffer containing the item.
+   * @param answerSize Number of bytes of the item.
+   * @return 0 if success, other value if error (this notably happens
+   * if the connection is closed by the client).
+   **/
+  ORTHANC_PLUGIN_INLINE int32_t OrthancPluginSendMultipartItem(
+    OrthancPluginContext*    context,
+    OrthancPluginRestOutput* output,
+    const char*              answer,
+    uint32_t                 answerSize)
+  {
+    _OrthancPluginAnswerBuffer params;
+    params.output = output;
+    params.answer = answer;
+    params.answerSize = answerSize;
+    params.mimeType = NULL;
+    return context->InvokeService(context, _OrthancPluginService_SendMultipartItem, &params);
+  }
 
 #ifdef  __cplusplus
 }

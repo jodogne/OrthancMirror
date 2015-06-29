@@ -807,6 +807,18 @@ TEST(Toolbox, IsInteger)
 }
 
 
+TEST(Toolbox, StartsWith)
+{
+  ASSERT_TRUE(Toolbox::StartsWith("hello world", ""));
+  ASSERT_TRUE(Toolbox::StartsWith("hello world", "hello"));
+  ASSERT_TRUE(Toolbox::StartsWith("hello world", "h"));
+  ASSERT_FALSE(Toolbox::StartsWith("hello world", "H"));
+  ASSERT_FALSE(Toolbox::StartsWith("h", "hello"));
+  ASSERT_TRUE(Toolbox::StartsWith("h", "h"));
+  ASSERT_FALSE(Toolbox::StartsWith("", "h"));
+}
+
+
 int main(int argc, char **argv)
 {
   // Initialize Google's logging library.

@@ -1233,5 +1233,20 @@ namespace Orthanc
         break;
     }
   }
+
+
+  bool Toolbox::StartsWith(const std::string& str,
+                           const std::string& prefix)
+  {
+    if (str.size() < prefix.size())
+    {
+      return false;
+    }
+    else
+    {
+      return str.compare(0, prefix.size(), prefix) == 0;
+    }
+  }
+
 }
 
