@@ -160,5 +160,8 @@ namespace Orthanc
 
     void CopyJsonWithoutComments(Json::Value& target,
                                  const Json::Value& source);
+
+    bool StartsWith(const std::string& str,
+                    const std::string& prefix);
   }
 }

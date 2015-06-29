@@ -38,6 +38,7 @@
 #include "../Enumerations.h"
 #include "IHttpOutputStream.h"
 #include "HttpHandler.h"
+#include "../Uuid.h"
 
 namespace Orthanc
 {
@@ -48,14 +49,16 @@ namespace Orthanc
 
     class StateMachine : public boost::noncopyable
     {
-    private:
+    public:
       enum State
       {
         State_WritingHeader,      
         State_WritingBody,
+        State_WritingMultipart,
         State_Done
       };
 
+    private:
       IHttpOutputStream& stream_;
       State state_;
 
@@ -65,6 +68,9 @@ namespace Orthanc
       uint64_t contentPosition_;
       bool keepAlive_;
       std::list<std::string> headers_;
+
+      std::string multipartBoundary_;
+      std::string multipartContentType_;
 
     public:
       StateMachine(IHttpOutputStream& stream,
@@ -89,6 +95,18 @@ namespace Orthanc
       void ClearHeaders();
 
       void SendBody(const void* buffer, size_t length);
+
+      void StartMultipart(const std::string& subType,
+                          const std::string& contentType);
+
+      void SendMultipartItem(const void* item, size_t length);
+
+      void CloseMultipart();
+
+      State GetState() const
+      {
+        return state_;
+      }
     };
 
     StateMachine stateMachine_;
@@ -140,5 +158,28 @@ namespace Orthanc
     void Redirect(const std::string& path);
 
     void SendUnauthorized(const std::string& realm);
+
+    void StartMultipart(const std::string& subType,
+                        const std::string& contentType)
+    {
+      stateMachine_.StartMultipart(subType, contentType);
+    }
+
+    void SendMultipartItem(const std::string& item);
+
+    void SendMultipartItem(const void* item, size_t size)
+    {
+      stateMachine_.SendMultipartItem(item, size);
+    }
+
+    void CloseMultipart()
+    {
+      stateMachine_.CloseMultipart();
+    }
+
+    bool IsWritingMultipart() const
+    {
+      return stateMachine_.GetState() == StateMachine::State_WritingMultipart;
+    }
   };
 }
