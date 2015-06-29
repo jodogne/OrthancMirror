@@ -149,7 +149,7 @@ namespace Orthanc
       if (!boost::filesystem::exists(configurationFile))
       {
         LOG(ERROR) << "Inexistent path to configuration: " << configurationFile;
-        return;
+        throw OrthancException(ErrorCode_InexistentFile);
       }
       
       if (boost::filesystem::is_directory(configurationFile))

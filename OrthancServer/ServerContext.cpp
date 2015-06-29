@@ -79,10 +79,9 @@ namespace Orthanc
     scheduler_(Configuration::GetGlobalIntegerParameter("LimitJobs", 10)),
     plugins_(NULL),
     pluginsManager_(NULL),
-    queryRetrieveArchive_(Configuration::GetGlobalIntegerParameter("QueryRetrieveSize", 10))
+    queryRetrieveArchive_(Configuration::GetGlobalIntegerParameter("QueryRetrieveSize", 10)),
+    defaultLocalAet_(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"))
   {
-    scu_.SetLocalApplicationEntityTitle(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"));
-
     uint64_t s = Configuration::GetGlobalIntegerParameter("DicomAssociationCloseDelay", 5);  // In seconds
     scu_.SetMillisecondsBeforeClose(s * 1000);  // Milliseconds are expected here
 
@@ -140,10 +139,21 @@ namespace Orthanc
 
     if (operation == "store-scu")
     {
+      std::string localAet;
+      if (parameters.isMember("LocalAet"))
+      {
+        localAet = parameters["LocalAet"].asString();
+      }
+      else
+      {
+        localAet = context.GetDefaultLocalApplicationEntityTitle();
+      }
+
       std::string modality = parameters["Modality"].asString();
       LOG(INFO) << "Lua script to send instance " << parameters["Instance"].asString()
                 << " to modality " << modality << " using Store-SCU";
-      return new StoreScuCommand(context, Configuration::GetModalityUsingSymbolicName(modality), true);
+      return new StoreScuCommand(context, localAet,
+                                 Configuration::GetModalityUsingSymbolicName(modality), true);
     }
 
     if (operation == "store-peer")

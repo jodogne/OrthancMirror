@@ -49,7 +49,7 @@ namespace Orthanc
   {
     if (!done_)
     {
-      ReusableDicomUserConnection::Locker locker(context_.GetReusableDicomUserConnection(), modality_);
+      ReusableDicomUserConnection::Locker locker(context_.GetReusableDicomUserConnection(), localAet_, modality_);
       locker.GetConnection().Find(answers_, level_, query_);
       done_ = true;
     }
@@ -58,6 +58,7 @@ namespace Orthanc
 
   QueryRetrieveHandler::QueryRetrieveHandler(ServerContext& context) : 
     context_(context),
+    localAet_(context.GetDefaultLocalApplicationEntityTitle()),
     done_(false),
     level_(ResourceType_Study)
   {
@@ -117,7 +118,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    ReusableDicomUserConnection::Locker locker(context_.GetReusableDicomUserConnection(), modality_);
+    ReusableDicomUserConnection::Locker locker(context_.GetReusableDicomUserConnection(), localAet_, modality_);
     locker.GetConnection().Move(target, answers_.GetAnswer(i));
   }
 

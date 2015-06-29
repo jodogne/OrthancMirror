@@ -49,6 +49,7 @@ namespace Orthanc
     {
     private:
       ServerContext& context_;
+      const std::string& localAet_;
       std::vector<std::string> instances_;
       size_t position_;
       RemoteModalityParameters remote_;
@@ -58,6 +59,7 @@ namespace Orthanc
                                  const std::string& aet,
                                  const std::string& publicId) :
         context_(context),
+        localAet_(context.GetDefaultLocalApplicationEntityTitle()),
         position_(0)
       {
         LOG(INFO) << "Sending resource " << publicId << " to modality \"" << aet << "\"";
@@ -93,7 +95,7 @@ namespace Orthanc
 
         {
           ReusableDicomUserConnection::Locker locker
-            (context_.GetReusableDicomUserConnection(), remote_);
+            (context_.GetReusableDicomUserConnection(), localAet_, remote_);
           locker.GetConnection().Store(dicom);
         }
 

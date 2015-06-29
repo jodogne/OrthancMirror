@@ -43,9 +43,11 @@ namespace Orthanc
     ServerContext& context_;
     RemoteModalityParameters modality_;
     bool ignoreExceptions_;
+    std::string localAet_;
 
   public:
     StoreScuCommand(ServerContext& context,
+                    const std::string& localAet,
                     const RemoteModalityParameters& modality,
                     bool ignoreExceptions);
 

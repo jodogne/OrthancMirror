@@ -44,16 +44,15 @@ namespace Orthanc
     return boost::posix_time::microsec_clock::local_time();
   }
 
-  void ReusableDicomUserConnection::Open(const std::string& remoteAet,
-                                         const std::string& address,
-                                         int port,
-                                         ModalityManufacturer manufacturer)
+  void ReusableDicomUserConnection::Open(const std::string& localAet,
+                                         const RemoteModalityParameters& remote)
   {
     if (connection_ != NULL &&
-        connection_->GetRemoteApplicationEntityTitle() == remoteAet &&
-        connection_->GetRemoteHost() == address &&
-        connection_->GetRemotePort() == port &&
-        connection_->GetRemoteManufacturer() == manufacturer)
+        connection_->GetLocalApplicationEntityTitle() == localAet &&
+        connection_->GetRemoteApplicationEntityTitle() == remote.GetApplicationEntityTitle() &&
+        connection_->GetRemoteHost() == remote.GetHost() &&
+        connection_->GetRemotePort() == remote.GetPort() &&
+        connection_->GetRemoteManufacturer() == remote.GetManufacturer())
     {
       // The current connection can be reused
       LOG(INFO) << "Reusing the previous SCU connection";
@@ -63,11 +62,8 @@ namespace Orthanc
     Close();
 
     connection_ = new DicomUserConnection();
-    connection_->SetLocalApplicationEntityTitle(localAet_);
-    connection_->SetRemoteApplicationEntityTitle(remoteAet);
-    connection_->SetRemoteHost(address);
-    connection_->SetRemotePort(port);
-    connection_->SetRemoteManufacturer(manufacturer);
+    connection_->SetLocalApplicationEntityTitle(localAet);
+    connection_->SetRemoteModality(remote);
     connection_->Open();
   }
     
@@ -103,24 +99,13 @@ namespace Orthanc
     }
   }
     
-  ReusableDicomUserConnection::Locker::Locker(ReusableDicomUserConnection& that,
-                                              const std::string& aet,
-                                              const std::string& address,
-                                              int port,
-                                              ModalityManufacturer manufacturer) :
-    ::Orthanc::Locker(that)
-  {
-    that.Open(aet, address, port, manufacturer);
-    connection_ = that.connection_;
-  }
-
 
   ReusableDicomUserConnection::Locker::Locker(ReusableDicomUserConnection& that,
+                                              const std::string& localAet,
                                               const RemoteModalityParameters& remote) :
     ::Orthanc::Locker(that)
   {
-    that.Open(remote.GetApplicationEntityTitle(), remote.GetHost(), 
-              remote.GetPort(), remote.GetManufacturer());
+    that.Open(localAet, remote);
     connection_ = that.connection_;    
   }
 
@@ -137,8 +122,7 @@ namespace Orthanc
 
   ReusableDicomUserConnection::ReusableDicomUserConnection() : 
     connection_(NULL), 
-    timeBeforeClose_(boost::posix_time::seconds(5)),  // By default, close connection after 5 seconds
-    localAet_("ORTHANC")
+    timeBeforeClose_(boost::posix_time::seconds(5))  // By default, close connection after 5 seconds
   {
     lastUse_ = Now();
     continue_ = true;
@@ -162,13 +146,6 @@ namespace Orthanc
     }
 
     timeBeforeClose_ = boost::posix_time::milliseconds(ms);
-  }
-
-  void ReusableDicomUserConnection::SetLocalApplicationEntityTitle(const std::string& aet)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-    Close();
-    localAet_ = aet;
   }
 
   void ReusableDicomUserConnection::Lock()
