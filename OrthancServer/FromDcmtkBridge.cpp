@@ -221,12 +221,18 @@ namespace Orthanc
     if (element.isaString())
     {
       char *c;
-      if (element.getString(c).good() &&
-          c != NULL)
+      if (element.getString(c).good())
       {
-        std::string s(c);
-        std::string utf8 = Toolbox::ConvertToUtf8(s, encoding);
-        return new DicomString(utf8);
+        if (c == NULL)  // This case corresponds to the empty string
+        {
+          return new DicomString("");
+        }
+        else
+        {
+          std::string s(c);
+          std::string utf8 = Toolbox::ConvertToUtf8(s, encoding);
+          return new DicomString(utf8);
+        }
       }
       else
       {

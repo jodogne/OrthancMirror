@@ -300,6 +300,9 @@ namespace Orthanc
       case ModalityManufacturer_Dcm4Chee:
         return "Dcm4Chee";
       
+      case ModalityManufacturer_SyngoVia:
+        return "SyngoVia";
+      
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -358,6 +361,10 @@ namespace Orthanc
     else if (manufacturer == "Dcm4Chee")
     {
       return ModalityManufacturer_Dcm4Chee;
+    }
+    else if (manufacturer == "SyngoVia")
+    {
+      return ModalityManufacturer_SyngoVia;
     }
     else
     {
