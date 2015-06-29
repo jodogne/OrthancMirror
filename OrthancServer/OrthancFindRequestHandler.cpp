@@ -288,6 +288,11 @@ namespace Orthanc
       }
 
       std::string value = query.GetElement(i).GetValue().AsString();
+      if (value.size() == 0)
+      {
+        // An empty string corresponds to a "*" wildcard constraint, so we ignore it
+        continue;
+      }
 
       if (tag == DICOM_TAG_MODALITIES_IN_STUDY)
       {

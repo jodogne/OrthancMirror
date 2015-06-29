@@ -419,6 +419,46 @@ namespace Orthanc
   }
 
 
+  static DcmDataset* ConvertQueryFields(const DicomMap& fields,
+                                        ModalityManufacturer manufacturer)
+  {
+    switch (manufacturer)
+    {
+      case ModalityManufacturer_SyngoVia:
+      {
+        std::auto_ptr<DicomMap> fix(fields.Clone());
+
+        // This issue for Syngo.Via and its solution was reported by
+        // Emsy Chan by private mail on June 17th, 2015.
+        std::set<DicomTag> tags;
+        fix->GetTags(tags);
+
+        for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
+        {
+          if (FromDcmtkBridge::GetValueRepresentation(*it) == ValueRepresentation_Date)
+          {
+            // Replace a "*" query by an empty query ("") for "date"
+            // value representations. Necessary to search over dates
+            // in Syngo.Via.
+            const DicomValue* value = fix->TestAndGetValue(*it);
+
+            if (value != NULL && 
+                value->AsString() == "*")
+            {
+              fix->SetValue(*it, "");
+            }
+          }
+        }
+
+        return ToDcmtkBridge::Convert(*fix);
+      }
+
+      default:
+        return ToDcmtkBridge::Convert(fields);
+    }
+  }
+
+
   void DicomUserConnection::Find(DicomFindAnswers& result,
                                  ResourceType level,
                                  const DicomMap& fields)
@@ -430,8 +470,9 @@ namespace Orthanc
     FindPayload payload;
     payload.answers = &result;
 
+    std::auto_ptr<DcmDataset> dataset(ConvertQueryFields(fields, manufacturer_));
+
     const char* sopClass;
-    std::auto_ptr<DcmDataset> dataset(ToDcmtkBridge::Convert(fields));
     switch (level)
     {
       case ResourceType_Patient:
@@ -545,9 +586,9 @@ namespace Orthanc
   {
     CheckIsOpen();
 
-    const char* sopClass = UID_MOVEStudyRootQueryRetrieveInformationModel;
-    std::auto_ptr<DcmDataset> dataset(ToDcmtkBridge::Convert(fields));
+    std::auto_ptr<DcmDataset> dataset(ConvertQueryFields(fields, manufacturer_));
 
+    const char* sopClass = UID_MOVEStudyRootQueryRetrieveInformationModel;
     switch (level)
     {
       case ResourceType_Patient:

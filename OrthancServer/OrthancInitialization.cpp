@@ -375,7 +375,7 @@ namespace Orthanc
     }
     catch (OrthancException& e)
     {
-      LOG(ERROR) << "Syntax error in the definition of modality \"" << name 
+      LOG(ERROR) << "Syntax error in the definition of DICOM modality \"" << name 
                  << "\". Please check your configuration file.";
       throw;
     }

@@ -612,6 +612,13 @@ TEST(EnumerationDictionary, ServerEnumerations)
   RegisterUserMetadata(2047, "Ceci est un test");
   ASSERT_EQ(2047, StringToMetadata("2047"));
   ASSERT_EQ(2047, StringToMetadata("Ceci est un test"));
+
+  ASSERT_STREQ("Generic", EnumerationToString(StringToModalityManufacturer("Generic")));
+  ASSERT_STREQ("StoreScp", EnumerationToString(StringToModalityManufacturer("StoreScp")));
+  ASSERT_STREQ("ClearCanvas", EnumerationToString(StringToModalityManufacturer("ClearCanvas")));
+  ASSERT_STREQ("MedInria", EnumerationToString(StringToModalityManufacturer("MedInria")));
+  ASSERT_STREQ("Dcm4Chee", EnumerationToString(StringToModalityManufacturer("Dcm4Chee")));
+  ASSERT_STREQ("SyngoVia", EnumerationToString(StringToModalityManufacturer("SyngoVia")));
 }
 
 

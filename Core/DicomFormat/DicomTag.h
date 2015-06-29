@@ -108,6 +108,9 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_IMAGES_IN_ACQUISITION(0x0020, 0x1002);
 
   static const DicomTag DICOM_TAG_PATIENT_NAME(0x0010, 0x0010);
+  static const DicomTag DICOM_TAG_STUDY_DATE(0x0008, 0x0020);
+  static const DicomTag DICOM_TAG_SERIES_DATE(0x0008, 0x0021);
+  static const DicomTag DICOM_TAG_PATIENT_BIRTH_DATE(0x0010, 0x0030);
 
   // The following is used for "modify/anonymize" operations
   static const DicomTag DICOM_TAG_SOP_CLASS_UID(0x0008, 0x0016);

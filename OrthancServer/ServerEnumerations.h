@@ -60,7 +60,8 @@ namespace Orthanc
     ModalityManufacturer_StoreScp,
     ModalityManufacturer_ClearCanvas,
     ModalityManufacturer_MedInria,
-    ModalityManufacturer_Dcm4Chee
+    ModalityManufacturer_Dcm4Chee,
+    ModalityManufacturer_SyngoVia
   };
 
   enum DicomRequestType
