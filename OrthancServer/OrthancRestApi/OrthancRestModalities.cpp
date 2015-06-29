@@ -54,8 +54,9 @@ namespace Orthanc
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
+    const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
     RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
+    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), localAet, remote);
 
     try
     {
@@ -173,8 +174,9 @@ namespace Orthanc
       return;
     }
 
+    const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
     RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
+    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), localAet, remote);
 
     DicomFindAnswers answers;
     FindPatient(answers, locker.GetConnection(), fields);
@@ -202,8 +204,9 @@ namespace Orthanc
       return;
     }        
       
+    const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
     RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
+    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), localAet, remote);
 
     DicomFindAnswers answers;
     FindStudy(answers, locker.GetConnection(), fields);
@@ -232,8 +235,9 @@ namespace Orthanc
       return;
     }        
          
+    const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
     RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
+    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), localAet, remote);
 
     DicomFindAnswers answers;
     FindSeries(answers, locker.GetConnection(), fields);
@@ -263,8 +267,9 @@ namespace Orthanc
       return;
     }        
          
+    const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
     RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
+    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), localAet, remote);
 
     DicomFindAnswers answers;
     FindInstance(answers, locker.GetConnection(), fields);
@@ -287,8 +292,9 @@ namespace Orthanc
       return;
     }
  
+    const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
     RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), remote);
+    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), localAet, remote);
 
     DicomFindAnswers patients;
     FindPatient(patients, locker.GetConnection(), m);
@@ -547,7 +553,8 @@ namespace Orthanc
    * DICOM C-Store SCU
    ***************************************************************************/
 
-  static bool GetInstancesToExport(std::list<std::string>& instances,
+  static bool GetInstancesToExport(Json::Value& request,
+                                   std::list<std::string>& instances,
                                    const std::string& remote,
                                    RestApiPostCall& call)
   {
@@ -555,7 +562,7 @@ namespace Orthanc
 
     std::string stripped = Toolbox::StripSpaces(call.GetPostBody());
 
-    Json::Value request;
+    request = Json::objectValue;
     if (Toolbox::IsSHA1(stripped))
     {
       // This is for compatibility with Orthanc <= 0.5.1.
@@ -575,41 +582,55 @@ namespace Orthanc
       }
 
       context.GetIndex().GetChildInstances(instances, request.asString());
+      return true;
     }
-    else if (request.isArray())
+
+    const Json::Value* resources;
+    if (request.isArray())
     {
-      for (Json::Value::ArrayIndex i = 0; i < request.size(); i++)
-      {
-        if (!request[i].isString())
-        {
-          return false;
-        }
-
-        std::string stripped = Toolbox::StripSpaces(request[i].asString());
-        if (!Toolbox::IsSHA1(stripped))
-        {
-          return false;
-        }
-
-        if (Configuration::GetGlobalBoolParameter("LogExportedResources", true))
-        {
-          context.GetIndex().LogExportedResource(stripped, remote);
-        }
-       
-        std::list<std::string> tmp;
-        context.GetIndex().GetChildInstances(tmp, stripped);
-
-        for (std::list<std::string>::const_iterator
-               it = tmp.begin(); it != tmp.end(); ++it)
-        {
-          instances.push_back(*it);
-        }
-      }
+      resources = &request;
     }
     else
     {
-      // Neither a string, nor a list of strings. Bad request.
-      return false;
+      if (request.type() != Json::objectValue ||
+          !request.isMember("Resources"))
+      {
+        return false;
+      }
+
+      resources = &request["Resources"];
+      if (!resources->isArray())
+      {
+        return false;
+      }
+    }
+
+    for (Json::Value::ArrayIndex i = 0; i < resources->size(); i++)
+    {
+      if (!(*resources) [i].isString())
+      {
+        return false;
+      }
+
+      std::string stripped = Toolbox::StripSpaces((*resources) [i].asString());
+      if (!Toolbox::IsSHA1(stripped))
+      {
+        return false;
+      }
+
+      if (Configuration::GetGlobalBoolParameter("LogExportedResources", true))
+      {
+        context.GetIndex().LogExportedResource(stripped, remote);
+      }
+       
+      std::list<std::string> tmp;
+      context.GetIndex().GetChildInstances(tmp, stripped);
+
+      for (std::list<std::string>::const_iterator
+             it = tmp.begin(); it != tmp.end(); ++it)
+      {
+        instances.push_back(*it);
+      }
     }
 
     return true;
@@ -622,10 +643,17 @@ namespace Orthanc
 
     std::string remote = call.GetUriComponent("id", "");
 
+    Json::Value request;
     std::list<std::string> instances;
-    if (!GetInstancesToExport(instances, remote, call))
+    if (!GetInstancesToExport(request, instances, remote, call))
     {
       return;
+    }
+
+    std::string localAet = context.GetDefaultLocalApplicationEntityTitle();
+    if (request.isMember("LocalAet"))
+    {
+      localAet = request["LocalAet"].asString();
     }
 
     RemoteModalityParameters p = Configuration::GetModalityUsingSymbolicName(remote);
@@ -634,7 +662,7 @@ namespace Orthanc
     for (std::list<std::string>::const_iterator 
            it = instances.begin(); it != instances.end(); ++it)
     {
-      job.AddCommand(new StoreScuCommand(context, p, false)).AddInput(*it);
+      job.AddCommand(new StoreScuCommand(context, localAet, p, false)).AddInput(*it);
     }
 
     job.SetDescription("HTTP request: Store-SCU to peer \"" + remote + "\"");
@@ -694,8 +722,9 @@ namespace Orthanc
 
     std::string remote = call.GetUriComponent("id", "");
 
+    Json::Value request;
     std::list<std::string> instances;
-    if (!GetInstancesToExport(instances, remote, call))
+    if (!GetInstancesToExport(request, instances, remote, call))
     {
       return;
     }

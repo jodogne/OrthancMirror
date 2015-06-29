@@ -679,7 +679,7 @@ namespace Orthanc
   }
 
 
-  void DicomUserConnection::Connect(const RemoteModalityParameters& parameters)
+  void DicomUserConnection::SetRemoteModality(const RemoteModalityParameters& parameters)
   {
     SetRemoteApplicationEntityTitle(parameters.GetApplicationEntityTitle());
     SetRemoteHost(parameters.GetHost());

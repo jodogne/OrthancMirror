@@ -40,6 +40,7 @@ namespace Orthanc
   {
   private:
     ServerContext&             context_;
+    const std::string&         localAet_;
     bool                       done_;
     RemoteModalityParameters   modality_;
     ResourceType               level_;

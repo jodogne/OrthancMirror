@@ -32,7 +32,7 @@ function _AccessJob()
 end
 
 
-function SendToModality(instanceId, modality)
+function SendToModality(instanceId, modality, localAet)
    if instanceId == nil then
       error('Cannot send a nonexistent instance')
    end
@@ -40,7 +40,8 @@ function SendToModality(instanceId, modality)
    table.insert(_job, { 
                    Operation = 'store-scu', 
                    Instance = instanceId,
-                   Modality = modality 
+                   Modality = modality,
+                   LocalAet = localAet
                 })
    return instanceId
 end

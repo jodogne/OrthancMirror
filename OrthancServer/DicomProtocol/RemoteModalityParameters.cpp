@@ -48,6 +48,18 @@ namespace Orthanc
   {
   }
 
+  RemoteModalityParameters::RemoteModalityParameters(const std::string& aet,
+                                                     const std::string& host,
+                                                     int port,
+                                                     ModalityManufacturer manufacturer)
+  {
+    SetApplicationEntityTitle(aet);
+    SetHost(host);
+    SetPort(port);
+    SetManufacturer(manufacturer);
+  }
+
+
   void RemoteModalityParameters::SetPort(int port)
   {
     if (port <= 0 || port >= 65535)

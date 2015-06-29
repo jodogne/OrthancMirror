@@ -138,7 +138,8 @@ TEST(ReusableDicomUserConnection, DISABLED_Basic)
   printf("START\n"); fflush(stdout);
 
   {
-    ReusableDicomUserConnection::Locker lock(c, "STORESCP", "localhost", 2000, ModalityManufacturer_Generic);
+    RemoteModalityParameters remote("STORESCP", "localhost", 2000, ModalityManufacturer_Generic);
+    ReusableDicomUserConnection::Locker lock(c, "ORTHANC", remote);
     lock.GetConnection().StoreFile("/home/jodogne/DICOM/Cardiac/MR.X.1.2.276.0.7230010.3.1.4.2831157719.2256.1336386844.676281");
   }
 
@@ -147,7 +148,8 @@ TEST(ReusableDicomUserConnection, DISABLED_Basic)
   printf("**\n"); fflush(stdout);
 
   {
-    ReusableDicomUserConnection::Locker lock(c, "STORESCP", "localhost", 2000, ModalityManufacturer_Generic);
+    RemoteModalityParameters remote("STORESCP", "localhost", 2000, ModalityManufacturer_Generic);
+    ReusableDicomUserConnection::Locker lock(c, "ORTHANC", remote);
     lock.GetConnection().StoreFile("/home/jodogne/DICOM/Cardiac/MR.X.1.2.276.0.7230010.3.1.4.2831157719.2256.1336386844.676277");
   }
 

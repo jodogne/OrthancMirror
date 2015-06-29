@@ -77,7 +77,7 @@ namespace Orthanc
 
     ~DicomUserConnection();
 
-    void Connect(const RemoteModalityParameters& parameters);
+    void SetRemoteModality(const RemoteModalityParameters& parameters);
 
     void SetLocalApplicationEntityTitle(const std::string& aet);
 

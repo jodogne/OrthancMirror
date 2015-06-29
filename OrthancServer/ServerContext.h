@@ -98,6 +98,7 @@ namespace Orthanc
     const PluginsManager* pluginsManager_;
 
     SharedArchive  queryRetrieveArchive_;
+    std::string defaultLocalAet_;
 
   public:
     class DicomCacheLocker : public boost::noncopyable
@@ -230,6 +231,11 @@ namespace Orthanc
     SharedArchive& GetQueryRetrieveArchive()
     {
       return queryRetrieveArchive_;
+    }
+
+    const std::string& GetDefaultLocalApplicationEntityTitle() const
+    {
+      return defaultLocalAet_;
     }
   };
 }
