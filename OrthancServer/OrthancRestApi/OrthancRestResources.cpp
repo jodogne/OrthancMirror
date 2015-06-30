@@ -37,6 +37,7 @@
 #include "../FromDcmtkBridge.h"
 #include "../ResourceFinder.h"
 #include "../DicomFindQuery.h"
+#include "../ServerContext.h"
 
 #include <glog/logging.h>
 

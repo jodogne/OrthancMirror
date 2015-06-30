@@ -57,6 +57,7 @@ namespace Orthanc
     static LuaContext& GetLuaContext(lua_State *state);
 
     static int PrintToLog(lua_State *state);
+    static int ParseJsonString(lua_State *state);
 
     static int SetHttpCredentials(lua_State *state);
 
@@ -107,5 +108,14 @@ namespace Orthanc
     {
       httpClient_.SetProxy(proxy);
     }
+
+    void RegisterFunction(const char* name,
+                          lua_CFunction func);
+
+    void SetGlobalVariable(const char* name,
+                           void* value);
+
+    static const void* GetGlobalVariable(lua_State* state,
+                                         const char* name);
   };
 }

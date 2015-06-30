@@ -35,6 +35,7 @@
 
 #include "../FromDcmtkBridge.h"
 #include "../../Core/Uuid.h"
+#include "../ServerContext.h"
 
 #include <glog/logging.h>
 

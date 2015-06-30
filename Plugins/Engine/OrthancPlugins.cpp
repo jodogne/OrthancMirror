@@ -33,7 +33,7 @@
 #include "OrthancPlugins.h"
 
 #include "../../Core/ChunkedBuffer.h"
-#include "../../Core/HttpServer/HttpOutput.h"
+#include "../../Core/HttpServer/StringHttpOutput.h"
 #include "../../Core/ImageFormats/PngWriter.h"
 #include "../../Core/OrthancException.h"
 #include "../../Core/Toolbox.h"
@@ -106,39 +106,6 @@ namespace Orthanc
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
-  }
-
-
-  namespace
-  {
-    // Anonymous namespace to avoid clashes between compilation modules
-    class StringHttpOutput : public IHttpOutputStream
-    {
-    private:
-      ChunkedBuffer buffer_;
-
-    public:
-      void GetOutput(std::string& output)
-      {
-        buffer_.Flatten(output);
-      }
-
-      virtual void OnHttpStatusReceived(HttpStatus status)
-      {
-        if (status != HttpStatus_200_Ok)
-        {
-          throw OrthancException(ErrorCode_BadRequest);
-        }
-      }
-
-      virtual void Send(bool isHeader, const void* buffer, size_t length)
-      {
-        if (!isHeader)
-        {
-          buffer_.AddChunk(reinterpret_cast<const char*>(buffer), length);
-        }
-      }
-    };
   }
 
 
@@ -649,6 +616,8 @@ namespace Orthanc
     const _OrthancPluginRestApiGet& p = 
       *reinterpret_cast<const _OrthancPluginRestApiGet*>(parameters);
         
+    // TODO : Use "HttpHandler::SimpleGet()"
+
     HttpHandler::Arguments headers;  // No HTTP header
     std::string body;  // No body for a GET request
 

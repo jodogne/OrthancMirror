@@ -37,6 +37,7 @@
 #include "../FromDcmtkBridge.h"
 #include "../../Plugins/Engine/PluginsManager.h"
 #include "../../Plugins/Engine/OrthancPlugins.h"
+#include "../ServerContext.h"
 
 #include <glog/logging.h>
 

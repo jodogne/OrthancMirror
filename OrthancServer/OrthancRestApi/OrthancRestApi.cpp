@@ -34,6 +34,7 @@
 #include "OrthancRestApi.h"
 
 #include "../DicomModification.h"
+#include "../ServerContext.h"
 
 #include <glog/logging.h>
 
@@ -111,5 +112,17 @@ namespace Orthanc
     Register("/tools", RestApi::AutoListChildren);
     Register("/tools/reset", ResetOrthanc);
     Register("/instances/{id}/frames/{frame}", RestApi::AutoListChildren);
+  }
+
+
+  ServerContext& OrthancRestApi::GetContext(RestApiCall& call)
+  {
+    return GetApi(call).context_;
+  }
+
+
+  ServerIndex& OrthancRestApi::GetIndex(RestApiCall& call)
+  {
+    return GetContext(call).GetIndex();
   }
 }

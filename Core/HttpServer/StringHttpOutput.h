@@ -32,54 +32,25 @@
 
 #pragma once
 
-#include <map>
-#include <vector>
-#include <stdint.h>
-#include "../Toolbox.h"
+#include "IHttpOutputStream.h"
+
+#include "../ChunkedBuffer.h"
 
 namespace Orthanc
 {
-  class HttpOutput;
-
-  class HttpHandler
+  class StringHttpOutput : public IHttpOutputStream
   {
+  private:
+    ChunkedBuffer buffer_;
+
   public:
-    typedef std::map<std::string, std::string>                  Arguments;
-    typedef std::vector< std::pair<std::string, std::string> >  GetArguments;
+    virtual void OnHttpStatusReceived(HttpStatus status);
 
-    virtual ~HttpHandler()
+    virtual void Send(bool isHeader, const void* buffer, size_t length);
+
+    void GetOutput(std::string& output)
     {
+      buffer_.Flatten(output);
     }
-
-    virtual bool Handle(HttpOutput& output,
-                        HttpMethod method,
-                        const UriComponents& uri,
-                        const Arguments& headers,
-                        const GetArguments& getArguments,
-                        const std::string& postData) = 0;
-
-    static void ParseGetArguments(HttpHandler::GetArguments& result, 
-                                  const char* query);
-
-    static void ParseGetQuery(UriComponents& uri,
-                              HttpHandler::GetArguments& getArguments, 
-                              const char* query);
-
-    static std::string GetArgument(const Arguments& getArguments,
-                                   const std::string& name,
-                                   const std::string& defaultValue);
-
-    static std::string GetArgument(const GetArguments& getArguments,
-                                   const std::string& name,
-                                   const std::string& defaultValue);
-
-    static void ParseCookies(HttpHandler::Arguments& result, 
-                             const HttpHandler::Arguments& httpHeaders);
-
-    static void CompileGetArguments(Arguments& compiled,
-                                    const GetArguments& source);
-
-    bool SimpleGet(std::string& output,
-                   const std::string& uri);
   };
 }
