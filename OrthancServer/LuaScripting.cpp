@@ -47,9 +47,6 @@
 #include <glog/logging.h>
 #include <EmbeddedResources.h>
 
-static const char* RECEIVED_INSTANCE_FILTER = "ReceivedInstanceFilter";
-static const char* ON_STORED_INSTANCE = "OnStoredInstance";
-
 
 namespace Orthanc
 {
@@ -58,7 +55,7 @@ namespace Orthanc
   {
     if (operation == "delete")
     {
-      LOG(INFO) << "Lua script to delete instance " << parameters["Instance"].asString();
+      LOG(INFO) << "Lua script to delete resource " << parameters["Resource"].asString();
       return new DeleteInstanceCommand(context_);
     }
 
@@ -75,7 +72,7 @@ namespace Orthanc
       }
 
       std::string modality = parameters["Modality"].asString();
-      LOG(INFO) << "Lua script to send instance " << parameters["Instance"].asString()
+      LOG(INFO) << "Lua script to send resource " << parameters["Resource"].asString()
                 << " to modality " << modality << " using Store-SCU";
       return new StoreScuCommand(context_, localAet,
                                  Configuration::GetModalityUsingSymbolicName(modality), true);
@@ -84,7 +81,7 @@ namespace Orthanc
     if (operation == "store-peer")
     {
       std::string peer = parameters["Peer"].asString();
-      LOG(INFO) << "Lua script to send instance " << parameters["Instance"].asString()
+      LOG(INFO) << "Lua script to send resource " << parameters["Resource"].asString()
                 << " to peer " << peer << " using HTTP";
 
       OrthancPeerParameters parameters;
@@ -94,7 +91,7 @@ namespace Orthanc
 
     if (operation == "modify")
     {
-      LOG(INFO) << "Lua script to modify instance " << parameters["Instance"].asString();
+      LOG(INFO) << "Lua script to modify resource " << parameters["Resource"].asString();
       DicomModification modification;
       OrthancRestApi::ParseModifyRequest(modification, parameters);
 
@@ -104,7 +101,7 @@ namespace Orthanc
 
     if (operation == "call-system")
     {
-      LOG(INFO) << "Lua script to call system command on " << parameters["Instance"].asString();
+      LOG(INFO) << "Lua script to call system command on " << parameters["Resource"].asString();
 
       const Json::Value& argsIn = parameters["Arguments"];
       if (argsIn.type() != Json::arrayValue)
@@ -147,6 +144,62 @@ namespace Orthanc
   }
 
 
+  void LuaScripting::InitializeJob()
+  {
+    lua_.Execute("_InitializeJob()");
+  }
+
+
+  void LuaScripting::SubmitJob(const std::string& description)
+  {
+    Json::Value operations;
+    LuaFunctionCall call2(lua_, "_AccessJob");
+    call2.ExecuteToJson(operations);
+     
+    if (operations.type() != Json::arrayValue)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    ServerJob job;
+    ServerCommandInstance* previousCommand = NULL;
+
+    for (Json::Value::ArrayIndex i = 0; i < operations.size(); ++i)
+    {
+      if (operations[i].type() != Json::objectValue ||
+          !operations[i].isMember("Operation"))
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      const Json::Value& parameters = operations[i];
+      std::string operation = parameters["Operation"].asString();
+
+      ServerCommandInstance& command = job.AddCommand(ParseOperation(operation, operations[i]));
+        
+      if (!parameters.isMember("Resource"))
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      std::string resource = parameters["Resource"].asString();
+      if (resource.empty())
+      {
+        previousCommand->ConnectOutput(command);
+      }
+      else 
+      {
+        command.AddInput(resource);
+      }
+
+      previousCommand = &command;
+    }
+
+    job.SetDescription(description);
+    context_.GetScheduler().Submit(job);
+  }
+
+
   LuaScripting::LuaScripting(ServerContext& context) : context_(context)
   {
     lua_.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
@@ -160,11 +213,13 @@ namespace Orthanc
                                            const std::string& remoteAet,
                                            const std::string& calledAet)
   {
-    if (lua_.IsExistingFunction(ON_STORED_INSTANCE))
-    {
-      lua_.Execute("_InitializeJob()");
+    static const char* NAME = "OnStoredInstance";
 
-      LuaFunctionCall call(lua_, ON_STORED_INSTANCE);
+    if (lua_.IsExistingFunction(NAME))
+    {
+      InitializeJob();
+
+      LuaFunctionCall call(lua_, NAME);
       call.PushString(instanceId);
       call.PushJson(simplifiedTags);
       call.PushJson(metadata);
@@ -172,51 +227,7 @@ namespace Orthanc
       call.PushJson(calledAet);
       call.Execute();
 
-      Json::Value operations;
-      LuaFunctionCall call2(lua_, "_AccessJob");
-      call2.ExecuteToJson(operations);
-     
-      if (operations.type() != Json::arrayValue)
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
-      ServerJob job;
-      ServerCommandInstance* previousCommand = NULL;
-
-      for (Json::Value::ArrayIndex i = 0; i < operations.size(); ++i)
-      {
-        if (operations[i].type() != Json::objectValue ||
-            !operations[i].isMember("Operation"))
-        {
-          throw OrthancException(ErrorCode_InternalError);
-        }
-
-        const Json::Value& parameters = operations[i];
-        std::string operation = parameters["Operation"].asString();
-
-        ServerCommandInstance& command = job.AddCommand(ParseOperation(operation, operations[i]));
-        
-        if (!parameters.isMember("Instance"))
-        {
-          throw OrthancException(ErrorCode_InternalError);
-        }
-
-        std::string instance = parameters["Instance"].asString();
-        if (instance.empty())
-        {
-          previousCommand->ConnectOutput(command);
-        }
-        else 
-        {
-          command.AddInput(instance);
-        }
-
-        previousCommand = &command;
-      }
-
-      job.SetDescription(std::string("Lua script: ") + ON_STORED_INSTANCE);
-      context_.GetScheduler().Submit(job);
+      SubmitJob(std::string("Lua script: ") + NAME);
     }
   }
 
@@ -244,22 +255,72 @@ namespace Orthanc
   }
 
 
+  
+  void LuaScripting::OnStableResource(const ServerIndexChange& change)
+  {
+    const char* name;
+
+    switch (change.GetChangeType())
+    {
+      case ChangeType_StablePatient:
+        name = "OnStablePatient";
+        break;
+
+      case ChangeType_StableStudy:
+        name = "OnStableStudy";
+        break;
+
+      case ChangeType_StableSeries:
+        name = "OnStableSeries";
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+
+
+    Json::Value tags;
+    //if (context_.GetIndex().LookupResource(tags, change.GetPublicId(), change.GetResourceType()))
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+
+      if (lua_.IsExistingFunction(name))
+      {
+        InitializeJob();
+
+        LuaFunctionCall call(lua_, name);
+        call.PushString(change.GetPublicId());
+        call.PushJson(tags);
+        call.Execute();
+
+        SubmitJob(std::string("Lua script: ") + name);
+      }
+    }
+  }
+
+
+
   void LuaScripting::SignalChange(const ServerIndexChange& change)
   {
-    boost::mutex::scoped_lock lock(mutex_);
-
-    // TODO
+    if (change.GetChangeType() == ChangeType_StablePatient ||
+        change.GetChangeType() == ChangeType_StableStudy ||
+        change.GetChangeType() == ChangeType_StableSeries)
+    {
+      OnStableResource(change);
+    }
   }
 
 
   bool LuaScripting::FilterIncomingInstance(const Json::Value& simplified,
                                             const std::string& remoteAet)
   {
+    static const char* NAME = "ReceivedInstanceFilter";
+
     boost::mutex::scoped_lock lock(mutex_);
 
-    if (lua_.IsExistingFunction(RECEIVED_INSTANCE_FILTER))
+    if (lua_.IsExistingFunction(NAME))
     {
-      LuaFunctionCall call(lua_, RECEIVED_INSTANCE_FILTER);
+      LuaFunctionCall call(lua_, NAME);
       call.PushJson(simplified);
       call.PushString(remoteAet);
 
