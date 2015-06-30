@@ -47,11 +47,6 @@ namespace Orthanc
 {
   class ServerContext;
 
-  namespace Internals
-  {
-    class ServerIndexListener;
-  }
-
   class ServerIndex : public boost::noncopyable
   {
   public:
@@ -59,6 +54,7 @@ namespace Orthanc
     typedef std::map< std::pair<ResourceType, MetadataType>, std::string>  MetadataMap;
 
   private:
+    class Listener;
     class Transaction;
     class UnstableResourcePayload;
 
@@ -67,7 +63,7 @@ namespace Orthanc
     boost::thread flushThread_;
     boost::thread unstableResourcesMonitorThread_;
 
-    std::auto_ptr<Internals::ServerIndexListener> listener_;
+    std::auto_ptr<Listener> listener_;
     IDatabaseWrapper& db_;
     LeastRecentlyUsedIndex<int64_t, UnstableResourcePayload>  unstableResources_;
 

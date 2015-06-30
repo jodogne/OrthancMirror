@@ -52,7 +52,7 @@ namespace Orthanc
   class DatabaseWrapper : public IDatabaseWrapper
   {
   private:
-    IServerIndexListener* listener_;
+    IDatabaseListener* listener_;
     SQLite::Connection db_;
     Internals::SignalRemainingAncestor* signalRemainingAncestor_;
 
@@ -75,7 +75,7 @@ namespace Orthanc
 
     DatabaseWrapper();
 
-    virtual void SetListener(IServerIndexListener& listener);
+    virtual void SetListener(IDatabaseListener& listener);
 
     virtual void SetGlobalProperty(GlobalProperty property,
                                    const std::string& value);

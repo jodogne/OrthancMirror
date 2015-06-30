@@ -47,7 +47,7 @@ namespace Orthanc
     _OrthancPluginDatabaseAnswerType type_;
     OrthancPluginDatabaseBackend backend_;
     void* payload_;
-    IServerIndexListener* listener_;
+    IDatabaseListener* listener_;
 
     std::list<std::string>         answerStrings_;
     std::list<int32_t>             answerInt32_;
@@ -210,7 +210,7 @@ namespace Orthanc
 
     virtual SQLite::ITransaction* StartTransaction();
 
-    virtual void SetListener(IServerIndexListener& listener)
+    virtual void SetListener(IDatabaseListener& listener)
     {
       listener_ = &listener;
     }
