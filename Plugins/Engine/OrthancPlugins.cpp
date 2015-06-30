@@ -182,6 +182,7 @@ namespace Orthanc
     typedef std::list<OrthancPluginOnChangeCallback>  OnChangeCallbacks;
     typedef std::map<Property, std::string>  Properties;
 
+    PluginsManager manager_;
     ServerContext* context_;
     RestCallbacks restCallbacks_;
     OrthancRestApi* restApi_;
@@ -252,6 +253,7 @@ namespace Orthanc
   OrthancPlugins::OrthancPlugins()
   {
     pimpl_.reset(new PImpl());
+    pimpl_->manager_.RegisterServiceProvider(*this);
     pimpl_->changeThread_ = boost::thread(PImpl::ChangeThread, pimpl_.get());
   }
 
@@ -1430,5 +1432,17 @@ namespace Orthanc
 
     pimpl_->argc_ = argc;
     pimpl_->argv_ = argv;
+  }
+
+
+  PluginsManager& OrthancPlugins::GetManager()
+  {
+    return pimpl_->manager_;
+  }
+
+
+  const PluginsManager& OrthancPlugins::GetManager() const
+  {
+    return pimpl_->manager_;
   }
 }

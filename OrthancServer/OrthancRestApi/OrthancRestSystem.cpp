@@ -132,7 +132,7 @@ namespace Orthanc
     if (OrthancRestApi::GetContext(call).HasPlugins())
     {
       std::list<std::string> plugins;
-      OrthancRestApi::GetContext(call).GetPluginsManager().ListPlugins(plugins);
+      OrthancRestApi::GetContext(call).GetPlugins().GetManager().ListPlugins(plugins);
 
       for (std::list<std::string>::const_iterator 
              it = plugins.begin(); it != plugins.end(); ++it)
@@ -152,7 +152,7 @@ namespace Orthanc
       return;
     }
 
-    const PluginsManager& manager = OrthancRestApi::GetContext(call).GetPluginsManager();
+    const PluginsManager& manager = OrthancRestApi::GetContext(call).GetPlugins().GetManager();
     std::string id = call.GetUriComponent("id", "");
 
     if (manager.HasPlugin(id))
@@ -161,7 +161,7 @@ namespace Orthanc
       v["ID"] = id;
       v["Version"] = manager.GetPluginVersion(id);
 
-      const OrthancPlugins& plugins = OrthancRestApi::GetContext(call).GetOrthancPlugins();
+      const OrthancPlugins& plugins = OrthancRestApi::GetContext(call).GetPlugins();
       const char *c = plugins.GetProperty(id.c_str(), _OrthancPluginProperty_RootUri);
       if (c != NULL)
       {
@@ -188,11 +188,11 @@ namespace Orthanc
 
     if (OrthancRestApi::GetContext(call).HasPlugins())
     {
-      const PluginsManager& manager = OrthancRestApi::GetContext(call).GetPluginsManager();
-      const OrthancPlugins& plugins = OrthancRestApi::GetContext(call).GetOrthancPlugins();
+      const OrthancPlugins& plugins = OrthancRestApi::GetContext(call).GetPlugins();
+      const PluginsManager& manager = plugins.GetManager();
 
       std::list<std::string> lst;
-      OrthancRestApi::GetContext(call).GetPluginsManager().ListPlugins(lst);
+      manager.ListPlugins(lst);
 
       for (std::list<std::string>::const_iterator
              it = lst.begin(); it != lst.end(); ++it)

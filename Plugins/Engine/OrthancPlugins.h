@@ -141,5 +141,9 @@ namespace Orthanc
                             _OrthancPluginProperty property) const;
 
     void SetCommandLineArguments(int argc, char* argv[]);
+
+    PluginsManager& GetManager();
+
+    const PluginsManager& GetManager() const;
   };
 }
