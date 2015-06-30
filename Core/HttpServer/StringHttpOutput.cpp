@@ -30,63 +30,26 @@
  **/
 
 
-#pragma once
+#include "../PrecompiledHeaders.h"
+#include "StringHttpOutput.h"
 
-#include "../../Core/RestApi/RestApi.h"
-#include "../DicomModification.h"
-
-#include <set>
+#include "../OrthancException.h"
 
 namespace Orthanc
 {
-  class ServerContext;
-  class ServerIndex;
-
-  class OrthancRestApi : public RestApi
+  void StringHttpOutput::OnHttpStatusReceived(HttpStatus status)
   {
-  public:
-    typedef std::set<std::string> SetOfStrings;
-
-  private:
-    ServerContext& context_;
-    bool resetRequestReceived_;
-
-    void RegisterSystem();
-
-    void RegisterChanges();
-
-    void RegisterResources();
-
-    void RegisterModalities();
-
-    void RegisterAnonymizeModify();
-
-    void RegisterArchive();
-
-    static void ResetOrthanc(RestApiPostCall& call);
-
-  public:
-    OrthancRestApi(ServerContext& context);
-
-    const bool& ResetRequestReceivedFlag() const
+    if (status != HttpStatus_200_Ok)
     {
-      return resetRequestReceived_;
+      throw OrthancException(ErrorCode_BadRequest);
     }
+  }
 
-    static OrthancRestApi& GetApi(RestApiCall& call)
+  void StringHttpOutput::Send(bool isHeader, const void* buffer, size_t length)
+  {
+    if (!isHeader)
     {
-      return dynamic_cast<OrthancRestApi&>(call.GetContext());
+      buffer_.AddChunk(reinterpret_cast<const char*>(buffer), length);
     }
-
-    static ServerContext& GetContext(RestApiCall& call);
-
-    static ServerIndex& GetIndex(RestApiCall& call);
-
-    void AnswerStoredInstance(RestApiPostCall& call,
-                              const std::string& publicId,
-                              StoreStatus status) const;
-
-    static bool ParseModifyRequest(DicomModification& target,
-                                   const Json::Value& request);
-  };
+  }
 }

@@ -46,14 +46,10 @@ namespace Orthanc
 {
   LuaContext& LuaContext::GetLuaContext(lua_State *state)
   {
-    // Get the pointer to the "LuaContext" underlying object
-    lua_getglobal(state, "_LuaContext");
-    assert(lua_type(state, -1) == LUA_TLIGHTUSERDATA);
-    LuaContext* that = const_cast<LuaContext*>(reinterpret_cast<const LuaContext*>(lua_topointer(state, -1)));
-    assert(that != NULL);
-    lua_pop(state, 1);
+    const void* value = GetGlobalVariable(state, "_LuaContext");
+    assert(value != NULL);
 
-    return *that;
+    return *const_cast<LuaContext*>(reinterpret_cast<const LuaContext*>(value));
   }
 
   int LuaContext::PrintToLog(lua_State *state)
@@ -91,6 +87,35 @@ namespace Orthanc
     that.log_.append("\n");
 
     return 0;
+  }
+
+
+  int LuaContext::ParseJsonString(lua_State *state)
+  {
+    LuaContext& that = GetLuaContext(state);
+
+    int nArgs = lua_gettop(state);
+    if (nArgs != 1 ||
+        !lua_isstring(state, 1))    // Password
+    {
+      lua_pushnil(state);
+      return 1;
+    }
+
+    const char* str = lua_tostring(state, 1);
+
+    Json::Value value;
+    Json::Reader reader;
+    if (reader.parse(str, str + strlen(str), value))
+    {
+      that.PushJson(value);
+    }
+    else
+    {
+      lua_pushnil(state);
+    }
+
+    return 1;
   }
 
 
@@ -333,14 +358,14 @@ namespace Orthanc
 
     luaL_openlibs(lua_);
     lua_register(lua_, "print", PrintToLog);
+    lua_register(lua_, "ParseJson", ParseJsonString);
     lua_register(lua_, "HttpGet", CallHttpGet);
     lua_register(lua_, "HttpPost", CallHttpPost);
     lua_register(lua_, "HttpPut", CallHttpPut);
     lua_register(lua_, "HttpDelete", CallHttpDelete);
     lua_register(lua_, "SetHttpCredentials", SetHttpCredentials);
-    
-    lua_pushlightuserdata(lua_, this);
-    lua_setglobal(lua_, "_LuaContext");
+
+    SetGlobalVariable("_LuaContext", this);
   }
 
 
@@ -403,4 +428,29 @@ namespace Orthanc
     }
   }
 
+
+  void LuaContext::RegisterFunction(const char* name,
+                                    lua_CFunction func)
+  {
+    lua_register(lua_, name, func);
+  }
+
+
+  void LuaContext::SetGlobalVariable(const char* name,
+                                     void* value)
+  {
+    lua_pushlightuserdata(lua_, value);
+    lua_setglobal(lua_, name);
+  }
+
+  
+  const void* LuaContext::GetGlobalVariable(lua_State* state,
+                                            const char* name)
+  {
+    lua_getglobal(state, name);
+    assert(lua_type(state, -1) == LUA_TLIGHTUSERDATA);
+    const void* value = lua_topointer(state, -1);
+    lua_pop(state, 1);
+    return value;
+  }
 }

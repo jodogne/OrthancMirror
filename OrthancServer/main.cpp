@@ -503,7 +503,7 @@ static bool StartOrthanc(int argc, char *argv[])
     }
     
     context->SetStorageArea(*storage);
-
+    context->GetLua().SetOrthancRestApi(restApi);
 
     // GO !!! Start the requested servers
     if (Configuration::GetGlobalBoolParameter("HttpServerEnabled", true))
@@ -548,6 +548,8 @@ static bool StartOrthanc(int argc, char *argv[])
     plugins.ResetOrthancRestApi();
     LOG(WARNING) << "    Plugins have stopped";
 #endif
+
+    context->GetLua().ResetOrthancRestApi();
 
     dicomServer.Stop();
     LOG(WARNING) << "    DICOM server has stopped";

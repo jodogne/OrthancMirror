@@ -36,6 +36,9 @@
 #include <string.h>
 #include <iostream>
 
+#include "HttpOutput.h"
+#include "StringHttpOutput.h"
+
 
 namespace Orthanc
 {
@@ -188,4 +191,30 @@ namespace Orthanc
       compiled[source[i].first] = source[i].second;
     }
   }
+
+
+  bool HttpHandler::SimpleGet(std::string& output,
+                              const std::string& uri)
+  {
+    Arguments headers;  // No HTTP header
+    std::string body;  // No body for a GET request
+
+    UriComponents curi;
+    GetArguments getArguments;
+    ParseGetQuery(curi, getArguments, uri.c_str());
+
+    StringHttpOutput stream;
+    HttpOutput http(stream, false /* no keep alive */);
+
+    if (Handle(http, HttpMethod_Get, curi, headers, getArguments, body))
+    {
+      stream.GetOutput(output);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
 }

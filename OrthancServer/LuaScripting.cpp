@@ -36,6 +36,7 @@
 #include "ServerContext.h"
 #include "OrthancInitialization.h"
 #include "../Core/Lua/LuaFunctionCall.h"
+#include "../Core/HttpServer/StringHttpOutput.h"
 
 #include "Scheduler/DeleteInstanceCommand.h"
 #include "Scheduler/StoreScuCommand.h"
@@ -50,6 +51,49 @@
 
 namespace Orthanc
 {
+  OrthancRestApi* LuaScripting::GetRestApi(lua_State *state)
+  {
+    const void* value = LuaContext::GetGlobalVariable(state, "_RestApi");
+    return const_cast<OrthancRestApi*>(reinterpret_cast<const OrthancRestApi*>(value));
+  }
+
+
+  int LuaScripting::RestApiGet(lua_State *state)
+  {
+    OrthancRestApi* restApi = GetRestApi(state);
+    if (restApi == NULL)
+    {
+      LOG(ERROR) << "Lua: The REST API is unavailable";
+      lua_pushnil(state);
+      return 1;
+    }
+
+    // Check the types of the arguments
+    int nArgs = lua_gettop(state);
+    if (nArgs != 1 || !lua_isstring(state, 1))  // URI
+    {
+      LOG(ERROR) << "Lua: Bad parameters to RestApiGet()";
+      lua_pushnil(state);
+      return 1;
+    }
+
+    const char* uri = lua_tostring(state, 1);
+    
+    std::string str;
+    if (restApi->SimpleGet(str, uri))
+    {
+      lua_pushstring(state, str.c_str());
+    }
+    else
+    {
+      LOG(ERROR) << "Lua: Error in RestApiGet() for URI " << uri;
+      lua_pushnil(state);
+    }
+
+    return 1;
+  }
+
+
   IServerCommand* LuaScripting::ParseOperation(const std::string& operation,
                                                const Json::Value& parameters)
   {
@@ -200,10 +244,24 @@ namespace Orthanc
   }
 
 
-  LuaScripting::LuaScripting(ServerContext& context) : context_(context)
+  LuaScripting::LuaScripting(ServerContext& context) : context_(context), restApi_(NULL)
   {
+    lua_.RegisterFunction("RestApiGet", RestApiGet);
+
     lua_.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
     lua_.SetHttpProxy(Configuration::GetGlobalStringParameter("HttpProxy", ""));
+  }
+
+
+  void LuaScripting::SetOrthancRestApi(OrthancRestApi& restApi)
+  {
+    lua_.SetGlobalVariable("_RestApi", &restApi);
+  }
+
+
+  void LuaScripting::ResetOrthancRestApi()
+  {
+    lua_.SetGlobalVariable("_RestApi", NULL);
   }
 
 

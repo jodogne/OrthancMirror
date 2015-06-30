@@ -37,6 +37,7 @@
 #include "../../Core/Compression/HierarchicalZipWriter.h"
 #include "../../Core/HttpServer/FilesystemHttpSender.h"
 #include "../../Core/Uuid.h"
+#include "../ServerContext.h"
 
 #include <glog/logging.h>
 #include <stdio.h>
