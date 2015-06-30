@@ -32,18 +32,24 @@
 
 #pragma once
 
-#include "PluginsManager.h"
+#include "../../Core/FileStorage/IStorageArea.h"
 #include "../../Core/HttpServer/HttpHandler.h"
-#include "../../OrthancServer/ServerContext.h"
-#include "../../OrthancServer/OrthancRestApi/OrthancRestApi.h"
+#include "../../OrthancServer/IServerListener.h"
 #include "OrthancPluginDatabase.h"
+#include "PluginsManager.h"
 
 #include <list>
 #include <boost/shared_ptr.hpp>
 
 namespace Orthanc
 {
-  class OrthancPlugins : public HttpHandler, public IPluginServiceProvider
+  class OrthancRestApi;
+  class ServerContext;
+
+  class OrthancPlugins : 
+    public HttpHandler, 
+    public IPluginServiceProvider, 
+    public IServerListener
   {
   private:
     struct PImpl;
@@ -105,10 +111,17 @@ namespace Orthanc
     virtual bool InvokeService(_OrthancPluginService service,
                                const void* parameters);
 
-    void SignalChange(const ServerIndexChange& change);
+    virtual void SignalChange(const ServerIndexChange& change);
 
-    void SignalStoredInstance(DicomInstanceToStore& instance,
-                              const std::string& instanceId);
+    virtual void SignalStoredInstance(const std::string& instanceId,
+                                      DicomInstanceToStore& instance,
+                                      const Json::Value& simplifiedTags);
+
+    virtual bool FilterIncomingInstance(const Json::Value& simplified,
+                                        const std::string& remoteAet)
+    {
+      return true; // TODO Enable filtering of instances from plugins
+    }
 
     void SetOrthancRestApi(OrthancRestApi& restApi);
 

@@ -100,7 +100,7 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     {
-      ServerContext::LuaContextLocker locker(context);
+      LuaScripting::Locker locker(context.GetLua());
       locker.GetLua().Execute(result, call.GetPostBody());
     }
 

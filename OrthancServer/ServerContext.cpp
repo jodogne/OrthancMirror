@@ -34,7 +34,6 @@
 #include "ServerContext.h"
 
 #include "../Core/HttpServer/FilesystemHttpSender.h"
-#include "../Core/Lua/LuaFunctionCall.h"
 #include "FromDcmtkBridge.h"
 #include "ServerToolbox.h"
 #include "OrthancInitialization.h"
@@ -55,9 +54,6 @@
 
 #define ENABLE_DICOM_CACHE  1
 
-static const char* RECEIVED_INSTANCE_FILTER = "ReceivedInstanceFilter";
-static const char* ON_STORED_INSTANCE = "OnStoredInstance";
-
 static const size_t DICOM_CACHE_SIZE = 2;
 
 /**
@@ -77,6 +73,7 @@ namespace Orthanc
     provider_(*this),
     dicomCache_(provider_, DICOM_CACHE_SIZE),
     scheduler_(Configuration::GetGlobalIntegerParameter("LimitJobs", 10)),
+    lua_(*this),
     plugins_(NULL),
     pluginsManager_(NULL),
     queryRetrieveArchive_(Configuration::GetGlobalIntegerParameter("QueryRetrieveSize", 10)),
@@ -85,8 +82,7 @@ namespace Orthanc
     uint64_t s = Configuration::GetGlobalIntegerParameter("DicomAssociationCloseDelay", 5);  // In seconds
     scu_.SetMillisecondsBeforeClose(s * 1000);  // Milliseconds are expected here
 
-    lua_.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
-    lua_.SetHttpProxy(Configuration::GetGlobalStringParameter("HttpProxy", ""));
+    listeners_.push_back(ServerListener(lua_, "Lua"));
   }
 
   void ServerContext::SetCompressionEnabled(bool enabled)
@@ -106,191 +102,6 @@ namespace Orthanc
   }
 
 
-  bool ServerContext::ApplyReceivedInstanceFilter(const Json::Value& simplified,
-                                                  const std::string& remoteAet)
-  {
-    LuaContextLocker locker(*this);
-
-    if (locker.GetLua().IsExistingFunction(RECEIVED_INSTANCE_FILTER))
-    {
-      LuaFunctionCall call(locker.GetLua(), RECEIVED_INSTANCE_FILTER);
-      call.PushJson(simplified);
-      call.PushString(remoteAet);
-
-      if (!call.ExecutePredicate())
-      {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-
-  static IServerCommand* ParseOperation(ServerContext& context,
-                                        const std::string& operation,
-                                        const Json::Value& parameters)
-  {
-    if (operation == "delete")
-    {
-      LOG(INFO) << "Lua script to delete instance " << parameters["Instance"].asString();
-      return new DeleteInstanceCommand(context);
-    }
-
-    if (operation == "store-scu")
-    {
-      std::string localAet;
-      if (parameters.isMember("LocalAet"))
-      {
-        localAet = parameters["LocalAet"].asString();
-      }
-      else
-      {
-        localAet = context.GetDefaultLocalApplicationEntityTitle();
-      }
-
-      std::string modality = parameters["Modality"].asString();
-      LOG(INFO) << "Lua script to send instance " << parameters["Instance"].asString()
-                << " to modality " << modality << " using Store-SCU";
-      return new StoreScuCommand(context, localAet,
-                                 Configuration::GetModalityUsingSymbolicName(modality), true);
-    }
-
-    if (operation == "store-peer")
-    {
-      std::string peer = parameters["Peer"].asString();
-      LOG(INFO) << "Lua script to send instance " << parameters["Instance"].asString()
-                << " to peer " << peer << " using HTTP";
-
-      OrthancPeerParameters parameters;
-      Configuration::GetOrthancPeer(parameters, peer);
-      return new StorePeerCommand(context, parameters, true);
-    }
-
-    if (operation == "modify")
-    {
-      LOG(INFO) << "Lua script to modify instance " << parameters["Instance"].asString();
-      DicomModification modification;
-      OrthancRestApi::ParseModifyRequest(modification, parameters);
-
-      std::auto_ptr<ModifyInstanceCommand> command(new ModifyInstanceCommand(context, modification));
-      return command.release();
-    }
-
-    if (operation == "call-system")
-    {
-      LOG(INFO) << "Lua script to call system command on " << parameters["Instance"].asString();
-
-      const Json::Value& argsIn = parameters["Arguments"];
-      if (argsIn.type() != Json::arrayValue)
-      {
-        throw OrthancException(ErrorCode_BadParameterType);
-      }
-
-      std::vector<std::string> args;
-      args.reserve(argsIn.size());
-      for (Json::Value::ArrayIndex i = 0; i < argsIn.size(); ++i)
-      {
-        // http://jsoncpp.sourceforge.net/namespace_json.html#7d654b75c16a57007925868e38212b4e
-        switch (argsIn[i].type())
-        {
-          case Json::stringValue:
-            args.push_back(argsIn[i].asString());
-            break;
-
-          case Json::intValue:
-            args.push_back(boost::lexical_cast<std::string>(argsIn[i].asInt()));
-            break;
-
-          case Json::uintValue:
-            args.push_back(boost::lexical_cast<std::string>(argsIn[i].asUInt()));
-            break;
-
-          case Json::realValue:
-            args.push_back(boost::lexical_cast<std::string>(argsIn[i].asFloat()));
-            break;
-
-          default:
-            throw OrthancException(ErrorCode_BadParameterType);
-        }
-      }
-
-      return new CallSystemCommand(context, parameters["Command"].asString(), args);
-    }
-
-    throw OrthancException(ErrorCode_ParameterOutOfRange);
-  }
-
-
-  void ServerContext::ApplyLuaOnStoredInstance(const std::string& instanceId,
-                                               const Json::Value& simplifiedDicom,
-                                               const Json::Value& metadata,
-                                               const std::string& remoteAet,
-                                               const std::string& calledAet)
-  {
-    LuaContextLocker locker(*this);
-
-    if (locker.GetLua().IsExistingFunction(ON_STORED_INSTANCE))
-    {
-      locker.GetLua().Execute("_InitializeJob()");
-
-      LuaFunctionCall call(locker.GetLua(), ON_STORED_INSTANCE);
-      call.PushString(instanceId);
-      call.PushJson(simplifiedDicom);
-      call.PushJson(metadata);
-      call.PushJson(remoteAet);
-      call.PushJson(calledAet);
-      call.Execute();
-
-      Json::Value operations;
-      LuaFunctionCall call2(locker.GetLua(), "_AccessJob");
-      call2.ExecuteToJson(operations);
-     
-      if (operations.type() != Json::arrayValue)
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
-      ServerJob job;
-      ServerCommandInstance* previousCommand = NULL;
-
-      for (Json::Value::ArrayIndex i = 0; i < operations.size(); ++i)
-      {
-        if (operations[i].type() != Json::objectValue ||
-            !operations[i].isMember("Operation"))
-        {
-          throw OrthancException(ErrorCode_InternalError);
-        }
-
-        const Json::Value& parameters = operations[i];
-        std::string operation = parameters["Operation"].asString();
-
-        ServerCommandInstance& command = job.AddCommand(ParseOperation(*this, operation, operations[i]));
-        
-        if (!parameters.isMember("Instance"))
-        {
-          throw OrthancException(ErrorCode_InternalError);
-        }
-
-        std::string instance = parameters["Instance"].asString();
-        if (instance.empty())
-        {
-          previousCommand->ConnectOutput(command);
-        }
-        else 
-        {
-          command.AddInput(instance);
-        }
-
-        previousCommand = &command;
-      }
-
-      job.SetDescription(std::string("Lua script: ") + ON_STORED_INSTANCE);
-      scheduler_.Submit(job);
-    }
-  }
-
-
   StoreStatus ServerContext::Store(std::string& resultPublicId,
                                    DicomInstanceToStore& dicom)
   {
@@ -303,7 +114,27 @@ namespace Orthanc
       SimplifyTags(simplified, dicom.GetJson());
 
       // Test if the instance must be filtered out
-      if (!ApplyReceivedInstanceFilter(simplified, dicom.GetRemoteAet()))
+      bool accepted = true;
+
+      for (ServerListeners::iterator it = listeners_.begin(); it != listeners_.end(); ++it)
+      {
+        try
+        {
+          if (!it->GetListener().FilterIncomingInstance(simplified, dicom.GetRemoteAet()))
+          {
+            accepted = false;
+            break;
+          }
+        }
+        catch (OrthancException& e)
+        {
+          LOG(ERROR) << "Error in the " << it->GetDescription() 
+                     << " callback while receiving an instance: " << e.What();
+          throw;
+        }
+      }
+
+      if (!accepted)
       {
         LOG(INFO) << "An incoming instance has been discarded by the filter";
         return StoreStatus_FilteredOut;
@@ -330,6 +161,7 @@ namespace Orthanc
       StoreStatus status = index_.Store(instanceMetadata, dicom.GetSummary(), attachments, 
                                         dicom.GetRemoteAet(), dicom.GetMetadata());
 
+      // Only keep the metadata for the "instance" level
       dicom.GetMetadata().clear();
 
       for (InstanceMetadata::const_iterator it = instanceMetadata.begin();
@@ -367,33 +199,16 @@ namespace Orthanc
       if (status == StoreStatus_Success ||
           status == StoreStatus_AlreadyStored)
       {
-        Json::Value metadata = Json::objectValue;
-        for (std::map<MetadataType, std::string>::const_iterator 
-               it = instanceMetadata.begin(); 
-             it != instanceMetadata.end(); ++it)
-        {
-          metadata[EnumerationToString(it->first)] = it->second;
-        }
-
-        try
-        {
-          ApplyLuaOnStoredInstance(resultPublicId, simplified, metadata, 
-                                   dicom.GetRemoteAet(), dicom.GetCalledAet());
-        }
-        catch (OrthancException& e)
-        {
-          LOG(ERROR) << "Error in " << ON_STORED_INSTANCE << " callback (Lua): " << e.What();
-        }
-
-        if (plugins_ != NULL)
+        for (ServerListeners::iterator it = listeners_.begin(); it != listeners_.end(); ++it)
         {
           try
           {
-            plugins_->SignalStoredInstance(dicom, resultPublicId);
+            it->GetListener().SignalStoredInstance(resultPublicId, dicom, simplified);
           }
           catch (OrthancException& e)
           {
-            LOG(ERROR) << "Error in " << ON_STORED_INSTANCE << " callback (plugins): " << e.What();
+            LOG(ERROR) << "Error in the " << it->GetDescription() 
+                       << " callback while receiving an instance: " << e.What();
           }
         }
       }
@@ -546,15 +361,16 @@ namespace Orthanc
 
   void ServerContext::SignalChange(const ServerIndexChange& change)
   {
-    if (plugins_ != NULL)
+    for (ServerListeners::iterator it = listeners_.begin(); it != listeners_.end(); ++it)
     {
       try
       {
-        plugins_->SignalChange(change);
+        it->GetListener().SignalChange(change);
       }
       catch (OrthancException& e)
       {
-        LOG(ERROR) << "Error in OnChangeCallback (plugins): " << e.What();
+        LOG(ERROR) << "Error in the " << it->GetDescription() 
+                   << " callback while signaling a change: " << e.What();
       }
     }
   }

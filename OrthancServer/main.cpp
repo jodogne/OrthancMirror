@@ -232,7 +232,7 @@ public:
     {
       std::string lua = "Is" + configuration;
 
-      ServerContext::LuaContextLocker locker(context_);
+      LuaScripting::Locker locker(context_.GetLua());
       
       if (locker.GetLua().IsExistingFunction(lua.c_str()))
       {
@@ -265,7 +265,7 @@ public:
   {
     static const char* HTTP_FILTER = "IncomingHttpRequestFilter";
 
-    ServerContext::LuaContextLocker locker(context_);
+    LuaScripting::Locker locker(context_.GetLua());
 
     // Test if the instance must be filtered out
     if (locker.GetLua().IsExistingFunction(HTTP_FILTER))
@@ -363,7 +363,7 @@ static void LoadLuaScripts(ServerContext& context)
     std::string script;
     Toolbox::ReadFile(script, path);
 
-    ServerContext::LuaContextLocker locker(context);
+    LuaScripting::Locker locker(context.GetLua());
     locker.GetLua().Execute(script);
   }
 }

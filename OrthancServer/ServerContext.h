@@ -33,25 +33,25 @@
 #pragma once
 
 #include "../Core/Cache/MemoryCache.h"
+#include "../Core/Cache/SharedArchive.h"
 #include "../Core/FileStorage/CompressedFileStorageAccessor.h"
 #include "../Core/FileStorage/IStorageArea.h"
-#include "../Core/RestApi/RestApiOutput.h"
 #include "../Core/Lua/LuaContext.h"
-#include "ServerIndex.h"
-#include "ParsedDicomFile.h"
-#include "DicomProtocol/ReusableDicomUserConnection.h"
-#include "Scheduler/ServerScheduler.h"
+#include "../Core/RestApi/RestApiOutput.h"
+#include "../Plugins/Engine/OrthancPlugins.h"
+#include "../Plugins/Engine/PluginsManager.h"
 #include "DicomInstanceToStore.h"
-#include "ServerIndexChange.h"
-#include "../Core/Cache/SharedArchive.h"
+#include "DicomProtocol/ReusableDicomUserConnection.h"
+#include "IServerListener.h"
+#include "LuaScripting.h"
+#include "ParsedDicomFile.h"
+#include "Scheduler/ServerScheduler.h"
+#include "ServerIndex.h"
 
 #include <boost/filesystem.hpp>
 
 namespace Orthanc
 {
-  class OrthancPlugins;
-  class PluginsManager;
-
   /**
    * This class is responsible for maintaining the storage area on the
    * filesystem (including compression), as well as the index of the
@@ -73,14 +73,33 @@ namespace Orthanc
       virtual IDynamicObject* Provide(const std::string& id);
     };
 
-    bool ApplyReceivedInstanceFilter(const Json::Value& simplified,
-                                     const std::string& remoteAet);
+    class ServerListener
+    {
+    private:
+      IServerListener *listener_;
+      std::string      description_;
 
-    void ApplyLuaOnStoredInstance(const std::string& instanceId,
-                                  const Json::Value& simplifiedDicom,
-                                  const Json::Value& metadata,
-                                  const std::string& remoteAet,
-                                  const std::string& calledAet);
+    public:
+      ServerListener(IServerListener& listener,
+                     const std::string& description) :
+        listener_(&listener),
+        description_(description)
+      {
+      }
+
+      IServerListener& GetListener()
+      {
+        return *listener_;
+      }
+
+      const std::string& GetDescription()
+      {
+        return description_;
+      }
+    };
+
+    typedef std::list<ServerListener>  ServerListeners;
+
 
     ServerIndex index_;
     CompressedFileStorageAccessor accessor_;
@@ -92,9 +111,9 @@ namespace Orthanc
     ReusableDicomUserConnection scu_;
     ServerScheduler scheduler_;
 
-    boost::mutex luaMutex_;
-    LuaContext lua_;
-    OrthancPlugins* plugins_;  // TODO Turn it into a listener pattern (idem for Lua callbacks)
+    LuaScripting lua_;
+    OrthancPlugins* plugins_;
+    ServerListeners listeners_;
     const PluginsManager* pluginsManager_;
 
     SharedArchive  queryRetrieveArchive_;
@@ -119,29 +138,6 @@ namespace Orthanc
         return *dicom_;
       }
     };
-
-    class LuaContextLocker : public boost::noncopyable
-    {
-    private:
-      ServerContext& that_;
-
-    public:
-      LuaContextLocker(ServerContext& that) : that_(that)
-      {
-        that.luaMutex_.lock();
-      }
-
-      ~LuaContextLocker()
-      {
-        that_.luaMutex_.unlock();
-      }
-
-      LuaContext& GetLua()
-      {
-        return that_.lua_;
-      }
-    };
-
 
     ServerContext(IDatabaseWrapper& database);
 
@@ -208,12 +204,17 @@ namespace Orthanc
     {
       pluginsManager_ = &manager;
       plugins_ = &plugins;
+      listeners_.clear();
+      listeners_.push_back(ServerListener(lua_, "Lua"));  // TODO REFACTOR THIS
+      listeners_.push_back(ServerListener(plugins, "plugin"));  // TODO REFACTOR THIS
     }
 
     void ResetOrthancPlugins()
     {
       pluginsManager_ = NULL;
       plugins_ = NULL;
+      listeners_.clear();
+      listeners_.push_back(ServerListener(lua_, "Lua"));  // TODO REFACTOR THIS
     }
 
     bool DeleteResource(Json::Value& target,
@@ -236,6 +237,11 @@ namespace Orthanc
     const std::string& GetDefaultLocalApplicationEntityTitle() const
     {
       return defaultLocalAet_;
+    }
+
+    LuaScripting& GetLua()
+    {
+      return lua_;
     }
   };
 }
