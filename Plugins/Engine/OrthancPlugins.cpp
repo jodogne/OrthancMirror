@@ -33,13 +33,15 @@
 #include "OrthancPlugins.h"
 
 #include "../../Core/ChunkedBuffer.h"
-#include "../../Core/OrthancException.h"
-#include "../../Core/Toolbox.h"
 #include "../../Core/HttpServer/HttpOutput.h"
 #include "../../Core/ImageFormats/PngWriter.h"
-#include "../../OrthancServer/ServerToolbox.h"
-#include "../../OrthancServer/OrthancInitialization.h"
 #include "../../Core/MultiThreading/SharedMessageQueue.h"
+#include "../../Core/OrthancException.h"
+#include "../../Core/Toolbox.h"
+#include "../../OrthancServer/OrthancInitialization.h"
+#include "../../OrthancServer/OrthancRestApi/OrthancRestApi.h"
+#include "../../OrthancServer/ServerContext.h"
+#include "../../OrthancServer/ServerToolbox.h"
 
 #include <boost/thread.hpp>
 #include <boost/regex.hpp> 
@@ -449,8 +451,9 @@ namespace Orthanc
   }
 
 
-  void OrthancPlugins::SignalStoredInstance(DicomInstanceToStore& instance,
-                                            const std::string& instanceId)                                                  
+  void OrthancPlugins::SignalStoredInstance(const std::string& instanceId,
+                                            DicomInstanceToStore& instance,
+                                            const Json::Value& simplifiedTags)
   {
     boost::recursive_mutex::scoped_lock lock(pimpl_->callbackMutex_);
 
