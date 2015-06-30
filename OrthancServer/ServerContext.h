@@ -32,6 +32,7 @@
 
 #pragma once
 
+#include "../Core/MultiThreading/SharedMessageQueue.h"
 #include "../Core/Cache/MemoryCache.h"
 #include "../Core/Cache/SharedArchive.h"
 #include "../Core/FileStorage/CompressedFileStorageAccessor.h"
@@ -48,6 +49,8 @@
 #include "ServerIndex.h"
 
 #include <boost/filesystem.hpp>
+#include <boost/thread.hpp>
+
 
 namespace Orthanc
 {
@@ -100,6 +103,9 @@ namespace Orthanc
     typedef std::list<ServerListener>  ServerListeners;
 
 
+    static void ChangeThread(ServerContext* that);
+
+
     ServerIndex index_;
     CompressedFileStorageAccessor accessor_;
     bool compressionEnabled_;
@@ -114,6 +120,10 @@ namespace Orthanc
     OrthancPlugins* plugins_;
     ServerListeners listeners_;
 
+    bool done_;
+    SharedMessageQueue  pendingChanges_;
+    boost::thread  changeThread_;
+        
     SharedArchive  queryRetrieveArchive_;
     std::string defaultLocalAet_;
 
@@ -138,6 +148,8 @@ namespace Orthanc
     };
 
     ServerContext(IDatabaseWrapper& database);
+
+    ~ServerContext();
 
     void SetStorageArea(IStorageArea& storage)
     {
