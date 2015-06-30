@@ -135,8 +135,6 @@ namespace Orthanc
 
     IDatabaseWrapper& GetDatabase();
 
-    void Stop();
-
     const char* GetProperty(const char* plugin,
                             _OrthancPluginProperty property) const;
 

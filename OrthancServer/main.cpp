@@ -545,7 +545,6 @@ static bool StartOrthanc(int argc, char *argv[])
 
 #if ENABLE_PLUGINS == 1
     context->ResetPlugins();
-    plugins.Stop();
     plugins.ResetOrthancRestApi();
     LOG(WARNING) << "    Plugins have stopped";
 #endif

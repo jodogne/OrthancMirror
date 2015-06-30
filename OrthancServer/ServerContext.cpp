@@ -67,6 +67,34 @@ static const size_t DICOM_CACHE_SIZE = 2;
 
 namespace Orthanc
 {
+  void ServerContext::ChangeThread(ServerContext* that)
+  {
+    while (!that->done_)
+    {
+      std::auto_ptr<IDynamicObject> obj(that->pendingChanges_.Dequeue(500));
+        
+      if (obj.get() != NULL)
+      {
+        const ServerIndexChange& change = dynamic_cast<const ServerIndexChange&>(*obj.get());
+
+        for (ServerListeners::iterator it = that->listeners_.begin(); 
+             it != that->listeners_.end(); ++it)
+        {
+          try
+          {
+            it->GetListener().SignalChange(change);
+          }
+          catch (OrthancException& e)
+          {
+            LOG(ERROR) << "Error in the " << it->GetDescription() 
+                       << " callback while signaling a change: " << e.What();
+          }
+        }
+      }
+    }
+  }
+
+
   ServerContext::ServerContext(IDatabaseWrapper& database) :
     index_(*this, database),
     compressionEnabled_(false),
@@ -75,6 +103,7 @@ namespace Orthanc
     scheduler_(Configuration::GetGlobalIntegerParameter("LimitJobs", 10)),
     lua_(*this),
     plugins_(NULL),
+    done_(false),
     queryRetrieveArchive_(Configuration::GetGlobalIntegerParameter("QueryRetrieveSize", 10)),
     defaultLocalAet_(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"))
   {
@@ -82,7 +111,22 @@ namespace Orthanc
     scu_.SetMillisecondsBeforeClose(s * 1000);  // Milliseconds are expected here
 
     listeners_.push_back(ServerListener(lua_, "Lua"));
+
+    changeThread_ = boost::thread(ChangeThread, this);
   }
+
+
+  
+  ServerContext::~ServerContext()
+  {
+    done_ = true;
+
+    if (changeThread_.joinable())
+    {
+      changeThread_.join();
+    }
+  }
+
 
   void ServerContext::SetCompressionEnabled(bool enabled)
   {
@@ -360,18 +404,7 @@ namespace Orthanc
 
   void ServerContext::SignalChange(const ServerIndexChange& change)
   {
-    for (ServerListeners::iterator it = listeners_.begin(); it != listeners_.end(); ++it)
-    {
-      try
-      {
-        it->GetListener().SignalChange(change);
-      }
-      catch (OrthancException& e)
-      {
-        LOG(ERROR) << "Error in the " << it->GetDescription() 
-                   << " callback while signaling a change: " << e.What();
-      }
-    }
+    pendingChanges_.Enqueue(change.Clone());
   }
 
 

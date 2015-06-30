@@ -40,7 +40,7 @@
 
 namespace Orthanc
 {
-  struct ServerIndexChange
+  struct ServerIndexChange : public IDynamicObject
   {
   private:
     int64_t      seq_;
@@ -72,6 +72,20 @@ namespace Orthanc
       publicId_(publicId),
       date_(date)
     {
+    }
+
+    ServerIndexChange(const ServerIndexChange& other) 
+    : seq_(other.seq_),
+      changeType_(other.changeType_),
+      resourceType_(other.resourceType_),
+      publicId_(other.publicId_),
+      date_(other.date_)
+    {
+    }
+
+    ServerIndexChange* Clone() const
+    {
+      return new ServerIndexChange(*this);
     }
 
     int64_t  GetSeq() const

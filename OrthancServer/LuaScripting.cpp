@@ -280,7 +280,7 @@ namespace Orthanc
 
 
     Json::Value tags;
-    //if (context_.GetIndex().LookupResource(tags, change.GetPublicId(), change.GetResourceType()))
+    if (context_.GetIndex().LookupResource(tags, change.GetPublicId(), change.GetResourceType()))
     {
       boost::mutex::scoped_lock lock(mutex_);
 
@@ -290,7 +290,7 @@ namespace Orthanc
 
         LuaFunctionCall call(lua_, name);
         call.PushString(change.GetPublicId());
-        call.PushJson(tags);
+        call.PushJson(tags["MainDicomTags"]);
         call.Execute();
 
         SubmitJob(std::string("Lua script: ") + name);

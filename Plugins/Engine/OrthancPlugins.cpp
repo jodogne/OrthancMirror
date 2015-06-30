@@ -35,7 +35,6 @@
 #include "../../Core/ChunkedBuffer.h"
 #include "../../Core/HttpServer/HttpOutput.h"
 #include "../../Core/ImageFormats/PngWriter.h"
-#include "../../Core/MultiThreading/SharedMessageQueue.h"
 #include "../../Core/OrthancException.h"
 #include "../../Core/Toolbox.h"
 #include "../../OrthancServer/OrthancInitialization.h"
@@ -43,7 +42,6 @@
 #include "../../OrthancServer/ServerContext.h"
 #include "../../OrthancServer/ServerToolbox.h"
 
-#include <boost/thread.hpp>
 #include <boost/regex.hpp> 
 #include <glog/logging.h>
 
@@ -141,33 +139,6 @@ namespace Orthanc
         }
       }
     };
-
-
-    class PendingChange : public IDynamicObject
-    {
-    private:
-      OrthancPluginChangeType changeType_;
-      OrthancPluginResourceType resourceType_;
-      std::string publicId_;
-
-    public:
-      PendingChange(const ServerIndexChange& change)
-      {
-        changeType_ = Convert(change.GetChangeType());
-        resourceType_ = Convert(change.GetResourceType());
-        publicId_ = change.GetPublicId();
-      }
-
-      void Submit(std::list<OrthancPluginOnChangeCallback>& callbacks)
-      {
-        for (std::list<OrthancPluginOnChangeCallback>::const_iterator 
-               callback = callbacks.begin(); 
-             callback != callbacks.end(); ++callback)
-        {
-          (*callback) (changeType_, resourceType_, publicId_.c_str());
-        }
-      }
-    };
   }
 
 
@@ -191,9 +162,6 @@ namespace Orthanc
     bool hasStorageArea_;
     _OrthancPluginRegisterStorageArea storageArea_;
     boost::recursive_mutex callbackMutex_;
-    SharedMessageQueue  pendingChanges_;
-    boost::thread  changeThread_;
-    bool done_;
     Properties properties_;
     int argc_;
     char** argv_;
@@ -203,27 +171,10 @@ namespace Orthanc
       context_(NULL), 
       restApi_(NULL),
       hasStorageArea_(false),
-      done_(false),
       argc_(1),
       argv_(NULL)
     {
       memset(&storageArea_, 0, sizeof(storageArea_));
-    }
-
-
-    static void ChangeThread(PImpl* that)
-    {
-      while (!that->done_)
-      {
-        std::auto_ptr<IDynamicObject> obj(that->pendingChanges_.Dequeue(500));
-        
-        if (obj.get() != NULL)
-        {
-          boost::recursive_mutex::scoped_lock lock(that->callbackMutex_);
-          PendingChange& change = *dynamic_cast<PendingChange*>(obj.get());
-          change.Submit(that->onChangeCallbacks_);
-        }
-      }
     }
   };
 
@@ -254,7 +205,6 @@ namespace Orthanc
   {
     pimpl_.reset(new PImpl());
     pimpl_->manager_.RegisterServiceProvider(*this);
-    pimpl_->changeThread_ = boost::thread(PImpl::ChangeThread, pimpl_.get());
   }
 
   
@@ -267,8 +217,6 @@ namespace Orthanc
   
   OrthancPlugins::~OrthancPlugins()
   {
-    Stop();
-
     for (PImpl::RestCallbacks::iterator it = pimpl_->restCallbacks_.begin(); 
          it != pimpl_->restCallbacks_.end(); ++it)
     {
@@ -276,17 +224,6 @@ namespace Orthanc
       delete it->first;
     }
   }
-
-
-  void OrthancPlugins::Stop()
-  {
-    if (!pimpl_->done_)
-    {
-      pimpl_->done_ = true;
-      pimpl_->changeThread_.join();
-    }
-  }
-
 
 
   static void ArgumentsToPlugin(std::vector<const char*>& keys,
@@ -474,7 +411,16 @@ namespace Orthanc
   {
     try
     {
-      pimpl_->pendingChanges_.Enqueue(new PendingChange(change));
+      boost::recursive_mutex::scoped_lock lock(pimpl_->callbackMutex_);
+
+      for (std::list<OrthancPluginOnChangeCallback>::const_iterator 
+             callback = pimpl_->onChangeCallbacks_.begin(); 
+           callback != pimpl_->onChangeCallbacks_.end(); ++callback)
+      {
+        (*callback) (Convert(change.GetChangeType()),
+                     Convert(change.GetResourceType()),
+                     change.GetPublicId().c_str());
+      }
     }
     catch (OrthancException&)
     {
