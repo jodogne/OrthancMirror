@@ -38,10 +38,10 @@
 
 namespace Orthanc
 {
-  class IServerIndexListener
+  class IDatabaseListener
   {
   public:
-    virtual ~IServerIndexListener()
+    virtual ~IDatabaseListener()
     {
     }
 

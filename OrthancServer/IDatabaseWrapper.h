@@ -35,7 +35,7 @@
 #include "../Core/DicomFormat/DicomMap.h"
 #include "../Core/SQLite/ITransaction.h"
 #include "../Core/FileStorage/FileInfo.h"
-#include "IServerIndexListener.h"
+#include "IDatabaseListener.h"
 #include "ExportedResource.h"
 
 #include <list>
@@ -176,6 +176,6 @@ namespace Orthanc
 
     virtual SQLite::ITransaction* StartTransaction() = 0;
 
-    virtual void SetListener(IServerIndexListener& listener) = 0;
+    virtual void SetListener(IDatabaseListener& listener) = 0;
   };
 }

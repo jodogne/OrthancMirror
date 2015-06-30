@@ -54,7 +54,7 @@ namespace
   };
 
 
-  class ServerIndexListener : public IServerIndexListener
+  class TestDatabaseListener : public IDatabaseListener
   {
   public:
     std::vector<std::string> deletedFiles_;
@@ -100,7 +100,7 @@ namespace
   class DatabaseWrapperTest : public ::testing::TestWithParam<DatabaseWrapperClass>
   {
   protected:
-    std::auto_ptr<ServerIndexListener> listener_;
+    std::auto_ptr<TestDatabaseListener> listener_;
     std::auto_ptr<IDatabaseWrapper> index_;
 
     DatabaseWrapperTest()
@@ -109,7 +109,7 @@ namespace
 
     virtual void SetUp() 
     {
-      listener_.reset(new ServerIndexListener);
+      listener_.reset(new TestDatabaseListener);
 
       switch (GetParam())
       {

@@ -49,10 +49,10 @@ namespace Orthanc
     class SignalFileDeleted : public SQLite::IScalarFunction
     {
     private:
-      IServerIndexListener& listener_;
+      IDatabaseListener& listener_;
 
     public:
-      SignalFileDeleted(IServerIndexListener& listener) :
+      SignalFileDeleted(IDatabaseListener& listener) :
         listener_(listener)
       {
       }
@@ -96,10 +96,10 @@ namespace Orthanc
     class SignalResourceDeleted : public SQLite::IScalarFunction
     {
     private:
-      IServerIndexListener& listener_;
+      IDatabaseListener& listener_;
 
     public:
-      SignalResourceDeleted(IServerIndexListener& listener) :
+      SignalResourceDeleted(IDatabaseListener& listener) :
         listener_(listener)
       {
       }
@@ -834,7 +834,7 @@ namespace Orthanc
     db_.Register(signalRemainingAncestor_);
   }
 
-  void DatabaseWrapper::SetListener(IServerIndexListener& listener)
+  void DatabaseWrapper::SetListener(IDatabaseListener& listener)
   {
     listener_ = &listener;
     db_.Register(new Internals::SignalFileDeleted(listener));

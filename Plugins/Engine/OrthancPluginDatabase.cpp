@@ -887,7 +887,7 @@ namespace Orthanc
   }
 
 
-  static void ProcessEvent(IServerIndexListener& listener,
+  static void ProcessEvent(IDatabaseListener& listener,
                            const _OrthancPluginDatabaseAnswer& answer)
   {
     switch (answer.type)
