@@ -76,6 +76,10 @@ static const char* GetMimeType(const std::string& path)
   {
     return "image/jpeg";
   }
+  else if (extension == ".woff")
+  {
+    return "application/x-font-woff";
+  }
   else
   {
     std::string s = "Unknown MIME type for extension: " + extension;
@@ -154,7 +158,6 @@ static bool ReadConfiguration(Json::Value& configuration,
   Json::Reader reader;
   if (reader.parse(s, configuration))
   {
-    std::cout << configuration.toStyledString();
     return true;
   }
   else
@@ -217,15 +220,25 @@ static int32_t IndexCallback(OrthancPluginRestOutput* output,
     return 0;
   }
 
-  std::string s = "<html><body><h1>Additional folders served by Orthanc</h1><ul>\n";
+  std::string s = "<html><body><h1>Additional folders served by Orthanc</h1>\n";
 
-  for (std::map<std::string, std::string>::const_iterator
-         it = folders_.begin(); it != folders_.end(); ++it)
+  if (folders_.empty())
   {
-    s += "<li><a href=\"" + it->first + "/index.html\">" + it->first + "</li>\n";
+    s += "<p>Empty section <tt>ServeFolders</tt> in your configuration file: No additional folder is served.</p>\n";
+  }
+  else
+  {
+    s += "<ul>\n";
+    for (std::map<std::string, std::string>::const_iterator
+           it = folders_.begin(); it != folders_.end(); ++it)
+    {
+      s += "<li><a href=\"" + it->first + "/index.html\">" + it->first + "</li>\n";
+    }
+    
+    s += "</ul>\n";
   }
 
-  s += "</ul></body></html>";
+  s += "</body></html>\n";
 
   OrthancPluginAnswerBuffer(context_, output, s.c_str(), s.size(), "text/html");
 
@@ -261,39 +274,46 @@ extern "C"
       return -1;
     }
 
-    if (configuration.isMember("ServeFolders") &&
-        configuration["ServeFolders"].type() == Json::objectValue)
+    if (configuration.isMember("ServeFolders"))
     {
-      Json::Value::Members members = configuration["ServeFolders"].getMemberNames();
-
-      // Register the callback for each base URI
-      for (Json::Value::Members::const_iterator 
-             it = members.begin(); it != members.end(); ++it)
+      if (configuration["ServeFolders"].type() != Json::objectValue)
       {
-        const std::string& baseUri = *it;
-        const std::string path = configuration["ServeFolders"][*it].asString();
-        const std::string regex = "(" + baseUri + ")/(.*)";
-
-        if (baseUri.empty() ||
-            *baseUri.rbegin() == '/')
-        {
-          std::string message = "The URI of a folder to be server cannot be empty or end with a '/': " + *it;
-          OrthancPluginLogWarning(context_, message.c_str());
-          return -1;
-        }
-
-        OrthancPluginRegisterRestCallback(context, regex.c_str(), FolderCallback);
-        folders_[baseUri] = path;
+        OrthancPluginLogError(context_, "The \"ServeFolders\" configuration section is badly formatted (must be a JSON object)");
+        return -1;
       }
-
-      OrthancPluginRegisterRestCallback(context, INDEX_URI, IndexCallback);
-      OrthancPluginSetRootUri(context, INDEX_URI);
     }
     else
     {
       OrthancPluginLogWarning(context_, "No section \"ServeFolders\" in your configuration file: "
                               "No additional folder will be served!");
+      configuration["ServeFolders"] = Json::objectValue;
     }
+
+
+    Json::Value::Members members = configuration["ServeFolders"].getMemberNames();
+
+    // Register the callback for each base URI
+    for (Json::Value::Members::const_iterator 
+           it = members.begin(); it != members.end(); ++it)
+    {
+      const std::string& baseUri = *it;
+      const std::string path = configuration["ServeFolders"][*it].asString();
+      const std::string regex = "(" + baseUri + ")/(.*)";
+
+      if (baseUri.empty() ||
+          *baseUri.rbegin() == '/')
+      {
+        std::string message = "The URI of a folder to be server cannot be empty or end with a '/': " + *it;
+        OrthancPluginLogWarning(context_, message.c_str());
+        return -1;
+      }
+
+      OrthancPluginRegisterRestCallback(context, regex.c_str(), FolderCallback);
+      folders_[baseUri] = path;
+    }
+
+    OrthancPluginRegisterRestCallback(context, INDEX_URI, IndexCallback);
+    OrthancPluginSetRootUri(context, INDEX_URI);
 
     return 0;
   }

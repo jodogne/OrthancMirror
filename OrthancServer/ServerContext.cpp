@@ -75,7 +75,6 @@ namespace Orthanc
     scheduler_(Configuration::GetGlobalIntegerParameter("LimitJobs", 10)),
     lua_(*this),
     plugins_(NULL),
-    pluginsManager_(NULL),
     queryRetrieveArchive_(Configuration::GetGlobalIntegerParameter("QueryRetrieveSize", 10)),
     defaultLocalAet_(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"))
   {
@@ -376,26 +375,34 @@ namespace Orthanc
   }
 
 
+  void ServerContext::SetPlugins(OrthancPlugins& plugins)
+  {
+    plugins_ = &plugins;
+
+    // TODO REFACTOR THIS
+    listeners_.clear();
+    listeners_.push_back(ServerListener(lua_, "Lua"));
+    listeners_.push_back(ServerListener(plugins, "plugin"));
+  }
+
+
+  void ServerContext::ResetPlugins()
+  {
+    plugins_ = NULL;
+
+    // TODO REFACTOR THIS
+    listeners_.clear();
+    listeners_.push_back(ServerListener(lua_, "Lua"));
+  }
+
+
   bool ServerContext::HasPlugins() const
   {
-    return (pluginsManager_ && plugins_);
+    return (plugins_ != NULL);
   }
 
 
-  const PluginsManager& ServerContext::GetPluginsManager() const
-  {
-    if (HasPlugins())
-    {
-      return *pluginsManager_;
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-  }
-
-
-  const OrthancPlugins& ServerContext::GetOrthancPlugins() const
+  const OrthancPlugins& ServerContext::GetPlugins() const
   {
     if (HasPlugins())
     {

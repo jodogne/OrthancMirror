@@ -39,7 +39,6 @@
 #include "../Core/Lua/LuaContext.h"
 #include "../Core/RestApi/RestApiOutput.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
-#include "../Plugins/Engine/PluginsManager.h"
 #include "DicomInstanceToStore.h"
 #include "DicomProtocol/ReusableDicomUserConnection.h"
 #include "IServerListener.h"
@@ -114,7 +113,6 @@ namespace Orthanc
     LuaScripting lua_;
     OrthancPlugins* plugins_;
     ServerListeners listeners_;
-    const PluginsManager* pluginsManager_;
 
     SharedArchive  queryRetrieveArchive_;
     std::string defaultLocalAet_;
@@ -199,35 +197,11 @@ namespace Orthanc
       return scheduler_;
     }
 
-    void SetOrthancPlugins(const PluginsManager& manager,
-                           OrthancPlugins& plugins)
-    {
-      pluginsManager_ = &manager;
-      plugins_ = &plugins;
-      listeners_.clear();
-      listeners_.push_back(ServerListener(lua_, "Lua"));  // TODO REFACTOR THIS
-      listeners_.push_back(ServerListener(plugins, "plugin"));  // TODO REFACTOR THIS
-    }
-
-    void ResetOrthancPlugins()
-    {
-      pluginsManager_ = NULL;
-      plugins_ = NULL;
-      listeners_.clear();
-      listeners_.push_back(ServerListener(lua_, "Lua"));  // TODO REFACTOR THIS
-    }
-
     bool DeleteResource(Json::Value& target,
                         const std::string& uuid,
                         ResourceType expectedType);
 
     void SignalChange(const ServerIndexChange& change);
-
-    bool HasPlugins() const;
-
-    const PluginsManager& GetPluginsManager() const;
-
-    const OrthancPlugins& GetOrthancPlugins() const;
 
     SharedArchive& GetQueryRetrieveArchive()
     {
@@ -243,5 +217,19 @@ namespace Orthanc
     {
       return lua_;
     }
+
+
+    /**
+     * Management of the plugins
+     **/
+
+    void SetPlugins(OrthancPlugins& plugins);
+
+    void ResetPlugins();
+
+    bool HasPlugins() const;
+
+    const OrthancPlugins& GetPlugins() const;
+
   };
 }

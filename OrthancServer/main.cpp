@@ -49,7 +49,6 @@
 #include "OrthancFindRequestHandler.h"
 #include "OrthancMoveRequestHandler.h"
 #include "ServerToolbox.h"
-#include "../Plugins/Engine/PluginsManager.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
 #include "FromDcmtkBridge.h"
 
@@ -369,16 +368,16 @@ static void LoadLuaScripts(ServerContext& context)
 }
 
 
-static void LoadPlugins(PluginsManager& pluginsManager)
+static void LoadPlugins(OrthancPlugins& plugins)
 {
-  std::list<std::string> plugins;
-  Configuration::GetGlobalListOfStringsParameter(plugins, "Plugins");
+  std::list<std::string> path;
+  Configuration::GetGlobalListOfStringsParameter(path, "Plugins");
   for (std::list<std::string>::const_iterator
-         it = plugins.begin(); it != plugins.end(); ++it)
+         it = path.begin(); it != path.end(); ++it)
   {
     std::string path = Configuration::InterpretStringParameterAsPath(*it);
     LOG(WARNING) << "Loading plugin(s) from: " << path;
-    pluginsManager.RegisterPlugin(path);
+    plugins.GetManager().RegisterPlugin(path);
   }  
 }
 
@@ -389,11 +388,9 @@ static void LoadPlugins(PluginsManager& pluginsManager)
 static bool StartOrthanc(int argc, char *argv[])
 {
 #if ENABLE_PLUGINS == 1
-  OrthancPlugins orthancPlugins;
-  orthancPlugins.SetCommandLineArguments(argc, argv);
-  PluginsManager pluginsManager;
-  pluginsManager.RegisterServiceProvider(orthancPlugins);
-  LoadPlugins(pluginsManager);
+  OrthancPlugins plugins;
+  plugins.SetCommandLineArguments(argc, argv);
+  LoadPlugins(plugins);
 #endif
 
   // "storage" and "database" must be declared BEFORE "ServerContext
@@ -402,9 +399,9 @@ static bool StartOrthanc(int argc, char *argv[])
   std::auto_ptr<IStorageArea>  storage;
   std::auto_ptr<ServerContext> context;
 
-  if (orthancPlugins.HasDatabase())
+  if (plugins.HasDatabase())
   {
-    context.reset(new ServerContext(orthancPlugins.GetDatabase()));
+    context.reset(new ServerContext(plugins.GetDatabase()));
   }
   else
   {
@@ -483,9 +480,9 @@ static bool StartOrthanc(int argc, char *argv[])
 #endif
 
 #if ENABLE_PLUGINS == 1
-    orthancPlugins.SetServerContext(*context);
-    httpServer.RegisterHandler(orthancPlugins);
-    context->SetOrthancPlugins(pluginsManager, orthancPlugins);
+    plugins.SetServerContext(*context);
+    httpServer.RegisterHandler(plugins);
+    context->SetPlugins(plugins);
 #endif
 
     httpServer.RegisterHandler(staticResources);
@@ -494,10 +491,10 @@ static bool StartOrthanc(int argc, char *argv[])
 
 #if ENABLE_PLUGINS == 1
     // Prepare the storage area
-    if (orthancPlugins.HasStorageArea())
+    if (plugins.HasStorageArea())
     {
       LOG(WARNING) << "Using a custom storage area from plugins";
-      storage.reset(orthancPlugins.GetStorageArea());
+      storage.reset(plugins.GetStorageArea());
     }
     else
 #endif
@@ -512,7 +509,7 @@ static bool StartOrthanc(int argc, char *argv[])
     if (Configuration::GetGlobalBoolParameter("HttpServerEnabled", true))
     {
 #if ENABLE_PLUGINS == 1
-      orthancPlugins.SetOrthancRestApi(restApi);
+      plugins.SetOrthancRestApi(restApi);
 #endif
 
       httpServer.Start();
@@ -547,9 +544,9 @@ static bool StartOrthanc(int argc, char *argv[])
     LOG(WARNING) << "Orthanc is stopping";
 
 #if ENABLE_PLUGINS == 1
-    context->ResetOrthancPlugins();
-    orthancPlugins.Stop();
-    orthancPlugins.ResetOrthancRestApi();
+    context->ResetPlugins();
+    plugins.Stop();
+    plugins.ResetOrthancRestApi();
     LOG(WARNING) << "    Plugins have stopped";
 #endif
 
