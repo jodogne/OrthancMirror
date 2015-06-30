@@ -52,6 +52,12 @@ namespace Orthanc
     IServerCommand* ParseOperation(const std::string& operation,
                                    const Json::Value& parameters);
 
+    void InitializeJob();
+
+    void SubmitJob(const std::string& description);
+
+    void OnStableResource(const ServerIndexChange& change);
+
     boost::mutex    mutex_;
     LuaContext      lua_;
     ServerContext&  context_;
