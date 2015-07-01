@@ -172,7 +172,7 @@ namespace Orthanc
     if (nArgs != 1 || !lua_isstring(state, 1))  // URL
     {
       LOG(ERROR) << "Lua: Bad parameters to HttpGet()";
-      lua_pushstring(state, "ERROR");
+      lua_pushnil(state);
       return 1;
     }
 
@@ -185,7 +185,7 @@ namespace Orthanc
     if (!that.AnswerHttpQuery(state))
     {
       LOG(ERROR) << "Lua: Error in HttpGet() for URL " << url;
-      lua_pushstring(state, "ERROR");
+      lua_pushnil(state);
     }
 
     return 1;
@@ -204,7 +204,7 @@ namespace Orthanc
         (nArgs >= 2 && !lua_isstring(state, 2)))  // Body data
     {
       LOG(ERROR) << "Lua: Bad parameters to HttpPost() or HttpPut()";
-      lua_pushstring(state, "ERROR");
+      lua_pushnil(state);
       return 1;
     }
 
@@ -226,7 +226,7 @@ namespace Orthanc
     if (!that.AnswerHttpQuery(state))
     {
       LOG(ERROR) << "Lua: Error in HttpPost() or HttpPut() for URL " << url;
-      lua_pushstring(state, "ERROR");
+      lua_pushnil(state);
     }
 
     return 1;
@@ -254,7 +254,7 @@ namespace Orthanc
     if (nArgs != 1 || !lua_isstring(state, 1))  // URL
     {
       LOG(ERROR) << "Lua: Bad parameters to HttpDelete()";
-      lua_pushstring(state, "ERROR");
+      lua_pushnil(state);
       return 1;
     }
 
@@ -268,7 +268,7 @@ namespace Orthanc
     if (!that.httpClient_.Apply(s))
     {
       LOG(ERROR) << "Lua: Error in HttpDelete() for URL " << url;
-      lua_pushstring(state, "ERROR");
+      lua_pushnil(state);
     }
     else
     {
