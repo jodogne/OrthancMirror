@@ -133,8 +133,6 @@ set(ORTHANC_CORE_SOURCES
 
   Plugins/Engine/SharedLibrary.cpp
   Plugins/Engine/PluginsManager.cpp
-  Plugins/Engine/OrthancPlugins.cpp
-  Plugins/Engine/OrthancPluginDatabase.cpp
   )
 
 
@@ -176,6 +174,8 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/QueryRetrieveHandler.cpp
   OrthancServer/LuaScripting.cpp
   OrthancServer/OrthancHttpHandler.cpp
+  Plugins/Engine/OrthancPlugins.cpp
+  Plugins/Engine/OrthancPluginDatabase.cpp
 
   # From "lua-scripting" branch
   OrthancServer/DicomInstanceToStore.cpp

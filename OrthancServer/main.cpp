@@ -51,7 +51,6 @@
 #include "ServerToolbox.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
 #include "FromDcmtkBridge.h"
-#include "OrthancHttpHandler.h"
 
 using namespace Orthanc;
 
@@ -435,12 +434,10 @@ static bool StartOrthanc(int argc, char *argv[])
   }
 
 
-  OrthancHttpHandler httpHandler;
-
 #if ENABLE_PLUGINS == 1
   OrthancRestApi restApi(*context);
   plugins.SetServerContext(*context);
-  httpHandler.Register(plugins, false);
+  context->GetHttpHandler().Register(plugins, false);
   context->SetPlugins(plugins);
 #endif
 
@@ -450,9 +447,8 @@ static bool StartOrthanc(int argc, char *argv[])
   FilesystemHttpHandler staticResources("/app", ORTHANC_PATH "/OrthancExplorer");
 #endif
 
-  httpHandler.Register(staticResources, false);
-  httpHandler.Register(restApi, true);
-
+  context->GetHttpHandler().Register(staticResources, false);
+  context->GetHttpHandler().Register(restApi, true);
 
 
   MyDicomServerFactory serverFactory(*context);
@@ -493,7 +489,7 @@ static bool StartOrthanc(int argc, char *argv[])
       httpServer.SetSslEnabled(false);
     }
 
-    httpServer.Register(httpHandler);
+    httpServer.Register(context->GetHttpHandler());
 
 
 #if ENABLE_PLUGINS == 1
@@ -510,7 +506,6 @@ static bool StartOrthanc(int argc, char *argv[])
     }
     
     context->SetStorageArea(*storage);
-    context->GetLua().SetOrthancRestApi(restApi);
 
     // GO !!! Start the requested servers
     if (Configuration::GetGlobalBoolParameter("HttpServerEnabled", true))
@@ -555,8 +550,6 @@ static bool StartOrthanc(int argc, char *argv[])
     plugins.ResetOrthancRestApi();
     LOG(WARNING) << "    Plugins have stopped";
 #endif
-
-    context->GetLua().ResetOrthancRestApi();
 
     dicomServer.Stop();
     LOG(WARNING) << "    DICOM server has stopped";

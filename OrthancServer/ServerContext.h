@@ -47,6 +47,7 @@
 #include "ParsedDicomFile.h"
 #include "Scheduler/ServerScheduler.h"
 #include "ServerIndex.h"
+#include "OrthancHttpHandler.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
@@ -126,6 +127,7 @@ namespace Orthanc
         
     SharedArchive  queryRetrieveArchive_;
     std::string defaultLocalAet_;
+    OrthancHttpHandler  httpHandler_;
 
   public:
     class DicomCacheLocker : public boost::noncopyable
@@ -228,6 +230,11 @@ namespace Orthanc
     LuaScripting& GetLua()
     {
       return lua_;
+    }
+
+    OrthancHttpHandler& GetHttpHandler()
+    {
+      return httpHandler_;
     }
 
 

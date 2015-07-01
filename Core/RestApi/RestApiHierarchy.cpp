@@ -462,12 +462,13 @@ namespace Orthanc
   {
     IHttpHandler::Arguments components;
     AcceptedMethodsVisitor visitor(methods);
-    LookupResource(components, uri, visitor, 0);
-
-    Json::Value d;
-    if (GetDirectory(d, uri))
+    if (LookupResource(components, uri, visitor, 0))
     {
-      methods.insert(HttpMethod_Get);
+      Json::Value d;
+      if (GetDirectory(d, uri))
+      {
+        methods.insert(HttpMethod_Get);
+      }
     }
   }
 }
