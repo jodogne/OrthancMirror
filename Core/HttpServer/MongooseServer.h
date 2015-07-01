@@ -59,15 +59,12 @@ namespace Orthanc
 
   class MongooseServer
   {
-  public:
-    typedef std::list<IHttpHandler*> Handlers;
-
   private:
     // http://stackoverflow.com/questions/311166/stdauto-ptr-or-boostshared-ptr-for-pimpl-idiom
     struct PImpl;
     boost::shared_ptr<PImpl> pimpl_;
 
-    Handlers handlers_;
+    IHttpHandler *handler_;
 
     typedef std::set<std::string> RegisteredUsers;
     RegisteredUsers registeredUsers_;
@@ -102,8 +99,6 @@ namespace Orthanc
 
     void RegisterUser(const char* username,
                       const char* password);
-
-    void RegisterHandler(IHttpHandler& handler);
 
     bool IsAuthenticationEnabled() const
     {
@@ -147,15 +142,17 @@ namespace Orthanc
 
     void SetIncomingHttpRequestFilter(IIncomingHttpRequestFilter& filter);
 
-    void ClearHandlers();
-
     ChunkStore& GetChunkStore();
 
     bool IsValidBasicHttpAuthentication(const std::string& basic) const;
 
-    const Handlers& GetHandlers() const
+    void Register(IHttpHandler& handler);
+
+    bool HasHandler() const
     {
-      return handlers_;
+      return handler_ != NULL;
     }
+
+    IHttpHandler& GetHandler() const;
   };
 }
