@@ -552,6 +552,7 @@ namespace Orthanc
                                const struct mg_request_info *request)
   {
     MongooseServer* that = reinterpret_cast<MongooseServer*>(request->user_data);
+
     MongooseOutputStream stream(connection);
     HttpOutput output(stream, that->IsKeepAliveEnabled());
 
@@ -680,61 +681,60 @@ namespace Orthanc
     }
 
 
-    // Loop over the candidate handlers for this URI
     LOG(INFO) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
+
     bool found = false;
 
-    for (MongooseServer::Handlers::const_iterator it = 
-           that->GetHandlers().begin(); it != that->GetHandlers().end() && !found; ++it) 
+    try
     {
+      if (that->HasHandler())
+      {
+        found = that->GetHandler().Handle(output, method, uri, headers, argumentsGET, body);
+      }
+    }
+    catch (OrthancException& e)
+    {
+      // Using this candidate handler results in an exception
+      LOG(ERROR) << "Exception in the HTTP handler: " << e.What();
+
       try
       {
-        found = (*it)->Handle(output, method, uri, headers, argumentsGET, body);
-      }
-      catch (OrthancException& e)
-      {
-        // Using this candidate handler results in an exception
-        LOG(ERROR) << "Exception in the HTTP handler: " << e.What();
-
-        try
+        switch (e.GetErrorCode())
         {
-          switch (e.GetErrorCode())
-          {
-            case ErrorCode_InexistentFile:
-            case ErrorCode_InexistentItem:
-            case ErrorCode_UnknownResource:
-              output.SendStatus(HttpStatus_404_NotFound);
-              break;
+          case ErrorCode_InexistentFile:
+          case ErrorCode_InexistentItem:
+          case ErrorCode_UnknownResource:
+            output.SendStatus(HttpStatus_404_NotFound);
+            break;
 
-            case ErrorCode_BadRequest:
-            case ErrorCode_UriSyntax:
-              output.SendStatus(HttpStatus_400_BadRequest);
-              break;
+          case ErrorCode_BadRequest:
+          case ErrorCode_UriSyntax:
+            output.SendStatus(HttpStatus_400_BadRequest);
+            break;
 
-            default:
-              output.SendStatus(HttpStatus_500_InternalServerError);
-          }
+          default:
+            output.SendStatus(HttpStatus_500_InternalServerError);
         }
-        catch (OrthancException&)
-        {
-          // An exception here reflects the fact that an exception was
-          // triggered after the status code was sent by the HTTP handler.
-        }
+      }
+      catch (OrthancException&)
+      {
+        // An exception here reflects the fact that an exception was
+        // triggered after the status code was sent by the HTTP handler.
+      }
 
-        return;
-      }
-      catch (boost::bad_lexical_cast&)
-      {
-        LOG(ERROR) << "Exception in the HTTP handler: Bad lexical cast";
-        output.SendStatus(HttpStatus_400_BadRequest);
-        return;
-      }
-      catch (std::runtime_error&)
-      {
-        LOG(ERROR) << "Exception in the HTTP handler: Presumably a bad JSON request";
-        output.SendStatus(HttpStatus_400_BadRequest);
-        return;
-      }
+      return;
+    }
+    catch (boost::bad_lexical_cast&)
+    {
+      LOG(ERROR) << "Exception in the HTTP handler: Bad lexical cast";
+      output.SendStatus(HttpStatus_400_BadRequest);
+      return;
+    }
+    catch (std::runtime_error&)
+    {
+      LOG(ERROR) << "Exception in the HTTP handler: Presumably a bad JSON request";
+      output.SendStatus(HttpStatus_400_BadRequest);
+      return;
     }
 
     if (!found)
@@ -789,6 +789,7 @@ namespace Orthanc
   MongooseServer::MongooseServer() : pimpl_(new PImpl)
   {
     pimpl_->context_ = NULL;
+    handler_ = NULL;
     remoteAllowed_ = false;
     authentication_ = false;
     ssl_ = false;
@@ -811,7 +812,6 @@ namespace Orthanc
   MongooseServer::~MongooseServer()
   {
     Stop();
-    ClearHandlers();
   }
 
 
@@ -873,20 +873,6 @@ namespace Orthanc
       mg_stop(pimpl_->context_);
       pimpl_->context_ = NULL;
     }
-  }
-
-
-  void MongooseServer::RegisterHandler(IHttpHandler& handler)
-  {
-    Stop();
-
-    handlers_.push_back(&handler);
-  }
-
-
-  void MongooseServer::ClearHandlers()
-  {
-    Stop();
   }
 
 
@@ -962,5 +948,23 @@ namespace Orthanc
   bool MongooseServer::IsValidBasicHttpAuthentication(const std::string& basic) const
   {
     return registeredUsers_.find(basic) != registeredUsers_.end();
+  }
+
+
+  void MongooseServer::Register(IHttpHandler& handler)
+  {
+    Stop();
+    handler_ = &handler;
+  }
+
+
+  IHttpHandler& MongooseServer::GetHandler() const
+  {
+    if (handler_ == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    return *handler_;
   }
 }

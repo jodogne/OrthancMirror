@@ -57,8 +57,8 @@ namespace Orthanc
   }
 
 
-  void OrthancHttpHandler::RegisterHandler(IHttpHandler& handler,
-                                           bool isOrthancRestApi)
+  void OrthancHttpHandler::Register(IHttpHandler& handler,
+                                    bool isOrthancRestApi)
   {
     handlers_.push_back(&handler);
 

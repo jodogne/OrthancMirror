@@ -51,6 +51,7 @@
 #include "ServerToolbox.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
 #include "FromDcmtkBridge.h"
+#include "OrthancHttpHandler.h"
 
 using namespace Orthanc;
 
@@ -433,6 +434,27 @@ static bool StartOrthanc(int argc, char *argv[])
     context->GetIndex().SetMaximumStorageSize(0);
   }
 
+
+  OrthancHttpHandler httpHandler;
+
+#if ENABLE_PLUGINS == 1
+  OrthancRestApi restApi(*context);
+  plugins.SetServerContext(*context);
+  httpHandler.Register(plugins, false);
+  context->SetPlugins(plugins);
+#endif
+
+#if ORTHANC_STANDALONE == 1
+  EmbeddedResourceHttpHandler staticResources("/app", EmbeddedResources::ORTHANC_EXPLORER);
+#else
+  FilesystemHttpHandler staticResources("/app", ORTHANC_PATH "/OrthancExplorer");
+#endif
+
+  httpHandler.Register(staticResources, false);
+  httpHandler.Register(restApi, true);
+
+
+
   MyDicomServerFactory serverFactory(*context);
   bool isReset = false;
     
@@ -471,22 +493,7 @@ static bool StartOrthanc(int argc, char *argv[])
       httpServer.SetSslEnabled(false);
     }
 
-    OrthancRestApi restApi(*context);
-
-#if ORTHANC_STANDALONE == 1
-    EmbeddedResourceHttpHandler staticResources("/app", EmbeddedResources::ORTHANC_EXPLORER);
-#else
-    FilesystemHttpHandler staticResources("/app", ORTHANC_PATH "/OrthancExplorer");
-#endif
-
-#if ENABLE_PLUGINS == 1
-    plugins.SetServerContext(*context);
-    httpServer.RegisterHandler(plugins);
-    context->SetPlugins(plugins);
-#endif
-
-    httpServer.RegisterHandler(staticResources);
-    httpServer.RegisterHandler(restApi);
+    httpServer.Register(httpHandler);
 
 
 #if ENABLE_PLUGINS == 1

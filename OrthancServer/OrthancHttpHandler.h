@@ -56,8 +56,8 @@ namespace Orthanc
                         const GetArguments& getArguments,
                         const std::string& body);
 
-    void RegisterHandler(IHttpHandler& handler,
-                         bool isOrthancRestApi);
+    void Register(IHttpHandler& handler,
+                  bool isOrthancRestApi);
 
     bool HasOrthancRestApi() const
     {
