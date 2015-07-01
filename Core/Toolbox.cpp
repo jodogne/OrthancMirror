@@ -683,15 +683,16 @@ namespace Orthanc
             digest[4]);
   }
 
-  bool Toolbox::IsSHA1(const std::string& str)
+  bool Toolbox::IsSHA1(const char* str,
+                       size_t size)
   {
-    if (str.size() == 0)
+    if (size == 0)
     {
       return false;
     }
 
-    const char* start = &str[0];
-    const char* end = start + str.size();
+    const char* start = str;
+    const char* end = str + size;
 
     // Trim the beginning of the string
     while (start < end)
@@ -744,6 +745,19 @@ namespace Orthanc
     }
 
     return true;
+  }
+
+
+  bool Toolbox::IsSHA1(const std::string& s)
+  {
+    if (s.size() == 0)
+    {
+      return false;
+    }
+    else
+    {
+      return IsSHA1(s.c_str(), s.size());
+    }
   }
 
 

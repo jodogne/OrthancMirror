@@ -199,7 +199,6 @@ namespace Orthanc
                               const std::string& uri)
   {
     IHttpHandler::Arguments headers;  // No HTTP header
-    std::string body;  // No body for a GET request
 
     UriComponents curi;
     IHttpHandler::GetArguments getArguments;
@@ -208,7 +207,8 @@ namespace Orthanc
     StringHttpOutput stream;
     HttpOutput http(stream, false /* no keep alive */);
 
-    if (handler.Handle(http, HttpMethod_Get, curi, headers, getArguments, body))
+    if (handler.Handle(http, HttpMethod_Get, curi, headers, getArguments, 
+                       NULL /* no body for GET */, 0))
     {
       stream.GetOutput(output);
       return true;

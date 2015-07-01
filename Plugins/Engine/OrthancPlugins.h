@@ -106,7 +106,8 @@ namespace Orthanc
                         const UriComponents& uri,
                         const Arguments& headers,
                         const GetArguments& getArguments,
-                        const std::string& postData);
+                        const char* bodyData,
+                        size_t bodySize);
 
     virtual bool InvokeService(_OrthancPluginService service,
                                const void* parameters);

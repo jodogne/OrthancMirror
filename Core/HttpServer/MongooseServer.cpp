@@ -622,6 +622,9 @@ namespace Orthanc
 
 
     // Extract the body of the request for PUT and POST
+
+    // TODO Avoid unneccessary memcopy of the body
+
     std::string body;
     if (method == HttpMethod_Post ||
         method == HttpMethod_Put)
@@ -689,7 +692,7 @@ namespace Orthanc
     {
       if (that->HasHandler())
       {
-        found = that->GetHandler().Handle(output, method, uri, headers, argumentsGET, body);
+        found = that->GetHandler().Handle(output, method, uri, headers, argumentsGET, body.c_str(), body.size());
       }
     }
     catch (OrthancException& e)

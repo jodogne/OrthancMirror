@@ -51,7 +51,8 @@ namespace Orthanc
       HttpMethod method_;
       const IHttpHandler::Arguments& headers_;
       const IHttpHandler::Arguments& getArguments_;
-      const std::string& postData_;
+      const char* bodyData_;
+      size_t bodySize_;
 
     public:
       HttpHandlerVisitor(RestApi& api,
@@ -59,13 +60,15 @@ namespace Orthanc
                          HttpMethod method,
                          const IHttpHandler::Arguments& headers,
                          const IHttpHandler::Arguments& getArguments,
-                         const std::string& postData) :
+                         const char* bodyData,
+                         size_t bodySize) :
         api_(api),
         output_(output),
         method_(method),
         headers_(headers),
         getArguments_(getArguments),
-        postData_(postData)
+        bodyData_(bodyData),
+        bodySize_(bodySize)
       {
       }
 
@@ -87,7 +90,7 @@ namespace Orthanc
 
             case HttpMethod_Post:
             {
-              RestApiPostCall call(output_, api_, headers_, components, trailing, uri, postData_);
+              RestApiPostCall call(output_, api_, headers_, components, trailing, uri, bodyData_, bodySize_);
               resource.Handle(call);
               return true;
             }
@@ -101,7 +104,7 @@ namespace Orthanc
 
             case HttpMethod_Put:
             {
-              RestApiPutCall call(output_, api_, headers_, components, trailing, uri, postData_);
+              RestApiPutCall call(output_, api_, headers_, components, trailing, uri, bodyData_, bodySize_);
               resource.Handle(call);
               return true;
             }
@@ -161,7 +164,8 @@ namespace Orthanc
                        const UriComponents& uri,
                        const Arguments& headers,
                        const GetArguments& getArguments,
-                       const std::string& postData)
+                       const char* bodyData,
+                       size_t bodySize)
   {
     RestApiOutput wrappedOutput(output, method);
 
@@ -191,7 +195,7 @@ namespace Orthanc
     Arguments compiled;
     HttpToolbox::CompileGetArguments(compiled, getArguments);
 
-    HttpHandlerVisitor visitor(*this, wrappedOutput, method, headers, compiled, postData);
+    HttpHandlerVisitor visitor(*this, wrappedOutput, method, headers, compiled, bodyData, bodySize);
 
     if (root_.LookupResource(uri, visitor))
     {

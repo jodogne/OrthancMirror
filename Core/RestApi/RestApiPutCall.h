@@ -39,7 +39,8 @@ namespace Orthanc
   class RestApiPutCall : public RestApiCall
   {
   private:
-    const std::string& data_;
+    const char* bodyData_;
+    size_t bodySize_;
 
   public:
     typedef void (*Handler) (RestApiPutCall& call);
@@ -50,20 +51,32 @@ namespace Orthanc
                    const IHttpHandler::Arguments& uriComponents,
                    const UriComponents& trailing,
                    const UriComponents& fullUri,
-                   const std::string& data) :
+                   const char* bodyData,
+                   size_t bodySize) :
       RestApiCall(output, context, httpHeaders, uriComponents, trailing, fullUri),
-      data_(data)
+      bodyData_(bodyData),
+      bodySize_(bodySize)
     {
     }
 
-    const std::string& GetPutBody() const
+    const char* GetBodyData() const
     {
-      return data_;
+      return bodyData_;
+    }
+
+    size_t GetBodySize() const
+    {
+      return bodySize_;
+    }
+
+    void BodyToString(std::string& result) const
+    {
+      result.assign(bodyData_, bodySize_);
     }
 
     virtual bool ParseJsonRequest(Json::Value& result) const
     {
-      return ParseJsonRequestInternal(result, GetPutBody().c_str());
+      return ParseJsonRequestInternal(result, bodyData_);
     }      
   };
 }

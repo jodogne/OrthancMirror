@@ -100,9 +100,12 @@ namespace Orthanc
     std::string result;
     ServerContext& context = OrthancRestApi::GetContext(call);
 
+    std::string command;
+    call.BodyToString(command);
+
     {
       LuaScripting::Locker locker(context.GetLua());
-      locker.GetLua().Execute(result, call.GetPostBody());
+      locker.GetLua().Execute(result, command);
     }
 
     call.GetOutput().AnswerBuffer(result, "text/plain");

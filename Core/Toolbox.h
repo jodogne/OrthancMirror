@@ -100,7 +100,10 @@ namespace Orthanc
     void ComputeSHA1(std::string& result,
                      const std::string& data);
 
-    bool IsSHA1(const std::string& str);
+    bool IsSHA1(const char* str,
+                size_t size);
+
+    bool IsSHA1(const std::string& s);
 
     void DecodeBase64(std::string& result, 
                       const std::string& data);

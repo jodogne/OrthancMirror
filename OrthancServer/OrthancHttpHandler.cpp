@@ -43,14 +43,15 @@ namespace Orthanc
                                   const UriComponents& uri,
                                   const Arguments& headers,
                                   const GetArguments& getArguments,
-                                  const std::string& body)
+                                  const char* bodyData,
+                                  size_t bodySize)
   {
     bool found = false;
 
     for (Handlers::const_iterator it = handlers_.begin(); 
          it != handlers_.end() && !found; ++it) 
     {
-      found = (*it)->Handle(output, method, uri, headers, getArguments, body);
+      found = (*it)->Handle(output, method, uri, headers, getArguments, bodyData, bodySize);
     }
 
     return found;
