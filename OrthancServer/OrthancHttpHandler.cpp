@@ -30,32 +30,52 @@
  **/
 
 
-#pragma once
+#include "PrecompiledHeadersServer.h"
+#include "OrthancHttpHandler.h"
 
-#include "../Enumerations.h"
-#include "HttpOutput.h"
+#include "../Core/OrthancException.h"
 
-#include <map>
-#include <vector>
-#include <string>
 
 namespace Orthanc
 {
-  class IHttpHandler : public boost::noncopyable
+  bool OrthancHttpHandler::Handle(HttpOutput& output,
+                                  HttpMethod method,
+                                  const UriComponents& uri,
+                                  const Arguments& headers,
+                                  const GetArguments& getArguments,
+                                  const std::string& body)
   {
-  public:
-    typedef std::map<std::string, std::string>                  Arguments;
-    typedef std::vector< std::pair<std::string, std::string> >  GetArguments;
+    bool found = false;
 
-    virtual ~IHttpHandler()
+    for (Handlers::const_iterator it = handlers_.begin(); 
+         it != handlers_.end() && !found; ++it) 
     {
+      found = (*it)->Handle(output, method, uri, headers, getArguments, body);
     }
 
-    virtual bool Handle(HttpOutput& output,
-                        HttpMethod method,
-                        const UriComponents& uri,
-                        const Arguments& headers,
-                        const GetArguments& getArguments,
-                        const std::string& body) = 0;
-  };
+    return found;
+  }
+
+
+  void OrthancHttpHandler::RegisterHandler(IHttpHandler& handler,
+                                           bool isOrthancRestApi)
+  {
+    handlers_.push_back(&handler);
+
+    if (isOrthancRestApi)
+    {
+      orthancRestApi_ = &handler;
+    }
+  }
+
+
+  IHttpHandler& OrthancHttpHandler::GetOrthancRestApi() const
+  {
+    if (orthancRestApi_ == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    return *orthancRestApi_;
+  }
 }

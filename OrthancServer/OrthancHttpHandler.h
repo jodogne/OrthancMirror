@@ -32,22 +32,20 @@
 
 #pragma once
 
-#include "../Enumerations.h"
-#include "HttpOutput.h"
-
-#include <map>
-#include <vector>
-#include <string>
+#include "../Core/HttpServer/IHttpHandler.h"
 
 namespace Orthanc
 {
-  class IHttpHandler : public boost::noncopyable
+  class OrthancHttpHandler : public IHttpHandler
   {
-  public:
-    typedef std::map<std::string, std::string>                  Arguments;
-    typedef std::vector< std::pair<std::string, std::string> >  GetArguments;
+  private:
+    typedef std::list<IHttpHandler*> Handlers;
 
-    virtual ~IHttpHandler()
+    Handlers      handlers_;
+    IHttpHandler *orthancRestApi_;
+
+  public:
+    OrthancHttpHandler() : orthancRestApi_(NULL)
     {
     }
 
@@ -56,6 +54,16 @@ namespace Orthanc
                         const UriComponents& uri,
                         const Arguments& headers,
                         const GetArguments& getArguments,
-                        const std::string& body) = 0;
+                        const std::string& body);
+
+    void RegisterHandler(IHttpHandler& handler,
+                         bool isOrthancRestApi);
+
+    bool HasOrthancRestApi() const
+    {
+      return orthancRestApi_ != NULL;
+    }
+
+    IHttpHandler& GetOrthancRestApi() const;
   };
 }
