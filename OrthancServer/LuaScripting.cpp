@@ -58,12 +58,12 @@ namespace Orthanc
   }
 
 
-  int LuaScripting::RestApiGet(lua_State *state)
+  int LuaScripting::OrthancApiGet(lua_State *state)
   {
     OrthancRestApi* restApi = GetRestApi(state);
     if (restApi == NULL)
     {
-      LOG(ERROR) << "Lua: The REST API is unavailable";
+      LOG(ERROR) << "Lua: The Orthanc API is unavailable";
       lua_pushnil(state);
       return 1;
     }
@@ -72,7 +72,7 @@ namespace Orthanc
     int nArgs = lua_gettop(state);
     if (nArgs != 1 || !lua_isstring(state, 1))  // URI
     {
-      LOG(ERROR) << "Lua: Bad parameters to RestApiGet()";
+      LOG(ERROR) << "Lua: Bad parameters to OrthancApiGet()";
       lua_pushnil(state);
       return 1;
     }
@@ -86,7 +86,7 @@ namespace Orthanc
     }
     else
     {
-      LOG(ERROR) << "Lua: Error in RestApiGet() for URI " << uri;
+      LOG(ERROR) << "Lua: Error in OrthancApiGet() for URI " << uri;
       lua_pushnil(state);
     }
 
@@ -246,7 +246,7 @@ namespace Orthanc
 
   LuaScripting::LuaScripting(ServerContext& context) : context_(context), restApi_(NULL)
   {
-    lua_.RegisterFunction("RestApiGet", RestApiGet);
+    lua_.RegisterFunction("OrthancApiGet", OrthancApiGet);
 
     lua_.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
     lua_.SetHttpProxy(Configuration::GetGlobalStringParameter("HttpProxy", ""));
