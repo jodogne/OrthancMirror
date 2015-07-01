@@ -175,6 +175,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/DicomFindQuery.cpp
   OrthancServer/QueryRetrieveHandler.cpp
   OrthancServer/LuaScripting.cpp
+  OrthancServer/OrthancHttpHandler.cpp
 
   # From "lua-scripting" branch
   OrthancServer/DicomInstanceToStore.cpp
