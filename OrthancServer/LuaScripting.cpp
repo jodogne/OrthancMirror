@@ -58,6 +58,7 @@ namespace Orthanc
   }
 
 
+  // Syntax in Lua: RestApiGet(uri, builtin)
   int LuaScripting::RestApiGet(lua_State *state)
   {
     ServerContext* serverContext = GetServerContext(state);
@@ -89,7 +90,107 @@ namespace Orthanc
     }
     else
     {
-      LOG(ERROR) << "Lua: Error in RestApiGet() for URI " << uri;
+      LOG(ERROR) << "Lua: Error in RestApiGet() for URI: " << uri;
+      lua_pushnil(state);
+    }
+
+    return 1;
+  }
+
+
+  int LuaScripting::RestApiPostOrPut(lua_State *state,
+                                     bool isPost)
+  {
+    ServerContext* serverContext = GetServerContext(state);
+    if (serverContext == NULL)
+    {
+      LOG(ERROR) << "Lua: The Orthanc API is unavailable";
+      lua_pushnil(state);
+      return 1;
+    }
+
+    // Check the types of the arguments
+    int nArgs = lua_gettop(state);
+    if ((nArgs != 2 && nArgs != 3) || 
+        !lua_isstring(state, 1) ||                 // URI
+        !lua_isstring(state, 2) ||                 // Body
+        (nArgs == 3 && !lua_isboolean(state, 3)))  // Restrict to built-in API?
+    {
+      LOG(ERROR) << "Lua: Bad parameters to " << (isPost ? "RestApiPost()" : "RestApiPut()");
+      lua_pushnil(state);
+      return 1;
+    }
+
+    const char* uri = lua_tostring(state, 1);
+    size_t bodySize = 0;
+    const char* bodyData = lua_tolstring(state, 2, &bodySize);
+    bool builtin = (nArgs == 3 ? lua_toboolean(state, 3) : false);
+
+    std::string result;
+    if (isPost ?
+        HttpToolbox::SimplePost(result, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
+                                uri, bodyData, bodySize) :
+        HttpToolbox::SimplePut(result, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
+                               uri, bodyData, bodySize))
+    {
+      lua_pushstring(state, result.c_str());
+    }
+    else
+    {
+      LOG(ERROR) << "Lua: Error in " << (isPost ? "RestApiPost()" : "RestApiPut()") << " for URI: " << uri;
+      lua_pushnil(state);
+    }
+
+    return 1;
+  }
+
+
+  // Syntax in Lua: RestApiPost(uri, body, builtin)
+  int LuaScripting::RestApiPost(lua_State *state)
+  {
+    return RestApiPostOrPut(state, true);
+  }
+
+
+  // Syntax in Lua: RestApiPut(uri, body, builtin)
+  int LuaScripting::RestApiPut(lua_State *state)
+  {
+    return RestApiPostOrPut(state, false);
+  }
+
+
+  // Syntax in Lua: RestApiDelete(uri, builtin)
+  int LuaScripting::RestApiDelete(lua_State *state)
+  {
+    ServerContext* serverContext = GetServerContext(state);
+    if (serverContext == NULL)
+    {
+      LOG(ERROR) << "Lua: The Orthanc API is unavailable";
+      lua_pushnil(state);
+      return 1;
+    }
+
+    // Check the types of the arguments
+    int nArgs = lua_gettop(state);
+    if ((nArgs != 1 && nArgs != 2) || 
+        !lua_isstring(state, 1) ||                 // URI
+        (nArgs == 2 && !lua_isboolean(state, 2)))  // Restrict to built-in API?
+    {
+      LOG(ERROR) << "Lua: Bad parameters to RestApiGet()";
+      lua_pushnil(state);
+      return 1;
+    }
+
+    const char* uri = lua_tostring(state, 1);
+    bool builtin = (nArgs == 2 ? lua_toboolean(state, 2) : false);
+
+    if (HttpToolbox::SimpleDelete(serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), uri))
+    {
+      lua_pushboolean(state, 1);
+    }
+    else
+    {
+      LOG(ERROR) << "Lua: Error in RestApiGet() for URI: " << uri;
       lua_pushnil(state);
     }
 
@@ -251,6 +352,9 @@ namespace Orthanc
   {
     lua_.SetGlobalVariable("_ServerContext", &context);
     lua_.RegisterFunction("RestApiGet", RestApiGet);
+    lua_.RegisterFunction("RestApiPost", RestApiPost);
+    lua_.RegisterFunction("RestApiPut", RestApiPut);
+    lua_.RegisterFunction("RestApiDelete", RestApiDelete);
 
     lua_.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
     lua_.SetHttpProxy(Configuration::GetGlobalStringParameter("HttpProxy", ""));
@@ -329,8 +433,9 @@ namespace Orthanc
     }
 
 
-    Json::Value tags;
-    if (context_.GetIndex().LookupResource(tags, change.GetPublicId(), change.GetResourceType()))
+    Json::Value tags, metadata;
+    if (context_.GetIndex().LookupResource(tags, change.GetPublicId(), change.GetResourceType()) &&
+        context_.GetIndex().GetMetadata(metadata, change.GetPublicId()))
     {
       boost::mutex::scoped_lock lock(mutex_);
 
@@ -341,6 +446,7 @@ namespace Orthanc
         LuaFunctionCall call(lua_, name);
         call.PushString(change.GetPublicId());
         call.PushJson(tags["MainDicomTags"]);
+        call.PushJson(metadata);
         call.Execute();
 
         SubmitJob(std::string("Lua script: ") + name);

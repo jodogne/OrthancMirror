@@ -237,6 +237,8 @@ namespace Orthanc
       return httpHandler_;
     }
 
+    void Stop();
+
 
     /**
      * Management of the plugins

@@ -57,7 +57,8 @@ namespace Orthanc
     static LuaContext& GetLuaContext(lua_State *state);
 
     static int PrintToLog(lua_State *state);
-    static int ParseJsonString(lua_State *state);
+    static int ParseJson(lua_State *state);
+    static int DumpJson(lua_State *state);
 
     static int SetHttpCredentials(lua_State *state);
 
@@ -74,6 +75,10 @@ namespace Orthanc
                          const std::string& command);
 
     void PushJson(const Json::Value& value);
+
+    static bool GetJson(Json::Value& result,
+                        lua_State *state,
+                        int index);
     
   public:
     LuaContext();

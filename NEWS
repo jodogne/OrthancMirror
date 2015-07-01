@@ -14,6 +14,7 @@ Plugins
 Fixes
 -----
 
+* Many code refactorings
 * Fix compatibility issues for C-Find SCU to Siemens Syngo.Via modalities SCP
 * Fix issue 35 (Characters in PatientID string are not protected for C-Find)
 * Fix issue 37 (Hyphens trigger range query even if datatype does not support ranges)
