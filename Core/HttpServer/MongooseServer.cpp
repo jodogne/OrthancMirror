@@ -47,7 +47,7 @@
 
 #include "../OrthancException.h"
 #include "../ChunkedBuffer.h"
-#include "HttpOutput.h"
+#include "HttpToolbox.h"
 #include "mongoose.h"
 
 #if ORTHANC_SSL_ENABLED == 1
@@ -267,9 +267,9 @@ namespace Orthanc
 
   static PostDataStatus ReadBody(std::string& postData,
                                  struct mg_connection *connection,
-                                 const HttpHandler::Arguments& headers)
+                                 const IHttpHandler::Arguments& headers)
   {
-    HttpHandler::Arguments::const_iterator cs = headers.find("content-length");
+    IHttpHandler::Arguments::const_iterator cs = headers.find("content-length");
     if (cs == headers.end())
     {
       return PostDataStatus_NoLength;
@@ -313,7 +313,7 @@ namespace Orthanc
 
   static PostDataStatus ParseMultipartPost(std::string &completedFile,
                                            struct mg_connection *connection,
-                                           const HttpHandler::Arguments& headers,
+                                           const IHttpHandler::Arguments& headers,
                                            const std::string& contentType,
                                            ChunkStore& chunkStore)
   {
@@ -327,13 +327,13 @@ namespace Orthanc
       return status;
     }
 
-    /*for (HttpHandler::Arguments::const_iterator i = headers.begin(); i != headers.end(); i++)
+    /*for (IHttpHandler::Arguments::const_iterator i = headers.begin(); i != headers.end(); i++)
       {
       std::cout << "Header [" << i->first << "] = " << i->second << "\n";
       }
       printf("CHUNK\n");*/
 
-    typedef HttpHandler::Arguments::const_iterator ArgumentIterator;
+    typedef IHttpHandler::Arguments::const_iterator ArgumentIterator;
 
     ArgumentIterator requestedWith = headers.find("x-requested-with");
     ArgumentIterator fileName = headers.find("x-file-name");
@@ -415,11 +415,11 @@ namespace Orthanc
 
 
   static bool IsAccessGranted(const MongooseServer& that,
-                              const HttpHandler::Arguments& headers)
+                              const IHttpHandler::Arguments& headers)
   {
     bool granted = false;
 
-    HttpHandler::Arguments::const_iterator auth = headers.find("authorization");
+    IHttpHandler::Arguments::const_iterator auth = headers.find("authorization");
     if (auth != headers.end())
     {
       std::string s = auth->second;
@@ -435,9 +435,9 @@ namespace Orthanc
   }
 
 
-  static std::string GetAuthenticatedUsername(const HttpHandler::Arguments& headers)
+  static std::string GetAuthenticatedUsername(const IHttpHandler::Arguments& headers)
   {
-    HttpHandler::Arguments::const_iterator auth = headers.find("authorization");
+    IHttpHandler::Arguments::const_iterator auth = headers.find("authorization");
 
     if (auth == headers.end())
     {
@@ -470,15 +470,15 @@ namespace Orthanc
 
   static bool ExtractMethod(HttpMethod& method,
                             const struct mg_request_info *request,
-                            const HttpHandler::Arguments& headers,
-                            const HttpHandler::GetArguments& argumentsGET)
+                            const IHttpHandler::Arguments& headers,
+                            const IHttpHandler::GetArguments& argumentsGET)
   {
     std::string overriden;
 
     // Check whether some PUT/DELETE faking is done
 
     // 1. Faking with Google's approach
-    HttpHandler::Arguments::const_iterator methodOverride =
+    IHttpHandler::Arguments::const_iterator methodOverride =
       headers.find("x-http-method-override");
 
     if (methodOverride != headers.end())
@@ -565,7 +565,7 @@ namespace Orthanc
 
 
     // Extract the HTTP headers
-    HttpHandler::Arguments headers;
+    IHttpHandler::Arguments headers;
     for (int i = 0; i < request->num_headers; i++)
     {
       std::string name = request->http_headers[i].name;
@@ -575,10 +575,10 @@ namespace Orthanc
 
 
     // Extract the GET arguments
-    HttpHandler::GetArguments argumentsGET;
+    IHttpHandler::GetArguments argumentsGET;
     if (!strcmp(request->request_method, "GET"))
     {
-      HttpHandler::ParseGetArguments(argumentsGET, request->query_string);
+      HttpToolbox::ParseGetArguments(argumentsGET, request->query_string);
     }
 
 
@@ -627,7 +627,7 @@ namespace Orthanc
     {
       PostDataStatus status;
 
-      HttpHandler::Arguments::const_iterator ct = headers.find("content-type");
+      IHttpHandler::Arguments::const_iterator ct = headers.find("content-type");
       if (ct == headers.end())
       {
         // No content-type specified. Assume no multi-part content occurs at this point.
@@ -876,7 +876,7 @@ namespace Orthanc
   }
 
 
-  void MongooseServer::RegisterHandler(HttpHandler& handler)
+  void MongooseServer::RegisterHandler(IHttpHandler& handler)
   {
     Stop();
 

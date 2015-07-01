@@ -195,13 +195,13 @@ namespace Orthanc
 
   static void ArgumentsToPlugin(std::vector<const char*>& keys,
                                 std::vector<const char*>& values,
-                                const HttpHandler::Arguments& arguments)
+                                const IHttpHandler::Arguments& arguments)
   {
     keys.resize(arguments.size());
     values.resize(arguments.size());
 
     size_t pos = 0;
-    for (HttpHandler::Arguments::const_iterator 
+    for (IHttpHandler::Arguments::const_iterator 
            it = arguments.begin(); it != arguments.end(); ++it)
     {
       keys[pos] = it->first.c_str();
@@ -213,7 +213,7 @@ namespace Orthanc
 
   static void ArgumentsToPlugin(std::vector<const char*>& keys,
                                 std::vector<const char*>& values,
-                                const HttpHandler::GetArguments& arguments)
+                                const IHttpHandler::GetArguments& arguments)
   {
     keys.resize(arguments.size());
     values.resize(arguments.size());
@@ -616,14 +616,14 @@ namespace Orthanc
     const _OrthancPluginRestApiGet& p = 
       *reinterpret_cast<const _OrthancPluginRestApiGet*>(parameters);
         
-    // TODO : Use "HttpHandler::SimpleGet()"
+    // TODO : Use "HttpToolbox::SimpleGet()"
 
-    HttpHandler::Arguments headers;  // No HTTP header
+    IHttpHandler::Arguments headers;  // No HTTP header
     std::string body;  // No body for a GET request
 
     UriComponents uri;
-    HttpHandler::GetArguments getArguments;
-    HttpHandler::ParseGetQuery(uri, getArguments, p.uri);
+    IHttpHandler::GetArguments getArguments;
+    HttpToolbox::ParseGetQuery(uri, getArguments, p.uri);
 
     StringHttpOutput stream;
     HttpOutput http(stream, false /* no keep alive */);
@@ -664,8 +664,8 @@ namespace Orthanc
     const _OrthancPluginRestApiPostPut& p = 
       *reinterpret_cast<const _OrthancPluginRestApiPostPut*>(parameters);
 
-    HttpHandler::Arguments headers;  // No HTTP header
-    HttpHandler::GetArguments getArguments;  // No GET argument for POST/PUT
+    IHttpHandler::Arguments headers;  // No HTTP header
+    IHttpHandler::GetArguments getArguments;  // No GET argument for POST/PUT
 
     UriComponents uri;
     Toolbox::SplitUriComponents(uri, p.uri);
@@ -713,8 +713,8 @@ namespace Orthanc
     UriComponents uri;
     Toolbox::SplitUriComponents(uri, reinterpret_cast<const char*>(parameters));
 
-    HttpHandler::Arguments headers;  // No HTTP header
-    HttpHandler::GetArguments getArguments;  // No GET argument for POST/PUT
+    IHttpHandler::Arguments headers;  // No HTTP header
+    IHttpHandler::GetArguments getArguments;  // No GET argument for POST/PUT
     std::string body;  // No body for DELETE
 
     StringHttpOutput stream;

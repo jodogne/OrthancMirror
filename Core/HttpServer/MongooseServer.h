@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include "HttpHandler.h"
+#include "IHttpHandler.h"
 
 #include <list>
 #include <map>
@@ -60,7 +60,7 @@ namespace Orthanc
   class MongooseServer
   {
   public:
-    typedef std::list<HttpHandler*> Handlers;
+    typedef std::list<IHttpHandler*> Handlers;
 
   private:
     // http://stackoverflow.com/questions/311166/stdauto-ptr-or-boostshared-ptr-for-pimpl-idiom
@@ -103,7 +103,7 @@ namespace Orthanc
     void RegisterUser(const char* username,
                       const char* password);
 
-    void RegisterHandler(HttpHandler& handler);
+    void RegisterHandler(IHttpHandler& handler);
 
     bool IsAuthenticationEnabled() const
     {

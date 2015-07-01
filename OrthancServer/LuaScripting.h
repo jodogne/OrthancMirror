@@ -46,7 +46,7 @@ namespace Orthanc
   private:
     static OrthancRestApi* GetRestApi(lua_State *state);
 
-    static int RestApiGet(lua_State *state);
+    static int OrthancApiGet(lua_State *state);
 
     void ApplyOnStoredInstance(const std::string& instanceId,
                                const Json::Value& simplifiedDicom,

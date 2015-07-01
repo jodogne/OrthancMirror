@@ -46,8 +46,8 @@ namespace Orthanc
     
     RestApiPostCall(RestApiOutput& output,
                     RestApi& context,
-                    const HttpHandler::Arguments& httpHeaders,
-                    const HttpHandler::Arguments& uriComponents,
+                    const IHttpHandler::Arguments& httpHeaders,
+                    const IHttpHandler::Arguments& uriComponents,
                     const UriComponents& trailing,
                     const UriComponents& fullUri,
                     const std::string& data) :

@@ -80,7 +80,7 @@ namespace Orthanc
     const char* uri = lua_tostring(state, 1);
     
     std::string str;
-    if (restApi->SimpleGet(str, uri))
+    if (HttpToolbox::SimpleGet(str, *restApi, uri))
     {
       lua_pushstring(state, str.c_str());
     }

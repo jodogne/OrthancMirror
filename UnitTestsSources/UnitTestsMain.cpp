@@ -39,7 +39,7 @@
 
 #include "../Core/Compression/ZlibCompressor.h"
 #include "../Core/DicomFormat/DicomTag.h"
-#include "../Core/HttpServer/HttpHandler.h"
+#include "../Core/HttpServer/HttpToolbox.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
 #include "../Core/Uuid.h"
@@ -188,11 +188,11 @@ TEST(Zlib, Empty)
 
 TEST(ParseGetArguments, Basic)
 {
-  HttpHandler::GetArguments b;
-  HttpHandler::ParseGetArguments(b, "aaa=baaa&bb=a&aa=c");
+  IHttpHandler::GetArguments b;
+  HttpToolbox::ParseGetArguments(b, "aaa=baaa&bb=a&aa=c");
 
-  HttpHandler::Arguments a;
-  HttpHandler::CompileGetArguments(a, b);
+  IHttpHandler::Arguments a;
+  HttpToolbox::CompileGetArguments(a, b);
 
   ASSERT_EQ(3u, a.size());
   ASSERT_EQ(a["aaa"], "baaa");
@@ -202,11 +202,11 @@ TEST(ParseGetArguments, Basic)
 
 TEST(ParseGetArguments, BasicEmpty)
 {
-  HttpHandler::GetArguments b;
-  HttpHandler::ParseGetArguments(b, "aaa&bb=aa&aa");
+  IHttpHandler::GetArguments b;
+  HttpToolbox::ParseGetArguments(b, "aaa&bb=aa&aa");
 
-  HttpHandler::Arguments a;
-  HttpHandler::CompileGetArguments(a, b);
+  IHttpHandler::Arguments a;
+  HttpToolbox::CompileGetArguments(a, b);
 
   ASSERT_EQ(3u, a.size());
   ASSERT_EQ(a["aaa"], "");
@@ -216,11 +216,11 @@ TEST(ParseGetArguments, BasicEmpty)
 
 TEST(ParseGetArguments, Single)
 {
-  HttpHandler::GetArguments b;
-  HttpHandler::ParseGetArguments(b, "aaa=baaa");
+  IHttpHandler::GetArguments b;
+  HttpToolbox::ParseGetArguments(b, "aaa=baaa");
 
-  HttpHandler::Arguments a;
-  HttpHandler::CompileGetArguments(a, b);
+  IHttpHandler::Arguments a;
+  HttpToolbox::CompileGetArguments(a, b);
 
   ASSERT_EQ(1u, a.size());
   ASSERT_EQ(a["aaa"], "baaa");
@@ -228,11 +228,11 @@ TEST(ParseGetArguments, Single)
 
 TEST(ParseGetArguments, SingleEmpty)
 {
-  HttpHandler::GetArguments b;
-  HttpHandler::ParseGetArguments(b, "aaa");
+  IHttpHandler::GetArguments b;
+  HttpToolbox::ParseGetArguments(b, "aaa");
 
-  HttpHandler::Arguments a;
-  HttpHandler::CompileGetArguments(a, b);
+  IHttpHandler::Arguments a;
+  HttpToolbox::CompileGetArguments(a, b);
 
   ASSERT_EQ(1u, a.size());
   ASSERT_EQ(a["aaa"], "");
@@ -241,11 +241,11 @@ TEST(ParseGetArguments, SingleEmpty)
 TEST(ParseGetQuery, Test1)
 {
   UriComponents uri;
-  HttpHandler::GetArguments b;
-  HttpHandler::ParseGetQuery(uri, b, "/instances/test/world?aaa=baaa&bb=a&aa=c");
+  IHttpHandler::GetArguments b;
+  HttpToolbox::ParseGetQuery(uri, b, "/instances/test/world?aaa=baaa&bb=a&aa=c");
 
-  HttpHandler::Arguments a;
-  HttpHandler::CompileGetArguments(a, b);
+  IHttpHandler::Arguments a;
+  HttpToolbox::CompileGetArguments(a, b);
 
   ASSERT_EQ(3u, uri.size());
   ASSERT_EQ("instances", uri[0]);
@@ -260,11 +260,11 @@ TEST(ParseGetQuery, Test1)
 TEST(ParseGetQuery, Test2)
 {
   UriComponents uri;
-  HttpHandler::GetArguments b;
-  HttpHandler::ParseGetQuery(uri, b, "/instances/test/world");
+  IHttpHandler::GetArguments b;
+  HttpToolbox::ParseGetQuery(uri, b, "/instances/test/world");
 
-  HttpHandler::Arguments a;
-  HttpHandler::CompileGetArguments(a, b);
+  IHttpHandler::Arguments a;
+  HttpToolbox::CompileGetArguments(a, b);
 
   ASSERT_EQ(3u, uri.size());
   ASSERT_EQ("instances", uri[0]);

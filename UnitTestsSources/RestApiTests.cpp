@@ -93,11 +93,11 @@ TEST(RestApi, ChunkedBuffer)
 
 TEST(RestApi, ParseCookies)
 {
-  HttpHandler::Arguments headers;
-  HttpHandler::Arguments cookies;
+  IHttpHandler::Arguments headers;
+  IHttpHandler::Arguments cookies;
 
   headers["cookie"] = "a=b;c=d;;;e=f;;g=h;";
-  HttpHandler::ParseCookies(cookies, headers);
+  HttpToolbox::ParseCookies(cookies, headers);
   ASSERT_EQ(4u, cookies.size());
   ASSERT_EQ("b", cookies["a"]);
   ASSERT_EQ("d", cookies["c"]);
@@ -105,24 +105,24 @@ TEST(RestApi, ParseCookies)
   ASSERT_EQ("h", cookies["g"]);
 
   headers["cookie"] = "  name =  value  ; name2=value2";
-  HttpHandler::ParseCookies(cookies, headers);
+  HttpToolbox::ParseCookies(cookies, headers);
   ASSERT_EQ(2u, cookies.size());
   ASSERT_EQ("value", cookies["name"]);
   ASSERT_EQ("value2", cookies["name2"]);
 
   headers["cookie"] = "  ;;;    ";
-  HttpHandler::ParseCookies(cookies, headers);
+  HttpToolbox::ParseCookies(cookies, headers);
   ASSERT_EQ(0u, cookies.size());
 
   headers["cookie"] = "  ;   n=v  ;;    ";
-  HttpHandler::ParseCookies(cookies, headers);
+  HttpToolbox::ParseCookies(cookies, headers);
   ASSERT_EQ(1u, cookies.size());
   ASSERT_EQ("v", cookies["n"]);
 }
 
 TEST(RestApi, RestApiPath)
 {
-  HttpHandler::Arguments args;
+  IHttpHandler::Arguments args;
   UriComponents trail;
 
   {
@@ -220,7 +220,7 @@ namespace
   public:
     virtual bool Visit(const RestApiHierarchy::Resource& resource,
                        const UriComponents& uri,
-                       const HttpHandler::Arguments& components,
+                       const IHttpHandler::Arguments& components,
                        const UriComponents& trailing)
     {
       return resource.Handle(*reinterpret_cast<RestApiGetCall*>(NULL));

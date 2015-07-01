@@ -38,7 +38,7 @@
 
 namespace Orthanc
 {
-  class RestApi : public HttpHandler
+  class RestApi : public IHttpHandler
   {
   private:
     RestApiHierarchy root_;
