@@ -64,6 +64,6 @@ namespace Orthanc
       return orthancRestApi_ != NULL;
     }
 
-    IHttpHandler& GetOrthancRestApi() const;
+    IHttpHandler& RestrictToOrthancRestApi(bool restrict);
   };
 }

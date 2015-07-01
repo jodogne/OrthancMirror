@@ -82,14 +82,10 @@ namespace Orthanc
     const char* uri = lua_tostring(state, 1);
     bool builtin = (nArgs == 2 ? lua_toboolean(state, 2) : false);
 
-    IHttpHandler& handler = (builtin ? 
-                             serverContext->GetHttpHandler().GetOrthancRestApi() : 
-                             serverContext->GetHttpHandler());
-    
-    std::string str;
-    if (HttpToolbox::SimpleGet(str, handler, uri))
+    std::string result;
+    if (HttpToolbox::SimpleGet(result, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), uri))
     {
-      lua_pushstring(state, str.c_str());
+      lua_pushstring(state, result.c_str());
     }
     else
     {
