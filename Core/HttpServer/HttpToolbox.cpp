@@ -33,6 +33,7 @@
 #include "../PrecompiledHeaders.h"
 #include "HttpToolbox.h"
 
+#include <stdio.h>
 #include <string.h>
 #include <iostream>
 

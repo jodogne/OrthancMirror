@@ -51,17 +51,17 @@
 
 namespace Orthanc
 {
-  OrthancRestApi* LuaScripting::GetRestApi(lua_State *state)
+  ServerContext* LuaScripting::GetServerContext(lua_State *state)
   {
-    const void* value = LuaContext::GetGlobalVariable(state, "_RestApi");
-    return const_cast<OrthancRestApi*>(reinterpret_cast<const OrthancRestApi*>(value));
+    const void* value = LuaContext::GetGlobalVariable(state, "_ServerContext");
+    return const_cast<ServerContext*>(reinterpret_cast<const ServerContext*>(value));
   }
 
 
-  int LuaScripting::OrthancApiGet(lua_State *state)
+  int LuaScripting::RestApiGet(lua_State *state)
   {
-    OrthancRestApi* restApi = GetRestApi(state);
-    if (restApi == NULL)
+    ServerContext* serverContext = GetServerContext(state);
+    if (serverContext == NULL)
     {
       LOG(ERROR) << "Lua: The Orthanc API is unavailable";
       lua_pushnil(state);
@@ -70,23 +70,30 @@ namespace Orthanc
 
     // Check the types of the arguments
     int nArgs = lua_gettop(state);
-    if (nArgs != 1 || !lua_isstring(state, 1))  // URI
+    if ((nArgs != 1 && nArgs != 2) || 
+        !lua_isstring(state, 1) ||                 // URI
+        (nArgs == 2 && !lua_isboolean(state, 2)))  // Restrict to built-in API?
     {
-      LOG(ERROR) << "Lua: Bad parameters to OrthancApiGet()";
+      LOG(ERROR) << "Lua: Bad parameters to RestApiGet()";
       lua_pushnil(state);
       return 1;
     }
 
     const char* uri = lua_tostring(state, 1);
+    bool builtin = (nArgs == 2 ? lua_toboolean(state, 2) : false);
+
+    IHttpHandler& handler = (builtin ? 
+                             serverContext->GetHttpHandler().GetOrthancRestApi() : 
+                             serverContext->GetHttpHandler());
     
     std::string str;
-    if (HttpToolbox::SimpleGet(str, *restApi, uri))
+    if (HttpToolbox::SimpleGet(str, handler, uri))
     {
       lua_pushstring(state, str.c_str());
     }
     else
     {
-      LOG(ERROR) << "Lua: Error in OrthancApiGet() for URI " << uri;
+      LOG(ERROR) << "Lua: Error in RestApiGet() for URI " << uri;
       lua_pushnil(state);
     }
 
@@ -244,24 +251,13 @@ namespace Orthanc
   }
 
 
-  LuaScripting::LuaScripting(ServerContext& context) : context_(context), restApi_(NULL)
+  LuaScripting::LuaScripting(ServerContext& context) : context_(context)
   {
-    lua_.RegisterFunction("OrthancApiGet", OrthancApiGet);
+    lua_.SetGlobalVariable("_ServerContext", &context);
+    lua_.RegisterFunction("RestApiGet", RestApiGet);
 
     lua_.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
     lua_.SetHttpProxy(Configuration::GetGlobalStringParameter("HttpProxy", ""));
-  }
-
-
-  void LuaScripting::SetOrthancRestApi(OrthancRestApi& restApi)
-  {
-    lua_.SetGlobalVariable("_RestApi", &restApi);
-  }
-
-
-  void LuaScripting::ResetOrthancRestApi()
-  {
-    lua_.SetGlobalVariable("_RestApi", NULL);
   }
 
 

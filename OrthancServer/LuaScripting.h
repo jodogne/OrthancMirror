@@ -35,7 +35,6 @@
 #include "IServerListener.h"
 #include "../Core/Lua/LuaContext.h"
 #include "Scheduler/IServerCommand.h"
-#include "OrthancRestApi/OrthancRestApi.h"
 
 namespace Orthanc
 {
@@ -44,9 +43,9 @@ namespace Orthanc
   class LuaScripting : public IServerListener
   {
   private:
-    static OrthancRestApi* GetRestApi(lua_State *state);
+    static ServerContext* GetServerContext(lua_State *state);
 
-    static int OrthancApiGet(lua_State *state);
+    static int RestApiGet(lua_State *state);
 
     void ApplyOnStoredInstance(const std::string& instanceId,
                                const Json::Value& simplifiedDicom,
@@ -66,7 +65,6 @@ namespace Orthanc
     boost::mutex    mutex_;
     LuaContext      lua_;
     ServerContext&  context_;
-    OrthancRestApi* restApi_;
 
   public:
     class Locker : public boost::noncopyable
@@ -93,10 +91,6 @@ namespace Orthanc
 
     LuaScripting(ServerContext& context);
     
-    void SetOrthancRestApi(OrthancRestApi& restApi);
-
-    void ResetOrthancRestApi();
-
     virtual void SignalStoredInstance(const std::string& publicId,
                                       DicomInstanceToStore& instance,
                                       const Json::Value& simplifiedTags);
