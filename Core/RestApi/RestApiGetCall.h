@@ -39,18 +39,18 @@ namespace Orthanc
   class RestApiGetCall : public RestApiCall
   {
   private:
-    const HttpHandler::Arguments& getArguments_;
+    const IHttpHandler::Arguments& getArguments_;
 
   public:
     typedef void (*Handler) (RestApiGetCall& call);   
 
     RestApiGetCall(RestApiOutput& output,
                    RestApi& context,
-                   const HttpHandler::Arguments& httpHeaders,
-                   const HttpHandler::Arguments& uriComponents,
+                   const IHttpHandler::Arguments& httpHeaders,
+                   const IHttpHandler::Arguments& uriComponents,
                    const UriComponents& trailing,
                    const UriComponents& fullUri,
-                   const HttpHandler::Arguments& getArguments) :
+                   const IHttpHandler::Arguments& getArguments) :
       RestApiCall(output, context, httpHeaders, uriComponents, trailing, fullUri),
       getArguments_(getArguments)
     {
@@ -59,7 +59,7 @@ namespace Orthanc
     std::string GetArgument(const std::string& name,
                             const std::string& defaultValue) const
     {
-      return HttpHandler::GetArgument(getArguments_, name, defaultValue);
+      return HttpToolbox::GetArgument(getArguments_, name, defaultValue);
     }
 
     bool HasArgument(const std::string& name) const

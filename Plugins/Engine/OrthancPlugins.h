@@ -33,7 +33,7 @@
 #pragma once
 
 #include "../../Core/FileStorage/IStorageArea.h"
-#include "../../Core/HttpServer/HttpHandler.h"
+#include "../../Core/HttpServer/IHttpHandler.h"
 #include "../../OrthancServer/IServerListener.h"
 #include "OrthancPluginDatabase.h"
 #include "PluginsManager.h"
@@ -47,7 +47,7 @@ namespace Orthanc
   class ServerContext;
 
   class OrthancPlugins : 
-    public HttpHandler, 
+    public IHttpHandler, 
     public IPluginServiceProvider, 
     public IServerListener
   {

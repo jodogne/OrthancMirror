@@ -32,13 +32,13 @@
 
 #pragma once
 
-#include "HttpHandler.h"
+#include "IHttpHandler.h"
 
 #include <boost/shared_ptr.hpp>
 
 namespace Orthanc
 {
-  class FilesystemHttpHandler : public HttpHandler
+  class FilesystemHttpHandler : public IHttpHandler
   {
   private:
     // PImpl idiom to avoid the inclusion of boost::filesystem

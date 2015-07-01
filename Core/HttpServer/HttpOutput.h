@@ -37,7 +37,6 @@
 #include <stdint.h>
 #include "../Enumerations.h"
 #include "IHttpOutputStream.h"
-#include "HttpHandler.h"
 #include "../Uuid.h"
 
 namespace Orthanc

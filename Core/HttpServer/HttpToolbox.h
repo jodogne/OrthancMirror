@@ -32,38 +32,36 @@
 
 #pragma once
 
-#include "RestApiCall.h"
+#include "IHttpHandler.h"
 
 namespace Orthanc
 {
-  class RestApiPutCall : public RestApiCall
+  class HttpToolbox
   {
-  private:
-    const std::string& data_;
-
   public:
-    typedef void (*Handler) (RestApiPutCall& call);
-    
-    RestApiPutCall(RestApiOutput& output,
-                   RestApi& context,
-                   const IHttpHandler::Arguments& httpHeaders,
-                   const IHttpHandler::Arguments& uriComponents,
-                   const UriComponents& trailing,
-                   const UriComponents& fullUri,
-                   const std::string& data) :
-      RestApiCall(output, context, httpHeaders, uriComponents, trailing, fullUri),
-      data_(data)
-    {
-    }
+    static void ParseGetArguments(IHttpHandler::GetArguments& result, 
+                                  const char* query);
 
-    const std::string& GetPutBody() const
-    {
-      return data_;
-    }
+    static void ParseGetQuery(UriComponents& uri,
+                              IHttpHandler::GetArguments& getArguments, 
+                              const char* query);
 
-    virtual bool ParseJsonRequest(Json::Value& result) const
-    {
-      return ParseJsonRequestInternal(result, GetPutBody().c_str());
-    }      
+    static std::string GetArgument(const IHttpHandler::Arguments& getArguments,
+                                   const std::string& name,
+                                   const std::string& defaultValue);
+
+    static std::string GetArgument(const IHttpHandler::GetArguments& getArguments,
+                                   const std::string& name,
+                                   const std::string& defaultValue);
+
+    static void ParseCookies(IHttpHandler::Arguments& result, 
+                             const IHttpHandler::Arguments& httpHeaders);
+
+    static void CompileGetArguments(IHttpHandler::Arguments& compiled,
+                                    const IHttpHandler::GetArguments& source);
+
+    static bool SimpleGet(std::string& output,
+                          IHttpHandler& handler,
+                          const std::string& uri);
   };
 }

@@ -49,16 +49,16 @@ namespace Orthanc
       RestApi& api_;
       RestApiOutput& output_;
       HttpMethod method_;
-      const HttpHandler::Arguments& headers_;
-      const HttpHandler::Arguments& getArguments_;
+      const IHttpHandler::Arguments& headers_;
+      const IHttpHandler::Arguments& getArguments_;
       const std::string& postData_;
 
     public:
       HttpHandlerVisitor(RestApi& api,
                          RestApiOutput& output,
                          HttpMethod method,
-                         const HttpHandler::Arguments& headers,
-                         const HttpHandler::Arguments& getArguments,
+                         const IHttpHandler::Arguments& headers,
+                         const IHttpHandler::Arguments& getArguments,
                          const std::string& postData) :
         api_(api),
         output_(output),
@@ -71,7 +71,7 @@ namespace Orthanc
 
       virtual bool Visit(const RestApiHierarchy::Resource& resource,
                          const UriComponents& uri,
-                         const HttpHandler::Arguments& components,
+                         const IHttpHandler::Arguments& components,
                          const UriComponents& trailing)
       {
         if (resource.HasHandler(method_))
@@ -189,7 +189,7 @@ namespace Orthanc
 #endif
 
     Arguments compiled;
-    HttpHandler::CompileGetArguments(compiled, getArguments);
+    HttpToolbox::CompileGetArguments(compiled, getArguments);
 
     HttpHandlerVisitor visitor(*this, wrappedOutput, method, headers, compiled, postData);
 

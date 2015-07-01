@@ -31,7 +31,7 @@
 
 
 #include "../PrecompiledHeaders.h"
-#include "HttpHandler.h"
+#include "HttpToolbox.h"
 
 #include <string.h>
 #include <iostream>
@@ -42,7 +42,7 @@
 
 namespace Orthanc
 {
-  static void SplitGETNameValue(HttpHandler::GetArguments& result,
+  static void SplitGETNameValue(IHttpHandler::GetArguments& result,
                                 const char* start,
                                 const char* end)
   {
@@ -67,7 +67,7 @@ namespace Orthanc
   }
 
 
-  void HttpHandler::ParseGetArguments(HttpHandler::GetArguments& result, 
+  void HttpToolbox::ParseGetArguments(IHttpHandler::GetArguments& result, 
                                       const char* query)
   {
     const char* pos = query;
@@ -90,8 +90,8 @@ namespace Orthanc
   }
 
 
-  void  HttpHandler::ParseGetQuery(UriComponents& uri,
-                                   HttpHandler::GetArguments& getArguments, 
+  void  HttpToolbox::ParseGetQuery(UriComponents& uri,
+                                   IHttpHandler::GetArguments& getArguments, 
                                    const char* query)
   {
     const char *questionMark = ::strchr(query, '?');
@@ -104,16 +104,16 @@ namespace Orthanc
     else
     {
       Toolbox::SplitUriComponents(uri, std::string(query, questionMark));
-      HttpHandler::ParseGetArguments(getArguments, questionMark + 1);
+      HttpToolbox::ParseGetArguments(getArguments, questionMark + 1);
     }    
   }
 
  
-  std::string HttpHandler::GetArgument(const Arguments& getArguments,
+  std::string HttpToolbox::GetArgument(const IHttpHandler::Arguments& getArguments,
                                        const std::string& name,
                                        const std::string& defaultValue)
   {
-    Arguments::const_iterator it = getArguments.find(name);
+    IHttpHandler::Arguments::const_iterator it = getArguments.find(name);
     if (it == getArguments.end())
     {
       return defaultValue;
@@ -125,7 +125,7 @@ namespace Orthanc
   }
 
 
-  std::string HttpHandler::GetArgument(const GetArguments& getArguments,
+  std::string HttpToolbox::GetArgument(const IHttpHandler::GetArguments& getArguments,
                                        const std::string& name,
                                        const std::string& defaultValue)
   {
@@ -142,12 +142,12 @@ namespace Orthanc
 
 
 
-  void HttpHandler::ParseCookies(HttpHandler::Arguments& result, 
-                                 const HttpHandler::Arguments& httpHeaders)
+  void HttpToolbox::ParseCookies(IHttpHandler::Arguments& result, 
+                                 const IHttpHandler::Arguments& httpHeaders)
   {
     result.clear();
 
-    HttpHandler::Arguments::const_iterator it = httpHeaders.find("cookie");
+    IHttpHandler::Arguments::const_iterator it = httpHeaders.find("cookie");
     if (it != httpHeaders.end())
     {
       const std::string& cookies = it->second;
@@ -181,8 +181,8 @@ namespace Orthanc
   }
 
 
-  void HttpHandler::CompileGetArguments(Arguments& compiled,
-                                        const GetArguments& source)
+  void HttpToolbox::CompileGetArguments(IHttpHandler::Arguments& compiled,
+                                        const IHttpHandler::GetArguments& source)
   {
     compiled.clear();
 
@@ -193,20 +193,21 @@ namespace Orthanc
   }
 
 
-  bool HttpHandler::SimpleGet(std::string& output,
+  bool HttpToolbox::SimpleGet(std::string& output,
+                              IHttpHandler& handler,
                               const std::string& uri)
   {
-    Arguments headers;  // No HTTP header
+    IHttpHandler::Arguments headers;  // No HTTP header
     std::string body;  // No body for a GET request
 
     UriComponents curi;
-    GetArguments getArguments;
+    IHttpHandler::GetArguments getArguments;
     ParseGetQuery(curi, getArguments, uri.c_str());
 
     StringHttpOutput stream;
     HttpOutput http(stream, false /* no keep alive */);
 
-    if (Handle(http, HttpMethod_Get, curi, headers, getArguments, body))
+    if (handler.Handle(http, HttpMethod_Get, curi, headers, getArguments, body))
     {
       stream.GetOutput(output);
       return true;

@@ -98,7 +98,7 @@ set(ORTHANC_CORE_SOURCES
   Core/HttpClient.cpp
   Core/HttpServer/EmbeddedResourceHttpHandler.cpp
   Core/HttpServer/FilesystemHttpHandler.cpp
-  Core/HttpServer/HttpHandler.cpp
+  Core/HttpServer/HttpToolbox.cpp
   Core/HttpServer/HttpOutput.cpp
   Core/HttpServer/StringHttpOutput.cpp
   Core/HttpServer/MongooseServer.cpp
