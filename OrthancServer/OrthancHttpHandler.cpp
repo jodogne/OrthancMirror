@@ -69,13 +69,20 @@ namespace Orthanc
   }
 
 
-  IHttpHandler& OrthancHttpHandler::GetOrthancRestApi() const
+  IHttpHandler& OrthancHttpHandler::RestrictToOrthancRestApi(bool restrict)
   {
-    if (orthancRestApi_ == NULL)
+    if (restrict)
     {
-      throw OrthancException(ErrorCode_InternalError);
-    }
+      if (orthancRestApi_ == NULL)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
 
-    return *orthancRestApi_;
+      return *orthancRestApi_;
+    }
+    else
+    {
+      return *this;
+    }
   }
 }

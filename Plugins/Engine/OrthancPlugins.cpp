@@ -616,38 +616,15 @@ namespace Orthanc
     const _OrthancPluginRestApiGet& p = 
       *reinterpret_cast<const _OrthancPluginRestApiGet*>(parameters);
         
-    // TODO : Use "HttpToolbox::SimpleGet()"
-
-    IHttpHandler::Arguments headers;  // No HTTP header
-    std::string body;  // No body for a GET request
-
-    UriComponents uri;
-    IHttpHandler::GetArguments getArguments;
-    HttpToolbox::ParseGetQuery(uri, getArguments, p.uri);
-
-    StringHttpOutput stream;
-    HttpOutput http(stream, false /* no keep alive */);
-
     LOG(INFO) << "Plugin making REST GET call on URI " << p.uri
               << (afterPlugins ? " (after plugins)" : " (built-in API)");
 
-    bool ok = false;
+    CheckContextAvailable();
+    IHttpHandler& handler = pimpl_->context_->GetHttpHandler().RestrictToOrthancRestApi(!afterPlugins);
+
     std::string result;
-
-    if (afterPlugins)
+    if (HttpToolbox::SimpleGet(result, handler, p.uri))
     {
-      ok = Handle(http, HttpMethod_Get, uri, headers, getArguments, body);
-    }
-
-    if (!ok)
-    {
-      ok = (pimpl_->restApi_ != NULL &&
-            pimpl_->restApi_->Handle(http, HttpMethod_Get, uri, headers, getArguments, body));
-    }
-
-    if (ok)
-    {
-      stream.GetOutput(result);
       CopyToMemoryBuffer(*p.target, result);
     }
     else
@@ -663,6 +640,8 @@ namespace Orthanc
   {
     const _OrthancPluginRestApiPostPut& p = 
       *reinterpret_cast<const _OrthancPluginRestApiPostPut*>(parameters);
+
+    // TODO : Use "HttpToolbox::SimplePost()"
 
     IHttpHandler::Arguments headers;  // No HTTP header
     IHttpHandler::GetArguments getArguments;  // No GET argument for POST/PUT
@@ -712,6 +691,8 @@ namespace Orthanc
     // The "parameters" point to the URI
     UriComponents uri;
     Toolbox::SplitUriComponents(uri, reinterpret_cast<const char*>(parameters));
+
+    // TODO : Use "HttpToolbox::SimpleDelete()"
 
     IHttpHandler::Arguments headers;  // No HTTP header
     IHttpHandler::GetArguments getArguments;  // No GET argument for POST/PUT
