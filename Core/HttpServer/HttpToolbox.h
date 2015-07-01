@@ -60,8 +60,23 @@ namespace Orthanc
     static void CompileGetArguments(IHttpHandler::Arguments& compiled,
                                     const IHttpHandler::GetArguments& source);
 
-    static bool SimpleGet(std::string& output,
+    static bool SimpleGet(std::string& result,
                           IHttpHandler& handler,
                           const std::string& uri);
+
+    static bool SimplePost(std::string& result,
+                           IHttpHandler& handler,
+                           const std::string& uri,
+                           const char* bodyData,
+                           size_t bodySize);
+
+    static bool SimplePut(std::string& result,
+                          IHttpHandler& handler,
+                          const std::string& uri,
+                          const char* bodyData,
+                          size_t bodySize);
+
+    static bool SimpleDelete(IHttpHandler& handler,
+                             const std::string& uri);
   };
 }

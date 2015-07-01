@@ -45,7 +45,12 @@ namespace Orthanc
   private:
     static ServerContext* GetServerContext(lua_State *state);
 
+    static int RestApiPostOrPut(lua_State *state,
+                                bool isPost);
     static int RestApiGet(lua_State *state);
+    static int RestApiPost(lua_State *state);
+    static int RestApiPut(lua_State *state);
+    static int RestApiDelete(lua_State *state);
 
     void ApplyOnStoredInstance(const std::string& instanceId,
                                const Json::Value& simplifiedDicom,

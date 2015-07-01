@@ -71,7 +71,7 @@ namespace Orthanc
   {
     while (!that->done_)
     {
-      std::auto_ptr<IDynamicObject> obj(that->pendingChanges_.Dequeue(500));
+      std::auto_ptr<IDynamicObject> obj(that->pendingChanges_.Dequeue(100));
         
       if (obj.get() != NULL)
       {
@@ -119,11 +119,20 @@ namespace Orthanc
   
   ServerContext::~ServerContext()
   {
-    done_ = true;
+    Stop();
+  }
 
-    if (changeThread_.joinable())
+
+  void ServerContext::Stop()
+  {
+    if (!done_)
     {
-      changeThread_.join();
+      done_ = true;
+
+      if (changeThread_.joinable())
+      {
+        changeThread_.join();
+      }
     }
   }
 

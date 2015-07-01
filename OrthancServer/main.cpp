@@ -545,6 +545,8 @@ static bool StartOrthanc(int argc, char *argv[])
     // We're done
     LOG(WARNING) << "Orthanc is stopping";
 
+    context->Stop();
+
 #if ENABLE_PLUGINS == 1
     context->ResetPlugins();
     plugins.ResetOrthancRestApi();
