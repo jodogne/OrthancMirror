@@ -249,7 +249,7 @@ TEST(Lua, Http)
 
   std::string s;
   lua.Execute(s, "print(HttpGet({}))");
-  ASSERT_EQ("ERROR", Orthanc::Toolbox::StripSpaces(s));
+  ASSERT_EQ("nil", Orthanc::Toolbox::StripSpaces(s));
 
 #if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1  
   lua.Execute(s, "print(string.len(HttpGet(\"" + url + "\")))");
