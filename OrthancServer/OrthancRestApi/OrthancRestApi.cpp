@@ -73,13 +73,15 @@ namespace Orthanc
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    const std::string& postData = call.GetPostBody();
-    if (postData.size() == 0)
+    if (call.GetBodySize() == 0)
     {
       return;
     }
 
-    LOG(INFO) << "Receiving a DICOM file of " << postData.size() << " bytes through HTTP";
+    LOG(INFO) << "Receiving a DICOM file of " << call.GetBodySize() << " bytes through HTTP";
+
+    // TODO Remove unneccessary memcpy
+    std::string postData(call.GetBodyData(), call.GetBodySize());
 
     DicomInstanceToStore toStore;
     toStore.SetBuffer(postData);

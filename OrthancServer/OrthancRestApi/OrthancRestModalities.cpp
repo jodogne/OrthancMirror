@@ -82,12 +82,13 @@ namespace Orthanc
    ***************************************************************************/
 
   static bool MergeQueryAndTemplate(DicomMap& result,
-                                    const std::string& postData)
+                                    const char* postData,
+                                    size_t postSize)
   {
     Json::Value query;
     Json::Reader reader;
 
-    if (!reader.parse(postData, query) ||
+    if (!reader.parse(postData, postData + postSize, query) ||
         query.type() != Json::objectValue)
     {
       return false;
@@ -169,7 +170,7 @@ namespace Orthanc
 
     DicomMap fields;
     DicomMap::SetupFindPatientTemplate(fields);
-    if (!MergeQueryAndTemplate(fields, call.GetPostBody()))
+    if (!MergeQueryAndTemplate(fields, call.GetBodyData(), call.GetBodySize()))
     {
       return;
     }
@@ -193,7 +194,7 @@ namespace Orthanc
 
     DicomMap fields;
     DicomMap::SetupFindStudyTemplate(fields);
-    if (!MergeQueryAndTemplate(fields, call.GetPostBody()))
+    if (!MergeQueryAndTemplate(fields, call.GetBodyData(), call.GetBodySize()))
     {
       return;
     }
@@ -223,7 +224,7 @@ namespace Orthanc
 
     DicomMap fields;
     DicomMap::SetupFindSeriesTemplate(fields);
-    if (!MergeQueryAndTemplate(fields, call.GetPostBody()))
+    if (!MergeQueryAndTemplate(fields, call.GetBodyData(), call.GetBodySize()))
     {
       return;
     }
@@ -254,7 +255,7 @@ namespace Orthanc
 
     DicomMap fields;
     DicomMap::SetupFindInstanceTemplate(fields);
-    if (!MergeQueryAndTemplate(fields, call.GetPostBody()))
+    if (!MergeQueryAndTemplate(fields, call.GetBodyData(), call.GetBodySize()))
     {
       return;
     }
@@ -287,7 +288,7 @@ namespace Orthanc
 
     DicomMap m;
     DicomMap::SetupFindPatientTemplate(m);
-    if (!MergeQueryAndTemplate(m, call.GetPostBody()))
+    if (!MergeQueryAndTemplate(m, call.GetBodyData(), call.GetBodySize()))
     {
       return;
     }
@@ -307,7 +308,7 @@ namespace Orthanc
       FromDcmtkBridge::ToJson(patient, patients.GetAnswer(i), true);
 
       DicomMap::SetupFindStudyTemplate(m);
-      if (!MergeQueryAndTemplate(m, call.GetPostBody()))
+      if (!MergeQueryAndTemplate(m, call.GetBodyData(), call.GetBodySize()))
       {
         return;
       }
@@ -325,7 +326,7 @@ namespace Orthanc
         FromDcmtkBridge::ToJson(study, studies.GetAnswer(j), true);
 
         DicomMap::SetupFindSeriesTemplate(m);
-        if (!MergeQueryAndTemplate(m, call.GetPostBody()))
+        if (!MergeQueryAndTemplate(m, call.GetBodyData(), call.GetBodySize()))
         {
           return;
         }
@@ -474,10 +475,13 @@ namespace Orthanc
   {
     size_t index = boost::lexical_cast<size_t>(call.GetUriComponent("index", ""));
 
-    LOG(WARNING) << "Driving C-Move SCU on modality: " << call.GetPostBody();
+    std::string modality;
+    call.BodyToString(modality);
+
+    LOG(WARNING) << "Driving C-Move SCU on modality: " << modality;
 
     QueryAccessor query(call);
-    query->Retrieve(call.GetPostBody(), index);
+    query->Retrieve(modality, index);
 
     // Retrieve has succeeded
     call.GetOutput().AnswerBuffer("{}", "application/json");
@@ -486,10 +490,13 @@ namespace Orthanc
 
   static void RetrieveAllAnswers(RestApiPostCall& call)
   {
-    LOG(WARNING) << "Driving C-Move SCU on modality: " << call.GetPostBody();
+    std::string modality;
+    call.BodyToString(modality);
+
+    LOG(WARNING) << "Driving C-Move SCU on modality: " << modality;
 
     QueryAccessor query(call);
-    query->Retrieve(call.GetPostBody());
+    query->Retrieve(modality);
 
     // Retrieve has succeeded
     call.GetOutput().AnswerBuffer("{}", "application/json");
@@ -562,11 +569,14 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     Json::Value request;
-    if (Toolbox::IsSHA1(call.GetPostBody()))
+    if (Toolbox::IsSHA1(call.GetBodyData(), call.GetBodySize()))
     {
+      std::string s;
+      call.BodyToString(s);
+
       // This is for compatibility with Orthanc <= 0.5.1.
       request = Json::arrayValue;
-      request.append(Toolbox::StripSpaces(call.GetPostBody()));
+      request.append(Toolbox::StripSpaces(s));
     }
     else if (!call.ParseJsonRequest(request))
     {
@@ -797,7 +807,7 @@ namespace Orthanc
   {
     Json::Value json;
     Json::Reader reader;
-    if (reader.parse(call.GetPutBody(), json))
+    if (reader.parse(call.GetBodyData(), call.GetBodyData() + call.GetBodySize(), json))
     {
       RemoteModalityParameters modality;
       modality.FromJson(json);
@@ -818,7 +828,7 @@ namespace Orthanc
   {
     Json::Value json;
     Json::Reader reader;
-    if (reader.parse(call.GetPutBody(), json))
+    if (reader.parse(call.GetBodyData(), call.GetBodyData() + call.GetBodySize(), json))
     {
       OrthancPeerParameters peer;
       peer.FromJson(json);

@@ -54,7 +54,8 @@ namespace Orthanc
                         const UriComponents& uri,
                         const Arguments& headers,
                         const GetArguments& getArguments,
-                        const std::string& body);
+                        const char* bodyData,
+                        size_t bodySize);
 
     void Register(IHttpHandler& handler,
                   bool isOrthancRestApi);

@@ -231,7 +231,8 @@ namespace Orthanc
                               const UriComponents& uri,
                               const Arguments& headers,
                               const GetArguments& getArguments,
-                              const std::string& postData)
+                              const char* bodyData,
+                              size_t bodySize)
   {
     std::string flatUri = Toolbox::FlattenUri(uri);
     OrthancPluginRestCallback callback = NULL;
@@ -308,8 +309,8 @@ namespace Orthanc
     request.groups = (cgroups.size() ? &cgroups[0] : NULL);
     request.groupsCount = cgroups.size();
     request.getCount = getArguments.size();
-    request.body = (postData.size() ? &postData[0] : NULL);
-    request.bodySize = postData.size();
+    request.body = bodyData;
+    request.bodySize = bodySize;
     request.headersCount = headers.size();
     
     if (getArguments.size() > 0)
@@ -649,9 +650,6 @@ namespace Orthanc
     UriComponents uri;
     Toolbox::SplitUriComponents(uri, p.uri);
 
-    // TODO Avoid unecessary memcpy
-    std::string body(p.body, p.bodySize);
-
     StringHttpOutput stream;
     HttpOutput http(stream, false /* no keep alive */);
 
@@ -664,13 +662,13 @@ namespace Orthanc
 
     if (afterPlugins)
     {
-      ok = Handle(http, method, uri, headers, getArguments, body);
+      ok = Handle(http, method, uri, headers, getArguments, p.body, p.bodySize);
     }
     
     if (!ok)
     {
       ok = (pimpl_->restApi_ != NULL &&
-            pimpl_->restApi_->Handle(http, method, uri, headers, getArguments, body));
+            pimpl_->restApi_->Handle(http, method, uri, headers, getArguments, p.body, p.bodySize));
     }
 
     if (ok)
@@ -696,7 +694,6 @@ namespace Orthanc
 
     IHttpHandler::Arguments headers;  // No HTTP header
     IHttpHandler::GetArguments getArguments;  // No GET argument for POST/PUT
-    std::string body;  // No body for DELETE
 
     StringHttpOutput stream;
     HttpOutput http(stream, false /* no keep alive */);
@@ -709,13 +706,15 @@ namespace Orthanc
 
     if (afterPlugins)
     {
-      ok = Handle(http, HttpMethod_Delete, uri, headers, getArguments, body);
+      ok = Handle(http, HttpMethod_Delete, uri, headers, getArguments, 
+                  NULL /* no body for DELETE */, 0);
     }
 
     if (!ok)
     {
       ok = (pimpl_->restApi_ != NULL &&
-            pimpl_->restApi_->Handle(http, HttpMethod_Delete, uri, headers, getArguments, body));
+            pimpl_->restApi_->Handle(http, HttpMethod_Delete, uri, headers, getArguments, 
+                                     NULL /* no body for DELETE */, 0));
     }
 
     if (!ok)

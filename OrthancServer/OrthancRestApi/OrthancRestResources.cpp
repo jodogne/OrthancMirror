@@ -121,14 +121,17 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string publicId = call.GetUriComponent("id", "");
-    std::string s = Toolbox::StripSpaces(call.GetPutBody());
 
-    if (s == "0")
+    std::string body;
+    call.BodyToString(body);
+    body = Toolbox::StripSpaces(body);
+
+    if (body == "0")
     {
       context.GetIndex().SetProtectedPatient(publicId, false);
       call.GetOutput().AnswerBuffer("", "text/plain");
     }
-    else if (s == "1")
+    else if (body == "1")
     {
       context.GetIndex().SetProtectedPatient(publicId, true);
       call.GetOutput().AnswerBuffer("", "text/plain");
@@ -160,7 +163,9 @@ namespace Orthanc
     std::string dicom;
     context.ReadFile(dicom, publicId, FileContentType_Dicom);
 
-    Toolbox::WriteFile(dicom, call.GetPostBody());
+    std::string target;
+    call.BodyToString(target);
+    Toolbox::WriteFile(dicom, target);
 
     call.GetOutput().AnswerBuffer("{}", "application/json");
   }
@@ -394,7 +399,9 @@ namespace Orthanc
     std::string publicId = call.GetUriComponent("id", "");
     std::string name = call.GetUriComponent("name", "");
     MetadataType metadata = StringToMetadata(name);
-    std::string value = call.GetPutBody();
+
+    std::string value;
+    call.BodyToString(value);
 
     if (metadata >= MetadataType_StartUser &&
         metadata <= MetadataType_EndUser)
@@ -604,12 +611,10 @@ namespace Orthanc
     std::string publicId = call.GetUriComponent("id", "");
     std::string name = call.GetUriComponent("name", "");
 
-    const void* data = call.GetPutBody().size() ? &call.GetPutBody()[0] : NULL;
-
     FileContentType contentType = StringToContentType(name);
     if (contentType >= FileContentType_StartUser &&  // It is forbidden to modify internal attachments
         contentType <= FileContentType_EndUser &&
-        context.AddAttachment(publicId, StringToContentType(name), data, call.GetPutBody().size()))
+        context.AddAttachment(publicId, StringToContentType(name), call.GetBodyData(), call.GetBodySize()))
     {
       call.GetOutput().AnswerBuffer("{}", "application/json");
     }
@@ -825,7 +830,8 @@ namespace Orthanc
   {
     typedef std::list< std::pair<ResourceType, std::string> >  Resources;
 
-    std::string tag = call.GetPostBody();
+    std::string tag;
+    call.BodyToString(tag);
     Resources resources;
 
     OrthancRestApi::GetIndex(call).LookupIdentifier(resources, tag);

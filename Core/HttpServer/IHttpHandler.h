@@ -56,6 +56,7 @@ namespace Orthanc
                         const UriComponents& uri,
                         const Arguments& headers,
                         const GetArguments& getArguments,
-                        const std::string& body) = 0;
+                        const char* bodyData,
+                        size_t bodySize) = 0;
   };
 }
