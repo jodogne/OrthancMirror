@@ -696,21 +696,29 @@ namespace Orthanc
         // Using this candidate handler results in an exception
         LOG(ERROR) << "Exception in the HTTP handler: " << e.What();
 
-        switch (e.GetErrorCode())
+        try
         {
-          case ErrorCode_InexistentFile:
-          case ErrorCode_InexistentItem:
-          case ErrorCode_UnknownResource:
-            output.SendStatus(HttpStatus_404_NotFound);
-            break;
+          switch (e.GetErrorCode())
+          {
+            case ErrorCode_InexistentFile:
+            case ErrorCode_InexistentItem:
+            case ErrorCode_UnknownResource:
+              output.SendStatus(HttpStatus_404_NotFound);
+              break;
 
-          case ErrorCode_BadRequest:
-          case ErrorCode_UriSyntax:
-            output.SendStatus(HttpStatus_400_BadRequest);
-            break;
+            case ErrorCode_BadRequest:
+            case ErrorCode_UriSyntax:
+              output.SendStatus(HttpStatus_400_BadRequest);
+              break;
 
-          default:
-            output.SendStatus(HttpStatus_500_InternalServerError);
+            default:
+              output.SendStatus(HttpStatus_500_InternalServerError);
+          }
+        }
+        catch (OrthancException&)
+        {
+          // An exception here reflects the fact that an exception was
+          // triggered after the status code was sent by the HTTP handler.
         }
 
         return;
