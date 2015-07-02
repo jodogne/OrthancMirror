@@ -126,97 +126,25 @@ namespace Orthanc
   }
 
 
-  static void PopJson(Json::Value& result,
-                      lua_State* lua,
-                      int top)
-  {
-    if (lua_istable(lua, top))
-    {
-      Json::Value tmp = Json::objectValue;
-      bool isArray = true;
-      size_t size = 0;
-
-      // http://stackoverflow.com/a/6142700/881731
-      
-      // Push another reference to the table on top of the stack (so we know
-      // where it is, and this function can work for negative, positive and
-      // pseudo indices
-      lua_pushvalue(lua, top);
-      // stack now contains: -1 => table
-      lua_pushnil(lua);
-      // stack now contains: -1 => nil; -2 => table
-      while (lua_next(lua, -2))
-      {
-        // stack now contains: -1 => value; -2 => key; -3 => table
-        // copy the key so that lua_tostring does not modify the original
-        lua_pushvalue(lua, -2);
-        // stack now contains: -1 => key; -2 => value; -3 => key; -4 => table
-        std::string key(lua_tostring(lua, -1));
-        Json::Value v;
-        PopJson(v, lua, -2);
-
-        tmp[key] = v;
-
-        size += 1;
-        try
-        {
-          if (boost::lexical_cast<size_t>(key) != size)
-          {
-            isArray = false;
-          }
-        }
-        catch (boost::bad_lexical_cast&)
-        {
-          isArray = false;
-        }
-        
-        // pop value + copy of key, leaving original key
-        lua_pop(lua, 2);
-        // stack now contains: -1 => key; -2 => table
-      }
-      // stack now contains: -1 => table (when lua_next returns 0 it pops the key
-      // but does not push anything.)
-      // Pop table
-      lua_pop(lua, 1);
-
-      // Stack is now the same as it was on entry to this function
-
-      if (isArray)
-      {
-        result = Json::arrayValue;
-        for (size_t i = 0; i < size; i++)
-        {
-          result.append(tmp[boost::lexical_cast<std::string>(i + 1)]);
-        }
-      }
-      else
-      {
-        result = tmp;
-      }
-    }
-    else if (lua_isnumber(lua, top))
-    {
-      result = static_cast<float>(lua_tonumber(lua, top));
-    }
-    else if (lua_isstring(lua, top))
-    {
-      result = std::string(lua_tostring(lua, top));
-    }
-    else if (lua_isboolean(lua, top))
-    {
-      result = static_cast<bool>(lua_toboolean(lua, top));
-    }
-    else
-    {
-      LOG(WARNING) << "Unsupported Lua type when returning Json";
-      result = Json::nullValue;
-    }
-  }
-
-
   void LuaFunctionCall::ExecuteToJson(Json::Value& result)
   {
     ExecuteInternal(1);
-    PopJson(result, context_.lua_, lua_gettop(context_.lua_));
+    context_.GetJson(result, lua_gettop(context_.lua_));
+  }
+
+
+  void LuaFunctionCall::ExecuteToString(std::string& result)
+  {
+    ExecuteInternal(1);
+    
+    int top = lua_gettop(context_.lua_);
+    if (lua_isstring(context_.lua_, top))
+    {
+      result = lua_tostring(context_.lua_, top);
+    }
+    else
+    {
+      throw LuaException("The function does not return a string");
+    }
   }
 }

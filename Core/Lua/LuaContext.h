@@ -76,9 +76,8 @@ namespace Orthanc
 
     void PushJson(const Json::Value& value);
 
-    static bool GetJson(Json::Value& result,
-                        lua_State *state,
-                        int index);
+    void GetJson(Json::Value& result,
+                 int top);
     
   public:
     LuaContext();

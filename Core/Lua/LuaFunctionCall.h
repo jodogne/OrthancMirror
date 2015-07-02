@@ -70,5 +70,7 @@ namespace Orthanc
     bool ExecutePredicate();
 
     void ExecuteToJson(Json::Value& result);                    
+
+    void ExecuteToString(std::string& result);
   };
 }
