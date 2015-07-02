@@ -38,7 +38,7 @@ function OnStableStudy(studyId, tags, metadata)
       command['Remove'] = remove
       command['Replace'] = replace
 
-      -- Modify the instance, send it, then delete the modified instance
+      -- Modify the entire study in one single call
       local m = RestApiPost('/studies/' .. studyId .. '/modify',
                             DumpJson(command))
       print('Modified study: ' .. m)
