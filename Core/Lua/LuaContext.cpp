@@ -123,6 +123,8 @@ namespace Orthanc
 
   int LuaContext::DumpJson(lua_State *state)
   {
+    LuaContext& that = GetLuaContext(state);
+
     int nArgs = lua_gettop(state);
     if (nArgs != 1)
     {
@@ -131,17 +133,11 @@ namespace Orthanc
     }
 
     Json::Value json;
-    if (GetJson(json, state, 1))
-    {
-      Json::FastWriter writer;
-      std::string s = writer.write(json);
-      lua_pushstring(state, s.c_str());
-    }
-    else
-    {
-      LOG(ERROR) << "Lua: Unable to convert a JSON variable to a string";
-      lua_pushnil(state);
-    }
+    that.GetJson(json, 1);
+
+    Json::FastWriter writer;
+    std::string s = writer.write(json);
+    lua_pushstring(state, s.c_str());
 
     return 1;
   }
@@ -376,132 +372,108 @@ namespace Orthanc
   }
 
 
-  static bool CompactObjectToArray(Json::Value& result,
-                                   const Json::Value& source)
+  void LuaContext::GetJson(Json::Value& result,
+                           int top)
   {
-    Json::Value::Members members = source.getMemberNames();
-
-    std::set<size_t> keys;
-    for (Json::Value::ArrayIndex i = 0; i < members.size(); i++)
+    if (lua_istable(lua_, top))
     {
-      try
-      {
-        size_t key = boost::lexical_cast<size_t>(members[i]);
-        keys.insert(key);
-      }
-      catch (boost::bad_lexical_cast&)
-      {
-        return false;
-      }
-    }
+      Json::Value tmp = Json::objectValue;
+      bool isArray = true;
+      size_t size = 0;
 
-    if (keys.size() != members.size())
-    {
-      return false;
-    }
-
-    for (size_t i = 1; i <= members.size(); i++)
-    {
-      if (keys.find(i) == keys.end())
-      {
-        return false;
-      }
-    }
-
-    result = Json::arrayValue;
-    result.resize(members.size());
-    for (size_t i = 0; i < members.size(); i++)
-    {
-      Json::Value::ArrayIndex key = boost::lexical_cast<Json::Value::ArrayIndex>(members[i]);
-      assert(key > 0);
-      result[key - 1] = source[members[i]];
-    }
-
-    return true;
-  }
-
-
-  bool LuaContext::GetJson(Json::Value& result,
-                           lua_State *state,
-                           int i)
-  {
-    // Caution: The order of the calls below is important, otherwise
-    // Lua considers everything as a string.
-
-    if (lua_isnil(state, i))
-    {
-      result = Json::nullValue;
-      return true;
-    }
-
-    if (lua_isboolean(state, i))
-    {
-      result = lua_toboolean(state, i) ? true : false;
-      return true;
-    }
-
-    if (lua_isnumber(state, i))
-    {
-      result = lua_tonumber(state, i);
-      return true;
-    }
-
-    if (lua_isstring(state, i))
-    {
-      result = lua_tostring(state, i);
-      return true;
-    }
-
-    if (lua_istable(state, i))
-    {
-      result = Json::objectValue;
-
-      // http://stackoverflow.com/a/6142700/881731
+      // Code adapted from: http://stackoverflow.com/a/6142700/881731
+      
       // Push another reference to the table on top of the stack (so we know
       // where it is, and this function can work for negative, positive and
       // pseudo indices
-      lua_pushvalue(state, i);
+      lua_pushvalue(lua_, top);
       // stack now contains: -1 => table
-      lua_pushnil(state);
+      lua_pushnil(lua_);
       // stack now contains: -1 => nil; -2 => table
-      while (lua_next(state, -2))
+      while (lua_next(lua_, -2))
       {
         // stack now contains: -1 => value; -2 => key; -3 => table
         // copy the key so that lua_tostring does not modify the original
-        lua_pushvalue(state, -2);
+        lua_pushvalue(lua_, -2);
         // stack now contains: -1 => key; -2 => value; -3 => key; -4 => table
-        const char *key = lua_tostring(state, -1);
+        std::string key(lua_tostring(lua_, -1));
+        Json::Value v;
+        GetJson(v, -2);
 
-        Json::Value item;
-        if (!GetJson(item, state, -2))
+        tmp[key] = v;
+
+        size += 1;
+        try
         {
-          lua_pop(state, 3);  // TODO IS THIS CORRECT?
-          return false;
+          if (boost::lexical_cast<size_t>(key) != size)
+          {
+            isArray = false;
+          }
         }
-
-        result[key] = item;
-
+        catch (boost::bad_lexical_cast&)
+        {
+          isArray = false;
+        }
+        
         // pop value + copy of key, leaving original key
-        lua_pop(state, 2);
+        lua_pop(lua_, 2);
         // stack now contains: -1 => key; -2 => table
       }
       // stack now contains: -1 => table (when lua_next returns 0 it pops the key
       // but does not push anything.)
       // Pop table
-      lua_pop(state, 1);
+      lua_pop(lua_, 1);
 
       // Stack is now the same as it was on entry to this function
 
-      Json::Value array;
-      if (CompactObjectToArray(array, result))
+      if (isArray)
       {
-        result = array;
+        result = Json::arrayValue;
+        for (size_t i = 0; i < size; i++)
+        {
+          result.append(tmp[boost::lexical_cast<std::string>(i + 1)]);
+        }
       }
-
-      return true;
+      else
+      {
+        result = tmp;
+      }
     }
+    else if (lua_isnil(lua_, top))
+    {
+      result = Json::nullValue;
+    }
+    else if (lua_isboolean(lua_, top))
+    {
+      result = lua_toboolean(lua_, top) ? true : false;
+    }
+    else if (lua_isnumber(lua_, top))
+    {
+      // Convert to "int" if truncation does not loose precision
+      double value = static_cast<double>(lua_tonumber(lua_, top));
+      int truncated = static_cast<int>(value);
 
-    return false;
+      if (std::abs(value - static_cast<double>(truncated)) <= 
+          std::numeric_limits<double>::epsilon())
+      {
+        result = truncated;
+      }
+      else
+      {
+        result = value;
+      }
+    }
+    else if (lua_isstring(lua_, top))
+    {
+      // Caution: The "lua_isstring()" case must be the last, since
+      // Lua can convert most types to strings by default.
+      result = std::string(lua_tostring(lua_, top));
+    }
+    else
+    {
+      LOG(WARNING) << "Unsupported Lua type when returning Json";
+      result = Json::nullValue;
+    }
   }
 
 

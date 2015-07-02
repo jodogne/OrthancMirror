@@ -147,8 +147,8 @@ TEST(Lua, ReturnJson)
 {
   Json::Value b = Json::objectValue;
   b["a"] = 42;
-  b["b"] = 44;
-  b["c"] = 43;
+  b["b"] = 44.37;
+  b["c"] = -43;
 
   Json::Value c = Json::arrayValue;
   c.append("test3");
@@ -184,6 +184,14 @@ TEST(Lua, ReturnJson)
 
   {
     Orthanc::LuaFunctionCall f(lua, "identity");
+    f.PushJson(-42);
+    Json::Value v;
+    f.ExecuteToJson(v);
+    ASSERT_EQ(-42, v.asInt());
+  }
+
+  {
+    Orthanc::LuaFunctionCall f(lua, "identity");
     Json::Value vv = Json::arrayValue;
     f.PushJson(vv);
     Json::Value v;
@@ -208,8 +216,8 @@ TEST(Lua, ReturnJson)
     f.ExecuteToJson(v);
     ASSERT_EQ(Json::objectValue, v.type());
     ASSERT_FLOAT_EQ(42.0f, v["a"].asFloat());
-    ASSERT_FLOAT_EQ(44.0f, v["b"].asFloat());
-    ASSERT_FLOAT_EQ(43.0f, v["c"].asFloat());
+    ASSERT_FLOAT_EQ(44.37f, v["b"].asFloat());
+    ASSERT_FLOAT_EQ(-43.0f, v["c"].asFloat());
   }
 
   {
@@ -231,12 +239,26 @@ TEST(Lua, ReturnJson)
     ASSERT_EQ("World", v["Hello"].asString());
     ASSERT_EQ(42, v["List"][0]["a"].asInt());
     ASSERT_EQ(44, v["List"][0]["b"].asInt());
-    ASSERT_EQ(43, v["List"][0]["c"].asInt());
+    ASSERT_EQ(-43, v["List"][0]["c"].asInt());
     ASSERT_EQ("test3", v["List"][1][0].asString());
     ASSERT_EQ("test1", v["List"][1][1].asString());
     ASSERT_EQ("test2", v["List"][1][2].asString());
   }
+
+  {
+    Orthanc::LuaFunctionCall f(lua, "DumpJson");
+    f.PushJson(a);
+    std::string s;
+    f.ExecuteToString(s);
+
+    Json::FastWriter writer;
+    std::string t = writer.write(a);
+
+    ASSERT_EQ(s, t);
+  }
 }
+
+
 
 TEST(Lua, Http)
 {
