@@ -43,7 +43,6 @@
 
 namespace Orthanc
 {
-  class OrthancRestApi;
   class ServerContext;
 
   class OrthancPlugins : 
@@ -124,13 +123,9 @@ namespace Orthanc
       return true; // TODO Enable filtering of instances from plugins
     }
 
-    void SetOrthancRestApi(OrthancRestApi& restApi);
-
-    void ResetOrthancRestApi();
-
     bool HasStorageArea() const;
 
-    IStorageArea* GetStorageArea();  // To be freed after use
+    IStorageArea* CreateStorageArea();  // To be freed after use
 
     bool HasDatabase() const;
 

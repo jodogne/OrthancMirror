@@ -33,12 +33,11 @@
 #include "OrthancPlugins.h"
 
 #include "../../Core/ChunkedBuffer.h"
-#include "../../Core/HttpServer/StringHttpOutput.h"
+#include "../../Core/HttpServer/HttpToolbox.h"
 #include "../../Core/ImageFormats/PngWriter.h"
 #include "../../Core/OrthancException.h"
 #include "../../Core/Toolbox.h"
 #include "../../OrthancServer/OrthancInitialization.h"
-#include "../../OrthancServer/OrthancRestApi/OrthancRestApi.h"
 #include "../../OrthancServer/ServerContext.h"
 #include "../../OrthancServer/ServerToolbox.h"
 
@@ -123,7 +122,6 @@ namespace Orthanc
     PluginsManager manager_;
     ServerContext* context_;
     RestCallbacks restCallbacks_;
-    OrthancRestApi* restApi_;
     OnStoredCallbacks  onStoredCallbacks_;
     OnChangeCallbacks  onChangeCallbacks_;
     bool hasStorageArea_;
@@ -136,7 +134,6 @@ namespace Orthanc
 
     PImpl() : 
       context_(NULL), 
-      restApi_(NULL),
       hasStorageArea_(false),
       argc_(1),
       argv_(NULL)
@@ -600,13 +597,14 @@ namespace Orthanc
 
   void OrthancPlugins::GetDicomForInstance(const void* parameters)
   {
-    CheckContextAvailable();
-
     const _OrthancPluginGetDicomForInstance& p = 
       *reinterpret_cast<const _OrthancPluginGetDicomForInstance*>(parameters);
 
     std::string dicom;
+
+    CheckContextAvailable();
     pimpl_->context_->ReadFile(dicom, p.instanceId, FileContentType_Dicom);
+
     CopyToMemoryBuffer(*p.target, dicom);
   }
 
@@ -1119,18 +1117,6 @@ namespace Orthanc
   }
 
 
-  void OrthancPlugins::SetOrthancRestApi(OrthancRestApi& restApi)
-  {
-    pimpl_->restApi_ = &restApi;
-  }
-
-
-  void  OrthancPlugins::ResetOrthancRestApi()
-  {
-    pimpl_->restApi_ = NULL;
-  }
-
-  
   bool OrthancPlugins::HasStorageArea() const
   {
     return pimpl_->hasStorageArea_;
@@ -1231,7 +1217,7 @@ namespace Orthanc
   }
 
 
-  IStorageArea* OrthancPlugins::GetStorageArea()
+  IStorageArea* OrthancPlugins::CreateStorageArea()
   {
     if (!HasStorageArea())
     {
