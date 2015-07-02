@@ -424,6 +424,8 @@ namespace Orthanc
       {
         pimpl_->thread_.join();
       }
+
+      bagOfDispatchers_.Finalize();
     }
   }
 
