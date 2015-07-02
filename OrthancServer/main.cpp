@@ -55,9 +55,6 @@
 using namespace Orthanc;
 
 
-#define ENABLE_PLUGINS  1
-
-
 class OrthancStoreRequestHandler : public IStoreRequestHandler
 {
 private:
@@ -389,8 +386,12 @@ static bool WaitForExit(ServerContext& context,
 {
   LOG(WARNING) << "Orthanc has started";
 
+  context.GetLua().Execute("Initialize");
+
   Toolbox::ServerBarrier(restApi.ResetRequestReceivedFlag());
   bool restart = restApi.ResetRequestReceivedFlag();
+
+  context.GetLua().Execute("Finalize");
 
   if (restart)
   {
@@ -570,7 +571,7 @@ static bool ConfigurePlugins(int argc,
   std::auto_ptr<IDatabaseWrapper>  databasePtr;
   std::auto_ptr<IStorageArea>  storage;
 
-#if ENABLE_PLUGINS == 1
+#if ORTHANC_PLUGINS_ENABLED == 1
   OrthancPlugins plugins;
   plugins.SetCommandLineArguments(argc, argv);
   LoadPlugins(plugins);
@@ -602,12 +603,15 @@ static bool ConfigurePlugins(int argc,
 
   return ConfigureServerContext(*database, *storage, &plugins);
 
-#else
+#elif ORTHANC_PLUGINS_ENABLED == 0
   // The plugins are disabled
   databasePtr.reset(Configuration::CreateDatabaseWrapper());
   storage.reset(Configuration::CreateStorageArea());
 
   return ConfigureServerContext(*databasePtr, *storage, NULL);
+
+#else
+#  error The macro ORTHANC_PLUGINS_ENABLED must be set to 0 or 1
 #endif
 }
 

@@ -488,4 +488,16 @@ namespace Orthanc
 
     return true;
   }
+
+
+  void LuaScripting::Execute(const std::string& command)
+  {
+    LuaScripting::Locker locker(*this);
+      
+    if (locker.GetLua().IsExistingFunction(command.c_str()))
+    {
+      LuaFunctionCall call(locker.GetLua(), command.c_str());
+      call.Execute();
+    }
+  }
 }

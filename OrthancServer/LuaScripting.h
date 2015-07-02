@@ -104,5 +104,7 @@ namespace Orthanc
 
     virtual bool FilterIncomingInstance(const Json::Value& simplified,
                                         const std::string& remoteAet);
+
+    void Execute(const std::string& command);
   };
 }
