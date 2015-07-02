@@ -251,6 +251,5 @@ namespace Orthanc
     bool HasPlugins() const;
 
     const OrthancPlugins& GetPlugins() const;
-
   };
 }
