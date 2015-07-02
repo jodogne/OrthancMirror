@@ -132,6 +132,11 @@ namespace Orthanc
   {
     if (!done_)
     {
+      {
+        boost::recursive_mutex::scoped_lock lock(listenersMutex_);
+        listeners_.clear();
+      }
+
       done_ = true;
 
       if (changeThread_.joinable())
@@ -436,10 +441,11 @@ namespace Orthanc
 
   void ServerContext::SetPlugins(OrthancPlugins& plugins)
   {
+    boost::recursive_mutex::scoped_lock lock(listenersMutex_);
+
     plugins_ = &plugins;
 
     // TODO REFACTOR THIS
-    boost::recursive_mutex::scoped_lock lock(listenersMutex_);
     listeners_.clear();
     listeners_.push_back(ServerListener(lua_, "Lua"));
     listeners_.push_back(ServerListener(plugins, "plugin"));
@@ -448,10 +454,11 @@ namespace Orthanc
 
   void ServerContext::ResetPlugins()
   {
+    boost::recursive_mutex::scoped_lock lock(listenersMutex_);
+
     plugins_ = NULL;
 
     // TODO REFACTOR THIS
-    boost::recursive_mutex::scoped_lock lock(listenersMutex_);
     listeners_.clear();
     listeners_.push_back(ServerListener(lua_, "Lua"));
   }
