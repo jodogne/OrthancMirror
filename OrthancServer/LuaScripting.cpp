@@ -176,7 +176,7 @@ namespace Orthanc
         !lua_isstring(state, 1) ||                 // URI
         (nArgs == 2 && !lua_isboolean(state, 2)))  // Restrict to built-in API?
     {
-      LOG(ERROR) << "Lua: Bad parameters to RestApiGet()";
+      LOG(ERROR) << "Lua: Bad parameters to RestApiDelete()";
       lua_pushnil(state);
       return 1;
     }
@@ -190,7 +190,7 @@ namespace Orthanc
     }
     else
     {
-      LOG(ERROR) << "Lua: Error in RestApiGet() for URI: " << uri;
+      LOG(ERROR) << "Lua: Error in RestApiDelete() for URI: " << uri;
       lua_pushnil(state);
     }
 
