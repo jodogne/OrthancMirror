@@ -81,6 +81,8 @@ namespace Orthanc
     virtual ~ReusableDicomUserConnection();
 
     void SetMillisecondsBeforeClose(uint64_t ms);
+
+    void Finalize();
   };
 }
 
