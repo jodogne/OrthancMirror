@@ -131,9 +131,11 @@ namespace Orthanc
 
   ReusableDicomUserConnection::~ReusableDicomUserConnection()
   {
-    continue_ = false;
-    closeThread_.join();
-    Close();
+    if (continue_)
+    {
+      LOG(ERROR) << "INTERNAL ERROR: ReusableDicomUserConnection::Finalize() should be invoked manually to avoid mess in the destruction order!";
+      Finalize();
+    }
   }
 
   void ReusableDicomUserConnection::SetMillisecondsBeforeClose(uint64_t ms)
@@ -165,6 +167,22 @@ namespace Orthanc
 
     lastUse_ = Now();
     mutex_.unlock();
+  }
+
+  
+  void ReusableDicomUserConnection::Finalize()
+  {
+    if (continue_)
+    {
+      continue_ = false;
+
+      if (closeThread_.joinable())
+      {
+        closeThread_.join();
+      }
+
+      Close();
+    }
   }
 }
 

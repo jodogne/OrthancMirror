@@ -251,6 +251,11 @@ TEST(MultiThreading, ServerScheduler)
   //Toolbox::ServerBarrier();
   //Toolbox::USleep(3000000);
 
+  scheduler.Stop();
+
   done = true;
-  t.join();
+  if (t.joinable())
+  {
+    t.join();
+  }
 }

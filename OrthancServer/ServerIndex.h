@@ -122,6 +122,8 @@ namespace Orthanc
 
     ~ServerIndex();
 
+    void Stop();
+
     uint64_t GetMaximumStorageSize() const
     {
       return maximumStorageSize_;

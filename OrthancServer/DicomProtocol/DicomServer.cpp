@@ -223,7 +223,11 @@ namespace Orthanc
 
   DicomServer::~DicomServer()
   {
-    Stop();
+    if (continue_)
+    {
+      LOG(ERROR) << "INTERNAL ERROR: DicomServer::Stop() should be invoked manually to avoid mess in the destruction order!";
+      Stop();
+    }
   }
 
   void DicomServer::SetPortNumber(uint16_t port)
@@ -409,15 +413,20 @@ namespace Orthanc
     }
   }
 
+
   void DicomServer::Stop()
   {
-    continue_ = false;
-
-    if (pimpl_->thread_.joinable())
+    if (continue_)
     {
-      pimpl_->thread_.join();
+      continue_ = false;
+
+      if (pimpl_->thread_.joinable())
+      {
+        pimpl_->thread_.join();
+      }
     }
   }
+
 
   bool DicomServer::IsMyAETitle(const std::string& aet) const
   {

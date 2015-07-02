@@ -199,8 +199,25 @@ namespace Orthanc
 
   ServerScheduler::~ServerScheduler()
   {
-    finish_ = true;
-    worker_.join();
+    if (!finish_)
+    {
+      LOG(ERROR) << "INTERNAL ERROR: ServerScheduler::Finalize() should be invoked manually to avoid mess in the destruction order!";
+      Stop();
+    }
+  }
+
+
+  void ServerScheduler::Stop()
+  {
+    if (!finish_)
+    {
+      finish_ = true;
+
+      if (worker_.joinable())
+      {
+        worker_.join();
+      }
+    }
   }
 
 

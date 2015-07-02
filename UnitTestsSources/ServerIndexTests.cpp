@@ -668,6 +668,8 @@ TEST(ServerIndex, Sequence)
   ASSERT_EQ(2u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
   ASSERT_EQ(3u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
   ASSERT_EQ(4u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
+
+  context.Stop();
 }
 
 
@@ -779,4 +781,6 @@ TEST(ServerIndex, AttachmentRecycling)
 
   // Because the DB is in memory, the SQLite index must not have been created
   ASSERT_THROW(Toolbox::GetFileSize(path + "/index"), OrthancException);  
+
+  context.Stop();
 }

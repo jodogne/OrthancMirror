@@ -77,6 +77,7 @@ namespace Orthanc
       {
         const ServerIndexChange& change = dynamic_cast<const ServerIndexChange&>(*obj.get());
 
+        boost::mutex::scoped_lock lock(that->listenersMutex_);
         for (ServerListeners::iterator it = that->listeners_.begin(); 
              it != that->listeners_.end(); ++it)
         {
@@ -119,7 +120,11 @@ namespace Orthanc
   
   ServerContext::~ServerContext()
   {
-    Stop();
+    if (!done_)
+    {
+      LOG(ERROR) << "INTERNAL ERROR: ServerContext::Stop() should be invoked manually to avoid mess in the destruction order!";
+      Stop();
+    }
   }
 
 
@@ -133,6 +138,12 @@ namespace Orthanc
       {
         changeThread_.join();
       }
+
+      scu_.Finalize();
+
+      // Do not change the order below!
+      scheduler_.Stop();
+      index_.Stop();
     }
   }
 
@@ -168,21 +179,25 @@ namespace Orthanc
       // Test if the instance must be filtered out
       bool accepted = true;
 
-      for (ServerListeners::iterator it = listeners_.begin(); it != listeners_.end(); ++it)
       {
-        try
+        boost::mutex::scoped_lock lock(listenersMutex_);
+
+        for (ServerListeners::iterator it = listeners_.begin(); it != listeners_.end(); ++it)
         {
-          if (!it->GetListener().FilterIncomingInstance(simplified, dicom.GetRemoteAet()))
+          try
           {
-            accepted = false;
-            break;
+            if (!it->GetListener().FilterIncomingInstance(simplified, dicom.GetRemoteAet()))
+            {
+              accepted = false;
+              break;
+            }
           }
-        }
-        catch (OrthancException& e)
-        {
-          LOG(ERROR) << "Error in the " << it->GetDescription() 
-                     << " callback while receiving an instance: " << e.What();
-          throw;
+          catch (OrthancException& e)
+          {
+            LOG(ERROR) << "Error in the " << it->GetDescription() 
+                       << " callback while receiving an instance: " << e.What();
+            throw;
+          }
         }
       }
 
@@ -251,6 +266,8 @@ namespace Orthanc
       if (status == StoreStatus_Success ||
           status == StoreStatus_AlreadyStored)
       {
+        boost::mutex::scoped_lock lock(listenersMutex_);
+
         for (ServerListeners::iterator it = listeners_.begin(); it != listeners_.end(); ++it)
         {
           try
@@ -422,6 +439,7 @@ namespace Orthanc
     plugins_ = &plugins;
 
     // TODO REFACTOR THIS
+    boost::mutex::scoped_lock lock(listenersMutex_);
     listeners_.clear();
     listeners_.push_back(ServerListener(lua_, "Lua"));
     listeners_.push_back(ServerListener(plugins, "plugin"));
@@ -433,6 +451,7 @@ namespace Orthanc
     plugins_ = NULL;
 
     // TODO REFACTOR THIS
+    boost::mutex::scoped_lock lock(listenersMutex_);
     listeners_.clear();
     listeners_.push_back(ServerListener(lua_, "Lua"));
   }

@@ -564,21 +564,37 @@ namespace Orthanc
   }
 
 
+
   ServerIndex::~ServerIndex()
   {
-    done_ = true;
-
-    if (db_.HasFlushToDisk() &&
-        flushThread_.joinable())
+    if (!done_)
     {
-      flushThread_.join();
-    }
-
-    if (unstableResourcesMonitorThread_.joinable())
-    {
-      unstableResourcesMonitorThread_.join();
+      LOG(ERROR) << "INTERNAL ERROR: ServerIndex::Stop() should be invoked manually to avoid mess in the destruction order!";
+      Stop();
     }
   }
+
+
+
+  void ServerIndex::Stop()
+  {
+    if (!done_)
+    {
+      done_ = true;
+
+      if (db_.HasFlushToDisk() &&
+          flushThread_.joinable())
+      {
+        flushThread_.join();
+      }
+
+      if (unstableResourcesMonitorThread_.joinable())
+      {
+        unstableResourcesMonitorThread_.join();
+      }
+    }
+  }
+
 
 
   StoreStatus ServerIndex::Store(std::map<MetadataType, std::string>& instanceMetadata,
