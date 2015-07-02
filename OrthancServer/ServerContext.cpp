@@ -77,7 +77,7 @@ namespace Orthanc
       {
         const ServerIndexChange& change = dynamic_cast<const ServerIndexChange&>(*obj.get());
 
-        boost::mutex::scoped_lock lock(that->listenersMutex_);
+        boost::recursive_mutex::scoped_lock lock(that->listenersMutex_);
         for (ServerListeners::iterator it = that->listeners_.begin(); 
              it != that->listeners_.end(); ++it)
         {
@@ -180,7 +180,7 @@ namespace Orthanc
       bool accepted = true;
 
       {
-        boost::mutex::scoped_lock lock(listenersMutex_);
+        boost::recursive_mutex::scoped_lock lock(listenersMutex_);
 
         for (ServerListeners::iterator it = listeners_.begin(); it != listeners_.end(); ++it)
         {
@@ -266,7 +266,7 @@ namespace Orthanc
       if (status == StoreStatus_Success ||
           status == StoreStatus_AlreadyStored)
       {
-        boost::mutex::scoped_lock lock(listenersMutex_);
+        boost::recursive_mutex::scoped_lock lock(listenersMutex_);
 
         for (ServerListeners::iterator it = listeners_.begin(); it != listeners_.end(); ++it)
         {
@@ -439,7 +439,7 @@ namespace Orthanc
     plugins_ = &plugins;
 
     // TODO REFACTOR THIS
-    boost::mutex::scoped_lock lock(listenersMutex_);
+    boost::recursive_mutex::scoped_lock lock(listenersMutex_);
     listeners_.clear();
     listeners_.push_back(ServerListener(lua_, "Lua"));
     listeners_.push_back(ServerListener(plugins, "plugin"));
@@ -451,7 +451,7 @@ namespace Orthanc
     plugins_ = NULL;
 
     // TODO REFACTOR THIS
-    boost::mutex::scoped_lock lock(listenersMutex_);
+    boost::recursive_mutex::scoped_lock lock(listenersMutex_);
     listeners_.clear();
     listeners_.push_back(ServerListener(lua_, "Lua"));
   }

@@ -120,7 +120,7 @@ namespace Orthanc
     LuaScripting lua_;
     OrthancPlugins* plugins_;
     ServerListeners listeners_;
-    boost::mutex listenersMutex_;
+    boost::recursive_mutex listenersMutex_;
 
     bool done_;
     SharedMessageQueue  pendingChanges_;
