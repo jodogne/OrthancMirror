@@ -27,6 +27,7 @@ SET(ALLOW_DOWNLOADS OFF CACHE BOOL "Allow CMake to download packages")
 SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
 SET(ENABLE_JPEG ON CACHE BOOL "Enable JPEG decompression")
 SET(ENABLE_JPEG_LOSSLESS ON CACHE BOOL "Enable JPEG-LS (Lossless) decompression")
+SET(ENABLE_PLUGINS ON CACHE BOOL "Enable plugins")
 
 # Advanced parameters to fine-tune linking against system libraries
 SET(USE_SYSTEM_JSONCPP ON CACHE BOOL "Use the system version of JsonCpp")
@@ -54,6 +55,7 @@ SET(USE_BOOST_ICONV ON CACHE BOOL "Use iconv instead of wconv (Windows only)")
 mark_as_advanced(USE_GTEST_DEBIAN_SOURCE_PACKAGE)
 mark_as_advanced(SYSTEM_MONGOOSE_USE_CALLBACKS)
 mark_as_advanced(USE_BOOST_ICONV)
+mark_as_advanced(USE_PUGIXML)
 
 # Path to the root folder of the Orthanc distribution
 set(ORTHANC_ROOT ${CMAKE_SOURCE_DIR})
@@ -258,6 +260,13 @@ if (ENABLE_JPEG_LOSSLESS)
   add_definitions(-DORTHANC_JPEG_LOSSLESS_ENABLED=1)
 else()
   add_definitions(-DORTHANC_JPEG_LOSSLESS_ENABLED=0)
+endif()
+
+
+if (ENABLE_PLUGINS)
+  add_definitions(-DORTHANC_PLUGINS_ENABLED=1)
+else()
+  add_definitions(-DORTHANC_PLUGINS_ENABLED=0)
 endif()
 
 
