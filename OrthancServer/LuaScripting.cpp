@@ -390,7 +390,7 @@ namespace Orthanc
                                           DicomInstanceToStore& instance,
                                           const Json::Value& simplifiedTags)
   {
-    boost::mutex::scoped_lock lock(mutex_);
+    boost::recursive_mutex::scoped_lock lock(mutex_);
 
     Json::Value metadata = Json::objectValue;
 
@@ -437,7 +437,7 @@ namespace Orthanc
     if (context_.GetIndex().LookupResource(tags, change.GetPublicId(), change.GetResourceType()) &&
         context_.GetIndex().GetMetadata(metadata, change.GetPublicId()))
     {
-      boost::mutex::scoped_lock lock(mutex_);
+      boost::recursive_mutex::scoped_lock lock(mutex_);
 
       if (lua_.IsExistingFunction(name))
       {
@@ -472,7 +472,7 @@ namespace Orthanc
   {
     static const char* NAME = "ReceivedInstanceFilter";
 
-    boost::mutex::scoped_lock lock(mutex_);
+    boost::recursive_mutex::scoped_lock lock(mutex_);
 
     if (lua_.IsExistingFunction(NAME))
     {

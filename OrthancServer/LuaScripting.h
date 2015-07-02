@@ -67,7 +67,7 @@ namespace Orthanc
 
     void OnStableResource(const ServerIndexChange& change);
 
-    boost::mutex    mutex_;
+    boost::recursive_mutex    mutex_;
     LuaContext      lua_;
     ServerContext&  context_;
 
@@ -76,16 +76,13 @@ namespace Orthanc
     {
     private:
       LuaScripting& that_;
+      boost::recursive_mutex::scoped_lock lock_;
 
     public:
-      Locker(LuaScripting& that) : that_(that)
+      Locker(LuaScripting& that) : 
+        that_(that), 
+        lock_(that.mutex_)
       {
-        that.mutex_.lock();
-      }
-
-      ~Locker()
-      {
-        that_.mutex_.unlock();
       }
 
       LuaContext& GetLua()
