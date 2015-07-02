@@ -13,6 +13,7 @@ Lua
 ---
 
 * Access to the REST API of Orthanc (RestApiGet, RestApiPost, RestApiPut, RestApiDelete)
+* Functions to convert between Lua values and JSON strings: "ParseJson" and "DumpJson"
 * New events: "OnStablePatient", "OnStableStudy", "OnStableSeries"
 
 Plugins
