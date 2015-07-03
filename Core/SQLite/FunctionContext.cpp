@@ -40,6 +40,7 @@
 #include "OrthancSQLiteException.h"
 
 #include <sqlite3.h>
+#include <string>
 
 namespace Orthanc
 {
