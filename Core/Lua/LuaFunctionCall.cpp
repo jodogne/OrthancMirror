@@ -61,7 +61,7 @@ namespace Orthanc
   void LuaFunctionCall::PushString(const std::string& value)
   {
     CheckAlreadyExecuted();
-    lua_pushstring(context_.lua_, value.c_str());
+    lua_pushlstring(context_.lua_, value.c_str(), value.size());
   }
 
   void LuaFunctionCall::PushBoolean(bool value)

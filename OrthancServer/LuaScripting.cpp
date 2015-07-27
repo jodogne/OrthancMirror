@@ -86,7 +86,7 @@ namespace Orthanc
     std::string result;
     if (HttpToolbox::SimpleGet(result, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), uri))
     {
-      lua_pushstring(state, result.c_str());
+      lua_pushlstring(state, result.c_str(), result.size());
     }
     else
     {
@@ -133,7 +133,7 @@ namespace Orthanc
         HttpToolbox::SimplePut(result, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
                                uri, bodyData, bodySize))
     {
-      lua_pushstring(state, result.c_str());
+      lua_pushlstring(state, result.c_str(), result.size());
     }
     else
     {

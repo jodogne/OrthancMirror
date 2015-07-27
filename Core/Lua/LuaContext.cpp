@@ -137,7 +137,7 @@ namespace Orthanc
 
     Json::FastWriter writer;
     std::string s = writer.write(json);
-    lua_pushstring(state, s.c_str());
+    lua_pushlstring(state, s.c_str(), s.size());
 
     return 1;
   }
@@ -181,7 +181,7 @@ namespace Orthanc
     }
 
     // Return the result of the HTTP request
-    lua_pushstring(state, str.c_str());
+    lua_pushlstring(state, str.c_str(), str.size());
 
     return true;
   }
@@ -307,7 +307,8 @@ namespace Orthanc
   {
     if (value.isString())
     {
-      lua_pushstring(lua_, value.asCString());
+      const std::string s = value.asString();
+      lua_pushlstring(lua_, s.c_str(), s.size());
     }
     else if (value.isDouble())
     {
@@ -356,7 +357,7 @@ namespace Orthanc
              it = members.begin(); it != members.end(); ++it)
       {
         // Push the index of the cell
-        lua_pushstring(lua_, it->c_str());
+        lua_pushlstring(lua_, it->c_str(), it->size());
 
         // Push the value of the cell
         PushJson(value[*it]);
