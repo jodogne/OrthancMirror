@@ -14,7 +14,8 @@
  *    - Store the context pointer so that it can use the plugin 
  *      services of Orthanc.
  *    - Register all its REST callbacks using ::OrthancPluginRegisterRestCallback().
- *    - Register all its callbacks for received instances using ::OrthancPluginRegisterOnStoredInstanceCallback().
+ *    - Possibly register its callback for received DICOM instances using ::OrthancPluginRegisterOnStoredInstanceCallback().
+ *    - Possibly register its callback for changes to the DICOM store using ::OrthancPluginRegisterOnChangeCallback().
  *    - Possibly register a custom storage area using ::OrthancPluginRegisterStorageArea().
  *    - Possibly register a custom database back-end area using ::OrthancPluginRegisterDatabaseBackend().
  * -# <tt>void OrthancPluginFinalize()</tt>:
@@ -28,7 +29,7 @@
  * The name and the version of a plugin is only used to prevent it
  * from being loaded twice.
  * 
- * The various callbacks are guaranteed to be executed in mutual
+ * The various REST callbacks are guaranteed to be executed in mutual
  * exclusion since Orthanc 0.8.5.
  **/
 
