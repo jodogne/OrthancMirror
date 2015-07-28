@@ -126,7 +126,9 @@ namespace Orthanc
     OnChangeCallbacks  onChangeCallbacks_;
     bool hasStorageArea_;
     _OrthancPluginRegisterStorageArea storageArea_;
-    boost::recursive_mutex callbackMutex_;
+    boost::recursive_mutex restCallbackMutex_;
+    boost::recursive_mutex storedCallbackMutex_;
+    boost::recursive_mutex changeCallbackMutex_;
     Properties properties_;
     int argc_;
     char** argv_;
@@ -326,7 +328,7 @@ namespace Orthanc
     int32_t error;
 
     {
-      boost::recursive_mutex::scoped_lock lock(pimpl_->callbackMutex_);
+      boost::recursive_mutex::scoped_lock lock(pimpl_->restCallbackMutex_);
       error = callback(reinterpret_cast<OrthancPluginRestOutput*>(&output), 
                        flatUri.c_str(), 
                        &request);
@@ -359,7 +361,7 @@ namespace Orthanc
                                             DicomInstanceToStore& instance,
                                             const Json::Value& simplifiedTags)
   {
-    boost::recursive_mutex::scoped_lock lock(pimpl_->callbackMutex_);
+    boost::recursive_mutex::scoped_lock lock(pimpl_->storedCallbackMutex_);
 
     for (PImpl::OnStoredCallbacks::const_iterator
            callback = pimpl_->onStoredCallbacks_.begin(); 
@@ -376,7 +378,7 @@ namespace Orthanc
   {
     try
     {
-      boost::recursive_mutex::scoped_lock lock(pimpl_->callbackMutex_);
+      boost::recursive_mutex::scoped_lock lock(pimpl_->changeCallbackMutex_);
 
       for (std::list<OrthancPluginOnChangeCallback>::const_iterator 
              callback = pimpl_->onChangeCallbacks_.begin(); 

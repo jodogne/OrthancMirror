@@ -1,6 +1,8 @@
 Pending changes in the mainline
 ===============================
 
+* Fix access to binary data in HTTP/REST requests by Lua scripts
+* Fix potential deadlock in the callbacks of plugins
 
 
 Version 0.9.1 (2015/07/02)
