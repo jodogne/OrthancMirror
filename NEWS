@@ -1,6 +1,7 @@
 Pending changes in the mainline
 ===============================
 
+* Source code repository moved from Google Code to BitBucket
 * Inject version information into Windows binaries
 * Fix access to binary data in HTTP/REST requests by Lua scripts
 * Fix potential deadlock in the callbacks of plugins
