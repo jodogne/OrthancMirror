@@ -41,6 +41,9 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBPNG)
   add_definitions(
     -DPNG_NO_CONSOLE_IO=1
     -DPNG_NO_STDIO=1
+    # The following declaration avoids "__declspec(dllexport)" in
+    # libpng to prevent publicly exposing its symbols by the DLLs
+    -DPNG_IMPEXP=
     )
 
   source_group(ThirdParty\\Libpng REGULAR_EXPRESSION ${LIBPNG_SOURCES_DIR}/.*)
