@@ -58,7 +58,7 @@ if len(v) != 2 and len(v) != 3:
     sys.exit(-1)
 
 if len(v) == 2:
-    v.append(0)
+    v.append('0')
 
 extension = os.path.splitext(FILENAME)[1]
 if extension.lower() == '.dll':
