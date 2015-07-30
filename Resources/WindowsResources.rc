@@ -1,0 +1,30 @@
+#include <winver.h>
+
+VS_VERSION_INFO VERSIONINFO
+   FILEVERSION ${VERSION_MAJOR},${VERSION_MINOR},0,${VERSION_PATCH}
+   PRODUCTVERSION ${VERSION_MAJOR},${VERSION_MINOR},0,0
+   FILEOS VOS_NT_WINDOWS32
+   FILETYPE ${TYPE}
+   BEGIN
+      BLOCK "StringFileInfo"
+      BEGIN
+         BLOCK "${BLOCK}"
+         BEGIN
+            VALUE "Comments", "${RELEASE}"
+            VALUE "CompanyName", "University Hospital of Liege, Belgium"
+            VALUE "FileDescription", "${DESCRIPTION}"
+            VALUE "FileVersion", "${VERSION_MAJOR}.${VERSION_MINOR}.0.${VERSION_PATCH}"
+            VALUE "InternalName", "${PRODUCT}"
+            VALUE "LegalCopyright", "(c) 2012-${YEAR}, Sebastien Jodogne, University Hospital of Liege, Belgium"
+            VALUE "LegalTrademarks", "Licensing information is available at http://www.orthanc-server.com/"
+            VALUE "OriginalFilename", "${FILENAME}"
+            VALUE "ProductName", "${PRODUCT}"
+            VALUE "ProductVersion", "${VERSION_MAJOR}.${VERSION_MINOR}"
+         END
+      END
+
+      BLOCK "VarFileInfo"
+      BEGIN
+        VALUE "Translation", 0x409, 1252  // U.S. English
+      END
+   END
