@@ -53,9 +53,12 @@ else:
     RELEASE = 'Release %s' % VERSION
 
 v = VERSION.split('.')
-if len(v) != 3:
+if len(v) != 2 and len(v) != 3:
     sys.stderr.write('Bad version number: %s\n' % VERSION)
     sys.exit(-1)
+
+if len(v) == 2:
+    v.append(0)
 
 extension = os.path.splitext(FILENAME)[1]
 if extension.lower() == '.dll':
