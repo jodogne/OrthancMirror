@@ -1,6 +1,7 @@
 Pending changes in the mainline
 ===============================
 
+* Update to Boost 1.58.0 for static and Windows builds
 * Source code repository moved from Google Code to BitBucket
 * Inject version information into Windows binaries
 * Fix access to binary data in HTTP/REST requests by Lua scripts
