@@ -39,10 +39,10 @@ endif()
 
 
 if (BOOST_STATIC)
-  # Parameters for Boost 1.55.0
-  set(BOOST_NAME boost_1_55_0)
-  set(BOOST_BCP_SUFFIX bcpdigest-0.7.4)
-  set(BOOST_MD5 "409f7a0e4fb1f5659d07114f3133b67b")
+  # Parameters for Boost 1.58.0
+  set(BOOST_NAME boost_1_58_0)
+  set(BOOST_BCP_SUFFIX bcpdigest-0.9.2)
+  set(BOOST_MD5 "704b110917cbda903e07cb53934b47ac")
   set(BOOST_FILESYSTEM_SOURCES_DIR "${BOOST_NAME}/libs/filesystem/src")
   
   set(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
@@ -96,16 +96,6 @@ if (BOOST_STATIC)
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
     list(APPEND BOOST_SOURCES
       ${BOOST_SOURCES_DIR}/libs/filesystem/src/utf8_codecvt_facet.cpp
-      )
-  endif()
-
-  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    # This is a patch to compile Boost 1.55.0 with Clang 3.4 and later
-    # (including XCode 5.1). Fixes issue 14 of Orthanc.
-    # https://trac.macports.org/ticket/42282#comment:10
-    execute_process(
-      COMMAND patch -p0 -N -i ${ORTHANC_ROOT}/Resources/Patches/boost-1.55.0-clang-atomic.patch
-      WORKING_DIRECTORY ${BOOST_SOURCES_DIR}
       )
   endif()
 

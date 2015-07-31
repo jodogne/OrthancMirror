@@ -12,22 +12,23 @@ set -u
 ##
 ## History:
 ##   - Orthanc between 0.6.2 and 0.7.3: Boost 1.54.0
-##   - Orthanc above 0.7.4: Boost 1.55.0
+##   - Orthanc between 0.7.4 and 0.9.1: Boost 1.55.0
+##   - Orthanc >= 0.9.2: Boost 1.58.0
 
-rm -rf /tmp/boost_1_55_0
-rm -rf /tmp/bcp/boost_1_55_0
+rm -rf /tmp/boost_1_58_0
+rm -rf /tmp/bcp/boost_1_58_0
 
 cd /tmp
-echo "Uncompressing the source of Boost 1.55.0..."
-tar xfz boost_1_55_0.tar.gz 
+echo "Uncompressing the sources of Boost 1.58.0..."
+tar xfz ./boost_1_58_0.tar.gz 
 
 echo "Generating the subset..."
-mkdir -p /tmp/bcp/boost_1_55_0
-bcp --boost=/tmp/boost_1_55_0 thread system locale date_time filesystem math/special_functions algorithm uuid /tmp/bcp/boost_1_55_0
+mkdir -p /tmp/bcp/boost_1_58_0
+bcp --boost=/tmp/boost_1_58_0 thread system locale date_time filesystem math/special_functions algorithm uuid atomic /tmp/bcp/boost_1_58_0
 cd /tmp/bcp
 
 echo "Compressing the subset..."
-tar cfz boost_1_55_0_bcpdigest-0.7.4.tar.gz boost_1_55_0
-ls -l boost_1_55_0_bcpdigest-0.7.4.tar.gz
-md5sum boost_1_55_0_bcpdigest-0.7.4.tar.gz
-readlink -f boost_1_55_0_bcpdigest-0.7.4.tar.gz
+tar cfz boost_1_58_0_bcpdigest-0.9.2.tar.gz boost_1_58_0
+ls -l boost_1_58_0_bcpdigest-0.9.2.tar.gz
+md5sum boost_1_58_0_bcpdigest-0.9.2.tar.gz
+readlink -f boost_1_58_0_bcpdigest-0.9.2.tar.gz
