@@ -44,12 +44,13 @@
 
 #include <memory>
 #include <cassert>
-#include <sqlite3.h>
 #include <string.h>
 
 #if ORTHANC_SQLITE_STANDALONE != 1
 #include <glog/logging.h>
 #endif
+
+#include "sqlite3.h"
 
 
 namespace Orthanc
