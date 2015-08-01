@@ -1,4 +1,20 @@
-if (STATIC_BUILD OR NOT USE_SYSTEM_SQLITE)
+if (APPLE)
+  # Under OS X, the binaries must always be linked against the
+  # system-wide version of SQLite. Otherwise, if some Orthanc plugin
+  # also uses its own version of SQLite (such as orthanc-webviewer),
+  # this results in a crash in "sqlite3_mutex_enter(db->mutex);" (the
+  # mutex is not initialized), probably because the EXE and the DYNLIB
+  # share the same memory location for this mutex.
+  set(SQLITE_STATIC OFF)
+
+elseif (STATIC_BUILD OR NOT USE_SYSTEM_SQLITE)
+  set(SQLITE_STATIC ON)
+else()
+  set(SQLITE_STATIC OFF)
+endif()
+
+
+if (SQLITE_STATIC)
   SET(SQLITE_SOURCES_DIR ${CMAKE_BINARY_DIR}/sqlite-amalgamation-3071300)
   DownloadPackage(
     "5fbeff9645ab035a1f580e90b279a16d"
