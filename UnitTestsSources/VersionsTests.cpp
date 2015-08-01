@@ -64,10 +64,16 @@ TEST(Versions, Png)
 
 TEST(Versions, SQLite)
 {
+#if defined(__APPLE__)
+  // Under OS X, there might exist minor differences between the
+  // version of the headers and the version of the library, for the
+  // system-wide SQLite. Ignore these differences.
+#else
   // http://www.sqlite.org/capi3ref.html#sqlite3_libversion
-  ASSERT_EQ(sqlite3_libversion_number(), SQLITE_VERSION_NUMBER);
-  ASSERT_STREQ(sqlite3_sourceid(), SQLITE_SOURCE_ID);
-  ASSERT_STREQ(sqlite3_libversion(), SQLITE_VERSION);
+  EXPECT_EQ(sqlite3_libversion_number(), SQLITE_VERSION_NUMBER);
+  EXPECT_STREQ(sqlite3_sourceid(), SQLITE_SOURCE_ID);
+  EXPECT_STREQ(sqlite3_libversion(), SQLITE_VERSION);
+#endif
 
   // Ensure that the SQLite version is above 3.7.0.
   // "sqlite3_create_function_v2" is not defined in previous versions.
