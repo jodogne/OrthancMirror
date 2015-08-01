@@ -42,7 +42,6 @@
 #include "Statement.h"
 #include "Connection.h"
 
-#include <sqlite3.h>
 #include <string.h>
 #include <stdio.h>
 #include <algorithm>
@@ -50,6 +49,8 @@
 #if ORTHANC_SQLITE_STANDALONE != 1
 #include <glog/logging.h>
 #endif
+
+#include "sqlite3.h"
 
 #if defined(_MSC_VER)
 #define snprintf _snprintf

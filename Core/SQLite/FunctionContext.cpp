@@ -39,8 +39,9 @@
 #include "FunctionContext.h"
 #include "OrthancSQLiteException.h"
 
-#include <sqlite3.h>
 #include <string>
+
+#include "sqlite3.h"
 
 namespace Orthanc
 {
