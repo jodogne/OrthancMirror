@@ -65,9 +65,9 @@ TEST(Versions, Png)
 TEST(Versions, SQLite)
 {
   // http://www.sqlite.org/capi3ref.html#sqlite3_libversion
-  assert(sqlite3_libversion_number() == SQLITE_VERSION_NUMBER );
-  assert(strcmp(sqlite3_sourceid(), SQLITE_SOURCE_ID) == 0);
-  assert(strcmp(sqlite3_libversion(), SQLITE_VERSION) == 0);
+  ASSERT_EQ(sqlite3_libversion_number(), SQLITE_VERSION_NUMBER);
+  ASSERT_STREQ(sqlite3_sourceid(), SQLITE_SOURCE_ID);
+  ASSERT_STREQ(sqlite3_libversion(), SQLITE_VERSION);
 
   // Ensure that the SQLite version is above 3.7.0.
   // "sqlite3_create_function_v2" is not defined in previous versions.
