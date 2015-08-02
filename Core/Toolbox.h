@@ -90,12 +90,14 @@ namespace Orthanc
 
     uint64_t GetFileSize(const std::string& path);
 
+#if !defined(ORTHANC_ENABLE_MD5) || ORTHANC_ENABLE_MD5 == 1
     void ComputeMD5(std::string& result,
                     const std::string& data);
 
     void ComputeMD5(std::string& result,
                     const void* data,
                     size_t length);
+#endif
 
     void ComputeSHA1(std::string& result,
                      const std::string& data);
@@ -105,11 +107,13 @@ namespace Orthanc
 
     bool IsSHA1(const std::string& s);
 
+#if !defined(ORTHANC_ENABLE_BASE64) || ORTHANC_ENABLE_BASE64 == 1
     void DecodeBase64(std::string& result, 
                       const std::string& data);
 
     void EncodeBase64(std::string& result, 
                       const std::string& data);
+#endif
 
     std::string GetPathToExecutable();
 
