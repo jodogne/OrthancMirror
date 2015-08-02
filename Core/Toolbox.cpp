@@ -447,6 +447,7 @@ namespace Orthanc
   }
 
 
+#if !defined(ORTHANC_ENABLE_MD5) || ORTHANC_ENABLE_MD5 == 1
   static char GetHexadecimalCharacter(uint8_t value)
   {
     assert(value < 16);
@@ -458,7 +459,6 @@ namespace Orthanc
   }
 
 
-#if !defined(ORTHANC_ENABLE_MD5) || ORTHANC_ENABLE_MD5 == 1
   void Toolbox::ComputeMD5(std::string& result,
                            const std::string& data)
   {
