@@ -82,8 +82,15 @@
 
 #include <boost/locale.hpp>
 
+
+#if !defined(ORTHANC_ENABLE_MD5) || ORTHANC_ENABLE_MD5 == 1
 #include "../Resources/ThirdParty/md5/md5.h"
+#endif
+
+
+#if !defined(ORTHANC_ENABLE_BASE64) || ORTHANC_ENABLE_BASE64 == 1
 #include "../Resources/ThirdParty/base64/base64.h"
+#endif
 
 
 #if defined(_MSC_VER) && (_MSC_VER < 1800)
@@ -451,6 +458,7 @@ namespace Orthanc
   }
 
 
+#if !defined(ORTHANC_ENABLE_MD5) || ORTHANC_ENABLE_MD5 == 1
   void Toolbox::ComputeMD5(std::string& result,
                            const std::string& data)
   {
@@ -489,8 +497,10 @@ namespace Orthanc
       result[2 * i + 1] = GetHexadecimalCharacter(actualHash[i] % 16);
     }
   }
+#endif
 
 
+#if !defined(ORTHANC_ENABLE_BASE64) || ORTHANC_ENABLE_BASE64 == 1
   void Toolbox::EncodeBase64(std::string& result, 
                              const std::string& data)
   {
@@ -502,6 +512,8 @@ namespace Orthanc
   {
     result = base64_decode(data);
   }
+#endif
+
 
 
 #if defined(_WIN32)
