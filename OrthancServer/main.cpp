@@ -652,7 +652,17 @@ int main(int argc, char* argv[])
 
     if (boost::starts_with(argv[i], "--logdir="))
     {
-      Logging::SetTargetFolder(std::string(argv[i]).substr(9));
+      std::string directory = std::string(argv[i]).substr(9);
+
+      try
+      {
+        Logging::SetTargetFolder(directory);
+      }
+      catch (OrthancException&)
+      {
+        fprintf(stderr, "The directory where to store the log files (%s) is inexistent, aborting.\n", directory.c_str());
+        return -1;
+      }
     }
 
     if (boost::starts_with(argv[i], "--config="))
