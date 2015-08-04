@@ -193,7 +193,7 @@ namespace
         {
           DatabaseWrapper* sqlite = dynamic_cast<DatabaseWrapper*>(index_.get());
           sqlite->GetChildren(j, id);
-          ASSERT_EQ(0, j.size());
+          ASSERT_EQ(0u, j.size());
           break;
         }
 
@@ -212,7 +212,7 @@ namespace
         {
           DatabaseWrapper* sqlite = dynamic_cast<DatabaseWrapper*>(index_.get());
           sqlite->GetChildren(j, id);
-          ASSERT_EQ(1, j.size());
+          ASSERT_EQ(1u, j.size());
           ASSERT_EQ(expected, j.front());
           break;
         }
@@ -234,7 +234,7 @@ namespace
         {
           DatabaseWrapper* sqlite = dynamic_cast<DatabaseWrapper*>(index_.get());
           sqlite->GetChildren(j, id);
-          ASSERT_EQ(2, j.size());
+          ASSERT_EQ(2u, j.size());
           ASSERT_TRUE((expected1 == j.front() && expected2 == j.back()) ||
                       (expected1 == j.back() && expected2 == j.front()));                    
           break;
@@ -755,7 +755,7 @@ TEST(ServerIndex, AttachmentRecycling)
     std::map<MetadataType, std::string> instanceMetadata;
     ServerIndex::MetadataMap metadata;
     ASSERT_EQ(StoreStatus_Success, index.Store(instanceMetadata, instance, attachments, "", metadata));
-    ASSERT_EQ(2, instanceMetadata.size());
+    ASSERT_EQ(2u, instanceMetadata.size());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_RemoteAet) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_ReceptionDate) != instanceMetadata.end());
 

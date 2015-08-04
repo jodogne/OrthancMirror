@@ -149,15 +149,15 @@ TEST(DicomModification, Png)
   Toolbox::DecodeDataUriScheme(m, c, s);
 
   ASSERT_EQ("image/png", m);
-  ASSERT_EQ(116, c.size());
+  ASSERT_EQ(116u, c.size());
 
   std::string cc;
   Toolbox::DecodeBase64(cc, c);
   PngReader reader;
   reader.ReadFromMemory(cc);
 
-  ASSERT_EQ(5, reader.GetHeight());
-  ASSERT_EQ(5, reader.GetWidth());
+  ASSERT_EQ(5u, reader.GetHeight());
+  ASSERT_EQ(5u, reader.GetWidth());
   ASSERT_EQ(PixelFormat_RGBA32, reader.GetFormat());
 
   ParsedDicomFile o;

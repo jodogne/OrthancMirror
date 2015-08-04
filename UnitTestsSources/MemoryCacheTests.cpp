@@ -291,5 +291,5 @@ TEST(LRU, SharedArchive)
     }
   }
 
-  ASSERT_EQ(2, count);
+  ASSERT_EQ(2u, count);
 }

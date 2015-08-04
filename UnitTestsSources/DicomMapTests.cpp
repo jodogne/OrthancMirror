@@ -87,7 +87,7 @@ TEST(DicomMap, Tags)
 
   DicomMap m;
   m.GetTags(s);
-  ASSERT_EQ(0, s.size());
+  ASSERT_EQ(0u, s.size());
 
   ASSERT_FALSE(m.HasTag(DICOM_TAG_PATIENT_NAME));
   ASSERT_FALSE(m.HasTag(0x0010, 0x0010));
@@ -96,7 +96,7 @@ TEST(DicomMap, Tags)
   ASSERT_TRUE(m.HasTag(0x0010, 0x0010));
 
   m.GetTags(s);
-  ASSERT_EQ(1, s.size());
+  ASSERT_EQ(1u, s.size());
   ASSERT_EQ(DICOM_TAG_PATIENT_NAME, *s.begin());
 
   ASSERT_FALSE(m.HasTag(DICOM_TAG_PATIENT_ID));
@@ -106,13 +106,13 @@ TEST(DicomMap, Tags)
   ASSERT_EQ("PatientID2", m.GetValue(0x0010, 0x0020).AsString());
 
   m.GetTags(s);
-  ASSERT_EQ(2, s.size());
+  ASSERT_EQ(2u, s.size());
 
   m.Remove(DICOM_TAG_PATIENT_ID);
   ASSERT_THROW(m.GetValue(0x0010, 0x0020), OrthancException);
 
   m.GetTags(s);
-  ASSERT_EQ(1, s.size());
+  ASSERT_EQ(1u, s.size());
   ASSERT_EQ(DICOM_TAG_PATIENT_NAME, *s.begin());
 
   std::auto_ptr<DicomMap> mm(m.Clone());

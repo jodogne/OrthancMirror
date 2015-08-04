@@ -666,15 +666,15 @@ TEST(Toolbox, Tokenize)
   std::vector<std::string> t;
   
   Toolbox::TokenizeString(t, "", ','); 
-  ASSERT_EQ(1, t.size());
+  ASSERT_EQ(1u, t.size());
   ASSERT_EQ("", t[0]);
   
   Toolbox::TokenizeString(t, "abc", ','); 
-  ASSERT_EQ(1, t.size());
+  ASSERT_EQ(1u, t.size());
   ASSERT_EQ("abc", t[0]);
   
   Toolbox::TokenizeString(t, "ab,cd,ef,", ','); 
-  ASSERT_EQ(4, t.size());
+  ASSERT_EQ(4u, t.size());
   ASSERT_EQ("ab", t[0]);
   ASSERT_EQ("cd", t[1]);
   ASSERT_EQ("ef", t[2]);
