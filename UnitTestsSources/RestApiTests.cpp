@@ -78,13 +78,13 @@ TEST(HttpClient, Basic)
 TEST(RestApi, ChunkedBuffer)
 {
   ChunkedBuffer b;
-  ASSERT_EQ(0, b.GetNumBytes());
+  ASSERT_EQ(0u, b.GetNumBytes());
 
   b.AddChunk("hello", 5);
-  ASSERT_EQ(5, b.GetNumBytes());
+  ASSERT_EQ(5u, b.GetNumBytes());
 
   b.AddChunk("world", 5);
-  ASSERT_EQ(10, b.GetNumBytes());
+  ASSERT_EQ(10u, b.GetNumBytes());
 
   std::string s;
   b.Flatten(s);

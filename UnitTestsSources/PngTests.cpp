@@ -122,17 +122,17 @@ TEST(PngWriter, Gray16Pattern)
 TEST(PngWriter, EndToEnd)
 {
   Orthanc::PngWriter w;
-  int width = 256;
-  int height = 256;
-  int pitch = width * 2 + 16;
+  unsigned int width = 256;
+  unsigned int height = 256;
+  unsigned int pitch = width * 2 + 16;
 
   std::vector<uint8_t> image(height * pitch);
 
   int v = 0;
-  for (int y = 0; y < height; y++)
+  for (unsigned int y = 0; y < height; y++)
   {
     uint16_t *p = reinterpret_cast<uint16_t*>(&image[0] + y * pitch);
-    for (int x = 0; x < width; x++, p++, v++)
+    for (unsigned int x = 0; x < width; x++, p++, v++)
     {
       *p = v;
     }
@@ -150,11 +150,11 @@ TEST(PngWriter, EndToEnd)
     ASSERT_EQ(r.GetHeight(), height);
 
     v = 0;
-    for (int y = 0; y < height; y++)
+    for (unsigned int y = 0; y < height; y++)
     {
       const uint16_t *p = reinterpret_cast<const uint16_t*>((const uint8_t*) r.GetConstBuffer() + y * r.GetPitch());
       ASSERT_EQ(p, r.GetConstRow(y));
-      for (int x = 0; x < width; x++, p++, v++)
+      for (unsigned int x = 0; x < width; x++, p++, v++)
       {
         ASSERT_EQ(*p, v);
       }
@@ -173,11 +173,11 @@ TEST(PngWriter, EndToEnd)
     ASSERT_EQ(r2.GetHeight(), height);
 
     v = 0;
-    for (int y = 0; y < height; y++)
+    for (unsigned int y = 0; y < height; y++)
     {
       const uint16_t *p = reinterpret_cast<const uint16_t*>((const uint8_t*) r2.GetConstBuffer() + y * r2.GetPitch());
       ASSERT_EQ(p, r2.GetConstRow(y));
-      for (int x = 0; x < width; x++, p++, v++)
+      for (unsigned int x = 0; x < width; x++, p++, v++)
       {
         ASSERT_EQ(*p, v);
       }

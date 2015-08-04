@@ -59,7 +59,7 @@ TEST(Versions, Curl)
 TEST(Versions, Png)
 {
   ASSERT_EQ(PNG_LIBPNG_VER_MAJOR * 10000 + PNG_LIBPNG_VER_MINOR * 100 + PNG_LIBPNG_VER_RELEASE,
-            png_access_version_number());
+            static_cast<int>(png_access_version_number()));
 }
 
 TEST(Versions, SQLite)

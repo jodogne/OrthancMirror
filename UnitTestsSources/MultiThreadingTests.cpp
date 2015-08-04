@@ -237,7 +237,7 @@ TEST(MultiThreading, ServerScheduler)
   IServerCommand::ListOfStrings l;
   scheduler.SubmitAndWait(l, job);
 
-  ASSERT_EQ(2, l.size());
+  ASSERT_EQ(2u, l.size());
   ASSERT_EQ(42 * 2 * 3, boost::lexical_cast<int>(l.front()));
   ASSERT_EQ(42 * 2 * 3 * 4 * 5, boost::lexical_cast<int>(l.back()));
 
