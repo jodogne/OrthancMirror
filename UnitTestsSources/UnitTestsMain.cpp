@@ -40,6 +40,7 @@
 #include "../Core/Compression/ZlibCompressor.h"
 #include "../Core/DicomFormat/DicomTag.h"
 #include "../Core/HttpServer/HttpToolbox.h"
+#include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
 #include "../Core/Uuid.h"
@@ -488,8 +489,6 @@ TEST(Toolbox, Case)
 }
 
 
-#include <glog/logging.h>
-
 TEST(Logger, Basic)
 {
   LOG(INFO) << "I say hello";
@@ -821,22 +820,17 @@ TEST(Toolbox, StartsWith)
 
 int main(int argc, char **argv)
 {
-  // Initialize Google's logging library.
-  FLAGS_logtostderr = true;
-  FLAGS_minloglevel = 0;
-
-  // Go to trace-level verbosity
-  //FLAGS_v = 1;
-
+  Logging::Initialize();
+  Logging::EnableInfoLevel(true);
   Toolbox::DetectEndianness();
-
-  google::InitGoogleLogging("Orthanc");
-
   Toolbox::MakeDirectory("UnitTestsResults");
-
   OrthancInitialize();
+
   ::testing::InitGoogleTest(&argc, argv);
   int result = RUN_ALL_TESTS();
+
   OrthancFinalize();
+  Logging::Finalize();
+
   return result;
 }
