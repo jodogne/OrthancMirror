@@ -35,9 +35,15 @@
 #if ORTHANC_ENABLE_LOGGING == 1
 
 #if ORTHANC_ENABLE_GOOGLE_LOG == 1
-#include <stdlib.h>  // This fixes a problem in glog for recent releases of MinGW
-#include <glog/logging.h>
+#  include <stdlib.h>  // This fixes a problem in glog for recent releases of MinGW
+#  include <glog/logging.h>
+#else
+#  include <iostream>
+#  include <boost/thread/mutex.hpp>
+#  define LOG(level)  ::Orthanc::Logging::InternalLogger(#level, __FILE__, __LINE__)
+#  define VLOG(level) ::Orthanc::Logging::InternalLogger("TRACE", __FILE__, __LINE__)
 #endif
+
 
 namespace Orthanc
 {
@@ -50,6 +56,37 @@ namespace Orthanc
     void EnableInfoLevel(bool enabled);
 
     void EnableTraceLevel(bool enabled);
+
+    void SetTargetFolder(const std::string& path);
+
+
+#if ORTHANC_ENABLE_GOOGLE_LOG != 1
+    class InternalLogger
+    {
+    private:
+      boost::mutex::scoped_lock  lock_;
+      std::ostream*              stream_;
+
+    public:
+      InternalLogger(const char* level,
+                     const char* file,
+                     int line);
+
+      ~InternalLogger()
+      {
+#if defined(_WIN32)
+        *stream_ << "\r\n";
+#else
+        *stream_ << "\n";
+#endif
+      }
+
+      std::ostream& operator<< (const std::string& message)
+      {
+        return (*stream_) << message;
+      }
+    };
+#endif
   }
 }
 

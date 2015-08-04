@@ -652,8 +652,7 @@ int main(int argc, char* argv[])
 
     if (boost::starts_with(argv[i], "--logdir="))
     {
-      FLAGS_logtostderr = false;
-      FLAGS_log_dir = std::string(argv[i]).substr(9);
+      Logging::SetTargetFolder(std::string(argv[i]).substr(9));
     }
 
     if (boost::starts_with(argv[i], "--config="))

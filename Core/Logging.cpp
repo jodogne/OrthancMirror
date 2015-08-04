@@ -35,11 +35,17 @@
 
 #if ORTHANC_ENABLE_LOGGING == 1
 
+
+#if ORTHANC_ENABLE_GOOGLE_LOG == 1
+
+/*********************************************************
+ * Wrapper around Google Log
+ *********************************************************/
+
 namespace Orthanc
 {  
   namespace Logging
   {
-#if ORTHANC_ENABLE_GOOGLE_LOG == 1
     void Initialize()
     {
       // Initialize Google's logging library.
@@ -72,8 +78,166 @@ namespace Orthanc
         FLAGS_v = 0;
       }
     }
+
+    void SetTargetFolder(const std::string& path)
+    {
+      FLAGS_logtostderr = false;
+      FLAGS_log_dir = path;
+    }
+  }
+}
+
+#else
+
+/*********************************************************
+ * Use internal logger, not Google Log
+ *********************************************************/
+
+#include "OrthancException.h"
+
+#include <boost/filesystem.hpp>
+#include <boost/thread.hpp>
+
+#if BOOST_HAS_DATE_TIME == 1
+#  include <boost/date_time/posix_time/posix_time.hpp>
+#else
+#  error Boost::date_time is required
 #endif
+
+
+namespace
+{
+  struct NullStream : public std::ostream 
+  {
+    NullStream() : std::ios(0), std::ostream(0)
+    {
+    }
+  };
+}
+
+
+static boost::mutex  mutex_;
+static bool infoEnabled_ = false;
+static bool traceEnabled_ = false;
+static std::ostream& error_ = std::cerr;
+static std::ostream& warning_ = std::cerr;
+static std::ostream& info_ = std::cerr;
+static std::ostream& trace_ = std::cerr;
+static NullStream null_;
+
+namespace Orthanc
+{
+  namespace Logging
+  {
+    void Initialize()
+    {
+      infoEnabled_ = false;
+      traceEnabled_ = false;
+    }
+
+    void Finalize()
+    {
+    }
+
+    void EnableInfoLevel(bool enabled)
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+      infoEnabled_ = enabled;
+    }
+
+    void EnableTraceLevel(bool enabled)
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+      traceEnabled_ = enabled;
+      
+      if (enabled)
+      {
+        // Also enable the "INFO" level when trace-level debugging is
+        // enabled
+        infoEnabled_ = true;
+      }
+    }
+
+    void SetTargetFolder(const std::string& path)
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+      // TODO
+    }
+
+    InternalLogger::InternalLogger(const char* level,
+                                   const char* file,
+                                   int line) : 
+      lock_(mutex_)
+    {
+      char c;
+
+      if (strcmp(level, "ERROR") == 0)
+      {
+        stream_ = &error_;
+        c = 'E';
+      }
+      else if (strcmp(level, "WARNING") == 0)
+      {
+        stream_ = &warning_;
+        c = 'W';
+      }
+      else if (strcmp(level, "INFO") == 0)
+      {
+        stream_ = infoEnabled_ ? &info_ : &null_;
+        c = 'I';
+      }
+      else if (strcmp(level, "TRACE") == 0)
+      {
+        stream_ = traceEnabled_ ? &trace_ : &null_;
+        c = 'T';
+      }
+      else 
+      {
+        // Unknown logging level
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      if (stream_ != &null_)
+      {
+        boost::filesystem::path path(file);
+        boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
+        boost::posix_time::time_duration duration = now.time_of_day();
+
+        /**
+           From Google Log documentation:
+
+           Log lines have this form:
+
+           Lmmdd hh:mm:ss.uuuuuu threadid file:line] msg...
+
+           where the fields are defined as follows:
+
+           L                A single character, representing the log level (eg 'I' for INFO)
+           mm               The month (zero padded; ie May is '05')
+           dd               The day (zero padded)
+           hh:mm:ss.uuuuuu  Time in hours, minutes and fractional seconds
+           threadid         The space-padded thread ID as returned by GetTID() (this matches the PID on Linux)
+           file             The file name
+           line             The line number
+           msg              The user-supplied message
+         **/
+
+        char date[32];
+        sprintf(date, "%c%02d%02d %02d:%02d:%02d.%06d ", c, 
+                now.date().month().as_number(),
+                now.date().day().as_number(),
+                duration.hours(),
+                duration.minutes(),
+                duration.seconds(),
+                static_cast<int>(duration.fractional_seconds()));
+
+        *stream_ << date << path.filename().string() << ":" << line << "] ";
+      }
+    }
   }
 }
 
 #endif
+
+
+#endif   // ORTHANC_ENABLE_LOGGING

@@ -1,6 +1,8 @@
 Pending changes in the mainline
 ===============================
 
+* Orthanc does not use Google Log anymore
+
 
 Version 0.9.2 (2015/08/02)
 ==========================
