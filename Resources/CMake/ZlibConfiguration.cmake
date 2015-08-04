@@ -1,9 +1,3 @@
-# This is the minizip distribution to create ZIP files
-set(ZLIB_SOURCES
-  ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/ioapi.c
-  ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/zip.c
-  )
-
 if (STATIC_BUILD OR NOT USE_SYSTEM_ZLIB)
   SET(ZLIB_SOURCES_DIR ${CMAKE_BINARY_DIR}/zlib-1.2.7)
   DownloadPackage(

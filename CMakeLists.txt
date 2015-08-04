@@ -382,6 +382,10 @@ add_library(CoreLibrary
 
   ${CMAKE_SOURCE_DIR}/Resources/ThirdParty/md5/md5.c
   ${CMAKE_SOURCE_DIR}/Resources/ThirdParty/base64/base64.cpp
+
+  # This is the minizip distribution to create ZIP files using zlib
+  ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/ioapi.c
+  ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/zip.c
   )  
 
 
