@@ -38,6 +38,7 @@ namespace Orthanc
 {  
   namespace Logging
   {
+#if ORTHANC_ENABLE_GOOGLE_LOG == 1
     void Initialize()
     {
       // Initialize Google's logging library.
@@ -70,5 +71,6 @@ namespace Orthanc
         FLAGS_v = 0;
       }
     }
+#endif
   }
 }

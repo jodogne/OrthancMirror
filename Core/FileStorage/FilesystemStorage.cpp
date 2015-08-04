@@ -213,7 +213,7 @@ namespace Orthanc
   void FilesystemStorage::Remove(const std::string& uuid,
                                  FileContentType /*type*/)
   {
-#if HAVE_GOOGLE_LOG == 1
+#if ORTHANC_ENABLE_GOOGLE_LOG == 1
     LOG(INFO) << "Deleting file " << uuid;
 #endif
 
