@@ -170,5 +170,7 @@ namespace Orthanc
 
     bool StartsWith(const std::string& str,
                     const std::string& prefix);
+
+    int GetProcessId();
   }
 }

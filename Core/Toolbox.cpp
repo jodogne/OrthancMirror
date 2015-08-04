@@ -56,7 +56,7 @@
 
 #if defined(_WIN32)
 #include <windows.h>
-#include <process.h>   // For "_spawnvp()"
+#include <process.h>   // For "_spawnvp()" and "_getpid()"
 #else
 #include <unistd.h>    // For "execvp()"
 #include <sys/wait.h>  // For "waitpid()"
@@ -1265,5 +1265,14 @@ namespace Orthanc
     }
   }
 
+
+  int Toolbox::GetProcessId()
+  {
+#if defined(_WIN32)
+    return static_cast<int>(_getpid());
+#else
+    return static_cast<int>(getpid());
+#endif
+  }
 }
 

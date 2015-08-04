@@ -94,7 +94,9 @@ namespace Orthanc
  *********************************************************/
 
 #include "OrthancException.h"
+#include "Toolbox.h"
 
+#include <fstream>
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
 
@@ -119,16 +121,86 @@ namespace
 static boost::mutex  mutex_;
 static bool infoEnabled_ = false;
 static bool traceEnabled_ = false;
-static std::ostream& error_ = std::cerr;
-static std::ostream& warning_ = std::cerr;
-static std::ostream& info_ = std::cerr;
-static std::ostream& trace_ = std::cerr;
+
+static std::ostream* error_ = &std::cerr;
+static std::ostream* warning_ = &std::cerr;
+static std::ostream* info_ = &std::cerr;
 static NullStream null_;
+
+static std::auto_ptr<std::ofstream> errorFile_;
+static std::auto_ptr<std::ofstream> warningFile_;
+static std::auto_ptr<std::ofstream> infoFile_;
 
 namespace Orthanc
 {
   namespace Logging
   {
+    static void GetLogPath(boost::filesystem::path& log,
+                           boost::filesystem::path& link,
+                           const char* level,
+                           const std::string& directory)
+    {
+      /**
+         From Google Log documentation:
+
+         Unless otherwise specified, logs will be written to the filename
+         "<program name>.<hostname>.<user name>.log.<severity level>.",
+         followed by the date, time, and pid (you can't prevent the date,
+         time, and pid from being in the filename).
+
+         In this implementation : "hostname" and "username" are not used
+      **/
+
+      boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
+      boost::filesystem::path root(directory);
+      boost::filesystem::path exe(Toolbox::GetPathToExecutable());
+      
+      if (!boost::filesystem::exists(root) ||
+          !boost::filesystem::is_directory(root))
+      {
+        throw OrthancException(ErrorCode_CannotWriteFile);
+      }
+
+      char date[64];
+      sprintf(date, "%04d%02d%02d-%02d%02d%02d.%d",
+              static_cast<int>(now.date().year()),
+              now.date().month().as_number(),
+              now.date().day().as_number(),
+              now.time_of_day().hours(),
+              now.time_of_day().minutes(),
+              now.time_of_day().seconds(),
+              Toolbox::GetProcessId());
+
+      std::string programName = exe.filename().replace_extension("").string();
+
+      log = (root / (programName + ".log." +
+                     std::string(level) + "." +
+                     std::string(date)));
+
+      link = (root / (programName + "." + std::string(level)));
+    }
+
+
+    static void PrepareLogFile(std::ostream*& stream,
+                               std::auto_ptr<std::ofstream>& file,
+                               const char* level,
+                               const std::string& directory)
+    {
+      boost::filesystem::path log, link;
+      GetLogPath(log, link, level, directory);
+
+      printf("[%s]\n", log.string().c_str());
+
+#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
+      boost::filesystem::remove(link);
+      boost::filesystem::create_symlink(log.filename(), link);
+#endif
+
+      file.reset(new std::ofstream(log.c_str()));
+      stream = file.get();
+    }
+
+
     void Initialize()
     {
       infoEnabled_ = false;
@@ -137,6 +209,9 @@ namespace Orthanc
 
     void Finalize()
     {
+      errorFile_.reset(NULL);
+      warningFile_.reset(NULL);
+      infoFile_.reset(NULL);
     }
 
     void EnableInfoLevel(bool enabled)
@@ -152,8 +227,7 @@ namespace Orthanc
       
       if (enabled)
       {
-        // Also enable the "INFO" level when trace-level debugging is
-        // enabled
+        // Also enable the "INFO" level when trace-level debugging is enabled
         infoEnabled_ = true;
       }
     }
@@ -161,7 +235,9 @@ namespace Orthanc
     void SetTargetFolder(const std::string& path)
     {
       boost::mutex::scoped_lock lock(mutex_);
-      // TODO
+      PrepareLogFile(error_, errorFile_, "ERROR", path);
+      PrepareLogFile(warning_, warningFile_, "WARNING", path);
+      PrepareLogFile(info_, infoFile_, "INFO", path);
     }
 
     InternalLogger::InternalLogger(const char* level,
@@ -173,22 +249,22 @@ namespace Orthanc
 
       if (strcmp(level, "ERROR") == 0)
       {
-        stream_ = &error_;
+        stream_ = error_;
         c = 'E';
       }
       else if (strcmp(level, "WARNING") == 0)
       {
-        stream_ = &warning_;
+        stream_ = warning_;
         c = 'W';
       }
       else if (strcmp(level, "INFO") == 0)
       {
-        stream_ = infoEnabled_ ? &info_ : &null_;
+        stream_ = infoEnabled_ ? info_ : &null_;
         c = 'I';
       }
       else if (strcmp(level, "TRACE") == 0)
       {
-        stream_ = traceEnabled_ ? &trace_ : &null_;
+        stream_ = traceEnabled_ ? info_ : &null_;
         c = 'T';
       }
       else 
@@ -206,7 +282,7 @@ namespace Orthanc
         /**
            From Google Log documentation:
 
-           Log lines have this form:
+           "Log lines have this form:
 
            Lmmdd hh:mm:ss.uuuuuu threadid file:line] msg...
 
@@ -219,7 +295,9 @@ namespace Orthanc
            threadid         The space-padded thread ID as returned by GetTID() (this matches the PID on Linux)
            file             The file name
            line             The line number
-           msg              The user-supplied message
+           msg              The user-supplied message"
+
+           In this implementation, "threadid" is not printed.
          **/
 
         char date[32];
