@@ -356,6 +356,7 @@ endif()
 add_definitions(
   -DORTHANC_VERSION="${ORTHANC_VERSION}"
   -DORTHANC_DATABASE_VERSION=${ORTHANC_DATABASE_VERSION}
+  -DORTHANC_ENABLE_LOGGING=1
   )
 
 list(LENGTH OPENSSL_SOURCES OPENSSL_SOURCES_LENGTH)
@@ -426,7 +427,10 @@ else()
   add_definitions(-DUNIT_TESTS_WITH_HTTP_CONNEXIONS=0)
 endif()
 
-add_definitions(-DORTHANC_BUILD_UNIT_TESTS=1)
+add_definitions(
+  -DORTHANC_BUILD_UNIT_TESTS=1
+  )
+
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
 add_executable(UnitTests
   ${GTEST_SOURCES}

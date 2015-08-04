@@ -33,6 +33,7 @@
 #include "PrecompiledHeaders.h"
 #include "Logging.h"
 
+#if ORTHANC_ENABLE_LOGGING == 1
 
 namespace Orthanc
 {  
@@ -74,3 +75,5 @@ namespace Orthanc
 #endif
   }
 }
+
+#endif
