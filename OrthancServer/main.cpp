@@ -37,6 +37,7 @@
 #include <glog/logging.h>
 #include <boost/algorithm/string/predicate.hpp>
 
+#include "../Core/Logging.h"
 #include "../Core/Uuid.h"
 #include "../Core/HttpServer/EmbeddedResourceHttpHandler.h"
 #include "../Core/HttpServer/FilesystemHttpHandler.h"
@@ -624,10 +625,7 @@ static bool StartOrthanc(int argc, char* argv[])
 
 int main(int argc, char* argv[]) 
 {
-  // Initialize Google's logging library.
-  FLAGS_logtostderr = true;
-  FLAGS_minloglevel = 1;
-  FLAGS_v = 0;
+  Logging::Initialize();
 
   for (int i = 1; i < argc; i++)
   {
@@ -645,13 +643,12 @@ int main(int argc, char* argv[])
 
     if (std::string(argv[i]) == "--verbose")
     {
-      FLAGS_minloglevel = 0;
+      Logging::EnableInfoLevel(true);
     }
 
     if (std::string(argv[i]) == "--trace")
     {
-      FLAGS_minloglevel = 0;
-      FLAGS_v = 1;
+      Logging::EnableTraceLevel(true);
     }
 
     if (boost::starts_with(argv[i], "--logdir="))
@@ -677,8 +674,6 @@ int main(int argc, char* argv[])
       return 0;
     }
   }
-
-  google::InitGoogleLogging("Orthanc");
 
   const char* configurationFile = NULL;
   for (int i = 1; i < argc; i++)
@@ -735,6 +730,8 @@ int main(int argc, char* argv[])
   OrthancFinalize();
 
   LOG(WARNING) << "Orthanc has stopped";
+
+  Logging::Finalize();
 
   return status;
 }

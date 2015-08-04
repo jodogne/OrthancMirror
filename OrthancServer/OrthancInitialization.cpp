@@ -34,19 +34,19 @@
 #include "OrthancInitialization.h"
 
 #include "../Core/HttpClient.h"
+#include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
+#include "../Core/FileStorage/FilesystemStorage.h"
+
 #include "DicomProtocol/DicomServer.h"
 #include "ServerEnumerations.h"
+#include "DatabaseWrapper.h"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
 #include <curl/curl.h>
 #include <boost/thread.hpp>
-#include <glog/logging.h>
-
-#include "DatabaseWrapper.h"
-#include "../Core/FileStorage/FilesystemStorage.h"
 
 
 #if ORTHANC_JPEG_ENABLED == 1
