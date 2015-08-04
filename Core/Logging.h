@@ -32,6 +32,8 @@
 
 #pragma once
 
+#if ORTHANC_ENABLE_LOGGING == 1
+
 #if ORTHANC_ENABLE_GOOGLE_LOG == 1
 #include <stdlib.h>  // This fixes a problem in glog for recent releases of MinGW
 #include <glog/logging.h>
@@ -50,3 +52,5 @@ namespace Orthanc
     void EnableTraceLevel(bool enabled);
   }
 }
+
+#endif
