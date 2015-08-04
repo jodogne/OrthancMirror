@@ -90,4 +90,4 @@ namespace Orthanc
   }
 }
 
-#endif
+#endif  // ORTHANC_ENABLE_LOGGING

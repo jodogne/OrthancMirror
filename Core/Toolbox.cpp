@@ -1132,7 +1132,10 @@ namespace Orthanc
     if (pid == -1)
     {
       // Error in fork()
+#if ORTHANC_ENABLE_LOGGING == 1
       LOG(ERROR) << "Cannot fork a child process";
+#endif
+
       throw OrthancException(ErrorCode_SystemCommand);
     }
     else if (pid == 0)
@@ -1152,7 +1155,10 @@ namespace Orthanc
 
     if (status != 0)
     {
+#if ORTHANC_ENABLE_LOGGING == 1
       LOG(ERROR) << "System command failed with status code " << status;
+#endif
+
       throw OrthancException(ErrorCode_SystemCommand);
     }
   }

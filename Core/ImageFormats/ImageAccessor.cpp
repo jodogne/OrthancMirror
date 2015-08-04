@@ -106,7 +106,10 @@ namespace Orthanc
   {
     if (readOnly_)
     {
+#if ORTHANC_ENABLE_LOGGING == 1
       LOG(ERROR) << "Trying to write on a read-only image";
+#endif
+
       throw OrthancException(ErrorCode_ReadOnly);
     }
 
@@ -131,7 +134,10 @@ namespace Orthanc
   {
     if (readOnly_)
     {
+#if ORTHANC_ENABLE_LOGGING == 1
       LOG(ERROR) << "Trying to write on a read-only image";
+#endif
+
       throw OrthancException(ErrorCode_ReadOnly);
     }
 
