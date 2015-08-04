@@ -155,9 +155,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
     endif()
   endif()
 
-  add_library(GoogleLog STATIC ${GOOGLE_LOG_SOURCES})
-  set(STATIC_GOOGLE_LOG GoogleLog)
-
 else()
   CHECK_INCLUDE_FILE_CXX(glog/logging.h HAVE_GOOGLE_LOG_H)
   if (NOT HAVE_GOOGLE_LOG_H)
@@ -175,4 +172,4 @@ else()
   add_definitions(-DHAVE_SECURE_STRING_EXTENSIONS=0)
 endif()
 
-add_definitions(-DHAVE_GOOGLE_LOG=1)
+add_definitions(-DORTHANC_ENABLE_GOOGLE_LOG=1)
