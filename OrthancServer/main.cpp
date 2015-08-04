@@ -34,7 +34,6 @@
 #include "OrthancRestApi/OrthancRestApi.h"
 
 #include <fstream>
-#include <glog/logging.h>
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "../Core/Logging.h"

@@ -33,11 +33,10 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
-#include "../FromDcmtkBridge.h"
+#include "../../Core/Logging.h"
 #include "../../Core/Uuid.h"
+#include "../FromDcmtkBridge.h"
 #include "../ServerContext.h"
-
-#include <glog/logging.h>
 
 namespace Orthanc
 {

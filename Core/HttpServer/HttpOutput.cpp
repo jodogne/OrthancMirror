@@ -33,13 +33,15 @@
 #include "../PrecompiledHeaders.h"
 #include "HttpOutput.h"
 
+#include "../Logging.h"
+#include "../OrthancException.h"
+#include "../Toolbox.h"
+
 #include <iostream>
 #include <vector>
 #include <stdio.h>
-#include <glog/logging.h>
 #include <boost/lexical_cast.hpp>
-#include "../OrthancException.h"
-#include "../Toolbox.h"
+
 
 namespace Orthanc
 {

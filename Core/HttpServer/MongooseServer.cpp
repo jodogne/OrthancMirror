@@ -35,6 +35,12 @@
 #include "../PrecompiledHeaders.h"
 #include "MongooseServer.h"
 
+#include "../Logging.h"
+#include "../OrthancException.h"
+#include "../ChunkedBuffer.h"
+#include "HttpToolbox.h"
+#include "mongoose.h"
+
 #include <algorithm>
 #include <string.h>
 #include <boost/lexical_cast.hpp>
@@ -43,12 +49,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <boost/thread.hpp>
-#include <glog/logging.h>
-
-#include "../OrthancException.h"
-#include "../ChunkedBuffer.h"
-#include "HttpToolbox.h"
-#include "mongoose.h"
 
 #if ORTHANC_SSL_ENABLED == 1
 #include <openssl/opensslv.h>

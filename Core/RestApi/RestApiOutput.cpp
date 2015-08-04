@@ -33,10 +33,11 @@
 #include "../PrecompiledHeaders.h"
 #include "RestApiOutput.h"
 
-#include <boost/lexical_cast.hpp>
-#include <glog/logging.h>
-
+#include "../Logging.h"
 #include "../OrthancException.h"
+
+#include <boost/lexical_cast.hpp>
+
 
 namespace Orthanc
 {

@@ -33,15 +33,15 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
+#include "../Core/DicomFormat/DicomNullValue.h"
+#include "../Core/FileStorage/FilesystemStorage.h"
+#include "../Core/Logging.h"
+#include "../Core/Uuid.h"
 #include "../OrthancServer/DatabaseWrapper.h"
 #include "../OrthancServer/ServerContext.h"
 #include "../OrthancServer/ServerIndex.h"
-#include "../Core/Uuid.h"
-#include "../Core/DicomFormat/DicomNullValue.h"
-#include "../Core/FileStorage/FilesystemStorage.h"
 
 #include <ctype.h>
-#include <glog/logging.h>
 #include <algorithm>
 
 using namespace Orthanc;

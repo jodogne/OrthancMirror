@@ -32,9 +32,8 @@
 
 #include "StorePeerCommand.h"
 
+#include "../../Core/Logging.h"
 #include "../../Core/HttpClient.h"
-
-#include <glog/logging.h>
 
 namespace Orthanc
 {

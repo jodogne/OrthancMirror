@@ -33,10 +33,10 @@
 #include "PrecompiledHeadersServer.h"
 #include "ServerToolbox.h"
 
+#include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
 
 #include <cassert>
-#include <glog/logging.h>
 
 namespace Orthanc
 {

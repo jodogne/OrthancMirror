@@ -33,9 +33,10 @@
 #include "../PrecompiledHeaders.h"
 #include "BagOfRunnablesBySteps.h"
 
+#include "../Logging.h"
+
 #include <stack>
 #include <boost/thread.hpp>
-#include <glog/logging.h>
 
 namespace Orthanc
 {

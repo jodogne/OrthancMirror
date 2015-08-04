@@ -32,10 +32,8 @@
 
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
-#include <glog/logging.h>
 
 #include "../OrthancServer/Scheduler/ServerScheduler.h"
-
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
 #include "../Core/MultiThreading/Locker.h"

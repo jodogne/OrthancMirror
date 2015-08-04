@@ -33,9 +33,9 @@
 #include "OrthancPluginDatabase.h"
 
 #include "../../Core/OrthancException.h"
+#include "../../Core/Logging.h"
 
 #include <cassert>
-#include <glog/logging.h>
 
 namespace Orthanc
 {

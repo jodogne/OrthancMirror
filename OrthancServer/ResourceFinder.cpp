@@ -33,10 +33,10 @@
 #include "PrecompiledHeadersServer.h"
 #include "ResourceFinder.h"
 
+#include "../Core/Logging.h"
 #include "FromDcmtkBridge.h"
 #include "ServerContext.h"
 
-#include <glog/logging.h>
 #include <boost/algorithm/string/predicate.hpp>
 
 namespace Orthanc

@@ -33,9 +33,9 @@
 #include "../PrecompiledHeaders.h"
 #include "RestApi.h"
 
-#include <stdlib.h>   // To define "_exit()" under Windows
-#include <glog/logging.h>
+#include "../Logging.h"
 
+#include <stdlib.h>   // To define "_exit()" under Windows
 #include <stdio.h>
 
 namespace Orthanc

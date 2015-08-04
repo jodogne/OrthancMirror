@@ -33,8 +33,7 @@
 #include "ServerScheduler.h"
 
 #include "../../Core/OrthancException.h"
-
-#include <glog/logging.h>
+#include "../../Core/Logging.h"
 
 namespace Orthanc
 {

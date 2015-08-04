@@ -34,10 +34,10 @@
 #include "gtest/gtest.h"
 
 #include <ctype.h>
-#include <glog/logging.h>
 
 #include "../Core/ChunkedBuffer.h"
 #include "../Core/HttpClient.h"
+#include "../Core/Logging.h"
 #include "../Core/RestApi/RestApi.h"
 #include "../Core/Uuid.h"
 #include "../Core/OrthancException.h"

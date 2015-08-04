@@ -103,6 +103,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
 
+#include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Uuid.h"
 
@@ -118,7 +119,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dcmtk/dcmdata/dcvrtm.h"     /* for class DcmTime */
 
 #include <memory>
-#include <glog/logging.h>
 
 namespace Orthanc
 {

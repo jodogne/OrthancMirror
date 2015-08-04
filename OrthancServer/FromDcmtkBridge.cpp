@@ -42,6 +42,7 @@
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
 #include "OrthancInitialization.h"
+#include "../Core/Logging.h"
 #include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"
 #include "../Core/ImageFormats/PngWriter.h"
@@ -92,7 +93,6 @@
 
 
 #include <boost/math/special_functions/round.hpp>
-#include <glog/logging.h>
 #include <dcmtk/dcmdata/dcostrmb.h>
 
 

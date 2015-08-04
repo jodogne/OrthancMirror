@@ -81,10 +81,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../PrecompiledHeadersServer.h"
 #include "DicomUserConnection.h"
 
-#include "../../Core/OrthancException.h"
-#include "../ToDcmtkBridge.h"
-#include "../FromDcmtkBridge.h"
 #include "../../Core/DicomFormat/DicomArray.h"
+#include "../../Core/Logging.h"
+#include "../../Core/OrthancException.h"
+#include "../FromDcmtkBridge.h"
+#include "../ToDcmtkBridge.h"
 
 #include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcistrmf.h>
@@ -93,8 +94,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <dcmtk/dcmnet/diutil.h>
 
 #include <set>
-#include <glog/logging.h>
-
 
 
 #ifdef _WIN32

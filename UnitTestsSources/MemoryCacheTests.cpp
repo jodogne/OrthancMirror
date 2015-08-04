@@ -33,13 +33,14 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
-#include <glog/logging.h>
 #include <memory>
 #include <boost/thread.hpp>
 #include <boost/lexical_cast.hpp>
-#include "../Core/IDynamicObject.h"
+
 #include "../Core/Cache/MemoryCache.h"
 #include "../Core/Cache/SharedArchive.h"
+#include "../Core/IDynamicObject.h"
+#include "../Core/Logging.h"
 
 
 TEST(LRU, Basic)

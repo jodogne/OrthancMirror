@@ -36,10 +36,10 @@
 #include "../DicomDirWriter.h"
 #include "../../Core/Compression/HierarchicalZipWriter.h"
 #include "../../Core/HttpServer/FilesystemHttpSender.h"
+#include "../../Core/Logging.h"
 #include "../../Core/Uuid.h"
 #include "../ServerContext.h"
 
-#include <glog/logging.h>
 #include <stdio.h>
 
 #if defined(_MSC_VER)

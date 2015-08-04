@@ -33,9 +33,7 @@
 #include "PrecompiledHeadersServer.h"
 #include "OrthancFindRequestHandler.h"
 
-#include <glog/logging.h>
-#include <boost/regex.hpp> 
-
+#include "../Core/Logging.h"
 #include "../Core/DicomFormat/DicomArray.h"
 #include "ServerToolbox.h"
 #include "OrthancInitialization.h"
@@ -43,6 +41,8 @@
 
 #include "ResourceFinder.h"
 #include "DicomFindQuery.h"
+
+#include <boost/regex.hpp> 
 
 
 namespace Orthanc

@@ -34,10 +34,10 @@
 #include "gtest/gtest.h"
 
 #include <ctype.h>
-#include <glog/logging.h>
 
 #include "../Core/FileStorage/FilesystemStorage.h"
 #include "../OrthancServer/ServerIndex.h"
+#include "../Core/Logging.h"
 #include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Uuid.h"

@@ -34,8 +34,8 @@
 
 #include "../../Core/Toolbox.h"
 #include "../../Core/HttpServer/HttpOutput.h"
+#include "../../Core/Logging.h"
 
-#include <glog/logging.h>
 #include <cassert>
 #include <memory>
 #include <boost/filesystem.hpp>
