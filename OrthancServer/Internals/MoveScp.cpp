@@ -86,9 +86,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../FromDcmtkBridge.h"
 #include "../ToDcmtkBridge.h"
+#include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
-
-#include <glog/logging.h>
 
 
 namespace Orthanc

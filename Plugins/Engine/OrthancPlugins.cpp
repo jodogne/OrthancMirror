@@ -35,6 +35,7 @@
 #include "../../Core/ChunkedBuffer.h"
 #include "../../Core/HttpServer/HttpToolbox.h"
 #include "../../Core/ImageFormats/PngWriter.h"
+#include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
 #include "../../Core/Toolbox.h"
 #include "../../OrthancServer/OrthancInitialization.h"
@@ -42,7 +43,6 @@
 #include "../../OrthancServer/ServerToolbox.h"
 
 #include <boost/regex.hpp> 
-#include <glog/logging.h>
 
 namespace Orthanc
 {

@@ -32,6 +32,7 @@
 
 #include "SharedLibrary.h"
 
+#include "../../Core/Logging.h"
 #include "../../Core/Toolbox.h"
 
 #if defined(_WIN32)
@@ -41,8 +42,6 @@
 #else
 #error Support your platform here
 #endif
-
-#include <glog/logging.h>
 
 namespace Orthanc
 {

@@ -33,8 +33,6 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
-#include <glog/logging.h>
-
 #include "../Plugins/Engine/PluginsManager.h"
 
 using namespace Orthanc;

@@ -34,11 +34,11 @@
 #include "ServerContext.h"
 
 #include "../Core/HttpServer/FilesystemHttpSender.h"
+#include "../Core/Logging.h"
 #include "FromDcmtkBridge.h"
 #include "ServerToolbox.h"
 #include "OrthancInitialization.h"
 
-#include <glog/logging.h>
 #include <EmbeddedResources.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
 

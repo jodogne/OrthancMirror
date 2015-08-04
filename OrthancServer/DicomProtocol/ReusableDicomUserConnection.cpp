@@ -33,9 +33,8 @@
 #include "../PrecompiledHeadersServer.h"
 #include "ReusableDicomUserConnection.h"
 
+#include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
-
-#include <glog/logging.h>
 
 namespace Orthanc
 {

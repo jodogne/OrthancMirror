@@ -86,10 +86,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "StoreScp.h"
 #include "MoveScp.h"
 #include "../../Core/Toolbox.h"
+#include "../../Core/Logging.h"
 
 #include <dcmtk/dcmnet/dcasccfg.h>      /* for class DcmAssociationConfiguration */
 #include <boost/lexical_cast.hpp>
-#include <glog/logging.h>
 
 #define ORTHANC_PROMISCUOUS 1
 

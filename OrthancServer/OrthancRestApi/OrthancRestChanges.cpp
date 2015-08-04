@@ -35,8 +35,6 @@
 
 #include "../ServerContext.h"
 
-#include <glog/logging.h>
-
 namespace Orthanc
 {
   // Changes API --------------------------------------------------------------

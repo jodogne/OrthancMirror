@@ -33,11 +33,11 @@
 #include "../PrecompiledHeaders.h"
 #include "EmbeddedResourceHttpHandler.h"
 
+#include "../Logging.h"
 #include "../OrthancException.h"
 #include "HttpOutput.h"
 
 #include <stdio.h>
-#include <glog/logging.h>
 
 
 namespace Orthanc

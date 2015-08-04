@@ -33,13 +33,13 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
+#include "../../Core/Logging.h"
 #include "../ServerToolbox.h"
 #include "../FromDcmtkBridge.h"
 #include "../ResourceFinder.h"
 #include "../DicomFindQuery.h"
 #include "../ServerContext.h"
 
-#include <glog/logging.h>
 
 namespace Orthanc
 {

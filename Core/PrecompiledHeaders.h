@@ -46,7 +46,6 @@
 #include <boost/thread.hpp>
 #include <boost/thread/shared_mutex.hpp>
 
-#include <glog/logging.h>
 #include <json/value.h>
 
 #if ORTHANC_PUGIXML_ENABLED == 1
@@ -54,6 +53,7 @@
 #endif
 
 #include "Enumerations.h"
+#include "Logging.h"
 #include "OrthancException.h"
 #include "Toolbox.h"
 #include "Uuid.h"

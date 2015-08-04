@@ -32,7 +32,7 @@
 
 #include "CallSystemCommand.h"
 
-#include <glog/logging.h>
+#include "../../Core/Logging.h"
 #include "../../Core/Toolbox.h"
 #include "../../Core/Uuid.h"
 

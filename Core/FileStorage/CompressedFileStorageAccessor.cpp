@@ -33,13 +33,13 @@
 #include "../PrecompiledHeaders.h"
 #include "CompressedFileStorageAccessor.h"
 
-#include "../OrthancException.h"
-#include "FileStorageAccessor.h"
 #include "../HttpServer/BufferHttpSender.h"
+#include "../Logging.h"
+#include "../OrthancException.h"
 #include "../Uuid.h"
+#include "FileStorageAccessor.h"
 
 #include <memory>
-#include <glog/logging.h>
 
 namespace Orthanc
 {

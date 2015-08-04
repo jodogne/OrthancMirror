@@ -37,6 +37,7 @@
 #include "OrthancInitialization.h"
 #include "../Core/Lua/LuaFunctionCall.h"
 #include "../Core/HttpServer/StringHttpOutput.h"
+#include "../Core/Logging.h"
 
 #include "Scheduler/DeleteInstanceCommand.h"
 #include "Scheduler/StoreScuCommand.h"
@@ -45,7 +46,6 @@
 #include "Scheduler/CallSystemCommand.h"
 #include "OrthancRestApi/OrthancRestApi.h"
 
-#include <glog/logging.h>
 #include <EmbeddedResources.h>
 
 

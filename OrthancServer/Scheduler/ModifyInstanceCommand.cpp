@@ -32,7 +32,7 @@
 
 #include "ModifyInstanceCommand.h"
 
-#include <glog/logging.h>
+#include "../../Core/Logging.h"
 
 namespace Orthanc
 {

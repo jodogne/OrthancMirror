@@ -32,7 +32,10 @@
 
 #pragma once
 
+#if HAVE_GOOGLE_LOG == 1
+#include <stdlib.h>  // This fixes a problem in glog for recent releases of MinGW
 #include <glog/logging.h>
+#endif
 
 namespace Orthanc
 {

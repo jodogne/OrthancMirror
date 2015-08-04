@@ -34,10 +34,10 @@
 #include "DatabaseWrapper.h"
 
 #include "../Core/DicomFormat/DicomArray.h"
+#include "../Core/Logging.h"
 #include "../Core/Uuid.h"
 #include "EmbeddedResources.h"
 
-#include <glog/logging.h>
 #include <stdio.h>
 #include <boost/lexical_cast.hpp>
 

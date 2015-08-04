@@ -41,14 +41,15 @@
 #include "EmbeddedResources.h"
 #include "OrthancInitialization.h"
 #include "../Core/Toolbox.h"
+#include "../Core/Logging.h"
 #include "../Core/Uuid.h"
 #include "../Core/DicomFormat/DicomArray.h"
+
 #include "FromDcmtkBridge.h"
 #include "ServerContext.h"
 
 #include <boost/lexical_cast.hpp>
 #include <stdio.h>
-#include <glog/logging.h>
 
 static const uint64_t MEGA_BYTES = 1024 * 1024;
 

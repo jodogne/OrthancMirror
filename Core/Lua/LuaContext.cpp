@@ -33,8 +33,9 @@
 #include "../PrecompiledHeaders.h"
 #include "LuaContext.h"
 
+#include "../Logging.h"
+
 #include <set>
-#include <glog/logging.h>
 #include <cassert>
 #include <boost/lexical_cast.hpp>
 

@@ -33,6 +33,7 @@
 #include "../PrecompiledHeadersServer.h"
 #include "DicomServer.h"
 
+#include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
 #include "../../Core/Toolbox.h"
 #include "../../Core/Uuid.h"
@@ -43,7 +44,6 @@
 #include <boost/thread.hpp>
 #include <boost/filesystem.hpp>
 #include <dcmtk/dcmdata/dcdict.h>
-#include <glog/logging.h>
 
 #if defined(__linux)
 #include <cstdlib>

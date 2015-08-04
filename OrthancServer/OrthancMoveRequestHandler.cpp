@@ -33,11 +33,10 @@
 #include "PrecompiledHeadersServer.h"
 #include "OrthancMoveRequestHandler.h"
 
-#include <glog/logging.h>
-
 #include "OrthancInitialization.h"
 #include "FromDcmtkBridge.h"
 #include "../Core/DicomFormat/DicomArray.h"
+#include "../Core/Logging.h"
 
 namespace Orthanc
 {

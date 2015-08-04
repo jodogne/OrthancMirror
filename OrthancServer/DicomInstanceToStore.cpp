@@ -33,9 +33,9 @@
 #include "DicomInstanceToStore.h"
 
 #include "FromDcmtkBridge.h"
+#include "../Core/Logging.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
-#include <glog/logging.h>
 
 
 namespace Orthanc

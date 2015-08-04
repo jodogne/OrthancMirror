@@ -34,6 +34,7 @@
 #include "Toolbox.h"
 
 #include "OrthancException.h"
+#include "Logging.h"
 
 #include <string>
 #include <stdint.h>
@@ -51,10 +52,6 @@
 
 #if BOOST_HAS_REGEX == 1
 #include <boost/regex.hpp> 
-#endif
-
-#if HAVE_GOOGLE_LOG == 1
-#include <glog/logging.h>
 #endif
 
 #if defined(_WIN32)
@@ -1135,10 +1132,7 @@ namespace Orthanc
     if (pid == -1)
     {
       // Error in fork()
-#if HAVE_GOOGLE_LOG == 1
       LOG(ERROR) << "Cannot fork a child process";
-#endif
-
       throw OrthancException(ErrorCode_SystemCommand);
     }
     else if (pid == 0)
@@ -1158,10 +1152,7 @@ namespace Orthanc
 
     if (status != 0)
     {
-#if HAVE_GOOGLE_LOG == 1
       LOG(ERROR) << "System command failed with status code " << status;
-#endif
-
       throw OrthancException(ErrorCode_SystemCommand);
     }
   }

@@ -47,7 +47,7 @@
 #include <string.h>
 
 #if ORTHANC_SQLITE_STANDALONE != 1
-#include <glog/logging.h>
+#include "../Logging.h"
 #endif
 
 #include "sqlite3.h"
