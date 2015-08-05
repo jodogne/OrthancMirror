@@ -189,14 +189,12 @@ namespace Orthanc
       boost::filesystem::path log, link;
       GetLogPath(log, link, level, directory);
 
-      printf("[%s]\n", log.string().c_str());
-
 #if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
       boost::filesystem::remove(link);
       boost::filesystem::create_symlink(log.filename(), link);
 #endif
 
-      file.reset(new std::ofstream(log.c_str()));
+      file.reset(new std::ofstream(log.string().c_str()));
       stream = file.get();
     }
 

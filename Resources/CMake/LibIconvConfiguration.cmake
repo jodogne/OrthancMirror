@@ -35,6 +35,9 @@ unset(BROKEN_WCHAR_H)
 unset(EILSEQ)
 unset(HAVE_WCHAR_T)   
 
+# Create an empty "config.h" for libiconv
+file(WRITE ${LIBICONV_SOURCES_DIR}/include/config.h "")
+
 include_directories(
   ${LIBICONV_SOURCES_DIR}/include
   )

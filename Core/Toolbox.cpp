@@ -437,7 +437,7 @@ namespace Orthanc
     {
       return static_cast<uint64_t>(boost::filesystem::file_size(path));
     }
-    catch (boost::filesystem::filesystem_error)
+    catch (boost::filesystem::filesystem_error&)
     {
       throw OrthancException(ErrorCode_InexistentFile);
     }
