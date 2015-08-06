@@ -94,6 +94,7 @@ namespace Orthanc
  *********************************************************/
 
 #include "OrthancException.h"
+#include "Enumerations.h"
 #include "Toolbox.h"
 
 #include <fstream>
@@ -109,27 +110,36 @@ namespace Orthanc
 
 namespace
 {
-  struct NullStream : public std::ostream 
+  struct LoggingState
   {
-    NullStream() : std::ios(0), std::ostream(0)
+    bool infoEnabled_;
+    bool traceEnabled_;
+
+    std::ostream* error_;
+    std::ostream* warning_;
+    std::ostream* info_;
+
+    std::auto_ptr<std::ofstream> errorFile_;
+    std::auto_ptr<std::ofstream> warningFile_;
+    std::auto_ptr<std::ofstream> infoFile_;
+
+    LoggingState() : 
+      infoEnabled_(false),
+      traceEnabled_(false),
+      error_(&std::cerr),
+      warning_(&std::cerr),
+      info_(&std::cerr)
     {
     }
   };
 }
 
 
-static boost::mutex  mutex_;
-static bool infoEnabled_ = false;
-static bool traceEnabled_ = false;
 
-static std::ostream* error_ = &std::cerr;
-static std::ostream* warning_ = &std::cerr;
-static std::ostream* info_ = &std::cerr;
-static NullStream null_;
+static std::auto_ptr<LoggingState> loggingState_;
+static boost::mutex  loggingMutex_;
 
-static std::auto_ptr<std::ofstream> errorFile_;
-static std::auto_ptr<std::ofstream> warningFile_;
-static std::auto_ptr<std::ofstream> infoFile_;
+
 
 namespace Orthanc
 {
@@ -201,77 +211,76 @@ namespace Orthanc
 
     void Initialize()
     {
-      infoEnabled_ = false;
-      traceEnabled_ = false;
+      boost::mutex::scoped_lock lock(loggingMutex_);
+      loggingState_.reset(new LoggingState);
     }
 
     void Finalize()
     {
-      errorFile_.reset(NULL);
-      warningFile_.reset(NULL);
-      infoFile_.reset(NULL);
+      boost::mutex::scoped_lock lock(loggingMutex_);
+      loggingState_.reset(NULL);
     }
 
     void EnableInfoLevel(bool enabled)
     {
-      boost::mutex::scoped_lock lock(mutex_);
-      infoEnabled_ = enabled;
+      boost::mutex::scoped_lock lock(loggingMutex_);
+      assert(loggingState_.get() != NULL);
+
+      loggingState_->infoEnabled_ = enabled;
     }
 
     void EnableTraceLevel(bool enabled)
     {
-      boost::mutex::scoped_lock lock(mutex_);
-      traceEnabled_ = enabled;
+      boost::mutex::scoped_lock lock(loggingMutex_);
+      assert(loggingState_.get() != NULL);
+
+      loggingState_->traceEnabled_ = enabled;
       
       if (enabled)
       {
         // Also enable the "INFO" level when trace-level debugging is enabled
-        infoEnabled_ = true;
+        loggingState_->infoEnabled_ = true;
       }
     }
 
     void SetTargetFolder(const std::string& path)
     {
-      boost::mutex::scoped_lock lock(mutex_);
-      PrepareLogFile(error_, errorFile_, "ERROR", path);
-      PrepareLogFile(warning_, warningFile_, "WARNING", path);
-      PrepareLogFile(info_, infoFile_, "INFO", path);
+      boost::mutex::scoped_lock lock(loggingMutex_);
+      assert(loggingState_.get() != NULL);
+
+      PrepareLogFile(loggingState_->error_,   loggingState_->errorFile_,   "ERROR", path);
+      PrepareLogFile(loggingState_->warning_, loggingState_->warningFile_, "WARNING", path);
+      PrepareLogFile(loggingState_->info_,    loggingState_->infoFile_,    "INFO", path);
     }
 
     InternalLogger::InternalLogger(const char* level,
                                    const char* file,
                                    int line) : 
-      lock_(mutex_)
+      lock_(loggingMutex_), 
+      stream_(&null_)  // By default, logging to "/dev/null" is simulated
     {
-      char c;
-
-      if (strcmp(level, "ERROR") == 0)
+      if (loggingState_.get() == NULL)
       {
-        stream_ = error_;
-        c = 'E';
-      }
-      else if (strcmp(level, "WARNING") == 0)
-      {
-        stream_ = warning_;
-        c = 'W';
-      }
-      else if (strcmp(level, "INFO") == 0)
-      {
-        stream_ = infoEnabled_ ? info_ : &null_;
-        c = 'I';
-      }
-      else if (strcmp(level, "TRACE") == 0)
-      {
-        stream_ = traceEnabled_ ? info_ : &null_;
-        c = 'T';
-      }
-      else 
-      {
-        // Unknown logging level
-        throw OrthancException(ErrorCode_InternalError);
+        fprintf(stderr, "ERROR: Trying to log a message after the finalization of the logging engine\n");
+        return;
       }
 
-      if (stream_ != &null_)
+      LogLevel l = StringToLogLevel(level);
+      
+      if ((l == LogLevel_Info  && !loggingState_->infoEnabled_) ||
+          (l == LogLevel_Trace && !loggingState_->traceEnabled_))
+      {
+        // This logging level is disabled, directly exit and unlock
+        // the mutex to speed-up things. The stream is set to "/dev/null"
+        lock_.unlock();
+        return;
+      }
+
+      // Compute the header of the line, temporary release the lock as
+      // this is a time-consuming operation
+      lock_.unlock();
+      std::string header;
+
       {
         boost::filesystem::path path(file);
         boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
@@ -299,7 +308,8 @@ namespace Orthanc
          **/
 
         char date[32];
-        sprintf(date, "%c%02d%02d %02d:%02d:%02d.%06d ", c, 
+        sprintf(date, "%c%02d%02d %02d:%02d:%02d.%06d ",
+                level[0],
                 now.date().month().as_number(),
                 now.date().day().as_number(),
                 duration.hours(),
@@ -307,8 +317,61 @@ namespace Orthanc
                 duration.seconds(),
                 static_cast<int>(duration.fractional_seconds()));
 
-        *stream_ << date << path.filename().string() << ":" << line << "] ";
+        header = std::string(date) + path.filename().string() + ":" + boost::lexical_cast<std::string>(line) + "] ";
       }
+
+
+      // The header is computed, we now re-lock the mutex to access
+      // the stream objects. Pay attention that "loggingState_",
+      // "infoEnabled_" or "traceEnabled_" might have changed while
+      // the mutex was unlocked.
+      lock_.lock();
+
+      if (loggingState_.get() == NULL)
+      {
+        fprintf(stderr, "ERROR: Trying to log a message after the finalization of the logging engine\n");
+        return;
+      }
+
+      switch (l)
+      {
+        case LogLevel_Error:
+          stream_ = loggingState_->error_;
+          break;
+
+        case LogLevel_Warning:
+          stream_ = loggingState_->warning_;
+          break;
+
+        case LogLevel_Info:
+          if (loggingState_->infoEnabled_)
+          {
+            stream_ = loggingState_->info_;
+          }
+
+          break;
+
+        case LogLevel_Trace:
+          if (loggingState_->traceEnabled_)
+          {
+            stream_ = loggingState_->info_;
+          }
+
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+
+      if (stream_ == &null_)
+      {
+        // The logging is disabled for this level. The stream is the
+        // "null_" member of this object, so we can release the global
+        // mutex.
+        lock_.unlock();
+      }
+
+      (*stream_) << header;
     }
   }
 }

@@ -36,6 +36,8 @@
 #include "OrthancException.h"
 #include "Toolbox.h"
 
+#include <string.h>
+
 namespace Orthanc
 {
   const char* EnumerationToString(HttpMethod method)
@@ -368,6 +370,28 @@ namespace Orthanc
   }
 
 
+  const char* EnumerationToString(LogLevel level)
+  {
+    switch (level)
+    {
+      case LogLevel_Error:
+        return "ERROR";
+
+      case LogLevel_Warning:
+        return "WARNING";
+
+      case LogLevel_Info:
+        return "INFO";
+
+      case LogLevel_Trace:
+        return "TRACE";
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
   Encoding StringToEncoding(const char* encoding)
   {
     std::string s(encoding);
@@ -490,6 +514,31 @@ namespace Orthanc
     }
 
     throw OrthancException(ErrorCode_ParameterOutOfRange);
+  }
+
+
+  LogLevel StringToLogLevel(const char *level)
+  {
+    if (strcmp(level, "ERROR") == 0)
+    {
+      return LogLevel_Error;
+    }
+    else if (strcmp(level, "WARNING") == 0)
+    {
+      return LogLevel_Warning;
+    }
+    else if (strcmp(level, "INFO") == 0)
+    {
+      return LogLevel_Info;
+    }
+    else if (strcmp(level, "TRACE") == 0)
+    {
+      return LogLevel_Trace;
+    }
+    else 
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
   }
 
 
