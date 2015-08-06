@@ -76,6 +76,14 @@ namespace Orthanc
     ErrorCode_Plugin
   };
 
+  enum LogLevel
+  {
+    LogLevel_Error,
+    LogLevel_Warning,
+    LogLevel_Info,
+    LogLevel_Trace
+  };
+
 
   /**
    * {summary}{The memory layout of the pixels (resp. voxels) of a 2D (resp. 3D) image.}
@@ -330,11 +338,15 @@ namespace Orthanc
 
   const char* EnumerationToString(PhotometricInterpretation photometric);
 
+  const char* EnumerationToString(LogLevel level);
+
   Encoding StringToEncoding(const char* encoding);
 
   ResourceType StringToResourceType(const char* type);
 
   ImageFormat StringToImageFormat(const char* format);
+
+  LogLevel StringToLogLevel(const char* format);
 
   unsigned int GetBytesPerPixel(PixelFormat format);
 
