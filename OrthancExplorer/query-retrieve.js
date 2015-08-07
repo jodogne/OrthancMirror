@@ -45,6 +45,35 @@ $('#query-retrieve').live('pagebeforeshow', function() {
 });
 
 
+$('#qr-echo').live('click', function() {
+  var server = $('#qr-server').val();
+  var message = 'Error: The C-Echo has failed!';
+
+  $.ajax({
+    url: '../modalities/' + server + '/echo',
+    type: 'POST', 
+    cache: false,
+    async: false,
+    success: function() {
+      message = 'The C-Echo has succeeded!';
+    }
+  });
+
+  $('<div>').simpledialog2({
+    mode: 'button',
+    headerText: 'Echo result',
+    headerClose: true,
+    buttonPrompt: message,
+    animate: false,
+    buttons : {
+      'OK': { click: function () { } }
+    }
+  });
+
+  return false;
+});
+
+
 $('#qr-submit').live('click', function() {
   var query = {
     'Level' : 'Study',
