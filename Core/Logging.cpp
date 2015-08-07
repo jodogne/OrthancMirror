@@ -373,6 +373,23 @@ namespace Orthanc
 
       (*stream_) << header;
     }
+
+
+    InternalLogger::~InternalLogger()
+    {
+      if (stream_ != &null_)
+      {
+#if defined(_WIN32)
+        *stream_ << "\r\n";
+#else
+        *stream_ << "\n";
+#endif
+
+        stream_->flush();
+      }
+    }
+      
+
   }
 }
 
