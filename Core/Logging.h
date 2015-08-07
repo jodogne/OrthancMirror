@@ -81,14 +81,7 @@ namespace Orthanc
                      const char* file,
                      int line);
 
-      ~InternalLogger()
-      {
-#if defined(_WIN32)
-        *stream_ << "\r\n";
-#else
-        *stream_ << "\n";
-#endif
-      }
+      ~InternalLogger();
       
       std::ostream& operator<< (const std::string& message)
       {
