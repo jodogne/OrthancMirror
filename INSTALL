@@ -41,12 +41,15 @@ To build Orthanc, you must:
 3) Depending on your platform, follow the build instructions below.
 
 
-WARNING: If you do not create a fresh "~/OrthancBuild" directory after
-upgrading the source code (i.e. if you reuse the build directory that
-was used to build a different version of Orthanc), the build might
-fail because of changes in the compilation/linking flags. Always
+WARNING 1: If you do not create a fresh "~/OrthancBuild" directory
+after upgrading the source code (i.e. if you reuse the build directory
+that was used to build a different version of Orthanc), the build
+might fail because of changes in the compilation/linking flags. Always
 prefer to force a re-build in a new directory.
 
+WARNING 2: If cmake complains about not being able to uncompress
+third-party dependencies, delete the "~/Orthanc/ThirdPartyDownloads/"
+folder, then restart cmake.
 
 
 Native Linux Compilation
