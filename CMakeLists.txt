@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.8)
 project(Orthanc)
 
 # Version of the build, should always be "mainline" except in release branches
-set(ORTHANC_VERSION "0.9.3")
+set(ORTHANC_VERSION "mainline")
 
 # Version of the database schema. History:
 #   * Orthanc 0.1.0 -> Orthanc 0.3.0 = no versioning
