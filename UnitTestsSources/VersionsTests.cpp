@@ -90,6 +90,7 @@ TEST(Versions, Lua)
 
 
 #if ORTHANC_STATIC == 1
+
 TEST(Versions, ZlibStatic)
 {
   ASSERT_STREQ("1.2.7", zlibVersion());
@@ -134,6 +135,14 @@ TEST(Version, LuaStatic)
 TEST(Version, OpenSslStatic)
 {
   ASSERT_EQ(0x1000107fL /* openssl-1.0.1g */, OPENSSL_VERSION_NUMBER);
+}
+
+
+#include <json/version.h>
+
+TEST(Version, JsonCpp)
+{
+  ASSERT_STREQ("0.10.5", JSONCPP_VERSION_STRING);
 }
 
 #endif

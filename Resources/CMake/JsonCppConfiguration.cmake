@@ -1,8 +1,8 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_JSONCPP)
-  set(JSONCPP_SOURCES_DIR ${CMAKE_BINARY_DIR}/jsoncpp-src-0.6.0-rc2)
+  set(JSONCPP_SOURCES_DIR ${CMAKE_BINARY_DIR}/jsoncpp-0.10.5)
   DownloadPackage(
-    "363e2f4cbd3aeb63bf4e571f377400fb"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/jsoncpp-src-0.6.0-rc2.tar.gz"
+    "db146bac5a126ded9bd728ab7b61ed6b"
+    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/jsoncpp-0.10.5.tar.gz"
     "${JSONCPP_SOURCES_DIR}")
 
   set(JSONCPP_SOURCES
