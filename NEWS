@@ -1,6 +1,10 @@
 Pending changes in the mainline
 ===============================
 
+
+Version 0.9.3 (2015/08/07)
+==========================
+
 * C-Echo testing can be triggered from Orthanc Explorer (in the query/retrieve page)
 * Removal of the dependency upon Google Log, Orthanc now uses its internal logger 
   (use -DENABLE_GOOGLE_LOG=ON to re-enable Google Log)
