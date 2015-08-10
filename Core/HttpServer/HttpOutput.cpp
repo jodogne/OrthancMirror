@@ -36,6 +36,7 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
+#include "../Compression/GzipCompressor.h"
 #include "../Compression/ZlibCompressor.h"
 
 #include <iostream>
@@ -275,16 +276,27 @@ namespace Orthanc
           break;
         }
 
+        case HttpCompression_Gzip:
         case HttpCompression_Deflate:
         {
-          LOG(TRACE) << "Compressing a HTTP answer using Deflate";
-          ZlibCompressor compressor;
+          std::string compressed, encoding;
 
-          // Do not prefix the buffer with its uncompressed size, to be compatible with "deflate"
-          compressor.SetPrefixWithUncompressedSize(false);  
+          if (compression == HttpCompression_Deflate)
+          {
+            encoding = "deflate";
+            ZlibCompressor compressor;
+            // Do not prefix the buffer with its uncompressed size, to be compatible with "deflate"
+            compressor.SetPrefixWithUncompressedSize(false);  
+            compressor.Compress(compressed, buffer, length);
+          }
+          else
+          {
+            encoding = "gzip";
+            GzipCompressor compressor;
+            compressor.Compress(compressed, buffer, length);
+          }
 
-          std::string compressed;
-          compressor.Compress(compressed, buffer, length);
+          LOG(TRACE) << "Compressing a HTTP answer using " << encoding;
 
           // The body is empty, do not use Deflate compression
           if (compressed.size() == 0)
@@ -293,7 +305,7 @@ namespace Orthanc
           }
           else
           {
-            stateMachine_.AddHeader("Content-Encoding", "deflate");
+            stateMachine_.AddHeader("Content-Encoding", encoding);
             stateMachine_.SendBody(compressed.c_str(), compressed.size());
           }
 

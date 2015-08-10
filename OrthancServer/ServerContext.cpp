@@ -214,7 +214,8 @@ namespace Orthanc
 
       if (compressionEnabled_)
       {
-        accessor_.SetCompressionForNextOperations(CompressionType_Zlib);
+        // TODO Should we use "gzip" instead?
+        accessor_.SetCompressionForNextOperations(CompressionType_ZlibWithSize);
       }
       else
       {
@@ -403,7 +404,8 @@ namespace Orthanc
     
     if (compressionEnabled_)
     {
-      accessor_.SetCompressionForNextOperations(CompressionType_Zlib);
+      // TODO Should we use "gzip" instead?
+      accessor_.SetCompressionForNextOperations(CompressionType_ZlibWithSize);
     }
     else
     {

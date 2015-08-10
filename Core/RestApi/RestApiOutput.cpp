@@ -45,7 +45,8 @@ namespace Orthanc
                                HttpMethod method) : 
     output_(output),
     method_(method),
-    compression_(HttpCompression_None),
+    allowDeflateCompression_(false),
+    allowGzipCompression_(false),
     convertJsonToXml_(false)
   {
     alreadySent_ = false;
@@ -78,6 +79,24 @@ namespace Orthanc
     }
   }
 
+
+  HttpCompression  RestApiOutput::GetPreferredCompression() const
+  {
+    if (allowGzipCompression_)
+    {
+      return HttpCompression_Gzip;
+    }
+    else if (allowDeflateCompression_)
+    {
+      return HttpCompression_Deflate;
+    }
+    else
+    {
+      return HttpCompression_None;
+    }
+  }
+
+
   void RestApiOutput::AnswerFile(HttpFileSender& sender)
   {
     CheckStatus();
@@ -95,7 +114,7 @@ namespace Orthanc
       std::string s;
       Toolbox::JsonToXml(s, value);
       output_.SetContentType("application/xml");
-      output_.SendBody(s, compression_);
+      output_.SendBody(s, GetPreferredCompression());
 #else
       LOG(ERROR) << "Orthanc was compiled without XML support";
       throw OrthancException(ErrorCode_InternalError);
@@ -105,7 +124,7 @@ namespace Orthanc
     {
       Json::StyledWriter writer;
       output_.SetContentType("application/json");
-      output_.SendBody(writer.write(value), compression_);
+      output_.SendBody(writer.write(value), GetPreferredCompression());
     }
 
     alreadySent_ = true;
@@ -114,10 +133,8 @@ namespace Orthanc
   void RestApiOutput::AnswerBuffer(const std::string& buffer,
                                    const std::string& contentType)
   {
-    CheckStatus();
-    output_.SetContentType(contentType.c_str());
-    output_.SendBody(buffer, compression_);
-    alreadySent_ = true;
+    AnswerBuffer(buffer.size() == 0 ? NULL : buffer.c_str(),
+                 buffer.size(), contentType);
   }
 
   void RestApiOutput::AnswerBuffer(const void* buffer,
@@ -126,7 +143,7 @@ namespace Orthanc
   {
     CheckStatus();
     output_.SetContentType(contentType.c_str());
-    output_.SendBody(buffer, length, compression_);
+    output_.SendBody(buffer, length, GetPreferredCompression());
     alreadySent_ = true;
   }
 

@@ -42,13 +42,16 @@ namespace Orthanc
   class RestApiOutput
   {
   private:
-    HttpOutput&      output_;
-    HttpMethod       method_;
-    HttpCompression  compression_;
-    bool             alreadySent_;
-    bool             convertJsonToXml_;
+    HttpOutput&  output_;
+    HttpMethod   method_;
+    bool         allowDeflateCompression_;
+    bool         allowGzipCompression_;
+    bool         alreadySent_;
+    bool         convertJsonToXml_;
 
     void CheckStatus();
+
+    HttpCompression  GetPreferredCompression() const;
 
   public:
     RestApiOutput(HttpOutput& output,
@@ -76,14 +79,14 @@ namespace Orthanc
       return convertJsonToXml_;
     }
 
-    void SetHttpCompression(HttpCompression compression)
+    void AllowDeflateCompression(bool allow)
     {
-      compression_ = compression;
+      allowDeflateCompression_ = allow;
     }
 
-    HttpCompression GetHttpCompression() const
+    void AllowGzipCompression(bool allow)
     {
-      return compression_;
+      allowGzipCompression_ = allow;
     }
 
     void AnswerFile(HttpFileSender& sender);
