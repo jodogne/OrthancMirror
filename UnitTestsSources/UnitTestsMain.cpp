@@ -98,14 +98,6 @@ TEST(Toolbox, IsSHA1)
   ASSERT_FALSE(Toolbox::IsSHA1("b5ed549f-956400ce-69a8c063-bf5b78be-2732a4b_"));
 }
 
-static void StringToVector(std::vector<uint8_t>& v,
-                           const std::string& s)
-{
-  v.resize(s.size());
-  for (size_t i = 0; i < s.size(); i++)
-    v[i] = s[i];
-}
-
 
 TEST(Zlib, Basic)
 {
@@ -114,20 +106,10 @@ TEST(Zlib, Basic)
  
   std::string compressed, compressed2;
   ZlibCompressor c;
-  c.Compress(compressed, s);
-
-  std::vector<uint8_t> v, vv;
-  StringToVector(v, s);
-  c.Compress(compressed2, v);
-  ASSERT_EQ(compressed, compressed2);
+  IBufferCompressor::Compress(compressed, c, s);
 
   std::string uncompressed;
-  c.Uncompress(uncompressed, compressed);
-  ASSERT_EQ(s.size(), uncompressed.size());
-  ASSERT_EQ(0, memcmp(&s[0], &uncompressed[0], s.size()));
-
-  StringToVector(vv, compressed);
-  c.Uncompress(uncompressed, vv);
+  IBufferCompressor::Uncompress(uncompressed, c, compressed);
   ASSERT_EQ(s.size(), uncompressed.size());
   ASSERT_EQ(0, memcmp(&s[0], &uncompressed[0], s.size()));
 }
@@ -141,10 +123,10 @@ TEST(Zlib, Level)
   std::string compressed, compressed2;
   ZlibCompressor c;
   c.SetCompressionLevel(9);
-  c.Compress(compressed, s);
+  IBufferCompressor::Compress(compressed, c, s);
 
   c.SetCompressionLevel(0);
-  c.Compress(compressed2, s);
+  IBufferCompressor::Compress(compressed2, c, s);
 
   ASSERT_TRUE(compressed.size() < compressed2.size());
 }
@@ -157,32 +139,26 @@ TEST(Zlib, DISABLED_Corrupted)  // Disabled because it may result in a crash
  
   std::string compressed;
   ZlibCompressor c;
-  c.Compress(compressed, s);
+  IBufferCompressor::Compress(compressed, c, s);
 
   compressed[compressed.size() - 1] = 'a';
   std::string u;
 
-  ASSERT_THROW(c.Uncompress(u, compressed), OrthancException);
+  ASSERT_THROW(IBufferCompressor::Uncompress(u, c, compressed), OrthancException);
 }
 
 
 TEST(Zlib, Empty)
 {
   std::string s = "";
-  std::vector<uint8_t> v, vv;
  
   std::string compressed, compressed2;
   ZlibCompressor c;
-  c.Compress(compressed, s);
-  c.Compress(compressed2, v);
+  IBufferCompressor::Compress(compressed, c, s);
   ASSERT_EQ(compressed, compressed2);
 
   std::string uncompressed;
-  c.Uncompress(uncompressed, compressed);
-  ASSERT_EQ(0u, uncompressed.size());
-
-  StringToVector(vv, compressed);
-  c.Uncompress(uncompressed, vv);
+  IBufferCompressor::Uncompress(uncompressed, c, compressed);
   ASSERT_EQ(0u, uncompressed.size());
 }
 

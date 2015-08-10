@@ -33,16 +33,14 @@
 #pragma once
 
 #include <string>
-#include <cstddef>
-#include <stdint.h>
-#include <vector>
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class BufferCompressor
+  class IBufferCompressor : public boost::noncopyable
   {
   public:
-    virtual ~BufferCompressor()
+    virtual ~IBufferCompressor()
     {
     }
 
@@ -54,16 +52,22 @@ namespace Orthanc
                             const void* compressed,
                             size_t compressedSize) = 0;
 
-    virtual void Compress(std::string& compressed,
-                          const std::vector<uint8_t>& uncompressed);
+    static void Compress(std::string& compressed,
+                         IBufferCompressor& compressor,
+                         const std::string& uncompressed)
+    {
+      compressor.Compress(compressed, 
+                          uncompressed.size() == 0 ? NULL : uncompressed.c_str(), 
+                          uncompressed.size());
+    }
 
-    virtual void Uncompress(std::string& uncompressed,
-                            const std::vector<uint8_t>& compressed);
-
-    virtual void Compress(std::string& compressed,
-                          const std::string& uncompressed);
-
-    virtual void Uncompress(std::string& uncompressed,
-                            const std::string& compressed);
+    static void Uncompress(std::string& uncompressed,
+                           IBufferCompressor& compressor,
+                           const std::string& compressed)
+    {
+      compressor.Uncompress(uncompressed, 
+                            compressed.size() == 0 ? NULL : compressed.c_str(), 
+                            compressed.size());
+    }
   };
 }

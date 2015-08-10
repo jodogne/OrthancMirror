@@ -135,7 +135,7 @@ namespace Orthanc
     {
       std::string compressed;
       GetStorageArea().Read(compressed, uuid, type);
-      zlib_.Uncompress(content, compressed);
+      IBufferCompressor::Uncompress(content, zlib_, compressed);
       break;
     }
 
@@ -161,7 +161,7 @@ namespace Orthanc
       GetStorageArea().Read(compressed, uuid, type);
 
       std::auto_ptr<BufferHttpSender> sender(new BufferHttpSender);
-      zlib_.Uncompress(sender->GetBuffer(), compressed);
+      IBufferCompressor::Uncompress(sender->GetBuffer(), zlib_, compressed);
 
       return sender.release();
     }        

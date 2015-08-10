@@ -82,10 +82,10 @@ set(ORTHANC_CORE_SOURCES
   Core/Cache/MemoryCache.cpp
   Core/Cache/SharedArchive.cpp
   Core/ChunkedBuffer.cpp
-  Core/Compression/BufferCompressor.cpp
-  Core/Compression/ZlibCompressor.cpp
-  Core/Compression/ZipWriter.cpp
+  Core/Compression/DeflateBaseCompressor.cpp
   Core/Compression/HierarchicalZipWriter.cpp
+  Core/Compression/ZipWriter.cpp
+  Core/Compression/ZlibCompressor.cpp
   Core/OrthancException.cpp
   Core/DicomFormat/DicomArray.cpp
   Core/DicomFormat/DicomMap.cpp
