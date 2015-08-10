@@ -146,9 +146,12 @@ namespace Orthanc
       stateMachine_.AddHeader(key, value);
     }
 
-    void SendBody(const void* buffer, size_t length);
+    void SendBody(const void* buffer, 
+                  size_t length,
+                  HttpCompression compression = HttpCompression_None);
 
-    void SendBody(const std::string& str);
+    void SendBody(const std::string& str,
+                  HttpCompression compression = HttpCompression_None);
 
     void SendBody();
 

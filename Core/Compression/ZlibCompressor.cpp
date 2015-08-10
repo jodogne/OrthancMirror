@@ -61,24 +61,31 @@ namespace Orthanc
       return;
     }
 
-    uLongf compressedSize = compressBound(uncompressedSize);
-    compressed.resize(compressedSize + sizeof(size_t));
-
-    int error = compress2
-      (reinterpret_cast<uint8_t*>(&compressed[0]) + sizeof(size_t),
-       &compressedSize,
-       const_cast<Bytef *>(static_cast<const Bytef *>(uncompressed)), 
-       uncompressedSize,
-       compressionLevel_);
-
-    memcpy(&compressed[0], &uncompressedSize, sizeof(size_t));
-  
-    if (error == Z_OK)
+    uLongf compressedSize = compressBound(uncompressedSize) + 1024 /* security margin */;
+    if (compressedSize == 0)
     {
-      compressed.resize(compressedSize + sizeof(size_t));
-      return;
+      compressedSize = 1;
+    }
+
+    uint8_t* target;
+    if (prefixWithUncompressedSize_)
+    {
+      compressed.resize(compressedSize + sizeof(uint64_t));
+      target = reinterpret_cast<uint8_t*>(&compressed[0]) + sizeof(uint64_t);
     }
     else
+    {
+      compressed.resize(compressedSize);
+      target = reinterpret_cast<uint8_t*>(&compressed[0]);
+    }
+
+    int error = compress2(target,
+                          &compressedSize,
+                          const_cast<Bytef *>(static_cast<const Bytef *>(uncompressed)), 
+                          uncompressedSize,
+                          compressionLevel_);
+
+    if (error != Z_OK)
     {
       compressed.clear();
 
@@ -90,6 +97,18 @@ namespace Orthanc
       default:
         throw OrthancException(ErrorCode_InternalError);
       }  
+    }
+
+    // The compression was successful
+    if (prefixWithUncompressedSize_)
+    {
+      uint64_t s = static_cast<uint64_t>(uncompressedSize);
+      memcpy(&compressed[0], &s, sizeof(uint64_t));
+      compressed.resize(compressedSize + sizeof(uint64_t));
+    }
+    else
+    {
+      compressed.resize(compressedSize);
     }
   }
 
@@ -104,29 +123,29 @@ namespace Orthanc
       return;
     }
 
-    if (compressedSize < sizeof(size_t))
+    if (compressedSize < sizeof(uint64_t))
     {
       throw OrthancException("Zlib: The compressed buffer is ill-formed");
     }
 
-    size_t uncompressedLength;
-    memcpy(&uncompressedLength, compressed, sizeof(size_t));
+    uint64_t uncompressedSize;
+    memcpy(&uncompressedSize, compressed, sizeof(uint64_t));
     
     try
     {
-      uncompressed.resize(uncompressedLength);
+      uncompressed.resize(uncompressedSize);
     }
     catch (...)
     {
       throw OrthancException("Zlib: Corrupted compressed buffer");
     }
 
-    uLongf tmp = uncompressedLength;
+    uLongf tmp = uncompressedSize;
     int error = uncompress
       (reinterpret_cast<uint8_t*>(&uncompressed[0]), 
        &tmp,
-       reinterpret_cast<const uint8_t*>(compressed) + sizeof(size_t),
-       compressedSize - sizeof(size_t));
+       reinterpret_cast<const uint8_t*>(compressed) + sizeof(uint64_t),
+       compressedSize - sizeof(uint64_t));
 
     if (error != Z_OK)
     {

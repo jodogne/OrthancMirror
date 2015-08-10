@@ -170,27 +170,50 @@ namespace Orthanc
     RestApiOutput wrappedOutput(output, method);
 
 #if ORTHANC_PUGIXML_ENABLED == 1
-    // Look if the user wishes XML answers instead of JSON
-    // http://www.w3.org/Protocols/HTTP/HTRQ_Headers.html#z3
-    Arguments::const_iterator it = headers.find("accept");
-    if (it != headers.end())
     {
-      std::vector<std::string> accepted;
-      Toolbox::TokenizeString(accepted, it->second, ';');
-      for (size_t i = 0; i < accepted.size(); i++)
+      // Look if the client wishes XML answers instead of JSON
+      // http://www.w3.org/Protocols/HTTP/HTRQ_Headers.html#z3
+      Arguments::const_iterator it = headers.find("accept");
+      if (it != headers.end())
       {
-        if (accepted[i] == "application/xml")
+        std::vector<std::string> accepted;
+        Toolbox::TokenizeString(accepted, it->second, ';');
+        for (size_t i = 0; i < accepted.size(); i++)
         {
-          wrappedOutput.SetConvertJsonToXml(true);
-        }
+          if (accepted[i] == "application/xml")
+          {
+            wrappedOutput.SetConvertJsonToXml(true);
+          }
 
-        if (accepted[i] == "application/json")
-        {
-          wrappedOutput.SetConvertJsonToXml(false);
+          if (accepted[i] == "application/json")
+          {
+            wrappedOutput.SetConvertJsonToXml(false);
+          }
         }
       }
     }
 #endif
+
+    {
+      // Look if the client wishes HTTP compression
+      // https://en.wikipedia.org/wiki/HTTP_compression
+      Arguments::const_iterator it = headers.find("accept-encoding");
+      if (it != headers.end())
+      {
+        std::vector<std::string> encodings;
+        Toolbox::TokenizeString(encodings, it->second, ',');
+        for (size_t i = 0; i < encodings.size(); i++)
+        {
+          std::string s = Toolbox::StripSpaces(encodings[i]);
+          if (s == "deflate")
+          {
+            wrappedOutput.SetHttpCompression(HttpCompression_Deflate);
+          }
+
+          // TODO HttpCompression_Gzip ?
+        }
+      }
+    }
 
     Arguments compiled;
     HttpToolbox::CompileGetArguments(compiled, getArguments);
