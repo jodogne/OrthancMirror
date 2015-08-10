@@ -33,10 +33,12 @@
 #include "../PrecompiledHeaders.h"
 #include "ZlibCompressor.h"
 
+#include "../OrthancException.h"
+#include "../Logging.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <zlib.h>
-#include "../OrthancException.h"
 
 namespace Orthanc
 {
@@ -112,13 +114,13 @@ namespace Orthanc
       return;
     }
 
-    if (compressedSize < sizeof(uint64_t))
+    if (!HasPrefixWithUncompressedSize())
     {
-      throw OrthancException("Zlib: The compressed buffer is ill-formed");
+      LOG(ERROR) << "Cannot guess the uncompressed size of a zlib-encoded buffer";
+      throw OrthancException(ErrorCode_InternalError);
     }
 
-    uint64_t uncompressedSize;
-    memcpy(&uncompressedSize, compressed, sizeof(uint64_t));
+    uint64_t uncompressedSize = ReadUncompressedSizePrefix(compressed, compressedSize);
     
     try
     {
@@ -126,7 +128,7 @@ namespace Orthanc
     }
     catch (...)
     {
-      throw OrthancException("Zlib: Corrupted compressed buffer");
+      throw OrthancException(ErrorCode_NotEnoughMemory);
     }
 
     uLongf tmp = uncompressedSize;

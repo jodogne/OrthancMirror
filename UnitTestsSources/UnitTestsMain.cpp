@@ -38,6 +38,7 @@
 #include <ctype.h>
 
 #include "../Core/Compression/ZlibCompressor.h"
+#include "../Core/Compression/GzipCompressor.h"
 #include "../Core/DicomFormat/DicomTag.h"
 #include "../Core/HttpServer/HttpToolbox.h"
 #include "../Core/Logging.h"
@@ -99,6 +100,73 @@ TEST(Toolbox, IsSHA1)
 }
 
 
+TEST(Gzip, Basic)
+{
+  std::string s = "Hello world";
+ 
+  std::string compressed;
+  GzipCompressor c;
+  ASSERT_FALSE(c.HasPrefixWithUncompressedSize());
+  IBufferCompressor::Compress(compressed, c, s);
+
+  std::string uncompressed;
+  IBufferCompressor::Uncompress(uncompressed, c, compressed);
+  ASSERT_EQ(s.size(), uncompressed.size());
+  ASSERT_EQ(0, memcmp(&s[0], &uncompressed[0], s.size()));
+}
+
+
+TEST(Gzip, Empty)
+{
+  std::string s;
+ 
+  std::string compressed;
+  GzipCompressor c;
+  ASSERT_FALSE(c.HasPrefixWithUncompressedSize());
+  c.SetPrefixWithUncompressedSize(false);
+  IBufferCompressor::Compress(compressed, c, s);
+
+  Toolbox::WriteFile(compressed, "/tmp/toto.gz");
+
+  std::string uncompressed;
+  IBufferCompressor::Uncompress(uncompressed, c, compressed);
+  ASSERT_EQ(0, uncompressed.size());
+}
+
+
+TEST(Gzip, BasicWithPrefix)
+{
+  std::string s = "Hello world";
+ 
+  std::string compressed;
+  GzipCompressor c;
+  c.SetPrefixWithUncompressedSize(true);
+  ASSERT_TRUE(c.HasPrefixWithUncompressedSize());
+  IBufferCompressor::Compress(compressed, c, s);
+
+  std::string uncompressed;
+  IBufferCompressor::Uncompress(uncompressed, c, compressed);
+  ASSERT_EQ(s.size(), uncompressed.size());
+  ASSERT_EQ(0, memcmp(&s[0], &uncompressed[0], s.size()));
+}
+
+
+TEST(Gzip, EmptyWithPrefix)
+{
+  std::string s;
+ 
+  std::string compressed;
+  GzipCompressor c;
+  c.SetPrefixWithUncompressedSize(true);
+  ASSERT_TRUE(c.HasPrefixWithUncompressedSize());
+  IBufferCompressor::Compress(compressed, c, s);
+
+  std::string uncompressed;
+  IBufferCompressor::Uncompress(uncompressed, c, compressed);
+  ASSERT_EQ(0, uncompressed.size());
+}
+
+
 TEST(Zlib, Basic)
 {
   std::string s = Toolbox::GenerateUuid();
@@ -106,6 +174,7 @@ TEST(Zlib, Basic)
  
   std::string compressed, compressed2;
   ZlibCompressor c;
+  ASSERT_TRUE(c.HasPrefixWithUncompressedSize());
   IBufferCompressor::Compress(compressed, c, s);
 
   std::string uncompressed;

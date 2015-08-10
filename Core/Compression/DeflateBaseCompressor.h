@@ -44,6 +44,10 @@ namespace Orthanc
     uint8_t compressionLevel_;
     bool    prefixWithUncompressedSize_;
 
+  protected:
+    uint64_t ReadUncompressedSizePrefix(const void* compressed,
+                                        size_t compressedSize);
+
   public:
     DeflateBaseCompressor() : 
       compressionLevel_(6),
