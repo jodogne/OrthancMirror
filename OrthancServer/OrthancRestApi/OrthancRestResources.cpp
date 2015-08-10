@@ -80,7 +80,31 @@ namespace Orthanc
     ServerIndex& index = OrthancRestApi::GetIndex(call);
 
     std::list<std::string> result;
-    index.GetAllUuids(result, resourceType);
+
+    if (call.HasArgument("limit") ||
+        call.HasArgument("since"))
+    {
+      if (!call.HasArgument("limit"))
+      {
+        LOG(ERROR) << "Missing \"limit\" argument for GET request against: " << call.FlattenUri();
+        throw OrthancException(ErrorCode_BadRequest);
+      }
+
+      if (!call.HasArgument("since"))
+      {
+        LOG(ERROR) << "Missing \"since\" argument for GET request against: " << call.FlattenUri();
+        throw OrthancException(ErrorCode_BadRequest);
+      }
+
+      size_t since = boost::lexical_cast<size_t>(call.GetArgument("since", ""));
+      size_t limit = boost::lexical_cast<size_t>(call.GetArgument("limit", ""));
+      index.GetAllUuids(result, resourceType, since, limit);
+    }
+    else
+    {
+      index.GetAllUuids(result, resourceType);
+    }
+
 
     AnswerListOfResources(call.GetOutput(), index, result, resourceType, call.HasArgument("expand"));
   }

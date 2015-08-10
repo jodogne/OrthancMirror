@@ -742,6 +742,29 @@ namespace Orthanc
     }
   }
 
+  void DatabaseWrapper::GetAllPublicIds(std::list<std::string>& target,
+                                        ResourceType resourceType,
+                                        size_t since,
+                                        size_t limit)
+  {
+    if (limit == 0)
+    {
+      target.clear();
+      return;
+    }
+
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT publicId FROM Resources WHERE resourceType=? LIMIT ? OFFSET ?");
+    s.BindInt(0, resourceType);
+    s.BindInt64(1, limit);
+    s.BindInt64(2, since);
+
+    target.clear();
+    while (s.Step())
+    {
+      target.push_back(s.ColumnString(0));
+    }
+  }
+
   static void UpgradeDatabase(SQLite::Connection& db,
                               EmbeddedResources::FileResourceId script)
   {

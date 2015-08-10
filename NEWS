@@ -1,6 +1,8 @@
 Pending changes in the mainline
 ===============================
 
+* "limit" and "since" arguments while retrieving DICOM resources in the REST API
+
 
 Version 0.9.3 (2015/08/07)
 ==========================
