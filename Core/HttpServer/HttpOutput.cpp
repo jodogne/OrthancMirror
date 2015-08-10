@@ -36,6 +36,7 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
+#include "../Compression/ZlibCompressor.h"
 
 #include <iostream>
 #include <vector>
@@ -256,21 +257,59 @@ namespace Orthanc
     stateMachine_.SendBody(NULL, 0);
   }
 
-  void HttpOutput::SendBody(const void* buffer, size_t length)
+  void HttpOutput::SendBody(const void* buffer, 
+                            size_t length,
+                            HttpCompression compression)
   {
-    stateMachine_.SendBody(buffer, length);
-  }
-
-  void HttpOutput::SendBody(const std::string& str)
-  {
-    if (str.size() == 0)
+    if (length == 0)
     {
       stateMachine_.SendBody(NULL, 0);
     }
     else
     {
-      stateMachine_.SendBody(str.c_str(), str.size());
+      switch (compression)
+      {
+        case HttpCompression_None:
+        {
+          stateMachine_.SendBody(buffer, length);
+          break;
+        }
+
+        case HttpCompression_Deflate:
+        {
+          LOG(TRACE) << "Compressing a HTTP answer using Deflate";
+          ZlibCompressor compressor;
+
+          // Do not prefix the buffer with its uncompressed size, to be compatible with "deflate"
+          compressor.SetPrefixWithUncompressedSize(false);  
+
+          std::string compressed;
+          compressor.Compress(compressed, buffer, length);
+
+          // The body is empty, do not use Deflate compression
+          if (compressed.size() == 0)
+          {
+            stateMachine_.SendBody(NULL, 0);
+          }
+          else
+          {
+            stateMachine_.AddHeader("Content-Encoding", "deflate");
+            stateMachine_.SendBody(compressed.c_str(), compressed.size());
+          }
+
+          break;
+        }
+
+        default:
+          throw OrthancException(ErrorCode_NotImplemented);
+      }
     }
+  }
+
+  void HttpOutput::SendBody(const std::string& str,
+                            HttpCompression compression)
+  {
+    SendBody(str.size() == 0 ? NULL : str.c_str(), str.size(), compression);
   }
 
   void HttpOutput::SendBody()

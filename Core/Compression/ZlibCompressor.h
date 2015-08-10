@@ -40,17 +40,29 @@ namespace Orthanc
   {
   private:
     uint8_t compressionLevel_;
+    bool    prefixWithUncompressedSize_;
 
   public:
     using BufferCompressor::Compress;
     using BufferCompressor::Uncompress;
 
-    ZlibCompressor()
+    ZlibCompressor() : 
+      compressionLevel_(6),
+      prefixWithUncompressedSize_(true)
     {
-      compressionLevel_ = 6;
     }
 
     void SetCompressionLevel(uint8_t level);
+    
+    void SetPrefixWithUncompressedSize(bool prefix)
+    {
+      prefixWithUncompressedSize_ = prefix;
+    }
+
+    bool HasPrefixWithUncompressedSize() const
+    {
+      return prefixWithUncompressedSize_;
+    }
 
     uint8_t GetCompressionLevel() const
     {

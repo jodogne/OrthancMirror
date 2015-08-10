@@ -45,6 +45,7 @@ namespace Orthanc
                                HttpMethod method) : 
     output_(output),
     method_(method),
+    compression_(HttpCompression_None),
     convertJsonToXml_(false)
   {
     alreadySent_ = false;
@@ -94,7 +95,7 @@ namespace Orthanc
       std::string s;
       Toolbox::JsonToXml(s, value);
       output_.SetContentType("application/xml");
-      output_.SendBody(s);
+      output_.SendBody(s, compression_);
 #else
       LOG(ERROR) << "Orthanc was compiled without XML support";
       throw OrthancException(ErrorCode_InternalError);
@@ -104,7 +105,7 @@ namespace Orthanc
     {
       Json::StyledWriter writer;
       output_.SetContentType("application/json");
-      output_.SendBody(writer.write(value));
+      output_.SendBody(writer.write(value), compression_);
     }
 
     alreadySent_ = true;
@@ -115,7 +116,7 @@ namespace Orthanc
   {
     CheckStatus();
     output_.SetContentType(contentType.c_str());
-    output_.SendBody(buffer);
+    output_.SendBody(buffer, compression_);
     alreadySent_ = true;
   }
 
@@ -125,7 +126,7 @@ namespace Orthanc
   {
     CheckStatus();
     output_.SetContentType(contentType.c_str());
-    output_.SendBody(buffer, length);
+    output_.SendBody(buffer, length, compression_);
     alreadySent_ = true;
   }
 
