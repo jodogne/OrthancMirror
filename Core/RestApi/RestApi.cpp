@@ -205,12 +205,15 @@ namespace Orthanc
         for (size_t i = 0; i < encodings.size(); i++)
         {
           std::string s = Toolbox::StripSpaces(encodings[i]);
+
           if (s == "deflate")
           {
-            wrappedOutput.SetHttpCompression(HttpCompression_Deflate);
+            wrappedOutput.AllowDeflateCompression(true);
           }
-
-          // TODO HttpCompression_Gzip ?
+          else if (s == "gzip")
+          {
+            wrappedOutput.AllowGzipCompression(true);
+          }
         }
       }
     }

@@ -188,7 +188,7 @@ TEST(FileStorageAccessor, Compression)
   FilesystemStorage s("UnitTestsStorage");
   CompressedFileStorageAccessor accessor(s);
 
-  accessor.SetCompressionForNextOperations(CompressionType_Zlib);
+  accessor.SetCompressionForNextOperations(CompressionType_ZlibWithSize);
   std::string data = "Hello world";
   FileInfo info = accessor.Write(data, FileContentType_Dicom);
   
@@ -196,7 +196,7 @@ TEST(FileStorageAccessor, Compression)
   accessor.Read(r, info.GetUuid(), FileContentType_Unknown);
 
   ASSERT_EQ(data, r);
-  ASSERT_EQ(CompressionType_Zlib, info.GetCompressionType());
+  ASSERT_EQ(CompressionType_ZlibWithSize, info.GetCompressionType());
   ASSERT_EQ(11u, info.GetUncompressedSize());
   ASSERT_EQ(FileContentType_Dicom, info.GetContentType());
 }
@@ -211,13 +211,13 @@ TEST(FileStorageAccessor, Mix)
   std::string compressedData = "Hello";
   std::string uncompressedData = "HelloWorld";
 
-  accessor.SetCompressionForNextOperations(CompressionType_Zlib);
+  accessor.SetCompressionForNextOperations(CompressionType_ZlibWithSize);
   FileInfo compressedInfo = accessor.Write(compressedData, FileContentType_Dicom);
   
   accessor.SetCompressionForNextOperations(CompressionType_None);
   FileInfo uncompressedInfo = accessor.Write(uncompressedData, FileContentType_Dicom);
   
-  accessor.SetCompressionForNextOperations(CompressionType_Zlib);
+  accessor.SetCompressionForNextOperations(CompressionType_ZlibWithSize);
   accessor.Read(r, compressedInfo.GetUuid(), FileContentType_Unknown);
   ASSERT_EQ(compressedData, r);
 
@@ -227,7 +227,7 @@ TEST(FileStorageAccessor, Mix)
 
   /*
   // This test is too slow on Windows
-  accessor.SetCompressionForNextOperations(CompressionType_Zlib);
+  accessor.SetCompressionForNextOperations(CompressionType_ZlibWithSize);
   ASSERT_THROW(accessor.Read(r, uncompressedInfo.GetUuid(), FileContentType_Unknown), OrthancException);
   */
 }

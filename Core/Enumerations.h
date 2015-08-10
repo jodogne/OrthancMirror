@@ -325,7 +325,7 @@ namespace Orthanc
      * buffer is non-empty, the buffer is compatible with the
      * "deflate" HTTP compression.
      **/
-    CompressionType_Zlib = 2
+    CompressionType_ZlibWithSize = 2
   };
 
   enum FileContentType

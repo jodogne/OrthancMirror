@@ -64,7 +64,7 @@ namespace Orthanc
       return FileInfo(uuid, type, size, md5);
     }
 
-    case CompressionType_Zlib:
+    case CompressionType_ZlibWithSize:
     {
       std::string compressed;
       zlib_.Compress(compressed, data, size);
@@ -86,7 +86,7 @@ namespace Orthanc
       }
 
       return FileInfo(uuid, type, size, md5,
-                      CompressionType_Zlib, compressed.size(), compressedMD5);
+                      CompressionType_ZlibWithSize, compressed.size(), compressedMD5);
     }
 
     default:
@@ -131,7 +131,7 @@ namespace Orthanc
       GetStorageArea().Read(content, uuid, type);
       break;
 
-    case CompressionType_Zlib:
+    case CompressionType_ZlibWithSize:
     {
       std::string compressed;
       GetStorageArea().Read(compressed, uuid, type);
@@ -155,7 +155,7 @@ namespace Orthanc
       return uncompressedAccessor.ConstructHttpFileSender(uuid, type);
     }
 
-    case CompressionType_Zlib:
+    case CompressionType_ZlibWithSize:
     {
       std::string compressed;
       GetStorageArea().Read(compressed, uuid, type);

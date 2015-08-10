@@ -350,7 +350,7 @@ TEST_P(DatabaseWrapperTest, Simple)
   ASSERT_EQ(0u, md.size());
 
   index_->AddAttachment(a[4], FileInfo("my json file", FileContentType_DicomAsJson, 42, "md5", 
-                                       CompressionType_Zlib, 21, "compressedMD5"));
+                                       CompressionType_ZlibWithSize, 21, "compressedMD5"));
   index_->AddAttachment(a[4], FileInfo("my dicom file", FileContentType_Dicom, 42, "md5"));
   index_->AddAttachment(a[6], FileInfo("world", FileContentType_Dicom, 44, "md5"));
   index_->SetMetadata(a[4], MetadataType_Instance_RemoteAet, "PINNACLE");
@@ -409,7 +409,7 @@ TEST_P(DatabaseWrapperTest, Simple)
   ASSERT_EQ("md5", att.GetUncompressedMD5());
   ASSERT_EQ("compressedMD5", att.GetCompressedMD5());
   ASSERT_EQ(42u, att.GetUncompressedSize());
-  ASSERT_EQ(CompressionType_Zlib, att.GetCompressionType());
+  ASSERT_EQ(CompressionType_ZlibWithSize, att.GetCompressionType());
 
   ASSERT_TRUE(index_->LookupAttachment(att, a[6], FileContentType_Dicom));
   ASSERT_EQ("world", att.GetUuid());
