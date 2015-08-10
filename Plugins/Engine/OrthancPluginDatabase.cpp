@@ -349,18 +349,14 @@ namespace Orthanc
       return;
     }
 
-    std::list<std::string>::iterator start = tmp.begin();
-    std::advance(start, since);
+    std::list<std::string>::iterator current = tmp.begin();
+    std::advance(current, since);
 
-    if (tmp.size() - since <= limit)
+    while (limit > 0 && current != tmp.end())
     {
-      tmp.splice(start, target);
-    }
-    else
-    {
-      std::list<std::string>::iterator end = start;
-      std::advance(end, limit);
-      tmp.splice(tmp.begin(), target, start, end);
+      target.push_back(*current);
+      --limit;
+      ++current;
     }
   }
 
