@@ -40,17 +40,6 @@
 
 namespace Orthanc
 {
-  void ZlibCompressor::SetCompressionLevel(uint8_t level)
-  {
-    if (level >= 10)
-    {
-      throw OrthancException("Zlib compression level must be between 0 (no compression) and 9 (highest compression");
-    }
-
-    compressionLevel_ = level;
-  }
-
-
   void ZlibCompressor::Compress(std::string& compressed,
                                 const void* uncompressed,
                                 size_t uncompressedSize)
@@ -68,7 +57,7 @@ namespace Orthanc
     }
 
     uint8_t* target;
-    if (prefixWithUncompressedSize_)
+    if (HasPrefixWithUncompressedSize())
     {
       compressed.resize(compressedSize + sizeof(uint64_t));
       target = reinterpret_cast<uint8_t*>(&compressed[0]) + sizeof(uint64_t);
@@ -83,7 +72,7 @@ namespace Orthanc
                           &compressedSize,
                           const_cast<Bytef *>(static_cast<const Bytef *>(uncompressed)), 
                           uncompressedSize,
-                          compressionLevel_);
+                          GetCompressionLevel());
 
     if (error != Z_OK)
     {
@@ -100,7 +89,7 @@ namespace Orthanc
     }
 
     // The compression was successful
-    if (prefixWithUncompressedSize_)
+    if (HasPrefixWithUncompressedSize())
     {
       uint64_t s = static_cast<uint64_t>(uncompressedSize);
       memcpy(&compressed[0], &s, sizeof(uint64_t));

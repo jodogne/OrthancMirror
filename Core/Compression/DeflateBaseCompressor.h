@@ -30,44 +30,42 @@
  **/
 
 
-#include "../PrecompiledHeaders.h"
-#include "BufferCompressor.h"
+#pragma once
+
+#include "IBufferCompressor.h"
+
+#include <stdint.h>
 
 namespace Orthanc
 {
-  void BufferCompressor::Compress(std::string& output,
-                                  const std::vector<uint8_t>& input)
+  class DeflateBaseCompressor : public IBufferCompressor
   {
-    if (input.size() > 0)
-      Compress(output, &input[0], input.size());
-    else
-      Compress(output, NULL, 0);
-  }
+  private:
+    uint8_t compressionLevel_;
+    bool    prefixWithUncompressedSize_;
 
-  void BufferCompressor::Uncompress(std::string& output,
-                                    const std::vector<uint8_t>& input)
-  {
-    if (input.size() > 0)
-      Uncompress(output, &input[0], input.size());
-    else
-      Uncompress(output, NULL, 0);
-  }
+  public:
+    DeflateBaseCompressor() : 
+      compressionLevel_(6),
+      prefixWithUncompressedSize_(false)
+    {
+    }
 
-  void BufferCompressor::Compress(std::string& output,
-                                  const std::string& input)
-  {
-    if (input.size() > 0)
-      Compress(output, &input[0], input.size());
-    else
-      Compress(output, NULL, 0);
-  }
+    void SetCompressionLevel(uint8_t level);
+    
+    void SetPrefixWithUncompressedSize(bool prefix)
+    {
+      prefixWithUncompressedSize_ = prefix;
+    }
 
-  void BufferCompressor::Uncompress(std::string& output,
-                                    const std::string& input)
-  {
-    if (input.size() > 0)
-      Uncompress(output, &input[0], input.size());
-    else
-      Uncompress(output, NULL, 0);
-  }
+    bool HasPrefixWithUncompressedSize() const
+    {
+      return prefixWithUncompressedSize_;
+    }
+
+    uint8_t GetCompressionLevel() const
+    {
+      return compressionLevel_;
+    }
+  };
 }

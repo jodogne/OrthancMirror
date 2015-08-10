@@ -30,26 +30,20 @@
  **/
 
 
-#pragma once
-
+#include "../PrecompiledHeaders.h"
 #include "DeflateBaseCompressor.h"
+
+#include "../OrthancException.h"
 
 namespace Orthanc
 {
-  class ZlibCompressor : public DeflateBaseCompressor
+  void DeflateBaseCompressor::SetCompressionLevel(uint8_t level)
   {
-  public:
-    ZlibCompressor()
+    if (level >= 10)
     {
-      SetPrefixWithUncompressedSize(true);
+      throw OrthancException("Zlib compression level must be between 0 (no compression) and 9 (highest compression");
     }
 
-    virtual void Compress(std::string& compressed,
-                          const void* uncompressed,
-                          size_t uncompressedSize);
-
-    virtual void Uncompress(std::string& uncompressed,
-                            const void* compressed,
-                            size_t compressedSize);
-  };
+    compressionLevel_ = level;
+  }
 }
