@@ -50,6 +50,7 @@ namespace Orthanc
 
 
   static void OutputDirectoryContent(HttpOutput& output,
+                                     const IHttpHandler::Arguments& headers,
                                      const UriComponents& uri,
                                      const boost::filesystem::path& p)
   {
@@ -104,7 +105,7 @@ namespace Orthanc
     s += "  </body>";
     s += "</html>";
 
-    output.SendBody(s);
+    output.SendBody(s, IHttpHandler::GetPreferredCompression(headers, s.size()));
   }
 
 
@@ -155,7 +156,7 @@ namespace Orthanc
 
     if (fs::exists(p) && fs::is_regular_file(p))
     {
-      FilesystemHttpSender(p).Send(output);
+      FilesystemHttpSender(p).Send(output);   // TODO COMPRESSION
 
       //output.AnswerFileAutodetectContentType(p.string());
     }
@@ -163,7 +164,7 @@ namespace Orthanc
              fs::exists(p) && 
              fs::is_directory(p))
     {
-      OutputDirectoryContent(output, uri, p);
+      OutputDirectoryContent(output, headers, uri, p);
     }
     else
     {
