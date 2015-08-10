@@ -80,8 +80,17 @@ namespace Orthanc
   }
 
 
-  HttpCompression  RestApiOutput::GetPreferredCompression() const
+  HttpCompression  RestApiOutput::GetPreferredCompression(size_t bodySize) const
   {
+#if 0
+    // TODO
+    if (bodySize < 1024)
+    {
+      // Do not compress small answers
+      return HttpCompression_None;
+    }
+#endif    
+
     if (allowGzipCompression_)
     {
       return HttpCompression_Gzip;
@@ -108,13 +117,13 @@ namespace Orthanc
   {
     CheckStatus();
 
+    std::string s;
+
     if (convertJsonToXml_)
     {
 #if ORTHANC_PUGIXML_ENABLED == 1
-      std::string s;
       Toolbox::JsonToXml(s, value);
       output_.SetContentType("application/xml");
-      output_.SendBody(s, GetPreferredCompression());
 #else
       LOG(ERROR) << "Orthanc was compiled without XML support";
       throw OrthancException(ErrorCode_InternalError);
@@ -124,8 +133,10 @@ namespace Orthanc
     {
       Json::StyledWriter writer;
       output_.SetContentType("application/json");
-      output_.SendBody(writer.write(value), GetPreferredCompression());
+      s = writer.write(value);
     }
+
+    output_.SendBody(s, GetPreferredCompression(s.size()));
 
     alreadySent_ = true;
   }
@@ -143,7 +154,7 @@ namespace Orthanc
   {
     CheckStatus();
     output_.SetContentType(contentType.c_str());
-    output_.SendBody(buffer, length, GetPreferredCompression());
+    output_.SendBody(buffer, length, GetPreferredCompression(length));
     alreadySent_ = true;
   }
 

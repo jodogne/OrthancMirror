@@ -36,6 +36,7 @@
 #include "HttpOutput.h"
 
 #include <map>
+#include <set>
 #include <vector>
 #include <string>
 
@@ -58,5 +59,11 @@ namespace Orthanc
                         const GetArguments& getArguments,
                         const char* bodyData,
                         size_t bodySize) = 0;
+
+    static void GetAcceptedCompressions(std::set<HttpCompression>& result,
+                                        const Arguments& headers);
+
+    static HttpCompression GetPreferredCompression(const Arguments& headers,
+                                                   size_t bodySize);
   };
 }

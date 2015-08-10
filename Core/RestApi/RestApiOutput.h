@@ -51,7 +51,7 @@ namespace Orthanc
 
     void CheckStatus();
 
-    HttpCompression  GetPreferredCompression() const;
+    HttpCompression  GetPreferredCompression(size_t bodySize) const;
 
   public:
     RestApiOutput(HttpOutput& output,

@@ -81,7 +81,7 @@ namespace Orthanc
       size_t size = EmbeddedResources::GetDirectoryResourceSize(resourceId_, resourcePath.c_str());
 
       output.SetContentType(contentType.c_str());
-      output.SendBody(buffer, size);
+      output.SendBody(buffer, size, IHttpHandler::GetPreferredCompression(headers, size));
     }
     catch (OrthancException&)
     {

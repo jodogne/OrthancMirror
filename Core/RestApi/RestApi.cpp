@@ -194,29 +194,19 @@ namespace Orthanc
     }
 #endif
 
-    {
-      // Look if the client wishes HTTP compression
-      // https://en.wikipedia.org/wiki/HTTP_compression
-      Arguments::const_iterator it = headers.find("accept-encoding");
-      if (it != headers.end())
-      {
-        std::vector<std::string> encodings;
-        Toolbox::TokenizeString(encodings, it->second, ',');
-        for (size_t i = 0; i < encodings.size(); i++)
-        {
-          std::string s = Toolbox::StripSpaces(encodings[i]);
+    std::set<HttpCompression> compressions;
+    GetAcceptedCompressions(compressions, headers);
 
-          if (s == "deflate")
-          {
-            wrappedOutput.AllowDeflateCompression(true);
-          }
-          else if (s == "gzip")
-          {
-            wrappedOutput.AllowGzipCompression(true);
-          }
-        }
-      }
+    if (compressions.find(HttpCompression_Deflate) != compressions.end())
+    {
+      wrappedOutput.AllowDeflateCompression(true);
     }
+
+    if (compressions.find(HttpCompression_Gzip) != compressions.end())
+    {
+      wrappedOutput.AllowGzipCompression(true);
+    }
+
 
     Arguments compiled;
     HttpToolbox::CompileGetArguments(compiled, getArguments);
