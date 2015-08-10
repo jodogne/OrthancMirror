@@ -159,6 +159,11 @@ namespace Orthanc
     void GetAllUuids(std::list<std::string>& target,
                      ResourceType resourceType);
 
+    void GetAllUuids(std::list<std::string>& target,
+                     ResourceType resourceType,
+                     size_t since,
+                     size_t limit);
+
     bool DeleteResource(Json::Value& target /* out */,
                         const std::string& uuid,
                         ResourceType expectedType);

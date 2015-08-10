@@ -81,6 +81,10 @@ namespace Orthanc
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType) = 0;
 
+    virtual void GetAllPublicIds(std::list<std::string>& target,
+                                 ResourceType resourceType,
+                                 size_t since,
+                                 size_t limit) = 0;
 
     virtual void GetChanges(std::list<ServerIndexChange>& target /*out*/,
                             bool& done /*out*/,

@@ -1097,6 +1097,22 @@ namespace Orthanc
   }
 
 
+  void ServerIndex::GetAllUuids(std::list<std::string>& target,
+                                ResourceType resourceType,
+                                size_t since,
+                                size_t limit)
+  {
+    if (limit == 0)
+    {
+      target.clear();
+      return;
+    }
+
+    boost::mutex::scoped_lock lock(mutex_);
+    db_.GetAllPublicIds(target, resourceType, since, limit);
+  }
+
+
   template <typename T>
   static void FormatLog(Json::Value& target,
                         const std::list<T>& log,

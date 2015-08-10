@@ -326,6 +326,45 @@ namespace Orthanc
   }
 
 
+  void OrthancPluginDatabase::GetAllPublicIds(std::list<std::string>& target,
+                                              ResourceType resourceType,
+                                              size_t since,
+                                              size_t limit)
+  {
+    // TODO add the corresponding primitives to the SDK
+
+    target.clear();
+
+    if (limit == 0)
+    {
+      return;
+    }
+
+    std::list<std::string> tmp;
+    GetAllPublicIds(tmp, resourceType);
+    
+    if (tmp.size() <= since)
+    {
+      // Not enough results => empty answer
+      return;
+    }
+
+    std::list<std::string>::iterator start = tmp.begin();
+    std::advance(start, since);
+
+    if (tmp.size() - since <= limit)
+    {
+      tmp.splice(start, target);
+    }
+    else
+    {
+      std::list<std::string>::iterator end = start;
+      std::advance(end, limit);
+      tmp.splice(tmp.begin(), target, start, end);
+    }
+  }
+
+
 
   void OrthancPluginDatabase::GetChanges(std::list<ServerIndexChange>& target /*out*/,
                                          bool& done /*out*/,
