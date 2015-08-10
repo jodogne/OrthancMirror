@@ -30,43 +30,30 @@
  **/
 
 
-#include "../PrecompiledHeaders.h"
+#pragma once
+
 #include "DeflateBaseCompressor.h"
-
-#include "../OrthancException.h"
-
-#include <string.h>
 
 namespace Orthanc
 {
-  void DeflateBaseCompressor::SetCompressionLevel(uint8_t level)
+  class GzipCompressor : public DeflateBaseCompressor
   {
-    if (level >= 10)
+  private:
+    uint64_t GuessUncompressedSize(const void* compressed,
+                                   size_t compressedSize);
+
+  public:
+    GzipCompressor()
     {
-      throw OrthancException("Zlib compression level must be between 0 (no compression) and 9 (highest compression");
+      SetPrefixWithUncompressedSize(false);
     }
 
-    compressionLevel_ = level;
-  }
+    virtual void Compress(std::string& compressed,
+                          const void* uncompressed,
+                          size_t uncompressedSize);
 
-
-  uint64_t DeflateBaseCompressor::ReadUncompressedSizePrefix(const void* compressed,
-                                                             size_t compressedSize)
-  {
-    if (compressedSize == 0)
-    {
-      return 0;
-    }
-
-    if (compressedSize < sizeof(uint64_t))
-    {
-      throw OrthancException("The compressed buffer is ill-formed");
-    }
-
-    uint64_t size;
-    memcpy(&size, compressed, sizeof(uint64_t));
-
-    return size;
-  }
-
+    virtual void Uncompress(std::string& uncompressed,
+                            const void* compressed,
+                            size_t compressedSize);
+  };
 }
