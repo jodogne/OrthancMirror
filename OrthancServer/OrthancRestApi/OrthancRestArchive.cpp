@@ -296,9 +296,9 @@ namespace Orthanc
     }
 
     // Prepare the sending of the ZIP file
-    FilesystemHttpSender sender(tmp.GetPath().c_str());
+    FilesystemHttpSender sender(tmp.GetPath());
     sender.SetContentType("application/zip");
-    sender.SetFilename(id + ".zip");
+    sender.SetContentFilename(id + ".zip");
 
     // Send the ZIP
     call.GetOutput().AnswerStream(sender);
@@ -357,9 +357,9 @@ namespace Orthanc
     }
 
     // Prepare the sending of the ZIP file
-    FilesystemHttpSender sender(tmp.GetPath().c_str());
+    FilesystemHttpSender sender(tmp.GetPath());
     sender.SetContentType("application/zip");
-    sender.SetFilename(id + ".zip");
+    sender.SetContentFilename(id + ".zip");
 
     // Send the ZIP
     call.GetOutput().AnswerStream(sender);
