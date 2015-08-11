@@ -61,8 +61,8 @@ namespace Orthanc
      * Implementation of the IHttpStreamAnswer interface.
      **/
 
-    virtual HttpCompression GetHttpCompression(bool /*gzipAllowed*/, 
-                                               bool /*deflateAllowed*/)
+    virtual HttpCompression SetupHttpCompression(bool /*gzipAllowed*/, 
+                                                 bool /*deflateAllowed*/)
     {
       // No compression is supported
       return HttpCompression_None;

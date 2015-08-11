@@ -277,8 +277,8 @@ namespace Orthanc
         chunk_.resize(CHUNK_SIZE);
       }
 
-      virtual HttpCompression GetHttpCompression(bool /*gzipAllowed*/,
-                                                 bool /*deflateAllowed*/)
+      virtual HttpCompression SetupHttpCompression(bool /*gzipAllowed*/,
+                                                   bool /*deflateAllowed*/)
       {
         // No support for compression
         return HttpCompression_None;
