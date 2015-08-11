@@ -29,47 +29,34 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
+
 #pragma once
 
-#include "HttpFileSender.h"
+#include <stdint.h>
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class BufferHttpSender : public HttpFileSender
+  class IHttpStreamAnswer : public boost::noncopyable
   {
-  private:
-    std::string buffer_;
-    bool done_;
-
   public:
-    BufferHttpSender() : done_(false)
+    virtual ~IHttpStreamAnswer()
     {
     }
 
-    std::string& GetBuffer() 
-    {
-      return buffer_;
-    }
+    virtual HttpCompression GetHttpCompression(bool gzipAllowed,
+                                               bool deflateAllowed) = 0;
 
-    const std::string& GetBuffer() const
-    {
-      return buffer_;
-    }
+    virtual bool HasContentFilename(std::string& filename) = 0;
 
+    virtual std::string GetContentType() = 0;
 
-    /**
-     * Implementation of the IHttpStreamAnswer interface.
-     **/
+    virtual uint64_t GetContentLength() = 0;
 
-    virtual uint64_t GetContentLength()
-    {
-      return buffer_.size();
-    }
+    virtual bool ReadNextChunk() = 0;
 
-    virtual bool ReadNextChunk();
+    virtual const char* GetChunkContent() = 0;
 
-    virtual const char* GetChunkContent();
-
-    virtual size_t GetChunkSize();
+    virtual size_t GetChunkSize() = 0;
   };
 }

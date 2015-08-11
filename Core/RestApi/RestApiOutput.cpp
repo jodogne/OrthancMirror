@@ -78,10 +78,10 @@ namespace Orthanc
   }
 
 
-  void RestApiOutput::AnswerFile(HttpFileSender& sender)
+  void RestApiOutput::AnswerStream(IHttpStreamAnswer& stream)
   {
     CheckStatus();
-    sender.Send(output_);
+    output_.Answer(stream);
     alreadySent_ = true;
   }
 

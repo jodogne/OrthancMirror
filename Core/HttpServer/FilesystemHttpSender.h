@@ -34,19 +34,20 @@
 #include "HttpFileSender.h"
 #include "../FileStorage/FilesystemStorage.h"
 
+#include <fstream>
+
 namespace Orthanc
 {
   class FilesystemHttpSender : public HttpFileSender
   {
   private:
     boost::filesystem::path path_;
+    std::ifstream           file_;
+    uint64_t                size_;
+    std::string             chunk_;
+    size_t                  chunkSize_;
 
-    void Setup();
-
-  protected:
-    virtual uint64_t GetFileSize();
-
-    virtual bool SendData(HttpOutput& output);
+    void Open();
 
   public:
     FilesystemHttpSender(const char* path);
@@ -55,5 +56,27 @@ namespace Orthanc
 
     FilesystemHttpSender(const FilesystemStorage& storage,
                          const std::string& uuid);
+
+
+    /**
+     * Implementation of the IHttpStreamAnswer interface.
+     **/
+
+    virtual uint64_t GetContentLength()
+    {
+      return size_;
+    }
+
+    virtual bool ReadNextChunk();
+
+    virtual const char* GetChunkContent()
+    {
+      return chunk_.c_str();
+    }
+
+    virtual size_t GetChunkSize()
+    {
+      return chunkSize_;
+    }
   };
 }

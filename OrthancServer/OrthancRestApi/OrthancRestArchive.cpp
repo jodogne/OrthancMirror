@@ -298,10 +298,10 @@ namespace Orthanc
     // Prepare the sending of the ZIP file
     FilesystemHttpSender sender(tmp.GetPath().c_str());
     sender.SetContentType("application/zip");
-    sender.SetDownloadFilename(id + ".zip");
+    sender.SetFilename(id + ".zip");
 
     // Send the ZIP
-    call.GetOutput().AnswerFile(sender);
+    call.GetOutput().AnswerStream(sender);
 
     // The temporary file is automatically removed thanks to the RAII
   }
@@ -359,10 +359,10 @@ namespace Orthanc
     // Prepare the sending of the ZIP file
     FilesystemHttpSender sender(tmp.GetPath().c_str());
     sender.SetContentType("application/zip");
-    sender.SetDownloadFilename(id + ".zip");
+    sender.SetFilename(id + ".zip");
 
     // Send the ZIP
-    call.GetOutput().AnswerFile(sender);
+    call.GetOutput().AnswerStream(sender);
 
     // The temporary file is automatically removed thanks to the RAII
   }

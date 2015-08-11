@@ -37,6 +37,7 @@
 #include <stdint.h>
 #include "../Enumerations.h"
 #include "IHttpOutputStream.h"
+#include "IHttpStreamAnswer.h"
 #include "../Uuid.h"
 
 namespace Orthanc
@@ -102,6 +103,8 @@ namespace Orthanc
 
       void CloseMultipart();
 
+      void CloseBody();
+
       State GetState() const
       {
         return state_;
@@ -155,11 +158,6 @@ namespace Orthanc
       stateMachine_.SetContentFilename(filename);
     }
 
-    void SetContentLength(uint64_t length)
-    {
-      stateMachine_.SetContentLength(length);
-    }
-
     void SetCookie(const std::string& cookie,
                    const std::string& value)
     {
@@ -177,7 +175,7 @@ namespace Orthanc
 
     void SendBody(const std::string& str);
 
-    void SendBody();
+    void SendEmptyBody();
 
     void SendMethodNotAllowed(const std::string& allowed);
 
@@ -207,5 +205,7 @@ namespace Orthanc
     {
       return stateMachine_.GetState() == StateMachine::State_WritingMultipart;
     }
+
+    void Answer(IHttpStreamAnswer& stream);
   };
 }

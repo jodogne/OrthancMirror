@@ -215,6 +215,41 @@ namespace Orthanc
   }
 
 
+  void HttpOutput::StateMachine::CloseBody()
+  {
+    switch (state_)
+    {
+      case State_WritingHeader:
+        LOG(ERROR) << "Closing the HTTP body, but the header has not been sent yet";
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+
+      case State_WritingBody:
+        if (!hasContentLength_ ||
+            contentPosition_ == contentLength_)
+        {
+          state_ = State_Done;
+        }
+        else
+        {
+          LOG(ERROR) << "The body size has not reached what was declared with SetContentSize()";
+          throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
+
+        break;
+
+      case State_WritingMultipart:
+        LOG(ERROR) << "Cannot invoke CloseBody() with multipart outputs";
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+
+      case State_Done:
+        return;  // Ignore
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }      
+  }
+
+
   HttpCompression HttpOutput::GetPreferredCompression(size_t bodySize) const
   {
 #if 0
@@ -351,9 +386,11 @@ namespace Orthanc
     SendBody(str.size() == 0 ? NULL : str.c_str(), str.size());
   }
 
-  void HttpOutput::SendBody()
+  void HttpOutput::SendEmptyBody()
   {
+    stateMachine_.SetContentLength(0);
     stateMachine_.SendBody(NULL, 0);
+    stateMachine_.CloseBody();
   }
 
 
@@ -460,4 +497,52 @@ namespace Orthanc
       stateMachine_.SendMultipartItem(NULL, 0);
     }
   }
+
+
+  void HttpOutput::Answer(IHttpStreamAnswer& stream)
+  {
+    stateMachine_.SetContentLength(stream.GetContentLength());
+
+    std::string contentType = stream.GetContentType();
+    if (contentType.empty())
+    {
+      contentType = "application/octet-stream";
+    }
+
+    stateMachine_.SetContentType(contentType.c_str());
+
+    std::string filename;
+    if (stream.HasContentFilename(filename))
+    {
+      SetContentFilename(filename.c_str());
+    }
+
+    HttpCompression compression = stream.GetHttpCompression(isGzipAllowed_, isDeflateAllowed_);
+
+    switch (compression)
+    {
+      case HttpCompression_None:
+        break;
+
+      case HttpCompression_Gzip:
+        stateMachine_.AddHeader("Content-Encoding", "gzip");
+        break;
+
+      case HttpCompression_Deflate:
+        stateMachine_.AddHeader("Content-Encoding", "deflate");
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    while (stream.ReadNextChunk())
+    {
+      stateMachine_.SendBody(stream.GetChunkContent(),
+                             stream.GetChunkSize());
+    }
+
+    stateMachine_.CloseBody();
+  }
+
 }
