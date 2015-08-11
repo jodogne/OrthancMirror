@@ -62,8 +62,8 @@ namespace Orthanc
   }
 
 
-  HttpCompression FilesystemHttpSender::GetHttpCompression(bool gzipAllowed, 
-                                                           bool deflateAllowed)
+  HttpCompression FilesystemHttpSender::SetupHttpCompression(bool gzipAllowed, 
+                                                             bool deflateAllowed)
   {
     switch (sourceCompression_)
     {
@@ -86,7 +86,8 @@ namespace Orthanc
 
         if (deflateAllowed)
         {
-          file_.seekg(sizeof(uint64_t), file_.end);
+          file_.seekg(sizeof(uint64_t), file_.beg);
+          size_ -= sizeof(uint64_t);
           return HttpCompression_Deflate;
         }
         else
@@ -100,13 +101,16 @@ namespace Orthanc
 
           file_.read(&compressed[0], size_);
           if ((file_.flags() & std::istream::failbit) ||
-              !(file_.flags() & std::istream::eofbit))
+              !(file_.flags() & std::istream::eofbit) ||
+              file_.gcount() < 0 ||
+              static_cast<uint64_t>(file_.gcount()) != size_)
           {
             throw OrthancException(ErrorCode_CorruptedFile);
           }
           
           ZlibCompressor compressor;
           IBufferCompressor::Uncompress(uncompressed_->GetBuffer(), compressor, compressed);
+
           return HttpCompression_None;
         }
 
@@ -115,6 +119,19 @@ namespace Orthanc
 
       default:
         throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
+
+
+  uint64_t FilesystemHttpSender::GetContentLength()
+  {
+    if (uncompressed_.get() != NULL)
+    {
+      return uncompressed_->GetContentLength();
+    }
+    else
+    {
+      return size_;
     }
   }
 

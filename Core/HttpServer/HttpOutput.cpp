@@ -502,23 +502,7 @@ namespace Orthanc
 
   void HttpOutput::Answer(IHttpStreamAnswer& stream)
   {
-    stateMachine_.SetContentLength(stream.GetContentLength());
-
-    std::string contentType = stream.GetContentType();
-    if (contentType.empty())
-    {
-      contentType = "application/octet-stream";
-    }
-
-    stateMachine_.SetContentType(contentType.c_str());
-
-    std::string filename;
-    if (stream.HasContentFilename(filename))
-    {
-      SetContentFilename(filename.c_str());
-    }
-
-    HttpCompression compression = stream.GetHttpCompression(isGzipAllowed_, isDeflateAllowed_);
+    HttpCompression compression = stream.SetupHttpCompression(isGzipAllowed_, isDeflateAllowed_);
 
     switch (compression)
     {
@@ -535,6 +519,22 @@ namespace Orthanc
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    stateMachine_.SetContentLength(stream.GetContentLength());
+
+    std::string contentType = stream.GetContentType();
+    if (contentType.empty())
+    {
+      contentType = "application/octet-stream";
+    }
+
+    stateMachine_.SetContentType(contentType.c_str());
+
+    std::string filename;
+    if (stream.HasContentFilename(filename))
+    {
+      SetContentFilename(filename.c_str());
     }
 
     while (stream.ReadNextChunk())

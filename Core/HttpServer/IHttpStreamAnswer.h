@@ -44,8 +44,9 @@ namespace Orthanc
     {
     }
 
-    virtual HttpCompression GetHttpCompression(bool gzipAllowed,
-                                               bool deflateAllowed) = 0;
+    // This is the first method to be called
+    virtual HttpCompression SetupHttpCompression(bool gzipAllowed,
+                                                 bool deflateAllowed) = 0;
 
     virtual bool HasContentFilename(std::string& filename) = 0;
 

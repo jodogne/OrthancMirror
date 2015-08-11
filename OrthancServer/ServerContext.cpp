@@ -313,12 +313,22 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
 
+#if 1
     accessor_.SetCompressionForNextOperations(attachment.GetCompressionType());
 
     std::auto_ptr<HttpFileSender> sender(accessor_.ConstructHttpFileSender(attachment.GetUuid(), attachment.GetContentType()));
     sender->SetContentType(GetMimeType(content));
-    sender->SetContentFilename(instancePublicId + ".dcm");
+    sender->SetContentFilename(instancePublicId + ".dcm");  // TODO ".dcm" => ToMimeType(content)
     output.AnswerStream(*sender);
+#else
+    const FilesystemStorage& a = dynamic_cast<FilesystemStorage&>(accessor_.GetStorageArea());
+    
+    FilesystemHttpSender sender(a, attachment.GetUuid());
+    sender.SetSourceCompression(attachment.GetCompressionType());
+    sender.SetContentType(GetMimeType(content));
+    sender.SetContentFilename(instancePublicId + ".dcm");
+    output.AnswerStream(sender);
+#endif
   }
 
 
