@@ -194,20 +194,6 @@ namespace Orthanc
     }
 #endif
 
-    std::set<HttpCompression> compressions;
-    GetAcceptedCompressions(compressions, headers);
-
-    if (compressions.find(HttpCompression_Deflate) != compressions.end())
-    {
-      wrappedOutput.AllowDeflateCompression(true);
-    }
-
-    if (compressions.find(HttpCompression_Gzip) != compressions.end())
-    {
-      wrappedOutput.AllowGzipCompression(true);
-    }
-
-
     Arguments compiled;
     HttpToolbox::CompileGetArguments(compiled, getArguments);
 

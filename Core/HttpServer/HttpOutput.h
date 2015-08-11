@@ -109,12 +109,38 @@ namespace Orthanc
     };
 
     StateMachine stateMachine_;
+    bool         isDeflateAllowed_;
+    bool         isGzipAllowed_;
+
+    HttpCompression GetPreferredCompression(size_t bodySize) const;
 
   public:
     HttpOutput(IHttpOutputStream& stream,
                bool isKeepAlive) : 
-      stateMachine_(stream, isKeepAlive)
+      stateMachine_(stream, isKeepAlive),
+      isDeflateAllowed_(false),
+      isGzipAllowed_(false)
     {
+    }
+
+    void SetDeflateAllowed(bool allowed)
+    {
+      isDeflateAllowed_ = allowed;
+    }
+
+    bool IsDeflateAllowed() const
+    {
+      return isDeflateAllowed_;
+    }
+
+    void SetGzipAllowed(bool allowed)
+    {
+      isGzipAllowed_ = allowed;
+    }
+
+    bool IsGzipAllowed() const
+    {
+      return isGzipAllowed_;
     }
 
     void SendStatus(HttpStatus status);
@@ -147,11 +173,9 @@ namespace Orthanc
     }
 
     void SendBody(const void* buffer, 
-                  size_t length,
-                  HttpCompression compression = HttpCompression_None);
+                  size_t length);
 
-    void SendBody(const std::string& str,
-                  HttpCompression compression = HttpCompression_None);
+    void SendBody(const std::string& str);
 
     void SendBody();
 

@@ -76,6 +76,7 @@ namespace Orthanc
     uint16_t port_;
     IIncomingHttpRequestFilter* filter_;
     bool keepAlive_;
+    bool httpCompression_;
   
     bool IsRunning() const;
 
@@ -134,6 +135,13 @@ namespace Orthanc
     }
 
     void SetRemoteAccessAllowed(bool allowed);
+
+    bool IsHttpCompressionEnabled() const
+    {
+      return httpCompression_;;
+    }
+
+    void SetHttpCompressionEnabled(bool enabled);
 
     const IIncomingHttpRequestFilter* GetIncomingHttpRequestFilter() const
     {
