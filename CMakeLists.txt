@@ -109,6 +109,7 @@ set(ORTHANC_CORE_SOURCES
   Core/HttpServer/MongooseServer.cpp
   Core/HttpServer/HttpFileSender.cpp
   Core/HttpServer/FilesystemHttpSender.cpp
+  Core/HttpServer/HttpStreamTranscoder.cpp
   Core/Logging.cpp
   Core/RestApi/RestApiCall.cpp
   Core/RestApi/RestApiGetCall.cpp
@@ -214,6 +215,7 @@ set(ORTHANC_UNIT_TESTS_SOURCES
   UnitTestsSources/ImageProcessingTests.cpp
   UnitTestsSources/JpegLosslessTests.cpp
   UnitTestsSources/PluginsTests.cpp
+  UnitTestsSources/StreamTests.cpp
   )
 
 

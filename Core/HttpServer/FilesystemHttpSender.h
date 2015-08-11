@@ -46,10 +46,6 @@ namespace Orthanc
     uint64_t         size_;
     std::string      chunk_;
     size_t           chunkSize_;
-    CompressionType  sourceCompression_;
-    HttpCompression  targetCompression_;
-
-    std::auto_ptr<BufferHttpSender>  uncompressed_;
 
     void Initialize(const boost::filesystem::path& path);
 
@@ -70,25 +66,25 @@ namespace Orthanc
       Initialize(storage.GetPath(uuid));
     }
 
-    void SetSourceCompression(CompressionType compression)
-    {
-      sourceCompression_ = compression;
-    }
-
-
     /**
      * Implementation of the IHttpStreamAnswer interface.
      **/
 
-    virtual HttpCompression SetupHttpCompression(bool /*gzipAllowed*/, 
-                                                 bool /*deflateAllowed*/);
-
-    virtual uint64_t GetContentLength();
+    virtual uint64_t GetContentLength()
+    {
+      return size_;
+    }
 
     virtual bool ReadNextChunk();
 
-    virtual const char* GetChunkContent();
+    virtual const char* GetChunkContent()
+    {
+      return chunk_.c_str();
+    }
 
-    virtual size_t GetChunkSize();
+    virtual size_t GetChunkSize()
+    {
+      return chunkSize_;
+    }
   };
 }

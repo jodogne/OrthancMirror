@@ -34,6 +34,7 @@
 #include "ServerContext.h"
 
 #include "../Core/HttpServer/FilesystemHttpSender.h"
+#include "../Core/HttpServer/HttpStreamTranscoder.h"
 #include "../Core/Logging.h"
 #include "FromDcmtkBridge.h"
 #include "ServerToolbox.h"
@@ -318,16 +319,17 @@ namespace Orthanc
 
     std::auto_ptr<HttpFileSender> sender(accessor_.ConstructHttpFileSender(attachment.GetUuid(), attachment.GetContentType()));
     sender->SetContentType(GetMimeType(content));
-    sender->SetContentFilename(instancePublicId + ".dcm");  // TODO ".dcm" => ToMimeType(content)
+    sender->SetContentFilename(attachment.GetUuid() + ".dcm");  // TODO ".dcm" => ToMimeType(content)
     output.AnswerStream(*sender);
 #else
     const FilesystemStorage& a = dynamic_cast<FilesystemStorage&>(accessor_.GetStorageArea());
     
     FilesystemHttpSender sender(a, attachment.GetUuid());
-    sender.SetSourceCompression(attachment.GetCompressionType());
     sender.SetContentType(GetMimeType(content));
-    sender.SetContentFilename(instancePublicId + ".dcm");
-    output.AnswerStream(sender);
+    sender.SetContentFilename(attachment.GetUuid() + ".dcm");
+
+    HttpStreamTranscoder transcoder(sender, attachment.GetCompressionType());
+    output.AnswerStream(transcoder);
 #endif
   }
 

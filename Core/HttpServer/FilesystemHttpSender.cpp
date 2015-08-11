@@ -32,12 +32,7 @@
 #include "../PrecompiledHeaders.h"
 #include "FilesystemHttpSender.h"
 
-#include "../Toolbox.h"
 #include "../OrthancException.h"
-#include "../Compression/ZlibCompressor.h"
-
-#include <stdio.h>
-
 
 static const size_t  CHUNK_SIZE = 64 * 1024;   // Use 64KB chunks
 
@@ -45,9 +40,6 @@ namespace Orthanc
 {
   void FilesystemHttpSender::Initialize(const boost::filesystem::path& path)
   {
-    sourceCompression_ = CompressionType_None;
-    targetCompression_ = HttpCompression_None;
-
     SetContentFilename(path.filename().string());
     file_.open(path.string().c_str(), std::ifstream::binary);
 
@@ -62,129 +54,23 @@ namespace Orthanc
   }
 
 
-  HttpCompression FilesystemHttpSender::SetupHttpCompression(bool gzipAllowed, 
-                                                             bool deflateAllowed)
-  {
-    switch (sourceCompression_)
-    {
-      case CompressionType_None:
-      {
-        return HttpCompression_None;
-      }
-
-      case CompressionType_ZlibWithSize:
-      {
-        if (size_ == 0)
-        {
-          return HttpCompression_None;
-        }
-
-        if (size_ < sizeof(uint64_t))
-        {
-          throw OrthancException(ErrorCode_CorruptedFile);
-        }
-
-        if (deflateAllowed)
-        {
-          file_.seekg(sizeof(uint64_t), file_.beg);
-          size_ -= sizeof(uint64_t);
-          return HttpCompression_Deflate;
-        }
-        else
-        {
-          uncompressed_.reset(new BufferHttpSender);
-
-          // TODO Stream-based uncompression
-          assert(size_ != 0);
-          std::string compressed;
-          compressed.resize(size_);
-
-          file_.read(&compressed[0], size_);
-          if ((file_.flags() & std::istream::failbit) ||
-              !(file_.flags() & std::istream::eofbit) ||
-              file_.gcount() < 0 ||
-              static_cast<uint64_t>(file_.gcount()) != size_)
-          {
-            throw OrthancException(ErrorCode_CorruptedFile);
-          }
-          
-          ZlibCompressor compressor;
-          IBufferCompressor::Uncompress(uncompressed_->GetBuffer(), compressor, compressed);
-
-          return HttpCompression_None;
-        }
-
-        break;
-      }
-
-      default:
-        throw OrthancException(ErrorCode_NotImplemented);
-    }
-  }
-
-
-  uint64_t FilesystemHttpSender::GetContentLength()
-  {
-    if (uncompressed_.get() != NULL)
-    {
-      return uncompressed_->GetContentLength();
-    }
-    else
-    {
-      return size_;
-    }
-  }
-
-
   bool FilesystemHttpSender::ReadNextChunk()
   {
-    if (uncompressed_.get() != NULL)
+    if (chunk_.size() == 0)
     {
-      return uncompressed_->ReadNextChunk();
+      chunk_.resize(CHUNK_SIZE);
     }
-    else
+
+    file_.read(&chunk_[0], chunk_.size());
+
+    if ((file_.flags() & std::istream::failbit) ||
+        file_.gcount() < 0)
     {
-      if (chunk_.size() == 0)
-      {
-        chunk_.resize(CHUNK_SIZE);
-      }
-
-      file_.read(&chunk_[0], chunk_.size());
-
-      if (file_.flags() & std::istream::failbit)
-      {
-        throw OrthancException(ErrorCode_CorruptedFile);
-      }
-
-      chunkSize_ = file_.gcount();
-
-      return chunkSize_ > 0;
+      throw OrthancException(ErrorCode_CorruptedFile);
     }
-  }
 
+    chunkSize_ = file_.gcount();
 
-  const char* FilesystemHttpSender::GetChunkContent()
-  {
-    if (uncompressed_.get() != NULL)
-    {
-      return uncompressed_->GetChunkContent();
-    }
-    else
-    {
-      return chunk_.c_str();
-    }
-  }
-
-  
-  size_t FilesystemHttpSender::GetChunkSize()
-  {
-    if (uncompressed_.get() != NULL)
-    {
-      return uncompressed_->GetChunkSize();
-    }
-    else
-    {
-      return chunkSize_;
-    }
+    return chunkSize_ > 0;
   }
 }
