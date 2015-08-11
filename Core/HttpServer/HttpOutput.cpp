@@ -320,73 +320,75 @@ namespace Orthanc
     stateMachine_.SendBody(NULL, 0);
   }
 
-  void HttpOutput::SendBody(const void* buffer, 
-                            size_t length)
+  void HttpOutput::Answer(const void* buffer, 
+                          size_t length)
   {
     if (length == 0)
     {
-      stateMachine_.SendBody(NULL, 0);
+      AnswerEmpty();
+      return;
+    }
+
+    HttpCompression compression = GetPreferredCompression(length);
+
+    if (compression == HttpCompression_None)
+    {
+      stateMachine_.SetContentLength(length);
+      stateMachine_.SendBody(buffer, length);
+      return;
+    }
+
+    std::string compressed, encoding;
+
+    switch (compression)
+    {
+      case HttpCompression_Deflate:
+      {
+        encoding = "deflate";
+        ZlibCompressor compressor;
+        // Do not prefix the buffer with its uncompressed size, to be compatible with "deflate"
+        compressor.SetPrefixWithUncompressedSize(false);  
+        compressor.Compress(compressed, buffer, length);
+        break;
+      }
+
+      case HttpCompression_Gzip:
+      {
+        encoding = "gzip";
+        GzipCompressor compressor;
+        compressor.Compress(compressed, buffer, length);
+        break;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+
+    LOG(TRACE) << "Compressing a HTTP answer using " << encoding;
+
+    // The body is empty, do not use HTTP compression
+    if (compressed.size() == 0)
+    {
+      AnswerEmpty();
     }
     else
     {
-      HttpCompression compression = GetPreferredCompression(length);
-
-      switch (compression)
-      {
-        case HttpCompression_None:
-        {
-          stateMachine_.SendBody(buffer, length);
-          break;
-        }
-
-        case HttpCompression_Gzip:
-        case HttpCompression_Deflate:
-        {
-          std::string compressed, encoding;
-
-          if (compression == HttpCompression_Deflate)
-          {
-            encoding = "deflate";
-            ZlibCompressor compressor;
-            // Do not prefix the buffer with its uncompressed size, to be compatible with "deflate"
-            compressor.SetPrefixWithUncompressedSize(false);  
-            compressor.Compress(compressed, buffer, length);
-          }
-          else
-          {
-            encoding = "gzip";
-            GzipCompressor compressor;
-            compressor.Compress(compressed, buffer, length);
-          }
-
-          LOG(TRACE) << "Compressing a HTTP answer using " << encoding;
-
-          // The body is empty, do not use Deflate compression
-          if (compressed.size() == 0)
-          {
-            stateMachine_.SendBody(NULL, 0);
-          }
-          else
-          {
-            stateMachine_.AddHeader("Content-Encoding", encoding);
-            stateMachine_.SendBody(compressed.c_str(), compressed.size());
-          }
-
-          break;
-        }
-
-        default:
-          throw OrthancException(ErrorCode_NotImplemented);
-      }
+      stateMachine_.AddHeader("Content-Encoding", encoding);
+      stateMachine_.SetContentLength(compressed.size());
+      stateMachine_.SendBody(compressed.c_str(), compressed.size());
     }
+
+    stateMachine_.CloseBody();
   }
 
-  void HttpOutput::SendBody(const std::string& str)
+
+  void HttpOutput::Answer(const std::string& str)
   {
-    SendBody(str.size() == 0 ? NULL : str.c_str(), str.size());
+    Answer(str.size() == 0 ? NULL : str.c_str(), str.size());
   }
 
-  void HttpOutput::SendEmptyBody()
+
+  void HttpOutput::AnswerEmpty()
   {
     stateMachine_.SetContentLength(0);
     stateMachine_.SendBody(NULL, 0);

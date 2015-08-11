@@ -273,7 +273,7 @@ namespace Orthanc
         length_(element.getLength(transferSyntax)),
         offset_(0)
       {
-        static const size_t CHUNK_SIZE = 64 * 1024;  // Use a 64KB chunk
+        static const size_t CHUNK_SIZE = 64 * 1024;  // Use chunks of max 64KB
         chunk_.resize(CHUNK_SIZE);
       }
 

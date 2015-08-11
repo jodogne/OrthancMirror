@@ -95,7 +95,7 @@ namespace Orthanc
       std::string s;
       Toolbox::JsonToXml(s, value);
       output_.SetContentType("application/xml");
-      output_.SendBody(s);
+      output_.Answer(s);
 #else
       LOG(ERROR) << "Orthanc was compiled without XML support";
       throw OrthancException(ErrorCode_InternalError);
@@ -105,7 +105,7 @@ namespace Orthanc
     {
       Json::StyledWriter writer;
       output_.SetContentType("application/json");
-      output_.SendBody(writer.write(value));
+      output_.Answer(writer.write(value));
     }
 
     alreadySent_ = true;
@@ -124,7 +124,7 @@ namespace Orthanc
   {
     CheckStatus();
     output_.SetContentType(contentType.c_str());
-    output_.SendBody(buffer, length);
+    output_.Answer(buffer, length);
     alreadySent_ = true;
   }
 

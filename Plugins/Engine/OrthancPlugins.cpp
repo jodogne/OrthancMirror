@@ -477,7 +477,7 @@ namespace Orthanc
 
     HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
     translatedOutput->SetContentType(p.mimeType);
-    translatedOutput->SendBody(p.answer, p.answerSize);
+    translatedOutput->Answer(p.answer, p.answerSize);
   }
 
 
@@ -583,7 +583,7 @@ namespace Orthanc
     writer.WriteToMemory(png, accessor);
 
     translatedOutput->SetContentType("image/png");
-    translatedOutput->SendBody(png);
+    translatedOutput->Answer(png);
   }
 
 
