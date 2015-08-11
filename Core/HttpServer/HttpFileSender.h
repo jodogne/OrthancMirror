@@ -36,29 +36,13 @@
 
 namespace Orthanc
 {
-  class HttpFileSender
+  class HttpFileSender : public IHttpStreamAnswer
   {
   private:
     std::string contentType_;
-    std::string downloadFilename_;
-
-    void SendHeader(HttpOutput& output);
-
-  protected:
-    virtual uint64_t GetFileSize() = 0;
-
-    virtual bool SendData(HttpOutput& output) = 0;
+    std::string filename_;
 
   public:
-    virtual ~HttpFileSender()
-    {
-    }
-
-    void ResetContentType()
-    {
-      contentType_.clear();
-    }
-
     void SetContentType(const std::string& contentType)
     {
       contentType_ = contentType;
@@ -69,21 +53,27 @@ namespace Orthanc
       return contentType_;
     }
 
-    void ResetDownloadFilename()
+    void SetFilename(const std::string& filename);
+
+    const std::string& GetFilename() const
     {
-      downloadFilename_.clear();
+      return filename_;
     }
 
-    void SetDownloadFilename(const std::string& filename)
+
+    /**
+     * Implementation of the IHttpStreamAnswer interface. No
+     * compression is supported.
+     **/
+
+    virtual HttpCompression GetHttpCompression(bool /*gzipAllowed*/, 
+                                               bool /*deflateAllowed*/)
     {
-      downloadFilename_ = filename;
+      return HttpCompression_None;
     }
 
-    const std::string& GetDownloadFilename() const
-    {
-      return downloadFilename_;
-    }
-
-    void Send(HttpOutput& output);
+    virtual bool HasContentFilename(std::string& filename);
+    
+    virtual std::string GetContentType();
   };
 }

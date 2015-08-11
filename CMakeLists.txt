@@ -100,6 +100,7 @@ set(ORTHANC_CORE_SOURCES
   Core/FileStorage/CompressedFileStorageAccessor.cpp
   Core/FileStorage/FileStorageAccessor.cpp
   Core/HttpClient.cpp
+  Core/HttpServer/BufferHttpSender.cpp
   Core/HttpServer/EmbeddedResourceHttpHandler.cpp
   Core/HttpServer/FilesystemHttpHandler.cpp
   Core/HttpServer/HttpToolbox.cpp

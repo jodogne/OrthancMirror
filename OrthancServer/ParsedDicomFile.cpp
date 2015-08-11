@@ -255,46 +255,93 @@ namespace Orthanc
   }
 
 
-  static void AnswerDicomField(RestApiOutput& output,
-                               DcmElement& element,
-                               E_TransferSyntax transferSyntax)
+  namespace
   {
-    // This element is nor a sequence, neither a pixel-data
-    std::string buffer;
-    buffer.resize(65536);
-    Uint32 length = element.getLength(transferSyntax);
-    Uint32 offset = 0;
-
-    output.GetLowLevelOutput().SetContentType(CONTENT_TYPE_OCTET_STREAM);
-    output.GetLowLevelOutput().SetContentLength(length);
-
-    while (offset < length)
+    class DicomFieldStream : public IHttpStreamAnswer
     {
-      Uint32 nbytes;
-      if (length - offset < buffer.size())
+    private:
+      DcmElement&  element_;
+      uint32_t     length_;
+      uint32_t     offset_;
+      std::string  chunk_;
+      size_t       chunkSize_;
+      
+    public:
+      DicomFieldStream(DcmElement& element,
+                       E_TransferSyntax transferSyntax) :
+        element_(element),
+        length_(element.getLength(transferSyntax)),
+        offset_(0)
       {
-        nbytes = length - offset;
-      }
-      else
-      {
-        nbytes = buffer.size();
+        static const size_t CHUNK_SIZE = 64 * 1024;  // Use a 64KB chunk
+        chunk_.resize(CHUNK_SIZE);
       }
 
-      OFCondition cond = element.getPartialValue(&buffer[0], offset, nbytes);
-
-      if (cond.good())
+      virtual HttpCompression GetHttpCompression(bool /*gzipAllowed*/,
+                                                 bool /*deflateAllowed*/)
       {
-        output.GetLowLevelOutput().SendBody(&buffer[0], nbytes);
-        offset += nbytes;
+        // No support for compression
+        return HttpCompression_None;
       }
-      else
-      {
-        LOG(ERROR) << "Error while sending a DICOM field: " << cond.text();
-        return;
-      }
-    }
 
-    output.MarkLowLevelOutputDone();
+      virtual bool HasContentFilename(std::string& filename)
+      {
+        return false;
+      }
+
+      virtual std::string GetContentType()
+      {
+        return "";
+      }
+
+      virtual uint64_t  GetContentLength()
+      {
+        return length_;
+      }
+ 
+      virtual bool ReadNextChunk()
+      {
+        assert(offset_ < length_);
+
+        if (offset_ == length_)
+        {
+          return false;
+        }
+        else
+        {
+          if (length_ - offset_ < chunk_.size())
+          {
+            chunkSize_ = length_ - offset_;
+          }
+          else
+          {
+            chunkSize_ = chunk_.size();
+          }
+
+          OFCondition cond = element_.getPartialValue(&chunk_[0], offset_, chunkSize_);
+
+          offset_ += chunkSize_;
+
+          if (!cond.good())
+          {
+            LOG(ERROR) << "Error while sending a DICOM field: " << cond.text();
+            throw OrthancException(ErrorCode_InternalError);
+          }
+
+          return true;
+        }
+      }
+ 
+      virtual const char *GetChunkContent()
+      {
+        return chunk_.c_str();
+      }
+ 
+      virtual size_t GetChunkSize()
+      {
+        return chunkSize_;
+      }
+    };
   }
 
 
@@ -365,7 +412,8 @@ namespace Orthanc
         {
           // This is the case for raw, uncompressed image buffers
           assert(*blockUri == "0");
-          AnswerDicomField(output, *element, transferSyntax);
+          DicomFieldStream stream(*element, transferSyntax);
+          output.AnswerStream(stream);
         }
       }
     }
@@ -406,7 +454,8 @@ namespace Orthanc
         //element->getVR() != EVR_UNKNOWN &&  // This would forbid private tags
         element->getVR() != EVR_SQ)
     {
-      AnswerDicomField(output, *element, transferSyntax);
+      DicomFieldStream stream(*element, transferSyntax);
+      output.AnswerStream(stream);
     }
   }
 

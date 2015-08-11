@@ -317,8 +317,8 @@ namespace Orthanc
 
     std::auto_ptr<HttpFileSender> sender(accessor_.ConstructHttpFileSender(attachment.GetUuid(), attachment.GetContentType()));
     sender->SetContentType(GetMimeType(content));
-    sender->SetDownloadFilename(instancePublicId + ".dcm");
-    output.AnswerFile(*sender);
+    sender->SetFilename(instancePublicId + ".dcm");
+    output.AnswerStream(*sender);
   }
 
 

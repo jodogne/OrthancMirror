@@ -29,47 +29,47 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
-#pragma once
+#include "../PrecompiledHeaders.h"
+#include "BufferHttpSender.h"
 
-#include "HttpFileSender.h"
+#include "../OrthancException.h"
 
 namespace Orthanc
 {
-  class BufferHttpSender : public HttpFileSender
+  bool BufferHttpSender::ReadNextChunk()
   {
-  private:
-    std::string buffer_;
-    bool done_;
-
-  public:
-    BufferHttpSender() : done_(false)
+    if (done_)
     {
+      return false;
     }
-
-    std::string& GetBuffer() 
+    else
     {
-      return buffer_;
+      done_ = false;
+      return true;
     }
+  }
 
-    const std::string& GetBuffer() const
+  const char* BufferHttpSender::GetChunkContent()
+  {
+    if (done_)
     {
-      return buffer_;
+      throw OrthancException(ErrorCode_InternalError);
     }
+    else
+    {
+      return buffer_.c_str();
+    }
+  }
 
-
-    /**
-     * Implementation of the IHttpStreamAnswer interface.
-     **/
-
-    virtual uint64_t GetContentLength()
+  size_t BufferHttpSender::GetChunkSize()
+  {
+    if (done_)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    else
     {
       return buffer_.size();
     }
-
-    virtual bool ReadNextChunk();
-
-    virtual const char* GetChunkContent();
-
-    virtual size_t GetChunkSize();
-  };
+  }
 }

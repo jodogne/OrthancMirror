@@ -155,9 +155,8 @@ namespace Orthanc
 
     if (fs::exists(p) && fs::is_regular_file(p))
     {
-      FilesystemHttpSender(p).Send(output);   // TODO COMPRESSION
-
-      //output.AnswerFileAutodetectContentType(p.string());
+      FilesystemHttpSender sender(p);
+      output.Answer(sender);   // TODO COMPRESSION
     }
     else if (listDirectoryContent_ &&
              fs::exists(p) && 

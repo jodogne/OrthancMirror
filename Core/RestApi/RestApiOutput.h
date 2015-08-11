@@ -55,16 +55,6 @@ namespace Orthanc
 
     ~RestApiOutput();
 
-    HttpOutput& GetLowLevelOutput()
-    {
-      return output_;
-    }
-
-    void MarkLowLevelOutputDone()
-    {
-      alreadySent_ = true;
-    }
-
     void SetConvertJsonToXml(bool convert)
     {
       convertJsonToXml_ = convert;
@@ -75,7 +65,7 @@ namespace Orthanc
       return convertJsonToXml_;
     }
 
-    void AnswerFile(HttpFileSender& sender);
+    void AnswerStream(IHttpStreamAnswer& stream);
 
     void AnswerJson(const Json::Value& value);
 
