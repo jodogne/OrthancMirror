@@ -29,49 +29,53 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
+
 #pragma once
 
-#include "HttpFileSender.h"
+#include "BufferHttpSender.h"
+
+#include <memory>  // For std::auto_ptr
 
 namespace Orthanc
 {
-  class BufferHttpSender : public HttpFileSender
+  class HttpStreamTranscoder : public IHttpStreamAnswer
   {
   private:
-    std::string  buffer_;
-    size_t       position_;
-    size_t       chunkSize_;
-    size_t       currentChunkSize_;
+    IHttpStreamAnswer& source_;
+    CompressionType    sourceCompression_;
+    uint64_t           bytesToSkip_;
+    uint64_t           skipped_;
+    uint64_t           currentChunkOffset_;
+
+    std::auto_ptr<BufferHttpSender>  uncompressed_;
+
+    void ReadSource(std::string& buffer);
 
   public:
-    BufferHttpSender();
-
-    std::string& GetBuffer() 
+    HttpStreamTranscoder(IHttpStreamAnswer& source,
+                         CompressionType compression) : 
+      source_(source),
+      sourceCompression_(compression),
+      bytesToSkip_(0),
+      skipped_(0)
     {
-      return buffer_;
     }
 
-    const std::string& GetBuffer() const
+    // This is the first method to be called
+    virtual HttpCompression SetupHttpCompression(bool gzipAllowed,
+                                                 bool deflateAllowed);
+
+    virtual bool HasContentFilename(std::string& filename)
     {
-      return buffer_;
+      return source_.HasContentFilename(filename);
     }
 
-    // This is for test purpose. If "chunkSize" is set to "0" (the
-    // default), the entire buffer is consumed at once.
-    void SetChunkSize(size_t chunkSize)
+    virtual std::string GetContentType()
     {
-      chunkSize_ = chunkSize;
+      return source_.GetContentType();
     }
 
-
-    /**
-     * Implementation of the IHttpStreamAnswer interface.
-     **/
-
-    virtual uint64_t GetContentLength()
-    {
-      return buffer_.size();
-    }
+    virtual uint64_t GetContentLength();
 
     virtual bool ReadNextChunk();
 

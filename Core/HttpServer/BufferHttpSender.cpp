@@ -34,28 +34,51 @@
 
 #include "../OrthancException.h"
 
+#include <cassert>
+
 namespace Orthanc
 {
+  BufferHttpSender::BufferHttpSender() :
+    position_(0), 
+    chunkSize_(0),
+    currentChunkSize_(0)
+  {
+  }
+
+
   bool BufferHttpSender::ReadNextChunk()
   {
-    if (done_)
+    assert(position_ + currentChunkSize_ <= buffer_.size());
+
+    position_ += currentChunkSize_;
+
+    if (position_ == buffer_.size())
     {
       return false;
     }
     else
     {
-      done_ = true;
+      currentChunkSize_ = buffer_.size() - position_;
+
+      if (chunkSize_ != 0 &&
+          currentChunkSize_ > chunkSize_)
+      {
+        currentChunkSize_ = chunkSize_;
+      }
+
       return true;
     }
   }
 
+
   const char* BufferHttpSender::GetChunkContent()
   {
-    return buffer_.c_str();
+    return buffer_.c_str() + position_;
   }
+
 
   size_t BufferHttpSender::GetChunkSize()
   {
-    return buffer_.size();
+    return currentChunkSize_;
   }
 }

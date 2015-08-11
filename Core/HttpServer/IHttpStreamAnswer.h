@@ -32,8 +32,11 @@
 
 #pragma once
 
+#include "../Enumerations.h"
+
 #include <stdint.h>
 #include <boost/noncopyable.hpp>
+#include <string>
 
 namespace Orthanc
 {

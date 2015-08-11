@@ -65,6 +65,12 @@ namespace Orthanc
      * Implementation of the IHttpStreamAnswer interface.
      **/
 
+    virtual HttpCompression SetupHttpCompression(bool /*gzipAllowed*/, 
+                                                 bool /*deflateAllowed*/)
+    {
+      return HttpCompression_None;
+    }
+
     virtual bool HasContentFilename(std::string& filename);
     
     virtual std::string GetContentType();
