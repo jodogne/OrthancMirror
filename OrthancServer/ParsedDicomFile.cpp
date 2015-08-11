@@ -301,7 +301,7 @@ namespace Orthanc
  
       virtual bool ReadNextChunk()
       {
-        assert(offset_ < length_);
+        assert(offset_ <= length_);
 
         if (offset_ == length_)
         {
