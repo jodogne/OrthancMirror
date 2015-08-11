@@ -44,32 +44,18 @@ namespace Orthanc
     }
     else
     {
-      done_ = false;
+      done_ = true;
       return true;
     }
   }
 
   const char* BufferHttpSender::GetChunkContent()
   {
-    if (done_)
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-    else
-    {
-      return buffer_.c_str();
-    }
+    return buffer_.c_str();
   }
 
   size_t BufferHttpSender::GetChunkSize()
   {
-    if (done_)
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-    else
-    {
-      return buffer_.size();
-    }
+    return buffer_.size();
   }
 }
