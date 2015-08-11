@@ -45,8 +45,6 @@ namespace Orthanc
                                HttpMethod method) : 
     output_(output),
     method_(method),
-    allowDeflateCompression_(false),
-    allowGzipCompression_(false),
     convertJsonToXml_(false)
   {
     alreadySent_ = false;
@@ -76,32 +74,6 @@ namespace Orthanc
     if (alreadySent_)
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-  }
-
-
-  HttpCompression  RestApiOutput::GetPreferredCompression(size_t bodySize) const
-  {
-#if 0
-    // TODO
-    if (bodySize < 1024)
-    {
-      // Do not compress small answers
-      return HttpCompression_None;
-    }
-#endif    
-
-    if (allowGzipCompression_)
-    {
-      return HttpCompression_Gzip;
-    }
-    else if (allowDeflateCompression_)
-    {
-      return HttpCompression_Deflate;
-    }
-    else
-    {
-      return HttpCompression_None;
     }
   }
 

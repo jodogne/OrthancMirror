@@ -980,6 +980,7 @@ namespace Orthanc
   {
     Stop();
     httpCompression_ = enabled;
+    LOG(WARNING) << "HTTP compression is " << (enabled ? "enabled" : "disabled");
   }
 
   void MongooseServer::SetIncomingHttpRequestFilter(IIncomingHttpRequestFilter& filter)

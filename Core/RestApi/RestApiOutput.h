@@ -44,14 +44,10 @@ namespace Orthanc
   private:
     HttpOutput&  output_;
     HttpMethod   method_;
-    bool         allowDeflateCompression_;
-    bool         allowGzipCompression_;
     bool         alreadySent_;
     bool         convertJsonToXml_;
 
     void CheckStatus();
-
-    HttpCompression  GetPreferredCompression(size_t bodySize) const;
 
   public:
     RestApiOutput(HttpOutput& output,
@@ -77,16 +73,6 @@ namespace Orthanc
     bool IsConvertJsonToXml() const
     {
       return convertJsonToXml_;
-    }
-
-    void AllowDeflateCompression(bool allow)
-    {
-      allowDeflateCompression_ = allow;
-    }
-
-    void AllowGzipCompression(bool allow)
-    {
-      allowGzipCompression_ = allow;
     }
 
     void AnswerFile(HttpFileSender& sender);
