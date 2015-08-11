@@ -117,13 +117,13 @@ namespace Orthanc
   {
     CheckStatus();
 
-    std::string s;
-
     if (convertJsonToXml_)
     {
 #if ORTHANC_PUGIXML_ENABLED == 1
+      std::string s;
       Toolbox::JsonToXml(s, value);
       output_.SetContentType("application/xml");
+      output_.SendBody(s);
 #else
       LOG(ERROR) << "Orthanc was compiled without XML support";
       throw OrthancException(ErrorCode_InternalError);
@@ -133,10 +133,8 @@ namespace Orthanc
     {
       Json::StyledWriter writer;
       output_.SetContentType("application/json");
-      s = writer.write(value);
+      output_.SendBody(writer.write(value));
     }
-
-    output_.SendBody(s, GetPreferredCompression(s.size()));
 
     alreadySent_ = true;
   }
@@ -154,7 +152,7 @@ namespace Orthanc
   {
     CheckStatus();
     output_.SetContentType(contentType.c_str());
-    output_.SendBody(buffer, length, GetPreferredCompression(length));
+    output_.SendBody(buffer, length);
     alreadySent_ = true;
   }
 

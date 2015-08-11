@@ -548,6 +548,34 @@ namespace Orthanc
   }
 
 
+  static void ConfigureHttpCompression(HttpOutput& output,
+                                       const IHttpHandler::Arguments& headers)
+  {
+    // Look if the client wishes HTTP compression
+    // https://en.wikipedia.org/wiki/HTTP_compression
+    IHttpHandler::Arguments::const_iterator it = headers.find("accept-encoding");
+    if (it != headers.end())
+    {
+      std::vector<std::string> encodings;
+      Toolbox::TokenizeString(encodings, it->second, ',');
+
+      for (size_t i = 0; i < encodings.size(); i++)
+      {
+        std::string s = Toolbox::StripSpaces(encodings[i]);
+
+        if (s == "deflate")
+        {
+          output.SetDeflateAllowed(true);
+        }
+        else if (s == "gzip")
+        {
+          output.SetGzipAllowed(true);
+        }
+      }
+    }
+  }
+
+
   static void InternalCallback(struct mg_connection *connection,
                                const struct mg_request_info *request)
   {
@@ -572,6 +600,11 @@ namespace Orthanc
       std::string name = request->http_headers[i].name;
       std::transform(name.begin(), name.end(), name.begin(), ::tolower);
       headers.insert(std::make_pair(name, request->http_headers[i].value));
+    }
+
+    if (that->IsHttpCompressionEnabled())
+    {
+      ConfigureHttpCompression(output, headers);
     }
 
 
@@ -799,6 +832,7 @@ namespace Orthanc
     port_ = 8000;
     filter_ = NULL;
     keepAlive_ = false;
+    httpCompression_ = true;
 
 #if ORTHANC_SSL_ENABLED == 1
     // Check for the Heartbleed exploit
@@ -940,6 +974,12 @@ namespace Orthanc
   {
     Stop();
     remoteAllowed_ = allowed;
+  }
+
+  void MongooseServer::SetHttpCompressionEnabled(bool enabled)
+  {
+    Stop();
+    httpCompression_ = enabled;
   }
 
   void MongooseServer::SetIncomingHttpRequestFilter(IIncomingHttpRequestFilter& filter)

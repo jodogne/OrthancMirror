@@ -215,6 +215,33 @@ namespace Orthanc
   }
 
 
+  HttpCompression HttpOutput::GetPreferredCompression(size_t bodySize) const
+  {
+#if 0
+    // TODO Do not compress small files?
+    if (bodySize < 512)
+    {
+      return HttpCompression_None;
+    }
+#endif
+
+    // Prefer "gzip" over "deflate" if the choice is offered
+
+    if (isGzipAllowed_)
+    {
+      return HttpCompression_Gzip;
+    }
+    else if (isDeflateAllowed_)
+    {
+      return HttpCompression_Deflate;
+    }
+    else
+    {
+      return HttpCompression_None;
+    }
+  }
+
+
   void HttpOutput::SendMethodNotAllowed(const std::string& allowed)
   {
     stateMachine_.ClearHeaders();
@@ -259,8 +286,7 @@ namespace Orthanc
   }
 
   void HttpOutput::SendBody(const void* buffer, 
-                            size_t length,
-                            HttpCompression compression)
+                            size_t length)
   {
     if (length == 0)
     {
@@ -268,6 +294,8 @@ namespace Orthanc
     }
     else
     {
+      HttpCompression compression = GetPreferredCompression(length);
+
       switch (compression)
       {
         case HttpCompression_None:
@@ -318,10 +346,9 @@ namespace Orthanc
     }
   }
 
-  void HttpOutput::SendBody(const std::string& str,
-                            HttpCompression compression)
+  void HttpOutput::SendBody(const std::string& str)
   {
-    SendBody(str.size() == 0 ? NULL : str.c_str(), str.size(), compression);
+    SendBody(str.size() == 0 ? NULL : str.c_str(), str.size());
   }
 
   void HttpOutput::SendBody()

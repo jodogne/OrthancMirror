@@ -56,8 +56,6 @@ namespace Orthanc
   {
     namespace fs = boost::filesystem;
 
-    output.SetContentType("text/html");
-
     std::string s;
     s += "<html>";
     s += "  <body>";
@@ -105,7 +103,8 @@ namespace Orthanc
     s += "  </body>";
     s += "</html>";
 
-    output.SendBody(s, IHttpHandler::GetPreferredCompression(headers, s.size()));
+    output.SetContentType("text/html");
+    output.SendBody(s);
   }
 
 
