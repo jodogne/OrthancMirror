@@ -695,7 +695,7 @@ namespace Orthanc
           return;
 
         case PostDataStatus_Pending:
-          output.SendEmptyBody();
+          output.AnswerEmpty();
           return;
 
         default:

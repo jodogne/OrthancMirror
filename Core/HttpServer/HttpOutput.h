@@ -170,12 +170,12 @@ namespace Orthanc
       stateMachine_.AddHeader(key, value);
     }
 
-    void SendBody(const void* buffer, 
-                  size_t length);
+    void Answer(const void* buffer, 
+                size_t length);
 
-    void SendBody(const std::string& str);
+    void Answer(const std::string& str);
 
-    void SendEmptyBody();
+    void AnswerEmpty();
 
     void SendMethodNotAllowed(const std::string& allowed);
 

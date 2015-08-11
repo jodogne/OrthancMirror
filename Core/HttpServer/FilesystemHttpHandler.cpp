@@ -104,7 +104,7 @@ namespace Orthanc
     s += "</html>";
 
     output.SetContentType("text/html");
-    output.SendBody(s);
+    output.Answer(s);
   }
 
 
