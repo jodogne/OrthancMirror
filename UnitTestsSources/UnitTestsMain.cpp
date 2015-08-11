@@ -126,8 +126,6 @@ TEST(Gzip, Empty)
   c.SetPrefixWithUncompressedSize(false);
   IBufferCompressor::Compress(compressed, c, s);
 
-  Toolbox::WriteFile(compressed, "/tmp/toto.gz");
-
   std::string uncompressed;
   IBufferCompressor::Uncompress(uncompressed, c, compressed);
   ASSERT_EQ(0, uncompressed.size());
