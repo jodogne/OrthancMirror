@@ -32,6 +32,7 @@
 #pragma once
 
 #include "HttpFileSender.h"
+#include "BufferHttpSender.h"
 #include "../FileStorage/FilesystemStorage.h"
 
 #include <fstream>
@@ -41,26 +42,46 @@ namespace Orthanc
   class FilesystemHttpSender : public HttpFileSender
   {
   private:
-    boost::filesystem::path path_;
-    std::ifstream           file_;
-    uint64_t                size_;
-    std::string             chunk_;
-    size_t                  chunkSize_;
+    std::ifstream    file_;
+    uint64_t         size_;
+    std::string      chunk_;
+    size_t           chunkSize_;
+    CompressionType  sourceCompression_;
+    HttpCompression  targetCompression_;
 
-    void Open();
+    std::auto_ptr<BufferHttpSender>  uncompressed_;
+
+    void Initialize(const boost::filesystem::path& path);
 
   public:
-    FilesystemHttpSender(const char* path);
+    FilesystemHttpSender(const std::string& path)
+    {
+      Initialize(path);
+    }
 
-    FilesystemHttpSender(const boost::filesystem::path& path);
+    FilesystemHttpSender(const boost::filesystem::path& path)
+    {
+      Initialize(path);
+    }
 
     FilesystemHttpSender(const FilesystemStorage& storage,
-                         const std::string& uuid);
+                         const std::string& uuid)
+    {
+      Initialize(storage.GetPath(uuid));
+    }
+
+    void SetSourceCompression(CompressionType compression)
+    {
+      sourceCompression_ = compression;
+    }
 
 
     /**
      * Implementation of the IHttpStreamAnswer interface.
      **/
+
+    virtual HttpCompression GetHttpCompression(bool /*gzipAllowed*/, 
+                                               bool /*deflateAllowed*/);
 
     virtual uint64_t GetContentLength()
     {
@@ -69,14 +90,8 @@ namespace Orthanc
 
     virtual bool ReadNextChunk();
 
-    virtual const char* GetChunkContent()
-    {
-      return chunk_.c_str();
-    }
+    virtual const char* GetChunkContent();
 
-    virtual size_t GetChunkSize()
-    {
-      return chunkSize_;
-    }
+    virtual size_t GetChunkSize();
   };
 }

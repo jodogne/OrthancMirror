@@ -53,24 +53,17 @@ namespace Orthanc
       return contentType_;
     }
 
-    void SetFilename(const std::string& filename);
+    void SetContentFilename(const std::string& filename);
 
-    const std::string& GetFilename() const
+    const std::string& GetContentFilename() const
     {
       return filename_;
     }
 
 
     /**
-     * Implementation of the IHttpStreamAnswer interface. No
-     * compression is supported.
+     * Implementation of the IHttpStreamAnswer interface.
      **/
-
-    virtual HttpCompression GetHttpCompression(bool /*gzipAllowed*/, 
-                                               bool /*deflateAllowed*/)
-    {
-      return HttpCompression_None;
-    }
 
     virtual bool HasContentFilename(std::string& filename);
     

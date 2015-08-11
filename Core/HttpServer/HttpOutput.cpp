@@ -220,8 +220,9 @@ namespace Orthanc
     switch (state_)
     {
       case State_WritingHeader:
-        LOG(ERROR) << "Closing the HTTP body, but the header has not been sent yet";
-        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        SetContentLength(0);
+        SendBody(NULL, 0);
+        break;
 
       case State_WritingBody:
         if (!hasContentLength_ ||
@@ -390,8 +391,6 @@ namespace Orthanc
 
   void HttpOutput::AnswerEmpty()
   {
-    stateMachine_.SetContentLength(0);
-    stateMachine_.SendBody(NULL, 0);
     stateMachine_.CloseBody();
   }
 

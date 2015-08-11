@@ -40,7 +40,7 @@
 
 namespace Orthanc
 {
-  void HttpFileSender::SetFilename(const std::string& filename)
+  void HttpFileSender::SetContentFilename(const std::string& filename)
   {
     filename_ = filename;
 
@@ -53,9 +53,14 @@ namespace Orthanc
 
   bool HttpFileSender::HasContentFilename(std::string& filename)
   {
-    if (!filename_.empty())
+    if (filename_.empty())
+    {
+      return false;
+    }
+    else
     {
       filename = filename_;
+      return true;
     }
   }
     
