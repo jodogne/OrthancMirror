@@ -1,8 +1,8 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
-  SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.0.1g)
+  SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.0.2d)
   DownloadPackage(
-    "de62b43dfcd858e66a74bee1c834e959"
-    "www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/openssl-1.0.1g.tar.gz"
+    "38dd619b2e77cbac69b99f52a053d25a"
+    "www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/openssl-1.0.2d.tar.gz"
     "${OPENSSL_SOURCES_DIR}")
 
   if (NOT EXISTS "${OPENSSL_SOURCES_DIR}/include/PATCHED")

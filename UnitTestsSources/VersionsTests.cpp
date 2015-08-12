@@ -134,7 +134,7 @@ TEST(Version, LuaStatic)
 
 TEST(Version, OpenSslStatic)
 {
-  ASSERT_EQ(0x1000107fL /* openssl-1.0.1g */, OPENSSL_VERSION_NUMBER);
+  ASSERT_EQ(0x1000204fL /* openssl-1.0.2d */, OPENSSL_VERSION_NUMBER);
 }
 
 
