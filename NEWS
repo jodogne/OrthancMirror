@@ -8,6 +8,7 @@ Maintenance
 -----------
 
 * Upgrade to curl 7.44.0 for static and Windows builds
+* Upgrade to libcurl 1.0.2d for static and Windows builds
 
 
 Version 0.9.3 (2015/08/07)
