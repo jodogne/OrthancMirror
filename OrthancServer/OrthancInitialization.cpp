@@ -77,6 +77,35 @@ namespace Orthanc
   static std::string configurationAbsolutePath_;
 
 
+  static std::string GetGlobalStringParameterInternal(const std::string& parameter,
+                                                      const std::string& defaultValue)
+  {
+    if (configuration_.isMember(parameter))
+    {
+      return configuration_[parameter].asString();
+    }
+    else
+    {
+      return defaultValue;
+    }
+  }
+
+
+  static bool GetGlobalBoolParameterInternal(const std::string& parameter,
+                                             bool defaultValue)
+  {
+    if (configuration_.isMember(parameter))
+    {
+      return configuration_[parameter].asBool();
+    }
+    else
+    {
+      return defaultValue;
+    }
+  }
+
+
+
   static void AddFileToConfiguration(const boost::filesystem::path& path)
   {
     LOG(WARNING) << "Reading the configuration from: " << path;
@@ -286,7 +315,8 @@ namespace Orthanc
     // Read the user-provided configuration
     ReadGlobalConfiguration(configurationFile);
 
-    HttpClient::GlobalInitialize();
+    HttpClient::GlobalInitialize(GetGlobalBoolParameterInternal("HttpsVerifyPeers", true),
+                                 GetGlobalStringParameterInternal("HttpsVerifyCertificates", ""));
 
     RegisterUserMetadata();
     RegisterUserContentType();
@@ -337,20 +367,11 @@ namespace Orthanc
   }
 
 
-
   std::string Configuration::GetGlobalStringParameter(const std::string& parameter,
                                                       const std::string& defaultValue)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
-
-    if (configuration_.isMember(parameter))
-    {
-      return configuration_[parameter].asString();
-    }
-    else
-    {
-      return defaultValue;
-    }
+    return GetGlobalStringParameterInternal(parameter, defaultValue);
   }
 
 
@@ -374,15 +395,7 @@ namespace Orthanc
                                              bool defaultValue)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
-
-    if (configuration_.isMember(parameter))
-    {
-      return configuration_[parameter].asBool();
-    }
-    else
-    {
-      return defaultValue;
-    }
+    return GetGlobalBoolParameterInternal(parameter, defaultValue);
   }
 
 
