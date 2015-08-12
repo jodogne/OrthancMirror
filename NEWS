@@ -3,6 +3,10 @@ Pending changes in the mainline
 
 * "limit" and "since" arguments while retrieving DICOM resources in the REST API
 * Support of "deflate" and "gzip" content-types in HTTP requests
+
+Maintenance
+-----------
+
 * Upgrade to curl 7.44.0 for static and Windows builds
 
 
