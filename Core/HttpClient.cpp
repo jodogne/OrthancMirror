@@ -35,9 +35,43 @@
 
 #include "Toolbox.h"
 #include "OrthancException.h"
+#include "Logging.h"
 
 #include <string.h>
 #include <curl/curl.h>
+#include <boost/algorithm/string/predicate.hpp>
+
+
+static std::string cacert_;
+static bool httpsVerifyPeers_ = true;
+
+extern "C"
+{
+  static CURLcode GetHttpStatus(CURLcode code, CURL* curl, long* status)
+  {
+    if (code == CURLE_OK)
+    {
+      code = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, status);
+      return code;
+    }
+    else
+    {
+      *status = 0;
+      return code;
+    }
+  }
+
+  // This is a dummy wrapper function to suppress any OpenSSL-related
+  // problem in valgrind. Inlining is prevented.
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((noinline)) 
+#endif
+    static CURLcode OrthancHttpClientPerformSSL(CURL* curl, long* status)
+  {
+    return GetHttpStatus(curl_easy_perform(curl), curl, status);
+  }
+}
+
 
 
 namespace Orthanc
@@ -53,7 +87,8 @@ namespace Orthanc
   {
     if (code != CURLE_OK)
     {
-      throw OrthancException("libCURL error: " + std::string(curl_easy_strerror(code)));
+      LOG(ERROR) << "libCURL error: " + std::string(curl_easy_strerror(code));
+      throw OrthancException(ErrorCode_NetworkProtocol);
     }
 
     return code;
@@ -97,7 +132,15 @@ namespace Orthanc
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_FOLLOWLOCATION, 1));
 
 #if ORTHANC_SSL_ENABLED == 1
-    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYPEER, 0)); 
+    if (httpsVerifyPeers_)
+    {
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CAINFO, cacert_.c_str())); 
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYPEER, 1)); 
+    }
+    else
+    {
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYPEER, 0)); 
+    }
 #endif
 
     // This fixes the "longjmp causes uninitialized stack frame" crash
@@ -243,10 +286,19 @@ namespace Orthanc
 
 
     // Do the actual request
-    CheckCode(curl_easy_perform(pimpl_->curl_));
+    CURLcode code;
+    long status = 0;
 
-    long status;
-    CheckCode(curl_easy_getinfo(pimpl_->curl_, CURLINFO_RESPONSE_CODE, &status));
+    if (boost::starts_with(url_, "https://"))
+    {
+      code = OrthancHttpClientPerformSSL(pimpl_->curl_, &status);
+    }
+    else
+    {
+      code = GetHttpStatus(curl_easy_perform(pimpl_->curl_), pimpl_->curl_, &status);
+    }
+
+    CheckCode(code);
 
     if (status == 0)
     {
@@ -284,10 +336,40 @@ namespace Orthanc
   }
 
   
-  void HttpClient::GlobalInitialize()
+  void HttpClient::GlobalInitialize(bool httpsVerifyPeers,
+                                    const std::string& httpsVerifyCertificates)
   {
+#if ORTHANC_SSL_ENABLED == 1
+    httpsVerifyPeers_ = httpsVerifyPeers;
+    cacert_ = httpsVerifyCertificates;
+
+    // TODO 
+    /*if (cacert_.empty())
+    {
+      cacert_ = "/etc/ssl/certs/ca-certificates.crt";
+      }*/
+
+    if (httpsVerifyPeers)
+    {
+      if (cacert_.empty())
+      {
+        LOG(WARNING) << "No certificates are provided to validate peers, "
+                     << "set \"HttpsCertificatesFile\" if you need to do HTTPS requests";
+      }
+      else
+      {
+        LOG(WARNING) << "HTTPS will use the certificates from this file: " << cacert_;
+      }
+    }
+    else
+    {
+      LOG(WARNING) << "The verification of the peers in HTTPS requests is disabled!";
+    }
+#endif
+
     CheckCode(curl_global_init(CURL_GLOBAL_DEFAULT));
   }
+
   
   void HttpClient::GlobalFinalize()
   {

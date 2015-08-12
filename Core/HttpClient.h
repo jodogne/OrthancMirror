@@ -140,7 +140,8 @@ namespace Orthanc
       proxy_ = proxy;
     }
 
-    static void GlobalInitialize();
+    static void GlobalInitialize(bool httpsVerifyPeers,
+                                 const std::string& httpsVerifyCertificates);
   
     static void GlobalFinalize();
   };

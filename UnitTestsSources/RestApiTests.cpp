@@ -64,20 +64,22 @@ TEST(HttpClient, Basic)
   c.SetUrl("http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/Configuration.json");
   c.Apply(v);
   ASSERT_TRUE(v.isMember("StorageDirectory"));
-  //ASSERT_EQ(GetLastStatusText());
 #endif
 }
 
 
 #if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1
-TEST(HttpClient, DISABLED_Ssl)
+TEST(HttpClient, Ssl)
 {
   HttpClient c;
-  c.SetUrl("https://www.montefiore.ulg.ac.be/~jodogne/Orthanc/Configuration.json");
+  c.SetUrl("https://bitbucket.org/sjodogne/orthanc/raw/Orthanc-0.9.3/Resources/Configuration.json");
 
-  Json::Value v;
+  std::string s;
+  c.Apply(s);
+
+  /*Json::Value v;
   c.Apply(v);
-  ASSERT_TRUE(v.isMember("LuaScripts"));
+  ASSERT_TRUE(v.isMember("LuaScripts"));*/
 }
 #endif
 

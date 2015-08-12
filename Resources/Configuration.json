@@ -237,5 +237,15 @@
   // Enable HTTP compression to improve network bandwidth utilization,
   // at the expense of more computations on the server. Orthanc
   // supports the "gzip" and "deflate" encodings.
-  "HttpCompressionEnabled" : true
+  "HttpCompressionEnabled" : true,
+
+  // Enable the verification of the peers during HTTPS requests.
+  "HttpsVerifyPeers" : true,
+
+  // Path to the certificates to validate peers in HTTPS
+  // requests. From curl documentation: "Tells curl to use the
+  // specified certificate file to verify the peers. The file may
+  // contain multiple CA certificates. The certificate(s) must be in
+  // PEM format."
+  "HttpsVerifyCertificates" : ""
 }

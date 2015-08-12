@@ -7,6 +7,7 @@ Pending changes in the mainline
 Maintenance
 -----------
 
+* Options to validate peers in HTTPS requests
 * Upgrade to curl 7.44.0 for static and Windows builds
 * Upgrade to libcurl 1.0.2d for static and Windows builds
 

@@ -42,6 +42,8 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
       )
   endif()
 
+  file(WRITE ${CURL_SOURCES_DIR}/lib/curl_config.h "")
+
   if (MSVC)
     #add_definitions(
     #  -DHAVE_BOOL_T=1
