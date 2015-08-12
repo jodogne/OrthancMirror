@@ -42,11 +42,10 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
       )
   endif()
 
-  if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-    set_property(
-      SOURCE ${CURL_SOURCES}
-      PROPERTY COMPILE_DEFINITIONS "HAVE_BOOL_T"
-      )
+  if (MSVC)
+    #add_definitions(
+    #  -DHAVE_BOOL_T=1
+    #  )
 
   elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR

@@ -65,15 +65,22 @@ TEST(HttpClient, Basic)
   c.Apply(v);
   ASSERT_TRUE(v.isMember("StorageDirectory"));
   //ASSERT_EQ(GetLastStatusText());
-
-  v = Json::nullValue;
-
-  HttpClient cc(c);
-  cc.SetUrl("https://www.montefiore.ulg.ac.be/~jodogne/Orthanc/Configuration.json");
-  cc.Apply(v);
-  ASSERT_TRUE(v.isMember("LuaScripts"));
 #endif
 }
+
+
+#if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1
+TEST(HttpClient, DISABLED_Ssl)
+{
+  HttpClient c;
+  c.SetUrl("https://www.montefiore.ulg.ac.be/~jodogne/Orthanc/Configuration.json");
+
+  Json::Value v;
+  c.Apply(v);
+  ASSERT_TRUE(v.isMember("LuaScripts"));
+}
+#endif
+
 
 TEST(RestApi, ChunkedBuffer)
 {
