@@ -181,9 +181,9 @@ static bool ReadAllStream(std::string& result,
                           bool allowGzip = false,
                           bool allowDeflate = false)
 {
-  result.resize(stream.GetContentLength());
-
   stream.SetupHttpCompression(allowGzip, allowDeflate);
+
+  result.resize(stream.GetContentLength());
 
   size_t pos = 0;
   while (stream.ReadNextChunk())
@@ -209,38 +209,15 @@ TEST(BufferHttpSender, Basic)
 
   {
     BufferHttpSender sender;
-    sender.SetChunkSize(0);
-    sender.GetBuffer() = s;
-    ASSERT_TRUE(ReadAllStream(t, sender));
-    ASSERT_EQ(s, t);
-  }
-
-  {
-    BufferHttpSender sender;
-    sender.SetChunkSize(1);
-    sender.GetBuffer() = s;
-    ASSERT_TRUE(ReadAllStream(t, sender));
-    ASSERT_EQ(s, t);
-  }
-
-  {
-    BufferHttpSender sender;
     sender.SetChunkSize(1);
     ASSERT_TRUE(ReadAllStream(t, sender));
     ASSERT_EQ(0u, t.size());
   }
 
+  for (int cs = 0; cs < 5; cs++)
   {
     BufferHttpSender sender;
-    sender.SetChunkSize(3);
-    sender.GetBuffer() = s;
-    ASSERT_TRUE(ReadAllStream(t, sender));
-    ASSERT_EQ(s, t);
-  }
-
-  {
-    BufferHttpSender sender;
-    sender.SetChunkSize(300);
+    sender.SetChunkSize(cs);
     sender.GetBuffer() = s;
     ASSERT_TRUE(ReadAllStream(t, sender));
     ASSERT_EQ(s, t);
@@ -279,7 +256,7 @@ TEST(HttpStreamTranscoder, Basic)
   std::string t;
   IBufferCompressor::Compress(t, compressor, s);
 
-  for (int cs = 0; cs < 3; cs++)
+  for (int cs = 0; cs < 5; cs++)
   {
     BufferHttpSender sender;
     sender.SetChunkSize(cs);
@@ -293,7 +270,7 @@ TEST(HttpStreamTranscoder, Basic)
   }
 
   // Pass-through test, no decompression occurs
-  for (int cs = 0; cs < 3; cs++)
+  for (int cs = 0; cs < 5; cs++)
   {
     BufferHttpSender sender;
     sender.SetChunkSize(cs);
@@ -308,7 +285,7 @@ TEST(HttpStreamTranscoder, Basic)
   }
 
   // Pass-through test, decompression occurs
-  for (int cs = 0; cs < 3; cs++)
+  for (int cs = 0; cs < 5; cs++)
   {
     BufferHttpSender sender;
     sender.SetChunkSize(cs);
@@ -323,7 +300,7 @@ TEST(HttpStreamTranscoder, Basic)
   }
 
   // Pass-through test with zlib, no decompression occurs but deflate is sent
-  for (int cs = 0; cs < 3; cs++)
+  for (int cs = 0; cs < 16; cs++)
   {
     BufferHttpSender sender;
     sender.SetChunkSize(cs);
@@ -336,5 +313,17 @@ TEST(HttpStreamTranscoder, Basic)
     
     ASSERT_EQ(t.size() - sizeof(uint64_t), u.size());
     ASSERT_EQ(t.substr(sizeof(uint64_t)), u);
+  }
+
+  for (int cs = 0; cs < 3; cs++)
+  {
+    BufferHttpSender sender;
+    sender.SetChunkSize(cs);
+
+    HttpStreamTranscoder transcode(sender, CompressionType_ZlibWithSize);
+    std::string u;
+    ASSERT_TRUE(ReadAllStream(u, transcode, false, true));
+    
+    ASSERT_EQ(0u, u.size());
   }
 }

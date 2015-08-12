@@ -46,10 +46,13 @@ namespace Orthanc
     uint64_t           bytesToSkip_;
     uint64_t           skipped_;
     uint64_t           currentChunkOffset_;
+    bool               ready_;
 
     std::auto_ptr<BufferHttpSender>  uncompressed_;
 
     void ReadSource(std::string& buffer);
+
+    HttpCompression SetupZlibCompression(bool deflateAllowed);
 
   public:
     HttpStreamTranscoder(IHttpStreamAnswer& source,
@@ -57,7 +60,8 @@ namespace Orthanc
       source_(source),
       sourceCompression_(compression),
       bytesToSkip_(0),
-      skipped_(0)
+      skipped_(0),
+      ready_(false)
     {
     }
 
