@@ -39,8 +39,6 @@
 #include <string.h>   // For memcpy()
 #include <cassert>
 
-#include <stdio.h>
-
 namespace Orthanc
 {
   void HttpStreamTranscoder::ReadSource(std::string& buffer)
@@ -73,50 +71,59 @@ namespace Orthanc
   }
 
 
+  HttpCompression HttpStreamTranscoder::SetupZlibCompression(bool deflateAllowed)
+  {
+    uint64_t size = source_.GetContentLength();
+
+    if (size == 0)
+    {
+      return HttpCompression_None;
+    }
+
+    if (size < sizeof(uint64_t))
+    {
+      throw OrthancException(ErrorCode_CorruptedFile);
+    }
+
+    if (deflateAllowed)
+    {
+      bytesToSkip_ = sizeof(uint64_t);
+
+      return HttpCompression_Deflate;
+    }
+    else
+    {
+      // TODO Use stream-based zlib decoding to reduce memory usage
+      std::string compressed;
+      ReadSource(compressed);
+
+      uncompressed_.reset(new BufferHttpSender);
+
+      ZlibCompressor compressor;
+      IBufferCompressor::Uncompress(uncompressed_->GetBuffer(), compressor, compressed);
+
+      return HttpCompression_None;
+    }
+  }
+
+
   HttpCompression HttpStreamTranscoder::SetupHttpCompression(bool gzipAllowed,
                                                              bool deflateAllowed)
   {
+    if (ready_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    ready_ = true;
+
     switch (sourceCompression_)
     {
       case CompressionType_None:
-      {
         return HttpCompression_None;
-      }
 
       case CompressionType_ZlibWithSize:
-      {
-        uint64_t size = source_.GetContentLength();
-
-        if (size == 0)
-        {
-          return HttpCompression_None;
-        }
-
-        if (size < sizeof(uint64_t))
-        {
-          throw OrthancException(ErrorCode_CorruptedFile);
-        }
-
-        if (deflateAllowed)
-        {
-          bytesToSkip_ = sizeof(uint64_t);
-          return HttpCompression_Deflate;
-        }
-        else
-        {
-          std::string compressed;
-          ReadSource(compressed);
-
-          uncompressed_.reset(new BufferHttpSender);
-
-          ZlibCompressor compressor;
-          IBufferCompressor::Uncompress(uncompressed_->GetBuffer(), compressor, compressed);
-
-          return HttpCompression_None;
-        }
-
-        break;
-      }
+        return SetupZlibCompression(deflateAllowed);
 
       default:
         throw OrthancException(ErrorCode_NotImplemented);
@@ -126,6 +133,11 @@ namespace Orthanc
 
   uint64_t HttpStreamTranscoder::GetContentLength()
   {
+    if (!ready_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
     if (uncompressed_.get() != NULL)
     {
       return uncompressed_->GetContentLength();
@@ -145,6 +157,11 @@ namespace Orthanc
 
   bool HttpStreamTranscoder::ReadNextChunk()
   {
+    if (!ready_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
     if (uncompressed_.get() != NULL)
     {
       return uncompressed_->ReadNextChunk();
@@ -162,7 +179,6 @@ namespace Orthanc
     for (;;)
     {
       assert(skipped_ < bytesToSkip_);
-      printf("[%d %d]  ", skipped_, bytesToSkip_); fflush(stdout);
 
       bool ok = source_.ReadNextChunk();
       if (!ok)
@@ -182,14 +198,13 @@ namespace Orthanc
         // We have skipped enough bytes, but we must read a new chunk
         currentChunkOffset_ = 0;            
         skipped_ = bytesToSkip_;
-        return source_.GetChunkSize();
+        return source_.ReadNextChunk();
       }
       else
       {
-        assert(s > remaining);
-            
         // We have skipped enough bytes, and we have enough data in the current chunk
-        currentChunkOffset_ = s - remaining;
+        assert(s > remaining);
+        currentChunkOffset_ = remaining;
         skipped_ = bytesToSkip_;
         return true;
       }
@@ -199,6 +214,11 @@ namespace Orthanc
 
   const char* HttpStreamTranscoder::GetChunkContent()
   {
+    if (!ready_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
     if (uncompressed_.get() != NULL)
     {
       return uncompressed_->GetChunkContent();
@@ -211,6 +231,11 @@ namespace Orthanc
 
   size_t HttpStreamTranscoder::GetChunkSize()
   {
+    if (!ready_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
     if (uncompressed_.get() != NULL)
     {
       return uncompressed_->GetChunkSize();
