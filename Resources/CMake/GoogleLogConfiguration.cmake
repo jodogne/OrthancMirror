@@ -1,10 +1,15 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
   SET(GOOGLE_LOG_SOURCES_DIR ${CMAKE_BINARY_DIR}/glog-0.3.2)
-  DownloadPackage(
-    "897fbff90d91ea2b6d6e78c8cea641cc"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/glog-0.3.2.tar.gz"
-    "${GOOGLE_LOG_SOURCES_DIR}")
+  SET(GOOGLE_LOG_URL "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/glog-0.3.2.tar.gz")
+  SET(GOOGLE_LOG_MD5 "897fbff90d91ea2b6d6e78c8cea641cc")
 
+  if (IS_DIRECTORY "${GOOGLE_LOG_SOURCES_DIR}")
+    set(FirstRun OFF)
+  else()
+    set(FirstRun ON)
+  endif()
+
+  DownloadPackage(${GOOGLE_LOG_MD5} ${GOOGLE_LOG_URL} "${GOOGLE_LOG_SOURCES_DIR}")
 
   # Glog 0.3.3 fails to build with old versions of MinGW, such as the
   # one installed on our Continuous Integration Server that runs
@@ -66,26 +71,43 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
   if (CMAKE_COMPILER_IS_GNUCXX)
     if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
       execute_process(
-        COMMAND patch -N utilities.cc ${ORTHANC_ROOT}/Resources/Patches/glog-utilities-lsb.diff
+        COMMAND ${PATCH_EXECUTABLE} -N utilities.cc ${ORTHANC_ROOT}/Resources/Patches/glog-utilities-lsb.diff
         WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src
+        RESULT_VARIABLE Failure
         )
     else()
       execute_process(
-        COMMAND patch -N utilities.cc ${ORTHANC_ROOT}/Resources/Patches/glog-utilities.diff
+        COMMAND ${PATCH_EXECUTABLE} -N utilities.cc ${ORTHANC_ROOT}/Resources/Patches/glog-utilities.diff
         WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src
+        RESULT_VARIABLE Failure
         )
+    endif()
+
+    if (Failure AND FirstRun)
+      message(FATAL_ERROR "Error while patching a file")
     endif()
 
     # Patches for MinGW
     execute_process(
-      #COMMAND patch -N port.h ${ORTHANC_ROOT}/Resources/Patches/glog-port-h.diff 
-      COMMAND patch -N port.h ${ORTHANC_ROOT}/Resources/Patches/glog-port-h-v2.diff 
+      #COMMAND ${PATCH_EXECUTABLE} -N port.h ${ORTHANC_ROOT}/Resources/Patches/glog-port-h.diff 
+      COMMAND ${PATCH_EXECUTABLE} -N port.h ${ORTHANC_ROOT}/Resources/Patches/glog-port-h-v2.diff 
       WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src/windows
+      RESULT_VARIABLE Failure
       )
+
+    if (Failure AND FirstRun)
+      message(FATAL_ERROR "Error while patching a file")
+    endif()
+
     execute_process(
-      COMMAND patch -N port.cc ${ORTHANC_ROOT}/Resources/Patches/glog-port-cc.diff 
+      COMMAND ${PATCH_EXECUTABLE} -N port.cc ${ORTHANC_ROOT}/Resources/Patches/glog-port-cc.diff 
       WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src/windows
+      RESULT_VARIABLE Failure
       )
+
+    if (Failure AND FirstRun)
+      message(FATAL_ERROR "Error while patching a file")
+    endif()
 
   elseif (MSVC)
     # https://code.google.com/p/google-glog/issues/detail?id=117

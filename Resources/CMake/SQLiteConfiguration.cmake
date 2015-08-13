@@ -16,10 +16,10 @@ endif()
 
 if (SQLITE_STATIC)
   SET(SQLITE_SOURCES_DIR ${CMAKE_BINARY_DIR}/sqlite-amalgamation-3071300)
-  DownloadPackage(
-    "5fbeff9645ab035a1f580e90b279a16d"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/sqlite-amalgamation-3071300.zip"
-    "${SQLITE_SOURCES_DIR}")
+  SET(SQLITE_MD5 "5fbeff9645ab035a1f580e90b279a16d")
+  SET(SQLITE_URL "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/sqlite-amalgamation-3071300.zip")
+
+  DownloadPackage(${SQLITE_MD5} ${SQLITE_URL} "${SQLITE_SOURCES_DIR}")
 
   set(SQLITE_SOURCES
     ${SQLITE_SOURCES_DIR}/sqlite3.c

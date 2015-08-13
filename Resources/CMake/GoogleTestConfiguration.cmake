@@ -9,10 +9,10 @@ if (USE_GTEST_DEBIAN_SOURCE_PACKAGE)
 
 elseif (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_TEST)
   set(GTEST_SOURCES_DIR ${CMAKE_BINARY_DIR}/gtest-1.7.0)
-  DownloadPackage(
-    "2d6ec8ccdf5c46b05ba54a9fd1d130d7"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/gtest-1.7.0.zip"
-    "${GTEST_SOURCES_DIR}")
+  set(GTEST_URL "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/gtest-1.7.0.zip")
+  set(GTEST_MD5 "2d6ec8ccdf5c46b05ba54a9fd1d130d7")
+
+  DownloadPackage(${GTEST_MD5} ${GTEST_URL} "${GTEST_SOURCES_DIR}")
 
   include_directories(
     ${GTEST_SOURCES_DIR}/include
