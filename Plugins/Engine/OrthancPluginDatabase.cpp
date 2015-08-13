@@ -543,7 +543,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_Plugin);
     }
 
-    return existing;
+    return (existing != 0);
   }
 
 
@@ -556,7 +556,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_Plugin);
     }
 
-    return isProtected;
+    return (isProtected != 0);
   }
 
 

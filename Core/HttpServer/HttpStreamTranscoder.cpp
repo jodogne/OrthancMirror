@@ -186,7 +186,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_CorruptedFile);
       }
 
-      size_t remaining = bytesToSkip_ - skipped_;
+      size_t remaining = static_cast<size_t>(bytesToSkip_ - skipped_);
       size_t s = source_.GetChunkSize();
 
       if (s < remaining)
@@ -242,7 +242,7 @@ namespace Orthanc
     }
     else
     {
-      return source_.GetChunkSize() - currentChunkOffset_;
+      return static_cast<size_t>(source_.GetChunkSize() - currentChunkOffset_);
     }
   }
 }

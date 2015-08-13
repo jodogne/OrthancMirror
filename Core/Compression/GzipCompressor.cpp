@@ -198,7 +198,7 @@ namespace Orthanc
 
     try
     {
-      uncompressed.resize(uncompressedSize);
+      uncompressed.resize(static_cast<size_t>(uncompressedSize));
     }
     catch (...)
     {

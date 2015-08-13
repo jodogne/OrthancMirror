@@ -329,7 +329,7 @@ namespace Orthanc
 
     if (job->second.size_ == 1)
     {
-      return job->second.success_;
+      return static_cast<float>(job->second.success_);
     }
 
     return (static_cast<float>(job->second.success_) / 

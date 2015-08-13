@@ -42,7 +42,10 @@
 #include <boost/version.hpp>
 #include <sqlite3.h>
 #include <lua.h>
+
+#if ORTHANC_SSL_ENABLED == 1
 #include <openssl/opensslv.h>
+#endif
 
 
 TEST(Versions, Zlib)
@@ -118,7 +121,7 @@ TEST(Versions, CurlSslStatic)
   curl_version_info_data * vinfo = curl_version_info(CURLVERSION_NOW);
 
   // Check that SSL support is enabled when required
-  bool curlSupportsSsl = vinfo->features & CURL_VERSION_SSL;
+  bool curlSupportsSsl = (vinfo->features & CURL_VERSION_SSL) != 0;
 
 #if ORTHANC_SSL_ENABLED == 0
   ASSERT_FALSE(curlSupportsSsl);
@@ -132,10 +135,13 @@ TEST(Version, LuaStatic)
   ASSERT_STREQ("Lua 5.1.5", LUA_RELEASE);
 }
 
+
+#if ORTHANC_SSL_ENABLED == 1
 TEST(Version, OpenSslStatic)
 {
   ASSERT_EQ(0x1000204fL /* openssl-1.0.2d */, OPENSSL_VERSION_NUMBER);
 }
+#endif
 
 
 #include <json/version.h>
