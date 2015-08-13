@@ -15,21 +15,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
 
   DownloadPackage(${OPENSSL_MD5} ${OPENSSL_URL} "${OPENSSL_SOURCES_DIR}")
 
-  if (NOT EXISTS "${OPENSSL_SOURCES_DIR}/include/PATCHED")
-    if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
-      message("Patching the symbolic links")
-      # Patch the symbolic links by copying the files
-      file(GLOB headers "${OPENSSL_SOURCES_DIR}/include/openssl/*.h")
-      foreach(header ${headers})
-        message(${header})
-        file(READ "${header}" symbolicLink)
-        message(${symbolicLink})
-        configure_file("${OPENSSL_SOURCES_DIR}/include/openssl/${symbolicLink}" "${header}" COPYONLY)
-      endforeach()
-      file(WRITE "${OPENSSL_SOURCES_DIR}/include/PATCHED")
-    endif()
-  endif()
-
   add_definitions(
     -DOPENSSL_THREADS
     -DOPENSSL_IA32_SSE2
@@ -207,9 +192,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
       message(FATAL_ERROR "Error while patching a file")
     endif()
   endif()
-
-  #add_library(OpenSSL STATIC ${OPENSSL_SOURCES})
-  #link_libraries(OpenSSL)
 
 else()
   include(FindOpenSSL)
