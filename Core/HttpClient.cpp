@@ -42,8 +42,8 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 
-static std::string cacert_;
-static bool httpsVerifyPeers_ = true;
+static std::string globalCACertificates_;
+static bool globalVerifyPeers_ = true;
 
 extern "C"
 {
@@ -131,18 +131,6 @@ namespace Orthanc
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HEADER, 0));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_FOLLOWLOCATION, 1));
 
-#if ORTHANC_SSL_ENABLED == 1
-    if (httpsVerifyPeers_)
-    {
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CAINFO, cacert_.c_str())); 
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYPEER, 1)); 
-    }
-    else
-    {
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYPEER, 0)); 
-    }
-#endif
-
     // This fixes the "longjmp causes uninitialized stack frame" crash
     // that happens on modern Linux versions.
     // http://stackoverflow.com/questions/9191668/error-longjmp-causes-uninitialized-stack-frame
@@ -153,6 +141,7 @@ namespace Orthanc
     lastStatus_ = HttpStatus_200_Ok;
     isVerbose_ = false;
     timeout_ = 0;
+    verifyPeers_ = globalVerifyPeers_;
   }
 
 
@@ -205,6 +194,19 @@ namespace Orthanc
     answer.clear();
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_URL, url_.c_str()));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_WRITEDATA, &answer));
+
+    // Setup HTTPS-related options
+#if ORTHANC_SSL_ENABLED == 1
+    if (IsHttpsVerifyPeers())
+    {
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CAINFO, GetHttpsCACertificates().c_str()));
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYPEER, 1)); 
+    }
+    else
+    {
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYPEER, 0)); 
+    }
+#endif
 
     // Reset the parameters from previous calls to Apply()
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPHEADER, NULL));
@@ -336,29 +338,36 @@ namespace Orthanc
   }
 
   
+  const std::string& HttpClient::GetHttpsCACertificates() const
+  {
+    if (caCertificates_.empty())
+    {
+      return globalCACertificates_;
+    }
+    else
+    {
+      return caCertificates_;
+    }
+  }
+
+
   void HttpClient::GlobalInitialize(bool httpsVerifyPeers,
                                     const std::string& httpsVerifyCertificates)
   {
+    globalVerifyPeers_ = httpsVerifyPeers;
+    globalCACertificates_ = httpsVerifyCertificates;
+
 #if ORTHANC_SSL_ENABLED == 1
-    httpsVerifyPeers_ = httpsVerifyPeers;
-    cacert_ = httpsVerifyCertificates;
-
-    // TODO 
-    /*if (cacert_.empty())
-    {
-      cacert_ = "/etc/ssl/certs/ca-certificates.crt";
-      }*/
-
     if (httpsVerifyPeers)
     {
-      if (cacert_.empty())
+      if (globalCACertificates_.empty())
       {
         LOG(WARNING) << "No certificates are provided to validate peers, "
-                     << "set \"HttpsCertificatesFile\" if you need to do HTTPS requests";
+                     << "set \"HttpsCACertificates\" if you need to do HTTPS requests";
       }
       else
       {
-        LOG(WARNING) << "HTTPS will use the certificates from this file: " << cacert_;
+        LOG(WARNING) << "HTTPS will use the CA certificates from this file: " << globalCACertificates_;
       }
     }
     else

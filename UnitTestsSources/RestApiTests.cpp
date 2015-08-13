@@ -50,6 +50,8 @@ using namespace Orthanc;
 #error "Please set UNIT_TESTS_WITH_HTTP_CONNEXIONS"
 #endif
 
+
+
 TEST(HttpClient, Basic)
 {
   HttpClient c;
@@ -69,18 +71,61 @@ TEST(HttpClient, Basic)
 
 
 #if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1
+
+/**
+   The HTTPS CA certificates for BitBucket were extracted as follows:
+   
+   (1) We retrieve the certification chain of BitBucket:
+
+   # echo | openssl s_client -showcerts -connect www.bitbucket.org:443
+
+   (2) We see that the certification authority (CA) is
+   "www.digicert.com", and the root certificate is "DigiCert High
+   Assurance EV Root CA". As a consequence, we navigate to DigiCert to
+   find the URL to this CA certificate:
+
+   firefox https://www.digicert.com/digicert-root-certificates.htm
+
+   (3) Once we get the URL to the CA certificate, we convert it to a C
+   macro that can be used by libcurl:
+
+   # cd UnitTestsSources
+   # ../Resources/RetrieveCACertificates.py BITBUCKET_CERTIFICATES https://www.digicert.com/CACerts/DigiCertHighAssuranceEVRootCA.crt > BitbucketCACertificates.h
+**/
+
+#include "BitbucketCACertificates.h"
+
 TEST(HttpClient, Ssl)
 {
+  Toolbox::WriteFile(BITBUCKET_CERTIFICATES, "UnitTestsResults/bitbucket.cert");
+
+  /*{
+    std::string s;
+    Toolbox::ReadFile(s, "/usr/share/ca-certificates/mozilla/WoSign.crt");
+    Toolbox::WriteFile(s, "UnitTestsResults/bitbucket.cert");
+    }*/
+
   HttpClient c;
+  c.SetHttpsVerifyPeers(true);
+  c.SetHttpsCACertificates("UnitTestsResults/bitbucket.cert");
   c.SetUrl("https://bitbucket.org/sjodogne/orthanc/raw/Orthanc-0.9.3/Resources/Configuration.json");
 
-  std::string s;
-  c.Apply(s);
-
-  /*Json::Value v;
+  Json::Value v;
   c.Apply(v);
-  ASSERT_TRUE(v.isMember("LuaScripts"));*/
+  ASSERT_TRUE(v.isMember("LuaScripts"));
 }
+
+TEST(HttpClient, SslNoVerification)
+{
+  HttpClient c;
+  c.SetHttpsVerifyPeers(false);
+  c.SetUrl("https://bitbucket.org/sjodogne/orthanc/raw/Orthanc-0.9.3/Resources/Configuration.json");
+
+  Json::Value v;
+  c.Apply(v);
+  ASSERT_TRUE(v.isMember("LuaScripts"));
+}
+
 #endif
 
 

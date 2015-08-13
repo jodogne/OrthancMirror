@@ -316,7 +316,7 @@ namespace Orthanc
     ReadGlobalConfiguration(configurationFile);
 
     HttpClient::GlobalInitialize(GetGlobalBoolParameterInternal("HttpsVerifyPeers", true),
-                                 GetGlobalStringParameterInternal("HttpsVerifyCertificates", ""));
+                                 GetGlobalStringParameterInternal("HttpsCACertificates", ""));
 
     RegisterUserMetadata();
     RegisterUserContentType();
