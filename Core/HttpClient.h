@@ -54,6 +54,8 @@ namespace Orthanc
     bool isVerbose_;
     long timeout_;
     std::string proxy_;
+    bool verifyPeers_;
+    std::string caCertificates_;
 
     void Setup();
 
@@ -140,8 +142,25 @@ namespace Orthanc
       proxy_ = proxy;
     }
 
+    void SetHttpsVerifyPeers(bool verify)
+    {
+      verifyPeers_ = verify;
+    }
+
+    bool IsHttpsVerifyPeers() const
+    {
+      return verifyPeers_;
+    }
+
+    void SetHttpsCACertificates(const std::string& certificates)
+    {
+      caCertificates_ = certificates;
+    }
+
+    const std::string& GetHttpsCACertificates() const;
+
     static void GlobalInitialize(bool httpsVerifyPeers,
-                                 const std::string& httpsVerifyCertificates);
+                                 const std::string& httpsCACertificates);
   
     static void GlobalFinalize();
   };
