@@ -1,6 +1,12 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_MONGOOSE)
   SET(MONGOOSE_SOURCES_DIR ${CMAKE_BINARY_DIR}/mongoose)
 
+  if (IS_DIRECTORY "${MONGOOSE_SOURCES_DIR}")
+    set(FirstRun OFF)
+  else()
+    set(FirstRun ON)
+  endif()
+
   if (0)
     # Use Mongoose 3.1
     DownloadPackage(
@@ -24,9 +30,14 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_MONGOOSE)
 
   # Patch mongoose
   execute_process(
-    COMMAND patch -N mongoose.c ${MONGOOSE_PATCH}
+    COMMAND ${PATCH_EXECUTABLE} -N mongoose.c ${MONGOOSE_PATCH}
     WORKING_DIRECTORY ${MONGOOSE_SOURCES_DIR}
+    RESULT_VARIABLE Failure
     )
+
+  if (Failure AND FirstRun)
+    message(FATAL_ERROR "Error while patching a file")
+  endif()
 
   include_directories(
     ${MONGOOSE_SOURCES_DIR}
@@ -81,5 +92,3 @@ else()
 
   link_libraries(mongoose)
 endif()
-
-

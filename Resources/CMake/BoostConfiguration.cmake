@@ -43,14 +43,11 @@ if (BOOST_STATIC)
   set(BOOST_NAME boost_1_58_0)
   set(BOOST_BCP_SUFFIX bcpdigest-0.9.2)
   set(BOOST_MD5 "704b110917cbda903e07cb53934b47ac")
-  set(BOOST_FILESYSTEM_SOURCES_DIR "${BOOST_NAME}/libs/filesystem/src")
-  
+  set(BOOST_URL "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz")
+  set(BOOST_FILESYSTEM_SOURCES_DIR "${BOOST_NAME}/libs/filesystem/src") 
   set(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
-  DownloadPackage(
-    "${BOOST_MD5}"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz"
-    "${BOOST_SOURCES_DIR}"
-    )
+
+  DownloadPackage(${BOOST_MD5} ${BOOST_URL} "${BOOST_SOURCES_DIR}")
 
   set(BOOST_SOURCES)
 

@@ -1,9 +1,15 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
   SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.0.2d)
-  DownloadPackage(
-    "38dd619b2e77cbac69b99f52a053d25a"
-    "www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/openssl-1.0.2d.tar.gz"
-    "${OPENSSL_SOURCES_DIR}")
+  SET(OPENSSL_URL "www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/openssl-1.0.2d.tar.gz")
+  SET(OPENSSL_MD5 "38dd619b2e77cbac69b99f52a053d25a")
+
+  if (IS_DIRECTORY "${OPENSSL_SOURCES_DIR}")
+    set(FirstRun OFF)
+  else()
+    set(FirstRun ON)
+  endif()
+
+  DownloadPackage(${OPENSSL_MD5} ${OPENSSL_URL} "${OPENSSL_SOURCES_DIR}")
 
   if (NOT EXISTS "${OPENSSL_SOURCES_DIR}/include/PATCHED")
     if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
@@ -188,10 +194,14 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
 
   elseif ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
     execute_process(
-      COMMAND patch -N ui_openssl.c ${ORTHANC_ROOT}/Resources/Patches/openssl-lsb.diff
+      COMMAND ${PATCH_EXECUTABLE} -N ui_openssl.c ${ORTHANC_ROOT}/Resources/Patches/openssl-lsb.diff
       WORKING_DIRECTORY ${OPENSSL_SOURCES_DIR}/crypto/ui
+      RESULT_VARIABLE Failure
       )
 
+    if (Failure AND FirstRun)
+      message(FATAL_ERROR "Error while patching a file")
+    endif()
   endif()
 
   #add_library(OpenSSL STATIC ${OPENSSL_SOURCES})

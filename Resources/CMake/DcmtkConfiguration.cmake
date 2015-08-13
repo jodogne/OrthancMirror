@@ -16,10 +16,16 @@ endif()
 if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   SET(DCMTK_VERSION_NUMBER 360)
   SET(DCMTK_SOURCES_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.0)
-  DownloadPackage(
-    "219ad631b82031806147e4abbfba4fa4"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/dcmtk-3.6.0.zip" 
-    "${DCMTK_SOURCES_DIR}")
+  SET(DCMTK_URL "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/dcmtk-3.6.0.zip")
+  SET(DCMTK_MD5 "219ad631b82031806147e4abbfba4fa4")
+
+  if (IS_DIRECTORY "${DCMTK_SOURCES_DIR}")
+    set(FirstRun OFF)
+  else()
+    set(FirstRun ON)
+  endif()
+
+  DownloadPackage(${DCMTK_MD5} ${DCMTK_URL} "${DCMTK_SOURCES_DIR}")
 
   IF (CMAKE_CROSSCOMPILING)
     SET(C_CHAR_UNSIGNED 1 CACHE INTERNAL "Whether char is unsigned.")
@@ -101,9 +107,14 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       )
     
     execute_process(
-      COMMAND patch -p0 -N -i ${ORTHANC_ROOT}/Resources/Patches/dcmtk-linux-speed.patch
+      COMMAND ${PATCH_EXECUTABLE} -p0 -N -i ${ORTHANC_ROOT}/Resources/Patches/dcmtk-linux-speed.patch
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      RESULT_VARIABLE Failure
       )
+
+    if (Failure AND FirstRun)
+      message(FATAL_ERROR "Error while patching a file")
+    endif()
 
   elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     list(REMOVE_ITEM DCMTK_SOURCES 
@@ -113,17 +124,26 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     if (CMAKE_COMPILER_IS_GNUCXX)
       # This is a patch for MinGW64
       execute_process(
-        COMMAND patch -p0 -N -i ${ORTHANC_ROOT}/Resources/Patches/dcmtk-mingw64.patch
+        COMMAND ${PATCH_EXECUTABLE} -p0 -N -i ${ORTHANC_ROOT}/Resources/Patches/dcmtk-mingw64.patch
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        RESULT_VARIABLE Failure
         )
+
+      if (Failure AND FirstRun)
+        message(FATAL_ERROR "Error while patching a file")
+      endif()
     endif()
 
     # This patch improves speed, even for Windows
     execute_process(
-      COMMAND patch -p0 -N -i ${ORTHANC_ROOT}/Resources/Patches/dcmtk-linux-speed.patch
+      COMMAND ${PATCH_EXECUTABLE} -p0 -N -i ${ORTHANC_ROOT}/Resources/Patches/dcmtk-linux-speed.patch
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      RESULT_VARIABLE Failure
       )
 
+    if (Failure AND FirstRun)
+      message(FATAL_ERROR "Error while patching a file")
+    endif()
   endif()
 
   list(REMOVE_ITEM DCMTK_SOURCES 

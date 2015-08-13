@@ -3,11 +3,10 @@ if (USE_PUGIXML)
 
   if (STATIC_BUILD OR NOT USE_SYSTEM_PUGIXML)
     set(PUGIXML_SOURCES_DIR ${CMAKE_BINARY_DIR}/pugixml-1.4)
+    set(PUGIXML_MD5 "7c56c91cfe3ecdee248a8e4892ef5781")
+    set(PUGIXML_URL "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/pugixml-1.4.tar.gz")
 
-    DownloadPackage(
-      "7c56c91cfe3ecdee248a8e4892ef5781"
-      "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/pugixml-1.4.tar.gz"
-      "${PUGIXML_SOURCES_DIR}")
+    DownloadPackage(${PUGIXML_MD5} ${PUGIXML_URL} "${PUGIXML_SOURCES_DIR}")
 
     include_directories(
       ${PUGIXML_SOURCES_DIR}/src
