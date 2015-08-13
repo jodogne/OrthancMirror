@@ -12,7 +12,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBPNG)
   configure_file(
     ${LIBPNG_SOURCES_DIR}/scripts/pnglibconf.h.prebuilt
     ${LIBPNG_SOURCES_DIR}/pnglibconf.h
-    COPY_ONLY)
+    )
 
   set(LIBPNG_SOURCES
     #${LIBPNG_SOURCES_DIR}/example.c
