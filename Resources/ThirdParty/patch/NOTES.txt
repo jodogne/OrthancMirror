@@ -1,14 +1,15 @@
 This is a precompiled version of the "patch" standard tool for Windows
-(version 2.5.9). It was cross-compiled as follows under Linux thanks
+(version 2.6.1). It was cross-compiled as follows under Linux thanks
 to MinGW32:
 
-# wget ftp://ftp.gnu.org/gnu/patch/patch-2.5.9.tar.gz
-# tar xvfz patch-2.5.9.tar.gz
-# cd patch-2.5.9
+# wget ftp://ftp.gnu.org/gnu/patch/patch-2.6.1.tar.gz
+# tar xvfz patch-2.6.1.tar.gz
+# patch -p0 < fix-sources.patch 
+# cd patch-2.6.1
 # ./configure --host=i586-mingw32msvc
 # make
 # cd ..
-# cp patch-2.5.9/patch.exe .
+# cp patch-2.6.1/src/patch.exe .
 # i586-mingw32msvc-strip ./patch.exe 
 
 
