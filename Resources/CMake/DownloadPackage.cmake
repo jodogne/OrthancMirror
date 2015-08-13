@@ -16,7 +16,7 @@ endmacro()
 ##
 
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
-  set(PATCH_EXECUTABLE ${CMAKE_SOURCE_DIR}/Resources/patch/patch.exe)
+  set(PATCH_EXECUTABLE ${CMAKE_SOURCE_DIR}/Resources/ThirdParty/patch/patch.exe)
 else ()
   find_program(PATCH_EXECUTABLE patch)
   if (${PATCH_EXECUTABLE} MATCHES "PATCH_EXECUTABLE-NOTFOUND")
