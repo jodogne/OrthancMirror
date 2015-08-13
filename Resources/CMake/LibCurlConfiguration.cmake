@@ -51,10 +51,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
     file(WRITE ${CURL_SOURCES_DIR}/lib/vtls/${filename} "#include \"../${filename}\"\n")
   endforeach()
 
-  if (MSVC)
-    add_definitions(-DHAVE_BOOL_T=1)
-
-  elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
