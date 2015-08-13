@@ -7,7 +7,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
 
   include_directories(
     ${CURL_SOURCES_DIR}/include
-    ${CURL_SOURCES_DIR}/lib
     )
 
   AUX_SOURCE_DIRECTORY(${CURL_SOURCES_DIR}/lib CURL_SOURCES)
@@ -15,12 +14,10 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
   source_group(ThirdParty\\LibCurl REGULAR_EXPRESSION ${CURL_SOURCES_DIR}/.*)
 
   add_definitions(
-    -DCURL_STATICLIB=1
     -DBUILDING_LIBCURL=1
+    -DCURL_STATICLIB=1
     -DCURL_DISABLE_LDAPS=1
     -DCURL_DISABLE_LDAP=1
-    -D_WIN32_WINNT=0x0501
-
     -DCURL_DISABLE_DICT=1
     -DCURL_DISABLE_FILE=1
     -DCURL_DISABLE_FTP=1
@@ -34,6 +31,10 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
     -DCURL_DISABLE_TFTP=1
     )
 
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+    add_definitions(-D_WIN32_WINNT=0x0501)
+  endif()
+
   if (ENABLE_SSL)
     add_definitions(
       #-DHAVE_LIBSSL=1
@@ -44,10 +45,14 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
 
   file(WRITE ${CURL_SOURCES_DIR}/lib/curl_config.h "")
 
+  file(GLOB CURL_LIBS_HEADERS ${CURL_SOURCES_DIR}/lib/*.h)
+  foreach (header IN LISTS CURL_LIBS_HEADERS)
+    get_filename_component(filename ${header} NAME)
+    file(WRITE ${CURL_SOURCES_DIR}/lib/vtls/${filename} "#include \"../${filename}\"\n")
+  endforeach()
+
   if (MSVC)
-    #add_definitions(
-    #  -DHAVE_BOOL_T=1
-    #  )
+    add_definitions(-DHAVE_BOOL_T=1)
 
   elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
