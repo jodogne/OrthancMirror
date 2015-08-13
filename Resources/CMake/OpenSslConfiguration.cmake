@@ -1,7 +1,11 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
+  # WARNING - We had to repack the upstream ".tar.gz" file to a ZIP
+  # file, as the upstream distribution ships symbolic links that are
+  # not always properly handled when uncompressing on Windows.
+
   SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.0.2d)
-  SET(OPENSSL_URL "www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/openssl-1.0.2d.tar.gz")
-  SET(OPENSSL_MD5 "38dd619b2e77cbac69b99f52a053d25a")
+  SET(OPENSSL_URL "www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/openssl-1.0.2d.zip")
+  SET(OPENSSL_MD5 "4b2ac15fc6db17f3dadc54482d3eee85")
 
   if (IS_DIRECTORY "${OPENSSL_SOURCES_DIR}")
     set(FirstRun OFF)
