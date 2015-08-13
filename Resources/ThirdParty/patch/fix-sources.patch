@@ -1,0 +1,13 @@
+--- patch-2.6.1.orig/src/patch.c	2009-12-30 13:56:30.000000000 +0100
++++ patch-2.6.1/src/patch.c	2015-08-13 16:46:23.886129878 +0200
+@@ -415,8 +415,10 @@
+ 				    quotearg (outname));
+ 			  if (geteuid () != instat.st_gid)
+ 			    {
++#if !defined(_WIN32)
+ 			      /* Fails if we are not in group instat.st_gid.  */
+ 			      chown (outname, -1, instat.st_gid);
++#endif
+ 			    }
+ 			  /* FIXME: There may be other attributes to preserve.  */
+ 			}
