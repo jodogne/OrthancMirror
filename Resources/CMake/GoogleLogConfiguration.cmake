@@ -71,13 +71,13 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
   if (CMAKE_COMPILER_IS_GNUCXX)
     if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
       execute_process(
-        COMMAND ${PATCH_EXECUTABLE} -N utilities.cc ${ORTHANC_ROOT}/Resources/Patches/glog-utilities-lsb.diff
+        COMMAND ${PATCH_EXECUTABLE} -N utilities.cc -i ${ORTHANC_ROOT}/Resources/Patches/glog-utilities-lsb.diff
         WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src
         RESULT_VARIABLE Failure
         )
     else()
       execute_process(
-        COMMAND ${PATCH_EXECUTABLE} -N utilities.cc ${ORTHANC_ROOT}/Resources/Patches/glog-utilities.diff
+        COMMAND ${PATCH_EXECUTABLE} -N utilities.cc -i ${ORTHANC_ROOT}/Resources/Patches/glog-utilities.diff
         WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src
         RESULT_VARIABLE Failure
         )
@@ -89,8 +89,8 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
 
     # Patches for MinGW
     execute_process(
-      #COMMAND ${PATCH_EXECUTABLE} -N port.h ${ORTHANC_ROOT}/Resources/Patches/glog-port-h.diff 
-      COMMAND ${PATCH_EXECUTABLE} -N port.h ${ORTHANC_ROOT}/Resources/Patches/glog-port-h-v2.diff 
+      #COMMAND ${PATCH_EXECUTABLE} -N port.h -i ${ORTHANC_ROOT}/Resources/Patches/glog-port-h.diff 
+      COMMAND ${PATCH_EXECUTABLE} -N port.h -i ${ORTHANC_ROOT}/Resources/Patches/glog-port-h-v2.diff 
       WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src/windows
       RESULT_VARIABLE Failure
       )
@@ -100,7 +100,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
     endif()
 
     execute_process(
-      COMMAND ${PATCH_EXECUTABLE} -N port.cc ${ORTHANC_ROOT}/Resources/Patches/glog-port-cc.diff 
+      COMMAND ${PATCH_EXECUTABLE} -N port.cc -i ${ORTHANC_ROOT}/Resources/Patches/glog-port-cc.diff 
       WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src/windows
       RESULT_VARIABLE Failure
       )
