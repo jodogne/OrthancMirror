@@ -183,7 +183,7 @@ static bool ReadAllStream(std::string& result,
 {
   stream.SetupHttpCompression(allowGzip, allowDeflate);
 
-  result.resize(stream.GetContentLength());
+  result.resize(static_cast<size_t>(stream.GetContentLength()));
 
   size_t pos = 0;
   while (stream.ReadNextChunk())

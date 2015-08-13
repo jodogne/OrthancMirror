@@ -1191,7 +1191,7 @@ namespace Orthanc
 
         try
         {
-          content.resize(size);
+          content.resize(static_cast<size_t>(size));
         }
         catch (OrthancException&)
         {
@@ -1201,7 +1201,7 @@ namespace Orthanc
 
         if (size > 0)
         {
-          memcpy(&content[0], buffer, size);
+          memcpy(&content[0], buffer, static_cast<size_t>(size));
         }
 
         Free(buffer);

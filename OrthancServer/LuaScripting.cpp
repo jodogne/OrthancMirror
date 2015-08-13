@@ -81,7 +81,7 @@ namespace Orthanc
     }
 
     const char* uri = lua_tostring(state, 1);
-    bool builtin = (nArgs == 2 ? lua_toboolean(state, 2) : false);
+    bool builtin = (nArgs == 2 ? lua_toboolean(state, 2) != 0 : false);
 
     std::string result;
     if (HttpToolbox::SimpleGet(result, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), uri))
@@ -124,7 +124,7 @@ namespace Orthanc
     const char* uri = lua_tostring(state, 1);
     size_t bodySize = 0;
     const char* bodyData = lua_tolstring(state, 2, &bodySize);
-    bool builtin = (nArgs == 3 ? lua_toboolean(state, 3) : false);
+    bool builtin = (nArgs == 3 ? lua_toboolean(state, 3) != 0 : false);
 
     std::string result;
     if (isPost ?
@@ -182,7 +182,7 @@ namespace Orthanc
     }
 
     const char* uri = lua_tostring(state, 1);
-    bool builtin = (nArgs == 2 ? lua_toboolean(state, 2) : false);
+    bool builtin = (nArgs == 2 ? lua_toboolean(state, 2) != 0 : false);
 
     if (HttpToolbox::SimpleDelete(serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), uri))
     {

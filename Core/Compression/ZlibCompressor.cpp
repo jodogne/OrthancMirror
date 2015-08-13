@@ -124,14 +124,14 @@ namespace Orthanc
     
     try
     {
-      uncompressed.resize(uncompressedSize);
+      uncompressed.resize(static_cast<size_t>(uncompressedSize));
     }
     catch (...)
     {
       throw OrthancException(ErrorCode_NotEnoughMemory);
     }
 
-    uLongf tmp = uncompressedSize;
+    uLongf tmp = static_cast<uLongf>(uncompressedSize);
     int error = uncompress
       (reinterpret_cast<uint8_t*>(&uncompressed[0]), 
        &tmp,

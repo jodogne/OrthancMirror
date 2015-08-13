@@ -422,7 +422,7 @@ namespace Orthanc
     {
       modality.FromJson(modalities[name]);
     }
-    catch (OrthancException& e)
+    catch (OrthancException&)
     {
       LOG(ERROR) << "Syntax error in the definition of DICOM modality \"" << name 
                  << "\". Please check your configuration file.";
@@ -455,7 +455,7 @@ namespace Orthanc
 
       peer.FromJson(modalities[name]);
     }
-    catch (OrthancException& e)
+    catch (OrthancException&)
     {
       LOG(ERROR) << "Syntax error in the definition of peer \"" << name 
                  << "\". Please check your configuration file.";

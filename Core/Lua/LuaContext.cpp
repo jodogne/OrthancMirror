@@ -176,7 +176,7 @@ namespace Orthanc
     {
       httpClient_.Apply(str);
     }
-    catch (OrthancException& e)
+    catch (OrthancException&)
     {
       return false;
     }
