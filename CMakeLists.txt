@@ -243,16 +243,20 @@ if (ENABLE_GOOGLE_LOG)
   include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfiguration.cmake)
 endif()
 
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/BoostConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/DcmtkConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/MongooseConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/ZlibConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/SQLiteConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/JsonCppConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibCurlConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibPngConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LuaConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibCurlConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/MongooseConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/PugixmlConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/SQLiteConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/ZlibConfiguration.cmake)
+
+# These are the two most heavyweight dependencies. We put them as the
+# last includes to quickly spot problems when configuring static
+# builds.
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/BoostConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/DcmtkConfiguration.cmake)
 
 
 if (ENABLE_SSL)

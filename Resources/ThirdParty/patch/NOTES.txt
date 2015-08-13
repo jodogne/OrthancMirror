@@ -17,3 +17,6 @@ URL to the project:
 http://savannah.gnu.org/projects/patch/
 
 License: GPLv3+ (GNU General Public License v3 or later)
+
+Copyright (C) 1988 Larry Wall
+Copyright (C) 2003, 2009 Free Software Foundation, Inc.
