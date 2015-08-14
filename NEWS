@@ -8,9 +8,10 @@ Pending changes in the mainline
 Maintenance
 -----------
 
+* Many code refactorings
 * Upgrade to curl 7.44.0 for static and Windows builds
 * Upgrade to libcurl 1.0.2d for static and Windows builds
-* Many code refactorings
+* Bypass zlib uncompression if "StorageCompression" is enabled and HTTP client supports deflate
 
 
 Version 0.9.3 (2015/08/07)

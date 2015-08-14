@@ -39,6 +39,8 @@
 #include <string.h>   // For memcpy()
 #include <cassert>
 
+#include <stdio.h>
+
 namespace Orthanc
 {
   void HttpStreamTranscoder::ReadSource(std::string& buffer)
