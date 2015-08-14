@@ -378,4 +378,6 @@ namespace Orthanc
                         const char* specificCharacterSet);
 
   const char* GetMimeType(FileContentType type);
+
+  const char* GetFileExtension(FileContentType type);
 }

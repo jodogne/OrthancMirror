@@ -674,4 +674,21 @@ namespace Orthanc
         return "application/octet-stream";
     }
   }
+
+
+  const char* GetFileExtension(FileContentType type)
+  {
+    switch (type)
+    {
+      case FileContentType_Dicom:
+        return ".dcm";
+
+      case FileContentType_DicomAsJson:
+        return ".json";
+
+      default:
+        // Unknown file type
+        return "";
+    }
+  }
 }
