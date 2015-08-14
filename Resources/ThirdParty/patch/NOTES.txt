@@ -1,22 +1,15 @@
 This is a precompiled version of the "patch" standard tool for Windows
-(version 2.6.1). It was cross-compiled as follows under Linux thanks
-to MinGW32:
+(version 2.5). It was compiled using the MSYS framework.
 
-# wget ftp://ftp.gnu.org/gnu/patch/patch-2.6.1.tar.gz
-# tar xvfz patch-2.6.1.tar.gz
-# patch -p0 < fix-sources.patch 
-# cd patch-2.6.1
-# ./configure --host=i586-mingw32msvc
-# make
-# cd ..
-# cp patch-2.6.1/src/patch.exe .
-# i586-mingw32msvc-strip ./patch.exe 
+The binaries originate from the "Git for Windows 1.9.5" package
+(https://msysgit.github.io/). I was unable to find the build
+instructions.
 
 
-URL to the project:
+URL to the upstream project:
 http://savannah.gnu.org/projects/patch/
 
-License: GPLv3+ (GNU General Public License v3 or later)
+License of patch 2.5: GPLv2 (GNU General Public License v2)
 
-Copyright (C) 1988 Larry Wall
-Copyright (C) 2003, 2009 Free Software Foundation, Inc.
+Copyright (C) 1988 Larry Wall "with lots o' patches by Paul Eggert"
+Copyright (C) 1997 Free Software Foundation, Inc.
