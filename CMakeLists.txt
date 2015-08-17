@@ -97,8 +97,6 @@ set(ORTHANC_CORE_SOURCES
   Core/Enumerations.cpp
   Core/FileStorage/FilesystemStorage.cpp
   Core/FileStorage/StorageAccessor.cpp
-  Core/FileStorage/CompressedFileStorageAccessor.cpp
-  Core/FileStorage/FileStorageAccessor.cpp
   Core/HttpClient.cpp
   Core/HttpServer/BufferHttpSender.cpp
   Core/HttpServer/EmbeddedResourceHttpHandler.cpp

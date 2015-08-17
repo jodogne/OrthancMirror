@@ -35,7 +35,6 @@
 #include "../Core/MultiThreading/SharedMessageQueue.h"
 #include "../Core/Cache/MemoryCache.h"
 #include "../Core/Cache/SharedArchive.h"
-#include "../Core/FileStorage/CompressedFileStorageAccessor.h"
 #include "../Core/FileStorage/IStorageArea.h"
 #include "../Core/Lua/LuaContext.h"
 #include "../Core/RestApi/RestApiOutput.h"
@@ -108,8 +107,10 @@ namespace Orthanc
 
 
     ServerIndex index_;
-    CompressedFileStorageAccessor accessor_;
+    IStorageArea& area_;
+
     bool compressionEnabled_;
+    bool storeMD5_;
     
     DicomCacheProvider provider_;
     boost::mutex dicomCacheMutex_;
@@ -150,14 +151,10 @@ namespace Orthanc
       }
     };
 
-    ServerContext(IDatabaseWrapper& database);
+    ServerContext(IDatabaseWrapper& database,
+                  IStorageArea& area);
 
     ~ServerContext();
-
-    void SetStorageArea(IStorageArea& storage)
-    {
-      accessor_.SetStorageArea(storage);
-    }
 
     ServerIndex& GetIndex()
     {
@@ -199,7 +196,7 @@ namespace Orthanc
 
     bool IsStoreMD5ForAttachments() const
     {
-      return accessor_.IsStoreMD5();
+      return storeMD5_;
     }
 
     ReusableDicomUserConnection& GetReusableDicomUserConnection()
