@@ -521,8 +521,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
                                    IStorageArea& storageArea,
                                    OrthancPlugins *plugins)
 {
-  ServerContext context(database);
-  context.SetStorageArea(storageArea);
+  ServerContext context(database, storageArea);
 
   context.SetCompressionEnabled(Configuration::GetGlobalBoolParameter("StorageCompression", false));
   context.SetStoreMD5ForAttachments(Configuration::GetGlobalBoolParameter("StoreMD5ForAttachments", true));

@@ -660,8 +660,7 @@ TEST(ServerIndex, Sequence)
   Toolbox::RemoveFile(path + "/index");
   FilesystemStorage storage(path);
   DatabaseWrapper db;   // The SQLite DB is in memory
-  ServerContext context(db);
-  context.SetStorageArea(storage);
+  ServerContext context(db, storage);
   ServerIndex& index = context.GetIndex();
 
   ASSERT_EQ(1u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
@@ -729,8 +728,7 @@ TEST(ServerIndex, AttachmentRecycling)
   Toolbox::RemoveFile(path + "/index");
   FilesystemStorage storage(path);
   DatabaseWrapper db;   // The SQLite DB is in memory
-  ServerContext context(db);
-  context.SetStorageArea(storage);
+  ServerContext context(db, storage);
   ServerIndex& index = context.GetIndex();
 
   index.SetMaximumStorageSize(10);

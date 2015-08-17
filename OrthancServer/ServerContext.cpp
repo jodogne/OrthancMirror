@@ -33,6 +33,7 @@
 #include "PrecompiledHeadersServer.h"
 #include "ServerContext.h"
 
+#include "../Core/FileStorage/StorageAccessor.h"
 #include "../Core/HttpServer/FilesystemHttpSender.h"
 #include "../Core/HttpServer/HttpStreamTranscoder.h"
 #include "../Core/Logging.h"
@@ -97,9 +98,12 @@ namespace Orthanc
   }
 
 
-  ServerContext::ServerContext(IDatabaseWrapper& database) :
+  ServerContext::ServerContext(IDatabaseWrapper& database,
+                               IStorageArea& area) :
     index_(*this, database),
+    area_(area),
     compressionEnabled_(false),
+    storeMD5_(true),
     provider_(*this),
     dicomCache_(provider_, DICOM_CACHE_SIZE),
     scheduler_(Configuration::GetGlobalIntegerParameter("LimitJobs", 10)),
@@ -164,10 +168,11 @@ namespace Orthanc
     compressionEnabled_ = enabled;
   }
 
+
   void ServerContext::RemoveFile(const std::string& fileUuid,
                                  FileContentType type)
   {
-    accessor_.Remove(fileUuid, type);
+    area_.Remove(fileUuid, type);
   }
 
 
@@ -176,6 +181,8 @@ namespace Orthanc
   {
     try
     {
+      StorageAccessor accessor(area_);
+
       DicomInstanceHasher hasher(dicom.GetSummary());
       resultPublicId = hasher.HashInstance();
 
@@ -213,18 +220,13 @@ namespace Orthanc
         return StoreStatus_FilteredOut;
       }
 
-      if (compressionEnabled_)
-      {
-        // TODO Should we use "gzip" instead?
-        accessor_.SetCompressionForNextOperations(CompressionType_ZlibWithSize);
-      }
-      else
-      {
-        accessor_.SetCompressionForNextOperations(CompressionType_None);
-      }      
+      // TODO Should we use "gzip" instead?
+      CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
 
-      FileInfo dicomInfo = accessor_.Write(dicom.GetBufferData(), dicom.GetBufferSize(), FileContentType_Dicom);
-      FileInfo jsonInfo = accessor_.Write(dicom.GetJson().toStyledString(), FileContentType_DicomAsJson);
+      FileInfo dicomInfo = accessor.Write(dicom.GetBufferData(), dicom.GetBufferSize(), 
+                                          FileContentType_Dicom, compression, storeMD5_);
+      FileInfo jsonInfo = accessor.Write(dicom.GetJson().toStyledString(), 
+                                         FileContentType_DicomAsJson, compression, storeMD5_);
 
       ServerIndex::Attachments attachments;
       attachments.push_back(dicomInfo);
@@ -247,8 +249,8 @@ namespace Orthanc
             
       if (status != StoreStatus_Success)
       {
-        accessor_.Remove(dicomInfo.GetUuid(), FileContentType_Dicom);
-        accessor_.Remove(jsonInfo.GetUuid(), FileContentType_DicomAsJson);
+        accessor.Remove(dicomInfo);
+        accessor.Remove(jsonInfo);
       }
 
       switch (status)
@@ -314,15 +316,8 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
 
-    IStorageArea& area = accessor_.GetStorageArea();
-
-    BufferHttpSender sender;
-    area.Read(sender.GetBuffer(), attachment.GetUuid(), content);
-    sender.SetContentType(GetMimeType(content));
-    sender.SetContentFilename(attachment.GetUuid() + std::string(GetFileExtension(content)));
-  
-    HttpStreamTranscoder transcoder(sender, attachment.GetCompressionType());
-    output.AnswerStream(transcoder);
+    StorageAccessor accessor(area_);
+    accessor.AnswerFile(output, attachment);
   }
 
 
@@ -350,17 +345,9 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_InternalError);
     }
-
-    if (uncompressIfNeeded)
-    {
-      accessor_.SetCompressionForNextOperations(attachment.GetCompressionType());
-    }
-    else
-    {
-      accessor_.SetCompressionForNextOperations(CompressionType_None);
-    }
-
-    accessor_.Read(result, attachment.GetUuid(), attachment.GetContentType());
+    
+    StorageAccessor accessor(area_);
+    accessor.Read(result, attachment);
   }
 
 
@@ -395,7 +382,7 @@ namespace Orthanc
   void ServerContext::SetStoreMD5ForAttachments(bool storeMD5)
   {
     LOG(INFO) << "Storing MD5 for attachments: " << (storeMD5 ? "yes" : "no");
-    accessor_.SetStoreMD5(storeMD5);
+    storeMD5_ = storeMD5;
   }
 
 
@@ -406,22 +393,16 @@ namespace Orthanc
   {
     LOG(INFO) << "Adding attachment " << EnumerationToString(attachmentType) << " to resource " << resourceId;
     
-    if (compressionEnabled_)
-    {
-      // TODO Should we use "gzip" instead?
-      accessor_.SetCompressionForNextOperations(CompressionType_ZlibWithSize);
-    }
-    else
-    {
-      accessor_.SetCompressionForNextOperations(CompressionType_None);
-    }      
+    // TODO Should we use "gzip" instead?
+    CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
 
-    FileInfo info = accessor_.Write(data, size, attachmentType);
-    StoreStatus status = index_.AddAttachment(info, resourceId);
+    StorageAccessor accessor(area_);
+    FileInfo attachment = accessor.Write(data, size, attachmentType, compression, storeMD5_);
 
+    StoreStatus status = index_.AddAttachment(attachment, resourceId);
     if (status != StoreStatus_Success)
     {
-      accessor_.Remove(info.GetUuid(), info.GetContentType());
+      accessor.Remove(attachment);
       return false;
     }
     else

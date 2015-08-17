@@ -32,8 +32,10 @@
 
 #pragma once
 
+#include "IStorageArea.h"
 #include "FileInfo.h"
-#include "../HttpServer/HttpFileSender.h"
+#include "../HttpServer/BufferHttpSender.h"
+#include "../RestApi/RestApiOutput.h"
 
 #include <vector>
 #include <string>
@@ -44,54 +46,44 @@ namespace Orthanc
 {
   class StorageAccessor : boost::noncopyable
   {
-  protected:
-    bool storeMD5_;
+  private:
+    IStorageArea&  area_;
 
-    virtual FileInfo WriteInternal(const void* data,
-                                   size_t size,
-                                   FileContentType type) = 0;
+    void SetupSender(BufferHttpSender& sender,
+                     const FileInfo& info);
 
   public:
-    StorageAccessor()
+    StorageAccessor(IStorageArea& area) : area_(area)
     {
-      storeMD5_ = true;
-    }
-
-    virtual ~StorageAccessor()
-    {
-    }
-
-    void SetStoreMD5(bool storeMD5)
-    {
-      storeMD5_ = storeMD5;
-    }
-
-    bool IsStoreMD5() const
-    {
-      return storeMD5_;
     }
 
     FileInfo Write(const void* data,
                    size_t size,
-                   FileContentType type)
+                   FileContentType type,
+                   CompressionType compression,
+                   bool storeMd5);
+
+    FileInfo Write(const std::string& data, 
+                   FileContentType type,
+                   CompressionType compression,
+                   bool storeMd5)
     {
-      return WriteInternal(data, size, type);
+      return Write((data.size() == 0 ? NULL : data.c_str()),
+                   data.size(), type, compression, storeMd5);
     }
 
-    FileInfo Write(const std::vector<uint8_t>& content,
-                   FileContentType type);
+    void Read(std::string& content,
+              const FileInfo& info);
 
-    FileInfo Write(const std::string& content,
-                   FileContentType type);
+    void Remove(const FileInfo& info)
+    {
+      area_.Remove(info.GetUuid(), info.GetContentType());
+    }
 
-    virtual void Read(std::string& content,
-                      const std::string& uuid,
-                      FileContentType type) = 0;
+    void AnswerFile(HttpOutput& output,
+                    const FileInfo& info);
 
-    virtual void Remove(const std::string& uuid,
-                        FileContentType type) = 0;
-
-    virtual HttpFileSender* ConstructHttpFileSender(const std::string& uuid,
-                                                    FileContentType type) = 0;
+    void AnswerFile(RestApiOutput& output,
+                    const FileInfo& info);
   };
 }

@@ -33,31 +33,126 @@
 #include "../PrecompiledHeaders.h"
 #include "StorageAccessor.h"
 
+#include "../Compression/ZlibCompressor.h"
+#include "../OrthancException.h"
+#include "../HttpServer/HttpStreamTranscoder.h"
+
 namespace Orthanc
 {
-  FileInfo StorageAccessor::Write(const std::vector<uint8_t>& content,
-                                  FileContentType type)
+  FileInfo StorageAccessor::Write(const void* data,
+                                  size_t size,
+                                  FileContentType type,
+                                  CompressionType compression,
+                                  bool storeMd5)
   {
-    if (content.size() == 0)
+    std::string uuid = Toolbox::GenerateUuid();
+
+    std::string md5;
+
+    if (storeMd5)
     {
-      return WriteInternal(NULL, 0, type);
+      Toolbox::ComputeMD5(md5, data, size);
     }
-    else
+
+    switch (compression)
     {
-      return WriteInternal(&content[0], content.size(), type);
+      case CompressionType_None:
+      {
+        area_.Create(uuid, data, size, type);
+        return FileInfo(uuid, type, size, md5);
+      }
+
+      case CompressionType_ZlibWithSize:
+      {
+        ZlibCompressor zlib;
+
+        std::string compressed;
+        zlib.Compress(compressed, data, size);
+
+        std::string compressedMD5;
+      
+        if (storeMd5)
+        {
+          Toolbox::ComputeMD5(compressedMD5, compressed);
+        }
+
+        if (compressed.size() > 0)
+        {
+          area_.Create(uuid, &compressed[0], compressed.size(), type);
+        }
+        else
+        {
+          area_.Create(uuid, NULL, 0, type);
+        }
+
+        return FileInfo(uuid, type, size, md5,
+                        CompressionType_ZlibWithSize, compressed.size(), compressedMD5);
+      }
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
     }
   }
 
-  FileInfo StorageAccessor::Write(const std::string& content,
-                                  FileContentType type)
+
+  void StorageAccessor::Read(std::string& content,
+                             const FileInfo& info)
   {
-    if (content.size() == 0)
+    switch (info.GetCompressionType())
     {
-      return WriteInternal(NULL, 0, type);
+      case CompressionType_None:
+      {
+        area_.Read(content, info.GetUuid(), info.GetContentType());
+        break;
+      }
+
+      case CompressionType_ZlibWithSize:
+      {
+        ZlibCompressor zlib;
+
+        std::string compressed;
+        area_.Read(compressed, info.GetUuid(), info.GetContentType());
+        IBufferCompressor::Uncompress(content, zlib, compressed);
+        break;
+      }
+
+      default:
+      {
+        throw OrthancException(ErrorCode_NotImplemented);
+      }
     }
-    else
-    {
-      return WriteInternal(&content[0], content.size(), type);
-    }
+
+    // TODO Check the validity of the uncompressed MD5?
+  }
+
+
+  void StorageAccessor::SetupSender(BufferHttpSender& sender,
+                                    const FileInfo& info)
+  {
+    Read(sender.GetBuffer(), info);
+    sender.SetContentType(GetMimeType(info.GetContentType()));
+    sender.SetContentFilename(info.GetUuid() + std::string(GetFileExtension(info.GetContentType())));
+  }
+
+
+  void StorageAccessor::AnswerFile(HttpOutput& output,
+                                   const FileInfo& info)
+  {
+    BufferHttpSender sender;
+    SetupSender(sender, info);
+  
+    HttpStreamTranscoder transcoder(sender, info.GetCompressionType());
+    output.Answer(transcoder);
+  }
+
+
+  void StorageAccessor::AnswerFile(RestApiOutput& output,
+                                   const FileInfo& info)
+  {
+    BufferHttpSender sender;
+    SetupSender(sender, info);
+  
+    HttpStreamTranscoder transcoder(sender, info.GetCompressionType());
+    output.AnswerStream(transcoder);
   }
 }
