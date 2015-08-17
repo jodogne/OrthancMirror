@@ -129,7 +129,7 @@ namespace Orthanc
   void StorageAccessor::SetupSender(BufferHttpSender& sender,
                                     const FileInfo& info)
   {
-    Read(sender.GetBuffer(), info);
+    area_.Read(sender.GetBuffer(), info.GetUuid(), info.GetContentType());
     sender.SetContentType(GetMimeType(info.GetContentType()));
     sender.SetContentFilename(info.GetUuid() + std::string(GetFileExtension(info.GetContentType())));
   }
