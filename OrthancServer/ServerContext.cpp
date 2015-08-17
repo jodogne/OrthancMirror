@@ -345,9 +345,18 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_InternalError);
     }
-    
-    StorageAccessor accessor(area_);
-    accessor.Read(result, attachment);
+
+    if (uncompressIfNeeded)
+    {
+      StorageAccessor accessor(area_);
+      accessor.Read(result, attachment);
+    }
+    else
+    {
+      // Do not interpret the content of the storage area, return the
+      // raw data
+      area_.Read(result, attachment.GetUuid(), content);
+    }
   }
 
 
