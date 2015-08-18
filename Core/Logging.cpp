@@ -33,10 +33,35 @@
 #include "PrecompiledHeaders.h"
 #include "Logging.h"
 
-#if ORTHANC_ENABLE_LOGGING == 1
+#if ORTHANC_ENABLE_LOGGING != 1
 
+namespace Orthanc
+{
+  namespace Logging
+  {
+    void Initialize()
+    {
+    }
 
-#if ORTHANC_ENABLE_GOOGLE_LOG == 1
+    void Finalize()
+    {
+    }
+
+    void EnableInfoLevel(bool enabled)
+    {
+    }
+
+    void EnableTraceLevel(bool enabled)
+    {
+    }
+
+    void SetTargetFolder(const std::string& path)
+    {
+    }
+  }
+}
+
+#elif ORTHANC_ENABLE_GOOGLE_LOG == 1
 
 /*********************************************************
  * Wrapper around Google Log
@@ -392,8 +417,5 @@ namespace Orthanc
 
   }
 }
-
-#endif
-
 
 #endif   // ORTHANC_ENABLE_LOGGING

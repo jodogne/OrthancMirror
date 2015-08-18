@@ -32,18 +32,7 @@
 
 #pragma once
 
-#if ORTHANC_ENABLE_LOGGING == 1
-
-#if ORTHANC_ENABLE_GOOGLE_LOG == 1
-#  include <stdlib.h>  // Including this fixes a problem in glog for recent releases of MinGW
-#  include <glog/logging.h>
-#else
-#  include <iostream>
-#  include <boost/thread/mutex.hpp>
-#  define LOG(level)  ::Orthanc::Logging::InternalLogger(#level,  __FILE__, __LINE__)
-#  define VLOG(level) ::Orthanc::Logging::InternalLogger("TRACE", __FILE__, __LINE__)
-#endif
-
+#include <iostream>
 
 namespace Orthanc
 {
@@ -59,7 +48,6 @@ namespace Orthanc
 
     void SetTargetFolder(const std::string& path);
 
-#if ORTHANC_ENABLE_GOOGLE_LOG != 1
     struct NullStream : public std::ostream 
     {
       NullStream() : 
@@ -67,8 +55,37 @@ namespace Orthanc
         std::ostream(0)
       {
       }
+      
+      std::ostream& operator<< (const std::string& message)
+      {
+        return *this;
+      }
     };
+  }
+}
 
+
+#if ORTHANC_ENABLE_LOGGING != 1
+
+#  define LOG(level)   ::Orthanc::Logging::NullStream()
+#  define VLOG(level)  ::Orthanc::Logging::NullStream()
+
+#else  /* ORTHANC_ENABLE_LOGGING == 1 */
+
+#if ORTHANC_ENABLE_GOOGLE_LOG == 1
+#  include <stdlib.h>  // Including this fixes a problem in glog for recent releases of MinGW
+#  include <glog/logging.h>
+#else
+#  include <boost/thread/mutex.hpp>
+#  define LOG(level)  ::Orthanc::Logging::InternalLogger(#level,  __FILE__, __LINE__)
+#  define VLOG(level) ::Orthanc::Logging::InternalLogger("TRACE", __FILE__, __LINE__)
+#endif
+
+#if ORTHANC_ENABLE_GOOGLE_LOG != 1
+namespace Orthanc
+{
+  namespace Logging
+  {
     class InternalLogger
     {
     private:
@@ -88,8 +105,8 @@ namespace Orthanc
         return (*stream_) << message;
       }
     };
-#endif
   }
 }
+#endif
 
 #endif  // ORTHANC_ENABLE_LOGGING
