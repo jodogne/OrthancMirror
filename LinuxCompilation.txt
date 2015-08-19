@@ -116,6 +116,12 @@ SUPPORTED - Ubuntu 12.04.5 LTS
 SUPPORTED - Ubuntu 14.04 LTS
 ----------------------------
 
+# sudo apt-get install build-essential unzip cmake mercurial \
+       	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
+       	       	       libgtest-dev libpng-dev libsqlite3-dev libssl-dev \
+		       zlib1g-dev libdcmtk2-dev libboost-all-dev libwrap0-dev \
+                       libcharls-dev libjsoncpp-dev libpugixml-dev
+
 # cmake -DALLOW_DOWNLOADS=ON \
         -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
         -DUSE_SYSTEM_MONGOOSE=OFF \
