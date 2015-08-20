@@ -41,6 +41,8 @@
 #include "../../OrthancServer/OrthancInitialization.h"
 #include "../../OrthancServer/ServerContext.h"
 #include "../../OrthancServer/ServerToolbox.h"
+#include "../../Core/Compression/ZlibCompressor.h"
+#include "../../Core/Compression/GzipCompressor.h"
 
 #include <boost/regex.hpp> 
 
@@ -854,6 +856,64 @@ namespace Orthanc
   }
 
 
+  void OrthancPlugins::BufferCompression(const void* parameters)
+  {
+    const _OrthancPluginBufferCompression& p = 
+      *reinterpret_cast<const _OrthancPluginBufferCompression*>(parameters);
+
+    std::string result;
+
+    {
+      std::auto_ptr<DeflateBaseCompressor> compressor;
+
+      switch (p.compression)
+      {
+        case OrthancPluginCompressionType_Zlib:
+        {
+          compressor.reset(new ZlibCompressor);
+          compressor->SetPrefixWithUncompressedSize(false);
+          break;
+        }
+
+        case OrthancPluginCompressionType_ZlibWithSize:
+        {
+          compressor.reset(new ZlibCompressor);
+          compressor->SetPrefixWithUncompressedSize(true);
+          break;
+        }
+
+        case OrthancPluginCompressionType_Gzip:
+        {
+          compressor.reset(new GzipCompressor);
+          compressor->SetPrefixWithUncompressedSize(false);
+          break;
+        }
+
+        case OrthancPluginCompressionType_GzipWithSize:
+        {
+          compressor.reset(new GzipCompressor);
+          compressor->SetPrefixWithUncompressedSize(true);
+          break;
+        }
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+
+      if (p.uncompress)
+      {
+        compressor->Uncompress(result, p.source, p.size);
+      }
+      else
+      {
+        compressor->Compress(result, p.source, p.size);
+      }
+    }
+
+    CopyToMemoryBuffer(*p.target, result);
+  }
+
+
   bool OrthancPlugins::InvokeService(_OrthancPluginService service,
                                      const void* parameters)
   {
@@ -890,6 +950,10 @@ namespace Orthanc
         *reinterpret_cast<const _OrthancPluginRetrieveDynamicString*>(parameters)->result = CopyString(s);
         return true;
       }
+
+      case _OrthancPluginService_BufferCompression:
+        BufferCompression(parameters);
+        return true;
 
       case _OrthancPluginService_RegisterRestCallback:
         RegisterRestCallback(parameters);
