@@ -37,6 +37,7 @@
 #include "../../Core/Uuid.h"
 #include "../FromDcmtkBridge.h"
 #include "../ServerContext.h"
+#include "../OrthancInitialization.h"
 
 namespace Orthanc
 {
@@ -476,6 +477,19 @@ namespace Orthanc
       return false;
     }
 
+    std::string tmp;
+    if (request["Tags"].isMember("SpecificCharacterSet"))
+    {
+      tmp = request["Tags"]["SpecificCharacterSet"].asString();
+    }
+    else
+    {
+      tmp = Configuration::GetGlobalStringParameter("DefaultEncoding", "Latin1");
+    }
+
+    Encoding encoding = StringToEncoding(tmp.c_str());
+    dicom.SetEncoding(encoding);
+
     ResourceType parentType = ResourceType_Instance;
 
     if (request.isMember("Parent"))
@@ -549,7 +563,8 @@ namespace Orthanc
           }
           else if (tag["Type"] == "String")
           {
-            dicom.Replace(*it, tag["Value"].asString());
+            std::string value = tag["Value"].asString();
+            dicom.Replace(*it, Toolbox::ConvertFromUtf8(value, encoding));
           }
         }
       }
@@ -609,7 +624,7 @@ namespace Orthanc
       }
       else
       {
-        dicom.Replace(tag, value);
+        dicom.Replace(tag, Toolbox::ConvertFromUtf8(value, encoding));
       }
     }
 

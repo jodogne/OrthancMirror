@@ -566,81 +566,121 @@ namespace Orthanc
   }
 
 
-  std::string Toolbox::ConvertToUtf8(const std::string& source,
-                                     const Encoding sourceEncoding)
+  static const char* GetBoostLocaleEncoding(const Encoding sourceEncoding)
   {
-    const char* encoding;
-
-
-    // http://bradleyross.users.sourceforge.net/docs/dicom/doc/src-html/org/dcm4che2/data/SpecificCharacterSet.html
     switch (sourceEncoding)
     {
       case Encoding_Utf8:
-        // Already in UTF-8: No conversion is required
-        return source;
+        return "UTF-8";
 
       case Encoding_Ascii:
-        return ConvertToAscii(source);
+        return "ASCII";
 
       case Encoding_Latin1:
-        encoding = "ISO-8859-1";
+        return "ISO-8859-1";
         break;
 
       case Encoding_Latin2:
-        encoding = "ISO-8859-2";
+        return "ISO-8859-2";
         break;
 
       case Encoding_Latin3:
-        encoding = "ISO-8859-3";
+        return "ISO-8859-3";
         break;
 
       case Encoding_Latin4:
-        encoding = "ISO-8859-4";
+        return "ISO-8859-4";
         break;
 
       case Encoding_Latin5:
-        encoding = "ISO-8859-9";
+        return "ISO-8859-9";
         break;
 
       case Encoding_Cyrillic:
-        encoding = "ISO-8859-5";
+        return "ISO-8859-5";
         break;
 
       case Encoding_Windows1251:
-        encoding = "WINDOWS-1251";
+        return "WINDOWS-1251";
         break;
 
       case Encoding_Arabic:
-        encoding = "ISO-8859-6";
+        return "ISO-8859-6";
         break;
 
       case Encoding_Greek:
-        encoding = "ISO-8859-7";
+        return "ISO-8859-7";
         break;
 
       case Encoding_Hebrew:
-        encoding = "ISO-8859-8";
+        return "ISO-8859-8";
         break;
         
       case Encoding_Japanese:
-        encoding = "SHIFT-JIS";
+        return "SHIFT-JIS";
         break;
 
       case Encoding_Chinese:
-        encoding = "GB18030";
+        return "GB18030";
         break;
 
       case Encoding_Thai:
-        encoding = "TIS620.2533-0";
+        return "TIS620.2533-0";
         break;
 
       default:
         throw OrthancException(ErrorCode_NotImplemented);
     }
+  }
+
+
+  std::string Toolbox::ConvertToUtf8(const std::string& source,
+                                     Encoding sourceEncoding)
+  {
+    if (sourceEncoding == Encoding_Utf8)
+    {
+      // Already in UTF-8: No conversion is required
+      return source;
+    }
+
+    if (sourceEncoding == Encoding_Ascii)
+    {
+      return ConvertToAscii(source);
+    }
+
+    const char* encoding = GetBoostLocaleEncoding(sourceEncoding);
 
     try
     {
       return boost::locale::conv::to_utf<char>(source, encoding);
+    }
+    catch (std::runtime_error&)
+    {
+      // Bad input string or bad encoding
+      return ConvertToAscii(source);
+    }
+  }
+
+
+  std::string Toolbox::ConvertFromUtf8(const std::string& source,
+                                       Encoding targetEncoding)
+  {
+    if (targetEncoding == Encoding_Utf8)
+    {
+      // Already in UTF-8: No conversion is required
+      return source;
+    }
+
+    if (targetEncoding == Encoding_Ascii)
+    {
+      return ConvertToAscii(source);
+    }
+
+    const char* encoding = GetBoostLocaleEncoding(targetEncoding);
+
+    try
+    {
+      return boost::locale::conv::from_utf<char>(source, encoding);
     }
     catch (std::runtime_error&)
     {
