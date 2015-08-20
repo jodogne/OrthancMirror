@@ -178,5 +178,7 @@ namespace Orthanc
                     const std::string& prefix);
 
     int GetProcessId();
+
+    const char* GetDicomSpecificCharacterSet(Encoding encoding);
   }
 }

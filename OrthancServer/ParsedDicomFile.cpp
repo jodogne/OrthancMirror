@@ -1335,73 +1335,14 @@ namespace Orthanc
 
   void ParsedDicomFile::SetEncoding(Encoding encoding)
   {
-    std::string s;
-
-    // http://www.dabsoft.ch/dicom/3/C.12.1.1.2/
-    switch (encoding)
+    if (encoding == Encoding_Windows1251)
     {
-      case Encoding_Utf8:
-      case Encoding_Ascii:
-        s = "ISO_IR 192";
-        break;
-
-      case Encoding_Windows1251:
-        // This Cyrillic codepage is not officially supported by the
-        // DICOM standard. Do not set the SpecificCharacterSet tag.
-        return;
-
-      case Encoding_Latin1:
-        s = "ISO_IR 100";
-        break;
-
-      case Encoding_Latin2:
-        s = "ISO_IR 101";
-        break;
-
-      case Encoding_Latin3:
-        s = "ISO_IR 109";
-        break;
-
-      case Encoding_Latin4:
-        s = "ISO_IR 110";
-        break;
-
-      case Encoding_Latin5:
-        s = "ISO_IR 148";
-        break;
-
-      case Encoding_Cyrillic:
-        s = "ISO_IR 144";
-        break;
-
-      case Encoding_Arabic:
-        s = "ISO_IR 127";
-        break;
-
-      case Encoding_Greek:
-        s = "ISO_IR 126";
-        break;
-
-      case Encoding_Hebrew:
-        s = "ISO_IR 138";
-        break;
-
-      case Encoding_Japanese:
-        s = "ISO_IR 13";
-        break;
-
-      case Encoding_Chinese:
-        s = "GB18030";
-        break;
-
-      case Encoding_Thai:
-        s = "ISO_IR 166";
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      // This Cyrillic codepage is not officially supported by the
+      // DICOM standard. Do not set the SpecificCharacterSet tag.
+      return;
     }
 
+    std::string s = Toolbox::GetDicomSpecificCharacterSet(encoding);
     Replace(DICOM_TAG_SPECIFIC_CHARACTER_SET, s, DicomReplaceMode_InsertIfAbsent);
   }
 
