@@ -107,6 +107,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcuid.h>
 #include <dcmtk/dcmdata/dcmetinf.h>
+#include <dcmtk/dcmdata/dcdeftag.h>
 
 #include <dcmtk/dcmdata/dcvrae.h>
 #include <dcmtk/dcmdata/dcvras.h>
@@ -1133,16 +1134,23 @@ namespace Orthanc
 
   void ParsedDicomFile::EmbedImage(const std::string& dataUriScheme)
   {
-    std::string mime, content;
-    Toolbox::DecodeDataUriScheme(mime, content, dataUriScheme);
+    std::string mime, base64;
+    Toolbox::DecodeDataUriScheme(mime, base64, dataUriScheme);
 
-    std::string decoded;
-    Toolbox::DecodeBase64(decoded, content);
+    std::string content;
+    Toolbox::DecodeBase64(content, base64);
 
+    EmbedImage(mime, content);
+  }
+
+
+  void ParsedDicomFile::EmbedImage(const std::string& mime,
+                                   const std::string& content)
+  {
     if (mime == "image/png")
     {
       PngReader reader;
-      reader.ReadFromMemory(decoded);
+      reader.ReadFromMemory(content);
       EmbedImage(reader);
     }
     else
@@ -1408,4 +1416,59 @@ namespace Orthanc
       FromDcmtkBridge::ToJson(target, *pimpl_->file_->getDataset());
     }
   }
+
+
+  bool ParsedDicomFile::HasTag(const DicomTag& tag) const
+  {
+    DcmTag key(tag.GetGroup(), tag.GetElement());
+    return pimpl_->file_->getDataset()->tagExists(key);
+  }
+
+
+  void ParsedDicomFile::EmbedPdf(const std::string& pdf)
+  {
+    if (pdf.size() < 5 ||  // (*)
+        strncmp("%PDF-", pdf.c_str(), 5) != 0)
+    {
+      LOG(ERROR) << "Not a PDF file";
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    Replace(DICOM_TAG_SOP_CLASS_UID, UID_EncapsulatedPDFStorage);
+    Replace(FromDcmtkBridge::Convert(DCM_Modality), "OT");
+    Replace(FromDcmtkBridge::Convert(DCM_ConversionType), "WSD");
+    Replace(FromDcmtkBridge::Convert(DCM_MIMETypeOfEncapsulatedDocument), "application/pdf");
+    Replace(FromDcmtkBridge::Convert(DCM_SeriesNumber), "1");
+
+    std::auto_ptr<DcmPolymorphOBOW> element(new DcmPolymorphOBOW(DCM_EncapsulatedDocument));
+
+    size_t s = pdf.size();
+    if (s & 1)
+    {
+      // The size of the buffer must be even
+      s += 1;
+    }
+
+    Uint8* bytes = NULL;
+    OFCondition result = element->createUint8Array(s, bytes);
+    if (!result.good() || bytes == NULL)
+    {
+      throw OrthancException(ErrorCode_NotEnoughMemory);
+    }
+
+    // Blank pad byte (no access violation, as "pdf.size() >= 5" because of (*) )
+    bytes[s - 1] = 0;
+
+    memcpy(bytes, pdf.c_str(), pdf.size());
+      
+    DcmPolymorphOBOW* obj = element.release();
+    result = pimpl_->file_->getDataset()->insert(obj);
+
+    if (!result.good())
+    {
+      delete obj;
+      throw OrthancException(ErrorCode_NotEnoughMemory);
+    }
+  }
+
 }

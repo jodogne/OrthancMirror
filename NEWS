@@ -1,6 +1,8 @@
 Pending changes in the mainline
 ===============================
 
+
+* Creation of DICOM files with encapsulated PDF through "/tools/create-dicom"
 * "limit" and "since" arguments while retrieving DICOM resources in the REST API
 * Support of "deflate" and "gzip" content-types in HTTP requests
 * Options to validate peers against CA certificates in HTTPS requests

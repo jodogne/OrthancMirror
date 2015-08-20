@@ -956,23 +956,7 @@ namespace Orthanc
         b.splice(b.begin(), c);
       }
 
-      switch (type)
-      {
-        case ResourceType_Patient:
-          type = ResourceType_Study;
-          break;
-
-        case ResourceType_Study:
-          type = ResourceType_Series;
-          break;
-
-        case ResourceType_Series:
-          type = ResourceType_Instance;
-          break;
-
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }
+      type = GetChildResourceType(type);
 
       a.clear();
       a.splice(a.begin(), b);
@@ -1053,13 +1037,7 @@ namespace Orthanc
       }
       
       current = parent;
-      switch (currentType)
-      {
-        case ResourceType_Instance:  currentType = ResourceType_Series; break;
-        case ResourceType_Series:    currentType = ResourceType_Study; break;
-        case ResourceType_Study:     currentType = ResourceType_Patient; break;
-        default:                     throw OrthancException(ErrorCode_InternalError);
-      }
+      currentType = GetParentResourceType(currentType);
     }
 
     assert(currentType == end);

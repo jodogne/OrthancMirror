@@ -691,4 +691,61 @@ namespace Orthanc
         return "";
     }
   }
+
+
+  ResourceType GetChildResourceType(ResourceType type)
+  {
+    switch (type)
+    {
+      case ResourceType_Patient:
+        return ResourceType_Study;
+
+      case ResourceType_Study:
+        return ResourceType_Series;
+        
+      case ResourceType_Series:
+        return ResourceType_Instance;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  ResourceType GetParentResourceType(ResourceType type)
+  {
+    switch (type)
+    {
+      case ResourceType_Study:
+        return ResourceType_Patient;
+        
+      case ResourceType_Series:
+        return ResourceType_Study;
+
+      case ResourceType_Instance:
+        return ResourceType_Series;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  DicomModule GetModule(ResourceType type)
+  {
+    switch (type)
+    {
+      case ResourceType_Patient:
+        return DicomModule_Patient;
+
+      case ResourceType_Study:
+        return DicomModule_Study;
+        
+      case ResourceType_Series:
+        return DicomModule_Series;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
 }

@@ -380,4 +380,10 @@ namespace Orthanc
   const char* GetMimeType(FileContentType type);
 
   const char* GetFileExtension(FileContentType type);
+
+  ResourceType GetChildResourceType(ResourceType type);
+
+  ResourceType GetParentResourceType(ResourceType type);
+
+  DicomModule GetModule(ResourceType type);
 }
