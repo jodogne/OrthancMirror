@@ -104,6 +104,9 @@ namespace Orthanc
 
     void EmbedImage(const std::string& dataUriScheme);
 
+    void EmbedImage(const std::string& mime,
+                    const std::string& content);
+
     void ExtractImage(ImageBuffer& result,
                       unsigned int frame);
 
@@ -121,6 +124,10 @@ namespace Orthanc
 
     void ToJson(Json::Value& target, 
                 bool simplify);
+
+    bool HasTag(const DicomTag& tag) const;
+
+    void EmbedPdf(const std::string& pdf);
   };
 
 }

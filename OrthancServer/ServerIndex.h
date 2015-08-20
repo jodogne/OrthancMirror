@@ -264,5 +264,8 @@ namespace Orthanc
     bool GetMainDicomTags(DicomMap& result,
                           const std::string& publicId,
                           ResourceType expectedType);
+
+    bool LookupResourceType(ResourceType& type,
+                            const std::string& publicId);
   };
 }

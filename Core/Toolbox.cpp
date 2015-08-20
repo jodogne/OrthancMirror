@@ -776,6 +776,21 @@ namespace Orthanc
     boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
     return boost::posix_time::to_iso_string(now);
   }
+
+  void Toolbox::GetNowDicom(std::string& date,
+                            std::string& time)
+  {
+    boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
+    tm tm = boost::posix_time::to_tm(now);
+
+    char s[32];
+    sprintf(s, "%04d%02d%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
+    date.assign(s);
+
+    // TODO milliseconds
+    sprintf(s, "%02d%02d%02d.%06d", tm.tm_hour, tm.tm_min, tm.tm_sec, 0);
+    time.assign(s);
+  }
 #endif
 
 

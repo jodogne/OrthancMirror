@@ -428,46 +428,256 @@ namespace Orthanc
   }
 
 
-  static void CreateDicom(RestApiPostCall& call)
+  static bool CreateDicomV1(ParsedDicomFile& dicom,
+                            const Json::Value& request)
   {
     // curl http://localhost:8042/tools/create-dicom -X POST -d '{"PatientName":"Hello^World"}'
     // curl http://localhost:8042/tools/create-dicom -X POST -d '{"PatientName":"Hello^World","PixelData":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAAAAAA6mKC9AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gUGDDcB53FulQAAAElJREFUGNNtj0sSAEEEQ1+U+185s1CtmRkblQ9CZldsKHJDk6DLGLJa6chjh0ooQmpjXMM86zPwydGEj6Ed/UGykkEM8X+p3u8/8LcOJIWLGeMAAAAASUVORK5CYII="}'
 
-    Json::Value replacements;
-    if (call.ParseJsonRequest(replacements) && replacements.isObject())
+    assert(request.isObject());
+    LOG(WARNING) << "Using a deprecated call to /tools/create-dicom";
+
+    Json::Value::Members members = request.getMemberNames();
+    for (size_t i = 0; i < members.size(); i++)
+    {
+      const std::string& name = members[i];
+      if (request[name].type() != Json::stringValue)
+      {
+        LOG(ERROR) << "Only string values are supported when creating DICOM instances";
+        return false;
+      }
+
+      std::string value = request[name].asString();
+
+      DicomTag tag = FromDcmtkBridge::ParseTag(name);
+      if (tag == DICOM_TAG_PIXEL_DATA)
+      {
+        dicom.EmbedImage(value);
+      }
+      else
+      {
+        dicom.Replace(tag, value);
+      }
+    }
+
+    return true;
+  }
+
+
+  static bool CreateDicomV2(ParsedDicomFile& dicom,
+                            ServerContext& context,
+                            const Json::Value& request)
+  {
+    assert(request.isObject());
+
+    if (!request.isMember("Tags") ||
+        request["Tags"].type() != Json::objectValue)
+    {
+      return false;
+    }
+
+    ResourceType parentType = ResourceType_Instance;
+
+    if (request.isMember("Parent"))
+    {
+      // Locate the parent tags
+      std::string parent = request["Parent"].asString();
+      if (!context.GetIndex().LookupResourceType(parentType, parent))
+      {
+        LOG(ERROR) << "Trying to attach a new DICOM instance to an inexistent resource: " << parent;
+        return false;
+      }
+
+      if (parentType == ResourceType_Instance)
+      {
+        LOG(ERROR) << "Trying to attach a new DICOM instance to an instance (must be a series, study or patient): " << parent;
+        return false;
+      }
+
+      // Select one existing child instance of the parent resource, to
+      // retrieve all its tags
+      Json::Value siblingTags;
+
+      {
+        // Retrieve all the instances of the parent resource
+        std::list<std::string>  siblingInstances;
+        context.GetIndex().GetChildInstances(siblingInstances, parent);
+
+        if (siblingInstances.empty())
+        {
+          return false;   // Error: No instance (should never happen)
+        }
+
+        context.ReadJson(siblingTags, siblingInstances.front());
+      }
+
+      // Retrieve the tags for all the parent modules
+      typedef std::set<DicomTag> ModuleTags;
+      ModuleTags moduleTags;
+
+      ResourceType type = parentType;
+      for (;;)
+      {
+        DicomTag::AddTagsForModule(moduleTags, GetModule(type));
+      
+        if (type == ResourceType_Patient)
+        {
+          break;   // We're done
+        }
+
+        // Go up
+        std::string tmp;
+        if (!context.GetIndex().LookupParent(tmp, parent))
+        {
+          return false;
+        }
+
+        parent = tmp;
+        type = GetParentResourceType(type);
+      }
+
+      for (ModuleTags::const_iterator it = moduleTags.begin();
+           it != moduleTags.end(); it++)
+      {
+        std::string t = it->Format();
+        if (siblingTags.isMember(t))
+        {
+          const Json::Value& tag = siblingTags[t];
+          if (tag["Type"] == "Null")
+          {
+            dicom.Replace(*it, "");
+          }
+          else if (tag["Type"] == "String")
+          {
+            dicom.Replace(*it, tag["Value"].asString());
+          }
+        }
+      }
+    }
+
+
+    // Inject time-related information
+    std::string date, time;
+    Toolbox::GetNowDicom(date, time);
+    dicom.Replace(DICOM_TAG_ACQUISITION_DATE, date);
+    dicom.Replace(DICOM_TAG_ACQUISITION_TIME, time);
+    dicom.Replace(DICOM_TAG_CONTENT_DATE, date);
+    dicom.Replace(DICOM_TAG_CONTENT_TIME, time);
+    dicom.Replace(DICOM_TAG_INSTANCE_CREATION_DATE, date);
+    dicom.Replace(DICOM_TAG_INSTANCE_CREATION_TIME, time);
+
+    if (parentType == ResourceType_Patient ||
+        parentType == ResourceType_Study ||
+        parentType == ResourceType_Instance /* no parent */)
+    {
+      dicom.Replace(DICOM_TAG_SERIES_DATE, date);
+      dicom.Replace(DICOM_TAG_SERIES_TIME, time);
+    }
+
+    if (parentType == ResourceType_Patient ||
+        parentType == ResourceType_Instance /* no parent */)
+    {
+      dicom.Replace(DICOM_TAG_STUDY_DATE, date);
+      dicom.Replace(DICOM_TAG_STUDY_TIME, time);
+    }
+
+
+    // Inject the user-specified tags
+    Json::Value::Members members = request["Tags"].getMemberNames();
+    for (size_t i = 0; i < members.size(); i++)
+    {
+      const std::string& name = members[i];
+      if (request["Tags"][name].type() != Json::stringValue)
+      {
+        LOG(ERROR) << "Only string values are supported when creating DICOM instances";
+        return false;
+      }
+
+      std::string value = request["Tags"][name].asString();
+
+      DicomTag tag = FromDcmtkBridge::ParseTag(name);
+      if (dicom.HasTag(tag))
+      {
+        LOG(ERROR) << "Trying to override a value inherited from a parent module";
+        return false;
+      }
+
+      if (tag == DICOM_TAG_PIXEL_DATA)
+      {
+        LOG(ERROR) << "Use \"Content\" to inject an image into a new DICOM instance";
+        return false;
+      }
+      else
+      {
+        dicom.Replace(tag, value);
+      }
+    }
+
+
+    // Inject the content (either an image, or a PDF file)
+    if (request.isMember("Content"))
+    {
+      if (request["Content"].type() != Json::stringValue)
+      {
+        LOG(ERROR) << "The payload of the DICOM instance must be specified according to Data URI scheme";
+        return false;
+      }
+
+      std::string mime, base64;
+      Toolbox::DecodeDataUriScheme(mime, base64, request["Content"].asString());
+      Toolbox::ToLowerCase(mime);
+
+      std::string content;
+      Toolbox::DecodeBase64(content, base64);
+
+      if (mime == "image/png")
+      {
+        dicom.EmbedImage(mime, content);
+      }
+      else if (mime == "application/pdf")
+      {
+        dicom.EmbedPdf(content);
+      }
+      else
+      {
+        LOG(ERROR) << "Unsupported MIME type for the content of a new DICOM file";
+        return false;
+      }
+    }
+
+
+    return true;
+  }
+
+
+  static void CreateDicom(RestApiPostCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    Json::Value request;
+    if (call.ParseJsonRequest(request) && 
+        request.isObject())
     {
       ParsedDicomFile dicom;
 
-      Json::Value::Members members = replacements.getMemberNames();
-      for (size_t i = 0; i < members.size(); i++)
+      if (request.isMember("Tags") ? 
+          CreateDicomV2(dicom, context, request) :
+          CreateDicomV1(dicom, request))
       {
-        const std::string& name = members[i];
-        std::string value = replacements[name].asString();
+        DicomInstanceToStore toStore;
+        toStore.SetParsedDicomFile(dicom);
 
-        DicomTag tag = FromDcmtkBridge::ParseTag(name);
-        if (tag == DICOM_TAG_PIXEL_DATA)
+        std::string id;
+        StoreStatus status = OrthancRestApi::GetContext(call).Store(id, toStore);
+
+        if (status == StoreStatus_Failure)
         {
-          dicom.EmbedImage(value);
+          LOG(ERROR) << "Error while storing a manually-created instance";
+          return;
         }
-        else
-        {
-          dicom.Replace(tag, value);
-        }
+
+        OrthancRestApi::GetApi(call).AnswerStoredInstance(call, id, status);
       }
-
-      DicomInstanceToStore toStore;
-      toStore.SetParsedDicomFile(dicom);
-
-      std::string id;
-      StoreStatus status = OrthancRestApi::GetContext(call).Store(id, toStore);
-
-      if (status == StoreStatus_Failure)
-      {
-        LOG(ERROR) << "Error while storing a manually-created instance";
-        return;
-      }
-
-      OrthancRestApi::GetApi(call).AnswerStoredInstance(call, id, status);
     }
   }
 

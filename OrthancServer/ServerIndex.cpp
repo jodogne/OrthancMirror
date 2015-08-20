@@ -2097,4 +2097,15 @@ namespace Orthanc
       return true;
     }    
   }
+
+
+  bool ServerIndex::LookupResourceType(ResourceType& type,
+                                       const std::string& publicId)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    int64_t id;
+    return db_.LookupResource(id, type, publicId);
+  }
+
 }

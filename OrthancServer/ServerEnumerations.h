@@ -187,8 +187,4 @@ namespace Orthanc
   const char* EnumerationToString(TransferSyntax syntax);
 
   ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer);
-
-  ResourceType GetParentResourceType(ResourceType type);
-
-  ResourceType GetChildResourceType(ResourceType type);
 }

@@ -106,11 +106,7 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_NUMBER_OF_FRAMES(0x0028, 0x0008);
   static const DicomTag DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES(0x0018, 0x1090);
   static const DicomTag DICOM_TAG_IMAGES_IN_ACQUISITION(0x0020, 0x1002);
-
   static const DicomTag DICOM_TAG_PATIENT_NAME(0x0010, 0x0010);
-  static const DicomTag DICOM_TAG_STUDY_DATE(0x0008, 0x0020);
-  static const DicomTag DICOM_TAG_SERIES_DATE(0x0008, 0x0021);
-  static const DicomTag DICOM_TAG_PATIENT_BIRTH_DATE(0x0010, 0x0030);
 
   // The following is used for "modify/anonymize" operations
   static const DicomTag DICOM_TAG_SOP_CLASS_UID(0x0008, 0x0016);
@@ -137,4 +133,18 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_PIXEL_REPRESENTATION(0x0028, 0x0103);
   static const DicomTag DICOM_TAG_PLANAR_CONFIGURATION(0x0028, 0x0006);
   static const DicomTag DICOM_TAG_PHOTOMETRIC_INTERPRETATION(0x0028, 0x0004);
+
+  // Tags related to date and time
+  static const DicomTag DICOM_TAG_ACQUISITION_DATE(0x0008, 0x0022);
+  static const DicomTag DICOM_TAG_ACQUISITION_TIME(0x0008, 0x0032);
+  static const DicomTag DICOM_TAG_CONTENT_DATE(0x0008, 0x0023);
+  static const DicomTag DICOM_TAG_CONTENT_TIME(0x0008, 0x0033);
+  static const DicomTag DICOM_TAG_INSTANCE_CREATION_DATE(0x0008, 0x0012);
+  static const DicomTag DICOM_TAG_INSTANCE_CREATION_TIME(0x0008, 0x0013);
+  static const DicomTag DICOM_TAG_PATIENT_BIRTH_DATE(0x0010, 0x0030);
+  static const DicomTag DICOM_TAG_PATIENT_BIRTH_TIME(0x0010, 0x0032);
+  static const DicomTag DICOM_TAG_SERIES_DATE(0x0008, 0x0021);
+  static const DicomTag DICOM_TAG_SERIES_TIME(0x0008, 0x0031);
+  static const DicomTag DICOM_TAG_STUDY_DATE(0x0008, 0x0020);
+  static const DicomTag DICOM_TAG_STUDY_TIME(0x0008, 0x0030);
 }
