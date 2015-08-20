@@ -128,6 +128,8 @@ namespace Orthanc
     bool HasTag(const DicomTag& tag) const;
 
     void EmbedPdf(const std::string& pdf);
+
+    bool ExtractPdf(std::string& pdf);
   };
 
 }
