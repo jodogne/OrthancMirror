@@ -129,6 +129,7 @@ namespace Orthanc
     boost::recursive_mutex restCallbackMutex_;
     boost::recursive_mutex storedCallbackMutex_;
     boost::recursive_mutex changeCallbackMutex_;
+    boost::recursive_mutex invokeServiceMutex_;
     Properties properties_;
     int argc_;
     char** argv_;
@@ -856,6 +857,8 @@ namespace Orthanc
   bool OrthancPlugins::InvokeService(_OrthancPluginService service,
                                      const void* parameters)
   {
+    boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
+
     switch (service)
     {
       case _OrthancPluginService_GetOrthancPath:
