@@ -477,17 +477,23 @@ namespace Orthanc
       return false;
     }
 
-    std::string tmp;
+    Encoding encoding;
+
     if (request["Tags"].isMember("SpecificCharacterSet"))
     {
-      tmp = request["Tags"]["SpecificCharacterSet"].asString();
+      const char* tmp = request["Tags"]["SpecificCharacterSet"].asCString();
+      if (!GetDicomEncoding(encoding, tmp))
+      {
+        LOG(ERROR) << "Unknown specific character set: " << tmp;
+        return false;
+      }
     }
     else
     {
-      tmp = Configuration::GetGlobalStringParameter("DefaultEncoding", "Latin1");
+      std::string tmp = Configuration::GetGlobalStringParameter("DefaultEncoding", "Latin1");
+      encoding = StringToEncoding(tmp.c_str());
     }
 
-    Encoding encoding = StringToEncoding(tmp.c_str());
     dicom.SetEncoding(encoding);
 
     ResourceType parentType = ResourceType_Instance;
@@ -611,20 +617,23 @@ namespace Orthanc
       std::string value = request["Tags"][name].asString();
 
       DicomTag tag = FromDcmtkBridge::ParseTag(name);
-      if (dicom.HasTag(tag))
+      if (tag != DICOM_TAG_SPECIFIC_CHARACTER_SET)
       {
-        LOG(ERROR) << "Trying to override a value inherited from a parent module";
-        return false;
-      }
+        if (dicom.HasTag(tag))
+        {
+          LOG(ERROR) << "Trying to override a value inherited from a parent module";
+          return false;
+        }
 
-      if (tag == DICOM_TAG_PIXEL_DATA)
-      {
-        LOG(ERROR) << "Use \"Content\" to inject an image into a new DICOM instance";
-        return false;
-      }
-      else
-      {
-        dicom.Replace(tag, Toolbox::ConvertFromUtf8(value, encoding));
+        if (tag == DICOM_TAG_PIXEL_DATA)
+        {
+          LOG(ERROR) << "Use \"Content\" to inject an image into a new DICOM instance";
+          return false;
+        }
+        else
+        {
+          dicom.Replace(tag, Toolbox::ConvertFromUtf8(value, encoding));
+        }
       }
     }
 
