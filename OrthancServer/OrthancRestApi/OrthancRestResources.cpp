@@ -1050,6 +1050,20 @@ namespace Orthanc
   }
 
 
+  static void ExtractPdf(RestApiGetCall& call)
+  {
+    const std::string id = call.GetUriComponent("id", "");
+
+    std::string pdf;
+    ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), id);
+
+    if (locker.GetDicom().ExtractPdf(pdf))
+    {
+      call.GetOutput().AnswerBuffer(pdf, "application/pdf");
+      return;
+    }
+  }
+
 
   void OrthancRestApi::RegisterResources()
   {
@@ -1093,6 +1107,7 @@ namespace Orthanc
     Register("/instances/{id}/frames/{frame}/image-uint16", GetImage<ImageExtractionMode_UInt16>);
     Register("/instances/{id}/frames/{frame}/image-int16", GetImage<ImageExtractionMode_Int16>);
     Register("/instances/{id}/frames/{frame}/matlab", GetMatlabImage);
+    Register("/instances/{id}/pdf", ExtractPdf);
     Register("/instances/{id}/preview", GetImage<ImageExtractionMode_Preview>);
     Register("/instances/{id}/image-uint8", GetImage<ImageExtractionMode_UInt8>);
     Register("/instances/{id}/image-uint16", GetImage<ImageExtractionMode_UInt16>);

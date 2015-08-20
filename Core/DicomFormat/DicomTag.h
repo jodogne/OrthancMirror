@@ -107,6 +107,7 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES(0x0018, 0x1090);
   static const DicomTag DICOM_TAG_IMAGES_IN_ACQUISITION(0x0020, 0x1002);
   static const DicomTag DICOM_TAG_PATIENT_NAME(0x0010, 0x0010);
+  static const DicomTag DICOM_TAG_ENCAPSULATED_DOCUMENT(0x0042, 0x0011);
 
   // The following is used for "modify/anonymize" operations
   static const DicomTag DICOM_TAG_SOP_CLASS_UID(0x0008, 0x0016);

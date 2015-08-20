@@ -966,7 +966,9 @@ namespace Orthanc
     DcmTagKey k(tag.GetGroup(), tag.GetElement());
     DcmDataset& dataset = *pimpl_->file_->getDataset();
 
-    if (FromDcmtkBridge::IsPrivateTag(tag))
+    if (FromDcmtkBridge::IsPrivateTag(tag) ||
+        tag == DICOM_TAG_PIXEL_DATA ||
+        tag == DICOM_TAG_ENCAPSULATED_DOCUMENT)
     {
       const Uint8* data = NULL;   // This is freed in the destructor of the dataset
       long unsigned int count = 0;
@@ -1000,7 +1002,7 @@ namespace Orthanc
       }
 
       std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(*element, pimpl_->encoding_));
-
+      
       if (v.get() == NULL)
       {
         value = "";
@@ -1009,7 +1011,7 @@ namespace Orthanc
       {
         value = v->AsString();
       }
-
+      
       return true;
     }
   }
@@ -1471,4 +1473,39 @@ namespace Orthanc
     }
   }
 
+
+  bool ParsedDicomFile::ExtractPdf(std::string& pdf)
+  {
+    std::string sop, mime;
+    
+    if (!GetTagValue(sop, DICOM_TAG_SOP_CLASS_UID) ||
+        !GetTagValue(mime, FromDcmtkBridge::Convert(DCM_MIMETypeOfEncapsulatedDocument)) ||
+        sop != UID_EncapsulatedPDFStorage ||
+        mime != "application/pdf")
+    {
+      return false;
+    }
+
+    if (!GetTagValue(pdf, DICOM_TAG_ENCAPSULATED_DOCUMENT))
+    {
+      return false;
+    }
+
+    // Strip the possible pad byte at the end of file, because the
+    // encapsulated documents must always have an even length. The PDF
+    // format expects files to end with %%EOF followed by CR/LF. If
+    // the last character of the file is not a CR or LF, we assume it
+    // is a pad byte and remove it.
+    if (pdf.size() > 0)
+    {
+      char last = *pdf.rbegin();
+
+      if (last != 10 && last != 13)
+      {
+        pdf.resize(pdf.size() - 1);
+      }
+    }
+
+    return true;
+  }
 }

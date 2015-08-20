@@ -30,6 +30,19 @@ String.prototype.format = function() {
 };
 
 
+function Refresh()
+{
+  if (currentPage == 'patient')
+    RefreshPatient();
+  else if (currentPage == 'study')
+    RefreshStudy();
+  else if (currentPage == 'series')
+    RefreshSeries();
+  else if (currentPage == 'instance')
+    RefreshInstance();
+}
+
+
 $(document).ready(function() {
   var $tree = $('#dicom-tree');
   $tree.tree({
@@ -45,6 +58,14 @@ $(document).ready(function() {
         $tree.tree('openNode', event.node, true);
     }
   );
+  
+  currentPage = $.mobile.pageData.active;
+  currentUuid = $.mobile.pageData.uuid;
+  if (currentPage.length > 0 && 
+      currentUuid.length > 0)
+  {
+    Refresh();
+  }
 });
 
 
@@ -586,14 +607,7 @@ $(function() {
     if ('uuid' in $.mobile.pageData &&
         currentPage == $.mobile.pageData.active &&
         currentUuid != $.mobile.pageData.uuid) {
-      if (currentPage == 'patient')
-        RefreshPatient();
-      else if (currentPage == 'study')
-        RefreshStudy();
-      else if (currentPage == 'series')
-        RefreshSeries();
-      else if (currentPage == 'instance')
-        RefreshInstance();
+      Refresh();
     }
   });
 });
@@ -686,34 +700,43 @@ $('#instance-download-json').live('click', function(e) {
 
 $('#instance-preview').live('click', function(e) {
   if ($.mobile.pageData) {
-    GetResource('/instances/' + $.mobile.pageData.uuid + '/frames', function(frames) {
-      if (frames.length == 1)
-      {
-        // Viewing a single-frame image
-        jQuery.slimbox('../instances/' + $.mobile.pageData.uuid + '/preview', '', {
-          overlayFadeDuration : 1,
-          resizeDuration : 1,
-          imageFadeDuration : 1
-        });
-      }
-      else
-      {
-        // Viewing a multi-frame image
+    var pdf = '../instances/' + $.mobile.pageData.uuid + '/pdf';
+    $.ajax({
+      url: pdf,
+      cache: false,
+      success: function(s) {
+        window.location.assign(pdf);
+      },
+      error: function() {
+        GetResource('/instances/' + $.mobile.pageData.uuid + '/frames', function(frames) {
+          if (frames.length == 1)
+          {
+            // Viewing a single-frame image
+            jQuery.slimbox('../instances/' + $.mobile.pageData.uuid + '/preview', '', {
+              overlayFadeDuration : 1,
+              resizeDuration : 1,
+              imageFadeDuration : 1
+            });
+          }
+          else
+          {
+            // Viewing a multi-frame image
 
-        var images = [];
-        for (var i = 0; i < frames.length; i++) {
-          images.push([ '../instances/' + $.mobile.pageData.uuid + '/frames/' + i + '/preview' ]);
-        }
+            var images = [];
+            for (var i = 0; i < frames.length; i++) {
+              images.push([ '../instances/' + $.mobile.pageData.uuid + '/frames/' + i + '/preview' ]);
+            }
 
-        jQuery.slimbox(images, 0, {
-          overlayFadeDuration : 1,
-          resizeDuration : 1,
-          imageFadeDuration : 1,
-          loop : true
+            jQuery.slimbox(images, 0, {
+              overlayFadeDuration : 1,
+              resizeDuration : 1,
+              imageFadeDuration : 1,
+              loop : true
+            });
+          }
         });
       }
     });
-
   }
 });
 
