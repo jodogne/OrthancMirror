@@ -91,7 +91,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     0
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     9
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  1
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  4
 
 
 
@@ -258,6 +258,7 @@ extern "C"
     _OrthancPluginService_GetCommandLineArgument = 11,
     _OrthancPluginService_GetExpectedDatabaseVersion = 12,
     _OrthancPluginService_GetConfiguration = 13,
+    _OrthancPluginService_BufferCompression = 14,
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -379,7 +380,7 @@ extern "C"
 
 
   /**
-   * The supported type of DICOM resources.
+   * The supported types of DICOM resources.
    **/
   typedef enum
   {
@@ -392,7 +393,7 @@ extern "C"
 
 
   /**
-   * The supported type of changes that can happen to DICOM resources.
+   * The supported types of changes that can happen to DICOM resources.
    **/
   typedef enum
   {
@@ -407,6 +408,18 @@ extern "C"
     OrthancPluginChangeType_StableSeries = 8,       /*!< Timeout: No new instance in this series */
     OrthancPluginChangeType_StableStudy = 9         /*!< Timeout: No new instance in this study */
   } OrthancPluginChangeType;
+
+
+  /**
+   * The compression algorithms that are known by the Orthanc core.
+   **/
+  typedef enum
+  {
+    OrthancPluginCompressionType_Zlib = 0,          /*!< Standard zlib compression */
+    OrthancPluginCompressionType_ZlibWithSize = 1,  /*!< zlib, prefixed with uncompressed size (uint64_t) */
+    OrthancPluginCompressionType_Gzip = 2,          /*!< Standard gzip compression */
+    OrthancPluginCompressionType_GzipWithSize = 3   /*!< gzip, prefixed with uncompressed size (uint64_t) */
+  } OrthancPluginCompressionType;
 
 
 
@@ -2215,6 +2228,52 @@ extern "C"
     params.mimeType = NULL;
     return context->InvokeService(context, _OrthancPluginService_SendMultipartItem, &params);
   }
+
+
+
+  typedef struct
+  {
+    OrthancPluginMemoryBuffer*    target;
+    const void*                   source;
+    uint32_t                      size;
+    OrthancPluginCompressionType  compression;
+    uint8_t                       uncompress;
+  } _OrthancPluginBufferCompression;
+
+
+  /**
+   * @brief Compress or decompress a buffer.
+   *
+   * This function compresses or decompresses a buffer, using the
+   * version of the zlib library that is used by the Orthanc core.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target The target memory buffer.
+   * @param source The source buffer.
+   * @param size The size in bytes of the source buffer.
+   * @param compression The compression algorithm.
+   * @param uncompress If set to "0", the buffer must be compressed. 
+   * If set to "1", the buffer must be uncompressed.
+   * @return 0 if success, other value if error.
+   **/
+  ORTHANC_PLUGIN_INLINE int32_t OrthancPluginBufferCompression(
+    OrthancPluginContext*         context,
+    OrthancPluginMemoryBuffer*    target,
+    const void*                   source,
+    uint32_t                      size,
+    OrthancPluginCompressionType  compression,
+    uint8_t                       uncompress)
+  {
+    _OrthancPluginBufferCompression params;
+    params.target = target;
+    params.source = source;
+    params.size = size;
+    params.compression = compression;
+    params.uncompress = uncompress;
+
+    return context->InvokeService(context, _OrthancPluginService_BufferCompression, &params);
+  }
+
 
 #ifdef  __cplusplus
 }
