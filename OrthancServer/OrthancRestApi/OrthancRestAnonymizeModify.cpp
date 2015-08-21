@@ -488,6 +488,54 @@ namespace Orthanc
   }
 
 
+  static bool InjectTags(ParsedDicomFile& dicom,
+                         const Json::Value& tags)
+  {
+    if (tags.type() != Json::objectValue)
+    {
+      LOG(ERROR) << "Bad syntax to specify the tags";
+      return false;
+    }
+
+    // Inject the user-specified tags
+    Json::Value::Members members = tags.getMemberNames();
+    for (size_t i = 0; i < members.size(); i++)
+    {
+      const std::string& name = members[i];
+      if (tags[name].type() != Json::stringValue)
+      {
+        LOG(ERROR) << "Only string values are supported when creating DICOM instances";
+        return false;
+      }
+
+      std::string value = tags[name].asString();
+
+      DicomTag tag = FromDcmtkBridge::ParseTag(name);
+      if (tag != DICOM_TAG_SPECIFIC_CHARACTER_SET)
+      {
+        if (tag != DICOM_TAG_PATIENT_ID &&
+            dicom.HasTag(tag))
+        {
+          LOG(ERROR) << "Trying to override a value inherited from a parent module";
+          return false;
+        }
+
+        if (tag == DICOM_TAG_PIXEL_DATA)
+        {
+          LOG(ERROR) << "Use \"Content\" to inject an image into a new DICOM instance";
+          return false;
+        }
+        else
+        {
+          dicom.Replace(tag, Toolbox::ConvertFromUtf8(value, dicom.GetEncoding()));
+        }
+      }
+    }
+
+    return true;
+  }
+
+
   static void CreateSeries(RestApiPostCall& call,
                            ParsedDicomFile& base /* in */,
                            const Json::Value& content)
@@ -503,14 +551,38 @@ namespace Orthanc
 
     for (Json::ArrayIndex i = 0; i < content.size(); i++)
     {
-      if (content[i].type() != Json::stringValue)
+      std::auto_ptr<ParsedDicomFile> dicom(base.Clone());
+      const Json::Value* payload = NULL;
+
+      if (content[i].type() == Json::stringValue)
+      {
+        payload = &content[i];
+      }
+      else if (content[i].type() == Json::objectValue)
+      {
+        if (!content[i].isMember("Content"))
+        {
+          LOG(ERROR) << "No payload is present for one instance in the series";
+          return;
+        }
+
+        payload = &content[i]["Content"];
+
+        if (content[i].isMember("Tags") &&
+            !InjectTags(*dicom, content[i]["Tags"]))
+        {
+          return;          
+        }
+      }
+
+      if (payload == NULL ||
+          payload->type() != Json::stringValue)
       {
         LOG(ERROR) << "The payload of the DICOM instance must be specified according to Data URI scheme";
         return;
       }
 
-      std::auto_ptr<ParsedDicomFile> dicom(base.Clone());
-      dicom->EmbedContent(content[i].asString());
+      dicom->EmbedContent(payload->asString());
       dicom->Replace(DICOM_TAG_INSTANCE_NUMBER, boost::lexical_cast<std::string>(i + 1));
       dicom->Replace(DICOM_TAG_IMAGE_INDEX, boost::lexical_cast<std::string>(i + 1));
 
@@ -541,25 +613,28 @@ namespace Orthanc
       return;
     }
 
-    Encoding encoding;
-
-    if (request["Tags"].isMember("SpecificCharacterSet"))
-    {
-      const char* tmp = request["Tags"]["SpecificCharacterSet"].asCString();
-      if (!GetDicomEncoding(encoding, tmp))
-      {
-        LOG(ERROR) << "Unknown specific character set: " << tmp;
-        return;
-      }
-    }
-    else
-    {
-      std::string tmp = Configuration::GetGlobalStringParameter("DefaultEncoding", "Latin1");
-      encoding = StringToEncoding(tmp.c_str());
-    }
-
     ParsedDicomFile dicom;
-    dicom.SetEncoding(encoding);
+
+    {
+      Encoding encoding;
+
+      if (request["Tags"].isMember("SpecificCharacterSet"))
+      {
+        const char* tmp = request["Tags"]["SpecificCharacterSet"].asCString();
+        if (!GetDicomEncoding(encoding, tmp))
+        {
+          LOG(ERROR) << "Unknown specific character set: " << tmp;
+          return;
+        }
+      }
+      else
+      {
+        std::string tmp = Configuration::GetGlobalStringParameter("DefaultEncoding", "Latin1");
+        encoding = StringToEncoding(tmp.c_str());
+      }
+
+      dicom.SetEncoding(encoding);
+    }
 
     ResourceType parentType = ResourceType_Instance;
 
@@ -595,6 +670,27 @@ namespace Orthanc
 
         context.ReadJson(siblingTags, siblingInstances.front());
       }
+
+
+      // Choose the same encoding as the parent resource
+      {
+        static const char* SPECIFIC_CHARACTER_SET = "0008,0005";
+
+        if (siblingTags.isMember(SPECIFIC_CHARACTER_SET))
+        {
+          Encoding encoding;
+          if (!siblingTags[SPECIFIC_CHARACTER_SET].isMember("Value") ||
+              siblingTags[SPECIFIC_CHARACTER_SET]["Value"].type() != Json::stringValue ||
+              !GetDicomEncoding(encoding, siblingTags[SPECIFIC_CHARACTER_SET]["Value"].asCString()))
+          {
+            LOG(ERROR) << "Unable to get the encoding of the parent resource";
+            return;
+          }
+
+          dicom.SetEncoding(encoding);
+        }
+      }
+
 
       // Retrieve the tags for all the parent modules
       typedef std::set<DicomTag> ModuleTags;
@@ -635,13 +731,13 @@ namespace Orthanc
           else if (tag["Type"] == "String")
           {
             std::string value = tag["Value"].asString();
-            dicom.Replace(*it, Toolbox::ConvertFromUtf8(value, encoding));
+            dicom.Replace(*it, Toolbox::ConvertFromUtf8(value, dicom.GetEncoding()));
           }
         }
       }
     }
 
-
+    
     // Inject time-related information
     std::string date, time;
     Toolbox::GetNowDicom(date, time);
@@ -668,39 +764,11 @@ namespace Orthanc
     }
 
 
-    // Inject the user-specified tags
-    Json::Value::Members members = request["Tags"].getMemberNames();
-    for (size_t i = 0; i < members.size(); i++)
+    if (!InjectTags(dicom, request["Tags"]))
     {
-      const std::string& name = members[i];
-      if (request["Tags"][name].type() != Json::stringValue)
-      {
-        LOG(ERROR) << "Only string values are supported when creating DICOM instances";
-        return;
-      }
-
-      std::string value = request["Tags"][name].asString();
-
-      DicomTag tag = FromDcmtkBridge::ParseTag(name);
-      if (tag != DICOM_TAG_SPECIFIC_CHARACTER_SET)
-      {
-        if (dicom.HasTag(tag))
-        {
-          LOG(ERROR) << "Trying to override a value inherited from a parent module";
-          return;
-        }
-
-        if (tag == DICOM_TAG_PIXEL_DATA)
-        {
-          LOG(ERROR) << "Use \"Content\" to inject an image into a new DICOM instance";
-          return;
-        }
-        else
-        {
-          dicom.Replace(tag, Toolbox::ConvertFromUtf8(value, encoding));
-        }
-      }
+      return;  // Error
     }
+
 
     // Inject the content (either an image, or a PDF file)
     if (request.isMember("Content"))
@@ -716,7 +784,7 @@ namespace Orthanc
       {
         if (content.size() > 0)
         {
-          // Let's create a series
+          // Let's create a series instead of a single instance
           CreateSeries(call, dicom, content);
           return;
         }
