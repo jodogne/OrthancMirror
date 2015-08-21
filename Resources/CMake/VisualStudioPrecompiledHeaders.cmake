@@ -1,6 +1,6 @@
 macro(ADD_VISUAL_STUDIO_PRECOMPILED_HEADERS PrecompiledHeaders PrecompiledSource Sources)
   get_filename_component(PrecompiledBasename ${PrecompiledHeaders} NAME_WE)
-  set(PrecompiledBinary "$(IntDir)/${PrecompiledBasename}.pch")
+  set(PrecompiledBinary "${PrecompiledBasename}_$(Configuration).pch")
 
   set_source_files_properties(${PrecompiledSource}
     PROPERTIES COMPILE_FLAGS "/Yc\"${PrecompiledHeaders}\" /Fp\"${PrecompiledBinary}\""
