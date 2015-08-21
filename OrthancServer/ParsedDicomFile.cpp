@@ -1357,7 +1357,9 @@ namespace Orthanc
       return;
     }
 
-    std::string s = Toolbox::GetDicomSpecificCharacterSet(encoding);
+    pimpl_->encoding_ = encoding;
+
+    std::string s = GetDicomSpecificCharacterSet(encoding);
     Replace(DICOM_TAG_SPECIFIC_CHARACTER_SET, s, DicomReplaceMode_InsertIfAbsent);
   }
 

@@ -386,4 +386,6 @@ namespace Orthanc
   ResourceType GetParentResourceType(ResourceType type);
 
   DicomModule GetModule(ResourceType type);
+
+  const char* GetDicomSpecificCharacterSet(Encoding encoding);
 }

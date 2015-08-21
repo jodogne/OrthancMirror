@@ -748,4 +748,56 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
+
+
+
+  const char* GetDicomSpecificCharacterSet(Encoding encoding)
+  {
+    // http://www.dabsoft.ch/dicom/3/C.12.1.1.2/
+    switch (encoding)
+    {
+      case Encoding_Utf8:
+      case Encoding_Ascii:
+        return "ISO_IR 192";
+
+      case Encoding_Latin1:
+        return "ISO_IR 100";
+
+      case Encoding_Latin2:
+        return "ISO_IR 101";
+
+      case Encoding_Latin3:
+        return "ISO_IR 109";
+
+      case Encoding_Latin4:
+        return "ISO_IR 110";
+
+      case Encoding_Latin5:
+        return "ISO_IR 148";
+
+      case Encoding_Cyrillic:
+        return "ISO_IR 144";
+
+      case Encoding_Arabic:
+        return "ISO_IR 127";
+
+      case Encoding_Greek:
+        return "ISO_IR 126";
+
+      case Encoding_Hebrew:
+        return "ISO_IR 138";
+
+      case Encoding_Japanese:
+        return "ISO_IR 13";
+
+      case Encoding_Chinese:
+        return "GB18030";
+
+      case Encoding_Thai:
+        return "ISO_IR 166";
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
 }
