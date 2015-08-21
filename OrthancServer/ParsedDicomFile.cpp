@@ -1111,8 +1111,10 @@ namespace Orthanc
     pimpl_(new PImpl)
   {
     pimpl_->file_.reset(dynamic_cast<DcmFileFormat*>(other.pimpl_->file_->clone()));
-
     pimpl_->encoding_ = other.pimpl_->encoding_;
+
+    // Create a new instance-level identifier
+    Replace(DICOM_TAG_SOP_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Instance));
   }
 
 

@@ -82,8 +82,9 @@ namespace Orthanc
 
     static ServerIndex& GetIndex(RestApiCall& call);
 
-    void AnswerStoredInstance(RestApiPostCall& call,
+    void AnswerStoredResource(RestApiPostCall& call,
                               const std::string& publicId,
+                              ResourceType resourceType,
                               StoreStatus status) const;
 
     static bool ParseModifyRequest(DicomModification& target,

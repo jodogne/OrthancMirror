@@ -39,8 +39,9 @@
 
 namespace Orthanc
 {
-  void OrthancRestApi::AnswerStoredInstance(RestApiPostCall& call,
+  void OrthancRestApi::AnswerStoredResource(RestApiPostCall& call,
                                             const std::string& publicId,
+                                            ResourceType resourceType,
                                             StoreStatus status) const
   {
     Json::Value result = Json::objectValue;
@@ -48,7 +49,7 @@ namespace Orthanc
     if (status != StoreStatus_Failure)
     {
       result["ID"] = publicId;
-      result["Path"] = GetBasePath(ResourceType_Instance, publicId);
+      result["Path"] = GetBasePath(resourceType, publicId);
     }
 
     result["Status"] = EnumerationToString(status);
@@ -88,7 +89,7 @@ namespace Orthanc
     std::string publicId;
     StoreStatus status = context.Store(publicId, toStore);
 
-    OrthancRestApi::GetApi(call).AnswerStoredInstance(call, publicId, status);
+    OrthancRestApi::GetApi(call).AnswerStoredResource(call, publicId, ResourceType_Instance, status);
   }
 
 
