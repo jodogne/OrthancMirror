@@ -1134,15 +1134,28 @@ namespace Orthanc
   }
 
 
-  void ParsedDicomFile::EmbedImage(const std::string& dataUriScheme)
+  void ParsedDicomFile::EmbedContent(const std::string& dataUriScheme)
   {
     std::string mime, base64;
     Toolbox::DecodeDataUriScheme(mime, base64, dataUriScheme);
+    Toolbox::ToLowerCase(mime);
 
     std::string content;
     Toolbox::DecodeBase64(content, base64);
 
-    EmbedImage(mime, content);
+    if (mime == "image/png")
+    {
+      EmbedImage(mime, content);
+    }
+    else if (mime == "application/pdf")
+    {
+      EmbedPdf(content);
+    }
+    else
+    {
+      LOG(ERROR) << "Unsupported MIME type for the content of a new DICOM file";
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
   }
 
 

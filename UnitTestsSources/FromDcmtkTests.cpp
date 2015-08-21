@@ -161,17 +161,17 @@ TEST(DicomModification, Png)
   ASSERT_EQ(PixelFormat_RGBA32, reader.GetFormat());
 
   ParsedDicomFile o;
-  o.EmbedImage(s);
+  o.EmbedContent(s);
   o.SaveToFile("UnitTestsResults/png1.dcm");
 
   // Red dot, without alpha channel
   s = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAIAAAACDbGyAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gUGDTcIn2+8BgAAACJJREFUCNdj/P//PwMjIwME/P/P+J8BBTAxEOL/R9Lx/z8AynoKAXOeiV8AAAAASUVORK5CYII=";
-  o.EmbedImage(s);
+  o.EmbedContent(s);
   o.SaveToFile("UnitTestsResults/png2.dcm");
 
   // Check box in Graylevel8
   s = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAAAAAA6mKC9AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gUGDDcB53FulQAAAElJREFUGNNtj0sSAEEEQ1+U+185s1CtmRkblQ9CZldsKHJDk6DLGLJa6chjh0ooQmpjXMM86zPwydGEj6Ed/UGykkEM8X+p3u8/8LcOJIWLGeMAAAAASUVORK5CYII=";
-  o.EmbedImage(s);
+  o.EmbedContent(s);
   //o.Replace(DICOM_TAG_SOP_CLASS_UID, UID_DigitalXRayImageStorageForProcessing);
   o.SaveToFile("UnitTestsResults/png3.dcm");
 

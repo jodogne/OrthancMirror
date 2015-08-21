@@ -453,7 +453,7 @@ namespace Orthanc
       DicomTag tag = FromDcmtkBridge::ParseTag(name);
       if (tag == DICOM_TAG_PIXEL_DATA)
       {
-        dicom.EmbedImage(value);
+        dicom.EmbedContent(value);
       }
       else
       {
@@ -647,26 +647,7 @@ namespace Orthanc
         return false;
       }
 
-      std::string mime, base64;
-      Toolbox::DecodeDataUriScheme(mime, base64, request["Content"].asString());
-      Toolbox::ToLowerCase(mime);
-
-      std::string content;
-      Toolbox::DecodeBase64(content, base64);
-
-      if (mime == "image/png")
-      {
-        dicom.EmbedImage(mime, content);
-      }
-      else if (mime == "application/pdf")
-      {
-        dicom.EmbedPdf(content);
-      }
-      else
-      {
-        LOG(ERROR) << "Unsupported MIME type for the content of a new DICOM file";
-        return false;
-      }
+      dicom.EmbedContent(request["Content"].asString());
     }
 
 
