@@ -31,10 +31,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
     -DCURL_DISABLE_TFTP=1
     )
 
-  if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-    add_definitions(-D_WIN32_WINNT=0x0501)
-  endif()
-
   if (ENABLE_SSL)
     add_definitions(
       #-DHAVE_LIBSSL=1

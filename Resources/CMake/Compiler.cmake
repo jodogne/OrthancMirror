@@ -69,8 +69,24 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
   endif()
 
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+  if (MSVC)
+    message("MSVC compiler version = " ${MSVC_VERSION} "\n")
+    # Starting Visual Studio 2013 (version 1800), it is not possible
+    # to target Windows XP anymore
+    if (MSVC_VERSION LESS 1800)
+      add_definitions(
+        -DWINVER=0x0501
+        -D_WIN32_WINNT=0x0501
+        )
+    endif()
+  else()
+    add_definitions(
+      -DWINVER=0x0501
+      -D_WIN32_WINNT=0x0501
+      )
+  endif()
+
   add_definitions(
-    -DWINVER=0x0501
     -D_CRT_SECURE_NO_WARNINGS=1
     )
   link_libraries(rpcrt4 ws2_32)
