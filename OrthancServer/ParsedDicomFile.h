@@ -100,9 +100,9 @@ namespace Orthanc
 
     void SaveToFile(const std::string& path);
 
-    void EmbedImage(const ImageAccessor& accessor);
+    void EmbedContent(const std::string& dataUriScheme);
 
-    void EmbedImage(const std::string& dataUriScheme);
+    void EmbedImage(const ImageAccessor& accessor);
 
     void EmbedImage(const std::string& mime,
                     const std::string& content);
