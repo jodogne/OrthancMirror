@@ -549,54 +549,76 @@ namespace Orthanc
 
     std::string someInstance;
 
-    for (Json::ArrayIndex i = 0; i < content.size(); i++)
+    bool ok = true;
+
+    try
     {
-      std::auto_ptr<ParsedDicomFile> dicom(base.Clone());
-      const Json::Value* payload = NULL;
+      for (Json::ArrayIndex i = 0; ok && i < content.size(); i++)
+      {
+        std::auto_ptr<ParsedDicomFile> dicom(base.Clone());
+        const Json::Value* payload = NULL;
 
-      if (content[i].type() == Json::stringValue)
-      {
-        payload = &content[i];
-      }
-      else if (content[i].type() == Json::objectValue)
-      {
-        if (!content[i].isMember("Content"))
+        if (content[i].type() == Json::stringValue)
         {
-          LOG(ERROR) << "No payload is present for one instance in the series";
-          return;
+          payload = &content[i];
+        }
+        else if (content[i].type() == Json::objectValue)
+        {
+          if (!content[i].isMember("Content"))
+          {
+            LOG(ERROR) << "No payload is present for one instance in the series";
+            ok = false;
+            break;
+          }
+
+          payload = &content[i]["Content"];
+
+          if (content[i].isMember("Tags") &&
+              !InjectTags(*dicom, content[i]["Tags"]))
+          {
+            ok = false;
+            break;
+          }
         }
 
-        payload = &content[i]["Content"];
-
-        if (content[i].isMember("Tags") &&
-            !InjectTags(*dicom, content[i]["Tags"]))
+        if (payload == NULL ||
+            payload->type() != Json::stringValue)
         {
-          return;          
+          LOG(ERROR) << "The payload of the DICOM instance must be specified according to Data URI scheme";
+          ok = false;
+          break;
+        }
+
+        dicom->EmbedContent(payload->asString());
+        dicom->Replace(DICOM_TAG_INSTANCE_NUMBER, boost::lexical_cast<std::string>(i + 1));
+        dicom->Replace(DICOM_TAG_IMAGE_INDEX, boost::lexical_cast<std::string>(i + 1));
+
+        if (!StoreCreatedInstance(someInstance, context, *dicom))
+        {
+          LOG(ERROR) << "Error while creating the series";
+          ok = false;
+          break;
         }
       }
-
-      if (payload == NULL ||
-          payload->type() != Json::stringValue)
-      {
-        LOG(ERROR) << "The payload of the DICOM instance must be specified according to Data URI scheme";
-        return;
-      }
-
-      dicom->EmbedContent(payload->asString());
-      dicom->Replace(DICOM_TAG_INSTANCE_NUMBER, boost::lexical_cast<std::string>(i + 1));
-      dicom->Replace(DICOM_TAG_IMAGE_INDEX, boost::lexical_cast<std::string>(i + 1));
-
-      if (!StoreCreatedInstance(someInstance, context, *dicom))
-      {
-        LOG(ERROR) << "Error while creating the series";
-        return;
-      }
+    }
+    catch (OrthancException&)
+    {
+      ok = false;
     }
 
     std::string series;
     if (context.GetIndex().LookupParent(series, someInstance))
     {
-      OrthancRestApi::GetApi(call).AnswerStoredResource(call, series, ResourceType_Series, StoreStatus_Success);
+      if (ok)
+      {
+        OrthancRestApi::GetApi(call).AnswerStoredResource(call, series, ResourceType_Series, StoreStatus_Success);
+      }
+      else
+      {
+        // Error: Remove the newly-created series
+        Json::Value dummy;
+        context.GetIndex().DeleteResource(dummy, series, ResourceType_Series);
+      }
     }
   }
 

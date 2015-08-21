@@ -1398,7 +1398,7 @@ namespace Orthanc
     Replace(FromDcmtkBridge::Convert(DCM_Modality), "OT");
     Replace(FromDcmtkBridge::Convert(DCM_ConversionType), "WSD");
     Replace(FromDcmtkBridge::Convert(DCM_MIMETypeOfEncapsulatedDocument), "application/pdf");
-    Replace(FromDcmtkBridge::Convert(DCM_SeriesNumber), "1");
+    //Replace(FromDcmtkBridge::Convert(DCM_SeriesNumber), "1");
 
     std::auto_ptr<DcmPolymorphOBOW> element(new DcmPolymorphOBOW(DCM_EncapsulatedDocument));
 
