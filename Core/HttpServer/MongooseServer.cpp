@@ -719,70 +719,79 @@ namespace Orthanc
 
     LOG(INFO) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
 
-    bool found = false;
 
     try
     {
-      if (that->HasHandler())
-      {
-        found = that->GetHandler().Handle(output, method, uri, headers, argumentsGET, body.c_str(), body.size());
-      }
+      bool found = false;
+
+      try
+	{
+	  if (that->HasHandler())
+	    {
+	      found = that->GetHandler().Handle(output, method, uri, headers, argumentsGET, body.c_str(), body.size());
+	    }
+	}
+      catch (boost::bad_lexical_cast&)
+	{
+	  throw OrthancException(ErrorCode_BadParameterType);
+	}
+      catch (std::runtime_error&)
+	{
+	  // Presumably an error while parsing the JSON body
+	  throw OrthancException(ErrorCode_BadRequest);
+	}
+
+      if (!found)
+	{
+	  throw OrthancException(ErrorCode_UnknownResource);
+	}
     }
     catch (OrthancException& e)
     {
       // Using this candidate handler results in an exception
       LOG(ERROR) << "Exception in the HTTP handler: " << e.What();
 
+      HttpStatus status;
+
       try
       {
         switch (e.GetErrorCode())
         {
-          case ErrorCode_InexistentFile:
-          case ErrorCode_InexistentItem:
-          case ErrorCode_UnknownResource:
-            output.SendStatus(HttpStatus_404_NotFound);
-            break;
+	case ErrorCode_InexistentFile:
+	case ErrorCode_InexistentItem:
+	case ErrorCode_UnknownResource:
+	  status = HttpStatus_404_NotFound;
+	  break;
 
-          case ErrorCode_BadRequest:
-          case ErrorCode_UriSyntax:
-            output.SendStatus(HttpStatus_400_BadRequest);
+	case ErrorCode_BadRequest:
+	case ErrorCode_UriSyntax:
+	case ErrorCode_BadParameterType:
+            status = HttpStatus_400_BadRequest;
             break;
 
           default:
-	    {
-	      Json::Value message = Json::objectValue;
-	      message["ErrorCode"] = e.GetErrorCode();
-	      message["Description"] = e.GetDescription(e.GetErrorCode());
-	      message["Message"] = e.What();
-	      std::string s = message.toStyledString();
-	      output.SendStatus(HttpStatus_500_InternalServerError, s);
-	    }
+	    status = HttpStatus_500_InternalServerError;
+	    break;
         }
+
+	Json::Value message = Json::objectValue;
+	message["HttpStatus"] = status;
+	message["HttpError"] = EnumerationToString(status);
+	message["OrthancStatus"] = e.GetErrorCode();
+	message["OrthancError"] = e.GetDescription(e.GetErrorCode());
+	message["Message"] = e.What();
+	message["Uri"] = request->uri;
+	message["Method"] = EnumerationToString(method);
+	std::string s = message.toStyledString();
+	output.SendStatus(status, s);
       }
       catch (OrthancException&)
       {
-        // An exception here reflects the fact that an exception was
-        // triggered after the status code was sent by the HTTP handler.
+        // An exception here reflects the fact that the status code
+        // was already set by the HTTP handler.
       }
 
       return;
-    }
-    catch (boost::bad_lexical_cast&)
-    {
-      LOG(ERROR) << "Exception in the HTTP handler: Bad lexical cast";
-      output.SendStatus(HttpStatus_400_BadRequest, "Cannot cast some argument");
-      return;
-    }
-    catch (std::runtime_error&)
-    {
-      LOG(ERROR) << "Exception in the HTTP handler: Presumably a bad JSON request";
-      output.SendStatus(HttpStatus_400_BadRequest, "Bad JSON request");
-      return;
-    }
-
-    if (!found)
-    {
-      output.SendStatus(HttpStatus_404_NotFound);
     }
   }
 
