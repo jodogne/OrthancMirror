@@ -17,6 +17,7 @@ Maintenance
 -----------
 
 * Many code refactorings
+* If error while calling the REST API, the answer body contains an error description
 * Upgrade to curl 7.44.0 for static and Windows builds
 * Upgrade to libcurl 1.0.2d for static and Windows builds
 * Bypass zlib uncompression if "StorageCompression" is enabled and HTTP client supports deflate

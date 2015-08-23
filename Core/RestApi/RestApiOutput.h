@@ -49,6 +49,10 @@ namespace Orthanc
 
     void CheckStatus();
 
+    void SignalErrorInternal(HttpStatus status,
+			     const char* message,
+			     size_t messageSize);
+
   public:
     RestApiOutput(HttpOutput& output,
                   HttpMethod method);
@@ -77,6 +81,9 @@ namespace Orthanc
                       const std::string& contentType);
 
     void SignalError(HttpStatus status);
+
+    void SignalError(HttpStatus status,
+		     const std::string& message);
 
     void Redirect(const std::string& path);
 

@@ -146,7 +146,20 @@ namespace Orthanc
       return isGzipAllowed_;
     }
 
-    void SendStatus(HttpStatus status);
+    void SendStatus(HttpStatus status,
+		    const char* message,
+		    size_t messageSize);
+
+    void SendStatus(HttpStatus status)
+    {
+      SendStatus(status, NULL, 0);
+    }
+
+    void SendStatus(HttpStatus status,
+		    const std::string& message)
+    {
+      SendStatus(status, message.c_str(), message.size());
+    }
 
     void SetContentType(const char* contentType)
     {

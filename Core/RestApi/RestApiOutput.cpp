@@ -135,7 +135,9 @@ namespace Orthanc
     alreadySent_ = true;
   }
 
-  void RestApiOutput::SignalError(HttpStatus status)
+  void RestApiOutput::SignalErrorInternal(HttpStatus status,
+					  const char* message,
+					  size_t messageSize)
   {
     if (status != HttpStatus_400_BadRequest &&
         status != HttpStatus_403_Forbidden &&
@@ -146,8 +148,19 @@ namespace Orthanc
     }
 
     CheckStatus();
-    output_.SendStatus(status);
+    output_.SendStatus(status, message, messageSize);
     alreadySent_ = true;    
+  }
+
+  void RestApiOutput::SignalError(HttpStatus status)
+  {
+    SignalErrorInternal(status, NULL, 0);
+  }
+
+  void RestApiOutput::SignalError(HttpStatus status,
+				  const std::string& message)
+  {
+    SignalErrorInternal(status, message.c_str(), message.size());
   }
 
   void RestApiOutput::SetCookie(const std::string& name,
