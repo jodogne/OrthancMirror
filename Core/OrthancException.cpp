@@ -134,8 +134,10 @@ namespace Orthanc
         return "Error with the database engine";
 
       case ErrorCode_Custom:
+        return "See the attached error message";
+
       default:
-        return "???";
+        return "Unknown error code";
     }
   }
 }
