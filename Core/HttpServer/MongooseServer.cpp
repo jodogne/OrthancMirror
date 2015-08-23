@@ -725,26 +725,26 @@ namespace Orthanc
       bool found = false;
 
       try
-	{
-	  if (that->HasHandler())
-	    {
-	      found = that->GetHandler().Handle(output, method, uri, headers, argumentsGET, body.c_str(), body.size());
-	    }
-	}
+      {
+        if (that->HasHandler())
+        {
+          found = that->GetHandler().Handle(output, method, uri, headers, argumentsGET, body.c_str(), body.size());
+        }
+      }
       catch (boost::bad_lexical_cast&)
-	{
-	  throw OrthancException(ErrorCode_BadParameterType);
-	}
+      {
+        throw OrthancException(ErrorCode_BadParameterType);
+      }
       catch (std::runtime_error&)
-	{
-	  // Presumably an error while parsing the JSON body
-	  throw OrthancException(ErrorCode_BadRequest);
-	}
+      {
+        // Presumably an error while parsing the JSON body
+        throw OrthancException(ErrorCode_BadRequest);
+      }
 
       if (!found)
-	{
-	  throw OrthancException(ErrorCode_UnknownResource);
-	}
+      {
+        throw OrthancException(ErrorCode_UnknownResource);
+      }
     }
     catch (OrthancException& e)
     {
@@ -757,15 +757,15 @@ namespace Orthanc
       {
         switch (e.GetErrorCode())
         {
-	case ErrorCode_InexistentFile:
-	case ErrorCode_InexistentItem:
-	case ErrorCode_UnknownResource:
-	  status = HttpStatus_404_NotFound;
-	  break;
+          case ErrorCode_InexistentFile:
+          case ErrorCode_InexistentItem:
+          case ErrorCode_UnknownResource:
+            status = HttpStatus_404_NotFound;
+            break;
 
-	case ErrorCode_BadRequest:
-	case ErrorCode_UriSyntax:
-	case ErrorCode_BadParameterType:
+          case ErrorCode_BadRequest:
+          case ErrorCode_UriSyntax:
+          case ErrorCode_BadParameterType:
             status = HttpStatus_400_BadRequest;
             break;
 

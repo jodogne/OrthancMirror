@@ -555,9 +555,9 @@ namespace Orthanc
           payload = &content[i]["Content"];
 
           if (content[i].isMember("Tags"))
-	    {
-              InjectTags(*dicom, content[i]["Tags"]);
-	    }
+          {
+            InjectTags(*dicom, content[i]["Tags"]);
+          }
         }
 
         if (payload == NULL ||
@@ -579,10 +579,10 @@ namespace Orthanc
       
       std::string series;
       if (context.GetIndex().LookupParent(series, someInstance))
-	{
+      {
         Json::Value dummy;
         context.GetIndex().DeleteResource(dummy, series, ResourceType_Series);
-	}
+      }
 
       throw e;
     }
@@ -797,25 +797,25 @@ namespace Orthanc
     Json::Value request;
     if (!call.ParseJsonRequest(request) ||
         !request.isObject())
-      {
-	throw OrthancException(ErrorCode_BadRequest);
-      }
+    {
+      throw OrthancException(ErrorCode_BadRequest);
+    }
 
     if (request.isMember("Tags"))
-      {
-	CreateDicomV2(call, request);
-      }
+    {
+      CreateDicomV2(call, request);
+    }
     else
-      {
-	// Compatibility with Orthanc <= 0.9.3
-	ServerContext& context = OrthancRestApi::GetContext(call);
-	ParsedDicomFile dicom;
-	CreateDicomV1(dicom, request);
+    {
+      // Compatibility with Orthanc <= 0.9.3
+      ServerContext& context = OrthancRestApi::GetContext(call);
+      ParsedDicomFile dicom;
+      CreateDicomV1(dicom, request);
 
-	std::string id;
-	StoreCreatedInstance(id, context, dicom);
-	OrthancRestApi::GetApi(call).AnswerStoredResource(call, id, ResourceType_Instance, StoreStatus_Success);
-      }
+      std::string id;
+      StoreCreatedInstance(id, context, dicom);
+      OrthancRestApi::GetApi(call).AnswerStoredResource(call, id, ResourceType_Instance, StoreStatus_Success);
+    }
   }
 
 
