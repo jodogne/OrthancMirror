@@ -287,7 +287,9 @@ namespace Orthanc
   }
 
 
-  void HttpOutput::SendStatus(HttpStatus status)
+  void HttpOutput::SendStatus(HttpStatus status,
+			      const char* message,
+			      size_t messageSize)
   {
     if (status == HttpStatus_200_Ok ||
         status == HttpStatus_301_MovedPermanently ||
@@ -300,7 +302,7 @@ namespace Orthanc
     
     stateMachine_.ClearHeaders();
     stateMachine_.SetHttpStatus(status);
-    stateMachine_.SendBody(NULL, 0);
+    stateMachine_.SendBody(message, messageSize);
   }
 
 

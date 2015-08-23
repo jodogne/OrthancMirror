@@ -749,7 +749,7 @@ namespace Orthanc
             break;
 
           default:
-            output.SendStatus(HttpStatus_500_InternalServerError);
+            output.SendStatus(HttpStatus_500_InternalServerError, e.What());
         }
       }
       catch (OrthancException&)
@@ -763,13 +763,13 @@ namespace Orthanc
     catch (boost::bad_lexical_cast&)
     {
       LOG(ERROR) << "Exception in the HTTP handler: Bad lexical cast";
-      output.SendStatus(HttpStatus_400_BadRequest);
+      output.SendStatus(HttpStatus_400_BadRequest, "Cannot cast some argument");
       return;
     }
     catch (std::runtime_error&)
     {
       LOG(ERROR) << "Exception in the HTTP handler: Presumably a bad JSON request";
-      output.SendStatus(HttpStatus_400_BadRequest);
+      output.SendStatus(HttpStatus_400_BadRequest, "Bad JSON request");
       return;
     }
 
