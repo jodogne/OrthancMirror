@@ -749,7 +749,14 @@ namespace Orthanc
             break;
 
           default:
-            output.SendStatus(HttpStatus_500_InternalServerError, e.What());
+	    {
+	      Json::Value message = Json::objectValue;
+	      message["ErrorCode"] = e.GetErrorCode();
+	      message["Description"] = e.GetDescription(e.GetErrorCode());
+	      message["Message"] = e.What();
+	      std::string s = message.toStyledString();
+	      output.SendStatus(HttpStatus_500_InternalServerError, s);
+	    }
         }
       }
       catch (OrthancException&)
