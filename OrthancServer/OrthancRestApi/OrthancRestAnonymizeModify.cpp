@@ -314,8 +314,7 @@ namespace Orthanc
       std::string modifiedInstance;
       if (context.Store(modifiedInstance, toStore) != StoreStatus_Success)
       {
-        LOG(ERROR) << "Error while storing a modified instance " << *it;
-        return;
+        throw OrthancException("Error while storing a modified instance " + *it);
       }
 
       // Sanity checks in debug mode
@@ -431,7 +430,7 @@ namespace Orthanc
   }
 
 
-  static bool StoreCreatedInstance(std::string& id /* out */,
+  static void StoreCreatedInstance(std::string& id /* out */,
                                    ServerContext& context,
                                    ParsedDicomFile& dicom)
   {
@@ -442,17 +441,12 @@ namespace Orthanc
 
     if (status == StoreStatus_Failure)
     {
-      LOG(ERROR) << "Error while storing a manually-created instance";
-      return false;
-    }
-    else
-    {
-      return true;
+      throw OrthancException("Error while storing a manually-created instance");
     }
   }
 
 
-  static bool CreateDicomV1(ParsedDicomFile& dicom,
+  static void CreateDicomV1(ParsedDicomFile& dicom,
                             const Json::Value& request)
   {
     // curl http://localhost:8042/tools/create-dicom -X POST -d '{"PatientName":"Hello^World"}'
@@ -467,8 +461,7 @@ namespace Orthanc
       const std::string& name = members[i];
       if (request[name].type() != Json::stringValue)
       {
-        LOG(ERROR) << "Only string values are supported when creating DICOM instances";
-        return false;
+        throw OrthancException("Only string values are supported when creating DICOM instances");
       }
 
       std::string value = request[name].asString();
@@ -483,18 +476,15 @@ namespace Orthanc
         dicom.Replace(tag, value);
       }
     }
-
-    return true;
   }
 
 
-  static bool InjectTags(ParsedDicomFile& dicom,
+  static void InjectTags(ParsedDicomFile& dicom,
                          const Json::Value& tags)
   {
     if (tags.type() != Json::objectValue)
     {
-      LOG(ERROR) << "Bad syntax to specify the tags";
-      return false;
+      throw OrthancException("Bad syntax to specify the tags");
     }
 
     // Inject the user-specified tags
@@ -504,8 +494,7 @@ namespace Orthanc
       const std::string& name = members[i];
       if (tags[name].type() != Json::stringValue)
       {
-        LOG(ERROR) << "Only string values are supported when creating DICOM instances";
-        return false;
+        throw OrthancException("Only string values are supported when creating DICOM instances");
       }
 
       std::string value = tags[name].asString();
@@ -516,14 +505,12 @@ namespace Orthanc
         if (tag != DICOM_TAG_PATIENT_ID &&
             dicom.HasTag(tag))
         {
-          LOG(ERROR) << "Trying to override a value inherited from a parent module";
-          return false;
+          throw OrthancException("Trying to override a value inherited from a parent module");
         }
 
         if (tag == DICOM_TAG_PIXEL_DATA)
         {
-          LOG(ERROR) << "Use \"Content\" to inject an image into a new DICOM instance";
-          return false;
+          throw OrthancException("Use \"Content\" to inject an image into a new DICOM instance");
         }
         else
         {
@@ -531,8 +518,6 @@ namespace Orthanc
         }
       }
     }
-
-    return true;
   }
 
 
@@ -549,11 +534,9 @@ namespace Orthanc
 
     std::string someInstance;
 
-    bool ok = true;
-
     try
     {
-      for (Json::ArrayIndex i = 0; ok && i < content.size(); i++)
+      for (Json::ArrayIndex i = 0; i < content.size(); i++)
       {
         std::auto_ptr<ParsedDicomFile> dicom(base.Clone());
         const Json::Value* payload = NULL;
@@ -566,59 +549,48 @@ namespace Orthanc
         {
           if (!content[i].isMember("Content"))
           {
-            LOG(ERROR) << "No payload is present for one instance in the series";
-            ok = false;
-            break;
+            throw OrthancException("No payload is present for one instance in the series");
           }
 
           payload = &content[i]["Content"];
 
-          if (content[i].isMember("Tags") &&
-              !InjectTags(*dicom, content[i]["Tags"]))
-          {
-            ok = false;
-            break;
-          }
+          if (content[i].isMember("Tags"))
+	    {
+              InjectTags(*dicom, content[i]["Tags"]);
+	    }
         }
 
         if (payload == NULL ||
             payload->type() != Json::stringValue)
         {
-          LOG(ERROR) << "The payload of the DICOM instance must be specified according to Data URI scheme";
-          ok = false;
-          break;
+          throw OrthancException("The payload of the DICOM instance must be specified according to Data URI scheme");
         }
 
         dicom->EmbedContent(payload->asString());
         dicom->Replace(DICOM_TAG_INSTANCE_NUMBER, boost::lexical_cast<std::string>(i + 1));
         dicom->Replace(DICOM_TAG_IMAGE_INDEX, boost::lexical_cast<std::string>(i + 1));
 
-        if (!StoreCreatedInstance(someInstance, context, *dicom))
-        {
-          LOG(ERROR) << "Error while creating the series";
-          ok = false;
-          break;
-        }
+        StoreCreatedInstance(someInstance, context, *dicom);
       }
     }
-    catch (OrthancException&)
+    catch (OrthancException& e)
     {
-      ok = false;
+      // Error: Remove the newly-created series
+      
+      std::string series;
+      if (context.GetIndex().LookupParent(series, someInstance))
+	{
+        Json::Value dummy;
+        context.GetIndex().DeleteResource(dummy, series, ResourceType_Series);
+	}
+
+      throw e;
     }
 
     std::string series;
     if (context.GetIndex().LookupParent(series, someInstance))
     {
-      if (ok)
-      {
-        OrthancRestApi::GetApi(call).AnswerStoredResource(call, series, ResourceType_Series, StoreStatus_Success);
-      }
-      else
-      {
-        // Error: Remove the newly-created series
-        Json::Value dummy;
-        context.GetIndex().DeleteResource(dummy, series, ResourceType_Series);
-      }
+      OrthancRestApi::GetApi(call).AnswerStoredResource(call, series, ResourceType_Series, StoreStatus_Success);
     }
   }
 
@@ -632,7 +604,7 @@ namespace Orthanc
     if (!request.isMember("Tags") ||
         request["Tags"].type() != Json::objectValue)
     {
-      return;
+      throw OrthancException(ErrorCode_BadRequest);
     }
 
     ParsedDicomFile dicom;
@@ -645,8 +617,7 @@ namespace Orthanc
         const char* tmp = request["Tags"]["SpecificCharacterSet"].asCString();
         if (!GetDicomEncoding(encoding, tmp))
         {
-          LOG(ERROR) << "Unknown specific character set: " << tmp;
-          return;
+          throw OrthancException("Unknown specific character set: " + std::string(tmp));
         }
       }
       else
@@ -666,14 +637,12 @@ namespace Orthanc
       std::string parent = request["Parent"].asString();
       if (!context.GetIndex().LookupResourceType(parentType, parent))
       {
-        LOG(ERROR) << "Trying to attach a new DICOM instance to an inexistent resource: " << parent;
-        return;
+        throw OrthancException("Trying to attach a new DICOM instance to an inexistent resource: " + parent);
       }
 
       if (parentType == ResourceType_Instance)
       {
-        LOG(ERROR) << "Trying to attach a new DICOM instance to an instance (must be a series, study or patient): " << parent;
-        return;
+        throw OrthancException("Trying to attach a new DICOM instance to an instance (must be a series, study or patient): " + parent);
       }
 
       // Select one existing child instance of the parent resource, to
@@ -686,8 +655,9 @@ namespace Orthanc
         context.GetIndex().GetChildInstances(siblingInstances, parent);
 
         if (siblingInstances.empty())
-        {
-          return;   // Error: No instance (should never happen)
+	{
+	  // Error: No instance (should never happen)
+          throw OrthancException(ErrorCode_InternalError);
         }
 
         context.ReadJson(siblingTags, siblingInstances.front());
@@ -705,8 +675,7 @@ namespace Orthanc
               siblingTags[SPECIFIC_CHARACTER_SET]["Value"].type() != Json::stringValue ||
               !GetDicomEncoding(encoding, siblingTags[SPECIFIC_CHARACTER_SET]["Value"].asCString()))
           {
-            LOG(ERROR) << "Unable to get the encoding of the parent resource";
-            return;
+            throw OrthancException("Unable to get the encoding of the parent resource");
           }
 
           dicom.SetEncoding(encoding);
@@ -732,7 +701,7 @@ namespace Orthanc
         std::string tmp;
         if (!context.GetIndex().LookupParent(tmp, parent))
         {
-          return;
+          throw OrthancException(ErrorCode_InternalError);
         }
 
         parent = tmp;
@@ -786,10 +755,7 @@ namespace Orthanc
     }
 
 
-    if (!InjectTags(dicom, request["Tags"]))
-    {
-      return;  // Error
-    }
+    InjectTags(dicom, request["Tags"]);
 
 
     // Inject the content (either an image, or a PDF file)
@@ -813,16 +779,14 @@ namespace Orthanc
       }
       else
       {
-        LOG(ERROR) << "The payload of the DICOM instance must be specified according to Data URI scheme";
+        throw OrthancException("The payload of the DICOM instance must be specified according to Data URI scheme");
         return;
       }
     }
 
     std::string id;
-    if (StoreCreatedInstance(id, context, dicom))
-    {
-      OrthancRestApi::GetApi(call).AnswerStoredResource(call, id, ResourceType_Instance, StoreStatus_Success);
-    }
+    StoreCreatedInstance(id, context, dicom);
+    OrthancRestApi::GetApi(call).AnswerStoredResource(call, id, ResourceType_Instance, StoreStatus_Success);
 
     return;
   }
@@ -831,28 +795,27 @@ namespace Orthanc
   static void CreateDicom(RestApiPostCall& call)
   {
     Json::Value request;
-    if (call.ParseJsonRequest(request) && 
-        request.isObject())
-    {
-      if (request.isMember("Tags"))
+    if (!call.ParseJsonRequest(request) ||
+        !request.isObject())
       {
-        CreateDicomV2(call, request);
+	throw OrthancException(ErrorCode_BadRequest);
       }
-      else
+
+    if (request.isMember("Tags"))
       {
-        // Compatibility with Orthanc <= 0.9.3
-        ServerContext& context = OrthancRestApi::GetContext(call);
-        ParsedDicomFile dicom;
-        if (CreateDicomV1(dicom, request))
-        {
-          std::string id;
-          if (StoreCreatedInstance(id, context, dicom))
-          {
-            OrthancRestApi::GetApi(call).AnswerStoredResource(call, id, ResourceType_Instance, StoreStatus_Success);
-          }
-        }
+	CreateDicomV2(call, request);
       }
-    }
+    else
+      {
+	// Compatibility with Orthanc <= 0.9.3
+	ServerContext& context = OrthancRestApi::GetContext(call);
+	ParsedDicomFile dicom;
+	CreateDicomV1(dicom, request);
+
+	std::string id;
+	StoreCreatedInstance(id, context, dicom);
+	OrthancRestApi::GetApi(call).AnswerStoredResource(call, id, ResourceType_Instance, StoreStatus_Success);
+      }
   }
 
 
