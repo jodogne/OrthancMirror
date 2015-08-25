@@ -122,8 +122,8 @@ namespace Orthanc
                                       DicomInstanceToStore& instance,
                                       const Json::Value& simplifiedTags);
 
-    virtual bool FilterIncomingInstance(const Json::Value& simplified,
-                                        const std::string& remoteAet)
+    virtual bool FilterIncomingInstance(const DicomInstanceToStore& instance,
+                                        const Json::Value& simplified)
     {
       return true; // TODO Enable filtering of instances from plugins
     }

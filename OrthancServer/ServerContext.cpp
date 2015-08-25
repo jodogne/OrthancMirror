@@ -186,8 +186,8 @@ namespace Orthanc
       DicomInstanceHasher hasher(dicom.GetSummary());
       resultPublicId = hasher.HashInstance();
 
-      Json::Value simplified;
-      SimplifyTags(simplified, dicom.GetJson());
+      Json::Value simplifiedTags;
+      SimplifyTags(simplifiedTags, dicom.GetJson());
 
       // Test if the instance must be filtered out
       bool accepted = true;
@@ -199,7 +199,7 @@ namespace Orthanc
         {
           try
           {
-            if (!it->GetListener().FilterIncomingInstance(simplified, dicom.GetRemoteAet()))
+            if (!it->GetListener().FilterIncomingInstance(dicom, simplifiedTags))
             {
               accepted = false;
               break;
@@ -281,7 +281,7 @@ namespace Orthanc
         {
           try
           {
-            it->GetListener().SignalStoredInstance(resultPublicId, dicom, simplified);
+            it->GetListener().SignalStoredInstance(resultPublicId, dicom, simplifiedTags);
           }
           catch (OrthancException& e)
           {

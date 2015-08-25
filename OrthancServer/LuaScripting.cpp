@@ -470,8 +470,8 @@ namespace Orthanc
   }
 
 
-  bool LuaScripting::FilterIncomingInstance(const Json::Value& simplified,
-                                            const std::string& remoteAet)
+  bool LuaScripting::FilterIncomingInstance(const DicomInstanceToStore& instance,
+                                            const Json::Value& simplified)
   {
     static const char* NAME = "ReceivedInstanceFilter";
 
@@ -481,7 +481,10 @@ namespace Orthanc
     {
       LuaFunctionCall call(lua_, NAME);
       call.PushJson(simplified);
-      call.PushString(remoteAet);
+
+      Json::Value origin;
+      instance.GetOriginInformation(origin);
+      call.PushJson(origin);
 
       if (!call.ExecutePredicate())
       {

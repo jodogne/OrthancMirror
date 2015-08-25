@@ -11,7 +11,9 @@ Pending changes in the mainline
 Lua
 ---
 
-* More information about the origin request in "OnStoredInstance()" callbacks
+* More information about the origin request in the "OnStoredInstance()" and
+  "ReceivedInstanceFilter()" callbacks. WARNING: This can result in
+  incompatibilities wrt. previous versions of Orthanc.
 
 Plugins
 -------
