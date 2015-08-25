@@ -50,20 +50,20 @@ namespace Orthanc
       uint32_t elapsedTimeSinceLastCommand_;
       const DicomServer& server_;
       T_ASC_Association* assoc_;
-      std::string callingIP_;
-      std::string callingAETitle_;
+      std::string remoteIp_;
+      std::string remoteAet_;
       IApplicationEntityFilter* filter_;
 
     public:
       CommandDispatcher(const DicomServer& server,
                         T_ASC_Association* assoc,
-                        const std::string& callingIP,
-                        const std::string& callingAETitle,
+                        const std::string& remoteIp,
+                        const std::string& remoteAet,
                         IApplicationEntityFilter* filter) :
         server_(server),
         assoc_(assoc),
-        callingIP_(callingIP),
-        callingAETitle_(callingAETitle),
+        remoteIp_(remoteIp),
+        remoteAet_(remoteAet),
         filter_(filter)
       {
         clientTimeout_ = server.GetClientTimeout();

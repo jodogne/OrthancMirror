@@ -66,16 +66,18 @@ public:
   {
   }
 
+
   virtual void Handle(const std::string& dicomFile,
                       const DicomMap& dicomSummary,
                       const Json::Value& dicomJson,
+                      const std::string& remoteIp,
                       const std::string& remoteAet,
-                      const std::string& calledAet)
+                      const std::string& calledAet) 
   {
     if (dicomFile.size() > 0)
     {
       DicomInstanceToStore toStore;
-      toStore.SetDicomProtocolOrigin(remoteAet.c_str(), calledAet.c_str());
+      toStore.SetDicomProtocolOrigin(remoteIp.c_str(), remoteAet.c_str(), calledAet.c_str());
       toStore.SetBuffer(dicomFile);
       toStore.SetSummary(dicomSummary);
       toStore.SetJson(dicomJson);

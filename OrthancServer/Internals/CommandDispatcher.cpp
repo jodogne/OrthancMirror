@@ -771,11 +771,11 @@ namespace Orthanc
         if (supported && 
             request != DicomRequestType_Echo &&  // Always allow incoming ECHO requests
             filter_ != NULL &&
-            !filter_->IsAllowedRequest(callingIP_, callingAETitle_, request))
+            !filter_->IsAllowedRequest(remoteIp_, remoteAet_, request))
         {
           LOG(ERROR) << EnumerationToString(request) 
                      << " requests are disallowed for the AET \"" 
-                     << callingAETitle_ << "\"";
+                     << remoteAet_ << "\"";
           cond = DIMSE_ILLEGALASSOCIATION;
           supported = false;
           finished = true;
@@ -798,7 +798,7 @@ namespace Orthanc
               {
                 std::auto_ptr<IStoreRequestHandler> handler
                   (server_.GetStoreRequestHandlerFactory().ConstructStoreRequestHandler());
-                cond = Internals::storeScp(assoc_, &msg, presID, *handler);
+                cond = Internals::storeScp(assoc_, &msg, presID, *handler, remoteIp_);
               }
               break;
 
@@ -807,7 +807,7 @@ namespace Orthanc
               {
                 std::auto_ptr<IMoveRequestHandler> handler
                   (server_.GetMoveRequestHandlerFactory().ConstructMoveRequestHandler());
-                cond = Internals::moveScp(assoc_, &msg, presID, *handler);
+                cond = Internals::moveScp(assoc_, &msg, presID, *handler, remoteIp_, remoteAet_);
               }
               break;
 
@@ -816,7 +816,7 @@ namespace Orthanc
               {
                 std::auto_ptr<IFindRequestHandler> handler
                   (server_.GetFindRequestHandlerFactory().ConstructFindRequestHandler());
-                cond = Internals::findScp(assoc_, &msg, presID, *handler, callingAETitle_);
+                cond = Internals::findScp(assoc_, &msg, presID, *handler, remoteIp_, remoteAet_);
               }
               break;
 

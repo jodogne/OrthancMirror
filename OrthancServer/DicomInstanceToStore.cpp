@@ -190,6 +190,7 @@ namespace Orthanc
 
       case RequestOrigin_DicomProtocol:
       {
+        result["RemoteIp"] = remoteIp_;
         result["RemoteAet"] = dicomRemoteAet_;
         result["CalledAet"] = dicomCalledAet_;
         break;
@@ -197,7 +198,7 @@ namespace Orthanc
 
       case RequestOrigin_Http:
       {
-        result["RemoteIp"] = httpRemoteIp_;
+        result["RemoteIp"] = remoteIp_;
         result["Username"] = httpUsername_;
         break;
       }
@@ -215,10 +216,12 @@ namespace Orthanc
   }
 
 
-  void DicomInstanceToStore::SetDicomProtocolOrigin(const char* remoteAet,
+  void DicomInstanceToStore::SetDicomProtocolOrigin(const char* remoteIp,
+                                                    const char* remoteAet,
                                                     const char* calledAet)
   {
     origin_ = RequestOrigin_DicomProtocol;
+    remoteIp_ = remoteIp;
     dicomRemoteAet_ = remoteAet;
     dicomCalledAet_ = calledAet;
   }
@@ -229,7 +232,7 @@ namespace Orthanc
 
     if (origin_ == RequestOrigin_Http)
     {
-      httpRemoteIp_ = call.GetRemoteIp();
+      remoteIp_ = call.GetRemoteIp();
       httpUsername_ = call.GetUsername();
     }
   }
@@ -238,7 +241,7 @@ namespace Orthanc
                                            const char* username)
   {
     origin_ = RequestOrigin_Http;
-    httpRemoteIp_ = remoteIp;
+    remoteIp_ = remoteIp;
     httpUsername_ = username;
   }
 
