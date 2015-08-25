@@ -734,12 +734,12 @@ namespace Orthanc
       }
       catch (boost::bad_lexical_cast&)
       {
-        throw OrthancException(ErrorCode_BadParameterType);
+        throw OrthancException(ErrorCode_BadParameterType, HttpStatus_400_BadRequest);
       }
       catch (std::runtime_error&)
       {
         // Presumably an error while parsing the JSON body
-        throw OrthancException(ErrorCode_BadRequest);
+        throw OrthancException(ErrorCode_BadRequest, HttpStatus_400_BadRequest);
       }
 
       if (!found)
@@ -752,39 +752,20 @@ namespace Orthanc
       // Using this candidate handler results in an exception
       LOG(ERROR) << "Exception in the HTTP handler: " << e.What();
 
-      HttpStatus status;
+      Json::Value message = Json::objectValue;
+      message["HttpError"] = EnumerationToString(e.GetHttpStatus());
+      message["HttpStatus"] = e.GetHttpStatus();
+      message["Message"] = e.What();
+      message["Method"] = EnumerationToString(method);
+      message["OrthancError"] = EnumerationToString(e.GetErrorCode());
+      message["OrthancStatus"] = e.GetErrorCode();
+      message["Uri"] = request->uri;
+
+      std::string info = message.toStyledString();
 
       try
       {
-        switch (e.GetErrorCode())
-        {
-          case ErrorCode_InexistentFile:
-          case ErrorCode_InexistentItem:
-          case ErrorCode_UnknownResource:
-            status = HttpStatus_404_NotFound;
-            break;
-
-          case ErrorCode_BadRequest:
-          case ErrorCode_UriSyntax:
-          case ErrorCode_BadParameterType:
-            status = HttpStatus_400_BadRequest;
-            break;
-
-          default:
-	    status = HttpStatus_500_InternalServerError;
-	    break;
-        }
-
-	Json::Value message = Json::objectValue;
-	message["HttpStatus"] = status;
-	message["HttpError"] = EnumerationToString(status);
-	message["OrthancStatus"] = e.GetErrorCode();
-	message["OrthancError"] = e.GetDescription(e.GetErrorCode());
-	message["Message"] = e.What();
-	message["Uri"] = request->uri;
-	message["Method"] = EnumerationToString(method);
-	std::string s = message.toStyledString();
-	output.SendStatus(status, s);
+	output.SendStatus(e.GetHttpStatus(), info);
       }
       catch (OrthancException&)
       {

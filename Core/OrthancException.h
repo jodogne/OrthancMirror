@@ -40,31 +40,44 @@ namespace Orthanc
   class OrthancException
   {
   protected:
-    ErrorCode error_;
+    ErrorCode errorCode_;
+    HttpStatus httpStatus_;
     std::string custom_;
 
-  public:
-    static const char* GetDescription(ErrorCode error);
+    static HttpStatus ConvertToHttpStatus(ErrorCode code);
 
+  public:
     OrthancException(const char* custom) : 
-      error_(ErrorCode_Custom),
+      errorCode_(ErrorCode_Custom),
+      httpStatus_(HttpStatus_500_InternalServerError),
       custom_(custom)
     {
     }
 
     OrthancException(const std::string& custom) : 
-      error_(ErrorCode_Custom),
+      errorCode_(ErrorCode_Custom),
+      httpStatus_(HttpStatus_500_InternalServerError),
       custom_(custom)
     {
     }
 
-    OrthancException(ErrorCode error) : error_(error)
+    OrthancException(ErrorCode errorCode);
+
+    OrthancException(ErrorCode errorCode,
+                     HttpStatus httpStatus) :
+      errorCode_(errorCode),
+      httpStatus_(httpStatus)
     {
     }
 
     ErrorCode GetErrorCode() const
     {
-      return error_;
+      return errorCode_;
+    }
+
+    HttpStatus GetHttpStatus() const
+    {
+      return httpStatus_;
     }
 
     const char* What() const;
