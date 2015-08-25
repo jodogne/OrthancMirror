@@ -33,6 +33,7 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
+#include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
 #include "../Core/Lua/LuaFunctionCall.h"
 
@@ -79,7 +80,7 @@ TEST(Lua, Json)
   {
     Orthanc::LuaFunctionCall f(lua, "f");
     f.PushJson(o);
-    ASSERT_THROW(f.ExecutePredicate(), Orthanc::LuaException);
+    ASSERT_THROW(f.ExecutePredicate(), Orthanc::OrthancException);
   }
 
   o["bool"] = false;

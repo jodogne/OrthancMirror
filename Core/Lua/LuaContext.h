@@ -32,7 +32,6 @@
 
 #pragma once
 
-#include "LuaException.h"
 #include "../HttpClient.h"
 
 extern "C" 

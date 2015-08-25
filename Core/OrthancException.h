@@ -42,14 +42,6 @@ namespace Orthanc
   protected:
     ErrorCode errorCode_;
     HttpStatus httpStatus_;
-    std::string custom_;
-
-    OrthancException(const std::string& custom) : 
-      errorCode_(ErrorCode_Custom),
-      httpStatus_(HttpStatus_500_InternalServerError),
-      custom_(custom)
-    {
-    }
 
   public:
     OrthancException(ErrorCode errorCode) : 
@@ -77,14 +69,7 @@ namespace Orthanc
 
     const char* What() const
     {
-      if (errorCode_ == ErrorCode_Custom)
-      {
-        return custom_.c_str();
-      }
-      else
-      {
-        return EnumerationToString(errorCode_);
-      }
+      return EnumerationToString(errorCode_);
     }
   };
 }

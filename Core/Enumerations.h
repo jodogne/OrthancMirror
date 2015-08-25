@@ -45,7 +45,6 @@ namespace Orthanc
   // "Resources/GenerateErrorCodes.py"
   enum ErrorCode
   {
-    ErrorCode_Custom = -2    /*!< Custom error, see the attached error message */,
     ErrorCode_InternalError = -1    /*!< Internal error */,
     ErrorCode_Success = 0    /*!< Success */,
     ErrorCode_Plugin = 1    /*!< Error encountered within the plugin engine */,
@@ -119,7 +118,14 @@ namespace Orthanc
     ErrorCode_CreateDicomParentIsInstance = 2025    /*!< Trying to attach a new DICOM instance to an instance (must be a series, study or patient) */,
     ErrorCode_CreateDicomParentEncoding = 2026    /*!< Unable to get the encoding of the parent resource */,
     ErrorCode_UnknownModality = 2027    /*!< Unknown modality */,
-    ErrorCode_BadJobOrdering = 2028    /*!< Bad ordering of filters in a job */
+    ErrorCode_BadJobOrdering = 2028    /*!< Bad ordering of filters in a job */,
+    ErrorCode_JsonToLuaTable = 2029    /*!< Cannot convert the given JSON object to a Lua table */,
+    ErrorCode_CannotCreateLua = 2030    /*!< Cannot create the Lua context */,
+    ErrorCode_CannotExecuteLua = 2031    /*!< Cannot execute a Lua command */,
+    ErrorCode_LuaAlreadyExecuted = 2032    /*!< Arguments cannot be pushed after the Lua function is executed */,
+    ErrorCode_LuaBadOutput = 2033    /*!< The Lua function does not give the expected number of outputs */,
+    ErrorCode_NotLuaPredicate = 2034    /*!< The Lua function is not a predicate (only true/false outputs allowed) */,
+    ErrorCode_LuaReturnsNoString = 2035    /*!< The Lua function does not return a string */
   };
 
   enum LogLevel

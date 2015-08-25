@@ -160,7 +160,6 @@ extern "C"
    **/
   typedef enum
   {
-    OrthancPluginErrorCode_Custom = -2    /*!< Custom error, see the attached error message */,
     OrthancPluginErrorCode_InternalError = -1    /*!< Internal error */,
     OrthancPluginErrorCode_Success = 0    /*!< Success */,
     OrthancPluginErrorCode_Plugin = 1    /*!< Error encountered within the plugin engine */,
@@ -235,6 +234,13 @@ extern "C"
     OrthancPluginErrorCode_CreateDicomParentEncoding = 2026    /*!< Unable to get the encoding of the parent resource */,
     OrthancPluginErrorCode_UnknownModality = 2027    /*!< Unknown modality */,
     OrthancPluginErrorCode_BadJobOrdering = 2028    /*!< Bad ordering of filters in a job */,
+    OrthancPluginErrorCode_JsonToLuaTable = 2029    /*!< Cannot convert the given JSON object to a Lua table */,
+    OrthancPluginErrorCode_CannotCreateLua = 2030    /*!< Cannot create the Lua context */,
+    OrthancPluginErrorCode_CannotExecuteLua = 2031    /*!< Cannot execute a Lua command */,
+    OrthancPluginErrorCode_LuaAlreadyExecuted = 2032    /*!< Arguments cannot be pushed after the Lua function is executed */,
+    OrthancPluginErrorCode_LuaBadOutput = 2033    /*!< The Lua function does not give the expected number of outputs */,
+    OrthancPluginErrorCode_NotLuaPredicate = 2034    /*!< The Lua function is not a predicate (only true/false outputs allowed) */,
+    OrthancPluginErrorCode_LuaReturnsNoString = 2035    /*!< The Lua function does not return a string */,
 
     _OrthancPluginErrorCode_INTERNAL = 0x7fffffff
   } OrthancPluginErrorCode;

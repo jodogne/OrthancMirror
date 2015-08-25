@@ -2,11 +2,6 @@
   /** Generic error codes **/
 
   {
-    "Code": -2, 
-    "Name": "Custom", 
-    "Description": "Custom error, see the attached error message"
-  }, 
-  {
     "Code": -1, 
     "Name": "InternalError", 
     "Description": "Internal error"
@@ -423,5 +418,40 @@
     "Code": 2028, 
     "Name": "BadJobOrdering", 
     "Description": "Bad ordering of filters in a job"
+  },
+  {
+    "Code": 2029, 
+    "Name": "JsonToLuaTable", 
+    "Description": "Cannot convert the given JSON object to a Lua table"
+  },
+  {
+    "Code": 2030, 
+    "Name": "CannotCreateLua", 
+    "Description": "Cannot create the Lua context"
+  },
+  {
+    "Code": 2031, 
+    "Name": "CannotExecuteLua", 
+    "Description": "Cannot execute a Lua command"
+  },
+  {
+    "Code": 2032, 
+    "Name": "LuaAlreadyExecuted", 
+    "Description": "Arguments cannot be pushed after the Lua function is executed"
+  },
+  {
+    "Code": 2033, 
+    "Name": "LuaBadOutput", 
+    "Description": "The Lua function does not give the expected number of outputs"
+  },
+  {
+    "Code": 2034, 
+    "Name": "NotLuaPredicate", 
+    "Description": "The Lua function is not a predicate (only true/false outputs allowed)"
+  },
+  {
+    "Code": 2035, 
+    "Name": "LuaReturnsNoString", 
+    "Description": "The Lua function does not return a string"
   }
 ]

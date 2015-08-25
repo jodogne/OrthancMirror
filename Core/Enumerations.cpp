@@ -46,9 +46,6 @@ namespace Orthanc
   {
     switch (error)
     {
-      case ErrorCode_Custom:
-        return "Custom error, see the attached error message";
-
       case ErrorCode_InternalError:
         return "Internal error";
 
@@ -270,6 +267,27 @@ namespace Orthanc
 
       case ErrorCode_BadJobOrdering:
         return "Bad ordering of filters in a job";
+
+      case ErrorCode_JsonToLuaTable:
+        return "Cannot convert the given JSON object to a Lua table";
+
+      case ErrorCode_CannotCreateLua:
+        return "Cannot create the Lua context";
+
+      case ErrorCode_CannotExecuteLua:
+        return "Cannot execute a Lua command";
+
+      case ErrorCode_LuaAlreadyExecuted:
+        return "Arguments cannot be pushed after the Lua function is executed";
+
+      case ErrorCode_LuaBadOutput:
+        return "The Lua function does not give the expected number of outputs";
+
+      case ErrorCode_NotLuaPredicate:
+        return "The Lua function is not a predicate (only true/false outputs allowed)";
+
+      case ErrorCode_LuaReturnsNoString:
+        return "The Lua function does not return a string";
 
       default:
         return "Unknown error code";
