@@ -302,6 +302,7 @@ namespace Orthanc
 
   enum RequestOrigin
   {
+    RequestOrigin_Unknown,
     RequestOrigin_DicomProtocol,
     RequestOrigin_Http,
     RequestOrigin_Plugins,

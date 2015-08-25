@@ -278,6 +278,7 @@ namespace Orthanc
       modification.Apply(*modified);
 
       DicomInstanceToStore toStore;
+      toStore.SetRestOrigin(call);
       toStore.SetParsedDicomFile(*modified);
 
 
@@ -431,12 +432,14 @@ namespace Orthanc
 
 
   static void StoreCreatedInstance(std::string& id /* out */,
-                                   ServerContext& context,
+                                   RestApiPostCall& call,
                                    ParsedDicomFile& dicom)
   {
     DicomInstanceToStore toStore;
+    toStore.SetRestOrigin(call);
     toStore.SetParsedDicomFile(dicom);
 
+    ServerContext& context = OrthancRestApi::GetContext(call);
     StoreStatus status = context.Store(id, toStore);
 
     if (status == StoreStatus_Failure)
@@ -447,6 +450,7 @@ namespace Orthanc
 
 
   static void CreateDicomV1(ParsedDicomFile& dicom,
+                            RestApiPostCall& call,
                             const Json::Value& request)
   {
     // curl http://localhost:8042/tools/create-dicom -X POST -d '{"PatientName":"Hello^World"}'
@@ -570,7 +574,7 @@ namespace Orthanc
         dicom->Replace(DICOM_TAG_INSTANCE_NUMBER, boost::lexical_cast<std::string>(i + 1));
         dicom->Replace(DICOM_TAG_IMAGE_INDEX, boost::lexical_cast<std::string>(i + 1));
 
-        StoreCreatedInstance(someInstance, context, *dicom);
+        StoreCreatedInstance(someInstance, call, *dicom);
       }
     }
     catch (OrthancException& e)
@@ -785,7 +789,7 @@ namespace Orthanc
     }
 
     std::string id;
-    StoreCreatedInstance(id, context, dicom);
+    StoreCreatedInstance(id, call, dicom);
     OrthancRestApi::GetApi(call).AnswerStoredResource(call, id, ResourceType_Instance, StoreStatus_Success);
 
     return;
@@ -808,12 +812,11 @@ namespace Orthanc
     else
     {
       // Compatibility with Orthanc <= 0.9.3
-      ServerContext& context = OrthancRestApi::GetContext(call);
       ParsedDicomFile dicom;
-      CreateDicomV1(dicom, request);
+      CreateDicomV1(dicom, call, request);
 
       std::string id;
-      StoreCreatedInstance(id, context, dicom);
+      StoreCreatedInstance(id, call, dicom);
       OrthancRestApi::GetApi(call).AnswerStoredResource(call, id, ResourceType_Instance, StoreStatus_Success);
     }
   }

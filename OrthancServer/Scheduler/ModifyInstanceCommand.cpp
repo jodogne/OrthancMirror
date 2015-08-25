@@ -37,8 +37,10 @@
 namespace Orthanc
 {
   ModifyInstanceCommand::ModifyInstanceCommand(ServerContext& context,
+                                               RequestOrigin origin,
                                                const DicomModification& modification) :
     context_(context),
+    origin_(origin),
     modification_(modification)
   {
     modification_.SetAllowManualIdentifiers(true);
@@ -58,6 +60,12 @@ namespace Orthanc
     else
     {
       modification_.SetLevel(ResourceType_Instance);
+    }
+
+    if (origin_ != RequestOrigin_Lua)
+    {
+      // TODO If issued from HTTP, "remoteIp" and "username" must be provided
+      throw OrthancException(ErrorCode_NotImplemented);
     }
   }
 
@@ -82,6 +90,8 @@ namespace Orthanc
         modification_.Apply(*modified);
 
         DicomInstanceToStore toStore;
+        assert(origin_ == RequestOrigin_Lua);
+        toStore.SetLuaOrigin();
         toStore.SetParsedDicomFile(*modified);
         // TODO other metadata
         toStore.AddMetadata(ResourceType_Instance, MetadataType_ModifiedFrom, *it);
