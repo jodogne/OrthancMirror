@@ -111,3 +111,24 @@ a = re.sub('(ConvertErrorCodeToHttpStatus\(ErrorCode.*?\)\s*{\s*switch \([^)]*?\
 
 with open(path, 'w') as f:
     f.write(a)
+
+
+
+##
+## Generate the "ErrorCode" enumeration in "OrthancSQLiteException.h"
+##
+
+path = os.path.join(BASE, 'Core', 'SQLite', 'OrthancSQLiteException.h')
+with open(path, 'r') as f:
+    a = f.read()
+
+e = filter(lambda x: 'SQLite' in x and x['SQLite'], ERRORS)
+s = ',\n'.join(map(lambda x: '      ErrorCode_%s' % x['Name'], e))
+a = re.sub('(enum ErrorCode\s*{)[^}]*?(\s*};)', r'\1\n%s\2' % s, a, re.DOTALL)
+
+s = '\n\n'.join(map(lambda x: '          case ErrorCode_%s:\n            return "%s";' % (x['Name'], x['Description']), e))
+a = re.sub('(EnumerationToString\(ErrorCode.*?\)\s*{\s*switch \([^)]*?\)\s*{)[^}]*?(\s*default:)',
+           r'\1\n%s\2' % s, a, re.DOTALL)
+
+with open(path, 'w') as f:
+    f.write(a)
