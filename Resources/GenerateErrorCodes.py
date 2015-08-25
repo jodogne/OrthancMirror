@@ -55,16 +55,33 @@ for i in re.findall('(HttpStatus_([0-9]+)_\w+)', a):
 
 
 ##
-## Generate the "ErrorCode" enumeration in "Core/Enumerations.h"
+## Generate the "ErrorCode" enumeration in "Enumerations.h"
 ##
 
-with open(os.path.join(BASE, 'Core', 'Enumerations.h'), 'r') as f:
+path = os.path.join(BASE, 'Core', 'Enumerations.h')
+with open(path, 'r') as f:
     a = f.read()
 
-s = ',\n'.join(map(lambda x: '    ErrorCode_%s = %d' % (x['Name'], int(x['Code'])), ERRORS))
+s = ',\n'.join(map(lambda x: '    ErrorCode_%s = %d    /*!< %s */' % (x['Name'], int(x['Code']), x['Description']), ERRORS))
 a = re.sub('(enum ErrorCode\s*{)[^}]*?(\s*};)', r'\1\n%s\2' % s, a, re.DOTALL)
 
-with open(os.path.join(BASE, 'Core', 'Enumerations.h'), 'w') as f:
+with open(path, 'w') as f:
+    f.write(a)
+
+
+
+##
+## Generate the "OrthancPluginErrorCode" enumeration in "OrthancCPlugin.h"
+##
+
+path = os.path.join(BASE, 'Plugins', 'Include', 'orthanc', 'OrthancCPlugin.h')
+with open(path, 'r') as f:
+    a = f.read()
+
+s = ',\n'.join(map(lambda x: '    OrthancPluginErrorCode_%s = %d    /*!< %s */' % (x['Name'], int(x['Code']), x['Description']), ERRORS))
+a = re.sub('(typedef enum\s*{)[^}]*?(\s*} OrthancPluginErrorCode;)', r'\1\n%s\2' % s, a, re.DOTALL)
+
+with open(path, 'w') as f:
     f.write(a)
 
 
@@ -72,10 +89,11 @@ with open(os.path.join(BASE, 'Core', 'Enumerations.h'), 'w') as f:
 ##
 ## Generate the "EnumerationToString(ErrorCode)" and
 ## "ConvertErrorCodeToHttpStatus(ErrorCode)" functions in
-## "Core/Enumerations.cpp"
+## "Enumerations.cpp"
 ##
 
-with open(os.path.join(BASE, 'Core', 'Enumerations.cpp'), 'r') as f:
+path = os.path.join(BASE, 'Core', 'Enumerations.cpp')
+with open(path, 'r') as f:
     a = f.read()
 
 s = '\n\n'.join(map(lambda x: '      case ErrorCode_%s:\n        return "%s";' % (x['Name'], x['Description']), ERRORS))
@@ -90,5 +108,5 @@ s = '\n\n'.join(map(GetHttpStatus, filter(lambda x: 'HttpStatus' in x, ERRORS)))
 a = re.sub('(ConvertErrorCodeToHttpStatus\(ErrorCode.*?\)\s*{\s*switch \([^)]*?\)\s*{)[^}]*?(\s*default:)',
            r'\1\n%s\2' % s, a, re.DOTALL)
 
-with open(os.path.join(BASE, 'Core', 'Enumerations.cpp'), 'w') as f:
+with open(path, 'w') as f:
     f.write(a)
