@@ -62,21 +62,25 @@ namespace Orthanc
 
     static bool SimpleGet(std::string& result,
                           IHttpHandler& handler,
+                          RequestOrigin origin,
                           const std::string& uri);
 
     static bool SimplePost(std::string& result,
                            IHttpHandler& handler,
+                           RequestOrigin origin,
                            const std::string& uri,
                            const char* bodyData,
                            size_t bodySize);
 
     static bool SimplePut(std::string& result,
                           IHttpHandler& handler,
+                          RequestOrigin origin,
                           const std::string& uri,
                           const char* bodyData,
                           size_t bodySize);
 
     static bool SimpleDelete(IHttpHandler& handler,
+                             RequestOrigin origin,
                              const std::string& uri);
   };
 }

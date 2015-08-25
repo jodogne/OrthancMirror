@@ -39,6 +39,9 @@
 namespace Orthanc
 {
   bool OrthancHttpHandler::Handle(HttpOutput& output,
+                                  RequestOrigin origin,
+                                  const char* remoteIp,
+                                  const char* username,
                                   HttpMethod method,
                                   const UriComponents& uri,
                                   const Arguments& headers,
@@ -51,7 +54,8 @@ namespace Orthanc
     for (Handlers::const_iterator it = handlers_.begin(); 
          it != handlers_.end() && !found; ++it) 
     {
-      found = (*it)->Handle(output, method, uri, headers, getArguments, bodyData, bodySize);
+      found = (*it)->Handle(output, origin, remoteIp, username, method, uri, 
+                            headers, getArguments, bodyData, bodySize);
     }
 
     return found;

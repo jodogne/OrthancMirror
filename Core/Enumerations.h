@@ -300,6 +300,14 @@ namespace Orthanc
     DicomModule_Image
   };
 
+  enum RequestOrigin
+  {
+    RequestOrigin_DicomProtocol,
+    RequestOrigin_Http,
+    RequestOrigin_Plugins,
+    RequestOrigin_Lua
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations
@@ -363,6 +371,8 @@ namespace Orthanc
   const char* EnumerationToString(PhotometricInterpretation photometric);
 
   const char* EnumerationToString(LogLevel level);
+
+  const char* EnumerationToString(RequestOrigin origin);
 
   Encoding StringToEncoding(const char* encoding);
 

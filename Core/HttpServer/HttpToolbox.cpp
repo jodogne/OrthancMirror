@@ -41,6 +41,10 @@
 #include "StringHttpOutput.h"
 
 
+static const char* LOCALHOST = "localhost";
+
+
+
 namespace Orthanc
 {
   static void SplitGETNameValue(IHttpHandler::GetArguments& result,
@@ -196,6 +200,7 @@ namespace Orthanc
 
   bool HttpToolbox::SimpleGet(std::string& result,
                               IHttpHandler& handler,
+                              RequestOrigin origin,
                               const std::string& uri)
   {
     IHttpHandler::Arguments headers;  // No HTTP header
@@ -207,8 +212,8 @@ namespace Orthanc
     StringHttpOutput stream;
     HttpOutput http(stream, false /* no keep alive */);
 
-    if (handler.Handle(http, HttpMethod_Get, curi, headers, getArguments, 
-                       NULL /* no body for GET */, 0))
+    if (handler.Handle(http, origin, LOCALHOST, "", HttpMethod_Get, curi, 
+                       headers, getArguments, NULL /* no body for GET */, 0))
     {
       stream.GetOutput(result);
       return true;
@@ -222,6 +227,7 @@ namespace Orthanc
 
   static bool SimplePostOrPut(std::string& result,
                               IHttpHandler& handler,
+                              RequestOrigin origin,
                               HttpMethod method,
                               const std::string& uri,
                               const char* bodyData,
@@ -236,7 +242,8 @@ namespace Orthanc
     StringHttpOutput stream;
     HttpOutput http(stream, false /* no keep alive */);
 
-    if (handler.Handle(http, method, curi, headers, getArguments, bodyData, bodySize))
+    if (handler.Handle(http, origin, LOCALHOST, "", method, curi, 
+                       headers, getArguments, bodyData, bodySize))
     {
       stream.GetOutput(result);
       return true;
@@ -250,25 +257,28 @@ namespace Orthanc
 
   bool HttpToolbox::SimplePost(std::string& result,
                                IHttpHandler& handler,
+                               RequestOrigin origin,
                                const std::string& uri,
                                const char* bodyData,
                                size_t bodySize)
   {
-    return SimplePostOrPut(result, handler, HttpMethod_Post, uri, bodyData, bodySize);
+    return SimplePostOrPut(result, handler, origin, HttpMethod_Post, uri, bodyData, bodySize);
   }
 
 
   bool HttpToolbox::SimplePut(std::string& result,
                               IHttpHandler& handler,
+                              RequestOrigin origin,
                               const std::string& uri,
                               const char* bodyData,
                               size_t bodySize)
   {
-    return SimplePostOrPut(result, handler, HttpMethod_Put, uri, bodyData, bodySize);
+    return SimplePostOrPut(result, handler, origin, HttpMethod_Put, uri, bodyData, bodySize);
   }
 
 
   bool HttpToolbox::SimpleDelete(IHttpHandler& handler,
+                                 RequestOrigin origin,
                                  const std::string& uri)
   {
     UriComponents curi;
@@ -280,7 +290,7 @@ namespace Orthanc
     StringHttpOutput stream;
     HttpOutput http(stream, false /* no keep alive */);
 
-    return handler.Handle(http, HttpMethod_Delete, curi, headers, getArguments, 
-                          NULL /* no body for DELETE */, 0);
+    return handler.Handle(http, origin, LOCALHOST, "", HttpMethod_Delete, curi, 
+                          headers, getArguments, NULL /* no body for DELETE */, 0);
   }
 }
