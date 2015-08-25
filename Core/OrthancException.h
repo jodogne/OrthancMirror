@@ -61,7 +61,11 @@ namespace Orthanc
     {
     }
 
-    OrthancException(ErrorCode errorCode);
+    OrthancException(ErrorCode errorCode) : 
+      errorCode_(errorCode),
+      httpStatus_(ConvertErrorCodeToHttpStatus(errorCode))
+    {
+    }
 
     OrthancException(ErrorCode errorCode,
                      HttpStatus httpStatus) :
@@ -80,6 +84,16 @@ namespace Orthanc
       return httpStatus_;
     }
 
-    const char* What() const;
+    const char* What() const
+    {
+      if (errorCode_ == ErrorCode_Custom)
+      {
+        return custom_.c_str();
+      }
+      else
+      {
+        return EnumerationToString(errorCode_);
+      }
+    }
   };
 }

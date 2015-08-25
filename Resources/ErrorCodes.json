@@ -1,0 +1,152 @@
+[
+    {
+        "Code": -1, 
+        "Name": "Custom", 
+        "Description": "Custom error, see the attached error message"
+    }, 
+    {
+        "Code": 0, 
+        "HttpStatus": 200, 
+        "Name": "Success", 
+        "Description": "Success"
+    }, 
+    {
+        "Code": 1, 
+        "Name": "InternalError", 
+        "Description": "Internal error"
+    }, 
+    {
+        "Code": 2, 
+        "Name": "NotImplemented", 
+        "Description": "Not implemented yet"
+    }, 
+    {
+        "Code": 3, 
+        "HttpStatus": 400, 
+        "Name": "ParameterOutOfRange", 
+        "Description": "Parameter out of range"
+    }, 
+    {
+        "Code": 4, 
+        "Name": "NotEnoughMemory", 
+        "Description": "Not enough memory"
+    }, 
+    {
+        "Code": 5, 
+        "HttpStatus": 400, 
+        "Name": "BadParameterType", 
+        "Description": "Bad type for a parameter"
+    }, 
+    {
+        "Code": 6, 
+        "Name": "BadSequenceOfCalls", 
+        "Description": "Bad sequence of calls"
+    }, 
+    {
+        "Code": 7, 
+        "HttpStatus": 404, 
+        "Name": "InexistentItem", 
+        "Description": "Accessing an inexistent item"
+    }, 
+    {
+        "Code": 8, 
+        "HttpStatus": 400, 
+        "Name": "BadRequest", 
+        "Description": "Bad request"
+    }, 
+    {
+        "Code": 9, 
+        "Name": "NetworkProtocol", 
+        "Description": "Error in the network protocol"
+    }, 
+    {
+        "Code": 10, 
+        "Name": "SystemCommand", 
+        "Description": "Error while calling a system command"
+    }, 
+    {
+        "Code": 11, 
+        "Name": "Database", 
+        "Description": "Error with the database engine"
+    }, 
+    {
+        "Code": 12, 
+        "HttpStatus": 400, 
+        "Name": "UriSyntax", 
+        "Description": "Badly formatted URI"
+    }, 
+    {
+        "Code": 13, 
+        "HttpStatus": 404, 
+        "Name": "InexistentFile", 
+        "Description": "Inexistent file"
+    }, 
+    {
+        "Code": 14, 
+        "Name": "CannotWriteFile", 
+        "Description": "Cannot write to file"
+    }, 
+    {
+        "Code": 15, 
+        "HttpStatus": 400, 
+        "Name": "BadFileFormat", 
+        "Description": "Bad file format"
+    }, 
+    {
+        "Code": 16, 
+        "Name": "Timeout", 
+        "Description": "Timeout"
+    }, 
+    {
+        "Code": 17, 
+        "HttpStatus": 404, 
+        "Name": "UnknownResource", 
+        "Description": "Unknown resource"
+    }, 
+    {
+        "Code": 18, 
+        "Name": "IncompatibleDatabaseVersion", 
+        "Description": "Incompatible version of the database"
+    }, 
+    {
+        "Code": 19, 
+        "Name": "FullStorage", 
+        "Description": "The file storage is full"
+    }, 
+    {
+        "Code": 20, 
+        "Name": "CorruptedFile", 
+        "Description": "Corrupted file (inconsistent MD5 hash)"
+    }, 
+    {
+        "Code": 21, 
+        "HttpStatus": 404, 
+        "Name": "InexistentTag", 
+        "Description": "Inexistent tag"
+    }, 
+    {
+        "Code": 22, 
+        "Name": "ReadOnly", 
+        "Description": "Cannot modify a read-only data structure"
+    }, 
+    {
+        "Code": 23, 
+        "Name": "IncompatibleImageFormat", 
+        "Description": "Incompatible format of the images"
+    }, 
+    {
+        "Code": 24, 
+        "Name": "IncompatibleImageSize", 
+        "Description": "Incompatible size of the images"
+    }, 
+    {
+        "Code": 25, 
+        "Name": "SharedLibrary", 
+        "Description": "Error while using a shared library (plugin)"
+    }, 
+    {
+        "Code": 26, 
+        "Name": "Plugin", 
+        "Description": "Error encountered inside a plugin"
+    }
+]

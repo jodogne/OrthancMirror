@@ -30,34 +30,32 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-
-
-# This file injects the UID information into the DICOM conformance
-# statement of Orthanc
-
+import json
+import os
 import re
 
-# Read the conformance statement of Orthanc
-with open('DicomConformanceStatement.txt', 'r') as f:
-    statements = f.readlines()
+BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
-# Create an index of all the DICOM UIDs that are known to DCMTK
-uids = {}
-with open('/usr/include/dcmtk/dcmdata/dcuid.h', 'r') as dcmtk:
-    for l in dcmtk.readlines():
-        m = re.match(r'#define UID_(.+?)\s*"(.+?)"', l)
-        if m != None:
-            uids[m.group(1)] = m.group(2)
 
-# Loop over the lines of the statement, looking for the "|" separator
-with open('/tmp/DicomConformanceStatement.txt', 'w') as f:
-    for l in statements:
-        m = re.match(r'(\s*)(.*?)(\s*)\|.*$', l)
-        if m != None:
-            name = m.group(2)
-            uid = uids[name]
-            f.write('%s%s%s| %s\n' % (m.group(1), name, m.group(3), uid))
+## 
+## Read all the available error codes
+##
 
-        else:
-            # No "|" in this line, just output it
-            f.write(l)
+with open(os.path.join(BASE, 'Resources', 'ErrorCodes.json'), 'r') as f:
+    ERRORS = json.loads(f.read())
+
+
+##
+## Generate the "ErrorCode" enumeration in "Core/Enumerations.h"
+##
+
+s = ',\n'.join(map(lambda x: '    ErrorCode_%s = %d' % (x['Name'], int(x['Code'])), ERRORS))
+
+with open(os.path.join(BASE, 'Core', 'Enumerations.h'), 'r') as f:
+    a = f.read()
+
+a = re.sub('(enum ErrorCode\s*{)[^}]*?(\s*};)', r'\1\n%s\2' % s, a, re.DOTALL)
+
+with open(os.path.join(BASE, 'Core', 'Enumerations.h'), 'w') as f:
+    f.write(a)
+

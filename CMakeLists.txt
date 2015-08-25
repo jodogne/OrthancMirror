@@ -87,7 +87,6 @@ set(ORTHANC_CORE_SOURCES
   Core/Compression/HierarchicalZipWriter.cpp
   Core/Compression/ZipWriter.cpp
   Core/Compression/ZlibCompressor.cpp
-  Core/OrthancException.cpp
   Core/DicomFormat/DicomArray.cpp
   Core/DicomFormat/DicomMap.cpp
   Core/DicomFormat/DicomTag.cpp
