@@ -19,6 +19,7 @@ Plugins
 -------
 
 * New function OrthancPluginBufferCompression() to (un)compress memory buffers
+* Plugins have access to explicit error codes 
 
 Maintenance
 -----------

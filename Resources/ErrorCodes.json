@@ -121,7 +121,7 @@
     {
         "Code": 20, 
         "Name": "CorruptedFile", 
-        "Description": "Corrupted file (inconsistent MD5 hash)"
+        "Description": "Corrupted file (e.g. inconsistent MD5 hash)"
     }, 
     {
         "Code": 21, 
@@ -148,5 +148,10 @@
         "Code": 25, 
         "Name": "SharedLibrary", 
         "Description": "Error while using a shared library (plugin)"
+    }, 
+    {
+        "Code": 26, 
+        "Name": "UnknownPluginService", 
+        "Description": "Plugin invoking an unknown service"
     }
 ]

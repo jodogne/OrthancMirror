@@ -72,7 +72,8 @@ namespace Orthanc
     ErrorCode_ReadOnly = 22    /*!< Cannot modify a read-only data structure */,
     ErrorCode_IncompatibleImageFormat = 23    /*!< Incompatible format of the images */,
     ErrorCode_IncompatibleImageSize = 24    /*!< Incompatible size of the images */,
-    ErrorCode_SharedLibrary = 25    /*!< Error while using a shared library (plugin) */
+    ErrorCode_SharedLibrary = 25    /*!< Error while using a shared library (plugin) */,
+    ErrorCode_UnknownPluginService = 26    /*!< Plugin invoking an unknown service */
   };
 
   enum LogLevel
