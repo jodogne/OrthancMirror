@@ -34,6 +34,7 @@
 #include "DeflateBaseCompressor.h"
 
 #include "../OrthancException.h"
+#include "../Logging.h"
 
 #include <string.h>
 
@@ -43,7 +44,8 @@ namespace Orthanc
   {
     if (level >= 10)
     {
-      throw OrthancException("Zlib compression level must be between 0 (no compression) and 9 (highest compression");
+      LOG(ERROR) << "Zlib compression level must be between 0 (no compression) and 9 (highest compression)";
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
     compressionLevel_ = level;
@@ -60,7 +62,8 @@ namespace Orthanc
 
     if (compressedSize < sizeof(uint64_t))
     {
-      throw OrthancException("The compressed buffer is ill-formed");
+      LOG(ERROR) << "The compressed buffer is ill-formed";
+      throw OrthancException(ErrorCode_CorruptedFile);
     }
 
     uint64_t size;

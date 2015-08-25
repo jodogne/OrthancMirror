@@ -44,7 +44,6 @@ namespace Orthanc
     HttpStatus httpStatus_;
     std::string custom_;
 
-  public:
     OrthancException(const std::string& custom) : 
       errorCode_(ErrorCode_Custom),
       httpStatus_(HttpStatus_500_InternalServerError),
@@ -52,6 +51,7 @@ namespace Orthanc
     {
     }
 
+  public:
     OrthancException(ErrorCode errorCode) : 
       errorCode_(errorCode),
       httpStatus_(ConvertErrorCodeToHttpStatus(errorCode))

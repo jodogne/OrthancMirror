@@ -96,7 +96,7 @@ TEST(MultiThreading, SharedMessageQueueClean)
     SharedMessageQueue q;
     q.Enqueue(new DynamicInteger(10, s));
     q.Enqueue(new DynamicInteger(20, s));  
-    throw OrthancException("Nope");
+    throw OrthancException(ErrorCode_Custom);
   }
   catch (OrthancException&)
   {

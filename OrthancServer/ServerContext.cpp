@@ -330,7 +330,7 @@ namespace Orthanc
     Json::Reader reader;
     if (!reader.parse(s, result))
     {
-      throw OrthancException("Corrupted JSON file");
+      throw OrthancException(ErrorCode_CorruptedFile);
     }
   }
 

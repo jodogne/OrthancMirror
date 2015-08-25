@@ -144,7 +144,7 @@ namespace Orthanc
         status != HttpStatus_500_InternalServerError &&
         status != HttpStatus_415_UnsupportedMediaType)
     {
-      throw OrthancException("This HTTP status is not allowed in a REST API");
+      throw OrthancException(ErrorCode_BadHttpStatusInRest);
     }
 
     CheckStatus();

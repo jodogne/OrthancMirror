@@ -145,7 +145,7 @@ namespace Orthanc
       switch (error)
       {
       case Z_DATA_ERROR:
-        throw OrthancException("Zlib: Corrupted or incomplete compressed buffer");
+        throw OrthancException(ErrorCode_CorruptedFile);
 
       case Z_MEM_ERROR:
         throw OrthancException(ErrorCode_NotEnoughMemory);

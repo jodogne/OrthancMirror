@@ -315,7 +315,8 @@ namespace Orthanc
       std::string modifiedInstance;
       if (context.Store(modifiedInstance, toStore) != StoreStatus_Success)
       {
-        throw OrthancException("Error while storing a modified instance " + *it);
+        LOG(ERROR) << "Error while storing a modified instance " << *it;
+        throw OrthancException(ErrorCode_CannotStoreInstance);
       }
 
       // Sanity checks in debug mode
@@ -444,7 +445,7 @@ namespace Orthanc
 
     if (status == StoreStatus_Failure)
     {
-      throw OrthancException("Error while storing a manually-created instance");
+      throw OrthancException(ErrorCode_CannotStoreInstance);
     }
   }
 
@@ -465,7 +466,7 @@ namespace Orthanc
       const std::string& name = members[i];
       if (request[name].type() != Json::stringValue)
       {
-        throw OrthancException("Only string values are supported when creating DICOM instances");
+        throw OrthancException(ErrorCode_CreateDicomNotString);
       }
 
       std::string value = request[name].asString();
@@ -488,7 +489,7 @@ namespace Orthanc
   {
     if (tags.type() != Json::objectValue)
     {
-      throw OrthancException("Bad syntax to specify the tags");
+      throw OrthancException(ErrorCode_BadRequest);
     }
 
     // Inject the user-specified tags
@@ -498,7 +499,7 @@ namespace Orthanc
       const std::string& name = members[i];
       if (tags[name].type() != Json::stringValue)
       {
-        throw OrthancException("Only string values are supported when creating DICOM instances");
+        throw OrthancException(ErrorCode_CreateDicomNotString);
       }
 
       std::string value = tags[name].asString();
@@ -509,12 +510,12 @@ namespace Orthanc
         if (tag != DICOM_TAG_PATIENT_ID &&
             dicom.HasTag(tag))
         {
-          throw OrthancException("Trying to override a value inherited from a parent module");
+          throw OrthancException(ErrorCode_CreateDicomOverrideTag);
         }
 
         if (tag == DICOM_TAG_PIXEL_DATA)
         {
-          throw OrthancException("Use \"Content\" to inject an image into a new DICOM instance");
+          throw OrthancException(ErrorCode_CreateDicomUseContent);
         }
         else
         {
@@ -553,7 +554,7 @@ namespace Orthanc
         {
           if (!content[i].isMember("Content"))
           {
-            throw OrthancException("No payload is present for one instance in the series");
+            throw OrthancException(ErrorCode_CreateDicomNoPayload);
           }
 
           payload = &content[i]["Content"];
@@ -567,7 +568,7 @@ namespace Orthanc
         if (payload == NULL ||
             payload->type() != Json::stringValue)
         {
-          throw OrthancException("The payload of the DICOM instance must be specified according to Data URI scheme");
+          throw OrthancException(ErrorCode_CreateDicomUseDataUriScheme);
         }
 
         dicom->EmbedContent(payload->asString());
@@ -621,7 +622,8 @@ namespace Orthanc
         const char* tmp = request["Tags"]["SpecificCharacterSet"].asCString();
         if (!GetDicomEncoding(encoding, tmp))
         {
-          throw OrthancException("Unknown specific character set: " + std::string(tmp));
+          LOG(ERROR) << "Unknown specific character set: " << std::string(tmp);
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
         }
       }
       else
@@ -641,12 +643,12 @@ namespace Orthanc
       std::string parent = request["Parent"].asString();
       if (!context.GetIndex().LookupResourceType(parentType, parent))
       {
-        throw OrthancException("Trying to attach a new DICOM instance to an inexistent resource: " + parent);
+        throw OrthancException(ErrorCode_CreateDicomBadParent);
       }
 
       if (parentType == ResourceType_Instance)
       {
-        throw OrthancException("Trying to attach a new DICOM instance to an instance (must be a series, study or patient): " + parent);
+        throw OrthancException(ErrorCode_CreateDicomParentIsInstance);
       }
 
       // Select one existing child instance of the parent resource, to
@@ -679,7 +681,7 @@ namespace Orthanc
               siblingTags[SPECIFIC_CHARACTER_SET]["Value"].type() != Json::stringValue ||
               !GetDicomEncoding(encoding, siblingTags[SPECIFIC_CHARACTER_SET]["Value"].asCString()))
           {
-            throw OrthancException("Unable to get the encoding of the parent resource");
+            throw OrthancException(ErrorCode_CreateDicomParentEncoding);
           }
 
           dicom.SetEncoding(encoding);
@@ -783,7 +785,7 @@ namespace Orthanc
       }
       else
       {
-        throw OrthancException("The payload of the DICOM instance must be specified according to Data URI scheme");
+        throw OrthancException(ErrorCode_CreateDicomUseDataUriScheme);
         return;
       }
     }
