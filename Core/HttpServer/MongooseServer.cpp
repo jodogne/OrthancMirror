@@ -634,18 +634,18 @@ namespace Orthanc
 
 
     // Apply the filter, if it is installed
+    char remoteIp[24];
+    sprintf(remoteIp, "%d.%d.%d.%d", 
+            reinterpret_cast<const uint8_t*>(&request->remote_ip) [3], 
+            reinterpret_cast<const uint8_t*>(&request->remote_ip) [2], 
+            reinterpret_cast<const uint8_t*>(&request->remote_ip) [1], 
+            reinterpret_cast<const uint8_t*>(&request->remote_ip) [0]);
+
+    std::string username = GetAuthenticatedUsername(headers);
+
     const IIncomingHttpRequestFilter *filter = that->GetIncomingHttpRequestFilter();
     if (filter != NULL)
     {
-      std::string username = GetAuthenticatedUsername(headers);
-
-      char remoteIp[24];
-      sprintf(remoteIp, "%d.%d.%d.%d", 
-              reinterpret_cast<const uint8_t*>(&request->remote_ip) [3], 
-              reinterpret_cast<const uint8_t*>(&request->remote_ip) [2], 
-              reinterpret_cast<const uint8_t*>(&request->remote_ip) [1], 
-              reinterpret_cast<const uint8_t*>(&request->remote_ip) [0]);
-
       if (!filter->IsAllowed(method, request->uri, remoteIp, username.c_str()))
       {
         output.SendUnauthorized(ORTHANC_REALM);
@@ -728,7 +728,8 @@ namespace Orthanc
       {
         if (that->HasHandler())
         {
-          found = that->GetHandler().Handle(output, method, uri, headers, argumentsGET, body.c_str(), body.size());
+          found = that->GetHandler().Handle(output, RequestOrigin_Http, remoteIp, username.c_str(), 
+                                            method, uri, headers, argumentsGET, body.c_str(), body.size());
         }
       }
       catch (boost::bad_lexical_cast&)

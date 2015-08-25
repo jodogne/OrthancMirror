@@ -47,13 +47,17 @@ namespace Orthanc
     
     RestApiPostCall(RestApiOutput& output,
                     RestApi& context,
+                    RequestOrigin origin,
+                    const char* remoteIp,
+                    const char* username,
                     const IHttpHandler::Arguments& httpHeaders,
                     const IHttpHandler::Arguments& uriComponents,
                     const UriComponents& trailing,
                     const UriComponents& fullUri,
                     const char* bodyData,
                     size_t bodySize) :
-      RestApiCall(output, context, httpHeaders, uriComponents, trailing, fullUri),
+      RestApiCall(output, context, origin, remoteIp, username, 
+                  httpHeaders, uriComponents, trailing, fullUri),
       bodyData_(bodyData),
       bodySize_(bodySize)
     {

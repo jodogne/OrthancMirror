@@ -48,6 +48,9 @@ namespace Orthanc
   private:
     RestApiOutput& output_;
     RestApi& context_;
+    RequestOrigin origin_;
+    const char* remoteIp_;
+    const char* username_;
     const IHttpHandler::Arguments& httpHeaders_;
     const IHttpHandler::Arguments& uriComponents_;
     const UriComponents& trailing_;
@@ -60,12 +63,18 @@ namespace Orthanc
   public:
     RestApiCall(RestApiOutput& output,
                 RestApi& context,
+                RequestOrigin origin,
+                const char* remoteIp,
+                const char* username,
                 const IHttpHandler::Arguments& httpHeaders,
                 const IHttpHandler::Arguments& uriComponents,
                 const UriComponents& trailing,
                 const UriComponents& fullUri) :
       output_(output),
       context_(context),
+      origin_(origin),
+      remoteIp_(remoteIp),
+      username_(username),
       httpHeaders_(httpHeaders),
       uriComponents_(uriComponents),
       trailing_(trailing),
@@ -116,6 +125,21 @@ namespace Orthanc
     }
 
     std::string FlattenUri() const;
+
+    RequestOrigin GetRequestOrigin() const
+    {
+      return origin_;
+    }
+
+    const char* GetRemoteIp() const
+    {
+      return remoteIp_;
+    }
+
+    const char* GetUsername() const
+    {
+      return username_;
+    }
 
     virtual bool ParseJsonRequest(Json::Value& result) const = 0;
   };

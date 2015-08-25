@@ -43,11 +43,15 @@ namespace Orthanc
     
     RestApiDeleteCall(RestApiOutput& output,
                       RestApi& context,
+                      RequestOrigin origin,
+                      const char* remoteIp,
+                      const char* username,
                       const IHttpHandler::Arguments& httpHeaders,
                       const IHttpHandler::Arguments& uriComponents,
                       const UriComponents& trailing,
                       const UriComponents& fullUri) :
-      RestApiCall(output, context, httpHeaders, uriComponents, trailing, fullUri)
+      RestApiCall(output, context, origin, remoteIp, username,
+                  httpHeaders, uriComponents, trailing, fullUri)
     {
     }
 

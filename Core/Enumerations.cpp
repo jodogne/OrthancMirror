@@ -370,6 +370,28 @@ namespace Orthanc
   }
 
 
+  const char* EnumerationToString(RequestOrigin origin)
+  {
+    switch (origin)
+    {
+      case RequestOrigin_DicomProtocol:
+        return "DicomProtocol";
+
+      case RequestOrigin_Http:
+        return "Http";
+
+      case RequestOrigin_Plugins:
+        return "Plugins";
+
+      case RequestOrigin_Lua:
+        return "Lua";
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
   const char* EnumerationToString(LogLevel level)
   {
     switch (level)

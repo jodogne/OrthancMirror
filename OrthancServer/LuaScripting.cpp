@@ -84,7 +84,8 @@ namespace Orthanc
     bool builtin = (nArgs == 2 ? lua_toboolean(state, 2) != 0 : false);
 
     std::string result;
-    if (HttpToolbox::SimpleGet(result, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), uri))
+    if (HttpToolbox::SimpleGet(result, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
+                               RequestOrigin_Lua, uri))
     {
       lua_pushlstring(state, result.c_str(), result.size());
     }
@@ -129,9 +130,9 @@ namespace Orthanc
     std::string result;
     if (isPost ?
         HttpToolbox::SimplePost(result, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
-                                uri, bodyData, bodySize) :
+                                RequestOrigin_Lua, uri, bodyData, bodySize) :
         HttpToolbox::SimplePut(result, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
-                               uri, bodyData, bodySize))
+                               RequestOrigin_Lua, uri, bodyData, bodySize))
     {
       lua_pushlstring(state, result.c_str(), result.size());
     }
@@ -184,7 +185,8 @@ namespace Orthanc
     const char* uri = lua_tostring(state, 1);
     bool builtin = (nArgs == 2 ? lua_toboolean(state, 2) != 0 : false);
 
-    if (HttpToolbox::SimpleDelete(serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), uri))
+    if (HttpToolbox::SimpleDelete(serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
+                                  RequestOrigin_Lua, uri))
     {
       lua_pushboolean(state, 1);
     }

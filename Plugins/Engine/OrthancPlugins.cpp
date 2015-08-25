@@ -229,6 +229,9 @@ namespace Orthanc
 
 
   bool OrthancPlugins::Handle(HttpOutput& output,
+                              RequestOrigin /*origin*/,
+                              const char* /*remoteIp*/,
+                              const char* /*username*/,
                               HttpMethod method,
                               const UriComponents& uri,
                               const Arguments& headers,
@@ -627,7 +630,7 @@ namespace Orthanc
     IHttpHandler& handler = pimpl_->context_->GetHttpHandler().RestrictToOrthancRestApi(!afterPlugins);
 
     std::string result;
-    if (HttpToolbox::SimpleGet(result, handler, p.uri))
+    if (HttpToolbox::SimpleGet(result, handler, RequestOrigin_Plugins, p.uri))
     {
       CopyToMemoryBuffer(*p.target, result);
     }
@@ -653,8 +656,8 @@ namespace Orthanc
 
     std::string result;
     if (isPost ? 
-        HttpToolbox::SimplePost(result, handler, p.uri, p.body, p.bodySize) :
-        HttpToolbox::SimplePut (result, handler, p.uri, p.body, p.bodySize))
+        HttpToolbox::SimplePost(result, handler, RequestOrigin_Plugins, p.uri, p.body, p.bodySize) :
+        HttpToolbox::SimplePut (result, handler, RequestOrigin_Plugins, p.uri, p.body, p.bodySize))
     {
       CopyToMemoryBuffer(*p.target, result);
     }
@@ -675,7 +678,7 @@ namespace Orthanc
     CheckContextAvailable();
     IHttpHandler& handler = pimpl_->context_->GetHttpHandler().RestrictToOrthancRestApi(!afterPlugins);
 
-    if (!HttpToolbox::SimpleDelete(handler, uri))
+    if (!HttpToolbox::SimpleDelete(handler, RequestOrigin_Plugins, uri))
     {
       throw OrthancException(ErrorCode_BadRequest);
     }

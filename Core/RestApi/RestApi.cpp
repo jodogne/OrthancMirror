@@ -48,6 +48,9 @@ namespace Orthanc
     private:
       RestApi& api_;
       RestApiOutput& output_;
+      RequestOrigin origin_;
+      const char* remoteIp_;
+      const char* username_;
       HttpMethod method_;
       const IHttpHandler::Arguments& headers_;
       const IHttpHandler::Arguments& getArguments_;
@@ -57,6 +60,9 @@ namespace Orthanc
     public:
       HttpHandlerVisitor(RestApi& api,
                          RestApiOutput& output,
+                         RequestOrigin origin,
+                         const char* remoteIp,
+                         const char* username,
                          HttpMethod method,
                          const IHttpHandler::Arguments& headers,
                          const IHttpHandler::Arguments& getArguments,
@@ -64,6 +70,9 @@ namespace Orthanc
                          size_t bodySize) :
         api_(api),
         output_(output),
+        origin_(origin),
+        remoteIp_(remoteIp),
+        username_(username),
         method_(method),
         headers_(headers),
         getArguments_(getArguments),
@@ -83,28 +92,32 @@ namespace Orthanc
           {
             case HttpMethod_Get:
             {
-              RestApiGetCall call(output_, api_, headers_, components, trailing, uri, getArguments_);
+              RestApiGetCall call(output_, api_, origin_, remoteIp_, username_, 
+                                  headers_, components, trailing, uri, getArguments_);
               resource.Handle(call);
               return true;
             }
 
             case HttpMethod_Post:
             {
-              RestApiPostCall call(output_, api_, headers_, components, trailing, uri, bodyData_, bodySize_);
+              RestApiPostCall call(output_, api_, origin_, remoteIp_, username_, 
+                                   headers_, components, trailing, uri, bodyData_, bodySize_);
               resource.Handle(call);
               return true;
             }
 
             case HttpMethod_Delete:
             {
-              RestApiDeleteCall call(output_, api_, headers_, components, trailing, uri);
+              RestApiDeleteCall call(output_, api_, origin_, remoteIp_, username_, 
+                                     headers_, components, trailing, uri);
               resource.Handle(call);
               return true;
             }
 
             case HttpMethod_Put:
             {
-              RestApiPutCall call(output_, api_, headers_, components, trailing, uri, bodyData_, bodySize_);
+              RestApiPutCall call(output_, api_, origin_, remoteIp_, username_, 
+                                  headers_, components, trailing, uri, bodyData_, bodySize_);
               resource.Handle(call);
               return true;
             }
@@ -160,6 +173,9 @@ namespace Orthanc
 
 
   bool RestApi::Handle(HttpOutput& output,
+                       RequestOrigin origin,
+                       const char* remoteIp,
+                       const char* username,
                        HttpMethod method,
                        const UriComponents& uri,
                        const Arguments& headers,
@@ -197,7 +213,8 @@ namespace Orthanc
     Arguments compiled;
     HttpToolbox::CompileGetArguments(compiled, getArguments);
 
-    HttpHandlerVisitor visitor(*this, wrappedOutput, method, headers, compiled, bodyData, bodySize);
+    HttpHandlerVisitor visitor(*this, wrappedOutput, origin, remoteIp, username, 
+                               method, headers, compiled, bodyData, bodySize);
 
     if (root_.LookupResource(uri, visitor))
     {
