@@ -359,6 +359,8 @@ namespace Orthanc
   };
 
 
+  const char* EnumerationToString(ErrorCode code);
+
   const char* EnumerationToString(HttpMethod method);
 
   const char* EnumerationToString(HttpStatus status);
