@@ -67,7 +67,9 @@ extern "C"
     _OrthancPluginDatabaseAnswerType_Int32 = 14,
     _OrthancPluginDatabaseAnswerType_Int64 = 15,
     _OrthancPluginDatabaseAnswerType_Resource = 16,
-    _OrthancPluginDatabaseAnswerType_String = 17
+    _OrthancPluginDatabaseAnswerType_String = 17,
+
+    _OrthancPluginDatabaseAnswerType_INTERNAL = 0x7fffffff
   } _OrthancPluginDatabaseAnswerType;
 
 
