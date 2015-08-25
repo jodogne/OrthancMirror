@@ -160,6 +160,34 @@ extern "C"
    **/
   typedef enum
   {
+    OrthancPluginErrorCode_Custom = -2    /*!< Custom error, see the attached error message */,
+    OrthancPluginErrorCode_InternalError = -1    /*!< Internal error */,
+    OrthancPluginErrorCode_Success = 0    /*!< Success */,
+    OrthancPluginErrorCode_Plugin = 1    /*!< Error encountered within the plugin engine */,
+    OrthancPluginErrorCode_NotImplemented = 2    /*!< Not implemented yet */,
+    OrthancPluginErrorCode_ParameterOutOfRange = 3    /*!< Parameter out of range */,
+    OrthancPluginErrorCode_NotEnoughMemory = 4    /*!< Not enough memory */,
+    OrthancPluginErrorCode_BadParameterType = 5    /*!< Bad type for a parameter */,
+    OrthancPluginErrorCode_BadSequenceOfCalls = 6    /*!< Bad sequence of calls */,
+    OrthancPluginErrorCode_InexistentItem = 7    /*!< Accessing an inexistent item */,
+    OrthancPluginErrorCode_BadRequest = 8    /*!< Bad request */,
+    OrthancPluginErrorCode_NetworkProtocol = 9    /*!< Error in the network protocol */,
+    OrthancPluginErrorCode_SystemCommand = 10    /*!< Error while calling a system command */,
+    OrthancPluginErrorCode_Database = 11    /*!< Error with the database engine */,
+    OrthancPluginErrorCode_UriSyntax = 12    /*!< Badly formatted URI */,
+    OrthancPluginErrorCode_InexistentFile = 13    /*!< Inexistent file */,
+    OrthancPluginErrorCode_CannotWriteFile = 14    /*!< Cannot write to file */,
+    OrthancPluginErrorCode_BadFileFormat = 15    /*!< Bad file format */,
+    OrthancPluginErrorCode_Timeout = 16    /*!< Timeout */,
+    OrthancPluginErrorCode_UnknownResource = 17    /*!< Unknown resource */,
+    OrthancPluginErrorCode_IncompatibleDatabaseVersion = 18    /*!< Incompatible version of the database */,
+    OrthancPluginErrorCode_FullStorage = 19    /*!< The file storage is full */,
+    OrthancPluginErrorCode_CorruptedFile = 20    /*!< Corrupted file (inconsistent MD5 hash) */,
+    OrthancPluginErrorCode_InexistentTag = 21    /*!< Inexistent tag */,
+    OrthancPluginErrorCode_ReadOnly = 22    /*!< Cannot modify a read-only data structure */,
+    OrthancPluginErrorCode_IncompatibleImageFormat = 23    /*!< Incompatible format of the images */,
+    OrthancPluginErrorCode_IncompatibleImageSize = 24    /*!< Incompatible size of the images */,
+    OrthancPluginErrorCode_SharedLibrary = 25    /*!< Error while using a shared library (plugin) */
   } OrthancPluginErrorCode;
 
 
@@ -608,7 +636,15 @@ extern "C"
   {
     int major, minor, revision;
 
-    if (sizeof(int32_t) != sizeof(OrthancPluginErrorCode))
+    if (sizeof(int32_t) != sizeof(OrthancPluginErrorCode) ||
+        sizeof(int32_t) != sizeof(OrthancPluginHttpMethod) ||
+        sizeof(int32_t) != sizeof(_OrthancPluginService) ||
+        sizeof(int32_t) != sizeof(_OrthancPluginProperty) ||
+        sizeof(int32_t) != sizeof(OrthancPluginPixelFormat) ||
+        sizeof(int32_t) != sizeof(OrthancPluginContentType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginResourceType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginChangeType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginCompressionType))
     {
       /* Mismatch in the size of the enumerations */
       return 0;

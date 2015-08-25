@@ -45,9 +45,10 @@ namespace Orthanc
   // "Resources/GenerateErrorCodes.py"
   enum ErrorCode
   {
-    ErrorCode_Custom = -1    /*!< Custom error, see the attached error message */,
+    ErrorCode_Custom = -2    /*!< Custom error, see the attached error message */,
+    ErrorCode_InternalError = -1    /*!< Internal error */,
     ErrorCode_Success = 0    /*!< Success */,
-    ErrorCode_InternalError = 1    /*!< Internal error */,
+    ErrorCode_Plugin = 1    /*!< Error encountered within the plugin engine */,
     ErrorCode_NotImplemented = 2    /*!< Not implemented yet */,
     ErrorCode_ParameterOutOfRange = 3    /*!< Parameter out of range */,
     ErrorCode_NotEnoughMemory = 4    /*!< Not enough memory */,
@@ -71,8 +72,7 @@ namespace Orthanc
     ErrorCode_ReadOnly = 22    /*!< Cannot modify a read-only data structure */,
     ErrorCode_IncompatibleImageFormat = 23    /*!< Incompatible format of the images */,
     ErrorCode_IncompatibleImageSize = 24    /*!< Incompatible size of the images */,
-    ErrorCode_SharedLibrary = 25    /*!< Error while using a shared library (plugin) */,
-    ErrorCode_Plugin = 26    /*!< Error encountered inside a plugin */
+    ErrorCode_SharedLibrary = 25    /*!< Error while using a shared library (plugin) */
   };
 
   enum LogLevel

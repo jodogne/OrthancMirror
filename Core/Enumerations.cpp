@@ -49,11 +49,14 @@ namespace Orthanc
       case ErrorCode_Custom:
         return "Custom error, see the attached error message";
 
+      case ErrorCode_InternalError:
+        return "Internal error";
+
       case ErrorCode_Success:
         return "Success";
 
-      case ErrorCode_InternalError:
-        return "Internal error";
+      case ErrorCode_Plugin:
+        return "Error encountered within the plugin engine";
 
       case ErrorCode_NotImplemented:
         return "Not implemented yet";
@@ -126,9 +129,6 @@ namespace Orthanc
 
       case ErrorCode_SharedLibrary:
         return "Error while using a shared library (plugin)";
-
-      case ErrorCode_Plugin:
-        return "Error encountered inside a plugin";
 
       default:
         return "Unknown error code";

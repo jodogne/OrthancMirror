@@ -638,8 +638,13 @@ extern "C"
     void*                                payload)
   {
     OrthancPluginDatabaseContext* result = NULL;
-
     _OrthancPluginRegisterDatabaseBackend params;
+
+    if (sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType))
+    {
+      return NULL;
+    }
+
     memset(&params, 0, sizeof(params));
     params.backend = backend;
     params.result = &result;

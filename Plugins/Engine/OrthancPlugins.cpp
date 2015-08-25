@@ -172,7 +172,16 @@ namespace Orthanc
 
   OrthancPlugins::OrthancPlugins()
   {
-    if (sizeof(int32_t) != sizeof(OrthancPluginErrorCode))
+    if (sizeof(int32_t) != sizeof(OrthancPluginErrorCode) ||
+        sizeof(int32_t) != sizeof(OrthancPluginHttpMethod) ||
+        sizeof(int32_t) != sizeof(_OrthancPluginService) ||
+        sizeof(int32_t) != sizeof(_OrthancPluginProperty) ||
+        sizeof(int32_t) != sizeof(OrthancPluginPixelFormat) ||
+        sizeof(int32_t) != sizeof(OrthancPluginContentType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginResourceType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginChangeType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginCompressionType) ||
+        sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType))
     {
       /* Sanity check of the compiler */
       throw OrthancException(ErrorCode_Plugin);

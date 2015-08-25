@@ -1,8 +1,13 @@
 [
     {
-        "Code": -1, 
+        "Code": -2, 
         "Name": "Custom", 
         "Description": "Custom error, see the attached error message"
+    }, 
+    {
+        "Code": -1, 
+        "Name": "InternalError", 
+        "Description": "Internal error"
     }, 
     {
         "Code": 0, 
@@ -12,9 +17,9 @@
     }, 
     {
         "Code": 1, 
-        "Name": "InternalError", 
-        "Description": "Internal error"
-    }, 
+        "Name": "Plugin", 
+        "Description": "Error encountered within the plugin engine"
+    },
     {
         "Code": 2, 
         "Name": "NotImplemented", 
@@ -143,10 +148,5 @@
         "Code": 25, 
         "Name": "SharedLibrary", 
         "Description": "Error while using a shared library (plugin)"
-    }, 
-    {
-        "Code": 26, 
-        "Name": "Plugin", 
-        "Description": "Error encountered inside a plugin"
     }
 ]
