@@ -44,11 +44,11 @@ namespace Orthanc
   {
     switch (error)
     {
-      case ErrorCode_Success:
-        return "Success";
-
       case ErrorCode_Custom:
         return "Custom error, see the attached error message";
+
+      case ErrorCode_Success:
+        return "Success";
 
       case ErrorCode_InternalError:
         return "Internal error";
@@ -68,17 +68,32 @@ namespace Orthanc
       case ErrorCode_BadSequenceOfCalls:
         return "Bad sequence of calls";
 
+      case ErrorCode_InexistentItem:
+        return "Accessing an inexistent item";
+
+      case ErrorCode_BadRequest:
+        return "Bad request";
+
+      case ErrorCode_NetworkProtocol:
+        return "Error in the network protocol";
+
+      case ErrorCode_SystemCommand:
+        return "Error while calling a system command";
+
+      case ErrorCode_Database:
+        return "Error with the database engine";
+
       case ErrorCode_UriSyntax:
         return "Badly formatted URI";
 
       case ErrorCode_InexistentFile:
         return "Inexistent file";
 
-      case ErrorCode_BadFileFormat:
-        return "Bad file format";
-
       case ErrorCode_CannotWriteFile:
         return "Cannot write to file";
+
+      case ErrorCode_BadFileFormat:
+        return "Bad file format";
 
       case ErrorCode_Timeout:
         return "Timeout";
@@ -92,15 +107,6 @@ namespace Orthanc
       case ErrorCode_FullStorage:
         return "The file storage is full";
 
-      case ErrorCode_InexistentItem:
-        return "Accessing an inexistent item";
-
-      case ErrorCode_BadRequest:
-        return "Bad request";
-
-      case ErrorCode_NetworkProtocol:
-        return "Error in the network protocol";
-
       case ErrorCode_CorruptedFile:
         return "Corrupted file (inconsistent MD5 hash)";
 
@@ -110,23 +116,17 @@ namespace Orthanc
       case ErrorCode_ReadOnly:
         return "Cannot modify a read-only data structure";
 
-      case ErrorCode_IncompatibleImageSize:
-        return "Incompatible size of the images";
-
       case ErrorCode_IncompatibleImageFormat:
         return "Incompatible format of the images";
+
+      case ErrorCode_IncompatibleImageSize:
+        return "Incompatible size of the images";
 
       case ErrorCode_SharedLibrary:
         return "Error while using a shared library (plugin)";
 
-      case ErrorCode_SystemCommand:
-        return "Error while calling a system command";
-
       case ErrorCode_Plugin:
         return "Error encountered inside a plugin";
-
-      case ErrorCode_Database:
-        return "Error with the database engine";
 
       default:
         return "Unknown error code";
@@ -926,32 +926,37 @@ namespace Orthanc
     switch (error)
     {
       case ErrorCode_Success:
-      {
         return HttpStatus_200_Ok;
-      }
+
+      case ErrorCode_ParameterOutOfRange:
+        return HttpStatus_400_BadRequest;
+
+      case ErrorCode_BadParameterType:
+        return HttpStatus_400_BadRequest;
+
+      case ErrorCode_InexistentItem:
+        return HttpStatus_404_NotFound;
+
+      case ErrorCode_BadRequest:
+        return HttpStatus_400_BadRequest;
+
+      case ErrorCode_UriSyntax:
+        return HttpStatus_400_BadRequest;
 
       case ErrorCode_InexistentFile:
-      case ErrorCode_InexistentItem:
-      case ErrorCode_InexistentTag:
-      case ErrorCode_UnknownResource:
-      {
         return HttpStatus_404_NotFound;
-      }
 
       case ErrorCode_BadFileFormat:
-      case ErrorCode_BadParameterType:
-      case ErrorCode_BadRequest:
-      case ErrorCode_ParameterOutOfRange:
-      case ErrorCode_UriSyntax:
-      {
         return HttpStatus_400_BadRequest;
-        break;
-      }
+
+      case ErrorCode_UnknownResource:
+        return HttpStatus_404_NotFound;
+
+      case ErrorCode_InexistentTag:
+        return HttpStatus_404_NotFound;
 
       default:
-      {
         return HttpStatus_500_InternalServerError;
-      }
     }
   }
 }
