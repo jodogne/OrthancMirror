@@ -40,6 +40,7 @@ UPCASE_CHECK = True
 USE_SYSTEM_EXCEPTION = False
 EXCEPTION_CLASS = 'OrthancException'
 OUT_OF_RANGE_EXCEPTION = 'OrthancException(ErrorCode_ParameterOutOfRange)'
+INEXISTENT_PATH_EXCEPTION = 'OrthancException(ErrorCode_InexistentItem)'
 NAMESPACE = 'Orthanc'
 
 ARGS = []
@@ -52,6 +53,7 @@ for i in range(len(sys.argv)):
         USE_SYSTEM_EXCEPTION = True
         EXCEPTION_CLASS = '::std::runtime_error'
         OUT_OF_RANGE_EXCEPTION = '%s("Parameter out of range")' % EXCEPTION_CLASS
+        INEXISTENT_PATH_EXCEPTION = '%s("Unknown path in a directory resource")' % EXCEPTION_CLASS
     elif sys.argv[i].startswith('--namespace='):
         NAMESPACE = sys.argv[i][sys.argv[i].find('=') + 1 : ]
 
@@ -338,7 +340,7 @@ for name in resources:
         for path in resources[name]['Files']:
             cpp.write('        if (!strcmp(path, "%s"))\n' % path)
             cpp.write('          return resource%dBuffer;\n' % resources[name]['Files'][path]['Index'])
-        cpp.write('        throw %s("Unknown path in a directory resource");\n\n' % EXCEPTION_CLASS)
+        cpp.write('        throw %s;\n\n' % INEXISTENT_PATH_EXCEPTION)
 
 cpp.write("""      default:
         throw %s;
@@ -358,7 +360,7 @@ for name in resources:
         for path in resources[name]['Files']:
             cpp.write('        if (!strcmp(path, "%s"))\n' % path)
             cpp.write('          return resource%dSize;\n' % resources[name]['Files'][path]['Index'])
-        cpp.write('        throw %s("Unknown path in a directory resource");\n\n' % EXCEPTION_CLASS)
+        cpp.write('        throw %s;\n\n' % INEXISTENT_PATH_EXCEPTION)
 
 cpp.write("""      default:
         throw %s;
