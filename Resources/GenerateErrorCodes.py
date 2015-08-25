@@ -37,25 +37,58 @@ import re
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 
+
 ## 
-## Read all the available error codes
+## Read all the available error codes and HTTP status
 ##
 
 with open(os.path.join(BASE, 'Resources', 'ErrorCodes.json'), 'r') as f:
     ERRORS = json.loads(f.read())
+
+with open(os.path.join(BASE, 'Core', 'Enumerations.h'), 'r') as f:
+    a = f.read()
+
+HTTP = {}
+for i in re.findall('(HttpStatus_([0-9]+)_\w+)', a):
+    HTTP[int(i[1])] = i[0]
+
 
 
 ##
 ## Generate the "ErrorCode" enumeration in "Core/Enumerations.h"
 ##
 
-s = ',\n'.join(map(lambda x: '    ErrorCode_%s = %d' % (x['Name'], int(x['Code'])), ERRORS))
-
 with open(os.path.join(BASE, 'Core', 'Enumerations.h'), 'r') as f:
     a = f.read()
 
+s = ',\n'.join(map(lambda x: '    ErrorCode_%s = %d' % (x['Name'], int(x['Code'])), ERRORS))
 a = re.sub('(enum ErrorCode\s*{)[^}]*?(\s*};)', r'\1\n%s\2' % s, a, re.DOTALL)
 
 with open(os.path.join(BASE, 'Core', 'Enumerations.h'), 'w') as f:
     f.write(a)
 
+
+
+##
+## Generate the "EnumerationToString(ErrorCode)" and
+## "ConvertErrorCodeToHttpStatus(ErrorCode)" functions in
+## "Core/Enumerations.cpp"
+##
+
+with open(os.path.join(BASE, 'Core', 'Enumerations.cpp'), 'r') as f:
+    a = f.read()
+
+s = '\n\n'.join(map(lambda x: '      case ErrorCode_%s:\n        return "%s";' % (x['Name'], x['Description']), ERRORS))
+a = re.sub('(EnumerationToString\(ErrorCode.*?\)\s*{\s*switch \([^)]*?\)\s*{)[^}]*?(\s*default:)',
+           r'\1\n%s\2' % s, a, re.DOTALL)
+
+def GetHttpStatus(x):
+    s = HTTP[x['HttpStatus']]
+    return '      case ErrorCode_%s:\n        return %s;' % (x['Name'], s)
+
+s = '\n\n'.join(map(GetHttpStatus, filter(lambda x: 'HttpStatus' in x, ERRORS)))
+a = re.sub('(ConvertErrorCodeToHttpStatus\(ErrorCode.*?\)\s*{\s*switch \([^)]*?\)\s*{)[^}]*?(\s*default:)',
+           r'\1\n%s\2' % s, a, re.DOTALL)
+
+with open(os.path.join(BASE, 'Core', 'Enumerations.cpp'), 'w') as f:
+    f.write(a)
