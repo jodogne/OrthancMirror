@@ -64,13 +64,13 @@ namespace Orthanc
     {
       if (isOpen_) 
       {
-        throw OrthancSQLiteException("SQLite: Beginning a transaction twice!");
+        throw OrthancSQLiteException(ErrorCode_SQLiteTransactionAlreadyStarted);
       }
 
       isOpen_ = connection_.BeginTransaction();
       if (!isOpen_)
       {
-        throw OrthancSQLiteException("SQLite: Unable to create a transaction");
+        throw OrthancSQLiteException(ErrorCode_SQLiteTransactionBegin);
       }
     }
 
@@ -78,8 +78,7 @@ namespace Orthanc
     {
       if (!isOpen_) 
       {
-        throw OrthancSQLiteException("SQLite: Attempting to roll back a nonexistent transaction. "
-                                     "Did you remember to call Begin()?");
+        throw OrthancSQLiteException(ErrorCode_SQLiteRollbackWithoutTransaction);
       }
 
       isOpen_ = false;
@@ -91,15 +90,14 @@ namespace Orthanc
     {
       if (!isOpen_) 
       {
-        throw OrthancSQLiteException("SQLite: Attempting to roll back a nonexistent transaction. "
-                                     "Did you remember to call Begin()?");
+        throw OrthancSQLiteException(ErrorCode_SQLiteRollbackWithoutTransaction);
       }
 
       isOpen_ = false;
 
       if (!connection_.CommitTransaction())
       {
-        throw OrthancSQLiteException("SQLite: Failure when committing the transaction");
+        throw OrthancSQLiteException(ErrorCode_SQLiteTransactionCommit);
       }
     }
   }

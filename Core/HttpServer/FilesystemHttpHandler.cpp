@@ -119,7 +119,7 @@ namespace Orthanc
     if (!fs::exists(pimpl_->root_) || 
         !fs::is_directory(pimpl_->root_))
     {
-      throw OrthancException("The path does not point to a directory");
+      throw OrthancException(ErrorCode_DirectoryExpected);
     }
   }
 

@@ -106,14 +106,14 @@ namespace Orthanc
     {
       if (!boost::filesystem::is_directory(path.parent_path()))
       {
-        throw OrthancException("The subdirectory to be created is already occupied by a regular file");        
+        throw OrthancException(ErrorCode_DirectoryOverFile);
       }
     }
     else
     {
       if (!boost::filesystem::create_directories(path.parent_path()))
       {
-        throw OrthancException("Unable to create a subdirectory in the file storage");        
+        throw OrthancException(ErrorCode_FileStorageCannotWrite);
       }
     }
 
@@ -121,7 +121,7 @@ namespace Orthanc
     f.open(path, std::ofstream::out | std::ios::binary);
     if (!f.good())
     {
-      throw OrthancException("Unable to create a new file in the file storage");
+      throw OrthancException(ErrorCode_FileStorageCannotWrite);
     }
 
     if (size != 0)
@@ -130,7 +130,7 @@ namespace Orthanc
       if (!f.good())
       {
         f.close();
-        throw OrthancException("Unable to write to the new file in the file storage");
+        throw OrthancException(ErrorCode_FileStorageCannotWrite);
       }
     }
 

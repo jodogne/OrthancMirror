@@ -255,9 +255,13 @@ namespace Orthanc
     if (boost::filesystem::exists(path))
     {
       if (boost::filesystem::is_regular_file(path))
+      {
         boost::filesystem::remove(path);
+      }
       else
-        throw OrthancException("The path is not a regular file: " + path);
+      {
+        throw OrthancException(ErrorCode_RegularFileExpected);
+      }
     }
   }
 
@@ -530,7 +534,7 @@ namespace Orthanc
     ssize_t bytes = readlink("/proc/self/exe", &buffer[0], buffer.size() - 1);
     if (bytes == 0)
     {
-      throw OrthancException("Unable to get the path to the executable");
+      throw OrthancException(ErrorCode_PathToExecutable);
     }
 
     return std::string(&buffer[0]);
@@ -1019,14 +1023,14 @@ namespace Orthanc
     {
       if (!boost::filesystem::is_directory(path))
       {
-        throw OrthancException("Cannot create the directory over an existing file: " + path);
+        throw OrthancException(ErrorCode_DirectoryOverFile);
       }
     }
     else
     {
       if (!boost::filesystem::create_directories(path))
       {
-        throw OrthancException("Unable to create the directory: " + path);
+        throw OrthancException(ErrorCode_MakeDirectory);
       }
     }
   }

@@ -215,7 +215,8 @@ namespace Orthanc
   {
     if (!element.isLeaf())
     {
-      throw OrthancException("Only applicable to leaf elements");
+      // This function is only applicable to leaf elements
+      throw OrthancException(ErrorCode_BadParameterType);
     }
 
     if (element.isaString())
@@ -594,7 +595,7 @@ namespace Orthanc
     if (entry == NULL)
     {
       dcmDataDict.unlock();
-      throw OrthancException("Unknown DICOM tag");
+      throw OrthancException(ErrorCode_UnknownDicomTag);
     }
     else
     {
@@ -611,7 +612,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException("Unknown DICOM tag");
+      throw OrthancException(ErrorCode_UnknownDicomTag);
     }
 #endif
   }

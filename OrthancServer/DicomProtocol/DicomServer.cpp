@@ -162,7 +162,7 @@ namespace Orthanc
     if (cond.bad())
     {
       LOG(ERROR) << "cannot create network: " << cond.text();
-      throw OrthancException("Cannot create network");
+      throw OrthancException(ErrorCode_DicomPortInUse);
     }
 
     LOG(INFO) << "DICOM server started";
@@ -279,12 +279,12 @@ namespace Orthanc
   {
     if (aet.size() == 0)
     {
-      throw OrthancException("Too short AET");
+      throw OrthancException(ErrorCode_BadApplicationEntityTitle);
     }
 
     if (aet.size() > 16)
     {
-      throw OrthancException("AET must be shorter than 16 characters");
+      throw OrthancException(ErrorCode_BadApplicationEntityTitle);
     }
 
     for (size_t i = 0; i < aet.size(); i++)
@@ -327,7 +327,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException("No C-FIND request handler factory");
+      throw OrthancException(ErrorCode_NoCFindHandler);
     }
   }
 
@@ -350,7 +350,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException("No C-MOVE request handler factory");
+      throw OrthancException(ErrorCode_NoCMoveHandler);
     }
   }
 
@@ -373,7 +373,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException("No C-STORE request handler factory");
+      throw OrthancException(ErrorCode_NoCStoreHandler);
     }
   }
 
@@ -396,7 +396,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException("No application entity filter");
+      throw OrthancException(ErrorCode_NoApplicationEntityFilter);
     }
   }
 

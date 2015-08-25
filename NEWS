@@ -24,6 +24,7 @@ Plugins
 Maintenance
 -----------
 
+* Improved error codes
 * Many code refactorings
 * If error while calling the REST API, the answer body contains an error description
 * Upgrade to curl 7.44.0 for static and Windows builds

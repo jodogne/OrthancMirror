@@ -896,7 +896,7 @@ namespace Orthanc
 
       if (!pimpl_->context_)
       {
-        throw OrthancException("Unable to launch the Mongoose server");
+        throw OrthancException(ErrorCode_HttpPortInUse);
       }
     }
   }

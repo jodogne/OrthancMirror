@@ -113,7 +113,7 @@ namespace Orthanc
         return "The file storage is full";
 
       case ErrorCode_CorruptedFile:
-        return "Corrupted file (inconsistent MD5 hash)";
+        return "Corrupted file (e.g. inconsistent MD5 hash)";
 
       case ErrorCode_InexistentTag:
         return "Inexistent tag";
@@ -132,6 +132,144 @@ namespace Orthanc
 
       case ErrorCode_UnknownPluginService:
         return "Plugin invoking an unknown service";
+
+      case ErrorCode_UnknownDicomTag:
+        return "Unknown DICOM tag";
+
+      case ErrorCode_SQLiteNotOpened:
+        return "SQLite: The database is not opened";
+
+      case ErrorCode_SQLiteAlreadyOpened:
+        return "SQLite: Connection is already open";
+
+      case ErrorCode_SQLiteCannotOpen:
+        return "SQLite: Unable to open the database";
+
+      case ErrorCode_SQLiteStatementAlreadyUsed:
+        return "SQLite: This cached statement is already being referred to";
+
+      case ErrorCode_SQLiteExecute:
+        return "SQLite: Cannot execute a command";
+
+      case ErrorCode_SQLiteRollbackWithoutTransaction:
+        return "SQLite: Rolling back a nonexistent transaction (have you called Begin()?)";
+
+      case ErrorCode_SQLiteCommitWithoutTransaction:
+        return "SQLite: Committing a nonexistent transaction";
+
+      case ErrorCode_SQLiteRegisterFunction:
+        return "SQLite: Unable to register a function";
+
+      case ErrorCode_SQLiteFlush:
+        return "SQLite: Unable to flush the database";
+
+      case ErrorCode_SQLiteCannotRun:
+        return "SQLite: Cannot run a cached statement";
+
+      case ErrorCode_SQLiteCannotStep:
+        return "SQLite: Cannot step over a cached statement";
+
+      case ErrorCode_SQLiteBindOutOfRange:
+        return "SQLite: Bing a value while out of range (serious error)";
+
+      case ErrorCode_SQLitePrepareStatement:
+        return "SQLite: Cannot prepare a cached statement";
+
+      case ErrorCode_SQLiteTransactionAlreadyStarted:
+        return "SQLite: Beginning the same transaction twice";
+
+      case ErrorCode_SQLiteTransactionCommit:
+        return "SQLite: Failure when committing the transaction";
+
+      case ErrorCode_SQLiteTransactionBegin:
+        return "SQLite: Cannot start a transaction";
+
+      case ErrorCode_DirectoryOverFile:
+        return "The directory to be created is already occupied by a regular file";
+
+      case ErrorCode_FileStorageCannotWrite:
+        return "Unable to create a subdirectory or a file in the file storage";
+
+      case ErrorCode_DirectoryExpected:
+        return "The specified path does not point to a directory";
+
+      case ErrorCode_HttpPortInUse:
+        return "The TCP port of the HTTP server is already in use";
+
+      case ErrorCode_DicomPortInUse:
+        return "The TCP port of the DICOM server is already in use";
+
+      case ErrorCode_BadHttpStatusInRest:
+        return "This HTTP status is not allowed in a REST API";
+
+      case ErrorCode_RegularFileExpected:
+        return "The specified path does not point to a regular file";
+
+      case ErrorCode_PathToExecutable:
+        return "Unable to get the path to the executable";
+
+      case ErrorCode_MakeDirectory:
+        return "Cannot create a directory";
+
+      case ErrorCode_BadApplicationEntityTitle:
+        return "An application entity title (AET) cannot be empty or be longer than 16 characters";
+
+      case ErrorCode_NoCFindHandler:
+        return "No request handler factory for DICOM C-FIND SCP";
+
+      case ErrorCode_NoCMoveHandler:
+        return "No request handler factory for DICOM C-MOVE SCP";
+
+      case ErrorCode_NoCStoreHandler:
+        return "No request handler factory for DICOM C-STORE SCP";
+
+      case ErrorCode_NoApplicationEntityFilter:
+        return "No application entity filter";
+
+      case ErrorCode_NoSopClassOrInstance:
+        return "DicomUserConnection: Unable to find the SOP class and instance";
+
+      case ErrorCode_NoPresentationContext:
+        return "DicomUserConnection: No acceptable presentation context for modality";
+
+      case ErrorCode_DicomFindUnavailable:
+        return "DicomUserConnection: The C-FIND command is not supported by the remote SCP";
+
+      case ErrorCode_DicomMoveUnavailable:
+        return "DicomUserConnection: The C-MOVE command is not supported by the remote SCP";
+
+      case ErrorCode_CannotStoreInstance:
+        return "Cannot store an instance";
+
+      case ErrorCode_CreateDicomNotString:
+        return "Only string values are supported when creating DICOM instances";
+
+      case ErrorCode_CreateDicomOverrideTag:
+        return "Trying to override a value inherited from a parent module";
+
+      case ErrorCode_CreateDicomUseContent:
+        return "Use \"Content\" to inject an image into a new DICOM instance";
+
+      case ErrorCode_CreateDicomNoPayload:
+        return "No payload is present for one instance in the series";
+
+      case ErrorCode_CreateDicomUseDataUriScheme:
+        return "The payload of the DICOM instance must be specified according to Data URI scheme";
+
+      case ErrorCode_CreateDicomBadParent:
+        return "Trying to attach a new DICOM instance to an inexistent resource";
+
+      case ErrorCode_CreateDicomParentIsInstance:
+        return "Trying to attach a new DICOM instance to an instance (must be a series, study or patient)";
+
+      case ErrorCode_CreateDicomParentEncoding:
+        return "Unable to get the encoding of the parent resource";
+
+      case ErrorCode_UnknownModality:
+        return "Unknown modality";
+
+      case ErrorCode_BadJobOrdering:
+        return "Bad ordering of filters in a job";
 
       default:
         return "Unknown error code";

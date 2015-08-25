@@ -227,7 +227,7 @@ namespace Orthanc
 
     if (!Configuration::LookupDicomModalityUsingAETitle(modality, remoteAet))
     {
-      throw OrthancException("Unknown modality");
+      throw OrthancException(ErrorCode_UnknownModality);
     }
 
     // ModalityManufacturer manufacturer = modality.GetManufacturer();

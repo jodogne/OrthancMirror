@@ -299,7 +299,7 @@ namespace Orthanc
     DIC_UI sopInstance;
     if (!DU_findSOPClassAndInstanceInDataSet(dcmff.getDataset(), sopClass, sopInstance))
     {
-      throw OrthancException("DicomUserConnection: Unable to find the SOP class and instance");
+      throw OrthancException(ErrorCode_NoSopClassOrInstance);
     }
 
     // Figure out which of the accepted presentation contexts should be used
@@ -309,8 +309,7 @@ namespace Orthanc
       const char *modalityName = dcmSOPClassUIDToModality(sopClass);
       if (!modalityName) modalityName = dcmFindNameOfUID(sopClass);
       if (!modalityName) modalityName = "unknown SOP class";
-      throw OrthancException("DicomUserConnection: No presentation context for modality " + 
-                             std::string(modalityName));
+      throw OrthancException(ErrorCode_NoPresentationContext);
     }
 
     // Prepare the transmission of data
@@ -552,7 +551,7 @@ namespace Orthanc
     int presID = ASC_findAcceptedPresentationContextID(pimpl_->assoc_, sopClass);
     if (presID == 0)
     {
-      throw OrthancException("DicomUserConnection: The C-FIND command is not supported by the remote AET");
+      throw OrthancException(ErrorCode_DicomFindUnavailable);
     }
 
     T_DIMSE_C_FindRQ request;
@@ -625,7 +624,7 @@ namespace Orthanc
     int presID = ASC_findAcceptedPresentationContextID(pimpl_->assoc_, sopClass);
     if (presID == 0)
     {
-      throw OrthancException("DicomUserConnection: The C-MOVE command is not supported by the remote AET");
+      throw OrthancException(ErrorCode_DicomMoveUnavailable);
     }
 
     T_DIMSE_C_MoveRQ request;
@@ -776,7 +775,7 @@ namespace Orthanc
     {
       if (host.size() > HOST_NAME_MAX - 10)
       {
-        throw OrthancException("Remote host name is too long");
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
 
       Close();
@@ -837,7 +836,7 @@ namespace Orthanc
 
     if (ASC_countAcceptedPresentationContexts(pimpl_->params_) == 0)
     {
-      throw OrthancException("DicomUserConnection: No Acceptable Presentation Contexts");
+      throw OrthancException(ErrorCode_NoPresentationContext);
     }
   }
 

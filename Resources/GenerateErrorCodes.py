@@ -43,7 +43,7 @@ BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 ##
 
 with open(os.path.join(BASE, 'Resources', 'ErrorCodes.json'), 'r') as f:
-    ERRORS = json.loads(f.read())
+    ERRORS = json.loads(re.sub('/\*.*?\*/', '', f.read()))
 
 with open(os.path.join(BASE, 'Core', 'Enumerations.h'), 'r') as f:
     a = f.read()
