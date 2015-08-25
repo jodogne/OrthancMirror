@@ -52,7 +52,7 @@ namespace Orthanc
 
     virtual void SignalChange(const ServerIndexChange& change) = 0;
 
-    virtual bool FilterIncomingInstance(const Json::Value& simplified,
-                                        const std::string& remoteAet) = 0;
+    virtual bool FilterIncomingInstance(const DicomInstanceToStore& instance,
+                                        const Json::Value& simplified) = 0;
   };
 }

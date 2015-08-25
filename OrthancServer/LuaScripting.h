@@ -98,8 +98,8 @@ namespace Orthanc
 
     virtual void SignalChange(const ServerIndexChange& change);
 
-    virtual bool FilterIncomingInstance(const Json::Value& simplified,
-                                        const std::string& remoteAet);
+    virtual bool FilterIncomingInstance(const DicomInstanceToStore& instance,
+                                        const Json::Value& simplifiedTags);
 
     void Execute(const std::string& command);
   };
