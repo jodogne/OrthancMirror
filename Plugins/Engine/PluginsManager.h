@@ -76,9 +76,9 @@ namespace Orthanc
     Plugins  plugins_;
     std::list<IPluginServiceProvider*> serviceProviders_;
 
-    static int32_t InvokeService(OrthancPluginContext* context,
-                                 _OrthancPluginService service,
-                                 const void* parameters);
+    static OrthancPluginErrorCode InvokeService(OrthancPluginContext* context,
+                                                _OrthancPluginService service,
+                                                const void* parameters);
 
   public:
     PluginsManager();

@@ -188,6 +188,7 @@ extern "C"
     OrthancPluginErrorCode_IncompatibleImageFormat = 23    /*!< Incompatible format of the images */,
     OrthancPluginErrorCode_IncompatibleImageSize = 24    /*!< Incompatible size of the images */,
     OrthancPluginErrorCode_SharedLibrary = 25    /*!< Error while using a shared library (plugin) */,
+    OrthancPluginErrorCode_UnknownPluginService = 26    /*!< Plugin invoking an unknown service */,
 
     _OrthancPluginErrorCode_INTERNAL = 0x7fffffff
   } OrthancPluginErrorCode;
@@ -607,12 +608,12 @@ extern "C"
    **/
   typedef struct _OrthancPluginContext_t
   {
-    void*              pluginsManager;
-    const char*        orthancVersion;
-    OrthancPluginFree  Free;
-    int32_t          (*InvokeService) (struct _OrthancPluginContext_t* context,
-                                       _OrthancPluginService service,
-                                       const void* params);
+    void*                     pluginsManager;
+    const char*               orthancVersion;
+    OrthancPluginFree         Free;
+    OrthancPluginErrorCode  (*InvokeService) (struct _OrthancPluginContext_t* context,
+                                              _OrthancPluginService service,
+                                              const void* params);
   } OrthancPluginContext;
 
 
@@ -942,9 +943,9 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param target The target memory buffer.
    * @param instanceId The Orthanc identifier of the DICOM instance of interest.
-   * @return 0 if success, other value if error.
+   * @return 0 if success, or the error code if failure.
    **/
-  ORTHANC_PLUGIN_INLINE int  OrthancPluginGetDicomForInstance(
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginGetDicomForInstance(
     OrthancPluginContext*       context,
     OrthancPluginMemoryBuffer*  target,
     const char*                 instanceId)
@@ -972,9 +973,9 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param target The target memory buffer.
    * @param uri The URI in the built-in Orthanc API.
-   * @return 0 if success, other value if error.
+   * @return 0 if success, or the error code if failure.
    **/
-  ORTHANC_PLUGIN_INLINE int  OrthancPluginRestApiGet(
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiGet(
     OrthancPluginContext*       context,
     OrthancPluginMemoryBuffer*  target,
     const char*                 uri)
@@ -999,9 +1000,9 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param target The target memory buffer.
    * @param uri The URI in the built-in Orthanc API.
-   * @return 0 if success, other value if error.
+   * @return 0 if success, or the error code if failure.
    **/
-  ORTHANC_PLUGIN_INLINE int  OrthancPluginRestApiGetAfterPlugins(
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiGetAfterPlugins(
     OrthancPluginContext*       context,
     OrthancPluginMemoryBuffer*  target,
     const char*                 uri)
@@ -1033,9 +1034,9 @@ extern "C"
    * @param uri The URI in the built-in Orthanc API.
    * @param body The body of the POST request.
    * @param bodySize The size of the body.
-   * @return 0 if success, other value if error.
+   * @return 0 if success, or the error code if failure.
    **/
-  ORTHANC_PLUGIN_INLINE int  OrthancPluginRestApiPost(
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiPost(
     OrthancPluginContext*       context,
     OrthancPluginMemoryBuffer*  target,
     const char*                 uri,
@@ -1065,9 +1066,9 @@ extern "C"
    * @param uri The URI in the built-in Orthanc API.
    * @param body The body of the POST request.
    * @param bodySize The size of the body.
-   * @return 0 if success, other value if error.
+   * @return 0 if success, or the error code if failure.
    **/
-  ORTHANC_PLUGIN_INLINE int  OrthancPluginRestApiPostAfterPlugins(
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiPostAfterPlugins(
     OrthancPluginContext*       context,
     OrthancPluginMemoryBuffer*  target,
     const char*                 uri,
@@ -1091,9 +1092,9 @@ extern "C"
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param uri The URI to delete in the built-in Orthanc API.
-   * @return 0 if success, other value if error.
+   * @return 0 if success, or the error code if failure.
    **/
-  ORTHANC_PLUGIN_INLINE int  OrthancPluginRestApiDelete(
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiDelete(
     OrthancPluginContext*       context,
     const char*                 uri)
   {
@@ -1111,9 +1112,9 @@ extern "C"
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param uri The URI to delete in the built-in Orthanc API.
-   * @return 0 if success, other value if error.
+   * @return 0 if success, or the error code if failure.
    **/
-  ORTHANC_PLUGIN_INLINE int  OrthancPluginRestApiDeleteAfterPlugins(
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiDeleteAfterPlugins(
     OrthancPluginContext*       context,
     const char*                 uri)
   {
@@ -1133,9 +1134,9 @@ extern "C"
    * @param uri The URI in the built-in Orthanc API.
    * @param body The body of the PUT request.
    * @param bodySize The size of the body.
-   * @return 0 if success, other value if error.
+   * @return 0 if success, or the error code if failure.
    **/
-  ORTHANC_PLUGIN_INLINE int  OrthancPluginRestApiPut(
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiPut(
     OrthancPluginContext*       context,
     OrthancPluginMemoryBuffer*  target,
     const char*                 uri,
@@ -1166,9 +1167,9 @@ extern "C"
    * @param uri The URI in the built-in Orthanc API.
    * @param body The body of the PUT request.
    * @param bodySize The size of the body.
-   * @return 0 if success, other value if error.
+   * @return 0 if success, or the error code if failure.
    **/
-  ORTHANC_PLUGIN_INLINE int  OrthancPluginRestApiPutAfterPlugins(
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiPutAfterPlugins(
     OrthancPluginContext*       context,
     OrthancPluginMemoryBuffer*  target,
     const char*                 uri,
@@ -2076,9 +2077,9 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param property The global property of interest.
    * @param value The value to be set in the global property.
-   * @return 0 if success, -1 in case of error.
+   * @return 0 if success, or the error code if failure.
    **/
-  ORTHANC_PLUGIN_INLINE int32_t OrthancPluginSetGlobalProperty(
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginSetGlobalProperty(
     OrthancPluginContext*  context,
     int32_t                property,
     const char*            value)
@@ -2088,15 +2089,7 @@ extern "C"
     params.property = property;
     params.value = value;
 
-    if (context->InvokeService(context, _OrthancPluginService_SetGlobalProperty, &params))
-    {
-      /* Error */
-      return -1;
-    }
-    else
-    {
-      return 0;
-    }
+    return context->InvokeService(context, _OrthancPluginService_SetGlobalProperty, &params);
   }
 
 
@@ -2252,10 +2245,10 @@ extern "C"
    * @param output The HTTP connection to the client application.
    * @param subType The sub-type of the multipart answer ("mixed" or "related").
    * @param contentType The MIME type of the items in the multipart answer.
-   * @return 0 if success, other value if error.
+   * @return 0 if success, or the error code if failure.
    * @see OrthancPluginSendMultipartItem()
    **/
-  ORTHANC_PLUGIN_INLINE int32_t OrthancPluginStartMultipartAnswer(
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginStartMultipartAnswer(
     OrthancPluginContext*    context,
     OrthancPluginRestOutput* output,
     const char*              subType,
@@ -2279,10 +2272,10 @@ extern "C"
    * @param output The HTTP connection to the client application.
    * @param answer Pointer to the memory buffer containing the item.
    * @param answerSize Number of bytes of the item.
-   * @return 0 if success, other value if error (this notably happens
+   * @return 0 if success, or the error code if failure (this notably happens
    * if the connection is closed by the client).
    **/
-  ORTHANC_PLUGIN_INLINE int32_t OrthancPluginSendMultipartItem(
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginSendMultipartItem(
     OrthancPluginContext*    context,
     OrthancPluginRestOutput* output,
     const char*              answer,
@@ -2321,9 +2314,9 @@ extern "C"
    * @param compression The compression algorithm.
    * @param uncompress If set to "0", the buffer must be compressed. 
    * If set to "1", the buffer must be uncompressed.
-   * @return 0 if success, other value if error.
+   * @return 0 if success, or the error code if failure.
    **/
-  ORTHANC_PLUGIN_INLINE int32_t OrthancPluginBufferCompression(
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginBufferCompression(
     OrthancPluginContext*         context,
     OrthancPluginMemoryBuffer*    target,
     const void*                   source,

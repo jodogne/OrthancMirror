@@ -134,30 +134,29 @@ namespace Orthanc
   }
 
 
-  int32_t PluginsManager::InvokeService(OrthancPluginContext* context,
-                                        _OrthancPluginService service, 
-                                        const void* params)
+  OrthancPluginErrorCode PluginsManager::InvokeService(OrthancPluginContext* context,
+                                                       _OrthancPluginService service, 
+                                                       const void* params)
   {
     switch (service)
     {
       case _OrthancPluginService_LogError:
         LOG(ERROR) << reinterpret_cast<const char*>(params);
-        return 0;
+        return OrthancPluginErrorCode_Success;
 
       case _OrthancPluginService_LogWarning:
         LOG(WARNING) << reinterpret_cast<const char*>(params);
-        return 0;
+        return OrthancPluginErrorCode_Success;
 
       case _OrthancPluginService_LogInfo:
         LOG(INFO) << reinterpret_cast<const char*>(params);
-        return 0;
+        return OrthancPluginErrorCode_Success;
 
       default:
         break;
     }
 
     PluginsManager* that = reinterpret_cast<PluginsManager*>(context->pluginsManager);
-    bool error = false;
 
     for (std::list<IPluginServiceProvider*>::iterator
            it = that->serviceProviders_.begin(); 
@@ -167,26 +166,19 @@ namespace Orthanc
       {
         if ((*it)->InvokeService(service, params))
         {
-          return 0;
+          return OrthancPluginErrorCode_Success;
         }
       }
-      catch (OrthancException&)
+      catch (OrthancException& e)
       {
-        // This service provider has failed, go to the next
-        error = true;
+        // This service provider has failed
+        LOG(ERROR) << "Exception while invoking a plugin service: " << e.What();
+        return static_cast<OrthancPluginErrorCode>(e.GetErrorCode());
       }
     }
 
-    if (error)
-    {
-      // LOG(ERROR) << "Exception when dealing with service " << service;
-    }
-    else
-    {
-      LOG(ERROR) << "Plugin invoking unknown service " << service;
-    }
-
-    return -1;
+    LOG(ERROR) << "Plugin invoking unknown service: " << service;
+    return OrthancPluginErrorCode_UnknownPluginService;
   }
 
 

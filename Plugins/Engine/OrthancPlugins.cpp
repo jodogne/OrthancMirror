@@ -1199,6 +1199,7 @@ namespace Orthanc
       }
 
       default:
+        // This service is unknown by the Orthanc plugin engine
         return false;
     }
   }

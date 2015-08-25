@@ -130,6 +130,9 @@ namespace Orthanc
       case ErrorCode_SharedLibrary:
         return "Error while using a shared library (plugin)";
 
+      case ErrorCode_UnknownPluginService:
+        return "Plugin invoking an unknown service";
+
       default:
         return "Unknown error code";
     }
