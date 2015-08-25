@@ -34,6 +34,7 @@
 #include "LuaContext.h"
 
 #include "../Logging.h"
+#include "../OrthancException.h"
 
 #include <set>
 #include <cassert>
@@ -369,7 +370,7 @@ namespace Orthanc
     }
     else
     {
-      throw LuaException("Unsupported JSON conversion");
+      throw OrthancException(ErrorCode_JsonToLuaTable);
     }
   }
 
@@ -484,7 +485,7 @@ namespace Orthanc
     lua_ = luaL_newstate();
     if (!lua_)
     {
-      throw LuaException("Unable to create the Lua context");
+      throw OrthancException(ErrorCode_CannotCreateLua);
     }
 
     luaL_openlibs(lua_);
@@ -521,7 +522,7 @@ namespace Orthanc
       std::string description(lua_tostring(lua_, -1));
       lua_pop(lua_, 1); /* pop error message from the stack */
       LOG(ERROR) << "Error while executing Lua script: " << description;
-      throw LuaException(description);
+      throw OrthancException(ErrorCode_CannotExecuteLua);
     }
 
     if (output != NULL)

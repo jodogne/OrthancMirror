@@ -33,6 +33,9 @@
 #include "../PrecompiledHeaders.h"
 #include "LuaFunctionCall.h"
 
+#include "../OrthancException.h"
+#include "../Logging.h"
+
 #include <cassert>
 #include <stdio.h>
 #include <boost/lexical_cast.hpp>
@@ -43,7 +46,7 @@ namespace Orthanc
   {
     if (isExecuted_)
     {
-      throw LuaException("Arguments cannot be pushed after the function is executed");
+      throw OrthancException(ErrorCode_LuaAlreadyExecuted);
     }
   }
 
@@ -101,12 +104,14 @@ namespace Orthanc
           
       std::string description(lua_tostring(context_.lua_, -1));
       lua_pop(context_.lua_, 1); /* pop error message from the stack */
-      throw LuaException(description);
+      LOG(ERROR) << description;
+
+      throw OrthancException(ErrorCode_CannotExecuteLua);
     }
 
     if (lua_gettop(context_.lua_) < numOutputs)
     {
-      throw LuaException("The function does not give the expected number of outputs");
+      throw OrthancException(ErrorCode_LuaBadOutput);
     }
 
     isExecuted_ = true;
@@ -118,7 +123,7 @@ namespace Orthanc
     
     if (!lua_isboolean(context_.lua_, 1))
     {
-      throw LuaException("The function is not a predicate (only true/false outputs allowed)");
+      throw OrthancException(ErrorCode_NotLuaPredicate);
     }
 
     return lua_toboolean(context_.lua_, 1) != 0;
@@ -143,7 +148,7 @@ namespace Orthanc
     }
     else
     {
-      throw LuaException("The function does not return a string");
+      throw OrthancException(ErrorCode_LuaReturnsNoString);
     }
   }
 }
