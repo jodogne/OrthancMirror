@@ -42,10 +42,12 @@ namespace Orthanc
   {
   private:
     ServerContext& context_;
+    RequestOrigin origin_;
     DicomModification modification_;
 
   public:
     ModifyInstanceCommand(ServerContext& context,
+                          RequestOrigin origin,
                           const DicomModification& modification);
 
     const DicomModification& GetModification() const

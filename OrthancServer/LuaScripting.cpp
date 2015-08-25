@@ -245,7 +245,7 @@ namespace Orthanc
       DicomModification modification;
       OrthancRestApi::ParseModifyRequest(modification, parameters);
 
-      std::auto_ptr<ModifyInstanceCommand> command(new ModifyInstanceCommand(context_, modification));
+      std::auto_ptr<ModifyInstanceCommand> command(new ModifyInstanceCommand(context_, RequestOrigin_Lua, modification));
       return command.release();
     }
 
@@ -366,8 +366,7 @@ namespace Orthanc
   void LuaScripting::ApplyOnStoredInstance(const std::string& instanceId,
                                            const Json::Value& simplifiedTags,
                                            const Json::Value& metadata,
-                                           const std::string& remoteAet,
-                                           const std::string& calledAet)
+                                           const DicomInstanceToStore& instance)
   {
     static const char* NAME = "OnStoredInstance";
 
@@ -379,8 +378,11 @@ namespace Orthanc
       call.PushString(instanceId);
       call.PushJson(simplifiedTags);
       call.PushJson(metadata);
-      call.PushJson(remoteAet);
-      call.PushJson(calledAet);
+
+      Json::Value origin;
+      instance.GetOriginInformation(origin);
+      call.PushJson(origin);
+
       call.Execute();
 
       SubmitJob(std::string("Lua script: ") + NAME);
@@ -406,8 +408,7 @@ namespace Orthanc
       }
     }
 
-    ApplyOnStoredInstance(publicId, simplifiedTags, metadata, 
-                          instance.GetRemoteAet(), instance.GetCalledAet());
+    ApplyOnStoredInstance(publicId, simplifiedTags, metadata, instance);
   }
 
 

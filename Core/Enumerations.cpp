@@ -374,6 +374,9 @@ namespace Orthanc
   {
     switch (origin)
     {
+      case RequestOrigin_Unknown:
+        return "Unknown";
+
       case RequestOrigin_DicomProtocol:
         return "DicomProtocol";
 

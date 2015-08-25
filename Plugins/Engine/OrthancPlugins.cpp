@@ -813,7 +813,7 @@ namespace Orthanc
     switch (service)
     {
       case _OrthancPluginService_GetInstanceRemoteAet:
-        *p.resultString = instance.GetRemoteAet().c_str();
+        *p.resultString = instance.GetRemoteAet();
         return;
 
       case _OrthancPluginService_GetInstanceSize:

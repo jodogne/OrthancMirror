@@ -55,8 +55,7 @@ namespace Orthanc
     void ApplyOnStoredInstance(const std::string& instanceId,
                                const Json::Value& simplifiedDicom,
                                const Json::Value& metadata,
-                               const std::string& remoteAet,
-                               const std::string& calledAet);
+                               const DicomInstanceToStore& instance);
 
     IServerCommand* ParseOperation(const std::string& operation,
                                    const Json::Value& parameters);

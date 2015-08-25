@@ -75,11 +75,10 @@ public:
     if (dicomFile.size() > 0)
     {
       DicomInstanceToStore toStore;
+      toStore.SetDicomProtocolOrigin(remoteAet.c_str(), calledAet.c_str());
       toStore.SetBuffer(dicomFile);
       toStore.SetSummary(dicomSummary);
       toStore.SetJson(dicomJson);
-      toStore.SetRemoteAet(remoteAet);
-      toStore.SetCalledAet(calledAet);
 
       std::string id;
       server_.Store(id, toStore);

@@ -8,6 +8,11 @@ Pending changes in the mainline
 * Support of "deflate" and "gzip" content-types in HTTP requests
 * Options to validate peers against CA certificates in HTTPS requests
 
+Lua
+---
+
+* More information about the origin request in "OnStoredInstance()" callbacks
+
 Plugins
 -------
 
