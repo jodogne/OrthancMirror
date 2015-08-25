@@ -156,6 +156,14 @@ extern "C"
 #endif
 
   /**
+   * The various error codes that can be returned by the Orthanc core.
+   **/
+  typedef enum
+  {
+  } OrthancPluginErrorCode;
+
+
+  /**
    * Forward declaration of one of the mandatory functions for Orthanc
    * plugins.
    **/
@@ -599,6 +607,12 @@ extern "C"
     OrthancPluginContext* context)
   {
     int major, minor, revision;
+
+    if (sizeof(int32_t) != sizeof(OrthancPluginErrorCode))
+    {
+      /* Mismatch in the size of the enumerations */
+      return 0;
+    }
 
     /* Assume compatibility with the mainline */
     if (!strcmp(context->orthancVersion, "mainline"))

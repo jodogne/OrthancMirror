@@ -134,9 +134,6 @@ set(ORTHANC_CORE_SOURCES
   Core/Uuid.cpp
   Core/Lua/LuaContext.cpp
   Core/Lua/LuaFunctionCall.cpp
-
-  Plugins/Engine/SharedLibrary.cpp
-  Plugins/Engine/PluginsManager.cpp
   )
 
 
@@ -178,8 +175,6 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/QueryRetrieveHandler.cpp
   OrthancServer/LuaScripting.cpp
   OrthancServer/OrthancHttpHandler.cpp
-  Plugins/Engine/OrthancPlugins.cpp
-  Plugins/Engine/OrthancPluginDatabase.cpp
 
   # From "lua-scripting" branch
   OrthancServer/DicomInstanceToStore.cpp
@@ -211,14 +206,26 @@ set(ORTHANC_UNIT_TESTS_SOURCES
   UnitTestsSources/UnitTestsMain.cpp
   UnitTestsSources/ImageProcessingTests.cpp
   UnitTestsSources/JpegLosslessTests.cpp
-  UnitTestsSources/PluginsTests.cpp
   UnitTestsSources/StreamTests.cpp
   )
 
 
-set(SERVE_FOLDERS_SOURCES
-  Plugins/Samples/ServeFolders/Plugin.cpp
-  )
+if (ENABLE_PLUGINS)
+  list(APPEND ORTHANC_SERVER_SOURCES
+    Plugins/Engine/OrthancPluginDatabase.cpp
+    Plugins/Engine/OrthancPlugins.cpp
+    Plugins/Engine/PluginsManager.cpp
+    Plugins/Engine/SharedLibrary.cpp
+    )
+
+  list(APPEND ORTHANC_UNIT_TESTS_SOURCES
+    UnitTestsSources/PluginsTests.cpp
+    )
+
+  set(SERVE_FOLDERS_SOURCES
+    Plugins/Samples/ServeFolders/Plugin.cpp
+    )
+endif()
 
 
 set(ORTHANC_EMBEDDED_FILES
@@ -457,28 +464,29 @@ endif()
 ## Build the "ServeFolders" plugin
 #####################################################################
 
-add_definitions(-DSERVE_FOLDERS_VERSION="${ORTHANC_VERSION}")
+if (ENABLE_PLUGINS)
+  add_definitions(-DSERVE_FOLDERS_VERSION="${ORTHANC_VERSION}")
 
-include_directories(${CMAKE_SOURCE_DIR}/Plugins/Include)
+  include_directories(${CMAKE_SOURCE_DIR}/Plugins/Include)
 
-add_library(
-  ServeFolders SHARED 
-  ${SERVE_FOLDERS_SOURCES}
-  ${JSONCPP_SOURCES}
-  )
+  add_library(
+    ServeFolders SHARED 
+    ${SERVE_FOLDERS_SOURCES}
+    ${JSONCPP_SOURCES}
+    )
 
-set_target_properties(
-  ServeFolders PROPERTIES 
-  VERSION ${ORTHANC_VERSION} 
-  SOVERSION ${ORTHANC_VERSION}
-  )
+  set_target_properties(
+    ServeFolders PROPERTIES 
+    VERSION ${ORTHANC_VERSION} 
+    SOVERSION ${ORTHANC_VERSION}
+    )
 
-install(
-  TARGETS ServeFolders
-  RUNTIME DESTINATION lib    # Destination for Windows
-  LIBRARY DESTINATION share/orthanc/plugins    # Destination for Linux
-  )
-
+  install(
+    TARGETS ServeFolders
+    RUNTIME DESTINATION lib    # Destination for Windows
+    LIBRARY DESTINATION share/orthanc/plugins    # Destination for Linux
+    )
+endif()
 
 
 
@@ -524,13 +532,15 @@ endif()
 ## Install the plugin SDK
 #####################################################################
 
-install(
-  FILES
-  Plugins/Include/orthanc/OrthancCPlugin.h 
-  Plugins/Include/orthanc/OrthancCDatabasePlugin.h 
-  Plugins/Include/orthanc/OrthancCppDatabasePlugin.h 
-  DESTINATION include/orthanc
-  )
+if (ENABLE_PLUGINS)
+  install(
+    FILES
+    Plugins/Include/orthanc/OrthancCPlugin.h 
+    Plugins/Include/orthanc/OrthancCDatabasePlugin.h 
+    Plugins/Include/orthanc/OrthancCppDatabasePlugin.h 
+    DESTINATION include/orthanc
+    )
+endif()
 
 
 

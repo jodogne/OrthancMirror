@@ -172,6 +172,12 @@ namespace Orthanc
 
   OrthancPlugins::OrthancPlugins()
   {
+    if (sizeof(int32_t) != sizeof(OrthancPluginErrorCode))
+    {
+      /* Sanity check of the compiler */
+      throw OrthancException(ErrorCode_Plugin);
+    }
+
     pimpl_.reset(new PImpl());
     pimpl_->manager_.RegisterServiceProvider(*this);
   }

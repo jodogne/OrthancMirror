@@ -37,6 +37,17 @@
 
 using namespace Orthanc;
 
+
+#if ORTHANC_PLUGINS_ENABLED == 1
+
+TEST(SharedLibrary, Enumerations)
+{
+  // The plugin engine cannot work if the size of an enumeration does
+  // not correspond to the size of "int32_t"
+  ASSERT_EQ(sizeof(int32_t), sizeof(OrthancPluginErrorCode));
+}
+
+
 TEST(SharedLibrary, Basic)
 {
 #if defined(_WIN32)
@@ -74,3 +85,5 @@ TEST(SharedLibrary, Basic)
 #error Support your platform here
 #endif
 }
+
+#endif
