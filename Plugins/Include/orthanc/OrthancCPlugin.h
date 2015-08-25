@@ -187,7 +187,9 @@ extern "C"
     OrthancPluginErrorCode_ReadOnly = 22    /*!< Cannot modify a read-only data structure */,
     OrthancPluginErrorCode_IncompatibleImageFormat = 23    /*!< Incompatible format of the images */,
     OrthancPluginErrorCode_IncompatibleImageSize = 24    /*!< Incompatible size of the images */,
-    OrthancPluginErrorCode_SharedLibrary = 25    /*!< Error while using a shared library (plugin) */
+    OrthancPluginErrorCode_SharedLibrary = 25    /*!< Error while using a shared library (plugin) */,
+
+    _OrthancPluginErrorCode_INTERNAL = 0x7fffffff
   } OrthancPluginErrorCode;
 
 
@@ -206,7 +208,9 @@ extern "C"
     OrthancPluginHttpMethod_Get = 1,    /*!< GET request */
     OrthancPluginHttpMethod_Post = 2,   /*!< POST request */
     OrthancPluginHttpMethod_Put = 3,    /*!< PUT request */
-    OrthancPluginHttpMethod_Delete = 4  /*!< DELETE request */
+    OrthancPluginHttpMethod_Delete = 4, /*!< DELETE request */
+
+    _OrthancPluginHttpMethod_INTERNAL = 0x7fffffff
   } OrthancPluginHttpMethod;
 
 
@@ -341,8 +345,9 @@ extern "C"
 
     /* Services for plugins implementing a database back-end */
     _OrthancPluginService_RegisterDatabaseBackend = 5000,
-    _OrthancPluginService_DatabaseAnswer = 5001
+    _OrthancPluginService_DatabaseAnswer = 5001,
 
+    _OrthancPluginService_INTERNAL = 0x7fffffff
   } _OrthancPluginService;
 
 
@@ -350,7 +355,9 @@ extern "C"
   {
     _OrthancPluginProperty_Description = 1,
     _OrthancPluginProperty_RootUri = 2,
-    _OrthancPluginProperty_OrthancExplorer = 3
+    _OrthancPluginProperty_OrthancExplorer = 3,
+
+    _OrthancPluginProperty_INTERNAL = 0x7fffffff
   } _OrthancPluginProperty;
 
 
@@ -398,7 +405,9 @@ extern "C"
      * This format describes a color image. The pixels are stored in 4
      * consecutive bytes. The memory layout is RGBA.
      **/
-    OrthancPluginPixelFormat_RGBA32 = 5
+    OrthancPluginPixelFormat_RGBA32 = 5,
+
+    _OrthancPluginPixelFormat_INTERNAL = 0x7fffffff
   } OrthancPluginPixelFormat;
 
 
@@ -410,7 +419,9 @@ extern "C"
   {
     OrthancPluginContentType_Unknown = 0,      /*!< Unknown content type */
     OrthancPluginContentType_Dicom = 1,        /*!< DICOM */
-    OrthancPluginContentType_DicomAsJson = 2   /*!< JSON summary of a DICOM file */
+    OrthancPluginContentType_DicomAsJson = 2,  /*!< JSON summary of a DICOM file */
+
+    _OrthancPluginContentType_INTERNAL = 0x7fffffff
   } OrthancPluginContentType;
 
 
@@ -423,7 +434,9 @@ extern "C"
     OrthancPluginResourceType_Patient = 0,     /*!< Patient */
     OrthancPluginResourceType_Study = 1,       /*!< Study */
     OrthancPluginResourceType_Series = 2,      /*!< Series */
-    OrthancPluginResourceType_Instance = 3     /*!< Instance */
+    OrthancPluginResourceType_Instance = 3,    /*!< Instance */
+
+    _OrthancPluginResourceType_INTERNAL = 0x7fffffff
   } OrthancPluginResourceType;
 
 
@@ -442,7 +455,9 @@ extern "C"
     OrthancPluginChangeType_NewStudy = 6,           /*!< New study created */
     OrthancPluginChangeType_StablePatient = 7,      /*!< Timeout: No new instance in this patient */
     OrthancPluginChangeType_StableSeries = 8,       /*!< Timeout: No new instance in this series */
-    OrthancPluginChangeType_StableStudy = 9         /*!< Timeout: No new instance in this study */
+    OrthancPluginChangeType_StableStudy = 9,        /*!< Timeout: No new instance in this study */
+
+    _OrthancPluginChangeType_INTERNAL = 0x7fffffff
   } OrthancPluginChangeType;
 
 
@@ -454,7 +469,9 @@ extern "C"
     OrthancPluginCompressionType_Zlib = 0,          /*!< Standard zlib compression */
     OrthancPluginCompressionType_ZlibWithSize = 1,  /*!< zlib, prefixed with uncompressed size (uint64_t) */
     OrthancPluginCompressionType_Gzip = 2,          /*!< Standard gzip compression */
-    OrthancPluginCompressionType_GzipWithSize = 3   /*!< gzip, prefixed with uncompressed size (uint64_t) */
+    OrthancPluginCompressionType_GzipWithSize = 3,  /*!< gzip, prefixed with uncompressed size (uint64_t) */
+
+    _OrthancPluginCompressionType_INTERNAL = 0x7fffffff
   } OrthancPluginCompressionType;
 
 

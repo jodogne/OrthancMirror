@@ -79,7 +79,8 @@ with open(path, 'r') as f:
     a = f.read()
 
 s = ',\n'.join(map(lambda x: '    OrthancPluginErrorCode_%s = %d    /*!< %s */' % (x['Name'], int(x['Code']), x['Description']), ERRORS))
-a = re.sub('(typedef enum\s*{)[^}]*?(\s*} OrthancPluginErrorCode;)', r'\1\n%s\2' % s, a, re.DOTALL)
+s += ',\n\n    _OrthancPluginErrorCode_INTERNAL = 0x7fffffff\n  '
+a = re.sub('(typedef enum\s*{)[^}]*?(} OrthancPluginErrorCode;)', r'\1\n%s\2' % s, a, re.DOTALL)
 
 with open(path, 'w') as f:
     f.write(a)
