@@ -130,10 +130,12 @@ namespace Orthanc
   }
 
 
-  IMoveRequestIterator* OrthancMoveRequestHandler::Handle(const std::string& aet,
-                                                          const DicomMap& input)
+  IMoveRequestIterator* OrthancMoveRequestHandler::Handle(const std::string& targetAet,
+                                                          const DicomMap& input,
+                                                          const std::string& remoteIp,
+                                                          const std::string& remoteAet)
   {
-    LOG(WARNING) << "Move-SCU request received for AET \"" << aet << "\"";
+    LOG(WARNING) << "Move-SCU request received for AET \"" << targetAet << "\"";
 
     {
       DicomArray query(input);
@@ -176,7 +178,7 @@ namespace Orthanc
           LookupIdentifier(publicId, DICOM_TAG_STUDY_INSTANCE_UID, input) ||
           LookupIdentifier(publicId, DICOM_TAG_PATIENT_ID, input))
       {
-        return new OrthancMoveRequestIterator(context_, aet, publicId);
+        return new OrthancMoveRequestIterator(context_, targetAet, publicId);
       }
       else
       {
@@ -221,6 +223,6 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadRequest);
     }
 
-    return new OrthancMoveRequestIterator(context_, aet, publicId);
+    return new OrthancMoveRequestIterator(context_, targetAet, publicId);
   }
 }

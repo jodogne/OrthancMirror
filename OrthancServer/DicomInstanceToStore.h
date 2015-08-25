@@ -145,9 +145,9 @@ namespace Orthanc
     SmartContainer<Json::Value>  json_;
 
     RequestOrigin origin_;
+    std::string remoteIp_;
     std::string dicomRemoteAet_;
     std::string dicomCalledAet_;
-    std::string httpRemoteIp_;
     std::string httpUsername_;
     ServerIndex::MetadataMap metadata_;
 
@@ -158,7 +158,8 @@ namespace Orthanc
     {
     }
 
-    void SetDicomProtocolOrigin(const char* remoteAet,
+    void SetDicomProtocolOrigin(const char* remoteIp,
+                                const char* remoteAet,
                                 const char* calledAet);
 
     void SetRestOrigin(const RestApiCall& call);

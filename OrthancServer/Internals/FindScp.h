@@ -44,6 +44,7 @@ namespace Orthanc
                         T_DIMSE_Message * msg, 
                         T_ASC_PresentationContextID presID,
                         IFindRequestHandler& handler,
-                        const std::string& callingAETitle);
+                        const std::string& remoteIp,
+                        const std::string& remoteAet);
   }
 }

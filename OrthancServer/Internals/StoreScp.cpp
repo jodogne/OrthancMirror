@@ -102,6 +102,7 @@ namespace Orthanc
     struct StoreCallbackData
     {
       IStoreRequestHandler* handler;
+      const std::string* remoteIp;
       const char* remoteAET;
       const char* calledAET;
       const char* modality;
@@ -202,7 +203,7 @@ namespace Orthanc
             {
               try
               {
-                cbdata->handler->Handle(buffer, summary, dicomJson, cbdata->remoteAET, cbdata->calledAET);
+                cbdata->handler->Handle(buffer, summary, dicomJson, *cbdata->remoteIp, cbdata->remoteAET, cbdata->calledAET);
               }
               catch (OrthancException& e)
               {
@@ -237,7 +238,8 @@ namespace Orthanc
   OFCondition Internals::storeScp(T_ASC_Association * assoc, 
                                   T_DIMSE_Message * msg, 
                                   T_ASC_PresentationContextID presID,
-                                  IStoreRequestHandler& handler)
+                                  IStoreRequestHandler& handler,
+                                  const std::string& remoteIp)
   {
     OFCondition cond = EC_Normal;
     T_DIMSE_C_StoreRQ *req;
@@ -246,23 +248,24 @@ namespace Orthanc
     req = &msg->msg.CStoreRQ;
 
     // intialize some variables
-    StoreCallbackData callbackData;
-    callbackData.handler = &handler;
-    callbackData.modality = dcmSOPClassUIDToModality(req->AffectedSOPClassUID/*, "UNKNOWN"*/);
-    if (callbackData.modality == NULL)
-      callbackData.modality = "UNKNOWN";
+    StoreCallbackData data;
+    data.handler = &handler;
+    data.remoteIp = &remoteIp;
+    data.modality = dcmSOPClassUIDToModality(req->AffectedSOPClassUID/*, "UNKNOWN"*/);
+    if (data.modality == NULL)
+      data.modality = "UNKNOWN";
 
-    callbackData.affectedSOPInstanceUID = req->AffectedSOPInstanceUID;
-    callbackData.messageID = req->MessageID;
+    data.affectedSOPInstanceUID = req->AffectedSOPInstanceUID;
+    data.messageID = req->MessageID;
     if (assoc && assoc->params)
     {
-      callbackData.remoteAET = assoc->params->DULparams.callingAPTitle;
-      callbackData.calledAET = assoc->params->DULparams.calledAPTitle;
+      data.remoteAET = assoc->params->DULparams.callingAPTitle;
+      data.calledAET = assoc->params->DULparams.calledAPTitle;
     }
     else
     {
-      callbackData.remoteAET = "";
-      callbackData.calledAET = "";
+      data.remoteAET = "";
+      data.calledAET = "";
     }
 
     DcmFileFormat dcmff;
@@ -278,7 +281,7 @@ namespace Orthanc
     DcmDataset *dset = dcmff.getDataset();
 
     cond = DIMSE_storeProvider(assoc, presID, req, NULL, /*opt_useMetaheader*/OFFalse, &dset,
-                               storeScpCallback, &callbackData, 
+                               storeScpCallback, &data, 
                                /*opt_blockMode*/ DIMSE_BLOCKING, 
                                /*opt_dimse_timeout*/ 0);
 

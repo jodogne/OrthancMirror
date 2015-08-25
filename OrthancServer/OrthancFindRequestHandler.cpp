@@ -216,7 +216,8 @@ namespace Orthanc
 
   bool OrthancFindRequestHandler::Handle(DicomFindAnswers& answers,
                                          const DicomMap& input,
-                                         const std::string& callingAETitle)
+                                         const std::string& remoteIp,
+                                         const std::string& remoteAet)
   {
     /**
      * Ensure that the calling modality is known to Orthanc.
@@ -224,7 +225,7 @@ namespace Orthanc
 
     RemoteModalityParameters modality;
 
-    if (!Configuration::LookupDicomModalityUsingAETitle(modality, callingAETitle))
+    if (!Configuration::LookupDicomModalityUsingAETitle(modality, remoteAet))
     {
       throw OrthancException("Unknown modality");
     }
