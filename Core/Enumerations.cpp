@@ -919,4 +919,39 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
+
+
+  HttpStatus ConvertErrorCodeToHttpStatus(ErrorCode error)
+  {
+    switch (error)
+    {
+      case ErrorCode_Success:
+      {
+        return HttpStatus_200_Ok;
+      }
+
+      case ErrorCode_InexistentFile:
+      case ErrorCode_InexistentItem:
+      case ErrorCode_InexistentTag:
+      case ErrorCode_UnknownResource:
+      {
+        return HttpStatus_404_NotFound;
+      }
+
+      case ErrorCode_BadFileFormat:
+      case ErrorCode_BadParameterType:
+      case ErrorCode_BadRequest:
+      case ErrorCode_ParameterOutOfRange:
+      case ErrorCode_UriSyntax:
+      {
+        return HttpStatus_400_BadRequest;
+        break;
+      }
+
+      default:
+      {
+        return HttpStatus_500_InternalServerError;
+      }
+    }
+  }
 }

@@ -401,4 +401,6 @@ namespace Orthanc
   DicomModule GetModule(ResourceType type);
 
   const char* GetDicomSpecificCharacterSet(Encoding encoding);
+
+  HttpStatus ConvertErrorCodeToHttpStatus(ErrorCode error);
 }
