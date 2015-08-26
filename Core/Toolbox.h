@@ -69,6 +69,10 @@ namespace Orthanc
     void WriteFile(const std::string& content,
                    const std::string& path);
 
+    void WriteFile(const void* content,
+                   size_t size,
+                   const std::string& path);
+
     void USleep(uint64_t microSeconds);
 
     void RemoveFile(const std::string& path);

@@ -89,52 +89,20 @@ static const char* GetMimeType(const std::string& path)
 }
 
 
-
-static bool ReadFile(std::string& content,
+static bool ReadFile(std::string& target,
                      const std::string& path)
 {
-  struct stat s;
-  if (stat(path.c_str(), &s) != 0 ||
-      !(s.st_mode & S_IFREG))
-  {
-    // Either the path does not exist, or it is not a regular file
-    return false;
-  }
-
-  FILE* fp = fopen(path.c_str(), "rb");
-  if (fp == NULL)
+  OrthancPluginMemoryBuffer buffer;
+  if (OrthancPluginReadFile(context_, &buffer, path.c_str()))
   {
     return false;
   }
-
-  long size;
-
-  if (fseek(fp, 0, SEEK_END) == -1 ||
-      (size = ftell(fp)) < 0)
+  else
   {
-    fclose(fp);
-    return false;
+    target.assign(reinterpret_cast<const char*>(buffer.data), buffer.size);
+    OrthancPluginFreeMemoryBuffer(context_, &buffer);
+    return true;
   }
-
-  content.resize(size);
-      
-  if (fseek(fp, 0, SEEK_SET) == -1)
-  {
-    fclose(fp);
-    return false;
-  }
-
-  bool ok = true;
-
-  if (size > 0 &&
-      fread(&content[0], size, 1, fp) != 1)
-  {
-    ok = false;
-  }
-
-  fclose(fp);
-
-  return ok;
 }
 
 
@@ -210,9 +178,9 @@ static int32_t FolderCallback(OrthancPluginRestOutput* output,
 }
 
 
-static int32_t IndexCallback(OrthancPluginRestOutput* output,
-                             const char* url,
-                             const OrthancPluginHttpRequest* request)
+static int32_t ListServedFolders(OrthancPluginRestOutput* output,
+                                 const char* url,
+                                 const OrthancPluginHttpRequest* request)
 {
   if (request->method != OrthancPluginHttpMethod_Get)
   {
@@ -296,23 +264,35 @@ extern "C"
     for (Json::Value::Members::const_iterator 
            it = members.begin(); it != members.end(); ++it)
     {
-      const std::string& baseUri = *it;
-      const std::string path = configuration["ServeFolders"][*it].asString();
-      const std::string regex = "(" + baseUri + ")/(.*)";
+      std::string baseUri = *it;
 
-      if (baseUri.empty() ||
-          *baseUri.rbegin() == '/')
+      // Remove the heading and trailing slashes if any
+      while (!baseUri.empty() &&
+             *baseUri.begin() == '/')
       {
-        std::string message = "The URI of a folder to be server cannot be empty or end with a '/': " + *it;
-        OrthancPluginLogWarning(context_, message.c_str());
+        baseUri = baseUri.substr(1);
+      }
+
+      while (!baseUri.empty() &&
+             *baseUri.rbegin() == '/')
+      {
+        baseUri.resize(baseUri.size() - 1);
+      }
+
+      if (baseUri.empty())
+      {
+        OrthancPluginLogError(context_, "The URI of a folder to be served cannot be empty");
         return -1;
       }
+
+      const std::string path = configuration["ServeFolders"][*it].asString();
+      const std::string regex = "/(" + baseUri + ")/(.*)";
 
       OrthancPluginRegisterRestCallback(context, regex.c_str(), FolderCallback);
       folders_[baseUri] = path;
     }
 
-    OrthancPluginRegisterRestCallback(context, INDEX_URI, IndexCallback);
+    OrthancPluginRegisterRestCallback(context, INDEX_URI, ListServedFolders);
     OrthancPluginSetRootUri(context, INDEX_URI);
 
     return 0;

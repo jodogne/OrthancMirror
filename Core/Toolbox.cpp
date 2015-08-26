@@ -230,7 +230,8 @@ namespace Orthanc
   }
 
 
-  void Toolbox::WriteFile(const std::string& content,
+  void Toolbox::WriteFile(const void* content,
+                          size_t size,
                           const std::string& path)
   {
     boost::filesystem::ofstream f;
@@ -240,14 +241,21 @@ namespace Orthanc
       throw OrthancException(ErrorCode_CannotWriteFile);
     }
 
-    if (content.size() != 0)
+    if (size != 0)
     {
-      f.write(content.c_str(), content.size());
+      f.write(reinterpret_cast<const char*>(content), size);
     }
 
     f.close();
   }
 
+
+  void Toolbox::WriteFile(const std::string& content,
+                          const std::string& path)
+  {
+    WriteFile(content.size() > 0 ? content.c_str() : NULL,
+              content.size(), path);
+  }
 
 
   void Toolbox::RemoveFile(const std::string& path)

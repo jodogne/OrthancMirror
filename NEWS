@@ -19,7 +19,9 @@ Lua
 Plugins
 -------
 
-* New function OrthancPluginBufferCompression() to (un)compress memory buffers
+* New function "OrthancPluginBufferCompression()" to (un)compress memory buffers
+* New function "OrthancPluginReadFile()" to read files from the filesystem
+* New function "OrthancPluginWriteFile()" to write files to the filesystem
 * Plugins have access to explicit error codes 
 
 Maintenance
