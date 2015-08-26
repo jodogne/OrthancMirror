@@ -157,6 +157,11 @@
     "Code": 27, 
     "Name": "UnknownDicomTag", 
     "Description": "Unknown DICOM tag"
+  }, 
+  {
+    "Code": 28, 
+    "Name": "RegularFileExpected", 
+    "Description": "The path does not point to a regular file"
   },
 
 

@@ -22,11 +22,8 @@
 
 #include <json/reader.h>
 #include <json/value.h>
-#include <string.h>
-#include <stdio.h>
-#include <fstream>
-#include <algorithm>
-#include <sys/stat.h>
+#include <boost/filesystem.hpp>
+
 
 static OrthancPluginContext* context_ = NULL;
 static std::map<std::string, std::string> folders_;
@@ -136,6 +133,80 @@ static bool ReadConfiguration(Json::Value& configuration,
 }
 
 
+
+static bool LookupFolder(std::string& folder,
+                         OrthancPluginRestOutput* output,
+                         const OrthancPluginHttpRequest* request)
+{
+  const std::string uri = request->groups[0];
+
+  std::map<std::string, std::string>::const_iterator found = folders_.find(uri);
+  if (found == folders_.end())
+  {
+    std::string s = "Unknown URI in plugin server-folders: " + uri;
+    OrthancPluginLogError(context_, s.c_str());
+    OrthancPluginSendHttpStatusCode(context_, output, 404);
+    return false;
+  }
+  else
+  {
+    folder = found->second;
+    return true;
+  }
+}
+
+
+static int32_t IndexCallback(OrthancPluginRestOutput* output,
+                             const char* url,
+                             const OrthancPluginHttpRequest* request)
+{
+  namespace fs = boost::filesystem;
+
+  if (request->method != OrthancPluginHttpMethod_Get)
+  {
+    OrthancPluginSendMethodNotAllowed(context_, output, "GET");
+    return 0;
+  }
+
+  std::string folder;
+  if (LookupFolder(folder, output, request))
+  {
+    std::string baseUri = "/" + std::string(request->groups[0]);
+
+    if (fs::is_regular_file(fs::path(folder) / "index.html"))
+    {
+      std::string s = baseUri + "/index.html";
+      OrthancPluginRedirect(context_, output, s.c_str());
+    }
+    else
+    {
+      std::string s;
+      s += "<html>\n";
+      s += "  <body>\n";
+      s += "    <ul>\n";
+
+      fs::directory_iterator end;
+      for (fs::directory_iterator it(folder) ; it != end; ++it)
+      {
+        if (fs::is_regular_file(it->status()))
+        {
+          std::string f = it->path().filename().string();
+          s += "      <li><a href=\"" + baseUri + "/" + f + "\">" + f + "</a></li>";
+        }
+      }
+
+      s += "    </ul>\n";
+      s += "  </body>\n";
+      s += "</html>\n";
+
+      OrthancPluginAnswerBuffer(context_, output, s.c_str(), s.size(), "text/html");
+    }
+  }
+
+  return 0;
+}
+
+
 static int32_t FolderCallback(OrthancPluginRestOutput* output,
                               const char* url,
                               const OrthancPluginHttpRequest* request)
@@ -146,32 +217,27 @@ static int32_t FolderCallback(OrthancPluginRestOutput* output,
     return 0;
   }
 
-  const std::string uri = request->groups[0];
-  const std::string item = request->groups[1];
+  std::string folder;
 
-  std::map<std::string, std::string>::const_iterator found = folders_.find(uri);
-  if (found == folders_.end())
+  if (LookupFolder(folder, output, request))
   {
-    std::string s = "Unknown URI in plugin server-folders: " + uri;
-    OrthancPluginLogError(context_, s.c_str());
-    OrthancPluginSendHttpStatusCode(context_, output, 404);
-    return 0;
-  }
+    const std::string item = request->groups[1];
 
-  std::string path = found->second + "/" + item;
-  const char* mime = GetMimeType(path);
+    std::string path = folder + "/" + item;
+    const char* mime = GetMimeType(path);
 
-  std::string s;
-  if (ReadFile(s, path))
-  {
-    const char* resource = s.size() ? s.c_str() : NULL;
-    OrthancPluginAnswerBuffer(context_, output, resource, s.size(), mime);
-  }
-  else
-  {
-    std::string s = "Inexistent file in served folder: " + path;
-    OrthancPluginLogError(context_, s.c_str());
-    OrthancPluginSendHttpStatusCode(context_, output, 404);
+    std::string s;
+    if (ReadFile(s, path))
+    {
+      const char* resource = s.size() ? s.c_str() : NULL;
+      OrthancPluginAnswerBuffer(context_, output, resource, s.size(), mime);
+    }
+    else
+    {
+      std::string s = "Inexistent file in served folder: " + path;
+      OrthancPluginLogError(context_, s.c_str());
+      OrthancPluginSendHttpStatusCode(context_, output, 404);
+    }
   }
 
   return 0;
@@ -200,7 +266,7 @@ static int32_t ListServedFolders(OrthancPluginRestOutput* output,
     for (std::map<std::string, std::string>::const_iterator
            it = folders_.begin(); it != folders_.end(); ++it)
     {
-      s += "<li><a href=\"" + it->first + "/index.html\">" + it->first + "</li>\n";
+      s += "<li><a href=\"/" + it->first + "\">" + it->first + "</li>\n";
     }
     
     s += "</ul>\n";
@@ -212,7 +278,6 @@ static int32_t ListServedFolders(OrthancPluginRestOutput* output,
 
   return 0;
 }
-
 
 
 extern "C"
@@ -266,7 +331,7 @@ extern "C"
     {
       std::string baseUri = *it;
 
-      // Remove the heading and trailing slashes if any
+      // Remove the heading and trailing slashes in the root URI, if any
       while (!baseUri.empty() &&
              *baseUri.begin() == '/')
       {
@@ -285,11 +350,28 @@ extern "C"
         return -1;
       }
 
-      const std::string path = configuration["ServeFolders"][*it].asString();
-      const std::string regex = "/(" + baseUri + ")/(.*)";
+      // Check whether the source folder exists and is indeed a directory
+      const std::string folder = configuration["ServeFolders"][*it].asString();
+      if (!boost::filesystem::is_directory(folder))
+      {
+        std::string msg = "Trying and serve an inexistent folder: " + folder;
+        OrthancPluginLogError(context_, msg.c_str());
+        return -1;
+      }
 
-      OrthancPluginRegisterRestCallback(context, regex.c_str(), FolderCallback);
-      folders_[baseUri] = path;
+      folders_[baseUri] = folder;
+
+      // Register the callback to serve the index of the folder
+      {
+        const std::string regex = "/(" + baseUri + ")";
+        OrthancPluginRegisterRestCallback(context, regex.c_str(), IndexCallback);
+      }
+
+      // Register the callback to serve the folder
+      {
+        const std::string regex = "/(" + baseUri + ")/(.*)";
+        OrthancPluginRegisterRestCallback(context, regex.c_str(), FolderCallback);
+      }
     }
 
     OrthancPluginRegisterRestCallback(context, INDEX_URI, ListServedFolders);

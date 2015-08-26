@@ -208,6 +208,12 @@ namespace Orthanc
   void Toolbox::ReadFile(std::string& content,
                          const std::string& path) 
   {
+    if (!boost::filesystem::is_regular_file(path))
+    {
+      LOG(ERROR) << "The path does not point to a regular file: " << path;
+      throw OrthancException(ErrorCode_RegularFileExpected);
+    }
+
     boost::filesystem::ifstream f;
     f.open(path, std::ifstream::in | std::ifstream::binary);
     if (!f.good())
