@@ -352,6 +352,8 @@ extern "C"
     _OrthancPluginService_GetExpectedDatabaseVersion = 12,
     _OrthancPluginService_GetConfiguration = 13,
     _OrthancPluginService_BufferCompression = 14,
+    _OrthancPluginService_ReadFile = 15,
+    _OrthancPluginService_WriteFile = 16,
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -2384,6 +2386,69 @@ extern "C"
     params.uncompress = uncompress;
 
     return context->InvokeService(context, _OrthancPluginService_BufferCompression, &params);
+  }
+
+
+
+  typedef struct
+  {
+    OrthancPluginMemoryBuffer*  target;
+    const char*                 path;
+  } _OrthancPluginReadFile;
+
+  /**
+   * @brief Read a file.
+   * 
+   * Read the content of a file on the filesystem, and returns it into
+   * a newly allocated memory buffer.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target The target memory buffer.
+   * @param path The path of the file to be read.
+   * @return 0 if success, or the error code if failure.
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginReadFile(
+    OrthancPluginContext*       context,
+    OrthancPluginMemoryBuffer*  target,
+    const char*                 path)
+  {
+    _OrthancPluginReadFile params;
+    params.target = target;
+    params.path = path;
+    return context->InvokeService(context, _OrthancPluginService_ReadFile, &params);
+  }
+
+
+
+  typedef struct
+  {
+    const char*  path;
+    const void*  data;
+    uint32_t     size;
+  } _OrthancPluginWriteFile;
+
+  /**
+   * @brief Write a file.
+   * 
+   * Write the content of a memory buffer to the filesystem.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param path The path of the file to be written.
+   * @param data The content of the memory buffer.
+   * @param size The size of the memory buffer.
+   * @return 0 if success, or the error code if failure.
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginWriteFile(
+    OrthancPluginContext*  context,
+    const char*            path,
+    const void*            data,
+    uint32_t               size)
+  {
+    _OrthancPluginWriteFile params;
+    params.path = path;
+    params.data = data;
+    params.size = size;
+    return context->InvokeService(context, _OrthancPluginService_WriteFile, &params);
   }
 
 

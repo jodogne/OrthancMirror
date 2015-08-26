@@ -935,6 +935,8 @@ namespace Orthanc
   bool OrthancPlugins::InvokeService(_OrthancPluginService service,
                                      const void* parameters)
   {
+    VLOG(1) << "Calling plugin service: " << service;
+
     boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
 
     switch (service)
@@ -1195,6 +1197,26 @@ namespace Orthanc
           *reinterpret_cast<const _OrthancPluginAnswerBuffer*>(parameters);
         HttpOutput* output = reinterpret_cast<HttpOutput*>(p.output);
         output->SendMultipartItem(p.answer, p.answerSize);
+        return true;
+      }
+
+      case _OrthancPluginService_ReadFile:
+      {
+        const _OrthancPluginReadFile& p =
+          *reinterpret_cast<const _OrthancPluginReadFile*>(parameters);
+
+        std::string content;
+        Toolbox::ReadFile(content, p.path);
+        CopyToMemoryBuffer(*p.target, content.size() > 0 ? content.c_str() : NULL, content.size());
+
+        return true;
+      }
+
+      case _OrthancPluginService_WriteFile:
+      {
+        const _OrthancPluginWriteFile& p =
+          *reinterpret_cast<const _OrthancPluginWriteFile*>(parameters);
+        Toolbox::WriteFile(p.data, p.size, p.path);
         return true;
       }
 
