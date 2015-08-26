@@ -109,6 +109,8 @@ namespace Orthanc
 
     static IStorageArea* CreateStorageArea();
 
+    static void GetConfiguration(Json::Value& result);
+
     static void FormatConfiguration(std::string& result);
   };
 }
