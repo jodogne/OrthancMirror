@@ -146,6 +146,10 @@
   //   "HttpProxy" : "proxyUser:proxyPassword@192.168.0.1:3128"
   "HttpProxy" : "",
 
+  // Set the timeout for HTTP requests issued by Orthanc (in seconds).
+  "HttpTimeout" : 10,
+
+
 
   /**
    * Advanced options

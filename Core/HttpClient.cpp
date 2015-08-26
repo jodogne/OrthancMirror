@@ -44,6 +44,7 @@
 
 static std::string globalCACertificates_;
 static bool globalVerifyPeers_ = true;
+static long globalTimeout_ = 0;
 
 extern "C"
 {
@@ -140,7 +141,7 @@ namespace Orthanc
     method_ = HttpMethod_Get;
     lastStatus_ = HttpStatus_200_Ok;
     isVerbose_ = false;
-    timeout_ = 0;
+    timeout_ = globalTimeout_;
     verifyPeers_ = globalVerifyPeers_;
   }
 
@@ -383,5 +384,12 @@ namespace Orthanc
   void HttpClient::GlobalFinalize()
   {
     curl_global_cleanup();
+  }
+
+  
+  void HttpClient::SetDefaultTimeout(long timeout)
+  {
+    LOG(INFO) << "Setting the default timeout for HTTP client connections: " << timeout << " seconds";
+    globalTimeout_ = timeout;
   }
 }

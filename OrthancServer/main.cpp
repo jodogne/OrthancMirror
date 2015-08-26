@@ -524,6 +524,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 {
   ServerContext context(database, storageArea);
 
+  HttpClient::SetDefaultTimeout(Configuration::GetGlobalIntegerParameter("HttpTimeout", 0));
   context.SetCompressionEnabled(Configuration::GetGlobalBoolParameter("StorageCompression", false));
   context.SetStoreMD5ForAttachments(Configuration::GetGlobalBoolParameter("StoreMD5ForAttachments", true));
 
