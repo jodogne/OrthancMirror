@@ -27,6 +27,7 @@ Plugins
 Maintenance
 -----------
 
+* New configuration option: "HttpTimeout" to set the default timeout for HTTP requests
 * Improved error codes
 * Many code refactorings
 * If error while calling the REST API, the answer body contains an error description

@@ -163,5 +163,7 @@ namespace Orthanc
                                  const std::string& httpsCACertificates);
   
     static void GlobalFinalize();
+
+    static void SetDefaultTimeout(long timeout);
   };
 }
