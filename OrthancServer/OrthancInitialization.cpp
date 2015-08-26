@@ -896,14 +896,18 @@ namespace Orthanc
   }  
 
 
+
+  void Configuration::GetConfiguration(Json::Value& result)
+  {
+    boost::mutex::scoped_lock lock(globalMutex_);
+    result = configuration_;
+  }
+
+
   void Configuration::FormatConfiguration(std::string& result)
   {
     Json::Value config;
-
-    {
-      boost::mutex::scoped_lock lock(globalMutex_);
-      config = configuration_;
-    }
+    GetConfiguration(config);
 
     Json::StyledWriter w;
     result = w.write(config);

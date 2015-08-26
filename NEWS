@@ -14,6 +14,7 @@ Lua
 * More information about the origin request in the "OnStoredInstance()" and
   "ReceivedInstanceFilter()" callbacks. WARNING: This can result in
   incompatibilities wrt. previous versions of Orthanc.
+* New function "GetOrthancConfiguration()" to get the Orthanc configuration
 
 Plugins
 -------

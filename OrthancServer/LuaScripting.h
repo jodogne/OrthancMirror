@@ -51,6 +51,7 @@ namespace Orthanc
     static int RestApiPost(lua_State *state);
     static int RestApiPut(lua_State *state);
     static int RestApiDelete(lua_State *state);
+    static int GetOrthancConfiguration(lua_State *state);
 
     void ApplyOnStoredInstance(const std::string& instanceId,
                                const Json::Value& simplifiedDicom,

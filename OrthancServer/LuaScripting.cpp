@@ -200,6 +200,18 @@ namespace Orthanc
   }
 
 
+  // Syntax in Lua: GetOrthancConfiguration()
+  int LuaScripting::GetOrthancConfiguration(lua_State *state)
+  {
+    Json::Value configuration;
+    Configuration::GetConfiguration(configuration);
+
+    LuaContext::GetLuaContext(state).PushJson(configuration);
+
+    return 1;
+  }
+
+
   IServerCommand* LuaScripting::ParseOperation(const std::string& operation,
                                                const Json::Value& parameters)
   {
@@ -357,6 +369,7 @@ namespace Orthanc
     lua_.RegisterFunction("RestApiPost", RestApiPost);
     lua_.RegisterFunction("RestApiPut", RestApiPut);
     lua_.RegisterFunction("RestApiDelete", RestApiDelete);
+    lua_.RegisterFunction("GetOrthancConfiguration", GetOrthancConfiguration);
 
     lua_.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
     lua_.SetHttpProxy(Configuration::GetGlobalStringParameter("HttpProxy", ""));
