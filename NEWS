@@ -7,6 +7,7 @@ Pending changes in the mainline
 * "limit" and "since" arguments while retrieving DICOM resources in the REST API
 * Support of "deflate" and "gzip" content-types in HTTP requests
 * Options to validate peers against CA certificates in HTTPS requests
+* New configuration option: "HttpTimeout" to set the default timeout for HTTP requests
 
 Lua
 ---
@@ -23,15 +24,15 @@ Plugins
 * New function "OrthancPluginReadFile()" to read files from the filesystem
 * New function "OrthancPluginWriteFile()" to write files to the filesystem
 * New function "OrthancPluginGetErrorDescription()" to convert error codes to strings
+* New function "OrthancPluginSendHttpStatus()" to send HTTP status with a body
 * Plugins have access to explicit error codes 
 
 Maintenance
 -----------
 
-* New configuration option: "HttpTimeout" to set the default timeout for HTTP requests
-* Improved error codes
 * Many code refactorings
-* If error while calling the REST API, the answer body contains an error description
+* Improved error codes (no more custom descriptions in exceptions)
+* If error while calling the REST API, the answer body contains description of the error
   (this feature can be disabled with the "HttpDescribeErrors" option)
 * Upgrade to curl 7.44.0 for static and Windows builds
 * Upgrade to libcurl 1.0.2d for static and Windows builds

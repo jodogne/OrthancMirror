@@ -1467,6 +1467,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param output The HTTP connection to the client application.
    * @param status The HTTP status code to be sent.
+   * @see OrthancPluginSendHttpStatus()
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginSendHttpStatusCode(
     OrthancPluginContext*    context,
@@ -2490,6 +2491,50 @@ extern "C"
     {
       return result;
     }
+  }
+
+
+
+  typedef struct
+  {
+    OrthancPluginRestOutput* output;
+    uint16_t                 status;
+    const char*              body;
+    uint32_t                 bodySize;
+  } _OrthancPluginSendHttpStatus;
+
+  /**
+   * @brief Send a HTTP status, with a custom body.
+   *
+   * This function answers to a HTTP request by sending a HTTP status
+   * code (such as "400 - Bad Request"), together with a body
+   * describing the error. The body will only be returned if the
+   * configuration option "HttpDescribeErrors" of Orthanc is set to "true".
+   * 
+   * Note that:
+   * - Successful requests (status 200) must use ::OrthancPluginAnswerBuffer().
+   * - Redirections (status 301) must use ::OrthancPluginRedirect().
+   * - Unauthorized access (status 401) must use ::OrthancPluginSendUnauthorized().
+   * - Methods not allowed (status 405) must use ::OrthancPluginSendMethodNotAllowed().
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param output The HTTP connection to the client application.
+   * @param status The HTTP status code to be sent.
+   * @see OrthancPluginSendHttpStatusCode()
+   **/
+  ORTHANC_PLUGIN_INLINE void OrthancPluginSendHttpStatus(
+    OrthancPluginContext*    context,
+    OrthancPluginRestOutput* output,
+    uint16_t                 status,
+    const char*              body,
+    uint32_t                 bodySize)
+  {
+    _OrthancPluginSendHttpStatus params;
+    params.output = output;
+    params.status = status;
+    params.body = body;
+    params.bodySize = bodySize;
+    context->InvokeService(context, _OrthancPluginService_SendHttpStatus, &params);
   }
 
 
