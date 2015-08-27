@@ -354,6 +354,7 @@ extern "C"
     _OrthancPluginService_BufferCompression = 14,
     _OrthancPluginService_ReadFile = 15,
     _OrthancPluginService_WriteFile = 16,
+    _OrthancPluginService_GetErrorDescription = 17,
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -372,6 +373,7 @@ extern "C"
     _OrthancPluginService_SetHttpHeader = 2007,
     _OrthancPluginService_StartMultipartAnswer = 2008,
     _OrthancPluginService_SendMultipartItem = 2009,
+    _OrthancPluginService_SendHttpStatus = 2010,
 
     /* Access to the Orthanc database and API */
     _OrthancPluginService_GetDicomForInstance = 3000,
@@ -2449,6 +2451,45 @@ extern "C"
     params.data = data;
     params.size = size;
     return context->InvokeService(context, _OrthancPluginService_WriteFile, &params);
+  }
+
+
+
+  typedef struct
+  {
+    const char**            target;
+    OrthancPluginErrorCode  error;
+  } _OrthancPluginGetErrorDescription;
+
+  /**
+   * @brief Get the description of a given error code.
+   *
+   * This function returns the description of a given error code.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param code The error code of interest.
+   * @return The error description. This is a statically-allocated
+   * string, do not free it.
+   **/
+  ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetErrorDescription(
+    OrthancPluginContext*    context,
+    OrthancPluginErrorCode   error)
+  {
+    const char* result = NULL;
+
+    _OrthancPluginGetErrorDescription params;
+    params.target = &result;
+    params.error = error;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetErrorDescription, &params) ||
+        result == NULL)
+    {
+      return "Unknown error code";
+    }
+    else
+    {
+      return result;
+    }
   }
 
 

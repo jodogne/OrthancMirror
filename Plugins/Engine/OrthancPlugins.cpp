@@ -1220,6 +1220,14 @@ namespace Orthanc
         return true;
       }
 
+      case _OrthancPluginService_GetErrorDescription:
+      {
+        const _OrthancPluginGetErrorDescription& p =
+          *reinterpret_cast<const _OrthancPluginGetErrorDescription*>(parameters);
+        *(p.target) = EnumerationToString(static_cast<ErrorCode>(p.error));
+        return true;
+      }
+
       default:
         // This service is unknown by the Orthanc plugin engine
         return false;
