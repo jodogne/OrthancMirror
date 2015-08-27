@@ -1,5 +1,5 @@
 /**
- * @defgroup CInterface C Interface 
+ * @ingroup CInterface
  **/
 
 /**
@@ -47,9 +47,14 @@ extern "C"
 {
 #endif
 
+
+  /**
+   * Opaque structure that represents the context of a custom database engine.
+   **/
   typedef struct _OrthancPluginDatabaseContext_t OrthancPluginDatabaseContext;
 
 
+//! @cond Doxygen_Suppress
   typedef enum
   {
     _OrthancPluginDatabaseAnswerType_None = 0,
@@ -624,7 +629,7 @@ extern "C"
       void* payload);
 
   } OrthancPluginDatabaseBackend;
-
+//! @endcond
 
 
   typedef struct
@@ -634,6 +639,19 @@ extern "C"
     void*                                payload;
   } _OrthancPluginRegisterDatabaseBackend;
 
+  /**
+   * Register a custom database back-end.
+   *
+   * Instead of manually filling the OrthancPluginDatabaseBackend
+   * structure, you should instead implement a concrete C++ class
+   * deriving from ::OrthancPlugins::IDatabaseBackend, and register it
+   * using ::OrthancPlugins::DatabaseBackendAdapter::Register().
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param backend The callbacks of the custom database engine.
+   * @param payload Pointer containing private information for the database engine.
+   * @return The context of the database engine (it must not be manually freed).
+   **/
   ORTHANC_PLUGIN_INLINE OrthancPluginDatabaseContext* OrthancPluginRegisterDatabaseBackend(
     OrthancPluginContext*                context,
     const OrthancPluginDatabaseBackend*  backend,
@@ -663,7 +681,6 @@ extern "C"
       return result;
     }
   }
-
 
 
 #ifdef  __cplusplus

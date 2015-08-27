@@ -113,10 +113,56 @@ namespace Orthanc
 
   struct OrthancPlugins::PImpl
   {
-    typedef std::pair<std::string, _OrthancPluginProperty>  Property;
+    class RestCallback : public boost::noncopyable
+    {
+    private:
+      boost::regex              regex_;
+      OrthancPluginRestCallback callback_;
+      bool                      lock_;
 
-    typedef std::pair<boost::regex*, OrthancPluginRestCallback> RestCallback;
-    typedef std::list<RestCallback>  RestCallbacks;
+      int32_t InvokeInternal(HttpOutput& output,
+                             const std::string& flatUri,
+                             const OrthancPluginHttpRequest& request)
+      {
+        return callback_(reinterpret_cast<OrthancPluginRestOutput*>(&output), 
+                         flatUri.c_str(), 
+                         &request);
+      }
+
+    public:
+      RestCallback(const char* regex,
+                   OrthancPluginRestCallback callback,
+                   bool lockRestCallbacks) :
+        regex_(regex),
+        callback_(callback),
+        lock_(lockRestCallbacks)
+      {
+      }
+
+      const boost::regex& GetRegularExpression() const
+      {
+        return regex_;
+      }
+
+      int32_t Invoke(boost::recursive_mutex& restCallbackMutex,
+                     HttpOutput& output,
+                     const std::string& flatUri,
+                     const OrthancPluginHttpRequest& request)
+      {
+        if (lock_)
+        {
+          boost::recursive_mutex::scoped_lock lock(restCallbackMutex);
+          return InvokeInternal(output, flatUri, request);
+        }
+        else
+        {
+          return InvokeInternal(output, flatUri, request);
+        }
+      }
+    };
+
+    typedef std::pair<std::string, _OrthancPluginProperty>  Property;
+    typedef std::list<RestCallback*>  RestCallbacks;
     typedef std::list<OrthancPluginOnStoredInstanceCallback>  OnStoredCallbacks;
     typedef std::list<OrthancPluginOnChangeCallback>  OnChangeCallbacks;
     typedef std::map<Property, std::string>  Properties;
@@ -204,8 +250,7 @@ namespace Orthanc
     for (PImpl::RestCallbacks::iterator it = pimpl_->restCallbacks_.begin(); 
          it != pimpl_->restCallbacks_.end(); ++it)
     {
-      // Delete the regular expression associated with this callback
-      delete it->first;
+      delete *it;
     }
   }
 
@@ -255,7 +300,7 @@ namespace Orthanc
                               size_t bodySize)
   {
     std::string flatUri = Toolbox::FlattenUri(uri);
-    OrthancPluginRestCallback callback = NULL;
+    PImpl::RestCallback* callback = NULL;
 
     std::vector<std::string> groups;
     std::vector<const char*> cgroups;
@@ -268,9 +313,9 @@ namespace Orthanc
       // Check whether the regular expression associated to this
       // callback matches the URI
       boost::cmatch what;
-      if (boost::regex_match(flatUri.c_str(), what, *(it->first)))
+      if (boost::regex_match(flatUri.c_str(), what, (*it)->GetRegularExpression()))
       {
-        callback = it->second;
+        callback = *it;
 
         // Extract the value of the free parameters of the regular expression
         if (what.size() > 1)
@@ -283,13 +328,12 @@ namespace Orthanc
             cgroups[i - 1] = groups[i - 1].c_str();
           }
         }
-
-        found = true;
       }
     }
 
-    if (!found)
+    if (callback == NULL)
     {
+      // Callback not found
       return false;
     }
 
@@ -346,14 +390,7 @@ namespace Orthanc
     }
 
     assert(callback != NULL);
-    int32_t error;
-
-    {
-      boost::recursive_mutex::scoped_lock lock(pimpl_->restCallbackMutex_);
-      error = callback(reinterpret_cast<OrthancPluginRestOutput*>(&output), 
-                       flatUri.c_str(), 
-                       &request);
-    }
+    int32_t error = callback->Invoke(pimpl_->restCallbackMutex_, output, flatUri, request);
 
     if (error == 0 && 
         output.IsWritingMultipart())
@@ -459,13 +496,18 @@ namespace Orthanc
   }
 
 
-  void OrthancPlugins::RegisterRestCallback(const void* parameters)
+  void OrthancPlugins::RegisterRestCallback(const void* parameters,
+                                            bool lock)
   {
     const _OrthancPluginRestCallback& p = 
       *reinterpret_cast<const _OrthancPluginRestCallback*>(parameters);
 
-    LOG(INFO) << "Plugin has registered a REST callback on: " << p.pathRegularExpression;
-    pimpl_->restCallbacks_.push_back(std::make_pair(new boost::regex(p.pathRegularExpression), p.callback));
+    LOG(INFO) << "Plugin has registered a REST callback "
+              << (lock ? "with" : "witout")
+              << " mutual exclusion on: " 
+              << p.pathRegularExpression;
+
+    pimpl_->restCallbacks_.push_back(new PImpl::RestCallback(p.pathRegularExpression, p.callback, lock));
   }
 
 
@@ -995,7 +1037,11 @@ namespace Orthanc
         return true;
 
       case _OrthancPluginService_RegisterRestCallback:
-        RegisterRestCallback(parameters);
+        RegisterRestCallback(parameters, true);
+        return true;
+
+      case _OrthancPluginService_RegisterRestCallbackNoLock:
+        RegisterRestCallback(parameters, false);
         return true;
 
       case _OrthancPluginService_RegisterOnStoredInstanceCallback:

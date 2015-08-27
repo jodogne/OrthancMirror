@@ -56,7 +56,8 @@ namespace Orthanc
 
     void CheckContextAvailable();
 
-    void RegisterRestCallback(const void* parameters);
+    void RegisterRestCallback(const void* parameters,
+                              bool lock);
 
     void RegisterOnStoredInstanceCallback(const void* parameters);
 

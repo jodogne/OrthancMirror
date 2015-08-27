@@ -25,6 +25,7 @@ Plugins
 * New function "OrthancPluginWriteFile()" to write files to the filesystem
 * New function "OrthancPluginGetErrorDescription()" to convert error codes to strings
 * New function "OrthancPluginSendHttpStatus()" to send HTTP status with a body
+* New function "OrthancPluginRegisterRestCallbackNoLock()" for high-performance plugins
 * Plugins have access to explicit error codes 
 
 Maintenance
