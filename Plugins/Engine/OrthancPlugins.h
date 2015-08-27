@@ -85,6 +85,8 @@ namespace Orthanc
 
     void SendHttpStatusCode(const void* parameters);
 
+    void SendHttpStatus(const void* parameters);
+
     void SendUnauthorized(const void* parameters);
 
     void SendMethodNotAllowed(const void* parameters);

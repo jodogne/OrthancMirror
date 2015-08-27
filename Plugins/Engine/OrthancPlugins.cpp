@@ -522,6 +522,25 @@ namespace Orthanc
   }
 
 
+  void OrthancPlugins::SendHttpStatus(const void* parameters)
+  {
+    const _OrthancPluginSendHttpStatus& p = 
+      *reinterpret_cast<const _OrthancPluginSendHttpStatus*>(parameters);
+
+    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
+    HttpStatus status = static_cast<HttpStatus>(p.status);
+
+    if (p.bodySize > 0 && p.body != NULL)
+    {
+      translatedOutput->SendStatus(status, p.body, p.bodySize);
+    }
+    else
+    {
+      translatedOutput->SendStatus(status);
+    }
+  }
+
+
   void OrthancPlugins::SendUnauthorized(const void* parameters)
   {
     const _OrthancPluginOutputPlusArgument& p = 
@@ -1041,6 +1060,10 @@ namespace Orthanc
 
       case _OrthancPluginService_SendMethodNotAllowed:
         SendMethodNotAllowed(parameters);
+        return true;
+
+      case _OrthancPluginService_SendHttpStatus:
+        SendHttpStatus(parameters);
         return true;
 
       case _OrthancPluginService_SendHttpStatusCode:
