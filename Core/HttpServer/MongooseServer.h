@@ -77,6 +77,7 @@ namespace Orthanc
     IIncomingHttpRequestFilter* filter_;
     bool keepAlive_;
     bool httpCompression_;
+    bool describeErrors_;
   
     bool IsRunning() const;
 
@@ -142,6 +143,13 @@ namespace Orthanc
     }
 
     void SetHttpCompressionEnabled(bool enabled);
+
+    bool IsDescribeErrorsEnabled() const
+    {
+      return describeErrors_;
+    }
+
+    void SetDescribeErrorsEnabled(bool enabled);
 
     const IIncomingHttpRequestFilter* GetIncomingHttpRequestFilter() const
     {

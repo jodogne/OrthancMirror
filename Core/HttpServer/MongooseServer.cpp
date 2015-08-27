@@ -583,6 +583,7 @@ namespace Orthanc
 
     MongooseOutputStream stream(connection);
     HttpOutput output(stream, that->IsKeepAliveEnabled());
+    output.SetDescribeErrorsEnabled(that->IsDescribeErrorsEnabled());
 
     // Check remote calls
     if (!that->IsRemoteAccessAllowed() &&
@@ -831,6 +832,7 @@ namespace Orthanc
     filter_ = NULL;
     keepAlive_ = false;
     httpCompression_ = true;
+    describeErrors_ = true;
 
 #if ORTHANC_SSL_ENABLED == 1
     // Check for the Heartbleed exploit
@@ -979,6 +981,12 @@ namespace Orthanc
     Stop();
     httpCompression_ = enabled;
     LOG(WARNING) << "HTTP compression is " << (enabled ? "enabled" : "disabled");
+  }
+  
+  void MongooseServer::SetDescribeErrorsEnabled(bool enabled)
+  {
+    describeErrors_ = enabled;
+    LOG(INFO) << "Description of the errors in the HTTP answers is " << (enabled ? "enabled" : "disabled");
   }
 
   void MongooseServer::SetIncomingHttpRequestFilter(IIncomingHttpRequestFilter& filter)

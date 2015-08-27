@@ -42,18 +42,40 @@
   ],
 
 
+
   /**
    * Configuration of the HTTP server
    **/
 
+  // Enable the HTTP server. If this parameter is set to "false",
+  // Orthanc acts as a pure DICOM server. The REST API and Orthanc
+  // Explorer will not be available.
+  "HttpServerEnabled" : true,
+
   // HTTP port for the REST services and for the GUI
   "HttpPort" : 8042,
+
+  // When the following option is "true", if an error is encountered
+  // while calling the REST API, a JSON message describing the error
+  // is put in the HTTP answer. This feature can be disabled if the
+  // HTTP client does not properly handles such answers.
+  "HttpDescribeErrors" : true,
+
+  // Enable HTTP compression to improve network bandwidth utilization,
+  // at the expense of more computations on the server. Orthanc
+  // supports the "gzip" and "deflate" HTTP encodings.
+  "HttpCompressionEnabled" : true,
 
 
 
   /**
    * Configuration of the DICOM server
    **/
+
+  // Enable the DICOM server. If this parameter is set to "false",
+  // Orthanc acts as a pure REST server. It will not be possible to
+  // receive files or to do query/retrieve through the DICOM protocol.
+  "DicomServerEnabled" : true,
 
   // The DICOM Application Entity Title
   "DicomAet" : "ORTHANC",
@@ -79,6 +101,7 @@
   "JpipTransferSyntaxAccepted"         : true,
   "Mpeg2TransferSyntaxAccepted"        : true,
   "RleTransferSyntaxAccepted"          : true,
+
 
 
   /**
@@ -149,6 +172,17 @@
   // Set the timeout for HTTP requests issued by Orthanc (in seconds).
   "HttpTimeout" : 10,
 
+  // Enable the verification of the peers during HTTPS requests.
+  // Reference: http://curl.haxx.se/docs/sslcerts.html
+  "HttpsVerifyPeers" : true,
+
+  // Path to the CA (certification authority) certificates to validate
+  // peers in HTTPS requests. From curl documentation ("--cacert"
+  // option): "Tells curl to use the specified certificate file to
+  // verify the peers. The file may contain multiple CA
+  // certificates. The certificate(s) must be in PEM format."
+  "HttpsCACertificates" : "",
+
 
 
   /**
@@ -172,16 +206,6 @@
   // Number of seconds without receiving any instance before a
   // patient, a study or a series is considered as stable.
   "StableAge" : 60,
-
-  // Enable the HTTP server. If this parameter is set to "false",
-  // Orthanc acts as a pure DICOM server. The REST API and Orthanc
-  // Explorer will not be available.
-  "HttpServerEnabled" : true,
-
-  // Enable the DICOM server. If this parameter is set to "false",
-  // Orthanc acts as a pure REST server. It will not be possible to
-  // receive files or to do query/retrieve through the DICOM protocol.
-  "DicomServerEnabled" : true,
 
   // By default, Orthanc compares AET (Application Entity Titles) in a
   // case-insensitive way. Setting this option to "true" will enable
@@ -236,21 +260,5 @@
   // When handling a C-Find SCP request, setting this flag to "false"
   // will enable case-insensitive match for PN value representation
   // (such as PatientName). By default, the search is case-insensitive.
-  "CaseSensitivePN" : false,
-
-  // Enable HTTP compression to improve network bandwidth utilization,
-  // at the expense of more computations on the server. Orthanc
-  // supports the "gzip" and "deflate" encodings.
-  "HttpCompressionEnabled" : true,
-
-  // Enable the verification of the peers during HTTPS requests.
-  // Reference: http://curl.haxx.se/docs/sslcerts.html
-  "HttpsVerifyPeers" : true,
-
-  // Path to the CA (certification authority) certificates to validate
-  // peers in HTTPS requests. From curl documentation ("--cacert"
-  // option): "Tells curl to use the specified certificate file to
-  // verify the peers. The file may contain multiple CA
-  // certificates. The certificate(s) must be in PEM format."
-  "HttpsCACertificates" : ""
+  "CaseSensitivePN" : false
 }

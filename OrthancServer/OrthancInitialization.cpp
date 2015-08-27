@@ -82,7 +82,15 @@ namespace Orthanc
   {
     if (configuration_.isMember(parameter))
     {
-      return configuration_[parameter].asString();
+      if (configuration_[parameter].type() != Json::stringValue)
+      {
+        LOG(ERROR) << "The configuration option \"" << parameter << "\" must be a string";
+        throw OrthancException(ErrorCode_BadParameterType);
+      }
+      else
+      {
+        return configuration_[parameter].asString();
+      }
     }
     else
     {
@@ -96,7 +104,15 @@ namespace Orthanc
   {
     if (configuration_.isMember(parameter))
     {
-      return configuration_[parameter].asBool();
+      if (configuration_[parameter].type() != Json::booleanValue)
+      {
+        LOG(ERROR) << "The configuration option \"" << parameter << "\" must be a Boolean (true or false)";
+        throw OrthancException(ErrorCode_BadParameterType);
+      }
+      else
+      {
+        return configuration_[parameter].asBool();
+      }
     }
     else
     {
@@ -382,7 +398,15 @@ namespace Orthanc
 
     if (configuration_.isMember(parameter))
     {
-      return configuration_[parameter].asInt();
+      if (configuration_[parameter].type() != Json::intValue)
+      {
+        LOG(ERROR) << "The configuration option \"" << parameter << "\" must be an integer";
+        throw OrthancException(ErrorCode_BadParameterType);
+      }
+      else
+      {
+        return configuration_[parameter].asInt();
+      }
     }
     else
     {
