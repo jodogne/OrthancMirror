@@ -61,7 +61,9 @@ $(document).ready(function() {
   
   currentPage = $.mobile.pageData.active;
   currentUuid = $.mobile.pageData.uuid;
-  if (currentPage.length > 0 && 
+  if (!(typeof currentPage === 'undefined') &&
+      !(typeof currentUuid === 'undefined') &&
+      currentPage.length > 0 && 
       currentUuid.length > 0)
   {
     Refresh();
