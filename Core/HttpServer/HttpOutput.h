@@ -114,6 +114,7 @@ namespace Orthanc
     StateMachine stateMachine_;
     bool         isDeflateAllowed_;
     bool         isGzipAllowed_;
+    bool         describeErrors_;
 
     HttpCompression GetPreferredCompression(size_t bodySize) const;
 
@@ -122,7 +123,8 @@ namespace Orthanc
                bool isKeepAlive) : 
       stateMachine_(stream, isKeepAlive),
       isDeflateAllowed_(false),
-      isGzipAllowed_(false)
+      isGzipAllowed_(false),
+      describeErrors_(true)
     {
     }
 
@@ -144,6 +146,16 @@ namespace Orthanc
     bool IsGzipAllowed() const
     {
       return isGzipAllowed_;
+    }
+
+    void SetDescribeErrorsEnabled(bool enabled)
+    {
+      describeErrors_ = enabled;
+    }
+
+    bool IsDescribeErrorsEnabled() const
+    {
+      return describeErrors_;      
     }
 
     void SendStatus(HttpStatus status,
