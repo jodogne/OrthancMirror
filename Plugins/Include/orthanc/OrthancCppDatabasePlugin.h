@@ -41,6 +41,7 @@
 
 namespace OrthancPlugins
 {
+//! @cond Doxygen_Suppress
   // This class mimics "boost::noncopyable"
   class NonCopyable
   {
@@ -58,6 +59,7 @@ namespace OrthancPlugins
     {
     }
   };
+//! @endcond
 
 
 
@@ -422,6 +424,13 @@ namespace OrthancPlugins
 
 
 
+  /**
+   * @brief Bridge between C and C++ database engines.
+   * 
+   * Class creating the bridge between the C low-level primitives for
+   * custom database engines, and the high-level IDatabaseBackend C++
+   * interface.
+   **/
   class DatabaseBackendAdapter
   {
   private:
@@ -1467,6 +1476,13 @@ namespace OrthancPlugins
 
     
   public:
+    /**
+     * Register a custom database back-end written in C++.
+     *
+     * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+     * @param backend Your custom database engine.
+     **/
+
     static void Register(OrthancPluginContext* context,
                          IDatabaseBackend& backend)
     {

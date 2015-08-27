@@ -17,7 +17,7 @@
  *    - Possibly register its callback for received DICOM instances using ::OrthancPluginRegisterOnStoredInstanceCallback().
  *    - Possibly register its callback for changes to the DICOM store using ::OrthancPluginRegisterOnChangeCallback().
  *    - Possibly register a custom storage area using ::OrthancPluginRegisterStorageArea().
- *    - Possibly register a custom database back-end area using ::OrthancPluginRegisterDatabaseBackend().
+ *    - Possibly register a custom database back-end area using OrthancPluginRegisterDatabaseBackend().
  * -# <tt>void OrthancPluginFinalize()</tt>:
  *    This function is invoked by Orthanc during its shutdown. The plugin
  *    must free all its memory.
@@ -29,8 +29,11 @@
  * The name and the version of a plugin is only used to prevent it
  * from being loaded twice.
  * 
- * The various REST callbacks are guaranteed to be executed in mutual
- * exclusion since Orthanc 0.8.5.
+ * To ensure multi-threading safety, the various REST callbacks are
+ * guaranteed to be executed in mutual exclusion since Orthanc
+ * 0.8.5. If this feature is undesired (notably when developing
+ * high-performance plugins handling simultaneous requests), use
+ * ::OrthancPluginRegisterRestCallbackNoLock().
  **/
 
 
@@ -361,6 +364,7 @@ extern "C"
     _OrthancPluginService_RegisterOnStoredInstanceCallback = 1001,
     _OrthancPluginService_RegisterStorageArea = 1002,
     _OrthancPluginService_RegisterOnChangeCallback = 1003,
+    _OrthancPluginService_RegisterRestCallbackNoLock = 1004,
 
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
@@ -857,10 +861,13 @@ extern "C"
    * expression for a URI. This function must be called during the
    * initialization of the plugin, i.e. inside the
    * OrthancPluginInitialize() public function.
+   *
+   * Each REST callback is guaranteed to run in mutual exclusion.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param pathRegularExpression Regular expression for the URI. May contain groups.
    * @param callback The callback function to handle the REST call.
+   * @see OrthancPluginRegisterRestCallbackNoLock()
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterRestCallback(
     OrthancPluginContext*     context,
@@ -871,6 +878,39 @@ extern "C"
     params.pathRegularExpression = pathRegularExpression;
     params.callback = callback;
     context->InvokeService(context, _OrthancPluginService_RegisterRestCallback, &params);
+  }
+
+
+
+  /**
+   * @brief Register a REST callback, without locking.
+   *
+   * This function registers a REST callback against a regular
+   * expression for a URI. This function must be called during the
+   * initialization of the plugin, i.e. inside the
+   * OrthancPluginInitialize() public function.
+   *
+   * Contrarily to OrthancPluginRegisterRestCallback(), the callback
+   * will NOT be invoked in mutual exclusion. This can be useful for
+   * high-performance plugins that must handle concurrent requests
+   * (Orthanc uses a pool of threads, one thread being assigned to
+   * each incoming HTTP request). Of course, it is up to the plugin to
+   * implement the required locking mechanisms.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param pathRegularExpression Regular expression for the URI. May contain groups.
+   * @param callback The callback function to handle the REST call.
+   * @see OrthancPluginRegisterRestCallback()
+   **/
+  ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterRestCallbackNoLock(
+    OrthancPluginContext*     context,
+    const char*               pathRegularExpression,
+    OrthancPluginRestCallback callback)
+  {
+    _OrthancPluginRestCallback params;
+    params.pathRegularExpression = pathRegularExpression;
+    params.callback = callback;
+    context->InvokeService(context, _OrthancPluginService_RegisterRestCallbackNoLock, &params);
   }
 
 
@@ -2468,7 +2508,7 @@ extern "C"
    * This function returns the description of a given error code.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param code The error code of interest.
+   * @param error The error code of interest.
    * @return The error description. This is a statically-allocated
    * string, do not free it.
    **/
@@ -2520,6 +2560,8 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param output The HTTP connection to the client application.
    * @param status The HTTP status code to be sent.
+   * @param body The body of the answer.
+   * @param bodySize The size of the body.
    * @see OrthancPluginSendHttpStatusCode()
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginSendHttpStatus(
