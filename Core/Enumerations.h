@@ -74,6 +74,7 @@ namespace Orthanc
     ErrorCode_SharedLibrary = 25    /*!< Error while using a shared library (plugin) */,
     ErrorCode_UnknownPluginService = 26    /*!< Plugin invoking an unknown service */,
     ErrorCode_UnknownDicomTag = 27    /*!< Unknown DICOM tag */,
+    ErrorCode_BadJson = 28    /*!< Cannot parse a JSON document */,
     ErrorCode_SQLiteNotOpened = 1000    /*!< SQLite: The database is not opened */,
     ErrorCode_SQLiteAlreadyOpened = 1001    /*!< SQLite: Connection is already open */,
     ErrorCode_SQLiteCannotOpen = 1002    /*!< SQLite: Unable to open the database */,
