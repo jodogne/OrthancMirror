@@ -160,8 +160,9 @@
   }, 
   {
     "Code": 28, 
-    "Name": "RegularFileExpected", 
-    "Description": "The path does not point to a regular file"
+    "HttpStatus": 400, 
+    "Name": "BadJson", 
+    "Description": "Cannot parse a JSON document"
   },
 
 

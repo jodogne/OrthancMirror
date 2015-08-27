@@ -133,6 +133,9 @@ namespace Orthanc
       case ErrorCode_UnknownDicomTag:
         return "Unknown DICOM tag";
 
+      case ErrorCode_BadJson:
+        return "Cannot parse a JSON document";
+
       case ErrorCode_SQLiteNotOpened:
         return "SQLite: The database is not opened";
 
@@ -1117,6 +1120,9 @@ namespace Orthanc
 
       case ErrorCode_InexistentTag:
         return HttpStatus_404_NotFound;
+
+      case ErrorCode_BadJson:
+        return HttpStatus_400_BadRequest;
 
       default:
         return HttpStatus_500_InternalServerError;

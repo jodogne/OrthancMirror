@@ -557,7 +557,7 @@ namespace Orthanc
     Json::Reader reader;
     if (!reader.parse(s, output))
     {
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadJson);
     }
   }
 

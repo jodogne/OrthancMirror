@@ -137,8 +137,8 @@ namespace Orthanc
       if (!reader.parse(content, tmp) ||
           tmp.type() != Json::objectValue)
       {
-        LOG(ERROR) << "Bad file format for this configuration file: " << path;
-        throw OrthancException(ErrorCode_BadFileFormat);
+        LOG(ERROR) << "The configuration file does not follow the JSON syntax: " << path;
+        throw OrthancException(ErrorCode_BadJson);
       }
 
       Toolbox::CopyJsonWithoutComments(config, tmp);
