@@ -167,7 +167,17 @@ namespace Orthanc
       const char *c = plugins.GetProperty(id.c_str(), _OrthancPluginProperty_RootUri);
       if (c != NULL)
       {
-        v["RootUri"] = c;
+        std::string root = c;
+        if (!root.empty())
+        {
+          // Turn the root URI into a URI relative to "/app/explorer.js"
+          if (root[0] == '/')
+          {
+            root = ".." + root;
+          }
+
+          v["RootUri"] = root;
+        }
       }
 
       c = plugins.GetProperty(id.c_str(), _OrthancPluginProperty_Description);
