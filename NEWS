@@ -27,6 +27,7 @@ Plugins
 * New function "OrthancPluginSendHttpStatus()" to send HTTP status with a body
 * New function "OrthancPluginRegisterRestCallbackNoLock()" for high-performance plugins
 * Plugins have access to explicit error codes 
+* Improvements to the sample "ServeFolders" plugin
 
 Maintenance
 -----------
