@@ -43,6 +43,8 @@
 #include "../../OrthancServer/ServerToolbox.h"
 #include "../../Core/Compression/ZlibCompressor.h"
 #include "../../Core/Compression/GzipCompressor.h"
+#include "../../Core/ImageFormats/PngReader.h"
+#include "../../Core/ImageFormats/PngWriter.h"
 
 #include <boost/regex.hpp> 
 
@@ -103,6 +105,56 @@ namespace Orthanc
 
       case ChangeType_StableStudy:
         return OrthancPluginChangeType_StableStudy;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  static OrthancPluginPixelFormat Convert(PixelFormat format)
+  {
+    switch (format)
+    {
+      case PixelFormat_Grayscale16:
+        return OrthancPluginPixelFormat_Grayscale16;
+
+      case PixelFormat_Grayscale8:
+        return OrthancPluginPixelFormat_Grayscale8;
+
+      case PixelFormat_RGB24:
+        return OrthancPluginPixelFormat_RGB24;
+
+      case PixelFormat_RGBA32:
+        return OrthancPluginPixelFormat_RGBA32;
+
+      case PixelFormat_SignedGrayscale16:
+        return OrthancPluginPixelFormat_SignedGrayscale16;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  static PixelFormat Convert(OrthancPluginPixelFormat format)
+  {
+    switch (format)
+    {
+      case OrthancPluginPixelFormat_Grayscale16:
+        return PixelFormat_Grayscale16;
+
+      case OrthancPluginPixelFormat_Grayscale8:
+        return PixelFormat_Grayscale8;
+
+      case OrthancPluginPixelFormat_RGB24:
+        return PixelFormat_RGB24;
+
+      case OrthancPluginPixelFormat_RGBA32:
+        return PixelFormat_RGBA32;
+
+      case OrthancPluginPixelFormat_SignedGrayscale16:
+        return PixelFormat_SignedGrayscale16;
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -226,6 +278,7 @@ namespace Orthanc
         sizeof(int32_t) != sizeof(OrthancPluginContentType) ||
         sizeof(int32_t) != sizeof(OrthancPluginResourceType) ||
         sizeof(int32_t) != sizeof(OrthancPluginChangeType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginImageFormat) ||
         sizeof(int32_t) != sizeof(OrthancPluginCompressionType) ||
         sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType))
     {
@@ -993,6 +1046,55 @@ namespace Orthanc
   }
 
 
+  void OrthancPlugins::UncompressImage(const void* parameters)
+  {
+    const _OrthancPluginUncompressImage& p = reinterpret_cast<const _OrthancPluginUncompressImage&>(parameters);
+
+    switch (p.format)
+    {
+      case OrthancPluginImageFormat_Png:
+      {
+        std::auto_ptr<PngReader> image(new PngReader);
+        image->ReadFromMemory(p.data, p.size);
+        *(p.target) = reinterpret_cast<OrthancPluginImage*>(image.release());
+        return;
+      }
+
+      case OrthancPluginImageFormat_Jpeg:
+        // TODO
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  void OrthancPlugins::CompressImage(const void* parameters)
+  {
+    const _OrthancPluginCompressImage& p = reinterpret_cast<const _OrthancPluginCompressImage&>(parameters);
+
+    std::string compressed;
+
+    switch (p.imageFormat)
+    {
+      case OrthancPluginImageFormat_Png:
+      {
+        PngWriter writer;
+        writer.WriteToMemory(compressed, p.width, p.height, p.pitch, Convert(p.pixelFormat), p.buffer);
+        break;
+      }
+
+      case OrthancPluginImageFormat_Jpeg:
+        // TODO
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    CopyToMemoryBuffer(*p.target, compressed.size() > 0 ? compressed.c_str() : NULL, compressed.size());
+  }
+
+
   bool OrthancPlugins::InvokeService(_OrthancPluginService service,
                                      const void* parameters)
   {
@@ -1297,9 +1399,61 @@ namespace Orthanc
         return true;
       }
 
+      case _OrthancPluginService_GetImagePixelFormat:
+      {
+        const _OrthancPluginGetImageInfo& p = reinterpret_cast<const _OrthancPluginGetImageInfo&>(parameters);
+        *(p.resultPixelFormat) = Convert(reinterpret_cast<const ImageAccessor*>(p.image)->GetFormat());
+        return true;
+      }
+
+      case _OrthancPluginService_GetImageWidth:
+      {
+        const _OrthancPluginGetImageInfo& p = reinterpret_cast<const _OrthancPluginGetImageInfo&>(parameters);
+        *(p.resultUint32) = reinterpret_cast<const ImageAccessor*>(p.image)->GetWidth();
+        return true;
+      }
+
+      case _OrthancPluginService_GetImageHeight:
+      {
+        const _OrthancPluginGetImageInfo& p = reinterpret_cast<const _OrthancPluginGetImageInfo&>(parameters);
+        *(p.resultUint32) = reinterpret_cast<const ImageAccessor*>(p.image)->GetHeight();
+        return true;
+      }
+
+      case _OrthancPluginService_GetImagePitch:
+      {
+        const _OrthancPluginGetImageInfo& p = reinterpret_cast<const _OrthancPluginGetImageInfo&>(parameters);
+        *(p.resultUint32) = reinterpret_cast<const ImageAccessor*>(p.image)->GetPitch();
+        return true;
+      }
+
+      case _OrthancPluginService_GetImageBuffer:
+      {
+        const _OrthancPluginGetImageInfo& p = reinterpret_cast<const _OrthancPluginGetImageInfo&>(parameters);
+        *(p.resultBuffer) = reinterpret_cast<const ImageAccessor*>(p.image)->GetBuffer();
+        return true;
+      }
+
+      case _OrthancPluginService_FreeImage:
+      {
+        const _OrthancPluginGetImageInfo& p = reinterpret_cast<const _OrthancPluginGetImageInfo&>(parameters);
+        delete reinterpret_cast<const ImageAccessor*>(p.image);
+        return true;
+      }
+
+      case _OrthancPluginService_UncompressImage:
+        UncompressImage(parameters);
+        return true;
+
+      case _OrthancPluginService_CompressImage:
+        CompressImage(parameters);
+        return true;
+
       default:
-        // This service is unknown by the Orthanc plugin engine
+      {
+        // This service is unknown to the Orthanc plugin engine
         return false;
+      }
     }
   }
 

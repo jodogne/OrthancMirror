@@ -409,6 +409,16 @@ extern "C"
     _OrthancPluginService_RegisterDatabaseBackend = 5000,
     _OrthancPluginService_DatabaseAnswer = 5001,
 
+    /* Primitives for handling images */
+    _OrthancPluginService_GetImagePixelFormat = 6000,
+    _OrthancPluginService_GetImageWidth = 6001,
+    _OrthancPluginService_GetImageHeight = 6002,
+    _OrthancPluginService_GetImagePitch = 6003,
+    _OrthancPluginService_GetImageBuffer = 6004,
+    _OrthancPluginService_UncompressImage = 6005,
+    _OrthancPluginService_FreeImage = 6006,
+    _OrthancPluginService_CompressImage = 6007,
+
     _OrthancPluginService_INTERNAL = 0x7fffffff
   } _OrthancPluginService;
 
@@ -468,6 +478,8 @@ extern "C"
      * consecutive bytes. The memory layout is RGBA.
      **/
     OrthancPluginPixelFormat_RGBA32 = 5,
+
+    OrthancPluginPixelFormat_Unknown = 6,   /*!< Unknown pixel format */
 
     _OrthancPluginPixelFormat_INTERNAL = 0x7fffffff
   } OrthancPluginPixelFormat;
@@ -537,6 +549,15 @@ extern "C"
   } OrthancPluginCompressionType;
 
 
+  typedef enum
+  {
+    OrthancPluginImageFormat_Png = 0,   /*!< Image compressed using PNG */
+    OrthancPluginImageFormat_Jpeg = 1,  /*!< Image compressed using JPEG */
+
+    _OrthancPluginImageFormat_INTERNAL = 0x7fffffff
+  } OrthancPluginImageFormat;
+
+
 
   /**
    * @brief A memory buffer allocated by the core system of Orthanc.
@@ -572,6 +593,13 @@ extern "C"
    * @brief Opaque structure that represents a DICOM instance received by Orthanc.
    **/
   typedef struct _OrthancPluginDicomInstance_t OrthancPluginDicomInstance;
+
+
+
+  /**
+   * @brief Opaque structure that represents a uncompressed image in memory.
+   **/
+  typedef struct _OrthancPluginImage_t OrthancPluginImage;
 
 
 
@@ -723,7 +751,8 @@ extern "C"
         sizeof(int32_t) != sizeof(OrthancPluginContentType) ||
         sizeof(int32_t) != sizeof(OrthancPluginResourceType) ||
         sizeof(int32_t) != sizeof(OrthancPluginChangeType) ||
-        sizeof(int32_t) != sizeof(OrthancPluginCompressionType))
+        sizeof(int32_t) != sizeof(OrthancPluginCompressionType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginImageFormat))
     {
       /* Mismatch in the size of the enumerations */
       return 0;
@@ -2579,6 +2608,244 @@ extern "C"
     params.bodySize = bodySize;
     context->InvokeService(context, _OrthancPluginService_SendHttpStatus, &params);
   }
+
+
+
+  typedef struct
+  {
+    const OrthancPluginImage*  image;
+    uint32_t*                  resultUint32;
+    OrthancPluginPixelFormat*  resultPixelFormat;
+    const void**               resultBuffer;
+  } _OrthancPluginGetImageInfo;
+
+
+  ORTHANC_PLUGIN_INLINE OrthancPluginPixelFormat  OrthancPluginGetImagePixelFormat(
+    OrthancPluginContext*      context,
+    const OrthancPluginImage*  image)
+  {
+    OrthancPluginPixelFormat target;
+    
+    _OrthancPluginGetImageInfo params;
+    memset(&params, 0, sizeof(params));
+    params.image = image;
+    params.resultPixelFormat = &target;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetImagePixelFormat, image) < 0)
+    {
+      return OrthancPluginPixelFormat_Unknown;
+    }
+    else
+    {
+      return static_cast<OrthancPluginPixelFormat>(target);
+    }
+  }
+
+
+
+  ORTHANC_PLUGIN_INLINE uint32_t  OrthancPluginGetImageWidth(
+    OrthancPluginContext*      context,
+    const OrthancPluginImage*  image)
+  {
+    uint32_t width;
+    
+    _OrthancPluginGetImageInfo params;
+    memset(&params, 0, sizeof(params));
+    params.image = image;
+    params.resultUint32 = &width;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetImagePixelFormat, image) < 0)
+    {
+      return 0;
+    }
+    else
+    {
+      return width;
+    }
+  }
+
+
+
+  ORTHANC_PLUGIN_INLINE uint32_t  OrthancPluginGetImageHeight(
+    OrthancPluginContext*      context,
+    const OrthancPluginImage*  image)
+  {
+    uint32_t height;
+    
+    _OrthancPluginGetImageInfo params;
+    memset(&params, 0, sizeof(params));
+    params.image = image;
+    params.resultUint32 = &height;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetImagePixelFormat, image) < 0)
+    {
+      return 0;
+    }
+    else
+    {
+      return height;
+    }
+  }
+
+
+
+  ORTHANC_PLUGIN_INLINE uint32_t  OrthancPluginGetImagePitch(
+    OrthancPluginContext*      context,
+    const OrthancPluginImage*  image)
+  {
+    uint32_t pitch;
+    
+    _OrthancPluginGetImageInfo params;
+    memset(&params, 0, sizeof(params));
+    params.image = image;
+    params.resultUint32 = &pitch;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetImagePixelFormat, image) < 0)
+    {
+      return 0;
+    }
+    else
+    {
+      return pitch;
+    }
+  }
+
+
+
+  ORTHANC_PLUGIN_INLINE const void*  OrthancPluginGetImageBuffer(
+    OrthancPluginContext*      context,
+    const OrthancPluginImage*  image)
+  {
+    const void* target = NULL;
+
+    _OrthancPluginGetImageInfo params;
+    memset(&params, 0, sizeof(params));
+    params.resultBuffer = &target;
+    params.image = image;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetImageBuffer, &params) < 0)
+    {
+      return NULL;
+    }
+    else
+    {
+      return target;
+    }
+  }
+
+
+  typedef struct
+  {
+    OrthancPluginImage**       target;
+    const void*                data;
+    uint32_t                   size;
+    OrthancPluginImageFormat   format;
+  } _OrthancPluginUncompressImage;
+
+  ORTHANC_PLUGIN_INLINE OrthancPluginImage *OrthancPluginUncompressImage(
+    OrthancPluginContext*      context,
+    const void*                data,
+    uint32_t                   size,
+    OrthancPluginImageFormat   format)
+  {
+    OrthancPluginImage* target = NULL;
+
+    _OrthancPluginUncompressImage params;
+    memset(&params, 0, sizeof(params));
+    params.target = &target;
+    params.data = data;
+    params.size = size;
+    params.format = format;
+
+    if (context->InvokeService(context, _OrthancPluginService_UncompressImage, &params) < 0)
+    {
+      return NULL;
+    }
+    else
+    {
+      return target;
+    }
+  }
+
+
+
+  ORTHANC_PLUGIN_INLINE void  OrthancPluginFreeImage(
+    OrthancPluginContext* context, 
+    OrthancPluginImage*   image)
+  {
+    _OrthancPluginGetImageInfo params;
+    memset(&params, 0, sizeof(params));
+    params.image = image;
+
+    context->InvokeService(context, _OrthancPluginService_FreeImage, &params);
+  }
+
+
+
+
+  typedef struct
+  {
+    OrthancPluginMemoryBuffer* target;
+    OrthancPluginImageFormat   imageFormat;
+    OrthancPluginPixelFormat   pixelFormat;
+    uint32_t                   width;
+    uint32_t                   height;
+    uint32_t                   pitch;
+    const void*                buffer;
+    uint32_t                   quality;
+  } _OrthancPluginCompressImage;
+
+
+
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginCompressPngImage(
+    OrthancPluginContext*         context,
+    OrthancPluginMemoryBuffer*    target,
+    OrthancPluginPixelFormat      pixelFormat,
+    uint32_t                      width,
+    uint32_t                      height,
+    uint32_t                      pitch,
+    const void*                   buffer,
+    uint32_t                      quality)
+  {
+    _OrthancPluginCompressImage params;
+    memset(&params, 0, sizeof(params));
+    params.target = target;
+    params.imageFormat = OrthancPluginImageFormat_Png;
+    params.pixelFormat = pixelFormat;
+    params.width = width;
+    params.height = height;
+    params.pitch = pitch;
+    params.buffer = buffer;
+    params.quality = quality;
+
+    return context->InvokeService(context, _OrthancPluginService_CompressImage, &params);
+  }
+
+
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginCompressJpegImage(
+    OrthancPluginContext*         context,
+    OrthancPluginMemoryBuffer*    target,
+    OrthancPluginPixelFormat      pixelFormat,
+    uint32_t                      width,
+    uint32_t                      height,
+    uint32_t                      pitch,
+    const void*                   buffer,
+    uint32_t                      quality)
+  {
+    _OrthancPluginCompressImage params;
+    memset(&params, 0, sizeof(params));
+    params.target = target;
+    params.imageFormat = OrthancPluginImageFormat_Jpeg;
+    params.pixelFormat = pixelFormat;
+    params.width = width;
+    params.height = height;
+    params.pitch = pitch;
+    params.buffer = buffer;
+    params.quality = quality;
+
+    return context->InvokeService(context, _OrthancPluginService_CompressImage, &params);
+  }
+
 
 
 #ifdef  __cplusplus

@@ -20,6 +20,7 @@ Lua
 Plugins
 -------
 
+* New functions to compress/uncompress images using PNG and JPEG
 * New function "OrthancPluginBufferCompression()" to (un)compress memory buffers
 * New function "OrthancPluginReadFile()" to read files from the filesystem
 * New function "OrthancPluginWriteFile()" to write files to the filesystem
