@@ -98,6 +98,10 @@ namespace Orthanc
 
     void BufferCompression(const void* parameters);
 
+    void UncompressImage(const void* parameters);
+
+    void CompressImage(const void* parameters);
+
   public:
     OrthancPlugins();
 
