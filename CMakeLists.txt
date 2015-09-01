@@ -40,7 +40,8 @@ SET(USE_SYSTEM_MONGOOSE ON CACHE BOOL "Use the system version of Mongoose")
 SET(USE_SYSTEM_LUA ON CACHE BOOL "Use the system version of Lua")
 SET(USE_SYSTEM_DCMTK ON CACHE BOOL "Use the system version of DCMTK")
 SET(USE_SYSTEM_BOOST ON CACHE BOOL "Use the system version of Boost")
-SET(USE_SYSTEM_LIBPNG ON CACHE BOOL "Use the system version of LibPng")
+SET(USE_SYSTEM_LIBPNG ON CACHE BOOL "Use the system version of libpng")
+SET(USE_SYSTEM_LIBJPEG ON CACHE BOOL "Use the system version of libjpeg")
 SET(USE_SYSTEM_CURL ON CACHE BOOL "Use the system version of LibCurl")
 SET(USE_SYSTEM_OPENSSL ON CACHE BOOL "Use the system version of OpenSSL")
 SET(USE_SYSTEM_ZLIB ON CACHE BOOL "Use the system version of ZLib")
@@ -123,6 +124,8 @@ set(ORTHANC_CORE_SOURCES
   Core/ImageFormats/ImageAccessor.cpp
   Core/ImageFormats/ImageBuffer.cpp
   Core/ImageFormats/ImageProcessing.cpp
+  #Core/ImageFormats/JpegReader.cpp   # TODO
+  Core/ImageFormats/JpegWriter.cpp
   Core/ImageFormats/PngReader.cpp
   Core/ImageFormats/PngWriter.cpp
   Core/SQLite/Connection.cpp
@@ -195,7 +198,7 @@ set(ORTHANC_UNIT_TESTS_SOURCES
   UnitTestsSources/FileStorageTests.cpp
   UnitTestsSources/FromDcmtkTests.cpp
   UnitTestsSources/MemoryCacheTests.cpp
-  UnitTestsSources/PngTests.cpp
+  UnitTestsSources/ImageTests.cpp
   UnitTestsSources/RestApiTests.cpp
   UnitTestsSources/SQLiteTests.cpp
   UnitTestsSources/SQLiteChromiumTests.cpp
@@ -247,6 +250,7 @@ endif()
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/JsonCppConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibCurlConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibPngConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibJpegConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LuaConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/MongooseConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/PugixmlConfiguration.cmake)
@@ -370,6 +374,7 @@ add_library(CoreLibrary
   ${GOOGLE_LOG_SOURCES}
   ${JSONCPP_SOURCES}
   ${LIBPNG_SOURCES}
+  ${LIBJPEG_SOURCES}
   ${LUA_SOURCES}
   ${MONGOOSE_SOURCES}
   ${PUGIXML_SOURCES}
