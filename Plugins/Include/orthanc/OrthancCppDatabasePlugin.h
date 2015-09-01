@@ -63,6 +63,9 @@ namespace OrthancPlugins
 
 
 
+  /**
+   * @ingroup Callbacks
+   **/
   class DatabaseBackendOutput : public NonCopyable
   {
     friend class DatabaseBackendAdapter;
@@ -241,7 +244,9 @@ namespace OrthancPlugins
   };
 
 
-
+  /**
+   * @ingroup Callbacks
+   **/
   class IDatabaseBackend : public NonCopyable
   {
     friend class DatabaseBackendAdapter;
@@ -430,6 +435,8 @@ namespace OrthancPlugins
    * Class creating the bridge between the C low-level primitives for
    * custom database engines, and the high-level IDatabaseBackend C++
    * interface.
+   *
+   * @ingroup Callbacks
    **/
   class DatabaseBackendAdapter
   {

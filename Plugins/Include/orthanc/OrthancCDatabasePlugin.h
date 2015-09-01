@@ -50,6 +50,7 @@ extern "C"
 
   /**
    * Opaque structure that represents the context of a custom database engine.
+   * @ingroup Callbacks
    **/
   typedef struct _OrthancPluginDatabaseContext_t OrthancPluginDatabaseContext;
 
@@ -651,6 +652,7 @@ extern "C"
    * @param backend The callbacks of the custom database engine.
    * @param payload Pointer containing private information for the database engine.
    * @return The context of the database engine (it must not be manually freed).
+   * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginDatabaseContext* OrthancPluginRegisterDatabaseBackend(
     OrthancPluginContext*                context,

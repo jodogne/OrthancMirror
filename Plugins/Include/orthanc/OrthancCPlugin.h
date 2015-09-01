@@ -39,10 +39,24 @@
 
 
 /**
- * @defgroup CInterface C Interface 
- * @brief The C interface to create Orthanc plugins.
- * 
- * These functions must be used to create C plugins for Orthanc.
+ * @defgroup Compression Compression
+ * @brief Functions to deal with images and compressed buffers.
+ *
+ * @defgroup REST REST
+ * @brief Functions to answer REST requests in a callback.
+ *
+ * @defgroup Callbacks Callbacks
+ * @brief Functions to register and manage callbacks by the plugins.
+ *
+ * @defgroup Orthanc Orthanc
+ * @brief Functions to access the content of the Orthanc server.
+ **/
+
+
+
+/**
+ * @defgroup Toolbox Toolbox
+ * @brief Generic functions to help with the creation of plugins.
  **/
 
 
@@ -273,6 +287,7 @@ extern "C"
 
   /**
    * @brief The parameters of a REST request.
+   * @ingroup Callbacks
    **/
   typedef struct
   {
@@ -437,6 +452,7 @@ extern "C"
 
   /**
    * The memory layout of the pixels of an image.
+   * @ingroup Compression
    **/
   typedef enum
   {
@@ -518,6 +534,7 @@ extern "C"
 
   /**
    * The supported types of changes that can happen to DICOM resources.
+   * @ingroup Callbacks
    **/
   typedef enum
   {
@@ -538,6 +555,7 @@ extern "C"
 
   /**
    * The compression algorithms that are supported by the Orthanc core.
+   * @ingroup Compression
    **/
   typedef enum
   {
@@ -552,6 +570,7 @@ extern "C"
 
   /**
    * The image formats that are supported by the Orthanc core.
+   * @ingroup Compression
    **/
   typedef enum
   {
@@ -588,6 +607,7 @@ extern "C"
 
   /**
    * @brief Opaque structure that represents the HTTP connection to the client application.
+   * @ingroup Callback
    **/
   typedef struct _OrthancPluginRestOutput_t OrthancPluginRestOutput;
 
@@ -602,6 +622,7 @@ extern "C"
 
   /**
    * @brief Opaque structure that represents a uncompressed image in memory.
+   * @ingroup Compression
    **/
   typedef struct _OrthancPluginImage_t OrthancPluginImage;
 
@@ -609,6 +630,7 @@ extern "C"
 
   /**
    * @brief Signature of a callback function that answers to a REST request.
+   * @ingroup Callbacks
    **/
   typedef int32_t (*OrthancPluginRestCallback) (
     OrthancPluginRestOutput* output,
@@ -619,6 +641,7 @@ extern "C"
 
   /**
    * @brief Signature of a callback function that is triggered when Orthanc receives a DICOM instance.
+   * @ingroup Callbacks
    **/
   typedef int32_t (*OrthancPluginOnStoredInstanceCallback) (
     OrthancPluginDicomInstance* instance,
@@ -628,6 +651,7 @@ extern "C"
 
   /**
    * @brief Signature of a callback function that is triggered when a change happens to some DICOM resource.
+   * @ingroup Callbacks
    **/
   typedef int32_t (*OrthancPluginOnChangeCallback) (
     OrthancPluginChangeType changeType,
@@ -653,6 +677,7 @@ extern "C"
    * @param size The size of the file.
    * @param type The content type corresponding to this file. 
    * @return 0 if success, other value if error.
+   * @ingroup Callbacks
    **/
   typedef int32_t (*OrthancPluginStorageCreate) (
     const char* uuid,
@@ -672,6 +697,7 @@ extern "C"
    * @param uuid The UUID of the file of interest.
    * @param type The content type corresponding to this file. 
    * @return 0 if success, other value if error.
+   * @ingroup Callbacks
    **/
   typedef int32_t (*OrthancPluginStorageRead) (
     void** content,
@@ -689,6 +715,7 @@ extern "C"
    * @param uuid The UUID of the file to be removed.
    * @param type The content type corresponding to this file. 
    * @return 0 if success, other value if error.
+   * @ingroup Callbacks
    **/
   typedef int32_t (*OrthancPluginStorageRemove) (
     const char* uuid,
@@ -741,6 +768,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @return 1 if and only if the versions are compatible. If the
    * result is 0, the initialization of the plugin should fail.
+   * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE int  OrthancPluginCheckVersion(
     OrthancPluginContext* context)
@@ -902,6 +930,7 @@ extern "C"
    * @param pathRegularExpression Regular expression for the URI. May contain groups.
    * @param callback The callback function to handle the REST call.
    * @see OrthancPluginRegisterRestCallbackNoLock()
+   * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterRestCallback(
     OrthancPluginContext*     context,
@@ -935,6 +964,7 @@ extern "C"
    * @param pathRegularExpression Regular expression for the URI. May contain groups.
    * @param callback The callback function to handle the REST call.
    * @see OrthancPluginRegisterRestCallback()
+   * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterRestCallbackNoLock(
     OrthancPluginContext*     context,
@@ -962,6 +992,7 @@ extern "C"
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param callback The callback function.
+   * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterOnStoredInstanceCallback(
     OrthancPluginContext*                  context,
@@ -993,6 +1024,7 @@ extern "C"
    * @param answer Pointer to the memory buffer containing the answer.
    * @param answerSize Number of bytes of the answer.
    * @param mimeType The MIME type of the answer.
+   * @ingroup REST
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginAnswerBuffer(
     OrthancPluginContext*    context,
@@ -1049,6 +1081,7 @@ extern "C"
    * @param pitch The pitch of the image (i.e. the number of bytes
    * between 2 successive lines of the image in the memory buffer).
    * @param buffer The memory buffer containing the uncompressed image.
+   * @ingroup REST
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginCompressAndAnswerPngImage(
     OrthancPluginContext*     context,
@@ -1089,6 +1122,7 @@ extern "C"
    * @param target The target memory buffer.
    * @param instanceId The Orthanc identifier of the DICOM instance of interest.
    * @return 0 if success, or the error code if failure.
+   * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginGetDicomForInstance(
     OrthancPluginContext*       context,
@@ -1119,6 +1153,7 @@ extern "C"
    * @param target The target memory buffer.
    * @param uri The URI in the built-in Orthanc API.
    * @return 0 if success, or the error code if failure.
+   * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiGet(
     OrthancPluginContext*       context,
@@ -1146,6 +1181,7 @@ extern "C"
    * @param target The target memory buffer.
    * @param uri The URI in the built-in Orthanc API.
    * @return 0 if success, or the error code if failure.
+   * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiGetAfterPlugins(
     OrthancPluginContext*       context,
@@ -1180,6 +1216,7 @@ extern "C"
    * @param body The body of the POST request.
    * @param bodySize The size of the body.
    * @return 0 if success, or the error code if failure.
+   * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiPost(
     OrthancPluginContext*       context,
@@ -1212,6 +1249,7 @@ extern "C"
    * @param body The body of the POST request.
    * @param bodySize The size of the body.
    * @return 0 if success, or the error code if failure.
+   * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiPostAfterPlugins(
     OrthancPluginContext*       context,
@@ -1238,6 +1276,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param uri The URI to delete in the built-in Orthanc API.
    * @return 0 if success, or the error code if failure.
+   * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiDelete(
     OrthancPluginContext*       context,
@@ -1258,6 +1297,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param uri The URI to delete in the built-in Orthanc API.
    * @return 0 if success, or the error code if failure.
+   * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiDeleteAfterPlugins(
     OrthancPluginContext*       context,
@@ -1280,6 +1320,7 @@ extern "C"
    * @param body The body of the PUT request.
    * @param bodySize The size of the body.
    * @return 0 if success, or the error code if failure.
+   * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiPut(
     OrthancPluginContext*       context,
@@ -1313,6 +1354,7 @@ extern "C"
    * @param body The body of the PUT request.
    * @param bodySize The size of the body.
    * @return 0 if success, or the error code if failure.
+   * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiPutAfterPlugins(
     OrthancPluginContext*       context,
@@ -1346,6 +1388,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param output The HTTP connection to the client application.
    * @param redirection Where to redirect.
+   * @ingroup REST
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginRedirect(
     OrthancPluginContext*    context,
@@ -1377,6 +1420,7 @@ extern "C"
    * @param patientID The Patient ID of interest.
    * @return The NULL value if the patient is non-existent, or a string containing the 
    * Orthanc ID of the patient. This string must be freed by OrthancPluginFreeString().
+   * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginLookupPatient(
     OrthancPluginContext*  context,
@@ -1411,6 +1455,7 @@ extern "C"
    * @param studyUID The Study Instance UID of interest.
    * @return The NULL value if the study is non-existent, or a string containing the 
    * Orthanc ID of the study. This string must be freed by OrthancPluginFreeString().
+   * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginLookupStudy(
     OrthancPluginContext*  context,
@@ -1445,6 +1490,7 @@ extern "C"
    * @param accessionNumber The Accession Number of interest.
    * @return The NULL value if the study is non-existent, or a string containing the 
    * Orthanc ID of the study. This string must be freed by OrthancPluginFreeString().
+   * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginLookupStudyWithAccessionNumber(
     OrthancPluginContext*  context,
@@ -1479,6 +1525,7 @@ extern "C"
    * @param seriesUID The Series Instance UID of interest.
    * @return The NULL value if the series is non-existent, or a string containing the 
    * Orthanc ID of the series. This string must be freed by OrthancPluginFreeString().
+   * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginLookupSeries(
     OrthancPluginContext*  context,
@@ -1513,6 +1560,7 @@ extern "C"
    * @param sopInstanceUID The SOP Instance UID of interest.
    * @return The NULL value if the instance is non-existent, or a string containing the 
    * Orthanc ID of the instance. This string must be freed by OrthancPluginFreeString().
+   * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginLookupInstance(
     OrthancPluginContext*  context,
@@ -1556,6 +1604,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param output The HTTP connection to the client application.
    * @param status The HTTP status code to be sent.
+   * @ingroup REST
    * @see OrthancPluginSendHttpStatus()
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginSendHttpStatusCode(
@@ -1579,6 +1628,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param output The HTTP connection to the client application.
    * @param realm The realm for the authorization process.
+   * @ingroup REST
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginSendUnauthorized(
     OrthancPluginContext*    context,
@@ -1601,6 +1651,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param output The HTTP connection to the client application.
    * @param allowedMethods The allowed methods for this URI (e.g. "GET,POST" after a PUT or a POST request).
+   * @ingroup REST
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginSendMethodNotAllowed(
     OrthancPluginContext*    context,
@@ -1630,6 +1681,7 @@ extern "C"
    * @param output The HTTP connection to the client application.
    * @param cookie The cookie to be set.
    * @param value The value of the cookie.
+   * @ingroup REST
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginSetCookie(
     OrthancPluginContext*    context,
@@ -1654,6 +1706,7 @@ extern "C"
    * @param output The HTTP connection to the client application.
    * @param key The HTTP header to be set.
    * @param value The value of the HTTP header.
+   * @ingroup REST
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginSetHttpHeader(
     OrthancPluginContext*    context,
@@ -1688,6 +1741,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param instance The instance of interest.
    * @return The AET if success, NULL if error.
+   * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetInstanceRemoteAet(
     OrthancPluginContext*        context,
@@ -1720,6 +1774,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param instance The instance of interest.
    * @return The size of the file, -1 in case of error.
+   * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE int64_t OrthancPluginGetInstanceSize(
     OrthancPluginContext*       context,
@@ -1752,6 +1807,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param instance The instance of interest.
    * @return The pointer to the DICOM data, NULL in case of error.
+   * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetInstanceData(
     OrthancPluginContext*        context,
@@ -1787,6 +1843,7 @@ extern "C"
    * @param instance The instance of interest.
    * @return The NULL value in case of error, or a string containing the JSON file.
    * This string must be freed by OrthancPluginFreeString().
+   * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginGetInstanceJson(
     OrthancPluginContext*        context,
@@ -1824,6 +1881,7 @@ extern "C"
    * @param instance The instance of interest.
    * @return The NULL value in case of error, or a string containing the JSON file.
    * This string must be freed by OrthancPluginFreeString().
+   * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginGetInstanceSimplifiedJson(
     OrthancPluginContext*        context,
@@ -1862,6 +1920,7 @@ extern "C"
    * @param instance The instance of interest.
    * @param metadata The metadata of interest.
    * @return 1 if the metadata is present, 0 if it is absent, -1 in case of error.
+   * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE int  OrthancPluginHasInstanceMetadata(
     OrthancPluginContext*        context,
@@ -1899,6 +1958,7 @@ extern "C"
    * @param instance The instance of interest.
    * @param metadata The metadata of interest.
    * @return The metadata value if success, NULL if error.
+   * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetInstanceMetadata(
     OrthancPluginContext*        context,
@@ -1946,6 +2006,7 @@ extern "C"
    * @param create The callback function to store a file on the custom storage area.
    * @param read The callback function to read a file from the custom storage area.
    * @param remove The callback function to remove a file from the custom storage area.
+   * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterStorageArea(
     OrthancPluginContext*       context,
@@ -2078,6 +2139,7 @@ extern "C"
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param callback The callback function.
+   * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterOnChangeCallback(
     OrthancPluginContext*          context,
@@ -2186,6 +2248,7 @@ extern "C"
    * @param defaultValue The value to return, if the global property is unset.
    * @return The value of the global property, or NULL in the case of an error. This
    * string must be freed by OrthancPluginFreeString().
+   * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginGetGlobalProperty(
     OrthancPluginContext*  context,
@@ -2224,6 +2287,7 @@ extern "C"
    * @param property The global property of interest.
    * @param value The value to be set in the global property.
    * @return 0 if success, or the error code if failure.
+   * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginSetGlobalProperty(
     OrthancPluginContext*  context,
@@ -2320,6 +2384,7 @@ extern "C"
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @return The version.
+   * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE uint32_t OrthancPluginGetExpectedDatabaseVersion(
     OrthancPluginContext*  context)
@@ -2393,6 +2458,7 @@ extern "C"
    * @param contentType The MIME type of the items in the multipart answer.
    * @return 0 if success, or the error code if failure.
    * @see OrthancPluginSendMultipartItem()
+   * @ingroup REST
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginStartMultipartAnswer(
     OrthancPluginContext*    context,
@@ -2420,6 +2486,7 @@ extern "C"
    * @param answerSize Number of bytes of the item.
    * @return 0 if success, or the error code if failure (this notably happens
    * if the connection is closed by the client).
+   * @ingroup REST
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginSendMultipartItem(
     OrthancPluginContext*    context,
@@ -2461,6 +2528,7 @@ extern "C"
    * @param uncompress If set to "0", the buffer must be compressed. 
    * If set to "1", the buffer must be uncompressed.
    * @return 0 if success, or the error code if failure.
+   * @ingroup Compression
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginBufferCompression(
     OrthancPluginContext*         context,
@@ -2612,6 +2680,7 @@ extern "C"
    * @param body The body of the answer.
    * @param bodySize The size of the body.
    * @see OrthancPluginSendHttpStatusCode()
+   * @ingroup REST
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginSendHttpStatus(
     OrthancPluginContext*    context,
@@ -2647,6 +2716,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param image The image of interest.
    * @return The pixel format.
+   * @ingroup Compression
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginPixelFormat  OrthancPluginGetImagePixelFormat(
     OrthancPluginContext*      context,
@@ -2679,6 +2749,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param image The image of interest.
    * @return The width.
+   * @ingroup Compression
    **/
   ORTHANC_PLUGIN_INLINE uint32_t  OrthancPluginGetImageWidth(
     OrthancPluginContext*      context,
@@ -2711,6 +2782,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param image The image of interest.
    * @return The height.
+   * @ingroup Compression
    **/
   ORTHANC_PLUGIN_INLINE uint32_t  OrthancPluginGetImageHeight(
     OrthancPluginContext*      context,
@@ -2745,6 +2817,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param image The image of interest.
    * @return The pitch.
+   * @ingroup Compression
    **/
   ORTHANC_PLUGIN_INLINE uint32_t  OrthancPluginGetImagePitch(
     OrthancPluginContext*      context,
@@ -2778,6 +2851,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param image The image of interest.
    * @return The pointer.
+   * @ingroup Compression
    **/
   ORTHANC_PLUGIN_INLINE const void*  OrthancPluginGetImageBuffer(
     OrthancPluginContext*      context,
@@ -2820,6 +2894,7 @@ extern "C"
    * @param size Size of the memory buffer containing the compressed image.
    * @param format The file format of the compressed image.
    * @return The uncompressed image. It must be freed with OrthancPluginFreeImage().
+   * @ingroup Compression
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginImage *OrthancPluginUncompressImage(
     OrthancPluginContext*      context,
@@ -2854,6 +2929,7 @@ extern "C"
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param image The image.
+   * @ingroup Compression
    **/
   ORTHANC_PLUGIN_INLINE void  OrthancPluginFreeImage(
     OrthancPluginContext* context, 
@@ -2883,7 +2959,7 @@ extern "C"
 
 
   /**
-   * @brief Create a PNG image.
+   * @brief Encode a PNG image.
    *
    * This function compresses the given memory buffer containing an
    * image using the PNG specification, and stores the result of the
@@ -2899,6 +2975,7 @@ extern "C"
    * @param buffer The memory buffer containing the uncompressed image.
    * @return 0 if success, or the error code if failure.
    * @see OrthancPluginCompressAndAnswerPngImage()
+   * @ingroup Compression
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginCompressPngImage(
     OrthancPluginContext*         context,
@@ -2925,7 +3002,7 @@ extern "C"
 
 
   /**
-   * @brief Create a JPEG image.
+   * @brief Encode a JPEG image.
    *
    * This function compresses the given memory buffer containing an
    * image using the JPEG specification, and stores the result of the
@@ -2943,6 +3020,7 @@ extern "C"
    * quality, best compression) and 100 (best quality, worst
    * compression).
    * @return 0 if success, or the error code if failure.
+   * @ingroup Compression
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginCompressJpegImage(
     OrthancPluginContext*         context,
@@ -2989,6 +3067,7 @@ extern "C"
    * @param quality The quality of the JPEG encoding, between 1 (worst
    * quality, best compression) and 100 (best quality, worst
    * compression).
+   * @ingroup REST
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginCompressAndAnswerJpegImage(
     OrthancPluginContext*     context,
