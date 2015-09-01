@@ -42,6 +42,7 @@
 #include <boost/version.hpp>
 #include <sqlite3.h>
 #include <lua.h>
+#include <jpeglib.h>
 
 #if ORTHANC_SSL_ENABLED == 1
 #include <openssl/opensslv.h>
@@ -114,6 +115,12 @@ TEST(Versions, PngStatic)
 {
   ASSERT_EQ(10512, png_access_version_number());
   ASSERT_STREQ("1.5.12", PNG_LIBPNG_VER_STRING);
+}
+
+TEST(Versions, JpegStatic)
+{
+  ASSERT_EQ(9, JPEG_LIB_VERSION_MAJOR);
+  ASSERT_EQ(1, JPEG_LIB_VERSION_MINOR);
 }
 
 TEST(Versions, CurlSslStatic)

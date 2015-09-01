@@ -124,7 +124,8 @@ set(ORTHANC_CORE_SOURCES
   Core/ImageFormats/ImageAccessor.cpp
   Core/ImageFormats/ImageBuffer.cpp
   Core/ImageFormats/ImageProcessing.cpp
-  #Core/ImageFormats/JpegReader.cpp   # TODO
+  Core/ImageFormats/JpegErrorManager.cpp
+  Core/ImageFormats/JpegReader.cpp
   Core/ImageFormats/JpegWriter.cpp
   Core/ImageFormats/PngReader.cpp
   Core/ImageFormats/PngWriter.cpp
