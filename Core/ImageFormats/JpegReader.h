@@ -44,8 +44,6 @@ namespace Orthanc
     std::string  content_;
 
   public:
-    JpegReader();
-
     void ReadFromFile(const char* filename);
 
     void ReadFromFile(const std::string& filename)
