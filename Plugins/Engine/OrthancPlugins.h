@@ -104,6 +104,8 @@ namespace Orthanc
 
     void CompressImage(const void* parameters);
 
+    void CallHttpClient(const void* parameters);
+
   public:
     OrthancPlugins();
 

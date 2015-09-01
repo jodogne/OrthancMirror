@@ -163,6 +163,12 @@
     "HttpStatus": 400, 
     "Name": "BadJson", 
     "Description": "Cannot parse a JSON document"
+  }, 
+  {
+    "Code": 29, 
+    "HttpStatus": 401, 
+    "Name": "Unauthorized", 
+    "Description": "Bad credentials were provided to an HTTP request"
   },
 
 

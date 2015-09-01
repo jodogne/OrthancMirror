@@ -1121,6 +1121,53 @@ namespace Orthanc
   }
 
 
+  void OrthancPlugins::CallHttpClient(const void* parameters)
+  {
+    const _OrthancPluginCallHttpClient& p = *reinterpret_cast<const _OrthancPluginCallHttpClient*>(parameters);
+
+    HttpClient client;
+    client.SetUrl(p.url);
+
+    if (p.username != NULL && 
+        p.password != NULL)
+    {
+      client.SetCredentials(p.username, p.password);
+    }
+
+    switch (p.method)
+    {
+      case OrthancPluginHttpMethod_Get:
+        client.SetMethod(HttpMethod_Get);
+        break;
+
+      case OrthancPluginHttpMethod_Post:
+        client.SetMethod(HttpMethod_Post);
+        client.GetBody().assign(p.body, p.bodySize);
+        break;
+
+      case OrthancPluginHttpMethod_Put:
+        client.SetMethod(HttpMethod_Put);
+        client.GetBody().assign(p.body, p.bodySize);
+        break;
+
+      case OrthancPluginHttpMethod_Delete:
+        client.SetMethod(HttpMethod_Delete);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    std::string s;
+    client.ApplyAndThrowException(s);
+
+    if (p.method != OrthancPluginHttpMethod_Delete)
+    {
+      CopyToMemoryBuffer(*p.target, s);
+    }
+  }
+
+
   bool OrthancPlugins::InvokeService(_OrthancPluginService service,
                                      const void* parameters)
   {
@@ -1477,6 +1524,10 @@ namespace Orthanc
 
       case _OrthancPluginService_CompressImage:
         CompressImage(parameters);
+        return true;
+
+      case _OrthancPluginService_CallHttpClient:
+        CallHttpClient(parameters);
         return true;
 
       default:

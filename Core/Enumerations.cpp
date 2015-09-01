@@ -136,6 +136,9 @@ namespace Orthanc
       case ErrorCode_BadJson:
         return "Cannot parse a JSON document";
 
+      case ErrorCode_Unauthorized:
+        return "Bad credentials were provided to an HTTP request";
+
       case ErrorCode_SQLiteNotOpened:
         return "SQLite: The database is not opened";
 
@@ -1123,6 +1126,9 @@ namespace Orthanc
 
       case ErrorCode_BadJson:
         return HttpStatus_400_BadRequest;
+
+      case ErrorCode_Unauthorized:
+        return HttpStatus_401_Unauthorized;
 
       default:
         return HttpStatus_500_InternalServerError;

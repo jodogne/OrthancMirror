@@ -241,11 +241,11 @@ namespace Orthanc
 
     if (nArgs >= 2)
     {
-      that.httpClient_.SetPostData(lua_tostring(state, 2));
+      that.httpClient_.SetBody(lua_tostring(state, 2));
     }
     else
     {
-      that.httpClient_.AccessPostData().clear();
+      that.httpClient_.GetBody().clear();
     }
 
     // Do the HTTP POST/PUT request
