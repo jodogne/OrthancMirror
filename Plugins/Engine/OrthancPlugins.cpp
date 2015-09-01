@@ -34,7 +34,6 @@
 
 #include "../../Core/ChunkedBuffer.h"
 #include "../../Core/HttpServer/HttpToolbox.h"
-#include "../../Core/ImageFormats/PngWriter.h"
 #include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
 #include "../../Core/Toolbox.h"
@@ -45,6 +44,7 @@
 #include "../../Core/Compression/GzipCompressor.h"
 #include "../../Core/ImageFormats/PngReader.h"
 #include "../../Core/ImageFormats/PngWriter.h"
+#include "../../Core/ImageFormats/JpegWriter.h"
 
 #include <boost/regex.hpp> 
 
@@ -720,8 +720,11 @@ namespace Orthanc
 
       case OrthancPluginImageFormat_Jpeg:
       {
-        // TODO 
-        // quality
+        JpegWriter writer;
+        writer.SetQuality(p.quality);
+        writer.WriteToMemory(compressed, accessor);
+        translatedOutput->SetContentType("image/jpeg");
+        break;
       }
 
       default:
