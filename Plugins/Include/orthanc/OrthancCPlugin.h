@@ -1369,7 +1369,7 @@ extern "C"
     params.result = &result;
     params.argument = patientID;
 
-    if (context->InvokeService(context, _OrthancPluginService_LookupPatient, &params))
+    if (context->InvokeService(context, _OrthancPluginService_LookupPatient, &params) != OrthancPluginErrorCode_Success)
     {
       /* Error */
       return NULL;
@@ -1403,7 +1403,7 @@ extern "C"
     params.result = &result;
     params.argument = studyUID;
 
-    if (context->InvokeService(context, _OrthancPluginService_LookupStudy, &params))
+    if (context->InvokeService(context, _OrthancPluginService_LookupStudy, &params) != OrthancPluginErrorCode_Success)
     {
       /* Error */
       return NULL;
@@ -1437,7 +1437,7 @@ extern "C"
     params.result = &result;
     params.argument = accessionNumber;
 
-    if (context->InvokeService(context, _OrthancPluginService_LookupStudyWithAccessionNumber, &params))
+    if (context->InvokeService(context, _OrthancPluginService_LookupStudyWithAccessionNumber, &params) != OrthancPluginErrorCode_Success)
     {
       /* Error */
       return NULL;
@@ -1471,7 +1471,7 @@ extern "C"
     params.result = &result;
     params.argument = seriesUID;
 
-    if (context->InvokeService(context, _OrthancPluginService_LookupSeries, &params))
+    if (context->InvokeService(context, _OrthancPluginService_LookupSeries, &params) != OrthancPluginErrorCode_Success)
     {
       /* Error */
       return NULL;
@@ -1505,7 +1505,7 @@ extern "C"
     params.result = &result;
     params.argument = sopInstanceUID;
 
-    if (context->InvokeService(context, _OrthancPluginService_LookupInstance, &params))
+    if (context->InvokeService(context, _OrthancPluginService_LookupInstance, &params) != OrthancPluginErrorCode_Success)
     {
       /* Error */
       return NULL;
@@ -1681,7 +1681,7 @@ extern "C"
     params.resultString = &result;
     params.instance = instance;
 
-    if (context->InvokeService(context, _OrthancPluginService_GetInstanceRemoteAet, &params))
+    if (context->InvokeService(context, _OrthancPluginService_GetInstanceRemoteAet, &params) != OrthancPluginErrorCode_Success)
     {
       /* Error */
       return NULL;
@@ -1713,7 +1713,7 @@ extern "C"
     params.resultInt64 = &size;
     params.instance = instance;
 
-    if (context->InvokeService(context, _OrthancPluginService_GetInstanceSize, &params))
+    if (context->InvokeService(context, _OrthancPluginService_GetInstanceSize, &params) != OrthancPluginErrorCode_Success)
     {
       /* Error */
       return -1;
@@ -1745,7 +1745,7 @@ extern "C"
     params.resultString = &result;
     params.instance = instance;
 
-    if (context->InvokeService(context, _OrthancPluginService_GetInstanceData, &params))
+    if (context->InvokeService(context, _OrthancPluginService_GetInstanceData, &params) != OrthancPluginErrorCode_Success)
     {
       /* Error */
       return NULL;
@@ -1780,7 +1780,7 @@ extern "C"
     params.resultStringToFree = &result;
     params.instance = instance;
 
-    if (context->InvokeService(context, _OrthancPluginService_GetInstanceJson, &params))
+    if (context->InvokeService(context, _OrthancPluginService_GetInstanceJson, &params) != OrthancPluginErrorCode_Success)
     {
       /* Error */
       return NULL;
@@ -1817,7 +1817,7 @@ extern "C"
     params.resultStringToFree = &result;
     params.instance = instance;
 
-    if (context->InvokeService(context, _OrthancPluginService_GetInstanceSimplifiedJson, &params))
+    if (context->InvokeService(context, _OrthancPluginService_GetInstanceSimplifiedJson, &params) != OrthancPluginErrorCode_Success)
     {
       /* Error */
       return NULL;
@@ -1857,7 +1857,7 @@ extern "C"
     params.instance = instance;
     params.key = metadata;
 
-    if (context->InvokeService(context, _OrthancPluginService_HasInstanceMetadata, &params))
+    if (context->InvokeService(context, _OrthancPluginService_HasInstanceMetadata, &params) != OrthancPluginErrorCode_Success)
     {
       /* Error */
       return -1;
@@ -1894,7 +1894,7 @@ extern "C"
     params.instance = instance;
     params.key = metadata;
 
-    if (context->InvokeService(context, _OrthancPluginService_GetInstanceMetadata, &params))
+    if (context->InvokeService(context, _OrthancPluginService_GetInstanceMetadata, &params) != OrthancPluginErrorCode_Success)
     {
       /* Error */
       return NULL;
@@ -1968,7 +1968,7 @@ extern "C"
     params.result = &result;
     params.argument = NULL;
 
-    if (context->InvokeService(context, _OrthancPluginService_GetOrthancPath, &params))
+    if (context->InvokeService(context, _OrthancPluginService_GetOrthancPath, &params) != OrthancPluginErrorCode_Success)
     {
       /* Error */
       return NULL;
@@ -1998,7 +1998,7 @@ extern "C"
     params.result = &result;
     params.argument = NULL;
 
-    if (context->InvokeService(context, _OrthancPluginService_GetOrthancDirectory, &params))
+    if (context->InvokeService(context, _OrthancPluginService_GetOrthancDirectory, &params) != OrthancPluginErrorCode_Success)
     {
       /* Error */
       return NULL;
@@ -2033,7 +2033,7 @@ extern "C"
     params.result = &result;
     params.argument = NULL;
 
-    if (context->InvokeService(context, _OrthancPluginService_GetConfigurationPath, &params))
+    if (context->InvokeService(context, _OrthancPluginService_GetConfigurationPath, &params) != OrthancPluginErrorCode_Success)
     {
       /* Error */
       return NULL;
@@ -2180,7 +2180,7 @@ extern "C"
     params.property = property;
     params.value = defaultValue;
 
-    if (context->InvokeService(context, _OrthancPluginService_GetGlobalProperty, &params))
+    if (context->InvokeService(context, _OrthancPluginService_GetGlobalProperty, &params) != OrthancPluginErrorCode_Success)
     {
       /* Error */
       return NULL;
@@ -2246,7 +2246,7 @@ extern "C"
     memset(&params, 0, sizeof(params));
     params.resultUint32 = &count;
 
-    if (context->InvokeService(context, _OrthancPluginService_GetCommandLineArgumentsCount, &params))
+    if (context->InvokeService(context, _OrthancPluginService_GetCommandLineArgumentsCount, &params) != OrthancPluginErrorCode_Success)
     {
       /* Error */
       return 0;
@@ -2282,7 +2282,7 @@ extern "C"
     params.property = (int32_t) argument;
     params.value = NULL;
 
-    if (context->InvokeService(context, _OrthancPluginService_GetCommandLineArgument, &params))
+    if (context->InvokeService(context, _OrthancPluginService_GetCommandLineArgument, &params) != OrthancPluginErrorCode_Success)
     {
       /* Error */
       return NULL;
@@ -2311,7 +2311,7 @@ extern "C"
     memset(&params, 0, sizeof(params));
     params.resultUint32 = &count;
 
-    if (context->InvokeService(context, _OrthancPluginService_GetExpectedDatabaseVersion, &params))
+    if (context->InvokeService(context, _OrthancPluginService_GetExpectedDatabaseVersion, &params) != OrthancPluginErrorCode_Success)
     {
       /* Error */
       return 0;
@@ -2343,7 +2343,7 @@ extern "C"
     params.result = &result;
     params.argument = NULL;
 
-    if (context->InvokeService(context, _OrthancPluginService_GetConfiguration, &params))
+    if (context->InvokeService(context, _OrthancPluginService_GetConfiguration, &params) != OrthancPluginErrorCode_Success)
     {
       /* Error */
       return NULL;
@@ -2552,7 +2552,7 @@ extern "C"
     params.target = &result;
     params.error = error;
 
-    if (context->InvokeService(context, _OrthancPluginService_GetErrorDescription, &params) ||
+    if (context->InvokeService(context, _OrthancPluginService_GetErrorDescription, &params) != OrthancPluginErrorCode_Success ||
         result == NULL)
     {
       return "Unknown error code";
@@ -2631,13 +2631,13 @@ extern "C"
     params.image = image;
     params.resultPixelFormat = &target;
 
-    if (context->InvokeService(context, _OrthancPluginService_GetImagePixelFormat, image) < 0)
+    if (context->InvokeService(context, _OrthancPluginService_GetImagePixelFormat, &params) != OrthancPluginErrorCode_Success)
     {
       return OrthancPluginPixelFormat_Unknown;
     }
     else
     {
-      return static_cast<OrthancPluginPixelFormat>(target);
+      return (OrthancPluginPixelFormat) target;
     }
   }
 
@@ -2654,7 +2654,7 @@ extern "C"
     params.image = image;
     params.resultUint32 = &width;
 
-    if (context->InvokeService(context, _OrthancPluginService_GetImagePixelFormat, image) < 0)
+    if (context->InvokeService(context, _OrthancPluginService_GetImageWidth, &params) != OrthancPluginErrorCode_Success)
     {
       return 0;
     }
@@ -2677,7 +2677,7 @@ extern "C"
     params.image = image;
     params.resultUint32 = &height;
 
-    if (context->InvokeService(context, _OrthancPluginService_GetImagePixelFormat, image) < 0)
+    if (context->InvokeService(context, _OrthancPluginService_GetImageHeight, &params) != OrthancPluginErrorCode_Success)
     {
       return 0;
     }
@@ -2700,7 +2700,7 @@ extern "C"
     params.image = image;
     params.resultUint32 = &pitch;
 
-    if (context->InvokeService(context, _OrthancPluginService_GetImagePixelFormat, image) < 0)
+    if (context->InvokeService(context, _OrthancPluginService_GetImagePitch, &params) != OrthancPluginErrorCode_Success)
     {
       return 0;
     }
@@ -2723,7 +2723,7 @@ extern "C"
     params.resultBuffer = &target;
     params.image = image;
 
-    if (context->InvokeService(context, _OrthancPluginService_GetImageBuffer, &params) < 0)
+    if (context->InvokeService(context, _OrthancPluginService_GetImageBuffer, &params) != OrthancPluginErrorCode_Success)
     {
       return NULL;
     }
@@ -2757,7 +2757,7 @@ extern "C"
     params.size = size;
     params.format = format;
 
-    if (context->InvokeService(context, _OrthancPluginService_UncompressImage, &params) < 0)
+    if (context->InvokeService(context, _OrthancPluginService_UncompressImage, &params) != OrthancPluginErrorCode_Success)
     {
       return NULL;
     }
@@ -2792,7 +2792,7 @@ extern "C"
     uint32_t                   height;
     uint32_t                   pitch;
     const void*                buffer;
-    uint32_t                   quality;
+    uint8_t                    quality;
   } _OrthancPluginCompressImage;
 
 
@@ -2804,8 +2804,7 @@ extern "C"
     uint32_t                      width,
     uint32_t                      height,
     uint32_t                      pitch,
-    const void*                   buffer,
-    uint32_t                      quality)
+    const void*                   buffer)
   {
     _OrthancPluginCompressImage params;
     memset(&params, 0, sizeof(params));
@@ -2816,7 +2815,7 @@ extern "C"
     params.height = height;
     params.pitch = pitch;
     params.buffer = buffer;
-    params.quality = quality;
+    params.quality = 0;  // Unused for PNG
 
     return context->InvokeService(context, _OrthancPluginService_CompressImage, &params);
   }
