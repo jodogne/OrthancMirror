@@ -2923,6 +2923,13 @@ extern "C"
   }
 
 
+
+
+  typedef struct
+  {
+    OrthancPluginImage*   image;
+  } _OrthancPluginFreeImage;
+
   /**
    * @brief Free an image.
    *
@@ -2936,8 +2943,7 @@ extern "C"
     OrthancPluginContext* context, 
     OrthancPluginImage*   image)
   {
-    _OrthancPluginGetImageInfo params;
-    memset(&params, 0, sizeof(params));
+    _OrthancPluginFreeImage params;
     params.image = image;
 
     context->InvokeService(context, _OrthancPluginService_FreeImage, &params);

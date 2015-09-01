@@ -39,11 +39,6 @@
 
 namespace Orthanc
 {
-  JpegReader::JpegReader()
-  {
-  }
-
-
   static void Uncompress(struct jpeg_decompress_struct& cinfo,
                          std::string& content,
                          ImageAccessor& accessor)

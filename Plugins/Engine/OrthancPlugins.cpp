@@ -1466,8 +1466,8 @@ namespace Orthanc
 
       case _OrthancPluginService_FreeImage:
       {
-        const _OrthancPluginGetImageInfo& p = *reinterpret_cast<const _OrthancPluginGetImageInfo*>(parameters);
-        delete reinterpret_cast<const ImageAccessor*>(p.image);
+        const _OrthancPluginFreeImage& p = *reinterpret_cast<const _OrthancPluginFreeImage*>(parameters);
+        delete reinterpret_cast<ImageAccessor*>(p.image);
         return true;
       }
 

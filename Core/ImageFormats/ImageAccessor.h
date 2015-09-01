@@ -54,6 +54,10 @@ namespace Orthanc
       AssignEmpty(PixelFormat_Grayscale8);
     }
 
+    virtual ~ImageAccessor()
+    {
+    }
+
     bool IsReadOnly() const
     {
       return readOnly_;
