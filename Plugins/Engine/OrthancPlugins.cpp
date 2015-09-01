@@ -678,47 +678,57 @@ namespace Orthanc
 
   void OrthancPlugins::CompressAndAnswerPngImage(const void* parameters)
   {
+    // Bridge for backward compatibility with Orthanc <= 0.9.3
     const _OrthancPluginCompressAndAnswerPngImage& p = 
       *reinterpret_cast<const _OrthancPluginCompressAndAnswerPngImage*>(parameters);
 
+    _OrthancPluginCompressAndAnswerImage p2;
+    p2.output = p.output;
+    p2.imageFormat = OrthancPluginImageFormat_Png;
+    p2.pixelFormat = p.format;
+    p2.width = p.width;
+    p2.height = p.height;
+    p2.pitch = p.height;
+    p2.buffer = p.buffer;
+    p2.quality = 0;
+
+    CompressAndAnswerImage(&p2);
+  }
+
+
+  void OrthancPlugins::CompressAndAnswerImage(const void* parameters)
+  {
+    const _OrthancPluginCompressAndAnswerImage& p = 
+      *reinterpret_cast<const _OrthancPluginCompressAndAnswerImage*>(parameters);
+
     HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
 
-    PixelFormat format;
-    switch (p.format)
+    ImageAccessor accessor;
+    accessor.AssignReadOnly(Convert(p.pixelFormat), p.width, p.height, p.pitch, p.buffer);
+
+    std::string compressed;
+
+    switch (p.imageFormat)
     {
-      case OrthancPluginPixelFormat_Grayscale8:  
-        format = PixelFormat_Grayscale8;
+      case OrthancPluginImageFormat_Png:
+      {
+        PngWriter writer;
+        writer.WriteToMemory(compressed, accessor);
+        translatedOutput->SetContentType("image/png");
         break;
+      }
 
-      case OrthancPluginPixelFormat_Grayscale16:  
-        format = PixelFormat_Grayscale16;
-        break;
-
-      case OrthancPluginPixelFormat_SignedGrayscale16:  
-        format = PixelFormat_SignedGrayscale16;
-        break;
-
-      case OrthancPluginPixelFormat_RGB24:  
-        format = PixelFormat_RGB24;
-        break;
-
-      case OrthancPluginPixelFormat_RGBA32:  
-        format = PixelFormat_RGBA32;
-        break;
+      case OrthancPluginImageFormat_Jpeg:
+      {
+        // TODO 
+        // quality
+      }
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    ImageAccessor accessor;
-    accessor.AssignReadOnly(format, p.width, p.height, p.pitch, p.buffer);
-
-    PngWriter writer;
-    std::string png;
-    writer.WriteToMemory(png, accessor);
-
-    translatedOutput->SetContentType("image/png");
-    translatedOutput->Answer(png);
+    translatedOutput->Answer(compressed);
   }
 
 
@@ -1161,6 +1171,10 @@ namespace Orthanc
 
       case _OrthancPluginService_CompressAndAnswerPngImage:
         CompressAndAnswerPngImage(parameters);
+        return true;
+
+      case _OrthancPluginService_CompressAndAnswerImage:
+        CompressAndAnswerImage(parameters);
         return true;
 
       case _OrthancPluginService_GetDicomForInstance:
