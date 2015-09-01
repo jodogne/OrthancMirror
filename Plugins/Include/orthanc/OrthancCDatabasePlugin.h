@@ -54,7 +54,7 @@ extern "C"
   typedef struct _OrthancPluginDatabaseContext_t OrthancPluginDatabaseContext;
 
 
-//! @cond Doxygen_Suppress
+/*<! @cond Doxygen_Suppress */
   typedef enum
   {
     _OrthancPluginDatabaseAnswerType_None = 0,
@@ -629,7 +629,7 @@ extern "C"
       void* payload);
 
   } OrthancPluginDatabaseBackend;
-//! @endcond
+/*<! @endcond */
 
 
   typedef struct

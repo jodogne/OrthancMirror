@@ -1048,7 +1048,7 @@ namespace Orthanc
 
   void OrthancPlugins::UncompressImage(const void* parameters)
   {
-    const _OrthancPluginUncompressImage& p = reinterpret_cast<const _OrthancPluginUncompressImage&>(parameters);
+    const _OrthancPluginUncompressImage& p = *reinterpret_cast<const _OrthancPluginUncompressImage*>(parameters);
 
     switch (p.format)
     {
@@ -1071,7 +1071,7 @@ namespace Orthanc
 
   void OrthancPlugins::CompressImage(const void* parameters)
   {
-    const _OrthancPluginCompressImage& p = reinterpret_cast<const _OrthancPluginCompressImage&>(parameters);
+    const _OrthancPluginCompressImage& p = *reinterpret_cast<const _OrthancPluginCompressImage*>(parameters);
 
     std::string compressed;
 
@@ -1086,6 +1086,7 @@ namespace Orthanc
 
       case OrthancPluginImageFormat_Jpeg:
         // TODO
+        //writer.SetQuality(p.quality);
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -1401,42 +1402,42 @@ namespace Orthanc
 
       case _OrthancPluginService_GetImagePixelFormat:
       {
-        const _OrthancPluginGetImageInfo& p = reinterpret_cast<const _OrthancPluginGetImageInfo&>(parameters);
+        const _OrthancPluginGetImageInfo& p = *reinterpret_cast<const _OrthancPluginGetImageInfo*>(parameters);
         *(p.resultPixelFormat) = Convert(reinterpret_cast<const ImageAccessor*>(p.image)->GetFormat());
         return true;
       }
 
       case _OrthancPluginService_GetImageWidth:
       {
-        const _OrthancPluginGetImageInfo& p = reinterpret_cast<const _OrthancPluginGetImageInfo&>(parameters);
+        const _OrthancPluginGetImageInfo& p = *reinterpret_cast<const _OrthancPluginGetImageInfo*>(parameters);
         *(p.resultUint32) = reinterpret_cast<const ImageAccessor*>(p.image)->GetWidth();
         return true;
       }
 
       case _OrthancPluginService_GetImageHeight:
       {
-        const _OrthancPluginGetImageInfo& p = reinterpret_cast<const _OrthancPluginGetImageInfo&>(parameters);
+        const _OrthancPluginGetImageInfo& p = *reinterpret_cast<const _OrthancPluginGetImageInfo*>(parameters);
         *(p.resultUint32) = reinterpret_cast<const ImageAccessor*>(p.image)->GetHeight();
         return true;
       }
 
       case _OrthancPluginService_GetImagePitch:
       {
-        const _OrthancPluginGetImageInfo& p = reinterpret_cast<const _OrthancPluginGetImageInfo&>(parameters);
+        const _OrthancPluginGetImageInfo& p = *reinterpret_cast<const _OrthancPluginGetImageInfo*>(parameters);
         *(p.resultUint32) = reinterpret_cast<const ImageAccessor*>(p.image)->GetPitch();
         return true;
       }
 
       case _OrthancPluginService_GetImageBuffer:
       {
-        const _OrthancPluginGetImageInfo& p = reinterpret_cast<const _OrthancPluginGetImageInfo&>(parameters);
-        *(p.resultBuffer) = reinterpret_cast<const ImageAccessor*>(p.image)->GetBuffer();
+        const _OrthancPluginGetImageInfo& p = *reinterpret_cast<const _OrthancPluginGetImageInfo*>(parameters);
+        *(p.resultBuffer) = reinterpret_cast<const ImageAccessor*>(p.image)->GetConstBuffer();
         return true;
       }
 
       case _OrthancPluginService_FreeImage:
       {
-        const _OrthancPluginGetImageInfo& p = reinterpret_cast<const _OrthancPluginGetImageInfo&>(parameters);
+        const _OrthancPluginGetImageInfo& p = *reinterpret_cast<const _OrthancPluginGetImageInfo*>(parameters);
         delete reinterpret_cast<const ImageAccessor*>(p.image);
         return true;
       }
