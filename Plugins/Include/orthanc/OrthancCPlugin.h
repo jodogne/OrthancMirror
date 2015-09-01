@@ -369,7 +369,7 @@ extern "C"
 
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
-    _OrthancPluginService_CompressAndAnswerPngImage = 2001,
+    _OrthancPluginService_CompressAndAnswerPngImage = 2001,  /* Unused as of Orthanc 0.9.4 */
     _OrthancPluginService_Redirect = 2002,
     _OrthancPluginService_SendHttpStatusCode = 2003,
     _OrthancPluginService_SendUnauthorized = 2004,
@@ -379,6 +379,7 @@ extern "C"
     _OrthancPluginService_StartMultipartAnswer = 2008,
     _OrthancPluginService_SendMultipartItem = 2009,
     _OrthancPluginService_SendHttpStatus = 2010,
+    _OrthancPluginService_CompressAndAnswerImage = 2011,
 
     /* Access to the Orthanc database and API */
     _OrthancPluginService_GetDicomForInstance = 3000,
@@ -536,7 +537,7 @@ extern "C"
 
 
   /**
-   * The compression algorithms that are known by the Orthanc core.
+   * The compression algorithms that are supported by the Orthanc core.
    **/
   typedef enum
   {
@@ -549,6 +550,9 @@ extern "C"
   } OrthancPluginCompressionType;
 
 
+  /**
+   * The image formats that are supported by the Orthanc core.
+   **/
   typedef enum
   {
     OrthancPluginImageFormat_Png = 0,   /*!< Image compressed using PNG */
@@ -1016,6 +1020,19 @@ extern "C"
     const void*               buffer;
   } _OrthancPluginCompressAndAnswerPngImage;
 
+  typedef struct
+  {
+    OrthancPluginRestOutput*  output;
+    OrthancPluginImageFormat  imageFormat;
+    OrthancPluginPixelFormat  pixelFormat;
+    uint32_t                  width;
+    uint32_t                  height;
+    uint32_t                  pitch;
+    const void*               buffer;
+    uint8_t                   quality;
+  } _OrthancPluginCompressAndAnswerImage;
+
+
   /**
    * @brief Answer to a REST request with a PNG image.
    *
@@ -1030,7 +1047,7 @@ extern "C"
    * @param width The width of the image.
    * @param height The height of the image.
    * @param pitch The pitch of the image (i.e. the number of bytes
-   * between 2 successive lines of the image in the memory buffer.
+   * between 2 successive lines of the image in the memory buffer).
    * @param buffer The memory buffer containing the uncompressed image.
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginCompressAndAnswerPngImage(
@@ -1042,14 +1059,16 @@ extern "C"
     uint32_t                  pitch,
     const void*               buffer)
   {
-    _OrthancPluginCompressAndAnswerPngImage params;
+    _OrthancPluginCompressAndAnswerImage params;
     params.output = output;
-    params.format = format;
+    params.imageFormat = OrthancPluginImageFormat_Png;
+    params.pixelFormat = format;
     params.width = width;
     params.height = height;
     params.pitch = pitch;
     params.buffer = buffer;
-    context->InvokeService(context, _OrthancPluginService_CompressAndAnswerPngImage, &params);
+    params.quality = 0;  /* No quality for PNG */
+    context->InvokeService(context, _OrthancPluginService_CompressAndAnswerImage, &params);
   }
 
 
@@ -2620,6 +2639,15 @@ extern "C"
   } _OrthancPluginGetImageInfo;
 
 
+  /**
+   * @brief Return the pixel format of an image.
+   *
+   * This function returns the type of memory layout for the pixels of the given image.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param image The image of interest.
+   * @return The pixel format.
+   **/
   ORTHANC_PLUGIN_INLINE OrthancPluginPixelFormat  OrthancPluginGetImagePixelFormat(
     OrthancPluginContext*      context,
     const OrthancPluginImage*  image)
@@ -2643,6 +2671,15 @@ extern "C"
 
 
 
+  /**
+   * @brief Return the width of an image.
+   *
+   * This function returns the width of the given image.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param image The image of interest.
+   * @return The width.
+   **/
   ORTHANC_PLUGIN_INLINE uint32_t  OrthancPluginGetImageWidth(
     OrthancPluginContext*      context,
     const OrthancPluginImage*  image)
@@ -2666,6 +2703,15 @@ extern "C"
 
 
 
+  /**
+   * @brief Return the height of an image.
+   *
+   * This function returns the height of the given image.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param image The image of interest.
+   * @return The height.
+   **/
   ORTHANC_PLUGIN_INLINE uint32_t  OrthancPluginGetImageHeight(
     OrthancPluginContext*      context,
     const OrthancPluginImage*  image)
@@ -2689,6 +2735,17 @@ extern "C"
 
 
 
+  /**
+   * @brief Return the pitch of an image.
+   *
+   * This function returns the pitch of the given image. The pitch is
+   * defined as the number of bytes between 2 successive lines of the
+   * image in the memory buffer.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param image The image of interest.
+   * @return The pitch.
+   **/
   ORTHANC_PLUGIN_INLINE uint32_t  OrthancPluginGetImagePitch(
     OrthancPluginContext*      context,
     const OrthancPluginImage*  image)
@@ -2712,6 +2769,16 @@ extern "C"
 
 
 
+  /**
+   * @brief Return a pointer to the content of an image.
+   *
+   * This function returns a pointer to the memory buffer that
+   * contains the pixels of the image.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param image The image of interest.
+   * @return The pointer.
+   **/
   ORTHANC_PLUGIN_INLINE const void*  OrthancPluginGetImageBuffer(
     OrthancPluginContext*      context,
     const OrthancPluginImage*  image)
@@ -2742,6 +2809,18 @@ extern "C"
     OrthancPluginImageFormat   format;
   } _OrthancPluginUncompressImage;
 
+
+  /**
+   * @brief Decode a compressed image.
+   *
+   * This function decodes a compressed image from a memory buffer.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param data Pointer to a memory buffer containing the compressed image.
+   * @param size Size of the memory buffer containing the compressed image.
+   * @param format The file format of the compressed image.
+   * @return The uncompressed image. It must be freed with OrthancPluginFreeImage().
+   **/
   ORTHANC_PLUGIN_INLINE OrthancPluginImage *OrthancPluginUncompressImage(
     OrthancPluginContext*      context,
     const void*                data,
@@ -2768,7 +2847,14 @@ extern "C"
   }
 
 
-
+  /**
+   * @brief Free an image.
+   *
+   * This function frees an image that was decoded with OrthancPluginUncompressImage().
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param image The image.
+   **/
   ORTHANC_PLUGIN_INLINE void  OrthancPluginFreeImage(
     OrthancPluginContext* context, 
     OrthancPluginImage*   image)
@@ -2796,11 +2882,28 @@ extern "C"
   } _OrthancPluginCompressImage;
 
 
-
+  /**
+   * @brief Create a PNG image.
+   *
+   * This function compresses the given memory buffer containing an
+   * image using the PNG specification, and stores the result of the
+   * compression into a newly allocated memory buffer.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer().
+   * @param format The memory layout of the uncompressed image.
+   * @param width The width of the image.
+   * @param height The height of the image.
+   * @param pitch The pitch of the image (i.e. the number of bytes
+   * between 2 successive lines of the image in the memory buffer).
+   * @param buffer The memory buffer containing the uncompressed image.
+   * @return 0 if success, or the error code if failure.
+   * @see OrthancPluginCompressAndAnswerPngImage()
+   **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginCompressPngImage(
     OrthancPluginContext*         context,
     OrthancPluginMemoryBuffer*    target,
-    OrthancPluginPixelFormat      pixelFormat,
+    OrthancPluginPixelFormat      format,
     uint32_t                      width,
     uint32_t                      height,
     uint32_t                      pitch,
@@ -2810,7 +2913,7 @@ extern "C"
     memset(&params, 0, sizeof(params));
     params.target = target;
     params.imageFormat = OrthancPluginImageFormat_Png;
-    params.pixelFormat = pixelFormat;
+    params.pixelFormat = format;
     params.width = width;
     params.height = height;
     params.pitch = pitch;
@@ -2821,21 +2924,41 @@ extern "C"
   }
 
 
+  /**
+   * @brief Create a JPEG image.
+   *
+   * This function compresses the given memory buffer containing an
+   * image using the JPEG specification, and stores the result of the
+   * compression into a newly allocated memory buffer.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer().
+   * @param format The memory layout of the uncompressed image.
+   * @param width The width of the image.
+   * @param height The height of the image.
+   * @param pitch The pitch of the image (i.e. the number of bytes
+   * between 2 successive lines of the image in the memory buffer).
+   * @param buffer The memory buffer containing the uncompressed image.
+   * @param quality The quality of the JPEG encoding, between 1 (worst
+   * quality, best compression) and 100 (best quality, worst
+   * compression).
+   * @return 0 if success, or the error code if failure.
+   **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginCompressJpegImage(
     OrthancPluginContext*         context,
     OrthancPluginMemoryBuffer*    target,
-    OrthancPluginPixelFormat      pixelFormat,
+    OrthancPluginPixelFormat      format,
     uint32_t                      width,
     uint32_t                      height,
     uint32_t                      pitch,
     const void*                   buffer,
-    uint32_t                      quality)
+    uint8_t                       quality)
   {
     _OrthancPluginCompressImage params;
     memset(&params, 0, sizeof(params));
     params.target = target;
     params.imageFormat = OrthancPluginImageFormat_Jpeg;
-    params.pixelFormat = pixelFormat;
+    params.pixelFormat = format;
     params.width = width;
     params.height = height;
     params.pitch = pitch;
@@ -2843,6 +2966,50 @@ extern "C"
     params.quality = quality;
 
     return context->InvokeService(context, _OrthancPluginService_CompressImage, &params);
+  }
+
+
+
+  /**
+   * @brief Answer to a REST request with a JPEG image.
+   *
+   * This function answers to a REST request with a JPEG image. The
+   * parameters of this function describe a memory buffer that
+   * contains an uncompressed image. The image will be automatically compressed
+   * as a JPEG image by the core system of Orthanc.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param output The HTTP connection to the client application.
+   * @param format The memory layout of the uncompressed image.
+   * @param width The width of the image.
+   * @param height The height of the image.
+   * @param pitch The pitch of the image (i.e. the number of bytes
+   * between 2 successive lines of the image in the memory buffer).
+   * @param buffer The memory buffer containing the uncompressed image.
+   * @param quality The quality of the JPEG encoding, between 1 (worst
+   * quality, best compression) and 100 (best quality, worst
+   * compression).
+   **/
+  ORTHANC_PLUGIN_INLINE void OrthancPluginCompressAndAnswerJpegImage(
+    OrthancPluginContext*     context,
+    OrthancPluginRestOutput*  output,
+    OrthancPluginPixelFormat  format,
+    uint32_t                  width,
+    uint32_t                  height,
+    uint32_t                  pitch,
+    const void*               buffer,
+    uint8_t                   quality)
+  {
+    _OrthancPluginCompressAndAnswerImage params;
+    params.output = output;
+    params.imageFormat = OrthancPluginImageFormat_Jpeg;
+    params.pixelFormat = format;
+    params.width = width;
+    params.height = height;
+    params.pitch = pitch;
+    params.buffer = buffer;
+    params.quality = quality;
+    context->InvokeService(context, _OrthancPluginService_CompressAndAnswerImage, &params);
   }
 
 

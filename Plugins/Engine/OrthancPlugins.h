@@ -69,6 +69,8 @@ namespace Orthanc
 
     void CompressAndAnswerPngImage(const void* parameters);
 
+    void CompressAndAnswerImage(const void* parameters);
+
     void GetDicomForInstance(const void* parameters);
 
     void RestApiGet(const void* parameters,
