@@ -27,7 +27,8 @@
  *    The plugin must return a string containing its version number.
  *
  * The name and the version of a plugin is only used to prevent it
- * from being loaded twice.
+ * from being loaded twice. Note that, in C++, it is mandatory to
+ * declare these functions within an <tt>extern "C"</tt> section.
  * 
  * To ensure multi-threading safety, the various REST callbacks are
  * guaranteed to be executed in mutual exclusion since Orthanc

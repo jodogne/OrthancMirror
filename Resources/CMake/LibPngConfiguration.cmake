@@ -52,7 +52,7 @@ else()
   include(FindPNG)
 
   if (NOT ${PNG_FOUND})
-    message(FATAL_ERROR "Unable to find LibPNG")
+    message(FATAL_ERROR "Unable to find libpng")
   endif()
 
   include_directories(${PNG_INCLUDE_DIRS})
