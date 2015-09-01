@@ -50,7 +50,7 @@ namespace Orthanc
     std::string credentials_;
     HttpMethod method_;
     HttpStatus lastStatus_;
-    std::string postData_;
+    std::string body_;  // This only makes sense for POST and PUT requests
     bool isVerbose_;
     long timeout_;
     std::string proxy_;
@@ -103,19 +103,19 @@ namespace Orthanc
       return timeout_;
     }
 
-    void SetPostData(const std::string& data)
+    void SetBody(const std::string& data)
     {
-      postData_ = data;
+      body_ = data;
     }
 
-    std::string& AccessPostData()
+    std::string& GetBody()
     {
-      return postData_;
+      return body_;
     }
 
-    const std::string& AccessPostData() const
+    const std::string& GetBody() const
     {
-      return postData_;
+      return body_;
     }
 
     void SetVerbose(bool isVerbose);
@@ -165,5 +165,9 @@ namespace Orthanc
     static void GlobalFinalize();
 
     static void SetDefaultTimeout(long timeout);
+
+    void ApplyAndThrowException(std::string& answer);
+
+    void ApplyAndThrowException(Json::Value& answer);
   };
 }

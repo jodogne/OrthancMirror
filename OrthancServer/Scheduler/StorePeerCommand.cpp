@@ -70,7 +70,7 @@ namespace Orthanc
 
       try
       {
-        context_.ReadFile(client.AccessPostData(), *it, FileContentType_Dicom);
+        context_.ReadFile(client.GetBody(), *it, FileContentType_Dicom);
 
         std::string answer;
         if (!client.Apply(answer))

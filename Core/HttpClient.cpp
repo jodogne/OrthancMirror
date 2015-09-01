@@ -84,6 +84,26 @@ namespace Orthanc
   };
 
 
+  static void ThrowException(HttpStatus status)
+  {
+    switch (status)
+    {
+      case HttpStatus_400_BadRequest:
+        throw OrthancException(ErrorCode_BadRequest);
+
+      case HttpStatus_401_Unauthorized:
+        throw OrthancException(ErrorCode_Unauthorized);
+
+      case HttpStatus_404_NotFound:
+        throw OrthancException(ErrorCode_InexistentItem);
+
+      default:
+        throw OrthancException(ErrorCode_NetworkProtocol);
+    }
+  }
+
+
+
   static CURLcode CheckCode(CURLcode code)
   {
     if (code != CURLE_OK)
@@ -275,10 +295,10 @@ namespace Orthanc
     if (method_ == HttpMethod_Post ||
         method_ == HttpMethod_Put)
     {
-      if (postData_.size() > 0)
+      if (body_.size() > 0)
       {
-        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDS, postData_.c_str()));
-        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDSIZE, postData_.size()));
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDS, body_.c_str()));
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDSIZE, body_.size()));
       }
       else
       {
@@ -391,5 +411,22 @@ namespace Orthanc
   {
     LOG(INFO) << "Setting the default timeout for HTTP client connections: " << timeout << " seconds";
     globalTimeout_ = timeout;
+  }
+
+
+  void HttpClient::ApplyAndThrowException(std::string& answer)
+  {
+    if (!Apply(answer))
+    {
+      ThrowException(GetLastStatus());
+    }
+  }
+  
+  void HttpClient::ApplyAndThrowException(Json::Value& answer)
+  {
+    if (!Apply(answer))
+    {
+      ThrowException(GetLastStatus());
+    }
   }
 }

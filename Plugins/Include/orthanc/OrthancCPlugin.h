@@ -208,6 +208,7 @@ extern "C"
     OrthancPluginErrorCode_UnknownPluginService = 26    /*!< Plugin invoking an unknown service */,
     OrthancPluginErrorCode_UnknownDicomTag = 27    /*!< Unknown DICOM tag */,
     OrthancPluginErrorCode_BadJson = 28    /*!< Cannot parse a JSON document */,
+    OrthancPluginErrorCode_Unauthorized = 29    /*!< Bad credentials were provided to an HTTP request */,
     OrthancPluginErrorCode_SQLiteNotOpened = 1000    /*!< SQLite: The database is not opened */,
     OrthancPluginErrorCode_SQLiteAlreadyOpened = 1001    /*!< SQLite: Connection is already open */,
     OrthancPluginErrorCode_SQLiteCannotOpen = 1002    /*!< SQLite: Unable to open the database */,
@@ -375,6 +376,7 @@ extern "C"
     _OrthancPluginService_ReadFile = 15,
     _OrthancPluginService_WriteFile = 16,
     _OrthancPluginService_GetErrorDescription = 17,
+    _OrthancPluginService_CallHttpClient = 18,
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -1154,6 +1156,7 @@ extern "C"
    * @param target The target memory buffer.
    * @param uri The URI in the built-in Orthanc API.
    * @return 0 if success, or the error code if failure.
+   * @see OrthancPluginRestApiGetAfterPlugins
    * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiGet(
@@ -1182,6 +1185,7 @@ extern "C"
    * @param target The target memory buffer.
    * @param uri The URI in the built-in Orthanc API.
    * @return 0 if success, or the error code if failure.
+   * @see OrthancPluginRestApiGet
    * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiGetAfterPlugins(
@@ -1217,6 +1221,7 @@ extern "C"
    * @param body The body of the POST request.
    * @param bodySize The size of the body.
    * @return 0 if success, or the error code if failure.
+   * @see OrthancPluginRestApiPostAfterPlugins
    * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiPost(
@@ -1250,6 +1255,7 @@ extern "C"
    * @param body The body of the POST request.
    * @param bodySize The size of the body.
    * @return 0 if success, or the error code if failure.
+   * @see OrthancPluginRestApiPost
    * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiPostAfterPlugins(
@@ -1277,6 +1283,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param uri The URI to delete in the built-in Orthanc API.
    * @return 0 if success, or the error code if failure.
+   * @see OrthancPluginRestApiDeleteAfterPlugins
    * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiDelete(
@@ -1298,6 +1305,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param uri The URI to delete in the built-in Orthanc API.
    * @return 0 if success, or the error code if failure.
+   * @see OrthancPluginRestApiDelete
    * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiDeleteAfterPlugins(
@@ -1321,6 +1329,7 @@ extern "C"
    * @param body The body of the PUT request.
    * @param bodySize The size of the body.
    * @return 0 if success, or the error code if failure.
+   * @see OrthancPluginRestApiPutAfterPlugins
    * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiPut(
@@ -1355,6 +1364,7 @@ extern "C"
    * @param body The body of the PUT request.
    * @param bodySize The size of the body.
    * @return 0 if success, or the error code if failure.
+   * @see OrthancPluginRestApiPut
    * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiPutAfterPlugins(
@@ -3096,6 +3106,168 @@ extern "C"
     params.buffer = buffer;
     params.quality = quality;
     context->InvokeService(context, _OrthancPluginService_CompressAndAnswerImage, &params);
+  }
+
+
+
+
+  typedef struct
+  {
+    OrthancPluginMemoryBuffer*  target;
+    OrthancPluginHttpMethod     method;
+    const char*                 url;
+    const char*                 username;
+    const char*                 password;
+    const char*                 body;
+    uint32_t                    bodySize;
+  } _OrthancPluginCallHttpClient;
+
+
+  /**
+   * @brief Issue a HTTP GET call.
+   * 
+   * Make a HTTP GET call to the given URL. The result to the query is
+   * stored into a newly allocated memory buffer. Favor
+   * OrthancPluginRestApiGet() if calling the built-in REST API of the
+   * Orthanc instance that hosts this plugin.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target The target memory buffer.
+   * @param url The URL of interest.
+   * @param username The username (can be <tt>NULL</tt> if no password protection).
+   * @param password The password (can be <tt>NULL</tt> if no password protection).
+   * @return 0 if success, or the error code if failure.
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginHttpGet(
+    OrthancPluginContext*       context,
+    OrthancPluginMemoryBuffer*  target,
+    const char*                 url,
+    const char*                 username,
+    const char*                 password)
+  {
+    _OrthancPluginCallHttpClient params;
+    memset(&params, 0, sizeof(params));
+
+    params.target = target;
+    params.method = OrthancPluginHttpMethod_Get;
+    params.url = url;
+    params.username = username;
+    params.password = password;
+
+    return context->InvokeService(context, _OrthancPluginService_CallHttpClient, &params);
+  }
+
+
+  /**
+   * @brief Issue a HTTP POST call.
+   * 
+   * Make a HTTP POST call to the given URL. The result to the query
+   * is stored into a newly allocated memory buffer. Favor
+   * OrthancPluginRestApiPost() if calling the built-in REST API of
+   * the Orthanc instance that hosts this plugin.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target The target memory buffer.
+   * @param url The URL of interest.
+   * @param body The content of the body of the request.
+   * @param bodySize The size of the body of the request.
+   * @param username The username (can be <tt>NULL</tt> if no password protection).
+   * @param password The password (can be <tt>NULL</tt> if no password protection).
+   * @return 0 if success, or the error code if failure.
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginHttpPost(
+    OrthancPluginContext*       context,
+    OrthancPluginMemoryBuffer*  target,
+    const char*                 url,
+    const char*                 body,
+    uint32_t                    bodySize,
+    const char*                 username,
+    const char*                 password)
+  {
+    _OrthancPluginCallHttpClient params;
+    memset(&params, 0, sizeof(params));
+
+    params.target = target;
+    params.method = OrthancPluginHttpMethod_Post;
+    params.url = url;
+    params.body = body;
+    params.bodySize = bodySize;
+    params.username = username;
+    params.password = password;
+
+    return context->InvokeService(context, _OrthancPluginService_CallHttpClient, &params);
+  }
+
+
+  /**
+   * @brief Issue a HTTP PUT call.
+   * 
+   * Make a HTTP PUT call to the given URL. The result to the query is
+   * stored into a newly allocated memory buffer. Favor
+   * OrthancPluginRestApiPut() if calling the built-in REST API of the
+   * Orthanc instance that hosts this plugin.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target The target memory buffer.
+   * @param url The URL of interest.
+   * @param body The content of the body of the request.
+   * @param bodySize The size of the body of the request.
+   * @param username The username (can be <tt>NULL</tt> if no password protection).
+   * @param password The password (can be <tt>NULL</tt> if no password protection).
+   * @return 0 if success, or the error code if failure.
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginHttpPut(
+    OrthancPluginContext*       context,
+    OrthancPluginMemoryBuffer*  target,
+    const char*                 url,
+    const char*                 body,
+    uint32_t                    bodySize,
+    const char*                 username,
+    const char*                 password)
+  {
+    _OrthancPluginCallHttpClient params;
+    memset(&params, 0, sizeof(params));
+
+    params.target = target;
+    params.method = OrthancPluginHttpMethod_Put;
+    params.url = url;
+    params.body = body;
+    params.bodySize = bodySize;
+    params.username = username;
+    params.password = password;
+
+    return context->InvokeService(context, _OrthancPluginService_CallHttpClient, &params);
+  }
+
+
+  /**
+   * @brief Issue a HTTP DELETE call.
+   * 
+   * Make a HTTP DELETE call to the given URL. Favor
+   * OrthancPluginRestApiDelete() if calling the built-in REST API of
+   * the Orthanc instance that hosts this plugin.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param url The URL of interest.
+   * @param username The username (can be <tt>NULL</tt> if no password protection).
+   * @param password The password (can be <tt>NULL</tt> if no password protection).
+   * @return 0 if success, or the error code if failure.
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginHttpDelete(
+    OrthancPluginContext*       context,
+    const char*                 url,
+    const char*                 username,
+    const char*                 password)
+  {
+    _OrthancPluginCallHttpClient params;
+    memset(&params, 0, sizeof(params));
+
+    params.method = OrthancPluginHttpMethod_Delete;
+    params.url = url;
+    params.username = username;
+    params.password = password;
+
+    return context->InvokeService(context, _OrthancPluginService_CallHttpClient, &params);
   }
 
 
