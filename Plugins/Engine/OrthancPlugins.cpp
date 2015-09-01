@@ -44,6 +44,7 @@
 #include "../../Core/Compression/GzipCompressor.h"
 #include "../../Core/ImageFormats/PngReader.h"
 #include "../../Core/ImageFormats/PngWriter.h"
+#include "../../Core/ImageFormats/JpegReader.h"
 #include "../../Core/ImageFormats/JpegWriter.h"
 
 #include <boost/regex.hpp> 
@@ -1063,22 +1064,29 @@ namespace Orthanc
   {
     const _OrthancPluginUncompressImage& p = *reinterpret_cast<const _OrthancPluginUncompressImage*>(parameters);
 
+    std::auto_ptr<ImageAccessor> image;
+
     switch (p.format)
     {
       case OrthancPluginImageFormat_Png:
       {
-        std::auto_ptr<PngReader> image(new PngReader);
-        image->ReadFromMemory(p.data, p.size);
-        *(p.target) = reinterpret_cast<OrthancPluginImage*>(image.release());
-        return;
+        image.reset(new PngReader);
+        reinterpret_cast<PngReader&>(*image).ReadFromMemory(p.data, p.size);
+        break;
       }
 
       case OrthancPluginImageFormat_Jpeg:
-        // TODO
+      {
+        image.reset(new JpegReader);
+        reinterpret_cast<JpegReader&>(*image).ReadFromMemory(p.data, p.size);
+        break;
+      }
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
+
+    *(p.target) = reinterpret_cast<OrthancPluginImage*>(image.release());
   }
 
 
@@ -1098,8 +1106,12 @@ namespace Orthanc
       }
 
       case OrthancPluginImageFormat_Jpeg:
-        // TODO
-        //writer.SetQuality(p.quality);
+      {
+        JpegWriter writer;
+        writer.SetQuality(p.quality);
+        writer.WriteToMemory(compressed, p.width, p.height, p.pitch, Convert(p.pixelFormat), p.buffer);
+        break;
+      }
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);

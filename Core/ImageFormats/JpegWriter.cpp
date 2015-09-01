@@ -30,77 +30,18 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "JpegWriter.h"
 
 #include "../OrthancException.h"
 #include "../Logging.h"
 
-#include <jpeglib.h>
-#include <setjmp.h>
-#include <stdio.h>
+#include "JpegErrorManager.h"
+
 #include <vector>
-#include <string.h>
-#include <stdlib.h>
 
 namespace Orthanc
 {
-  namespace
-  {
-    class ErrorManager 
-    {
-    private:
-      struct jpeg_error_mgr pub;  /* "public" fields */
-      jmp_buf setjmp_buffer;      /* for return to caller */
-      std::string message;
-
-      static void OutputMessage(j_common_ptr cinfo)
-      {
-        char message[JMSG_LENGTH_MAX];
-        (*cinfo->err->format_message) (cinfo, message);
-
-        ErrorManager* that = reinterpret_cast<ErrorManager*>(cinfo->err);
-        that->message = std::string(message);
-      }
-
-
-      static void ErrorExit(j_common_ptr cinfo)
-      {
-        (*cinfo->err->output_message) (cinfo);
-
-        ErrorManager* that = reinterpret_cast<ErrorManager*>(cinfo->err);
-        longjmp(that->setjmp_buffer, 1);
-      }
-      
-
-    public:
-      ErrorManager()
-      {
-        memset(&pub, 0, sizeof(struct jpeg_error_mgr));
-        memset(&setjmp_buffer, 0, sizeof(jmp_buf));
-
-        jpeg_std_error(&pub);
-        pub.error_exit = ErrorExit;
-        pub.output_message = OutputMessage;
-      }
-
-      struct jpeg_error_mgr* GetPublic()
-      {
-        return &pub;
-      }
-
-      jmp_buf& GetJumpBuffer()
-      {
-        return setjmp_buffer;
-      }
-
-      const std::string& GetMessage() const
-      {
-        return message;
-      }
-    };
-  }
-
-
   static void GetLines(std::vector<uint8_t*>& lines,
                        unsigned int height,
                        unsigned int pitch,
@@ -188,7 +129,7 @@ namespace Orthanc
     struct jpeg_compress_struct cinfo;
     memset(&cinfo, 0, sizeof(struct jpeg_compress_struct));
 
-    ErrorManager jerr;
+    Internals::JpegErrorManager jerr;
     cinfo.err = jerr.GetPublic();
 
     if (setjmp(jerr.GetJumpBuffer())) 
@@ -227,7 +168,7 @@ namespace Orthanc
     struct jpeg_compress_struct cinfo;
     memset(&cinfo, 0, sizeof(struct jpeg_compress_struct));
 
-    ErrorManager jerr;
+    Internals::JpegErrorManager jerr;
 
     unsigned char* data = NULL;
     unsigned long size;

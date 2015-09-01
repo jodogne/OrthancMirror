@@ -37,6 +37,7 @@
 #include "../Core/ImageFormats/ImageBuffer.h"
 #include "../Core/ImageFormats/PngReader.h"
 #include "../Core/ImageFormats/PngWriter.h"
+#include "../Core/ImageFormats/JpegReader.h"
 #include "../Core/ImageFormats/JpegWriter.h"
 #include "../Core/Toolbox.h"
 #include "../Core/Uuid.h"
@@ -192,21 +193,50 @@ TEST(PngWriter, EndToEnd)
 
 TEST(JpegWriter, Basic)
 {
-  Orthanc::ImageBuffer img(16, 16, Orthanc::PixelFormat_Grayscale8);
-  Orthanc::ImageAccessor accessor = img.GetAccessor();
-  for (unsigned int y = 0, value = 0; y < img.GetHeight(); y++)
+  std::string s;
+
   {
-    uint8_t* p = reinterpret_cast<uint8_t*>(accessor.GetRow(y));
-    for (unsigned int x = 0; x < img.GetWidth(); x++, p++)
+    Orthanc::ImageBuffer img(16, 16, Orthanc::PixelFormat_Grayscale8);
+    Orthanc::ImageAccessor accessor = img.GetAccessor();
+    for (unsigned int y = 0, value = 0; y < img.GetHeight(); y++)
     {
-      *p = value++;
+      uint8_t* p = reinterpret_cast<uint8_t*>(accessor.GetRow(y));
+      for (unsigned int x = 0; x < img.GetWidth(); x++, p++)
+      {
+        *p = value++;
+      }
     }
+
+    Orthanc::JpegWriter w;
+    w.WriteToFile("UnitTestsResults/hello.jpg", accessor);
+
+    w.WriteToMemory(s, accessor);
+    Orthanc::Toolbox::WriteFile(s, "UnitTestsResults/hello2.jpg");
+
+    std::string t;
+    Orthanc::Toolbox::ReadFile(t, "UnitTestsResults/hello.jpg");
+    ASSERT_EQ(s.size(), t.size());
+    ASSERT_EQ(0, memcmp(s.c_str(), t.c_str(), s.size()));
   }
 
-  Orthanc::JpegWriter w;
-  w.WriteToFile("UnitTestsResults/hello.jpg", accessor);
+  {
+    Orthanc::JpegReader r1, r2;
+    r1.ReadFromFile("UnitTestsResults/hello.jpg");
+    ASSERT_EQ(16, r1.GetWidth());
+    ASSERT_EQ(16, r1.GetHeight());
 
-  std::string s;
-  w.WriteToMemory(s, accessor);
-  Orthanc::Toolbox::WriteFile(s, "UnitTestsResults/hello2.jpg");
+    r2.ReadFromMemory(s);
+    ASSERT_EQ(16, r2.GetWidth());
+    ASSERT_EQ(16, r2.GetHeight());
+
+    for (unsigned int y = 0; y < r1.GetHeight(); y++)
+    {
+      const uint8_t* p1 = reinterpret_cast<const uint8_t*>(r1.GetConstRow(y));
+      const uint8_t* p2 = reinterpret_cast<const uint8_t*>(r2.GetConstRow(y));
+      for (unsigned int x = 0; x < r1.GetWidth(); x++)
+      {
+        ASSERT_EQ(*p1, *p2);
+      }
+    }
+  }
 }
