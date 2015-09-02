@@ -187,6 +187,8 @@ namespace Orthanc
 
 
   OrthancPluginDatabase::OrthancPluginDatabase(const OrthancPluginDatabaseBackend& backend,
+                                               const OrthancPluginDatabaseExtensions* extensions,
+                                               size_t extensionsSize,
                                                void *payload) : 
     type_(_OrthancPluginDatabaseAnswerType_None),
     backend_(backend),
@@ -197,6 +199,15 @@ namespace Orthanc
     answerExportedResources_(NULL),
     answerDone_(NULL)
   {
+    memset(&extensions_, 0, sizeof(extensions_));
+
+    size_t size = sizeof(extensions_);
+    if (extensionsSize < size)
+    {
+      size = extensionsSize;  // Not all the extensions are available
+    }
+
+    memcpy(&extensions_, extensions, size);
   }
 
 
@@ -331,32 +342,47 @@ namespace Orthanc
                                               size_t since,
                                               size_t limit)
   {
-    // TODO add the corresponding primitives to the SDK
-
-    target.clear();
-
-    if (limit == 0)
+    if (extensions_.getAllPublicIdsWithLimit != NULL)
     {
-      return;
-    }
+      // This extension is available since Orthanc 0.9.4
+      ResetAnswers();
 
-    std::list<std::string> tmp;
-    GetAllPublicIds(tmp, resourceType);
+      if (extensions_.getAllPublicIdsWithLimit(GetContext(), payload_, Convert(resourceType), since, limit) != 0)
+      {
+        throw OrthancException(ErrorCode_Plugin);
+      }
+
+      ForwardAnswers(target);
+    }
+    else
+    {
+      // The extension is not available in the database plugin, use a
+      // fallback implementation
+      target.clear();
+
+      if (limit == 0)
+      {
+        return;
+      }
+
+      std::list<std::string> tmp;
+      GetAllPublicIds(tmp, resourceType);
     
-    if (tmp.size() <= since)
-    {
-      // Not enough results => empty answer
-      return;
-    }
+      if (tmp.size() <= since)
+      {
+        // Not enough results => empty answer
+        return;
+      }
 
-    std::list<std::string>::iterator current = tmp.begin();
-    std::advance(current, since);
+      std::list<std::string>::iterator current = tmp.begin();
+      std::advance(current, since);
 
-    while (limit > 0 && current != tmp.end())
-    {
-      target.push_back(*current);
-      --limit;
-      ++current;
+      while (limit > 0 && current != tmp.end())
+      {
+        target.push_back(*current);
+        --limit;
+        ++current;
+      }
     }
   }
 

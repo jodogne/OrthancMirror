@@ -46,6 +46,7 @@ namespace Orthanc
 
     _OrthancPluginDatabaseAnswerType type_;
     OrthancPluginDatabaseBackend backend_;
+    OrthancPluginDatabaseExtensions extensions_;
     void* payload_;
     IDatabaseListener* listener_;
 
@@ -77,6 +78,8 @@ namespace Orthanc
 
   public:
     OrthancPluginDatabase(const OrthancPluginDatabaseBackend& backend,
+                          const OrthancPluginDatabaseExtensions* extensions,
+                          size_t extensionsSize,
                           void *payload);
 
     virtual void AddAttachment(int64_t id,

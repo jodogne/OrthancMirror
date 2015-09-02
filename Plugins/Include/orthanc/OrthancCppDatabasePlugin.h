@@ -314,6 +314,11 @@ namespace OrthancPlugins
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  OrthancPluginResourceType resourceType) = 0;
 
+    virtual void GetAllPublicIds(std::list<std::string>& target,
+                                 OrthancPluginResourceType resourceType,
+                                 uint64_t since,
+                                 uint64_t limit) = 0;
+
     /* Use GetOutput().AnswerChange() */
     virtual void GetChanges(bool& done /*out*/,
                             int64_t since,
@@ -620,6 +625,38 @@ namespace OrthancPlugins
       {
         std::list<std::string> ids;
         backend->GetAllPublicIds(ids, resourceType);
+
+        for (std::list<std::string>::const_iterator
+               it = ids.begin(); it != ids.end(); ++it)
+        {
+          OrthancPluginDatabaseAnswerString(backend->GetOutput().context_,
+                                            backend->GetOutput().database_,
+                                            it->c_str());
+        }
+
+        return 0;
+      }
+      catch (std::runtime_error& e)
+      {
+        LogError(backend, e);
+        return -1;
+      }
+    }
+
+
+    static int32_t  GetAllPublicIdsWithLimit(OrthancPluginDatabaseContext* context,
+                                             void* payload,
+                                             OrthancPluginResourceType resourceType,
+                                             uint64_t since,
+                                             uint64_t limit)
+    {
+      IDatabaseBackend* backend = reinterpret_cast<IDatabaseBackend*>(payload);
+      backend->GetOutput().SetAllowedAnswers(DatabaseBackendOutput::AllowedAnswers_None);
+
+      try
+      {
+        std::list<std::string> ids;
+        backend->GetAllPublicIds(ids, resourceType, since, limit);
 
         for (std::list<std::string>::const_iterator
                it = ids.begin(); it != ids.end(); ++it)
@@ -1496,6 +1533,9 @@ namespace OrthancPlugins
       OrthancPluginDatabaseBackend  params;
       memset(&params, 0, sizeof(params));
 
+      OrthancPluginDatabaseExtensions  extensions;
+      memset(&extensions, 0, sizeof(extensions));
+
       params.addAttachment = AddAttachment;
       params.attachChild = AttachChild;
       params.clearChanges = ClearChanges;
@@ -1543,7 +1583,9 @@ namespace OrthancPlugins
       params.open = Open;
       params.close = Close;
 
-      OrthancPluginDatabaseContext* database = OrthancPluginRegisterDatabaseBackend(context, &params, &backend);
+      extensions.getAllPublicIdsWithLimit = GetAllPublicIdsWithLimit;
+
+      OrthancPluginDatabaseContext* database = OrthancPluginRegisterDatabaseBackendV2(context, &params, &extensions, &backend);
       if (!context)
       {
         throw std::runtime_error("Unable to register the database backend");

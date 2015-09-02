@@ -1409,10 +1409,24 @@ namespace Orthanc
       case _OrthancPluginService_RegisterDatabaseBackend:
       {
         LOG(INFO) << "Plugin has registered a custom database back-end";
+
         const _OrthancPluginRegisterDatabaseBackend& p =
           *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackend*>(parameters);
+        pimpl_->database_.reset(new OrthancPluginDatabase(*p.backend, NULL, 0, p.payload));
 
-        pimpl_->database_.reset(new OrthancPluginDatabase(*p.backend, p.payload));
+        *(p.result) = reinterpret_cast<OrthancPluginDatabaseContext*>(pimpl_->database_.get());
+
+        return true;
+      }
+
+      case _OrthancPluginService_RegisterDatabaseBackendV2:
+      {
+        LOG(INFO) << "Plugin has registered a custom database back-end";
+
+        const _OrthancPluginRegisterDatabaseBackendV2& p =
+          *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackendV2*>(parameters);
+        pimpl_->database_.reset(new OrthancPluginDatabase(*p.backend, p.extensions, p.extensionsSize, p.payload));
+
         *(p.result) = reinterpret_cast<OrthancPluginDatabaseContext*>(pimpl_->database_.get());
 
         return true;
@@ -1528,8 +1542,15 @@ namespace Orthanc
       case _OrthancPluginService_FreeImage:
       {
         const _OrthancPluginFreeImage& p = *reinterpret_cast<const _OrthancPluginFreeImage*>(parameters);
-        delete reinterpret_cast<ImageAccessor*>(p.image);
-        return true;
+        if (p.image == NULL)
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+        else
+        {
+          delete reinterpret_cast<ImageAccessor*>(p.image);
+          return true;
+        }
       }
 
       case _OrthancPluginService_UncompressImage:
