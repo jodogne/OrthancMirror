@@ -437,6 +437,7 @@ extern "C"
     _OrthancPluginService_UncompressImage = 6005,
     _OrthancPluginService_FreeImage = 6006,
     _OrthancPluginService_CompressImage = 6007,
+    _OrthancPluginService_ConvertPixelFormat = 6008,
 
     _OrthancPluginService_INTERNAL = 0x7fffffff
   } _OrthancPluginService;
@@ -3270,6 +3271,48 @@ extern "C"
     return context->InvokeService(context, _OrthancPluginService_CallHttpClient, &params);
   }
 
+
+
+  typedef struct
+  {
+    OrthancPluginImage**       target;
+    const OrthancPluginImage*  source;
+    OrthancPluginPixelFormat   targetFormat;
+  } _OrthancPluginConvertPixelFormat;
+
+
+  /**
+   * @brief Change the pixel format of an image.
+   *
+   * This function creates a new image, changing the memory layout of the pixels.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param source The source image.
+   * @param targetFormat The target pixel format.
+   * @return The resulting image. It must be freed with OrthancPluginFreeImage().
+   * @ingroup Compression
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginImage *OrthancPluginConvertPixelFormat(
+    OrthancPluginContext*      context,
+    const OrthancPluginImage*  source,
+    OrthancPluginPixelFormat   targetFormat)
+  {
+    OrthancPluginImage* target = NULL;
+
+    _OrthancPluginConvertPixelFormat params;
+    params.target = &target;
+    params.source = source;
+    params.targetFormat = targetFormat;
+
+    if (context->InvokeService(context, _OrthancPluginService_ConvertPixelFormat, &params) != OrthancPluginErrorCode_Success)
+    {
+      return NULL;
+    }
+    else
+    {
+      return target;
+    }
+  }
 
 
 #ifdef  __cplusplus

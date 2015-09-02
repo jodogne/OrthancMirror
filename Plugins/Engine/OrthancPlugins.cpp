@@ -42,10 +42,12 @@
 #include "../../OrthancServer/ServerToolbox.h"
 #include "../../Core/Compression/ZlibCompressor.h"
 #include "../../Core/Compression/GzipCompressor.h"
+#include "../../Core/ImageFormats/Image.h"
 #include "../../Core/ImageFormats/PngReader.h"
 #include "../../Core/ImageFormats/PngWriter.h"
 #include "../../Core/ImageFormats/JpegReader.h"
 #include "../../Core/ImageFormats/JpegWriter.h"
+#include "../../Core/ImageFormats/ImageProcessing.h"
 
 #include <boost/regex.hpp> 
 
@@ -1168,6 +1170,18 @@ namespace Orthanc
   }
 
 
+  void OrthancPlugins::ConvertPixelFormat(const void* parameters)
+  {
+    const _OrthancPluginConvertPixelFormat& p = *reinterpret_cast<const _OrthancPluginConvertPixelFormat*>(parameters);
+    const ImageAccessor& source = *reinterpret_cast<const ImageAccessor*>(p.source);
+
+    std::auto_ptr<ImageAccessor> target(new Image(Convert(p.targetFormat), source.GetWidth(), source.GetHeight()));
+    ImageProcessing::Convert(*target, source);
+
+    *(p.target) = reinterpret_cast<OrthancPluginImage*>(target.release());
+  }
+
+
   bool OrthancPlugins::InvokeService(_OrthancPluginService service,
                                      const void* parameters)
   {
@@ -1528,6 +1542,10 @@ namespace Orthanc
 
       case _OrthancPluginService_CallHttpClient:
         CallHttpClient(parameters);
+        return true;
+
+      case _OrthancPluginService_ConvertPixelFormat:
+        ConvertPixelFormat(parameters);
         return true;
 
       default:
