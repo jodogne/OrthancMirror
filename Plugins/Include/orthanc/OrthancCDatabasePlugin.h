@@ -630,6 +630,21 @@ extern "C"
       void* payload);
 
   } OrthancPluginDatabaseBackend;
+
+
+  typedef struct
+  {
+    /* Output: Use OrthancPluginDatabaseAnswerString() */
+    int32_t  (*getAllPublicIdsWithLimit) (
+      /* outputs */
+      OrthancPluginDatabaseContext* context,
+      /* inputs */
+      void* payload,
+      OrthancPluginResourceType resourceType,
+      uint64_t since,
+      uint64_t limit);
+  } OrthancPluginDatabaseExtensions;
+
 /*<! @endcond */
 
 
@@ -653,6 +668,8 @@ extern "C"
    * @param payload Pointer containing private information for the database engine.
    * @return The context of the database engine (it must not be manually freed).
    * @ingroup Callbacks
+   * @deprecated
+   * @see OrthancPluginRegisterDatabaseBackendV2
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginDatabaseContext* OrthancPluginRegisterDatabaseBackend(
     OrthancPluginContext*                context,
@@ -673,6 +690,65 @@ extern "C"
     params.payload = payload;
 
     if (context->InvokeService(context, _OrthancPluginService_RegisterDatabaseBackend, &params) ||
+        result == NULL)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  typedef struct
+  {
+    OrthancPluginDatabaseContext**          result;
+    const OrthancPluginDatabaseBackend*     backend;
+    void*                                   payload;
+    const OrthancPluginDatabaseExtensions*  extensions;
+    uint32_t                                extensionsSize;
+  } _OrthancPluginRegisterDatabaseBackendV2;
+
+
+  /**
+   * Register a custom database back-end.
+   *
+   * Instead of manually filling the OrthancPluginDatabaseBackendV2
+   * structure, you should instead implement a concrete C++ class
+   * deriving from ::OrthancPlugins::IDatabaseBackend, and register it
+   * using ::OrthancPlugins::DatabaseBackendAdapter::Register().
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param backend The callbacks of the custom database engine.
+   * @param payload Pointer containing private information for the database engine.
+   * @param extensions Extensions to the base database SDK that was shipped until Orthanc 0.9.3.
+   * @return The context of the database engine (it must not be manually freed).
+   * @ingroup Callbacks
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginDatabaseContext* OrthancPluginRegisterDatabaseBackendV2(
+    OrthancPluginContext*                   context,
+    const OrthancPluginDatabaseBackend*     backend,
+    const OrthancPluginDatabaseExtensions*  extensions,
+    void*                                   payload)
+  {
+    OrthancPluginDatabaseContext* result = NULL;
+    _OrthancPluginRegisterDatabaseBackendV2 params;
+
+    if (sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType))
+    {
+      return NULL;
+    }
+
+    memset(&params, 0, sizeof(params));
+    params.backend = backend;
+    params.result = &result;
+    params.payload = payload;
+    params.extensions = extensions;
+    params.extensionsSize = sizeof(OrthancPluginDatabaseExtensions);
+
+    if (context->InvokeService(context, _OrthancPluginService_RegisterDatabaseBackendV2, &params) ||
         result == NULL)
     {
       /* Error */

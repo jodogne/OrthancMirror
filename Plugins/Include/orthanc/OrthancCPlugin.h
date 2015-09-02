@@ -17,7 +17,7 @@
  *    - Possibly register its callback for received DICOM instances using ::OrthancPluginRegisterOnStoredInstanceCallback().
  *    - Possibly register its callback for changes to the DICOM store using ::OrthancPluginRegisterOnChangeCallback().
  *    - Possibly register a custom storage area using ::OrthancPluginRegisterStorageArea().
- *    - Possibly register a custom database back-end area using OrthancPluginRegisterDatabaseBackend().
+ *    - Possibly register a custom database back-end area using OrthancPluginRegisterDatabaseBackendV2().
  * -# <tt>void OrthancPluginFinalize()</tt>:
  *    This function is invoked by Orthanc during its shutdown. The plugin
  *    must free all its memory.
@@ -427,6 +427,7 @@ extern "C"
     /* Services for plugins implementing a database back-end */
     _OrthancPluginService_RegisterDatabaseBackend = 5000,
     _OrthancPluginService_DatabaseAnswer = 5001,
+    _OrthancPluginService_RegisterDatabaseBackendV2 = 5002,
 
     /* Primitives for handling images */
     _OrthancPluginService_GetImagePixelFormat = 6000,
