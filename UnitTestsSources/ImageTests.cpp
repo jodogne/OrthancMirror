@@ -34,7 +34,7 @@
 #include "gtest/gtest.h"
 
 #include <stdint.h>
-#include "../Core/ImageFormats/ImageBuffer.h"
+#include "../Core/ImageFormats/Image.h"
 #include "../Core/ImageFormats/PngReader.h"
 #include "../Core/ImageFormats/PngWriter.h"
 #include "../Core/ImageFormats/JpegReader.h"
@@ -196,11 +196,10 @@ TEST(JpegWriter, Basic)
   std::string s;
 
   {
-    Orthanc::ImageBuffer img(16, 16, Orthanc::PixelFormat_Grayscale8);
-    Orthanc::ImageAccessor accessor = img.GetAccessor();
+    Orthanc::Image img(Orthanc::PixelFormat_Grayscale8, 16, 16);
     for (unsigned int y = 0, value = 0; y < img.GetHeight(); y++)
     {
-      uint8_t* p = reinterpret_cast<uint8_t*>(accessor.GetRow(y));
+      uint8_t* p = reinterpret_cast<uint8_t*>(img.GetRow(y));
       for (unsigned int x = 0; x < img.GetWidth(); x++, p++)
       {
         *p = value++;
@@ -208,9 +207,9 @@ TEST(JpegWriter, Basic)
     }
 
     Orthanc::JpegWriter w;
-    w.WriteToFile("UnitTestsResults/hello.jpg", accessor);
+    w.WriteToFile("UnitTestsResults/hello.jpg", img);
 
-    w.WriteToMemory(s, accessor);
+    w.WriteToMemory(s, img);
     Orthanc::Toolbox::WriteFile(s, "UnitTestsResults/hello2.jpg");
 
     std::string t;

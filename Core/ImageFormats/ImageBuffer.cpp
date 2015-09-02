@@ -85,9 +85,9 @@ namespace Orthanc
   }
 
 
-  ImageBuffer::ImageBuffer(unsigned int width,
-                           unsigned int height,
-                           PixelFormat format)
+  ImageBuffer::ImageBuffer(PixelFormat format,
+                           unsigned int width,
+                           unsigned int height)
   {
     Initialize();
     SetWidth(width);

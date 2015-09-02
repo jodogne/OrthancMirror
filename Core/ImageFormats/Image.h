@@ -33,83 +33,23 @@
 #pragma once
 
 #include "ImageAccessor.h"
-
-#include <vector>
-#include <stdint.h>
-#include <boost/noncopyable.hpp>
+#include "ImageBuffer.h"
 
 namespace Orthanc
 {
-  class ImageBuffer : public boost::noncopyable
+  class Image : public ImageAccessor
   {
   private:
-    bool changed_;
-
-    bool forceMinimalPitch_;  // Currently unused
-    PixelFormat format_;
-    unsigned int width_;
-    unsigned int height_;
-    unsigned int pitch_;
-    void *buffer_;
-
-    void Initialize();
-    
-    void Allocate();
-
-    void Deallocate();
+    ImageBuffer  buffer_;
 
   public:
-    ImageBuffer(PixelFormat format,
-                unsigned int width,
-                unsigned int height);
-
-    ImageBuffer()
+    Image(PixelFormat format,
+          unsigned int width,
+          unsigned int height) :
+      buffer_(format, width, height)
     {
-      Initialize();
+      ImageAccessor accessor = buffer_.GetAccessor();
+      AssignWritable(format, width, height, accessor.GetPitch(), accessor.GetBuffer());
     }
-
-    ~ImageBuffer()
-    {
-      Deallocate();
-    }
-
-    PixelFormat GetFormat() const
-    {
-      return format_;
-    }
-
-    void SetFormat(PixelFormat format);
-
-    unsigned int GetWidth() const
-    {
-      return width_;
-    }
-
-    void SetWidth(unsigned int width);
-
-    unsigned int GetHeight() const
-    {
-      return height_;
-    }
-
-    void SetHeight(unsigned int height);
-
-    unsigned int GetBytesPerPixel() const
-    {
-      return ::Orthanc::GetBytesPerPixel(format_);
-    }
-
-    ImageAccessor GetAccessor();
-
-    ImageAccessor GetConstAccessor();
-
-    bool IsMinimalPitchForced() const
-    {
-      return forceMinimalPitch_;
-    }
-
-    void SetMinimalPitchForced(bool force);
-
-    void AcquireOwnership(ImageBuffer& other);
   };
 }
