@@ -169,9 +169,12 @@
     "HttpStatus": 401, 
     "Name": "Unauthorized", 
     "Description": "Bad credentials were provided to an HTTP request"
+  }, 
+  {
+    "Code": 30, 
+    "Name": "BadFont", 
+    "Description": "Badly formatted font file"
   },
-
-
 
 
 

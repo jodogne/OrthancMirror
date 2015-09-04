@@ -76,8 +76,8 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotEnoughMemory);
     }
 
-    accessor.AssignReadOnly(format, cinfo.output_width, cinfo.output_height, pitch, 
-                            content.empty() ? NULL : content.c_str());
+    accessor.AssignWritable(format, cinfo.output_width, cinfo.output_height, pitch, 
+                            content.empty() ? NULL : &content[0]);
 
     uint8_t* target = reinterpret_cast<uint8_t*>(&content[0]);
     while (cinfo.output_scanline < cinfo.output_height) 

@@ -209,6 +209,7 @@ extern "C"
     OrthancPluginErrorCode_UnknownDicomTag = 27    /*!< Unknown DICOM tag */,
     OrthancPluginErrorCode_BadJson = 28    /*!< Cannot parse a JSON document */,
     OrthancPluginErrorCode_Unauthorized = 29    /*!< Bad credentials were provided to an HTTP request */,
+    OrthancPluginErrorCode_BadFont = 30    /*!< Badly formatted font file */,
     OrthancPluginErrorCode_SQLiteNotOpened = 1000    /*!< SQLite: The database is not opened */,
     OrthancPluginErrorCode_SQLiteAlreadyOpened = 1001    /*!< SQLite: Connection is already open */,
     OrthancPluginErrorCode_SQLiteCannotOpen = 1002    /*!< SQLite: Unable to open the database */,

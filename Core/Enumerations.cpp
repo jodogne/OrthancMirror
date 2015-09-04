@@ -139,6 +139,9 @@ namespace Orthanc
       case ErrorCode_Unauthorized:
         return "Bad credentials were provided to an HTTP request";
 
+      case ErrorCode_BadFont:
+        return "Badly formatted font file";
+
       case ErrorCode_SQLiteNotOpened:
         return "SQLite: The database is not opened";
 
