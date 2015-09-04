@@ -88,18 +88,18 @@ namespace Orthanc
       return size_;
     }
 
-    void DrawText(ImageAccessor& target,
-                  const std::string& utf8,
-                  int x,
-                  int y,
-                  uint8_t grayscale) const;
+    void Draw(ImageAccessor& target,
+              const std::string& utf8,
+              int x,
+              int y,
+              uint8_t grayscale) const;
 
-    void DrawText(ImageAccessor& target,
-                  const std::string& utf8,
-                  int x,
-                  int y,
-                  uint8_t r,
-                  uint8_t g,
-                  uint8_t b) const;
+    void Draw(ImageAccessor& target,
+              const std::string& utf8,
+              int x,
+              int y,
+              uint8_t r,
+              uint8_t g,
+              uint8_t b) const;
   };
 }
