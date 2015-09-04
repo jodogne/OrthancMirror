@@ -42,6 +42,7 @@
 #include "OrthancPeerParameters.h"
 #include "IDatabaseWrapper.h"
 #include "../Core/FileStorage/IStorageArea.h"
+#include "../Core/ImageFormats/FontRegistry.h"
 
 namespace Orthanc
 {
@@ -112,5 +113,7 @@ namespace Orthanc
     static void GetConfiguration(Json::Value& result);
 
     static void FormatConfiguration(std::string& result);
+
+    static const FontRegistry& GetFontRegistry();
   };
 }

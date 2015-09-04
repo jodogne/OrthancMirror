@@ -75,6 +75,7 @@ namespace Orthanc
   static Json::Value configuration_;
   static boost::filesystem::path defaultDirectory_;
   static std::string configurationAbsolutePath_;
+  static FontRegistry fontRegistry_;
 
 
   static std::string GetGlobalStringParameterInternal(const std::string& parameter,
@@ -348,6 +349,8 @@ namespace Orthanc
     LOG(WARNING) << "Registering JPEG codecs";
     DJDecoderRegistration::registerCodecs(); 
 #endif
+
+    fontRegistry_.AddFromResource(EmbeddedResources::FONT_UBUNTU_MONO_BOLD_16);
   }
 
 
@@ -920,7 +923,6 @@ namespace Orthanc
   }  
 
 
-
   void Configuration::GetConfiguration(Json::Value& result)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
@@ -935,5 +937,11 @@ namespace Orthanc
 
     Json::StyledWriter w;
     result = w.write(config);
+  }
+
+
+  const FontRegistry& Configuration::GetFontRegistry()
+  {
+    return fontRegistry_;
   }
 }

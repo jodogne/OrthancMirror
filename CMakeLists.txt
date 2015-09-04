@@ -121,6 +121,8 @@ set(ORTHANC_CORE_SOURCES
   Core/MultiThreading/ReaderWriterLock.cpp
   Core/MultiThreading/Semaphore.cpp
   Core/MultiThreading/SharedMessageQueue.cpp
+  Core/ImageFormats/Font.cpp
+  Core/ImageFormats/FontRegistry.cpp
   Core/ImageFormats/ImageAccessor.cpp
   Core/ImageFormats/ImageBuffer.cpp
   Core/ImageFormats/ImageProcessing.cpp
@@ -236,6 +238,7 @@ set(ORTHANC_EMBEDDED_FILES
   CONFIGURATION_SAMPLE        ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Configuration.json
   DICOM_CONFORMANCE_STATEMENT ${CMAKE_CURRENT_SOURCE_DIR}/Resources/DicomConformanceStatement.txt
   LUA_TOOLBOX                 ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Toolbox.lua
+  FONT_UBUNTU_MONO_BOLD_16    ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Fonts/UbuntuMonoBold-16.json
   )
 
 

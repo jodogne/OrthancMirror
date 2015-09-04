@@ -201,7 +201,7 @@ namespace Orthanc
 
     png_read_image(rabi.png_, &rows[0]);
 
-    AssignReadOnly(format, width, height, pitch, &data_[0]);
+    AssignWritable(format, width, height, pitch, &data_[0]);
   }
 
   void PngReader::ReadFromFile(const char* filename)

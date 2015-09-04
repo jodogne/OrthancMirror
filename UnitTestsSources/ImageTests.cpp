@@ -33,14 +33,18 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
-#include <stdint.h>
+#include "../Core/ImageFormats/Font.h"
 #include "../Core/ImageFormats/Image.h"
-#include "../Core/ImageFormats/PngReader.h"
-#include "../Core/ImageFormats/PngWriter.h"
+#include "../Core/ImageFormats/ImageProcessing.h"
 #include "../Core/ImageFormats/JpegReader.h"
 #include "../Core/ImageFormats/JpegWriter.h"
+#include "../Core/ImageFormats/PngReader.h"
+#include "../Core/ImageFormats/PngWriter.h"
 #include "../Core/Toolbox.h"
 #include "../Core/Uuid.h"
+#include "../OrthancServer/OrthancInitialization.h"
+
+#include <stdint.h>
 
 
 TEST(PngWriter, ColorPattern)
@@ -239,3 +243,17 @@ TEST(JpegWriter, Basic)
     }
   }
 }
+
+
+TEST(Font, Basic)
+{
+  Orthanc::Image s(Orthanc::PixelFormat_RGB24, 640, 480);
+  memset(s.GetBuffer(), 0, s.GetPitch() * s.GetHeight());
+
+  ASSERT_GE(1, Orthanc::Configuration::GetFontRegistry().GetSize());
+  Orthanc::Configuration::GetFontRegistry().GetFont(0).DrawText(s, "Hello world É\n\rComment ça va ?\nq", 50, 60, 255, 0, 0);
+
+  Orthanc::PngWriter w;
+  w.WriteToFile("UnitTestsResults/font.png", s);
+}
+
