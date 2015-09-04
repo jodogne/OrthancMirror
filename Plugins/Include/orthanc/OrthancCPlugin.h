@@ -40,7 +40,7 @@
 
 
 /**
- * @defgroup Compression Compression
+ * @defgroup Images Images and compression
  * @brief Functions to deal with images and compressed buffers.
  *
  * @defgroup REST REST
@@ -440,6 +440,9 @@ extern "C"
     _OrthancPluginService_FreeImage = 6006,
     _OrthancPluginService_CompressImage = 6007,
     _OrthancPluginService_ConvertPixelFormat = 6008,
+    _OrthancPluginService_GetFontsCount = 6009,
+    _OrthancPluginService_GetFontInfo = 6010,
+    _OrthancPluginService_DrawText = 6011,
 
     _OrthancPluginService_INTERNAL = 0x7fffffff
   } _OrthancPluginService;
@@ -458,7 +461,7 @@ extern "C"
 
   /**
    * The memory layout of the pixels of an image.
-   * @ingroup Compression
+   * @ingroup Images
    **/
   typedef enum
   {
@@ -561,7 +564,7 @@ extern "C"
 
   /**
    * The compression algorithms that are supported by the Orthanc core.
-   * @ingroup Compression
+   * @ingroup Images
    **/
   typedef enum
   {
@@ -576,7 +579,7 @@ extern "C"
 
   /**
    * The image formats that are supported by the Orthanc core.
-   * @ingroup Compression
+   * @ingroup Images
    **/
   typedef enum
   {
@@ -628,7 +631,7 @@ extern "C"
 
   /**
    * @brief Opaque structure that represents a uncompressed image in memory.
-   * @ingroup Compression
+   * @ingroup Images
    **/
   typedef struct _OrthancPluginImage_t OrthancPluginImage;
 
@@ -2542,7 +2545,7 @@ extern "C"
    * @param uncompress If set to "0", the buffer must be compressed. 
    * If set to "1", the buffer must be uncompressed.
    * @return 0 if success, or the error code if failure.
-   * @ingroup Compression
+   * @ingroup Images
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginBufferCompression(
     OrthancPluginContext*         context,
@@ -2730,7 +2733,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param image The image of interest.
    * @return The pixel format.
-   * @ingroup Compression
+   * @ingroup Images
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginPixelFormat  OrthancPluginGetImagePixelFormat(
     OrthancPluginContext*      context,
@@ -2763,7 +2766,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param image The image of interest.
    * @return The width.
-   * @ingroup Compression
+   * @ingroup Images
    **/
   ORTHANC_PLUGIN_INLINE uint32_t  OrthancPluginGetImageWidth(
     OrthancPluginContext*      context,
@@ -2796,7 +2799,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param image The image of interest.
    * @return The height.
-   * @ingroup Compression
+   * @ingroup Images
    **/
   ORTHANC_PLUGIN_INLINE uint32_t  OrthancPluginGetImageHeight(
     OrthancPluginContext*      context,
@@ -2831,7 +2834,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param image The image of interest.
    * @return The pitch.
-   * @ingroup Compression
+   * @ingroup Images
    **/
   ORTHANC_PLUGIN_INLINE uint32_t  OrthancPluginGetImagePitch(
     OrthancPluginContext*      context,
@@ -2865,7 +2868,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param image The image of interest.
    * @return The pointer.
-   * @ingroup Compression
+   * @ingroup Images
    **/
   ORTHANC_PLUGIN_INLINE const void*  OrthancPluginGetImageBuffer(
     OrthancPluginContext*      context,
@@ -2908,7 +2911,7 @@ extern "C"
    * @param size Size of the memory buffer containing the compressed image.
    * @param format The file format of the compressed image.
    * @return The uncompressed image. It must be freed with OrthancPluginFreeImage().
-   * @ingroup Compression
+   * @ingroup Images
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginImage *OrthancPluginUncompressImage(
     OrthancPluginContext*      context,
@@ -2950,7 +2953,7 @@ extern "C"
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param image The image.
-   * @ingroup Compression
+   * @ingroup Images
    **/
   ORTHANC_PLUGIN_INLINE void  OrthancPluginFreeImage(
     OrthancPluginContext* context, 
@@ -2995,7 +2998,7 @@ extern "C"
    * @param buffer The memory buffer containing the uncompressed image.
    * @return 0 if success, or the error code if failure.
    * @see OrthancPluginCompressAndAnswerPngImage()
-   * @ingroup Compression
+   * @ingroup Images
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginCompressPngImage(
     OrthancPluginContext*         context,
@@ -3015,7 +3018,7 @@ extern "C"
     params.height = height;
     params.pitch = pitch;
     params.buffer = buffer;
-    params.quality = 0;  // Unused for PNG
+    params.quality = 0;  /* Unused for PNG */
 
     return context->InvokeService(context, _OrthancPluginService_CompressImage, &params);
   }
@@ -3040,7 +3043,7 @@ extern "C"
    * quality, best compression) and 100 (best quality, worst
    * compression).
    * @return 0 if success, or the error code if failure.
-   * @ingroup Compression
+   * @ingroup Images
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginCompressJpegImage(
     OrthancPluginContext*         context,
@@ -3292,7 +3295,7 @@ extern "C"
    * @param source The source image.
    * @param targetFormat The target pixel format.
    * @return The resulting image. It must be freed with OrthancPluginFreeImage().
-   * @ingroup Compression
+   * @ingroup Images
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginImage *OrthancPluginConvertPixelFormat(
     OrthancPluginContext*      context,
@@ -3315,6 +3318,170 @@ extern "C"
       return target;
     }
   }
+
+
+
+  /**
+   * @brief Return the number of available fonts.
+   *
+   * This function returns the number of fonts that are built in the
+   * Orthanc core. These fonts can be used to draw texts on images
+   * through OrthancPluginDrawText().
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @return The number of fonts.
+   * @ingroup Images
+   **/
+  ORTHANC_PLUGIN_INLINE uint32_t OrthancPluginGetFontsCount(
+    OrthancPluginContext*  context)
+  {
+    uint32_t count = 0;
+
+    _OrthancPluginReturnSingleValue params;
+    memset(&params, 0, sizeof(params));
+    params.resultUint32 = &count;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetFontsCount, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return 0;
+    }
+    else
+    {
+      return count;
+    }
+  }
+
+
+
+
+  typedef struct
+  {
+    uint32_t      fontIndex; /* in */
+    const char**  name; /* out */
+    uint32_t*     size; /* out */
+  } _OrthancPluginGetFontInfo;
+
+  /**
+   * @brief Return the name of a font.
+   *
+   * This function returns the name of a font that is built in the Orthanc core.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param fontIndex The index of the font. This value must be less than OrthancPluginGetFontsCount().
+   * @return The font name. This is a statically-allocated string, do not free it.
+   * @ingroup Images
+   **/
+  ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetFontName(
+    OrthancPluginContext*  context,
+    uint32_t               fontIndex)
+  {
+    const char* result = NULL;
+
+    _OrthancPluginGetFontInfo params;
+    memset(&params, 0, sizeof(params));
+    params.name = &result;
+    params.fontIndex = fontIndex;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetFontInfo, &params) != OrthancPluginErrorCode_Success)
+    {
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  /**
+   * @brief Return the size of a font.
+   *
+   * This function returns the size of a font that is built in the Orthanc core.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param fontIndex The index of the font. This value must be less than OrthancPluginGetFontsCount().
+   * @return The font size.
+   * @ingroup Images
+   **/
+  ORTHANC_PLUGIN_INLINE uint32_t OrthancPluginGetFontSize(
+    OrthancPluginContext*  context,
+    uint32_t               fontIndex)
+  {
+    uint32_t result;
+
+    _OrthancPluginGetFontInfo params;
+    memset(&params, 0, sizeof(params));
+    params.size = &result;
+    params.fontIndex = fontIndex;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetFontInfo, &params) != OrthancPluginErrorCode_Success)
+    {
+      return 0;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+
+  typedef struct
+  {
+    OrthancPluginImage*   image;
+    uint32_t              fontIndex;
+    const char*           utf8Text;
+    int32_t               x;
+    int32_t               y;
+    uint8_t               r;
+    uint8_t               g;
+    uint8_t               b;
+  } _OrthancPluginDrawText;
+
+
+  /**
+   * @brief Draw text on an image.
+   *
+   * This function draws some text on some image.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param image The image upon which to draw the text.
+   * @param fontIndex The index of the font. This value must be less than OrthancPluginGetFontsCount().
+   * @param utf8Text The text to be drawn, encoded as an UTF-8 zero-terminated string.
+   * @param x The X position of the text over the image.
+   * @param y The Y position of the text over the image.
+   * @param r The value of the red color channel of the text.
+   * @param g The value of the green color channel of the text.
+   * @param b The value of the blue color channel of the text.
+   * @return 0 if success, other value if error.
+   * @ingroup Images
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginDrawText(
+    OrthancPluginContext*  context,
+    OrthancPluginImage*    image,
+    uint32_t               fontIndex,
+    const char*            utf8Text,
+    int32_t                x,
+    int32_t                y,
+    uint8_t                r,
+    uint8_t                g,
+    uint8_t                b)
+  {
+    _OrthancPluginDrawText params;
+    memset(&params, 0, sizeof(params));
+    params.image = image;
+    params.fontIndex = fontIndex;
+    params.utf8Text = utf8Text;
+    params.x = x;
+    params.y = y;
+    params.r = r;
+    params.g = g;
+    params.b = b;
+
+    return context->InvokeService(context, _OrthancPluginService_DrawText, &params);
+  }
+
 
 
 #ifdef  __cplusplus
