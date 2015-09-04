@@ -1182,6 +1182,39 @@ namespace Orthanc
   }
 
 
+
+  void OrthancPlugins::GetFontInfo(const void* parameters)
+  {
+    const _OrthancPluginGetFontInfo& p = *reinterpret_cast<const _OrthancPluginGetFontInfo*>(parameters);
+
+    const Font& font = Configuration::GetFontRegistry().GetFont(p.fontIndex);
+
+    if (p.name != NULL)
+    {
+      *(p.name) = font.GetName().c_str();
+    }
+    else if (p.size != NULL)
+    {
+      *(p.size) = font.GetSize();
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
+  void OrthancPlugins::DrawText(const void* parameters)
+  {
+    const _OrthancPluginDrawText& p = *reinterpret_cast<const _OrthancPluginDrawText*>(parameters);
+
+    ImageAccessor& target = *reinterpret_cast<ImageAccessor*>(p.image);
+    const Font& font = Configuration::GetFontRegistry().GetFont(p.fontIndex);
+
+    font.Draw(target, p.utf8Text, p.x, p.y, p.r, p.g, p.b);
+  }
+        
+
   bool OrthancPlugins::InvokeService(_OrthancPluginService service,
                                      const void* parameters)
   {
@@ -1567,6 +1600,22 @@ namespace Orthanc
 
       case _OrthancPluginService_ConvertPixelFormat:
         ConvertPixelFormat(parameters);
+        return true;
+
+      case _OrthancPluginService_GetFontsCount:
+      {
+        const _OrthancPluginReturnSingleValue& p =
+          *reinterpret_cast<const _OrthancPluginReturnSingleValue*>(parameters);
+        *(p.resultUint32) = Configuration::GetFontRegistry().GetSize();
+        return true;
+      }
+
+      case _OrthancPluginService_GetFontInfo:
+        GetFontInfo(parameters);
+        return true;
+
+      case _OrthancPluginService_DrawText:
+        DrawText(parameters);
         return true;
 
       default:
