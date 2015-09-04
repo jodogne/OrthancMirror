@@ -45,7 +45,7 @@
 #include "../Core/Logging.h"
 #include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"
-#include "../Core/ImageFormats/PngWriter.h"
+#include "../Core/Images/PngWriter.h"
 #include "../Core/Uuid.h"
 #include "../Core/DicomFormat/DicomString.h"
 #include "../Core/DicomFormat/DicomNullValue.h"

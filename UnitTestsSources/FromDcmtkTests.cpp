@@ -37,9 +37,9 @@
 #include "../OrthancServer/OrthancInitialization.h"
 #include "../OrthancServer/DicomModification.h"
 #include "../Core/OrthancException.h"
-#include "../Core/ImageFormats/ImageBuffer.h"
-#include "../Core/ImageFormats/PngReader.h"
-#include "../Core/ImageFormats/PngWriter.h"
+#include "../Core/Images/ImageBuffer.h"
+#include "../Core/Images/PngReader.h"
+#include "../Core/Images/PngWriter.h"
 #include "../Core/Uuid.h"
 #include "../Resources/EncodingTests.h"
 

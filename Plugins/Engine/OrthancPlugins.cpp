@@ -42,12 +42,12 @@
 #include "../../OrthancServer/ServerToolbox.h"
 #include "../../Core/Compression/ZlibCompressor.h"
 #include "../../Core/Compression/GzipCompressor.h"
-#include "../../Core/ImageFormats/Image.h"
-#include "../../Core/ImageFormats/PngReader.h"
-#include "../../Core/ImageFormats/PngWriter.h"
-#include "../../Core/ImageFormats/JpegReader.h"
-#include "../../Core/ImageFormats/JpegWriter.h"
-#include "../../Core/ImageFormats/ImageProcessing.h"
+#include "../../Core/Images/Image.h"
+#include "../../Core/Images/PngReader.h"
+#include "../../Core/Images/PngWriter.h"
+#include "../../Core/Images/JpegReader.h"
+#include "../../Core/Images/JpegWriter.h"
+#include "../../Core/Images/ImageProcessing.h"
 
 #include <boost/regex.hpp> 
 

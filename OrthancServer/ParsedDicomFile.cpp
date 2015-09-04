@@ -87,13 +87,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Core/Logging.h"
 #include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"
-#include "../Core/ImageFormats/ImageBuffer.h"
-#include "../Core/ImageFormats/PngWriter.h"
+#include "../Core/Images/ImageBuffer.h"
+#include "../Core/Images/PngWriter.h"
 #include "../Core/Uuid.h"
 #include "../Core/DicomFormat/DicomString.h"
 #include "../Core/DicomFormat/DicomNullValue.h"
 #include "../Core/DicomFormat/DicomIntegerPixelAccessor.h"
-#include "../Core/ImageFormats/PngReader.h"
+#include "../Core/Images/PngReader.h"
 
 #include <list>
 #include <limits>
