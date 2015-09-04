@@ -34,7 +34,7 @@
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 
-#include "../../Core/ImageFormats/ImageBuffer.h"
+#include "../../Core/Images/ImageBuffer.h"
 
 namespace Orthanc
 {

@@ -121,16 +121,16 @@ set(ORTHANC_CORE_SOURCES
   Core/MultiThreading/ReaderWriterLock.cpp
   Core/MultiThreading/Semaphore.cpp
   Core/MultiThreading/SharedMessageQueue.cpp
-  Core/ImageFormats/Font.cpp
-  Core/ImageFormats/FontRegistry.cpp
-  Core/ImageFormats/ImageAccessor.cpp
-  Core/ImageFormats/ImageBuffer.cpp
-  Core/ImageFormats/ImageProcessing.cpp
-  Core/ImageFormats/JpegErrorManager.cpp
-  Core/ImageFormats/JpegReader.cpp
-  Core/ImageFormats/JpegWriter.cpp
-  Core/ImageFormats/PngReader.cpp
-  Core/ImageFormats/PngWriter.cpp
+  Core/Images/Font.cpp
+  Core/Images/FontRegistry.cpp
+  Core/Images/ImageAccessor.cpp
+  Core/Images/ImageBuffer.cpp
+  Core/Images/ImageProcessing.cpp
+  Core/Images/JpegErrorManager.cpp
+  Core/Images/JpegReader.cpp
+  Core/Images/JpegWriter.cpp
+  Core/Images/PngReader.cpp
+  Core/Images/PngWriter.cpp
   Core/SQLite/Connection.cpp
   Core/SQLite/FunctionContext.cpp
   Core/SQLite/Statement.cpp

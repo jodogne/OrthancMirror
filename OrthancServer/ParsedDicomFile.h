@@ -35,8 +35,8 @@
 #include "../Core/DicomFormat/DicomInstanceHasher.h"
 #include "../Core/RestApi/RestApiOutput.h"
 #include "ServerEnumerations.h"
-#include "../Core/ImageFormats/ImageAccessor.h"
-#include "../Core/ImageFormats/ImageBuffer.h"
+#include "../Core/Images/ImageAccessor.h"
+#include "../Core/Images/ImageBuffer.h"
 
 namespace Orthanc
 {

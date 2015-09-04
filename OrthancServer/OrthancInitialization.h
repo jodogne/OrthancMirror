@@ -42,7 +42,7 @@
 #include "OrthancPeerParameters.h"
 #include "IDatabaseWrapper.h"
 #include "../Core/FileStorage/IStorageArea.h"
-#include "../Core/ImageFormats/FontRegistry.h"
+#include "../Core/Images/FontRegistry.h"
 
 namespace Orthanc
 {

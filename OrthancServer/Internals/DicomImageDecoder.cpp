@@ -82,8 +82,8 @@
 
 #include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
-#include "../../Core/ImageFormats/ImageProcessing.h"
-#include "../../Core/ImageFormats/PngWriter.h"  // TODO REMOVE THIS
+#include "../../Core/Images/ImageProcessing.h"
+#include "../../Core/Images/PngWriter.h"  // TODO REMOVE THIS
 #include "../../Core/DicomFormat/DicomIntegerPixelAccessor.h"
 #include "../ToDcmtkBridge.h"
 #include "../FromDcmtkBridge.h"
