@@ -251,7 +251,7 @@ TEST(Font, Basic)
   memset(s.GetBuffer(), 0, s.GetPitch() * s.GetHeight());
 
   ASSERT_GE(1, Orthanc::Configuration::GetFontRegistry().GetSize());
-  Orthanc::Configuration::GetFontRegistry().GetFont(0).DrawText(s, "Hello world É\n\rComment ça va ?\nq", 50, 60, 255, 0, 0);
+  Orthanc::Configuration::GetFontRegistry().GetFont(0).Draw(s, "Hello world É\n\rComment ça va ?\nq", 50, 60, 255, 0, 0);
 
   Orthanc::PngWriter w;
   w.WriteToFile("UnitTestsResults/font.png", s);
