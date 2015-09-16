@@ -45,7 +45,7 @@ namespace Orthanc
   Font::~Font()
   {
     for (Characters::iterator it = characters_.begin();
-         it != characters_.end(); it++)
+         it != characters_.end(); ++it)
     {
       delete it->second;
     }

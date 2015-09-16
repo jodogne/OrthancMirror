@@ -40,15 +40,15 @@ namespace Orthanc
   class Image : public ImageAccessor
   {
   private:
-    ImageBuffer  buffer_;
+    ImageBuffer  image_;
 
   public:
     Image(PixelFormat format,
           unsigned int width,
           unsigned int height) :
-      buffer_(format, width, height)
+      image_(format, width, height)
     {
-      ImageAccessor accessor = buffer_.GetAccessor();
+      ImageAccessor accessor = image_.GetAccessor();
       AssignWritable(format, width, height, accessor.GetPitch(), accessor.GetBuffer());
     }
   };
