@@ -765,16 +765,6 @@ namespace Orthanc
     }
   }
 
-  static void UpgradeDatabase(SQLite::Connection& db,
-                              EmbeddedResources::FileResourceId script)
-  {
-    std::string upgrade;
-    EmbeddedResources::GetFileResource(upgrade, script);
-    db.BeginTransaction();
-    db.Execute(upgrade);
-    db.CommitTransaction();    
-  }
-
 
   DatabaseWrapper::DatabaseWrapper(const std::string& path) : listener_(NULL)
   {
@@ -807,55 +797,76 @@ namespace Orthanc
     }
 
     // Check the version of the database
-    std::string version;
-    if (!LookupGlobalProperty(version, GlobalProperty_DatabaseSchemaVersion))
+    std::string tmp;
+    if (!LookupGlobalProperty(tmp, GlobalProperty_DatabaseSchemaVersion))
     {
-      version = "Unknown";
+      tmp = "Unknown";
     }
 
     bool ok = false;
     try
     {
-      LOG(INFO) << "Version of the Orthanc database: " << version;
-      unsigned int v = boost::lexical_cast<unsigned int>(version);
-
-      // This version of Orthanc is only compatible with versions 3, 4 and 5 of the DB schema
-      ok = (v == 3 || v == 4 || v == 5);
-
-      if (v == 3)
-      {
-        LOG(WARNING) << "Upgrading database version from 3 to 4";
-        UpgradeDatabase(db_, EmbeddedResources::UPGRADE_DATABASE_3_TO_4);
-        v = 4;
-      }
-
-      if (v == 4)
-      {
-        LOG(WARNING) << "Upgrading database version from 4 to 5";
-        UpgradeDatabase(db_, EmbeddedResources::UPGRADE_DATABASE_4_TO_5);
-        v = 5;
-      }
-
-      // Sanity check
-      if (ORTHANC_DATABASE_VERSION != v)
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
+      LOG(INFO) << "Version of the Orthanc database: " << tmp;
+      version_ = boost::lexical_cast<unsigned int>(tmp);
+      ok = true;
     }
     catch (boost::bad_lexical_cast&)
     {
-      ok = false;
     }
 
     if (!ok)
     {
-      LOG(ERROR) << "Incompatible version of the Orthanc database: " << version;
+      LOG(ERROR) << "Incompatible version of the Orthanc database: " << tmp;
       throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
     }
 
     signalRemainingAncestor_ = new Internals::SignalRemainingAncestor;
     db_.Register(signalRemainingAncestor_);
   }
+
+
+  static void ExecuteUpgradeScript(SQLite::Connection& db,
+                                   EmbeddedResources::FileResourceId script)
+  {
+    std::string upgrade;
+    EmbeddedResources::GetFileResource(upgrade, script);
+    db.BeginTransaction();
+    db.Execute(upgrade);
+    db.CommitTransaction();    
+  }
+
+
+  void DatabaseWrapper::Upgrade(unsigned int targetVersion,
+                                IStorageArea& storageArea)
+  {
+    if (targetVersion != 5)
+    {
+      throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
+    }
+
+    // This version of Orthanc is only compatible with versions 3, 4 and 5 of the DB schema
+    if (version_ != 3 &&
+        version_ != 4 &&
+        version_ != 5)
+    {
+      throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
+    }
+
+    if (version_ == 3)
+    {
+      LOG(WARNING) << "Upgrading database version from 3 to 4";
+      ExecuteUpgradeScript(db_, EmbeddedResources::UPGRADE_DATABASE_3_TO_4);
+      version_ = 4;
+    }
+
+    if (version_ == 4)
+    {
+      LOG(WARNING) << "Upgrading database version from 4 to 5";
+      ExecuteUpgradeScript(db_, EmbeddedResources::UPGRADE_DATABASE_4_TO_5);
+      version_ = 5;
+    }
+  }
+
 
   void DatabaseWrapper::SetListener(IDatabaseListener& listener)
   {

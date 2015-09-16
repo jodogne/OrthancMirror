@@ -429,6 +429,9 @@ extern "C"
     _OrthancPluginService_RegisterDatabaseBackend = 5000,
     _OrthancPluginService_DatabaseAnswer = 5001,
     _OrthancPluginService_RegisterDatabaseBackendV2 = 5002,
+    _OrthancPluginService_StorageAreaCreate = 5003,
+    _OrthancPluginService_StorageAreaRead = 5004,
+    _OrthancPluginService_StorageAreaRemove = 5005,
 
     /* Primitives for handling images */
     _OrthancPluginService_GetImagePixelFormat = 6000,
@@ -630,10 +633,18 @@ extern "C"
 
 
   /**
-   * @brief Opaque structure that represents a uncompressed image in memory.
+   * @brief Opaque structure that represents an image that is uncompressed in memory.
    * @ingroup Images
    **/
   typedef struct _OrthancPluginImage_t OrthancPluginImage;
+
+
+
+  /**
+   * @brief Opaque structure that represents the storage area that is actually used by Orthanc.
+   * @ingroup Images
+   **/
+  typedef struct _OrthancPluginStorageArea_t OrthancPluginStorageArea;
 
 
 
@@ -2402,6 +2413,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @return The version.
    * @ingroup Callbacks
+   * @deprecated Please instead use IDatabaseBackend::UpgradeDatabase()
    **/
   ORTHANC_PLUGIN_INLINE uint32_t OrthancPluginGetExpectedDatabaseVersion(
     OrthancPluginContext*  context)
@@ -3480,6 +3492,127 @@ extern "C"
     params.b = b;
 
     return context->InvokeService(context, _OrthancPluginService_DrawText, &params);
+  }
+
+
+
+  typedef struct
+  {
+    OrthancPluginStorageArea*   storageArea;
+    const char*                 uuid;
+    const void*                 content;
+    uint64_t                    size;
+    OrthancPluginContentType    type;
+  } _OrthancPluginStorageAreaCreate;
+
+
+  /**
+   * @brief Create a file inside the storage area.
+   *
+   * This function creates a new file inside the storage area that is
+   * currently used by Orthanc.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param storageArea The storage area.
+   * @param uuid The identifier of the file to be created.
+   * @param content The content to store in the newly created file.
+   * @param size The size of the content.
+   * @param type The type of the file content.
+   * @return 0 if success, other value if error.
+   * @ingroup Callbacks
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginStorageAreaCreate(
+    OrthancPluginContext*       context,
+    OrthancPluginStorageArea*   storageArea,
+    const char*                 uuid,
+    const void*                 content,
+    uint64_t                    size,
+    OrthancPluginContentType    type)
+  {
+    _OrthancPluginStorageAreaCreate params;
+    params.storageArea = storageArea;
+    params.uuid = uuid;
+    params.content = content;
+    params.size = size;
+    params.type = type;
+
+    return context->InvokeService(context, _OrthancPluginService_StorageAreaCreate, &params);
+  }
+
+
+  typedef struct
+  {
+    OrthancPluginMemoryBuffer*  target;
+    OrthancPluginStorageArea*   storageArea;
+    const char*                 uuid;
+    OrthancPluginContentType    type;
+  } _OrthancPluginStorageAreaRead;
+
+
+  /**
+   * @brief Read a file from the storage area.
+   *
+   * This function reads the content of a given file from the storage
+   * area that is currently used by Orthanc.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer().
+   * @param storageArea The storage area.
+   * @param uuid The identifier of the file to be read.
+   * @param type The type of the file content.
+   * @return 0 if success, other value if error.
+   * @ingroup Callbacks
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginStorageAreaRead(
+    OrthancPluginContext*       context,
+    OrthancPluginMemoryBuffer*  target,
+    OrthancPluginStorageArea*   storageArea,
+    const char*                 uuid,
+    OrthancPluginContentType    type)
+  {
+    _OrthancPluginStorageAreaRead params;
+    params.target = target;
+    params.storageArea = storageArea;
+    params.uuid = uuid;
+    params.type = type;
+
+    return context->InvokeService(context, _OrthancPluginService_StorageAreaRead, &params);
+  }
+
+
+  typedef struct
+  {
+    OrthancPluginStorageArea*   storageArea;
+    const char*                 uuid;
+    OrthancPluginContentType    type;
+  } _OrthancPluginStorageAreaRemove;
+
+
+  /**
+   * @brief Remove a file from the storage area.
+   *
+   * This function removes a given file from the storage area that is
+   * currently used by Orthanc.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param storageArea The storage area.
+   * @param uuid The identifier of the file to be removed.
+   * @param type The type of the file content.
+   * @return 0 if success, other value if error.
+   * @ingroup Callbacks
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginStorageAreaRemove(
+    OrthancPluginContext*       context,
+    OrthancPluginStorageArea*   storageArea,
+    const char*                 uuid,
+    OrthancPluginContentType    type)
+  {
+    _OrthancPluginStorageAreaRemove params;
+    params.storageArea = storageArea;
+    params.uuid = uuid;
+    params.type = type;
+
+    return context->InvokeService(context, _OrthancPluginService_StorageAreaRemove, &params);
   }
 
 

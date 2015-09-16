@@ -643,6 +643,18 @@ extern "C"
       OrthancPluginResourceType resourceType,
       uint64_t since,
       uint64_t limit);
+
+    int32_t  (*getDatabaseVersion) (
+      /* outputs */
+      uint32_t* version,
+      /* inputs */
+      void* payload);
+
+    int32_t  (*upgradeDatabase) (
+      /* inputs */
+      void* payload,
+      uint32_t targetVersion,
+      OrthancPluginStorageArea* storageArea);
   } OrthancPluginDatabaseExtensions;
 
 /*<! @endcond */

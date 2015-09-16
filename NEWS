@@ -30,6 +30,7 @@ Plugins
 * New function "OrthancPluginRegisterRestCallbackNoLock()" for high-performance plugins
 * Plugins have access to explicit error codes 
 * Improvements to the sample "ServeFolders" plugin
+* Primitives to upgrade the database version in plugins
 
 Maintenance
 -----------
