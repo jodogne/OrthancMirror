@@ -2,6 +2,9 @@ Pending changes in the mainline
 ===============================
 
 
+Version 0.9.4 (2015/09/16)
+==========================
+
 * Preview of PDF files encapsulated in DICOM from Orthanc Explorer
 * Creation of DICOM files with encapsulated PDF through "/tools/create-dicom"
 * "limit" and "since" arguments while retrieving DICOM resources in the REST API
