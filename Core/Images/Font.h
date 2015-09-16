@@ -73,7 +73,9 @@ namespace Orthanc
                       const uint8_t color[4]) const;
 
   public:
-    Font()
+    Font() : 
+      size_(0), 
+      maxHeight_(0)
     {
     }
 
