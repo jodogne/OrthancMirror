@@ -430,6 +430,11 @@ namespace OrthancPlugins
     virtual void RollbackTransaction() = 0;
 
     virtual void CommitTransaction() = 0;
+
+    virtual uint32_t GetDatabaseVersion() = 0;
+
+    virtual void UpgradeDatabase(uint32_t  targetVersion,
+                                 OrthancPluginStorageArea* storageArea) = 0;
   };
 
 
@@ -1518,6 +1523,43 @@ namespace OrthancPlugins
       }
     }
 
+
+    static int32_t GetDatabaseVersion(uint32_t* version,
+                                      void* payload)
+    {
+      IDatabaseBackend* backend = reinterpret_cast<IDatabaseBackend*>(payload);
+      
+      try
+      {
+        *version = backend->GetDatabaseVersion();
+        return 0;
+      }
+      catch (std::runtime_error& e)
+      {
+        LogError(backend, e);
+        return -1;
+      }
+    }
+
+
+    static int32_t UpgradeDatabase(void* payload,
+                                   uint32_t  targetVersion,
+                                   OrthancPluginStorageArea* storageArea)
+    {
+      IDatabaseBackend* backend = reinterpret_cast<IDatabaseBackend*>(payload);
+      
+      try
+      {
+        backend->UpgradeDatabase(targetVersion, storageArea);
+        return 0;
+      }
+      catch (std::runtime_error& e)
+      {
+        LogError(backend, e);
+        return -1;
+      }
+    }
+
     
   public:
     /**
@@ -1584,6 +1626,8 @@ namespace OrthancPlugins
       params.close = Close;
 
       extensions.getAllPublicIdsWithLimit = GetAllPublicIdsWithLimit;
+      extensions.getDatabaseVersion = GetDatabaseVersion;
+      extensions.upgradeDatabase = UpgradeDatabase;
 
       OrthancPluginDatabaseContext* database = OrthancPluginRegisterDatabaseBackendV2(context, &params, &extensions, &backend);
       if (!context)

@@ -34,6 +34,7 @@
 
 #include "../Core/DicomFormat/DicomMap.h"
 #include "../Core/SQLite/ITransaction.h"
+#include "../Core/FileStorage/IStorageArea.h"
 #include "../Core/FileStorage/FileInfo.h"
 #include "IDatabaseListener.h"
 #include "ExportedResource.h"
@@ -181,5 +182,10 @@ namespace Orthanc
     virtual SQLite::ITransaction* StartTransaction() = 0;
 
     virtual void SetListener(IDatabaseListener& listener) = 0;
+
+    virtual unsigned int GetDatabaseVersion() = 0;
+
+    virtual void Upgrade(unsigned int targetVersion,
+                         IStorageArea& storageArea) = 0;
   };
 }

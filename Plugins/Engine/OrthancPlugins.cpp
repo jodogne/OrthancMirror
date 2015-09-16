@@ -165,6 +165,37 @@ namespace Orthanc
   }
 
 
+  static OrthancPluginContentType Convert(FileContentType type)
+  {
+    switch (type)
+    {
+      case FileContentType_Dicom:
+        return OrthancPluginContentType_Dicom;
+
+      case FileContentType_DicomAsJson:
+        return OrthancPluginContentType_DicomAsJson;
+
+      default:
+        return OrthancPluginContentType_Unknown;
+    }
+  }
+
+
+  static FileContentType Convert(OrthancPluginContentType type)
+  {
+    switch (type)
+    {
+      case OrthancPluginContentType_Dicom:
+        return FileContentType_Dicom;
+
+      case OrthancPluginContentType_DicomAsJson:
+        return FileContentType_DicomAsJson;
+
+      default:
+        return FileContentType_Unknown;
+    }
+  }
+
 
   struct OrthancPlugins::PImpl
   {
@@ -1618,6 +1649,35 @@ namespace Orthanc
         DrawText(parameters);
         return true;
 
+      case _OrthancPluginService_StorageAreaCreate:
+      {
+        const _OrthancPluginStorageAreaCreate& p =
+          *reinterpret_cast<const _OrthancPluginStorageAreaCreate*>(parameters);
+        IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
+        storage.Create(p.uuid, p.content, p.size, Convert(p.type));
+        return true;
+      }
+
+      case _OrthancPluginService_StorageAreaRead:
+      {
+        const _OrthancPluginStorageAreaRead& p =
+          *reinterpret_cast<const _OrthancPluginStorageAreaRead*>(parameters);
+        IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
+        std::string content;
+        storage.Read(content, p.uuid, Convert(p.type));
+        CopyToMemoryBuffer(*p.target, content);
+        return true;
+      }
+
+      case _OrthancPluginService_StorageAreaRemove:
+      {
+        const _OrthancPluginStorageAreaRemove& p =
+          *reinterpret_cast<const _OrthancPluginStorageAreaRemove*>(parameters);
+        IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
+        storage.Remove(p.uuid, Convert(p.type));
+        return true;
+      }
+
       default:
       {
         // This service is unknown to the Orthanc plugin engine
@@ -1651,21 +1711,6 @@ namespace Orthanc
         if (buffer != NULL)
         {
           params_.free(buffer);
-        }
-      }
-
-      OrthancPluginContentType Convert(FileContentType type) const
-      {
-        switch (type)
-        {
-          case FileContentType_Dicom:
-            return OrthancPluginContentType_Dicom;
-
-          case FileContentType_DicomAsJson:
-            return OrthancPluginContentType_DicomAsJson;
-
-          default:
-            return OrthancPluginContentType_Unknown;
         }
       }
 

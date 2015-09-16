@@ -982,6 +982,43 @@ namespace Orthanc
   }
 
 
+  unsigned int OrthancPluginDatabase::GetDatabaseVersion()
+  {
+    if (extensions_.getDatabaseVersion != NULL)
+    {
+      uint32_t version;
+      if (extensions_.getDatabaseVersion(&version, payload_) != 0)
+      {
+        throw OrthancException(ErrorCode_Plugin);
+      }
+
+      return version;
+    }
+    else
+    {
+      // Before adding the "GetDatabaseVersion()" extension in plugins
+      // (OrthancPostgreSQL <= 1.2), the only supported DB schema was
+      // version 5.
+      return 5;
+    }
+  }
+
+
+  void OrthancPluginDatabase::Upgrade(unsigned int targetVersion,
+                                      IStorageArea& storageArea)
+  {
+    if (extensions_.upgradeDatabase != NULL)
+    {
+      if (extensions_.upgradeDatabase(
+            payload_, targetVersion, 
+            reinterpret_cast<OrthancPluginStorageArea*>(&storageArea)) != 0)
+      {
+        throw OrthancException(ErrorCode_Plugin);
+      }
+    }
+  }
+
+
   void OrthancPluginDatabase::AnswerReceived(const _OrthancPluginDatabaseAnswer& answer)
   {
     if (answer.type == _OrthancPluginDatabaseAnswerType_None)

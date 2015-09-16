@@ -222,6 +222,11 @@ namespace Orthanc
       listener_ = &listener;
     }
 
+    virtual unsigned int GetDatabaseVersion();
+
+    virtual void Upgrade(unsigned int targetVersion,
+                         IStorageArea& storageArea);
+
     void AnswerReceived(const _OrthancPluginDatabaseAnswer& answer);
   };
 }

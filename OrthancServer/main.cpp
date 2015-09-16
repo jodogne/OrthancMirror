@@ -315,21 +315,23 @@ static void PrintHelp(char* path)
     << std::endl
     << "If no configuration file is given on the command line, a set of default " << std::endl
     << "parameters is used. Please refer to the Orthanc homepage for the full " << std::endl
-    << "instructions about how to use Orthanc " << std::endl
-    << "<https://code.google.com/p/orthanc/wiki/OrthancCookbook>." << std::endl
+    << "instructions about how to use Orthanc <http://www.orthanc-server.com/>." << std::endl
     << std::endl
     << "Command-line options:" << std::endl
     << "  --help\t\tdisplay this help and exit" << std::endl
     << "  --logdir=[dir]\tdirectory where to store the log files" << std::endl
     << "\t\t\t(if not used, the logs are dumped to stderr)" << std::endl
     << "  --config=[file]\tcreate a sample configuration file and exit" << std::endl
-    << "  --trace\t\thighest verbosity in logs (for debug)" << std::endl
     << "  --verbose\t\tbe verbose in logs" << std::endl
+    << "  --trace\t\thighest verbosity in logs (for debug)" << std::endl
+    << "  --upgrade\t\tallow Orthanc to upgrade the version of the" << std::endl
+    << "\t\t\tdatabase (beware that the database will become" << std::endl
+    << "\t\t\tincompatible with former versions of Orthanc)" << std::endl
     << "  --version\t\toutput version information and exit" << std::endl
     << std::endl
     << "Exit status:" << std::endl
-    << " 0  if OK," << std::endl
-    << " -1  if error (have a look at the logs)." << std::endl
+    << "   0 if success," << std::endl
+    << "  -1 if error (have a look at the logs)." << std::endl
     << std::endl;
 }
 
@@ -519,10 +521,51 @@ static bool ConfigureHttpHandler(ServerContext& context,
 }
 
 
+static bool UpgradeDatabase(IDatabaseWrapper& database,
+                            IStorageArea& storageArea,
+                            bool allowDatabaseUpgrade)
+{
+  // Upgrade the database, if needed
+  unsigned int currentVersion = database.GetDatabaseVersion();
+  if (currentVersion == ORTHANC_DATABASE_VERSION)
+  {
+    return true;
+  }
+
+  if (!allowDatabaseUpgrade)
+  {
+    LOG(ERROR) << "The database must be upgraded from version "
+               << currentVersion << " to " << ORTHANC_DATABASE_VERSION 
+               << ": Please run Orthanc with the \"--upgrade\" command-line option";
+    return false;
+  }
+
+  LOG(WARNING) << "Upgrading the database from version "
+               << currentVersion << " to " << ORTHANC_DATABASE_VERSION;
+  database.Upgrade(ORTHANC_DATABASE_VERSION, storageArea);
+    
+  // Sanity check
+  currentVersion = database.GetDatabaseVersion();
+  if (ORTHANC_DATABASE_VERSION != currentVersion)
+  {
+    LOG(ERROR) << "The database was not properly updated, it is still at version " << currentVersion;
+    throw OrthancException(ErrorCode_InternalError);
+  }
+
+  return true;
+}
+
+
 static bool ConfigureServerContext(IDatabaseWrapper& database,
                                    IStorageArea& storageArea,
-                                   OrthancPlugins *plugins)
+                                   OrthancPlugins *plugins,
+                                   bool allowDatabaseUpgrade)
 {
+  if (!UpgradeDatabase(database, storageArea, allowDatabaseUpgrade))
+  {
+    return false;
+  }
+
   ServerContext context(database, storageArea);
 
   HttpClient::SetDefaultTimeout(Configuration::GetGlobalIntegerParameter("HttpTimeout", 0));
@@ -569,7 +612,8 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 
 
 static bool ConfigurePlugins(int argc, 
-                             char* argv[])
+                             char* argv[],
+                             bool allowDatabaseUpgrade)
 {
   std::auto_ptr<IDatabaseWrapper>  databasePtr;
   std::auto_ptr<IStorageArea>  storage;
@@ -604,14 +648,14 @@ static bool ConfigurePlugins(int argc,
   assert(database != NULL);
   assert(storage.get() != NULL);
 
-  return ConfigureServerContext(*database, *storage, &plugins);
+  return ConfigureServerContext(*database, *storage, &plugins, allowDatabaseUpgrade);
 
 #elif ORTHANC_PLUGINS_ENABLED == 0
   // The plugins are disabled
   databasePtr.reset(Configuration::CreateDatabaseWrapper());
   storage.reset(Configuration::CreateStorageArea());
 
-  return ConfigureServerContext(*databasePtr, *storage, NULL);
+  return ConfigureServerContext(*databasePtr, *storage, NULL, allowDatabaseUpgrade);
 
 #else
 #  error The macro ORTHANC_PLUGINS_ENABLED must be set to 0 or 1
@@ -619,15 +663,19 @@ static bool ConfigurePlugins(int argc,
 }
 
 
-static bool StartOrthanc(int argc, char* argv[])
+static bool StartOrthanc(int argc, 
+                         char* argv[],
+                         bool allowDatabaseUpgrade)
 {
-  return ConfigurePlugins(argc, argv);
+  return ConfigurePlugins(argc, argv, allowDatabaseUpgrade);
 }
 
 
 int main(int argc, char* argv[]) 
 {
   Logging::Initialize();
+
+  bool allowDatabaseUpgrade = false;
 
   for (int i = 1; i < argc; i++)
   {
@@ -668,6 +716,11 @@ int main(int argc, char* argv[])
       }
     }
 
+    if (std::string(argv[i]) == "--upgrade")
+    {
+      allowDatabaseUpgrade = true;
+    }
+
     if (boost::starts_with(argv[i], "--config="))
     {
       std::string configurationSample;
@@ -706,7 +759,7 @@ int main(int argc, char* argv[])
     {
       OrthancInitialize(configurationFile);
 
-      bool restart = StartOrthanc(argc, argv);
+      bool restart = StartOrthanc(argc, argv, allowDatabaseUpgrade);
       if (restart)
       {
         OrthancFinalize();
