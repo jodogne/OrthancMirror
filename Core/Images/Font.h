@@ -37,10 +37,11 @@
 #include <stdint.h>
 #include <vector>
 #include <map>
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class Font
+  class Font : public boost::noncopyable
   {
   private:
     struct Character
@@ -72,6 +73,10 @@ namespace Orthanc
                       const uint8_t color[4]) const;
 
   public:
+    Font()
+    {
+    }
+
     ~Font();
 
     void LoadFromMemory(const std::string& font);

@@ -578,7 +578,7 @@ namespace Orthanc
         StoreCreatedInstance(someInstance, call, *dicom);
       }
     }
-    catch (OrthancException& e)
+    catch (OrthancException&)
     {
       // Error: Remove the newly-created series
       
@@ -589,7 +589,7 @@ namespace Orthanc
         context.GetIndex().DeleteResource(dummy, series, ResourceType_Series);
       }
 
-      throw e;
+      throw;
     }
 
     std::string series;
@@ -715,7 +715,7 @@ namespace Orthanc
       }
 
       for (ModuleTags::const_iterator it = moduleTags.begin();
-           it != moduleTags.end(); it++)
+           it != moduleTags.end(); ++it)
       {
         std::string t = it->Format();
         if (siblingTags.isMember(t))
@@ -786,7 +786,6 @@ namespace Orthanc
       else
       {
         throw OrthancException(ErrorCode_CreateDicomUseDataUriScheme);
-        return;
       }
     }
 
