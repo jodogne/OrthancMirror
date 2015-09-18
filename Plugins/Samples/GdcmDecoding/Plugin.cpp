@@ -25,7 +25,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include "OrthancContext.h"
-#include "../../../Core/ImageFormats/ImageProcessing.h"
+#include "../../../Core/Images/ImageProcessing.h"
 
 #include <gdcmReader.h>
 #include <gdcmImageReader.h>

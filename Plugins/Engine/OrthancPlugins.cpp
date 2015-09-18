@@ -370,8 +370,14 @@ namespace Orthanc
            callback = pimpl_->onStoredCallbacks_.begin(); 
          callback != pimpl_->onStoredCallbacks_.end(); ++callback)
     {
-      (*callback) (reinterpret_cast<OrthancPluginDicomInstance*>(&instance),
-                   instanceId.c_str());
+      OrthancPluginErrorCode error = (*callback) 
+        (reinterpret_cast<OrthancPluginDicomInstance*>(&instance),
+         instanceId.c_str());
+
+      if (error != OrthancPluginErrorCode_Success)
+      {
+        throw OrthancException(Plugins::Convert(error));
+      }
     }
   }
 
@@ -379,23 +385,21 @@ namespace Orthanc
 
   void OrthancPlugins::SignalChange(const ServerIndexChange& change)
   {
-    try
-    {
-      boost::recursive_mutex::scoped_lock lock(pimpl_->changeCallbackMutex_);
+    boost::recursive_mutex::scoped_lock lock(pimpl_->changeCallbackMutex_);
 
-      for (std::list<OrthancPluginOnChangeCallback>::const_iterator 
-             callback = pimpl_->onChangeCallbacks_.begin(); 
-           callback != pimpl_->onChangeCallbacks_.end(); ++callback)
-      {
-        (*callback) (Plugins::Convert(change.GetChangeType()),
-                     Plugins::Convert(change.GetResourceType()),
-                     change.GetPublicId().c_str());
-      }
-    }
-    catch (OrthancException&)
+    for (std::list<OrthancPluginOnChangeCallback>::const_iterator 
+           callback = pimpl_->onChangeCallbacks_.begin(); 
+         callback != pimpl_->onChangeCallbacks_.end(); ++callback)
     {
-      // This change type or resource type is not supported by the plugin SDK
-      return;
+      OrthancPluginErrorCode error = (*callback)
+        (Plugins::Convert(change.GetChangeType()),
+         Plugins::Convert(change.GetResourceType()),
+         change.GetPublicId().c_str());
+
+      if (error != OrthancPluginErrorCode_Success)
+      {
+        throw OrthancException(Plugins::Convert(error));
+      }
     }
   }
 
@@ -1577,16 +1581,21 @@ namespace Orthanc
       {
       }
 
+
       virtual void Create(const std::string& uuid,
                           const void* content, 
                           size_t size,
                           FileContentType type)
       {
-        if (params_.create(uuid.c_str(), content, size, Plugins::Convert(type)) != 0)
+        OrthancPluginErrorCode error = params_.create
+          (uuid.c_str(), content, size, Plugins::Convert(type));
+
+        if (error != OrthancPluginErrorCode_Success)
         {
-          throw OrthancException(ErrorCode_Plugin);
+          throw OrthancException(Plugins::Convert(error));
         }
       }
+
 
       virtual void Read(std::string& content,
                         const std::string& uuid,
@@ -1595,16 +1604,19 @@ namespace Orthanc
         void* buffer = NULL;
         int64_t size = 0;
 
-        if (params_.read(&buffer, &size, uuid.c_str(), Plugins::Convert(type)) != 0)
+        OrthancPluginErrorCode error = params_.read
+          (&buffer, &size, uuid.c_str(), Plugins::Convert(type));
+
+        if (error != OrthancPluginErrorCode_Success)
         {
-          throw OrthancException(ErrorCode_Plugin);
-        }        
+          throw OrthancException(Plugins::Convert(error));
+        }
 
         try
         {
           content.resize(static_cast<size_t>(size));
         }
-        catch (OrthancException&)
+        catch (...)
         {
           Free(buffer);
           throw;
@@ -1618,13 +1630,17 @@ namespace Orthanc
         Free(buffer);
       }
 
+
       virtual void Remove(const std::string& uuid,
                           FileContentType type) 
       {
-        if (params_.remove(uuid.c_str(), Plugins::Convert(type)) != 0)
+        OrthancPluginErrorCode error = params_.remove
+          (uuid.c_str(), Plugins::Convert(type));
+
+        if (error != OrthancPluginErrorCode_Success)
         {
-          throw OrthancException(ErrorCode_Plugin);
-        }        
+          throw OrthancException(Plugins::Convert(error));
+        }
       }
     };
   }

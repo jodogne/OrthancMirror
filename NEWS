@@ -3,6 +3,11 @@ Pending changes in the mainline
 
 * Add ".dcm" suffix to files in ZIP archives (cf. URI ".../archive")
 
+Maintenance
+-----------
+
+* Plugin callbacks must now return explicit "OrthancPluginErrorCode" instead of integers
+
 
 Version 0.9.4 (2015/09/16)
 ==========================

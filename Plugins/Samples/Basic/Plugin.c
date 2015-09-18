@@ -210,9 +210,9 @@ ORTHANC_PLUGINS_API int32_t Callback5(OrthancPluginRestOutput* output,
 }
 
 
-ORTHANC_PLUGINS_API int32_t CallbackCreateDicom(OrthancPluginRestOutput* output,
-                                                const char* url,
-                                                const OrthancPluginHttpRequest* request)
+ORTHANC_PLUGINS_API OrthancPluginErrorCode CallbackCreateDicom(OrthancPluginRestOutput* output,
+                                                               const char* url,
+                                                               const OrthancPluginHttpRequest* request)
 {
   const char* pathLocator = "\"Path\" : \"";
   char info[1024];
@@ -250,12 +250,12 @@ ORTHANC_PLUGINS_API int32_t CallbackCreateDicom(OrthancPluginRestOutput* output,
     OrthancPluginAnswerBuffer(context, output, "OK\n", 3, "text/plain");
   }
 
-  return 0;
+  return OrthancPluginErrorCode_Success;
 }
 
 
-ORTHANC_PLUGINS_API int32_t OnStoredCallback(OrthancPluginDicomInstance* instance,
-                                             const char* instanceId)
+ORTHANC_PLUGINS_API OrthancPluginErrorCode OnStoredCallback(OrthancPluginDicomInstance* instance,
+                                                            const char* instanceId)
 {
   char buffer[256];
   FILE* fp;
@@ -291,13 +291,13 @@ ORTHANC_PLUGINS_API int32_t OnStoredCallback(OrthancPluginDicomInstance* instanc
     OrthancPluginLogError(context, "Instance has no reception date, should never happen!");
   }
 
-  return 0;
+  return OrthancPluginErrorCode_Success;
 }
 
 
-ORTHANC_PLUGINS_API int32_t OnChangeCallback(OrthancPluginChangeType changeType,
-                                             OrthancPluginResourceType resourceType,
-                                             const char* resourceId)
+ORTHANC_PLUGINS_API OrthancPluginErrorCode OnChangeCallback(OrthancPluginChangeType changeType,
+                                                            OrthancPluginResourceType resourceType,
+                                                            const char* resourceId)
 {
   char info[1024];
   OrthancPluginMemoryBuffer tmp;
@@ -317,7 +317,7 @@ ORTHANC_PLUGINS_API int32_t OnChangeCallback(OrthancPluginChangeType changeType,
     }
   }
 
-  return 0;
+  return OrthancPluginErrorCode_Success;
 }
 
 
