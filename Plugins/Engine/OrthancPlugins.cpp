@@ -64,9 +64,9 @@ namespace Orthanc
       OrthancPluginRestCallback callback_;
       bool                      lock_;
 
-      int32_t InvokeInternal(HttpOutput& output,
-                             const std::string& flatUri,
-                             const OrthancPluginHttpRequest& request)
+      OrthancPluginErrorCode InvokeInternal(HttpOutput& output,
+                                            const std::string& flatUri,
+                                            const OrthancPluginHttpRequest& request)
       {
         return callback_(reinterpret_cast<OrthancPluginRestOutput*>(&output), 
                          flatUri.c_str(), 
@@ -88,10 +88,10 @@ namespace Orthanc
         return regex_;
       }
 
-      int32_t Invoke(boost::recursive_mutex& restCallbackMutex,
-                     HttpOutput& output,
-                     const std::string& flatUri,
-                     const OrthancPluginHttpRequest& request)
+      OrthancPluginErrorCode Invoke(boost::recursive_mutex& restCallbackMutex,
+                                    HttpOutput& output,
+                                    const std::string& flatUri,
+                                    const OrthancPluginHttpRequest& request)
       {
         if (lock_)
         {
@@ -335,27 +335,21 @@ namespace Orthanc
     }
 
     assert(callback != NULL);
-    int32_t error = callback->Invoke(pimpl_->restCallbackMutex_, output, flatUri, request);
+    OrthancPluginErrorCode error = callback->Invoke(pimpl_->restCallbackMutex_, output, flatUri, request);
 
-    if (error == 0 && 
+    if (error == OrthancPluginErrorCode_Success && 
         output.IsWritingMultipart())
     {
       output.CloseMultipart();
     }
 
-    if (error < 0)
+    if (error == OrthancPluginErrorCode_Success)
     {
-      LOG(ERROR) << "Plugin callback failed with error code " << error;
-      return false;
+      return true;
     }
     else
     {
-      if (error > 0)
-      {
-        LOG(WARNING) << "Plugin callback finished with warning code " << error;
-      }
-
-      return true;
+      throw OrthancException(Plugins::Convert(error));
     }
   }
 

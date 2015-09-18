@@ -85,9 +85,9 @@ static bool GetOrthancPixelFormat(Orthanc::PixelFormat& format,
 }
 
 
-ORTHANC_PLUGINS_API int32_t DecodeImage(OrthancPluginRestOutput* output,
-                                        const char* url,
-                                        const OrthancPluginHttpRequest* request)
+ORTHANC_PLUGINS_API OrthancPluginErrorCode DecodeImage(OrthancPluginRestOutput* output,
+                                                       const char* url,
+                                                       const OrthancPluginHttpRequest* request)
 {
   std::string instance(request->groups[0]);
   std::string outputFormat(request->groups[1]);
@@ -107,7 +107,7 @@ ORTHANC_PLUGINS_API int32_t DecodeImage(OrthancPluginRestOutput* output,
   {
     OrthancContext::GetInstance().LogError("GDCM cannot extract an image from this DICOM instance");
     AnswerUnsupportedImage(output);
-    return 0;
+    return OrthancPluginErrorCode_Success;
   }
 
   gdcm::Image& image = imageReader.GetImage();
@@ -138,7 +138,7 @@ ORTHANC_PLUGINS_API int32_t DecodeImage(OrthancPluginRestOutput* output,
   {
     OrthancContext::GetInstance().LogError("This sample plugin does not support this image format");
     AnswerUnsupportedImage(output);
-    return 0;
+    return OrthancPluginErrorCode_Success;
   }
 
   Orthanc::ImageAccessor decodedImage;
@@ -190,7 +190,7 @@ ORTHANC_PLUGINS_API int32_t DecodeImage(OrthancPluginRestOutput* output,
     {
       // Do not convert color images to grayscale values (this is Orthanc convention)
       AnswerUnsupportedImage(output);
-      return 0;
+      return OrthancPluginErrorCode_Success;
     }
 
     if (outputFormat == "image-uint8")
@@ -209,7 +209,7 @@ ORTHANC_PLUGINS_API int32_t DecodeImage(OrthancPluginRestOutput* output,
     {
       OrthancContext::GetInstance().LogError("Unknown output format: " + outputFormat);
       AnswerUnsupportedImage(output);
-      return 0;
+      return OrthancPluginErrorCode_Success;
     }
   }
 
@@ -219,7 +219,7 @@ ORTHANC_PLUGINS_API int32_t DecodeImage(OrthancPluginRestOutput* output,
   // Compress the converted image as a PNG file
   OrthancContext::GetInstance().CompressAndAnswerPngImage(output, convertedAccessor);
 
-  return 0;  // Success
+  return OrthancPluginErrorCode_Success;  // Success
 }
 
 
