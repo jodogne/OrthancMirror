@@ -30,6 +30,7 @@
  **/
 
 
+#include "../../Core/PrecompiledHeaders.h"
 #include "SharedLibrary.h"
 
 #include "../../Core/Logging.h"

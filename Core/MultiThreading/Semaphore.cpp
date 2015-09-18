@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "Semaphore.h"
 
 #include "../OrthancException.h"

@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeadersServer.h"
 #include "ModifyInstanceCommand.h"
 
 #include "../../Core/Logging.h"

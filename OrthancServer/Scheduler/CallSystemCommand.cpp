@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeadersServer.h"
 #include "CallSystemCommand.h"
 
 #include "../../Core/Logging.h"

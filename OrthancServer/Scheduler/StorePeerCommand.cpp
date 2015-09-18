@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeadersServer.h"
 #include "StorePeerCommand.h"
 
 #include "../../Core/Logging.h"

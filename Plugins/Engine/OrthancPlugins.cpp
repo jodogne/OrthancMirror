@@ -30,6 +30,7 @@
  **/
 
 
+#include "../../Core/PrecompiledHeaders.h"
 #include "OrthancPlugins.h"
 
 #include "../../Core/ChunkedBuffer.h"

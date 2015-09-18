@@ -30,6 +30,7 @@
  **/
 
 
+#include "../../Core/PrecompiledHeaders.h"
 #include "PluginsManager.h"
 
 #include "../../Core/Toolbox.h"
