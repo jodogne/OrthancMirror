@@ -199,7 +199,7 @@ namespace Orthanc
       case ResourceType_Series:
       {
         // Create a filename prefix, depending on the modality
-        char format[16] = "%08d";
+        char format[24] = "%08d.dcm";
 
         if (resource["MainDicomTags"].isMember("Modality"))
         {
@@ -207,15 +207,15 @@ namespace Orthanc
 
           if (modality.size() == 1)
           {
-            snprintf(format, sizeof(format) - 1, "%c%%07d", toupper(modality[0]));
+            snprintf(format, sizeof(format) - 1, "%c%%07d.dcm", toupper(modality[0]));
           }
           else if (modality.size() >= 2)
           {
-            snprintf(format, sizeof(format) - 1, "%c%c%%06d", toupper(modality[0]), toupper(modality[1]));
+            snprintf(format, sizeof(format) - 1, "%c%c%%06d.dcm", toupper(modality[0]), toupper(modality[1]));
           }
         }
 
-        char filename[16];
+        char filename[24];
 
         for (Json::Value::ArrayIndex i = 0; i < resource["Instances"].size(); i++)
         {
