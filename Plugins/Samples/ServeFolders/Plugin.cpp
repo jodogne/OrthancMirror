@@ -156,16 +156,16 @@ static bool LookupFolder(std::string& folder,
 }
 
 
-static int32_t FolderCallback(OrthancPluginRestOutput* output,
-                              const char* url,
-                              const OrthancPluginHttpRequest* request)
+static OrthancPluginErrorCode FolderCallback(OrthancPluginRestOutput* output,
+                                             const char* url,
+                                             const OrthancPluginHttpRequest* request)
 {
   namespace fs = boost::filesystem;  
 
   if (request->method != OrthancPluginHttpMethod_Get)
   {
     OrthancPluginSendMethodNotAllowed(context_, output, "GET");
-    return 0;
+    return OrthancPluginErrorCode_Success;
   }
 
   std::string folder;
@@ -231,18 +231,18 @@ static int32_t FolderCallback(OrthancPluginRestOutput* output,
     }
   }
 
-  return 0;
+  return OrthancPluginErrorCode_Success;
 }
 
 
-static int32_t ListServedFolders(OrthancPluginRestOutput* output,
-                                 const char* url,
-                                 const OrthancPluginHttpRequest* request)
+static OrthancPluginErrorCode ListServedFolders(OrthancPluginRestOutput* output,
+                                                const char* url,
+                                                const OrthancPluginHttpRequest* request)
 {
   if (request->method != OrthancPluginHttpMethod_Get)
   {
     OrthancPluginSendMethodNotAllowed(context_, output, "GET");
-    return 0;
+    return OrthancPluginErrorCode_Success;
   }
 
   std::string s = "<html><body><h1>Additional folders served by Orthanc</h1>\n";
@@ -268,7 +268,7 @@ static int32_t ListServedFolders(OrthancPluginRestOutput* output,
 
   OrthancPluginAnswerBuffer(context_, output, s.c_str(), s.size(), "text/html");
 
-  return 0;
+  return OrthancPluginErrorCode_Success;
 }
 
 

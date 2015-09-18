@@ -652,7 +652,7 @@ extern "C"
    * @brief Signature of a callback function that answers to a REST request.
    * @ingroup Callbacks
    **/
-  typedef int32_t (*OrthancPluginRestCallback) (
+  typedef OrthancPluginErrorCode (*OrthancPluginRestCallback) (
     OrthancPluginRestOutput* output,
     const char* url,
     const OrthancPluginHttpRequest* request);

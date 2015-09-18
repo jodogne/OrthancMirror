@@ -131,14 +131,14 @@ static bool ReadFile(std::string& content,
 
 
 #if ORTHANC_PLUGIN_STANDALONE == 1
-static int32_t ServeStaticResource(OrthancPluginRestOutput* output,
-                                   const char* url,
-                                   const OrthancPluginHttpRequest* request)
+static OrthancPluginErrorCode ServeStaticResource(OrthancPluginRestOutput* output,
+                                                  const char* url,
+                                                  const OrthancPluginHttpRequest* request)
 {
   if (request->method != OrthancPluginHttpMethod_Get)
   {
     OrthancPluginSendMethodNotAllowed(context, output, "GET");
-    return 0;
+    return OrthancPluginErrorCode_Success;
   }
 
   std::string path = "/" + std::string(request->groups[0]);
@@ -152,29 +152,28 @@ static int32_t ServeStaticResource(OrthancPluginRestOutput* output,
 
     const char* resource = s.size() ? s.c_str() : NULL;
     OrthancPluginAnswerBuffer(context, output, resource, s.size(), mime);
-
-    return 0;
   }
   catch (std::runtime_error&)
   {
     std::string s = "Unknown static resource in plugin: " + std::string(request->groups[0]);
     OrthancPluginLogError(context, s.c_str());
     OrthancPluginSendHttpStatusCode(context, output, 404);
-    return 0;
   }
+
+  return OrthancPluginErrorCode_Success;
 }
 #endif
 
 
 #if ORTHANC_PLUGIN_STANDALONE == 0
-static int32_t ServeFolder(OrthancPluginRestOutput* output,
-                           const char* url,
-                           const OrthancPluginHttpRequest* request)
+static OrthancPluginErrorCode ServeFolder(OrthancPluginRestOutput* output,
+                                          const char* url,
+                                          const OrthancPluginHttpRequest* request)
 {
   if (request->method != OrthancPluginHttpMethod_Get)
   {
     OrthancPluginSendMethodNotAllowed(context, output, "GET");
-    return 0;
+    return OrthancPluginErrorCode_Success;
   }
 
   std::string path = ORTHANC_PLUGIN_RESOURCES_ROOT "/" + std::string(request->groups[0]);
@@ -185,23 +184,22 @@ static int32_t ServeFolder(OrthancPluginRestOutput* output,
   {
     const char* resource = s.size() ? s.c_str() : NULL;
     OrthancPluginAnswerBuffer(context, output, resource, s.size(), mime);
-
-    return 0;
   }
   else
   {
     std::string s = "Unknown static resource in plugin: " + std::string(request->groups[0]);
     OrthancPluginLogError(context, s.c_str());
     OrthancPluginSendHttpStatusCode(context, output, 404);
-    return 0;
   }
+
+  return OrthancPluginErrorCode_Success;
 }
 #endif
 
 
-static int32_t RedirectRoot(OrthancPluginRestOutput* output,
-                            const char* url,
-                            const OrthancPluginHttpRequest* request)
+static OrthancPluginErrorCode RedirectRoot(OrthancPluginRestOutput* output,
+                                           const char* url,
+                                           const OrthancPluginHttpRequest* request)
 {
   if (request->method != OrthancPluginHttpMethod_Get)
   {
@@ -212,7 +210,7 @@ static int32_t RedirectRoot(OrthancPluginRestOutput* output,
     OrthancPluginRedirect(context, output, ORTHANC_PLUGIN_WEB_ROOT "index.html");
   }
 
-  return 0;
+  return OrthancPluginErrorCode_Success;
 }
 
 
