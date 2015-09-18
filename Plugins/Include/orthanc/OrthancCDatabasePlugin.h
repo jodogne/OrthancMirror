@@ -320,27 +320,27 @@ extern "C"
 
   typedef struct
   {
-    int32_t  (*addAttachment) (
+    OrthancPluginErrorCode  (*addAttachment) (
       /* inputs */
       void* payload,
       int64_t id,
       const OrthancPluginAttachment* attachment);
                              
-    int32_t  (*attachChild) (
+    OrthancPluginErrorCode  (*attachChild) (
       /* inputs */
       void* payload,
       int64_t parent,
       int64_t child);
                              
-    int32_t  (*clearChanges) (
+    OrthancPluginErrorCode  (*clearChanges) (
       /* inputs */
       void* payload);
                              
-    int32_t  (*clearExportedResources) (
+    OrthancPluginErrorCode  (*clearExportedResources) (
       /* inputs */
       void* payload);
 
-    int32_t  (*createResource) (
+    OrthancPluginErrorCode  (*createResource) (
       /* outputs */
       int64_t* id, 
       /* inputs */
@@ -348,25 +348,25 @@ extern "C"
       const char* publicId,
       OrthancPluginResourceType resourceType);           
                    
-    int32_t  (*deleteAttachment) (
+    OrthancPluginErrorCode  (*deleteAttachment) (
       /* inputs */
       void* payload,
       int64_t id,
       int32_t contentType);
    
-    int32_t  (*deleteMetadata) (
+    OrthancPluginErrorCode  (*deleteMetadata) (
       /* inputs */
       void* payload,
       int64_t id,
       int32_t metadataType);
    
-    int32_t  (*deleteResource) (
+    OrthancPluginErrorCode  (*deleteResource) (
       /* inputs */
       void* payload,
       int64_t id);    
 
     /* Output: Use OrthancPluginDatabaseAnswerString() */
-    int32_t  (*getAllPublicIds) (
+    OrthancPluginErrorCode  (*getAllPublicIds) (
       /* outputs */
       OrthancPluginDatabaseContext* context,
       /* inputs */
@@ -375,7 +375,7 @@ extern "C"
 
     /* Output: Use OrthancPluginDatabaseAnswerChange() and
      * OrthancPluginDatabaseAnswerChangesDone() */
-    int32_t  (*getChanges) (
+    OrthancPluginErrorCode  (*getChanges) (
       /* outputs */
       OrthancPluginDatabaseContext* context,
       /* inputs */
@@ -384,7 +384,7 @@ extern "C"
       uint32_t maxResult);
 
     /* Output: Use OrthancPluginDatabaseAnswerInt64() */
-    int32_t  (*getChildrenInternalId) (
+    OrthancPluginErrorCode  (*getChildrenInternalId) (
       /* outputs */
       OrthancPluginDatabaseContext* context,
       /* inputs */
@@ -392,7 +392,7 @@ extern "C"
       int64_t id);
                    
     /* Output: Use OrthancPluginDatabaseAnswerString() */
-    int32_t  (*getChildrenPublicId) (
+    OrthancPluginErrorCode  (*getChildrenPublicId) (
       /* outputs */
       OrthancPluginDatabaseContext* context,
       /* inputs */
@@ -401,7 +401,7 @@ extern "C"
 
     /* Output: Use OrthancPluginDatabaseAnswerExportedResource() and
      * OrthancPluginDatabaseAnswerExportedResourcesDone() */
-    int32_t  (*getExportedResources) (
+    OrthancPluginErrorCode  (*getExportedResources) (
       /* outputs */
       OrthancPluginDatabaseContext* context,
       /* inputs */
@@ -410,21 +410,21 @@ extern "C"
       uint32_t  maxResult);
                    
     /* Output: Use OrthancPluginDatabaseAnswerChange() */
-    int32_t  (*getLastChange) (
+    OrthancPluginErrorCode  (*getLastChange) (
       /* outputs */
       OrthancPluginDatabaseContext* context,
       /* inputs */
       void* payload);
 
     /* Output: Use OrthancPluginDatabaseAnswerExportedResource() */
-    int32_t  (*getLastExportedResource) (
+    OrthancPluginErrorCode  (*getLastExportedResource) (
       /* outputs */
       OrthancPluginDatabaseContext* context,
       /* inputs */
       void* payload);
                    
     /* Output: Use OrthancPluginDatabaseAnswerDicomTag() */
-    int32_t  (*getMainDicomTags) (
+    OrthancPluginErrorCode  (*getMainDicomTags) (
       /* outputs */
       OrthancPluginDatabaseContext* context,
       /* inputs */
@@ -432,47 +432,47 @@ extern "C"
       int64_t id);
                    
     /* Output: Use OrthancPluginDatabaseAnswerString() */
-    int32_t  (*getPublicId) (
+    OrthancPluginErrorCode  (*getPublicId) (
       /* outputs */
       OrthancPluginDatabaseContext* context,
       /* inputs */
       void* payload,
       int64_t id);
 
-    int32_t  (*getResourceCount) (
+    OrthancPluginErrorCode  (*getResourceCount) (
       /* outputs */
       uint64_t* target,
       /* inputs */
       void* payload,
       OrthancPluginResourceType  resourceType);
                    
-    int32_t  (*getResourceType) (
+    OrthancPluginErrorCode  (*getResourceType) (
       /* outputs */
       OrthancPluginResourceType* resourceType,
       /* inputs */
       void* payload,
       int64_t id);
 
-    int32_t  (*getTotalCompressedSize) (
+    OrthancPluginErrorCode  (*getTotalCompressedSize) (
       /* outputs */
       uint64_t* target,
       /* inputs */
       void* payload);
                    
-    int32_t  (*getTotalUncompressedSize) (
+    OrthancPluginErrorCode  (*getTotalUncompressedSize) (
       /* outputs */
       uint64_t* target,
       /* inputs */
       void* payload);
                    
-    int32_t  (*isExistingResource) (
+    OrthancPluginErrorCode  (*isExistingResource) (
       /* outputs */
       int32_t* existing,
       /* inputs */
       void* payload,
       int64_t id);
 
-    int32_t  (*isProtectedPatient) (
+    OrthancPluginErrorCode  (*isProtectedPatient) (
       /* outputs */
       int32_t* isProtected,
       /* inputs */
@@ -480,7 +480,7 @@ extern "C"
       int64_t id);
 
     /* Output: Use OrthancPluginDatabaseAnswerInt32() */
-    int32_t  (*listAvailableMetadata) (
+    OrthancPluginErrorCode  (*listAvailableMetadata) (
       /* outputs */
       OrthancPluginDatabaseContext* context,
       /* inputs */
@@ -488,25 +488,25 @@ extern "C"
       int64_t id);
                    
     /* Output: Use OrthancPluginDatabaseAnswerInt32() */
-    int32_t  (*listAvailableAttachments) (
+    OrthancPluginErrorCode  (*listAvailableAttachments) (
       /* outputs */
       OrthancPluginDatabaseContext* context,
       /* inputs */
       void* payload,
       int64_t id);
 
-    int32_t  (*logChange) (
+    OrthancPluginErrorCode  (*logChange) (
       /* inputs */
       void* payload,
       const OrthancPluginChange* change);
                    
-    int32_t  (*logExportedResource) (
+    OrthancPluginErrorCode  (*logExportedResource) (
       /* inputs */
       void* payload,
       const OrthancPluginExportedResource* exported);
                    
     /* Output: Use OrthancPluginDatabaseAnswerAttachment() */
-    int32_t  (*lookupAttachment) (
+    OrthancPluginErrorCode  (*lookupAttachment) (
       /* outputs */
       OrthancPluginDatabaseContext* context,
       /* inputs */
@@ -515,7 +515,7 @@ extern "C"
       int32_t contentType);
 
     /* Output: Use OrthancPluginDatabaseAnswerString() */
-    int32_t  (*lookupGlobalProperty) (
+    OrthancPluginErrorCode  (*lookupGlobalProperty) (
       /* outputs */
       OrthancPluginDatabaseContext* context,
       /* inputs */
@@ -523,7 +523,7 @@ extern "C"
       int32_t property);
 
     /* Output: Use OrthancPluginDatabaseAnswerInt64() */
-    int32_t  (*lookupIdentifier) (
+    OrthancPluginErrorCode  (*lookupIdentifier) (
       /* outputs */
       OrthancPluginDatabaseContext* context,
       /* inputs */
@@ -531,7 +531,7 @@ extern "C"
       const OrthancPluginDicomTag* tag);
 
     /* Output: Use OrthancPluginDatabaseAnswerInt64() */
-    int32_t  (*lookupIdentifier2) (
+    OrthancPluginErrorCode  (*lookupIdentifier2) (
       /* outputs */
       OrthancPluginDatabaseContext* context,
       /* inputs */
@@ -539,7 +539,7 @@ extern "C"
       const char* value);
 
     /* Output: Use OrthancPluginDatabaseAnswerString() */
-    int32_t  (*lookupMetadata) (
+    OrthancPluginErrorCode  (*lookupMetadata) (
       /* outputs */
       OrthancPluginDatabaseContext* context,
       /* inputs */
@@ -548,7 +548,7 @@ extern "C"
       int32_t metadata);
 
     /* Output: Use OrthancPluginDatabaseAnswerInt64() */
-    int32_t  (*lookupParent) (
+    OrthancPluginErrorCode  (*lookupParent) (
       /* outputs */
       OrthancPluginDatabaseContext* context,
       /* inputs */
@@ -556,7 +556,7 @@ extern "C"
       int64_t id);
 
     /* Output: Use OrthancPluginDatabaseAnswerResource() */
-    int32_t  (*lookupResource) (
+    OrthancPluginErrorCode  (*lookupResource) (
       /* outputs */
       OrthancPluginDatabaseContext* context,
       /* inputs */
@@ -564,68 +564,68 @@ extern "C"
       const char* publicId);
 
     /* Output: Use OrthancPluginDatabaseAnswerInt64() */
-    int32_t  (*selectPatientToRecycle) (
+    OrthancPluginErrorCode  (*selectPatientToRecycle) (
       /* outputs */
       OrthancPluginDatabaseContext* context,
       /* inputs */
       void* payload);
 
     /* Output: Use OrthancPluginDatabaseAnswerInt64() */
-    int32_t  (*selectPatientToRecycle2) (
+    OrthancPluginErrorCode  (*selectPatientToRecycle2) (
       /* outputs */
       OrthancPluginDatabaseContext* context,
       /* inputs */
       void* payload,
       int64_t patientIdToAvoid);
 
-    int32_t  (*setGlobalProperty) (
+    OrthancPluginErrorCode  (*setGlobalProperty) (
       /* inputs */
       void* payload,
       int32_t property,
       const char* value);
 
-    int32_t  (*setMainDicomTag) (
+    OrthancPluginErrorCode  (*setMainDicomTag) (
       /* inputs */
       void* payload,
       int64_t id,
       const OrthancPluginDicomTag* tag);
 
-    int32_t  (*setIdentifierTag) (
+    OrthancPluginErrorCode  (*setIdentifierTag) (
       /* inputs */
       void* payload,
       int64_t id,
       const OrthancPluginDicomTag* tag);
 
-    int32_t  (*setMetadata) (
+    OrthancPluginErrorCode  (*setMetadata) (
       /* inputs */
       void* payload,
       int64_t id,
       int32_t metadata,
       const char* value);
 
-    int32_t  (*setProtectedPatient) (
+    OrthancPluginErrorCode  (*setProtectedPatient) (
       /* inputs */
       void* payload,
       int64_t id,
       int32_t isProtected);
 
-    int32_t (*startTransaction) (
+    OrthancPluginErrorCode  (*startTransaction) (
       /* inputs */
       void* payload);
 
-    int32_t (*rollbackTransaction) (
+    OrthancPluginErrorCode  (*rollbackTransaction) (
       /* inputs */
       void* payload);
 
-    int32_t (*commitTransaction) (
+    OrthancPluginErrorCode  (*commitTransaction) (
       /* inputs */
       void* payload);
 
-    int32_t (*open) (
+    OrthancPluginErrorCode  (*open) (
       /* inputs */
       void* payload);
 
-    int32_t (*close) (
+    OrthancPluginErrorCode  (*close) (
       /* inputs */
       void* payload);
 
@@ -635,7 +635,7 @@ extern "C"
   typedef struct
   {
     /* Output: Use OrthancPluginDatabaseAnswerString() */
-    int32_t  (*getAllPublicIdsWithLimit) (
+    OrthancPluginErrorCode  (*getAllPublicIdsWithLimit) (
       /* outputs */
       OrthancPluginDatabaseContext* context,
       /* inputs */
@@ -644,13 +644,13 @@ extern "C"
       uint64_t since,
       uint64_t limit);
 
-    int32_t  (*getDatabaseVersion) (
+    OrthancPluginErrorCode  (*getDatabaseVersion) (
       /* outputs */
       uint32_t* version,
       /* inputs */
       void* payload);
 
-    int32_t  (*upgradeDatabase) (
+    OrthancPluginErrorCode  (*upgradeDatabase) (
       /* inputs */
       void* payload,
       uint32_t targetVersion,
