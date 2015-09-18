@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeadersServer.h"
 #include "StoreScuCommand.h"
 
 #include "../../Core/Logging.h"

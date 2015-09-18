@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "RestApiHierarchy.h"
 
 #include "../OrthancException.h"

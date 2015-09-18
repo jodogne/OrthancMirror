@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeadersServer.h"
 #include "DeleteInstanceCommand.h"
 
 #include "../../Core/Logging.h"

@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "RestApiCall.h"
 
 namespace Orthanc

@@ -30,6 +30,7 @@
  **/
 
 
+#include "PrecompiledHeadersServer.h"
 #include "DicomInstanceToStore.h"
 
 #include "FromDcmtkBridge.h"

@@ -30,6 +30,7 @@
  **/
 
 
+#include "../../Core/PrecompiledHeaders.h"
 #include "OrthancPluginDatabase.h"
 
 #include "../../Core/OrthancException.h"
