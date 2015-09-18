@@ -30,7 +30,7 @@
  **/
 
 
-#include "../../Core/PrecompiledHeaders.h"
+#include "../../OrthancServer/PrecompiledHeadersServer.h"
 #include "OrthancPlugins.h"
 
 #include "../../Core/ChunkedBuffer.h"
@@ -49,155 +49,12 @@
 #include "../../Core/Images/JpegReader.h"
 #include "../../Core/Images/JpegWriter.h"
 #include "../../Core/Images/ImageProcessing.h"
+#include "PluginsEnumerations.h"
 
 #include <boost/regex.hpp> 
 
 namespace Orthanc
 {
-  static OrthancPluginResourceType Convert(ResourceType type)
-  {
-    switch (type)
-    {
-      case ResourceType_Patient:
-        return OrthancPluginResourceType_Patient;
-
-      case ResourceType_Study:
-        return OrthancPluginResourceType_Study;
-
-      case ResourceType_Series:
-        return OrthancPluginResourceType_Series;
-
-      case ResourceType_Instance:
-        return OrthancPluginResourceType_Instance;
-
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
-
-  static OrthancPluginChangeType Convert(ChangeType type)
-  {
-    switch (type)
-    {
-      case ChangeType_CompletedSeries:
-        return OrthancPluginChangeType_CompletedSeries;
-
-      case ChangeType_Deleted:
-        return OrthancPluginChangeType_Deleted;
-
-      case ChangeType_NewChildInstance:
-        return OrthancPluginChangeType_NewChildInstance;
-
-      case ChangeType_NewInstance:
-        return OrthancPluginChangeType_NewInstance;
-
-      case ChangeType_NewPatient:
-        return OrthancPluginChangeType_NewPatient;
-
-      case ChangeType_NewSeries:
-        return OrthancPluginChangeType_NewSeries;
-
-      case ChangeType_NewStudy:
-        return OrthancPluginChangeType_NewStudy;
-
-      case ChangeType_StablePatient:
-        return OrthancPluginChangeType_StablePatient;
-
-      case ChangeType_StableSeries:
-        return OrthancPluginChangeType_StableSeries;
-
-      case ChangeType_StableStudy:
-        return OrthancPluginChangeType_StableStudy;
-
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
-
-  static OrthancPluginPixelFormat Convert(PixelFormat format)
-  {
-    switch (format)
-    {
-      case PixelFormat_Grayscale16:
-        return OrthancPluginPixelFormat_Grayscale16;
-
-      case PixelFormat_Grayscale8:
-        return OrthancPluginPixelFormat_Grayscale8;
-
-      case PixelFormat_RGB24:
-        return OrthancPluginPixelFormat_RGB24;
-
-      case PixelFormat_RGBA32:
-        return OrthancPluginPixelFormat_RGBA32;
-
-      case PixelFormat_SignedGrayscale16:
-        return OrthancPluginPixelFormat_SignedGrayscale16;
-
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
-
-  static PixelFormat Convert(OrthancPluginPixelFormat format)
-  {
-    switch (format)
-    {
-      case OrthancPluginPixelFormat_Grayscale16:
-        return PixelFormat_Grayscale16;
-
-      case OrthancPluginPixelFormat_Grayscale8:
-        return PixelFormat_Grayscale8;
-
-      case OrthancPluginPixelFormat_RGB24:
-        return PixelFormat_RGB24;
-
-      case OrthancPluginPixelFormat_RGBA32:
-        return PixelFormat_RGBA32;
-
-      case OrthancPluginPixelFormat_SignedGrayscale16:
-        return PixelFormat_SignedGrayscale16;
-
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
-
-  static OrthancPluginContentType Convert(FileContentType type)
-  {
-    switch (type)
-    {
-      case FileContentType_Dicom:
-        return OrthancPluginContentType_Dicom;
-
-      case FileContentType_DicomAsJson:
-        return OrthancPluginContentType_DicomAsJson;
-
-      default:
-        return OrthancPluginContentType_Unknown;
-    }
-  }
-
-
-  static FileContentType Convert(OrthancPluginContentType type)
-  {
-    switch (type)
-    {
-      case OrthancPluginContentType_Dicom:
-        return FileContentType_Dicom;
-
-      case OrthancPluginContentType_DicomAsJson:
-        return FileContentType_DicomAsJson;
-
-      default:
-        return FileContentType_Unknown;
-    }
-  }
-
-
   struct OrthancPlugins::PImpl
   {
     class RestCallback : public boost::noncopyable
@@ -530,8 +387,8 @@ namespace Orthanc
              callback = pimpl_->onChangeCallbacks_.begin(); 
            callback != pimpl_->onChangeCallbacks_.end(); ++callback)
       {
-        (*callback) (Convert(change.GetChangeType()),
-                     Convert(change.GetResourceType()),
+        (*callback) (Plugins::Convert(change.GetChangeType()),
+                     Plugins::Convert(change.GetResourceType()),
                      change.GetPublicId().c_str());
       }
     }
@@ -739,7 +596,7 @@ namespace Orthanc
     HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
 
     ImageAccessor accessor;
-    accessor.AssignReadOnly(Convert(p.pixelFormat), p.width, p.height, p.pitch, p.buffer);
+    accessor.AssignReadOnly(Plugins::Convert(p.pixelFormat), p.width, p.height, p.pitch, p.buffer);
 
     std::string compressed;
 
@@ -1135,7 +992,7 @@ namespace Orthanc
       case OrthancPluginImageFormat_Png:
       {
         PngWriter writer;
-        writer.WriteToMemory(compressed, p.width, p.height, p.pitch, Convert(p.pixelFormat), p.buffer);
+        writer.WriteToMemory(compressed, p.width, p.height, p.pitch, Plugins::Convert(p.pixelFormat), p.buffer);
         break;
       }
 
@@ -1143,7 +1000,7 @@ namespace Orthanc
       {
         JpegWriter writer;
         writer.SetQuality(p.quality);
-        writer.WriteToMemory(compressed, p.width, p.height, p.pitch, Convert(p.pixelFormat), p.buffer);
+        writer.WriteToMemory(compressed, p.width, p.height, p.pitch, Plugins::Convert(p.pixelFormat), p.buffer);
         break;
       }
 
@@ -1207,7 +1064,7 @@ namespace Orthanc
     const _OrthancPluginConvertPixelFormat& p = *reinterpret_cast<const _OrthancPluginConvertPixelFormat*>(parameters);
     const ImageAccessor& source = *reinterpret_cast<const ImageAccessor*>(p.source);
 
-    std::auto_ptr<ImageAccessor> target(new Image(Convert(p.targetFormat), source.GetWidth(), source.GetHeight()));
+    std::auto_ptr<ImageAccessor> target(new Image(Plugins::Convert(p.targetFormat), source.GetWidth(), source.GetHeight()));
     ImageProcessing::Convert(*target, source);
 
     *(p.target) = reinterpret_cast<OrthancPluginImage*>(target.release());
@@ -1572,7 +1429,7 @@ namespace Orthanc
       case _OrthancPluginService_GetImagePixelFormat:
       {
         const _OrthancPluginGetImageInfo& p = *reinterpret_cast<const _OrthancPluginGetImageInfo*>(parameters);
-        *(p.resultPixelFormat) = Convert(reinterpret_cast<const ImageAccessor*>(p.image)->GetFormat());
+        *(p.resultPixelFormat) = Plugins::Convert(reinterpret_cast<const ImageAccessor*>(p.image)->GetFormat());
         return true;
       }
 
@@ -1655,7 +1512,7 @@ namespace Orthanc
         const _OrthancPluginStorageAreaCreate& p =
           *reinterpret_cast<const _OrthancPluginStorageAreaCreate*>(parameters);
         IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
-        storage.Create(p.uuid, p.content, p.size, Convert(p.type));
+        storage.Create(p.uuid, p.content, p.size, Plugins::Convert(p.type));
         return true;
       }
 
@@ -1665,7 +1522,7 @@ namespace Orthanc
           *reinterpret_cast<const _OrthancPluginStorageAreaRead*>(parameters);
         IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
         std::string content;
-        storage.Read(content, p.uuid, Convert(p.type));
+        storage.Read(content, p.uuid, Plugins::Convert(p.type));
         CopyToMemoryBuffer(*p.target, content);
         return true;
       }
@@ -1675,7 +1532,7 @@ namespace Orthanc
         const _OrthancPluginStorageAreaRemove& p =
           *reinterpret_cast<const _OrthancPluginStorageAreaRemove*>(parameters);
         IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
-        storage.Remove(p.uuid, Convert(p.type));
+        storage.Remove(p.uuid, Plugins::Convert(p.type));
         return true;
       }
 
@@ -1725,7 +1582,7 @@ namespace Orthanc
                           size_t size,
                           FileContentType type)
       {
-        if (params_.create(uuid.c_str(), content, size, Convert(type)) != 0)
+        if (params_.create(uuid.c_str(), content, size, Plugins::Convert(type)) != 0)
         {
           throw OrthancException(ErrorCode_Plugin);
         }
@@ -1738,7 +1595,7 @@ namespace Orthanc
         void* buffer = NULL;
         int64_t size = 0;
 
-        if (params_.read(&buffer, &size, uuid.c_str(), Convert(type)) != 0)
+        if (params_.read(&buffer, &size, uuid.c_str(), Plugins::Convert(type)) != 0)
         {
           throw OrthancException(ErrorCode_Plugin);
         }        
@@ -1764,7 +1621,7 @@ namespace Orthanc
       virtual void Remove(const std::string& uuid,
                           FileContentType type) 
       {
-        if (params_.remove(uuid.c_str(), Convert(type)) != 0)
+        if (params_.remove(uuid.c_str(), Plugins::Convert(type)) != 0)
         {
           throw OrthancException(ErrorCode_Plugin);
         }        
