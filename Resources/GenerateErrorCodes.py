@@ -132,3 +132,21 @@ a = re.sub('(EnumerationToString\(ErrorCode.*?\)\s*{\s*switch \([^)]*?\)\s*{)[^}
 
 with open(path, 'w') as f:
     f.write(a)
+
+
+
+##
+## Generate the "Plugins::Convert(OrthancPluginErrorCode)" in
+## "PluginsEnumerations.cpp"
+##
+
+path = os.path.join(BASE, 'Plugins', 'Engine', 'PluginsEnumerations.cpp')
+with open(path, 'r') as f:
+    a = f.read()
+
+s = '\n\n'.join(map(lambda x: '        case OrthancPluginErrorCode_%s:\n          return ErrorCode_%s;' % (x['Name'], x['Name']), ERRORS))
+a = re.sub('(Convert\(OrthancPluginErrorCode.*?\)\s*{\s*switch \([^)]*?\)\s*{)[^}]*?(\s*default:)',
+           r'\1\n%s\2' % s, a, re.DOTALL)
+
+with open(path, 'w') as f:
+    f.write(a)
