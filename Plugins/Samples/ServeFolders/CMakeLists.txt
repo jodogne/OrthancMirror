@@ -6,6 +6,7 @@ SET(SERVE_FOLDERS_VERSION "0.0" CACHE STRING "Version of the plugin")
 SET(STATIC_BUILD OFF CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")
 SET(ALLOW_DOWNLOADS OFF CACHE BOOL "Allow CMake to download packages")
 SET(USE_SYSTEM_JSONCPP ON CACHE BOOL "Use the system version of JsonCpp")
+SET(USE_SYSTEM_BOOST ON CACHE BOOL "Use the system version of boost")
 
 set(ORTHANC_ROOT ${CMAKE_SOURCE_DIR}/../../../)
 set(SAMPLES_ROOT ${CMAKE_SOURCE_DIR}/..)
@@ -15,10 +16,12 @@ include(CheckIncludeFileCXX)
 include(${CMAKE_SOURCE_DIR}/../Common/OrthancPlugins.cmake)
 include(${ORTHANC_ROOT}/Resources/CMake/DownloadPackage.cmake)
 include(${ORTHANC_ROOT}/Resources/CMake/JsonCppConfiguration.cmake)
+include(${ORTHANC_ROOT}/Resources/CMake/BoostConfiguration.cmake)
 
 add_library(ServeFolders SHARED 
   Plugin.cpp
   ${JSONCPP_SOURCES}
+  ${BOOST_SOURCES}
   )
 
 

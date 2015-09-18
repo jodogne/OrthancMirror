@@ -33,10 +33,9 @@ add_library(GdcmDecoding SHARED
   ${GOOGLE_LOG_SOURCES}
   ${ORTHANC_ROOT}/Core/ChunkedBuffer.cpp
   ${ORTHANC_ROOT}/Core/Enumerations.cpp
-  ${ORTHANC_ROOT}/Core/ImageFormats/ImageAccessor.cpp
-  ${ORTHANC_ROOT}/Core/ImageFormats/ImageBuffer.cpp
-  ${ORTHANC_ROOT}/Core/ImageFormats/ImageProcessing.cpp
-  ${ORTHANC_ROOT}/Core/OrthancException.cpp
+  ${ORTHANC_ROOT}/Core/Images/ImageAccessor.cpp
+  ${ORTHANC_ROOT}/Core/Images/ImageBuffer.cpp
+  ${ORTHANC_ROOT}/Core/Images/ImageProcessing.cpp
   ${ORTHANC_ROOT}/Core/Toolbox.cpp
   ${ORTHANC_ROOT}/Resources/ThirdParty/base64/base64.cpp
   ${ORTHANC_ROOT}/Resources/ThirdParty/md5/md5.c

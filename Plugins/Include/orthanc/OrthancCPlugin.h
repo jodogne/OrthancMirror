@@ -663,7 +663,7 @@ extern "C"
    * @brief Signature of a callback function that is triggered when Orthanc receives a DICOM instance.
    * @ingroup Callbacks
    **/
-  typedef int32_t (*OrthancPluginOnStoredInstanceCallback) (
+  typedef OrthancPluginErrorCode (*OrthancPluginOnStoredInstanceCallback) (
     OrthancPluginDicomInstance* instance,
     const char* instanceId);
 
@@ -673,7 +673,7 @@ extern "C"
    * @brief Signature of a callback function that is triggered when a change happens to some DICOM resource.
    * @ingroup Callbacks
    **/
-  typedef int32_t (*OrthancPluginOnChangeCallback) (
+  typedef OrthancPluginErrorCode (*OrthancPluginOnChangeCallback) (
     OrthancPluginChangeType changeType,
     OrthancPluginResourceType resourceType,
     const char* resourceId);
@@ -699,7 +699,7 @@ extern "C"
    * @return 0 if success, other value if error.
    * @ingroup Callbacks
    **/
-  typedef int32_t (*OrthancPluginStorageCreate) (
+  typedef OrthancPluginErrorCode (*OrthancPluginStorageCreate) (
     const char* uuid,
     const void* content,
     int64_t size,
@@ -719,7 +719,7 @@ extern "C"
    * @return 0 if success, other value if error.
    * @ingroup Callbacks
    **/
-  typedef int32_t (*OrthancPluginStorageRead) (
+  typedef OrthancPluginErrorCode (*OrthancPluginStorageRead) (
     void** content,
     int64_t* size,
     const char* uuid,
@@ -737,7 +737,7 @@ extern "C"
    * @return 0 if success, other value if error.
    * @ingroup Callbacks
    **/
-  typedef int32_t (*OrthancPluginStorageRemove) (
+  typedef OrthancPluginErrorCode (*OrthancPluginStorageRemove) (
     const char* uuid,
     OrthancPluginContentType type);
 

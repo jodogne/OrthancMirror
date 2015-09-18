@@ -33,43 +33,43 @@ static std::string GetPath(const char* uuid)
 }
 
 
-static int32_t StorageCreate(const char* uuid,
-                             const void* content,
-                             int64_t size,
-                             OrthancPluginContentType type)
+static OrthancPluginErrorCode StorageCreate(const char* uuid,
+                                            const void* content,
+                                            int64_t size,
+                                            OrthancPluginContentType type)
 {
   std::string path = GetPath(uuid);
 
   FILE* fp = fopen(path.c_str(), "wb");
   if (!fp)
   {
-    return -1;
+    return OrthancPluginErrorCode_Plugin;
   }
 
   bool ok = fwrite(content, size, 1, fp) == 1;
   fclose(fp);
 
-  return ok ? 0 : -1;
+  return ok ? OrthancPluginErrorCode_Success : OrthancPluginErrorCode_Plugin;
 }
 
 
-static int32_t StorageRead(void** content,
-                           int64_t* size,
-                           const char* uuid,
-                           OrthancPluginContentType type)
+static OrthancPluginErrorCode StorageRead(void** content,
+                                          int64_t* size,
+                                          const char* uuid,
+                                          OrthancPluginContentType type)
 {
   std::string path = GetPath(uuid);
 
   FILE* fp = fopen(path.c_str(), "rb");
   if (!fp)
   {
-    return -1;
+    return OrthancPluginErrorCode_Plugin;
   }
 
   if (fseek(fp, 0, SEEK_END) < 0)
   {
     fclose(fp);
-    return -1;
+    return OrthancPluginErrorCode_Plugin;
   }
 
   *size = ftell(fp);
@@ -77,7 +77,7 @@ static int32_t StorageRead(void** content,
   if (fseek(fp, 0, SEEK_SET) < 0)
   {
     fclose(fp);
-    return -1;
+    return OrthancPluginErrorCode_Plugin;
   }
 
   bool ok = true;
@@ -98,15 +98,23 @@ static int32_t StorageRead(void** content,
 
   fclose(fp);
 
-  return ok ? 0 : -1;  
+  return ok ? OrthancPluginErrorCode_Success : OrthancPluginErrorCode_Plugin;
 }
 
 
-static int32_t StorageRemove(const char* uuid,
-                             OrthancPluginContentType type)
+static OrthancPluginErrorCode StorageRemove(const char* uuid,
+                                            OrthancPluginContentType type)
 {
   std::string path = GetPath(uuid);
-  return remove(path.c_str());
+
+  if (remove(path.c_str()) == 0)
+  {
+    return OrthancPluginErrorCode_Success;
+  }
+  else
+  {
+    return OrthancPluginErrorCode_Plugin;
+  }
 }
 
 

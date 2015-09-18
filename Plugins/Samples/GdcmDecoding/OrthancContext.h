@@ -22,7 +22,7 @@
 
 #include <orthanc/OrthancCPlugin.h>
 
-#include "../../../Core/ImageFormats/ImageBuffer.h"
+#include "../../../Core/Images/ImageBuffer.h"
 
 #include <map>
 #include <string>
