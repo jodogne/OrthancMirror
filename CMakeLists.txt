@@ -221,6 +221,7 @@ if (ENABLE_PLUGINS)
   list(APPEND ORTHANC_SERVER_SOURCES
     Plugins/Engine/OrthancPluginDatabase.cpp
     Plugins/Engine/OrthancPlugins.cpp
+    Plugins/Engine/PluginsEnumerations.cpp
     Plugins/Engine/PluginsManager.cpp
     Plugins/Engine/SharedLibrary.cpp
     )
