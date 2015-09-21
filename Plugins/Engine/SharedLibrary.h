@@ -32,6 +32,8 @@
 
 #pragma once
 
+#if ORTHANC_PLUGINS_ENABLED == 1
+
 #include "../../Core/OrthancException.h"
 
 #include <boost/noncopyable.hpp>
@@ -72,3 +74,5 @@ namespace Orthanc
     FunctionPointer GetFunction(const std::string& name);
   };
 }
+
+#endif

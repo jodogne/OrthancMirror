@@ -108,7 +108,9 @@ namespace Orthanc
     dicomCache_(provider_, DICOM_CACHE_SIZE),
     scheduler_(Configuration::GetGlobalIntegerParameter("LimitJobs", 10)),
     lua_(*this),
+#if ORTHANC_PLUGINS_ENABLED == 1
     plugins_(NULL),
+#endif
     done_(false),
     queryRetrieveArchive_(Configuration::GetGlobalIntegerParameter("QueryRetrieveSize", 10)),
     defaultLocalAet_(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"))
@@ -435,6 +437,7 @@ namespace Orthanc
   }
 
 
+#if ORTHANC_PLUGINS_ENABLED == 1
   void ServerContext::SetPlugins(OrthancPlugins& plugins)
   {
     boost::recursive_mutex::scoped_lock lock(listenersMutex_);
@@ -460,12 +463,6 @@ namespace Orthanc
   }
 
 
-  bool ServerContext::HasPlugins() const
-  {
-    return (plugins_ != NULL);
-  }
-
-
   const OrthancPlugins& ServerContext::GetPlugins() const
   {
     if (HasPlugins())
@@ -476,5 +473,17 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_InternalError);
     }
+  }
+
+#endif
+
+
+  bool ServerContext::HasPlugins() const
+  {
+#if ORTHANC_PLUGINS_ENABLED == 1
+    return (plugins_ != NULL);
+#else
+    return false;
+#endif
   }
 }

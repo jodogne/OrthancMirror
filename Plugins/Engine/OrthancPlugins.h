@@ -32,6 +32,19 @@
 
 #pragma once
 
+#if ORTHANC_PLUGINS_ENABLED != 1
+
+#include <boost/noncopyable.hpp>
+
+namespace Orthanc
+{
+  class OrthancPlugins : public boost::noncopyable
+  {
+  };
+}
+
+#else
+
 #include "../../Core/FileStorage/IStorageArea.h"
 #include "../../Core/HttpServer/IHttpHandler.h"
 #include "../../OrthancServer/IServerListener.h"
@@ -168,3 +181,5 @@ namespace Orthanc
     const PluginsManager& GetManager() const;
   };
 }
+
+#endif

@@ -65,6 +65,8 @@ namespace Orthanc
     result["StorageAreaPlugin"] = Json::nullValue;
     result["DatabaseBackendPlugin"] = Json::nullValue;
 
+#if ORTHANC_PLUGINS_ENABLED == 1
+    result["PluginsEnabled"] = true;
     const OrthancPlugins& plugins = OrthancRestApi::GetContext(call).GetPlugins();
 
     if (plugins.HasStorageArea())
@@ -78,6 +80,9 @@ namespace Orthanc
       std::string p = plugins.GetDatabaseBackendLibrary().GetPath();
       result["DatabaseBackendPlugin"] = boost::filesystem::canonical(p).string();     
     }
+#else
+    result["PluginsEnabled"] = false;
+#endif
 
     call.GetOutput().AnswerJson(result);
   }
@@ -150,6 +155,7 @@ namespace Orthanc
 
     if (OrthancRestApi::GetContext(call).HasPlugins())
     {
+#if ORTHANC_PLUGINS_ENABLED == 1
       std::list<std::string> plugins;
       OrthancRestApi::GetContext(call).GetPlugins().GetManager().ListPlugins(plugins);
 
@@ -158,6 +164,7 @@ namespace Orthanc
       {
         v.append(*it);
       }
+#endif
     }
 
     call.GetOutput().AnswerJson(v);
@@ -171,6 +178,7 @@ namespace Orthanc
       return;
     }
 
+#if ORTHANC_PLUGINS_ENABLED == 1
     const PluginsManager& manager = OrthancRestApi::GetContext(call).GetPlugins().GetManager();
     std::string id = call.GetUriComponent("id", "");
 
@@ -208,6 +216,7 @@ namespace Orthanc
 
       call.GetOutput().AnswerJson(v);
     }
+#endif
   }
 
 
@@ -217,6 +226,7 @@ namespace Orthanc
 
     if (OrthancRestApi::GetContext(call).HasPlugins())
     {
+#if ORTHANC_PLUGINS_ENABLED == 1
       const OrthancPlugins& plugins = OrthancRestApi::GetContext(call).GetPlugins();
       const PluginsManager& manager = plugins.GetManager();
 
@@ -233,6 +243,7 @@ namespace Orthanc
           s += std::string(tmp) + "\n\n";
         }
       }
+#endif
     }
 
     call.GetOutput().AnswerBuffer(s, "application/javascript");

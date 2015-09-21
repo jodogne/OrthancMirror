@@ -32,6 +32,8 @@
 
 #pragma once
 
+#if ORTHANC_PLUGINS_ENABLED == 1
+
 #include "../../OrthancServer/IDatabaseWrapper.h"
 #include "../Include/orthanc/OrthancCDatabasePlugin.h"
 #include "SharedLibrary.h"
@@ -238,3 +240,5 @@ namespace Orthanc
     void AnswerReceived(const _OrthancPluginDatabaseAnswer& answer);
   };
 }
+
+#endif
