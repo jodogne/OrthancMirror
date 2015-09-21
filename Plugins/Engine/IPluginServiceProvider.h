@@ -32,6 +32,8 @@
 
 #pragma once
 
+#if ORTHANC_PLUGINS_ENABLED == 1
+
 #include "../Include/orthanc/OrthancCPlugin.h"
 
 #include "SharedLibrary.h"
@@ -50,3 +52,5 @@ namespace Orthanc
                                const void* parameters) = 0;
   };
 }
+
+#endif

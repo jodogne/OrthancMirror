@@ -33,6 +33,11 @@
 #include "../../OrthancServer/PrecompiledHeadersServer.h"
 #include "SharedLibrary.h"
 
+#if ORTHANC_PLUGINS_ENABLED != 1
+#error The plugin support is disabled
+#endif
+
+
 #include "../../Core/Logging.h"
 #include "../../Core/Toolbox.h"
 

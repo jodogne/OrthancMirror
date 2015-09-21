@@ -119,7 +119,11 @@ namespace Orthanc
     ServerScheduler scheduler_;
 
     LuaScripting lua_;
+
+#if ORTHANC_PLUGINS_ENABLED == 1
     OrthancPlugins* plugins_;
+#endif
+
     ServerListeners listeners_;
     boost::recursive_mutex listenersMutex_;
 
@@ -242,12 +246,15 @@ namespace Orthanc
      * Management of the plugins
      **/
 
+#if ORTHANC_PLUGINS_ENABLED == 1
     void SetPlugins(OrthancPlugins& plugins);
 
     void ResetPlugins();
 
+    const OrthancPlugins& GetPlugins() const;
+#endif
+
     bool HasPlugins() const;
 
-    const OrthancPlugins& GetPlugins() const;
   };
 }

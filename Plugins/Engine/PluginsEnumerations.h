@@ -32,9 +32,10 @@
 
 #pragma once
 
+#if ORTHANC_PLUGINS_ENABLED == 1
+
 #include "../Include/orthanc/OrthancCPlugin.h"
 #include "../../OrthancServer/ServerEnumerations.h"
-
 
 namespace Orthanc
 {
@@ -55,3 +56,5 @@ namespace Orthanc
     FileContentType Convert(OrthancPluginContentType type);
   }
 }
+
+#endif

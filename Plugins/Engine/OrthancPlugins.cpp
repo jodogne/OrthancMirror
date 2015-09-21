@@ -33,6 +33,11 @@
 #include "../../OrthancServer/PrecompiledHeadersServer.h"
 #include "OrthancPlugins.h"
 
+#if ORTHANC_PLUGINS_ENABLED != 1
+#error The plugin support is disabled
+#endif
+
+
 #include "../../Core/ChunkedBuffer.h"
 #include "../../Core/HttpServer/HttpToolbox.h"
 #include "../../Core/Logging.h"

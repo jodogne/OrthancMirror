@@ -368,6 +368,8 @@ static void LoadLuaScripts(ServerContext& context)
 }
 
 
+
+#if ORTHANC_PLUGINS_ENABLED == 1
 static void LoadPlugins(OrthancPlugins& plugins)
 {
   std::list<std::string> path;
@@ -380,6 +382,7 @@ static void LoadPlugins(OrthancPlugins& plugins)
     plugins.GetManager().RegisterPlugin(path);
   }  
 }
+#endif
 
 
 
@@ -496,6 +499,7 @@ static bool StartDicomServer(ServerContext& context,
 static bool ConfigureHttpHandler(ServerContext& context,
                                  OrthancPlugins *plugins)
 {
+#if ORTHANC_PLUGINS_ENABLED == 1
   // By order of priority, first apply the "plugins" layer, so that
   // plugins can overwrite the built-in REST API of Orthanc
   if (plugins)
@@ -503,6 +507,7 @@ static bool ConfigureHttpHandler(ServerContext& context,
     assert(context.HasPlugins());
     context.GetHttpHandler().Register(*plugins, false);
   }
+#endif
 
   // Secondly, apply the "static resources" layer
 #if ORTHANC_STANDALONE == 1
@@ -593,19 +598,23 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 
   LoadLuaScripts(context);
 
+#if ORTHANC_PLUGINS_ENABLED == 1
   if (plugins)
   {
     plugins->SetServerContext(context);
     context.SetPlugins(*plugins);
   }
+#endif
 
   bool restart = ConfigureHttpHandler(context, plugins);
   context.Stop();
 
+#if ORTHANC_PLUGINS_ENABLED == 1
   if (plugins)
   {
     context.ResetPlugins();
   }
+#endif
 
   return restart;
 }

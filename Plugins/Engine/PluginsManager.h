@@ -32,6 +32,8 @@
 
 #pragma once
 
+#if ORTHANC_PLUGINS_ENABLED == 1
+
 #include "SharedLibrary.h"
 #include "IPluginServiceProvider.h"
 
@@ -112,3 +114,5 @@ namespace Orthanc
     const std::string& GetPluginVersion(const std::string& name) const;
   };
 }
+
+#endif
