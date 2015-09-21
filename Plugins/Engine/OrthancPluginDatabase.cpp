@@ -113,7 +113,7 @@ namespace Orthanc
     if (type_ != _OrthancPluginDatabaseAnswerType_None &&
         type_ != _OrthancPluginDatabaseAnswerType_Int64)
     {
-      throw OrthancException(ErrorCode_Plugin);
+      throw OrthancException(ErrorCode_DatabasePlugin);
     }
 
     target.clear();
@@ -134,7 +134,7 @@ namespace Orthanc
     if (type_ != _OrthancPluginDatabaseAnswerType_None &&
         type_ != _OrthancPluginDatabaseAnswerType_String)
     {
-      throw OrthancException(ErrorCode_Plugin);
+      throw OrthancException(ErrorCode_DatabasePlugin);
     }
 
     target.clear();
@@ -164,7 +164,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_Plugin);
+      throw OrthancException(ErrorCode_DatabasePlugin);
     }
   }
 
@@ -183,15 +183,17 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_Plugin);
+      throw OrthancException(ErrorCode_DatabasePlugin);
     }
   }
 
 
-  OrthancPluginDatabase::OrthancPluginDatabase(const OrthancPluginDatabaseBackend& backend,
+  OrthancPluginDatabase::OrthancPluginDatabase(SharedLibrary& library,
+                                               const OrthancPluginDatabaseBackend& backend,
                                                const OrthancPluginDatabaseExtensions* extensions,
                                                size_t extensionsSize,
                                                void *payload) : 
+    library_(library),
     type_(_OrthancPluginDatabaseAnswerType_None),
     backend_(backend),
     payload_(payload),
@@ -333,7 +335,7 @@ namespace Orthanc
       std::string value;
       if (!LookupMetadata(value, id, *it))
       {
-        throw OrthancException(ErrorCode_Plugin);
+        throw OrthancException(ErrorCode_DatabasePlugin);
       }
 
       target[*it] = value;
@@ -544,7 +546,7 @@ namespace Orthanc
     
     if (!ForwardSingleAnswer(s))
     {
-      throw OrthancException(ErrorCode_Plugin);
+      throw OrthancException(ErrorCode_DatabasePlugin);
     }
 
     return s;
@@ -656,7 +658,7 @@ namespace Orthanc
     if (type_ != _OrthancPluginDatabaseAnswerType_None &&
         type_ != _OrthancPluginDatabaseAnswerType_Int32)
     {
-      throw OrthancException(ErrorCode_Plugin);
+      throw OrthancException(ErrorCode_DatabasePlugin);
     }
 
     target.clear();
@@ -687,7 +689,7 @@ namespace Orthanc
     if (type_ != _OrthancPluginDatabaseAnswerType_None &&
         type_ != _OrthancPluginDatabaseAnswerType_Int32)
     {
-      throw OrthancException(ErrorCode_Plugin);
+      throw OrthancException(ErrorCode_DatabasePlugin);
     }
 
     target.clear();
@@ -770,7 +772,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_Plugin);
+      throw OrthancException(ErrorCode_DatabasePlugin);
     }
   }
 
@@ -889,7 +891,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_Plugin);
+      throw OrthancException(ErrorCode_DatabasePlugin);
     }
   }
 
@@ -1072,7 +1074,7 @@ namespace Orthanc
       }
 
       default:
-        throw OrthancException(ErrorCode_Plugin);
+        throw OrthancException(ErrorCode_DatabasePlugin);
     }
   }
 
@@ -1122,7 +1124,7 @@ namespace Orthanc
   {
     if (answer.type == _OrthancPluginDatabaseAnswerType_None)
     {
-      throw OrthancException(ErrorCode_Plugin);
+      throw OrthancException(ErrorCode_DatabasePlugin);
     }
 
     if (answer.type == _OrthancPluginDatabaseAnswerType_DeletedAttachment ||
@@ -1177,13 +1179,13 @@ namespace Orthanc
 
         default:
           LOG(ERROR) << "Unhandled type of answer for custom index plugin: " << answer.type;
-          throw OrthancException(ErrorCode_Plugin);
+          throw OrthancException(ErrorCode_DatabasePlugin);
       }
     }
     else if (type_ != answer.type)
     {
       LOG(ERROR) << "Error in the plugin protocol: Cannot change the answer type";
-      throw OrthancException(ErrorCode_Plugin);
+      throw OrthancException(ErrorCode_DatabasePlugin);
     }
 
     switch (answer.type)
@@ -1228,7 +1230,7 @@ namespace Orthanc
       {
         if (answer.valueString == NULL)
         {
-          throw OrthancException(ErrorCode_Plugin);
+          throw OrthancException(ErrorCode_DatabasePlugin);
         }
 
         if (type_ == _OrthancPluginDatabaseAnswerType_None)
@@ -1238,7 +1240,7 @@ namespace Orthanc
         }
         else if (type_ != _OrthancPluginDatabaseAnswerType_String)
         {
-          throw OrthancException(ErrorCode_Plugin);
+          throw OrthancException(ErrorCode_DatabasePlugin);
         }
 
         answerStrings_.push_back(std::string(answer.valueString));
@@ -1254,7 +1256,7 @@ namespace Orthanc
         }
         else if (*answerDone_)
         {
-          throw OrthancException(ErrorCode_Plugin);
+          throw OrthancException(ErrorCode_DatabasePlugin);
         }
         else
         {
@@ -1280,7 +1282,7 @@ namespace Orthanc
         }
         else if (*answerDone_)
         {
-          throw OrthancException(ErrorCode_Plugin);
+          throw OrthancException(ErrorCode_DatabasePlugin);
         }
         else
         {
@@ -1304,7 +1306,7 @@ namespace Orthanc
 
       default:
         LOG(ERROR) << "Unhandled type of answer for custom index plugin: " << answer.type;
-        throw OrthancException(ErrorCode_Plugin);
+        throw OrthancException(ErrorCode_DatabasePlugin);
     }
   }
 }

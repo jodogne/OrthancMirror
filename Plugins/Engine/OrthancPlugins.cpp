@@ -55,6 +55,117 @@
 
 namespace Orthanc
 {
+  namespace
+  {
+    class PluginStorageArea : public IStorageArea
+    {
+    private:
+      _OrthancPluginRegisterStorageArea callbacks_;
+
+      void Free(void* buffer) const
+      {
+        if (buffer != NULL)
+        {
+          callbacks_.free(buffer);
+        }
+      }
+
+    public:
+      PluginStorageArea(const _OrthancPluginRegisterStorageArea& callbacks) : callbacks_(callbacks)
+      {
+      }
+
+
+      virtual void Create(const std::string& uuid,
+                          const void* content, 
+                          size_t size,
+                          FileContentType type)
+      {
+        OrthancPluginErrorCode error = callbacks_.create
+          (uuid.c_str(), content, size, Plugins::Convert(type));
+
+        if (error != OrthancPluginErrorCode_Success)
+        {
+          throw OrthancException(Plugins::Convert(error));
+        }
+      }
+
+
+      virtual void Read(std::string& content,
+                        const std::string& uuid,
+                        FileContentType type)
+      {
+        void* buffer = NULL;
+        int64_t size = 0;
+
+        OrthancPluginErrorCode error = callbacks_.read
+          (&buffer, &size, uuid.c_str(), Plugins::Convert(type));
+
+        if (error != OrthancPluginErrorCode_Success)
+        {
+          throw OrthancException(Plugins::Convert(error));
+        }
+
+        try
+        {
+          content.resize(static_cast<size_t>(size));
+        }
+        catch (...)
+        {
+          Free(buffer);
+          throw;
+        }
+
+        if (size > 0)
+        {
+          memcpy(&content[0], buffer, static_cast<size_t>(size));
+        }
+
+        Free(buffer);
+      }
+
+
+      virtual void Remove(const std::string& uuid,
+                          FileContentType type) 
+      {
+        OrthancPluginErrorCode error = callbacks_.remove
+          (uuid.c_str(), Plugins::Convert(type));
+
+        if (error != OrthancPluginErrorCode_Success)
+        {
+          throw OrthancException(Plugins::Convert(error));
+        }
+      }
+    };
+
+
+    class StorageAreaFactory : public boost::noncopyable
+    {
+    private:
+      SharedLibrary&   sharedLibrary_;
+      _OrthancPluginRegisterStorageArea  callbacks_;
+
+    public:
+      StorageAreaFactory(SharedLibrary& sharedLibrary,
+                         const _OrthancPluginRegisterStorageArea& callbacks) :
+        sharedLibrary_(sharedLibrary),
+        callbacks_(callbacks)
+      {
+      }
+
+      SharedLibrary&  GetSharedLibrary()
+      {
+        return sharedLibrary_;
+      }
+
+      IStorageArea* Create() const
+      {
+        return new PluginStorageArea(callbacks_);
+      }
+    };
+  }
+
+
   struct OrthancPlugins::PImpl
   {
     class RestCallback : public boost::noncopyable
@@ -105,6 +216,7 @@ namespace Orthanc
       }
     };
 
+
     typedef std::pair<std::string, _OrthancPluginProperty>  Property;
     typedef std::list<RestCallback*>  RestCallbacks;
     typedef std::list<OrthancPluginOnStoredInstanceCallback>  OnStoredCallbacks;
@@ -116,8 +228,7 @@ namespace Orthanc
     RestCallbacks restCallbacks_;
     OnStoredCallbacks  onStoredCallbacks_;
     OnChangeCallbacks  onChangeCallbacks_;
-    bool hasStorageArea_;
-    _OrthancPluginRegisterStorageArea storageArea_;
+    std::auto_ptr<StorageAreaFactory>  storageArea_;
     boost::recursive_mutex restCallbackMutex_;
     boost::recursive_mutex storedCallbackMutex_;
     boost::recursive_mutex changeCallbackMutex_;
@@ -129,11 +240,9 @@ namespace Orthanc
 
     PImpl() : 
       context_(NULL), 
-      hasStorageArea_(false),
       argc_(1),
       argv_(NULL)
     {
-      memset(&storageArea_, 0, sizeof(storageArea_));
     }
   };
 
@@ -1102,10 +1211,11 @@ namespace Orthanc
   }
         
 
-  bool OrthancPlugins::InvokeService(_OrthancPluginService service,
+  bool OrthancPlugins::InvokeService(SharedLibrary& plugin,
+                                     _OrthancPluginService service,
                                      const void* parameters)
   {
-    VLOG(1) << "Calling plugin service: " << service;
+    VLOG(1) << "Calling service " << service << " from plugin " << plugin.GetPath();
 
     boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
 
@@ -1261,8 +1371,15 @@ namespace Orthanc
         const _OrthancPluginRegisterStorageArea& p = 
           *reinterpret_cast<const _OrthancPluginRegisterStorageArea*>(parameters);
         
-        pimpl_->storageArea_ = p;
-        pimpl_->hasStorageArea_ = true;
+        if (pimpl_->storageArea_.get() == NULL)
+        {
+          pimpl_->storageArea_.reset(new StorageAreaFactory(plugin, p));
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_StorageAreaAlreadyRegistered);
+        }
+
         return true;
       }
 
@@ -1332,7 +1449,15 @@ namespace Orthanc
 
         const _OrthancPluginRegisterDatabaseBackend& p =
           *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackend*>(parameters);
-        pimpl_->database_.reset(new OrthancPluginDatabase(*p.backend, NULL, 0, p.payload));
+
+        if (pimpl_->database_.get() == NULL)
+        {
+          pimpl_->database_.reset(new OrthancPluginDatabase(plugin, *p.backend, NULL, 0, p.payload));
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_DatabaseBackendAlreadyRegistered);
+        }
 
         *(p.result) = reinterpret_cast<OrthancPluginDatabaseContext*>(pimpl_->database_.get());
 
@@ -1345,7 +1470,16 @@ namespace Orthanc
 
         const _OrthancPluginRegisterDatabaseBackendV2& p =
           *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackendV2*>(parameters);
-        pimpl_->database_.reset(new OrthancPluginDatabase(*p.backend, p.extensions, p.extensionsSize, p.payload));
+
+        if (pimpl_->database_.get() == NULL)
+        {
+          pimpl_->database_.reset(new OrthancPluginDatabase(plugin, *p.backend, p.extensions,
+                                                            p.extensionsSize, p.payload));
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_DatabaseBackendAlreadyRegistered);
+        }
 
         *(p.result) = reinterpret_cast<OrthancPluginDatabaseContext*>(pimpl_->database_.get());
 
@@ -1356,6 +1490,7 @@ namespace Orthanc
       {
         const _OrthancPluginDatabaseAnswer& p =
           *reinterpret_cast<const _OrthancPluginDatabaseAnswer*>(parameters);
+
         if (pimpl_->database_.get() != NULL)
         {
           pimpl_->database_->AnswerReceived(p);
@@ -1545,98 +1680,12 @@ namespace Orthanc
 
   bool OrthancPlugins::HasStorageArea() const
   {
-    return pimpl_->hasStorageArea_;
+    return pimpl_->storageArea_.get() != NULL;
   }
   
-  bool OrthancPlugins::HasDatabase() const
+  bool OrthancPlugins::HasDatabaseBackend() const
   {
     return pimpl_->database_.get() != NULL;
-  }
-
-
-
-  namespace
-  {
-    class PluginStorageArea : public IStorageArea
-    {
-    private:
-      _OrthancPluginRegisterStorageArea params_;
-
-      void Free(void* buffer) const
-      {
-        if (buffer != NULL)
-        {
-          params_.free(buffer);
-        }
-      }
-
-    public:
-      PluginStorageArea(const _OrthancPluginRegisterStorageArea& params) : params_(params)
-      {
-      }
-
-
-      virtual void Create(const std::string& uuid,
-                          const void* content, 
-                          size_t size,
-                          FileContentType type)
-      {
-        OrthancPluginErrorCode error = params_.create
-          (uuid.c_str(), content, size, Plugins::Convert(type));
-
-        if (error != OrthancPluginErrorCode_Success)
-        {
-          throw OrthancException(Plugins::Convert(error));
-        }
-      }
-
-
-      virtual void Read(std::string& content,
-                        const std::string& uuid,
-                        FileContentType type)
-      {
-        void* buffer = NULL;
-        int64_t size = 0;
-
-        OrthancPluginErrorCode error = params_.read
-          (&buffer, &size, uuid.c_str(), Plugins::Convert(type));
-
-        if (error != OrthancPluginErrorCode_Success)
-        {
-          throw OrthancException(Plugins::Convert(error));
-        }
-
-        try
-        {
-          content.resize(static_cast<size_t>(size));
-        }
-        catch (...)
-        {
-          Free(buffer);
-          throw;
-        }
-
-        if (size > 0)
-        {
-          memcpy(&content[0], buffer, static_cast<size_t>(size));
-        }
-
-        Free(buffer);
-      }
-
-
-      virtual void Remove(const std::string& uuid,
-                          FileContentType type) 
-      {
-        OrthancPluginErrorCode error = params_.remove
-          (uuid.c_str(), Plugins::Convert(type));
-
-        if (error != OrthancPluginErrorCode_Success)
-        {
-          throw OrthancException(Plugins::Convert(error));
-        }
-      }
-    };
   }
 
 
@@ -1646,23 +1695,50 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
-
-    return new PluginStorageArea(pimpl_->storageArea_);
+    else
+    {
+      return pimpl_->storageArea_->Create();
+    }
   }
 
 
-  IDatabaseWrapper& OrthancPlugins::GetDatabase()
+  const SharedLibrary& OrthancPlugins::GetStorageAreaLibrary() const
   {
-    if (!HasDatabase())
+    if (!HasStorageArea())
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
-
-    return *pimpl_->database_;
+    else
+    {
+      return pimpl_->storageArea_->GetSharedLibrary();
+    }
   }
 
 
+  IDatabaseWrapper& OrthancPlugins::GetDatabaseBackend()
+  {
+    if (!HasDatabaseBackend())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return *pimpl_->database_;
+    }
+  }
 
+
+  const SharedLibrary& OrthancPlugins::GetDatabaseBackendLibrary() const
+  {
+    if (!HasDatabaseBackend())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return pimpl_->database_->GetSharedLibrary();
+    }
+  }
 
 
   const char* OrthancPlugins::GetProperty(const char* plugin,

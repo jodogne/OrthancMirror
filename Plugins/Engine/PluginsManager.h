@@ -40,21 +40,22 @@
 
 namespace Orthanc
 {
-  class PluginsManager : boost::noncopyable
+  class PluginsManager : public boost::noncopyable
   {
   private:
-    class Plugin
+    class Plugin : public boost::noncopyable
     {
     private:
-      SharedLibrary library_;
-      std::string  version_;
+      OrthancPluginContext  context_;
+      SharedLibrary         library_;
+      std::string           version_;
+      PluginsManager&       pluginManager_;
 
     public:
-      Plugin(const std::string& path) : library_(path)
-      {
-      }
+      Plugin(PluginsManager& pluginManager,
+             const std::string& path);
 
-      SharedLibrary& GetLibrary()
+      SharedLibrary& GetSharedLibrary()
       {
         return library_;
       }
@@ -68,11 +69,20 @@ namespace Orthanc
       {
         return version_;
       }
+
+      PluginsManager& GetPluginManager()
+      {
+        return pluginManager_;
+      }
+
+      OrthancPluginContext& GetContext()
+      {
+        return context_;
+      }
     };
 
     typedef std::map<std::string, Plugin*>  Plugins;
 
-    OrthancPluginContext  context_;
     Plugins  plugins_;
     std::list<IPluginServiceProvider*> serviceProviders_;
 

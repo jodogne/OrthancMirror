@@ -6,6 +6,7 @@ Pending changes in the mainline
 Maintenance
 -----------
 
+* "/system" URI gives information about the plugins used for storage area and DB back-end
 * Plugin callbacks must now return explicit "OrthancPluginErrorCode" instead of integers
 
 

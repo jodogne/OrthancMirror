@@ -62,6 +62,21 @@ namespace Orthanc
     result["Name"] = Configuration::GetGlobalStringParameter("Name", "");
     result["Version"] = ORTHANC_VERSION;
 
+    result["StorageAreaPlugin"] = Json::nullValue;
+    result["DatabaseBackendPlugin"] = Json::nullValue;
+
+    const OrthancPlugins& plugins = OrthancRestApi::GetContext(call).GetPlugins();
+
+    if (plugins.HasStorageArea())
+    {
+      result["StorageAreaPlugin"] = plugins.GetStorageAreaLibrary().GetPath();
+    }
+
+    if (plugins.HasDatabaseBackend())
+    {
+      result["DatabaseBackendPlugin"] = plugins.GetDatabaseBackendLibrary().GetPath();
+    }
+
     call.GetOutput().AnswerJson(result);
   }
 

@@ -54,6 +54,19 @@
 
 namespace Orthanc
 {
+  PluginsManager::Plugin::Plugin(PluginsManager& pluginManager,
+                                 const std::string& path) : 
+    library_(path),
+    pluginManager_(pluginManager)
+  {
+    memset(&context_, 0, sizeof(context_));
+    context_.pluginsManager = this;
+    context_.orthancVersion = ORTHANC_VERSION;
+    context_.Free = ::free;
+    context_.InvokeService = InvokeService;
+  }
+
+
   static void CallInitialize(SharedLibrary& plugin,
                              const OrthancPluginContext& context)
   {
@@ -157,15 +170,15 @@ namespace Orthanc
         break;
     }
 
-    PluginsManager* that = reinterpret_cast<PluginsManager*>(context->pluginsManager);
+    Plugin* that = reinterpret_cast<Plugin*>(context->pluginsManager);
 
     for (std::list<IPluginServiceProvider*>::iterator
-           it = that->serviceProviders_.begin(); 
-         it != that->serviceProviders_.end(); ++it)
+           it = that->GetPluginManager().serviceProviders_.begin(); 
+         it != that->GetPluginManager().serviceProviders_.end(); ++it)
     {
       try
       {
-        if ((*it)->InvokeService(service, params))
+        if ((*it)->InvokeService(that->GetSharedLibrary(), service, params))
         {
           return OrthancPluginErrorCode_Success;
         }
@@ -185,11 +198,6 @@ namespace Orthanc
 
   PluginsManager::PluginsManager()
   {
-    memset(&context_, 0, sizeof(context_));
-    context_.pluginsManager = this;
-    context_.orthancVersion = ORTHANC_VERSION;
-    context_.Free = ::free;
-    context_.InvokeService = InvokeService;
   }
 
   PluginsManager::~PluginsManager()
@@ -201,7 +209,7 @@ namespace Orthanc
         LOG(WARNING) << "Unregistering plugin '" << it->first
                      << "' (version " << it->second->GetVersion() << ")";
 
-        CallFinalize(it->second->GetLibrary());
+        CallFinalize(it->second->GetSharedLibrary());
         delete it->second;
       }
     }
@@ -231,27 +239,27 @@ namespace Orthanc
       return;
     }
 
-    std::auto_ptr<Plugin> plugin(new Plugin(path));
+    std::auto_ptr<Plugin> plugin(new Plugin(*this, path));
 
-    if (!IsOrthancPlugin(plugin->GetLibrary()))
+    if (!IsOrthancPlugin(plugin->GetSharedLibrary()))
     {
-      LOG(ERROR) << "Plugin " << plugin->GetLibrary().GetPath()
+      LOG(ERROR) << "Plugin " << plugin->GetSharedLibrary().GetPath()
                  << " does not declare the proper entry functions";
       throw OrthancException(ErrorCode_SharedLibrary);
     }
 
-    std::string name(CallGetName(plugin->GetLibrary()));
+    std::string name(CallGetName(plugin->GetSharedLibrary()));
     if (plugins_.find(name) != plugins_.end())
     {
       LOG(ERROR) << "Plugin '" << name << "' already registered";
       throw OrthancException(ErrorCode_SharedLibrary);
     }
 
-    plugin->SetVersion(CallGetVersion(plugin->GetLibrary()));
+    plugin->SetVersion(CallGetVersion(plugin->GetSharedLibrary()));
     LOG(WARNING) << "Registering plugin '" << name
                  << "' (version " << plugin->GetVersion() << ")";
 
-    CallInitialize(plugin->GetLibrary(), context_);
+    CallInitialize(plugin->GetSharedLibrary(), plugin->GetContext());
 
     plugins_[name] = plugin.release();
   }
@@ -333,5 +341,4 @@ namespace Orthanc
       return it->second->GetVersion();
     }
   }
-
 }

@@ -128,7 +128,10 @@ namespace Orthanc
     ErrorCode_LuaAlreadyExecuted = 2032    /*!< Arguments cannot be pushed after the Lua function is executed */,
     ErrorCode_LuaBadOutput = 2033    /*!< The Lua function does not give the expected number of outputs */,
     ErrorCode_NotLuaPredicate = 2034    /*!< The Lua function is not a predicate (only true/false outputs allowed) */,
-    ErrorCode_LuaReturnsNoString = 2035    /*!< The Lua function does not return a string */
+    ErrorCode_LuaReturnsNoString = 2035    /*!< The Lua function does not return a string */,
+    ErrorCode_StorageAreaAlreadyRegistered = 2036    /*!< Another plugin has already registered a custom storage area */,
+    ErrorCode_DatabaseBackendAlreadyRegistered = 2037    /*!< Another plugin has already registered a custom database back-end */,
+    ErrorCode_DatabasePlugin = 2038    /*!< The plugin implementing a custom database back-end does not fulfill the proper interface */
   };
 
   enum LogLevel

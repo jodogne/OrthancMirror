@@ -298,6 +298,15 @@ namespace Orthanc
       case ErrorCode_LuaReturnsNoString:
         return "The Lua function does not return a string";
 
+      case ErrorCode_StorageAreaAlreadyRegistered:
+        return "Another plugin has already registered a custom storage area";
+
+      case ErrorCode_DatabaseBackendAlreadyRegistered:
+        return "Another plugin has already registered a custom database back-end";
+
+      case ErrorCode_DatabasePlugin:
+        return "The plugin implementing a custom database back-end does not fulfill the proper interface";
+
       default:
         return "Unknown error code";
     }

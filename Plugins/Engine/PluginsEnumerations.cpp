@@ -295,6 +295,15 @@ namespace Orthanc
         case OrthancPluginErrorCode_LuaReturnsNoString:
           return ErrorCode_LuaReturnsNoString;
 
+        case OrthancPluginErrorCode_StorageAreaAlreadyRegistered:
+          return ErrorCode_StorageAreaAlreadyRegistered;
+
+        case OrthancPluginErrorCode_DatabaseBackendAlreadyRegistered:
+          return ErrorCode_DatabaseBackendAlreadyRegistered;
+
+        case OrthancPluginErrorCode_DatabasePlugin:
+          return ErrorCode_DatabasePlugin;
+
         default:
           return ErrorCode_Plugin;
       }

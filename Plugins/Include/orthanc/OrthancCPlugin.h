@@ -262,6 +262,9 @@ extern "C"
     OrthancPluginErrorCode_LuaBadOutput = 2033    /*!< The Lua function does not give the expected number of outputs */,
     OrthancPluginErrorCode_NotLuaPredicate = 2034    /*!< The Lua function is not a predicate (only true/false outputs allowed) */,
     OrthancPluginErrorCode_LuaReturnsNoString = 2035    /*!< The Lua function does not return a string */,
+    OrthancPluginErrorCode_StorageAreaAlreadyRegistered = 2036    /*!< Another plugin has already registered a custom storage area */,
+    OrthancPluginErrorCode_DatabaseBackendAlreadyRegistered = 2037    /*!< Another plugin has already registered a custom database back-end */,
+    OrthancPluginErrorCode_DatabasePlugin = 2038    /*!< The plugin implementing a custom database back-end does not fulfill the proper interface */,
 
     _OrthancPluginErrorCode_INTERNAL = 0x7fffffff
   } OrthancPluginErrorCode;

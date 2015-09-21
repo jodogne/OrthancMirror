@@ -42,7 +42,7 @@
 
 namespace Orthanc
 {
-  class SharedLibrary : boost::noncopyable
+  class SharedLibrary : public boost::noncopyable
   {
   public:
 #if defined(_WIN32)
