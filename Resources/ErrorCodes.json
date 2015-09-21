@@ -468,5 +468,20 @@
     "Code": 2035, 
     "Name": "LuaReturnsNoString", 
     "Description": "The Lua function does not return a string"
+  },
+  {
+    "Code": 2036,
+    "Name": "StorageAreaAlreadyRegistered",
+    "Description": "Another plugin has already registered a custom storage area"
+  },
+  {
+    "Code": 2037,
+    "Name": "DatabaseBackendAlreadyRegistered",
+    "Description": "Another plugin has already registered a custom database back-end"
+  }, 
+  {
+    "Code": 2038, 
+    "Name": "DatabasePlugin", 
+    "Description": "The plugin implementing a custom database back-end does not fulfill the proper interface"
   }
 ]

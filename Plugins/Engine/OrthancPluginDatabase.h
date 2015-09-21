@@ -34,6 +34,7 @@
 
 #include "../../OrthancServer/IDatabaseWrapper.h"
 #include "../Include/orthanc/OrthancCDatabasePlugin.h"
+#include "SharedLibrary.h"
 
 namespace Orthanc
 {
@@ -44,6 +45,7 @@ namespace Orthanc
 
     typedef std::pair<int64_t, ResourceType>  AnswerResource;
 
+    SharedLibrary&  library_;
     _OrthancPluginDatabaseAnswerType type_;
     OrthancPluginDatabaseBackend backend_;
     OrthancPluginDatabaseExtensions extensions_;
@@ -77,10 +79,16 @@ namespace Orthanc
     bool ForwardSingleAnswer(int64_t& target);
 
   public:
-    OrthancPluginDatabase(const OrthancPluginDatabaseBackend& backend,
+    OrthancPluginDatabase(SharedLibrary& library,
+                          const OrthancPluginDatabaseBackend& backend,
                           const OrthancPluginDatabaseExtensions* extensions,
                           size_t extensionsSize,
                           void *payload);
+
+    const SharedLibrary& GetSharedLibrary() const
+    {
+      return library_;
+    }
 
     virtual void AddAttachment(int64_t id,
                                const FileInfo& attachment);

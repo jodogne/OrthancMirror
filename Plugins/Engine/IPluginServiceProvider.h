@@ -34,7 +34,7 @@
 
 #include "../Include/orthanc/OrthancCPlugin.h"
 
-#include <boost/noncopyable.hpp>
+#include "SharedLibrary.h"
 
 namespace Orthanc
 {
@@ -45,7 +45,8 @@ namespace Orthanc
     {
     }
 
-    virtual bool InvokeService(_OrthancPluginService service,
+    virtual bool InvokeService(SharedLibrary& plugin,
+                               _OrthancPluginService service,
                                const void* parameters) = 0;
   };
 }

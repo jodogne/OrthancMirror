@@ -130,7 +130,8 @@ namespace Orthanc
                         const char* bodyData,
                         size_t bodySize);
 
-    virtual bool InvokeService(_OrthancPluginService service,
+    virtual bool InvokeService(SharedLibrary& plugin,
+                               _OrthancPluginService service,
                                const void* parameters);
 
     virtual void SignalChange(const ServerIndexChange& change);
@@ -149,9 +150,13 @@ namespace Orthanc
 
     IStorageArea* CreateStorageArea();  // To be freed after use
 
-    bool HasDatabase() const;
+    const SharedLibrary& GetStorageAreaLibrary() const;
 
-    IDatabaseWrapper& GetDatabase();
+    bool HasDatabaseBackend() const;
+
+    IDatabaseWrapper& GetDatabaseBackend();
+
+    const SharedLibrary& GetDatabaseBackendLibrary() const;
 
     const char* GetProperty(const char* plugin,
                             _OrthancPluginProperty property) const;

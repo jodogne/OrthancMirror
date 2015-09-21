@@ -624,10 +624,10 @@ static bool ConfigurePlugins(int argc,
   LoadPlugins(plugins);
 
   IDatabaseWrapper* database = NULL;
-  if (plugins.HasDatabase())
+  if (plugins.HasDatabaseBackend())
   {
     LOG(WARNING) << "Using a custom database from plugins";
-    database = &plugins.GetDatabase();
+    database = &plugins.GetDatabaseBackend();
   }
   else
   {
