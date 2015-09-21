@@ -69,12 +69,14 @@ namespace Orthanc
 
     if (plugins.HasStorageArea())
     {
-      result["StorageAreaPlugin"] = plugins.GetStorageAreaLibrary().GetPath();
+      std::string p = plugins.GetStorageAreaLibrary().GetPath();
+      result["StorageAreaPlugin"] = boost::filesystem::canonical(p).string();
     }
 
     if (plugins.HasDatabaseBackend())
     {
-      result["DatabaseBackendPlugin"] = plugins.GetDatabaseBackendLibrary().GetPath();
+      std::string p = plugins.GetDatabaseBackendLibrary().GetPath();
+      result["DatabaseBackendPlugin"] = boost::filesystem::canonical(p).string();     
     }
 
     call.GetOutput().AnswerJson(result);
