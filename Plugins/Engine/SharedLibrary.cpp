@@ -48,10 +48,10 @@
 
 namespace Orthanc
 {
-  SharedLibrary::SharedLibrary(const std::string& path) : handle_(NULL)
+  SharedLibrary::SharedLibrary(const std::string& path) : 
+    path_(path), 
+    handle_(NULL)
   {
-    path_ = boost::filesystem::canonical(path).string();
-
 #if defined(_WIN32)
     handle_ = ::LoadLibraryA(path_.c_str());
     if (handle_ == NULL)
