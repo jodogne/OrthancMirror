@@ -2167,6 +2167,12 @@ extern "C"
    *
    * This function registers a callback function that is called
    * whenever a change happens to some DICOM resource.
+   *
+   * @warning If your change callback has to call the REST API of
+   * Orthanc, you should make these calls in a separate thread (with
+   * the events passing through a message queue). Otherwise, this
+   * could result in deadlocks in the presence of other plugins or Lua
+   * script.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param callback The callback function.
