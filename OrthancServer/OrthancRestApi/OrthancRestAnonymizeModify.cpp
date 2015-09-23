@@ -508,6 +508,16 @@ namespace Orthanc
       if (tag != DICOM_TAG_SPECIFIC_CHARACTER_SET)
       {
         if (tag != DICOM_TAG_PATIENT_ID &&
+            tag != DICOM_TAG_ACQUISITION_DATE &&
+            tag != DICOM_TAG_ACQUISITION_TIME &&
+            tag != DICOM_TAG_CONTENT_DATE &&
+            tag != DICOM_TAG_CONTENT_TIME &&
+            tag != DICOM_TAG_INSTANCE_CREATION_DATE &&
+            tag != DICOM_TAG_INSTANCE_CREATION_TIME &&
+            tag != DICOM_TAG_SERIES_DATE &&
+            tag != DICOM_TAG_SERIES_TIME &&
+            tag != DICOM_TAG_STUDY_DATE &&
+            tag != DICOM_TAG_STUDY_TIME &&
             dicom.HasTag(tag))
         {
           throw OrthancException(ErrorCode_CreateDicomOverrideTag);
