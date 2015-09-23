@@ -155,7 +155,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
 
   #set_source_files_properties(${DCMTK_SOURCES}
   #  PROPERTIES COMPILE_DEFINITIONS
-  #  "PACKAGE_VERSION=\"3.6.0\";PACKAGE_VERSION_NUMBER=\"${DCMTK_VERSION_NUMBER}\"")
+  #  "PACKAGE_VERSION=\"${DCMTK_PACKAGE_VERSION}\";PACKAGE_VERSION_NUMBER=\"${DCMTK_VERSION_NUMBER}\"")
 
   # This fixes crashes related to the destruction of the DCMTK OFLogger
   # http://support.dcmtk.org/docs-snapshot/file_macros.html
