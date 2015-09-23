@@ -15,6 +15,7 @@ endif()
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   SET(DCMTK_VERSION_NUMBER 360)
+  set(DCMTK_PACKAGE_VERSION "3.6.0")
   SET(DCMTK_SOURCES_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.0)
   SET(DCMTK_URL "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/dcmtk-3.6.0.zip")
   SET(DCMTK_MD5 "219ad631b82031806147e4abbfba4fa4")
@@ -30,7 +31,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   IF (CMAKE_CROSSCOMPILING)
     SET(C_CHAR_UNSIGNED 1 CACHE INTERNAL "Whether char is unsigned.")
   ENDIF()
-  SET(DCMTK_SOURCE_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.0)
+  SET(DCMTK_SOURCE_DIR ${DCMTK_SOURCES_DIR})
   include(${DCMTK_SOURCES_DIR}/CMake/CheckFunctionWithHeaderExists.cmake)
   include(${DCMTK_SOURCES_DIR}/CMake/GenerateDCMTKConfigure.cmake)
 
@@ -47,9 +48,8 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     set(HAVE_PROTOTYPE_GETSOCKNAME 1)
   endif()
 
-  set(DCMTK_PACKAGE_VERSION "3.6.0")
   set(DCMTK_PACKAGE_VERSION_SUFFIX "")
-  set(DCMTK_PACKAGE_VERSION_NUMBER 360)
+  set(DCMTK_PACKAGE_VERSION_NUMBER ${DCMTK_VERSION_NUMBER})
 
   CONFIGURE_FILE(
     ${DCMTK_SOURCES_DIR}/CMake/osconfig.h.in
@@ -155,13 +155,13 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
 
   #set_source_files_properties(${DCMTK_SOURCES}
   #  PROPERTIES COMPILE_DEFINITIONS
-  #  "PACKAGE_VERSION=\"3.6.0\";PACKAGE_VERSION_NUMBER=\"360\"")
+  #  "PACKAGE_VERSION=\"3.6.0\";PACKAGE_VERSION_NUMBER=\"${DCMTK_VERSION_NUMBER}\"")
 
   # This fixes crashes related to the destruction of the DCMTK OFLogger
   # http://support.dcmtk.org/docs-snapshot/file_macros.html
   add_definitions(
     -DLOG4CPLUS_DISABLE_FATAL=1
-    -DDCMTK_VERSION_NUMBER=360
+    -DDCMTK_VERSION_NUMBER=${DCMTK_VERSION_NUMBER}
     )
 
   include_directories(
