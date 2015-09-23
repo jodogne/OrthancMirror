@@ -40,6 +40,7 @@
 #include "../OrthancInitialization.h"
 
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 
 namespace Orthanc
 {
@@ -485,7 +486,8 @@ namespace Orthanc
 
 
   static void InjectTags(ParsedDicomFile& dicom,
-                         const Json::Value& tags)
+                         const Json::Value& tags,
+                         bool interpretBinaryTags)
   {
     if (tags.type() != Json::objectValue)
     {
@@ -503,8 +505,8 @@ namespace Orthanc
       }
 
       std::string value = tags[name].asString();
-
       DicomTag tag = FromDcmtkBridge::ParseTag(name);
+
       if (tag != DICOM_TAG_SPECIFIC_CHARACTER_SET)
       {
         if (tag != DICOM_TAG_PATIENT_ID &&
@@ -527,6 +529,13 @@ namespace Orthanc
         {
           throw OrthancException(ErrorCode_CreateDicomUseContent);
         }
+        else if (interpretBinaryTags &&
+                 boost::starts_with(value, "data:application/octet-stream;base64,"))
+        {
+          std::string mime, binary;
+          Toolbox::DecodeDataUriScheme(mime, binary, value);
+          dicom.Replace(tag, binary);
+        }
         else
         {
           dicom.Replace(tag, Toolbox::ConvertFromUtf8(value, dicom.GetEncoding()));
@@ -538,7 +547,8 @@ namespace Orthanc
 
   static void CreateSeries(RestApiPostCall& call,
                            ParsedDicomFile& base /* in */,
-                           const Json::Value& content)
+                           const Json::Value& content,
+                           bool interpretBinaryTags)
   {
     assert(content.isArray());
     assert(content.size() > 0);
@@ -571,7 +581,7 @@ namespace Orthanc
 
           if (content[i].isMember("Tags"))
           {
-            InjectTags(*dicom, content[i]["Tags"]);
+            InjectTags(*dicom, content[i]["Tags"], interpretBinaryTags);
           }
         }
 
@@ -744,6 +754,19 @@ namespace Orthanc
       }
     }
 
+
+    bool interpretBinaryTags = true;
+    if (request.isMember("InterpretBinaryTags"))
+    {
+      const Json::Value& v = request["InterpretBinaryTags"];
+      if (v.type() != Json::booleanValue)
+      {
+        throw OrthancException(ErrorCode_BadRequest);
+      }
+
+      interpretBinaryTags = v.asBool();
+    }
+
     
     // Inject time-related information
     std::string date, time;
@@ -771,7 +794,7 @@ namespace Orthanc
     }
 
 
-    InjectTags(dicom, request["Tags"]);
+    InjectTags(dicom, request["Tags"], interpretBinaryTags);
 
 
     // Inject the content (either an image, or a PDF file)
@@ -789,7 +812,7 @@ namespace Orthanc
         if (content.size() > 0)
         {
           // Let's create a series instead of a single instance
-          CreateSeries(call, dicom, content);
+          CreateSeries(call, dicom, content, interpretBinaryTags);
           return;
         }
       }

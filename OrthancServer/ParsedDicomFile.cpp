@@ -1139,12 +1139,9 @@ namespace Orthanc
 
   void ParsedDicomFile::EmbedContent(const std::string& dataUriScheme)
   {
-    std::string mime, base64;
-    Toolbox::DecodeDataUriScheme(mime, base64, dataUriScheme);
+    std::string mime, content;
+    Toolbox::DecodeDataUriScheme(mime, content, dataUriScheme);
     Toolbox::ToLowerCase(mime);
-
-    std::string content;
-    Toolbox::DecodeBase64(content, base64);
 
     if (mime == "image/png")
     {

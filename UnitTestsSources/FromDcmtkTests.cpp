@@ -145,14 +145,11 @@ TEST(DicomModification, Png)
   // Red dot in http://en.wikipedia.org/wiki/Data_URI_scheme (RGBA image)
   std::string s = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==";
 
-  std::string m, c;
-  Toolbox::DecodeDataUriScheme(m, c, s);
+  std::string m, cc;
+  Toolbox::DecodeDataUriScheme(m, cc, s);
 
   ASSERT_EQ("image/png", m);
-  ASSERT_EQ(116u, c.size());
 
-  std::string cc;
-  Toolbox::DecodeBase64(cc, c);
   PngReader reader;
   reader.ReadFromMemory(cc);
 

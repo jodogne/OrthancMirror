@@ -1021,7 +1021,7 @@ namespace Orthanc
     if (regex_match(source.c_str(), what, pattern))
     {
       mime = what[1];
-      content = what[2];
+      DecodeBase64(content, what[2]);
     }
     else
     {
