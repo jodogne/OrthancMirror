@@ -242,6 +242,7 @@ namespace Orthanc
     int argc_;
     char** argv_;
     std::auto_ptr<OrthancPluginDatabase>  database_;
+    PluginsErrorDictionary  dictionary_;
 
     PImpl() : 
       context_(NULL), 
@@ -1783,5 +1784,11 @@ namespace Orthanc
   const PluginsManager& OrthancPlugins::GetManager() const
   {
     return pimpl_->manager_;
+  }
+
+
+  PluginsErrorDictionary&  OrthancPlugins::GetErrorDictionary()
+  {
+    return pimpl_->dictionary_;
   }
 }

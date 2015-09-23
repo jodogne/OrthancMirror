@@ -112,6 +112,8 @@ namespace Orthanc
     bool HasPlugin(const std::string& name) const;
 
     const std::string& GetPluginVersion(const std::string& name) const;
+
+    static std::string GetPluginName(SharedLibrary& library);
   };
 }
 

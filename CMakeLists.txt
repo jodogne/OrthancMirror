@@ -222,6 +222,7 @@ if (ENABLE_PLUGINS)
     Plugins/Engine/OrthancPluginDatabase.cpp
     Plugins/Engine/OrthancPlugins.cpp
     Plugins/Engine/PluginsEnumerations.cpp
+    Plugins/Engine/PluginsErrorDictionary.cpp
     Plugins/Engine/PluginsManager.cpp
     Plugins/Engine/SharedLibrary.cpp
     )

@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "PluginsErrorDictionary.h"
+
 #if ORTHANC_PLUGINS_ENABLED != 1
 
 #include <boost/noncopyable.hpp>
@@ -40,6 +42,14 @@ namespace Orthanc
 {
   class OrthancPlugins : public boost::noncopyable
   {
+  private:
+    PluginsErrorDictionary  dictionary_;
+
+  public:
+    PluginsErrorDictionary& GetErrorDictionary()
+    {
+      return dictionary_;
+    }
   };
 }
 
@@ -179,6 +189,8 @@ namespace Orthanc
     PluginsManager& GetManager();
 
     const PluginsManager& GetManager() const;
+
+    PluginsErrorDictionary& GetErrorDictionary();
   };
 }
 

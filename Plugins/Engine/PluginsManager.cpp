@@ -346,4 +346,10 @@ namespace Orthanc
       return it->second->GetVersion();
     }
   }
+
+  
+  std::string PluginsManager::GetPluginName(SharedLibrary& library)
+  {
+    return CallGetName(library);
+  }
 }
