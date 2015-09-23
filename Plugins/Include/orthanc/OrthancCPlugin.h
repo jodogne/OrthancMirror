@@ -210,6 +210,8 @@ extern "C"
     OrthancPluginErrorCode_BadJson = 28    /*!< Cannot parse a JSON document */,
     OrthancPluginErrorCode_Unauthorized = 29    /*!< Bad credentials were provided to an HTTP request */,
     OrthancPluginErrorCode_BadFont = 30    /*!< Badly formatted font file */,
+    OrthancPluginErrorCode_DatabasePlugin = 31    /*!< The plugin implementing a custom database back-end does not fulfill the proper interface */,
+    OrthancPluginErrorCode_StorageAreaPlugin = 32    /*!< Error in the plugin implementing a custom storage area */,
     OrthancPluginErrorCode_SQLiteNotOpened = 1000    /*!< SQLite: The database is not opened */,
     OrthancPluginErrorCode_SQLiteAlreadyOpened = 1001    /*!< SQLite: Connection is already open */,
     OrthancPluginErrorCode_SQLiteCannotOpen = 1002    /*!< SQLite: Unable to open the database */,
@@ -264,7 +266,7 @@ extern "C"
     OrthancPluginErrorCode_LuaReturnsNoString = 2035    /*!< The Lua function does not return a string */,
     OrthancPluginErrorCode_StorageAreaAlreadyRegistered = 2036    /*!< Another plugin has already registered a custom storage area */,
     OrthancPluginErrorCode_DatabaseBackendAlreadyRegistered = 2037    /*!< Another plugin has already registered a custom database back-end */,
-    OrthancPluginErrorCode_DatabasePlugin = 2038    /*!< The plugin implementing a custom database back-end does not fulfill the proper interface */,
+    OrthancPluginErrorCode_DatabaseNotInitialized = 2038    /*!< Plugin trying to call the database during its initialization */,
 
     _OrthancPluginErrorCode_INTERNAL = 0x7fffffff
   } OrthancPluginErrorCode;

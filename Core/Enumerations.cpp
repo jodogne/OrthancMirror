@@ -142,6 +142,12 @@ namespace Orthanc
       case ErrorCode_BadFont:
         return "Badly formatted font file";
 
+      case ErrorCode_DatabasePlugin:
+        return "The plugin implementing a custom database back-end does not fulfill the proper interface";
+
+      case ErrorCode_StorageAreaPlugin:
+        return "Error in the plugin implementing a custom storage area";
+
       case ErrorCode_SQLiteNotOpened:
         return "SQLite: The database is not opened";
 
@@ -304,8 +310,8 @@ namespace Orthanc
       case ErrorCode_DatabaseBackendAlreadyRegistered:
         return "Another plugin has already registered a custom database back-end";
 
-      case ErrorCode_DatabasePlugin:
-        return "The plugin implementing a custom database back-end does not fulfill the proper interface";
+      case ErrorCode_DatabaseNotInitialized:
+        return "Plugin trying to call the database during its initialization";
 
       default:
         return "Unknown error code";

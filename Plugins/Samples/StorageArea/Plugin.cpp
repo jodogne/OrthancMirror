@@ -43,13 +43,13 @@ static OrthancPluginErrorCode StorageCreate(const char* uuid,
   FILE* fp = fopen(path.c_str(), "wb");
   if (!fp)
   {
-    return OrthancPluginErrorCode_Plugin;
+    return OrthancPluginErrorCode_StorageAreaPlugin;
   }
 
   bool ok = fwrite(content, size, 1, fp) == 1;
   fclose(fp);
 
-  return ok ? OrthancPluginErrorCode_Success : OrthancPluginErrorCode_Plugin;
+  return ok ? OrthancPluginErrorCode_Success : OrthancPluginErrorCode_StorageAreaPlugin;
 }
 
 
@@ -63,13 +63,13 @@ static OrthancPluginErrorCode StorageRead(void** content,
   FILE* fp = fopen(path.c_str(), "rb");
   if (!fp)
   {
-    return OrthancPluginErrorCode_Plugin;
+    return OrthancPluginErrorCode_StorageAreaPlugin;
   }
 
   if (fseek(fp, 0, SEEK_END) < 0)
   {
     fclose(fp);
-    return OrthancPluginErrorCode_Plugin;
+    return OrthancPluginErrorCode_StorageAreaPlugin;
   }
 
   *size = ftell(fp);
@@ -77,7 +77,7 @@ static OrthancPluginErrorCode StorageRead(void** content,
   if (fseek(fp, 0, SEEK_SET) < 0)
   {
     fclose(fp);
-    return OrthancPluginErrorCode_Plugin;
+    return OrthancPluginErrorCode_StorageAreaPlugin;
   }
 
   bool ok = true;
@@ -98,7 +98,7 @@ static OrthancPluginErrorCode StorageRead(void** content,
 
   fclose(fp);
 
-  return ok ? OrthancPluginErrorCode_Success : OrthancPluginErrorCode_Plugin;
+  return ok ? OrthancPluginErrorCode_Success : OrthancPluginErrorCode_StorageAreaPlugin;
 }
 
 
@@ -113,7 +113,7 @@ static OrthancPluginErrorCode StorageRemove(const char* uuid,
   }
   else
   {
-    return OrthancPluginErrorCode_Plugin;
+    return OrthancPluginErrorCode_StorageAreaPlugin;
   }
 }
 

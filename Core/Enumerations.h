@@ -77,6 +77,8 @@ namespace Orthanc
     ErrorCode_BadJson = 28    /*!< Cannot parse a JSON document */,
     ErrorCode_Unauthorized = 29    /*!< Bad credentials were provided to an HTTP request */,
     ErrorCode_BadFont = 30    /*!< Badly formatted font file */,
+    ErrorCode_DatabasePlugin = 31    /*!< The plugin implementing a custom database back-end does not fulfill the proper interface */,
+    ErrorCode_StorageAreaPlugin = 32    /*!< Error in the plugin implementing a custom storage area */,
     ErrorCode_SQLiteNotOpened = 1000    /*!< SQLite: The database is not opened */,
     ErrorCode_SQLiteAlreadyOpened = 1001    /*!< SQLite: Connection is already open */,
     ErrorCode_SQLiteCannotOpen = 1002    /*!< SQLite: Unable to open the database */,
@@ -131,7 +133,7 @@ namespace Orthanc
     ErrorCode_LuaReturnsNoString = 2035    /*!< The Lua function does not return a string */,
     ErrorCode_StorageAreaAlreadyRegistered = 2036    /*!< Another plugin has already registered a custom storage area */,
     ErrorCode_DatabaseBackendAlreadyRegistered = 2037    /*!< Another plugin has already registered a custom database back-end */,
-    ErrorCode_DatabasePlugin = 2038    /*!< The plugin implementing a custom database back-end does not fulfill the proper interface */
+    ErrorCode_DatabaseNotInitialized = 2038    /*!< Plugin trying to call the database during its initialization */
   };
 
   enum LogLevel

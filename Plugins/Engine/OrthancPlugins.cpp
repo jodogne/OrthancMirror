@@ -118,7 +118,7 @@ namespace Orthanc
         catch (...)
         {
           Free(buffer);
-          throw;
+          throw OrthancException(ErrorCode_NotEnoughMemory);
         }
 
         if (size > 0)
@@ -743,8 +743,7 @@ namespace Orthanc
   {
     if (!pimpl_->context_)
     {
-      LOG(ERROR) << "Plugin trying to call the database during its initialization";
-      throw OrthancException(ErrorCode_Plugin);
+      throw OrthancException(ErrorCode_DatabaseNotInitialized);
     }
   }
 
