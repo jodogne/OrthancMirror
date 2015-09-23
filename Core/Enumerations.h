@@ -133,7 +133,8 @@ namespace Orthanc
     ErrorCode_LuaReturnsNoString = 2035    /*!< The Lua function does not return a string */,
     ErrorCode_StorageAreaAlreadyRegistered = 2036    /*!< Another plugin has already registered a custom storage area */,
     ErrorCode_DatabaseBackendAlreadyRegistered = 2037    /*!< Another plugin has already registered a custom database back-end */,
-    ErrorCode_DatabaseNotInitialized = 2038    /*!< Plugin trying to call the database during its initialization */
+    ErrorCode_DatabaseNotInitialized = 2038    /*!< Plugin trying to call the database during its initialization */,
+    ErrorCode_START_PLUGINS = 1000000
   };
 
   enum LogLevel

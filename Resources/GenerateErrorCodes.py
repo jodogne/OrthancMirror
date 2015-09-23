@@ -33,7 +33,9 @@
 import json
 import os
 import re
+import sys
 
+START_PLUGINS = 1000000
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 
@@ -44,6 +46,11 @@ BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 with open(os.path.join(BASE, 'Resources', 'ErrorCodes.json'), 'r') as f:
     ERRORS = json.loads(re.sub('/\*.*?\*/', '', f.read()))
+
+for error in ERRORS:
+    if error['Code'] >= START_PLUGINS:
+        print('ERROR: Error code must be below %d, but "%s" is set to %d' % (START_PLUGINS, error['Name'], error['Code']))
+        sys.exit(-1)
 
 with open(os.path.join(BASE, 'Core', 'Enumerations.h'), 'r') as f:
     a = f.read()
@@ -63,6 +70,8 @@ with open(path, 'r') as f:
     a = f.read()
 
 s = ',\n'.join(map(lambda x: '    ErrorCode_%s = %d    /*!< %s */' % (x['Name'], int(x['Code']), x['Description']), ERRORS))
+
+s += ',\n    ErrorCode_START_PLUGINS = %d' % START_PLUGINS
 a = re.sub('(enum ErrorCode\s*{)[^}]*?(\s*};)', r'\1\n%s\2' % s, a, re.DOTALL)
 
 with open(path, 'w') as f:

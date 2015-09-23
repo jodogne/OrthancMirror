@@ -754,13 +754,15 @@ namespace Orthanc
       LOG(ERROR) << "Exception in the HTTP handler: " << e.What();
 
       Json::Value message = Json::objectValue;
+      message["Method"] = EnumerationToString(method);
+      message["Uri"] = request->uri;
+
+      // TODO
       message["HttpError"] = EnumerationToString(e.GetHttpStatus());
       message["HttpStatus"] = e.GetHttpStatus();
       message["Message"] = e.What();
-      message["Method"] = EnumerationToString(method);
       message["OrthancError"] = EnumerationToString(e.GetErrorCode());
       message["OrthancStatus"] = e.GetErrorCode();
-      message["Uri"] = request->uri;
 
       std::string info = message.toStyledString();
 

@@ -32,45 +32,52 @@
 
 #pragma once
 
-#include <stdint.h>
+#if ORTHANC_PLUGINS_ENABLED == 1
+
+#include "../Include/orthanc/OrthancCPlugin.h"
+#include "../../Core/OrthancException.h"
+#include "SharedLibrary.h"
+
+#include <map>
 #include <string>
-#include "Enumerations.h"
+#include <boost/noncopyable.hpp>
+#include <boost/thread/mutex.hpp>
+#include <json/value.h>
+
 
 namespace Orthanc
 {
-  class OrthancException
+  class PluginsErrorDictionary : public boost::noncopyable
   {
-  protected:
-    ErrorCode  errorCode_;
-    HttpStatus httpStatus_;
+  private:
+    struct Error
+    {
+      int32_t      pluginCode_;
+      std::string  description_;
+      HttpStatus   httpStatus_;
+      std::string  pluginName_;
+    };
+    
+    typedef std::map<int32_t, Error*>  Errors;
+
+    boost::mutex  mutex_;
+    int32_t  pos_;
+    Errors   errors_;
 
   public:
-    OrthancException(ErrorCode errorCode) : 
-      errorCode_(errorCode),
-      httpStatus_(ConvertErrorCodeToHttpStatus(errorCode))
-    {
-    }
+    PluginsErrorDictionary();
 
-    OrthancException(ErrorCode errorCode,
-                     HttpStatus httpStatus) :
-      errorCode_(errorCode),
-      httpStatus_(httpStatus)
-    {
-    }
+    ~PluginsErrorDictionary();
 
-    ErrorCode GetErrorCode() const
-    {
-      return errorCode_;
-    }
+    OrthancPluginErrorCode  Register(SharedLibrary& library,
+                                     int32_t  pluginCode,
+                                     const char* description,
+                                     uint16_t httpStatus);
 
-    HttpStatus GetHttpStatus() const
-    {
-      return httpStatus_;
-    }
-
-    const char* What() const
-    {
-      return EnumerationToString(errorCode_);
-    }
+    void  GetExceptionMessage(Json::Value& message,  /* out */
+                              HttpStatus& httpStatus,  /* out */
+                              const OrthancException& exception);
   };
 }
+
+#endif
