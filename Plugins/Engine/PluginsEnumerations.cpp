@@ -144,6 +144,12 @@ namespace Orthanc
         case OrthancPluginErrorCode_BadFont:
           return ErrorCode_BadFont;
 
+        case OrthancPluginErrorCode_DatabasePlugin:
+          return ErrorCode_DatabasePlugin;
+
+        case OrthancPluginErrorCode_StorageAreaPlugin:
+          return ErrorCode_StorageAreaPlugin;
+
         case OrthancPluginErrorCode_SQLiteNotOpened:
           return ErrorCode_SQLiteNotOpened;
 
@@ -306,8 +312,8 @@ namespace Orthanc
         case OrthancPluginErrorCode_DatabaseBackendAlreadyRegistered:
           return ErrorCode_DatabaseBackendAlreadyRegistered;
 
-        case OrthancPluginErrorCode_DatabasePlugin:
-          return ErrorCode_DatabasePlugin;
+        case OrthancPluginErrorCode_DatabaseNotInitialized:
+          return ErrorCode_DatabaseNotInitialized;
 
         default:
           return ErrorCode_Plugin;

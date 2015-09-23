@@ -175,7 +175,16 @@
     "Name": "BadFont", 
     "Description": "Badly formatted font file"
   },
-
+  {
+    "Code": 31, 
+    "Name": "DatabasePlugin", 
+    "Description": "The plugin implementing a custom database back-end does not fulfill the proper interface"
+  }, 
+  {
+    "Code": 32, 
+    "Name": "StorageAreaPlugin", 
+    "Description": "Error in the plugin implementing a custom storage area"
+  },
 
 
 
@@ -478,10 +487,10 @@
     "Code": 2037,
     "Name": "DatabaseBackendAlreadyRegistered",
     "Description": "Another plugin has already registered a custom database back-end"
-  }, 
+  },
   {
-    "Code": 2038, 
-    "Name": "DatabasePlugin", 
-    "Description": "The plugin implementing a custom database back-end does not fulfill the proper interface"
+    "Code": 2038,
+    "Name": "DatabaseNotInitialized",
+    "Description": "Plugin trying to call the database during its initialization"
   }
 ]

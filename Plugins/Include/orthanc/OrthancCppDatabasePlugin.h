@@ -71,7 +71,7 @@ namespace OrthancPlugins
     OrthancPluginErrorCode  code_;
 
   public:
-    DatabaseException() : code_(OrthancPluginErrorCode_Plugin)
+    DatabaseException() : code_(OrthancPluginErrorCode_DatabasePlugin)
     {
     }
 
@@ -501,7 +501,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -525,7 +525,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -547,7 +547,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -569,7 +569,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -594,7 +594,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -618,7 +618,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -642,7 +642,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -665,7 +665,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -699,7 +699,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -735,7 +735,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -768,7 +768,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -801,7 +801,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -835,7 +835,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -867,7 +867,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -890,7 +890,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -913,7 +913,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -937,7 +937,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -965,7 +965,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -989,7 +989,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1013,7 +1013,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1036,7 +1036,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1059,7 +1059,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1083,7 +1083,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1107,7 +1107,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1141,7 +1141,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1175,7 +1175,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1198,7 +1198,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1221,7 +1221,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1246,7 +1246,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1277,7 +1277,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1310,7 +1310,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1343,7 +1343,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1374,7 +1374,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1404,7 +1404,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1436,7 +1436,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1465,7 +1465,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1495,7 +1495,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1519,7 +1519,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1543,7 +1543,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1567,7 +1567,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1592,7 +1592,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1616,7 +1616,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1638,7 +1638,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1660,7 +1660,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1682,7 +1682,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1704,7 +1704,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1726,7 +1726,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1748,7 +1748,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
@@ -1771,7 +1771,7 @@ namespace OrthancPlugins
       catch (std::runtime_error& e)
       {
         LogError(backend, e);
-        return OrthancPluginErrorCode_Plugin;
+        return OrthancPluginErrorCode_DatabasePlugin;
       }
       catch (DatabaseException& e)
       {
