@@ -91,7 +91,7 @@ namespace Orthanc
 
         if (error != OrthancPluginErrorCode_Success)
         {
-          throw OrthancException(Plugins::Convert(error));
+          throw OrthancException(static_cast<ErrorCode>(error));
         }
       }
 
@@ -108,7 +108,7 @@ namespace Orthanc
 
         if (error != OrthancPluginErrorCode_Success)
         {
-          throw OrthancException(Plugins::Convert(error));
+          throw OrthancException(static_cast<ErrorCode>(error));
         }
 
         try
@@ -138,7 +138,7 @@ namespace Orthanc
 
         if (error != OrthancPluginErrorCode_Success)
         {
-          throw OrthancException(Plugins::Convert(error));
+          throw OrthancException(static_cast<ErrorCode>(error));
         }
       }
     };
@@ -464,7 +464,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(Plugins::Convert(error));
+      throw OrthancException(static_cast<ErrorCode>(error));
     }
   }
 
@@ -485,7 +485,7 @@ namespace Orthanc
 
       if (error != OrthancPluginErrorCode_Success)
       {
-        throw OrthancException(Plugins::Convert(error));
+        throw OrthancException(static_cast<ErrorCode>(error));
       }
     }
   }
@@ -507,7 +507,7 @@ namespace Orthanc
 
       if (error != OrthancPluginErrorCode_Success)
       {
-        throw OrthancException(Plugins::Convert(error));
+        throw OrthancException(static_cast<ErrorCode>(error));
       }
     }
   }
