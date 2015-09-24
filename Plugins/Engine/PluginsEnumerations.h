@@ -41,8 +41,6 @@ namespace Orthanc
 {
   namespace Plugins
   {
-    ErrorCode Convert(OrthancPluginErrorCode error);
-
     OrthancPluginResourceType Convert(ResourceType type);
 
     OrthancPluginChangeType Convert(ChangeType type);
