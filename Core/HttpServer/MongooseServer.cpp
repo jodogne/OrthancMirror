@@ -36,7 +36,6 @@
 #include "MongooseServer.h"
 
 #include "../Logging.h"
-#include "../OrthancException.h"
 #include "../ChunkedBuffer.h"
 #include "HttpToolbox.h"
 #include "mongoose.h"
@@ -583,7 +582,6 @@ namespace Orthanc
 
     MongooseOutputStream stream(connection);
     HttpOutput output(stream, that->IsKeepAliveEnabled());
-    output.SetDescribeErrorsEnabled(that->IsDescribeErrorsEnabled());
 
     // Check remote calls
     if (!that->IsRemoteAccessAllowed() &&
@@ -735,12 +733,12 @@ namespace Orthanc
       }
       catch (boost::bad_lexical_cast&)
       {
-        throw OrthancException(ErrorCode_BadParameterType, HttpStatus_400_BadRequest);
+        throw OrthancException(ErrorCode_BadParameterType);
       }
       catch (std::runtime_error&)
       {
         // Presumably an error while parsing the JSON body
-        throw OrthancException(ErrorCode_BadRequest, HttpStatus_400_BadRequest);
+        throw OrthancException(ErrorCode_BadRequest);
       }
 
       if (!found)
@@ -753,22 +751,16 @@ namespace Orthanc
       // Using this candidate handler results in an exception
       LOG(ERROR) << "Exception in the HTTP handler: " << e.What();
 
-      Json::Value message = Json::objectValue;
-      message["Method"] = EnumerationToString(method);
-      message["Uri"] = request->uri;
-
-      // TODO
-      message["HttpError"] = EnumerationToString(e.GetHttpStatus());
-      message["HttpStatus"] = e.GetHttpStatus();
-      message["Message"] = e.What();
-      message["OrthancError"] = EnumerationToString(e.GetErrorCode());
-      message["OrthancStatus"] = e.GetErrorCode();
-
-      std::string info = message.toStyledString();
-
       try
       {
-	output.SendStatus(e.GetHttpStatus(), info);
+        if (that->GetExceptionFormatter() == NULL)
+        {
+          output.SendStatus(e.GetHttpStatus());
+        }
+        else
+        {
+          that->GetExceptionFormatter()->Format(output, e, method, request->uri);
+        }
       }
       catch (OrthancException&)
       {
@@ -834,7 +826,7 @@ namespace Orthanc
     filter_ = NULL;
     keepAlive_ = false;
     httpCompression_ = true;
-    describeErrors_ = true;
+    exceptionFormatter_ = NULL;
 
 #if ORTHANC_SSL_ENABLED == 1
     // Check for the Heartbleed exploit
@@ -985,17 +977,19 @@ namespace Orthanc
     LOG(WARNING) << "HTTP compression is " << (enabled ? "enabled" : "disabled");
   }
   
-  void MongooseServer::SetDescribeErrorsEnabled(bool enabled)
-  {
-    describeErrors_ = enabled;
-    LOG(INFO) << "Description of the errors in the HTTP answers is " << (enabled ? "enabled" : "disabled");
-  }
-
   void MongooseServer::SetIncomingHttpRequestFilter(IIncomingHttpRequestFilter& filter)
   {
     Stop();
     filter_ = &filter;
   }
+
+
+  void MongooseServer::SetHttpExceptionFormatter(IHttpExceptionFormatter& formatter)
+  {
+    Stop();
+    exceptionFormatter_ = &formatter;
+  }
+
 
   bool MongooseServer::IsValidBasicHttpAuthentication(const std::string& basic) const
   {

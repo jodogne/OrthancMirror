@@ -302,15 +302,7 @@ namespace Orthanc
     
     stateMachine_.ClearHeaders();
     stateMachine_.SetHttpStatus(status);
-
-    if (describeErrors_)
-    {
-      stateMachine_.SendBody(message, messageSize);
-    }
-    else
-    {
-      stateMachine_.SendBody(NULL, 0);
-    }
+    stateMachine_.SendBody(message, messageSize);
   }
 
 
