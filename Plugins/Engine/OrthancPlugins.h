@@ -42,14 +42,6 @@ namespace Orthanc
 {
   class OrthancPlugins : public boost::noncopyable
   {
-  private:
-    PluginsErrorDictionary  dictionary_;
-
-  public:
-    PluginsErrorDictionary& GetErrorDictionary()
-    {
-      return dictionary_;
-    }
   };
 }
 

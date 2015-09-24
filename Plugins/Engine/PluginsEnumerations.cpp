@@ -316,7 +316,7 @@ namespace Orthanc
           return ErrorCode_DatabaseNotInitialized;
 
         default:
-          return ErrorCode_Plugin;
+          return ErrorCode_InternalError;
       }
     }
 

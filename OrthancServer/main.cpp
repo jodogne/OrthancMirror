@@ -307,6 +307,67 @@ public:
 };
 
 
+
+class MyHttpExceptionFormatter : public IHttpExceptionFormatter
+{
+private:
+  bool             describeErrors_;
+  OrthancPlugins*  plugins_;
+
+public:
+  MyHttpExceptionFormatter(bool describeErrors,
+                           OrthancPlugins* plugins) :
+    describeErrors_(describeErrors),
+    plugins_(plugins)
+  {
+  }
+
+  virtual void Format(HttpOutput& output,
+                      const OrthancException& exception,
+                      HttpMethod method,
+                      const char* uri)
+  {
+    if (!describeErrors_)
+    {
+      output.SendStatus(exception.GetHttpStatus());
+      return;
+    }
+
+    Json::Value message = Json::objectValue;
+    message["Method"] = EnumerationToString(method);
+    message["Uri"] = uri;
+
+    ErrorCode errorCode = exception.GetErrorCode();
+    HttpStatus httpStatus = exception.GetHttpStatus();
+
+    bool isPlugin = false;
+
+#if ORTHANC_PLUGINS_ENABLED == 1
+    if (plugins_ != NULL &&
+        plugins_->GetErrorDictionary().Format(message, httpStatus, exception))
+    {
+      errorCode = ErrorCode_Plugin;
+      isPlugin = true;
+    }
+#endif
+
+    if (!isPlugin)
+    {
+      message["Message"] = exception.What();
+    }
+
+    message["HttpError"] = EnumerationToString(httpStatus);
+    message["HttpStatus"] = httpStatus;
+    message["OrthancError"] = EnumerationToString(errorCode);
+    message["OrthancStatus"] = errorCode;
+
+    std::string info = message.toStyledString();
+    output.SendStatus(httpStatus, info);
+  }
+};
+
+
+
 static void PrintHelp(char* path)
 {
   std::cout 
@@ -413,13 +474,17 @@ static bool WaitForExit(ServerContext& context,
 
 
 static bool StartHttpServer(ServerContext& context,
-                            OrthancRestApi& restApi)
+                            OrthancRestApi& restApi,
+                            OrthancPlugins* plugins)
 {
   if (!Configuration::GetGlobalBoolParameter("HttpServerEnabled", true))
   {
     LOG(WARNING) << "The HTTP server is disabled";
     return WaitForExit(context, restApi);
   }
+
+  MyHttpExceptionFormatter exceptionFormatter(Configuration::GetGlobalBoolParameter("HttpDescribeErrors", true), plugins);
+  
 
   // HTTP server
   MyIncomingHttpRequestFilter httpFilter(context);
@@ -428,8 +493,8 @@ static bool StartHttpServer(ServerContext& context,
   httpServer.SetRemoteAccessAllowed(Configuration::GetGlobalBoolParameter("RemoteAccessAllowed", false));
   httpServer.SetKeepAliveEnabled(Configuration::GetGlobalBoolParameter("KeepAlive", false));
   httpServer.SetHttpCompressionEnabled(Configuration::GetGlobalBoolParameter("HttpCompressionEnabled", true));
-  httpServer.SetDescribeErrorsEnabled(Configuration::GetGlobalBoolParameter("HttpDescribeErrors", true));
   httpServer.SetIncomingHttpRequestFilter(httpFilter);
+  httpServer.SetHttpExceptionFormatter(exceptionFormatter);
 
   httpServer.SetAuthenticationEnabled(Configuration::GetGlobalBoolParameter("AuthenticationEnabled", false));
   Configuration::SetupRegisteredUsers(httpServer);
@@ -461,12 +526,13 @@ static bool StartHttpServer(ServerContext& context,
 
 
 static bool StartDicomServer(ServerContext& context,
-                             OrthancRestApi& restApi)
+                             OrthancRestApi& restApi,
+                             OrthancPlugins* plugins)
 {
   if (!Configuration::GetGlobalBoolParameter("DicomServerEnabled", true))
   {
     LOG(WARNING) << "The DICOM server is disabled";
-    return StartHttpServer(context, restApi);
+    return StartHttpServer(context, restApi, plugins);
   }
 
   MyDicomServerFactory serverFactory(context);
@@ -485,7 +551,7 @@ static bool StartDicomServer(ServerContext& context,
   dicomServer.Start();
   LOG(WARNING) << "DICOM server listening on port: " << dicomServer.GetPortNumber();
 
-  bool restart = StartHttpServer(context, restApi);
+  bool restart = StartHttpServer(context, restApi, plugins);
 
   dicomServer.Stop();
   LOG(WARNING) << "    DICOM server has stopped";
@@ -522,7 +588,7 @@ static bool ConfigureHttpHandler(ServerContext& context,
   OrthancRestApi restApi(context);
   context.GetHttpHandler().Register(restApi, true);
 
-  return StartDicomServer(context, restApi);
+  return StartDicomServer(context, restApi, plugins);
 }
 
 

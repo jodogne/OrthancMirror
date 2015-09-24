@@ -38,6 +38,7 @@
 #endif
 
 
+
 #include "PluginsEnumerations.h"
 #include "PluginsManager.h"
 
@@ -61,17 +62,17 @@ namespace Orthanc
   }
 
 
-  OrthancPluginErrorCode PluginsErrorDictionary::Register(SharedLibrary& library,
-                                                          int32_t pluginCode,
-                                                          const char* description,
-                                                          uint16_t httpStatus)
+  OrthancPluginErrorCode PluginsErrorDictionary::Register(const std::string& pluginName,
+                                                          int32_t  pluginCode,
+                                                          uint16_t httpStatus,
+                                                          const char* description)
   {
     std::auto_ptr<Error> error(new Error);
 
+    error->pluginName_ = pluginName;
     error->pluginCode_ = pluginCode;
     error->description_ = description;
     error->httpStatus_ = static_cast<HttpStatus>(httpStatus);
-    error->pluginName_ = PluginsManager::GetPluginName(library);
 
     OrthancPluginErrorCode code;
 
@@ -86,12 +87,10 @@ namespace Orthanc
   }
 
 
-  void  PluginsErrorDictionary::GetExceptionMessage(Json::Value& message,  /* out */
-                                                    HttpStatus& httpStatus,  /* out */
-                                                    const OrthancException& exception)
+  bool  PluginsErrorDictionary::Format(Json::Value& message,  /* out */
+                                       HttpStatus& httpStatus,  /* out */
+                                       const OrthancException& exception)
   {
-    bool done = false;
-
     if (exception.GetErrorCode() >= ErrorCode_START_PLUGINS)
     {
       boost::mutex::scoped_lock lock(mutex_);
@@ -104,20 +103,10 @@ namespace Orthanc
         message["PluginCode"] = error->second->pluginCode_;
         message["Message"] = error->second->description_;
 
-        done = true;
+        return true;
       }
     }
 
-    if (!done)
-    {
-      httpStatus = exception.GetHttpStatus();
-      message["Message"] = exception.What();
-    }
-
-    message["HttpError"] = EnumerationToString(httpStatus);
-    message["HttpStatus"] = httpStatus;
-    message["OrthancError"] = EnumerationToString(exception.GetErrorCode());
-    message["OrthancStatus"] = exception.GetErrorCode();
+    return false;
   }
-
 }

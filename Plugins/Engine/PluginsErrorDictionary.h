@@ -36,7 +36,6 @@
 
 #include "../Include/orthanc/OrthancCPlugin.h"
 #include "../../Core/OrthancException.h"
-#include "SharedLibrary.h"
 
 #include <map>
 #include <string>
@@ -52,10 +51,10 @@ namespace Orthanc
   private:
     struct Error
     {
-      int32_t      pluginCode_;
-      std::string  description_;
-      HttpStatus   httpStatus_;
       std::string  pluginName_;
+      int32_t      pluginCode_;
+      HttpStatus   httpStatus_;
+      std::string  description_;
     };
     
     typedef std::map<int32_t, Error*>  Errors;
@@ -69,14 +68,14 @@ namespace Orthanc
 
     ~PluginsErrorDictionary();
 
-    OrthancPluginErrorCode  Register(SharedLibrary& library,
+    OrthancPluginErrorCode  Register(const std::string& pluginName,
                                      int32_t  pluginCode,
-                                     const char* description,
-                                     uint16_t httpStatus);
+                                     uint16_t httpStatus,
+                                     const char* description);
 
-    void  GetExceptionMessage(Json::Value& message,  /* out */
-                              HttpStatus& httpStatus,  /* out */
-                              const OrthancException& exception);
+    bool  Format(Json::Value& message,  /* out */
+                 HttpStatus& httpStatus,  /* out */
+                 const OrthancException& exception);
   };
 }
 

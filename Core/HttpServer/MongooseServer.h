@@ -34,6 +34,8 @@
 
 #include "IHttpHandler.h"
 
+#include "../OrthancException.h"
+
 #include <list>
 #include <map>
 #include <set>
@@ -57,6 +59,21 @@ namespace Orthanc
                            const char* username) const = 0;
   };
 
+
+  class IHttpExceptionFormatter
+  {
+  public:
+    virtual ~IHttpExceptionFormatter()
+    {
+    }
+
+    virtual void Format(HttpOutput& output,
+                        const OrthancException& exception,
+                        HttpMethod method,
+                        const char* uri) = 0;
+  };
+
+
   class MongooseServer
   {
   private:
@@ -77,7 +94,7 @@ namespace Orthanc
     IIncomingHttpRequestFilter* filter_;
     bool keepAlive_;
     bool httpCompression_;
-    bool describeErrors_;
+    IHttpExceptionFormatter* exceptionFormatter_;
   
     bool IsRunning() const;
 
@@ -144,13 +161,6 @@ namespace Orthanc
 
     void SetHttpCompressionEnabled(bool enabled);
 
-    bool IsDescribeErrorsEnabled() const
-    {
-      return describeErrors_;
-    }
-
-    void SetDescribeErrorsEnabled(bool enabled);
-
     const IIncomingHttpRequestFilter* GetIncomingHttpRequestFilter() const
     {
       return filter_;
@@ -170,5 +180,12 @@ namespace Orthanc
     }
 
     IHttpHandler& GetHandler() const;
+
+    void SetHttpExceptionFormatter(IHttpExceptionFormatter& formatter);
+
+    IHttpExceptionFormatter* GetExceptionFormatter()
+    {
+      return exceptionFormatter_;
+    }
   };
 }
