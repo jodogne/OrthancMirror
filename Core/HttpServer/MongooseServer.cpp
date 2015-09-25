@@ -749,12 +749,11 @@ namespace Orthanc
     catch (OrthancException& e)
     {
       // Using this candidate handler results in an exception
-      LOG(ERROR) << "Exception in the HTTP handler: " << e.What();
-
       try
       {
         if (that->GetExceptionFormatter() == NULL)
         {
+          LOG(ERROR) << "Exception in the HTTP handler: " << e.What();
           output.SendStatus(e.GetHttpStatus());
         }
         else

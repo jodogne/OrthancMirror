@@ -327,42 +327,47 @@ public:
                       HttpMethod method,
                       const char* uri)
   {
-    if (!describeErrors_)
-    {
-      output.SendStatus(exception.GetHttpStatus());
-      return;
-    }
-
     Json::Value message = Json::objectValue;
-    message["Method"] = EnumerationToString(method);
-    message["Uri"] = uri;
-
     ErrorCode errorCode = exception.GetErrorCode();
     HttpStatus httpStatus = exception.GetHttpStatus();
 
-    bool isPlugin = false;
+    {
+      bool isPlugin = false;
 
 #if ORTHANC_PLUGINS_ENABLED == 1
-    if (plugins_ != NULL &&
-        plugins_->GetErrorDictionary().Format(message, httpStatus, exception))
-    {
-      errorCode = ErrorCode_Plugin;
-      isPlugin = true;
-    }
+      if (plugins_ != NULL &&
+          plugins_->GetErrorDictionary().Format(message, httpStatus, exception))
+      {
+        LOG(ERROR) << "Error code " << message["PluginCode"].asInt() << " inside plugin \"" 
+                   << message["PluginName"].asString() << "\": " << message["Message"].asString();
+        errorCode = ErrorCode_Plugin;
+        isPlugin = true;
+      }
 #endif
 
-    if (!isPlugin)
-    {
-      message["Message"] = exception.What();
+      if (!isPlugin)
+      {
+        LOG(ERROR) << "Exception in the HTTP handler: " << exception.What();
+        message["Message"] = exception.What();
+      }
     }
 
-    message["HttpError"] = EnumerationToString(httpStatus);
-    message["HttpStatus"] = httpStatus;
-    message["OrthancError"] = EnumerationToString(errorCode);
-    message["OrthancStatus"] = errorCode;
+    if (!describeErrors_)
+    {
+      output.SendStatus(httpStatus);
+    }
+    else
+    {
+      message["Method"] = EnumerationToString(method);
+      message["Uri"] = uri;
+      message["HttpError"] = EnumerationToString(httpStatus);
+      message["HttpStatus"] = httpStatus;
+      message["OrthancError"] = EnumerationToString(errorCode);
+      message["OrthancStatus"] = errorCode;
 
-    std::string info = message.toStyledString();
-    output.SendStatus(httpStatus, info);
+      std::string info = message.toStyledString();
+      output.SendStatus(httpStatus, info);
+    }
   }
 };
 

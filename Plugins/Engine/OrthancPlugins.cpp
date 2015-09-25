@@ -1674,6 +1674,14 @@ namespace Orthanc
         return true;
       }
 
+      case _OrthancPluginService_RegisterErrorCode:
+      {
+        const _OrthancPluginRegisterErrorCode& p =
+          *reinterpret_cast<const _OrthancPluginRegisterErrorCode*>(parameters);
+        *(p.target) = pimpl_->dictionary_.Register(plugin, p.code, p.httpStatus, p.message);
+        return true;
+      }
+
       default:
       {
         // This service is unknown to the Orthanc plugin engine

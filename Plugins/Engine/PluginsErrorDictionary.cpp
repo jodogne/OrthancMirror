@@ -62,16 +62,16 @@ namespace Orthanc
   }
 
 
-  OrthancPluginErrorCode PluginsErrorDictionary::Register(const std::string& pluginName,
+  OrthancPluginErrorCode PluginsErrorDictionary::Register(SharedLibrary& library,
                                                           int32_t  pluginCode,
                                                           uint16_t httpStatus,
-                                                          const char* description)
+                                                          const char* message)
   {
     std::auto_ptr<Error> error(new Error);
 
-    error->pluginName_ = pluginName;
+    error->pluginName_ = PluginsManager::GetPluginName(library);
     error->pluginCode_ = pluginCode;
-    error->description_ = description;
+    error->message_ = message;
     error->httpStatus_ = static_cast<HttpStatus>(httpStatus);
 
     OrthancPluginErrorCode code;
@@ -87,7 +87,7 @@ namespace Orthanc
   }
 
 
-  bool  PluginsErrorDictionary::Format(Json::Value& message,  /* out */
+  bool  PluginsErrorDictionary::Format(Json::Value& message,    /* out */
                                        HttpStatus& httpStatus,  /* out */
                                        const OrthancException& exception)
   {
@@ -101,7 +101,7 @@ namespace Orthanc
         httpStatus = error->second->httpStatus_;
         message["PluginName"] = error->second->pluginName_;
         message["PluginCode"] = error->second->pluginCode_;
-        message["Message"] = error->second->description_;
+        message["Message"] = error->second->message_;
 
         return true;
       }

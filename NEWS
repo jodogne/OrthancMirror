@@ -4,6 +4,11 @@ Pending changes in the mainline
 * Add ".dcm" suffix to files in ZIP archives (cf. URI ".../archive")
 * "/tools/create-dicom": Support of binary tags encoded using data URI scheme
 
+Plugins
+-------
+
+* New function "OrthancPluginRegisterErrorCode()" to declare custom error codes
+
 Maintenance
 -----------
 
