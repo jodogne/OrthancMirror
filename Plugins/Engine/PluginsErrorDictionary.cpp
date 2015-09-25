@@ -41,6 +41,7 @@
 
 #include "PluginsEnumerations.h"
 #include "PluginsManager.h"
+#include "../../Core/Logging.h"
 
 #include <memory>
 
@@ -84,6 +85,26 @@ namespace Orthanc
     }
 
     return code;
+  }
+
+
+  void  PluginsErrorDictionary::LogError(const OrthancException& exception)
+  {
+    if (exception.GetErrorCode() >= ErrorCode_START_PLUGINS)
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+      Errors::const_iterator error = errors_.find(static_cast<int32_t>(exception.GetErrorCode()));
+      
+      if (error != errors_.end())
+      {
+        LOG(ERROR) << "Error code " << error->second->pluginCode_
+                   << " inside plugin \"" << error->second->pluginName_
+                   << "\": " << error->second->message_;
+        return;
+      }
+    }
+
+    LOG(ERROR) << "Exception inside the plugin engine: " << exception.What();
   }
 
 
