@@ -383,6 +383,7 @@ extern "C"
     _OrthancPluginService_WriteFile = 16,
     _OrthancPluginService_GetErrorDescription = 17,
     _OrthancPluginService_CallHttpClient = 18,
+    _OrthancPluginService_RegisterErrorCode = 19,
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -3598,7 +3599,6 @@ extern "C"
     OrthancPluginContentType    type;
   } _OrthancPluginStorageAreaRemove;
 
-
   /**
    * @brief Remove a file from the storage area.
    *
@@ -3626,6 +3626,55 @@ extern "C"
     return context->InvokeService(context, _OrthancPluginService_StorageAreaRemove, &params);
   }
 
+
+
+  typedef struct
+  {
+    OrthancPluginErrorCode*  target;
+    int32_t                  code;
+    uint16_t                 httpStatus;
+    const char*              message;
+  } _OrthancPluginRegisterErrorCode;
+  
+  /**
+   * @brief Declare a custom error code for this plugin.
+   *
+   * This function declares a custom error code that can be generated
+   * by this plugin. This declaration is used to enrich the body of
+   * the HTTP answer in the case of an error, and to set the proper
+   * HTTP status code.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param code The error code that is internal to this plugin.
+   * @param httpStatus The HTTP status corresponding to this error.
+   * @param message The description of the error.
+   * @return The error code that has been assigned inside the Orthanc core.
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRegisterErrorCode(
+    OrthancPluginContext*    context,
+    int32_t                  code,
+    uint16_t                 httpStatus,
+    const char*              message)
+  {
+    OrthancPluginErrorCode target;
+
+    _OrthancPluginRegisterErrorCode params;
+    params.target = &target;
+    params.code = code;
+    params.httpStatus = httpStatus;
+    params.message = message;
+
+    if (context->InvokeService(context, _OrthancPluginService_RegisterErrorCode, &params) == OrthancPluginErrorCode_Success)
+    {
+      return target;
+    }
+    else
+    {
+      /* There was an error while assigned the error. Use a generic code. */
+      return OrthancPluginErrorCode_Plugin;
+    }
+  }
 
 
 #ifdef  __cplusplus

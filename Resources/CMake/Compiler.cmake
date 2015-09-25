@@ -50,7 +50,7 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
     ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD" OR
     ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
   set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,--no-undefined")
-  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined -Wl,--version-script=${CMAKE_SOURCE_DIR}/Plugins/Samples/Common/VersionScript.map")
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined -Wl,--version-script=${ORTHANC_ROOT}/Plugins/Samples/Common/VersionScript.map")
 
   # Remove the "-rdynamic" option
   # http://www.mail-archive.com/cmake@cmake.org/msg08837.html
@@ -108,7 +108,7 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
   endif()
 
 elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -exported_symbols_list ${CMAKE_SOURCE_DIR}/Plugins/Samples/Common/ExportedSymbols.list")
+  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -exported_symbols_list ${ORTHANC_ROOT}/Plugins/Samples/Common/ExportedSymbols.list")
 
   add_definitions(
     -D_XOPEN_SOURCE=1
