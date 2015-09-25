@@ -527,6 +527,29 @@ namespace Orthanc
   {
     result = base64_decode(data);
   }
+
+
+#  if BOOST_HAS_REGEX == 1
+  void Toolbox::DecodeDataUriScheme(std::string& mime,
+                                    std::string& content,
+                                    const std::string& source)
+  {
+    boost::regex pattern("data:([^;]+);base64,([a-zA-Z0-9=+/]*)",
+                         boost::regex::icase /* case insensitive search */);
+
+    boost::cmatch what;
+    if (regex_match(source.c_str(), what, pattern))
+    {
+      mime = what[1];
+      DecodeBase64(content, what[2]);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+  }
+#  endif
+
 #endif
 
 
@@ -1007,28 +1030,6 @@ namespace Orthanc
 
     result.push_back(currentItem);
   }
-
-
-#if BOOST_HAS_REGEX == 1
-  void Toolbox::DecodeDataUriScheme(std::string& mime,
-                                    std::string& content,
-                                    const std::string& source)
-  {
-    boost::regex pattern("data:([^;]+);base64,([a-zA-Z0-9=+/]*)",
-                         boost::regex::icase /* case insensitive search */);
-
-    boost::cmatch what;
-    if (regex_match(source.c_str(), what, pattern))
-    {
-      mime = what[1];
-      DecodeBase64(content, what[2]);
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-  }
-#endif
 
 
   void Toolbox::MakeDirectory(const std::string& path)
