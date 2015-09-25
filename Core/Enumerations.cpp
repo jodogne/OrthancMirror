@@ -44,6 +44,11 @@ namespace Orthanc
   // "Resources/GenerateErrorCodes.py"
   const char* EnumerationToString(ErrorCode error)
   {
+    if (error >= ErrorCode_START_PLUGINS)
+    {
+      return "Error encountered within some plugin";
+    }
+
     switch (error)
     {
       case ErrorCode_InternalError:

@@ -333,7 +333,7 @@ public:
 #if ORTHANC_PLUGINS_ENABLED == 1
       if (plugins_ != NULL)
       {
-        plugins_->GetErrorDictionary().LogError(exception);
+        plugins_->GetErrorDictionary().LogError(exception.GetErrorCode(), true);
         isPlugin = true;
       }
 #endif
