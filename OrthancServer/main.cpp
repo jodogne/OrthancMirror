@@ -327,6 +327,23 @@ public:
                       HttpMethod method,
                       const char* uri)
   {
+    {
+      bool isPlugin = false;
+
+#if ORTHANC_PLUGINS_ENABLED == 1
+      if (plugins_ != NULL)
+      {
+        plugins_->GetErrorDictionary().LogError(exception);
+        isPlugin = true;
+      }
+#endif
+
+      if (!isPlugin)
+      {
+        LOG(ERROR) << "Exception in the HTTP handler: " << exception.What();
+      }
+    }      
+
     Json::Value message = Json::objectValue;
     ErrorCode errorCode = exception.GetErrorCode();
     HttpStatus httpStatus = exception.GetHttpStatus();
@@ -338,8 +355,6 @@ public:
       if (plugins_ != NULL &&
           plugins_->GetErrorDictionary().Format(message, httpStatus, exception))
       {
-        LOG(ERROR) << "Error code " << message["PluginCode"].asInt() << " inside plugin \"" 
-                   << message["PluginName"].asString() << "\": " << message["Message"].asString();
         errorCode = ErrorCode_Plugin;
         isPlugin = true;
       }
@@ -347,7 +362,6 @@ public:
 
       if (!isPlugin)
       {
-        LOG(ERROR) << "Exception in the HTTP handler: " << exception.What();
         message["Message"] = exception.What();
       }
     }

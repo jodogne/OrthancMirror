@@ -74,6 +74,8 @@ namespace Orthanc
                                      uint16_t httpStatus,
                                      const char* message);
 
+    void  LogError(const OrthancException& exception);
+
     bool  Format(Json::Value& message,    /* out */
                  HttpStatus& httpStatus,  /* out */
                  const OrthancException& exception);

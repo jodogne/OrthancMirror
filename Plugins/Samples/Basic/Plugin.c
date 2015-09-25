@@ -25,6 +25,8 @@
 
 static OrthancPluginContext* context = NULL;
 
+static OrthancPluginErrorCode c1;
+
 
 ORTHANC_PLUGINS_API int32_t Callback1(OrthancPluginRestOutput* output,
                                       const char* url,
@@ -214,6 +216,8 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode CallbackCreateDicom(OrthancPluginRest
                                                                const char* url,
                                                                const OrthancPluginHttpRequest* request)
 {
+  return c1;
+      
   const char* pathLocator = "\"Path\" : \"";
   char info[1024];
   char *id, *eos;
@@ -400,6 +404,8 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   /* Play with PUT by defining a new target modality. */
   sprintf(info, "[ \"STORESCP\", \"localhost\", 2000 ]");
   OrthancPluginRestApiPut(context, &tmp, "/modalities/demo", info, strlen(info));
+
+  c1 = OrthancPluginRegisterErrorCode(context, 4, 402, "Hello world");
 
   return 0;
 }
