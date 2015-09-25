@@ -117,6 +117,12 @@ namespace Orthanc
 
     void EncodeBase64(std::string& result, 
                       const std::string& data);
+
+#  if BOOST_HAS_REGEX == 1
+    void DecodeDataUriScheme(std::string& mime,
+                             std::string& content,
+                             const std::string& source);
+#  endif
 #endif
 
     std::string GetPathToExecutable();
@@ -152,12 +158,6 @@ namespace Orthanc
     void TokenizeString(std::vector<std::string>& result,
                         const std::string& source,
                         char separator);
-
-#if BOOST_HAS_REGEX == 1
-    void DecodeDataUriScheme(std::string& mime,
-                             std::string& content,
-                             const std::string& source);
-#endif
 
     void MakeDirectory(const std::string& path);
 
