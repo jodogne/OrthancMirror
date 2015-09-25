@@ -36,6 +36,7 @@
 
 #include "../../OrthancServer/IDatabaseWrapper.h"
 #include "../Include/orthanc/OrthancCDatabasePlugin.h"
+#include "PluginsErrorDictionary.h"
 #include "SharedLibrary.h"
 
 namespace Orthanc
@@ -48,6 +49,7 @@ namespace Orthanc
     typedef std::pair<int64_t, ResourceType>  AnswerResource;
 
     SharedLibrary&  library_;
+    PluginsErrorDictionary&  errorDictionary_;
     _OrthancPluginDatabaseAnswerType type_;
     OrthancPluginDatabaseBackend backend_;
     OrthancPluginDatabaseExtensions extensions_;
@@ -82,6 +84,7 @@ namespace Orthanc
 
   public:
     OrthancPluginDatabase(SharedLibrary& library,
+                          PluginsErrorDictionary&  errorDictionary,
                           const OrthancPluginDatabaseBackend& backend,
                           const OrthancPluginDatabaseExtensions* extensions,
                           size_t extensionsSize,

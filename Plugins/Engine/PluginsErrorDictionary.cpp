@@ -88,12 +88,13 @@ namespace Orthanc
   }
 
 
-  void  PluginsErrorDictionary::LogError(const OrthancException& exception)
+  void  PluginsErrorDictionary::LogError(ErrorCode code,
+                                         bool ignoreBuiltinErrors)
   {
-    if (exception.GetErrorCode() >= ErrorCode_START_PLUGINS)
+    if (code >= ErrorCode_START_PLUGINS)
     {
       boost::mutex::scoped_lock lock(mutex_);
-      Errors::const_iterator error = errors_.find(static_cast<int32_t>(exception.GetErrorCode()));
+      Errors::const_iterator error = errors_.find(static_cast<int32_t>(code));
       
       if (error != errors_.end())
       {
@@ -104,7 +105,11 @@ namespace Orthanc
       }
     }
 
-    LOG(ERROR) << "Exception inside the plugin engine: " << exception.What();
+    if (!ignoreBuiltinErrors)
+    {
+      LOG(ERROR) << "Exception inside the plugin engine: "
+                 << EnumerationToString(code);
+    }
   }
 
 

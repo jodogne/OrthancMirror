@@ -66,6 +66,7 @@ namespace Orthanc
     {
     private:
       _OrthancPluginRegisterStorageArea callbacks_;
+      PluginsErrorDictionary&  errorDictionary_;
 
       void Free(void* buffer) const
       {
@@ -76,7 +77,10 @@ namespace Orthanc
       }
 
     public:
-      PluginStorageArea(const _OrthancPluginRegisterStorageArea& callbacks) : callbacks_(callbacks)
+      PluginStorageArea(const _OrthancPluginRegisterStorageArea& callbacks,
+                        PluginsErrorDictionary&  errorDictionary) : 
+        callbacks_(callbacks),
+        errorDictionary_(errorDictionary)
       {
       }
 
@@ -91,6 +95,7 @@ namespace Orthanc
 
         if (error != OrthancPluginErrorCode_Success)
         {
+          errorDictionary_.LogError(error, true);
           throw OrthancException(static_cast<ErrorCode>(error));
         }
       }
@@ -108,6 +113,7 @@ namespace Orthanc
 
         if (error != OrthancPluginErrorCode_Success)
         {
+          errorDictionary_.LogError(error, true);
           throw OrthancException(static_cast<ErrorCode>(error));
         }
 
@@ -138,6 +144,7 @@ namespace Orthanc
 
         if (error != OrthancPluginErrorCode_Success)
         {
+          errorDictionary_.LogError(error, true);
           throw OrthancException(static_cast<ErrorCode>(error));
         }
       }
@@ -149,12 +156,15 @@ namespace Orthanc
     private:
       SharedLibrary&   sharedLibrary_;
       _OrthancPluginRegisterStorageArea  callbacks_;
+      PluginsErrorDictionary&  errorDictionary_;
 
     public:
       StorageAreaFactory(SharedLibrary& sharedLibrary,
-                         const _OrthancPluginRegisterStorageArea& callbacks) :
+                         const _OrthancPluginRegisterStorageArea& callbacks,
+                         PluginsErrorDictionary&  errorDictionary) :
         sharedLibrary_(sharedLibrary),
-        callbacks_(callbacks)
+        callbacks_(callbacks),
+        errorDictionary_(errorDictionary)
       {
       }
 
@@ -165,7 +175,7 @@ namespace Orthanc
 
       IStorageArea* Create() const
       {
-        return new PluginStorageArea(callbacks_);
+        return new PluginStorageArea(callbacks_, errorDictionary_);
       }
     };
   }
@@ -464,6 +474,7 @@ namespace Orthanc
     }
     else
     {
+      GetErrorDictionary().LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
   }
@@ -485,6 +496,7 @@ namespace Orthanc
 
       if (error != OrthancPluginErrorCode_Success)
       {
+        GetErrorDictionary().LogError(error, true);
         throw OrthancException(static_cast<ErrorCode>(error));
       }
     }
@@ -507,6 +519,7 @@ namespace Orthanc
 
       if (error != OrthancPluginErrorCode_Success)
       {
+        GetErrorDictionary().LogError(error, true);
         throw OrthancException(static_cast<ErrorCode>(error));
       }
     }
@@ -1378,7 +1391,7 @@ namespace Orthanc
         
         if (pimpl_->storageArea_.get() == NULL)
         {
-          pimpl_->storageArea_.reset(new StorageAreaFactory(plugin, p));
+          pimpl_->storageArea_.reset(new StorageAreaFactory(plugin, p, GetErrorDictionary()));
         }
         else
         {
@@ -1457,7 +1470,8 @@ namespace Orthanc
 
         if (pimpl_->database_.get() == NULL)
         {
-          pimpl_->database_.reset(new OrthancPluginDatabase(plugin, *p.backend, NULL, 0, p.payload));
+          pimpl_->database_.reset(new OrthancPluginDatabase(plugin, GetErrorDictionary(), 
+                                                            *p.backend, NULL, 0, p.payload));
         }
         else
         {
@@ -1478,7 +1492,8 @@ namespace Orthanc
 
         if (pimpl_->database_.get() == NULL)
         {
-          pimpl_->database_.reset(new OrthancPluginDatabase(plugin, *p.backend, p.extensions,
+          pimpl_->database_.reset(new OrthancPluginDatabase(plugin, GetErrorDictionary(),
+                                                            *p.backend, p.extensions,
                                                             p.extensionsSize, p.payload));
         }
         else

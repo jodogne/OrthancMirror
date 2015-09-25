@@ -74,7 +74,14 @@ namespace Orthanc
                                      uint16_t httpStatus,
                                      const char* message);
 
-    void  LogError(const OrthancException& exception);
+    void  LogError(ErrorCode code,
+                   bool ignoreBuiltinErrors);
+
+    void  LogError(OrthancPluginErrorCode code,
+                   bool ignoreBuiltinErrors)
+    {
+      LogError(static_cast<ErrorCode>(code), ignoreBuiltinErrors);
+    }
 
     bool  Format(Json::Value& message,    /* out */
                  HttpStatus& httpStatus,  /* out */
