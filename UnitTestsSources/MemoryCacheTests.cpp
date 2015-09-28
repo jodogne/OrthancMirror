@@ -190,11 +190,6 @@ namespace
       LOG(INFO) << "Removing cache entry for " << value_;
       log_ += boost::lexical_cast<std::string>(value_) + " ";
     }
-
-    int GetValue() const 
-    {
-      return value_;
-    }
   };
 
   class IntegerProvider : public Orthanc::ICachePageProvider
@@ -235,8 +230,6 @@ TEST(MemoryCache, Basic)
 
 
 
-
-
 namespace
 {
   class S : public Orthanc::IDynamicObject
@@ -252,11 +245,6 @@ namespace
     const std::string& GetValue() const
     {
       return value_;
-    }
-
-    static const std::string& Access(const Orthanc::IDynamicObject& obj)
-    {
-      return dynamic_cast<const S&>(obj).GetValue();
     }
   };
 }

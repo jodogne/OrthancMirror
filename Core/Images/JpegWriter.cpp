@@ -69,7 +69,7 @@ namespace Orthanc
                        unsigned int width,
                        unsigned int height,
                        PixelFormat format,
-                       int quality)
+                       uint8_t quality)
   {
     cinfo.image_width = width;
     cinfo.image_height = height;

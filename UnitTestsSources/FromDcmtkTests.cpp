@@ -181,7 +181,7 @@ TEST(DicomModification, Png)
     img.SetHeight(256);
     img.SetFormat(PixelFormat_Grayscale16);
 
-    int v = 0;
+    uint16_t v = 0;
     for (unsigned int y = 0; y < img.GetHeight(); y++)
     {
       uint16_t *p = reinterpret_cast<uint16_t*>(img.GetAccessor().GetRow(y));

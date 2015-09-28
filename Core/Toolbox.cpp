@@ -468,9 +468,13 @@ namespace Orthanc
     assert(value < 16);
 
     if (value < 10)
+    {
       return value + '0';
+    }
     else
+    {
       return (value - 10) + 'a';
+    }
   }
 
 
@@ -508,8 +512,8 @@ namespace Orthanc
     result.resize(32);
     for (unsigned int i = 0; i < 16; i++)
     {
-      result[2 * i] = GetHexadecimalCharacter(actualHash[i] / 16);
-      result[2 * i + 1] = GetHexadecimalCharacter(actualHash[i] % 16);
+      result[2 * i] = GetHexadecimalCharacter(static_cast<uint8_t>(actualHash[i] / 16));
+      result[2 * i + 1] = GetHexadecimalCharacter(static_cast<uint8_t>(actualHash[i] % 16));
     }
   }
 #endif
