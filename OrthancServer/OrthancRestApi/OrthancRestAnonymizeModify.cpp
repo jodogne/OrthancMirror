@@ -365,8 +365,6 @@ namespace Orthanc
 
   static void ModifyInstance(RestApiPostCall& call)
   {
-    throw OrthancException(ErrorCode_CannotStoreInstance);
-
     DicomModification modification;
     modification.SetAllowManualIdentifiers(true);
 
