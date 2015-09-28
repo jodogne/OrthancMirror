@@ -118,7 +118,7 @@ namespace Orthanc
           throw OrthancException(ErrorCode_BadFont);
         }
 
-        c->bitmap_[j] = value;
+        c->bitmap_[j] = static_cast<uint8_t>(value);
       }
 
       int index = boost::lexical_cast<int>(characters[i]);
@@ -166,7 +166,7 @@ namespace Orthanc
     unsigned int width = MyMin(character.width_, target.GetWidth() - x);
     unsigned int height = MyMin(character.height_, target.GetHeight() - y);
 
-    uint8_t bpp = target.GetBytesPerPixel();
+    unsigned int bpp = target.GetBytesPerPixel();
 
     // Blit the font bitmap OVER the target image
     // https://en.wikipedia.org/wiki/Alpha_compositing
@@ -184,7 +184,8 @@ namespace Orthanc
           for (unsigned int cx = left; cx < width; cx++, pos++, p++)
           {
             uint16_t alpha = character.bitmap_[pos];
-            *p = (alpha * static_cast<uint16_t>(color[0]) + (255 - alpha) * static_cast<uint16_t>(*p)) >> 8;
+            uint16_t value = alpha * static_cast<uint16_t>(color[0]) + (255 - alpha) * static_cast<uint16_t>(*p);
+            *p = static_cast<uint8_t>(value >> 8);
           }
 
           break;
@@ -196,9 +197,11 @@ namespace Orthanc
           for (unsigned int cx = left; cx < width; cx++, pos++, p += 3)
           {
             uint16_t alpha = character.bitmap_[pos];
-            p[0] = (alpha * static_cast<uint16_t>(color[0]) + (255 - alpha) * static_cast<uint16_t>(p[0])) >> 8;
-            p[1] = (alpha * static_cast<uint16_t>(color[1]) + (255 - alpha) * static_cast<uint16_t>(p[1])) >> 8;
-            p[2] = (alpha * static_cast<uint16_t>(color[2]) + (255 - alpha) * static_cast<uint16_t>(p[2])) >> 8;
+            for (uint8_t i = 0; i < 3; i++)
+            {
+              uint16_t value = alpha * static_cast<uint16_t>(color[i]) + (255 - alpha) * static_cast<uint16_t>(p[i]);
+              p[i] = static_cast<uint8_t>(value >> 8);
+            }
           }
 
           break;

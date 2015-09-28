@@ -50,15 +50,15 @@
 TEST(PngWriter, ColorPattern)
 {
   Orthanc::PngWriter w;
-  int width = 17;
-  int height = 61;
-  int pitch = width * 3;
+  unsigned int width = 17;
+  unsigned int height = 61;
+  unsigned int pitch = width * 3;
 
   std::vector<uint8_t> image(height * pitch);
-  for (int y = 0; y < height; y++)
+  for (unsigned int y = 0; y < height; y++)
   {
     uint8_t *p = &image[0] + y * pitch;
-    for (int x = 0; x < width; x++, p += 3)
+    for (unsigned int x = 0; x < width; x++, p += 3)
     {
       p[0] = (y % 3 == 0) ? 255 : 0;
       p[1] = (y % 3 == 1) ? 255 : 0;

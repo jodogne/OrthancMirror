@@ -34,6 +34,7 @@
 
 #include "../ServerEnumerations.h"
 
+#include <stdint.h>
 #include <string>
 #include <json/json.h>
 
@@ -44,7 +45,7 @@ namespace Orthanc
   private:
     std::string aet_;
     std::string host_;
-    int port_;
+    uint16_t port_;
     ModalityManufacturer manufacturer_;
 
   public:
@@ -52,7 +53,7 @@ namespace Orthanc
 
     RemoteModalityParameters(const std::string& aet,
                              const std::string& host,
-                             int port,
+                             uint16_t port,
                              ModalityManufacturer manufacturer);
 
     const std::string& GetApplicationEntityTitle() const
@@ -75,12 +76,15 @@ namespace Orthanc
       host_ = host;
     }
     
-    int GetPort() const
+    uint16_t GetPort() const
     {
       return port_;
     }
 
-    void SetPort(int port);
+    void SetPort(uint16_t port)
+    {
+      port_ = port;
+    }
 
     ModalityManufacturer GetManufacturer() const
     {

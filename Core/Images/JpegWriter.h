@@ -42,7 +42,7 @@ namespace Orthanc
   class JpegWriter
   {
   private:
-    int  quality_;
+    uint8_t  quality_;
 
   public:
     JpegWriter() : quality_(90)
