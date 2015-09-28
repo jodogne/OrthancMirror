@@ -194,11 +194,13 @@ namespace Orthanc
 
 
   OrthancPluginDatabase::OrthancPluginDatabase(SharedLibrary& library,
+                                               PluginsErrorDictionary&  errorDictionary,
                                                const OrthancPluginDatabaseBackend& backend,
                                                const OrthancPluginDatabaseExtensions* extensions,
                                                size_t extensionsSize,
                                                void *payload) : 
     library_(library),
+    errorDictionary_(errorDictionary),
     type_(_OrthancPluginDatabaseAnswerType_None),
     backend_(backend),
     payload_(payload),
@@ -236,6 +238,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
   }
@@ -248,6 +251,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
   }
@@ -259,6 +263,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
   }
@@ -270,6 +275,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
   }
@@ -284,6 +290,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
 
@@ -298,6 +305,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
   }
@@ -310,6 +318,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
   }
@@ -321,6 +330,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
   }
@@ -357,6 +367,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
 
@@ -379,6 +390,7 @@ namespace Orthanc
 
       if (error != OrthancPluginErrorCode_Success)
       {
+        errorDictionary_.LogError(error, true);
         throw OrthancException(static_cast<ErrorCode>(error));
       }
 
@@ -432,6 +444,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
   }
@@ -446,6 +459,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
 
@@ -462,6 +476,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
 
@@ -483,6 +498,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
   }
@@ -500,6 +516,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
   }
@@ -517,6 +534,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
   }
@@ -532,6 +550,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
   }
@@ -546,6 +565,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
     
@@ -566,6 +586,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
 
@@ -581,6 +602,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
 
@@ -596,6 +618,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
 
@@ -611,6 +634,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
 
@@ -626,6 +650,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
 
@@ -641,6 +666,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
 
@@ -657,6 +683,7 @@ namespace Orthanc
  
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
 
@@ -688,6 +715,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
 
@@ -724,6 +752,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
   }
@@ -746,6 +775,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
   }
@@ -762,6 +792,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
 
@@ -792,6 +823,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
 
@@ -814,6 +846,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
 
@@ -830,6 +863,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
 
@@ -847,6 +881,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
 
@@ -863,6 +898,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
 
@@ -880,6 +916,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
 
@@ -909,6 +946,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
 
@@ -925,6 +963,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
 
@@ -940,6 +979,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
   }
@@ -967,6 +1007,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
   }
@@ -981,6 +1022,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
   }
@@ -993,6 +1035,7 @@ namespace Orthanc
 
     if (error != OrthancPluginErrorCode_Success)
     {
+      errorDictionary_.LogError(error, true);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
   }
@@ -1003,12 +1046,15 @@ namespace Orthanc
   private:
     const OrthancPluginDatabaseBackend& backend_;
     void* payload_;
+    PluginsErrorDictionary&  errorDictionary_;
 
   public:
     Transaction(const OrthancPluginDatabaseBackend& backend,
-                void* payload) :
+                void* payload,
+                PluginsErrorDictionary&  errorDictionary) :
       backend_(backend),
-      payload_(payload)
+      payload_(payload),
+      errorDictionary_(errorDictionary)
     {
     }
 
@@ -1018,6 +1064,7 @@ namespace Orthanc
 
       if (error != OrthancPluginErrorCode_Success)
       {
+        errorDictionary_.LogError(error, true);
         throw OrthancException(static_cast<ErrorCode>(error));
       }
     }
@@ -1028,6 +1075,7 @@ namespace Orthanc
 
       if (error != OrthancPluginErrorCode_Success)
       {
+        errorDictionary_.LogError(error, true);
         throw OrthancException(static_cast<ErrorCode>(error));
       }
     }
@@ -1038,6 +1086,7 @@ namespace Orthanc
 
       if (error != OrthancPluginErrorCode_Success)
       {
+        errorDictionary_.LogError(error, true);
         throw OrthancException(static_cast<ErrorCode>(error));
       }
     }
@@ -1046,7 +1095,7 @@ namespace Orthanc
 
   SQLite::ITransaction* OrthancPluginDatabase::StartTransaction()
   {
-    return new Transaction(backend_, payload_);
+    return new Transaction(backend_, payload_, errorDictionary_);
   }
 
 
@@ -1093,6 +1142,7 @@ namespace Orthanc
 
       if (error != OrthancPluginErrorCode_Success)
       {
+        errorDictionary_.LogError(error, true);
         throw OrthancException(static_cast<ErrorCode>(error));
       }
 
@@ -1119,6 +1169,7 @@ namespace Orthanc
 
       if (error != OrthancPluginErrorCode_Success)
       {
+        errorDictionary_.LogError(error, true);
         throw OrthancException(static_cast<ErrorCode>(error));
       }
     }

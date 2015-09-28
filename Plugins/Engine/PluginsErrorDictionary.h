@@ -36,6 +36,7 @@
 
 #include "../Include/orthanc/OrthancCPlugin.h"
 #include "../../Core/OrthancException.h"
+#include "SharedLibrary.h"
 
 #include <map>
 #include <string>
@@ -54,7 +55,7 @@ namespace Orthanc
       std::string  pluginName_;
       int32_t      pluginCode_;
       HttpStatus   httpStatus_;
-      std::string  description_;
+      std::string  message_;
     };
     
     typedef std::map<int32_t, Error*>  Errors;
@@ -68,12 +69,21 @@ namespace Orthanc
 
     ~PluginsErrorDictionary();
 
-    OrthancPluginErrorCode  Register(const std::string& pluginName,
+    OrthancPluginErrorCode  Register(SharedLibrary& library,
                                      int32_t  pluginCode,
                                      uint16_t httpStatus,
-                                     const char* description);
+                                     const char* message);
 
-    bool  Format(Json::Value& message,  /* out */
+    void  LogError(ErrorCode code,
+                   bool ignoreBuiltinErrors);
+
+    void  LogError(OrthancPluginErrorCode code,
+                   bool ignoreBuiltinErrors)
+    {
+      LogError(static_cast<ErrorCode>(code), ignoreBuiltinErrors);
+    }
+
+    bool  Format(Json::Value& message,    /* out */
                  HttpStatus& httpStatus,  /* out */
                  const OrthancException& exception);
   };
