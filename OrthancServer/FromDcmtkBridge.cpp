@@ -618,6 +618,13 @@ namespace Orthanc
   }
 
 
+  bool FromDcmtkBridge::IsUnknownTag(const DicomTag& tag)
+  {
+    DcmTag tmp(tag.GetGroup(), tag.GetElement());
+    return tmp.isUnknownVR();
+  }
+
+
   void FromDcmtkBridge::Print(FILE* fp, const DicomMap& m)
   {
     for (DicomMap::Map::const_iterator 
