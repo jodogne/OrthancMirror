@@ -46,6 +46,12 @@ namespace Orthanc
   public:
     static void InitializeDictionary();
 
+    static void RegisterDictionaryTag(const DicomTag& tag,
+                                      const DcmEVR& vr,
+                                      const std::string& name,
+                                      unsigned int minMultiplicity,
+                                      unsigned int maxMultiplicity);
+
     static Encoding DetectEncoding(DcmDataset& dataset);
 
     static void Convert(DicomMap& target, DcmDataset& dataset);

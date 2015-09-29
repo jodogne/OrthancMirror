@@ -157,43 +157,74 @@ namespace Orthanc
 #endif
 
 
+  namespace
+  {
+    class DictionaryLocker
+    {
+    private:
+      DcmDataDictionary& dictionary_;
+
+    public:
+      DictionaryLocker() : dictionary_(dcmDataDict.wrlock())
+      {
+      }
+
+      ~DictionaryLocker()
+      {
+        dcmDataDict.unlock();
+      }
+
+      DcmDataDictionary& operator*()
+      {
+        return dictionary_;
+      }
+
+      DcmDataDictionary* operator->()
+      {
+        return &dictionary_;
+      }
+    };
+  }
+
+
   void FromDcmtkBridge::InitializeDictionary()
   {
     /* Disable "gethostbyaddr" (which results in memory leaks) and use raw IP addresses */
     dcmDisableGethostbyaddr.set(OFTrue);
 
-    dcmDataDict.clear();
-    DcmDataDictionary& d = dcmDataDict.wrlock();
+    {
+      DictionaryLocker locker;
+
+      locker->clear();
 
 #if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
-    LOG(WARNING) << "Loading the embedded dictionaries";
-    /**
-     * Do not load DICONDE dictionary, it breaks the other tags. The
-     * command "strace storescu 2>&1 |grep dic" shows that DICONDE
-     * dictionary is not loaded by storescu.
-     **/
-    //LoadEmbeddedDictionary(d, EmbeddedResources::DICTIONARY_DICONDE);
+      LOG(WARNING) << "Loading the embedded dictionaries";
+      /**
+       * Do not load DICONDE dictionary, it breaks the other tags. The
+       * command "strace storescu 2>&1 |grep dic" shows that DICONDE
+       * dictionary is not loaded by storescu.
+       **/
+      //LoadEmbeddedDictionary(*locker, EmbeddedResources::DICTIONARY_DICONDE);
 
-    LoadEmbeddedDictionary(d, EmbeddedResources::DICTIONARY_DICOM);
-    LoadEmbeddedDictionary(d, EmbeddedResources::DICTIONARY_PRIVATE);
+      LoadEmbeddedDictionary(*locker, EmbeddedResources::DICTIONARY_DICOM);
+      LoadEmbeddedDictionary(*locker, EmbeddedResources::DICTIONARY_PRIVATE);
 
 #elif defined(__linux) || defined(__FreeBSD_kernel__)
-    std::string path = DCMTK_DICTIONARY_DIR;
+      std::string path = DCMTK_DICTIONARY_DIR;
 
-    const char* env = std::getenv(DCM_DICT_ENVIRONMENT_VARIABLE);
-    if (env != NULL)
-    {
-      path = std::string(env);
-    }
+      const char* env = std::getenv(DCM_DICT_ENVIRONMENT_VARIABLE);
+      if (env != NULL)
+      {
+        path = std::string(env);
+      }
 
-    LoadExternalDictionary(d, path, "dicom.dic");
-    LoadExternalDictionary(d, path, "private.dic");
+      LoadExternalDictionary(*locker, path, "dicom.dic");
+      LoadExternalDictionary(*locker, path, "private.dic");
 
 #else
 #error Support your platform here
 #endif
-
-    dcmDataDict.unlock();
+    }
 
     /* make sure data dictionary is loaded */
     if (!dcmDataDict.isDictionaryLoaded())
@@ -210,6 +241,45 @@ namespace Orthanc
         LOG(ERROR) << "The DICOM dictionary has not been correctly read";
         throw OrthancException(ErrorCode_InternalError);
       }
+    }
+  }
+
+
+  void FromDcmtkBridge::RegisterDictionaryTag(const DicomTag& tag,
+                                              const DcmEVR& vr,
+                                              const std::string& name,
+                                              unsigned int minMultiplicity,
+                                              unsigned int maxMultiplicity)
+  {
+    if (minMultiplicity < 1)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    if (maxMultiplicity == 0)
+    {
+      maxMultiplicity = DcmVariableVM;
+    }
+    else if (maxMultiplicity < minMultiplicity)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    
+    std::auto_ptr<DcmDictEntry>  entry(new DcmDictEntry(tag.GetGroup(),
+                                                        tag.GetElement(),
+                                                        vr, name.c_str(),
+                                                        static_cast<int>(minMultiplicity),
+                                                        static_cast<int>(maxMultiplicity),
+                                                        NULL    /* version */,
+                                                        OFTrue  /* doCopyString */,
+                                                        NULL    /* private creator */));
+
+    entry->setGroupRangeRestriction(DcmDictRange_Unspecified);
+    entry->setElementRangeRestriction(DcmDictRange_Unspecified);
+
+    {
+      DictionaryLocker locker;
+      locker->addEntry(entry.release());
     }
   }
 

@@ -8,6 +8,7 @@ Plugins
 -------
 
 * New function "OrthancPluginRegisterErrorCode()" to declare custom error codes
+* New function "OrthancPluginRegisterDictionaryTag()" to declare DICOM tags
 
 Maintenance
 -----------

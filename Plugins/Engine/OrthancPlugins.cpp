@@ -43,6 +43,7 @@
 #include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
 #include "../../Core/Toolbox.h"
+#include "../../OrthancServer/FromDcmtkBridge.h"
 #include "../../OrthancServer/OrthancInitialization.h"
 #include "../../OrthancServer/ServerContext.h"
 #include "../../OrthancServer/ServerToolbox.h"
@@ -297,6 +298,7 @@ namespace Orthanc
         sizeof(int32_t) != sizeof(OrthancPluginChangeType) ||
         sizeof(int32_t) != sizeof(OrthancPluginImageFormat) ||
         sizeof(int32_t) != sizeof(OrthancPluginCompressionType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginValueRepresentation) ||
         sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType))
     {
       /* Sanity check of the compiler */
@@ -1694,6 +1696,16 @@ namespace Orthanc
         const _OrthancPluginRegisterErrorCode& p =
           *reinterpret_cast<const _OrthancPluginRegisterErrorCode*>(parameters);
         *(p.target) = pimpl_->dictionary_.Register(plugin, p.code, p.httpStatus, p.message);
+        return true;
+      }
+
+      case _OrthancPluginService_RegisterDictionaryTag:
+      {
+        const _OrthancPluginRegisterDictionaryTag& p =
+          *reinterpret_cast<const _OrthancPluginRegisterDictionaryTag*>(parameters);
+        FromDcmtkBridge::RegisterDictionaryTag(DicomTag(p.group, p.element),
+                                               Plugins::Convert(p.vr), p.name,
+                                               p.minMultiplicity, p.maxMultiplicity);
         return true;
       }
 

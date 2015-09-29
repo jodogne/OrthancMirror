@@ -384,6 +384,7 @@ extern "C"
     _OrthancPluginService_GetErrorDescription = 17,
     _OrthancPluginService_CallHttpClient = 18,
     _OrthancPluginService_RegisterErrorCode = 19,
+    _OrthancPluginService_RegisterDictionaryTag = 20,
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -599,6 +600,43 @@ extern "C"
   } OrthancPluginImageFormat;
 
 
+  /**
+   * The value representations present in the DICOM standard (version 2013).
+   * @ingroup Toolbox
+   **/
+  typedef enum
+  {
+    OrthancPluginValueRepresentation_AE = 1,   /*!< Application Entity */
+    OrthancPluginValueRepresentation_AS = 2,   /*!< Age String */
+    OrthancPluginValueRepresentation_AT = 3,   /*!< Attribute Tag */
+    OrthancPluginValueRepresentation_CS = 4,   /*!< Code String */
+    OrthancPluginValueRepresentation_DA = 5,   /*!< Date */
+    OrthancPluginValueRepresentation_DS = 6,   /*!< Decimal String */
+    OrthancPluginValueRepresentation_DT = 7,   /*!< Date Time */
+    OrthancPluginValueRepresentation_FD = 8,   /*!< Floating Point Double */
+    OrthancPluginValueRepresentation_FL = 9,   /*!< Floating Point Single */
+    OrthancPluginValueRepresentation_IS = 10,  /*!< Integer String */
+    OrthancPluginValueRepresentation_LO = 11,  /*!< Long String */
+    OrthancPluginValueRepresentation_LT = 12,  /*!< Long Text */
+    OrthancPluginValueRepresentation_OB = 13,  /*!< Other Byte String */
+    OrthancPluginValueRepresentation_OF = 14,  /*!< Other Float String */
+    OrthancPluginValueRepresentation_OW = 15,  /*!< Other Word String */
+    OrthancPluginValueRepresentation_PN = 16,  /*!< Person Name */
+    OrthancPluginValueRepresentation_SH = 17,  /*!< Short String */
+    OrthancPluginValueRepresentation_SL = 18,  /*!< Signed Long */
+    OrthancPluginValueRepresentation_SQ = 19,  /*!< Sequence of Items */
+    OrthancPluginValueRepresentation_SS = 20,  /*!< Signed Short */
+    OrthancPluginValueRepresentation_ST = 21,  /*!< Short Text */
+    OrthancPluginValueRepresentation_TM = 22,  /*!< Time */
+    OrthancPluginValueRepresentation_UI = 23,  /*!< Unique Identifier (UID) */
+    OrthancPluginValueRepresentation_UL = 24,  /*!< Unsigned Long */
+    OrthancPluginValueRepresentation_UN = 25,  /*!< Unknown */
+    OrthancPluginValueRepresentation_US = 26,  /*!< Unsigned Short */
+    OrthancPluginValueRepresentation_UT = 27,  /*!< Unlimited Text */
+
+    _OrthancPluginValueRepresentation_INTERNAL = 0x7fffffff
+  } OrthancPluginValueRepresentation;
+
 
   /**
    * @brief A memory buffer allocated by the core system of Orthanc.
@@ -810,7 +848,8 @@ extern "C"
         sizeof(int32_t) != sizeof(OrthancPluginResourceType) ||
         sizeof(int32_t) != sizeof(OrthancPluginChangeType) ||
         sizeof(int32_t) != sizeof(OrthancPluginCompressionType) ||
-        sizeof(int32_t) != sizeof(OrthancPluginImageFormat))
+        sizeof(int32_t) != sizeof(OrthancPluginImageFormat) ||
+        sizeof(int32_t) != sizeof(OrthancPluginValueRepresentation))
     {
       /* Mismatch in the size of the enumerations */
       return 0;
@@ -3674,6 +3713,56 @@ extern "C"
       /* There was an error while assigned the error. Use a generic code. */
       return OrthancPluginErrorCode_Plugin;
     }
+  }
+
+
+
+  typedef struct
+  {
+    uint16_t                          group;
+    uint16_t                          element;
+    OrthancPluginValueRepresentation  vr;
+    const char*                       name;
+    uint32_t                          minMultiplicity;
+    uint32_t                          maxMultiplicity;
+  } _OrthancPluginRegisterDictionaryTag;
+  
+  /**
+   * @brief Register a new tag into the DICOM dictionary.
+   *
+   * This function declares a new tag in the dictionary of DICOM tags
+   * that is known to Orthanc. This function should be used in the
+   * OrthancPluginInitialize() callback.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param group The group of the tag.
+   * @param element The element of the tag.
+   * @param vr The value representation of the tag.
+   * @param name The nickname of the tag.
+   * @param minMultiplicity The minimum multiplicity of the tag (must be above 0).
+   * @param maxMultiplicity The maximum multiplicity of the tag. A value of 0 means
+   * an arbitrary multiplicity ("<tt>n</tt>").
+   * @return 0 if success, other value if error.
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRegisterDictionaryTag(
+    OrthancPluginContext*             context,
+    uint16_t                          group,
+    uint16_t                          element,
+    OrthancPluginValueRepresentation  vr,
+    const char*                       name,
+    uint32_t                          minMultiplicity,
+    uint32_t                          maxMultiplicity)
+  {
+    _OrthancPluginRegisterDictionaryTag params;
+    params.group = group;
+    params.element = element;
+    params.vr = vr;
+    params.name = name;
+    params.minMultiplicity = minMultiplicity;
+    params.maxMultiplicity = maxMultiplicity;
+
+    return context->InvokeService(context, _OrthancPluginService_RegisterDictionaryTag, &params);
   }
 
 
