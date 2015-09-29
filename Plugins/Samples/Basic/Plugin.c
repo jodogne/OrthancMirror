@@ -405,6 +405,9 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
 
   customError = OrthancPluginRegisterErrorCode(context, 4, 402, "Hello world");
 
+  OrthancPluginRegisterDictionaryTag(context, 0x0014, 0x1020, OrthancPluginValueRepresentation_DA,
+                                     "ValidationExpiryDate", 1, 1);
+
   return 0;
 }
 

@@ -37,6 +37,8 @@
 #include "../Include/orthanc/OrthancCPlugin.h"
 #include "../../OrthancServer/ServerEnumerations.h"
 
+#include <dcmtk/dcmdata/dcvr.h>
+
 namespace Orthanc
 {
   namespace Plugins
@@ -52,6 +54,8 @@ namespace Orthanc
     OrthancPluginContentType Convert(FileContentType type);
 
     FileContentType Convert(OrthancPluginContentType type);
+
+    DcmEVR Convert(OrthancPluginValueRepresentation vr);
   }
 }
 
