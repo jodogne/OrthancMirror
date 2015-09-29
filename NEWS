@@ -13,7 +13,8 @@ Maintenance
 -----------
 
 * "/system" URI gives information about the plugins used for storage area and DB back-end
-* Plugin callbacks must now return explicit "OrthancPluginErrorCode" instead of integers
+* Plugin callbacks should now return explicit "OrthancPluginErrorCode" instead of integers
+* "/tools/create-dicom" can create tags with unknown VR
 
 
 Version 0.9.4 (2015/09/16)

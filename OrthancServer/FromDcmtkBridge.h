@@ -56,6 +56,8 @@ namespace Orthanc
 
     static bool IsPrivateTag(const DicomTag& tag);
 
+    static bool IsUnknownTag(const DicomTag& tag);
+
     static DicomValue* ConvertLeafElement(DcmElement& element,
                                           Encoding encoding);
 

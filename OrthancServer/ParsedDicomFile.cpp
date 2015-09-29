@@ -864,7 +864,8 @@ namespace Orthanc
   {
     OFCondition cond;
 
-    if (FromDcmtkBridge::IsPrivateTag(tag))
+    if (FromDcmtkBridge::IsPrivateTag(tag) ||
+        FromDcmtkBridge::IsUnknownTag(tag))
     {
       // This is a private tag
       // http://support.dcmtk.org/redmine/projects/dcmtk/wiki/howto_addprivatedata
@@ -915,7 +916,8 @@ namespace Orthanc
     }
     else
     {
-      if (FromDcmtkBridge::IsPrivateTag(tag))
+      if (FromDcmtkBridge::IsPrivateTag(tag) ||
+          FromDcmtkBridge::IsUnknownTag(tag))
       {
         if (!element->putUint8Array((const Uint8*) value.c_str(), value.size()).good())
         {
@@ -968,6 +970,7 @@ namespace Orthanc
     DcmDataset& dataset = *pimpl_->file_->getDataset();
 
     if (FromDcmtkBridge::IsPrivateTag(tag) ||
+        FromDcmtkBridge::IsUnknownTag(tag) ||
         tag == DICOM_TAG_PIXEL_DATA ||
         tag == DICOM_TAG_ENCAPSULATED_DOCUMENT)
     {
