@@ -39,9 +39,9 @@
 #include "../Core/Toolbox.h"
 #include "../Core/FileStorage/FilesystemStorage.h"
 
-#include "DicomProtocol/DicomServer.h"
 #include "ServerEnumerations.h"
 #include "DatabaseWrapper.h"
+#include "FromDcmtkBridge.h"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
@@ -311,6 +311,7 @@ namespace Orthanc
   }
 
 
+
   void OrthancInitialize(const char* configurationFile)
   {
     boost::mutex::scoped_lock lock(globalMutex_);
@@ -338,7 +339,7 @@ namespace Orthanc
     RegisterUserMetadata();
     RegisterUserContentType();
 
-    DicomServer::InitializeDictionary();
+    FromDcmtkBridge::InitializeDictionary();
 
 #if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
     LOG(WARNING) << "Registering JPEG Lossless codecs";

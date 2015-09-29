@@ -44,6 +44,8 @@ namespace Orthanc
   class FromDcmtkBridge
   {
   public:
+    static void InitializeDictionary();
+
     static Encoding DetectEncoding(DcmDataset& dataset);
 
     static void Convert(DicomMap& target, DcmDataset& dataset);
