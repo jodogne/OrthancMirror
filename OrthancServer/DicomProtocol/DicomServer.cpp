@@ -42,8 +42,6 @@
 #include "EmbeddedResources.h"
 
 #include <boost/thread.hpp>
-#include <boost/filesystem.hpp>
-#include <dcmtk/dcmdata/dcdict.h>
 
 #if defined(__linux)
 #include <cstdlib>
@@ -58,99 +56,6 @@ namespace Orthanc
 
     //std::set<
   };
-
-
-#if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
-  static void LoadEmbeddedDictionary(DcmDataDictionary& dictionary,
-                                     EmbeddedResources::FileResourceId resource)
-  {
-    Toolbox::TemporaryFile tmp;
-
-    FILE* fp = fopen(tmp.GetPath().c_str(), "wb");
-    fwrite(EmbeddedResources::GetFileResourceBuffer(resource), 
-           EmbeddedResources::GetFileResourceSize(resource), 1, fp);
-    fclose(fp);
-
-    if (!dictionary.loadDictionary(tmp.GetPath().c_str()))
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-  }
-                             
-#else
-  static void LoadExternalDictionary(DcmDataDictionary& dictionary,
-                                     const std::string& directory,
-                                     const std::string& filename)
-  {
-    boost::filesystem::path p = directory;
-    p = p / filename;
-
-    LOG(WARNING) << "Loading the external DICOM dictionary " << p;
-
-    if (!dictionary.loadDictionary(p.string().c_str()))
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-  }
-                            
-#endif
-
-
-  void DicomServer::InitializeDictionary()
-  {
-    /* Disable "gethostbyaddr" (which results in memory leaks) and use raw IP addresses */
-    dcmDisableGethostbyaddr.set(OFTrue);
-
-    dcmDataDict.clear();
-    DcmDataDictionary& d = dcmDataDict.wrlock();
-
-#if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
-    LOG(WARNING) << "Loading the embedded dictionaries";
-    /**
-     * Do not load DICONDE dictionary, it breaks the other tags. The
-     * command "strace storescu 2>&1 |grep dic" shows that DICONDE
-     * dictionary is not loaded by storescu.
-     **/
-    //LoadEmbeddedDictionary(d, EmbeddedResources::DICTIONARY_DICONDE);
-
-    LoadEmbeddedDictionary(d, EmbeddedResources::DICTIONARY_DICOM);
-    LoadEmbeddedDictionary(d, EmbeddedResources::DICTIONARY_PRIVATE);
-
-#elif defined(__linux) || defined(__FreeBSD_kernel__)
-    std::string path = DCMTK_DICTIONARY_DIR;
-
-    const char* env = std::getenv(DCM_DICT_ENVIRONMENT_VARIABLE);
-    if (env != NULL)
-    {
-      path = std::string(env);
-    }
-
-    LoadExternalDictionary(d, path, "dicom.dic");
-    LoadExternalDictionary(d, path, "private.dic");
-
-#else
-#error Support your platform here
-#endif
-
-    dcmDataDict.unlock();
-
-    /* make sure data dictionary is loaded */
-    if (!dcmDataDict.isDictionaryLoaded())
-    {
-      LOG(ERROR) << "No DICOM dictionary loaded, check environment variable: " << DCM_DICT_ENVIRONMENT_VARIABLE;
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    {
-      // Test the dictionary with a simple DICOM tag
-      DcmTag key(0x0010, 0x1030); // This is PatientWeight
-      if (key.getEVR() != EVR_DS)
-      {
-        LOG(ERROR) << "The DICOM dictionary has not been correctly read";
-        throw OrthancException(ErrorCode_InternalError);
-      }
-    }
-  }
 
 
   void DicomServer::ServerThread(DicomServer* server)
