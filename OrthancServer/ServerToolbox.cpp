@@ -35,120 +35,267 @@
 
 #include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
+#include "../Core/DicomFormat/DicomArray.h"
+#include "ParsedDicomFile.h"
 
 #include <cassert>
 
 namespace Orthanc
 {
-  void SimplifyTags(Json::Value& target,
-                    const Json::Value& source)
+  namespace Toolbox
   {
-    assert(source.isObject());
-
-    target = Json::objectValue;
-    Json::Value::Members members = source.getMemberNames();
-
-    for (size_t i = 0; i < members.size(); i++)
+    void SimplifyTags(Json::Value& target,
+                      const Json::Value& source)
     {
-      const Json::Value& v = source[members[i]];
-      const std::string& name = v["Name"].asString();
-      const std::string& type = v["Type"].asString();
+      assert(source.isObject());
 
-      if (type == "String")
-      {
-        target[name] = v["Value"].asString();
-      }
-      else if (type == "TooLong" ||
-               type == "Null")
-      {
-        target[name] = Json::nullValue;
-      }
-      else if (type == "Sequence")
-      {
-        const Json::Value& array = v["Value"];
-        assert(array.isArray());
+      target = Json::objectValue;
+      Json::Value::Members members = source.getMemberNames();
 
-        Json::Value children = Json::arrayValue;
-        for (Json::Value::ArrayIndex i = 0; i < array.size(); i++)
+      for (size_t i = 0; i < members.size(); i++)
+      {
+        const Json::Value& v = source[members[i]];
+        const std::string& name = v["Name"].asString();
+        const std::string& type = v["Type"].asString();
+
+        if (type == "String")
         {
-          Json::Value c;
-          SimplifyTags(c, array[i]);
-          children.append(c);
+          target[name] = v["Value"].asString();
         }
+        else if (type == "TooLong" ||
+                 type == "Null")
+        {
+          target[name] = Json::nullValue;
+        }
+        else if (type == "Sequence")
+        {
+          const Json::Value& array = v["Value"];
+          assert(array.isArray());
 
-        target[name] = children;
+          Json::Value children = Json::arrayValue;
+          for (Json::Value::ArrayIndex i = 0; i < array.size(); i++)
+          {
+            Json::Value c;
+            SimplifyTags(c, array[i]);
+            children.append(c);
+          }
+
+          target[name] = children;
+        }
+        else
+        {
+          assert(0);
+        }
+      }
+    }
+
+
+    void LogMissingRequiredTag(const DicomMap& summary)
+    {
+      std::string s, t;
+
+      if (summary.HasTag(DICOM_TAG_PATIENT_ID))
+      {
+        if (t.size() > 0)
+          t += ", ";
+        t += "PatientID=" + summary.GetValue(DICOM_TAG_PATIENT_ID).AsString();
       }
       else
       {
-        assert(0);
+        if (s.size() > 0)
+          s += ", ";
+        s += "PatientID";
+      }
+
+      if (summary.HasTag(DICOM_TAG_STUDY_INSTANCE_UID))
+      {
+        if (t.size() > 0)
+          t += ", ";
+        t += "StudyInstanceUID=" + summary.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString();
+      }
+      else
+      {
+        if (s.size() > 0)
+          s += ", ";
+        s += "StudyInstanceUID";
+      }
+
+      if (summary.HasTag(DICOM_TAG_SERIES_INSTANCE_UID))
+      {
+        if (t.size() > 0)
+          t += ", ";
+        t += "SeriesInstanceUID=" + summary.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).AsString();
+      }
+      else
+      {
+        if (s.size() > 0)
+          s += ", ";
+        s += "SeriesInstanceUID";
+      }
+
+      if (summary.HasTag(DICOM_TAG_SOP_INSTANCE_UID))
+      {
+        if (t.size() > 0)
+          t += ", ";
+        t += "SOPInstanceUID=" + summary.GetValue(DICOM_TAG_SOP_INSTANCE_UID).AsString();
+      }
+      else
+      {
+        if (s.size() > 0)
+          s += ", ";
+        s += "SOPInstanceUID";
+      }
+
+      if (t.size() == 0)
+      {
+        LOG(ERROR) << "Store has failed because all the required tags (" << s << ") are missing (is it a DICOMDIR file?)";
+      }
+      else
+      {
+        LOG(ERROR) << "Store has failed because required tags (" << s << ") are missing for the following instance: " << t;
       }
     }
-  }
 
 
-  void LogMissingRequiredTag(const DicomMap& summary)
-  {
-    std::string s, t;
+    void SetMainDicomTags(IDatabaseWrapper& database,
+                          int64_t resource,
+                          ResourceType level,
+                          const DicomMap& dicomSummary,
+                          bool includeIdentifiers)
+    {
+      // WARNING: The database should be locked with a transaction!
 
-    if (summary.HasTag(DICOM_TAG_PATIENT_ID))
-    {
-      if (t.size() > 0)
-        t += ", ";
-      t += "PatientID=" + summary.GetValue(DICOM_TAG_PATIENT_ID).AsString();
-    }
-    else
-    {
-      if (s.size() > 0)
-        s += ", ";
-      s += "PatientID";
-    }
+      DicomMap tags;
 
-    if (summary.HasTag(DICOM_TAG_STUDY_INSTANCE_UID))
-    {
-      if (t.size() > 0)
-        t += ", ";
-      t += "StudyInstanceUID=" + summary.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString();
-    }
-    else
-    {
-      if (s.size() > 0)
-        s += ", ";
-      s += "StudyInstanceUID";
-    }
+      switch (level)
+      {
+        case ResourceType_Patient:
+          dicomSummary.ExtractPatientInformation(tags);
+          break;
 
-    if (summary.HasTag(DICOM_TAG_SERIES_INSTANCE_UID))
-    {
-      if (t.size() > 0)
-        t += ", ";
-      t += "SeriesInstanceUID=" + summary.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).AsString();
-    }
-    else
-    {
-      if (s.size() > 0)
-        s += ", ";
-      s += "SeriesInstanceUID";
-    }
+        case ResourceType_Study:
+          dicomSummary.ExtractStudyInformation(tags);
+          break;
 
-    if (summary.HasTag(DICOM_TAG_SOP_INSTANCE_UID))
-    {
-      if (t.size() > 0)
-        t += ", ";
-      t += "SOPInstanceUID=" + summary.GetValue(DICOM_TAG_SOP_INSTANCE_UID).AsString();
-    }
-    else
-    {
-      if (s.size() > 0)
-        s += ", ";
-      s += "SOPInstanceUID";
+        case ResourceType_Series:
+          dicomSummary.ExtractSeriesInformation(tags);
+          break;
+
+        case ResourceType_Instance:
+          dicomSummary.ExtractInstanceInformation(tags);
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+
+      DicomArray flattened(tags);
+      for (size_t i = 0; i < flattened.GetSize(); i++)
+      {
+        const DicomElement& element = flattened.GetElement(i);
+
+        if (includeIdentifiers ||
+            !element.GetTag().IsIdentifier())
+        {
+          database.SetMainDicomTag(resource, element.GetTag(), element.GetValue().AsString());
+        }
+      }
     }
 
-    if (t.size() == 0)
+
+    bool FindOneChildInstance(int64_t& result,
+                              IDatabaseWrapper& database,
+                              int64_t resource,
+                              ResourceType type)
     {
-      LOG(ERROR) << "Store has failed because all the required tags (" << s << ") are missing (is it a DICOMDIR file?)";
+      for (;;)
+      {
+        if (type == ResourceType_Instance)
+        {
+          result = resource;
+          return true;
+        }
+
+        std::list<int64_t> children;
+        database.GetChildrenInternalId(children, resource);
+        if (children.empty())
+        {
+          return false;
+        }
+
+        resource = children.front();
+        type = GetChildResourceType(type);    
+      }
     }
-    else
+
+
+    void ReconstructMainDicomTags(IDatabaseWrapper& database,
+                                  IStorageArea& storageArea,
+                                  ResourceType level)
     {
-      LOG(ERROR) << "Store has failed because required tags (" << s << ") are missing for the following instance: " << t;
+      // WARNING: The database should be locked with a transaction!
+
+      std::list<std::string> resources;
+      database.GetAllPublicIds(resources, level);
+
+      for (std::list<std::string>::const_iterator
+             it = resources.begin(); it != resources.end(); it++)
+      {
+        // Locate the resource and one of its child instances
+        int64_t resource, instance;
+        ResourceType tmp;
+
+        if (!database.LookupResource(resource, tmp, *it) ||
+            tmp != level ||
+            !FindOneChildInstance(instance, database, resource, level))
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+
+        // Get the DICOM file attached to some instances in the resource
+        FileInfo attachment;
+        if (!database.LookupAttachment(attachment, instance, FileContentType_Dicom))
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+
+        // Read and parse the content of the DICOM file
+        std::string content;
+        storageArea.Read(content, attachment.GetUuid(), FileContentType_Dicom);
+
+        ParsedDicomFile dicom(content);
+
+        // Update the tags of this resource
+        DicomMap dicomSummary;
+        dicom.Convert(dicomSummary);
+
+        database.ClearMainDicomTags(resource);
+
+        switch (level)
+        {
+          case ResourceType_Patient:
+            Toolbox::SetMainDicomTags(database, resource, ResourceType_Patient, dicomSummary, true);
+            break;
+
+          case ResourceType_Study:
+            Toolbox::SetMainDicomTags(database, resource, ResourceType_Study, dicomSummary, true);
+
+            // Duplicate the patient tags at the study level
+            Toolbox::SetMainDicomTags(database, resource, ResourceType_Patient, dicomSummary, false);
+            break;
+
+          case ResourceType_Series:
+            Toolbox::SetMainDicomTags(database, resource, ResourceType_Series, dicomSummary, true);
+            break;
+
+          case ResourceType_Instance:
+            Toolbox::SetMainDicomTags(database, resource, ResourceType_Instance, dicomSummary, true);
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_InternalError);
+        }
+      }
     }
   }
 }

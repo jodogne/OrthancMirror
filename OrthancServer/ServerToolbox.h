@@ -33,13 +33,32 @@
 #pragma once
 
 #include "../Core/DicomFormat/DicomMap.h"
+#include "IDatabaseWrapper.h"
 
 #include <json/json.h>
 
 namespace Orthanc
 {
-  void SimplifyTags(Json::Value& target,
-                    const Json::Value& source);
+  namespace Toolbox
+  {
+    void SimplifyTags(Json::Value& target,
+                      const Json::Value& source);
 
-  void LogMissingRequiredTag(const DicomMap& summary);
+    void LogMissingRequiredTag(const DicomMap& summary);
+
+    void SetMainDicomTags(IDatabaseWrapper& database,
+                          int64_t resource,
+                          ResourceType level,
+                          const DicomMap& dicomSummary,
+                          bool includeIdentifiers);
+
+    bool FindOneChildInstance(int64_t& result,
+                              IDatabaseWrapper& database,
+                              int64_t resource,
+                              ResourceType type);
+
+    void ReconstructMainDicomTags(IDatabaseWrapper& database,
+                                  IStorageArea& storageArea,
+                                  ResourceType level);
+  }
 }

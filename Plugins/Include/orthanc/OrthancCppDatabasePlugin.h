@@ -458,6 +458,8 @@ namespace OrthancPlugins
 
     virtual void UpgradeDatabase(uint32_t  targetVersion,
                                  OrthancPluginStorageArea* storageArea) = 0;
+
+    virtual void ClearMainDicomTags(int64_t internalId) = 0;
   };
 
 
@@ -1780,6 +1782,28 @@ namespace OrthancPlugins
     }
 
     
+    static OrthancPluginErrorCode ClearMainDicomTags(void* payload,
+                                                     int64_t internalId)
+    {
+      IDatabaseBackend* backend = reinterpret_cast<IDatabaseBackend*>(payload);
+      
+      try
+      {
+        backend->ClearMainDicomTags(internalId);
+        return OrthancPluginErrorCode_Success;
+      }
+      catch (std::runtime_error& e)
+      {
+        LogError(backend, e);
+        return OrthancPluginErrorCode_DatabasePlugin;
+      }
+      catch (DatabaseException& e)
+      {
+        return e.GetErrorCode();
+      }
+    }
+
+    
   public:
     /**
      * Register a custom database back-end written in C++.
@@ -1847,6 +1871,7 @@ namespace OrthancPlugins
       extensions.getAllPublicIdsWithLimit = GetAllPublicIdsWithLimit;
       extensions.getDatabaseVersion = GetDatabaseVersion;
       extensions.upgradeDatabase = UpgradeDatabase;
+      extensions.clearMainDicomTags = ClearMainDicomTags;
 
       OrthancPluginDatabaseContext* database = OrthancPluginRegisterDatabaseBackendV2(context, &params, &extensions, &backend);
       if (!context)

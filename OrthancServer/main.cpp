@@ -613,43 +613,114 @@ static bool ConfigureHttpHandler(ServerContext& context,
 }
 
 
+
+
+static bool ReconstructLevel(IDatabaseWrapper& database,
+                             IStorageArea& storageArea,
+                             bool allowDatabaseUpgrade,
+                             ResourceType level)
+{
+  GlobalProperty property;
+  const char* plural = NULL;
+
+  switch (level)
+  {
+    case ResourceType_Patient:
+      plural = "patients";
+      property = GlobalProperty_ReconstructPatientsTags;
+      break;
+
+    case ResourceType_Study:
+      plural = "studies";
+      property = GlobalProperty_ReconstructStudiesTags;
+      break;
+
+    case ResourceType_Series:
+      plural = "series";
+      property = GlobalProperty_ReconstructSeriesTags;
+      break;
+
+    case ResourceType_Instance:
+      plural = "instances";
+      property = GlobalProperty_ReconstructInstancesTags;
+      break;
+
+    default:
+      throw OrthancException(ErrorCode_InternalError);
+  }
+
+  std::string tmp;
+  if (database.LookupGlobalProperty(tmp, property) && tmp != "0")
+  {
+    if (!allowDatabaseUpgrade)
+    {
+      LOG(ERROR) << "The main DICOM tags of all the " << plural
+                 << " must be reconstructed: "
+                 << "Please run Orthanc with the \"--upgrade\" command-line option";
+      return false;
+    }
+
+    std::auto_ptr<SQLite::ITransaction> transaction(database.StartTransaction());
+    transaction->Begin();
+
+    LOG(WARNING) << "Upgrade: Reconstructing the main DICOM tags of all the " << plural << "...";
+    Toolbox::ReconstructMainDicomTags(database, storageArea, level);
+
+    database.SetGlobalProperty(property, "0");
+
+    transaction->Commit();
+  }
+
+  return true;
+}
+
+
 static bool UpgradeDatabase(IDatabaseWrapper& database,
                             IStorageArea& storageArea,
                             bool allowDatabaseUpgrade)
 {
-  // Upgrade the database, if needed
+  // Upgrade the schema of the database, if needed
   unsigned int currentVersion = database.GetDatabaseVersion();
-  if (currentVersion == ORTHANC_DATABASE_VERSION)
+  if (currentVersion != ORTHANC_DATABASE_VERSION)
   {
-    return true;
-  }
+    if (currentVersion > ORTHANC_DATABASE_VERSION)
+    {
+      LOG(ERROR) << "The version of the database schema (" << currentVersion
+                 << ") is too recent for this version of Orthanc. Please upgrade Orthanc.";
+      return false;
+    }
 
-  if (currentVersion > ORTHANC_DATABASE_VERSION)
-  {
-    LOG(ERROR) << "The version of the database (" << currentVersion
-               << ") is too recent for this version of Orthanc. Please upgrade Orthanc.";
-    return false;
-  }
+    if (!allowDatabaseUpgrade)
+    {
+      LOG(ERROR) << "The database schema must be upgraded from version "
+                 << currentVersion << " to " << ORTHANC_DATABASE_VERSION 
+                 << ": Please run Orthanc with the \"--upgrade\" command-line option";
+      return false;
+    }
 
-  if (!allowDatabaseUpgrade)
-  {
-    LOG(ERROR) << "The database must be upgraded from version "
-               << currentVersion << " to " << ORTHANC_DATABASE_VERSION 
-               << ": Please run Orthanc with the \"--upgrade\" command-line option";
-    return false;
-  }
-
-  LOG(WARNING) << "Upgrading the database from version "
-               << currentVersion << " to " << ORTHANC_DATABASE_VERSION;
-  database.Upgrade(ORTHANC_DATABASE_VERSION, storageArea);
+    LOG(WARNING) << "Upgrading the database from schema version "
+                 << currentVersion << " to " << ORTHANC_DATABASE_VERSION;
+    database.Upgrade(ORTHANC_DATABASE_VERSION, storageArea);
     
-  // Sanity check
-  currentVersion = database.GetDatabaseVersion();
-  if (ORTHANC_DATABASE_VERSION != currentVersion)
-  {
-    LOG(ERROR) << "The database was not properly updated, it is still at version " << currentVersion;
-    throw OrthancException(ErrorCode_InternalError);
+    // Sanity check
+    currentVersion = database.GetDatabaseVersion();
+    if (ORTHANC_DATABASE_VERSION != currentVersion)
+    {
+      LOG(ERROR) << "The database schema was not properly upgraded, it is still at version " << currentVersion;
+      throw OrthancException(ErrorCode_InternalError);
+    }
   }
+
+
+  // Reconstruct the main DICOM tags at each level, if needed
+  if (!ReconstructLevel(database, storageArea, allowDatabaseUpgrade, ResourceType_Patient) ||
+      !ReconstructLevel(database, storageArea, allowDatabaseUpgrade, ResourceType_Study) ||
+      !ReconstructLevel(database, storageArea, allowDatabaseUpgrade, ResourceType_Series) ||
+      !ReconstructLevel(database, storageArea, allowDatabaseUpgrade, ResourceType_Instance))
+  {
+    return false;
+  }
+
 
   return true;
 }

@@ -985,6 +985,24 @@ namespace Orthanc
   }
 
 
+  void OrthancPluginDatabase::ClearMainDicomTags(int64_t id)
+  {
+    if (extensions_.clearMainDicomTags != NULL)
+    {
+      LOG(ERROR) << "Your custom index plugin does not implement the ClearMainDicomTags() extension";
+      throw OrthancException(ErrorCode_DatabasePlugin);
+    }
+
+    OrthancPluginErrorCode error = extensions_.clearMainDicomTags(payload_, id);
+    
+    if (error != OrthancPluginErrorCode_Success)
+    {
+      errorDictionary_.LogError(error, true);
+      throw OrthancException(static_cast<ErrorCode>(error));
+    }
+  }
+
+
   void OrthancPluginDatabase::SetMainDicomTag(int64_t id,
                                               const DicomTag& tag,
                                               const std::string& value)
