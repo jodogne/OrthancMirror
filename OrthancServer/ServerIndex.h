@@ -76,7 +76,8 @@ namespace Orthanc
     static void UnstableResourcesMonitorThread(ServerIndex* that);
 
     void MainDicomTagsToJson(Json::Value& result,
-                             int64_t resourceId);
+                             int64_t resourceId,
+                             ResourceType resourceType);
 
     SeriesStatus GetSeriesStatus(int64_t id);
 
@@ -109,9 +110,6 @@ namespace Orthanc
                    const std::string& publicId);
 
     uint64_t IncrementGlobalSequenceInternal(GlobalProperty property);
-
-    void SetMainDicomTags(int64_t resource,
-                          const DicomMap& tags);
 
     int64_t CreateResource(const std::string& publicId,
                            ResourceType type);
@@ -267,5 +265,7 @@ namespace Orthanc
 
     bool LookupResourceType(ResourceType& type,
                             const std::string& publicId);
+
+    unsigned int GetDatabaseVersion();
   };
 }

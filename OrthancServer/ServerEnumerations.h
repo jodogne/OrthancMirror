@@ -109,9 +109,13 @@ namespace Orthanc
 
   enum GlobalProperty
   {
-    GlobalProperty_DatabaseSchemaVersion = 1,
+    GlobalProperty_DatabaseSchemaVersion = 1,   // Unused in the Orthanc core as of Orthanc 0.9.5
     GlobalProperty_FlushSleep = 2,
-    GlobalProperty_AnonymizationSequence = 3
+    GlobalProperty_AnonymizationSequence = 3,
+    GlobalProperty_ReconstructPatientsTags = 4,
+    GlobalProperty_ReconstructStudiesTags = 5,
+    GlobalProperty_ReconstructSeriesTags = 6,
+    GlobalProperty_ReconstructInstancesTags = 7
   };
 
   enum MetadataType

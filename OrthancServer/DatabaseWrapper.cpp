@@ -465,6 +465,22 @@ namespace Orthanc
   }
 
 
+  void DatabaseWrapper::ClearMainDicomTags(int64_t id)
+  {
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM DicomIdentifiers WHERE id=?");
+      s.BindInt64(0, id);
+      s.Run();
+    }
+
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM MainDicomTags WHERE id=?");
+      s.BindInt64(0, id);
+      s.Run();
+    }
+  }
+
+
   static void SetMainDicomTagsInternal(SQLite::Statement& s,
                                        int64_t id,
                                        const DicomTag& tag,
@@ -836,28 +852,6 @@ namespace Orthanc
   }
 
 
-  void DatabaseWrapper::ExecuteUpgrade5To6(IStorageArea& storageArea)
-  {
-    printf("ICI\n");
-
-    std::auto_ptr<SQLite::ITransaction> transaction(StartTransaction());
-    transaction->Begin();
-
-    std::list<std::string> studies;
-    GetAllPublicIds(studies, ResourceType_Study);
-
-    for (std::list<std::string>::const_iterator
-           it = studies.begin(); it != studies.end(); it++)
-    {
-      printf("[%s]\n", it->c_str());
-    }
-
-    SetGlobalProperty(GlobalProperty_DatabaseSchemaVersion, "6");
-
-    transaction->Commit();
-  }
-
-
   void DatabaseWrapper::Upgrade(unsigned int targetVersion,
                                 IStorageArea& storageArea)
   {
@@ -893,7 +887,13 @@ namespace Orthanc
     if (version_ == 5)
     {
       LOG(WARNING) << "Upgrading database version from 5 to 6";
-      ExecuteUpgrade5To6(storageArea);
+      // No change in the DB schema, the step from version 5 to 6 only
+      // consists in reconstructing the main DICOM tags information.
+      db_.BeginTransaction();
+      SetGlobalProperty(GlobalProperty_DatabaseSchemaVersion, "6");
+      SetGlobalProperty(GlobalProperty_ReconstructStudiesTags, "1");
+      SetGlobalProperty(GlobalProperty_ReconstructSeriesTags, "1");
+      db_.CommitTransaction();
       version_ = 6;
     }    
   }

@@ -40,6 +40,7 @@
 #include "ServerIndexChange.h"
 #include "EmbeddedResources.h"
 #include "OrthancInitialization.h"
+#include "ServerToolbox.h"
 #include "../Core/Toolbox.h"
 #include "../Core/Logging.h"
 #include "../Core/Uuid.h"
@@ -490,18 +491,6 @@ namespace Orthanc
 
 
 
-  void ServerIndex::SetMainDicomTags(int64_t resource,
-                                     const DicomMap& tags)
-  {
-    DicomArray flattened(tags);
-    for (size_t i = 0; i < flattened.GetSize(); i++)
-    {
-      const DicomElement& element = flattened.GetElement(i);
-      db_.SetMainDicomTag(resource, element.GetTag(), element.GetValue().AsString());
-    }
-  }
-
-
   int64_t ServerIndex::CreateResource(const std::string& publicId,
                                       ResourceType type)
   {
@@ -638,10 +627,7 @@ namespace Orthanc
 
       // Create the instance
       int64_t instance = CreateResource(hasher.HashInstance(), ResourceType_Instance);
-
-      DicomMap dicom;
-      dicomSummary.ExtractInstanceInformation(dicom);
-      SetMainDicomTags(instance, dicom);
+      Toolbox::SetMainDicomTags(db_, instance, ResourceType_Instance, dicomSummary, true);
 
       // Detect up to which level the patient/study/series/instance
       // hierarchy must be created
@@ -693,24 +679,22 @@ namespace Orthanc
       if (isNewSeries)
       {
         series = CreateResource(hasher.HashSeries(), ResourceType_Series);
-        dicomSummary.ExtractSeriesInformation(dicom);
-        SetMainDicomTags(series, dicom);
+        Toolbox::SetMainDicomTags(db_, series, ResourceType_Series, dicomSummary, true);
       }
 
       // Create the study if needed
       if (isNewStudy)
       {
         study = CreateResource(hasher.HashStudy(), ResourceType_Study);
-        dicomSummary.ExtractStudyInformation(dicom);
-        SetMainDicomTags(study, dicom);
+        Toolbox::SetMainDicomTags(db_, study, ResourceType_Study, dicomSummary, true);
+        Toolbox::SetMainDicomTags(db_, study, ResourceType_Patient, dicomSummary, false);  // New in version 0.9.5 (db v6)
       }
 
       // Create the patient if needed
       if (isNewPatient)
       {
         patient = CreateResource(hasher.HashPatient(), ResourceType_Patient);
-        dicomSummary.ExtractPatientInformation(dicom);
-        SetMainDicomTags(patient, dicom);
+        Toolbox::SetMainDicomTags(db_, patient, ResourceType_Patient, dicomSummary, true);
       }
 
       // Create the parent-to-child links
@@ -892,7 +876,8 @@ namespace Orthanc
 
 
   void ServerIndex::MainDicomTagsToJson(Json::Value& target,
-                                        int64_t resourceId)
+                                        int64_t resourceId,
+                                        ResourceType resourceType)
   {
     DicomMap tags;
     db_.GetMainDicomTags(tags, resourceId);
@@ -1033,7 +1018,7 @@ namespace Orthanc
 
     // Record the remaining information
     result["ID"] = publicId;
-    MainDicomTagsToJson(result, id);
+    MainDicomTagsToJson(result, id, type);
 
     std::string tmp;
 
@@ -2108,4 +2093,10 @@ namespace Orthanc
     return db_.LookupResource(id, type, publicId);
   }
 
+
+  unsigned int ServerIndex::GetDatabaseVersion()
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    return db_.GetDatabaseVersion();
+  }
 }

@@ -123,4 +123,4 @@ END;
 
 -- Set the version of the database schema
 -- The "1" corresponds to the "GlobalProperty_DatabaseSchemaVersion" enumeration
-INSERT INTO GlobalProperties VALUES (1, "5");
+INSERT INTO GlobalProperties VALUES (1, "6");

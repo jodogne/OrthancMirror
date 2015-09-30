@@ -1006,7 +1006,7 @@ namespace Orthanc
         else
         {
           Json::Value simplified;
-          SimplifyTags(simplified, instance.GetJson());
+          Toolbox::SimplifyTags(simplified, instance.GetJson());
           s = writer.write(simplified);
         }
 

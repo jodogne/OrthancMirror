@@ -1370,7 +1370,7 @@ namespace Orthanc
     {
       Json::Value tmp;
       FromDcmtkBridge::ToJson(tmp, *pimpl_->file_->getDataset());
-      SimplifyTags(target, tmp);
+      Toolbox::SimplifyTags(target, tmp);
     }
     else
     {

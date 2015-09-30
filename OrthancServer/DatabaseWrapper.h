@@ -71,8 +71,6 @@ namespace Orthanc
 
     void ClearTable(const std::string& tableName);
 
-    void ExecuteUpgrade5To6(IStorageArea& storageArea);
-
   public:
     DatabaseWrapper(const std::string& path);
 
@@ -131,6 +129,8 @@ namespace Orthanc
     virtual bool LookupAttachment(FileInfo& attachment,
                                   int64_t id,
                                   FileContentType contentType);
+
+    virtual void ClearMainDicomTags(int64_t id);
 
     virtual void SetMainDicomTag(int64_t id,
                                  const DicomTag& tag,

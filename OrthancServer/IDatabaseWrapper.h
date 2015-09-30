@@ -168,6 +168,8 @@ namespace Orthanc
     virtual void SetGlobalProperty(GlobalProperty property,
                                    const std::string& value) = 0;
 
+    virtual void ClearMainDicomTags(int64_t id) = 0;
+
     virtual void SetMainDicomTag(int64_t id,
                                  const DicomTag& tag,
                                  const std::string& value) = 0;
