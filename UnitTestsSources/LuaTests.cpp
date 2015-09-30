@@ -171,7 +171,7 @@ TEST(Lua, ReturnJson)
     Orthanc::LuaFunctionCall f(lua, "identity");
     f.PushJson("hello");
     Json::Value v;
-    f.ExecuteToJson(v);
+    f.ExecuteToJson(v, false);
     ASSERT_EQ("hello", v.asString());
   }
 
@@ -179,7 +179,7 @@ TEST(Lua, ReturnJson)
     Orthanc::LuaFunctionCall f(lua, "identity");
     f.PushJson(42.25);
     Json::Value v;
-    f.ExecuteToJson(v);
+    f.ExecuteToJson(v, false);
     ASSERT_FLOAT_EQ(42.25f, v.asFloat());
   }
 
@@ -187,7 +187,7 @@ TEST(Lua, ReturnJson)
     Orthanc::LuaFunctionCall f(lua, "identity");
     f.PushJson(-42);
     Json::Value v;
-    f.ExecuteToJson(v);
+    f.ExecuteToJson(v, false);
     ASSERT_EQ(-42, v.asInt());
   }
 
@@ -196,7 +196,7 @@ TEST(Lua, ReturnJson)
     Json::Value vv = Json::arrayValue;
     f.PushJson(vv);
     Json::Value v;
-    f.ExecuteToJson(v);
+    f.ExecuteToJson(v, false);
     ASSERT_EQ(Json::arrayValue, v.type());
   }
 
@@ -205,7 +205,7 @@ TEST(Lua, ReturnJson)
     Json::Value vv = Json::objectValue;
     f.PushJson(vv);
     Json::Value v;
-    f.ExecuteToJson(v);
+    f.ExecuteToJson(v, false);
     // Lua does not make the distinction between empty lists and empty objects
     ASSERT_EQ(Json::arrayValue, v.type());
   }
@@ -214,7 +214,7 @@ TEST(Lua, ReturnJson)
     Orthanc::LuaFunctionCall f(lua, "identity");
     f.PushJson(b);
     Json::Value v;
-    f.ExecuteToJson(v);
+    f.ExecuteToJson(v, false);
     ASSERT_EQ(Json::objectValue, v.type());
     ASSERT_FLOAT_EQ(42.0f, v["a"].asFloat());
     ASSERT_FLOAT_EQ(44.37f, v["b"].asFloat());
@@ -225,7 +225,7 @@ TEST(Lua, ReturnJson)
     Orthanc::LuaFunctionCall f(lua, "identity");
     f.PushJson(c);
     Json::Value v;
-    f.ExecuteToJson(v);
+    f.ExecuteToJson(v, false);
     ASSERT_EQ(Json::arrayValue, v.type());
     ASSERT_EQ("test3", v[0].asString());
     ASSERT_EQ("test1", v[1].asString());
@@ -236,11 +236,32 @@ TEST(Lua, ReturnJson)
     Orthanc::LuaFunctionCall f(lua, "identity");
     f.PushJson(a);
     Json::Value v;
-    f.ExecuteToJson(v);
+    f.ExecuteToJson(v, false);
     ASSERT_EQ("World", v["Hello"].asString());
+    ASSERT_EQ(Json::intValue, v["List"][0]["a"].type());
+    ASSERT_EQ(Json::realValue, v["List"][0]["b"].type());
+    ASSERT_EQ(Json::intValue, v["List"][0]["c"].type());
     ASSERT_EQ(42, v["List"][0]["a"].asInt());
+    ASSERT_FLOAT_EQ(44.37f, v["List"][0]["b"].asFloat());
     ASSERT_EQ(44, v["List"][0]["b"].asInt());
     ASSERT_EQ(-43, v["List"][0]["c"].asInt());
+    ASSERT_EQ("test3", v["List"][1][0].asString());
+    ASSERT_EQ("test1", v["List"][1][1].asString());
+    ASSERT_EQ("test2", v["List"][1][2].asString());
+  }
+
+  {
+    Orthanc::LuaFunctionCall f(lua, "identity");
+    f.PushJson(a);
+    Json::Value v;
+    f.ExecuteToJson(v, true);
+    ASSERT_EQ("World", v["Hello"].asString());
+    ASSERT_EQ(Json::stringValue, v["List"][0]["a"].type());
+    ASSERT_EQ(Json::stringValue, v["List"][0]["b"].type());
+    ASSERT_EQ(Json::stringValue, v["List"][0]["c"].type());
+    ASSERT_EQ("42", v["List"][0]["a"].asString());
+    ASSERT_EQ("44.37", v["List"][0]["b"].asString());
+    ASSERT_EQ("-43", v["List"][0]["c"].asString());
     ASSERT_EQ("test3", v["List"][1][0].asString());
     ASSERT_EQ("test1", v["List"][1][1].asString());
     ASSERT_EQ("test2", v["List"][1][2].asString());
