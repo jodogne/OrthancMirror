@@ -852,6 +852,8 @@ namespace Orthanc
       printf("[%s]\n", it->c_str());
     }
 
+    SetGlobalProperty(GlobalProperty_DatabaseSchemaVersion, "6");
+
     transaction->Commit();
   }
 
