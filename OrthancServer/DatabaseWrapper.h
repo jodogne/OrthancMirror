@@ -71,6 +71,8 @@ namespace Orthanc
 
     void ClearTable(const std::string& tableName);
 
+    void ExecuteUpgrade5To6(IStorageArea& storageArea);
+
   public:
     DatabaseWrapper(const std::string& path);
 

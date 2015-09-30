@@ -836,18 +836,40 @@ namespace Orthanc
   }
 
 
+  void DatabaseWrapper::ExecuteUpgrade5To6(IStorageArea& storageArea)
+  {
+    printf("ICI\n");
+
+    std::auto_ptr<SQLite::ITransaction> transaction(StartTransaction());
+    transaction->Begin();
+
+    std::list<std::string> studies;
+    GetAllPublicIds(studies, ResourceType_Study);
+
+    for (std::list<std::string>::const_iterator
+           it = studies.begin(); it != studies.end(); it++)
+    {
+      printf("[%s]\n", it->c_str());
+    }
+
+    transaction->Commit();
+  }
+
+
   void DatabaseWrapper::Upgrade(unsigned int targetVersion,
                                 IStorageArea& storageArea)
   {
-    if (targetVersion != 5)
+    if (targetVersion != 6)
     {
       throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
     }
 
-    // This version of Orthanc is only compatible with versions 3, 4 and 5 of the DB schema
+    // This version of Orthanc is only compatible with versions 3, 4,
+    // 5 and 6 of the DB schema
     if (version_ != 3 &&
         version_ != 4 &&
-        version_ != 5)
+        version_ != 5 &&
+        version_ != 6)
     {
       throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
     }
@@ -865,6 +887,13 @@ namespace Orthanc
       ExecuteUpgradeScript(db_, EmbeddedResources::UPGRADE_DATABASE_4_TO_5);
       version_ = 5;
     }
+
+    if (version_ == 5)
+    {
+      LOG(WARNING) << "Upgrading database version from 5 to 6";
+      ExecuteUpgrade5To6(storageArea);
+      version_ = 6;
+    }    
   }
 
 
