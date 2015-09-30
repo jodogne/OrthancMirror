@@ -34,17 +34,16 @@
 #include "gtest/gtest.h"
 
 #include <ctype.h>
-#include <glog/logging.h>
 
 #include "../Core/FileStorage/FilesystemStorage.h"
-#include "../OrthancServer/ServerIndex.h"
-#include "../Core/Toolbox.h"
-#include "../Core/OrthancException.h"
-#include "../Core/Uuid.h"
-#include "../Core/HttpServer/FilesystemHttpSender.h"
+#include "../Core/FileStorage/StorageAccessor.h"
 #include "../Core/HttpServer/BufferHttpSender.h"
-#include "../Core/FileStorage/FileStorageAccessor.h"
-#include "../Core/FileStorage/CompressedFileStorageAccessor.h"
+#include "../Core/HttpServer/FilesystemHttpSender.h"
+#include "../Core/Logging.h"
+#include "../Core/OrthancException.h"
+#include "../Core/Toolbox.h"
+#include "../Core/Uuid.h"
+#include "../OrthancServer/ServerIndex.h"
 
 using namespace Orthanc;
 
@@ -123,111 +122,69 @@ TEST(FilesystemStorage, EndToEnd)
 }
 
 
-TEST(FileStorageAccessor, Simple)
+TEST(StorageAccessor, NoCompression)
 {
   FilesystemStorage s("UnitTestsStorage");
-  FileStorageAccessor accessor(s);
+  StorageAccessor accessor(s);
 
   std::string data = "Hello world";
-  FileInfo info = accessor.Write(data, FileContentType_Dicom);
+  FileInfo info = accessor.Write(data, FileContentType_Dicom, CompressionType_None, true);
   
   std::string r;
-  accessor.Read(r, info.GetUuid(), FileContentType_Unknown);
+  accessor.Read(r, info);
 
   ASSERT_EQ(data, r);
   ASSERT_EQ(CompressionType_None, info.GetCompressionType());
   ASSERT_EQ(11u, info.GetUncompressedSize());
   ASSERT_EQ(11u, info.GetCompressedSize());
   ASSERT_EQ(FileContentType_Dicom, info.GetContentType());
+  ASSERT_EQ("3e25960a79dbc69b674cd4ec67a72c62", info.GetUncompressedMD5());
+  ASSERT_EQ(info.GetUncompressedMD5(), info.GetCompressedMD5());
 }
 
 
-TEST(FileStorageAccessor, NoCompression)
+TEST(StorageAccessor, Compression)
 {
   FilesystemStorage s("UnitTestsStorage");
-  CompressedFileStorageAccessor accessor(s);
+  StorageAccessor accessor(s);
 
-  accessor.SetCompressionForNextOperations(CompressionType_None);
   std::string data = "Hello world";
-  FileInfo info = accessor.Write(data, FileContentType_Dicom);
+  FileInfo info = accessor.Write(data, FileContentType_DicomAsJson, CompressionType_ZlibWithSize, true);
   
   std::string r;
-  accessor.Read(r, info.GetUuid(), FileContentType_Unknown);
+  accessor.Read(r, info);
 
   ASSERT_EQ(data, r);
-  ASSERT_EQ(CompressionType_None, info.GetCompressionType());
+  ASSERT_EQ(CompressionType_ZlibWithSize, info.GetCompressionType());
   ASSERT_EQ(11u, info.GetUncompressedSize());
-  ASSERT_EQ(11u, info.GetCompressedSize());
-  ASSERT_EQ(FileContentType_Dicom, info.GetContentType());
+  ASSERT_EQ(FileContentType_DicomAsJson, info.GetContentType());
+  ASSERT_EQ("3e25960a79dbc69b674cd4ec67a72c62", info.GetUncompressedMD5());
+  ASSERT_NE(info.GetUncompressedMD5(), info.GetCompressedMD5());
 }
 
 
-TEST(FileStorageAccessor, NoCompression2)
+TEST(StorageAccessor, Mix)
 {
   FilesystemStorage s("UnitTestsStorage");
-  CompressedFileStorageAccessor accessor(s);
-
-  accessor.SetCompressionForNextOperations(CompressionType_None);
-  std::vector<uint8_t> data;
-  StringToVector(data, "Hello world");
-  FileInfo info = accessor.Write(data, FileContentType_Dicom);
-  
-  std::string r;
-  accessor.Read(r, info.GetUuid(), FileContentType_Unknown);
-
-  ASSERT_EQ(0, memcmp(&r[0], &data[0], data.size()));
-  ASSERT_EQ(CompressionType_None, info.GetCompressionType());
-  ASSERT_EQ(11u, info.GetUncompressedSize());
-  ASSERT_EQ(11u, info.GetCompressedSize());
-  ASSERT_EQ(FileContentType_Dicom, info.GetContentType());
-}
-
-
-TEST(FileStorageAccessor, Compression)
-{
-  FilesystemStorage s("UnitTestsStorage");
-  CompressedFileStorageAccessor accessor(s);
-
-  accessor.SetCompressionForNextOperations(CompressionType_Zlib);
-  std::string data = "Hello world";
-  FileInfo info = accessor.Write(data, FileContentType_Dicom);
-  
-  std::string r;
-  accessor.Read(r, info.GetUuid(), FileContentType_Unknown);
-
-  ASSERT_EQ(data, r);
-  ASSERT_EQ(CompressionType_Zlib, info.GetCompressionType());
-  ASSERT_EQ(11u, info.GetUncompressedSize());
-  ASSERT_EQ(FileContentType_Dicom, info.GetContentType());
-}
-
-
-TEST(FileStorageAccessor, Mix)
-{
-  FilesystemStorage s("UnitTestsStorage");
-  CompressedFileStorageAccessor accessor(s);
+  StorageAccessor accessor(s);
 
   std::string r;
   std::string compressedData = "Hello";
   std::string uncompressedData = "HelloWorld";
 
-  accessor.SetCompressionForNextOperations(CompressionType_Zlib);
-  FileInfo compressedInfo = accessor.Write(compressedData, FileContentType_Dicom);
+  FileInfo compressedInfo = accessor.Write(compressedData, FileContentType_Dicom, CompressionType_ZlibWithSize, false);  
+  FileInfo uncompressedInfo = accessor.Write(uncompressedData, FileContentType_Dicom, CompressionType_None, false);
   
-  accessor.SetCompressionForNextOperations(CompressionType_None);
-  FileInfo uncompressedInfo = accessor.Write(uncompressedData, FileContentType_Dicom);
-  
-  accessor.SetCompressionForNextOperations(CompressionType_Zlib);
-  accessor.Read(r, compressedInfo.GetUuid(), FileContentType_Unknown);
+  accessor.Read(r, compressedInfo);
   ASSERT_EQ(compressedData, r);
 
-  accessor.SetCompressionForNextOperations(CompressionType_None);
-  accessor.Read(r, compressedInfo.GetUuid(), FileContentType_Unknown);
+  accessor.Read(r, uncompressedInfo);
+  ASSERT_EQ(uncompressedData, r);
   ASSERT_NE(compressedData, r);
 
   /*
   // This test is too slow on Windows
-  accessor.SetCompressionForNextOperations(CompressionType_Zlib);
+  accessor.SetCompressionForNextOperations(CompressionType_ZlibWithSize);
   ASSERT_THROW(accessor.Read(r, uncompressedInfo.GetUuid(), FileContentType_Unknown), OrthancException);
   */
 }

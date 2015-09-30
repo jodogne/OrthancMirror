@@ -1,10 +1,15 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
   SET(GOOGLE_LOG_SOURCES_DIR ${CMAKE_BINARY_DIR}/glog-0.3.2)
-  DownloadPackage(
-    "897fbff90d91ea2b6d6e78c8cea641cc"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/glog-0.3.2.tar.gz"
-    "${GOOGLE_LOG_SOURCES_DIR}")
+  SET(GOOGLE_LOG_URL "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/glog-0.3.2.tar.gz")
+  SET(GOOGLE_LOG_MD5 "897fbff90d91ea2b6d6e78c8cea641cc")
 
+  if (IS_DIRECTORY "${GOOGLE_LOG_SOURCES_DIR}")
+    set(FirstRun OFF)
+  else()
+    set(FirstRun ON)
+  endif()
+
+  DownloadPackage(${GOOGLE_LOG_MD5} ${GOOGLE_LOG_URL} "${GOOGLE_LOG_SOURCES_DIR}")
 
   # Glog 0.3.3 fails to build with old versions of MinGW, such as the
   # one installed on our Continuous Integration Server that runs
@@ -30,6 +35,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
 
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
     set(ac_cv_have_unistd_h 1)
     set(ac_cv_have_stdint_h 1)
@@ -65,26 +71,45 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
   if (CMAKE_COMPILER_IS_GNUCXX)
     if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
       execute_process(
-        COMMAND patch utilities.cc ${ORTHANC_ROOT}/Resources/Patches/glog-utilities-lsb.diff
+        COMMAND ${PATCH_EXECUTABLE} -N utilities.cc -i ${ORTHANC_ROOT}/Resources/Patches/glog-utilities-lsb.diff
         WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src
+        RESULT_VARIABLE Failure
         )
     else()
       execute_process(
-        COMMAND patch utilities.cc ${ORTHANC_ROOT}/Resources/Patches/glog-utilities.diff
+        COMMAND ${PATCH_EXECUTABLE} -N utilities.cc -i ${ORTHANC_ROOT}/Resources/Patches/glog-utilities.diff
         WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src
+        RESULT_VARIABLE Failure
         )
     endif()
 
+    if (Failure AND FirstRun)
+      message(FATAL_ERROR "Error while patching a file")
+    endif()
+
+    # Patches for MinGW
     execute_process(
-      COMMAND patch port.h ${ORTHANC_ROOT}/Resources/Patches/glog-port-h.diff 
+      #COMMAND ${PATCH_EXECUTABLE} -N port.h -i ${ORTHANC_ROOT}/Resources/Patches/glog-port-h.diff 
+      COMMAND ${PATCH_EXECUTABLE} -N port.h -i ${ORTHANC_ROOT}/Resources/Patches/glog-port-h-v2.diff 
       WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src/windows
-      )
-    execute_process(
-      COMMAND patch port.cc ${ORTHANC_ROOT}/Resources/Patches/glog-port-cc.diff 
-      WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src/windows
+      RESULT_VARIABLE Failure
       )
 
-  else(${MSVC})
+    if (Failure AND FirstRun)
+      message(FATAL_ERROR "Error while patching a file")
+    endif()
+
+    execute_process(
+      COMMAND ${PATCH_EXECUTABLE} -N port.cc -i ${ORTHANC_ROOT}/Resources/Patches/glog-port-cc.diff 
+      WORKING_DIRECTORY ${GOOGLE_LOG_SOURCES_DIR}/src/windows
+      RESULT_VARIABLE Failure
+      )
+
+    if (Failure AND FirstRun)
+      message(FATAL_ERROR "Error while patching a file")
+    endif()
+
+  elseif (MSVC)
     # https://code.google.com/p/google-glog/issues/detail?id=117
     configure_file(
       ${ORTHANC_ROOT}/Resources/Patches/glog-visual-studio-port.h
@@ -96,6 +121,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
 
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
     if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
       # Install the specific configuration for LSB SDK
@@ -145,14 +171,11 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
       -DGOOGLE_GLOG_DLL_DECL=
       )
 
-    if (${CMAKE_COMPILER_IS_GNUCXX})
+    if (CMAKE_COMPILER_IS_GNUCXX)
       # This is a patch for MinGW64
       add_definitions(-D_TIME_H__S=1)
     endif()
   endif()
-
-  add_library(GoogleLog STATIC ${GOOGLE_LOG_SOURCES})
-  set(STATIC_GOOGLE_LOG GoogleLog)
 
 else()
   CHECK_INCLUDE_FILE_CXX(glog/logging.h HAVE_GOOGLE_LOG_H)
@@ -162,3 +185,13 @@ else()
 
   link_libraries(glog)
 endif()
+
+
+CHECK_INCLUDE_FILES(sec_api/string_s.h HAVE_SECURE_STRING_EXTENSIONS)
+if (HAVE_SECURE_STRING_EXTENSIONS)
+  add_definitions(-DHAVE_SECURE_STRING_EXTENSIONS=1)
+else()
+  add_definitions(-DHAVE_SECURE_STRING_EXTENSIONS=0)
+endif()
+
+add_definitions(-DORTHANC_ENABLE_GOOGLE_LOG=1)

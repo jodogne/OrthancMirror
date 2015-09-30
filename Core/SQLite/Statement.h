@@ -81,9 +81,11 @@ namespace Orthanc
     private:
       StatementReference  reference_;
 
-      int CheckError(int err) const;
+      int CheckError(int err, 
+                     ErrorCode code) const;
 
-      void CheckOk(int err) const;
+      void CheckOk(int err, 
+                   ErrorCode code) const;
 
       struct sqlite3_stmt* GetStatement() const
       {

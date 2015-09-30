@@ -44,12 +44,13 @@
 
 #include <memory>
 #include <cassert>
-#include <sqlite3.h>
 #include <string.h>
 
 #if ORTHANC_SQLITE_STANDALONE != 1
-#include <glog/logging.h>
+#include "../Logging.h"
 #endif
+
+#include "sqlite3.h"
 
 
 namespace Orthanc
@@ -74,7 +75,7 @@ namespace Orthanc
     {
       if (!db_)
       {
-        throw OrthancSQLiteException("SQLite: The database is not opened");
+        throw OrthancSQLiteException(ErrorCode_SQLiteNotOpened);
       }
     }
 
@@ -82,7 +83,7 @@ namespace Orthanc
     {
       if (db_) 
       {
-        throw OrthancSQLiteException("SQLite: Connection is already open");
+        throw OrthancSQLiteException(ErrorCode_SQLiteAlreadyOpened);
       }
 
       int err = sqlite3_open(path.c_str(), &db_);
@@ -90,7 +91,7 @@ namespace Orthanc
       {
         Close();
         db_ = NULL;
-        throw OrthancSQLiteException("SQLite: Unable to open the database");
+        throw OrthancSQLiteException(ErrorCode_SQLiteCannotOpen);
       }
 
       // Execute PRAGMAs at this point
@@ -136,7 +137,7 @@ namespace Orthanc
       {
         if (i->second->GetReferenceCount() >= 1)
         {
-          throw OrthancSQLiteException("SQLite: This cached statement is already being referred to");
+          throw OrthancSQLiteException(ErrorCode_SQLiteStatementAlreadyUsed);
         }
 
         return *i->second;
@@ -161,7 +162,11 @@ namespace Orthanc
       int error = sqlite3_exec(db_, sql, NULL, NULL, NULL);
       if (error == SQLITE_ERROR)
       {
-        throw OrthancSQLiteException("SQLite Execute error: " + std::string(sqlite3_errmsg(db_)));
+#if ORTHANC_SQLITE_STANDALONE != 1
+        LOG(ERROR) << "SQLite execute error: " << sqlite3_errmsg(db_);
+#endif
+
+        throw OrthancSQLiteException(ErrorCode_SQLiteExecute);
       }
       else
       {
@@ -282,7 +287,7 @@ namespace Orthanc
     {
       if (!transactionNesting_)
       {
-        throw OrthancSQLiteException("Rolling back a nonexistent transaction");
+        throw OrthancSQLiteException(ErrorCode_SQLiteRollbackWithoutTransaction);
       }
 
       transactionNesting_--;
@@ -301,7 +306,7 @@ namespace Orthanc
     {
       if (!transactionNesting_) 
       {
-        throw OrthancSQLiteException("Committing a nonexistent transaction");
+        throw OrthancSQLiteException(ErrorCode_SQLiteCommitWithoutTransaction);
       }
       transactionNesting_--;
 
@@ -369,7 +374,7 @@ namespace Orthanc
       if (err != SQLITE_OK)
       {
         delete func;
-        throw OrthancSQLiteException("SQLite: Unable to register a function");
+        throw OrthancSQLiteException(ErrorCode_SQLiteRegisterFunction);
       }
 
       return func;
@@ -386,7 +391,7 @@ namespace Orthanc
 
       if (err != SQLITE_OK)
       {
-        throw OrthancSQLiteException("SQLite: Unable to flush the database");
+        throw OrthancSQLiteException(ErrorCode_SQLiteFlush);
       }
     }
   }

@@ -83,12 +83,21 @@ TEST(DicomMap, MainTags)
 
 TEST(DicomMap, Tags)
 {
+  std::set<DicomTag> s;
+
   DicomMap m;
+  m.GetTags(s);
+  ASSERT_EQ(0u, s.size());
+
   ASSERT_FALSE(m.HasTag(DICOM_TAG_PATIENT_NAME));
   ASSERT_FALSE(m.HasTag(0x0010, 0x0010));
   m.SetValue(0x0010, 0x0010, "PatientName");
   ASSERT_TRUE(m.HasTag(DICOM_TAG_PATIENT_NAME));
   ASSERT_TRUE(m.HasTag(0x0010, 0x0010));
+
+  m.GetTags(s);
+  ASSERT_EQ(1u, s.size());
+  ASSERT_EQ(DICOM_TAG_PATIENT_NAME, *s.begin());
 
   ASSERT_FALSE(m.HasTag(DICOM_TAG_PATIENT_ID));
   m.SetValue(DICOM_TAG_PATIENT_ID, "PatientID");
@@ -96,8 +105,15 @@ TEST(DicomMap, Tags)
   m.SetValue(DICOM_TAG_PATIENT_ID, "PatientID2");
   ASSERT_EQ("PatientID2", m.GetValue(0x0010, 0x0020).AsString());
 
+  m.GetTags(s);
+  ASSERT_EQ(2u, s.size());
+
   m.Remove(DICOM_TAG_PATIENT_ID);
   ASSERT_THROW(m.GetValue(0x0010, 0x0020), OrthancException);
+
+  m.GetTags(s);
+  ASSERT_EQ(1u, s.size());
+  ASSERT_EQ(DICOM_TAG_PATIENT_NAME, *s.begin());
 
   std::auto_ptr<DicomMap> mm(m.Clone());
   ASSERT_EQ("PatientName", mm->GetValue(DICOM_TAG_PATIENT_NAME).AsString());  
@@ -137,7 +153,7 @@ static void TestModule(ResourceType level,
                        DicomModule module)
 {
   std::set<DicomTag> moduleTags, main;
-  DicomTag::GetTagsForModule(moduleTags, module);
+  DicomTag::AddTagsForModule(moduleTags, module);
   DicomMap::GetMainDicomTags(main, level);
   
   // The main dicom tags are a subset of the module

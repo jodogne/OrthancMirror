@@ -58,5 +58,7 @@ namespace Orthanc
     void Add(IRunnableBySteps* runnable);
 
     void StopAll();
+
+    void Finalize();
   };
 }

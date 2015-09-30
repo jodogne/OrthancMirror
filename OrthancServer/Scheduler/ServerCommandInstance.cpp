@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeadersServer.h"
 #include "ServerCommandInstance.h"
 
 #include "../../Core/OrthancException.h"

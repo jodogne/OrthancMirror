@@ -32,6 +32,7 @@
 
 #pragma once
 
+#include <stdint.h>
 #include <string>
 #include "Enumerations.h"
 
@@ -40,33 +41,36 @@ namespace Orthanc
   class OrthancException
   {
   protected:
-    ErrorCode error_;
-    std::string custom_;
+    ErrorCode  errorCode_;
+    HttpStatus httpStatus_;
 
   public:
-    static const char* GetDescription(ErrorCode error);
-
-    OrthancException(const char* custom) : 
-      error_(ErrorCode_Custom),
-      custom_(custom)
+    OrthancException(ErrorCode errorCode) : 
+      errorCode_(errorCode),
+      httpStatus_(ConvertErrorCodeToHttpStatus(errorCode))
     {
     }
 
-    OrthancException(const std::string& custom) : 
-      error_(ErrorCode_Custom),
-      custom_(custom)
-    {
-    }
-
-    OrthancException(ErrorCode error) : error_(error)
+    OrthancException(ErrorCode errorCode,
+                     HttpStatus httpStatus) :
+      errorCode_(errorCode),
+      httpStatus_(httpStatus)
     {
     }
 
     ErrorCode GetErrorCode() const
     {
-      return error_;
+      return errorCode_;
     }
 
-    const char* What() const;
+    HttpStatus GetHttpStatus() const
+    {
+      return httpStatus_;
+    }
+
+    const char* What() const
+    {
+      return EnumerationToString(errorCode_);
+    }
   };
 }

@@ -36,12 +36,13 @@
 // http://stackoverflow.com/questions/1576272/storing-large-number-of-files-in-file-system
 // http://stackoverflow.com/questions/446358/storing-a-large-number-of-images
 
+#include "../Logging.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
 #include "../Uuid.h"
 
 #include <boost/filesystem/fstream.hpp>
-#include <glog/logging.h>
+
 
 static std::string ToString(const boost::filesystem::path& p)
 {
@@ -82,7 +83,7 @@ namespace Orthanc
     //root_ = boost::filesystem::absolute(root).string();
     root_ = root;
 
-    Toolbox::CreateDirectory(root);
+    Toolbox::MakeDirectory(root);
   }
 
   void FilesystemStorage::Create(const std::string& uuid,
@@ -105,14 +106,14 @@ namespace Orthanc
     {
       if (!boost::filesystem::is_directory(path.parent_path()))
       {
-        throw OrthancException("The subdirectory to be created is already occupied by a regular file");        
+        throw OrthancException(ErrorCode_DirectoryOverFile);
       }
     }
     else
     {
       if (!boost::filesystem::create_directories(path.parent_path()))
       {
-        throw OrthancException("Unable to create a subdirectory in the file storage");        
+        throw OrthancException(ErrorCode_FileStorageCannotWrite);
       }
     }
 
@@ -120,7 +121,7 @@ namespace Orthanc
     f.open(path, std::ofstream::out | std::ios::binary);
     if (!f.good())
     {
-      throw OrthancException("Unable to create a new file in the file storage");
+      throw OrthancException(ErrorCode_FileStorageCannotWrite);
     }
 
     if (size != 0)
@@ -129,7 +130,7 @@ namespace Orthanc
       if (!f.good())
       {
         f.close();
-        throw OrthancException("Unable to write to the new file in the file storage");
+        throw OrthancException(ErrorCode_FileStorageCannotWrite);
       }
     }
 
@@ -212,7 +213,10 @@ namespace Orthanc
   void FilesystemStorage::Remove(const std::string& uuid,
                                  FileContentType /*type*/)
   {
+#if ORTHANC_ENABLE_GOOGLE_LOG == 1
     LOG(INFO) << "Deleting file " << uuid;
+#endif
+
     namespace fs = boost::filesystem;
 
     fs::path p = GetPath(uuid);

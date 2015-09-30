@@ -6,15 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Orthanc Explorer</title>
 
-    <link rel="stylesheet" href="libs/jquery.mobile-1.1.0.min.css" />
+    <link rel="stylesheet" href="libs/jquery.mobile.min.css" />
     <link rel="stylesheet" href="libs/jqtree.css" />
     <link rel="stylesheet" href="libs/jquery.mobile.simpledialog.min.css" />
     <link rel="stylesheet" href="libs/jquery-file-upload/css/style.css" />
     <link rel="stylesheet" href="libs/jquery-file-upload/css/jquery.fileupload-ui.css" />
     <link rel="stylesheet" href="libs/slimbox2/slimbox2.css" />
 
-    <script src="libs/jquery-1.7.2.min.js"></script>
-    <script src="libs/jquery.mobile-1.1.0.min.js"></script>
+    <script src="libs/jquery.min.js"></script>
+    <script src="libs/jquery.mobile.min.js"></script>
     <script src="libs/jqm.page.params.js"></script>
     <script src="libs/tree.jquery.js"></script>
     <script src="libs/date.js"></script>
@@ -30,6 +30,7 @@
     <link rel="stylesheet" href="explorer.css" />
     <script src="file-upload.js"></script>
     <script src="explorer.js"></script>
+    <script src="query-retrieve.js"></script>
     <script src="../plugins/explorer.js"></script>
   </head>
   <body>
@@ -37,7 +38,10 @@
       <div data-role="header" >
 	<h1><span class="orthanc-name"></span>Find a patient</h1>
         <a href="#plugins" data-icon="grid" class="ui-btn-left" data-direction="reverse">Plugins</a>
-        <a href="#upload" data-icon="gear" class="ui-btn-right">Upload DICOM</a>
+        <div data-type="horizontal" data-role="controlgroup" class="ui-btn-right"> 
+          <a href="#upload" data-icon="gear" data-role="button">Upload</a>
+          <a href="#query-retrieve" data-icon="search" data-role="button">Query/Retrieve</a>
+        </div>
       </div>
       <div data-role="content">
         <ul id="all-patients" data-role="listview" data-inset="true" data-filter="true">
@@ -75,7 +79,10 @@
       <div data-role="header" >
 	<h1><span class="orthanc-name"></span>Patient</h1>
         <a href="#find-patients" data-icon="home" class="ui-btn-left" data-direction="reverse">Patients</a>
-        <a href="#upload" data-icon="gear" class="ui-btn-right">Upload DICOM</a>
+        <div data-type="horizontal" data-role="controlgroup" class="ui-btn-right"> 
+          <a href="#upload" data-icon="gear" data-role="button">Upload</a>
+          <a href="#query-retrieve" data-icon="search" data-role="button">Query/Retrieve</a>
+        </div>
       </div>
       <div data-role="content">
         <div class="ui-grid-a">
@@ -129,7 +136,10 @@
           Study
         </h1>
         <a href="#find-patients" data-icon="home" class="ui-btn-left" data-direction="reverse">Patients</a>
-        <a href="#upload" data-icon="gear" class="ui-btn-right">Upload DICOM</a>
+        <div data-type="horizontal" data-role="controlgroup" class="ui-btn-right"> 
+          <a href="#upload" data-icon="gear" data-role="button">Upload</a>
+          <a href="#query-retrieve" data-icon="search" data-role="button">Query/Retrieve</a>
+        </div>
       </div>
       <div data-role="content">
         <div class="ui-grid-a">
@@ -178,7 +188,10 @@
         </h1>
 
         <a href="#find-patients" data-icon="home" class="ui-btn-left" data-direction="reverse">Patients</a>
-        <a href="#upload" data-icon="gear" class="ui-btn-right">Upload DICOM</a>
+        <div data-type="horizontal" data-role="controlgroup" class="ui-btn-right"> 
+          <a href="#upload" data-icon="gear" data-role="button">Upload</a>
+          <a href="#query-retrieve" data-icon="search" data-role="button">Query/Retrieve</a>
+        </div>
       </div>
       <div data-role="content">
         <div class="ui-grid-a">
@@ -228,7 +241,10 @@
           Instance
         </h1>
         <a href="#find-patients" data-icon="home" class="ui-btn-left" data-direction="reverse">Patients</a>
-        <a href="#upload" data-icon="gear" class="ui-btn-right">Upload DICOM</a>
+        <div data-type="horizontal" data-role="controlgroup" class="ui-btn-right"> 
+          <a href="#upload" data-icon="gear" data-role="button">Upload</a>
+          <a href="#query-retrieve" data-icon="search" data-role="button">Query/Retrieve</a>
+        </div>
       </div>
       <div data-role="content">
         <div class="ui-grid-a">
@@ -284,15 +300,111 @@
       </div>
     </div>
 
+    <div data-role="page" id="query-retrieve" >
+      <div data-role="header" >
+	<h1><span class="orthanc-name"></span>DICOM Query/Retrieve (1/3)</h1>
+        <a href="#find-patients" data-icon="home" class="ui-btn-left" data-direction="reverse">Patients</a>
+      </div>
+      <div data-role="content">
+        <form data-ajax="false">
+          <div data-role="fieldcontain">
+	    <label for="qr-server">DICOM server:</label>
+            <select name="qr-server" id="qr-server">
+            </select>
+	  </div>
+
+          <div data-role="fieldcontain" id="qr-fields">
+	    <fieldset data-role="controlgroup">
+	      <legend>Field of interest:</legend>
+	      <input type="radio" name="qr-field" id="qr-patient-id" value="PatientID" checked="checked" />
+	      <label for="qr-patient-id">Patient ID</label>
+	      <input type="radio" name="qr-field" id="qr-patient-name" value="PatientName" />
+	      <label for="qr-patient-name">Patient Name</label>
+	      <input type="radio" name="qr-field" id="qr-accession-number" value="AccessionNumber" />
+	      <label for="qr-accession-number">Accession Number</label>
+	      <input type="radio" name="qr-field" id="qr-study-description" value="StudyDescription" />
+	      <label for="qr-study-description">Study Description</label>
+	    </fieldset>
+	  </div>
+
+          <div data-role="fieldcontain">
+	    <label for="qr-value">Value for this field:</label>
+	    <input type="text" name="qr-value" id="qr-value" value="*"  />
+	  </div>
+
+          <div data-role="fieldcontain">
+	    <label for="qr-date">Study date:</label>
+            <select name="qr-date" id="qr-date">
+            </select>
+	  </div>
+
+          <div data-role="fieldcontain" id="qr-modalities">
+            <div data-role="fieldcontain">
+	      <fieldset data-role="controlgroup" data-type="horizontal">
+                <legend>Modalities:</legend>
+	        <input type="checkbox" name="CR" id="qr-cr" class="custom" /> <label for="qr-cr">CR</label>
+	        <input type="checkbox" name="CT" id="qr-ct" class="custom" /> <label for="qr-ct">CT</label>
+	        <input type="checkbox" name="MR" id="qr-mr" class="custom" /> <label for="qr-mr">MR</label>
+	        <input type="checkbox" name="NM" id="qr-nm" class="custom" /> <label for="qr-nm">NM</label>
+	        <input type="checkbox" name="PT" id="qr-pt" class="custom" /> <label for="qr-pt">PT</label>
+	        <input type="checkbox" name="US" id="qr-us" class="custom" /> <label for="qr-us">US</label>
+	        <input type="checkbox" name="XA" id="qr-xa" class="custom" /> <label for="qr-xa">XA</label>
+	      </fieldset>
+            </div>
+          </div>
+
+          <fieldset class="ui-grid-a">
+	    <div class="ui-block-a">
+              <button id="qr-echo" data-theme="a">Test Echo</button>
+            </div>
+	    <div class="ui-block-b">
+              <button id="qr-submit" type="submit" data-theme="b">Search studies</button>
+            </div>
+	  </fieldset>
+        </form>
+      </div>
+    </div>
+
+
+    <div data-role="page" id="query-retrieve-2" >
+      <div data-role="header" >
+	<h1><span class="orthanc-name"></span>DICOM Query/Retrieve (2/3)</h1>
+        <a href="#find-patients" data-icon="home" class="ui-btn-left" data-direction="reverse">Patients</a>
+        <a href="#query-retrieve" data-icon="search" class="ui-btn-right" data-direction="reverse">Query/Retrieve</a>
+      </div>
+      <div data-role="content">
+        <ul data-role="listview" data-inset="true" data-filter="true" data-split-icon="arrow-d" data-split-theme="b">
+        </ul>
+      </div>
+    </div>
+
+
+    <div data-role="page" id="query-retrieve-3" >
+      <div data-role="header" >
+	<h1><span class="orthanc-name"></span>DICOM Query/Retrieve (3/3)</h1>
+        <a href="#find-patients" data-icon="home" class="ui-btn-left" data-direction="reverse">Patients</a>
+        <a href="#query-retrieve" data-icon="search" class="ui-btn-right" data-direction="reverse">Query/Retrieve</a>
+      </div>
+      <div data-role="content">
+        <ul data-role="listview" data-inset="true" data-filter="true" data-split-icon="arrow-d" data-split-theme="b">
+        </ul>
+      </div>
+    </div>
+
 
     <div id="peer-store" style="display:none;" class="ui-body-c">
       <p align="center"><b>Sending to Orthanc peer...</b></p>
-      <p><img src="libs/images/ajax-loader2.gif" alt="" /></p>
+      <p><img src="libs/images/ajax-loader.gif" alt="" /></p>
     </div>
 
     <div id="dicom-store" style="display:none;" class="ui-body-c">
       <p align="center"><b>Sending to DICOM modality...</b></p>
-      <p><img src="libs/images/ajax-loader2.gif" alt="" /></p>
+      <p><img src="libs/images/ajax-loader.gif" alt="" /></p>
+    </div>
+
+    <div id="info-retrieve" style="display:none;" class="ui-body-c">
+      <p align="center"><b>Retrieving images from DICOM modality...</b></p>
+      <p><img src="libs/images/ajax-loader.gif" alt="" /></p>
     </div>
 
     <div id="dialog" style="display:none" >

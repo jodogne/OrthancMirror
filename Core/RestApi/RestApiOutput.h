@@ -42,26 +42,22 @@ namespace Orthanc
   class RestApiOutput
   {
   private:
-    HttpOutput& output_;
-    bool alreadySent_;
-    bool convertJsonToXml_;
+    HttpOutput&  output_;
+    HttpMethod   method_;
+    bool         alreadySent_;
+    bool         convertJsonToXml_;
 
     void CheckStatus();
 
+    void SignalErrorInternal(HttpStatus status,
+			     const char* message,
+			     size_t messageSize);
+
   public:
-    RestApiOutput(HttpOutput& output);
+    RestApiOutput(HttpOutput& output,
+                  HttpMethod method);
 
     ~RestApiOutput();
-
-    HttpOutput& GetLowLevelOutput()
-    {
-      return output_;
-    }
-
-    void MarkLowLevelOutputDone()
-    {
-      alreadySent_ = true;
-    }
 
     void SetConvertJsonToXml(bool convert)
     {
@@ -73,7 +69,7 @@ namespace Orthanc
       return convertJsonToXml_;
     }
 
-    void AnswerFile(HttpFileSender& sender);
+    void AnswerStream(IHttpStreamAnswer& stream);
 
     void AnswerJson(const Json::Value& value);
 
@@ -85,6 +81,9 @@ namespace Orthanc
                       const std::string& contentType);
 
     void SignalError(HttpStatus status);
+
+    void SignalError(HttpStatus status,
+		     const std::string& message);
 
     void Redirect(const std::string& path);
 

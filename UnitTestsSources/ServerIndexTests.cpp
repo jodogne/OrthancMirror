@@ -33,15 +33,15 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
+#include "../Core/DicomFormat/DicomNullValue.h"
+#include "../Core/FileStorage/FilesystemStorage.h"
+#include "../Core/Logging.h"
+#include "../Core/Uuid.h"
 #include "../OrthancServer/DatabaseWrapper.h"
 #include "../OrthancServer/ServerContext.h"
 #include "../OrthancServer/ServerIndex.h"
-#include "../Core/Uuid.h"
-#include "../Core/DicomFormat/DicomNullValue.h"
-#include "../Core/FileStorage/FilesystemStorage.h"
 
 #include <ctype.h>
-#include <glog/logging.h>
 #include <algorithm>
 
 using namespace Orthanc;
@@ -54,7 +54,7 @@ namespace
   };
 
 
-  class ServerIndexListener : public IServerIndexListener
+  class TestDatabaseListener : public IDatabaseListener
   {
   public:
     std::vector<std::string> deletedFiles_;
@@ -100,7 +100,7 @@ namespace
   class DatabaseWrapperTest : public ::testing::TestWithParam<DatabaseWrapperClass>
   {
   protected:
-    std::auto_ptr<ServerIndexListener> listener_;
+    std::auto_ptr<TestDatabaseListener> listener_;
     std::auto_ptr<IDatabaseWrapper> index_;
 
     DatabaseWrapperTest()
@@ -109,7 +109,7 @@ namespace
 
     virtual void SetUp() 
     {
-      listener_.reset(new ServerIndexListener);
+      listener_.reset(new TestDatabaseListener);
 
       switch (GetParam())
       {
@@ -193,7 +193,7 @@ namespace
         {
           DatabaseWrapper* sqlite = dynamic_cast<DatabaseWrapper*>(index_.get());
           sqlite->GetChildren(j, id);
-          ASSERT_EQ(0, j.size());
+          ASSERT_EQ(0u, j.size());
           break;
         }
 
@@ -212,7 +212,7 @@ namespace
         {
           DatabaseWrapper* sqlite = dynamic_cast<DatabaseWrapper*>(index_.get());
           sqlite->GetChildren(j, id);
-          ASSERT_EQ(1, j.size());
+          ASSERT_EQ(1u, j.size());
           ASSERT_EQ(expected, j.front());
           break;
         }
@@ -234,7 +234,7 @@ namespace
         {
           DatabaseWrapper* sqlite = dynamic_cast<DatabaseWrapper*>(index_.get());
           sqlite->GetChildren(j, id);
-          ASSERT_EQ(2, j.size());
+          ASSERT_EQ(2u, j.size());
           ASSERT_TRUE((expected1 == j.front() && expected2 == j.back()) ||
                       (expected1 == j.back() && expected2 == j.front()));                    
           break;
@@ -350,7 +350,7 @@ TEST_P(DatabaseWrapperTest, Simple)
   ASSERT_EQ(0u, md.size());
 
   index_->AddAttachment(a[4], FileInfo("my json file", FileContentType_DicomAsJson, 42, "md5", 
-                                       CompressionType_Zlib, 21, "compressedMD5"));
+                                       CompressionType_ZlibWithSize, 21, "compressedMD5"));
   index_->AddAttachment(a[4], FileInfo("my dicom file", FileContentType_Dicom, 42, "md5"));
   index_->AddAttachment(a[6], FileInfo("world", FileContentType_Dicom, 44, "md5"));
   index_->SetMetadata(a[4], MetadataType_Instance_RemoteAet, "PINNACLE");
@@ -409,7 +409,7 @@ TEST_P(DatabaseWrapperTest, Simple)
   ASSERT_EQ("md5", att.GetUncompressedMD5());
   ASSERT_EQ("compressedMD5", att.GetCompressedMD5());
   ASSERT_EQ(42u, att.GetUncompressedSize());
-  ASSERT_EQ(CompressionType_Zlib, att.GetCompressionType());
+  ASSERT_EQ(CompressionType_ZlibWithSize, att.GetCompressionType());
 
   ASSERT_TRUE(index_->LookupAttachment(att, a[6], FileContentType_Dicom));
   ASSERT_EQ("world", att.GetUuid());
@@ -660,14 +660,15 @@ TEST(ServerIndex, Sequence)
   Toolbox::RemoveFile(path + "/index");
   FilesystemStorage storage(path);
   DatabaseWrapper db;   // The SQLite DB is in memory
-  ServerContext context(db);
-  context.SetStorageArea(storage);
+  ServerContext context(db, storage);
   ServerIndex& index = context.GetIndex();
 
   ASSERT_EQ(1u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
   ASSERT_EQ(2u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
   ASSERT_EQ(3u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
   ASSERT_EQ(4u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
+
+  context.Stop();
 }
 
 
@@ -727,8 +728,7 @@ TEST(ServerIndex, AttachmentRecycling)
   Toolbox::RemoveFile(path + "/index");
   FilesystemStorage storage(path);
   DatabaseWrapper db;   // The SQLite DB is in memory
-  ServerContext context(db);
-  context.SetStorageArea(storage);
+  ServerContext context(db, storage);
   ServerIndex& index = context.GetIndex();
 
   index.SetMaximumStorageSize(10);
@@ -753,7 +753,7 @@ TEST(ServerIndex, AttachmentRecycling)
     std::map<MetadataType, std::string> instanceMetadata;
     ServerIndex::MetadataMap metadata;
     ASSERT_EQ(StoreStatus_Success, index.Store(instanceMetadata, instance, attachments, "", metadata));
-    ASSERT_EQ(2, instanceMetadata.size());
+    ASSERT_EQ(2u, instanceMetadata.size());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_RemoteAet) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_ReceptionDate) != instanceMetadata.end());
 
@@ -779,4 +779,6 @@ TEST(ServerIndex, AttachmentRecycling)
 
   // Because the DB is in memory, the SQLite index must not have been created
   ASSERT_THROW(Toolbox::GetFileSize(path + "/index"), OrthancException);  
+
+  context.Stop();
 }

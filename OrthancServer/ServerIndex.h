@@ -47,11 +47,6 @@ namespace Orthanc
 {
   class ServerContext;
 
-  namespace Internals
-  {
-    class ServerIndexListener;
-  }
-
   class ServerIndex : public boost::noncopyable
   {
   public:
@@ -59,6 +54,7 @@ namespace Orthanc
     typedef std::map< std::pair<ResourceType, MetadataType>, std::string>  MetadataMap;
 
   private:
+    class Listener;
     class Transaction;
     class UnstableResourcePayload;
 
@@ -67,7 +63,7 @@ namespace Orthanc
     boost::thread flushThread_;
     boost::thread unstableResourcesMonitorThread_;
 
-    std::auto_ptr<Internals::ServerIndexListener> listener_;
+    std::auto_ptr<Listener> listener_;
     IDatabaseWrapper& db_;
     LeastRecentlyUsedIndex<int64_t, UnstableResourcePayload>  unstableResources_;
 
@@ -126,6 +122,8 @@ namespace Orthanc
 
     ~ServerIndex();
 
+    void Stop();
+
     uint64_t GetMaximumStorageSize() const
     {
       return maximumStorageSize_;
@@ -158,8 +156,13 @@ namespace Orthanc
                           const std::string& instanceUuid,
                           FileContentType contentType);
 
-    void GetAllUuids(Json::Value& target,
+    void GetAllUuids(std::list<std::string>& target,
                      ResourceType resourceType);
+
+    void GetAllUuids(std::list<std::string>& target,
+                     ResourceType resourceType,
+                     size_t since,
+                     size_t limit);
 
     bool DeleteResource(Json::Value& target /* out */,
                         const std::string& uuid,
@@ -257,5 +260,12 @@ namespace Orthanc
 
     std::string GetGlobalProperty(GlobalProperty property,
                                   const std::string& defaultValue);
+
+    bool GetMainDicomTags(DicomMap& result,
+                          const std::string& publicId,
+                          ResourceType expectedType);
+
+    bool LookupResourceType(ResourceType& type,
+                            const std::string& publicId);
   };
 }

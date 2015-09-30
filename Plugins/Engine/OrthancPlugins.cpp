@@ -30,197 +30,236 @@
  **/
 
 
+#include "../../OrthancServer/PrecompiledHeadersServer.h"
 #include "OrthancPlugins.h"
 
+#if ORTHANC_PLUGINS_ENABLED != 1
+#error The plugin support is disabled
+#endif
+
+
 #include "../../Core/ChunkedBuffer.h"
+#include "../../Core/HttpServer/HttpToolbox.h"
+#include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
 #include "../../Core/Toolbox.h"
-#include "../../Core/HttpServer/HttpOutput.h"
-#include "../../Core/ImageFormats/PngWriter.h"
-#include "../../OrthancServer/ServerToolbox.h"
+#include "../../OrthancServer/FromDcmtkBridge.h"
 #include "../../OrthancServer/OrthancInitialization.h"
-#include "../../Core/MultiThreading/SharedMessageQueue.h"
+#include "../../OrthancServer/ServerContext.h"
+#include "../../OrthancServer/ServerToolbox.h"
+#include "../../Core/Compression/ZlibCompressor.h"
+#include "../../Core/Compression/GzipCompressor.h"
+#include "../../Core/Images/Image.h"
+#include "../../Core/Images/PngReader.h"
+#include "../../Core/Images/PngWriter.h"
+#include "../../Core/Images/JpegReader.h"
+#include "../../Core/Images/JpegWriter.h"
+#include "../../Core/Images/ImageProcessing.h"
+#include "PluginsEnumerations.h"
 
-#include <boost/thread.hpp>
 #include <boost/regex.hpp> 
-#include <glog/logging.h>
 
 namespace Orthanc
 {
-  static OrthancPluginResourceType Convert(ResourceType type)
-  {
-    switch (type)
-    {
-      case ResourceType_Patient:
-        return OrthancPluginResourceType_Patient;
-
-      case ResourceType_Study:
-        return OrthancPluginResourceType_Study;
-
-      case ResourceType_Series:
-        return OrthancPluginResourceType_Series;
-
-      case ResourceType_Instance:
-        return OrthancPluginResourceType_Instance;
-
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
-
-  static OrthancPluginChangeType Convert(ChangeType type)
-  {
-    switch (type)
-    {
-      case ChangeType_CompletedSeries:
-        return OrthancPluginChangeType_CompletedSeries;
-
-      case ChangeType_Deleted:
-        return OrthancPluginChangeType_Deleted;
-
-      case ChangeType_NewChildInstance:
-        return OrthancPluginChangeType_NewChildInstance;
-
-      case ChangeType_NewInstance:
-        return OrthancPluginChangeType_NewInstance;
-
-      case ChangeType_NewPatient:
-        return OrthancPluginChangeType_NewPatient;
-
-      case ChangeType_NewSeries:
-        return OrthancPluginChangeType_NewSeries;
-
-      case ChangeType_NewStudy:
-        return OrthancPluginChangeType_NewStudy;
-
-      case ChangeType_StablePatient:
-        return OrthancPluginChangeType_StablePatient;
-
-      case ChangeType_StableSeries:
-        return OrthancPluginChangeType_StableSeries;
-
-      case ChangeType_StableStudy:
-        return OrthancPluginChangeType_StableStudy;
-
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
-
   namespace
   {
-    // Anonymous namespace to avoid clashes between compilation modules
-    class StringHttpOutput : public IHttpOutputStream
+    class PluginStorageArea : public IStorageArea
     {
     private:
-      ChunkedBuffer buffer_;
+      _OrthancPluginRegisterStorageArea callbacks_;
+      PluginsErrorDictionary&  errorDictionary_;
 
-    public:
-      void GetOutput(std::string& output)
+      void Free(void* buffer) const
       {
-        buffer_.Flatten(output);
-      }
-
-      virtual void OnHttpStatusReceived(HttpStatus status)
-      {
-        if (status != HttpStatus_200_Ok)
+        if (buffer != NULL)
         {
-          throw OrthancException(ErrorCode_BadRequest);
+          callbacks_.free(buffer);
         }
       }
 
-      virtual void Send(bool isHeader, const void* buffer, size_t length)
+    public:
+      PluginStorageArea(const _OrthancPluginRegisterStorageArea& callbacks,
+                        PluginsErrorDictionary&  errorDictionary) : 
+        callbacks_(callbacks),
+        errorDictionary_(errorDictionary)
       {
-        if (!isHeader)
+      }
+
+
+      virtual void Create(const std::string& uuid,
+                          const void* content, 
+                          size_t size,
+                          FileContentType type)
+      {
+        OrthancPluginErrorCode error = callbacks_.create
+          (uuid.c_str(), content, size, Plugins::Convert(type));
+
+        if (error != OrthancPluginErrorCode_Success)
         {
-          buffer_.AddChunk(reinterpret_cast<const char*>(buffer), length);
+          errorDictionary_.LogError(error, true);
+          throw OrthancException(static_cast<ErrorCode>(error));
+        }
+      }
+
+
+      virtual void Read(std::string& content,
+                        const std::string& uuid,
+                        FileContentType type)
+      {
+        void* buffer = NULL;
+        int64_t size = 0;
+
+        OrthancPluginErrorCode error = callbacks_.read
+          (&buffer, &size, uuid.c_str(), Plugins::Convert(type));
+
+        if (error != OrthancPluginErrorCode_Success)
+        {
+          errorDictionary_.LogError(error, true);
+          throw OrthancException(static_cast<ErrorCode>(error));
+        }
+
+        try
+        {
+          content.resize(static_cast<size_t>(size));
+        }
+        catch (...)
+        {
+          Free(buffer);
+          throw OrthancException(ErrorCode_NotEnoughMemory);
+        }
+
+        if (size > 0)
+        {
+          memcpy(&content[0], buffer, static_cast<size_t>(size));
+        }
+
+        Free(buffer);
+      }
+
+
+      virtual void Remove(const std::string& uuid,
+                          FileContentType type) 
+      {
+        OrthancPluginErrorCode error = callbacks_.remove
+          (uuid.c_str(), Plugins::Convert(type));
+
+        if (error != OrthancPluginErrorCode_Success)
+        {
+          errorDictionary_.LogError(error, true);
+          throw OrthancException(static_cast<ErrorCode>(error));
         }
       }
     };
 
 
-    class PendingChange : public IDynamicObject
+    class StorageAreaFactory : public boost::noncopyable
     {
     private:
-      OrthancPluginChangeType changeType_;
-      OrthancPluginResourceType resourceType_;
-      std::string publicId_;
+      SharedLibrary&   sharedLibrary_;
+      _OrthancPluginRegisterStorageArea  callbacks_;
+      PluginsErrorDictionary&  errorDictionary_;
 
     public:
-      PendingChange(const ServerIndexChange& change)
+      StorageAreaFactory(SharedLibrary& sharedLibrary,
+                         const _OrthancPluginRegisterStorageArea& callbacks,
+                         PluginsErrorDictionary&  errorDictionary) :
+        sharedLibrary_(sharedLibrary),
+        callbacks_(callbacks),
+        errorDictionary_(errorDictionary)
       {
-        changeType_ = Convert(change.GetChangeType());
-        resourceType_ = Convert(change.GetResourceType());
-        publicId_ = change.GetPublicId();
       }
 
-      void Submit(std::list<OrthancPluginOnChangeCallback>& callbacks)
+      SharedLibrary&  GetSharedLibrary()
       {
-        for (std::list<OrthancPluginOnChangeCallback>::const_iterator 
-               callback = callbacks.begin(); 
-             callback != callbacks.end(); ++callback)
-        {
-          (*callback) (changeType_, resourceType_, publicId_.c_str());
-        }
+        return sharedLibrary_;
+      }
+
+      IStorageArea* Create() const
+      {
+        return new PluginStorageArea(callbacks_, errorDictionary_);
       }
     };
   }
-
 
 
   struct OrthancPlugins::PImpl
   {
-    typedef std::pair<std::string, _OrthancPluginProperty>  Property;
+    class RestCallback : public boost::noncopyable
+    {
+    private:
+      boost::regex              regex_;
+      OrthancPluginRestCallback callback_;
+      bool                      lock_;
 
-    typedef std::pair<boost::regex*, OrthancPluginRestCallback> RestCallback;
-    typedef std::list<RestCallback>  RestCallbacks;
+      OrthancPluginErrorCode InvokeInternal(HttpOutput& output,
+                                            const std::string& flatUri,
+                                            const OrthancPluginHttpRequest& request)
+      {
+        return callback_(reinterpret_cast<OrthancPluginRestOutput*>(&output), 
+                         flatUri.c_str(), 
+                         &request);
+      }
+
+    public:
+      RestCallback(const char* regex,
+                   OrthancPluginRestCallback callback,
+                   bool lockRestCallbacks) :
+        regex_(regex),
+        callback_(callback),
+        lock_(lockRestCallbacks)
+      {
+      }
+
+      const boost::regex& GetRegularExpression() const
+      {
+        return regex_;
+      }
+
+      OrthancPluginErrorCode Invoke(boost::recursive_mutex& restCallbackMutex,
+                                    HttpOutput& output,
+                                    const std::string& flatUri,
+                                    const OrthancPluginHttpRequest& request)
+      {
+        if (lock_)
+        {
+          boost::recursive_mutex::scoped_lock lock(restCallbackMutex);
+          return InvokeInternal(output, flatUri, request);
+        }
+        else
+        {
+          return InvokeInternal(output, flatUri, request);
+        }
+      }
+    };
+
+
+    typedef std::pair<std::string, _OrthancPluginProperty>  Property;
+    typedef std::list<RestCallback*>  RestCallbacks;
     typedef std::list<OrthancPluginOnStoredInstanceCallback>  OnStoredCallbacks;
     typedef std::list<OrthancPluginOnChangeCallback>  OnChangeCallbacks;
     typedef std::map<Property, std::string>  Properties;
 
+    PluginsManager manager_;
     ServerContext* context_;
     RestCallbacks restCallbacks_;
-    OrthancRestApi* restApi_;
     OnStoredCallbacks  onStoredCallbacks_;
     OnChangeCallbacks  onChangeCallbacks_;
-    bool hasStorageArea_;
-    _OrthancPluginRegisterStorageArea storageArea_;
-    boost::recursive_mutex callbackMutex_;
-    SharedMessageQueue  pendingChanges_;
-    boost::thread  changeThread_;
-    bool done_;
+    std::auto_ptr<StorageAreaFactory>  storageArea_;
+    boost::recursive_mutex restCallbackMutex_;
+    boost::recursive_mutex storedCallbackMutex_;
+    boost::recursive_mutex changeCallbackMutex_;
+    boost::recursive_mutex invokeServiceMutex_;
     Properties properties_;
     int argc_;
     char** argv_;
     std::auto_ptr<OrthancPluginDatabase>  database_;
+    PluginsErrorDictionary  dictionary_;
 
     PImpl() : 
       context_(NULL), 
-      restApi_(NULL),
-      hasStorageArea_(false),
-      done_(false),
       argc_(1),
       argv_(NULL)
     {
-      memset(&storageArea_, 0, sizeof(storageArea_));
-    }
-
-
-    static void ChangeThread(PImpl* that)
-    {
-      while (!that->done_)
-      {
-        std::auto_ptr<IDynamicObject> obj(that->pendingChanges_.Dequeue(500));
-        
-        if (obj.get() != NULL)
-        {
-          boost::recursive_mutex::scoped_lock lock(that->callbackMutex_);
-          PendingChange& change = *dynamic_cast<PendingChange*>(obj.get());
-          change.Submit(that->onChangeCallbacks_);
-        }
-      }
     }
   };
 
@@ -249,8 +288,25 @@ namespace Orthanc
 
   OrthancPlugins::OrthancPlugins()
   {
+    if (sizeof(int32_t) != sizeof(OrthancPluginErrorCode) ||
+        sizeof(int32_t) != sizeof(OrthancPluginHttpMethod) ||
+        sizeof(int32_t) != sizeof(_OrthancPluginService) ||
+        sizeof(int32_t) != sizeof(_OrthancPluginProperty) ||
+        sizeof(int32_t) != sizeof(OrthancPluginPixelFormat) ||
+        sizeof(int32_t) != sizeof(OrthancPluginContentType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginResourceType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginChangeType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginImageFormat) ||
+        sizeof(int32_t) != sizeof(OrthancPluginCompressionType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginValueRepresentation) ||
+        sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType))
+    {
+      /* Sanity check of the compiler */
+      throw OrthancException(ErrorCode_Plugin);
+    }
+
     pimpl_.reset(new PImpl());
-    pimpl_->changeThread_ = boost::thread(PImpl::ChangeThread, pimpl_.get());
+    pimpl_->manager_.RegisterServiceProvider(*this);
   }
 
   
@@ -263,37 +319,23 @@ namespace Orthanc
   
   OrthancPlugins::~OrthancPlugins()
   {
-    Stop();
-
     for (PImpl::RestCallbacks::iterator it = pimpl_->restCallbacks_.begin(); 
          it != pimpl_->restCallbacks_.end(); ++it)
     {
-      // Delete the regular expression associated with this callback
-      delete it->first;
+      delete *it;
     }
   }
-
-
-  void OrthancPlugins::Stop()
-  {
-    if (!pimpl_->done_)
-    {
-      pimpl_->done_ = true;
-      pimpl_->changeThread_.join();
-    }
-  }
-
 
 
   static void ArgumentsToPlugin(std::vector<const char*>& keys,
                                 std::vector<const char*>& values,
-                                const HttpHandler::Arguments& arguments)
+                                const IHttpHandler::Arguments& arguments)
   {
     keys.resize(arguments.size());
     values.resize(arguments.size());
 
     size_t pos = 0;
-    for (HttpHandler::Arguments::const_iterator 
+    for (IHttpHandler::Arguments::const_iterator 
            it = arguments.begin(); it != arguments.end(); ++it)
     {
       keys[pos] = it->first.c_str();
@@ -303,15 +345,34 @@ namespace Orthanc
   }
 
 
+  static void ArgumentsToPlugin(std::vector<const char*>& keys,
+                                std::vector<const char*>& values,
+                                const IHttpHandler::GetArguments& arguments)
+  {
+    keys.resize(arguments.size());
+    values.resize(arguments.size());
+
+    for (size_t i = 0; i < arguments.size(); i++)
+    {
+      keys[i] = arguments[i].first.c_str();
+      values[i] = arguments[i].second.c_str();
+    }
+  }
+
+
   bool OrthancPlugins::Handle(HttpOutput& output,
-                                  HttpMethod method,
-                                  const UriComponents& uri,
-                                  const Arguments& headers,
-                                  const Arguments& getArguments,
-                                  const std::string& postData)
+                              RequestOrigin /*origin*/,
+                              const char* /*remoteIp*/,
+                              const char* /*username*/,
+                              HttpMethod method,
+                              const UriComponents& uri,
+                              const Arguments& headers,
+                              const GetArguments& getArguments,
+                              const char* bodyData,
+                              size_t bodySize)
   {
     std::string flatUri = Toolbox::FlattenUri(uri);
-    OrthancPluginRestCallback callback = NULL;
+    PImpl::RestCallback* callback = NULL;
 
     std::vector<std::string> groups;
     std::vector<const char*> cgroups;
@@ -324,9 +385,9 @@ namespace Orthanc
       // Check whether the regular expression associated to this
       // callback matches the URI
       boost::cmatch what;
-      if (boost::regex_match(flatUri.c_str(), what, *(it->first)))
+      if (boost::regex_match(flatUri.c_str(), what, (*it)->GetRegularExpression()))
       {
-        callback = it->second;
+        callback = *it;
 
         // Extract the value of the free parameters of the regular expression
         if (what.size() > 1)
@@ -339,13 +400,12 @@ namespace Orthanc
             cgroups[i - 1] = groups[i - 1].c_str();
           }
         }
-
-        found = true;
       }
     }
 
-    if (!found)
+    if (callback == NULL)
     {
+      // Callback not found
       return false;
     }
 
@@ -385,8 +445,8 @@ namespace Orthanc
     request.groups = (cgroups.size() ? &cgroups[0] : NULL);
     request.groupsCount = cgroups.size();
     request.getCount = getArguments.size();
-    request.body = (postData.size() ? &postData[0] : NULL);
-    request.bodySize = postData.size();
+    request.body = bodyData;
+    request.bodySize = bodySize;
     request.headersCount = headers.size();
     
     if (getArguments.size() > 0)
@@ -402,43 +462,45 @@ namespace Orthanc
     }
 
     assert(callback != NULL);
-    int32_t error;
+    OrthancPluginErrorCode error = callback->Invoke(pimpl_->restCallbackMutex_, output, flatUri, request);
 
+    if (error == OrthancPluginErrorCode_Success && 
+        output.IsWritingMultipart())
     {
-      boost::recursive_mutex::scoped_lock lock(pimpl_->callbackMutex_);
-      error = callback(reinterpret_cast<OrthancPluginRestOutput*>(&output), 
-                       flatUri.c_str(), 
-                       &request);
+      output.CloseMultipart();
     }
 
-    if (error < 0)
+    if (error == OrthancPluginErrorCode_Success)
     {
-      LOG(ERROR) << "Plugin callback failed with error code " << error;
-      return false;
+      return true;
     }
     else
     {
-      if (error > 0)
-      {
-        LOG(WARNING) << "Plugin callback finished with warning code " << error;
-      }
-
-      return true;
+      GetErrorDictionary().LogError(error, true);
+      throw OrthancException(static_cast<ErrorCode>(error));
     }
   }
 
 
-  void OrthancPlugins::SignalStoredInstance(DicomInstanceToStore& instance,
-                                            const std::string& instanceId)                                                  
+  void OrthancPlugins::SignalStoredInstance(const std::string& instanceId,
+                                            DicomInstanceToStore& instance,
+                                            const Json::Value& simplifiedTags)
   {
-    boost::recursive_mutex::scoped_lock lock(pimpl_->callbackMutex_);
+    boost::recursive_mutex::scoped_lock lock(pimpl_->storedCallbackMutex_);
 
     for (PImpl::OnStoredCallbacks::const_iterator
            callback = pimpl_->onStoredCallbacks_.begin(); 
          callback != pimpl_->onStoredCallbacks_.end(); ++callback)
     {
-      (*callback) (reinterpret_cast<OrthancPluginDicomInstance*>(&instance),
-                   instanceId.c_str());
+      OrthancPluginErrorCode error = (*callback) 
+        (reinterpret_cast<OrthancPluginDicomInstance*>(&instance),
+         instanceId.c_str());
+
+      if (error != OrthancPluginErrorCode_Success)
+      {
+        GetErrorDictionary().LogError(error, true);
+        throw OrthancException(static_cast<ErrorCode>(error));
+      }
     }
   }
 
@@ -446,14 +508,22 @@ namespace Orthanc
 
   void OrthancPlugins::SignalChange(const ServerIndexChange& change)
   {
-    try
+    boost::recursive_mutex::scoped_lock lock(pimpl_->changeCallbackMutex_);
+
+    for (std::list<OrthancPluginOnChangeCallback>::const_iterator 
+           callback = pimpl_->onChangeCallbacks_.begin(); 
+         callback != pimpl_->onChangeCallbacks_.end(); ++callback)
     {
-      pimpl_->pendingChanges_.Enqueue(new PendingChange(change));
-    }
-    catch (OrthancException&)
-    {
-      // This change type or resource type is not supported by the plugin SDK
-      return;
+      OrthancPluginErrorCode error = (*callback)
+        (Plugins::Convert(change.GetChangeType()),
+         Plugins::Convert(change.GetResourceType()),
+         change.GetPublicId().c_str());
+
+      if (error != OrthancPluginErrorCode_Success)
+      {
+        GetErrorDictionary().LogError(error, true);
+        throw OrthancException(static_cast<ErrorCode>(error));
+      }
     }
   }
 
@@ -499,13 +569,18 @@ namespace Orthanc
   }
 
 
-  void OrthancPlugins::RegisterRestCallback(const void* parameters)
+  void OrthancPlugins::RegisterRestCallback(const void* parameters,
+                                            bool lock)
   {
     const _OrthancPluginRestCallback& p = 
       *reinterpret_cast<const _OrthancPluginRestCallback*>(parameters);
 
-    LOG(INFO) << "Plugin has registered a REST callback on: " << p.pathRegularExpression;
-    pimpl_->restCallbacks_.push_back(std::make_pair(new boost::regex(p.pathRegularExpression), p.callback));
+    LOG(INFO) << "Plugin has registered a REST callback "
+              << (lock ? "with" : "witout")
+              << " mutual exclusion on: " 
+              << p.pathRegularExpression;
+
+    pimpl_->restCallbacks_.push_back(new PImpl::RestCallback(p.pathRegularExpression, p.callback, lock));
   }
 
 
@@ -538,7 +613,7 @@ namespace Orthanc
 
     HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
     translatedOutput->SetContentType(p.mimeType);
-    translatedOutput->SendBody(p.answer, p.answerSize);
+    translatedOutput->Answer(p.answer, p.answerSize);
   }
 
 
@@ -559,6 +634,25 @@ namespace Orthanc
 
     HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
     translatedOutput->SendStatus(static_cast<HttpStatus>(p.status));
+  }
+
+
+  void OrthancPlugins::SendHttpStatus(const void* parameters)
+  {
+    const _OrthancPluginSendHttpStatus& p = 
+      *reinterpret_cast<const _OrthancPluginSendHttpStatus*>(parameters);
+
+    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
+    HttpStatus status = static_cast<HttpStatus>(p.status);
+
+    if (p.bodySize > 0 && p.body != NULL)
+    {
+      translatedOutput->SendStatus(status, p.body, p.bodySize);
+    }
+    else
+    {
+      translatedOutput->SendStatus(status);
+    }
   }
 
 
@@ -604,59 +698,82 @@ namespace Orthanc
 
   void OrthancPlugins::CompressAndAnswerPngImage(const void* parameters)
   {
+    // Bridge for backward compatibility with Orthanc <= 0.9.3
     const _OrthancPluginCompressAndAnswerPngImage& p = 
       *reinterpret_cast<const _OrthancPluginCompressAndAnswerPngImage*>(parameters);
 
+    _OrthancPluginCompressAndAnswerImage p2;
+    p2.output = p.output;
+    p2.imageFormat = OrthancPluginImageFormat_Png;
+    p2.pixelFormat = p.format;
+    p2.width = p.width;
+    p2.height = p.height;
+    p2.pitch = p.height;
+    p2.buffer = p.buffer;
+    p2.quality = 0;
+
+    CompressAndAnswerImage(&p2);
+  }
+
+
+  void OrthancPlugins::CompressAndAnswerImage(const void* parameters)
+  {
+    const _OrthancPluginCompressAndAnswerImage& p = 
+      *reinterpret_cast<const _OrthancPluginCompressAndAnswerImage*>(parameters);
+
     HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
 
-    PixelFormat format;
-    switch (p.format)
+    ImageAccessor accessor;
+    accessor.AssignReadOnly(Plugins::Convert(p.pixelFormat), p.width, p.height, p.pitch, p.buffer);
+
+    std::string compressed;
+
+    switch (p.imageFormat)
     {
-      case OrthancPluginPixelFormat_Grayscale8:  
-        format = PixelFormat_Grayscale8;
+      case OrthancPluginImageFormat_Png:
+      {
+        PngWriter writer;
+        writer.WriteToMemory(compressed, accessor);
+        translatedOutput->SetContentType("image/png");
         break;
+      }
 
-      case OrthancPluginPixelFormat_Grayscale16:  
-        format = PixelFormat_Grayscale16;
+      case OrthancPluginImageFormat_Jpeg:
+      {
+        JpegWriter writer;
+        writer.SetQuality(p.quality);
+        writer.WriteToMemory(compressed, accessor);
+        translatedOutput->SetContentType("image/jpeg");
         break;
-
-      case OrthancPluginPixelFormat_SignedGrayscale16:  
-        format = PixelFormat_SignedGrayscale16;
-        break;
-
-      case OrthancPluginPixelFormat_RGB24:  
-        format = PixelFormat_RGB24;
-        break;
-
-      case OrthancPluginPixelFormat_RGBA32:  
-        format = PixelFormat_RGBA32;
-        break;
+      }
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    ImageAccessor accessor;
-    accessor.AssignReadOnly(format, p.width, p.height, p.pitch, p.buffer);
+    translatedOutput->Answer(compressed);
+  }
 
-    PngWriter writer;
-    std::string png;
-    writer.WriteToMemory(png, accessor);
 
-    translatedOutput->SetContentType("image/png");
-    translatedOutput->SendBody(png);
+  void OrthancPlugins::CheckContextAvailable()
+  {
+    if (!pimpl_->context_)
+    {
+      throw OrthancException(ErrorCode_DatabaseNotInitialized);
+    }
   }
 
 
   void OrthancPlugins::GetDicomForInstance(const void* parameters)
   {
-    assert(pimpl_->context_ != NULL);
-
     const _OrthancPluginGetDicomForInstance& p = 
       *reinterpret_cast<const _OrthancPluginGetDicomForInstance*>(parameters);
 
     std::string dicom;
+
+    CheckContextAvailable();
     pimpl_->context_->ReadFile(dicom, p.instanceId, FileContentType_Dicom);
+
     CopyToMemoryBuffer(*p.target, dicom);
   }
 
@@ -667,36 +784,15 @@ namespace Orthanc
     const _OrthancPluginRestApiGet& p = 
       *reinterpret_cast<const _OrthancPluginRestApiGet*>(parameters);
         
-    HttpHandler::Arguments headers;  // No HTTP header
-    std::string body;  // No body for a GET request
-
-    UriComponents uri;
-    HttpHandler::Arguments getArguments;
-    HttpHandler::ParseGetQuery(uri, getArguments, p.uri);
-
-    StringHttpOutput stream;
-    HttpOutput http(stream, false /* no keep alive */);
-
     LOG(INFO) << "Plugin making REST GET call on URI " << p.uri
               << (afterPlugins ? " (after plugins)" : " (built-in API)");
 
-    bool ok = false;
+    CheckContextAvailable();
+    IHttpHandler& handler = pimpl_->context_->GetHttpHandler().RestrictToOrthancRestApi(!afterPlugins);
+
     std::string result;
-
-    if (afterPlugins)
+    if (HttpToolbox::SimpleGet(result, handler, RequestOrigin_Plugins, p.uri))
     {
-      ok = Handle(http, HttpMethod_Get, uri, headers, getArguments, body);
-    }
-
-    if (!ok)
-    {
-      ok = (pimpl_->restApi_ != NULL &&
-            pimpl_->restApi_->Handle(http, HttpMethod_Get, uri, headers, getArguments, body));
-    }
-
-    if (ok)
-    {
-      stream.GetOutput(result);
       CopyToMemoryBuffer(*p.target, result);
     }
     else
@@ -713,39 +809,17 @@ namespace Orthanc
     const _OrthancPluginRestApiPostPut& p = 
       *reinterpret_cast<const _OrthancPluginRestApiPostPut*>(parameters);
 
-    HttpHandler::Arguments headers;  // No HTTP header
-    HttpHandler::Arguments getArguments;  // No GET argument for POST/PUT
+    LOG(INFO) << "Plugin making REST " << EnumerationToString(isPost ? HttpMethod_Post : HttpMethod_Put)
+              << " call on URI " << p.uri << (afterPlugins ? " (after plugins)" : " (built-in API)");
 
-    UriComponents uri;
-    Toolbox::SplitUriComponents(uri, p.uri);
+    CheckContextAvailable();
+    IHttpHandler& handler = pimpl_->context_->GetHttpHandler().RestrictToOrthancRestApi(!afterPlugins);
 
-    // TODO Avoid unecessary memcpy
-    std::string body(p.body, p.bodySize);
-
-    StringHttpOutput stream;
-    HttpOutput http(stream, false /* no keep alive */);
-
-    HttpMethod method = (isPost ? HttpMethod_Post : HttpMethod_Put);
-    LOG(INFO) << "Plugin making REST " << EnumerationToString(method) << " call on URI " << p.uri
-              << (afterPlugins ? " (after plugins)" : " (built-in API)");
-
-    bool ok = false;
     std::string result;
-
-    if (afterPlugins)
+    if (isPost ? 
+        HttpToolbox::SimplePost(result, handler, RequestOrigin_Plugins, p.uri, p.body, p.bodySize) :
+        HttpToolbox::SimplePut (result, handler, RequestOrigin_Plugins, p.uri, p.body, p.bodySize))
     {
-      ok = Handle(http, method, uri, headers, getArguments, body);
-    }
-    
-    if (!ok)
-    {
-      ok = (pimpl_->restApi_ != NULL &&
-            pimpl_->restApi_->Handle(http, method, uri, headers, getArguments, body));
-    }
-
-    if (ok)
-    {
-      stream.GetOutput(result);
       CopyToMemoryBuffer(*p.target, result);
     }
     else
@@ -758,35 +832,14 @@ namespace Orthanc
   void OrthancPlugins::RestApiDelete(const void* parameters,
                                      bool afterPlugins)
   {
-    // The "parameters" point to the URI
-    UriComponents uri;
-    Toolbox::SplitUriComponents(uri, reinterpret_cast<const char*>(parameters));
-
-    HttpHandler::Arguments headers;  // No HTTP header
-    HttpHandler::Arguments getArguments;  // No GET argument for POST/PUT
-    std::string body;  // No body for DELETE
-
-    StringHttpOutput stream;
-    HttpOutput http(stream, false /* no keep alive */);
-
-    LOG(INFO) << "Plugin making REST DELETE call on URI " 
-              << reinterpret_cast<const char*>(parameters)
+    const char* uri = reinterpret_cast<const char*>(parameters);
+    LOG(INFO) << "Plugin making REST DELETE call on URI " << uri
               << (afterPlugins ? " (after plugins)" : " (built-in API)");
 
-    bool ok = false;
+    CheckContextAvailable();
+    IHttpHandler& handler = pimpl_->context_->GetHttpHandler().RestrictToOrthancRestApi(!afterPlugins);
 
-    if (afterPlugins)
-    {
-      ok = Handle(http, HttpMethod_Delete, uri, headers, getArguments, body);
-    }
-
-    if (!ok)
-    {
-      ok = (pimpl_->restApi_ != NULL &&
-            pimpl_->restApi_->Handle(http, HttpMethod_Delete, uri, headers, getArguments, body));
-    }
-
-    if (!ok)
+    if (!HttpToolbox::SimpleDelete(handler, RequestOrigin_Plugins, uri))
     {
       throw OrthancException(ErrorCode_BadRequest);
     }
@@ -839,7 +892,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
     }
 
-    assert(pimpl_->context_ != NULL);
+    CheckContextAvailable();
 
     std::list<std::string> result;
     pimpl_->context_->GetIndex().LookupIdentifier(result, tag, p.argument, level);
@@ -921,7 +974,7 @@ namespace Orthanc
     switch (service)
     {
       case _OrthancPluginService_GetInstanceRemoteAet:
-        *p.resultString = instance.GetRemoteAet().c_str();
+        *p.resultString = instance.GetRemoteAet();
         return;
 
       case _OrthancPluginService_GetInstanceSize:
@@ -967,9 +1020,225 @@ namespace Orthanc
   }
 
 
-  bool OrthancPlugins::InvokeService(_OrthancPluginService service,
+  void OrthancPlugins::BufferCompression(const void* parameters)
+  {
+    const _OrthancPluginBufferCompression& p = 
+      *reinterpret_cast<const _OrthancPluginBufferCompression*>(parameters);
+
+    std::string result;
+
+    {
+      std::auto_ptr<DeflateBaseCompressor> compressor;
+
+      switch (p.compression)
+      {
+        case OrthancPluginCompressionType_Zlib:
+        {
+          compressor.reset(new ZlibCompressor);
+          compressor->SetPrefixWithUncompressedSize(false);
+          break;
+        }
+
+        case OrthancPluginCompressionType_ZlibWithSize:
+        {
+          compressor.reset(new ZlibCompressor);
+          compressor->SetPrefixWithUncompressedSize(true);
+          break;
+        }
+
+        case OrthancPluginCompressionType_Gzip:
+        {
+          compressor.reset(new GzipCompressor);
+          compressor->SetPrefixWithUncompressedSize(false);
+          break;
+        }
+
+        case OrthancPluginCompressionType_GzipWithSize:
+        {
+          compressor.reset(new GzipCompressor);
+          compressor->SetPrefixWithUncompressedSize(true);
+          break;
+        }
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+
+      if (p.uncompress)
+      {
+        compressor->Uncompress(result, p.source, p.size);
+      }
+      else
+      {
+        compressor->Compress(result, p.source, p.size);
+      }
+    }
+
+    CopyToMemoryBuffer(*p.target, result);
+  }
+
+
+  void OrthancPlugins::UncompressImage(const void* parameters)
+  {
+    const _OrthancPluginUncompressImage& p = *reinterpret_cast<const _OrthancPluginUncompressImage*>(parameters);
+
+    std::auto_ptr<ImageAccessor> image;
+
+    switch (p.format)
+    {
+      case OrthancPluginImageFormat_Png:
+      {
+        image.reset(new PngReader);
+        reinterpret_cast<PngReader&>(*image).ReadFromMemory(p.data, p.size);
+        break;
+      }
+
+      case OrthancPluginImageFormat_Jpeg:
+      {
+        image.reset(new JpegReader);
+        reinterpret_cast<JpegReader&>(*image).ReadFromMemory(p.data, p.size);
+        break;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    *(p.target) = reinterpret_cast<OrthancPluginImage*>(image.release());
+  }
+
+
+  void OrthancPlugins::CompressImage(const void* parameters)
+  {
+    const _OrthancPluginCompressImage& p = *reinterpret_cast<const _OrthancPluginCompressImage*>(parameters);
+
+    std::string compressed;
+
+    switch (p.imageFormat)
+    {
+      case OrthancPluginImageFormat_Png:
+      {
+        PngWriter writer;
+        writer.WriteToMemory(compressed, p.width, p.height, p.pitch, Plugins::Convert(p.pixelFormat), p.buffer);
+        break;
+      }
+
+      case OrthancPluginImageFormat_Jpeg:
+      {
+        JpegWriter writer;
+        writer.SetQuality(p.quality);
+        writer.WriteToMemory(compressed, p.width, p.height, p.pitch, Plugins::Convert(p.pixelFormat), p.buffer);
+        break;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    CopyToMemoryBuffer(*p.target, compressed.size() > 0 ? compressed.c_str() : NULL, compressed.size());
+  }
+
+
+  void OrthancPlugins::CallHttpClient(const void* parameters)
+  {
+    const _OrthancPluginCallHttpClient& p = *reinterpret_cast<const _OrthancPluginCallHttpClient*>(parameters);
+
+    HttpClient client;
+    client.SetUrl(p.url);
+
+    if (p.username != NULL && 
+        p.password != NULL)
+    {
+      client.SetCredentials(p.username, p.password);
+    }
+
+    switch (p.method)
+    {
+      case OrthancPluginHttpMethod_Get:
+        client.SetMethod(HttpMethod_Get);
+        break;
+
+      case OrthancPluginHttpMethod_Post:
+        client.SetMethod(HttpMethod_Post);
+        client.GetBody().assign(p.body, p.bodySize);
+        break;
+
+      case OrthancPluginHttpMethod_Put:
+        client.SetMethod(HttpMethod_Put);
+        client.GetBody().assign(p.body, p.bodySize);
+        break;
+
+      case OrthancPluginHttpMethod_Delete:
+        client.SetMethod(HttpMethod_Delete);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    std::string s;
+    client.ApplyAndThrowException(s);
+
+    if (p.method != OrthancPluginHttpMethod_Delete)
+    {
+      CopyToMemoryBuffer(*p.target, s);
+    }
+  }
+
+
+  void OrthancPlugins::ConvertPixelFormat(const void* parameters)
+  {
+    const _OrthancPluginConvertPixelFormat& p = *reinterpret_cast<const _OrthancPluginConvertPixelFormat*>(parameters);
+    const ImageAccessor& source = *reinterpret_cast<const ImageAccessor*>(p.source);
+
+    std::auto_ptr<ImageAccessor> target(new Image(Plugins::Convert(p.targetFormat), source.GetWidth(), source.GetHeight()));
+    ImageProcessing::Convert(*target, source);
+
+    *(p.target) = reinterpret_cast<OrthancPluginImage*>(target.release());
+  }
+
+
+
+  void OrthancPlugins::GetFontInfo(const void* parameters)
+  {
+    const _OrthancPluginGetFontInfo& p = *reinterpret_cast<const _OrthancPluginGetFontInfo*>(parameters);
+
+    const Font& font = Configuration::GetFontRegistry().GetFont(p.fontIndex);
+
+    if (p.name != NULL)
+    {
+      *(p.name) = font.GetName().c_str();
+    }
+    else if (p.size != NULL)
+    {
+      *(p.size) = font.GetSize();
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
+  void OrthancPlugins::DrawText(const void* parameters)
+  {
+    const _OrthancPluginDrawText& p = *reinterpret_cast<const _OrthancPluginDrawText*>(parameters);
+
+    ImageAccessor& target = *reinterpret_cast<ImageAccessor*>(p.image);
+    const Font& font = Configuration::GetFontRegistry().GetFont(p.fontIndex);
+
+    font.Draw(target, p.utf8Text, p.x, p.y, p.r, p.g, p.b);
+  }
+        
+
+  bool OrthancPlugins::InvokeService(SharedLibrary& plugin,
+                                     _OrthancPluginService service,
                                      const void* parameters)
   {
+    VLOG(1) << "Calling service " << service << " from plugin " << plugin.GetPath();
+
+    boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
+
     switch (service)
     {
       case _OrthancPluginService_GetOrthancPath:
@@ -993,8 +1262,25 @@ namespace Orthanc
         return true;
       }
 
+      case _OrthancPluginService_GetConfiguration:
+      {
+        std::string s;
+        Configuration::FormatConfiguration(s);
+
+        *reinterpret_cast<const _OrthancPluginRetrieveDynamicString*>(parameters)->result = CopyString(s);
+        return true;
+      }
+
+      case _OrthancPluginService_BufferCompression:
+        BufferCompression(parameters);
+        return true;
+
       case _OrthancPluginService_RegisterRestCallback:
-        RegisterRestCallback(parameters);
+        RegisterRestCallback(parameters, true);
+        return true;
+
+      case _OrthancPluginService_RegisterRestCallbackNoLock:
+        RegisterRestCallback(parameters, false);
         return true;
 
       case _OrthancPluginService_RegisterOnStoredInstanceCallback:
@@ -1011,6 +1297,10 @@ namespace Orthanc
 
       case _OrthancPluginService_CompressAndAnswerPngImage:
         CompressAndAnswerPngImage(parameters);
+        return true;
+
+      case _OrthancPluginService_CompressAndAnswerImage:
+        CompressAndAnswerImage(parameters);
         return true;
 
       case _OrthancPluginService_GetDicomForInstance:
@@ -1061,6 +1351,10 @@ namespace Orthanc
         SendMethodNotAllowed(parameters);
         return true;
 
+      case _OrthancPluginService_SendHttpStatus:
+        SendHttpStatus(parameters);
+        return true;
+
       case _OrthancPluginService_SendHttpStatusCode:
         SendHttpStatusCode(parameters);
         return true;
@@ -1097,8 +1391,15 @@ namespace Orthanc
         const _OrthancPluginRegisterStorageArea& p = 
           *reinterpret_cast<const _OrthancPluginRegisterStorageArea*>(parameters);
         
-        pimpl_->storageArea_ = p;
-        pimpl_->hasStorageArea_ = true;
+        if (pimpl_->storageArea_.get() == NULL)
+        {
+          pimpl_->storageArea_.reset(new StorageAreaFactory(plugin, p, GetErrorDictionary()));
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_StorageAreaAlreadyRegistered);
+        }
+
         return true;
       }
 
@@ -1120,7 +1421,7 @@ namespace Orthanc
         }
         else
         {
-          assert(pimpl_->context_ != NULL);
+          CheckContextAvailable();
           pimpl_->context_->GetIndex().SetGlobalProperty(static_cast<GlobalProperty>(p.property), p.value);
           return true;
         }
@@ -1128,7 +1429,7 @@ namespace Orthanc
 
       case _OrthancPluginService_GetGlobalProperty:
       {
-        assert(pimpl_->context_ != NULL);
+        CheckContextAvailable();
 
         const _OrthancPluginGlobalProperty& p = 
           *reinterpret_cast<const _OrthancPluginGlobalProperty*>(parameters);
@@ -1165,10 +1466,43 @@ namespace Orthanc
       case _OrthancPluginService_RegisterDatabaseBackend:
       {
         LOG(INFO) << "Plugin has registered a custom database back-end";
+
         const _OrthancPluginRegisterDatabaseBackend& p =
           *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackend*>(parameters);
 
-        pimpl_->database_.reset(new OrthancPluginDatabase(*p.backend, p.payload));
+        if (pimpl_->database_.get() == NULL)
+        {
+          pimpl_->database_.reset(new OrthancPluginDatabase(plugin, GetErrorDictionary(), 
+                                                            *p.backend, NULL, 0, p.payload));
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_DatabaseBackendAlreadyRegistered);
+        }
+
+        *(p.result) = reinterpret_cast<OrthancPluginDatabaseContext*>(pimpl_->database_.get());
+
+        return true;
+      }
+
+      case _OrthancPluginService_RegisterDatabaseBackendV2:
+      {
+        LOG(INFO) << "Plugin has registered a custom database back-end";
+
+        const _OrthancPluginRegisterDatabaseBackendV2& p =
+          *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackendV2*>(parameters);
+
+        if (pimpl_->database_.get() == NULL)
+        {
+          pimpl_->database_.reset(new OrthancPluginDatabase(plugin, GetErrorDictionary(),
+                                                            *p.backend, p.extensions,
+                                                            p.extensionsSize, p.payload));
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_DatabaseBackendAlreadyRegistered);
+        }
+
         *(p.result) = reinterpret_cast<OrthancPluginDatabaseContext*>(pimpl_->database_.get());
 
         return true;
@@ -1178,6 +1512,7 @@ namespace Orthanc
       {
         const _OrthancPluginDatabaseAnswer& p =
           *reinterpret_cast<const _OrthancPluginDatabaseAnswer*>(parameters);
+
         if (pimpl_->database_.get() != NULL)
         {
           pimpl_->database_->AnswerReceived(p);
@@ -1190,141 +1525,260 @@ namespace Orthanc
         }
       }
 
+      case _OrthancPluginService_GetExpectedDatabaseVersion:
+      {
+        const _OrthancPluginReturnSingleValue& p =
+          *reinterpret_cast<const _OrthancPluginReturnSingleValue*>(parameters);
+        *(p.resultUint32) = ORTHANC_DATABASE_VERSION;
+        return true;
+      }
+
+      case _OrthancPluginService_StartMultipartAnswer:
+      {
+        const _OrthancPluginStartMultipartAnswer& p =
+          *reinterpret_cast<const _OrthancPluginStartMultipartAnswer*>(parameters);
+        HttpOutput* output = reinterpret_cast<HttpOutput*>(p.output);
+        output->StartMultipart(p.subType, p.contentType);
+        return true;
+      }
+
+      case _OrthancPluginService_SendMultipartItem:
+      {
+        // An exception might be raised in this function if the
+        // connection was closed by the HTTP client.
+        const _OrthancPluginAnswerBuffer& p =
+          *reinterpret_cast<const _OrthancPluginAnswerBuffer*>(parameters);
+        HttpOutput* output = reinterpret_cast<HttpOutput*>(p.output);
+        output->SendMultipartItem(p.answer, p.answerSize);
+        return true;
+      }
+
+      case _OrthancPluginService_ReadFile:
+      {
+        const _OrthancPluginReadFile& p =
+          *reinterpret_cast<const _OrthancPluginReadFile*>(parameters);
+
+        std::string content;
+        Toolbox::ReadFile(content, p.path);
+        CopyToMemoryBuffer(*p.target, content.size() > 0 ? content.c_str() : NULL, content.size());
+
+        return true;
+      }
+
+      case _OrthancPluginService_WriteFile:
+      {
+        const _OrthancPluginWriteFile& p =
+          *reinterpret_cast<const _OrthancPluginWriteFile*>(parameters);
+        Toolbox::WriteFile(p.data, p.size, p.path);
+        return true;
+      }
+
+      case _OrthancPluginService_GetErrorDescription:
+      {
+        const _OrthancPluginGetErrorDescription& p =
+          *reinterpret_cast<const _OrthancPluginGetErrorDescription*>(parameters);
+        *(p.target) = EnumerationToString(static_cast<ErrorCode>(p.error));
+        return true;
+      }
+
+      case _OrthancPluginService_GetImagePixelFormat:
+      {
+        const _OrthancPluginGetImageInfo& p = *reinterpret_cast<const _OrthancPluginGetImageInfo*>(parameters);
+        *(p.resultPixelFormat) = Plugins::Convert(reinterpret_cast<const ImageAccessor*>(p.image)->GetFormat());
+        return true;
+      }
+
+      case _OrthancPluginService_GetImageWidth:
+      {
+        const _OrthancPluginGetImageInfo& p = *reinterpret_cast<const _OrthancPluginGetImageInfo*>(parameters);
+        *(p.resultUint32) = reinterpret_cast<const ImageAccessor*>(p.image)->GetWidth();
+        return true;
+      }
+
+      case _OrthancPluginService_GetImageHeight:
+      {
+        const _OrthancPluginGetImageInfo& p = *reinterpret_cast<const _OrthancPluginGetImageInfo*>(parameters);
+        *(p.resultUint32) = reinterpret_cast<const ImageAccessor*>(p.image)->GetHeight();
+        return true;
+      }
+
+      case _OrthancPluginService_GetImagePitch:
+      {
+        const _OrthancPluginGetImageInfo& p = *reinterpret_cast<const _OrthancPluginGetImageInfo*>(parameters);
+        *(p.resultUint32) = reinterpret_cast<const ImageAccessor*>(p.image)->GetPitch();
+        return true;
+      }
+
+      case _OrthancPluginService_GetImageBuffer:
+      {
+        const _OrthancPluginGetImageInfo& p = *reinterpret_cast<const _OrthancPluginGetImageInfo*>(parameters);
+        *(p.resultBuffer) = reinterpret_cast<const ImageAccessor*>(p.image)->GetConstBuffer();
+        return true;
+      }
+
+      case _OrthancPluginService_FreeImage:
+      {
+        const _OrthancPluginFreeImage& p = *reinterpret_cast<const _OrthancPluginFreeImage*>(parameters);
+        if (p.image == NULL)
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+        else
+        {
+          delete reinterpret_cast<ImageAccessor*>(p.image);
+          return true;
+        }
+      }
+
+      case _OrthancPluginService_UncompressImage:
+        UncompressImage(parameters);
+        return true;
+
+      case _OrthancPluginService_CompressImage:
+        CompressImage(parameters);
+        return true;
+
+      case _OrthancPluginService_CallHttpClient:
+        CallHttpClient(parameters);
+        return true;
+
+      case _OrthancPluginService_ConvertPixelFormat:
+        ConvertPixelFormat(parameters);
+        return true;
+
+      case _OrthancPluginService_GetFontsCount:
+      {
+        const _OrthancPluginReturnSingleValue& p =
+          *reinterpret_cast<const _OrthancPluginReturnSingleValue*>(parameters);
+        *(p.resultUint32) = Configuration::GetFontRegistry().GetSize();
+        return true;
+      }
+
+      case _OrthancPluginService_GetFontInfo:
+        GetFontInfo(parameters);
+        return true;
+
+      case _OrthancPluginService_DrawText:
+        DrawText(parameters);
+        return true;
+
+      case _OrthancPluginService_StorageAreaCreate:
+      {
+        const _OrthancPluginStorageAreaCreate& p =
+          *reinterpret_cast<const _OrthancPluginStorageAreaCreate*>(parameters);
+        IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
+        storage.Create(p.uuid, p.content, p.size, Plugins::Convert(p.type));
+        return true;
+      }
+
+      case _OrthancPluginService_StorageAreaRead:
+      {
+        const _OrthancPluginStorageAreaRead& p =
+          *reinterpret_cast<const _OrthancPluginStorageAreaRead*>(parameters);
+        IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
+        std::string content;
+        storage.Read(content, p.uuid, Plugins::Convert(p.type));
+        CopyToMemoryBuffer(*p.target, content);
+        return true;
+      }
+
+      case _OrthancPluginService_StorageAreaRemove:
+      {
+        const _OrthancPluginStorageAreaRemove& p =
+          *reinterpret_cast<const _OrthancPluginStorageAreaRemove*>(parameters);
+        IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
+        storage.Remove(p.uuid, Plugins::Convert(p.type));
+        return true;
+      }
+
+      case _OrthancPluginService_RegisterErrorCode:
+      {
+        const _OrthancPluginRegisterErrorCode& p =
+          *reinterpret_cast<const _OrthancPluginRegisterErrorCode*>(parameters);
+        *(p.target) = pimpl_->dictionary_.Register(plugin, p.code, p.httpStatus, p.message);
+        return true;
+      }
+
+      case _OrthancPluginService_RegisterDictionaryTag:
+      {
+        const _OrthancPluginRegisterDictionaryTag& p =
+          *reinterpret_cast<const _OrthancPluginRegisterDictionaryTag*>(parameters);
+        FromDcmtkBridge::RegisterDictionaryTag(DicomTag(p.group, p.element),
+                                               Plugins::Convert(p.vr), p.name,
+                                               p.minMultiplicity, p.maxMultiplicity);
+        return true;
+      }
+
       default:
+      {
+        // This service is unknown to the Orthanc plugin engine
         return false;
+      }
     }
   }
 
 
-  void OrthancPlugins::SetOrthancRestApi(OrthancRestApi& restApi)
-  {
-    pimpl_->restApi_ = &restApi;
-  }
-
-  
   bool OrthancPlugins::HasStorageArea() const
   {
-    return pimpl_->hasStorageArea_;
+    return pimpl_->storageArea_.get() != NULL;
   }
   
-  bool OrthancPlugins::HasDatabase() const
+  bool OrthancPlugins::HasDatabaseBackend() const
   {
     return pimpl_->database_.get() != NULL;
   }
 
 
-
-  namespace
-  {
-    class PluginStorageArea : public IStorageArea
-    {
-    private:
-      _OrthancPluginRegisterStorageArea params_;
-
-      void Free(void* buffer) const
-      {
-        if (buffer != NULL)
-        {
-          params_.free(buffer);
-        }
-      }
-
-      OrthancPluginContentType Convert(FileContentType type) const
-      {
-        switch (type)
-        {
-          case FileContentType_Dicom:
-            return OrthancPluginContentType_Dicom;
-
-          case FileContentType_DicomAsJson:
-            return OrthancPluginContentType_DicomAsJson;
-
-          default:
-            return OrthancPluginContentType_Unknown;
-        }
-      }
-
-    public:
-      PluginStorageArea(const _OrthancPluginRegisterStorageArea& params) : params_(params)
-      {
-      }
-
-      virtual void Create(const std::string& uuid,
-                          const void* content, 
-                          size_t size,
-                          FileContentType type)
-      {
-        if (params_.create(uuid.c_str(), content, size, Convert(type)) != 0)
-        {
-          throw OrthancException(ErrorCode_Plugin);
-        }
-      }
-
-      virtual void Read(std::string& content,
-                        const std::string& uuid,
-                        FileContentType type)
-      {
-        void* buffer = NULL;
-        int64_t size = 0;
-
-        if (params_.read(&buffer, &size, uuid.c_str(), Convert(type)) != 0)
-        {
-          throw OrthancException(ErrorCode_Plugin);
-        }        
-
-        try
-        {
-          content.resize(size);
-        }
-        catch (OrthancException&)
-        {
-          Free(buffer);
-          throw;
-        }
-
-        if (size > 0)
-        {
-          memcpy(&content[0], buffer, size);
-        }
-
-        Free(buffer);
-      }
-
-      virtual void Remove(const std::string& uuid,
-                          FileContentType type) 
-      {
-        if (params_.remove(uuid.c_str(), Convert(type)) != 0)
-        {
-          throw OrthancException(ErrorCode_Plugin);
-        }        
-      }
-    };
-  }
-
-
-  IStorageArea* OrthancPlugins::GetStorageArea()
+  IStorageArea* OrthancPlugins::CreateStorageArea()
   {
     if (!HasStorageArea())
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
-
-    return new PluginStorageArea(pimpl_->storageArea_);
+    else
+    {
+      return pimpl_->storageArea_->Create();
+    }
   }
 
 
-  IDatabaseWrapper& OrthancPlugins::GetDatabase()
+  const SharedLibrary& OrthancPlugins::GetStorageAreaLibrary() const
   {
-    if (!HasDatabase())
+    if (!HasStorageArea())
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
-
-    return *pimpl_->database_;
+    else
+    {
+      return pimpl_->storageArea_->GetSharedLibrary();
+    }
   }
 
 
+  IDatabaseWrapper& OrthancPlugins::GetDatabaseBackend()
+  {
+    if (!HasDatabaseBackend())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return *pimpl_->database_;
+    }
+  }
 
+
+  const SharedLibrary& OrthancPlugins::GetDatabaseBackendLibrary() const
+  {
+    if (!HasDatabaseBackend())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return pimpl_->database_->GetSharedLibrary();
+    }
+  }
 
 
   const char* OrthancPlugins::GetProperty(const char* plugin,
@@ -1353,5 +1807,23 @@ namespace Orthanc
 
     pimpl_->argc_ = argc;
     pimpl_->argv_ = argv;
+  }
+
+
+  PluginsManager& OrthancPlugins::GetManager()
+  {
+    return pimpl_->manager_;
+  }
+
+
+  const PluginsManager& OrthancPlugins::GetManager() const
+  {
+    return pimpl_->manager_;
+  }
+
+
+  PluginsErrorDictionary&  OrthancPlugins::GetErrorDictionary()
+  {
+    return pimpl_->dictionary_;
   }
 }

@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "RestApiHierarchy.h"
 
 #include "../OrthancException.h"
@@ -199,7 +200,7 @@ namespace Orthanc
   }
 
 
-  bool RestApiHierarchy::LookupResource(HttpHandler::Arguments& components,
+  bool RestApiHierarchy::LookupResource(IHttpHandler::Arguments& components,
                                        const UriComponents& uri,
                                        IVisitor& visitor,
                                        size_t level)
@@ -240,7 +241,7 @@ namespace Orthanc
       for (child = wildcardChildren_.begin();
            child != wildcardChildren_.end(); ++child)
       {
-        HttpHandler::Arguments subComponents = components;
+        IHttpHandler::Arguments subComponents = components;
         subComponents[child->first] = uri[level];
 
         if (child->second->LookupResource(subComponents, uri, visitor, level + 1))
@@ -404,7 +405,7 @@ namespace Orthanc
   bool RestApiHierarchy::LookupResource(const UriComponents& uri,
                                         IVisitor& visitor)
   {
-    HttpHandler::Arguments components;
+    IHttpHandler::Arguments components;
     return LookupResource(components, uri, visitor, 0);
   }    
 
@@ -426,7 +427,7 @@ namespace Orthanc
 
       virtual bool Visit(const RestApiHierarchy::Resource& resource,
                          const UriComponents& uri,
-                         const HttpHandler::Arguments& components,
+                         const IHttpHandler::Arguments& components,
                          const UriComponents& trailing)
       {
         if (trailing.size() == 0)  // Ignore universal handlers
@@ -460,14 +461,15 @@ namespace Orthanc
   void RestApiHierarchy::GetAcceptedMethods(std::set<HttpMethod>& methods,
                                             const UriComponents& uri)
   {
-    HttpHandler::Arguments components;
+    IHttpHandler::Arguments components;
     AcceptedMethodsVisitor visitor(methods);
-    LookupResource(components, uri, visitor, 0);
-
-    Json::Value d;
-    if (GetDirectory(d, uri))
+    if (LookupResource(components, uri, visitor, 0))
     {
-      methods.insert(HttpMethod_Get);
+      Json::Value d;
+      if (GetDirectory(d, uri))
+      {
+        methods.insert(HttpMethod_Get);
+      }
     }
   }
 }

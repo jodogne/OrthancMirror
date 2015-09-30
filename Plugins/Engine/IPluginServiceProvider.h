@@ -32,9 +32,11 @@
 
 #pragma once
 
-#include "../Include/OrthancCPlugin.h"
+#if ORTHANC_PLUGINS_ENABLED == 1
 
-#include <boost/noncopyable.hpp>
+#include "../Include/orthanc/OrthancCPlugin.h"
+
+#include "SharedLibrary.h"
 
 namespace Orthanc
 {
@@ -45,7 +47,10 @@ namespace Orthanc
     {
     }
 
-    virtual bool InvokeService(_OrthancPluginService service,
+    virtual bool InvokeService(SharedLibrary& plugin,
+                               _OrthancPluginService service,
                                const void* parameters) = 0;
   };
 }
+
+#endif

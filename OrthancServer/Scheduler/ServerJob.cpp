@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeadersServer.h"
 #include "ServerJob.h"
 
 #include "../../Core/OrthancException.h"
@@ -61,7 +62,7 @@ namespace Orthanc
             index[*next] <= index[*it])
         {
           // You must reorder your calls to "ServerJob::AddCommand"
-          throw OrthancException("Bad ordering of filters in a job");
+          throw OrthancException(ErrorCode_BadJobOrdering);
         }
       }
     }

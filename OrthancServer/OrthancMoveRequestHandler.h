@@ -51,7 +51,9 @@ namespace Orthanc
     {
     }
 
-    virtual IMoveRequestIterator* Handle(const std::string& target,
-                                         const DicomMap& input);
+    virtual IMoveRequestIterator* Handle(const std::string& targetAet,
+                                         const DicomMap& input,
+                                         const std::string& remoteIp,
+                                         const std::string& remoteAet);
   };
 }

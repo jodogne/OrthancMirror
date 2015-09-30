@@ -33,168 +33,20 @@
 #include "PrecompiledHeadersServer.h"
 #include "OrthancFindRequestHandler.h"
 
-#include <glog/logging.h>
-#include <boost/regex.hpp> 
-
+#include "../Core/Logging.h"
 #include "../Core/DicomFormat/DicomArray.h"
 #include "ServerToolbox.h"
 #include "OrthancInitialization.h"
 #include "FromDcmtkBridge.h"
 
+#include "ResourceFinder.h"
+#include "DicomFindQuery.h"
+
+#include <boost/regex.hpp> 
+
+
 namespace Orthanc
 {
-  static bool IsWildcard(const std::string& constraint)
-  {
-    return (constraint.find('-') != std::string::npos ||
-            constraint.find('*') != std::string::npos ||
-            constraint.find('\\') != std::string::npos ||
-            constraint.find('?') != std::string::npos);
-  }
-
-  static bool ApplyRangeConstraint(const std::string& value,
-                                   const std::string& constraint)
-  {
-    size_t separator = constraint.find('-');
-    std::string lower, upper, v;
-    Toolbox::ToLowerCase(lower, constraint.substr(0, separator));
-    Toolbox::ToLowerCase(upper, constraint.substr(separator + 1));
-    Toolbox::ToLowerCase(v, value);
-
-    if (lower.size() == 0 && upper.size() == 0)
-    {
-      return false;
-    }
-
-    if (lower.size() == 0)
-    {
-      return v <= upper;
-    }
-
-    if (upper.size() == 0)
-    {
-      return v >= lower;
-    }
-    
-    return (v >= lower && v <= upper);
-  }
-
-
-  static bool ApplyListConstraint(const std::string& value,
-                                  const std::string& constraint)
-  {
-    std::string v1;
-    Toolbox::ToLowerCase(v1, value);
-
-    std::vector<std::string> items;
-    Toolbox::TokenizeString(items, constraint, '\\');
-
-    for (size_t i = 0; i < items.size(); i++)
-    {
-      std::string lower;
-      Toolbox::ToLowerCase(lower, items[i]);
-      if (lower == v1)
-      {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-
-  static bool Matches(const std::string& value,
-                      const std::string& constraint)
-  {
-    // http://www.itk.org/Wiki/DICOM_QueryRetrieve_Explained
-    // http://dicomiseasy.blogspot.be/2012/01/dicom-queryretrieve-part-i.html  
-
-    if (constraint.find('-') != std::string::npos)
-    {
-      return ApplyRangeConstraint(value, constraint);
-    }
-    
-    if (constraint.find('\\') != std::string::npos)
-    {
-      return ApplyListConstraint(value, constraint);
-    }
-
-    if (constraint.find('*') != std::string::npos ||
-        constraint.find('?') != std::string::npos)
-    {
-      // TODO - Cache the constructed regular expression
-      boost::regex pattern(Toolbox::WildcardToRegularExpression(constraint),
-                           boost::regex::icase /* case insensitive search */);
-      return boost::regex_match(value, pattern);
-    }
-    else
-    {
-      std::string v, c;
-      Toolbox::ToLowerCase(v, value);
-      Toolbox::ToLowerCase(c, constraint);
-      return v == c;
-    }
-  }
-
-
-  static bool LookupOneInstance(std::string& result,
-                                ServerIndex& index,
-                                const std::string& id,
-                                ResourceType type)
-  {
-    if (type == ResourceType_Instance)
-    {
-      result = id;
-      return true;
-    }
-
-    std::string childId;
-    
-    {
-      std::list<std::string> children;
-      index.GetChildInstances(children, id);
-
-      if (children.empty())
-      {
-        return false;
-      }
-
-      childId = children.front();
-    }
-
-    return LookupOneInstance(result, index, childId, GetChildResourceType(type));
-  }
-
-
-  static bool Matches(const Json::Value& resource,
-                      const DicomArray& query)
-  {
-    for (size_t i = 0; i < query.GetSize(); i++)
-    {
-      if (query.GetElement(i).GetValue().IsNull() ||
-          query.GetElement(i).GetTag() == DICOM_TAG_QUERY_RETRIEVE_LEVEL ||
-          query.GetElement(i).GetTag() == DICOM_TAG_SPECIFIC_CHARACTER_SET ||
-          query.GetElement(i).GetTag() == DICOM_TAG_MODALITIES_IN_STUDY)
-      {
-        continue;
-      }
-
-      std::string tag = query.GetElement(i).GetTag().Format();
-      std::string value;
-      if (resource.isMember(tag))
-      {
-        value = resource.get(tag, Json::arrayValue).get("Value", "").asString();
-      }
-
-      if (!Matches(value, query.GetElement(i).GetValue().AsString()))
-      {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-
   static void AddAnswer(DicomFindAnswers& answers,
                         const Json::Value& resource,
                         const DicomArray& query)
@@ -203,8 +55,15 @@ namespace Orthanc
 
     for (size_t i = 0; i < query.GetSize(); i++)
     {
-      if (query.GetElement(i).GetTag() != DICOM_TAG_QUERY_RETRIEVE_LEVEL &&
-          query.GetElement(i).GetTag() != DICOM_TAG_SPECIFIC_CHARACTER_SET)
+      // Fix issue 30 (QR response missing "Query/Retrieve Level" (008,0052))
+      if (query.GetElement(i).GetTag() == DICOM_TAG_QUERY_RETRIEVE_LEVEL)
+      {
+        result.SetValue(query.GetElement(i).GetTag(), query.GetElement(i).GetValue());
+      }
+      else if (query.GetElement(i).GetTag() == DICOM_TAG_SPECIFIC_CHARACTER_SET)
+      {
+      }
+      else
       {
         std::string tag = query.GetElement(i).GetTag().Format();
         std::string value;
@@ -220,267 +79,160 @@ namespace Orthanc
       }
     }
 
-    answers.Add(result);
-  }
-
-
-  static bool ApplyModalitiesInStudyFilter(std::list<std::string>& filteredStudies,
-                                           const std::list<std::string>& studies,
-                                           const DicomMap& input,
-                                           ServerIndex& index)
-  {
-    filteredStudies.clear();
-
-    const DicomValue& v = input.GetValue(DICOM_TAG_MODALITIES_IN_STUDY);
-    if (v.IsNull())
+    if (result.GetSize() == 0)
     {
-      return false;
+      LOG(WARNING) << "The C-FIND request does not return any DICOM tag";
     }
-
-    // Move the allowed modalities into a "std::set"
-    std::vector<std::string>  tmp;
-    Toolbox::TokenizeString(tmp, v.AsString(), '\\'); 
-
-    std::set<std::string> modalities;
-    for (size_t i = 0; i < tmp.size(); i++)
+    else
     {
-      modalities.insert(tmp[i]);
+      answers.Add(result);
     }
-
-    // Loop over the studies
-    for (std::list<std::string>::const_iterator 
-           it = studies.begin(); it != studies.end(); ++it)
-    {
-      try
-      {
-        // We are considering a single study. Check whether one of
-        // its child series matches one of the modalities.
-        Json::Value study;
-        if (index.LookupResource(study, *it, ResourceType_Study))
-        {
-          // Loop over the series of the considered study.
-          for (Json::Value::ArrayIndex j = 0; j < study["Series"].size(); j++)   // (*)
-          {
-            Json::Value series;
-            if (index.LookupResource(series, study["Series"][j].asString(), ResourceType_Series))
-            {
-              // Get the modality of this series
-              if (series["MainDicomTags"].isMember("Modality"))
-              {
-                std::string modality = series["MainDicomTags"]["Modality"].asString();
-                if (modalities.find(modality) != modalities.end())
-                {
-                  // This series of the considered study matches one
-                  // of the required modalities. Take the study into
-                  // consideration for future filtering.
-                  filteredStudies.push_back(*it);
-
-                  // We have finished considering this study. Break the study loop at (*).
-                  break;
-                }
-              }
-            }
-          }
-        }
-      }
-      catch (OrthancException&)
-      {
-        // This resource has probably been deleted during the find request
-      }
-    }
-
-    return true;
   }
 
 
   namespace
   {
-    class CandidateResources
+    class CFindQuery : public DicomFindQuery
     {
     private:
-      ServerIndex&  index_;
-      ModalityManufacturer manufacturer_;
-      ResourceType  level_;
-      bool  isFilterApplied_;
-      std::set<std::string>  filtered_;
-
-      static void ListToSet(std::set<std::string>& target,
-                            const std::list<std::string>& source)
-      {
-        for (std::list<std::string>::const_iterator
-               it = source.begin(); it != source.end(); ++it)
-        {
-          target.insert(*it);
-        }
-      }
-
-      void ApplyExactFilter(const DicomTag& tag, const std::string& value)
-      {
-        LOG(INFO) << "Applying exact filter on tag "
-                  << FromDcmtkBridge::GetName(tag) << " (value: " << value << ")";
-
-        std::list<std::string> resources;
-        index_.LookupIdentifier(resources, tag, value, level_);
-
-        if (isFilterApplied_)
-        {
-          std::set<std::string>  s;
-          ListToSet(s, resources);
-
-          std::set<std::string> tmp = filtered_;
-          filtered_.clear();
-
-          for (std::set<std::string>::const_iterator 
-                 it = tmp.begin(); it != tmp.end(); ++it)
-          {
-            if (s.find(*it) != s.end())
-            {
-              filtered_.insert(*it);
-            }
-          }
-        }
-        else
-        {
-          assert(filtered_.empty());
-          isFilterApplied_ = true;
-          ListToSet(filtered_, resources);
-        }
-      }
+      DicomFindAnswers&      answers_;
+      ServerIndex&           index_;
+      const DicomArray&      query_;
+      bool                   hasModalitiesInStudy_;
+      std::set<std::string>  modalitiesInStudy_;
 
     public:
-      CandidateResources(ServerIndex& index,
-                         ModalityManufacturer manufacturer) : 
-        index_(index), 
-        manufacturer_(manufacturer),
-        level_(ResourceType_Patient), 
-        isFilterApplied_(false)
+      CFindQuery(DicomFindAnswers& answers,
+                 ServerIndex& index,
+                 const DicomArray& query) :
+        answers_(answers),
+        index_(index),
+        query_(query),
+        hasModalitiesInStudy_(false)
       {
       }
 
-      ResourceType GetLevel() const
+      void SetModalitiesInStudy(const std::string& value)
       {
-        return level_;
-      }
+        hasModalitiesInStudy_ = true;
+        
+        std::vector<std::string>  tmp;
+        Toolbox::TokenizeString(tmp, value, '\\'); 
 
-      void GoDown()
-      {
-        assert(level_ != ResourceType_Instance);
-
-        if (isFilterApplied_)
+        for (size_t i = 0; i < tmp.size(); i++)
         {
-          std::set<std::string> tmp = filtered_;
-
-          filtered_.clear();
-
-          for (std::set<std::string>::const_iterator 
-                 it = tmp.begin(); it != tmp.end(); ++it)
-          {
-            std::list<std::string> children;
-            index_.GetChildren(children, *it);
-            ListToSet(filtered_, children);
-          }
-        }
-
-        switch (level_)
-        {
-          case ResourceType_Patient:
-            level_ = ResourceType_Study;
-            break;
-
-          case ResourceType_Study:
-            level_ = ResourceType_Series;
-            break;
-
-          case ResourceType_Series:
-            level_ = ResourceType_Instance;
-            break;
-
-          default:
-            throw OrthancException(ErrorCode_InternalError);
+          modalitiesInStudy_.insert(tmp[i]);
         }
       }
 
-      void Flatten(std::list<std::string>& resources) const
+      virtual bool HasMainDicomTagsFilter(ResourceType level) const
       {
-        resources.clear();
+        if (DicomFindQuery::HasMainDicomTagsFilter(level))
+        {
+          return true;
+        }
 
-        if (isFilterApplied_)
-        {
-          for (std::set<std::string>::const_iterator 
-                 it = filtered_.begin(); it != filtered_.end(); ++it)
-          {
-            resources.push_back(*it);
-          }
-        }
-        else
-        {
-          Json::Value tmp;
-          index_.GetAllUuids(tmp, level_);
-          for (Json::Value::ArrayIndex i = 0; i < tmp.size(); i++)
-          {
-            resources.push_back(tmp[i].asString());
-          }
-        }
+        return (level == ResourceType_Study &&
+                hasModalitiesInStudy_);
       }
 
-      void ApplyFilter(const DicomTag& tag, const DicomMap& query)
+      virtual bool FilterMainDicomTags(const std::string& resourceId,
+                                       ResourceType level,
+                                       const DicomMap& mainTags) const
       {
-        if (query.HasTag(tag))
+        if (!DicomFindQuery::FilterMainDicomTags(resourceId, level, mainTags))
         {
-          const DicomValue& value = query.GetValue(tag);
-          if (!value.IsNull())
+          return false;
+        }
+
+        if (level != ResourceType_Study ||
+            !hasModalitiesInStudy_)
+        {
+          return true;
+        }
+
+        try
+        {
+          // We are considering a single study, and the
+          // "MODALITIES_IN_STUDY" tag is set in the C-Find. Check
+          // whether one of its child series matches one of the
+          // modalities.
+
+          Json::Value study;
+          if (index_.LookupResource(study, resourceId, ResourceType_Study))
           {
-            std::string value = query.GetValue(tag).AsString();
-            if (!IsWildcard(value))
+            // Loop over the series of the considered study.
+            for (Json::Value::ArrayIndex j = 0; j < study["Series"].size(); j++)
             {
-              ApplyExactFilter(tag, value);
+              Json::Value series;
+              if (index_.LookupResource(series, study["Series"][j].asString(), ResourceType_Series))
+              {
+                // Get the modality of this series
+                if (series["MainDicomTags"].isMember("Modality"))
+                {
+                  std::string modality = series["MainDicomTags"]["Modality"].asString();
+                  if (modalitiesInStudy_.find(modality) != modalitiesInStudy_.end())
+                  {
+                    // This series of the considered study matches one
+                    // of the required modalities. Take the study into
+                    // consideration for future filtering.
+                    return true;
+                  }
+                }
+              }
             }
           }
         }
+        catch (OrthancException&)
+        {
+          // This resource has probably been deleted during the find request
+        }
+
+        return false;
+      }
+
+      virtual bool HasInstanceFilter() const
+      {
+        return true;
+      }
+
+      virtual bool FilterInstance(const std::string& instanceId,
+                                  const Json::Value& content) const
+      {
+        bool ok = DicomFindQuery::FilterInstance(instanceId, content);
+
+        if (ok)
+        {
+          // Add this resource to the answers
+          AddAnswer(answers_, content, query_);
+        }
+
+        return ok;
       }
     };
   }
 
 
-  bool OrthancFindRequestHandler::HasReachedLimit(const DicomFindAnswers& answers,
-                                                  ResourceType level) const
-  {
-    switch (level)
-    {
-      case ResourceType_Patient:
-      case ResourceType_Study:
-      case ResourceType_Series:
-        return (maxResults_ != 0 && answers.GetSize() >= maxResults_);
-
-      case ResourceType_Instance:
-        return (maxInstances_ != 0 && answers.GetSize() >= maxInstances_);
-
-      default:
-        throw OrthancException(ErrorCode_InternalError);
-    }
-  }
-
 
   bool OrthancFindRequestHandler::Handle(DicomFindAnswers& answers,
                                          const DicomMap& input,
-                                         const std::string& callingAETitle)
+                                         const std::string& remoteIp,
+                                         const std::string& remoteAet)
   {
     /**
-     * Retrieve the manufacturer of this modality.
+     * Ensure that the calling modality is known to Orthanc.
      **/
 
-    ModalityManufacturer manufacturer;
+    RemoteModalityParameters modality;
 
+    if (!Configuration::LookupDicomModalityUsingAETitle(modality, remoteAet))
     {
-      RemoteModalityParameters modality;
-
-      if (!Configuration::LookupDicomModalityUsingAETitle(modality, callingAETitle))
-      {
-        throw OrthancException("Unknown modality");
-      }
-
-      manufacturer = modality.GetManufacturer();
+      throw OrthancException(ErrorCode_UnknownModality);
     }
+
+    // ModalityManufacturer manufacturer = modality.GetManufacturer();
+
+    bool caseSensitivePN = Configuration::GetGlobalBoolParameter("CaseSensitivePN", false);
 
 
     /**
@@ -519,134 +271,68 @@ namespace Orthanc
 
 
     /**
-     * Retrieve the candidate resources for this query level. Whenever
-     * possible, we avoid returning ALL the resources for this query
-     * level, as it would imply reading the JSON file on the harddisk
-     * for each of them.
+     * Build up the query object.
      **/
 
-    CandidateResources candidates(context_.GetIndex(), manufacturer);
-
-    for (;;)
-    {
-      switch (candidates.GetLevel())
-      {
-        case ResourceType_Patient:
-          candidates.ApplyFilter(DICOM_TAG_PATIENT_ID, input);
-          break;
-
-        case ResourceType_Study:
-          candidates.ApplyFilter(DICOM_TAG_STUDY_INSTANCE_UID, input);
-          candidates.ApplyFilter(DICOM_TAG_ACCESSION_NUMBER, input);
-          break;
-
-        case ResourceType_Series:
-          candidates.ApplyFilter(DICOM_TAG_SERIES_INSTANCE_UID, input);
-          break;
-
-        case ResourceType_Instance:
-          candidates.ApplyFilter(DICOM_TAG_SOP_INSTANCE_UID, input);
-          break;
-
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }      
-
-      if (candidates.GetLevel() == level)
-      {
-        break;
-      }
-
-      candidates.GoDown();
-    }
-
-    std::list<std::string>  resources;
-    candidates.Flatten(resources);
-
-    LOG(INFO) << "Number of candidate resources after exact filtering: " << resources.size();
-
-    /**
-     * Apply filtering on modalities for studies, if asked (this is an
-     * extension to standard DICOM)
-     * http://www.medicalconnections.co.uk/kb/Filtering_on_and_Retrieving_the_Modality_in_a_C_FIND
-     **/
-
-    if (level == ResourceType_Study &&
-        input.HasTag(DICOM_TAG_MODALITIES_IN_STUDY))
-    {
-      std::list<std::string> filtered;
-      if (ApplyModalitiesInStudyFilter(filtered, resources, input, context_.GetIndex()))
-      {
-        resources = filtered;
-      }
-    }
-
-
-    /**
-     * Loop over all the resources for this query level.
-     **/
-
-    for (std::list<std::string>::const_iterator 
-           resource = resources.begin(); resource != resources.end(); ++resource)
-    {
-      try
-      {
-        std::string instance;
-        if (LookupOneInstance(instance, context_.GetIndex(), *resource, level))
-        {
-          Json::Value info;
-          context_.ReadJson(info, instance);
+    CFindQuery findQuery(answers, context_.GetIndex(), query);
+    findQuery.SetLevel(level);
         
-          if (Matches(info, query))
-          {
-            if (HasReachedLimit(answers, level))
-            {
-              // Too many results, stop before recording this new match
-              return false;
-            }
+    for (size_t i = 0; i < query.GetSize(); i++)
+    {
+      const DicomTag tag = query.GetElement(i).GetTag();
 
-            AddAnswer(answers, info, query);
-          }
-        }
-      }
-      catch (OrthancException&)
+      if (query.GetElement(i).GetValue().IsNull() ||
+          tag == DICOM_TAG_QUERY_RETRIEVE_LEVEL ||
+          tag == DICOM_TAG_SPECIFIC_CHARACTER_SET)
       {
-        // This resource has probably been deleted during the find request
+        continue;
+      }
+
+      std::string value = query.GetElement(i).GetValue().AsString();
+      if (value.size() == 0)
+      {
+        // An empty string corresponds to a "*" wildcard constraint, so we ignore it
+        continue;
+      }
+
+      if (tag == DICOM_TAG_MODALITIES_IN_STUDY)
+      {
+        findQuery.SetModalitiesInStudy(value);
+      }
+      else
+      {
+        findQuery.SetConstraint(tag, value, caseSensitivePN);
       }
     }
 
-    return true;  // All the matching resources have been returned
+
+    /**
+     * Run the query.
+     **/
+
+    ResourceFinder finder(context_);
+
+    switch (level)
+    {
+      case ResourceType_Patient:
+      case ResourceType_Study:
+      case ResourceType_Series:
+        finder.SetMaxResults(maxResults_);
+        break;
+
+      case ResourceType_Instance:
+        finder.SetMaxResults(maxInstances_);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+
+    std::list<std::string> tmp;
+    bool finished = finder.Apply(tmp, findQuery);
+
+    LOG(INFO) << "Number of matching resources: " << tmp.size();
+
+    return finished;
   }
 }
-
-
-
-/**
- * TODO : Case-insensitive match for PN value representation (Patient
- * Name). Case-senstive match for all the other value representations.
- *
- * Reference: DICOM PS 3.4
- *   - C.2.2.2.1 ("Single Value Matching") 
- *   - C.2.2.2.4 ("Wild Card Matching")
- * http://medical.nema.org/Dicom/2011/11_04pu.pdf
- *
- * "Except for Attributes with a PN Value Representation, only
- * entities with values which match exactly the value specified in the
- * request shall match. This matching is case-sensitive, i.e.,
- * sensitive to the exact encoding of the key attribute value in
- * character sets where a letter may have multiple encodings (e.g.,
- * based on its case, its position in a word, or whether it is
- * accented)
- * 
- * For Attributes with a PN Value Representation (e.g., Patient Name
- * (0010,0010)), an application may perform literal matching that is
- * either case-sensitive, or that is insensitive to some or all
- * aspects of case, position, accent, or other character encoding
- * variants."
- *
- * (0008,0018) UI SOPInstanceUID     => Case-sensitive
- * (0008,0050) SH AccessionNumber    => Case-sensitive
- * (0010,0020) LO PatientID          => Case-sensitive
- * (0020,000D) UI StudyInstanceUID   => Case-sensitive
- * (0020,000E) UI SeriesInstanceUID  => Case-sensitive
- **/

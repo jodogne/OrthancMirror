@@ -69,6 +69,9 @@ namespace Orthanc
 
     bool ExecutePredicate();
 
-    void ExecuteToJson(Json::Value& result);                    
+    void ExecuteToJson(Json::Value& result,
+                       bool keepStrings);
+
+    void ExecuteToString(std::string& result);
   };
 }

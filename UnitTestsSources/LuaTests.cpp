@@ -33,13 +33,14 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
+#include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
 #include "../Core/Lua/LuaFunctionCall.h"
 
 #include <boost/lexical_cast.hpp>
 
 #if !defined(UNIT_TESTS_WITH_HTTP_CONNEXIONS)
-#error "Please set UNIT_TESTS_WITH_HTTP_CONNEXIONS"
+#error "Please set UNIT_TESTS_WITH_HTTP_CONNEXIONS to 0 or 1"
 #endif
 
 
@@ -79,7 +80,7 @@ TEST(Lua, Json)
   {
     Orthanc::LuaFunctionCall f(lua, "f");
     f.PushJson(o);
-    ASSERT_THROW(f.ExecutePredicate(), Orthanc::LuaException);
+    ASSERT_THROW(f.ExecutePredicate(), Orthanc::OrthancException);
   }
 
   o["bool"] = false;
@@ -147,8 +148,8 @@ TEST(Lua, ReturnJson)
 {
   Json::Value b = Json::objectValue;
   b["a"] = 42;
-  b["b"] = 44;
-  b["c"] = 43;
+  b["b"] = 44.37;
+  b["c"] = -43;
 
   Json::Value c = Json::arrayValue;
   c.append("test3");
@@ -170,7 +171,7 @@ TEST(Lua, ReturnJson)
     Orthanc::LuaFunctionCall f(lua, "identity");
     f.PushJson("hello");
     Json::Value v;
-    f.ExecuteToJson(v);
+    f.ExecuteToJson(v, false);
     ASSERT_EQ("hello", v.asString());
   }
 
@@ -178,8 +179,16 @@ TEST(Lua, ReturnJson)
     Orthanc::LuaFunctionCall f(lua, "identity");
     f.PushJson(42.25);
     Json::Value v;
-    f.ExecuteToJson(v);
+    f.ExecuteToJson(v, false);
     ASSERT_FLOAT_EQ(42.25f, v.asFloat());
+  }
+
+  {
+    Orthanc::LuaFunctionCall f(lua, "identity");
+    f.PushJson(-42);
+    Json::Value v;
+    f.ExecuteToJson(v, false);
+    ASSERT_EQ(-42, v.asInt());
   }
 
   {
@@ -187,7 +196,7 @@ TEST(Lua, ReturnJson)
     Json::Value vv = Json::arrayValue;
     f.PushJson(vv);
     Json::Value v;
-    f.ExecuteToJson(v);
+    f.ExecuteToJson(v, false);
     ASSERT_EQ(Json::arrayValue, v.type());
   }
 
@@ -196,7 +205,7 @@ TEST(Lua, ReturnJson)
     Json::Value vv = Json::objectValue;
     f.PushJson(vv);
     Json::Value v;
-    f.ExecuteToJson(v);
+    f.ExecuteToJson(v, false);
     // Lua does not make the distinction between empty lists and empty objects
     ASSERT_EQ(Json::arrayValue, v.type());
   }
@@ -205,18 +214,18 @@ TEST(Lua, ReturnJson)
     Orthanc::LuaFunctionCall f(lua, "identity");
     f.PushJson(b);
     Json::Value v;
-    f.ExecuteToJson(v);
+    f.ExecuteToJson(v, false);
     ASSERT_EQ(Json::objectValue, v.type());
     ASSERT_FLOAT_EQ(42.0f, v["a"].asFloat());
-    ASSERT_FLOAT_EQ(44.0f, v["b"].asFloat());
-    ASSERT_FLOAT_EQ(43.0f, v["c"].asFloat());
+    ASSERT_FLOAT_EQ(44.37f, v["b"].asFloat());
+    ASSERT_FLOAT_EQ(-43.0f, v["c"].asFloat());
   }
 
   {
     Orthanc::LuaFunctionCall f(lua, "identity");
     f.PushJson(c);
     Json::Value v;
-    f.ExecuteToJson(v);
+    f.ExecuteToJson(v, false);
     ASSERT_EQ(Json::arrayValue, v.type());
     ASSERT_EQ("test3", v[0].asString());
     ASSERT_EQ("test1", v[1].asString());
@@ -227,16 +236,51 @@ TEST(Lua, ReturnJson)
     Orthanc::LuaFunctionCall f(lua, "identity");
     f.PushJson(a);
     Json::Value v;
-    f.ExecuteToJson(v);
+    f.ExecuteToJson(v, false);
     ASSERT_EQ("World", v["Hello"].asString());
+    ASSERT_EQ(Json::intValue, v["List"][0]["a"].type());
+    ASSERT_EQ(Json::realValue, v["List"][0]["b"].type());
+    ASSERT_EQ(Json::intValue, v["List"][0]["c"].type());
     ASSERT_EQ(42, v["List"][0]["a"].asInt());
+    ASSERT_FLOAT_EQ(44.37f, v["List"][0]["b"].asFloat());
     ASSERT_EQ(44, v["List"][0]["b"].asInt());
-    ASSERT_EQ(43, v["List"][0]["c"].asInt());
+    ASSERT_EQ(-43, v["List"][0]["c"].asInt());
     ASSERT_EQ("test3", v["List"][1][0].asString());
     ASSERT_EQ("test1", v["List"][1][1].asString());
     ASSERT_EQ("test2", v["List"][1][2].asString());
   }
+
+  {
+    Orthanc::LuaFunctionCall f(lua, "identity");
+    f.PushJson(a);
+    Json::Value v;
+    f.ExecuteToJson(v, true);
+    ASSERT_EQ("World", v["Hello"].asString());
+    ASSERT_EQ(Json::stringValue, v["List"][0]["a"].type());
+    ASSERT_EQ(Json::stringValue, v["List"][0]["b"].type());
+    ASSERT_EQ(Json::stringValue, v["List"][0]["c"].type());
+    ASSERT_EQ("42", v["List"][0]["a"].asString());
+    ASSERT_EQ("44.37", v["List"][0]["b"].asString());
+    ASSERT_EQ("-43", v["List"][0]["c"].asString());
+    ASSERT_EQ("test3", v["List"][1][0].asString());
+    ASSERT_EQ("test1", v["List"][1][1].asString());
+    ASSERT_EQ("test2", v["List"][1][2].asString());
+  }
+
+  {
+    Orthanc::LuaFunctionCall f(lua, "DumpJson");
+    f.PushJson(a);
+    std::string s;
+    f.ExecuteToString(s);
+
+    Json::FastWriter writer;
+    std::string t = writer.write(a);
+
+    ASSERT_EQ(s, t);
+  }
 }
+
+
 
 TEST(Lua, Http)
 {
@@ -244,12 +288,12 @@ TEST(Lua, Http)
 
 #if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1  
   lua.Execute("JSON = loadstring(HttpGet('http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/JSON.lua')) ()");
-  const std::string url("http://orthanc.googlecode.com/hg/OrthancCppClient/SharedLibrary/Product.json");
+  const std::string url("http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/Product.json");
 #endif
 
   std::string s;
   lua.Execute(s, "print(HttpGet({}))");
-  ASSERT_EQ("ERROR", Orthanc::Toolbox::StripSpaces(s));
+  ASSERT_EQ("nil", Orthanc::Toolbox::StripSpaces(s));
 
 #if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1  
   lua.Execute(s, "print(string.len(HttpGet(\"" + url + "\")))");

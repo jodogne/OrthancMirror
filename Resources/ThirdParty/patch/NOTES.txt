@@ -1,0 +1,70 @@
+===========
+INFORMATION
+===========
+
+This is a precompiled version of the "patch" standard tool for
+Windows. It was compiled using the MSYS framework.
+
+The binaries originate from the "Git for Windows 1.9.5" package
+(https://msysgit.github.io/). The build instructions have been
+provided on the discussion group of Git for Windows [1]. They are
+copied/pasted below for reference.
+
+
+
+================
+UPSTREAM PROJECT
+================
+
+URL to the upstream project:
+http://savannah.gnu.org/projects/patch/
+
+License of patch: GPLv2 (GNU General Public License v2)
+
+Copyright (C) 1988 Larry Wall "with lots o' patches by Paul Eggert"
+Copyright (C) 1997 Free Software Foundation, Inc.
+
+
+
+======================
+BUILD INSTRUCTIONS [1]
+======================
+
+The easiest way to find out about this is to install the Git SDK, then 
+run 
+
+     pacman -Qu $(which patch.exe) 
+
+to find out which package contains the `patch.exe` binary. It so happens 
+to be patch.2.7.5-1 at the moment. Since this is an MSys2 package (not a 
+MinGW one, otherwise the patch utility would be in /mingw64/bin/, not 
+/usr/bin/), this package is built from the recipes in 
+
+     https://github.com/msys2/MSYS2-packages 
+
+The `patch` package is obviously built from the subdirectory 
+
+     https://github.com/Alexpux/MSYS2-packages/tree/master/patch 
+
+and the PKGBUILD file specifies that the source is fetched from 
+ftp://ftp.gnu.org/gnu/patch/patch-2.7.5.tar.xz: 
+
+https://github.com/Alexpux/MSYS2-packages/blob/900744becd072f687029b0f830ab6fe95cf533d6/patch/PKGBUILD#L14 
+
+and then these two patches are applied before building: 
+     
+https://github.com/Alexpux/MSYS2-packages/blob/900744becd072f687029b0f830ab6fe95cf533d6/patch/msys2-patch-2.7.1.patch 
+
+and 
+      
+https://github.com/Alexpux/MSYS2-packages/blob/900744becd072f687029b0f830ab6fe95cf533d6/patch/msys2-patch-manifest.patch 
+
+As you can see, some light changes are applied, i.e. `patch.exe` will 
+always write in binary mode with MSys2, and the executable will have a 
+manifest embedded that allows it to run as non-administrator. 
+
+Ciao, 
+Johannes Schindelin
+
+
+[1] https://groups.google.com/d/msg/git-for-windows/xWyVr4z6Ri0/6RKeV028EAAJ

@@ -84,9 +84,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../FromDcmtkBridge.h"
 #include "../ToDcmtkBridge.h"
+#include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
 
-#include <glog/logging.h>
 
 
 namespace Orthanc
@@ -99,7 +99,8 @@ namespace Orthanc
       DicomMap input_;
       DicomFindAnswers answers_;
       DcmDataset* lastRequest_;
-      const std::string* callingAETitle_;
+      const std::string* remoteIp_;
+      const std::string* remoteAet_;
       bool noCroppingOfResults_;
     };
 
@@ -126,7 +127,8 @@ namespace Orthanc
 
         try
         {
-          data.noCroppingOfResults_ = data.handler_->Handle(data.answers_, data.input_, *data.callingAETitle_);
+          data.noCroppingOfResults_ = data.handler_->Handle(data.answers_, data.input_, 
+                                                            *data.remoteIp_, *data.remoteAet_);
         }
         catch (OrthancException& e)
         {
@@ -174,12 +176,14 @@ namespace Orthanc
                                  T_DIMSE_Message * msg, 
                                  T_ASC_PresentationContextID presID,
                                  IFindRequestHandler& handler,
-                                 const std::string& callingAETitle)
+                                 const std::string& remoteIp,
+                                 const std::string& remoteAet)
   {
     FindScpData data;
     data.lastRequest_ = NULL;
     data.handler_ = &handler;
-    data.callingAETitle_ = &callingAETitle;
+    data.remoteIp_ = &remoteIp;
+    data.remoteAet_ = &remoteAet;
     data.noCroppingOfResults_ = true;
 
     OFCondition cond = DIMSE_findProvider(assoc, presID, &msg->msg.CFindRQ, 

@@ -32,7 +32,6 @@
 
 #pragma once
 
-#include "LuaException.h"
 #include "../HttpClient.h"
 
 extern "C" 
@@ -54,9 +53,9 @@ namespace Orthanc
     std::string log_;
     HttpClient httpClient_;
 
-    static LuaContext& GetLuaContext(lua_State *state);
-
     static int PrintToLog(lua_State *state);
+    static int ParseJson(lua_State *state);
+    static int DumpJson(lua_State *state);
 
     static int SetHttpCredentials(lua_State *state);
 
@@ -72,7 +71,9 @@ namespace Orthanc
     void ExecuteInternal(std::string* output,
                          const std::string& command);
 
-    void PushJson(const Json::Value& value);
+    void GetJson(Json::Value& result,
+                 int top,
+                 bool keepStrings);
     
   public:
     LuaContext();
@@ -107,5 +108,18 @@ namespace Orthanc
     {
       httpClient_.SetProxy(proxy);
     }
+
+    void RegisterFunction(const char* name,
+                          lua_CFunction func);
+
+    void SetGlobalVariable(const char* name,
+                           void* value);
+
+    static LuaContext& GetLuaContext(lua_State *state);
+
+    static const void* GetGlobalVariable(lua_State* state,
+                                         const char* name);
+
+    void PushJson(const Json::Value& value);
   };
 }

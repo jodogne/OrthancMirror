@@ -86,9 +86,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../FromDcmtkBridge.h"
 #include "../ToDcmtkBridge.h"
+#include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
-
-#include <glog/logging.h>
 
 
 namespace Orthanc
@@ -105,6 +104,8 @@ namespace Orthanc
       unsigned int failureCount_;
       unsigned int warningCount_;
       std::auto_ptr<IMoveRequestIterator> iterator_;
+      const std::string* remoteIp_;
+      const std::string* remoteAet_;
     };
 
 
@@ -131,7 +132,8 @@ namespace Orthanc
 
         try
         {
-          data.iterator_.reset(data.handler_->Handle(data.target_, data.input_));
+          data.iterator_.reset(data.handler_->Handle(data.target_, data.input_, 
+                                                     *data.remoteIp_, *data.remoteAet_));
 
           if (data.iterator_.get() == NULL)
           {
@@ -211,12 +213,16 @@ namespace Orthanc
   OFCondition Internals::moveScp(T_ASC_Association * assoc, 
                                  T_DIMSE_Message * msg, 
                                  T_ASC_PresentationContextID presID,
-                                 IMoveRequestHandler& handler)
+                                 IMoveRequestHandler& handler,
+                                 const std::string& remoteIp,
+                                 const std::string& remoteAet)
   {
     MoveScpData data;
     data.target_ = std::string(msg->msg.CMoveRQ.MoveDestination);
     data.lastRequest_ = NULL;
     data.handler_ = &handler;
+    data.remoteIp_ = &remoteIp;
+    data.remoteAet_ = &remoteAet;
 
     OFCondition cond = DIMSE_moveProvider(assoc, presID, &msg->msg.CMoveRQ, 
                                           MoveScpCallback, &data,

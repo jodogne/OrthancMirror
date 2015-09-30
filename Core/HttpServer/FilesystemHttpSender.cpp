@@ -32,72 +32,45 @@
 #include "../PrecompiledHeaders.h"
 #include "FilesystemHttpSender.h"
 
-#include "../Toolbox.h"
+#include "../OrthancException.h"
 
-#include <stdio.h>
+static const size_t  CHUNK_SIZE = 64 * 1024;   // Use 64KB chunks
 
 namespace Orthanc
 {
-  void FilesystemHttpSender::Setup()
+  void FilesystemHttpSender::Initialize(const boost::filesystem::path& path)
   {
-    //SetDownloadFilename(path_.filename().string());
+    SetContentFilename(path.filename().string());
+    file_.open(path.string().c_str(), std::ifstream::binary);
 
-#if BOOST_HAS_FILESYSTEM_V3 == 1
-    SetContentType(Toolbox::AutodetectMimeType(path_.filename().string()));
-#else
-    SetContentType(Toolbox::AutodetectMimeType(path_.filename()));
-#endif
-  }
-
-  uint64_t FilesystemHttpSender::GetFileSize()
-  {
-    return Toolbox::GetFileSize(path_.string());
-  }
-
-  bool FilesystemHttpSender::SendData(HttpOutput& output)
-  {
-    FILE* fp = fopen(path_.string().c_str(), "rb");
-    if (!fp)
+    if (!file_.is_open())
     {
-      return false;
+      throw OrthancException(ErrorCode_InexistentFile);
     }
 
-    std::vector<uint8_t> buffer(1024 * 1024);  // Chunks of 1MB
+    file_.seekg(0, file_.end);
+    size_ = file_.tellg();
+    file_.seekg(0, file_.beg);
+  }
 
-    for (;;)
+
+  bool FilesystemHttpSender::ReadNextChunk()
+  {
+    if (chunk_.size() == 0)
     {
-      size_t nbytes = fread(&buffer[0], 1, buffer.size(), fp);
-      if (nbytes == 0)
-      {
-        break;
-      }
-      else
-      {
-        output.SendBody(&buffer[0], nbytes);
-      }
+      chunk_.resize(CHUNK_SIZE);
     }
 
-    fclose(fp);
+    file_.read(&chunk_[0], chunk_.size());
 
-    return true;
-  }
+    if ((file_.flags() & std::istream::failbit) ||
+        file_.gcount() < 0)
+    {
+      throw OrthancException(ErrorCode_CorruptedFile);
+    }
 
-  FilesystemHttpSender::FilesystemHttpSender(const char* path)
-  {
-    path_ = std::string(path);
-    Setup();
-  }
+    chunkSize_ = file_.gcount();
 
-  FilesystemHttpSender::FilesystemHttpSender(const boost::filesystem::path& path)
-  {
-    path_ = path;
-    Setup();
-  }
-
-  FilesystemHttpSender::FilesystemHttpSender(const FilesystemStorage& storage,
-                                             const std::string& uuid)
-  {
-    path_ = storage.GetPath(uuid).string();
-    Setup();
+    return chunkSize_ > 0;
   }
 }

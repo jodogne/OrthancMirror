@@ -43,6 +43,8 @@ namespace Orthanc
     OFCondition moveScp(T_ASC_Association * assoc, 
                         T_DIMSE_Message * msg, 
                         T_ASC_PresentationContextID presID,
-                        IMoveRequestHandler& handler);
+                        IMoveRequestHandler& handler,
+                        const std::string& remoteIp,
+                        const std::string& remoteAet);
   }
 }

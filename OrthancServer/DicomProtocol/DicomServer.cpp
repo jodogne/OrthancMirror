@@ -33,6 +33,7 @@
 #include "../PrecompiledHeadersServer.h"
 #include "DicomServer.h"
 
+#include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
 #include "../../Core/Toolbox.h"
 #include "../../Core/Uuid.h"
@@ -41,9 +42,6 @@
 #include "EmbeddedResources.h"
 
 #include <boost/thread.hpp>
-#include <boost/filesystem.hpp>
-#include <dcmtk/dcmdata/dcdict.h>
-#include <glog/logging.h>
 
 #if defined(__linux)
 #include <cstdlib>
@@ -60,99 +58,6 @@ namespace Orthanc
   };
 
 
-#if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
-  static void LoadEmbeddedDictionary(DcmDataDictionary& dictionary,
-                                     EmbeddedResources::FileResourceId resource)
-  {
-    Toolbox::TemporaryFile tmp;
-
-    FILE* fp = fopen(tmp.GetPath().c_str(), "wb");
-    fwrite(EmbeddedResources::GetFileResourceBuffer(resource), 
-           EmbeddedResources::GetFileResourceSize(resource), 1, fp);
-    fclose(fp);
-
-    if (!dictionary.loadDictionary(tmp.GetPath().c_str()))
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-  }
-                             
-#else
-  static void LoadExternalDictionary(DcmDataDictionary& dictionary,
-                                     const std::string& directory,
-                                     const std::string& filename)
-  {
-    boost::filesystem::path p = directory;
-    p = p / filename;
-
-    LOG(WARNING) << "Loading the external DICOM dictionary " << p;
-
-    if (!dictionary.loadDictionary(p.string().c_str()))
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-  }
-                            
-#endif
-
-
-  void DicomServer::InitializeDictionary()
-  {
-    /* Disable "gethostbyaddr" (which results in memory leaks) and use raw IP addresses */
-    dcmDisableGethostbyaddr.set(OFTrue);
-
-    dcmDataDict.clear();
-    DcmDataDictionary& d = dcmDataDict.wrlock();
-
-#if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
-    LOG(WARNING) << "Loading the embedded dictionaries";
-    /**
-     * Do not load DICONDE dictionary, it breaks the other tags. The
-     * command "strace storescu 2>&1 |grep dic" shows that DICONDE
-     * dictionary is not loaded by storescu.
-     **/
-    //LoadEmbeddedDictionary(d, EmbeddedResources::DICTIONARY_DICONDE);
-
-    LoadEmbeddedDictionary(d, EmbeddedResources::DICTIONARY_DICOM);
-    LoadEmbeddedDictionary(d, EmbeddedResources::DICTIONARY_PRIVATE);
-
-#elif defined(__linux) || defined(__FreeBSD_kernel__)
-    std::string path = DCMTK_DICTIONARY_DIR;
-
-    const char* env = std::getenv(DCM_DICT_ENVIRONMENT_VARIABLE);
-    if (env != NULL)
-    {
-      path = std::string(env);
-    }
-
-    LoadExternalDictionary(d, path, "dicom.dic");
-    LoadExternalDictionary(d, path, "private.dic");
-
-#else
-#error Support your platform here
-#endif
-
-    dcmDataDict.unlock();
-
-    /* make sure data dictionary is loaded */
-    if (!dcmDataDict.isDictionaryLoaded())
-    {
-      LOG(ERROR) << "No DICOM dictionary loaded, check environment variable: " << DCM_DICT_ENVIRONMENT_VARIABLE;
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    {
-      // Test the dictionary with a simple DICOM tag
-      DcmTag key(0x0010, 0x1030); // This is PatientWeight
-      if (key.getEVR() != EVR_DS)
-      {
-        LOG(ERROR) << "The DICOM dictionary has not been correctly read";
-        throw OrthancException(ErrorCode_InternalError);
-      }
-    }
-  }
-
-
   void DicomServer::ServerThread(DicomServer* server)
   {
     /* initialize network, i.e. create an instance of T_ASC_Network*. */
@@ -162,7 +67,7 @@ namespace Orthanc
     if (cond.bad())
     {
       LOG(ERROR) << "cannot create network: " << cond.text();
-      throw OrthancException("Cannot create network");
+      throw OrthancException(ErrorCode_DicomPortInUse);
     }
 
     LOG(INFO) << "DICOM server started";
@@ -223,7 +128,11 @@ namespace Orthanc
 
   DicomServer::~DicomServer()
   {
-    Stop();
+    if (continue_)
+    {
+      LOG(ERROR) << "INTERNAL ERROR: DicomServer::Stop() should be invoked manually to avoid mess in the destruction order!";
+      Stop();
+    }
   }
 
   void DicomServer::SetPortNumber(uint16_t port)
@@ -275,12 +184,12 @@ namespace Orthanc
   {
     if (aet.size() == 0)
     {
-      throw OrthancException("Too short AET");
+      throw OrthancException(ErrorCode_BadApplicationEntityTitle);
     }
 
     if (aet.size() > 16)
     {
-      throw OrthancException("AET must be shorter than 16 characters");
+      throw OrthancException(ErrorCode_BadApplicationEntityTitle);
     }
 
     for (size_t i = 0; i < aet.size(); i++)
@@ -323,7 +232,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException("No C-FIND request handler factory");
+      throw OrthancException(ErrorCode_NoCFindHandler);
     }
   }
 
@@ -346,7 +255,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException("No C-MOVE request handler factory");
+      throw OrthancException(ErrorCode_NoCMoveHandler);
     }
   }
 
@@ -369,7 +278,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException("No C-STORE request handler factory");
+      throw OrthancException(ErrorCode_NoCStoreHandler);
     }
   }
 
@@ -392,7 +301,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException("No application entity filter");
+      throw OrthancException(ErrorCode_NoApplicationEntityFilter);
     }
   }
 
@@ -409,15 +318,22 @@ namespace Orthanc
     }
   }
 
+
   void DicomServer::Stop()
   {
-    continue_ = false;
-
-    if (pimpl_->thread_.joinable())
+    if (continue_)
     {
-      pimpl_->thread_.join();
+      continue_ = false;
+
+      if (pimpl_->thread_.joinable())
+      {
+        pimpl_->thread_.join();
+      }
+
+      bagOfDispatchers_.Finalize();
     }
   }
+
 
   bool DicomServer::IsMyAETitle(const std::string& aet) const
   {

@@ -77,6 +77,11 @@ namespace Orthanc
     {
       Clear();
     }
+
+    size_t GetSize() const
+    {
+      return map_.size();
+    }
     
     DicomMap* Clone() const;
 
@@ -166,5 +171,7 @@ namespace Orthanc
     static void GetMainDicomTags(std::set<DicomTag>& result);
 
     void Print(FILE* fp) const;
+
+    void GetTags(std::set<DicomTag>& tags) const;
   };
 }

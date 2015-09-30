@@ -32,29 +32,16 @@
 
 #pragma once
 
-#include "BufferCompressor.h"
+#include "DeflateBaseCompressor.h"
 
 namespace Orthanc
 {
-  class ZlibCompressor : public BufferCompressor
+  class ZlibCompressor : public DeflateBaseCompressor
   {
-  private:
-    uint8_t compressionLevel_;
-
   public:
-    using BufferCompressor::Compress;
-    using BufferCompressor::Uncompress;
-
     ZlibCompressor()
     {
-      compressionLevel_ = 6;
-    }
-
-    void SetCompressionLevel(uint8_t level);
-
-    uint8_t GetCompressionLevel() const
-    {
-      return compressionLevel_;
+      SetPrefixWithUncompressedSize(true);
     }
 
     virtual void Compress(std::string& compressed,

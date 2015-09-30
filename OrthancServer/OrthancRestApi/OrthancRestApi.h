@@ -34,12 +34,14 @@
 
 #include "../../Core/RestApi/RestApi.h"
 #include "../DicomModification.h"
-#include "../ServerContext.h"
 
 #include <set>
 
 namespace Orthanc
 {
+  class ServerContext;
+  class ServerIndex;
+
   class OrthancRestApi : public RestApi
   {
   public:
@@ -76,18 +78,13 @@ namespace Orthanc
       return dynamic_cast<OrthancRestApi&>(call.GetContext());
     }
 
-    static ServerContext& GetContext(RestApiCall& call)
-    {
-      return GetApi(call).context_;
-    }
+    static ServerContext& GetContext(RestApiCall& call);
 
-    static ServerIndex& GetIndex(RestApiCall& call)
-    {
-      return GetContext(call).GetIndex();
-    }
+    static ServerIndex& GetIndex(RestApiCall& call);
 
-    void AnswerStoredInstance(RestApiPostCall& call,
+    void AnswerStoredResource(RestApiPostCall& call,
                               const std::string& publicId,
+                              ResourceType resourceType,
                               StoreStatus status) const;
 
     static bool ParseModifyRequest(DicomModification& target,

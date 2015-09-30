@@ -1,8 +1,8 @@
 set(LIBICONV_SOURCES_DIR ${CMAKE_BINARY_DIR}/libiconv-1.14)
-DownloadPackage(
-  "e34509b1623cec449dfeb73d7ce9c6c6"
-  "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/libiconv-1.14.tar.gz"
-  "${LIBICONV_SOURCES_DIR}")
+set(LIBICONV_URL "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/libiconv-1.14.tar.gz")
+set(LIBICONV_MD5 "e34509b1623cec449dfeb73d7ce9c6c6")
+
+DownloadPackage(${LIBICONV_MD5} ${LIBICONV_URL} "${LIBICONV_SOURCES_DIR}")
 
 # https://groups.google.com/d/msg/android-ndk/AS1nkxnk6m4/EQm09hD1tigJ
 add_definitions(
@@ -34,6 +34,9 @@ unset(USE_MBSTATE_T)
 unset(BROKEN_WCHAR_H)
 unset(EILSEQ)
 unset(HAVE_WCHAR_T)   
+
+# Create an empty "config.h" for libiconv
+file(WRITE ${LIBICONV_SOURCES_DIR}/include/config.h "")
 
 include_directories(
   ${LIBICONV_SOURCES_DIR}/include

@@ -33,11 +33,20 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
-#include <glog/logging.h>
-
 #include "../Plugins/Engine/PluginsManager.h"
 
 using namespace Orthanc;
+
+
+#if ORTHANC_PLUGINS_ENABLED == 1
+
+TEST(SharedLibrary, Enumerations)
+{
+  // The plugin engine cannot work if the size of an enumeration does
+  // not correspond to the size of "int32_t"
+  ASSERT_EQ(sizeof(int32_t), sizeof(OrthancPluginErrorCode));
+}
+
 
 TEST(SharedLibrary, Basic)
 {
@@ -55,6 +64,16 @@ TEST(SharedLibrary, Basic)
   ASSERT_TRUE(l.HasFunction("dlclose"));
   ASSERT_FALSE(l.HasFunction("world"));
 
+#elif defined(__FreeBSD__)
+  // dlopen() in FreeBSD is supplied by libc, libc.so is
+  // a ldscript, so we can't actually use it. Use thread
+  // library instead - if it works - dlopen() is good.
+  SharedLibrary l("libpthread.so");
+  ASSERT_THROW(l.GetFunction("world"), OrthancException);
+  ASSERT_TRUE(l.GetFunction("pthread_create") != NULL);
+  ASSERT_TRUE(l.HasFunction("pthread_cancel"));
+  ASSERT_FALSE(l.HasFunction("world"));
+
 #elif defined(__APPLE__) && defined(__MACH__)
   SharedLibrary l("libdl.dylib");
   ASSERT_THROW(l.GetFunction("world"), OrthancException);
@@ -66,3 +85,5 @@ TEST(SharedLibrary, Basic)
 #error Support your platform here
 #endif
 }
+
+#endif

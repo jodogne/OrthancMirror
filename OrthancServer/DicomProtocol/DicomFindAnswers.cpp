@@ -53,14 +53,15 @@ namespace Orthanc
     }
   }
 
-  void DicomFindAnswers::ToJson(Json::Value& target) const
+  void DicomFindAnswers::ToJson(Json::Value& target,
+                                bool simplify) const
   {
     target = Json::arrayValue;
 
     for (size_t i = 0; i < GetSize(); i++)
     {
       Json::Value answer(Json::objectValue);
-      FromDcmtkBridge::ToJson(answer, GetAnswer(i));
+      FromDcmtkBridge::ToJson(answer, GetAnswer(i), simplify);
       target.append(answer);
     }
   }

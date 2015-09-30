@@ -3,6 +3,7 @@ if (DCMTK_DICTIONARY_DIR STREQUAL "")
   find_path(DCMTK_DICTIONARY_DIR_AUTO dicom.dic
     /usr/share/dcmtk
     /usr/share/libdcmtk2
+    /usr/local/share/dcmtk
     )
 
   message("Autodetected path to the DICOM dictionaries: ${DCMTK_DICTIONARY_DIR_AUTO}")
@@ -14,16 +15,23 @@ endif()
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   SET(DCMTK_VERSION_NUMBER 360)
+  set(DCMTK_PACKAGE_VERSION "3.6.0")
   SET(DCMTK_SOURCES_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.0)
-  DownloadPackage(
-    "219ad631b82031806147e4abbfba4fa4"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/dcmtk-3.6.0.zip" 
-    "${DCMTK_SOURCES_DIR}")
+  SET(DCMTK_URL "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/dcmtk-3.6.0.zip")
+  SET(DCMTK_MD5 "219ad631b82031806147e4abbfba4fa4")
 
-  IF(CMAKE_CROSSCOMPILING)
+  if (IS_DIRECTORY "${DCMTK_SOURCES_DIR}")
+    set(FirstRun OFF)
+  else()
+    set(FirstRun ON)
+  endif()
+
+  DownloadPackage(${DCMTK_MD5} ${DCMTK_URL} "${DCMTK_SOURCES_DIR}")
+
+  IF (CMAKE_CROSSCOMPILING)
     SET(C_CHAR_UNSIGNED 1 CACHE INTERNAL "Whether char is unsigned.")
   ENDIF()
-  SET(DCMTK_SOURCE_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.0)
+  SET(DCMTK_SOURCE_DIR ${DCMTK_SOURCES_DIR})
   include(${DCMTK_SOURCES_DIR}/CMake/CheckFunctionWithHeaderExists.cmake)
   include(${DCMTK_SOURCES_DIR}/CMake/GenerateDCMTKConfigure.cmake)
 
@@ -40,9 +48,8 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     set(HAVE_PROTOTYPE_GETSOCKNAME 1)
   endif()
 
-  set(DCMTK_PACKAGE_VERSION "3.6.0")
   set(DCMTK_PACKAGE_VERSION_SUFFIX "")
-  set(DCMTK_PACKAGE_VERSION_NUMBER 360)
+  set(DCMTK_PACKAGE_VERSION_NUMBER ${DCMTK_VERSION_NUMBER})
 
   CONFIGURE_FILE(
     ${DCMTK_SOURCES_DIR}/CMake/osconfig.h.in
@@ -92,24 +99,52 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/oflog/libsrc DCMTK_SOURCES)
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
     list(REMOVE_ITEM DCMTK_SOURCES 
       ${DCMTK_SOURCES_DIR}/oflog/libsrc/windebap.cc
       ${DCMTK_SOURCES_DIR}/oflog/libsrc/winsock.cc
       )
+    
+    execute_process(
+      COMMAND ${PATCH_EXECUTABLE} -p0 -N -i ${ORTHANC_ROOT}/Resources/Patches/dcmtk-linux-speed.patch
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      RESULT_VARIABLE Failure
+      )
+
+    if (Failure AND FirstRun)
+      message(FATAL_ERROR "Error while patching a file")
+    endif()
+
   elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     list(REMOVE_ITEM DCMTK_SOURCES 
       ${DCMTK_SOURCES_DIR}/oflog/libsrc/unixsock.cc
       )
 
-    if (${CMAKE_COMPILER_IS_GNUCXX})
+    if (CMAKE_COMPILER_IS_GNUCXX)
       # This is a patch for MinGW64
       execute_process(
-        COMMAND patch -p0 -i ${ORTHANC_ROOT}/Resources/Patches/dcmtk-mingw64.patch
+        COMMAND ${PATCH_EXECUTABLE} -p0 -N -i ${ORTHANC_ROOT}/Resources/Patches/dcmtk-mingw64.patch
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        RESULT_VARIABLE Failure
         )
+
+      if (Failure AND FirstRun)
+        message(FATAL_ERROR "Error while patching a file")
+      endif()
     endif()
 
+    # This patch improves speed, even for Windows
+    execute_process(
+      COMMAND ${PATCH_EXECUTABLE} -p0 -N 
+      INPUT_FILE ${ORTHANC_ROOT}/Resources/Patches/dcmtk-linux-speed.patch
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      RESULT_VARIABLE Failure
+      )
+
+    if (Failure AND FirstRun)
+      message(FATAL_ERROR "Error while patching a file")
+    endif()
   endif()
 
   list(REMOVE_ITEM DCMTK_SOURCES 
@@ -120,13 +155,13 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
 
   #set_source_files_properties(${DCMTK_SOURCES}
   #  PROPERTIES COMPILE_DEFINITIONS
-  #  "PACKAGE_VERSION=\"3.6.0\";PACKAGE_VERSION_NUMBER=\"360\"")
+  #  "PACKAGE_VERSION=\"${DCMTK_PACKAGE_VERSION}\";PACKAGE_VERSION_NUMBER=\"${DCMTK_VERSION_NUMBER}\"")
 
   # This fixes crashes related to the destruction of the DCMTK OFLogger
   # http://support.dcmtk.org/docs-snapshot/file_macros.html
   add_definitions(
     -DLOG4CPLUS_DISABLE_FATAL=1
-    -DDCMTK_VERSION_NUMBER=360
+    -DDCMTK_VERSION_NUMBER=${DCMTK_VERSION_NUMBER}
     )
 
   include_directories(
@@ -162,7 +197,6 @@ else()
   list(APPEND DCMTK_LIBRARIES "${tmp}")
 
   include_directories(${DCMTK_INCLUDE_DIR})
-  link_libraries(${DCMTK_LIBRARIES})
 
   add_definitions(
     -DHAVE_CONFIG_H=1

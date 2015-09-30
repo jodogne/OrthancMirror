@@ -37,8 +37,7 @@
 #include "../FromDcmtkBridge.h"
 #include "../../Plugins/Engine/PluginsManager.h"
 #include "../../Plugins/Engine/OrthancPlugins.h"
-
-#include <glog/logging.h>
+#include "../ServerContext.h"
 
 
 namespace Orthanc
@@ -54,9 +53,36 @@ namespace Orthanc
   {
     Json::Value result = Json::objectValue;
 
-    result["Version"] = ORTHANC_VERSION;
+    std::string dbVersion = OrthancRestApi::GetIndex(call).GetGlobalProperty(GlobalProperty_DatabaseSchemaVersion, "0");
+
+    result["DatabaseVersion"] = boost::lexical_cast<int>(dbVersion);
+    result["DicomAet"] = Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC");
+    result["DicomPort"] = Configuration::GetGlobalIntegerParameter("DicomPort", 4242);
+    result["HttpPort"] = Configuration::GetGlobalIntegerParameter("HttpPort", 8042);
     result["Name"] = Configuration::GetGlobalStringParameter("Name", "");
-    result["DatabaseVersion"] = boost::lexical_cast<int>(OrthancRestApi::GetIndex(call).GetGlobalProperty(GlobalProperty_DatabaseSchemaVersion, "0"));
+    result["Version"] = ORTHANC_VERSION;
+
+    result["StorageAreaPlugin"] = Json::nullValue;
+    result["DatabaseBackendPlugin"] = Json::nullValue;
+
+#if ORTHANC_PLUGINS_ENABLED == 1
+    result["PluginsEnabled"] = true;
+    const OrthancPlugins& plugins = OrthancRestApi::GetContext(call).GetPlugins();
+
+    if (plugins.HasStorageArea())
+    {
+      std::string p = plugins.GetStorageAreaLibrary().GetPath();
+      result["StorageAreaPlugin"] = boost::filesystem::canonical(p).string();
+    }
+
+    if (plugins.HasDatabaseBackend())
+    {
+      std::string p = plugins.GetDatabaseBackendLibrary().GetPath();
+      result["DatabaseBackendPlugin"] = boost::filesystem::canonical(p).string();     
+    }
+#else
+    result["PluginsEnabled"] = false;
+#endif
 
     call.GetOutput().AnswerJson(result);
   }
@@ -94,9 +120,12 @@ namespace Orthanc
     std::string result;
     ServerContext& context = OrthancRestApi::GetContext(call);
 
+    std::string command;
+    call.BodyToString(command);
+
     {
-      ServerContext::LuaContextLocker locker(context);
-      locker.GetLua().Execute(result, call.GetPostBody());
+      LuaScripting::Locker locker(context.GetLua());
+      locker.GetLua().Execute(result, command);
     }
 
     call.GetOutput().AnswerBuffer(result, "text/plain");
@@ -126,14 +155,16 @@ namespace Orthanc
 
     if (OrthancRestApi::GetContext(call).HasPlugins())
     {
+#if ORTHANC_PLUGINS_ENABLED == 1
       std::list<std::string> plugins;
-      OrthancRestApi::GetContext(call).GetPluginsManager().ListPlugins(plugins);
+      OrthancRestApi::GetContext(call).GetPlugins().GetManager().ListPlugins(plugins);
 
       for (std::list<std::string>::const_iterator 
              it = plugins.begin(); it != plugins.end(); ++it)
       {
         v.append(*it);
       }
+#endif
     }
 
     call.GetOutput().AnswerJson(v);
@@ -147,7 +178,8 @@ namespace Orthanc
       return;
     }
 
-    const PluginsManager& manager = OrthancRestApi::GetContext(call).GetPluginsManager();
+#if ORTHANC_PLUGINS_ENABLED == 1
+    const PluginsManager& manager = OrthancRestApi::GetContext(call).GetPlugins().GetManager();
     std::string id = call.GetUriComponent("id", "");
 
     if (manager.HasPlugin(id))
@@ -156,11 +188,21 @@ namespace Orthanc
       v["ID"] = id;
       v["Version"] = manager.GetPluginVersion(id);
 
-      const OrthancPlugins& plugins = OrthancRestApi::GetContext(call).GetOrthancPlugins();
+      const OrthancPlugins& plugins = OrthancRestApi::GetContext(call).GetPlugins();
       const char *c = plugins.GetProperty(id.c_str(), _OrthancPluginProperty_RootUri);
       if (c != NULL)
       {
-        v["RootUri"] = c;
+        std::string root = c;
+        if (!root.empty())
+        {
+          // Turn the root URI into a URI relative to "/app/explorer.js"
+          if (root[0] == '/')
+          {
+            root = ".." + root;
+          }
+
+          v["RootUri"] = root;
+        }
       }
 
       c = plugins.GetProperty(id.c_str(), _OrthancPluginProperty_Description);
@@ -174,6 +216,7 @@ namespace Orthanc
 
       call.GetOutput().AnswerJson(v);
     }
+#endif
   }
 
 
@@ -183,11 +226,12 @@ namespace Orthanc
 
     if (OrthancRestApi::GetContext(call).HasPlugins())
     {
-      const PluginsManager& manager = OrthancRestApi::GetContext(call).GetPluginsManager();
-      const OrthancPlugins& plugins = OrthancRestApi::GetContext(call).GetOrthancPlugins();
+#if ORTHANC_PLUGINS_ENABLED == 1
+      const OrthancPlugins& plugins = OrthancRestApi::GetContext(call).GetPlugins();
+      const PluginsManager& manager = plugins.GetManager();
 
       std::list<std::string> lst;
-      OrthancRestApi::GetContext(call).GetPluginsManager().ListPlugins(lst);
+      manager.ListPlugins(lst);
 
       for (std::list<std::string>::const_iterator
              it = lst.begin(); it != lst.end(); ++it)
@@ -199,6 +243,7 @@ namespace Orthanc
           s += std::string(tmp) + "\n\n";
         }
       }
+#endif
     }
 
     call.GetOutput().AnswerBuffer(s, "application/javascript");

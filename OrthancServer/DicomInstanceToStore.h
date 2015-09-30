@@ -35,6 +35,7 @@
 #include "ParsedDicomFile.h"
 #include "ServerIndex.h"
 #include "../Core/OrthancException.h"
+#include "../Core/RestApi/RestApiCall.h"
 
 namespace Orthanc
 {
@@ -143,13 +144,35 @@ namespace Orthanc
     SmartContainer<DicomMap>  summary_;
     SmartContainer<Json::Value>  json_;
 
-    std::string remoteAet_;
-    std::string calledAet_;
+    RequestOrigin origin_;
+    std::string remoteIp_;
+    std::string dicomRemoteAet_;
+    std::string dicomCalledAet_;
+    std::string httpUsername_;
     ServerIndex::MetadataMap metadata_;
 
     void ComputeMissingInformation();
 
   public:
+    DicomInstanceToStore() : origin_(RequestOrigin_Unknown)
+    {
+    }
+
+    void SetDicomProtocolOrigin(const char* remoteIp,
+                                const char* remoteAet,
+                                const char* calledAet);
+
+    void SetRestOrigin(const RestApiCall& call);
+
+    void SetHttpOrigin(const char* remoteIp,
+                       const char* username);
+
+    void SetLuaOrigin();
+
+    void SetPluginsOrigin();
+
+    const char* GetRemoteAet() const; 
+
     void SetBuffer(const std::string& dicom)
     {
       buffer_.SetConstReference(dicom);
@@ -168,26 +191,6 @@ namespace Orthanc
     void SetJson(const Json::Value& json)
     {
       json_.SetConstReference(json);
-    }
-
-    const std::string& GetRemoteAet() const
-    {
-      return remoteAet_;
-    }
-
-    void SetRemoteAet(const std::string& aet)
-    {
-      remoteAet_ = aet;
-    }
-
-    const std::string& GetCalledAet() const
-    {
-      return calledAet_;
-    }
-
-    void SetCalledAet(const std::string& aet)
-    {
-      calledAet_ = aet;
     }
 
     void AddMetadata(ResourceType level,
@@ -211,5 +214,7 @@ namespace Orthanc
     const DicomMap& GetSummary();
     
     const Json::Value& GetJson();
+
+    void GetOriginInformation(Json::Value& result) const;
   };
 }

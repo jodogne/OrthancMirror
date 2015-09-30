@@ -243,44 +243,6 @@ namespace Orthanc
   }
 
 
-  ResourceType GetParentResourceType(ResourceType type)
-  {
-    switch (type)
-    {
-      case ResourceType_Study:
-        return ResourceType_Patient;
-
-      case ResourceType_Series:
-        return ResourceType_Study;
-
-      case ResourceType_Instance:
-        return ResourceType_Series;
-      
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
-
-  ResourceType GetChildResourceType(ResourceType type)
-  {
-    switch (type)
-    {
-      case ResourceType_Patient:
-        return ResourceType_Study;
-
-      case ResourceType_Study:
-        return ResourceType_Series;
-
-      case ResourceType_Series:
-        return ResourceType_Instance;
-      
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
-
   const char* EnumerationToString(ModalityManufacturer manufacturer)
   {
     switch (manufacturer)
@@ -299,6 +261,9 @@ namespace Orthanc
 
       case ModalityManufacturer_Dcm4Chee:
         return "Dcm4Chee";
+      
+      case ModalityManufacturer_SyngoVia:
+        return "SyngoVia";
       
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -358,6 +323,10 @@ namespace Orthanc
     else if (manufacturer == "Dcm4Chee")
     {
       return ModalityManufacturer_Dcm4Chee;
+    }
+    else if (manufacturer == "SyngoVia")
+    {
+      return ModalityManufacturer_SyngoVia;
     }
     else
     {

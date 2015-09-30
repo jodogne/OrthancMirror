@@ -33,14 +33,15 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
+#include "../../Core/Logging.h"
 #include "../DicomModification.h"
-
-#include <glog/logging.h>
+#include "../ServerContext.h"
 
 namespace Orthanc
 {
-  void OrthancRestApi::AnswerStoredInstance(RestApiPostCall& call,
+  void OrthancRestApi::AnswerStoredResource(RestApiPostCall& call,
                                             const std::string& publicId,
+                                            ResourceType resourceType,
                                             StoreStatus status) const
   {
     Json::Value result = Json::objectValue;
@@ -48,7 +49,7 @@ namespace Orthanc
     if (status != StoreStatus_Failure)
     {
       result["ID"] = publicId;
-      result["Path"] = GetBasePath(ResourceType_Instance, publicId);
+      result["Path"] = GetBasePath(resourceType, publicId);
     }
 
     result["Status"] = EnumerationToString(status);
@@ -72,21 +73,24 @@ namespace Orthanc
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    const std::string& postData = call.GetPostBody();
-    if (postData.size() == 0)
+    if (call.GetBodySize() == 0)
     {
       return;
     }
 
-    LOG(INFO) << "Receiving a DICOM file of " << postData.size() << " bytes through HTTP";
+    LOG(INFO) << "Receiving a DICOM file of " << call.GetBodySize() << " bytes through HTTP";
+
+    // TODO Remove unneccessary memcpy
+    std::string postData(call.GetBodyData(), call.GetBodySize());
 
     DicomInstanceToStore toStore;
+    toStore.SetRestOrigin(call);
     toStore.SetBuffer(postData);
 
     std::string publicId;
     StoreStatus status = context.Store(publicId, toStore);
 
-    OrthancRestApi::GetApi(call).AnswerStoredInstance(call, publicId, status);
+    OrthancRestApi::GetApi(call).AnswerStoredResource(call, publicId, ResourceType_Instance, status);
   }
 
 
@@ -111,5 +115,17 @@ namespace Orthanc
     Register("/tools", RestApi::AutoListChildren);
     Register("/tools/reset", ResetOrthanc);
     Register("/instances/{id}/frames/{frame}", RestApi::AutoListChildren);
+  }
+
+
+  ServerContext& OrthancRestApi::GetContext(RestApiCall& call)
+  {
+    return GetApi(call).context_;
+  }
+
+
+  ServerIndex& OrthancRestApi::GetIndex(RestApiCall& call)
+  {
+    return GetContext(call).GetIndex();
   }
 }

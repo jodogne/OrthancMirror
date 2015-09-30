@@ -34,6 +34,7 @@
 
 #include "../Enumerations.h"
 
+#include <string>
 #include <boost/noncopyable.hpp>
 
 namespace Orthanc

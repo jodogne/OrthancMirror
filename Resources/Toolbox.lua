@@ -32,80 +32,92 @@ function _AccessJob()
 end
 
 
-function SendToModality(instanceId, modality)
-   if instanceId == nil then
-      error('Cannot send a nonexistent instance')
+function SendToModality(resourceId, modality, localAet)
+   if resourceId == nil then
+      error('Cannot send a nonexistent resource')
    end
 
    table.insert(_job, { 
                    Operation = 'store-scu', 
-                   Instance = instanceId,
-                   Modality = modality 
+                   Resource = resourceId,
+                   Modality = modality,
+                   LocalAet = localAet
                 })
-   return instanceId
+   return resourceId
 end
 
 
-function SendToPeer(instanceId, peer)
-   if instanceId == nil then
-      error('Cannot send a nonexistent instance')
+function SendToPeer(resourceId, peer)
+   if resourceId == nil then
+      error('Cannot send a nonexistent resource')
    end
 
    table.insert(_job, { 
                    Operation = 'store-peer', 
-                   Instance = instanceId,
+                   Resource = resourceId,
                    Peer = peer
                 })
-   return instanceId
+   return resourceId
 end
 
 
-function Delete(instanceId)
-   if instanceId == nil then
-      error('Cannot delete a nonexistent instance')
+function Delete(resourceId)
+   if resourceId == nil then
+      error('Cannot delete a nonexistent resource')
    end
 
    table.insert(_job, { 
                    Operation = 'delete', 
-                   Instance = instanceId
+                   Resource = resourceId
                 })
    return nil  -- Forbid chaining
 end
 
 
-function ModifyInstance(instanceId, replacements, removals, removePrivateTags)
-   if instanceId == nil then
-      error('Cannot modify a nonexistent instance')
+function ModifyResource(resourceId, replacements, removals, removePrivateTags)
+   if resourceId == nil then
+      error('Cannot modify a nonexistent resource')
    end
 
-   if instanceId == '' then
-      error('Cannot modify twice an instance');
+   if resourceId == '' then
+      error('Cannot modify twice an resource');
    end
 
    table.insert(_job, { 
                    Operation = 'modify', 
-                   Instance = instanceId,
+                   Resource = resourceId,
                    Replace = replacements, 
                    Remove = removals,
                    RemovePrivateTags = removePrivateTags 
                 })
+
    return ''  -- Chain with another operation
 end
 
 
-function CallSystem(instanceId, command, args)
-   if instanceId == nil then
-      error('Cannot modify a nonexistent instance')
+function ModifyInstance(resourceId, replacements, removals, removePrivateTags)
+   return ModifyResource(resourceId, replacements, removals, removePrivateTags)
+end
+
+
+-- This function is only applicable to individual instances
+function CallSystem(resourceId, command, args)
+   if resourceId == nil then
+      error('Cannot execute a system call on a nonexistent resource')
+   end
+
+   if command == nil then
+      error('No command was specified for system call')
    end
 
    table.insert(_job, { 
                    Operation = 'call-system', 
-                   Instance = instanceId,
+                   Resource = resourceId,
                    Command = command,
                    Arguments = args
                 })
 
-   return instanceId
+   return resourceId
 end
 
 

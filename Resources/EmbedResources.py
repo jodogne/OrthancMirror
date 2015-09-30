@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
@@ -35,16 +37,29 @@ import pprint
 import re
 
 UPCASE_CHECK = True
+USE_SYSTEM_EXCEPTION = False
+EXCEPTION_CLASS = 'OrthancException'
+OUT_OF_RANGE_EXCEPTION = 'OrthancException(ErrorCode_ParameterOutOfRange)'
+INEXISTENT_PATH_EXCEPTION = 'OrthancException(ErrorCode_InexistentItem)'
+NAMESPACE = 'Orthanc'
+
 ARGS = []
 for i in range(len(sys.argv)):
     if not sys.argv[i].startswith('--'):
         ARGS.append(sys.argv[i])
     elif sys.argv[i].lower() == '--no-upcase-check':
         UPCASE_CHECK = False
+    elif sys.argv[i].lower() == '--system-exception':
+        USE_SYSTEM_EXCEPTION = True
+        EXCEPTION_CLASS = '::std::runtime_error'
+        OUT_OF_RANGE_EXCEPTION = '%s("Parameter out of range")' % EXCEPTION_CLASS
+        INEXISTENT_PATH_EXCEPTION = '%s("Unknown path in a directory resource")' % EXCEPTION_CLASS
+    elif sys.argv[i].startswith('--namespace='):
+        NAMESPACE = sys.argv[i][sys.argv[i].find('=') + 1 : ]
 
 if len(ARGS) < 2 or len(ARGS) % 2 != 0:
     print ('Usage:')
-    print ('python %s [--no-upcase-check] <TargetBaseFilename> [ <Name> <Source> ]*' % sys.argv[0])
+    print ('python %s [--no-upcase-check] [--system-exception] [--namespace=<Namespace>] <TargetBaseFilename> [ <Name> <Source> ]*' % sys.argv[0])
     exit(-1)
 
 TARGET_BASE_FILENAME = ARGS[1]
@@ -144,13 +159,13 @@ header.write("""
 #include <string>
 #include <list>
 
-namespace Orthanc
+namespace %s
 {
   namespace EmbeddedResources
   {
     enum FileResourceId
     {
-""")
+""" % NAMESPACE)
 
 isFirst = True
 for name in resources:
@@ -229,25 +244,32 @@ def WriteResource(cpp, item):
         cpp.write("0x%02x" % c)
         pos += 1
 
+    # Zero-size array are disallowed, so we put one single void character in it.
+    if pos == 0:
+        cpp.write('  0')
+
     cpp.write('  };\n')
     cpp.write('    static const size_t resource%dSize = %d;\n' % (item['Index'], pos))
 
 
 cpp = open(TARGET_BASE_FILENAME + '.cpp', 'w')
 
-cpp.write("""
-#include "%s.h"
-#include "%s/Core/OrthancException.h"
+cpp.write('#include "%s.h"\n' % os.path.basename(TARGET_BASE_FILENAME))
 
+if USE_SYSTEM_EXCEPTION:
+    cpp.write('#include <stdexcept>')
+else:
+    cpp.write('#include "%s/Core/OrthancException.h"' % os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+cpp.write("""
 #include <stdint.h>
 #include <string.h>
 
-namespace Orthanc
+namespace %s
 {
   namespace EmbeddedResources
   {
-""" % (os.path.basename(TARGET_BASE_FILENAME),
-       os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))))
+""" % NAMESPACE)
 
 
 for name in resources:
@@ -276,7 +298,7 @@ for name in resources:
 
 cpp.write("""
       default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
+        throw %s;
       }
     }
 
@@ -284,7 +306,7 @@ cpp.write("""
     {
       switch (id)
       {
-""")
+""" % OUT_OF_RANGE_EXCEPTION)
 
 for name in resources:
     if resources[name]['Type'] == 'File':
@@ -293,10 +315,10 @@ for name in resources:
 
 cpp.write("""
       default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
+        throw %s;
       }
     }
-""")
+""" % OUT_OF_RANGE_EXCEPTION)
 
 
 
@@ -318,10 +340,10 @@ for name in resources:
         for path in resources[name]['Files']:
             cpp.write('        if (!strcmp(path, "%s"))\n' % path)
             cpp.write('          return resource%dBuffer;\n' % resources[name]['Files'][path]['Index'])
-        cpp.write('        throw OrthancException("Unknown path in a directory resource");\n\n')
+        cpp.write('        throw %s;\n\n' % INEXISTENT_PATH_EXCEPTION)
 
 cpp.write("""      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
+        throw %s;
       }
     }
 
@@ -329,7 +351,7 @@ cpp.write("""      default:
     {
       switch (id)
       {
-""")
+""" % OUT_OF_RANGE_EXCEPTION)
 
 for name in resources:
     if resources[name]['Type'] == 'Directory':
@@ -338,13 +360,13 @@ for name in resources:
         for path in resources[name]['Files']:
             cpp.write('        if (!strcmp(path, "%s"))\n' % path)
             cpp.write('          return resource%dSize;\n' % resources[name]['Files'][path]['Index'])
-        cpp.write('        throw OrthancException("Unknown path in a directory resource");\n\n')
+        cpp.write('        throw %s;\n\n' % INEXISTENT_PATH_EXCEPTION)
 
 cpp.write("""      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
+        throw %s;
       }
     }
-""")
+""" % OUT_OF_RANGE_EXCEPTION)
 
 
 
@@ -370,10 +392,10 @@ for name in resources:
         cpp.write('        break;\n\n')
 
 cpp.write("""      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
+        throw %s;
       }
     }
-""")
+""" % OUT_OF_RANGE_EXCEPTION)
 
 
 

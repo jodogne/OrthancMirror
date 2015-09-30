@@ -49,12 +49,9 @@ namespace Orthanc
     boost::posix_time::time_duration timeBeforeClose_;
     boost::posix_time::ptime lastUse_;
     boost::thread closeThread_;
-    std::string localAet_;
 
-    void Open(const std::string& remoteAet,
-              const std::string& address,
-              int port,
-              ModalityManufacturer manufacturer);
+    void Open(const std::string& localAet,
+              const RemoteModalityParameters& remote);
     
     void Close();
 
@@ -73,13 +70,8 @@ namespace Orthanc
 
     public:
       Locker(ReusableDicomUserConnection& that,
+             const std::string& localAet,
              const RemoteModalityParameters& remote);
-
-      Locker(ReusableDicomUserConnection& that,
-             const std::string& aet,
-             const std::string& address,
-             int port,
-             ModalityManufacturer manufacturer);
 
       DicomUserConnection& GetConnection();
     };
@@ -88,16 +80,9 @@ namespace Orthanc
 
     virtual ~ReusableDicomUserConnection();
 
-    uint64_t GetMillisecondsBeforeClose() const
-    {
-      return static_cast<uint64_t>(timeBeforeClose_.total_milliseconds());
-    }
-
     void SetMillisecondsBeforeClose(uint64_t ms);
 
-    const std::string& GetLocalApplicationEntityTitle() const;
-
-    void SetLocalApplicationEntityTitle(const std::string& aet);
+    void Finalize();
   };
 }
 

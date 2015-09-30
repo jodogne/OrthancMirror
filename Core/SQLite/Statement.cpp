@@ -42,14 +42,15 @@
 #include "Statement.h"
 #include "Connection.h"
 
-#include <sqlite3.h>
 #include <string.h>
 #include <stdio.h>
 #include <algorithm>
 
 #if ORTHANC_SQLITE_STANDALONE != 1
-#include <glog/logging.h>
+#include "../Logging.h"
 #endif
+
+#include "sqlite3.h"
 
 #if defined(_MSC_VER)
 #define snprintf _snprintf
@@ -59,31 +60,39 @@ namespace Orthanc
 {
   namespace SQLite
   {
-    int Statement::CheckError(int err) const
+    int Statement::CheckError(int err, ErrorCode code) const
     {
       bool succeeded = (err == SQLITE_OK || err == SQLITE_ROW || err == SQLITE_DONE);
       if (!succeeded)
       {
+#if ORTHANC_SQLITE_STANDALONE != 1
         char buffer[128];
         snprintf(buffer, sizeof(buffer) - 1, "SQLite error code %d", err);
-        throw OrthancSQLiteException(buffer);
+        LOG(ERROR) << buffer;
+#endif
+
+        throw OrthancSQLiteException(code);
       }
 
       return err;
     }
 
-    void Statement::CheckOk(int err) const 
+    void Statement::CheckOk(int err, ErrorCode code) const 
     {
       if (err == SQLITE_RANGE)
       {
         // Binding to a non-existent variable is evidence of a serious error.
-        throw OrthancSQLiteException("Bind value out of range");
+        throw OrthancSQLiteException(ErrorCode_SQLiteBindOutOfRange);
       }
       else if (err != SQLITE_OK)
       {
+#if ORTHANC_SQLITE_STANDALONE != 1
         char buffer[128];
         snprintf(buffer, sizeof(buffer) - 1, "SQLite error code %d", err);
-        throw OrthancSQLiteException(buffer);
+        LOG(ERROR) << buffer;
+#endif
+
+        throw OrthancSQLiteException(code);
       }
     }
 
@@ -126,7 +135,7 @@ namespace Orthanc
       VLOG(1) << "SQLite::Statement::Run " << sqlite3_sql(GetStatement());
 #endif
 
-      return CheckError(sqlite3_step(GetStatement())) == SQLITE_DONE;
+      return CheckError(sqlite3_step(GetStatement()), ErrorCode_SQLiteCannotRun) == SQLITE_DONE;
     }
 
     bool Statement::Step()
@@ -135,7 +144,7 @@ namespace Orthanc
       VLOG(1) << "SQLite::Statement::Step " << sqlite3_sql(GetStatement());
 #endif
 
-      return CheckError(sqlite3_step(GetStatement())) == SQLITE_ROW;
+      return CheckError(sqlite3_step(GetStatement()), ErrorCode_SQLiteCannotStep) == SQLITE_ROW;
     }
 
     void Statement::Reset(bool clear_bound_vars) 
@@ -157,7 +166,8 @@ namespace Orthanc
 
     void Statement::BindNull(int col)
     {
-      CheckOk(sqlite3_bind_null(GetStatement(), col + 1));
+      CheckOk(sqlite3_bind_null(GetStatement(), col + 1),
+              ErrorCode_BadParameterType);
     }
 
     void Statement::BindBool(int col, bool val) 
@@ -167,22 +177,26 @@ namespace Orthanc
 
     void Statement::BindInt(int col, int val) 
     {
-      CheckOk(sqlite3_bind_int(GetStatement(), col + 1, val));
+      CheckOk(sqlite3_bind_int(GetStatement(), col + 1, val),
+              ErrorCode_BadParameterType);
     }
 
     void Statement::BindInt64(int col, int64_t val) 
     {
-      CheckOk(sqlite3_bind_int64(GetStatement(), col + 1, val));
+      CheckOk(sqlite3_bind_int64(GetStatement(), col + 1, val),
+              ErrorCode_BadParameterType);
     }
 
     void Statement::BindDouble(int col, double val) 
     {
-      CheckOk(sqlite3_bind_double(GetStatement(), col + 1, val));
+      CheckOk(sqlite3_bind_double(GetStatement(), col + 1, val),
+              ErrorCode_BadParameterType);
     }
 
     void Statement::BindCString(int col, const char* val) 
     {
-      CheckOk(sqlite3_bind_text(GetStatement(), col + 1, val, -1, SQLITE_TRANSIENT));
+      CheckOk(sqlite3_bind_text(GetStatement(), col + 1, val, -1, SQLITE_TRANSIENT),
+              ErrorCode_BadParameterType);
     }
 
     void Statement::BindString(int col, const std::string& val) 
@@ -191,7 +205,8 @@ namespace Orthanc
                                 col + 1,
                                 val.data(),
                                 val.size(),
-                                SQLITE_TRANSIENT));
+                                SQLITE_TRANSIENT),
+              ErrorCode_BadParameterType);
     }
 
     /*void Statement::BindString16(int col, const string16& value) 
@@ -201,7 +216,8 @@ namespace Orthanc
 
     void Statement::BindBlob(int col, const void* val, int val_len) 
     {
-      CheckOk(sqlite3_bind_blob(GetStatement(), col + 1, val, val_len, SQLITE_TRANSIENT));
+      CheckOk(sqlite3_bind_blob(GetStatement(), col + 1, val, val_len, SQLITE_TRANSIENT),
+              ErrorCode_BadParameterType);
     }
 
 

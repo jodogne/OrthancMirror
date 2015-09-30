@@ -33,9 +33,10 @@
 #include "PrecompiledHeadersServer.h"
 #include "OrthancMoveRequestHandler.h"
 
-#include <glog/logging.h>
-
 #include "OrthancInitialization.h"
+#include "FromDcmtkBridge.h"
+#include "../Core/DicomFormat/DicomArray.h"
+#include "../Core/Logging.h"
 
 namespace Orthanc
 {
@@ -47,6 +48,7 @@ namespace Orthanc
     {
     private:
       ServerContext& context_;
+      const std::string& localAet_;
       std::vector<std::string> instances_;
       size_t position_;
       RemoteModalityParameters remote_;
@@ -56,6 +58,7 @@ namespace Orthanc
                                  const std::string& aet,
                                  const std::string& publicId) :
         context_(context),
+        localAet_(context.GetDefaultLocalApplicationEntityTitle()),
         position_(0)
       {
         LOG(INFO) << "Sending resource " << publicId << " to modality \"" << aet << "\"";
@@ -91,7 +94,7 @@ namespace Orthanc
 
         {
           ReusableDicomUserConnection::Locker locker
-            (context_.GetReusableDicomUserConnection(), remote_);
+            (context_.GetReusableDicomUserConnection(), localAet_, remote_);
           locker.GetConnection().Store(dicom);
         }
 
@@ -127,10 +130,27 @@ namespace Orthanc
   }
 
 
-  IMoveRequestIterator* OrthancMoveRequestHandler::Handle(const std::string& aet,
-                                                          const DicomMap& input)
+  IMoveRequestIterator* OrthancMoveRequestHandler::Handle(const std::string& targetAet,
+                                                          const DicomMap& input,
+                                                          const std::string& remoteIp,
+                                                          const std::string& remoteAet)
   {
-    LOG(WARNING) << "Move-SCU request received for AET \"" << aet << "\"";
+    LOG(WARNING) << "Move-SCU request received for AET \"" << targetAet << "\"";
+
+    {
+      DicomArray query(input);
+      for (size_t i = 0; i < query.GetSize(); i++)
+      {
+        if (!query.GetElement(i).GetValue().IsNull())
+        {
+          LOG(INFO) << "  " << query.GetElement(i).GetTag()
+                    << "  " << FromDcmtkBridge::GetName(query.GetElement(i).GetTag())
+                    << " = " << query.GetElement(i).GetValue().AsString();
+        }
+      }
+    }
+
+
 
     /**
      * Retrieve the query level.
@@ -158,7 +178,7 @@ namespace Orthanc
           LookupIdentifier(publicId, DICOM_TAG_STUDY_INSTANCE_UID, input) ||
           LookupIdentifier(publicId, DICOM_TAG_PATIENT_ID, input))
       {
-        return new OrthancMoveRequestIterator(context_, aet, publicId);
+        return new OrthancMoveRequestIterator(context_, targetAet, publicId);
       }
       else
       {
@@ -203,6 +223,6 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadRequest);
     }
 
-    return new OrthancMoveRequestIterator(context_, aet, publicId);
+    return new OrthancMoveRequestIterator(context_, targetAet, publicId);
   }
 }

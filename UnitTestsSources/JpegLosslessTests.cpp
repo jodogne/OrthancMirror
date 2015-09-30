@@ -41,8 +41,8 @@
 
 #include "../OrthancServer/ParsedDicomFile.h"
 #include "../Core/OrthancException.h"
-#include "../Core/ImageFormats/ImageBuffer.h"
-#include "../Core/ImageFormats/PngWriter.h"
+#include "../Core/Images/ImageBuffer.h"
+#include "../Core/Images/PngWriter.h"
 
 using namespace Orthanc;
 

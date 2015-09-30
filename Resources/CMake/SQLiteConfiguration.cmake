@@ -1,11 +1,27 @@
-if (STATIC_BUILD OR NOT USE_SYSTEM_SQLITE)
-  SET(SQLITE_SOURCES_DIR ${CMAKE_BINARY_DIR}/sqlite-amalgamation-3071300)
-  DownloadPackage(
-    "5fbeff9645ab035a1f580e90b279a16d"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/sqlite-amalgamation-3071300.zip"
-    "${SQLITE_SOURCES_DIR}")
+if (APPLE)
+  # Under OS X, the binaries must always be linked against the
+  # system-wide version of SQLite. Otherwise, if some Orthanc plugin
+  # also uses its own version of SQLite (such as orthanc-webviewer),
+  # this results in a crash in "sqlite3_mutex_enter(db->mutex);" (the
+  # mutex is not initialized), probably because the EXE and the DYNLIB
+  # share the same memory location for this mutex.
+  set(SQLITE_STATIC OFF)
 
-  list(APPEND THIRD_PARTY_SOURCES
+elseif (STATIC_BUILD OR NOT USE_SYSTEM_SQLITE)
+  set(SQLITE_STATIC ON)
+else()
+  set(SQLITE_STATIC OFF)
+endif()
+
+
+if (SQLITE_STATIC)
+  SET(SQLITE_SOURCES_DIR ${CMAKE_BINARY_DIR}/sqlite-amalgamation-3071300)
+  SET(SQLITE_MD5 "5fbeff9645ab035a1f580e90b279a16d")
+  SET(SQLITE_URL "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/sqlite-amalgamation-3071300.zip")
+
+  DownloadPackage(${SQLITE_MD5} ${SQLITE_URL} "${SQLITE_SOURCES_DIR}")
+
+  set(SQLITE_SOURCES
     ${SQLITE_SOURCES_DIR}/sqlite3.c
     )
 
@@ -28,8 +44,14 @@ else()
     message(FATAL_ERROR "Please install the libsqlite3-dev package")
   endif()
 
+  find_path(SQLITE_INCLUDE_DIR sqlite3.h
+    /usr/include
+    /usr/local/include
+    )
+  message("SQLite include dir: ${SQLITE_INCLUDE_DIR}")
+
   # Autodetection of the version of SQLite
-  file(STRINGS "/usr/include/sqlite3.h" SQLITE_VERSION_NUMBER1 REGEX "#define SQLITE_VERSION_NUMBER.*$")    
+  file(STRINGS "${SQLITE_INCLUDE_DIR}/sqlite3.h" SQLITE_VERSION_NUMBER1 REGEX "#define SQLITE_VERSION_NUMBER.*$")    
   string(REGEX REPLACE "#define SQLITE_VERSION_NUMBER(.*)$" "\\1" SQLITE_VERSION_NUMBER ${SQLITE_VERSION_NUMBER1})
 
   message("Detected version of SQLite: ${SQLITE_VERSION_NUMBER}")

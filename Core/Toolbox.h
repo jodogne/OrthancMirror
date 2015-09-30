@@ -69,6 +69,10 @@ namespace Orthanc
     void WriteFile(const std::string& content,
                    const std::string& path);
 
+    void WriteFile(const void* content,
+                   size_t size,
+                   const std::string& path);
+
     void USleep(uint64_t microSeconds);
 
     void RemoveFile(const std::string& path);
@@ -90,53 +94,72 @@ namespace Orthanc
 
     uint64_t GetFileSize(const std::string& path);
 
+#if !defined(ORTHANC_ENABLE_MD5) || ORTHANC_ENABLE_MD5 == 1
     void ComputeMD5(std::string& result,
                     const std::string& data);
 
     void ComputeMD5(std::string& result,
                     const void* data,
                     size_t length);
+#endif
 
     void ComputeSHA1(std::string& result,
                      const std::string& data);
 
-    bool IsSHA1(const std::string& str);
+    bool IsSHA1(const char* str,
+                size_t size);
 
+    bool IsSHA1(const std::string& s);
+
+#if !defined(ORTHANC_ENABLE_BASE64) || ORTHANC_ENABLE_BASE64 == 1
     void DecodeBase64(std::string& result, 
                       const std::string& data);
 
     void EncodeBase64(std::string& result, 
                       const std::string& data);
 
+#  if BOOST_HAS_REGEX == 1
+    void DecodeDataUriScheme(std::string& mime,
+                             std::string& content,
+                             const std::string& source);
+#  endif
+#endif
+
     std::string GetPathToExecutable();
 
     std::string GetDirectoryOfExecutable();
 
     std::string ConvertToUtf8(const std::string& source,
-                              const Encoding sourceEncoding);
+                              Encoding sourceEncoding);
+
+    std::string ConvertFromUtf8(const std::string& source,
+                                Encoding targetEncoding);
 
     std::string ConvertToAscii(const std::string& source);
 
     std::string StripSpaces(const std::string& source);
 
+#if BOOST_HAS_DATE_TIME == 1
     std::string GetNowIsoString();
+
+    void GetNowDicom(std::string& date,
+                     std::string& time);
+#endif
 
     // In-place percent-decoding for URL
     void UrlDecode(std::string& s);
 
     Endianness DetectEndianness();
 
+#if BOOST_HAS_REGEX == 1
     std::string WildcardToRegularExpression(const std::string& s);
+#endif
 
     void TokenizeString(std::vector<std::string>& result,
                         const std::string& source,
                         char separator);
 
-    void DecodeDataUriScheme(std::string& mime,
-                             std::string& content,
-                             const std::string& source);
-
-    void CreateDirectory(const std::string& path);
+    void MakeDirectory(const std::string& path);
 
     bool IsExistingFile(const std::string& path);
 
@@ -151,5 +174,13 @@ namespace Orthanc
                               const std::vector<std::string>& arguments);
 
     bool IsInteger(const std::string& str);
+
+    void CopyJsonWithoutComments(Json::Value& target,
+                                 const Json::Value& source);
+
+    bool StartsWith(const std::string& str,
+                    const std::string& prefix);
+
+    int GetProcessId();
   }
 }

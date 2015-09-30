@@ -38,25 +38,14 @@ namespace Orthanc
   class BufferHttpSender : public HttpFileSender
   {
   private:
-    std::string buffer_;
-
-  protected:
-    virtual uint64_t GetFileSize()
-    {
-      return buffer_.size();
-    }
-
-    virtual bool SendData(HttpOutput& output)
-    {
-      if (buffer_.size())
-      {
-        output.SendBody(&buffer_[0], buffer_.size());
-      }
-
-      return true;
-    }
+    std::string  buffer_;
+    size_t       position_;
+    size_t       chunkSize_;
+    size_t       currentChunkSize_;
 
   public:
+    BufferHttpSender();
+
     std::string& GetBuffer() 
     {
       return buffer_;
@@ -66,5 +55,28 @@ namespace Orthanc
     {
       return buffer_;
     }
+
+    // This is for test purpose. If "chunkSize" is set to "0" (the
+    // default), the entire buffer is consumed at once.
+    void SetChunkSize(size_t chunkSize)
+    {
+      chunkSize_ = chunkSize;
+    }
+
+
+    /**
+     * Implementation of the IHttpStreamAnswer interface.
+     **/
+
+    virtual uint64_t GetContentLength()
+    {
+      return buffer_.size();
+    }
+
+    virtual bool ReadNextChunk();
+
+    virtual const char* GetChunkContent();
+
+    virtual size_t GetChunkSize();
   };
 }

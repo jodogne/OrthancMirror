@@ -30,11 +30,11 @@
  **/
 
 
+#include "../PrecompiledHeadersServer.h"
 #include "ServerScheduler.h"
 
 #include "../../Core/OrthancException.h"
-
-#include <glog/logging.h>
+#include "../../Core/Logging.h"
 
 namespace Orthanc
 {
@@ -199,8 +199,25 @@ namespace Orthanc
 
   ServerScheduler::~ServerScheduler()
   {
-    finish_ = true;
-    worker_.join();
+    if (!finish_)
+    {
+      LOG(ERROR) << "INTERNAL ERROR: ServerScheduler::Finalize() should be invoked manually to avoid mess in the destruction order!";
+      Stop();
+    }
+  }
+
+
+  void ServerScheduler::Stop()
+  {
+    if (!finish_)
+    {
+      finish_ = true;
+
+      if (worker_.joinable())
+      {
+        worker_.join();
+      }
+    }
   }
 
 
@@ -313,7 +330,7 @@ namespace Orthanc
 
     if (job->second.size_ == 1)
     {
-      return job->second.success_;
+      return static_cast<float>(job->second.success_);
     }
 
     return (static_cast<float>(job->second.success_) / 

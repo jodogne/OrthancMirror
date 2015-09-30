@@ -34,10 +34,10 @@
 #include "gtest/gtest.h"
 
 #include <ctype.h>
-#include <glog/logging.h>
 
 #include "../Core/ChunkedBuffer.h"
 #include "../Core/HttpClient.h"
+#include "../Core/Logging.h"
 #include "../Core/RestApi/RestApi.h"
 #include "../Core/Uuid.h"
 #include "../Core/OrthancException.h"
@@ -50,6 +50,8 @@ using namespace Orthanc;
 #error "Please set UNIT_TESTS_WITH_HTTP_CONNEXIONS"
 #endif
 
+
+
 TEST(HttpClient, Basic)
 {
   HttpClient c;
@@ -61,30 +63,82 @@ TEST(HttpClient, Basic)
 
 #if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1
   Json::Value v;
-  c.SetUrl("http://orthanc.googlecode.com/hg/Resources/Configuration.json");
+  c.SetUrl("http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/Configuration.json");
   c.Apply(v);
   ASSERT_TRUE(v.isMember("StorageDirectory"));
-  //ASSERT_EQ(GetLastStatusText());
-
-  v = Json::nullValue;
-
-  HttpClient cc(c);
-  cc.SetUrl("https://orthanc.googlecode.com/hg/Resources/Configuration.json");
-  cc.Apply(v);
-  ASSERT_TRUE(v.isMember("LuaScripts"));
 #endif
 }
+
+
+#if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1 && ORTHANC_SSL_ENABLED == 1
+
+/**
+   The HTTPS CA certificates for BitBucket were extracted as follows:
+   
+   (1) We retrieve the certification chain of BitBucket:
+
+   # echo | openssl s_client -showcerts -connect www.bitbucket.org:443
+
+   (2) We see that the certification authority (CA) is
+   "www.digicert.com", and the root certificate is "DigiCert High
+   Assurance EV Root CA". As a consequence, we navigate to DigiCert to
+   find the URL to this CA certificate:
+
+   firefox https://www.digicert.com/digicert-root-certificates.htm
+
+   (3) Once we get the URL to the CA certificate, we convert it to a C
+   macro that can be used by libcurl:
+
+   # cd UnitTestsSources
+   # ../Resources/RetrieveCACertificates.py BITBUCKET_CERTIFICATES https://www.digicert.com/CACerts/DigiCertHighAssuranceEVRootCA.crt > BitbucketCACertificates.h
+**/
+
+#include "BitbucketCACertificates.h"
+
+TEST(HttpClient, Ssl)
+{
+  Toolbox::WriteFile(BITBUCKET_CERTIFICATES, "UnitTestsResults/bitbucket.cert");
+
+  /*{
+    std::string s;
+    Toolbox::ReadFile(s, "/usr/share/ca-certificates/mozilla/WoSign.crt");
+    Toolbox::WriteFile(s, "UnitTestsResults/bitbucket.cert");
+    }*/
+
+  HttpClient c;
+  c.SetHttpsVerifyPeers(true);
+  c.SetHttpsCACertificates("UnitTestsResults/bitbucket.cert");
+  c.SetUrl("https://bitbucket.org/sjodogne/orthanc/raw/Orthanc-0.9.3/Resources/Configuration.json");
+
+  Json::Value v;
+  c.Apply(v);
+  ASSERT_TRUE(v.isMember("LuaScripts"));
+}
+
+TEST(HttpClient, SslNoVerification)
+{
+  HttpClient c;
+  c.SetHttpsVerifyPeers(false);
+  c.SetUrl("https://bitbucket.org/sjodogne/orthanc/raw/Orthanc-0.9.3/Resources/Configuration.json");
+
+  Json::Value v;
+  c.Apply(v);
+  ASSERT_TRUE(v.isMember("LuaScripts"));
+}
+
+#endif
+
 
 TEST(RestApi, ChunkedBuffer)
 {
   ChunkedBuffer b;
-  ASSERT_EQ(0, b.GetNumBytes());
+  ASSERT_EQ(0u, b.GetNumBytes());
 
   b.AddChunk("hello", 5);
-  ASSERT_EQ(5, b.GetNumBytes());
+  ASSERT_EQ(5u, b.GetNumBytes());
 
   b.AddChunk("world", 5);
-  ASSERT_EQ(10, b.GetNumBytes());
+  ASSERT_EQ(10u, b.GetNumBytes());
 
   std::string s;
   b.Flatten(s);
@@ -93,11 +147,11 @@ TEST(RestApi, ChunkedBuffer)
 
 TEST(RestApi, ParseCookies)
 {
-  HttpHandler::Arguments headers;
-  HttpHandler::Arguments cookies;
+  IHttpHandler::Arguments headers;
+  IHttpHandler::Arguments cookies;
 
   headers["cookie"] = "a=b;c=d;;;e=f;;g=h;";
-  HttpHandler::ParseCookies(cookies, headers);
+  HttpToolbox::ParseCookies(cookies, headers);
   ASSERT_EQ(4u, cookies.size());
   ASSERT_EQ("b", cookies["a"]);
   ASSERT_EQ("d", cookies["c"]);
@@ -105,24 +159,24 @@ TEST(RestApi, ParseCookies)
   ASSERT_EQ("h", cookies["g"]);
 
   headers["cookie"] = "  name =  value  ; name2=value2";
-  HttpHandler::ParseCookies(cookies, headers);
+  HttpToolbox::ParseCookies(cookies, headers);
   ASSERT_EQ(2u, cookies.size());
   ASSERT_EQ("value", cookies["name"]);
   ASSERT_EQ("value2", cookies["name2"]);
 
   headers["cookie"] = "  ;;;    ";
-  HttpHandler::ParseCookies(cookies, headers);
+  HttpToolbox::ParseCookies(cookies, headers);
   ASSERT_EQ(0u, cookies.size());
 
   headers["cookie"] = "  ;   n=v  ;;    ";
-  HttpHandler::ParseCookies(cookies, headers);
+  HttpToolbox::ParseCookies(cookies, headers);
   ASSERT_EQ(1u, cookies.size());
   ASSERT_EQ("v", cookies["n"]);
 }
 
 TEST(RestApi, RestApiPath)
 {
-  HttpHandler::Arguments args;
+  IHttpHandler::Arguments args;
   UriComponents trail;
 
   {
@@ -220,7 +274,7 @@ namespace
   public:
     virtual bool Visit(const RestApiHierarchy::Resource& resource,
                        const UriComponents& uri,
-                       const HttpHandler::Arguments& components,
+                       const IHttpHandler::Arguments& components,
                        const UriComponents& trailing)
     {
       return resource.Handle(*reinterpret_cast<RestApiGetCall*>(NULL));

@@ -37,13 +37,14 @@
 
 #include <ctype.h>
 
-#include "../Core/Compression/ZlibCompressor.h"
 #include "../Core/DicomFormat/DicomTag.h"
-#include "../Core/HttpServer/HttpHandler.h"
+#include "../Core/HttpServer/HttpToolbox.h"
+#include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
 #include "../Core/Uuid.h"
 #include "../OrthancServer/OrthancInitialization.h"
+
 
 using namespace Orthanc;
 
@@ -77,6 +78,17 @@ TEST(Toolbox, IsSHA1)
   ASSERT_FALSE(Toolbox::IsSHA1("012345678901234567890123456789012345678901234"));
   ASSERT_TRUE(Toolbox::IsSHA1("b5ed549f-956400ce-69a8c063-bf5b78be-2732a4b9"));
 
+  std::string sha = "         b5ed549f-956400ce-69a8c063-bf5b78be-2732a4b9          ";
+  ASSERT_TRUE(Toolbox::IsSHA1(sha));
+  sha[3] = '\0';
+  sha[53] = '\0';
+  ASSERT_TRUE(Toolbox::IsSHA1(sha));
+  sha[40] = '\0';
+  ASSERT_FALSE(Toolbox::IsSHA1(sha));
+  ASSERT_FALSE(Toolbox::IsSHA1("       "));
+
+  ASSERT_TRUE(Toolbox::IsSHA1("16738bc3-e47ed42a-43ce044c-a3414a45-cb069bd0"));
+
   std::string s;
   Toolbox::ComputeSHA1(s, "The quick brown fox jumps over the lazy dog");
   ASSERT_TRUE(Toolbox::IsSHA1(s));
@@ -85,99 +97,15 @@ TEST(Toolbox, IsSHA1)
   ASSERT_FALSE(Toolbox::IsSHA1("b5ed549f-956400ce-69a8c063-bf5b78be-2732a4b_"));
 }
 
-static void StringToVector(std::vector<uint8_t>& v,
-                           const std::string& s)
-{
-  v.resize(s.size());
-  for (size_t i = 0; i < s.size(); i++)
-    v[i] = s[i];
-}
-
-
-TEST(Zlib, Basic)
-{
-  std::string s = Toolbox::GenerateUuid();
-  s = s + s + s + s;
- 
-  std::string compressed, compressed2;
-  ZlibCompressor c;
-  c.Compress(compressed, s);
-
-  std::vector<uint8_t> v, vv;
-  StringToVector(v, s);
-  c.Compress(compressed2, v);
-  ASSERT_EQ(compressed, compressed2);
-
-  std::string uncompressed;
-  c.Uncompress(uncompressed, compressed);
-  ASSERT_EQ(s.size(), uncompressed.size());
-  ASSERT_EQ(0, memcmp(&s[0], &uncompressed[0], s.size()));
-
-  StringToVector(vv, compressed);
-  c.Uncompress(uncompressed, vv);
-  ASSERT_EQ(s.size(), uncompressed.size());
-  ASSERT_EQ(0, memcmp(&s[0], &uncompressed[0], s.size()));
-}
-
-
-TEST(Zlib, Level)
-{
-  std::string s = Toolbox::GenerateUuid();
-  s = s + s + s + s;
- 
-  std::string compressed, compressed2;
-  ZlibCompressor c;
-  c.SetCompressionLevel(9);
-  c.Compress(compressed, s);
-
-  c.SetCompressionLevel(0);
-  c.Compress(compressed2, s);
-
-  ASSERT_TRUE(compressed.size() < compressed2.size());
-}
-
-
-TEST(Zlib, DISABLED_Corrupted)  // Disabled because it may result in a crash
-{
-  std::string s = Toolbox::GenerateUuid();
-  s = s + s + s + s;
- 
-  std::string compressed;
-  ZlibCompressor c;
-  c.Compress(compressed, s);
-
-  compressed[compressed.size() - 1] = 'a';
-  std::string u;
-
-  ASSERT_THROW(c.Uncompress(u, compressed), OrthancException);
-}
-
-
-TEST(Zlib, Empty)
-{
-  std::string s = "";
-  std::vector<uint8_t> v, vv;
- 
-  std::string compressed, compressed2;
-  ZlibCompressor c;
-  c.Compress(compressed, s);
-  c.Compress(compressed2, v);
-  ASSERT_EQ(compressed, compressed2);
-
-  std::string uncompressed;
-  c.Uncompress(uncompressed, compressed);
-  ASSERT_EQ(0u, uncompressed.size());
-
-  StringToVector(vv, compressed);
-  c.Uncompress(uncompressed, vv);
-  ASSERT_EQ(0u, uncompressed.size());
-}
-
 
 TEST(ParseGetArguments, Basic)
 {
-  HttpHandler::Arguments a;
-  HttpHandler::ParseGetArguments(a, "aaa=baaa&bb=a&aa=c");
+  IHttpHandler::GetArguments b;
+  HttpToolbox::ParseGetArguments(b, "aaa=baaa&bb=a&aa=c");
+
+  IHttpHandler::Arguments a;
+  HttpToolbox::CompileGetArguments(a, b);
+
   ASSERT_EQ(3u, a.size());
   ASSERT_EQ(a["aaa"], "baaa");
   ASSERT_EQ(a["bb"], "a");
@@ -186,8 +114,12 @@ TEST(ParseGetArguments, Basic)
 
 TEST(ParseGetArguments, BasicEmpty)
 {
-  HttpHandler::Arguments a;
-  HttpHandler::ParseGetArguments(a, "aaa&bb=aa&aa");
+  IHttpHandler::GetArguments b;
+  HttpToolbox::ParseGetArguments(b, "aaa&bb=aa&aa");
+
+  IHttpHandler::Arguments a;
+  HttpToolbox::CompileGetArguments(a, b);
+
   ASSERT_EQ(3u, a.size());
   ASSERT_EQ(a["aaa"], "");
   ASSERT_EQ(a["bb"], "aa");
@@ -196,16 +128,24 @@ TEST(ParseGetArguments, BasicEmpty)
 
 TEST(ParseGetArguments, Single)
 {
-  HttpHandler::Arguments a;
-  HttpHandler::ParseGetArguments(a, "aaa=baaa");
+  IHttpHandler::GetArguments b;
+  HttpToolbox::ParseGetArguments(b, "aaa=baaa");
+
+  IHttpHandler::Arguments a;
+  HttpToolbox::CompileGetArguments(a, b);
+
   ASSERT_EQ(1u, a.size());
   ASSERT_EQ(a["aaa"], "baaa");
 }
 
 TEST(ParseGetArguments, SingleEmpty)
 {
-  HttpHandler::Arguments a;
-  HttpHandler::ParseGetArguments(a, "aaa");
+  IHttpHandler::GetArguments b;
+  HttpToolbox::ParseGetArguments(b, "aaa");
+
+  IHttpHandler::Arguments a;
+  HttpToolbox::CompileGetArguments(a, b);
+
   ASSERT_EQ(1u, a.size());
   ASSERT_EQ(a["aaa"], "");
 }
@@ -213,8 +153,12 @@ TEST(ParseGetArguments, SingleEmpty)
 TEST(ParseGetQuery, Test1)
 {
   UriComponents uri;
-  HttpHandler::Arguments a;
-  HttpHandler::ParseGetQuery(uri, a, "/instances/test/world?aaa=baaa&bb=a&aa=c");
+  IHttpHandler::GetArguments b;
+  HttpToolbox::ParseGetQuery(uri, b, "/instances/test/world?aaa=baaa&bb=a&aa=c");
+
+  IHttpHandler::Arguments a;
+  HttpToolbox::CompileGetArguments(a, b);
+
   ASSERT_EQ(3u, uri.size());
   ASSERT_EQ("instances", uri[0]);
   ASSERT_EQ("test", uri[1]);
@@ -228,8 +172,12 @@ TEST(ParseGetQuery, Test1)
 TEST(ParseGetQuery, Test2)
 {
   UriComponents uri;
-  HttpHandler::Arguments a;
-  HttpHandler::ParseGetQuery(uri, a, "/instances/test/world");
+  IHttpHandler::GetArguments b;
+  HttpToolbox::ParseGetQuery(uri, b, "/instances/test/world");
+
+  IHttpHandler::Arguments a;
+  HttpToolbox::CompileGetArguments(a, b);
+
   ASSERT_EQ(3u, uri.size());
   ASSERT_EQ("instances", uri[0]);
   ASSERT_EQ("test", uri[1]);
@@ -452,8 +400,6 @@ TEST(Toolbox, Case)
 }
 
 
-#include <glog/logging.h>
-
 TEST(Logger, Basic)
 {
   LOG(INFO) << "I say hello";
@@ -576,6 +522,13 @@ TEST(EnumerationDictionary, ServerEnumerations)
   RegisterUserMetadata(2047, "Ceci est un test");
   ASSERT_EQ(2047, StringToMetadata("2047"));
   ASSERT_EQ(2047, StringToMetadata("Ceci est un test"));
+
+  ASSERT_STREQ("Generic", EnumerationToString(StringToModalityManufacturer("Generic")));
+  ASSERT_STREQ("StoreScp", EnumerationToString(StringToModalityManufacturer("StoreScp")));
+  ASSERT_STREQ("ClearCanvas", EnumerationToString(StringToModalityManufacturer("ClearCanvas")));
+  ASSERT_STREQ("MedInria", EnumerationToString(StringToModalityManufacturer("MedInria")));
+  ASSERT_STREQ("Dcm4Chee", EnumerationToString(StringToModalityManufacturer("Dcm4Chee")));
+  ASSERT_STREQ("SyngoVia", EnumerationToString(StringToModalityManufacturer("SyngoVia")));
 }
 
 
@@ -624,15 +577,15 @@ TEST(Toolbox, Tokenize)
   std::vector<std::string> t;
   
   Toolbox::TokenizeString(t, "", ','); 
-  ASSERT_EQ(1, t.size());
+  ASSERT_EQ(1u, t.size());
   ASSERT_EQ("", t[0]);
   
   Toolbox::TokenizeString(t, "abc", ','); 
-  ASSERT_EQ(1, t.size());
+  ASSERT_EQ(1u, t.size());
   ASSERT_EQ("abc", t[0]);
   
   Toolbox::TokenizeString(t, "ab,cd,ef,", ','); 
-  ASSERT_EQ(4, t.size());
+  ASSERT_EQ(4u, t.size());
   ASSERT_EQ("ab", t[0]);
   ASSERT_EQ("cd", t[1]);
   ASSERT_EQ("ef", t[2]);
@@ -668,19 +621,29 @@ TEST(Toolbox, Enumerations)
 
 #if defined(__linux)
 #include <endian.h>
+#elif defined(__FreeBSD__)
+#include <machine/endian.h>
 #endif
+
 
 TEST(Toolbox, Endianness)
 {
   // Parts of this test come from Adam Conrad
   // http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=728822#5
 
-#if defined(_WIN32)
+
+  /**
+   * Windows and OS X are assumed to always little-endian.
+   **/
+  
+#if defined(_WIN32) || defined(__APPLE__)
   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
 
-#elif defined(__APPLE__)
-  ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
 
+  /**
+   * Linux.
+   **/
+  
 #elif defined(__linux) || defined(__FreeBSD_kernel__)
 
 #if !defined(__BYTE_ORDER)
@@ -691,6 +654,18 @@ TEST(Toolbox, Endianness)
   ASSERT_EQ(Endianness_Big, Toolbox::DetectEndianness());
 #  else // __LITTLE_ENDIAN
   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
+#  endif
+
+  
+  /**
+   * FreeBSD.
+   **/
+  
+#elif defined(__FreeBSD__)
+#  if _BYTE_ORDER == _BIG_ENDIAN
+   ASSERT_EQ(Endianness_Big, Toolbox::DetectEndianness());
+#  else // _LITTLE_ENDIAN
+   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
 #  endif
 
 #else
@@ -742,24 +717,31 @@ TEST(Toolbox, IsInteger)
 }
 
 
+TEST(Toolbox, StartsWith)
+{
+  ASSERT_TRUE(Toolbox::StartsWith("hello world", ""));
+  ASSERT_TRUE(Toolbox::StartsWith("hello world", "hello"));
+  ASSERT_TRUE(Toolbox::StartsWith("hello world", "h"));
+  ASSERT_FALSE(Toolbox::StartsWith("hello world", "H"));
+  ASSERT_FALSE(Toolbox::StartsWith("h", "hello"));
+  ASSERT_TRUE(Toolbox::StartsWith("h", "h"));
+  ASSERT_FALSE(Toolbox::StartsWith("", "h"));
+}
+
+
 int main(int argc, char **argv)
 {
-  // Initialize Google's logging library.
-  FLAGS_logtostderr = true;
-  FLAGS_minloglevel = 0;
-
-  // Go to trace-level verbosity
-  //FLAGS_v = 1;
-
+  Logging::Initialize();
+  Logging::EnableInfoLevel(true);
   Toolbox::DetectEndianness();
-
-  google::InitGoogleLogging("Orthanc");
-
-  Toolbox::CreateDirectory("UnitTestsResults");
-
+  Toolbox::MakeDirectory("UnitTestsResults");
   OrthancInitialize();
+
   ::testing::InitGoogleTest(&argc, argv);
   int result = RUN_ALL_TESTS();
+
   OrthancFinalize();
+  Logging::Finalize();
+
   return result;
 }

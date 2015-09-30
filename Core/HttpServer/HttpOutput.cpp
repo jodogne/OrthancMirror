@@ -33,13 +33,17 @@
 #include "../PrecompiledHeaders.h"
 #include "HttpOutput.h"
 
+#include "../Logging.h"
+#include "../OrthancException.h"
+#include "../Toolbox.h"
+#include "../Compression/GzipCompressor.h"
+#include "../Compression/ZlibCompressor.h"
+
 #include <iostream>
 #include <vector>
 #include <stdio.h>
-#include <glog/logging.h>
 #include <boost/lexical_cast.hpp>
-#include "../OrthancException.h"
-#include "../Toolbox.h"
+
 
 namespace Orthanc
 {
@@ -151,6 +155,11 @@ namespace Orthanc
       }
     }
 
+    if (state_ == State_WritingMultipart)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
     if (state_ == State_WritingHeader)
     {
       // Send the HTTP header before writing the body
@@ -206,6 +215,69 @@ namespace Orthanc
   }
 
 
+  void HttpOutput::StateMachine::CloseBody()
+  {
+    switch (state_)
+    {
+      case State_WritingHeader:
+        SetContentLength(0);
+        SendBody(NULL, 0);
+        break;
+
+      case State_WritingBody:
+        if (!hasContentLength_ ||
+            contentPosition_ == contentLength_)
+        {
+          state_ = State_Done;
+        }
+        else
+        {
+          LOG(ERROR) << "The body size has not reached what was declared with SetContentSize()";
+          throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
+
+        break;
+
+      case State_WritingMultipart:
+        LOG(ERROR) << "Cannot invoke CloseBody() with multipart outputs";
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+
+      case State_Done:
+        return;  // Ignore
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }      
+  }
+
+
+  HttpCompression HttpOutput::GetPreferredCompression(size_t bodySize) const
+  {
+#if 0
+    // TODO Do not compress small files?
+    if (bodySize < 512)
+    {
+      return HttpCompression_None;
+    }
+#endif
+
+    // Prefer "gzip" over "deflate" if the choice is offered
+
+    if (isGzipAllowed_)
+    {
+      return HttpCompression_Gzip;
+    }
+    else if (isDeflateAllowed_)
+    {
+      return HttpCompression_Deflate;
+    }
+    else
+    {
+      return HttpCompression_None;
+    }
+  }
+
+
   void HttpOutput::SendMethodNotAllowed(const std::string& allowed)
   {
     stateMachine_.ClearHeaders();
@@ -215,7 +287,9 @@ namespace Orthanc
   }
 
 
-  void HttpOutput::SendStatus(HttpStatus status)
+  void HttpOutput::SendStatus(HttpStatus status,
+			      const char* message,
+			      size_t messageSize)
   {
     if (status == HttpStatus_200_Ok ||
         status == HttpStatus_301_MovedPermanently ||
@@ -228,7 +302,7 @@ namespace Orthanc
     
     stateMachine_.ClearHeaders();
     stateMachine_.SetHttpStatus(status);
-    stateMachine_.SendBody(NULL, 0);
+    stateMachine_.SendBody(message, messageSize);
   }
 
 
@@ -249,25 +323,229 @@ namespace Orthanc
     stateMachine_.SendBody(NULL, 0);
   }
 
-  void HttpOutput::SendBody(const void* buffer, size_t length)
+  void HttpOutput::Answer(const void* buffer, 
+                          size_t length)
   {
-    stateMachine_.SendBody(buffer, length);
-  }
-
-  void HttpOutput::SendBody(const std::string& str)
-  {
-    if (str.size() == 0)
+    if (length == 0)
     {
-      stateMachine_.SendBody(NULL, 0);
+      AnswerEmpty();
+      return;
+    }
+
+    HttpCompression compression = GetPreferredCompression(length);
+
+    if (compression == HttpCompression_None)
+    {
+      stateMachine_.SetContentLength(length);
+      stateMachine_.SendBody(buffer, length);
+      return;
+    }
+
+    std::string compressed, encoding;
+
+    switch (compression)
+    {
+      case HttpCompression_Deflate:
+      {
+        encoding = "deflate";
+        ZlibCompressor compressor;
+        // Do not prefix the buffer with its uncompressed size, to be compatible with "deflate"
+        compressor.SetPrefixWithUncompressedSize(false);  
+        compressor.Compress(compressed, buffer, length);
+        break;
+      }
+
+      case HttpCompression_Gzip:
+      {
+        encoding = "gzip";
+        GzipCompressor compressor;
+        compressor.Compress(compressed, buffer, length);
+        break;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+
+    LOG(TRACE) << "Compressing a HTTP answer using " << encoding;
+
+    // The body is empty, do not use HTTP compression
+    if (compressed.size() == 0)
+    {
+      AnswerEmpty();
     }
     else
     {
-      stateMachine_.SendBody(str.c_str(), str.size());
+      stateMachine_.AddHeader("Content-Encoding", encoding);
+      stateMachine_.SetContentLength(compressed.size());
+      stateMachine_.SendBody(compressed.c_str(), compressed.size());
+    }
+
+    stateMachine_.CloseBody();
+  }
+
+
+  void HttpOutput::Answer(const std::string& str)
+  {
+    Answer(str.size() == 0 ? NULL : str.c_str(), str.size());
+  }
+
+
+  void HttpOutput::AnswerEmpty()
+  {
+    stateMachine_.CloseBody();
+  }
+
+
+  void HttpOutput::StateMachine::StartMultipart(const std::string& subType,
+                                                const std::string& contentType)
+  {
+    if (subType != "mixed" &&
+        subType != "related")
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    if (keepAlive_)
+    {
+      LOG(ERROR) << "Multipart answers are not implemented together with keep-alive connections";
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+    if (state_ != State_WritingHeader)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    if (status_ != HttpStatus_200_Ok)
+    {
+      SendBody(NULL, 0);
+      return;
+    }
+
+    stream_.OnHttpStatusReceived(status_);
+
+    std::string header = "HTTP/1.1 200 OK\r\n";
+
+    // Possibly add the cookies
+    for (std::list<std::string>::const_iterator
+           it = headers_.begin(); it != headers_.end(); ++it)
+    {
+      if (!Toolbox::StartsWith(*it, "Set-Cookie: "))
+      {
+        LOG(ERROR) << "The only headers that can be set in multipart answers are Set-Cookie (here: " << *it << " is set)";
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+
+      header += *it;
+    }
+
+    multipartBoundary_ = Toolbox::GenerateUuid();
+    multipartContentType_ = contentType;
+    header += "Content-Type: multipart/related; type=multipart/" + subType + "; boundary=" + multipartBoundary_ + "\r\n\r\n";
+
+    stream_.Send(true, header.c_str(), header.size());
+    state_ = State_WritingMultipart;
+  }
+
+
+  void HttpOutput::StateMachine::SendMultipartItem(const void* item, size_t length)
+  {
+    std::string header = "--" + multipartBoundary_ + "\n";
+    header += "Content-Type: " + multipartContentType_ + "\n";
+    header += "Content-Length: " + boost::lexical_cast<std::string>(length) + "\n";
+    header += "MIME-Version: 1.0\n\n";
+
+    stream_.Send(false, header.c_str(), header.size());
+
+    if (length > 0)
+    {
+      stream_.Send(false, item, length);
+    }
+
+    stream_.Send(false, "\n", 1);
+  }
+
+
+  void HttpOutput::StateMachine::CloseMultipart()
+  {
+    if (state_ != State_WritingMultipart)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    // The two lines below might throw an exception, if the client has
+    // closed the connection. Such an error is ignored.
+    try
+    {
+      std::string header = "--" + multipartBoundary_ + "--\n";
+      stream_.Send(false, header.c_str(), header.size());
+    }
+    catch (OrthancException&)
+    {
+    }
+
+    state_ = State_Done;
+  }
+
+
+  void HttpOutput::SendMultipartItem(const std::string& item)
+  {
+    if (item.size() > 0)
+    {
+      stateMachine_.SendMultipartItem(item.c_str(), item.size());
+    }
+    else
+    {
+      stateMachine_.SendMultipartItem(NULL, 0);
     }
   }
 
-  void HttpOutput::SendBody()
+
+  void HttpOutput::Answer(IHttpStreamAnswer& stream)
   {
-    stateMachine_.SendBody(NULL, 0);
+    HttpCompression compression = stream.SetupHttpCompression(isGzipAllowed_, isDeflateAllowed_);
+
+    switch (compression)
+    {
+      case HttpCompression_None:
+        break;
+
+      case HttpCompression_Gzip:
+        stateMachine_.AddHeader("Content-Encoding", "gzip");
+        break;
+
+      case HttpCompression_Deflate:
+        stateMachine_.AddHeader("Content-Encoding", "deflate");
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    stateMachine_.SetContentLength(stream.GetContentLength());
+
+    std::string contentType = stream.GetContentType();
+    if (contentType.empty())
+    {
+      contentType = "application/octet-stream";
+    }
+
+    stateMachine_.SetContentType(contentType.c_str());
+
+    std::string filename;
+    if (stream.HasContentFilename(filename))
+    {
+      SetContentFilename(filename.c_str());
+    }
+
+    while (stream.ReadNextChunk())
+    {
+      stateMachine_.SendBody(stream.GetChunkContent(),
+                             stream.GetChunkSize());
+    }
+
+    stateMachine_.CloseBody();
   }
+
 }

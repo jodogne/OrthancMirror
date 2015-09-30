@@ -44,6 +44,7 @@
 
 #include "../../Resources/ThirdParty/minizip/zip.h"
 #include "../OrthancException.h"
+#include "../Logging.h"
 
 
 static void PrepareFileInfo(zip_fileinfo& zfi)
@@ -122,7 +123,8 @@ namespace Orthanc
 
     if (path_.size() == 0)
     {
-      throw OrthancException("Please call SetOutputPath() before creating the file");
+      LOG(ERROR) << "Please call SetOutputPath() before creating the file";
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
     hasFileInZip_ = false;
@@ -165,7 +167,8 @@ namespace Orthanc
   {
     if (level >= 10)
     {
-      throw OrthancException("ZIP compression level must be between 0 (no compression) and 9 (highest compression");
+      LOG(ERROR) << "ZIP compression level must be between 0 (no compression) and 9 (highest compression)";
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
     Close();
@@ -224,7 +227,8 @@ namespace Orthanc
   {
     if (!hasFileInZip_)
     {
-      throw OrthancException("Call first OpenFile()");
+      LOG(ERROR) << "Call first OpenFile()";
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
     const size_t maxBytesInAStep = std::numeric_limits<int32_t>::max();

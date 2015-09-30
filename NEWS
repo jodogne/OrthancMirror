@@ -1,6 +1,160 @@
 Pending changes in the mainline
 ===============================
 
+* Add ".dcm" suffix to files in ZIP archives (cf. URI ".../archive")
+* "/tools/create-dicom": Support of binary tags encoded using data URI scheme
+
+Plugins
+-------
+
+* New function "OrthancPluginRegisterErrorCode()" to declare custom error codes
+* New function "OrthancPluginRegisterDictionaryTag()" to declare DICOM tags
+
+Lua
+---
+
+* Optional argument "keepStrings" in "DumpJson()"
+
+Maintenance
+-----------
+
+* "/system" URI gives information about the plugins used for storage area and DB back-end
+* Plugin callbacks should now return explicit "OrthancPluginErrorCode" instead of integers
+* "/tools/create-dicom" can create tags with unknown VR
+
+
+Version 0.9.4 (2015/09/16)
+==========================
+
+* Preview of PDF files encapsulated in DICOM from Orthanc Explorer
+* Creation of DICOM files with encapsulated PDF through "/tools/create-dicom"
+* "limit" and "since" arguments while retrieving DICOM resources in the REST API
+* Support of "deflate" and "gzip" content-types in HTTP requests
+* Options to validate peers against CA certificates in HTTPS requests
+* New configuration option: "HttpTimeout" to set the default timeout for HTTP requests
+
+Lua
+---
+
+* More information about the origin request in the "OnStoredInstance()" and
+  "ReceivedInstanceFilter()" callbacks. WARNING: This can result in
+  incompatibilities wrt. previous versions of Orthanc.
+* New function "GetOrthancConfiguration()" to get the Orthanc configuration
+
+Plugins
+-------
+
+* New functions to compress/uncompress images using PNG and JPEG
+* New functions to issue HTTP requests from plugins
+* New function "OrthancPluginBufferCompression()" to (un)compress memory buffers
+* New function "OrthancPluginReadFile()" to read files from the filesystem
+* New function "OrthancPluginWriteFile()" to write files to the filesystem
+* New function "OrthancPluginGetErrorDescription()" to convert error codes to strings
+* New function "OrthancPluginSendHttpStatus()" to send HTTP status with a body
+* New function "OrthancPluginRegisterRestCallbackNoLock()" for high-performance plugins
+* Plugins have access to explicit error codes 
+* Improvements to the sample "ServeFolders" plugin
+* Primitives to upgrade the database version in plugins
+
+Maintenance
+-----------
+
+* Many code refactorings
+* Improved error codes (no more custom descriptions in exceptions)
+* If error while calling the REST API, the answer body contains description of the error
+  (this feature can be disabled with the "HttpDescribeErrors" option)
+* Upgrade to curl 7.44.0 for static and Windows builds
+* Upgrade to libcurl 1.0.2d for static and Windows builds
+* Depends on libjpeg 9a
+* Bypass zlib uncompression if "StorageCompression" is enabled and HTTP client supports deflate
+
+
+Version 0.9.3 (2015/08/07)
+==========================
+
+* C-Echo testing can be triggered from Orthanc Explorer (in the query/retrieve page)
+* Removal of the dependency upon Google Log, Orthanc now uses its internal logger 
+  (use -DENABLE_GOOGLE_LOG=ON to re-enable Google Log)
+* Upgrade to JsonCpp 0.10.5 for static and Windows builds
+
+
+Version 0.9.2 (2015/08/02)
+==========================
+
+* Upgrade to Boost 1.58.0 for static and Windows builds
+* Source code repository moved from Google Code to BitBucket
+* Inject version information into Windows binaries
+* Fix access to binary data in HTTP/REST requests by Lua scripts
+* Fix potential deadlock in the callbacks of plugins
+
+
+Version 0.9.1 (2015/07/02)
+==========================
+
+General
+-------
+
+* The configuration can be splitted into several files stored inside the same folder
+* Custom setting of the local AET during C-Store SCU (both in Lua and in the REST API)
+* Many code refactorings
+
+Lua
+---
+
+* Access to the REST API of Orthanc (RestApiGet, RestApiPost, RestApiPut, RestApiDelete)
+* Functions to convert between Lua values and JSON strings: "ParseJson" and "DumpJson"
+* New events: "OnStablePatient", "OnStableStudy", "OnStableSeries", "Initialize", "Finalize"
+
+Plugins
+-------
+
+* Plugins can retrieve the configuration file directly as a JSON string
+* Plugins can send answers as multipart messages
+
+Fixes
+-----
+
+* Fix compatibility issues for C-Find SCU to Siemens Syngo.Via modalities SCP
+* Fix issue 15 (Lua scripts making HTTP requests)
+* Fix issue 35 (Characters in PatientID string are not protected for C-Find)
+* Fix issue 37 (Hyphens trigger range query even if datatype does not support ranges)
+
+
+Version 0.9.0 (2015/06/03)
+==========================
+
+Major
+-----
+
+* DICOM Query/Retrieve available from Orthanc Explorer
+* C-Move SCU and C-Find SCU are accessible through the REST API
+* "?expand" flag for URIs "/patients", "/studies" and "/series"
+* "/tools/find" URI to search for DICOM resources from REST
+* Support of FreeBSD
+* The "Orthanc Client" SDK is now a separate project
+
+Minor
+-----
+
+* Speed-up in Orthanc Explorer for large amount of images
+* Speed-up of the C-Find SCP server of Orthanc
+* Allow replacing PatientID/StudyInstanceUID/SeriesInstanceUID from Lua scripts
+* Option "CaseSensitivePN" to enable case-insensitive C-Find SCP
+
+Fixes
+-----
+
+* Prevent freeze on C-FIND if no DICOM tag is to be returned
+* Fix slow C-Store SCP on recent versions of Linux, if
+  USE_SYSTEM_DCMTK is set to OFF (http://forum.dcmtk.org/viewtopic.php?f=1&t=4009)
+* Fix issue 30 (QR response missing "Query/Retrieve Level" (008,0052))
+* Fix issue 32 (Cyrillic symbols): Introduction of the "Windows1251" encoding
+* Plugins now receive duplicated GET arguments in their REST callbacks
+
+
+Version 0.8.6 (2015/02/12)
+==========================
+
 Major
 -----
 
@@ -15,6 +169,7 @@ Minor
 * More flexible "/modify" and "/anonymize" for single instance
 * Access to called AET and remote AET from Lua scripts ("OnStoredInstance")
 * Option "DicomAssociationCloseDelay" to set delay before closing DICOM association
+* ZIP archives now display the accession number of the studies
 
 Plugins
 -------
@@ -32,6 +187,7 @@ Fixes
 * Code refactorings
 * Fix issue 25 (AET with underscore not allowed)
 * Fix replacement and insertion of private DICOM tags
+* Fix anonymization generating non-portable DICOM files
 
 
 Version 0.8.5 (2014/11/04)

@@ -48,15 +48,17 @@ namespace Orthanc
   {
   }
 
-  void RemoteModalityParameters::SetPort(int port)
+  RemoteModalityParameters::RemoteModalityParameters(const std::string& aet,
+                                                     const std::string& host,
+                                                     uint16_t port,
+                                                     ModalityManufacturer manufacturer)
   {
-    if (port <= 0 || port >= 65535)
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-
-    port_ = port;
+    SetApplicationEntityTitle(aet);
+    SetHost(host);
+    SetPort(port);
+    SetManufacturer(manufacturer);
   }
+
 
   void RemoteModalityParameters::FromJson(const Json::Value& modality)
   {
@@ -72,13 +74,20 @@ namespace Orthanc
     const Json::Value& portValue = modality.get(2u, "");
     try
     {
-      SetPort(portValue.asInt());
+      int tmp = portValue.asInt();
+
+      if (tmp <= 0 || tmp >= 65535)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+
+      SetPort(static_cast<uint16_t>(tmp));
     }
     catch (std::runtime_error /* error inside JsonCpp */)
     {
       try
       {
-        SetPort(boost::lexical_cast<int>(portValue.asString()));
+        SetPort(boost::lexical_cast<uint16_t>(portValue.asString()));
       }
       catch (boost::bad_lexical_cast)
       {

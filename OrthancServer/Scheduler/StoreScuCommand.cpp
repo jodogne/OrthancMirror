@@ -30,25 +30,28 @@
  **/
 
 
+#include "../PrecompiledHeadersServer.h"
 #include "StoreScuCommand.h"
 
-#include <glog/logging.h>
+#include "../../Core/Logging.h"
 
 namespace Orthanc
 {
   StoreScuCommand::StoreScuCommand(ServerContext& context,
+                                   const std::string& localAet,
                                    const RemoteModalityParameters& modality,
                                    bool ignoreExceptions) : 
     context_(context),
     modality_(modality),
-    ignoreExceptions_(ignoreExceptions)
+    ignoreExceptions_(ignoreExceptions),
+    localAet_(localAet)
   {
   }
 
   bool StoreScuCommand::Apply(ListOfStrings& outputs,
                              const ListOfStrings& inputs)
   {
-    ReusableDicomUserConnection::Locker locker(context_.GetReusableDicomUserConnection(), modality_);
+    ReusableDicomUserConnection::Locker locker(context_.GetReusableDicomUserConnection(), localAet_, modality_);
 
     for (ListOfStrings::const_iterator
            it = inputs.begin(); it != inputs.end(); ++it)

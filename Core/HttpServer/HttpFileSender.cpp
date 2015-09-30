@@ -34,34 +34,45 @@
 #include "HttpFileSender.h"
 
 #include "../OrthancException.h"
+#include "../Toolbox.h"
 
 #include <boost/lexical_cast.hpp>
 
 namespace Orthanc
 {
-  void HttpFileSender::SendHeader(HttpOutput& output)
+  void HttpFileSender::SetContentFilename(const std::string& filename)
   {
-    if (contentType_.size() > 0)
-    {
-      output.SetContentType(contentType_.c_str());
-    }
+    filename_ = filename;
 
-    if (downloadFilename_.size() > 0)
+    if (contentType_.empty())
     {
-      output.SetContentFilename(downloadFilename_.c_str());
+      contentType_ = Toolbox::AutodetectMimeType(filename);
     }
-
-    output.SetContentLength(GetFileSize());
   }
 
-  void HttpFileSender::Send(HttpOutput& output)
-  {
-    SendHeader(output);
 
-    if (!SendData(output))
+  bool HttpFileSender::HasContentFilename(std::string& filename)
+  {
+    if (filename_.empty())
     {
-      throw OrthancException(ErrorCode_InternalError);
-      //output.SendHeader(HttpStatus_500_InternalServerError);
+      return false;
+    }
+    else
+    {
+      filename = filename_;
+      return true;
+    }
+  }
+    
+  std::string HttpFileSender::GetContentType()
+  {
+    if (contentType_.empty())
+    {
+      return "application/octet-stream";
+    }
+    else
+    {
+      return contentType_;
     }
   }
 }

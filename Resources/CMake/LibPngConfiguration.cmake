@@ -1,9 +1,9 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_LIBPNG)
   SET(LIBPNG_SOURCES_DIR ${CMAKE_BINARY_DIR}/libpng-1.5.12)
-  DownloadPackage(
-    "8ea7f60347a306c5faf70b977fa80e28"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/libpng-1.5.12.tar.gz"
-    "${LIBPNG_SOURCES_DIR}")
+  SET(LIBPNG_URL "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/libpng-1.5.12.tar.gz")
+  SET(LIBPNG_MD5 "8ea7f60347a306c5faf70b977fa80e28")
+
+  DownloadPackage(${LIBPNG_MD5} ${LIBPNG_URL} "${LIBPNG_SOURCES_DIR}")
 
   include_directories(
     ${LIBPNG_SOURCES_DIR}
@@ -12,7 +12,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBPNG)
   configure_file(
     ${LIBPNG_SOURCES_DIR}/scripts/pnglibconf.h.prebuilt
     ${LIBPNG_SOURCES_DIR}/pnglibconf.h
-    COPY_ONLY)
+    )
 
   set(LIBPNG_SOURCES
     #${LIBPNG_SOURCES_DIR}/example.c
@@ -38,11 +38,12 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBPNG)
   #  SOURCE ${LIBPNG_SOURCES}
   #  PROPERTY COMPILE_FLAGS -UHAVE_CONFIG_H)
 
-  list(APPEND THIRD_PARTY_SOURCES ${LIBPNG_SOURCES})
-
   add_definitions(
     -DPNG_NO_CONSOLE_IO=1
     -DPNG_NO_STDIO=1
+    # The following declaration avoids "__declspec(dllexport)" in
+    # libpng to prevent publicly exposing its symbols by the DLLs
+    -DPNG_IMPEXP=
     )
 
   source_group(ThirdParty\\Libpng REGULAR_EXPRESSION ${LIBPNG_SOURCES_DIR}/.*)
@@ -51,7 +52,7 @@ else()
   include(FindPNG)
 
   if (NOT ${PNG_FOUND})
-    message(FATAL_ERROR "Unable to find LibPNG")
+    message(FATAL_ERROR "Unable to find libpng")
   endif()
 
   include_directories(${PNG_INCLUDE_DIRS})

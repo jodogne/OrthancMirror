@@ -39,31 +39,48 @@ namespace Orthanc
   class RestApiPutCall : public RestApiCall
   {
   private:
-    const std::string& data_;
+    const char* bodyData_;
+    size_t bodySize_;
 
   public:
     typedef void (*Handler) (RestApiPutCall& call);
     
     RestApiPutCall(RestApiOutput& output,
                    RestApi& context,
-                   const HttpHandler::Arguments& httpHeaders,
-                   const HttpHandler::Arguments& uriComponents,
+                   RequestOrigin origin,
+                   const char* remoteIp,
+                   const char* username,
+                   const IHttpHandler::Arguments& httpHeaders,
+                   const IHttpHandler::Arguments& uriComponents,
                    const UriComponents& trailing,
                    const UriComponents& fullUri,
-                   const std::string& data) :
-      RestApiCall(output, context, httpHeaders, uriComponents, trailing, fullUri),
-      data_(data)
+                   const char* bodyData,
+                   size_t bodySize) :
+      RestApiCall(output, context, origin, remoteIp, username,
+                  httpHeaders, uriComponents, trailing, fullUri),
+      bodyData_(bodyData),
+      bodySize_(bodySize)
     {
     }
 
-    const std::string& GetPutBody() const
+    const char* GetBodyData() const
     {
-      return data_;
+      return bodyData_;
+    }
+
+    size_t GetBodySize() const
+    {
+      return bodySize_;
+    }
+
+    void BodyToString(std::string& result) const
+    {
+      result.assign(bodyData_, bodySize_);
     }
 
     virtual bool ParseJsonRequest(Json::Value& result) const
     {
-      return ParseJsonRequestInternal(result, GetPutBody().c_str());
+      return ParseJsonRequestInternal(result, bodyData_);
     }      
   };
 }

@@ -33,6 +33,8 @@
 #include "../PrecompiledHeaders.h"
 #include "BagOfRunnablesBySteps.h"
 
+#include "../Logging.h"
+
 #include <stack>
 #include <boost/thread.hpp>
 
@@ -128,15 +130,10 @@ namespace Orthanc
 
   BagOfRunnablesBySteps::~BagOfRunnablesBySteps()
   {
-    StopAll();
-
-    // Stop the finish listener
-    pimpl_->stopFinishListener_ = true;
-    pimpl_->oneThreadIsStopped_.notify_one();  // Awakens the listener
-
-    if (pimpl_->finishListener_->joinable())
+    if (!pimpl_->stopFinishListener_)
     {
-      pimpl_->finishListener_->join();
+      LOG(ERROR) << "INTERNAL ERROR: BagOfRunnablesBySteps::Finalize() should be invoked manually to avoid mess in the destruction order!";
+      Finalize();
     }
   }
 
@@ -165,4 +162,24 @@ namespace Orthanc
 
     pimpl_->continue_ = true;
   }
+
+
+
+  void BagOfRunnablesBySteps::Finalize()
+  {
+    if (!pimpl_->stopFinishListener_)
+    {
+      StopAll();
+
+      // Stop the finish listener
+      pimpl_->stopFinishListener_ = true;
+      pimpl_->oneThreadIsStopped_.notify_one();  // Awakens the listener
+
+      if (pimpl_->finishListener_->joinable())
+      {
+        pimpl_->finishListener_->join();
+      }
+    }
+  }
+
 }

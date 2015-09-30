@@ -81,9 +81,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../PrecompiledHeadersServer.h"
 #include "DicomUserConnection.h"
 
+#include "../../Core/DicomFormat/DicomArray.h"
+#include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
-#include "../ToDcmtkBridge.h"
 #include "../FromDcmtkBridge.h"
+#include "../ToDcmtkBridge.h"
 
 #include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcistrmf.h>
@@ -92,8 +94,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <dcmtk/dcmnet/diutil.h>
 
 #include <set>
-#include <glog/logging.h>
-
 
 
 #ifdef _WIN32
@@ -299,7 +299,7 @@ namespace Orthanc
     DIC_UI sopInstance;
     if (!DU_findSOPClassAndInstanceInDataSet(dcmff.getDataset(), sopClass, sopInstance))
     {
-      throw OrthancException("DicomUserConnection: Unable to find the SOP class and instance");
+      throw OrthancException(ErrorCode_NoSopClassOrInstance);
     }
 
     // Figure out which of the accepted presentation contexts should be used
@@ -309,8 +309,7 @@ namespace Orthanc
       const char *modalityName = dcmSOPClassUIDToModality(sopClass);
       if (!modalityName) modalityName = dcmFindNameOfUID(sopClass);
       if (!modalityName) modalityName = "unknown SOP class";
-      throw OrthancException("DicomUserConnection: No presentation context for modality " + 
-                             std::string(modalityName));
+      throw OrthancException(ErrorCode_NoPresentationContext);
     }
 
     // Prepare the transmission of data
@@ -337,6 +336,16 @@ namespace Orthanc
   }
 
 
+  namespace
+  {
+    struct FindPayload
+    {
+      DicomFindAnswers* answers;
+      std::string       level;
+    };
+  }
+
+
   static void FindCallback(
     /* in */
     void *callbackData,
@@ -346,73 +355,144 @@ namespace Orthanc
     DcmDataset *responseIdentifiers /* pending response identifiers */
     )
   {
-    DicomFindAnswers& answers = *reinterpret_cast<DicomFindAnswers*>(callbackData);
+    FindPayload& payload = *reinterpret_cast<FindPayload*>(callbackData);
 
     if (responseIdentifiers != NULL)
     {
       DicomMap m;
       FromDcmtkBridge::Convert(m, *responseIdentifiers);
-      answers.Add(m);
+
+      if (!m.HasTag(DICOM_TAG_QUERY_RETRIEVE_LEVEL))
+      {
+        m.SetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL, payload.level);
+      }
+
+      payload.answers->Add(m);
     }
   }
 
+
+  static void CheckFindQuery(ResourceType level,
+                             const DicomMap& fields)
+  {
+    std::set<DicomTag> allowedTags;
+
+    // WARNING: Do not add "break" or reorder items in this switch-case!
+    switch (level)
+    {
+      case ResourceType_Instance:
+        DicomTag::AddTagsForModule(allowedTags, DicomModule_Instance);
+
+      case ResourceType_Series:
+        DicomTag::AddTagsForModule(allowedTags, DicomModule_Series);
+
+      case ResourceType_Study:
+        DicomTag::AddTagsForModule(allowedTags, DicomModule_Study);
+
+      case ResourceType_Patient:
+        DicomTag::AddTagsForModule(allowedTags, DicomModule_Patient);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+
+    if (level == ResourceType_Study)
+    {
+      allowedTags.insert(DICOM_TAG_MODALITIES_IN_STUDY);
+    }
+
+    allowedTags.insert(DICOM_TAG_SPECIFIC_CHARACTER_SET);
+
+    DicomArray query(fields);
+    for (size_t i = 0; i < query.GetSize(); i++)
+    {
+      const DicomTag& tag = query.GetElement(i).GetTag();
+      if (allowedTags.find(tag) == allowedTags.end())
+      {
+        LOG(ERROR) << "Tag not allowed for this C-Find level: " << tag;
+        throw OrthancException(ErrorCode_BadRequest);
+      }
+    }
+  }
+
+
+  static DcmDataset* ConvertQueryFields(const DicomMap& fields,
+                                        ModalityManufacturer manufacturer)
+  {
+    switch (manufacturer)
+    {
+      case ModalityManufacturer_SyngoVia:
+      {
+        std::auto_ptr<DicomMap> fix(fields.Clone());
+
+        // This issue for Syngo.Via and its solution was reported by
+        // Emsy Chan by private mail on June 17th, 2015.
+        std::set<DicomTag> tags;
+        fix->GetTags(tags);
+
+        for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
+        {
+          if (FromDcmtkBridge::GetValueRepresentation(*it) == ValueRepresentation_Date)
+          {
+            // Replace a "*" query by an empty query ("") for "date"
+            // value representations. Necessary to search over dates
+            // in Syngo.Via.
+            const DicomValue* value = fix->TestAndGetValue(*it);
+
+            if (value != NULL && 
+                value->AsString() == "*")
+            {
+              fix->SetValue(*it, "");
+            }
+          }
+        }
+
+        return ToDcmtkBridge::Convert(*fix);
+      }
+
+      default:
+        return ToDcmtkBridge::Convert(fields);
+    }
+  }
+
+
   void DicomUserConnection::Find(DicomFindAnswers& result,
-                                 FindRootModel model,
+                                 ResourceType level,
                                  const DicomMap& fields)
   {
+    CheckFindQuery(level, fields);
+
     CheckIsOpen();
 
+    FindPayload payload;
+    payload.answers = &result;
+
+    std::auto_ptr<DcmDataset> dataset(ConvertQueryFields(fields, manufacturer_));
+
     const char* sopClass;
-    std::auto_ptr<DcmDataset> dataset(ToDcmtkBridge::Convert(fields));
-    switch (model)
+    switch (level)
     {
-      case FindRootModel_Patient:
+      case ResourceType_Patient:
+        payload.level = "PATIENT";
         DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "PATIENT");
         sopClass = UID_FINDPatientRootQueryRetrieveInformationModel;
-      
-        // Accession number
-        if (!fields.HasTag(0x0008, 0x0050))
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0050), "");
-
-        // Patient ID
-        if (!fields.HasTag(0x0010, 0x0020))
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0010, 0x0020), "");
-
         break;
 
-      case FindRootModel_Study:
+      case ResourceType_Study:
+        payload.level = "STUDY";
         DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "STUDY");
         sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
-
-        // Accession number
-        if (!fields.HasTag(0x0008, 0x0050))
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0050), "");
-
-        // Study instance UID
-        if (!fields.HasTag(0x0020, 0x000d))
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0020, 0x000d), "");
-
         break;
 
-      case FindRootModel_Series:
+      case ResourceType_Series:
+        payload.level = "SERIES";
         DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "SERIES");
         sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
-
-        // Accession number
-        if (!fields.HasTag(0x0008, 0x0050))
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0050), "");
-
-        // Study instance UID
-        if (!fields.HasTag(0x0020, 0x000d))
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0020, 0x000d), "");
-
-        // Series instance UID
-        if (!fields.HasTag(0x0020, 0x000e))
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0020, 0x000e), "");
-
         break;
 
-      case FindRootModel_Instance:
+      case ResourceType_Instance:
+        payload.level = "INSTANCE";
         if (manufacturer_ == ModalityManufacturer_ClearCanvas ||
             manufacturer_ == ModalityManufacturer_Dcm4Chee)
         {
@@ -427,7 +507,27 @@ namespace Orthanc
         }
 
         sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
+        break;
 
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    // Add the expected tags for this query level.
+    // WARNING: Do not reorder or add "break" in this switch-case!
+    switch (level)
+    {
+      case ResourceType_Instance:
+        // SOP Instance UID
+        if (!fields.HasTag(0x0008, 0x0018))
+          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0018), "");
+
+      case ResourceType_Series:
+        // Series instance UID
+        if (!fields.HasTag(0x0020, 0x000e))
+          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0020, 0x000e), "");
+
+      case ResourceType_Study:
         // Accession number
         if (!fields.HasTag(0x0008, 0x0050))
           DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0050), "");
@@ -436,13 +536,10 @@ namespace Orthanc
         if (!fields.HasTag(0x0020, 0x000d))
           DU_putStringDOElement(dataset.get(), DcmTagKey(0x0020, 0x000d), "");
 
-        // Series instance UID
-        if (!fields.HasTag(0x0020, 0x000e))
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0020, 0x000e), "");
-
-        // SOP Instance UID
-        if (!fields.HasTag(0x0008, 0x0018))
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0018), "");
+      case ResourceType_Patient:
+        // Patient ID
+        if (!fields.HasTag(0x0010, 0x0020))
+          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0010, 0x0020), "");
 
         break;
 
@@ -454,7 +551,7 @@ namespace Orthanc
     int presID = ASC_findAcceptedPresentationContextID(pimpl_->assoc_, sopClass);
     if (presID == 0)
     {
-      throw OrthancException("DicomUserConnection: The C-FIND command is not supported by the remote AET");
+      throw OrthancException(ErrorCode_DicomFindUnavailable);
     }
 
     T_DIMSE_C_FindRQ request;
@@ -467,7 +564,7 @@ namespace Orthanc
     T_DIMSE_C_FindRSP response;
     DcmDataset* statusDetail = NULL;
     OFCondition cond = DIMSE_findUser(pimpl_->assoc_, presID, &request, dataset.get(),
-                                      FindCallback, &result,
+                                      FindCallback, &payload,
                                       /*opt_blockMode*/ DIMSE_BLOCKING, 
                                       /*opt_dimse_timeout*/ pimpl_->dimseTimeout_,
                                       &response, &statusDetail);
@@ -481,72 +578,53 @@ namespace Orthanc
   }
 
 
-  void DicomUserConnection::FindPatient(DicomFindAnswers& result,
-                                        const DicomMap& fields)
-  {
-    // Only keep the filters from "fields" that are related to the patient
-    DicomMap s;
-    fields.ExtractPatientInformation(s);
-    Find(result, FindRootModel_Patient, s);
-  }
-
-  void DicomUserConnection::FindStudy(DicomFindAnswers& result,
-                                      const DicomMap& fields)
-  {
-    // Only keep the filters from "fields" that are related to the study
-    DicomMap s;
-    fields.ExtractStudyInformation(s);
-
-    s.CopyTagIfExists(fields, DICOM_TAG_PATIENT_ID);
-    s.CopyTagIfExists(fields, DICOM_TAG_ACCESSION_NUMBER);
-    s.CopyTagIfExists(fields, DICOM_TAG_MODALITIES_IN_STUDY);
-
-    Find(result, FindRootModel_Study, s);
-  }
-
-  void DicomUserConnection::FindSeries(DicomFindAnswers& result,
-                                       const DicomMap& fields)
-  {
-    // Only keep the filters from "fields" that are related to the series
-    DicomMap s;
-    fields.ExtractSeriesInformation(s);
-
-    s.CopyTagIfExists(fields, DICOM_TAG_PATIENT_ID);
-    s.CopyTagIfExists(fields, DICOM_TAG_ACCESSION_NUMBER);
-    s.CopyTagIfExists(fields, DICOM_TAG_STUDY_INSTANCE_UID);
-
-    Find(result, FindRootModel_Series, s);
-  }
-
-  void DicomUserConnection::FindInstance(DicomFindAnswers& result,
+  void DicomUserConnection::MoveInternal(const std::string& targetAet,
+                                         ResourceType level,
                                          const DicomMap& fields)
-  {
-    // Only keep the filters from "fields" that are related to the instance
-    DicomMap s;
-    fields.ExtractInstanceInformation(s);
-
-    s.CopyTagIfExists(fields, DICOM_TAG_PATIENT_ID);
-    s.CopyTagIfExists(fields, DICOM_TAG_ACCESSION_NUMBER);
-    s.CopyTagIfExists(fields, DICOM_TAG_STUDY_INSTANCE_UID);
-    s.CopyTagIfExists(fields, DICOM_TAG_SERIES_INSTANCE_UID);
-
-    Find(result, FindRootModel_Instance, s);
-  }
-
-
-  void DicomUserConnection::Move(const std::string& targetAet,
-                                 const DicomMap& fields)
   {
     CheckIsOpen();
 
+    std::auto_ptr<DcmDataset> dataset(ConvertQueryFields(fields, manufacturer_));
+
     const char* sopClass = UID_MOVEStudyRootQueryRetrieveInformationModel;
-    std::auto_ptr<DcmDataset> dataset(ToDcmtkBridge::Convert(fields));
+    switch (level)
+    {
+      case ResourceType_Patient:
+        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "PATIENT");
+        break;
+
+      case ResourceType_Study:
+        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "STUDY");
+        break;
+
+      case ResourceType_Series:
+        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "SERIES");
+        break;
+
+      case ResourceType_Instance:
+        if (manufacturer_ == ModalityManufacturer_ClearCanvas ||
+            manufacturer_ == ModalityManufacturer_Dcm4Chee)
+        {
+          // This is a particular case for ClearCanvas, thanks to Peter Somlo <peter.somlo@gmail.com>.
+          // https://groups.google.com/d/msg/orthanc-users/j-6C3MAVwiw/iolB9hclom8J
+          // http://www.clearcanvas.ca/Home/Community/OldForums/tabid/526/aff/11/aft/14670/afv/topic/Default.aspx
+          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "IMAGE");
+        }
+        else
+        {
+          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "INSTANCE");
+        }
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
 
     // Figure out which of the accepted presentation contexts should be used
     int presID = ASC_findAcceptedPresentationContextID(pimpl_->assoc_, sopClass);
     if (presID == 0)
     {
-      throw OrthancException("DicomUserConnection: The C-MOVE command is not supported by the remote AET");
+      throw OrthancException(ErrorCode_DicomMoveUnavailable);
     }
 
     T_DIMSE_C_MoveRQ request;
@@ -640,7 +718,7 @@ namespace Orthanc
   }
 
 
-  void DicomUserConnection::Connect(const RemoteModalityParameters& parameters)
+  void DicomUserConnection::SetRemoteModality(const RemoteModalityParameters& parameters)
   {
     SetRemoteApplicationEntityTitle(parameters.GetApplicationEntityTitle());
     SetRemoteHost(parameters.GetHost());
@@ -697,7 +775,7 @@ namespace Orthanc
     {
       if (host.size() > HOST_NAME_MAX - 10)
       {
-        throw OrthancException("Remote host name is too long");
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
 
       Close();
@@ -758,7 +836,7 @@ namespace Orthanc
 
     if (ASC_countAcceptedPresentationContexts(pimpl_->params_) == 0)
     {
-      throw OrthancException("DicomUserConnection: No Acceptable Presentation Contexts");
+      throw OrthancException(ErrorCode_NoPresentationContext);
     }
   }
 
@@ -830,33 +908,86 @@ namespace Orthanc
   }
 
 
-  void DicomUserConnection::MoveSeries(const std::string& targetAet,
-                                       const DicomMap& findResult)
+  static void TestAndCopyTag(DicomMap& result,
+                             const DicomMap& source,
+                             const DicomTag& tag)
   {
-    DicomMap simplified;
-    simplified.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, findResult.GetValue(DICOM_TAG_STUDY_INSTANCE_UID));
-    simplified.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, findResult.GetValue(DICOM_TAG_SERIES_INSTANCE_UID));
-    Move(targetAet, simplified);
+    if (!source.HasTag(tag))
+    {
+      throw OrthancException(ErrorCode_BadRequest);
+    }
+    else
+    {
+      result.SetValue(tag, source.GetValue(tag));
+    }
+  }
+
+
+  void DicomUserConnection::Move(const std::string& targetAet,
+                                 const DicomMap& findResult)
+  {
+    if (!findResult.HasTag(DICOM_TAG_QUERY_RETRIEVE_LEVEL))
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    const std::string tmp = findResult.GetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL).AsString();
+    ResourceType level = StringToResourceType(tmp.c_str());
+
+    DicomMap move;
+    switch (level)
+    {
+      case ResourceType_Patient:
+        TestAndCopyTag(move, findResult, DICOM_TAG_PATIENT_ID);
+        break;
+
+      case ResourceType_Study:
+        TestAndCopyTag(move, findResult, DICOM_TAG_STUDY_INSTANCE_UID);
+        break;
+
+      case ResourceType_Series:
+        TestAndCopyTag(move, findResult, DICOM_TAG_STUDY_INSTANCE_UID);
+        TestAndCopyTag(move, findResult, DICOM_TAG_SERIES_INSTANCE_UID);
+        break;
+
+      case ResourceType_Instance:
+        TestAndCopyTag(move, findResult, DICOM_TAG_STUDY_INSTANCE_UID);
+        TestAndCopyTag(move, findResult, DICOM_TAG_SERIES_INSTANCE_UID);
+        TestAndCopyTag(move, findResult, DICOM_TAG_SOP_INSTANCE_UID);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+
+    MoveInternal(targetAet, level, move);
+  }
+
+
+  void DicomUserConnection::MovePatient(const std::string& targetAet,
+                                        const std::string& patientId)
+  {
+    DicomMap query;
+    query.SetValue(DICOM_TAG_PATIENT_ID, patientId);
+    MoveInternal(targetAet, ResourceType_Patient, query);
+  }
+
+  void DicomUserConnection::MoveStudy(const std::string& targetAet,
+                                      const std::string& studyUid)
+  {
+    DicomMap query;
+    query.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid);
+    MoveInternal(targetAet, ResourceType_Study, query);
   }
 
   void DicomUserConnection::MoveSeries(const std::string& targetAet,
                                        const std::string& studyUid,
                                        const std::string& seriesUid)
   {
-    DicomMap map;
-    map.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid);
-    map.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, seriesUid);
-    Move(targetAet, map);
-  }
-
-  void DicomUserConnection::MoveInstance(const std::string& targetAet,
-                                         const DicomMap& findResult)
-  {
-    DicomMap simplified;
-    simplified.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, findResult.GetValue(DICOM_TAG_STUDY_INSTANCE_UID));
-    simplified.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, findResult.GetValue(DICOM_TAG_SERIES_INSTANCE_UID));
-    simplified.SetValue(DICOM_TAG_SOP_INSTANCE_UID, findResult.GetValue(DICOM_TAG_SOP_INSTANCE_UID));
-    Move(targetAet, simplified);
+    DicomMap query;
+    query.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid);
+    query.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, seriesUid);
+    MoveInternal(targetAet, ResourceType_Series, query);
   }
 
   void DicomUserConnection::MoveInstance(const std::string& targetAet,
@@ -864,11 +995,11 @@ namespace Orthanc
                                          const std::string& seriesUid,
                                          const std::string& instanceUid)
   {
-    DicomMap map;
-    map.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid);
-    map.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, seriesUid);
-    map.SetValue(DICOM_TAG_SOP_INSTANCE_UID, instanceUid);
-    Move(targetAet, map);
+    DicomMap query;
+    query.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid);
+    query.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, seriesUid);
+    query.SetValue(DICOM_TAG_SOP_INSTANCE_UID, instanceUid);
+    MoveInternal(targetAet, ResourceType_Instance, query);
   }
 
 

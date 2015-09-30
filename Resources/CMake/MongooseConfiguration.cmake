@@ -1,6 +1,12 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_MONGOOSE)
   SET(MONGOOSE_SOURCES_DIR ${CMAKE_BINARY_DIR}/mongoose)
 
+  if (IS_DIRECTORY "${MONGOOSE_SOURCES_DIR}")
+    set(FirstRun OFF)
+  else()
+    set(FirstRun ON)
+  endif()
+
   if (0)
     # Use Mongoose 3.1
     DownloadPackage(
@@ -24,20 +30,26 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_MONGOOSE)
 
   # Patch mongoose
   execute_process(
-    COMMAND patch mongoose.c ${MONGOOSE_PATCH}
+    COMMAND ${PATCH_EXECUTABLE} -N mongoose.c 
+    INPUT_FILE ${MONGOOSE_PATCH}
     WORKING_DIRECTORY ${MONGOOSE_SOURCES_DIR}
+    RESULT_VARIABLE Failure
     )
+
+  if (Failure AND FirstRun)
+    message(FATAL_ERROR "Error while patching a file")
+  endif()
 
   include_directories(
     ${MONGOOSE_SOURCES_DIR}
     )
 
-  list(APPEND THIRD_PARTY_SOURCES
+  set(MONGOOSE_SOURCES
     ${MONGOOSE_SOURCES_DIR}/mongoose.c
     )
 
 
-  if (${ENABLE_SSL})
+  if (ENABLE_SSL)
     add_definitions(
       -DNO_SSL_DL=1
       )
@@ -54,7 +66,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_MONGOOSE)
 
 
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-    if (${CMAKE_COMPILER_IS_GNUCXX})
+    if (CMAKE_COMPILER_IS_GNUCXX)
       # This is a patch for MinGW64
       add_definitions(-D_TIMESPEC_DEFINED=1)
     endif()
@@ -81,5 +93,3 @@ else()
 
   link_libraries(mongoose)
 endif()
-
-

@@ -1,9 +1,6 @@
-function OnStoredInstance(instanceId, tags, metadata, remoteAet, calledAet)
-   -- The "remoteAet" and "calledAet" arguments are only available
-   -- since Orthanc 0.8.6
-   if remoteAet ~=nil and calledAet ~= nil then
-      print ("Source AET: " .. remoteAet .. " => Called AET: " .. calledAet)
-   end
+function OnStoredInstance(instanceId, tags, metadata, origin)
+   -- The "origin" is only available since Orthanc 0.9.4
+   PrintRecursive(origin)
 
    -- Extract the value of the "PatientName" DICOM tag
    local patientName = string.lower(tags['PatientName'])

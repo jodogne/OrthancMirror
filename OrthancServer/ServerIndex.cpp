@@ -41,172 +41,170 @@
 #include "EmbeddedResources.h"
 #include "OrthancInitialization.h"
 #include "../Core/Toolbox.h"
+#include "../Core/Logging.h"
 #include "../Core/Uuid.h"
 #include "../Core/DicomFormat/DicomArray.h"
+
 #include "FromDcmtkBridge.h"
 #include "ServerContext.h"
 
 #include <boost/lexical_cast.hpp>
 #include <stdio.h>
-#include <glog/logging.h>
 
 static const uint64_t MEGA_BYTES = 1024 * 1024;
 
 namespace Orthanc
 {
-  namespace Internals
+  class ServerIndex::Listener : public IDatabaseListener
   {
-    class ServerIndexListener : public IServerIndexListener
+  private:
+    struct FileToRemove
     {
     private:
-      struct FileToRemove
-      {
-      private:
-        std::string  uuid_;
-        FileContentType  type_;
-
-      public:
-        FileToRemove(const FileInfo& info) : uuid_(info.GetUuid()), 
-                                             type_(info.GetContentType())
-        {
-        }
-
-        const std::string& GetUuid() const
-        {
-          return uuid_;
-        }
-
-        FileContentType GetContentType() const 
-        {
-          return type_;
-        }
-      };
-
-      ServerContext& context_;
-      bool hasRemainingLevel_;
-      ResourceType remainingType_;
-      std::string remainingPublicId_;
-      std::list<FileToRemove> pendingFilesToRemove_;
-      std::list<ServerIndexChange> pendingChanges_;
-      uint64_t sizeOfFilesToRemove_;
-      bool insideTransaction_;
-
-      void Reset()
-      {
-        sizeOfFilesToRemove_ = 0;
-        hasRemainingLevel_ = false;
-        pendingFilesToRemove_.clear();
-        pendingChanges_.clear();
-      }
+      std::string  uuid_;
+      FileContentType  type_;
 
     public:
-      ServerIndexListener(ServerContext& context) : context_(context),
-                                                    insideTransaction_(false)      
+      FileToRemove(const FileInfo& info) : uuid_(info.GetUuid()), 
+                                           type_(info.GetContentType())
       {
-        Reset();
-        assert(ResourceType_Patient < ResourceType_Study &&
-               ResourceType_Study < ResourceType_Series &&
-               ResourceType_Series < ResourceType_Instance);
       }
 
-      void StartTransaction()
+      const std::string& GetUuid() const
       {
-        Reset();
-        insideTransaction_ = true;
+        return uuid_;
       }
 
-      void EndTransaction()
+      FileContentType GetContentType() const 
       {
-        insideTransaction_ = false;
+        return type_;
       }
+    };
 
-      uint64_t GetSizeOfFilesToRemove()
+    ServerContext& context_;
+    bool hasRemainingLevel_;
+    ResourceType remainingType_;
+    std::string remainingPublicId_;
+    std::list<FileToRemove> pendingFilesToRemove_;
+    std::list<ServerIndexChange> pendingChanges_;
+    uint64_t sizeOfFilesToRemove_;
+    bool insideTransaction_;
+
+    void Reset()
+    {
+      sizeOfFilesToRemove_ = 0;
+      hasRemainingLevel_ = false;
+      pendingFilesToRemove_.clear();
+      pendingChanges_.clear();
+    }
+
+  public:
+    Listener(ServerContext& context) : context_(context),
+                                       insideTransaction_(false)      
+    {
+      Reset();
+      assert(ResourceType_Patient < ResourceType_Study &&
+             ResourceType_Study < ResourceType_Series &&
+             ResourceType_Series < ResourceType_Instance);
+    }
+
+    void StartTransaction()
+    {
+      Reset();
+      insideTransaction_ = true;
+    }
+
+    void EndTransaction()
+    {
+      insideTransaction_ = false;
+    }
+
+    uint64_t GetSizeOfFilesToRemove()
+    {
+      return sizeOfFilesToRemove_;
+    }
+
+    void CommitFilesToRemove()
+    {
+      for (std::list<FileToRemove>::const_iterator 
+             it = pendingFilesToRemove_.begin();
+           it != pendingFilesToRemove_.end(); ++it)
       {
-        return sizeOfFilesToRemove_;
+        context_.RemoveFile(it->GetUuid(), it->GetContentType());
       }
+    }
 
-      void CommitFilesToRemove()
+    void CommitChanges()
+    {
+      for (std::list<ServerIndexChange>::const_iterator 
+             it = pendingChanges_.begin(); 
+           it != pendingChanges_.end(); ++it)
       {
-        for (std::list<FileToRemove>::const_iterator 
-               it = pendingFilesToRemove_.begin();
-             it != pendingFilesToRemove_.end(); ++it)
+        context_.SignalChange(*it);
+      }
+    }
+
+    virtual void SignalRemainingAncestor(ResourceType parentType,
+                                         const std::string& publicId)
+    {
+      VLOG(1) << "Remaining ancestor \"" << publicId << "\" (" << parentType << ")";
+
+      if (hasRemainingLevel_)
+      {
+        if (parentType < remainingType_)
         {
-          context_.RemoveFile(it->GetUuid(), it->GetContentType());
-        }
-      }
-
-      void CommitChanges()
-      {
-        for (std::list<ServerIndexChange>::const_iterator 
-               it = pendingChanges_.begin(); 
-             it != pendingChanges_.end(); ++it)
-        {
-          context_.SignalChange(*it);
-        }
-      }
-
-      virtual void SignalRemainingAncestor(ResourceType parentType,
-                                           const std::string& publicId)
-      {
-        LOG(INFO) << "Remaining ancestor \"" << publicId << "\" (" << parentType << ")";
-
-        if (hasRemainingLevel_)
-        {
-          if (parentType < remainingType_)
-          {
-            remainingType_ = parentType;
-            remainingPublicId_ = publicId;
-          }
-        }
-        else
-        {
-          hasRemainingLevel_ = true;
           remainingType_ = parentType;
           remainingPublicId_ = publicId;
-        }        
-      }
-
-      virtual void SignalFileDeleted(const FileInfo& info)
-      {
-        assert(Toolbox::IsUuid(info.GetUuid()));
-        pendingFilesToRemove_.push_back(FileToRemove(info));
-        sizeOfFilesToRemove_ += info.GetCompressedSize();
-      }
-
-      virtual void SignalChange(const ServerIndexChange& change)
-      {
-        LOG(INFO) << "Change related to resource " << change.GetPublicId() << " of type " 
-                  << EnumerationToString(change.GetResourceType()) << ": " 
-                  << EnumerationToString(change.GetChangeType());
-
-        if (insideTransaction_)
-        {
-          pendingChanges_.push_back(change);
-        }
-        else
-        {
-          context_.SignalChange(change);
         }
       }
-
-      bool HasRemainingLevel() const
+      else
       {
-        return hasRemainingLevel_;
+        hasRemainingLevel_ = true;
+        remainingType_ = parentType;
+        remainingPublicId_ = publicId;
+      }        
+    }
+
+    virtual void SignalFileDeleted(const FileInfo& info)
+    {
+      assert(Toolbox::IsUuid(info.GetUuid()));
+      pendingFilesToRemove_.push_back(FileToRemove(info));
+      sizeOfFilesToRemove_ += info.GetCompressedSize();
+    }
+
+    virtual void SignalChange(const ServerIndexChange& change)
+    {
+      VLOG(1) << "Change related to resource " << change.GetPublicId() << " of type " 
+              << EnumerationToString(change.GetResourceType()) << ": " 
+              << EnumerationToString(change.GetChangeType());
+
+      if (insideTransaction_)
+      {
+        pendingChanges_.push_back(change);
       }
-
-      ResourceType GetRemainingType() const
+      else
       {
-        assert(HasRemainingLevel());
-        return remainingType_;
+        context_.SignalChange(change);
       }
+    }
 
-      const std::string& GetRemainingPublicId() const
-      {
-        assert(HasRemainingLevel());
-        return remainingPublicId_;
-      }                                 
-    };
-  }
+    bool HasRemainingLevel() const
+    {
+      return hasRemainingLevel_;
+    }
+
+    ResourceType GetRemainingType() const
+    {
+      assert(HasRemainingLevel());
+      return remainingType_;
+    }
+
+    const std::string& GetRemainingPublicId() const
+    {
+      assert(HasRemainingLevel());
+      return remainingPublicId_;
+    }                                 
+  };
 
 
   class ServerIndex::Transaction
@@ -549,7 +547,7 @@ namespace Orthanc
     maximumStorageSize_(0),
     maximumPatients_(0)
   {
-    listener_.reset(new Internals::ServerIndexListener(context));
+    listener_.reset(new Listener(context));
     db_.SetListener(*listener_);
 
     currentStorageSize_ = db_.GetTotalCompressedSize();
@@ -567,21 +565,37 @@ namespace Orthanc
   }
 
 
+
   ServerIndex::~ServerIndex()
   {
-    done_ = true;
-
-    if (db_.HasFlushToDisk() &&
-        flushThread_.joinable())
+    if (!done_)
     {
-      flushThread_.join();
-    }
-
-    if (unstableResourcesMonitorThread_.joinable())
-    {
-      unstableResourcesMonitorThread_.join();
+      LOG(ERROR) << "INTERNAL ERROR: ServerIndex::Stop() should be invoked manually to avoid mess in the destruction order!";
+      Stop();
     }
   }
+
+
+
+  void ServerIndex::Stop()
+  {
+    if (!done_)
+    {
+      done_ = true;
+
+      if (db_.HasFlushToDisk() &&
+          flushThread_.joinable())
+      {
+        flushThread_.join();
+      }
+
+      if (unstableResourcesMonitorThread_.joinable())
+      {
+        unstableResourcesMonitorThread_.join();
+      }
+    }
+  }
+
 
 
   StoreStatus ServerIndex::Store(std::map<MetadataType, std::string>& instanceMetadata,
@@ -883,7 +897,7 @@ namespace Orthanc
     DicomMap tags;
     db_.GetMainDicomTags(tags, resourceId);
     target["MainDicomTags"] = Json::objectValue;
-    FromDcmtkBridge::ToJson(target["MainDicomTags"], tags);
+    FromDcmtkBridge::ToJson(target["MainDicomTags"], tags, true);
   }
 
   bool ServerIndex::LookupResource(Json::Value& result,
@@ -1075,22 +1089,27 @@ namespace Orthanc
 
 
 
-  void ServerIndex::GetAllUuids(Json::Value& target,
+  void ServerIndex::GetAllUuids(std::list<std::string>& target,
                                 ResourceType resourceType)
   {
-    std::list<std::string> lst;
+    boost::mutex::scoped_lock lock(mutex_);
+    db_.GetAllPublicIds(target, resourceType);
+  }
 
+
+  void ServerIndex::GetAllUuids(std::list<std::string>& target,
+                                ResourceType resourceType,
+                                size_t since,
+                                size_t limit)
+  {
+    if (limit == 0)
     {
-      boost::mutex::scoped_lock lock(mutex_);
-      db_.GetAllPublicIds(lst, resourceType);
+      target.clear();
+      return;
     }
 
-    target = Json::arrayValue;
-    for (std::list<std::string>::const_iterator
-           it = lst.begin(); it != lst.end(); ++it)
-    {
-      target.append(*it);
-    }
+    boost::mutex::scoped_lock lock(mutex_);
+    db_.GetAllPublicIds(target, resourceType, since, limit);
   }
 
 
@@ -1316,7 +1335,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_FullStorage);
       }
       
-      LOG(INFO) << "Recycling one patient";
+      VLOG(1) << "Recycling one patient";
       db_.DeleteResource(patientToRecycle);
 
       if (!IsRecyclingNeeded(instanceSize))
@@ -2053,6 +2072,40 @@ namespace Orthanc
     {
       return defaultValue;
     }
+  }
+
+
+  bool ServerIndex::GetMainDicomTags(DicomMap& result,
+                                     const std::string& publicId,
+                                     ResourceType expectedType)
+  {
+    result.Clear();
+
+    boost::mutex::scoped_lock lock(mutex_);
+
+    // Lookup for the requested resource
+    int64_t id;
+    ResourceType type;
+    if (!db_.LookupResource(id, type, publicId) ||
+        type != expectedType)
+    {
+      return false;
+    }
+    else
+    {
+      db_.GetMainDicomTags(result, id);
+      return true;
+    }    
+  }
+
+
+  bool ServerIndex::LookupResourceType(ResourceType& type,
+                                       const std::string& publicId)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    int64_t id;
+    return db_.LookupResource(id, type, publicId);
   }
 
 }

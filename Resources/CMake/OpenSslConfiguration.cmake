@@ -1,24 +1,19 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
-  SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.0.1g)
-  DownloadPackage(
-    "de62b43dfcd858e66a74bee1c834e959"
-    "www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/openssl-1.0.1g.tar.gz"
-    "${OPENSSL_SOURCES_DIR}")
+  # WARNING - We had to repack the upstream ".tar.gz" file to a ZIP
+  # file, as the upstream distribution ships symbolic links that are
+  # not always properly handled when uncompressing on Windows.
 
-  if (NOT EXISTS "${OPENSSL_SOURCES_DIR}/include/PATCHED")
-    if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
-      message("Patching the symbolic links")
-      # Patch the symbolic links by copying the files
-      file(GLOB headers "${OPENSSL_SOURCES_DIR}/include/openssl/*.h")
-      foreach(header ${headers})
-        message(${header})
-        file(READ "${header}" symbolicLink)
-        message(${symbolicLink})
-        configure_file("${OPENSSL_SOURCES_DIR}/include/openssl/${symbolicLink}" "${header}" COPYONLY)
-      endforeach()
-      file(WRITE "${OPENSSL_SOURCES_DIR}/include/PATCHED")
-    endif()
+  SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.0.2d)
+  SET(OPENSSL_URL "www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/openssl-1.0.2d.zip")
+  SET(OPENSSL_MD5 "4b2ac15fc6db17f3dadc54482d3eee85")
+
+  if (IS_DIRECTORY "${OPENSSL_SOURCES_DIR}")
+    set(FirstRun OFF)
+  else()
+    set(FirstRun ON)
   endif()
+
+  DownloadPackage(${OPENSSL_MD5} ${OPENSSL_URL} "${OPENSSL_SOURCES_DIR}")
 
   add_definitions(
     -DOPENSSL_THREADS
@@ -188,14 +183,15 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
 
   elseif ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
     execute_process(
-      COMMAND patch ui_openssl.c ${ORTHANC_ROOT}/Resources/Patches/openssl-lsb.diff
+      COMMAND ${PATCH_EXECUTABLE} -N ui_openssl.c -i ${ORTHANC_ROOT}/Resources/Patches/openssl-lsb.diff
       WORKING_DIRECTORY ${OPENSSL_SOURCES_DIR}/crypto/ui
+      RESULT_VARIABLE Failure
       )
 
+    if (Failure AND FirstRun)
+      message(FATAL_ERROR "Error while patching a file")
+    endif()
   endif()
-
-  #add_library(OpenSSL STATIC ${OPENSSL_SOURCES})
-  #link_libraries(OpenSSL)
 
 else()
   include(FindOpenSSL)

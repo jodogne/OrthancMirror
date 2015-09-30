@@ -33,8 +33,12 @@
 #include "../PrecompiledHeaders.h"
 #include "LuaContext.h"
 
-#include <glog/logging.h>
+#include "../Logging.h"
+#include "../OrthancException.h"
+
+#include <set>
 #include <cassert>
+#include <boost/lexical_cast.hpp>
 
 extern "C" 
 {
@@ -44,16 +48,26 @@ extern "C"
 
 namespace Orthanc
 {
+  static bool OnlyContainsDigits(const std::string& s)
+  {
+    for (size_t i = 0; i < s.size(); i++)
+    {
+      if (!isdigit(s[i]))
+      {
+        return false;
+      }
+    }
+
+    return true;
+  }
+  
+
   LuaContext& LuaContext::GetLuaContext(lua_State *state)
   {
-    // Get the pointer to the "LuaContext" underlying object
-    lua_getglobal(state, "_LuaContext");
-    assert(lua_type(state, -1) == LUA_TLIGHTUSERDATA);
-    LuaContext* that = const_cast<LuaContext*>(reinterpret_cast<const LuaContext*>(lua_topointer(state, -1)));
-    assert(that != NULL);
-    lua_pop(state, 1);
+    const void* value = GetGlobalVariable(state, "_LuaContext");
+    assert(value != NULL);
 
-    return *that;
+    return *const_cast<LuaContext*>(reinterpret_cast<const LuaContext*>(value));
   }
 
   int LuaContext::PrintToLog(lua_State *state)
@@ -94,6 +108,64 @@ namespace Orthanc
   }
 
 
+  int LuaContext::ParseJson(lua_State *state)
+  {
+    LuaContext& that = GetLuaContext(state);
+
+    int nArgs = lua_gettop(state);
+    if (nArgs != 1 ||
+        !lua_isstring(state, 1))    // Password
+    {
+      lua_pushnil(state);
+      return 1;
+    }
+
+    const char* str = lua_tostring(state, 1);
+
+    Json::Value value;
+    Json::Reader reader;
+    if (reader.parse(str, str + strlen(str), value))
+    {
+      that.PushJson(value);
+    }
+    else
+    {
+      lua_pushnil(state);
+    }
+
+    return 1;
+  }
+
+
+  int LuaContext::DumpJson(lua_State *state)
+  {
+    LuaContext& that = GetLuaContext(state);
+
+    int nArgs = lua_gettop(state);
+    if ((nArgs != 1 && nArgs != 2) ||
+        (nArgs == 2 && !lua_isboolean(state, 2)))
+    {
+      lua_pushnil(state);
+      return 1;
+    }
+
+    bool keepStrings = false;
+    if (nArgs == 2)
+    {
+      keepStrings = lua_toboolean(state, 2) ? true : false;
+    }
+
+    Json::Value json;
+    that.GetJson(json, 1, keepStrings);
+
+    Json::FastWriter writer;
+    std::string s = writer.write(json);
+    lua_pushlstring(state, s.c_str(), s.size());
+
+    return 1;
+  }
+
+
   int LuaContext::SetHttpCredentials(lua_State *state)
   {
     LuaContext& that = GetLuaContext(state);
@@ -126,13 +198,13 @@ namespace Orthanc
     {
       httpClient_.Apply(str);
     }
-    catch (OrthancException& e)
+    catch (OrthancException&)
     {
       return false;
     }
 
     // Return the result of the HTTP request
-    lua_pushstring(state, str.c_str());
+    lua_pushlstring(state, str.c_str(), str.size());
 
     return true;
   }
@@ -147,7 +219,7 @@ namespace Orthanc
     if (nArgs != 1 || !lua_isstring(state, 1))  // URL
     {
       LOG(ERROR) << "Lua: Bad parameters to HttpGet()";
-      lua_pushstring(state, "ERROR");
+      lua_pushnil(state);
       return 1;
     }
 
@@ -160,7 +232,7 @@ namespace Orthanc
     if (!that.AnswerHttpQuery(state))
     {
       LOG(ERROR) << "Lua: Error in HttpGet() for URL " << url;
-      lua_pushstring(state, "ERROR");
+      lua_pushnil(state);
     }
 
     return 1;
@@ -179,7 +251,7 @@ namespace Orthanc
         (nArgs >= 2 && !lua_isstring(state, 2)))  // Body data
     {
       LOG(ERROR) << "Lua: Bad parameters to HttpPost() or HttpPut()";
-      lua_pushstring(state, "ERROR");
+      lua_pushnil(state);
       return 1;
     }
 
@@ -190,18 +262,18 @@ namespace Orthanc
 
     if (nArgs >= 2)
     {
-      that.httpClient_.SetPostData(lua_tostring(state, 2));
+      that.httpClient_.SetBody(lua_tostring(state, 2));
     }
     else
     {
-      that.httpClient_.AccessPostData().clear();
+      that.httpClient_.GetBody().clear();
     }
 
     // Do the HTTP POST/PUT request
     if (!that.AnswerHttpQuery(state))
     {
       LOG(ERROR) << "Lua: Error in HttpPost() or HttpPut() for URL " << url;
-      lua_pushstring(state, "ERROR");
+      lua_pushnil(state);
     }
 
     return 1;
@@ -229,7 +301,7 @@ namespace Orthanc
     if (nArgs != 1 || !lua_isstring(state, 1))  // URL
     {
       LOG(ERROR) << "Lua: Bad parameters to HttpDelete()";
-      lua_pushstring(state, "ERROR");
+      lua_pushnil(state);
       return 1;
     }
 
@@ -243,7 +315,7 @@ namespace Orthanc
     if (!that.httpClient_.Apply(s))
     {
       LOG(ERROR) << "Lua: Error in HttpDelete() for URL " << url;
-      lua_pushstring(state, "ERROR");
+      lua_pushnil(state);
     }
     else
     {
@@ -258,7 +330,8 @@ namespace Orthanc
   {
     if (value.isString())
     {
-      lua_pushstring(lua_, value.asCString());
+      const std::string s = value.asString();
+      lua_pushlstring(lua_, s.c_str(), s.size());
     }
     else if (value.isDouble())
     {
@@ -307,7 +380,7 @@ namespace Orthanc
              it = members.begin(); it != members.end(); ++it)
       {
         // Push the index of the cell
-        lua_pushstring(lua_, it->c_str());
+        lua_pushlstring(lua_, it->c_str(), it->size());
 
         // Push the value of the cell
         PushJson(value[*it]);
@@ -318,7 +391,116 @@ namespace Orthanc
     }
     else
     {
-      throw LuaException("Unsupported JSON conversion");
+      throw OrthancException(ErrorCode_JsonToLuaTable);
+    }
+  }
+
+
+  void LuaContext::GetJson(Json::Value& result,
+                           int top,
+                           bool keepStrings)
+  {
+    if (lua_istable(lua_, top))
+    {
+      Json::Value tmp = Json::objectValue;
+      bool isArray = true;
+      size_t size = 0;
+
+      // Code adapted from: http://stackoverflow.com/a/6142700/881731
+      
+      // Push another reference to the table on top of the stack (so we know
+      // where it is, and this function can work for negative, positive and
+      // pseudo indices
+      lua_pushvalue(lua_, top);
+      // stack now contains: -1 => table
+      lua_pushnil(lua_);
+      // stack now contains: -1 => nil; -2 => table
+      while (lua_next(lua_, -2))
+      {
+        // stack now contains: -1 => value; -2 => key; -3 => table
+        // copy the key so that lua_tostring does not modify the original
+        lua_pushvalue(lua_, -2);
+        // stack now contains: -1 => key; -2 => value; -3 => key; -4 => table
+        std::string key(lua_tostring(lua_, -1));
+        Json::Value v;
+        GetJson(v, -2, keepStrings);
+
+        tmp[key] = v;
+
+        size += 1;
+        try
+        {
+          if (!OnlyContainsDigits(key) ||
+              boost::lexical_cast<size_t>(key) != size)
+          {
+            isArray = false;
+          }
+        }
+        catch (boost::bad_lexical_cast&)
+        {
+          isArray = false;
+        }
+        
+        // pop value + copy of key, leaving original key
+        lua_pop(lua_, 2);
+        // stack now contains: -1 => key; -2 => table
+      }
+      // stack now contains: -1 => table (when lua_next returns 0 it pops the key
+      // but does not push anything.)
+      // Pop table
+      lua_pop(lua_, 1);
+
+      // Stack is now the same as it was on entry to this function
+
+      if (isArray)
+      {
+        result = Json::arrayValue;
+        for (size_t i = 0; i < size; i++)
+        {
+          result.append(tmp[boost::lexical_cast<std::string>(i + 1)]);
+        }
+      }
+      else
+      {
+        result = tmp;
+      }
+    }
+    else if (lua_isnil(lua_, top))
+    {
+      result = Json::nullValue;
+    }
+    else if (!keepStrings &&
+             lua_isboolean(lua_, top))
+    {
+      result = lua_toboolean(lua_, top) ? true : false;
+    }
+    else if (!keepStrings &&
+             lua_isnumber(lua_, top))
+    {
+      // Convert to "int" if truncation does not loose precision
+      double value = static_cast<double>(lua_tonumber(lua_, top));
+      int truncated = static_cast<int>(value);
+
+      if (std::abs(value - static_cast<double>(truncated)) <= 
+          std::numeric_limits<double>::epsilon())
+      {
+        result = truncated;
+      }
+      else
+      {
+        result = value;
+      }
+    }
+    else if (lua_isstring(lua_, top))
+    {
+      // Caution: The "lua_isstring()" case must be the last, since
+      // Lua can convert most types to strings by default.
+      result = std::string(lua_tostring(lua_, top));
+    }
+    else
+    {
+      LOG(WARNING) << "Unsupported Lua type when returning Json";
+      result = Json::nullValue;
     }
   }
 
@@ -328,19 +510,20 @@ namespace Orthanc
     lua_ = luaL_newstate();
     if (!lua_)
     {
-      throw LuaException("Unable to create the Lua context");
+      throw OrthancException(ErrorCode_CannotCreateLua);
     }
 
     luaL_openlibs(lua_);
     lua_register(lua_, "print", PrintToLog);
+    lua_register(lua_, "ParseJson", ParseJson);
+    lua_register(lua_, "DumpJson", DumpJson);
     lua_register(lua_, "HttpGet", CallHttpGet);
     lua_register(lua_, "HttpPost", CallHttpPost);
     lua_register(lua_, "HttpPut", CallHttpPut);
     lua_register(lua_, "HttpDelete", CallHttpDelete);
     lua_register(lua_, "SetHttpCredentials", SetHttpCredentials);
-    
-    lua_pushlightuserdata(lua_, this);
-    lua_setglobal(lua_, "_LuaContext");
+
+    SetGlobalVariable("_LuaContext", this);
   }
 
 
@@ -364,7 +547,7 @@ namespace Orthanc
       std::string description(lua_tostring(lua_, -1));
       lua_pop(lua_, 1); /* pop error message from the stack */
       LOG(ERROR) << "Error while executing Lua script: " << description;
-      throw LuaException(description);
+      throw OrthancException(ErrorCode_CannotExecuteLua);
     }
 
     if (output != NULL)
@@ -399,8 +582,33 @@ namespace Orthanc
     Json::Reader reader;
     if (!reader.parse(s, output))
     {
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadJson);
     }
   }
 
+
+  void LuaContext::RegisterFunction(const char* name,
+                                    lua_CFunction func)
+  {
+    lua_register(lua_, name, func);
+  }
+
+
+  void LuaContext::SetGlobalVariable(const char* name,
+                                     void* value)
+  {
+    lua_pushlightuserdata(lua_, value);
+    lua_setglobal(lua_, name);
+  }
+
+  
+  const void* LuaContext::GetGlobalVariable(lua_State* state,
+                                            const char* name)
+  {
+    lua_getglobal(state, name);
+    assert(lua_type(state, -1) == LUA_TLIGHTUSERDATA);
+    const void* value = lua_topointer(state, -1);
+    lua_pop(state, 1);
+    return value;
+  }
 }

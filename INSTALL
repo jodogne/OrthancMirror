@@ -32,12 +32,24 @@ Building Orthanc at a glance
 To build Orthanc, you must:
 
 1) Download the source code (either using Mercurial, or through the
-   released versions). For the examples below, we assume the source
+   official releases). For the examples below, we assume the source
    directory is "~/Orthanc".
 
 2) Create a build directory. For the examples below, we assume the
    build directory is "~/OrthancBuild".
 
+3) Depending on your platform, follow the build instructions below.
+
+
+WARNING 1: If you do not create a fresh "~/OrthancBuild" directory
+after upgrading the source code (i.e. if you reuse the build directory
+that was used to build a different version of Orthanc), the build
+might fail because of changes in the compilation/linking flags. Always
+prefer to force a re-build in a new directory.
+
+WARNING 2: If cmake complains about not being able to uncompress
+third-party dependencies, delete the "~/Orthanc/ThirdPartyDownloads/"
+folder, then restart cmake.
 
 
 Native Linux Compilation

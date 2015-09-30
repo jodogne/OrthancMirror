@@ -34,8 +34,8 @@
 #include "gtest/gtest.h"
 
 #include "../Core/DicomFormat/DicomImageInformation.h"
-#include "../Core/ImageFormats/ImageBuffer.h"
-#include "../Core/ImageFormats/ImageProcessing.h"
+#include "../Core/Images/ImageBuffer.h"
+#include "../Core/Images/ImageProcessing.h"
 
 using namespace Orthanc;
 
