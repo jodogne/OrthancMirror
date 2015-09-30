@@ -393,7 +393,9 @@ static void PrintHelp(char* path)
     << "Usage: " << path << " [OPTION]... [CONFIGURATION]" << std::endl
     << "Orthanc, lightweight, RESTful DICOM server for healthcare and medical research." << std::endl
     << std::endl
-    << "If no configuration file is given on the command line, a set of default " << std::endl
+    << "The \"CONFIGURATION\" argument can be a single file or a directory. In the " << std::endl
+    << "case of a directory, all the JSON files it contains will be merged. " << std::endl
+    << "If no configuration path is given on the command line, a set of default " << std::endl
     << "parameters is used. Please refer to the Orthanc homepage for the full " << std::endl
     << "instructions about how to use Orthanc <http://www.orthanc-server.com/>." << std::endl
     << std::endl
@@ -622,6 +624,13 @@ static bool UpgradeDatabase(IDatabaseWrapper& database,
     return true;
   }
 
+  if (currentVersion > ORTHANC_DATABASE_VERSION)
+  {
+    LOG(ERROR) << "The version of the database (" << currentVersion
+               << ") is too recent for this version of Orthanc. Please upgrade Orthanc.";
+    return false;
+  }
+
   if (!allowDatabaseUpgrade)
   {
     LOG(ERROR) << "The database must be upgraded from version "
@@ -770,34 +779,56 @@ int main(int argc, char* argv[])
   Logging::Initialize();
 
   bool allowDatabaseUpgrade = false;
+  const char* configurationFile = NULL;
+
+
+  /**
+   * Parse the command-line options.
+   **/ 
 
   for (int i = 1; i < argc; i++)
   {
-    if (std::string(argv[i]) == "--help")
+    std::string argument(argv[i]); 
+
+    if (argument.empty())
+    {
+      // Ignore empty arguments
+    }
+    else if (argument[0] != '-')
+    {
+      if (configurationFile != NULL)
+      {
+        LOG(ERROR) << "More than one configuration path were provided on the command line, aborting";
+        return -1;
+      }
+      else
+      {
+        // Use the first argument that does not start with a "-" as
+        // the configuration file
+        configurationFile = argv[i];
+      }
+    }
+    else if (argument == "--help")
     {
       PrintHelp(argv[0]);
       return 0;
     }
-
-    if (std::string(argv[i]) == "--version")
+    else if (argument == "--version")
     {
       PrintVersion(argv[0]);
       return 0;
     }
-
-    if (std::string(argv[i]) == "--verbose")
+    else if (argument == "--verbose")
     {
       Logging::EnableInfoLevel(true);
     }
-
-    if (std::string(argv[i]) == "--trace")
+    else if (argument == "--trace")
     {
       Logging::EnableTraceLevel(true);
     }
-
-    if (boost::starts_with(argv[i], "--logdir="))
+    else if (boost::starts_with(argument, "--logdir="))
     {
-      std::string directory = std::string(argv[i]).substr(9);
+      std::string directory = argument.substr(9);
 
       try
       {
@@ -805,17 +836,16 @@ int main(int argc, char* argv[])
       }
       catch (OrthancException&)
       {
-        fprintf(stderr, "The directory where to store the log files (%s) is inexistent, aborting.\n", directory.c_str());
+        LOG(ERROR) << "The directory where to store the log files (" 
+                   << directory << ") is inexistent, aborting.";
         return -1;
       }
     }
-
-    if (std::string(argv[i]) == "--upgrade")
+    else if (argument == "--upgrade")
     {
       allowDatabaseUpgrade = true;
     }
-
-    if (boost::starts_with(argv[i], "--config="))
+    else if (boost::starts_with(argument, "--config="))
     {
       std::string configurationSample;
       GetFileResource(configurationSample, EmbeddedResources::CONFIGURATION_SAMPLE);
@@ -825,24 +855,20 @@ int main(int argc, char* argv[])
       boost::replace_all(configurationSample, "\n", "\r\n");
 #endif
 
-      std::string target = std::string(argv[i]).substr(9);
-      std::ofstream f(target.c_str());
-      f << configurationSample;
-      f.close();
+      std::string target = argument.substr(9);
+      Toolbox::WriteFile(configurationSample, target);
       return 0;
+    }
+    else
+    {
+      LOG(WARNING) << "Option unsupported by the core of Orthanc: " << argument;
     }
   }
 
-  const char* configurationFile = NULL;
-  for (int i = 1; i < argc; i++)
-  {
-    // Use the first argument that does not start with a "-" as
-    // the configuration file
-    if (argv[i][0] != '-')
-    {
-      configurationFile = argv[i];
-    }
-  }
+
+  /**
+   * Launch Orthanc.
+   **/
 
   LOG(WARNING) << "Orthanc version: " << ORTHANC_VERSION;
 
