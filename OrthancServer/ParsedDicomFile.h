@@ -130,6 +130,8 @@ namespace Orthanc
     void EmbedPdf(const std::string& pdf);
 
     bool ExtractPdf(std::string& pdf);
+
+    void Convert(DicomMap& tags);
   };
 
 }

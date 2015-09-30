@@ -1467,4 +1467,10 @@ namespace Orthanc
 
     return true;
   }
+
+
+  void ParsedDicomFile::Convert(DicomMap& tags)
+  {
+    FromDcmtkBridge::Convert(tags, *pimpl_->file_->getDataset());
+  }
 }
