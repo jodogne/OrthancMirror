@@ -48,6 +48,20 @@ extern "C"
 
 namespace Orthanc
 {
+  static bool OnlyContainsDigits(const std::string& s)
+  {
+    for (size_t i = 0; i < s.size(); i++)
+    {
+      if (!isdigit(s[i]))
+      {
+        return false;
+      }
+    }
+
+    return true;
+  }
+  
+
   LuaContext& LuaContext::GetLuaContext(lua_State *state)
   {
     const void* value = GetGlobalVariable(state, "_LuaContext");
@@ -128,14 +142,21 @@ namespace Orthanc
     LuaContext& that = GetLuaContext(state);
 
     int nArgs = lua_gettop(state);
-    if (nArgs != 1)
+    if ((nArgs != 1 && nArgs != 2) ||
+        (nArgs == 2 && !lua_isboolean(state, 2)))
     {
       lua_pushnil(state);
       return 1;
     }
 
+    bool keepStrings = false;
+    if (nArgs == 2)
+    {
+      keepStrings = lua_toboolean(state, 2) ? true : false;
+    }
+
     Json::Value json;
-    that.GetJson(json, 1);
+    that.GetJson(json, 1, keepStrings);
 
     Json::FastWriter writer;
     std::string s = writer.write(json);
@@ -376,7 +397,8 @@ namespace Orthanc
 
 
   void LuaContext::GetJson(Json::Value& result,
-                           int top)
+                           int top,
+                           bool keepStrings)
   {
     if (lua_istable(lua_, top))
     {
@@ -401,14 +423,15 @@ namespace Orthanc
         // stack now contains: -1 => key; -2 => value; -3 => key; -4 => table
         std::string key(lua_tostring(lua_, -1));
         Json::Value v;
-        GetJson(v, -2);
+        GetJson(v, -2, keepStrings);
 
         tmp[key] = v;
 
         size += 1;
         try
         {
-          if (boost::lexical_cast<size_t>(key) != size)
+          if (!OnlyContainsDigits(key) ||
+              boost::lexical_cast<size_t>(key) != size)
           {
             isArray = false;
           }
@@ -446,11 +469,13 @@ namespace Orthanc
     {
       result = Json::nullValue;
     }
-    else if (lua_isboolean(lua_, top))
+    else if (!keepStrings &&
+             lua_isboolean(lua_, top))
     {
       result = lua_toboolean(lua_, top) ? true : false;
     }
-    else if (lua_isnumber(lua_, top))
+    else if (!keepStrings &&
+             lua_isnumber(lua_, top))
     {
       // Convert to "int" if truncation does not loose precision
       double value = static_cast<double>(lua_tonumber(lua_, top));

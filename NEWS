@@ -10,6 +10,11 @@ Plugins
 * New function "OrthancPluginRegisterErrorCode()" to declare custom error codes
 * New function "OrthancPluginRegisterDictionaryTag()" to declare DICOM tags
 
+Lua
+---
+
+* Optional argument "keepStrings" in "DumpJson()"
+
 Maintenance
 -----------
 

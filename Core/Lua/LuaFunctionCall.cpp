@@ -130,10 +130,11 @@ namespace Orthanc
   }
 
 
-  void LuaFunctionCall::ExecuteToJson(Json::Value& result)
+  void LuaFunctionCall::ExecuteToJson(Json::Value& result,
+                                      bool keepStrings)
   {
     ExecuteInternal(1);
-    context_.GetJson(result, lua_gettop(context_.lua_));
+    context_.GetJson(result, lua_gettop(context_.lua_), keepStrings);
   }
 
 

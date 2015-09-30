@@ -72,7 +72,8 @@ namespace Orthanc
                          const std::string& command);
 
     void GetJson(Json::Value& result,
-                 int top);
+                 int top,
+                 bool keepStrings);
     
   public:
     LuaContext();
