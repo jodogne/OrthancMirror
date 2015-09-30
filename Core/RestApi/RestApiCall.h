@@ -32,7 +32,8 @@
 
 #pragma once
 
-#include "../HttpServer/HttpHandler.h"
+#include "../HttpServer/IHttpHandler.h"
+#include "../HttpServer/HttpToolbox.h"
 #include "RestApiPath.h"
 #include "RestApiOutput.h"
 
@@ -47,8 +48,11 @@ namespace Orthanc
   private:
     RestApiOutput& output_;
     RestApi& context_;
-    const HttpHandler::Arguments& httpHeaders_;
-    const HttpHandler::Arguments& uriComponents_;
+    RequestOrigin origin_;
+    const char* remoteIp_;
+    const char* username_;
+    const IHttpHandler::Arguments& httpHeaders_;
+    const IHttpHandler::Arguments& uriComponents_;
     const UriComponents& trailing_;
     const UriComponents& fullUri_;
 
@@ -59,12 +63,18 @@ namespace Orthanc
   public:
     RestApiCall(RestApiOutput& output,
                 RestApi& context,
-                const HttpHandler::Arguments& httpHeaders,
-                const HttpHandler::Arguments& uriComponents,
+                RequestOrigin origin,
+                const char* remoteIp,
+                const char* username,
+                const IHttpHandler::Arguments& httpHeaders,
+                const IHttpHandler::Arguments& uriComponents,
                 const UriComponents& trailing,
                 const UriComponents& fullUri) :
       output_(output),
       context_(context),
+      origin_(origin),
+      remoteIp_(remoteIp),
+      username_(username),
       httpHeaders_(httpHeaders),
       uriComponents_(uriComponents),
       trailing_(trailing),
@@ -95,23 +105,40 @@ namespace Orthanc
     std::string GetUriComponent(const std::string& name,
                                 const std::string& defaultValue) const
     {
-      return HttpHandler::GetArgument(uriComponents_, name, defaultValue);
+      return HttpToolbox::GetArgument(uriComponents_, name, defaultValue);
     }
 
     std::string GetHttpHeader(const std::string& name,
                               const std::string& defaultValue) const
     {
-      return HttpHandler::GetArgument(httpHeaders_, name, defaultValue);
+      return HttpToolbox::GetArgument(httpHeaders_, name, defaultValue);
     }
 
-    const HttpHandler::Arguments& GetHttpHeaders() const
+    const IHttpHandler::Arguments& GetHttpHeaders() const
     {
       return httpHeaders_;
     }
 
-    void ParseCookies(HttpHandler::Arguments& result) const
+    void ParseCookies(IHttpHandler::Arguments& result) const
     {
-      HttpHandler::ParseCookies(result, httpHeaders_);
+      HttpToolbox::ParseCookies(result, httpHeaders_);
+    }
+
+    std::string FlattenUri() const;
+
+    RequestOrigin GetRequestOrigin() const
+    {
+      return origin_;
+    }
+
+    const char* GetRemoteIp() const
+    {
+      return remoteIp_;
+    }
+
+    const char* GetUsername() const
+    {
+      return username_;
     }
 
     virtual bool ParseJsonRequest(Json::Value& result) const = 0;

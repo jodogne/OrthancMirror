@@ -69,6 +69,7 @@ namespace Orthanc
       return *items_.at(index);
     }
 
-    void ToJson(Json::Value& target) const;
+    void ToJson(Json::Value& target,
+                bool simplify) const;
   };
 }

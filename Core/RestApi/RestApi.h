@@ -38,7 +38,7 @@
 
 namespace Orthanc
 {
-  class RestApi : public HttpHandler
+  class RestApi : public IHttpHandler
   {
   private:
     RestApiHierarchy root_;
@@ -47,11 +47,15 @@ namespace Orthanc
     static void AutoListChildren(RestApiGetCall& call);
 
     virtual bool Handle(HttpOutput& output,
+                        RequestOrigin origin,
+                        const char* remoteIp,
+                        const char* username,
                         HttpMethod method,
                         const UriComponents& uri,
                         const Arguments& headers,
-                        const Arguments& getArguments,
-                        const std::string& postData);
+                        const GetArguments& getArguments,
+                        const char* bodyData,
+                        size_t bodySize);
 
     void Register(const std::string& path,
                   RestApiGetCall::Handler handler);

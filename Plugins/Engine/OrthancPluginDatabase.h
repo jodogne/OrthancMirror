@@ -32,8 +32,12 @@
 
 #pragma once
 
+#if ORTHANC_PLUGINS_ENABLED == 1
+
 #include "../../OrthancServer/IDatabaseWrapper.h"
-#include "../Include/OrthancCDatabasePlugin.h"
+#include "../Include/orthanc/OrthancCDatabasePlugin.h"
+#include "PluginsErrorDictionary.h"
+#include "SharedLibrary.h"
 
 namespace Orthanc
 {
@@ -44,10 +48,13 @@ namespace Orthanc
 
     typedef std::pair<int64_t, ResourceType>  AnswerResource;
 
+    SharedLibrary&  library_;
+    PluginsErrorDictionary&  errorDictionary_;
     _OrthancPluginDatabaseAnswerType type_;
     OrthancPluginDatabaseBackend backend_;
+    OrthancPluginDatabaseExtensions extensions_;
     void* payload_;
-    IServerIndexListener* listener_;
+    IDatabaseListener* listener_;
 
     std::list<std::string>         answerStrings_;
     std::list<int32_t>             answerInt32_;
@@ -76,13 +83,16 @@ namespace Orthanc
     bool ForwardSingleAnswer(int64_t& target);
 
   public:
-    OrthancPluginDatabase(const OrthancPluginDatabaseBackend& backend,
-                          void *payload) : 
-    type_(_OrthancPluginDatabaseAnswerType_None),
-    backend_(backend),
-    payload_(payload),
-    listener_(NULL)
+    OrthancPluginDatabase(SharedLibrary& library,
+                          PluginsErrorDictionary&  errorDictionary,
+                          const OrthancPluginDatabaseBackend& backend,
+                          const OrthancPluginDatabaseExtensions* extensions,
+                          size_t extensionsSize,
+                          void *payload);
+
+    const SharedLibrary& GetSharedLibrary() const
     {
+      return library_;
     }
 
     virtual void AddAttachment(int64_t id,
@@ -121,6 +131,10 @@ namespace Orthanc
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType);
 
+    virtual void GetAllPublicIds(std::list<std::string>& target,
+                                 ResourceType resourceType,
+                                 size_t since,
+                                 size_t limit);
 
     virtual void GetChanges(std::list<ServerIndexChange>& target /*out*/,
                             bool& done /*out*/,
@@ -216,11 +230,18 @@ namespace Orthanc
 
     virtual SQLite::ITransaction* StartTransaction();
 
-    virtual void SetListener(IServerIndexListener& listener)
+    virtual void SetListener(IDatabaseListener& listener)
     {
       listener_ = &listener;
     }
 
+    virtual unsigned int GetDatabaseVersion();
+
+    virtual void Upgrade(unsigned int targetVersion,
+                         IStorageArea& storageArea);
+
     void AnswerReceived(const _OrthancPluginDatabaseAnswer& answer);
   };
 }
+
+#endif

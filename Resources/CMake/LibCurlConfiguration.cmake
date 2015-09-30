@@ -1,24 +1,23 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
-  SET(CURL_SOURCES_DIR ${CMAKE_BINARY_DIR}/curl-7.26.0)
-  DownloadPackage(
-    "3fa4d5236f2a36ca5c3af6715e837691"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/curl-7.26.0.tar.gz"
-    "${CURL_SOURCES_DIR}")
+  SET(CURL_SOURCES_DIR ${CMAKE_BINARY_DIR}/curl-7.44.0)
+  SET(CURL_URL "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/curl-7.44.0.tar.gz")
+  SET(CURL_MD5 "cf46112b5151e2f1a3fd38439bdade23")
 
-  include_directories(${CURL_SOURCES_DIR}/include)
+  DownloadPackage(${CURL_MD5} ${CURL_URL} "${CURL_SOURCES_DIR}")
+
+  include_directories(
+    ${CURL_SOURCES_DIR}/include
+    )
+
   AUX_SOURCE_DIRECTORY(${CURL_SOURCES_DIR}/lib CURL_SOURCES)
+  AUX_SOURCE_DIRECTORY(${CURL_SOURCES_DIR}/lib/vtls CURL_SOURCES)
   source_group(ThirdParty\\LibCurl REGULAR_EXPRESSION ${CURL_SOURCES_DIR}/.*)
 
-  #add_library(Curl STATIC ${CURL_SOURCES})
-  #link_libraries(Curl)  
-
   add_definitions(
-    -DCURL_STATICLIB=1
     -DBUILDING_LIBCURL=1
+    -DCURL_STATICLIB=1
     -DCURL_DISABLE_LDAPS=1
     -DCURL_DISABLE_LDAP=1
-    -D_WIN32_WINNT=0x0501
-
     -DCURL_DISABLE_DICT=1
     -DCURL_DISABLE_FILE=1
     -DCURL_DISABLE_FTP=1
@@ -32,7 +31,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
     -DCURL_DISABLE_TFTP=1
     )
 
-  if (${ENABLE_SSL})
+  if (ENABLE_SSL)
     add_definitions(
       #-DHAVE_LIBSSL=1
       -DUSE_OPENSSL=1
@@ -40,8 +39,17 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
       )
   endif()
 
+  file(WRITE ${CURL_SOURCES_DIR}/lib/curl_config.h "")
+
+  file(GLOB CURL_LIBS_HEADERS ${CURL_SOURCES_DIR}/lib/*.h)
+  foreach (header IN LISTS CURL_LIBS_HEADERS)
+    get_filename_component(filename ${header} NAME)
+    file(WRITE ${CURL_SOURCES_DIR}/lib/vtls/${filename} "#include \"../${filename}\"\n")
+  endforeach()
+
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
     if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
       SET(TMP_OS "x86_64")
@@ -51,7 +59,8 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
 
     set_property(
       SOURCE ${CURL_SOURCES}
-      PROPERTY COMPILE_DEFINITIONS "HAVE_TIME_H;HAVE_STRUCT_TIMEVAL;HAVE_SYS_STAT_H;HAVE_SOCKET;HAVE_STRUCT_SOCKADDR_STORAGE;HAVE_SYS_SOCKET_H;HAVE_SOCKET;HAVE_SYS_SOCKET_H;HAVE_NETINET_IN_H;HAVE_NETDB_H;HAVE_FCNTL_O_NONBLOCK;HAVE_FCNTL_H;HAVE_SELECT;HAVE_ERRNO_H;HAVE_SEND;HAVE_RECV;OS=\"${TMP_OS}\"")
+      PROPERTY COMPILE_DEFINITIONS "HAVE_TIME_H;HAVE_STRUCT_TIMEVAL;HAVE_SYS_STAT_H;HAVE_SOCKET;HAVE_STRUCT_SOCKADDR_STORAGE;HAVE_SYS_SOCKET_H;HAVE_SOCKET;HAVE_SYS_SOCKET_H;HAVE_NETINET_IN_H;HAVE_NETDB_H;HAVE_FCNTL_O_NONBLOCK;HAVE_FCNTL_H;HAVE_SELECT;HAVE_ERRNO_H;HAVE_SEND;HAVE_RECV;HAVE_LONGLONG;OS=\"${TMP_OS}\""
+      )
 
     if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
       add_definitions(

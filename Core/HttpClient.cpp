@@ -33,11 +33,46 @@
 #include "PrecompiledHeaders.h"
 #include "HttpClient.h"
 
-#include "../Core/Toolbox.h"
-#include "../Core/OrthancException.h"
+#include "Toolbox.h"
+#include "OrthancException.h"
+#include "Logging.h"
 
 #include <string.h>
 #include <curl/curl.h>
+#include <boost/algorithm/string/predicate.hpp>
+
+
+static std::string globalCACertificates_;
+static bool globalVerifyPeers_ = true;
+static long globalTimeout_ = 0;
+
+extern "C"
+{
+  static CURLcode GetHttpStatus(CURLcode code, CURL* curl, long* status)
+  {
+    if (code == CURLE_OK)
+    {
+      code = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, status);
+      return code;
+    }
+    else
+    {
+      *status = 0;
+      return code;
+    }
+  }
+
+  // This is a dummy wrapper function to suppress any OpenSSL-related
+  // problem in valgrind. Inlining is prevented.
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((noinline)) 
+#endif
+    static CURLcode OrthancHttpClientPerformSSL(CURL* curl, long* status)
+  {
+    return GetHttpStatus(curl_easy_perform(curl), curl, status);
+  }
+}
+
 
 
 namespace Orthanc
@@ -49,11 +84,32 @@ namespace Orthanc
   };
 
 
+  static void ThrowException(HttpStatus status)
+  {
+    switch (status)
+    {
+      case HttpStatus_400_BadRequest:
+        throw OrthancException(ErrorCode_BadRequest);
+
+      case HttpStatus_401_Unauthorized:
+        throw OrthancException(ErrorCode_Unauthorized);
+
+      case HttpStatus_404_NotFound:
+        throw OrthancException(ErrorCode_InexistentItem);
+
+      default:
+        throw OrthancException(ErrorCode_NetworkProtocol);
+    }
+  }
+
+
+
   static CURLcode CheckCode(CURLcode code)
   {
     if (code != CURLE_OK)
     {
-      throw OrthancException("libCURL error: " + std::string(curl_easy_strerror(code)));
+      LOG(ERROR) << "libCURL error: " + std::string(curl_easy_strerror(code));
+      throw OrthancException(ErrorCode_NetworkProtocol);
     }
 
     return code;
@@ -96,10 +152,6 @@ namespace Orthanc
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HEADER, 0));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_FOLLOWLOCATION, 1));
 
-#if ORTHANC_SSL_ENABLED == 1
-    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYPEER, 0)); 
-#endif
-
     // This fixes the "longjmp causes uninitialized stack frame" crash
     // that happens on modern Linux versions.
     // http://stackoverflow.com/questions/9191668/error-longjmp-causes-uninitialized-stack-frame
@@ -109,7 +161,8 @@ namespace Orthanc
     method_ = HttpMethod_Get;
     lastStatus_ = HttpStatus_200_Ok;
     isVerbose_ = false;
-    timeout_ = 0;
+    timeout_ = globalTimeout_;
+    verifyPeers_ = globalVerifyPeers_;
   }
 
 
@@ -162,6 +215,19 @@ namespace Orthanc
     answer.clear();
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_URL, url_.c_str()));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_WRITEDATA, &answer));
+
+    // Setup HTTPS-related options
+#if ORTHANC_SSL_ENABLED == 1
+    if (IsHttpsVerifyPeers())
+    {
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CAINFO, GetHttpsCACertificates().c_str()));
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYPEER, 1)); 
+    }
+    else
+    {
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYPEER, 0)); 
+    }
+#endif
 
     // Reset the parameters from previous calls to Apply()
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPHEADER, NULL));
@@ -229,10 +295,10 @@ namespace Orthanc
     if (method_ == HttpMethod_Post ||
         method_ == HttpMethod_Put)
     {
-      if (postData_.size() > 0)
+      if (body_.size() > 0)
       {
-        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDS, postData_.c_str()));
-        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDSIZE, postData_.size()));
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDS, body_.c_str()));
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDSIZE, body_.size()));
       }
       else
       {
@@ -243,10 +309,19 @@ namespace Orthanc
 
 
     // Do the actual request
-    CheckCode(curl_easy_perform(pimpl_->curl_));
+    CURLcode code;
+    long status = 0;
 
-    long status;
-    CheckCode(curl_easy_getinfo(pimpl_->curl_, CURLINFO_RESPONSE_CODE, &status));
+    if (boost::starts_with(url_, "https://"))
+    {
+      code = OrthancHttpClientPerformSSL(pimpl_->curl_, &status);
+    }
+    else
+    {
+      code = GetHttpStatus(curl_easy_perform(pimpl_->curl_), pimpl_->curl_, &status);
+    }
+
+    CheckCode(code);
 
     if (status == 0)
     {
@@ -284,13 +359,74 @@ namespace Orthanc
   }
 
   
-  void HttpClient::GlobalInitialize()
+  const std::string& HttpClient::GetHttpsCACertificates() const
   {
+    if (caCertificates_.empty())
+    {
+      return globalCACertificates_;
+    }
+    else
+    {
+      return caCertificates_;
+    }
+  }
+
+
+  void HttpClient::GlobalInitialize(bool httpsVerifyPeers,
+                                    const std::string& httpsVerifyCertificates)
+  {
+    globalVerifyPeers_ = httpsVerifyPeers;
+    globalCACertificates_ = httpsVerifyCertificates;
+
+#if ORTHANC_SSL_ENABLED == 1
+    if (httpsVerifyPeers)
+    {
+      if (globalCACertificates_.empty())
+      {
+        LOG(WARNING) << "No certificates are provided to validate peers, "
+                     << "set \"HttpsCACertificates\" if you need to do HTTPS requests";
+      }
+      else
+      {
+        LOG(WARNING) << "HTTPS will use the CA certificates from this file: " << globalCACertificates_;
+      }
+    }
+    else
+    {
+      LOG(WARNING) << "The verification of the peers in HTTPS requests is disabled!";
+    }
+#endif
+
     CheckCode(curl_global_init(CURL_GLOBAL_DEFAULT));
   }
+
   
   void HttpClient::GlobalFinalize()
   {
     curl_global_cleanup();
+  }
+
+  
+  void HttpClient::SetDefaultTimeout(long timeout)
+  {
+    LOG(INFO) << "Setting the default timeout for HTTP client connections: " << timeout << " seconds";
+    globalTimeout_ = timeout;
+  }
+
+
+  void HttpClient::ApplyAndThrowException(std::string& answer)
+  {
+    if (!Apply(answer))
+    {
+      ThrowException(GetLastStatus());
+    }
+  }
+  
+  void HttpClient::ApplyAndThrowException(Json::Value& answer)
+  {
+    if (!Apply(answer))
+    {
+      ThrowException(GetLastStatus());
+    }
   }
 }

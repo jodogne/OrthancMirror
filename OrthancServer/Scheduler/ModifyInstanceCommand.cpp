@@ -30,12 +30,47 @@
  **/
 
 
+#include "../PrecompiledHeadersServer.h"
 #include "ModifyInstanceCommand.h"
 
-#include <glog/logging.h>
+#include "../../Core/Logging.h"
 
 namespace Orthanc
 {
+  ModifyInstanceCommand::ModifyInstanceCommand(ServerContext& context,
+                                               RequestOrigin origin,
+                                               const DicomModification& modification) :
+    context_(context),
+    origin_(origin),
+    modification_(modification)
+  {
+    modification_.SetAllowManualIdentifiers(true);
+
+    if (modification_.IsReplaced(DICOM_TAG_PATIENT_ID))
+    {
+      modification_.SetLevel(ResourceType_Patient);
+    }
+    else if (modification_.IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
+    {
+      modification_.SetLevel(ResourceType_Study);
+    }
+    else if (modification_.IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
+    {
+      modification_.SetLevel(ResourceType_Series);
+    }
+    else
+    {
+      modification_.SetLevel(ResourceType_Instance);
+    }
+
+    if (origin_ != RequestOrigin_Lua)
+    {
+      // TODO If issued from HTTP, "remoteIp" and "username" must be provided
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
+
+
   bool ModifyInstanceCommand::Apply(ListOfStrings& outputs,
                                     const ListOfStrings& inputs)
   {
@@ -56,6 +91,8 @@ namespace Orthanc
         modification_.Apply(*modified);
 
         DicomInstanceToStore toStore;
+        assert(origin_ == RequestOrigin_Lua);
+        toStore.SetLuaOrigin();
         toStore.SetParsedDicomFile(*modified);
         // TODO other metadata
         toStore.AddMetadata(ResourceType_Instance, MetadataType_ModifiedFrom, *it);

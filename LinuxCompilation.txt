@@ -74,50 +74,12 @@ Sébastien Jodogne. Distributions tagged by "CONTRIBUTED" come from
 Orthanc users.
 
 
-SUPPORTED - Debian Squeeze (6.x)
---------------------------------
-
-# sudo apt-get install build-essential unzip cmake mercurial \
-       	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
-       	       	       libgoogle-glog-dev libpng-dev libgtest-dev \
-       	       	       libsqlite3-dev libssl-dev zlib1g-dev
-
-# cmake -DALLOW_DOWNLOADS=ON \
-  	-DUSE_SYSTEM_BOOST=OFF \
-	-DUSE_SYSTEM_DCMTK=OFF \
-	-DUSE_SYSTEM_MONGOOSE=OFF \
-	-DUSE_SYSTEM_JSONCPP=OFF \
-	-DUSE_SYSTEM_PUGIXML=OFF \
-        -DENABLE_JPEG=OFF \
-        -DENABLE_JPEG_LOSSLESS=OFF \
-	~/Orthanc 
-
-
-SUPPORTED - Debian Wheezy (7.x)
--------------------------------
-
-# sudo apt-get install build-essential unzip cmake mercurial \
-       	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
-       	       	       libgtest-dev libpng-dev libsqlite3-dev \
-       	       	       libssl-dev zlib1g-dev libdcmtk2-dev \
-       	       	       libboost-all-dev libwrap0-dev libjsoncpp-dev
-
-# cmake -DALLOW_DOWNLOADS=ON \
-        -DUSE_SYSTEM_GOOGLE_LOG=OFF \
-	-DUSE_SYSTEM_MONGOOSE=OFF \
-        -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
-	-DUSE_SYSTEM_PUGIXML=OFF \
-        -DENABLE_JPEG=OFF \
-        -DENABLE_JPEG_LOSSLESS=OFF \
-	~/Orthanc
-
-
 SUPPORTED - Debian Jessie/Sid
 -----------------------------
 
 # sudo apt-get install build-essential unzip cmake mercurial \
        	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
-       	       	       libgoogle-glog-dev libgtest-dev libpng-dev \
+       	       	       libgoogle-glog-dev libgtest-dev libpng-dev libjpeg-dev \
        	       	       libsqlite3-dev libssl-dev zlib1g-dev libdcmtk2-dev \
                        libboost-all-dev libwrap0-dev libjsoncpp-dev libpugixml-dev
 
@@ -131,15 +93,16 @@ Note: Have also a look at the official package:
 http://anonscm.debian.org/viewvc/debian-med/trunk/packages/orthanc/trunk/debian/
 
 
-SUPPORTED - Ubuntu 12.04 LTS
-----------------------------
+SUPPORTED - Ubuntu 12.04.5 LTS
+------------------------------
 
 # sudo apt-get install build-essential unzip cmake mercurial \
        	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
-       	       	       libgtest-dev libpng-dev libsqlite3-dev libssl-dev \
-		       zlib1g-dev libdcmtk2-dev libboost-all-dev libwrap0-dev
+       	       	       libgtest-dev libpng-dev libsqlite3-dev libssl-dev libjpeg-dev \
+		       zlib1g-dev libdcmtk2-dev libboost1.48-all-dev libwrap0-dev \
+                       libcharls-dev
 
-# cmake "-DDCMTK_LIBRARIES=wrap;oflog" \
+# cmake "-DDCMTK_LIBRARIES=boost_locale;CharLS;dcmjpls;wrap;oflog" \
         -DALLOW_DOWNLOADS=ON \
 	-DUSE_SYSTEM_MONGOOSE=OFF \
 	-DUSE_SYSTEM_JSONCPP=OFF \
@@ -149,66 +112,35 @@ SUPPORTED - Ubuntu 12.04 LTS
 	~/Orthanc
 
 
-SUPPORTED - Ubuntu 12.10
-------------------------
+
+SUPPORTED - Ubuntu 14.04 LTS
+----------------------------
 
 # sudo apt-get install build-essential unzip cmake mercurial \
        	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
-       	       	       libgoogle-glog-dev libgtest-dev libpng-dev \
-       	       	       libsqlite3-dev libssl-dev zlib1g-dev \
-       	       	       libdcmtk2-dev libboost-all-dev libwrap0-dev libcharls-dev
+       	       	       libgtest-dev libpng-dev libsqlite3-dev libssl-dev libjpeg-dev \
+		       zlib1g-dev libdcmtk2-dev libboost-all-dev libwrap0-dev \
+                       libcharls-dev libjsoncpp-dev libpugixml-dev
 
-With JPEG:
-
-# cmake "-DDCMTK_LIBRARIES=CharLS;dcmjpls;wrap;oflog" \
-        -DALLOW_DOWNLOADS=ON \
-	-DUSE_SYSTEM_MONGOOSE=OFF \
-	-DUSE_SYSTEM_JSONCPP=OFF \
+# cmake -DALLOW_DOWNLOADS=ON \
         -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
-	-DUSE_SYSTEM_PUGIXML=OFF \
-	~/Orthanc
+        -DUSE_SYSTEM_MONGOOSE=OFF \
+        -DDCMTK_LIBRARIES=dcmjpls \
+        ~/Orthanc
 
 
-Without JPEG:
 
-# cmake "-DDCMTK_LIBRARIES=wrap;oflog" \
-        -DALLOW_DOWNLOADS=ON \
-	-DUSE_SYSTEM_MONGOOSE=OFF \
-	-DUSE_SYSTEM_JSONCPP=OFF \
-        -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
-	-DUSE_SYSTEM_PUGIXML=OFF \
-        -DENABLE_JPEG=OFF \
-        -DENABLE_JPEG_LOSSLESS=OFF \
-	~/Orthanc
-
-
-SUPPORTED - Ubuntu 13.10
+SUPPORTED - Fedora 20-22
 ------------------------
 
-# sudo apt-get install build-essential unzip cmake mercurial \
-       	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
-       	       	       libgoogle-glog-dev libgtest-dev libpng-dev \
-       	       	       libsqlite3-dev libssl-dev zlib1g-dev \
-       	       	       libdcmtk2-dev libboost-all-dev libwrap0-dev libjsoncpp-dev
-
-# cmake "-DDCMTK_LIBRARIES=wrap;oflog" \
-        -DALLOW_DOWNLOADS=ON \
-	-DUSE_SYSTEM_MONGOOSE=OFF \
-        -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
-	-DUSE_SYSTEM_PUGIXML=OFF \
-        -DENABLE_JPEG=OFF \
-        -DENABLE_JPEG_LOSSLESS=OFF \
-	~/Orthanc
-
-
-
-SUPPORTED - Fedora 19/20
-------------------------
-
-# sudo yum install make automake gcc gcc-c++ python cmake \
+# sudo yum install unzip make automake gcc gcc-c++ python cmake \
                    boost-devel curl-devel dcmtk-devel glog-devel \
-                   gtest-devel libpng-devel libsqlite3x-devel libuuid-devel \
+                   gtest-devel libpng-devel libsqlite3x-devel libuuid-devel jpeg-devel \
                    mongoose-devel openssl-devel jsoncpp-devel lua-devel pugixml-devel
+
+You will also have to install "gflags-devel" on Fedora 21&22:
+
+# sudo yum install gflags-devel
 
 # cmake  "-DDCMTK_LIBRARIES=CharLS" \
          -DSYSTEM_MONGOOSE_USE_CALLBACKS=OFF \
@@ -218,6 +150,37 @@ Note: Have also a look at the official package:
 http://pkgs.fedoraproject.org/cgit/orthanc.git/tree/?h=f18
 
 
+
+SUPPORTED - FreeBSD 10.1
+------------------------
+
+# pkg install jsoncpp pugixml lua51 curl googletest dcmtk cmake jpeg \
+              e2fsprogs-libuuid glog boost-libs sqlite3 python libiconv
+
+# cmake -DALLOW_DOWNLOADS=ON \
+        -DUSE_SYSTEM_MONGOOSE=OFF \
+        -DDCMTK_LIBRARIES="dcmdsig;charls;dcmjpls" \
+	~/Orthanc
+
+
+
+SUPPORTED - CentOS 6
+--------------------
+
+# yum install unzip make automake gcc gcc-c++ python cmake curl-devel \
+              libpng-devel sqlite-devel libuuid-devel openssl-devel \
+              lua-devel mercurial patch tar
+
+# cmake -DALLOW_DOWNLOADS=ON \
+        -DUSE_SYSTEM_JSONCPP=OFF \
+        -DUSE_SYSTEM_MONGOOSE=OFF \
+        -DUSE_SYSTEM_PUGIXML=OFF \
+        -DUSE_SYSTEM_SQLITE=OFF \
+        -DUSE_SYSTEM_BOOST=OFF \
+        -DUSE_SYSTEM_DCMTK=OFF \
+        -DUSE_SYSTEM_GOOGLE_TEST=OFF \
+        -DUSE_SYSTEM_LIBJPEG=OFF \
+        ~/Orthanc
 
 
 

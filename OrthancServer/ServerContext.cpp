@@ -33,13 +33,14 @@
 #include "PrecompiledHeadersServer.h"
 #include "ServerContext.h"
 
+#include "../Core/FileStorage/StorageAccessor.h"
 #include "../Core/HttpServer/FilesystemHttpSender.h"
-#include "../Core/Lua/LuaFunctionCall.h"
+#include "../Core/HttpServer/HttpStreamTranscoder.h"
+#include "../Core/Logging.h"
 #include "FromDcmtkBridge.h"
 #include "ServerToolbox.h"
 #include "OrthancInitialization.h"
 
-#include <glog/logging.h>
 #include <EmbeddedResources.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
 
@@ -55,9 +56,6 @@
 
 #define ENABLE_DICOM_CACHE  1
 
-static const char* RECEIVED_INSTANCE_FILTER = "ReceivedInstanceFilter";
-static const char* ON_STORED_INSTANCE = "OnStoredInstance";
-
 static const size_t DICOM_CACHE_SIZE = 2;
 
 /**
@@ -71,23 +69,96 @@ static const size_t DICOM_CACHE_SIZE = 2;
 
 namespace Orthanc
 {
-  ServerContext::ServerContext(IDatabaseWrapper& database) :
+  void ServerContext::ChangeThread(ServerContext* that)
+  {
+    while (!that->done_)
+    {
+      std::auto_ptr<IDynamicObject> obj(that->pendingChanges_.Dequeue(100));
+        
+      if (obj.get() != NULL)
+      {
+        const ServerIndexChange& change = dynamic_cast<const ServerIndexChange&>(*obj.get());
+
+        boost::recursive_mutex::scoped_lock lock(that->listenersMutex_);
+        for (ServerListeners::iterator it = that->listeners_.begin(); 
+             it != that->listeners_.end(); ++it)
+        {
+          try
+          {
+            it->GetListener().SignalChange(change);
+          }
+          catch (OrthancException& e)
+          {
+            LOG(ERROR) << "Error in the " << it->GetDescription() 
+                       << " callback while signaling a change: " << e.What();
+          }
+        }
+      }
+    }
+  }
+
+
+  ServerContext::ServerContext(IDatabaseWrapper& database,
+                               IStorageArea& area) :
     index_(*this, database),
+    area_(area),
     compressionEnabled_(false),
+    storeMD5_(true),
     provider_(*this),
     dicomCache_(provider_, DICOM_CACHE_SIZE),
     scheduler_(Configuration::GetGlobalIntegerParameter("LimitJobs", 10)),
+    lua_(*this),
+#if ORTHANC_PLUGINS_ENABLED == 1
     plugins_(NULL),
-    pluginsManager_(NULL)
+#endif
+    done_(false),
+    queryRetrieveArchive_(Configuration::GetGlobalIntegerParameter("QueryRetrieveSize", 10)),
+    defaultLocalAet_(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"))
   {
-    scu_.SetLocalApplicationEntityTitle(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"));
-
     uint64_t s = Configuration::GetGlobalIntegerParameter("DicomAssociationCloseDelay", 5);  // In seconds
     scu_.SetMillisecondsBeforeClose(s * 1000);  // Milliseconds are expected here
 
-    lua_.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
-    lua_.SetHttpProxy(Configuration::GetGlobalStringParameter("HttpProxy", ""));
+    listeners_.push_back(ServerListener(lua_, "Lua"));
+
+    changeThread_ = boost::thread(ChangeThread, this);
   }
+
+
+  
+  ServerContext::~ServerContext()
+  {
+    if (!done_)
+    {
+      LOG(ERROR) << "INTERNAL ERROR: ServerContext::Stop() should be invoked manually to avoid mess in the destruction order!";
+      Stop();
+    }
+  }
+
+
+  void ServerContext::Stop()
+  {
+    if (!done_)
+    {
+      {
+        boost::recursive_mutex::scoped_lock lock(listenersMutex_);
+        listeners_.clear();
+      }
+
+      done_ = true;
+
+      if (changeThread_.joinable())
+      {
+        changeThread_.join();
+      }
+
+      scu_.Finalize();
+
+      // Do not change the order below!
+      scheduler_.Stop();
+      index_.Stop();
+    }
+  }
+
 
   void ServerContext::SetCompressionEnabled(bool enabled)
   {
@@ -99,182 +170,11 @@ namespace Orthanc
     compressionEnabled_ = enabled;
   }
 
+
   void ServerContext::RemoveFile(const std::string& fileUuid,
                                  FileContentType type)
   {
-    accessor_.Remove(fileUuid, type);
-  }
-
-
-  bool ServerContext::ApplyReceivedInstanceFilter(const Json::Value& simplified,
-                                                  const std::string& remoteAet)
-  {
-    LuaContextLocker locker(*this);
-
-    if (locker.GetLua().IsExistingFunction(RECEIVED_INSTANCE_FILTER))
-    {
-      LuaFunctionCall call(locker.GetLua(), RECEIVED_INSTANCE_FILTER);
-      call.PushJson(simplified);
-      call.PushString(remoteAet);
-
-      if (!call.ExecutePredicate())
-      {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-
-  static IServerCommand* ParseOperation(ServerContext& context,
-                                        const std::string& operation,
-                                        const Json::Value& parameters)
-  {
-    if (operation == "delete")
-    {
-      LOG(INFO) << "Lua script to delete instance " << parameters["Instance"].asString();
-      return new DeleteInstanceCommand(context);
-    }
-
-    if (operation == "store-scu")
-    {
-      std::string modality = parameters["Modality"].asString();
-      LOG(INFO) << "Lua script to send instance " << parameters["Instance"].asString()
-                << " to modality " << modality << " using Store-SCU";
-      return new StoreScuCommand(context, Configuration::GetModalityUsingSymbolicName(modality), true);
-    }
-
-    if (operation == "store-peer")
-    {
-      std::string peer = parameters["Peer"].asString();
-      LOG(INFO) << "Lua script to send instance " << parameters["Instance"].asString()
-                << " to peer " << peer << " using HTTP";
-
-      OrthancPeerParameters parameters;
-      Configuration::GetOrthancPeer(parameters, peer);
-      return new StorePeerCommand(context, parameters, true);
-    }
-
-    if (operation == "modify")
-    {
-      LOG(INFO) << "Lua script to modify instance " << parameters["Instance"].asString();
-      std::auto_ptr<ModifyInstanceCommand> command(new ModifyInstanceCommand(context));
-      OrthancRestApi::ParseModifyRequest(command->GetModification(), parameters);
-      return command.release();
-    }
-
-    if (operation == "call-system")
-    {
-      LOG(INFO) << "Lua script to call system command on " << parameters["Instance"].asString();
-
-      const Json::Value& argsIn = parameters["Arguments"];
-      if (argsIn.type() != Json::arrayValue)
-      {
-        throw OrthancException(ErrorCode_BadParameterType);
-      }
-
-      std::vector<std::string> args;
-      args.reserve(argsIn.size());
-      for (Json::Value::ArrayIndex i = 0; i < argsIn.size(); ++i)
-      {
-        // http://jsoncpp.sourceforge.net/namespace_json.html#7d654b75c16a57007925868e38212b4e
-        switch (argsIn[i].type())
-        {
-          case Json::stringValue:
-            args.push_back(argsIn[i].asString());
-            break;
-
-          case Json::intValue:
-            args.push_back(boost::lexical_cast<std::string>(argsIn[i].asInt()));
-            break;
-
-          case Json::uintValue:
-            args.push_back(boost::lexical_cast<std::string>(argsIn[i].asUInt()));
-            break;
-
-          case Json::realValue:
-            args.push_back(boost::lexical_cast<std::string>(argsIn[i].asFloat()));
-            break;
-
-          default:
-            throw OrthancException(ErrorCode_BadParameterType);
-        }
-      }
-
-      return new CallSystemCommand(context, parameters["Command"].asString(), args);
-    }
-
-    throw OrthancException(ErrorCode_ParameterOutOfRange);
-  }
-
-
-  void ServerContext::ApplyLuaOnStoredInstance(const std::string& instanceId,
-                                               const Json::Value& simplifiedDicom,
-                                               const Json::Value& metadata,
-                                               const std::string& remoteAet,
-                                               const std::string& calledAet)
-  {
-    LuaContextLocker locker(*this);
-
-    if (locker.GetLua().IsExistingFunction(ON_STORED_INSTANCE))
-    {
-      locker.GetLua().Execute("_InitializeJob()");
-
-      LuaFunctionCall call(locker.GetLua(), ON_STORED_INSTANCE);
-      call.PushString(instanceId);
-      call.PushJson(simplifiedDicom);
-      call.PushJson(metadata);
-      call.PushJson(remoteAet);
-      call.PushJson(calledAet);
-      call.Execute();
-
-      Json::Value operations;
-      LuaFunctionCall call2(locker.GetLua(), "_AccessJob");
-      call2.ExecuteToJson(operations);
-     
-      if (operations.type() != Json::arrayValue)
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
-      ServerJob job;
-      ServerCommandInstance* previousCommand = NULL;
-
-      for (Json::Value::ArrayIndex i = 0; i < operations.size(); ++i)
-      {
-        if (operations[i].type() != Json::objectValue ||
-            !operations[i].isMember("Operation"))
-        {
-          throw OrthancException(ErrorCode_InternalError);
-        }
-
-        const Json::Value& parameters = operations[i];
-        std::string operation = parameters["Operation"].asString();
-
-        ServerCommandInstance& command = job.AddCommand(ParseOperation(*this, operation, operations[i]));
-        
-        if (!parameters.isMember("Instance"))
-        {
-          throw OrthancException(ErrorCode_InternalError);
-        }
-
-        std::string instance = parameters["Instance"].asString();
-        if (instance.empty())
-        {
-          previousCommand->ConnectOutput(command);
-        }
-        else 
-        {
-          command.AddInput(instance);
-        }
-
-        previousCommand = &command;
-      }
-
-      job.SetDescription(std::string("Lua script: ") + ON_STORED_INSTANCE);
-      scheduler_.Submit(job);
-    }
+    area_.Remove(fileUuid, type);
   }
 
 
@@ -283,30 +183,52 @@ namespace Orthanc
   {
     try
     {
+      StorageAccessor accessor(area_);
+
       DicomInstanceHasher hasher(dicom.GetSummary());
       resultPublicId = hasher.HashInstance();
 
-      Json::Value simplified;
-      SimplifyTags(simplified, dicom.GetJson());
+      Json::Value simplifiedTags;
+      SimplifyTags(simplifiedTags, dicom.GetJson());
 
       // Test if the instance must be filtered out
-      if (!ApplyReceivedInstanceFilter(simplified, dicom.GetRemoteAet()))
+      bool accepted = true;
+
+      {
+        boost::recursive_mutex::scoped_lock lock(listenersMutex_);
+
+        for (ServerListeners::iterator it = listeners_.begin(); it != listeners_.end(); ++it)
+        {
+          try
+          {
+            if (!it->GetListener().FilterIncomingInstance(dicom, simplifiedTags))
+            {
+              accepted = false;
+              break;
+            }
+          }
+          catch (OrthancException& e)
+          {
+            LOG(ERROR) << "Error in the " << it->GetDescription() 
+                       << " callback while receiving an instance: " << e.What();
+            throw;
+          }
+        }
+      }
+
+      if (!accepted)
       {
         LOG(INFO) << "An incoming instance has been discarded by the filter";
         return StoreStatus_FilteredOut;
       }
 
-      if (compressionEnabled_)
-      {
-        accessor_.SetCompressionForNextOperations(CompressionType_Zlib);
-      }
-      else
-      {
-        accessor_.SetCompressionForNextOperations(CompressionType_None);
-      }      
+      // TODO Should we use "gzip" instead?
+      CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
 
-      FileInfo dicomInfo = accessor_.Write(dicom.GetBufferData(), dicom.GetBufferSize(), FileContentType_Dicom);
-      FileInfo jsonInfo = accessor_.Write(dicom.GetJson().toStyledString(), FileContentType_DicomAsJson);
+      FileInfo dicomInfo = accessor.Write(dicom.GetBufferData(), dicom.GetBufferSize(), 
+                                          FileContentType_Dicom, compression, storeMD5_);
+      FileInfo jsonInfo = accessor.Write(dicom.GetJson().toStyledString(), 
+                                         FileContentType_DicomAsJson, compression, storeMD5_);
 
       ServerIndex::Attachments attachments;
       attachments.push_back(dicomInfo);
@@ -317,6 +239,7 @@ namespace Orthanc
       StoreStatus status = index_.Store(instanceMetadata, dicom.GetSummary(), attachments, 
                                         dicom.GetRemoteAet(), dicom.GetMetadata());
 
+      // Only keep the metadata for the "instance" level
       dicom.GetMetadata().clear();
 
       for (InstanceMetadata::const_iterator it = instanceMetadata.begin();
@@ -328,8 +251,8 @@ namespace Orthanc
             
       if (status != StoreStatus_Success)
       {
-        accessor_.Remove(dicomInfo.GetUuid(), FileContentType_Dicom);
-        accessor_.Remove(jsonInfo.GetUuid(), FileContentType_DicomAsJson);
+        accessor.Remove(dicomInfo);
+        accessor.Remove(jsonInfo);
       }
 
       switch (status)
@@ -354,33 +277,18 @@ namespace Orthanc
       if (status == StoreStatus_Success ||
           status == StoreStatus_AlreadyStored)
       {
-        Json::Value metadata = Json::objectValue;
-        for (std::map<MetadataType, std::string>::const_iterator 
-               it = instanceMetadata.begin(); 
-             it != instanceMetadata.end(); ++it)
-        {
-          metadata[EnumerationToString(it->first)] = it->second;
-        }
+        boost::recursive_mutex::scoped_lock lock(listenersMutex_);
 
-        try
-        {
-          ApplyLuaOnStoredInstance(resultPublicId, simplified, metadata, 
-                                   dicom.GetRemoteAet(), dicom.GetCalledAet());
-        }
-        catch (OrthancException& e)
-        {
-          LOG(ERROR) << "Error in " << ON_STORED_INSTANCE << " callback (Lua): " << e.What();
-        }
-
-        if (plugins_ != NULL)
+        for (ServerListeners::iterator it = listeners_.begin(); it != listeners_.end(); ++it)
         {
           try
           {
-            plugins_->SignalStoredInstance(dicom, resultPublicId);
+            it->GetListener().SignalStoredInstance(resultPublicId, dicom, simplifiedTags);
           }
           catch (OrthancException& e)
           {
-            LOG(ERROR) << "Error in " << ON_STORED_INSTANCE << " callback (plugins): " << e.What();
+            LOG(ERROR) << "Error in the " << it->GetDescription() 
+                       << " callback while receiving an instance: " << e.What();
           }
         }
       }
@@ -410,12 +318,8 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
 
-    accessor_.SetCompressionForNextOperations(attachment.GetCompressionType());
-
-    std::auto_ptr<HttpFileSender> sender(accessor_.ConstructHttpFileSender(attachment.GetUuid(), attachment.GetContentType()));
-    sender->SetContentType(GetMimeType(content));
-    sender->SetDownloadFilename(instancePublicId + ".dcm");
-    output.AnswerFile(*sender);
+    StorageAccessor accessor(area_);
+    accessor.AnswerFile(output, attachment);
   }
 
 
@@ -428,7 +332,7 @@ namespace Orthanc
     Json::Reader reader;
     if (!reader.parse(s, result))
     {
-      throw OrthancException("Corrupted JSON file");
+      throw OrthancException(ErrorCode_CorruptedFile);
     }
   }
 
@@ -446,14 +350,15 @@ namespace Orthanc
 
     if (uncompressIfNeeded)
     {
-      accessor_.SetCompressionForNextOperations(attachment.GetCompressionType());
+      StorageAccessor accessor(area_);
+      accessor.Read(result, attachment);
     }
     else
     {
-      accessor_.SetCompressionForNextOperations(CompressionType_None);
+      // Do not interpret the content of the storage area, return the
+      // raw data
+      area_.Read(result, attachment.GetUuid(), content);
     }
-
-    accessor_.Read(result, attachment.GetUuid(), attachment.GetContentType());
   }
 
 
@@ -488,7 +393,7 @@ namespace Orthanc
   void ServerContext::SetStoreMD5ForAttachments(bool storeMD5)
   {
     LOG(INFO) << "Storing MD5 for attachments: " << (storeMD5 ? "yes" : "no");
-    accessor_.SetStoreMD5(storeMD5);
+    storeMD5_ = storeMD5;
   }
 
 
@@ -499,21 +404,16 @@ namespace Orthanc
   {
     LOG(INFO) << "Adding attachment " << EnumerationToString(attachmentType) << " to resource " << resourceId;
     
-    if (compressionEnabled_)
-    {
-      accessor_.SetCompressionForNextOperations(CompressionType_Zlib);
-    }
-    else
-    {
-      accessor_.SetCompressionForNextOperations(CompressionType_None);
-    }      
+    // TODO Should we use "gzip" instead?
+    CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
 
-    FileInfo info = accessor_.Write(data, size, attachmentType);
-    StoreStatus status = index_.AddAttachment(info, resourceId);
+    StorageAccessor accessor(area_);
+    FileInfo attachment = accessor.Write(data, size, attachmentType, compression, storeMD5_);
 
+    StoreStatus status = index_.AddAttachment(attachment, resourceId);
     if (status != StoreStatus_Success)
     {
-      accessor_.Remove(info.GetUuid(), info.GetContentType());
+      accessor.Remove(attachment);
       return false;
     }
     else
@@ -533,40 +433,37 @@ namespace Orthanc
 
   void ServerContext::SignalChange(const ServerIndexChange& change)
   {
-    if (plugins_ != NULL)
-    {
-      try
-      {
-        plugins_->SignalChange(change);
-      }
-      catch (OrthancException& e)
-      {
-        LOG(ERROR) << "Error in OnChangeCallback (plugins): " << e.What();
-      }
-    }
+    pendingChanges_.Enqueue(change.Clone());
   }
 
 
-  bool ServerContext::HasPlugins() const
+#if ORTHANC_PLUGINS_ENABLED == 1
+  void ServerContext::SetPlugins(OrthancPlugins& plugins)
   {
-    return (pluginsManager_ && plugins_);
+    boost::recursive_mutex::scoped_lock lock(listenersMutex_);
+
+    plugins_ = &plugins;
+
+    // TODO REFACTOR THIS
+    listeners_.clear();
+    listeners_.push_back(ServerListener(lua_, "Lua"));
+    listeners_.push_back(ServerListener(plugins, "plugin"));
   }
 
 
-  const PluginsManager& ServerContext::GetPluginsManager() const
+  void ServerContext::ResetPlugins()
   {
-    if (HasPlugins())
-    {
-      return *pluginsManager_;
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
+    boost::recursive_mutex::scoped_lock lock(listenersMutex_);
+
+    plugins_ = NULL;
+
+    // TODO REFACTOR THIS
+    listeners_.clear();
+    listeners_.push_back(ServerListener(lua_, "Lua"));
   }
 
 
-  const OrthancPlugins& ServerContext::GetOrthancPlugins() const
+  const OrthancPlugins& ServerContext::GetPlugins() const
   {
     if (HasPlugins())
     {
@@ -576,5 +473,17 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_InternalError);
     }
+  }
+
+#endif
+
+
+  bool ServerContext::HasPlugins() const
+  {
+#if ORTHANC_PLUGINS_ENABLED == 1
+    return (plugins_ != NULL);
+#else
+    return false;
+#endif
   }
 }

@@ -3,25 +3,18 @@
  * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use, copy,
- * modify, merge, publish, distribute, sublicense, and/or sell copies
- * of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * This program is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
  *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
- * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
- * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
 
@@ -32,7 +25,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include "OrthancContext.h"
-#include "../../../Core/ImageFormats/ImageProcessing.h"
+#include "../../../Core/Images/ImageProcessing.h"
 
 #include <gdcmReader.h>
 #include <gdcmImageReader.h>
@@ -92,9 +85,9 @@ static bool GetOrthancPixelFormat(Orthanc::PixelFormat& format,
 }
 
 
-ORTHANC_PLUGINS_API int32_t DecodeImage(OrthancPluginRestOutput* output,
-                                        const char* url,
-                                        const OrthancPluginHttpRequest* request)
+ORTHANC_PLUGINS_API OrthancPluginErrorCode DecodeImage(OrthancPluginRestOutput* output,
+                                                       const char* url,
+                                                       const OrthancPluginHttpRequest* request)
 {
   std::string instance(request->groups[0]);
   std::string outputFormat(request->groups[1]);
@@ -114,7 +107,7 @@ ORTHANC_PLUGINS_API int32_t DecodeImage(OrthancPluginRestOutput* output,
   {
     OrthancContext::GetInstance().LogError("GDCM cannot extract an image from this DICOM instance");
     AnswerUnsupportedImage(output);
-    return 0;
+    return OrthancPluginErrorCode_Success;
   }
 
   gdcm::Image& image = imageReader.GetImage();
@@ -145,7 +138,7 @@ ORTHANC_PLUGINS_API int32_t DecodeImage(OrthancPluginRestOutput* output,
   {
     OrthancContext::GetInstance().LogError("This sample plugin does not support this image format");
     AnswerUnsupportedImage(output);
-    return 0;
+    return OrthancPluginErrorCode_Success;
   }
 
   Orthanc::ImageAccessor decodedImage;
@@ -197,7 +190,7 @@ ORTHANC_PLUGINS_API int32_t DecodeImage(OrthancPluginRestOutput* output,
     {
       // Do not convert color images to grayscale values (this is Orthanc convention)
       AnswerUnsupportedImage(output);
-      return 0;
+      return OrthancPluginErrorCode_Success;
     }
 
     if (outputFormat == "image-uint8")
@@ -216,7 +209,7 @@ ORTHANC_PLUGINS_API int32_t DecodeImage(OrthancPluginRestOutput* output,
     {
       OrthancContext::GetInstance().LogError("Unknown output format: " + outputFormat);
       AnswerUnsupportedImage(output);
-      return 0;
+      return OrthancPluginErrorCode_Success;
     }
   }
 
@@ -226,7 +219,7 @@ ORTHANC_PLUGINS_API int32_t DecodeImage(OrthancPluginRestOutput* output,
   // Compress the converted image as a PNG file
   OrthancContext::GetInstance().CompressAndAnswerPngImage(output, convertedAccessor);
 
-  return 0;  // Success
+  return OrthancPluginErrorCode_Success;  // Success
 }
 
 

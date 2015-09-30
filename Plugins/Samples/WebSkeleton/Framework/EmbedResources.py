@@ -7,18 +7,6 @@
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
 #
-# In addition, as a special exception, the copyright holders of this
-# program give permission to link the code of its release with the
-# OpenSSL project's "OpenSSL" library (or with modified versions of it
-# that use the same license as the "OpenSSL" library), and distribute
-# the linked executables. You must obey the GNU General Public License
-# in all respects for all of the code used other than "OpenSSL". If you
-# modify file(s) with this exception, you may extend this exception to
-# your version of the file(s), but you are not obligated to do so. If
-# you do not wish to do so, delete this exception statement from your
-# version. If you delete this exception statement from all source files
-# in the program, then also delete it here.
-# 
 # This program is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -221,6 +209,10 @@ def WriteResource(cpp, item):
 
         cpp.write("0x%02x" % c)
         pos += 1
+
+    # Zero-size array are disallowed, so we put one single void character in it.
+    if pos == 0:
+        cpp.write('  0')
 
     cpp.write('  };\n')
     cpp.write('    static const size_t resource%dSize = %d;\n' % (item['Index'], pos))

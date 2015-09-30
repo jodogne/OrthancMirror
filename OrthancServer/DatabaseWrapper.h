@@ -52,9 +52,10 @@ namespace Orthanc
   class DatabaseWrapper : public IDatabaseWrapper
   {
   private:
-    IServerIndexListener* listener_;
+    IDatabaseListener* listener_;
     SQLite::Connection db_;
     Internals::SignalRemainingAncestor* signalRemainingAncestor_;
+    unsigned int version_;
 
     void Open();
 
@@ -75,7 +76,7 @@ namespace Orthanc
 
     DatabaseWrapper();
 
-    virtual void SetListener(IServerIndexListener& listener);
+    virtual void SetListener(IDatabaseListener& listener);
 
     virtual void SetGlobalProperty(GlobalProperty property,
                                    const std::string& value);
@@ -170,6 +171,11 @@ namespace Orthanc
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType);
 
+    virtual void GetAllPublicIds(std::list<std::string>& target,
+                                 ResourceType resourceType,
+                                 size_t since,
+                                 size_t limit);
+
     virtual bool SelectPatientToRecycle(int64_t& internalId);
 
     virtual bool SelectPatientToRecycle(int64_t& internalId,
@@ -217,6 +223,13 @@ namespace Orthanc
     virtual void GetAllMetadata(std::map<MetadataType, std::string>& target,
                                 int64_t id);
 
+    virtual unsigned int GetDatabaseVersion()
+    {
+      return version_;
+    }
+
+    virtual void Upgrade(unsigned int targetVersion,
+                         IStorageArea& storageArea);
 
 
 

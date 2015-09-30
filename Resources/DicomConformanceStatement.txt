@@ -186,7 +186,16 @@ Orthanc supports the following SOP Classes as an SCU for C-Find:
 
   FINDPatientRootQueryRetrieveInformationModel  | 1.2.840.10008.5.1.4.1.2.1.1
   FINDStudyRootQueryRetrieveInformationModel    | 1.2.840.10008.5.1.4.1.2.2.1
-  FINDStudyRootQueryRetrieveInformationModel    | 1.2.840.10008.5.1.4.1.2.2.1
+
+
+--------------------
+Move SCU Conformance
+--------------------
+
+Orthanc supports the following SOP Classes as an SCU for C-Move:
+
+  MOVEPatientRootQueryRetrieveInformationModel  | 1.2.840.10008.5.1.4.1.2.1.2
+  MOVEStudyRootQueryRetrieveInformationModel    | 1.2.840.10008.5.1.4.1.2.2.2
 
 
 -----------------

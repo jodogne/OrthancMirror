@@ -39,23 +39,21 @@ endif()
 
 
 if (BOOST_STATIC)
-  # Parameters for Boost 1.55.0
-  set(BOOST_NAME boost_1_55_0)
-  set(BOOST_BCP_SUFFIX bcpdigest-0.7.4)
-  set(BOOST_MD5 "409f7a0e4fb1f5659d07114f3133b67b")
-  set(BOOST_FILESYSTEM_SOURCES_DIR "${BOOST_NAME}/libs/filesystem/src")
-  
+  # Parameters for Boost 1.58.0
+  set(BOOST_NAME boost_1_58_0)
+  set(BOOST_BCP_SUFFIX bcpdigest-0.9.2)
+  set(BOOST_MD5 "704b110917cbda903e07cb53934b47ac")
+  set(BOOST_URL "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz")
+  set(BOOST_FILESYSTEM_SOURCES_DIR "${BOOST_NAME}/libs/filesystem/src") 
   set(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
-  DownloadPackage(
-    "${BOOST_MD5}"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz"
-    "${BOOST_SOURCES_DIR}"
-    )
+
+  DownloadPackage(${BOOST_MD5} ${BOOST_URL} "${BOOST_SOURCES_DIR}")
 
   set(BOOST_SOURCES)
 
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
     list(APPEND BOOST_SOURCES
       ${BOOST_SOURCES_DIR}/libs/thread/src/pthread/once.cpp
@@ -82,8 +80,11 @@ if (BOOST_STATIC)
     # Windows XP seems not to support properly several codepages
     # (notably "Latin3", "Hebrew", and "Arabic").
 
-    # add_definitions(-DBOOST_LOCALE_WITH_WCONV=1)
-    include(${ORTHANC_ROOT}/Resources/CMake/LibIconvConfiguration.cmake)
+    if (USE_BOOST_ICONV)
+      include(${ORTHANC_ROOT}/Resources/CMake/LibIconvConfiguration.cmake)
+    else()
+      add_definitions(-DBOOST_LOCALE_WITH_WCONV=1)
+    endif()
 
   else()
     message(FATAL_ERROR "Support your platform here")
@@ -92,16 +93,6 @@ if (BOOST_STATIC)
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
     list(APPEND BOOST_SOURCES
       ${BOOST_SOURCES_DIR}/libs/filesystem/src/utf8_codecvt_facet.cpp
-      )
-  endif()
-
-  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    # This is a patch to compile Boost 1.55.0 with Clang 3.4 and later
-    # (including XCode 5.1). Fixes issue 14 of Orthanc.
-    # https://trac.macports.org/ticket/42282#comment:10
-    execute_process(
-      COMMAND patch -p0 -i ${ORTHANC_ROOT}/Resources/Patches/boost-1.55.0-clang-atomic.patch
-      WORKING_DIRECTORY ${BOOST_SOURCES_DIR}
       )
   endif()
 
@@ -118,8 +109,6 @@ if (BOOST_STATIC)
     ${BOOST_SOURCES_DIR}/libs/system/src/error_code.cpp
     )
 
-  list(APPEND THIRD_PARTY_SOURCES ${BOOST_SOURCES})
-
   add_definitions(
     # Static build of Boost
     -DBOOST_ALL_NO_LIB 
@@ -134,7 +123,7 @@ if (BOOST_STATIC)
     -DBOOST_HAS_FILESYSTEM_V3=1
     )
 
-  if (${CMAKE_COMPILER_IS_GNUCXX})
+  if (CMAKE_COMPILER_IS_GNUCXX)
     add_definitions(-isystem ${BOOST_SOURCES_DIR})
   endif()
 
@@ -148,3 +137,9 @@ else()
     -DBOOST_HAS_LOCALE=1
     )
 endif()
+
+
+add_definitions(
+  -DBOOST_HAS_DATE_TIME=1
+  -DBOOST_HAS_REGEX=1
+  )

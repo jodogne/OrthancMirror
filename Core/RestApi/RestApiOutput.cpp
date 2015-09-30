@@ -33,15 +33,18 @@
 #include "../PrecompiledHeaders.h"
 #include "RestApiOutput.h"
 
-#include <boost/lexical_cast.hpp>
-#include <glog/logging.h>
-
+#include "../Logging.h"
 #include "../OrthancException.h"
+
+#include <boost/lexical_cast.hpp>
+
 
 namespace Orthanc
 {
-  RestApiOutput::RestApiOutput(HttpOutput& output) : 
+  RestApiOutput::RestApiOutput(HttpOutput& output,
+                               HttpMethod method) : 
     output_(output),
+    method_(method),
     convertJsonToXml_(false)
   {
     alreadySent_ = false;
@@ -55,7 +58,14 @@ namespace Orthanc
   {
     if (!alreadySent_)
     {
-      output_.SendStatus(HttpStatus_404_NotFound);
+      if (method_ == HttpMethod_Post)
+      {
+        output_.SendStatus(HttpStatus_400_BadRequest);
+      }
+      else
+      {
+        output_.SendStatus(HttpStatus_404_NotFound);
+      }
     }
   }
   
@@ -67,10 +77,11 @@ namespace Orthanc
     }
   }
 
-  void RestApiOutput::AnswerFile(HttpFileSender& sender)
+
+  void RestApiOutput::AnswerStream(IHttpStreamAnswer& stream)
   {
     CheckStatus();
-    sender.Send(output_);
+    output_.Answer(stream);
     alreadySent_ = true;
   }
 
@@ -84,7 +95,7 @@ namespace Orthanc
       std::string s;
       Toolbox::JsonToXml(s, value);
       output_.SetContentType("application/xml");
-      output_.SendBody(s);
+      output_.Answer(s);
 #else
       LOG(ERROR) << "Orthanc was compiled without XML support";
       throw OrthancException(ErrorCode_InternalError);
@@ -94,7 +105,7 @@ namespace Orthanc
     {
       Json::StyledWriter writer;
       output_.SetContentType("application/json");
-      output_.SendBody(writer.write(value));
+      output_.Answer(writer.write(value));
     }
 
     alreadySent_ = true;
@@ -103,10 +114,8 @@ namespace Orthanc
   void RestApiOutput::AnswerBuffer(const std::string& buffer,
                                    const std::string& contentType)
   {
-    CheckStatus();
-    output_.SetContentType(contentType.c_str());
-    output_.SendBody(buffer);
-    alreadySent_ = true;
+    AnswerBuffer(buffer.size() == 0 ? NULL : buffer.c_str(),
+                 buffer.size(), contentType);
   }
 
   void RestApiOutput::AnswerBuffer(const void* buffer,
@@ -115,7 +124,7 @@ namespace Orthanc
   {
     CheckStatus();
     output_.SetContentType(contentType.c_str());
-    output_.SendBody(buffer, length);
+    output_.Answer(buffer, length);
     alreadySent_ = true;
   }
 
@@ -126,19 +135,32 @@ namespace Orthanc
     alreadySent_ = true;
   }
 
-  void RestApiOutput::SignalError(HttpStatus status)
+  void RestApiOutput::SignalErrorInternal(HttpStatus status,
+					  const char* message,
+					  size_t messageSize)
   {
     if (status != HttpStatus_400_BadRequest &&
         status != HttpStatus_403_Forbidden &&
         status != HttpStatus_500_InternalServerError &&
         status != HttpStatus_415_UnsupportedMediaType)
     {
-      throw OrthancException("This HTTP status is not allowed in a REST API");
+      throw OrthancException(ErrorCode_BadHttpStatusInRest);
     }
 
     CheckStatus();
-    output_.SendStatus(status);
+    output_.SendStatus(status, message, messageSize);
     alreadySent_ = true;    
+  }
+
+  void RestApiOutput::SignalError(HttpStatus status)
+  {
+    SignalErrorInternal(status, NULL, 0);
+  }
+
+  void RestApiOutput::SignalError(HttpStatus status,
+				  const std::string& message)
+  {
+    SignalErrorInternal(status, message.c_str(), message.size());
   }
 
   void RestApiOutput::SetCookie(const std::string& name,

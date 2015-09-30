@@ -30,36 +30,43 @@
  **/
 
 
+#include "../../OrthancServer/PrecompiledHeadersServer.h"
 #include "SharedLibrary.h"
 
+#if ORTHANC_PLUGINS_ENABLED != 1
+#error The plugin support is disabled
+#endif
+
+
+#include "../../Core/Logging.h"
 #include "../../Core/Toolbox.h"
+
+#include <boost/filesystem.hpp>
 
 #if defined(_WIN32)
 #include <windows.h>
-#elif defined(__linux) || (defined(__APPLE__) && defined(__MACH__)) || defined(__FreeBSD_kernel__)
+#elif defined(__linux) || (defined(__APPLE__) && defined(__MACH__)) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
 #include <dlfcn.h>
 #else
 #error Support your platform here
 #endif
 
-#include <glog/logging.h>
-
 namespace Orthanc
 {
   SharedLibrary::SharedLibrary(const std::string& path) : 
-    path_(path),
+    path_(path), 
     handle_(NULL)
   {
 #if defined(_WIN32)
-    handle_ = ::LoadLibraryA(path.c_str());
+    handle_ = ::LoadLibraryA(path_.c_str());
     if (handle_ == NULL)
     {
-      LOG(ERROR) << "LoadLibrary(" << path << ") failed: Error " << ::GetLastError();
+      LOG(ERROR) << "LoadLibrary(" << path_ << ") failed: Error " << ::GetLastError();
       throw OrthancException(ErrorCode_SharedLibrary);
     }
 
-#elif defined(__linux) || (defined(__APPLE__) && defined(__MACH__)) || defined(__FreeBSD_kernel__)
-    handle_ = ::dlopen(path.c_str(), RTLD_NOW);
+#elif defined(__linux) || (defined(__APPLE__) && defined(__MACH__)) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
+    handle_ = ::dlopen(path_.c_str(), RTLD_NOW);
     if (handle_ == NULL) 
     {
       std::string explanation;
@@ -69,7 +76,7 @@ namespace Orthanc
         explanation = ": Error " + std::string(tmp);
       }
 
-      LOG(ERROR) << "dlopen(" << path << ") failed" << explanation;
+      LOG(ERROR) << "dlopen(" << path_ << ") failed" << explanation;
       throw OrthancException(ErrorCode_SharedLibrary);
     }
 
@@ -84,7 +91,7 @@ namespace Orthanc
     {
 #if defined(_WIN32)
       ::FreeLibrary((HMODULE)handle_);
-#elif defined(__linux) || (defined(__APPLE__) && defined(__MACH__)) || defined(__FreeBSD_kernel__)
+#elif defined(__linux) || (defined(__APPLE__) && defined(__MACH__)) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
       ::dlclose(handle_);
 #else
 #error Support your platform here
@@ -102,7 +109,7 @@ namespace Orthanc
 
 #if defined(_WIN32)
     return ::GetProcAddress((HMODULE)handle_, name.c_str());
-#elif defined(__linux) || (defined(__APPLE__) && defined(__MACH__)) || defined(__FreeBSD_kernel__)
+#elif defined(__linux) || (defined(__APPLE__) && defined(__MACH__)) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
     return ::dlsym(handle_, name.c_str());
 #else
 #error Support your platform here

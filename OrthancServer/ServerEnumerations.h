@@ -60,7 +60,8 @@ namespace Orthanc
     ModalityManufacturer_StoreScp,
     ModalityManufacturer_ClearCanvas,
     ModalityManufacturer_MedInria,
-    ModalityManufacturer_Dcm4Chee
+    ModalityManufacturer_Dcm4Chee,
+    ModalityManufacturer_SyngoVia
   };
 
   enum DicomRequestType
@@ -88,6 +89,15 @@ namespace Orthanc
     TransferSyntax_Jpip,
     TransferSyntax_Mpeg2,
     TransferSyntax_Rle
+  };
+
+  enum ValueRepresentation
+  {
+    ValueRepresentation_Other,
+    ValueRepresentation_PatientName,
+    ValueRepresentation_Date,
+    ValueRepresentation_DateTime,
+    ValueRepresentation_Time
   };
 
 
@@ -177,8 +187,4 @@ namespace Orthanc
   const char* EnumerationToString(TransferSyntax syntax);
 
   ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer);
-
-  ResourceType GetParentResourceType(ResourceType type);
-
-  ResourceType GetChildResourceType(ResourceType type);
 }

@@ -57,7 +57,8 @@ namespace Orthanc
 
     virtual bool Handle(DicomFindAnswers& answers,
                         const DicomMap& input,
-                        const std::string& callingAETitle);
+                        const std::string& remoteIp,
+                        const std::string& remoteAet);
 
     unsigned int GetMaxResults() const
     {

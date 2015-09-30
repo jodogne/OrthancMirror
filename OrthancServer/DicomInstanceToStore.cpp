@@ -30,12 +30,13 @@
  **/
 
 
+#include "PrecompiledHeadersServer.h"
 #include "DicomInstanceToStore.h"
 
 #include "FromDcmtkBridge.h"
+#include "../Core/Logging.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
-#include <glog/logging.h>
 
 
 namespace Orthanc
@@ -170,5 +171,100 @@ namespace Orthanc
     }
 
     return json_.GetConstContent();
+  }
+
+
+
+  void DicomInstanceToStore::GetOriginInformation(Json::Value& result) const
+  {
+    result = Json::objectValue;
+    result["RequestOrigin"] = EnumerationToString(origin_);
+
+    switch (origin_)
+    {
+      case RequestOrigin_Unknown:
+      {
+        // None of the methods "SetDicomProtocolOrigin()", "SetHttpOrigin()",
+        // "SetLuaOrigin()" or "SetPluginsOrigin()" was called!
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+
+      case RequestOrigin_DicomProtocol:
+      {
+        result["RemoteIp"] = remoteIp_;
+        result["RemoteAet"] = dicomRemoteAet_;
+        result["CalledAet"] = dicomCalledAet_;
+        break;
+      }
+
+      case RequestOrigin_Http:
+      {
+        result["RemoteIp"] = remoteIp_;
+        result["Username"] = httpUsername_;
+        break;
+      }
+
+      case RequestOrigin_Lua:
+      case RequestOrigin_Plugins:
+      {
+        // No additional information available for these kinds of requests
+        break;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
+  void DicomInstanceToStore::SetDicomProtocolOrigin(const char* remoteIp,
+                                                    const char* remoteAet,
+                                                    const char* calledAet)
+  {
+    origin_ = RequestOrigin_DicomProtocol;
+    remoteIp_ = remoteIp;
+    dicomRemoteAet_ = remoteAet;
+    dicomCalledAet_ = calledAet;
+  }
+
+  void DicomInstanceToStore::SetRestOrigin(const RestApiCall& call)
+  {
+    origin_ = call.GetRequestOrigin();
+
+    if (origin_ == RequestOrigin_Http)
+    {
+      remoteIp_ = call.GetRemoteIp();
+      httpUsername_ = call.GetUsername();
+    }
+  }
+
+  void DicomInstanceToStore::SetHttpOrigin(const char* remoteIp,
+                                           const char* username)
+  {
+    origin_ = RequestOrigin_Http;
+    remoteIp_ = remoteIp;
+    httpUsername_ = username;
+  }
+
+  void DicomInstanceToStore::SetLuaOrigin()
+  {
+    origin_ = RequestOrigin_Lua;
+  }
+
+  void DicomInstanceToStore::SetPluginsOrigin()
+  {
+    origin_ = RequestOrigin_Plugins;
+  }
+
+  const char* DicomInstanceToStore::GetRemoteAet() const
+  {
+    if (origin_ == RequestOrigin_DicomProtocol)
+    {
+      return dicomRemoteAet_.c_str();
+    }
+    else
+    {
+      return "";
+    }
   }
 }

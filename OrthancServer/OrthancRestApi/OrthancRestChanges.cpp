@@ -33,7 +33,7 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
-#include <glog/logging.h>
+#include "../ServerContext.h"
 
 namespace Orthanc
 {

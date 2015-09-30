@@ -45,7 +45,14 @@ using namespace Orthanc;
 
 TEST(SQLite, Configuration)
 {
-  ASSERT_EQ(1, sqlite3_threadsafe());
+  /**
+   * The system-wide version of SQLite under OS X uses
+   * SQLITE_THREADSAFE==2 (SQLITE_CONFIG_SERIALIZED), whereas the
+   * static builds of Orthanc use SQLITE_THREADSAFE==1
+   * (SQLITE_CONFIG_MULTITHREAD). In any case, we wish to ensure that
+   * SQLITE_THREADSAFE!=0 (SQLITE_CONFIG_SINGLETHREAD).
+   **/
+  ASSERT_NE(0, sqlite3_threadsafe());
 }
 
 

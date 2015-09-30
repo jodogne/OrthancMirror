@@ -46,14 +46,6 @@ namespace Orthanc
   class DicomUserConnection : public boost::noncopyable
   {
   private:
-    enum FindRootModel
-    {
-      FindRootModel_Patient,
-      FindRootModel_Study,
-      FindRootModel_Series,
-      FindRootModel_Instance
-    };
-
     struct PImpl;
     boost::shared_ptr<PImpl> pimpl_;
 
@@ -72,12 +64,9 @@ namespace Orthanc
 
     void SetupPresentationContexts(const std::string& preferredTransferSyntax);
 
-    void Find(DicomFindAnswers& result,
-              FindRootModel model,
-              const DicomMap& fields);
-
-    void Move(const std::string& targetAet,
-              const DicomMap& fields);
+    void MoveInternal(const std::string& targetAet,
+                      ResourceType level,
+                      const DicomMap& fields);
 
     void ResetStorageSOPClasses();
 
@@ -88,7 +77,7 @@ namespace Orthanc
 
     ~DicomUserConnection();
 
-    void Connect(const RemoteModalityParameters& parameters);
+    void SetRemoteModality(const RemoteModalityParameters& parameters);
 
     void SetLocalApplicationEntityTitle(const std::string& aet);
 
@@ -150,27 +139,22 @@ namespace Orthanc
 
     void StoreFile(const std::string& path);
 
-    void FindPatient(DicomFindAnswers& result,
-                     const DicomMap& fields);
+    void Find(DicomFindAnswers& result,
+              ResourceType level,
+              const DicomMap& fields);
 
-    void FindStudy(DicomFindAnswers& result,
-                   const DicomMap& fields);
+    void Move(const std::string& targetAet,
+              const DicomMap& findResult);
 
-    void FindSeries(DicomFindAnswers& result,
-                    const DicomMap& fields);
+    void MovePatient(const std::string& targetAet,
+                     const std::string& patientId);
 
-    void FindInstance(DicomFindAnswers& result,
-                      const DicomMap& fields);
-
-    void MoveSeries(const std::string& targetAet,
-                    const DicomMap& findResult);
+    void MoveStudy(const std::string& targetAet,
+                   const std::string& studyUid);
 
     void MoveSeries(const std::string& targetAet,
                     const std::string& studyUid,
                     const std::string& seriesUid);
-
-    void MoveInstance(const std::string& targetAet,
-                      const DicomMap& findResult);
 
     void MoveInstance(const std::string& targetAet,
                       const std::string& studyUid,

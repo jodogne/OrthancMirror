@@ -33,24 +33,15 @@
 #include "../PrecompiledHeaders.h"
 #include "ZlibCompressor.h"
 
+#include "../OrthancException.h"
+#include "../Logging.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <zlib.h>
-#include "../OrthancException.h"
 
 namespace Orthanc
 {
-  void ZlibCompressor::SetCompressionLevel(uint8_t level)
-  {
-    if (level >= 10)
-    {
-      throw OrthancException("Zlib compression level must be between 0 (no compression) and 9 (highest compression");
-    }
-
-    compressionLevel_ = level;
-  }
-
-
   void ZlibCompressor::Compress(std::string& compressed,
                                 const void* uncompressed,
                                 size_t uncompressedSize)
@@ -61,24 +52,31 @@ namespace Orthanc
       return;
     }
 
-    uLongf compressedSize = compressBound(uncompressedSize);
-    compressed.resize(compressedSize + sizeof(size_t));
-
-    int error = compress2
-      (reinterpret_cast<uint8_t*>(&compressed[0]) + sizeof(size_t),
-       &compressedSize,
-       const_cast<Bytef *>(static_cast<const Bytef *>(uncompressed)), 
-       uncompressedSize,
-       compressionLevel_);
-
-    memcpy(&compressed[0], &uncompressedSize, sizeof(size_t));
-  
-    if (error == Z_OK)
+    uLongf compressedSize = compressBound(uncompressedSize) + 1024 /* security margin */;
+    if (compressedSize == 0)
     {
-      compressed.resize(compressedSize + sizeof(size_t));
-      return;
+      compressedSize = 1;
+    }
+
+    uint8_t* target;
+    if (HasPrefixWithUncompressedSize())
+    {
+      compressed.resize(compressedSize + sizeof(uint64_t));
+      target = reinterpret_cast<uint8_t*>(&compressed[0]) + sizeof(uint64_t);
     }
     else
+    {
+      compressed.resize(compressedSize);
+      target = reinterpret_cast<uint8_t*>(&compressed[0]);
+    }
+
+    int error = compress2(target,
+                          &compressedSize,
+                          const_cast<Bytef *>(static_cast<const Bytef *>(uncompressed)), 
+                          uncompressedSize,
+                          GetCompressionLevel());
+
+    if (error != Z_OK)
     {
       compressed.clear();
 
@@ -90,6 +88,18 @@ namespace Orthanc
       default:
         throw OrthancException(ErrorCode_InternalError);
       }  
+    }
+
+    // The compression was successful
+    if (HasPrefixWithUncompressedSize())
+    {
+      uint64_t s = static_cast<uint64_t>(uncompressedSize);
+      memcpy(&compressed[0], &s, sizeof(uint64_t));
+      compressed.resize(compressedSize + sizeof(uint64_t));
+    }
+    else
+    {
+      compressed.resize(compressedSize);
     }
   }
 
@@ -104,29 +114,29 @@ namespace Orthanc
       return;
     }
 
-    if (compressedSize < sizeof(size_t))
+    if (!HasPrefixWithUncompressedSize())
     {
-      throw OrthancException("Zlib: The compressed buffer is ill-formed");
+      LOG(ERROR) << "Cannot guess the uncompressed size of a zlib-encoded buffer";
+      throw OrthancException(ErrorCode_InternalError);
     }
 
-    size_t uncompressedLength;
-    memcpy(&uncompressedLength, compressed, sizeof(size_t));
+    uint64_t uncompressedSize = ReadUncompressedSizePrefix(compressed, compressedSize);
     
     try
     {
-      uncompressed.resize(uncompressedLength);
+      uncompressed.resize(static_cast<size_t>(uncompressedSize));
     }
     catch (...)
     {
-      throw OrthancException("Zlib: Corrupted compressed buffer");
+      throw OrthancException(ErrorCode_NotEnoughMemory);
     }
 
-    uLongf tmp = uncompressedLength;
+    uLongf tmp = static_cast<uLongf>(uncompressedSize);
     int error = uncompress
       (reinterpret_cast<uint8_t*>(&uncompressed[0]), 
        &tmp,
-       reinterpret_cast<const uint8_t*>(compressed) + sizeof(size_t),
-       compressedSize - sizeof(size_t));
+       reinterpret_cast<const uint8_t*>(compressed) + sizeof(uint64_t),
+       compressedSize - sizeof(uint64_t));
 
     if (error != Z_OK)
     {
@@ -135,7 +145,7 @@ namespace Orthanc
       switch (error)
       {
       case Z_DATA_ERROR:
-        throw OrthancException("Zlib: Corrupted or incomplete compressed buffer");
+        throw OrthancException(ErrorCode_CorruptedFile);
 
       case Z_MEM_ERROR:
         throw OrthancException(ErrorCode_NotEnoughMemory);

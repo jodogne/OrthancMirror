@@ -118,11 +118,10 @@ namespace Orthanc
   }
 
 
-  void DicomTag::GetTagsForModule(std::set<DicomTag>& target,
+  void DicomTag::AddTagsForModule(std::set<DicomTag>& target,
                                   DicomModule module)
   {
     // REFERENCE: 11_03pu.pdf, DICOM PS 3.3 2011 - Information Object Definitions
-    target.clear();
 
     switch (module)
     {

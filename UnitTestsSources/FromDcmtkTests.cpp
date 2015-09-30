@@ -37,9 +37,9 @@
 #include "../OrthancServer/OrthancInitialization.h"
 #include "../OrthancServer/DicomModification.h"
 #include "../Core/OrthancException.h"
-#include "../Core/ImageFormats/ImageBuffer.h"
-#include "../Core/ImageFormats/PngReader.h"
-#include "../Core/ImageFormats/PngWriter.h"
+#include "../Core/Images/ImageBuffer.h"
+#include "../Core/Images/PngReader.h"
+#include "../Core/Images/PngWriter.h"
 #include "../Core/Uuid.h"
 #include "../Resources/EncodingTests.h"
 
@@ -145,33 +145,30 @@ TEST(DicomModification, Png)
   // Red dot in http://en.wikipedia.org/wiki/Data_URI_scheme (RGBA image)
   std::string s = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==";
 
-  std::string m, c;
-  Toolbox::DecodeDataUriScheme(m, c, s);
+  std::string m, cc;
+  Toolbox::DecodeDataUriScheme(m, cc, s);
 
   ASSERT_EQ("image/png", m);
-  ASSERT_EQ(116, c.size());
 
-  std::string cc;
-  Toolbox::DecodeBase64(cc, c);
   PngReader reader;
   reader.ReadFromMemory(cc);
 
-  ASSERT_EQ(5, reader.GetHeight());
-  ASSERT_EQ(5, reader.GetWidth());
+  ASSERT_EQ(5u, reader.GetHeight());
+  ASSERT_EQ(5u, reader.GetWidth());
   ASSERT_EQ(PixelFormat_RGBA32, reader.GetFormat());
 
   ParsedDicomFile o;
-  o.EmbedImage(s);
+  o.EmbedContent(s);
   o.SaveToFile("UnitTestsResults/png1.dcm");
 
   // Red dot, without alpha channel
   s = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAIAAAACDbGyAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gUGDTcIn2+8BgAAACJJREFUCNdj/P//PwMjIwME/P/P+J8BBTAxEOL/R9Lx/z8AynoKAXOeiV8AAAAASUVORK5CYII=";
-  o.EmbedImage(s);
+  o.EmbedContent(s);
   o.SaveToFile("UnitTestsResults/png2.dcm");
 
   // Check box in Graylevel8
   s = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAAAAAA6mKC9AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gUGDDcB53FulQAAAElJREFUGNNtj0sSAEEEQ1+U+185s1CtmRkblQ9CZldsKHJDk6DLGLJa6chjh0ooQmpjXMM86zPwydGEj6Ed/UGykkEM8X+p3u8/8LcOJIWLGeMAAAAASUVORK5CYII=";
-  o.EmbedImage(s);
+  o.EmbedContent(s);
   //o.Replace(DICOM_TAG_SOP_CLASS_UID, UID_DigitalXRayImageStorageForProcessing);
   o.SaveToFile("UnitTestsResults/png3.dcm");
 
@@ -184,7 +181,7 @@ TEST(DicomModification, Png)
     img.SetHeight(256);
     img.SetFormat(PixelFormat_Grayscale16);
 
-    int v = 0;
+    uint16_t v = 0;
     for (unsigned int y = 0; y < img.GetHeight(); y++)
     {
       uint16_t *p = reinterpret_cast<uint16_t*>(img.GetAccessor().GetRow(y));
@@ -272,6 +269,7 @@ TEST(FromDcmtkBridge, Encodings3)
       f.SaveToMemoryBuffer(dicom);
     }
 
+    if (testEncodings[i] != Encoding_Windows1251)
     {
       ParsedDicomFile g(dicom);
 
@@ -282,9 +280,22 @@ TEST(FromDcmtkBridge, Encodings3)
 
       std::string tag;
       ASSERT_TRUE(g.GetTagValue(tag, DICOM_TAG_PATIENT_NAME));
-
-      std::string expected();
       ASSERT_EQ(std::string(testEncodingsExpected[i]), tag);
     }
   }
+}
+
+
+TEST(FromDcmtkBridge, ValueRepresentation)
+{
+  ASSERT_EQ(ValueRepresentation_PatientName, 
+            FromDcmtkBridge::GetValueRepresentation(DICOM_TAG_PATIENT_NAME));
+  ASSERT_EQ(ValueRepresentation_Date, 
+            FromDcmtkBridge::GetValueRepresentation(DicomTag(0x0008, 0x0020) /* StudyDate */));
+  ASSERT_EQ(ValueRepresentation_Time, 
+            FromDcmtkBridge::GetValueRepresentation(DicomTag(0x0008, 0x0030) /* StudyTime */));
+  ASSERT_EQ(ValueRepresentation_DateTime, 
+            FromDcmtkBridge::GetValueRepresentation(DicomTag(0x0008, 0x002a) /* AcquisitionDateTime */));
+  ASSERT_EQ(ValueRepresentation_Other, 
+            FromDcmtkBridge::GetValueRepresentation(DICOM_TAG_PATIENT_ID));
 }

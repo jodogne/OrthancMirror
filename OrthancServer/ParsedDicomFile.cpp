@@ -84,15 +84,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
 #include "Internals/DicomImageDecoder.h"
+#include "../Core/Logging.h"
 #include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"
-#include "../Core/ImageFormats/ImageBuffer.h"
-#include "../Core/ImageFormats/PngWriter.h"
+#include "../Core/Images/ImageBuffer.h"
+#include "../Core/Images/PngWriter.h"
 #include "../Core/Uuid.h"
 #include "../Core/DicomFormat/DicomString.h"
 #include "../Core/DicomFormat/DicomNullValue.h"
 #include "../Core/DicomFormat/DicomIntegerPixelAccessor.h"
-#include "../Core/ImageFormats/PngReader.h"
+#include "../Core/Images/PngReader.h"
 
 #include <list>
 #include <limits>
@@ -106,6 +107,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcuid.h>
 #include <dcmtk/dcmdata/dcmetinf.h>
+#include <dcmtk/dcmdata/dcdeftag.h>
 
 #include <dcmtk/dcmdata/dcvrae.h>
 #include <dcmtk/dcmdata/dcvras.h>
@@ -134,7 +136,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <boost/math/special_functions/round.hpp>
-#include <glog/logging.h>
 #include <dcmtk/dcmdata/dcostrmb.h>
 
 
@@ -255,46 +256,94 @@ namespace Orthanc
   }
 
 
-  static void AnswerDicomField(RestApiOutput& output,
-                               DcmElement& element,
-                               E_TransferSyntax transferSyntax)
+  namespace
   {
-    // This element is nor a sequence, neither a pixel-data
-    std::string buffer;
-    buffer.resize(65536);
-    Uint32 length = element.getLength(transferSyntax);
-    Uint32 offset = 0;
-
-    output.GetLowLevelOutput().SetContentType(CONTENT_TYPE_OCTET_STREAM);
-    output.GetLowLevelOutput().SetContentLength(length);
-
-    while (offset < length)
+    class DicomFieldStream : public IHttpStreamAnswer
     {
-      Uint32 nbytes;
-      if (length - offset < buffer.size())
+    private:
+      DcmElement&  element_;
+      uint32_t     length_;
+      uint32_t     offset_;
+      std::string  chunk_;
+      size_t       chunkSize_;
+      
+    public:
+      DicomFieldStream(DcmElement& element,
+                       E_TransferSyntax transferSyntax) :
+        element_(element),
+        length_(element.getLength(transferSyntax)),
+        offset_(0),
+        chunkSize_(0)
       {
-        nbytes = length - offset;
-      }
-      else
-      {
-        nbytes = buffer.size();
+        static const size_t CHUNK_SIZE = 64 * 1024;  // Use chunks of max 64KB
+        chunk_.resize(CHUNK_SIZE);
       }
 
-      OFCondition cond = element.getPartialValue(&buffer[0], offset, nbytes);
-
-      if (cond.good())
+      virtual HttpCompression SetupHttpCompression(bool /*gzipAllowed*/,
+                                                   bool /*deflateAllowed*/)
       {
-        output.GetLowLevelOutput().SendBody(&buffer[0], nbytes);
-        offset += nbytes;
+        // No support for compression
+        return HttpCompression_None;
       }
-      else
-      {
-        LOG(ERROR) << "Error while sending a DICOM field: " << cond.text();
-        return;
-      }
-    }
 
-    output.MarkLowLevelOutputDone();
+      virtual bool HasContentFilename(std::string& filename)
+      {
+        return false;
+      }
+
+      virtual std::string GetContentType()
+      {
+        return "";
+      }
+
+      virtual uint64_t  GetContentLength()
+      {
+        return length_;
+      }
+ 
+      virtual bool ReadNextChunk()
+      {
+        assert(offset_ <= length_);
+
+        if (offset_ == length_)
+        {
+          return false;
+        }
+        else
+        {
+          if (length_ - offset_ < chunk_.size())
+          {
+            chunkSize_ = length_ - offset_;
+          }
+          else
+          {
+            chunkSize_ = chunk_.size();
+          }
+
+          OFCondition cond = element_.getPartialValue(&chunk_[0], offset_, chunkSize_);
+
+          offset_ += chunkSize_;
+
+          if (!cond.good())
+          {
+            LOG(ERROR) << "Error while sending a DICOM field: " << cond.text();
+            throw OrthancException(ErrorCode_InternalError);
+          }
+
+          return true;
+        }
+      }
+ 
+      virtual const char *GetChunkContent()
+      {
+        return chunk_.c_str();
+      }
+ 
+      virtual size_t GetChunkSize()
+      {
+        return chunkSize_;
+      }
+    };
   }
 
 
@@ -365,7 +414,8 @@ namespace Orthanc
         {
           // This is the case for raw, uncompressed image buffers
           assert(*blockUri == "0");
-          AnswerDicomField(output, *element, transferSyntax);
+          DicomFieldStream stream(*element, transferSyntax);
+          output.AnswerStream(stream);
         }
       }
     }
@@ -406,7 +456,8 @@ namespace Orthanc
         //element->getVR() != EVR_UNKNOWN &&  // This would forbid private tags
         element->getVR() != EVR_SQ)
     {
-      AnswerDicomField(output, *element, transferSyntax);
+      DicomFieldStream stream(*element, transferSyntax);
+      output.AnswerStream(stream);
     }
   }
 
@@ -813,7 +864,8 @@ namespace Orthanc
   {
     OFCondition cond;
 
-    if (FromDcmtkBridge::IsPrivateTag(tag))
+    if (FromDcmtkBridge::IsPrivateTag(tag) ||
+        FromDcmtkBridge::IsUnknownTag(tag))
     {
       // This is a private tag
       // http://support.dcmtk.org/redmine/projects/dcmtk/wiki/howto_addprivatedata
@@ -864,7 +916,8 @@ namespace Orthanc
     }
     else
     {
-      if (FromDcmtkBridge::IsPrivateTag(tag))
+      if (FromDcmtkBridge::IsPrivateTag(tag) ||
+          FromDcmtkBridge::IsUnknownTag(tag))
       {
         if (!element->putUint8Array((const Uint8*) value.c_str(), value.size()).good())
         {
@@ -916,7 +969,10 @@ namespace Orthanc
     DcmTagKey k(tag.GetGroup(), tag.GetElement());
     DcmDataset& dataset = *pimpl_->file_->getDataset();
 
-    if (FromDcmtkBridge::IsPrivateTag(tag))
+    if (FromDcmtkBridge::IsPrivateTag(tag) ||
+        FromDcmtkBridge::IsUnknownTag(tag) ||
+        tag == DICOM_TAG_PIXEL_DATA ||
+        tag == DICOM_TAG_ENCAPSULATED_DOCUMENT)
     {
       const Uint8* data = NULL;   // This is freed in the destructor of the dataset
       long unsigned int count = 0;
@@ -950,7 +1006,7 @@ namespace Orthanc
       }
 
       std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(*element, pimpl_->encoding_));
-
+      
       if (v.get() == NULL)
       {
         value = "";
@@ -959,7 +1015,7 @@ namespace Orthanc
       {
         value = v->AsString();
       }
-
+      
       return true;
     }
   }
@@ -1059,8 +1115,10 @@ namespace Orthanc
     pimpl_(new PImpl)
   {
     pimpl_->file_.reset(dynamic_cast<DcmFileFormat*>(other.pimpl_->file_->clone()));
-
     pimpl_->encoding_ = other.pimpl_->encoding_;
+
+    // Create a new instance-level identifier
+    Replace(DICOM_TAG_SOP_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Instance));
   }
 
 
@@ -1082,18 +1140,35 @@ namespace Orthanc
   }
 
 
-  void ParsedDicomFile::EmbedImage(const std::string& dataUriScheme)
+  void ParsedDicomFile::EmbedContent(const std::string& dataUriScheme)
   {
     std::string mime, content;
     Toolbox::DecodeDataUriScheme(mime, content, dataUriScheme);
-
-    std::string decoded;
-    Toolbox::DecodeBase64(decoded, content);
+    Toolbox::ToLowerCase(mime);
 
     if (mime == "image/png")
     {
+      EmbedImage(mime, content);
+    }
+    else if (mime == "application/pdf")
+    {
+      EmbedPdf(content);
+    }
+    else
+    {
+      LOG(ERROR) << "Unsupported MIME type for the content of a new DICOM file";
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
+
+
+  void ParsedDicomFile::EmbedImage(const std::string& mime,
+                                   const std::string& content)
+  {
+    if (mime == "image/png")
+    {
       PngReader reader;
-      reader.ReadFromMemory(decoded);
+      reader.ReadFromMemory(content);
       EmbedImage(reader);
     }
     else
@@ -1276,68 +1351,16 @@ namespace Orthanc
 
   void ParsedDicomFile::SetEncoding(Encoding encoding)
   {
-    std::string s;
-
-    // http://www.dabsoft.ch/dicom/3/C.12.1.1.2/
-    switch (encoding)
+    if (encoding == Encoding_Windows1251)
     {
-      case Encoding_Utf8:
-      case Encoding_Ascii:
-        s = "ISO_IR 192";
-        break;
-
-      case Encoding_Latin1:
-        s = "ISO_IR 100";
-        break;
-
-      case Encoding_Latin2:
-        s = "ISO_IR 101";
-        break;
-
-      case Encoding_Latin3:
-        s = "ISO_IR 109";
-        break;
-
-      case Encoding_Latin4:
-        s = "ISO_IR 110";
-        break;
-
-      case Encoding_Latin5:
-        s = "ISO_IR 148";
-        break;
-
-      case Encoding_Cyrillic:
-        s = "ISO_IR 144";
-        break;
-
-      case Encoding_Arabic:
-        s = "ISO_IR 127";
-        break;
-
-      case Encoding_Greek:
-        s = "ISO_IR 126";
-        break;
-
-      case Encoding_Hebrew:
-        s = "ISO_IR 138";
-        break;
-
-      case Encoding_Japanese:
-        s = "ISO_IR 13";
-        break;
-
-      case Encoding_Chinese:
-        s = "GB18030";
-        break;
-
-      case Encoding_Thai:
-        s = "ISO_IR 166";
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      // This Cyrillic codepage is not officially supported by the
+      // DICOM standard. Do not set the SpecificCharacterSet tag.
+      return;
     }
 
+    pimpl_->encoding_ = encoding;
+
+    std::string s = GetDicomSpecificCharacterSet(encoding);
     Replace(DICOM_TAG_SPECIFIC_CHARACTER_SET, s, DicomReplaceMode_InsertIfAbsent);
   }
 
@@ -1353,5 +1376,95 @@ namespace Orthanc
     {
       FromDcmtkBridge::ToJson(target, *pimpl_->file_->getDataset());
     }
+  }
+
+
+  bool ParsedDicomFile::HasTag(const DicomTag& tag) const
+  {
+    DcmTag key(tag.GetGroup(), tag.GetElement());
+    return pimpl_->file_->getDataset()->tagExists(key);
+  }
+
+
+  void ParsedDicomFile::EmbedPdf(const std::string& pdf)
+  {
+    if (pdf.size() < 5 ||  // (*)
+        strncmp("%PDF-", pdf.c_str(), 5) != 0)
+    {
+      LOG(ERROR) << "Not a PDF file";
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    Replace(DICOM_TAG_SOP_CLASS_UID, UID_EncapsulatedPDFStorage);
+    Replace(FromDcmtkBridge::Convert(DCM_Modality), "OT");
+    Replace(FromDcmtkBridge::Convert(DCM_ConversionType), "WSD");
+    Replace(FromDcmtkBridge::Convert(DCM_MIMETypeOfEncapsulatedDocument), "application/pdf");
+    //Replace(FromDcmtkBridge::Convert(DCM_SeriesNumber), "1");
+
+    std::auto_ptr<DcmPolymorphOBOW> element(new DcmPolymorphOBOW(DCM_EncapsulatedDocument));
+
+    size_t s = pdf.size();
+    if (s & 1)
+    {
+      // The size of the buffer must be even
+      s += 1;
+    }
+
+    Uint8* bytes = NULL;
+    OFCondition result = element->createUint8Array(s, bytes);
+    if (!result.good() || bytes == NULL)
+    {
+      throw OrthancException(ErrorCode_NotEnoughMemory);
+    }
+
+    // Blank pad byte (no access violation, as "pdf.size() >= 5" because of (*) )
+    bytes[s - 1] = 0;
+
+    memcpy(bytes, pdf.c_str(), pdf.size());
+      
+    DcmPolymorphOBOW* obj = element.release();
+    result = pimpl_->file_->getDataset()->insert(obj);
+
+    if (!result.good())
+    {
+      delete obj;
+      throw OrthancException(ErrorCode_NotEnoughMemory);
+    }
+  }
+
+
+  bool ParsedDicomFile::ExtractPdf(std::string& pdf)
+  {
+    std::string sop, mime;
+    
+    if (!GetTagValue(sop, DICOM_TAG_SOP_CLASS_UID) ||
+        !GetTagValue(mime, FromDcmtkBridge::Convert(DCM_MIMETypeOfEncapsulatedDocument)) ||
+        sop != UID_EncapsulatedPDFStorage ||
+        mime != "application/pdf")
+    {
+      return false;
+    }
+
+    if (!GetTagValue(pdf, DICOM_TAG_ENCAPSULATED_DOCUMENT))
+    {
+      return false;
+    }
+
+    // Strip the possible pad byte at the end of file, because the
+    // encapsulated documents must always have an even length. The PDF
+    // format expects files to end with %%EOF followed by CR/LF. If
+    // the last character of the file is not a CR or LF, we assume it
+    // is a pad byte and remove it.
+    if (pdf.size() > 0)
+    {
+      char last = *pdf.rbegin();
+
+      if (last != 10 && last != 13)
+      {
+        pdf.resize(pdf.size() - 1);
+      }
+    }
+
+    return true;
   }
 }

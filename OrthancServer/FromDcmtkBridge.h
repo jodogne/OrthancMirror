@@ -44,6 +44,14 @@ namespace Orthanc
   class FromDcmtkBridge
   {
   public:
+    static void InitializeDictionary();
+
+    static void RegisterDictionaryTag(const DicomTag& tag,
+                                      const DcmEVR& vr,
+                                      const std::string& name,
+                                      unsigned int minMultiplicity,
+                                      unsigned int maxMultiplicity);
+
     static Encoding DetectEncoding(DcmDataset& dataset);
 
     static void Convert(DicomMap& target, DcmDataset& dataset);
@@ -55,6 +63,8 @@ namespace Orthanc
     static bool IsPrivateTag(DcmTag& tag);
 
     static bool IsPrivateTag(const DicomTag& tag);
+
+    static bool IsUnknownTag(const DicomTag& tag);
 
     static DicomValue* ConvertLeafElement(DcmElement& element,
                                           Encoding encoding);
@@ -99,11 +109,14 @@ namespace Orthanc
                       const DicomMap& m);
 
     static void ToJson(Json::Value& result,
-                       const DicomMap& values);
+                       const DicomMap& values,
+                       bool simplify);
 
     static std::string GenerateUniqueIdentifier(ResourceType level);
 
     static bool SaveToMemoryBuffer(std::string& buffer,
                                    DcmDataset& dataSet);
+
+    static ValueRepresentation GetValueRepresentation(const DicomTag& tag);
   };
 }

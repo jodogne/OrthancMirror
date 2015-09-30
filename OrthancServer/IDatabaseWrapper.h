@@ -34,8 +34,9 @@
 
 #include "../Core/DicomFormat/DicomMap.h"
 #include "../Core/SQLite/ITransaction.h"
+#include "../Core/FileStorage/IStorageArea.h"
 #include "../Core/FileStorage/FileInfo.h"
-#include "IServerIndexListener.h"
+#include "IDatabaseListener.h"
 #include "ExportedResource.h"
 
 #include <list>
@@ -81,6 +82,10 @@ namespace Orthanc
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType) = 0;
 
+    virtual void GetAllPublicIds(std::list<std::string>& target,
+                                 ResourceType resourceType,
+                                 size_t since,
+                                 size_t limit) = 0;
 
     virtual void GetChanges(std::list<ServerIndexChange>& target /*out*/,
                             bool& done /*out*/,
@@ -176,6 +181,11 @@ namespace Orthanc
 
     virtual SQLite::ITransaction* StartTransaction() = 0;
 
-    virtual void SetListener(IServerIndexListener& listener) = 0;
+    virtual void SetListener(IDatabaseListener& listener) = 0;
+
+    virtual unsigned int GetDatabaseVersion() = 0;
+
+    virtual void Upgrade(unsigned int targetVersion,
+                         IStorageArea& storageArea) = 0;
   };
 }

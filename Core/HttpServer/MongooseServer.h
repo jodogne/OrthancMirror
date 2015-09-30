@@ -32,7 +32,9 @@
 
 #pragma once
 
-#include "HttpHandler.h"
+#include "IHttpHandler.h"
+
+#include "../OrthancException.h"
 
 #include <list>
 #include <map>
@@ -57,17 +59,29 @@ namespace Orthanc
                            const char* username) const = 0;
   };
 
-  class MongooseServer
+
+  class IHttpExceptionFormatter
   {
   public:
-    typedef std::list<HttpHandler*> Handlers;
+    virtual ~IHttpExceptionFormatter()
+    {
+    }
 
+    virtual void Format(HttpOutput& output,
+                        const OrthancException& exception,
+                        HttpMethod method,
+                        const char* uri) = 0;
+  };
+
+
+  class MongooseServer
+  {
   private:
     // http://stackoverflow.com/questions/311166/stdauto-ptr-or-boostshared-ptr-for-pimpl-idiom
     struct PImpl;
     boost::shared_ptr<PImpl> pimpl_;
 
-    Handlers handlers_;
+    IHttpHandler *handler_;
 
     typedef std::set<std::string> RegisteredUsers;
     RegisteredUsers registeredUsers_;
@@ -79,6 +93,8 @@ namespace Orthanc
     uint16_t port_;
     IIncomingHttpRequestFilter* filter_;
     bool keepAlive_;
+    bool httpCompression_;
+    IHttpExceptionFormatter* exceptionFormatter_;
   
     bool IsRunning() const;
 
@@ -102,8 +118,6 @@ namespace Orthanc
 
     void RegisterUser(const char* username,
                       const char* password);
-
-    void RegisterHandler(HttpHandler& handler);
 
     bool IsAuthenticationEnabled() const
     {
@@ -140,6 +154,13 @@ namespace Orthanc
 
     void SetRemoteAccessAllowed(bool allowed);
 
+    bool IsHttpCompressionEnabled() const
+    {
+      return httpCompression_;;
+    }
+
+    void SetHttpCompressionEnabled(bool enabled);
+
     const IIncomingHttpRequestFilter* GetIncomingHttpRequestFilter() const
     {
       return filter_;
@@ -147,15 +168,24 @@ namespace Orthanc
 
     void SetIncomingHttpRequestFilter(IIncomingHttpRequestFilter& filter);
 
-    void ClearHandlers();
-
     ChunkStore& GetChunkStore();
 
     bool IsValidBasicHttpAuthentication(const std::string& basic) const;
 
-    const Handlers& GetHandlers() const
+    void Register(IHttpHandler& handler);
+
+    bool HasHandler() const
     {
-      return handlers_;
+      return handler_ != NULL;
+    }
+
+    IHttpHandler& GetHandler() const;
+
+    void SetHttpExceptionFormatter(IHttpExceptionFormatter& formatter);
+
+    IHttpExceptionFormatter* GetExceptionFormatter()
+    {
+      return exceptionFormatter_;
     }
   };
 }

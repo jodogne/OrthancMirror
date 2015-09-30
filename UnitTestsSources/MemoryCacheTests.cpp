@@ -33,12 +33,14 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
-#include <glog/logging.h>
 #include <memory>
 #include <boost/thread.hpp>
 #include <boost/lexical_cast.hpp>
-#include "../Core/IDynamicObject.h"
+
 #include "../Core/Cache/MemoryCache.h"
+#include "../Core/Cache/SharedArchive.h"
+#include "../Core/IDynamicObject.h"
+#include "../Core/Logging.h"
 
 
 TEST(LRU, Basic)
@@ -188,11 +190,6 @@ namespace
       LOG(INFO) << "Removing cache entry for " << value_;
       log_ += boost::lexical_cast<std::string>(value_) + " ";
     }
-
-    int GetValue() const 
-    {
-      return value_;
-    }
   };
 
   class IntegerProvider : public Orthanc::ICachePageProvider
@@ -227,4 +224,60 @@ TEST(MemoryCache, Basic)
   }
 
   ASSERT_EQ("45 42 43 47 44 42 ", provider.log_);
+}
+
+
+
+
+
+namespace
+{
+  class S : public Orthanc::IDynamicObject
+  {
+  private:
+    std::string value_;
+
+  public:
+    S(const std::string& value) : value_(value)
+    {
+    }
+
+    const std::string& GetValue() const
+    {
+      return value_;
+    }
+  };
+}
+
+
+TEST(LRU, SharedArchive)
+{
+  std::string first, second;
+  Orthanc::SharedArchive a(3);
+  first = a.Add(new S("First item"));
+  second = a.Add(new S("Second item"));
+
+  for (int i = 1; i < 100; i++)
+  {
+    a.Add(new S("Item " + boost::lexical_cast<std::string>(i)));
+    // Continuously protect the two first items
+    try { Orthanc::SharedArchive::Accessor(a, first);  } catch (Orthanc::OrthancException&) {}
+    try { Orthanc::SharedArchive::Accessor(a, second); } catch (Orthanc::OrthancException&) {}
+  }
+
+  std::list<std::string> i;
+  a.List(i);
+
+  size_t count = 0;
+  for (std::list<std::string>::const_iterator
+         it = i.begin(); it != i.end(); it++)
+  {
+    if (*it == first ||
+        *it == second)
+    {
+      count++;
+    }
+  }
+
+  ASSERT_EQ(2u, count);
 }

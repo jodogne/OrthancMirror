@@ -1,9 +1,9 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_LUA)
   SET(LUA_SOURCES_DIR ${CMAKE_BINARY_DIR}/lua-5.1.5)
-  DownloadPackage(
-    "2e115fe26e435e33b0d5c022e4490567"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/lua-5.1.5.tar.gz"
-    "${LUA_SOURCES_DIR}")
+  SET(LUA_MD5 "2e115fe26e435e33b0d5c022e4490567")
+  SET(LUA_URL "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/lua-5.1.5.tar.gz")
+
+  DownloadPackage(${LUA_MD5} ${LUA_URL} "${LUA_SOURCES_DIR}")
 
   add_definitions(
     #-DLUA_LIB=1
@@ -49,9 +49,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LUA)
     ${LUA_SOURCES_DIR}/src/loadlib.c
     ${LUA_SOURCES_DIR}/src/linit.c
     )
-
-  add_library(Lua STATIC ${LUA_SOURCES})
-  set(STATIC_LUA Lua)
 
   source_group(ThirdParty\\Lua REGULAR_EXPRESSION ${LUA_SOURCES_DIR}/.*)
 

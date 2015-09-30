@@ -80,14 +80,13 @@
 #include "../PrecompiledHeadersServer.h"
 #include "DicomImageDecoder.h"
 
+#include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
-#include "../../Core/ImageFormats/ImageProcessing.h"
-#include "../../Core/ImageFormats/PngWriter.h"  // TODO REMOVE THIS
+#include "../../Core/Images/ImageProcessing.h"
+#include "../../Core/Images/PngWriter.h"  // TODO REMOVE THIS
 #include "../../Core/DicomFormat/DicomIntegerPixelAccessor.h"
 #include "../ToDcmtkBridge.h"
 #include "../FromDcmtkBridge.h"
-
-#include <glog/logging.h>
 
 #include <boost/lexical_cast.hpp>
 

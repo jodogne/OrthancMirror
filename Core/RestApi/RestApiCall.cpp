@@ -30,6 +30,7 @@
  **/
 
 
+#include "../PrecompiledHeaders.h"
 #include "RestApiCall.h"
 
 namespace Orthanc
@@ -40,5 +41,18 @@ namespace Orthanc
     result.clear();
     Json::Reader reader;
     return reader.parse(request, result);
+  }
+
+
+  std::string RestApiCall::FlattenUri() const
+  {
+    std::string s = "/";
+
+    for (size_t i = 0; i < fullUri_.size(); i++)
+    {
+      s += fullUri_[i] + "/";
+    }
+
+    return s;
   }
 }

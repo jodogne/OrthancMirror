@@ -33,11 +33,11 @@
 #include "../PrecompiledHeaders.h"
 #include "EmbeddedResourceHttpHandler.h"
 
+#include "../Logging.h"
 #include "../OrthancException.h"
 #include "HttpOutput.h"
 
 #include <stdio.h>
-#include <glog/logging.h>
 
 
 namespace Orthanc
@@ -53,11 +53,15 @@ namespace Orthanc
 
   bool EmbeddedResourceHttpHandler::Handle(
     HttpOutput& output,
+    RequestOrigin /*origin*/,
+    const char* /*remoteIp*/,
+    const char* /*username*/,
     HttpMethod method,
     const UriComponents& uri,
     const Arguments& headers,
-    const Arguments& arguments,
-    const std::string&)
+    const GetArguments& arguments,
+    const char* /*bodyData*/,
+    size_t /*bodySize*/)
   {
     if (!Toolbox::IsChildUri(baseUri_, uri))
     {
@@ -80,7 +84,7 @@ namespace Orthanc
       size_t size = EmbeddedResources::GetDirectoryResourceSize(resourceId_, resourcePath.c_str());
 
       output.SetContentType(contentType.c_str());
-      output.SendBody(buffer, size);
+      output.Answer(buffer, size);
     }
     catch (OrthancException&)
     {

@@ -3,34 +3,29 @@
  * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use, copy,
- * modify, merge, publish, distribute, sublicense, and/or sell copies
- * of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * This program is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
  *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
- * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
- * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
 
-#include <OrthancCPlugin.h>
+#include <orthanc/OrthancCPlugin.h>
 
 #include <string.h>
 #include <stdio.h>
 
 static OrthancPluginContext* context = NULL;
+
+static OrthancPluginErrorCode customError;
 
 
 ORTHANC_PLUGINS_API int32_t Callback1(OrthancPluginRestOutput* output,
@@ -217,9 +212,9 @@ ORTHANC_PLUGINS_API int32_t Callback5(OrthancPluginRestOutput* output,
 }
 
 
-ORTHANC_PLUGINS_API int32_t CallbackCreateDicom(OrthancPluginRestOutput* output,
-                                                const char* url,
-                                                const OrthancPluginHttpRequest* request)
+ORTHANC_PLUGINS_API OrthancPluginErrorCode CallbackCreateDicom(OrthancPluginRestOutput* output,
+                                                               const char* url,
+                                                               const OrthancPluginHttpRequest* request)
 {
   const char* pathLocator = "\"Path\" : \"";
   char info[1024];
@@ -257,12 +252,12 @@ ORTHANC_PLUGINS_API int32_t CallbackCreateDicom(OrthancPluginRestOutput* output,
     OrthancPluginAnswerBuffer(context, output, "OK\n", 3, "text/plain");
   }
 
-  return 0;
+  return OrthancPluginErrorCode_Success;
 }
 
 
-ORTHANC_PLUGINS_API int32_t OnStoredCallback(OrthancPluginDicomInstance* instance,
-                                             const char* instanceId)
+ORTHANC_PLUGINS_API OrthancPluginErrorCode OnStoredCallback(OrthancPluginDicomInstance* instance,
+                                                            const char* instanceId)
 {
   char buffer[256];
   FILE* fp;
@@ -298,13 +293,13 @@ ORTHANC_PLUGINS_API int32_t OnStoredCallback(OrthancPluginDicomInstance* instanc
     OrthancPluginLogError(context, "Instance has no reception date, should never happen!");
   }
 
-  return 0;
+  return OrthancPluginErrorCode_Success;
 }
 
 
-ORTHANC_PLUGINS_API int32_t OnChangeCallback(OrthancPluginChangeType changeType,
-                                             OrthancPluginResourceType resourceType,
-                                             const char* resourceId)
+ORTHANC_PLUGINS_API OrthancPluginErrorCode OnChangeCallback(OrthancPluginChangeType changeType,
+                                                            OrthancPluginResourceType resourceType,
+                                                            const char* resourceId)
 {
   char info[1024];
   OrthancPluginMemoryBuffer tmp;
@@ -324,7 +319,7 @@ ORTHANC_PLUGINS_API int32_t OnChangeCallback(OrthancPluginChangeType changeType,
     }
   }
 
-  return 0;
+  return OrthancPluginErrorCode_Success;
 }
 
 
@@ -363,9 +358,10 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   OrthancPluginLogWarning(context, info);
   OrthancPluginFreeString(context, s);
 
-  s = OrthancPluginGetConfigurationPath(context);
-  sprintf(info, "  Path to configuration file: %s", s);
+  s = OrthancPluginGetConfiguration(context);
+  sprintf(info, "  Content of the configuration file:\n");
   OrthancPluginLogWarning(context, info);
+  OrthancPluginLogWarning(context, s);
   OrthancPluginFreeString(context, s);
 
   /* Print the command-line arguments of Orthanc */
@@ -397,6 +393,7 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   OrthancPluginExtendOrthancExplorer(context, "alert('Hello Orthanc! From sample plugin with love.');");
 
   /* Make REST requests to the built-in Orthanc API */
+  memset(&tmp, 0, sizeof(tmp));
   OrthancPluginRestApiGet(context, &tmp, "/changes");
   OrthancPluginFreeMemoryBuffer(context, &tmp);
   OrthancPluginRestApiGet(context, &tmp, "/changes?limit=1");
@@ -406,16 +403,10 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   sprintf(info, "[ \"STORESCP\", \"localhost\", 2000 ]");
   OrthancPluginRestApiPut(context, &tmp, "/modalities/demo", info, strlen(info));
 
-  /* Play with global properties: A global counter is incremented 
-     each time the plugin starts. */
-  s = OrthancPluginGetGlobalProperty(context, 1024, "0");
-  sscanf(s, "%d", &counter);
-  sprintf(info, "Number of times this plugin was started: %d", counter);
-  OrthancPluginLogWarning(context, info);
-  counter++;
-  sprintf(info, "%d", counter);
-  OrthancPluginSetGlobalProperty(context, 1024, info);
-  OrthancPluginFreeString(context, s);
+  customError = OrthancPluginRegisterErrorCode(context, 4, 402, "Hello world");
+
+  OrthancPluginRegisterDictionaryTag(context, 0x0014, 0x1020, OrthancPluginValueRepresentation_DA,
+                                     "ValidationExpiryDate", 1, 1);
 
   return 0;
 }

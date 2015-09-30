@@ -43,9 +43,10 @@
 #include "OrthancSQLiteException.h"
 
 #if ORTHANC_SQLITE_STANDALONE != 1
-#include <glog/logging.h>
+#include "../Logging.h"
 #endif
 
+#include <string>
 #include <cassert>
 #include "sqlite3.h"
 
@@ -71,7 +72,7 @@ namespace Orthanc
     {
       if (database == NULL || sql == NULL)
       {
-        throw OrthancSQLiteException("Parameter out of range");
+        throw OrthancSQLiteException(ErrorCode_ParameterOutOfRange);
       }
 
       root_ = NULL;
@@ -80,7 +81,11 @@ namespace Orthanc
       int error = sqlite3_prepare_v2(database, sql, -1, &statement_, NULL);
       if (error != SQLITE_OK)
       {
-        throw OrthancSQLiteException("SQLite: " + std::string(sqlite3_errmsg(database)));
+#if ORTHANC_SQLITE_STANDALONE != 1
+        LOG(ERROR) << "SQLite: " << sqlite3_errmsg(database);
+#endif
+
+        throw OrthancSQLiteException(ErrorCode_SQLitePrepareStatement);
       }
 
       assert(IsRoot());

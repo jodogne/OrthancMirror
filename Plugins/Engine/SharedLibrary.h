@@ -32,13 +32,19 @@
 
 #pragma once
 
+#if ORTHANC_PLUGINS_ENABLED == 1
+
 #include "../../Core/OrthancException.h"
 
 #include <boost/noncopyable.hpp>
 
+#if defined(_WIN32)
+#include <windows.h>
+#endif
+
 namespace Orthanc
 {
-  class SharedLibrary : boost::noncopyable
+  class SharedLibrary : public boost::noncopyable
   {
   public:
 #if defined(_WIN32)
@@ -68,3 +74,5 @@ namespace Orthanc
     FunctionPointer GetFunction(const std::string& name);
   };
 }
+
+#endif

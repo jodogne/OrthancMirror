@@ -30,11 +30,11 @@
  **/
 
 
+#include "../PrecompiledHeadersServer.h"
 #include "StorePeerCommand.h"
 
+#include "../../Core/Logging.h"
 #include "../../Core/HttpClient.h"
-
-#include <glog/logging.h>
 
 namespace Orthanc
 {
@@ -71,7 +71,7 @@ namespace Orthanc
 
       try
       {
-        context_.ReadFile(client.AccessPostData(), *it, FileContentType_Dicom);
+        context_.ReadFile(client.GetBody(), *it, FileContentType_Dicom);
 
         std::string answer;
         if (!client.Apply(answer))

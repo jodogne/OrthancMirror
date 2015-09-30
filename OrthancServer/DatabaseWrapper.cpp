@@ -34,10 +34,10 @@
 #include "DatabaseWrapper.h"
 
 #include "../Core/DicomFormat/DicomArray.h"
+#include "../Core/Logging.h"
 #include "../Core/Uuid.h"
 #include "EmbeddedResources.h"
 
-#include <glog/logging.h>
 #include <stdio.h>
 #include <boost/lexical_cast.hpp>
 
@@ -49,10 +49,10 @@ namespace Orthanc
     class SignalFileDeleted : public SQLite::IScalarFunction
     {
     private:
-      IServerIndexListener& listener_;
+      IDatabaseListener& listener_;
 
     public:
-      SignalFileDeleted(IServerIndexListener& listener) :
+      SignalFileDeleted(IDatabaseListener& listener) :
         listener_(listener)
       {
       }
@@ -96,10 +96,10 @@ namespace Orthanc
     class SignalResourceDeleted : public SQLite::IScalarFunction
     {
     private:
-      IServerIndexListener& listener_;
+      IDatabaseListener& listener_;
 
     public:
-      SignalResourceDeleted(IServerIndexListener& listener) :
+      SignalResourceDeleted(IDatabaseListener& listener) :
         listener_(listener)
       {
       }
@@ -742,14 +742,27 @@ namespace Orthanc
     }
   }
 
-  static void UpgradeDatabase(SQLite::Connection& db,
-                              EmbeddedResources::FileResourceId script)
+  void DatabaseWrapper::GetAllPublicIds(std::list<std::string>& target,
+                                        ResourceType resourceType,
+                                        size_t since,
+                                        size_t limit)
   {
-    std::string upgrade;
-    EmbeddedResources::GetFileResource(upgrade, script);
-    db.BeginTransaction();
-    db.Execute(upgrade);
-    db.CommitTransaction();    
+    if (limit == 0)
+    {
+      target.clear();
+      return;
+    }
+
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT publicId FROM Resources WHERE resourceType=? LIMIT ? OFFSET ?");
+    s.BindInt(0, resourceType);
+    s.BindInt64(1, limit);
+    s.BindInt64(2, since);
+
+    target.clear();
+    while (s.Step())
+    {
+      target.push_back(s.ColumnString(0));
+    }
   }
 
 
@@ -784,52 +797,26 @@ namespace Orthanc
     }
 
     // Check the version of the database
-    std::string version;
-    if (!LookupGlobalProperty(version, GlobalProperty_DatabaseSchemaVersion))
+    std::string tmp;
+    if (!LookupGlobalProperty(tmp, GlobalProperty_DatabaseSchemaVersion))
     {
-      version = "Unknown";
+      tmp = "Unknown";
     }
 
     bool ok = false;
     try
     {
-      LOG(INFO) << "Version of the Orthanc database: " << version;
-      unsigned int v = boost::lexical_cast<unsigned int>(version);
-
-      /**
-       * History of the database versions:
-       *  - Orthanc before Orthanc 0.3.0 (inclusive) had no version
-       *  - Version 2: only Orthanc 0.3.1
-       *  - Version 3: from Orthanc 0.3.2 to Orthanc 0.7.2 (inclusive)
-       *  - Version 4: from Orthanc 0.7.3 to Orthanc 0.8.4 (inclusive)
-       *  - Version 5: from Orthanc 0.8.5 (inclusive)
-       **/
-
-      // This version of Orthanc is only compatible with versions 3, 4 and 5 of the DB schema
-      ok = (v == 3 || v == 4 || v == 5);
-
-      if (v == 3)
-      {
-        LOG(WARNING) << "Upgrading database version from 3 to 4";
-        UpgradeDatabase(db_, EmbeddedResources::UPGRADE_DATABASE_3_TO_4);
-        v = 4;
-      }
-
-      if (v == 4)
-      {
-        LOG(WARNING) << "Upgrading database version from 4 to 5";
-        UpgradeDatabase(db_, EmbeddedResources::UPGRADE_DATABASE_4_TO_5);
-        v = 5;
-      }
+      LOG(INFO) << "Version of the Orthanc database: " << tmp;
+      version_ = boost::lexical_cast<unsigned int>(tmp);
+      ok = true;
     }
     catch (boost::bad_lexical_cast&)
     {
-      ok = false;
     }
 
     if (!ok)
     {
-      LOG(ERROR) << "Incompatible version of the Orthanc database: " << version;
+      LOG(ERROR) << "Incompatible version of the Orthanc database: " << tmp;
       throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
     }
 
@@ -837,7 +824,51 @@ namespace Orthanc
     db_.Register(signalRemainingAncestor_);
   }
 
-  void DatabaseWrapper::SetListener(IServerIndexListener& listener)
+
+  static void ExecuteUpgradeScript(SQLite::Connection& db,
+                                   EmbeddedResources::FileResourceId script)
+  {
+    std::string upgrade;
+    EmbeddedResources::GetFileResource(upgrade, script);
+    db.BeginTransaction();
+    db.Execute(upgrade);
+    db.CommitTransaction();    
+  }
+
+
+  void DatabaseWrapper::Upgrade(unsigned int targetVersion,
+                                IStorageArea& storageArea)
+  {
+    if (targetVersion != 5)
+    {
+      throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
+    }
+
+    // This version of Orthanc is only compatible with versions 3, 4 and 5 of the DB schema
+    if (version_ != 3 &&
+        version_ != 4 &&
+        version_ != 5)
+    {
+      throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
+    }
+
+    if (version_ == 3)
+    {
+      LOG(WARNING) << "Upgrading database version from 3 to 4";
+      ExecuteUpgradeScript(db_, EmbeddedResources::UPGRADE_DATABASE_3_TO_4);
+      version_ = 4;
+    }
+
+    if (version_ == 4)
+    {
+      LOG(WARNING) << "Upgrading database version from 4 to 5";
+      ExecuteUpgradeScript(db_, EmbeddedResources::UPGRADE_DATABASE_4_TO_5);
+      version_ = 5;
+    }
+  }
+
+
+  void DatabaseWrapper::SetListener(IDatabaseListener& listener)
   {
     listener_ = &listener;
     db_.Register(new Internals::SignalFileDeleted(listener));

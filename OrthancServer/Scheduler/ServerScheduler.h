@@ -86,6 +86,8 @@ namespace Orthanc
 
     ~ServerScheduler();
 
+    void Stop();
+
     void Submit(ServerJob& job);
 
     bool SubmitAndWait(ListOfStrings& outputs,

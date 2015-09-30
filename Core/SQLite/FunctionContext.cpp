@@ -39,7 +39,9 @@
 #include "FunctionContext.h"
 #include "OrthancSQLiteException.h"
 
-#include <sqlite3.h>
+#include <string>
+
+#include "sqlite3.h"
 
 namespace Orthanc
 {
@@ -62,7 +64,7 @@ namespace Orthanc
     {
       if (index >= argc_)
       {
-        throw OrthancSQLiteException("Parameter out of range");
+        throw OrthancSQLiteException(ErrorCode_ParameterOutOfRange);
       }
     }
 

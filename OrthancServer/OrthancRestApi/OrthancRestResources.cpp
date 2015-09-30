@@ -33,21 +33,80 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
+#include "../../Core/Logging.h"
 #include "../ServerToolbox.h"
 #include "../FromDcmtkBridge.h"
+#include "../ResourceFinder.h"
+#include "../DicomFindQuery.h"
+#include "../ServerContext.h"
 
-#include <glog/logging.h>
 
 namespace Orthanc
 {
   // List all the patients, studies, series or instances ----------------------
  
+  static void AnswerListOfResources(RestApiOutput& output,
+                                    ServerIndex& index,
+                                    const std::list<std::string>& resources,
+                                    ResourceType level,
+                                    bool expand)
+  {
+    Json::Value answer = Json::arrayValue;
+
+    for (std::list<std::string>::const_iterator
+           resource = resources.begin(); resource != resources.end(); ++resource)
+    {
+      if (expand)
+      {
+        Json::Value item;
+        if (index.LookupResource(item, *resource, level))
+        {
+          answer.append(item);
+        }
+      }
+      else
+      {
+        answer.append(*resource);
+      }
+    }
+
+    output.AnswerJson(answer);
+  }
+
+
   template <enum ResourceType resourceType>
   static void ListResources(RestApiGetCall& call)
   {
-    Json::Value result;
-    OrthancRestApi::GetIndex(call).GetAllUuids(result, resourceType);
-    call.GetOutput().AnswerJson(result);
+    ServerIndex& index = OrthancRestApi::GetIndex(call);
+
+    std::list<std::string> result;
+
+    if (call.HasArgument("limit") ||
+        call.HasArgument("since"))
+    {
+      if (!call.HasArgument("limit"))
+      {
+        LOG(ERROR) << "Missing \"limit\" argument for GET request against: " << call.FlattenUri();
+        throw OrthancException(ErrorCode_BadRequest);
+      }
+
+      if (!call.HasArgument("since"))
+      {
+        LOG(ERROR) << "Missing \"since\" argument for GET request against: " << call.FlattenUri();
+        throw OrthancException(ErrorCode_BadRequest);
+      }
+
+      size_t since = boost::lexical_cast<size_t>(call.GetArgument("since", ""));
+      size_t limit = boost::lexical_cast<size_t>(call.GetArgument("limit", ""));
+      index.GetAllUuids(result, resourceType, since, limit);
+    }
+    else
+    {
+      index.GetAllUuids(result, resourceType);
+    }
+
+
+    AnswerListOfResources(call.GetOutput(), index, result, resourceType, call.HasArgument("expand"));
   }
 
   template <enum ResourceType resourceType>
@@ -86,14 +145,17 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string publicId = call.GetUriComponent("id", "");
-    std::string s = Toolbox::StripSpaces(call.GetPutBody());
 
-    if (s == "0")
+    std::string body;
+    call.BodyToString(body);
+    body = Toolbox::StripSpaces(body);
+
+    if (body == "0")
     {
       context.GetIndex().SetProtectedPatient(publicId, false);
       call.GetOutput().AnswerBuffer("", "text/plain");
     }
-    else if (s == "1")
+    else if (body == "1")
     {
       context.GetIndex().SetProtectedPatient(publicId, true);
       call.GetOutput().AnswerBuffer("", "text/plain");
@@ -125,7 +187,9 @@ namespace Orthanc
     std::string dicom;
     context.ReadFile(dicom, publicId, FileContentType_Dicom);
 
-    Toolbox::WriteFile(dicom, call.GetPostBody());
+    std::string target;
+    call.BodyToString(target);
+    Toolbox::WriteFile(dicom, target);
 
     call.GetOutput().AnswerBuffer("{}", "application/json");
   }
@@ -359,7 +423,9 @@ namespace Orthanc
     std::string publicId = call.GetUriComponent("id", "");
     std::string name = call.GetUriComponent("name", "");
     MetadataType metadata = StringToMetadata(name);
-    std::string value = call.GetPutBody();
+
+    std::string value;
+    call.BodyToString(value);
 
     if (metadata >= MetadataType_StartUser &&
         metadata <= MetadataType_EndUser)
@@ -569,12 +635,10 @@ namespace Orthanc
     std::string publicId = call.GetUriComponent("id", "");
     std::string name = call.GetUriComponent("name", "");
 
-    const void* data = call.GetPutBody().size() ? &call.GetPutBody()[0] : NULL;
-
     FileContentType contentType = StringToContentType(name);
     if (contentType >= FileContentType_StartUser &&  // It is forbidden to modify internal attachments
         contentType <= FileContentType_EndUser &&
-        context.AddAttachment(publicId, StringToContentType(name), data, call.GetPutBody().size()))
+        context.AddAttachment(publicId, StringToContentType(name), call.GetBodyData(), call.GetBodySize()))
     {
       call.GetOutput().AnswerBuffer("{}", "application/json");
     }
@@ -731,7 +795,7 @@ namespace Orthanc
 
     typedef std::set<DicomTag> ModuleTags;
     ModuleTags moduleTags;
-    DicomTag::GetTagsForModule(moduleTags, module);
+    DicomTag::AddTagsForModule(moduleTags, module);
 
     Json::Value tags;
 
@@ -790,7 +854,8 @@ namespace Orthanc
   {
     typedef std::list< std::pair<ResourceType, std::string> >  Resources;
 
-    std::string tag = call.GetPostBody();
+    std::string tag;
+    call.BodyToString(tag);
     Resources resources;
 
     OrthancRestApi::GetIndex(call).LookupIdentifier(resources, tag);
@@ -815,6 +880,61 @@ namespace Orthanc
   }
 
 
+  static void Find(RestApiPostCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    Json::Value request;
+    if (call.ParseJsonRequest(request) &&
+        request.type() == Json::objectValue &&
+        request.isMember("Level") &&
+        request.isMember("Query") &&
+        request["Level"].type() == Json::stringValue &&
+        request["Query"].type() == Json::objectValue &&
+        (!request.isMember("CaseSensitive") || request["CaseSensitive"].type() == Json::booleanValue))
+    {
+      bool expand = false;
+      if (request.isMember("Expand"))
+      {
+        expand = request["Expand"].asBool();
+      }
+
+      bool caseSensitive = false;
+      if (request.isMember("CaseSensitive"))
+      {
+        caseSensitive = request["CaseSensitive"].asBool();
+      }
+
+      std::string level = request["Level"].asString();
+
+      DicomFindQuery query;
+      query.SetLevel(StringToResourceType(level.c_str()));
+
+      Json::Value::Members members = request["Query"].getMemberNames();
+      for (size_t i = 0; i < members.size(); i++)
+      {
+        if (request["Query"][members[i]].type() != Json::stringValue)
+        {
+          throw OrthancException(ErrorCode_BadRequest);
+        }
+
+        query.SetConstraint(FromDcmtkBridge::ParseTag(members[i]), 
+                            request["Query"][members[i]].asString(),
+                            caseSensitive);
+      }
+      
+      std::list<std::string> resources;
+      ResourceFinder finder(context);
+      finder.Apply(resources, query);
+      AnswerListOfResources(call.GetOutput(), context.GetIndex(), resources, query.GetLevel(), expand);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadRequest);
+    }
+  }
+
+
   template <enum ResourceType start, 
             enum ResourceType end>
   static void GetChildResources(RestApiGetCall& call)
@@ -836,23 +956,7 @@ namespace Orthanc
         b.splice(b.begin(), c);
       }
 
-      switch (type)
-      {
-        case ResourceType_Patient:
-          type = ResourceType_Study;
-          break;
-
-        case ResourceType_Study:
-          type = ResourceType_Series;
-          break;
-
-        case ResourceType_Series:
-          type = ResourceType_Instance;
-          break;
-
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }
+      type = GetChildResourceType(type);
 
       a.clear();
       a.splice(a.begin(), b);
@@ -933,13 +1037,7 @@ namespace Orthanc
       }
       
       current = parent;
-      switch (currentType)
-      {
-        case ResourceType_Instance:  currentType = ResourceType_Series; break;
-        case ResourceType_Series:    currentType = ResourceType_Study; break;
-        case ResourceType_Study:     currentType = ResourceType_Patient; break;
-        default:                     throw OrthancException(ErrorCode_InternalError);
-      }
+      currentType = GetParentResourceType(currentType);
     }
 
     assert(currentType == end);
@@ -951,6 +1049,20 @@ namespace Orthanc
     }
   }
 
+
+  static void ExtractPdf(RestApiGetCall& call)
+  {
+    const std::string id = call.GetUriComponent("id", "");
+
+    std::string pdf;
+    ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), id);
+
+    if (locker.GetDicom().ExtractPdf(pdf))
+    {
+      call.GetOutput().AnswerBuffer(pdf, "application/pdf");
+      return;
+    }
+  }
 
 
   void OrthancRestApi::RegisterResources()
@@ -995,6 +1107,7 @@ namespace Orthanc
     Register("/instances/{id}/frames/{frame}/image-uint16", GetImage<ImageExtractionMode_UInt16>);
     Register("/instances/{id}/frames/{frame}/image-int16", GetImage<ImageExtractionMode_Int16>);
     Register("/instances/{id}/frames/{frame}/matlab", GetMatlabImage);
+    Register("/instances/{id}/pdf", ExtractPdf);
     Register("/instances/{id}/preview", GetImage<ImageExtractionMode_Preview>);
     Register("/instances/{id}/image-uint8", GetImage<ImageExtractionMode_UInt8>);
     Register("/instances/{id}/image-uint16", GetImage<ImageExtractionMode_UInt16>);
@@ -1022,6 +1135,7 @@ namespace Orthanc
     Register("/{resourceType}/{id}/attachments/{name}", UploadAttachment);
 
     Register("/tools/lookup", Lookup);
+    Register("/tools/find", Find);
 
     Register("/patients/{id}/studies", GetChildResources<ResourceType_Patient, ResourceType_Study>);
     Register("/patients/{id}/series", GetChildResources<ResourceType_Patient, ResourceType_Series>);

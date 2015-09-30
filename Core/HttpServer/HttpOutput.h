@@ -37,7 +37,8 @@
 #include <stdint.h>
 #include "../Enumerations.h"
 #include "IHttpOutputStream.h"
-#include "HttpHandler.h"
+#include "IHttpStreamAnswer.h"
+#include "../Uuid.h"
 
 namespace Orthanc
 {
@@ -48,14 +49,16 @@ namespace Orthanc
 
     class StateMachine : public boost::noncopyable
     {
-    private:
+    public:
       enum State
       {
         State_WritingHeader,      
         State_WritingBody,
+        State_WritingMultipart,
         State_Done
       };
 
+    private:
       IHttpOutputStream& stream_;
       State state_;
 
@@ -65,6 +68,9 @@ namespace Orthanc
       uint64_t contentPosition_;
       bool keepAlive_;
       std::list<std::string> headers_;
+
+      std::string multipartBoundary_;
+      std::string multipartContentType_;
 
     public:
       StateMachine(IHttpOutputStream& stream,
@@ -89,18 +95,71 @@ namespace Orthanc
       void ClearHeaders();
 
       void SendBody(const void* buffer, size_t length);
+
+      void StartMultipart(const std::string& subType,
+                          const std::string& contentType);
+
+      void SendMultipartItem(const void* item, size_t length);
+
+      void CloseMultipart();
+
+      void CloseBody();
+
+      State GetState() const
+      {
+        return state_;
+      }
     };
 
     StateMachine stateMachine_;
+    bool         isDeflateAllowed_;
+    bool         isGzipAllowed_;
+
+    HttpCompression GetPreferredCompression(size_t bodySize) const;
 
   public:
     HttpOutput(IHttpOutputStream& stream,
                bool isKeepAlive) : 
-      stateMachine_(stream, isKeepAlive)
+      stateMachine_(stream, isKeepAlive),
+      isDeflateAllowed_(false),
+      isGzipAllowed_(false)
     {
     }
 
-    void SendStatus(HttpStatus status);
+    void SetDeflateAllowed(bool allowed)
+    {
+      isDeflateAllowed_ = allowed;
+    }
+
+    bool IsDeflateAllowed() const
+    {
+      return isDeflateAllowed_;
+    }
+
+    void SetGzipAllowed(bool allowed)
+    {
+      isGzipAllowed_ = allowed;
+    }
+
+    bool IsGzipAllowed() const
+    {
+      return isGzipAllowed_;
+    }
+
+    void SendStatus(HttpStatus status,
+		    const char* message,
+		    size_t messageSize);
+
+    void SendStatus(HttpStatus status)
+    {
+      SendStatus(status, NULL, 0);
+    }
+
+    void SendStatus(HttpStatus status,
+		    const std::string& message)
+    {
+      SendStatus(status, message.c_str(), message.size());
+    }
 
     void SetContentType(const char* contentType)
     {
@@ -110,11 +169,6 @@ namespace Orthanc
     void SetContentFilename(const char* filename)
     {
       stateMachine_.SetContentFilename(filename);
-    }
-
-    void SetContentLength(uint64_t length)
-    {
-      stateMachine_.SetContentLength(length);
     }
 
     void SetCookie(const std::string& cookie,
@@ -129,16 +183,42 @@ namespace Orthanc
       stateMachine_.AddHeader(key, value);
     }
 
-    void SendBody(const void* buffer, size_t length);
+    void Answer(const void* buffer, 
+                size_t length);
 
-    void SendBody(const std::string& str);
+    void Answer(const std::string& str);
 
-    void SendBody();
+    void AnswerEmpty();
 
     void SendMethodNotAllowed(const std::string& allowed);
 
     void Redirect(const std::string& path);
 
     void SendUnauthorized(const std::string& realm);
+
+    void StartMultipart(const std::string& subType,
+                        const std::string& contentType)
+    {
+      stateMachine_.StartMultipart(subType, contentType);
+    }
+
+    void SendMultipartItem(const std::string& item);
+
+    void SendMultipartItem(const void* item, size_t size)
+    {
+      stateMachine_.SendMultipartItem(item, size);
+    }
+
+    void CloseMultipart()
+    {
+      stateMachine_.CloseMultipart();
+    }
+
+    bool IsWritingMultipart() const
+    {
+      return stateMachine_.GetState() == StateMachine::State_WritingMultipart;
+    }
+
+    void Answer(IHttpStreamAnswer& stream);
   };
 }

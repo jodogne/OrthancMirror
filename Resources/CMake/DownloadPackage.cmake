@@ -10,6 +10,22 @@ macro(GetUrlExtension TargetVariable Url)
 endmacro()
 
 
+
+##
+## Setup the patch command-line tool
+##
+
+if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
+  set(PATCH_EXECUTABLE ${CMAKE_SOURCE_DIR}/Resources/ThirdParty/patch/patch.exe)
+else ()
+  find_program(PATCH_EXECUTABLE patch)
+  if (${PATCH_EXECUTABLE} MATCHES "PATCH_EXECUTABLE-NOTFOUND")
+    message(FATAL_ERROR "Please install the 'patch' standard command-line tool")
+  endif()
+endif()
+
+
+
 ##
 ## Check the existence of the required decompression tools
 ##

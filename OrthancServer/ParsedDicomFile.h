@@ -35,8 +35,8 @@
 #include "../Core/DicomFormat/DicomInstanceHasher.h"
 #include "../Core/RestApi/RestApiOutput.h"
 #include "ServerEnumerations.h"
-#include "../Core/ImageFormats/ImageAccessor.h"
-#include "../Core/ImageFormats/ImageBuffer.h"
+#include "../Core/Images/ImageAccessor.h"
+#include "../Core/Images/ImageBuffer.h"
 
 namespace Orthanc
 {
@@ -100,9 +100,12 @@ namespace Orthanc
 
     void SaveToFile(const std::string& path);
 
+    void EmbedContent(const std::string& dataUriScheme);
+
     void EmbedImage(const ImageAccessor& accessor);
 
-    void EmbedImage(const std::string& dataUriScheme);
+    void EmbedImage(const std::string& mime,
+                    const std::string& content);
 
     void ExtractImage(ImageBuffer& result,
                       unsigned int frame);
@@ -121,6 +124,12 @@ namespace Orthanc
 
     void ToJson(Json::Value& target, 
                 bool simplify);
+
+    bool HasTag(const DicomTag& tag) const;
+
+    void EmbedPdf(const std::string& pdf);
+
+    bool ExtractPdf(std::string& pdf);
   };
 
 }

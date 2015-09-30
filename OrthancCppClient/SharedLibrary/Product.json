@@ -1,8 +1,0 @@
-{
-  "Product" : "OrthancClient",
-  "Description" : "Native client to the REST API of Orthanc",
-  "Company" : "University Hospital of Liege",
-  "Copyright" : "(c) 2012-2015, Sebastien Jodogne, University Hospital of Liege",
-  "Legal" : "Licensing information is available on http://www.orthanc-server.com/",
-  "Version" : "0.8.5"
-}

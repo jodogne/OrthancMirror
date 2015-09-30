@@ -32,6 +32,8 @@
 
 #pragma once
 
+#if ORTHANC_PLUGINS_ENABLED == 1
+
 #include "SharedLibrary.h"
 #include "IPluginServiceProvider.h"
 
@@ -40,21 +42,22 @@
 
 namespace Orthanc
 {
-  class PluginsManager : boost::noncopyable
+  class PluginsManager : public boost::noncopyable
   {
   private:
-    class Plugin
+    class Plugin : public boost::noncopyable
     {
     private:
-      SharedLibrary library_;
-      std::string  version_;
+      OrthancPluginContext  context_;
+      SharedLibrary         library_;
+      std::string           version_;
+      PluginsManager&       pluginManager_;
 
     public:
-      Plugin(const std::string& path) : library_(path)
-      {
-      }
+      Plugin(PluginsManager& pluginManager,
+             const std::string& path);
 
-      SharedLibrary& GetLibrary()
+      SharedLibrary& GetSharedLibrary()
       {
         return library_;
       }
@@ -68,17 +71,26 @@ namespace Orthanc
       {
         return version_;
       }
+
+      PluginsManager& GetPluginManager()
+      {
+        return pluginManager_;
+      }
+
+      OrthancPluginContext& GetContext()
+      {
+        return context_;
+      }
     };
 
     typedef std::map<std::string, Plugin*>  Plugins;
 
-    OrthancPluginContext  context_;
     Plugins  plugins_;
     std::list<IPluginServiceProvider*> serviceProviders_;
 
-    static int32_t InvokeService(OrthancPluginContext* context,
-                                 _OrthancPluginService service,
-                                 const void* parameters);
+    static OrthancPluginErrorCode InvokeService(OrthancPluginContext* context,
+                                                _OrthancPluginService service,
+                                                const void* parameters);
 
   public:
     PluginsManager();
@@ -100,5 +112,9 @@ namespace Orthanc
     bool HasPlugin(const std::string& name) const;
 
     const std::string& GetPluginVersion(const std::string& name) const;
+
+    static std::string GetPluginName(SharedLibrary& library);
   };
 }
+
+#endif

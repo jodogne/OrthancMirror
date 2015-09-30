@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include "../Core/Enumerations.h"
+#include "Enumerations.h"
 
 #include <string>
 #include <boost/shared_ptr.hpp>
@@ -50,10 +50,12 @@ namespace Orthanc
     std::string credentials_;
     HttpMethod method_;
     HttpStatus lastStatus_;
-    std::string postData_;
+    std::string body_;  // This only makes sense for POST and PUT requests
     bool isVerbose_;
     long timeout_;
     std::string proxy_;
+    bool verifyPeers_;
+    std::string caCertificates_;
 
     void Setup();
 
@@ -101,19 +103,19 @@ namespace Orthanc
       return timeout_;
     }
 
-    void SetPostData(const std::string& data)
+    void SetBody(const std::string& data)
     {
-      postData_ = data;
+      body_ = data;
     }
 
-    std::string& AccessPostData()
+    std::string& GetBody()
     {
-      return postData_;
+      return body_;
     }
 
-    const std::string& AccessPostData() const
+    const std::string& GetBody() const
     {
-      return postData_;
+      return body_;
     }
 
     void SetVerbose(bool isVerbose);
@@ -140,8 +142,32 @@ namespace Orthanc
       proxy_ = proxy;
     }
 
-    static void GlobalInitialize();
+    void SetHttpsVerifyPeers(bool verify)
+    {
+      verifyPeers_ = verify;
+    }
+
+    bool IsHttpsVerifyPeers() const
+    {
+      return verifyPeers_;
+    }
+
+    void SetHttpsCACertificates(const std::string& certificates)
+    {
+      caCertificates_ = certificates;
+    }
+
+    const std::string& GetHttpsCACertificates() const;
+
+    static void GlobalInitialize(bool httpsVerifyPeers,
+                                 const std::string& httpsCACertificates);
   
     static void GlobalFinalize();
+
+    static void SetDefaultTimeout(long timeout);
+
+    void ApplyAndThrowException(std::string& answer);
+
+    void ApplyAndThrowException(Json::Value& answer);
   };
 }

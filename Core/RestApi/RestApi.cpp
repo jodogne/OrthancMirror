@@ -33,9 +33,9 @@
 #include "../PrecompiledHeaders.h"
 #include "RestApi.h"
 
-#include <stdlib.h>   // To define "_exit()" under Windows
-#include <glog/logging.h>
+#include "../Logging.h"
 
+#include <stdlib.h>   // To define "_exit()" under Windows
 #include <stdio.h>
 
 namespace Orthanc
@@ -48,30 +48,42 @@ namespace Orthanc
     private:
       RestApi& api_;
       RestApiOutput& output_;
+      RequestOrigin origin_;
+      const char* remoteIp_;
+      const char* username_;
       HttpMethod method_;
-      const HttpHandler::Arguments& headers_;
-      const HttpHandler::Arguments& getArguments_;
-      const std::string& postData_;
+      const IHttpHandler::Arguments& headers_;
+      const IHttpHandler::Arguments& getArguments_;
+      const char* bodyData_;
+      size_t bodySize_;
 
     public:
       HttpHandlerVisitor(RestApi& api,
                          RestApiOutput& output,
+                         RequestOrigin origin,
+                         const char* remoteIp,
+                         const char* username,
                          HttpMethod method,
-                         const HttpHandler::Arguments& headers,
-                         const HttpHandler::Arguments& getArguments,
-                         const std::string& postData) :
+                         const IHttpHandler::Arguments& headers,
+                         const IHttpHandler::Arguments& getArguments,
+                         const char* bodyData,
+                         size_t bodySize) :
         api_(api),
         output_(output),
+        origin_(origin),
+        remoteIp_(remoteIp),
+        username_(username),
         method_(method),
         headers_(headers),
         getArguments_(getArguments),
-        postData_(postData)
+        bodyData_(bodyData),
+        bodySize_(bodySize)
       {
       }
 
       virtual bool Visit(const RestApiHierarchy::Resource& resource,
                          const UriComponents& uri,
-                         const HttpHandler::Arguments& components,
+                         const IHttpHandler::Arguments& components,
                          const UriComponents& trailing)
       {
         if (resource.HasHandler(method_))
@@ -80,28 +92,32 @@ namespace Orthanc
           {
             case HttpMethod_Get:
             {
-              RestApiGetCall call(output_, api_, headers_, components, trailing, uri, getArguments_);
+              RestApiGetCall call(output_, api_, origin_, remoteIp_, username_, 
+                                  headers_, components, trailing, uri, getArguments_);
               resource.Handle(call);
               return true;
             }
 
             case HttpMethod_Post:
             {
-              RestApiPostCall call(output_, api_, headers_, components, trailing, uri, postData_);
+              RestApiPostCall call(output_, api_, origin_, remoteIp_, username_, 
+                                   headers_, components, trailing, uri, bodyData_, bodySize_);
               resource.Handle(call);
               return true;
             }
 
             case HttpMethod_Delete:
             {
-              RestApiDeleteCall call(output_, api_, headers_, components, trailing, uri);
+              RestApiDeleteCall call(output_, api_, origin_, remoteIp_, username_, 
+                                     headers_, components, trailing, uri);
               resource.Handle(call);
               return true;
             }
 
             case HttpMethod_Put:
             {
-              RestApiPutCall call(output_, api_, headers_, components, trailing, uri, postData_);
+              RestApiPutCall call(output_, api_, origin_, remoteIp_, username_, 
+                                  headers_, components, trailing, uri, bodyData_, bodySize_);
               resource.Handle(call);
               return true;
             }
@@ -157,38 +173,48 @@ namespace Orthanc
 
 
   bool RestApi::Handle(HttpOutput& output,
+                       RequestOrigin origin,
+                       const char* remoteIp,
+                       const char* username,
                        HttpMethod method,
                        const UriComponents& uri,
                        const Arguments& headers,
-                       const Arguments& getArguments,
-                       const std::string& postData)
+                       const GetArguments& getArguments,
+                       const char* bodyData,
+                       size_t bodySize)
   {
-    RestApiOutput wrappedOutput(output);
+    RestApiOutput wrappedOutput(output, method);
 
 #if ORTHANC_PUGIXML_ENABLED == 1
-    // Look if the user wishes XML answers instead of JSON
-    // http://www.w3.org/Protocols/HTTP/HTRQ_Headers.html#z3
-    Arguments::const_iterator it = headers.find("accept");
-    if (it != headers.end())
     {
-      std::vector<std::string> accepted;
-      Toolbox::TokenizeString(accepted, it->second, ';');
-      for (size_t i = 0; i < accepted.size(); i++)
+      // Look if the client wishes XML answers instead of JSON
+      // http://www.w3.org/Protocols/HTTP/HTRQ_Headers.html#z3
+      Arguments::const_iterator it = headers.find("accept");
+      if (it != headers.end())
       {
-        if (accepted[i] == "application/xml")
+        std::vector<std::string> accepted;
+        Toolbox::TokenizeString(accepted, it->second, ';');
+        for (size_t i = 0; i < accepted.size(); i++)
         {
-          wrappedOutput.SetConvertJsonToXml(true);
-        }
+          if (accepted[i] == "application/xml")
+          {
+            wrappedOutput.SetConvertJsonToXml(true);
+          }
 
-        if (accepted[i] == "application/json")
-        {
-          wrappedOutput.SetConvertJsonToXml(false);
+          if (accepted[i] == "application/json")
+          {
+            wrappedOutput.SetConvertJsonToXml(false);
+          }
         }
       }
     }
 #endif
 
-    HttpHandlerVisitor visitor(*this, wrappedOutput, method, headers, getArguments, postData);
+    Arguments compiled;
+    HttpToolbox::CompileGetArguments(compiled, getArguments);
+
+    HttpHandlerVisitor visitor(*this, wrappedOutput, origin, remoteIp, username, 
+                               method, headers, compiled, bodyData, bodySize);
 
     if (root_.LookupResource(uri, visitor))
     {

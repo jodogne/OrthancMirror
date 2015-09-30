@@ -273,6 +273,16 @@ namespace Orthanc
     result.SetValue(DICOM_TAG_ACCESSION_NUMBER, "");
     result.SetValue(DICOM_TAG_PATIENT_ID, "");
     result.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "");
+
+    // These tags are considered as "main" by Orthanc, but are not in the Series module
+    result.Remove(DicomTag(0x0008, 0x0070));  // Manufacturer
+    result.Remove(DicomTag(0x0008, 0x1010));  // Station name
+    result.Remove(DicomTag(0x0018, 0x0024));  // Sequence name
+    result.Remove(DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES);
+    result.Remove(DICOM_TAG_IMAGES_IN_ACQUISITION);
+    result.Remove(DICOM_TAG_NUMBER_OF_SLICES);
+    result.Remove(DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS);
+    result.Remove(DICOM_TAG_NUMBER_OF_TIME_SLICES);
   }
 
   void DicomMap::SetupFindInstanceTemplate(DicomMap& result)
@@ -405,5 +415,17 @@ namespace Orthanc
   {
     DicomArray a(*this);
     a.Print(fp);
+  }
+
+
+  void DicomMap::GetTags(std::set<DicomTag>& tags) const
+  {
+    tags.clear();
+
+    for (Map::const_iterator it = map_.begin();
+         it != map_.end(); ++it)
+    {
+      tags.insert(it->first);
+    }
   }
 }

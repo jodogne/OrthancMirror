@@ -32,23 +32,19 @@
 
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
-#include <glog/logging.h>
 
 #include "../OrthancServer/Scheduler/ServerScheduler.h"
-
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
-#include "../Core/MultiThreading/ArrayFilledByThreads.h"
 #include "../Core/MultiThreading/Locker.h"
 #include "../Core/MultiThreading/Mutex.h"
 #include "../Core/MultiThreading/ReaderWriterLock.h"
-#include "../Core/MultiThreading/ThreadedCommandProcessor.h"
 
 using namespace Orthanc;
 
 namespace
 {
-  class DynamicInteger : public ICommand
+  class DynamicInteger : public IDynamicObject
   {
   private:
     int value_;
@@ -64,54 +60,8 @@ namespace
     {
       return value_;
     }
-
-    virtual bool Execute()
-    {
-      static boost::mutex mutex;
-      boost::mutex::scoped_lock lock(mutex);
-      target_.insert(value_);
-      return true;
-    }
-  };
-
-  class MyFiller : public ArrayFilledByThreads::IFiller
-  {
-  private:
-    int size_;
-    unsigned int created_;
-    std::set<int> set_;
-
-  public:
-    MyFiller(int size) : size_(size), created_(0)
-    {
-    }
-
-    virtual size_t GetFillerSize()
-    {
-      return size_;
-    }
-
-    virtual IDynamicObject* GetFillerItem(size_t index)
-    {
-      static boost::mutex mutex;
-      boost::mutex::scoped_lock lock(mutex);
-      created_++;
-      return new DynamicInteger(index * 2, set_);
-    }
-
-    unsigned int GetCreatedCount() const
-    {
-      return created_;
-    }
-
-    std::set<int> GetSet()
-    {
-      return set_;
-    }    
   };
 }
-
-
 
 
 TEST(MultiThreading, SharedMessageQueueBasic)
@@ -146,82 +96,10 @@ TEST(MultiThreading, SharedMessageQueueClean)
     SharedMessageQueue q;
     q.Enqueue(new DynamicInteger(10, s));
     q.Enqueue(new DynamicInteger(20, s));  
-    throw OrthancException("Nope");
+    throw OrthancException(ErrorCode_InternalError);
   }
   catch (OrthancException&)
   {
-  }
-}
-
-
-TEST(MultiThreading, ArrayFilledByThreadEmpty)
-{
-  MyFiller f(0);
-  ArrayFilledByThreads a(f);
-  a.SetThreadCount(1);
-  ASSERT_EQ(0, a.GetSize());
-}
-
-
-TEST(MultiThreading, ArrayFilledByThread1)
-{
-  MyFiller f(100);
-  ArrayFilledByThreads a(f);
-  a.SetThreadCount(1);
-  ASSERT_EQ(100, a.GetSize());
-  for (size_t i = 0; i < a.GetSize(); i++)
-  {
-    ASSERT_EQ(2 * i, dynamic_cast<DynamicInteger&>(a.GetItem(i)).GetValue());
-  }
-}
-
-
-TEST(MultiThreading, ArrayFilledByThread4)
-{
-  MyFiller f(100);
-  ArrayFilledByThreads a(f);
-  a.SetThreadCount(4);
-  ASSERT_EQ(100, a.GetSize());
-  for (size_t i = 0; i < a.GetSize(); i++)
-  {
-    ASSERT_EQ(2 * i, dynamic_cast<DynamicInteger&>(a.GetItem(i)).GetValue());
-  }
-
-  ASSERT_EQ(100u, f.GetCreatedCount());
-
-  a.Invalidate();
-
-  ASSERT_EQ(100, a.GetSize());
-  ASSERT_EQ(200u, f.GetCreatedCount());
-  ASSERT_EQ(4u, a.GetThreadCount());
-  ASSERT_TRUE(f.GetSet().empty());
-
-  for (size_t i = 0; i < a.GetSize(); i++)
-  {
-    ASSERT_EQ(2 * i, dynamic_cast<DynamicInteger&>(a.GetItem(i)).GetValue());
-  }
-}
-
-
-TEST(MultiThreading, CommandProcessor)
-{
-  ThreadedCommandProcessor p(4);
-
-  std::set<int> s;
-
-  for (size_t i = 0; i < 100; i++)
-  {
-    p.Post(new DynamicInteger(i * 2, s));
-  }
-
-  p.Join();
-
-  for (size_t i = 0; i < 200; i++)
-  {
-    if (i % 2)
-      ASSERT_TRUE(s.find(i) == s.end());
-    else
-      ASSERT_TRUE(s.find(i) != s.end());
   }
 }
 
@@ -258,7 +136,8 @@ TEST(ReusableDicomUserConnection, DISABLED_Basic)
   printf("START\n"); fflush(stdout);
 
   {
-    ReusableDicomUserConnection::Locker lock(c, "STORESCP", "localhost", 2000, ModalityManufacturer_Generic);
+    RemoteModalityParameters remote("STORESCP", "localhost", 2000, ModalityManufacturer_Generic);
+    ReusableDicomUserConnection::Locker lock(c, "ORTHANC", remote);
     lock.GetConnection().StoreFile("/home/jodogne/DICOM/Cardiac/MR.X.1.2.276.0.7230010.3.1.4.2831157719.2256.1336386844.676281");
   }
 
@@ -267,7 +146,8 @@ TEST(ReusableDicomUserConnection, DISABLED_Basic)
   printf("**\n"); fflush(stdout);
 
   {
-    ReusableDicomUserConnection::Locker lock(c, "STORESCP", "localhost", 2000, ModalityManufacturer_Generic);
+    RemoteModalityParameters remote("STORESCP", "localhost", 2000, ModalityManufacturer_Generic);
+    ReusableDicomUserConnection::Locker lock(c, "ORTHANC", remote);
     lock.GetConnection().StoreFile("/home/jodogne/DICOM/Cardiac/MR.X.1.2.276.0.7230010.3.1.4.2831157719.2256.1336386844.676277");
   }
 
@@ -357,7 +237,7 @@ TEST(MultiThreading, ServerScheduler)
   IServerCommand::ListOfStrings l;
   scheduler.SubmitAndWait(l, job);
 
-  ASSERT_EQ(2, l.size());
+  ASSERT_EQ(2u, l.size());
   ASSERT_EQ(42 * 2 * 3, boost::lexical_cast<int>(l.front()));
   ASSERT_EQ(42 * 2 * 3 * 4 * 5, boost::lexical_cast<int>(l.back()));
 
@@ -369,6 +249,11 @@ TEST(MultiThreading, ServerScheduler)
   //Toolbox::ServerBarrier();
   //Toolbox::USleep(3000000);
 
+  scheduler.Stop();
+
   done = true;
-  t.join();
+  if (t.joinable())
+  {
+    t.join();
+  }
 }

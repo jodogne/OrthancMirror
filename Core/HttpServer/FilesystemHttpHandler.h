@@ -32,13 +32,13 @@
 
 #pragma once
 
-#include "HttpHandler.h"
+#include "IHttpHandler.h"
 
 #include <boost/shared_ptr.hpp>
 
 namespace Orthanc
 {
-  class FilesystemHttpHandler : public HttpHandler
+  class FilesystemHttpHandler : public IHttpHandler
   {
   private:
     // PImpl idiom to avoid the inclusion of boost::filesystem
@@ -54,11 +54,15 @@ namespace Orthanc
 
     virtual bool Handle(
       HttpOutput& output,
+      RequestOrigin origin,
+      const char* remoteIp,
+      const char* username,
       HttpMethod method,
       const UriComponents& uri,
       const Arguments& headers,
-      const Arguments& arguments,
-      const std::string&);
+      const GetArguments& arguments,
+      const char* /*bodyData*/,
+      size_t /*bodySize*/);
 
     bool IsListDirectoryContent() const
     {

@@ -50,12 +50,11 @@ namespace Orthanc
 
 
   static void OutputDirectoryContent(HttpOutput& output,
+                                     const IHttpHandler::Arguments& headers,
                                      const UriComponents& uri,
                                      const boost::filesystem::path& p)
   {
     namespace fs = boost::filesystem;
-
-    output.SetContentType("text/html");
 
     std::string s;
     s += "<html>";
@@ -104,7 +103,8 @@ namespace Orthanc
     s += "  </body>";
     s += "</html>";
 
-    output.SendBody(s);
+    output.SetContentType("text/html");
+    output.Answer(s);
   }
 
 
@@ -119,18 +119,22 @@ namespace Orthanc
     if (!fs::exists(pimpl_->root_) || 
         !fs::is_directory(pimpl_->root_))
     {
-      throw OrthancException("The path does not point to a directory");
+      throw OrthancException(ErrorCode_DirectoryExpected);
     }
   }
 
 
   bool FilesystemHttpHandler::Handle(
     HttpOutput& output,
+    RequestOrigin /*origin*/,
+    const char* /*remoteIp*/,
+    const char* /*username*/,
     HttpMethod method,
     const UriComponents& uri,
     const Arguments& headers,
-    const Arguments& arguments,
-    const std::string&)
+    const GetArguments& arguments,
+    const char* /*bodyData*/,
+    size_t /*bodySize*/)
   {
     if (!Toolbox::IsChildUri(pimpl_->baseUri_, uri))
     {
@@ -154,15 +158,14 @@ namespace Orthanc
 
     if (fs::exists(p) && fs::is_regular_file(p))
     {
-      FilesystemHttpSender(p).Send(output);
-
-      //output.AnswerFileAutodetectContentType(p.string());
+      FilesystemHttpSender sender(p);
+      output.Answer(sender);   // TODO COMPRESSION
     }
     else if (listDirectoryContent_ &&
              fs::exists(p) && 
              fs::is_directory(p))
     {
-      OutputDirectoryContent(output, uri, p);
+      OutputDirectoryContent(output, headers, uri, p);
     }
     else
     {

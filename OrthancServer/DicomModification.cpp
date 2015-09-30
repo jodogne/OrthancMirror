@@ -33,11 +33,11 @@
 #include "PrecompiledHeadersServer.h"
 #include "DicomModification.h"
 
+#include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
 #include "FromDcmtkBridge.h"
 
 #include <memory>   // For std::auto_ptr
-#include <glog/logging.h>
 
 
 static const std::string ORTHANC_DEIDENTIFICATION_METHOD = "Orthanc " ORTHANC_VERSION " - PS 3.15-2008 Table E.1-1";

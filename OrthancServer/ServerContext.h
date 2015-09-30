@@ -32,25 +32,28 @@
 
 #pragma once
 
+#include "../Core/MultiThreading/SharedMessageQueue.h"
 #include "../Core/Cache/MemoryCache.h"
-#include "../Core/FileStorage/CompressedFileStorageAccessor.h"
+#include "../Core/Cache/SharedArchive.h"
 #include "../Core/FileStorage/IStorageArea.h"
-#include "../Core/RestApi/RestApiOutput.h"
 #include "../Core/Lua/LuaContext.h"
-#include "ServerIndex.h"
-#include "ParsedDicomFile.h"
-#include "DicomProtocol/ReusableDicomUserConnection.h"
-#include "Scheduler/ServerScheduler.h"
+#include "../Core/RestApi/RestApiOutput.h"
+#include "../Plugins/Engine/OrthancPlugins.h"
 #include "DicomInstanceToStore.h"
-#include "ServerIndexChange.h"
+#include "DicomProtocol/ReusableDicomUserConnection.h"
+#include "IServerListener.h"
+#include "LuaScripting.h"
+#include "ParsedDicomFile.h"
+#include "Scheduler/ServerScheduler.h"
+#include "ServerIndex.h"
+#include "OrthancHttpHandler.h"
 
 #include <boost/filesystem.hpp>
+#include <boost/thread.hpp>
+
 
 namespace Orthanc
 {
-  class OrthancPlugins;
-  class PluginsManager;
-
   /**
    * This class is responsible for maintaining the storage area on the
    * filesystem (including compression), as well as the index of the
@@ -72,18 +75,42 @@ namespace Orthanc
       virtual IDynamicObject* Provide(const std::string& id);
     };
 
-    bool ApplyReceivedInstanceFilter(const Json::Value& simplified,
-                                     const std::string& remoteAet);
+    class ServerListener
+    {
+    private:
+      IServerListener *listener_;
+      std::string      description_;
 
-    void ApplyLuaOnStoredInstance(const std::string& instanceId,
-                                  const Json::Value& simplifiedDicom,
-                                  const Json::Value& metadata,
-                                  const std::string& remoteAet,
-                                  const std::string& calledAet);
+    public:
+      ServerListener(IServerListener& listener,
+                     const std::string& description) :
+        listener_(&listener),
+        description_(description)
+      {
+      }
+
+      IServerListener& GetListener()
+      {
+        return *listener_;
+      }
+
+      const std::string& GetDescription()
+      {
+        return description_;
+      }
+    };
+
+    typedef std::list<ServerListener>  ServerListeners;
+
+
+    static void ChangeThread(ServerContext* that);
+
 
     ServerIndex index_;
-    CompressedFileStorageAccessor accessor_;
+    IStorageArea& area_;
+
     bool compressionEnabled_;
+    bool storeMD5_;
     
     DicomCacheProvider provider_;
     boost::mutex dicomCacheMutex_;
@@ -91,10 +118,22 @@ namespace Orthanc
     ReusableDicomUserConnection scu_;
     ServerScheduler scheduler_;
 
-    boost::mutex luaMutex_;
-    LuaContext lua_;
-    OrthancPlugins* plugins_;  // TODO Turn it into a listener pattern (idem for Lua callbacks)
-    const PluginsManager* pluginsManager_;
+    LuaScripting lua_;
+
+#if ORTHANC_PLUGINS_ENABLED == 1
+    OrthancPlugins* plugins_;
+#endif
+
+    ServerListeners listeners_;
+    boost::recursive_mutex listenersMutex_;
+
+    bool done_;
+    SharedMessageQueue  pendingChanges_;
+    boost::thread  changeThread_;
+        
+    SharedArchive  queryRetrieveArchive_;
+    std::string defaultLocalAet_;
+    OrthancHttpHandler  httpHandler_;
 
   public:
     class DicomCacheLocker : public boost::noncopyable
@@ -116,35 +155,10 @@ namespace Orthanc
       }
     };
 
-    class LuaContextLocker : public boost::noncopyable
-    {
-    private:
-      ServerContext& that_;
+    ServerContext(IDatabaseWrapper& database,
+                  IStorageArea& area);
 
-    public:
-      LuaContextLocker(ServerContext& that) : that_(that)
-      {
-        that.luaMutex_.lock();
-      }
-
-      ~LuaContextLocker()
-      {
-        that_.luaMutex_.unlock();
-      }
-
-      LuaContext& GetLua()
-      {
-        return that_.lua_;
-      }
-    };
-
-
-    ServerContext(IDatabaseWrapper& database);
-
-    void SetStorageArea(IStorageArea& storage)
-    {
-      accessor_.SetStorageArea(storage);
-    }
+    ~ServerContext();
 
     ServerIndex& GetIndex()
     {
@@ -186,7 +200,7 @@ namespace Orthanc
 
     bool IsStoreMD5ForAttachments() const
     {
-      return accessor_.IsStoreMD5();
+      return storeMD5_;
     }
 
     ReusableDicomUserConnection& GetReusableDicomUserConnection()
@@ -199,29 +213,48 @@ namespace Orthanc
       return scheduler_;
     }
 
-    void SetOrthancPlugins(const PluginsManager& manager,
-                           OrthancPlugins& plugins)
-    {
-      pluginsManager_ = &manager;
-      plugins_ = &plugins;
-    }
-
-    void ResetOrthancPlugins()
-    {
-      pluginsManager_ = NULL;
-      plugins_ = NULL;
-    }
-
     bool DeleteResource(Json::Value& target,
                         const std::string& uuid,
                         ResourceType expectedType);
 
     void SignalChange(const ServerIndexChange& change);
 
+    SharedArchive& GetQueryRetrieveArchive()
+    {
+      return queryRetrieveArchive_;
+    }
+
+    const std::string& GetDefaultLocalApplicationEntityTitle() const
+    {
+      return defaultLocalAet_;
+    }
+
+    LuaScripting& GetLua()
+    {
+      return lua_;
+    }
+
+    OrthancHttpHandler& GetHttpHandler()
+    {
+      return httpHandler_;
+    }
+
+    void Stop();
+
+
+    /**
+     * Management of the plugins
+     **/
+
+#if ORTHANC_PLUGINS_ENABLED == 1
+    void SetPlugins(OrthancPlugins& plugins);
+
+    void ResetPlugins();
+
+    const OrthancPlugins& GetPlugins() const;
+#endif
+
     bool HasPlugins() const;
 
-    const PluginsManager& GetPluginsManager() const;
-
-    const OrthancPlugins& GetOrthancPlugins() const;
   };
 }

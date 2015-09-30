@@ -32,24 +32,47 @@
 
 #pragma once
 
-#include "PluginsManager.h"
-#include "../../Core/HttpServer/HttpHandler.h"
-#include "../../OrthancServer/ServerContext.h"
-#include "../../OrthancServer/OrthancRestApi/OrthancRestApi.h"
+#include "PluginsErrorDictionary.h"
+
+#if ORTHANC_PLUGINS_ENABLED != 1
+
+#include <boost/noncopyable.hpp>
+
+namespace Orthanc
+{
+  class OrthancPlugins : public boost::noncopyable
+  {
+  };
+}
+
+#else
+
+#include "../../Core/FileStorage/IStorageArea.h"
+#include "../../Core/HttpServer/IHttpHandler.h"
+#include "../../OrthancServer/IServerListener.h"
 #include "OrthancPluginDatabase.h"
+#include "PluginsManager.h"
 
 #include <list>
 #include <boost/shared_ptr.hpp>
 
 namespace Orthanc
 {
-  class OrthancPlugins : public HttpHandler, public IPluginServiceProvider
+  class ServerContext;
+
+  class OrthancPlugins : 
+    public IHttpHandler, 
+    public IPluginServiceProvider, 
+    public IServerListener
   {
   private:
     struct PImpl;
     boost::shared_ptr<PImpl> pimpl_;
 
-    void RegisterRestCallback(const void* parameters);
+    void CheckContextAvailable();
+
+    void RegisterRestCallback(const void* parameters,
+                              bool lock);
 
     void RegisterOnStoredInstanceCallback(const void* parameters);
 
@@ -60,6 +83,8 @@ namespace Orthanc
     void Redirect(const void* parameters);
 
     void CompressAndAnswerPngImage(const void* parameters);
+
+    void CompressAndAnswerImage(const void* parameters);
 
     void GetDicomForInstance(const void* parameters);
 
@@ -78,6 +103,8 @@ namespace Orthanc
 
     void SendHttpStatusCode(const void* parameters);
 
+    void SendHttpStatus(const void* parameters);
+
     void SendUnauthorized(const void* parameters);
 
     void SendMethodNotAllowed(const void* parameters);
@@ -85,6 +112,20 @@ namespace Orthanc
     void SetCookie(const void* parameters);
 
     void SetHttpHeader(const void* parameters);
+
+    void BufferCompression(const void* parameters);
+
+    void UncompressImage(const void* parameters);
+
+    void CompressImage(const void* parameters);
+
+    void ConvertPixelFormat(const void* parameters);
+
+    void CallHttpClient(const void* parameters);
+
+    void GetFontInfo(const void* parameters);
+
+    void DrawText(const void* parameters);
 
   public:
     OrthancPlugins();
@@ -94,35 +135,55 @@ namespace Orthanc
     void SetServerContext(ServerContext& context);
 
     virtual bool Handle(HttpOutput& output,
+                        RequestOrigin origin,
+                        const char* remoteIp,
+                        const char* username,
                         HttpMethod method,
                         const UriComponents& uri,
                         const Arguments& headers,
-                        const Arguments& getArguments,
-                        const std::string& postData);
+                        const GetArguments& getArguments,
+                        const char* bodyData,
+                        size_t bodySize);
 
-    virtual bool InvokeService(_OrthancPluginService service,
+    virtual bool InvokeService(SharedLibrary& plugin,
+                               _OrthancPluginService service,
                                const void* parameters);
 
-    void SignalChange(const ServerIndexChange& change);
+    virtual void SignalChange(const ServerIndexChange& change);
 
-    void SignalStoredInstance(DicomInstanceToStore& instance,
-                              const std::string& instanceId);
+    virtual void SignalStoredInstance(const std::string& instanceId,
+                                      DicomInstanceToStore& instance,
+                                      const Json::Value& simplifiedTags);
 
-    void SetOrthancRestApi(OrthancRestApi& restApi);
+    virtual bool FilterIncomingInstance(const DicomInstanceToStore& instance,
+                                        const Json::Value& simplified)
+    {
+      return true; // TODO Enable filtering of instances from plugins
+    }
 
     bool HasStorageArea() const;
 
-    IStorageArea* GetStorageArea();  // To be freed after use
+    IStorageArea* CreateStorageArea();  // To be freed after use
 
-    bool HasDatabase() const;
+    const SharedLibrary& GetStorageAreaLibrary() const;
 
-    IDatabaseWrapper& GetDatabase();
+    bool HasDatabaseBackend() const;
 
-    void Stop();
+    IDatabaseWrapper& GetDatabaseBackend();
+
+    const SharedLibrary& GetDatabaseBackendLibrary() const;
 
     const char* GetProperty(const char* plugin,
                             _OrthancPluginProperty property) const;
 
     void SetCommandLineArguments(int argc, char* argv[]);
+
+    PluginsManager& GetManager();
+
+    const PluginsManager& GetManager() const;
+
+    PluginsErrorDictionary& GetErrorDictionary();
   };
 }
+
+#endif

@@ -35,6 +35,11 @@
 #include "../PrecompiledHeaders.h"
 #include "MongooseServer.h"
 
+#include "../Logging.h"
+#include "../ChunkedBuffer.h"
+#include "HttpToolbox.h"
+#include "mongoose.h"
+
 #include <algorithm>
 #include <string.h>
 #include <boost/lexical_cast.hpp>
@@ -43,12 +48,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <boost/thread.hpp>
-#include <glog/logging.h>
-
-#include "../OrthancException.h"
-#include "../ChunkedBuffer.h"
-#include "HttpOutput.h"
-#include "mongoose.h"
 
 #if ORTHANC_SSL_ENABLED == 1
 #include <openssl/opensslv.h>
@@ -82,7 +81,12 @@ namespace Orthanc
       {
         if (length > 0)
         {
-          mg_write(connection_, buffer, length);
+          int status = mg_write(connection_, buffer, length);
+          if (status != static_cast<int>(length))
+          {
+            // status == 0 when the connection has been closed, -1 on error
+            throw OrthancException(ErrorCode_NetworkProtocol);
+          }
         }
       }
 
@@ -262,9 +266,9 @@ namespace Orthanc
 
   static PostDataStatus ReadBody(std::string& postData,
                                  struct mg_connection *connection,
-                                 const HttpHandler::Arguments& headers)
+                                 const IHttpHandler::Arguments& headers)
   {
-    HttpHandler::Arguments::const_iterator cs = headers.find("content-length");
+    IHttpHandler::Arguments::const_iterator cs = headers.find("content-length");
     if (cs == headers.end())
     {
       return PostDataStatus_NoLength;
@@ -308,7 +312,7 @@ namespace Orthanc
 
   static PostDataStatus ParseMultipartPost(std::string &completedFile,
                                            struct mg_connection *connection,
-                                           const HttpHandler::Arguments& headers,
+                                           const IHttpHandler::Arguments& headers,
                                            const std::string& contentType,
                                            ChunkStore& chunkStore)
   {
@@ -322,13 +326,13 @@ namespace Orthanc
       return status;
     }
 
-    /*for (HttpHandler::Arguments::const_iterator i = headers.begin(); i != headers.end(); i++)
+    /*for (IHttpHandler::Arguments::const_iterator i = headers.begin(); i != headers.end(); i++)
       {
       std::cout << "Header [" << i->first << "] = " << i->second << "\n";
       }
       printf("CHUNK\n");*/
 
-    typedef HttpHandler::Arguments::const_iterator ArgumentIterator;
+    typedef IHttpHandler::Arguments::const_iterator ArgumentIterator;
 
     ArgumentIterator requestedWith = headers.find("x-requested-with");
     ArgumentIterator fileName = headers.find("x-file-name");
@@ -410,11 +414,11 @@ namespace Orthanc
 
 
   static bool IsAccessGranted(const MongooseServer& that,
-                              const HttpHandler::Arguments& headers)
+                              const IHttpHandler::Arguments& headers)
   {
     bool granted = false;
 
-    HttpHandler::Arguments::const_iterator auth = headers.find("authorization");
+    IHttpHandler::Arguments::const_iterator auth = headers.find("authorization");
     if (auth != headers.end())
     {
       std::string s = auth->second;
@@ -430,9 +434,9 @@ namespace Orthanc
   }
 
 
-  static std::string GetAuthenticatedUsername(const HttpHandler::Arguments& headers)
+  static std::string GetAuthenticatedUsername(const IHttpHandler::Arguments& headers)
   {
-    HttpHandler::Arguments::const_iterator auth = headers.find("authorization");
+    IHttpHandler::Arguments::const_iterator auth = headers.find("authorization");
 
     if (auth == headers.end())
     {
@@ -465,15 +469,15 @@ namespace Orthanc
 
   static bool ExtractMethod(HttpMethod& method,
                             const struct mg_request_info *request,
-                            const HttpHandler::Arguments& headers,
-                            const HttpHandler::Arguments& argumentsGET)
+                            const IHttpHandler::Arguments& headers,
+                            const IHttpHandler::GetArguments& argumentsGET)
   {
     std::string overriden;
 
     // Check whether some PUT/DELETE faking is done
 
     // 1. Faking with Google's approach
-    HttpHandler::Arguments::const_iterator methodOverride =
+    IHttpHandler::Arguments::const_iterator methodOverride =
       headers.find("x-http-method-override");
 
     if (methodOverride != headers.end())
@@ -484,10 +488,13 @@ namespace Orthanc
     {
       // 2. Faking with Ruby on Rail's approach
       // GET /my/resource?_method=delete <=> DELETE /my/resource
-      methodOverride = argumentsGET.find("_method");
-      if (methodOverride != argumentsGET.end())
+      for (size_t i = 0; i < argumentsGET.size(); i++)
       {
-        overriden = methodOverride->second;
+        if (argumentsGET[i].first == "_method")
+        {
+          overriden = argumentsGET[i].second;
+          break;
+        }
       }
     }
 
@@ -540,10 +547,39 @@ namespace Orthanc
   }
 
 
+  static void ConfigureHttpCompression(HttpOutput& output,
+                                       const IHttpHandler::Arguments& headers)
+  {
+    // Look if the client wishes HTTP compression
+    // https://en.wikipedia.org/wiki/HTTP_compression
+    IHttpHandler::Arguments::const_iterator it = headers.find("accept-encoding");
+    if (it != headers.end())
+    {
+      std::vector<std::string> encodings;
+      Toolbox::TokenizeString(encodings, it->second, ',');
+
+      for (size_t i = 0; i < encodings.size(); i++)
+      {
+        std::string s = Toolbox::StripSpaces(encodings[i]);
+
+        if (s == "deflate")
+        {
+          output.SetDeflateAllowed(true);
+        }
+        else if (s == "gzip")
+        {
+          output.SetGzipAllowed(true);
+        }
+      }
+    }
+  }
+
+
   static void InternalCallback(struct mg_connection *connection,
                                const struct mg_request_info *request)
   {
     MongooseServer* that = reinterpret_cast<MongooseServer*>(request->user_data);
+
     MongooseOutputStream stream(connection);
     HttpOutput output(stream, that->IsKeepAliveEnabled());
 
@@ -557,7 +593,7 @@ namespace Orthanc
 
 
     // Extract the HTTP headers
-    HttpHandler::Arguments headers;
+    IHttpHandler::Arguments headers;
     for (int i = 0; i < request->num_headers; i++)
     {
       std::string name = request->http_headers[i].name;
@@ -565,12 +601,17 @@ namespace Orthanc
       headers.insert(std::make_pair(name, request->http_headers[i].value));
     }
 
+    if (that->IsHttpCompressionEnabled())
+    {
+      ConfigureHttpCompression(output, headers);
+    }
+
 
     // Extract the GET arguments
-    HttpHandler::Arguments argumentsGET;
+    IHttpHandler::GetArguments argumentsGET;
     if (!strcmp(request->request_method, "GET"))
     {
-      HttpHandler::ParseGetArguments(argumentsGET, request->query_string);
+      HttpToolbox::ParseGetArguments(argumentsGET, request->query_string);
     }
 
 
@@ -592,18 +633,18 @@ namespace Orthanc
 
 
     // Apply the filter, if it is installed
+    char remoteIp[24];
+    sprintf(remoteIp, "%d.%d.%d.%d", 
+            reinterpret_cast<const uint8_t*>(&request->remote_ip) [3], 
+            reinterpret_cast<const uint8_t*>(&request->remote_ip) [2], 
+            reinterpret_cast<const uint8_t*>(&request->remote_ip) [1], 
+            reinterpret_cast<const uint8_t*>(&request->remote_ip) [0]);
+
+    std::string username = GetAuthenticatedUsername(headers);
+
     const IIncomingHttpRequestFilter *filter = that->GetIncomingHttpRequestFilter();
     if (filter != NULL)
     {
-      std::string username = GetAuthenticatedUsername(headers);
-
-      char remoteIp[24];
-      sprintf(remoteIp, "%d.%d.%d.%d", 
-              reinterpret_cast<const uint8_t*>(&request->remote_ip) [3], 
-              reinterpret_cast<const uint8_t*>(&request->remote_ip) [2], 
-              reinterpret_cast<const uint8_t*>(&request->remote_ip) [1], 
-              reinterpret_cast<const uint8_t*>(&request->remote_ip) [0]);
-
       if (!filter->IsAllowed(method, request->uri, remoteIp, username.c_str()))
       {
         output.SendUnauthorized(ORTHANC_REALM);
@@ -613,13 +654,16 @@ namespace Orthanc
 
 
     // Extract the body of the request for PUT and POST
+
+    // TODO Avoid unneccessary memcopy of the body
+
     std::string body;
     if (method == HttpMethod_Post ||
         method == HttpMethod_Put)
     {
       PostDataStatus status;
 
-      HttpHandler::Arguments::const_iterator ct = headers.find("content-type");
+      IHttpHandler::Arguments::const_iterator ct = headers.find("content-type");
       if (ct == headers.end())
       {
         // No content-type specified. Assume no multi-part content occurs at this point.
@@ -650,7 +694,7 @@ namespace Orthanc
           return;
 
         case PostDataStatus_Pending:
-          output.SendBody();
+          output.AnswerEmpty();
           return;
 
         default:
@@ -672,58 +716,58 @@ namespace Orthanc
     }
 
 
-    // Loop over the candidate handlers for this URI
     LOG(INFO) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
-    bool found = false;
 
-    for (MongooseServer::Handlers::const_iterator it = 
-           that->GetHandlers().begin(); it != that->GetHandlers().end() && !found; ++it) 
+
+    try
     {
+      bool found = false;
+
       try
       {
-        found = (*it)->Handle(output, method, uri, headers, argumentsGET, body);
-      }
-      catch (OrthancException& e)
-      {
-        // Using this candidate handler results in an exception
-        LOG(ERROR) << "Exception in the HTTP handler: " << e.What();
-
-        switch (e.GetErrorCode())
+        if (that->HasHandler())
         {
-          case ErrorCode_InexistentFile:
-          case ErrorCode_InexistentItem:
-          case ErrorCode_UnknownResource:
-            output.SendStatus(HttpStatus_404_NotFound);
-            break;
-
-          case ErrorCode_BadRequest:
-          case ErrorCode_UriSyntax:
-            output.SendStatus(HttpStatus_400_BadRequest);
-            break;
-
-          default:
-            output.SendStatus(HttpStatus_500_InternalServerError);
+          found = that->GetHandler().Handle(output, RequestOrigin_Http, remoteIp, username.c_str(), 
+                                            method, uri, headers, argumentsGET, body.c_str(), body.size());
         }
-
-        return;
       }
       catch (boost::bad_lexical_cast&)
       {
-        LOG(ERROR) << "Exception in the HTTP handler: Bad lexical cast";
-        output.SendStatus(HttpStatus_400_BadRequest);
-        return;
+        throw OrthancException(ErrorCode_BadParameterType);
       }
       catch (std::runtime_error&)
       {
-        LOG(ERROR) << "Exception in the HTTP handler: Presumably a bad JSON request";
-        output.SendStatus(HttpStatus_400_BadRequest);
-        return;
+        // Presumably an error while parsing the JSON body
+        throw OrthancException(ErrorCode_BadRequest);
+      }
+
+      if (!found)
+      {
+        throw OrthancException(ErrorCode_UnknownResource);
       }
     }
-
-    if (!found)
+    catch (OrthancException& e)
     {
-      output.SendStatus(HttpStatus_404_NotFound);
+      // Using this candidate handler results in an exception
+      try
+      {
+        if (that->GetExceptionFormatter() == NULL)
+        {
+          LOG(ERROR) << "Exception in the HTTP handler: " << e.What();
+          output.SendStatus(e.GetHttpStatus());
+        }
+        else
+        {
+          that->GetExceptionFormatter()->Format(output, e, method, request->uri);
+        }
+      }
+      catch (OrthancException&)
+      {
+        // An exception here reflects the fact that the status code
+        // was already set by the HTTP handler.
+      }
+
+      return;
     }
   }
 
@@ -773,12 +817,15 @@ namespace Orthanc
   MongooseServer::MongooseServer() : pimpl_(new PImpl)
   {
     pimpl_->context_ = NULL;
+    handler_ = NULL;
     remoteAllowed_ = false;
     authentication_ = false;
     ssl_ = false;
     port_ = 8000;
     filter_ = NULL;
     keepAlive_ = false;
+    httpCompression_ = true;
+    exceptionFormatter_ = NULL;
 
 #if ORTHANC_SSL_ENABLED == 1
     // Check for the Heartbleed exploit
@@ -795,7 +842,6 @@ namespace Orthanc
   MongooseServer::~MongooseServer()
   {
     Stop();
-    ClearHandlers();
   }
 
 
@@ -845,7 +891,7 @@ namespace Orthanc
 
       if (!pimpl_->context_)
       {
-        throw OrthancException("Unable to launch the Mongoose server");
+        throw OrthancException(ErrorCode_HttpPortInUse);
       }
     }
   }
@@ -857,20 +903,6 @@ namespace Orthanc
       mg_stop(pimpl_->context_);
       pimpl_->context_ = NULL;
     }
-  }
-
-
-  void MongooseServer::RegisterHandler(HttpHandler& handler)
-  {
-    Stop();
-
-    handlers_.push_back(&handler);
-  }
-
-
-  void MongooseServer::ClearHandlers()
-  {
-    Stop();
   }
 
 
@@ -937,14 +969,47 @@ namespace Orthanc
     remoteAllowed_ = allowed;
   }
 
+  void MongooseServer::SetHttpCompressionEnabled(bool enabled)
+  {
+    Stop();
+    httpCompression_ = enabled;
+    LOG(WARNING) << "HTTP compression is " << (enabled ? "enabled" : "disabled");
+  }
+  
   void MongooseServer::SetIncomingHttpRequestFilter(IIncomingHttpRequestFilter& filter)
   {
     Stop();
     filter_ = &filter;
   }
 
+
+  void MongooseServer::SetHttpExceptionFormatter(IHttpExceptionFormatter& formatter)
+  {
+    Stop();
+    exceptionFormatter_ = &formatter;
+  }
+
+
   bool MongooseServer::IsValidBasicHttpAuthentication(const std::string& basic) const
   {
     return registeredUsers_.find(basic) != registeredUsers_.end();
+  }
+
+
+  void MongooseServer::Register(IHttpHandler& handler)
+  {
+    Stop();
+    handler_ = &handler;
+  }
+
+
+  IHttpHandler& MongooseServer::GetHandler() const
+  {
+    if (handler_ == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    return *handler_;
   }
 }

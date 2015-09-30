@@ -34,6 +34,7 @@
 
 #include "../ServerEnumerations.h"
 
+#include <stdint.h>
 #include <string>
 #include <json/json.h>
 
@@ -41,16 +42,19 @@ namespace Orthanc
 {
   class RemoteModalityParameters
   {
-    // TODO Use the flyweight pattern for this class
-
   private:
     std::string aet_;
     std::string host_;
-    int port_;
+    uint16_t port_;
     ModalityManufacturer manufacturer_;
 
   public:
     RemoteModalityParameters();
+
+    RemoteModalityParameters(const std::string& aet,
+                             const std::string& host,
+                             uint16_t port,
+                             ModalityManufacturer manufacturer);
 
     const std::string& GetApplicationEntityTitle() const
     {
@@ -72,12 +76,15 @@ namespace Orthanc
       host_ = host;
     }
     
-    int GetPort() const
+    uint16_t GetPort() const
     {
       return port_;
     }
 
-    void SetPort(int port);
+    void SetPort(uint16_t port)
+    {
+      port_ = port;
+    }
 
     ModalityManufacturer GetManufacturer() const
     {
