@@ -422,6 +422,7 @@ extern "C"
     _OrthancPluginService_RestApiPostAfterPlugins = 3011,
     _OrthancPluginService_RestApiDeleteAfterPlugins = 3012,
     _OrthancPluginService_RestApiPutAfterPlugins = 3013,
+    _OrthancPluginService_ReconstructMainDicomTags = 3014,
 
     /* Access to DICOM instances */
     _OrthancPluginService_GetInstanceRemoteAet = 4000,
@@ -3763,6 +3764,27 @@ extern "C"
     params.maxMultiplicity = maxMultiplicity;
 
     return context->InvokeService(context, _OrthancPluginService_RegisterDictionaryTag, &params);
+  }
+
+
+
+
+  typedef struct
+  {
+    OrthancPluginStorageArea*  storageArea;
+    OrthancPluginResourceType  level;
+  } _OrthancPluginReconstructMainDicomTags;
+
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginReconstructMainDicomTags(
+    OrthancPluginContext*      context,
+    OrthancPluginStorageArea*  storageArea,
+    OrthancPluginResourceType  level)
+  {
+    _OrthancPluginReconstructMainDicomTags params;
+    params.level = level;
+    params.storageArea = storageArea;
+
+    return context->InvokeService(context, _OrthancPluginService_ReconstructMainDicomTags, &params);
   }
 
 

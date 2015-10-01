@@ -235,6 +235,32 @@ namespace Orthanc
     {
       // WARNING: The database should be locked with a transaction!
 
+      const char* plural = NULL;
+
+      switch (level)
+      {
+        case ResourceType_Patient:
+          plural = "patients";
+          break;
+
+        case ResourceType_Study:
+          plural = "studies";
+          break;
+
+        case ResourceType_Series:
+          plural = "series";
+          break;
+
+        case ResourceType_Instance:
+          plural = "instances";
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+
+      LOG(WARNING) << "Upgrade: Reconstructing the main DICOM tags of all the " << plural << "...";
+
       std::list<std::string> resources;
       database.GetAllPublicIds(resources, level);
 

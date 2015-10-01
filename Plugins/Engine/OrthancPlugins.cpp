@@ -1709,6 +1709,22 @@ namespace Orthanc
         return true;
       }
 
+      case _OrthancPluginService_ReconstructMainDicomTags:
+      {
+        const _OrthancPluginReconstructMainDicomTags& p =
+          *reinterpret_cast<const _OrthancPluginReconstructMainDicomTags*>(parameters);
+
+        if (pimpl_->database_.get() == NULL)
+        {
+          LOG(ERROR) << "The service ReconstructMainDicomTags can only be invoked by custom database plugins";
+          throw OrthancException(ErrorCode_DatabasePlugin);
+        }
+
+        IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
+        Toolbox::ReconstructMainDicomTags(*pimpl_->database_, storage, Plugins::Convert(p.level));
+        return true;
+      }
+
       default:
       {
         // This service is unknown to the Orthanc plugin engine

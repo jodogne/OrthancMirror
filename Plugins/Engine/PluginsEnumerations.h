@@ -45,6 +45,8 @@ namespace Orthanc
   {
     OrthancPluginResourceType Convert(ResourceType type);
 
+    ResourceType Convert(OrthancPluginResourceType type);
+
     OrthancPluginChangeType Convert(ChangeType type);
 
     OrthancPluginPixelFormat Convert(PixelFormat format);

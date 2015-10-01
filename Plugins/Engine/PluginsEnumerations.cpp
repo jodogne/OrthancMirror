@@ -66,6 +66,28 @@ namespace Orthanc
     }
 
 
+    ResourceType Convert(OrthancPluginResourceType type)
+    {
+      switch (type)
+      {
+        case OrthancPluginResourceType_Patient:
+          return ResourceType_Patient;
+
+        case OrthancPluginResourceType_Study:
+          return ResourceType_Study;
+
+        case OrthancPluginResourceType_Series:
+          return ResourceType_Series;
+
+        case OrthancPluginResourceType_Instance:
+          return ResourceType_Instance;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
+
     OrthancPluginChangeType Convert(ChangeType type)
     {
       switch (type)
