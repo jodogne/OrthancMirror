@@ -37,6 +37,7 @@
 #include "../Core/Logging.h"
 #include "../Core/Uuid.h"
 #include "EmbeddedResources.h"
+#include "ServerToolbox.h"
 
 #include <stdio.h>
 #include <boost/lexical_cast.hpp>
@@ -890,9 +891,8 @@ namespace Orthanc
       // No change in the DB schema, the step from version 5 to 6 only
       // consists in reconstructing the main DICOM tags information.
       db_.BeginTransaction();
-      SetGlobalProperty(GlobalProperty_DatabaseSchemaVersion, "6");
-      SetGlobalProperty(GlobalProperty_ReconstructStudiesTags, "1");
-      SetGlobalProperty(GlobalProperty_ReconstructSeriesTags, "1");
+      Toolbox::ReconstructMainDicomTags(*this, storageArea, ResourceType_Study);
+      Toolbox::ReconstructMainDicomTags(*this, storageArea, ResourceType_Series);
       db_.CommitTransaction();
       version_ = 6;
     }    
