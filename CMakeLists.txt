@@ -10,8 +10,8 @@ set(ORTHANC_VERSION "mainline")
 #   * Orthanc 0.3.1                  = version 2
 #   * Orthanc 0.4.0 -> Orthanc 0.7.2 = version 3
 #   * Orthanc 0.7.3 -> Orthanc 0.8.4 = version 4
-#   * Orthanc 0.8.5 -> Orthanc 0.9.3 = version 5
-#   * Orthanc 0.9.4 -> mainline      = version 6
+#   * Orthanc 0.8.5 -> Orthanc 0.9.4 = version 5
+#   * Orthanc 0.9.5 -> mainline      = version 6
 set(ORTHANC_DATABASE_VERSION 6)
 
 

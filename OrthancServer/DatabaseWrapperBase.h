@@ -37,8 +37,8 @@
 #include "../Core/Enumerations.h"
 #include "../Core/FileStorage/FileInfo.h"
 #include "../Core/SQLite/Connection.h"
-#include "../OrthancServer/ServerIndexChange.h"
 #include "../OrthancServer/ExportedResource.h"
+#include "../OrthancServer/ServerIndexChange.h"
 #include "ServerEnumerations.h"
 
 #include <list>
@@ -51,10 +51,10 @@ namespace Orthanc
   private:
     SQLite::Connection&  db_;
 
-    void GetChangesInternal(std::list<ServerIndexChange>& target,
-                            bool& done,
-                            SQLite::Statement& s,
-                            uint32_t maxResults);
+    ErrorCode GetChangesInternal(std::list<ServerIndexChange>& target,
+                                 bool& done,
+                                 SQLite::Statement& s,
+                                 uint32_t maxResults);
 
     void GetExportedResourcesInternal(std::list<ExportedResource>& target,
                                       bool& done,
@@ -79,12 +79,15 @@ namespace Orthanc
                         ResourceType& type,
                         const std::string& publicId);
 
-    bool LookupParent(int64_t& parentId,
-                      int64_t resourceId);
+    ErrorCode LookupParent(bool& found,
+                           int64_t& parentId,
+                           int64_t resourceId);
 
-    std::string GetPublicId(int64_t resourceId);
+    bool GetPublicId(std::string& result,
+                     int64_t resourceId);
 
-    ResourceType GetResourceType(int64_t resourceId);
+    ErrorCode GetResourceType(ResourceType& result,
+                              int64_t resourceId);
 
     void AttachChild(int64_t parent,
                      int64_t child);
@@ -136,13 +139,12 @@ namespace Orthanc
     void LogChange(int64_t internalId,
                    const ServerIndexChange& change);
 
-    void GetChanges(std::list<ServerIndexChange>& target,
-                    bool& done,
-                    int64_t since,
-                    uint32_t maxResults);
+    ErrorCode GetChanges(std::list<ServerIndexChange>& target,
+                         bool& done,
+                         int64_t since,
+                         uint32_t maxResults);
 
-    void GetLastChange(std::list<ServerIndexChange>& target);
-
+    ErrorCode GetLastChange(std::list<ServerIndexChange>& target);
 
     void LogExportedResource(const ExportedResource& resource);
 
@@ -178,7 +180,6 @@ namespace Orthanc
                              bool isProtected);
 
     bool IsExistingResource(int64_t internalId);
-
 
     void LookupIdentifier(std::list<int64_t>& target,
                           const DicomTag& tag,

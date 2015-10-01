@@ -96,20 +96,11 @@ namespace Orthanc
     }
 
     virtual bool LookupParent(int64_t& parentId,
-                              int64_t resourceId)
-    {
-      return base_.LookupParent(parentId, resourceId);
-    }
+                              int64_t resourceId);
 
-    virtual std::string GetPublicId(int64_t resourceId)
-    {
-      return base_.GetPublicId(resourceId);
-    }
+    virtual std::string GetPublicId(int64_t resourceId);
 
-    virtual ResourceType GetResourceType(int64_t resourceId)
-    {
-      return base_.GetResourceType(resourceId);
-    }
+    virtual ResourceType GetResourceType(int64_t resourceId);
 
     virtual void AttachChild(int64_t parent,
                              int64_t child)
@@ -209,15 +200,9 @@ namespace Orthanc
     virtual void GetChanges(std::list<ServerIndexChange>& target /*out*/,
                             bool& done /*out*/,
                             int64_t since,
-                            uint32_t maxResults)
-    {
-      base_.GetChanges(target, done, since, maxResults);
-    }
+                            uint32_t maxResults);
 
-    virtual void GetLastChange(std::list<ServerIndexChange>& target /*out*/)
-    {
-      base_.GetLastChange(target);
-    }
+    virtual void GetLastChange(std::list<ServerIndexChange>& target /*out*/);
 
     virtual void LogExportedResource(const ExportedResource& resource)
     {
@@ -320,10 +305,7 @@ namespace Orthanc
 
     virtual void LookupIdentifier(std::list<int64_t>& target,
                                   const DicomTag& tag,
-                                  const std::string& value)
-    {
-      base_.LookupIdentifier(target, tag, value);
-    }
+                                  const std::string& value);
 
     virtual void LookupIdentifier(std::list<int64_t>& target,
                                   const std::string& value)

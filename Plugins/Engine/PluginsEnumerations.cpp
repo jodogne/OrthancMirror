@@ -210,7 +210,7 @@ namespace Orthanc
     }
 
 
-
+#if !defined(ORTHANC_ENABLE_DCMTK) || ORTHANC_ENABLE_DCMTK != 0
     DcmEVR Convert(OrthancPluginValueRepresentation vr)
     {
       switch (vr)
@@ -300,5 +300,6 @@ namespace Orthanc
           throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
     }
+#endif
   }
 }
