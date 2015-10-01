@@ -172,6 +172,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/ServerIndex.cpp
   OrthancServer/ToDcmtkBridge.cpp
   OrthancServer/DatabaseWrapper.cpp
+  OrthancServer/DatabaseWrapperBase.cpp
   OrthancServer/ServerContext.cpp
   OrthancServer/ServerEnumerations.cpp
   OrthancServer/ServerToolbox.cpp
