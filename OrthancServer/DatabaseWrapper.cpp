@@ -386,6 +386,92 @@ namespace Orthanc
   }
 
 
+  bool DatabaseWrapper::LookupParent(int64_t& parentId,
+                                     int64_t resourceId)
+  {
+    bool found;
+    ErrorCode error = base_.LookupParent(found, parentId, resourceId);
+
+    if (error != ErrorCode_Success)
+    {
+      throw OrthancException(error);
+    }
+    else
+    {
+      return found;
+    }
+  }
+
+
+  ResourceType DatabaseWrapper::GetResourceType(int64_t resourceId)
+  {
+    ResourceType result;
+    ErrorCode code = base_.GetResourceType(result, resourceId);
+
+    if (code == ErrorCode_Success)
+    {
+      return result;
+    }
+    else
+    {
+      throw OrthancException(code);
+    }
+  }
+
+
+  std::string DatabaseWrapper::GetPublicId(int64_t resourceId)
+  {
+    std::string id;
+
+    if (base_.GetPublicId(id, resourceId))
+    {
+      return id;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+  }
+
+
+  void DatabaseWrapper::GetChanges(std::list<ServerIndexChange>& target /*out*/,
+                                   bool& done /*out*/,
+                                   int64_t since,
+                                   uint32_t maxResults)
+  {
+    ErrorCode code = base_.GetChanges(target, done, since, maxResults);
+
+    if (code != ErrorCode_Success)
+    {
+      throw OrthancException(code);
+    }
+  }
+
+
+  void DatabaseWrapper::GetLastChange(std::list<ServerIndexChange>& target /*out*/)
+  {
+    ErrorCode code = base_.GetLastChange(target);
+
+    if (code != ErrorCode_Success)
+    {
+      throw OrthancException(code);
+    }
+  }
+
+
+  void DatabaseWrapper::LookupIdentifier(std::list<int64_t>& target,
+                                         const DicomTag& tag,
+                                         const std::string& value)
+  {
+    if (!tag.IsIdentifier())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    base_.LookupIdentifier(target, tag, value);
+  }
+
+
   void DatabaseWrapper::GetAllMetadata(std::map<MetadataType, std::string>& target,
                                        int64_t id)
   {

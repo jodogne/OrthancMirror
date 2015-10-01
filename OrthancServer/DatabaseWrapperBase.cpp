@@ -98,8 +98,9 @@ namespace Orthanc
     }
   }
 
-  bool DatabaseWrapperBase::LookupParent(int64_t& parentId,
-                                         int64_t resourceId)
+  ErrorCode DatabaseWrapperBase::LookupParent(bool& found,
+                                              int64_t& parentId,
+                                              int64_t resourceId)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT parentId FROM Resources WHERE internalId=?");
@@ -107,21 +108,24 @@ namespace Orthanc
 
     if (!s.Step())
     {
-      throw OrthancException(ErrorCode_UnknownResource);
+      return ErrorCode_UnknownResource;
     }
 
     if (s.ColumnIsNull(0))
     {
-      return false;
+      found = false;
     }
     else
     {
+      found = true;
       parentId = s.ColumnInt(0);
-      return true;
     }
+
+    return ErrorCode_Success;
   }
 
-  std::string DatabaseWrapperBase::GetPublicId(int64_t resourceId)
+  bool DatabaseWrapperBase::GetPublicId(std::string& result,
+                                        int64_t resourceId)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT publicId FROM Resources WHERE internalId=?");
@@ -129,25 +133,32 @@ namespace Orthanc
     
     if (!s.Step())
     { 
-      throw OrthancException(ErrorCode_UnknownResource);
+      return false;
     }
-
-    return s.ColumnString(0);
+    else
+    {
+      result = s.ColumnString(0);
+      return true;
+    }
   }
 
 
-  ResourceType DatabaseWrapperBase::GetResourceType(int64_t resourceId)
+  ErrorCode DatabaseWrapperBase::GetResourceType(ResourceType& result,
+                                                 int64_t resourceId)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT resourceType FROM Resources WHERE internalId=?");
     s.BindInt64(0, resourceId);
     
-    if (!s.Step())
-    { 
-      throw OrthancException(ErrorCode_UnknownResource);
+    if (s.Step())
+    {
+      result = static_cast<ResourceType>(s.ColumnInt(0));
+      return ErrorCode_Success;
     }
-
-    return static_cast<ResourceType>(s.ColumnInt(0));
+    else
+    { 
+      return ErrorCode_UnknownResource;
+    }
   }
 
 
@@ -400,10 +411,10 @@ namespace Orthanc
   }
 
 
-  void DatabaseWrapperBase::GetChangesInternal(std::list<ServerIndexChange>& target,
-                                               bool& done,
-                                               SQLite::Statement& s,
-                                               uint32_t maxResults)
+  ErrorCode DatabaseWrapperBase::GetChangesInternal(std::list<ServerIndexChange>& target,
+                                                    bool& done,
+                                                    SQLite::Statement& s,
+                                                    uint32_t maxResults)
   {
     target.clear();
 
@@ -415,31 +426,36 @@ namespace Orthanc
       const std::string& date = s.ColumnString(4);
 
       int64_t internalId = s.ColumnInt64(2);
-      std::string publicId = GetPublicId(internalId);
+      std::string publicId;
+      if (!GetPublicId(publicId, internalId))
+      {
+        return ErrorCode_UnknownResource;
+      }
 
       target.push_back(ServerIndexChange(seq, changeType, resourceType, publicId, date));
     }
 
     done = !(target.size() == maxResults && s.Step());
+    return ErrorCode_Success;
   }
 
 
-  void DatabaseWrapperBase::GetChanges(std::list<ServerIndexChange>& target,
-                                       bool& done,
-                                       int64_t since,
-                                       uint32_t maxResults)
+  ErrorCode DatabaseWrapperBase::GetChanges(std::list<ServerIndexChange>& target,
+                                            bool& done,
+                                            int64_t since,
+                                            uint32_t maxResults)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT * FROM Changes WHERE seq>? ORDER BY seq LIMIT ?");
     s.BindInt64(0, since);
     s.BindInt(1, maxResults + 1);
-    GetChangesInternal(target, done, s, maxResults);
+    return GetChangesInternal(target, done, s, maxResults);
   }
 
-  void DatabaseWrapperBase::GetLastChange(std::list<ServerIndexChange>& target)
+  ErrorCode DatabaseWrapperBase::GetLastChange(std::list<ServerIndexChange>& target)
   {
     bool done;  // Ignored
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT * FROM Changes ORDER BY seq DESC LIMIT 1");
-    GetChangesInternal(target, done, s, 1);
+    return GetChangesInternal(target, done, s, 1);
   }
 
 
@@ -573,13 +589,14 @@ namespace Orthanc
     
     if (!s.Step())
     {
-      throw OrthancException(ErrorCode_InternalError);
+      return 0;
     }
-
-    int64_t c = s.ColumnInt(0);
-    assert(!s.Step());
-
-    return c;
+    else
+    {
+      int64_t c = s.ColumnInt(0);
+      assert(!s.Step());
+      return c;
+    }
   }
 
 
@@ -664,11 +681,6 @@ namespace Orthanc
                                              const DicomTag& tag,
                                              const std::string& value)
   {
-    if (!tag.IsIdentifier())
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT id FROM DicomIdentifiers WHERE tagGroup=? AND tagElement=? and value=?");
 
