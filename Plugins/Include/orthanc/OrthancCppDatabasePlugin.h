@@ -122,6 +122,11 @@ namespace OrthancPlugins
     {
     }
 
+    OrthancPluginContext* GetContext()
+    {
+      return context_;
+    }
+
     void LogError(const std::string& message)
     {
       OrthancPluginLogError(context_, message.c_str());
@@ -456,6 +461,11 @@ namespace OrthancPlugins
 
     virtual uint32_t GetDatabaseVersion() = 0;
 
+    /**
+     * Upgrade the database to the specified version of the database
+     * schema.  The upgrade script is allowed to make calls to
+     * OrthancPluginReconstructMainDicomTags().
+     **/
     virtual void UpgradeDatabase(uint32_t  targetVersion,
                                  OrthancPluginStorageArea* storageArea) = 0;
 

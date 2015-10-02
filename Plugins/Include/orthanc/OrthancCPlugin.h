@@ -3775,6 +3775,22 @@ extern "C"
     OrthancPluginResourceType  level;
   } _OrthancPluginReconstructMainDicomTags;
 
+  /**
+   * @brief Reconstruct the main DICOM tags.
+   *
+   * This function requests the Orthanc core to reconstruct the main
+   * DICOM tags of all the resources of the given type. This function
+   * can only be used as a part of the upgrade of a custom database
+   * back-end
+   * (cf. OrthancPlugins::IDatabaseBackend::UpgradeDatabase). A
+   * database transaction will be automatically setup.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param storageArea The storage area.
+   * @param level The type of the resources of interest.
+   * @return 0 if success, other value if error.
+   * @ingroup Callbacks
+   **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginReconstructMainDicomTags(
     OrthancPluginContext*      context,
     OrthancPluginStorageArea*  storageArea,

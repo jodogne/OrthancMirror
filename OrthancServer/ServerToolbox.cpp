@@ -33,9 +33,10 @@
 #include "PrecompiledHeadersServer.h"
 #include "ServerToolbox.h"
 
+#include "../Core/DicomFormat/DicomArray.h"
+#include "../Core/FileStorage/StorageAccessor.h"
 #include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
-#include "../Core/DicomFormat/DicomArray.h"
 #include "ParsedDicomFile.h"
 
 #include <cassert>
@@ -286,8 +287,10 @@ namespace Orthanc
         }
 
         // Read and parse the content of the DICOM file
+        StorageAccessor accessor(storageArea);
+
         std::string content;
-        storageArea.Read(content, attachment.GetUuid(), FileContentType_Dicom);
+        accessor.Read(content, attachment);
 
         ParsedDicomFile dicom(content);
 
@@ -306,7 +309,7 @@ namespace Orthanc
           case ResourceType_Study:
             Toolbox::SetMainDicomTags(database, resource, ResourceType_Study, dicomSummary, true);
 
-            // Duplicate the patient tags at the study level
+            // Duplicate the patient tags at the study level (new in Orthanc 0.9.5 - db v6)
             Toolbox::SetMainDicomTags(database, resource, ResourceType_Patient, dicomSummary, false);
             break;
 
