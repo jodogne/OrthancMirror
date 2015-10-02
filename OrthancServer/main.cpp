@@ -572,12 +572,27 @@ static bool StartDicomServer(ServerContext& context,
   dicomServer.Start();
   LOG(WARNING) << "DICOM server listening on port: " << dicomServer.GetPortNumber();
 
-  bool restart = StartHttpServer(context, restApi, plugins);
+  bool restart;
+  ErrorCode error = ErrorCode_Success;
+
+  try
+  {
+    restart = StartHttpServer(context, restApi, plugins);
+  }
+  catch (OrthancException& e)
+  {
+    error = e.GetErrorCode();
+  }
 
   dicomServer.Stop();
   LOG(WARNING) << "    DICOM server has stopped";
 
   serverFactory.Done();
+
+  if (error != ErrorCode_Success)
+  {
+    throw OrthancException(error);
+  }
 
   return restart;
 }
@@ -694,7 +709,18 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
   }
 #endif
 
-  bool restart = ConfigureHttpHandler(context, plugins);
+  bool restart;
+  ErrorCode error = ErrorCode_Success;
+
+  try
+  {
+    restart = ConfigureHttpHandler(context, plugins);
+  }
+  catch (OrthancException& e)
+  {
+    error = e.GetErrorCode();
+  }
+
   context.Stop();
 
 #if ORTHANC_PLUGINS_ENABLED == 1
@@ -703,6 +729,11 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     context.ResetPlugins();
   }
 #endif
+
+  if (error != ErrorCode_Success)
+  {
+    throw OrthancException(error);
+  }
 
   return restart;
 }
