@@ -41,6 +41,8 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
 
+struct T_ASC_Network;
+
 namespace Orthanc
 {
   class DicomServer : public boost::noncopyable
@@ -63,7 +65,8 @@ namespace Orthanc
 
     BagOfRunnablesBySteps bagOfDispatchers_;  // This is used iff the server is threaded
 
-    static void ServerThread(DicomServer* server);
+    static void ServerThread(DicomServer* server,
+                             T_ASC_Network *net);
 
   public:
     DicomServer();
