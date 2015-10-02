@@ -267,6 +267,7 @@ extern "C"
     OrthancPluginErrorCode_StorageAreaAlreadyRegistered = 2036    /*!< Another plugin has already registered a custom storage area */,
     OrthancPluginErrorCode_DatabaseBackendAlreadyRegistered = 2037    /*!< Another plugin has already registered a custom database back-end */,
     OrthancPluginErrorCode_DatabaseNotInitialized = 2038    /*!< Plugin trying to call the database during its initialization */,
+    OrthancPluginErrorCode_SslDisabled = 2039    /*!< Orthanc has been built without SSL support */,
 
     _OrthancPluginErrorCode_INTERNAL = 0x7fffffff
   } OrthancPluginErrorCode;

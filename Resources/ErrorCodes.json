@@ -492,5 +492,10 @@
     "Code": 2038,
     "Name": "DatabaseNotInitialized",
     "Description": "Plugin trying to call the database during its initialization"
+  },
+  { 
+    "Code": 2039,
+    "Name": "SslDisabled",
+    "Description": "Orthanc has been built without SSL support"
   }
 ]
