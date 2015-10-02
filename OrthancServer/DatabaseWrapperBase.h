@@ -46,6 +46,11 @@
 
 namespace Orthanc
 {
+  /**
+   * This class is shared between the Orthanc core and the sample
+   * database plugin whose code is in
+   * "../Plugins/Samples/DatabasePlugin".
+   **/
   class DatabaseWrapperBase
   {
   private:

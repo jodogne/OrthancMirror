@@ -32,9 +32,11 @@
 
 #include "Database.h"
 
-#include <EmbeddedResources.h>
-
 #include "../../../Core/DicomFormat/DicomArray.h"
+
+#include <EmbeddedResources.h>
+#include <boost/lexical_cast.hpp>
+
 
 namespace Internals
 {
@@ -106,7 +108,7 @@ namespace Internals
     virtual void Compute(Orthanc::SQLite::FunctionContext& context)
     {
       output_.SignalDeletedResource(context.GetStringValue(0),
-                                    static_cast<OrthancPluginResourceType>(context.GetIntValue(1)));
+                                    Orthanc::Plugins::Convert(static_cast<Orthanc::ResourceType>(context.GetIntValue(1))));
     }
   };
 }
@@ -117,7 +119,7 @@ class Database::SignalRemainingAncestor : public Orthanc::SQLite::IScalarFunctio
 private:
   bool hasRemainingAncestor_;
   std::string remainingPublicId_;
-  Orthanc::ResourceType remainingType_;
+  OrthancPluginResourceType remainingType_;
 
 public:
   SignalRemainingAncestor() : 
@@ -147,7 +149,7 @@ public:
     {
       hasRemainingAncestor_ = true;
       remainingPublicId_ = context.GetStringValue(0);
-      remainingType_ = static_cast<Orthanc::ResourceType>(context.GetIntValue(1));
+      remainingType_ = Orthanc::Plugins::Convert(static_cast<Orthanc::ResourceType>(context.GetIntValue(1)));
     }
   }
 
@@ -162,7 +164,7 @@ public:
     return remainingPublicId_;
   }
 
-  Orthanc::ResourceType GetRemainingAncestorType() const
+  OrthancPluginResourceType GetRemainingAncestorType() const
   {
     assert(hasRemainingAncestor_);
     return remainingType_;
@@ -175,13 +177,20 @@ Database::Database(const std::string& path) :
   path_(path),
   base_(db_)
 {
-  db_.Open(path_);
-  Open();
 }
 
 
 void Database::Open()
 {
+  db_.Open(path_);
+
+  // http://www.sqlite.org/pragma.html
+  db_.Execute("PRAGMA SYNCHRONOUS=NORMAL;");
+  db_.Execute("PRAGMA JOURNAL_MODE=WAL;");
+  db_.Execute("PRAGMA LOCKING_MODE=EXCLUSIVE;");
+  db_.Execute("PRAGMA WAL_AUTOCHECKPOINT=1000;");
+  //db_.Execute("PRAGMA TEMP_STORE=memory");
+
   if (!db_.DoesTableExist("GlobalProperties"))
   {
     std::string query;
@@ -218,7 +227,17 @@ void Database::AddAttachment(int64_t id,
 
 void Database::DeleteResource(int64_t id)
 {
-  // TODO
+  signalRemainingAncestor_->Reset();
+
+  Orthanc::SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM Resources WHERE internalId=?");
+  s.BindInt64(0, id);
+  s.Run();
+
+  if (signalRemainingAncestor_->HasRemainingAncestor())
+  {
+    GetOutput().SignalRemainingAncestor(signalRemainingAncestor_->GetRemainingAncestorId(),
+                                        signalRemainingAncestor_->GetRemainingAncestorType());
+  }
 }
 
 
@@ -226,7 +245,7 @@ static void Answer(OrthancPlugins::DatabaseBackendOutput& output,
                    const Orthanc::ServerIndexChange& change)
 {
   output.AnswerChange(change.GetSeq(), 
-                      static_cast<int32_t>(change.GetChangeType()),
+                      change.GetChangeType(),
                       Orthanc::Plugins::Convert(change.GetResourceType()),
                       change.GetPublicId(),
                       change.GetDate());
@@ -500,7 +519,21 @@ void Database::CommitTransaction()
 
 uint32_t Database::GetDatabaseVersion()
 {
-  return 6;
+  std::string version;
+
+  if (!LookupGlobalProperty(version, Orthanc::GlobalProperty_DatabaseSchemaVersion))
+  {
+    throw OrthancPlugins::DatabaseException(OrthancPluginErrorCode_InternalError);
+  }
+
+  try
+  {
+    return boost::lexical_cast<uint32_t>(version);
+  }
+  catch (boost::bad_lexical_cast&)
+  {
+    throw OrthancPlugins::DatabaseException(OrthancPluginErrorCode_InternalError);
+  }
 }
 
 

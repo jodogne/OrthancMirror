@@ -59,14 +59,19 @@ namespace Orthanc
     Internals::SignalRemainingAncestor* signalRemainingAncestor_;
     unsigned int version_;
 
-    void Open();
-
     void ClearTable(const std::string& tableName);
 
   public:
     DatabaseWrapper(const std::string& path);
 
     DatabaseWrapper();
+
+    virtual void Open();
+
+    virtual void Close()
+    {
+      db_.Close();
+    }
 
     virtual void SetListener(IDatabaseListener& listener);
 

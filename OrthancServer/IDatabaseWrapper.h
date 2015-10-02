@@ -51,6 +51,10 @@ namespace Orthanc
     {
     }
 
+    virtual void Open() = 0;
+
+    virtual void Close() = 0;
+
     virtual void AddAttachment(int64_t id,
                                const FileInfo& attachment) = 0;
 

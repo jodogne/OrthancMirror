@@ -657,14 +657,8 @@ static bool UpgradeDatabase(IDatabaseWrapper& database,
 
 static bool ConfigureServerContext(IDatabaseWrapper& database,
                                    IStorageArea& storageArea,
-                                   OrthancPlugins *plugins,
-                                   bool allowDatabaseUpgrade)
+                                   OrthancPlugins *plugins)
 {
-  if (!UpgradeDatabase(database, storageArea, allowDatabaseUpgrade))
-  {
-    return false;
-  }
-
   ServerContext context(database, storageArea);
 
   HttpClient::SetDefaultTimeout(Configuration::GetGlobalIntegerParameter("HttpTimeout", 0));
@@ -714,6 +708,26 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 }
 
 
+static bool ConfigureDatabase(IDatabaseWrapper& database,
+                              IStorageArea& storageArea,
+                              OrthancPlugins *plugins,
+                              bool allowDatabaseUpgrade)
+{
+  database.Open();
+  
+  if (!UpgradeDatabase(database, storageArea, allowDatabaseUpgrade))
+  {
+    return false;
+  }
+
+  bool success = ConfigureServerContext(database, storageArea, plugins);
+
+  database.Close();
+
+  return success;
+}
+
+
 static bool ConfigurePlugins(int argc, 
                              char* argv[],
                              bool allowDatabaseUpgrade)
@@ -751,14 +765,14 @@ static bool ConfigurePlugins(int argc,
   assert(database != NULL);
   assert(storage.get() != NULL);
 
-  return ConfigureServerContext(*database, *storage, &plugins, allowDatabaseUpgrade);
+  return ConfigureDatabase(*database, *storage, &plugins, allowDatabaseUpgrade);
 
 #elif ORTHANC_PLUGINS_ENABLED == 0
   // The plugins are disabled
   databasePtr.reset(Configuration::CreateDatabaseWrapper());
   storage.reset(Configuration::CreateStorageArea());
 
-  return ConfigureServerContext(*databasePtr, *storage, NULL, allowDatabaseUpgrade);
+  return ConfigureDatabase(*databasePtr, *storage, NULL, allowDatabaseUpgrade);
 
 #else
 #  error The macro ORTHANC_PLUGINS_ENABLED must be set to 0 or 1

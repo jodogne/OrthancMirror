@@ -259,13 +259,11 @@ namespace Orthanc
   DatabaseWrapper::DatabaseWrapper(const std::string& path) : listener_(NULL), base_(db_)
   {
     db_.Open(path);
-    Open();
   }
 
   DatabaseWrapper::DatabaseWrapper() : listener_(NULL), base_(db_)
   {
     db_.OpenInMemory();
-    Open();
   }
 
   void DatabaseWrapper::Open()

@@ -72,6 +72,8 @@ namespace Orthanc
       return reinterpret_cast<OrthancPluginDatabaseContext*>(this);
     }
 
+    void CheckSuccess(OrthancPluginErrorCode code);
+
     void ResetAnswers();
 
     void ForwardAnswers(std::list<int64_t>& target);
@@ -89,6 +91,16 @@ namespace Orthanc
                           const OrthancPluginDatabaseExtensions* extensions,
                           size_t extensionsSize,
                           void *payload);
+
+    virtual void Open()
+    {
+      CheckSuccess(backend_.open(payload_));
+    }
+
+    virtual void Close()
+    {
+      CheckSuccess(backend_.close(payload_));
+    }
 
     const SharedLibrary& GetSharedLibrary() const
     {
