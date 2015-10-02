@@ -540,4 +540,21 @@ uint32_t Database::GetDatabaseVersion()
 void Database::UpgradeDatabase(uint32_t  targetVersion,
                                OrthancPluginStorageArea* storageArea)
 {
+  if (targetVersion == 6)
+  {
+    OrthancPluginErrorCode code = OrthancPluginReconstructMainDicomTags(GetOutput().GetContext(), storageArea, 
+                                                                        OrthancPluginResourceType_Study);
+    if (code == OrthancPluginErrorCode_Success)
+    {
+      code = OrthancPluginReconstructMainDicomTags(GetOutput().GetContext(), storageArea, 
+                                                   OrthancPluginResourceType_Series);
+    }
+
+    if (code != OrthancPluginErrorCode_Success)
+    {
+      throw OrthancPlugins::DatabaseException(code);
+    }
+
+    base_.SetGlobalProperty(Orthanc::GlobalProperty_DatabaseSchemaVersion, "6");
+  }
 }

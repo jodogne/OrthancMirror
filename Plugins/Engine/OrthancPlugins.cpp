@@ -1722,6 +1722,7 @@ namespace Orthanc
 
         IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
         Toolbox::ReconstructMainDicomTags(*pimpl_->database_, storage, Plugins::Convert(p.level));
+
         return true;
       }
 

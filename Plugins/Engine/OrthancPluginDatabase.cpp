@@ -692,7 +692,7 @@ namespace Orthanc
 
   void OrthancPluginDatabase::ClearMainDicomTags(int64_t id)
   {
-    if (extensions_.clearMainDicomTags != NULL)
+    if (extensions_.clearMainDicomTags == NULL)
     {
       LOG(ERROR) << "Your custom index plugin does not implement the ClearMainDicomTags() extension";
       throw OrthancException(ErrorCode_DatabasePlugin);
@@ -848,9 +848,23 @@ namespace Orthanc
   {
     if (extensions_.upgradeDatabase != NULL)
     {
-      CheckSuccess(extensions_.upgradeDatabase(
-                     payload_, targetVersion, 
-                     reinterpret_cast<OrthancPluginStorageArea*>(&storageArea)));
+      Transaction transaction(backend_, payload_, errorDictionary_);
+      transaction.Begin();
+
+      OrthancPluginErrorCode code = extensions_.upgradeDatabase(
+        payload_, targetVersion, 
+        reinterpret_cast<OrthancPluginStorageArea*>(&storageArea));
+
+      if (code == OrthancPluginErrorCode_Success)
+      {
+        transaction.Commit();
+      }
+      else
+      {
+        transaction.Rollback();
+        errorDictionary_.LogError(code, true);
+        throw OrthancException(static_cast<ErrorCode>(code));
+      }
     }
   }
 
