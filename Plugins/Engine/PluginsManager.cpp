@@ -191,7 +191,7 @@ namespace Orthanc
       catch (OrthancException& e)
       {
         // This service provider has failed
-        LOG(ERROR) << "Exception while invoking a plugin service: " << e.What();
+        LOG(ERROR) << "Exception while invoking plugin service " << service << ": " << e.What();
         return static_cast<OrthancPluginErrorCode>(e.GetErrorCode());
       }
     }
