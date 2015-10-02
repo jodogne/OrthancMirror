@@ -881,8 +881,38 @@ namespace Orthanc
   {
     DicomMap tags;
     db_.GetMainDicomTags(tags, resourceId);
-    target["MainDicomTags"] = Json::objectValue;
-    FromDcmtkBridge::ToJson(target["MainDicomTags"], tags, true);
+
+    if (resourceType == ResourceType_Study)
+    {
+      DicomMap t1, t2;
+      tags.ExtractStudyInformation(t1);
+      tags.ExtractPatientInformation(t2);
+
+      target["MainDicomTags"] = Json::objectValue;
+      FromDcmtkBridge::ToJson(target["MainDicomTags"], t1, true);
+
+      target["PatientMainDicomTags"] = Json::objectValue;
+      FromDcmtkBridge::ToJson(target["PatientMainDicomTags"], t2, true);
+
+      int64_t patient;
+      if (!db_.LookupParent(patient, resourceId))
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      tags.Clear();
+      db_.GetMainDicomTags(tags, patient);
+
+      if (tags.HasTag(DICOM_TAG_PATIENT_ID))
+      {
+        target["PatientMainDicomTags"]["PatientID"] = tags.GetValue(DICOM_TAG_PATIENT_ID).AsString();
+      }
+    }
+    else
+    {
+      target["MainDicomTags"] = Json::objectValue;
+      FromDcmtkBridge::ToJson(target["MainDicomTags"], tags, true);
+    }
   }
 
   bool ServerIndex::LookupResource(Json::Value& result,

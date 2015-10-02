@@ -61,48 +61,48 @@ namespace Orthanc
   void DicomServer::ServerThread(DicomServer* server,
                                  T_ASC_Network *network)
   {
-      LOG(INFO) << "DICOM server started";
+    LOG(INFO) << "DICOM server started";
 
-      while (server->continue_)
+    while (server->continue_)
+    {
+      /* receive an association and acknowledge or reject it. If the association was */
+      /* acknowledged, offer corresponding services and invoke one or more if required. */
+      std::auto_ptr<Internals::CommandDispatcher> dispatcher(Internals::AcceptAssociation(*server, network));
+
+      try
       {
-        /* receive an association and acknowledge or reject it. If the association was */
-        /* acknowledged, offer corresponding services and invoke one or more if required. */
-        std::auto_ptr<Internals::CommandDispatcher> dispatcher(Internals::AcceptAssociation(*server, network));
-
-        try
+        if (dispatcher.get() != NULL)
         {
-          if (dispatcher.get() != NULL)
+          if (server->isThreaded_)
           {
-            if (server->isThreaded_)
-            {
-              server->bagOfDispatchers_.Add(dispatcher.release());
-            }
-            else
-            {
-              IRunnableBySteps::RunUntilDone(*dispatcher);
-            }
+            server->bagOfDispatchers_.Add(dispatcher.release());
+          }
+          else
+          {
+            IRunnableBySteps::RunUntilDone(*dispatcher);
           }
         }
-        catch (OrthancException& e)
-        {
-          LOG(ERROR) << "Exception in the DICOM server thread: " << e.What();
-        }
       }
-
-      LOG(INFO) << "DICOM server stopping";
-
-      if (server->isThreaded_)
+      catch (OrthancException& e)
       {
-        server->bagOfDispatchers_.StopAll();
+        LOG(ERROR) << "Exception in the DICOM server thread: " << e.What();
       }
+    }
 
-      /* drop the network, i.e. free memory of T_ASC_Network* structure. This call */
-      /* is the counterpart of ASC_initializeNetwork(...) which was called above. */
-      OFCondition cond = ASC_dropNetwork(&network);
-      if (cond.bad())
-      {
-        LOG(ERROR) << "Error while dropping the network: " << cond.text();
-      }
+    LOG(INFO) << "DICOM server stopping";
+
+    if (server->isThreaded_)
+    {
+      server->bagOfDispatchers_.StopAll();
+    }
+
+    /* drop the network, i.e. free memory of T_ASC_Network* structure. This call */
+    /* is the counterpart of ASC_initializeNetwork(...) which was called above. */
+    OFCondition cond = ASC_dropNetwork(&network);
+    if (cond.bad())
+    {
+      LOG(ERROR) << "Error while dropping the network: " << cond.text();
+    }
   }
 
 
