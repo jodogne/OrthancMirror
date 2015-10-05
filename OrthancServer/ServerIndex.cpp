@@ -874,6 +874,28 @@ namespace Orthanc
   }
 
 
+  static std::string GetPatientIdOfStudy(IDatabaseWrapper& db,
+                                         int64_t resourceId)
+  {
+    int64_t patient;
+    if (!db.LookupParent(patient, resourceId))
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    DicomMap tags;
+    db.GetMainDicomTags(tags, patient);
+
+    if (tags.HasTag(DICOM_TAG_PATIENT_ID))
+    {
+      return tags.GetValue(DICOM_TAG_PATIENT_ID).AsString();
+    }
+    else
+    {
+      return "";
+    }
+  }
+
 
   void ServerIndex::MainDicomTagsToJson(Json::Value& target,
                                         int64_t resourceId,
@@ -894,19 +916,7 @@ namespace Orthanc
       target["PatientMainDicomTags"] = Json::objectValue;
       FromDcmtkBridge::ToJson(target["PatientMainDicomTags"], t2, true);
 
-      int64_t patient;
-      if (!db_.LookupParent(patient, resourceId))
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
-      tags.Clear();
-      db_.GetMainDicomTags(tags, patient);
-
-      if (tags.HasTag(DICOM_TAG_PATIENT_ID))
-      {
-        target["PatientMainDicomTags"]["PatientID"] = tags.GetValue(DICOM_TAG_PATIENT_ID).AsString();
-      }
+      target["PatientMainDicomTags"]["PatientID"] = GetPatientIdOfStudy(db_, resourceId);
     }
     else
     {
@@ -2092,8 +2102,19 @@ namespace Orthanc
 
   bool ServerIndex::GetMainDicomTags(DicomMap& result,
                                      const std::string& publicId,
-                                     ResourceType expectedType)
+                                     ResourceType expectedType,
+                                     ResourceType levelOfInterest)
   {
+    // Yes, the following test could be shortened, but we wish to make it as clear as possible
+    if (!(expectedType == ResourceType_Patient  && levelOfInterest == ResourceType_Patient) &&
+        !(expectedType == ResourceType_Study    && levelOfInterest == ResourceType_Patient) &&
+        !(expectedType == ResourceType_Study    && levelOfInterest == ResourceType_Study)   &&
+        !(expectedType == ResourceType_Series   && levelOfInterest == ResourceType_Series)  &&
+        !(expectedType == ResourceType_Instance && levelOfInterest == ResourceType_Instance))
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
     result.Clear();
 
     boost::mutex::scoped_lock lock(mutex_);
@@ -2105,6 +2126,27 @@ namespace Orthanc
         type != expectedType)
     {
       return false;
+    }
+
+    if (type == ResourceType_Study)
+    {
+      DicomMap tmp;
+      db_.GetMainDicomTags(tmp, id);
+
+      switch (levelOfInterest)
+      {
+        case ResourceType_Patient:
+          tmp.ExtractPatientInformation(result);
+          result.SetValue(DICOM_TAG_PATIENT_ID, GetPatientIdOfStudy(db_, id));
+          return true;
+
+        case ResourceType_Study:
+          tmp.ExtractStudyInformation(result);
+          return true;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
     }
     else
     {
