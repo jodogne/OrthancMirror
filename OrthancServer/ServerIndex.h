@@ -261,7 +261,8 @@ namespace Orthanc
 
     bool GetMainDicomTags(DicomMap& result,
                           const std::string& publicId,
-                          ResourceType expectedType);
+                          ResourceType expectedType,
+                          ResourceType levelOfInterest);
 
     bool LookupResourceType(ResourceType& type,
                             const std::string& publicId);
