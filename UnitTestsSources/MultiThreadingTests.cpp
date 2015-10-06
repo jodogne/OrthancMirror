@@ -39,6 +39,7 @@
 #include "../Core/MultiThreading/Locker.h"
 #include "../Core/MultiThreading/Mutex.h"
 #include "../Core/MultiThreading/ReaderWriterLock.h"
+#include "../Core/MultiThreading/RunnableWorkersPool.h"
 
 using namespace Orthanc;
 
@@ -183,7 +184,7 @@ public:
       outputs.push_back(boost::lexical_cast<std::string>(b));
     }
 
-    Toolbox::USleep(100000);
+    Toolbox::USleep(30000);
 
     return true;
   }
@@ -202,7 +203,7 @@ static void Tata(ServerScheduler* s, ServerJob* j, bool* done)
     {
       printf(">> %s: %0.1f\n", it->c_str(), 100.0f * s->GetProgress(*it));
     }
-    Toolbox::USleep(10000);
+    Toolbox::USleep(3000);
   }
 }
 
@@ -256,4 +257,50 @@ TEST(MultiThreading, ServerScheduler)
   {
     t.join();
   }
+}
+
+
+namespace
+{
+  class MyRunnable : public IRunnableBySteps
+  {
+  private:
+    unsigned int& output_;
+    unsigned int count_;
+
+  public:
+    MyRunnable(unsigned int& output) : output_(output), count_(0)
+    {
+    }
+
+    virtual bool Step()
+    {
+      count_ ++;
+      output_ ++;
+
+      boost::this_thread::sleep(boost::posix_time::milliseconds(3));
+
+      return (count_ < 7);
+    }
+  };
+}
+
+
+TEST(MultiThreading, RunnableWorkersPool)
+{
+  unsigned int output = 0;
+
+  {
+    RunnableWorkersPool pool(3);
+  
+    for (size_t i = 0; i < 11; i++)
+    {
+      pool.Add(new MyRunnable(output));
+    }
+
+    pool.WaitDone();
+  }
+
+
+  ASSERT_EQ(11 * 7, output);
 }

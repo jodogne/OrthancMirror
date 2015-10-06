@@ -121,6 +121,7 @@ set(ORTHANC_CORE_SOURCES
   Core/MultiThreading/ReaderWriterLock.cpp
   Core/MultiThreading/Semaphore.cpp
   Core/MultiThreading/SharedMessageQueue.cpp
+  Core/MultiThreading/RunnableWorkersPool.cpp
   Core/Images/Font.cpp
   Core/Images/FontRegistry.cpp
   Core/Images/ImageAccessor.cpp
