@@ -32,24 +32,25 @@
 
 #pragma once
 
-#include "../IDynamicObject.h"
+#include "IRunnableBySteps.h"
+
+#include <boost/shared_ptr.hpp>
 
 namespace Orthanc
 {
-  class IRunnableBySteps : public IDynamicObject
+  class RunnableWorkersPool : public boost::noncopyable
   {
+  private:
+    struct PImpl;
+    boost::shared_ptr<PImpl> pimpl_;
+
   public:
-    virtual ~IRunnableBySteps()
-    {
-    }
+    RunnableWorkersPool(size_t countWorkers);
 
-    // Must return "true" if the runnable wishes to continue. Must
-    // return "false" if the runnable has not finished its job.
-    virtual bool Step() = 0;
+    ~RunnableWorkersPool();
 
-    static void RunUntilDone(IRunnableBySteps& runnable)
-    {
-      while (runnable.Step());
-    }
+    void Add(IRunnableBySteps* runnable);  // Takes the ownership
+
+    void WaitDone();
   };
 }
