@@ -18,6 +18,7 @@ Lua
 Maintenance
 -----------
 
+* Fix issue 4 (C-Store Association not renegotiated on Specific-to-specific transfer syntax change)
 * "/system" URI gives information about the plugins used for storage area and DB back-end
 * Plugin callbacks should now return explicit "OrthancPluginErrorCode" instead of integers
 * "/tools/create-dicom" can create tags with unknown VR
