@@ -119,31 +119,39 @@ namespace Orthanc
   }
 
 
-  RunnableWorkersPool::~RunnableWorkersPool()
+  void RunnableWorkersPool::Stop()
   {
-    pimpl_->continue_ = false;
-
-    for (size_t i = 0; i < pimpl_->workers_.size(); i++)
+    if (pimpl_->continue_)
     {
-      PImpl::Worker* worker = pimpl_->workers_[i];
+      pimpl_->continue_ = false;
 
-      if (worker != NULL)
+      for (size_t i = 0; i < pimpl_->workers_.size(); i++)
       {
-        worker->Join();
-        delete worker;
+        PImpl::Worker* worker = pimpl_->workers_[i];
+
+        if (worker != NULL)
+        {
+          worker->Join();
+          delete worker;
+        }
       }
     }
   }
 
 
-  void RunnableWorkersPool::Add(IRunnableBySteps* runnable)
+  RunnableWorkersPool::~RunnableWorkersPool()
   {
-    pimpl_->queue_.Enqueue(runnable);
+    Stop();
   }
 
 
-  void RunnableWorkersPool::WaitDone()
+  void RunnableWorkersPool::Add(IRunnableBySteps* runnable)
   {
-    pimpl_->queue_.WaitEmpty(0);
+    if (!pimpl_->continue_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    pimpl_->queue_.Enqueue(runnable);
   }
 }

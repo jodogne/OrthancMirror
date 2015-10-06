@@ -39,7 +39,6 @@
 #include "../Core/MultiThreading/Locker.h"
 #include "../Core/MultiThreading/Mutex.h"
 #include "../Core/MultiThreading/ReaderWriterLock.h"
-#include "../Core/MultiThreading/RunnableWorkersPool.h"
 
 using namespace Orthanc;
 
@@ -257,50 +256,4 @@ TEST(MultiThreading, ServerScheduler)
   {
     t.join();
   }
-}
-
-
-namespace
-{
-  class MyRunnable : public IRunnableBySteps
-  {
-  private:
-    unsigned int& output_;
-    unsigned int count_;
-
-  public:
-    MyRunnable(unsigned int& output) : output_(output), count_(0)
-    {
-    }
-
-    virtual bool Step()
-    {
-      count_ ++;
-      output_ ++;
-
-      boost::this_thread::sleep(boost::posix_time::milliseconds(3));
-
-      return (count_ < 7);
-    }
-  };
-}
-
-
-TEST(MultiThreading, RunnableWorkersPool)
-{
-  unsigned int output = 0;
-
-  {
-    RunnableWorkersPool pool(3);
-  
-    for (size_t i = 0; i < 11; i++)
-    {
-      pool.Add(new MyRunnable(output));
-    }
-
-    pool.WaitDone();
-  }
-
-
-  ASSERT_EQ(11 * 7, output);
 }
