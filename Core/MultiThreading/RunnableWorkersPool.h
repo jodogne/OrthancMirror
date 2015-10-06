@@ -34,31 +34,23 @@
 
 #include "IRunnableBySteps.h"
 
-#include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 
 namespace Orthanc
 {
-  class BagOfRunnablesBySteps : public boost::noncopyable
+  class RunnableWorkersPool : public boost::noncopyable
   {
   private:
     struct PImpl;
     boost::shared_ptr<PImpl> pimpl_;
 
-    static void RunnableThread(BagOfRunnablesBySteps* bag,
-                               IRunnableBySteps* runnable);
-
-    static void CollectorThread(BagOfRunnablesBySteps* bag);
+    void Stop();
 
   public:
-    BagOfRunnablesBySteps();
+    RunnableWorkersPool(size_t countWorkers);
 
-    ~BagOfRunnablesBySteps();
+    ~RunnableWorkersPool();
 
-    void Add(IRunnableBySteps* runnable);
-
-    void StopAll();
-
-    void Finalize();
+    void Add(IRunnableBySteps* runnable);  // Takes the ownership
   };
 }

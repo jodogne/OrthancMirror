@@ -32,9 +32,11 @@
 
 #pragma once
 
+#include "../IDynamicObject.h"
+
 namespace Orthanc
 {
-  class IRunnableBySteps
+  class IRunnableBySteps : public IDynamicObject
   {
   public:
     virtual ~IRunnableBySteps()
