@@ -48,7 +48,7 @@ namespace Orthanc
     static void RunnableThread(BagOfRunnablesBySteps* bag,
                                IRunnableBySteps* runnable);
 
-    static void FinishListener(BagOfRunnablesBySteps* bag);
+    static void CollectorThread(BagOfRunnablesBySteps* bag);
 
   public:
     BagOfRunnablesBySteps();
