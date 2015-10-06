@@ -58,38 +58,34 @@ namespace Orthanc
   };
 
 
-  void DicomServer::ServerThread(DicomServer* server)
+  void DicomServer::ServerThread(DicomServer* server,
+                                 T_ASC_Network *network)
   {
-    /* initialize network, i.e. create an instance of T_ASC_Network*. */
-    T_ASC_Network *net;
-    OFCondition cond = ASC_initializeNetwork
-      (NET_ACCEPTOR, OFstatic_cast(int, server->port_), /*opt_acse_timeout*/ 30, &net);
-    if (cond.bad())
-    {
-      LOG(ERROR) << "cannot create network: " << cond.text();
-      throw OrthancException(ErrorCode_DicomPortInUse);
-    }
-
     LOG(INFO) << "DICOM server started";
-
-    server->started_ = true;
 
     while (server->continue_)
     {
       /* receive an association and acknowledge or reject it. If the association was */
       /* acknowledged, offer corresponding services and invoke one or more if required. */
-      std::auto_ptr<Internals::CommandDispatcher> dispatcher(Internals::AcceptAssociation(*server, net));
+      std::auto_ptr<Internals::CommandDispatcher> dispatcher(Internals::AcceptAssociation(*server, network));
 
-      if (dispatcher.get() != NULL)
+      try
       {
-        if (server->isThreaded_)
+        if (dispatcher.get() != NULL)
         {
-          server->bagOfDispatchers_.Add(dispatcher.release());
+          if (server->isThreaded_)
+          {
+            server->bagOfDispatchers_.Add(dispatcher.release());
+          }
+          else
+          {
+            IRunnableBySteps::RunUntilDone(*dispatcher);
+          }
         }
-        else
-        {
-          IRunnableBySteps::RunUntilDone(*dispatcher);
-        }
+      }
+      catch (OrthancException& e)
+      {
+        LOG(ERROR) << "Exception in the DICOM server thread: " << e.What();
       }
     }
 
@@ -102,12 +98,12 @@ namespace Orthanc
 
     /* drop the network, i.e. free memory of T_ASC_Network* structure. This call */
     /* is the counterpart of ASC_initializeNetwork(...) which was called above. */
-    cond = ASC_dropNetwork(&net);
+    OFCondition cond = ASC_dropNetwork(&network);
     if (cond.bad())
     {
       LOG(ERROR) << "Error while dropping the network: " << cond.text();
     }
-  }                           
+  }
 
 
   DicomServer::DicomServer() : 
@@ -122,8 +118,7 @@ namespace Orthanc
     checkCalledAet_ = true;
     clientTimeout_ = 30;
     isThreaded_ = true;
-    continue_ = false;
-    started_ = false;
+    continue_ = true;
   }
 
   DicomServer::~DicomServer()
@@ -308,14 +303,19 @@ namespace Orthanc
   void DicomServer::Start()
   {
     Stop();
-    continue_ = true;
-    started_ = false;
-    pimpl_->thread_ = boost::thread(ServerThread, this);
 
-    while (!started_)
+    /* initialize network, i.e. create an instance of T_ASC_Network*. */
+    T_ASC_Network *network;
+    OFCondition cond = ASC_initializeNetwork
+      (NET_ACCEPTOR, OFstatic_cast(int, port_), /*opt_acse_timeout*/ 30, &network);
+    if (cond.bad())
     {
-      Toolbox::USleep(50000);  // Wait 50ms
+      LOG(ERROR) << "cannot create network: " << cond.text();
+      throw OrthancException(ErrorCode_DicomPortInUse);
     }
+
+    continue_ = true;
+    pimpl_->thread_ = boost::thread(ServerThread, this, network);
   }
 
 
