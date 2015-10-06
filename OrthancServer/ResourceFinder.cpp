@@ -197,7 +197,12 @@ namespace Orthanc
         return;
       }
 
-      if (!query.HasMainDicomTagsFilter(level_))
+      bool hasTagsAtThisLevel = query.HasMainDicomTagsFilter(level_);
+      bool hasTagsAtPatientLevel = (filterPatientTagsAtStudyLevel &&
+                                    level_ == ResourceType_Study &&
+                                    query.HasMainDicomTagsFilter(ResourceType_Patient));
+
+      if (!hasTagsAtThisLevel && !hasTagsAtPatientLevel)        
       {
         return;
       }
@@ -212,20 +217,19 @@ namespace Orthanc
              it = resources.begin(); it != resources.end(); ++it)
       {
         DicomMap mainTags;
-        if (!index_.GetMainDicomTags(mainTags, *it, level_, level_) ||
-            !query.FilterMainDicomTags(*it, level_, mainTags))
+
+        if (hasTagsAtThisLevel &&
+            (!index_.GetMainDicomTags(mainTags, *it, level_, level_) ||
+             !query.FilterMainDicomTags(*it, level_, mainTags)))
         {
           continue;
         }
 
-        if (filterPatientTagsAtStudyLevel &&
-            level_ == ResourceType_Study)
+        if (hasTagsAtPatientLevel &&
+            (!index_.GetMainDicomTags(mainTags, *it, ResourceType_Study, ResourceType_Patient) ||
+             !query.FilterMainDicomTags(*it, ResourceType_Patient, mainTags)))
         {
-          if (!index_.GetMainDicomTags(mainTags, *it, ResourceType_Study, ResourceType_Patient) ||
-              !query.FilterMainDicomTags(*it, ResourceType_Patient, mainTags))
-          {
-            continue;
-          }          
+          continue;
         }
 
         filtered_.insert(*it);
