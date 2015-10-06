@@ -44,13 +44,13 @@ namespace Orthanc
     struct PImpl;
     boost::shared_ptr<PImpl> pimpl_;
 
+    void Stop();
+
   public:
     RunnableWorkersPool(size_t countWorkers);
 
     ~RunnableWorkersPool();
 
     void Add(IRunnableBySteps* runnable);  // Takes the ownership
-
-    void WaitDone();
   };
 }

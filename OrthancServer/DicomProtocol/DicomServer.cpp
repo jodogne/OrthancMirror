@@ -40,6 +40,7 @@
 #include "../Internals/CommandDispatcher.h"
 #include "../OrthancInitialization.h"
 #include "EmbeddedResources.h"
+#include "../../Core/MultiThreading/RunnableWorkersPool.h"
 
 #include <boost/thread.hpp>
 
@@ -52,14 +53,13 @@ namespace Orthanc
 {
   struct DicomServer::PImpl
   {
-    boost::thread thread_;
-
-    //std::set<
+    boost::thread  thread_;
+    T_ASC_Network *network_;
+    std::auto_ptr<RunnableWorkersPool>  workers_;
   };
 
 
-  void DicomServer::ServerThread(DicomServer* server,
-                                 T_ASC_Network *network)
+  void DicomServer::ServerThread(DicomServer* server)
   {
     LOG(INFO) << "DICOM server started";
 
@@ -67,20 +67,13 @@ namespace Orthanc
     {
       /* receive an association and acknowledge or reject it. If the association was */
       /* acknowledged, offer corresponding services and invoke one or more if required. */
-      std::auto_ptr<Internals::CommandDispatcher> dispatcher(Internals::AcceptAssociation(*server, network));
+      std::auto_ptr<Internals::CommandDispatcher> dispatcher(Internals::AcceptAssociation(*server, server->pimpl_->network_));
 
       try
       {
         if (dispatcher.get() != NULL)
         {
-          if (server->isThreaded_)
-          {
-            server->bagOfDispatchers_.Add(dispatcher.release());
-          }
-          else
-          {
-            IRunnableBySteps::RunUntilDone(*dispatcher);
-          }
+          server->pimpl_->workers_->Add(dispatcher.release());
         }
       }
       catch (OrthancException& e)
@@ -90,19 +83,6 @@ namespace Orthanc
     }
 
     LOG(INFO) << "DICOM server stopping";
-
-    if (server->isThreaded_)
-    {
-      server->bagOfDispatchers_.StopAll();
-    }
-
-    /* drop the network, i.e. free memory of T_ASC_Network* structure. This call */
-    /* is the counterpart of ASC_initializeNetwork(...) which was called above. */
-    OFCondition cond = ASC_dropNetwork(&network);
-    if (cond.bad())
-    {
-      LOG(ERROR) << "Error while dropping the network: " << cond.text();
-    }
   }
 
 
@@ -117,8 +97,7 @@ namespace Orthanc
     applicationEntityFilter_ = NULL;
     checkCalledAet_ = true;
     clientTimeout_ = 30;
-    isThreaded_ = true;
-    continue_ = true;
+    continue_ = false;
   }
 
   DicomServer::~DicomServer()
@@ -139,17 +118,6 @@ namespace Orthanc
   uint16_t DicomServer::GetPortNumber() const
   {
     return port_;
-  }
-
-  void DicomServer::SetThreaded(bool isThreaded)
-  {
-    Stop();
-    isThreaded_ = isThreaded;
-  }
-
-  bool DicomServer::IsThreaded() const
-  {
-    return isThreaded_;
   }
 
   void DicomServer::SetClientTimeout(uint32_t timeout)
@@ -305,17 +273,18 @@ namespace Orthanc
     Stop();
 
     /* initialize network, i.e. create an instance of T_ASC_Network*. */
-    T_ASC_Network *network;
     OFCondition cond = ASC_initializeNetwork
-      (NET_ACCEPTOR, OFstatic_cast(int, port_), /*opt_acse_timeout*/ 30, &network);
+      (NET_ACCEPTOR, OFstatic_cast(int, port_), /*opt_acse_timeout*/ 30, &pimpl_->network_);
     if (cond.bad())
     {
       LOG(ERROR) << "cannot create network: " << cond.text();
       throw OrthancException(ErrorCode_DicomPortInUse);
     }
 
+    pimpl_->workers_.reset(new RunnableWorkersPool(4));   // Use 4 workers - TODO as a parameter?
+
     continue_ = true;
-    pimpl_->thread_ = boost::thread(ServerThread, this, network);
+    pimpl_->thread_ = boost::thread(ServerThread, this);
   }
 
 
@@ -330,7 +299,15 @@ namespace Orthanc
         pimpl_->thread_.join();
       }
 
-      bagOfDispatchers_.Finalize();
+      pimpl_->workers_.reset(NULL);
+
+      /* drop the network, i.e. free memory of T_ASC_Network* structure. This call */
+      /* is the counterpart of ASC_initializeNetwork(...) which was called above. */
+      OFCondition cond = ASC_dropNetwork(&pimpl_->network_);
+      if (cond.bad())
+      {
+        LOG(ERROR) << "Error while dropping the network: " << cond.text();
+      }
     }
   }
 

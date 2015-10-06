@@ -116,12 +116,11 @@ set(ORTHANC_CORE_SOURCES
   Core/RestApi/RestApiPath.cpp
   Core/RestApi/RestApiOutput.cpp
   Core/RestApi/RestApi.cpp
-  Core/MultiThreading/BagOfRunnablesBySteps.cpp
   Core/MultiThreading/Mutex.cpp
   Core/MultiThreading/ReaderWriterLock.cpp
+  Core/MultiThreading/RunnableWorkersPool.cpp
   Core/MultiThreading/Semaphore.cpp
   Core/MultiThreading/SharedMessageQueue.cpp
-  Core/MultiThreading/RunnableWorkersPool.cpp
   Core/Images/Font.cpp
   Core/Images/FontRegistry.cpp
   Core/Images/ImageAccessor.cpp
