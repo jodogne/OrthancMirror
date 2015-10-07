@@ -584,30 +584,49 @@ namespace Orthanc
     DicomTag tag(FromDcmtkBridge::GetTag(element));
     const std::string formattedTag = tag.Format();
 
-    // This version of the code gives access to the name of the private tags
+    if (format == DicomToJsonFormat_Short)
+    {
+      parent[formattedTag] = Json::nullValue;
+      return parent[formattedTag];
+    }
+
+    // This code gives access to the name of the private tags
     DcmTag tagbis(element.getTag());
     const std::string tagName(tagbis.getTagName());      
-
-    parent[formattedTag] = Json::objectValue;
-    Json::Value& node = parent[formattedTag];
-
-    if (element.isLeaf())
+    
+    switch (format)
     {
-      node["Name"] = tagName;
+      case DicomToJsonFormat_Simple:
+        parent[tagName] = Json::nullValue;
+        return parent[tagName];
 
-      if (tagbis.getPrivateCreator() != NULL)
+      case DicomToJsonFormat_Full:
       {
-        node["PrivateCreator"] = tagbis.getPrivateCreator();
+        parent[formattedTag] = Json::objectValue;
+        Json::Value& node = parent[formattedTag];
+
+        if (element.isLeaf())
+        {
+          node["Name"] = tagName;
+
+          if (tagbis.getPrivateCreator() != NULL)
+          {
+            node["PrivateCreator"] = tagbis.getPrivateCreator();
+          }
+
+          return node;
+        }
+        else
+        {
+          node["Name"] = tagName;
+          node["Type"] = "Sequence";
+          node["Value"] = Json::nullValue;
+          return node["Value"];
+        }
       }
 
-      return node;
-    }
-    else
-    {
-      node["Name"] = tagName;
-      node["Type"] = "Sequence";
-      node["Value"] = Json::arrayValue;
-      return node["Value"];
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
 
@@ -615,30 +634,55 @@ namespace Orthanc
   static void LeafValueToJson(Json::Value& target,
                               const DicomValue& value,
                               DicomToJsonFormat format,
-                              unsigned int maxStringLength,
-                              Encoding encoding)
+                              unsigned int maxStringLength)
   {
-    assert(target.type() == Json::objectValue);
+    std::string content = value.AsString();
 
-    if (value.IsNull())
+    switch (format)
     {
-      target["Type"] = "Null";
-      target["Value"] = Json::nullValue;
-    }
-    else
-    {
-      std::string s = value.AsString();
-      if (maxStringLength == 0 ||
-          s.size() <= maxStringLength)
+      case DicomToJsonFormat_Short:
+      case DicomToJsonFormat_Simple:
       {
-        target["Type"] = "String";
-        target["Value"] = s;
-      }
-      else
+        assert(target.type() == Json::nullValue);
+
+        if (!value.IsNull() &&
+            (maxStringLength == 0 ||
+             content.size() <= maxStringLength))
+        {
+          target = content;
+        }
+
+        break;
+      }      
+
+      case DicomToJsonFormat_Full:
       {
-        target["Type"] = "TooLong";
-        target["Value"] = Json::nullValue;
+        assert(target.type() == Json::objectValue);
+
+        if (value.IsNull())
+        {
+          target["Type"] = "Null";
+          target["Value"] = Json::nullValue;
+        }
+        else
+        {
+          if (maxStringLength == 0 ||
+              content.size() <= maxStringLength)
+          {
+            target["Type"] = "String";
+            target["Value"] = content;
+          }
+          else
+          {
+            target["Type"] = "TooLong";
+            target["Value"] = Json::nullValue;
+          }
+        }
+        break;
       }
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }                              
 
@@ -661,11 +705,12 @@ namespace Orthanc
     if (element.isLeaf())
     {
       std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element, encoding));
-      LeafValueToJson(target, *v, format, maxStringLength, encoding);
+      LeafValueToJson(target, *v, format, maxStringLength);
     }
     else
     {
-      assert(target.type() == Json::arrayValue);
+      assert(target.type() == Json::nullValue);
+      target = Json::arrayValue;
 
       // "All subclasses of DcmElement except for DcmSequenceOfItems
       // are leaf nodes, while DcmSequenceOfItems, DcmItem, DcmDataset
@@ -688,7 +733,7 @@ namespace Orthanc
                             unsigned int maxStringLength,
                             Encoding encoding)
   {
-    parent = Json::objectValue;
+    assert(parent.type() == Json::objectValue);
 
     for (unsigned long i = 0; i < item.card(); i++)
     {
@@ -703,6 +748,7 @@ namespace Orthanc
                                DicomToJsonFormat format,
                                unsigned int maxStringLength)
   {
+    target = Json::objectValue;
     DatasetToJson(target, dataset, format, maxStringLength, DetectEncoding(dataset));
   }
 
