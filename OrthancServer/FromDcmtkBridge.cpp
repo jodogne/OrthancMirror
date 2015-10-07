@@ -575,19 +575,11 @@ namespace Orthanc
   }
 
 
-  static void DatasetToJson(Json::Value& target,
-                            DcmItem& item,
-                            DicomToJsonFormat format,
-                            unsigned int maxStringLength,
-                            Encoding encoding);
-
-  static void ElementToJson(Json::Value& target,
-                            DcmElement& element,
-                            DicomToJsonFormat format,
-                            unsigned int maxStringLength,
-                            Encoding encoding)
+  static Json::Value& PrepareNode(Json::Value& parent,
+                                  DcmElement& element,
+                                  DicomToJsonFormat format)
   {
-    assert(target.type() == Json::objectValue);
+    assert(parent.type() == Json::objectValue);
 
     DicomTag tag(FromDcmtkBridge::GetTag(element));
     const std::string formattedTag = tag.Format();
@@ -596,85 +588,122 @@ namespace Orthanc
     DcmTag tagbis(element.getTag());
     const std::string tagName(tagbis.getTagName());      
 
+    parent[formattedTag] = Json::objectValue;
+    Json::Value& node = parent[formattedTag];
+
     if (element.isLeaf())
     {
-      Json::Value value(Json::objectValue);
-      value["Name"] = tagName;
+      node["Name"] = tagName;
 
       if (tagbis.getPrivateCreator() != NULL)
       {
-        value["PrivateCreator"] = tagbis.getPrivateCreator();
+        node["PrivateCreator"] = tagbis.getPrivateCreator();
       }
 
-      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element, encoding));
-      if (v->IsNull())
-      {
-        value["Type"] = "Null";
-        value["Value"] = Json::nullValue;
-      }
-      else
-      {
-        std::string s = v->AsString();
-        if (maxStringLength == 0 ||
-            s.size() <= maxStringLength)
-        {
-          value["Type"] = "String";
-          value["Value"] = s;
-        }
-        else
-        {
-          value["Type"] = "TooLong";
-          value["Value"] = Json::nullValue;
-        }
-      }
-
-      target[formattedTag] = value;
+      return node;
     }
     else
     {
-      Json::Value children(Json::arrayValue);
+      node["Name"] = tagName;
+      node["Type"] = "Sequence";
+      node["Value"] = Json::arrayValue;
+      return node["Value"];
+    }
+  }
+
+
+  static void LeafValueToJson(Json::Value& target,
+                              const DicomValue& value,
+                              DicomToJsonFormat format,
+                              unsigned int maxStringLength,
+                              Encoding encoding)
+  {
+    assert(target.type() == Json::objectValue);
+
+    if (value.IsNull())
+    {
+      target["Type"] = "Null";
+      target["Value"] = Json::nullValue;
+    }
+    else
+    {
+      std::string s = value.AsString();
+      if (maxStringLength == 0 ||
+          s.size() <= maxStringLength)
+      {
+        target["Type"] = "String";
+        target["Value"] = s;
+      }
+      else
+      {
+        target["Type"] = "TooLong";
+        target["Value"] = Json::nullValue;
+      }
+    }
+  }                              
+
+
+  static void DatasetToJson(Json::Value& parent,
+                            DcmItem& item,
+                            DicomToJsonFormat format,
+                            unsigned int maxStringLength,
+                            Encoding encoding);
+
+
+  static void ElementToJson(Json::Value& parent,
+                            DcmElement& element,
+                            DicomToJsonFormat format,
+                            unsigned int maxStringLength,
+                            Encoding encoding)
+  {
+    Json::Value& target = PrepareNode(parent, element, format);
+
+    if (element.isLeaf())
+    {
+      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element, encoding));
+      LeafValueToJson(target, *v, format, maxStringLength, encoding);
+    }
+    else
+    {
+      assert(target.type() == Json::arrayValue);
 
       // "All subclasses of DcmElement except for DcmSequenceOfItems
       // are leaf nodes, while DcmSequenceOfItems, DcmItem, DcmDataset
-      // etc. are not." The following cast is thus OK.
+      // etc. are not." The following dynamic_cast is thus OK.
       DcmSequenceOfItems& sequence = dynamic_cast<DcmSequenceOfItems&>(element);
 
       for (unsigned long i = 0; i < sequence.card(); i++)
       {
         DcmItem* child = sequence.getItem(i);
-        Json::Value& v = children.append(Json::objectValue);
+        Json::Value& v = target.append(Json::objectValue);
         DatasetToJson(v, *child, format, maxStringLength, encoding);
-      }  
-
-      target[formattedTag]["Name"] = tagName;
-      target[formattedTag]["Type"] = "Sequence";
-      target[formattedTag]["Value"] = children;
+      }
     }
   }
 
 
-  static void DatasetToJson(Json::Value& target,
+  static void DatasetToJson(Json::Value& parent,
                             DcmItem& item,
                             DicomToJsonFormat format,
                             unsigned int maxStringLength,
                             Encoding encoding)
   {
-    target = Json::objectValue;
+    parent = Json::objectValue;
 
     for (unsigned long i = 0; i < item.card(); i++)
     {
       DcmElement* element = item.getElement(i);
-      ElementToJson(target, *element, format, maxStringLength, encoding);
+      ElementToJson(parent, *element, format, maxStringLength, encoding);
     }
   }
 
 
-  void FromDcmtkBridge::ToJson(Json::Value& root, 
+  void FromDcmtkBridge::ToJson(Json::Value& target, 
                                DcmDataset& dataset,
                                DicomToJsonFormat format,
                                unsigned int maxStringLength)
   {
-    DatasetToJson(root, dataset, format, maxStringLength, DetectEncoding(dataset));
+    DatasetToJson(target, dataset, format, maxStringLength, DetectEncoding(dataset));
   }
 
 
