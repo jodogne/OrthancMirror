@@ -43,6 +43,8 @@
 #include "../Core/Uuid.h"
 #include "../Resources/EncodingTests.h"
 
+#include <dcmtk/dcmdata/dcelem.h>
+
 using namespace Orthanc;
 
 TEST(DicomFormat, Tag)
@@ -298,4 +300,82 @@ TEST(FromDcmtkBridge, ValueRepresentation)
             FromDcmtkBridge::GetValueRepresentation(DicomTag(0x0008, 0x002a) /* AcquisitionDateTime */));
   ASSERT_EQ(ValueRepresentation_Other, 
             FromDcmtkBridge::GetValueRepresentation(DICOM_TAG_PATIENT_ID));
+}
+
+
+TEST(FromDcmtkBridge, FromJson)
+{
+  const DicomTag REFERENCED_STUDY_SEQUENCE(0x0008, 0x1110);
+
+  std::auto_ptr<DcmElement> element;
+
+  {
+    Json::Value a;
+    a = "Hello";
+    element.reset(FromDcmtkBridge::FromJson(a, DICOM_TAG_PATIENT_NAME, false));
+
+    Json::Value b;
+    FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Short, 0, Encoding_Ascii);
+    ASSERT_EQ("Hello", b["0010,0010"].asString());
+  }
+
+  {
+    Json::Value a;
+    a = "Hello";
+    // Cannot assign a string to a sequence
+    ASSERT_THROW(element.reset(FromDcmtkBridge::FromJson(a, REFERENCED_STUDY_SEQUENCE, false)), OrthancException);
+  }
+
+  {
+    Json::Value a = Json::arrayValue;
+    a.append("Hello");
+    // Cannot assign an array to a string
+    ASSERT_THROW(element.reset(FromDcmtkBridge::FromJson(a, DICOM_TAG_PATIENT_NAME, false)), OrthancException);
+  }
+
+  {
+    Json::Value a;
+    a = "data:application/octet-stream;base64,SGVsbG8=";  // echo -n "Hello" | base64
+    element.reset(FromDcmtkBridge::FromJson(a, DICOM_TAG_PATIENT_NAME, true));
+
+    Json::Value b;
+    FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Short, 0, Encoding_Ascii);
+    ASSERT_EQ("Hello", b["0010,0010"].asString());
+  }
+
+  printf("ici\n");
+
+  {
+    Json::Value a = Json::arrayValue;
+
+    {
+      Json::Value b = Json::objectValue;
+      b["PatientName"] = "Hello";
+      b["PatientID"] = "World";
+      a.append(b);
+    }
+
+    {
+      Json::Value b = Json::objectValue;
+      b["PatientName"] = "Hello2";
+      b["PatientID"] = "World2";
+      a.append(b);
+    }
+
+    element.reset(FromDcmtkBridge::FromJson(a, REFERENCED_STUDY_SEQUENCE, false));
+    element->writeXML(std::cout);
+
+    {
+      Json::Value b;
+      FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Full, 0, Encoding_Ascii);
+      /*ASSERT_EQ(Json::arrayValue, b["0008,1110"].type());
+        ASSERT_EQ(2, b["0008,1110"].size());*/
+
+      std::cout << b;
+    }
+  }
+
+
+
+  // TODO: Test Simplify
 }
