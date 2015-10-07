@@ -69,13 +69,14 @@ namespace Orthanc
     static DicomValue* ConvertLeafElement(DcmElement& element,
                                           Encoding encoding);
 
-    static void ToJson(Json::Value& target, 
-                       DcmDataset& dataset,
+    static void ToJson(Json::Value& parent,
+                       DcmElement& element,
                        DicomToJsonFormat format,
-                       unsigned int maxStringLength);
+                       unsigned int maxStringLength,
+                       Encoding encoding);
 
     static void ToJson(Json::Value& target, 
-                       const std::string& path,
+                       DcmDataset& dataset,
                        DicomToJsonFormat format,
                        unsigned int maxStringLength);
 

@@ -695,12 +695,13 @@ namespace Orthanc
                             Encoding encoding);
 
 
-  static void ElementToJson(Json::Value& parent,
-                            DcmElement& element,
-                            DicomToJsonFormat format,
-                            unsigned int maxStringLength,
-                            Encoding encoding)
+  void FromDcmtkBridge::ToJson(Json::Value& parent,
+                               DcmElement& element,
+                               DicomToJsonFormat format,
+                               unsigned int maxStringLength,
+                               Encoding encoding)
   {
+    parent = Json::objectValue;
     Json::Value& target = PrepareNode(parent, element, format);
 
     if (element.isLeaf())
@@ -739,7 +740,7 @@ namespace Orthanc
     for (unsigned long i = 0; i < item.card(); i++)
     {
       DcmElement* element = item.getElement(i);
-      ElementToJson(parent, *element, format, maxStringLength, encoding);
+      FromDcmtkBridge::ToJson(parent, *element, format, maxStringLength, encoding);
     }
   }
 
@@ -752,25 +753,6 @@ namespace Orthanc
     target = Json::objectValue;
     DatasetToJson(target, dataset, format, maxStringLength, DetectEncoding(dataset));
   }
-
-
-
-  void FromDcmtkBridge::ToJson(Json::Value& target, 
-                               const std::string& path,
-                               DicomToJsonFormat format,
-                               unsigned int maxStringLength)
-  {
-    DcmFileFormat dicom;
-    if (!dicom.loadFile(path.c_str()).good())
-    {
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-    else
-    {
-      FromDcmtkBridge::ToJson(target, *dicom.getDataset(), format, maxStringLength);
-    }
-  }
-
 
 
   std::string FromDcmtkBridge::GetName(const DicomTag& t)
@@ -1333,10 +1315,42 @@ namespace Orthanc
   {
     std::auto_ptr<DcmElement> element;
 
-    if (value.type() == Json::stringValue)
+    switch (value.type())
     {
-      element.reset(CreateElementForTag(tag));
-      FillElementWithString(*element, tag, value.asString(), decodeBinaryTags);
+      case Json::stringValue:
+        element.reset(CreateElementForTag(tag));
+        FillElementWithString(*element, tag, value.asString(), decodeBinaryTags);
+        break;
+
+      case Json::arrayValue:
+      {
+        DcmTag key(tag.GetGroup(), tag.GetElement());
+        if (key.getEVR() != EVR_SQ)
+        {
+          throw OrthancException(ErrorCode_BadParameterType);
+        }
+
+        DcmSequenceOfItems* sequence = new DcmSequenceOfItems(key, value.size());
+        element.reset(sequence);
+        
+        for (Json::Value::ArrayIndex i = 0; i < value.size(); i++)
+        {
+          std::auto_ptr<DcmItem> item(new DcmItem);
+
+          Json::Value::Members members = value[i].getMemberNames();
+          for (Json::Value::ArrayIndex j = 0; j < members.size(); j++)
+          {
+            item->insert(FromJson(value[i][members[j]], ParseTag(members[j]), decodeBinaryTags));
+          }
+
+          sequence->append(item.release());
+        }
+
+        break;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_BadParameterType);
     }
 
     return element.release();
