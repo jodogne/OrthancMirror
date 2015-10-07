@@ -575,43 +575,26 @@ namespace Orthanc
   }
 
 
-  static void StoreElement(Json::Value& target,
-                           DcmElement& element,
-                           unsigned int maxStringLength,
-                           Encoding encoding);
+  static void DatasetToJson(Json::Value& target,
+                            DcmItem& item,
+                            DicomToJsonFormat format,
+                            unsigned int maxStringLength,
+                            Encoding encoding);
 
-  static void StoreItem(Json::Value& target,
-                        DcmItem& item,
-                        unsigned int maxStringLength,
-                        Encoding encoding)
-  {
-    target = Json::Value(Json::objectValue);
-
-    for (unsigned long i = 0; i < item.card(); i++)
-    {
-      DcmElement* element = item.getElement(i);
-      StoreElement(target, *element, maxStringLength, encoding);
-    }
-  }
-
-
-  static void StoreElement(Json::Value& target,
-                           DcmElement& element,
-                           unsigned int maxStringLength,
-                           Encoding encoding)
+  static void ElementToJson(Json::Value& target,
+                            DcmElement& element,
+                            DicomToJsonFormat format,
+                            unsigned int maxStringLength,
+                            Encoding encoding)
   {
     assert(target.type() == Json::objectValue);
 
     DicomTag tag(FromDcmtkBridge::GetTag(element));
     const std::string formattedTag = tag.Format();
 
-#if 0
-    const std::string tagName = FromDcmtkBridge::GetName(tag);
-#else
     // This version of the code gives access to the name of the private tags
     DcmTag tagbis(element.getTag());
     const std::string tagName(tagbis.getTagName());      
-#endif
 
     if (element.isLeaf())
     {
@@ -660,7 +643,7 @@ namespace Orthanc
       {
         DcmItem* child = sequence.getItem(i);
         Json::Value& v = children.append(Json::objectValue);
-        StoreItem(v, *child, maxStringLength, encoding);
+        DatasetToJson(v, *child, format, maxStringLength, encoding);
       }  
 
       target[formattedTag]["Name"] = tagName;
@@ -670,17 +653,35 @@ namespace Orthanc
   }
 
 
+  static void DatasetToJson(Json::Value& target,
+                            DcmItem& item,
+                            DicomToJsonFormat format,
+                            unsigned int maxStringLength,
+                            Encoding encoding)
+  {
+    target = Json::objectValue;
+
+    for (unsigned long i = 0; i < item.card(); i++)
+    {
+      DcmElement* element = item.getElement(i);
+      ElementToJson(target, *element, format, maxStringLength, encoding);
+    }
+  }
+
+
   void FromDcmtkBridge::ToJson(Json::Value& root, 
                                DcmDataset& dataset,
+                               DicomToJsonFormat format,
                                unsigned int maxStringLength)
   {
-    StoreItem(root, dataset, maxStringLength, DetectEncoding(dataset));
+    DatasetToJson(root, dataset, format, maxStringLength, DetectEncoding(dataset));
   }
 
 
 
   void FromDcmtkBridge::ToJson(Json::Value& target, 
                                const std::string& path,
+                               DicomToJsonFormat format,
                                unsigned int maxStringLength)
   {
     DcmFileFormat dicom;
@@ -690,7 +691,7 @@ namespace Orthanc
     }
     else
     {
-      FromDcmtkBridge::ToJson(target, *dicom.getDataset(), maxStringLength);
+      FromDcmtkBridge::ToJson(target, *dicom.getDataset(), format, maxStringLength);
     }
   }
 

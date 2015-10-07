@@ -1364,18 +1364,11 @@ namespace Orthanc
     Replace(DICOM_TAG_SPECIFIC_CHARACTER_SET, s, DicomReplaceMode_InsertIfAbsent);
   }
 
-  void ParsedDicomFile::ToJson(Json::Value& target, bool simplify)
+  void ParsedDicomFile::ToJson(Json::Value& target, 
+                               DicomToJsonFormat format,
+                               unsigned int maxStringLength)
   {
-    if (simplify)
-    {
-      Json::Value tmp;
-      FromDcmtkBridge::ToJson(tmp, *pimpl_->file_->getDataset());
-      SimplifyTags(target, tmp);
-    }
-    else
-    {
-      FromDcmtkBridge::ToJson(target, *pimpl_->file_->getDataset());
-    }
+    FromDcmtkBridge::ToJson(target, *pimpl_->file_->getDataset(), format, maxStringLength);
   }
 
 
