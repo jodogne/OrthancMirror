@@ -123,7 +123,8 @@ namespace Orthanc
     void SetEncoding(Encoding encoding);
 
     void ToJson(Json::Value& target, 
-                bool simplify);
+                DicomToJsonFormat format,
+                unsigned int maxStringLength);
 
     bool HasTag(const DicomTag& tag) const;
 

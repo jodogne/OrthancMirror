@@ -71,11 +71,13 @@ namespace Orthanc
 
     static void ToJson(Json::Value& target, 
                        DcmDataset& dataset,
-                       unsigned int maxStringLength = 256);       
+                       DicomToJsonFormat format,
+                       unsigned int maxStringLength);
 
     static void ToJson(Json::Value& target, 
                        const std::string& path,
-                       unsigned int maxStringLength = 256);
+                       DicomToJsonFormat format,
+                       unsigned int maxStringLength);
 
     static std::string GetName(const DicomTag& tag);
 
