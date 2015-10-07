@@ -487,7 +487,7 @@ namespace Orthanc
 
   static void InjectTags(ParsedDicomFile& dicom,
                          const Json::Value& tags,
-                         bool interpretBinaryTags)
+                         bool decodeBinaryTags)
   {
     if (tags.type() != Json::objectValue)
     {
@@ -529,7 +529,7 @@ namespace Orthanc
         {
           throw OrthancException(ErrorCode_CreateDicomUseContent);
         }
-        else if (interpretBinaryTags &&
+        else if (decodeBinaryTags &&
                  boost::starts_with(value, "data:application/octet-stream;base64,"))
         {
           std::string mime, binary;
@@ -548,7 +548,7 @@ namespace Orthanc
   static void CreateSeries(RestApiPostCall& call,
                            ParsedDicomFile& base /* in */,
                            const Json::Value& content,
-                           bool interpretBinaryTags)
+                           bool decodeBinaryTags)
   {
     assert(content.isArray());
     assert(content.size() > 0);
@@ -581,7 +581,7 @@ namespace Orthanc
 
           if (content[i].isMember("Tags"))
           {
-            InjectTags(*dicom, content[i]["Tags"], interpretBinaryTags);
+            InjectTags(*dicom, content[i]["Tags"], decodeBinaryTags);
           }
         }
 
@@ -755,7 +755,7 @@ namespace Orthanc
     }
 
 
-    bool interpretBinaryTags = true;
+    bool decodeBinaryTags = true;
     if (request.isMember("InterpretBinaryTags"))
     {
       const Json::Value& v = request["InterpretBinaryTags"];
@@ -764,7 +764,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadRequest);
       }
 
-      interpretBinaryTags = v.asBool();
+      decodeBinaryTags = v.asBool();
     }
 
     
@@ -794,7 +794,7 @@ namespace Orthanc
     }
 
 
-    InjectTags(dicom, request["Tags"], interpretBinaryTags);
+    InjectTags(dicom, request["Tags"], decodeBinaryTags);
 
 
     // Inject the content (either an image, or a PDF file)
@@ -812,7 +812,7 @@ namespace Orthanc
         if (content.size() > 0)
         {
           // Let's create a series instead of a single instance
-          CreateSeries(call, dicom, content, interpretBinaryTags);
+          CreateSeries(call, dicom, content, decodeBinaryTags);
           return;
         }
       }

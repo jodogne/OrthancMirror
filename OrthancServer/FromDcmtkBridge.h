@@ -120,5 +120,16 @@ namespace Orthanc
                                    DcmDataset& dataSet);
 
     static ValueRepresentation GetValueRepresentation(const DicomTag& tag);
+
+    static DcmElement* CreateElementForTag(const DicomTag& tag);
+    
+    static void FillElementWithString(DcmElement& element,
+                                      const DicomTag& tag,
+                                      const std::string& value,
+                                      bool interpretBinaryTags);
+
+    static DcmElement* FromJson(const Json::Value& element,
+                                const DicomTag& tag,
+                                bool interpretBinaryTags);
   };
 }
