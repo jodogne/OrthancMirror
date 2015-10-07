@@ -28,7 +28,6 @@ Contributors
 * Vincent Kersten <vincent1234567@gmail.com>, for DICOMDIR in the GUI.
 * Emsy Chan <emlscs@yahoo.com>, for various contributions
   and sample DICOM files.
-* Mikhail <mp39590@gmail.com>, for FreeBSD support.
 
 
 Thanks also to all the contributors active in our Google Group:
@@ -47,6 +46,12 @@ Fedora and Red Hat
 ------------------
 
 * Mario Ceresa <mrceresa@gmail.com>, for help about packaging.
+
+
+FreeBSD
+-------
+
+* Mikhail <mp39590@gmail.com>, for FreeBSD packaging.
 
 
 Artwork
