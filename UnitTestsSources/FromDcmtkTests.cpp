@@ -36,6 +36,7 @@
 #include "../OrthancServer/FromDcmtkBridge.h"
 #include "../OrthancServer/OrthancInitialization.h"
 #include "../OrthancServer/DicomModification.h"
+#include "../OrthancServer/ServerToolbox.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Images/ImageBuffer.h"
 #include "../Core/Images/PngReader.h"
@@ -379,9 +380,15 @@ TEST(FromDcmtkBridge, FromJson)
       ASSERT_EQ(b["0008,1110"][1 - i]["0010,0010"].asString(), "Hello2");
       ASSERT_EQ(b["0008,1110"][1 - i]["0010,0020"].asString(), "World2");
     }
+
+    {
+      Json::Value b;
+      FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Full, 0, Encoding_Ascii);
+
+      Json::Value c;
+      SimplifyTags(c, b);
+
+      ASSERT_EQ(0, c["ReferencedStudySequence"].compare(a));
+    }
   }
-
-
-
-  // TODO: Test Simplify
 }
