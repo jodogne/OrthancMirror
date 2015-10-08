@@ -546,7 +546,7 @@ namespace Orthanc
       DcmTag tag(element->getTag());
 
       // Is this a private tag?
-      if (FromDcmtkBridge::IsPrivateTag(tag))
+      if (tag.isPrivate())
       {
         bool remove = true;
 
