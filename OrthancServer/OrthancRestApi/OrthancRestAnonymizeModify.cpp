@@ -499,11 +499,6 @@ namespace Orthanc
     for (size_t i = 0; i < members.size(); i++)
     {
       const std::string& name = members[i];
-      if (tags[name].type() != Json::stringValue)
-      {
-        throw OrthancException(ErrorCode_CreateDicomNotString);
-      }
-
       DicomTag tag = FromDcmtkBridge::ParseTag(name);
 
       if (tag != DICOM_TAG_SPECIFIC_CHARACTER_SET)
