@@ -137,6 +137,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/math/special_functions/round.hpp>
 #include <dcmtk/dcmdata/dcostrmb.h>
+#include <boost/algorithm/string/predicate.hpp>
 
 
 static const char* CONTENT_TYPE_OCTET_STREAM = "application/octet-stream";
@@ -579,52 +580,49 @@ namespace Orthanc
   }
 
 
-  void ParsedDicomFile::Insert(const DicomTag& tag,
-                               const std::string& value)
+  static void InsertInternal(DcmDataset& dicom,
+                             DcmElement* element)
   {
-    OFCondition cond;
-
-    if (FromDcmtkBridge::IsPrivateTag(tag) ||
-        FromDcmtkBridge::IsUnknownTag(tag))
-    {
-      // This is a private tag
-      // http://support.dcmtk.org/redmine/projects/dcmtk/wiki/howto_addprivatedata
-
-      DcmTag key(tag.GetGroup(), tag.GetElement(), EVR_OB);
-      cond = pimpl_->file_->getDataset()->putAndInsertUint8Array
-        (key, (const Uint8*) value.c_str(), value.size(), false);
-    }
-    else
-    {
-      std::auto_ptr<DcmElement> element(FromDcmtkBridge::CreateElementForTag(tag));
-      FromDcmtkBridge::FillElementWithString(*element, tag, value, false);
-
-      cond = pimpl_->file_->getDataset()->insert(element.release(), false, false);
-    }
-
+    OFCondition cond = dicom.insert(element, false, false);
     if (!cond.good())
     {
       // This field already exists
+      delete element;
       throw OrthancException(ErrorCode_InternalError);
     }
   }
 
 
-  void ParsedDicomFile::Replace(const DicomTag& tag,
-                                const std::string& value,
-                                DicomReplaceMode mode)
+  void ParsedDicomFile::Insert(const DicomTag& tag,
+                               const std::string& value)
   {
-    DcmTagKey key(tag.GetGroup(), tag.GetElement());
-    DcmElement* element = NULL;
+    std::auto_ptr<DcmElement> element(FromDcmtkBridge::CreateElementForTag(tag));
+    FromDcmtkBridge::FillElementWithString(*element, tag, value, false);
+    InsertInternal(*pimpl_->file_->getDataset(), element.release());
+  }
 
-    if (!pimpl_->file_->getDataset()->findAndGetElement(key, element).good() ||
-        element == NULL)
+
+  void ParsedDicomFile::Insert(const DicomTag& tag,
+                               const Json::Value& value,
+                               bool decodeBinaryTags)
+  {
+    std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeBinaryTags));
+    InsertInternal(*pimpl_->file_->getDataset(), element.release());
+  }
+
+
+  static void ReplaceInternal(DcmDataset& dicom,
+                              std::auto_ptr<DcmElement>& element,
+                              DicomReplaceMode mode)
+  {
+    const DcmTagKey& tag = element->getTag();
+
+    if (!dicom.findAndDeleteElement(tag).good())
     {
       // This field does not exist, act wrt. the specified "mode"
       switch (mode)
       {
         case DicomReplaceMode_InsertIfAbsent:
-          Insert(tag, value);
           break;
 
         case DicomReplaceMode_ThrowIfAbsent:
@@ -634,11 +632,33 @@ namespace Orthanc
           return;
       }
     }
-    else
+
+    // Either the tag was not existing, or the replace mode was set to
+    // "InsertIfAbsent"
+    InsertInternal(dicom, element.release());
+  }
+
+
+  void ParsedDicomFile::UpdateStorageUid(const DicomTag& tag,
+                                         const std::string& value,
+                                         bool decodeBinaryTags)
+  {
+    if (tag != DICOM_TAG_SOP_CLASS_UID &&
+        tag != DICOM_TAG_SOP_INSTANCE_UID)
     {
-      FromDcmtkBridge::FillElementWithString(*element, tag, value, false);
+      return;
     }
 
+    std::string binary;
+    const std::string* decoded = &value;
+
+    if (decodeBinaryTags &&
+        boost::starts_with(value, "data:application/octet-stream;base64,"))
+    {
+      std::string mime;
+      Toolbox::DecodeDataUriScheme(mime, binary, value);
+      decoded = &binary;
+    }
 
     /**
      * dcmodify will automatically correct 'Media Storage SOP Class
@@ -651,12 +671,44 @@ namespace Orthanc
 
     if (tag == DICOM_TAG_SOP_CLASS_UID)
     {
-      Replace(DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID, value, DicomReplaceMode_InsertIfAbsent);
+      Replace(DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID, *decoded, DicomReplaceMode_InsertIfAbsent);
     }
 
     if (tag == DICOM_TAG_SOP_INSTANCE_UID)
     {
-      Replace(DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID, value, DicomReplaceMode_InsertIfAbsent);
+      Replace(DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID, *decoded, DicomReplaceMode_InsertIfAbsent);
+    }    
+  }
+
+
+  void ParsedDicomFile::Replace(const DicomTag& tag,
+                                const std::string& value,
+                                DicomReplaceMode mode)
+  {
+    std::auto_ptr<DcmElement> element(FromDcmtkBridge::CreateElementForTag(tag));
+    FromDcmtkBridge::FillElementWithString(*element, tag, value, false);
+    ReplaceInternal(*pimpl_->file_->getDataset(), element, mode);
+    UpdateStorageUid(tag, value, false);
+  }
+
+    
+  void ParsedDicomFile::Replace(const DicomTag& tag,
+                                const Json::Value& value,
+                                bool decodeBinaryTags,
+                                DicomReplaceMode mode)
+  {
+    std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeBinaryTags));
+    ReplaceInternal(*pimpl_->file_->getDataset(), element, mode);
+
+    if (tag == DICOM_TAG_SOP_CLASS_UID ||
+        tag == DICOM_TAG_SOP_INSTANCE_UID)
+    {
+      if (value.type() != Json::stringValue)
+      {
+        throw OrthancException(ErrorCode_BadParameterType);
+      }
+
+      UpdateStorageUid(tag, value.asString(), decodeBinaryTags);
     }
   }
 
@@ -865,7 +917,7 @@ namespace Orthanc
     }
     else
     {
-      LOG(ERROR) << "Unsupported MIME type for the content of a new DICOM file";
+      LOG(ERROR) << "Unsupported MIME type for the content of a new DICOM file: " << mime;
       throw OrthancException(ErrorCode_NotImplemented);
     }
   }
