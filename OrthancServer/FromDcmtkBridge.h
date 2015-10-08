@@ -60,8 +60,6 @@ namespace Orthanc
 
     static DicomTag GetTag(const DcmElement& element);
 
-    static bool IsPrivateTag(DcmTag& tag);
-
     static bool IsPrivateTag(const DicomTag& tag);
 
     static bool IsUnknownTag(const DicomTag& tag);
