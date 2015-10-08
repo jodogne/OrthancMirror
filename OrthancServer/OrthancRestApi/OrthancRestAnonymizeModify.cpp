@@ -504,7 +504,6 @@ namespace Orthanc
         throw OrthancException(ErrorCode_CreateDicomNotString);
       }
 
-      std::string value = tags[name].asString();
       DicomTag tag = FromDcmtkBridge::ParseTag(name);
 
       if (tag != DICOM_TAG_SPECIFIC_CHARACTER_SET)
@@ -529,16 +528,9 @@ namespace Orthanc
         {
           throw OrthancException(ErrorCode_CreateDicomUseContent);
         }
-        else if (decodeBinaryTags &&
-                 boost::starts_with(value, "data:application/octet-stream;base64,"))
-        {
-          std::string mime, binary;
-          Toolbox::DecodeDataUriScheme(mime, binary, value);
-          dicom.Replace(tag, binary);
-        }
         else
         {
-          dicom.Replace(tag, Toolbox::ConvertFromUtf8(value, dicom.GetEncoding()));
+          dicom.Replace(tag, tags[name], decodeBinaryTags);
         }
       }
     }

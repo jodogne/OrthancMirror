@@ -149,7 +149,6 @@ namespace Orthanc
   struct ParsedDicomFile::PImpl
   {
     std::auto_ptr<DcmFileFormat> file_;
-    Encoding encoding_;
   };
 
 
@@ -174,8 +173,6 @@ namespace Orthanc
     }
     pimpl_->file_->loadAllDataIntoMemory();
     pimpl_->file_->transferEnd();
-
-    pimpl_->encoding_ = FromDcmtkBridge::DetectEncoding(*pimpl_->file_->getDataset());
   }
 
 
@@ -594,10 +591,10 @@ namespace Orthanc
 
 
   void ParsedDicomFile::Insert(const DicomTag& tag,
-                               const std::string& value)
+                               const std::string& utf8Value)
   {
     std::auto_ptr<DcmElement> element(FromDcmtkBridge::CreateElementForTag(tag));
-    FromDcmtkBridge::FillElementWithString(*element, tag, value, false);
+    FromDcmtkBridge::FillElementWithString(*element, tag, utf8Value, false, GetEncoding());
     InsertInternal(*pimpl_->file_->getDataset(), element.release());
   }
 
@@ -606,7 +603,7 @@ namespace Orthanc
                                const Json::Value& value,
                                bool decodeBinaryTags)
   {
-    std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeBinaryTags));
+    std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeBinaryTags, GetEncoding()));
     InsertInternal(*pimpl_->file_->getDataset(), element.release());
   }
 
@@ -640,7 +637,7 @@ namespace Orthanc
 
 
   void ParsedDicomFile::UpdateStorageUid(const DicomTag& tag,
-                                         const std::string& value,
+                                         const std::string& utf8Value,
                                          bool decodeBinaryTags)
   {
     if (tag != DICOM_TAG_SOP_CLASS_UID &&
@@ -650,14 +647,23 @@ namespace Orthanc
     }
 
     std::string binary;
-    const std::string* decoded = &value;
+    const std::string* decoded = &utf8Value;
 
     if (decodeBinaryTags &&
-        boost::starts_with(value, "data:application/octet-stream;base64,"))
+        boost::starts_with(utf8Value, "data:application/octet-stream;base64,"))
     {
       std::string mime;
-      Toolbox::DecodeDataUriScheme(mime, binary, value);
+      Toolbox::DecodeDataUriScheme(mime, binary, utf8Value);
       decoded = &binary;
+    }
+    else
+    {
+      Encoding encoding = GetEncoding();
+      if (GetEncoding() != Encoding_Utf8)
+      {
+        binary = Toolbox::ConvertFromUtf8(utf8Value, encoding);
+        decoded = &binary;
+      }
     }
 
     /**
@@ -682,13 +688,13 @@ namespace Orthanc
 
 
   void ParsedDicomFile::Replace(const DicomTag& tag,
-                                const std::string& value,
+                                const std::string& utf8Value,
                                 DicomReplaceMode mode)
   {
     std::auto_ptr<DcmElement> element(FromDcmtkBridge::CreateElementForTag(tag));
-    FromDcmtkBridge::FillElementWithString(*element, tag, value, false);
+    FromDcmtkBridge::FillElementWithString(*element, tag, utf8Value, false, GetEncoding());
     ReplaceInternal(*pimpl_->file_->getDataset(), element, mode);
-    UpdateStorageUid(tag, value, false);
+    UpdateStorageUid(tag, utf8Value, false);
   }
 
     
@@ -697,7 +703,7 @@ namespace Orthanc
                                 bool decodeBinaryTags,
                                 DicomReplaceMode mode)
   {
-    std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeBinaryTags));
+    std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeBinaryTags, GetEncoding()));
     ReplaceInternal(*pimpl_->file_->getDataset(), element, mode);
 
     if (tag == DICOM_TAG_SOP_CLASS_UID ||
@@ -766,7 +772,7 @@ namespace Orthanc
         return false;
       }
 
-      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(*element, pimpl_->encoding_));
+      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(*element, GetEncoding()));
       
       if (v.get() == NULL)
       {
@@ -846,7 +852,6 @@ namespace Orthanc
   ParsedDicomFile::ParsedDicomFile() : pimpl_(new PImpl)
   {
     pimpl_->file_.reset(new DcmFileFormat);
-    pimpl_->encoding_ = Encoding_Ascii;
     Replace(DICOM_TAG_PATIENT_ID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Patient));
     Replace(DICOM_TAG_STUDY_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Study));
     Replace(DICOM_TAG_SERIES_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Series));
@@ -876,7 +881,6 @@ namespace Orthanc
     pimpl_(new PImpl)
   {
     pimpl_->file_.reset(dynamic_cast<DcmFileFormat*>(other.pimpl_->file_->clone()));
-    pimpl_->encoding_ = other.pimpl_->encoding_;
 
     // Create a new instance-level identifier
     Replace(DICOM_TAG_SOP_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Instance));
@@ -1106,7 +1110,7 @@ namespace Orthanc
 
   Encoding ParsedDicomFile::GetEncoding() const
   {
-    return pimpl_->encoding_;
+    return FromDcmtkBridge::DetectEncoding(*pimpl_->file_->getDataset());
   }
 
 
@@ -1118,8 +1122,6 @@ namespace Orthanc
       // DICOM standard. Do not set the SpecificCharacterSet tag.
       return;
     }
-
-    pimpl_->encoding_ = encoding;
 
     std::string s = GetDicomSpecificCharacterSet(encoding);
     Replace(DICOM_TAG_SPECIFIC_CHARACTER_SET, s, DicomReplaceMode_InsertIfAbsent);

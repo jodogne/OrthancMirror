@@ -124,11 +124,13 @@ namespace Orthanc
     
     static void FillElementWithString(DcmElement& element,
                                       const DicomTag& tag,
-                                      const std::string& value,
-                                      bool interpretBinaryTags);
+                                      const std::string& utf8alue,  // Encoded using UTF-8
+                                      bool interpretBinaryTags,
+                                      Encoding dicomEncoding);
 
     static DcmElement* FromJson(const DicomTag& tag,
-                                const Json::Value& element,
-                                bool interpretBinaryTags);
+                                const Json::Value& element,  // Encoding using UTF-8
+                                bool interpretBinaryTags,
+                                Encoding dicomEncoding);
   };
 }

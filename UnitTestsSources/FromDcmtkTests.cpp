@@ -207,7 +207,7 @@ TEST(FromDcmtkBridge, Encodings1)
     std::string source(testEncodingsEncoded[i]);
     std::string expected(testEncodingsExpected[i]);
     std::string s = Toolbox::ConvertToUtf8(source, testEncodings[i]);
-    std::cout << EnumerationToString(testEncodings[i]) << std::endl;
+    //std::cout << EnumerationToString(testEncodings[i]) << std::endl;
     EXPECT_EQ(expected, s);
   }
 }
@@ -262,13 +262,15 @@ TEST(FromDcmtkBridge, Encodings3)
 {
   for (unsigned int i = 0; i < testEncodingsCount; i++)
   {
-    std::cout << EnumerationToString(testEncodings[i]) << std::endl;
+    //std::cout << EnumerationToString(testEncodings[i]) << std::endl;
     std::string dicom;
 
     {
       ParsedDicomFile f;
       f.SetEncoding(testEncodings[i]);
-      f.Insert(DICOM_TAG_PATIENT_NAME, testEncodingsEncoded[i]);
+
+      std::string s = Toolbox::ConvertToUtf8(testEncodingsEncoded[i], testEncodings[i]);
+      f.Insert(DICOM_TAG_PATIENT_NAME, s);
       f.SaveToMemoryBuffer(dicom);
     }
 
@@ -334,7 +336,7 @@ TEST(FromDcmtkBridge, FromJson)
   {
     Json::Value a;
     a = "Hello";
-    element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, false));
+    element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, false, Encoding_Utf8));
 
     Json::Value b;
     FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Short, 0, Encoding_Ascii);
@@ -345,20 +347,20 @@ TEST(FromDcmtkBridge, FromJson)
     Json::Value a;
     a = "Hello";
     // Cannot assign a string to a sequence
-    ASSERT_THROW(element.reset(FromDcmtkBridge::FromJson(REFERENCED_STUDY_SEQUENCE, a, false)), OrthancException);
+    ASSERT_THROW(element.reset(FromDcmtkBridge::FromJson(REFERENCED_STUDY_SEQUENCE, a, false, Encoding_Utf8)), OrthancException);
   }
 
   {
     Json::Value a = Json::arrayValue;
     a.append("Hello");
     // Cannot assign an array to a string
-    ASSERT_THROW(element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, false)), OrthancException);
+    ASSERT_THROW(element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, false, Encoding_Utf8)), OrthancException);
   }
 
   {
     Json::Value a;
     a = "data:application/octet-stream;base64,SGVsbG8=";  // echo -n "Hello" | base64
-    element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, true));
+    element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, true, Encoding_Utf8));
 
     Json::Value b;
     FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Short, 0, Encoding_Ascii);
@@ -368,7 +370,7 @@ TEST(FromDcmtkBridge, FromJson)
   {
     Json::Value a = Json::arrayValue;
     CreateSampleJson(a);
-    element.reset(FromDcmtkBridge::FromJson(REFERENCED_STUDY_SEQUENCE, a, true));
+    element.reset(FromDcmtkBridge::FromJson(REFERENCED_STUDY_SEQUENCE, a, true, Encoding_Utf8));
 
     {
       Json::Value b;
@@ -490,4 +492,31 @@ TEST(ParsedDicomFile, InsertReplaceJson)
   ASSERT_EQ(s, "Tata");
   ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID));  // Implicitly modified by (**)
   ASSERT_EQ(s, "Tata");
+}
+
+
+TEST(ParsedDicomFile, JsonEncoding)
+{
+  ParsedDicomFile f;
+
+  for (unsigned int i = 0; i < testEncodingsCount; i++)
+  {
+    if (testEncodings[i] != Encoding_Windows1251)
+    {
+      //std::cout << EnumerationToString(testEncodings[i]) << std::endl;
+      f.SetEncoding(testEncodings[i]);
+
+      if (testEncodings[i] != Encoding_Ascii)
+      {
+        ASSERT_EQ(testEncodings[i], f.GetEncoding());
+      }
+
+      Json::Value s = Toolbox::ConvertToUtf8(testEncodingsEncoded[i], testEncodings[i]);
+      f.Replace(DICOM_TAG_PATIENT_NAME, s, false);
+
+      Json::Value v;
+      f.ToJson(v, DicomToJsonFormat_Simple, 0);
+      ASSERT_EQ(v["PatientName"].asString(), std::string(testEncodingsExpected[i]));
+    }
+  }
 }

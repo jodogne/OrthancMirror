@@ -1146,17 +1146,23 @@ namespace Orthanc
 
   void FromDcmtkBridge::FillElementWithString(DcmElement& element,
                                               const DicomTag& tag,
-                                              const std::string& value,
-                                              bool decodeBinaryTags)
+                                              const std::string& utf8Value,
+                                              bool decodeBinaryTags,
+                                              Encoding dicomEncoding)
   {
     std::string binary;
-    const std::string* decoded = &value;
+    const std::string* decoded = &utf8Value;
 
     if (decodeBinaryTags &&
-        boost::starts_with(value, "data:application/octet-stream;base64,"))
+        boost::starts_with(utf8Value, "data:application/octet-stream;base64,"))
     {
       std::string mime;
-      Toolbox::DecodeDataUriScheme(mime, binary, value);
+      Toolbox::DecodeDataUriScheme(mime, binary, utf8Value);
+      decoded = &binary;
+    }
+    else if (dicomEncoding != Encoding_Utf8)
+    {
+      binary = Toolbox::ConvertFromUtf8(utf8Value, dicomEncoding);
       decoded = &binary;
     }
 
@@ -1312,7 +1318,8 @@ namespace Orthanc
 
   DcmElement* FromDcmtkBridge::FromJson(const DicomTag& tag,
                                         const Json::Value& value,
-                                        bool decodeBinaryTags)
+                                        bool decodeBinaryTags,
+                                        Encoding dicomEncoding)
   {
     std::auto_ptr<DcmElement> element;
 
@@ -1320,7 +1327,7 @@ namespace Orthanc
     {
       case Json::stringValue:
         element.reset(CreateElementForTag(tag));
-        FillElementWithString(*element, tag, value.asString(), decodeBinaryTags);
+        FillElementWithString(*element, tag, value.asString(), decodeBinaryTags, dicomEncoding);
         break;
 
       case Json::arrayValue:
@@ -1341,7 +1348,7 @@ namespace Orthanc
           Json::Value::Members members = value[i].getMemberNames();
           for (Json::Value::ArrayIndex j = 0; j < members.size(); j++)
           {
-            item->insert(FromJson(ParseTag(members[j]), value[i][members[j]], decodeBinaryTags));
+            item->insert(FromJson(ParseTag(members[j]), value[i][members[j]], decodeBinaryTags, dicomEncoding));
           }
 
           sequence->append(item.release());
