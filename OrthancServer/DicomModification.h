@@ -73,7 +73,7 @@ namespace Orthanc
     bool IsRemoved(const DicomTag& tag) const;
 
     void Replace(const DicomTag& tag,
-                 const std::string& value,
+                 const std::string& utf8Value,
                  bool safeForAnonymization = false);
 
     bool IsReplaced(const DicomTag& tag) const;

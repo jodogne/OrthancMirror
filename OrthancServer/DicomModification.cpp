@@ -136,12 +136,12 @@ namespace Orthanc
   }
 
   void DicomModification::Replace(const DicomTag& tag,
-                                  const std::string& value,
+                                  const std::string& utf8Value,
                                   bool safeForAnonymization)
   {
     removals_.erase(tag);
     privateTagsToKeep_.erase(tag);
-    replacements_[tag] = value;
+    replacements_[tag] = utf8Value;
 
     if (!safeForAnonymization)
     {
