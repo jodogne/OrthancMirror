@@ -129,8 +129,8 @@ namespace Orthanc
                                       const std::string& value,
                                       bool interpretBinaryTags);
 
-    static DcmElement* FromJson(const Json::Value& element,
-                                const DicomTag& tag,
+    static DcmElement* FromJson(const DicomTag& tag,
+                                const Json::Value& element,
                                 bool interpretBinaryTags);
   };
 }

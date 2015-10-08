@@ -1012,10 +1012,20 @@ namespace Orthanc
   }
 
 
+  static bool IsBinaryTag(const DcmTag& key)
+  {
+    return key.isPrivate() || key.isUnknownVR();
+  }
+
 
   DcmElement* FromDcmtkBridge::CreateElementForTag(const DicomTag& tag)
   {
     DcmTag key(tag.GetGroup(), tag.GetElement());
+
+    if (IsBinaryTag(key))
+    {
+      return new DcmOtherByteOtherWord(key);
+    }
 
     switch (key.getEVR())
     {
@@ -1163,9 +1173,9 @@ namespace Orthanc
       decoded = &binary;
     }
 
+    DcmTag key(tag.GetGroup(), tag.GetElement());
 
-    if (FromDcmtkBridge::IsPrivateTag(tag) ||
-        FromDcmtkBridge::IsUnknownTag(tag))
+    if (IsBinaryTag(key))
     {
       if (element.putUint8Array((const Uint8*) decoded->c_str(), decoded->size()).good())
       {
@@ -1177,7 +1187,6 @@ namespace Orthanc
       }
     }
 
-    DcmTag key(tag.GetGroup(), tag.GetElement());
     bool ok = false;
     
     try
@@ -1314,8 +1323,8 @@ namespace Orthanc
   }
 
 
-  DcmElement* FromDcmtkBridge::FromJson(const Json::Value& value,
-                                        const DicomTag& tag,
+  DcmElement* FromDcmtkBridge::FromJson(const DicomTag& tag,
+                                        const Json::Value& value,
                                         bool decodeBinaryTags)
   {
     std::auto_ptr<DcmElement> element;
@@ -1345,7 +1354,7 @@ namespace Orthanc
           Json::Value::Members members = value[i].getMemberNames();
           for (Json::Value::ArrayIndex j = 0; j < members.size(); j++)
           {
-            item->insert(FromJson(value[i][members[j]], ParseTag(members[j]), decodeBinaryTags));
+            item->insert(FromJson(ParseTag(members[j]), value[i][members[j]], decodeBinaryTags));
           }
 
           sequence->append(item.release());

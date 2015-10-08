@@ -304,16 +304,37 @@ TEST(FromDcmtkBridge, ValueRepresentation)
 }
 
 
+
+static const DicomTag REFERENCED_STUDY_SEQUENCE(0x0008, 0x1110);
+static const DicomTag REFERENCED_PATIENT_SEQUENCE(0x0008, 0x1120);
+
+static void CreateSampleJson(Json::Value& a)
+{
+  {
+    Json::Value b = Json::objectValue;
+    b["PatientName"] = "Hello";
+    b["PatientID"] = "World";
+    b["StudyDescription"] = "Toto";
+    a.append(b);
+  }
+
+  {
+    Json::Value b = Json::objectValue;
+    b["PatientName"] = "data:application/octet-stream;base64,SGVsbG8y";  // echo -n "Hello2" | base64
+    b["PatientID"] = "World2";
+    a.append(b);
+  }
+}
+
+
 TEST(FromDcmtkBridge, FromJson)
 {
-  const DicomTag REFERENCED_STUDY_SEQUENCE(0x0008, 0x1110);
-
   std::auto_ptr<DcmElement> element;
 
   {
     Json::Value a;
     a = "Hello";
-    element.reset(FromDcmtkBridge::FromJson(a, DICOM_TAG_PATIENT_NAME, false));
+    element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, false));
 
     Json::Value b;
     FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Short, 0, Encoding_Ascii);
@@ -324,20 +345,20 @@ TEST(FromDcmtkBridge, FromJson)
     Json::Value a;
     a = "Hello";
     // Cannot assign a string to a sequence
-    ASSERT_THROW(element.reset(FromDcmtkBridge::FromJson(a, REFERENCED_STUDY_SEQUENCE, false)), OrthancException);
+    ASSERT_THROW(element.reset(FromDcmtkBridge::FromJson(REFERENCED_STUDY_SEQUENCE, a, false)), OrthancException);
   }
 
   {
     Json::Value a = Json::arrayValue;
     a.append("Hello");
     // Cannot assign an array to a string
-    ASSERT_THROW(element.reset(FromDcmtkBridge::FromJson(a, DICOM_TAG_PATIENT_NAME, false)), OrthancException);
+    ASSERT_THROW(element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, false)), OrthancException);
   }
 
   {
     Json::Value a;
     a = "data:application/octet-stream;base64,SGVsbG8=";  // echo -n "Hello" | base64
-    element.reset(FromDcmtkBridge::FromJson(a, DICOM_TAG_PATIENT_NAME, true));
+    element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, true));
 
     Json::Value b;
     FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Short, 0, Encoding_Ascii);
@@ -346,23 +367,8 @@ TEST(FromDcmtkBridge, FromJson)
 
   {
     Json::Value a = Json::arrayValue;
-
-    {
-      Json::Value b = Json::objectValue;
-      b["PatientName"] = "Hello";
-      b["PatientID"] = "World";
-      b["StudyDescription"] = "Toto";
-      a.append(b);
-    }
-
-    {
-      Json::Value b = Json::objectValue;
-      b["PatientName"] = "Hello2";
-      b["PatientID"] = "World2";
-      a.append(b);
-    }
-
-    element.reset(FromDcmtkBridge::FromJson(a, REFERENCED_STUDY_SEQUENCE, false));
+    CreateSampleJson(a);
+    element.reset(FromDcmtkBridge::FromJson(REFERENCED_STUDY_SEQUENCE, a, true));
 
     {
       Json::Value b;
@@ -388,7 +394,100 @@ TEST(FromDcmtkBridge, FromJson)
       Json::Value c;
       SimplifyTags(c, b);
 
+      a[1]["PatientName"] = "Hello2";  // To remove the Data URI Scheme encoding
       ASSERT_EQ(0, c["ReferencedStudySequence"].compare(a));
     }
   }
+}
+
+
+
+TEST(ParsedDicomFile, InsertReplaceStrings)
+{
+  ParsedDicomFile f;
+
+  f.Insert(DICOM_TAG_PATIENT_NAME, "World");
+  ASSERT_THROW(f.Insert(DICOM_TAG_PATIENT_ID, "Hello"), OrthancException);  // Already existing tag
+  f.Replace(DICOM_TAG_SOP_INSTANCE_UID, "Toto");  // (*)
+  f.Replace(DICOM_TAG_SOP_CLASS_UID, "Tata");  // (**)
+
+  std::string s;
+
+  ASSERT_THROW(f.Replace(DICOM_TAG_ACCESSION_NUMBER, "Accession", DicomReplaceMode_ThrowIfAbsent), OrthancException);
+  f.Replace(DICOM_TAG_ACCESSION_NUMBER, "Accession", DicomReplaceMode_IgnoreIfAbsent);
+  ASSERT_FALSE(f.GetTagValue(s, DICOM_TAG_ACCESSION_NUMBER));
+  f.Replace(DICOM_TAG_ACCESSION_NUMBER, "Accession", DicomReplaceMode_InsertIfAbsent);
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_ACCESSION_NUMBER));
+  ASSERT_EQ(s, "Accession");
+  f.Replace(DICOM_TAG_ACCESSION_NUMBER, "Accession2", DicomReplaceMode_IgnoreIfAbsent);
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_ACCESSION_NUMBER));
+  ASSERT_EQ(s, "Accession2");
+  f.Replace(DICOM_TAG_ACCESSION_NUMBER, "Accession3", DicomReplaceMode_ThrowIfAbsent);
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_ACCESSION_NUMBER));
+  ASSERT_EQ(s, "Accession3");
+
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_PATIENT_NAME));
+  ASSERT_EQ(s, "World");
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_SOP_INSTANCE_UID));
+  ASSERT_EQ(s, "Toto");
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID));  // Implicitly modified by (*)
+  ASSERT_EQ(s, "Toto");
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_SOP_CLASS_UID));
+  ASSERT_EQ(s, "Tata");
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID));  // Implicitly modified by (**)
+  ASSERT_EQ(s, "Tata");
+}
+
+
+
+
+TEST(ParsedDicomFile, InsertReplaceJson)
+{
+  ParsedDicomFile f;
+
+  Json::Value a;
+  CreateSampleJson(a);
+
+  ASSERT_FALSE(f.HasTag(REFERENCED_STUDY_SEQUENCE));
+  f.Remove(REFERENCED_STUDY_SEQUENCE);  // No effect
+  f.Insert(REFERENCED_STUDY_SEQUENCE, a, true);
+  ASSERT_TRUE(f.HasTag(REFERENCED_STUDY_SEQUENCE));
+  ASSERT_THROW(f.Insert(REFERENCED_STUDY_SEQUENCE, a, true), OrthancException);
+  f.Remove(REFERENCED_STUDY_SEQUENCE);
+  ASSERT_FALSE(f.HasTag(REFERENCED_STUDY_SEQUENCE));
+  f.Insert(REFERENCED_STUDY_SEQUENCE, a, true);
+  ASSERT_TRUE(f.HasTag(REFERENCED_STUDY_SEQUENCE));
+
+  ASSERT_FALSE(f.HasTag(REFERENCED_PATIENT_SEQUENCE));
+  ASSERT_THROW(f.Replace(REFERENCED_PATIENT_SEQUENCE, a, false, DicomReplaceMode_ThrowIfAbsent), OrthancException);
+  ASSERT_FALSE(f.HasTag(REFERENCED_PATIENT_SEQUENCE));
+  f.Replace(REFERENCED_PATIENT_SEQUENCE, a, false, DicomReplaceMode_IgnoreIfAbsent);
+  ASSERT_FALSE(f.HasTag(REFERENCED_PATIENT_SEQUENCE));
+  f.Replace(REFERENCED_PATIENT_SEQUENCE, a, false, DicomReplaceMode_InsertIfAbsent);
+  ASSERT_TRUE(f.HasTag(REFERENCED_PATIENT_SEQUENCE));
+
+  {
+    Json::Value b;
+    f.ToJson(b, DicomToJsonFormat_Full, 0);
+
+    Json::Value c;
+    SimplifyTags(c, b);
+
+    ASSERT_EQ(0, c["ReferencedPatientSequence"].compare(a));
+    ASSERT_NE(0, c["ReferencedStudySequence"].compare(a));  // Because Data URI Scheme decoding was enabled
+  }
+
+  a = "data:application/octet-stream;base64,VGF0YQ==";   // echo -n "Tata" | base64 
+  f.Replace(DICOM_TAG_SOP_INSTANCE_UID, a, false);  // (*)
+  f.Replace(DICOM_TAG_SOP_CLASS_UID, a, true);  // (**)
+
+  std::string s;
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_SOP_INSTANCE_UID));
+  ASSERT_EQ(s, a.asString());
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID));  // Implicitly modified by (*)
+  ASSERT_EQ(s, a.asString());
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_SOP_CLASS_UID));
+  ASSERT_EQ(s, "Tata");
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID));  // Implicitly modified by (**)
+  ASSERT_EQ(s, "Tata");
 }
