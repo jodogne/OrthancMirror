@@ -701,7 +701,12 @@ namespace Orthanc
                                unsigned int maxStringLength,
                                Encoding encoding)
   {
-    parent = Json::objectValue;
+    if (parent.type() == Json::nullValue)
+    {
+      parent = Json::objectValue;
+    }
+
+    assert(parent.type() == Json::objectValue);
     Json::Value& target = PrepareNode(parent, element, format);
 
     if (element.isLeaf())

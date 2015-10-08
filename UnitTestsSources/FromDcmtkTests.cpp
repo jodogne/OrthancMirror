@@ -343,8 +343,6 @@ TEST(FromDcmtkBridge, FromJson)
     ASSERT_EQ("Hello", b["0010,0010"].asString());
   }
 
-  printf("ici\n");
-
   {
     Json::Value a = Json::arrayValue;
 
@@ -352,6 +350,7 @@ TEST(FromDcmtkBridge, FromJson)
       Json::Value b = Json::objectValue;
       b["PatientName"] = "Hello";
       b["PatientID"] = "World";
+      b["StudyDescription"] = "Toto";
       a.append(b);
     }
 
@@ -363,15 +362,22 @@ TEST(FromDcmtkBridge, FromJson)
     }
 
     element.reset(FromDcmtkBridge::FromJson(a, REFERENCED_STUDY_SEQUENCE, false));
-    element->writeXML(std::cout);
 
     {
       Json::Value b;
-      FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Full, 0, Encoding_Ascii);
-      /*ASSERT_EQ(Json::arrayValue, b["0008,1110"].type());
-        ASSERT_EQ(2, b["0008,1110"].size());*/
+      FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Short, 0, Encoding_Ascii);
+      ASSERT_EQ(Json::arrayValue, b["0008,1110"].type());
+      ASSERT_EQ(2, b["0008,1110"].size());
+      
+      Json::Value::ArrayIndex i = (b["0008,1110"][0]["0010,0010"].asString() == "Hello") ? 0 : 1;
 
-      std::cout << b;
+      ASSERT_EQ(3, b["0008,1110"][i].size());
+      ASSERT_EQ(2, b["0008,1110"][1 - i].size());
+      ASSERT_EQ(b["0008,1110"][i]["0010,0010"].asString(), "Hello");
+      ASSERT_EQ(b["0008,1110"][i]["0010,0020"].asString(), "World");
+      ASSERT_EQ(b["0008,1110"][i]["0008,1030"].asString(), "Toto");
+      ASSERT_EQ(b["0008,1110"][1 - i]["0010,0010"].asString(), "Hello2");
+      ASSERT_EQ(b["0008,1110"][1 - i]["0010,0020"].asString(), "World2");
     }
   }
 
