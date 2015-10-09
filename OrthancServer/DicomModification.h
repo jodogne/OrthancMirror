@@ -36,7 +36,7 @@
 
 namespace Orthanc
 {
-  class DicomModification
+  class DicomModification : public boost::noncopyable
   {
     /**
      * Process:
@@ -47,7 +47,7 @@ namespace Orthanc
 
   private:
     typedef std::set<DicomTag> SetOfTags;
-    typedef std::map<DicomTag, std::string> Replacements;
+    typedef std::map<DicomTag, Json::Value*> Replacements;
     typedef std::map< std::pair<ResourceType, std::string>, std::string>  UidMap;
 
     SetOfTags removals_;
@@ -63,8 +63,17 @@ namespace Orthanc
 
     void MarkNotOrthancAnonymization();
 
+    void ClearReplacements();
+
+    void RemoveInternal(const DicomTag& tag);
+
+    void ReplaceInternal(const DicomTag& tag,
+                         const Json::Value& value);
+
   public:
     DicomModification();
+
+    ~DicomModification();
 
     void Keep(const DicomTag& tag);
 
@@ -73,12 +82,14 @@ namespace Orthanc
     bool IsRemoved(const DicomTag& tag) const;
 
     void Replace(const DicomTag& tag,
-                 const std::string& utf8Value,
+                 const Json::Value& value,   // Encoded using UTF-8
                  bool safeForAnonymization = false);
 
     bool IsReplaced(const DicomTag& tag) const;
 
-    const std::string& GetReplacement(const DicomTag& tag) const;
+    const Json::Value& GetReplacement(const DicomTag& tag) const;
+
+    std::string GetReplacementAsString(const DicomTag& tag) const;
 
     void SetRemovePrivateTags(bool removed);
 

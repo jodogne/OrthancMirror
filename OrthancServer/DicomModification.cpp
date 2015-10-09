@@ -44,13 +44,56 @@ static const std::string ORTHANC_DEIDENTIFICATION_METHOD = "Orthanc " ORTHANC_VE
 
 namespace Orthanc
 {
+  void DicomModification::RemoveInternal(const DicomTag& tag)
+  {
+    Replacements::iterator it = replacements_.find(tag);
+
+    if (it != replacements_.end())
+    {
+      delete it->second;
+      replacements_.erase(it);
+    }    
+  }
+
+
+  void DicomModification::ReplaceInternal(const DicomTag& tag,
+                                          const Json::Value& value)
+  {
+    Replacements::iterator it = replacements_.find(tag);
+
+    if (it != replacements_.end())
+    {
+      delete it->second;
+      it->second = NULL;   // In the case of an exception during the clone
+      it->second = new Json::Value(value);  // Clone
+    }
+    else
+    {
+      replacements_[tag] = new Json::Value(value);  // Clone
+    }
+  }
+
+
+  void DicomModification::ClearReplacements()
+  {
+    for (Replacements::iterator it = replacements_.begin();
+         it != replacements_.end(); ++it)
+    {
+      delete it->second;
+    }
+
+    replacements_.clear();
+  }
+
+
   void DicomModification::MarkNotOrthancAnonymization()
   {
     Replacements::iterator it = replacements_.find(DICOM_TAG_DEIDENTIFICATION_METHOD);
 
     if (it != replacements_.end() &&
-        it->second == ORTHANC_DEIDENTIFICATION_METHOD)
+        it->second->asString() == ORTHANC_DEIDENTIFICATION_METHOD)
     {
+      delete it->second;
       replacements_.erase(it);
     }
   }
@@ -100,7 +143,7 @@ namespace Orthanc
 
     dicom.Replace(*tag, mapped);
   }
-
+  
   DicomModification::DicomModification()
   {
     removePrivateTags_ = false;
@@ -108,10 +151,15 @@ namespace Orthanc
     allowManualIdentifiers_ = true;
   }
 
+  DicomModification::~DicomModification()
+  {
+    ClearReplacements();
+  }
+
   void DicomModification::Keep(const DicomTag& tag)
   {
     removals_.erase(tag);
-    replacements_.erase(tag);
+    RemoveInternal(tag);
 
     if (FromDcmtkBridge::IsPrivateTag(tag))
     {
@@ -124,7 +172,7 @@ namespace Orthanc
   void DicomModification::Remove(const DicomTag& tag)
   {
     removals_.insert(tag);
-    replacements_.erase(tag);
+    RemoveInternal(tag);
     privateTagsToKeep_.erase(tag);
 
     MarkNotOrthancAnonymization();
@@ -136,12 +184,12 @@ namespace Orthanc
   }
 
   void DicomModification::Replace(const DicomTag& tag,
-                                  const std::string& utf8Value,
+                                  const Json::Value& value,
                                   bool safeForAnonymization)
   {
     removals_.erase(tag);
     privateTagsToKeep_.erase(tag);
-    replacements_[tag] = utf8Value;
+    ReplaceInternal(tag, value);
 
     if (!safeForAnonymization)
     {
@@ -149,12 +197,13 @@ namespace Orthanc
     }
   }
 
+
   bool DicomModification::IsReplaced(const DicomTag& tag) const
   {
     return replacements_.find(tag) != replacements_.end();
   }
 
-  const std::string& DicomModification::GetReplacement(const DicomTag& tag) const
+  const Json::Value& DicomModification::GetReplacement(const DicomTag& tag) const
   {
     Replacements::const_iterator it = replacements_.find(tag);
 
@@ -164,9 +213,25 @@ namespace Orthanc
     }
     else
     {
-      return it->second;
+      return *it->second;
     } 
   }
+
+
+  std::string DicomModification::GetReplacementAsString(const DicomTag& tag) const
+  {
+    const Json::Value& json = GetReplacement(tag);
+
+    if (json.type() != Json::stringValue)
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+    else
+    {
+      return json.asString();
+    }    
+  }
+
 
   void DicomModification::SetRemovePrivateTags(bool removed)
   {
@@ -192,7 +257,7 @@ namespace Orthanc
   void DicomModification::SetupAnonymization()
   {
     removals_.clear();
-    replacements_.clear();
+    ClearReplacements();
     removePrivateTags_ = true;
     level_ = ResourceType_Patient;
     uidMap_.clear();
@@ -255,15 +320,15 @@ namespace Orthanc
     removals_.insert(DicomTag(0x0010, 0x2000));  // Medical Alerts
 
     // Set the DeidentificationMethod tag
-    replacements_.insert(std::make_pair(DICOM_TAG_DEIDENTIFICATION_METHOD, ORTHANC_DEIDENTIFICATION_METHOD));
+    ReplaceInternal(DICOM_TAG_DEIDENTIFICATION_METHOD, ORTHANC_DEIDENTIFICATION_METHOD);
 
     // Set the PatientIdentityRemoved tag
-    replacements_.insert(std::make_pair(DicomTag(0x0012, 0x0062), "YES"));
+    ReplaceInternal(DicomTag(0x0012, 0x0062), "YES");
 
     // (*) Choose a random patient name and ID
     std::string patientId = FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Patient);
-    replacements_[DICOM_TAG_PATIENT_ID] = patientId;
-    replacements_[DICOM_TAG_PATIENT_NAME] = patientId;
+    ReplaceInternal(DICOM_TAG_PATIENT_ID, patientId);
+    ReplaceInternal(DICOM_TAG_PATIENT_NAME, patientId);
   }
 
   void DicomModification::Apply(ParsedDicomFile& toModify)
@@ -394,7 +459,7 @@ namespace Orthanc
     for (Replacements::const_iterator it = replacements_.begin(); 
          it != replacements_.end(); ++it)
     {
-      toModify.Replace(it->first, it->second, DicomReplaceMode_InsertIfAbsent);
+      toModify.Replace(it->first, *it->second, DicomReplaceMode_InsertIfAbsent);
     }
 
     // (4) Update the DICOM identifiers
