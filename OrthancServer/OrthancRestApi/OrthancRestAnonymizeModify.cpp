@@ -98,12 +98,13 @@ namespace Orthanc
     for (size_t i = 0; i < members.size(); i++)
     {
       const std::string& name = members[i];
-      std::string value = replacements[name].asString();
+      const Json::Value& value = replacements[name];
 
       DicomTag tag = FromDcmtkBridge::ParseTag(name);
       target.Replace(tag, value);
 
-      VLOG(1) << "Replace: " << name << " " << tag << " == " << value << std::endl;
+      VLOG(1) << "Replace: " << name << " " << tag 
+              << " == " << value.toStyledString() << std::endl;
     }
   }
 

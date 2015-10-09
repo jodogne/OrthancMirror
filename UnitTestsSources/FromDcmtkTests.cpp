@@ -105,7 +105,7 @@ TEST(DicomModification, Anonymization)
   ParsedDicomFile o;
   o.Replace(DICOM_TAG_PATIENT_NAME, "coucou");
   ASSERT_FALSE(o.GetTagValue(s, privateTag));
-  o.Insert(privateTag, "private tag");
+  o.Insert(privateTag, "private tag", false);
   ASSERT_TRUE(o.GetTagValue(s, privateTag));
   ASSERT_STREQ("private tag", s.c_str());
 
@@ -270,7 +270,7 @@ TEST(FromDcmtkBridge, Encodings3)
       f.SetEncoding(testEncodings[i]);
 
       std::string s = Toolbox::ConvertToUtf8(testEncodingsEncoded[i], testEncodings[i]);
-      f.Insert(DICOM_TAG_PATIENT_NAME, s);
+      f.Insert(DICOM_TAG_PATIENT_NAME, s, false);
       f.SaveToMemoryBuffer(dicom);
     }
 
@@ -408,8 +408,8 @@ TEST(ParsedDicomFile, InsertReplaceStrings)
 {
   ParsedDicomFile f;
 
-  f.Insert(DICOM_TAG_PATIENT_NAME, "World");
-  ASSERT_THROW(f.Insert(DICOM_TAG_PATIENT_ID, "Hello"), OrthancException);  // Already existing tag
+  f.Insert(DICOM_TAG_PATIENT_NAME, "World", false);
+  ASSERT_THROW(f.Insert(DICOM_TAG_PATIENT_ID, "Hello", false), OrthancException);  // Already existing tag
   f.Replace(DICOM_TAG_SOP_INSTANCE_UID, "Toto");  // (*)
   f.Replace(DICOM_TAG_SOP_CLASS_UID, "Tata");  // (**)
 
