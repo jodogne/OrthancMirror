@@ -168,7 +168,7 @@ namespace Orthanc
     // curl http://localhost:8042/instances/6e67da51-d119d6ae-c5667437-87b9a8a5-0f07c49f/anonymize -X POST -d '{"Replace":{"PatientName":"hello","0010-0020":"world"},"Keep":["StudyDescription", "SeriesDescription"],"KeepPrivateTags": null,"Remove":["Modality"]}' > Anonymized.dcm
 
     target.SetupAnonymization();
-    std::string patientName = target.GetReplacement(DICOM_TAG_PATIENT_NAME);
+    std::string patientName = target.GetReplacementAsString(DICOM_TAG_PATIENT_NAME);
 
     Json::Value request;
     if (call.ParseJsonRequest(request) && request.isObject())

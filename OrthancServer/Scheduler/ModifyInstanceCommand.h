@@ -43,16 +43,18 @@ namespace Orthanc
   private:
     ServerContext& context_;
     RequestOrigin origin_;
-    DicomModification modification_;
+    DicomModification* modification_;
 
   public:
     ModifyInstanceCommand(ServerContext& context,
                           RequestOrigin origin,
-                          const DicomModification& modification);
+                          DicomModification* modification);  // takes the ownership
+
+    virtual ~ModifyInstanceCommand();
 
     const DicomModification& GetModification() const
     {
-      return modification_;
+      return *modification_;
     }
 
     virtual bool Apply(ListOfStrings& outputs,

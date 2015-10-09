@@ -39,34 +39,43 @@ namespace Orthanc
 {
   ModifyInstanceCommand::ModifyInstanceCommand(ServerContext& context,
                                                RequestOrigin origin,
-                                               const DicomModification& modification) :
+                                               DicomModification* modification) :
     context_(context),
     origin_(origin),
     modification_(modification)
   {
-    modification_.SetAllowManualIdentifiers(true);
+    modification_->SetAllowManualIdentifiers(true);
 
-    if (modification_.IsReplaced(DICOM_TAG_PATIENT_ID))
+    if (modification_->IsReplaced(DICOM_TAG_PATIENT_ID))
     {
-      modification_.SetLevel(ResourceType_Patient);
+      modification_->SetLevel(ResourceType_Patient);
     }
-    else if (modification_.IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
+    else if (modification_->IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
     {
-      modification_.SetLevel(ResourceType_Study);
+      modification_->SetLevel(ResourceType_Study);
     }
-    else if (modification_.IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
+    else if (modification_->IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
     {
-      modification_.SetLevel(ResourceType_Series);
+      modification_->SetLevel(ResourceType_Series);
     }
     else
     {
-      modification_.SetLevel(ResourceType_Instance);
+      modification_->SetLevel(ResourceType_Instance);
     }
 
     if (origin_ != RequestOrigin_Lua)
     {
       // TODO If issued from HTTP, "remoteIp" and "username" must be provided
       throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
+
+
+  ModifyInstanceCommand::~ModifyInstanceCommand()
+  {
+    if (modification_)
+    {
+      delete modification_;
     }
   }
 
@@ -88,7 +97,7 @@ namespace Orthanc
           modified.reset(lock.GetDicom().Clone());
         }
 
-        modification_.Apply(*modified);
+        modification_->Apply(*modified);
 
         DicomInstanceToStore toStore;
         assert(origin_ == RequestOrigin_Lua);
