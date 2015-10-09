@@ -5,6 +5,7 @@ Pending changes in the mainline
 * "/tools/create-dicom": Support of binary tags encoded using data URI scheme
 * "/tools/create-dicom": Support of hierarchical structures (creation of sequences)
 * "/modify" can insert/modify sequences
+* New URIs for attachments: ".../compress", ".../uncompress" and ".../is-compressed"
 
 Plugins
 -------

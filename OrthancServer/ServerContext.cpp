@@ -307,19 +307,64 @@ namespace Orthanc
   }
 
 
-
   void ServerContext::AnswerAttachment(RestApiOutput& output,
-                                       const std::string& instancePublicId,
+                                       const std::string& resourceId,
                                        FileContentType content)
   {
     FileInfo attachment;
-    if (!index_.LookupAttachment(attachment, instancePublicId, content))
+    if (!index_.LookupAttachment(attachment, resourceId, content))
     {
-      throw OrthancException(ErrorCode_InternalError);
+      throw OrthancException(ErrorCode_UnknownResource);
     }
 
     StorageAccessor accessor(area_);
     accessor.AnswerFile(output, attachment);
+  }
+
+
+  void ServerContext::ChangeAttachmentCompression(const std::string& resourceId,
+                                                  FileContentType attachmentType,
+                                                  CompressionType compression)
+  {
+    LOG(INFO) << "Changing compression type for attachment "
+              << EnumerationToString(attachmentType) 
+              << " of resource " << resourceId << " to " 
+              << compression; 
+
+    FileInfo attachment;
+    if (!index_.LookupAttachment(attachment, resourceId, attachmentType))
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
+    if (attachment.GetCompressionType() == compression)
+    {
+      // Nothing to do
+      return;
+    }
+
+    std::string content;
+
+    StorageAccessor accessor(area_);
+    accessor.Read(content, attachment);
+
+    FileInfo modified = accessor.Write(content.empty() ? NULL : content.c_str(),
+                                       content.size(), attachmentType, compression, storeMD5_);
+
+    try
+    {
+      StoreStatus status = index_.AddAttachment(modified, resourceId);
+      if (status != StoreStatus_Success)
+      {
+        accessor.Remove(modified);
+        throw OrthancException(ErrorCode_Database);
+      }
+    }
+    catch (OrthancException&)
+    {
+      accessor.Remove(modified);
+      throw;
+    }    
   }
 
 
