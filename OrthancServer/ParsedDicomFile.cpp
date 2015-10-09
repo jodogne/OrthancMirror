@@ -591,15 +591,6 @@ namespace Orthanc
 
 
   void ParsedDicomFile::Insert(const DicomTag& tag,
-                               const std::string& utf8Value)
-  {
-    std::auto_ptr<DcmElement> element(FromDcmtkBridge::CreateElementForTag(tag));
-    FromDcmtkBridge::FillElementWithString(*element, tag, utf8Value, false, GetEncoding());
-    InsertInternal(*pimpl_->file_->getDataset(), element.release());
-  }
-
-
-  void ParsedDicomFile::Insert(const DicomTag& tag,
                                const Json::Value& value,
                                bool decodeBinaryTags)
   {

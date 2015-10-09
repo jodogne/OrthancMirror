@@ -78,21 +78,18 @@ namespace Orthanc
 
     void Remove(const DicomTag& tag);
 
-    void Insert(const DicomTag& tag,
-                const std::string& utf8Value);
-
     void Replace(const DicomTag& tag,
                  const std::string& utf8Value,
                  DicomReplaceMode mode = DicomReplaceMode_InsertIfAbsent);
-
-    void Insert(const DicomTag& tag,
-                const Json::Value& value,   // Assumed to be encoded with UTF-8
-                bool decodeBinaryTags);
 
     void Replace(const DicomTag& tag,
                  const Json::Value& value,  // Assumed to be encoded with UTF-8
                  bool decodeBinaryTags,
                  DicomReplaceMode mode = DicomReplaceMode_InsertIfAbsent);
+
+    void Insert(const DicomTag& tag,
+                const Json::Value& value,   // Assumed to be encoded with UTF-8
+                bool decodeBinaryTags);
 
     void RemovePrivateTags()
     {
