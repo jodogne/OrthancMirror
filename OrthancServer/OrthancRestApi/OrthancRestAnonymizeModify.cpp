@@ -98,12 +98,13 @@ namespace Orthanc
     for (size_t i = 0; i < members.size(); i++)
     {
       const std::string& name = members[i];
-      std::string value = replacements[name].asString();
+      const Json::Value& value = replacements[name];
 
       DicomTag tag = FromDcmtkBridge::ParseTag(name);
       target.Replace(tag, value);
 
-      VLOG(1) << "Replace: " << name << " " << tag << " == " << value << std::endl;
+      VLOG(1) << "Replace: " << name << " " << tag 
+              << " == " << value.toStyledString() << std::endl;
     }
   }
 
@@ -168,7 +169,7 @@ namespace Orthanc
     // curl http://localhost:8042/instances/6e67da51-d119d6ae-c5667437-87b9a8a5-0f07c49f/anonymize -X POST -d '{"Replace":{"PatientName":"hello","0010-0020":"world"},"Keep":["StudyDescription", "SeriesDescription"],"KeepPrivateTags": null,"Remove":["Modality"]}' > Anonymized.dcm
 
     target.SetupAnonymization();
-    std::string patientName = target.GetReplacement(DICOM_TAG_PATIENT_NAME);
+    std::string patientName = target.GetReplacementAsString(DICOM_TAG_PATIENT_NAME);
 
     Json::Value request;
     if (call.ParseJsonRequest(request) && request.isObject())
@@ -487,7 +488,7 @@ namespace Orthanc
 
   static void InjectTags(ParsedDicomFile& dicom,
                          const Json::Value& tags,
-                         bool interpretBinaryTags)
+                         bool decodeBinaryTags)
   {
     if (tags.type() != Json::objectValue)
     {
@@ -499,12 +500,6 @@ namespace Orthanc
     for (size_t i = 0; i < members.size(); i++)
     {
       const std::string& name = members[i];
-      if (tags[name].type() != Json::stringValue)
-      {
-        throw OrthancException(ErrorCode_CreateDicomNotString);
-      }
-
-      std::string value = tags[name].asString();
       DicomTag tag = FromDcmtkBridge::ParseTag(name);
 
       if (tag != DICOM_TAG_SPECIFIC_CHARACTER_SET)
@@ -529,16 +524,9 @@ namespace Orthanc
         {
           throw OrthancException(ErrorCode_CreateDicomUseContent);
         }
-        else if (interpretBinaryTags &&
-                 boost::starts_with(value, "data:application/octet-stream;base64,"))
-        {
-          std::string mime, binary;
-          Toolbox::DecodeDataUriScheme(mime, binary, value);
-          dicom.Replace(tag, binary);
-        }
         else
         {
-          dicom.Replace(tag, Toolbox::ConvertFromUtf8(value, dicom.GetEncoding()));
+          dicom.Replace(tag, tags[name], decodeBinaryTags);
         }
       }
     }
@@ -548,7 +536,7 @@ namespace Orthanc
   static void CreateSeries(RestApiPostCall& call,
                            ParsedDicomFile& base /* in */,
                            const Json::Value& content,
-                           bool interpretBinaryTags)
+                           bool decodeBinaryTags)
   {
     assert(content.isArray());
     assert(content.size() > 0);
@@ -581,7 +569,7 @@ namespace Orthanc
 
           if (content[i].isMember("Tags"))
           {
-            InjectTags(*dicom, content[i]["Tags"], interpretBinaryTags);
+            InjectTags(*dicom, content[i]["Tags"], decodeBinaryTags);
           }
         }
 
@@ -755,7 +743,7 @@ namespace Orthanc
     }
 
 
-    bool interpretBinaryTags = true;
+    bool decodeBinaryTags = true;
     if (request.isMember("InterpretBinaryTags"))
     {
       const Json::Value& v = request["InterpretBinaryTags"];
@@ -764,7 +752,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadRequest);
       }
 
-      interpretBinaryTags = v.asBool();
+      decodeBinaryTags = v.asBool();
     }
 
     
@@ -794,7 +782,7 @@ namespace Orthanc
     }
 
 
-    InjectTags(dicom, request["Tags"], interpretBinaryTags);
+    InjectTags(dicom, request["Tags"], decodeBinaryTags);
 
 
     // Inject the content (either an image, or a PDF file)
@@ -812,7 +800,7 @@ namespace Orthanc
         if (content.size() > 0)
         {
           // Let's create a series instead of a single instance
-          CreateSeries(call, dicom, content, interpretBinaryTags);
+          CreateSeries(call, dicom, content, decodeBinaryTags);
           return;
         }
       }

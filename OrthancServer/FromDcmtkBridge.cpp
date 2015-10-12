@@ -95,6 +95,7 @@
 #include <dcmtk/dcmnet/dul.h>
 
 #include <boost/math/special_functions/round.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <dcmtk/dcmdata/dcostrmb.h>
 
 
@@ -349,19 +350,6 @@ namespace Orthanc
   }
 
 
-  bool FromDcmtkBridge::IsPrivateTag(DcmTag& tag)
-  {
-#if 1
-    DcmTagKey tmp(tag.getGTag(), tag.getETag());
-    return tmp.isPrivate();
-#else
-    // Implementation for Orthanc versions <= 0.8.5
-    return (tag.getPrivateCreator() != NULL ||
-            !strcmp("PrivateCreator", tag.getTagName()));  // TODO - This may change with future versions of DCMTK
-#endif
-  }
-
-
   bool FromDcmtkBridge::IsPrivateTag(const DicomTag& tag)
   {
 #if 1
@@ -575,125 +563,188 @@ namespace Orthanc
   }
 
 
-  static void StoreElement(Json::Value& target,
-                           DcmElement& element,
-                           unsigned int maxStringLength,
-                           Encoding encoding);
-
-  static void StoreItem(Json::Value& target,
-                        DcmItem& item,
-                        unsigned int maxStringLength,
-                        Encoding encoding)
+  static Json::Value& PrepareNode(Json::Value& parent,
+                                  DcmElement& element,
+                                  DicomToJsonFormat format)
   {
-    target = Json::Value(Json::objectValue);
-
-    for (unsigned long i = 0; i < item.card(); i++)
-    {
-      DcmElement* element = item.getElement(i);
-      StoreElement(target, *element, maxStringLength, encoding);
-    }
-  }
-
-
-  static void StoreElement(Json::Value& target,
-                           DcmElement& element,
-                           unsigned int maxStringLength,
-                           Encoding encoding)
-  {
-    assert(target.type() == Json::objectValue);
+    assert(parent.type() == Json::objectValue);
 
     DicomTag tag(FromDcmtkBridge::GetTag(element));
     const std::string formattedTag = tag.Format();
 
-#if 0
-    const std::string tagName = FromDcmtkBridge::GetName(tag);
-#else
-    // This version of the code gives access to the name of the private tags
+    if (format == DicomToJsonFormat_Short)
+    {
+      parent[formattedTag] = Json::nullValue;
+      return parent[formattedTag];
+    }
+
+    // This code gives access to the name of the private tags
     DcmTag tagbis(element.getTag());
     const std::string tagName(tagbis.getTagName());      
-#endif
-
-    if (element.isLeaf())
+    
+    switch (format)
     {
-      Json::Value value(Json::objectValue);
-      value["Name"] = tagName;
+      case DicomToJsonFormat_Simple:
+        parent[tagName] = Json::nullValue;
+        return parent[tagName];
 
-      if (tagbis.getPrivateCreator() != NULL)
+      case DicomToJsonFormat_Full:
       {
-        value["PrivateCreator"] = tagbis.getPrivateCreator();
-      }
+        parent[formattedTag] = Json::objectValue;
+        Json::Value& node = parent[formattedTag];
 
-      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element, encoding));
-      if (v->IsNull())
-      {
-        value["Type"] = "Null";
-        value["Value"] = Json::nullValue;
-      }
-      else
-      {
-        std::string s = v->AsString();
-        if (maxStringLength == 0 ||
-            s.size() <= maxStringLength)
+        if (element.isLeaf())
         {
-          value["Type"] = "String";
-          value["Value"] = s;
+          node["Name"] = tagName;
+
+          if (tagbis.getPrivateCreator() != NULL)
+          {
+            node["PrivateCreator"] = tagbis.getPrivateCreator();
+          }
+
+          return node;
         }
         else
         {
-          value["Type"] = "TooLong";
-          value["Value"] = Json::nullValue;
+          node["Name"] = tagName;
+          node["Type"] = "Sequence";
+          node["Value"] = Json::nullValue;
+          return node["Value"];
         }
       }
 
-      target[formattedTag] = value;
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  static void LeafValueToJson(Json::Value& target,
+                              const DicomValue& value,
+                              DicomToJsonFormat format,
+                              unsigned int maxStringLength)
+  {
+    std::string content = value.AsString();
+
+    switch (format)
+    {
+      case DicomToJsonFormat_Short:
+      case DicomToJsonFormat_Simple:
+      {
+        assert(target.type() == Json::nullValue);
+
+        if (!value.IsNull() &&
+            (maxStringLength == 0 ||
+             content.size() <= maxStringLength))
+        {
+          target = content;
+        }
+
+        break;
+      }      
+
+      case DicomToJsonFormat_Full:
+      {
+        assert(target.type() == Json::objectValue);
+
+        if (value.IsNull())
+        {
+          target["Type"] = "Null";
+          target["Value"] = Json::nullValue;
+        }
+        else
+        {
+          if (maxStringLength == 0 ||
+              content.size() <= maxStringLength)
+          {
+            target["Type"] = "String";
+            target["Value"] = content;
+          }
+          else
+          {
+            target["Type"] = "TooLong";
+            target["Value"] = Json::nullValue;
+          }
+        }
+        break;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }                              
+
+
+  static void DatasetToJson(Json::Value& parent,
+                            DcmItem& item,
+                            DicomToJsonFormat format,
+                            unsigned int maxStringLength,
+                            Encoding encoding);
+
+
+  void FromDcmtkBridge::ToJson(Json::Value& parent,
+                               DcmElement& element,
+                               DicomToJsonFormat format,
+                               unsigned int maxStringLength,
+                               Encoding encoding)
+  {
+    if (parent.type() == Json::nullValue)
+    {
+      parent = Json::objectValue;
+    }
+
+    assert(parent.type() == Json::objectValue);
+    Json::Value& target = PrepareNode(parent, element, format);
+
+    if (element.isLeaf())
+    {
+      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element, encoding));
+      LeafValueToJson(target, *v, format, maxStringLength);
     }
     else
     {
-      Json::Value children(Json::arrayValue);
+      assert(target.type() == Json::nullValue);
+      target = Json::arrayValue;
 
       // "All subclasses of DcmElement except for DcmSequenceOfItems
       // are leaf nodes, while DcmSequenceOfItems, DcmItem, DcmDataset
-      // etc. are not." The following cast is thus OK.
+      // etc. are not." The following dynamic_cast is thus OK.
       DcmSequenceOfItems& sequence = dynamic_cast<DcmSequenceOfItems&>(element);
 
       for (unsigned long i = 0; i < sequence.card(); i++)
       {
         DcmItem* child = sequence.getItem(i);
-        Json::Value& v = children.append(Json::objectValue);
-        StoreItem(v, *child, maxStringLength, encoding);
-      }  
-
-      target[formattedTag]["Name"] = tagName;
-      target[formattedTag]["Type"] = "Sequence";
-      target[formattedTag]["Value"] = children;
+        Json::Value& v = target.append(Json::objectValue);
+        DatasetToJson(v, *child, format, maxStringLength, encoding);
+      }
     }
   }
 
 
-  void FromDcmtkBridge::ToJson(Json::Value& root, 
-                               DcmDataset& dataset,
-                               unsigned int maxStringLength)
+  static void DatasetToJson(Json::Value& parent,
+                            DcmItem& item,
+                            DicomToJsonFormat format,
+                            unsigned int maxStringLength,
+                            Encoding encoding)
   {
-    StoreItem(root, dataset, maxStringLength, DetectEncoding(dataset));
-  }
+    assert(parent.type() == Json::objectValue);
 
+    for (unsigned long i = 0; i < item.card(); i++)
+    {
+      DcmElement* element = item.getElement(i);
+      FromDcmtkBridge::ToJson(parent, *element, format, maxStringLength, encoding);
+    }
+  }
 
 
   void FromDcmtkBridge::ToJson(Json::Value& target, 
-                               const std::string& path,
+                               DcmDataset& dataset,
+                               DicomToJsonFormat format,
                                unsigned int maxStringLength)
   {
-    DcmFileFormat dicom;
-    if (!dicom.loadFile(path.c_str()).good())
-    {
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-    else
-    {
-      FromDcmtkBridge::ToJson(target, *dicom.getDataset(), maxStringLength);
-    }
+    target = Json::objectValue;
+    DatasetToJson(target, dataset, format, maxStringLength, DetectEncoding(dataset));
   }
-
 
 
   std::string FromDcmtkBridge::GetName(const DicomTag& t)
@@ -947,4 +998,369 @@ namespace Orthanc
     }
   }
 
+
+  static bool IsBinaryTag(const DcmTag& key)
+  {
+    return key.isPrivate() || key.isUnknownVR();
+  }
+
+
+  DcmElement* FromDcmtkBridge::CreateElementForTag(const DicomTag& tag)
+  {
+    DcmTag key(tag.GetGroup(), tag.GetElement());
+
+    if (IsBinaryTag(key))
+    {
+      return new DcmOtherByteOtherWord(key);
+    }
+
+    switch (key.getEVR())
+    {
+      // http://support.dcmtk.org/docs/dcvr_8h-source.html
+
+      /**
+       * TODO.
+       **/
+    
+      case EVR_OB:  // other byte
+      case EVR_OF:  // other float
+      case EVR_OW:  // other word
+      case EVR_AT:  // attribute tag
+        throw OrthancException(ErrorCode_NotImplemented);
+
+      case EVR_UN:  // unknown value representation
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+
+
+      /**
+       * String types.
+       * http://support.dcmtk.org/docs/classDcmByteString.html
+       **/
+      
+      case EVR_AS:  // age string
+        return new DcmAgeString(key);
+
+      case EVR_AE:  // application entity title
+        return new DcmApplicationEntity(key);
+
+      case EVR_CS:  // code string
+        return new DcmCodeString(key);        
+
+      case EVR_DA:  // date string
+        return new DcmDate(key);
+        
+      case EVR_DT:  // date time string
+        return new DcmDateTime(key);
+
+      case EVR_DS:  // decimal string
+        return new DcmDecimalString(key);
+
+      case EVR_IS:  // integer string
+        return new DcmIntegerString(key);
+
+      case EVR_TM:  // time string
+        return new DcmTime(key);
+
+      case EVR_UI:  // unique identifier
+        return new DcmUniqueIdentifier(key);
+
+      case EVR_ST:  // short text
+        return new DcmShortText(key);
+
+      case EVR_LO:  // long string
+        return new DcmLongString(key);
+
+      case EVR_LT:  // long text
+        return new DcmLongText(key);
+
+      case EVR_UT:  // unlimited text
+        return new DcmUnlimitedText(key);
+
+      case EVR_SH:  // short string
+        return new DcmShortString(key);
+
+      case EVR_PN:  // person name
+        return new DcmPersonName(key);
+
+        
+      /**
+       * Numerical types
+       **/ 
+      
+      case EVR_SL:  // signed long
+        return new DcmSignedLong(key);
+
+      case EVR_SS:  // signed short
+        return new DcmSignedShort(key);
+
+      case EVR_UL:  // unsigned long
+        return new DcmUnsignedLong(key);
+
+      case EVR_US:  // unsigned short
+        return new DcmUnsignedShort(key);
+
+      case EVR_FL:  // float single-precision
+        return new DcmFloatingPointSingle(key);
+
+      case EVR_FD:  // float double-precision
+        return new DcmFloatingPointDouble(key);
+
+
+      /**
+       * Sequence types, should never occur at this point.
+       **/
+
+      case EVR_SQ:  // sequence of items
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+
+
+      /**
+       * Internal to DCMTK.
+       **/ 
+
+      case EVR_ox:  // OB or OW depending on context
+      case EVR_xs:  // SS or US depending on context
+      case EVR_lt:  // US, SS or OW depending on context, used for LUT Data (thus the name)
+      case EVR_na:  // na="not applicable", for data which has no VR
+      case EVR_up:  // up="unsigned pointer", used internally for DICOMDIR suppor
+      case EVR_item:  // used internally for items
+      case EVR_metainfo:  // used internally for meta info datasets
+      case EVR_dataset:  // used internally for datasets
+      case EVR_fileFormat:  // used internally for DICOM files
+      case EVR_dicomDir:  // used internally for DICOMDIR objects
+      case EVR_dirRecord:  // used internally for DICOMDIR records
+      case EVR_pixelSQ:  // used internally for pixel sequences in a compressed image
+      case EVR_pixelItem:  // used internally for pixel items in a compressed image
+      case EVR_UNKNOWN: // used internally for elements with unknown VR (encoded with 4-byte length field in explicit VR)
+      case EVR_PixelData:  // used internally for uncompressed pixeld data
+      case EVR_OverlayData:  // used internally for overlay data
+      case EVR_UNKNOWN2B:  // used internally for elements with unknown VR with 2-byte length field in explicit VR
+      default:
+        break;
+    }
+
+    throw OrthancException(ErrorCode_InternalError);          
+  }
+
+
+
+  void FromDcmtkBridge::FillElementWithString(DcmElement& element,
+                                              const DicomTag& tag,
+                                              const std::string& utf8Value,
+                                              bool decodeBinaryTags,
+                                              Encoding dicomEncoding)
+  {
+    std::string binary;
+    const std::string* decoded = &utf8Value;
+
+    if (decodeBinaryTags &&
+        boost::starts_with(utf8Value, "data:application/octet-stream;base64,"))
+    {
+      std::string mime;
+      Toolbox::DecodeDataUriScheme(mime, binary, utf8Value);
+      decoded = &binary;
+    }
+    else if (dicomEncoding != Encoding_Utf8)
+    {
+      binary = Toolbox::ConvertFromUtf8(utf8Value, dicomEncoding);
+      decoded = &binary;
+    }
+
+    DcmTag key(tag.GetGroup(), tag.GetElement());
+
+    if (IsBinaryTag(key))
+    {
+      if (element.putUint8Array((const Uint8*) decoded->c_str(), decoded->size()).good())
+      {
+        return;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    bool ok = false;
+    
+    try
+    {
+      switch (key.getEVR())
+      {
+        // http://support.dcmtk.org/docs/dcvr_8h-source.html
+
+        /**
+         * TODO.
+         **/
+
+        case EVR_OB:  // other byte
+        case EVR_OF:  // other float
+        case EVR_OW:  // other word
+        case EVR_AT:  // attribute tag
+          throw OrthancException(ErrorCode_NotImplemented);
+    
+        case EVR_UN:  // unknown value representation
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+
+
+        /**
+         * String types.
+         **/
+      
+        case EVR_DS:  // decimal string
+        case EVR_IS:  // integer string
+        case EVR_AS:  // age string
+        case EVR_DA:  // date string
+        case EVR_DT:  // date time string
+        case EVR_TM:  // time string
+        case EVR_AE:  // application entity title
+        case EVR_CS:  // code string
+        case EVR_SH:  // short string
+        case EVR_LO:  // long string
+        case EVR_ST:  // short text
+        case EVR_LT:  // long text
+        case EVR_UT:  // unlimited text
+        case EVR_PN:  // person name
+        case EVR_UI:  // unique identifier
+        {
+          ok = element.putString(decoded->c_str()).good();
+          break;
+        }
+
+        
+        /**
+         * Numerical types
+         **/ 
+      
+        case EVR_SL:  // signed long
+        {
+          ok = element.putSint32(boost::lexical_cast<Sint32>(*decoded)).good();
+          break;
+        }
+
+        case EVR_SS:  // signed short
+        {
+          ok = element.putSint16(boost::lexical_cast<Sint16>(*decoded)).good();
+          break;
+        }
+
+        case EVR_UL:  // unsigned long
+        {
+          ok = element.putUint32(boost::lexical_cast<Uint32>(*decoded)).good();
+          break;
+        }
+
+        case EVR_US:  // unsigned short
+        {
+          ok = element.putUint16(boost::lexical_cast<Uint16>(*decoded)).good();
+          break;
+        }
+
+        case EVR_FL:  // float single-precision
+        {
+          ok = element.putFloat32(boost::lexical_cast<float>(*decoded)).good();
+          break;
+        }
+
+        case EVR_FD:  // float double-precision
+        {
+          ok = element.putFloat64(boost::lexical_cast<double>(*decoded)).good();
+          break;
+        }
+
+
+        /**
+         * Sequence types, should never occur at this point.
+         **/
+
+        case EVR_SQ:  // sequence of items
+        {
+          ok = false;
+          break;
+        }
+
+
+        /**
+         * Internal to DCMTK.
+         **/ 
+
+        case EVR_ox:  // OB or OW depending on context
+        case EVR_xs:  // SS or US depending on context
+        case EVR_lt:  // US, SS or OW depending on context, used for LUT Data (thus the name)
+        case EVR_na:  // na="not applicable", for data which has no VR
+        case EVR_up:  // up="unsigned pointer", used internally for DICOMDIR suppor
+        case EVR_item:  // used internally for items
+        case EVR_metainfo:  // used internally for meta info datasets
+        case EVR_dataset:  // used internally for datasets
+        case EVR_fileFormat:  // used internally for DICOM files
+        case EVR_dicomDir:  // used internally for DICOMDIR objects
+        case EVR_dirRecord:  // used internally for DICOMDIR records
+        case EVR_pixelSQ:  // used internally for pixel sequences in a compressed image
+        case EVR_pixelItem:  // used internally for pixel items in a compressed image
+        case EVR_UNKNOWN: // used internally for elements with unknown VR (encoded with 4-byte length field in explicit VR)
+        case EVR_PixelData:  // used internally for uncompressed pixeld data
+        case EVR_OverlayData:  // used internally for overlay data
+        case EVR_UNKNOWN2B:  // used internally for elements with unknown VR with 2-byte length field in explicit VR
+        default:
+          break;
+      }
+    }
+    catch (boost::bad_lexical_cast&)
+    {
+      ok = false;
+    }
+
+    if (!ok)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
+  DcmElement* FromDcmtkBridge::FromJson(const DicomTag& tag,
+                                        const Json::Value& value,
+                                        bool decodeBinaryTags,
+                                        Encoding dicomEncoding)
+  {
+    std::auto_ptr<DcmElement> element;
+
+    switch (value.type())
+    {
+      case Json::stringValue:
+        element.reset(CreateElementForTag(tag));
+        FillElementWithString(*element, tag, value.asString(), decodeBinaryTags, dicomEncoding);
+        break;
+
+      case Json::arrayValue:
+      {
+        DcmTag key(tag.GetGroup(), tag.GetElement());
+        if (key.getEVR() != EVR_SQ)
+        {
+          throw OrthancException(ErrorCode_BadParameterType);
+        }
+
+        DcmSequenceOfItems* sequence = new DcmSequenceOfItems(key, value.size());
+        element.reset(sequence);
+        
+        for (Json::Value::ArrayIndex i = 0; i < value.size(); i++)
+        {
+          std::auto_ptr<DcmItem> item(new DcmItem);
+
+          Json::Value::Members members = value[i].getMemberNames();
+          for (Json::Value::ArrayIndex j = 0; j < members.size(); j++)
+          {
+            item->insert(FromJson(ParseTag(members[j]), value[i][members[j]], decodeBinaryTags, dicomEncoding));
+          }
+
+          sequence->append(item.release());
+        }
+
+        break;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_BadParameterType);
+    }
+
+    return element.release();
+  }
 }

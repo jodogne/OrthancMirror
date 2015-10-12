@@ -479,6 +479,7 @@ namespace Orthanc
     {
       Json::Value operations = Json::arrayValue;
 
+      operations.append("compress");
       operations.append("compressed-data");
 
       if (info.GetCompressedMD5() != "")
@@ -488,6 +489,7 @@ namespace Orthanc
 
       operations.append("compressed-size");
       operations.append("data");
+      operations.append("is-compressed");
 
       if (info.GetUncompressedMD5() != "")
       {
@@ -495,6 +497,7 @@ namespace Orthanc
       }
 
       operations.append("size");
+      operations.append("uncompress");
 
       if (info.GetCompressedMD5() != "" &&
           info.GetUncompressedMD5() != "")
@@ -659,6 +662,31 @@ namespace Orthanc
       // It is forbidden to delete internal attachments
       OrthancRestApi::GetIndex(call).DeleteAttachment(publicId, contentType);
       call.GetOutput().AnswerBuffer("{}", "application/json");
+    }
+  }
+
+
+  template <enum CompressionType compression>
+  static void ChangeAttachmentCompression(RestApiPostCall& call)
+  {
+    CheckValidResourceType(call);
+
+    std::string publicId = call.GetUriComponent("id", "");
+    std::string name = call.GetUriComponent("name", "");
+    FileContentType contentType = StringToContentType(name);
+
+    OrthancRestApi::GetContext(call).ChangeAttachmentCompression(publicId, contentType, compression);
+    call.GetOutput().AnswerBuffer("{}", "application/json");
+  }
+
+
+  static void IsAttachmentCompressed(RestApiGetCall& call)
+  {
+    FileInfo info;
+    if (GetAttachmentInfo(info, call))
+    {
+      std::string answer = (info.GetCompressionType() == CompressionType_None) ? "0" : "1";
+      call.GetOutput().AnswerBuffer(answer, "text/plain");
     }
   }
 
@@ -1125,14 +1153,17 @@ namespace Orthanc
     Register("/{resourceType}/{id}/attachments", ListAttachments);
     Register("/{resourceType}/{id}/attachments/{name}", DeleteAttachment);
     Register("/{resourceType}/{id}/attachments/{name}", GetAttachmentOperations);
+    Register("/{resourceType}/{id}/attachments/{name}", UploadAttachment);
+    Register("/{resourceType}/{id}/attachments/{name}/compress", ChangeAttachmentCompression<CompressionType_ZlibWithSize>);
     Register("/{resourceType}/{id}/attachments/{name}/compressed-data", GetAttachmentData<0>);
     Register("/{resourceType}/{id}/attachments/{name}/compressed-md5", GetAttachmentCompressedMD5);
     Register("/{resourceType}/{id}/attachments/{name}/compressed-size", GetAttachmentCompressedSize);
     Register("/{resourceType}/{id}/attachments/{name}/data", GetAttachmentData<1>);
+    Register("/{resourceType}/{id}/attachments/{name}/is-compressed", IsAttachmentCompressed);
     Register("/{resourceType}/{id}/attachments/{name}/md5", GetAttachmentMD5);
     Register("/{resourceType}/{id}/attachments/{name}/size", GetAttachmentSize);
+    Register("/{resourceType}/{id}/attachments/{name}/uncompress", ChangeAttachmentCompression<CompressionType_None>);
     Register("/{resourceType}/{id}/attachments/{name}/verify-md5", VerifyAttachment);
-    Register("/{resourceType}/{id}/attachments/{name}", UploadAttachment);
 
     Register("/tools/lookup", Lookup);
     Register("/tools/find", Find);

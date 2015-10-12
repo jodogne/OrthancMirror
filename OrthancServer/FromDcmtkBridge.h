@@ -60,8 +60,6 @@ namespace Orthanc
 
     static DicomTag GetTag(const DcmElement& element);
 
-    static bool IsPrivateTag(DcmTag& tag);
-
     static bool IsPrivateTag(const DicomTag& tag);
 
     static bool IsUnknownTag(const DicomTag& tag);
@@ -69,13 +67,16 @@ namespace Orthanc
     static DicomValue* ConvertLeafElement(DcmElement& element,
                                           Encoding encoding);
 
-    static void ToJson(Json::Value& target, 
-                       DcmDataset& dataset,
-                       unsigned int maxStringLength = 256);       
+    static void ToJson(Json::Value& parent,
+                       DcmElement& element,
+                       DicomToJsonFormat format,
+                       unsigned int maxStringLength,
+                       Encoding encoding);
 
     static void ToJson(Json::Value& target, 
-                       const std::string& path,
-                       unsigned int maxStringLength = 256);
+                       DcmDataset& dataset,
+                       DicomToJsonFormat format,
+                       unsigned int maxStringLength);
 
     static std::string GetName(const DicomTag& tag);
 
@@ -118,5 +119,18 @@ namespace Orthanc
                                    DcmDataset& dataSet);
 
     static ValueRepresentation GetValueRepresentation(const DicomTag& tag);
+
+    static DcmElement* CreateElementForTag(const DicomTag& tag);
+    
+    static void FillElementWithString(DcmElement& element,
+                                      const DicomTag& tag,
+                                      const std::string& utf8alue,  // Encoded using UTF-8
+                                      bool interpretBinaryTags,
+                                      Encoding dicomEncoding);
+
+    static DcmElement* FromJson(const DicomTag& tag,
+                                const Json::Value& element,  // Encoding using UTF-8
+                                bool interpretBinaryTags,
+                                Encoding dicomEncoding);
   };
 }

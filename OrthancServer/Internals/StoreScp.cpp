@@ -168,7 +168,8 @@ namespace Orthanc
           try
           {
             FromDcmtkBridge::Convert(summary, **imageDataSet);
-            FromDcmtkBridge::ToJson(dicomJson, **imageDataSet);       
+            FromDcmtkBridge::ToJson(dicomJson, **imageDataSet,
+                                    DicomToJsonFormat_Full, 256 /* max string length */);
 
             if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, **imageDataSet))
             {

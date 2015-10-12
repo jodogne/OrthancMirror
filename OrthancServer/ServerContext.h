@@ -184,8 +184,12 @@ namespace Orthanc
                       DicomInstanceToStore& dicom);
 
     void AnswerAttachment(RestApiOutput& output,
-                          const std::string& instancePublicId,
+                          const std::string& resourceId,
                           FileContentType content);
+
+    void ChangeAttachmentCompression(const std::string& resourceId,
+                                     FileContentType attachmentType,
+                                     CompressionType compression);
 
     void ReadJson(Json::Value& result,
                   const std::string& instancePublicId);

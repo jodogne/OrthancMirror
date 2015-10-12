@@ -3,6 +3,9 @@ Pending changes in the mainline
 
 * Add ".dcm" suffix to files in ZIP archives (cf. URI ".../archive")
 * "/tools/create-dicom": Support of binary tags encoded using data URI scheme
+* "/tools/create-dicom": Support of hierarchical structures (creation of sequences)
+* "/modify" can insert/modify sequences
+* New URIs for attachments: ".../compress", ".../uncompress" and ".../is-compressed"
 
 Plugins
 -------
@@ -18,6 +21,7 @@ Lua
 Maintenance
 -----------
 
+* Fix issue 4 (C-Store Association not renegotiated on Specific-to-specific transfer syntax change)
 * "/system" URI gives information about the plugins used for storage area and DB back-end
 * Plugin callbacks should now return explicit "OrthancPluginErrorCode" instead of integers
 * "/tools/create-dicom" can create tags with unknown VR

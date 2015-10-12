@@ -272,10 +272,22 @@ namespace Orthanc
     const std::string syntax(xfer.getXferID());
     bool isGeneric = IsGenericTransferSyntax(syntax);
 
-    if (isGeneric ^ IsGenericTransferSyntax(connection.GetPreferredTransferSyntax()))
+    bool renegociate;
+    if (isGeneric)
     {
-      // Making a generic-to-specific or specific-to-generic change of
-      // the transfer syntax. Renegotiate the connection.
+      // Are we making a generic-to-specific or specific-to-generic change of
+      // the transfer syntax? If this is the case, renegotiate the connection.
+      renegociate = !IsGenericTransferSyntax(connection.GetPreferredTransferSyntax());
+    }
+    else
+    {
+      // We are using a specific transfer syntax. Renegociate if the
+      // current connection does not match this transfer syntax.
+      renegociate = (syntax != connection.GetPreferredTransferSyntax());
+    }
+
+    if (renegociate)
+    {
       LOG(INFO) << "Change in the transfer syntax: the C-Store associated must be renegotiated";
 
       if (isGeneric)
