@@ -146,21 +146,28 @@ set(ORTHANC_CORE_SOURCES
 
 
 set(ORTHANC_SERVER_SOURCES
+  OrthancServer/DatabaseWrapper.cpp
+  OrthancServer/DatabaseWrapperBase.cpp
+  OrthancServer/DicomDirWriter.cpp
+  OrthancServer/DicomFindQuery.cpp
+  OrthancServer/DicomModification.cpp
   OrthancServer/DicomProtocol/DicomFindAnswers.cpp
   OrthancServer/DicomProtocol/DicomServer.cpp
   OrthancServer/DicomProtocol/DicomUserConnection.cpp
   OrthancServer/DicomProtocol/RemoteModalityParameters.cpp
   OrthancServer/DicomProtocol/ReusableDicomUserConnection.cpp
-  OrthancServer/DicomModification.cpp
+  OrthancServer/ExportedResource.cpp
   OrthancServer/FromDcmtkBridge.cpp
-  OrthancServer/ParsedDicomFile.cpp
-  OrthancServer/DicomDirWriter.cpp
   OrthancServer/Internals/CommandDispatcher.cpp
+  OrthancServer/Internals/DicomImageDecoder.cpp
   OrthancServer/Internals/FindScp.cpp
   OrthancServer/Internals/MoveScp.cpp
   OrthancServer/Internals/StoreScp.cpp
-  OrthancServer/Internals/DicomImageDecoder.cpp
+  OrthancServer/LuaScripting.cpp
+  OrthancServer/OrthancFindRequestHandler.cpp
+  OrthancServer/OrthancHttpHandler.cpp
   OrthancServer/OrthancInitialization.cpp
+  OrthancServer/OrthancMoveRequestHandler.cpp
   OrthancServer/OrthancPeerParameters.cpp
   OrthancServer/OrthancRestApi/OrthancRestAnonymizeModify.cpp
   OrthancServer/OrthancRestApi/OrthancRestApi.cpp
@@ -169,21 +176,15 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/OrthancRestApi/OrthancRestModalities.cpp
   OrthancServer/OrthancRestApi/OrthancRestResources.cpp
   OrthancServer/OrthancRestApi/OrthancRestSystem.cpp
-  OrthancServer/ServerIndex.cpp
-  OrthancServer/ToDcmtkBridge.cpp
-  OrthancServer/DatabaseWrapper.cpp
-  OrthancServer/DatabaseWrapperBase.cpp
+  OrthancServer/ParsedDicomFile.cpp
+  OrthancServer/QueryRetrieveHandler.cpp
+  OrthancServer/ResourceFinder.cpp
   OrthancServer/ServerContext.cpp
   OrthancServer/ServerEnumerations.cpp
+  OrthancServer/ServerIndex.cpp
   OrthancServer/ServerToolbox.cpp
-  OrthancServer/OrthancFindRequestHandler.cpp
-  OrthancServer/OrthancMoveRequestHandler.cpp
-  OrthancServer/ExportedResource.cpp
-  OrthancServer/ResourceFinder.cpp
-  OrthancServer/DicomFindQuery.cpp
-  OrthancServer/QueryRetrieveHandler.cpp
-  OrthancServer/LuaScripting.cpp
-  OrthancServer/OrthancHttpHandler.cpp
+  OrthancServer/SliceOrdering.cpp
+  OrthancServer/ToDcmtkBridge.cpp
 
   # From "lua-scripting" branch
   OrthancServer/DicomInstanceToStore.cpp

@@ -39,6 +39,7 @@
 #include "../ResourceFinder.h"
 #include "../DicomFindQuery.h"
 #include "../ServerContext.h"
+#include "../SliceOrdering.h"
 
 
 namespace Orthanc
@@ -1093,6 +1094,16 @@ namespace Orthanc
   }
 
 
+  static void OrderSlices(RestApiGetCall& call)
+  {
+    const std::string id = call.GetUriComponent("id", "");
+
+    ServerIndex& index = OrthancRestApi::GetIndex(call);
+    SliceOrdering ordering(index, id);
+
+  }
+
+
   void OrthancRestApi::RegisterResources()
   {
     Register("/instances", ListResources<ResourceType_Instance>);
@@ -1187,5 +1198,7 @@ namespace Orthanc
     Register("/series/{id}/instances-tags", GetChildInstancesTags);
 
     Register("/instances/{id}/content/*", GetRawContent);
+
+    Register("/series/{id}/ordered-slices", OrderSlices);
   }
 }
