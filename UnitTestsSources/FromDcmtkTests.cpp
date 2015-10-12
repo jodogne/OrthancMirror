@@ -36,12 +36,15 @@
 #include "../OrthancServer/FromDcmtkBridge.h"
 #include "../OrthancServer/OrthancInitialization.h"
 #include "../OrthancServer/DicomModification.h"
+#include "../OrthancServer/ServerToolbox.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Images/ImageBuffer.h"
 #include "../Core/Images/PngReader.h"
 #include "../Core/Images/PngWriter.h"
 #include "../Core/Uuid.h"
 #include "../Resources/EncodingTests.h"
+
+#include <dcmtk/dcmdata/dcelem.h>
 
 using namespace Orthanc;
 
@@ -102,7 +105,7 @@ TEST(DicomModification, Anonymization)
   ParsedDicomFile o;
   o.Replace(DICOM_TAG_PATIENT_NAME, "coucou");
   ASSERT_FALSE(o.GetTagValue(s, privateTag));
-  o.Insert(privateTag, "private tag");
+  o.Insert(privateTag, "private tag", false);
   ASSERT_TRUE(o.GetTagValue(s, privateTag));
   ASSERT_STREQ("private tag", s.c_str());
 
@@ -204,7 +207,7 @@ TEST(FromDcmtkBridge, Encodings1)
     std::string source(testEncodingsEncoded[i]);
     std::string expected(testEncodingsExpected[i]);
     std::string s = Toolbox::ConvertToUtf8(source, testEncodings[i]);
-    std::cout << EnumerationToString(testEncodings[i]) << std::endl;
+    //std::cout << EnumerationToString(testEncodings[i]) << std::endl;
     EXPECT_EQ(expected, s);
   }
 }
@@ -259,13 +262,15 @@ TEST(FromDcmtkBridge, Encodings3)
 {
   for (unsigned int i = 0; i < testEncodingsCount; i++)
   {
-    std::cout << EnumerationToString(testEncodings[i]) << std::endl;
+    //std::cout << EnumerationToString(testEncodings[i]) << std::endl;
     std::string dicom;
 
     {
       ParsedDicomFile f;
       f.SetEncoding(testEncodings[i]);
-      f.Insert(DICOM_TAG_PATIENT_NAME, testEncodingsEncoded[i]);
+
+      std::string s = Toolbox::ConvertToUtf8(testEncodingsEncoded[i], testEncodings[i]);
+      f.Insert(DICOM_TAG_PATIENT_NAME, s, false);
       f.SaveToMemoryBuffer(dicom);
     }
 
@@ -298,4 +303,220 @@ TEST(FromDcmtkBridge, ValueRepresentation)
             FromDcmtkBridge::GetValueRepresentation(DicomTag(0x0008, 0x002a) /* AcquisitionDateTime */));
   ASSERT_EQ(ValueRepresentation_Other, 
             FromDcmtkBridge::GetValueRepresentation(DICOM_TAG_PATIENT_ID));
+}
+
+
+
+static const DicomTag REFERENCED_STUDY_SEQUENCE(0x0008, 0x1110);
+static const DicomTag REFERENCED_PATIENT_SEQUENCE(0x0008, 0x1120);
+
+static void CreateSampleJson(Json::Value& a)
+{
+  {
+    Json::Value b = Json::objectValue;
+    b["PatientName"] = "Hello";
+    b["PatientID"] = "World";
+    b["StudyDescription"] = "Toto";
+    a.append(b);
+  }
+
+  {
+    Json::Value b = Json::objectValue;
+    b["PatientName"] = "data:application/octet-stream;base64,SGVsbG8y";  // echo -n "Hello2" | base64
+    b["PatientID"] = "World2";
+    a.append(b);
+  }
+}
+
+
+TEST(FromDcmtkBridge, FromJson)
+{
+  std::auto_ptr<DcmElement> element;
+
+  {
+    Json::Value a;
+    a = "Hello";
+    element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, false, Encoding_Utf8));
+
+    Json::Value b;
+    FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Short, 0, Encoding_Ascii);
+    ASSERT_EQ("Hello", b["0010,0010"].asString());
+  }
+
+  {
+    Json::Value a;
+    a = "Hello";
+    // Cannot assign a string to a sequence
+    ASSERT_THROW(element.reset(FromDcmtkBridge::FromJson(REFERENCED_STUDY_SEQUENCE, a, false, Encoding_Utf8)), OrthancException);
+  }
+
+  {
+    Json::Value a = Json::arrayValue;
+    a.append("Hello");
+    // Cannot assign an array to a string
+    ASSERT_THROW(element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, false, Encoding_Utf8)), OrthancException);
+  }
+
+  {
+    Json::Value a;
+    a = "data:application/octet-stream;base64,SGVsbG8=";  // echo -n "Hello" | base64
+    element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, true, Encoding_Utf8));
+
+    Json::Value b;
+    FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Short, 0, Encoding_Ascii);
+    ASSERT_EQ("Hello", b["0010,0010"].asString());
+  }
+
+  {
+    Json::Value a = Json::arrayValue;
+    CreateSampleJson(a);
+    element.reset(FromDcmtkBridge::FromJson(REFERENCED_STUDY_SEQUENCE, a, true, Encoding_Utf8));
+
+    {
+      Json::Value b;
+      FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Short, 0, Encoding_Ascii);
+      ASSERT_EQ(Json::arrayValue, b["0008,1110"].type());
+      ASSERT_EQ(2, b["0008,1110"].size());
+      
+      Json::Value::ArrayIndex i = (b["0008,1110"][0]["0010,0010"].asString() == "Hello") ? 0 : 1;
+
+      ASSERT_EQ(3, b["0008,1110"][i].size());
+      ASSERT_EQ(2, b["0008,1110"][1 - i].size());
+      ASSERT_EQ(b["0008,1110"][i]["0010,0010"].asString(), "Hello");
+      ASSERT_EQ(b["0008,1110"][i]["0010,0020"].asString(), "World");
+      ASSERT_EQ(b["0008,1110"][i]["0008,1030"].asString(), "Toto");
+      ASSERT_EQ(b["0008,1110"][1 - i]["0010,0010"].asString(), "Hello2");
+      ASSERT_EQ(b["0008,1110"][1 - i]["0010,0020"].asString(), "World2");
+    }
+
+    {
+      Json::Value b;
+      FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Full, 0, Encoding_Ascii);
+
+      Json::Value c;
+      Toolbox::SimplifyTags(c, b);
+
+      a[1]["PatientName"] = "Hello2";  // To remove the Data URI Scheme encoding
+      ASSERT_EQ(0, c["ReferencedStudySequence"].compare(a));
+    }
+  }
+}
+
+
+
+TEST(ParsedDicomFile, InsertReplaceStrings)
+{
+  ParsedDicomFile f;
+
+  f.Insert(DICOM_TAG_PATIENT_NAME, "World", false);
+  ASSERT_THROW(f.Insert(DICOM_TAG_PATIENT_ID, "Hello", false), OrthancException);  // Already existing tag
+  f.Replace(DICOM_TAG_SOP_INSTANCE_UID, "Toto");  // (*)
+  f.Replace(DICOM_TAG_SOP_CLASS_UID, "Tata");  // (**)
+
+  std::string s;
+
+  ASSERT_THROW(f.Replace(DICOM_TAG_ACCESSION_NUMBER, "Accession", DicomReplaceMode_ThrowIfAbsent), OrthancException);
+  f.Replace(DICOM_TAG_ACCESSION_NUMBER, "Accession", DicomReplaceMode_IgnoreIfAbsent);
+  ASSERT_FALSE(f.GetTagValue(s, DICOM_TAG_ACCESSION_NUMBER));
+  f.Replace(DICOM_TAG_ACCESSION_NUMBER, "Accession", DicomReplaceMode_InsertIfAbsent);
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_ACCESSION_NUMBER));
+  ASSERT_EQ(s, "Accession");
+  f.Replace(DICOM_TAG_ACCESSION_NUMBER, "Accession2", DicomReplaceMode_IgnoreIfAbsent);
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_ACCESSION_NUMBER));
+  ASSERT_EQ(s, "Accession2");
+  f.Replace(DICOM_TAG_ACCESSION_NUMBER, "Accession3", DicomReplaceMode_ThrowIfAbsent);
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_ACCESSION_NUMBER));
+  ASSERT_EQ(s, "Accession3");
+
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_PATIENT_NAME));
+  ASSERT_EQ(s, "World");
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_SOP_INSTANCE_UID));
+  ASSERT_EQ(s, "Toto");
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID));  // Implicitly modified by (*)
+  ASSERT_EQ(s, "Toto");
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_SOP_CLASS_UID));
+  ASSERT_EQ(s, "Tata");
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID));  // Implicitly modified by (**)
+  ASSERT_EQ(s, "Tata");
+}
+
+
+
+
+TEST(ParsedDicomFile, InsertReplaceJson)
+{
+  ParsedDicomFile f;
+
+  Json::Value a;
+  CreateSampleJson(a);
+
+  ASSERT_FALSE(f.HasTag(REFERENCED_STUDY_SEQUENCE));
+  f.Remove(REFERENCED_STUDY_SEQUENCE);  // No effect
+  f.Insert(REFERENCED_STUDY_SEQUENCE, a, true);
+  ASSERT_TRUE(f.HasTag(REFERENCED_STUDY_SEQUENCE));
+  ASSERT_THROW(f.Insert(REFERENCED_STUDY_SEQUENCE, a, true), OrthancException);
+  f.Remove(REFERENCED_STUDY_SEQUENCE);
+  ASSERT_FALSE(f.HasTag(REFERENCED_STUDY_SEQUENCE));
+  f.Insert(REFERENCED_STUDY_SEQUENCE, a, true);
+  ASSERT_TRUE(f.HasTag(REFERENCED_STUDY_SEQUENCE));
+
+  ASSERT_FALSE(f.HasTag(REFERENCED_PATIENT_SEQUENCE));
+  ASSERT_THROW(f.Replace(REFERENCED_PATIENT_SEQUENCE, a, false, DicomReplaceMode_ThrowIfAbsent), OrthancException);
+  ASSERT_FALSE(f.HasTag(REFERENCED_PATIENT_SEQUENCE));
+  f.Replace(REFERENCED_PATIENT_SEQUENCE, a, false, DicomReplaceMode_IgnoreIfAbsent);
+  ASSERT_FALSE(f.HasTag(REFERENCED_PATIENT_SEQUENCE));
+  f.Replace(REFERENCED_PATIENT_SEQUENCE, a, false, DicomReplaceMode_InsertIfAbsent);
+  ASSERT_TRUE(f.HasTag(REFERENCED_PATIENT_SEQUENCE));
+
+  {
+    Json::Value b;
+    f.ToJson(b, DicomToJsonFormat_Full, 0);
+
+    Json::Value c;
+    Toolbox::SimplifyTags(c, b);
+
+    ASSERT_EQ(0, c["ReferencedPatientSequence"].compare(a));
+    ASSERT_NE(0, c["ReferencedStudySequence"].compare(a));  // Because Data URI Scheme decoding was enabled
+  }
+
+  a = "data:application/octet-stream;base64,VGF0YQ==";   // echo -n "Tata" | base64 
+  f.Replace(DICOM_TAG_SOP_INSTANCE_UID, a, false);  // (*)
+  f.Replace(DICOM_TAG_SOP_CLASS_UID, a, true);  // (**)
+
+  std::string s;
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_SOP_INSTANCE_UID));
+  ASSERT_EQ(s, a.asString());
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID));  // Implicitly modified by (*)
+  ASSERT_EQ(s, a.asString());
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_SOP_CLASS_UID));
+  ASSERT_EQ(s, "Tata");
+  ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID));  // Implicitly modified by (**)
+  ASSERT_EQ(s, "Tata");
+}
+
+
+TEST(ParsedDicomFile, JsonEncoding)
+{
+  ParsedDicomFile f;
+
+  for (unsigned int i = 0; i < testEncodingsCount; i++)
+  {
+    if (testEncodings[i] != Encoding_Windows1251)
+    {
+      //std::cout << EnumerationToString(testEncodings[i]) << std::endl;
+      f.SetEncoding(testEncodings[i]);
+
+      if (testEncodings[i] != Encoding_Ascii)
+      {
+        ASSERT_EQ(testEncodings[i], f.GetEncoding());
+      }
+
+      Json::Value s = Toolbox::ConvertToUtf8(testEncodingsEncoded[i], testEncodings[i]);
+      f.Replace(DICOM_TAG_PATIENT_NAME, s, false);
+
+      Json::Value v;
+      f.ToJson(v, DicomToJsonFormat_Simple, 0);
+      ASSERT_EQ(v["PatientName"].asString(), std::string(testEncodingsExpected[i]));
+    }
+  }
 }

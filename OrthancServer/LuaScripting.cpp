@@ -270,10 +270,12 @@ namespace Orthanc
     if (operation == "modify")
     {
       LOG(INFO) << "Lua script to modify resource " << parameters["Resource"].asString();
-      DicomModification modification;
-      OrthancRestApi::ParseModifyRequest(modification, parameters);
+      std::auto_ptr<DicomModification> modification(new DicomModification);
+      OrthancRestApi::ParseModifyRequest(*modification, parameters);
 
-      std::auto_ptr<ModifyInstanceCommand> command(new ModifyInstanceCommand(context_, RequestOrigin_Lua, modification));
+      std::auto_ptr<ModifyInstanceCommand> command
+        (new ModifyInstanceCommand(context_, RequestOrigin_Lua, modification.release()));
+
       return command.release();
     }
 

@@ -53,6 +53,10 @@ namespace Orthanc
 
     void RemovePrivateTagsInternal(const std::set<DicomTag>* toKeep);
 
+    void UpdateStorageUid(const DicomTag& tag,
+                          const std::string& value,
+                          bool decodeBinaryTags);
+
   public:
     ParsedDicomFile();  // Create a minimal DICOM instance
 
@@ -74,12 +78,18 @@ namespace Orthanc
 
     void Remove(const DicomTag& tag);
 
-    void Insert(const DicomTag& tag,
-                const std::string& value);
+    void Replace(const DicomTag& tag,
+                 const std::string& utf8Value,
+                 DicomReplaceMode mode = DicomReplaceMode_InsertIfAbsent);
 
     void Replace(const DicomTag& tag,
-                 const std::string& value,
+                 const Json::Value& value,  // Assumed to be encoded with UTF-8
+                 bool decodeBinaryTags,
                  DicomReplaceMode mode = DicomReplaceMode_InsertIfAbsent);
+
+    void Insert(const DicomTag& tag,
+                const Json::Value& value,   // Assumed to be encoded with UTF-8
+                bool decodeBinaryTags);
 
     void RemovePrivateTags()
     {
@@ -123,7 +133,8 @@ namespace Orthanc
     void SetEncoding(Encoding encoding);
 
     void ToJson(Json::Value& target, 
-                bool simplify);
+                DicomToJsonFormat format,
+                unsigned int maxStringLength);
 
     bool HasTag(const DicomTag& tag) const;
 

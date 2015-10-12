@@ -137,6 +137,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/math/special_functions/round.hpp>
 #include <dcmtk/dcmdata/dcostrmb.h>
+#include <boost/algorithm/string/predicate.hpp>
 
 
 static const char* CONTENT_TYPE_OCTET_STREAM = "application/octet-stream";
@@ -148,7 +149,6 @@ namespace Orthanc
   struct ParsedDicomFile::PImpl
   {
     std::auto_ptr<DcmFileFormat> file_;
-    Encoding encoding_;
   };
 
 
@@ -173,8 +173,6 @@ namespace Orthanc
     }
     pimpl_->file_->loadAllDataIntoMemory();
     pimpl_->file_->transferEnd();
-
-    pimpl_->encoding_ = FromDcmtkBridge::DetectEncoding(*pimpl_->file_->getDataset());
   }
 
 
@@ -519,284 +517,6 @@ namespace Orthanc
   }
 
 
-  
-
-
-  static DcmElement* CreateElementForTag(const DicomTag& tag)
-  {
-    DcmTag key(tag.GetGroup(), tag.GetElement());
-
-    switch (key.getEVR())
-    {
-      // http://support.dcmtk.org/docs/dcvr_8h-source.html
-
-      /**
-       * TODO.
-       **/
-    
-      case EVR_OB:  // other byte
-      case EVR_OF:  // other float
-      case EVR_OW:  // other word
-      case EVR_AT:  // attribute tag
-        throw OrthancException(ErrorCode_NotImplemented);
-
-      case EVR_UN:  // unknown value representation
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-
-
-      /**
-       * String types.
-       * http://support.dcmtk.org/docs/classDcmByteString.html
-       **/
-      
-      case EVR_AS:  // age string
-        return new DcmAgeString(key);
-
-      case EVR_AE:  // application entity title
-        return new DcmApplicationEntity(key);
-
-      case EVR_CS:  // code string
-        return new DcmCodeString(key);        
-
-      case EVR_DA:  // date string
-        return new DcmDate(key);
-        
-      case EVR_DT:  // date time string
-        return new DcmDateTime(key);
-
-      case EVR_DS:  // decimal string
-        return new DcmDecimalString(key);
-
-      case EVR_IS:  // integer string
-        return new DcmIntegerString(key);
-
-      case EVR_TM:  // time string
-        return new DcmTime(key);
-
-      case EVR_UI:  // unique identifier
-        return new DcmUniqueIdentifier(key);
-
-      case EVR_ST:  // short text
-        return new DcmShortText(key);
-
-      case EVR_LO:  // long string
-        return new DcmLongString(key);
-
-      case EVR_LT:  // long text
-        return new DcmLongText(key);
-
-      case EVR_UT:  // unlimited text
-        return new DcmUnlimitedText(key);
-
-      case EVR_SH:  // short string
-        return new DcmShortString(key);
-
-      case EVR_PN:  // person name
-        return new DcmPersonName(key);
-
-        
-      /**
-       * Numerical types
-       **/ 
-      
-      case EVR_SL:  // signed long
-        return new DcmSignedLong(key);
-
-      case EVR_SS:  // signed short
-        return new DcmSignedShort(key);
-
-      case EVR_UL:  // unsigned long
-        return new DcmUnsignedLong(key);
-
-      case EVR_US:  // unsigned short
-        return new DcmUnsignedShort(key);
-
-      case EVR_FL:  // float single-precision
-        return new DcmFloatingPointSingle(key);
-
-      case EVR_FD:  // float double-precision
-        return new DcmFloatingPointDouble(key);
-
-
-      /**
-       * Sequence types, should never occur at this point.
-       **/
-
-      case EVR_SQ:  // sequence of items
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-
-
-      /**
-       * Internal to DCMTK.
-       **/ 
-
-      case EVR_ox:  // OB or OW depending on context
-      case EVR_xs:  // SS or US depending on context
-      case EVR_lt:  // US, SS or OW depending on context, used for LUT Data (thus the name)
-      case EVR_na:  // na="not applicable", for data which has no VR
-      case EVR_up:  // up="unsigned pointer", used internally for DICOMDIR suppor
-      case EVR_item:  // used internally for items
-      case EVR_metainfo:  // used internally for meta info datasets
-      case EVR_dataset:  // used internally for datasets
-      case EVR_fileFormat:  // used internally for DICOM files
-      case EVR_dicomDir:  // used internally for DICOMDIR objects
-      case EVR_dirRecord:  // used internally for DICOMDIR records
-      case EVR_pixelSQ:  // used internally for pixel sequences in a compressed image
-      case EVR_pixelItem:  // used internally for pixel items in a compressed image
-      case EVR_UNKNOWN: // used internally for elements with unknown VR (encoded with 4-byte length field in explicit VR)
-      case EVR_PixelData:  // used internally for uncompressed pixeld data
-      case EVR_OverlayData:  // used internally for overlay data
-      case EVR_UNKNOWN2B:  // used internally for elements with unknown VR with 2-byte length field in explicit VR
-      default:
-        break;
-    }
-
-    throw OrthancException(ErrorCode_InternalError);          
-  }
-
-
-
-  static void FillElementWithString(DcmElement& element,
-                                    const DicomTag& tag,
-                                    const std::string& value)
-  {
-    DcmTag key(tag.GetGroup(), tag.GetElement());
-    bool ok = false;
-    
-    try
-    {
-      switch (key.getEVR())
-      {
-        // http://support.dcmtk.org/docs/dcvr_8h-source.html
-
-        /**
-         * TODO.
-         **/
-
-        case EVR_OB:  // other byte
-        case EVR_OF:  // other float
-        case EVR_OW:  // other word
-        case EVR_AT:  // attribute tag
-          throw OrthancException(ErrorCode_NotImplemented);
-    
-        case EVR_UN:  // unknown value representation
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
-
-
-        /**
-         * String types.
-         **/
-      
-        case EVR_DS:  // decimal string
-        case EVR_IS:  // integer string
-        case EVR_AS:  // age string
-        case EVR_DA:  // date string
-        case EVR_DT:  // date time string
-        case EVR_TM:  // time string
-        case EVR_AE:  // application entity title
-        case EVR_CS:  // code string
-        case EVR_SH:  // short string
-        case EVR_LO:  // long string
-        case EVR_ST:  // short text
-        case EVR_LT:  // long text
-        case EVR_UT:  // unlimited text
-        case EVR_PN:  // person name
-        case EVR_UI:  // unique identifier
-        {
-          ok = element.putString(value.c_str()).good();
-          break;
-        }
-
-        
-        /**
-         * Numerical types
-         **/ 
-      
-        case EVR_SL:  // signed long
-        {
-          ok = element.putSint32(boost::lexical_cast<Sint32>(value)).good();
-          break;
-        }
-
-        case EVR_SS:  // signed short
-        {
-          ok = element.putSint16(boost::lexical_cast<Sint16>(value)).good();
-          break;
-        }
-
-        case EVR_UL:  // unsigned long
-        {
-          ok = element.putUint32(boost::lexical_cast<Uint32>(value)).good();
-          break;
-        }
-
-        case EVR_US:  // unsigned short
-        {
-          ok = element.putUint16(boost::lexical_cast<Uint16>(value)).good();
-          break;
-        }
-
-        case EVR_FL:  // float single-precision
-        {
-          ok = element.putFloat32(boost::lexical_cast<float>(value)).good();
-          break;
-        }
-
-        case EVR_FD:  // float double-precision
-        {
-          ok = element.putFloat64(boost::lexical_cast<double>(value)).good();
-          break;
-        }
-
-
-        /**
-         * Sequence types, should never occur at this point.
-         **/
-
-        case EVR_SQ:  // sequence of items
-        {
-          ok = false;
-          break;
-        }
-
-
-        /**
-         * Internal to DCMTK.
-         **/ 
-
-        case EVR_ox:  // OB or OW depending on context
-        case EVR_xs:  // SS or US depending on context
-        case EVR_lt:  // US, SS or OW depending on context, used for LUT Data (thus the name)
-        case EVR_na:  // na="not applicable", for data which has no VR
-        case EVR_up:  // up="unsigned pointer", used internally for DICOMDIR suppor
-        case EVR_item:  // used internally for items
-        case EVR_metainfo:  // used internally for meta info datasets
-        case EVR_dataset:  // used internally for datasets
-        case EVR_fileFormat:  // used internally for DICOM files
-        case EVR_dicomDir:  // used internally for DICOMDIR objects
-        case EVR_dirRecord:  // used internally for DICOMDIR records
-        case EVR_pixelSQ:  // used internally for pixel sequences in a compressed image
-        case EVR_pixelItem:  // used internally for pixel items in a compressed image
-        case EVR_UNKNOWN: // used internally for elements with unknown VR (encoded with 4-byte length field in explicit VR)
-        case EVR_PixelData:  // used internally for uncompressed pixeld data
-        case EVR_OverlayData:  // used internally for overlay data
-        case EVR_UNKNOWN2B:  // used internally for elements with unknown VR with 2-byte length field in explicit VR
-        default:
-          break;
-      }
-    }
-    catch (boost::bad_lexical_cast&)
-    {
-      ok = false;
-    }
-
-    if (!ok)
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-  }
-
-
   void ParsedDicomFile::Remove(const DicomTag& tag)
   {
     DcmTagKey key(tag.GetGroup(), tag.GetElement());
@@ -823,7 +543,7 @@ namespace Orthanc
       DcmTag tag(element->getTag());
 
       // Is this a private tag?
-      if (FromDcmtkBridge::IsPrivateTag(tag))
+      if (tag.isPrivate())
       {
         bool remove = true;
 
@@ -857,54 +577,40 @@ namespace Orthanc
   }
 
 
-
-
-  void ParsedDicomFile::Insert(const DicomTag& tag,
-                               const std::string& value)
+  static void InsertInternal(DcmDataset& dicom,
+                             DcmElement* element)
   {
-    OFCondition cond;
-
-    if (FromDcmtkBridge::IsPrivateTag(tag) ||
-        FromDcmtkBridge::IsUnknownTag(tag))
-    {
-      // This is a private tag
-      // http://support.dcmtk.org/redmine/projects/dcmtk/wiki/howto_addprivatedata
-
-      DcmTag key(tag.GetGroup(), tag.GetElement(), EVR_OB);
-      cond = pimpl_->file_->getDataset()->putAndInsertUint8Array
-        (key, (const Uint8*) value.c_str(), value.size(), false);
-    }
-    else
-    {
-      std::auto_ptr<DcmElement> element(CreateElementForTag(tag));
-      FillElementWithString(*element, tag, value);
-
-      cond = pimpl_->file_->getDataset()->insert(element.release(), false, false);
-    }
-
+    OFCondition cond = dicom.insert(element, false, false);
     if (!cond.good())
     {
       // This field already exists
+      delete element;
       throw OrthancException(ErrorCode_InternalError);
     }
   }
 
 
-  void ParsedDicomFile::Replace(const DicomTag& tag,
-                                const std::string& value,
-                                DicomReplaceMode mode)
+  void ParsedDicomFile::Insert(const DicomTag& tag,
+                               const Json::Value& value,
+                               bool decodeBinaryTags)
   {
-    DcmTagKey key(tag.GetGroup(), tag.GetElement());
-    DcmElement* element = NULL;
+    std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeBinaryTags, GetEncoding()));
+    InsertInternal(*pimpl_->file_->getDataset(), element.release());
+  }
 
-    if (!pimpl_->file_->getDataset()->findAndGetElement(key, element).good() ||
-        element == NULL)
+
+  static void ReplaceInternal(DcmDataset& dicom,
+                              std::auto_ptr<DcmElement>& element,
+                              DicomReplaceMode mode)
+  {
+    const DcmTagKey& tag = element->getTag();
+
+    if (!dicom.findAndDeleteElement(tag).good())
     {
       // This field does not exist, act wrt. the specified "mode"
       switch (mode)
       {
         case DicomReplaceMode_InsertIfAbsent:
-          Insert(tag, value);
           break;
 
         case DicomReplaceMode_ThrowIfAbsent:
@@ -914,22 +620,42 @@ namespace Orthanc
           return;
       }
     }
-    else
+
+    // Either the tag was not existing, or the replace mode was set to
+    // "InsertIfAbsent"
+    InsertInternal(dicom, element.release());
+  }
+
+
+  void ParsedDicomFile::UpdateStorageUid(const DicomTag& tag,
+                                         const std::string& utf8Value,
+                                         bool decodeBinaryTags)
+  {
+    if (tag != DICOM_TAG_SOP_CLASS_UID &&
+        tag != DICOM_TAG_SOP_INSTANCE_UID)
     {
-      if (FromDcmtkBridge::IsPrivateTag(tag) ||
-          FromDcmtkBridge::IsUnknownTag(tag))
-      {
-        if (!element->putUint8Array((const Uint8*) value.c_str(), value.size()).good())
-        {
-          throw OrthancException(ErrorCode_InternalError);
-        }
-      }
-      else
-      {
-        FillElementWithString(*element, tag, value);
-      }
+      return;
     }
 
+    std::string binary;
+    const std::string* decoded = &utf8Value;
+
+    if (decodeBinaryTags &&
+        boost::starts_with(utf8Value, "data:application/octet-stream;base64,"))
+    {
+      std::string mime;
+      Toolbox::DecodeDataUriScheme(mime, binary, utf8Value);
+      decoded = &binary;
+    }
+    else
+    {
+      Encoding encoding = GetEncoding();
+      if (GetEncoding() != Encoding_Utf8)
+      {
+        binary = Toolbox::ConvertFromUtf8(utf8Value, encoding);
+        decoded = &binary;
+      }
+    }
 
     /**
      * dcmodify will automatically correct 'Media Storage SOP Class
@@ -942,12 +668,44 @@ namespace Orthanc
 
     if (tag == DICOM_TAG_SOP_CLASS_UID)
     {
-      Replace(DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID, value, DicomReplaceMode_InsertIfAbsent);
+      Replace(DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID, *decoded, DicomReplaceMode_InsertIfAbsent);
     }
 
     if (tag == DICOM_TAG_SOP_INSTANCE_UID)
     {
-      Replace(DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID, value, DicomReplaceMode_InsertIfAbsent);
+      Replace(DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID, *decoded, DicomReplaceMode_InsertIfAbsent);
+    }    
+  }
+
+
+  void ParsedDicomFile::Replace(const DicomTag& tag,
+                                const std::string& utf8Value,
+                                DicomReplaceMode mode)
+  {
+    std::auto_ptr<DcmElement> element(FromDcmtkBridge::CreateElementForTag(tag));
+    FromDcmtkBridge::FillElementWithString(*element, tag, utf8Value, false, GetEncoding());
+    ReplaceInternal(*pimpl_->file_->getDataset(), element, mode);
+    UpdateStorageUid(tag, utf8Value, false);
+  }
+
+    
+  void ParsedDicomFile::Replace(const DicomTag& tag,
+                                const Json::Value& value,
+                                bool decodeBinaryTags,
+                                DicomReplaceMode mode)
+  {
+    std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeBinaryTags, GetEncoding()));
+    ReplaceInternal(*pimpl_->file_->getDataset(), element, mode);
+
+    if (tag == DICOM_TAG_SOP_CLASS_UID ||
+        tag == DICOM_TAG_SOP_INSTANCE_UID)
+    {
+      if (value.type() != Json::stringValue)
+      {
+        throw OrthancException(ErrorCode_BadParameterType);
+      }
+
+      UpdateStorageUid(tag, value.asString(), decodeBinaryTags);
     }
   }
 
@@ -1005,7 +763,7 @@ namespace Orthanc
         return false;
       }
 
-      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(*element, pimpl_->encoding_));
+      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(*element, GetEncoding()));
       
       if (v.get() == NULL)
       {
@@ -1085,7 +843,6 @@ namespace Orthanc
   ParsedDicomFile::ParsedDicomFile() : pimpl_(new PImpl)
   {
     pimpl_->file_.reset(new DcmFileFormat);
-    pimpl_->encoding_ = Encoding_Ascii;
     Replace(DICOM_TAG_PATIENT_ID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Patient));
     Replace(DICOM_TAG_STUDY_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Study));
     Replace(DICOM_TAG_SERIES_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Series));
@@ -1115,7 +872,6 @@ namespace Orthanc
     pimpl_(new PImpl)
   {
     pimpl_->file_.reset(dynamic_cast<DcmFileFormat*>(other.pimpl_->file_->clone()));
-    pimpl_->encoding_ = other.pimpl_->encoding_;
 
     // Create a new instance-level identifier
     Replace(DICOM_TAG_SOP_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Instance));
@@ -1156,7 +912,7 @@ namespace Orthanc
     }
     else
     {
-      LOG(ERROR) << "Unsupported MIME type for the content of a new DICOM file";
+      LOG(ERROR) << "Unsupported MIME type for the content of a new DICOM file: " << mime;
       throw OrthancException(ErrorCode_NotImplemented);
     }
   }
@@ -1345,7 +1101,7 @@ namespace Orthanc
 
   Encoding ParsedDicomFile::GetEncoding() const
   {
-    return pimpl_->encoding_;
+    return FromDcmtkBridge::DetectEncoding(*pimpl_->file_->getDataset());
   }
 
 
@@ -1358,24 +1114,15 @@ namespace Orthanc
       return;
     }
 
-    pimpl_->encoding_ = encoding;
-
     std::string s = GetDicomSpecificCharacterSet(encoding);
     Replace(DICOM_TAG_SPECIFIC_CHARACTER_SET, s, DicomReplaceMode_InsertIfAbsent);
   }
 
-  void ParsedDicomFile::ToJson(Json::Value& target, bool simplify)
+  void ParsedDicomFile::ToJson(Json::Value& target, 
+                               DicomToJsonFormat format,
+                               unsigned int maxStringLength)
   {
-    if (simplify)
-    {
-      Json::Value tmp;
-      FromDcmtkBridge::ToJson(tmp, *pimpl_->file_->getDataset());
-      Toolbox::SimplifyTags(target, tmp);
-    }
-    else
-    {
-      FromDcmtkBridge::ToJson(target, *pimpl_->file_->getDataset());
-    }
+    FromDcmtkBridge::ToJson(target, *pimpl_->file_->getDataset(), format, maxStringLength);
   }
 
 

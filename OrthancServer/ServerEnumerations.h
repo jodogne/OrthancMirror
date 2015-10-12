@@ -100,6 +100,13 @@ namespace Orthanc
     ValueRepresentation_Time
   };
 
+  enum DicomToJsonFormat
+  {
+    DicomToJsonFormat_Full,
+    DicomToJsonFormat_Short,
+    DicomToJsonFormat_Simple
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations
