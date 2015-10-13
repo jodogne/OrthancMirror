@@ -212,7 +212,7 @@ namespace Orthanc
 
                 if (e.GetErrorCode() == ErrorCode_InexistentTag)
                 {
-                  LogMissingRequiredTag(summary);
+                  Toolbox::LogMissingRequiredTag(summary);
                 }
                 else
                 {

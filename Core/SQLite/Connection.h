@@ -46,7 +46,7 @@
 struct sqlite3;
 struct sqlite3_stmt;
 
-#define SQLITE_FROM_HERE SQLite::StatementId(__FILE__, __LINE__)
+#define SQLITE_FROM_HERE ::Orthanc::SQLite::StatementId(__FILE__, __LINE__)
 
 namespace Orthanc
 {

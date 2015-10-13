@@ -1006,7 +1006,7 @@ namespace Orthanc
         else
         {
           Json::Value simplified;
-          SimplifyTags(simplified, instance.GetJson());
+          Toolbox::SimplifyTags(simplified, instance.GetJson());
           s = writer.write(simplified);
         }
 
@@ -1706,6 +1706,23 @@ namespace Orthanc
         FromDcmtkBridge::RegisterDictionaryTag(DicomTag(p.group, p.element),
                                                Plugins::Convert(p.vr), p.name,
                                                p.minMultiplicity, p.maxMultiplicity);
+        return true;
+      }
+
+      case _OrthancPluginService_ReconstructMainDicomTags:
+      {
+        const _OrthancPluginReconstructMainDicomTags& p =
+          *reinterpret_cast<const _OrthancPluginReconstructMainDicomTags*>(parameters);
+
+        if (pimpl_->database_.get() == NULL)
+        {
+          LOG(ERROR) << "The service ReconstructMainDicomTags can only be invoked by custom database plugins";
+          throw OrthancException(ErrorCode_DatabasePlugin);
+        }
+
+        IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
+        Toolbox::ReconstructMainDicomTags(*pimpl_->database_, storage, Plugins::Convert(p.level));
+
         return true;
       }
 

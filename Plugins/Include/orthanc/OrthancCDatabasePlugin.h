@@ -655,7 +655,12 @@ extern "C"
       void* payload,
       uint32_t targetVersion,
       OrthancPluginStorageArea* storageArea);
-  } OrthancPluginDatabaseExtensions;
+ 
+    OrthancPluginErrorCode  (*clearMainDicomTags) (
+      /* inputs */
+      void* payload,
+      int64_t id);
+   } OrthancPluginDatabaseExtensions;
 
 /*<! @endcond */
 

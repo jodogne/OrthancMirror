@@ -40,6 +40,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
 
+
 namespace Orthanc
 {
   class DicomServer : public boost::noncopyable

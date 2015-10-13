@@ -931,7 +931,7 @@ namespace Orthanc
 #if ORTHANC_SSL_ENABLED == 0
     if (enabled)
     {
-      throw OrthancException("Orthanc has been built without SSL support");
+      throw OrthancException(ErrorCode_SslDisabled);
     }
     else
     {

@@ -243,7 +243,8 @@
   "KeepAlive" : false,
 
   // If this option is set to "false", Orthanc will run in index-only
-  // mode. The DICOM files will not be stored on the drive.
+  // mode. The DICOM files will not be stored on the drive. Note that
+  // this option might prevent the upgrade to newer versions of Orthanc.
   "StoreDicom" : true,
 
   // DICOM associations are kept open as long as new DICOM commands

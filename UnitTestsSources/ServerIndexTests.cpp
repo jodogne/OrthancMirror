@@ -122,10 +122,12 @@ namespace
       }
 
       index_->SetListener(*listener_);
+      index_->Open();
     }
 
     virtual void TearDown()
     {
+      index_->Close();
       index_.reset(NULL);
       listener_.reset(NULL);
     }
@@ -660,6 +662,7 @@ TEST(ServerIndex, Sequence)
   Toolbox::RemoveFile(path + "/index");
   FilesystemStorage storage(path);
   DatabaseWrapper db;   // The SQLite DB is in memory
+  db.Open();
   ServerContext context(db, storage);
   ServerIndex& index = context.GetIndex();
 
@@ -669,6 +672,7 @@ TEST(ServerIndex, Sequence)
   ASSERT_EQ(4u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
 
   context.Stop();
+  db.Close();
 }
 
 
@@ -728,6 +732,7 @@ TEST(ServerIndex, AttachmentRecycling)
   Toolbox::RemoveFile(path + "/index");
   FilesystemStorage storage(path);
   DatabaseWrapper db;   // The SQLite DB is in memory
+  db.Open();
   ServerContext context(db, storage);
   ServerIndex& index = context.GetIndex();
 
@@ -781,4 +786,5 @@ TEST(ServerIndex, AttachmentRecycling)
   ASSERT_THROW(Toolbox::GetFileSize(path + "/index"), OrthancException);  
 
   context.Stop();
+  db.Close();
 }

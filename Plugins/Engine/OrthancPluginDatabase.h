@@ -72,6 +72,8 @@ namespace Orthanc
       return reinterpret_cast<OrthancPluginDatabaseContext*>(this);
     }
 
+    void CheckSuccess(OrthancPluginErrorCode code);
+
     void ResetAnswers();
 
     void ForwardAnswers(std::list<int64_t>& target);
@@ -89,6 +91,16 @@ namespace Orthanc
                           const OrthancPluginDatabaseExtensions* extensions,
                           size_t extensionsSize,
                           void *payload);
+
+    virtual void Open()
+    {
+      CheckSuccess(backend_.open(payload_));
+    }
+
+    virtual void Close()
+    {
+      CheckSuccess(backend_.close(payload_));
+    }
 
     const SharedLibrary& GetSharedLibrary() const
     {
@@ -216,6 +228,8 @@ namespace Orthanc
 
     virtual void SetGlobalProperty(GlobalProperty property,
                                    const std::string& value);
+
+    virtual void ClearMainDicomTags(int64_t id);
 
     virtual void SetMainDicomTag(int64_t id,
                                  const DicomTag& tag,
