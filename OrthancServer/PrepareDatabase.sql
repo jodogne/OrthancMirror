@@ -27,6 +27,15 @@ CREATE TABLE DicomIdentifiers(
        PRIMARY KEY(id, tagGroup, tagElement)
        );
 
+-- The following table was added in Orthanc 0.9.5 (database v6)
+CREATE TABLE SearchableStudies(
+       id INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE,
+       tagGroup INTEGER,
+       tagElement INTEGER,
+       value TEXT,  -- assumed to be in upper case
+       PRIMARY KEY(id, tagGroup, tagElement)
+       );
+
 CREATE TABLE Metadata(
        id INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE,
        type INTEGER,
@@ -85,6 +94,10 @@ CREATE INDEX MainDicomTagsIndex1 ON MainDicomTags(id);
 CREATE INDEX DicomIdentifiersIndex1 ON DicomIdentifiers(id);
 CREATE INDEX DicomIdentifiersIndex2 ON DicomIdentifiers(tagGroup, tagElement);
 CREATE INDEX DicomIdentifiersIndexValues ON DicomIdentifiers(value COLLATE BINARY);
+
+-- The 2 following indexes were added in Orthanc 0.9.5 (database v6)
+CREATE INDEX SearchableStudiesIndex1 ON SearchableStudies(id);
+CREATE INDEX SearchableStudiesIndexValues ON SearchableStudies(value COLLATE BINARY);
 
 CREATE INDEX ChangesIndex ON Changes(internalId);
 

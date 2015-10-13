@@ -193,5 +193,8 @@ namespace Orthanc
 
     virtual void Upgrade(unsigned int targetVersion,
                          IStorageArea& storageArea) = 0;
+
+    virtual void StoreStudyModule(int64_t id,
+                                  const DicomMap& module) = 0;
   };
 }

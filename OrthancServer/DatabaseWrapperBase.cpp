@@ -33,6 +33,8 @@
 #include "PrecompiledHeadersServer.h"
 #include "DatabaseWrapperBase.h"
 
+#include "../Core/DicomFormat/DicomArray.h"
+
 #include <stdio.h>
 
 namespace Orthanc
@@ -306,6 +308,13 @@ namespace Orthanc
 
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM MainDicomTags WHERE id=?");
+      s.BindInt64(0, id);
+      s.Run();
+    }
+
+    // New in DB v6 (Orthanc >= 0.9.5)
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM SearchableStudies WHERE id=?");
       s.BindInt64(0, id);
       s.Run();
     }
@@ -710,6 +719,29 @@ namespace Orthanc
     while (s.Step())
     {
       target.push_back(s.ColumnInt64(0));
+    }
+  }
+
+
+  void DatabaseWrapperBase::StoreStudyModule(int64_t id,
+                                             const DicomMap& module)
+  {
+    DicomArray a(module);
+
+    for (size_t i = 0; i < a.GetSize(); i++)
+    {
+      const DicomTag& tag = a.GetElement(i).GetTag();
+      const DicomValue& value = a.GetElement(i).GetValue();
+
+      if (!value.IsNull())
+      {
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO SearchableStudies VALUES(?, ?, ?, ?)");
+        s.BindInt64(0, id);
+        s.BindInt(1, tag.GetGroup());
+        s.BindInt(2, tag.GetElement());
+        s.BindString(3, value.AsString());
+        s.Run();
+      }
     }
   }
 }

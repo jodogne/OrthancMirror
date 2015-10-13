@@ -60,5 +60,10 @@ namespace Orthanc
     void ReconstructMainDicomTags(IDatabaseWrapper& database,
                                   IStorageArea& storageArea,
                                   ResourceType level);
+
+    void ExtractModule(DicomMap& result,   // WARNING: Will not be cleared!
+                       const DicomMap& summary,
+                       DicomModule module,
+                       bool normalize);
   }
 }
