@@ -33,9 +33,13 @@
 #include "PrecompiledHeadersServer.h"
 #include "SliceOrdering.h"
 
+#include "../Core/Logging.h"
 #include "../Core/Toolbox.h"
+#include "ServerEnumerations.h"
 
+#include <algorithm>
 #include <boost/lexical_cast.hpp>
+#include <boost/noncopyable.hpp>
 
 
 namespace Orthanc
@@ -89,22 +93,39 @@ namespace Orthanc
   }
 
 
-  struct SliceOrdering::Instance
+  struct SliceOrdering::Instance : public boost::noncopyable
   {
+  private:
     std::string   instanceId_;
     bool          hasPosition_;
     Vector        position_;   
     bool          hasIndexInSeries_;
     size_t        indexInSeries_;
+    unsigned int  framesCount_;
 
+  public:
     Instance(ServerIndex& index,
-          const std::string& instanceId) :
-      instanceId_(instanceId)
+             const std::string& instanceId) :
+      instanceId_(instanceId),
+      framesCount_(1)
     {
       DicomMap instance;
       if (!index.GetMainDicomTags(instance, instanceId, ResourceType_Instance, ResourceType_Instance))
       {
         throw OrthancException(ErrorCode_UnknownResource);
+      }
+
+      const DicomValue* frames = instance.TestAndGetValue(DICOM_TAG_NUMBER_OF_FRAMES);
+      if (frames != NULL &&
+          !frames->IsNull())
+      {
+        try
+        {
+          framesCount_ = boost::lexical_cast<unsigned int>(frames->AsString());
+        }
+        catch (boost::bad_lexical_cast&)
+        {
+        }
       }
       
       std::vector<float> tmp;
@@ -132,7 +153,66 @@ namespace Orthanc
       {
       }
     }
+
+    const std::string& GetIdentifier() const
+    {
+      return instanceId_;
+    }
+
+    bool HasPosition() const
+    {
+      return hasPosition_;
+    }
+
+    float ComputeRelativePosition(const Vector& normal) const
+    {
+      assert(HasPosition());
+      return (normal[0] * position_[0] + 
+              normal[1] * position_[1] +
+              normal[2] * position_[2]);
+    }
+
+    bool HasIndexInSeries() const
+    {
+      return hasIndexInSeries_;
+    }
+    
+    size_t GetIndexInSeries() const
+    {
+      assert(HasIndexInSeries());
+      return indexInSeries_;
+    }
+
+    unsigned int GetFramesCount() const
+    {
+      return framesCount_;
+    }
   };
+
+
+  class SliceOrdering::PositionComparator
+  {
+  private:
+    const Vector&  normal_;
+
+  public:
+    PositionComparator(const Vector& normal) : normal_(normal)
+    {
+    }
+    
+    int operator() (const Instance* a,
+                    const Instance* b) const
+    {
+      return a->ComputeRelativePosition(normal_) < b->ComputeRelativePosition(normal_);
+    }
+  };
+
+
+  bool SliceOrdering::IndexInSeriesComparator(const SliceOrdering::Instance* a,
+                                              const SliceOrdering::Instance* b)
+  {
+    return a->GetIndexInSeries() < b->GetIndexInSeries();
+  }  
 
 
   void SliceOrdering::ComputeNormal()
@@ -171,6 +251,12 @@ namespace Orthanc
 
   bool SliceOrdering::SortUsingPositions()
   {
+    if (instances_.size() <= 1)
+    {
+      // One single instance: It is sorted by default
+      return true;
+    }
+
     if (!hasNormal_)
     {
       return false;
@@ -179,13 +265,60 @@ namespace Orthanc
     for (size_t i = 0; i < instances_.size(); i++)
     {
       assert(instances_[i] != NULL);
-      if (!instances_[i]->hasPosition_)
+      if (!instances_[i]->HasPosition())
       {
         return false;
       }
     }
 
+    PositionComparator comparator(normal_);
+    std::sort(instances_.begin(), instances_.end(), comparator);
+
+    float a = instances_.front()->ComputeRelativePosition(normal_);
+    float b = instances_.back()->ComputeRelativePosition(normal_);
+
+    if (std::fabs(b - a) <= 10.0f * std::numeric_limits<float>::epsilon())
+    {
+      // Not enough difference between the minimum and maximum
+      // positions along the normal of the volume
+      return false;
+    }
+    else
+    {
+      // This is a 3D volume
+      isVolume_ = true;
+      return true;
+    }
+  }
+
+
+  bool SliceOrdering::SortUsingIndexInSeries()
+  {
+    if (instances_.size() <= 1)
+    {
+      // One single instance: It is sorted by default
+      return true;
+    }
+
+    for (size_t i = 0; i < instances_.size(); i++)
+    {
+      assert(instances_[i] != NULL);
+      if (!instances_[i]->HasIndexInSeries())
+      {
+        return false;
+      }
+    }
+
+    std::sort(instances_.begin(), instances_.end(), IndexInSeriesComparator);
     
+    for (size_t i = 1; i < instances_.size(); i++)
+    {
+      if (instances_[i - 1]->GetIndexInSeries() == instances_[i]->GetIndexInSeries())
+      {
+        // The current "IndexInSeries" occurs 2 times: Not a proper ordering
+        return false;
+      }
+    }
 
     return true;
   }
@@ -194,10 +327,18 @@ namespace Orthanc
   SliceOrdering::SliceOrdering(ServerIndex& index,
                                const std::string& seriesId) :
     index_(index),
-    seriesId_(seriesId)
+    seriesId_(seriesId),
+    isVolume_(false)
   {
     ComputeNormal();
     CreateInstances();
+
+    if (!SortUsingPositions() &&
+        !SortUsingIndexInSeries())
+    {
+      LOG(ERROR) << "Unable to order the slices of the series " << seriesId;
+      throw OrthancException(ErrorCode_CannotOrderSlices);
+    }
   }
 
 
@@ -211,5 +352,58 @@ namespace Orthanc
         delete *it;
       }
     }
+  }
+
+
+  const std::string& SliceOrdering::GetInstanceId(size_t index) const
+  {
+    if (index >= instances_.size())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      return instances_[index]->GetIdentifier();
+    }
+  }
+
+
+  unsigned int SliceOrdering::GetFramesCount(size_t index) const
+  {
+    if (index >= instances_.size())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      return instances_[index]->GetFramesCount();
+    }
+  }
+
+
+  void SliceOrdering::Format(Json::Value& result) const
+  {
+    result = Json::objectValue;
+    result["Type"] = (isVolume_ ? "Volume" : "Sequence");
+    
+    Json::Value tmp = Json::arrayValue;
+    for (size_t i = 0; i < GetInstancesCount(); i++)
+    {
+      tmp.append(GetBasePath(ResourceType_Instance, GetInstanceId(i)) + "/file");
+    }
+
+    result["Dicom"] = tmp;
+
+    tmp.clear();
+    for (size_t i = 0; i < GetInstancesCount(); i++)
+    {
+      std::string base = GetBasePath(ResourceType_Instance, GetInstanceId(i));
+      for (size_t j = 0; j < GetFramesCount(i); j++)
+      {
+        tmp.append(base + "/frames/" + boost::lexical_cast<std::string>(j));
+      }
+    }
+
+    result["Slices"] = tmp;
   }
 }

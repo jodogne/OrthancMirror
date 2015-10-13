@@ -497,5 +497,10 @@
     "Code": 2039,
     "Name": "SslDisabled",
     "Description": "Orthanc has been built without SSL support"
+  },
+  {
+    "Code": 2040,
+    "Name": "CannotOrderSlices",
+    "Description": "Unable to order the slices of the series"
   }
 ]

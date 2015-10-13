@@ -1101,6 +1101,9 @@ namespace Orthanc
     ServerIndex& index = OrthancRestApi::GetIndex(call);
     SliceOrdering ordering(index, id);
 
+    Json::Value result;
+    ordering.Format(result);
+    call.GetOutput().AnswerJson(result);
   }
 
 
