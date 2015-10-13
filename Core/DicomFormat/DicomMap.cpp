@@ -285,6 +285,7 @@ namespace Orthanc
     result.Remove(DICOM_TAG_NUMBER_OF_SLICES);
     result.Remove(DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS);
     result.Remove(DICOM_TAG_NUMBER_OF_TIME_SLICES);
+    result.Remove(DICOM_TAG_IMAGE_ORIENTATION_PATIENT);
   }
 
   void DicomMap::SetupFindInstanceTemplate(DicomMap& result)

@@ -384,8 +384,9 @@ namespace Orthanc
   }
 
 
-  static void CheckFindQuery(ResourceType level,
-                             const DicomMap& fields)
+  static void FixFindQuery(DicomMap& fixedQuery,
+                           ResourceType level,
+                           const DicomMap& fields)
   {
     std::set<DicomTag> allowedTags;
 
@@ -422,8 +423,11 @@ namespace Orthanc
       const DicomTag& tag = query.GetElement(i).GetTag();
       if (allowedTags.find(tag) == allowedTags.end())
       {
-        LOG(ERROR) << "Tag not allowed for this C-Find level: " << tag;
-        throw OrthancException(ErrorCode_BadRequest);
+        LOG(WARNING) << "Tag not allowed for this C-Find level, will be ignored: " << tag;
+      }
+      else
+      {
+        fixedQuery.SetValue(tag, query.GetElement(i).GetValue());
       }
     }
   }
@@ -471,9 +475,10 @@ namespace Orthanc
 
   void DicomUserConnection::Find(DicomFindAnswers& result,
                                  ResourceType level,
-                                 const DicomMap& fields)
+                                 const DicomMap& originalFields)
   {
-    CheckFindQuery(level, fields);
+    DicomMap fields;
+    FixFindQuery(fields, level, originalFields);
 
     CheckIsOpen();
 
