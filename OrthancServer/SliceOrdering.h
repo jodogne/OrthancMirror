@@ -42,12 +42,17 @@ namespace Orthanc
     typedef float Vector[3];
 
     struct Instance;
+    struct PositionComparator;
 
     ServerIndex&             index_;
     std::string              seriesId_;
     bool                     hasNormal_;
     Vector                   normal_;
     std::vector<Instance*>   instances_;
+    bool                     isVolume_;
+
+    static bool IndexInSeriesComparator(const SliceOrdering::Instance* a,
+                                        const SliceOrdering::Instance* b);
 
     void ComputeNormal();
 
@@ -55,10 +60,23 @@ namespace Orthanc
 
     bool SortUsingPositions();
 
+    bool SortUsingIndexInSeries();
+
   public:
     SliceOrdering(ServerIndex& index,
                   const std::string& seriesId);
 
     ~SliceOrdering();
+
+    size_t  GetInstancesCount() const
+    {
+      return instances_.size();
+    }
+
+    const std::string& GetInstanceId(size_t index) const;
+
+    unsigned int GetFramesCount(size_t index) const;
+
+    void Format(Json::Value& result) const;
   };
 }
