@@ -307,11 +307,19 @@ namespace Orthanc
             break;
 
           case ResourceType_Study:
+          {
             Toolbox::SetMainDicomTags(database, resource, ResourceType_Study, dicomSummary, true);
 
             // Duplicate the patient tags at the study level (new in Orthanc 0.9.5 - db v6)
             Toolbox::SetMainDicomTags(database, resource, ResourceType_Patient, dicomSummary, false);
+
+            DicomMap module;
+            Toolbox::ExtractModule(module, dicomSummary, DicomModule_Patient, true  /* normalize */);
+            Toolbox::ExtractModule(module, dicomSummary, DicomModule_Study, true  /* normalize */);
+            database.StoreStudyModule(resource, module);
+
             break;
+          }
 
           case ResourceType_Series:
             Toolbox::SetMainDicomTags(database, resource, ResourceType_Series, dicomSummary, true);
@@ -324,6 +332,35 @@ namespace Orthanc
           default:
             throw OrthancException(ErrorCode_InternalError);
         }
+      }
+    }
+
+
+    void ExtractModule(DicomMap& result,   // WARNING: Will not be cleared!
+                       const DicomMap& summary,
+                       DicomModule module,
+                       bool normalize)
+    {
+      typedef std::set<DicomTag> ModuleTags;
+      ModuleTags moduleTags;
+      DicomTag::AddTagsForModule(moduleTags, module);
+
+      for (ModuleTags::const_iterator tag = moduleTags.begin(); tag != moduleTags.end(); ++tag)
+      {
+        const DicomValue* value = summary.TestAndGetValue(*tag);
+        if (value != NULL &&
+            !value->IsNull())
+        {
+          std::string t = value->AsString();
+
+          if (normalize)
+          {
+            t = StripSpaces(ConvertToAscii(t));
+            ToUpperCase(t);
+          }
+
+          result.SetValue(*tag, t);
+        }      
       }
     }
   }

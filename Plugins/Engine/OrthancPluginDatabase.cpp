@@ -869,6 +869,14 @@ namespace Orthanc
   }
 
 
+  void OrthancPluginDatabase::StoreStudyModule(int64_t id,
+                                               const DicomMap& module)
+  {
+    // TODO
+    throw OrthancException(ErrorCode_NotImplemented);
+  }
+
+
   void OrthancPluginDatabase::AnswerReceived(const _OrthancPluginDatabaseAnswer& answer)
   {
     if (answer.type == _OrthancPluginDatabaseAnswerType_None)
