@@ -267,6 +267,8 @@ extern "C"
     OrthancPluginErrorCode_StorageAreaAlreadyRegistered = 2036    /*!< Another plugin has already registered a custom storage area */,
     OrthancPluginErrorCode_DatabaseBackendAlreadyRegistered = 2037    /*!< Another plugin has already registered a custom database back-end */,
     OrthancPluginErrorCode_DatabaseNotInitialized = 2038    /*!< Plugin trying to call the database during its initialization */,
+    OrthancPluginErrorCode_SslDisabled = 2039    /*!< Orthanc has been built without SSL support */,
+    OrthancPluginErrorCode_CannotOrderSlices = 2040    /*!< Unable to order the slices of the series */,
 
     _OrthancPluginErrorCode_INTERNAL = 0x7fffffff
   } OrthancPluginErrorCode;
@@ -422,6 +424,7 @@ extern "C"
     _OrthancPluginService_RestApiPostAfterPlugins = 3011,
     _OrthancPluginService_RestApiDeleteAfterPlugins = 3012,
     _OrthancPluginService_RestApiPutAfterPlugins = 3013,
+    _OrthancPluginService_ReconstructMainDicomTags = 3014,
 
     /* Access to DICOM instances */
     _OrthancPluginService_GetInstanceRemoteAet = 4000,
@@ -3763,6 +3766,43 @@ extern "C"
     params.maxMultiplicity = maxMultiplicity;
 
     return context->InvokeService(context, _OrthancPluginService_RegisterDictionaryTag, &params);
+  }
+
+
+
+
+  typedef struct
+  {
+    OrthancPluginStorageArea*  storageArea;
+    OrthancPluginResourceType  level;
+  } _OrthancPluginReconstructMainDicomTags;
+
+  /**
+   * @brief Reconstruct the main DICOM tags.
+   *
+   * This function requests the Orthanc core to reconstruct the main
+   * DICOM tags of all the resources of the given type. This function
+   * can only be used as a part of the upgrade of a custom database
+   * back-end
+   * (cf. OrthancPlugins::IDatabaseBackend::UpgradeDatabase). A
+   * database transaction will be automatically setup.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param storageArea The storage area.
+   * @param level The type of the resources of interest.
+   * @return 0 if success, other value if error.
+   * @ingroup Callbacks
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginReconstructMainDicomTags(
+    OrthancPluginContext*      context,
+    OrthancPluginStorageArea*  storageArea,
+    OrthancPluginResourceType  level)
+  {
+    _OrthancPluginReconstructMainDicomTags params;
+    params.level = level;
+    params.storageArea = storageArea;
+
+    return context->InvokeService(context, _OrthancPluginService_ReconstructMainDicomTags, &params);
   }
 
 

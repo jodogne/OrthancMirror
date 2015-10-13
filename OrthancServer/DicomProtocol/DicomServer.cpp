@@ -281,9 +281,8 @@ namespace Orthanc
       throw OrthancException(ErrorCode_DicomPortInUse);
     }
 
-    pimpl_->workers_.reset(new RunnableWorkersPool(4));   // Use 4 workers - TODO as a parameter?
-
     continue_ = true;
+    pimpl_->workers_.reset(new RunnableWorkersPool(4));   // Use 4 workers - TODO as a parameter?
     pimpl_->thread_ = boost::thread(ServerThread, this);
   }
 

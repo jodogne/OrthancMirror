@@ -44,11 +44,6 @@ namespace Orthanc
   // "Resources/GenerateErrorCodes.py"
   const char* EnumerationToString(ErrorCode error)
   {
-    if (error >= ErrorCode_START_PLUGINS)
-    {
-      return "Error encountered within some plugin";
-    }
-
     switch (error)
     {
       case ErrorCode_InternalError:
@@ -318,8 +313,21 @@ namespace Orthanc
       case ErrorCode_DatabaseNotInitialized:
         return "Plugin trying to call the database during its initialization";
 
+      case ErrorCode_SslDisabled:
+        return "Orthanc has been built without SSL support";
+
+      case ErrorCode_CannotOrderSlices:
+        return "Unable to order the slices of the series";
+
       default:
-        return "Unknown error code";
+        if (error >= ErrorCode_START_PLUGINS)
+        {
+          return "Error encountered within some plugin";
+        }
+        else
+        {
+          return "Unknown error code";
+        }
     }
   }
 

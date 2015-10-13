@@ -51,6 +51,10 @@ namespace Orthanc
     {
     }
 
+    virtual void Open() = 0;
+
+    virtual void Close() = 0;
+
     virtual void AddAttachment(int64_t id,
                                const FileInfo& attachment) = 0;
 
@@ -167,6 +171,8 @@ namespace Orthanc
 
     virtual void SetGlobalProperty(GlobalProperty property,
                                    const std::string& value) = 0;
+
+    virtual void ClearMainDicomTags(int64_t id) = 0;
 
     virtual void SetMainDicomTag(int64_t id,
                                  const DicomTag& tag,

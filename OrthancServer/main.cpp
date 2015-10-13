@@ -572,12 +572,27 @@ static bool StartDicomServer(ServerContext& context,
   dicomServer.Start();
   LOG(WARNING) << "DICOM server listening on port: " << dicomServer.GetPortNumber();
 
-  bool restart = StartHttpServer(context, restApi, plugins);
+  bool restart;
+  ErrorCode error = ErrorCode_Success;
+
+  try
+  {
+    restart = StartHttpServer(context, restApi, plugins);
+  }
+  catch (OrthancException& e)
+  {
+    error = e.GetErrorCode();
+  }
 
   dicomServer.Stop();
   LOG(WARNING) << "    DICOM server has stopped";
 
   serverFactory.Done();
+
+  if (error != ErrorCode_Success)
+  {
+    throw OrthancException(error);
+  }
 
   return restart;
 }
@@ -617,7 +632,7 @@ static bool UpgradeDatabase(IDatabaseWrapper& database,
                             IStorageArea& storageArea,
                             bool allowDatabaseUpgrade)
 {
-  // Upgrade the database, if needed
+  // Upgrade the schema of the database, if needed
   unsigned int currentVersion = database.GetDatabaseVersion();
   if (currentVersion == ORTHANC_DATABASE_VERSION)
   {
@@ -626,20 +641,20 @@ static bool UpgradeDatabase(IDatabaseWrapper& database,
 
   if (currentVersion > ORTHANC_DATABASE_VERSION)
   {
-    LOG(ERROR) << "The version of the database (" << currentVersion
+    LOG(ERROR) << "The version of the database schema (" << currentVersion
                << ") is too recent for this version of Orthanc. Please upgrade Orthanc.";
     return false;
   }
 
   if (!allowDatabaseUpgrade)
   {
-    LOG(ERROR) << "The database must be upgraded from version "
+    LOG(ERROR) << "The database schema must be upgraded from version "
                << currentVersion << " to " << ORTHANC_DATABASE_VERSION 
                << ": Please run Orthanc with the \"--upgrade\" command-line option";
     return false;
   }
 
-  LOG(WARNING) << "Upgrading the database from version "
+  LOG(WARNING) << "Upgrading the database from schema version "
                << currentVersion << " to " << ORTHANC_DATABASE_VERSION;
   database.Upgrade(ORTHANC_DATABASE_VERSION, storageArea);
     
@@ -647,7 +662,7 @@ static bool UpgradeDatabase(IDatabaseWrapper& database,
   currentVersion = database.GetDatabaseVersion();
   if (ORTHANC_DATABASE_VERSION != currentVersion)
   {
-    LOG(ERROR) << "The database was not properly updated, it is still at version " << currentVersion;
+    LOG(ERROR) << "The database schema was not properly upgraded, it is still at version " << currentVersion;
     throw OrthancException(ErrorCode_InternalError);
   }
 
@@ -657,14 +672,8 @@ static bool UpgradeDatabase(IDatabaseWrapper& database,
 
 static bool ConfigureServerContext(IDatabaseWrapper& database,
                                    IStorageArea& storageArea,
-                                   OrthancPlugins *plugins,
-                                   bool allowDatabaseUpgrade)
+                                   OrthancPlugins *plugins)
 {
-  if (!UpgradeDatabase(database, storageArea, allowDatabaseUpgrade))
-  {
-    return false;
-  }
-
   ServerContext context(database, storageArea);
 
   HttpClient::SetDefaultTimeout(Configuration::GetGlobalIntegerParameter("HttpTimeout", 0));
@@ -700,7 +709,18 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
   }
 #endif
 
-  bool restart = ConfigureHttpHandler(context, plugins);
+  bool restart;
+  ErrorCode error = ErrorCode_Success;
+
+  try
+  {
+    restart = ConfigureHttpHandler(context, plugins);
+  }
+  catch (OrthancException& e)
+  {
+    error = e.GetErrorCode();
+  }
+
   context.Stop();
 
 #if ORTHANC_PLUGINS_ENABLED == 1
@@ -710,7 +730,32 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
   }
 #endif
 
+  if (error != ErrorCode_Success)
+  {
+    throw OrthancException(error);
+  }
+
   return restart;
+}
+
+
+static bool ConfigureDatabase(IDatabaseWrapper& database,
+                              IStorageArea& storageArea,
+                              OrthancPlugins *plugins,
+                              bool allowDatabaseUpgrade)
+{
+  database.Open();
+  
+  if (!UpgradeDatabase(database, storageArea, allowDatabaseUpgrade))
+  {
+    return false;
+  }
+
+  bool success = ConfigureServerContext(database, storageArea, plugins);
+
+  database.Close();
+
+  return success;
 }
 
 
@@ -751,14 +796,14 @@ static bool ConfigurePlugins(int argc,
   assert(database != NULL);
   assert(storage.get() != NULL);
 
-  return ConfigureServerContext(*database, *storage, &plugins, allowDatabaseUpgrade);
+  return ConfigureDatabase(*database, *storage, &plugins, allowDatabaseUpgrade);
 
 #elif ORTHANC_PLUGINS_ENABLED == 0
   // The plugins are disabled
   databasePtr.reset(Configuration::CreateDatabaseWrapper());
   storage.reset(Configuration::CreateStorageArea());
 
-  return ConfigureServerContext(*databasePtr, *storage, NULL, allowDatabaseUpgrade);
+  return ConfigureDatabase(*databasePtr, *storage, NULL, allowDatabaseUpgrade);
 
 #else
 #  error The macro ORTHANC_PLUGINS_ENABLED must be set to 0 or 1

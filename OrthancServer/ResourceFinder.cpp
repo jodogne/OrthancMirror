@@ -37,8 +37,6 @@
 #include "FromDcmtkBridge.h"
 #include "ServerContext.h"
 
-#include <boost/algorithm/string/predicate.hpp>
-
 namespace Orthanc
 {
   class ResourceFinder::CandidateResources
@@ -190,9 +188,21 @@ namespace Orthanc
     }
 
 
-    void RestrictMainDicomTags(const IQuery& query)
+    void RestrictMainDicomTags(const IQuery& query,
+                               bool filterPatientTagsAtStudyLevel)
     {
-      if (!query.HasMainDicomTagsFilter(level_))
+      if (filterPatientTagsAtStudyLevel &&
+          level_ == ResourceType_Patient)
+      {
+        return;
+      }
+
+      bool hasTagsAtThisLevel = query.HasMainDicomTagsFilter(level_);
+      bool hasTagsAtPatientLevel = (filterPatientTagsAtStudyLevel &&
+                                    level_ == ResourceType_Study &&
+                                    query.HasMainDicomTagsFilter(ResourceType_Patient));
+
+      if (!hasTagsAtThisLevel && !hasTagsAtPatientLevel)        
       {
         return;
       }
@@ -207,13 +217,22 @@ namespace Orthanc
              it = resources.begin(); it != resources.end(); ++it)
       {
         DicomMap mainTags;
-        if (index_.GetMainDicomTags(mainTags, *it, level_))
+
+        if (hasTagsAtThisLevel &&
+            (!index_.GetMainDicomTags(mainTags, *it, level_, level_) ||
+             !query.FilterMainDicomTags(*it, level_, mainTags)))
         {
-          if (query.FilterMainDicomTags(*it, level_, mainTags))
-          {
-            filtered_.insert(*it);
-          }
+          continue;
         }
+
+        if (hasTagsAtPatientLevel &&
+            (!index_.GetMainDicomTags(mainTags, *it, ResourceType_Study, ResourceType_Patient) ||
+             !query.FilterMainDicomTags(*it, ResourceType_Patient, mainTags)))
+        {
+          continue;
+        }
+
+        filtered_.insert(*it);
       }
     }
   };
@@ -266,7 +285,14 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
     }
 
-    candidates.RestrictMainDicomTags(query);
+    if (query.GetLevel() == ResourceType_Patient)
+    {
+      candidates.RestrictMainDicomTags(query, false);
+    }
+    else
+    {
+      candidates.RestrictMainDicomTags(query, true);
+    }
   }
 
 

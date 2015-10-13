@@ -134,6 +134,8 @@ namespace Orthanc
     ErrorCode_StorageAreaAlreadyRegistered = 2036    /*!< Another plugin has already registered a custom storage area */,
     ErrorCode_DatabaseBackendAlreadyRegistered = 2037    /*!< Another plugin has already registered a custom database back-end */,
     ErrorCode_DatabaseNotInitialized = 2038    /*!< Plugin trying to call the database during its initialization */,
+    ErrorCode_SslDisabled = 2039    /*!< Orthanc has been built without SSL support */,
+    ErrorCode_CannotOrderSlices = 2040    /*!< Unable to order the slices of the series */,
     ErrorCode_START_PLUGINS = 1000000
   };
 

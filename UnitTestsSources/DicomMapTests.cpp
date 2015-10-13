@@ -170,18 +170,12 @@ static void TestModule(ResourceType level,
       }*/
 
     // Exceptions for the Instance level
-    if ((/* Accession number, from Image module */
-          *it == DicomTag(0x0020, 0x0012) && 
-          level == ResourceType_Instance) ||
-        (/* Image Index, from PET Image module */
-          *it == DicomTag(0x0054, 0x1330) && 
-          level == ResourceType_Instance) ||
-        (/* Temporal Position Identifier, from MR Image module */
-          *it == DicomTag(0x0020, 0x0100) && 
-          level == ResourceType_Instance) ||
-        (/* Number of Frames, from Multi-frame module attributes, related to Image IOD */
-          *it == DicomTag(0x0028, 0x0008) && 
-          level == ResourceType_Instance ))
+    if (level == ResourceType_Instance &&
+        (*it == DicomTag(0x0020, 0x0012) ||  /* Accession number, from Image module */
+         *it == DicomTag(0x0054, 0x1330) ||  /* Image Index, from PET Image module */
+         *it == DicomTag(0x0020, 0x0100) ||  /* Temporal Position Identifier, from MR Image module */
+         *it == DicomTag(0x0028, 0x0008) ||  /* Number of Frames, from Multi-frame module attributes, related to Image IOD */
+         *it == DICOM_TAG_IMAGE_POSITION_PATIENT))
     {
       ok = true;
     }

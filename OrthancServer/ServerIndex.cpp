@@ -40,6 +40,7 @@
 #include "ServerIndexChange.h"
 #include "EmbeddedResources.h"
 #include "OrthancInitialization.h"
+#include "ServerToolbox.h"
 #include "../Core/Toolbox.h"
 #include "../Core/Logging.h"
 #include "../Core/Uuid.h"
@@ -490,18 +491,6 @@ namespace Orthanc
 
 
 
-  void ServerIndex::SetMainDicomTags(int64_t resource,
-                                     const DicomMap& tags)
-  {
-    DicomArray flattened(tags);
-    for (size_t i = 0; i < flattened.GetSize(); i++)
-    {
-      const DicomElement& element = flattened.GetElement(i);
-      db_.SetMainDicomTag(resource, element.GetTag(), element.GetValue().AsString());
-    }
-  }
-
-
   int64_t ServerIndex::CreateResource(const std::string& publicId,
                                       ResourceType type)
   {
@@ -638,10 +627,7 @@ namespace Orthanc
 
       // Create the instance
       int64_t instance = CreateResource(hasher.HashInstance(), ResourceType_Instance);
-
-      DicomMap dicom;
-      dicomSummary.ExtractInstanceInformation(dicom);
-      SetMainDicomTags(instance, dicom);
+      Toolbox::SetMainDicomTags(db_, instance, ResourceType_Instance, dicomSummary, true);
 
       // Detect up to which level the patient/study/series/instance
       // hierarchy must be created
@@ -693,24 +679,22 @@ namespace Orthanc
       if (isNewSeries)
       {
         series = CreateResource(hasher.HashSeries(), ResourceType_Series);
-        dicomSummary.ExtractSeriesInformation(dicom);
-        SetMainDicomTags(series, dicom);
+        Toolbox::SetMainDicomTags(db_, series, ResourceType_Series, dicomSummary, true);
       }
 
       // Create the study if needed
       if (isNewStudy)
       {
         study = CreateResource(hasher.HashStudy(), ResourceType_Study);
-        dicomSummary.ExtractStudyInformation(dicom);
-        SetMainDicomTags(study, dicom);
+        Toolbox::SetMainDicomTags(db_, study, ResourceType_Study, dicomSummary, true);
+        Toolbox::SetMainDicomTags(db_, study, ResourceType_Patient, dicomSummary, false);  // New in version 0.9.5 (db v6)
       }
 
       // Create the patient if needed
       if (isNewPatient)
       {
         patient = CreateResource(hasher.HashPatient(), ResourceType_Patient);
-        dicomSummary.ExtractPatientInformation(dicom);
-        SetMainDicomTags(patient, dicom);
+        Toolbox::SetMainDicomTags(db_, patient, ResourceType_Patient, dicomSummary, true);
       }
 
       // Create the parent-to-child links
@@ -890,14 +874,55 @@ namespace Orthanc
   }
 
 
+  static std::string GetPatientIdOfStudy(IDatabaseWrapper& db,
+                                         int64_t resourceId)
+  {
+    int64_t patient;
+    if (!db.LookupParent(patient, resourceId))
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    DicomMap tags;
+    db.GetMainDicomTags(tags, patient);
+
+    if (tags.HasTag(DICOM_TAG_PATIENT_ID))
+    {
+      return tags.GetValue(DICOM_TAG_PATIENT_ID).AsString();
+    }
+    else
+    {
+      return "";
+    }
+  }
+
 
   void ServerIndex::MainDicomTagsToJson(Json::Value& target,
-                                        int64_t resourceId)
+                                        int64_t resourceId,
+                                        ResourceType resourceType)
   {
     DicomMap tags;
     db_.GetMainDicomTags(tags, resourceId);
-    target["MainDicomTags"] = Json::objectValue;
-    FromDcmtkBridge::ToJson(target["MainDicomTags"], tags, true);
+
+    if (resourceType == ResourceType_Study)
+    {
+      DicomMap t1, t2;
+      tags.ExtractStudyInformation(t1);
+      tags.ExtractPatientInformation(t2);
+
+      target["MainDicomTags"] = Json::objectValue;
+      FromDcmtkBridge::ToJson(target["MainDicomTags"], t1, true);
+
+      target["PatientMainDicomTags"] = Json::objectValue;
+      FromDcmtkBridge::ToJson(target["PatientMainDicomTags"], t2, true);
+
+      target["PatientMainDicomTags"]["PatientID"] = GetPatientIdOfStudy(db_, resourceId);
+    }
+    else
+    {
+      target["MainDicomTags"] = Json::objectValue;
+      FromDcmtkBridge::ToJson(target["MainDicomTags"], tags, true);
+    }
   }
 
   bool ServerIndex::LookupResource(Json::Value& result,
@@ -1033,7 +1058,7 @@ namespace Orthanc
 
     // Record the remaining information
     result["ID"] = publicId;
-    MainDicomTagsToJson(result, id);
+    MainDicomTagsToJson(result, id, type);
 
     std::string tmp;
 
@@ -2077,8 +2102,19 @@ namespace Orthanc
 
   bool ServerIndex::GetMainDicomTags(DicomMap& result,
                                      const std::string& publicId,
-                                     ResourceType expectedType)
+                                     ResourceType expectedType,
+                                     ResourceType levelOfInterest)
   {
+    // Yes, the following test could be shortened, but we wish to make it as clear as possible
+    if (!(expectedType == ResourceType_Patient  && levelOfInterest == ResourceType_Patient) &&
+        !(expectedType == ResourceType_Study    && levelOfInterest == ResourceType_Patient) &&
+        !(expectedType == ResourceType_Study    && levelOfInterest == ResourceType_Study)   &&
+        !(expectedType == ResourceType_Series   && levelOfInterest == ResourceType_Series)  &&
+        !(expectedType == ResourceType_Instance && levelOfInterest == ResourceType_Instance))
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
     result.Clear();
 
     boost::mutex::scoped_lock lock(mutex_);
@@ -2090,6 +2126,27 @@ namespace Orthanc
         type != expectedType)
     {
       return false;
+    }
+
+    if (type == ResourceType_Study)
+    {
+      DicomMap tmp;
+      db_.GetMainDicomTags(tmp, id);
+
+      switch (levelOfInterest)
+      {
+        case ResourceType_Patient:
+          tmp.ExtractPatientInformation(result);
+          result.SetValue(DICOM_TAG_PATIENT_ID, GetPatientIdOfStudy(db_, id));
+          return true;
+
+        case ResourceType_Study:
+          tmp.ExtractStudyInformation(result);
+          return true;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
     }
     else
     {
@@ -2108,4 +2165,10 @@ namespace Orthanc
     return db_.LookupResource(id, type, publicId);
   }
 
+
+  unsigned int ServerIndex::GetDatabaseVersion()
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    return db_.GetDatabaseVersion();
+  }
 }

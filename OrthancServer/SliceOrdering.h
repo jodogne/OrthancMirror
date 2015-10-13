@@ -32,37 +32,51 @@
 
 #pragma once
 
-#if ORTHANC_PLUGINS_ENABLED == 1
-
-#include "../Include/orthanc/OrthancCPlugin.h"
-#include "../../OrthancServer/ServerEnumerations.h"
-
-#if !defined(ORTHANC_ENABLE_DCMTK) || ORTHANC_ENABLE_DCMTK != 0
-#include <dcmtk/dcmdata/dcvr.h>
-#endif
+#include "ServerIndex.h"
 
 namespace Orthanc
 {
-  namespace Plugins
+  class SliceOrdering
   {
-    OrthancPluginResourceType Convert(ResourceType type);
+  private:
+    typedef float Vector[3];
 
-    ResourceType Convert(OrthancPluginResourceType type);
+    struct Instance;
+    struct PositionComparator;
 
-    OrthancPluginChangeType Convert(ChangeType type);
+    ServerIndex&             index_;
+    std::string              seriesId_;
+    bool                     hasNormal_;
+    Vector                   normal_;
+    std::vector<Instance*>   instances_;
+    bool                     isVolume_;
 
-    OrthancPluginPixelFormat Convert(PixelFormat format);
+    static bool IndexInSeriesComparator(const SliceOrdering::Instance* a,
+                                        const SliceOrdering::Instance* b);
 
-    PixelFormat Convert(OrthancPluginPixelFormat format);
+    void ComputeNormal();
 
-    OrthancPluginContentType Convert(FileContentType type);
+    void CreateInstances();
 
-    FileContentType Convert(OrthancPluginContentType type);
+    bool SortUsingPositions();
 
-#if !defined(ORTHANC_ENABLE_DCMTK) || ORTHANC_ENABLE_DCMTK != 0
-    DcmEVR Convert(OrthancPluginValueRepresentation vr);
-#endif
-  }
+    bool SortUsingIndexInSeries();
+
+  public:
+    SliceOrdering(ServerIndex& index,
+                  const std::string& seriesId);
+
+    ~SliceOrdering();
+
+    size_t  GetInstancesCount() const
+    {
+      return instances_.size();
+    }
+
+    const std::string& GetInstanceId(size_t index) const;
+
+    unsigned int GetFramesCount(size_t index) const;
+
+    void Format(Json::Value& result) const;
+  };
 }
-
-#endif
