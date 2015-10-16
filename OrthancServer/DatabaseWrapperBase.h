@@ -42,7 +42,6 @@
 #include "ServerEnumerations.h"
 
 #include <list>
-#include <boost/noncopyable.hpp>
 
 
 namespace Orthanc
@@ -52,7 +51,7 @@ namespace Orthanc
    * database plugin whose code is in
    * "../Plugins/Samples/DatabasePlugin".
    **/
-  class DatabaseWrapperBase : public boost::noncopyable
+  class DatabaseWrapperBase
   {
   private:
     SQLite::Connection&  db_;
@@ -193,9 +192,6 @@ namespace Orthanc
 
     void LookupIdentifier(std::list<int64_t>& target,
                           const std::string& value);
-
-    void StoreStudyModule(int64_t id,
-                          const DicomMap& module);
   };
 }
 

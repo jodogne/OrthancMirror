@@ -359,13 +359,11 @@ namespace Orthanc
     if (version_ == 5)
     {
       LOG(WARNING) << "Upgrading database version from 5 to 6";
+      // No change in the DB schema, the step from version 5 to 6 only
+      // consists in reconstructing the main DICOM tags information.
       db_.BeginTransaction();
-      ExecuteUpgradeScript(db_, EmbeddedResources::UPGRADE_DATABASE_5_TO_6);      
-      // Reconstruct the main DICOM tags information.
-      Toolbox::ReconstructMainDicomTags(*this, storageArea, ResourceType_Patient);
       Toolbox::ReconstructMainDicomTags(*this, storageArea, ResourceType_Study);
       Toolbox::ReconstructMainDicomTags(*this, storageArea, ResourceType_Series);
-      Toolbox::ReconstructMainDicomTags(*this, storageArea, ResourceType_Instance);
       db_.CommitTransaction();
       version_ = 6;
     }    
@@ -486,4 +484,5 @@ namespace Orthanc
       target[key] = s.ColumnString(1);
     }
   }
+
 }
