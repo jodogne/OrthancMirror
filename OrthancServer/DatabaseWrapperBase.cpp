@@ -312,11 +312,11 @@ namespace Orthanc
   }
 
 
-  static void SetMainDicomTagsInternal(SQLite::Statement& s,
-                                       int64_t id,
-                                       const DicomTag& tag,
-                                       const std::string& value)
+  void DatabaseWrapperBase::SetMainDicomTag(int64_t id,
+                                            const DicomTag& tag,
+                                            const std::string& value)
   {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO MainDicomTags VALUES(?, ?, ?, ?)");
     s.BindInt64(0, id);
     s.BindInt(1, tag.GetGroup());
     s.BindInt(2, tag.GetElement());
@@ -325,21 +325,16 @@ namespace Orthanc
   }
 
 
-  void DatabaseWrapperBase::SetMainDicomTag(int64_t id,
-                                            const DicomTag& tag,
-                                            const std::string& value)
-  {
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO MainDicomTags VALUES(?, ?, ?, ?)");
-    SetMainDicomTagsInternal(s, id, tag, value);
-  }
-
-
   void DatabaseWrapperBase::SetIdentifierTag(int64_t id,
                                              const DicomTag& tag,
                                              const std::string& value)
   {
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO DicomIdentifiers VALUES(?, ?, ?, ?)");
-    SetMainDicomTagsInternal(s, id, tag, value);
+    s.BindInt64(0, id);
+    s.BindInt(1, tag.GetGroup());
+    s.BindInt(2, tag.GetElement());
+    s.BindString(3, value);
+    s.Run();
   }
 
 
