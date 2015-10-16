@@ -194,11 +194,18 @@ namespace Orthanc
       for (size_t i = 0; i < flattened.GetSize(); i++)
       {
         const DicomElement& element = flattened.GetElement(i);
+        const DicomTag& tag = element.GetTag();
 
-        if (includeIdentifiers ||
-            !element.GetTag().IsIdentifier())
+        if (tag.IsIdentifier())
         {
-          database.SetMainDicomTag(resource, element.GetTag(), element.GetValue().AsString());
+          if (includeIdentifiers)
+          {
+            database.SetIdentifierTag(resource, tag, element.GetValue().AsString());
+          }
+        }
+        else
+        {
+          database.SetMainDicomTag(resource, tag, element.GetValue().AsString());
         }
       }
     }

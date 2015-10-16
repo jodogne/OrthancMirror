@@ -329,17 +329,19 @@ namespace Orthanc
                                             const DicomTag& tag,
                                             const std::string& value)
   {
-    if (tag.IsIdentifier())
-    {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO DicomIdentifiers VALUES(?, ?, ?, ?)");
-      SetMainDicomTagsInternal(s, id, tag, value);
-    }
-    else
-    {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO MainDicomTags VALUES(?, ?, ?, ?)");
-      SetMainDicomTagsInternal(s, id, tag, value);
-    }
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO MainDicomTags VALUES(?, ?, ?, ?)");
+    SetMainDicomTagsInternal(s, id, tag, value);
   }
+
+
+  void DatabaseWrapperBase::SetIdentifierTag(int64_t id,
+                                             const DicomTag& tag,
+                                             const std::string& value)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO DicomIdentifiers VALUES(?, ?, ?, ?)");
+    SetMainDicomTagsInternal(s, id, tag, value);
+  }
+
 
   void DatabaseWrapperBase::GetMainDicomTags(DicomMap& map,
                                              int64_t id)

@@ -686,10 +686,10 @@ TEST_P(DatabaseWrapperTest, LookupIdentifier)
     index_->CreateResource("d", ResourceType_Series)   // 3
   };
 
-  index_->SetMainDicomTag(a[0], DICOM_TAG_STUDY_INSTANCE_UID, "0");
-  index_->SetMainDicomTag(a[1], DICOM_TAG_STUDY_INSTANCE_UID, "1");
-  index_->SetMainDicomTag(a[2], DICOM_TAG_STUDY_INSTANCE_UID, "0");
-  index_->SetMainDicomTag(a[3], DICOM_TAG_SERIES_INSTANCE_UID, "0");
+  index_->SetIdentifierTag(a[0], DICOM_TAG_STUDY_INSTANCE_UID, "0");
+  index_->SetIdentifierTag(a[1], DICOM_TAG_STUDY_INSTANCE_UID, "1");
+  index_->SetIdentifierTag(a[2], DICOM_TAG_STUDY_INSTANCE_UID, "0");
+  index_->SetIdentifierTag(a[3], DICOM_TAG_SERIES_INSTANCE_UID, "0");
 
   std::list<int64_t> s;
 

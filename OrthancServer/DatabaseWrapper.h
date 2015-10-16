@@ -178,6 +178,13 @@ namespace Orthanc
       base_.SetMainDicomTag(id, tag, value);
     }
 
+    virtual void SetIdentifierTag(int64_t id,
+                                 const DicomTag& tag,
+                                 const std::string& value)
+    {
+      base_.SetIdentifierTag(id, tag, value);
+    }
+
     virtual void GetMainDicomTags(DicomMap& map,
                                   int64_t id)
     {

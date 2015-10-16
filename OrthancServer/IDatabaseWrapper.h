@@ -178,6 +178,10 @@ namespace Orthanc
                                  const DicomTag& tag,
                                  const std::string& value) = 0;
 
+    virtual void SetIdentifierTag(int64_t id,
+                                  const DicomTag& tag,
+                                  const std::string& value) = 0;
+
     virtual void SetMetadata(int64_t id,
                              MetadataType type,
                              const std::string& value) = 0;
