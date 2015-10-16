@@ -360,10 +360,15 @@ namespace Orthanc
     {
       LOG(WARNING) << "Upgrading database version from 5 to 6";
       // No change in the DB schema, the step from version 5 to 6 only
-      // consists in reconstructing the main DICOM tags information.
+      // consists in reconstructing the main DICOM tags information
+      // (as more tags got included).
       db_.BeginTransaction();
+      Toolbox::ReconstructMainDicomTags(*this, storageArea, ResourceType_Patient);
       Toolbox::ReconstructMainDicomTags(*this, storageArea, ResourceType_Study);
       Toolbox::ReconstructMainDicomTags(*this, storageArea, ResourceType_Series);
+      Toolbox::ReconstructMainDicomTags(*this, storageArea, ResourceType_Instance);
+      db_.Execute("UPDATE GlobalProperties SET value=\"6\" WHERE property=" +
+                  boost::lexical_cast<std::string>(GlobalProperty_DatabaseSchemaVersion) + ";");
       db_.CommitTransaction();
       version_ = 6;
     }    
