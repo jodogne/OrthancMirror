@@ -246,7 +246,7 @@ public:
                                 uint16_t element,
                                 const char* value)
   {
-    base_.SetMainDicomTag(id, Orthanc::DicomTag(group, element), value);
+    base_.SetIdentifierTag(id, Orthanc::DicomTag(group, element), value);
   }
 
   virtual void SetMetadata(int64_t id,
