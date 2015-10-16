@@ -687,14 +687,7 @@ namespace Orthanc
       {
         study = CreateResource(hasher.HashStudy(), ResourceType_Study);
         Toolbox::SetMainDicomTags(db_, study, ResourceType_Study, dicomSummary, true);
-
-        // New in version 0.9.5 (db v6)
-        Toolbox::SetMainDicomTags(db_, study, ResourceType_Patient, dicomSummary, false);
-
-        DicomMap module;
-        Toolbox::ExtractModule(module, dicomSummary, DicomModule_Patient, true  /* normalize */);
-        Toolbox::ExtractModule(module, dicomSummary, DicomModule_Study, true  /* normalize */);
-        db_.StoreStudyModule(study, module);
+        Toolbox::SetMainDicomTags(db_, study, ResourceType_Patient, dicomSummary, false);  // New in version 0.9.5 (db v6)
       }
 
       // Create the patient if needed
