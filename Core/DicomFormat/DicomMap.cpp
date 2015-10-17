@@ -57,10 +57,10 @@ namespace Orthanc
   {
     //DicomTag(0x0010, 0x1020), // PatientSize
     //DicomTag(0x0010, 0x1030)  // PatientWeight
-    DicomTag(0x0008, 0x0020),   // StudyDate
+    DICOM_TAG_STUDY_DATE,
     DicomTag(0x0008, 0x0030),   // StudyTime
-    DicomTag(0x0008, 0x1030),   // StudyDescription
     DicomTag(0x0020, 0x0010),   // StudyID
+    DICOM_TAG_STUDY_DESCRIPTION,
     DICOM_TAG_ACCESSION_NUMBER,
     DICOM_TAG_STUDY_INSTANCE_UID
   };
@@ -73,7 +73,7 @@ namespace Orthanc
     DicomTag(0x0008, 0x0060),   // Modality
     DicomTag(0x0008, 0x0070),   // Manufacturer
     DicomTag(0x0008, 0x1010),   // StationName
-    DicomTag(0x0008, 0x103e),   // SeriesDescription
+    DICOM_TAG_SERIES_DESCRIPTION,
     DicomTag(0x0018, 0x0015),   // BodyPartExamined
     DicomTag(0x0018, 0x0024),   // SequenceName
     DicomTag(0x0018, 0x1030),   // ProtocolName

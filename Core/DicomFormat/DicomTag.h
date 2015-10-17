@@ -109,6 +109,9 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_PATIENT_NAME(0x0010, 0x0010);
   static const DicomTag DICOM_TAG_ENCAPSULATED_DOCUMENT(0x0042, 0x0011);
 
+  static const DicomTag DICOM_TAG_STUDY_DESCRIPTION(0x0008, 0x1030);
+  static const DicomTag DICOM_TAG_SERIES_DESCRIPTION(0x0008, 0x103e);
+
   // The following is used for "modify/anonymize" operations
   static const DicomTag DICOM_TAG_SOP_CLASS_UID(0x0008, 0x0016);
   static const DicomTag DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID(0x0002, 0x0002);

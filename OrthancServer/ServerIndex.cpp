@@ -627,7 +627,7 @@ namespace Orthanc
 
       // Create the instance
       int64_t instance = CreateResource(hasher.HashInstance(), ResourceType_Instance);
-      Toolbox::SetMainDicomTags(db_, instance, ResourceType_Instance, dicomSummary, true);
+      Toolbox::SetMainDicomTags(db_, instance, ResourceType_Instance, dicomSummary);
 
       // Detect up to which level the patient/study/series/instance
       // hierarchy must be created
@@ -679,22 +679,21 @@ namespace Orthanc
       if (isNewSeries)
       {
         series = CreateResource(hasher.HashSeries(), ResourceType_Series);
-        Toolbox::SetMainDicomTags(db_, series, ResourceType_Series, dicomSummary, true);
+        Toolbox::SetMainDicomTags(db_, series, ResourceType_Series, dicomSummary);
       }
 
       // Create the study if needed
       if (isNewStudy)
       {
         study = CreateResource(hasher.HashStudy(), ResourceType_Study);
-        Toolbox::SetMainDicomTags(db_, study, ResourceType_Study, dicomSummary, true);
-        Toolbox::SetMainDicomTags(db_, study, ResourceType_Patient, dicomSummary, false);  // New in version 0.9.5 (db v6)
+        Toolbox::SetMainDicomTags(db_, study, ResourceType_Study, dicomSummary);
       }
 
       // Create the patient if needed
       if (isNewPatient)
       {
         patient = CreateResource(hasher.HashPatient(), ResourceType_Patient);
-        Toolbox::SetMainDicomTags(db_, patient, ResourceType_Patient, dicomSummary, true);
+        Toolbox::SetMainDicomTags(db_, patient, ResourceType_Patient, dicomSummary);
       }
 
       // Create the parent-to-child links
