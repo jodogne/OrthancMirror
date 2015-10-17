@@ -158,11 +158,39 @@ namespace Orthanc
     }
 
 
+    static void SetMainDicomTagsInternal(IDatabaseWrapper& database,
+                                         int64_t resource,
+                                         const DicomMap& tags)
+    {
+      DicomArray flattened(tags);
+
+      for (size_t i = 0; i < flattened.GetSize(); i++)
+      {
+        const DicomElement& element = flattened.GetElement(i);
+        const DicomTag& tag = element.GetTag();
+        database.SetMainDicomTag(resource, tag, element.GetValue().AsString());
+      }
+    }
+
+
+    static void SetIdentifierTagInternal(IDatabaseWrapper& database,
+                                         int64_t resource,
+                                         const DicomMap& tags,
+                                         const DicomTag& tag)
+    {
+      const DicomValue* value = tags.TestAndGetValue(tag);
+      if (value != NULL &&
+          !value->IsNull())
+      {
+        database.SetIdentifierTag(resource, tag, value->AsString());
+      }
+    }
+
+
     void SetMainDicomTags(IDatabaseWrapper& database,
                           int64_t resource,
                           ResourceType level,
-                          const DicomMap& dicomSummary,
-                          bool includeIdentifiers)
+                          const DicomMap& dicomSummary)
     {
       // WARNING: The database should be locked with a transaction!
 
@@ -172,41 +200,39 @@ namespace Orthanc
       {
         case ResourceType_Patient:
           dicomSummary.ExtractPatientInformation(tags);
+          SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_PATIENT_ID);
           break;
 
         case ResourceType_Study:
           dicomSummary.ExtractStudyInformation(tags);
+          SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_STUDY_INSTANCE_UID);
+          SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_STUDY_DESCRIPTION);  // ???
+          SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_STUDY_DATE);  // ???
           break;
 
         case ResourceType_Series:
           dicomSummary.ExtractSeriesInformation(tags);
+          SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_SERIES_INSTANCE_UID);
           break;
 
         case ResourceType_Instance:
           dicomSummary.ExtractInstanceInformation(tags);
+          SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_SOP_INSTANCE_UID);
           break;
 
         default:
           throw OrthancException(ErrorCode_InternalError);
       }
 
-      DicomArray flattened(tags);
-      for (size_t i = 0; i < flattened.GetSize(); i++)
-      {
-        const DicomElement& element = flattened.GetElement(i);
-        const DicomTag& tag = element.GetTag();
+      SetMainDicomTagsInternal(database, resource, tags);
 
-        if (tag.IsIdentifier())
-        {
-          if (includeIdentifiers)
-          {
-            database.SetIdentifierTag(resource, tag, element.GetValue().AsString());
-          }
-        }
-        else
-        {
-          database.SetMainDicomTag(resource, tag, element.GetValue().AsString());
-        }
+      // Duplicate the patient tags at the study level (new in Orthanc 0.9.5 - db v6)
+      if (level == ResourceType_Study)
+      {
+        dicomSummary.ExtractPatientInformation(tags);
+        SetMainDicomTagsInternal(database, resource, tags);
+        SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_PATIENT_NAME);  // ???
+        SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_PATIENT_BIRTH_DATE);  // ???
       }
     }
 
@@ -306,31 +332,7 @@ namespace Orthanc
         dicom.Convert(dicomSummary);
 
         database.ClearMainDicomTags(resource);
-
-        switch (level)
-        {
-          case ResourceType_Patient:
-            Toolbox::SetMainDicomTags(database, resource, ResourceType_Patient, dicomSummary, true);
-            break;
-
-          case ResourceType_Study:
-            Toolbox::SetMainDicomTags(database, resource, ResourceType_Study, dicomSummary, true);
-
-            // Duplicate the patient tags at the study level (new in Orthanc 0.9.5 - db v6)
-            Toolbox::SetMainDicomTags(database, resource, ResourceType_Patient, dicomSummary, false);
-            break;
-
-          case ResourceType_Series:
-            Toolbox::SetMainDicomTags(database, resource, ResourceType_Series, dicomSummary, true);
-            break;
-
-          case ResourceType_Instance:
-            Toolbox::SetMainDicomTags(database, resource, ResourceType_Instance, dicomSummary, true);
-            break;
-
-          default:
-            throw OrthancException(ErrorCode_InternalError);
-        }
+        Toolbox::SetMainDicomTags(database, resource, level, dicomSummary);
       }
     }
   }

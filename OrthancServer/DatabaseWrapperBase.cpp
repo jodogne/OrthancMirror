@@ -351,15 +351,6 @@ namespace Orthanc
                    s.ColumnInt(2),
                    s.ColumnString(3));
     }
-
-    SQLite::Statement s2(db_, SQLITE_FROM_HERE, "SELECT * FROM DicomIdentifiers WHERE id=?");
-    s2.BindInt64(0, id);
-    while (s2.Step())
-    {
-      map.SetValue(s2.ColumnInt(1),
-                   s2.ColumnInt(2),
-                   s2.ColumnString(3));
-    }
   }
 
 
