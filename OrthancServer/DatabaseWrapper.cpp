@@ -268,6 +268,8 @@ namespace Orthanc
 
   void DatabaseWrapper::Open()
   {
+    db_.Execute("PRAGMA ENCODING=\"UTF-8\";");
+
     // Performance tuning of SQLite with PRAGMAs
     // http://www.sqlite.org/pragma.html
     db_.Execute("PRAGMA SYNCHRONOUS=NORMAL;");
