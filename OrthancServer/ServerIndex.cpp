@@ -873,29 +873,6 @@ namespace Orthanc
   }
 
 
-  static std::string GetPatientIdOfStudy(IDatabaseWrapper& db,
-                                         int64_t resourceId)
-  {
-    int64_t patient;
-    if (!db.LookupParent(patient, resourceId))
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    DicomMap tags;
-    db.GetMainDicomTags(tags, patient);
-
-    if (tags.HasTag(DICOM_TAG_PATIENT_ID))
-    {
-      return tags.GetValue(DICOM_TAG_PATIENT_ID).AsString();
-    }
-    else
-    {
-      return "";
-    }
-  }
-
-
   void ServerIndex::MainDicomTagsToJson(Json::Value& target,
                                         int64_t resourceId,
                                         ResourceType resourceType)
@@ -914,8 +891,6 @@ namespace Orthanc
 
       target["PatientMainDicomTags"] = Json::objectValue;
       FromDcmtkBridge::ToJson(target["PatientMainDicomTags"], t2, true);
-
-      target["PatientMainDicomTags"]["PatientID"] = GetPatientIdOfStudy(db_, resourceId);
     }
     else
     {
@@ -2136,7 +2111,6 @@ namespace Orthanc
       {
         case ResourceType_Patient:
           tmp.ExtractPatientInformation(result);
-          result.SetValue(DICOM_TAG_PATIENT_ID, GetPatientIdOfStudy(db_, id));
           return true;
 
         case ResourceType_Study:
