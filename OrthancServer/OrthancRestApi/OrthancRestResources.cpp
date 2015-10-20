@@ -879,20 +879,44 @@ namespace Orthanc
   }
 
 
+  namespace
+  {
+    typedef std::list< std::pair<ResourceType, std::string> >  LookupResults;
+  }
+
+
+  static void AccumulateLookupResults(LookupResults& result,
+                                      ServerIndex& index,
+                                      const DicomTag& tag,
+                                      const std::string& value,
+                                      ResourceType level)
+  {
+    std::list<std::string> tmp;
+    index.LookupIdentifier(tmp, tag, value, level);
+
+    for (std::list<std::string>::const_iterator
+           it = tmp.begin(); it != tmp.end(); ++it)
+    {
+      result.push_back(std::make_pair(level, *it));
+    }
+  }
+
+
   static void Lookup(RestApiPostCall& call)
   {
-    typedef std::list< std::pair<ResourceType, std::string> >  Resources;
-
     std::string tag;
     call.BodyToString(tag);
-    Resources resources;
 
-    OrthancRestApi::GetIndex(call).LookupIdentifier(resources, tag);
+    LookupResults resources;
+    ServerIndex& index = OrthancRestApi::GetIndex(call);
+    AccumulateLookupResults(resources, index, DICOM_TAG_PATIENT_ID, tag, ResourceType_Patient);
+    AccumulateLookupResults(resources, index, DICOM_TAG_STUDY_INSTANCE_UID, tag, ResourceType_Study);
+    AccumulateLookupResults(resources, index, DICOM_TAG_SERIES_INSTANCE_UID, tag, ResourceType_Series);
+    AccumulateLookupResults(resources, index, DICOM_TAG_SOP_INSTANCE_UID, tag, ResourceType_Instance);
 
-    Json::Value result = Json::arrayValue;
-    
-    for (Resources::const_iterator it = resources.begin();
-         it != resources.end(); ++it)
+    Json::Value result = Json::arrayValue;    
+    for (LookupResults::const_iterator 
+           it = resources.begin(); it != resources.end(); ++it)
     {     
       ResourceType type = it->first;
       const std::string& id = it->second;

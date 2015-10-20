@@ -240,13 +240,6 @@ namespace Orthanc
                           const std::string& value,
                           ResourceType type);
 
-    void LookupIdentifier(std::list<std::string>& result,
-                          const DicomTag& tag,
-                          const std::string& value);
-
-    void LookupIdentifier(std::list< std::pair<ResourceType, std::string> >& result,
-                          const std::string& value);
-
     StoreStatus AddAttachment(const FileInfo& attachment,
                               const std::string& publicId);
 

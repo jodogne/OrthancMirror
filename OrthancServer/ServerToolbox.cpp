@@ -158,11 +158,63 @@ namespace Orthanc
     }
 
 
+    static void SetMainDicomTagsInternal(IDatabaseWrapper& database,
+                                         int64_t resource,
+                                         const DicomMap& tags)
+    {
+      DicomArray flattened(tags);
+
+      for (size_t i = 0; i < flattened.GetSize(); i++)
+      {
+        const DicomElement& element = flattened.GetElement(i);
+        const DicomTag& tag = element.GetTag();
+        database.SetMainDicomTag(resource, tag, element.GetValue().AsString());
+      }
+    }
+
+
+    static void SetIdentifierTagInternal(IDatabaseWrapper& database,
+                                         int64_t resource,
+                                         const DicomMap& tags,
+                                         const DicomTag& tag)
+    {
+      const DicomValue* value = tags.TestAndGetValue(tag);
+      if (value != NULL &&
+          !value->IsNull())
+      {
+        std::string s = value->AsString();
+
+        if (tag != DICOM_TAG_PATIENT_ID &&
+            tag != DICOM_TAG_STUDY_INSTANCE_UID &&
+            tag != DICOM_TAG_SERIES_INSTANCE_UID &&
+            tag != DICOM_TAG_SOP_INSTANCE_UID &&
+            tag != DICOM_TAG_ACCESSION_NUMBER)
+        {
+          s = NormalizeIdentifierTag(s);
+        }
+
+        database.SetIdentifierTag(resource, tag, s);
+      }
+    }
+
+
+    static void AttachPatientInformation(IDatabaseWrapper& database,
+                                         int64_t resource,
+                                         const DicomMap& dicomSummary)
+    {
+      DicomMap tags;
+      dicomSummary.ExtractPatientInformation(tags);
+      SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_PATIENT_ID);
+      SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_PATIENT_NAME);
+      SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_PATIENT_BIRTH_DATE);
+      SetMainDicomTagsInternal(database, resource, tags);
+    }
+
+
     void SetMainDicomTags(IDatabaseWrapper& database,
                           int64_t resource,
                           ResourceType level,
-                          const DicomMap& dicomSummary,
-                          bool includeIdentifiers)
+                          const DicomMap& dicomSummary)
     {
       // WARNING: The database should be locked with a transaction!
 
@@ -171,36 +223,35 @@ namespace Orthanc
       switch (level)
       {
         case ResourceType_Patient:
-          dicomSummary.ExtractPatientInformation(tags);
+          AttachPatientInformation(database, resource, dicomSummary);
           break;
 
         case ResourceType_Study:
+          // Duplicate the patient tags at the study level (new in Orthanc 0.9.5 - db v6)
+          AttachPatientInformation(database, resource, dicomSummary);
+
           dicomSummary.ExtractStudyInformation(tags);
+          SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_STUDY_INSTANCE_UID);
+          SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_ACCESSION_NUMBER);
+          SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_STUDY_DESCRIPTION);
+          SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_STUDY_DATE);
           break;
 
         case ResourceType_Series:
           dicomSummary.ExtractSeriesInformation(tags);
+          SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_SERIES_INSTANCE_UID);
           break;
 
         case ResourceType_Instance:
           dicomSummary.ExtractInstanceInformation(tags);
+          SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_SOP_INSTANCE_UID);
           break;
 
         default:
           throw OrthancException(ErrorCode_InternalError);
       }
 
-      DicomArray flattened(tags);
-      for (size_t i = 0; i < flattened.GetSize(); i++)
-      {
-        const DicomElement& element = flattened.GetElement(i);
-
-        if (includeIdentifiers ||
-            !element.GetTag().IsIdentifier())
-        {
-          database.SetMainDicomTag(resource, element.GetTag(), element.GetValue().AsString());
-        }
-      }
+      SetMainDicomTagsInternal(database, resource, tags);
     }
 
 
@@ -299,32 +350,16 @@ namespace Orthanc
         dicom.Convert(dicomSummary);
 
         database.ClearMainDicomTags(resource);
-
-        switch (level)
-        {
-          case ResourceType_Patient:
-            Toolbox::SetMainDicomTags(database, resource, ResourceType_Patient, dicomSummary, true);
-            break;
-
-          case ResourceType_Study:
-            Toolbox::SetMainDicomTags(database, resource, ResourceType_Study, dicomSummary, true);
-
-            // Duplicate the patient tags at the study level (new in Orthanc 0.9.5 - db v6)
-            Toolbox::SetMainDicomTags(database, resource, ResourceType_Patient, dicomSummary, false);
-            break;
-
-          case ResourceType_Series:
-            Toolbox::SetMainDicomTags(database, resource, ResourceType_Series, dicomSummary, true);
-            break;
-
-          case ResourceType_Instance:
-            Toolbox::SetMainDicomTags(database, resource, ResourceType_Instance, dicomSummary, true);
-            break;
-
-          default:
-            throw OrthancException(ErrorCode_InternalError);
-        }
+        Toolbox::SetMainDicomTags(database, resource, level, dicomSummary);
       }
+    }
+
+
+    std::string NormalizeIdentifierTag(const std::string& value)
+    {
+      std::string s = Toolbox::ConvertToAscii(Toolbox::StripSpaces(value));
+      Toolbox::ToUpperCase(s);
+      return s;
     }
   }
 }

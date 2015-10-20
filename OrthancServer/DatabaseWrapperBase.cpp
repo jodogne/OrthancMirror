@@ -312,11 +312,11 @@ namespace Orthanc
   }
 
 
-  static void SetMainDicomTagsInternal(SQLite::Statement& s,
-                                       int64_t id,
-                                       const DicomTag& tag,
-                                       const std::string& value)
+  void DatabaseWrapperBase::SetMainDicomTag(int64_t id,
+                                            const DicomTag& tag,
+                                            const std::string& value)
   {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO MainDicomTags VALUES(?, ?, ?, ?)");
     s.BindInt64(0, id);
     s.BindInt(1, tag.GetGroup());
     s.BindInt(2, tag.GetElement());
@@ -325,21 +325,18 @@ namespace Orthanc
   }
 
 
-  void DatabaseWrapperBase::SetMainDicomTag(int64_t id,
-                                            const DicomTag& tag,
-                                            const std::string& value)
+  void DatabaseWrapperBase::SetIdentifierTag(int64_t id,
+                                             const DicomTag& tag,
+                                             const std::string& value)
   {
-    if (tag.IsIdentifier())
-    {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO DicomIdentifiers VALUES(?, ?, ?, ?)");
-      SetMainDicomTagsInternal(s, id, tag, value);
-    }
-    else
-    {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO MainDicomTags VALUES(?, ?, ?, ?)");
-      SetMainDicomTagsInternal(s, id, tag, value);
-    }
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO DicomIdentifiers VALUES(?, ?, ?, ?)");
+    s.BindInt64(0, id);
+    s.BindInt(1, tag.GetGroup());
+    s.BindInt(2, tag.GetElement());
+    s.BindString(3, value);
+    s.Run();
   }
+
 
   void DatabaseWrapperBase::GetMainDicomTags(DicomMap& map,
                                              int64_t id)
@@ -353,15 +350,6 @@ namespace Orthanc
       map.SetValue(s.ColumnInt(1),
                    s.ColumnInt(2),
                    s.ColumnString(3));
-    }
-
-    SQLite::Statement s2(db_, SQLITE_FROM_HERE, "SELECT * FROM DicomIdentifiers WHERE id=?");
-    s2.BindInt64(0, id);
-    while (s2.Step())
-    {
-      map.SetValue(s2.ColumnInt(1),
-                   s2.ColumnInt(2),
-                   s2.ColumnString(3));
     }
   }
 
@@ -681,29 +669,18 @@ namespace Orthanc
                                              const DicomTag& tag,
                                              const std::string& value)
   {
+    assert(tag == DICOM_TAG_PATIENT_ID ||
+           tag == DICOM_TAG_STUDY_INSTANCE_UID ||
+           tag == DICOM_TAG_SERIES_INSTANCE_UID ||
+           tag == DICOM_TAG_SOP_INSTANCE_UID ||
+           tag == DICOM_TAG_ACCESSION_NUMBER);
+    
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT id FROM DicomIdentifiers WHERE tagGroup=? AND tagElement=? and value=?");
 
     s.BindInt(0, tag.GetGroup());
     s.BindInt(1, tag.GetElement());
     s.BindString(2, value);
-
-    target.clear();
-
-    while (s.Step())
-    {
-      target.push_back(s.ColumnInt64(0));
-    }
-  }
-
-
-  void DatabaseWrapperBase::LookupIdentifier(std::list<int64_t>& target,
-                                             const std::string& value)
-  {
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-                        "SELECT id FROM DicomIdentifiers WHERE value=?");
-
-    s.BindString(0, value);
 
     target.clear();
 

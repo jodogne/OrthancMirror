@@ -132,6 +132,10 @@ namespace Orthanc
                          const DicomTag& tag,
                          const std::string& value);
 
+    void SetIdentifierTag(int64_t id,
+                          const DicomTag& tag,
+                          const std::string& value);
+
     void GetMainDicomTags(DicomMap& map,
                           int64_t id);
 
@@ -188,9 +192,6 @@ namespace Orthanc
 
     void LookupIdentifier(std::list<int64_t>& target,
                           const DicomTag& tag,
-                          const std::string& value);
-
-    void LookupIdentifier(std::list<int64_t>& target,
                           const std::string& value);
   };
 }
