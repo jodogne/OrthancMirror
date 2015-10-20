@@ -187,14 +187,14 @@ public:
     return base_.LookupGlobalProperty(target, static_cast<Orthanc::GlobalProperty>(property));
   }
 
-  virtual void LookupIdentifier(std::list<int64_t>& target /*out*/,
-                                OrthancPluginResourceType level,
-                                uint16_t group,
-                                uint16_t element,
-                                const char* value)
+  virtual void LookupIdentifierExact(std::list<int64_t>& target /*out*/,
+                                     OrthancPluginResourceType level,
+                                     uint16_t group,
+                                     uint16_t element,
+                                     const char* value)
   {
-    base_.LookupIdentifier(target, Orthanc::Plugins::Convert(level),
-                           Orthanc::DicomTag(group, element), value);
+    base_.LookupIdentifierExact(target, Orthanc::Plugins::Convert(level),
+                                Orthanc::DicomTag(group, element), value);
   }
 
   virtual bool LookupMetadata(std::string& target /*out*/,

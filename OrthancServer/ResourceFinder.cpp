@@ -160,7 +160,7 @@ namespace Orthanc
                 << FromDcmtkBridge::GetName(tag) << " (value: " << value << ")";
 
       std::list<std::string> resources;
-      index_.LookupIdentifier(resources, level_, tag, value);
+      index_.LookupIdentifierExact(resources, level_, tag, value);
 
       if (isFilterApplied_)
       {

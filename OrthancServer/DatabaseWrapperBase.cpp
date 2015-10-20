@@ -665,10 +665,10 @@ namespace Orthanc
   }
 
 
-  void DatabaseWrapperBase::LookupIdentifier(std::list<int64_t>& target,
-                                             ResourceType level,
-                                             const DicomTag& tag,
-                                             const std::string& value)
+  void DatabaseWrapperBase::LookupIdentifierExact(std::list<int64_t>& target,
+                                                  ResourceType level,
+                                                  const DicomTag& tag,
+                                                  const std::string& value)
   {
     assert((level == ResourceType_Patient && tag == DICOM_TAG_PATIENT_ID) ||
            (level == ResourceType_Study && tag == DICOM_TAG_STUDY_INSTANCE_UID) ||

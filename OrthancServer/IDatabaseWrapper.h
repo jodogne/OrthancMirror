@@ -146,10 +146,10 @@ namespace Orthanc
     virtual bool LookupGlobalProperty(std::string& target,
                                       GlobalProperty property) = 0;
 
-    virtual void LookupIdentifier(std::list<int64_t>& target,
-                                  ResourceType level,
-                                  const DicomTag& tag,
-                                  const std::string& value) = 0;
+    virtual void LookupIdentifierExact(std::list<int64_t>& target,
+                                       ResourceType level,
+                                       const DicomTag& tag,
+                                       const std::string& value) = 0;
 
     virtual bool LookupMetadata(std::string& target,
                                 int64_t id,

@@ -409,11 +409,11 @@ namespace OrthancPlugins
      * SeriesInstanceUID (0x0020, 0x000e), SOPInstanceUID (0x0008,
      * 0x0018) or AccessionNumber (0x0008, 0x0050).
      **/
-    virtual void LookupIdentifier(std::list<int64_t>& target /*out*/,
-                                  OrthancPluginResourceType resourceType,
-                                  uint16_t group,
-                                  uint16_t element,
-                                  const char* value) = 0;
+    virtual void LookupIdentifierExact(std::list<int64_t>& target /*out*/,
+                                       OrthancPluginResourceType resourceType,
+                                       uint16_t group,
+                                       uint16_t element,
+                                       const char* value) = 0;
 
     virtual bool LookupMetadata(std::string& target /*out*/,
                                 int64_t id,
@@ -1296,10 +1296,10 @@ namespace OrthancPlugins
     }
 
 
-    static OrthancPluginErrorCode  LookupIdentifier(OrthancPluginDatabaseContext* context,
-                                                    void* payload,
-                                                    OrthancPluginResourceType resourceType,
-                                                    const OrthancPluginDicomTag* tag)
+    static OrthancPluginErrorCode  LookupIdentifierExact(OrthancPluginDatabaseContext* context,
+                                                         void* payload,
+                                                         OrthancPluginResourceType resourceType,
+                                                         const OrthancPluginDicomTag* tag)
     {
       IDatabaseBackend* backend = reinterpret_cast<IDatabaseBackend*>(payload);
       backend->GetOutput().SetAllowedAnswers(DatabaseBackendOutput::AllowedAnswers_None);
@@ -1307,7 +1307,7 @@ namespace OrthancPlugins
       try
       {
         std::list<int64_t> target;
-        backend->LookupIdentifier(target, resourceType, tag->group, tag->element, tag->value);
+        backend->LookupIdentifierExact(target, resourceType, tag->group, tag->element, tag->value);
 
         for (std::list<int64_t>::const_iterator
                it = target.begin(); it != target.end(); ++it)
@@ -1848,7 +1848,7 @@ namespace OrthancPlugins
       extensions.getDatabaseVersion = GetDatabaseVersion;
       extensions.upgradeDatabase = UpgradeDatabase;
       extensions.clearMainDicomTags = ClearMainDicomTags;
-      extensions.lookupIdentifier3 = LookupIdentifier;   // New in Orthanc 0.9.5 (db v6)
+      extensions.lookupIdentifierExact = LookupIdentifierExact;   // New in Orthanc 0.9.5 (db v6)
 
       OrthancPluginDatabaseContext* database = OrthancPluginRegisterDatabaseBackendV2(context, &params, &extensions, &backend);
       if (!context)

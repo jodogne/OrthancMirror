@@ -892,7 +892,7 @@ namespace Orthanc
                                       ResourceType level)
   {
     std::list<std::string> tmp;
-    index.LookupIdentifier(tmp, level, tag, value);
+    index.LookupIdentifierExact(tmp, level, tag, value);
 
     for (std::list<std::string>::const_iterator
            it = tmp.begin(); it != tmp.end(); ++it)
