@@ -184,7 +184,11 @@ namespace Orthanc
       {
         std::string s = value->AsString();
 
-        if (!tag.IsIdentifier())
+        if (tag != DICOM_TAG_PATIENT_ID &&
+            tag != DICOM_TAG_STUDY_INSTANCE_UID &&
+            tag != DICOM_TAG_SERIES_INSTANCE_UID &&
+            tag != DICOM_TAG_SOP_INSTANCE_UID &&
+            tag != DICOM_TAG_ACCESSION_NUMBER)
         {
           s = NormalizeIdentifierTag(s);
         }

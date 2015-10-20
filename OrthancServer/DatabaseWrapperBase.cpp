@@ -669,6 +669,12 @@ namespace Orthanc
                                              const DicomTag& tag,
                                              const std::string& value)
   {
+    assert(tag == DICOM_TAG_PATIENT_ID ||
+           tag == DICOM_TAG_STUDY_INSTANCE_UID ||
+           tag == DICOM_TAG_SERIES_INSTANCE_UID ||
+           tag == DICOM_TAG_SOP_INSTANCE_UID ||
+           tag == DICOM_TAG_ACCESSION_NUMBER);
+    
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                         "SELECT id FROM DicomIdentifiers WHERE tagGroup=? AND tagElement=? and value=?");
 

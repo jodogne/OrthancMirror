@@ -1893,6 +1893,12 @@ namespace Orthanc
                                      const std::string& value,
                                      ResourceType type)
   {
+    assert(tag == DICOM_TAG_PATIENT_ID ||
+           tag == DICOM_TAG_STUDY_INSTANCE_UID ||
+           tag == DICOM_TAG_SERIES_INSTANCE_UID ||
+           tag == DICOM_TAG_SOP_INSTANCE_UID ||
+           tag == DICOM_TAG_ACCESSION_NUMBER);
+    
     result.clear();
 
     boost::mutex::scoped_lock lock(mutex_);
