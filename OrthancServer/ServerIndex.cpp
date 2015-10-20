@@ -1930,26 +1930,6 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::LookupIdentifier(LookupResults& result,
-                                     const DicomTag& tag,
-                                     const std::string& value)
-  {
-    result.clear();
-
-    boost::mutex::scoped_lock lock(mutex_);
-
-    std::list<int64_t> id;
-    db_.LookupIdentifier(id, tag, value);
-
-    for (std::list<int64_t>::const_iterator 
-           it = id.begin(); it != id.end(); ++it)
-    {
-      result.push_back(std::make_pair(db_.GetResourceType(*it),
-                                      db_.GetPublicId(*it)));
-    }
-  }
-
-
   StoreStatus ServerIndex::AddAttachment(const FileInfo& attachment,
                                          const std::string& publicId)
   {

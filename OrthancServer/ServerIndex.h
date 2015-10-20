@@ -245,10 +245,6 @@ namespace Orthanc
                           const DicomTag& tag,
                           const std::string& value);
 
-    void LookupIdentifier(LookupResults& result,
-                          const DicomTag& tag,
-                          const std::string& value);
-
     StoreStatus AddAttachment(const FileInfo& attachment,
                               const std::string& publicId);
 
