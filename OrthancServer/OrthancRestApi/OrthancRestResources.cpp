@@ -879,20 +879,32 @@ namespace Orthanc
   }
 
 
+  static void AccumulateLookupResults(ServerIndex::LookupResults& result,
+                                      ServerIndex& index,
+                                      const DicomTag& tag,
+                                      const std::string& value)
+  {
+    ServerIndex::LookupResults tmp;
+    index.LookupIdentifier(tmp, tag, value);
+    result.insert(result.end(), tmp.begin(), tmp.end());
+  }
+
+
   static void Lookup(RestApiPostCall& call)
   {
-    typedef std::list< std::pair<ResourceType, std::string> >  Resources;
-
     std::string tag;
     call.BodyToString(tag);
-    Resources resources;
 
-    OrthancRestApi::GetIndex(call).LookupIdentifier(resources, tag);
+    ServerIndex::LookupResults resources;
+    ServerIndex& index = OrthancRestApi::GetIndex(call);
+    AccumulateLookupResults(resources, index, DICOM_TAG_PATIENT_ID, tag);
+    AccumulateLookupResults(resources, index, DICOM_TAG_STUDY_INSTANCE_UID, tag);
+    AccumulateLookupResults(resources, index, DICOM_TAG_SERIES_INSTANCE_UID, tag);
+    AccumulateLookupResults(resources, index, DICOM_TAG_SOP_INSTANCE_UID, tag);
 
-    Json::Value result = Json::arrayValue;
-    
-    for (Resources::const_iterator it = resources.begin();
-         it != resources.end(); ++it)
+    Json::Value result = Json::arrayValue;    
+    for (ServerIndex::LookupResults::const_iterator 
+           it = resources.begin(); it != resources.end(); ++it)
     {     
       ResourceType type = it->first;
       const std::string& id = it->second;

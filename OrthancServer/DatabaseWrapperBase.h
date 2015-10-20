@@ -193,9 +193,6 @@ namespace Orthanc
     void LookupIdentifier(std::list<int64_t>& target,
                           const DicomTag& tag,
                           const std::string& value);
-
-    void LookupIdentifier(std::list<int64_t>& target,
-                          const std::string& value);
   };
 }
 

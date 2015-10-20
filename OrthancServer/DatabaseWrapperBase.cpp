@@ -683,21 +683,4 @@ namespace Orthanc
       target.push_back(s.ColumnInt64(0));
     }
   }
-
-
-  void DatabaseWrapperBase::LookupIdentifier(std::list<int64_t>& target,
-                                             const std::string& value)
-  {
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-                        "SELECT id FROM DicomIdentifiers WHERE value=?");
-
-    s.BindString(0, value);
-
-    target.clear();
-
-    while (s.Step())
-    {
-      target.push_back(s.ColumnInt64(0));
-    }
-  }
 }

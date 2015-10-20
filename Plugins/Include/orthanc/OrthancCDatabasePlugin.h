@@ -530,7 +530,8 @@ extern "C"
       void* payload,
       const OrthancPluginDicomTag* tag);
 
-    /* Output: Use OrthancPluginDatabaseAnswerInt64() */
+    /* Unused starting with Orthanc 0.9.5 (db v6), can be set to NULL.
+       Output: Use OrthancPluginDatabaseAnswerInt64() */
     OrthancPluginErrorCode  (*lookupIdentifier2) (
       /* outputs */
       OrthancPluginDatabaseContext* context,

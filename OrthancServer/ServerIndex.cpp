@@ -1930,7 +1930,8 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::LookupIdentifier(std::list< std::pair<ResourceType, std::string> >& result,
+  void ServerIndex::LookupIdentifier(LookupResults& result,
+                                     const DicomTag& tag,
                                      const std::string& value)
   {
     result.clear();
@@ -1938,7 +1939,7 @@ namespace Orthanc
     boost::mutex::scoped_lock lock(mutex_);
 
     std::list<int64_t> id;
-    db_.LookupIdentifier(id, value);
+    db_.LookupIdentifier(id, tag, value);
 
     for (std::list<int64_t>::const_iterator 
            it = id.begin(); it != id.end(); ++it)

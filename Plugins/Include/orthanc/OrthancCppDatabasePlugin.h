@@ -1331,39 +1331,6 @@ namespace OrthancPlugins
     }
 
 
-    static OrthancPluginErrorCode  LookupIdentifier2(OrthancPluginDatabaseContext* context,
-                                                     void* payload,
-                                                     const char* value)
-    {
-      IDatabaseBackend* backend = reinterpret_cast<IDatabaseBackend*>(payload);
-      backend->GetOutput().SetAllowedAnswers(DatabaseBackendOutput::AllowedAnswers_None);
-
-      try
-      {
-        std::list<int64_t> target;
-        backend->LookupIdentifier(target, value);
-
-        for (std::list<int64_t>::const_iterator
-               it = target.begin(); it != target.end(); ++it)
-        {
-          OrthancPluginDatabaseAnswerInt64(backend->GetOutput().context_,
-                                           backend->GetOutput().database_, *it);
-        }
-
-        return OrthancPluginErrorCode_Success;
-      }
-      catch (std::runtime_error& e)
-      {
-        LogError(backend, e);
-        return OrthancPluginErrorCode_DatabasePlugin;
-      }
-      catch (DatabaseException& e)
-      {
-        return e.GetErrorCode();
-      }
-    }
-
-
     static OrthancPluginErrorCode  LookupMetadata(OrthancPluginDatabaseContext* context,
                                                   void* payload,
                                                   int64_t id,
@@ -1861,7 +1828,7 @@ namespace OrthancPlugins
       params.lookupAttachment = LookupAttachment;
       params.lookupGlobalProperty = LookupGlobalProperty;
       params.lookupIdentifier = LookupIdentifier;
-      params.lookupIdentifier2 = LookupIdentifier2;
+      params.lookupIdentifier2 = NULL;   // Unused starting with Orthanc 0.9.5 (db v6)
       params.lookupMetadata = LookupMetadata;
       params.lookupParent = LookupParent;
       params.lookupResource = LookupResource;
