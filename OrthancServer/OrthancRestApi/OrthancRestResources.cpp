@@ -879,7 +879,13 @@ namespace Orthanc
   }
 
 
-  static void AccumulateLookupResults(ServerIndex::LookupResults& result,
+  namespace
+  {
+    typedef std::list< std::pair<ResourceType, std::string> >  LookupResults;
+  }
+
+
+  static void AccumulateLookupResults(LookupResults& result,
                                       ServerIndex& index,
                                       const DicomTag& tag,
                                       const std::string& value,
@@ -901,7 +907,7 @@ namespace Orthanc
     std::string tag;
     call.BodyToString(tag);
 
-    ServerIndex::LookupResults resources;
+    LookupResults resources;
     ServerIndex& index = OrthancRestApi::GetIndex(call);
     AccumulateLookupResults(resources, index, DICOM_TAG_PATIENT_ID, tag, ResourceType_Patient);
     AccumulateLookupResults(resources, index, DICOM_TAG_STUDY_INSTANCE_UID, tag, ResourceType_Study);
@@ -909,7 +915,7 @@ namespace Orthanc
     AccumulateLookupResults(resources, index, DICOM_TAG_SOP_INSTANCE_UID, tag, ResourceType_Instance);
 
     Json::Value result = Json::arrayValue;    
-    for (ServerIndex::LookupResults::const_iterator 
+    for (LookupResults::const_iterator 
            it = resources.begin(); it != resources.end(); ++it)
     {     
       ResourceType type = it->first;
