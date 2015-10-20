@@ -86,8 +86,6 @@ namespace Orthanc
 
     static void AddTagsForModule(std::set<DicomTag>& target,
                                  DicomModule module);
-
-    bool IsIdentifier() const;
   };
 
   // Aliases for the most useful tags

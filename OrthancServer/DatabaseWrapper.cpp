@@ -464,19 +464,6 @@ namespace Orthanc
   }
 
 
-  void DatabaseWrapper::LookupIdentifier(std::list<int64_t>& target,
-                                         const DicomTag& tag,
-                                         const std::string& value)
-  {
-    if (!tag.IsIdentifier())
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-
-    base_.LookupIdentifier(target, tag, value);
-  }
-
-
   void DatabaseWrapper::GetAllMetadata(std::map<MetadataType, std::string>& target,
                                        int64_t id)
   {
