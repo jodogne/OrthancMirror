@@ -594,10 +594,10 @@ namespace Orthanc
   }
 
 
-  void OrthancPluginDatabase::LookupIdentifier(std::list<int64_t>& target,
-                                               ResourceType level,
-                                               const DicomTag& tag,
-                                               const std::string& value)
+  void OrthancPluginDatabase::LookupIdentifierExact(std::list<int64_t>& target,
+                                                    ResourceType level,
+                                                    const DicomTag& tag,
+                                                    const std::string& value)
   {
     ResetAnswers();
 
@@ -606,17 +606,18 @@ namespace Orthanc
     tmp.element = tag.GetElement();
     tmp.value = value.c_str();
 
-    if (extensions_.lookupIdentifier3 != NULL)
+    if (extensions_.lookupIdentifierExact != NULL)
     {
-      CheckSuccess(extensions_.lookupIdentifier3(GetContext(), payload_, Plugins::Convert(level), &tmp));
+      CheckSuccess(extensions_.lookupIdentifierExact(GetContext(), payload_, Plugins::Convert(level), &tmp));
       ForwardAnswers(target);
     }
     else
     {
-      // Emulate "lookupIdentifier3" if unavailable
+      // Emulate "lookupIdentifierExact" if unavailable
 
       if (backend_.lookupIdentifier == NULL)
       {
+        LOG(ERROR) << "The plugin does not have the extension \"lookupIdentifierExact\"";
         throw OrthancException(ErrorCode_DatabasePlugin);
       }
 

@@ -315,12 +315,12 @@ namespace Orthanc
       return base_.IsExistingResource(internalId);
     }
 
-    virtual void LookupIdentifier(std::list<int64_t>& target,
-                                  ResourceType level,
-                                  const DicomTag& tag,
-                                  const std::string& value)
+    virtual void LookupIdentifierExact(std::list<int64_t>& target,
+                                       ResourceType level,
+                                       const DicomTag& tag,
+                                       const std::string& value)
     {
-      base_.LookupIdentifier(target, level, tag, value);
+      base_.LookupIdentifierExact(target, level, tag, value);
     }
 
     virtual void GetAllMetadata(std::map<MetadataType, std::string>& target,

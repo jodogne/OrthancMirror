@@ -190,10 +190,10 @@ namespace Orthanc
 
     bool IsExistingResource(int64_t internalId);
 
-    void LookupIdentifier(std::list<int64_t>& target,
-                          ResourceType level,
-                          const DicomTag& tag,
-                          const std::string& value);
+    void LookupIdentifierExact(std::list<int64_t>& target,
+                               ResourceType level,
+                               const DicomTag& tag,
+                               const std::string& value);
   };
 }
 
