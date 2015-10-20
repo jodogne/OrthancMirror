@@ -323,6 +323,13 @@ namespace Orthanc
       base_.LookupIdentifierExact(target, level, tag, value);
     }
 
+    virtual void LookupIdentifierWildcard(std::list<int64_t>& target,
+                                          const DicomTag& tag,
+                                          const std::string& value)
+    {
+      base_.LookupIdentifierWildcard(target, tag, value);
+    }
+
     virtual void GetAllMetadata(std::map<MetadataType, std::string>& target,
                                 int64_t id);
 
