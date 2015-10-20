@@ -35,6 +35,7 @@
 #include <map>
 
 #include "../Core/Enumerations.h"
+#include "../Core/DicomFormat/DicomTag.h"
 
 namespace Orthanc
 {
@@ -194,4 +195,6 @@ namespace Orthanc
   const char* EnumerationToString(TransferSyntax syntax);
 
   ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer);
+
+  DicomTag GetIdentifierTag(ResourceType level);
 }
