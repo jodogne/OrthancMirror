@@ -693,24 +693,24 @@ TEST_P(DatabaseWrapperTest, LookupIdentifier)
 
   std::list<int64_t> s;
 
-  index_->LookupIdentifier(s, DICOM_TAG_STUDY_INSTANCE_UID, "0");
+  index_->LookupIdentifier(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, "0");
   ASSERT_EQ(2u, s.size());
   ASSERT_TRUE(std::find(s.begin(), s.end(), a[0]) != s.end());
   ASSERT_TRUE(std::find(s.begin(), s.end(), a[2]) != s.end());
 
-  index_->LookupIdentifier(s, DICOM_TAG_SERIES_INSTANCE_UID, "0");
+  index_->LookupIdentifier(s, ResourceType_Series, DICOM_TAG_SERIES_INSTANCE_UID, "0");
   ASSERT_EQ(1u, s.size());
   ASSERT_TRUE(std::find(s.begin(), s.end(), a[3]) != s.end());
 
-  index_->LookupIdentifier(s, DICOM_TAG_STUDY_INSTANCE_UID, "1");
+  index_->LookupIdentifier(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, "1");
   ASSERT_EQ(1u, s.size());
   ASSERT_TRUE(std::find(s.begin(), s.end(), a[1]) != s.end());
 
-  index_->LookupIdentifier(s, DICOM_TAG_STUDY_INSTANCE_UID, "1");
+  index_->LookupIdentifier(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, "1");
   ASSERT_EQ(1u, s.size());
   ASSERT_TRUE(std::find(s.begin(), s.end(), a[1]) != s.end());
 
-  index_->LookupIdentifier(s, DICOM_TAG_SERIES_INSTANCE_UID, "1");
+  index_->LookupIdentifier(s, ResourceType_Series, DICOM_TAG_SERIES_INSTANCE_UID, "1");
   ASSERT_EQ(0u, s.size());
 
   /*{

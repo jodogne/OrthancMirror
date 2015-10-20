@@ -410,6 +410,7 @@ namespace OrthancPlugins
      * 0x0018) or AccessionNumber (0x0008, 0x0050).
      **/
     virtual void LookupIdentifier(std::list<int64_t>& target /*out*/,
+                                  OrthancPluginResourceType resourceType,
                                   uint16_t group,
                                   uint16_t element,
                                   const char* value) = 0;
@@ -1297,6 +1298,7 @@ namespace OrthancPlugins
 
     static OrthancPluginErrorCode  LookupIdentifier(OrthancPluginDatabaseContext* context,
                                                     void* payload,
+                                                    OrthancPluginResourceType resourceType,
                                                     const OrthancPluginDicomTag* tag)
     {
       IDatabaseBackend* backend = reinterpret_cast<IDatabaseBackend*>(payload);
@@ -1305,7 +1307,7 @@ namespace OrthancPlugins
       try
       {
         std::list<int64_t> target;
-        backend->LookupIdentifier(target, tag->group, tag->element, tag->value);
+        backend->LookupIdentifier(target, resourceType, tag->group, tag->element, tag->value);
 
         for (std::list<int64_t>::const_iterator
                it = target.begin(); it != target.end(); ++it)
@@ -1824,7 +1826,7 @@ namespace OrthancPlugins
       params.logExportedResource = LogExportedResource;
       params.lookupAttachment = LookupAttachment;
       params.lookupGlobalProperty = LookupGlobalProperty;
-      params.lookupIdentifier = LookupIdentifier;
+      params.lookupIdentifier = NULL;   // Unused starting with Orthanc 0.9.5 (db v6)
       params.lookupIdentifier2 = NULL;   // Unused starting with Orthanc 0.9.5 (db v6)
       params.lookupMetadata = LookupMetadata;
       params.lookupParent = LookupParent;
@@ -1846,6 +1848,7 @@ namespace OrthancPlugins
       extensions.getDatabaseVersion = GetDatabaseVersion;
       extensions.upgradeDatabase = UpgradeDatabase;
       extensions.clearMainDicomTags = ClearMainDicomTags;
+      extensions.lookupIdentifier3 = LookupIdentifier;   // New in Orthanc 0.9.5 (db v6)
 
       OrthancPluginDatabaseContext* database = OrthancPluginRegisterDatabaseBackendV2(context, &params, &extensions, &backend);
       if (!context)
