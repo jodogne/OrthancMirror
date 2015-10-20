@@ -194,6 +194,10 @@ namespace Orthanc
                                ResourceType level,
                                const DicomTag& tag,
                                const std::string& value);
+
+    void LookupIdentifierWildcard(std::list<int64_t>& target,
+                                  const DicomTag& tag,
+                                  const std::string& value);
   };
 }
 

@@ -151,6 +151,29 @@ namespace Orthanc
                                        const DicomTag& tag,
                                        const std::string& value) = 0;
 
+    /**
+     * Primitive for wildcard matching, as defined in DICOM:
+     * http://dicom.nema.org/dicom/2013/output/chtml/part04/sect_C.2.html#sect_C.2.2.2.4
+     * 
+     * "Any occurrence of an "*" or a "?", then "*" shall match any
+     * sequence of characters (including a zero length value) and "?"
+     * shall match any single character. This matching is case
+     * sensitive, except for Attributes with an PN Value
+     * Representation (e.g., Patient Name (0010,0010))."
+     * 
+     * Pay attention to the fact that "*" (resp. "?") generally
+     * corresponds to "%" (resp. "_") in primitive LIKE of SQL. The
+     * values "%", "_", "\" should in the user request should
+     * respectively be escaped as "\%", "\_" and "\\".
+     * 
+     * This matching must be case sensitive: The special case of PN VR
+     * is taken into consideration by normalizing the query string in
+     * method "ServerIndex::LookupIdentifierWildcard()".
+     **/
+    virtual void LookupIdentifierWildcard(std::list<int64_t>& target,
+                                          const DicomTag& tag,
+                                          const std::string& value) = 0;
+
     virtual bool LookupMetadata(std::string& target,
                                 int64_t id,
                                 MetadataType type) = 0;

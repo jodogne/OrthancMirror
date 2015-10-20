@@ -646,6 +646,15 @@ namespace Orthanc
   }
 
 
+  void OrthancPluginDatabase::LookupIdentifierWildcard(std::list<int64_t>& target,
+                                                       const DicomTag& tag,
+                                                       const std::string& value)
+  {
+    // TODO
+    throw OrthancException(ErrorCode_NotImplemented);
+  }
+
+
   bool OrthancPluginDatabase::LookupMetadata(std::string& target,
                                              int64_t id,
                                              MetadataType type)

@@ -677,8 +677,8 @@ namespace Orthanc
            (level == ResourceType_Instance && tag == DICOM_TAG_SOP_INSTANCE_UID));
     
     SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-                        "SELECT d.id FROM DicomIdentifiers as d, Resources as r WHERE "
-                        "d.id = r.internalId AND r.resourceType=? AND d.tagGroup=? AND d.tagElement=? and d.value=?");
+                        "SELECT d.id FROM DicomIdentifiers AS d, Resources AS r WHERE "
+                        "d.id = r.internalId AND r.resourceType=? AND d.tagGroup=? AND d.tagElement=? AND d.value=?");
 
     s.BindInt(0, level);
     s.BindInt(1, tag.GetGroup());
@@ -691,5 +691,14 @@ namespace Orthanc
     {
       target.push_back(s.ColumnInt64(0));
     }
+  }
+
+
+  void DatabaseWrapperBase::LookupIdentifierWildcard(std::list<int64_t>& target,
+                                                     const DicomTag& tag,
+                                                     const std::string& value)
+  {
+    // TODO
+    throw OrthancException(ErrorCode_NotImplemented);
   }
 }

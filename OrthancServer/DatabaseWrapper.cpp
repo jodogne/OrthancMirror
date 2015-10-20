@@ -373,7 +373,7 @@ namespace Orthanc
                   boost::lexical_cast<std::string>(GlobalProperty_DatabaseSchemaVersion) + ";");
       db_.CommitTransaction();
       version_ = 6;
-    }    
+    }
   }
 
 

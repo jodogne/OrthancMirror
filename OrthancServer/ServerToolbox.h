@@ -60,6 +60,6 @@ namespace Orthanc
                                   IStorageArea& storageArea,
                                   ResourceType level);
 
-    std::string NormalizeIdentifierTag(const std::string& value);
+    std::string NormalizeTagForWildcard(const std::string& value);
   }
 }
