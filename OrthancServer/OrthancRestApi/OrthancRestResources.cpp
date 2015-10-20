@@ -882,11 +882,17 @@ namespace Orthanc
   static void AccumulateLookupResults(ServerIndex::LookupResults& result,
                                       ServerIndex& index,
                                       const DicomTag& tag,
-                                      const std::string& value)
+                                      const std::string& value,
+                                      ResourceType level)
   {
-    ServerIndex::LookupResults tmp;
-    index.LookupIdentifier(tmp, tag, value);
-    result.insert(result.end(), tmp.begin(), tmp.end());
+    std::list<std::string> tmp;
+    index.LookupIdentifier(tmp, tag, value, level);
+
+    for (std::list<std::string>::const_iterator
+           it = tmp.begin(); it != tmp.end(); ++it)
+    {
+      result.push_back(std::make_pair(level, *it));
+    }
   }
 
 
@@ -897,10 +903,10 @@ namespace Orthanc
 
     ServerIndex::LookupResults resources;
     ServerIndex& index = OrthancRestApi::GetIndex(call);
-    AccumulateLookupResults(resources, index, DICOM_TAG_PATIENT_ID, tag);
-    AccumulateLookupResults(resources, index, DICOM_TAG_STUDY_INSTANCE_UID, tag);
-    AccumulateLookupResults(resources, index, DICOM_TAG_SERIES_INSTANCE_UID, tag);
-    AccumulateLookupResults(resources, index, DICOM_TAG_SOP_INSTANCE_UID, tag);
+    AccumulateLookupResults(resources, index, DICOM_TAG_PATIENT_ID, tag, ResourceType_Patient);
+    AccumulateLookupResults(resources, index, DICOM_TAG_STUDY_INSTANCE_UID, tag, ResourceType_Study);
+    AccumulateLookupResults(resources, index, DICOM_TAG_SERIES_INSTANCE_UID, tag, ResourceType_Series);
+    AccumulateLookupResults(resources, index, DICOM_TAG_SOP_INSTANCE_UID, tag, ResourceType_Instance);
 
     Json::Value result = Json::arrayValue;    
     for (ServerIndex::LookupResults::const_iterator 
