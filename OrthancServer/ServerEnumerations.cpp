@@ -364,26 +364,4 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
-
-
-  DicomTag GetIdentifierTag(ResourceType level)
-  {
-    switch (level)
-    {
-      case ResourceType_Patient:
-        return DICOM_TAG_PATIENT_ID;
-
-      case ResourceType_Study:
-        return DICOM_TAG_STUDY_INSTANCE_UID;
-        
-      case ResourceType_Series:
-        return DICOM_TAG_SERIES_INSTANCE_UID;
-        
-      case ResourceType_Instance:
-        return DICOM_TAG_SOP_INSTANCE_UID;
-
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
 }

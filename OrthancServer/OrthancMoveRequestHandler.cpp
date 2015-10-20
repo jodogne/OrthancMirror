@@ -108,7 +108,30 @@ namespace Orthanc
                                                    ResourceType level,
                                                    const DicomMap& input)
   {
-    DicomTag tag = GetIdentifierTag(level);
+    DicomTag tag(0, 0);   // Dummy initialization
+
+    switch (level)
+    {
+      case ResourceType_Patient:
+        tag = DICOM_TAG_PATIENT_ID;
+        break;
+
+      case ResourceType_Study:
+        tag = (input.HasTag(DICOM_TAG_ACCESSION_NUMBER) ? 
+               DICOM_TAG_ACCESSION_NUMBER : DICOM_TAG_STUDY_INSTANCE_UID);
+        break;
+        
+      case ResourceType_Series:
+        tag = DICOM_TAG_SERIES_INSTANCE_UID;
+        break;
+        
+      case ResourceType_Instance:
+        tag = DICOM_TAG_SOP_INSTANCE_UID;
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
 
     if (!input.HasTag(tag))
     {
