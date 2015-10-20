@@ -414,9 +414,6 @@ namespace OrthancPlugins
                                   uint16_t element,
                                   const char* value) = 0;
 
-    virtual void LookupIdentifier(std::list<int64_t>& target /*out*/,
-                                  const char* value) = 0;
-
     virtual bool LookupMetadata(std::string& target /*out*/,
                                 int64_t id,
                                 int32_t metadataType) = 0;
