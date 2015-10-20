@@ -52,6 +52,7 @@ namespace Orthanc
   public:
     typedef std::list<FileInfo> Attachments;
     typedef std::map< std::pair<ResourceType, MetadataType>, std::string>  MetadataMap;
+    typedef std::list< std::pair<ResourceType, std::string> >  LookupResults;
 
   private:
     class Listener;
@@ -244,7 +245,8 @@ namespace Orthanc
                           const DicomTag& tag,
                           const std::string& value);
 
-    void LookupIdentifier(std::list< std::pair<ResourceType, std::string> >& result,
+    void LookupIdentifier(LookupResults& result,
+                          const DicomTag& tag,
                           const std::string& value);
 
     StoreStatus AddAttachment(const FileInfo& attachment,

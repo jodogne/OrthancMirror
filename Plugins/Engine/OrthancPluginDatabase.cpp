@@ -611,15 +611,6 @@ namespace Orthanc
   }
 
 
-  void OrthancPluginDatabase::LookupIdentifier(std::list<int64_t>& target,
-                                               const std::string& value)
-  {
-    ResetAnswers();
-    CheckSuccess(backend_.lookupIdentifier2(GetContext(), payload_, value.c_str()));
-    ForwardAnswers(target);
-  }
-
-
   bool OrthancPluginDatabase::LookupMetadata(std::string& target,
                                              int64_t id,
                                              MetadataType type)
