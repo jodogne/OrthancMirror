@@ -22,6 +22,7 @@ Lua
 Maintenance
 -----------
 
+* C-Move SCP for studies using AccessionNumber tag
 * Fix issue 4 (C-Store Association not renegotiated on Specific-to-specific transfer syntax change)
 * "/system" URI gives information about the plugins used for storage area and DB back-end
 * Plugin callbacks should now return explicit "OrthancPluginErrorCode" instead of integers

@@ -195,6 +195,4 @@ namespace Orthanc
   const char* EnumerationToString(TransferSyntax syntax);
 
   ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer);
-
-  DicomTag GetIdentifierTag(ResourceType level);
 }
