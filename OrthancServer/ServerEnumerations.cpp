@@ -364,5 +364,4 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
-
 }

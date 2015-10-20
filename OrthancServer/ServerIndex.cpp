@@ -627,7 +627,7 @@ namespace Orthanc
 
       // Create the instance
       int64_t instance = CreateResource(hasher.HashInstance(), ResourceType_Instance);
-      Toolbox::SetMainDicomTags(db_, instance, ResourceType_Instance, dicomSummary, true);
+      Toolbox::SetMainDicomTags(db_, instance, ResourceType_Instance, dicomSummary);
 
       // Detect up to which level the patient/study/series/instance
       // hierarchy must be created
@@ -679,22 +679,21 @@ namespace Orthanc
       if (isNewSeries)
       {
         series = CreateResource(hasher.HashSeries(), ResourceType_Series);
-        Toolbox::SetMainDicomTags(db_, series, ResourceType_Series, dicomSummary, true);
+        Toolbox::SetMainDicomTags(db_, series, ResourceType_Series, dicomSummary);
       }
 
       // Create the study if needed
       if (isNewStudy)
       {
         study = CreateResource(hasher.HashStudy(), ResourceType_Study);
-        Toolbox::SetMainDicomTags(db_, study, ResourceType_Study, dicomSummary, true);
-        Toolbox::SetMainDicomTags(db_, study, ResourceType_Patient, dicomSummary, false);  // New in version 0.9.5 (db v6)
+        Toolbox::SetMainDicomTags(db_, study, ResourceType_Study, dicomSummary);
       }
 
       // Create the patient if needed
       if (isNewPatient)
       {
         patient = CreateResource(hasher.HashPatient(), ResourceType_Patient);
-        Toolbox::SetMainDicomTags(db_, patient, ResourceType_Patient, dicomSummary, true);
+        Toolbox::SetMainDicomTags(db_, patient, ResourceType_Patient, dicomSummary);
       }
 
       // Create the parent-to-child links
@@ -874,29 +873,6 @@ namespace Orthanc
   }
 
 
-  static std::string GetPatientIdOfStudy(IDatabaseWrapper& db,
-                                         int64_t resourceId)
-  {
-    int64_t patient;
-    if (!db.LookupParent(patient, resourceId))
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    DicomMap tags;
-    db.GetMainDicomTags(tags, patient);
-
-    if (tags.HasTag(DICOM_TAG_PATIENT_ID))
-    {
-      return tags.GetValue(DICOM_TAG_PATIENT_ID).AsString();
-    }
-    else
-    {
-      return "";
-    }
-  }
-
-
   void ServerIndex::MainDicomTagsToJson(Json::Value& target,
                                         int64_t resourceId,
                                         ResourceType resourceType)
@@ -915,8 +891,6 @@ namespace Orthanc
 
       target["PatientMainDicomTags"] = Json::objectValue;
       FromDcmtkBridge::ToJson(target["PatientMainDicomTags"], t2, true);
-
-      target["PatientMainDicomTags"]["PatientID"] = GetPatientIdOfStudy(db_, resourceId);
     }
     else
     {
@@ -1919,6 +1893,12 @@ namespace Orthanc
                                      const std::string& value,
                                      ResourceType type)
   {
+    assert(tag == DICOM_TAG_PATIENT_ID ||
+           tag == DICOM_TAG_STUDY_INSTANCE_UID ||
+           tag == DICOM_TAG_SERIES_INSTANCE_UID ||
+           tag == DICOM_TAG_SOP_INSTANCE_UID ||
+           tag == DICOM_TAG_ACCESSION_NUMBER);
+    
     result.clear();
 
     boost::mutex::scoped_lock lock(mutex_);
@@ -1933,44 +1913,6 @@ namespace Orthanc
       {
         result.push_back(db_.GetPublicId(*it));
       }
-    }
-  }
-
-
-  void ServerIndex::LookupIdentifier(std::list<std::string>& result,
-                                     const DicomTag& tag,
-                                     const std::string& value)
-  {
-    result.clear();
-
-    boost::mutex::scoped_lock lock(mutex_);
-
-    std::list<int64_t> id;
-    db_.LookupIdentifier(id, tag, value);
-
-    for (std::list<int64_t>::const_iterator 
-           it = id.begin(); it != id.end(); ++it)
-    {
-      result.push_back(db_.GetPublicId(*it));
-    }
-  }
-
-
-  void ServerIndex::LookupIdentifier(std::list< std::pair<ResourceType, std::string> >& result,
-                                     const std::string& value)
-  {
-    result.clear();
-
-    boost::mutex::scoped_lock lock(mutex_);
-
-    std::list<int64_t> id;
-    db_.LookupIdentifier(id, value);
-
-    for (std::list<int64_t>::const_iterator 
-           it = id.begin(); it != id.end(); ++it)
-    {
-      result.push_back(std::make_pair(db_.GetResourceType(*it),
-                                      db_.GetPublicId(*it)));
     }
   }
 
@@ -2137,7 +2079,6 @@ namespace Orthanc
       {
         case ResourceType_Patient:
           tmp.ExtractPatientInformation(result);
-          result.SetValue(DICOM_TAG_PATIENT_ID, GetPatientIdOfStudy(db_, id));
           return true;
 
         case ResourceType_Study:

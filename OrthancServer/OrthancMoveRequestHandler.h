@@ -42,7 +42,7 @@ namespace Orthanc
     ServerContext& context_;
 
     bool LookupIdentifier(std::string& publicId,
-                          DicomTag tag,
+                          ResourceType level,
                           const DicomMap& input);
 
   public:

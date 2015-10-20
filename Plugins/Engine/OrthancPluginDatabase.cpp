@@ -611,15 +611,6 @@ namespace Orthanc
   }
 
 
-  void OrthancPluginDatabase::LookupIdentifier(std::list<int64_t>& target,
-                                               const std::string& value)
-  {
-    ResetAnswers();
-    CheckSuccess(backend_.lookupIdentifier2(GetContext(), payload_, value.c_str()));
-    ForwardAnswers(target);
-  }
-
-
   bool OrthancPluginDatabase::LookupMetadata(std::string& target,
                                              int64_t id,
                                              MetadataType type)
@@ -711,18 +702,20 @@ namespace Orthanc
     tmp.element = tag.GetElement();
     tmp.value = value.c_str();
 
-    OrthancPluginErrorCode code;
+    CheckSuccess(backend_.setMainDicomTag(payload_, id, &tmp));
+  }
 
-    if (tag.IsIdentifier())
-    {
-      code = backend_.setIdentifierTag(payload_, id, &tmp);
-    }
-    else
-    {
-      code = backend_.setMainDicomTag(payload_, id, &tmp);
-    }
 
-    CheckSuccess(code);
+  void OrthancPluginDatabase::SetIdentifierTag(int64_t id,
+                                               const DicomTag& tag,
+                                               const std::string& value)
+  {
+    OrthancPluginDicomTag tmp;
+    tmp.group = tag.GetGroup();
+    tmp.element = tag.GetElement();
+    tmp.value = value.c_str();
+
+    CheckSuccess(backend_.setIdentifierTag(payload_, id, &tmp));
   }
 
 

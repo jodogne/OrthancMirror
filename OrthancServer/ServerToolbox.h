@@ -49,8 +49,7 @@ namespace Orthanc
     void SetMainDicomTags(IDatabaseWrapper& database,
                           int64_t resource,
                           ResourceType level,
-                          const DicomMap& dicomSummary,
-                          bool includeIdentifiers);
+                          const DicomMap& dicomSummary);
 
     bool FindOneChildInstance(int64_t& result,
                               IDatabaseWrapper& database,
@@ -60,5 +59,7 @@ namespace Orthanc
     void ReconstructMainDicomTags(IDatabaseWrapper& database,
                                   IStorageArea& storageArea,
                                   ResourceType level);
+
+    std::string NormalizeIdentifierTag(const std::string& value);
   }
 }

@@ -195,12 +195,6 @@ public:
     base_.LookupIdentifier(target, Orthanc::DicomTag(group, element), value);
   }
 
-  virtual void LookupIdentifier(std::list<int64_t>& target /*out*/,
-                                const char* value)
-  {
-    base_.LookupIdentifier(target, value);
-  }
-
   virtual bool LookupMetadata(std::string& target /*out*/,
                               int64_t id,
                               int32_t metadataType)
@@ -246,7 +240,7 @@ public:
                                 uint16_t element,
                                 const char* value)
   {
-    base_.SetMainDicomTag(id, Orthanc::DicomTag(group, element), value);
+    base_.SetIdentifierTag(id, Orthanc::DicomTag(group, element), value);
   }
 
   virtual void SetMetadata(int64_t id,

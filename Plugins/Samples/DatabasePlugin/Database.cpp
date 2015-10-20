@@ -184,6 +184,8 @@ void Database::Open()
 {
   db_.Open(path_);
 
+  db_.Execute("PRAGMA ENCODING=\"UTF-8\";");
+
   // http://www.sqlite.org/pragma.html
   db_.Execute("PRAGMA SYNCHRONOUS=NORMAL;");
   db_.Execute("PRAGMA JOURNAL_MODE=WAL;");
