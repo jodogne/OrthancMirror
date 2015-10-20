@@ -895,7 +895,7 @@ namespace Orthanc
     CheckContextAvailable();
 
     std::list<std::string> result;
-    pimpl_->context_->GetIndex().LookupIdentifier(result, tag, p.argument, level);
+    pimpl_->context_->GetIndex().LookupIdentifier(result, level, tag, p.argument);
 
     if (result.size() == 1)
     {

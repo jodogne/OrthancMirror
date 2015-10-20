@@ -595,6 +595,7 @@ namespace Orthanc
 
 
   void OrthancPluginDatabase::LookupIdentifier(std::list<int64_t>& target,
+                                               ResourceType level,
                                                const DicomTag& tag,
                                                const std::string& value)
   {
@@ -605,9 +606,42 @@ namespace Orthanc
     tmp.element = tag.GetElement();
     tmp.value = value.c_str();
 
-    CheckSuccess(backend_.lookupIdentifier(GetContext(), payload_, &tmp));
+    if (extensions_.lookupIdentifier3 != NULL)
+    {
+      CheckSuccess(extensions_.lookupIdentifier3(GetContext(), payload_, Plugins::Convert(level), &tmp));
+      ForwardAnswers(target);
+    }
+    else
+    {
+      // Emulate "lookupIdentifier3" if unavailable
 
-    ForwardAnswers(target);
+      if (backend_.lookupIdentifier == NULL)
+      {
+        throw OrthancException(ErrorCode_DatabasePlugin);
+      }
+
+      CheckSuccess(backend_.lookupIdentifier(GetContext(), payload_, &tmp));
+
+      if (type_ != _OrthancPluginDatabaseAnswerType_None &&
+          type_ != _OrthancPluginDatabaseAnswerType_Int64)
+      {
+        throw OrthancException(ErrorCode_DatabasePlugin);
+      }
+
+      target.clear();
+
+      if (type_ == _OrthancPluginDatabaseAnswerType_Int64)
+      {
+        for (std::list<int64_t>::const_iterator 
+               it = answerInt64_.begin(); it != answerInt64_.end(); ++it)
+        {
+          if (GetResourceType(*it) == level)
+          {
+            target.push_back(*it);
+          }
+        }
+      }
+    }
   }
 
 

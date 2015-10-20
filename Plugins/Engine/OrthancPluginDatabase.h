@@ -204,6 +204,7 @@ namespace Orthanc
                                       GlobalProperty property);
 
     virtual void LookupIdentifier(std::list<int64_t>& target,
+                                  ResourceType level,
                                   const DicomTag& tag,
                                   const std::string& value);
 

@@ -1889,30 +1889,27 @@ namespace Orthanc
 
 
   void ServerIndex::LookupIdentifier(std::list<std::string>& result,
+                                     ResourceType level,
                                      const DicomTag& tag,
-                                     const std::string& value,
-                                     ResourceType type)
+                                     const std::string& value)
   {
-    assert(tag == DICOM_TAG_PATIENT_ID ||
-           tag == DICOM_TAG_STUDY_INSTANCE_UID ||
-           tag == DICOM_TAG_SERIES_INSTANCE_UID ||
-           tag == DICOM_TAG_SOP_INSTANCE_UID ||
-           tag == DICOM_TAG_ACCESSION_NUMBER);
+    assert((level == ResourceType_Patient && tag == DICOM_TAG_PATIENT_ID) ||
+           (level == ResourceType_Study && tag == DICOM_TAG_STUDY_INSTANCE_UID) ||
+           (level == ResourceType_Study && tag == DICOM_TAG_ACCESSION_NUMBER) ||
+           (level == ResourceType_Series && tag == DICOM_TAG_SERIES_INSTANCE_UID) ||
+           (level == ResourceType_Instance && tag == DICOM_TAG_SOP_INSTANCE_UID));
     
     result.clear();
 
     boost::mutex::scoped_lock lock(mutex_);
 
     std::list<int64_t> id;
-    db_.LookupIdentifier(id, tag, value);
+    db_.LookupIdentifier(id, level, tag, value);
 
     for (std::list<int64_t>::const_iterator 
            it = id.begin(); it != id.end(); ++it)
     {
-      if (db_.GetResourceType(*it) == type)
-      {
-        result.push_back(db_.GetPublicId(*it));
-      }
+      result.push_back(db_.GetPublicId(*it));
     }
   }
 

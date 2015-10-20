@@ -316,10 +316,11 @@ namespace Orthanc
     }
 
     virtual void LookupIdentifier(std::list<int64_t>& target,
+                                  ResourceType level,
                                   const DicomTag& tag,
                                   const std::string& value)
     {
-      base_.LookupIdentifier(target, tag, value);
+      base_.LookupIdentifier(target, level, tag, value);
     }
 
     virtual void GetAllMetadata(std::map<MetadataType, std::string>& target,
