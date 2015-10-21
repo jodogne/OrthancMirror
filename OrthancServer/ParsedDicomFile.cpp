@@ -1120,9 +1120,10 @@ namespace Orthanc
 
   void ParsedDicomFile::ToJson(Json::Value& target, 
                                DicomToJsonFormat format,
+                               DicomToJsonFlags flags,
                                unsigned int maxStringLength)
   {
-    FromDcmtkBridge::ToJson(target, *pimpl_->file_->getDataset(), format, maxStringLength);
+    FromDcmtkBridge::ToJson(target, *pimpl_->file_->getDataset(), format, flags, maxStringLength);
   }
 
 

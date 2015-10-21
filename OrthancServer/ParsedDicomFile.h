@@ -134,6 +134,7 @@ namespace Orthanc
 
     void ToJson(Json::Value& target, 
                 DicomToJsonFormat format,
+                DicomToJsonFlags flags,
                 unsigned int maxStringLength);
 
     bool HasTag(const DicomTag& tag) const;

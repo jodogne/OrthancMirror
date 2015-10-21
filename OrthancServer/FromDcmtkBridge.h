@@ -70,12 +70,14 @@ namespace Orthanc
     static void ToJson(Json::Value& parent,
                        DcmElement& element,
                        DicomToJsonFormat format,
+                       DicomToJsonFlags flags,
                        unsigned int maxStringLength,
-                       Encoding encoding);
+                       Encoding dicomEncoding);
 
     static void ToJson(Json::Value& target, 
                        DcmDataset& dataset,
                        DicomToJsonFormat format,
+                       DicomToJsonFlags flags,
                        unsigned int maxStringLength);
 
     static std::string GetName(const DicomTag& tag);

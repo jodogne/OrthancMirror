@@ -108,6 +108,18 @@ namespace Orthanc
     DicomToJsonFormat_Simple
   };
 
+  enum DicomToJsonFlags
+  {
+    DicomToJsonFlags_IncludeBinary      = (1 << 0),
+    DicomToJsonFlags_IncludePrivateTags = (1 << 1),
+    DicomToJsonFlags_IncludeUnknownTags = (1 << 2),
+    DicomToJsonFlags_IncludePixelData   = (1 << 3),
+
+    // Some predefined combinations
+    DicomToJsonFlags_None               = 0,
+    DicomToJsonFlags_Default            = DicomToJsonFlags_IncludePrivateTags | DicomToJsonFlags_IncludeUnknownTags
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations
