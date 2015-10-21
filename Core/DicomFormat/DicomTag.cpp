@@ -114,6 +114,12 @@ namespace Orthanc
     if (*this == DICOM_TAG_PATIENT_NAME)
       return "PatientName";
 
+    if (*this == DICOM_TAG_IMAGE_POSITION_PATIENT)
+      return "ImagePositionPatient";
+
+    if (*this == DICOM_TAG_IMAGE_ORIENTATION_PATIENT)
+      return "ImageOrientationPatient";
+
     return "";
   }
 
