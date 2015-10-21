@@ -387,7 +387,7 @@ public:
 
 
 
-static void PrintHelp(char* path)
+static void PrintHelp(const char* path)
 {
   std::cout 
     << "Usage: " << path << " [OPTION]... [CONFIGURATION]" << std::endl
@@ -404,6 +404,7 @@ static void PrintHelp(char* path)
     << "  --logdir=[dir]\tdirectory where to store the log files" << std::endl
     << "\t\t\t(if not used, the logs are dumped to stderr)" << std::endl
     << "  --config=[file]\tcreate a sample configuration file and exit" << std::endl
+    << "  --errors\t\tprint the supported error codes and exit" << std::endl
     << "  --verbose\t\tbe verbose in logs" << std::endl
     << "  --trace\t\thighest verbosity in logs (for debug)" << std::endl
     << "  --upgrade\t\tallow Orthanc to upgrade the version of the" << std::endl
@@ -413,12 +414,16 @@ static void PrintHelp(char* path)
     << std::endl
     << "Exit status:" << std::endl
     << "   0 if success," << std::endl
+#if defined(_WIN32)
+    << "!= 0 if error (use the --errors option to get the list of possible errors)." << std::endl
+#else
     << "  -1 if error (have a look at the logs)." << std::endl
+#endif
     << std::endl;
 }
 
 
-static void PrintVersion(char* path)
+static void PrintVersion(const char* path)
 {
   std::cout
     << path << " " << ORTHANC_VERSION << std::endl
@@ -428,6 +433,32 @@ static void PrintVersion(char* path)
     << "There is NO WARRANTY, to the extent permitted by law." << std::endl
     << std::endl
     << "Written by Sebastien Jodogne <s.jodogne@gmail.com>" << std::endl;
+}
+
+
+static void PrintErrorCode(ErrorCode code, const char* description)
+{
+  std::cout 
+    << std::right << std::setw(16) 
+    << static_cast<int>(code)
+    << "   " << description << std::endl;
+}
+
+
+static void PrintErrors(const char* path)
+{
+  std::cout
+    << path << " " << ORTHANC_VERSION << std::endl
+    << "Orthanc, lightweight, RESTful DICOM server for healthcare and medical research." << std::endl
+    << "List of error codes that could be returned by Orthanc:" << std::endl << std::endl;
+
+  // The content of the following brackets is automatically generated
+  // by the "GenerateErrorCodes.py" script
+  {
+    PrintErrorCode(ErrorCode_BadFileFormat, "tutu");
+  }
+
+  std::cout << std::endl;
 }
 
 
@@ -853,6 +884,11 @@ int main(int argc, char* argv[])
         configurationFile = argv[i];
       }
     }
+    else if (argument == "--errors")
+    {
+      PrintErrors(argv[0]);
+      return 0;
+    }
     else if (argument == "--help")
     {
       PrintHelp(argv[0]);
@@ -937,8 +973,12 @@ int main(int argc, char* argv[])
   }
   catch (const OrthancException& e)
   {
-    LOG(ERROR) << "Uncaught exception, stopping now: [" << e.What() << "]";
+    LOG(ERROR) << "Uncaught exception, stopping now: [" << e.What() << "] (code " << e.GetErrorCode() << ")";
+#if defined(_WIN32)
+    status = static_cast<int>(e.GetErrorCode());
+#else
     status = -1;
+#endif
   }
   catch (const std::exception& e) 
   {
