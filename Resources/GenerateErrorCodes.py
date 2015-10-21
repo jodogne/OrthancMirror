@@ -141,3 +141,20 @@ a = re.sub('(EnumerationToString\(ErrorCode.*?\)\s*{\s*switch \([^)]*?\)\s*{)[^}
 
 with open(path, 'w') as f:
     f.write(a)
+
+
+
+##
+## Generate the "PrintErrors" function in "main.cpp"
+##
+
+path = os.path.join(BASE, 'OrthancServer', 'main.cpp')
+with open(path, 'r') as f:
+    a = f.read()
+
+s = '\n'.join(map(lambda x: '    PrintError(%d, "%s");' % (x['Code'], x['Name']), ERRORS))
+
+print s
+
+#with open(path, 'w') as f:
+#    f.write(a)
