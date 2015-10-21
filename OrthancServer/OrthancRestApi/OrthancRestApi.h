@@ -49,6 +49,7 @@ namespace Orthanc
 
   private:
     ServerContext& context_;
+    bool leaveBarrier_;
     bool resetRequestReceived_;
 
     void RegisterSystem();
@@ -65,10 +66,17 @@ namespace Orthanc
 
     static void ResetOrthanc(RestApiPostCall& call);
 
+    static void ShutdownOrthanc(RestApiPostCall& call);
+
   public:
     OrthancRestApi(ServerContext& context);
 
-    const bool& ResetRequestReceivedFlag() const
+    const bool& LeaveBarrierFlag() const
+    {
+      return leaveBarrier_;
+    }
+
+    bool IsResetRequestReceived() const
     {
       return resetRequestReceived_;
     }

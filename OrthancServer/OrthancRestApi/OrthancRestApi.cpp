@@ -59,8 +59,17 @@ namespace Orthanc
 
   void OrthancRestApi::ResetOrthanc(RestApiPostCall& call)
   {
+    OrthancRestApi::GetApi(call).leaveBarrier_ = true;
     OrthancRestApi::GetApi(call).resetRequestReceived_ = true;
     call.GetOutput().AnswerBuffer("{}", "application/json");
+  }
+
+
+  void OrthancRestApi::ShutdownOrthanc(RestApiPostCall& call)
+  {
+    OrthancRestApi::GetApi(call).leaveBarrier_ = true;
+    call.GetOutput().AnswerBuffer("{}", "application/json");
+    LOG(WARNING) << "Shutdown request received";
   }
 
 
@@ -99,6 +108,7 @@ namespace Orthanc
 
   OrthancRestApi::OrthancRestApi(ServerContext& context) : 
     context_(context),
+    leaveBarrier_(false),
     resetRequestReceived_(false)
   {
     RegisterSystem();
@@ -114,6 +124,7 @@ namespace Orthanc
     // Auto-generated directories
     Register("/tools", RestApi::AutoListChildren);
     Register("/tools/reset", ResetOrthanc);
+    Register("/tools/shutdown", ShutdownOrthanc);
     Register("/instances/{id}/frames/{frame}", RestApi::AutoListChildren);
   }
 

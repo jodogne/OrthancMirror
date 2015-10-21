@@ -476,8 +476,8 @@ static bool WaitForExit(ServerContext& context,
 
   context.GetLua().Execute("Initialize");
 
-  Toolbox::ServerBarrier(restApi.ResetRequestReceivedFlag());
-  bool restart = restApi.ResetRequestReceivedFlag();
+  Toolbox::ServerBarrier(restApi.LeaveBarrierFlag());
+  bool restart = restApi.IsResetRequestReceived();
 
   context.GetLua().Execute("Finalize");
 
