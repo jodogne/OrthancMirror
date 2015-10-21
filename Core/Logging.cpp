@@ -144,9 +144,7 @@ namespace
     std::ostream* warning_;
     std::ostream* info_;
 
-    std::auto_ptr<std::ofstream> errorFile_;
-    std::auto_ptr<std::ofstream> warningFile_;
-    std::auto_ptr<std::ofstream> infoFile_;
+    std::auto_ptr<std::ofstream> file_;
 
     LoggingState() : 
       infoEnabled_(false),
@@ -172,14 +170,14 @@ namespace Orthanc
   {
     static void GetLogPath(boost::filesystem::path& log,
                            boost::filesystem::path& link,
-                           const char* level,
+                           const std::string& suffix,
                            const std::string& directory)
     {
       /**
          From Google Log documentation:
 
          Unless otherwise specified, logs will be written to the filename
-         "<program name>.<hostname>.<user name>.log.<severity level>.",
+         "<program name>.<hostname>.<user name>.log<suffix>.",
          followed by the date, time, and pid (you can't prevent the date,
          time, and pid from being in the filename).
 
@@ -208,21 +206,17 @@ namespace Orthanc
 
       std::string programName = exe.filename().replace_extension("").string();
 
-      log = (root / (programName + ".log." +
-                     std::string(level) + "." +
-                     std::string(date)));
-
-      link = (root / (programName + "." + std::string(level)));
+      log = (root / (programName + ".log" + suffix + "." + std::string(date)));
+      link = (root / (programName + ".log" + suffix));
     }
 
 
-    static void PrepareLogFile(std::ostream*& stream,
-                               std::auto_ptr<std::ofstream>& file,
-                               const char* level,
+    static void PrepareLogFile(std::auto_ptr<std::ofstream>& file,
+                               const std::string& suffix,
                                const std::string& directory)
     {
       boost::filesystem::path log, link;
-      GetLogPath(log, link, level, directory);
+      GetLogPath(log, link, suffix, directory);
 
 #if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
       boost::filesystem::remove(link);
@@ -230,7 +224,6 @@ namespace Orthanc
 #endif
 
       file.reset(new std::ofstream(log.string().c_str()));
-      stream = file.get();
     }
 
 
@@ -273,9 +266,11 @@ namespace Orthanc
       boost::mutex::scoped_lock lock(loggingMutex_);
       assert(loggingState_.get() != NULL);
 
-      PrepareLogFile(loggingState_->error_,   loggingState_->errorFile_,   "ERROR", path);
-      PrepareLogFile(loggingState_->warning_, loggingState_->warningFile_, "WARNING", path);
-      PrepareLogFile(loggingState_->info_,    loggingState_->infoFile_,    "INFO", path);
+      PrepareLogFile(loggingState_->file_, "" /* no suffix */, path);
+
+      loggingState_->warning_ = loggingState_->file_.get();
+      loggingState_->error_ = loggingState_->file_.get();
+      loggingState_->info_ = loggingState_->file_.get();
     }
 
     InternalLogger::InternalLogger(const char* level,
