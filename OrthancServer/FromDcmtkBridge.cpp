@@ -678,6 +678,7 @@ namespace Orthanc
   static void DatasetToJson(Json::Value& parent,
                             DcmItem& item,
                             DicomToJsonFormat format,
+                            DicomToJsonFlags flags,
                             unsigned int maxStringLength,
                             Encoding encoding);
 
@@ -685,6 +686,7 @@ namespace Orthanc
   void FromDcmtkBridge::ToJson(Json::Value& parent,
                                DcmElement& element,
                                DicomToJsonFormat format,
+                               DicomToJsonFlags flags,
                                unsigned int maxStringLength,
                                Encoding encoding)
   {
@@ -715,7 +717,7 @@ namespace Orthanc
       {
         DcmItem* child = sequence.getItem(i);
         Json::Value& v = target.append(Json::objectValue);
-        DatasetToJson(v, *child, format, maxStringLength, encoding);
+        DatasetToJson(v, *child, format, flags, maxStringLength, encoding);
       }
     }
   }
@@ -724,6 +726,7 @@ namespace Orthanc
   static void DatasetToJson(Json::Value& parent,
                             DcmItem& item,
                             DicomToJsonFormat format,
+                            DicomToJsonFlags flags,
                             unsigned int maxStringLength,
                             Encoding encoding)
   {
@@ -732,7 +735,16 @@ namespace Orthanc
     for (unsigned long i = 0; i < item.card(); i++)
     {
       DcmElement* element = item.getElement(i);
-      FromDcmtkBridge::ToJson(parent, *element, format, maxStringLength, encoding);
+      if (element == NULL)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      if ((flags & DicomToJsonFlags_IncludePrivateTags) ||
+          !element->getTag().isPrivate())
+      {
+        FromDcmtkBridge::ToJson(parent, *element, format, flags, maxStringLength, encoding);
+      }
     }
   }
 
@@ -740,10 +752,11 @@ namespace Orthanc
   void FromDcmtkBridge::ToJson(Json::Value& target, 
                                DcmDataset& dataset,
                                DicomToJsonFormat format,
+                               DicomToJsonFlags flags,
                                unsigned int maxStringLength)
   {
     target = Json::objectValue;
-    DatasetToJson(target, dataset, format, maxStringLength, DetectEncoding(dataset));
+    DatasetToJson(target, dataset, format, flags, maxStringLength, DetectEncoding(dataset));
   }
 
 
