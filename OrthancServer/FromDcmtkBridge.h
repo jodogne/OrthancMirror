@@ -65,6 +65,7 @@ namespace Orthanc
     static bool IsUnknownTag(const DicomTag& tag);
 
     static DicomValue* ConvertLeafElement(DcmElement& element,
+                                          DicomToJsonFlags flags,
                                           Encoding encoding);
 
     static void ToJson(Json::Value& parent,

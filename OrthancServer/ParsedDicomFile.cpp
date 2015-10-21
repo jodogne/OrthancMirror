@@ -763,7 +763,8 @@ namespace Orthanc
         return false;
       }
 
-      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(*element, GetEncoding()));
+      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement
+                                  (*element, DicomToJsonFlags_Default, GetEncoding()));
       
       if (v.get() == NULL)
       {

@@ -332,7 +332,7 @@ namespace Orthanc
       {
         target.SetValue(element->getTag().getGTag(),
                         element->getTag().getETag(),
-                        ConvertLeafElement(*element, encoding));
+                        ConvertLeafElement(*element, DicomToJsonFlags_Default, encoding));
       }
     }
   }
@@ -364,6 +364,7 @@ namespace Orthanc
 
 
   DicomValue* FromDcmtkBridge::ConvertLeafElement(DcmElement& element,
+                                                  DicomToJsonFlags flags,
                                                   Encoding encoding)
   {
     if (!element.isLeaf())
@@ -700,7 +701,7 @@ namespace Orthanc
 
     if (element.isLeaf())
     {
-      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element, encoding));
+      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element, flags, encoding));
       LeafValueToJson(target, *v, format, maxStringLength);
     }
     else
@@ -740,11 +741,22 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
       }
 
-      if ((flags & DicomToJsonFlags_IncludePrivateTags) ||
-          !element->getTag().isPrivate())
+      if (!(flags & DicomToJsonFlags_IncludePrivateTags) &&
+          element->getTag().isPrivate())
       {
-        FromDcmtkBridge::ToJson(parent, *element, format, flags, maxStringLength, encoding);
+        continue;
       }
+
+      if (!(flags & DicomToJsonFlags_IncludeUnknownTags))
+      {
+        DictionaryLocker locker;
+        if (locker->findEntry(element->getTag(), NULL) == NULL)
+        {
+          continue;
+        }
+      }
+
+      FromDcmtkBridge::ToJson(parent, *element, format, flags, maxStringLength, encoding);
     }
   }
 
