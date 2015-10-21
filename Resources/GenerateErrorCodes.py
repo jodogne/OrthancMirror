@@ -152,9 +152,8 @@ path = os.path.join(BASE, 'OrthancServer', 'main.cpp')
 with open(path, 'r') as f:
     a = f.read()
 
-s = '\n'.join(map(lambda x: '    PrintError(%d, "%s");' % (x['Code'], x['Name']), ERRORS))
+s = '\n'.join(map(lambda x: '    PrintErrorCode(ErrorCode_%s, "%s");' % (x['Name'], x['Description']), ERRORS))
+a = re.sub('(static void PrintErrors[^{}]*?{[^{}]*?{)([^}]*?)}', r'\1\n%s\n  }' % s, a, re.DOTALL)
 
-print s
-
-#with open(path, 'w') as f:
-#    f.write(a)
+with open(path, 'w') as f:
+    f.write(a)
