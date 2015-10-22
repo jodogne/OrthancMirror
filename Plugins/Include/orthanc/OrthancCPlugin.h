@@ -387,6 +387,8 @@ extern "C"
     _OrthancPluginService_CallHttpClient = 18,
     _OrthancPluginService_RegisterErrorCode = 19,
     _OrthancPluginService_RegisterDictionaryTag = 20,
+    _OrthancPluginService_DicomBufferToJson = 21,
+    _OrthancPluginService_DicomInstanceToJson = 22,
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -641,6 +643,29 @@ extern "C"
   } OrthancPluginValueRepresentation;
 
 
+  typedef enum
+  {
+    OrthancPluginDicomToJsonFormat_Full = 1,
+    OrthancPluginDicomToJsonFormat_Short = 2,
+    OrthancPluginDicomToJsonFormat_Simple = 3,
+
+    _OrthancPluginDicomToJsonFormat_INTERNAL = 0x7fffffff
+  } OrthancPluginDicomToJsonFormat;
+
+
+  typedef enum
+  {
+    OrthancPluginDicomToJsonFlags_IncludeBinary         = (1 << 0),
+    OrthancPluginDicomToJsonFlags_IncludePrivateTags    = (1 << 1),
+    OrthancPluginDicomToJsonFlags_IncludeUnknownTags    = (1 << 2),
+    OrthancPluginDicomToJsonFlags_IncludePixelData      = (1 << 3),
+    OrthancPluginDicomToJsonFlags_ConvertBinaryToAscii  = (1 << 4),
+    OrthancPluginDicomToJsonFlags_ConvertBinaryToNull   = (1 << 5),
+
+    _OrthancPluginDicomToJsonFlags_INTERNAL = 0x7fffffff
+  } OrthancPluginDicomToJsonFlags;
+
+
   /**
    * @brief A memory buffer allocated by the core system of Orthanc.
    *
@@ -852,7 +877,9 @@ extern "C"
         sizeof(int32_t) != sizeof(OrthancPluginChangeType) ||
         sizeof(int32_t) != sizeof(OrthancPluginCompressionType) ||
         sizeof(int32_t) != sizeof(OrthancPluginImageFormat) ||
-        sizeof(int32_t) != sizeof(OrthancPluginValueRepresentation))
+        sizeof(int32_t) != sizeof(OrthancPluginValueRepresentation) ||
+        sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFormat) ||
+        sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFlags))
     {
       /* Mismatch in the size of the enumerations */
       return 0;
@@ -3803,6 +3830,77 @@ extern "C"
     params.storageArea = storageArea;
 
     return context->InvokeService(context, _OrthancPluginService_ReconstructMainDicomTags, &params);
+  }
+
+
+  typedef struct
+  {
+    char**                          result;
+    const char*                     instanceId;
+    const char*                     buffer;
+    uint32_t                        size;
+    OrthancPluginDicomToJsonFormat  format;
+    OrthancPluginDicomToJsonFlags   flags;
+    uint32_t                        maxStringLength;
+  } _OrthancPluginDicomToJson;
+
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginDicomBufferToJson(
+    OrthancPluginContext*           context,
+    const char*                     buffer,
+    uint32_t                        size,
+    OrthancPluginDicomToJsonFormat  format,
+    OrthancPluginDicomToJsonFlags   flags, 
+    uint32_t                        maxStringLength)
+  {
+    char* result;
+
+    _OrthancPluginDicomToJson params;
+    memset(&params, 0, sizeof(params));
+    params.result = &result;
+    params.buffer = buffer;
+    params.size = size;
+    params.format = format;
+    params.flags = flags;
+    params.maxStringLength = maxStringLength;
+
+    if (context->InvokeService(context, _OrthancPluginService_DicomBufferToJson, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginDicomInstanceToJson(
+    OrthancPluginContext*           context,
+    const char*                     instanceId,
+    OrthancPluginDicomToJsonFormat  format,
+    OrthancPluginDicomToJsonFlags   flags, 
+    uint32_t                        maxStringLength)
+  {
+    char* result;
+
+    _OrthancPluginDicomToJson params;
+    memset(&params, 0, sizeof(params));
+    params.result = &result;
+    params.instanceId = instanceId;
+    params.format = format;
+    params.flags = flags;
+    params.maxStringLength = maxStringLength;
+
+    if (context->InvokeService(context, _OrthancPluginService_DicomBufferToJson, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
   }
 
 

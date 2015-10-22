@@ -299,7 +299,15 @@ namespace Orthanc
         sizeof(int32_t) != sizeof(OrthancPluginImageFormat) ||
         sizeof(int32_t) != sizeof(OrthancPluginCompressionType) ||
         sizeof(int32_t) != sizeof(OrthancPluginValueRepresentation) ||
-        sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType))
+        sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFlags) ||
+        sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFormat) ||
+        sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType) ||
+        static_cast<int>(OrthancPluginDicomToJsonFlags_IncludeBinary) != static_cast<int>(DicomToJsonFlags_IncludeBinary) ||
+        static_cast<int>(OrthancPluginDicomToJsonFlags_IncludePrivateTags) != static_cast<int>(DicomToJsonFlags_IncludePrivateTags) ||
+        static_cast<int>(OrthancPluginDicomToJsonFlags_IncludeUnknownTags) != static_cast<int>(DicomToJsonFlags_IncludeUnknownTags) ||
+        static_cast<int>(OrthancPluginDicomToJsonFlags_IncludePixelData) != static_cast<int>(DicomToJsonFlags_IncludePixelData) ||
+        static_cast<int>(OrthancPluginDicomToJsonFlags_ConvertBinaryToNull) != static_cast<int>(DicomToJsonFlags_ConvertBinaryToNull) ||
+        static_cast<int>(OrthancPluginDicomToJsonFlags_ConvertBinaryToAscii) != static_cast<int>(DicomToJsonFlags_ConvertBinaryToAscii))
     {
       /* Sanity check of the compiler */
       throw OrthancException(ErrorCode_Plugin);
@@ -1229,6 +1237,39 @@ namespace Orthanc
 
     font.Draw(target, p.utf8Text, p.x, p.y, p.r, p.g, p.b);
   }
+
+
+  void OrthancPlugins::ApplyDicomToJson(_OrthancPluginService service,
+                                        const void* parameters)
+  {
+    const _OrthancPluginDicomToJson& p =
+      *reinterpret_cast<const _OrthancPluginDicomToJson*>(parameters);
+
+    std::auto_ptr<ParsedDicomFile> dicom;
+
+    if (service == _OrthancPluginService_DicomBufferToJson)
+    {
+      dicom.reset(new ParsedDicomFile(p.buffer, p.size));
+    }
+    else
+    {
+      if (p.instanceId == NULL)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+
+      std::string content;
+      pimpl_->context_->ReadFile(content, p.instanceId, FileContentType_Dicom);
+      dicom.reset(new ParsedDicomFile(content));
+    }
+
+    Json::Value json;
+    dicom->ToJson(json, Plugins::Convert(p.format), 
+                  static_cast<DicomToJsonFlags>(p.flags), p.maxStringLength);
+
+    Json::FastWriter writer;
+    *p.result = CopyString(writer.write(json));
+  }
         
 
   bool OrthancPlugins::InvokeService(SharedLibrary& plugin,
@@ -1725,6 +1766,11 @@ namespace Orthanc
 
         return true;
       }
+
+      case _OrthancPluginService_DicomBufferToJson:
+      case _OrthancPluginService_DicomInstanceToJson:
+        ApplyDicomToJson(service, parameters);
+        return true;
 
       default:
       {

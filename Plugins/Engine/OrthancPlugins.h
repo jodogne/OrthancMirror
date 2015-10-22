@@ -127,6 +127,9 @@ namespace Orthanc
 
     void DrawText(const void* parameters);
 
+    void ApplyDicomToJson(_OrthancPluginService service,
+                          const void* parameters);
+
   public:
     OrthancPlugins();
 
