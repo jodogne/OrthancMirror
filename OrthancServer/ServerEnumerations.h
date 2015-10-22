@@ -110,11 +110,11 @@ namespace Orthanc
 
   enum DicomToJsonFlags
   {
-    DicomToJsonFlags_IncludeBinary           = (1 << 0),
-    DicomToJsonFlags_IncludePrivateTags      = (1 << 1),
-    DicomToJsonFlags_IncludeUnknownTags      = (1 << 2),
-    DicomToJsonFlags_IncludePixelData        = (1 << 3),
-    DicomToJsonFlags_DataUriSchemeForBinary  = (1 << 4),
+    DicomToJsonFlags_IncludeBinary         = (1 << 0),
+    DicomToJsonFlags_IncludePrivateTags    = (1 << 1),
+    DicomToJsonFlags_IncludeUnknownTags    = (1 << 2),
+    DicomToJsonFlags_IncludePixelData      = (1 << 3),
+    DicomToJsonFlags_ConvertBinaryToAscii  = (1 << 4),
 
     // Some predefined combinations
     DicomToJsonFlags_None               = 0,
