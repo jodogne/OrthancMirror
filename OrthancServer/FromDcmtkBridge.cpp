@@ -400,14 +400,28 @@ namespace Orthanc
       {
 
         /**
-         * TODO.
+         * Deal with binary data (including PixelData).
          **/
 
         case EVR_OB:  // other byte
         case EVR_OF:  // other float
         case EVR_OW:  // other word
         case EVR_UN:  // unknown value representation
+        {
+          DicomTag tag(Convert(element.getTag()));
+
+          if ((tag == DICOM_TAG_PIXEL_DATA && flags & DicomToJsonFlags_IncludePixelData) ||
+              (tag != DICOM_TAG_PIXEL_DATA && flags & DicomToJsonFlags_IncludeBinary))
+          {
+            Uint8* data = NULL;
+            if (element.getUint8Array(data) == EC_Normal)
+            {
+              return new DicomValue(reinterpret_cast<const char*>(data), element.getLength(), true);
+            } 
+          }
+
           return new DicomValue;
+        }
     
           /**
            * String types, should never happen at this point because of
@@ -621,53 +635,81 @@ namespace Orthanc
   static void LeafValueToJson(Json::Value& target,
                               const DicomValue& value,
                               DicomToJsonFormat format,
+                              DicomToJsonFlags flags,
                               unsigned int maxStringLength)
   {
+    Json::Value* targetValue = NULL;
+    Json::Value* targetType = NULL;
+
     switch (format)
     {
       case DicomToJsonFormat_Short:
       case DicomToJsonFormat_Simple:
       {
         assert(target.type() == Json::nullValue);
-
-        if (!value.IsNull() &&
-            (maxStringLength == 0 ||
-             value.GetContent().size() <= maxStringLength))
-        {
-          target = value.GetContent();
-        }
-
+        targetValue = &target;
         break;
       }      
 
       case DicomToJsonFormat_Full:
       {
         assert(target.type() == Json::objectValue);
-
-        if (value.IsNull())
-        {
-          target["Type"] = "Null";
-          target["Value"] = Json::nullValue;
-        }
-        else
-        {
-          if (maxStringLength == 0 ||
-              value.GetContent().size() <= maxStringLength)
-          {
-            target["Type"] = "String";
-            target["Value"] = value.GetContent();
-          }
-          else
-          {
-            target["Type"] = "TooLong";
-            target["Value"] = Json::nullValue;
-          }
-        }
+        target["Value"] = Json::nullValue;
+        target["Type"] = Json::nullValue;
+        targetType = &target["Type"];
+        targetValue = &target["Value"];
         break;
       }
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    assert(targetValue != NULL);
+    assert(targetValue->type() == Json::nullValue);
+    assert(targetType == NULL || targetType->type() == Json::nullValue);
+
+    if (value.IsNull())
+    {
+      if (targetType != NULL)
+      {
+        *targetType = "Null";
+      }
+    }
+    else if (value.IsBinary())
+    {
+      if (flags & DicomToJsonFlags_ConvertBinaryToAscii)
+      {
+        *targetValue = Toolbox::ConvertToAscii(value.GetContent());
+      }
+      else
+      {
+        std::string s;
+        value.FormatDataUriScheme(s);
+        *targetValue = s;
+      }
+
+      if (targetType != NULL)
+      {
+        *targetType = "Binary";
+      }
+    }
+    else if (maxStringLength == 0 ||
+             value.GetContent().size() <= maxStringLength)
+    {
+      *targetValue = value.GetContent();
+
+      if (targetType != NULL)
+      {
+        *targetType = "String";
+      }
+    }
+    else
+    {
+      if (targetType != NULL)
+      {
+        *targetType = "TooLong";
+      }
     }
   }                              
 
@@ -698,7 +740,7 @@ namespace Orthanc
     if (element.isLeaf())
     {
       std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element, flags, encoding));
-      LeafValueToJson(target, *v, format, maxStringLength);
+      LeafValueToJson(target, *v, format, flags, maxStringLength);
     }
     else
     {

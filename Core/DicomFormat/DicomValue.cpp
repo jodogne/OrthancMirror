@@ -30,60 +30,61 @@
  **/
 
 
-#pragma once
+#include "../PrecompiledHeaders.h"
+#include "DicomValue.h"
 
-#include <string>
-#include <boost/noncopyable.hpp>
+#include "../OrthancException.h"
+#include "../Toolbox.h"
 
 namespace Orthanc
 {
-  class DicomValue : public boost::noncopyable
+  DicomValue::DicomValue(const DicomValue& other) : 
+    type_(other.type_),
+    content_(other.content_)
   {
-  private:
-    enum Type
-    {
-      Type_Null,
-      Type_String,
-      Type_Binary
-    };
+  }
 
-    Type         type_;
-    std::string  content_;
 
-    DicomValue(const DicomValue& other);
-
-  public:
-    DicomValue() : type_(Type_Null)
-    {
-    }
+  DicomValue::DicomValue(const std::string& content,
+                         bool isBinary) :
+    type_(isBinary ? Type_Binary : Type_String),
+    content_(content)
+  {
+  }
+  
+  
+  DicomValue::DicomValue(const char* data,
+                         size_t size,
+                         bool isBinary) :
+    type_(isBinary ? Type_Binary : Type_String)
+  {
+    content_.assign(data, size);
+  }
     
-    DicomValue(const std::string& content,
-               bool isBinary);
-    
-    DicomValue(const char* data,
-               size_t size,
-               bool isBinary);
-    
-    const std::string& GetContent() const;
-
-    bool IsNull() const
+  
+  const std::string& DicomValue::GetContent() const
+  {
+    if (type_ == Type_Null)
     {
-      return type_ == Type_Null;
+      throw OrthancException(ErrorCode_BadParameterType);
     }
-
-    bool IsBinary() const
+    else
     {
-      return type_ == Type_Binary;
+      return content_;
     }
-    
-    DicomValue* Clone() const;
+  }
 
-    void FormatDataUriScheme(std::string& target,
-                             const std::string& mime) const;
 
-    void FormatDataUriScheme(std::string& target) const
-    {
-      FormatDataUriScheme(target, "application/octet-stream");
-    }
-  };
+  DicomValue* DicomValue::Clone() const
+  {
+    return new DicomValue(*this);
+  }
+
+  
+  void DicomValue::FormatDataUriScheme(std::string& target,
+                                       const std::string& mime) const
+  {
+    Toolbox::EncodeBase64(target, GetContent());
+    target.insert(0, "data:" + mime + ";base64,");
+  }
 }
