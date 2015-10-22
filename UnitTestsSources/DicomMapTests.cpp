@@ -36,7 +36,6 @@
 #include "../Core/Uuid.h"
 #include "../Core/OrthancException.h"
 #include "../Core/DicomFormat/DicomMap.h"
-#include "../Core/DicomFormat/DicomNullValue.h"
 #include "../OrthancServer/FromDcmtkBridge.h"
 
 #include <memory>
@@ -103,7 +102,7 @@ TEST(DicomMap, Tags)
   m.SetValue(DICOM_TAG_PATIENT_ID, "PatientID");
   ASSERT_TRUE(m.HasTag(0x0010, 0x0020));
   m.SetValue(DICOM_TAG_PATIENT_ID, "PatientID2");
-  ASSERT_EQ("PatientID2", m.GetValue(0x0010, 0x0020).AsString());
+  ASSERT_EQ("PatientID2", m.GetValue(0x0010, 0x0020).GetContent());
 
   m.GetTags(s);
   ASSERT_EQ(2u, s.size());
@@ -116,14 +115,14 @@ TEST(DicomMap, Tags)
   ASSERT_EQ(DICOM_TAG_PATIENT_NAME, *s.begin());
 
   std::auto_ptr<DicomMap> mm(m.Clone());
-  ASSERT_EQ("PatientName", mm->GetValue(DICOM_TAG_PATIENT_NAME).AsString());  
+  ASSERT_EQ("PatientName", mm->GetValue(DICOM_TAG_PATIENT_NAME).GetContent());  
 
   m.SetValue(DICOM_TAG_PATIENT_ID, "Hello");
   ASSERT_THROW(mm->GetValue(DICOM_TAG_PATIENT_ID), OrthancException);
   mm->CopyTagIfExists(m, DICOM_TAG_PATIENT_ID);
-  ASSERT_EQ("Hello", mm->GetValue(DICOM_TAG_PATIENT_ID).AsString());  
+  ASSERT_EQ("Hello", mm->GetValue(DICOM_TAG_PATIENT_ID).GetContent());  
 
-  DicomNullValue v;
+  DicomValue v;
   ASSERT_TRUE(v.IsNull());
 }
 

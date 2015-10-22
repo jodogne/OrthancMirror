@@ -37,6 +37,7 @@
 #include "ServerEnumerations.h"
 #include "../Core/Images/ImageAccessor.h"
 #include "../Core/Images/ImageBuffer.h"
+#include "../Core/IDynamicObject.h"
 
 namespace Orthanc
 {

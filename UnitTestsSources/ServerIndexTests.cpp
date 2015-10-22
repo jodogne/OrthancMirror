@@ -33,7 +33,6 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
-#include "../Core/DicomFormat/DicomNullValue.h"
 #include "../Core/FileStorage/FilesystemStorage.h"
 #include "../Core/Logging.h"
 #include "../Core/Uuid.h"

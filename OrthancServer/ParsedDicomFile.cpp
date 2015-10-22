@@ -90,8 +90,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Core/Images/ImageBuffer.h"
 #include "../Core/Images/PngWriter.h"
 #include "../Core/Uuid.h"
-#include "../Core/DicomFormat/DicomString.h"
-#include "../Core/DicomFormat/DicomNullValue.h"
 #include "../Core/DicomFormat/DicomIntegerPixelAccessor.h"
 #include "../Core/Images/PngReader.h"
 
@@ -766,13 +764,15 @@ namespace Orthanc
       std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement
                                   (*element, DicomToJsonFlags_Default, GetEncoding()));
       
-      if (v.get() == NULL)
+      if (v.get() == NULL ||
+          v->IsNull())
       {
         value = "";
       }
       else
       {
-        value = v->AsString();
+        // TODO v->IsBinary()
+        value = v->GetContent();
       }
       
       return true;

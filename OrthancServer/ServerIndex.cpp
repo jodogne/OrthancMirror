@@ -394,8 +394,8 @@ namespace Orthanc
           (value2 = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS)) != NULL)
       {
         // Patch for series with temporal positions thanks to Will Ryder
-        int64_t imagesInAcquisition = boost::lexical_cast<int64_t>(value->AsString());
-        int64_t countTemporalPositions = boost::lexical_cast<int64_t>(value2->AsString());
+        int64_t imagesInAcquisition = boost::lexical_cast<int64_t>(value->GetContent());
+        int64_t countTemporalPositions = boost::lexical_cast<int64_t>(value2->GetContent());
         std::string expected = boost::lexical_cast<std::string>(imagesInAcquisition * countTemporalPositions);
         db.SetMetadata(series, MetadataType_Series_ExpectedNumberOfInstances, expected);
       }
@@ -404,18 +404,21 @@ namespace Orthanc
                (value2 = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_TIME_SLICES)) != NULL)
       {
         // Support of Cardio-PET images
-        int64_t numberOfSlices = boost::lexical_cast<int64_t>(value->AsString());
-        int64_t numberOfTimeSlices = boost::lexical_cast<int64_t>(value2->AsString());
+        int64_t numberOfSlices = boost::lexical_cast<int64_t>(value->GetContent());
+        int64_t numberOfTimeSlices = boost::lexical_cast<int64_t>(value2->GetContent());
         std::string expected = boost::lexical_cast<std::string>(numberOfSlices * numberOfTimeSlices);
         db.SetMetadata(series, MetadataType_Series_ExpectedNumberOfInstances, expected);
       }
 
       else if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES)) != NULL)
       {
-        db.SetMetadata(series, MetadataType_Series_ExpectedNumberOfInstances, value->AsString());
+        db.SetMetadata(series, MetadataType_Series_ExpectedNumberOfInstances, value->GetContent());
       }
     }
-    catch (boost::bad_lexical_cast)
+    catch (OrthancException&)
+    {
+    }
+    catch (boost::bad_lexical_cast&)
     {
     }
   }
@@ -768,8 +771,12 @@ namespace Orthanc
       if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_INSTANCE_NUMBER)) != NULL ||
           (value = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGE_INDEX)) != NULL)
       {
-        db_.SetMetadata(instance, MetadataType_Instance_IndexInSeries, value->AsString());
-        instanceMetadata[MetadataType_Instance_IndexInSeries] = value->AsString();
+        if (!value->IsNull() && 
+            !value->IsBinary())
+        {
+          db_.SetMetadata(instance, MetadataType_Instance_IndexInSeries, value->GetContent());
+          instanceMetadata[MetadataType_Instance_IndexInSeries] = value->GetContent();
+        }
       }
 
       // Check whether the series of this new instance is now completed
@@ -1197,22 +1204,22 @@ namespace Orthanc
       switch (currentType)
       {
         case ResourceType_Patient:
-          patientId = map.GetValue(DICOM_TAG_PATIENT_ID).AsString();
+          patientId = map.GetValue(DICOM_TAG_PATIENT_ID).GetContent();
           done = true;
           break;
 
         case ResourceType_Study:
-          studyInstanceUid = map.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString();
+          studyInstanceUid = map.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).GetContent();
           currentType = ResourceType_Patient;
           break;
 
         case ResourceType_Series:
-          seriesInstanceUid = map.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).AsString();
+          seriesInstanceUid = map.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).GetContent();
           currentType = ResourceType_Study;
           break;
 
         case ResourceType_Instance:
-          sopInstanceUid = map.GetValue(DICOM_TAG_SOP_INSTANCE_UID).AsString();
+          sopInstanceUid = map.GetValue(DICOM_TAG_SOP_INSTANCE_UID).GetContent();
           currentType = ResourceType_Series;
           break;
 

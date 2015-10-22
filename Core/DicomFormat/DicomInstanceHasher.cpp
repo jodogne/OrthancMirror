@@ -60,10 +60,10 @@ namespace Orthanc
   {
     const DicomValue* patientId = instance.TestAndGetValue(DICOM_TAG_PATIENT_ID);
 
-    Setup(patientId == NULL ? "" : patientId->AsString(),
-          instance.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString(),
-          instance.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).AsString(),
-          instance.GetValue(DICOM_TAG_SOP_INSTANCE_UID).AsString());
+    Setup(patientId == NULL ? "" : patientId->GetContent(),
+          instance.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).GetContent(),
+          instance.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).GetContent(),
+          instance.GetValue(DICOM_TAG_SOP_INSTANCE_UID).GetContent());
   }
 
   const std::string& DicomInstanceHasher::HashPatient()

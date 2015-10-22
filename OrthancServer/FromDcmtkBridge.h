@@ -109,9 +109,6 @@ namespace Orthanc
       target.SetValue(ParseTag(tagName), value);
     }
 
-    static void Print(FILE* fp, 
-                      const DicomMap& m);
-
     static void ToJson(Json::Value& result,
                        const DicomMap& values,
                        bool simplify);
