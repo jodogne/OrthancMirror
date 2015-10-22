@@ -91,6 +91,21 @@ namespace Orthanc
     }
 
 
+    static std::string ValueAsString(const DicomMap& summary,
+                                     const DicomTag& tag)
+    {
+      const DicomValue& value = summary.GetValue(tag);
+      if (value.IsNull())
+      {
+        return "(null)";
+      }
+      else
+      {
+        return value.GetContent();
+      }
+    }
+
+
     void LogMissingRequiredTag(const DicomMap& summary)
     {
       std::string s, t;
@@ -99,7 +114,7 @@ namespace Orthanc
       {
         if (t.size() > 0)
           t += ", ";
-        t += "PatientID=" + summary.GetValue(DICOM_TAG_PATIENT_ID).AsString();
+        t += "PatientID=" + ValueAsString(summary, DICOM_TAG_PATIENT_ID);
       }
       else
       {
@@ -112,7 +127,7 @@ namespace Orthanc
       {
         if (t.size() > 0)
           t += ", ";
-        t += "StudyInstanceUID=" + summary.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString();
+        t += "StudyInstanceUID=" + ValueAsString(summary, DICOM_TAG_STUDY_INSTANCE_UID);
       }
       else
       {
@@ -125,7 +140,7 @@ namespace Orthanc
       {
         if (t.size() > 0)
           t += ", ";
-        t += "SeriesInstanceUID=" + summary.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).AsString();
+        t += "SeriesInstanceUID=" + ValueAsString(summary, DICOM_TAG_SERIES_INSTANCE_UID);
       }
       else
       {
@@ -138,7 +153,7 @@ namespace Orthanc
       {
         if (t.size() > 0)
           t += ", ";
-        t += "SOPInstanceUID=" + summary.GetValue(DICOM_TAG_SOP_INSTANCE_UID).AsString();
+        t += "SOPInstanceUID=" + ValueAsString(summary, DICOM_TAG_SOP_INSTANCE_UID);
       }
       else
       {
@@ -168,7 +183,12 @@ namespace Orthanc
       {
         const DicomElement& element = flattened.GetElement(i);
         const DicomTag& tag = element.GetTag();
-        database.SetMainDicomTag(resource, tag, element.GetValue().AsString());
+        const DicomValue& value = element.GetValue();
+        if (!value.IsNull() && 
+            !value.IsBinary())
+        {
+          database.SetMainDicomTag(resource, tag, element.GetValue().GetContent());
+        }
       }
     }
 
@@ -180,9 +200,10 @@ namespace Orthanc
     {
       const DicomValue* value = tags.TestAndGetValue(tag);
       if (value != NULL &&
-          !value->IsNull())
+          !value->IsNull() &&
+          !value->IsBinary())
       {
-        std::string s = value->AsString();
+        std::string s = value->GetContent();
 
         if (tag != DICOM_TAG_PATIENT_ID &&
             tag != DICOM_TAG_STUDY_INSTANCE_UID &&

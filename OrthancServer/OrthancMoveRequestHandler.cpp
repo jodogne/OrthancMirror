@@ -138,10 +138,17 @@ namespace Orthanc
       return false;
     }
 
-    std::string value = input.GetValue(tag).AsString();
+    const DicomValue& value = input.GetValue(tag);
+    if (value.IsNull() ||
+        value.IsBinary())
+    {
+      return false;
+    }
+
+    const std::string& content = value.GetContent();
 
     std::list<std::string> ids;
-    context_.GetIndex().LookupIdentifier(ids, tag, value, level);
+    context_.GetIndex().LookupIdentifier(ids, tag, content, level);
 
     if (ids.size() != 1)
     {
@@ -170,7 +177,7 @@ namespace Orthanc
         {
           LOG(INFO) << "  " << query.GetElement(i).GetTag()
                     << "  " << FromDcmtkBridge::GetName(query.GetElement(i).GetTag())
-                    << " = " << query.GetElement(i).GetValue().AsString();
+                    << " = " << query.GetElement(i).GetValue().GetContent();
         }
       }
     }
@@ -183,7 +190,9 @@ namespace Orthanc
 
     const DicomValue* levelTmp = input.TestAndGetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL);
 
-    if (levelTmp == NULL) 
+    if (levelTmp == NULL ||
+        levelTmp->IsNull() ||
+        levelTmp->IsBinary())
     {
       // The query level is not present in the C-Move request, which
       // does not follow the DICOM standard. This is for instance the
@@ -208,7 +217,7 @@ namespace Orthanc
     }
 
     assert(levelTmp != NULL);
-    ResourceType level = StringToResourceType(levelTmp->AsString().c_str());      
+    ResourceType level = StringToResourceType(levelTmp->GetContent().c_str());      
 
 
     /**

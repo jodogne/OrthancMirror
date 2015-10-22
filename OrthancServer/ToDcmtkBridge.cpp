@@ -52,8 +52,11 @@ namespace Orthanc
     for (DicomMap::Map::const_iterator 
            it = map.map_.begin(); it != map.map_.end(); ++it)
     {
-      std::string s = it->second->AsString();
-      DU_putStringDOElement(result.get(), Convert(it->first), s.c_str());
+      if (!it->second->IsNull())
+      {
+        std::string s = it->second->GetContent();
+        DU_putStringDOElement(result.get(), Convert(it->first), s.c_str());
+      }
     }
 
     return result.release();
