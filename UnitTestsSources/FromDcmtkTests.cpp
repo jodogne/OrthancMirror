@@ -521,53 +521,88 @@ TEST(ParsedDicomFile, JsonEncoding)
   }
 }
 
-TEST(ParsedDicomFile, ToJsonFlags)
+
+TEST(ParsedDicomFile, ToJsonFlags1)
 {
   FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7053, 0x1000), EVR_PN, "MyPrivateTag", 1, 1);
   FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7050, 0x1000), EVR_PN, "Declared public tag", 1, 1);
 
-  {
-    ParsedDicomFile f;
-    f.Insert(DicomTag(0x7050, 0x1000), "Some public tag", false);  // Even group => public tag
-    f.Insert(DicomTag(0x7052, 0x1000), "Some unknown tag", false);  // Even group => public, unknown tag
-    f.Insert(DicomTag(0x7053, 0x1000), "Some private tag", false);  // Odd group => private tag
+  ParsedDicomFile f;
+  f.Insert(DicomTag(0x7050, 0x1000), "Some public tag", false);  // Even group => public tag
+  f.Insert(DicomTag(0x7052, 0x1000), "Some unknown tag", false);  // Even group => public, unknown tag
+  f.Insert(DicomTag(0x7053, 0x1000), "Some private tag", false);  // Odd group => private tag
 
-    Json::Value v;
-    f.ToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
-    ASSERT_EQ(Json::objectValue, v.type());
-    ASSERT_EQ(6, v.getMemberNames().size());
-    ASSERT_FALSE(v.isMember("7052,1000"));
-    ASSERT_FALSE(v.isMember("7053,1000"));
-    ASSERT_TRUE(v.isMember("7050,1000"));
-    ASSERT_EQ(Json::stringValue, v["7050,1000"].type());
-    ASSERT_EQ("Some public tag", v["7050,1000"].asString());
+  Json::Value v;
+  f.ToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
+  ASSERT_EQ(Json::objectValue, v.type());
+  ASSERT_EQ(6, v.getMemberNames().size());
+  ASSERT_FALSE(v.isMember("7052,1000"));
+  ASSERT_FALSE(v.isMember("7053,1000"));
+  ASSERT_TRUE(v.isMember("7050,1000"));
+  ASSERT_EQ(Json::stringValue, v["7050,1000"].type());
+  ASSERT_EQ("Some public tag", v["7050,1000"].asString());
 
-    f.ToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_IncludePrivateTags, 0);
-    ASSERT_EQ(Json::objectValue, v.type());
-    ASSERT_EQ(7, v.getMemberNames().size());
-    ASSERT_FALSE(v.isMember("7052,1000"));
-    ASSERT_TRUE(v.isMember("7050,1000"));
-    ASSERT_TRUE(v.isMember("7053,1000"));
-    ASSERT_EQ("Some public tag", v["7050,1000"].asString());
-    ASSERT_EQ(Json::nullValue, v["7053,1000"].type());  // TODO SHOULD BE STRING
+  f.ToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_IncludePrivateTags, 0);
+  ASSERT_EQ(Json::objectValue, v.type());
+  ASSERT_EQ(7, v.getMemberNames().size());
+  ASSERT_FALSE(v.isMember("7052,1000"));
+  ASSERT_TRUE(v.isMember("7050,1000"));
+  ASSERT_TRUE(v.isMember("7053,1000"));
+  ASSERT_EQ("Some public tag", v["7050,1000"].asString());
+  ASSERT_EQ(Json::nullValue, v["7053,1000"].type());  // TODO SHOULD BE STRING
 
-    f.ToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_IncludeUnknownTags, 0);
-    ASSERT_EQ(Json::objectValue, v.type());
-    ASSERT_EQ(7, v.getMemberNames().size());
-    ASSERT_TRUE(v.isMember("7050,1000"));
-    ASSERT_TRUE(v.isMember("7052,1000"));
-    ASSERT_FALSE(v.isMember("7053,1000"));
-    ASSERT_EQ("Some public tag", v["7050,1000"].asString());
-    ASSERT_EQ(Json::nullValue, v["7052,1000"].type());  // TODO SHOULD BE STRING
+  f.ToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_IncludeUnknownTags, 0);
+  ASSERT_EQ(Json::objectValue, v.type());
+  ASSERT_EQ(7, v.getMemberNames().size());
+  ASSERT_TRUE(v.isMember("7050,1000"));
+  ASSERT_TRUE(v.isMember("7052,1000"));
+  ASSERT_FALSE(v.isMember("7053,1000"));
+  ASSERT_EQ("Some public tag", v["7050,1000"].asString());
+  ASSERT_EQ(Json::nullValue, v["7052,1000"].type());  // TODO SHOULD BE STRING
 
-    f.ToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludeUnknownTags | DicomToJsonFlags_IncludePrivateTags), 0);
-    ASSERT_EQ(Json::objectValue, v.type());
-    ASSERT_EQ(8, v.getMemberNames().size());
-    ASSERT_TRUE(v.isMember("7050,1000"));
-    ASSERT_TRUE(v.isMember("7052,1000"));
-    ASSERT_TRUE(v.isMember("7053,1000"));
-    ASSERT_EQ("Some public tag", v["7050,1000"].asString());
-    ASSERT_EQ(Json::nullValue, v["7052,1000"].type());  // TODO SHOULD BE STRING
-    ASSERT_EQ(Json::nullValue, v["7053,1000"].type());  // TODO SHOULD BE STRING
-  }
+  f.ToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludeUnknownTags | DicomToJsonFlags_IncludePrivateTags), 0);
+  ASSERT_EQ(Json::objectValue, v.type());
+  ASSERT_EQ(8, v.getMemberNames().size());
+  ASSERT_TRUE(v.isMember("7050,1000"));
+  ASSERT_TRUE(v.isMember("7052,1000"));
+  ASSERT_TRUE(v.isMember("7053,1000"));
+  ASSERT_EQ("Some public tag", v["7050,1000"].asString());
+  ASSERT_EQ(Json::nullValue, v["7052,1000"].type());  // TODO SHOULD BE STRING
+  ASSERT_EQ(Json::nullValue, v["7053,1000"].type());  // TODO SHOULD BE STRING
+}
+
+
+TEST(ParsedDicomFile, ToJsonFlags2)
+{
+  ParsedDicomFile f;
+  f.Insert(DICOM_TAG_PIXEL_DATA, "Pixels", false);
+
+  Json::Value v;
+  f.ToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
+  ASSERT_EQ(Json::objectValue, v.type());
+  ASSERT_EQ(5, v.getMemberNames().size());
+  ASSERT_FALSE(v.isMember("7fe0,0010"));  
+
+  f.ToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePixelData | DicomToJsonFlags_ConvertBinaryToNull), 0);
+  ASSERT_EQ(Json::objectValue, v.type());
+  ASSERT_EQ(6, v.getMemberNames().size());
+  ASSERT_TRUE(v.isMember("7fe0,0010"));  
+  ASSERT_EQ(Json::nullValue, v["7fe0,0010"].type());  
+
+  f.ToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePixelData | DicomToJsonFlags_ConvertBinaryToAscii), 0);
+  ASSERT_EQ(Json::objectValue, v.type());
+  ASSERT_EQ(6, v.getMemberNames().size());
+  ASSERT_TRUE(v.isMember("7fe0,0010"));  
+  ASSERT_EQ(Json::stringValue, v["7fe0,0010"].type());  
+  ASSERT_EQ("Pixels", v["7fe0,0010"].asString());  
+
+  f.ToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_IncludePixelData, 0);
+  ASSERT_EQ(Json::objectValue, v.type());
+  ASSERT_EQ(6, v.getMemberNames().size());
+  ASSERT_TRUE(v.isMember("7fe0,0010"));  
+  ASSERT_EQ(Json::stringValue, v["7fe0,0010"].type());
+  std::string mime, content;
+  Toolbox::DecodeDataUriScheme(mime, content, v["7fe0,0010"].asString());
+  ASSERT_EQ("application/octet-stream", mime);
+  ASSERT_EQ("Pixels", content);
 }

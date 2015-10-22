@@ -115,10 +115,14 @@ namespace Orthanc
     DicomToJsonFlags_IncludeUnknownTags    = (1 << 2),
     DicomToJsonFlags_IncludePixelData      = (1 << 3),
     DicomToJsonFlags_ConvertBinaryToAscii  = (1 << 4),
+    DicomToJsonFlags_ConvertBinaryToNull   = (1 << 5),
 
     // Some predefined combinations
-    DicomToJsonFlags_None               = 0,
-    DicomToJsonFlags_Default            = DicomToJsonFlags_IncludePrivateTags | DicomToJsonFlags_IncludeUnknownTags
+    DicomToJsonFlags_None     = 0,
+    DicomToJsonFlags_Default  = (DicomToJsonFlags_IncludePrivateTags | 
+                                 DicomToJsonFlags_IncludeUnknownTags | 
+                                 DicomToJsonFlags_IncludePixelData | 
+                                 DicomToJsonFlags_ConvertBinaryToNull)
   };
 
 

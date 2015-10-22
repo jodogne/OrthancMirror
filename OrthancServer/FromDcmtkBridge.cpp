@@ -407,17 +407,15 @@ namespace Orthanc
         case EVR_OF:  // other float
         case EVR_OW:  // other word
         case EVR_UN:  // unknown value representation
+        case EVR_ox:  // OB or OW depending on context
         {
-          DicomTag tag(Convert(element.getTag()));
-
-          if ((tag == DICOM_TAG_PIXEL_DATA && flags & DicomToJsonFlags_IncludePixelData) ||
-              (tag != DICOM_TAG_PIXEL_DATA && flags & DicomToJsonFlags_IncludeBinary))
+          if (!(flags & DicomToJsonFlags_ConvertBinaryToNull))
           {
             Uint8* data = NULL;
             if (element.getUint8Array(data) == EC_Normal)
             {
               return new DicomValue(reinterpret_cast<const char*>(data), element.getLength(), true);
-            } 
+            }
           }
 
           return new DicomValue;
@@ -537,7 +535,6 @@ namespace Orthanc
            * Internal to DCMTK.
            **/ 
 
-        case EVR_ox:  // OB or OW depending on context
         case EVR_xs:  // SS or US depending on context
         case EVR_lt:  // US, SS or OW depending on context, used for LUT Data (thus the name)
         case EVR_na:  // na="not applicable", for data which has no VR
@@ -789,6 +786,23 @@ namespace Orthanc
       {
         DictionaryLocker locker;
         if (locker->findEntry(element->getTag(), NULL) == NULL)
+        {
+          continue;
+        }
+      }
+
+      DcmEVR evr = element->getTag().getEVR();
+      if (evr == EVR_OB ||
+          evr == EVR_OF ||
+          evr == EVR_OW ||
+          evr == EVR_UN ||
+          evr == EVR_ox)
+      {
+        // This is a binary tag
+        DicomTag tag(FromDcmtkBridge::Convert(element->getTag()));
+
+        if ((tag == DICOM_TAG_PIXEL_DATA && !(flags & DicomToJsonFlags_IncludePixelData)) ||
+            (tag != DICOM_TAG_PIXEL_DATA && !(flags & DicomToJsonFlags_IncludeBinary)))
         {
           continue;
         }
@@ -1061,7 +1075,13 @@ namespace Orthanc
 
   static bool IsBinaryTag(const DcmTag& key)
   {
-    return key.isPrivate() || key.isUnknownVR();
+    return (key.isPrivate() || 
+            key.isUnknownVR() || 
+            key.getEVR() == EVR_OB ||
+            key.getEVR() == EVR_OF ||
+            key.getEVR() == EVR_OW ||
+            key.getEVR() == EVR_UN ||
+            key.getEVR() == EVR_ox);
   }
 
 
@@ -1079,17 +1099,15 @@ namespace Orthanc
       // http://support.dcmtk.org/docs/dcvr_8h-source.html
 
       /**
-       * TODO.
+       * Binary types, handled above
        **/
     
       case EVR_OB:  // other byte
       case EVR_OF:  // other float
       case EVR_OW:  // other word
-      case EVR_AT:  // attribute tag
-        throw OrthancException(ErrorCode_NotImplemented);
-
       case EVR_UN:  // unknown value representation
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      case EVR_ox:  // OB or OW depending on context
+        throw OrthancException(ErrorCode_InternalError);
 
 
       /**
@@ -1175,10 +1193,17 @@ namespace Orthanc
 
 
       /**
+       * TODO
+       **/
+
+      case EVR_AT:  // attribute tag
+        throw OrthancException(ErrorCode_NotImplemented);
+
+
+      /**
        * Internal to DCMTK.
        **/ 
 
-      case EVR_ox:  // OB or OW depending on context
       case EVR_xs:  // SS or US depending on context
       case EVR_lt:  // US, SS or OW depending on context, used for LUT Data (thus the name)
       case EVR_na:  // na="not applicable", for data which has no VR
