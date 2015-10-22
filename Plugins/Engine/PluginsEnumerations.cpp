@@ -210,6 +210,25 @@ namespace Orthanc
     }
 
 
+    DicomToJsonFormat Convert(OrthancPluginDicomToJsonFormat format)
+    {
+      switch (format)
+      {
+        case OrthancPluginDicomToJsonFormat_Full:
+          return DicomToJsonFormat_Full;
+
+        case OrthancPluginDicomToJsonFormat_Short:
+          return DicomToJsonFormat_Short;
+
+        case OrthancPluginDicomToJsonFormat_Simple:
+          return DicomToJsonFormat_Simple;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
+
 #if !defined(ORTHANC_ENABLE_DCMTK) || ORTHANC_ENABLE_DCMTK != 0
     DcmEVR Convert(OrthancPluginValueRepresentation vr)
     {
