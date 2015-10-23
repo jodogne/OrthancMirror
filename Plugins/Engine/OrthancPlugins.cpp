@@ -1266,8 +1266,6 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
 
-      printf("ICI %s\n", p.instanceId);
-
       std::string content;
       pimpl_->context_->ReadFile(content, p.instanceId, FileContentType_Dicom);
       dicom.reset(new ParsedDicomFile(content));
