@@ -514,7 +514,9 @@ namespace Orthanc
 
 
 
-  void OrthancPlugins::SignalChange(const ServerIndexChange& change)
+  void OrthancPlugins::SignalChangeInternal(OrthancPluginChangeType changeType,
+                                            OrthancPluginResourceType resourceType,
+                                            const char* resource)
   {
     boost::recursive_mutex::scoped_lock lock(pimpl_->changeCallbackMutex_);
 
@@ -522,10 +524,7 @@ namespace Orthanc
            callback = pimpl_->onChangeCallbacks_.begin(); 
          callback != pimpl_->onChangeCallbacks_.end(); ++callback)
     {
-      OrthancPluginErrorCode error = (*callback)
-        (Plugins::Convert(change.GetChangeType()),
-         Plugins::Convert(change.GetResourceType()),
-         change.GetPublicId().c_str());
+      OrthancPluginErrorCode error = (*callback) (changeType, resourceType, resource);
 
       if (error != OrthancPluginErrorCode_Success)
       {
@@ -533,6 +532,15 @@ namespace Orthanc
         throw OrthancException(static_cast<ErrorCode>(error));
       }
     }
+  }
+
+
+
+  void OrthancPlugins::SignalChange(const ServerIndexChange& change)
+  {
+    SignalChangeInternal(Plugins::Convert(change.GetChangeType()),
+                         Plugins::Convert(change.GetResourceType()),
+                         change.GetPublicId().c_str());
   }
 
 
@@ -1257,6 +1265,8 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
+
+      printf("ICI %s\n", p.instanceId);
 
       std::string content;
       pimpl_->context_->ReadFile(content, p.instanceId, FileContentType_Dicom);

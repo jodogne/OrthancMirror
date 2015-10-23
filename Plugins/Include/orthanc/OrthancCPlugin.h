@@ -550,6 +550,7 @@ extern "C"
     OrthancPluginResourceType_Study = 1,       /*!< Study */
     OrthancPluginResourceType_Series = 2,      /*!< Series */
     OrthancPluginResourceType_Instance = 3,    /*!< Instance */
+    OrthancPluginResourceType_None = 4,        /*!< Unavailable resource type */
 
     _OrthancPluginResourceType_INTERNAL = 0x7fffffff
   } OrthancPluginResourceType;
@@ -572,6 +573,8 @@ extern "C"
     OrthancPluginChangeType_StablePatient = 7,      /*!< Timeout: No new instance in this patient */
     OrthancPluginChangeType_StableSeries = 8,       /*!< Timeout: No new instance in this series */
     OrthancPluginChangeType_StableStudy = 9,        /*!< Timeout: No new instance in this study */
+    OrthancPluginChangeType_OrthancStarted = 10,    /*!< Orthanc has started */
+    OrthancPluginChangeType_OrthancStopped = 11,    /*!< Orthanc is stopping */
 
     _OrthancPluginChangeType_INTERNAL = 0x7fffffff
   } OrthancPluginChangeType;
@@ -3892,7 +3895,7 @@ extern "C"
     params.flags = flags;
     params.maxStringLength = maxStringLength;
 
-    if (context->InvokeService(context, _OrthancPluginService_DicomBufferToJson, &params) != OrthancPluginErrorCode_Success)
+    if (context->InvokeService(context, _OrthancPluginService_DicomInstanceToJson, &params) != OrthancPluginErrorCode_Success)
     {
       /* Error */
       return NULL;
