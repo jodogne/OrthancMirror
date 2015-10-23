@@ -597,12 +597,26 @@ static bool WaitForExit(ServerContext& context,
 {
   LOG(WARNING) << "Orthanc has started";
 
+#if ORTHANC_PLUGINS_ENABLED == 1
+  if (context.HasPlugins())
+  {
+    context.GetPlugins().SignalOrthancStarted();
+  }
+#endif
+
   context.GetLua().Execute("Initialize");
 
   Toolbox::ServerBarrier(restApi.LeaveBarrierFlag());
   bool restart = restApi.IsResetRequestReceived();
 
   context.GetLua().Execute("Finalize");
+
+#if ORTHANC_PLUGINS_ENABLED == 1
+  if (context.HasPlugins())
+  {
+    context.GetPlugins().SignalOrthancStopped();
+  }
+#endif
 
   if (restart)
   {

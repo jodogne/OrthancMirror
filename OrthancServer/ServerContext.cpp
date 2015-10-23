@@ -520,6 +520,18 @@ namespace Orthanc
     }
   }
 
+  OrthancPlugins& ServerContext::GetPlugins()
+  {
+    if (HasPlugins())
+    {
+      return *plugins_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
 #endif
 
 

@@ -256,6 +256,8 @@ namespace Orthanc
     void ResetPlugins();
 
     const OrthancPlugins& GetPlugins() const;
+
+    OrthancPlugins& GetPlugins();
 #endif
 
     bool HasPlugins() const;
