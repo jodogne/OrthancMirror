@@ -646,24 +646,33 @@ extern "C"
   } OrthancPluginValueRepresentation;
 
 
+  /**
+   * The possible output formats for a DICOM-to-JSON conversion.
+   * @ingroup Toolbox
+   **/
   typedef enum
   {
-    OrthancPluginDicomToJsonFormat_Full = 1,
-    OrthancPluginDicomToJsonFormat_Short = 2,
-    OrthancPluginDicomToJsonFormat_Simple = 3,
+    OrthancPluginDicomToJsonFormat_Full = 1,    /*!< Full output, with most details */
+    OrthancPluginDicomToJsonFormat_Short = 2,   /*!< Tags output as hexadecimal numbers */
+    OrthancPluginDicomToJsonFormat_Simple = 3,  /*!< Human-readable JSON */
 
     _OrthancPluginDicomToJsonFormat_INTERNAL = 0x7fffffff
   } OrthancPluginDicomToJsonFormat;
 
 
+  /**
+   * Flags to customize a DICOM-to-JSON conversion. By default, binary
+   * tags are formatted using Data URI scheme.
+   * @ingroup Toolbox
+   **/
   typedef enum
   {
-    OrthancPluginDicomToJsonFlags_IncludeBinary         = (1 << 0),
-    OrthancPluginDicomToJsonFlags_IncludePrivateTags    = (1 << 1),
-    OrthancPluginDicomToJsonFlags_IncludeUnknownTags    = (1 << 2),
-    OrthancPluginDicomToJsonFlags_IncludePixelData      = (1 << 3),
-    OrthancPluginDicomToJsonFlags_ConvertBinaryToAscii  = (1 << 4),
-    OrthancPluginDicomToJsonFlags_ConvertBinaryToNull   = (1 << 5),
+    OrthancPluginDicomToJsonFlags_IncludeBinary         = (1 << 0),  /*!< Include the binary tags */
+    OrthancPluginDicomToJsonFlags_IncludePrivateTags    = (1 << 1),  /*!< Include the private tags */
+    OrthancPluginDicomToJsonFlags_IncludeUnknownTags    = (1 << 2),  /*!< Include the tags unknown by the dictionary */
+    OrthancPluginDicomToJsonFlags_IncludePixelData      = (1 << 3),  /*!< Include the pixel data */
+    OrthancPluginDicomToJsonFlags_ConvertBinaryToAscii  = (1 << 4),  /*!< Output binary tags as-is, dropping non-ASCII */
+    OrthancPluginDicomToJsonFlags_ConvertBinaryToNull   = (1 << 5),  /*!< Signal binary tags as null values */
 
     _OrthancPluginDicomToJsonFlags_INTERNAL = 0x7fffffff
   } OrthancPluginDicomToJsonFlags;
@@ -3847,6 +3856,26 @@ extern "C"
     uint32_t                        maxStringLength;
   } _OrthancPluginDicomToJson;
 
+
+  /**
+   * @brief Format a DICOM memory buffer as a JSON string.
+   *
+   * This function takes as input a memory buffer containing a DICOM
+   * file, and outputs a JSON string representing the tags of this
+   * DICOM file.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param buffer The memory buffer containing the DICOM file.
+   * @param size The size of the memory buffer.
+   * @param format The output format.
+   * @param flags The output flags.
+   * @param maxStringLength The maximum length of a field. Too long fields will
+   * be output as "null". The 0 value means no maximum length.
+   * @return The NULL value if the case of an error, or the JSON
+   * string. This string must be freed by OrthancPluginFreeString().
+   * @ingroup Toolbox
+   * @see OrthancPluginDicomInstanceToJson
+   **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginDicomBufferToJson(
     OrthancPluginContext*           context,
     const char*                     buffer,
@@ -3878,6 +3907,24 @@ extern "C"
   }
 
 
+  /**
+   * @brief Format a DICOM instance as a JSON string.
+   *
+   * This function formats a DICOM instance that is stored in Orthanc,
+   * and outputs a JSON string representing the tags of this DICOM
+   * instance.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param instanceId The Orthanc identifier of the instance.
+   * @param format The output format.
+   * @param flags The output flags.
+   * @param maxStringLength The maximum length of a field. Too long fields will
+   * be output as "null". The 0 value means no maximum length.
+   * @return The NULL value if the case of an error, or the JSON
+   * string. This string must be freed by OrthancPluginFreeString().
+   * @ingroup Toolbox
+   * @see OrthancPluginDicomInstanceToJson
+   **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginDicomInstanceToJson(
     OrthancPluginContext*           context,
     const char*                     instanceId,
