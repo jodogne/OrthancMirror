@@ -45,7 +45,7 @@
 #include "../Core/Logging.h"
 #include "../Core/Uuid.h"
 #include "../Core/DicomFormat/DicomArray.h"
-#include "LookupIdentifierQuery.h"
+#include "Search/LookupIdentifierQuery.h"
 
 #include "FromDcmtkBridge.h"
 #include "ServerContext.h"

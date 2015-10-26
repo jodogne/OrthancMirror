@@ -39,6 +39,7 @@
 #include "../OrthancServer/DatabaseWrapper.h"
 #include "../OrthancServer/ServerContext.h"
 #include "../OrthancServer/ServerIndex.h"
+#include "../OrthancServer/Search/LookupIdentifierQuery.h"
 
 #include <ctype.h>
 #include <algorithm>

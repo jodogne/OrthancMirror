@@ -32,8 +32,8 @@
 
 #pragma once
 
-#include "ServerEnumerations.h"
-#include "IDatabaseWrapper.h"
+#include "../ServerEnumerations.h"
+#include "../IDatabaseWrapper.h"
 
 #include <vector>
 #include <boost/noncopyable.hpp>

@@ -30,10 +30,10 @@
  **/
 
 
-#include "PrecompiledHeadersServer.h"
+#include "../PrecompiledHeadersServer.h"
 #include "LookupIdentifierQuery.h"
 
-#include "../Core/OrthancException.h"
+#include "../../Core/OrthancException.h"
 #include "SetOfResources.h"
 
 #include <cassert>
