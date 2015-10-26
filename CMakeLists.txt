@@ -164,7 +164,6 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/Internals/FindScp.cpp
   OrthancServer/Internals/MoveScp.cpp
   OrthancServer/Internals/StoreScp.cpp
-  OrthancServer/LookupIdentifierQuery.cpp
   OrthancServer/LuaScripting.cpp
   OrthancServer/OrthancFindRequestHandler.cpp
   OrthancServer/OrthancHttpHandler.cpp
@@ -181,11 +180,12 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/ParsedDicomFile.cpp
   OrthancServer/QueryRetrieveHandler.cpp
   OrthancServer/ResourceFinder.cpp
+  OrthancServer/Search/LookupIdentifierQuery.cpp
+  OrthancServer/Search/SetOfResources.cpp
   OrthancServer/ServerContext.cpp
   OrthancServer/ServerEnumerations.cpp
   OrthancServer/ServerIndex.cpp
   OrthancServer/ServerToolbox.cpp
-  OrthancServer/SetOfResources.cpp
   OrthancServer/SliceOrdering.cpp
   OrthancServer/ToDcmtkBridge.cpp
 

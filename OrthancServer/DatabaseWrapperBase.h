@@ -39,7 +39,6 @@
 #include "../Core/SQLite/Connection.h"
 #include "../OrthancServer/ExportedResource.h"
 #include "../OrthancServer/ServerIndexChange.h"
-#include "LookupIdentifierQuery.h"
 #include "ServerEnumerations.h"
 
 #include <list>

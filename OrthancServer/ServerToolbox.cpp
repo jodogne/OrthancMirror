@@ -38,7 +38,7 @@
 #include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
 #include "ParsedDicomFile.h"
-#include "LookupIdentifierQuery.h"
+#include "Search/LookupIdentifierQuery.h"
 
 #include <cassert>
 

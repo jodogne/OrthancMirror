@@ -30,10 +30,10 @@
  **/
 
 
-#include "PrecompiledHeadersServer.h"
+#include "../PrecompiledHeadersServer.h"
 #include "SetOfResources.h"
 
-#include "../Core/OrthancException.h"
+#include "../../Core/OrthancException.h"
 
 
 namespace Orthanc
@@ -91,6 +91,24 @@ namespace Orthanc
     }
 
     resources_ = children;
+
+    switch (level_)
+    {
+      case ResourceType_Patient:
+        level_ = ResourceType_Study;
+        break;
+
+      case ResourceType_Study:
+        level_ = ResourceType_Series;
+        break;
+
+      case ResourceType_Series:
+        level_ = ResourceType_Instance;
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
   }
 
 

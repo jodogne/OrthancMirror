@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include "IDatabaseWrapper.h"
+#include "../IDatabaseWrapper.h"
 
 #include <set>
 #include <boost/noncopyable.hpp>
