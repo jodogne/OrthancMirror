@@ -34,7 +34,7 @@
 #include "LookupIdentifierQuery.h"
 
 #include "../Core/OrthancException.h"
-
+#include "SetOfResources.h"
 
 #include <cassert>
 
@@ -70,27 +70,6 @@ namespace Orthanc
     DICOM_TAG_SOP_INSTANCE_UID
   };
 
-
-  LookupIdentifierQuery::~LookupIdentifierQuery()
-  {
-    for (Constraints::iterator it = constraints_.begin();
-         it != constraints_.end(); ++it)
-    {
-      delete *it;
-    }
-  }
-
-
-
-  void  LookupIdentifierQuery::CheckIndex(size_t index) const
-  {
-    if (index >= constraints_.size())
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
-
   static void LoadIdentifiers(const DicomTag*& tags,
                               size_t& size,
                               ResourceType level)
@@ -119,6 +98,27 @@ namespace Orthanc
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+
+  LookupIdentifierQuery::~LookupIdentifierQuery()
+  {
+    for (Constraints::iterator it = constraints_.begin();
+         it != constraints_.end(); ++it)
+    {
+      delete *it;
+    }
+  }
+
+
+
+  void  LookupIdentifierQuery::CheckIndex(size_t index) const
+  {
+    if (index >= constraints_.size())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
 
@@ -201,5 +201,21 @@ namespace Orthanc
         database.SetIdentifierTag(resource, tags[i], s);
       }
     }
+  }
+
+
+  void LookupIdentifierQuery::Apply(std::list<std::string>& result,
+                                    IDatabaseWrapper& database)
+  {
+    SetOfResources resources(database, level_);
+    
+    for (size_t i = 0; i < GetSize(); i++)
+    {
+      std::list<int64_t> tmp;
+      database.LookupIdentifier(tmp, level_, GetTag(i), GetType(i), GetValue(i));
+      resources.Intersect(tmp);
+    }
+
+    resources.Flatten(result);
   }
 }

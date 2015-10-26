@@ -522,7 +522,7 @@ extern "C"
       void* payload,
       int32_t property);
 
-    /* Use "OrthancPluginDatabaseExtensions::lookupIdentifierExact" 
+    /* Use "OrthancPluginDatabaseExtensions::lookupIdentifier2" 
        instead of this function as of Orthanc 0.9.5 (db v6), can be set to NULL.
        Output: Use OrthancPluginDatabaseAnswerInt64() */
     OrthancPluginErrorCode  (*lookupIdentifier) (
@@ -664,14 +664,17 @@ extern "C"
       void* payload,
       int64_t id);
 
+#if 0
     /* Output: Use OrthancPluginDatabaseAnswerInt64() */
-    OrthancPluginErrorCode  (*lookupIdentifierExact) (
+    OrthancPluginErrorCode  (*lookupIdentifier2) (
       /* outputs */
       OrthancPluginDatabaseContext* context,
       /* inputs */
       void* payload,
       OrthancPluginResourceType resourceType,
       const OrthancPluginDicomTag* tag);
+#endif
+
    } OrthancPluginDatabaseExtensions;
 
 /*<! @endcond */

@@ -54,13 +54,11 @@ namespace Orthanc
    * corresponds to "%" (resp. "_") in primitive LIKE of SQL. The
    * values "%", "_", "\" should in the user request should
    * respectively be escaped as "\%", "\_" and "\\".
-   * 
+   *
    * This matching must be case sensitive: The special case of PN VR
    * is taken into consideration by normalizing the query string in
    * method "NormalizeIdentifier()".
    **/
-
-
 
   class LookupIdentifierQuery : public boost::noncopyable
   {
@@ -103,7 +101,12 @@ namespace Orthanc
                        IdentifierConstraintType type,
                        const std::string& value);
 
-    size_t GetSize()
+    ResourceType GetLevel() const
+    {
+      return level_;
+    }
+
+    size_t GetSize() const
     {
       return constraints_.size();
     }
@@ -118,6 +121,9 @@ namespace Orthanc
                                  int64_t resource,
                                  ResourceType level,
                                  const DicomMap& map);
-    
+
+    // The database must be locked
+    void Apply(std::list<std::string>& result,
+               IDatabaseWrapper& database);
   };
 }

@@ -79,6 +79,7 @@ namespace Orthanc
     ErrorCode_BadFont = 30    /*!< Badly formatted font file */,
     ErrorCode_DatabasePlugin = 31    /*!< The plugin implementing a custom database back-end does not fulfill the proper interface */,
     ErrorCode_StorageAreaPlugin = 32    /*!< Error in the plugin implementing a custom storage area */,
+    ErrorCode_EmptyRequest = 33    /*!< The request is empty */,
     ErrorCode_SQLiteNotOpened = 1000    /*!< SQLite: The database is not opened */,
     ErrorCode_SQLiteAlreadyOpened = 1001    /*!< SQLite: Connection is already open */,
     ErrorCode_SQLiteCannotOpen = 1002    /*!< SQLite: Unable to open the database */,

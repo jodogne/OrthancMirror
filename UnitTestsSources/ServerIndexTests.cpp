@@ -245,6 +245,18 @@ namespace
           throw OrthancException(ErrorCode_InternalError);
       }
     }
+
+
+    void DoLookup(std::list<std::string>& result,
+                  ResourceType level,
+                  const DicomTag& tag,
+                  const std::string& value)
+    {
+      LookupIdentifierQuery query(level);
+      query.AddConstraint(tag, IdentifierConstraintType_Equal, value);
+      query.Apply(result, *index_);
+    }
+
   };
 }
 
@@ -690,36 +702,64 @@ TEST_P(DatabaseWrapperTest, LookupIdentifier)
   index_->SetIdentifierTag(a[2], DICOM_TAG_STUDY_INSTANCE_UID, "0");
   index_->SetIdentifierTag(a[3], DICOM_TAG_SERIES_INSTANCE_UID, "0");
 
-  std::list<int64_t> s;
+  std::list<std::string> s;
 
-  index_->LookupIdentifierExact(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, "0");
+  DoLookup(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, "0");
   ASSERT_EQ(2u, s.size());
-  ASSERT_TRUE(std::find(s.begin(), s.end(), a[0]) != s.end());
-  ASSERT_TRUE(std::find(s.begin(), s.end(), a[2]) != s.end());
+  ASSERT_TRUE(std::find(s.begin(), s.end(), "a") != s.end());
+  ASSERT_TRUE(std::find(s.begin(), s.end(), "c") != s.end());
 
-  index_->LookupIdentifierExact(s, ResourceType_Series, DICOM_TAG_SERIES_INSTANCE_UID, "0");
+  DoLookup(s, ResourceType_Series, DICOM_TAG_SERIES_INSTANCE_UID, "0");
   ASSERT_EQ(1u, s.size());
-  ASSERT_TRUE(std::find(s.begin(), s.end(), a[3]) != s.end());
+  ASSERT_TRUE(std::find(s.begin(), s.end(), "d") != s.end());
 
-  index_->LookupIdentifierExact(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, "1");
+  DoLookup(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, "1");
   ASSERT_EQ(1u, s.size());
-  ASSERT_TRUE(std::find(s.begin(), s.end(), a[1]) != s.end());
+  ASSERT_TRUE(std::find(s.begin(), s.end(), "b") != s.end());
 
-  index_->LookupIdentifierExact(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, "1");
+  DoLookup(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, "1");
   ASSERT_EQ(1u, s.size());
-  ASSERT_TRUE(std::find(s.begin(), s.end(), a[1]) != s.end());
+  ASSERT_TRUE(std::find(s.begin(), s.end(), "b") != s.end());
 
-  index_->LookupIdentifierExact(s, ResourceType_Series, DICOM_TAG_SERIES_INSTANCE_UID, "1");
+  DoLookup(s, ResourceType_Series, DICOM_TAG_SERIES_INSTANCE_UID, "1");
   ASSERT_EQ(0u, s.size());
 
-  /*{
-    std::list<std::string> s;
-    context.GetIndex().LookupIdentifierExact(s, DICOM_TAG_STUDY_INSTANCE_UID, "1.2.250.1.74.20130819132500.29000036381059");
-    for (std::list<std::string>::iterator i = s.begin(); i != s.end(); i++)
-    {
-    std::cout << "*** " << *i << std::endl;;
-    }      
-    }*/
+  {
+    LookupIdentifierQuery query(ResourceType_Study);
+    query.AddConstraint(DICOM_TAG_STUDY_INSTANCE_UID, IdentifierConstraintType_GreaterOrEqual, "0");
+    query.Apply(s, *index_);
+    ASSERT_EQ(3u, s.size());
+  }
+
+  {
+    LookupIdentifierQuery query(ResourceType_Study);
+    query.AddConstraint(DICOM_TAG_STUDY_INSTANCE_UID, IdentifierConstraintType_GreaterOrEqual, "0");
+    query.AddConstraint(DICOM_TAG_STUDY_INSTANCE_UID, IdentifierConstraintType_SmallerOrEqual, "0");
+    query.Apply(s, *index_);
+    ASSERT_EQ(2u, s.size());
+  }
+
+  {
+    LookupIdentifierQuery query(ResourceType_Study);
+    query.AddConstraint(DICOM_TAG_STUDY_INSTANCE_UID, IdentifierConstraintType_GreaterOrEqual, "1");
+    query.AddConstraint(DICOM_TAG_STUDY_INSTANCE_UID, IdentifierConstraintType_SmallerOrEqual, "1");
+    query.Apply(s, *index_);
+    ASSERT_EQ(1u, s.size());
+  }
+
+  {
+    LookupIdentifierQuery query(ResourceType_Study);
+    query.AddConstraint(DICOM_TAG_STUDY_INSTANCE_UID, IdentifierConstraintType_GreaterOrEqual, "1");
+    query.Apply(s, *index_);
+    ASSERT_EQ(1u, s.size());
+  }
+
+  {
+    LookupIdentifierQuery query(ResourceType_Study);
+    query.AddConstraint(DICOM_TAG_STUDY_INSTANCE_UID, IdentifierConstraintType_GreaterOrEqual, "2");
+    query.Apply(s, *index_);
+    ASSERT_EQ(0u, s.size());
+  }
 }
 
 

@@ -594,6 +594,10 @@ namespace Orthanc
   }
 
 
+  /*
+
+    TODO REMOVE THIS
+
   void OrthancPluginDatabase::LookupIdentifierExact(std::list<int64_t>& target,
                                                     ResourceType level,
                                                     const DicomTag& tag,
@@ -643,10 +647,14 @@ namespace Orthanc
         }
       }
     }
-  }
+    }*/
 
 
-  void OrthancPluginDatabase::LookupIdentifier(const LookupIdentifierQuery& query)
+  void OrthancPluginDatabase::LookupIdentifier(std::list<int64_t>& result,
+                                               ResourceType level,
+                                               const DicomTag& tag,
+                                               IdentifierConstraintType type,
+                                               const std::string& value)
   {
     // TODO
     throw OrthancException(ErrorCode_NotImplemented);

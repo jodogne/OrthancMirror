@@ -45,6 +45,7 @@
 #include "../Core/Logging.h"
 #include "../Core/Uuid.h"
 #include "../Core/DicomFormat/DicomArray.h"
+#include "LookupIdentifierQuery.h"
 
 #include "FromDcmtkBridge.h"
 #include "ServerContext.h"
@@ -1910,14 +1911,9 @@ namespace Orthanc
 
     boost::mutex::scoped_lock lock(mutex_);
 
-    std::list<int64_t> id;
-    db_.LookupIdentifierExact(id, level, tag, value);
-
-    for (std::list<int64_t>::const_iterator 
-           it = id.begin(); it != id.end(); ++it)
-    {
-      result.push_back(db_.GetPublicId(*it));
-    }
+    LookupIdentifierQuery query(level);
+    query.AddConstraint(tag, IdentifierConstraintType_Equal, value);
+    query.Apply(result, db_);
   }
 
 

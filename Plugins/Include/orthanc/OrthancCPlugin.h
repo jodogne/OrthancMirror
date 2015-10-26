@@ -212,6 +212,7 @@ extern "C"
     OrthancPluginErrorCode_BadFont = 30    /*!< Badly formatted font file */,
     OrthancPluginErrorCode_DatabasePlugin = 31    /*!< The plugin implementing a custom database back-end does not fulfill the proper interface */,
     OrthancPluginErrorCode_StorageAreaPlugin = 32    /*!< Error in the plugin implementing a custom storage area */,
+    OrthancPluginErrorCode_EmptyRequest = 33    /*!< The request is empty */,
     OrthancPluginErrorCode_SQLiteNotOpened = 1000    /*!< SQLite: The database is not opened */,
     OrthancPluginErrorCode_SQLiteAlreadyOpened = 1001    /*!< SQLite: Connection is already open */,
     OrthancPluginErrorCode_SQLiteCannotOpen = 1002    /*!< SQLite: Unable to open the database */,
