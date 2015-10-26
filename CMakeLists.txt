@@ -185,6 +185,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/ServerEnumerations.cpp
   OrthancServer/ServerIndex.cpp
   OrthancServer/ServerToolbox.cpp
+  OrthancServer/SetOfResources.cpp
   OrthancServer/SliceOrdering.cpp
   OrthancServer/ToDcmtkBridge.cpp
 

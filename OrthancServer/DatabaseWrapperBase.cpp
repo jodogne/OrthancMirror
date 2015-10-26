@@ -34,6 +34,7 @@
 #include "DatabaseWrapperBase.h"
 
 #include <stdio.h>
+#include <memory>
 
 namespace Orthanc
 {
@@ -665,6 +666,11 @@ namespace Orthanc
   }
 
 
+
+  /**
+
+     TODO REMOVE THIS
+
   void DatabaseWrapperBase::LookupIdentifierExact(std::list<int64_t>& target,
                                                   ResourceType level,
                                                   const DicomTag& tag,
@@ -692,12 +698,56 @@ namespace Orthanc
       target.push_back(s.ColumnInt64(0));
     }
   }
+  */
 
 
 
-  void DatabaseWrapperBase::LookupIdentifier(const LookupIdentifierQuery& query)
+  void DatabaseWrapperBase::LookupIdentifier(std::list<int64_t>& target,
+                                             ResourceType level,
+                                             const DicomTag& tag,
+                                             IdentifierConstraintType type,
+                                             const std::string& value)
   {
-    // TODO
-    throw OrthancException(ErrorCode_NotImplemented);
+    static const char* COMMON = ("SELECT d.id FROM DicomIdentifiers AS d, Resources AS r WHERE "
+                                 "d.id = r.internalId AND r.resourceType=? AND "
+                                 "d.tagGroup=? AND d.tagElement=? AND ");
+
+    std::auto_ptr<SQLite::Statement> s;
+
+    switch (type)
+    {
+      case IdentifierConstraintType_Equal:
+        s.reset(new SQLite::Statement(db_, std::string(COMMON) + "d.value=?"));
+        break;
+
+      case IdentifierConstraintType_GreaterOrEqual:
+        s.reset(new SQLite::Statement(db_, std::string(COMMON) + "d.value>=?"));
+        break;
+
+      case IdentifierConstraintType_SmallerOrEqual:
+        s.reset(new SQLite::Statement(db_, std::string(COMMON) + "d.value<=?"));
+        break;
+
+      case IdentifierConstraintType_Wildcard:
+        s.reset(new SQLite::Statement(db_, std::string(COMMON) + "d.value LIKE ?"));
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    assert(s.get() != NULL);
+
+    s->BindInt(0, level);
+    s->BindInt(1, tag.GetGroup());
+    s->BindInt(2, tag.GetElement());
+    s->BindString(3, value);
+
+    target.clear();
+
+    while (s->Step())
+    {
+      target.push_back(s->ColumnInt64(0));
+    }    
   }
 }

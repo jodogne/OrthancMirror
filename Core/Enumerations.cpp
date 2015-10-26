@@ -148,6 +148,9 @@ namespace Orthanc
       case ErrorCode_StorageAreaPlugin:
         return "Error in the plugin implementing a custom storage area";
 
+      case ErrorCode_EmptyRequest:
+        return "The request is empty";
+
       case ErrorCode_SQLiteNotOpened:
         return "SQLite: The database is not opened";
 

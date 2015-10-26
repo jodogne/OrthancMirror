@@ -128,9 +128,9 @@ namespace Orthanc
   enum IdentifierConstraintType
   {
     IdentifierConstraintType_Equal,
-    IdentifierConstraintType_LessOrEqual,
-    IdentifierConstraintType_GeaterOrEqual,
-    IdentifierConstraintType_Wildcard        /* "*" or "?" are the only allowed wildcards */
+    IdentifierConstraintType_SmallerOrEqual,
+    IdentifierConstraintType_GreaterOrEqual,
+    IdentifierConstraintType_Wildcard        /* Case sensitive, "*" or "?" are the only allowed wildcards */
   };
 
 
