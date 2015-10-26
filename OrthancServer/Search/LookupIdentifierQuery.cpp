@@ -102,6 +102,20 @@ namespace Orthanc
   }
 
 
+  LookupIdentifierQuery::Union::~Union()
+  {
+    for (size_t i = 0; i < union_.size(); i++)
+    {
+      delete union_[i];
+    }
+  }
+
+
+  void LookupIdentifierQuery::Union::Add(const Constraint& constraint)
+  {
+    union_.push_back(new Constraint(constraint));
+  }
+
 
   LookupIdentifierQuery::~LookupIdentifierQuery()
   {
@@ -114,21 +128,13 @@ namespace Orthanc
 
 
 
-  void  LookupIdentifierQuery::CheckIndex(size_t index) const
-  {
-    if (index >= constraints_.size())
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
-
-  bool LookupIdentifierQuery::IsIdentifier(const DicomTag& tag) const
+  bool LookupIdentifierQuery::IsIdentifier(const DicomTag& tag,
+                                           ResourceType level)
   {
     const DicomTag* tags;
     size_t size;
 
-    LoadIdentifiers(tags, size, level_);
+    LoadIdentifiers(tags, size, level);
 
     for (size_t i = 0; i < size; i++)
     {
@@ -147,28 +153,23 @@ namespace Orthanc
                                             const std::string& value)
   {
     assert(IsIdentifier(tag));
-    constraints_.push_back(new Constraint(tag, type, NormalizeIdentifier(value)));
+
+    Constraint constraint(tag, type, NormalizeIdentifier(value));
+    constraints_.push_back(new Union);
+    constraints_.back()->Add(constraint);
   }
 
 
-  const DicomTag& LookupIdentifierQuery::GetTag(size_t index) const
+  void LookupIdentifierQuery::AddDisjunction(const std::list<Constraint>& constraints)
   {
-    CheckIndex(index);
-    return constraints_[index]->tag_;
-  }
+    constraints_.push_back(new Union);
 
-
-  IdentifierConstraintType  LookupIdentifierQuery::GetType(size_t index) const
-  {
-    CheckIndex(index);
-    return constraints_[index]->type_;
-  }
-
-
-  const std::string& LookupIdentifierQuery::GetValue(size_t index) const
-  {
-    CheckIndex(index);
-    return constraints_[index]->value_;
+    for (std::list<Constraint>::const_iterator
+           it = constraints.begin(); it != constraints.end(); ++it)
+    {
+      assert(IsIdentifier(it->GetTag()));
+      constraints_.back()->Add(*it);
+    }
   }
 
 
@@ -211,9 +212,18 @@ namespace Orthanc
     
     for (size_t i = 0; i < GetSize(); i++)
     {
-      std::list<int64_t> tmp;
-      database.LookupIdentifier(tmp, level_, GetTag(i), GetType(i), GetValue(i));
-      resources.Intersect(tmp);
+      std::list<int64_t> a;
+
+      for (size_t j = 0; j < constraints_[i]->GetSize(); j++)
+      {
+        const Constraint& constraint = constraints_[i]->GetConstraint(j);
+        std::list<int64_t> b;
+        database.LookupIdentifier(b, level_, constraint.GetTag(), constraint.GetType(), constraint.GetValue());
+
+        a.splice(a.end(), b);
+      }
+
+      resources.Intersect(a);
     }
 
     resources.Flatten(result);
