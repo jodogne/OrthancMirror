@@ -694,9 +694,8 @@ namespace Orthanc
   }
 
 
-  void DatabaseWrapperBase::LookupIdentifierWildcard(std::list<int64_t>& target,
-                                                     const DicomTag& tag,
-                                                     const std::string& value)
+
+  void DatabaseWrapperBase::LookupIdentifier(const LookupIdentifierQuery& query)
   {
     // TODO
     throw OrthancException(ErrorCode_NotImplemented);

@@ -38,6 +38,7 @@
 #include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
 #include "ParsedDicomFile.h"
+#include "LookupIdentifierQuery.h"
 
 #include <cassert>
 
@@ -193,45 +194,6 @@ namespace Orthanc
     }
 
 
-    static void SetIdentifierTagInternal(IDatabaseWrapper& database,
-                                         int64_t resource,
-                                         const DicomMap& tags,
-                                         const DicomTag& tag)
-    {
-      const DicomValue* value = tags.TestAndGetValue(tag);
-      if (value != NULL &&
-          !value->IsNull() &&
-          !value->IsBinary())
-      {
-        std::string s = value->GetContent();
-
-        if (tag != DICOM_TAG_PATIENT_ID &&
-            tag != DICOM_TAG_STUDY_INSTANCE_UID &&
-            tag != DICOM_TAG_SERIES_INSTANCE_UID &&
-            tag != DICOM_TAG_SOP_INSTANCE_UID &&
-            tag != DICOM_TAG_ACCESSION_NUMBER)
-        {
-          s = NormalizeTagForWildcard(s);
-        }
-
-        database.SetIdentifierTag(resource, tag, s);
-      }
-    }
-
-
-    static void AttachPatientInformation(IDatabaseWrapper& database,
-                                         int64_t resource,
-                                         const DicomMap& dicomSummary)
-    {
-      DicomMap tags;
-      dicomSummary.ExtractPatientInformation(tags);
-      SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_PATIENT_ID);
-      SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_PATIENT_NAME);
-      SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_PATIENT_BIRTH_DATE);
-      SetMainDicomTagsInternal(database, resource, tags);
-    }
-
-
     void SetMainDicomTags(IDatabaseWrapper& database,
                           int64_t resource,
                           ResourceType level,
@@ -239,33 +201,30 @@ namespace Orthanc
     {
       // WARNING: The database should be locked with a transaction!
 
+      LookupIdentifierQuery::StoreIdentifiers(database, resource, level, dicomSummary);
+
       DicomMap tags;
 
       switch (level)
       {
         case ResourceType_Patient:
-          AttachPatientInformation(database, resource, dicomSummary);
+          dicomSummary.ExtractPatientInformation(tags);
           break;
 
         case ResourceType_Study:
           // Duplicate the patient tags at the study level (new in Orthanc 0.9.5 - db v6)
-          AttachPatientInformation(database, resource, dicomSummary);
+          dicomSummary.ExtractPatientInformation(tags);
+          SetMainDicomTagsInternal(database, resource, tags);
 
           dicomSummary.ExtractStudyInformation(tags);
-          SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_STUDY_INSTANCE_UID);
-          SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_ACCESSION_NUMBER);
-          SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_STUDY_DESCRIPTION);
-          SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_STUDY_DATE);
           break;
 
         case ResourceType_Series:
           dicomSummary.ExtractSeriesInformation(tags);
-          SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_SERIES_INSTANCE_UID);
           break;
 
         case ResourceType_Instance:
           dicomSummary.ExtractInstanceInformation(tags);
-          SetIdentifierTagInternal(database, resource, tags, DICOM_TAG_SOP_INSTANCE_UID);
           break;
 
         default:
@@ -373,14 +332,6 @@ namespace Orthanc
         database.ClearMainDicomTags(resource);
         Toolbox::SetMainDicomTags(database, resource, level, dicomSummary);
       }
-    }
-
-
-    std::string NormalizeTagForWildcard(const std::string& value)
-    {
-      std::string s = Toolbox::ConvertToAscii(Toolbox::StripSpaces(value));
-      Toolbox::ToUpperCase(s);
-      return s;
     }
   }
 }
