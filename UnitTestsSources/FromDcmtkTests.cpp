@@ -339,7 +339,7 @@ TEST(FromDcmtkBridge, FromJson)
     element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, false, Encoding_Utf8));
 
     Json::Value b;
-    FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Short, 0, Encoding_Ascii);
+    FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Short, DicomToJsonFlags_Default, 0, Encoding_Ascii);
     ASSERT_EQ("Hello", b["0010,0010"].asString());
   }
 
@@ -363,7 +363,7 @@ TEST(FromDcmtkBridge, FromJson)
     element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, true, Encoding_Utf8));
 
     Json::Value b;
-    FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Short, 0, Encoding_Ascii);
+    FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Short, DicomToJsonFlags_Default, 0, Encoding_Ascii);
     ASSERT_EQ("Hello", b["0010,0010"].asString());
   }
 
@@ -374,7 +374,7 @@ TEST(FromDcmtkBridge, FromJson)
 
     {
       Json::Value b;
-      FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Short, 0, Encoding_Ascii);
+      FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Short, DicomToJsonFlags_Default, 0, Encoding_Ascii);
       ASSERT_EQ(Json::arrayValue, b["0008,1110"].type());
       ASSERT_EQ(2, b["0008,1110"].size());
       
@@ -391,7 +391,7 @@ TEST(FromDcmtkBridge, FromJson)
 
     {
       Json::Value b;
-      FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Full, 0, Encoding_Ascii);
+      FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Full, DicomToJsonFlags_Default, 0, Encoding_Ascii);
 
       Json::Value c;
       Toolbox::SimplifyTags(c, b);
@@ -470,7 +470,7 @@ TEST(ParsedDicomFile, InsertReplaceJson)
 
   {
     Json::Value b;
-    f.ToJson(b, DicomToJsonFormat_Full, 0);
+    f.ToJson(b, DicomToJsonFormat_Full, DicomToJsonFlags_Default, 0);
 
     Json::Value c;
     Toolbox::SimplifyTags(c, b);
@@ -515,8 +515,94 @@ TEST(ParsedDicomFile, JsonEncoding)
       f.Replace(DICOM_TAG_PATIENT_NAME, s, false);
 
       Json::Value v;
-      f.ToJson(v, DicomToJsonFormat_Simple, 0);
+      f.ToJson(v, DicomToJsonFormat_Simple, DicomToJsonFlags_Default, 0);
       ASSERT_EQ(v["PatientName"].asString(), std::string(testEncodingsExpected[i]));
     }
   }
+}
+
+
+TEST(ParsedDicomFile, ToJsonFlags1)
+{
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7053, 0x1000), EVR_PN, "MyPrivateTag", 1, 1);
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7050, 0x1000), EVR_PN, "Declared public tag", 1, 1);
+
+  ParsedDicomFile f;
+  f.Insert(DicomTag(0x7050, 0x1000), "Some public tag", false);  // Even group => public tag
+  f.Insert(DicomTag(0x7052, 0x1000), "Some unknown tag", false);  // Even group => public, unknown tag
+  f.Insert(DicomTag(0x7053, 0x1000), "Some private tag", false);  // Odd group => private tag
+
+  Json::Value v;
+  f.ToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
+  ASSERT_EQ(Json::objectValue, v.type());
+  ASSERT_EQ(6, v.getMemberNames().size());
+  ASSERT_FALSE(v.isMember("7052,1000"));
+  ASSERT_FALSE(v.isMember("7053,1000"));
+  ASSERT_TRUE(v.isMember("7050,1000"));
+  ASSERT_EQ(Json::stringValue, v["7050,1000"].type());
+  ASSERT_EQ("Some public tag", v["7050,1000"].asString());
+
+  f.ToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_IncludePrivateTags, 0);
+  ASSERT_EQ(Json::objectValue, v.type());
+  ASSERT_EQ(7, v.getMemberNames().size());
+  ASSERT_FALSE(v.isMember("7052,1000"));
+  ASSERT_TRUE(v.isMember("7050,1000"));
+  ASSERT_TRUE(v.isMember("7053,1000"));
+  ASSERT_EQ("Some public tag", v["7050,1000"].asString());
+  ASSERT_EQ(Json::nullValue, v["7053,1000"].type());  // TODO SHOULD BE STRING
+
+  f.ToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_IncludeUnknownTags, 0);
+  ASSERT_EQ(Json::objectValue, v.type());
+  ASSERT_EQ(7, v.getMemberNames().size());
+  ASSERT_TRUE(v.isMember("7050,1000"));
+  ASSERT_TRUE(v.isMember("7052,1000"));
+  ASSERT_FALSE(v.isMember("7053,1000"));
+  ASSERT_EQ("Some public tag", v["7050,1000"].asString());
+  ASSERT_EQ(Json::nullValue, v["7052,1000"].type());  // TODO SHOULD BE STRING
+
+  f.ToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludeUnknownTags | DicomToJsonFlags_IncludePrivateTags), 0);
+  ASSERT_EQ(Json::objectValue, v.type());
+  ASSERT_EQ(8, v.getMemberNames().size());
+  ASSERT_TRUE(v.isMember("7050,1000"));
+  ASSERT_TRUE(v.isMember("7052,1000"));
+  ASSERT_TRUE(v.isMember("7053,1000"));
+  ASSERT_EQ("Some public tag", v["7050,1000"].asString());
+  ASSERT_EQ(Json::nullValue, v["7052,1000"].type());  // TODO SHOULD BE STRING
+  ASSERT_EQ(Json::nullValue, v["7053,1000"].type());  // TODO SHOULD BE STRING
+}
+
+
+TEST(ParsedDicomFile, ToJsonFlags2)
+{
+  ParsedDicomFile f;
+  f.Insert(DICOM_TAG_PIXEL_DATA, "Pixels", false);
+
+  Json::Value v;
+  f.ToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
+  ASSERT_EQ(Json::objectValue, v.type());
+  ASSERT_EQ(5, v.getMemberNames().size());
+  ASSERT_FALSE(v.isMember("7fe0,0010"));  
+
+  f.ToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePixelData | DicomToJsonFlags_ConvertBinaryToNull), 0);
+  ASSERT_EQ(Json::objectValue, v.type());
+  ASSERT_EQ(6, v.getMemberNames().size());
+  ASSERT_TRUE(v.isMember("7fe0,0010"));  
+  ASSERT_EQ(Json::nullValue, v["7fe0,0010"].type());  
+
+  f.ToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePixelData | DicomToJsonFlags_ConvertBinaryToAscii), 0);
+  ASSERT_EQ(Json::objectValue, v.type());
+  ASSERT_EQ(6, v.getMemberNames().size());
+  ASSERT_TRUE(v.isMember("7fe0,0010"));  
+  ASSERT_EQ(Json::stringValue, v["7fe0,0010"].type());  
+  ASSERT_EQ("Pixels", v["7fe0,0010"].asString());  
+
+  f.ToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_IncludePixelData, 0);
+  ASSERT_EQ(Json::objectValue, v.type());
+  ASSERT_EQ(6, v.getMemberNames().size());
+  ASSERT_TRUE(v.isMember("7fe0,0010"));  
+  ASSERT_EQ(Json::stringValue, v["7fe0,0010"].type());
+  std::string mime, content;
+  Toolbox::DecodeDataUriScheme(mime, content, v["7fe0,0010"].asString());
+  ASSERT_EQ("application/octet-stream", mime);
+  ASSERT_EQ("Pixels", content);
 }

@@ -65,17 +65,20 @@ namespace Orthanc
     static bool IsUnknownTag(const DicomTag& tag);
 
     static DicomValue* ConvertLeafElement(DcmElement& element,
+                                          DicomToJsonFlags flags,
                                           Encoding encoding);
 
     static void ToJson(Json::Value& parent,
                        DcmElement& element,
                        DicomToJsonFormat format,
+                       DicomToJsonFlags flags,
                        unsigned int maxStringLength,
-                       Encoding encoding);
+                       Encoding dicomEncoding);
 
     static void ToJson(Json::Value& target, 
                        DcmDataset& dataset,
                        DicomToJsonFormat format,
+                       DicomToJsonFlags flags,
                        unsigned int maxStringLength);
 
     static std::string GetName(const DicomTag& tag);
@@ -105,9 +108,6 @@ namespace Orthanc
     {
       target.SetValue(ParseTag(tagName), value);
     }
-
-    static void Print(FILE* fp, 
-                      const DicomMap& m);
 
     static void ToJson(Json::Value& result,
                        const DicomMap& values,

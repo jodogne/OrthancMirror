@@ -63,7 +63,8 @@ namespace Orthanc
     for (size_t  i = 0; i < elements_.size(); i++)
     {
       DicomTag t = elements_[i]->GetTag();
-      std::string s = elements_[i]->GetValue().AsString();
+      const DicomValue& v = elements_[i]->GetValue();
+      std::string s = v.IsNull() ? "(null)" : v.GetContent();
       printf("0x%04x 0x%04x [%s]\n", t.GetGroup(), t.GetElement(), s.c_str());
     }
   }

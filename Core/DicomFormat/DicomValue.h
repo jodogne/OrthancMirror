@@ -32,22 +32,58 @@
 
 #pragma once
 
-#include "../IDynamicObject.h"
-
 #include <string>
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class DicomValue : public IDynamicObject
+  class DicomValue : public boost::noncopyable
   {
-  public:
-    virtual DicomValue* Clone() const = 0;
-
-    virtual std::string AsString() const = 0;
-
-    virtual bool IsNull() const
+  private:
+    enum Type
     {
-      return false;
+      Type_Null,
+      Type_String,
+      Type_Binary
+    };
+
+    Type         type_;
+    std::string  content_;
+
+    DicomValue(const DicomValue& other);
+
+  public:
+    DicomValue() : type_(Type_Null)
+    {
+    }
+    
+    DicomValue(const std::string& content,
+               bool isBinary);
+    
+    DicomValue(const char* data,
+               size_t size,
+               bool isBinary);
+    
+    const std::string& GetContent() const;
+
+    bool IsNull() const
+    {
+      return type_ == Type_Null;
+    }
+
+    bool IsBinary() const
+    {
+      return type_ == Type_Binary;
+    }
+    
+    DicomValue* Clone() const;
+
+    void FormatDataUriScheme(std::string& target,
+                             const std::string& mime) const;
+
+    void FormatDataUriScheme(std::string& target) const
+    {
+      FormatDataUriScheme(target, "application/octet-stream");
     }
   };
 }

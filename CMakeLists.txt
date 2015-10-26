@@ -96,6 +96,7 @@ set(ORTHANC_CORE_SOURCES
   Core/DicomFormat/DicomImageInformation.cpp
   Core/DicomFormat/DicomIntegerPixelAccessor.cpp
   Core/DicomFormat/DicomInstanceHasher.cpp
+  Core/DicomFormat/DicomValue.cpp
   Core/Enumerations.cpp
   Core/FileStorage/FilesystemStorage.cpp
   Core/FileStorage/StorageAccessor.cpp

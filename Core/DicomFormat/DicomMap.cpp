@@ -35,7 +35,6 @@
 
 #include <stdio.h>
 #include <memory>
-#include "DicomString.h"
 #include "DicomArray.h"
 #include "../OrthancException.h"
 

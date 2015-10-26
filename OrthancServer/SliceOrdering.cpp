@@ -82,13 +82,14 @@ namespace Orthanc
     const DicomValue* value = map.TestAndGetValue(tag);
 
     if (value == NULL ||
-        value->IsNull())
+        value->IsNull() ||
+        value->IsBinary())
     {
       return false;
     }
     else
     {
-      return TokenizeVector(result, value->AsString(), expectedSize);
+      return TokenizeVector(result, value->GetContent(), expectedSize);
     }
   }
 
@@ -117,11 +118,12 @@ namespace Orthanc
 
       const DicomValue* frames = instance.TestAndGetValue(DICOM_TAG_NUMBER_OF_FRAMES);
       if (frames != NULL &&
-          !frames->IsNull())
+          !frames->IsNull() &&
+          !frames->IsBinary())
       {
         try
         {
-          framesCount_ = boost::lexical_cast<unsigned int>(frames->AsString());
+          framesCount_ = boost::lexical_cast<unsigned int>(frames->GetContent());
         }
         catch (boost::bad_lexical_cast&)
         {

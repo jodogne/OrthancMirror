@@ -37,6 +37,7 @@
 #include "ServerEnumerations.h"
 #include "../Core/Images/ImageAccessor.h"
 #include "../Core/Images/ImageBuffer.h"
+#include "../Core/IDynamicObject.h"
 
 namespace Orthanc
 {
@@ -134,6 +135,7 @@ namespace Orthanc
 
     void ToJson(Json::Value& target, 
                 DicomToJsonFormat format,
+                DicomToJsonFlags flags,
                 unsigned int maxStringLength);
 
     bool HasTag(const DicomTag& tag) const;

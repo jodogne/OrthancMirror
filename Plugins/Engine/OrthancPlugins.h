@@ -127,6 +127,13 @@ namespace Orthanc
 
     void DrawText(const void* parameters);
 
+    void ApplyDicomToJson(_OrthancPluginService service,
+                          const void* parameters);
+
+    void SignalChangeInternal(OrthancPluginChangeType changeType,
+                              OrthancPluginResourceType resourceType,
+                              const char* resource);
+
   public:
     OrthancPlugins();
 
@@ -183,6 +190,16 @@ namespace Orthanc
     const PluginsManager& GetManager() const;
 
     PluginsErrorDictionary& GetErrorDictionary();
+
+    void SignalOrthancStarted()
+    {
+      SignalChangeInternal(OrthancPluginChangeType_OrthancStarted, OrthancPluginResourceType_None, NULL);
+    }
+
+    void SignalOrthancStopped()
+    {
+      SignalChangeInternal(OrthancPluginChangeType_OrthancStopped, OrthancPluginResourceType_None, NULL);
+    }
   };
 }
 

@@ -236,8 +236,8 @@ function FormatPatient(patient, link, isReverse)
           ).format
   (patient.MainDicomTags.PatientName,
    FormatMainDicomTags(patient.MainDicomTags, [ 
-     "PatientName", 
-     "OtherPatientIDs" 
+     "PatientName"
+     /*"OtherPatientIDs" */
    ]),
    patient.Studies.length
   );
@@ -288,7 +288,8 @@ function FormatSeries(series, link, isReverse)
      "SeriesTime", 
      "Manufacturer",
      "ImagesInAcquisition",
-     "SeriesDate"
+     "SeriesDate",
+     "ImageOrientationPatient"
    ]),
    c
   );
@@ -305,7 +306,8 @@ function FormatInstance(instance, link, isReverse)
      "AcquisitionNumber", 
      "InstanceNumber", 
      "InstanceCreationDate", 
-     "InstanceCreationTime"
+     "InstanceCreationTime",
+     "ImagePositionPatient"
    ])
   );
 
