@@ -240,12 +240,14 @@ namespace Orthanc
      **/
 
     const DicomValue* levelTmp = input.TestAndGetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL);
-    if (levelTmp == NULL) 
+    if (levelTmp == NULL ||
+        levelTmp->IsNull() ||
+        levelTmp->IsBinary())
     {
       throw OrthancException(ErrorCode_BadRequest);
     }
 
-    ResourceType level = StringToResourceType(levelTmp->AsString().c_str());
+    ResourceType level = StringToResourceType(levelTmp->GetContent().c_str());
 
     if (level != ResourceType_Patient &&
         level != ResourceType_Study &&
@@ -265,7 +267,7 @@ namespace Orthanc
       {
         LOG(INFO) << "  " << query.GetElement(i).GetTag()
                   << "  " << FromDcmtkBridge::GetName(query.GetElement(i).GetTag())
-                  << " = " << query.GetElement(i).GetValue().AsString();
+                  << " = " << query.GetElement(i).GetValue().GetContent();
       }
     }
 
@@ -288,7 +290,7 @@ namespace Orthanc
         continue;
       }
 
-      std::string value = query.GetElement(i).GetValue().AsString();
+      std::string value = query.GetElement(i).GetValue().GetContent();
       if (value.size() == 0)
       {
         // An empty string corresponds to a "*" wildcard constraint, so we ignore it

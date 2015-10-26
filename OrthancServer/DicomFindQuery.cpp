@@ -349,9 +349,15 @@ namespace Orthanc
     for (std::set<DicomTag>::const_iterator
            it = tags.begin(); it != tags.end(); ++it)
     {
+      const DicomValue& value = mainTags.GetValue(*it);
+      if (value.IsBinary() || value.IsNull())
+      {
+        return false;
+      }
+
       Constraints::const_iterator constraint = constraints_.find(*it);
       if (constraint != constraints_.end() &&
-          !constraint->second->Apply(mainTags.GetValue(*it).AsString()))
+          !constraint->second->Apply(value.GetContent()))
       {
         return false;
       }

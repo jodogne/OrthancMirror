@@ -33,6 +33,7 @@
 #pragma once
 
 #include "ServerEnumerations.h"
+#include "../Core/IDynamicObject.h"
 #include "../Core/Toolbox.h"
 
 #include <string>

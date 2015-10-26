@@ -387,6 +387,8 @@ extern "C"
     _OrthancPluginService_CallHttpClient = 18,
     _OrthancPluginService_RegisterErrorCode = 19,
     _OrthancPluginService_RegisterDictionaryTag = 20,
+    _OrthancPluginService_DicomBufferToJson = 21,
+    _OrthancPluginService_DicomInstanceToJson = 22,
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -548,6 +550,7 @@ extern "C"
     OrthancPluginResourceType_Study = 1,       /*!< Study */
     OrthancPluginResourceType_Series = 2,      /*!< Series */
     OrthancPluginResourceType_Instance = 3,    /*!< Instance */
+    OrthancPluginResourceType_None = 4,        /*!< Unavailable resource type */
 
     _OrthancPluginResourceType_INTERNAL = 0x7fffffff
   } OrthancPluginResourceType;
@@ -570,6 +573,8 @@ extern "C"
     OrthancPluginChangeType_StablePatient = 7,      /*!< Timeout: No new instance in this patient */
     OrthancPluginChangeType_StableSeries = 8,       /*!< Timeout: No new instance in this series */
     OrthancPluginChangeType_StableStudy = 9,        /*!< Timeout: No new instance in this study */
+    OrthancPluginChangeType_OrthancStarted = 10,    /*!< Orthanc has started */
+    OrthancPluginChangeType_OrthancStopped = 11,    /*!< Orthanc is stopping */
 
     _OrthancPluginChangeType_INTERNAL = 0x7fffffff
   } OrthancPluginChangeType;
@@ -639,6 +644,38 @@ extern "C"
 
     _OrthancPluginValueRepresentation_INTERNAL = 0x7fffffff
   } OrthancPluginValueRepresentation;
+
+
+  /**
+   * The possible output formats for a DICOM-to-JSON conversion.
+   * @ingroup Toolbox
+   **/
+  typedef enum
+  {
+    OrthancPluginDicomToJsonFormat_Full = 1,    /*!< Full output, with most details */
+    OrthancPluginDicomToJsonFormat_Short = 2,   /*!< Tags output as hexadecimal numbers */
+    OrthancPluginDicomToJsonFormat_Simple = 3,  /*!< Human-readable JSON */
+
+    _OrthancPluginDicomToJsonFormat_INTERNAL = 0x7fffffff
+  } OrthancPluginDicomToJsonFormat;
+
+
+  /**
+   * Flags to customize a DICOM-to-JSON conversion. By default, binary
+   * tags are formatted using Data URI scheme.
+   * @ingroup Toolbox
+   **/
+  typedef enum
+  {
+    OrthancPluginDicomToJsonFlags_IncludeBinary         = (1 << 0),  /*!< Include the binary tags */
+    OrthancPluginDicomToJsonFlags_IncludePrivateTags    = (1 << 1),  /*!< Include the private tags */
+    OrthancPluginDicomToJsonFlags_IncludeUnknownTags    = (1 << 2),  /*!< Include the tags unknown by the dictionary */
+    OrthancPluginDicomToJsonFlags_IncludePixelData      = (1 << 3),  /*!< Include the pixel data */
+    OrthancPluginDicomToJsonFlags_ConvertBinaryToAscii  = (1 << 4),  /*!< Output binary tags as-is, dropping non-ASCII */
+    OrthancPluginDicomToJsonFlags_ConvertBinaryToNull   = (1 << 5),  /*!< Signal binary tags as null values */
+
+    _OrthancPluginDicomToJsonFlags_INTERNAL = 0x7fffffff
+  } OrthancPluginDicomToJsonFlags;
 
 
   /**
@@ -852,7 +889,9 @@ extern "C"
         sizeof(int32_t) != sizeof(OrthancPluginChangeType) ||
         sizeof(int32_t) != sizeof(OrthancPluginCompressionType) ||
         sizeof(int32_t) != sizeof(OrthancPluginImageFormat) ||
-        sizeof(int32_t) != sizeof(OrthancPluginValueRepresentation))
+        sizeof(int32_t) != sizeof(OrthancPluginValueRepresentation) ||
+        sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFormat) ||
+        sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFlags))
     {
       /* Mismatch in the size of the enumerations */
       return 0;
@@ -3803,6 +3842,115 @@ extern "C"
     params.storageArea = storageArea;
 
     return context->InvokeService(context, _OrthancPluginService_ReconstructMainDicomTags, &params);
+  }
+
+
+  typedef struct
+  {
+    char**                          result;
+    const char*                     instanceId;
+    const char*                     buffer;
+    uint32_t                        size;
+    OrthancPluginDicomToJsonFormat  format;
+    OrthancPluginDicomToJsonFlags   flags;
+    uint32_t                        maxStringLength;
+  } _OrthancPluginDicomToJson;
+
+
+  /**
+   * @brief Format a DICOM memory buffer as a JSON string.
+   *
+   * This function takes as input a memory buffer containing a DICOM
+   * file, and outputs a JSON string representing the tags of this
+   * DICOM file.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param buffer The memory buffer containing the DICOM file.
+   * @param size The size of the memory buffer.
+   * @param format The output format.
+   * @param flags The output flags.
+   * @param maxStringLength The maximum length of a field. Too long fields will
+   * be output as "null". The 0 value means no maximum length.
+   * @return The NULL value if the case of an error, or the JSON
+   * string. This string must be freed by OrthancPluginFreeString().
+   * @ingroup Toolbox
+   * @see OrthancPluginDicomInstanceToJson
+   **/
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginDicomBufferToJson(
+    OrthancPluginContext*           context,
+    const char*                     buffer,
+    uint32_t                        size,
+    OrthancPluginDicomToJsonFormat  format,
+    OrthancPluginDicomToJsonFlags   flags, 
+    uint32_t                        maxStringLength)
+  {
+    char* result;
+
+    _OrthancPluginDicomToJson params;
+    memset(&params, 0, sizeof(params));
+    params.result = &result;
+    params.buffer = buffer;
+    params.size = size;
+    params.format = format;
+    params.flags = flags;
+    params.maxStringLength = maxStringLength;
+
+    if (context->InvokeService(context, _OrthancPluginService_DicomBufferToJson, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  /**
+   * @brief Format a DICOM instance as a JSON string.
+   *
+   * This function formats a DICOM instance that is stored in Orthanc,
+   * and outputs a JSON string representing the tags of this DICOM
+   * instance.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param instanceId The Orthanc identifier of the instance.
+   * @param format The output format.
+   * @param flags The output flags.
+   * @param maxStringLength The maximum length of a field. Too long fields will
+   * be output as "null". The 0 value means no maximum length.
+   * @return The NULL value if the case of an error, or the JSON
+   * string. This string must be freed by OrthancPluginFreeString().
+   * @ingroup Toolbox
+   * @see OrthancPluginDicomInstanceToJson
+   **/
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginDicomInstanceToJson(
+    OrthancPluginContext*           context,
+    const char*                     instanceId,
+    OrthancPluginDicomToJsonFormat  format,
+    OrthancPluginDicomToJsonFlags   flags, 
+    uint32_t                        maxStringLength)
+  {
+    char* result;
+
+    _OrthancPluginDicomToJson params;
+    memset(&params, 0, sizeof(params));
+    params.result = &result;
+    params.instanceId = instanceId;
+    params.format = format;
+    params.flags = flags;
+    params.maxStringLength = maxStringLength;
+
+    if (context->InvokeService(context, _OrthancPluginService_DicomInstanceToJson, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
   }
 
 

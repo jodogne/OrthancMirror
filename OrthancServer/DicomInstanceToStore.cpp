@@ -110,7 +110,9 @@ namespace Orthanc
     {
       json_.Allocate();
       FromDcmtkBridge::ToJson(json_.GetContent(), GetDataset(parsed_.GetContent()), 
-                              DicomToJsonFormat_Full, 256 /* max string length */);
+                              DicomToJsonFormat_Full, 
+                              DicomToJsonFlags_Default,
+                              256 /* max string length */);
     }
   }
 

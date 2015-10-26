@@ -30,38 +30,61 @@
  **/
 
 
-#pragma once
-
+#include "../PrecompiledHeaders.h"
 #include "DicomValue.h"
+
+#include "../OrthancException.h"
+#include "../Toolbox.h"
 
 namespace Orthanc
 {
-  class DicomString : public DicomValue
+  DicomValue::DicomValue(const DicomValue& other) : 
+    type_(other.type_),
+    content_(other.content_)
   {
-  private:
-    std::string value_;
+  }
 
-  public:
-    DicomString(const std::string& v) : value_(v)
-    {
-    }
 
-    DicomString(const char* v)
+  DicomValue::DicomValue(const std::string& content,
+                         bool isBinary) :
+    type_(isBinary ? Type_Binary : Type_String),
+    content_(content)
+  {
+  }
+  
+  
+  DicomValue::DicomValue(const char* data,
+                         size_t size,
+                         bool isBinary) :
+    type_(isBinary ? Type_Binary : Type_String)
+  {
+    content_.assign(data, size);
+  }
+    
+  
+  const std::string& DicomValue::GetContent() const
+  {
+    if (type_ == Type_Null)
     {
-      if (v)
-        value_ = v;
-      else
-        value_ = "";
+      throw OrthancException(ErrorCode_BadParameterType);
     }
+    else
+    {
+      return content_;
+    }
+  }
 
-    virtual DicomValue* Clone() const 
-    {
-      return new DicomString(value_);
-    }
 
-    virtual std::string AsString() const
-    {
-      return value_;
-    }
-  };
+  DicomValue* DicomValue::Clone() const
+  {
+    return new DicomValue(*this);
+  }
+
+  
+  void DicomValue::FormatDataUriScheme(std::string& target,
+                                       const std::string& mime) const
+  {
+    Toolbox::EncodeBase64(target, GetContent());
+    target.insert(0, "data:" + mime + ";base64,");
+  }
 }

@@ -59,6 +59,8 @@ namespace Orthanc
 
     FileContentType Convert(OrthancPluginContentType type);
 
+    DicomToJsonFormat Convert(OrthancPluginDicomToJsonFormat format);
+
 #if !defined(ORTHANC_ENABLE_DCMTK) || ORTHANC_ENABLE_DCMTK != 0
     DcmEVR Convert(OrthancPluginValueRepresentation vr);
 #endif

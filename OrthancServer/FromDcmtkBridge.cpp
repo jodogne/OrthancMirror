@@ -47,8 +47,6 @@
 #include "../Core/OrthancException.h"
 #include "../Core/Images/PngWriter.h"
 #include "../Core/Uuid.h"
-#include "../Core/DicomFormat/DicomString.h"
-#include "../Core/DicomFormat/DicomNullValue.h"
 #include "../Core/DicomFormat/DicomIntegerPixelAccessor.h"
 
 #include <list>
@@ -332,7 +330,7 @@ namespace Orthanc
       {
         target.SetValue(element->getTag().getGTag(),
                         element->getTag().getETag(),
-                        ConvertLeafElement(*element, encoding));
+                        ConvertLeafElement(*element, DicomToJsonFlags_Default, encoding));
       }
     }
   }
@@ -364,6 +362,7 @@ namespace Orthanc
 
 
   DicomValue* FromDcmtkBridge::ConvertLeafElement(DcmElement& element,
+                                                  DicomToJsonFlags flags,
                                                   Encoding encoding)
   {
     if (!element.isLeaf())
@@ -379,18 +378,18 @@ namespace Orthanc
       {
         if (c == NULL)  // This case corresponds to the empty string
         {
-          return new DicomString("");
+          return new DicomValue("", false);
         }
         else
         {
           std::string s(c);
           std::string utf8 = Toolbox::ConvertToUtf8(s, encoding);
-          return new DicomString(utf8);
+          return new DicomValue(utf8, false);
         }
       }
       else
       {
-        return new DicomNullValue;
+        return new DicomValue;
       }
     }
 
@@ -401,14 +400,26 @@ namespace Orthanc
       {
 
         /**
-         * TODO.
+         * Deal with binary data (including PixelData).
          **/
 
         case EVR_OB:  // other byte
         case EVR_OF:  // other float
         case EVR_OW:  // other word
         case EVR_UN:  // unknown value representation
-          return new DicomNullValue;
+        case EVR_ox:  // OB or OW depending on context
+        {
+          if (!(flags & DicomToJsonFlags_ConvertBinaryToNull))
+          {
+            Uint8* data = NULL;
+            if (element.getUint8Array(data) == EC_Normal)
+            {
+              return new DicomValue(reinterpret_cast<const char*>(data), element.getLength(), true);
+            }
+          }
+
+          return new DicomValue;
+        }
     
           /**
            * String types, should never happen at this point because of
@@ -430,7 +441,7 @@ namespace Orthanc
         case EVR_UT:  // unlimited text
         case EVR_PN:  // person name
         case EVR_UI:  // unique identifier
-          return new DicomNullValue;
+          return new DicomValue;
 
 
           /**
@@ -441,54 +452,54 @@ namespace Orthanc
         {
           Sint32 f;
           if (dynamic_cast<DcmSignedLong&>(element).getSint32(f).good())
-            return new DicomString(boost::lexical_cast<std::string>(f));
+            return new DicomValue(boost::lexical_cast<std::string>(f), false);
           else
-            return new DicomNullValue;
+            return new DicomValue;
         }
 
         case EVR_SS:  // signed short
         {
           Sint16 f;
           if (dynamic_cast<DcmSignedShort&>(element).getSint16(f).good())
-            return new DicomString(boost::lexical_cast<std::string>(f));
+            return new DicomValue(boost::lexical_cast<std::string>(f), false);
           else
-            return new DicomNullValue;
+            return new DicomValue;
         }
 
         case EVR_UL:  // unsigned long
         {
           Uint32 f;
           if (dynamic_cast<DcmUnsignedLong&>(element).getUint32(f).good())
-            return new DicomString(boost::lexical_cast<std::string>(f));
+            return new DicomValue(boost::lexical_cast<std::string>(f), false);
           else
-            return new DicomNullValue;
+            return new DicomValue;
         }
 
         case EVR_US:  // unsigned short
         {
           Uint16 f;
           if (dynamic_cast<DcmUnsignedShort&>(element).getUint16(f).good())
-            return new DicomString(boost::lexical_cast<std::string>(f));
+            return new DicomValue(boost::lexical_cast<std::string>(f), false);
           else
-            return new DicomNullValue;
+            return new DicomValue;
         }
 
         case EVR_FL:  // float single-precision
         {
           Float32 f;
           if (dynamic_cast<DcmFloatingPointSingle&>(element).getFloat32(f).good())
-            return new DicomString(boost::lexical_cast<std::string>(f));
+            return new DicomValue(boost::lexical_cast<std::string>(f), false);
           else
-            return new DicomNullValue;
+            return new DicomValue;
         }
 
         case EVR_FD:  // float double-precision
         {
           Float64 f;
           if (dynamic_cast<DcmFloatingPointDouble&>(element).getFloat64(f).good())
-            return new DicomString(boost::lexical_cast<std::string>(f));
+            return new DicomValue(boost::lexical_cast<std::string>(f), false);
           else
-            return new DicomNullValue;
+            return new DicomValue;
         }
 
 
@@ -502,11 +513,11 @@ namespace Orthanc
           if (dynamic_cast<DcmAttributeTag&>(element).getTagVal(tag, 0).good())
           {
             DicomTag t(tag.getGroup(), tag.getElement());
-            return new DicomString(t.Format());
+            return new DicomValue(t.Format(), false);
           }
           else
           {
-            return new DicomNullValue;
+            return new DicomValue;
           }
         }
 
@@ -517,14 +528,13 @@ namespace Orthanc
          **/
 
         case EVR_SQ:  // sequence of items
-          return new DicomNullValue;
+          return new DicomValue;
 
 
           /**
            * Internal to DCMTK.
            **/ 
 
-        case EVR_ox:  // OB or OW depending on context
         case EVR_xs:  // SS or US depending on context
         case EVR_lt:  // US, SS or OW depending on context, used for LUT Data (thus the name)
         case EVR_na:  // na="not applicable", for data which has no VR
@@ -541,7 +551,7 @@ namespace Orthanc
         case EVR_PixelData:  // used internally for uncompressed pixeld data
         case EVR_OverlayData:  // used internally for overlay data
         case EVR_UNKNOWN2B:  // used internally for elements with unknown VR with 2-byte length field in explicit VR
-          return new DicomNullValue;
+          return new DicomValue;
 
 
           /**
@@ -549,16 +559,16 @@ namespace Orthanc
            **/ 
 
         default:
-          return new DicomNullValue;
+          return new DicomValue;
       }
     }
     catch (boost::bad_lexical_cast)
     {
-      return new DicomNullValue;
+      return new DicomValue;
     }
     catch (std::bad_cast)
     {
-      return new DicomNullValue;
+      return new DicomValue;
     }
   }
 
@@ -622,9 +632,11 @@ namespace Orthanc
   static void LeafValueToJson(Json::Value& target,
                               const DicomValue& value,
                               DicomToJsonFormat format,
+                              DicomToJsonFlags flags,
                               unsigned int maxStringLength)
   {
-    std::string content = value.AsString();
+    Json::Value* targetValue = NULL;
+    Json::Value* targetType = NULL;
 
     switch (format)
     {
@@ -632,45 +644,69 @@ namespace Orthanc
       case DicomToJsonFormat_Simple:
       {
         assert(target.type() == Json::nullValue);
-
-        if (!value.IsNull() &&
-            (maxStringLength == 0 ||
-             content.size() <= maxStringLength))
-        {
-          target = content;
-        }
-
+        targetValue = &target;
         break;
       }      
 
       case DicomToJsonFormat_Full:
       {
         assert(target.type() == Json::objectValue);
-
-        if (value.IsNull())
-        {
-          target["Type"] = "Null";
-          target["Value"] = Json::nullValue;
-        }
-        else
-        {
-          if (maxStringLength == 0 ||
-              content.size() <= maxStringLength)
-          {
-            target["Type"] = "String";
-            target["Value"] = content;
-          }
-          else
-          {
-            target["Type"] = "TooLong";
-            target["Value"] = Json::nullValue;
-          }
-        }
+        target["Value"] = Json::nullValue;
+        target["Type"] = Json::nullValue;
+        targetType = &target["Type"];
+        targetValue = &target["Value"];
         break;
       }
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    assert(targetValue != NULL);
+    assert(targetValue->type() == Json::nullValue);
+    assert(targetType == NULL || targetType->type() == Json::nullValue);
+
+    if (value.IsNull())
+    {
+      if (targetType != NULL)
+      {
+        *targetType = "Null";
+      }
+    }
+    else if (value.IsBinary())
+    {
+      if (flags & DicomToJsonFlags_ConvertBinaryToAscii)
+      {
+        *targetValue = Toolbox::ConvertToAscii(value.GetContent());
+      }
+      else
+      {
+        std::string s;
+        value.FormatDataUriScheme(s);
+        *targetValue = s;
+      }
+
+      if (targetType != NULL)
+      {
+        *targetType = "Binary";
+      }
+    }
+    else if (maxStringLength == 0 ||
+             value.GetContent().size() <= maxStringLength)
+    {
+      *targetValue = value.GetContent();
+
+      if (targetType != NULL)
+      {
+        *targetType = "String";
+      }
+    }
+    else
+    {
+      if (targetType != NULL)
+      {
+        *targetType = "TooLong";
+      }
     }
   }                              
 
@@ -678,6 +714,7 @@ namespace Orthanc
   static void DatasetToJson(Json::Value& parent,
                             DcmItem& item,
                             DicomToJsonFormat format,
+                            DicomToJsonFlags flags,
                             unsigned int maxStringLength,
                             Encoding encoding);
 
@@ -685,6 +722,7 @@ namespace Orthanc
   void FromDcmtkBridge::ToJson(Json::Value& parent,
                                DcmElement& element,
                                DicomToJsonFormat format,
+                               DicomToJsonFlags flags,
                                unsigned int maxStringLength,
                                Encoding encoding)
   {
@@ -698,8 +736,8 @@ namespace Orthanc
 
     if (element.isLeaf())
     {
-      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element, encoding));
-      LeafValueToJson(target, *v, format, maxStringLength);
+      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element, flags, encoding));
+      LeafValueToJson(target, *v, format, flags, maxStringLength);
     }
     else
     {
@@ -715,7 +753,7 @@ namespace Orthanc
       {
         DcmItem* child = sequence.getItem(i);
         Json::Value& v = target.append(Json::objectValue);
-        DatasetToJson(v, *child, format, maxStringLength, encoding);
+        DatasetToJson(v, *child, format, flags, maxStringLength, encoding);
       }
     }
   }
@@ -724,6 +762,7 @@ namespace Orthanc
   static void DatasetToJson(Json::Value& parent,
                             DcmItem& item,
                             DicomToJsonFormat format,
+                            DicomToJsonFlags flags,
                             unsigned int maxStringLength,
                             Encoding encoding)
   {
@@ -732,7 +771,44 @@ namespace Orthanc
     for (unsigned long i = 0; i < item.card(); i++)
     {
       DcmElement* element = item.getElement(i);
-      FromDcmtkBridge::ToJson(parent, *element, format, maxStringLength, encoding);
+      if (element == NULL)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      if (!(flags & DicomToJsonFlags_IncludePrivateTags) &&
+          element->getTag().isPrivate())
+      {
+        continue;
+      }
+
+      if (!(flags & DicomToJsonFlags_IncludeUnknownTags))
+      {
+        DictionaryLocker locker;
+        if (locker->findEntry(element->getTag(), NULL) == NULL)
+        {
+          continue;
+        }
+      }
+
+      DcmEVR evr = element->getTag().getEVR();
+      if (evr == EVR_OB ||
+          evr == EVR_OF ||
+          evr == EVR_OW ||
+          evr == EVR_UN ||
+          evr == EVR_ox)
+      {
+        // This is a binary tag
+        DicomTag tag(FromDcmtkBridge::Convert(element->getTag()));
+
+        if ((tag == DICOM_TAG_PIXEL_DATA && !(flags & DicomToJsonFlags_IncludePixelData)) ||
+            (tag != DICOM_TAG_PIXEL_DATA && !(flags & DicomToJsonFlags_IncludeBinary)))
+        {
+          continue;
+        }
+      }
+
+      FromDcmtkBridge::ToJson(parent, *element, format, flags, maxStringLength, encoding);
     }
   }
 
@@ -740,10 +816,11 @@ namespace Orthanc
   void FromDcmtkBridge::ToJson(Json::Value& target, 
                                DcmDataset& dataset,
                                DicomToJsonFormat format,
+                               DicomToJsonFlags flags,
                                unsigned int maxStringLength)
   {
     target = Json::objectValue;
-    DatasetToJson(target, dataset, format, maxStringLength, DetectEncoding(dataset));
+    DatasetToJson(target, dataset, format, flags, maxStringLength, DetectEncoding(dataset));
   }
 
 
@@ -841,18 +918,6 @@ namespace Orthanc
   }
 
 
-  void FromDcmtkBridge::Print(FILE* fp, const DicomMap& m)
-  {
-    for (DicomMap::Map::const_iterator 
-           it = m.map_.begin(); it != m.map_.end(); ++it)
-    {
-      DicomTag t = it->first;
-      std::string s = it->second->AsString();
-      fprintf(fp, "0x%04x 0x%04x (%s) [%s]\n", t.GetGroup(), t.GetElement(), GetName(t).c_str(), s.c_str());
-    }
-  }
-
-
   void FromDcmtkBridge::ToJson(Json::Value& result,
                                const DicomMap& values,
                                bool simplify)
@@ -869,7 +934,15 @@ namespace Orthanc
     {
       if (simplify)
       {
-        result[GetName(it->first)] = it->second->AsString();
+        if (it->second->IsNull())
+        {
+          result[GetName(it->first)] = Json::nullValue;
+        }
+        else
+        {
+          // TODO IsBinary
+          result[GetName(it->first)] = it->second->GetContent();
+        }
       }
       else
       {
@@ -884,8 +957,9 @@ namespace Orthanc
         }
         else
         {
+          // TODO IsBinary
           value["Type"] = "String";
-          value["Value"] = it->second->AsString();
+          value["Value"] = it->second->GetContent();
         }
 
         result[it->first.Format()] = value;
@@ -1001,7 +1075,13 @@ namespace Orthanc
 
   static bool IsBinaryTag(const DcmTag& key)
   {
-    return key.isPrivate() || key.isUnknownVR();
+    return (key.isPrivate() || 
+            key.isUnknownVR() || 
+            key.getEVR() == EVR_OB ||
+            key.getEVR() == EVR_OF ||
+            key.getEVR() == EVR_OW ||
+            key.getEVR() == EVR_UN ||
+            key.getEVR() == EVR_ox);
   }
 
 
@@ -1019,17 +1099,15 @@ namespace Orthanc
       // http://support.dcmtk.org/docs/dcvr_8h-source.html
 
       /**
-       * TODO.
+       * Binary types, handled above
        **/
     
       case EVR_OB:  // other byte
       case EVR_OF:  // other float
       case EVR_OW:  // other word
-      case EVR_AT:  // attribute tag
-        throw OrthancException(ErrorCode_NotImplemented);
-
       case EVR_UN:  // unknown value representation
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      case EVR_ox:  // OB or OW depending on context
+        throw OrthancException(ErrorCode_InternalError);
 
 
       /**
@@ -1115,10 +1193,17 @@ namespace Orthanc
 
 
       /**
+       * TODO
+       **/
+
+      case EVR_AT:  // attribute tag
+        throw OrthancException(ErrorCode_NotImplemented);
+
+
+      /**
        * Internal to DCMTK.
        **/ 
 
-      case EVR_ox:  // OB or OW depending on context
       case EVR_xs:  // SS or US depending on context
       case EVR_lt:  // US, SS or OW depending on context, used for LUT Data (thus the name)
       case EVR_na:  // na="not applicable", for data which has no VR

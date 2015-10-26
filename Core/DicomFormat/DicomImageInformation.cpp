@@ -54,7 +54,7 @@ namespace Orthanc
 
     try
     {
-      std::string p = values.GetValue(DICOM_TAG_PHOTOMETRIC_INTERPRETATION).AsString();
+      std::string p = values.GetValue(DICOM_TAG_PHOTOMETRIC_INTERPRETATION).GetContent();
       Toolbox::ToUpperCase(p);
 
       if (p == "RGB")
@@ -114,13 +114,13 @@ namespace Orthanc
         photometric_ = PhotometricInterpretation_Unknown;
       }
 
-      width_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_COLUMNS).AsString());
-      height_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_ROWS).AsString());
-      bitsAllocated_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_BITS_ALLOCATED).AsString());
+      width_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_COLUMNS).GetContent());
+      height_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_ROWS).GetContent());
+      bitsAllocated_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_BITS_ALLOCATED).GetContent());
 
       try
       {
-        samplesPerPixel_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_SAMPLES_PER_PIXEL).AsString());
+        samplesPerPixel_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_SAMPLES_PER_PIXEL).GetContent());
       }
       catch (OrthancException&)
       {
@@ -129,7 +129,7 @@ namespace Orthanc
 
       try
       {
-        bitsStored_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_BITS_STORED).AsString());
+        bitsStored_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_BITS_STORED).GetContent());
       }
       catch (OrthancException&)
       {
@@ -138,7 +138,7 @@ namespace Orthanc
 
       try
       {
-        highBit_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_HIGH_BIT).AsString());
+        highBit_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_HIGH_BIT).GetContent());
       }
       catch (OrthancException&)
       {
@@ -147,7 +147,7 @@ namespace Orthanc
 
       try
       {
-        pixelRepresentation = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_PIXEL_REPRESENTATION).AsString());
+        pixelRepresentation = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_PIXEL_REPRESENTATION).GetContent());
       }
       catch (OrthancException&)
       {
@@ -160,7 +160,7 @@ namespace Orthanc
         // https://www.dabsoft.ch/dicom/3/C.7.6.3.1.3/
         try
         {
-          planarConfiguration = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_PLANAR_CONFIGURATION).AsString());
+          planarConfiguration = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_PLANAR_CONFIGURATION).GetContent());
         }
         catch (OrthancException&)
         {
@@ -179,9 +179,9 @@ namespace Orthanc
 
     try
     {
-      numberOfFrames_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_NUMBER_OF_FRAMES).AsString());
+      numberOfFrames_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_NUMBER_OF_FRAMES).GetContent());
     }
-    catch (OrthancException)
+    catch (OrthancException&)
     {
       // If the tag "NumberOfFrames" is absent, assume there is a single frame
       numberOfFrames_ = 1;

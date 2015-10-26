@@ -90,8 +90,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Core/Images/ImageBuffer.h"
 #include "../Core/Images/PngWriter.h"
 #include "../Core/Uuid.h"
-#include "../Core/DicomFormat/DicomString.h"
-#include "../Core/DicomFormat/DicomNullValue.h"
 #include "../Core/DicomFormat/DicomIntegerPixelAccessor.h"
 #include "../Core/Images/PngReader.h"
 
@@ -763,15 +761,18 @@ namespace Orthanc
         return false;
       }
 
-      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(*element, GetEncoding()));
+      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement
+                                  (*element, DicomToJsonFlags_Default, GetEncoding()));
       
-      if (v.get() == NULL)
+      if (v.get() == NULL ||
+          v->IsNull())
       {
         value = "";
       }
       else
       {
-        value = v->AsString();
+        // TODO v->IsBinary()
+        value = v->GetContent();
       }
       
       return true;
@@ -1120,9 +1121,10 @@ namespace Orthanc
 
   void ParsedDicomFile::ToJson(Json::Value& target, 
                                DicomToJsonFormat format,
+                               DicomToJsonFlags flags,
                                unsigned int maxStringLength)
   {
-    FromDcmtkBridge::ToJson(target, *pimpl_->file_->getDataset(), format, maxStringLength);
+    FromDcmtkBridge::ToJson(target, *pimpl_->file_->getDataset(), format, flags, maxStringLength);
   }
 
 

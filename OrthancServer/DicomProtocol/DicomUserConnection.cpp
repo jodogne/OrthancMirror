@@ -457,7 +457,8 @@ namespace Orthanc
             const DicomValue* value = fix->TestAndGetValue(*it);
 
             if (value != NULL && 
-                value->AsString() == "*")
+                !value->IsNull() &&
+                value->GetContent() == "*")
             {
               fix->SetValue(*it, "");
             }
@@ -948,7 +949,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
 
-    const std::string tmp = findResult.GetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL).AsString();
+    const std::string tmp = findResult.GetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL).GetContent();
     ResourceType level = StringToResourceType(tmp.c_str());
 
     DicomMap move;

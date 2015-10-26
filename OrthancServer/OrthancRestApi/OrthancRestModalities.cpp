@@ -198,8 +198,8 @@ namespace Orthanc
       return;
     }
 
-    if (fields.GetValue(DICOM_TAG_ACCESSION_NUMBER).AsString().size() <= 2 &&
-        fields.GetValue(DICOM_TAG_PATIENT_ID).AsString().size() <= 2)
+    if (fields.GetValue(DICOM_TAG_ACCESSION_NUMBER).GetContent().size() <= 2 &&
+        fields.GetValue(DICOM_TAG_PATIENT_ID).GetContent().size() <= 2)
     {
       return;
     }        
@@ -228,9 +228,9 @@ namespace Orthanc
       return;
     }
 
-    if ((fields.GetValue(DICOM_TAG_ACCESSION_NUMBER).AsString().size() <= 2 &&
-         fields.GetValue(DICOM_TAG_PATIENT_ID).AsString().size() <= 2) ||
-        fields.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString().size() <= 2)
+    if ((fields.GetValue(DICOM_TAG_ACCESSION_NUMBER).GetContent().size() <= 2 &&
+         fields.GetValue(DICOM_TAG_PATIENT_ID).GetContent().size() <= 2) ||
+        fields.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).GetContent().size() <= 2)
     {
       return;
     }        
@@ -259,10 +259,10 @@ namespace Orthanc
       return;
     }
 
-    if ((fields.GetValue(DICOM_TAG_ACCESSION_NUMBER).AsString().size() <= 2 &&
-         fields.GetValue(DICOM_TAG_PATIENT_ID).AsString().size() <= 2) ||
-        fields.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).AsString().size() <= 2 ||
-        fields.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).AsString().size() <= 2)
+    if ((fields.GetValue(DICOM_TAG_ACCESSION_NUMBER).GetContent().size() <= 2 &&
+         fields.GetValue(DICOM_TAG_PATIENT_ID).GetContent().size() <= 2) ||
+        fields.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).GetContent().size() <= 2 ||
+        fields.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).GetContent().size() <= 2)
     {
       return;
     }        
