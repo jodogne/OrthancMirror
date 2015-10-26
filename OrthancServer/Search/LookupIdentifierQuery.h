@@ -62,13 +62,15 @@ namespace Orthanc
 
   class LookupIdentifierQuery : public boost::noncopyable
   {
-  private:
-    struct Constraint
+  public:
+    class Constraint
     {
+    private:
       DicomTag                  tag_;
       IdentifierConstraintType  type_;
       std::string               value_;
 
+    public:
       Constraint(const DicomTag& tag,
                  IdentifierConstraintType type,
                  const std::string& value) : 
@@ -77,14 +79,51 @@ namespace Orthanc
         value_(value)
       {
       }
+
+      const DicomTag& GetTag() const
+      {
+        return tag_;
+      }
+
+      IdentifierConstraintType GetType() const
+      {
+        return type_;
+      }
+      
+      const std::string& GetValue() const
+      {
+        return value_;
+      }
     };
 
-    typedef std::vector<Constraint*>  Constraints;
+
+  private:
+    class Union
+    {
+    private:
+      std::vector<Constraint*>  union_;
+
+    public:
+      ~Union();
+
+      void Add(const Constraint& constraint);
+
+      size_t GetSize() const
+      {
+        return union_.size();
+      }
+
+      const Constraint&  GetConstraint(size_t i) const
+      {
+        return *union_[i];
+      }
+    };
+
+
+    typedef std::vector<Union*>  Constraints;
 
     ResourceType  level_;
     Constraints   constraints_;
-
-    void CheckIndex(size_t index) const;
 
     static std::string NormalizeIdentifier(const std::string& value);
 
@@ -95,11 +134,16 @@ namespace Orthanc
 
     ~LookupIdentifierQuery();
 
-    bool IsIdentifier(const DicomTag& tag) const;
+    bool IsIdentifier(const DicomTag& tag)
+    {
+      return IsIdentifier(tag, level_);
+    }
 
     void AddConstraint(DicomTag tag,
                        IdentifierConstraintType type,
                        const std::string& value);
+
+    void AddDisjunction(const std::list<Constraint>& constraints);
 
     ResourceType GetLevel() const
     {
@@ -111,19 +155,16 @@ namespace Orthanc
       return constraints_.size();
     }
 
-    const DicomTag& GetTag(size_t index) const;
+    // The database must be locked
+    void Apply(std::list<std::string>& result,
+               IDatabaseWrapper& database);
 
-    IdentifierConstraintType  GetType(size_t index) const;
-
-    const std::string& GetValue(size_t index) const;
+    static bool IsIdentifier(const DicomTag& tag,
+                             ResourceType level);
 
     static void StoreIdentifiers(IDatabaseWrapper& database,
                                  int64_t resource,
                                  ResourceType level,
                                  const DicomMap& map);
-
-    // The database must be locked
-    void Apply(std::list<std::string>& result,
-               IDatabaseWrapper& database);
   };
 }
