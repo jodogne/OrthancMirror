@@ -125,6 +125,14 @@ namespace Orthanc
                                  DicomToJsonFlags_ConvertBinaryToNull)
   };
 
+  enum IdentifierConstraintType
+  {
+    IdentifierConstraintType_Equal,
+    IdentifierConstraintType_LessOrEqual,
+    IdentifierConstraintType_GeaterOrEqual,
+    IdentifierConstraintType_Wildcard        /* "*" or "?" are the only allowed wildcards */
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations

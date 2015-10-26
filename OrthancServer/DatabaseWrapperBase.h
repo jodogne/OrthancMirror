@@ -39,6 +39,7 @@
 #include "../Core/SQLite/Connection.h"
 #include "../OrthancServer/ExportedResource.h"
 #include "../OrthancServer/ServerIndexChange.h"
+#include "LookupIdentifierQuery.h"
 #include "ServerEnumerations.h"
 
 #include <list>
@@ -195,9 +196,7 @@ namespace Orthanc
                                const DicomTag& tag,
                                const std::string& value);
 
-    void LookupIdentifierWildcard(std::list<int64_t>& target,
-                                  const DicomTag& tag,
-                                  const std::string& value);
+    void LookupIdentifier(const LookupIdentifierQuery& query);
   };
 }
 

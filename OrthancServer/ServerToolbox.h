@@ -59,7 +59,5 @@ namespace Orthanc
     void ReconstructMainDicomTags(IDatabaseWrapper& database,
                                   IStorageArea& storageArea,
                                   ResourceType level);
-
-    std::string NormalizeTagForWildcard(const std::string& value);
   }
 }

@@ -164,6 +164,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/Internals/FindScp.cpp
   OrthancServer/Internals/MoveScp.cpp
   OrthancServer/Internals/StoreScp.cpp
+  OrthancServer/LookupIdentifierQuery.cpp
   OrthancServer/LuaScripting.cpp
   OrthancServer/OrthancFindRequestHandler.cpp
   OrthancServer/OrthancHttpHandler.cpp
