@@ -130,4 +130,24 @@ namespace Orthanc
       }
     }
   }
+
+
+  void SetOfResources::Flatten(std::list<int64_t>& result)
+  {
+    result.clear();
+      
+    if (resources_.get() == NULL)
+    {
+      // All the resources of this level are part of the filter
+      database_.GetAllInternalIds(result, level_);
+    }
+    else
+    {
+      for (Resources::const_iterator it = resources_->begin(); 
+           it != resources_->end(); ++it)
+      {
+        result.push_back(*it);
+      }
+    }
+  }
 }

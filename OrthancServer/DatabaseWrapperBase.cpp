@@ -533,6 +533,20 @@ namespace Orthanc
     return static_cast<uint64_t>(s.ColumnInt64(0));
   }
 
+  void DatabaseWrapperBase::GetAllInternalIds(std::list<int64_t>& target,
+                                              ResourceType resourceType)
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT internalId FROM Resources WHERE resourceType=?");
+    s.BindInt(0, resourceType);
+
+    target.clear();
+    while (s.Step())
+    {
+      target.push_back(s.ColumnInt64(0));
+    }
+  }
+
+
   void DatabaseWrapperBase::GetAllPublicIds(std::list<std::string>& target,
                                             ResourceType resourceType)
   {

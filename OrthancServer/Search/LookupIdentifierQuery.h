@@ -35,6 +35,8 @@
 #include "../ServerEnumerations.h"
 #include "../IDatabaseWrapper.h"
 
+#include "SetOfResources.h"
+
 #include <vector>
 #include <boost/noncopyable.hpp>
 
@@ -159,6 +161,9 @@ namespace Orthanc
 
     // The database must be locked
     void Apply(std::list<std::string>& result,
+               IDatabaseWrapper& database);
+
+    void Apply(SetOfResources& result,
                IDatabaseWrapper& database);
 
     static void LoadIdentifiers(const DicomTag*& tags,

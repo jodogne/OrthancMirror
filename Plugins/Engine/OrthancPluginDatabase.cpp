@@ -274,6 +274,14 @@ namespace Orthanc
   }
 
 
+  void OrthancPluginDatabase::GetAllInternalIds(std::list<int64_t>& target,
+                                                ResourceType resourceType)
+  {
+    // TODO
+    throw OrthancException(ErrorCode_NotImplemented);
+  }
+
+
   void OrthancPluginDatabase::GetAllPublicIds(std::list<std::string>& target,
                                               ResourceType resourceType)
   {

@@ -203,7 +203,15 @@ namespace Orthanc
                                     IDatabaseWrapper& database)
   {
     SetOfResources resources(database, level_);
-    
+    Apply(resources, database);
+
+    resources.Flatten(result);
+  }
+
+
+  void LookupIdentifierQuery::Apply(SetOfResources& result,
+                                    IDatabaseWrapper& database)
+  {
     for (size_t i = 0; i < GetSize(); i++)
     {
       std::list<int64_t> a;
@@ -217,9 +225,8 @@ namespace Orthanc
         a.splice(a.end(), b);
       }
 
-      resources.Intersect(a);
+      result.Intersect(a);
     }
-
-    resources.Flatten(result);
   }
+
 }

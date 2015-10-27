@@ -47,6 +47,7 @@ namespace Orthanc
     class Level
     {
     private:
+      ResourceType        level_;
       std::set<DicomTag>  identifiers_;
       std::set<DicomTag>  mainTags_;
       Constraints         identifiersConstraints_;
@@ -58,6 +59,9 @@ namespace Orthanc
       ~Level();
 
       bool Add(std::auto_ptr<IFindConstraint>& constraint);
+
+      void Apply(SetOfResources& candidates,
+                 IDatabaseWrapper& database) const;
     };
 
     typedef std::map<ResourceType, Level*>  Levels;
@@ -70,7 +74,13 @@ namespace Orthanc
     bool AddInternal(ResourceType level,
                      std::auto_ptr<IFindConstraint>& constraint);
 
-    void ApplyUnoptimizedConstraints(SetOfResources& result);
+    void ApplyLevel(SetOfResources& candidates,
+                    ResourceType level,
+                    IDatabaseWrapper& database) const;
+
+    void ApplyUnoptimizedConstraints(SetOfResources& candidates,
+                                     IDatabaseWrapper& database,
+                                     IStorageArea& storageArea) const;
 
   public:
     LookupResource(ResourceType level);
@@ -88,5 +98,13 @@ namespace Orthanc
     {
       return maxResults_;
     }
+
+    void Apply(std::list<int64_t>& result,
+               IDatabaseWrapper& database,
+               IStorageArea& storageArea) const;
+
+    void Apply(std::list<std::string>& result,
+               IDatabaseWrapper& database,
+               IStorageArea& storageArea) const;
   };
 }

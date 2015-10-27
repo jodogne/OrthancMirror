@@ -140,6 +140,9 @@ namespace Orthanc
     virtual void GetAllMetadata(std::map<MetadataType, std::string>& target,
                                 int64_t id);
 
+    virtual void GetAllInternalIds(std::list<int64_t>& target,
+                                   ResourceType resourceType);
+
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType);
 
