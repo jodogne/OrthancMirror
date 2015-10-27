@@ -307,10 +307,17 @@ namespace Orthanc
       }
 
 #if USE_LOOKUP_RESOURCE == 1
-      // TODO SetModalitiesInStudy(value);
-
-      finder.Add(tag, value, caseSensitivePN);
-
+      if (tag == DICOM_TAG_MODALITIES_IN_STUDY)
+      {
+        // TODO SetModalitiesInStudy(value);
+        // findQuery.SetModalitiesInStudy(value);
+        printf("ICI\n");
+        throw OrthancException(ErrorCode_NotImplemented);
+      }
+      else
+      {
+        finder.Add(tag, value, caseSensitivePN);
+      }
 #else
 
       if (tag == DICOM_TAG_MODALITIES_IN_STUDY)
@@ -353,6 +360,16 @@ namespace Orthanc
 
 #if USE_LOOKUP_RESOURCE == 1
     bool finished = context_.Apply(tmp, finder);
+
+    for (std::list<std::string>::const_iterator
+        it = tmp.begin(); it != tmp.end(); ++it)
+    {
+      // TODO
+      Json::Value resource;
+      context_.ReadJson(resource, *it);
+      AddAnswer(answers, resource, query);
+    }
+
 #else
     bool finished = finder.Apply(tmp, findQuery);
 #endif
