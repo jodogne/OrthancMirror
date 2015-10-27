@@ -275,70 +275,28 @@ namespace Orthanc
 
 
 
-  bool LookupResource::ApplyUnoptimizedConstraints(std::list<int64_t>& result,
-                                                   const std::list<int64_t>& candidates,
-                                                   boost::mutex& databaseMutex,
-                                                   IDatabaseWrapper& database,
-                                                   IStorageArea& storageArea) const
+  bool LookupResource::IsMatch(const Json::Value& dicomAsJson) const
   {
-    assert(!unoptimizedConstraints_.empty());
-
-    StorageAccessor accessor(storageArea);
-
-    for (std::list<int64_t>::const_iterator candidate = candidates.begin(); 
-         candidate != candidates.end(); ++candidate)
+    for (Constraints::const_iterator it = unoptimizedConstraints_.begin(); 
+         it != unoptimizedConstraints_.end(); ++it)
     {
-      if (maxResults_ != 0 &&
-          result.size() >= maxResults_)
+      std::string tag = (*it)->GetTag().Format();
+      if (dicomAsJson.isMember(tag) &&
+          dicomAsJson[tag]["Type"] == "String")
       {
-        // We have enough results, not finished
+        std::string value = dicomAsJson[tag]["Value"].asString();
+        if (!(*it)->Match(value))
+        {
+          return false;
+        }
+      }
+      else
+      {
         return false;
-      }
-
-      int64_t instance;
-      FileInfo attachment;
-
-      {
-        boost::mutex::scoped_lock lock(databaseMutex);
-
-        if (!Toolbox::FindOneChildInstance(instance, database, *candidate, level_) ||
-            !database.LookupAttachment(attachment, instance, FileContentType_DicomAsJson))
-        {
-          continue;
-        }
-      }
-
-      Json::Value content;
-      accessor.Read(content, attachment);
-
-      bool match = true;
-
-      for (Constraints::const_iterator it = unoptimizedConstraints_.begin(); 
-           match && it != unoptimizedConstraints_.end(); ++it)
-      {
-        std::string tag = (*it)->GetTag().Format();
-        if (content.isMember(tag) &&
-            content[tag]["Type"] == "String")
-        {
-          std::string value = content[tag]["Value"].asString();
-          if (!(*it)->Match(value))
-          {
-            match = false;
-          }
-        }
-        else
-        {
-          match = false;
-        }
-      }
-
-      if (match)
-      {
-        result.push_back(*candidate);
       }
     }
 
-    return true;  // Finished
+    return true;
   }
 
 
@@ -354,81 +312,40 @@ namespace Orthanc
   }
 
 
-  bool LookupResource::Apply(std::list<int64_t>& result,
-                             boost::mutex& databaseMutex,
-                             IDatabaseWrapper& database,
-                             IStorageArea& storageArea) const
+  void LookupResource::FindCandidates(std::list<int64_t>& result,
+                                      IDatabaseWrapper& database) const
   {
-    std::list<int64_t> tmp;
+    SetOfResources candidates(database, level_);
 
+    switch (level_)
     {
-      boost::mutex::scoped_lock lock(databaseMutex);
-      SetOfResources candidates(database, level_);
+      case ResourceType_Patient:
+        ApplyLevel(candidates, ResourceType_Patient, database);
+        break;
 
-      switch (level_)
-      {
-        case ResourceType_Patient:
-          ApplyLevel(candidates, ResourceType_Patient, database);
-          break;
+      case ResourceType_Study:
+        ApplyLevel(candidates, ResourceType_Study, database);
+        break;
 
-        case ResourceType_Study:
-          ApplyLevel(candidates, ResourceType_Study, database);
-          break;
+      case ResourceType_Series:
+        ApplyLevel(candidates, ResourceType_Study, database);
+        candidates.GoDown();
+        ApplyLevel(candidates, ResourceType_Series, database);
+        break;
 
-        case ResourceType_Series:
-          ApplyLevel(candidates, ResourceType_Study, database);
-          candidates.GoDown();
-          ApplyLevel(candidates, ResourceType_Series, database);
-          break;
+      case ResourceType_Instance:
+        ApplyLevel(candidates, ResourceType_Study, database);
+        candidates.GoDown();
+        ApplyLevel(candidates, ResourceType_Series, database);
+        candidates.GoDown();
+        ApplyLevel(candidates, ResourceType_Instance, database);
+        break;
 
-        case ResourceType_Instance:
-          ApplyLevel(candidates, ResourceType_Study, database);
-          candidates.GoDown();
-          ApplyLevel(candidates, ResourceType_Series, database);
-          candidates.GoDown();
-          ApplyLevel(candidates, ResourceType_Instance, database);
-          break;
-
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }
-
-      if (unoptimizedConstraints_.empty())
-      {
-        return candidates.Flatten(result, maxResults_);
-      }
-      else
-      {
-        candidates.Flatten(tmp);
-      }
+      default:
+        throw OrthancException(ErrorCode_InternalError);
     }
 
-    return ApplyUnoptimizedConstraints(result, tmp, databaseMutex, database, storageArea);
-  }
-
-
-  bool LookupResource::Apply(std::list<std::string>& result,
-                             boost::mutex& databaseMutex,
-                             IDatabaseWrapper& database,
-                             IStorageArea& storageArea) const
-  {
-
-    std::list<int64_t> tmp;
-    bool finished = Apply(tmp, databaseMutex, database, storageArea);
-
-    result.clear();
-
-    {
-      boost::mutex::scoped_lock lock(databaseMutex);
-
-      for (std::list<int64_t>::const_iterator
-             it = tmp.begin(); it != tmp.end(); ++it)
-      {
-        result.push_back(database.GetPublicId(*it));
-      }
-    }
-
-    return finished;
+    candidates.Flatten(result);
   }
 
 

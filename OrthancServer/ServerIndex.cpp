@@ -2115,10 +2115,30 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::Apply(std::list<std::string>& result,
-                          ::Orthanc::LookupResource& lookup,
-                          IStorageArea& area)
+  void ServerIndex::FindCandidates(std::vector<std::string>& resources,
+                                   std::vector<std::string>& instances,
+                                   ::Orthanc::LookupResource& lookup)
   {
-    return lookup.Apply(result, mutex_, db_, area);
+    boost::mutex::scoped_lock lock(mutex_);
+   
+    std::list<int64_t> tmp;
+    lookup.FindCandidates(tmp, db_);
+
+    resources.resize(tmp.size());
+    instances.resize(tmp.size());
+
+    size_t pos = 0;
+    for (std::list<int64_t>::const_iterator
+           it = tmp.begin(); it != tmp.end(); ++it, pos++)
+    {
+      int64_t instance;
+      if (!Toolbox::FindOneChildInstance(instance, db_, *it, lookup.GetLevel()))
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      resources[pos] = db_.GetPublicId(*it);
+      instances[pos] = db_.GetPublicId(instance);
+    }
   }
 }

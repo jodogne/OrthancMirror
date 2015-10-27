@@ -75,22 +75,25 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
-    std::auto_ptr<Resources> children(new Resources);
-
-    for (Resources::const_iterator it = resources_->begin(); 
-         it != resources_->end(); ++it)
+    if (resources_.get() != NULL)
     {
-      std::list<int64_t> tmp;
-      database_.GetChildrenInternalId(tmp, *it);
+      std::auto_ptr<Resources> children(new Resources);
 
-      for (std::list<int64_t>::const_iterator
-             child = tmp.begin(); child != tmp.end(); ++child)
+      for (Resources::const_iterator it = resources_->begin(); 
+           it != resources_->end(); ++it)
       {
-        children->insert(*child);
-      }
-    }
+        std::list<int64_t> tmp;
+        database_.GetChildrenInternalId(tmp, *it);
 
-    resources_ = children;
+        for (std::list<int64_t>::const_iterator
+               child = tmp.begin(); child != tmp.end(); ++child)
+        {
+          children->insert(*child);
+        }
+      }
+
+      resources_ = children;
+    }
 
     switch (level_)
     {
@@ -148,26 +151,6 @@ namespace Orthanc
       {
         result.push_back(*it);
       }
-    }
-  }
-
-
-  bool SetOfResources::Flatten(std::list<int64_t>& result,
-                               size_t maxResults)
-  {
-    Flatten(result);
-
-    if (maxResults != 0 &&
-        result.size() > maxResults)
-    {
-      std::list<int64_t>::iterator cut = result.begin();
-      std::advance(cut, maxResults);
-      result.erase(cut, result.end());
-      return false;
-    }
-    else
-    {
-      return true;
     }
   }
 }

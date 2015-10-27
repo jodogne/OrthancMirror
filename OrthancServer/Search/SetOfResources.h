@@ -70,9 +70,6 @@ namespace Orthanc
 
     void Flatten(std::list<std::string>& result);
 
-    bool Flatten(std::list<int64_t>& result,
-                 size_t maxResults);
-
     void Clear()
     {
       resources_.reset(NULL);

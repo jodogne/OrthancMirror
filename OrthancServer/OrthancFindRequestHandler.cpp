@@ -338,7 +338,6 @@ namespace Orthanc
 
 #if USE_LOOKUP_RESOURCE != 1
     ResourceFinder finder(context_);
-#endif
 
     switch (level)
     {
@@ -355,26 +354,44 @@ namespace Orthanc
       default:
         throw OrthancException(ErrorCode_InternalError);
     }
+#else
+    size_t maxResults = (level == ResourceType_Instance) ? maxInstances_ : maxResults_;
 
-    std::list<std::string> tmp;
+#endif
 
 #if USE_LOOKUP_RESOURCE == 1
-    bool finished = context_.Apply(tmp, finder);
+    std::vector<std::string> resources, instances;
+    context_.GetIndex().FindCandidates(resources, instances, finder);
 
-    for (std::list<std::string>::const_iterator
-        it = tmp.begin(); it != tmp.end(); ++it)
+    assert(resources.size() == instances.size());
+    bool finished = true;
+
+    for (size_t i = 0; i < instances.size(); i++)
     {
-      // TODO
-      Json::Value resource;
-      context_.ReadJson(resource, *it);
-      AddAnswer(answers, resource, query);
+      Json::Value dicom;
+      context_.ReadJson(dicom, instances[i]);
+      
+      if (finder.IsMatch(dicom))
+      {
+        if (maxResults != 0 &&
+            answers.GetSize() >= maxResults)
+        {
+          finished = false;
+          break;
+        }
+        else
+        {
+          AddAnswer(answers, dicom, query);
+        }
+      }
     }
 
 #else
+    std::list<std::string> tmp;
     bool finished = finder.Apply(tmp, findQuery);
 #endif
 
-    LOG(INFO) << "Number of matching resources: " << tmp.size();
+    LOG(INFO) << "Number of matching resources: " << answers.GetSize();
 
     return finished;
   }
