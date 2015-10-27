@@ -2115,11 +2115,10 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::Apply(std::list<std::string>& result,
+  bool ServerIndex::Apply(std::list<std::string>& result,
                           ::Orthanc::LookupResource& lookup,
                           IStorageArea& area)
   {
-    boost::mutex::scoped_lock lock(mutex_);
-    lookup.Apply(result, db_, area);
+    return lookup.Apply(result, mutex_, db_, area);
   }
 }

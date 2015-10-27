@@ -44,10 +44,17 @@ namespace Orthanc
     struct PImpl;
     boost::shared_ptr<PImpl>  pimpl_;
 
+    WildcardConstraint(const WildcardConstraint& other);
+
   public:
     WildcardConstraint(const DicomTag& tag, 
                        const std::string& wildcard,
                        bool isCaseSensitive);
+
+    virtual IFindConstraint* Clone() const
+    {
+      return new WildcardConstraint(*this);
+    }
 
     virtual void Setup(LookupIdentifierQuery& lookup) const;
 

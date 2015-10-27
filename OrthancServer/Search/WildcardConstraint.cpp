@@ -43,6 +43,14 @@ namespace Orthanc
     std::string   wildcard_;
   };
 
+
+  WildcardConstraint::WildcardConstraint(const WildcardConstraint& other) :
+    IFindConstraint(other.GetTag()),
+    pimpl_(new PImpl(*other.pimpl_))
+  {
+  }
+
+
   WildcardConstraint::WildcardConstraint(const DicomTag& tag, 
                                          const std::string& wildcard,
                                          bool isCaseSensitive) :

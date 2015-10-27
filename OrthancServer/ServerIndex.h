@@ -263,7 +263,7 @@ namespace Orthanc
 
     unsigned int GetDatabaseVersion();
 
-    void Apply(std::list<std::string>& result,
+    bool Apply(std::list<std::string>& result,
                ::Orthanc::LookupResource& lookup,
                IStorageArea& area);
   };

@@ -30,6 +30,10 @@
  **/
 
 
+#define USE_LOOKUP_RESOURCE 0
+
+
+
 #include "PrecompiledHeadersServer.h"
 #include "OrthancFindRequestHandler.h"
 
@@ -41,6 +45,7 @@
 
 #include "ResourceFinder.h"
 #include "DicomFindQuery.h"
+#include "Search/LookupResource.h"
 
 #include <boost/regex.hpp> 
 
@@ -276,9 +281,13 @@ namespace Orthanc
      * Build up the query object.
      **/
 
+#if USE_LOOKUP_RESOURCE == 1
+    LookupResource finder(level);
+#else
     CFindQuery findQuery(answers, context_.GetIndex(), query);
     findQuery.SetLevel(level);
-        
+#endif     
+   
     for (size_t i = 0; i < query.GetSize(); i++)
     {
       const DicomTag tag = query.GetElement(i).GetTag();
@@ -297,6 +306,13 @@ namespace Orthanc
         continue;
       }
 
+#if USE_LOOKUP_RESOURCE == 1
+      // TODO SetModalitiesInStudy(value);
+
+      finder.Add(tag, value, caseSensitivePN);
+
+#else
+
       if (tag == DICOM_TAG_MODALITIES_IN_STUDY)
       {
         findQuery.SetModalitiesInStudy(value);
@@ -305,6 +321,7 @@ namespace Orthanc
       {
         findQuery.SetConstraint(tag, value, caseSensitivePN);
       }
+#endif
     }
 
 
@@ -312,7 +329,9 @@ namespace Orthanc
      * Run the query.
      **/
 
+#if USE_LOOKUP_RESOURCE != 1
     ResourceFinder finder(context_);
+#endif
 
     switch (level)
     {
@@ -331,7 +350,12 @@ namespace Orthanc
     }
 
     std::list<std::string> tmp;
+
+#if USE_LOOKUP_RESOURCE == 1
+    bool finished = context_.Apply(tmp, finder);
+#else
     bool finished = finder.Apply(tmp, findQuery);
+#endif
 
     LOG(INFO) << "Number of matching resources: " << tmp.size();
 
