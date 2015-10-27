@@ -261,12 +261,5 @@ namespace Orthanc
 #endif
 
     bool HasPlugins() const;
-
-    
-    bool Apply(std::list<std::string>& result,
-               ::Orthanc::LookupResource& lookup)
-    {
-      return index_.Apply(result, lookup, area_);
-    }
   };
 }

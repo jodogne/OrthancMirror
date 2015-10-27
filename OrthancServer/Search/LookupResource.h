@@ -36,7 +36,6 @@
 #include "SetOfResources.h"
 
 #include <memory>
-#include <boost/thread/mutex.hpp>
 
 namespace Orthanc
 {
@@ -70,7 +69,6 @@ namespace Orthanc
     ResourceType level_;
     Levels       levels_;
     Constraints  unoptimizedConstraints_;
-    size_t       maxResults_;
 
     bool AddInternal(ResourceType level,
                      std::auto_ptr<IFindConstraint>& constraint);
@@ -79,16 +77,15 @@ namespace Orthanc
                     ResourceType level,
                     IDatabaseWrapper& database) const;
 
-    bool ApplyUnoptimizedConstraints(std::list<int64_t>& result,
-                                     const std::list<int64_t>& candidates,
-                                     boost::mutex& databaseMutex,
-                                     IDatabaseWrapper& database,
-                                     IStorageArea& storageArea) const;
-
   public:
     LookupResource(ResourceType level);
 
     ~LookupResource();
+
+    ResourceType GetLevel() const
+    {
+      return level_;
+    }
 
     void Add(IFindConstraint* constraint);   // Takes ownership
 
@@ -96,24 +93,9 @@ namespace Orthanc
              const std::string& dicomQuery,
              bool caseSensitivePN);
 
-    void SetMaxResults(size_t maxResults)
-    {
-      maxResults_ = maxResults;
-    }
+    void FindCandidates(std::list<int64_t>& result,
+                        IDatabaseWrapper& database) const;
 
-    size_t GetMaxResults() const
-    {
-      return maxResults_;
-    }
-
-    bool Apply(std::list<int64_t>& result,
-               boost::mutex& databaseMutex,
-               IDatabaseWrapper& database,
-               IStorageArea& storageArea) const;
-
-    bool Apply(std::list<std::string>& result,
-               boost::mutex& databaseMutex,
-               IDatabaseWrapper& database,
-               IStorageArea& storageArea) const;
+    bool IsMatch(const Json::Value& dicomAsJson) const;
   };
 }
