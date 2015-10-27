@@ -100,6 +100,36 @@ namespace Orthanc
   };
 
 
+  void DicomMap::LoadMainDicomTags(const DicomTag*& tags,
+                                   size_t& size,
+                                   ResourceType level)
+  {
+    switch (level)
+    {
+      case ResourceType_Patient:
+        tags = patientTags;
+        size = sizeof(patientTags) / sizeof(DicomTag);
+        break;
+
+      case ResourceType_Study:
+        tags = studyTags;
+        size = sizeof(studyTags) / sizeof(DicomTag);
+        break;
+
+      case ResourceType_Series:
+        tags = seriesTags;
+        size = sizeof(seriesTags) / sizeof(DicomTag);
+        break;
+
+      case ResourceType_Instance:
+        tags = instanceTags;
+        size = sizeof(instanceTags) / sizeof(DicomTag);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
 
 
   void DicomMap::SetValue(uint16_t group, 

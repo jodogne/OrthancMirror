@@ -181,7 +181,12 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/QueryRetrieveHandler.cpp
   OrthancServer/ResourceFinder.cpp
   OrthancServer/Search/LookupIdentifierQuery.cpp
+  OrthancServer/Search/LookupResource.cpp
   OrthancServer/Search/SetOfResources.cpp
+  OrthancServer/Search/ListConstraint.cpp
+  OrthancServer/Search/RangeConstraint.cpp
+  OrthancServer/Search/ValueConstraint.cpp
+  OrthancServer/Search/WildcardConstraint.cpp
   OrthancServer/ServerContext.cpp
   OrthancServer/ServerEnumerations.cpp
   OrthancServer/ServerIndex.cpp

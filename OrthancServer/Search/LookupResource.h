@@ -32,31 +32,61 @@
 
 #pragma once
 
-#include "LookupIdentifierQuery.h"
+#include "IFindConstraint.h"
+#include "SetOfResources.h"
+
+#include <memory>
 
 namespace Orthanc
 {
-  class IFindConstraint : public boost::noncopyable
+  class LookupResource : public boost::noncopyable
   {
   private:
-    DicomTag   tag_;
+    typedef std::list<IFindConstraint*>  Constraints;
+    
+    class Level
+    {
+    private:
+      std::set<DicomTag>  identifiers_;
+      std::set<DicomTag>  mainTags_;
+      Constraints         identifiersConstraints_;
+      Constraints         mainTagsConstraints_;
+
+    public:
+      Level(ResourceType level);
+
+      ~Level();
+
+      bool Add(std::auto_ptr<IFindConstraint>& constraint);
+    };
+
+    typedef std::map<ResourceType, Level*>  Levels;
+
+    ResourceType level_;
+    Levels       levels_;
+    Constraints  unoptimizedConstraints_;
+    size_t       maxResults_;
+
+    bool AddInternal(ResourceType level,
+                     std::auto_ptr<IFindConstraint>& constraint);
+
+    void ApplyUnoptimizedConstraints(SetOfResources& result);
 
   public:
-    IFindConstraint(const DicomTag& tag) : tag_(tag)
-    {
-    }
-    
-    virtual ~IFindConstraint()
-    {
-    }
+    LookupResource(ResourceType level);
 
-    const DicomTag& GetTag() const
+    ~LookupResource();
+
+    void Add(IFindConstraint* constraint);   // Takes ownership
+
+    void SetMaxResults(size_t maxResults)
     {
-      return tag_;
+      maxResults_ = maxResults;
     }
 
-    virtual void Setup(LookupIdentifierQuery& lookup) const = 0;
-
-    virtual bool Match(const std::string& value) const = 0;
+    size_t GetMaxResults() const
+    {
+      return maxResults_;
+    }
   };
 }

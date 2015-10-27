@@ -30,33 +30,46 @@
  **/
 
 
-#pragma once
+#include "../PrecompiledHeadersServer.h"
+#include "WildcardConstraint.h"
 
-#include "LookupIdentifierQuery.h"
+#include <boost/regex.hpp>
 
 namespace Orthanc
 {
-  class IFindConstraint : public boost::noncopyable
+  struct WildcardConstraint::PImpl
   {
-  private:
-    DicomTag   tag_;
-
-  public:
-    IFindConstraint(const DicomTag& tag) : tag_(tag)
-    {
-    }
-    
-    virtual ~IFindConstraint()
-    {
-    }
-
-    const DicomTag& GetTag() const
-    {
-      return tag_;
-    }
-
-    virtual void Setup(LookupIdentifierQuery& lookup) const = 0;
-
-    virtual bool Match(const std::string& value) const = 0;
+    boost::regex  pattern_;
+    std::string   wildcard_;
   };
+
+  WildcardConstraint::WildcardConstraint(const DicomTag& tag, 
+                                         const std::string& wildcard,
+                                         bool isCaseSensitive) :
+    IFindConstraint(tag),
+    pimpl_(new PImpl)
+  {
+    pimpl_->wildcard_ = wildcard;
+
+    std::string re = Toolbox::WildcardToRegularExpression(wildcard);
+
+    if (isCaseSensitive)
+    {
+      pimpl_->pattern_ = boost::regex(re);
+    }
+    else
+    {
+      pimpl_->pattern_ = boost::regex(re, boost::regex::icase /* case insensitive search */);
+    }
+  }
+
+  bool WildcardConstraint::Match(const std::string& value) const
+  {
+    return boost::regex_match(value, pimpl_->pattern_);
+  }
+
+  void WildcardConstraint::Setup(LookupIdentifierQuery& lookup) const
+  {
+    lookup.AddConstraint(GetTag(), IdentifierConstraintType_Wildcard, pimpl_->wildcard_);
+  }
 }

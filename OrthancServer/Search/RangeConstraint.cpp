@@ -30,33 +30,62 @@
  **/
 
 
-#pragma once
+#include "../PrecompiledHeadersServer.h"
+#include "RangeConstraint.h"
 
-#include "LookupIdentifierQuery.h"
+#include "../../Core/Toolbox.h"
 
 namespace Orthanc
 {
-  class IFindConstraint : public boost::noncopyable
+  RangeConstraint::RangeConstraint(const DicomTag& tag, 
+                                   const std::string& lower,
+                                   const std::string& upper,
+                                   bool isCaseSensitive) : 
+    IFindConstraint(tag),
+    lower_(lower),
+    upper_(upper),
+    isCaseSensitive_(isCaseSensitive)
   {
-  private:
-    DicomTag   tag_;
-
-  public:
-    IFindConstraint(const DicomTag& tag) : tag_(tag)
+    if (isCaseSensitive_)
     {
+      Toolbox::ToUpperCase(lower_);
+      Toolbox::ToUpperCase(upper_);
+    }
+  }
+
+
+  void RangeConstraint::Setup(LookupIdentifierQuery& lookup) const
+  {
+    lookup.AddConstraint(GetTag(), IdentifierConstraintType_GreaterOrEqual, lower_);
+    lookup.AddConstraint(GetTag(), IdentifierConstraintType_SmallerOrEqual, upper_);
+  }
+
+
+  bool RangeConstraint::Match(const std::string& value) const
+  {
+    std::string v = value;
+
+    if (isCaseSensitive_)
+    {
+      Toolbox::ToUpperCase(v);
+    }
+
+    if (lower_.size() == 0 && 
+        upper_.size() == 0)
+    {
+      return false;
+    }
+
+    if (lower_.size() == 0)
+    {
+      return v <= upper_;
+    }
+
+    if (upper_.size() == 0)
+    {
+      return v >= lower_;
     }
     
-    virtual ~IFindConstraint()
-    {
-    }
-
-    const DicomTag& GetTag() const
-    {
-      return tag_;
-    }
-
-    virtual void Setup(LookupIdentifierQuery& lookup) const = 0;
-
-    virtual bool Match(const std::string& value) const = 0;
-  };
+    return (v >= lower_ && v <= upper_);
+  }
 }
