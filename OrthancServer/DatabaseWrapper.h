@@ -249,6 +249,12 @@ namespace Orthanc
       return base_.GetResourceCount(resourceType);
     }
 
+    virtual void GetAllInternalIds(std::list<int64_t>& target,
+                                   ResourceType resourceType)
+    {
+      base_.GetAllInternalIds(target, resourceType);
+    }
+
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType)
     {

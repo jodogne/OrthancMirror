@@ -55,6 +55,8 @@ namespace Orthanc
       return tag_;
     }
 
+    virtual IFindConstraint* Clone() const = 0;
+
     virtual void Setup(LookupIdentifierQuery& lookup) const = 0;
 
     virtual bool Match(const std::string& value) const = 0;

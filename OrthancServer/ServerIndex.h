@@ -45,6 +45,7 @@
 
 namespace Orthanc
 {
+  class LookupResource;
   class ServerContext;
 
   class ServerIndex : public boost::noncopyable
@@ -261,5 +262,9 @@ namespace Orthanc
                             const std::string& publicId);
 
     unsigned int GetDatabaseVersion();
+
+    void Apply(std::list<std::string>& result,
+               ::Orthanc::LookupResource& lookup,
+               IStorageArea& area);
   };
 }

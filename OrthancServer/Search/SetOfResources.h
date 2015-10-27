@@ -66,6 +66,13 @@ namespace Orthanc
 
     void GoDown();
 
+    void Flatten(std::list<int64_t>& result);
+
     void Flatten(std::list<std::string>& result);
+
+    void Clear()
+    {
+      resources_.reset(NULL);
+    }
   };
 }

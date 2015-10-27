@@ -34,10 +34,13 @@
 #include "LookupResource.h"
 
 #include "../../Core/OrthancException.h"
+#include "../../Core/FileStorage/StorageAccessor.h"
+#include "../ServerToolbox.h"
+
 
 namespace Orthanc
 {
-  LookupResource::Level::Level(ResourceType level)
+  LookupResource::Level::Level(ResourceType level) : level_(level)
   {
     const DicomTag* tags = NULL;
     size_t size;
@@ -79,12 +82,30 @@ namespace Orthanc
   {
     if (identifiers_.find(constraint->GetTag()) != identifiers_.end())
     {
-      identifiersConstraints_.push_back(constraint.release());
+      if (level_ == ResourceType_Patient)
+      {
+        // The filters on the patient level must be cloned to the study level
+        identifiersConstraints_.push_back(constraint->Clone());
+      }
+      else
+      {
+        identifiersConstraints_.push_back(constraint.release());
+      }
+
       return true;
     }
     else if (mainTags_.find(constraint->GetTag()) != mainTags_.end())
     {
-      mainTagsConstraints_.push_back(constraint.release());
+      if (level_ == ResourceType_Patient)
+      {
+        // The filters on the patient level must be cloned to the study level
+        mainTagsConstraints_.push_back(constraint->Clone());
+      }
+      else
+      {
+        mainTagsConstraints_.push_back(constraint.release());
+      }
+
       return true;
     }
     else
@@ -167,28 +188,220 @@ namespace Orthanc
   }
 
 
-  static int64_t ChooseOneInstance(IDatabaseWrapper& database,
-                                   int64_t parent,
-                                   ResourceType type)
+  static bool Match(const DicomMap& tags,
+                    const IFindConstraint& constraint)
   {
-    for (;;)
+    const DicomValue* value = tags.TestAndGetValue(constraint.GetTag());
+
+    if (value == NULL ||
+        value->IsNull() ||
+        value->IsBinary())
     {
-      if (type == ResourceType_Instance)
-      {
-        return parent;
-      }
-
-      std::list<int64_t>  children;
-      database.GetChildrenInternalId(children, parent);
-
-      if (children.empty())
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
-      parent = children.front();
-      type = GetChildResourceType(type);
+      return false;
+    }
+    else
+    {
+      return constraint.Match(value->GetContent());
     }
   }
 
+
+  void LookupResource::Level::Apply(SetOfResources& candidates,
+                                    IDatabaseWrapper& database) const
+  {
+    // First, use the indexed identifiers
+    LookupIdentifierQuery query(level_);
+
+    for (Constraints::const_iterator it = identifiersConstraints_.begin(); 
+         it != identifiersConstraints_.end(); ++it)
+    {
+      (*it)->Setup(query);
+    }
+
+    query.Apply(candidates, database);
+
+    // Secondly, filter using the main DICOM tags
+    if (!identifiersConstraints_.empty() ||
+        !mainTagsConstraints_.empty())
+    {
+      std::list<int64_t>  source;
+      candidates.Flatten(source);
+      candidates.Clear();
+
+      std::list<int64_t>  filtered;
+      for (std::list<int64_t>::const_iterator candidate = source.begin(); 
+           candidate != source.end(); ++candidate)
+      {
+        DicomMap tags;
+        database.GetMainDicomTags(tags, *candidate);
+
+        bool match = true;
+
+        // Re-apply the identifier constraints, as their "Setup"
+        // method is less restrictive than their "Match" method
+        for (Constraints::const_iterator it = identifiersConstraints_.begin(); 
+             match && it != identifiersConstraints_.end(); ++it)
+        {
+          if (!Match(tags, **it))
+          {
+            match = false;
+          }
+        }
+
+        for (Constraints::const_iterator it = mainTagsConstraints_.begin(); 
+             match && it != mainTagsConstraints_.end(); ++it)
+        {
+          if (!Match(tags, **it))
+          {
+            match = false;
+          }
+        }
+
+        if (match)
+        {
+          filtered.push_back(*candidate);
+        }
+      }
+      
+      candidates.Intersect(filtered);
+    }
+  }
+
+
+
+  void LookupResource::ApplyUnoptimizedConstraints(SetOfResources& candidates,
+                                                   IDatabaseWrapper& database,
+                                                   IStorageArea& storageArea) const
+  {
+    if (unoptimizedConstraints_.empty())
+    {
+      // Nothing to do
+      return;
+    }
+
+    std::list<int64_t>  source;
+    candidates.Flatten(source);
+    candidates.Clear();
+
+    StorageAccessor accessor(storageArea);
+
+    std::list<int64_t>  filtered;
+    for (std::list<int64_t>::const_iterator candidate = source.begin(); 
+         candidate != source.end(); ++candidate)
+    {
+      if (maxResults_ != 0 &&
+          filtered.size() >= maxResults_)
+      {
+        // We have enough results
+        break;
+      }
+
+      int64_t instance;
+      FileInfo attachment;
+      if (!Toolbox::FindOneChildInstance(instance, database, *candidate, level_) ||
+          !database.LookupAttachment(attachment, instance, FileContentType_DicomAsJson))
+      {
+        continue;
+      }
+
+      Json::Value content;
+      accessor.Read(content, attachment);
+
+      bool match = true;
+
+      for (Constraints::const_iterator it = unoptimizedConstraints_.begin(); 
+           match && it != unoptimizedConstraints_.end(); ++it)
+      {
+        std::string tag = (*it)->GetTag().Format();
+        if (content.isMember(tag) &&
+            content[tag]["Type"] == "String")
+        {
+          std::string value = content[tag]["Value"].asString();
+          if (!(*it)->Match(value))
+          {
+            match = false;
+          }
+        }
+        else
+        {
+          match = false;
+        }
+      }
+
+      if (match)
+      {
+        filtered.push_back(*candidate);
+      }
+    }
+
+    candidates.Intersect(filtered);
+  }
+
+
+  void LookupResource::ApplyLevel(SetOfResources& candidates,
+                                  ResourceType level,
+                                  IDatabaseWrapper& database) const
+  {
+    Levels::const_iterator it = levels_.find(level);
+    if (it != levels_.end())
+    {
+      it->second->Apply(candidates, database);
+    }
+  }
+
+
+  void LookupResource::Apply(std::list<int64_t>& result,
+                             IDatabaseWrapper& database,
+                             IStorageArea& storageArea) const
+  {
+    SetOfResources candidates(database, level_);
+
+    switch (level_)
+    {
+      case ResourceType_Patient:
+        ApplyLevel(candidates, ResourceType_Patient, database);
+        break;
+
+      case ResourceType_Study:
+        ApplyLevel(candidates, ResourceType_Study, database);
+        break;
+
+      case ResourceType_Series:
+        ApplyLevel(candidates, ResourceType_Study, database);
+        candidates.GoDown();
+        ApplyLevel(candidates, ResourceType_Series, database);
+        break;
+
+      case ResourceType_Instance:
+        ApplyLevel(candidates, ResourceType_Study, database);
+        candidates.GoDown();
+        ApplyLevel(candidates, ResourceType_Series, database);
+        candidates.GoDown();
+        ApplyLevel(candidates, ResourceType_Instance, database);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+
+    ApplyUnoptimizedConstraints(candidates, database, storageArea);
+    candidates.Flatten(result);
+  }
+
+
+  void LookupResource::Apply(std::list<std::string>& result,
+                             IDatabaseWrapper& database,
+                             IStorageArea& storageArea) const
+  {
+    std::list<int64_t> tmp;
+    Apply(tmp, database, storageArea);
+
+    result.clear();
+
+    for (std::list<int64_t>::const_iterator
+           it = tmp.begin(); it != tmp.end(); ++it)
+    {
+      result.push_back(database.GetPublicId(*it));
+    }
+  }
 }

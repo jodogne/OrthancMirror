@@ -46,6 +46,7 @@
 #include "../Core/Uuid.h"
 #include "../Core/DicomFormat/DicomArray.h"
 #include "Search/LookupIdentifierQuery.h"
+#include "Search/LookupResource.h"
 
 #include "FromDcmtkBridge.h"
 #include "ServerContext.h"
@@ -2111,5 +2112,14 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(mutex_);
     return db_.GetDatabaseVersion();
+  }
+
+
+  void ServerIndex::Apply(std::list<std::string>& result,
+                          ::Orthanc::LookupResource& lookup,
+                          IStorageArea& area)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    lookup.Apply(result, db_, area);
   }
 }
