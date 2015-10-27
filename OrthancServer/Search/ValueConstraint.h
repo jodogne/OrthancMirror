@@ -32,31 +32,23 @@
 
 #pragma once
 
-#include "LookupIdentifierQuery.h"
+#include "IFindConstraint.h"
 
 namespace Orthanc
 {
-  class IFindConstraint : public boost::noncopyable
+  class ValueConstraint : public IFindConstraint
   {
   private:
-    DicomTag   tag_;
+    std::string  value_;
+    bool         isCaseSensitive_;
 
   public:
-    IFindConstraint(const DicomTag& tag) : tag_(tag)
-    {
-    }
-    
-    virtual ~IFindConstraint()
-    {
-    }
+    ValueConstraint(const DicomTag& tag, 
+                    const std::string& value,
+                    bool isCaseSensitive);
 
-    const DicomTag& GetTag() const
-    {
-      return tag_;
-    }
+    virtual void Setup(LookupIdentifierQuery& lookup) const;
 
-    virtual void Setup(LookupIdentifierQuery& lookup) const = 0;
-
-    virtual bool Match(const std::string& value) const = 0;
+    virtual bool Match(const std::string& value) const;
   };
 }

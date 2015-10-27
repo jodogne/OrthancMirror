@@ -76,7 +76,7 @@ namespace Orthanc
                  const std::string& value) : 
         tag_(tag),
         type_(type),
-        value_(value)
+        value_(NormalizeIdentifier(value))
       {
       }
 
@@ -97,30 +97,32 @@ namespace Orthanc
     };
 
 
-  private:
-    class Union
+    class Disjunction : public boost::noncopyable
     {
     private:
-      std::vector<Constraint*>  union_;
+      std::vector<Constraint*>  disjunction_;
 
     public:
-      ~Union();
+      ~Disjunction();
 
-      void Add(const Constraint& constraint);
+      void Add(const DicomTag& tag,
+               IdentifierConstraintType type,
+               const std::string& value);
 
       size_t GetSize() const
       {
-        return union_.size();
+        return disjunction_.size();
       }
 
       const Constraint&  GetConstraint(size_t i) const
       {
-        return *union_[i];
+        return *disjunction_[i];
       }
     };
 
 
-    typedef std::vector<Union*>  Constraints;
+  private:
+    typedef std::vector<Disjunction*>  Constraints;
 
     ResourceType  level_;
     Constraints   constraints_;
@@ -143,7 +145,7 @@ namespace Orthanc
                        IdentifierConstraintType type,
                        const std::string& value);
 
-    void AddDisjunction(const std::list<Constraint>& constraints);
+    Disjunction& AddDisjunction();
 
     ResourceType GetLevel() const
     {
@@ -158,6 +160,10 @@ namespace Orthanc
     // The database must be locked
     void Apply(std::list<std::string>& result,
                IDatabaseWrapper& database);
+
+    static void LoadIdentifiers(const DicomTag*& tags,
+                                size_t& size,
+                                ResourceType level);
 
     static bool IsIdentifier(const DicomTag& tag,
                              ResourceType level);

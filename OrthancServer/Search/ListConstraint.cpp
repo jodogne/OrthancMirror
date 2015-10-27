@@ -30,33 +30,48 @@
  **/
 
 
-#pragma once
+#include "../PrecompiledHeadersServer.h"
+#include "ListConstraint.h"
 
-#include "LookupIdentifierQuery.h"
 
 namespace Orthanc
 {
-  class IFindConstraint : public boost::noncopyable
+  void ListConstraint::AddAllowedValue(const std::string& value)
   {
-  private:
-    DicomTag   tag_;
-
-  public:
-    IFindConstraint(const DicomTag& tag) : tag_(tag)
+    if (isCaseSensitive_)
     {
+      std::string s = value;
+      Toolbox::ToUpperCase(s);
+      allowedValues_.insert(s);      
     }
-    
-    virtual ~IFindConstraint()
+    else
     {
+      allowedValues_.insert(value);
     }
+  }
 
-    const DicomTag& GetTag() const
+
+  void ListConstraint::Setup(LookupIdentifierQuery& lookup) const
+  {
+    LookupIdentifierQuery::Disjunction& target = lookup.AddDisjunction();
+
+    for (std::set<std::string>::const_iterator
+           it = allowedValues_.begin(); it != allowedValues_.end(); ++it)
     {
-      return tag_;
+      target.Add(GetTag(), IdentifierConstraintType_Equal, *it);
+    }
+  }
+
+
+  bool ListConstraint::Match(const std::string& value) const
+  {
+    std::string v = value;
+
+    if (isCaseSensitive_)
+    {
+      Toolbox::ToUpperCase(v);
     }
 
-    virtual void Setup(LookupIdentifierQuery& lookup) const = 0;
-
-    virtual bool Match(const std::string& value) const = 0;
-  };
+    return allowedValues_.find(v) != allowedValues_.end();
+  }
 }

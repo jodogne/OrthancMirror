@@ -70,9 +70,10 @@ namespace Orthanc
     DICOM_TAG_SOP_INSTANCE_UID
   };
 
-  static void LoadIdentifiers(const DicomTag*& tags,
-                              size_t& size,
-                              ResourceType level)
+
+  void LookupIdentifierQuery::LoadIdentifiers(const DicomTag*& tags,
+                                              size_t& size,
+                                              ResourceType level)
   {
     switch (level)
     {
@@ -102,18 +103,20 @@ namespace Orthanc
   }
 
 
-  LookupIdentifierQuery::Union::~Union()
+  LookupIdentifierQuery::Disjunction::~Disjunction()
   {
-    for (size_t i = 0; i < union_.size(); i++)
+    for (size_t i = 0; i < disjunction_.size(); i++)
     {
-      delete union_[i];
+      delete disjunction_[i];
     }
   }
 
 
-  void LookupIdentifierQuery::Union::Add(const Constraint& constraint)
+  void LookupIdentifierQuery::Disjunction::Add(const DicomTag& tag,
+                                               IdentifierConstraintType type,
+                                               const std::string& value)
   {
-    union_.push_back(new Constraint(constraint));
+    disjunction_.push_back(new Constraint(tag, type, value));
   }
 
 
@@ -153,23 +156,14 @@ namespace Orthanc
                                             const std::string& value)
   {
     assert(IsIdentifier(tag));
-
-    Constraint constraint(tag, type, NormalizeIdentifier(value));
-    constraints_.push_back(new Union);
-    constraints_.back()->Add(constraint);
+    constraints_.back()->Add(tag, type, value);
   }
 
 
-  void LookupIdentifierQuery::AddDisjunction(const std::list<Constraint>& constraints)
+  LookupIdentifierQuery::Disjunction& LookupIdentifierQuery::AddDisjunction()
   {
-    constraints_.push_back(new Union);
-
-    for (std::list<Constraint>::const_iterator
-           it = constraints.begin(); it != constraints.end(); ++it)
-    {
-      assert(IsIdentifier(it->GetTag()));
-      constraints_.back()->Add(*it);
-    }
+    constraints_.push_back(new Disjunction);
+    return *constraints_.back();
   }
 
 
