@@ -36,6 +36,7 @@
 #include "SetOfResources.h"
 
 #include <memory>
+#include <boost/thread/mutex.hpp>
 
 namespace Orthanc
 {
@@ -78,7 +79,9 @@ namespace Orthanc
                     ResourceType level,
                     IDatabaseWrapper& database) const;
 
-    void ApplyUnoptimizedConstraints(SetOfResources& candidates,
+    bool ApplyUnoptimizedConstraints(std::list<int64_t>& result,
+                                     const std::list<int64_t>& candidates,
+                                     boost::mutex& databaseMutex,
                                      IDatabaseWrapper& database,
                                      IStorageArea& storageArea) const;
 
@@ -88,6 +91,10 @@ namespace Orthanc
     ~LookupResource();
 
     void Add(IFindConstraint* constraint);   // Takes ownership
+
+    void Add(const DicomTag& tag,
+             const std::string& dicomQuery,
+             bool caseSensitivePN);
 
     void SetMaxResults(size_t maxResults)
     {
@@ -99,11 +106,13 @@ namespace Orthanc
       return maxResults_;
     }
 
-    void Apply(std::list<int64_t>& result,
+    bool Apply(std::list<int64_t>& result,
+               boost::mutex& databaseMutex,
                IDatabaseWrapper& database,
                IStorageArea& storageArea) const;
 
-    void Apply(std::list<std::string>& result,
+    bool Apply(std::list<std::string>& result,
+               boost::mutex& databaseMutex,
                IDatabaseWrapper& database,
                IStorageArea& storageArea) const;
   };

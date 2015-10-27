@@ -33,9 +33,15 @@
 #include "../PrecompiledHeadersServer.h"
 #include "LookupResource.h"
 
+#include "ListConstraint.h"
+#include "RangeConstraint.h"
+#include "ValueConstraint.h"
+#include "WildcardConstraint.h"
+
 #include "../../Core/OrthancException.h"
 #include "../../Core/FileStorage/StorageAccessor.h"
 #include "../ServerToolbox.h"
+#include "../FromDcmtkBridge.h"
 
 
 namespace Orthanc
@@ -269,39 +275,37 @@ namespace Orthanc
 
 
 
-  void LookupResource::ApplyUnoptimizedConstraints(SetOfResources& candidates,
+  bool LookupResource::ApplyUnoptimizedConstraints(std::list<int64_t>& result,
+                                                   const std::list<int64_t>& candidates,
+                                                   boost::mutex& databaseMutex,
                                                    IDatabaseWrapper& database,
                                                    IStorageArea& storageArea) const
   {
-    if (unoptimizedConstraints_.empty())
-    {
-      // Nothing to do
-      return;
-    }
-
-    std::list<int64_t>  source;
-    candidates.Flatten(source);
-    candidates.Clear();
+    assert(!unoptimizedConstraints_.empty());
 
     StorageAccessor accessor(storageArea);
 
-    std::list<int64_t>  filtered;
-    for (std::list<int64_t>::const_iterator candidate = source.begin(); 
-         candidate != source.end(); ++candidate)
+    for (std::list<int64_t>::const_iterator candidate = candidates.begin(); 
+         candidate != candidates.end(); ++candidate)
     {
       if (maxResults_ != 0 &&
-          filtered.size() >= maxResults_)
+          result.size() >= maxResults_)
       {
-        // We have enough results
-        break;
+        // We have enough results, not finished
+        return false;
       }
 
       int64_t instance;
       FileInfo attachment;
-      if (!Toolbox::FindOneChildInstance(instance, database, *candidate, level_) ||
-          !database.LookupAttachment(attachment, instance, FileContentType_DicomAsJson))
+
       {
-        continue;
+        boost::mutex::scoped_lock lock(databaseMutex);
+
+        if (!Toolbox::FindOneChildInstance(instance, database, *candidate, level_) ||
+            !database.LookupAttachment(attachment, instance, FileContentType_DicomAsJson))
+        {
+          continue;
+        }
       }
 
       Json::Value content;
@@ -330,11 +334,11 @@ namespace Orthanc
 
       if (match)
       {
-        filtered.push_back(*candidate);
+        result.push_back(*candidate);
       }
     }
 
-    candidates.Intersect(filtered);
+    return true;  // Finished
   }
 
 
@@ -350,58 +354,170 @@ namespace Orthanc
   }
 
 
-  void LookupResource::Apply(std::list<int64_t>& result,
-                             IDatabaseWrapper& database,
-                             IStorageArea& storageArea) const
-  {
-    SetOfResources candidates(database, level_);
-
-    switch (level_)
-    {
-      case ResourceType_Patient:
-        ApplyLevel(candidates, ResourceType_Patient, database);
-        break;
-
-      case ResourceType_Study:
-        ApplyLevel(candidates, ResourceType_Study, database);
-        break;
-
-      case ResourceType_Series:
-        ApplyLevel(candidates, ResourceType_Study, database);
-        candidates.GoDown();
-        ApplyLevel(candidates, ResourceType_Series, database);
-        break;
-
-      case ResourceType_Instance:
-        ApplyLevel(candidates, ResourceType_Study, database);
-        candidates.GoDown();
-        ApplyLevel(candidates, ResourceType_Series, database);
-        candidates.GoDown();
-        ApplyLevel(candidates, ResourceType_Instance, database);
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_InternalError);
-    }
-
-    ApplyUnoptimizedConstraints(candidates, database, storageArea);
-    candidates.Flatten(result);
-  }
-
-
-  void LookupResource::Apply(std::list<std::string>& result,
+  bool LookupResource::Apply(std::list<int64_t>& result,
+                             boost::mutex& databaseMutex,
                              IDatabaseWrapper& database,
                              IStorageArea& storageArea) const
   {
     std::list<int64_t> tmp;
-    Apply(tmp, database, storageArea);
+
+    {
+      boost::mutex::scoped_lock lock(databaseMutex);
+      SetOfResources candidates(database, level_);
+
+      switch (level_)
+      {
+        case ResourceType_Patient:
+          ApplyLevel(candidates, ResourceType_Patient, database);
+          break;
+
+        case ResourceType_Study:
+          ApplyLevel(candidates, ResourceType_Study, database);
+          break;
+
+        case ResourceType_Series:
+          ApplyLevel(candidates, ResourceType_Study, database);
+          candidates.GoDown();
+          ApplyLevel(candidates, ResourceType_Series, database);
+          break;
+
+        case ResourceType_Instance:
+          ApplyLevel(candidates, ResourceType_Study, database);
+          candidates.GoDown();
+          ApplyLevel(candidates, ResourceType_Series, database);
+          candidates.GoDown();
+          ApplyLevel(candidates, ResourceType_Instance, database);
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+
+      if (unoptimizedConstraints_.empty())
+      {
+        return candidates.Flatten(result, maxResults_);
+      }
+      else
+      {
+        candidates.Flatten(tmp);
+      }
+    }
+
+    return ApplyUnoptimizedConstraints(result, tmp, databaseMutex, database, storageArea);
+  }
+
+
+  bool LookupResource::Apply(std::list<std::string>& result,
+                             boost::mutex& databaseMutex,
+                             IDatabaseWrapper& database,
+                             IStorageArea& storageArea) const
+  {
+
+    std::list<int64_t> tmp;
+    bool finished = Apply(tmp, databaseMutex, database, storageArea);
 
     result.clear();
 
-    for (std::list<int64_t>::const_iterator
-           it = tmp.begin(); it != tmp.end(); ++it)
     {
-      result.push_back(database.GetPublicId(*it));
+      boost::mutex::scoped_lock lock(databaseMutex);
+
+      for (std::list<int64_t>::const_iterator
+             it = tmp.begin(); it != tmp.end(); ++it)
+      {
+        result.push_back(database.GetPublicId(*it));
+      }
+    }
+
+    return finished;
+  }
+
+
+  void LookupResource::Add(const DicomTag& tag,
+                           const std::string& dicomQuery,
+                           bool caseSensitivePN)
+  {
+    ValueRepresentation vr = FromDcmtkBridge::GetValueRepresentation(tag);
+
+    bool sensitive = true;
+    if (vr == ValueRepresentation_PatientName)
+    {
+      sensitive = caseSensitivePN;
+    }
+
+    // http://www.itk.org/Wiki/DICOM_QueryRetrieve_Explained
+    // http://dicomiseasy.blogspot.be/2012/01/dicom-queryretrieve-part-i.html  
+
+    if ((vr == ValueRepresentation_Date ||
+         vr == ValueRepresentation_DateTime ||
+         vr == ValueRepresentation_Time) &&
+        dicomQuery.find('-') != std::string::npos)
+    {
+      /**
+       * Range matching is only defined for TM, DA and DT value
+       * representations. This code fixes issues 35 and 37.
+       *
+       * Reference: "Range matching is not defined for types of
+       * Attributes other than dates and times", DICOM PS 3.4,
+       * C.2.2.2.5 ("Range Matching").
+       **/
+      size_t separator = dicomQuery.find('-');
+      std::string lower = dicomQuery.substr(0, separator);
+      std::string upper = dicomQuery.substr(separator + 1);
+      Add(new RangeConstraint(tag, lower, upper, sensitive));
+    }
+    else if (dicomQuery.find('\\') != std::string::npos)
+    {
+      std::auto_ptr<ListConstraint> constraint(new ListConstraint(tag, sensitive));
+
+      std::vector<std::string> items;
+      Toolbox::TokenizeString(items, dicomQuery, '\\');
+
+      for (size_t i = 0; i < items.size(); i++)
+      {
+        constraint->AddAllowedValue(items[i]);
+      }
+
+      Add(constraint.release());
+    }
+    else if (dicomQuery.find('*') != std::string::npos ||
+             dicomQuery.find('?') != std::string::npos)
+    {
+      Add(new WildcardConstraint(tag, dicomQuery, sensitive));
+    }
+    else
+    {
+      /**
+       * Case-insensitive match for PN value representation (Patient
+       * Name). Case-senstive match for all the other value
+       * representations.
+       *
+       * Reference: DICOM PS 3.4
+       *   - C.2.2.2.1 ("Single Value Matching") 
+       *   - C.2.2.2.4 ("Wild Card Matching")
+       * http://medical.nema.org/Dicom/2011/11_04pu.pdf
+       *
+       * "Except for Attributes with a PN Value Representation, only
+       * entities with values which match exactly the value specified in the
+       * request shall match. This matching is case-sensitive, i.e.,
+       * sensitive to the exact encoding of the key attribute value in
+       * character sets where a letter may have multiple encodings (e.g.,
+       * based on its case, its position in a word, or whether it is
+       * accented)
+       * 
+       * For Attributes with a PN Value Representation (e.g., Patient Name
+       * (0010,0010)), an application may perform literal matching that is
+       * either case-sensitive, or that is insensitive to some or all
+       * aspects of case, position, accent, or other character encoding
+       * variants."
+       *
+       * (0008,0018) UI SOPInstanceUID     => Case-sensitive
+       * (0008,0050) SH AccessionNumber    => Case-sensitive
+       * (0010,0020) LO PatientID          => Case-sensitive
+       * (0020,000D) UI StudyInstanceUID   => Case-sensitive
+       * (0020,000E) UI SeriesInstanceUID  => Case-sensitive
+      **/
+
+      Add(new ValueConstraint(tag, dicomQuery, sensitive));
     }
   }
 }

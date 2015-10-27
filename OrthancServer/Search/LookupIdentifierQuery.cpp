@@ -156,6 +156,7 @@ namespace Orthanc
                                             const std::string& value)
   {
     assert(IsIdentifier(tag));
+    constraints_.push_back(new Disjunction);
     constraints_.back()->Add(tag, type, value);
   }
 

@@ -150,4 +150,24 @@ namespace Orthanc
       }
     }
   }
+
+
+  bool SetOfResources::Flatten(std::list<int64_t>& result,
+                               size_t maxResults)
+  {
+    Flatten(result);
+
+    if (maxResults != 0 &&
+        result.size() > maxResults)
+    {
+      std::list<int64_t>::iterator cut = result.begin();
+      std::advance(cut, maxResults);
+      result.erase(cut, result.end());
+      return false;
+    }
+    else
+    {
+      return true;
+    }
+  }
 }
