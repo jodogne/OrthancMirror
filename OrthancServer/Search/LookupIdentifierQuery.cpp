@@ -35,6 +35,7 @@
 
 #include "../../Core/OrthancException.h"
 #include "SetOfResources.h"
+#include "../FromDcmtkBridge.h"
 
 #include <cassert>
 
@@ -230,4 +231,35 @@ namespace Orthanc
     }
   }
 
+
+  void LookupIdentifierQuery::Print(std::ostream& s) const
+  {
+    s << "Constraint: " << std::endl;
+    for (Constraints::const_iterator
+           it = constraints_.begin(); it != constraints_.end(); ++it)
+    {
+      if (it == constraints_.begin())
+        s << "   ";
+      else
+        s << "OR ";
+
+      for (size_t j = 0; j < (*it)->GetSize(); j++)
+      {
+        const Constraint& c = (*it)->GetConstraint(j);
+        s << FromDcmtkBridge::GetName(c.GetTag());
+
+        switch (c.GetType())
+        {
+          case IdentifierConstraintType_Equal: s << " == "; break;
+          case IdentifierConstraintType_SmallerOrEqual: s << " <= "; break;
+          case IdentifierConstraintType_GreaterOrEqual: s << " >= "; break;
+          case IdentifierConstraintType_Wildcard: s << " ~= "; break;
+          default:
+            s << " ? ";
+        }
+
+        s << c.GetValue() << std::endl;
+      }
+    }
+  }
 }

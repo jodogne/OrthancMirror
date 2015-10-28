@@ -545,10 +545,12 @@ namespace Orthanc
   }
 
 
-  bool ServerContext::Apply(std::vector<std::string>& result,
+  bool ServerContext::Apply(std::list<std::string>& result,
                             const ::Orthanc::LookupResource& lookup,
                             size_t maxResults)
   {
+    result.clear();
+
     std::vector<std::string> resources, instances;
     GetIndex().FindCandidates(resources, instances, lookup);
 

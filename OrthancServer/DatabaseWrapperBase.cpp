@@ -743,7 +743,7 @@ namespace Orthanc
         break;
 
       case IdentifierConstraintType_Wildcard:
-        s.reset(new SQLite::Statement(db_, std::string(COMMON) + "d.value LIKE ?"));
+        s.reset(new SQLite::Statement(db_, std::string(COMMON) + "d.value GLOB ?"));
         break;
 
       default:

@@ -97,7 +97,7 @@ namespace Orthanc
 
     void AddDicomConstraint(const DicomTag& tag,
                             const std::string& dicomQuery,
-                            bool caseSensitivePN);
+                            bool caseSensitive);
 
     void FindCandidates(std::list<int64_t>& result,
                         IDatabaseWrapper& database) const;

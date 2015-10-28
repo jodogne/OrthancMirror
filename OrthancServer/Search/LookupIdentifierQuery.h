@@ -177,5 +177,7 @@ namespace Orthanc
                                  int64_t resource,
                                  ResourceType level,
                                  const DicomMap& map);
+
+    void Print(std::ostream& s) const;
   };
 }
