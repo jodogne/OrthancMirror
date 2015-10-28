@@ -150,7 +150,6 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/DatabaseWrapper.cpp
   OrthancServer/DatabaseWrapperBase.cpp
   OrthancServer/DicomDirWriter.cpp
-  OrthancServer/DicomFindQuery.cpp
   OrthancServer/DicomModification.cpp
   OrthancServer/DicomProtocol/DicomFindAnswers.cpp
   OrthancServer/DicomProtocol/DicomServer.cpp
@@ -179,7 +178,6 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/OrthancRestApi/OrthancRestSystem.cpp
   OrthancServer/ParsedDicomFile.cpp
   OrthancServer/QueryRetrieveHandler.cpp
-  OrthancServer/ResourceFinder.cpp
   OrthancServer/Search/LookupIdentifierQuery.cpp
   OrthancServer/Search/LookupResource.cpp
   OrthancServer/Search/SetOfResources.cpp

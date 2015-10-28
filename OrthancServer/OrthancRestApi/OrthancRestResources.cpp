@@ -36,8 +36,6 @@
 #include "../../Core/Logging.h"
 #include "../ServerToolbox.h"
 #include "../FromDcmtkBridge.h"
-#include "../ResourceFinder.h"
-#include "../DicomFindQuery.h"
 #include "../ServerContext.h"
 #include "../SliceOrdering.h"
 
