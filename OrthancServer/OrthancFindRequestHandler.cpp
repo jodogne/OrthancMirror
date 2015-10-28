@@ -30,7 +30,7 @@
  **/
 
 
-#define USE_LOOKUP_RESOURCE 0
+#define USE_LOOKUP_RESOURCE 1
 
 
 
