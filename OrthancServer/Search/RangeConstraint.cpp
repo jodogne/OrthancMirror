@@ -46,7 +46,7 @@ namespace Orthanc
     upper_(upper),
     isCaseSensitive_(isCaseSensitive)
   {
-    if (isCaseSensitive_)
+    if (!isCaseSensitive_)
     {
       Toolbox::ToUpperCase(lower_);
       Toolbox::ToUpperCase(upper_);
@@ -65,7 +65,7 @@ namespace Orthanc
   {
     std::string v = value;
 
-    if (isCaseSensitive_)
+    if (!isCaseSensitive_)
     {
       Toolbox::ToUpperCase(v);
     }

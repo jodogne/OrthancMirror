@@ -315,7 +315,17 @@ namespace Orthanc
   void LookupResource::FindCandidates(std::list<int64_t>& result,
                                       IDatabaseWrapper& database) const
   {
-    SetOfResources candidates(database, level_);
+    ResourceType startingLevel;
+    if (level_ == ResourceType_Patient)
+    {
+      startingLevel = ResourceType_Patient;
+    }
+    else
+    {
+      startingLevel = ResourceType_Study;
+    }
+
+    SetOfResources candidates(database, startingLevel);
 
     switch (level_)
     {

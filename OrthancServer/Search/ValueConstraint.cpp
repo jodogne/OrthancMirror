@@ -35,6 +35,8 @@
 
 #include "../../Core/Toolbox.h"
 
+#include <stdio.h>
+
 namespace Orthanc
 {
   ValueConstraint::ValueConstraint(const DicomTag& tag, 
@@ -44,7 +46,7 @@ namespace Orthanc
     value_(value),
     isCaseSensitive_(isCaseSensitive)
   {
-    if (isCaseSensitive)
+    if (!isCaseSensitive)
     {
       Toolbox::ToUpperCase(value_);
     }
@@ -65,7 +67,7 @@ namespace Orthanc
     else
     {
       std::string v;
-      Toolbox::ToLowerCase(v, value);
+      Toolbox::ToUpperCase(v, value);
       return value_ == v;
     }
   }

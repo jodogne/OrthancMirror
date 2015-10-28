@@ -2131,6 +2131,8 @@ namespace Orthanc
     for (std::list<int64_t>::const_iterator
            it = tmp.begin(); it != tmp.end(); ++it, pos++)
     {
+      assert(db_.GetResourceType(*it) == lookup.GetLevel());
+      
       int64_t instance;
       if (!Toolbox::FindOneChildInstance(instance, db_, *it, lookup.GetLevel()))
       {

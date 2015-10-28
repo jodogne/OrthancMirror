@@ -40,13 +40,13 @@ namespace Orthanc
   {
     if (isCaseSensitive_)
     {
-      std::string s = value;
-      Toolbox::ToUpperCase(s);
-      allowedValues_.insert(s);      
+      allowedValues_.insert(value);
     }
     else
     {
-      allowedValues_.insert(value);
+      std::string s = value;
+      Toolbox::ToUpperCase(s);
+      allowedValues_.insert(s);      
     }
   }
 
@@ -67,7 +67,7 @@ namespace Orthanc
   {
     std::string v = value;
 
-    if (isCaseSensitive_)
+    if (!isCaseSensitive_)
     {
       Toolbox::ToUpperCase(v);
     }
