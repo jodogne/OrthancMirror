@@ -265,6 +265,6 @@ namespace Orthanc
 
     void FindCandidates(std::vector<std::string>& resources,
                         std::vector<std::string>& instances,
-                        ::Orthanc::LookupResource& lookup);
+                        const ::Orthanc::LookupResource& lookup);
   };
 }

@@ -2117,7 +2117,7 @@ namespace Orthanc
 
   void ServerIndex::FindCandidates(std::vector<std::string>& resources,
                                    std::vector<std::string>& instances,
-                                   ::Orthanc::LookupResource& lookup)
+                                   const ::Orthanc::LookupResource& lookup)
   {
     boost::mutex::scoped_lock lock(mutex_);
    

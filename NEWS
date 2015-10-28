@@ -1,6 +1,7 @@
 Pending changes in the mainline
 ===============================
 
+* Full indexation of the patient/study tags to speed up searches and C-Find
 * Add ".dcm" suffix to files in ZIP archives (cf. URI ".../archive")
 * "/tools/create-dicom": Support of binary tags encoded using data URI scheme
 * "/tools/create-dicom": Support of hierarchical structures (creation of sequences)
@@ -24,6 +25,7 @@ Lua
 Maintenance
 -----------
 
+* Full refactoring of the searching features
 * C-Move SCP for studies using AccessionNumber tag
 * Fix issue 4 (C-Store Association not renegotiated on Specific-to-specific transfer syntax change)
 * "/system" URI gives information about the plugins used for storage area and DB back-end
