@@ -43,15 +43,13 @@ namespace Orthanc
     bool         isCaseSensitive_;
 
     ValueConstraint(const ValueConstraint& other) : 
-      IFindConstraint(other.GetTag()),
       value_(other.value_),
       isCaseSensitive_(other.isCaseSensitive_)
     {
     }
 
   public:
-    ValueConstraint(const DicomTag& tag, 
-                    const std::string& value,
+    ValueConstraint(const std::string& value,
                     bool isCaseSensitive);
 
     virtual IFindConstraint* Clone() const
@@ -59,7 +57,8 @@ namespace Orthanc
       return new ValueConstraint(*this);
     }
 
-    virtual void Setup(LookupIdentifierQuery& lookup) const;
+    virtual void Setup(LookupIdentifierQuery& lookup,
+                       const DicomTag& tag) const;
 
     virtual bool Match(const std::string& value) const;
   };

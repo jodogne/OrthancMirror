@@ -38,26 +38,15 @@ namespace Orthanc
 {
   class IFindConstraint : public boost::noncopyable
   {
-  private:
-    DicomTag   tag_;
-
   public:
-    IFindConstraint(const DicomTag& tag) : tag_(tag)
-    {
-    }
-    
     virtual ~IFindConstraint()
     {
     }
 
-    const DicomTag& GetTag() const
-    {
-      return tag_;
-    }
-
     virtual IFindConstraint* Clone() const = 0;
 
-    virtual void Setup(LookupIdentifierQuery& lookup) const = 0;
+    virtual void Setup(LookupIdentifierQuery& lookup,
+                       const DicomTag& tag) const = 0;
 
     virtual bool Match(const std::string& value) const = 0;
   };

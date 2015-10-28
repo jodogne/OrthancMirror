@@ -37,11 +37,9 @@
 
 namespace Orthanc
 {
-  RangeConstraint::RangeConstraint(const DicomTag& tag, 
-                                   const std::string& lower,
+  RangeConstraint::RangeConstraint(const std::string& lower,
                                    const std::string& upper,
                                    bool isCaseSensitive) : 
-    IFindConstraint(tag),
     lower_(lower),
     upper_(upper),
     isCaseSensitive_(isCaseSensitive)
@@ -54,10 +52,11 @@ namespace Orthanc
   }
 
 
-  void RangeConstraint::Setup(LookupIdentifierQuery& lookup) const
+  void RangeConstraint::Setup(LookupIdentifierQuery& lookup,
+                              const DicomTag& tag) const
   {
-    lookup.AddConstraint(GetTag(), IdentifierConstraintType_GreaterOrEqual, lower_);
-    lookup.AddConstraint(GetTag(), IdentifierConstraintType_SmallerOrEqual, upper_);
+    lookup.AddConstraint(tag, IdentifierConstraintType_GreaterOrEqual, lower_);
+    lookup.AddConstraint(tag, IdentifierConstraintType_SmallerOrEqual, upper_);
   }
 
 

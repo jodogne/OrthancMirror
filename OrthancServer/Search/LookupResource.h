@@ -42,7 +42,7 @@ namespace Orthanc
   class LookupResource : public boost::noncopyable
   {
   private:
-    typedef std::list<IFindConstraint*>  Constraints;
+    typedef std::map<DicomTag, IFindConstraint*>  Constraints;
     
     class Level
     {
@@ -58,7 +58,8 @@ namespace Orthanc
 
       ~Level();
 
-      bool Add(std::auto_ptr<IFindConstraint>& constraint);
+      bool Add(const DicomTag& tag,
+               std::auto_ptr<IFindConstraint>& constraint);
 
       void Apply(SetOfResources& candidates,
                  IDatabaseWrapper& database) const;
@@ -72,6 +73,7 @@ namespace Orthanc
     std::auto_ptr<ListConstraint>   modalitiesInStudy_;
 
     bool AddInternal(ResourceType level,
+                     const DicomTag& tag,
                      std::auto_ptr<IFindConstraint>& constraint);
 
     void ApplyLevel(SetOfResources& candidates,
@@ -90,7 +92,8 @@ namespace Orthanc
 
     void SetModalitiesInStudy(const std::string& modalities); 
 
-    void Add(IFindConstraint* constraint);   // Takes ownership
+    void Add(const DicomTag& tag,
+             IFindConstraint* constraint);   // Takes ownership
 
     void AddDicomConstraint(const DicomTag& tag,
                             const std::string& dicomQuery,

@@ -39,10 +39,8 @@
 
 namespace Orthanc
 {
-  ValueConstraint::ValueConstraint(const DicomTag& tag, 
-                                   const std::string& value,
+  ValueConstraint::ValueConstraint(const std::string& value,
                                    bool isCaseSensitive) : 
-    IFindConstraint(tag),
     value_(value),
     isCaseSensitive_(isCaseSensitive)
   {
@@ -53,9 +51,10 @@ namespace Orthanc
   }
 
 
-  void ValueConstraint::Setup(LookupIdentifierQuery& lookup) const
+  void ValueConstraint::Setup(LookupIdentifierQuery& lookup,
+                              const DicomTag& tag) const
   {
-    lookup.AddConstraint(GetTag(), IdentifierConstraintType_Equal, value_);
+    lookup.AddConstraint(tag, IdentifierConstraintType_Equal, value_);
   }
 
   bool ValueConstraint::Match(const std::string& value) const

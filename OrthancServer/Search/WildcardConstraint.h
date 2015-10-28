@@ -47,8 +47,7 @@ namespace Orthanc
     WildcardConstraint(const WildcardConstraint& other);
 
   public:
-    WildcardConstraint(const DicomTag& tag, 
-                       const std::string& wildcard,
+    WildcardConstraint(const std::string& wildcard,
                        bool isCaseSensitive);
 
     virtual IFindConstraint* Clone() const
@@ -56,7 +55,8 @@ namespace Orthanc
       return new WildcardConstraint(*this);
     }
 
-    virtual void Setup(LookupIdentifierQuery& lookup) const;
+    virtual void Setup(LookupIdentifierQuery& lookup,
+                       const DicomTag& tag) const;
 
     virtual bool Match(const std::string& value) const;
   };

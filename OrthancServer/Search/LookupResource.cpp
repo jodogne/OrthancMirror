@@ -74,42 +74,43 @@ namespace Orthanc
     for (Constraints::iterator it = mainTagsConstraints_.begin();
          it != mainTagsConstraints_.end(); ++it)
     {
-      delete *it;
+      delete it->second;
     }
 
     for (Constraints::iterator it = identifiersConstraints_.begin();
          it != identifiersConstraints_.end(); ++it)
     {
-      delete *it;
+      delete it->second;
     }
   }
 
-  bool LookupResource::Level::Add(std::auto_ptr<IFindConstraint>& constraint)
+  bool LookupResource::Level::Add(const DicomTag& tag,
+                                  std::auto_ptr<IFindConstraint>& constraint)
   {
-    if (identifiers_.find(constraint->GetTag()) != identifiers_.end())
+    if (identifiers_.find(tag) != identifiers_.end())
     {
       if (level_ == ResourceType_Patient)
       {
         // The filters on the patient level must be cloned to the study level
-        identifiersConstraints_.push_back(constraint->Clone());
+        identifiersConstraints_[tag] = constraint->Clone();
       }
       else
       {
-        identifiersConstraints_.push_back(constraint.release());
+        identifiersConstraints_[tag] = constraint.release();
       }
 
       return true;
     }
-    else if (mainTags_.find(constraint->GetTag()) != mainTags_.end())
+    else if (mainTags_.find(tag) != mainTags_.end())
     {
       if (level_ == ResourceType_Patient)
       {
         // The filters on the patient level must be cloned to the study level
-        mainTagsConstraints_.push_back(constraint->Clone());
+        mainTagsConstraints_[tag] = constraint->Clone();
       }
       else
       {
-        mainTagsConstraints_.push_back(constraint.release());
+        mainTagsConstraints_[tag] = constraint.release();
       }
 
       return true;
@@ -158,19 +159,20 @@ namespace Orthanc
     for (Constraints::iterator it = unoptimizedConstraints_.begin();
          it != unoptimizedConstraints_.end(); ++it)
     {
-      delete *it;
+      delete it->second;
     }    
   }
 
 
 
   bool LookupResource::AddInternal(ResourceType level,
+                                   const DicomTag& tag,
                                    std::auto_ptr<IFindConstraint>& constraint)
   {
     Levels::iterator it = levels_.find(level);
     if (it != levels_.end())
     {
-      if (it->second->Add(constraint))
+      if (it->second->Add(tag, constraint))
       {
         return true;
       }
@@ -180,24 +182,26 @@ namespace Orthanc
   }
 
 
-  void LookupResource::Add(IFindConstraint* constraint)
+  void LookupResource::Add(const DicomTag& tag,
+                           IFindConstraint* constraint)
   {
     std::auto_ptr<IFindConstraint> c(constraint);
 
-    if (!AddInternal(ResourceType_Patient, c) &&
-        !AddInternal(ResourceType_Study, c) &&
-        !AddInternal(ResourceType_Series, c) &&
-        !AddInternal(ResourceType_Instance, c))
+    if (!AddInternal(ResourceType_Patient, tag, c) &&
+        !AddInternal(ResourceType_Study, tag, c) &&
+        !AddInternal(ResourceType_Series, tag, c) &&
+        !AddInternal(ResourceType_Instance, tag, c))
     {
-      unoptimizedConstraints_.push_back(c.release());
+      unoptimizedConstraints_[tag] = c.release();
     }
   }
 
 
   static bool Match(const DicomMap& tags,
+                    const DicomTag& tag,
                     const IFindConstraint& constraint)
   {
-    const DicomValue* value = tags.TestAndGetValue(constraint.GetTag());
+    const DicomValue* value = tags.TestAndGetValue(tag);
 
     if (value == NULL ||
         value->IsNull() ||
@@ -221,7 +225,7 @@ namespace Orthanc
     for (Constraints::const_iterator it = identifiersConstraints_.begin(); 
          it != identifiersConstraints_.end(); ++it)
     {
-      (*it)->Setup(query);
+      it->second->Setup(query, it->first);
     }
 
     query.Apply(candidates, database);
@@ -248,7 +252,7 @@ namespace Orthanc
         for (Constraints::const_iterator it = identifiersConstraints_.begin(); 
              match && it != identifiersConstraints_.end(); ++it)
         {
-          if (!Match(tags, **it))
+          if (!Match(tags, it->first, *it->second))
           {
             match = false;
           }
@@ -257,7 +261,7 @@ namespace Orthanc
         for (Constraints::const_iterator it = mainTagsConstraints_.begin(); 
              match && it != mainTagsConstraints_.end(); ++it)
         {
-          if (!Match(tags, **it))
+          if (!Match(tags, it->first, *it->second))
           {
             match = false;
           }
@@ -280,12 +284,12 @@ namespace Orthanc
     for (Constraints::const_iterator it = unoptimizedConstraints_.begin(); 
          it != unoptimizedConstraints_.end(); ++it)
     {
-      std::string tag = (*it)->GetTag().Format();
+      std::string tag = it->first.Format();
       if (dicomAsJson.isMember(tag) &&
           dicomAsJson[tag]["Type"] == "String")
       {
         std::string value = dicomAsJson[tag]["Value"].asString();
-        if (!(*it)->Match(value))
+        if (!it->second->Match(value))
         {
           return false;
         }
@@ -399,8 +403,7 @@ namespace Orthanc
 
   void LookupResource::SetModalitiesInStudy(const std::string& modalities)
   {
-    modalitiesInStudy_.reset(new ListConstraint(DICOM_TAG_MODALITIES_IN_STUDY, 
-                                                true /* case sensitive */));
+    modalitiesInStudy_.reset(new ListConstraint(true /* case sensitive */));
     
     std::vector<std::string> items;
     Toolbox::TokenizeString(items, modalities, '\\');
@@ -447,11 +450,11 @@ namespace Orthanc
       size_t separator = dicomQuery.find('-');
       std::string lower = dicomQuery.substr(0, separator);
       std::string upper = dicomQuery.substr(separator + 1);
-      Add(new RangeConstraint(tag, lower, upper, sensitive));
+      Add(tag, new RangeConstraint(lower, upper, sensitive));
     }
     else if (dicomQuery.find('\\') != std::string::npos)
     {
-      std::auto_ptr<ListConstraint> constraint(new ListConstraint(tag, sensitive));
+      std::auto_ptr<ListConstraint> constraint(new ListConstraint(sensitive));
 
       std::vector<std::string> items;
       Toolbox::TokenizeString(items, dicomQuery, '\\');
@@ -461,12 +464,12 @@ namespace Orthanc
         constraint->AddAllowedValue(items[i]);
       }
 
-      Add(constraint.release());
+      Add(tag, constraint.release());
     }
     else if (dicomQuery.find('*') != std::string::npos ||
              dicomQuery.find('?') != std::string::npos)
     {
-      Add(new WildcardConstraint(tag, dicomQuery, sensitive));
+      Add(tag, new WildcardConstraint(dicomQuery, sensitive));
     }
     else
     {
@@ -501,7 +504,7 @@ namespace Orthanc
        * (0020,000E) UI SeriesInstanceUID  => Case-sensitive
       **/
 
-      Add(new ValueConstraint(tag, dicomQuery, sensitive));
+      Add(tag, new ValueConstraint(dicomQuery, sensitive));
     }
   }
 }
