@@ -51,14 +51,15 @@ namespace Orthanc
   }
 
 
-  void ListConstraint::Setup(LookupIdentifierQuery& lookup) const
+  void ListConstraint::Setup(LookupIdentifierQuery& lookup, 
+                             const DicomTag& tag) const
   {
     LookupIdentifierQuery::Disjunction& target = lookup.AddDisjunction();
 
     for (std::set<std::string>::const_iterator
            it = allowedValues_.begin(); it != allowedValues_.end(); ++it)
     {
-      target.Add(GetTag(), IdentifierConstraintType_Equal, *it);
+      target.Add(tag, IdentifierConstraintType_Equal, *it);
     }
   }
 

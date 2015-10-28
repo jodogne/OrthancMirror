@@ -45,16 +45,13 @@ namespace Orthanc
 
 
   WildcardConstraint::WildcardConstraint(const WildcardConstraint& other) :
-    IFindConstraint(other.GetTag()),
     pimpl_(new PImpl(*other.pimpl_))
   {
   }
 
 
-  WildcardConstraint::WildcardConstraint(const DicomTag& tag, 
-                                         const std::string& wildcard,
+  WildcardConstraint::WildcardConstraint(const std::string& wildcard,
                                          bool isCaseSensitive) :
-    IFindConstraint(tag),
     pimpl_(new PImpl)
   {
     pimpl_->wildcard_ = wildcard;
@@ -76,8 +73,9 @@ namespace Orthanc
     return boost::regex_match(value, pimpl_->pattern_);
   }
 
-  void WildcardConstraint::Setup(LookupIdentifierQuery& lookup) const
+  void WildcardConstraint::Setup(LookupIdentifierQuery& lookup,
+                                 const DicomTag& tag) const
   {
-    lookup.AddConstraint(GetTag(), IdentifierConstraintType_Wildcard, pimpl_->wildcard_);
+    lookup.AddConstraint(tag, IdentifierConstraintType_Wildcard, pimpl_->wildcard_);
   }
 }

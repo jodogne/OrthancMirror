@@ -44,7 +44,6 @@ namespace Orthanc
     bool         isCaseSensitive_;
 
     RangeConstraint(const RangeConstraint& other) : 
-      IFindConstraint(other.GetTag()),
       lower_(other.lower_),
       upper_(other.upper_),
       isCaseSensitive_(other.isCaseSensitive_)
@@ -52,8 +51,7 @@ namespace Orthanc
     }
 
   public:
-    RangeConstraint(const DicomTag& tag, 
-                    const std::string& lower,
+    RangeConstraint(const std::string& lower,
                     const std::string& upper,
                     bool isCaseSensitive);
 
@@ -62,7 +60,8 @@ namespace Orthanc
       return new RangeConstraint(*this);
     }
 
-    virtual void Setup(LookupIdentifierQuery& lookup) const;
+    virtual void Setup(LookupIdentifierQuery& lookup,
+                       const DicomTag& tag) const;
 
     virtual bool Match(const std::string& value) const;
   };
