@@ -309,6 +309,44 @@ namespace Orthanc
     {
       it->second->Apply(candidates, database);
     }
+
+    if (level == ResourceType_Study &&
+        modalitiesInStudy_.get() != NULL)
+    {
+      // There is a constraint on the "ModalitiesInStudy" DICOM
+      // extension. Check out whether one child series has one of the
+      // allowed modalities
+      std::list<int64_t> allStudies, matchingStudies;
+      candidates.Flatten(allStudies);
+ 
+      for (std::list<int64_t>::const_iterator
+             study = allStudies.begin(); study != allStudies.end(); ++study)
+      {
+        std::list<int64_t> childrenSeries;
+        database.GetChildrenInternalId(childrenSeries, *study);
+
+        for (std::list<int64_t>::const_iterator
+               series = childrenSeries.begin(); series != childrenSeries.end(); ++series)
+        {
+          DicomMap tags;
+          database.GetMainDicomTags(tags, *series);
+
+          const DicomValue* value = tags.TestAndGetValue(DICOM_TAG_MODALITY);
+          if (value != NULL &&
+              !value->IsNull() &&
+              !value->IsBinary())
+          {
+            if (modalitiesInStudy_->Match(value->GetContent()))
+            {
+              matchingStudies.push_back(*study);
+              break;
+            }
+          }
+        }
+      }
+
+      candidates.Intersect(matchingStudies);
+    }
   }
 
 
@@ -359,9 +397,24 @@ namespace Orthanc
   }
 
 
-  void LookupResource::Add(const DicomTag& tag,
-                           const std::string& dicomQuery,
-                           bool caseSensitivePN)
+  void LookupResource::SetModalitiesInStudy(const std::string& modalities)
+  {
+    modalitiesInStudy_.reset(new ListConstraint(DICOM_TAG_MODALITIES_IN_STUDY, 
+                                                true /* case sensitive */));
+    
+    std::vector<std::string> items;
+    Toolbox::TokenizeString(items, modalities, '\\');
+    
+    for (size_t i = 0; i < items.size(); i++)
+    {
+      modalitiesInStudy_->AddAllowedValue(items[i]);
+    }
+  }
+
+
+  void LookupResource::AddDicomConstraint(const DicomTag& tag,
+                                          const std::string& dicomQuery,
+                                          bool caseSensitivePN)
   {
     ValueRepresentation vr = FromDcmtkBridge::GetValueRepresentation(tag);
 
@@ -374,10 +427,14 @@ namespace Orthanc
     // http://www.itk.org/Wiki/DICOM_QueryRetrieve_Explained
     // http://dicomiseasy.blogspot.be/2012/01/dicom-queryretrieve-part-i.html  
 
-    if ((vr == ValueRepresentation_Date ||
-         vr == ValueRepresentation_DateTime ||
-         vr == ValueRepresentation_Time) &&
-        dicomQuery.find('-') != std::string::npos)
+    if (tag == DICOM_TAG_MODALITIES_IN_STUDY)
+    {
+      SetModalitiesInStudy(dicomQuery);
+    }
+    else if ((vr == ValueRepresentation_Date ||
+              vr == ValueRepresentation_DateTime ||
+              vr == ValueRepresentation_Time) &&
+             dicomQuery.find('-') != std::string::npos)
     {
       /**
        * Range matching is only defined for TM, DA and DT value

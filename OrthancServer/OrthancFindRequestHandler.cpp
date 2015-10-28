@@ -307,17 +307,7 @@ namespace Orthanc
       }
 
 #if USE_LOOKUP_RESOURCE == 1
-      if (tag == DICOM_TAG_MODALITIES_IN_STUDY)
-      {
-        // TODO SetModalitiesInStudy(value);
-        // findQuery.SetModalitiesInStudy(value);
-        printf("ICI\n");
-        throw OrthancException(ErrorCode_NotImplemented);
-      }
-      else
-      {
-        finder.Add(tag, value, caseSensitivePN);
-      }
+      finder.AddDicomConstraint(tag, value, caseSensitivePN);
 #else
 
       if (tag == DICOM_TAG_MODALITIES_IN_STUDY)
