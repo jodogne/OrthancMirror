@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include "IFindConstraint.h"
+#include "ListConstraint.h"
 #include "SetOfResources.h"
 
 #include <memory>
@@ -66,9 +66,10 @@ namespace Orthanc
 
     typedef std::map<ResourceType, Level*>  Levels;
 
-    ResourceType level_;
-    Levels       levels_;
-    Constraints  unoptimizedConstraints_;
+    ResourceType                    level_;
+    Levels                          levels_;
+    Constraints                     unoptimizedConstraints_; 
+    std::auto_ptr<ListConstraint>   modalitiesInStudy_;
 
     bool AddInternal(ResourceType level,
                      std::auto_ptr<IFindConstraint>& constraint);
@@ -87,11 +88,13 @@ namespace Orthanc
       return level_;
     }
 
+    void SetModalitiesInStudy(const std::string& modalities); 
+
     void Add(IFindConstraint* constraint);   // Takes ownership
 
-    void Add(const DicomTag& tag,
-             const std::string& dicomQuery,
-             bool caseSensitivePN);
+    void AddDicomConstraint(const DicomTag& tag,
+                            const std::string& dicomQuery,
+                            bool caseSensitivePN);
 
     void FindCandidates(std::list<int64_t>& result,
                         IDatabaseWrapper& database) const;
