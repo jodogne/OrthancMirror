@@ -307,7 +307,16 @@ namespace Orthanc
       }
 
 #if USE_LOOKUP_RESOURCE == 1
-      finder.AddDicomConstraint(tag, value, caseSensitivePN);
+
+      ValueRepresentation vr = FromDcmtkBridge::GetValueRepresentation(tag);
+
+      bool sensitive = true;
+      if (vr == ValueRepresentation_PatientName)
+      {
+      sensitive = caseSensitivePN;
+    }
+
+      finder.AddDicomConstraint(tag, value, sensitive);
 #else
 
       if (tag == DICOM_TAG_MODALITIES_IN_STUDY)

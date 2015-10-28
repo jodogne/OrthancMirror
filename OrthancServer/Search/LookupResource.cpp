@@ -230,6 +230,13 @@ namespace Orthanc
 
     query.Apply(candidates, database);
 
+    /*{
+      query.Print(std::cout);
+      std::list<int64_t>  source;
+      candidates.Flatten(source);
+      printf("=> %d\n", source.size());
+      }*/
+
     // Secondly, filter using the main DICOM tags
     if (!identifiersConstraints_.empty() ||
         !mainTagsConstraints_.empty())
@@ -417,19 +424,12 @@ namespace Orthanc
 
   void LookupResource::AddDicomConstraint(const DicomTag& tag,
                                           const std::string& dicomQuery,
-                                          bool caseSensitivePN)
+                                          bool caseSensitive)
   {
     ValueRepresentation vr = FromDcmtkBridge::GetValueRepresentation(tag);
 
-    bool sensitive = true;
-    if (vr == ValueRepresentation_PatientName)
-    {
-      sensitive = caseSensitivePN;
-    }
-
     // http://www.itk.org/Wiki/DICOM_QueryRetrieve_Explained
     // http://dicomiseasy.blogspot.be/2012/01/dicom-queryretrieve-part-i.html  
-
     if (tag == DICOM_TAG_MODALITIES_IN_STUDY)
     {
       SetModalitiesInStudy(dicomQuery);
@@ -450,11 +450,11 @@ namespace Orthanc
       size_t separator = dicomQuery.find('-');
       std::string lower = dicomQuery.substr(0, separator);
       std::string upper = dicomQuery.substr(separator + 1);
-      Add(tag, new RangeConstraint(lower, upper, sensitive));
+      Add(tag, new RangeConstraint(lower, upper, caseSensitive));
     }
     else if (dicomQuery.find('\\') != std::string::npos)
     {
-      std::auto_ptr<ListConstraint> constraint(new ListConstraint(sensitive));
+      std::auto_ptr<ListConstraint> constraint(new ListConstraint(caseSensitive));
 
       std::vector<std::string> items;
       Toolbox::TokenizeString(items, dicomQuery, '\\');
@@ -469,7 +469,7 @@ namespace Orthanc
     else if (dicomQuery.find('*') != std::string::npos ||
              dicomQuery.find('?') != std::string::npos)
     {
-      Add(tag, new WildcardConstraint(dicomQuery, sensitive));
+      Add(tag, new WildcardConstraint(dicomQuery, caseSensitive));
     }
     else
     {
@@ -504,7 +504,7 @@ namespace Orthanc
        * (0020,000E) UI SeriesInstanceUID  => Case-sensitive
       **/
 
-      Add(tag, new ValueConstraint(dicomQuery, sensitive));
+      Add(tag, new ValueConstraint(dicomQuery, caseSensitive));
     }
   }
 }
