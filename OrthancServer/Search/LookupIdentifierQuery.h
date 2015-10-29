@@ -129,8 +129,6 @@ namespace Orthanc
     ResourceType  level_;
     Constraints   constraints_;
 
-    static std::string NormalizeIdentifier(const std::string& value);
-
   public:
     LookupIdentifierQuery(ResourceType level) : level_(level)
     {
@@ -177,6 +175,8 @@ namespace Orthanc
                                  int64_t resource,
                                  ResourceType level,
                                  const DicomMap& map);
+
+    static std::string NormalizeIdentifier(const std::string& value);
 
     void Print(std::ostream& s) const;
   };
