@@ -302,6 +302,7 @@ namespace Orthanc
         sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFlags) ||
         sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFormat) ||
         sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginIdentifierConstraint) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludeBinary) != static_cast<int>(DicomToJsonFlags_IncludeBinary) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludePrivateTags) != static_cast<int>(DicomToJsonFlags_IncludePrivateTags) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludeUnknownTags) != static_cast<int>(DicomToJsonFlags_IncludeUnknownTags) ||

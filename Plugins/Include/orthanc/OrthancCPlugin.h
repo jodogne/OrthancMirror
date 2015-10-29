@@ -680,6 +680,22 @@ extern "C"
 
 
   /**
+   * The constraints on the DICOM identifiers that must be supported
+   * by the database plugins.
+   **/
+  typedef enum
+  {
+    OrthancPluginIdentifierConstraint_Equal,           /*!< Equal */
+    OrthancPluginIdentifierConstraint_SmallerOrEqual,  /*!< Less or equal */
+    OrthancPluginIdentifierConstraint_GreaterOrEqual,  /*!< More or equal */
+    OrthancPluginIdentifierConstraint_Wildcard,        /*!< Case-sensitive wildcard matching (with * and ?) */
+
+    _OrthancPluginIdentifierConstraint_INTERNAL = 0x7fffffff
+  } OrthancPluginIdentifierConstraint;
+
+
+
+  /**
    * @brief A memory buffer allocated by the core system of Orthanc.
    *
    * A memory buffer allocated by the core system of Orthanc. When the
@@ -892,7 +908,8 @@ extern "C"
         sizeof(int32_t) != sizeof(OrthancPluginImageFormat) ||
         sizeof(int32_t) != sizeof(OrthancPluginValueRepresentation) ||
         sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFormat) ||
-        sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFlags))
+        sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFlags) ||
+        sizeof(int32_t) != sizeof(OrthancPluginIdentifierConstraint))
     {
       /* Mismatch in the size of the enumerations */
       return 0;
