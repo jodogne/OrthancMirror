@@ -168,6 +168,9 @@ namespace Orthanc
     
     uint64_t GetTotalUncompressedSize();
 
+    void GetAllInternalIds(std::list<int64_t>& target,
+                           ResourceType resourceType);
+
     void GetAllPublicIds(std::list<std::string>& target,
                          ResourceType resourceType);
 
@@ -190,8 +193,10 @@ namespace Orthanc
 
     bool IsExistingResource(int64_t internalId);
 
-    void LookupIdentifier(std::list<int64_t>& target,
+    void LookupIdentifier(std::list<int64_t>& result,
+                          ResourceType level,
                           const DicomTag& tag,
+                          IdentifierConstraintType type,
                           const std::string& value);
   };
 }

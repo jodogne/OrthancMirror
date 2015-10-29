@@ -32,70 +32,32 @@
 
 #pragma once
 
-#include "ServerIndex.h"
+#include "IFindConstraint.h"
 
-#include <boost/noncopyable.hpp>
+#include <boost/shared_ptr.hpp>
 
 namespace Orthanc
 {
-  class ResourceFinder : public boost::noncopyable
+  class WildcardConstraint : public IFindConstraint
   {
-  public:
-    class IQuery : public boost::noncopyable
-    {
-    public:
-      virtual ~IQuery()
-      {
-      }
-
-      virtual ResourceType GetLevel() const = 0;
-
-      virtual bool RestrictIdentifier(std::string& value,
-                                      DicomTag identifier) const = 0;
-
-      virtual bool HasMainDicomTagsFilter(ResourceType level) const = 0;
-
-      virtual bool FilterMainDicomTags(const std::string& resourceId,
-                                       ResourceType level,
-                                       const DicomMap& mainTags) const = 0;
-
-      virtual bool HasInstanceFilter() const = 0;
-
-      virtual bool FilterInstance(const std::string& instanceId,
-                                  const Json::Value& content) const = 0;
-    };
-
-
   private:
-    typedef std::map<DicomTag, std::string>  Identifiers;
+    struct PImpl;
+    boost::shared_ptr<PImpl>  pimpl_;
 
-    class CandidateResources;
-
-    ServerContext&    context_;
-    size_t            maxResults_;
-
-    void ApplyAtLevel(CandidateResources& candidates,
-                      const IQuery& query,
-                      ResourceType level);
+    WildcardConstraint(const WildcardConstraint& other);
 
   public:
-    ResourceFinder(ServerContext& context);
+    WildcardConstraint(const std::string& wildcard,
+                       bool isCaseSensitive);
 
-    void SetMaxResults(size_t value)
+    virtual IFindConstraint* Clone() const
     {
-      maxResults_ = value;
+      return new WildcardConstraint(*this);
     }
 
-    size_t GetMaxResults() const
-    {
-      return maxResults_;
-    }
+    virtual void Setup(LookupIdentifierQuery& lookup,
+                       const DicomTag& tag) const;
 
-    // Returns "true" iff. all the matching resources have been
-    // returned. Will be "false" if the results were truncated by
-    // "SetMaxResults()".
-    bool Apply(std::list<std::string>& result,
-               const IQuery& query);
+    virtual bool Match(const std::string& value) const;
   };
-
 }

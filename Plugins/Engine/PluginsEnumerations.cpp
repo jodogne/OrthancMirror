@@ -229,6 +229,50 @@ namespace Orthanc
     }
 
 
+    OrthancPluginIdentifierConstraint Convert(IdentifierConstraintType constraint)
+    {
+      switch (constraint)
+      {
+        case IdentifierConstraintType_Equal:
+          return OrthancPluginIdentifierConstraint_Equal;
+
+        case IdentifierConstraintType_GreaterOrEqual:
+          return OrthancPluginIdentifierConstraint_GreaterOrEqual;
+
+        case IdentifierConstraintType_SmallerOrEqual:
+          return OrthancPluginIdentifierConstraint_SmallerOrEqual;
+
+        case IdentifierConstraintType_Wildcard:
+          return OrthancPluginIdentifierConstraint_Wildcard;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
+
+    IdentifierConstraintType Convert(OrthancPluginIdentifierConstraint constraint)
+    {
+      switch (constraint)
+      {
+        case OrthancPluginIdentifierConstraint_Equal:
+          return IdentifierConstraintType_Equal;
+
+        case OrthancPluginIdentifierConstraint_GreaterOrEqual:
+          return IdentifierConstraintType_GreaterOrEqual;
+
+        case OrthancPluginIdentifierConstraint_SmallerOrEqual:
+          return IdentifierConstraintType_SmallerOrEqual;
+
+        case OrthancPluginIdentifierConstraint_Wildcard:
+          return IdentifierConstraintType_Wildcard;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
+
 #if !defined(ORTHANC_ENABLE_DCMTK) || ORTHANC_ENABLE_DCMTK != 0
     DcmEVR Convert(OrthancPluginValueRepresentation vr)
     {

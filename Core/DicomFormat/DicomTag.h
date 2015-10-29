@@ -109,6 +109,7 @@ namespace Orthanc
 
   static const DicomTag DICOM_TAG_STUDY_DESCRIPTION(0x0008, 0x1030);
   static const DicomTag DICOM_TAG_SERIES_DESCRIPTION(0x0008, 0x103e);
+  static const DicomTag DICOM_TAG_MODALITY(0x0008, 0x0060);
 
   // The following is used for "modify/anonymize" operations
   static const DicomTag DICOM_TAG_SOP_CLASS_UID(0x0008, 0x0016);

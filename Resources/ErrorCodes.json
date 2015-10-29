@@ -185,6 +185,11 @@
     "Name": "StorageAreaPlugin", 
     "Description": "Error in the plugin implementing a custom storage area"
   },
+  {
+    "Code": 33,
+    "Name": "EmptyRequest",
+    "Description": "The request is empty"
+  },
 
 
 

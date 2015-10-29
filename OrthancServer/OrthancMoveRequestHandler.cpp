@@ -148,7 +148,7 @@ namespace Orthanc
     const std::string& content = value.GetContent();
 
     std::list<std::string> ids;
-    context_.GetIndex().LookupIdentifier(ids, tag, content, level);
+    context_.GetIndex().LookupIdentifierExact(ids, level, tag, content);
 
     if (ids.size() != 1)
     {

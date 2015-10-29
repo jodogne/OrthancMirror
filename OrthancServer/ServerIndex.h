@@ -45,6 +45,7 @@
 
 namespace Orthanc
 {
+  class LookupResource;
   class ServerContext;
 
   class ServerIndex : public boost::noncopyable
@@ -235,10 +236,10 @@ namespace Orthanc
                        /* out */ unsigned int& countInstances, 
                        const std::string& publicId);
 
-    void LookupIdentifier(std::list<std::string>& result,
-                          const DicomTag& tag,
-                          const std::string& value,
-                          ResourceType type);
+    void LookupIdentifierExact(std::list<std::string>& result,
+                               ResourceType level,
+                               const DicomTag& tag,
+                               const std::string& value);
 
     StoreStatus AddAttachment(const FileInfo& attachment,
                               const std::string& publicId);
@@ -261,5 +262,9 @@ namespace Orthanc
                             const std::string& publicId);
 
     unsigned int GetDatabaseVersion();
+
+    void FindCandidates(std::vector<std::string>& resources,
+                        std::vector<std::string>& instances,
+                        const ::Orthanc::LookupResource& lookup);
   };
 }

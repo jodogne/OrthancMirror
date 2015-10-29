@@ -212,6 +212,7 @@ extern "C"
     OrthancPluginErrorCode_BadFont = 30    /*!< Badly formatted font file */,
     OrthancPluginErrorCode_DatabasePlugin = 31    /*!< The plugin implementing a custom database back-end does not fulfill the proper interface */,
     OrthancPluginErrorCode_StorageAreaPlugin = 32    /*!< Error in the plugin implementing a custom storage area */,
+    OrthancPluginErrorCode_EmptyRequest = 33    /*!< The request is empty */,
     OrthancPluginErrorCode_SQLiteNotOpened = 1000    /*!< SQLite: The database is not opened */,
     OrthancPluginErrorCode_SQLiteAlreadyOpened = 1001    /*!< SQLite: Connection is already open */,
     OrthancPluginErrorCode_SQLiteCannotOpen = 1002    /*!< SQLite: Unable to open the database */,
@@ -679,6 +680,22 @@ extern "C"
 
 
   /**
+   * The constraints on the DICOM identifiers that must be supported
+   * by the database plugins.
+   **/
+  typedef enum
+  {
+    OrthancPluginIdentifierConstraint_Equal,           /*!< Equal */
+    OrthancPluginIdentifierConstraint_SmallerOrEqual,  /*!< Less or equal */
+    OrthancPluginIdentifierConstraint_GreaterOrEqual,  /*!< More or equal */
+    OrthancPluginIdentifierConstraint_Wildcard,        /*!< Case-sensitive wildcard matching (with * and ?) */
+
+    _OrthancPluginIdentifierConstraint_INTERNAL = 0x7fffffff
+  } OrthancPluginIdentifierConstraint;
+
+
+
+  /**
    * @brief A memory buffer allocated by the core system of Orthanc.
    *
    * A memory buffer allocated by the core system of Orthanc. When the
@@ -891,7 +908,8 @@ extern "C"
         sizeof(int32_t) != sizeof(OrthancPluginImageFormat) ||
         sizeof(int32_t) != sizeof(OrthancPluginValueRepresentation) ||
         sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFormat) ||
-        sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFlags))
+        sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFlags) ||
+        sizeof(int32_t) != sizeof(OrthancPluginIdentifierConstraint))
     {
       /* Mismatch in the size of the enumerations */
       return 0;

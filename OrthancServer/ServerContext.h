@@ -47,6 +47,7 @@
 #include "Scheduler/ServerScheduler.h"
 #include "ServerIndex.h"
 #include "OrthancHttpHandler.h"
+#include "Search/LookupResource.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
@@ -245,6 +246,10 @@ namespace Orthanc
 
     void Stop();
 
+    bool Apply(std::list<std::string>& result,
+               const ::Orthanc::LookupResource& lookup,
+               size_t maxResults);
+
 
     /**
      * Management of the plugins
@@ -261,6 +266,5 @@ namespace Orthanc
 #endif
 
     bool HasPlugins() const;
-
   };
 }

@@ -41,6 +41,7 @@
 #include <string>
 #include <boost/noncopyable.hpp>
 #include <stdint.h>
+#include <json/value.h>
 
 namespace Orthanc
 {
@@ -73,6 +74,9 @@ namespace Orthanc
     }
 
     void Read(std::string& content,
+              const FileInfo& info);
+
+    void Read(Json::Value& content,
               const FileInfo& info);
 
     void Remove(const FileInfo& info)

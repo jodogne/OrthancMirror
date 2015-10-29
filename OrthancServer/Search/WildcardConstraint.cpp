@@ -30,64 +30,52 @@
  **/
 
 
-#include "../PrecompiledHeaders.h"
-#include "DicomValue.h"
+#include "../PrecompiledHeadersServer.h"
+#include "WildcardConstraint.h"
 
-#include "../OrthancException.h"
-#include "../Toolbox.h"
+#include <boost/regex.hpp>
 
 namespace Orthanc
 {
-  DicomValue::DicomValue(const DicomValue& other) : 
-    type_(other.type_),
-    content_(other.content_)
+  struct WildcardConstraint::PImpl
+  {
+    boost::regex  pattern_;
+    std::string   wildcard_;
+  };
+
+
+  WildcardConstraint::WildcardConstraint(const WildcardConstraint& other) :
+    pimpl_(new PImpl(*other.pimpl_))
   {
   }
 
 
-  DicomValue::DicomValue(const std::string& content,
-                         bool isBinary) :
-    type_(isBinary ? Type_Binary : Type_String),
-    content_(content)
+  WildcardConstraint::WildcardConstraint(const std::string& wildcard,
+                                         bool isCaseSensitive) :
+    pimpl_(new PImpl)
   {
-  }
-  
-  
-  DicomValue::DicomValue(const char* data,
-                         size_t size,
-                         bool isBinary) :
-    type_(isBinary ? Type_Binary : Type_String)
-  {
-    content_.assign(data, size);
-  }
-    
-  
-  const std::string& DicomValue::GetContent() const
-  {
-    if (type_ == Type_Null)
+    pimpl_->wildcard_ = wildcard;
+
+    std::string re = Toolbox::WildcardToRegularExpression(wildcard);
+
+    if (isCaseSensitive)
     {
-      throw OrthancException(ErrorCode_BadParameterType);
+      pimpl_->pattern_ = boost::regex(re);
     }
     else
     {
-      return content_;
+      pimpl_->pattern_ = boost::regex(re, boost::regex::icase /* case insensitive search */);
     }
   }
 
-
-  DicomValue* DicomValue::Clone() const
+  bool WildcardConstraint::Match(const std::string& value) const
   {
-    return new DicomValue(*this);
+    return boost::regex_match(value, pimpl_->pattern_);
   }
 
-  
-#if !defined(ORTHANC_ENABLE_BASE64) || ORTHANC_ENABLE_BASE64 == 1
-  void DicomValue::FormatDataUriScheme(std::string& target,
-                                       const std::string& mime) const
+  void WildcardConstraint::Setup(LookupIdentifierQuery& lookup,
+                                 const DicomTag& tag) const
   {
-    Toolbox::EncodeBase64(target, GetContent());
-    target.insert(0, "data:" + mime + ";base64,");
+    lookup.AddConstraint(tag, IdentifierConstraintType_Wildcard, pimpl_->wildcard_);
   }
-#endif
-
 }

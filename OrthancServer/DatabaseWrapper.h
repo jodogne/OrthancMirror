@@ -249,6 +249,12 @@ namespace Orthanc
       return base_.GetResourceCount(resourceType);
     }
 
+    virtual void GetAllInternalIds(std::list<int64_t>& target,
+                                   ResourceType resourceType)
+    {
+      base_.GetAllInternalIds(target, resourceType);
+    }
+
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType)
     {
@@ -315,11 +321,13 @@ namespace Orthanc
       return base_.IsExistingResource(internalId);
     }
 
-    virtual void LookupIdentifier(std::list<int64_t>& target,
+    virtual void LookupIdentifier(std::list<int64_t>& result,
+                                  ResourceType level,
                                   const DicomTag& tag,
+                                  IdentifierConstraintType type,
                                   const std::string& value)
     {
-      base_.LookupIdentifier(target, tag, value);
+      base_.LookupIdentifier(result, level, tag, type, value);
     }
 
     virtual void GetAllMetadata(std::map<MetadataType, std::string>& target,

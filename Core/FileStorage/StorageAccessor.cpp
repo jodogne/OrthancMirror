@@ -126,6 +126,20 @@ namespace Orthanc
   }
 
 
+  void StorageAccessor::Read(Json::Value& content,
+                             const FileInfo& info)
+  {
+    std::string s;
+    Read(s, info);
+
+    Json::Reader reader;
+    if (!reader.parse(s, content))
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+  }
+
+
   void StorageAccessor::SetupSender(BufferHttpSender& sender,
                                     const FileInfo& info)
   {

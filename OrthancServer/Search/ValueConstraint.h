@@ -30,64 +30,36 @@
  **/
 
 
-#include "../PrecompiledHeaders.h"
-#include "DicomValue.h"
+#pragma once
 
-#include "../OrthancException.h"
-#include "../Toolbox.h"
+#include "IFindConstraint.h"
 
 namespace Orthanc
 {
-  DicomValue::DicomValue(const DicomValue& other) : 
-    type_(other.type_),
-    content_(other.content_)
+  class ValueConstraint : public IFindConstraint
   {
-  }
+  private:
+    std::string  value_;
+    bool         isCaseSensitive_;
 
-
-  DicomValue::DicomValue(const std::string& content,
-                         bool isBinary) :
-    type_(isBinary ? Type_Binary : Type_String),
-    content_(content)
-  {
-  }
-  
-  
-  DicomValue::DicomValue(const char* data,
-                         size_t size,
-                         bool isBinary) :
-    type_(isBinary ? Type_Binary : Type_String)
-  {
-    content_.assign(data, size);
-  }
-    
-  
-  const std::string& DicomValue::GetContent() const
-  {
-    if (type_ == Type_Null)
+    ValueConstraint(const ValueConstraint& other) : 
+      value_(other.value_),
+      isCaseSensitive_(other.isCaseSensitive_)
     {
-      throw OrthancException(ErrorCode_BadParameterType);
     }
-    else
+
+  public:
+    ValueConstraint(const std::string& value,
+                    bool isCaseSensitive);
+
+    virtual IFindConstraint* Clone() const
     {
-      return content_;
+      return new ValueConstraint(*this);
     }
-  }
 
+    virtual void Setup(LookupIdentifierQuery& lookup,
+                       const DicomTag& tag) const;
 
-  DicomValue* DicomValue::Clone() const
-  {
-    return new DicomValue(*this);
-  }
-
-  
-#if !defined(ORTHANC_ENABLE_BASE64) || ORTHANC_ENABLE_BASE64 == 1
-  void DicomValue::FormatDataUriScheme(std::string& target,
-                                       const std::string& mime) const
-  {
-    Toolbox::EncodeBase64(target, GetContent());
-    target.insert(0, "data:" + mime + ";base64,");
-  }
-#endif
-
+    virtual bool Match(const std::string& value) const;
+  };
 }

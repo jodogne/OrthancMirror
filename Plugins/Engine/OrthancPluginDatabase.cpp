@@ -274,6 +274,21 @@ namespace Orthanc
   }
 
 
+  void OrthancPluginDatabase::GetAllInternalIds(std::list<int64_t>& target,
+                                                ResourceType resourceType)
+  {
+    if (extensions_.getAllInternalIds == NULL)
+    {
+      LOG(ERROR) << "The database plugin does not implement the GetAllInternalIds primitive";
+      throw OrthancException(ErrorCode_DatabasePlugin);
+    }
+
+    ResetAnswers();
+    CheckSuccess(extensions_.getAllInternalIds(GetContext(), payload_, Plugins::Convert(resourceType)));
+    ForwardAnswers(target);
+  }
+
+
   void OrthancPluginDatabase::GetAllPublicIds(std::list<std::string>& target,
                                               ResourceType resourceType)
   {
@@ -594,20 +609,27 @@ namespace Orthanc
   }
 
 
-  void OrthancPluginDatabase::LookupIdentifier(std::list<int64_t>& target,
+  void OrthancPluginDatabase::LookupIdentifier(std::list<int64_t>& result,
+                                               ResourceType level,
                                                const DicomTag& tag,
+                                               IdentifierConstraintType type,
                                                const std::string& value)
   {
-    ResetAnswers();
+    if (extensions_.lookupIdentifier3 == NULL)
+    {
+      LOG(ERROR) << "The database plugin does not implement the LookupIdentifier3 primitive";
+      throw OrthancException(ErrorCode_DatabasePlugin);
+    }
 
     OrthancPluginDicomTag tmp;
     tmp.group = tag.GetGroup();
     tmp.element = tag.GetElement();
     tmp.value = value.c_str();
 
-    CheckSuccess(backend_.lookupIdentifier(GetContext(), payload_, &tmp));
-
-    ForwardAnswers(target);
+    ResetAnswers();
+    CheckSuccess(extensions_.lookupIdentifier3(GetContext(), payload_, Plugins::Convert(level),
+                                               &tmp, Plugins::Convert(type)));
+    ForwardAnswers(result);
   }
 
 

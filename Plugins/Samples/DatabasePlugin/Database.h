@@ -99,6 +99,12 @@ public:
 
   virtual void DeleteResource(int64_t id);
 
+  virtual void GetAllInternalIds(std::list<int64_t>& target,
+                                 OrthancPluginResourceType resourceType)
+  {
+    base_.GetAllInternalIds(target, Orthanc::Plugins::Convert(resourceType));
+  }
+
   virtual void GetAllPublicIds(std::list<std::string>& target,
                                OrthancPluginResourceType resourceType)
   {
@@ -188,11 +194,15 @@ public:
   }
 
   virtual void LookupIdentifier(std::list<int64_t>& target /*out*/,
+                                OrthancPluginResourceType level,
                                 uint16_t group,
                                 uint16_t element,
+                                OrthancPluginIdentifierConstraint constraint,
                                 const char* value)
   {
-    base_.LookupIdentifier(target, Orthanc::DicomTag(group, element), value);
+    base_.LookupIdentifier(target, Orthanc::Plugins::Convert(level),
+                           Orthanc::DicomTag(group, element), 
+                           Orthanc::Plugins::Convert(constraint), value);
   }
 
   virtual bool LookupMetadata(std::string& target /*out*/,

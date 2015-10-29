@@ -140,6 +140,9 @@ namespace Orthanc
     virtual void GetAllMetadata(std::map<MetadataType, std::string>& target,
                                 int64_t id);
 
+    virtual void GetAllInternalIds(std::list<int64_t>& target,
+                                   ResourceType resourceType);
+
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType);
 
@@ -203,8 +206,10 @@ namespace Orthanc
     virtual bool LookupGlobalProperty(std::string& target,
                                       GlobalProperty property);
 
-    virtual void LookupIdentifier(std::list<int64_t>& target,
+    virtual void LookupIdentifier(std::list<int64_t>& result,
+                                  ResourceType level,
                                   const DicomTag& tag,
+                                  IdentifierConstraintType type,
                                   const std::string& value);
 
     virtual bool LookupMetadata(std::string& target,
