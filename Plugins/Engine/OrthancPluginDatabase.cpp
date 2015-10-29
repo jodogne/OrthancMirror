@@ -617,7 +617,7 @@ namespace Orthanc
   {
     if (extensions_.lookupIdentifier3 == NULL)
     {
-      LOG(ERROR) << "The database plugin does not implement the GetAllInternalIds primitive";
+      LOG(ERROR) << "The database plugin does not implement the LookupIdentifier3 primitive";
       throw OrthancException(ErrorCode_DatabasePlugin);
     }
 
