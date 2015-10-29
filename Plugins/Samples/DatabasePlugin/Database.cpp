@@ -340,7 +340,7 @@ void Database::GetMainDicomTags(int64_t id)
   {
     GetOutput().AnswerDicomTag(arr.GetElement(i).GetTag().GetGroup(),
                                arr.GetElement(i).GetTag().GetElement(),
-                               arr.GetElement(i).GetValue().AsString());
+                               arr.GetElement(i).GetValue().GetContent());
   }
 }
 
