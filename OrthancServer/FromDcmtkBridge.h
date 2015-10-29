@@ -132,5 +132,7 @@ namespace Orthanc
                                 const Json::Value& element,  // Encoding using UTF-8
                                 bool interpretBinaryTags,
                                 Encoding dicomEncoding);
+
+    static DcmEVR ParseValueRepresentation(const std::string& s);
   };
 }

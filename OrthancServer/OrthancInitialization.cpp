@@ -311,6 +311,42 @@ namespace Orthanc
   }
 
 
+  static void LoadCustomDictionary(const Json::Value& configuration)
+  {
+    if (configuration.type() != Json::objectValue ||
+        !configuration.isMember("Dictionary") ||
+        configuration["Dictionary"].type() != Json::objectValue)
+    {
+      return;
+    }
+
+    Json::Value::Members tags(configuration["Dictionary"].getMemberNames());
+
+    for (Json::Value::ArrayIndex i = 0; i < tags.size(); i++)
+    {
+      const Json::Value& content = configuration["Dictionary"][tags[i]];
+      if (content.type() != Json::arrayValue ||
+          content.size() < 2 ||
+          content.size() > 4 ||
+          content[0].type() != Json::stringValue ||
+          content[1].type() != Json::stringValue ||
+          (content.size() >= 3 && content[2].type() != Json::intValue) ||
+          (content.size() >= 4 && content[3].type() != Json::intValue))
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      DicomTag tag(FromDcmtkBridge::ParseTag(tags[i]));
+      DcmEVR vr = FromDcmtkBridge::ParseValueRepresentation(content[0].asString());
+      std::string name = content[1].asString();
+      unsigned int minMultiplicity = (content.size() >= 2) ? content[2].asUInt() : 1;
+      unsigned int maxMultiplicity = (content.size() >= 3) ? content[3].asUInt() : 1;
+
+      FromDcmtkBridge::RegisterDictionaryTag(tag, vr, name, minMultiplicity, maxMultiplicity);
+    }
+  }
+
+
 
   void OrthancInitialize(const char* configurationFile)
   {
@@ -340,6 +376,7 @@ namespace Orthanc
     RegisterUserContentType();
 
     FromDcmtkBridge::InitializeDictionary();
+    LoadCustomDictionary(configuration_);
 
 #if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
     LOG(WARNING) << "Registering JPEG Lossless codecs";
