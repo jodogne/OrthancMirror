@@ -9,12 +9,13 @@ Pending changes in the mainline
 * "/series/.../ordered-slices" to order the slices of a 2D+t or 3D image
 * New URI "/tools/shutdown" to stop Orthanc from the REST API
 * New URIs for attachments: ".../compress", ".../uncompress" and ".../is-compressed"
+* New configuration option: "Dictionary" to declare custom DICOM tags
 
 Plugins
 -------
 
 * New function "OrthancPluginRegisterErrorCode()" to declare custom error codes
-* New function "OrthancPluginRegisterDictionaryTag()" to declare DICOM tags
+* New function "OrthancPluginRegisterDictionaryTag()" to declare custom DICOM tags
 * New "OrthancStarted" and "OrthancStopped" events in change callbacks
 
 Lua

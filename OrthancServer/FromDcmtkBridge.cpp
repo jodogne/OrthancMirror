@@ -255,15 +255,21 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
+    bool arbitrary = false;
     if (maxMultiplicity == 0)
     {
       maxMultiplicity = DcmVariableVM;
+      arbitrary = true;
     }
     else if (maxMultiplicity < minMultiplicity)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
     
+    LOG(INFO) << "Registering tag in dictionary: " << tag << " " << (DcmVR(vr).getValidVRName()) << " " 
+              << name << " (multiplicity: " << minMultiplicity << "-" 
+              << (arbitrary ? "n" : boost::lexical_cast<std::string>(maxMultiplicity)) << ")";
+
     std::auto_ptr<DcmDictEntry>  entry(new DcmDictEntry(tag.GetGroup(),
                                                         tag.GetElement(),
                                                         vr, name.c_str(),
@@ -1447,5 +1453,92 @@ namespace Orthanc
     }
 
     return element.release();
+  }
+
+
+  DcmEVR FromDcmtkBridge::ParseValueRepresentation(const std::string& s)
+  {
+    if (s == "AE")
+      return EVR_AE;
+
+    if (s == "AS")
+      return EVR_AS;
+
+    if (s == "AT")
+      return EVR_AT;
+
+    if (s == "CS")
+      return EVR_CS;
+
+    if (s == "DA")
+      return EVR_DA;
+
+    if (s == "DS")
+      return EVR_DS;
+
+    if (s == "DT")
+      return EVR_DT;
+
+    if (s == "FD")
+      return EVR_FD;
+
+    if (s == "FL")
+      return EVR_FL;
+
+    if (s == "IS")
+      return EVR_IS;
+
+    if (s == "LO")
+      return EVR_LO;
+
+    if (s == "LT")
+      return EVR_LT;
+
+    if (s == "OB")
+      return EVR_OB;
+
+    if (s == "OF")
+      return EVR_OF;
+
+    if (s == "OW")
+      return EVR_OW;
+
+    if (s == "PN")
+      return EVR_PN;
+
+    if (s == "SH")
+      return EVR_SH;
+
+    if (s == "SL")
+      return EVR_SL;
+
+    if (s == "SQ")
+      return EVR_SQ;
+
+    if (s == "SS")
+      return EVR_SS;
+
+    if (s == "ST")
+      return EVR_ST;
+
+    if (s == "TM")
+      return EVR_TM;
+
+    if (s == "UI")
+      return EVR_UI;
+
+    if (s == "UL")
+      return EVR_UL;
+
+    if (s == "UN")
+      return EVR_UN;
+
+    if (s == "US")
+      return EVR_US;
+
+    if (s == "UT")
+      return EVR_UT;
+
+    throw OrthancException(ErrorCode_ParameterOutOfRange);
   }
 }

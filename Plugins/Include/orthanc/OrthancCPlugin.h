@@ -3791,7 +3791,7 @@ extern "C"
    * @brief Register a new tag into the DICOM dictionary.
    *
    * This function declares a new tag in the dictionary of DICOM tags
-   * that is known to Orthanc. This function should be used in the
+   * that are known to Orthanc. This function should be used in the
    * OrthancPluginInitialize() callback.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().

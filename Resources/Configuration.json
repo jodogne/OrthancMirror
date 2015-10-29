@@ -262,5 +262,15 @@
   // will enable case-sensitive match for PN value representation
   // (such as PatientName). By default, the search is
   // case-insensitive, which does not follow the DICOM standard.
-  "CaseSensitivePN" : false
+  "CaseSensitivePN" : false,
+  
+  // Register a new tag in the dictionary of DICOM tags that are known
+  // to Orthanc. Each line must contain the tag (formatted as 2
+  // hexadecimal numbers), the value representation (2 upcase
+  // characters), a nickname for the tag, possibly the minimum
+  // multiplicity (> 0 with defaults to 1), and possibly the maximum
+  // multiplicity (0 means arbitrary multiplicity, defaults to 1).
+  "Dictionary" : {
+    // "0014,1020" : [ "DA", "ValidationExpiryDate", 1, 1 ]
+  }
 }
