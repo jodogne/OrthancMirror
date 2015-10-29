@@ -81,10 +81,13 @@ namespace Orthanc
   }
 
   
+#if !defined(ORTHANC_ENABLE_BASE64) || ORTHANC_ENABLE_BASE64 == 1
   void DicomValue::FormatDataUriScheme(std::string& target,
                                        const std::string& mime) const
   {
     Toolbox::EncodeBase64(target, GetContent());
     target.insert(0, "data:" + mime + ";base64,");
   }
+#endif
+
 }

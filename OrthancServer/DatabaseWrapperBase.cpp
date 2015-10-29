@@ -695,10 +695,6 @@ namespace Orthanc
 
     switch (type)
     {
-      case IdentifierConstraintType_Equal:
-        s.reset(new SQLite::Statement(db_, std::string(COMMON) + "d.value=?"));
-        break;
-
       case IdentifierConstraintType_GreaterOrEqual:
         s.reset(new SQLite::Statement(db_, std::string(COMMON) + "d.value>=?"));
         break;
@@ -711,8 +707,10 @@ namespace Orthanc
         s.reset(new SQLite::Statement(db_, std::string(COMMON) + "d.value GLOB ?"));
         break;
 
+      case IdentifierConstraintType_Equal:
       default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
+        s.reset(new SQLite::Statement(db_, std::string(COMMON) + "d.value=?"));
+        break;
     }
 
     assert(s.get() != NULL);

@@ -78,6 +78,7 @@ namespace Orthanc
     
     DicomValue* Clone() const;
 
+#if !defined(ORTHANC_ENABLE_BASE64) || ORTHANC_ENABLE_BASE64 == 1
     void FormatDataUriScheme(std::string& target,
                              const std::string& mime) const;
 
@@ -85,5 +86,6 @@ namespace Orthanc
     {
       FormatDataUriScheme(target, "application/octet-stream");
     }
+#endif
   };
 }
