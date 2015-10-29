@@ -171,9 +171,27 @@ namespace Orthanc
 
   std::string LookupIdentifierQuery::NormalizeIdentifier(const std::string& value)
   {
-    std::string s = Toolbox::ConvertToAscii(Toolbox::StripSpaces(value));
-    Toolbox::ToUpperCase(s);
-    return s;
+    std::string t;
+    t.reserve(value.size());
+
+    for (size_t i = 0; i < value.size(); i++)
+    {
+      if (value[i] == '%' ||
+          value[i] == '_')
+      {
+        t.push_back(' ');  // These characters might break wildcard queries in SQL
+      }
+      else if (isascii(value[i]) &&
+               !iscntrl(value[i]) &&
+               (!isspace(value[i]) || value[i] == ' '))
+      {
+        t.push_back(value[i]);
+      }
+    }
+
+    Toolbox::ToUpperCase(t);
+
+    return Toolbox::StripSpaces(t);
   }
 
 
