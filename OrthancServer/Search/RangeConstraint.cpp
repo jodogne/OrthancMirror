@@ -30,64 +30,61 @@
  **/
 
 
-#include "../PrecompiledHeaders.h"
-#include "DicomValue.h"
+#include "../PrecompiledHeadersServer.h"
+#include "RangeConstraint.h"
 
-#include "../OrthancException.h"
-#include "../Toolbox.h"
+#include "../../Core/Toolbox.h"
 
 namespace Orthanc
 {
-  DicomValue::DicomValue(const DicomValue& other) : 
-    type_(other.type_),
-    content_(other.content_)
+  RangeConstraint::RangeConstraint(const std::string& lower,
+                                   const std::string& upper,
+                                   bool isCaseSensitive) : 
+    lower_(lower),
+    upper_(upper),
+    isCaseSensitive_(isCaseSensitive)
   {
+    if (!isCaseSensitive_)
+    {
+      Toolbox::ToUpperCase(lower_);
+      Toolbox::ToUpperCase(upper_);
+    }
   }
 
 
-  DicomValue::DicomValue(const std::string& content,
-                         bool isBinary) :
-    type_(isBinary ? Type_Binary : Type_String),
-    content_(content)
+  void RangeConstraint::Setup(LookupIdentifierQuery& lookup,
+                              const DicomTag& tag) const
   {
+    lookup.AddConstraint(tag, IdentifierConstraintType_GreaterOrEqual, lower_);
+    lookup.AddConstraint(tag, IdentifierConstraintType_SmallerOrEqual, upper_);
   }
-  
-  
-  DicomValue::DicomValue(const char* data,
-                         size_t size,
-                         bool isBinary) :
-    type_(isBinary ? Type_Binary : Type_String)
+
+
+  bool RangeConstraint::Match(const std::string& value) const
   {
-    content_.assign(data, size);
-  }
+    std::string v = value;
+
+    if (!isCaseSensitive_)
+    {
+      Toolbox::ToUpperCase(v);
+    }
+
+    if (lower_.size() == 0 && 
+        upper_.size() == 0)
+    {
+      return false;
+    }
+
+    if (lower_.size() == 0)
+    {
+      return v <= upper_;
+    }
+
+    if (upper_.size() == 0)
+    {
+      return v >= lower_;
+    }
     
-  
-  const std::string& DicomValue::GetContent() const
-  {
-    if (type_ == Type_Null)
-    {
-      throw OrthancException(ErrorCode_BadParameterType);
-    }
-    else
-    {
-      return content_;
-    }
+    return (v >= lower_ && v <= upper_);
   }
-
-
-  DicomValue* DicomValue::Clone() const
-  {
-    return new DicomValue(*this);
-  }
-
-  
-#if !defined(ORTHANC_ENABLE_BASE64) || ORTHANC_ENABLE_BASE64 == 1
-  void DicomValue::FormatDataUriScheme(std::string& target,
-                                       const std::string& mime) const
-  {
-    Toolbox::EncodeBase64(target, GetContent());
-    target.insert(0, "data:" + mime + ";base64,");
-  }
-#endif
-
 }

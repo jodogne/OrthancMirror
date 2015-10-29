@@ -46,6 +46,7 @@ add_library(SampleDatabase SHARED
   ${ORTHANC_ROOT}/Core/DicomFormat/DicomArray.cpp
   ${ORTHANC_ROOT}/Core/DicomFormat/DicomMap.cpp
   ${ORTHANC_ROOT}/Core/DicomFormat/DicomTag.cpp
+  ${ORTHANC_ROOT}/Core/DicomFormat/DicomValue.cpp
   ${ORTHANC_ROOT}/Core/Enumerations.cpp
   ${ORTHANC_ROOT}/Core/SQLite/Connection.cpp
   ${ORTHANC_ROOT}/Core/SQLite/FunctionContext.cpp

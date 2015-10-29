@@ -30,64 +30,49 @@
  **/
 
 
-#include "../PrecompiledHeaders.h"
-#include "DicomValue.h"
+#include "../PrecompiledHeadersServer.h"
+#include "ListConstraint.h"
 
-#include "../OrthancException.h"
-#include "../Toolbox.h"
 
 namespace Orthanc
 {
-  DicomValue::DicomValue(const DicomValue& other) : 
-    type_(other.type_),
-    content_(other.content_)
+  void ListConstraint::AddAllowedValue(const std::string& value)
   {
-  }
-
-
-  DicomValue::DicomValue(const std::string& content,
-                         bool isBinary) :
-    type_(isBinary ? Type_Binary : Type_String),
-    content_(content)
-  {
-  }
-  
-  
-  DicomValue::DicomValue(const char* data,
-                         size_t size,
-                         bool isBinary) :
-    type_(isBinary ? Type_Binary : Type_String)
-  {
-    content_.assign(data, size);
-  }
-    
-  
-  const std::string& DicomValue::GetContent() const
-  {
-    if (type_ == Type_Null)
+    if (isCaseSensitive_)
     {
-      throw OrthancException(ErrorCode_BadParameterType);
+      allowedValues_.insert(value);
     }
     else
     {
-      return content_;
+      std::string s = value;
+      Toolbox::ToUpperCase(s);
+      allowedValues_.insert(s);      
     }
   }
 
 
-  DicomValue* DicomValue::Clone() const
+  void ListConstraint::Setup(LookupIdentifierQuery& lookup, 
+                             const DicomTag& tag) const
   {
-    return new DicomValue(*this);
+    LookupIdentifierQuery::Disjunction& target = lookup.AddDisjunction();
+
+    for (std::set<std::string>::const_iterator
+           it = allowedValues_.begin(); it != allowedValues_.end(); ++it)
+    {
+      target.Add(tag, IdentifierConstraintType_Equal, *it);
+    }
   }
 
-  
-#if !defined(ORTHANC_ENABLE_BASE64) || ORTHANC_ENABLE_BASE64 == 1
-  void DicomValue::FormatDataUriScheme(std::string& target,
-                                       const std::string& mime) const
-  {
-    Toolbox::EncodeBase64(target, GetContent());
-    target.insert(0, "data:" + mime + ";base64,");
-  }
-#endif
 
+  bool ListConstraint::Match(const std::string& value) const
+  {
+    std::string v = value;
+
+    if (!isCaseSensitive_)
+    {
+      Toolbox::ToUpperCase(v);
+    }
+
+    return allowedValues_.find(v) != allowedValues_.end();
+  }
 }

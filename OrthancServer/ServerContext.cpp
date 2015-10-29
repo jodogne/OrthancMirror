@@ -543,4 +543,39 @@ namespace Orthanc
     return false;
 #endif
   }
+
+
+  bool ServerContext::Apply(std::list<std::string>& result,
+                            const ::Orthanc::LookupResource& lookup,
+                            size_t maxResults)
+  {
+    result.clear();
+
+    std::vector<std::string> resources, instances;
+    GetIndex().FindCandidates(resources, instances, lookup);
+
+    assert(resources.size() == instances.size());
+
+    for (size_t i = 0; i < instances.size(); i++)
+    {
+      Json::Value dicom;
+      ReadJson(dicom, instances[i]);
+      
+      if (lookup.IsMatch(dicom))
+      {
+        if (maxResults != 0 &&
+            result.size() >= maxResults)
+        {
+          return false;  // too many results
+        }
+        else
+        {
+          result.push_back(resources[i]);
+        }
+      }
+    }
+
+    return true;  // finished
+  }
+
 }

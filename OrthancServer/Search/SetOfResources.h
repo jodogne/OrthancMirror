@@ -30,64 +30,49 @@
  **/
 
 
-#include "../PrecompiledHeaders.h"
-#include "DicomValue.h"
+#pragma once
 
-#include "../OrthancException.h"
-#include "../Toolbox.h"
+#include "../IDatabaseWrapper.h"
+
+#include <set>
+#include <boost/noncopyable.hpp>
+#include <memory>
 
 namespace Orthanc
 {
-  DicomValue::DicomValue(const DicomValue& other) : 
-    type_(other.type_),
-    content_(other.content_)
+  class SetOfResources : public boost::noncopyable
   {
-  }
+  private:
+    typedef std::set<int64_t>  Resources;
 
-
-  DicomValue::DicomValue(const std::string& content,
-                         bool isBinary) :
-    type_(isBinary ? Type_Binary : Type_String),
-    content_(content)
-  {
-  }
-  
-  
-  DicomValue::DicomValue(const char* data,
-                         size_t size,
-                         bool isBinary) :
-    type_(isBinary ? Type_Binary : Type_String)
-  {
-    content_.assign(data, size);
-  }
+    IDatabaseWrapper&         database_;
+    ResourceType              level_;
+    std::auto_ptr<Resources>  resources_;
     
-  
-  const std::string& DicomValue::GetContent() const
-  {
-    if (type_ == Type_Null)
+  public:
+    SetOfResources(IDatabaseWrapper& database,
+                   ResourceType level) : 
+      database_(database),
+      level_(level)
     {
-      throw OrthancException(ErrorCode_BadParameterType);
     }
-    else
+
+    ResourceType GetLevel() const
     {
-      return content_;
+      return level_;
     }
-  }
 
+    void Intersect(const std::list<int64_t>& resources);
 
-  DicomValue* DicomValue::Clone() const
-  {
-    return new DicomValue(*this);
-  }
+    void GoDown();
 
-  
-#if !defined(ORTHANC_ENABLE_BASE64) || ORTHANC_ENABLE_BASE64 == 1
-  void DicomValue::FormatDataUriScheme(std::string& target,
-                                       const std::string& mime) const
-  {
-    Toolbox::EncodeBase64(target, GetContent());
-    target.insert(0, "data:" + mime + ";base64,");
-  }
-#endif
+    void Flatten(std::list<int64_t>& result);
 
+    void Flatten(std::list<std::string>& result);
+
+    void Clear()
+    {
+      resources_.reset(NULL);
+    }
+  };
 }

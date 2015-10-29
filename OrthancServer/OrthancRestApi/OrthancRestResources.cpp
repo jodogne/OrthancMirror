@@ -36,8 +36,6 @@
 #include "../../Core/Logging.h"
 #include "../ServerToolbox.h"
 #include "../FromDcmtkBridge.h"
-#include "../ResourceFinder.h"
-#include "../DicomFindQuery.h"
 #include "../ServerContext.h"
 #include "../SliceOrdering.h"
 
@@ -892,7 +890,7 @@ namespace Orthanc
                                       ResourceType level)
   {
     std::list<std::string> tmp;
-    index.LookupIdentifier(tmp, tag, value, level);
+    index.LookupIdentifierExact(tmp, level, tag, value);
 
     for (std::list<std::string>::const_iterator
            it = tmp.begin(); it != tmp.end(); ++it)
@@ -944,7 +942,8 @@ namespace Orthanc
         request.isMember("Query") &&
         request["Level"].type() == Json::stringValue &&
         request["Query"].type() == Json::objectValue &&
-        (!request.isMember("CaseSensitive") || request["CaseSensitive"].type() == Json::booleanValue))
+        (!request.isMember("CaseSensitive") || request["CaseSensitive"].type() == Json::booleanValue) &&
+        (!request.isMember("Limit") || request["Limit"].type() == Json::intValue))
     {
       bool expand = false;
       if (request.isMember("Expand"))
@@ -958,10 +957,19 @@ namespace Orthanc
         caseSensitive = request["CaseSensitive"].asBool();
       }
 
+      size_t limit = 0;
+      if (request.isMember("Limit"))
+      {
+        limit = request["CaseSensitive"].asInt();
+        if (limit < 0)
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+      }
+
       std::string level = request["Level"].asString();
 
-      DicomFindQuery query;
-      query.SetLevel(StringToResourceType(level.c_str()));
+      LookupResource query(StringToResourceType(level.c_str()));
 
       Json::Value::Members members = request["Query"].getMemberNames();
       for (size_t i = 0; i < members.size(); i++)
@@ -971,14 +979,13 @@ namespace Orthanc
           throw OrthancException(ErrorCode_BadRequest);
         }
 
-        query.SetConstraint(FromDcmtkBridge::ParseTag(members[i]), 
-                            request["Query"][members[i]].asString(),
-                            caseSensitive);
+        query.AddDicomConstraint(FromDcmtkBridge::ParseTag(members[i]), 
+                                 request["Query"][members[i]].asString(),
+                                 caseSensitive);
       }
       
       std::list<std::string> resources;
-      ResourceFinder finder(context);
-      finder.Apply(resources, query);
+      context.Apply(resources, query, limit);
       AnswerListOfResources(call.GetOutput(), context.GetIndex(), resources, query.GetLevel(), expand);
     }
     else

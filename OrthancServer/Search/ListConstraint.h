@@ -30,64 +30,42 @@
  **/
 
 
-#include "../PrecompiledHeaders.h"
-#include "DicomValue.h"
+#pragma once
 
-#include "../OrthancException.h"
-#include "../Toolbox.h"
+#include "IFindConstraint.h"
+
+#include <set>
 
 namespace Orthanc
 {
-  DicomValue::DicomValue(const DicomValue& other) : 
-    type_(other.type_),
-    content_(other.content_)
+  class ListConstraint : public IFindConstraint
   {
-  }
+  private:
+    std::set<std::string>  allowedValues_;
+    bool                   isCaseSensitive_;
 
-
-  DicomValue::DicomValue(const std::string& content,
-                         bool isBinary) :
-    type_(isBinary ? Type_Binary : Type_String),
-    content_(content)
-  {
-  }
-  
-  
-  DicomValue::DicomValue(const char* data,
-                         size_t size,
-                         bool isBinary) :
-    type_(isBinary ? Type_Binary : Type_String)
-  {
-    content_.assign(data, size);
-  }
-    
-  
-  const std::string& DicomValue::GetContent() const
-  {
-    if (type_ == Type_Null)
+    ListConstraint(const ListConstraint& other) : 
+      allowedValues_(other.allowedValues_),
+      isCaseSensitive_(other.isCaseSensitive_)
     {
-      throw OrthancException(ErrorCode_BadParameterType);
     }
-    else
+
+  public:
+    ListConstraint(bool isCaseSensitive) : 
+      isCaseSensitive_(isCaseSensitive)
     {
-      return content_;
     }
-  }
 
+    void AddAllowedValue(const std::string& value);
 
-  DicomValue* DicomValue::Clone() const
-  {
-    return new DicomValue(*this);
-  }
+    virtual IFindConstraint* Clone() const
+    {
+      return new ListConstraint(*this);
+    }
 
-  
-#if !defined(ORTHANC_ENABLE_BASE64) || ORTHANC_ENABLE_BASE64 == 1
-  void DicomValue::FormatDataUriScheme(std::string& target,
-                                       const std::string& mime) const
-  {
-    Toolbox::EncodeBase64(target, GetContent());
-    target.insert(0, "data:" + mime + ";base64,");
-  }
-#endif
+    virtual void Setup(LookupIdentifierQuery& lookup,
+                       const DicomTag& tag) const;
 
+    virtual bool Match(const std::string& value) const;
+  };
 }

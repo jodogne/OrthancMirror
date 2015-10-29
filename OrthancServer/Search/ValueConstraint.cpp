@@ -30,64 +30,44 @@
  **/
 
 
-#include "../PrecompiledHeaders.h"
-#include "DicomValue.h"
+#include "../PrecompiledHeadersServer.h"
+#include "ValueConstraint.h"
 
-#include "../OrthancException.h"
-#include "../Toolbox.h"
+#include "../../Core/Toolbox.h"
+
+#include <stdio.h>
 
 namespace Orthanc
 {
-  DicomValue::DicomValue(const DicomValue& other) : 
-    type_(other.type_),
-    content_(other.content_)
+  ValueConstraint::ValueConstraint(const std::string& value,
+                                   bool isCaseSensitive) : 
+    value_(value),
+    isCaseSensitive_(isCaseSensitive)
   {
-  }
-
-
-  DicomValue::DicomValue(const std::string& content,
-                         bool isBinary) :
-    type_(isBinary ? Type_Binary : Type_String),
-    content_(content)
-  {
-  }
-  
-  
-  DicomValue::DicomValue(const char* data,
-                         size_t size,
-                         bool isBinary) :
-    type_(isBinary ? Type_Binary : Type_String)
-  {
-    content_.assign(data, size);
-  }
-    
-  
-  const std::string& DicomValue::GetContent() const
-  {
-    if (type_ == Type_Null)
+    if (!isCaseSensitive)
     {
-      throw OrthancException(ErrorCode_BadParameterType);
+      Toolbox::ToUpperCase(value_);
+    }
+  }
+
+
+  void ValueConstraint::Setup(LookupIdentifierQuery& lookup,
+                              const DicomTag& tag) const
+  {
+    lookup.AddConstraint(tag, IdentifierConstraintType_Equal, value_);
+  }
+
+  bool ValueConstraint::Match(const std::string& value) const
+  {
+    if (isCaseSensitive_)
+    {
+      return value_ == value;
     }
     else
     {
-      return content_;
+      std::string v;
+      Toolbox::ToUpperCase(v, value);
+      return value_ == v;
     }
   }
-
-
-  DicomValue* DicomValue::Clone() const
-  {
-    return new DicomValue(*this);
-  }
-
-  
-#if !defined(ORTHANC_ENABLE_BASE64) || ORTHANC_ENABLE_BASE64 == 1
-  void DicomValue::FormatDataUriScheme(std::string& target,
-                                       const std::string& mime) const
-  {
-    Toolbox::EncodeBase64(target, GetContent());
-    target.insert(0, "data:" + mime + ";base64,");
-  }
-#endif
-
 }

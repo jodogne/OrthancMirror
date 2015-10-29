@@ -45,6 +45,8 @@
 #include "../Core/Logging.h"
 #include "../Core/Uuid.h"
 #include "../Core/DicomFormat/DicomArray.h"
+#include "Search/LookupIdentifierQuery.h"
+#include "Search/LookupResource.h"
 
 #include "FromDcmtkBridge.h"
 #include "ServerContext.h"
@@ -1895,32 +1897,24 @@ namespace Orthanc
 
 
 
-  void ServerIndex::LookupIdentifier(std::list<std::string>& result,
-                                     const DicomTag& tag,
-                                     const std::string& value,
-                                     ResourceType type)
+  void ServerIndex::LookupIdentifierExact(std::list<std::string>& result,
+                                          ResourceType level,
+                                          const DicomTag& tag,
+                                          const std::string& value)
   {
-    assert(tag == DICOM_TAG_PATIENT_ID ||
-           tag == DICOM_TAG_STUDY_INSTANCE_UID ||
-           tag == DICOM_TAG_SERIES_INSTANCE_UID ||
-           tag == DICOM_TAG_SOP_INSTANCE_UID ||
-           tag == DICOM_TAG_ACCESSION_NUMBER);
+    assert((level == ResourceType_Patient && tag == DICOM_TAG_PATIENT_ID) ||
+           (level == ResourceType_Study && tag == DICOM_TAG_STUDY_INSTANCE_UID) ||
+           (level == ResourceType_Study && tag == DICOM_TAG_ACCESSION_NUMBER) ||
+           (level == ResourceType_Series && tag == DICOM_TAG_SERIES_INSTANCE_UID) ||
+           (level == ResourceType_Instance && tag == DICOM_TAG_SOP_INSTANCE_UID));
     
     result.clear();
 
     boost::mutex::scoped_lock lock(mutex_);
 
-    std::list<int64_t> id;
-    db_.LookupIdentifier(id, tag, value);
-
-    for (std::list<int64_t>::const_iterator 
-           it = id.begin(); it != id.end(); ++it)
-    {
-      if (db_.GetResourceType(*it) == type)
-      {
-        result.push_back(db_.GetPublicId(*it));
-      }
-    }
+    LookupIdentifierQuery query(level);
+    query.AddConstraint(tag, IdentifierConstraintType_Equal, value);
+    query.Apply(result, db_);
   }
 
 
@@ -2118,5 +2112,35 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(mutex_);
     return db_.GetDatabaseVersion();
+  }
+
+
+  void ServerIndex::FindCandidates(std::vector<std::string>& resources,
+                                   std::vector<std::string>& instances,
+                                   const ::Orthanc::LookupResource& lookup)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+   
+    std::list<int64_t> tmp;
+    lookup.FindCandidates(tmp, db_);
+
+    resources.resize(tmp.size());
+    instances.resize(tmp.size());
+
+    size_t pos = 0;
+    for (std::list<int64_t>::const_iterator
+           it = tmp.begin(); it != tmp.end(); ++it, pos++)
+    {
+      assert(db_.GetResourceType(*it) == lookup.GetLevel());
+      
+      int64_t instance;
+      if (!Toolbox::FindOneChildInstance(instance, db_, *it, lookup.GetLevel()))
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      resources[pos] = db_.GetPublicId(*it);
+      instances[pos] = db_.GetPublicId(instance);
+    }
   }
 }

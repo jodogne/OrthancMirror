@@ -258,8 +258,9 @@
   // deleted as new requests are issued.
   "QueryRetrieveSize" : 10,
 
-  // When handling a C-Find SCP request, setting this flag to "false"
-  // will enable case-insensitive match for PN value representation
-  // (such as PatientName). By default, the search is case-insensitive.
+  // When handling a C-Find SCP request, setting this flag to "true"
+  // will enable case-sensitive match for PN value representation
+  // (such as PatientName). By default, the search is
+  // case-insensitive, which does not follow the DICOM standard.
   "CaseSensitivePN" : false
 }
