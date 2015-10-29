@@ -277,8 +277,15 @@ namespace Orthanc
   void OrthancPluginDatabase::GetAllInternalIds(std::list<int64_t>& target,
                                                 ResourceType resourceType)
   {
-    // TODO
-    throw OrthancException(ErrorCode_NotImplemented);
+    if (extensions_.getAllInternalIds == NULL)
+    {
+      LOG(ERROR) << "The database plugin does not implement the GetAllInternalIds primitive";
+      throw OrthancException(ErrorCode_DatabasePlugin);
+    }
+
+    ResetAnswers();
+    CheckSuccess(extensions_.getAllInternalIds(GetContext(), payload_, Plugins::Convert(resourceType)));
+    ForwardAnswers(target);
   }
 
 
@@ -602,70 +609,27 @@ namespace Orthanc
   }
 
 
-  /*
-
-    TODO REMOVE THIS
-
-  void OrthancPluginDatabase::LookupIdentifierExact(std::list<int64_t>& target,
-                                                    ResourceType level,
-                                                    const DicomTag& tag,
-                                                    const std::string& value)
-  {
-    ResetAnswers();
-
-    OrthancPluginDicomTag tmp;
-    tmp.group = tag.GetGroup();
-    tmp.element = tag.GetElement();
-    tmp.value = value.c_str();
-
-    if (extensions_.lookupIdentifierExact != NULL)
-    {
-      CheckSuccess(extensions_.lookupIdentifierExact(GetContext(), payload_, Plugins::Convert(level), &tmp));
-      ForwardAnswers(target);
-    }
-    else
-    {
-      // Emulate "lookupIdentifierExact" if unavailable
-
-      if (backend_.lookupIdentifier == NULL)
-      {
-        LOG(ERROR) << "The plugin does not have the extension \"lookupIdentifierExact\"";
-        throw OrthancException(ErrorCode_DatabasePlugin);
-      }
-
-      CheckSuccess(backend_.lookupIdentifier(GetContext(), payload_, &tmp));
-
-      if (type_ != _OrthancPluginDatabaseAnswerType_None &&
-          type_ != _OrthancPluginDatabaseAnswerType_Int64)
-      {
-        throw OrthancException(ErrorCode_DatabasePlugin);
-      }
-
-      target.clear();
-
-      if (type_ == _OrthancPluginDatabaseAnswerType_Int64)
-      {
-        for (std::list<int64_t>::const_iterator 
-               it = answerInt64_.begin(); it != answerInt64_.end(); ++it)
-        {
-          if (GetResourceType(*it) == level)
-          {
-            target.push_back(*it);
-          }
-        }
-      }
-    }
-    }*/
-
-
   void OrthancPluginDatabase::LookupIdentifier(std::list<int64_t>& result,
                                                ResourceType level,
                                                const DicomTag& tag,
                                                IdentifierConstraintType type,
                                                const std::string& value)
   {
-    // TODO
-    throw OrthancException(ErrorCode_NotImplemented);
+    if (extensions_.lookupIdentifier3 == NULL)
+    {
+      LOG(ERROR) << "The database plugin does not implement the GetAllInternalIds primitive";
+      throw OrthancException(ErrorCode_DatabasePlugin);
+    }
+
+    OrthancPluginDicomTag tmp;
+    tmp.group = tag.GetGroup();
+    tmp.element = tag.GetElement();
+    tmp.value = value.c_str();
+
+    ResetAnswers();
+    CheckSuccess(extensions_.lookupIdentifier3(GetContext(), payload_, Plugins::Convert(level),
+                                               &tmp, Plugins::Convert(type)));
+    ForwardAnswers(result);
   }
 
 
