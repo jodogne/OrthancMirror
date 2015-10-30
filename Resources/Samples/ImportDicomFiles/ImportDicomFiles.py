@@ -81,7 +81,7 @@ def UploadFile(path):
             sys.stdout.write(" => success\n")
             success_count += 1
         else:
-            sys.stdout.write(" => failure (Is it a DICOM file?)\n")
+            sys.stdout.write(" => failure (Is it a DICOM file? Is there a password?)\n")
 
     except:
         sys.stdout.write(" => unable to connect (Is Orthanc running? Is there a password?)\n")
