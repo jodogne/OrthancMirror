@@ -210,7 +210,7 @@ namespace Orthanc
   {
     if (!boost::filesystem::is_regular_file(path))
     {
-      LOG(ERROR) << "The path does not point to a regular file: " << path;
+      LOG(ERROR) << std::string("The path does not point to a regular file: ") << path;
       throw OrthancException(ErrorCode_RegularFileExpected);
     }
 
