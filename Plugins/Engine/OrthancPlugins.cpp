@@ -1287,7 +1287,32 @@ namespace Orthanc
   {
     VLOG(1) << "Calling service " << service << " from plugin " << plugin.GetPath();
 
-    boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
+    if (service == _OrthancPluginService_DatabaseAnswer)
+    {
+      // This case solves a deadlock at (*) reported by James Webster
+      // on 2015-10-27 that was present in versions of Orthanc <=
+      // 0.9.4 and related to database plugins implementing a custom
+      // index. The problem was that locking the database is already
+      // ensured by the "ServerIndex" class if the invoked service is
+      // "DatabaseAnswer".
+
+      const _OrthancPluginDatabaseAnswer& p =
+        *reinterpret_cast<const _OrthancPluginDatabaseAnswer*>(parameters);
+
+      if (pimpl_->database_.get() != NULL)
+      {
+        pimpl_->database_->AnswerReceived(p);
+        return true;
+      }
+      else
+      {
+        LOG(ERROR) << "Cannot invoke this service without a custom database back-end";
+        throw OrthancException(ErrorCode_BadRequest);
+      }
+    }
+
+
+    std::auto_ptr<boost::recursive_mutex::scoped_lock> lock;   // (*)
 
     switch (service)
     {
@@ -1559,21 +1584,7 @@ namespace Orthanc
       }
 
       case _OrthancPluginService_DatabaseAnswer:
-      {
-        const _OrthancPluginDatabaseAnswer& p =
-          *reinterpret_cast<const _OrthancPluginDatabaseAnswer*>(parameters);
-
-        if (pimpl_->database_.get() != NULL)
-        {
-          pimpl_->database_->AnswerReceived(p);
-          return true;
-        }
-        else
-        {
-          LOG(ERROR) << "Cannot invoke this service without a custom database back-end";
-          throw OrthancException(ErrorCode_BadRequest);
-        }
-      }
+        throw OrthancException(ErrorCode_InternalError);   // Implemented before locking (*)
 
       case _OrthancPluginService_GetExpectedDatabaseVersion:
       {
