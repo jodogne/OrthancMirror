@@ -3,8 +3,13 @@ if (DCMTK_DICTIONARY_DIR STREQUAL "")
   find_path(DCMTK_DICTIONARY_DIR_AUTO dicom.dic
     /usr/share/dcmtk
     /usr/share/libdcmtk2
+    /usr/share/libdcmtk4
     /usr/local/share/dcmtk
     )
+
+ if (${DCMTK_DICTIONARY_DIR_AUTO} MATCHES "DCMTK_DICTIONARY_DIR_AUTO-NOTFOUND")
+   message(FATAL_ERROR "Cannot locate the DICOM dictionary on this system")
+ endif()
 
   message("Autodetected path to the DICOM dictionaries: ${DCMTK_DICTIONARY_DIR_AUTO}")
   add_definitions(-DDCMTK_DICTIONARY_DIR="${DCMTK_DICTIONARY_DIR_AUTO}")
