@@ -1281,6 +1281,23 @@ namespace Orthanc
   }
         
 
+  void OrthancPlugins::DatabaseAnswer(const void* parameters)
+  {
+    const _OrthancPluginDatabaseAnswer& p =
+      *reinterpret_cast<const _OrthancPluginDatabaseAnswer*>(parameters);
+
+    if (pimpl_->database_.get() != NULL)
+    {
+      pimpl_->database_->AnswerReceived(p);
+    }
+    else
+    {
+      LOG(ERROR) << "Cannot invoke this service without a custom database back-end";
+      throw OrthancException(ErrorCode_BadRequest);
+    }
+  }
+
+
   bool OrthancPlugins::InvokeService(SharedLibrary& plugin,
                                      _OrthancPluginService service,
                                      const void* parameters)
@@ -1295,20 +1312,8 @@ namespace Orthanc
       // index. The problem was that locking the database is already
       // ensured by the "ServerIndex" class if the invoked service is
       // "DatabaseAnswer".
-
-      const _OrthancPluginDatabaseAnswer& p =
-        *reinterpret_cast<const _OrthancPluginDatabaseAnswer*>(parameters);
-
-      if (pimpl_->database_.get() != NULL)
-      {
-        pimpl_->database_->AnswerReceived(p);
-        return true;
-      }
-      else
-      {
-        LOG(ERROR) << "Cannot invoke this service without a custom database back-end";
-        throw OrthancException(ErrorCode_BadRequest);
-      }
+      DatabaseAnswer(parameters);
+      return true;
     }
 
 
