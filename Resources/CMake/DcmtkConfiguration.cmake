@@ -1,23 +1,3 @@
-# Lookup for DICOM dictionaries, if none is specified by the user
-if (DCMTK_DICTIONARY_DIR STREQUAL "")
-  find_path(DCMTK_DICTIONARY_DIR_AUTO dicom.dic
-    /usr/share/dcmtk
-    /usr/share/libdcmtk2
-    /usr/share/libdcmtk4
-    /usr/local/share/dcmtk
-    )
-
- if (${DCMTK_DICTIONARY_DIR_AUTO} MATCHES "DCMTK_DICTIONARY_DIR_AUTO-NOTFOUND")
-   message(FATAL_ERROR "Cannot locate the DICOM dictionary on this system")
- endif()
-
-  message("Autodetected path to the DICOM dictionaries: ${DCMTK_DICTIONARY_DIR_AUTO}")
-  add_definitions(-DDCMTK_DICTIONARY_DIR="${DCMTK_DICTIONARY_DIR_AUTO}")
-else()
-  add_definitions(-DDCMTK_DICTIONARY_DIR="${DCMTK_DICTIONARY_DIR}")
-endif()
-
-
 if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   SET(DCMTK_VERSION_NUMBER 360)
   set(DCMTK_PACKAGE_VERSION "3.6.0")
@@ -183,16 +163,15 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   set(DCMTK_BUNDLES_LOG4CPLUS 1)
 
   if (STANDALONE_BUILD)
-    add_definitions(-DDCMTK_USE_EMBEDDED_DICTIONARIES=1)
+    set(DCMTK_USE_EMBEDDED_DICTIONARIES 1)
+    set(DCMTK_DICTIONARIES
+      DICTIONARY_DICOM ${DCMTK_SOURCES_DIR}/dcmdata/data/dicom.dic
+      DICTIONARY_PRIVATE ${DCMTK_SOURCES_DIR}/dcmdata/data/private.dic
+      DICTIONARY_DICONDE ${DCMTK_SOURCES_DIR}/dcmdata/data/diconde.dic
+      )
   else()
-    add_definitions(-DDCMTK_USE_EMBEDDED_DICTIONARIES=0)
+    set(DCMTK_USE_EMBEDDED_DICTIONARIES 0)
   endif()
-
-  set(DCMTK_DICTIONARIES
-    DICTIONARY_DICOM ${DCMTK_SOURCES_DIR}/dcmdata/data/dicom.dic
-    DICTIONARY_PRIVATE ${DCMTK_SOURCES_DIR}/dcmdata/data/private.dic
-    DICTIONARY_DICONDE ${DCMTK_SOURCES_DIR}/dcmdata/data/diconde.dic
-    )
 
 else()
   # The following line allows to manually add libraries at the
@@ -227,9 +206,32 @@ else()
     DCMTK_VERSION_NUMBER 
     ${DCMTK_VERSION_NUMBER1})
 
-  add_definitions(-DDCMTK_USE_EMBEDDED_DICTIONARIES=0)
-
+  set(DCMTK_USE_EMBEDDED_DICTIONARIES 0)
 endif()
+
 
 add_definitions(-DDCMTK_VERSION_NUMBER=${DCMTK_VERSION_NUMBER})
 message("DCMTK version: ${DCMTK_VERSION_NUMBER}")
+
+
+add_definitions(-DDCMTK_USE_EMBEDDED_DICTIONARIES=${DCMTK_USE_EMBEDDED_DICTIONARIES})
+if (NOT DCMTK_USE_EMBEDDED_DICTIONARIES)
+  # Lookup for DICOM dictionaries, if none is specified by the user
+  if (DCMTK_DICTIONARY_DIR STREQUAL "")
+    find_path(DCMTK_DICTIONARY_DIR_AUTO dicom.dic
+      /usr/share/dcmtk
+      /usr/share/libdcmtk2
+      /usr/share/libdcmtk4
+      /usr/local/share/dcmtk
+      )
+
+    if (${DCMTK_DICTIONARY_DIR_AUTO} MATCHES "DCMTK_DICTIONARY_DIR_AUTO-NOTFOUND")
+      message(FATAL_ERROR "Cannot locate the DICOM dictionary on this system")
+    endif()
+
+    message("Autodetected path to the DICOM dictionaries: ${DCMTK_DICTIONARY_DIR_AUTO}")
+    add_definitions(-DDCMTK_DICTIONARY_DIR="${DCMTK_DICTIONARY_DIR_AUTO}")
+  else()
+    add_definitions(-DDCMTK_DICTIONARY_DIR="${DCMTK_DICTIONARY_DIR}")
+  endif()
+endif()
