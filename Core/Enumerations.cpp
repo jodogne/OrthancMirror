@@ -1135,4 +1135,11 @@ namespace Orthanc
         return HttpStatus_500_InternalServerError;
     }
   }
+
+
+  bool IsUserContentType(FileContentType type)
+  {
+    return (type >= FileContentType_StartUser &&
+            type <= FileContentType_EndUser);
+  }
 }

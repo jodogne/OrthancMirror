@@ -122,6 +122,12 @@ namespace Orthanc
         case ChangeType_StableStudy:
           return OrthancPluginChangeType_StableStudy;
 
+        case ChangeType_UpdatedAttachment:
+          return OrthancPluginChangeType_UpdatedAttachment;
+
+        case ChangeType_UpdatedMetadata:
+          return OrthancPluginChangeType_UpdatedMetadata;
+
         default:
           throw OrthancException(ErrorCode_ParameterOutOfRange);
       }

@@ -463,4 +463,6 @@ namespace Orthanc
   const char* GetDicomSpecificCharacterSet(Encoding encoding);
 
   HttpStatus ConvertErrorCodeToHttpStatus(ErrorCode error);
+
+  bool IsUserContentType(FileContentType type);
 }

@@ -17,7 +17,8 @@ Plugins
 
 * New function "OrthancPluginRegisterErrorCode()" to declare custom error codes
 * New function "OrthancPluginRegisterDictionaryTag()" to declare custom DICOM tags
-* New "OrthancStarted" and "OrthancStopped" events in change callbacks
+* New "OrthancStarted", "OrthancStopped", "UpdatedAttachment" 
+  and "UpdatedMetadata" events in change callbacks
 
 Lua
 ---

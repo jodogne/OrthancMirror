@@ -405,10 +405,8 @@ namespace Orthanc
     std::string name = call.GetUriComponent("name", "");
     MetadataType metadata = StringToMetadata(name);
 
-    if (metadata >= MetadataType_StartUser &&
-        metadata <= MetadataType_EndUser)
-    {
-      // It is forbidden to modify internal metadata
+    if (IsUserMetadata(metadata))  // It is forbidden to modify internal metadata
+    {      
       OrthancRestApi::GetIndex(call).DeleteMetadata(publicId, metadata);
       call.GetOutput().AnswerBuffer("", "text/plain");
     }
@@ -426,8 +424,7 @@ namespace Orthanc
     std::string value;
     call.BodyToString(value);
 
-    if (metadata >= MetadataType_StartUser &&
-        metadata <= MetadataType_EndUser)
+    if (IsUserMetadata(metadata))  // It is forbidden to modify internal metadata
     {
       // It is forbidden to modify internal metadata
       OrthancRestApi::GetIndex(call).SetMetadata(publicId, metadata, value);
@@ -638,8 +635,7 @@ namespace Orthanc
     std::string name = call.GetUriComponent("name", "");
 
     FileContentType contentType = StringToContentType(name);
-    if (contentType >= FileContentType_StartUser &&  // It is forbidden to modify internal attachments
-        contentType <= FileContentType_EndUser &&
+    if (IsUserContentType(contentType) &&  // It is forbidden to modify internal attachments
         context.AddAttachment(publicId, StringToContentType(name), call.GetBodyData(), call.GetBodySize()))
     {
       call.GetOutput().AnswerBuffer("{}", "application/json");
@@ -655,10 +651,8 @@ namespace Orthanc
     std::string name = call.GetUriComponent("name", "");
     FileContentType contentType = StringToContentType(name);
 
-    if (contentType >= FileContentType_StartUser &&
-        contentType <= FileContentType_EndUser)
+    if (IsUserContentType(contentType))  // It is forbidden to delete internal attachments
     {
-      // It is forbidden to delete internal attachments
       OrthancRestApi::GetIndex(call).DeleteAttachment(publicId, contentType);
       call.GetOutput().AnswerBuffer("{}", "application/json");
     }
