@@ -1525,6 +1525,7 @@ namespace Orthanc
                                 const std::string& value)
   {
     boost::mutex::scoped_lock lock(mutex_);
+    Transaction t(*this);
 
     ResourceType rtype;
     int64_t id;
@@ -1534,6 +1535,13 @@ namespace Orthanc
     }
 
     db_.SetMetadata(id, type, value);
+
+    if (IsUserMetadata(type))
+    {
+      LogChange(id, ChangeType_UpdatedMetadata, rtype, publicId);
+    }
+
+    t.Commit(0);
   }
 
 
@@ -1541,6 +1549,7 @@ namespace Orthanc
                                    MetadataType type)
   {
     boost::mutex::scoped_lock lock(mutex_);
+    Transaction t(*this);
 
     ResourceType rtype;
     int64_t id;
@@ -1550,6 +1559,13 @@ namespace Orthanc
     }
 
     db_.DeleteMetadata(id, type);
+
+    if (IsUserMetadata(type))
+    {
+      LogChange(id, ChangeType_UpdatedMetadata, rtype, publicId);
+    }
+
+    t.Commit(0);
   }
 
 
@@ -1958,6 +1974,11 @@ namespace Orthanc
 
     db_.AddAttachment(resourceId, attachment);
 
+    if (IsUserContentType(attachment.GetContentType()))
+    {
+      LogChange(resourceId, ChangeType_UpdatedAttachment, resourceType, publicId);
+    }
+
     t.Commit(attachment.GetCompressedSize());
 
     return StoreStatus_Success;
@@ -1978,6 +1999,11 @@ namespace Orthanc
     }
 
     db_.DeleteAttachment(id, type);
+
+    if (IsUserContentType(type))
+    {
+      LogChange(id, ChangeType_UpdatedAttachment, rtype, publicId);
+    }
 
     t.Commit(0);
   }

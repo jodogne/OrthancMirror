@@ -73,8 +73,10 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(enumerationsMutex_);
 
-    if (metadata < static_cast<int>(MetadataType_StartUser) ||
-        metadata > static_cast<int>(MetadataType_EndUser))
+    MetadataType type = static_cast<MetadataType>(metadata);
+
+    if (metadata < 0 || 
+        !IsUserMetadata(type))
     {
       LOG(ERROR) << "A user content type must have index between "
                  << static_cast<int>(MetadataType_StartUser) << " and "
@@ -83,8 +85,6 @@ namespace Orthanc
         
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
-
-    MetadataType type = static_cast<MetadataType>(metadata);
 
     if (dictMetadataType_.Contains(type))
     {
@@ -118,8 +118,10 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(enumerationsMutex_);
 
-    if (contentType < static_cast<int>(FileContentType_StartUser) ||
-        contentType > static_cast<int>(FileContentType_EndUser))
+    FileContentType type = static_cast<FileContentType>(contentType);
+
+    if (contentType < 0 || 
+        !IsUserContentType(type))
     {
       LOG(ERROR) << "A user content type must have index between "
                  << static_cast<int>(FileContentType_StartUser) << " and "
@@ -129,7 +131,6 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    FileContentType type = static_cast<FileContentType>(contentType);
     if (dictContentType_.Contains(type))
     {
       LOG(ERROR) << "Cannot associate user content type \""
@@ -301,6 +302,12 @@ namespace Orthanc
       case ChangeType_NewChildInstance:
         return "NewChildInstance";
 
+      case ChangeType_UpdatedAttachment:
+        return "UpdatedAttachment";
+
+      case ChangeType_UpdatedMetadata:
+        return "UpdatedMetadata";
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -427,5 +434,12 @@ namespace Orthanc
       default: 
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
+  }
+
+
+  bool IsUserMetadata(MetadataType metadata)
+  {
+    return (metadata >= MetadataType_StartUser &&
+            metadata <= MetadataType_EndUser);
   }
 }

@@ -178,6 +178,8 @@ namespace Orthanc
     ChangeType_StablePatient = 12,
     ChangeType_StableStudy = 13,
     ChangeType_StableSeries = 14,
+    ChangeType_UpdatedAttachment = 15,
+    ChangeType_UpdatedMetadata = 16,
 
     ChangeType_INTERNAL_LastLogged = 4095,
 
@@ -223,4 +225,6 @@ namespace Orthanc
   const char* EnumerationToString(TransferSyntax syntax);
 
   ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer);
+
+  bool IsUserMetadata(MetadataType type);
 }
