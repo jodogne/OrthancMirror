@@ -318,7 +318,7 @@ namespace Orthanc
     }
 
     StorageAccessor accessor(area_);
-    accessor.AnswerFile(output, attachment);
+    accessor.AnswerFile(output, attachment, GetFileContentMime(content));
   }
 
 

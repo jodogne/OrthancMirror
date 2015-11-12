@@ -60,6 +60,11 @@ namespace Orthanc
         stringToEnumeration_.clear();
       }
 
+      bool Contains(Enumeration value) const
+      {
+        return enumerationToString_.find(value) != enumerationToString_.end();
+      }
+
       void Add(Enumeration value, const std::string& str)
       {
         // Check if these values are free

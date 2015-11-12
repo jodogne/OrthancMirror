@@ -252,24 +252,26 @@ namespace Orthanc
       Json::Value::Members members = parameter.getMemberNames();
       for (size_t i = 0; i < members.size(); i++)
       {
-        std::string info = "\"" + members[i] + "\" = " + parameter[members[i]].toStyledString();
-        LOG(INFO) << "Registering user-defined metadata: " << info;
+        const std::string& name = members[i];
 
-        if (!parameter[members[i]].asBool())
+        if (!parameter[name].isInt())
         {
-          LOG(ERROR) << "Not a number in this user-defined metadata: " << info;
+          LOG(ERROR) << "Not a number in this user-defined metadata: " << name;
           throw OrthancException(ErrorCode_BadParameterType);
         }
 
-        int metadata = parameter[members[i]].asInt();
+        int metadata = parameter[name].asInt();        
+
+        LOG(INFO) << "Registering user-defined metadata: " << name << " (index " 
+                  << metadata << ")";
 
         try
         {
-          RegisterUserMetadata(metadata, members[i]);
+          RegisterUserMetadata(metadata, name);
         }
         catch (OrthancException&)
         {
-          LOG(ERROR) << "Cannot register this user-defined metadata: " << info;
+          LOG(ERROR) << "Cannot register this user-defined metadata: " << name;
           throw;
         }
       }
@@ -286,24 +288,39 @@ namespace Orthanc
       Json::Value::Members members = parameter.getMemberNames();
       for (size_t i = 0; i < members.size(); i++)
       {
-        std::string info = "\"" + members[i] + "\" = " + parameter[members[i]].toStyledString();
-        LOG(INFO) << "Registering user-defined attachment type: " << info;
+        const std::string& name = members[i];
+        std::string mime = "application/octet-stream";
 
-        if (!parameter[members[i]].asBool())
+        const Json::Value& value = parameter[name];
+        int contentType;
+
+        if (value.isArray() &&
+            value.size() == 2 &&
+            value[0].isInt() &&
+            value[1].isString())
         {
-          LOG(ERROR) << "Not a number in this user-defined attachment type: " << info;
+          contentType = value[0].asInt();
+          mime = value[1].asString();
+        }
+        else if (value.isInt())
+        {
+          contentType = value.asInt();
+        }
+        else
+        {
+          LOG(ERROR) << "Not a number in this user-defined attachment type: " << name;
           throw OrthancException(ErrorCode_BadParameterType);
         }
 
-        int contentType = parameter[members[i]].asInt();
+        LOG(INFO) << "Registering user-defined attachment type: " << name << " (index " 
+                  << contentType << ") with MIME type \"" << mime << "\"";
 
         try
         {
-          RegisterUserContentType(contentType, members[i]);
+          RegisterUserContentType(contentType, name, mime);
         }
         catch (OrthancException&)
         {
-          LOG(ERROR) << "Cannot register this user-defined attachment type: " << info;
           throw;
         }
       }

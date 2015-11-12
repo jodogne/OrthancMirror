@@ -190,17 +190,19 @@
    **/
 
   // Dictionary of symbolic names for the user-defined metadata. Each
-  // entry must map a number between 1024 and 65535 to an unique
-  // string.
+  // entry must map an unique string to an unique number between 1024
+  // and 65535.
   "UserMetadata" : {
     // "Sample" : 1024
   },
 
   // Dictionary of symbolic names for the user-defined types of
-  // attached files. Each entry must map a number between 1024 and
-  // 65535 to an unique string.
+  // attached files. Each entry must map an unique string to an unique
+  // number between 1024 and 65535. Optionally, a second argument can
+  // provided to specify a MIME content type for the attachment.
   "UserContentType" : {
     // "sample" : 1024
+    // "sample2" : [ 1025, "application/pdf" ]
   },
 
   // Number of seconds without receiving any instance before a

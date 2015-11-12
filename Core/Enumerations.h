@@ -454,10 +454,6 @@ namespace Orthanc
   bool GetDicomEncoding(Encoding& encoding,
                         const char* specificCharacterSet);
 
-  const char* GetMimeType(FileContentType type);
-
-  const char* GetFileExtension(FileContentType type);
-
   ResourceType GetChildResourceType(ResourceType type);
 
   ResourceType GetParentResourceType(ResourceType type);

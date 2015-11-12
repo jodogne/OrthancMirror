@@ -10,6 +10,7 @@ Pending changes in the mainline
 * New URI "/tools/shutdown" to stop Orthanc from the REST API
 * New URIs for attachments: ".../compress", ".../uncompress" and ".../is-compressed"
 * New configuration option: "Dictionary" to declare custom DICOM tags
+* MIME content type can be associated to custom attachments (cf. "UserContentType")
 
 Plugins
 -------

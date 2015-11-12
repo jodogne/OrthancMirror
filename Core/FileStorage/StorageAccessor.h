@@ -51,7 +51,8 @@ namespace Orthanc
     IStorageArea&  area_;
 
     void SetupSender(BufferHttpSender& sender,
-                     const FileInfo& info);
+                     const FileInfo& info,
+                     const std::string& mime);
 
   public:
     StorageAccessor(IStorageArea& area) : area_(area)
@@ -85,9 +86,11 @@ namespace Orthanc
     }
 
     void AnswerFile(HttpOutput& output,
-                    const FileInfo& info);
+                    const FileInfo& info,
+                    const std::string& mime);
 
     void AnswerFile(RestApiOutput& output,
-                    const FileInfo& info);
+                    const FileInfo& info,
+                    const std::string& mime);
   };
 }
