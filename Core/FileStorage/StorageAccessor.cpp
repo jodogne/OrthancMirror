@@ -141,19 +141,38 @@ namespace Orthanc
 
 
   void StorageAccessor::SetupSender(BufferHttpSender& sender,
-                                    const FileInfo& info)
+                                    const FileInfo& info,
+                                    const std::string& mime)
   {
     area_.Read(sender.GetBuffer(), info.GetUuid(), info.GetContentType());
-    sender.SetContentType(GetMimeType(info.GetContentType()));
-    sender.SetContentFilename(info.GetUuid() + std::string(GetFileExtension(info.GetContentType())));
+    sender.SetContentType(mime);
+
+    const char* extension;
+    switch (info.GetContentType())
+    {
+      case FileContentType_Dicom:
+        extension = ".dcm";
+        break;
+
+      case FileContentType_DicomAsJson:
+        extension = ".json";
+        break;
+
+      default:
+        // Non-standard content type
+        extension = "";
+    }
+
+    sender.SetContentFilename(info.GetUuid() + std::string(extension));
   }
 
 
   void StorageAccessor::AnswerFile(HttpOutput& output,
-                                   const FileInfo& info)
+                                   const FileInfo& info,
+                                   const std::string& mime)
   {
     BufferHttpSender sender;
-    SetupSender(sender, info);
+    SetupSender(sender, info, mime);
   
     HttpStreamTranscoder transcoder(sender, info.GetCompressionType());
     output.Answer(transcoder);
@@ -161,10 +180,11 @@ namespace Orthanc
 
 
   void StorageAccessor::AnswerFile(RestApiOutput& output,
-                                   const FileInfo& info)
+                                   const FileInfo& info,
+                                   const std::string& mime)
   {
     BufferHttpSender sender;
-    SetupSender(sender, info);
+    SetupSender(sender, info, mime);
   
     HttpStreamTranscoder transcoder(sender, info.GetCompressionType());
     output.AnswerStream(transcoder);

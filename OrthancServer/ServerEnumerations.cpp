@@ -35,15 +35,19 @@
 
 #include "../Core/OrthancException.h"
 #include "../Core/EnumerationDictionary.h"
+#include "../Core/Logging.h"
 #include "../Core/Toolbox.h"
 
 #include <boost/thread.hpp>
 
 namespace Orthanc
 {
+  typedef std::map<FileContentType, std::string>  MimeTypes;
+
   static boost::mutex enumerationsMutex_;
   static Toolbox::EnumerationDictionary<MetadataType> dictMetadataType_;
   static Toolbox::EnumerationDictionary<FileContentType> dictContentType_;
+  static MimeTypes  mimeTypes_;
 
   void InitializeServerEnumerations()
   {
@@ -72,10 +76,26 @@ namespace Orthanc
     if (metadata < static_cast<int>(MetadataType_StartUser) ||
         metadata > static_cast<int>(MetadataType_EndUser))
     {
+      LOG(ERROR) << "A user content type must have index between "
+                 << static_cast<int>(MetadataType_StartUser) << " and "
+                 << static_cast<int>(MetadataType_EndUser) << ", but \""
+                 << name << "\" has index " << metadata;
+        
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    dictMetadataType_.Add(static_cast<MetadataType>(metadata), name);
+    MetadataType type = static_cast<MetadataType>(metadata);
+
+    if (dictMetadataType_.Contains(type))
+    {
+      LOG(ERROR) << "Cannot associate user content type \""
+                 << name << "\" with index " << metadata 
+                 << ", as this index is already used";
+        
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    dictMetadataType_.Add(type, name);
   }
 
   std::string EnumerationToString(MetadataType type)
@@ -93,17 +113,34 @@ namespace Orthanc
   }
 
   void RegisterUserContentType(int contentType,
-                               const std::string& name)
+                               const std::string& name,
+                               const std::string& mime)
   {
     boost::mutex::scoped_lock lock(enumerationsMutex_);
 
     if (contentType < static_cast<int>(FileContentType_StartUser) ||
         contentType > static_cast<int>(FileContentType_EndUser))
     {
+      LOG(ERROR) << "A user content type must have index between "
+                 << static_cast<int>(FileContentType_StartUser) << " and "
+                 << static_cast<int>(FileContentType_EndUser) << ", but \""
+                 << name << "\" has index " << contentType;
+        
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    dictContentType_.Add(static_cast<FileContentType>(contentType), name);
+    FileContentType type = static_cast<FileContentType>(contentType);
+    if (dictContentType_.Contains(type))
+    {
+      LOG(ERROR) << "Cannot associate user content type \""
+                 << name << "\" with index " << contentType 
+                 << ", as this index is already used";
+        
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    dictContentType_.Add(type, name);
+    mimeTypes_[type] = mime;
   }
 
   std::string EnumerationToString(FileContentType type)
@@ -112,6 +149,33 @@ namespace Orthanc
     // char*", as the result is not a static string
     boost::mutex::scoped_lock lock(enumerationsMutex_);
     return dictContentType_.Translate(type);
+  }
+
+  std::string GetFileContentMime(FileContentType type)
+  {
+    if (type >= FileContentType_StartUser &&
+        type <= FileContentType_EndUser)
+    {
+      boost::mutex::scoped_lock lock(enumerationsMutex_);
+      
+      MimeTypes::const_iterator it = mimeTypes_.find(type);
+      if (it != mimeTypes_.end())
+      {
+        return it->second;
+      }
+    }
+
+    switch (type)
+    {
+      case FileContentType_Dicom:
+        return "application/dicom";
+
+      case FileContentType_DicomAsJson:
+        return "application/json";
+
+      default:
+        return "application/octet-stream";
+    }
   }
 
   FileContentType StringToContentType(const std::string& str)

@@ -980,39 +980,6 @@ namespace Orthanc
   }
 
 
-  const char* GetMimeType(FileContentType type)
-  {
-    switch (type)
-    {
-      case FileContentType_Dicom:
-        return "application/dicom";
-
-      case FileContentType_DicomAsJson:
-        return "application/json";
-
-      default:
-        return "application/octet-stream";
-    }
-  }
-
-
-  const char* GetFileExtension(FileContentType type)
-  {
-    switch (type)
-    {
-      case FileContentType_Dicom:
-        return ".dcm";
-
-      case FileContentType_DicomAsJson:
-        return ".json";
-
-      default:
-        // Unknown file type
-        return "";
-    }
-  }
-
-
   ResourceType GetChildResourceType(ResourceType type)
   {
     switch (type)

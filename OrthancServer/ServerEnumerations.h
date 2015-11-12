@@ -198,11 +198,14 @@ namespace Orthanc
   std::string EnumerationToString(MetadataType type);
 
   void RegisterUserContentType(int contentType,
-                               const std::string& name);
+                               const std::string& name,
+                               const std::string& mime);
 
   FileContentType StringToContentType(const std::string& str);
 
   std::string EnumerationToString(FileContentType type);
+
+  std::string GetFileContentMime(FileContentType type);
 
   std::string GetBasePath(ResourceType type,
                           const std::string& publicId);
