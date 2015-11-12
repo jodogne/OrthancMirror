@@ -244,9 +244,11 @@ namespace Orthanc
   }                                 
 
 
-  static bool IsZip64Required(ServerIndex& index,
-                              const std::string& id)
+  static bool IsZip64Required(uint64_t uncompressedSize,
+                              unsigned int countInstances)
   {
+    static const uint64_t  SAFETY_MARGIN = 64 * MEGA_BYTES;
+
     /**
      * Determine whether ZIP64 is required. Original ZIP format can
      * store up to 2GB of data (some implementation supporting up to
@@ -254,14 +256,7 @@ namespace Orthanc
      * https://en.wikipedia.org/wiki/Zip_(file_format)#ZIP64
      **/
 
-    uint64_t uncompressedSize;
-    uint64_t compressedSize;
-    unsigned int countStudies;
-    unsigned int countSeries;
-    unsigned int countInstances;
-    index.GetStatistics(compressedSize, uncompressedSize, 
-                        countStudies, countSeries, countInstances, id);
-    const bool isZip64 = (uncompressedSize >= 2 * GIGA_BYTES ||
+    const bool isZip64 = (uncompressedSize >= 2 * GIGA_BYTES - SAFETY_MARGIN ||
                           countInstances >= 65535);
 
     LOG(INFO) << "Creating a ZIP file with " << countInstances << " files of size "
@@ -269,6 +264,22 @@ namespace Orthanc
               << (isZip64 ? "ZIP64" : "ZIP32") << " file format";
 
     return isZip64;
+  }
+
+
+  static bool IsZip64Required(ServerIndex& index,
+                              const std::string& id)
+  {
+    uint64_t uncompressedSize;
+    uint64_t compressedSize;
+    unsigned int countStudies;
+    unsigned int countSeries;
+    unsigned int countInstances;
+
+    index.GetStatistics(compressedSize, uncompressedSize, 
+                        countStudies, countSeries, countInstances, id);
+
+    return IsZip64Required(uncompressedSize, countInstances);
   }
                               
 
@@ -368,6 +379,290 @@ namespace Orthanc
   }
 
 
+
+
+  namespace
+  {
+    class Resource
+    {
+    private:
+      ResourceType   level_;
+      std::string    patient_;
+      std::string    study_;
+      std::string    series_;
+      std::string    instance_;
+
+      static void GoToParent(ServerIndex& index,
+                             std::string& current)
+      {
+        std::string tmp;
+
+        if (index.LookupParent(tmp, current))
+        {
+          current = tmp;
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+      }
+
+
+    public:
+      Resource(ServerIndex& index,
+               const std::string& publicId)
+      {
+        if (!index.LookupResourceType(level_, publicId))
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+
+        std::string current = publicId;;
+        switch (level_)  // Do not add "break" below!
+        {
+          case ResourceType_Instance:
+            instance_ = current;
+            GoToParent(index, current);
+            
+          case ResourceType_Series:
+            series_ = current;
+            GoToParent(index, current);
+
+          case ResourceType_Study:
+            study_ = current;
+            GoToParent(index, current);
+
+          case ResourceType_Patient:
+            patient_ = current;
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_InternalError);
+        }
+      }
+
+      ResourceType GetLevel() const
+      {
+        return level_;
+      }
+
+      const std::string& GetIdentifier(ResourceType level) const
+      {
+        // Some sanity check to ensure enumerations are not altered
+        assert(ResourceType_Patient < ResourceType_Study);
+        assert(ResourceType_Study < ResourceType_Series);
+        assert(ResourceType_Series < ResourceType_Instance);
+
+        if (level > level_)
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+
+        switch (level)
+        {
+          case ResourceType_Patient:
+            return patient_;
+
+          case ResourceType_Study:
+            return study_;
+
+          case ResourceType_Series:
+            return series_;
+
+          case ResourceType_Instance:
+            return instance_;
+
+          default:
+            throw OrthancException(ErrorCode_InternalError);
+        }
+      }
+    };
+
+
+    class ArchiveIndex
+    {
+    private:
+      typedef std::map<std::string,  ArchiveIndex*>   Resources;
+
+      ServerIndex&  index_;
+      ResourceType  level_;
+      Resources     resources_;
+
+      void AddResourceToExpand(const std::string& id)
+      {
+        resources_[id] = NULL;
+      }
+
+    public:
+      ArchiveIndex(ServerIndex& index,
+                   ResourceType level) :
+        index_(index),
+        level_(level)
+      {
+      }
+
+      ~ArchiveIndex()
+      {
+        for (Resources::iterator it = resources_.begin();
+             it != resources_.end(); ++it)
+        {
+          delete it->second;
+        }
+      }
+
+      void Add(const Resource& resource)
+      {
+        const std::string& id = resource.GetIdentifier(level_);
+        Resources::iterator previous = resources_.find(id);
+
+        if (resource.GetLevel() == level_)
+        {
+          // Mark this resource for further expansion
+          if (previous != resources_.end())
+          {
+            delete previous->second;
+          }
+
+          resources_[id] = NULL;
+        }
+        else if (previous == resources_.end())
+        {
+          // This is the first time we meet this resource
+          std::auto_ptr<ArchiveIndex> child(new ArchiveIndex(index_, GetChildResourceType(level_)));
+          child->Add(resource);
+          resources_[id] = child.release();
+        }
+        else if (previous->second != NULL)
+        {
+          previous->second->Add(resource);
+        }
+        else
+        {
+          // Nothing to do: This item is marked for further expansion
+        }
+      }
+
+
+      void Expand()
+      {
+        if (level_ == ResourceType_Instance)
+        {
+          return;
+        }
+
+        for (Resources::iterator it = resources_.begin();
+             it != resources_.end(); ++it)
+        {
+          if (it->second == NULL)
+          {
+            std::list<std::string> children;
+            index_.GetChildren(children, it->first);
+
+            std::auto_ptr<ArchiveIndex> child(new ArchiveIndex(index_, GetChildResourceType(level_)));
+
+            for (std::list<std::string>::const_iterator 
+                   it2 = children.begin(); it2 != children.end(); ++it2)
+            {
+              child->AddResourceToExpand(*it2);
+            }
+
+            it->second = child.release();
+          }
+
+          assert(it->second != NULL);
+          it->second->Expand();
+        }        
+      }
+
+
+      void ComputeStatistics(uint64_t& totalSize,
+                             unsigned int& totalInstances)
+      {
+        for (Resources::iterator it = resources_.begin();
+             it != resources_.end(); ++it)
+        {
+          if (level_ == ResourceType_Instance)
+          {
+            FileInfo dicom;
+            if (index_.LookupAttachment(dicom, it->first, FileContentType_Dicom))
+            {
+              totalSize += dicom.GetUncompressedSize();
+              totalInstances ++;
+            }
+          }
+          else
+          {
+            if (it->second == NULL)
+            {
+              // The method "Expand" was not called
+              throw OrthancException(ErrorCode_InternalError);
+            }
+
+            it->second->ComputeStatistics(totalSize, totalInstances);
+          }
+        }        
+      }
+
+
+      void Print(std::ostream& o,
+                 const std::string& indent = "") const
+      {
+        for (Resources::const_iterator it = resources_.begin();
+             it != resources_.end(); ++it)
+        {
+          o << indent << it->first << std::endl;
+          if (it->second == NULL)
+          {
+            if (level_ != ResourceType_Instance)
+            {
+              o << indent << "  *" << std::endl;
+            }
+          }
+          else
+          {
+            it->second->Print(o, indent + "  ");
+          }
+        }
+      }
+    };
+  }
+
+
+  static void CreateBatchArchive(RestApiPostCall& call)
+  {
+    ServerIndex& index = OrthancRestApi::GetIndex(call);
+
+    Json::Value resources;
+    if (call.ParseJsonRequest(resources) &&
+        resources.type() == Json::arrayValue)
+    {
+      ArchiveIndex archive(index, ResourceType_Patient);  // root
+
+      for (Json::Value::ArrayIndex i = 0; i < resources.size(); i++)
+      {
+        if (resources[i].type() != Json::stringValue)
+        {
+          return;   // Bad request
+        }
+
+        Resource resource(index, resources[i].asString());
+        archive.Add(resource);
+      }
+
+      archive.Expand();
+
+      archive.Print(std::cout);
+
+      uint64_t totalSize = 0;
+      unsigned int totalInstances = 0;
+      archive.ComputeStatistics(totalSize, totalInstances);
+
+      std::cout << totalSize << " " << totalInstances << std::endl;
+    }
+  }  
+
+
+
   void OrthancRestApi::RegisterArchive()
   {
     Register("/patients/{id}/archive", GetArchive<ResourceType_Patient>);
@@ -377,5 +672,7 @@ namespace Orthanc
     Register("/patients/{id}/media", GetMediaArchive);
     Register("/studies/{id}/media", GetMediaArchive);
     Register("/series/{id}/media", GetMediaArchive);
+
+    Register("/tools/archive", CreateBatchArchive);
   }
 }
