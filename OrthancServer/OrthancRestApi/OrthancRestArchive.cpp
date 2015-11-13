@@ -34,6 +34,7 @@
 #include "OrthancRestApi.h"
 
 #include "../DicomDirWriter.h"
+#include "../../Core/FileStorage/StorageAccessor.h"
 #include "../../Core/Compression/HierarchicalZipWriter.h"
 #include "../../Core/HttpServer/FilesystemHttpSender.h"
 #include "../../Core/Logging.h"
@@ -479,14 +480,44 @@ namespace Orthanc
     };
 
 
+    class IArchiveVisitor : public boost::noncopyable
+    {
+    public:
+      virtual ~IArchiveVisitor()
+      {
+      }
+
+      virtual void Open(ResourceType level,
+                        const std::string& publicId) = 0;
+
+      virtual void Close() = 0;
+
+      virtual void AddInstance(const std::string& instanceId,
+                               const FileInfo& dicom) = 0;
+    };
+
+
     class ArchiveIndex
     {
     private:
-      typedef std::map<std::string,  ArchiveIndex*>   Resources;
+      struct Instance
+      {
+        std::string  id_;
+        FileInfo     dicom_;
 
-      ServerIndex&  index_;
-      ResourceType  level_;
-      Resources     resources_;
+        Instance(const std::string& id,
+                 const FileInfo& dicom) : 
+          id_(id), dicom_(dicom)
+        {
+        }
+      };
+
+      typedef std::map<std::string, ArchiveIndex*>   Resources;
+
+      ServerIndex&           index_;
+      ResourceType           level_;
+      Resources              resources_;
+      std::vector<Instance>  instances_;
 
       void AddResourceToExpand(const std::string& id)
       {
@@ -547,82 +578,149 @@ namespace Orthanc
       {
         if (level_ == ResourceType_Instance)
         {
-          return;
+          // At the instance level, locate all the DICOM files
+          // associated with the instances
+          instances_.reserve(resources_.size());
+
+          for (Resources::iterator it = resources_.begin();
+               it != resources_.end(); ++it)
+          {
+            assert(it->second == NULL);
+
+            FileInfo tmp;
+            if (index_.LookupAttachment(tmp, it->first, FileContentType_Dicom))
+            {
+              instances_.push_back(Instance(it->first, tmp));
+            }
+          }
         }
-
-        for (Resources::iterator it = resources_.begin();
-             it != resources_.end(); ++it)
+        else
         {
-          if (it->second == NULL)
-          {
-            std::list<std::string> children;
-            index_.GetChildren(children, it->first);
-
-            std::auto_ptr<ArchiveIndex> child(new ArchiveIndex(index_, GetChildResourceType(level_)));
-
-            for (std::list<std::string>::const_iterator 
-                   it2 = children.begin(); it2 != children.end(); ++it2)
-            {
-              child->AddResourceToExpand(*it2);
-            }
-
-            it->second = child.release();
-          }
-
-          assert(it->second != NULL);
-          it->second->Expand();
-        }        
-      }
-
-
-      void ComputeStatistics(uint64_t& totalSize,
-                             unsigned int& totalInstances)
-      {
-        for (Resources::iterator it = resources_.begin();
-             it != resources_.end(); ++it)
-        {
-          if (level_ == ResourceType_Instance)
-          {
-            FileInfo dicom;
-            if (index_.LookupAttachment(dicom, it->first, FileContentType_Dicom))
-            {
-              totalSize += dicom.GetUncompressedSize();
-              totalInstances ++;
-            }
-          }
-          else
+          // At the patient, study or series level
+          for (Resources::iterator it = resources_.begin();
+               it != resources_.end(); ++it)
           {
             if (it->second == NULL)
             {
-              // The method "Expand" was not called
-              throw OrthancException(ErrorCode_InternalError);
+              // This is resource is marked for expansion
+              std::list<std::string> children;
+              index_.GetChildren(children, it->first);
+
+              std::auto_ptr<ArchiveIndex> child(new ArchiveIndex(index_, GetChildResourceType(level_)));
+
+              for (std::list<std::string>::const_iterator 
+                     it2 = children.begin(); it2 != children.end(); ++it2)
+              {
+                child->AddResourceToExpand(*it2);
+              }
+
+              it->second = child.release();
             }
 
-            it->second->ComputeStatistics(totalSize, totalInstances);
-          }
-        }        
+            assert(it->second != NULL);
+            it->second->Expand();
+          }        
+        }
       }
 
 
-      void Print(std::ostream& o,
-                 const std::string& indent = "") const
+      void Apply(IArchiveVisitor& visitor) const
       {
-        for (Resources::const_iterator it = resources_.begin();
-             it != resources_.end(); ++it)
+        if (level_ == ResourceType_Instance)
         {
-          o << indent << it->first << std::endl;
-          if (it->second == NULL)
+          for (size_t i = 0; i < instances_.size(); i++)
           {
-            if (level_ != ResourceType_Instance)
-            {
-              o << indent << "  *" << std::endl;
-            }
-          }
-          else
+            visitor.AddInstance(instances_[i].id_, instances_[i].dicom_);
+          }          
+        }
+        else
+        {
+          for (Resources::const_iterator it = resources_.begin();
+               it != resources_.end(); ++it)
           {
-            it->second->Print(o, indent + "  ");
+            assert(it->second != NULL);  // There must have been a call to "Expand()"
+            visitor.Open(level_, it->first);
+            it->second->Apply(visitor);
+            visitor.Close();
           }
         }
+      }
+    };
+
+
+    class StatisticsVisitor : public IArchiveVisitor
+    {
+    private:
+      uint64_t       size_;
+      unsigned int   instances_;
+      
+    public:
+      StatisticsVisitor() : size_(0), instances_(0)
+      {
+      }
+
+      uint64_t GetUncompressedSize() const
+      {
+        return size_;
+      }
+
+      unsigned int GetInstancesCount() const
+      {
+        return instances_;
+      }
+
+      virtual void Open(ResourceType level,
+                        const std::string& publicId)
+      {
+      }
+
+      virtual void Close()
+      {
+      }
+
+      virtual void AddInstance(const std::string& instanceId,
+                               const FileInfo& dicom)
+      {
+        instances_ ++;
+        size_ += dicom.GetUncompressedSize();
+      }
+    };
+
+
+    class PrintVisitor : public IArchiveVisitor
+    {
+    private:
+      std::ostream& out_;
+      std::string   indent_;
+
+    public:
+      PrintVisitor(std::ostream& out) : out_(out)
+      {
+      }
+
+      virtual void Open(ResourceType level,
+                        const std::string& publicId)
+      {
+        switch (level)
+        {
+          case ResourceType_Patient:  indent_ = "";       break;
+          case ResourceType_Study:    indent_ = "  ";     break;
+          case ResourceType_Series:   indent_ = "    ";   break;
+          default:
+            throw OrthancException(ErrorCode_InternalError);
+        }
+
+        out_ << indent_ << publicId << std::endl;
+      }
+
+      virtual void Close()
+      {
+      }
+
+      virtual void AddInstance(const std::string& instanceId,
+                               const FileInfo& dicom)
+      {
+        out_ << "      " << instanceId << std::endl;
       }
     };
   }
@@ -651,13 +749,13 @@ namespace Orthanc
 
       archive.Expand();
 
-      archive.Print(std::cout);
+      PrintVisitor v(std::cout);
+      archive.Apply(v);
 
-      uint64_t totalSize = 0;
-      unsigned int totalInstances = 0;
-      archive.ComputeStatistics(totalSize, totalInstances);
+      StatisticsVisitor s;
+      archive.Apply(s);
 
-      std::cout << totalSize << " " << totalInstances << std::endl;
+      std::cout << s.GetUncompressedSize() << " " << s.GetInstancesCount() << std::endl;
     }
   }  
 
