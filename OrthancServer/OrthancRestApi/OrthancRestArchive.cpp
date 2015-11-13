@@ -512,22 +512,34 @@ namespace Orthanc
         }
       };
 
+      // A "NULL" value for ArchiveIndex indicates a non-expanded node
       typedef std::map<std::string, ArchiveIndex*>   Resources;
 
-      ServerIndex&           index_;
-      ResourceType           level_;
-      Resources              resources_;
-      std::vector<Instance>  instances_;
+      ResourceType         level_;
+      Resources            resources_;   // Only at patient/study/series level
+      std::list<Instance>  instances_;   // Only at instance level
 
-      void AddResourceToExpand(const std::string& id)
+
+      void AddResourceToExpand(ServerIndex& index,
+                               const std::string& id)
       {
-        resources_[id] = NULL;
+        if (level_ == ResourceType_Instance)
+        {
+          FileInfo tmp;
+          if (index.LookupAttachment(tmp, id, FileContentType_Dicom))
+          {
+            instances_.push_back(Instance(id, tmp));
+          }
+        }
+        else
+        {
+          resources_[id] = NULL;
+        }
       }
 
+
     public:
-      ArchiveIndex(ServerIndex& index,
-                   ResourceType level) :
-        index_(index),
+      ArchiveIndex(ResourceType level) :
         level_(level)
       {
       }
@@ -541,12 +553,18 @@ namespace Orthanc
         }
       }
 
-      void Add(const ResourceIdentifiers& resource)
+
+      void Add(ServerIndex& index,
+               const ResourceIdentifiers& resource)
       {
         const std::string& id = resource.GetIdentifier(level_);
         Resources::iterator previous = resources_.find(id);
 
-        if (resource.GetLevel() == level_)
+        if (level_ == ResourceType_Instance)
+        {
+          AddResourceToExpand(index, id);
+        }
+        else if (resource.GetLevel() == level_)
         {
           // Mark this resource for further expansion
           if (previous != resources_.end())
@@ -559,13 +577,13 @@ namespace Orthanc
         else if (previous == resources_.end())
         {
           // This is the first time we meet this resource
-          std::auto_ptr<ArchiveIndex> child(new ArchiveIndex(index_, GetChildResourceType(level_)));
-          child->Add(resource);
+          std::auto_ptr<ArchiveIndex> child(new ArchiveIndex(GetChildResourceType(level_)));
+          child->Add(index, resource);
           resources_[id] = child.release();
         }
         else if (previous->second != NULL)
         {
-          previous->second->Add(resource);
+          previous->second->Add(index, resource);
         }
         else
         {
@@ -574,53 +592,37 @@ namespace Orthanc
       }
 
 
-      void Expand()
+      void Expand(ServerIndex& index)
       {
         if (level_ == ResourceType_Instance)
         {
-          // At the instance level, locate all the DICOM files
-          // associated with the instances
-          instances_.reserve(resources_.size());
-
-          for (Resources::iterator it = resources_.begin();
-               it != resources_.end(); ++it)
-          {
-            assert(it->second == NULL);
-
-            FileInfo tmp;
-            if (index_.LookupAttachment(tmp, it->first, FileContentType_Dicom))
-            {
-              instances_.push_back(Instance(it->first, tmp));
-            }
-          }
+          // Expanding an instance node makes no sense
+          return;
         }
-        else
+
+        for (Resources::iterator it = resources_.begin();
+             it != resources_.end(); ++it)
         {
-          // At the patient, study or series level
-          for (Resources::iterator it = resources_.begin();
-               it != resources_.end(); ++it)
+          if (it->second == NULL)
           {
-            if (it->second == NULL)
+            // This is resource is marked for expansion
+            std::list<std::string> children;
+            index.GetChildren(children, it->first);
+
+            std::auto_ptr<ArchiveIndex> child(new ArchiveIndex(GetChildResourceType(level_)));
+
+            for (std::list<std::string>::const_iterator 
+                   it2 = children.begin(); it2 != children.end(); ++it2)
             {
-              // This is resource is marked for expansion
-              std::list<std::string> children;
-              index_.GetChildren(children, it->first);
-
-              std::auto_ptr<ArchiveIndex> child(new ArchiveIndex(index_, GetChildResourceType(level_)));
-
-              for (std::list<std::string>::const_iterator 
-                     it2 = children.begin(); it2 != children.end(); ++it2)
-              {
-                child->AddResourceToExpand(*it2);
-              }
-
-              it->second = child.release();
+              child->AddResourceToExpand(index, *it2);
             }
 
-            assert(it->second != NULL);
-            it->second->Expand();
-          }        
-        }
+            it->second = child.release();
+          }
+
+          assert(it->second != NULL);
+          it->second->Expand(index);
+        }        
       }
 
 
@@ -628,9 +630,10 @@ namespace Orthanc
       {
         if (level_ == ResourceType_Instance)
         {
-          for (size_t i = 0; i < instances_.size(); i++)
+          for (std::list<Instance>::const_iterator 
+                 it = instances_.begin(); it != instances_.end(); ++it)
           {
-            visitor.AddInstance(instances_[i].id_, instances_[i].dicom_);
+            visitor.AddInstance(it->id_, it->dicom_);
           }          
         }
         else
@@ -734,7 +737,7 @@ namespace Orthanc
     if (call.ParseJsonRequest(resources) &&
         resources.type() == Json::arrayValue)
     {
-      ArchiveIndex archive(index, ResourceType_Patient);  // root
+      ArchiveIndex archive(ResourceType_Patient);  // root
 
       for (Json::Value::ArrayIndex i = 0; i < resources.size(); i++)
       {
@@ -744,10 +747,10 @@ namespace Orthanc
         }
 
         ResourceIdentifiers resource(index, resources[i].asString());
-        archive.Add(resource);
+        archive.Add(index, resource);
       }
 
-      archive.Expand();
+      archive.Expand(index);
 
       PrintVisitor v(std::cout);
       archive.Apply(v);
