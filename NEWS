@@ -11,6 +11,8 @@ Pending changes in the mainline
 * New URIs for attachments: ".../compress", ".../uncompress" and ".../is-compressed"
 * New configuration option: "Dictionary" to declare custom DICOM tags
 * MIME content type can be associated to custom attachments (cf. "UserContentType")
+* New URIs "/tools/create-archive" and "/tools/create-media" to create ZIP/DICOMDIR
+  from a set of resources
 
 Plugins
 -------
