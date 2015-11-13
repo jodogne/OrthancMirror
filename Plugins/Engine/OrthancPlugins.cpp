@@ -819,6 +819,36 @@ namespace Orthanc
   }
 
 
+  void OrthancPlugins::RestApiGet2(const void* parameters)
+  {
+    const _OrthancPluginRestApiGet2& p = 
+      *reinterpret_cast<const _OrthancPluginRestApiGet2*>(parameters);
+        
+    LOG(INFO) << "Plugin making REST GET call on URI " << p.uri
+              << (p.afterPlugins ? " (after plugins)" : " (built-in API)");
+
+    IHttpHandler::Arguments headers;
+
+    for (uint32_t i = 0; i < p.headersCount; i++)
+    {
+      headers[p.headersKeys[i]] = p.headersValues[i];
+    }
+
+    CheckContextAvailable();
+    IHttpHandler& handler = pimpl_->context_->GetHttpHandler().RestrictToOrthancRestApi(!p.afterPlugins);
+
+    std::string result;
+    if (HttpToolbox::SimpleGet(result, handler, RequestOrigin_Plugins, p.uri, headers))
+    {
+      CopyToMemoryBuffer(*p.target, result);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadRequest);
+    }
+  }
+
+
   void OrthancPlugins::RestApiPostPut(bool isPost, 
                                       const void* parameters,
                                       bool afterPlugins)
@@ -1393,6 +1423,10 @@ namespace Orthanc
 
       case _OrthancPluginService_RestApiGetAfterPlugins:
         RestApiGet(parameters, true);
+        return true;
+
+      case _OrthancPluginService_RestApiGet2:
+        RestApiGet2(parameters);
         return true;
 
       case _OrthancPluginService_RestApiPost:

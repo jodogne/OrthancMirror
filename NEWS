@@ -19,8 +19,11 @@ Plugins
 
 * New function "OrthancPluginRegisterErrorCode()" to declare custom error codes
 * New function "OrthancPluginRegisterDictionaryTag()" to declare custom DICOM tags
+* New function "OrthancPluginRestApiGet2()" to provide HTTP headers when calling Orthanc API
 * New "OrthancStarted", "OrthancStopped", "UpdatedAttachment" 
   and "UpdatedMetadata" events in change callbacks
+* "/system" URI gives information about the plugins used for storage area and DB back-end
+* Plugin callbacks should now return explicit "OrthancPluginErrorCode" instead of integers
 
 Lua
 ---
@@ -33,8 +36,6 @@ Maintenance
 * Full refactoring of the searching features
 * C-Move SCP for studies using AccessionNumber tag
 * Fix issue 4 (C-Store Association not renegotiated on Specific-to-specific transfer syntax change)
-* "/system" URI gives information about the plugins used for storage area and DB back-end
-* Plugin callbacks should now return explicit "OrthancPluginErrorCode" instead of integers
 * "/tools/create-dicom" can create tags with unknown VR
 * "--logdir" flag creates a single log file instead of 3 separate files for errors/warnings/infos
 * "--errors" flag lists the error codes that could be returned by Orthanc

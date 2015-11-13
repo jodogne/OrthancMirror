@@ -201,10 +201,9 @@ namespace Orthanc
   bool HttpToolbox::SimpleGet(std::string& result,
                               IHttpHandler& handler,
                               RequestOrigin origin,
-                              const std::string& uri)
+                              const std::string& uri,
+                              const IHttpHandler::Arguments& httpHeaders)
   {
-    IHttpHandler::Arguments headers;  // No HTTP header
-
     UriComponents curi;
     IHttpHandler::GetArguments getArguments;
     ParseGetQuery(curi, getArguments, uri.c_str());
@@ -213,7 +212,7 @@ namespace Orthanc
     HttpOutput http(stream, false /* no keep alive */);
 
     if (handler.Handle(http, origin, LOCALHOST, "", HttpMethod_Get, curi, 
-                       headers, getArguments, NULL /* no body for GET */, 0))
+                       httpHeaders, getArguments, NULL /* no body for GET */, 0))
     {
       stream.GetOutput(result);
       return true;
@@ -222,6 +221,16 @@ namespace Orthanc
     {
       return false;
     }
+  }
+
+
+  bool HttpToolbox::SimpleGet(std::string& result,
+                              IHttpHandler& handler,
+                              RequestOrigin origin,
+                              const std::string& uri)
+  {
+    IHttpHandler::Arguments headers;  // No HTTP header
+    return SimpleGet(result, handler, origin, uri, headers);
   }
 
 

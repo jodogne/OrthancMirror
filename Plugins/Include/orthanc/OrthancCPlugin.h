@@ -428,6 +428,7 @@ extern "C"
     _OrthancPluginService_RestApiDeleteAfterPlugins = 3012,
     _OrthancPluginService_RestApiPutAfterPlugins = 3013,
     _OrthancPluginService_ReconstructMainDicomTags = 3014,
+    _OrthancPluginService_RestApiGet2 = 3015,
 
     /* Access to DICOM instances */
     _OrthancPluginService_GetInstanceRemoteAet = 4000,
@@ -3973,6 +3974,55 @@ extern "C"
     }
   }
 
+
+  typedef struct
+  {
+    OrthancPluginMemoryBuffer*  target;
+    const char*                 uri;
+    uint32_t                    headersCount;
+    const char* const*          headersKeys;
+    const char* const*          headersValues;
+    int32_t                     afterPlugins;
+  } _OrthancPluginRestApiGet2;
+
+  /**
+   * @brief Make a GET call to the Orthanc REST API, with custom HTTP headers.
+   * 
+   * Make a GET call to the Orthanc REST API with extended
+   * parameters. The result to the query is stored into a newly
+   * allocated memory buffer.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target The target memory buffer.
+   * @param uri The URI in the built-in Orthanc API.
+   * @param headersCount The number of HTTP headers.
+   * @param headersKeys Array containing the keys of the HTTP headers.
+   * @param headersValues Array containing the values of the HTTP headers.
+   * @param afterPlugins If 0, the built-in API of Orthanc is used.
+   * If 1, the API is tainted by the plugins.
+   * @return 0 if success, or the error code if failure.
+   * @see OrthancPluginRestApiGet, OrthancPluginRestApiGetAfterPlugins
+   * @ingroup Orthanc
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiGet2(
+    OrthancPluginContext*       context,
+    OrthancPluginMemoryBuffer*  target,
+    const char*                 uri,
+    uint32_t                    headersCount,
+    const char* const*          headersKeys,
+    const char* const*          headersValues,
+    int32_t                     afterPlugins)
+  {
+    _OrthancPluginRestApiGet2 params;
+    params.target = target;
+    params.uri = uri;
+    params.headersCount = headersCount;
+    params.headersKeys = headersKeys;
+    params.headersValues = headersValues;
+    params.afterPlugins = afterPlugins;
+
+    return context->InvokeService(context, _OrthancPluginService_RestApiGet2, &params);
+  }
 
 #ifdef  __cplusplus
 }
