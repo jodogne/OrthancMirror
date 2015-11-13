@@ -384,7 +384,7 @@ namespace Orthanc
 
   namespace
   {
-    class Resource
+    class ResourceIdentifiers
     {
     private:
       ResourceType   level_;
@@ -410,8 +410,8 @@ namespace Orthanc
 
 
     public:
-      Resource(ServerIndex& index,
-               const std::string& publicId)
+      ResourceIdentifiers(ServerIndex& index,
+                          const std::string& publicId)
       {
         if (!index.LookupResourceType(level_, publicId))
         {
@@ -541,7 +541,7 @@ namespace Orthanc
         }
       }
 
-      void Add(const Resource& resource)
+      void Add(const ResourceIdentifiers& resource)
       {
         const std::string& id = resource.GetIdentifier(level_);
         Resources::iterator previous = resources_.find(id);
@@ -743,7 +743,7 @@ namespace Orthanc
           return;   // Bad request
         }
 
-        Resource resource(index, resources[i].asString());
+        ResourceIdentifiers resource(index, resources[i].asString());
         archive.Add(resource);
       }
 
