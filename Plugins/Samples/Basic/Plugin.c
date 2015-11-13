@@ -194,9 +194,7 @@ ORTHANC_PLUGINS_API int32_t Callback5(OrthancPluginRestOutput* output,
   }
   else
   {
-    printf("ICI1\n");
     error = OrthancPluginRestApiGetAfterPlugins(context, &tmp, request->groups[1]);
-    printf("ICI2\n");
   }
 
   if (error)

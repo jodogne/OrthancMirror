@@ -65,6 +65,12 @@ namespace Orthanc
                           RequestOrigin origin,
                           const std::string& uri);
 
+    static bool SimpleGet(std::string& result,
+                          IHttpHandler& handler,
+                          RequestOrigin origin,
+                          const std::string& uri,
+                          const IHttpHandler::Arguments& httpHeaders);
+
     static bool SimplePost(std::string& result,
                            IHttpHandler& handler,
                            RequestOrigin origin,
