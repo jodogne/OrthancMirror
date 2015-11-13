@@ -201,6 +201,9 @@ namespace Orthanc
                   FileContentType content,
                   bool uncompressIfNeeded = true);
 
+    void ReadFile(std::string& result,
+                  const FileInfo& file);
+
     void SetStoreMD5ForAttachments(bool storeMD5);
 
     bool IsStoreMD5ForAttachments() const

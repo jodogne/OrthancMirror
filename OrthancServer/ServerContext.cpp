@@ -407,6 +407,14 @@ namespace Orthanc
   }
 
 
+  void ServerContext::ReadFile(std::string& result,
+                               const FileInfo& file)
+  {
+    StorageAccessor accessor(area_);
+    accessor.Read(result, file);
+  }
+
+
   IDynamicObject* ServerContext::DicomCacheProvider::Provide(const std::string& instancePublicId)
   {
     std::string content;
