@@ -151,6 +151,9 @@ namespace Orthanc
       case ErrorCode_EmptyRequest:
         return "The request is empty";
 
+      case ErrorCode_NotAcceptable:
+        return "Cannot send a response which is acceptable according to the Accept HTTP header";
+
       case ErrorCode_SQLiteNotOpened:
         return "SQLite: The database is not opened";
 
@@ -1130,6 +1133,9 @@ namespace Orthanc
 
       case ErrorCode_Unauthorized:
         return HttpStatus_401_Unauthorized;
+
+      case ErrorCode_NotAcceptable:
+        return HttpStatus_406_NotAcceptable;
 
       default:
         return HttpStatus_500_InternalServerError;

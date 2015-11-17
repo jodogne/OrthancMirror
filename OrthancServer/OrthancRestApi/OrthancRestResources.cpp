@@ -259,6 +259,32 @@ namespace Orthanc
   }
 
 
+  static void AnswerImage(RestApiGetCall& call,
+                          ParsedDicomFile& dicom,
+                          unsigned int frame,
+                          ImageExtractionMode mode)
+  {
+    typedef std::vector<std::string>  MediaRanges;
+
+    // Get the HTTP "Accept" header, if any
+    std::string accept = call.GetHttpHeader("accept", "*/*");
+
+    MediaRanges mediaRanges;
+    Toolbox::TokenizeString(mediaRanges, accept, ',');
+
+    for (MediaRanges::const_reverse_iterator it = mediaRanges.rbegin();
+         it != mediaRanges.rend(); ++it)
+    {
+    }
+
+    throw OrthancException(ErrorCode_NotAcceptable);
+
+    std::string image;
+    dicom.ExtractPngImage(image, frame, mode);
+    call.GetOutput().AnswerBuffer(image, "image/png");
+  }
+
+
   template <enum ImageExtractionMode mode>
   static void GetImage(RestApiGetCall& call)
   {
@@ -277,15 +303,14 @@ namespace Orthanc
     }
 
     std::string publicId = call.GetUriComponent("id", "");
-    std::string dicomContent, png;
+    std::string dicomContent;
     context.ReadFile(dicomContent, publicId, FileContentType_Dicom);
 
     ParsedDicomFile dicom(dicomContent);
 
     try
     {
-      dicom.ExtractPngImage(png, frame, mode);
-      call.GetOutput().AnswerBuffer(png, "image/png");
+      AnswerImage(call, dicom, frame, mode);
     }
     catch (OrthancException& e)
     {
