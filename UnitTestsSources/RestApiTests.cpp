@@ -34,6 +34,8 @@
 #include "gtest/gtest.h"
 
 #include <ctype.h>
+#include <boost/lexical_cast.hpp>
+#include <algorithm>
 
 #include "../Core/ChunkedBuffer.h"
 #include "../Core/HttpClient.h"
@@ -334,4 +336,403 @@ TEST(RestApi, RestApiHierarchy)
   ASSERT_EQ(testValue, 3);
   ASSERT_TRUE(HandleGet(root, "/hello2/a/b"));
   ASSERT_EQ(testValue, 4);
+}
+
+
+
+
+namespace Orthanc
+{
+  class AcceptMediaDispatcher : public boost::noncopyable
+  {
+  public:
+    typedef std::map<std::string, std::string>  HttpHeaders;
+
+    class IHandler : public boost::noncopyable
+    {
+    public:
+      virtual ~IHandler()
+      {
+      }
+
+      virtual void Handle(const std::string& type,
+                          const std::string& subtype,
+                          float quality /* between 0 and 1 */) = 0;
+    };
+
+  private:
+    struct Handler
+    {
+      std::string  type_;
+      std::string  subtype_;
+      IHandler&    handler_;
+
+      Handler(const std::string& type,
+              const std::string& subtype,
+              IHandler& handler) :
+        type_(type),
+        subtype_(subtype),
+        handler_(handler)
+      {
+      }
+
+      bool IsMatch(const std::string& type,
+                   const std::string& subtype) const
+      {
+        if (type == "*" && subtype == "*")
+        {
+          return true;
+        }
+        
+        if (subtype == "*" && type == type_)
+        {
+          return true;
+        }
+
+        return type == type_ && subtype == subtype_;
+      }
+    };
+
+
+    struct Reference : public boost::noncopyable
+    {
+      const Handler&  handler_;
+      uint8_t         level_;
+      float           quality_;
+      size_t          specificity_;   // Number of arguments
+
+      Reference(const Handler& handler,
+                const std::string& type,
+                const std::string& subtype,
+                float quality,
+                size_t specificity) :
+        handler_(handler),
+        quality_(quality),
+        specificity_(specificity)
+      {
+        if (type == "*" && subtype == "*")
+        {
+          level_ = 0;
+        }
+        else if (subtype == "*")
+        {
+          level_ = 1;
+        }
+        else
+        {
+          level_ = 2;
+        }
+      }
+      
+      bool operator< (const Reference& other) const
+      {
+        if (level_ < other.level_)
+        {
+          return true;
+        }
+
+        if (level_ > other.level_)
+        {
+          return false;
+        }
+
+        return specificity_ < other.specificity_;
+      }
+
+      void Call() const
+      {
+        handler_.handler_.Handle(handler_.type_, handler_.subtype_, quality_);
+      }
+    };
+
+
+    typedef std::vector<std::string>  Tokens;
+    typedef std::list<Handler>   Handlers;
+
+    Handlers  handlers_;
+
+
+    static bool SplitPair(std::string& first /* out */,
+                          std::string& second /* out */,
+                          const std::string& source,
+                          char separator)
+    {
+      size_t pos = source.find(separator);
+
+      if (pos == std::string::npos)
+      {
+        return false;
+      }
+      else
+      {
+        first = Toolbox::StripSpaces(source.substr(0, pos));
+        second = Toolbox::StripSpaces(source.substr(pos + 1));
+        return true;      
+      }
+    }
+
+
+    static void GetQualityAndSpecificity(float& quality /* out */,
+                                         size_t& specificity /* out */,
+                                         const Tokens& parameters)
+    {
+      assert(!parameters.empty());
+
+      quality = 1.0f;
+      specificity = parameters.size() - 1;
+
+      for (size_t i = 1; i < parameters.size(); i++)
+      {
+        std::string key, value;
+        if (SplitPair(key, value, parameters[i], '=') &&
+            key == "q")
+        {
+          bool ok = false;
+
+          try
+          {
+            quality = boost::lexical_cast<float>(value);
+            ok = (quality >= 0.0f && quality <= 1.0f);
+          }
+          catch (boost::bad_lexical_cast&)
+          {
+          }
+
+          if (ok)
+          {
+            assert(parameters.size() >= 2);
+            specificity = parameters.size() - 2;
+            return;
+          }
+          else
+          {
+            LOG(ERROR) << "Quality parameter out of range in a HTTP request (must be between 0 and 1): " << value;
+            throw OrthancException(ErrorCode_ParameterOutOfRange);
+          }
+        }
+      }
+    }
+
+
+    static void SelectBestMatch(std::auto_ptr<Reference>& best,
+                                const Handler& handler,
+                                const std::string& type,
+                                const std::string& subtype,
+                                float quality,
+                                size_t specificity)
+    {
+      std::auto_ptr<Reference> match(new Reference(handler, type, subtype, quality, specificity));
+
+      if (best.get() == NULL ||
+          *best < *match)
+      {
+        best = match;
+      }
+    }
+
+
+  public:
+    void Register(const std::string& mime,
+                  IHandler& handler)
+    {
+      std::string type, subtype;
+
+      if (SplitPair(type, subtype, mime, '/') &&
+          type != "*" &&
+          subtype != "*")
+      {
+        handlers_.push_back(Handler(type, subtype, handler));
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
+    
+    bool Apply(const HttpHeaders& headers)
+    {
+      HttpHeaders::const_iterator accept = headers.find("accept");
+      if (accept != headers.end())
+      {
+        return Apply(accept->second);
+      }
+      else
+      {
+        return Apply("*/*");
+      }
+    }
+
+
+    bool Apply(const std::string& accept)
+    {
+      // http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.1
+
+      Tokens mediaRanges;
+      Toolbox::TokenizeString(mediaRanges, accept, ',');
+
+      std::auto_ptr<Reference> bestMatch;
+
+      for (Tokens::const_reverse_iterator it = mediaRanges.rbegin();
+           it != mediaRanges.rend(); ++it)
+      {
+        Tokens parameters;
+        Toolbox::TokenizeString(parameters, *it, ';');
+
+        if (parameters.size() > 0)
+        {
+          float quality;
+          size_t specificity;
+          GetQualityAndSpecificity(quality, specificity, parameters);
+
+          std::string type, subtype;
+          if (SplitPair(type, subtype, parameters[0], '/'))
+          {
+            for (Handlers::const_iterator it2 = handlers_.begin();
+                 it2 != handlers_.end(); ++it2)
+            {
+              if (it2->IsMatch(type, subtype))
+              {
+                SelectBestMatch(bestMatch, *it2, type, subtype, quality, specificity);
+              }
+            }
+          }
+        }
+      }
+
+      if (bestMatch.get() == NULL)  // No match was found
+      {
+        return false;
+      }
+      else
+      {
+        bestMatch->Call();
+        return true;
+      }
+    }
+  };
+}
+
+
+
+namespace
+{
+  class AcceptHandler : public Orthanc::AcceptMediaDispatcher::IHandler
+  {
+  private:
+    std::string type_;
+    std::string subtype_;
+    float quality_;
+
+  public:
+    AcceptHandler()
+    {
+      Reset();
+    }
+
+    void Reset()
+    {
+      Handle("nope", "nope", 0.0f);
+    }
+
+    const std::string& GetType() const
+    {
+      return type_;
+    }
+
+    const std::string& GetSubType() const
+    {
+      return subtype_;
+    }
+
+    float GetQuality() const
+    {
+      return quality_;
+    }
+
+    virtual void Handle(const std::string& type,
+                        const std::string& subtype,
+                        float quality /* between 0 and 1 */)
+    {
+      type_ = type;
+      subtype_ = subtype;
+      quality_ = quality;
+    }
+  };
+}
+
+
+TEST(RestApi, AcceptMediaDispatcher)
+{
+  // Reference: http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.1
+
+  AcceptHandler h;
+
+  {
+    Orthanc::AcceptMediaDispatcher d;
+    d.Register("audio/mp3", h);
+    d.Register("audio/basic", h);
+
+    ASSERT_TRUE(d.Apply("audio/*; q=0.2, audio/basic"));
+    ASSERT_EQ("audio", h.GetType());
+    ASSERT_EQ("basic", h.GetSubType());
+    ASSERT_FLOAT_EQ(1.0f, h.GetQuality());
+
+    ASSERT_TRUE(d.Apply("audio/*; q=0.2, audio/nope"));
+    ASSERT_EQ("audio", h.GetType());
+    ASSERT_EQ("mp3", h.GetSubType());
+    ASSERT_FLOAT_EQ(0.2f, h.GetQuality());
+    
+    ASSERT_FALSE(d.Apply("application/*; q=0.2, application/pdf"));
+    
+    ASSERT_TRUE(d.Apply("*/*; application/*; q=0.2, application/pdf"));
+    ASSERT_EQ("audio", h.GetType());
+  }
+
+  // "This would be interpreted as "text/html and text/x-c are the
+  // preferred media types, but if they do not exist, then send the
+  // text/x-dvi entity, and if that does not exist, send the
+  // text/plain entity.""
+  const std::string T1 = "text/plain; q=0.5, text/html, text/x-dvi; q=0.8, text/x-c";
+  
+  {
+    Orthanc::AcceptMediaDispatcher d;
+    d.Register("text/plain", h);
+    //d.Register("text/x-dvi", h);
+    d.Register("text/html", h);
+    ASSERT_TRUE(d.Apply(T1));
+    ASSERT_EQ("text", h.GetType());
+    ASSERT_EQ("html", h.GetSubType());
+    ASSERT_EQ(1.0f, h.GetQuality());
+  }
+  
+  {
+    Orthanc::AcceptMediaDispatcher d;
+    d.Register("text/plain", h);
+    //d.Register("text/x-dvi", h);
+    d.Register("text/x-c", h);
+    ASSERT_TRUE(d.Apply(T1));
+    ASSERT_EQ("text", h.GetType());
+    ASSERT_EQ("x-c", h.GetSubType());
+    ASSERT_EQ(1.0f, h.GetQuality());
+  }
+  
+  {
+    Orthanc::AcceptMediaDispatcher d;
+    d.Register("text/plain", h);
+    d.Register("text/x-dvi", h);
+    ASSERT_TRUE(d.Apply(T1));
+    ASSERT_EQ("text", h.GetType());
+    ASSERT_EQ("x-dvi", h.GetSubType());
+    ASSERT_EQ(0.8f, h.GetQuality());
+  }
+  
+  {
+    Orthanc::AcceptMediaDispatcher d;
+    d.Register("text/plain", h);
+    ASSERT_TRUE(d.Apply(T1));
+    ASSERT_EQ("text", h.GetType());
+    ASSERT_EQ("plain", h.GetSubType());
+    ASSERT_EQ(0.5f, h.GetQuality());
+  }
 }

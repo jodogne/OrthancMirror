@@ -84,14 +84,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
 #include "Internals/DicomImageDecoder.h"
-#include "../Core/Logging.h"
-#include "../Core/Toolbox.h"
-#include "../Core/OrthancException.h"
-#include "../Core/Images/ImageBuffer.h"
-#include "../Core/Images/PngWriter.h"
-#include "../Core/Uuid.h"
 #include "../Core/DicomFormat/DicomIntegerPixelAccessor.h"
+#include "../Core/Images/ImageBuffer.h"
+#include "../Core/Images/JpegWriter.h"
+#include "../Core/Images/JpegReader.h"
 #include "../Core/Images/PngReader.h"
+#include "../Core/Images/PngWriter.h"
+#include "../Core/Logging.h"
+#include "../Core/OrthancException.h"
+#include "../Core/Toolbox.h"
+#include "../Core/Uuid.h"
 
 #include <list>
 #include <limits>
@@ -796,36 +798,6 @@ namespace Orthanc
   }
 
 
-  template <typename T>
-  static void ExtractPngImageTruncate(std::string& result,
-                                      DicomIntegerPixelAccessor& accessor,
-                                      PixelFormat format)
-  {
-    assert(accessor.GetInformation().GetChannelCount() == 1);
-
-    PngWriter w;
-
-    std::vector<T> image(accessor.GetInformation().GetWidth() * accessor.GetInformation().GetHeight(), 0);
-    T* pixel = &image[0];
-    for (unsigned int y = 0; y < accessor.GetInformation().GetHeight(); y++)
-    {
-      for (unsigned int x = 0; x < accessor.GetInformation().GetWidth(); x++, pixel++)
-      {
-        int32_t v = accessor.GetValue(x, y);
-        if (v < static_cast<int32_t>(std::numeric_limits<T>::min()))
-          *pixel = std::numeric_limits<T>::min();
-        else if (v > static_cast<int32_t>(std::numeric_limits<T>::max()))
-          *pixel = std::numeric_limits<T>::max();
-        else
-          *pixel = static_cast<T>(v);
-      }
-    }
-
-    w.WriteToMemory(result, accessor.GetInformation().GetWidth(), accessor.GetInformation().GetHeight(),
-                    accessor.GetInformation().GetWidth() * sizeof(T), format, &image[0]);
-  }
-
-
   void ParsedDicomFile::SaveToMemoryBuffer(std::string& buffer)
   {
     FromDcmtkBridge::SaveToMemoryBuffer(buffer, *pimpl_->file_->getDataset());
@@ -903,7 +875,8 @@ namespace Orthanc
     Toolbox::DecodeDataUriScheme(mime, content, dataUriScheme);
     Toolbox::ToLowerCase(mime);
 
-    if (mime == "image/png")
+    if (mime == "image/png" ||
+        mime == "image/jpeg")
     {
       EmbedImage(mime, content);
     }
@@ -925,6 +898,12 @@ namespace Orthanc
     if (mime == "image/png")
     {
       PngReader reader;
+      reader.ReadFromMemory(content);
+      EmbedImage(reader);
+    }
+    else if (mime == "image/jpeg")
+    {
+      JpegReader reader;
       reader.ReadFromMemory(content);
       EmbedImage(reader);
     }
@@ -1096,6 +1075,27 @@ namespace Orthanc
 
     ImageAccessor accessor(buffer.GetConstAccessor());
     PngWriter writer;
+    writer.WriteToMemory(result, accessor);
+  }
+
+
+  void ParsedDicomFile::ExtractJpegImage(std::string& result,
+                                         unsigned int frame,
+                                         ImageExtractionMode mode,
+                                         uint8_t quality)
+  {
+    if (mode != ImageExtractionMode_UInt8 &&
+        mode != ImageExtractionMode_Preview)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    ImageBuffer buffer;
+    ExtractImage(buffer, frame, mode);
+
+    ImageAccessor accessor(buffer.GetConstAccessor());
+    JpegWriter writer;
+    writer.SetQuality(quality);
     writer.WriteToMemory(result, accessor);
   }
 

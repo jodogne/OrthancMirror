@@ -129,6 +129,11 @@ namespace Orthanc
                          unsigned int frame,
                          ImageExtractionMode mode);
 
+    void ExtractJpegImage(std::string& result,
+                          unsigned int frame,
+                          ImageExtractionMode mode,
+                          uint8_t quality);
+
     Encoding GetEncoding() const;
 
     void SetEncoding(Encoding encoding);
