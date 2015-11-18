@@ -39,6 +39,9 @@
 #include "../Core/Images/ImageBuffer.h"
 #include "../Core/IDynamicObject.h"
 
+class DcmDataset;
+class DcmFileFormat;
+
 namespace Orthanc
 {
   class ParsedDicomFile : public IDynamicObject
@@ -68,9 +71,13 @@ namespace Orthanc
 
     ParsedDicomFile(const std::string& content);
 
+    ParsedDicomFile(DcmDataset& dicom);
+
+    ParsedDicomFile(DcmFileFormat& dicom);
+
     ~ParsedDicomFile();
 
-    void* GetDcmtkObject();
+    DcmFileFormat& GetDcmtkObject();
 
     ParsedDicomFile* Clone();
 

@@ -133,10 +133,9 @@ namespace Orthanc
           {
             if (data.worklistHandler_ != NULL)
             {
-              // TODO
-              /*std::auto_ptr<ParsedDicomFile> query(ParsedDicomFile::CreateFromDcmtkDataset(requestIdentifiers));
-              DicomWorklistAnswers a;
-              data.worklistHandler_->Handle(a, *query, *data.remoteIp_, *data.remoteAet_);*/
+              ParsedDicomFile query(*requestIdentifiers);
+              data.noCroppingOfResults_ = data.worklistHandler_->Handle(data.answers_, query,
+                                                                        *data.remoteIp_, *data.remoteAet_);
               ok = true;
             }
             else
@@ -188,11 +187,10 @@ namespace Orthanc
         // There are pending results that are still to be sent
         response->DimseStatus = STATUS_Pending;
 
-        void* obj = data.answers_.GetAnswer(responseCount - 1).GetDcmtkObject();
-        DcmFileFormat* fileFormat = static_cast<DcmFileFormat*>(obj);
-        assert(fileFormat != NULL);
+        DcmFileFormat& fileFormat = data.answers_.GetAnswer(responseCount - 1).GetDcmtkObject();
 
-        *responseIdentifiers = new DcmDataset(*fileFormat->getDataset());
+        // TODO Is there a way to avoid this copy?
+        *responseIdentifiers = new DcmDataset(*fileFormat.getDataset());
       }
       else if (data.noCroppingOfResults_)
       {
