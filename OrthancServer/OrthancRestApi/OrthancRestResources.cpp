@@ -34,6 +34,7 @@
 #include "OrthancRestApi.h"
 
 #include "../../Core/Logging.h"
+#include "../../Core/HttpServer/HttpContentNegociation.h"
 #include "../ServerToolbox.h"
 #include "../FromDcmtkBridge.h"
 #include "../ServerContext.h"
@@ -259,29 +260,117 @@ namespace Orthanc
   }
 
 
-  static void AnswerImage(RestApiGetCall& call,
-                          ParsedDicomFile& dicom,
-                          unsigned int frame,
-                          ImageExtractionMode mode)
+  namespace
   {
-    typedef std::vector<std::string>  MediaRanges;
-
-    // Get the HTTP "Accept" header, if any
-    std::string accept = call.GetHttpHeader("accept", "*/*");
-
-    MediaRanges mediaRanges;
-    Toolbox::TokenizeString(mediaRanges, accept, ',');
-
-    for (MediaRanges::const_reverse_iterator it = mediaRanges.rbegin();
-         it != mediaRanges.rend(); ++it)
+    class ImageToEncode
     {
-    }
+    private:
+      std::string         format_;
+      std::string         encoded_;
+      ParsedDicomFile&    dicom_;
+      unsigned int        frame_;
+      ImageExtractionMode mode_;
 
-    throw OrthancException(ErrorCode_NotAcceptable);
+    public:
+      ImageToEncode(ParsedDicomFile& dicom,
+                    unsigned int frame,
+                    ImageExtractionMode mode) : 
+        dicom_(dicom),
+        frame_(frame),
+        mode_(mode)
+      {
+      }
 
-    std::string image;
-    dicom.ExtractPngImage(image, frame, mode);
-    call.GetOutput().AnswerBuffer(image, "image/png");
+      ParsedDicomFile& GetDicom() const
+      {
+        return dicom_;
+      }
+
+      unsigned int GetFrame() const
+      {
+        return frame_;
+      }
+
+      ImageExtractionMode GetMode() const
+      {
+        return mode_;
+      }
+
+      void SetFormat(const std::string& format)
+      {
+        format_ = format;
+      }
+
+      std::string& GetTarget()
+      {
+        return encoded_;
+      }
+
+      void Answer(RestApiOutput& output)
+      {
+        output.AnswerBuffer(encoded_, format_);
+      }
+    };
+
+    class EncodePng : public HttpContentNegociation::IHandler
+    {
+    private:
+      ImageToEncode&  image_;
+
+    public:
+      EncodePng(ImageToEncode& image) : image_(image)
+      {
+      }
+
+      virtual void Handle(const std::string& type,
+                          const std::string& subtype)
+      {
+        assert(type == "image");
+        assert(subtype == "png");
+        image_.GetDicom().ExtractPngImage(image_.GetTarget(), image_.GetFrame(), image_.GetMode());
+        image_.SetFormat("image/png");
+      }
+    };
+
+    class EncodeJpeg : public HttpContentNegociation::IHandler
+    {
+    private:
+      ImageToEncode&  image_;
+      unsigned int    quality_;
+
+    public:
+      EncodeJpeg(ImageToEncode& image,
+                 const RestApiGetCall& call) :
+        image_(image)
+      {
+        std::string v = call.GetArgument("quality", "90" /* default JPEG quality */);
+        bool ok = false;
+
+        try
+        {
+          quality_ = boost::lexical_cast<unsigned int>(v);
+          ok = (quality_ >= 0 && quality_ <= 100);
+        }
+        catch (boost::bad_lexical_cast&)
+        {
+        }
+
+        if (!ok)
+        {
+          LOG(ERROR) << "Bad quality for a JPEG encoding (must be a number between 0 and 100): " << v;
+          throw OrthancException(ErrorCode_BadRequest);
+        }
+      }
+
+      virtual void Handle(const std::string& type,
+                          const std::string& subtype)
+      {
+        assert(type == "image");
+        assert(subtype == "jpeg");
+        image_.GetDicom().ExtractJpegImage(image_.GetTarget(), image_.GetFrame(), image_.GetMode(), quality_);
+        image_.SetFormat("image/jpeg");
+      }
+    };
   }
 
 
@@ -310,7 +399,16 @@ namespace Orthanc
 
     try
     {
-      AnswerImage(call, dicom, frame, mode);
+      ImageToEncode image(dicom, frame, mode);
+
+      HttpContentNegociation negociation;
+      EncodePng png(image);          negociation.Register("image/png", png);
+      EncodeJpeg jpeg(image, call);  negociation.Register("image/jpeg", jpeg);
+
+      if (negociation.Apply(call.GetHttpHeaders()))
+      {
+        image.Answer(call.GetOutput());
+      }
     }
     catch (OrthancException& e)
     {
