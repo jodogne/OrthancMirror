@@ -620,6 +620,12 @@ TEST(DicomFindAnswers, Basic)
   }
 
   {
+    ParsedDicomFile d;
+    d.Replace(DICOM_TAG_PATIENT_ID, "my");
+    a.Add(d);
+  }
+
+  {
     DicomMap m;
     m.SetValue(DICOM_TAG_PATIENT_ID, "world");
     a.Add(m);
@@ -627,5 +633,7 @@ TEST(DicomFindAnswers, Basic)
 
   Json::Value j;
   a.ToJson(j, true);
-  ASSERT_EQ(2u, j.size());
+  ASSERT_EQ(3u, j.size());
+
+  //std::cout << j;
 }

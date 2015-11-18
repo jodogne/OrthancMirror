@@ -186,11 +186,7 @@ namespace Orthanc
       {
         // There are pending results that are still to be sent
         response->DimseStatus = STATUS_Pending;
-
-        DcmFileFormat& fileFormat = data.answers_.GetAnswer(responseCount - 1).GetDcmtkObject();
-
-        // TODO Is there a way to avoid this copy?
-        *responseIdentifiers = new DcmDataset(*fileFormat.getDataset());
+        *responseIdentifiers = data.answers_.ExtractDcmDataset(responseCount - 1);
       }
       else if (data.noCroppingOfResults_)
       {
