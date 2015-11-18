@@ -58,10 +58,10 @@ namespace Orthanc
                           const std::string& value,
                           bool decodeBinaryTags);
 
-    ParsedDicomFile(void* fileFormat);   // Create by embedding a DcmFileFormat (takes ownership)
-
   public:
     ParsedDicomFile();  // Create a minimal DICOM instance
+
+    ParsedDicomFile(const DicomMap& map);
 
     ParsedDicomFile(const char* content,
                     size_t size);
@@ -152,8 +152,6 @@ namespace Orthanc
     bool ExtractPdf(std::string& pdf);
 
     void Convert(DicomMap& tags);
-
-    static ParsedDicomFile* CreateFromDcmtkDataset(void* dataset);
   };
 
 }

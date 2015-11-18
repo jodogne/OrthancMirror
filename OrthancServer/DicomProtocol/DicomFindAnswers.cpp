@@ -34,6 +34,10 @@
 #include "DicomFindAnswers.h"
 
 #include "../FromDcmtkBridge.h"
+#include "../ToDcmtkBridge.h"
+#include "../../Core/OrthancException.h"
+
+#include <memory>
 
 namespace Orthanc
 {
@@ -41,8 +45,11 @@ namespace Orthanc
   {
     for (size_t i = 0; i < items_.size(); i++)
     {
+      assert(items_[i] != NULL);
       delete items_[i];
     }
+
+    items_.clear();
   }
 
   void DicomFindAnswers::Reserve(size_t size)
@@ -53,6 +60,46 @@ namespace Orthanc
     }
   }
 
+
+  void DicomFindAnswers::Add(const DicomMap& map)
+  {
+    items_.push_back(new ParsedDicomFile(map));
+  }
+
+  void DicomFindAnswers::Add(ParsedDicomFile& dicom)
+  {
+    items_.push_back(dicom.Clone());
+  }
+
+  void DicomFindAnswers::Add(const char* dicom,
+                             size_t size)
+  {
+    items_.push_back(new ParsedDicomFile(dicom, size));
+  }
+
+
+  ParsedDicomFile& DicomFindAnswers::GetAnswer(size_t index) const
+  {
+    if (index < items_.size())
+    {
+      return *items_.at(index);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  void DicomFindAnswers::ToJson(Json::Value& target,
+                                size_t index,
+                                bool simplify) const
+  {
+    DicomToJsonFormat format = (simplify ? DicomToJsonFormat_Simple : DicomToJsonFormat_Full);
+    GetAnswer(index).ToJson(target, format, DicomToJsonFlags_None, 0);
+  }
+
+
   void DicomFindAnswers::ToJson(Json::Value& target,
                                 bool simplify) const
   {
@@ -60,8 +107,8 @@ namespace Orthanc
 
     for (size_t i = 0; i < GetSize(); i++)
     {
-      Json::Value answer(Json::objectValue);
-      FromDcmtkBridge::ToJson(answer, GetAnswer(i), simplify);
+      Json::Value answer;
+      ToJson(answer, i, simplify);
       target.append(answer);
     }
   }

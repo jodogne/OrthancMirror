@@ -823,9 +823,15 @@ namespace Orthanc
   }
 
 
-  ParsedDicomFile::ParsedDicomFile(void* fileFormat) : pimpl_(new PImpl)
+  ParsedDicomFile::ParsedDicomFile(const DicomMap& map) : pimpl_(new PImpl)
   {
-    pimpl_->file_.reset(static_cast<DcmFileFormat*>(fileFormat));
+    std::auto_ptr<DcmDataset> dataset(ToDcmtkBridge::Convert(map));
+
+    // NOTE: This implies an unnecessary memory copy of the dataset, but no way to get around
+    // http://support.dcmtk.org/redmine/issues/544
+    std::auto_ptr<DcmFileFormat> fileFormat(new DcmFileFormat(dataset.get()));
+
+    pimpl_->file_.reset(fileFormat.release());
   }
 
 
@@ -1227,16 +1233,5 @@ namespace Orthanc
   void ParsedDicomFile::Convert(DicomMap& tags)
   {
     FromDcmtkBridge::Convert(tags, *pimpl_->file_->getDataset());
-  }
-
-
-  ParsedDicomFile* ParsedDicomFile::CreateFromDcmtkDataset(void* dataset)
-  {
-    assert(dataset != NULL);
-
-    DcmDataset *d = static_cast<DcmDataset*>(dataset);
-    std::auto_ptr<DcmFileFormat> fileFormat(new DcmFileFormat(d));
-    
-    return new ParsedDicomFile(fileFormat.release());
   }
 }
