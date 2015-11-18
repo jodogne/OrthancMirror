@@ -100,7 +100,7 @@ public:
   {
   }
 
-  virtual bool Handle(DicomWorklistAnswers& answers,
+  virtual bool Handle(DicomFindAnswers& answers,
                       const ParsedDicomFile& query,
                       const std::string& remoteIp,
                       const std::string& remoteAet)

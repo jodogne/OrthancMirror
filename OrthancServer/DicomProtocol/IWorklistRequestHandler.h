@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include "DicomWorklistAnswers.h"
+#include "DicomFindAnswers.h"
 
 namespace Orthanc
 {
@@ -49,7 +49,7 @@ namespace Orthanc
      * Cancel request" DIMSE code would be returned.
      * https://www.dabsoft.ch/dicom/4/V.4.1/
      **/
-    virtual bool Handle(DicomWorklistAnswers& answers,
+    virtual bool Handle(DicomFindAnswers& answers,
                         const ParsedDicomFile& query,
                         const std::string& remoteIp,
                         const std::string& remoteAet) = 0;

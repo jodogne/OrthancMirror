@@ -43,6 +43,7 @@
 #include "../Core/Images/PngWriter.h"
 #include "../Core/Uuid.h"
 #include "../Resources/EncodingTests.h"
+#include "../OrthancServer/DicomProtocol/DicomFindAnswers.h"
 
 #include <dcmtk/dcmdata/dcelem.h>
 
@@ -605,4 +606,26 @@ TEST(ParsedDicomFile, ToJsonFlags2)
   Toolbox::DecodeDataUriScheme(mime, content, v["7fe0,0010"].asString());
   ASSERT_EQ("application/octet-stream", mime);
   ASSERT_EQ("Pixels", content);
+}
+
+
+TEST(DicomFindAnswers, Basic)
+{
+  DicomFindAnswers a;
+
+  {
+    DicomMap m;
+    m.SetValue(DICOM_TAG_PATIENT_ID, "hello");
+    a.Add(m);
+  }
+
+  {
+    DicomMap m;
+    m.SetValue(DICOM_TAG_PATIENT_ID, "world");
+    a.Add(m);
+  }
+
+  Json::Value j;
+  a.ToJson(j, true);
+  ASSERT_EQ(2u, j.size());
 }

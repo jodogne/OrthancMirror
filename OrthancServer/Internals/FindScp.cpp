@@ -87,7 +87,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
 
-
+#include <dcmtk/dcmdata/dcfilefo.h>
 
 namespace Orthanc
 {
@@ -134,9 +134,9 @@ namespace Orthanc
             if (data.worklistHandler_ != NULL)
             {
               // TODO
-              std::auto_ptr<ParsedDicomFile> query(ParsedDicomFile::CreateFromDcmtkDataset(requestIdentifiers));
+              /*std::auto_ptr<ParsedDicomFile> query(ParsedDicomFile::CreateFromDcmtkDataset(requestIdentifiers));
               DicomWorklistAnswers a;
-              data.worklistHandler_->Handle(a, *query, *data.remoteIp_, *data.remoteAet_);
+              data.worklistHandler_->Handle(a, *query, *data.remoteIp_, *data.remoteAet_);*/
               ok = true;
             }
             else
@@ -187,7 +187,12 @@ namespace Orthanc
       {
         // There are pending results that are still to be sent
         response->DimseStatus = STATUS_Pending;
-        *responseIdentifiers = ToDcmtkBridge::Convert(data.answers_.GetAnswer(responseCount - 1));
+
+        void* obj = data.answers_.GetAnswer(responseCount - 1).GetDcmtkObject();
+        DcmFileFormat* fileFormat = static_cast<DcmFileFormat*>(obj);
+        assert(fileFormat != NULL);
+
+        *responseIdentifiers = new DcmDataset(*fileFormat->getDataset());
       }
       else if (data.noCroppingOfResults_)
       {
