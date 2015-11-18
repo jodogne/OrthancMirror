@@ -32,26 +32,26 @@
 
 #pragma once
 
-#include "../../Core/DicomFormat/DicomMap.h"
-
-#include <vector>
-#include <string>
-#include <json/json.h>
+#include "DicomWorklistAnswers.h"
 
 namespace Orthanc
 {
-  class IStoreRequestHandler : public boost::noncopyable
+  class IWorklistRequestHandler : public boost::noncopyable
   {
   public:
-    virtual ~IStoreRequestHandler()
+    virtual ~IWorklistRequestHandler()
     {
     }
 
-    virtual void Handle(const std::string& dicomFile,
-                        const DicomMap& dicomSummary,
-                        const Json::Value& dicomJson,
+    /**
+     * Can throw exceptions. Returns "false" iff too many results have
+     * to be returned. In such a case, a "Matching terminated due to
+     * Cancel request" DIMSE code would be returned.
+     * https://www.dabsoft.ch/dicom/4/V.4.1/
+     **/
+    virtual bool Handle(DicomWorklistAnswers& answers,
+                        const ParsedDicomFile& query,
                         const std::string& remoteIp,
-                        const std::string& remoteAet,
-                        const std::string& calledAet) = 0;
+                        const std::string& remoteAet) = 0;
   };
 }

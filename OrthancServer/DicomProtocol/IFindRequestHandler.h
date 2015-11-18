@@ -34,13 +34,9 @@
 
 #include "DicomFindAnswers.h"
 
-#include <vector>
-#include <string>
-
-
 namespace Orthanc
 {
-  class IFindRequestHandler
+  class IFindRequestHandler : public boost::noncopyable
   {
   public:
     virtual ~IFindRequestHandler()

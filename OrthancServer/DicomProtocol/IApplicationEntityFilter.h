@@ -38,7 +38,7 @@
 
 namespace Orthanc
 {
-  class IApplicationEntityFilter
+  class IApplicationEntityFilter : public boost::noncopyable
   {
   public:
     virtual ~IApplicationEntityFilter()

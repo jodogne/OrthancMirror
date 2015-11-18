@@ -39,7 +39,7 @@
 
 namespace Orthanc
 {
-  class DicomFindAnswers
+  class DicomFindAnswers : public boost::noncopyable
   {
   private:
     std::vector<DicomMap*> items_;

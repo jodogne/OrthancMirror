@@ -40,7 +40,7 @@
 
 namespace Orthanc
 {
-  class IMoveRequestIterator
+  class IMoveRequestIterator : public boost::noncopyable
   {
   public:
     enum Status

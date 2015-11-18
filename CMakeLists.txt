@@ -155,6 +155,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/DicomProtocol/DicomFindAnswers.cpp
   OrthancServer/DicomProtocol/DicomServer.cpp
   OrthancServer/DicomProtocol/DicomUserConnection.cpp
+  OrthancServer/DicomProtocol/DicomWorklistAnswers.cpp
   OrthancServer/DicomProtocol/RemoteModalityParameters.cpp
   OrthancServer/DicomProtocol/ReusableDicomUserConnection.cpp
   OrthancServer/ExportedResource.cpp

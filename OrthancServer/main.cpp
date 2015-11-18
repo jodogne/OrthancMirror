@@ -89,10 +89,32 @@ public:
 };
 
 
+class OrthancWorklistRequestHandler : public IWorklistRequestHandler
+{
+private:
+  ServerContext& server_;
+
+public:
+  OrthancWorklistRequestHandler(ServerContext& context) :
+    server_(context)
+  {
+  }
+
+  virtual bool Handle(DicomWorklistAnswers& answers,
+                      const ParsedDicomFile& query,
+                      const std::string& remoteIp,
+                      const std::string& remoteAet)
+  {
+    printf("Worklist\n");
+    return true;
+  }
+};
+
 
 class MyDicomServerFactory : 
   public IStoreRequestHandlerFactory,
-  public IFindRequestHandlerFactory, 
+  public IFindRequestHandlerFactory,
+  public IWorklistRequestHandlerFactory, 
   public IMoveRequestHandlerFactory
 {
 private:
@@ -141,6 +163,11 @@ public:
   virtual IMoveRequestHandler* ConstructMoveRequestHandler()
   {
     return new OrthancMoveRequestHandler(context_);
+  }
+
+  virtual IWorklistRequestHandler* ConstructWorklistRequestHandler()
+  {
+    return new OrthancWorklistRequestHandler(context_);
   }
 
   void Done()
@@ -550,6 +577,7 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_DatabaseNotInitialized, "Plugin trying to call the database during its initialization");
     PrintErrorCode(ErrorCode_SslDisabled, "Orthanc has been built without SSL support");
     PrintErrorCode(ErrorCode_CannotOrderSlices, "Unable to order the slices of the series");
+    PrintErrorCode(ErrorCode_NoWorklistHandler, "No request handler factory for DICOM C-Find Modality SCP");
   }
 
   std::cout << std::endl;
@@ -704,6 +732,10 @@ static bool StartDicomServer(ServerContext& context,
   dicomServer.SetStoreRequestHandlerFactory(serverFactory);
   dicomServer.SetMoveRequestHandlerFactory(serverFactory);
   dicomServer.SetFindRequestHandlerFactory(serverFactory);
+
+  // TODO - Disable the following line if no worklist plugin is available
+  dicomServer.SetWorklistRequestHandlerFactory(serverFactory);
+
   dicomServer.SetPortNumber(Configuration::GetGlobalIntegerParameter("DicomPort", 4242));
   dicomServer.SetApplicationEntityTitle(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"));
   dicomServer.SetApplicationEntityFilter(dicomFilter);
