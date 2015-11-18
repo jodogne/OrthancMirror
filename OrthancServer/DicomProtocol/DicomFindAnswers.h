@@ -39,7 +39,11 @@ namespace Orthanc
   class DicomFindAnswers : public boost::noncopyable
   {
   private:
-    std::vector<ParsedDicomFile*> items_;
+    class Answer;
+
+    std::vector<Answer*> answers_;
+
+    Answer& GetAnswerInternal(size_t index) const;
 
   public:
     ~DicomFindAnswers()
@@ -60,10 +64,12 @@ namespace Orthanc
 
     size_t GetSize() const
     {
-      return items_.size();
+      return answers_.size();
     }
 
     ParsedDicomFile& GetAnswer(size_t index) const;
+
+    DcmDataset* ExtractDcmDataset(size_t index) const;
 
     void ToJson(Json::Value& target,
                 bool simplify) const;
