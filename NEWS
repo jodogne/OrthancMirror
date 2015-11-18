@@ -13,6 +13,7 @@ Pending changes in the mainline
 * MIME content type can be associated to custom attachments (cf. "UserContentType")
 * New URIs "/tools/create-archive" and "/tools/create-media" to create ZIP/DICOMDIR
   from a set of resources
+* ".../preview" and ".../image-uint8" can return JPEG images if the HTTP Accept Header asks so
 
 Plugins
 -------
