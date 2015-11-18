@@ -49,5 +49,9 @@ namespace Orthanc
                        const DicomTag& tag) const = 0;
 
     virtual bool Match(const std::string& value) const = 0;
+
+    static IFindConstraint* ParseDicomConstraint(const DicomTag& tag,
+                                                 const std::string& dicomQuery,
+                                                 bool caseSensitive);
   };
 }
