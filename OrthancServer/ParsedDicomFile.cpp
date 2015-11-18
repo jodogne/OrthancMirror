@@ -823,6 +823,12 @@ namespace Orthanc
   }
 
 
+  ParsedDicomFile::ParsedDicomFile(void* fileFormat) : pimpl_(new PImpl)
+  {
+    pimpl_->file_.reset(static_cast<DcmFileFormat*>(fileFormat));
+  }
+
+
   ParsedDicomFile::ParsedDicomFile(const char* content, size_t size) : pimpl_(new PImpl)
   {
     Setup(content, size);
@@ -1221,5 +1227,16 @@ namespace Orthanc
   void ParsedDicomFile::Convert(DicomMap& tags)
   {
     FromDcmtkBridge::Convert(tags, *pimpl_->file_->getDataset());
+  }
+
+
+  ParsedDicomFile* ParsedDicomFile::CreateFromDcmtkDataset(void* dataset)
+  {
+    assert(dataset != NULL);
+
+    DcmDataset *d = static_cast<DcmDataset*>(dataset);
+    std::auto_ptr<DcmFileFormat> fileFormat(new DcmFileFormat(d));
+    
+    return new ParsedDicomFile(fileFormat.release());
   }
 }

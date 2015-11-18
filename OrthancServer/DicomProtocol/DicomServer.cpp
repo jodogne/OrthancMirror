@@ -94,6 +94,7 @@ namespace Orthanc
     findRequestHandlerFactory_ = NULL;
     moveRequestHandlerFactory_ = NULL;
     storeRequestHandlerFactory_ = NULL;
+    worklistRequestHandlerFactory_ = NULL;
     applicationEntityFilter_ = NULL;
     checkCalledAet_ = true;
     clientTimeout_ = 30;
@@ -242,6 +243,29 @@ namespace Orthanc
     else
     {
       throw OrthancException(ErrorCode_NoCStoreHandler);
+    }
+  }
+
+  void DicomServer::SetWorklistRequestHandlerFactory(IWorklistRequestHandlerFactory& factory)
+  {
+    Stop();
+    worklistRequestHandlerFactory_ = &factory;
+  }
+
+  bool DicomServer::HasWorklistRequestHandlerFactory() const
+  {
+    return (worklistRequestHandlerFactory_ != NULL);
+  }
+
+  IWorklistRequestHandlerFactory& DicomServer::GetWorklistRequestHandlerFactory() const
+  {
+    if (HasWorklistRequestHandlerFactory())
+    {
+      return *worklistRequestHandlerFactory_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_NoWorklistHandler);
     }
   }
 

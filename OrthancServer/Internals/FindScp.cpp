@@ -95,8 +95,8 @@ namespace Orthanc
   {  
     struct FindScpData
     {
-      IFindRequestHandler* handler_;
-      DicomMap input_;
+      IFindRequestHandler* findHandler_;
+      IWorklistRequestHandler* worklistHandler_;
       DicomFindAnswers answers_;
       DcmDataset* lastRequest_;
       const std::string* remoteIp_;
@@ -120,20 +120,54 @@ namespace Orthanc
       bzero(response, sizeof(T_DIMSE_C_FindRSP));
       *statusDetail = NULL;
 
+      std::string sopClassUid(request->AffectedSOPClassUID);
+
       FindScpData& data = *reinterpret_cast<FindScpData*>(callbackData);
       if (data.lastRequest_ == NULL)
       {
-        FromDcmtkBridge::Convert(data.input_, *requestIdentifiers);
+        bool ok = false;
 
         try
         {
-          data.noCroppingOfResults_ = data.handler_->Handle(data.answers_, data.input_, 
-                                                            *data.remoteIp_, *data.remoteAet_);
+          if (sopClassUid == UID_FINDModalityWorklistInformationModel)
+          {
+            if (data.worklistHandler_ != NULL)
+            {
+              // TODO
+              std::auto_ptr<ParsedDicomFile> query(ParsedDicomFile::CreateFromDcmtkDataset(requestIdentifiers));
+              DicomWorklistAnswers a;
+              data.worklistHandler_->Handle(a, *query, *data.remoteIp_, *data.remoteAet_);
+              ok = true;
+            }
+            else
+            {
+              LOG(ERROR) << "No worklist handler is installed, cannot handle this C-FIND request";
+            }
+          }
+          else
+          {
+            if (data.findHandler_ != NULL)
+            {
+              DicomMap input;
+              FromDcmtkBridge::Convert(input, *requestIdentifiers);
+              data.noCroppingOfResults_ = data.findHandler_->Handle(data.answers_, input,
+                                                                    *data.remoteIp_, *data.remoteAet_);
+              ok = true;
+            }
+            else
+            {
+              LOG(ERROR) << "No C-Find handler is installed, cannot handle this request";
+            }
+          }
         }
         catch (OrthancException& e)
         {
           // Internal error!
           LOG(ERROR) <<  "C-FIND request handler has failed: " << e.What();
+        }
+
+        if (!ok)
+        {
           response->DimseStatus = STATUS_FIND_Failed_UnableToProcess;
           *responseIdentifiers = NULL;   
           return;
@@ -175,13 +209,15 @@ namespace Orthanc
   OFCondition Internals::findScp(T_ASC_Association * assoc, 
                                  T_DIMSE_Message * msg, 
                                  T_ASC_PresentationContextID presID,
-                                 IFindRequestHandler& handler,
+                                 IFindRequestHandler* findHandler,
+                                 IWorklistRequestHandler* worklistHandler,
                                  const std::string& remoteIp,
                                  const std::string& remoteAet)
   {
     FindScpData data;
     data.lastRequest_ = NULL;
-    data.handler_ = &handler;
+    data.findHandler_ = findHandler;
+    data.worklistHandler_ = worklistHandler;
     data.remoteIp_ = &remoteIp;
     data.remoteAet_ = &remoteAet;
     data.noCroppingOfResults_ = true;

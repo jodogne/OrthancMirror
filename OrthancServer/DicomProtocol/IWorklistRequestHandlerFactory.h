@@ -32,26 +32,17 @@
 
 #pragma once
 
-#include "../../Core/DicomFormat/DicomMap.h"
-
-#include <vector>
-#include <string>
-#include <json/json.h>
+#include "IWorklistRequestHandler.h"
 
 namespace Orthanc
 {
-  class IStoreRequestHandler : public boost::noncopyable
+  class IWorklistRequestHandlerFactory : public boost::noncopyable
   {
   public:
-    virtual ~IStoreRequestHandler()
+    virtual ~IWorklistRequestHandlerFactory()
     {
     }
 
-    virtual void Handle(const std::string& dicomFile,
-                        const DicomMap& dicomSummary,
-                        const Json::Value& dicomJson,
-                        const std::string& remoteIp,
-                        const std::string& remoteAet,
-                        const std::string& calledAet) = 0;
+    virtual IWorklistRequestHandler* ConstructWorklistRequestHandler() = 0;
   };
 }

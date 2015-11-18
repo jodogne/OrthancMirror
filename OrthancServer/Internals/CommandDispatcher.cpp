@@ -430,6 +430,11 @@ namespace Orthanc
         knownAbstractSyntaxes.push_back(UID_FINDStudyRootQueryRetrieveInformationModel);
       }
 
+      if (server.HasWorklistRequestHandlerFactory())
+      {
+        knownAbstractSyntaxes.push_back(UID_FINDModalityWorklistInformationModel);
+      }
+
       // For C-MOVE
       if (server.HasMoveRequestHandlerFactory())
       {
@@ -812,11 +817,23 @@ namespace Orthanc
               break;
 
             case DicomRequestType_Find:
-              if (server_.HasFindRequestHandlerFactory()) // Should always be true
+              if (server_.HasFindRequestHandlerFactory() || // Should always be true
+                  server_.HasWorklistRequestHandlerFactory())
               {
-                std::auto_ptr<IFindRequestHandler> handler
-                  (server_.GetFindRequestHandlerFactory().ConstructFindRequestHandler());
-                cond = Internals::findScp(assoc_, &msg, presID, *handler, remoteIp_, remoteAet_);
+                std::auto_ptr<IFindRequestHandler> findHandler;
+                if (server_.HasFindRequestHandlerFactory())
+                {
+                  findHandler.reset(server_.GetFindRequestHandlerFactory().ConstructFindRequestHandler());
+                }
+
+                std::auto_ptr<IWorklistRequestHandler> worklistHandler;
+                if (server_.HasWorklistRequestHandlerFactory())
+                {
+                  worklistHandler.reset(server_.GetWorklistRequestHandlerFactory().ConstructWorklistRequestHandler());
+                }
+
+                cond = Internals::findScp(assoc_, &msg, presID, findHandler.get(), 
+                                          worklistHandler.get(), remoteIp_, remoteAet_);
               }
               break;
 

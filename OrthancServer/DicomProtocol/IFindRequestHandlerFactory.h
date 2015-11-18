@@ -36,7 +36,7 @@
 
 namespace Orthanc
 {
-  class IFindRequestHandlerFactory
+  class IFindRequestHandlerFactory : public boost::noncopyable
   {
   public:
     virtual ~IFindRequestHandlerFactory()

@@ -32,26 +32,32 @@
 
 #pragma once
 
-#include "../../Core/DicomFormat/DicomMap.h"
-
-#include <vector>
-#include <string>
-#include <json/json.h>
+#include "../ParsedDicomFile.h"
 
 namespace Orthanc
 {
-  class IStoreRequestHandler : public boost::noncopyable
+  class DicomWorklistAnswers : public boost::noncopyable
   {
+  private:
+    std::vector<ParsedDicomFile*> items_;
+
   public:
-    virtual ~IStoreRequestHandler()
+    ~DicomWorklistAnswers()
     {
+      Clear();
     }
 
-    virtual void Handle(const std::string& dicomFile,
-                        const DicomMap& dicomSummary,
-                        const Json::Value& dicomJson,
-                        const std::string& remoteIp,
-                        const std::string& remoteAet,
-                        const std::string& calledAet) = 0;
+    void Clear();
+
+    void Add(ParsedDicomFile& dicom);
+
+    void Add(const std::string& dicom);
+
+    size_t GetSize() const
+    {
+      return items_.size();
+    }
+
+    const ParsedDicomFile& GetAnswer(size_t index) const;
   };
 }

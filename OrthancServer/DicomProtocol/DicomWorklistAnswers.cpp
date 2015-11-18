@@ -30,28 +30,42 @@
  **/
 
 
-#pragma once
+#include "../PrecompiledHeadersServer.h"
+#include "DicomWorklistAnswers.h"
 
-#include "../../Core/DicomFormat/DicomMap.h"
-
-#include <vector>
-#include <string>
-#include <json/json.h>
+#include "../../Core/OrthancException.h"
 
 namespace Orthanc
 {
-  class IStoreRequestHandler : public boost::noncopyable
+  void DicomWorklistAnswers::Clear()
   {
-  public:
-    virtual ~IStoreRequestHandler()
+    for (size_t i = 0; i < items_.size(); i++)
     {
+      delete items_[i];
     }
 
-    virtual void Handle(const std::string& dicomFile,
-                        const DicomMap& dicomSummary,
-                        const Json::Value& dicomJson,
-                        const std::string& remoteIp,
-                        const std::string& remoteAet,
-                        const std::string& calledAet) = 0;
-  };
+    items_.clear();
+  }
+
+  void DicomWorklistAnswers::Add(ParsedDicomFile& dicom)
+  {
+    items_.push_back(dicom.Clone());
+  }
+
+  void DicomWorklistAnswers::Add(const std::string& dicom)
+  {
+    items_.push_back(new ParsedDicomFile(dicom));
+  }
+
+  const ParsedDicomFile& DicomWorklistAnswers::GetAnswer(size_t index) const
+  {
+    if (index < items_.size())
+    {
+      return *items_[index];
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
 }

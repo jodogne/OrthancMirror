@@ -98,7 +98,6 @@ namespace Orthanc
     {
       std::string target_;
       IMoveRequestHandler* handler_;
-      DicomMap input_;
       DcmDataset* lastRequest_;
       unsigned int subOperationCount_;
       unsigned int failureCount_;
@@ -128,11 +127,12 @@ namespace Orthanc
       MoveScpData& data = *reinterpret_cast<MoveScpData*>(callbackData);
       if (data.lastRequest_ == NULL)
       {
-        FromDcmtkBridge::Convert(data.input_, *requestIdentifiers);
+        DicomMap input;
+        FromDcmtkBridge::Convert(input, *requestIdentifiers);
 
         try
         {
-          data.iterator_.reset(data.handler_->Handle(data.target_, data.input_, 
+          data.iterator_.reset(data.handler_->Handle(data.target_, input,
                                                      *data.remoteIp_, *data.remoteAet_));
 
           if (data.iterator_.get() == NULL)
