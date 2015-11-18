@@ -343,7 +343,7 @@ TEST(RestApi, RestApiHierarchy)
 
 namespace Orthanc
 {
-  class AcceptMediaDispatcher : public boost::noncopyable
+  class HttpContentNegociation : public boost::noncopyable
   {
   public:
     typedef std::map<std::string, std::string>  HttpHeaders;
@@ -356,8 +356,7 @@ namespace Orthanc
       }
 
       virtual void Handle(const std::string& type,
-                          const std::string& subtype,
-                          float quality /* between 0 and 1 */) = 0;
+                          const std::string& subtype) = 0;
     };
 
   private:
@@ -391,6 +390,11 @@ namespace Orthanc
 
         return type == type_ && subtype == subtype_;
       }
+
+      void Call() const
+      {
+        handler_.Handle(type_, subtype_);
+      }
     };
 
 
@@ -399,16 +403,13 @@ namespace Orthanc
       const Handler&  handler_;
       uint8_t         level_;
       float           quality_;
-      size_t          specificity_;   // Number of arguments
 
       Reference(const Handler& handler,
                 const std::string& type,
                 const std::string& subtype,
-                float quality,
-                size_t specificity) :
+                float quality) :
         handler_(handler),
-        quality_(quality),
-        specificity_(specificity)
+        quality_(quality)
       {
         if (type == "*" && subtype == "*")
         {
@@ -436,12 +437,7 @@ namespace Orthanc
           return false;
         }
 
-        return specificity_ < other.specificity_;
-      }
-
-      void Call() const
-      {
-        handler_.handler_.Handle(handler_.type_, handler_.subtype_, quality_);
+        return quality_ < other.quality_;
       }
     };
 
@@ -472,21 +468,15 @@ namespace Orthanc
     }
 
 
-    static void GetQualityAndSpecificity(float& quality /* out */,
-                                         size_t& specificity /* out */,
-                                         const Tokens& parameters)
+    static float GetQuality(const Tokens& parameters)
     {
-      assert(!parameters.empty());
-
-      quality = 1.0f;
-      specificity = parameters.size() - 1;
-
       for (size_t i = 1; i < parameters.size(); i++)
       {
         std::string key, value;
         if (SplitPair(key, value, parameters[i], '=') &&
             key == "q")
         {
+          float quality;
           bool ok = false;
 
           try
@@ -500,17 +490,17 @@ namespace Orthanc
 
           if (ok)
           {
-            assert(parameters.size() >= 2);
-            specificity = parameters.size() - 2;
-            return;
+            return quality;
           }
           else
           {
             LOG(ERROR) << "Quality parameter out of range in a HTTP request (must be between 0 and 1): " << value;
-            throw OrthancException(ErrorCode_ParameterOutOfRange);
+            throw OrthancException(ErrorCode_BadRequest);
           }
         }
       }
+
+      return 1.0f;  // Default quality
     }
 
 
@@ -518,10 +508,9 @@ namespace Orthanc
                                 const Handler& handler,
                                 const std::string& type,
                                 const std::string& subtype,
-                                float quality,
-                                size_t specificity)
+                                float quality)
     {
-      std::auto_ptr<Reference> match(new Reference(handler, type, subtype, quality, specificity));
+      std::auto_ptr<Reference> match(new Reference(handler, type, subtype, quality));
 
       if (best.get() == NULL ||
           *best < *match)
@@ -567,23 +556,23 @@ namespace Orthanc
     bool Apply(const std::string& accept)
     {
       // http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.1
+      // https://en.wikipedia.org/wiki/Content_negotiation
+      // http://www.newmediacampaigns.com/blog/browser-rest-http-accept-headers
 
       Tokens mediaRanges;
       Toolbox::TokenizeString(mediaRanges, accept, ',');
 
       std::auto_ptr<Reference> bestMatch;
 
-      for (Tokens::const_reverse_iterator it = mediaRanges.rbegin();
-           it != mediaRanges.rend(); ++it)
+      for (Tokens::const_iterator it = mediaRanges.begin();
+           it != mediaRanges.end(); ++it)
       {
         Tokens parameters;
         Toolbox::TokenizeString(parameters, *it, ';');
 
         if (parameters.size() > 0)
         {
-          float quality;
-          size_t specificity;
-          GetQualityAndSpecificity(quality, specificity, parameters);
+          float quality = GetQuality(parameters);
 
           std::string type, subtype;
           if (SplitPair(type, subtype, parameters[0], '/'))
@@ -593,7 +582,7 @@ namespace Orthanc
             {
               if (it2->IsMatch(type, subtype))
               {
-                SelectBestMatch(bestMatch, *it2, type, subtype, quality, specificity);
+                SelectBestMatch(bestMatch, *it2, type, subtype, quality);
               }
             }
           }
@@ -606,7 +595,7 @@ namespace Orthanc
       }
       else
       {
-        bestMatch->Call();
+        bestMatch->handler_.Call();
         return true;
       }
     }
@@ -617,12 +606,11 @@ namespace Orthanc
 
 namespace
 {
-  class AcceptHandler : public Orthanc::AcceptMediaDispatcher::IHandler
+  class AcceptHandler : public Orthanc::HttpContentNegociation::IHandler
   {
   private:
     std::string type_;
     std::string subtype_;
-    float quality_;
 
   public:
     AcceptHandler()
@@ -632,7 +620,7 @@ namespace
 
     void Reset()
     {
-      Handle("nope", "nope", 0.0f);
+      Handle("nope", "nope");
     }
 
     const std::string& GetType() const
@@ -645,43 +633,34 @@ namespace
       return subtype_;
     }
 
-    float GetQuality() const
-    {
-      return quality_;
-    }
-
     virtual void Handle(const std::string& type,
-                        const std::string& subtype,
-                        float quality /* between 0 and 1 */)
+                        const std::string& subtype)
     {
       type_ = type;
       subtype_ = subtype;
-      quality_ = quality;
     }
   };
 }
 
 
-TEST(RestApi, AcceptMediaDispatcher)
+TEST(RestApi, HttpContentNegociation)
 {
   // Reference: http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.1
 
   AcceptHandler h;
 
   {
-    Orthanc::AcceptMediaDispatcher d;
+    Orthanc::HttpContentNegociation d;
     d.Register("audio/mp3", h);
     d.Register("audio/basic", h);
 
     ASSERT_TRUE(d.Apply("audio/*; q=0.2, audio/basic"));
     ASSERT_EQ("audio", h.GetType());
     ASSERT_EQ("basic", h.GetSubType());
-    ASSERT_FLOAT_EQ(1.0f, h.GetQuality());
 
     ASSERT_TRUE(d.Apply("audio/*; q=0.2, audio/nope"));
     ASSERT_EQ("audio", h.GetType());
     ASSERT_EQ("mp3", h.GetSubType());
-    ASSERT_FLOAT_EQ(0.2f, h.GetQuality());
     
     ASSERT_FALSE(d.Apply("application/*; q=0.2, application/pdf"));
     
@@ -696,43 +675,50 @@ TEST(RestApi, AcceptMediaDispatcher)
   const std::string T1 = "text/plain; q=0.5, text/html, text/x-dvi; q=0.8, text/x-c";
   
   {
-    Orthanc::AcceptMediaDispatcher d;
+    Orthanc::HttpContentNegociation d;
     d.Register("text/plain", h);
-    //d.Register("text/x-dvi", h);
     d.Register("text/html", h);
+    d.Register("text/x-dvi", h);
     ASSERT_TRUE(d.Apply(T1));
     ASSERT_EQ("text", h.GetType());
     ASSERT_EQ("html", h.GetSubType());
-    ASSERT_EQ(1.0f, h.GetQuality());
   }
   
   {
-    Orthanc::AcceptMediaDispatcher d;
+    Orthanc::HttpContentNegociation d;
     d.Register("text/plain", h);
-    //d.Register("text/x-dvi", h);
+    d.Register("text/x-dvi", h);
     d.Register("text/x-c", h);
     ASSERT_TRUE(d.Apply(T1));
     ASSERT_EQ("text", h.GetType());
     ASSERT_EQ("x-c", h.GetSubType());
-    ASSERT_EQ(1.0f, h.GetQuality());
   }
   
   {
-    Orthanc::AcceptMediaDispatcher d;
+    Orthanc::HttpContentNegociation d;
+    d.Register("text/plain", h);
+    d.Register("text/x-dvi", h);
+    d.Register("text/x-c", h);
+    d.Register("text/html", h);
+    ASSERT_TRUE(d.Apply(T1));
+    ASSERT_EQ("text", h.GetType());
+    ASSERT_TRUE(h.GetSubType() == "x-c" || h.GetSubType() == "html");
+  }
+  
+  {
+    Orthanc::HttpContentNegociation d;
     d.Register("text/plain", h);
     d.Register("text/x-dvi", h);
     ASSERT_TRUE(d.Apply(T1));
     ASSERT_EQ("text", h.GetType());
     ASSERT_EQ("x-dvi", h.GetSubType());
-    ASSERT_EQ(0.8f, h.GetQuality());
   }
   
   {
-    Orthanc::AcceptMediaDispatcher d;
+    Orthanc::HttpContentNegociation d;
     d.Register("text/plain", h);
     ASSERT_TRUE(d.Apply(T1));
     ASSERT_EQ("text", h.GetType());
     ASSERT_EQ("plain", h.GetSubType());
-    ASSERT_EQ(0.5f, h.GetQuality());
   }
 }
