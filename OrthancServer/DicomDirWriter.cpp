@@ -527,7 +527,7 @@ namespace Orthanc
       path = directory + '\\' + filename;
     }
 
-    DcmFileFormat& fileFormat = *reinterpret_cast<DcmFileFormat*>(dicom.GetDcmtkObject());
+    DcmFileFormat& fileFormat = dicom.GetDcmtkObject();
 
     DcmDirectoryRecord* instance;
     bool isNewInstance = pimpl_->CreateResource(instance, ResourceType_Instance, fileFormat, filename.c_str(), path.c_str());

@@ -41,12 +41,6 @@
 
 namespace Orthanc
 {
-  static DcmDataset& GetDataset(ParsedDicomFile& file)
-  {
-    return *reinterpret_cast<DcmFileFormat*>(file.GetDcmtkObject())->getDataset();
-  }
-
-
   void DicomInstanceToStore::AddMetadata(ResourceType level,
                                          MetadataType metadata,
                                          const std::string& value)
@@ -75,7 +69,8 @@ namespace Orthanc
       {
         // Serialize the parsed DICOM file
         buffer_.Allocate();
-        if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer_.GetContent(), GetDataset(parsed_.GetContent())))
+        if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer_.GetContent(), 
+                                                 *parsed_.GetContent().GetDcmtkObject().getDataset()))
         {
           LOG(ERROR) << "Unable to serialize a DICOM file to a memory buffer";
           throw OrthancException(ErrorCode_InternalError);
@@ -103,13 +98,15 @@ namespace Orthanc
     if (!summary_.HasContent())
     {
       summary_.Allocate();
-      FromDcmtkBridge::Convert(summary_.GetContent(), GetDataset(parsed_.GetContent()));
+      FromDcmtkBridge::Convert(summary_.GetContent(), 
+                               *parsed_.GetContent().GetDcmtkObject().getDataset());
     }
     
     if (!json_.HasContent())
     {
       json_.Allocate();
-      FromDcmtkBridge::ToJson(json_.GetContent(), GetDataset(parsed_.GetContent()), 
+      FromDcmtkBridge::ToJson(json_.GetContent(), 
+                              *parsed_.GetContent().GetDcmtkObject().getDataset(),
                               DicomToJsonFormat_Full, 
                               DicomToJsonFlags_Default,
                               256 /* max string length */);

@@ -863,15 +863,27 @@ namespace Orthanc
   }
 
 
+  ParsedDicomFile::ParsedDicomFile(DcmDataset& dicom) : pimpl_(new PImpl)
+  {
+    pimpl_->file_.reset(new DcmFileFormat(&dicom));
+  }
+
+
+  ParsedDicomFile::ParsedDicomFile(DcmFileFormat& dicom) : pimpl_(new PImpl)
+  {
+    pimpl_->file_.reset(new DcmFileFormat(dicom));
+  }
+
+
   ParsedDicomFile::~ParsedDicomFile()
   {
     delete pimpl_;
   }
 
 
-  void* ParsedDicomFile::GetDcmtkObject()
+  DcmFileFormat& ParsedDicomFile::GetDcmtkObject()
   {
-    return pimpl_->file_.get();
+    return *pimpl_->file_.get();
   }
 
 
