@@ -107,12 +107,31 @@ public:
                       const std::string& remoteIp,
                       const std::string& remoteAet)
   {
+    printf("=====================================================================\n");
     printf("Worklist\n");
 
     bool caseSensitivePN = Configuration::GetGlobalBoolParameter("CaseSensitivePN", false);
     HierarchicalMatcher matcher(query, caseSensitivePN);
 
     std::cout << matcher.Format();
+
+    for (unsigned int i = 1; i <= 10; i++)
+    {
+      std::string p = "/tmp/worklists/db/OFFIS/item" + boost::lexical_cast<std::string>(i) + ".wl";
+      std::string s;
+      Toolbox::ReadFile(s, p);
+      ParsedDicomFile f(s);
+      std::cout << p << " => " << matcher.Match(f) << std::endl;
+
+      if (matcher.Match(f))
+      {
+        std::auto_ptr<ParsedDicomFile> e(matcher.Extract(f));
+
+        Json::Value v;
+        e->ToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_Default, 0);
+        std::cout << v;
+      }
+    }
 
     return true;
   }
