@@ -33,11 +33,13 @@
 #include "../PrecompiledHeadersServer.h"
 #include "IFindConstraint.h"
 
-#include "../FromDcmtkBridge.h"
 #include "ListConstraint.h"
 #include "RangeConstraint.h"
 #include "ValueConstraint.h"
 #include "WildcardConstraint.h"
+
+#include "../FromDcmtkBridge.h"
+#include "../../Core/OrthancException.h"
 
 namespace Orthanc
 {
@@ -46,6 +48,11 @@ namespace Orthanc
                                                          bool caseSensitive)
   {
     ValueRepresentation vr = FromDcmtkBridge::GetValueRepresentation(tag);
+
+    if (vr == ValueRepresentation_Sequence)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
 
     if ((vr == ValueRepresentation_Date ||
          vr == ValueRepresentation_DateTime ||

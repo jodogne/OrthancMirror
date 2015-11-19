@@ -1073,6 +1073,9 @@ namespace Orthanc
       case EVR_TM:
         return ValueRepresentation_Time;
 
+      case EVR_SQ:
+        return ValueRepresentation_Sequence;
+
       default:
         return ValueRepresentation_Other;
     }
