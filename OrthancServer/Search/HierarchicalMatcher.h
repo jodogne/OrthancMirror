@@ -32,26 +32,40 @@
 
 #pragma once
 
-#include "DicomFindAnswers.h"
+#include "../../Core/DicomFormat/DicomMap.h"
+#include "IFindConstraint.h"
+#include "../ParsedDicomFile.h"
+
+class DcmItem;
 
 namespace Orthanc
 {
-  class IWorklistRequestHandler : public boost::noncopyable
+  class HierarchicalMatcher : public boost::noncopyable
   {
-  public:
-    virtual ~IWorklistRequestHandler()
+  private:
+    typedef std::map<DicomTag, IFindConstraint*>      Constraints;
+    typedef std::map<DicomTag, HierarchicalMatcher*>  Sequences;
+
+    Constraints  constraints_;
+    Sequences    sequences_;
+
+    void Setup(DcmItem& query,
+               bool caseSensitivePN,
+               Encoding encoding);
+
+    HierarchicalMatcher(DcmItem& query,
+                        bool caseSensitivePN,
+                        Encoding encoding)
     {
+      Setup(query, caseSensitivePN, encoding);
     }
 
-    /**
-     * Can throw exceptions. Returns "false" iff too many results have
-     * to be returned. In such a case, a "Matching terminated due to
-     * Cancel request" DIMSE code would be returned.
-     * https://www.dabsoft.ch/dicom/4/V.4.1/
-     **/
-    virtual bool Handle(DicomFindAnswers& answers,
-                        ParsedDicomFile& query,
-                        const std::string& remoteIp,
-                        const std::string& remoteAet) = 0;
+  public:
+    HierarchicalMatcher(ParsedDicomFile& query,
+                        bool caseSensitivePN);
+
+    ~HierarchicalMatcher();
+
+    std::string Format(const std::string& prefix = "") const;
   };
 }
