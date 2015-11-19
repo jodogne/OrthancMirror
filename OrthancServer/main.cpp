@@ -52,6 +52,8 @@
 #include "../Plugins/Engine/OrthancPlugins.h"
 #include "FromDcmtkBridge.h"
 
+#include "Search/HierarchicalMatcher.h"
+
 using namespace Orthanc;
 
 
@@ -101,11 +103,17 @@ public:
   }
 
   virtual bool Handle(DicomFindAnswers& answers,
-                      const ParsedDicomFile& query,
+                      ParsedDicomFile& query,
                       const std::string& remoteIp,
                       const std::string& remoteAet)
   {
     printf("Worklist\n");
+
+    bool caseSensitivePN = Configuration::GetGlobalBoolParameter("CaseSensitivePN", false);
+    HierarchicalMatcher matcher(query, caseSensitivePN);
+
+    std::cout << matcher.Format();
+
     return true;
   }
 };

@@ -75,4 +75,23 @@ namespace Orthanc
 
     return allowedValues_.find(v) != allowedValues_.end();
   }
+
+
+  std::string ListConstraint::Format() const
+  {
+    std::string s;
+
+    for (std::set<std::string>::const_iterator
+           it = allowedValues_.begin(); it != allowedValues_.end(); ++it)
+    {
+      if (!s.empty())
+      {
+        s += "\\";
+      }
+
+      s += *it;
+    }
+
+    return s;
+  }
 }
