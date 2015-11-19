@@ -60,6 +60,12 @@ namespace Orthanc
       Setup(query, caseSensitivePN, encoding);
     }
 
+    bool MatchInternal(DcmItem& dicom,
+                       Encoding encoding) const;
+
+    DcmDataset* ExtractInternal(DcmItem& dicom,
+                                Encoding encoding) const;
+
   public:
     HierarchicalMatcher(ParsedDicomFile& query,
                         bool caseSensitivePN);
@@ -67,5 +73,9 @@ namespace Orthanc
     ~HierarchicalMatcher();
 
     std::string Format(const std::string& prefix = "") const;
+
+    bool Match(ParsedDicomFile& dicom) const;
+
+    ParsedDicomFile* Extract(ParsedDicomFile& dicom) const;
   };
 }

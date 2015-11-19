@@ -35,6 +35,7 @@
 
 #include "../../Core/OrthancException.h"
 #include "../FromDcmtkBridge.h"
+#include "../ToDcmtkBridge.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 
@@ -84,6 +85,12 @@ namespace Orthanc
       }
 
       DicomTag tag(FromDcmtkBridge::Convert(element->getTag()));
+      if (tag == DICOM_TAG_SPECIFIC_CHARACTER_SET)
+      {
+        // Ignore this specific tag
+        continue;
+      }
+
       ValueRepresentation vr = FromDcmtkBridge::GetValueRepresentation(tag);
 
       if (constraints_.find(tag) != constraints_.end() ||
@@ -178,5 +185,140 @@ namespace Orthanc
     }
 
     return s;
+  }
+
+
+  bool HierarchicalMatcher::Match(ParsedDicomFile& dicom) const
+  {
+    return MatchInternal(*dicom.GetDcmtkObject().getDataset(),
+                         dicom.GetEncoding());
+  }
+
+
+  bool HierarchicalMatcher::MatchInternal(DcmItem& item,
+                                          Encoding encoding) const
+  {
+    for (Constraints::const_iterator it = constraints_.begin();
+         it != constraints_.end(); ++it)
+    {
+      if (it->second != NULL)
+      {
+        DcmTagKey tag = ToDcmtkBridge::Convert(it->first);
+
+        DcmElement* element = NULL;
+        if (!item.findAndGetElement(tag, element).good() ||
+            element == NULL)
+        {
+          return false;
+        }
+
+        std::auto_ptr<DicomValue> value(FromDcmtkBridge::ConvertLeafElement
+                                        (*element, DicomToJsonFlags_None, encoding));
+
+        if (value->IsNull() ||
+            value->IsBinary() ||
+            !it->second->Match(value->GetContent()))
+        {
+          return false;
+        }
+      }
+    }
+
+    for (Sequences::const_iterator it = sequences_.begin();
+         it != sequences_.end(); ++it)
+    {
+      if (it->second != NULL)
+      {
+        DcmTagKey tag = ToDcmtkBridge::Convert(it->first);
+
+        DcmSequenceOfItems* sequence = NULL;
+        if (!item.findAndGetSequence(tag, sequence).good() ||
+            sequence == NULL)
+        {
+          return false;
+        }
+
+        bool match = false;
+
+        for (unsigned long i = 0; i < sequence->card(); i++)
+        {
+          if (it->second->MatchInternal(*sequence->getItem(i), encoding))
+          {
+            match = true;
+            break;
+          }
+        }
+
+        if (!match)
+        {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+
+  DcmDataset* HierarchicalMatcher::ExtractInternal(DcmItem& item,
+                                                   Encoding encoding) const
+  {
+    std::auto_ptr<DcmDataset> dataset(new DcmDataset);
+
+    for (Constraints::const_iterator it = constraints_.begin();
+         it != constraints_.end(); ++it)
+    {
+      DcmTagKey tag = ToDcmtkBridge::Convert(it->first);
+      
+      DcmElement* element = NULL;
+      if (item.findAndGetElement(tag, element).good() &&
+          element != NULL)
+      {
+        std::auto_ptr<DcmElement> cloned(FromDcmtkBridge::CreateElementForTag(it->first));
+        cloned->copyFrom(*element);
+        dataset->insert(cloned.release());
+      }
+    }
+
+    for (Sequences::const_iterator it = sequences_.begin();
+         it != sequences_.end(); ++it)
+    {
+      DcmTagKey tag = ToDcmtkBridge::Convert(it->first);
+
+      DcmSequenceOfItems* sequence = NULL;
+      if (item.findAndGetSequence(tag, sequence).good() &&
+          sequence != NULL)
+      {
+        std::auto_ptr<DcmSequenceOfItems> cloned(new DcmSequenceOfItems(tag));
+
+        for (unsigned long i = 0; i < sequence->card(); i++)
+        {
+          if (it->second == NULL)
+          {
+            cloned->append(new DcmItem(*sequence->getItem(i)));
+          }
+          else if (it->second->MatchInternal(*sequence->getItem(i), encoding))
+          {
+            cloned->append(it->second->ExtractInternal(*sequence->getItem(i), encoding));
+          }
+        }
+
+        dataset->insert(cloned.release());
+      }
+    }
+
+    return dataset.release();
+  }
+
+
+  ParsedDicomFile* HierarchicalMatcher::Extract(ParsedDicomFile& dicom) const
+  {
+    std::auto_ptr<DcmDataset> dataset(ExtractInternal(*dicom.GetDcmtkObject().getDataset(),
+                                                      dicom.GetEncoding()));
+
+    std::auto_ptr<ParsedDicomFile> result(new ParsedDicomFile(*dataset));
+    result->SetEncoding(Encoding_Utf8);
+
+    return result.release();
   }
 }
