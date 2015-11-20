@@ -363,6 +363,14 @@ namespace Orthanc
       Reset();
     }
 
+    void GetQueryDicom(OrthancPluginMemoryBuffer& target) const
+    {
+      assert(currentQuery_ != NULL);
+      std::string dicom;
+      currentQuery_->SaveToMemoryBuffer(dicom);
+      CopyToMemoryBuffer(target, dicom.c_str(), dicom.size());
+    }
+
     bool IsMatch(const void* dicom,
                  size_t size) const
     {
@@ -371,12 +379,14 @@ namespace Orthanc
       return matcher_->Match(f);
     }
 
-    void GetQueryDicom(OrthancPluginMemoryBuffer& target) const
+    void AddAnswer(OrthancPluginWorklistAnswers* answers,
+                   const void* dicom,
+                   size_t size) const
     {
-      assert(currentQuery_ != NULL);
-      std::string dicom;
-      currentQuery_->SaveToMemoryBuffer(dicom);
-      CopyToMemoryBuffer(target, dicom.c_str(), dicom.size());
+      assert(matcher_.get() != NULL);
+      ParsedDicomFile f(dicom, size);
+      std::auto_ptr<ParsedDicomFile> summary(matcher_->Extract(f));
+      reinterpret_cast<DicomFindAnswers*>(answers)->Add(*summary);
     }
   };
 
@@ -1926,9 +1936,7 @@ namespace Orthanc
       {
         const _OrthancPluginWorklistAnswersOperation& p =
           *reinterpret_cast<const _OrthancPluginWorklistAnswersOperation*>(parameters);
-        
-        ParsedDicomFile answer(p.dicom, p.size);
-        reinterpret_cast<DicomFindAnswers*>(p.answers)->Add(answer);
+        reinterpret_cast<const WorklistHandler*>(p.query)->AddAnswer(p.answers, p.dicom, p.size);
         return true;
       }
 
@@ -1936,7 +1944,6 @@ namespace Orthanc
       {
         const _OrthancPluginWorklistAnswersOperation& p =
           *reinterpret_cast<const _OrthancPluginWorklistAnswersOperation*>(parameters);
-
         reinterpret_cast<DicomFindAnswers*>(p.answers)->SetComplete(false);
         return true;
       }

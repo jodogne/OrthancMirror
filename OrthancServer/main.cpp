@@ -52,12 +52,7 @@
 #include "../Plugins/Engine/OrthancPlugins.h"
 #include "FromDcmtkBridge.h"
 
-#include "Search/HierarchicalMatcher.h"
-
 using namespace Orthanc;
-
-
-
 
 
 class OrthancStoreRequestHandler : public IStoreRequestHandler
@@ -93,66 +88,6 @@ public:
   }
 };
 
-
-
-
-class OrthancWorklistRequestHandler : public IWorklistRequestHandler
-{
-private:
-  ServerContext& server_;
-
-public:
-  OrthancWorklistRequestHandler(ServerContext& context) :
-    server_(context)
-  {
-  }
-
-  virtual void Handle(DicomFindAnswers& answers,
-                      ParsedDicomFile& query,
-                      const std::string& remoteIp,
-                      const std::string& remoteAet,
-                      const std::string& calledAet)
-  {
-    LOG(WARNING) << "Worklist Find query from " << remoteAet << " to " << calledAet;
-
-    bool caseSensitivePN = Configuration::GetGlobalBoolParameter("CaseSensitivePN", false);
-    HierarchicalMatcher matcher(query, caseSensitivePN);
-
-    boost::filesystem::path source("/tmp/worklists/db/ORTHANCTEST");
-    boost::filesystem::directory_iterator end;
-
-    try
-    {
-      for (boost::filesystem::directory_iterator it(source); it != end; ++it)
-      {
-        if (is_regular_file(it->status()))
-        {
-          std::string extension = boost::filesystem::extension(it->path());
-          Toolbox::ToLowerCase(extension);
-
-          if (extension == ".wl")
-          {
-            std::string s;
-            Toolbox::ReadFile(s, it->path().string());
-            ParsedDicomFile f(s);
-
-            if (matcher.Match(f))
-            {
-              std::auto_ptr<ParsedDicomFile> e(matcher.Extract(f));
-              answers.Add(*e);
-            }
-          }
-        }
-      }
-    }
-    catch (boost::filesystem::filesystem_error&)
-    {
-      LOG(ERROR) << "Inexistent folder while scanning for worklists: " << source;
-    }
-
-    answers.SetComplete(true);  // All the worklists have been returned
-  }
-};
 
 
 class MyDicomServerFactory : 
