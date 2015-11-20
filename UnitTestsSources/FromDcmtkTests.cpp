@@ -75,7 +75,7 @@ TEST(DicomModification, Basic)
   //m.Replace(DICOM_TAG_PATIENT_ID, "coucou");
   //m.Replace(DICOM_TAG_PATIENT_NAME, "coucou");
 
-  ParsedDicomFile o;
+  ParsedDicomFile o(true);
   o.SaveToFile("UnitTestsResults/anon.dcm");
 
   for (int i = 0; i < 10; i++)
@@ -103,7 +103,7 @@ TEST(DicomModification, Anonymization)
   ASSERT_EQ(0x1020, privateTag2.GetElement());
 
   std::string s;
-  ParsedDicomFile o;
+  ParsedDicomFile o(true);
   o.Replace(DICOM_TAG_PATIENT_NAME, "coucou");
   ASSERT_FALSE(o.GetTagValue(s, privateTag));
   o.Insert(privateTag, "private tag", false);
@@ -161,7 +161,7 @@ TEST(DicomModification, Png)
   ASSERT_EQ(5u, reader.GetWidth());
   ASSERT_EQ(PixelFormat_RGBA32, reader.GetFormat());
 
-  ParsedDicomFile o;
+  ParsedDicomFile o(true);
   o.EmbedContent(s);
   o.SaveToFile("UnitTestsResults/png1.dcm");
 
@@ -267,7 +267,7 @@ TEST(FromDcmtkBridge, Encodings3)
     std::string dicom;
 
     {
-      ParsedDicomFile f;
+      ParsedDicomFile f(true);
       f.SetEncoding(testEncodings[i]);
 
       std::string s = Toolbox::ConvertToUtf8(testEncodingsEncoded[i], testEncodings[i]);
@@ -407,7 +407,7 @@ TEST(FromDcmtkBridge, FromJson)
 
 TEST(ParsedDicomFile, InsertReplaceStrings)
 {
-  ParsedDicomFile f;
+  ParsedDicomFile f(true);
 
   f.Insert(DICOM_TAG_PATIENT_NAME, "World", false);
   ASSERT_THROW(f.Insert(DICOM_TAG_PATIENT_ID, "Hello", false), OrthancException);  // Already existing tag
@@ -446,7 +446,7 @@ TEST(ParsedDicomFile, InsertReplaceStrings)
 
 TEST(ParsedDicomFile, InsertReplaceJson)
 {
-  ParsedDicomFile f;
+  ParsedDicomFile f(true);
 
   Json::Value a;
   CreateSampleJson(a);
@@ -498,7 +498,7 @@ TEST(ParsedDicomFile, InsertReplaceJson)
 
 TEST(ParsedDicomFile, JsonEncoding)
 {
-  ParsedDicomFile f;
+  ParsedDicomFile f(true);
 
   for (unsigned int i = 0; i < testEncodingsCount; i++)
   {
@@ -528,7 +528,7 @@ TEST(ParsedDicomFile, ToJsonFlags1)
   FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7053, 0x1000), EVR_PN, "MyPrivateTag", 1, 1);
   FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7050, 0x1000), EVR_PN, "Declared public tag", 1, 1);
 
-  ParsedDicomFile f;
+  ParsedDicomFile f(true);
   f.Insert(DicomTag(0x7050, 0x1000), "Some public tag", false);  // Even group => public tag
   f.Insert(DicomTag(0x7052, 0x1000), "Some unknown tag", false);  // Even group => public, unknown tag
   f.Insert(DicomTag(0x7053, 0x1000), "Some private tag", false);  // Odd group => private tag
@@ -575,7 +575,7 @@ TEST(ParsedDicomFile, ToJsonFlags1)
 
 TEST(ParsedDicomFile, ToJsonFlags2)
 {
-  ParsedDicomFile f;
+  ParsedDicomFile f(true);
   f.Insert(DICOM_TAG_PIXEL_DATA, "Pixels", false);
 
   Json::Value v;
@@ -620,7 +620,7 @@ TEST(DicomFindAnswers, Basic)
   }
 
   {
-    ParsedDicomFile d;
+    ParsedDicomFile d(true);
     d.Replace(DICOM_TAG_PATIENT_ID, "my");
     a.Add(d);
   }

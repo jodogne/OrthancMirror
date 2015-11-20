@@ -62,7 +62,7 @@ namespace Orthanc
                           bool decodeBinaryTags);
 
   public:
-    ParsedDicomFile();  // Create a minimal DICOM instance
+    ParsedDicomFile(bool createIdentifiers);  // Create a minimal DICOM instance
 
     ParsedDicomFile(const DicomMap& map);
 
