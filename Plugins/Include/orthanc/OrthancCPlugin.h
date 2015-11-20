@@ -18,6 +18,7 @@
  *    - Possibly register its callback for changes to the DICOM store using ::OrthancPluginRegisterOnChangeCallback().
  *    - Possibly register a custom storage area using ::OrthancPluginRegisterStorageArea().
  *    - Possibly register a custom database back-end area using OrthancPluginRegisterDatabaseBackendV2().
+ *    - Possibly register a handler for C-Find SCP against DICOM worklists using OrthancPluginRegisterWorklistCallback().
  * -# <tt>void OrthancPluginFinalize()</tt>:
  *    This function is invoked by Orthanc during its shutdown. The plugin
  *    must free all its memory.
@@ -878,7 +879,8 @@ extern "C"
   /**
    * @brief Callback to handle the C-Find SCP requests received by Orthanc.
    *
-   * Signature of a callback function that is triggered when Orthanc receives a C-Find SCP request.
+   * Signature of a callback function that is triggered when Orthanc
+   * receives a C-Find SCP request against modality worklists.
    *
    * @param answers The target structure where answers must be stored.
    * @param query The worklist query.
@@ -4109,6 +4111,21 @@ extern "C"
     uint32_t                           size;
   } _OrthancPluginWorklistAnswersOperation;
 
+  /**
+   * @brief Add one answer to some modality worklist request.
+   *
+   * This function adds one worklist (encoded as a DICOM file) to the
+   * set of answers corresponding to some C-Find SCP request against
+   * modality worklists.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param answers The set of answers.
+   * @param query The worklist query, as received by the callback.
+   * @param dicom The worklist to answer, encoded as a DICOM file.
+   * @param size The size of the DICOM file.
+   * @return 0 if success, other value if error.
+   * @ingroup Worklists
+   **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginWorklistAddWorklistAnswer(
     OrthancPluginContext*             context,
     OrthancPluginWorklistAnswers*     answers,
@@ -4126,6 +4143,19 @@ extern "C"
   }
 
 
+  /**
+   * @brief Mark the set of worklist answers as incomplete.
+   *
+   * This function marks as incomplete the set of answers
+   * corresponding to some C-Find SCP request against modality
+   * worklists. This must be used if canceling the handling of a
+   * request when too many answers are to be returned.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param answers The set of answers.
+   * @return 0 if success, other value if error.
+   * @ingroup Worklists
+   **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginMarkWorklistAnswersIncomplete(
     OrthancPluginContext*          context,
     OrthancPluginWorklistAnswers*  answers)
@@ -4149,6 +4179,22 @@ extern "C"
     OrthancPluginMemoryBuffer*         target;
   } _OrthancPluginWorklistQueryOperation;
 
+  /**
+   * @brief Test whether a worklist matches the query.
+   *
+   * This function checks whether one worklist (encoded as a DICOM
+   * file) matches the C-Find SCP query against modality
+   * worklists. This function must be called before adding the
+   * worklist as an answer through
+   * OrthancPluginWorklistAddWorklistAnswer().
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param query The worklist query, as received by the callback.
+   * @param dicom The worklist to answer, encoded as a DICOM file.
+   * @param size The size of the DICOM file.
+   * @return 1 if the worklist matches the query, 0 otherwise.
+   * @ingroup Worklists
+   **/
   ORTHANC_PLUGIN_INLINE int32_t  OrthancPluginIsWorklistMatch(
     OrthancPluginContext*              context,
     const OrthancPluginWorklistQuery*  query,
@@ -4176,6 +4222,18 @@ extern "C"
   }
 
 
+  /**
+   * @brief Retrieve the worklist query as a DICOM file.
+   *
+   * This function retrieves the DICOM file that underlies a C-Find
+   * SCP query against modality worklists.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target Memory buffer where to store the DICOM file. It must be freed with OrthancPluginFreeMemoryBuffer().
+   * @param query The worklist query, as received by the callback.
+   * @return 0 if success, other value if error.
+   * @ingroup Worklists
+   **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginGetWorklistQueryDicom(
     OrthancPluginContext*              context,
     OrthancPluginMemoryBuffer*         target,
