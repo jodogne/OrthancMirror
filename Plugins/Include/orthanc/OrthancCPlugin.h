@@ -4103,19 +4103,22 @@ extern "C"
   
   typedef struct
   {
-    OrthancPluginWorklistAnswers*  answers;
-    const void*                    dicom;
-    uint32_t                       size;
+    OrthancPluginWorklistAnswers*      answers;
+    const OrthancPluginWorklistQuery*  query;
+    const void*                        dicom;
+    uint32_t                           size;
   } _OrthancPluginWorklistAnswersOperation;
 
-  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginWorklistAnswersOperation(
-    OrthancPluginContext*          context,
-    OrthancPluginWorklistAnswers*  answers,
-    const void*                    dicom,
-    uint32_t                       size)
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginWorklistAddWorklistAnswer(
+    OrthancPluginContext*             context,
+    OrthancPluginWorklistAnswers*     answers,
+    const OrthancPluginWorklistQuery* query,
+    const void*                       dicom,
+    uint32_t                          size)
   {
     _OrthancPluginWorklistAnswersOperation params;
     params.answers = answers;
+    params.query = query;
     params.dicom = dicom;
     params.size = size;
 
@@ -4129,6 +4132,7 @@ extern "C"
   {
     _OrthancPluginWorklistAnswersOperation params;
     params.answers = answers;
+    params.query = NULL;
     params.dicom = NULL;
     params.size = 0;
 
