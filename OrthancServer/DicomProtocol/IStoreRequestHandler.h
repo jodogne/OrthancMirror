@@ -40,7 +40,7 @@
 
 namespace Orthanc
 {
-  class IStoreRequestHandler
+  class IStoreRequestHandler : public boost::noncopyable
   {
   public:
     virtual ~IStoreRequestHandler()

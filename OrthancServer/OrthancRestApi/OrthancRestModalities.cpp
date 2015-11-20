@@ -280,6 +280,18 @@ namespace Orthanc
   }
 
 
+  static void CopyTagIfExists(DicomMap& target,
+                              ParsedDicomFile& source,
+                              const DicomTag& tag)
+  {
+    std::string tmp;
+    if (source.GetTagValue(tmp, tag))
+    {
+      target.SetValue(tag, tmp);
+    }
+  }
+
+
   static void DicomFind(RestApiPostCall& call)
   {
     LOG(WARNING) << "This URI is deprecated: " << call.FlattenUri();
@@ -303,15 +315,16 @@ namespace Orthanc
     Json::Value result = Json::arrayValue;
     for (size_t i = 0; i < patients.GetSize(); i++)
     {
-      Json::Value patient(Json::objectValue);
-      FromDcmtkBridge::ToJson(patient, patients.GetAnswer(i), true);
+      Json::Value patient;
+      patients.ToJson(patient, i, true);
 
       DicomMap::SetupFindStudyTemplate(m);
       if (!MergeQueryAndTemplate(m, call.GetBodyData(), call.GetBodySize()))
       {
         return;
       }
-      m.CopyTagIfExists(patients.GetAnswer(i), DICOM_TAG_PATIENT_ID);
+
+      CopyTagIfExists(m, patients.GetAnswer(i), DICOM_TAG_PATIENT_ID);
 
       DicomFindAnswers studies;
       FindStudy(studies, locker.GetConnection(), m);
@@ -321,16 +334,17 @@ namespace Orthanc
       // Loop over the found studies
       for (size_t j = 0; j < studies.GetSize(); j++)
       {
-        Json::Value study(Json::objectValue);
-        FromDcmtkBridge::ToJson(study, studies.GetAnswer(j), true);
+        Json::Value study;
+        studies.ToJson(study, j, true);
 
         DicomMap::SetupFindSeriesTemplate(m);
         if (!MergeQueryAndTemplate(m, call.GetBodyData(), call.GetBodySize()))
         {
           return;
         }
-        m.CopyTagIfExists(studies.GetAnswer(j), DICOM_TAG_PATIENT_ID);
-        m.CopyTagIfExists(studies.GetAnswer(j), DICOM_TAG_STUDY_INSTANCE_UID);
+
+        CopyTagIfExists(m, studies.GetAnswer(j), DICOM_TAG_PATIENT_ID);
+        CopyTagIfExists(m, studies.GetAnswer(j), DICOM_TAG_STUDY_INSTANCE_UID);
 
         DicomFindAnswers series;
         FindSeries(series, locker.GetConnection(), m);
@@ -339,8 +353,8 @@ namespace Orthanc
         study["Series"] = Json::arrayValue;
         for (size_t k = 0; k < series.GetSize(); k++)
         {
-          Json::Value series2(Json::objectValue);
-          FromDcmtkBridge::ToJson(series2, series.GetAnswer(k), true);
+          Json::Value series2;
+          series.ToJson(series2, k, true);
           study["Series"].append(series2);
         }
 
@@ -465,8 +479,13 @@ namespace Orthanc
   static void GetQueryOneAnswer(RestApiGetCall& call)
   {
     size_t index = boost::lexical_cast<size_t>(call.GetUriComponent("index", ""));
+
     QueryAccessor query(call);
-    AnswerDicomMap(call, query->GetAnswer(index), call.HasArgument("simplify"));
+
+    DicomMap map;
+    query->GetAnswer(map, index);
+
+    AnswerDicomMap(call, map, call.HasArgument("simplify"));
   }
 
 
@@ -547,7 +566,9 @@ namespace Orthanc
 
     // Ensure that the answer of interest does exist
     size_t index = boost::lexical_cast<size_t>(call.GetUriComponent("index", ""));
-    query->GetAnswer(index);
+
+    DicomMap map;
+    query->GetAnswer(map, index);
 
     RestApi::AutoListChildren(call);
   }

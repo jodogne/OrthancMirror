@@ -32,19 +32,25 @@
 
 #pragma once
 
-#include "../../Core/DicomFormat/DicomMap.h"
-
-#include <vector>
-#include <json/json.h>
+#include "../ParsedDicomFile.h"
 
 namespace Orthanc
 {
-  class DicomFindAnswers
+  class DicomFindAnswers : public boost::noncopyable
   {
   private:
-    std::vector<DicomMap*> items_;
+    class Answer;
+
+    std::vector<Answer*> answers_;
+    bool                 complete_;
+
+    Answer& GetAnswerInternal(size_t index) const;
 
   public:
+    DicomFindAnswers() : complete_(true)
+    {
+    }
+
     ~DicomFindAnswers()
     {
       Clear();
@@ -54,22 +60,37 @@ namespace Orthanc
 
     void Reserve(size_t index);
 
-    void Add(const DicomMap& map)
-    {
-      items_.push_back(map.Clone());
-    }
+    void Add(const DicomMap& map);
+
+    void Add(ParsedDicomFile& dicom);
+
+    void Add(const char* dicom,
+             size_t size);
 
     size_t GetSize() const
     {
-      return items_.size();
+      return answers_.size();
     }
 
-    const DicomMap& GetAnswer(size_t index) const
-    {
-      return *items_.at(index);
-    }
+    ParsedDicomFile& GetAnswer(size_t index) const;
+
+    DcmDataset* ExtractDcmDataset(size_t index) const;
 
     void ToJson(Json::Value& target,
                 bool simplify) const;
+
+    void ToJson(Json::Value& target,
+                size_t index,
+                bool simplify) const;
+
+    bool IsComplete() const
+    {
+      return complete_;
+    }
+
+    void SetComplete(bool isComplete)
+    {
+      complete_ = isComplete;
+    }
   };
 }

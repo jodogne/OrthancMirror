@@ -85,7 +85,8 @@ namespace Orthanc
 
     size_t GetAnswerCount();
 
-    const DicomMap& GetAnswer(size_t i);
+    void GetAnswer(DicomMap& target,
+                   size_t i);
 
     void Retrieve(const std::string& target,
                   size_t i);

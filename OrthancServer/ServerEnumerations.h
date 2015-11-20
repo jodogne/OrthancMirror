@@ -98,7 +98,8 @@ namespace Orthanc
     ValueRepresentation_PatientName,
     ValueRepresentation_Date,
     ValueRepresentation_DateTime,
-    ValueRepresentation_Time
+    ValueRepresentation_Time,
+    ValueRepresentation_Sequence
   };
 
   enum DicomToJsonFormat

@@ -179,6 +179,8 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/OrthancRestApi/OrthancRestSystem.cpp
   OrthancServer/ParsedDicomFile.cpp
   OrthancServer/QueryRetrieveHandler.cpp
+  OrthancServer/Search/HierarchicalMatcher.cpp
+  OrthancServer/Search/IFindConstraint.cpp
   OrthancServer/Search/LookupIdentifierQuery.cpp
   OrthancServer/Search/LookupResource.cpp
   OrthancServer/Search/SetOfResources.cpp

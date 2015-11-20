@@ -87,7 +87,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
 
-
+#include <dcmtk/dcmdata/dcfilefo.h>
 
 namespace Orthanc
 {
@@ -95,13 +95,13 @@ namespace Orthanc
   {  
     struct FindScpData
     {
-      IFindRequestHandler* handler_;
-      DicomMap input_;
+      IFindRequestHandler* findHandler_;
+      IWorklistRequestHandler* worklistHandler_;
       DicomFindAnswers answers_;
       DcmDataset* lastRequest_;
       const std::string* remoteIp_;
       const std::string* remoteAet_;
-      bool noCroppingOfResults_;
+      const std::string* calledAet_;
     };
 
 
@@ -120,20 +120,55 @@ namespace Orthanc
       bzero(response, sizeof(T_DIMSE_C_FindRSP));
       *statusDetail = NULL;
 
+      std::string sopClassUid(request->AffectedSOPClassUID);
+
       FindScpData& data = *reinterpret_cast<FindScpData*>(callbackData);
       if (data.lastRequest_ == NULL)
       {
-        FromDcmtkBridge::Convert(data.input_, *requestIdentifiers);
+        bool ok = false;
 
         try
         {
-          data.noCroppingOfResults_ = data.handler_->Handle(data.answers_, data.input_, 
-                                                            *data.remoteIp_, *data.remoteAet_);
+          if (sopClassUid == UID_FINDModalityWorklistInformationModel)
+          {
+            if (data.worklistHandler_ != NULL)
+            {
+              ParsedDicomFile query(*requestIdentifiers);
+              data.worklistHandler_->Handle(data.answers_, query,
+                                            *data.remoteIp_, *data.remoteAet_,
+                                            *data.calledAet_);
+              ok = true;
+            }
+            else
+            {
+              LOG(ERROR) << "No worklist handler is installed, cannot handle this C-FIND request";
+            }
+          }
+          else
+          {
+            if (data.findHandler_ != NULL)
+            {
+              DicomMap input;
+              FromDcmtkBridge::Convert(input, *requestIdentifiers);
+              data.findHandler_->Handle(data.answers_, input,
+                                        *data.remoteIp_, *data.remoteAet_,
+                                        *data.calledAet_);
+              ok = true;
+            }
+            else
+            {
+              LOG(ERROR) << "No C-Find handler is installed, cannot handle this request";
+            }
+          }
         }
         catch (OrthancException& e)
         {
           // Internal error!
           LOG(ERROR) <<  "C-FIND request handler has failed: " << e.What();
+        }
+
+        if (!ok)
+        {
           response->DimseStatus = STATUS_FIND_Failed_UnableToProcess;
           *responseIdentifiers = NULL;   
           return;
@@ -153,9 +188,9 @@ namespace Orthanc
       {
         // There are pending results that are still to be sent
         response->DimseStatus = STATUS_Pending;
-        *responseIdentifiers = ToDcmtkBridge::Convert(data.answers_.GetAnswer(responseCount - 1));
+        *responseIdentifiers = data.answers_.ExtractDcmDataset(responseCount - 1);
       }
-      else if (data.noCroppingOfResults_)
+      else if (data.answers_.IsComplete())
       {
         // Success: All the results have been sent
         response->DimseStatus = STATUS_Success;
@@ -175,16 +210,19 @@ namespace Orthanc
   OFCondition Internals::findScp(T_ASC_Association * assoc, 
                                  T_DIMSE_Message * msg, 
                                  T_ASC_PresentationContextID presID,
-                                 IFindRequestHandler& handler,
+                                 IFindRequestHandler* findHandler,
+                                 IWorklistRequestHandler* worklistHandler,
                                  const std::string& remoteIp,
-                                 const std::string& remoteAet)
+                                 const std::string& remoteAet,
+                                 const std::string& calledAet)
   {
     FindScpData data;
     data.lastRequest_ = NULL;
-    data.handler_ = &handler;
+    data.findHandler_ = findHandler;
+    data.worklistHandler_ = worklistHandler;
     data.remoteIp_ = &remoteIp;
     data.remoteAet_ = &remoteAet;
-    data.noCroppingOfResults_ = true;
+    data.calledAet_ = &calledAet;
 
     OFCondition cond = DIMSE_findProvider(assoc, presID, &msg->msg.CFindRQ, 
                                           FindScpCallback, &data,

@@ -38,22 +38,25 @@
 
 namespace Orthanc
 {
-  class IApplicationEntityFilter
+  class IApplicationEntityFilter : public boost::noncopyable
   {
   public:
     virtual ~IApplicationEntityFilter()
     {
     }
 
-    virtual bool IsAllowedConnection(const std::string& callingIp,
-                                     const std::string& callingAet) = 0;
+    virtual bool IsAllowedConnection(const std::string& remoteIp,
+                                     const std::string& remoteAet,
+                                     const std::string& calledAet) = 0;
 
-    virtual bool IsAllowedRequest(const std::string& callingIp,
-                                  const std::string& callingAet,
+    virtual bool IsAllowedRequest(const std::string& remoteIp,
+                                  const std::string& remoteAet,
+                                  const std::string& calledAet,
                                   DicomRequestType type) = 0;
 
-    virtual bool IsAllowedTransferSyntax(const std::string& callingIp,
-                                         const std::string& callingAet,
+    virtual bool IsAllowedTransferSyntax(const std::string& remoteIp,
+                                         const std::string& remoteAet,
+                                         const std::string& calledAet,
                                          TransferSyntax syntax) = 0;
   };
 }

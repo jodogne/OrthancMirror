@@ -513,5 +513,10 @@
     "Code": 2040,
     "Name": "CannotOrderSlices",
     "Description": "Unable to order the slices of the series"
+  },
+  {
+    "Code": 2041, 
+    "Name": "NoWorklistHandler", 
+    "Description": "No request handler factory for DICOM C-Find Modality SCP"
   }
 ]

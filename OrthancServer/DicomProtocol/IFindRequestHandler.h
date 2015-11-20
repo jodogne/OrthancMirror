@@ -34,28 +34,19 @@
 
 #include "DicomFindAnswers.h"
 
-#include <vector>
-#include <string>
-
-
 namespace Orthanc
 {
-  class IFindRequestHandler
+  class IFindRequestHandler : public boost::noncopyable
   {
   public:
     virtual ~IFindRequestHandler()
     {
     }
 
-    /**
-     * Can throw exceptions. Returns "false" iff too many results have
-     * to be returned. In such a case, a "Matching terminated due to
-     * Cancel request" DIMSE code would be returned.
-     * https://www.dabsoft.ch/dicom/4/V.4.1/
-     **/
-    virtual bool Handle(DicomFindAnswers& answers,
+    virtual void Handle(DicomFindAnswers& answers,
                         const DicomMap& input,
                         const std::string& remoteIp,
-                        const std::string& remoteAet) = 0;
+                        const std::string& remoteAet,
+                        const std::string& calledAet) = 0;
   };
 }

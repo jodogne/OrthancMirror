@@ -18,6 +18,7 @@ Pending changes in the mainline
 Plugins
 -------
 
+* New functions "OrthancPluginDicomInstanceToJson()" and "OrthancPluginDicomBufferToJson()"
 * New function "OrthancPluginRegisterErrorCode()" to declare custom error codes
 * New function "OrthancPluginRegisterDictionaryTag()" to declare custom DICOM tags
 * New function "OrthancPluginRestApiGet2()" to provide HTTP headers when calling Orthanc API

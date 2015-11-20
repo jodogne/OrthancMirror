@@ -29,56 +29,53 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
+
 #pragma once
 
-#include "DicomProtocol/IFindRequestHandler.h"
+#include "../../Core/DicomFormat/DicomMap.h"
+#include "IFindConstraint.h"
+#include "../ParsedDicomFile.h"
 
-#include "ServerContext.h"
+class DcmItem;
 
 namespace Orthanc
 {
-  class OrthancFindRequestHandler : public IFindRequestHandler
+  class HierarchicalMatcher : public boost::noncopyable
   {
   private:
-    ServerContext& context_;
-    unsigned int maxResults_;
-    unsigned int maxInstances_;
+    typedef std::map<DicomTag, IFindConstraint*>      Constraints;
+    typedef std::map<DicomTag, HierarchicalMatcher*>  Sequences;
 
-    bool HasReachedLimit(const DicomFindAnswers& answers,
-                         ResourceType level) const;
+    Constraints  constraints_;
+    Sequences    sequences_;
+
+    void Setup(DcmItem& query,
+               bool caseSensitivePN,
+               Encoding encoding);
+
+    HierarchicalMatcher(DcmItem& query,
+                        bool caseSensitivePN,
+                        Encoding encoding)
+    {
+      Setup(query, caseSensitivePN, encoding);
+    }
+
+    bool MatchInternal(DcmItem& dicom,
+                       Encoding encoding) const;
+
+    DcmDataset* ExtractInternal(DcmItem& dicom,
+                                Encoding encoding) const;
 
   public:
-    OrthancFindRequestHandler(ServerContext& context) :
-      context_(context), 
-      maxResults_(0),
-      maxInstances_(0)
-    {
-    }
+    HierarchicalMatcher(ParsedDicomFile& query,
+                        bool caseSensitivePN);
 
-    virtual void Handle(DicomFindAnswers& answers,
-                        const DicomMap& input,
-                        const std::string& remoteIp,
-                        const std::string& remoteAet,
-                        const std::string& calledAet);
+    ~HierarchicalMatcher();
 
-    unsigned int GetMaxResults() const
-    {
-      return maxResults_;
-    }
+    std::string Format(const std::string& prefix = "") const;
 
-    void SetMaxResults(unsigned int results)
-    {
-      maxResults_ = results;
-    }
+    bool Match(ParsedDicomFile& dicom) const;
 
-    unsigned int GetMaxInstances() const
-    {
-      return maxInstances_;
-    }
-
-    void SetMaxInstances(unsigned int instances)
-    {
-      maxInstances_ = instances;
-    }
+    ParsedDicomFile* Extract(ParsedDicomFile& dicom) const;
   };
 }

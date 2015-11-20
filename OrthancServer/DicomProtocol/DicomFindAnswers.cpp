@@ -34,24 +34,164 @@
 #include "DicomFindAnswers.h"
 
 #include "../FromDcmtkBridge.h"
+#include "../ToDcmtkBridge.h"
+#include "../../Core/OrthancException.h"
+
+#include <memory>
+#include <dcmtk/dcmdata/dcfilefo.h>
+
 
 namespace Orthanc
 {
+  class DicomFindAnswers::Answer
+  {
+  private:
+    ParsedDicomFile* dicom_;
+    DicomMap*        map_;
+
+    void CleanupDicom()
+    {
+      if (dicom_ != NULL)
+      {
+        dicom_->Remove(DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID);
+        dicom_->Remove(DICOM_TAG_SOP_INSTANCE_UID);
+      }
+    }
+
+  public:
+    Answer(ParsedDicomFile& dicom) : 
+      dicom_(dicom.Clone()),
+      map_(NULL)
+    {
+      CleanupDicom();
+    }
+
+    Answer(const char* dicom,
+           size_t size) : 
+      dicom_(new ParsedDicomFile(dicom, size)),
+      map_(NULL)
+    {
+      CleanupDicom();
+    }
+
+    Answer(const DicomMap& map) : 
+      dicom_(NULL),
+      map_(map.Clone())
+    {
+    }
+
+    ~Answer()
+    {
+      if (dicom_ != NULL)
+      {
+        delete dicom_;
+      }
+
+      if (map_ != NULL)
+      {
+        delete map_;
+      }
+    }
+
+    ParsedDicomFile& GetDicomFile()
+    {
+      if (dicom_ == NULL)
+      {
+        assert(map_ != NULL);
+        dicom_ = new ParsedDicomFile(*map_);
+      }
+
+      return *dicom_;
+    }
+
+    DcmDataset* ExtractDcmDataset() const
+    {
+      if (dicom_ != NULL)
+      {
+        return new DcmDataset(*dicom_->GetDcmtkObject().getDataset());
+      }
+      else
+      {
+        assert(map_ != NULL);
+        return ToDcmtkBridge::Convert(*map_);
+      }
+    }
+  };
+
+
   void DicomFindAnswers::Clear()
   {
-    for (size_t i = 0; i < items_.size(); i++)
+    for (size_t i = 0; i < answers_.size(); i++)
     {
-      delete items_[i];
+      assert(answers_[i] != NULL);
+      delete answers_[i];
     }
+
+    answers_.clear();
   }
+
 
   void DicomFindAnswers::Reserve(size_t size)
   {
-    if (size > items_.size())
+    if (size > answers_.size())
     {
-      items_.reserve(size);
+      answers_.reserve(size);
     }
   }
+
+
+  void DicomFindAnswers::Add(const DicomMap& map)
+  {
+    answers_.push_back(new Answer(map));
+  }
+
+
+  void DicomFindAnswers::Add(ParsedDicomFile& dicom)
+  {
+    answers_.push_back(new Answer(dicom));
+  }
+
+
+  void DicomFindAnswers::Add(const char* dicom,
+                             size_t size)
+  {
+    answers_.push_back(new Answer(dicom, size));
+  }
+
+
+  DicomFindAnswers::Answer& DicomFindAnswers::GetAnswerInternal(size_t index) const
+  {
+    if (index < answers_.size())
+    {
+      return *answers_.at(index);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  ParsedDicomFile& DicomFindAnswers::GetAnswer(size_t index) const
+  {
+    return GetAnswerInternal(index).GetDicomFile();
+  }
+
+
+  DcmDataset* DicomFindAnswers::ExtractDcmDataset(size_t index) const
+  {
+    return GetAnswerInternal(index).ExtractDcmDataset();
+  }
+
+
+  void DicomFindAnswers::ToJson(Json::Value& target,
+                                size_t index,
+                                bool simplify) const
+  {
+    DicomToJsonFormat format = (simplify ? DicomToJsonFormat_Simple : DicomToJsonFormat_Full);
+    GetAnswer(index).ToJson(target, format, DicomToJsonFlags_None, 0);
+  }
+
 
   void DicomFindAnswers::ToJson(Json::Value& target,
                                 bool simplify) const
@@ -60,8 +200,8 @@ namespace Orthanc
 
     for (size_t i = 0; i < GetSize(); i++)
     {
-      Json::Value answer(Json::objectValue);
-      FromDcmtkBridge::ToJson(answer, GetAnswer(i), simplify);
+      Json::Value answer;
+      ToJson(answer, i, simplify);
       target.append(answer);
     }
   }

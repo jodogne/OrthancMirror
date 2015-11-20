@@ -325,6 +325,9 @@ namespace Orthanc
       case ErrorCode_CannotOrderSlices:
         return "Unable to order the slices of the series";
 
+      case ErrorCode_NoWorklistHandler:
+        return "No request handler factory for DICOM C-Find Modality SCP";
+
       default:
         if (error >= ErrorCode_START_PLUGINS)
         {

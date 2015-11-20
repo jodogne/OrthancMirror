@@ -33,11 +33,6 @@
 #include "../PrecompiledHeadersServer.h"
 #include "LookupResource.h"
 
-#include "ListConstraint.h"
-#include "RangeConstraint.h"
-#include "ValueConstraint.h"
-#include "WildcardConstraint.h"
-
 #include "../../Core/OrthancException.h"
 #include "../../Core/FileStorage/StorageAccessor.h"
 #include "../ServerToolbox.h"
@@ -426,85 +421,16 @@ namespace Orthanc
                                           const std::string& dicomQuery,
                                           bool caseSensitive)
   {
-    ValueRepresentation vr = FromDcmtkBridge::GetValueRepresentation(tag);
-
     // http://www.itk.org/Wiki/DICOM_QueryRetrieve_Explained
     // http://dicomiseasy.blogspot.be/2012/01/dicom-queryretrieve-part-i.html  
     if (tag == DICOM_TAG_MODALITIES_IN_STUDY)
     {
       SetModalitiesInStudy(dicomQuery);
     }
-    else if ((vr == ValueRepresentation_Date ||
-              vr == ValueRepresentation_DateTime ||
-              vr == ValueRepresentation_Time) &&
-             dicomQuery.find('-') != std::string::npos)
+    else 
     {
-      /**
-       * Range matching is only defined for TM, DA and DT value
-       * representations. This code fixes issues 35 and 37.
-       *
-       * Reference: "Range matching is not defined for types of
-       * Attributes other than dates and times", DICOM PS 3.4,
-       * C.2.2.2.5 ("Range Matching").
-       **/
-      size_t separator = dicomQuery.find('-');
-      std::string lower = dicomQuery.substr(0, separator);
-      std::string upper = dicomQuery.substr(separator + 1);
-      Add(tag, new RangeConstraint(lower, upper, caseSensitive));
-    }
-    else if (dicomQuery.find('\\') != std::string::npos)
-    {
-      std::auto_ptr<ListConstraint> constraint(new ListConstraint(caseSensitive));
-
-      std::vector<std::string> items;
-      Toolbox::TokenizeString(items, dicomQuery, '\\');
-
-      for (size_t i = 0; i < items.size(); i++)
-      {
-        constraint->AddAllowedValue(items[i]);
-      }
-
-      Add(tag, constraint.release());
-    }
-    else if (dicomQuery.find('*') != std::string::npos ||
-             dicomQuery.find('?') != std::string::npos)
-    {
-      Add(tag, new WildcardConstraint(dicomQuery, caseSensitive));
-    }
-    else
-    {
-      /**
-       * Case-insensitive match for PN value representation (Patient
-       * Name). Case-senstive match for all the other value
-       * representations.
-       *
-       * Reference: DICOM PS 3.4
-       *   - C.2.2.2.1 ("Single Value Matching") 
-       *   - C.2.2.2.4 ("Wild Card Matching")
-       * http://medical.nema.org/Dicom/2011/11_04pu.pdf
-       *
-       * "Except for Attributes with a PN Value Representation, only
-       * entities with values which match exactly the value specified in the
-       * request shall match. This matching is case-sensitive, i.e.,
-       * sensitive to the exact encoding of the key attribute value in
-       * character sets where a letter may have multiple encodings (e.g.,
-       * based on its case, its position in a word, or whether it is
-       * accented)
-       * 
-       * For Attributes with a PN Value Representation (e.g., Patient Name
-       * (0010,0010)), an application may perform literal matching that is
-       * either case-sensitive, or that is insensitive to some or all
-       * aspects of case, position, accent, or other character encoding
-       * variants."
-       *
-       * (0008,0018) UI SOPInstanceUID     => Case-sensitive
-       * (0008,0050) SH AccessionNumber    => Case-sensitive
-       * (0010,0020) LO PatientID          => Case-sensitive
-       * (0020,000D) UI StudyInstanceUID   => Case-sensitive
-       * (0020,000E) UI SeriesInstanceUID  => Case-sensitive
-      **/
-
-      Add(tag, new ValueConstraint(dicomQuery, caseSensitive));
+      Add(tag, IFindConstraint::ParseDicomConstraint(tag, dicomQuery, caseSensitive));
     }
   }
+
 }
