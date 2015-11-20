@@ -47,6 +47,7 @@
 #include "../../OrthancServer/OrthancInitialization.h"
 #include "../../OrthancServer/ServerContext.h"
 #include "../../OrthancServer/ServerToolbox.h"
+#include "../../OrthancServer/Search/HierarchicalMatcher.h"
 #include "../../Core/Compression/ZlibCompressor.h"
 #include "../../Core/Compression/GzipCompressor.h"
 #include "../../Core/Images/Image.h"
@@ -61,6 +62,46 @@
 
 namespace Orthanc
 {
+  static void CopyToMemoryBuffer(OrthancPluginMemoryBuffer& target,
+                                 const void* data,
+                                 size_t size)
+  {
+    target.size = size;
+
+    if (size == 0)
+    {
+      target.data = NULL;
+    }
+    else
+    {
+      target.data = malloc(size);
+      if (target.data != NULL)
+      {
+        memcpy(target.data, data, size);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_NotEnoughMemory);
+      }
+    }
+  }
+
+
+  static void CopyToMemoryBuffer(OrthancPluginMemoryBuffer& target,
+                                 const std::string& str)
+  {
+    if (str.size() == 0)
+    {
+      target.size = 0;
+      target.data = NULL;
+    }
+    else
+    {
+      CopyToMemoryBuffer(target, str.c_str(), str.size());
+    }
+  }
+
+
   namespace
   {
     class PluginStorageArea : public IStorageArea
@@ -266,6 +307,78 @@ namespace Orthanc
     }
   };
 
+
+  
+  class OrthancPlugins::WorklistHandler : public IWorklistRequestHandler
+  {
+  private:
+    OrthancPlugins&  that_;
+    std::auto_ptr<HierarchicalMatcher> matcher_;
+    ParsedDicomFile* currentQuery_;
+
+    void Reset()
+    {
+      matcher_.reset(NULL);
+      currentQuery_ = NULL;
+    }
+
+  public:
+    WorklistHandler(OrthancPlugins& that) : that_(that)
+    {
+      Reset();
+    }
+
+    virtual void Handle(DicomFindAnswers& answers,
+                        ParsedDicomFile& query,
+                        const std::string& remoteIp,
+                        const std::string& remoteAet,
+                        const std::string& calledAet)
+    {
+      bool caseSensitivePN = Configuration::GetGlobalBoolParameter("CaseSensitivePN", false);
+      matcher_.reset(new HierarchicalMatcher(query, caseSensitivePN));
+      currentQuery_ = &query;
+
+      {
+        boost::recursive_mutex::scoped_lock lock(that_.pimpl_->worklistCallbackMutex_);
+
+        for (PImpl::WorklistCallbacks::const_iterator
+               callback = that_.pimpl_->worklistCallbacks_.begin(); 
+             callback != that_.pimpl_->worklistCallbacks_.end(); ++callback)
+        {
+          OrthancPluginErrorCode error = (*callback) 
+            (reinterpret_cast<OrthancPluginWorklistAnswers*>(&answers),
+             reinterpret_cast<const OrthancPluginWorklistQuery*>(this),
+             remoteAet.c_str(),
+             calledAet.c_str());
+
+          if (error != OrthancPluginErrorCode_Success)
+          {
+            Reset();
+            that_.GetErrorDictionary().LogError(error, true);
+            throw OrthancException(static_cast<ErrorCode>(error));
+          }
+        }
+      }
+
+      Reset();
+    }
+
+    bool IsMatch(const void* dicom,
+                 size_t size) const
+    {
+      assert(matcher_.get() != NULL);
+      ParsedDicomFile f(dicom, size);
+      return matcher_->Match(f);
+    }
+
+    void GetQueryDicom(OrthancPluginMemoryBuffer& target) const
+    {
+      assert(currentQuery_ != NULL);
+      std::string dicom;
+      currentQuery_->SaveToMemoryBuffer(dicom);
+      CopyToMemoryBuffer(target, dicom.c_str(), dicom.size());
+    }
+  };
 
   
   static char* CopyString(const std::string& str)
@@ -547,46 +660,6 @@ namespace Orthanc
                          change.GetPublicId().c_str());
   }
 
-
-
-  static void CopyToMemoryBuffer(OrthancPluginMemoryBuffer& target,
-                                 const void* data,
-                                 size_t size)
-  {
-    target.size = size;
-
-    if (size == 0)
-    {
-      target.data = NULL;
-    }
-    else
-    {
-      target.data = malloc(size);
-      if (target.data != NULL)
-      {
-        memcpy(target.data, data, size);
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_NotEnoughMemory);
-      }
-    }
-  }
-
-
-  static void CopyToMemoryBuffer(OrthancPluginMemoryBuffer& target,
-                                 const std::string& str)
-  {
-    if (str.size() == 0)
-    {
-      target.size = 0;
-      target.data = NULL;
-    }
-    else
-    {
-      CopyToMemoryBuffer(target, str.c_str(), str.size());
-    }
-  }
 
 
   void OrthancPlugins::RegisterRestCallback(const void* parameters,
@@ -1851,11 +1924,36 @@ namespace Orthanc
 
       case _OrthancPluginService_AddWorklistAnswer:
       {
-        const _OrthancPluginAddWorklistAnswer& p =
-          *reinterpret_cast<const _OrthancPluginAddWorklistAnswer*>(parameters);
+        const _OrthancPluginWorklistAnswersOperation& p =
+          *reinterpret_cast<const _OrthancPluginWorklistAnswersOperation*>(parameters);
         
-        ParsedDicomFile answer(p.answerDicom, p.answerSize);
-        reinterpret_cast<DicomFindAnswers*>(p.target)->Add(answer);
+        ParsedDicomFile answer(p.dicom, p.size);
+        reinterpret_cast<DicomFindAnswers*>(p.answers)->Add(answer);
+        return true;
+      }
+
+      case _OrthancPluginService_MarkWorklistAnswersIncomplete:
+      {
+        const _OrthancPluginWorklistAnswersOperation& p =
+          *reinterpret_cast<const _OrthancPluginWorklistAnswersOperation*>(parameters);
+
+        reinterpret_cast<DicomFindAnswers*>(p.answers)->SetComplete(false);
+        return true;
+      }
+
+      case _OrthancPluginService_IsWorklistMatch:
+      {
+        const _OrthancPluginWorklistQueryOperation& p =
+          *reinterpret_cast<const _OrthancPluginWorklistQueryOperation*>(parameters);
+        *p.isMatch = reinterpret_cast<const WorklistHandler*>(p.query)->IsMatch(p.dicom, p.size);
+        return true;
+      }
+
+      case _OrthancPluginService_GetWorklistQueryDicom:
+      {
+        const _OrthancPluginWorklistQueryOperation& p =
+          *reinterpret_cast<const _OrthancPluginWorklistQueryOperation*>(parameters);
+        reinterpret_cast<const WorklistHandler*>(p.query)->GetQueryDicom(*p.target);
         return true;
       }
 
@@ -1978,54 +2076,6 @@ namespace Orthanc
   }
 
 
-  void OrthancPlugins::HandleWorklist(DicomFindAnswers& answers,
-                                      ParsedDicomFile& query,
-                                      const std::string& remoteIp,
-                                      const std::string& remoteAet,
-                                      const std::string& calledAet)
-  {
-    boost::recursive_mutex::scoped_lock lock(pimpl_->worklistCallbackMutex_);
-
-    for (PImpl::WorklistCallbacks::const_iterator
-           callback = pimpl_->worklistCallbacks_.begin(); 
-         callback != pimpl_->worklistCallbacks_.end(); ++callback)
-    {
-      OrthancPluginErrorCode error = (*callback) 
-        (reinterpret_cast<OrthancPluginWorklistAnswers*>(&answers),
-         reinterpret_cast<OrthancPluginWorklistQuery*>(&query),
-         remoteAet.c_str(),
-         calledAet.c_str());
-
-      if (error != OrthancPluginErrorCode_Success)
-      {
-        GetErrorDictionary().LogError(error, true);
-        throw OrthancException(static_cast<ErrorCode>(error));
-      }
-    }
-  }
-
-
-  class OrthancPlugins::WorklistHandler : public IWorklistRequestHandler
-  {
-  private:
-    OrthancPlugins&  plugins_;
-
-  public:
-    WorklistHandler(OrthancPlugins& plugins) : plugins_(plugins)
-    {
-    }
-
-    virtual void Handle(DicomFindAnswers& answers,
-                        ParsedDicomFile& query,
-                        const std::string& remoteIp,
-                        const std::string& remoteAet,
-                        const std::string& calledAet)
-    {
-      plugins_.HandleWorklist(answers, query, remoteIp, remoteAet, calledAet);
-    }
-  };
-
-  
   IWorklistRequestHandler* OrthancPlugins::ConstructWorklistRequestHandler()
   {
     bool hasHandler;

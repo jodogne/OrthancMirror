@@ -469,6 +469,9 @@ extern "C"
 
     /* Primitives for handling worklists */
     _OrthancPluginService_AddWorklistAnswer = 7000,
+    _OrthancPluginService_MarkWorklistAnswersIncomplete = 7001,
+    _OrthancPluginService_IsWorklistMatch = 7002,
+    _OrthancPluginService_GetWorklistQueryDicom = 7003,
 
     _OrthancPluginService_INTERNAL = 0x7fffffff
   } _OrthancPluginService;
@@ -4100,24 +4103,88 @@ extern "C"
   
   typedef struct
   {
-    OrthancPluginWorklistAnswers*  target;
-    const void*                    answerDicom;
-    uint32_t                       answerSize;
-  } _OrthancPluginAddWorklistAnswer;
+    OrthancPluginWorklistAnswers*  answers;
+    const void*                    dicom;
+    uint32_t                       size;
+  } _OrthancPluginWorklistAnswersOperation;
 
-
-  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginAddWorklistAnswer(
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginWorklistAnswersOperation(
     OrthancPluginContext*          context,
-    OrthancPluginWorklistAnswers*  target,
-    const void*                    answerDicom,
-    uint32_t                       answerSize)
+    OrthancPluginWorklistAnswers*  answers,
+    const void*                    dicom,
+    uint32_t                       size)
   {
-    _OrthancPluginAddWorklistAnswer params;
-    params.target = target;
-    params.answerDicom = answerDicom;
-    params.answerSize = answerSize;
+    _OrthancPluginWorklistAnswersOperation params;
+    params.answers = answers;
+    params.dicom = dicom;
+    params.size = size;
 
     return context->InvokeService(context, _OrthancPluginService_AddWorklistAnswer, &params);
+  }
+
+
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginMarkWorklistAnswersIncomplete(
+    OrthancPluginContext*          context,
+    OrthancPluginWorklistAnswers*  answers)
+  {
+    _OrthancPluginWorklistAnswersOperation params;
+    params.answers = answers;
+    params.dicom = NULL;
+    params.size = 0;
+
+    return context->InvokeService(context, _OrthancPluginService_MarkWorklistAnswersIncomplete, &params);
+  }
+
+
+  typedef struct
+  {
+    const OrthancPluginWorklistQuery*  query;
+    const void*                        dicom;
+    uint32_t                           size;
+    int32_t*                           isMatch;
+    OrthancPluginMemoryBuffer*         target;
+  } _OrthancPluginWorklistQueryOperation;
+
+  ORTHANC_PLUGIN_INLINE int32_t  OrthancPluginIsWorklistMatch(
+    OrthancPluginContext*              context,
+    const OrthancPluginWorklistQuery*  query,
+    const void*                        dicom,
+    uint32_t                           size)
+  {
+    int32_t isMatch = 0;
+
+    _OrthancPluginWorklistQueryOperation params;
+    params.query = query;
+    params.dicom = dicom;
+    params.size = size;
+    params.isMatch = &isMatch;
+    params.target = NULL;
+
+    if (context->InvokeService(context, _OrthancPluginService_IsWorklistMatch, &params) == OrthancPluginErrorCode_Success)
+    {
+      return isMatch;
+    }
+    else
+    {
+      /* Error: Assume non-match */
+      return 0;
+    }
+  }
+
+
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginGetWorklistQueryDicom(
+    OrthancPluginContext*              context,
+    OrthancPluginMemoryBuffer*         target,
+    const OrthancPluginWorklistQuery*  query)
+  {
+    _OrthancPluginWorklistQueryOperation params;
+    params.query = query;
+    params.dicom = NULL;
+    params.size = 0;
+    params.isMatch = NULL;
+    params.target = target;
+
+    return context->InvokeService(context, _OrthancPluginService_GetWorklistQueryDicom, &params);
   }
 
 

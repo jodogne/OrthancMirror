@@ -144,12 +144,6 @@ namespace Orthanc
                               OrthancPluginResourceType resourceType,
                               const char* resource);
 
-    void HandleWorklist(DicomFindAnswers& answers,
-                        ParsedDicomFile& query,
-                        const std::string& remoteIp,
-                        const std::string& remoteAet,
-                        const std::string& calledAet);
-
   public:
     OrthancPlugins();
 
