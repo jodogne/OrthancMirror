@@ -803,7 +803,11 @@ namespace Orthanc
               {
                 std::auto_ptr<IStoreRequestHandler> handler
                   (server_.GetStoreRequestHandlerFactory().ConstructStoreRequestHandler());
-                cond = Internals::storeScp(assoc_, &msg, presID, *handler, remoteIp_);
+
+                if (handler.get() != NULL)
+                {
+                  cond = Internals::storeScp(assoc_, &msg, presID, *handler, remoteIp_);
+                }
               }
               break;
 
@@ -812,7 +816,11 @@ namespace Orthanc
               {
                 std::auto_ptr<IMoveRequestHandler> handler
                   (server_.GetMoveRequestHandlerFactory().ConstructMoveRequestHandler());
-                cond = Internals::moveScp(assoc_, &msg, presID, *handler, remoteIp_, remoteAet_, calledAet_);
+
+                if (handler.get() != NULL)
+                {
+                  cond = Internals::moveScp(assoc_, &msg, presID, *handler, remoteIp_, remoteAet_, calledAet_);
+                }
               }
               break;
 

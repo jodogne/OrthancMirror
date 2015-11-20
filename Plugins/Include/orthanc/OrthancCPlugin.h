@@ -402,6 +402,7 @@ extern "C"
     _OrthancPluginService_RegisterStorageArea = 1002,
     _OrthancPluginService_RegisterOnChangeCallback = 1003,
     _OrthancPluginService_RegisterRestCallbackNoLock = 1004,
+    _OrthancPluginService_RegisterWorklistCallback = 1005,
 
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
@@ -465,6 +466,9 @@ extern "C"
     _OrthancPluginService_GetFontsCount = 6009,
     _OrthancPluginService_GetFontInfo = 6010,
     _OrthancPluginService_DrawText = 6011,
+
+    /* Primitives for handling worklists */
+    _OrthancPluginService_AddWorklistAnswer = 7000,
 
     _OrthancPluginService_INTERNAL = 0x7fffffff
   } _OrthancPluginService;
@@ -873,14 +877,18 @@ extern "C"
    *
    * Signature of a callback function that is triggered when Orthanc receives a C-Find SCP request.
    *
+   * @param answers The target structure where answers must be stored.
+   * @param query The worklist query.
+   * @param remoteAet The Application Entity Title (AET) of the modality from which the request originates.
+   * @param calledAet The Application Entity Title (AET) of the modality that is called by the request.
    * @return 0 if success, other value if error.
    * @ingroup Worklists
    **/
-  typedef OrthancPluginErrorCode (*OrthancPluginFindWorklist) (
+  typedef OrthancPluginErrorCode (*OrthancPluginWorklistCallback) (
     OrthancPluginWorklistAnswers*     answers,
     const OrthancPluginWorklistQuery* query,
-    const char*                       calledAet,
-    const char*                       remoteAet);
+    const char*                       remoteAet,
+    const char*                       calledAet);
 
 
 
@@ -4060,6 +4068,58 @@ extern "C"
 
     return context->InvokeService(context, _OrthancPluginService_RestApiGet2, &params);
   }
+
+
+
+  typedef struct
+  {
+    OrthancPluginWorklistCallback callback;
+  } _OrthancPluginWorklistCallback;
+
+  /**
+   * @brief Register a callback to handle modality worklists requests.
+   *
+   * This function registers a callback to handle C-Find SCP requests
+   * on modality worklists.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param callback The callback.
+   * @ingroup Worklists
+   **/
+  ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterWorklistCallback(
+    OrthancPluginContext*          context,
+    OrthancPluginWorklistCallback  callback)
+  {
+    _OrthancPluginWorklistCallback params;
+    params.callback = callback;
+
+    context->InvokeService(context, _OrthancPluginService_RegisterWorklistCallback, &params);
+  }
+
+
+  
+  typedef struct
+  {
+    OrthancPluginWorklistAnswers*  target;
+    const void*                    answerDicom;
+    uint32_t                       answerSize;
+  } _OrthancPluginAddWorklistAnswer;
+
+
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginAddWorklistAnswer(
+    OrthancPluginContext*          context,
+    OrthancPluginWorklistAnswers*  target,
+    const void*                    answerDicom,
+    uint32_t                       answerSize)
+  {
+    _OrthancPluginAddWorklistAnswer params;
+    params.target = target;
+    params.answerDicom = answerDicom;
+    params.answerSize = answerSize;
+
+    return context->InvokeService(context, _OrthancPluginService_AddWorklistAnswer, &params);
+  }
+
 
 #ifdef  __cplusplus
 }

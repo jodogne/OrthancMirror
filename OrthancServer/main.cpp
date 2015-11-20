@@ -107,7 +107,7 @@ public:
   {
   }
 
-  virtual bool Handle(DicomFindAnswers& answers,
+  virtual void Handle(DicomFindAnswers& answers,
                       ParsedDicomFile& query,
                       const std::string& remoteIp,
                       const std::string& remoteAet,
@@ -150,15 +150,14 @@ public:
       LOG(ERROR) << "Inexistent folder while scanning for worklists: " << source;
     }
 
-    return true;  // All the worklists have been returned
+    answers.SetComplete(true);  // All the worklists have been returned
   }
 };
 
 
 class MyDicomServerFactory : 
   public IStoreRequestHandlerFactory,
-  public IFindRequestHandlerFactory,
-  public IWorklistRequestHandlerFactory, 
+  public IFindRequestHandlerFactory, 
   public IMoveRequestHandlerFactory
 {
 private:
@@ -207,11 +206,6 @@ public:
   virtual IMoveRequestHandler* ConstructMoveRequestHandler()
   {
     return new OrthancMoveRequestHandler(context_);
-  }
-
-  virtual IWorklistRequestHandler* ConstructWorklistRequestHandler()
-  {
-    return new OrthancWorklistRequestHandler(context_);
   }
 
   void Done()
@@ -780,8 +774,12 @@ static bool StartDicomServer(ServerContext& context,
   dicomServer.SetMoveRequestHandlerFactory(serverFactory);
   dicomServer.SetFindRequestHandlerFactory(serverFactory);
 
-  // TODO - Disable the following line if no worklist plugin is available
-  dicomServer.SetWorklistRequestHandlerFactory(serverFactory);
+#if ORTHANC_PLUGINS_ENABLED == 1
+  if (plugins)
+  {
+    dicomServer.SetWorklistRequestHandlerFactory(*plugins);
+  }
+#endif
 
   dicomServer.SetPortNumber(Configuration::GetGlobalIntegerParameter("DicomPort", 4242));
   dicomServer.SetApplicationEntityTitle(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"));

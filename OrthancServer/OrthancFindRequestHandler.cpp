@@ -88,7 +88,7 @@ namespace Orthanc
   }
 
 
-  bool OrthancFindRequestHandler::Handle(DicomFindAnswers& answers,
+  void OrthancFindRequestHandler::Handle(DicomFindAnswers& answers,
                                          const DicomMap& input,
                                          const std::string& remoteIp,
                                          const std::string& remoteAet,
@@ -195,7 +195,7 @@ namespace Orthanc
     context_.GetIndex().FindCandidates(resources, instances, finder);
 
     assert(resources.size() == instances.size());
-    bool finished = true;
+    bool complete = true;
 
     for (size_t i = 0; i < instances.size(); i++)
     {
@@ -207,7 +207,7 @@ namespace Orthanc
         if (maxResults != 0 &&
             answers.GetSize() >= maxResults)
         {
-          finished = false;
+          complete = false;
           break;
         }
         else
@@ -219,6 +219,6 @@ namespace Orthanc
 
     LOG(INFO) << "Number of matching resources: " << answers.GetSize();
 
-    return finished;
+    answers.SetComplete(complete);
   }
 }

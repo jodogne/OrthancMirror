@@ -55,7 +55,7 @@ namespace Orthanc
     {
     }
 
-    virtual bool Handle(DicomFindAnswers& answers,
+    virtual void Handle(DicomFindAnswers& answers,
                         const DicomMap& input,
                         const std::string& remoteIp,
                         const std::string& remoteAet,

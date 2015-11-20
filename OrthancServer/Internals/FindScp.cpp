@@ -102,7 +102,6 @@ namespace Orthanc
       const std::string* remoteIp_;
       const std::string* remoteAet_;
       const std::string* calledAet_;
-      bool noCroppingOfResults_;
     };
 
 
@@ -135,9 +134,9 @@ namespace Orthanc
             if (data.worklistHandler_ != NULL)
             {
               ParsedDicomFile query(*requestIdentifiers);
-              data.noCroppingOfResults_ = data.worklistHandler_->Handle(data.answers_, query,
-                                                                        *data.remoteIp_, *data.remoteAet_,
-                                                                        *data.calledAet_);
+              data.worklistHandler_->Handle(data.answers_, query,
+                                            *data.remoteIp_, *data.remoteAet_,
+                                            *data.calledAet_);
               ok = true;
             }
             else
@@ -151,9 +150,9 @@ namespace Orthanc
             {
               DicomMap input;
               FromDcmtkBridge::Convert(input, *requestIdentifiers);
-              data.noCroppingOfResults_ = data.findHandler_->Handle(data.answers_, input,
-                                                                    *data.remoteIp_, *data.remoteAet_,
-                                                                    *data.calledAet_);
+              data.findHandler_->Handle(data.answers_, input,
+                                        *data.remoteIp_, *data.remoteAet_,
+                                        *data.calledAet_);
               ok = true;
             }
             else
@@ -191,7 +190,7 @@ namespace Orthanc
         response->DimseStatus = STATUS_Pending;
         *responseIdentifiers = data.answers_.ExtractDcmDataset(responseCount - 1);
       }
-      else if (data.noCroppingOfResults_)
+      else if (data.answers_.IsComplete())
       {
         // Success: All the results have been sent
         response->DimseStatus = STATUS_Success;
@@ -224,7 +223,6 @@ namespace Orthanc
     data.remoteIp_ = &remoteIp;
     data.remoteAet_ = &remoteAet;
     data.calledAet_ = &calledAet;
-    data.noCroppingOfResults_ = true;
 
     OFCondition cond = DIMSE_findProvider(assoc, presID, &msg->msg.CFindRQ, 
                                           FindScpCallback, &data,
