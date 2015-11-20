@@ -52,6 +52,7 @@ namespace Orthanc
       T_ASC_Association* assoc_;
       std::string remoteIp_;
       std::string remoteAet_;
+      std::string calledAet_;
       IApplicationEntityFilter* filter_;
 
     public:
@@ -59,11 +60,13 @@ namespace Orthanc
                         T_ASC_Association* assoc,
                         const std::string& remoteIp,
                         const std::string& remoteAet,
+                        const std::string& calledAet,
                         IApplicationEntityFilter* filter) :
         server_(server),
         assoc_(assoc),
         remoteIp_(remoteIp),
         remoteAet_(remoteAet),
+        calledAet_(calledAet),
         filter_(filter)
       {
         clientTimeout_ = server.GetClientTimeout();

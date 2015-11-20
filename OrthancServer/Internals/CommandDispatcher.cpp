@@ -465,17 +465,17 @@ namespace Orthanc
       }
 
       // Retrieve the AET and the IP address of the remote modality
-      std::string callingAet;
-      std::string callingIp;
+      std::string remoteAet;
+      std::string remoteIp;
       std::string calledAet;
   
       {
-        DIC_AE callingAet_C;
+        DIC_AE remoteAet_C;
         DIC_AE calledAet_C;
-        DIC_AE callingIp_C;
+        DIC_AE remoteIp_C;
         DIC_AE calledIP_C;
-        if (ASC_getAPTitles(assoc->params, callingAet_C, calledAet_C, NULL).bad() ||
-            ASC_getPresentationAddresses(assoc->params, callingIp_C, calledIP_C).bad())
+        if (ASC_getAPTitles(assoc->params, remoteAet_C, calledAet_C, NULL).bad() ||
+            ASC_getPresentationAddresses(assoc->params, remoteIp_C, calledIP_C).bad())
         {
           T_ASC_RejectParameters rej =
             {
@@ -488,13 +488,13 @@ namespace Orthanc
           return NULL;
         }
 
-        callingIp = std::string(/*OFSTRING_GUARD*/(callingIp_C));
-        callingAet = std::string(/*OFSTRING_GUARD*/(callingAet_C));
+        remoteIp = std::string(/*OFSTRING_GUARD*/(remoteIp_C));
+        remoteAet = std::string(/*OFSTRING_GUARD*/(remoteAet_C));
         calledAet = (/*OFSTRING_GUARD*/(calledAet_C));
       }
 
-      LOG(INFO) << "Association Received from AET " << callingAet 
-                << " on IP " << callingIp;
+      LOG(INFO) << "Association Received from AET " << remoteAet 
+                << " on IP " << remoteIp;
 
 
       std::vector<const char*> transferSyntaxes;
@@ -506,13 +506,13 @@ namespace Orthanc
 
       // New transfer syntaxes supported since Orthanc 0.7.2
       if (!server.HasApplicationEntityFilter() ||
-          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(callingIp, callingAet, TransferSyntax_Deflated))
+          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Deflated))
       {
         transferSyntaxes.push_back(UID_DeflatedExplicitVRLittleEndianTransferSyntax); 
       }
 
       if (!server.HasApplicationEntityFilter() ||
-          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(callingIp, callingAet, TransferSyntax_Jpeg))
+          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Jpeg))
       {
         transferSyntaxes.push_back(UID_JPEGProcess1TransferSyntax);
         transferSyntaxes.push_back(UID_JPEGProcess2_4TransferSyntax);
@@ -537,14 +537,14 @@ namespace Orthanc
       }
 
       if (!server.HasApplicationEntityFilter() ||
-          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(callingIp, callingAet, TransferSyntax_Jpeg2000))
+          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Jpeg2000))
       {
         transferSyntaxes.push_back(UID_JPEG2000LosslessOnlyTransferSyntax);
         transferSyntaxes.push_back(UID_JPEG2000TransferSyntax);
       }
 
       if (!server.HasApplicationEntityFilter() ||
-          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(callingIp, callingAet, TransferSyntax_JpegLossless))
+          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_JpegLossless))
       {
         transferSyntaxes.push_back(UID_JPEG2000LosslessOnlyTransferSyntax);
         transferSyntaxes.push_back(UID_JPEG2000TransferSyntax);
@@ -553,21 +553,21 @@ namespace Orthanc
       }
 
       if (!server.HasApplicationEntityFilter() ||
-          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(callingIp, callingAet, TransferSyntax_Jpip))
+          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Jpip))
       {
         transferSyntaxes.push_back(UID_JPIPReferencedTransferSyntax);
         transferSyntaxes.push_back(UID_JPIPReferencedDeflateTransferSyntax);
       }
 
       if (!server.HasApplicationEntityFilter() ||
-          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(callingIp, callingAet, TransferSyntax_Mpeg2))
+          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Mpeg2))
       {
         transferSyntaxes.push_back(UID_MPEG2MainProfileAtMainLevelTransferSyntax);
         transferSyntaxes.push_back(UID_MPEG2MainProfileAtHighLevelTransferSyntax);
       }
 
       if (!server.HasApplicationEntityFilter() ||
-          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(callingIp, callingAet, TransferSyntax_Rle))
+          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Rle))
       {
         transferSyntaxes.push_back(UID_RLELosslessTransferSyntax);
       }
@@ -643,9 +643,9 @@ namespace Orthanc
       }
 
       if (server.HasApplicationEntityFilter() &&
-          !server.GetApplicationEntityFilter().IsAllowedConnection(callingIp, callingAet))
+          !server.GetApplicationEntityFilter().IsAllowedConnection(remoteIp, remoteAet, calledAet))
       {
-        LOG(WARNING) << "Rejected association for remote AET " << callingAet << " on IP " << callingIp;
+        LOG(WARNING) << "Rejected association for remote AET " << remoteAet << " on IP " << remoteIp;
         T_ASC_RejectParameters rej =
           {
             ASC_RESULT_REJECTEDPERMANENT,
@@ -692,7 +692,7 @@ namespace Orthanc
       }
 
       IApplicationEntityFilter* filter = server.HasApplicationEntityFilter() ? &server.GetApplicationEntityFilter() : NULL;
-      return new CommandDispatcher(server, assoc, callingIp, callingAet, filter);
+      return new CommandDispatcher(server, assoc, remoteIp, remoteAet, calledAet, filter);
     }
 
     bool CommandDispatcher::Step()
@@ -776,7 +776,7 @@ namespace Orthanc
         if (supported && 
             request != DicomRequestType_Echo &&  // Always allow incoming ECHO requests
             filter_ != NULL &&
-            !filter_->IsAllowedRequest(remoteIp_, remoteAet_, request))
+            !filter_->IsAllowedRequest(remoteIp_, remoteAet_, calledAet_, request))
         {
           LOG(ERROR) << EnumerationToString(request) 
                      << " requests are disallowed for the AET \"" 
@@ -812,7 +812,7 @@ namespace Orthanc
               {
                 std::auto_ptr<IMoveRequestHandler> handler
                   (server_.GetMoveRequestHandlerFactory().ConstructMoveRequestHandler());
-                cond = Internals::moveScp(assoc_, &msg, presID, *handler, remoteIp_, remoteAet_);
+                cond = Internals::moveScp(assoc_, &msg, presID, *handler, remoteIp_, remoteAet_, calledAet_);
               }
               break;
 
@@ -833,7 +833,7 @@ namespace Orthanc
                 }
 
                 cond = Internals::findScp(assoc_, &msg, presID, findHandler.get(), 
-                                          worklistHandler.get(), remoteIp_, remoteAet_);
+                                          worklistHandler.get(), remoteIp_, remoteAet_, calledAet_);
               }
               break;
 

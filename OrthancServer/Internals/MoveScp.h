@@ -45,6 +45,7 @@ namespace Orthanc
                         T_ASC_PresentationContextID presID,
                         IMoveRequestHandler& handler,
                         const std::string& remoteIp,
-                        const std::string& remoteAet);
+                        const std::string& remoteAet,
+                        const std::string& calledAet);
   }
 }
