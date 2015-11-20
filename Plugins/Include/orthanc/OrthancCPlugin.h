@@ -49,6 +49,9 @@
  * @defgroup Callbacks Callbacks
  * @brief Functions to register and manage callbacks by the plugins.
  *
+ * @defgroup Worklists Worklists
+ * @brief Functions to register and manage worklists.
+ *
  * @defgroup Orthanc Orthanc
  * @brief Functions to access the content of the Orthanc server.
  **/
@@ -755,6 +758,22 @@ extern "C"
 
 
   /**
+   * @brief Opaque structure to an object that represents a C-Find query.
+   * @ingroup Worklists
+   **/
+  typedef struct _OrthancPluginWorklistQuery_t OrthancPluginWorklistQuery;
+
+
+
+  /**
+   * @brief Opaque structure to an object that represents the answers to a C-Find query.
+   * @ingroup Worklists
+   **/
+  typedef struct _OrthancPluginWorklistAnswers_t OrthancPluginWorklistAnswers;
+
+
+
+  /**
    * @brief Signature of a callback function that answers to a REST request.
    * @ingroup Callbacks
    **/
@@ -846,6 +865,22 @@ extern "C"
   typedef OrthancPluginErrorCode (*OrthancPluginStorageRemove) (
     const char* uuid,
     OrthancPluginContentType type);
+
+
+
+  /**
+   * @brief Callback to handle the C-Find SCP requests received by Orthanc.
+   *
+   * Signature of a callback function that is triggered when Orthanc receives a C-Find SCP request.
+   *
+   * @return 0 if success, other value if error.
+   * @ingroup Worklists
+   **/
+  typedef OrthancPluginErrorCode (*OrthancPluginFindWorklist) (
+    OrthancPluginWorklistAnswers*     answers,
+    const OrthancPluginWorklistQuery* query,
+    const char*                       calledAet,
+    const char*                       remoteAet);
 
 
 

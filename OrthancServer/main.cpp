@@ -110,8 +110,11 @@ public:
   virtual bool Handle(DicomFindAnswers& answers,
                       ParsedDicomFile& query,
                       const std::string& remoteIp,
-                      const std::string& remoteAet)
+                      const std::string& remoteAet,
+                      const std::string& calledAet)
   {
+    LOG(WARNING) << "Worklist Find query from " << remoteAet << " to " << calledAet;
+
     bool caseSensitivePN = Configuration::GetGlobalBoolParameter("CaseSensitivePN", false);
     HierarchicalMatcher matcher(query, caseSensitivePN);
 
@@ -227,14 +230,16 @@ public:
   {
   }
 
-  virtual bool IsAllowedConnection(const std::string& /*callingIp*/,
-                                   const std::string& /*callingAet*/)
+  virtual bool IsAllowedConnection(const std::string& /*remoteIp*/,
+                                   const std::string& /*remoteAet*/,
+                                   const std::string& /*calledAet*/)
   {
     return true;
   }
 
-  virtual bool IsAllowedRequest(const std::string& /*callingIp*/,
-                                const std::string& callingAet,
+  virtual bool IsAllowedRequest(const std::string& /*remoteIp*/,
+                                const std::string& remoteAet,
+                                const std::string& /*calledAet*/,
                                 DicomRequestType type)
   {
     if (type == DicomRequestType_Store)
@@ -243,9 +248,9 @@ public:
       return true;
     }
 
-    if (!Configuration::IsKnownAETitle(callingAet))
+    if (!Configuration::IsKnownAETitle(remoteAet))
     {
-      LOG(ERROR) << "Unknown remote DICOM modality AET: \"" << callingAet << "\"";
+      LOG(ERROR) << "Unknown remote DICOM modality AET: \"" << remoteAet << "\"";
       return false;
     }
     else
@@ -254,8 +259,9 @@ public:
     }
   }
 
-  virtual bool IsAllowedTransferSyntax(const std::string& callingIp,
-                                       const std::string& callingAet,
+  virtual bool IsAllowedTransferSyntax(const std::string& remoteIp,
+                                       const std::string& remoteAet,
+                                       const std::string& /*calledAet*/,
                                        TransferSyntax syntax)
   {
     std::string configuration;
@@ -302,8 +308,8 @@ public:
       if (locker.GetLua().IsExistingFunction(lua.c_str()))
       {
         LuaFunctionCall call(locker.GetLua(), lua.c_str());
-        call.PushString(callingAet);
-        call.PushString(callingIp);
+        call.PushString(remoteAet);
+        call.PushString(remoteIp);
         return call.ExecutePredicate();
       }
     }

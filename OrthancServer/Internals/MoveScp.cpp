@@ -105,6 +105,7 @@ namespace Orthanc
       std::auto_ptr<IMoveRequestIterator> iterator_;
       const std::string* remoteIp_;
       const std::string* remoteAet_;
+      const std::string* calledAet_;
     };
 
 
@@ -133,7 +134,8 @@ namespace Orthanc
         try
         {
           data.iterator_.reset(data.handler_->Handle(data.target_, input,
-                                                     *data.remoteIp_, *data.remoteAet_));
+                                                     *data.remoteIp_, *data.remoteAet_,
+                                                     *data.calledAet_));
 
           if (data.iterator_.get() == NULL)
           {
@@ -215,7 +217,8 @@ namespace Orthanc
                                  T_ASC_PresentationContextID presID,
                                  IMoveRequestHandler& handler,
                                  const std::string& remoteIp,
-                                 const std::string& remoteAet)
+                                 const std::string& remoteAet,
+                                 const std::string& calledAet)
   {
     MoveScpData data;
     data.target_ = std::string(msg->msg.CMoveRQ.MoveDestination);
@@ -223,6 +226,7 @@ namespace Orthanc
     data.handler_ = &handler;
     data.remoteIp_ = &remoteIp;
     data.remoteAet_ = &remoteAet;
+    data.calledAet_ = &calledAet;
 
     OFCondition cond = DIMSE_moveProvider(assoc, presID, &msg->msg.CMoveRQ, 
                                           MoveScpCallback, &data,

@@ -91,10 +91,11 @@ namespace Orthanc
   bool OrthancFindRequestHandler::Handle(DicomFindAnswers& answers,
                                          const DicomMap& input,
                                          const std::string& remoteIp,
-                                         const std::string& remoteAet)
+                                         const std::string& remoteAet,
+                                         const std::string& calledAet)
   {
     /**
-     * Ensure that the calling modality is known to Orthanc.
+     * Ensure that the remote modality is known to Orthanc.
      **/
 
     RemoteModalityParameters modality;

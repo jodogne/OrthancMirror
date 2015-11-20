@@ -101,6 +101,7 @@ namespace Orthanc
       DcmDataset* lastRequest_;
       const std::string* remoteIp_;
       const std::string* remoteAet_;
+      const std::string* calledAet_;
       bool noCroppingOfResults_;
     };
 
@@ -135,7 +136,8 @@ namespace Orthanc
             {
               ParsedDicomFile query(*requestIdentifiers);
               data.noCroppingOfResults_ = data.worklistHandler_->Handle(data.answers_, query,
-                                                                        *data.remoteIp_, *data.remoteAet_);
+                                                                        *data.remoteIp_, *data.remoteAet_,
+                                                                        *data.calledAet_);
               ok = true;
             }
             else
@@ -150,7 +152,8 @@ namespace Orthanc
               DicomMap input;
               FromDcmtkBridge::Convert(input, *requestIdentifiers);
               data.noCroppingOfResults_ = data.findHandler_->Handle(data.answers_, input,
-                                                                    *data.remoteIp_, *data.remoteAet_);
+                                                                    *data.remoteIp_, *data.remoteAet_,
+                                                                    *data.calledAet_);
               ok = true;
             }
             else
@@ -211,7 +214,8 @@ namespace Orthanc
                                  IFindRequestHandler* findHandler,
                                  IWorklistRequestHandler* worklistHandler,
                                  const std::string& remoteIp,
-                                 const std::string& remoteAet)
+                                 const std::string& remoteAet,
+                                 const std::string& calledAet)
   {
     FindScpData data;
     data.lastRequest_ = NULL;
@@ -219,6 +223,7 @@ namespace Orthanc
     data.worklistHandler_ = worklistHandler;
     data.remoteIp_ = &remoteIp;
     data.remoteAet_ = &remoteAet;
+    data.calledAet_ = &calledAet;
     data.noCroppingOfResults_ = true;
 
     OFCondition cond = DIMSE_findProvider(assoc, presID, &msg->msg.CFindRQ, 

@@ -52,6 +52,7 @@ namespace Orthanc
     virtual bool Handle(DicomFindAnswers& answers,
                         ParsedDicomFile& query,
                         const std::string& remoteIp,
-                        const std::string& remoteAet) = 0;
+                        const std::string& remoteAet,
+                        const std::string& calledAet) = 0;
   };
 }

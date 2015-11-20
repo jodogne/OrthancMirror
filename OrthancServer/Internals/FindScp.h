@@ -47,6 +47,7 @@ namespace Orthanc
                         IFindRequestHandler* findHandler,   // can be NULL
                         IWorklistRequestHandler* worklistHandler,   // can be NULL
                         const std::string& remoteIp,
-                        const std::string& remoteAet);
+                        const std::string& remoteAet,
+                        const std::string& calledAet);
   }
 }
