@@ -36,7 +36,7 @@
 
 namespace Orthanc
 {
-  class IMoveRequestHandlerFactory
+  class IMoveRequestHandlerFactory : public boost::noncopyable
   {
   public:
     virtual ~IMoveRequestHandlerFactory()

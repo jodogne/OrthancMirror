@@ -153,7 +153,8 @@ namespace Orthanc
 
 
   // This method can only be called from the constructors!
-  void ParsedDicomFile::Setup(const char* buffer, size_t size)
+  void ParsedDicomFile::Setup(const void* buffer, 
+                              size_t size)
   {
     DcmInputBufferStream is;
     if (size > 0)
@@ -823,7 +824,20 @@ namespace Orthanc
   }
 
 
-  ParsedDicomFile::ParsedDicomFile(const char* content, size_t size) : pimpl_(new PImpl)
+  ParsedDicomFile::ParsedDicomFile(const DicomMap& map) : pimpl_(new PImpl)
+  {
+    std::auto_ptr<DcmDataset> dataset(ToDcmtkBridge::Convert(map));
+
+    // NOTE: This implies an unnecessary memory copy of the dataset, but no way to get around
+    // http://support.dcmtk.org/redmine/issues/544
+    std::auto_ptr<DcmFileFormat> fileFormat(new DcmFileFormat(dataset.get()));
+
+    pimpl_->file_.reset(fileFormat.release());
+  }
+
+
+  ParsedDicomFile::ParsedDicomFile(const void* content, 
+                                   size_t size) : pimpl_(new PImpl)
   {
     Setup(content, size);
   }
@@ -851,15 +865,27 @@ namespace Orthanc
   }
 
 
+  ParsedDicomFile::ParsedDicomFile(DcmDataset& dicom) : pimpl_(new PImpl)
+  {
+    pimpl_->file_.reset(new DcmFileFormat(&dicom));
+  }
+
+
+  ParsedDicomFile::ParsedDicomFile(DcmFileFormat& dicom) : pimpl_(new PImpl)
+  {
+    pimpl_->file_.reset(new DcmFileFormat(dicom));
+  }
+
+
   ParsedDicomFile::~ParsedDicomFile()
   {
     delete pimpl_;
   }
 
 
-  void* ParsedDicomFile::GetDcmtkObject()
+  DcmFileFormat& ParsedDicomFile::GetDcmtkObject()
   {
-    return pimpl_->file_.get();
+    return *pimpl_->file_.get();
   }
 
 

@@ -39,6 +39,9 @@
 #include "../Core/Images/ImageBuffer.h"
 #include "../Core/IDynamicObject.h"
 
+class DcmDataset;
+class DcmFileFormat;
+
 namespace Orthanc
 {
   class ParsedDicomFile : public IDynamicObject
@@ -49,7 +52,7 @@ namespace Orthanc
 
     ParsedDicomFile(ParsedDicomFile& other);
 
-    void Setup(const char* content,
+    void Setup(const void* content,
                size_t size);
 
     void RemovePrivateTagsInternal(const std::set<DicomTag>* toKeep);
@@ -61,14 +64,20 @@ namespace Orthanc
   public:
     ParsedDicomFile();  // Create a minimal DICOM instance
 
-    ParsedDicomFile(const char* content,
+    ParsedDicomFile(const DicomMap& map);
+
+    ParsedDicomFile(const void* content,
                     size_t size);
 
     ParsedDicomFile(const std::string& content);
 
+    ParsedDicomFile(DcmDataset& dicom);
+
+    ParsedDicomFile(DcmFileFormat& dicom);
+
     ~ParsedDicomFile();
 
-    void* GetDcmtkObject();
+    DcmFileFormat& GetDcmtkObject();
 
     ParsedDicomFile* Clone();
 

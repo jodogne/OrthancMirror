@@ -165,7 +165,8 @@ namespace Orthanc
   IMoveRequestIterator* OrthancMoveRequestHandler::Handle(const std::string& targetAet,
                                                           const DicomMap& input,
                                                           const std::string& remoteIp,
-                                                          const std::string& remoteAet)
+                                                          const std::string& remoteAet,
+                                                          const std::string& calledAet)
   {
     LOG(WARNING) << "Move-SCU request received for AET \"" << targetAet << "\"";
 

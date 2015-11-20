@@ -40,7 +40,7 @@
 
 namespace Orthanc
 {
-  class IMoveRequestIterator
+  class IMoveRequestIterator : public boost::noncopyable
   {
   public:
     enum Status
@@ -70,7 +70,8 @@ namespace Orthanc
     virtual IMoveRequestIterator* Handle(const std::string& target,
                                          const DicomMap& input,
                                          const std::string& remoteIp,
-                                         const std::string& remoteAet) = 0;
+                                         const std::string& remoteAet,
+                                         const std::string& calledAet) = 0;
   };
 
 }

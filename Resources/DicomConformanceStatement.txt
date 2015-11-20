@@ -149,6 +149,7 @@ Orthanc supports the following SOP Classes as an SCP for C-Find:
 
   FINDPatientRootQueryRetrieveInformationModel   | 1.2.840.10008.5.1.4.1.2.1.1
   FINDStudyRootQueryRetrieveInformationModel     | 1.2.840.10008.5.1.4.1.2.2.1
+  FINDModalityWorklistInformationModel           | 1.2.840.10008.5.1.4.31
 
 
 --------------------

@@ -33,6 +33,7 @@
 #pragma once
 
 #include "../DicomProtocol/IFindRequestHandler.h"
+#include "../DicomProtocol/IWorklistRequestHandler.h"
 
 #include <dcmtk/dcmnet/dimse.h>
 
@@ -43,8 +44,10 @@ namespace Orthanc
     OFCondition findScp(T_ASC_Association * assoc, 
                         T_DIMSE_Message * msg, 
                         T_ASC_PresentationContextID presID,
-                        IFindRequestHandler& handler,
+                        IFindRequestHandler* findHandler,   // can be NULL
+                        IWorklistRequestHandler* worklistHandler,   // can be NULL
                         const std::string& remoteIp,
-                        const std::string& remoteAet);
+                        const std::string& remoteAet,
+                        const std::string& calledAet);
   }
 }

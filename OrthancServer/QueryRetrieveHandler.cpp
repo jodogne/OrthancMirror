@@ -95,31 +95,24 @@ namespace Orthanc
   }
 
 
-  const DicomMap& QueryRetrieveHandler::GetAnswer(size_t i)
+  void QueryRetrieveHandler::GetAnswer(DicomMap& target,
+                                       size_t i)
   {
     Run();
-
-    if (i >= answers_.GetSize())
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-
-    return answers_.GetAnswer(i);
+    answers_.GetAnswer(i).Convert(target);
   }
 
 
   void QueryRetrieveHandler::Retrieve(const std::string& target,
                                       size_t i)
   {
-    Run();
+    DicomMap map;
+    GetAnswer(map, i);
 
-    if (i >= answers_.GetSize())
     {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      ReusableDicomUserConnection::Locker locker(context_.GetReusableDicomUserConnection(), localAet_, modality_);
+      locker.GetConnection().Move(target, map);
     }
-
-    ReusableDicomUserConnection::Locker locker(context_.GetReusableDicomUserConnection(), localAet_, modality_);
-    locker.GetConnection().Move(target, answers_.GetAnswer(i));
   }
 
 

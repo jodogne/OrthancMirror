@@ -61,5 +61,10 @@ namespace Orthanc
                        const DicomTag& tag) const;
 
     virtual bool Match(const std::string& value) const;
+
+    virtual std::string Format() const
+    {
+      return value_;
+    }
   };
 }

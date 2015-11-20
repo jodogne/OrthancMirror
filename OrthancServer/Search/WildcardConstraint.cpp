@@ -78,4 +78,9 @@ namespace Orthanc
   {
     lookup.AddConstraint(tag, IdentifierConstraintType_Wildcard, pimpl_->wildcard_);
   }
+
+  std::string WildcardConstraint::Format() const
+  {
+    return pimpl_->wildcard_;
+  }
 }
