@@ -48,12 +48,22 @@ namespace Orthanc
   private:
     ParsedDicomFile* dicom_;
     DicomMap*        map_;
-    
+
+    void CleanupDicom()
+    {
+      if (dicom_ != NULL)
+      {
+        dicom_->Remove(DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID);
+        dicom_->Remove(DICOM_TAG_SOP_INSTANCE_UID);
+      }
+    }
+
   public:
     Answer(ParsedDicomFile& dicom) : 
       dicom_(dicom.Clone()),
       map_(NULL)
     {
+      CleanupDicom();
     }
 
     Answer(const char* dicom,
@@ -61,6 +71,7 @@ namespace Orthanc
       dicom_(new ParsedDicomFile(dicom, size)),
       map_(NULL)
     {
+      CleanupDicom();
     }
 
     Answer(const DicomMap& map) : 

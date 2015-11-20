@@ -235,7 +235,7 @@ namespace Orthanc
         if (!item.findAndGetSequence(tag, sequence).good() ||
             sequence == NULL)
         {
-          return false;
+          return true;
         }
 
         bool match = false;
@@ -260,10 +260,10 @@ namespace Orthanc
   }
 
 
-  DcmDataset* HierarchicalMatcher::ExtractInternal(DcmItem& item,
+  DcmDataset* HierarchicalMatcher::ExtractInternal(DcmItem& source,
                                                    Encoding encoding) const
   {
-    std::auto_ptr<DcmDataset> dataset(new DcmDataset);
+    std::auto_ptr<DcmDataset> target(new DcmDataset);
 
     for (Constraints::const_iterator it = constraints_.begin();
          it != constraints_.end(); ++it)
@@ -271,12 +271,12 @@ namespace Orthanc
       DcmTagKey tag = ToDcmtkBridge::Convert(it->first);
       
       DcmElement* element = NULL;
-      if (item.findAndGetElement(tag, element).good() &&
+      if (source.findAndGetElement(tag, element).good() &&
           element != NULL)
       {
         std::auto_ptr<DcmElement> cloned(FromDcmtkBridge::CreateElementForTag(it->first));
         cloned->copyFrom(*element);
-        dataset->insert(cloned.release());
+        target->insert(cloned.release());
       }
     }
 
@@ -286,7 +286,7 @@ namespace Orthanc
       DcmTagKey tag = ToDcmtkBridge::Convert(it->first);
 
       DcmSequenceOfItems* sequence = NULL;
-      if (item.findAndGetSequence(tag, sequence).good() &&
+      if (source.findAndGetSequence(tag, sequence).good() &&
           sequence != NULL)
       {
         std::auto_ptr<DcmSequenceOfItems> cloned(new DcmSequenceOfItems(tag));
@@ -297,17 +297,22 @@ namespace Orthanc
           {
             cloned->append(new DcmItem(*sequence->getItem(i)));
           }
-          else if (it->second->MatchInternal(*sequence->getItem(i), encoding))
+          else if (it->second->MatchInternal(*sequence->getItem(i), encoding))  // TODO Might be optimized
           {
-            cloned->append(it->second->ExtractInternal(*sequence->getItem(i), encoding));
+            // It is necessary to encapsulate the child dataset into a
+            // "DcmItem" object before it can be included in a
+            // sequence. Otherwise, "dciodvfy" reports an error "Bad
+            // tag in sequence - Expecting Item or Sequence Delimiter."
+            std::auto_ptr<DcmDataset> child(it->second->ExtractInternal(*sequence->getItem(i), encoding));
+            cloned->append(new DcmItem(*child));
           }
         }
 
-        dataset->insert(cloned.release());
+        target->insert(cloned.release());
       }
     }
 
-    return dataset.release();
+    return target.release();
   }
 
 
