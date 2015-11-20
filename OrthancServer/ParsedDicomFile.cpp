@@ -153,7 +153,8 @@ namespace Orthanc
 
 
   // This method can only be called from the constructors!
-  void ParsedDicomFile::Setup(const char* buffer, size_t size)
+  void ParsedDicomFile::Setup(const void* buffer, 
+                              size_t size)
   {
     DcmInputBufferStream is;
     if (size > 0)
@@ -835,7 +836,8 @@ namespace Orthanc
   }
 
 
-  ParsedDicomFile::ParsedDicomFile(const char* content, size_t size) : pimpl_(new PImpl)
+  ParsedDicomFile::ParsedDicomFile(const void* content, 
+                                   size_t size) : pimpl_(new PImpl)
   {
     Setup(content, size);
   }

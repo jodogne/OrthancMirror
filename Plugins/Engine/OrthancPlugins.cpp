@@ -237,6 +237,7 @@ namespace Orthanc
     typedef std::list<RestCallback*>  RestCallbacks;
     typedef std::list<OrthancPluginOnStoredInstanceCallback>  OnStoredCallbacks;
     typedef std::list<OrthancPluginOnChangeCallback>  OnChangeCallbacks;
+    typedef std::list<OrthancPluginWorklistCallback>  WorklistCallbacks;
     typedef std::map<Property, std::string>  Properties;
 
     PluginsManager manager_;
@@ -244,10 +245,12 @@ namespace Orthanc
     RestCallbacks restCallbacks_;
     OnStoredCallbacks  onStoredCallbacks_;
     OnChangeCallbacks  onChangeCallbacks_;
+    WorklistCallbacks  worklistCallbacks_;
     std::auto_ptr<StorageAreaFactory>  storageArea_;
     boost::recursive_mutex restCallbackMutex_;
     boost::recursive_mutex storedCallbackMutex_;
     boost::recursive_mutex changeCallbackMutex_;
+    boost::recursive_mutex worklistCallbackMutex_;
     boost::recursive_mutex invokeServiceMutex_;
     Properties properties_;
     int argc_;
@@ -620,6 +623,17 @@ namespace Orthanc
     LOG(INFO) << "Plugin has registered an OnChange callback";
     pimpl_->onChangeCallbacks_.push_back(p.callback);
   }
+
+
+  void OrthancPlugins::RegisterWorklistCallback(const void* parameters)
+  {
+    const _OrthancPluginWorklistCallback& p = 
+      *reinterpret_cast<const _OrthancPluginWorklistCallback*>(parameters);
+
+    LOG(INFO) << "Plugin has registered an modality worklist callback";
+    pimpl_->worklistCallbacks_.push_back(p.callback);
+  }
+
 
 
 
@@ -1401,6 +1415,10 @@ namespace Orthanc
         RegisterOnChangeCallback(parameters);
         return true;
 
+      case _OrthancPluginService_RegisterWorklistCallback:
+        RegisterWorklistCallback(parameters);
+        return true;
+
       case _OrthancPluginService_AnswerBuffer:
         AnswerBuffer(parameters);
         return true;
@@ -1831,6 +1849,16 @@ namespace Orthanc
         ApplyDicomToJson(service, parameters);
         return true;
 
+      case _OrthancPluginService_AddWorklistAnswer:
+      {
+        const _OrthancPluginAddWorklistAnswer& p =
+          *reinterpret_cast<const _OrthancPluginAddWorklistAnswer*>(parameters);
+        
+        ParsedDicomFile answer(p.answerDicom, p.answerSize);
+        reinterpret_cast<DicomFindAnswers*>(p.target)->Add(answer);
+        return true;
+      }
+
       default:
       {
         // This service is unknown to the Orthanc plugin engine
@@ -1947,5 +1975,73 @@ namespace Orthanc
   PluginsErrorDictionary&  OrthancPlugins::GetErrorDictionary()
   {
     return pimpl_->dictionary_;
+  }
+
+
+  void OrthancPlugins::HandleWorklist(DicomFindAnswers& answers,
+                                      ParsedDicomFile& query,
+                                      const std::string& remoteIp,
+                                      const std::string& remoteAet,
+                                      const std::string& calledAet)
+  {
+    boost::recursive_mutex::scoped_lock lock(pimpl_->worklistCallbackMutex_);
+
+    for (PImpl::WorklistCallbacks::const_iterator
+           callback = pimpl_->worklistCallbacks_.begin(); 
+         callback != pimpl_->worklistCallbacks_.end(); ++callback)
+    {
+      OrthancPluginErrorCode error = (*callback) 
+        (reinterpret_cast<OrthancPluginWorklistAnswers*>(&answers),
+         reinterpret_cast<OrthancPluginWorklistQuery*>(&query),
+         remoteAet.c_str(),
+         calledAet.c_str());
+
+      if (error != OrthancPluginErrorCode_Success)
+      {
+        GetErrorDictionary().LogError(error, true);
+        throw OrthancException(static_cast<ErrorCode>(error));
+      }
+    }
+  }
+
+
+  class OrthancPlugins::WorklistHandler : public IWorklistRequestHandler
+  {
+  private:
+    OrthancPlugins&  plugins_;
+
+  public:
+    WorklistHandler(OrthancPlugins& plugins) : plugins_(plugins)
+    {
+    }
+
+    virtual void Handle(DicomFindAnswers& answers,
+                        ParsedDicomFile& query,
+                        const std::string& remoteIp,
+                        const std::string& remoteAet,
+                        const std::string& calledAet)
+    {
+      plugins_.HandleWorklist(answers, query, remoteIp, remoteAet, calledAet);
+    }
+  };
+
+  
+  IWorklistRequestHandler* OrthancPlugins::ConstructWorklistRequestHandler()
+  {
+    bool hasHandler;
+
+    {
+      boost::recursive_mutex::scoped_lock lock(pimpl_->worklistCallbackMutex_);
+      hasHandler = !pimpl_->worklistCallbacks_.empty();
+    }
+
+    if (hasHandler)
+    {
+      return new WorklistHandler(*this);
+    }
+    else
+    {
+      return NULL;
+    }
   }
 }

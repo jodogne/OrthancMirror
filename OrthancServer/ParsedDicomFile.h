@@ -52,7 +52,7 @@ namespace Orthanc
 
     ParsedDicomFile(ParsedDicomFile& other);
 
-    void Setup(const char* content,
+    void Setup(const void* content,
                size_t size);
 
     void RemovePrivateTagsInternal(const std::set<DicomTag>* toKeep);
@@ -66,7 +66,7 @@ namespace Orthanc
 
     ParsedDicomFile(const DicomMap& map);
 
-    ParsedDicomFile(const char* content,
+    ParsedDicomFile(const void* content,
                     size_t size);
 
     ParsedDicomFile(const std::string& content);

@@ -50,6 +50,7 @@ namespace Orthanc
 #include "../../Core/FileStorage/IStorageArea.h"
 #include "../../Core/HttpServer/IHttpHandler.h"
 #include "../../OrthancServer/IServerListener.h"
+#include "../../OrthancServer/DicomProtocol/IWorklistRequestHandlerFactory.h"
 #include "OrthancPluginDatabase.h"
 #include "PluginsManager.h"
 
@@ -63,11 +64,14 @@ namespace Orthanc
   class OrthancPlugins : 
     public IHttpHandler, 
     public IPluginServiceProvider, 
-    public IServerListener
+    public IServerListener,
+    public IWorklistRequestHandlerFactory
   {
   private:
     struct PImpl;
     boost::shared_ptr<PImpl> pimpl_;
+
+    class WorklistHandler;
 
     void CheckContextAvailable();
 
@@ -77,6 +81,8 @@ namespace Orthanc
     void RegisterOnStoredInstanceCallback(const void* parameters);
 
     void RegisterOnChangeCallback(const void* parameters);
+
+    void RegisterWorklistCallback(const void* parameters);
 
     void AnswerBuffer(const void* parameters);
 
@@ -137,6 +143,12 @@ namespace Orthanc
     void SignalChangeInternal(OrthancPluginChangeType changeType,
                               OrthancPluginResourceType resourceType,
                               const char* resource);
+
+    void HandleWorklist(DicomFindAnswers& answers,
+                        ParsedDicomFile& query,
+                        const std::string& remoteIp,
+                        const std::string& remoteAet,
+                        const std::string& calledAet);
 
   public:
     OrthancPlugins();
@@ -204,6 +216,9 @@ namespace Orthanc
     {
       SignalChangeInternal(OrthancPluginChangeType_OrthancStopped, OrthancPluginResourceType_None, NULL);
     }
+
+
+    virtual IWorklistRequestHandler* ConstructWorklistRequestHandler();
   };
 }
 

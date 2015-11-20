@@ -42,10 +42,15 @@ namespace Orthanc
     class Answer;
 
     std::vector<Answer*> answers_;
+    bool                 complete_;
 
     Answer& GetAnswerInternal(size_t index) const;
 
   public:
+    DicomFindAnswers() : complete_(true)
+    {
+    }
+
     ~DicomFindAnswers()
     {
       Clear();
@@ -77,5 +82,15 @@ namespace Orthanc
     void ToJson(Json::Value& target,
                 size_t index,
                 bool simplify) const;
+
+    bool IsComplete() const
+    {
+      return complete_;
+    }
+
+    void SetComplete(bool isComplete)
+    {
+      complete_ = isComplete;
+    }
   };
 }
