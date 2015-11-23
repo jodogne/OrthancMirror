@@ -91,15 +91,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <dcmtk/dcmnet/dcasccfg.h>      /* for class DcmAssociationConfiguration */
 #include <boost/lexical_cast.hpp>
 
-#define ORTHANC_PROMISCUOUS 1
-
 static OFBool    opt_rejectWithoutImplementationUID = OFFalse;
 
 
 
-#if ORTHANC_PROMISCUOUS == 1
-static
-DUL_PRESENTATIONCONTEXT *
+static DUL_PRESENTATIONCONTEXT *
 findPresentationContextID(LST_HEAD * head,
                           T_ASC_PresentationContextID presentationContextID)
 {
@@ -231,7 +227,6 @@ static OFCondition acceptUnknownContextsWithPreferredTransferSyntaxes(
   }
   return cond;
 }
-#endif
 
 
 
@@ -590,17 +585,22 @@ namespace Orthanc
         return NULL;
       }
 
-#if ORTHANC_PROMISCUOUS == 1
-      /* accept everything not known not to be a storage SOP class */
-      cond = acceptUnknownContextsWithPreferredTransferSyntaxes(
-        assoc->params, &transferSyntaxes[0], transferSyntaxes.size());
-      if (cond.bad())
+      if (!server.HasApplicationEntityFilter() ||
+          server.GetApplicationEntityFilter().IsUnknownSopClassAccepted(remoteIp, remoteAet, calledAet))
       {
-        LOG(INFO) << cond.text();
-        AssociationCleanup(assoc);
-        return NULL;
+        /*
+         * Promiscous mode is enabled: Accept everything not known not
+         * to be a storage SOP class.
+         **/
+        cond = acceptUnknownContextsWithPreferredTransferSyntaxes(
+          assoc->params, &transferSyntaxes[0], transferSyntaxes.size());
+        if (cond.bad())
+        {
+          LOG(INFO) << cond.text();
+          AssociationCleanup(assoc);
+          return NULL;
+        }
       }
-#endif
 
       /* set our app title */
       ASC_setAPTitles(assoc->params, NULL, NULL, server.GetApplicationEntityTitle().c_str());

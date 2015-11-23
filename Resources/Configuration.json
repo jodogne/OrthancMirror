@@ -102,6 +102,10 @@
   "Mpeg2TransferSyntaxAccepted"        : true,
   "RleTransferSyntaxAccepted"          : true,
 
+  // Whether Orthanc accepts to act as C-Store SCP for unknown storage
+  // SOP classes (aka. "promiscuous mode")
+  "UnknownSopClassAccepted"            : true,
+
 
 
   /**
