@@ -1,0 +1,60 @@
+Introduction
+============
+
+This sample plugin enables Orthanc to serve DICOM modality worklists
+that are read from some folder.
+
+Whenever a C-Find SCP request is issued to Orthanc, it will read the
+content of this folder to locate the worklists that match the request.
+An external application can dynamically modify the content of this
+folder while Orthanc is running to add/remove worklists.
+
+This sample mimics the behavior of the "wlmscpfs" tool from the
+DCMTK package:
+http://support.dcmtk.org/docs/wlmscpfs.html
+
+
+Compilation for Linux
+=====================
+
+# mkdir Build
+# cd Build
+# cmake ..
+# make
+
+
+Cross-compilation for Windows using MinGW
+=========================================
+
+# mkdir Build
+# cd Build
+# cmake .. -DCMAKE_TOOLCHAIN_FILE=../../../Resources/MinGWToolchain.cmake
+# make
+
+
+Configuration
+=============
+
+First, generate the default configuration of Orthanc:
+https://orthanc.chu.ulg.ac.be/book/users/configuration.html
+
+Then, modify the "Plugins" option to point to the folder containing
+the built plugins. Finally, create a section "ModalityWorklists" in
+the configuration file to configure the worklist server. If using the
+build commands above, a sample configuration would read as follows:
+
+{
+  [...]
+  "Plugins" : [ 
+    "."
+  ],
+  "Worklists" : {
+    "Enable": true,
+    "Database": "../WorklistsDatabase"
+  }
+}
+
+The folder "WorklistsDatabase" contains a database of sample
+worklists, that come from the DCMTK source distribution, as described
+in the FAQ entry #37 of the DCMTK project:
+http://forum.dcmtk.org/viewtopic.php?t=84

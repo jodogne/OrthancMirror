@@ -620,7 +620,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadRequest);
     }
 
-    ParsedDicomFile dicom;
+    ParsedDicomFile dicom(true);
 
     {
       Encoding encoding;
@@ -834,7 +834,7 @@ namespace Orthanc
     else
     {
       // Compatibility with Orthanc <= 0.9.3
-      ParsedDicomFile dicom;
+      ParsedDicomFile dicom(true);
       CreateDicomV1(dicom, call, request);
 
       std::string id;

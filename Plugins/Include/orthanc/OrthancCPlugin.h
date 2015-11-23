@@ -469,10 +469,10 @@ extern "C"
     _OrthancPluginService_DrawText = 6011,
 
     /* Primitives for handling worklists */
-    _OrthancPluginService_AddWorklistAnswer = 7000,
-    _OrthancPluginService_MarkWorklistAnswersIncomplete = 7001,
-    _OrthancPluginService_IsWorklistMatch = 7002,
-    _OrthancPluginService_GetWorklistQueryDicom = 7003,
+    _OrthancPluginService_WorklistAddAnswer = 7000,
+    _OrthancPluginService_WorklistMarkIncomplete = 7001,
+    _OrthancPluginService_WorklistIsMatch = 7002,
+    _OrthancPluginService_WorklistGetDicomQuery = 7003,
 
     _OrthancPluginService_INTERNAL = 0x7fffffff
   } _OrthancPluginService;
@@ -4126,7 +4126,7 @@ extern "C"
    * @return 0 if success, other value if error.
    * @ingroup Worklists
    **/
-  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginWorklistAddWorklistAnswer(
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginWorklistAddAnswer(
     OrthancPluginContext*             context,
     OrthancPluginWorklistAnswers*     answers,
     const OrthancPluginWorklistQuery* query,
@@ -4139,7 +4139,7 @@ extern "C"
     params.dicom = dicom;
     params.size = size;
 
-    return context->InvokeService(context, _OrthancPluginService_AddWorklistAnswer, &params);
+    return context->InvokeService(context, _OrthancPluginService_WorklistAddAnswer, &params);
   }
 
 
@@ -4156,7 +4156,7 @@ extern "C"
    * @return 0 if success, other value if error.
    * @ingroup Worklists
    **/
-  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginMarkWorklistAnswersIncomplete(
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginWorklistMarkIncomplete(
     OrthancPluginContext*          context,
     OrthancPluginWorklistAnswers*  answers)
   {
@@ -4166,7 +4166,7 @@ extern "C"
     params.dicom = NULL;
     params.size = 0;
 
-    return context->InvokeService(context, _OrthancPluginService_MarkWorklistAnswersIncomplete, &params);
+    return context->InvokeService(context, _OrthancPluginService_WorklistMarkIncomplete, &params);
   }
 
 
@@ -4185,8 +4185,7 @@ extern "C"
    * This function checks whether one worklist (encoded as a DICOM
    * file) matches the C-Find SCP query against modality
    * worklists. This function must be called before adding the
-   * worklist as an answer through
-   * OrthancPluginWorklistAddWorklistAnswer().
+   * worklist as an answer through OrthancPluginWorklistAddAnswer().
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param query The worklist query, as received by the callback.
@@ -4195,7 +4194,7 @@ extern "C"
    * @return 1 if the worklist matches the query, 0 otherwise.
    * @ingroup Worklists
    **/
-  ORTHANC_PLUGIN_INLINE int32_t  OrthancPluginIsWorklistMatch(
+  ORTHANC_PLUGIN_INLINE int32_t  OrthancPluginWorklistIsMatch(
     OrthancPluginContext*              context,
     const OrthancPluginWorklistQuery*  query,
     const void*                        dicom,
@@ -4210,7 +4209,7 @@ extern "C"
     params.isMatch = &isMatch;
     params.target = NULL;
 
-    if (context->InvokeService(context, _OrthancPluginService_IsWorklistMatch, &params) == OrthancPluginErrorCode_Success)
+    if (context->InvokeService(context, _OrthancPluginService_WorklistIsMatch, &params) == OrthancPluginErrorCode_Success)
     {
       return isMatch;
     }
@@ -4234,7 +4233,7 @@ extern "C"
    * @return 0 if success, other value if error.
    * @ingroup Worklists
    **/
-  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginGetWorklistQueryDicom(
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginWorklistGetDicomQuery(
     OrthancPluginContext*              context,
     OrthancPluginMemoryBuffer*         target,
     const OrthancPluginWorklistQuery*  query)
@@ -4246,7 +4245,7 @@ extern "C"
     params.isMatch = NULL;
     params.target = target;
 
-    return context->InvokeService(context, _OrthancPluginService_GetWorklistQueryDicom, &params);
+    return context->InvokeService(context, _OrthancPluginService_WorklistGetDicomQuery, &params);
   }
 
 
