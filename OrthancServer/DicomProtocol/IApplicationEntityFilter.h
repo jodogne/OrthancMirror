@@ -58,5 +58,9 @@ namespace Orthanc
                                          const std::string& remoteAet,
                                          const std::string& calledAet,
                                          TransferSyntax syntax) = 0;
+
+    virtual bool IsUnknownSopClassAccepted(const std::string& remoteIp,
+                                           const std::string& remoteAet,
+                                           const std::string& calledAet) = 0;
   };
 }

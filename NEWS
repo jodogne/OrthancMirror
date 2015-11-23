@@ -1,15 +1,27 @@
 Pending changes in the mainline
 ===============================
 
-* Full indexation of the patient/study tags to speed up searches and C-Find
+Major
+-----
+
+* Experimental support of DICOM C-Find SCP for modality worklists through plugins
+* Support of DICOM C-Find SCU for modality worklists ("/modalities/{dicom}/find-worklist")
+
+Minor
+-----
+
+* New configuration options:
+  - "UnknownSopClassAccepted" to disable promiscuous mode (accept unknown SOP class UID)
+  - New configuration option: "Dictionary" to declare custom DICOM tags
 * Add ".dcm" suffix to files in ZIP archives (cf. URI ".../archive")
-* "/tools/create-dicom": Support of binary tags encoded using data URI scheme
-* "/tools/create-dicom": Support of hierarchical structures (creation of sequences)
+* "/tools/create-dicom":
+  - Support of binary tags encoded using data URI scheme
+  - Support of hierarchical structures (creation of sequences)
+  - Create tags with unknown VR
 * "/modify" can insert/modify sequences
 * "/series/.../ordered-slices" to order the slices of a 2D+t or 3D image
 * New URI "/tools/shutdown" to stop Orthanc from the REST API
 * New URIs for attachments: ".../compress", ".../uncompress" and ".../is-compressed"
-* New configuration option: "Dictionary" to declare custom DICOM tags
 * MIME content type can be associated to custom attachments (cf. "UserContentType")
 * New URIs "/tools/create-archive" and "/tools/create-media" to create ZIP/DICOMDIR
   from a set of resources
@@ -35,10 +47,10 @@ Lua
 Maintenance
 -----------
 
+* Full indexation of the patient/study tags to speed up searches and C-Find
 * Full refactoring of the searching features
 * C-Move SCP for studies using AccessionNumber tag
 * Fix issue 4 (C-Store Association not renegotiated on Specific-to-specific transfer syntax change)
-* "/tools/create-dicom" can create tags with unknown VR
 * "--logdir" flag creates a single log file instead of 3 separate files for errors/warnings/infos
 * "--errors" flag lists the error codes that could be returned by Orthanc
 * Under Windows, the exit status of Orthanc corresponds to the encountered error code
