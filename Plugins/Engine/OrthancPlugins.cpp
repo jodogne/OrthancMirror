@@ -1932,7 +1932,7 @@ namespace Orthanc
         ApplyDicomToJson(service, parameters);
         return true;
 
-      case _OrthancPluginService_AddWorklistAnswer:
+      case _OrthancPluginService_WorklistAddAnswer:
       {
         const _OrthancPluginWorklistAnswersOperation& p =
           *reinterpret_cast<const _OrthancPluginWorklistAnswersOperation*>(parameters);
@@ -1940,7 +1940,7 @@ namespace Orthanc
         return true;
       }
 
-      case _OrthancPluginService_MarkWorklistAnswersIncomplete:
+      case _OrthancPluginService_WorklistMarkIncomplete:
       {
         const _OrthancPluginWorklistAnswersOperation& p =
           *reinterpret_cast<const _OrthancPluginWorklistAnswersOperation*>(parameters);
@@ -1948,7 +1948,7 @@ namespace Orthanc
         return true;
       }
 
-      case _OrthancPluginService_IsWorklistMatch:
+      case _OrthancPluginService_WorklistIsMatch:
       {
         const _OrthancPluginWorklistQueryOperation& p =
           *reinterpret_cast<const _OrthancPluginWorklistQueryOperation*>(parameters);
@@ -1956,7 +1956,7 @@ namespace Orthanc
         return true;
       }
 
-      case _OrthancPluginService_GetWorklistQueryDicom:
+      case _OrthancPluginService_WorklistGetDicomQuery:
       {
         const _OrthancPluginWorklistQueryOperation& p =
           *reinterpret_cast<const _OrthancPluginWorklistQueryOperation*>(parameters);

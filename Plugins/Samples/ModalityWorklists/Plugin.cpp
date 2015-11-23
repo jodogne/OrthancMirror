@@ -61,10 +61,10 @@ static OrthancPluginErrorCode  MatchWorklist(OrthancPluginWorklistAnswers*     a
     return OrthancPluginErrorCode_Success;
   }
 
-  if (OrthancPluginIsWorklistMatch(context_, query, dicom.c_str(), dicom.size()))
+  if (OrthancPluginWorklistIsMatch(context_, query, dicom.c_str(), dicom.size()))
   {
     // This DICOM file matches the worklist query, add it to the answers
-    return OrthancPluginWorklistAddWorklistAnswer
+    return OrthancPluginWorklistAddAnswer
       (context_, answers, query, dicom.c_str(), dicom.size());
   }
   else
@@ -98,7 +98,7 @@ static bool GetQueryDicom(Json::Value& value,
                           const OrthancPluginWorklistQuery* query)
 {
   OrthancPluginMemoryBuffer dicom;
-  if (OrthancPluginGetWorklistQueryDicom(context_, &dicom, query))
+  if (OrthancPluginWorklistGetDicomQuery(context_, &dicom, query))
   {
     return false;
   }
