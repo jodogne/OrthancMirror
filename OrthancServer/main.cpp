@@ -736,7 +736,8 @@ static bool StartDicomServer(ServerContext& context,
   dicomServer.SetFindRequestHandlerFactory(serverFactory);
 
 #if ORTHANC_PLUGINS_ENABLED == 1
-  if (plugins)
+  if (plugins &&
+      plugins->HasWorklistHandler())
   {
     dicomServer.SetWorklistRequestHandlerFactory(*plugins);
   }
