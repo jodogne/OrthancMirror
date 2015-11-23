@@ -353,7 +353,8 @@ namespace Orthanc
     struct FindPayload
     {
       DicomFindAnswers* answers;
-      std::string       level;
+      const char*       level;
+      bool              isWorklist;
     };
   }
 
@@ -371,15 +372,23 @@ namespace Orthanc
 
     if (responseIdentifiers != NULL)
     {
-      DicomMap m;
-      FromDcmtkBridge::Convert(m, *responseIdentifiers);
-
-      if (!m.HasTag(DICOM_TAG_QUERY_RETRIEVE_LEVEL))
+      if (payload.isWorklist)
       {
-        m.SetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL, payload.level);
+        ParsedDicomFile answer(*responseIdentifiers);
+        payload.answers->Add(answer);
       }
+      else
+      {
+        DicomMap m;
+        FromDcmtkBridge::Convert(m, *responseIdentifiers);
 
-      payload.answers->Add(m);
+        if (!m.HasTag(DICOM_TAG_QUERY_RETRIEVE_LEVEL))
+        {
+          m.SetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL, payload.level);
+        }
+
+        payload.answers->Add(m);
+      }
     }
   }
 
@@ -474,6 +483,52 @@ namespace Orthanc
   }
 
 
+  static void ExecuteFind(DicomFindAnswers& answers,
+                          T_ASC_Association* association,
+                          DcmDataset* dataset,
+                          const char* sopClass,
+                          bool isWorklist,
+                          const char* level,
+                          uint32_t dimseTimeout)
+  {
+    assert(isWorklist ^ (level != NULL));
+
+    FindPayload payload;
+    payload.answers = &answers;
+    payload.level = level;
+    payload.isWorklist = isWorklist;
+
+    // Figure out which of the accepted presentation contexts should be used
+    int presID = ASC_findAcceptedPresentationContextID(association, sopClass);
+    if (presID == 0)
+    {
+      throw OrthancException(ErrorCode_DicomFindUnavailable);
+    }
+
+    T_DIMSE_C_FindRQ request;
+    memset(&request, 0, sizeof(request));
+    request.MessageID = association->nextMsgID++;
+    strcpy(request.AffectedSOPClassUID, sopClass);
+    request.DataSetType = DIMSE_DATASET_PRESENT;
+    request.Priority = DIMSE_PRIORITY_MEDIUM;
+
+    T_DIMSE_C_FindRSP response;
+    DcmDataset* statusDetail = NULL;
+    OFCondition cond = DIMSE_findUser(association, presID, &request, dataset,
+                                      FindCallback, &payload,
+                                      /*opt_blockMode*/ DIMSE_BLOCKING, 
+                                      /*opt_dimse_timeout*/ dimseTimeout,
+                                      &response, &statusDetail);
+
+    if (statusDetail)
+    {
+      delete statusDetail;
+    }
+
+    Check(cond);
+  }
+
+
   void DicomUserConnection::Find(DicomFindAnswers& result,
                                  ResourceType level,
                                  const DicomMap& originalFields)
@@ -483,34 +538,32 @@ namespace Orthanc
 
     CheckIsOpen();
 
-    FindPayload payload;
-    payload.answers = &result;
-
     std::auto_ptr<DcmDataset> dataset(ConvertQueryFields(fields, manufacturer_));
+    const char* clevel = NULL;
+    const char* sopClass = NULL;
 
-    const char* sopClass;
     switch (level)
     {
       case ResourceType_Patient:
-        payload.level = "PATIENT";
+        clevel = "PATIENT";
         DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "PATIENT");
         sopClass = UID_FINDPatientRootQueryRetrieveInformationModel;
         break;
 
       case ResourceType_Study:
-        payload.level = "STUDY";
+        clevel = "STUDY";
         DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "STUDY");
         sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
         break;
 
       case ResourceType_Series:
-        payload.level = "SERIES";
+        clevel = "SERIES";
         DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "SERIES");
         sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
         break;
 
       case ResourceType_Instance:
-        payload.level = "INSTANCE";
+        clevel = "INSTANCE";
         if (manufacturer_ == ModalityManufacturer_ClearCanvas ||
             manufacturer_ == ModalityManufacturer_Dcm4Chee)
         {
@@ -565,34 +618,8 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    // Figure out which of the accepted presentation contexts should be used
-    int presID = ASC_findAcceptedPresentationContextID(pimpl_->assoc_, sopClass);
-    if (presID == 0)
-    {
-      throw OrthancException(ErrorCode_DicomFindUnavailable);
-    }
-
-    T_DIMSE_C_FindRQ request;
-    memset(&request, 0, sizeof(request));
-    request.MessageID = pimpl_->assoc_->nextMsgID++;
-    strcpy(request.AffectedSOPClassUID, sopClass);
-    request.DataSetType = DIMSE_DATASET_PRESENT;
-    request.Priority = DIMSE_PRIORITY_MEDIUM;
-
-    T_DIMSE_C_FindRSP response;
-    DcmDataset* statusDetail = NULL;
-    OFCondition cond = DIMSE_findUser(pimpl_->assoc_, presID, &request, dataset.get(),
-                                      FindCallback, &payload,
-                                      /*opt_blockMode*/ DIMSE_BLOCKING, 
-                                      /*opt_dimse_timeout*/ pimpl_->dimseTimeout_,
-                                      &response, &statusDetail);
-
-    if (statusDetail)
-    {
-      delete statusDetail;
-    }
-
-    Check(cond);
+    assert(clevel != NULL && sopClass != NULL);
+    ExecuteFind(result, pimpl_->assoc_, dataset.get(), sopClass, false, clevel, pimpl_->dimseTimeout_);
   }
 
 
@@ -685,13 +712,14 @@ namespace Orthanc
     defaultStorageSOPClasses_.clear();
 
     // Copy the short list of storage SOP classes from DCMTK, making
-    // room for the 4 SOP classes reserved for C-ECHO, C-FIND, C-MOVE.
+    // room for the 5 SOP classes reserved for C-ECHO, C-FIND, C-MOVE at (**).
 
     std::set<std::string> uncommon;
     uncommon.insert(UID_BlendingSoftcopyPresentationStateStorage);
     uncommon.insert(UID_GrayscaleSoftcopyPresentationStateStorage);
     uncommon.insert(UID_ColorSoftcopyPresentationStateStorage);
     uncommon.insert(UID_PseudoColorSoftcopyPresentationStateStorage);
+    uncommon.insert(UID_XAXRFGrayscaleSoftcopyPresentationStateStorage);
 
     // Add the storage syntaxes for C-STORE
     for (int i = 0; i < numberOfDcmShortSCUStorageSOPClassUIDs - 1; i++)
@@ -721,11 +749,12 @@ namespace Orthanc
     pimpl_->params_ = NULL;
     pimpl_->assoc_ = NULL;
 
-    // SOP classes for C-ECHO, C-FIND and C-MOVE
+    // SOP classes for C-ECHO, C-FIND and C-MOVE (**)
     reservedStorageSOPClasses_.push_back(UID_VerificationSOPClass);
     reservedStorageSOPClasses_.push_back(UID_FINDPatientRootQueryRetrieveInformationModel);
     reservedStorageSOPClasses_.push_back(UID_FINDStudyRootQueryRetrieveInformationModel);
     reservedStorageSOPClasses_.push_back(UID_MOVEStudyRootQueryRetrieveInformationModel);
+    reservedStorageSOPClasses_.push_back(UID_FINDModalityWorklistInformationModel);
 
     ResetStorageSOPClasses();
   }
@@ -1101,4 +1130,15 @@ namespace Orthanc
     CheckStorageSOPClassesInvariant();
   }
 
+
+  void DicomUserConnection::FindWorklist(DicomFindAnswers& result,
+                                         ParsedDicomFile& query)
+  {
+    CheckIsOpen();
+
+    DcmDataset* dataset = query.GetDcmtkObject().getDataset();
+    const char* sopClass = UID_FINDModalityWorklistInformationModel;
+
+    ExecuteFind(result, pimpl_->assoc_, dataset, sopClass, true, NULL, pimpl_->dimseTimeout_);
+  }
 }

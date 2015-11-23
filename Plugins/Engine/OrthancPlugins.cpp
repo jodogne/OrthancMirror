@@ -1932,7 +1932,7 @@ namespace Orthanc
         ApplyDicomToJson(service, parameters);
         return true;
 
-      case _OrthancPluginService_AddWorklistAnswer:
+      case _OrthancPluginService_WorklistAddAnswer:
       {
         const _OrthancPluginWorklistAnswersOperation& p =
           *reinterpret_cast<const _OrthancPluginWorklistAnswersOperation*>(parameters);
@@ -1940,7 +1940,7 @@ namespace Orthanc
         return true;
       }
 
-      case _OrthancPluginService_MarkWorklistAnswersIncomplete:
+      case _OrthancPluginService_WorklistMarkIncomplete:
       {
         const _OrthancPluginWorklistAnswersOperation& p =
           *reinterpret_cast<const _OrthancPluginWorklistAnswersOperation*>(parameters);
@@ -1948,7 +1948,7 @@ namespace Orthanc
         return true;
       }
 
-      case _OrthancPluginService_IsWorklistMatch:
+      case _OrthancPluginService_WorklistIsMatch:
       {
         const _OrthancPluginWorklistQueryOperation& p =
           *reinterpret_cast<const _OrthancPluginWorklistQueryOperation*>(parameters);
@@ -1956,7 +1956,7 @@ namespace Orthanc
         return true;
       }
 
-      case _OrthancPluginService_GetWorklistQueryDicom:
+      case _OrthancPluginService_WorklistGetDicomQuery:
       {
         const _OrthancPluginWorklistQueryOperation& p =
           *reinterpret_cast<const _OrthancPluginWorklistQueryOperation*>(parameters);
@@ -2085,14 +2085,7 @@ namespace Orthanc
 
   IWorklistRequestHandler* OrthancPlugins::ConstructWorklistRequestHandler()
   {
-    bool hasHandler;
-
-    {
-      boost::recursive_mutex::scoped_lock lock(pimpl_->worklistCallbackMutex_);
-      hasHandler = !pimpl_->worklistCallbacks_.empty();
-    }
-
-    if (hasHandler)
+    if (HasWorklistHandler())
     {
       return new WorklistHandler(*this);
     }
@@ -2101,4 +2094,12 @@ namespace Orthanc
       return NULL;
     }
   }
+
+
+  bool OrthancPlugins::HasWorklistHandler()
+  {
+    boost::recursive_mutex::scoped_lock lock(pimpl_->worklistCallbackMutex_);
+    return !pimpl_->worklistCallbacks_.empty();
+  }
+
 }

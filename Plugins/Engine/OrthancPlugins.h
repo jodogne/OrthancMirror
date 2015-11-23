@@ -211,6 +211,7 @@ namespace Orthanc
       SignalChangeInternal(OrthancPluginChangeType_OrthancStopped, OrthancPluginResourceType_None, NULL);
     }
 
+    bool HasWorklistHandler();
 
     virtual IWorklistRequestHandler* ConstructWorklistRequestHandler();
   };
