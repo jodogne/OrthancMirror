@@ -190,7 +190,7 @@ public:
 
   virtual bool IsAllowedTransferSyntax(const std::string& remoteIp,
                                        const std::string& remoteAet,
-                                       const std::string& /*calledAet*/,
+                                       const std::string& calledAet,
                                        TransferSyntax syntax)
   {
     std::string configuration;
@@ -239,6 +239,32 @@ public:
         LuaFunctionCall call(locker.GetLua(), lua.c_str());
         call.PushString(remoteAet);
         call.PushString(remoteIp);
+        call.PushString(calledAet);
+        return call.ExecutePredicate();
+      }
+    }
+
+    return Configuration::GetGlobalBoolParameter(configuration, true);
+  }
+
+
+  virtual bool IsUnknownSopClassAccepted(const std::string& remoteIp,
+                                         const std::string& remoteAet,
+                                         const std::string& calledAet)
+  {
+    static const char* configuration = "UnknownSopClassAccepted";
+
+    {
+      std::string lua = "Is" + std::string(configuration);
+
+      LuaScripting::Locker locker(context_.GetLua());
+      
+      if (locker.GetLua().IsExistingFunction(lua.c_str()))
+      {
+        LuaFunctionCall call(locker.GetLua(), lua.c_str());
+        call.PushString(remoteAet);
+        call.PushString(remoteIp);
+        call.PushString(calledAet);
         return call.ExecutePredicate();
       }
     }
