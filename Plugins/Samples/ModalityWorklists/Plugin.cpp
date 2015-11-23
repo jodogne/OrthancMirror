@@ -169,7 +169,8 @@ extern "C"
   ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   {
     context_ = c;
-    OrthancPluginLogWarning(context_, "Storage plugin is initializing");
+    OrthancPluginLogWarning(context_, "Sample worklist plugin is initializing");
+    OrthancPluginSetDescription(context_, "Serve DICOM modality worklists from a folder with Orthanc.");
 
     /* Check the version of the Orthanc core */
     if (OrthancPluginCheckVersion(c) == 0)
@@ -187,29 +188,53 @@ extern "C"
     Json::Value configuration;
     if (!ConvertToJson(configuration, OrthancPluginGetConfiguration(context_)))
     {
-      OrthancPluginLogError(context_, "Cannot access the configuration");
+      OrthancPluginLogError(context_, "Cannot access the configuration of the worklist server");
       return -1;
     }
 
-    if (configuration.isMember("WorklistsFolder"))
+    bool enabled = false;
+
+    if (configuration.isMember("Worklists"))
     {
-      if (configuration["WorklistsFolder"].type() != Json::stringValue)
+      const Json::Value& config = configuration["Worklists"];
+      if (!config.isMember("Enable") ||
+          config["Enable"].type() != Json::booleanValue)
       {
-        OrthancPluginLogError(context_, "The configuration option \"WorklistsFolder\" must be a string");
+        OrthancPluginLogError(context_, "The configuration option \"Worklists.Enable\" must contain a Boolean");
         return -1;
       }
+      else
+      {
+        enabled = config["Enable"].asBool();
+        if (enabled)
+        {
+          if (!config.isMember("Database") ||
+              config["Database"].type() != Json::stringValue)
+          {
+            OrthancPluginLogError(context_, "The configuration option \"Worklists.Database\" must contain a path");
+            return -1;
+          }
 
-      folder_ = configuration["WorklistsFolder"].asString();
+          folder_ = config["Database"].asString();
+        }
+        else
+        {
+          OrthancPluginLogWarning(context_, "Worklists server is disabled by the configuration file");
+        }
+      }
     }
     else
     {
-      folder_ = DEFAULT_WORKLISTS_FOLDER;
+      OrthancPluginLogWarning(context_, "Worklists server is disabled, no suitable configuration section was provided");
     }
 
-    std::string message = "The database of worklists will be read from folder: " + folder_;
-    OrthancPluginLogWarning(context_, message.c_str());
+    if (enabled)
+    {
+      std::string message = "The database of worklists will be read from folder: " + folder_;
+      OrthancPluginLogWarning(context_, message.c_str());
 
-    OrthancPluginRegisterWorklistCallback(context_, Callback);
+      OrthancPluginRegisterWorklistCallback(context_, Callback);
+    }
 
     return 0;
   }
@@ -223,12 +248,12 @@ extern "C"
 
   ORTHANC_PLUGINS_API const char* OrthancPluginGetName()
   {
-    return "sample-worklists";
+    return "worklists";
   }
 
 
   ORTHANC_PLUGINS_API const char* OrthancPluginGetVersion()
   {
-    return SAMPLE_MODALITY_WORKLISTS_VERSION;
+    return MODALITY_WORKLISTS_VERSION;
   }
 }

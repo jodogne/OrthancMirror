@@ -27,7 +27,7 @@ Configuration
 =============
 
 First, generate the default configuration of Orthanc:
-https://code.google.com/p/orthanc/wiki/OrthancConfiguration
+https://orthanc.chu.ulg.ac.be/book/users/configuration.html
 
 Then, modify the "Plugins" option to point to the folder containing
 the built plugins.
