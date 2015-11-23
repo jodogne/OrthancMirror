@@ -2085,14 +2085,7 @@ namespace Orthanc
 
   IWorklistRequestHandler* OrthancPlugins::ConstructWorklistRequestHandler()
   {
-    bool hasHandler;
-
-    {
-      boost::recursive_mutex::scoped_lock lock(pimpl_->worklistCallbackMutex_);
-      hasHandler = !pimpl_->worklistCallbacks_.empty();
-    }
-
-    if (hasHandler)
+    if (HasWorklistHandler())
     {
       return new WorklistHandler(*this);
     }
@@ -2101,4 +2094,12 @@ namespace Orthanc
       return NULL;
     }
   }
+
+
+  bool OrthancPlugins::HasWorklistHandler()
+  {
+    boost::recursive_mutex::scoped_lock lock(pimpl_->worklistCallbackMutex_);
+    return !pimpl_->worklistCallbacks_.empty();
+  }
+
 }
