@@ -396,6 +396,7 @@ extern "C"
     _OrthancPluginService_RegisterDictionaryTag = 20,
     _OrthancPluginService_DicomBufferToJson = 21,
     _OrthancPluginService_DicomInstanceToJson = 22,
+    _OrthancPluginService_DicomFromJson = 23,
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -697,6 +698,19 @@ extern "C"
 
 
   /**
+   * Flags to customize a JSON-to-DICOM conversion.
+   * @ingroup Toolbox
+   **/
+  typedef enum
+  {
+    OrthancPluginDicomFromJsonFlags_DecodeDataUriScheme   = (1 << 0),  /*!< Decode fields encoded using data URI scheme */
+    OrthancPluginDicomFromJsonFlags_GenerateIdentifiers   = (1 << 1),  /*!< Automatically generate DICOM identifiers */
+
+    _OrthancPluginDicomFromJsonFlags_INTERNAL = 0x7fffffff
+  } OrthancPluginDicomFromJsonFlags;
+
+
+  /**
    * The constraints on the DICOM identifiers that must be supported
    * by the database plugins.
    **/
@@ -977,6 +991,7 @@ extern "C"
         sizeof(int32_t) != sizeof(OrthancPluginValueRepresentation) ||
         sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFormat) ||
         sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFlags) ||
+        sizeof(int32_t) != sizeof(OrthancPluginDicomFromJsonFlags) ||
         sizeof(int32_t) != sizeof(OrthancPluginIdentifierConstraint) ||
         sizeof(int32_t) != sizeof(OrthancPluginInstanceOrigin))
     {
@@ -1313,7 +1328,7 @@ extern "C"
    * file is stored into a newly allocated memory buffer.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param target The target memory buffer.
+   * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer().
    * @param instanceId The Orthanc identifier of the DICOM instance of interest.
    * @return 0 if success, or the error code if failure.
    * @ingroup Orthanc
@@ -1344,7 +1359,7 @@ extern "C"
    * the query is stored into a newly allocated memory buffer.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param target The target memory buffer.
+   * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer().
    * @param uri The URI in the built-in Orthanc API.
    * @return 0 if success, or the error code if failure.
    * @see OrthancPluginRestApiGetAfterPlugins
@@ -1373,7 +1388,7 @@ extern "C"
    * query is stored into a newly allocated memory buffer.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param target The target memory buffer.
+   * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer().
    * @param uri The URI in the built-in Orthanc API.
    * @return 0 if success, or the error code if failure.
    * @see OrthancPluginRestApiGet
@@ -1407,7 +1422,7 @@ extern "C"
    * the query is stored into a newly allocated memory buffer.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param target The target memory buffer.
+   * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer().
    * @param uri The URI in the built-in Orthanc API.
    * @param body The body of the POST request.
    * @param bodySize The size of the body.
@@ -1441,7 +1456,7 @@ extern "C"
    * query is stored into a newly allocated memory buffer.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param target The target memory buffer.
+   * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer().
    * @param uri The URI in the built-in Orthanc API.
    * @param body The body of the POST request.
    * @param bodySize The size of the body.
@@ -1515,7 +1530,7 @@ extern "C"
    * the query is stored into a newly allocated memory buffer.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param target The target memory buffer.
+   * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer().
    * @param uri The URI in the built-in Orthanc API.
    * @param body The body of the PUT request.
    * @param bodySize The size of the body.
@@ -1550,7 +1565,7 @@ extern "C"
    * query is stored into a newly allocated memory buffer.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param target The target memory buffer.
+   * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer().
    * @param uri The URI in the built-in Orthanc API.
    * @param body The body of the PUT request.
    * @param bodySize The size of the body.
@@ -2731,7 +2746,7 @@ extern "C"
    * version of the zlib library that is used by the Orthanc core.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param target The target memory buffer.
+   * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer().
    * @param source The source buffer.
    * @param size The size in bytes of the source buffer.
    * @param compression The compression algorithm.
@@ -2773,7 +2788,7 @@ extern "C"
    * a newly allocated memory buffer.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param target The target memory buffer.
+   * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer().
    * @param path The path of the file to be read.
    * @return 0 if success, or the error code if failure.
    **/
@@ -3331,7 +3346,7 @@ extern "C"
    * Orthanc instance that hosts this plugin.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param target The target memory buffer.
+   * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer().
    * @param url The URL of interest.
    * @param username The username (can be <tt>NULL</tt> if no password protection).
    * @param password The password (can be <tt>NULL</tt> if no password protection).
@@ -3366,7 +3381,7 @@ extern "C"
    * the Orthanc instance that hosts this plugin.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param target The target memory buffer.
+   * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer().
    * @param url The URL of interest.
    * @param body The content of the body of the request.
    * @param bodySize The size of the body of the request.
@@ -3407,7 +3422,7 @@ extern "C"
    * Orthanc instance that hosts this plugin.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param target The target memory buffer.
+   * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer().
    * @param url The URL of interest.
    * @param body The content of the body of the request.
    * @param bodySize The size of the body of the request.
@@ -3956,7 +3971,7 @@ extern "C"
    * @param buffer The memory buffer containing the DICOM file.
    * @param size The size of the memory buffer.
    * @param format The output format.
-   * @param flags The output flags.
+   * @param flags Flags governing the output.
    * @param maxStringLength The maximum length of a field. Too long fields will
    * be output as "null". The 0 value means no maximum length.
    * @return The NULL value if the case of an error, or the JSON
@@ -4005,7 +4020,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param instanceId The Orthanc identifier of the instance.
    * @param format The output format.
-   * @param flags The output flags.
+   * @param flags Flags governing the output.
    * @param maxStringLength The maximum length of a field. Too long fields will
    * be output as "null". The 0 value means no maximum length.
    * @return The NULL value if the case of an error, or the JSON
@@ -4060,7 +4075,7 @@ extern "C"
    * allocated memory buffer.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param target The target memory buffer.
+   * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer().
    * @param uri The URI in the built-in Orthanc API.
    * @param headersCount The number of HTTP headers.
    * @param headersKeys Array containing the keys of the HTTP headers.
@@ -4298,6 +4313,43 @@ extern "C"
     }
   }
 
+
+  typedef struct
+  {
+    OrthancPluginMemoryBuffer*       target;
+    const char*                      json;
+    OrthancPluginDicomFromJsonFlags  flags;
+  } _OrthancPluginDicomFromJson;
+
+  /**
+   * @brief Create a DICOM instance from JSON.
+   *
+   * This function takes as input a string containing a JSON file
+   * describing the content of a DICOM instance. As an output, it
+   * writes the corresponding DICOM instance to a newly allocated
+   * memory buffer.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer().
+   * @param json The input JSON file.
+   * @param flags Flags governing the output.
+   * @return 0 if success, other value if error.
+   * @ingroup Toolbox
+   * @see OrthancPluginDicomBufferToJson
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginDicomFromJson(
+    OrthancPluginContext*            context,
+    OrthancPluginMemoryBuffer*       target,
+    const char*                      json,
+    OrthancPluginDicomFromJsonFlags  flags)
+  {
+    _OrthancPluginDicomFromJson params;
+    params.target = target;
+    params.json = json;
+    params.flags = flags;
+
+    return context->InvokeService(context, _OrthancPluginService_DicomFromJson, &params);
+  }
 
 #ifdef  __cplusplus
 }

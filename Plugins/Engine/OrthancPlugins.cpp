@@ -414,6 +414,7 @@ namespace Orthanc
 
   OrthancPlugins::OrthancPlugins()
   {
+    /* Sanity check of the compiler */
     if (sizeof(int32_t) != sizeof(OrthancPluginErrorCode) ||
         sizeof(int32_t) != sizeof(OrthancPluginHttpMethod) ||
         sizeof(int32_t) != sizeof(_OrthancPluginService) ||
@@ -427,6 +428,7 @@ namespace Orthanc
         sizeof(int32_t) != sizeof(OrthancPluginValueRepresentation) ||
         sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFlags) ||
         sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFormat) ||
+        sizeof(int32_t) != sizeof(OrthancPluginDicomFromJsonFlags) ||
         sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType) ||
         sizeof(int32_t) != sizeof(OrthancPluginIdentifierConstraint) ||
         sizeof(int32_t) != sizeof(OrthancPluginInstanceOrigin) ||
@@ -435,9 +437,11 @@ namespace Orthanc
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludeUnknownTags) != static_cast<int>(DicomToJsonFlags_IncludeUnknownTags) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludePixelData) != static_cast<int>(DicomToJsonFlags_IncludePixelData) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_ConvertBinaryToNull) != static_cast<int>(DicomToJsonFlags_ConvertBinaryToNull) ||
-        static_cast<int>(OrthancPluginDicomToJsonFlags_ConvertBinaryToAscii) != static_cast<int>(DicomToJsonFlags_ConvertBinaryToAscii))
+        static_cast<int>(OrthancPluginDicomToJsonFlags_ConvertBinaryToAscii) != static_cast<int>(DicomToJsonFlags_ConvertBinaryToAscii) ||
+        static_cast<int>(OrthancPluginDicomFromJsonFlags_DecodeDataUriScheme) != static_cast<int>(DicomFromJsonFlags_DecodeDataUriScheme) ||
+        static_cast<int>(OrthancPluginDicomFromJsonFlags_GenerateIdentifiers) != static_cast<int>(DicomFromJsonFlags_GenerateIdentifiers))
+
     {
-      /* Sanity check of the compiler */
       throw OrthancException(ErrorCode_Plugin);
     }
 
@@ -1413,6 +1417,31 @@ namespace Orthanc
   }
         
 
+  void OrthancPlugins::ApplyDicomFromJson(_OrthancPluginService service,
+                                          const void* parameters)
+  {
+    const _OrthancPluginDicomFromJson& p =
+      *reinterpret_cast<const _OrthancPluginDicomFromJson*>(parameters);
+
+    Json::Value json;
+    Json::Reader reader;
+    if (!reader.parse(p.json, json))
+    {
+      throw OrthancException(ErrorCode_BadJson);
+    }
+
+    std::string dicom;
+
+    {
+      std::auto_ptr<ParsedDicomFile> file
+        (ParsedDicomFile::CreateFromJson(json, static_cast<DicomFromJsonFlags>(p.flags)));
+      file->SaveToMemoryBuffer(dicom);
+    }
+
+    CopyToMemoryBuffer(*p.target, dicom);
+  }
+        
+
   void OrthancPlugins::DatabaseAnswer(const void* parameters)
   {
     const _OrthancPluginDatabaseAnswer& p =
@@ -1936,6 +1965,10 @@ namespace Orthanc
       case _OrthancPluginService_DicomBufferToJson:
       case _OrthancPluginService_DicomInstanceToJson:
         ApplyDicomToJson(service, parameters);
+        return true;
+
+      case _OrthancPluginService_DicomFromJson:
+        ApplyDicomFromJson(service, parameters);
         return true;
 
       case _OrthancPluginService_WorklistAddAnswer:
