@@ -293,7 +293,7 @@ namespace Orthanc
           return OrthancPluginInstanceOrigin_Lua;
 
         case RequestOrigin_Plugins:
-          return OrthancPluginInstanceOrigin_Plugins;
+          return OrthancPluginInstanceOrigin_Plugin;
 
         case RequestOrigin_Unknown:
           return OrthancPluginInstanceOrigin_Unknown;

@@ -719,7 +719,7 @@ extern "C"
     OrthancPluginInstanceOrigin_Unknown = 1,        /*!< Unknown origin */
     OrthancPluginInstanceOrigin_DicomProtocol = 2,  /*!< Instance received through DICOM protocol */
     OrthancPluginInstanceOrigin_RestApi = 3,        /*!< Instance received through REST API of Orthanc */
-    OrthancPluginInstanceOrigin_Plugins = 4,        /*!< Instance added to Orthanc by a plugin */
+    OrthancPluginInstanceOrigin_Plugin = 4,         /*!< Instance added to Orthanc by a plugin */
     OrthancPluginInstanceOrigin_Lua = 5,            /*!< Instance added to Orthanc by a Lua script */
 
     _OrthancPluginInstanceOrigin_INTERNAL = 0x7fffffff
