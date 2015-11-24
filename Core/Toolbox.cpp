@@ -554,6 +554,14 @@ namespace Orthanc
   }
 #  endif
 
+
+  void Toolbox::EncodeDataUriScheme(std::string& result,
+                                    const std::string& mime,
+                                    const std::string& content)
+  {
+    result = "data:" + mime + ";base64," + base64_encode(content);
+  }
+
 #endif
 
 

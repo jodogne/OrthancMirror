@@ -127,6 +127,12 @@ namespace Orthanc
                                  DicomToJsonFlags_ConvertBinaryToNull)
   };
 
+  enum DicomFromJsonFlags
+  {
+    DicomFromJsonFlags_DecodeDataUriScheme = (1 << 0),
+    DicomFromJsonFlags_GenerateIdentifiers = (1 << 1)
+  };
+
   enum IdentifierConstraintType
   {
     IdentifierConstraintType_Equal,
