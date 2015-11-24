@@ -171,6 +171,11 @@ namespace Orthanc
 
     void SetPluginsOrigin();
 
+    RequestOrigin GetRequestOrigin() const
+    {
+      return origin_;
+    }
+
     const char* GetRemoteAet() const; 
 
     void SetBuffer(const std::string& dicom)
