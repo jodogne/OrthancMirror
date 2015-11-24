@@ -66,6 +66,11 @@ namespace Orthanc
       return element_;
     }
 
+    bool IsPrivate() const
+    {
+      return group_ % 2 == 1;
+    }
+
     const char* GetMainTagsName() const;
 
     bool operator< (const DicomTag& other) const;

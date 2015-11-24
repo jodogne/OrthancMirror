@@ -865,6 +865,32 @@ namespace Orthanc
   }
 
 
+  static void DicomFindWorklist(RestApiPostCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    Json::Value json;
+    if (call.ParseJsonRequest(json))
+    {
+      const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
+      RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+
+      std::auto_ptr<ParsedDicomFile> query(ParsedDicomFile::CreateFromJson(json, static_cast<DicomFromJsonFlags>(0)));
+
+      DicomFindAnswers answers;
+
+      {
+        ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), localAet, remote);
+        locker.GetConnection().FindWorklist(answers, *query);
+      }
+
+      Json::Value result;
+      answers.ToJson(result, true);
+      call.GetOutput().AnswerJson(result);
+    }
+  }
+
+
   void OrthancRestApi::RegisterModalities()
   {
     Register("/modalities", ListModalities);
@@ -898,5 +924,7 @@ namespace Orthanc
     Register("/peers/{id}", UpdatePeer);
     Register("/peers/{id}", DeletePeer);
     Register("/peers/{id}/store", PeerStore);
+
+    Register("/modalities/{id}/find-worklist", DicomFindWorklist);
   }
 }
