@@ -24,6 +24,7 @@
 #include <json/value.h>
 #include <json/reader.h>
 #include <string.h>
+#include <strings.h>
 #include <iostream>
 
 static OrthancPluginContext* context_ = NULL;
