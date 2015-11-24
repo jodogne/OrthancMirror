@@ -279,6 +279,31 @@ namespace Orthanc
     }
 
 
+    OrthancPluginInstanceOrigin Convert(RequestOrigin origin)
+    {
+      switch (origin)
+      {
+        case RequestOrigin_DicomProtocol:
+          return OrthancPluginInstanceOrigin_DicomProtocol;
+
+        case RequestOrigin_Http:
+          return OrthancPluginInstanceOrigin_RestApi;
+
+        case RequestOrigin_Lua:
+          return OrthancPluginInstanceOrigin_Lua;
+
+        case RequestOrigin_Plugins:
+          return OrthancPluginInstanceOrigin_Plugin;
+
+        case RequestOrigin_Unknown:
+          return OrthancPluginInstanceOrigin_Unknown;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
+
 #if !defined(ORTHANC_ENABLE_DCMTK) || ORTHANC_ENABLE_DCMTK != 0
     DcmEVR Convert(OrthancPluginValueRepresentation vr)
     {

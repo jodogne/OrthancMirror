@@ -65,6 +65,8 @@ namespace Orthanc
 
     IdentifierConstraintType Convert(OrthancPluginIdentifierConstraint constraint);
 
+    OrthancPluginInstanceOrigin Convert(RequestOrigin origin);
+
 #if !defined(ORTHANC_ENABLE_DCMTK) || ORTHANC_ENABLE_DCMTK != 0
     DcmEVR Convert(OrthancPluginValueRepresentation vr);
 #endif

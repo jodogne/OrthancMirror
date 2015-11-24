@@ -429,6 +429,7 @@ namespace Orthanc
         sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFormat) ||
         sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType) ||
         sizeof(int32_t) != sizeof(OrthancPluginIdentifierConstraint) ||
+        sizeof(int32_t) != sizeof(OrthancPluginInstanceOrigin) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludeBinary) != static_cast<int>(DicomToJsonFlags_IncludeBinary) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludePrivateTags) != static_cast<int>(DicomToJsonFlags_IncludePrivateTags) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludeUnknownTags) != static_cast<int>(DicomToJsonFlags_IncludeUnknownTags) ||
@@ -1158,6 +1159,10 @@ namespace Orthanc
         return;
       }
 
+      case _OrthancPluginService_GetInstanceOrigin:   // New in Orthanc 0.9.5
+        *p.resultOrigin = Plugins::Convert(instance.GetRequestOrigin());
+        return;
+
       default:
         throw OrthancException(ErrorCode_InternalError);
     }
@@ -1597,6 +1602,7 @@ namespace Orthanc
       case _OrthancPluginService_GetInstanceSimplifiedJson:
       case _OrthancPluginService_HasInstanceMetadata:
       case _OrthancPluginService_GetInstanceMetadata:
+      case _OrthancPluginService_GetInstanceOrigin:
         AccessDicomInstance(service, parameters);
         return true;
 
