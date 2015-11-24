@@ -354,19 +354,6 @@ namespace Orthanc
   }
 
 
-  bool FromDcmtkBridge::IsPrivateTag(const DicomTag& tag)
-  {
-#if 1
-    DcmTagKey tmp(tag.GetGroup(), tag.GetElement());
-    return tmp.isPrivate();
-#else
-    // Implementation for Orthanc versions <= 0.8.5
-    DcmTag tmp(tag.GetGroup(), tag.GetElement());
-    return IsPrivateTag(tmp);
-#endif
-  }
-
-
   DicomValue* FromDcmtkBridge::ConvertLeafElement(DcmElement& element,
                                                   DicomToJsonFlags flags,
                                                   Encoding encoding)
@@ -377,25 +364,19 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadParameterType);
     }
 
-    if (element.isaString())
+    char *c = NULL;
+    if (element.isaString() &&
+        element.getString(c).good())
     {
-      char *c;
-      if (element.getString(c).good())
+      if (c == NULL)  // This case corresponds to the empty string
       {
-        if (c == NULL)  // This case corresponds to the empty string
-        {
-          return new DicomValue("", false);
-        }
-        else
-        {
-          std::string s(c);
-          std::string utf8 = Toolbox::ConvertToUtf8(s, encoding);
-          return new DicomValue(utf8, false);
-        }
+        return new DicomValue("", false);
       }
       else
       {
-        return new DicomValue;
+        std::string s(c);
+        std::string utf8 = Toolbox::ConvertToUtf8(s, encoding);
+        return new DicomValue(utf8, false);
       }
     }
 
@@ -414,24 +395,6 @@ namespace Orthanc
         case EVR_OW:  // other word
         case EVR_UN:  // unknown value representation
         case EVR_ox:  // OB or OW depending on context
-        {
-          if (!(flags & DicomToJsonFlags_ConvertBinaryToNull))
-          {
-            Uint8* data = NULL;
-            if (element.getUint8Array(data) == EC_Normal)
-            {
-              return new DicomValue(reinterpret_cast<const char*>(data), element.getLength(), true);
-            }
-          }
-
-          return new DicomValue;
-        }
-    
-          /**
-           * String types, should never happen at this point because of
-           * "element.isaString()".
-           **/
-      
         case EVR_DS:  // decimal string
         case EVR_IS:  // integer string
         case EVR_AS:  // age string
@@ -447,12 +410,24 @@ namespace Orthanc
         case EVR_UT:  // unlimited text
         case EVR_PN:  // person name
         case EVR_UI:  // unique identifier
+        case EVR_UNKNOWN: // used internally for elements with unknown VR (encoded with 4-byte length field in explicit VR)
+        case EVR_UNKNOWN2B:  // used internally for elements with unknown VR with 2-byte length field in explicit VR
+        {
+          if (!(flags & DicomToJsonFlags_ConvertBinaryToNull))
+          {
+            Uint8* data = NULL;
+            if (element.getUint8Array(data) == EC_Normal)
+            {
+              return new DicomValue(reinterpret_cast<const char*>(data), element.getLength(), true);
+            }
+          }
+
           return new DicomValue;
-
-
-          /**
-           * Numberic types
-           **/ 
+        }
+    
+        /**
+         * Numberic types
+         **/ 
       
         case EVR_SL:  // signed long
         {
@@ -553,10 +528,8 @@ namespace Orthanc
         case EVR_dirRecord:  // used internally for DICOMDIR records
         case EVR_pixelSQ:  // used internally for pixel sequences in a compressed image
         case EVR_pixelItem:  // used internally for pixel items in a compressed image
-        case EVR_UNKNOWN: // used internally for elements with unknown VR (encoded with 4-byte length field in explicit VR)
         case EVR_PixelData:  // used internally for uncompressed pixeld data
         case EVR_OverlayData:  // used internally for overlay data
-        case EVR_UNKNOWN2B:  // used internally for elements with unknown VR with 2-byte length field in explicit VR
           return new DicomValue;
 
 
@@ -782,8 +755,11 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
       }
 
-      if (!(flags & DicomToJsonFlags_IncludePrivateTags) &&
-          element->getTag().isPrivate())
+      DicomTag tag(FromDcmtkBridge::Convert(element->getTag()));
+
+      /*element->getTag().isPrivate()*/
+      if (tag.IsPrivate() &&
+          !(flags & DicomToJsonFlags_IncludePrivateTags))    
       {
         continue;
       }
@@ -805,8 +781,6 @@ namespace Orthanc
           evr == EVR_ox)
       {
         // This is a binary tag
-        DicomTag tag(FromDcmtkBridge::Convert(element->getTag()));
-
         if ((tag == DICOM_TAG_PIXEL_DATA && !(flags & DicomToJsonFlags_IncludePixelData)) ||
             (tag != DICOM_TAG_PIXEL_DATA && !(flags & DicomToJsonFlags_IncludeBinary)))
         {
@@ -1084,8 +1058,7 @@ namespace Orthanc
 
   static bool IsBinaryTag(const DcmTag& key)
   {
-    return (key.isPrivate() || 
-            key.isUnknownVR() || 
+    return (key.isUnknownVR() || 
             key.getEVR() == EVR_OB ||
             key.getEVR() == EVR_OF ||
             key.getEVR() == EVR_OW ||
@@ -1098,7 +1071,8 @@ namespace Orthanc
   {
     DcmTag key(tag.GetGroup(), tag.GetElement());
 
-    if (IsBinaryTag(key))
+    if (tag.IsPrivate() ||
+        IsBinaryTag(key))
     {
       return new DcmOtherByteOtherWord(key);
     }
@@ -1241,13 +1215,13 @@ namespace Orthanc
   void FromDcmtkBridge::FillElementWithString(DcmElement& element,
                                               const DicomTag& tag,
                                               const std::string& utf8Value,
-                                              bool decodeBinaryTags,
+                                              bool decodeDataUriScheme,
                                               Encoding dicomEncoding)
   {
     std::string binary;
     const std::string* decoded = &utf8Value;
 
-    if (decodeBinaryTags &&
+    if (decodeDataUriScheme &&
         boost::starts_with(utf8Value, "data:application/octet-stream;base64,"))
     {
       std::string mime;
@@ -1262,7 +1236,8 @@ namespace Orthanc
 
     DcmTag key(tag.GetGroup(), tag.GetElement());
 
-    if (IsBinaryTag(key))
+    if (tag.IsPrivate() ||
+        IsBinaryTag(key))
     {
       if (element.putUint8Array((const Uint8*) decoded->c_str(), decoded->size()).good())
       {
@@ -1412,7 +1387,7 @@ namespace Orthanc
 
   DcmElement* FromDcmtkBridge::FromJson(const DicomTag& tag,
                                         const Json::Value& value,
-                                        bool decodeBinaryTags,
+                                        bool decodeDataUriScheme,
                                         Encoding dicomEncoding)
   {
     std::auto_ptr<DcmElement> element;
@@ -1421,7 +1396,7 @@ namespace Orthanc
     {
       case Json::stringValue:
         element.reset(CreateElementForTag(tag));
-        FillElementWithString(*element, tag, value.asString(), decodeBinaryTags, dicomEncoding);
+        FillElementWithString(*element, tag, value.asString(), decodeDataUriScheme, dicomEncoding);
         break;
 
       case Json::arrayValue:
@@ -1442,7 +1417,7 @@ namespace Orthanc
           Json::Value::Members members = value[i].getMemberNames();
           for (Json::Value::ArrayIndex j = 0; j < members.size(); j++)
           {
-            item->insert(FromJson(ParseTag(members[j]), value[i][members[j]], decodeBinaryTags, dicomEncoding));
+            item->insert(FromJson(ParseTag(members[j]), value[i][members[j]], decodeDataUriScheme, dicomEncoding));
           }
 
           sequence->append(item.release());

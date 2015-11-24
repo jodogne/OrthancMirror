@@ -59,7 +59,7 @@ namespace Orthanc
 
     void UpdateStorageUid(const DicomTag& tag,
                           const std::string& value,
-                          bool decodeBinaryTags);
+                          bool decodeDataUriScheme);
 
   public:
     ParsedDicomFile(bool createIdentifiers);  // Create a minimal DICOM instance
@@ -94,12 +94,12 @@ namespace Orthanc
 
     void Replace(const DicomTag& tag,
                  const Json::Value& value,  // Assumed to be encoded with UTF-8
-                 bool decodeBinaryTags,
+                 bool decodeDataUriScheme,
                  DicomReplaceMode mode = DicomReplaceMode_InsertIfAbsent);
 
     void Insert(const DicomTag& tag,
                 const Json::Value& value,   // Assumed to be encoded with UTF-8
-                bool decodeBinaryTags);
+                bool decodeDataUriScheme);
 
     void RemovePrivateTags()
     {
@@ -159,6 +159,9 @@ namespace Orthanc
     bool ExtractPdf(std::string& pdf);
 
     void Convert(DicomMap& tags);
+
+    static ParsedDicomFile* CreateFromJson(const Json::Value& value,
+                                           DicomFromJsonFlags flags);
   };
 
 }

@@ -80,6 +80,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParsedDicomFile.h"
 
+#include "OrthancInitialization.h"
 #include "ServerToolbox.h"
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
@@ -593,9 +594,9 @@ namespace Orthanc
 
   void ParsedDicomFile::Insert(const DicomTag& tag,
                                const Json::Value& value,
-                               bool decodeBinaryTags)
+                               bool decodeDataUriScheme)
   {
-    std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeBinaryTags, GetEncoding()));
+    std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, GetEncoding()));
     InsertInternal(*pimpl_->file_->getDataset(), element.release());
   }
 
@@ -630,7 +631,7 @@ namespace Orthanc
 
   void ParsedDicomFile::UpdateStorageUid(const DicomTag& tag,
                                          const std::string& utf8Value,
-                                         bool decodeBinaryTags)
+                                         bool decodeDataUriScheme)
   {
     if (tag != DICOM_TAG_SOP_CLASS_UID &&
         tag != DICOM_TAG_SOP_INSTANCE_UID)
@@ -641,7 +642,7 @@ namespace Orthanc
     std::string binary;
     const std::string* decoded = &utf8Value;
 
-    if (decodeBinaryTags &&
+    if (decodeDataUriScheme &&
         boost::starts_with(utf8Value, "data:application/octet-stream;base64,"))
     {
       std::string mime;
@@ -692,10 +693,10 @@ namespace Orthanc
     
   void ParsedDicomFile::Replace(const DicomTag& tag,
                                 const Json::Value& value,
-                                bool decodeBinaryTags,
+                                bool decodeDataUriScheme,
                                 DicomReplaceMode mode)
   {
-    std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeBinaryTags, GetEncoding()));
+    std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, GetEncoding()));
     ReplaceInternal(*pimpl_->file_->getDataset(), element, mode);
 
     if (tag == DICOM_TAG_SOP_CLASS_UID ||
@@ -706,7 +707,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadParameterType);
       }
 
-      UpdateStorageUid(tag, value.asString(), decodeBinaryTags);
+      UpdateStorageUid(tag, value.asString(), decodeDataUriScheme);
     }
   }
 
@@ -728,7 +729,7 @@ namespace Orthanc
     DcmTagKey k(tag.GetGroup(), tag.GetElement());
     DcmDataset& dataset = *pimpl_->file_->getDataset();
 
-    if (FromDcmtkBridge::IsPrivateTag(tag) ||
+    if (tag.IsPrivate() ||
         FromDcmtkBridge::IsUnknownTag(tag) ||
         tag == DICOM_TAG_PIXEL_DATA ||
         tag == DICOM_TAG_ENCAPSULATED_DOCUMENT)
@@ -1251,5 +1252,61 @@ namespace Orthanc
   void ParsedDicomFile::Convert(DicomMap& tags)
   {
     FromDcmtkBridge::Convert(tags, *pimpl_->file_->getDataset());
+  }
+
+
+  ParsedDicomFile* ParsedDicomFile::CreateFromJson(const Json::Value& json,
+                                                   DicomFromJsonFlags flags)
+  {
+    std::string tmp = Configuration::GetGlobalStringParameter("DefaultEncoding", "Latin1");
+    Encoding encoding = StringToEncoding(tmp.c_str());
+
+    Json::Value::Members tags = json.getMemberNames();
+    
+    for (size_t i = 0; i < tags.size(); i++)
+    {
+      DicomTag tag = FromDcmtkBridge::ParseTag(tags[i]);
+      if (tag == DICOM_TAG_SPECIFIC_CHARACTER_SET)
+      {
+        const Json::Value& value = json[tags[i]];
+        if (value.type() != Json::stringValue ||
+            !GetDicomEncoding(encoding, value.asCString()))
+        {
+          LOG(ERROR) << "Unknown encoding while creating DICOM from JSON: " << value;
+          throw OrthancException(ErrorCode_BadRequest);
+        }
+      }
+    }
+
+    const bool generateIdentifiers = (flags & DicomFromJsonFlags_GenerateIdentifiers);
+    const bool decodeDataUriScheme = (flags & DicomFromJsonFlags_DecodeDataUriScheme);
+
+    std::auto_ptr<ParsedDicomFile> result(new ParsedDicomFile(generateIdentifiers));
+    result->SetEncoding(encoding);
+
+    for (size_t i = 0; i < tags.size(); i++)
+    {
+      DicomTag tag = FromDcmtkBridge::ParseTag(tags[i]);
+      const Json::Value& value = json[tags[i]];
+
+      if (tag == DICOM_TAG_PIXEL_DATA ||
+          tag == DICOM_TAG_ENCAPSULATED_DOCUMENT)
+      {
+        if (value.type() != Json::stringValue)
+        {
+          throw OrthancException(ErrorCode_BadRequest);
+        }
+        else
+        {
+          result->EmbedContent(value.asString());
+        }
+      }
+      else if (tag != DICOM_TAG_SPECIFIC_CHARACTER_SET)
+      {
+        result->Replace(tag, value, decodeDataUriScheme);
+      }
+    }
+
+    return result.release();
   }
 }
