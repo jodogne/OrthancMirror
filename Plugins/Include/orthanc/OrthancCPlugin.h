@@ -445,6 +445,7 @@ extern "C"
     _OrthancPluginService_GetInstanceSimplifiedJson = 4004,
     _OrthancPluginService_HasInstanceMetadata = 4005,
     _OrthancPluginService_GetInstanceMetadata = 4006,
+    _OrthancPluginService_GetInstanceOrigin = 4007,
 
     /* Services for plugins implementing a database back-end */
     _OrthancPluginService_RegisterDatabaseBackend = 5000,
@@ -701,14 +702,28 @@ extern "C"
    **/
   typedef enum
   {
-    OrthancPluginIdentifierConstraint_Equal,           /*!< Equal */
-    OrthancPluginIdentifierConstraint_SmallerOrEqual,  /*!< Less or equal */
-    OrthancPluginIdentifierConstraint_GreaterOrEqual,  /*!< More or equal */
-    OrthancPluginIdentifierConstraint_Wildcard,        /*!< Case-sensitive wildcard matching (with * and ?) */
+    OrthancPluginIdentifierConstraint_Equal = 1,           /*!< Equal */
+    OrthancPluginIdentifierConstraint_SmallerOrEqual = 2,  /*!< Less or equal */
+    OrthancPluginIdentifierConstraint_GreaterOrEqual = 3,  /*!< More or equal */
+    OrthancPluginIdentifierConstraint_Wildcard = 4,        /*!< Case-sensitive wildcard matching (with * and ?) */
 
     _OrthancPluginIdentifierConstraint_INTERNAL = 0x7fffffff
   } OrthancPluginIdentifierConstraint;
 
+
+  /**
+   * The origin of a DICOM instance that has been received by Orthanc.
+   **/
+  typedef enum
+  {
+    OrthancPluginInstanceOrigin_Unknown = 1,        /*!< Unknown origin */
+    OrthancPluginInstanceOrigin_DicomProtocol = 2,  /*!< Instance received through DICOM protocol */
+    OrthancPluginInstanceOrigin_RestApi = 3,        /*!< Instance received through REST API of Orthanc */
+    OrthancPluginInstanceOrigin_Plugins = 4,        /*!< Instance added to Orthanc by a plugin */
+    OrthancPluginInstanceOrigin_Lua = 5,            /*!< Instance added to Orthanc by a Lua script */
+
+    _OrthancPluginInstanceOrigin_INTERNAL = 0x7fffffff
+  } OrthancPluginInstanceOrigin;
 
 
   /**
@@ -962,7 +977,8 @@ extern "C"
         sizeof(int32_t) != sizeof(OrthancPluginValueRepresentation) ||
         sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFormat) ||
         sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFlags) ||
-        sizeof(int32_t) != sizeof(OrthancPluginIdentifierConstraint))
+        sizeof(int32_t) != sizeof(OrthancPluginIdentifierConstraint) ||
+        sizeof(int32_t) != sizeof(OrthancPluginInstanceOrigin))
     {
       /* Mismatch in the size of the enumerations */
       return 0;
@@ -1910,11 +1926,12 @@ extern "C"
 
   typedef struct
   {
-    char**                      resultStringToFree;
-    const char**                resultString;
-    int64_t*                    resultInt64;
-    const char*                 key;
-    OrthancPluginDicomInstance* instance;
+    char**                       resultStringToFree;
+    const char**                 resultString;
+    int64_t*                     resultInt64;
+    const char*                  key;
+    OrthancPluginDicomInstance*  instance;
+    OrthancPluginInstanceOrigin* resultOrigin;   /* New in Orthanc 0.9.5 SDK */
   } _OrthancPluginAccessDicomInstance;
 
 
@@ -4246,6 +4263,39 @@ extern "C"
     params.target = target;
 
     return context->InvokeService(context, _OrthancPluginService_WorklistGetDicomQuery, &params);
+  }
+
+
+  /**
+   * @brief Get the origin of a DICOM file.
+   *
+   * This function returns the origin of a DICOM instance that has been received by Orthanc.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param instance The instance of interest.
+   * @return The origin of the instance.
+   * @ingroup Callbacks
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginInstanceOrigin OrthancPluginGetInstanceOrigin(
+    OrthancPluginContext*       context,
+    OrthancPluginDicomInstance* instance)
+  {
+    OrthancPluginInstanceOrigin origin;
+
+    _OrthancPluginAccessDicomInstance params;
+    memset(&params, 0, sizeof(params));
+    params.resultOrigin = &origin;
+    params.instance = instance;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetInstanceOrigin, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return OrthancPluginInstanceOrigin_Unknown;
+    }
+    else
+    {
+      return origin;
+    }
   }
 
 

@@ -262,8 +262,9 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode OnStoredCallback(OrthancPluginDicomIn
   char* json;
   static int first = 1;
 
-  sprintf(buffer, "Just received a DICOM instance of size %d and ID %s from AET %s", 
+  sprintf(buffer, "Just received a DICOM instance of size %d and ID %s from origin %d (AET %s)", 
           (int) OrthancPluginGetInstanceSize(context, instance), instanceId, 
+          OrthancPluginGetInstanceOrigin(context, instance),
           OrthancPluginGetInstanceRemoteAet(context, instance));
 
   OrthancPluginLogWarning(context, buffer);  
