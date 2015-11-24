@@ -25,6 +25,7 @@
 #include <json/reader.h>
 #include <string.h>
 #include <iostream>
+#include <algorithm>
 
 static OrthancPluginContext* context_ = NULL;
 static std::string folder_;
@@ -93,7 +94,6 @@ static bool ConvertToJson(Json::Value& result,
 }
 
 
-
 static bool GetQueryDicom(Json::Value& value,
                           const OrthancPluginWorklistQuery* query)
 {
@@ -112,6 +112,12 @@ static bool GetQueryDicom(Json::Value& value,
   return ConvertToJson(value, json);
 }
                           
+
+static void ToLowerCase(std::string& s)
+{
+  std::transform(s.begin(), s.end(), s.begin(), tolower);
+}
+
 
 OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
                                 const OrthancPluginWorklistQuery* query,
@@ -138,7 +144,9 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
       if (is_regular_file(it->status()))
       {
         std::string extension = boost::filesystem::extension(it->path());
-        if (!strcasecmp(".wl", extension.c_str()))
+        ToLowerCase(extension);
+
+        if (extension == ".wl")
         {
           OrthancPluginErrorCode error = MatchWorklist(answers, query, it->path().string());
           if (error)
