@@ -123,6 +123,10 @@ namespace Orthanc
                              std::string& content,
                              const std::string& source);
 #  endif
+
+    void EncodeDataUriScheme(std::string& result,
+                             const std::string& mime,
+                             const std::string& content);
 #endif
 
     std::string GetPathToExecutable();

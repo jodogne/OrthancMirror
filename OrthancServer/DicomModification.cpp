@@ -161,7 +161,7 @@ namespace Orthanc
     removals_.erase(tag);
     RemoveInternal(tag);
 
-    if (FromDcmtkBridge::IsPrivateTag(tag))
+    if (tag.IsPrivate())
     {
       privateTagsToKeep_.insert(tag);
     }

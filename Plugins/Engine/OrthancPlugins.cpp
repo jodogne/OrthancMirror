@@ -363,7 +363,7 @@ namespace Orthanc
       Reset();
     }
 
-    void GetQueryDicom(OrthancPluginMemoryBuffer& target) const
+    void GetDicomQuery(OrthancPluginMemoryBuffer& target) const
     {
       assert(currentQuery_ != NULL);
       std::string dicom;
@@ -1966,7 +1966,7 @@ namespace Orthanc
       {
         const _OrthancPluginWorklistQueryOperation& p =
           *reinterpret_cast<const _OrthancPluginWorklistQueryOperation*>(parameters);
-        reinterpret_cast<const WorklistHandler*>(p.query)->GetQueryDicom(*p.target);
+        reinterpret_cast<const WorklistHandler*>(p.query)->GetDicomQuery(*p.target);
         return true;
       }
 
