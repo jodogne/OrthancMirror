@@ -39,6 +39,7 @@
 #include "../FromDcmtkBridge.h"
 #include "../ServerContext.h"
 #include "../SliceOrdering.h"
+#include "../Internals/DicomImageDecoder.h"
 
 
 namespace Orthanc
@@ -265,6 +266,7 @@ namespace Orthanc
     class ImageToEncode
     {
     private:
+      IDicomImageDecoder& decoder_;
       std::string         format_;
       std::string         encoded_;
       ParsedDicomFile&    dicom_;
@@ -272,9 +274,11 @@ namespace Orthanc
       ImageExtractionMode mode_;
 
     public:
-      ImageToEncode(ParsedDicomFile& dicom,
+      ImageToEncode(IDicomImageDecoder& decoder,
+                    ParsedDicomFile& dicom,
                     unsigned int frame,
                     ImageExtractionMode mode) : 
+        decoder_(decoder),
         dicom_(dicom),
         frame_(frame),
         mode_(mode)
@@ -310,6 +314,11 @@ namespace Orthanc
       {
         output.AnswerBuffer(encoded_, format_);
       }
+
+      IDicomImageDecoder& GetDecoder() const
+      {
+        return decoder_;
+      }
     };
 
     class EncodePng : public HttpContentNegociation::IHandler
@@ -327,7 +336,8 @@ namespace Orthanc
       {
         assert(type == "image");
         assert(subtype == "png");
-        image_.GetDicom().ExtractPngImage(image_.GetTarget(), image_.GetFrame(), image_.GetMode());
+        image_.GetDicom().ExtractPngImage(image_.GetTarget(), image_.GetDecoder(), 
+                                          image_.GetFrame(), image_.GetMode());
         image_.SetFormat("image/png");
       }
     };
@@ -367,7 +377,8 @@ namespace Orthanc
       {
         assert(type == "image");
         assert(subtype == "jpeg");
-        image_.GetDicom().ExtractJpegImage(image_.GetTarget(), image_.GetFrame(), image_.GetMode(), quality_);
+        image_.GetDicom().ExtractJpegImage(image_.GetTarget(), image_.GetDecoder(), 
+                                           image_.GetFrame(), image_.GetMode(), quality_);
         image_.SetFormat("image/jpeg");
       }
     };
@@ -399,7 +410,8 @@ namespace Orthanc
 
     try
     {
-      ImageToEncode image(dicom, frame, mode);
+      DicomImageDecoder decoder;  // TODO plugins
+      ImageToEncode image(decoder, dicom, frame, mode);
 
       HttpContentNegociation negociation;
       EncodePng png(image);          negociation.Register("image/png", png);
@@ -453,7 +465,8 @@ namespace Orthanc
 
     ParsedDicomFile dicom(dicomContent);
     ImageBuffer buffer;
-    dicom.ExtractImage(buffer, frame);
+    DicomImageDecoder decoder;  // TODO plugin
+    dicom.ExtractImage(buffer, decoder, frame);
 
     ImageAccessor accessor(buffer.GetConstAccessor());
 

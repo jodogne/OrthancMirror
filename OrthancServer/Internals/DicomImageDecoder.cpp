@@ -87,6 +87,7 @@
 #include "../../Core/DicomFormat/DicomIntegerPixelAccessor.h"
 #include "../ToDcmtkBridge.h"
 #include "../FromDcmtkBridge.h"
+#include "../ParsedDicomFile.h"
 
 #include <boost/lexical_cast.hpp>
 
@@ -531,9 +532,11 @@ namespace Orthanc
 
 
   bool DicomImageDecoder::Decode(ImageBuffer& target,
-                                 DcmDataset& dataset,
+                                 ParsedDicomFile& dicom,
                                  unsigned int frame)
   {
+    DcmDataset& dataset = *dicom.GetDcmtkObject().getDataset();
+
     if (IsUncompressedImage(dataset))
     {
       DecodeUncompressedImage(target, dataset, frame);
@@ -588,20 +591,11 @@ namespace Orthanc
   }
 
 
-  bool DicomImageDecoder::DecodeAndTruncate(ImageBuffer& target,
-                                            DcmDataset& dataset,
-                                            unsigned int frame,
-                                            PixelFormat format,
-                                            bool allowColorConversion)
+  bool DicomImageDecoder::TruncateDecodedImage(ImageBuffer& target,
+                                               ImageBuffer& source,
+                                               PixelFormat format,
+                                               bool allowColorConversion)
   {
-    // TODO Special case for uncompressed images
-    
-    ImageBuffer source;
-    if (!Decode(source, dataset, frame))
-    {
-      return false;
-    }
-
     // If specified, prevent the conversion between color and
     // grayscale images
     bool isSourceColor = IsColorImage(source.GetFormat());
@@ -634,18 +628,9 @@ namespace Orthanc
   }
 
 
-  bool DicomImageDecoder::DecodePreview(ImageBuffer& target,
-                                        DcmDataset& dataset,
-                                        unsigned int frame)
+  bool DicomImageDecoder::PreviewDecodedImage(ImageBuffer& target,
+                                              ImageBuffer& source)
   {
-    // TODO Special case for uncompressed images
-    
-    ImageBuffer source;
-    if (!Decode(source, dataset, frame))
-    {
-      return false;
-    }
-
     switch (source.GetFormat())
     {
       case PixelFormat_RGB24:

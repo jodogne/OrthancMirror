@@ -33,11 +33,10 @@
 #pragma once
 
 #include "../Core/DicomFormat/DicomInstanceHasher.h"
-#include "../Core/RestApi/RestApiOutput.h"
-#include "ServerEnumerations.h"
-#include "../Core/Images/ImageAccessor.h"
-#include "../Core/Images/ImageBuffer.h"
 #include "../Core/IDynamicObject.h"
+#include "../Core/RestApi/RestApiOutput.h"
+#include "IDicomImageDecoder.h"
+#include "ServerEnumerations.h"
 
 class DcmDataset;
 class DcmFileFormat;
@@ -77,7 +76,7 @@ namespace Orthanc
 
     ~ParsedDicomFile();
 
-    DcmFileFormat& GetDcmtkObject();
+    DcmFileFormat& GetDcmtkObject() const;
 
     ParsedDicomFile* Clone();
 
@@ -128,17 +127,21 @@ namespace Orthanc
                     const std::string& content);
 
     void ExtractImage(ImageBuffer& result,
+                      IDicomImageDecoder& decoder,
                       unsigned int frame);
 
     void ExtractImage(ImageBuffer& result,
+                      IDicomImageDecoder& decoder,
                       unsigned int frame,
                       ImageExtractionMode mode);
 
     void ExtractPngImage(std::string& result,
+                         IDicomImageDecoder& decoder,
                          unsigned int frame,
                          ImageExtractionMode mode);
 
     void ExtractJpegImage(std::string& result,
+                          IDicomImageDecoder& decoder,
                           unsigned int frame,
                           ImageExtractionMode mode,
                           uint8_t quality);
