@@ -63,18 +63,23 @@ namespace Orthanc
     {
       if (!parsed_.HasContent())
       {
-        throw OrthancException(ErrorCode_NotImplemented);
-      }
-      else
-      {
-        // Serialize the parsed DICOM file
-        buffer_.Allocate();
-        if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer_.GetContent(), 
-                                                 *parsed_.GetContent().GetDcmtkObject().getDataset()))
+        if (!summary_.HasContent())
         {
-          LOG(ERROR) << "Unable to serialize a DICOM file to a memory buffer";
-          throw OrthancException(ErrorCode_InternalError);
+          throw OrthancException(ErrorCode_NotImplemented);
         }
+        else
+        {
+          parsed_.TakeOwnership(new ParsedDicomFile(summary_.GetConstContent()));
+        }                                
+      }
+
+      // Serialize the parsed DICOM file
+      buffer_.Allocate();
+      if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer_.GetContent(), 
+                                               *parsed_.GetContent().GetDcmtkObject().getDataset()))
+      {
+        LOG(ERROR) << "Unable to serialize a DICOM file to a memory buffer";
+        throw OrthancException(ErrorCode_InternalError);
       }
     }
 

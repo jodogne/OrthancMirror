@@ -50,6 +50,7 @@
 
 #include "FromDcmtkBridge.h"
 #include "ServerContext.h"
+#include "DicomInstanceToStore.h"
 
 #include <boost/lexical_cast.hpp>
 #include <stdio.h>
@@ -593,16 +594,17 @@ namespace Orthanc
 
 
   StoreStatus ServerIndex::Store(std::map<MetadataType, std::string>& instanceMetadata,
-                                 const DicomMap& dicomSummary,
-                                 const Attachments& attachments,
-                                 const std::string& remoteAet,
-                                 const MetadataMap& metadata)
+                                 DicomInstanceToStore& instanceToStore,
+                                 const Attachments& attachments)
   {
     boost::mutex::scoped_lock lock(mutex_);
 
+    const DicomMap& dicomSummary = instanceToStore.GetSummary();
+    const ServerIndex::MetadataMap& metadata = instanceToStore.GetMetadata();
+
     instanceMetadata.clear();
 
-    DicomInstanceHasher hasher(dicomSummary);
+    DicomInstanceHasher hasher(instanceToStore.GetSummary());
 
     try
     {
@@ -766,8 +768,8 @@ namespace Orthanc
       db_.SetMetadata(instance, MetadataType_Instance_ReceptionDate, now);
       instanceMetadata[MetadataType_Instance_ReceptionDate] = now;
 
-      db_.SetMetadata(instance, MetadataType_Instance_RemoteAet, remoteAet);
-      instanceMetadata[MetadataType_Instance_RemoteAet] = remoteAet;
+      db_.SetMetadata(instance, MetadataType_Instance_RemoteAet, instanceToStore.GetRemoteAet());
+      instanceMetadata[MetadataType_Instance_RemoteAet] = instanceToStore.GetRemoteAet();
 
       const DicomValue* value;
       if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_INSTANCE_NUMBER)) != NULL ||

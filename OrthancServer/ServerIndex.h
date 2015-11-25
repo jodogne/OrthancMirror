@@ -42,11 +42,11 @@
 
 #include "IDatabaseWrapper.h"
 
-
 namespace Orthanc
 {
   class LookupResource;
   class ServerContext;
+  class DicomInstanceToStore;
 
   class ServerIndex : public boost::noncopyable
   {
@@ -140,10 +140,8 @@ namespace Orthanc
     void SetMaximumPatientCount(unsigned int count);
 
     StoreStatus Store(std::map<MetadataType, std::string>& instanceMetadata,
-                      const DicomMap& dicomSummary,
-                      const Attachments& attachments,
-                      const std::string& remoteAet,
-                      const MetadataMap& metadata);
+                      DicomInstanceToStore& instance,
+                      const Attachments& attachments);
 
     void ComputeStatistics(Json::Value& target);                        
 
