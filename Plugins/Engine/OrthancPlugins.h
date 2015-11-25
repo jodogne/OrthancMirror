@@ -50,6 +50,7 @@ namespace Orthanc
 #include "../../Core/FileStorage/IStorageArea.h"
 #include "../../Core/HttpServer/IHttpHandler.h"
 #include "../../OrthancServer/IServerListener.h"
+#include "../../OrthancServer/IDicomImageDecoder.h"
 #include "../../OrthancServer/DicomProtocol/IWorklistRequestHandlerFactory.h"
 #include "OrthancPluginDatabase.h"
 #include "PluginsManager.h"
@@ -65,7 +66,8 @@ namespace Orthanc
     public IHttpHandler, 
     public IPluginServiceProvider, 
     public IServerListener,
-    public IWorklistRequestHandlerFactory
+    public IWorklistRequestHandlerFactory,
+    public IDicomImageDecoder
   {
   private:
     struct PImpl;
@@ -83,6 +85,8 @@ namespace Orthanc
     void RegisterOnChangeCallback(const void* parameters);
 
     void RegisterWorklistCallback(const void* parameters);
+
+    void RegisterDecodeImageCallback(const void* parameters);
 
     void AnswerBuffer(const void* parameters);
 
@@ -217,6 +221,9 @@ namespace Orthanc
     bool HasWorklistHandler();
 
     virtual IWorklistRequestHandler* ConstructWorklistRequestHandler();
+
+    virtual ImageAccessor* Decode(ParsedDicomFile& dicom, 
+                                  unsigned int frame);
   };
 }
 

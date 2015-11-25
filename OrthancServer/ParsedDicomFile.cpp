@@ -1048,53 +1048,59 @@ namespace Orthanc
   }
 
   
-  void ParsedDicomFile::ExtractImage(ImageBuffer& result,
-                                     IDicomImageDecoder& decoder,
-                                     unsigned int frame)
+  ImageAccessor* ParsedDicomFile::ExtractImage(IDicomImageDecoder& decoder,
+                                               unsigned int frame)
   {
-    if (!decoder.Decode(result, *this, frame))
+    std::auto_ptr<ImageAccessor> decoded(decoder.Decode(*this, frame));
+
+    if (decoded.get() == NULL)
     {
+      LOG(ERROR) << "Cannot decode a DICOM image";
       throw OrthancException(ErrorCode_BadFileFormat);
+    }
+    else
+    {
+      return decoded.release();
     }
   }
 
 
-  void ParsedDicomFile::ExtractImage(ImageBuffer& result,
-                                     IDicomImageDecoder& decoder,
-                                     unsigned int frame,
-                                     ImageExtractionMode mode)
+  ImageAccessor* ParsedDicomFile::ExtractImage(IDicomImageDecoder& decoder,
+                                               unsigned int frame,
+                                               ImageExtractionMode mode)
   {
-    ImageBuffer source;
-    if (!decoder.Decode(source, *this, frame))
-    {
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
+    std::auto_ptr<ImageAccessor> decoded(ExtractImage(decoder, frame));
 
     bool ok = false;
 
     switch (mode)
     {
       case ImageExtractionMode_UInt8:
-        ok = DicomImageDecoder::TruncateDecodedImage(result, source, PixelFormat_Grayscale8, false);
+        ok = DicomImageDecoder::TruncateDecodedImage(decoded, PixelFormat_Grayscale8, false);
         break;
 
       case ImageExtractionMode_UInt16:
-        ok = DicomImageDecoder::TruncateDecodedImage(result, source, PixelFormat_Grayscale16, false);
+        ok = DicomImageDecoder::TruncateDecodedImage(decoded, PixelFormat_Grayscale16, false);
         break;
 
       case ImageExtractionMode_Int16:
-        ok = DicomImageDecoder::TruncateDecodedImage(result, source, PixelFormat_SignedGrayscale16, false);
+        ok = DicomImageDecoder::TruncateDecodedImage(decoded, PixelFormat_SignedGrayscale16, false);
         break;
 
       case ImageExtractionMode_Preview:
-        ok = DicomImageDecoder::PreviewDecodedImage(result, source);
+        ok = DicomImageDecoder::PreviewDecodedImage(decoded);
         break;
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    if (!ok)
+    if (ok)
+    {
+      assert(decoded.get() != NULL);
+      return decoded.release();
+    }
+    else
     {
       throw OrthancException(ErrorCode_NotImplemented);
     }
@@ -1106,12 +1112,11 @@ namespace Orthanc
                                         unsigned int frame,
                                         ImageExtractionMode mode)
   {
-    ImageBuffer buffer;
-    ExtractImage(buffer, decoder, frame, mode);
+    std::auto_ptr<ImageAccessor> decoded(ExtractImage(decoder, frame, mode));
+    assert(decoded.get() != NULL);
 
-    ImageAccessor accessor(buffer.GetConstAccessor());
     PngWriter writer;
-    writer.WriteToMemory(result, accessor);
+    writer.WriteToMemory(result, *decoded);
   }
 
 
@@ -1127,13 +1132,12 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    ImageBuffer buffer;
-    ExtractImage(buffer, decoder, frame, mode);
+    std::auto_ptr<ImageAccessor> decoded(ExtractImage(decoder, frame, mode));
+    assert(decoded.get() != NULL);
 
-    ImageAccessor accessor(buffer.GetConstAccessor());
     JpegWriter writer;
     writer.SetQuality(quality);
-    writer.WriteToMemory(result, accessor);
+    writer.WriteToMemory(result, *decoded);
   }
 
 

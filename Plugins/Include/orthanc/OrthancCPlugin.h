@@ -19,6 +19,7 @@
  *    - Possibly register a custom storage area using ::OrthancPluginRegisterStorageArea().
  *    - Possibly register a custom database back-end area using OrthancPluginRegisterDatabaseBackendV2().
  *    - Possibly register a handler for C-Find SCP against DICOM worklists using OrthancPluginRegisterWorklistCallback().
+ *    - Possibly register a custom decoder for DICOM images using OrthancPluginRegisterDecodeImageCallback().
  * -# <tt>void OrthancPluginFinalize()</tt>:
  *    This function is invoked by Orthanc during its shutdown. The plugin
  *    must free all its memory.
@@ -405,6 +406,7 @@ extern "C"
     _OrthancPluginService_RegisterOnChangeCallback = 1003,
     _OrthancPluginService_RegisterRestCallbackNoLock = 1004,
     _OrthancPluginService_RegisterWorklistCallback = 1005,
+    _OrthancPluginService_RegisterDecodeImageCallback = 1006,
 
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
@@ -839,6 +841,18 @@ extern "C"
     OrthancPluginChangeType changeType,
     OrthancPluginResourceType resourceType,
     const char* resourceId);
+
+
+
+  /**
+   * @brief Signature of a callback function to decode a DICOM instance as an image.
+   * @ingroup Callbacks
+   **/
+  typedef OrthancPluginErrorCode (*OrthancPluginDecodeImageCallback) (
+    OrthancPluginImage** target,
+    const void* dicom,
+    const uint32_t size,
+    uint32_t frameIndex);
 
 
 
@@ -4351,6 +4365,32 @@ extern "C"
     return context->InvokeService(context, _OrthancPluginService_DicomFromJson, &params);
   }
 
+
+  typedef struct
+  {
+    OrthancPluginDecodeImageCallback callback;
+  } _OrthancPluginDecodeImageCallback;
+
+  /**
+   * @brief Register a callback to handle the decoding of DICOM images.
+   *
+   * This function registers a custom callback to the decoding of
+   * DICOM images, replacing the built-in decoder of Orthanc.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param callback The callback.
+   * @ingroup Callbacks
+   **/
+  ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterDecodeImageCallback(
+    OrthancPluginContext*             context,
+    OrthancPluginDecodeImageCallback  callback)
+  {
+    _OrthancPluginDecodeImageCallback params;
+    params.callback = callback;
+
+    context->InvokeService(context, _OrthancPluginService_RegisterDecodeImageCallback, &params);
+  }
+  
 #ifdef  __cplusplus
 }
 #endif

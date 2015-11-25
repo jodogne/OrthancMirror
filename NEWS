@@ -37,6 +37,7 @@ Plugins
 -------
 
 * New functions:
+  - "OrthancPluginRegisterDecodeImageCallback()" to replace the built-in image decoder
   - "OrthancPluginDicomInstanceToJson()" to convert DICOM to JSON
   - "OrthancPluginDicomBufferToJson()" to convert DICOM to JSON
   - "OrthancPluginRegisterErrorCode()" to declare custom error codes
