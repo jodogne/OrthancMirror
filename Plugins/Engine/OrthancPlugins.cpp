@@ -278,7 +278,6 @@ namespace Orthanc
     typedef std::list<RestCallback*>  RestCallbacks;
     typedef std::list<OrthancPluginOnStoredInstanceCallback>  OnStoredCallbacks;
     typedef std::list<OrthancPluginOnChangeCallback>  OnChangeCallbacks;
-    typedef std::list<OrthancPluginWorklistCallback>  WorklistCallbacks;
     typedef std::map<Property, std::string>  Properties;
 
     PluginsManager manager_;
@@ -286,12 +285,12 @@ namespace Orthanc
     RestCallbacks restCallbacks_;
     OnStoredCallbacks  onStoredCallbacks_;
     OnChangeCallbacks  onChangeCallbacks_;
-    WorklistCallbacks  worklistCallbacks_;
+    OrthancPluginWorklistCallback  worklistCallback_;
     std::auto_ptr<StorageAreaFactory>  storageArea_;
     boost::recursive_mutex restCallbackMutex_;
     boost::recursive_mutex storedCallbackMutex_;
     boost::recursive_mutex changeCallbackMutex_;
-    boost::recursive_mutex worklistCallbackMutex_;
+    boost::mutex worklistCallbackMutex_;
     boost::recursive_mutex invokeServiceMutex_;
     Properties properties_;
     int argc_;
@@ -301,6 +300,7 @@ namespace Orthanc
 
     PImpl() : 
       context_(NULL), 
+      worklistCallback_(NULL),
       argc_(1),
       argv_(NULL)
     {
@@ -339,13 +339,11 @@ namespace Orthanc
       currentQuery_ = &query;
 
       {
-        boost::recursive_mutex::scoped_lock lock(that_.pimpl_->worklistCallbackMutex_);
+        boost::mutex::scoped_lock lock(that_.pimpl_->worklistCallbackMutex_);
 
-        for (PImpl::WorklistCallbacks::const_iterator
-               callback = that_.pimpl_->worklistCallbacks_.begin(); 
-             callback != that_.pimpl_->worklistCallbacks_.end(); ++callback)
+        if (that_.pimpl_->worklistCallback_)
         {
-          OrthancPluginErrorCode error = (*callback) 
+          OrthancPluginErrorCode error = that_.pimpl_->worklistCallback_
             (reinterpret_cast<OrthancPluginWorklistAnswers*>(&answers),
              reinterpret_cast<const OrthancPluginWorklistQuery*>(this),
              remoteAet.c_str(),
@@ -718,8 +716,18 @@ namespace Orthanc
     const _OrthancPluginWorklistCallback& p = 
       *reinterpret_cast<const _OrthancPluginWorklistCallback*>(parameters);
 
-    LOG(INFO) << "Plugin has registered an modality worklist callback";
-    pimpl_->worklistCallbacks_.push_back(p.callback);
+    boost::mutex::scoped_lock lock(pimpl_->worklistCallbackMutex_);
+
+    if (pimpl_->worklistCallback_ != NULL)
+    {
+      LOG(ERROR) << "Can only register one plugin to handle modality worklists";
+      throw OrthancException(ErrorCode_Plugin);
+    }
+    else
+    {
+      LOG(INFO) << "Plugin has registered an modality worklist callback";
+      pimpl_->worklistCallback_ = p.callback;
+    }
   }
 
 
@@ -2137,8 +2145,8 @@ namespace Orthanc
 
   bool OrthancPlugins::HasWorklistHandler()
   {
-    boost::recursive_mutex::scoped_lock lock(pimpl_->worklistCallbackMutex_);
-    return !pimpl_->worklistCallbacks_.empty();
+    boost::mutex::scoped_lock lock(pimpl_->worklistCallbackMutex_);
+    return pimpl_->worklistCallback_ != NULL;
   }
 
 }
