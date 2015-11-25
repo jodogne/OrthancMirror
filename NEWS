@@ -45,6 +45,7 @@ Plugins
   - "OrthancPluginRestApiGet2()" to provide HTTP headers when calling Orthanc API
   - "OrthancPluginGetInstanceOrigin()" to know through which mechanism an instance was received
   - "OrthancPluginCreateImage()" and "OrthancPluginCreateImageAccessor()" to create images
+  - "OrthancPluginDecodeDicomImage()" to decode DICOM images
 * New events in change callbacks:
   - "OrthancStarted"
   - "OrthancStopped"

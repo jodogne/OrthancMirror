@@ -1285,6 +1285,13 @@ namespace Orthanc
         break;
       }
 
+      case OrthancPluginImageFormat_Dicom:
+      {
+        ParsedDicomFile dicom(p.data, p.size);
+        image.reset(Decode(dicom, 0));
+        break;
+      }
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -1456,10 +1463,18 @@ namespace Orthanc
       *reinterpret_cast<const _OrthancPluginCreateDicom*>(parameters);
 
     Json::Value json;
-    Json::Reader reader;
-    if (!reader.parse(p.json, json))
+
+    if (p.json == NULL)
     {
-      throw OrthancException(ErrorCode_BadJson);
+      json = Json::objectValue;
+    }
+    else
+    {
+      Json::Reader reader;
+      if (!reader.parse(p.json, json))
+      {
+        throw OrthancException(ErrorCode_BadJson);
+      }
     }
 
     std::string dicom;
@@ -1488,14 +1503,26 @@ namespace Orthanc
 
     std::auto_ptr<ImageAccessor> result;
 
-    if (service == _OrthancPluginService_CreateImage)
+    switch (service)
     {
-      result.reset(new Image(Plugins::Convert(p.format), p.width, p.height));
-    }
-    else
-    {
-      result.reset(new ImageAccessor);
-      result->AssignWritable(Plugins::Convert(p.format), p.width, p.height, p.pitch, p.buffer);
+      case _OrthancPluginService_CreateImage:
+        result.reset(new Image(Plugins::Convert(p.format), p.width, p.height));
+        break;
+
+      case _OrthancPluginService_CreateImageAccessor:
+        result.reset(new ImageAccessor);
+        result->AssignWritable(Plugins::Convert(p.format), p.width, p.height, p.pitch, p.buffer);
+        break;
+
+      case _OrthancPluginService_DecodeDicomImage:
+      {
+        ParsedDicomFile dicom(p.constBuffer, p.bufferSize);
+        result.reset(Decode(dicom, p.frameIndex));
+        break;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
     }
 
     *(p.target) = reinterpret_cast<OrthancPluginImage*>(result.release());
@@ -2069,6 +2096,7 @@ namespace Orthanc
 
       case _OrthancPluginService_CreateImage:
       case _OrthancPluginService_CreateImageAccessor:
+      case _OrthancPluginService_DecodeDicomImage:
         ApplyCreateImage(service, parameters);
         return true;
 

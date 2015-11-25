@@ -473,6 +473,7 @@ extern "C"
     _OrthancPluginService_DrawText = 6011,
     _OrthancPluginService_CreateImage = 6012,
     _OrthancPluginService_CreateImageAccessor = 6013,
+    _OrthancPluginService_DecodeDicomImage = 6014,
 
     /* Primitives for handling worklists */
     _OrthancPluginService_WorklistAddAnswer = 7000,
@@ -624,8 +625,9 @@ extern "C"
    **/
   typedef enum
   {
-    OrthancPluginImageFormat_Png = 0,   /*!< Image compressed using PNG */
-    OrthancPluginImageFormat_Jpeg = 1,  /*!< Image compressed using JPEG */
+    OrthancPluginImageFormat_Png = 0,    /*!< Image compressed using PNG */
+    OrthancPluginImageFormat_Jpeg = 1,   /*!< Image compressed using JPEG */
+    OrthancPluginImageFormat_Dicom = 2,  /*!< Image compressed using DICOM */
 
     _OrthancPluginImageFormat_INTERNAL = 0x7fffffff
   } OrthancPluginImageFormat;
@@ -4410,6 +4412,9 @@ extern "C"
     uint32_t                   height;
     uint32_t                   pitch;
     void*                      buffer;
+    const void*                constBuffer;
+    uint32_t                   bufferSize;
+    uint32_t                   frameIndex;
   } _OrthancPluginCreateImage;
 
 
@@ -4488,6 +4493,47 @@ extern "C"
     params.buffer = buffer;
 
     if (context->InvokeService(context, _OrthancPluginService_CreateImageAccessor, &params) != OrthancPluginErrorCode_Success)
+    {
+      return NULL;
+    }
+    else
+    {
+      return target;
+    }
+  }
+
+
+
+  /**
+   * @brief Decode one frame from a DICOM instance.
+   *
+   * This function decodes one frame of a DICOM image that is stored
+   * in a memory buffer. This function will give the same result as
+   * OrthancPluginUncompressImage() for single-frame DICOM images.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param buffer Pointer to a memory buffer containing the DICOM image.
+   * @param bufferSize Size of the memory buffer containing the DICOM image.
+   * @param frameIndex The index of the frame of interest in a multi-frame image.
+   * @return The uncompressed image. It must be freed with OrthancPluginFreeImage().
+   * @ingroup Images
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginImage* OrthancPluginDecodeDicomImage(
+    OrthancPluginContext*  context,
+    const void*            buffer,
+    uint32_t               bufferSize,
+    uint32_t               frameIndex)
+  {
+    OrthancPluginImage* target = NULL;
+
+    _OrthancPluginCreateImage params;
+    memset(&params, 0, sizeof(params));
+    params.target = &target;
+    params.constBuffer = buffer;
+    params.bufferSize = bufferSize;
+    params.frameIndex = frameIndex;
+
+    if (context->InvokeService(context, _OrthancPluginService_DecodeDicomImage, &params) != OrthancPluginErrorCode_Success)
     {
       return NULL;
     }
