@@ -370,7 +370,7 @@ namespace Orthanc
   {
     RequestOrigin_Unknown,
     RequestOrigin_DicomProtocol,
-    RequestOrigin_Http,
+    RequestOrigin_RestApi,
     RequestOrigin_Plugins,
     RequestOrigin_Lua
   };

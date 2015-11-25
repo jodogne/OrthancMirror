@@ -164,6 +164,7 @@ namespace Orthanc
     MetadataType_ModifiedFrom = 5,
     MetadataType_AnonymizedFrom = 6,
     MetadataType_LastUpdate = 7,
+    MetadataType_Instance_Origin = 8,   // New in Orthanc 0.9.5
 
     // Make sure that the value "65535" can be stored into this enumeration
     MetadataType_StartUser = 1024,

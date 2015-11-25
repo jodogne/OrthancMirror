@@ -7,6 +7,23 @@ Major
 * Experimental support of DICOM C-Find SCP for modality worklists through plugins
 * Support of DICOM C-Find SCU for modality worklists ("/modalities/{dicom}/find-worklist")
 
+REST API
+--------
+
+* New URIs:
+  - "/series/.../ordered-slices" to order the slices of a 2D+t or 3D series
+  - "/tools/shutdown" to stop Orthanc from the REST API
+  - ".../compress", ".../uncompress" and ".../is-compressed" for attachments
+  - "/tools/create-archive" to create ZIP from a set of resources
+  - "/tools/create-media" to create ZIP+DICOMDIR from a set of resources
+* "/tools/create-dicom":
+  - Support of binary tags encoded using data URI scheme
+  - Support of hierarchical structures (creation of sequences)
+  - Create tags with unknown VR
+* "/modify" can insert/modify sequences
+* ".../preview" and ".../image-uint8" can return JPEG images if the HTTP Accept Header asks so
+* "Origin" metadata for the instances
+
 Minor
 -----
 
@@ -14,18 +31,7 @@ Minor
   - "UnknownSopClassAccepted" to disable promiscuous mode (accept unknown SOP class UID)
   - New configuration option: "Dictionary" to declare custom DICOM tags
 * Add ".dcm" suffix to files in ZIP archives (cf. URI ".../archive")
-* "/tools/create-dicom":
-  - Support of binary tags encoded using data URI scheme
-  - Support of hierarchical structures (creation of sequences)
-  - Create tags with unknown VR
-* "/modify" can insert/modify sequences
-* "/series/.../ordered-slices" to order the slices of a 2D+t or 3D image
-* New URI "/tools/shutdown" to stop Orthanc from the REST API
-* New URIs for attachments: ".../compress", ".../uncompress" and ".../is-compressed"
 * MIME content type can be associated to custom attachments (cf. "UserContentType")
-* New URIs "/tools/create-archive" and "/tools/create-media" to create ZIP/DICOMDIR
-  from a set of resources
-* ".../preview" and ".../image-uint8" can return JPEG images if the HTTP Accept Header asks so
 
 Plugins
 -------

@@ -727,7 +727,7 @@ namespace Orthanc
       {
         if (that->HasHandler())
         {
-          found = that->GetHandler().Handle(output, RequestOrigin_Http, remoteIp, username.c_str(), 
+          found = that->GetHandler().Handle(output, RequestOrigin_RestApi, remoteIp, username.c_str(), 
                                             method, uri, headers, argumentsGET, body.c_str(), body.size());
         }
       }

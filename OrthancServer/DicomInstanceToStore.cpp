@@ -202,7 +202,7 @@ namespace Orthanc
         break;
       }
 
-      case RequestOrigin_Http:
+      case RequestOrigin_RestApi:
       {
         result["RemoteIp"] = remoteIp_;
         result["Username"] = httpUsername_;
@@ -236,7 +236,7 @@ namespace Orthanc
   {
     origin_ = call.GetRequestOrigin();
 
-    if (origin_ == RequestOrigin_Http)
+    if (origin_ == RequestOrigin_RestApi)
     {
       remoteIp_ = call.GetRemoteIp();
       httpUsername_ = call.GetUsername();
@@ -246,7 +246,7 @@ namespace Orthanc
   void DicomInstanceToStore::SetHttpOrigin(const char* remoteIp,
                                            const char* username)
   {
-    origin_ = RequestOrigin_Http;
+    origin_ = RequestOrigin_RestApi;
     remoteIp_ = remoteIp;
     httpUsername_ = username;
   }

@@ -286,7 +286,7 @@ namespace Orthanc
         case RequestOrigin_DicomProtocol:
           return OrthancPluginInstanceOrigin_DicomProtocol;
 
-        case RequestOrigin_Http:
+        case RequestOrigin_RestApi:
           return OrthancPluginInstanceOrigin_RestApi;
 
         case RequestOrigin_Lua:
