@@ -60,7 +60,7 @@ Maintenance
 -----------
 
 * Full indexation of the patient/study tags to speed up searches and C-Find
-* Full refactoring of the searching features
+* Many refactorings, notably of the searching features and of the image decoding
 * C-Move SCP for studies using AccessionNumber tag
 * Fix issue 4 (C-Store Association not renegotiated on Specific-to-specific transfer syntax change)
 * "--logdir" flag creates a single log file instead of 3 separate files for errors/warnings/infos

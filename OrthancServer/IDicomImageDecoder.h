@@ -32,49 +32,23 @@
 
 #pragma once
 
-#include <dcmtk/dcmdata/dcfilefo.h>
+#include "../Core/Images/ImageBuffer.h"
 
-#include "../IDicomImageDecoder.h"
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class DicomImageDecoder : public IDicomImageDecoder
+  class ParsedDicomFile;
+
+  class IDicomImageDecoder : public boost::noncopyable
   {
-  private:
-    class ImageSource;
-
-    static void DecodeUncompressedImageInternal(ImageBuffer& target,
-                                                DcmDataset& dataset,
-                                                unsigned int frame);
-
-    static bool IsPsmctRle1(DcmDataset& dataset);
-
-    static void SetupImageBuffer(ImageBuffer& target,
-                                 DcmDataset& dataset);
-
-    static bool IsUncompressedImage(const DcmDataset& dataset);
-
-    static void DecodeUncompressedImage(ImageBuffer& target,
-                                        DcmDataset& dataset,
-                                        unsigned int frame);
-
-#if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
-    static void DecodeJpegLossless(ImageBuffer& target,
-                                   DcmDataset& dataset,
-                                   unsigned int frame);
-#endif
-
   public:
+    virtual ~IDicomImageDecoder()
+    {
+    }
+
     virtual bool Decode(ImageBuffer& target,
                         ParsedDicomFile& dicom,
-                        unsigned int frame);
-
-    static bool TruncateDecodedImage(ImageBuffer& target,
-                                     ImageBuffer& source,
-                                     PixelFormat format,
-                                     bool allowColorConversion);
-
-    static bool PreviewDecodedImage(ImageBuffer& target,
-                                    ImageBuffer& source);
+                        unsigned int frame) = 0;
   };
 }
