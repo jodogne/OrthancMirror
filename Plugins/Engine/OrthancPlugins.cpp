@@ -48,6 +48,7 @@
 #include "../../OrthancServer/ServerContext.h"
 #include "../../OrthancServer/ServerToolbox.h"
 #include "../../OrthancServer/Search/HierarchicalMatcher.h"
+#include "../../OrthancServer/Internals/DicomImageDecoder.h"
 #include "../../Core/Compression/ZlibCompressor.h"
 #include "../../Core/Compression/GzipCompressor.h"
 #include "../../Core/Images/Image.h"
@@ -286,11 +287,13 @@ namespace Orthanc
     OnStoredCallbacks  onStoredCallbacks_;
     OnChangeCallbacks  onChangeCallbacks_;
     OrthancPluginWorklistCallback  worklistCallback_;
+    OrthancPluginDecodeImageCallback  decodeImageCallback_;
     std::auto_ptr<StorageAreaFactory>  storageArea_;
     boost::recursive_mutex restCallbackMutex_;
     boost::recursive_mutex storedCallbackMutex_;
     boost::recursive_mutex changeCallbackMutex_;
     boost::mutex worklistCallbackMutex_;
+    boost::mutex decodeImageCallbackMutex_;
     boost::recursive_mutex invokeServiceMutex_;
     Properties properties_;
     int argc_;
@@ -301,6 +304,7 @@ namespace Orthanc
     PImpl() : 
       context_(NULL), 
       worklistCallback_(NULL),
+      decodeImageCallback_(NULL),
       argc_(1),
       argv_(NULL)
     {
@@ -725,8 +729,28 @@ namespace Orthanc
     }
     else
     {
-      LOG(INFO) << "Plugin has registered an modality worklist callback";
+      LOG(INFO) << "Plugin has registered a callback to handle modality worklists";
       pimpl_->worklistCallback_ = p.callback;
+    }
+  }
+
+
+  void OrthancPlugins::RegisterDecodeImageCallback(const void* parameters)
+  {
+    const _OrthancPluginDecodeImageCallback& p = 
+      *reinterpret_cast<const _OrthancPluginDecodeImageCallback*>(parameters);
+
+    boost::mutex::scoped_lock lock(pimpl_->decodeImageCallbackMutex_);
+
+    if (pimpl_->decodeImageCallback_ != NULL)
+    {
+      LOG(ERROR) << "Can only register one plugin to handle the decompression of DICOM images";
+      throw OrthancException(ErrorCode_Plugin);
+    }
+    else
+    {
+      LOG(INFO) << "Plugin has registered a callback to decode DICOM images";
+      pimpl_->decodeImageCallback_ = p.callback;
     }
   }
 
@@ -1544,6 +1568,10 @@ namespace Orthanc
         RegisterWorklistCallback(parameters);
         return true;
 
+      case _OrthancPluginService_RegisterDecodeImageCallback:
+        RegisterDecodeImageCallback(parameters);
+        return true;
+
       case _OrthancPluginService_AnswerBuffer:
         AnswerBuffer(parameters);
         return true;
@@ -2149,4 +2177,31 @@ namespace Orthanc
     return pimpl_->worklistCallback_ != NULL;
   }
 
+
+  ImageAccessor*  OrthancPlugins::Decode(ParsedDicomFile& dicom, 
+                                         unsigned int frame)
+  {
+    {
+      boost::mutex::scoped_lock lock(pimpl_->decodeImageCallbackMutex_);
+      if (pimpl_->decodeImageCallback_ != NULL)
+      {
+        std::string s;
+        dicom.SaveToMemoryBuffer(s);
+
+        OrthancPluginImage* pluginImage = NULL;
+        if (pimpl_->decodeImageCallback_(&pluginImage, s.c_str(), s.size(), frame) == OrthancPluginErrorCode_Success &&
+            pluginImage != NULL)
+        {
+          return reinterpret_cast<ImageAccessor*>(pluginImage);
+        }
+        else
+        {
+          LOG(WARNING) << "The custom image decoder cannot handle an image, trying with the built-in decoder";
+        }
+      }
+    }
+
+    DicomImageDecoder defaultDecoder;
+    return defaultDecoder.Decode(dicom, frame);
+  }
 }

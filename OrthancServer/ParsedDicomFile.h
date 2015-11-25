@@ -126,14 +126,12 @@ namespace Orthanc
     void EmbedImage(const std::string& mime,
                     const std::string& content);
 
-    void ExtractImage(ImageBuffer& result,
-                      IDicomImageDecoder& decoder,
-                      unsigned int frame);
+    ImageAccessor* ExtractImage(IDicomImageDecoder& decoder,
+                                unsigned int frame);
 
-    void ExtractImage(ImageBuffer& result,
-                      IDicomImageDecoder& decoder,
-                      unsigned int frame,
-                      ImageExtractionMode mode);
+    ImageAccessor* ExtractImage(IDicomImageDecoder& decoder,
+                                unsigned int frame,
+                                ImageExtractionMode mode);
 
     void ExtractPngImage(std::string& result,
                          IDicomImageDecoder& decoder,

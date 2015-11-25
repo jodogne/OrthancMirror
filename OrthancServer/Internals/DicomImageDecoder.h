@@ -32,9 +32,11 @@
 
 #pragma once
 
-#include <dcmtk/dcmdata/dcfilefo.h>
+#include <memory>
 
 #include "../IDicomImageDecoder.h"
+
+class DcmDataset;
 
 namespace Orthanc
 {
@@ -43,38 +45,31 @@ namespace Orthanc
   private:
     class ImageSource;
 
-    static void DecodeUncompressedImageInternal(ImageBuffer& target,
-                                                DcmDataset& dataset,
-                                                unsigned int frame);
+    static ImageAccessor* DecodeUncompressedImageInternal(DcmDataset& dataset,
+                                                          unsigned int frame);
 
     static bool IsPsmctRle1(DcmDataset& dataset);
 
-    static void SetupImageBuffer(ImageBuffer& target,
-                                 DcmDataset& dataset);
+    static ImageAccessor* CreateImage(DcmDataset& dataset);
 
     static bool IsUncompressedImage(const DcmDataset& dataset);
 
-    static void DecodeUncompressedImage(ImageBuffer& target,
-                                        DcmDataset& dataset,
-                                        unsigned int frame);
+    static ImageAccessor* DecodeUncompressedImage(DcmDataset& dataset,
+                                                  unsigned int frame);
 
 #if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
-    static void DecodeJpegLossless(ImageBuffer& target,
-                                   DcmDataset& dataset,
-                                   unsigned int frame);
+    static ImageAccessor* DecodeJpegLossless(DcmDataset& dataset,
+                                             unsigned int frame);
 #endif
 
   public:
-    virtual bool Decode(ImageBuffer& target,
-                        ParsedDicomFile& dicom,
-                        unsigned int frame);
+    virtual ImageAccessor *Decode(ParsedDicomFile& dicom,
+                                  unsigned int frame);
 
-    static bool TruncateDecodedImage(ImageBuffer& target,
-                                     ImageBuffer& source,
+    static bool TruncateDecodedImage(std::auto_ptr<ImageAccessor>& image,
                                      PixelFormat format,
                                      bool allowColorConversion);
 
-    static bool PreviewDecodedImage(ImageBuffer& target,
-                                    ImageBuffer& source);
+    static bool PreviewDecodedImage(std::auto_ptr<ImageAccessor>& image);
   };
 }

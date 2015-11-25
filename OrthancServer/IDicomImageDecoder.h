@@ -47,8 +47,7 @@ namespace Orthanc
     {
     }
 
-    virtual bool Decode(ImageBuffer& target,
-                        ParsedDicomFile& dicom,
-                        unsigned int frame) = 0;
+    virtual ImageAccessor* Decode(ParsedDicomFile& dicom,
+                                  unsigned int frame) = 0;
   };
 }

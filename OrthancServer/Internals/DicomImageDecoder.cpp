@@ -82,14 +82,16 @@
 
 #include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
+#include "../../Core/Images/Image.h"
 #include "../../Core/Images/ImageProcessing.h"
-#include "../../Core/Images/PngWriter.h"  // TODO REMOVE THIS
 #include "../../Core/DicomFormat/DicomIntegerPixelAccessor.h"
 #include "../ToDcmtkBridge.h"
 #include "../FromDcmtkBridge.h"
 #include "../ParsedDicomFile.h"
 
 #include <boost/lexical_cast.hpp>
+
+#include <dcmtk/dcmdata/dcfilefo.h>
 
 #if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
 #include <dcmtk/dcmjpls/djcodecd.h>
@@ -304,8 +306,7 @@ namespace Orthanc
   };
 
 
-  void DicomImageDecoder::SetupImageBuffer(ImageBuffer& target,
-                                           DcmDataset& dataset)
+  ImageAccessor* DicomImageDecoder::CreateImage(DcmDataset& dataset)
   {
     DicomMap m;
     FromDcmtkBridge::Convert(m, dataset);
@@ -324,9 +325,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
-    target.SetHeight(info.GetHeight());
-    target.SetWidth(info.GetWidth());
-    target.SetFormat(format);
+    return new Image(format, info.GetWidth(), info.GetHeight());
   }
 
 
@@ -374,22 +373,20 @@ namespace Orthanc
   }
 
 
-  void DicomImageDecoder::DecodeUncompressedImage(ImageBuffer& target,
-                                                  DcmDataset& dataset,
-                                                  unsigned int frame)
+  ImageAccessor* DicomImageDecoder::DecodeUncompressedImage(DcmDataset& dataset,
+                                                            unsigned int frame)
   {
     if (!IsUncompressedImage(dataset))
     {
       throw OrthancException(ErrorCode_BadParameterType);
     }
 
-    DecodeUncompressedImageInternal(target, dataset, frame);
+    return DecodeUncompressedImageInternal(dataset, frame);
   }
 
 
-  void DicomImageDecoder::DecodeUncompressedImageInternal(ImageBuffer& target,
-                                                          DcmDataset& dataset,
-                                                          unsigned int frame)
+  ImageAccessor* DicomImageDecoder::DecodeUncompressedImageInternal(DcmDataset& dataset,
+                                                                    unsigned int frame)
   {
     ImageSource source;
     source.Setup(dataset, frame);
@@ -399,10 +396,10 @@ namespace Orthanc
      * Resize the target image.
      **/
 
-    SetupImageBuffer(target, dataset);
+    std::auto_ptr<ImageAccessor> target(CreateImage(dataset));
 
-    if (source.GetWidth() != target.GetWidth() ||
-        source.GetHeight() != target.GetHeight())
+    if (source.GetWidth() != target->GetWidth() ||
+        source.GetHeight() != target->GetHeight())
     {
       throw OrthancException(ErrorCode_InternalError);
     }
@@ -413,7 +410,6 @@ namespace Orthanc
      * direct access to copy its values.
      **/
 
-    ImageAccessor targetAccessor(target.GetAccessor());
     const DicomImageInformation& info = source.GetAccessor().GetInformation();
 
     bool fastVersionSuccess = false;
@@ -435,8 +431,8 @@ namespace Orthanc
                                      info.GetWidth() * GetBytesPerPixel(sourceFormat),
                                      buffer + frame * frameSize);
 
-          ImageProcessing::Convert(targetAccessor, sourceImage);
-          ImageProcessing::ShiftRight(targetAccessor, info.GetShift());
+          ImageProcessing::Convert(*target, sourceImage);
+          ImageProcessing::ShiftRight(*target, info.GetShift());
           fastVersionSuccess = true;
         }
       }
@@ -453,33 +449,34 @@ namespace Orthanc
 
     if (!fastVersionSuccess)
     {
-      switch (target.GetFormat())
+      switch (target->GetFormat())
       {
         case PixelFormat_RGB24:
         case PixelFormat_RGBA32:
         case PixelFormat_Grayscale8:
-          CopyPixels<uint8_t>(targetAccessor, source.GetAccessor());
+          CopyPixels<uint8_t>(*target, source.GetAccessor());
           break;
         
         case PixelFormat_Grayscale16:
-          CopyPixels<uint16_t>(targetAccessor, source.GetAccessor());
+          CopyPixels<uint16_t>(*target, source.GetAccessor());
           break;
 
         case PixelFormat_SignedGrayscale16:
-          CopyPixels<int16_t>(targetAccessor, source.GetAccessor());
+          CopyPixels<int16_t>(*target, source.GetAccessor());
           break;
 
         default:
           throw OrthancException(ErrorCode_InternalError);
       }
     }
+
+    return target.release();
   }
 
 
 #if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
-  void DicomImageDecoder::DecodeJpegLossless(ImageBuffer& target,
-                                             DcmDataset& dataset,
-                                             unsigned int frame)
+  ImageAccessor* DicomImageDecoder::DecodeJpegLossless(DcmDataset& dataset,
+                                                       unsigned int frame)
   {
     if (!IsJpegLossless(dataset))
     {
@@ -500,9 +497,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
-    SetupImageBuffer(target, dataset);
-
-    ImageAccessor targetAccessor(target.GetAccessor());
+    std::auto_ptr<ImageAccessor> target(CreateImage(dataset));
 
     /**
      * The "DJLSLosslessDecoder" and "DJLSNearLosslessDecoder" in DCMTK
@@ -518,38 +513,36 @@ namespace Orthanc
     OFString decompressedColorModel;  // Out
     DJ_RPLossless representationParameter;
     OFCondition c = decoder.decodeFrame(&representationParameter, pixelSequence, &parameters, 
-                                        &dataset, frame, startFragment, targetAccessor.GetBuffer(), 
-                                        targetAccessor.GetSize(), decompressedColorModel);
+                                        &dataset, frame, startFragment, target->GetBuffer(), 
+                                        target->GetSize(), decompressedColorModel);
 
     if (!c.good())
     {
       throw OrthancException(ErrorCode_InternalError);
     }
+
+    return target.release();
   }
 #endif
 
 
 
 
-  bool DicomImageDecoder::Decode(ImageBuffer& target,
-                                 ParsedDicomFile& dicom,
-                                 unsigned int frame)
+  ImageAccessor* DicomImageDecoder::Decode(ParsedDicomFile& dicom,
+                                           unsigned int frame)
   {
     DcmDataset& dataset = *dicom.GetDcmtkObject().getDataset();
 
     if (IsUncompressedImage(dataset))
     {
-      DecodeUncompressedImage(target, dataset, frame);
-      return true;
+      return DecodeUncompressedImage(dataset, frame);
     }
-
 
 #if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
     if (IsJpegLossless(dataset))
     {
       LOG(INFO) << "Decoding a JPEG-LS image";
-      DecodeJpegLossless(target, dataset, frame);
-      return true;
+      return DecodeJpegLossless(dataset, frame);
     }
 #endif
 
@@ -557,7 +550,6 @@ namespace Orthanc
 #if ORTHANC_JPEG_ENABLED == 1
     // TODO Implement this part to speed up JPEG decompression
 #endif
-
 
     /**
      * This DICOM image format is not natively supported by
@@ -575,12 +567,11 @@ namespace Orthanc
 
       if (converted->canWriteXfer(EXS_LittleEndianExplicit))
       {
-        DecodeUncompressedImageInternal(target, *converted, frame);
-        return true;
+        return DecodeUncompressedImageInternal(*converted, frame);
       }
     }
 
-    return false;
+    return NULL;
   }
 
 
@@ -591,14 +582,13 @@ namespace Orthanc
   }
 
 
-  bool DicomImageDecoder::TruncateDecodedImage(ImageBuffer& target,
-                                               ImageBuffer& source,
+  bool DicomImageDecoder::TruncateDecodedImage(std::auto_ptr<ImageAccessor>& image,
                                                PixelFormat format,
                                                bool allowColorConversion)
   {
     // If specified, prevent the conversion between color and
     // grayscale images
-    bool isSourceColor = IsColorImage(source.GetFormat());
+    bool isSourceColor = IsColorImage(image->GetFormat());
     bool isTargetColor = IsColorImage(format);
 
     if (!allowColorConversion)
@@ -609,34 +599,25 @@ namespace Orthanc
       }
     }
 
-    if (source.GetFormat() == format)
+    if (image->GetFormat() != format)
     {
-      // No conversion is required, return the temporary image
-      target.AcquireOwnership(source);
-      return true;
+      // A conversion is required
+      std::auto_ptr<ImageAccessor> target(new Image(format, image->GetWidth(), image->GetHeight()));
+      ImageProcessing::Convert(*target, *image);
+      image = target;
     }
-
-    target.SetFormat(format);
-    target.SetWidth(source.GetWidth());
-    target.SetHeight(source.GetHeight());
-
-    ImageAccessor targetAccessor(target.GetAccessor());
-    ImageAccessor sourceAccessor(source.GetAccessor());
-    ImageProcessing::Convert(targetAccessor, sourceAccessor);
 
     return true;
   }
 
 
-  bool DicomImageDecoder::PreviewDecodedImage(ImageBuffer& target,
-                                              ImageBuffer& source)
+  bool DicomImageDecoder::PreviewDecodedImage(std::auto_ptr<ImageAccessor>& image)
   {
-    switch (source.GetFormat())
+    switch (image->GetFormat())
     {
       case PixelFormat_RGB24:
       {
-        // Directly return color images (RGB)
-        target.AcquireOwnership(source);
+        // Directly return color images without modification (RGB)
         return true;
       }
 
@@ -645,32 +626,24 @@ namespace Orthanc
       case PixelFormat_SignedGrayscale16:
       {
         // Grayscale image: Stretch its dynamics to the [0,255] range
-        target.SetFormat(PixelFormat_Grayscale8);
-        target.SetWidth(source.GetWidth());
-        target.SetHeight(source.GetHeight());
-
-        ImageAccessor targetAccessor(target.GetAccessor());
-        ImageAccessor sourceAccessor(source.GetAccessor());
-
         int64_t a, b;
-        ImageProcessing::GetMinMaxValue(a, b, sourceAccessor);
-        
+        ImageProcessing::GetMinMaxValue(a, b, *image);
+
         if (a == b)
         {
-          ImageProcessing::Set(targetAccessor, 0);
+          ImageProcessing::Set(*image, 0);
         }
         else
         {
-          ImageProcessing::ShiftScale(sourceAccessor, static_cast<float>(-a), 255.0f / static_cast<float>(b - a));
+          ImageProcessing::ShiftScale(*image, static_cast<float>(-a), 255.0f / static_cast<float>(b - a));
+        }
 
-          if (source.GetFormat() == PixelFormat_Grayscale8)
-          {
-            target.AcquireOwnership(source);
-          }
-          else
-          {
-            ImageProcessing::Convert(targetAccessor, sourceAccessor);
-          }
+        // If the source image is not grayscale 8bpp, convert it
+        if (image->GetFormat() != PixelFormat_Grayscale8)
+        {
+          std::auto_ptr<ImageAccessor> target(new Image(PixelFormat_Grayscale8, image->GetWidth(), image->GetHeight()));
+          ImageProcessing::Convert(*target, *image);
+          image = target;
         }
 
         return true;

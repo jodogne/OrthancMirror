@@ -410,7 +410,12 @@ namespace Orthanc
 
     try
     {
-      DicomImageDecoder decoder;  // TODO plugins
+#if ORTHANC_PLUGINS_ENABLED == 1
+      IDicomImageDecoder& decoder = context.GetPlugins();
+#else
+      DicomImageDecoder decoder;  // This is Orthanc's built-in decoder
+#endif
+
       ImageToEncode image(decoder, dicom, frame, mode);
 
       HttpContentNegociation negociation;
@@ -463,15 +468,17 @@ namespace Orthanc
     std::string dicomContent;
     context.ReadFile(dicomContent, publicId, FileContentType_Dicom);
 
-    ParsedDicomFile dicom(dicomContent);
-    ImageBuffer buffer;
-    DicomImageDecoder decoder;  // TODO plugin
-    dicom.ExtractImage(buffer, decoder, frame);
+#if ORTHANC_PLUGINS_ENABLED == 1
+    IDicomImageDecoder& decoder = context.GetPlugins();
+#else
+    DicomImageDecoder decoder;  // This is Orthanc's built-in decoder
+#endif
 
-    ImageAccessor accessor(buffer.GetConstAccessor());
+    ParsedDicomFile dicom(dicomContent);
+    std::auto_ptr<ImageAccessor> decoded(dicom.ExtractImage(decoder, frame));
 
     std::string result;
-    accessor.ToMatlabString(result);
+    decoded->ToMatlabString(result);
 
     call.GetOutput().AnswerBuffer(result, "text/plain");
   }
