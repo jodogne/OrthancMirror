@@ -236,8 +236,7 @@ namespace Orthanc
 
       typedef std::map<MetadataType, std::string>  InstanceMetadata;
       InstanceMetadata  instanceMetadata;
-      StoreStatus status = index_.Store(instanceMetadata, dicom.GetSummary(), attachments, 
-                                        dicom.GetRemoteAet(), dicom.GetMetadata());
+      StoreStatus status = index_.Store(instanceMetadata, dicom, attachments);
 
       // Only keep the metadata for the "instance" level
       dicom.GetMetadata().clear();

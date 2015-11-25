@@ -796,8 +796,9 @@ TEST(ServerIndex, AttachmentRecycling)
     instance.SetValue(DICOM_TAG_SOP_INSTANCE_UID, "instance-" + id);
 
     std::map<MetadataType, std::string> instanceMetadata;
-    ServerIndex::MetadataMap metadata;
-    ASSERT_EQ(StoreStatus_Success, index.Store(instanceMetadata, instance, attachments, "", metadata));
+    DicomInstanceToStore toStore;
+    toStore.SetSummary(instance);
+    ASSERT_EQ(StoreStatus_Success, index.Store(instanceMetadata, toStore, attachments));
     ASSERT_EQ(2u, instanceMetadata.size());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_RemoteAet) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_ReceptionDate) != instanceMetadata.end());
