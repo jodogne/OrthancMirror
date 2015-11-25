@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include "../Core/Images/ImageBuffer.h"
+#include "../Core/Images/ImageAccessor.h"
 
 #include <boost/noncopyable.hpp>
 

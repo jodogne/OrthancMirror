@@ -86,7 +86,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ToDcmtkBridge.h"
 #include "Internals/DicomImageDecoder.h"
 #include "../Core/DicomFormat/DicomIntegerPixelAccessor.h"
-#include "../Core/Images/ImageBuffer.h"
 #include "../Core/Images/JpegWriter.h"
 #include "../Core/Images/JpegReader.h"
 #include "../Core/Images/PngReader.h"

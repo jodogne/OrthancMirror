@@ -144,8 +144,11 @@ namespace Orthanc
     void ApplyDicomToJson(_OrthancPluginService service,
                           const void* parameters);
 
-    void ApplyDicomFromJson(_OrthancPluginService service,
-                            const void* parameters);
+    void ApplyCreateDicom(_OrthancPluginService service,
+                          const void* parameters);
+
+    void ApplyCreateImage(_OrthancPluginService service,
+                          const void* parameters);
 
     void SignalChangeInternal(OrthancPluginChangeType changeType,
                               OrthancPluginResourceType resourceType,
