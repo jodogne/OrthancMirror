@@ -2947,7 +2947,7 @@ extern "C"
     const OrthancPluginImage*  image;
     uint32_t*                  resultUint32;
     OrthancPluginPixelFormat*  resultPixelFormat;
-    const void**               resultBuffer;
+    void**                     resultBuffer;
   } _OrthancPluginGetImageInfo;
 
 
@@ -3096,11 +3096,11 @@ extern "C"
    * @return The pointer.
    * @ingroup Images
    **/
-  ORTHANC_PLUGIN_INLINE const void*  OrthancPluginGetImageBuffer(
+  ORTHANC_PLUGIN_INLINE void*  OrthancPluginGetImageBuffer(
     OrthancPluginContext*      context,
     const OrthancPluginImage*  image)
   {
-    const void* target = NULL;
+    void* target = NULL;
 
     _OrthancPluginGetImageInfo params;
     memset(&params, 0, sizeof(params));
