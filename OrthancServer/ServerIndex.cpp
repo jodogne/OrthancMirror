@@ -771,6 +771,12 @@ namespace Orthanc
       db_.SetMetadata(instance, MetadataType_Instance_RemoteAet, instanceToStore.GetRemoteAet());
       instanceMetadata[MetadataType_Instance_RemoteAet] = instanceToStore.GetRemoteAet();
 
+      {
+        std::string s = EnumerationToString(instanceToStore.GetRequestOrigin());
+        db_.SetMetadata(instance, MetadataType_Instance_Origin, s);
+        instanceMetadata[MetadataType_Instance_Origin] = s;
+      }
+
       const DicomValue* value;
       if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_INSTANCE_NUMBER)) != NULL ||
           (value = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGE_INDEX)) != NULL)

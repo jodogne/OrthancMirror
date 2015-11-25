@@ -799,7 +799,7 @@ TEST(ServerIndex, AttachmentRecycling)
     DicomInstanceToStore toStore;
     toStore.SetSummary(instance);
     ASSERT_EQ(StoreStatus_Success, index.Store(instanceMetadata, toStore, attachments));
-    ASSERT_EQ(2u, instanceMetadata.size());
+    ASSERT_EQ(3u, instanceMetadata.size());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_RemoteAet) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_ReceptionDate) != instanceMetadata.end());
 

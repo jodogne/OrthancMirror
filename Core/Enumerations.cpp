@@ -681,8 +681,8 @@ namespace Orthanc
       case RequestOrigin_DicomProtocol:
         return "DicomProtocol";
 
-      case RequestOrigin_Http:
-        return "Http";
+      case RequestOrigin_RestApi:
+        return "RestApi";
 
       case RequestOrigin_Plugins:
         return "Plugins";
