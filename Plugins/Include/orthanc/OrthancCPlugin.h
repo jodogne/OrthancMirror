@@ -397,7 +397,7 @@ extern "C"
     _OrthancPluginService_RegisterDictionaryTag = 20,
     _OrthancPluginService_DicomBufferToJson = 21,
     _OrthancPluginService_DicomInstanceToJson = 22,
-    _OrthancPluginService_DicomFromJson = 23,
+    _OrthancPluginService_CreateDicom = 23,
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -471,6 +471,8 @@ extern "C"
     _OrthancPluginService_GetFontsCount = 6009,
     _OrthancPluginService_GetFontInfo = 6010,
     _OrthancPluginService_DrawText = 6011,
+    _OrthancPluginService_CreateImage = 6012,
+    _OrthancPluginService_CreateImageAccessor = 6013,
 
     /* Primitives for handling worklists */
     _OrthancPluginService_WorklistAddAnswer = 7000,
@@ -670,6 +672,7 @@ extern "C"
   /**
    * The possible output formats for a DICOM-to-JSON conversion.
    * @ingroup Toolbox
+   * @see OrthancPluginDicomToJson()
    **/
   typedef enum
   {
@@ -700,16 +703,17 @@ extern "C"
 
 
   /**
-   * Flags to customize a JSON-to-DICOM conversion.
+   * Flags to the creation of a DICOM file.
    * @ingroup Toolbox
+   * @see OrthancPluginCreateDicom()
    **/
   typedef enum
   {
-    OrthancPluginDicomFromJsonFlags_DecodeDataUriScheme   = (1 << 0),  /*!< Decode fields encoded using data URI scheme */
-    OrthancPluginDicomFromJsonFlags_GenerateIdentifiers   = (1 << 1),  /*!< Automatically generate DICOM identifiers */
+    OrthancPluginCreateDicomFlags_DecodeDataUriScheme   = (1 << 0),  /*!< Decode fields encoded using data URI scheme */
+    OrthancPluginCreateDicomFlags_GenerateIdentifiers   = (1 << 1),  /*!< Automatically generate DICOM identifiers */
 
-    _OrthancPluginDicomFromJsonFlags_INTERNAL = 0x7fffffff
-  } OrthancPluginDicomFromJsonFlags;
+    _OrthancPluginCreateDicomFlags_INTERNAL = 0x7fffffff
+  } OrthancPluginCreateDicomFlags;
 
 
   /**
@@ -1005,7 +1009,7 @@ extern "C"
         sizeof(int32_t) != sizeof(OrthancPluginValueRepresentation) ||
         sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFormat) ||
         sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFlags) ||
-        sizeof(int32_t) != sizeof(OrthancPluginDicomFromJsonFlags) ||
+        sizeof(int32_t) != sizeof(OrthancPluginCreateDicomFlags) ||
         sizeof(int32_t) != sizeof(OrthancPluginIdentifierConstraint) ||
         sizeof(int32_t) != sizeof(OrthancPluginInstanceOrigin))
     {
@@ -4330,39 +4334,44 @@ extern "C"
 
   typedef struct
   {
-    OrthancPluginMemoryBuffer*       target;
-    const char*                      json;
-    OrthancPluginDicomFromJsonFlags  flags;
-  } _OrthancPluginDicomFromJson;
+    OrthancPluginMemoryBuffer*     target;
+    const char*                    json;
+    const OrthancPluginImage*      pixelData;
+    OrthancPluginCreateDicomFlags  flags;
+  } _OrthancPluginCreateDicom;
 
   /**
-   * @brief Create a DICOM instance from JSON.
+   * @brief Create a DICOM instance from a JSON string and an image.
    *
    * This function takes as input a string containing a JSON file
    * describing the content of a DICOM instance. As an output, it
    * writes the corresponding DICOM instance to a newly allocated
-   * memory buffer.
+   * memory buffer. Additionally, an image to be encoded within the
+   * DICOM instance can also be provided.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer().
    * @param json The input JSON file.
+   * @param pixelData The image. Can be NULL, if the pixel data is encoded inside the JSON with the data URI scheme.
    * @param flags Flags governing the output.
    * @return 0 if success, other value if error.
    * @ingroup Toolbox
    * @see OrthancPluginDicomBufferToJson
    **/
-  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginDicomFromJson(
-    OrthancPluginContext*            context,
-    OrthancPluginMemoryBuffer*       target,
-    const char*                      json,
-    OrthancPluginDicomFromJsonFlags  flags)
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginCreateDicom(
+    OrthancPluginContext*          context,
+    OrthancPluginMemoryBuffer*     target,
+    const char*                    json,
+    const OrthancPluginImage*      pixelData,
+    OrthancPluginCreateDicomFlags  flags)
   {
-    _OrthancPluginDicomFromJson params;
+    _OrthancPluginCreateDicom params;
     params.target = target;
     params.json = json;
+    params.pixelData = pixelData;
     params.flags = flags;
 
-    return context->InvokeService(context, _OrthancPluginService_DicomFromJson, &params);
+    return context->InvokeService(context, _OrthancPluginService_CreateDicom, &params);
   }
 
 
@@ -4391,6 +4400,104 @@ extern "C"
     context->InvokeService(context, _OrthancPluginService_RegisterDecodeImageCallback, &params);
   }
   
+
+
+  typedef struct
+  {
+    OrthancPluginImage**       target;
+    OrthancPluginPixelFormat   format;
+    uint32_t                   width;
+    uint32_t                   height;
+    uint32_t                   pitch;
+    void*                      buffer;
+  } _OrthancPluginCreateImage;
+
+
+  /**
+   * @brief Create an image.
+   *
+   * This function creates an image of given size and format.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param format The format of the pixels.
+   * @param width The width of the image.
+   * @param height The height of the image.
+   * @return The newly allocated image. It must be freed with OrthancPluginFreeImage().
+   * @ingroup Images
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginImage* OrthancPluginCreateImage(
+    OrthancPluginContext*     context,
+    OrthancPluginPixelFormat  format,
+    uint32_t                  width,
+    uint32_t                  height)
+  {
+    OrthancPluginImage* target = NULL;
+
+    _OrthancPluginCreateImage params;
+    memset(&params, 0, sizeof(params));
+    params.target = &target;
+    params.format = format;
+    params.width = width;
+    params.height = height;
+
+    if (context->InvokeService(context, _OrthancPluginService_CreateImage, &params) != OrthancPluginErrorCode_Success)
+    {
+      return NULL;
+    }
+    else
+    {
+      return target;
+    }
+  }
+
+
+  /**
+   * @brief Create an image pointing to a memory buffer.
+   *
+   * This function creates an image whose content points to a memory
+   * buffer managed by the plugin. Note that the buffer is directly
+   * accessed, no memory is allocated and no data is copied.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param format The format of the pixels.
+   * @param width The width of the image.
+   * @param height The height of the image.
+   * @param pitch The pitch of the image (i.e. the number of bytes
+   * between 2 successive lines of the image in the memory buffer).
+   * @param buffer The memory buffer.
+   * @return The newly allocated image. It must be freed with OrthancPluginFreeImage().
+   * @ingroup Images
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginImage* OrthancPluginCreateImageAccessor(
+    OrthancPluginContext*     context,
+    OrthancPluginPixelFormat  format,
+    uint32_t                  width,
+    uint32_t                  height,
+    uint32_t                  pitch,
+    void*                     buffer)
+  {
+    OrthancPluginImage* target = NULL;
+
+    _OrthancPluginCreateImage params;
+    memset(&params, 0, sizeof(params));
+    params.target = &target;
+    params.format = format;
+    params.width = width;
+    params.height = height;
+    params.pitch = pitch;
+    params.buffer = buffer;
+
+    if (context->InvokeService(context, _OrthancPluginService_CreateImageAccessor, &params) != OrthancPluginErrorCode_Success)
+    {
+      return NULL;
+    }
+    else
+    {
+      return target;
+    }
+  }
+
+
 #ifdef  __cplusplus
 }
 #endif

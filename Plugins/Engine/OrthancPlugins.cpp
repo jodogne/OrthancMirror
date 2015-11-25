@@ -430,7 +430,7 @@ namespace Orthanc
         sizeof(int32_t) != sizeof(OrthancPluginValueRepresentation) ||
         sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFlags) ||
         sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFormat) ||
-        sizeof(int32_t) != sizeof(OrthancPluginDicomFromJsonFlags) ||
+        sizeof(int32_t) != sizeof(OrthancPluginCreateDicomFlags) ||
         sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType) ||
         sizeof(int32_t) != sizeof(OrthancPluginIdentifierConstraint) ||
         sizeof(int32_t) != sizeof(OrthancPluginInstanceOrigin) ||
@@ -440,8 +440,8 @@ namespace Orthanc
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludePixelData) != static_cast<int>(DicomToJsonFlags_IncludePixelData) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_ConvertBinaryToNull) != static_cast<int>(DicomToJsonFlags_ConvertBinaryToNull) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_ConvertBinaryToAscii) != static_cast<int>(DicomToJsonFlags_ConvertBinaryToAscii) ||
-        static_cast<int>(OrthancPluginDicomFromJsonFlags_DecodeDataUriScheme) != static_cast<int>(DicomFromJsonFlags_DecodeDataUriScheme) ||
-        static_cast<int>(OrthancPluginDicomFromJsonFlags_GenerateIdentifiers) != static_cast<int>(DicomFromJsonFlags_GenerateIdentifiers))
+        static_cast<int>(OrthancPluginCreateDicomFlags_DecodeDataUriScheme) != static_cast<int>(DicomFromJsonFlags_DecodeDataUriScheme) ||
+        static_cast<int>(OrthancPluginCreateDicomFlags_GenerateIdentifiers) != static_cast<int>(DicomFromJsonFlags_GenerateIdentifiers))
 
     {
       throw OrthancException(ErrorCode_Plugin);
@@ -1449,11 +1449,11 @@ namespace Orthanc
   }
         
 
-  void OrthancPlugins::ApplyDicomFromJson(_OrthancPluginService service,
-                                          const void* parameters)
+  void OrthancPlugins::ApplyCreateDicom(_OrthancPluginService service,
+                                        const void* parameters)
   {
-    const _OrthancPluginDicomFromJson& p =
-      *reinterpret_cast<const _OrthancPluginDicomFromJson*>(parameters);
+    const _OrthancPluginCreateDicom& p =
+      *reinterpret_cast<const _OrthancPluginCreateDicom*>(parameters);
 
     Json::Value json;
     Json::Reader reader;
@@ -1467,10 +1467,38 @@ namespace Orthanc
     {
       std::auto_ptr<ParsedDicomFile> file
         (ParsedDicomFile::CreateFromJson(json, static_cast<DicomFromJsonFlags>(p.flags)));
+
+      if (p.pixelData)
+      {
+        file->EmbedImage(*reinterpret_cast<const ImageAccessor*>(p.pixelData));
+      }
+
       file->SaveToMemoryBuffer(dicom);
     }
 
     CopyToMemoryBuffer(*p.target, dicom);
+  }
+
+
+  void OrthancPlugins::ApplyCreateImage(_OrthancPluginService service,
+                                        const void* parameters)
+  {
+    const _OrthancPluginCreateImage& p =
+      *reinterpret_cast<const _OrthancPluginCreateImage*>(parameters);
+
+    std::auto_ptr<ImageAccessor> result;
+
+    if (service == _OrthancPluginService_CreateImage)
+    {
+      result.reset(new Image(Plugins::Convert(p.format), p.width, p.height));
+    }
+    else
+    {
+      result.reset(new ImageAccessor);
+      result->AssignWritable(Plugins::Convert(p.format), p.width, p.height, p.pitch, p.buffer);
+    }
+
+    *(p.target) = reinterpret_cast<OrthancPluginImage*>(result.release());
   }
         
 
@@ -2003,8 +2031,8 @@ namespace Orthanc
         ApplyDicomToJson(service, parameters);
         return true;
 
-      case _OrthancPluginService_DicomFromJson:
-        ApplyDicomFromJson(service, parameters);
+      case _OrthancPluginService_CreateDicom:
+        ApplyCreateDicom(service, parameters);
         return true;
 
       case _OrthancPluginService_WorklistAddAnswer:
@@ -2038,6 +2066,11 @@ namespace Orthanc
         reinterpret_cast<const WorklistHandler*>(p.query)->GetDicomQuery(*p.target);
         return true;
       }
+
+      case _OrthancPluginService_CreateImage:
+      case _OrthancPluginService_CreateImageAccessor:
+        ApplyCreateImage(service, parameters);
+        return true;
 
       default:
       {

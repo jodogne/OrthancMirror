@@ -44,6 +44,7 @@ Plugins
   - "OrthancPluginRegisterDictionaryTag()" to declare custom DICOM tags
   - "OrthancPluginRestApiGet2()" to provide HTTP headers when calling Orthanc API
   - "OrthancPluginGetInstanceOrigin()" to know through which mechanism an instance was received
+  - "OrthancPluginCreateImage()" and "OrthancPluginCreateImageAccessor()" to create images
 * New events in change callbacks:
   - "OrthancStarted"
   - "OrthancStopped"
