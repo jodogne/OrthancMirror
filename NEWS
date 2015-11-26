@@ -16,6 +16,7 @@ REST API
   - ".../compress", ".../uncompress" and ".../is-compressed" for attachments
   - "/tools/create-archive" to create ZIP from a set of resources
   - "/tools/create-media" to create ZIP+DICOMDIR from a set of resources
+  - "/instances/.../header" to get the meta information (header) of the DICOM instance
 * "/tools/create-dicom":
   - Support of binary tags encoded using data URI scheme
   - Support of hierarchical structures (creation of sequences)

@@ -1168,6 +1168,13 @@ namespace Orthanc
   }
 
 
+  void ParsedDicomFile::HeaderToJson(Json::Value& target, 
+                                     DicomToJsonFormat format)
+  {
+    FromDcmtkBridge::ToJson(target, *pimpl_->file_->getMetaInfo(), format, DicomToJsonFlags_None, 0);
+  }
+
+
   bool ParsedDicomFile::HasTag(const DicomTag& tag) const
   {
     DcmTag key(tag.GetGroup(), tag.GetElement());
