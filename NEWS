@@ -67,6 +67,7 @@ Maintenance
 * Many refactorings, notably of the searching features and of the image decoding
 * C-Move SCP for studies using AccessionNumber tag
 * Fix issue 4 (C-Store Association not renegotiated on Specific-to-specific transfer syntax change)
+* Fix formatting of multipart HTTP answers
 * "--logdir" flag creates a single log file instead of 3 separate files for errors/warnings/infos
 * "--errors" flag lists the error codes that could be returned by Orthanc
 * Under Windows, the exit status of Orthanc corresponds to the encountered error code
