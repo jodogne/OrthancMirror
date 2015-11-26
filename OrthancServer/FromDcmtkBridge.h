@@ -37,6 +37,7 @@
 #include "../Core/DicomFormat/DicomMap.h"
 
 #include <dcmtk/dcmdata/dcdatset.h>
+#include <dcmtk/dcmdata/dcmetinf.h>
 #include <json/json.h>
 
 namespace Orthanc
@@ -75,6 +76,12 @@ namespace Orthanc
 
     static void ToJson(Json::Value& target, 
                        DcmDataset& dataset,
+                       DicomToJsonFormat format,
+                       DicomToJsonFlags flags,
+                       unsigned int maxStringLength);
+
+    static void ToJson(Json::Value& target, 
+                       DcmMetaInfo& header,
                        DicomToJsonFormat format,
                        DicomToJsonFlags flags,
                        unsigned int maxStringLength);

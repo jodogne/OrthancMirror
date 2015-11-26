@@ -1275,6 +1275,34 @@ namespace Orthanc
   }
 
 
+  static void GetInstanceHeader(RestApiGetCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    std::string publicId = call.GetUriComponent("id", "");
+    bool simplify = call.HasArgument("simplify");
+
+    std::string dicomContent;
+    context.ReadFile(dicomContent, publicId, FileContentType_Dicom);
+
+    ParsedDicomFile dicom(dicomContent);
+
+    Json::Value header;
+    dicom.HeaderToJson(header, DicomToJsonFormat_Full);
+
+    if (simplify)
+    {
+      Json::Value simplified;
+      Toolbox::SimplifyTags(simplified, header);
+      call.GetOutput().AnswerJson(simplified);
+    }
+    else
+    {
+      call.GetOutput().AnswerJson(header);
+    }
+  }
+
+
   void OrthancRestApi::RegisterResources()
   {
     Register("/instances", ListResources<ResourceType_Instance>);
@@ -1323,6 +1351,7 @@ namespace Orthanc
     Register("/instances/{id}/image-uint16", GetImage<ImageExtractionMode_UInt16>);
     Register("/instances/{id}/image-int16", GetImage<ImageExtractionMode_Int16>);
     Register("/instances/{id}/matlab", GetMatlabImage);
+    Register("/instances/{id}/header", GetInstanceHeader);
 
     Register("/patients/{id}/protected", IsProtectedPatient);
     Register("/patients/{id}/protected", SetPatientProtection);

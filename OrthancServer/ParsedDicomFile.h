@@ -153,6 +153,9 @@ namespace Orthanc
                 DicomToJsonFlags flags,
                 unsigned int maxStringLength);
 
+    void HeaderToJson(Json::Value& target, 
+                      DicomToJsonFormat format);
+
     bool HasTag(const DicomTag& tag) const;
 
     void EmbedPdf(const std::string& pdf);

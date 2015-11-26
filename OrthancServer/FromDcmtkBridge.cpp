@@ -804,6 +804,17 @@ namespace Orthanc
   }
 
 
+  void FromDcmtkBridge::ToJson(Json::Value& target, 
+                               DcmMetaInfo& dataset,
+                               DicomToJsonFormat format,
+                               DicomToJsonFlags flags,
+                               unsigned int maxStringLength)
+  {
+    target = Json::objectValue;
+    DatasetToJson(target, dataset, format, flags, maxStringLength, Encoding_Ascii);
+  }
+
+
   std::string FromDcmtkBridge::GetName(const DicomTag& t)
   {
     // Some patches for important tags because of different DICOM
