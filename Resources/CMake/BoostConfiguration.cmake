@@ -39,10 +39,10 @@ endif()
 
 
 if (BOOST_STATIC)
-  # Parameters for Boost 1.58.0
-  set(BOOST_NAME boost_1_58_0)
-  set(BOOST_BCP_SUFFIX bcpdigest-0.9.2)
-  set(BOOST_MD5 "704b110917cbda903e07cb53934b47ac")
+  # Parameters for Boost 1.59.0
+  set(BOOST_NAME boost_1_59_0)
+  set(BOOST_BCP_SUFFIX bcpdigest-0.9.5)
+  set(BOOST_MD5 "08abb7cdbea0b380f9ab0d5cce476f12")
   set(BOOST_URL "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz")
   set(BOOST_FILESYSTEM_SOURCES_DIR "${BOOST_NAME}/libs/filesystem/src") 
   set(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
