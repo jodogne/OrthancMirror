@@ -83,7 +83,7 @@ namespace OrthancPlugins
 
     // This is not the same image
     std::auto_ptr<GdcmImageDecoder> decoder(new GdcmImageDecoder(dicom, size));
-    OrthancImageWrapper image(context, decoder->Decode(context, frameIndex));
+    OrthancImageWrapper image(context, *decoder, frameIndex);
 
     {
       // Cache the newly created decoder for further use

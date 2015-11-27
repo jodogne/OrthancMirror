@@ -222,6 +222,30 @@ namespace OrthancPlugins
   }
 
 
+  double GdcmImageDecoder::GetSlope() const
+  {
+    return pimpl_->GetImage().GetSlope();
+  }
+
+
+  double GdcmImageDecoder::GetIntercept() const
+  {
+    return pimpl_->GetImage().GetIntercept();
+  }
+
+
+  double GdcmImageDecoder::GetColumnPixelSpacing() const
+  {
+    return pimpl_->GetImage().GetSpacing(1);
+  }
+
+
+  double GdcmImageDecoder::GetRowPixelSpacing() const
+  {
+    return pimpl_->GetImage().GetSpacing(0);
+  }
+
+
   size_t GdcmImageDecoder::GetBytesPerPixel(OrthancPluginPixelFormat format)
   {
     switch (format)
