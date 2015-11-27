@@ -1495,6 +1495,31 @@ namespace Orthanc
   }
 
 
+  void OrthancPlugins::ComputeHash(_OrthancPluginService service,
+                                   const void* parameters)
+  {
+    const _OrthancPluginComputeHash& p =
+      *reinterpret_cast<const _OrthancPluginComputeHash*>(parameters);
+ 
+    std::string hash;
+    switch (service)
+    {
+      case _OrthancPluginService_ComputeMd5:
+        Toolbox::ComputeMD5(hash, p.buffer, p.size);
+        break;
+
+      case _OrthancPluginService_ComputeSha1:
+        Toolbox::ComputeSHA1(hash, p.buffer, p.size);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+   
+    *p.result = CopyString(hash);
+  }
+
+
   void OrthancPlugins::ApplyCreateImage(_OrthancPluginService service,
                                         const void* parameters)
   {
@@ -2098,6 +2123,11 @@ namespace Orthanc
       case _OrthancPluginService_CreateImageAccessor:
       case _OrthancPluginService_DecodeDicomImage:
         ApplyCreateImage(service, parameters);
+        return true;
+
+      case _OrthancPluginService_ComputeMd5:
+      case _OrthancPluginService_ComputeSha1:
+        ComputeHash(service, parameters);
         return true;
 
       default:

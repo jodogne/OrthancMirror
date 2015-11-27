@@ -494,16 +494,16 @@ namespace Orthanc
 
   void Toolbox::ComputeMD5(std::string& result,
                            const void* data,
-                           size_t length)
+                           size_t size)
   {
     md5_state_s state;
     md5_init(&state);
 
-    if (length > 0)
+    if (size > 0)
     {
       md5_append(&state, 
                  reinterpret_cast<const md5_byte_t*>(data), 
-                 static_cast<int>(length));
+                 static_cast<int>(size));
     }
 
     md5_byte_t actualHash[16];
@@ -759,14 +759,16 @@ namespace Orthanc
     return result;
   }
 
+
   void Toolbox::ComputeSHA1(std::string& result,
-                            const std::string& data)
+                            const void* data,
+                            size_t size)
   {
     boost::uuids::detail::sha1 sha1;
 
-    if (data.size() > 0)
+    if (size > 0)
     {
-      sha1.process_bytes(&data[0], data.size());
+      sha1.process_bytes(data, size);
     }
 
     unsigned int digest[5];
@@ -784,6 +786,20 @@ namespace Orthanc
             digest[3],
             digest[4]);
   }
+
+  void Toolbox::ComputeSHA1(std::string& result,
+                            const std::string& data)
+  {
+    if (data.size() > 0)
+    {
+      ComputeSHA1(result, data.c_str(), data.size());
+    }
+    else
+    {
+      ComputeSHA1(result, NULL, 0);
+    }
+  }
+
 
   bool Toolbox::IsSHA1(const char* str,
                        size_t size)

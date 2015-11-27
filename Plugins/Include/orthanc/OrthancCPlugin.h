@@ -398,6 +398,8 @@ extern "C"
     _OrthancPluginService_DicomBufferToJson = 21,
     _OrthancPluginService_DicomInstanceToJson = 22,
     _OrthancPluginService_CreateDicom = 23,
+    _OrthancPluginService_ComputeMd5 = 24,
+    _OrthancPluginService_ComputeSha1 = 25,
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -4141,16 +4143,17 @@ extern "C"
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param callback The callback.
+   * @return 0 if success, other value if error.
    * @ingroup Worklists
    **/
-  ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterWorklistCallback(
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterWorklistCallback(
     OrthancPluginContext*          context,
     OrthancPluginWorklistCallback  callback)
   {
     _OrthancPluginWorklistCallback params;
     params.callback = callback;
 
-    context->InvokeService(context, _OrthancPluginService_RegisterWorklistCallback, &params);
+    return context->InvokeService(context, _OrthancPluginService_RegisterWorklistCallback, &params);
   }
 
 
@@ -4390,16 +4393,17 @@ extern "C"
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param callback The callback.
+   * @return 0 if success, other value if error.
    * @ingroup Callbacks
    **/
-  ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterDecodeImageCallback(
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterDecodeImageCallback(
     OrthancPluginContext*             context,
     OrthancPluginDecodeImageCallback  callback)
   {
     _OrthancPluginDecodeImageCallback params;
     params.callback = callback;
 
-    context->InvokeService(context, _OrthancPluginService_RegisterDecodeImageCallback, &params);
+    return context->InvokeService(context, _OrthancPluginService_RegisterDecodeImageCallback, &params);
   }
   
 
@@ -4543,6 +4547,85 @@ extern "C"
     }
   }
 
+
+
+  typedef struct
+  {
+    char**       result;
+    const void*  buffer;
+    uint32_t     size;
+  } _OrthancPluginComputeHash;
+
+  /**
+   * @brief Compute an MD5 hash.
+   *
+   * This functions computes the MD5 cryptographic hash of the given memory buffer.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param buffer The source memory buffer.
+   * @param size The size in bytes of the source buffer.
+   * @return The NULL value in case of error, or a string containing the cryptographic hash.
+   * This string must be freed by OrthancPluginFreeString().
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginComputeMd5(
+    OrthancPluginContext*  context,
+    const void*            buffer,
+    uint32_t               size)
+  {
+    char* result;
+
+    _OrthancPluginComputeHash params;
+    params.result = &result;
+    params.buffer = buffer;
+    params.size = size;
+
+    if (context->InvokeService(context, _OrthancPluginService_ComputeMd5, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  /**
+   * @brief Compute a SHA-1 hash.
+   *
+   * This functions computes the SHA-1 cryptographic hash of the given memory buffer.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param buffer The source memory buffer.
+   * @param size The size in bytes of the source buffer.
+   * @return The NULL value in case of error, or a string containing the cryptographic hash.
+   * This string must be freed by OrthancPluginFreeString().
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginComputeSha1(
+    OrthancPluginContext*  context,
+    const void*            buffer,
+    uint32_t               size)
+  {
+    char* result;
+
+    _OrthancPluginComputeHash params;
+    params.result = &result;
+    params.buffer = buffer;
+    params.size = size;
+
+    if (context->InvokeService(context, _OrthancPluginService_ComputeSha1, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
 
 #ifdef  __cplusplus
 }

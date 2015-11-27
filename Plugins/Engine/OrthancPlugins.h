@@ -150,6 +150,9 @@ namespace Orthanc
     void ApplyCreateImage(_OrthancPluginService service,
                           const void* parameters);
 
+    void ComputeHash(_OrthancPluginService service,
+                     const void* parameters);
+
     void SignalChangeInternal(OrthancPluginChangeType changeType,
                               OrthancPluginResourceType resourceType,
                               const char* resource);
