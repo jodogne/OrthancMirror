@@ -28,7 +28,11 @@ namespace OrthancPlugins
                                            OrthancPluginPixelFormat format,
                                            uint32_t width,
                                            uint32_t height) :
-    context_(context)
+    context_(context),
+    slope_(1),
+    intercept_(0),
+    rowPixelSpacing_(1),
+    columnPixelSpacing_(1)
   {
     image_ = OrthancPluginCreateImage(context_, format, width, height);
     if (image_ == NULL)
@@ -36,6 +40,20 @@ namespace OrthancPlugins
       throw std::runtime_error("Cannot create an image");
     }
   }
+
+
+  OrthancImageWrapper::OrthancImageWrapper(OrthancPluginContext* context,
+                                           GdcmImageDecoder& decoder,
+                                           unsigned int frameIndex) :
+    context_(context),
+    image_(decoder.Decode(context, frameIndex)),
+    slope_(decoder.GetSlope()),
+    intercept_(decoder.GetIntercept()),
+    rowPixelSpacing_(decoder.GetRowPixelSpacing()),
+    columnPixelSpacing_(decoder.GetColumnPixelSpacing())
+  {
+  }
+
 
 
   OrthancImageWrapper::~OrthancImageWrapper()

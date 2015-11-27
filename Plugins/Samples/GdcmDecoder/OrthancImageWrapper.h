@@ -22,6 +22,8 @@
 
 #include <orthanc/OrthancCPlugin.h>
 
+#include "GdcmImageDecoder.h"
+
 namespace OrthancPlugins
 {
   class OrthancImageWrapper
@@ -29,6 +31,10 @@ namespace OrthancPlugins
   private:
     OrthancPluginContext*  context_;
     OrthancPluginImage*    image_;
+    double                 slope_;
+    double                 intercept_;
+    double                 rowPixelSpacing_;
+    double                 columnPixelSpacing_;
 
   public:
     OrthancImageWrapper(OrthancPluginContext* context,
@@ -36,13 +42,9 @@ namespace OrthancPlugins
                         uint32_t width,
                         uint32_t height);
 
-    // Takes the ownership
     OrthancImageWrapper(OrthancPluginContext* context,
-                        OrthancPluginImage* image) :
-      context_(context),
-      image_(image)
-    {
-    }
+                        GdcmImageDecoder& decoder,
+                        unsigned int frameIndex);
 
     ~OrthancImageWrapper();
 
