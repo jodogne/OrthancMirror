@@ -21,6 +21,7 @@
 #pragma once
 
 #include "GdcmImageDecoder.h"
+#include "OrthancImageWrapper.h"
 
 #include <boost/thread.hpp>
 
@@ -44,9 +45,9 @@ namespace OrthancPlugins
     {
     }
 
-    OrthancPluginImage* Decode(OrthancPluginContext* context,
-                               const void* dicom,
-                               const uint32_t size,
-                               uint32_t frameIndex);
+    OrthancImageWrapper* Decode(OrthancPluginContext* context,
+                                const void* dicom,
+                                const uint32_t size,
+                                uint32_t frameIndex);
   };
 }

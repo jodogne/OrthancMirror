@@ -60,10 +60,10 @@ namespace OrthancPlugins
   }
 
 
-  OrthancPluginImage* GdcmDecoderCache::Decode(OrthancPluginContext* context,
-                                               const void* dicom,
-                                               const uint32_t size,
-                                               uint32_t frameIndex)
+  OrthancImageWrapper* GdcmDecoderCache::Decode(OrthancPluginContext* context,
+                                                const void* dicom,
+                                                const uint32_t size,
+                                                uint32_t frameIndex)
   {
     std::string md5 = ComputeMd5(context, dicom, size);
 
@@ -77,13 +77,13 @@ namespace OrthancPlugins
           md5_ == md5)
       {
         // This is the same image: Reuse the previous decoding
-        return decoder_->Decode(context, frameIndex);
+        return new OrthancImageWrapper(context, *decoder_, frameIndex);
       }
     }
 
     // This is not the same image
     std::auto_ptr<GdcmImageDecoder> decoder(new GdcmImageDecoder(dicom, size));
-    OrthancImageWrapper image(context, *decoder, frameIndex);
+    std::auto_ptr<OrthancImageWrapper> image(new OrthancImageWrapper(context, *decoder, frameIndex));
 
     {
       // Cache the newly created decoder for further use
@@ -93,6 +93,6 @@ namespace OrthancPlugins
       md5_ = md5;
     }
 
-    return image.Release();
+    return image.release();
   }
 }
