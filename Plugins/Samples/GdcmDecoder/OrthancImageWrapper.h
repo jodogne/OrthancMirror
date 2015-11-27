@@ -59,5 +59,25 @@ namespace OrthancPlugins
     OrthancPluginPixelFormat GetFormat();
 
     char* GetBuffer();
+
+    double GetSlope() const
+    {
+      return slope_;
+    }
+
+    double GetIntercept() const
+    {
+      return intercept_;
+    }
+
+    double GetRowPixelSpacing() const
+    {
+      return rowPixelSpacing_;
+    }
+
+    double GetColumnPixelSpacing() const
+    {
+      return columnPixelSpacing_;
+    }
   };
 }
