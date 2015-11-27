@@ -100,11 +100,15 @@ namespace Orthanc
 
     void ComputeMD5(std::string& result,
                     const void* data,
-                    size_t length);
+                    size_t size);
 #endif
 
     void ComputeSHA1(std::string& result,
                      const std::string& data);
+
+    void ComputeSHA1(std::string& result,
+                     const void* data,
+                     size_t size);
 
     bool IsSHA1(const char* str,
                 size_t size);

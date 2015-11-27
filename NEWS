@@ -47,6 +47,7 @@ Plugins
   - "OrthancPluginGetInstanceOrigin()" to know through which mechanism an instance was received
   - "OrthancPluginCreateImage()" and "OrthancPluginCreateImageAccessor()" to create images
   - "OrthancPluginDecodeDicomImage()" to decode DICOM images
+  - "OrthancPluginComputeMd5()" and "OrthancPluginComputeSha1()" to compute MD5/SHA-1 hash
 * New events in change callbacks:
   - "OrthancStarted"
   - "OrthancStopped"
