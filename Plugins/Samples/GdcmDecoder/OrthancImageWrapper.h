@@ -48,6 +48,11 @@ namespace OrthancPlugins
 
     ~OrthancImageWrapper();
 
+    OrthancPluginContext* GetContext()
+    {
+      return context_;
+    }
+
     OrthancPluginImage* Release();
 
     uint32_t GetWidth();
