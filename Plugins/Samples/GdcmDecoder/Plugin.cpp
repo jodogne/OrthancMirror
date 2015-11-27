@@ -19,6 +19,7 @@
 
 
 #include "GdcmDecoderCache.h"
+#include "OrthancImageWrapper.h"
 
 #include <orthanc/OrthancCPlugin.h>
 
@@ -33,13 +34,17 @@ static OrthancPluginErrorCode DecodeImageCallback(OrthancPluginImage** target,
 {
   try
   {
+    std::auto_ptr<OrthancPlugins::OrthancImageWrapper> image;
+
 #if 0
     // Do not use the cache
     OrthancPlugins::GdcmImageDecoder decoder(dicom, size);
-    *target = decoder.Decode(context_, frameIndex);
+    image.reset(new OrthancPlugins::OrthancImageWrapper(context_, decoder, frameIndex));
 #else
-    *target = cache_.Decode(context_, dicom, size, frameIndex);
+    image.reset(cache_.Decode(context_, dicom, size, frameIndex));
 #endif
+
+    *target = image->Release();
 
     return OrthancPluginErrorCode_Success;
   }
