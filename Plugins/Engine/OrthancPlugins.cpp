@@ -2285,10 +2285,8 @@ namespace Orthanc
         {
           return reinterpret_cast<ImageAccessor*>(pluginImage);
         }
-        else
-        {
-          LOG(WARNING) << "The custom image decoder cannot handle an image, trying with the built-in decoder";
-        }
+
+        LOG(WARNING) << "The custom image decoder cannot handle an image, trying with the built-in decoder";
       }
     }
 

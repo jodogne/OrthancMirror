@@ -77,13 +77,13 @@ namespace OrthancPlugins
           md5_ == md5)
       {
         // This is the same image: Reuse the previous decoding
-        return new OrthancImageWrapper(context, *decoder_, frameIndex);
+        return new OrthancImageWrapper(context, decoder_->Decode(context, frameIndex));
       }
     }
 
     // This is not the same image
     std::auto_ptr<GdcmImageDecoder> decoder(new GdcmImageDecoder(dicom, size));
-    std::auto_ptr<OrthancImageWrapper> image(new OrthancImageWrapper(context, *decoder, frameIndex));
+    std::auto_ptr<OrthancImageWrapper> image(new OrthancImageWrapper(context, decoder->Decode(context, frameIndex)));
 
     {
       // Cache the newly created decoder for further use

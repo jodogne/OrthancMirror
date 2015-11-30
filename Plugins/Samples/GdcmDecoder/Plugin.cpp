@@ -39,7 +39,7 @@ static OrthancPluginErrorCode DecodeImageCallback(OrthancPluginImage** target,
 #if 0
     // Do not use the cache
     OrthancPlugins::GdcmImageDecoder decoder(dicom, size);
-    image.reset(new OrthancPlugins::OrthancImageWrapper(context_, decoder, frameIndex));
+    image.reset(new OrthancPlugins::OrthancImageWrapper(context_, decoder.Decode(context_, frameIndex)));
 #else
     image.reset(cache_.Decode(context_, dicom, size, frameIndex));
 #endif

@@ -45,14 +45,6 @@ namespace OrthancPlugins
 
     unsigned int GetFramesCount() const;
 
-    double GetSlope() const;
-
-    double GetIntercept() const;
-
-    double GetColumnPixelSpacing() const;
-
-    double GetRowPixelSpacing() const;    
-
     static size_t GetBytesPerPixel(OrthancPluginPixelFormat format);
 
     OrthancPluginImage* Decode(OrthancPluginContext* context,
