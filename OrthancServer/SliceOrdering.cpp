@@ -284,7 +284,6 @@ namespace Orthanc
       if (std::fabs(b - a) <= 10.0f * std::numeric_limits<float>::epsilon())
       {
         // Not enough space between two slices along the normal of the volume
-        printf("Not enough space\n");
         return false;
       }
 
