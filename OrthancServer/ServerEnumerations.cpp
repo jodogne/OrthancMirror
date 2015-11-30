@@ -337,6 +337,9 @@ namespace Orthanc
       case ModalityManufacturer_SyngoVia:
         return "SyngoVia";
       
+      case ModalityManufacturer_AgfaImpax:
+        return "AgfaImpax";
+      
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -399,6 +402,10 @@ namespace Orthanc
     else if (manufacturer == "SyngoVia")
     {
       return ModalityManufacturer_SyngoVia;
+    }
+    else if (manufacturer == "AgfaImpax")
+    {
+      return ModalityManufacturer_AgfaImpax;
     }
     else
     {
