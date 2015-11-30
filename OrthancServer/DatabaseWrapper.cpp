@@ -256,12 +256,20 @@ namespace Orthanc
   }
 
     
-  DatabaseWrapper::DatabaseWrapper(const std::string& path) : listener_(NULL), base_(db_)
+  DatabaseWrapper::DatabaseWrapper(const std::string& path) : 
+    listener_(NULL), 
+    base_(db_),
+    signalRemainingAncestor_(NULL),
+    version_(0)
   {
     db_.Open(path);
   }
 
-  DatabaseWrapper::DatabaseWrapper() : listener_(NULL), base_(db_)
+  DatabaseWrapper::DatabaseWrapper() : 
+    listener_(NULL), 
+    base_(db_),
+    signalRemainingAncestor_(NULL),
+    version_(0)
   {
     db_.OpenInMemory();
   }

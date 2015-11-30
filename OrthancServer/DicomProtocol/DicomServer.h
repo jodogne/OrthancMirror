@@ -54,7 +54,6 @@ namespace Orthanc
     std::string aet_;
     uint16_t port_;
     bool continue_;
-    bool started_;
     uint32_t clientTimeout_;
     IFindRequestHandlerFactory* findRequestHandlerFactory_;
     IMoveRequestHandlerFactory* moveRequestHandlerFactory_;

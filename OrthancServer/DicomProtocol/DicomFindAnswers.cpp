@@ -39,11 +39,12 @@
 
 #include <memory>
 #include <dcmtk/dcmdata/dcfilefo.h>
+#include <boost/noncopyable.hpp>
 
 
 namespace Orthanc
 {
-  class DicomFindAnswers::Answer
+  class DicomFindAnswers::Answer : public boost::noncopyable
   {
   private:
     ParsedDicomFile* dicom_;

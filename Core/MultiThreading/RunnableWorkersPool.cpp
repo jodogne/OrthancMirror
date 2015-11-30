@@ -105,7 +105,7 @@ namespace Orthanc
   {
     pimpl_->continue_ = true;
 
-    if (countWorkers <= 0)
+    if (countWorkers == 0)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }

@@ -359,7 +359,7 @@ namespace Orthanc
         try
         {
           quality_ = boost::lexical_cast<unsigned int>(v);
-          ok = (quality_ >= 0 && quality_ <= 100);
+          ok = (quality_ >= 1 && quality_ <= 100);
         }
         catch (boost::bad_lexical_cast&)
         {
@@ -1097,11 +1097,13 @@ namespace Orthanc
       size_t limit = 0;
       if (request.isMember("Limit"))
       {
-        limit = request["CaseSensitive"].asInt();
-        if (limit < 0)
+        int tmp = request["CaseSensitive"].asInt();
+        if (tmp < 0)
         {
           throw OrthancException(ErrorCode_ParameterOutOfRange);
         }
+
+        limit = static_cast<size_t>(tmp);
       }
 
       std::string level = request["Level"].asString();
