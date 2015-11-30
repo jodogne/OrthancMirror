@@ -1263,6 +1263,25 @@ namespace Orthanc
   }
 
 
+  static OrthancPluginImage* ReturnImage(std::auto_ptr<ImageAccessor>& image)
+  {
+    // Images returned to plugins are assumed to be writeable. If the
+    // input image is read-only, we return a copy so that it can be modified.
+
+    if (image->IsReadOnly())
+    {
+      std::auto_ptr<Image> copy(new Image(image->GetFormat(), image->GetWidth(), image->GetHeight()));
+      ImageProcessing::Copy(*copy, *image);
+      image.reset(NULL);
+      return reinterpret_cast<OrthancPluginImage*>(copy.release());
+    }
+    else
+    {
+      return reinterpret_cast<OrthancPluginImage*>(image.release());
+    }
+  }
+
+
   void OrthancPlugins::UncompressImage(const void* parameters)
   {
     const _OrthancPluginUncompressImage& p = *reinterpret_cast<const _OrthancPluginUncompressImage*>(parameters);
@@ -1296,7 +1315,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    *(p.target) = reinterpret_cast<OrthancPluginImage*>(image.release());
+    *(p.target) = ReturnImage(image);
   }
 
 
@@ -1386,7 +1405,7 @@ namespace Orthanc
     std::auto_ptr<ImageAccessor> target(new Image(Plugins::Convert(p.targetFormat), source.GetWidth(), source.GetHeight()));
     ImageProcessing::Convert(*target, source);
 
-    *(p.target) = reinterpret_cast<OrthancPluginImage*>(target.release());
+    *(p.target) = ReturnImage(target);
   }
 
 
@@ -1550,7 +1569,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
     }
 
-    *(p.target) = reinterpret_cast<OrthancPluginImage*>(result.release());
+    *(p.target) = ReturnImage(result);
   }
         
 
@@ -1964,14 +1983,7 @@ namespace Orthanc
       case _OrthancPluginService_GetImageBuffer:
       {
         const _OrthancPluginGetImageInfo& p = *reinterpret_cast<const _OrthancPluginGetImageInfo*>(parameters);
-        const ImageAccessor& image = reinterpret_cast<const ImageAccessor&>(p.image);
-
-        if (image.IsReadOnly())
-        {
-          throw OrthancException(ErrorCode_ReadOnly);
-        }
-
-        *(p.resultBuffer) = image.GetBuffer();
+        *(p.resultBuffer) = reinterpret_cast<const ImageAccessor*>(p.image)->GetBuffer();
         return true;
       }
 
@@ -2293,7 +2305,7 @@ namespace Orthanc
           return reinterpret_cast<ImageAccessor*>(pluginImage);
         }
 
-        LOG(WARNING) << "The custom image decoder cannot handle an image, trying with the built-in decoder";
+        LOG(WARNING) << "The custom image decoder cannot handle an image, fallback to the built-in decoder";
       }
     }
 
