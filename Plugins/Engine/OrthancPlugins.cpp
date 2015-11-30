@@ -1608,8 +1608,7 @@ namespace Orthanc
       return true;
     }
 
-
-    std::auto_ptr<boost::recursive_mutex::scoped_lock> lock;   // (*)
+    boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);   // (*)
 
     switch (service)
     {

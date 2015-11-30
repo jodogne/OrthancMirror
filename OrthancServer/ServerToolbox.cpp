@@ -297,7 +297,7 @@ namespace Orthanc
       database.GetAllPublicIds(resources, level);
 
       for (std::list<std::string>::const_iterator
-             it = resources.begin(); it != resources.end(); it++)
+             it = resources.begin(); it != resources.end(); ++it)
       {
         // Locate the resource and one of its child instances
         int64_t resource, instance;

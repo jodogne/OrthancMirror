@@ -451,8 +451,10 @@ namespace Orthanc
       ArchiveWriterVisitor(HierarchicalZipWriter& writer,
                            ServerContext& context) :
         writer_(writer),
-        context_(context)
+        context_(context),
+        countInstances_(0)
       {
+        snprintf(instanceFormat_, sizeof(instanceFormat_) - 1, "%%08d.dcm");
       }
 
       virtual void Open(ResourceType level,

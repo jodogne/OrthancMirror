@@ -123,7 +123,8 @@ private:
 
 public:
   SignalRemainingAncestor() : 
-    hasRemainingAncestor_(false)
+    hasRemainingAncestor_(false),
+    remainingType_(OrthancPluginResourceType_Instance)  // Some dummy value
   {
   }
 
@@ -175,7 +176,8 @@ public:
 
 Database::Database(const std::string& path) : 
   path_(path),
-  base_(db_)
+  base_(db_),
+  signalRemainingAncestor_(NULL)
 {
 }
 
@@ -381,7 +383,7 @@ static void ConvertList(std::list<int32_t>& target,
                         const std::list<I>& source)
 {
   for (typename std::list<I>::const_iterator 
-         it = source.begin(); it != source.end(); it++)
+         it = source.begin(); it != source.end(); ++it)
   {
     target.push_back(*it);
   }
