@@ -43,6 +43,10 @@ namespace OrthancPlugins
     context_(context),
     image_(image)
   {
+    if (image_ == NULL)
+    {
+      throw std::runtime_error("Invalid image returned by the core of Orthanc");
+    }
   }
 
 
