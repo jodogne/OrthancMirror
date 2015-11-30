@@ -28,11 +28,7 @@ namespace OrthancPlugins
                                            OrthancPluginPixelFormat format,
                                            uint32_t width,
                                            uint32_t height) :
-    context_(context),
-    slope_(1),
-    intercept_(0),
-    rowPixelSpacing_(1),
-    columnPixelSpacing_(1)
+    context_(context)
   {
     image_ = OrthancPluginCreateImage(context_, format, width, height);
     if (image_ == NULL)
@@ -43,14 +39,9 @@ namespace OrthancPlugins
 
 
   OrthancImageWrapper::OrthancImageWrapper(OrthancPluginContext* context,
-                                           GdcmImageDecoder& decoder,
-                                           unsigned int frameIndex) :
+                                           OrthancPluginImage* image) :
     context_(context),
-    image_(decoder.Decode(context, frameIndex)),
-    slope_(decoder.GetSlope()),
-    intercept_(decoder.GetIntercept()),
-    rowPixelSpacing_(decoder.GetRowPixelSpacing()),
-    columnPixelSpacing_(decoder.GetColumnPixelSpacing())
+    image_(image)
   {
   }
 

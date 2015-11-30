@@ -31,10 +31,6 @@ namespace OrthancPlugins
   private:
     OrthancPluginContext*  context_;
     OrthancPluginImage*    image_;
-    double                 slope_;
-    double                 intercept_;
-    double                 rowPixelSpacing_;
-    double                 columnPixelSpacing_;
 
   public:
     OrthancImageWrapper(OrthancPluginContext* context,
@@ -43,8 +39,7 @@ namespace OrthancPlugins
                         uint32_t height);
 
     OrthancImageWrapper(OrthancPluginContext* context,
-                        GdcmImageDecoder& decoder,
-                        unsigned int frameIndex);
+                        OrthancPluginImage* image);  // Takes ownership
 
     ~OrthancImageWrapper();
 
@@ -64,25 +59,5 @@ namespace OrthancPlugins
     OrthancPluginPixelFormat GetFormat();
 
     char* GetBuffer();
-
-    double GetSlope() const
-    {
-      return slope_;
-    }
-
-    double GetIntercept() const
-    {
-      return intercept_;
-    }
-
-    double GetRowPixelSpacing() const
-    {
-      return rowPixelSpacing_;
-    }
-
-    double GetColumnPixelSpacing() const
-    {
-      return columnPixelSpacing_;
-    }
   };
 }
