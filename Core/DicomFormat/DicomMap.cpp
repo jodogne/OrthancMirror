@@ -83,7 +83,8 @@ namespace Orthanc
     DICOM_TAG_NUMBER_OF_SLICES,
     DICOM_TAG_NUMBER_OF_TIME_SLICES,
     DICOM_TAG_SERIES_INSTANCE_UID,
-    DICOM_TAG_IMAGE_ORIENTATION_PATIENT    // New in db v6
+    DICOM_TAG_IMAGE_ORIENTATION_PATIENT,    // New in db v6
+    DICOM_TAG_SERIES_TYPE                   // New in db v6
   };
 
   static DicomTag instanceTags[] =

@@ -157,4 +157,7 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_SERIES_TIME(0x0008, 0x0031);
   static const DicomTag DICOM_TAG_STUDY_DATE(0x0008, 0x0020);
   static const DicomTag DICOM_TAG_STUDY_TIME(0x0008, 0x0030);
+
+  // Various tags
+  static const DicomTag DICOM_TAG_SERIES_TYPE(0x0054, 0x1000);
 }
