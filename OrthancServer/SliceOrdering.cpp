@@ -276,21 +276,24 @@ namespace Orthanc
     PositionComparator comparator(normal_);
     std::sort(instances_.begin(), instances_.end(), comparator);
 
-    float a = instances_.front()->ComputeRelativePosition(normal_);
-    float b = instances_.back()->ComputeRelativePosition(normal_);
+    float a = instances_[0]->ComputeRelativePosition(normal_);
+    for (size_t i = 1; i < instances_.size(); i++)
+    {
+      float b = instances_[i]->ComputeRelativePosition(normal_);
 
-    if (std::fabs(b - a) <= 10.0f * std::numeric_limits<float>::epsilon())
-    {
-      // Not enough difference between the minimum and maximum
-      // positions along the normal of the volume
-      return false;
+      if (std::fabs(b - a) <= 10.0f * std::numeric_limits<float>::epsilon())
+      {
+        // Not enough space between two slices along the normal of the volume
+        printf("Not enough space\n");
+        return false;
+      }
+
+      a = b;
     }
-    else
-    {
-      // This is a 3D volume
-      isVolume_ = true;
-      return true;
-    }
+
+    // This is a 3D volume
+    isVolume_ = true;
+    return true;
   }
 
 

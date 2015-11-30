@@ -1964,7 +1964,14 @@ namespace Orthanc
       case _OrthancPluginService_GetImageBuffer:
       {
         const _OrthancPluginGetImageInfo& p = *reinterpret_cast<const _OrthancPluginGetImageInfo*>(parameters);
-        *(p.resultBuffer) = reinterpret_cast<const ImageAccessor*>(p.image)->GetBuffer();
+        const ImageAccessor& image = reinterpret_cast<const ImageAccessor&>(p.image);
+
+        if (image.IsReadOnly())
+        {
+          throw OrthancException(ErrorCode_ReadOnly);
+        }
+
+        *(p.resultBuffer) = image.GetBuffer();
         return true;
       }
 
