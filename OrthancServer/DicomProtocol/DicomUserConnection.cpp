@@ -447,12 +447,15 @@ namespace Orthanc
   {
     switch (manufacturer)
     {
+      case ModalityManufacturer_AgfaImpax:
       case ModalityManufacturer_SyngoVia:
       {
         std::auto_ptr<DicomMap> fix(fields.Clone());
 
         // This issue for Syngo.Via and its solution was reported by
-        // Emsy Chan by private mail on June 17th, 2015.
+        // Emsy Chan by private mail on 2015-06-17. According to
+        // Robert van Ommen (2015-11-30), the same fix is required for
+        // Agfa Impax.
         std::set<DicomTag> tags;
         fix->GetTags(tags);
 
