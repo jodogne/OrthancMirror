@@ -340,8 +340,8 @@ namespace Orthanc
       case ModalityManufacturer_AgfaImpax:
         return "AgfaImpax";
       
-      case ModalityManufacturer_Efilm:
-        return "Efilm";
+      case ModalityManufacturer_EFilm2:
+        return "EFilm2";
       
       case ModalityManufacturer_Vitrea:
         return "Vitrea";
@@ -417,9 +417,9 @@ namespace Orthanc
     {
       return ModalityManufacturer_Vitrea;
     }
-    else if (manufacturer == "Efilm")
+    else if (manufacturer == "EFilm2")
     {
-      return ModalityManufacturer_Efilm;
+      return ModalityManufacturer_EFilm2;
     }
     else
     {

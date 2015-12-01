@@ -530,7 +530,7 @@ TEST(EnumerationDictionary, ServerEnumerations)
   ASSERT_STREQ("Dcm4Chee", EnumerationToString(StringToModalityManufacturer("Dcm4Chee")));
   ASSERT_STREQ("SyngoVia", EnumerationToString(StringToModalityManufacturer("SyngoVia")));
   ASSERT_STREQ("AgfaImpax", EnumerationToString(StringToModalityManufacturer("AgfaImpax")));
-  ASSERT_STREQ("Efilm", EnumerationToString(StringToModalityManufacturer("Efilm")));
+  ASSERT_STREQ("EFilm2", EnumerationToString(StringToModalityManufacturer("EFilm2")));
   ASSERT_STREQ("Vitrea", EnumerationToString(StringToModalityManufacturer("Vitrea")));
 }
 
