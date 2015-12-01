@@ -114,7 +114,7 @@ namespace Orthanc
                               *parsed_.GetContent().GetDcmtkObject().getDataset(),
                               DicomToJsonFormat_Full, 
                               DicomToJsonFlags_Default,
-                              256 /* max string length */);
+                              ORTHANC_MAXIMUM_TAG_LENGTH);
     }
   }
 

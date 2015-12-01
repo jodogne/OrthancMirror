@@ -376,7 +376,15 @@ namespace Orthanc
       {
         std::string s(c);
         std::string utf8 = Toolbox::ConvertToUtf8(s, encoding);
-        return new DicomValue(utf8, false);
+
+        if (utf8.size() > ORTHANC_MAXIMUM_TAG_LENGTH)
+        {
+          return new DicomValue;  // Create a NULL value
+        }
+        else
+        {
+          return new DicomValue(utf8, false);
+        }
       }
     }
 
