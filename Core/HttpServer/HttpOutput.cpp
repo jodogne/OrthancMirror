@@ -442,7 +442,7 @@ namespace Orthanc
 
     multipartBoundary_ = Toolbox::GenerateUuid();
     multipartContentType_ = contentType;
-    header += "Content-Type: multipart/related; type=multipart/" + subType + "; boundary=" + multipartBoundary_ + "\r\n\r\n";
+    header += "Content-Type: multipart/" + subType + "; type=" + contentType + "; boundary=" + multipartBoundary_ + "\r\n\r\n";
 
     stream_.Send(true, header.c_str(), header.size());
     state_ = State_WritingMultipart;
