@@ -172,6 +172,22 @@ static void TestModule(ResourceType level,
       ok = true;
     }
 
+    // Exceptions for the Series level
+    if (level == ResourceType_Series &&
+        (*it == DicomTag(0x0008, 0x0070) ||  /* Manufacturer, from General Equipment Module */
+         *it == DicomTag(0x0008, 0x1010) ||  /* StationName, from General Equipment Module */
+         *it == DicomTag(0x0018, 0x0024) ||  /* SequenceName, from MR Image Module (SIMPLIFICATION => Series) */
+         *it == DicomTag(0x0018, 0x1090) ||  /* CardiacNumberOfImages, from MR Image Module (SIMPLIFICATION => Series) */
+         *it == DicomTag(0x0020, 0x0037) ||  /* ImageOrientationPatient, from Image Plane Module (SIMPLIFICATION => Series) */
+         *it == DicomTag(0x0020, 0x0105) ||  /* NumberOfTemporalPositions, from MR Image Module (SIMPLIFICATION => Series) */
+         *it == DicomTag(0x0020, 0x1002) ||  /* ImagesInAcquisition, from General Image Module (SIMPLIFICATION => Series) */
+         *it == DicomTag(0x0054, 0x0081) ||  /* NumberOfSlices, from PET Series module */
+         *it == DicomTag(0x0054, 0x0101) ||  /* NumberOfTimeSlices, from PET Series module */
+         *it == DicomTag(0x0054, 0x1000)))   /* SeriesType, from PET Series module */
+    {
+      ok = true;
+    }
+
     // Exceptions for the Instance level
     if (level == ResourceType_Instance &&
         (*it == DicomTag(0x0020, 0x0012) ||  /* AccessionNumber, from General Image module */
@@ -199,6 +215,6 @@ TEST(DicomMap, Modules)
 {
   TestModule(ResourceType_Patient, DicomModule_Patient);
   TestModule(ResourceType_Study, DicomModule_Study);
-  //TestModule(ResourceType_Series, DicomModule_Series);   // TODO
+  TestModule(ResourceType_Series, DicomModule_Series);   // TODO
   TestModule(ResourceType_Instance, DicomModule_Instance);
 }
