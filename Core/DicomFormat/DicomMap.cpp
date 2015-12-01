@@ -87,10 +87,12 @@ namespace Orthanc
     DICOM_TAG_NUMBER_OF_SLICES,
     DICOM_TAG_NUMBER_OF_TIME_SLICES,
     DICOM_TAG_SERIES_INSTANCE_UID,
-    DICOM_TAG_IMAGE_ORIENTATION_PATIENT,             // New in db v6
-    DICOM_TAG_SERIES_TYPE,                           // New in db v6
-    DICOM_TAG_OPERATOR_NAME,                         // New in db v6
-    DICOM_TAG_PERFORMED_PROCEDURE_STEP_DESCRIPTION   // New in db v6
+    DICOM_TAG_IMAGE_ORIENTATION_PATIENT,                  // New in db v6
+    DICOM_TAG_SERIES_TYPE,                                // New in db v6
+    DICOM_TAG_OPERATOR_NAME,                              // New in db v6
+    DICOM_TAG_PERFORMED_PROCEDURE_STEP_DESCRIPTION,       // New in db v6
+    DICOM_TAG_ACQUISITION_DEVICE_PROCESSING_DESCRIPTION,  // New in db v6
+    DICOM_TAG_CONTRAST_BOLUS_AGENT                        // New in db v6
   };
 
   static DicomTag instanceTags[] =
@@ -330,6 +332,8 @@ namespace Orthanc
     result.Remove(DICOM_TAG_NUMBER_OF_TIME_SLICES);
     result.Remove(DICOM_TAG_IMAGE_ORIENTATION_PATIENT);
     result.Remove(DICOM_TAG_SERIES_TYPE);
+    result.Remove(DICOM_TAG_ACQUISITION_DEVICE_PROCESSING_DESCRIPTION);
+    result.Remove(DICOM_TAG_CONTRAST_BOLUS_AGENT);
   }
 
   void DicomMap::SetupFindInstanceTemplate(DicomMap& result)

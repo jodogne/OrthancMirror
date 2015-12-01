@@ -183,7 +183,9 @@ static void TestModule(ResourceType level,
          *it == DicomTag(0x0020, 0x1002) ||  /* ImagesInAcquisition, from General Image Module (SIMPLIFICATION => Series) */
          *it == DicomTag(0x0054, 0x0081) ||  /* NumberOfSlices, from PET Series module */
          *it == DicomTag(0x0054, 0x0101) ||  /* NumberOfTimeSlices, from PET Series module */
-         *it == DicomTag(0x0054, 0x1000)))   /* SeriesType, from PET Series module */
+         *it == DicomTag(0x0054, 0x1000) ||  /* SeriesType, from PET Series module */
+         *it == DicomTag(0x0018, 0x1400) ||  /* AcquisitionDeviceProcessingDescription, from CR/X-Ray/DX/WholeSlideMicro Image (SIMPLIFICATION => Series) */
+         *it == DicomTag(0x0018, 0x0010)))   /* ContrastBolusAgent, from Contrast/Bolus module (SIMPLIFICATION => Series) */
     {
       ok = true;
     }
