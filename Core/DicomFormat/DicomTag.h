@@ -160,4 +160,12 @@ namespace Orthanc
 
   // Various tags
   static const DicomTag DICOM_TAG_SERIES_TYPE(0x0054, 0x1000);
+  static const DicomTag DICOM_TAG_REQUESTED_PROCEDURE_DESCRIPTION(0x0032, 0x1060);
+  static const DicomTag DICOM_TAG_INSTITUTION_NAME(0x0008, 0x0080);
+  static const DicomTag DICOM_TAG_REQUESTING_PHYSICIAN(0x0032, 0x1032);
+  static const DicomTag DICOM_TAG_REFERRING_PHYSICIAN_NAME(0x0008, 0x0090);
+  static const DicomTag DICOM_TAG_OPERATOR_NAME(0x0008, 0x1070);
+  static const DicomTag DICOM_TAG_PERFORMED_PROCEDURE_STEP_DESCRIPTION(0x0040, 0x0254);
+  static const DicomTag DICOM_TAG_IMAGE_COMMENTS(0x0020, 0x4000);
+  
 }

@@ -61,7 +61,11 @@ namespace Orthanc
     DicomTag(0x0020, 0x0010),   // StudyID
     DICOM_TAG_STUDY_DESCRIPTION,
     DICOM_TAG_ACCESSION_NUMBER,
-    DICOM_TAG_STUDY_INSTANCE_UID
+    DICOM_TAG_STUDY_INSTANCE_UID,
+    DICOM_TAG_REQUESTED_PROCEDURE_DESCRIPTION,   // New in db v6
+    DICOM_TAG_INSTITUTION_NAME,                  // New in db v6
+    DICOM_TAG_REQUESTING_PHYSICIAN,              // New in db v6
+    DICOM_TAG_REFERRING_PHYSICIAN_NAME           // New in db v6
   };
 
   static DicomTag seriesTags[] =
@@ -83,8 +87,10 @@ namespace Orthanc
     DICOM_TAG_NUMBER_OF_SLICES,
     DICOM_TAG_NUMBER_OF_TIME_SLICES,
     DICOM_TAG_SERIES_INSTANCE_UID,
-    DICOM_TAG_IMAGE_ORIENTATION_PATIENT,    // New in db v6
-    DICOM_TAG_SERIES_TYPE                   // New in db v6
+    DICOM_TAG_IMAGE_ORIENTATION_PATIENT,             // New in db v6
+    DICOM_TAG_SERIES_TYPE,                           // New in db v6
+    DICOM_TAG_OPERATOR_NAME,                         // New in db v6
+    DICOM_TAG_PERFORMED_PROCEDURE_STEP_DESCRIPTION   // New in db v6
   };
 
   static DicomTag instanceTags[] =
@@ -97,7 +103,8 @@ namespace Orthanc
     DICOM_TAG_NUMBER_OF_FRAMES,
     DICOM_TAG_TEMPORAL_POSITION_IDENTIFIER,
     DICOM_TAG_SOP_INSTANCE_UID,
-    DICOM_TAG_IMAGE_POSITION_PATIENT    // New in db v6
+    DICOM_TAG_IMAGE_POSITION_PATIENT,    // New in db v6
+    DICOM_TAG_IMAGE_COMMENTS             // New in db v6
   };
 
 
@@ -297,6 +304,12 @@ namespace Orthanc
     SetupFindTemplate(result, studyTags, sizeof(studyTags) / sizeof(DicomTag));
     result.SetValue(DICOM_TAG_ACCESSION_NUMBER, "");
     result.SetValue(DICOM_TAG_PATIENT_ID, "");
+
+    // These main DICOM tags are only indirectly related to the
+    // General Study Module, remove them
+    result.Remove(DICOM_TAG_INSTITUTION_NAME);
+    result.Remove(DICOM_TAG_REQUESTING_PHYSICIAN);
+    result.Remove(DICOM_TAG_REQUESTED_PROCEDURE_DESCRIPTION);
   }
 
   void DicomMap::SetupFindSeriesTemplate(DicomMap& result)
@@ -316,6 +329,7 @@ namespace Orthanc
     result.Remove(DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS);
     result.Remove(DICOM_TAG_NUMBER_OF_TIME_SLICES);
     result.Remove(DICOM_TAG_IMAGE_ORIENTATION_PATIENT);
+    result.Remove(DICOM_TAG_SERIES_TYPE);
   }
 
   void DicomMap::SetupFindInstanceTemplate(DicomMap& result)

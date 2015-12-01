@@ -151,6 +151,9 @@ TEST(DicomMap, FindTemplates)
 static void TestModule(ResourceType level,
                        DicomModule module)
 {
+  // REFERENCE: DICOM PS3.3 2015c - Information Object Definitions
+  // http://dicom.nema.org/medical/dicom/current/output/html/part03.html
+
   std::set<DicomTag> moduleTags, main;
   DicomTag::AddTagsForModule(moduleTags, module);
   DicomMap::GetMainDicomTags(main, level);
@@ -160,21 +163,23 @@ static void TestModule(ResourceType level,
   {
     bool ok = moduleTags.find(*it) != moduleTags.end();
 
-    // Exceptions for the Series level
-    /*if ((//
-          *it == DicomTag(0x, 0x) && 
-          level == ResourceType_Series))
+    // Exceptions for the Study level
+    if (level == ResourceType_Study &&
+        (*it == DicomTag(0x0008, 0x0080) ||  /* InstitutionName, from Visit identification module, related to Visit */
+         *it == DicomTag(0x0032, 0x1032) ||  /* RequestingPhysician, from Imaging Service Request module, related to Study */
+         *it == DicomTag(0x0032, 0x1060)))   /* RequestedProcedureDescription, from Requested Procedure module, related to Study */
     {
       ok = true;
-      }*/
+    }
 
     // Exceptions for the Instance level
     if (level == ResourceType_Instance &&
-        (*it == DicomTag(0x0020, 0x0012) ||  /* Accession number, from Image module */
-         *it == DicomTag(0x0054, 0x1330) ||  /* Image Index, from PET Image module */
-         *it == DicomTag(0x0020, 0x0100) ||  /* Temporal Position Identifier, from MR Image module */
-         *it == DicomTag(0x0028, 0x0008) ||  /* Number of Frames, from Multi-frame module attributes, related to Image IOD */
-         *it == DICOM_TAG_IMAGE_POSITION_PATIENT))
+        (*it == DicomTag(0x0020, 0x0012) ||  /* AccessionNumber, from General Image module */
+         *it == DicomTag(0x0054, 0x1330) ||  /* ImageIndex, from PET Image module */
+         *it == DicomTag(0x0020, 0x0100) ||  /* TemporalPositionIdentifier, from MR Image module */
+         *it == DicomTag(0x0028, 0x0008) ||  /* NumberOfFrames, from Multi-frame module attributes, related to Image */
+         *it == DicomTag(0x0020, 0x0032) ||  /* ImagePositionPatient, from Image Plan module, related to Image */
+         *it == DicomTag(0x0020, 0x4000)))   /* ImageComments, from General Image module */
     {
       ok = true;
     }
