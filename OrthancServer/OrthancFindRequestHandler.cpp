@@ -88,6 +88,16 @@ namespace Orthanc
   }
 
 
+
+  bool OrthancFindRequestHandler::FilterQueryTag(std::string& value /* can be modified */,
+                                                 ResourceType level,
+                                                 const DicomTag& tag,
+                                                 ModalityManufacturer manufacturer)
+  {
+    return true;
+  }
+
+
   void OrthancFindRequestHandler::Handle(DicomFindAnswers& answers,
                                          const DicomMap& input,
                                          const std::string& remoteIp,
@@ -105,8 +115,6 @@ namespace Orthanc
       throw OrthancException(ErrorCode_UnknownModality);
     }
 
-    // ModalityManufacturer manufacturer = modality.GetManufacturer();
-
     bool caseSensitivePN = Configuration::GetGlobalBoolParameter("CaseSensitivePN", false);
 
 
@@ -119,6 +127,7 @@ namespace Orthanc
         levelTmp->IsNull() ||
         levelTmp->IsBinary())
     {
+      LOG(ERROR) << "C-FIND request without the tag 0008,0052 (QueryRetrieveLevel)";
       throw OrthancException(ErrorCode_BadRequest);
     }
 
@@ -171,17 +180,25 @@ namespace Orthanc
         continue;
       }
 
-      ValueRepresentation vr = FromDcmtkBridge::GetValueRepresentation(tag);
-
-      // DICOM specifies that searches must be case sensitive, except
-      // for tags with a PN value representation
-      bool sensitive = true;
-      if (vr == ValueRepresentation_PatientName)
+      if (FilterQueryTag(value, level, tag, modality.GetManufacturer()))
       {
-        sensitive = caseSensitivePN;
-      }
+        ValueRepresentation vr = FromDcmtkBridge::GetValueRepresentation(tag);
 
-      finder.AddDicomConstraint(tag, value, sensitive);
+        // DICOM specifies that searches must be case sensitive, except
+        // for tags with a PN value representation
+        bool sensitive = true;
+        if (vr == ValueRepresentation_PatientName)
+        {
+          sensitive = caseSensitivePN;
+        }
+
+        finder.AddDicomConstraint(tag, value, sensitive);
+      }
+      else
+      {
+        LOG(INFO) << "Because of a patch for the manufacturer of the remote modality, " 
+                  << "ignoring constraint on tag (" << tag.Format() << ") " << FromDcmtkBridge::GetName(tag);
+      }
     }
 
 

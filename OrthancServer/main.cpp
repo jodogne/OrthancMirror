@@ -748,7 +748,8 @@ static bool StartDicomServer(ServerContext& context,
   dicomServer.SetApplicationEntityFilter(dicomFilter);
 
   dicomServer.Start();
-  LOG(WARNING) << "DICOM server listening on port: " << dicomServer.GetPortNumber();
+  LOG(WARNING) << "DICOM server listening with AET " << dicomServer.GetApplicationEntityTitle() 
+               << " on port: " << dicomServer.GetPortNumber();
 
   bool restart;
   ErrorCode error = ErrorCode_Success;
