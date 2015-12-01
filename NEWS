@@ -72,7 +72,7 @@ Maintenance
 * "--logdir" flag creates a single log file instead of 3 separate files for errors/warnings/infos
 * "--errors" flag lists the error codes that could be returned by Orthanc
 * Under Windows, the exit status of Orthanc corresponds to the encountered error code
-* New "AgfaImpax" modality manufacturer for AGFA Impax
+* New "AgfaImpax", "Efilm" and "Vitrea" modality manufacturers
 * Upgrade to Boost 1.59.0 for static builds
 
 

@@ -150,8 +150,9 @@
      * A fourth parameter is available to enable patches for a
      * specific PACS manufacturer. The allowed values are currently
      * "Generic" (default value), "StoreScp" (storescp tool from
-     * DCMTK), "ClearCanvas", "MedInria", "Dcm4Chee", "SyngoVia", and
-     * "AgfaImpax". This parameter is case-sensitive.
+     * DCMTK), "ClearCanvas", "MedInria", "Dcm4Chee", "SyngoVia",
+     * "AgfaImpax", "Efilm" and "Vitrea". This parameter is
+     * case-sensitive.
      **/
     // "clearcanvas" : [ "CLEARCANVAS", "192.168.1.1", 104, "ClearCanvas" ]
   },
