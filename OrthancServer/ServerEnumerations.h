@@ -64,7 +64,7 @@ namespace Orthanc
     ModalityManufacturer_Dcm4Chee,
     ModalityManufacturer_SyngoVia,
     ModalityManufacturer_AgfaImpax,
-    ModalityManufacturer_Efilm,
+    ModalityManufacturer_EFilm2,
     ModalityManufacturer_Vitrea
   };
 

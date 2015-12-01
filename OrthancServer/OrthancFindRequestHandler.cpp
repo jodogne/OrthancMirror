@@ -96,7 +96,7 @@ namespace Orthanc
   {
     switch (manufacturer)
     {
-      case ModalityManufacturer_Efilm:
+      case ModalityManufacturer_EFilm2:
         // Following Denis Nesterov's mail on 2015-11-30
         if (tag == DicomTag(0x0008, 0x0000) ||  // "GenericGroupLength"
             tag == DicomTag(0x0010, 0x0000) ||  // "GenericGroupLength"
