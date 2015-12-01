@@ -171,7 +171,7 @@ namespace Orthanc
             FromDcmtkBridge::ToJson(dicomJson, **imageDataSet,
                                     DicomToJsonFormat_Full, 
                                     DicomToJsonFlags_Default, 
-                                    256 /* max string length */);
+                                    ORTHANC_MAXIMUM_TAG_LENGTH);
 
             if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, **imageDataSet))
             {
