@@ -63,7 +63,9 @@ namespace Orthanc
     ModalityManufacturer_MedInria,
     ModalityManufacturer_Dcm4Chee,
     ModalityManufacturer_SyngoVia,
-    ModalityManufacturer_AgfaImpax
+    ModalityManufacturer_AgfaImpax,
+    ModalityManufacturer_Efilm,
+    ModalityManufacturer_Vitrea
   };
 
   enum DicomRequestType

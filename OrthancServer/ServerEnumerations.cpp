@@ -340,6 +340,12 @@ namespace Orthanc
       case ModalityManufacturer_AgfaImpax:
         return "AgfaImpax";
       
+      case ModalityManufacturer_Efilm:
+        return "Efilm";
+      
+      case ModalityManufacturer_Vitrea:
+        return "Vitrea";
+      
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -406,6 +412,14 @@ namespace Orthanc
     else if (manufacturer == "AgfaImpax")
     {
       return ModalityManufacturer_AgfaImpax;
+    }
+    else if (manufacturer == "Vitrea")
+    {
+      return ModalityManufacturer_Vitrea;
+    }
+    else if (manufacturer == "Efilm")
+    {
+      return ModalityManufacturer_Efilm;
     }
     else
     {
