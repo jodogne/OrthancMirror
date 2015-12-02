@@ -44,6 +44,7 @@
 #include "../../Core/OrthancException.h"
 #include "../../Core/Toolbox.h"
 #include "../../OrthancServer/FromDcmtkBridge.h"
+#include "../../OrthancServer/ToDcmtkBridge.h"
 #include "../../OrthancServer/OrthancInitialization.h"
 #include "../../OrthancServer/ServerContext.h"
 #include "../../OrthancServer/ServerToolbox.h"
@@ -60,6 +61,8 @@
 #include "PluginsEnumerations.h"
 
 #include <boost/regex.hpp> 
+#include <dcmtk/dcmdata/dcdict.h>
+#include <dcmtk/dcmdata/dcdicent.h>
 
 namespace Orthanc
 {
@@ -1590,6 +1593,59 @@ namespace Orthanc
   }
 
 
+
+  namespace
+  {
+    class DictionaryReadLocker
+    {
+    private:
+      const DcmDataDictionary& dictionary_;
+
+    public:
+      DictionaryReadLocker() : dictionary_(dcmDataDict.rdlock())
+      {
+      }
+
+      ~DictionaryReadLocker()
+      {
+        dcmDataDict.unlock();
+      }
+
+      const DcmDataDictionary* operator->()
+      {
+        return &dictionary_;
+      }
+    };
+  }
+
+
+  void OrthancPlugins::ApplyLookupDictionary(const void* parameters)
+  {
+    const _OrthancPluginLookupDictionary& p =
+      *reinterpret_cast<const _OrthancPluginLookupDictionary*>(parameters);
+
+    DicomTag tag(FromDcmtkBridge::ParseTag(p.name));
+    DcmTagKey tag2(tag.GetGroup(), tag.GetElement());
+
+    DictionaryReadLocker locker;
+    const DcmDictEntry* entry = locker->findEntry(tag2, NULL);
+
+    if (entry == NULL)
+    {
+      throw OrthancException(ErrorCode_UnknownDicomTag);
+    }
+    else
+    {
+      p.target->group = entry->getKey().getGroup();
+      p.target->element = entry->getKey().getElement();
+      p.target->vr = Plugins::Convert(entry->getEVR());
+      p.target->minMultiplicity = static_cast<uint32_t>(entry->getVMMin());
+      p.target->maxMultiplicity = (entry->getVMMax() == DcmVariableVM ? 0 : static_cast<uint32_t>(entry->getVMMax()));
+    }
+  }
+
+
+
   bool OrthancPlugins::InvokeService(SharedLibrary& plugin,
                                      _OrthancPluginService service,
                                      const void* parameters)
@@ -2146,6 +2202,10 @@ namespace Orthanc
       case _OrthancPluginService_ComputeMd5:
       case _OrthancPluginService_ComputeSha1:
         ComputeHash(service, parameters);
+        return true;
+
+      case _OrthancPluginService_LookupDictionary:
+        ApplyLookupDictionary(parameters);
         return true;
 
       default:

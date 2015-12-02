@@ -400,6 +400,7 @@ extern "C"
     _OrthancPluginService_CreateDicom = 23,
     _OrthancPluginService_ComputeMd5 = 24,
     _OrthancPluginService_ComputeSha1 = 25,
+    _OrthancPluginService_LookupDictionary = 26,
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -960,6 +961,20 @@ extern "C"
                                               _OrthancPluginService service,
                                               const void* params);
   } OrthancPluginContext;
+
+
+  
+  /**
+   * @brief An entry in the dictionary of DICOM tags.
+   **/
+  typedef struct
+  {
+    uint16_t                          group;            /*!< The group of the tag */
+    uint16_t                          element;          /*!< The element of the tag */
+    OrthancPluginValueRepresentation  vr;               /*!< The value representation of the tag */
+    uint32_t                          minMultiplicity;  /*!< The minimum multiplicity of the tag */
+    uint32_t                          maxMultiplicity;  /*!< The maximum multiplicity of the tag (0 means arbitrary) */
+  } OrthancPluginDictionaryEntry;
 
 
 
@@ -4626,6 +4641,41 @@ extern "C"
       return result;
     }
   }
+
+
+
+  typedef struct
+  {
+    OrthancPluginDictionaryEntry* target;
+    const char*                   name;
+  } _OrthancPluginLookupDictionary;
+
+  /**
+   * @brief Get information about the given DICOM tag.
+   *
+   * This functions makes a lookup in the dictionary of DICOM tags
+   * that are known to Orthanc, and returns information about this
+   * tag. The tag can be specified using its human-readable name
+   * (e.g. "PatientName") or a set of two hexadecimal numbers
+   * (e.g. "0010-0020").
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target Where to store the information about the tag.
+   * @param name The name of the DICOM tag.
+   * @return 0 if success, other value if error.
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginLookupDictionary(
+    OrthancPluginContext*          context,
+    OrthancPluginDictionaryEntry*  target,
+    const char*                    name)
+  {
+    _OrthancPluginLookupDictionary params;
+    params.target = target;
+    params.name = name;
+    return context->InvokeService(context, _OrthancPluginService_LookupDictionary, &params);
+  }
+
 
 #ifdef  __cplusplus
 }
