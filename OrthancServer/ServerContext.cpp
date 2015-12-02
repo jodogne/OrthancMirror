@@ -189,7 +189,7 @@ namespace Orthanc
       resultPublicId = hasher.HashInstance();
 
       Json::Value simplifiedTags;
-      Toolbox::SimplifyTags(simplifiedTags, dicom.GetJson());
+      Toolbox::SimplifyTags(simplifiedTags, dicom.GetJson(), DicomToJsonFormat_Simple);
 
       // Test if the instance must be filtered out
       bool accepted = true;

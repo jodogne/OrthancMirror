@@ -42,7 +42,8 @@ namespace Orthanc
   namespace Toolbox
   {
     void SimplifyTags(Json::Value& target,
-                      const Json::Value& source);
+                      const Json::Value& source,
+                      DicomToJsonFormat format);
 
     void LogMissingRequiredTag(const DicomMap& summary);
 

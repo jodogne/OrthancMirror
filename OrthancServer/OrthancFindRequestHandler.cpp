@@ -47,19 +47,21 @@ namespace Orthanc
 {
   static void AddAnswer(DicomFindAnswers& answers,
                         const Json::Value& resource,
-                        const DicomArray& query)
+                        const DicomArray& query,
+                        const std::list<DicomTag>& sequencesToReturn)
   {
     DicomMap result;
 
     for (size_t i = 0; i < query.GetSize(); i++)
     {
-      // Fix issue 30 (QR response missing "Query/Retrieve Level" (008,0052))
       if (query.GetElement(i).GetTag() == DICOM_TAG_QUERY_RETRIEVE_LEVEL)
       {
+        // Fix issue 30 on Google Code (QR response missing "Query/Retrieve Level" (008,0052))
         result.SetValue(query.GetElement(i).GetTag(), query.GetElement(i).GetValue());
       }
       else if (query.GetElement(i).GetTag() == DICOM_TAG_SPECIFIC_CHARACTER_SET)
       {
+        // Do not include the encoding, this is handled by class ParsedDicomFile
       }
       else
       {
@@ -77,13 +79,46 @@ namespace Orthanc
       }
     }
 
-    if (result.GetSize() == 0)
+    if (result.GetSize() == 0 &&
+        sequencesToReturn.empty())
     {
       LOG(WARNING) << "The C-FIND request does not return any DICOM tag";
     }
-    else
+    else if (sequencesToReturn.empty())
     {
       answers.Add(result);
+    }
+    else
+    {
+      ParsedDicomFile dicom(result);
+
+      for (std::list<DicomTag>::const_iterator tag = sequencesToReturn.begin();
+           tag != sequencesToReturn.end(); ++tag)
+      {
+        std::cout << tag->Format();
+
+        const Json::Value& source = resource[tag->Format()];
+
+        if (source.type() == Json::objectValue &&
+            source.isMember("Type") &&
+            source.isMember("Value") &&
+            source["Type"].asString() == "Sequence" &&
+            source["Value"].type() == Json::arrayValue)
+        {
+          Json::Value content = Json::arrayValue;
+
+          for (Json::Value::ArrayIndex i = 0; i < source["Value"].size(); i++)
+          {
+            Json::Value item;
+            Toolbox::SimplifyTags(item, source["Value"][i], DicomToJsonFormat_Short);
+            content.append(item);
+          }
+
+          dicom.Replace(*tag, content, false);
+        }
+      }
+
+      answers.Add(dicom);
     }
   }
 
@@ -126,6 +161,7 @@ namespace Orthanc
 
   void OrthancFindRequestHandler::Handle(DicomFindAnswers& answers,
                                          const DicomMap& input,
+                                         const std::list<DicomTag>& sequencesToReturn,
                                          const std::string& remoteIp,
                                          const std::string& remoteAet,
                                          const std::string& calledAet)
@@ -179,6 +215,14 @@ namespace Orthanc
                   << "  " << FromDcmtkBridge::GetName(query.GetElement(i).GetTag())
                   << " = " << query.GetElement(i).GetValue().GetContent();
       }
+    }
+
+    for (std::list<DicomTag>::const_iterator it = sequencesToReturn.begin();
+         it != sequencesToReturn.end(); ++it)
+    {
+      LOG(INFO) << "  (" << it->Format()
+                << ")  " << FromDcmtkBridge::GetName(*it)
+                << " : sequence tag whose content will be copied";
     }
 
 
@@ -255,7 +299,7 @@ namespace Orthanc
         }
         else
         {
-          AddAnswer(answers, dicom, query);
+          AddAnswer(answers, dicom, query, sequencesToReturn);
         }
       }
     }

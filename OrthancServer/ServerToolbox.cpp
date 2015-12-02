@@ -47,7 +47,8 @@ namespace Orthanc
   namespace Toolbox
   {
     void SimplifyTags(Json::Value& target,
-                      const Json::Value& source)
+                      const Json::Value& source,
+                      DicomToJsonFormat format)
     {
       assert(source.isObject());
 
@@ -57,8 +58,22 @@ namespace Orthanc
       for (size_t i = 0; i < members.size(); i++)
       {
         const Json::Value& v = source[members[i]];
-        const std::string& name = v["Name"].asString();
         const std::string& type = v["Type"].asString();
+
+        std::string name;
+        switch (format)
+        {
+          case DicomToJsonFormat_Simple:
+            name = v["Name"].asString();
+            break;
+
+          case DicomToJsonFormat_Short:
+            name = members[i];
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
 
         if (type == "String")
         {
@@ -78,7 +93,7 @@ namespace Orthanc
           for (Json::Value::ArrayIndex i = 0; i < array.size(); i++)
           {
             Json::Value c;
-            SimplifyTags(c, array[i]);
+            SimplifyTags(c, array[i], format);
             children.append(c);
           }
 
