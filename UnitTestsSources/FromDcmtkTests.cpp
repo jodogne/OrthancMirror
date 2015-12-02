@@ -395,7 +395,7 @@ TEST(FromDcmtkBridge, FromJson)
       FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Full, DicomToJsonFlags_Default, 0, Encoding_Ascii);
 
       Json::Value c;
-      Toolbox::SimplifyTags(c, b, DicomToJsonFormat_Simple);
+      Toolbox::SimplifyTags(c, b, DicomToJsonFormat_Human);
 
       a[1]["PatientName"] = "Hello2";  // To remove the Data URI Scheme encoding
       ASSERT_EQ(0, c["ReferencedStudySequence"].compare(a));
@@ -474,7 +474,7 @@ TEST(ParsedDicomFile, InsertReplaceJson)
     f.ToJson(b, DicomToJsonFormat_Full, DicomToJsonFlags_Default, 0);
 
     Json::Value c;
-    Toolbox::SimplifyTags(c, b, DicomToJsonFormat_Simple);
+    Toolbox::SimplifyTags(c, b, DicomToJsonFormat_Human);
 
     ASSERT_EQ(0, c["ReferencedPatientSequence"].compare(a));
     ASSERT_NE(0, c["ReferencedStudySequence"].compare(a));  // Because Data URI Scheme decoding was enabled
@@ -516,7 +516,7 @@ TEST(ParsedDicomFile, JsonEncoding)
       f.Replace(DICOM_TAG_PATIENT_NAME, s, false);
 
       Json::Value v;
-      f.ToJson(v, DicomToJsonFormat_Simple, DicomToJsonFlags_Default, 0);
+      f.ToJson(v, DicomToJsonFormat_Human, DicomToJsonFlags_Default, 0);
       ASSERT_EQ(v["PatientName"].asString(), std::string(testEncodingsExpected[i]));
     }
   }
@@ -709,7 +709,7 @@ TEST(ParsedDicomFile, FromJson)
       (ParsedDicomFile::CreateFromJson(v, static_cast<DicomFromJsonFlags>(DicomFromJsonFlags_GenerateIdentifiers)));
 
     Json::Value vv;
-    dicom->ToJson(vv, DicomToJsonFormat_Simple, toJsonFlags, 0);
+    dicom->ToJson(vv, DicomToJsonFormat_Human, toJsonFlags, 0);
 
     ASSERT_EQ(vv["SOPClassUID"].asString(), sopClassUid);
     ASSERT_EQ(vv["MediaStorageSOPClassUID"].asString(), sopClassUid);
@@ -725,7 +725,7 @@ TEST(ParsedDicomFile, FromJson)
       (ParsedDicomFile::CreateFromJson(v, static_cast<DicomFromJsonFlags>(DicomFromJsonFlags_GenerateIdentifiers)));
 
     Json::Value vv;
-    dicom->ToJson(vv, DicomToJsonFormat_Simple, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePixelData), 0);
+    dicom->ToJson(vv, DicomToJsonFormat_Human, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePixelData), 0);
 
     std::string mime, content;
     Toolbox::DecodeDataUriScheme(mime, content, vv["PixelData"].asString());

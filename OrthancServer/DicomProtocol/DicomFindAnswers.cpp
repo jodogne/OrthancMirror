@@ -189,7 +189,7 @@ namespace Orthanc
                                 size_t index,
                                 bool simplify) const
   {
-    DicomToJsonFormat format = (simplify ? DicomToJsonFormat_Simple : DicomToJsonFormat_Full);
+    DicomToJsonFormat format = (simplify ? DicomToJsonFormat_Human : DicomToJsonFormat_Full);
     GetAnswer(index).ToJson(target, format, DicomToJsonFlags_None, 0);
   }
 

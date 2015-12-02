@@ -226,8 +226,8 @@ namespace Orthanc
         case OrthancPluginDicomToJsonFormat_Short:
           return DicomToJsonFormat_Short;
 
-        case OrthancPluginDicomToJsonFormat_Simple:
-          return DicomToJsonFormat_Simple;
+        case OrthancPluginDicomToJsonFormat_Human:
+          return DicomToJsonFormat_Human;
 
         default:
           throw OrthancException(ErrorCode_ParameterOutOfRange);

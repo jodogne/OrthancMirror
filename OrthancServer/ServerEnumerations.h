@@ -109,7 +109,7 @@ namespace Orthanc
   {
     DicomToJsonFormat_Full,
     DicomToJsonFormat_Short,
-    DicomToJsonFormat_Simple
+    DicomToJsonFormat_Human
   };
 
   enum DicomToJsonFlags

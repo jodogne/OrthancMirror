@@ -581,7 +581,7 @@ namespace Orthanc
     
     switch (format)
     {
-      case DicomToJsonFormat_Simple:
+      case DicomToJsonFormat_Human:
         parent[tagName] = Json::nullValue;
         return parent[tagName];
 
@@ -628,7 +628,7 @@ namespace Orthanc
     switch (format)
     {
       case DicomToJsonFormat_Short:
-      case DicomToJsonFormat_Simple:
+      case DicomToJsonFormat_Human:
       {
         assert(target.type() == Json::nullValue);
         targetValue = &target;

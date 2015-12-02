@@ -209,7 +209,7 @@ namespace Orthanc
       context.ReadJson(full, publicId);
 
       Json::Value simplified;
-      Toolbox::SimplifyTags(simplified, full, DicomToJsonFormat_Simple);
+      Toolbox::SimplifyTags(simplified, full, DicomToJsonFormat_Human);
       call.GetOutput().AnswerJson(simplified);
     }
     else
@@ -928,7 +928,7 @@ namespace Orthanc
       if (simplify)
       {
         Json::Value simplified;
-        Toolbox::SimplifyTags(simplified, sharedTags, DicomToJsonFormat_Simple);
+        Toolbox::SimplifyTags(simplified, sharedTags, DicomToJsonFormat_Human);
         call.GetOutput().AnswerJson(simplified);
       }
       else
@@ -995,7 +995,7 @@ namespace Orthanc
     if (simplify)
     {
       Json::Value simplified;
-      Toolbox::SimplifyTags(simplified, result, DicomToJsonFormat_Simple);
+      Toolbox::SimplifyTags(simplified, result, DicomToJsonFormat_Human);
       call.GetOutput().AnswerJson(simplified);
     }
     else
@@ -1201,7 +1201,7 @@ namespace Orthanc
       if (simplify)
       {
         Json::Value simplified;
-        Toolbox::SimplifyTags(simplified, full, DicomToJsonFormat_Simple);
+        Toolbox::SimplifyTags(simplified, full, DicomToJsonFormat_Human);
         result[*it] = simplified;
       }
       else
@@ -1295,7 +1295,7 @@ namespace Orthanc
     if (simplify)
     {
       Json::Value simplified;
-      Toolbox::SimplifyTags(simplified, header, DicomToJsonFormat_Simple);
+      Toolbox::SimplifyTags(simplified, header, DicomToJsonFormat_Human);
       call.GetOutput().AnswerJson(simplified);
     }
     else
