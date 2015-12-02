@@ -1187,7 +1187,7 @@ namespace Orthanc
         else
         {
           Json::Value simplified;
-          Toolbox::SimplifyTags(simplified, instance.GetJson(), DicomToJsonFormat_Simple);
+          Toolbox::SimplifyTags(simplified, instance.GetJson(), DicomToJsonFormat_Human);
           s = writer.write(simplified);
         }
 

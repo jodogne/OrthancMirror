@@ -682,7 +682,7 @@ extern "C"
   {
     OrthancPluginDicomToJsonFormat_Full = 1,    /*!< Full output, with most details */
     OrthancPluginDicomToJsonFormat_Short = 2,   /*!< Tags output as hexadecimal numbers */
-    OrthancPluginDicomToJsonFormat_Simple = 3,  /*!< Human-readable JSON */
+    OrthancPluginDicomToJsonFormat_Human = 3,   /*!< Human-readable JSON */
 
     _OrthancPluginDicomToJsonFormat_INTERNAL = 0x7fffffff
   } OrthancPluginDicomToJsonFormat;

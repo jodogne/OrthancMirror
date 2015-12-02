@@ -63,7 +63,7 @@ namespace Orthanc
         std::string name;
         switch (format)
         {
-          case DicomToJsonFormat_Simple:
+          case DicomToJsonFormat_Human:
             name = v["Name"].asString();
             break;
 
