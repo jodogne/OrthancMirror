@@ -327,6 +327,7 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   OrthancPluginMemoryBuffer tmp;
   char info[1024], *s;
   int counter, i;
+  OrthancPluginDictionaryEntry entry;
 
   context = c;
   OrthancPluginLogWarning(context, "Sample plugin is initializing");
@@ -406,6 +407,9 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
 
   OrthancPluginRegisterDictionaryTag(context, 0x0014, 0x1020, OrthancPluginValueRepresentation_DA,
                                      "ValidationExpiryDate", 1, 1);
+
+  OrthancPluginLookupDictionary(context, &entry, "ValidationExpiryDate");
+  OrthancPluginLookupDictionary(context, &entry, "0010-0010");
 
   return 0;
 }

@@ -43,6 +43,7 @@ Plugins
   - "OrthancPluginDicomBufferToJson()" to convert DICOM to JSON
   - "OrthancPluginRegisterErrorCode()" to declare custom error codes
   - "OrthancPluginRegisterDictionaryTag()" to declare custom DICOM tags
+  - "OrthancPluginLookupDictionary()" to get information about some DICOM tag
   - "OrthancPluginRestApiGet2()" to provide HTTP headers when calling Orthanc API
   - "OrthancPluginGetInstanceOrigin()" to know through which mechanism an instance was received
   - "OrthancPluginCreateImage()" and "OrthancPluginCreateImageAccessor()" to create images

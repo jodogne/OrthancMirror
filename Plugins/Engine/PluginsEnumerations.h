@@ -69,6 +69,8 @@ namespace Orthanc
 
 #if !defined(ORTHANC_ENABLE_DCMTK) || ORTHANC_ENABLE_DCMTK != 0
     DcmEVR Convert(OrthancPluginValueRepresentation vr);
+
+    OrthancPluginValueRepresentation Convert(DcmEVR vr);
 #endif
   }
 }

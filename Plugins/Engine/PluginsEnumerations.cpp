@@ -394,6 +394,95 @@ namespace Orthanc
           throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
     }
+
+
+    OrthancPluginValueRepresentation Convert(DcmEVR vr)
+    {
+      switch (vr)
+      {
+        case EVR_AE:
+          return OrthancPluginValueRepresentation_AE;
+
+        case EVR_AS:
+          return OrthancPluginValueRepresentation_AS;
+
+        case EVR_AT:
+          return OrthancPluginValueRepresentation_AT;
+
+        case EVR_CS:
+          return OrthancPluginValueRepresentation_CS;
+
+        case EVR_DA:
+          return OrthancPluginValueRepresentation_DA;
+
+        case EVR_DS:
+          return OrthancPluginValueRepresentation_DS;
+
+        case EVR_DT:
+          return OrthancPluginValueRepresentation_DT;
+
+        case EVR_FD:
+          return OrthancPluginValueRepresentation_FD;
+
+        case EVR_FL:
+          return OrthancPluginValueRepresentation_FL;
+
+        case EVR_IS:
+          return OrthancPluginValueRepresentation_IS;
+
+        case EVR_LO:
+          return OrthancPluginValueRepresentation_LO;
+
+        case EVR_LT:
+          return OrthancPluginValueRepresentation_LT;
+
+        case EVR_OB:
+          return OrthancPluginValueRepresentation_OB;
+
+        case EVR_OF:
+          return OrthancPluginValueRepresentation_OF;
+
+        case EVR_OW:
+          return OrthancPluginValueRepresentation_OW;
+
+        case EVR_PN:
+          return OrthancPluginValueRepresentation_PN;
+
+        case EVR_SH:
+          return OrthancPluginValueRepresentation_SH;
+
+        case EVR_SL:
+          return OrthancPluginValueRepresentation_SL;
+
+        case EVR_SQ:
+          return OrthancPluginValueRepresentation_SQ;
+
+        case EVR_SS:
+          return OrthancPluginValueRepresentation_SS;
+
+        case EVR_ST:
+          return OrthancPluginValueRepresentation_ST;
+
+        case EVR_TM:
+          return OrthancPluginValueRepresentation_TM;
+
+        case EVR_UI:
+          return OrthancPluginValueRepresentation_UI;
+
+        case EVR_UL:
+          return OrthancPluginValueRepresentation_UL;
+
+        case EVR_US:
+          return OrthancPluginValueRepresentation_US;
+
+        case EVR_UT:
+          return OrthancPluginValueRepresentation_UT;
+
+        case EVR_UN:
+        default:
+          return OrthancPluginValueRepresentation_UN;  // Unknown
+      }
+    }
 #endif
   }
 }
