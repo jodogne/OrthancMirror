@@ -148,9 +148,30 @@ namespace Orthanc
           {
             if (data.findHandler_ != NULL)
             {
+              std::list<DicomTag> sequencesToReturn;
+
+              for (unsigned long i = 0; i < requestIdentifiers->card(); i++)
+              {
+                DcmElement* element = requestIdentifiers->getElement(i);
+                if (element && !element->isLeaf())
+                {
+                  const DicomTag tag(FromDcmtkBridge::Convert(element->getTag()));
+
+                  DcmSequenceOfItems& sequence = dynamic_cast<DcmSequenceOfItems&>(*element);
+                  if (sequence.card() != 0)
+                  {
+                    LOG(WARNING) << "Orthanc only supports sequence matching on worklists, "
+                                 << "ignoring C-FIND SCU constraint on tag (" << tag.Format() 
+                                 << ") " << FromDcmtkBridge::GetName(tag);
+                  }
+
+                  sequencesToReturn.push_back(tag);
+                }
+              }
+
               DicomMap input;
               FromDcmtkBridge::Convert(input, *requestIdentifiers);
-              data.findHandler_->Handle(data.answers_, input,
+              data.findHandler_->Handle(data.answers_, input, sequencesToReturn,
                                         *data.remoteIp_, *data.remoteAet_,
                                         *data.calledAet_);
               ok = true;

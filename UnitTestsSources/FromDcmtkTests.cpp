@@ -395,7 +395,7 @@ TEST(FromDcmtkBridge, FromJson)
       FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Full, DicomToJsonFlags_Default, 0, Encoding_Ascii);
 
       Json::Value c;
-      Toolbox::SimplifyTags(c, b);
+      Toolbox::SimplifyTags(c, b, DicomToJsonFormat_Simple);
 
       a[1]["PatientName"] = "Hello2";  // To remove the Data URI Scheme encoding
       ASSERT_EQ(0, c["ReferencedStudySequence"].compare(a));
@@ -474,7 +474,7 @@ TEST(ParsedDicomFile, InsertReplaceJson)
     f.ToJson(b, DicomToJsonFormat_Full, DicomToJsonFlags_Default, 0);
 
     Json::Value c;
-    Toolbox::SimplifyTags(c, b);
+    Toolbox::SimplifyTags(c, b, DicomToJsonFormat_Simple);
 
     ASSERT_EQ(0, c["ReferencedPatientSequence"].compare(a));
     ASSERT_NE(0, c["ReferencedStudySequence"].compare(a));  // Because Data URI Scheme decoding was enabled

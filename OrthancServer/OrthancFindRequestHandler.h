@@ -62,6 +62,7 @@ namespace Orthanc
 
     virtual void Handle(DicomFindAnswers& answers,
                         const DicomMap& input,
+                        const std::list<DicomTag>& sequencesToReturn,
                         const std::string& remoteIp,
                         const std::string& remoteAet,
                         const std::string& calledAet);

@@ -4,8 +4,8 @@ Pending changes in the mainline
 Major
 -----
 
-* Experimental support of DICOM C-Find SCP for modality worklists through plugins
-* Support of DICOM C-Find SCU for modality worklists ("/modalities/{dicom}/find-worklist")
+* Experimental support of DICOM C-FIND SCP for modality worklists through plugins
+* Support of DICOM C-FIND SCU for modality worklists ("/modalities/{dicom}/find-worklist")
 
 REST API
 --------
@@ -64,15 +64,16 @@ Lua
 Maintenance
 -----------
 
-* Full indexation of the patient/study tags to speed up searches and C-Find
+* Full indexation of the patient/study tags to speed up searches and C-FIND
 * Many refactorings, notably of the searching features and of the image decoding
-* C-Move SCP for studies using AccessionNumber tag
-* Fix issue 4 (C-Store Association not renegotiated on Specific-to-specific transfer syntax change)
+* C-MOVE SCP for studies using AccessionNumber tag
+* Fix issue 4 (C-STORE Association not renegotiated on Specific-to-specific transfer syntax change)
 * Fix formatting of multipart HTTP answers
 * "--logdir" flag creates a single log file instead of 3 separate files for errors/warnings/infos
 * "--errors" flag lists the error codes that could be returned by Orthanc
 * Under Windows, the exit status of Orthanc corresponds to the encountered error code
 * New "AgfaImpax", "EFilm2" and "Vitrea" modality manufacturers
+* C-FIND SCP will return tags with sequence value representation
 * Upgrade to Boost 1.59.0 for static builds
 
 
@@ -148,7 +149,7 @@ General
 -------
 
 * The configuration can be splitted into several files stored inside the same folder
-* Custom setting of the local AET during C-Store SCU (both in Lua and in the REST API)
+* Custom setting of the local AET during C-STORE SCU (both in Lua and in the REST API)
 * Many code refactorings
 
 Lua
@@ -167,9 +168,9 @@ Plugins
 Fixes
 -----
 
-* Fix compatibility issues for C-Find SCU to Siemens Syngo.Via modalities SCP
+* Fix compatibility issues for C-FIND SCU to Siemens Syngo.Via modalities SCP
 * Fix issue 15 (Lua scripts making HTTP requests)
-* Fix issue 35 (Characters in PatientID string are not protected for C-Find)
+* Fix issue 35 (Characters in PatientID string are not protected for C-FIND)
 * Fix issue 37 (Hyphens trigger range query even if datatype does not support ranges)
 
 
@@ -180,7 +181,7 @@ Major
 -----
 
 * DICOM Query/Retrieve available from Orthanc Explorer
-* C-Move SCU and C-Find SCU are accessible through the REST API
+* C-MOVE SCU and C-FIND SCU are accessible through the REST API
 * "?expand" flag for URIs "/patients", "/studies" and "/series"
 * "/tools/find" URI to search for DICOM resources from REST
 * Support of FreeBSD
@@ -190,15 +191,15 @@ Minor
 -----
 
 * Speed-up in Orthanc Explorer for large amount of images
-* Speed-up of the C-Find SCP server of Orthanc
+* Speed-up of the C-FIND SCP server of Orthanc
 * Allow replacing PatientID/StudyInstanceUID/SeriesInstanceUID from Lua scripts
-* Option "CaseSensitivePN" to enable case-insensitive C-Find SCP
+* Option "CaseSensitivePN" to enable case-insensitive C-FIND SCP
 
 Fixes
 -----
 
 * Prevent freeze on C-FIND if no DICOM tag is to be returned
-* Fix slow C-Store SCP on recent versions of Linux, if
+* Fix slow C-STORE SCP on recent versions of Linux, if
   USE_SYSTEM_DCMTK is set to OFF (http://forum.dcmtk.org/viewtopic.php?f=1&t=4009)
 * Fix issue 30 (QR response missing "Query/Retrieve Level" (008,0052))
 * Fix issue 32 (Cyrillic symbols): Introduction of the "Windows1251" encoding
@@ -269,7 +270,7 @@ Version 0.8.4 (2014/09/19)
 
 * "/instances-tags" to get the tags of all the child instances of a
   patient/study/series with a single REST call (bulk tags retrieval)
-* Configuration/Lua to select the accepted C-Store SCP transfer syntaxes
+* Configuration/Lua to select the accepted C-STORE SCP transfer syntaxes
 * Fix reporting of errors in Orthanc Explorer when sending images to peers/modalities
 * Installation of plugin SDK in CMake
 
@@ -380,7 +381,7 @@ Version 0.7.6 (2014/06/11)
 Version 0.7.5 (2014/05/08)
 ==========================
 
-* Dynamic negotiation of SOP classes for C-Store SCU
+* Dynamic negotiation of SOP classes for C-STORE SCU
 * Creation of DICOM instances using the REST API
 * Embedding of images within DICOM instances
 * Adding/removal/modification of remote modalities/peers through REST
@@ -427,8 +428,8 @@ Version 0.7.2 (2013/11/08)
 ==========================
 
 * Support of Query/Retrieve from medInria
-* Accept more transfer syntaxes for C-Store SCP and SCU (notably JPEG)
-* Create the meta-header when receiving files through C-Store SCP
+* Accept more transfer syntaxes for C-STORE SCP and SCU (notably JPEG)
+* Create the meta-header when receiving files through C-STORE SCP
 * Fixes and improvements thanks to the static analyzer cppcheck
 
 
@@ -471,7 +472,7 @@ Version 0.6.1 (2013/09/16)
 ==========================
 
 * Detection of stable patients/studies/series
-* C-Find SCU at the instance level
+* C-FIND SCU at the instance level
 * Link from modified to original resource in Orthanc Explorer
 * Fix of issue #8
 * Anonymization of the medical alerts tag (0010,2000)
@@ -581,7 +582,7 @@ Major changes
 * The patient/study/series/instances are now indexed by SHA-1 digests
   of their DICOM Instance IDs (and not by UUIDs anymore): The same
   DICOM objects are thus always identified by the same Orthanc IDs
-* Log of exported instances through DICOM C-Store SCU ("/exported" URI)
+* Log of exported instances through DICOM C-STORE SCU ("/exported" URI)
 * Full refactoring of the DB schema and of the REST API
 * Introduction of generic classes for REST APIs (in Core/RestApi)
 
