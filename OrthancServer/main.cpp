@@ -1099,7 +1099,25 @@ int main(int argc, char* argv[])
    * Launch Orthanc.
    **/
 
-  LOG(WARNING) << "Orthanc version: " << ORTHANC_VERSION;
+  {
+    std::string version(ORTHANC_VERSION);
+
+    if (std::string(ORTHANC_VERSION) == "mainline")
+    {
+      try
+      {
+        boost::filesystem::path exe(Toolbox::GetPathToExecutable());
+        std::time_t creation = boost::filesystem::last_write_time(exe);
+        boost::posix_time::ptime converted(boost::posix_time::from_time_t(creation));
+        version += " (" + boost::posix_time::to_iso_string(converted) + ")";
+      }
+      catch (...)
+      {
+      }
+    }
+
+    LOG(WARNING) << "Orthanc version: " << version;
+  }
 
   int status = 0;
   try
