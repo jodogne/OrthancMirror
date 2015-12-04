@@ -123,12 +123,12 @@ namespace Orthanc
         std::auto_ptr<DicomValue> value(FromDcmtkBridge::ConvertLeafElement
                                         (*element, DicomToJsonFlags_None, encoding));
 
-        if (value->IsBinary() ||
-            value->IsNull())
+        if (value->IsBinary())
         {
           throw OrthancException(ErrorCode_BadRequest);
         }
-        else if (value->GetContent().empty())
+        else if (value->IsNull() ||
+                 value->GetContent().empty())
         {
           // This is an universal matcher
           constraints_[tag] = NULL;
