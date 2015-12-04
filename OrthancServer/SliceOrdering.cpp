@@ -320,7 +320,8 @@ namespace Orthanc
       if (instances_[i - 1]->GetIndexInSeries() == instances_[i]->GetIndexInSeries())
       {
         // The current "IndexInSeries" occurs 2 times: Not a proper ordering
-        return false;
+        LOG(WARNING) << "This series contains 2 slices with the same index, trying to display it anyway";
+        break;
       }
     }
 
