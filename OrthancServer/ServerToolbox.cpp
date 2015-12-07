@@ -322,6 +322,8 @@ namespace Orthanc
             tmp != level ||
             !FindOneChildInstance(instance, database, resource, level))
         {
+          LOG(ERROR) << "Cannot find an instance for " << EnumerationToString(level) 
+                     << " with identifier " << *it;
           throw OrthancException(ErrorCode_InternalError);
         }
 
@@ -329,23 +331,33 @@ namespace Orthanc
         FileInfo attachment;
         if (!database.LookupAttachment(attachment, instance, FileContentType_Dicom))
         {
+          LOG(ERROR) << "Cannot retrieve the DICOM file associated with instance " << database.GetPublicId(instance);
           throw OrthancException(ErrorCode_InternalError);
         }
 
-        // Read and parse the content of the DICOM file
-        StorageAccessor accessor(storageArea);
+        try
+        {
+          // Read and parse the content of the DICOM file
+          StorageAccessor accessor(storageArea);
 
-        std::string content;
-        accessor.Read(content, attachment);
+          std::string content;
+          accessor.Read(content, attachment);
 
-        ParsedDicomFile dicom(content);
+          ParsedDicomFile dicom(content);
 
-        // Update the tags of this resource
-        DicomMap dicomSummary;
-        dicom.Convert(dicomSummary);
+          // Update the tags of this resource
+          DicomMap dicomSummary;
+          dicom.Convert(dicomSummary);
 
-        database.ClearMainDicomTags(resource);
-        Toolbox::SetMainDicomTags(database, resource, level, dicomSummary);
+          database.ClearMainDicomTags(resource);
+          Toolbox::SetMainDicomTags(database, resource, level, dicomSummary);
+        }
+        catch (OrthancException&)
+        {
+          LOG(ERROR) << "Cannot decode the DICOM file with UUID " << attachment.GetUuid()
+                     << " associated with instance " << database.GetPublicId(instance);
+          throw;
+        }
       }
     }
   }
