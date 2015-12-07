@@ -835,7 +835,17 @@ static bool UpgradeDatabase(IDatabaseWrapper& database,
 
   LOG(WARNING) << "Upgrading the database from schema version "
                << currentVersion << " to " << ORTHANC_DATABASE_VERSION;
-  database.Upgrade(ORTHANC_DATABASE_VERSION, storageArea);
+
+  try
+  {
+    database.Upgrade(ORTHANC_DATABASE_VERSION, storageArea);
+  }
+  catch (OrthancException&)
+  {
+    LOG(ERROR) << "Unable to run the automated upgrade, please use the replication instructions: "
+               << "https://orthanc.chu.ulg.ac.be/book/users/replication.html";
+    throw;
+  }
     
   // Sanity check
   currentVersion = database.GetDatabaseVersion();
