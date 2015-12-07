@@ -104,7 +104,7 @@
 
   // Whether Orthanc accepts to act as C-Store SCP for unknown storage
   // SOP classes (aka. "promiscuous mode")
-  "UnknownSopClassAccepted"            : true,
+  "UnknownSopClassAccepted"            : false,
 
 
 
