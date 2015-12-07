@@ -3,6 +3,7 @@ Pending changes in the mainline
 
 * Fix modality worklists server if some fields are null
 * More tolerant "/series/.../ordered-slices" with broken series
+* Promiscuous mode is now turned off by default
 
 
 Version 0.9.5 (2015/12/02)

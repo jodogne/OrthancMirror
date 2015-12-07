@@ -269,7 +269,7 @@ public:
       }
     }
 
-    return Configuration::GetGlobalBoolParameter(configuration, true);
+    return Configuration::GetGlobalBoolParameter(configuration, false);
   }
 };
 
