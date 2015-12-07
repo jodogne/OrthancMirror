@@ -463,7 +463,7 @@ namespace Orthanc
       stream_.Send(false, item, length);
     }
 
-    stream_.Send(false, "\r\n", 1);
+    stream_.Send(false, "\r\n", 2);
   }
 
 
