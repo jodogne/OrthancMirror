@@ -1,6 +1,10 @@
 Pending changes in the mainline
 ===============================
 
+
+Version 0.9.6 (2015/12/08)
+==========================
+
 * Promiscuous mode (accept unknown SOP class UID) is now turned off by default
 * Fix serialization of DICOM buffers that might contain garbage trailing
 * Fix modality worklists server if some fields are null
