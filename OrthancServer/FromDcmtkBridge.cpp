@@ -1040,9 +1040,12 @@ namespace Orthanc
     ff.removeInvalidGroups();
 
     // Create a memory buffer with the proper size
-    uint32_t s = ff.calcElementLength(xfer, encodingType);
-    buffer.resize(s);
-    DcmOutputBufferStream ob(&buffer[0], s);
+    {
+      const uint32_t estimatedSize = ff.calcElementLength(xfer, encodingType);  // (*)
+      buffer.resize(estimatedSize);
+    }
+
+    DcmOutputBufferStream ob(&buffer[0], buffer.size());
 
     // Fill the memory buffer with the meta-header and the dataset
     ff.transferInit();
@@ -1051,13 +1054,23 @@ namespace Orthanc
                              /*opt_paddingType*/ EPD_withoutPadding);
     ff.transferEnd();
 
-    // Handle errors
     if (c.good())
     {
+      // The DICOM file is successfully written, truncate the target
+      // buffer if its size was overestimated by (*)
+      ob.flush();
+
+      size_t effectiveSize = static_cast<size_t>(ob.tell());
+      if (effectiveSize < buffer.size())
+      {
+        buffer.resize(effectiveSize);
+      }
+
       return true;
     }
     else
     {
+      // Error
       buffer.clear();
       return false;
     }
