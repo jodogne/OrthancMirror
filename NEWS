@@ -2,6 +2,9 @@ Pending changes in the mainline
 ===============================
 
 
+* New function in plugin SDK: "OrthancPluginSendMultipartItem2()"
+
+
 Version 0.9.6 (2015/12/08)
 ==========================
 

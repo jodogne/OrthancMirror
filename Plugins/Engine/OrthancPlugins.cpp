@@ -1574,7 +1574,39 @@ namespace Orthanc
 
     *(p.target) = ReturnImage(result);
   }
-        
+
+
+  void OrthancPlugins::ApplySendMultipartItem(const void* parameters)
+  {
+    // An exception might be raised in this function if the
+    // connection was closed by the HTTP client.
+    const _OrthancPluginAnswerBuffer& p =
+      *reinterpret_cast<const _OrthancPluginAnswerBuffer*>(parameters);
+
+    HttpOutput* output = reinterpret_cast<HttpOutput*>(p.output);
+
+    std::map<std::string, std::string> headers;  // No custom headers
+    output->SendMultipartItem(p.answer, p.answerSize, headers);
+  }
+
+
+  void OrthancPlugins::ApplySendMultipartItem2(const void* parameters)
+  {
+    // An exception might be raised in this function if the
+    // connection was closed by the HTTP client.
+    const _OrthancPluginSendMultipartItem2& p =
+      *reinterpret_cast<const _OrthancPluginSendMultipartItem2*>(parameters);
+    HttpOutput* output = reinterpret_cast<HttpOutput*>(p.output);
+    
+    std::map<std::string, std::string> headers;
+    for (uint32_t i = 0; i < p.headersCount; i++)
+    {
+      headers[p.headersKeys[i]] = p.headersValues[i];
+    }
+    
+    output->SendMultipartItem(p.answer, p.answerSize, headers);
+  }
+      
 
   void OrthancPlugins::DatabaseAnswer(const void* parameters)
   {
@@ -1969,15 +2001,12 @@ namespace Orthanc
       }
 
       case _OrthancPluginService_SendMultipartItem:
-      {
-        // An exception might be raised in this function if the
-        // connection was closed by the HTTP client.
-        const _OrthancPluginAnswerBuffer& p =
-          *reinterpret_cast<const _OrthancPluginAnswerBuffer*>(parameters);
-        HttpOutput* output = reinterpret_cast<HttpOutput*>(p.output);
-        output->SendMultipartItem(p.answer, p.answerSize);
+        ApplySendMultipartItem(parameters);
         return true;
-      }
+
+      case _OrthancPluginService_SendMultipartItem2:
+        ApplySendMultipartItem2(parameters);
+        return true;
 
       case _OrthancPluginService_ReadFile:
       {
