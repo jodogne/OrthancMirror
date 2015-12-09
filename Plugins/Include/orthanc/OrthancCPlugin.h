@@ -114,7 +114,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     0
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     9
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  5
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  7
 
 
 
@@ -424,6 +424,7 @@ extern "C"
     _OrthancPluginService_SendMultipartItem = 2009,
     _OrthancPluginService_SendHttpStatus = 2010,
     _OrthancPluginService_CompressAndAnswerImage = 2011,
+    _OrthancPluginService_SendMultipartItem2 = 2012,
 
     /* Access to the Orthanc database and API */
     _OrthancPluginService_GetDicomForInstance = 3000,
@@ -2719,7 +2720,7 @@ extern "C"
    * @param subType The sub-type of the multipart answer ("mixed" or "related").
    * @param contentType The MIME type of the items in the multipart answer.
    * @return 0 if success, or the error code if failure.
-   * @see OrthancPluginSendMultipartItem()
+   * @see OrthancPluginSendMultipartItem(), OrthancPluginSendMultipartItem2()
    * @ingroup REST
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginStartMultipartAnswer(
@@ -2748,6 +2749,7 @@ extern "C"
    * @param answerSize Number of bytes of the item.
    * @return 0 if success, or the error code if failure (this notably happens
    * if the connection is closed by the client).
+   * @see OrthancPluginSendMultipartItem2()
    * @ingroup REST
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginSendMultipartItem(
@@ -4674,6 +4676,58 @@ extern "C"
     params.target = target;
     params.name = name;
     return context->InvokeService(context, _OrthancPluginService_LookupDictionary, &params);
+  }
+
+
+
+  typedef struct
+  {
+    OrthancPluginRestOutput* output;
+    const char*              answer;
+    uint32_t                 answerSize;
+    uint32_t                 headersCount;
+    const char* const*       headersKeys;
+    const char* const*       headersValues;
+  } _OrthancPluginSendMultipartItem2;
+
+  /**
+   * @brief Send an item as a part of some HTTP multipart answer, with custom headers.
+   *
+   * This function sends an item as a part of some HTTP multipart
+   * answer that was initiated by OrthancPluginStartMultipartAnswer(). In addition to
+   * OrthancPluginSendMultipartItem(), this function will set HTTP header associated
+   * with the item.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param output The HTTP connection to the client application.
+   * @param answer Pointer to the memory buffer containing the item.
+   * @param answerSize Number of bytes of the item.
+   * @param headersCount The number of HTTP headers.
+   * @param headersKeys Array containing the keys of the HTTP headers.
+   * @param headersValues Array containing the values of the HTTP headers.
+   * @return 0 if success, or the error code if failure (this notably happens
+   * if the connection is closed by the client).
+   * @see OrthancPluginSendMultipartItem()
+   * @ingroup REST
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginSendMultipartItem2(
+    OrthancPluginContext*    context,
+    OrthancPluginRestOutput* output,
+    const char*              answer,
+    uint32_t                 answerSize,
+    uint32_t                 headersCount,
+    const char* const*       headersKeys,
+    const char* const*       headersValues)
+  {
+    _OrthancPluginSendMultipartItem2 params;
+    params.output = output;
+    params.answer = answer;
+    params.answerSize = answerSize;
+    params.headersCount = headersCount;
+    params.headersKeys = headersKeys;
+    params.headersValues = headersValues;    
+
+    return context->InvokeService(context, _OrthancPluginService_SendMultipartItem2, &params);
   }
 
 

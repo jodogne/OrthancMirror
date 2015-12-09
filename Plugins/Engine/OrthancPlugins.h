@@ -152,6 +152,10 @@ namespace Orthanc
 
     void ApplyLookupDictionary(const void* parameters);
 
+    void ApplySendMultipartItem(const void* parameters);
+
+    void ApplySendMultipartItem2(const void* parameters);
+
     void ComputeHash(_OrthancPluginService service,
                      const void* parameters);
 

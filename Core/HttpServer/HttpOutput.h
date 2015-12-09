@@ -99,7 +99,9 @@ namespace Orthanc
       void StartMultipart(const std::string& subType,
                           const std::string& contentType);
 
-      void SendMultipartItem(const void* item, size_t length);
+      void SendMultipartItem(const void* item, 
+                             size_t length,
+                             const std::map<std::string, std::string>& headers);
 
       void CloseMultipart();
 
@@ -202,11 +204,11 @@ namespace Orthanc
       stateMachine_.StartMultipart(subType, contentType);
     }
 
-    void SendMultipartItem(const std::string& item);
-
-    void SendMultipartItem(const void* item, size_t size)
+    void SendMultipartItem(const void* item, 
+                           size_t size,
+                           const std::map<std::string, std::string>& headers)
     {
-      stateMachine_.SendMultipartItem(item, size);
+      stateMachine_.SendMultipartItem(item, size, headers);
     }
 
     void CloseMultipart()

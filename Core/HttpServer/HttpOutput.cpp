@@ -449,12 +449,59 @@ namespace Orthanc
   }
 
 
-  void HttpOutput::StateMachine::SendMultipartItem(const void* item, size_t length)
+  void HttpOutput::StateMachine::SendMultipartItem(const void* item, 
+                                                   size_t length,
+                                                   const std::map<std::string, std::string>& headers)
   {
+    if (state_ != State_WritingMultipart)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
     std::string header = "--" + multipartBoundary_ + "\r\n";
-    header += "Content-Type: " + multipartContentType_ + "\r\n";
-    header += "Content-Length: " + boost::lexical_cast<std::string>(length) + "\r\n";
-    header += "MIME-Version: 1.0\r\n\r\n";
+
+    bool hasContentType = false;
+    bool hasContentLength = false;
+    bool hasMimeVersion = false;
+
+    for (std::map<std::string, std::string>::const_iterator
+           it = headers.begin(); it != headers.end(); ++it)
+    {
+      header += it->first + ": " + it->second + "\r\n";
+
+      std::string tmp;
+      Toolbox::ToLowerCase(tmp, it->first);
+
+      if (tmp == "content-type")
+      {
+        hasContentType = true;
+      }
+
+      if (tmp == "content-length")
+      {
+        hasContentLength = true;
+      }
+
+      if (tmp == "mime-version")
+      {
+        hasMimeVersion = true;
+      }
+    }
+
+    if (!hasContentType)
+    {
+      header += "Content-Type: " + multipartContentType_ + "\r\n";
+    }
+
+    if (!hasContentLength)
+    {
+      header += "Content-Length: " + boost::lexical_cast<std::string>(length) + "\r\n";
+    }
+
+    if (!hasMimeVersion)
+    {
+      header += "MIME-Version: 1.0\r\n\r\n";
+    }
 
     stream_.Send(false, header.c_str(), header.size());
 
@@ -463,7 +510,7 @@ namespace Orthanc
       stream_.Send(false, item, length);
     }
 
-    stream_.Send(false, "\r\n", 2);
+    stream_.Send(false, "\r\n", 2);    
   }
 
 
@@ -486,19 +533,6 @@ namespace Orthanc
     }
 
     state_ = State_Done;
-  }
-
-
-  void HttpOutput::SendMultipartItem(const std::string& item)
-  {
-    if (item.size() > 0)
-    {
-      stateMachine_.SendMultipartItem(item.c_str(), item.size());
-    }
-    else
-    {
-      stateMachine_.SendMultipartItem(NULL, 0);
-    }
   }
 
 
