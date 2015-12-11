@@ -52,6 +52,12 @@ namespace Orthanc
                         const DicomTag& tag,
                         ModalityManufacturer manufacturer);
 
+    bool ApplyLuaFilter(DicomMap& target,
+                        const DicomMap& source,
+                        const std::string& remoteIp,
+                        const std::string& remoteAet,
+                        const std::string& calledAet);
+
   public:
     OrthancFindRequestHandler(ServerContext& context) :
       context_(context), 
