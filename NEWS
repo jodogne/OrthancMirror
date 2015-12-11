@@ -1,7 +1,7 @@
 Pending changes in the mainline
 ===============================
 
-
+* Fix of DICOMDIR generation with DCMTK 3.6.1, support of encodings
 * New function in plugin SDK: "OrthancPluginSendMultipartItem2()"
 
 
