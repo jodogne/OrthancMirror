@@ -55,8 +55,15 @@ namespace Orthanc
   void RangeConstraint::Setup(LookupIdentifierQuery& lookup,
                               const DicomTag& tag) const
   {
-    lookup.AddConstraint(tag, IdentifierConstraintType_GreaterOrEqual, lower_);
-    lookup.AddConstraint(tag, IdentifierConstraintType_SmallerOrEqual, upper_);
+    if (!lower_.empty())
+    {
+      lookup.AddConstraint(tag, IdentifierConstraintType_GreaterOrEqual, lower_);
+    }
+
+    if (!upper_.empty())
+    {
+      lookup.AddConstraint(tag, IdentifierConstraintType_SmallerOrEqual, upper_);
+    }
   }
 
 

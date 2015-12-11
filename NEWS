@@ -3,6 +3,7 @@ Pending changes in the mainline
 
 * Fix of DICOMDIR generation with DCMTK 3.6.1, support of encodings
 * New function in plugin SDK: "OrthancPluginSendMultipartItem2()"
+* Fix range search if the lower or upper limit is absent
 
 
 Version 0.9.6 (2015/12/08)
