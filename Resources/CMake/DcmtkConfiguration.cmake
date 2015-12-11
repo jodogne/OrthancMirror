@@ -191,7 +191,7 @@ else()
   elseif (EXISTS "${DCMTK_DIR}/config/osconfig.h")  # This is for Arch Linux
     set(DCMTK_CONFIGURATION_FILE "${DCMTK_DIR}/config/osconfig.h")
   else()
-    message(FATAL_ERROR "Please install libdcmtk1-dev")
+    message(FATAL_ERROR "Please install libdcmtk*-dev")
   endif()
 
   # Autodetection of the version of DCMTK
@@ -220,8 +220,12 @@ if (NOT DCMTK_USE_EMBEDDED_DICTIONARIES)
   if (DCMTK_DICTIONARY_DIR STREQUAL "")
     find_path(DCMTK_DICTIONARY_DIR_AUTO dicom.dic
       /usr/share/dcmtk
+      /usr/share/libdcmtk1
       /usr/share/libdcmtk2
+      /usr/share/libdcmtk3
       /usr/share/libdcmtk4
+      /usr/share/libdcmtk5
+      /usr/share/libdcmtk6
       /usr/local/share/dcmtk
       )
 
