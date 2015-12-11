@@ -33,6 +33,7 @@
 #include "../PrecompiledHeadersServer.h"
 #include "HierarchicalMatcher.h"
 
+#include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
 #include "../FromDcmtkBridge.h"
 #include "../ToDcmtkBridge.h"
@@ -125,7 +126,14 @@ namespace Orthanc
 
         if (value->IsBinary())
         {
-          throw OrthancException(ErrorCode_BadRequest);
+          if (!value->GetContent().empty())
+          {
+            LOG(WARNING) << "This C-Find modality worklist query contains a non-empty tag ("
+                         << tag.Format() << ") with UN (unknown) value representation. "
+                         << "It will be ignored.";
+          }
+
+          constraints_[tag] = NULL;
         }
         else if (value->IsNull() ||
                  value->GetContent().empty())

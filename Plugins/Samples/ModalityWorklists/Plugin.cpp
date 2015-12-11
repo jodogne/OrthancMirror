@@ -131,8 +131,11 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
     return OrthancPluginErrorCode_InternalError;
   }
 
-  std::cout << "Received worklist query from remote modality " << remoteAet 
-            << ":" << std::endl << json.toStyledString();
+  {
+    std::string msg = ("Received worklist query from remote modality " + 
+                       std::string(remoteAet) + ":\n" + json.toStyledString());
+    OrthancPluginLogInfo(context_, msg.c_str());
+  }
 
   boost::filesystem::path source(folder_);
   boost::filesystem::directory_iterator end;
