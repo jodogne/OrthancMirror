@@ -34,6 +34,7 @@
 #include "OrthancFindRequestHandler.h"
 
 #include "../Core/DicomFormat/DicomArray.h"
+#include "../Core/Lua/LuaFunctionCall.h"
 #include "../Core/Logging.h"
 #include "FromDcmtkBridge.h"
 #include "OrthancInitialization.h"
@@ -159,6 +160,72 @@ namespace Orthanc
   }
 
 
+  bool OrthancFindRequestHandler::ApplyLuaFilter(DicomMap& target,
+                                                 const DicomMap& source,
+                                                 const std::string& remoteIp,
+                                                 const std::string& remoteAet,
+                                                 const std::string& calledAet)
+  {
+    static const char* NAME = "IncomingFindRequestFilter";
+
+    Json::Value output;
+
+    {
+      LuaScripting::Locker locker(context_.GetLua());
+      
+      if (!locker.GetLua().IsExistingFunction(NAME))
+      {
+        return false;
+      }
+
+      Json::Value tmp = Json::objectValue;
+      DicomArray a(source);
+
+      for (size_t i = 0; i < a.GetSize(); i++)
+      {
+        const DicomValue& v = a.GetElement(i).GetValue();
+        std::string s = (v.IsNull() || v.IsBinary()) ? "" : v.GetContent();
+        tmp[a.GetElement(i).GetTag().Format()] = s;
+      }
+
+      Json::Value origin = Json::objectValue;
+      origin["RemoteIp"] = remoteIp;
+      origin["RemoteAet"] = remoteAet;
+      origin["CalledAet"] = calledAet;
+
+      LuaFunctionCall call(locker.GetLua(), NAME);
+      call.PushJson(tmp);
+      call.PushJson(origin);
+
+      call.ExecuteToJson(output, true);
+    }
+
+    // The Lua context is released at this point
+
+    if (output.type() != Json::objectValue)
+    {
+      LOG(ERROR) << "Lua: IncomingFindRequestFilter must return a table";
+      throw OrthancException(ErrorCode_LuaBadOutput);
+    }
+
+    Json::Value::Members members = output.getMemberNames();
+
+    for (size_t i = 0; i < members.size(); i++)
+    {
+      if (output[members[i]].type() != Json::stringValue)
+      {
+        LOG(ERROR) << "Lua: IncomingFindRequestFilter must return a table mapping names of DICOM tags to strings";
+        throw OrthancException(ErrorCode_LuaBadOutput);
+      }
+
+      DicomTag tag(FromDcmtkBridge::ParseTag(members[i]));
+      target.SetValue(tag, output[members[i]].asString());
+    }
+
+    return true;
+  }
+
+
   void OrthancFindRequestHandler::Handle(DicomFindAnswers& answers,
                                          const DicomMap& input,
                                          const std::list<DicomTag>& sequencesToReturn,
@@ -181,10 +248,24 @@ namespace Orthanc
 
 
     /**
+     * Possibly apply the user-supplied Lua filter.
+     **/
+
+    DicomMap lua;
+    const DicomMap* filteredInput = &input;
+
+    if (ApplyLuaFilter(lua, input, remoteIp, remoteAet, calledAet))
+    {
+      filteredInput = &lua;
+    }
+
+
+    /**
      * Retrieve the query level.
      **/
 
-    const DicomValue* levelTmp = input.TestAndGetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL);
+    assert(filteredInput != NULL);
+    const DicomValue* levelTmp = filteredInput->TestAndGetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL);
     if (levelTmp == NULL ||
         levelTmp->IsNull() ||
         levelTmp->IsBinary())
@@ -204,7 +285,7 @@ namespace Orthanc
     }
 
 
-    DicomArray query(input);
+    DicomArray query(*filteredInput);
     LOG(INFO) << "DICOM C-Find request at level: " << EnumerationToString(level);
 
     for (size_t i = 0; i < query.GetSize(); i++)
