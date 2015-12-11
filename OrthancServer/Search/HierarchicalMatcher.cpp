@@ -243,7 +243,7 @@ namespace Orthanc
         if (!item.findAndGetSequence(tag, sequence).good() ||
             sequence == NULL)
         {
-          return true;
+          continue;
         }
 
         bool match = false;
