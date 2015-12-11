@@ -134,164 +134,13 @@ namespace Orthanc
     Index  index_;
 
 
-    /*******************************************************************************
-     * Functions adapted from "dcmdata/libsrc/dcddirif.cc" from DCMTK 3.6.0
-     *******************************************************************************/
-
-    // print an error message to the console (stderr) that something went wrong with an attribute
-    static void printAttributeErrorMessage(const DcmTagKey &key,
-                                           const OFCondition &error,
-                                           const char *operation)
-    {
-      if (error.bad())
-      {
-        OFString str;
-        if (operation != NULL)
-        {
-          str = "cannot ";
-          str += operation;
-          str += " ";
-        }
-        LOG(ERROR) << error.text() << ": " << str << DcmTag(key).getTagName() << " " << key;
-      }
-    }
-
-    // copy element from dataset to directory record
-    static void copyElement(DcmItem& dataset,
-                            const DcmTagKey &key,
-                            DcmDirectoryRecord& record,
-                            const OFBool optional,
-                            const OFBool copyEmpty)
-    {
-      /* check whether tag exists in source dataset (if optional) */
-      if (!optional || (copyEmpty && dataset.tagExists(key)) || dataset.tagExistsWithValue(key))
-      {
-        DcmElement *delem = NULL;
-        /* get copy of element from source dataset */
-        OFCondition status = dataset.findAndGetElement(key, delem, OFFalse /*searchIntoSub*/, OFTrue /*createCopy*/);
-        if (status.good())
-        {
-          /* ... and insert it into the destination dataset (record) */
-          status = record.insert(delem, OFTrue /*replaceOld*/);
-          if (status.good())
-          {
-            DcmTag tag(key);
-            /* check for correct VR in the dataset */
-            if (delem->getVR() != tag.getEVR())
-            {
-              /* create warning message */
-              LOG(WARNING) << "DICOMDIR: possibly wrong VR: "
-                           << tag.getTagName() << " " << key << " with "
-                           << DcmVR(delem->getVR()).getVRName() << " found, expected "
-                           << tag.getVRName() << " instead";
-            }
-          } else
-            delete delem;
-        } else if (status == EC_TagNotFound)
-          status = record.insertEmptyElement(key);
-        printAttributeErrorMessage(key, status, "insert");
-      }
-    }
-
-    // copy optional string value from dataset to directory record
-    static void copyStringWithDefault(DcmItem& dataset,
-                                      const DcmTagKey &key,
-                                      DcmDirectoryRecord& record,
-                                      const char *defaultValue,
-                                      const OFBool printWarning)
-    {
-        OFCondition status;
-        if (dataset.tagExistsWithValue(key))
-        {
-          OFString stringValue;
-          /* retrieve string value from source dataset and put it into the destination dataset */
-          status = dataset.findAndGetOFStringArray(key, stringValue);
-          if (status.good())
-            status = record.putAndInsertString(key, stringValue.c_str());
-        } else {
-          if (printWarning && (defaultValue != NULL))
-          {
-            /* create warning message */
-            LOG(WARNING) << "DICOMDIR: " << DcmTag(key).getTagName() << " "
-                         << key << " missing, using alternative: " << defaultValue;
-          }
-          /* put default value */
-          status = record.putAndInsertString(key, defaultValue);
-        }
-    }
-
-    // create alternative study date if absent in dataset
-    static OFString &alternativeStudyDate(DcmItem& dataset,
-                                          OFString &result)
-    {
-      /* use another date if present */
-      if (dataset.findAndGetOFStringArray(DCM_SeriesDate, result).bad() || result.empty())
-      {
-        if (dataset.findAndGetOFStringArray(DCM_AcquisitionDate, result).bad() || result.empty())
-        {
-          if (dataset.findAndGetOFStringArray(DCM_ContentDate, result).bad() || result.empty())
-          {
-            /* use current date, "19000101" in case of error */
-            DcmDate::getCurrentDate(result);
-          }
-        }
-      }
-      return result;
-    }
-
-
-    // create alternative study time if absent in dataset
-    static OFString &alternativeStudyTime(DcmItem& dataset,
-                                          OFString &result)
-    {
-      /* use another time if present */
-      if (dataset.findAndGetOFStringArray(DCM_SeriesTime, result).bad() || result.empty())
-      {
-        if (dataset.findAndGetOFStringArray(DCM_AcquisitionTime, result).bad() || result.empty())
-        {
-          if (dataset.findAndGetOFStringArray(DCM_ContentTime, result).bad() || result.empty())
-          {
-            /* use current time, "0000" in case of error */
-            DcmTime::getCurrentTime(result);
-          }
-        }
-      }
-      return result;
-    }
-
-
-    static void copyElementType1(DcmItem& dataset,
-                                 const DcmTagKey &key,
-                                 DcmDirectoryRecord& record)
-    {
-      copyElement(dataset, key, record, OFFalse /*optional*/, OFFalse /*copyEmpty*/);
-    }
-
-    static void copyElementType1C(DcmItem& dataset,
-                                  const DcmTagKey &key,
-                                  DcmDirectoryRecord& record)
-    {
-      copyElement(dataset, key, record, OFTrue /*optional*/, OFFalse /*copyEmpty*/);
-    }
-
-    static void copyElementType2(DcmItem& dataset,
-                                 const DcmTagKey &key,
-                                 DcmDirectoryRecord& record)
-    {
-      copyElement(dataset, key, record, OFFalse /*optional*/, OFTrue /*copyEmpty*/);
-    }
-
-    /*******************************************************************************
-     * End of functions adapted from "dcmdata/libsrc/dcddirif.cc" from DCMTK 3.6.0
-     *******************************************************************************/
-
-
     DcmDicomDir& GetDicomDir()
     {
       if (dir_.get() == NULL)
       {
         dir_.reset(new DcmDicomDir(file_.GetPath().c_str(), 
                                    fileSetId_.c_str()));
+        //SetTagValue(dir_->getRootRecord(), DCM_SpecificCharacterSet, GetDicomSpecificCharacterSet(Encoding_Utf8));
       }
 
       return *dir_;
@@ -304,115 +153,218 @@ namespace Orthanc
     }
 
 
+    static bool GetUtf8TagValue(std::string& result,
+                                DcmItem& source,
+                                Encoding encoding,
+                                const DcmTagKey& key)
+    {
+      DcmElement* element = NULL;
+      char* s = NULL;
+
+      if (source.findAndGetElement(key, element).good())
+      {
+        if (element->isLeaf() &&
+            element->getString(s).good() &&
+            s != NULL)
+        {
+          result = Toolbox::ConvertToUtf8(s, encoding);
+          return true;
+        }
+      }
+
+      result.clear();
+      return false;
+    }
+
+
+    static void SetTagValue(DcmDirectoryRecord& target,
+                            const DcmTagKey& key,
+                            const std::string& valueUtf8)
+    {
+      std::string s = Toolbox::ConvertFromUtf8(valueUtf8, Encoding_Ascii);
+
+      if (!target.putAndInsertString(key, s.c_str()).good())
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+                            
+
+
+    static bool CopyString(DcmDirectoryRecord& target,
+                           DcmDataset& source,
+                           Encoding encoding,
+                           const DcmTagKey& key,
+                           bool optional,
+                           bool copyEmpty)
+    {
+      if (optional &&
+          !source.tagExistsWithValue(key) &&
+          !(copyEmpty && source.tagExists(key)))
+      {
+        return false;
+      }
+
+      std::string value;
+      bool found = GetUtf8TagValue(value, source, encoding, key);
+
+      SetTagValue(target, key, value);
+      return found;
+    }
+
+
+    static void CopyStringType1(DcmDirectoryRecord& target,
+                                DcmDataset& source,
+                                Encoding encoding,
+                                const DcmTagKey& key)
+    {
+      CopyString(target, source, encoding, key, false, false);
+    }
+
+    static void CopyStringType1C(DcmDirectoryRecord& target,
+                                 DcmDataset& source,
+                                 Encoding encoding,
+                                 const DcmTagKey& key)
+    {
+      CopyString(target, source, encoding, key, true, false);
+    }
+
+    static void CopyStringType2(DcmDirectoryRecord& target,
+                                DcmDataset& source,
+                                Encoding encoding,
+                                const DcmTagKey& key)
+    {
+      CopyString(target, source, encoding, key, false, true);
+    }
+
+
   public:
     PImpl() : fileSetId_("ORTHANC_MEDIA")
     {
     }
 
     void FillPatient(DcmDirectoryRecord& record,
-                     DcmItem& dicom)
+                     DcmDataset& dicom,
+                     Encoding encoding)
     {
       // cf. "DicomDirInterface::buildPatientRecord()"
 
-      copyElementType1C(dicom, DCM_PatientID, record);
-      copyElementType2(dicom, DCM_PatientName, record);
+      CopyStringType1C(record, dicom, encoding, DCM_PatientID);
+      CopyStringType2(record, dicom, encoding, DCM_PatientName);
     }
 
     void FillStudy(DcmDirectoryRecord& record,
-                   DcmItem& dicom)
+                   DcmDataset& dicom,
+                   Encoding encoding)
     {
       // cf. "DicomDirInterface::buildStudyRecord()"
 
-      OFString tmpString;
+      std::string nowDate, nowTime;
+      Toolbox::GetNowDicom(nowDate, nowTime);
+
+      std::string studyDate;
+      if (!GetUtf8TagValue(studyDate, dicom, encoding, DCM_StudyDate) &&
+          !GetUtf8TagValue(studyDate, dicom, encoding, DCM_SeriesDate) &&
+          !GetUtf8TagValue(studyDate, dicom, encoding, DCM_AcquisitionDate) &&
+          !GetUtf8TagValue(studyDate, dicom, encoding, DCM_ContentDate))
+      {
+        studyDate = nowDate;
+      }
+          
+      std::string studyTime;
+      if (!GetUtf8TagValue(studyTime, dicom, encoding, DCM_StudyTime) &&
+          !GetUtf8TagValue(studyTime, dicom, encoding, DCM_SeriesTime) &&
+          !GetUtf8TagValue(studyTime, dicom, encoding, DCM_AcquisitionTime) &&
+          !GetUtf8TagValue(studyTime, dicom, encoding, DCM_ContentTime))
+      {
+        studyTime = nowTime;
+      }
+
       /* copy attribute values from dataset to study record */
-      copyStringWithDefault(dicom, DCM_StudyDate, record, 
-                            alternativeStudyDate(dicom, tmpString).c_str(), OFTrue /*printWarning*/);
-      copyStringWithDefault(dicom, DCM_StudyTime, record, 
-                            alternativeStudyTime(dicom, tmpString).c_str(), OFTrue /*printWarning*/);
-      copyElementType2(dicom, DCM_StudyDescription, record);
-      copyElementType1(dicom, DCM_StudyInstanceUID, record);
+      SetTagValue(record, DCM_StudyDate, studyDate);
+      SetTagValue(record, DCM_StudyTime, studyTime);
+      CopyStringType2(record, dicom, encoding, DCM_StudyDescription);
+      CopyStringType1(record, dicom, encoding, DCM_StudyInstanceUID);
       /* use type 1C instead of 1 in order to avoid unwanted overwriting */
-      copyElementType1C(dicom, DCM_StudyID, record);
-      copyElementType2(dicom, DCM_AccessionNumber, record);
+      CopyStringType1C(record, dicom, encoding, DCM_StudyID);
+      CopyStringType2(record, dicom, encoding, DCM_AccessionNumber);
     }
 
     void FillSeries(DcmDirectoryRecord& record,
-                    DcmItem& dicom)
+                    DcmDataset& dicom,
+                    Encoding encoding)
     {
       // cf. "DicomDirInterface::buildSeriesRecord()"
 
       /* copy attribute values from dataset to series record */
-      copyElementType1(dicom, DCM_Modality, record);
-      copyElementType1(dicom, DCM_SeriesInstanceUID, record);
+      CopyStringType1(record, dicom, encoding, DCM_Modality);
+      CopyStringType1(record, dicom, encoding, DCM_SeriesInstanceUID);
       /* use type 1C instead of 1 in order to avoid unwanted overwriting */
-      copyElementType1C(dicom, DCM_SeriesNumber, record);
+      CopyStringType1C(record, dicom, encoding, DCM_SeriesNumber);
     }
 
     void FillInstance(DcmDirectoryRecord& record,
-                      DcmItem& dicom,
+                      DcmDataset& dicom,
+                      Encoding encoding,
                       DcmMetaInfo& metaInfo,
                       const char* path)
     {
       // cf. "DicomDirInterface::buildImageRecord()"
 
       /* copy attribute values from dataset to image record */
-      copyElementType1(dicom, DCM_InstanceNumber, record);
-      //copyElementType1C(dicom, DCM_ImageType, record);
-      copyElementType1C(dicom, DCM_ReferencedImageSequence, record);
+      CopyStringType1(record, dicom, encoding, DCM_InstanceNumber);
+      //CopyElementType1C(record, dicom, encoding, DCM_ImageType);
 
-      OFString tmp;
+      // REMOVED since 0.9.7: copyElementType1C(dicom, DCM_ReferencedImageSequence, record);
 
-      DcmElement* item = record.remove(DCM_ReferencedImageSequence);
-      if (item != NULL)
-      {
-        delete item;
-      }
-
-      if (record.putAndInsertString(DCM_ReferencedFileID, path).bad() ||
-          dicom.findAndGetOFStringArray(DCM_SOPClassUID, tmp).bad() ||
-          record.putAndInsertString(DCM_ReferencedSOPClassUIDInFile, tmp.c_str()).bad() ||
-          dicom.findAndGetOFStringArray(DCM_SOPInstanceUID, tmp).bad() ||
-          record.putAndInsertString(DCM_ReferencedSOPInstanceUIDInFile, tmp.c_str()).bad() ||
-          metaInfo.findAndGetOFStringArray(DCM_TransferSyntaxUID, tmp).bad() ||
-          record.putAndInsertString(DCM_ReferencedTransferSyntaxUIDInFile, tmp.c_str()).bad())
+      std::string sopClassUid, sopInstanceUid, transferSyntaxUid;
+      if (!GetUtf8TagValue(sopClassUid, dicom, encoding, DCM_SOPClassUID) ||
+          !GetUtf8TagValue(sopInstanceUid, dicom, encoding, DCM_SOPInstanceUID) ||
+          !GetUtf8TagValue(transferSyntaxUid, metaInfo, encoding, DCM_TransferSyntaxUID))
       {
         throw OrthancException(ErrorCode_BadFileFormat);
       }
+
+      SetTagValue(record, DCM_ReferencedFileID, path);
+      SetTagValue(record, DCM_ReferencedSOPClassUIDInFile, sopClassUid);
+      SetTagValue(record, DCM_ReferencedSOPInstanceUIDInFile, sopInstanceUid);
+      SetTagValue(record, DCM_ReferencedTransferSyntaxUIDInFile, transferSyntaxUid);
     }
 
     
 
     bool CreateResource(DcmDirectoryRecord*& target,
                         ResourceType level,
-                        DcmFileFormat& dicom,
+                        ParsedDicomFile& dicom,
                         const char* filename,
                         const char* path)
     {
-      DcmDataset& dataset = *dicom.getDataset();
+      DcmDataset& dataset = *dicom.GetDcmtkObject().getDataset();
+      Encoding encoding = dicom.GetEncoding();
 
-      OFCondition result;
-      OFString id;
+      bool found;
+      std::string id;
       E_DirRecType type;
 
       switch (level)
       {
         case ResourceType_Patient:
-          result = dataset.findAndGetOFString(DCM_PatientID, id);
+          found = GetUtf8TagValue(id, dataset, encoding, DCM_PatientID);
           type = ERT_Patient;
           break;
 
         case ResourceType_Study:
-          result = dataset.findAndGetOFString(DCM_StudyInstanceUID, id);
+          found = GetUtf8TagValue(id, dataset, encoding, DCM_StudyInstanceUID);
           type = ERT_Study;
           break;
 
         case ResourceType_Series:
-          result = dataset.findAndGetOFString(DCM_SeriesInstanceUID, id);
+          found = GetUtf8TagValue(id, dataset, encoding, DCM_SeriesInstanceUID);
           type = ERT_Series;
           break;
 
         case ResourceType_Instance:
-          result = dataset.findAndGetOFString(DCM_SOPInstanceUID, id);
+          found = GetUtf8TagValue(id, dataset, encoding, DCM_SOPInstanceUID);
           type = ERT_Image;
           break;
 
@@ -420,9 +372,9 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError);
       }
 
-      if (!result.good())
+      if (!found)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        throw OrthancException(ErrorCode_BadFileFormat);
       }
 
       IndexKey key = std::make_pair(level, std::string(id.c_str()));
@@ -439,29 +391,26 @@ namespace Orthanc
       switch (level)
       {
         case ResourceType_Patient:
-          FillPatient(*record, dataset);
+          FillPatient(*record, dataset, encoding);
           break;
 
         case ResourceType_Study:
-          FillStudy(*record, dataset);
+          FillStudy(*record, dataset, encoding);
           break;
 
         case ResourceType_Series:
-          FillSeries(*record, dataset);
+          FillSeries(*record, dataset, encoding);
           break;
 
         case ResourceType_Instance:
-          FillInstance(*record, dataset, *dicom.getMetaInfo(), path);
+          FillInstance(*record, dataset, encoding, *dicom.GetDcmtkObject().getMetaInfo(), path);
           break;
 
         default:
           throw OrthancException(ErrorCode_InternalError);
       }
 
-      if (record->isAffectedBySpecificCharacterSet())
-      {
-        copyElementType1C(dataset, DCM_SpecificCharacterSet, *record);
-      }
+      CopyStringType1C(*record, dataset, encoding, DCM_SpecificCharacterSet);
 
       target = record.get();
       GetRoot().insertSub(record.release());
@@ -527,26 +476,24 @@ namespace Orthanc
       path = directory + '\\' + filename;
     }
 
-    DcmFileFormat& fileFormat = dicom.GetDcmtkObject();
-
     DcmDirectoryRecord* instance;
-    bool isNewInstance = pimpl_->CreateResource(instance, ResourceType_Instance, fileFormat, filename.c_str(), path.c_str());
+    bool isNewInstance = pimpl_->CreateResource(instance, ResourceType_Instance, dicom, filename.c_str(), path.c_str());
     if (isNewInstance)
     {
       DcmDirectoryRecord* series;
-      bool isNewSeries = pimpl_->CreateResource(series, ResourceType_Series, fileFormat, filename.c_str(), NULL);
+      bool isNewSeries = pimpl_->CreateResource(series, ResourceType_Series, dicom, filename.c_str(), NULL);
       series->insertSub(instance);
 
       if (isNewSeries)
       {
         DcmDirectoryRecord* study;
-        bool isNewStudy = pimpl_->CreateResource(study, ResourceType_Study, fileFormat, filename.c_str(), NULL);
+        bool isNewStudy = pimpl_->CreateResource(study, ResourceType_Study, dicom, filename.c_str(), NULL);
         study->insertSub(series);
   
         if (isNewStudy)
         {
           DcmDirectoryRecord* patient;
-          pimpl_->CreateResource(patient, ResourceType_Patient, fileFormat, filename.c_str(), NULL);
+          pimpl_->CreateResource(patient, ResourceType_Patient, dicom, filename.c_str(), NULL);
           patient->insertSub(study);
         }
       }
