@@ -33,6 +33,7 @@
 #include "../PrecompiledHeadersServer.h"
 #include "RemoteModalityParameters.h"
 
+#include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
 
 #include <boost/lexical_cast.hpp>
@@ -97,7 +98,17 @@ namespace Orthanc
 
     if (modality.size() == 4)
     {
-      SetManufacturer(modality.get(3u, "").asString());
+      const std::string& manufacturer = modality.get(3u, "").asString();
+
+      try
+      {
+        SetManufacturer(manufacturer);
+      }
+      catch (OrthancException&)
+      {
+        LOG(ERROR) << "Unknown modality manufacturer: \"" << manufacturer << "\"";
+        throw;
+      }
     }
     else
     {
