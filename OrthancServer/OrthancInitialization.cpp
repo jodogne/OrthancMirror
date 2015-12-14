@@ -71,7 +71,7 @@
 
 namespace Orthanc
 {
-  static boost::mutex globalMutex_;
+  static boost::recursive_mutex globalMutex_;
   static Json::Value configuration_;
   static boost::filesystem::path defaultDirectory_;
   static std::string configurationAbsolutePath_;
@@ -243,6 +243,26 @@ namespace Orthanc
   }
 
 
+  static void ValidateGlobalConfiguration()
+  {
+    std::set<std::string> ids;
+
+    Configuration::GetListOfOrthancPeers(ids);
+    for (std::set<std::string>::const_iterator it = ids.begin(); it != ids.end(); ++it)
+    {
+      OrthancPeerParameters peer;
+      Configuration::GetOrthancPeer(peer, *it);
+    }
+
+    Configuration::GetListOfDicomModalities(ids);
+    for (std::set<std::string>::const_iterator it = ids.begin(); it != ids.end(); ++it)
+    {
+      RemoteModalityParameters modality;
+      Configuration::GetDicomModalityUsingSymbolicName(modality, *it);
+    }
+  }
+
+
   static void RegisterUserMetadata()
   {
     if (configuration_.isMember("UserMetadata"))
@@ -367,7 +387,7 @@ namespace Orthanc
 
   void OrthancInitialize(const char* configurationFile)
   {
-    boost::mutex::scoped_lock lock(globalMutex_);
+    boost::recursive_mutex::scoped_lock lock(globalMutex_);
 
 #if ORTHANC_SSL_ENABLED == 1
     // https://wiki.openssl.org/index.php/Library_Initialization
@@ -385,6 +405,7 @@ namespace Orthanc
 
     // Read the user-provided configuration
     ReadGlobalConfiguration(configurationFile);
+    ValidateGlobalConfiguration();
 
     HttpClient::GlobalInitialize(GetGlobalBoolParameterInternal("HttpsVerifyPeers", true),
                                  GetGlobalStringParameterInternal("HttpsCACertificates", ""));
@@ -412,7 +433,7 @@ namespace Orthanc
 
   void OrthancFinalize()
   {
-    boost::mutex::scoped_lock lock(globalMutex_);
+    boost::recursive_mutex::scoped_lock lock(globalMutex_);
     HttpClient::GlobalFinalize();
 
 #if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
@@ -444,7 +465,7 @@ namespace Orthanc
   std::string Configuration::GetGlobalStringParameter(const std::string& parameter,
                                                       const std::string& defaultValue)
   {
-    boost::mutex::scoped_lock lock(globalMutex_);
+    boost::recursive_mutex::scoped_lock lock(globalMutex_);
     return GetGlobalStringParameterInternal(parameter, defaultValue);
   }
 
@@ -452,7 +473,7 @@ namespace Orthanc
   int Configuration::GetGlobalIntegerParameter(const std::string& parameter,
                                                int defaultValue)
   {
-    boost::mutex::scoped_lock lock(globalMutex_);
+    boost::recursive_mutex::scoped_lock lock(globalMutex_);
 
     if (configuration_.isMember(parameter))
     {
@@ -476,7 +497,7 @@ namespace Orthanc
   bool Configuration::GetGlobalBoolParameter(const std::string& parameter,
                                              bool defaultValue)
   {
-    boost::mutex::scoped_lock lock(globalMutex_);
+    boost::recursive_mutex::scoped_lock lock(globalMutex_);
     return GetGlobalBoolParameterInternal(parameter, defaultValue);
   }
 
@@ -484,7 +505,7 @@ namespace Orthanc
   void Configuration::GetDicomModalityUsingSymbolicName(RemoteModalityParameters& modality,
                                                         const std::string& name)
   {
-    boost::mutex::scoped_lock lock(globalMutex_);
+    boost::recursive_mutex::scoped_lock lock(globalMutex_);
 
     if (!configuration_.isMember("DicomModalities"))
     {
@@ -517,7 +538,7 @@ namespace Orthanc
   void Configuration::GetOrthancPeer(OrthancPeerParameters& peer,
                                      const std::string& name)
   {
-    boost::mutex::scoped_lock lock(globalMutex_);
+    boost::recursive_mutex::scoped_lock lock(globalMutex_);
 
     if (!configuration_.isMember("OrthancPeers"))
     {
@@ -550,7 +571,7 @@ namespace Orthanc
                        const char* parameter,
                        bool onlyAlphanumeric)
   {
-    boost::mutex::scoped_lock lock(globalMutex_);
+    boost::recursive_mutex::scoped_lock lock(globalMutex_);
 
     target.clear();
   
@@ -589,6 +610,8 @@ namespace Orthanc
 
   void Configuration::GetListOfDicomModalities(std::set<std::string>& target)
   {
+    target.clear();
+
     if (!ReadKeys(target, "DicomModalities", true))
     {
       LOG(ERROR) << "Only alphanumeric and dash characters are allowed in the names of the modalities";
@@ -599,6 +622,8 @@ namespace Orthanc
 
   void Configuration::GetListOfOrthancPeers(std::set<std::string>& target)
   {
+    target.clear();
+
     if (!ReadKeys(target, "OrthancPeers", true))
     {
       LOG(ERROR) << "Only alphanumeric and dash characters are allowed in the names of Orthanc peers";
@@ -610,7 +635,7 @@ namespace Orthanc
 
   void Configuration::SetupRegisteredUsers(MongooseServer& httpServer)
   {
-    boost::mutex::scoped_lock lock(globalMutex_);
+    boost::recursive_mutex::scoped_lock lock(globalMutex_);
 
     httpServer.ClearUsers();
 
@@ -664,7 +689,7 @@ namespace Orthanc
 
   std::string Configuration::InterpretStringParameterAsPath(const std::string& parameter)
   {
-    boost::mutex::scoped_lock lock(globalMutex_);
+    boost::recursive_mutex::scoped_lock lock(globalMutex_);
     return InterpretRelativePath(defaultDirectory_.string(), parameter);
   }
 
@@ -672,7 +697,7 @@ namespace Orthanc
   void Configuration::GetGlobalListOfStringsParameter(std::list<std::string>& target,
                                                       const std::string& key)
   {
-    boost::mutex::scoped_lock lock(globalMutex_);
+    boost::recursive_mutex::scoped_lock lock(globalMutex_);
 
     target.clear();
   
@@ -777,7 +802,7 @@ namespace Orthanc
   void Configuration::UpdateModality(const std::string& symbolicName,
                                      const RemoteModalityParameters& modality)
   {
-    boost::mutex::scoped_lock lock(globalMutex_);
+    boost::recursive_mutex::scoped_lock lock(globalMutex_);
 
     if (!configuration_.isMember("DicomModalities"))
     {
@@ -801,7 +826,7 @@ namespace Orthanc
 
   void Configuration::RemoveModality(const std::string& symbolicName)
   {
-    boost::mutex::scoped_lock lock(globalMutex_);
+    boost::recursive_mutex::scoped_lock lock(globalMutex_);
 
     if (!configuration_.isMember("DicomModalities"))
     {
@@ -823,7 +848,7 @@ namespace Orthanc
   void Configuration::UpdatePeer(const std::string& symbolicName,
                                  const OrthancPeerParameters& peer)
   {
-    boost::mutex::scoped_lock lock(globalMutex_);
+    boost::recursive_mutex::scoped_lock lock(globalMutex_);
 
     if (!configuration_.isMember("OrthancPeers"))
     {
@@ -848,7 +873,7 @@ namespace Orthanc
 
   void Configuration::RemovePeer(const std::string& symbolicName)
   {
-    boost::mutex::scoped_lock lock(globalMutex_);
+    boost::recursive_mutex::scoped_lock lock(globalMutex_);
 
     if (!configuration_.isMember("OrthancPeers"))
     {
@@ -980,7 +1005,7 @@ namespace Orthanc
 
   void Configuration::GetConfiguration(Json::Value& result)
   {
-    boost::mutex::scoped_lock lock(globalMutex_);
+    boost::recursive_mutex::scoped_lock lock(globalMutex_);
     result = configuration_;
   }
 
