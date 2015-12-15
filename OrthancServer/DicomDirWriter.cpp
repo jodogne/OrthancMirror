@@ -159,10 +159,10 @@ namespace Orthanc
                                 const DcmTagKey& key)
     {
       DcmElement* element = NULL;
-      char* s = NULL;
 
       if (source.findAndGetElement(key, element).good())
       {
+        char* s = NULL;
         if (element->isLeaf() &&
             element->getString(s).good() &&
             s != NULL)

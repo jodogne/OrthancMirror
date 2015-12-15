@@ -166,12 +166,11 @@ namespace Orthanc
                                                  const std::string& remoteAet,
                                                  const std::string& calledAet)
   {
-    static const char* NAME = "IncomingFindRequestFilter";
-
     Json::Value output;
 
     {
       LuaScripting::Locker locker(context_.GetLua());
+      static const char* NAME = "IncomingFindRequestFilter";
       
       if (!locker.GetLua().IsExistingFunction(NAME))
       {
