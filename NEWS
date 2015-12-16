@@ -1,9 +1,13 @@
 Pending changes in the mainline
 ===============================
 
+
+Version 1.0.0 (2015/12/15)
+==========================
+
 * Lua: "IncomingFindRequestFilter()" to apply filters to incoming C-Find requests
-* Fix of DICOMDIR generation with DCMTK 3.6.1, support of encodings
 * New function in plugin SDK: "OrthancPluginSendMultipartItem2()"
+* Fix of DICOMDIR generation with DCMTK 3.6.1, support of encodings
 * Fix range search if the lower or upper limit is absent
 * Fix modality worklists lookups if tags with UN (unknown) VR are present
 * Warn about badly formatted modality/peer definitions in configuration file at startup
