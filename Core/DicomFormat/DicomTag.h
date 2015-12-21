@@ -169,4 +169,14 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_IMAGE_COMMENTS(0x0020, 0x4000);
   static const DicomTag DICOM_TAG_ACQUISITION_DEVICE_PROCESSING_DESCRIPTION(0x0018, 0x1400);
   static const DicomTag DICOM_TAG_CONTRAST_BOLUS_AGENT(0x0018, 0x0010);
+
+  // Counting patients, studies and series
+  // https://www.medicalconnections.co.uk/kb/Counting_Studies_Series_and_Instances
+  static const DicomTag DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES(0x0020, 0x1200);  
+  static const DicomTag DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES(0x0020, 0x1202);  
+  static const DicomTag DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES(0x0020, 0x1204);  
+  static const DicomTag DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES(0x0020, 0x1206);  
+  static const DicomTag DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES(0x0020, 0x1208);  
+  static const DicomTag DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES(0x0020, 0x1209);  
+  static const DicomTag DICOM_TAG_SOP_CLASSES_IN_STUDY(0x0008, 0x0062);  
 }

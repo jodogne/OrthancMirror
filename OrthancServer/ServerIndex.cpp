@@ -2177,4 +2177,36 @@ namespace Orthanc
       instances[pos] = db_.GetPublicId(instance);
     }
   }
+
+
+  bool ServerIndex::LookupParent(std::string& target,
+                                 const std::string& publicId,
+                                 ResourceType parentType)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    ResourceType type;
+    int64_t id;
+    if (!db_.LookupResource(id, type, publicId))
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
+    while (type != parentType)
+    {
+      int64_t parentId;
+
+      if (type == ResourceType_Patient ||    // Cannot further go up in hierarchy
+          !db_.LookupParent(parentId, id))
+      {
+        return false;
+      }
+
+      id = parentId;
+      type = GetParentResourceType(type);
+    }
+
+    target = db_.GetPublicId(id);
+    return true;
+  }
 }

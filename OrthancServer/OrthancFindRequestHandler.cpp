@@ -46,10 +46,281 @@
 
 namespace Orthanc
 {
+  static void GetChildren(std::list<std::string>& target,
+                          ServerIndex& index,
+                          const std::list<std::string>& source)
+  {
+    target.clear();
+
+    for (std::list<std::string>::const_iterator
+           it = source.begin(); it != source.end(); ++it)
+    {
+      std::list<std::string> tmp;
+      index.GetChildren(tmp, *it);
+      target.splice(target.end(), tmp);
+    }
+  }
+
+
+  static void StoreSetOfStrings(DicomMap& result,
+                                const DicomTag& tag,
+                                const std::set<std::string>& values)
+  {
+    bool isFirst = true;
+
+    std::string s;
+    for (std::set<std::string>::const_iterator
+           it = values.begin(); it != values.end(); ++it)
+    {
+      if (isFirst)
+      {
+        isFirst = false;
+      }
+      else
+      {
+        s += "\\";
+      }
+
+      s += *it;
+    }
+
+    result.SetValue(tag, s);
+  }
+
+
+  static void ExtractTagFromMainDicomTags(std::set<std::string>& target,
+                                          ServerIndex& index,
+                                          const DicomTag& tag,
+                                          const std::list<std::string>& resources,
+                                          ResourceType level)
+  {
+    for (std::list<std::string>::const_iterator
+           it = resources.begin(); it != resources.end(); ++it)
+    {
+      DicomMap tags;
+      if (index.GetMainDicomTags(tags, *it, level, level) &&
+          tags.HasTag(tag))
+      {
+        target.insert(tags.GetValue(tag).GetContent());
+      }
+    }
+  }
+
+
+  static void ExtractTagFromInstances(std::set<std::string>& target,
+                                      ServerContext& context,
+                                      const DicomTag& tag,
+                                      const std::list<std::string>& instances)
+  {
+    std::string formatted = tag.Format();
+
+    for (std::list<std::string>::const_iterator
+           it = instances.begin(); it != instances.end(); ++it)
+    {
+      Json::Value dicom;
+      context.ReadJson(dicom, *it);
+
+      if (dicom.isMember(formatted))
+      {
+        const Json::Value& source = dicom[formatted];
+
+        if (source.type() == Json::objectValue &&
+            source.isMember("Type") &&
+            source.isMember("Value") &&
+            source["Type"].asString() == "String" &&
+            source["Value"].type() == Json::stringValue)
+        {
+          target.insert(source["Value"].asString());
+        }
+      }
+    }
+  }
+
+
+  static void ComputePatientCounters(DicomMap& result,
+                                     ServerIndex& index,
+                                     const std::string& patient,
+                                     const DicomMap& query)
+  {
+    std::list<std::string> studies;
+    index.GetChildren(studies, patient);
+
+    if (query.HasTag(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES))
+    {
+      result.SetValue(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES,
+                      boost::lexical_cast<std::string>(studies.size()));
+    }
+
+    if (!query.HasTag(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES) &&
+        !query.HasTag(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES))
+    {
+      return;
+    }
+
+    std::list<std::string> series;
+    GetChildren(series, index, studies);
+    studies.clear();  // This information is useless below
+    
+    if (query.HasTag(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES))
+    {
+      result.SetValue(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES,
+                      boost::lexical_cast<std::string>(series.size()));
+    }
+
+    if (!query.HasTag(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES))
+    {
+      return;
+    }
+
+    std::list<std::string> instances;
+    GetChildren(instances, index, series);
+
+    if (query.HasTag(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES))
+    {
+      result.SetValue(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES,
+                      boost::lexical_cast<std::string>(instances.size()));
+    }
+  }
+
+
+  static void ComputeStudyCounters(DicomMap& result,
+                                   ServerContext& context,
+                                   const std::string& study,
+                                   const DicomMap& query)
+  {
+    ServerIndex& index = context.GetIndex();
+
+    std::list<std::string> series;
+    index.GetChildren(series, study);
+    
+    if (query.HasTag(DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES))
+    {
+      result.SetValue(DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES,
+                      boost::lexical_cast<std::string>(series.size()));
+    }
+
+    if (query.HasTag(DICOM_TAG_MODALITIES_IN_STUDY))
+    {
+      std::set<std::string> values;
+      ExtractTagFromMainDicomTags(values, index, DICOM_TAG_MODALITY, series, ResourceType_Series);
+      StoreSetOfStrings(result, DICOM_TAG_MODALITIES_IN_STUDY, values);
+    }
+
+    if (!query.HasTag(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES) &&
+        !query.HasTag(DICOM_TAG_SOP_CLASSES_IN_STUDY))
+    {
+      return;
+    }
+
+    std::list<std::string> instances;
+    GetChildren(instances, index, series);
+
+    if (query.HasTag(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES))
+    {
+      result.SetValue(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES,
+                      boost::lexical_cast<std::string>(instances.size()));
+    }
+
+    if (query.HasTag(DICOM_TAG_SOP_CLASSES_IN_STUDY))
+    {
+      std::set<std::string> values;
+      ExtractTagFromInstances(values, context, DICOM_TAG_SOP_CLASS_UID, instances);
+      StoreSetOfStrings(result, DICOM_TAG_SOP_CLASSES_IN_STUDY, values);
+    }
+  }
+
+
+  static void ComputeSeriesCounters(DicomMap& result,
+                                    ServerIndex& index,
+                                    const std::string& series,
+                                    const DicomMap& query)
+  {
+    std::list<std::string> instances;
+    index.GetChildren(instances, series);
+
+    if (query.HasTag(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES))
+    {
+      result.SetValue(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES,
+                      boost::lexical_cast<std::string>(instances.size()));
+    }
+  }
+
+
+  static DicomMap* ComputeCounters(ServerContext& context,
+                                   const std::string& instanceId,
+                                   ResourceType level,
+                                   const DicomMap& query)
+  {
+    switch (level)
+    {
+      case ResourceType_Patient:
+        if (!query.HasTag(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES) &&
+            !query.HasTag(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES) &&
+            !query.HasTag(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES))
+        {
+          return NULL;
+        }
+
+        break;
+
+      case ResourceType_Study:
+        if (!query.HasTag(DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES) &&
+            !query.HasTag(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES) &&
+            !query.HasTag(DICOM_TAG_SOP_CLASSES_IN_STUDY) &&
+            !query.HasTag(DICOM_TAG_MODALITIES_IN_STUDY))
+        {
+          return NULL;
+        }
+
+        break;
+
+      case ResourceType_Series:
+        if (!query.HasTag(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES))
+        {
+          return NULL;
+        }
+
+        break;
+
+      default:
+        return NULL;
+    }
+
+    std::string parent;
+    if (!context.GetIndex().LookupParent(parent, instanceId, level))
+    {
+      throw OrthancException(ErrorCode_UnknownResource);  // The resource was deleted in between
+    }
+
+    std::auto_ptr<DicomMap> result(new DicomMap);
+
+    switch (level)
+    {
+      case ResourceType_Patient:
+        ComputePatientCounters(*result, context.GetIndex(), parent, query);
+        break;
+
+      case ResourceType_Study:
+        ComputeStudyCounters(*result, context, parent, query);
+        break;
+
+      case ResourceType_Series:
+        ComputeSeriesCounters(*result, context.GetIndex(), parent, query);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+
+    return result.release();
+  }
+
+
   static void AddAnswer(DicomFindAnswers& answers,
                         const Json::Value& resource,
                         const DicomArray& query,
-                        const std::list<DicomTag>& sequencesToReturn)
+                        const std::list<DicomTag>& sequencesToReturn,
+                        const DicomMap* counters)
   {
     DicomMap result;
 
@@ -80,6 +351,15 @@ namespace Orthanc
       }
     }
 
+    if (counters != NULL)
+    {
+      DicomArray tmp(*counters);
+      for (size_t i = 0; i < tmp.GetSize(); i++)
+      {
+        result.SetValue(tmp.GetElement(i).GetTag(), tmp.GetElement(i).GetValue().GetContent());
+      }
+    }
+
     if (result.GetSize() == 0 &&
         sequencesToReturn.empty())
     {
@@ -96,8 +376,6 @@ namespace Orthanc
       for (std::list<DicomTag>::const_iterator tag = sequencesToReturn.begin();
            tag != sequencesToReturn.end(); ++tag)
       {
-        std::cout << tag->Format();
-
         const Json::Value& source = resource[tag->Format()];
 
         if (source.type() == Json::objectValue &&
@@ -379,7 +657,8 @@ namespace Orthanc
         }
         else
         {
-          AddAnswer(answers, dicom, query, sequencesToReturn);
+          std::auto_ptr<DicomMap> counters(ComputeCounters(context_, instances[i], level, input));
+          AddAnswer(answers, dicom, query, sequencesToReturn, counters.get());
         }
       }
     }
