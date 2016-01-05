@@ -49,22 +49,10 @@ namespace Orthanc
     {
     }
 
-    static ImageAccessor* DecodeUncompressedImageInternal(DcmDataset& dataset,
-                                                          unsigned int frame);
-
-    static bool IsPsmctRle1(DcmDataset& dataset);
-
-    static ImageAccessor* CreateImage(DcmDataset& dataset);
-
-    static bool IsUncompressedImage(const DcmDataset& dataset);
-
     static ImageAccessor* DecodeUncompressedImage(DcmDataset& dataset,
                                                   unsigned int frame);
 
-#if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
-    static ImageAccessor* DecodeJpegLossless(DcmDataset& dataset,
-                                             unsigned int frame);
-#endif
+    static bool IsPsmctRle1(DcmDataset& dataset);
 
     static bool TruncateDecodedImage(std::auto_ptr<ImageAccessor>& image,
                                      PixelFormat format,
@@ -76,6 +64,8 @@ namespace Orthanc
                                     ImageExtractionMode mode);
 
   public:
+    static ImageAccessor* CreateImage(DcmDataset& dataset);
+
     static ImageAccessor *Decode(ParsedDicomFile& dicom,
                                  unsigned int frame);
 
