@@ -495,45 +495,63 @@ namespace Orthanc
   ImageAccessor* DicomImageDecoder::Decode(ParsedDicomFile& dicom,
                                            unsigned int frame)
   {
-    DcmFileFormat& ff = dicom.GetDcmtkObject();
-    DcmDataset& dataset = *ff.getDataset();
+    DcmDataset& dataset = *dicom.GetDcmtkObject().getDataset();
+    E_TransferSyntax syntax = dataset.getOriginalXfer();
 
     /**
      * Deal with uncompressed, raw images.
      * http://support.dcmtk.org/docs/dcxfer_8h-source.html
      **/
-    if (dataset.getOriginalXfer() == EXS_Unknown ||
-        dataset.getOriginalXfer() == EXS_LittleEndianImplicit ||
-        dataset.getOriginalXfer() == EXS_BigEndianImplicit ||
-        dataset.getOriginalXfer() == EXS_LittleEndianExplicit ||
-        dataset.getOriginalXfer() == EXS_BigEndianExplicit)
+    if (syntax == EXS_Unknown ||
+        syntax == EXS_LittleEndianImplicit ||
+        syntax == EXS_BigEndianImplicit ||
+        syntax == EXS_LittleEndianExplicit ||
+        syntax == EXS_BigEndianExplicit)
     {
       return DecodeUncompressedImage(dataset, frame);
     }
 
+
 #if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
-    if (dataset.getOriginalXfer() == EXS_JPEGLSLossless ||
-        dataset.getOriginalXfer() == EXS_JPEGLSLossy)
+    /**
+     * Deal with JPEG-LS images.
+     **/
+
+    if (syntax == EXS_JPEGLSLossless ||
+        syntax == EXS_JPEGLSLossy)
     {
-      LOG(INFO) << "Decoding a JPEG-LS image";
-      /**
-       * The "DJLSLosslessDecoder" and "DJLSNearLosslessDecoder" in DCMTK
-       * are exactly the same, except for the "supportedTransferSyntax()"
-       * virtual function.
-       * http://support.dcmtk.org/docs/classDJLSDecoderBase.html
-       **/
+      DJLSCodecParameter parameters;
+      std::auto_ptr<DJLSDecoderBase> decoder;
 
-      DJLSLosslessDecoder decoder; DJLSCodecParameter parameters;
-      //DJLSNearLosslessDecoder decoder; DJLSCodecParameter parameters;
+      switch (syntax)
+      {
+        case EXS_JPEGLSLossless:
+          LOG(INFO) << "Decoding a JPEG-LS lossless image";
+          decoder.reset(new DJLSLosslessDecoder);
+          break;
+          
+        case EXS_JPEGLSLossy:
+          LOG(INFO) << "Decoding a JPEG-LS near-lossless image";
+          decoder.reset(new DJLSNearLosslessDecoder);
+          break;
 
-      return ApplyCodec(decoder, parameters, dataset, frame);
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+    
+      return ApplyCodec(*decoder, parameters, dataset, frame);
     }
 #endif
 
 
 #if ORTHANC_JPEG_ENABLED == 1
+    
     // TODO Implement this part to speed up JPEG decompression
 #endif
+
+
+    // TODO DcmRLECodecDecoder
+
 
     /**
      * This DICOM image format is not natively supported by
