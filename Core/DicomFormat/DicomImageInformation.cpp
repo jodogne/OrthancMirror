@@ -218,9 +218,16 @@ namespace Orthanc
   }
 
 
-  bool DicomImageInformation::ExtractPixelFormat(PixelFormat& format) const
+  bool DicomImageInformation::ExtractPixelFormat(PixelFormat& format,
+                                                 bool ignorePhotometricInterpretation) const
   {
-    if (photometric_ == PhotometricInterpretation_Monochrome1 ||
+    if (photometric_ == PhotometricInterpretation_Palette)
+    {
+      return false;
+    }
+
+    if (ignorePhotometricInterpretation ||
+        photometric_ == PhotometricInterpretation_Monochrome1 ||
         photometric_ == PhotometricInterpretation_Monochrome2)
     {
       if (GetBitsStored() == 8 && GetChannelCount() == 1 && !IsSigned())
@@ -245,7 +252,7 @@ namespace Orthanc
     if (GetBitsStored() == 8 && 
         GetChannelCount() == 3 && 
         !IsSigned() &&
-        photometric_ == PhotometricInterpretation_RGB)
+        (ignorePhotometricInterpretation || photometric_ == PhotometricInterpretation_RGB))
     {
       format = PixelFormat_RGB24;
       return true;

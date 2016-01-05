@@ -55,7 +55,7 @@ TEST(DicomImageInformation, ExtractPixelFormat1)
 
   DicomImageInformation info(m);
   PixelFormat format;
-  ASSERT_TRUE(info.ExtractPixelFormat(format));
+  ASSERT_TRUE(info.ExtractPixelFormat(format, false));
   ASSERT_EQ(PixelFormat_Grayscale16, format);
 }
 
@@ -75,6 +75,6 @@ TEST(DicomImageInformation, ExtractPixelFormat2)
 
   DicomImageInformation info(m);
   PixelFormat format;
-  ASSERT_TRUE(info.ExtractPixelFormat(format));
+  ASSERT_TRUE(info.ExtractPixelFormat(format, false));
   ASSERT_EQ(PixelFormat_SignedGrayscale16, format);
 }

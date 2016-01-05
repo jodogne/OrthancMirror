@@ -94,11 +94,24 @@
 #include <boost/lexical_cast.hpp>
 
 #include <dcmtk/dcmdata/dcfilefo.h>
+#include <dcmtk/dcmdata/dcrleccd.h>
+#include <dcmtk/dcmdata/dcrlecp.h>
 
 #if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
 #include <dcmtk/dcmjpls/djcodecd.h>
 #include <dcmtk/dcmjpls/djcparam.h>
 #include <dcmtk/dcmjpeg/djrplol.h>
+#endif
+
+#if ORTHANC_JPEG_ENABLED == 1
+#include <dcmtk/dcmjpeg/djcodecd.h>
+#include <dcmtk/dcmjpeg/djcparam.h>
+#include <dcmtk/dcmjpeg/djdecbas.h>
+#include <dcmtk/dcmjpeg/djdecext.h>
+#include <dcmtk/dcmjpeg/djdeclol.h>
+#include <dcmtk/dcmjpeg/djdecpro.h>
+#include <dcmtk/dcmjpeg/djdecsps.h>
+#include <dcmtk/dcmjpeg/djdecsv1.h>
 #endif
 
 
@@ -300,7 +313,8 @@ namespace Orthanc
   };
 
 
-  ImageAccessor* DicomImageDecoder::CreateImage(DcmDataset& dataset)
+  ImageAccessor* DicomImageDecoder::CreateImage(DcmDataset& dataset,
+                                                bool ignorePhotometricInterpretation)
   {
     DicomMap m;
     FromDcmtkBridge::Convert(m, dataset);
@@ -308,7 +322,7 @@ namespace Orthanc
     DicomImageInformation info(m);
     PixelFormat format;
     
-    if (!info.ExtractPixelFormat(format))
+    if (!info.ExtractPixelFormat(format, ignorePhotometricInterpretation))
     {
       LOG(WARNING) << "Unsupported DICOM image: " << info.GetBitsStored() 
                    << "bpp, " << info.GetChannelCount() << " channels, " 
@@ -357,7 +371,7 @@ namespace Orthanc
 
 
   ImageAccessor* DicomImageDecoder::DecodeUncompressedImage(DcmDataset& dataset,
-                                                                    unsigned int frame)
+                                                            unsigned int frame)
   {
     ImageSource source;
     source.Setup(dataset, frame);
@@ -367,7 +381,7 @@ namespace Orthanc
      * Resize the target image.
      **/
 
-    std::auto_ptr<ImageAccessor> target(CreateImage(dataset));
+    std::auto_ptr<ImageAccessor> target(CreateImage(dataset, false));
 
     if (source.GetWidth() != target->GetWidth() ||
         source.GetHeight() != target->GetHeight())
@@ -386,7 +400,7 @@ namespace Orthanc
     bool fastVersionSuccess = false;
     PixelFormat sourceFormat;
     if (!info.IsPlanar() &&
-        info.ExtractPixelFormat(sourceFormat))
+        info.ExtractPixelFormat(sourceFormat, false))
     {
       try
       {
@@ -466,12 +480,12 @@ namespace Orthanc
   }
 
 
-  static ImageAccessor* ApplyCodec(const DcmCodec& codec,
-                                   const DcmCodecParameter& parameters,
-                                   DcmDataset& dataset,
-                                   unsigned int frame)
+  ImageAccessor* DicomImageDecoder::ApplyCodec(const DcmCodec& codec,
+                                               const DcmCodecParameter& parameters,
+                                               DcmDataset& dataset,
+                                               unsigned int frame)
   {
-    std::auto_ptr<ImageAccessor> target(DicomImageDecoder::CreateImage(dataset));
+    std::auto_ptr<ImageAccessor> target(CreateImage(dataset, true));
 
     Uint32 startFragment = 0;  // Default 
     OFString decompressedColorModel;  // Out
@@ -526,12 +540,12 @@ namespace Orthanc
       switch (syntax)
       {
         case EXS_JPEGLSLossless:
-          LOG(INFO) << "Decoding a JPEG-LS lossless image";
+          LOG(INFO) << "Decoding a JPEG-LS lossless DICOM image";
           decoder.reset(new DJLSLosslessDecoder);
           break;
           
         case EXS_JPEGLSLossy:
-          LOG(INFO) << "Decoding a JPEG-LS near-lossless image";
+          LOG(INFO) << "Decoding a JPEG-LS near-lossless DICOM image";
           decoder.reset(new DJLSNearLosslessDecoder);
           break;
 
@@ -545,24 +559,86 @@ namespace Orthanc
 
 
 #if ORTHANC_JPEG_ENABLED == 1
+    /**
+     * Deal with JPEG images.
+     **/
+
+    if (syntax == EXS_JPEGProcess1TransferSyntax     ||  // DJDecoderBaseline
+        syntax == EXS_JPEGProcess2_4TransferSyntax   ||  // DJDecoderExtended
+        syntax == EXS_JPEGProcess6_8TransferSyntax   ||  // DJDecoderSpectralSelection (retired)
+        syntax == EXS_JPEGProcess10_12TransferSyntax ||  // DJDecoderProgressive (retired)
+        syntax == EXS_JPEGProcess14TransferSyntax    ||  // DJDecoderLossless
+        syntax == EXS_JPEGProcess14SV1TransferSyntax)    // DJDecoderP14SV1
+    {
+      // http://support.dcmtk.org/docs-snapshot/djutils_8h.html#a2a9695e5b6b0f5c45a64c7f072c1eb9d
+      DJCodecParameter parameters(
+        ECC_lossyYCbCr,  // Mode for color conversion for compression, Unused for decompression
+        EDC_photometricInterpretation,  // Perform color space conversion from YCbCr to RGB if DICOM photometric interpretation indicates YCbCr
+        EUC_default,     // Mode for UID creation, unused for decompression
+        EPC_default);    // Automatically determine whether color-by-plane is required from the SOP Class UID and decompressed photometric interpretation
+      std::auto_ptr<DJCodecDecoder> decoder;
+
+      switch (syntax)
+      {
+        case EXS_JPEGProcess1TransferSyntax:
+          LOG(INFO) << "Decoding a JPEG baseline (process 1) DICOM image";
+          decoder.reset(new DJDecoderBaseline);
+          break;
+          
+        case EXS_JPEGProcess2_4TransferSyntax :
+          LOG(INFO) << "Decoding a JPEG baseline (processes 2 and 4) DICOM image";
+          decoder.reset(new DJDecoderExtended);
+          break;
+          
+        case EXS_JPEGProcess6_8TransferSyntax:   // Retired
+          LOG(INFO) << "Decoding a JPEG spectral section, nonhierarchical (processes 6 and 8) DICOM image";
+          decoder.reset(new DJDecoderSpectralSelection);
+          break;
+          
+        case EXS_JPEGProcess10_12TransferSyntax:   // Retired
+          LOG(INFO) << "Decoding a JPEG full progression, nonhierarchical (processes 10 and 12) DICOM image";
+          decoder.reset(new DJDecoderProgressive);
+          break;
+          
+        case EXS_JPEGProcess14TransferSyntax:
+          LOG(INFO) << "Decoding a JPEG lossless, nonhierarchical (process 14) DICOM image";
+          decoder.reset(new DJDecoderLossless);
+          break;
+          
+        case EXS_JPEGProcess14SV1TransferSyntax:
+          LOG(INFO) << "Decoding a JPEG lossless, nonhierarchical, first-order prediction (process 14 selection value 1) DICOM image";
+          decoder.reset(new DJDecoderP14SV1);
+          break;
+          
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
     
-    // TODO Implement this part to speed up JPEG decompression
+      return ApplyCodec(*decoder, parameters, dataset, frame);      
+    }
 #endif
 
 
-    // TODO DcmRLECodecDecoder
+    if (syntax == EXS_RLELossless)
+    {
+      LOG(INFO) << "Decoding a RLE lossless DICOM image";
+      DcmRLECodecParameter parameters;
+      DcmRLECodecDecoder decoder;
+      return ApplyCodec(decoder, parameters, dataset, frame);
+    }
 
 
     /**
      * This DICOM image format is not natively supported by
-     * Orthanc. As a last resort, try and decode it through
-     * DCMTK. This will result in higher memory consumption. This is
-     * actually the second example of the following page:
+     * Orthanc. As a last resort, try and decode it through DCMTK by
+     * converting its transfer syntax to Little Endian. This will
+     * result in higher memory consumption. This is actually the
+     * second example of the following page:
      * http://support.dcmtk.org/docs/mod_dcmjpeg.html#Examples
      **/
     
     {
-      LOG(INFO) << "Using DCMTK to decode a compressed image";
+      LOG(INFO) << "Decoding a compressed image by converting its transfer syntax to Little Endian";
 
       std::auto_ptr<DcmDataset> converted(dynamic_cast<DcmDataset*>(dataset.clone()));
       converted->chooseRepresentation(EXS_LittleEndianExplicit, NULL);

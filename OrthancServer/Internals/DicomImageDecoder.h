@@ -37,6 +37,8 @@
 #include <memory>
 
 class DcmDataset;
+class DcmCodec;
+class DcmCodecParameter;
 
 namespace Orthanc
 {
@@ -49,10 +51,18 @@ namespace Orthanc
     {
     }
 
+    static ImageAccessor* CreateImage(DcmDataset& dataset,
+                                      bool ignorePhotometricInterpretation);
+
     static ImageAccessor* DecodeUncompressedImage(DcmDataset& dataset,
                                                   unsigned int frame);
 
     static bool IsPsmctRle1(DcmDataset& dataset);
+
+    static ImageAccessor* ApplyCodec(const DcmCodec& codec,
+                                     const DcmCodecParameter& parameters,
+                                     DcmDataset& dataset,
+                                     unsigned int frame);
 
     static bool TruncateDecodedImage(std::auto_ptr<ImageAccessor>& image,
                                      PixelFormat format,
@@ -64,8 +74,6 @@ namespace Orthanc
                                     ImageExtractionMode mode);
 
   public:
-    static ImageAccessor* CreateImage(DcmDataset& dataset);
-
     static ImageAccessor *Decode(ParsedDicomFile& dicom,
                                  unsigned int frame);
 
