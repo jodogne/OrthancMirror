@@ -84,12 +84,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ServerToolbox.h"
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
-#include "Internals/DicomImageDecoder.h"
-#include "../Core/DicomFormat/DicomIntegerPixelAccessor.h"
-#include "../Core/Images/JpegWriter.h"
 #include "../Core/Images/JpegReader.h"
 #include "../Core/Images/PngReader.h"
-#include "../Core/Images/PngWriter.h"
 #include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
@@ -1047,99 +1043,6 @@ namespace Orthanc
   }
 
   
-  ImageAccessor* ParsedDicomFile::ExtractImage(IDicomImageDecoder& decoder,
-                                               unsigned int frame)
-  {
-    std::auto_ptr<ImageAccessor> decoded(decoder.Decode(*this, frame));
-
-    if (decoded.get() == NULL)
-    {
-      LOG(ERROR) << "Cannot decode a DICOM image";
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-    else
-    {
-      return decoded.release();
-    }
-  }
-
-
-  ImageAccessor* ParsedDicomFile::ExtractImage(IDicomImageDecoder& decoder,
-                                               unsigned int frame,
-                                               ImageExtractionMode mode)
-  {
-    std::auto_ptr<ImageAccessor> decoded(ExtractImage(decoder, frame));
-
-    bool ok = false;
-
-    switch (mode)
-    {
-      case ImageExtractionMode_UInt8:
-        ok = DicomImageDecoder::TruncateDecodedImage(decoded, PixelFormat_Grayscale8, false);
-        break;
-
-      case ImageExtractionMode_UInt16:
-        ok = DicomImageDecoder::TruncateDecodedImage(decoded, PixelFormat_Grayscale16, false);
-        break;
-
-      case ImageExtractionMode_Int16:
-        ok = DicomImageDecoder::TruncateDecodedImage(decoded, PixelFormat_SignedGrayscale16, false);
-        break;
-
-      case ImageExtractionMode_Preview:
-        ok = DicomImageDecoder::PreviewDecodedImage(decoded);
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-
-    if (ok)
-    {
-      assert(decoded.get() != NULL);
-      return decoded.release();
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_NotImplemented);
-    }
-  }
-
-
-  void ParsedDicomFile::ExtractPngImage(std::string& result,
-                                        IDicomImageDecoder& decoder,
-                                        unsigned int frame,
-                                        ImageExtractionMode mode)
-  {
-    std::auto_ptr<ImageAccessor> decoded(ExtractImage(decoder, frame, mode));
-    assert(decoded.get() != NULL);
-
-    PngWriter writer;
-    writer.WriteToMemory(result, *decoded);
-  }
-
-
-  void ParsedDicomFile::ExtractJpegImage(std::string& result,
-                                         IDicomImageDecoder& decoder,
-                                         unsigned int frame,
-                                         ImageExtractionMode mode,
-                                         uint8_t quality)
-  {
-    if (mode != ImageExtractionMode_UInt8 &&
-        mode != ImageExtractionMode_Preview)
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-
-    std::auto_ptr<ImageAccessor> decoded(ExtractImage(decoder, frame, mode));
-    assert(decoded.get() != NULL);
-
-    JpegWriter writer;
-    writer.SetQuality(quality);
-    writer.WriteToMemory(result, *decoded);
-  }
-
-
   Encoding ParsedDicomFile::GetEncoding() const
   {
     return FromDcmtkBridge::DetectEncoding(*pimpl_->file_->getDataset());

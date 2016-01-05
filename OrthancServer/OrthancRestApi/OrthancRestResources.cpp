@@ -266,58 +266,34 @@ namespace Orthanc
     class ImageToEncode
     {
     private:
-      IDicomImageDecoder& decoder_;
-      std::string         format_;
-      std::string         encoded_;
-      ParsedDicomFile&    dicom_;
-      unsigned int        frame_;
-      ImageExtractionMode mode_;
+      std::auto_ptr<ImageAccessor>&  image_;
+      ImageExtractionMode            mode_;
+      std::string                    format_;
+      std::string                    answer_;
 
     public:
-      ImageToEncode(IDicomImageDecoder& decoder,
-                    ParsedDicomFile& dicom,
-                    unsigned int frame,
+      ImageToEncode(std::auto_ptr<ImageAccessor>& image,
                     ImageExtractionMode mode) : 
-        decoder_(decoder),
-        dicom_(dicom),
-        frame_(frame),
+        image_(image),
         mode_(mode)
       {
       }
 
-      ParsedDicomFile& GetDicom() const
-      {
-        return dicom_;
-      }
-
-      unsigned int GetFrame() const
-      {
-        return frame_;
-      }
-
-      ImageExtractionMode GetMode() const
-      {
-        return mode_;
-      }
-
-      void SetFormat(const std::string& format)
-      {
-        format_ = format;
-      }
-
-      std::string& GetTarget()
-      {
-        return encoded_;
-      }
-
       void Answer(RestApiOutput& output)
       {
-        output.AnswerBuffer(encoded_, format_);
+        output.AnswerBuffer(answer_, format_);
       }
 
-      IDicomImageDecoder& GetDecoder() const
+      void EncodeUsingPng()
       {
-        return decoder_;
+        format_ = "image/png";
+        DicomImageDecoder::ExtractPngImage(answer_, image_, mode_);
+      }
+
+      void EncodeUsingJpeg(uint8_t quality)
+      {
+        format_ = "image/jpeg";
+        DicomImageDecoder::ExtractJpegImage(answer_, image_, mode_, quality);
       }
     };
 
@@ -336,9 +312,7 @@ namespace Orthanc
       {
         assert(type == "image");
         assert(subtype == "png");
-        image_.GetDicom().ExtractPngImage(image_.GetTarget(), image_.GetDecoder(), 
-                                          image_.GetFrame(), image_.GetMode());
-        image_.SetFormat("image/png");
+        image_.EncodeUsingPng();
       }
     };
 
@@ -377,9 +351,7 @@ namespace Orthanc
       {
         assert(type == "image");
         assert(subtype == "jpeg");
-        image_.GetDicom().ExtractJpegImage(image_.GetTarget(), image_.GetDecoder(), 
-                                           image_.GetFrame(), image_.GetMode(), quality_);
-        image_.SetFormat("image/jpeg");
+        image_.EncodeUsingJpeg(quality_);
       }
     };
   }
@@ -406,17 +378,17 @@ namespace Orthanc
     std::string dicomContent;
     context.ReadFile(dicomContent, publicId, FileContentType_Dicom);
 
-    ParsedDicomFile dicom(dicomContent);
-
     try
     {
 #if ORTHANC_PLUGINS_ENABLED == 1
       IDicomImageDecoder& decoder = context.GetPlugins();
 #else
-      DicomImageDecoder decoder;  // This is Orthanc's built-in decoder
+      DefaultDicomImageDecoder decoder;  // This is Orthanc's built-in decoder
 #endif
 
-      ImageToEncode image(decoder, dicom, frame, mode);
+      std::auto_ptr<ImageAccessor> decoded(decoder.Decode(dicomContent.c_str(), dicomContent.size(), frame));
+
+      ImageToEncode image(decoded, mode);
 
       HttpContentNegociation negociation;
       EncodePng png(image);          negociation.Register("image/png", png);
@@ -471,11 +443,10 @@ namespace Orthanc
 #if ORTHANC_PLUGINS_ENABLED == 1
     IDicomImageDecoder& decoder = context.GetPlugins();
 #else
-    DicomImageDecoder decoder;  // This is Orthanc's built-in decoder
+    DefaultDicomImageDecoder decoder;  // This is Orthanc's built-in decoder
 #endif
 
-    ParsedDicomFile dicom(dicomContent);
-    std::auto_ptr<ImageAccessor> decoded(dicom.ExtractImage(decoder, frame));
+    std::auto_ptr<ImageAccessor> decoded(decoder.Decode(dicomContent.c_str(), dicomContent.size(), frame));
 
     std::string result;
     decoded->ToMatlabString(result);

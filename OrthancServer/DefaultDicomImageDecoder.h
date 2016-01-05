@@ -32,21 +32,21 @@
 
 #pragma once
 
-#include "../Core/Images/ImageAccessor.h"
-
-#include <boost/noncopyable.hpp>
+#include "IDicomImageDecoder.h"
+#include "ParsedDicomFile.h"
+#include "Internals/DicomImageDecoder.h"
 
 namespace Orthanc
 {
-  class IDicomImageDecoder : public boost::noncopyable
+  class DefaultDicomImageDecoder : public IDicomImageDecoder
   {
   public:
-    virtual ~IDicomImageDecoder()
-    {
-    }
-
     virtual ImageAccessor* Decode(const void* dicom,
                                   size_t size,
-                                  unsigned int frame) = 0;
+                                  unsigned int frame)
+    {
+      ParsedDicomFile parsed(dicom, size);
+      return DicomImageDecoder::Decode(parsed, frame);
+    }
   };
 }

@@ -84,6 +84,8 @@
 #include "../../Core/OrthancException.h"
 #include "../../Core/Images/Image.h"
 #include "../../Core/Images/ImageProcessing.h"
+#include "../../Core/Images/PngWriter.h"
+#include "../../Core/Images/JpegWriter.h"
 #include "../../Core/DicomFormat/DicomIntegerPixelAccessor.h"
 #include "../ToDcmtkBridge.h"
 #include "../FromDcmtkBridge.h"
@@ -571,7 +573,8 @@ namespace Orthanc
       }
     }
 
-    return NULL;
+    LOG(ERROR) << "Cannot decode a DICOM image with the built-in decoder";
+    throw OrthancException(ErrorCode_BadFileFormat);
   }
 
 
@@ -652,5 +655,78 @@ namespace Orthanc
       default:
         throw OrthancException(ErrorCode_NotImplemented);
     }
+  }
+
+
+  void DicomImageDecoder::ApplyExtractionMode(std::auto_ptr<ImageAccessor>& image,
+                                              ImageExtractionMode mode)
+  {
+    if (image.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    bool ok = false;
+
+    switch (mode)
+    {
+      case ImageExtractionMode_UInt8:
+        ok = TruncateDecodedImage(image, PixelFormat_Grayscale8, false);
+        break;
+
+      case ImageExtractionMode_UInt16:
+        ok = TruncateDecodedImage(image, PixelFormat_Grayscale16, false);
+        break;
+
+      case ImageExtractionMode_Int16:
+        ok = TruncateDecodedImage(image, PixelFormat_SignedGrayscale16, false);
+        break;
+
+      case ImageExtractionMode_Preview:
+        ok = PreviewDecodedImage(image);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    if (ok)
+    {
+      assert(image.get() != NULL);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
+
+
+  void DicomImageDecoder::ExtractPngImage(std::string& result,
+                                          std::auto_ptr<ImageAccessor>& image,
+                                          ImageExtractionMode mode)
+  {
+    ApplyExtractionMode(image, mode);
+
+    PngWriter writer;
+    writer.WriteToMemory(result, *image);
+  }
+
+
+  void DicomImageDecoder::ExtractJpegImage(std::string& result,
+                                           std::auto_ptr<ImageAccessor>& image,
+                                           ImageExtractionMode mode,
+                                           uint8_t quality)
+  {
+    if (mode != ImageExtractionMode_UInt8 &&
+        mode != ImageExtractionMode_Preview)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    ApplyExtractionMode(image, mode);
+
+    JpegWriter writer;
+    writer.SetQuality(quality);
+    writer.WriteToMemory(result, *image);
   }
 }

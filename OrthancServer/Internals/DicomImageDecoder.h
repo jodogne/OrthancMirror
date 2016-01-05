@@ -32,18 +32,22 @@
 
 #pragma once
 
-#include <memory>
+#include "../ParsedDicomFile.h"
 
-#include "../IDicomImageDecoder.h"
+#include <memory>
 
 class DcmDataset;
 
 namespace Orthanc
 {
-  class DicomImageDecoder : public IDicomImageDecoder
+  class DicomImageDecoder : public boost::noncopyable
   {
   private:
     class ImageSource;
+
+    DicomImageDecoder()   // This is a fully abstract class, no constructor
+    {
+    }
 
     static ImageAccessor* DecodeUncompressedImageInternal(DcmDataset& dataset,
                                                           unsigned int frame);
@@ -62,14 +66,26 @@ namespace Orthanc
                                              unsigned int frame);
 #endif
 
-  public:
-    virtual ImageAccessor *Decode(ParsedDicomFile& dicom,
-                                  unsigned int frame);
-
     static bool TruncateDecodedImage(std::auto_ptr<ImageAccessor>& image,
                                      PixelFormat format,
                                      bool allowColorConversion);
 
     static bool PreviewDecodedImage(std::auto_ptr<ImageAccessor>& image);
+
+    static void ApplyExtractionMode(std::auto_ptr<ImageAccessor>& image,
+                                    ImageExtractionMode mode);
+
+  public:
+    static ImageAccessor *Decode(ParsedDicomFile& dicom,
+                                 unsigned int frame);
+
+    static void ExtractPngImage(std::string& result,
+                                std::auto_ptr<ImageAccessor>& image,
+                                ImageExtractionMode mode);
+
+    static void ExtractJpegImage(std::string& result,
+                                 std::auto_ptr<ImageAccessor>& image,
+                                 ImageExtractionMode mode,
+                                 uint8_t quality);
   };
 }
