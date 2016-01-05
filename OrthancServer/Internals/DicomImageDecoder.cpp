@@ -108,14 +108,6 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_COMPRESSION_TYPE(0x07a1, 0x1011);
 
 
-  static bool IsJpegLossless(const DcmDataset& dataset)
-  {
-    // http://support.dcmtk.org/docs/dcxfer_8h-source.html
-    return (dataset.getOriginalXfer() == EXS_JPEGLSLossless ||
-            dataset.getOriginalXfer() == EXS_JPEGLSLossy);
-  }
-
-
   static bool IsPsmctRle1(DcmDataset& dataset)
   {
     DcmElement* e;
@@ -331,17 +323,6 @@ namespace Orthanc
   }
 
 
-  bool DicomImageDecoder::IsUncompressedImage(const DcmDataset& dataset)
-  {
-    // http://support.dcmtk.org/docs/dcxfer_8h-source.html
-    return (dataset.getOriginalXfer() == EXS_Unknown ||
-            dataset.getOriginalXfer() == EXS_LittleEndianImplicit ||
-            dataset.getOriginalXfer() == EXS_BigEndianImplicit ||
-            dataset.getOriginalXfer() == EXS_LittleEndianExplicit ||
-            dataset.getOriginalXfer() == EXS_BigEndianExplicit);
-  }
-
-
   template <typename PixelType>
   static void CopyPixels(ImageAccessor& target,
                          const DicomIntegerPixelAccessor& source)
@@ -376,18 +357,6 @@ namespace Orthanc
 
 
   ImageAccessor* DicomImageDecoder::DecodeUncompressedImage(DcmDataset& dataset,
-                                                            unsigned int frame)
-  {
-    if (!IsUncompressedImage(dataset))
-    {
-      throw OrthancException(ErrorCode_BadParameterType);
-    }
-
-    return DecodeUncompressedImageInternal(dataset, frame);
-  }
-
-
-  ImageAccessor* DicomImageDecoder::DecodeUncompressedImageInternal(DcmDataset& dataset,
                                                                     unsigned int frame)
   {
     ImageSource source;
@@ -476,15 +445,8 @@ namespace Orthanc
   }
 
 
-#if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
-  ImageAccessor* DicomImageDecoder::DecodeJpegLossless(DcmDataset& dataset,
-                                                       unsigned int frame)
+  static DcmPixelSequence* GetPixelSequence(DcmDataset& dataset)
   {
-    if (!IsJpegLossless(dataset))
-    {
-      throw OrthancException(ErrorCode_BadParameterType);
-    }
-
     DcmElement *element = NULL;
     if (!dataset.findAndGetElement(ToDcmtkBridge::Convert(DICOM_TAG_PIXEL_DATA), element).good())
     {
@@ -494,57 +456,77 @@ namespace Orthanc
     DcmPixelData& pixelData = dynamic_cast<DcmPixelData&>(*element);
     DcmPixelSequence* pixelSequence = NULL;
     if (!pixelData.getEncapsulatedRepresentation
-        (dataset.getOriginalXfer(), NULL, pixelSequence).good())
+        (dataset.getOriginalXfer(), NULL, pixelSequence).good() ||
+        pixelSequence == NULL)
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
-    std::auto_ptr<ImageAccessor> target(CreateImage(dataset));
+    return pixelSequence;
+  }
 
-    /**
-     * The "DJLSLosslessDecoder" and "DJLSNearLosslessDecoder" in DCMTK
-     * are exactly the same, except for the "supportedTransferSyntax()"
-     * virtual function.
-     * http://support.dcmtk.org/docs/classDJLSDecoderBase.html
-     **/
 
-    DJLSLosslessDecoder decoder; DJLSCodecParameter parameters;
-    //DJLSNearLosslessDecoder decoder; DJLSCodecParameter parameters;
+  static ImageAccessor* ApplyCodec(const DcmCodec& codec,
+                                   const DcmCodecParameter& parameters,
+                                   DcmDataset& dataset,
+                                   unsigned int frame)
+  {
+    std::auto_ptr<ImageAccessor> target(DicomImageDecoder::CreateImage(dataset));
 
     Uint32 startFragment = 0;  // Default 
     OFString decompressedColorModel;  // Out
     DJ_RPLossless representationParameter;
-    OFCondition c = decoder.decodeFrame(&representationParameter, pixelSequence, &parameters, 
-                                        &dataset, frame, startFragment, target->GetBuffer(), 
-                                        target->GetSize(), decompressedColorModel);
+    OFCondition c = codec.decodeFrame(&representationParameter, GetPixelSequence(dataset), &parameters, 
+                                      &dataset, frame, startFragment, target->GetBuffer(), 
+                                      target->GetSize(), decompressedColorModel);
 
-    if (!c.good())
+    if (c.good())
     {
-      throw OrthancException(ErrorCode_InternalError);
+      return target.release();    
     }
-
-    return target.release();
+    else
+    {
+      LOG(ERROR) << "Cannot decode an image";
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
   }
-#endif
-
-
 
 
   ImageAccessor* DicomImageDecoder::Decode(ParsedDicomFile& dicom,
                                            unsigned int frame)
   {
-    DcmDataset& dataset = *dicom.GetDcmtkObject().getDataset();
+    DcmFileFormat& ff = dicom.GetDcmtkObject();
+    DcmDataset& dataset = *ff.getDataset();
 
-    if (IsUncompressedImage(dataset))
+    /**
+     * Deal with uncompressed, raw images.
+     * http://support.dcmtk.org/docs/dcxfer_8h-source.html
+     **/
+    if (dataset.getOriginalXfer() == EXS_Unknown ||
+        dataset.getOriginalXfer() == EXS_LittleEndianImplicit ||
+        dataset.getOriginalXfer() == EXS_BigEndianImplicit ||
+        dataset.getOriginalXfer() == EXS_LittleEndianExplicit ||
+        dataset.getOriginalXfer() == EXS_BigEndianExplicit)
     {
       return DecodeUncompressedImage(dataset, frame);
     }
 
 #if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
-    if (IsJpegLossless(dataset))
+    if (dataset.getOriginalXfer() == EXS_JPEGLSLossless ||
+        dataset.getOriginalXfer() == EXS_JPEGLSLossy)
     {
       LOG(INFO) << "Decoding a JPEG-LS image";
-      return DecodeJpegLossless(dataset, frame);
+      /**
+       * The "DJLSLosslessDecoder" and "DJLSNearLosslessDecoder" in DCMTK
+       * are exactly the same, except for the "supportedTransferSyntax()"
+       * virtual function.
+       * http://support.dcmtk.org/docs/classDJLSDecoderBase.html
+       **/
+
+      DJLSLosslessDecoder decoder; DJLSCodecParameter parameters;
+      //DJLSNearLosslessDecoder decoder; DJLSCodecParameter parameters;
+
+      return ApplyCodec(decoder, parameters, dataset, frame);
     }
 #endif
 
@@ -569,7 +551,7 @@ namespace Orthanc
 
       if (converted->canWriteXfer(EXS_LittleEndianExplicit))
       {
-        return DecodeUncompressedImageInternal(*converted, frame);
+        return DecodeUncompressedImage(*converted, frame);
       }
     }
 
