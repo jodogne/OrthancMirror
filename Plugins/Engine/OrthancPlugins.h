@@ -234,6 +234,8 @@ namespace Orthanc
 
     virtual IWorklistRequestHandler* ConstructWorklistRequestHandler();
 
+    bool HasCustomImageDecoder();
+
     virtual ImageAccessor* Decode(const void* dicom,
                                   size_t size,
                                   unsigned int frame);

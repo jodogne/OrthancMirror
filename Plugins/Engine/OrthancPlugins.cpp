@@ -2375,6 +2375,13 @@ namespace Orthanc
   }
 
 
+  bool OrthancPlugins::HasCustomImageDecoder()
+  {
+    boost::mutex::scoped_lock lock(pimpl_->decodeImageCallbackMutex_);
+    return (pimpl_->decodeImageCallback_ != NULL);
+  }
+
+
   ImageAccessor*  OrthancPlugins::Decode(const void* dicom,
                                          size_t size,
                                          unsigned int frame)
@@ -2395,6 +2402,6 @@ namespace Orthanc
     }
 
     DefaultDicomImageDecoder defaultDecoder;
-    return defaultDecoder.Decode(dicom, size, frame);
+    return defaultDecoder.Decode(dicom, size, frame);  // TODO RETURN NULL ???
   }
 }
