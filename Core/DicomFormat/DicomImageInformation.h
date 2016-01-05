@@ -119,6 +119,7 @@ namespace Orthanc
       return photometric_;
     }
 
-    bool ExtractPixelFormat(PixelFormat& format) const;
+    bool ExtractPixelFormat(PixelFormat& format,
+                            bool ignorePhotometricInterpretation) const;
   };
 }
