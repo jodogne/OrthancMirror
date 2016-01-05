@@ -33,9 +33,9 @@
 #pragma once
 
 #include "../Core/DicomFormat/DicomInstanceHasher.h"
+#include "../Core/Images/ImageAccessor.h"
 #include "../Core/IDynamicObject.h"
 #include "../Core/RestApi/RestApiOutput.h"
-#include "IDicomImageDecoder.h"
 #include "ServerEnumerations.h"
 
 class DcmDataset;
@@ -125,24 +125,6 @@ namespace Orthanc
 
     void EmbedImage(const std::string& mime,
                     const std::string& content);
-
-    ImageAccessor* ExtractImage(IDicomImageDecoder& decoder,
-                                unsigned int frame);
-
-    ImageAccessor* ExtractImage(IDicomImageDecoder& decoder,
-                                unsigned int frame,
-                                ImageExtractionMode mode);
-
-    void ExtractPngImage(std::string& result,
-                         IDicomImageDecoder& decoder,
-                         unsigned int frame,
-                         ImageExtractionMode mode);
-
-    void ExtractJpegImage(std::string& result,
-                          IDicomImageDecoder& decoder,
-                          unsigned int frame,
-                          ImageExtractionMode mode,
-                          uint8_t quality);
 
     Encoding GetEncoding() const;
 

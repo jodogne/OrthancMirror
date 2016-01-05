@@ -58,6 +58,7 @@
 #include "../../Core/Images/JpegReader.h"
 #include "../../Core/Images/JpegWriter.h"
 #include "../../Core/Images/ImageProcessing.h"
+#include "../../OrthancServer/DefaultDicomImageDecoder.h"
 #include "PluginsEnumerations.h"
 
 #include <boost/regex.hpp> 
@@ -1309,8 +1310,7 @@ namespace Orthanc
 
       case OrthancPluginImageFormat_Dicom:
       {
-        ParsedDicomFile dicom(p.data, p.size);
-        image.reset(Decode(dicom, 0));
+        image.reset(Decode(p.data, p.size, 0));
         break;
       }
 
@@ -1563,8 +1563,7 @@ namespace Orthanc
 
       case _OrthancPluginService_DecodeDicomImage:
       {
-        ParsedDicomFile dicom(p.constBuffer, p.bufferSize);
-        result.reset(Decode(dicom, p.frameIndex));
+        result.reset(Decode(p.constBuffer, p.bufferSize, p.frameIndex));
         break;
       }
 
@@ -2376,18 +2375,16 @@ namespace Orthanc
   }
 
 
-  ImageAccessor*  OrthancPlugins::Decode(ParsedDicomFile& dicom, 
+  ImageAccessor*  OrthancPlugins::Decode(const void* dicom,
+                                         size_t size,
                                          unsigned int frame)
   {
     {
       boost::mutex::scoped_lock lock(pimpl_->decodeImageCallbackMutex_);
       if (pimpl_->decodeImageCallback_ != NULL)
       {
-        std::string s;
-        dicom.SaveToMemoryBuffer(s);
-
         OrthancPluginImage* pluginImage = NULL;
-        if (pimpl_->decodeImageCallback_(&pluginImage, s.c_str(), s.size(), frame) == OrthancPluginErrorCode_Success &&
+        if (pimpl_->decodeImageCallback_(&pluginImage, dicom, size, frame) == OrthancPluginErrorCode_Success &&
             pluginImage != NULL)
         {
           return reinterpret_cast<ImageAccessor*>(pluginImage);
@@ -2397,7 +2394,7 @@ namespace Orthanc
       }
     }
 
-    DicomImageDecoder defaultDecoder;
-    return defaultDecoder.Decode(dicom, frame);
+    DefaultDicomImageDecoder defaultDecoder;
+    return defaultDecoder.Decode(dicom, size, frame);
   }
 }
