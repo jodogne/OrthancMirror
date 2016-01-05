@@ -374,29 +374,28 @@ namespace Orthanc
       return;
     }
 
-    std::string publicId = call.GetUriComponent("id", "");
-    std::string dicomContent;
-    context.ReadFile(dicomContent, publicId, FileContentType_Dicom);
+    std::auto_ptr<ImageAccessor> decoded;
 
     try
     {
+      std::string publicId = call.GetUriComponent("id", "");
+
 #if ORTHANC_PLUGINS_ENABLED == 1
-      IDicomImageDecoder& decoder = context.GetPlugins();
-#else
-      DefaultDicomImageDecoder decoder;  // This is Orthanc's built-in decoder
+      if (context.GetPlugins().HasCustomImageDecoder())
+      {
+        // TODO create a cache of file
+        std::string dicomContent;
+        context.ReadFile(dicomContent, publicId, FileContentType_Dicom);
+        decoded.reset(context.GetPlugins().Decode(dicomContent.c_str(), dicomContent.size(), frame));
+      }
 #endif
 
-      std::auto_ptr<ImageAccessor> decoded(decoder.Decode(dicomContent.c_str(), dicomContent.size(), frame));
-
-      ImageToEncode image(decoded, mode);
-
-      HttpContentNegociation negociation;
-      EncodePng png(image);          negociation.Register("image/png", png);
-      EncodeJpeg jpeg(image, call);  negociation.Register("image/jpeg", jpeg);
-
-      if (negociation.Apply(call.GetHttpHeaders()))
+      if (decoded.get() == NULL)
       {
-        image.Answer(call.GetOutput());
+        // Use Orthanc's built-in decoder, using the cache to speed-up
+        // things on multi-frame images
+        ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), publicId);
+        decoded.reset(DicomImageDecoder::Decode(locker.GetDicom(), frame));
       }
     }
     catch (OrthancException& e)
@@ -416,6 +415,17 @@ namespace Orthanc
 
         call.GetOutput().Redirect(root + "app/images/unsupported.png");
       }
+    }
+
+    ImageToEncode image(decoded, mode);
+
+    HttpContentNegociation negociation;
+    EncodePng png(image);          negociation.Register("image/png", png);
+    EncodeJpeg jpeg(image, call);  negociation.Register("image/jpeg", jpeg);
+
+    if (negociation.Apply(call.GetHttpHeaders()))
+    {
+      image.Answer(call.GetOutput());
     }
   }
 
