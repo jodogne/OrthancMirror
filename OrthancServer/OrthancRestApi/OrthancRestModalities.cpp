@@ -695,7 +695,8 @@ namespace Orthanc
     for (std::list<std::string>::const_iterator 
            it = instances.begin(); it != instances.end(); ++it)
     {
-      job.AddCommand(new StoreScuCommand(context, localAet, p, false)).AddInput(*it);
+      job.AddCommand(new StoreScuCommand(context, localAet, p, false,
+                                         0 /* not a C-MOVE */)).AddInput(*it);
     }
 
     job.SetDescription("HTTP request: Store-SCU to peer \"" + remote + "\"");

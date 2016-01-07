@@ -133,11 +133,15 @@ namespace Orthanc
 
     bool Echo();
 
-    void Store(const char* buffer, size_t size);
+    void Store(const char* buffer, 
+               size_t size,
+               uint16_t moveMessageID);
 
-    void Store(const std::string& buffer);
+    void Store(const std::string& buffer,
+               uint16_t moveMessageID);
 
-    void StoreFile(const std::string& path);
+    void StoreFile(const std::string& path,
+                   uint16_t moveMessageID);
 
     void Find(DicomFindAnswers& result,
               ResourceType level,

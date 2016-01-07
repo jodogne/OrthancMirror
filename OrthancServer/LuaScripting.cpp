@@ -253,7 +253,8 @@ namespace Orthanc
       LOG(INFO) << "Lua script to send resource " << parameters["Resource"].asString()
                 << " to modality " << modality << " using Store-SCU";
       return new StoreScuCommand(context_, localAet,
-                                 Configuration::GetModalityUsingSymbolicName(modality), true);
+                                 Configuration::GetModalityUsingSymbolicName(modality), 
+                                 true, 0 /* not a C-MOVE */);
     }
 
     if (operation == "store-peer")
