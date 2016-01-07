@@ -40,11 +40,13 @@ namespace Orthanc
   StoreScuCommand::StoreScuCommand(ServerContext& context,
                                    const std::string& localAet,
                                    const RemoteModalityParameters& modality,
-                                   bool ignoreExceptions) : 
+                                   bool ignoreExceptions,
+                                   uint16_t moveMessageID) : 
     context_(context),
     modality_(modality),
     ignoreExceptions_(ignoreExceptions),
-    localAet_(localAet)
+    localAet_(localAet),
+    moveMessageID_(moveMessageID)
   {
   }
 
@@ -63,7 +65,8 @@ namespace Orthanc
       {
         std::string dicom;
         context_.ReadFile(dicom, *it, FileContentType_Dicom);
-        locker.GetConnection().Store(dicom);
+
+        locker.GetConnection().Store(dicom, moveMessageID_);
 
         // Only chain with other commands if this command succeeds
         outputs.push_back(*it);

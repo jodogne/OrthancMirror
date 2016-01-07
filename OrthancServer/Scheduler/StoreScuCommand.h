@@ -44,12 +44,15 @@ namespace Orthanc
     RemoteModalityParameters modality_;
     bool ignoreExceptions_;
     std::string localAet_;
+    uint16_t moveMessageID_;
 
   public:
     StoreScuCommand(ServerContext& context,
                     const std::string& localAet,
                     const RemoteModalityParameters& modality,
-                    bool ignoreExceptions);
+                    bool ignoreExceptions,
+                    uint16_t moveMessageID /* only makes sense if this 
+                                              command results from a C-MOVE */);
 
     virtual bool Apply(ListOfStrings& outputs,
                        const ListOfStrings& inputs);

@@ -148,7 +148,9 @@ namespace Orthanc
 
     void CheckIsOpen() const;
 
-    void Store(DcmInputStream& is, DicomUserConnection& connection);
+    void Store(DcmInputStream& is, 
+               DicomUserConnection& connection,
+               uint16_t moveMessageID);
   };
 
 
@@ -251,7 +253,9 @@ namespace Orthanc
   }
 
 
-  void DicomUserConnection::PImpl::Store(DcmInputStream& is, DicomUserConnection& connection)
+  void DicomUserConnection::PImpl::Store(DcmInputStream& is, 
+                                         DicomUserConnection& connection,
+                                         uint16_t moveMessageID)
   {
     CheckIsOpen();
 
@@ -325,18 +329,28 @@ namespace Orthanc
     }
 
     // Prepare the transmission of data
-    T_DIMSE_C_StoreRQ req;
-    memset(&req, 0, sizeof(req));
-    req.MessageID = assoc_->nextMsgID++;
-    strcpy(req.AffectedSOPClassUID, sopClass);
-    strcpy(req.AffectedSOPInstanceUID, sopInstance);
-    req.DataSetType = DIMSE_DATASET_PRESENT;
-    req.Priority = DIMSE_PRIORITY_MEDIUM;
+    T_DIMSE_C_StoreRQ request;
+    memset(&request, 0, sizeof(request));
+    request.MessageID = assoc_->nextMsgID++;
+    strncpy(request.AffectedSOPClassUID, sopClass, DIC_UI_LEN);
+    request.Priority = DIMSE_PRIORITY_MEDIUM;
+    request.DataSetType = DIMSE_DATASET_PRESENT;
+    strncpy(request.AffectedSOPInstanceUID, sopInstance, DIC_UI_LEN);
+
+    strncpy(request.MoveOriginatorApplicationEntityTitle, 
+            connection.GetLocalApplicationEntityTitle().c_str(), DIC_AE_LEN);
+    request.opts = O_STORE_MOVEORIGINATORAETITLE;
+
+    if (moveMessageID != 0)
+    {
+      request.MoveOriginatorID = moveMessageID;  // The type DIC_US is an alias for uint16_t
+      request.opts |= O_STORE_MOVEORIGINATORID;
+    }
 
     // Finally conduct transmission of data
     T_DIMSE_C_StoreRSP rsp;
     DcmDataset* statusDetail = NULL;
-    Check(DIMSE_storeUser(assoc_, presID, &req,
+    Check(DIMSE_storeUser(assoc_, presID, &request,
                           NULL, dcmff.getDataset(), /*progressCallback*/ NULL, NULL,
                           /*opt_blockMode*/ DIMSE_BLOCKING, /*opt_dimse_timeout*/ dimseTimeout_,
                           &rsp, &statusDetail, NULL));
@@ -511,9 +525,9 @@ namespace Orthanc
     T_DIMSE_C_FindRQ request;
     memset(&request, 0, sizeof(request));
     request.MessageID = association->nextMsgID++;
-    strcpy(request.AffectedSOPClassUID, sopClass);
-    request.DataSetType = DIMSE_DATASET_PRESENT;
+    strncpy(request.AffectedSOPClassUID, sopClass, DIC_UI_LEN);
     request.Priority = DIMSE_PRIORITY_MEDIUM;
+    request.DataSetType = DIMSE_DATASET_PRESENT;
 
     T_DIMSE_C_FindRSP response;
     DcmDataset* statusDetail = NULL;
@@ -678,10 +692,10 @@ namespace Orthanc
     T_DIMSE_C_MoveRQ request;
     memset(&request, 0, sizeof(request));
     request.MessageID = pimpl_->assoc_->nextMsgID++;
-    strcpy(request.AffectedSOPClassUID, sopClass);
-    request.DataSetType = DIMSE_DATASET_PRESENT;
+    strncpy(request.AffectedSOPClassUID, sopClass, DIC_UI_LEN);
     request.Priority = DIMSE_PRIORITY_MEDIUM;
-    strncpy(request.MoveDestination, targetAet.c_str(), sizeof(DIC_AE) / sizeof(char));
+    request.DataSetType = DIMSE_DATASET_PRESENT;
+    strncpy(request.MoveDestination, targetAet.c_str(), DIC_AE_LEN);
 
     T_DIMSE_C_MoveRSP response;
     DcmDataset* statusDetail = NULL;
@@ -920,7 +934,9 @@ namespace Orthanc
     return pimpl_->IsOpen();
   }
 
-  void DicomUserConnection::Store(const char* buffer, size_t size)
+  void DicomUserConnection::Store(const char* buffer, 
+                                  size_t size,
+                                  uint16_t moveMessageID)
   {
     // Prepare an input stream for the memory buffer
     DcmInputBufferStream is;
@@ -928,22 +944,24 @@ namespace Orthanc
       is.setBuffer(buffer, size);
     is.setEos();
       
-    pimpl_->Store(is, *this);
+    pimpl_->Store(is, *this, moveMessageID);
   }
 
-  void DicomUserConnection::Store(const std::string& buffer)
+  void DicomUserConnection::Store(const std::string& buffer,
+                                  uint16_t moveMessageID)
   {
     if (buffer.size() > 0)
-      Store(reinterpret_cast<const char*>(&buffer[0]), buffer.size());
+      Store(reinterpret_cast<const char*>(&buffer[0]), buffer.size(), moveMessageID);
     else
-      Store(NULL, 0);
+      Store(NULL, 0, moveMessageID);
   }
 
-  void DicomUserConnection::StoreFile(const std::string& path)
+  void DicomUserConnection::StoreFile(const std::string& path,
+                                      uint16_t moveMessageID)
   {
     // Prepare an input stream for the file
     DcmInputFileStream is(path.c_str());
-    pimpl_->Store(is, *this);
+    pimpl_->Store(is, *this, moveMessageID);
   }
 
   bool DicomUserConnection::Echo()
