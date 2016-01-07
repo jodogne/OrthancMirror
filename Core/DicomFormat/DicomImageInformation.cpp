@@ -157,7 +157,7 @@ namespace Orthanc
       if (samplesPerPixel_ > 1)
       {
         // The "Planar Configuration" is only set when "Samples per Pixels" is greater than 1
-        // https://www.dabsoft.ch/dicom/3/C.7.6.3.1.3/
+        // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#sect_C.7.6.3.1.3
         try
         {
           planarConfiguration = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_PLANAR_CONFIGURATION).GetContent());

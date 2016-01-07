@@ -216,12 +216,13 @@ TEST(FromDcmtkBridge, Encodings1)
 
 TEST(FromDcmtkBridge, Enumerations)
 {
+  // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#sect_C.12.1.1.2
   Encoding e;
 
   ASSERT_FALSE(GetDicomEncoding(e, ""));
   ASSERT_TRUE(GetDicomEncoding(e, "ISO_IR 6"));  ASSERT_EQ(Encoding_Utf8, e);
 
-  // http://www.dabsoft.ch/dicom/3/C.12.1.1.2/ - Table C.12-2
+  // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#table_C.12-2
   ASSERT_TRUE(GetDicomEncoding(e, "ISO_IR 100"));  ASSERT_EQ(Encoding_Latin1, e);
   ASSERT_TRUE(GetDicomEncoding(e, "ISO_IR 101"));  ASSERT_EQ(Encoding_Latin2, e);
   ASSERT_TRUE(GetDicomEncoding(e, "ISO_IR 109"));  ASSERT_EQ(Encoding_Latin3, e);
@@ -231,11 +232,11 @@ TEST(FromDcmtkBridge, Enumerations)
   ASSERT_TRUE(GetDicomEncoding(e, "ISO_IR 126"));  ASSERT_EQ(Encoding_Greek, e);
   ASSERT_TRUE(GetDicomEncoding(e, "ISO_IR 138"));  ASSERT_EQ(Encoding_Hebrew, e);
   ASSERT_TRUE(GetDicomEncoding(e, "ISO_IR 148"));  ASSERT_EQ(Encoding_Latin5, e);
-  ASSERT_TRUE(GetDicomEncoding(e, "ISO_IR 13"));  ASSERT_EQ(Encoding_Japanese, e);
+  ASSERT_TRUE(GetDicomEncoding(e, "ISO_IR 13"));   ASSERT_EQ(Encoding_Japanese, e);
   ASSERT_TRUE(GetDicomEncoding(e, "ISO_IR 166"));  ASSERT_EQ(Encoding_Thai, e);
 
-  // http://www.dabsoft.ch/dicom/3/C.12.1.1.2/ - Table C.12-3
-  ASSERT_TRUE(GetDicomEncoding(e, "ISO 2022 IR 6"));  ASSERT_EQ(Encoding_Utf8, e);
+  // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#table_C.12-3
+  ASSERT_TRUE(GetDicomEncoding(e, "ISO 2022 IR 6"));    ASSERT_EQ(Encoding_Utf8, e);
   ASSERT_TRUE(GetDicomEncoding(e, "ISO 2022 IR 100"));  ASSERT_EQ(Encoding_Latin1, e);
   ASSERT_TRUE(GetDicomEncoding(e, "ISO 2022 IR 101"));  ASSERT_EQ(Encoding_Latin2, e);
   ASSERT_TRUE(GetDicomEncoding(e, "ISO 2022 IR 109"));  ASSERT_EQ(Encoding_Latin3, e);
@@ -245,17 +246,17 @@ TEST(FromDcmtkBridge, Enumerations)
   ASSERT_TRUE(GetDicomEncoding(e, "ISO 2022 IR 126"));  ASSERT_EQ(Encoding_Greek, e);
   ASSERT_TRUE(GetDicomEncoding(e, "ISO 2022 IR 138"));  ASSERT_EQ(Encoding_Hebrew, e);
   ASSERT_TRUE(GetDicomEncoding(e, "ISO 2022 IR 148"));  ASSERT_EQ(Encoding_Latin5, e);
-  ASSERT_TRUE(GetDicomEncoding(e, "ISO 2022 IR 13"));  ASSERT_EQ(Encoding_Japanese, e);
+  ASSERT_TRUE(GetDicomEncoding(e, "ISO 2022 IR 13"));   ASSERT_EQ(Encoding_Japanese, e);
   ASSERT_TRUE(GetDicomEncoding(e, "ISO 2022 IR 166"));  ASSERT_EQ(Encoding_Thai, e);
 
-  // http://www.dabsoft.ch/dicom/3/C.12.1.1.2/ - Table C.12-4
-  ASSERT_FALSE(GetDicomEncoding(e, "ISO 2022 IR 87"));  //ASSERT_EQ(Encoding_JapaneseKanji, e);
+  // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#table_C.12-4
+  ASSERT_FALSE(GetDicomEncoding(e, "ISO 2022 IR 87"));   //ASSERT_EQ(Encoding_JapaneseKanji, e);
   ASSERT_FALSE(GetDicomEncoding(e, "ISO 2022 IR 159"));  //ASSERT_EQ(Encoding_JapaneseKanjiSupplementary, e);
   ASSERT_FALSE(GetDicomEncoding(e, "ISO 2022 IR 149"));  //ASSERT_EQ(Encoding_Korean, e);
 
-  // http://www.dabsoft.ch/dicom/3/C.12.1.1.2/ - Table C.12-5
+  // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#table_C.12-5
   ASSERT_TRUE(GetDicomEncoding(e, "ISO_IR 192"));  ASSERT_EQ(Encoding_Utf8, e);
-  ASSERT_TRUE(GetDicomEncoding(e, "GB18030")); ASSERT_EQ(Encoding_Chinese, e);
+  ASSERT_TRUE(GetDicomEncoding(e, "GB18030"));     ASSERT_EQ(Encoding_Chinese, e);
 }
 
 
