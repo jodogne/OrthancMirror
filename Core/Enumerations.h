@@ -314,7 +314,8 @@ namespace Orthanc
   };
 
 
-  // http://www.dabsoft.ch/dicom/3/C.12.1.1.2/
+  // Specific Character Sets
+  // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#sect_C.12.1.1.2
   enum Encoding
   {
     Encoding_Ascii,
@@ -338,7 +339,7 @@ namespace Orthanc
   };
 
 
-  // https://www.dabsoft.ch/dicom/3/C.7.6.3.1.2/
+  // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#sect_C.7.6.3.1.2
   enum PhotometricInterpretation
   {
     PhotometricInterpretation_ARGB,  // Retired

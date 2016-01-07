@@ -137,7 +137,7 @@ namespace Orthanc
     const uint8_t* pixel = reinterpret_cast<const uint8_t*>(pixelData_) + 
       y * rowOffset_ + frame_ * frameOffset_;
 
-    // https://www.dabsoft.ch/dicom/3/C.7.6.3.1.3/
+    // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#sect_C.7.6.3.1.3
     if (information_.IsPlanar())
     {
       /**
