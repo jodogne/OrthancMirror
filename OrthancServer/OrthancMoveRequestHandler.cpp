@@ -169,7 +169,8 @@ namespace Orthanc
                                                           const DicomMap& input,
                                                           const std::string& remoteIp,
                                                           const std::string& remoteAet,
-                                                          const std::string& calledAet)
+                                                          const std::string& calledAet,
+                                                          uint16_t messageId)
   {
     LOG(WARNING) << "Move-SCU request received for AET \"" << targetAet << "\"";
 
@@ -187,6 +188,7 @@ namespace Orthanc
     }
 
 
+#if 0
     /**
      * Retrieve the Message ID (0000,0110) for this C-MOVE request, if
      * any. If present, this Message ID will be stored in the Move
@@ -197,7 +199,7 @@ namespace Orthanc
     static const DicomTag MESSAGE_ID(0x0000, 0x0110);
     const DicomValue* messageIdTmp = input.TestAndGetValue(MESSAGE_ID);
 
-    uint16_t messageId = 0;
+    messageId = 0;
 
     if (messageIdTmp != NULL &&
         !messageIdTmp->IsNull() &&
@@ -213,6 +215,7 @@ namespace Orthanc
                      << "\") of an incoming C-MOVE request to an integer, assuming zero";
       }
     }
+#endif
 
 
     /**

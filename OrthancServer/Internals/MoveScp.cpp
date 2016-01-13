@@ -135,7 +135,7 @@ namespace Orthanc
         {
           data.iterator_.reset(data.handler_->Handle(data.target_, input,
                                                      *data.remoteIp_, *data.remoteAet_,
-                                                     *data.calledAet_));
+                                                     *data.calledAet_, request->MessageID));
 
           if (data.iterator_.get() == NULL)
           {

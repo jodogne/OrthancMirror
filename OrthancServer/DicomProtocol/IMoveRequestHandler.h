@@ -71,7 +71,8 @@ namespace Orthanc
                                          const DicomMap& input,
                                          const std::string& remoteIp,
                                          const std::string& remoteAet,
-                                         const std::string& calledAet) = 0;
+                                         const std::string& calledAet,
+                                         uint16_t messageId) = 0;
   };
 
 }
