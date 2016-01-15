@@ -3991,7 +3991,7 @@ extern "C"
   {
     char**                          result;
     const char*                     instanceId;
-    const char*                     buffer;
+    const void*                     buffer;
     uint32_t                        size;
     OrthancPluginDicomToJsonFormat  format;
     OrthancPluginDicomToJsonFlags   flags;
@@ -4020,7 +4020,7 @@ extern "C"
    **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginDicomBufferToJson(
     OrthancPluginContext*           context,
-    const char*                     buffer,
+    const void*                     buffer,
     uint32_t                        size,
     OrthancPluginDicomToJsonFormat  format,
     OrthancPluginDicomToJsonFlags   flags, 
