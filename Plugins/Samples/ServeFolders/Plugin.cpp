@@ -198,7 +198,10 @@ static OrthancPluginErrorCode FolderCallback(OrthancPluginRestOutput* output,
 
       for (fs::directory_iterator it(parent) ; it != end; ++it)
       {
-        if (fs::is_regular_file(it->status()))
+        fs::file_type type = it->status().type();
+
+        if (type == fs::regular_file ||
+            type == fs::reparse_file)  // cf. BitBucket issue #11
         {
           std::string f = it->path().filename().string();
           s += "      <li><a href=\"" + f + "\">" + f + "</a></li>\n";

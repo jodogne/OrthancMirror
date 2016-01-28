@@ -127,6 +127,7 @@ namespace Orthanc
   }
 #endif
 
+
   void Toolbox::USleep(uint64_t microSeconds)
   {
 #if defined(_WIN32)
@@ -208,7 +209,7 @@ namespace Orthanc
   void Toolbox::ReadFile(std::string& content,
                          const std::string& path) 
   {
-    if (!boost::filesystem::is_regular_file(path))
+    if (!IsRegularFile(path))
     {
       LOG(ERROR) << std::string("The path does not point to a regular file: ") << path;
       throw OrthancException(ErrorCode_RegularFileExpected);
@@ -268,7 +269,7 @@ namespace Orthanc
   {
     if (boost::filesystem::exists(path))
     {
-      if (boost::filesystem::is_regular_file(path))
+      if (IsRegularFile(path))
       {
         boost::filesystem::remove(path);
       }
@@ -1381,6 +1382,27 @@ namespace Orthanc
 #else
     return static_cast<int>(getpid());
 #endif
+  }
+
+
+  bool Toolbox::IsRegularFile(const std::string& path)
+  {
+    namespace fs = boost::filesystem;
+
+    try
+    {
+      if (fs::exists(path))
+      {
+        fs::file_status status = fs::status(path);
+        return (status.type() == boost::filesystem::regular_file ||
+                status.type() == boost::filesystem::reparse_file);   // Fix BitBucket issue #11
+      }
+    }
+    catch (fs::filesystem_error&)
+    {
+    }
+
+    return false;
   }
 }
 

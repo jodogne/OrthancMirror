@@ -124,6 +124,8 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
                                 const char*                       remoteAet,
                                 const char*                       calledAet)
 {
+  namespace fs = boost::filesystem;  
+
   Json::Value json;
 
   if (!GetQueryDicom(json, query))
@@ -137,16 +139,19 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
     OrthancPluginLogInfo(context_, msg.c_str());
   }
 
-  boost::filesystem::path source(folder_);
-  boost::filesystem::directory_iterator end;
+  fs::path source(folder_);
+  fs::directory_iterator end;
 
   try
   {
-    for (boost::filesystem::directory_iterator it(source); it != end; ++it)
+    for (fs::directory_iterator it(source); it != end; ++it)
     {
-      if (is_regular_file(it->status()))
+      fs::file_type type(it->status().type());
+
+      if (type == fs::regular_file ||
+          type == fs::reparse_file)   // cf. BitBucket issue #11
       {
-        std::string extension = boost::filesystem::extension(it->path());
+        std::string extension = fs::extension(it->path());
         ToLowerCase(extension);
 
         if (extension == ".wl")
@@ -161,7 +166,7 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
       }
     }
   }
-  catch (boost::filesystem::filesystem_error&)
+  catch (fs::filesystem_error&)
   {
     std::string description = std::string("Inexistent folder while scanning for worklists: ") + source.string();
     OrthancPluginLogError(context_, description.c_str());
