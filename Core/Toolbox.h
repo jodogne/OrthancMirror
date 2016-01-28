@@ -190,5 +190,7 @@ namespace Orthanc
                     const std::string& prefix);
 
     int GetProcessId();
+
+    bool IsRegularFile(const std::string& path);
   }
 }

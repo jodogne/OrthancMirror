@@ -7,6 +7,7 @@ Pending changes in the mainline
 * Huge speedup if decoding the family of JPEG transfer syntaxes
 * Refactoring leading to speedups with custom image decoders (including Web viewer plugin)
 * Support decoding of RLE Lossless transfer syntax
+* Fix issue 11 (is_regular_file() fails for FILE_ATTRIBUTE_REPARSE_POINT)
 
 
 Version 1.0.0 (2015/12/15)

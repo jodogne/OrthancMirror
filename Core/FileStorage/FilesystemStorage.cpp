@@ -165,7 +165,7 @@ namespace Orthanc
     {
       for (fs::recursive_directory_iterator current(root_), end; current != end ; ++current)
       {
-        if (fs::is_regular_file(current->status()))
+        if (Toolbox::IsRegularFile(current->path().string()))
         {
           try
           {
