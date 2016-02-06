@@ -2397,7 +2397,7 @@ extern "C"
    * Orthanc, you should make these calls in a separate thread (with
    * the events passing through a message queue). Otherwise, this
    * could result in deadlocks in the presence of other plugins or Lua
-   * script.
+   * scripts.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param callback The callback function.
