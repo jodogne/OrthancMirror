@@ -362,7 +362,7 @@ namespace Orthanc
       DcmPixelData& pixelData = dynamic_cast<DcmPixelData&>(*element);
       if (blockUri == NULL)
       {
-        // The user asks how many blocks are presents in this pixel data
+        // The user asks how many blocks are present in this pixel data
         unsigned int blocks = GetPixelDataBlockCount(pixelData, transferSyntax);
 
         Json::Value result(Json::arrayValue);
