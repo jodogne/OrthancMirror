@@ -36,10 +36,11 @@
 
 #include <string>
 #include <stdint.h>
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class JpegWriter
+  class JpegWriter : public boost::noncopyable
   {
   private:
     uint8_t  quality_;

@@ -34,12 +34,13 @@
 
 #include "ImageAccessor.h"
 
+#include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 #include <string>
 
 namespace Orthanc
 {
-  class PngWriter
+  class PngWriter : public boost::noncopyable
   {
   private:
     struct PImpl;

@@ -39,10 +39,13 @@
 #include <vector>
 #include <stdint.h>
 #include <boost/shared_ptr.hpp>
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class PngReader : public ImageAccessor
+  class PngReader : 
+    public ImageAccessor, 
+    public boost::noncopyable
   {
   private:
     struct PngRabi;

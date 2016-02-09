@@ -35,10 +35,13 @@
 #include "ImageAccessor.h"
 
 #include <string>
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class JpegReader : public ImageAccessor
+  class JpegReader : 
+    public ImageAccessor,
+    public boost::noncopyable
   {
   private:
     std::string  content_;
