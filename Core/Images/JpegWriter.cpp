@@ -38,6 +38,7 @@
 
 #include "JpegErrorManager.h"
 
+#include <stdlib.h>
 #include <vector>
 
 namespace Orthanc

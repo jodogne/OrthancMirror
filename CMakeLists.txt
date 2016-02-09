@@ -64,6 +64,7 @@ mark_as_advanced(USE_PUGIXML)
 
 # Path to the root folder of the Orthanc distribution
 set(ORTHANC_ROOT ${CMAKE_SOURCE_DIR})
+set(ENABLE_DCMTK_NETWORK ON)
 
 # Some basic inclusions
 include(CheckIncludeFiles)
