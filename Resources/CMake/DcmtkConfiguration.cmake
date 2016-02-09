@@ -1,3 +1,7 @@
+if (NOT DEFINED ENABLE_DCMTK_NETWORKING)
+    set(ENABLE_DCMTK_NETWORKING ON)
+endif()
+
 if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   SET(DCMTK_VERSION_NUMBER 360)
   SET(DCMTK_PACKAGE_VERSION "3.6.0")
@@ -40,10 +44,15 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     ${DCMTK_SOURCES_DIR}/CMake/osconfig.h.in
     ${DCMTK_SOURCES_DIR}/config/include/dcmtk/config/osconfig.h)
 
-  AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmnet/libsrc DCMTK_SOURCES)
   AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmdata/libsrc DCMTK_SOURCES)
   AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/ofstd/libsrc DCMTK_SOURCES)
 
+  if (ENABLE_DCMTK_NETWORKING)
+    AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmnet/libsrc DCMTK_SOURCES)
+    include_directories(
+      ${DCMTK_SOURCES_DIR}/dcmnet/include
+      )
+  endif()
 
   if (ENABLE_JPEG)
     AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc DCMTK_SOURCES)
@@ -59,6 +68,16 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       )
     list(REMOVE_ITEM DCMTK_SOURCES 
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/ddpiimpl.cc
+
+      # Disable support for encoding JPEG (modification in Orthanc 1.0.1)
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djcodece.cc
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djencsv1.cc
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djencbas.cc
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djencpro.cc
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djenclol.cc
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djencode.cc
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djencext.cc
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djencsps.cc
       )
   endif()
 
@@ -73,6 +92,9 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       )
     list(REMOVE_ITEM DCMTK_SOURCES 
       ${DCMTK_SOURCES_DIR}/dcmjpls/libsrc/djcodece.cc
+
+      # Disable support for encoding JPEG-LS (modification in Orthanc 1.0.1)
+      ${DCMTK_SOURCES_DIR}/dcmjpls/libsrc/djencode.cc
       )
     list(APPEND DCMTK_SOURCES 
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djrplol.cc
@@ -152,7 +174,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   include_directories(
     #${DCMTK_SOURCES_DIR}
     ${DCMTK_SOURCES_DIR}/config/include
-    ${DCMTK_SOURCES_DIR}/dcmnet/include
     ${DCMTK_SOURCES_DIR}/ofstd/include
     ${DCMTK_SOURCES_DIR}/oflog/include
     ${DCMTK_SOURCES_DIR}/dcmdata/include
