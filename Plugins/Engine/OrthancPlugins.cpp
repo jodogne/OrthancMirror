@@ -1328,12 +1328,15 @@ namespace Orthanc
 
     std::string compressed;
 
+    ImageAccessor accessor;
+    accessor.AssignReadOnly(Plugins::Convert(p.pixelFormat), p.width, p.height, p.pitch, p.buffer);
+
     switch (p.imageFormat)
     {
       case OrthancPluginImageFormat_Png:
       {
         PngWriter writer;
-        writer.WriteToMemory(compressed, p.width, p.height, p.pitch, Plugins::Convert(p.pixelFormat), p.buffer);
+        writer.WriteToMemory(compressed, accessor);
         break;
       }
 
@@ -1341,7 +1344,7 @@ namespace Orthanc
       {
         JpegWriter writer;
         writer.SetQuality(p.quality);
-        writer.WriteToMemory(compressed, p.width, p.height, p.pitch, Plugins::Convert(p.pixelFormat), p.buffer);
+        writer.WriteToMemory(compressed, accessor);
         break;
       }
 

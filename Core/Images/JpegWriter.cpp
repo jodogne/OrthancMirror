@@ -111,14 +111,15 @@ namespace Orthanc
   }
 
 
-  void JpegWriter::WriteToFile(const char* filename,
-                               unsigned int width,
-                               unsigned int height,
-                               unsigned int pitch,
-                               PixelFormat format,
-                               const void* buffer)
+  void JpegWriter::WriteToFileInternal(const std::string& filename,
+                                       unsigned int width,
+                                       unsigned int height,
+                                       unsigned int pitch,
+                                       PixelFormat format,
+                                       const void* buffer)
   {
-    FILE* fp = fopen(filename, "wb");
+    // TODO This will not work on Windows system if the path contains non-ASCII characters
+    FILE* fp = fopen(filename.c_str(), "wb");
     if (fp == NULL)
     {
       throw OrthancException(ErrorCode_FullStorage);
@@ -156,12 +157,12 @@ namespace Orthanc
   }
 
 
-  void JpegWriter::WriteToMemory(std::string& jpeg,
-                                 unsigned int width,
-                                 unsigned int height,
-                                 unsigned int pitch,
-                                 PixelFormat format,
-                                 const void* buffer)
+  void JpegWriter::WriteToMemoryInternal(std::string& jpeg,
+                                         unsigned int width,
+                                         unsigned int height,
+                                         unsigned int pitch,
+                                         PixelFormat format,
+                                         const void* buffer)
   {
     std::vector<uint8_t*> lines;
     GetLines(lines, height, pitch, format, buffer);
