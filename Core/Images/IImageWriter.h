@@ -32,47 +32,52 @@
 
 #pragma once
 
-#include "IImageWriter.h"
+#include "ImageAccessor.h"
+#include "../Toolbox.h"
 
-#include <boost/shared_ptr.hpp>
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class PngWriter : public IImageWriter
+  class IImageWriter : public boost::noncopyable
   {
   protected:
-    virtual void WriteToFileInternal(const std::string& filename,
-                                     unsigned int width,
-                                     unsigned int height,
-                                     unsigned int pitch,
-                                     PixelFormat format,
-                                     const void* buffer);
-
-    virtual void WriteToMemoryInternal(std::string& png,
+    virtual void WriteToMemoryInternal(std::string& compressed,
                                        unsigned int width,
                                        unsigned int height,
                                        unsigned int pitch,
                                        PixelFormat format,
-                                       const void* buffer);
+                                       const void* buffer) = 0;
 
-  private:
-    struct PImpl;
-    boost::shared_ptr<PImpl> pimpl_;
-
-    void Compress(unsigned int width,
-                  unsigned int height,
-                  unsigned int pitch,
-                  PixelFormat format);
-
-    void Prepare(unsigned int width,
-                 unsigned int height,
-                 unsigned int pitch,
-                 PixelFormat format,
-                 const void* buffer);
+    virtual void WriteToFileInternal(const std::string& path,
+                                     unsigned int width,
+                                     unsigned int height,
+                                     unsigned int pitch,
+                                     PixelFormat format,
+                                     const void* buffer)
+    {
+      std::string compressed;
+      WriteToMemoryInternal(compressed, width, height, pitch, format, buffer);
+      Toolbox::WriteFile(compressed, path);
+    }
 
   public:
-    PngWriter();
+    virtual ~IImageWriter()
+    {
+    }
 
-    ~PngWriter();
+    virtual void WriteToMemory(std::string& compressed,
+                               const ImageAccessor& accessor)
+    {
+      WriteToMemoryInternal(compressed, accessor.GetWidth(), accessor.GetHeight(),
+                            accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
+    }
+
+    virtual void WriteToFile(const std::string& path,
+                             const ImageAccessor& accessor)
+    {
+      WriteToFileInternal(path, accessor.GetWidth(), accessor.GetHeight(),
+                          accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
+    }
   };
 }

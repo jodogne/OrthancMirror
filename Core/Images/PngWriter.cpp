@@ -202,16 +202,17 @@ namespace Orthanc
   }
 
 
-  void PngWriter::WriteToFile(const char* filename,
-                              unsigned int width,
-                              unsigned int height,
-                              unsigned int pitch,
-                              PixelFormat format,
-                              const void* buffer)
+  void PngWriter::WriteToFileInternal(const std::string& filename,
+                                      unsigned int width,
+                                      unsigned int height,
+                                      unsigned int pitch,
+                                      PixelFormat format,
+                                      const void* buffer)
   {
     Prepare(width, height, pitch, format, buffer);
 
-    FILE* fp = fopen(filename, "wb");
+    // TODO This will not work on Windows system if the path contains non-ASCII characters
+    FILE* fp = fopen(filename.c_str(), "wb");
     if (!fp)
     {
       throw OrthancException(ErrorCode_CannotWriteFile);
@@ -232,7 +233,6 @@ namespace Orthanc
 
 
 
-
   static void MemoryCallback(png_structp png_ptr, 
                              png_bytep data, 
                              png_size_t size)
@@ -243,12 +243,12 @@ namespace Orthanc
 
 
 
-  void PngWriter::WriteToMemory(std::string& png,
-                                unsigned int width,
-                                unsigned int height,
-                                unsigned int pitch,
-                                PixelFormat format,
-                                const void* buffer)
+  void PngWriter::WriteToMemoryInternal(std::string& png,
+                                        unsigned int width,
+                                        unsigned int height,
+                                        unsigned int pitch,
+                                        PixelFormat format,
+                                        const void* buffer)
   {
     ChunkedBuffer chunks;
 

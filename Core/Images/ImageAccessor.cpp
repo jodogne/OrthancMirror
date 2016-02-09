@@ -176,7 +176,10 @@ namespace Orthanc
     pitch_ = pitch;
     buffer_ = const_cast<void*>(buffer);
 
-    assert(GetBytesPerPixel() * width_ <= pitch_);
+    if (GetBytesPerPixel() * width_ > pitch_)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
   }
 
 
@@ -193,7 +196,10 @@ namespace Orthanc
     pitch_ = pitch;
     buffer_ = buffer;
 
-    assert(GetBytesPerPixel() * width_ <= pitch_);
+    if (GetBytesPerPixel() * width_ > pitch_)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
   }
 
 
