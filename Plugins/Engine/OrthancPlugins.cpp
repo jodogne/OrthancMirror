@@ -969,7 +969,9 @@ namespace Orthanc
 
     for (uint32_t i = 0; i < p.headersCount; i++)
     {
-      headers[p.headersKeys[i]] = p.headersValues[i];
+      std::string name(p.headersKeys[i]);
+      std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+      headers[name] = p.headersValues[i];
     }
 
     CheckContextAvailable();
