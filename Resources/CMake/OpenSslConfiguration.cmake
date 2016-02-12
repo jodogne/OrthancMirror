@@ -173,6 +173,14 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
     ${OPENSSL_SOURCES_DIR}/crypto/dh/dhtest.c
     ${OPENSSL_SOURCES_DIR}/crypto/pqueue/pq_test.c
     ${OPENSSL_SOURCES_DIR}/crypto/des/ncbc_enc.c
+
+    ${OPENSSL_SOURCES_DIR}/crypto/evp/evp_extra_test.c
+    ${OPENSSL_SOURCES_DIR}/crypto/evp/verify_extra_test.c
+    ${OPENSSL_SOURCES_DIR}/crypto/x509/verify_extra_test.c
+    ${OPENSSL_SOURCES_DIR}/crypto/x509v3/v3prin.c
+    ${OPENSSL_SOURCES_DIR}/crypto/x509v3/v3nametest.c
+    ${OPENSSL_SOURCES_DIR}/crypto/ssl/heartbeat_test.c
+    ${OPENSSL_SOURCES_DIR}/crypto/constant_time_test.c
     )
 
   if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
