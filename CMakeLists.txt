@@ -121,6 +121,7 @@ set(ORTHANC_CORE_SOURCES
   Core/RestApi/RestApiPath.cpp
   Core/RestApi/RestApiOutput.cpp
   Core/RestApi/RestApi.cpp
+  Core/MultiThreading/BagOfTasksProcessor.cpp
   Core/MultiThreading/Mutex.cpp
   Core/MultiThreading/ReaderWriterLock.cpp
   Core/MultiThreading/RunnableWorkersPool.cpp
