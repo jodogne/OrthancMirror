@@ -35,6 +35,7 @@
 #include "../Enumerations.h"
 
 #include <string>
+#include <stdint.h>
 
 namespace Orthanc
 {
@@ -46,7 +47,7 @@ namespace Orthanc
     unsigned int width_;
     unsigned int height_;
     unsigned int pitch_;
-    void *buffer_;
+    uint8_t *buffer_;
 
   public:
     ImageAccessor()
@@ -119,5 +120,10 @@ namespace Orthanc
                         void *buffer);
 
     void ToMatlabString(std::string& target) const; 
+
+    ImageAccessor GetRegion(unsigned int x,
+                            unsigned int y,
+                            unsigned int width,
+                            unsigned int height) const;
   };
 }
