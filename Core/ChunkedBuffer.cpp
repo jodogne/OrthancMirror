@@ -95,5 +95,6 @@ namespace Orthanc
     }
 
     chunks_.clear();
+    numBytes_ = 0;
   }
 }
