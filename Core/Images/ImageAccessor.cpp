@@ -121,7 +121,7 @@ namespace Orthanc
   {
     if (buffer_ != NULL)
     {
-      return reinterpret_cast<const uint8_t*>(buffer_) + y * pitch_;
+      return buffer_ + y * pitch_;
     }
     else
     {
@@ -143,7 +143,7 @@ namespace Orthanc
 
     if (buffer_ != NULL)
     {
-      return reinterpret_cast<uint8_t*>(buffer_) + y * pitch_;
+      return buffer_ + y * pitch_;
     }
     else
     {
@@ -174,7 +174,7 @@ namespace Orthanc
     width_ = width;
     height_ = height;
     pitch_ = pitch;
-    buffer_ = const_cast<void*>(buffer);
+    buffer_ = reinterpret_cast<uint8_t*>(const_cast<void*>(buffer));
 
     if (GetBytesPerPixel() * width_ > pitch_)
     {
@@ -194,7 +194,7 @@ namespace Orthanc
     width_ = width;
     height_ = height;
     pitch_ = pitch;
-    buffer_ = buffer;
+    buffer_ = reinterpret_cast<uint8_t*>(buffer);
 
     if (GetBytesPerPixel() * width_ > pitch_)
     {
@@ -230,6 +230,45 @@ namespace Orthanc
     }   
 
     buffer.Flatten(target);
+  }
+
+
+
+  ImageAccessor ImageAccessor::GetRegion(unsigned int x,
+                                         unsigned int y,
+                                         unsigned int width,
+                                         unsigned int height) const
+  {
+    if (x + width > width_ ||
+        y + height > height_)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    
+    ImageAccessor result;
+
+    if (width == 0 ||
+        height == 0)
+    {
+      result.AssignWritable(format_, 0, 0, 0, NULL);
+    }
+    else
+    {
+      uint8_t* p = (buffer_ + 
+                    y * pitch_ + 
+                    x * GetBytesPerPixel());
+
+      if (readOnly_)
+      {
+        result.AssignReadOnly(format_, width, height, pitch_, p);
+      }
+      else
+      {
+        result.AssignWritable(format_, width, height, pitch_, p);
+      }
+    }
+
+    return result;
   }
 
 }
