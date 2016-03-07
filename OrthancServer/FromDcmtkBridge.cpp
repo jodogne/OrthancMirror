@@ -1566,4 +1566,26 @@ namespace Orthanc
 
     throw OrthancException(ErrorCode_ParameterOutOfRange);
   }
+
+
+  DcmPixelSequence* FromDcmtkBridge::GetPixelSequence(DcmDataset& dataset)
+  {
+    DcmElement *element = NULL;
+    if (!dataset.findAndGetElement(ToDcmtkBridge::Convert(DICOM_TAG_PIXEL_DATA), element).good())
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    DcmPixelData& pixelData = dynamic_cast<DcmPixelData&>(*element);
+    DcmPixelSequence* pixelSequence = NULL;
+    if (!pixelData.getEncapsulatedRepresentation
+        (dataset.getOriginalXfer(), NULL, pixelSequence).good())
+    {
+      return NULL;
+    }
+    else
+    {
+      return pixelSequence;
+    }
+  }
 }

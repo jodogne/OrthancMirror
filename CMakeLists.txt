@@ -163,6 +163,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/ExportedResource.cpp
   OrthancServer/FromDcmtkBridge.cpp
   OrthancServer/Internals/CommandDispatcher.cpp
+  OrthancServer/Internals/DicomFrameIndex.cpp
   OrthancServer/Internals/DicomImageDecoder.cpp
   OrthancServer/Internals/FindScp.cpp
   OrthancServer/Internals/MoveScp.cpp

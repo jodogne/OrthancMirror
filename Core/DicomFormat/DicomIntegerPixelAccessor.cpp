@@ -54,8 +54,7 @@ namespace Orthanc
     size_(size)
   {
     frame_ = 0;
-    frameOffset_ = (information_.GetHeight() * information_.GetWidth() * 
-                    information_.GetBytesPerValue() * information_.GetChannelCount());
+    frameOffset_ = information_.GetFrameSize();
 
     if (information_.GetNumberOfFrames() * frameOffset_ > size)
     {

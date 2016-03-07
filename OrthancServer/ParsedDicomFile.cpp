@@ -84,6 +84,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ServerToolbox.h"
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
+#include "Internals/DicomFrameIndex.h"
 #include "../Core/Images/JpegReader.h"
 #include "../Core/Images/PngReader.h"
 #include "../Core/Logging.h"
@@ -145,6 +146,7 @@ namespace Orthanc
   struct ParsedDicomFile::PImpl
   {
     std::auto_ptr<DcmFileFormat> file_;
+    std::auto_ptr<DicomFrameIndex>  frameIndex_;
   };
 
 
@@ -516,6 +518,8 @@ namespace Orthanc
 
   void ParsedDicomFile::Remove(const DicomTag& tag)
   {
+    InvalidateCache();
+
     DcmTagKey key(tag.GetGroup(), tag.GetElement());
     DcmElement* element = pimpl_->file_->getDataset()->remove(key);
     if (element != NULL)
@@ -528,6 +532,8 @@ namespace Orthanc
 
   void ParsedDicomFile::RemovePrivateTagsInternal(const std::set<DicomTag>* toKeep)
   {
+    InvalidateCache();
+
     DcmDataset& dataset = *pimpl_->file_->getDataset();
 
     // Loop over the dataset to detect its private tags
@@ -591,6 +597,8 @@ namespace Orthanc
                                const Json::Value& value,
                                bool decodeDataUriScheme)
   {
+    InvalidateCache();
+
     std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, GetEncoding()));
     InsertInternal(*pimpl_->file_->getDataset(), element.release());
   }
@@ -679,6 +687,8 @@ namespace Orthanc
                                 const std::string& utf8Value,
                                 DicomReplaceMode mode)
   {
+    InvalidateCache();
+
     std::auto_ptr<DcmElement> element(FromDcmtkBridge::CreateElementForTag(tag));
     FromDcmtkBridge::FillElementWithString(*element, tag, utf8Value, false, GetEncoding());
     ReplaceInternal(*pimpl_->file_->getDataset(), element, mode);
@@ -691,6 +701,8 @@ namespace Orthanc
                                 bool decodeDataUriScheme,
                                 DicomReplaceMode mode)
   {
+    InvalidateCache();
+
     std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, GetEncoding()));
     ReplaceInternal(*pimpl_->file_->getDataset(), element, mode);
 
@@ -921,6 +933,8 @@ namespace Orthanc
   void ParsedDicomFile::EmbedImage(const std::string& mime,
                                    const std::string& content)
   {
+    InvalidateCache();
+
     if (mime == "image/png")
     {
       PngReader reader;
@@ -1227,5 +1241,40 @@ namespace Orthanc
     }
 
     return result.release();
+  }
+
+
+  void ParsedDicomFile::GetRawFrame(std::string& target,
+                                    std::string& mime,
+                                    unsigned int frameId)
+  {
+    if (pimpl_->frameIndex_.get() == NULL)
+    {
+      pimpl_->frameIndex_.reset(new DicomFrameIndex(*pimpl_->file_->getDataset()));
+    }
+
+    pimpl_->frameIndex_->GetRawFrame(target, frameId);
+
+    E_TransferSyntax transferSyntax = pimpl_->file_->getDataset()->getOriginalXfer();
+    switch (transferSyntax)
+    {
+      case EXS_JPEGProcess1TransferSyntax:
+        mime = "image/jpeg";
+        break;
+       
+      case EXS_JPEG2000LosslessOnly:
+      case EXS_JPEG2000:
+        mime = "image/jp2";
+
+      default:
+        mime = "application/octet-stream";
+        break;
+    }
+  }
+
+
+  void ParsedDicomFile::InvalidateCache()
+  {
+    pimpl_->frameIndex_.reset(NULL);
   }
 }
