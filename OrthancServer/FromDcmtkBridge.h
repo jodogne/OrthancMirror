@@ -38,6 +38,7 @@
 
 #include <dcmtk/dcmdata/dcdatset.h>
 #include <dcmtk/dcmdata/dcmetinf.h>
+#include <dcmtk/dcmdata/dcpixseq.h>
 #include <json/json.h>
 
 namespace Orthanc
@@ -139,5 +140,7 @@ namespace Orthanc
                                 Encoding dicomEncoding);
 
     static DcmEVR ParseValueRepresentation(const std::string& s);
+
+    static DcmPixelSequence* GetPixelSequence(DcmDataset& dataset);
   };
 }

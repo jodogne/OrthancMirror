@@ -1,6 +1,8 @@
 Pending changes in the mainline
 ===============================
 
+
+* New URI: "/instances/.../frames/.../raw" to access the raw frames (bypass image decoding)
 * Support of optional tags for counting resources in C-Find:
   0008-0061, 0008-0062, 0020-1200, 0020-1202, 0020-1204, 0020-1206, 0020-1208, 0020-1209
 * Support of Move Originator Message ID (0000,1031) in C-Store responses driven by C-Move

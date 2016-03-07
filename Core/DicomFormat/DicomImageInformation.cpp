@@ -260,4 +260,13 @@ namespace Orthanc
 
     return false;
   }
+
+
+  size_t DicomImageInformation::GetFrameSize() const
+  {
+    return (GetHeight() * 
+            GetWidth() * 
+            GetBytesPerValue() * 
+            GetChannelCount());
+  }
 }

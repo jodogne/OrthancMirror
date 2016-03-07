@@ -32,96 +32,46 @@
 
 #pragma once
 
-#include "DicomMap.h"
-
+#include <dcmtk/dcmdata/dcdatset.h>
+#include <vector>
 #include <stdint.h>
+#include <boost/noncopyable.hpp>
+#include <memory>
 
 namespace Orthanc
 {
-  class DicomImageInformation
+  class DicomFrameIndex
   {
   private:
-    unsigned int width_;
-    unsigned int height_;
-    unsigned int samplesPerPixel_;
-    unsigned int numberOfFrames_;
+    class IIndex : public boost::noncopyable
+    {
+    public:
+      virtual ~IIndex()
+      {
+      }
 
-    bool isPlanar_;
-    bool isSigned_;
-    size_t bytesPerValue_;
+      virtual void GetRawFrame(std::string& frame,
+                               unsigned int index) const = 0;
+    };
 
-    unsigned int bitsAllocated_;
-    unsigned int bitsStored_;
-    unsigned int highBit_;
+    class FragmentIndex;
+    class UncompressedIndex;
+    class PsmctRle1Index;
 
-    PhotometricInterpretation  photometric_;
+    std::auto_ptr<IIndex>  index_;
+    unsigned int           countFrames_;
 
   public:
-    DicomImageInformation(const DicomMap& values);
+    DicomFrameIndex(DcmDataset& dataset);
 
-    unsigned int GetWidth() const
+    unsigned int GetFramesCount() const
     {
-      return width_;
+      return countFrames_;
     }
 
-    unsigned int GetHeight() const
-    {
-      return height_;
-    }
+    void GetRawFrame(std::string& frame,
+                     unsigned int index) const;
 
-    unsigned int GetNumberOfFrames() const
-    {
-      return numberOfFrames_;
-    }
-
-    unsigned int GetChannelCount() const
-    {
-      return samplesPerPixel_;
-    }
-
-    unsigned int GetBitsStored() const
-    {
-      return bitsStored_;
-    }
-
-    size_t GetBytesPerValue() const
-    {
-      return bytesPerValue_;
-    }
-
-    bool IsSigned() const
-    {
-      return isSigned_;
-    }
-
-    unsigned int GetBitsAllocated() const
-    {
-      return bitsAllocated_;
-    }
-
-    unsigned int GetHighBit() const
-    {
-      return highBit_;
-    }
-
-    bool IsPlanar() const
-    {
-      return isPlanar_;
-    }
-
-    unsigned int GetShift() const
-    {
-      return highBit_ + 1 - bitsStored_;
-    }
-
-    PhotometricInterpretation GetPhotometricInterpretation() const
-    {
-      return photometric_;
-    }
-
-    bool ExtractPixelFormat(PixelFormat& format,
-                            bool ignorePhotometricInterpretation) const;
-
-    size_t GetFrameSize() const;
+    static unsigned int GetFramesCount(DcmDataset& dataset);
   };
 }

@@ -57,8 +57,6 @@ namespace Orthanc
     static ImageAccessor* DecodeUncompressedImage(DcmDataset& dataset,
                                                   unsigned int frame);
 
-    static bool IsPsmctRle1(DcmDataset& dataset);
-
     static ImageAccessor* ApplyCodec(const DcmCodec& codec,
                                      const DcmCodecParameter& parameters,
                                      DcmDataset& dataset,
@@ -74,6 +72,11 @@ namespace Orthanc
                                     ImageExtractionMode mode);
 
   public:
+    static bool IsPsmctRle1(DcmDataset& dataset);
+
+    static bool DecodePsmctRle1(std::string& output,
+                                DcmDataset& dataset);
+
     static ImageAccessor *Decode(ParsedDicomFile& dicom,
                                  unsigned int frame);
 

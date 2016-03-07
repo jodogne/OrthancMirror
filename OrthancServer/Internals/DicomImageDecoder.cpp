@@ -121,7 +121,7 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_COMPRESSION_TYPE(0x07a1, 0x1011);
 
 
-  static bool IsPsmctRle1(DcmDataset& dataset)
+  bool DicomImageDecoder::IsPsmctRle1(DcmDataset& dataset)
   {
     DcmElement* e;
     char* c;
@@ -144,8 +144,8 @@ namespace Orthanc
   }
 
 
-  static bool DecodePsmctRle1(std::string& output,
-                              DcmDataset& dataset)
+  bool DicomImageDecoder::DecodePsmctRle1(std::string& output,
+                                          DcmDataset& dataset)
   {
     // Check whether the DICOM instance contains an image encoded with
     // the PMSCT_RLE1 scheme.
@@ -459,38 +459,24 @@ namespace Orthanc
   }
 
 
-  static DcmPixelSequence* GetPixelSequence(DcmDataset& dataset)
-  {
-    DcmElement *element = NULL;
-    if (!dataset.findAndGetElement(ToDcmtkBridge::Convert(DICOM_TAG_PIXEL_DATA), element).good())
-    {
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-
-    DcmPixelData& pixelData = dynamic_cast<DcmPixelData&>(*element);
-    DcmPixelSequence* pixelSequence = NULL;
-    if (!pixelData.getEncapsulatedRepresentation
-        (dataset.getOriginalXfer(), NULL, pixelSequence).good() ||
-        pixelSequence == NULL)
-    {
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-
-    return pixelSequence;
-  }
-
-
   ImageAccessor* DicomImageDecoder::ApplyCodec(const DcmCodec& codec,
                                                const DcmCodecParameter& parameters,
                                                DcmDataset& dataset,
                                                unsigned int frame)
   {
+    DcmPixelSequence* pixelSequence = FromDcmtkBridge::GetPixelSequence(dataset);
+    if (pixelSequence == NULL)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
     std::auto_ptr<ImageAccessor> target(CreateImage(dataset, true));
 
     Uint32 startFragment = 0;  // Default 
     OFString decompressedColorModel;  // Out
     DJ_RPLossless representationParameter;
-    OFCondition c = codec.decodeFrame(&representationParameter, GetPixelSequence(dataset), &parameters, 
+    OFCondition c = codec.decodeFrame(&representationParameter, 
+                                      pixelSequence, &parameters, 
                                       &dataset, frame, startFragment, target->GetBuffer(), 
                                       target->GetSize(), decompressedColorModel);
 

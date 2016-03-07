@@ -466,6 +466,35 @@ namespace Orthanc
 
 
 
+  static void GetRawFrame(RestApiGetCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    std::string frameId = call.GetUriComponent("frame", "0");
+
+    unsigned int frame;
+    try
+    {
+      frame = boost::lexical_cast<unsigned int>(frameId);
+    }
+    catch (boost::bad_lexical_cast)
+    {
+      return;
+    }
+
+    std::string publicId = call.GetUriComponent("id", "");
+    std::string raw, mime;
+
+    {
+      ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), publicId);
+      locker.GetDicom().GetRawFrame(raw, mime, frame);
+    }
+
+    call.GetOutput().AnswerBuffer(raw, mime);
+  }
+
+
+
   static void GetResourceStatistics(RestApiGetCall& call)
   {
     std::string publicId = call.GetUriComponent("id", "");
@@ -1328,6 +1357,7 @@ namespace Orthanc
     Register("/instances/{id}/frames/{frame}/image-uint16", GetImage<ImageExtractionMode_UInt16>);
     Register("/instances/{id}/frames/{frame}/image-int16", GetImage<ImageExtractionMode_Int16>);
     Register("/instances/{id}/frames/{frame}/matlab", GetMatlabImage);
+    Register("/instances/{id}/frames/{frame}/raw", GetRawFrame);
     Register("/instances/{id}/pdf", ExtractPdf);
     Register("/instances/{id}/preview", GetImage<ImageExtractionMode_Preview>);
     Register("/instances/{id}/image-uint8", GetImage<ImageExtractionMode_UInt8>);

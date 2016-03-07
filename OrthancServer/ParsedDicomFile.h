@@ -60,6 +60,8 @@ namespace Orthanc
                           const std::string& value,
                           bool decodeDataUriScheme);
 
+    void InvalidateCache();
+
   public:
     ParsedDicomFile(bool createIdentifiers);  // Create a minimal DICOM instance
 
@@ -145,6 +147,10 @@ namespace Orthanc
     bool ExtractPdf(std::string& pdf);
 
     void Convert(DicomMap& tags);
+
+    void GetRawFrame(std::string& target, // OUT
+                     std::string& mime,   // OUT
+                     unsigned int frameId);  // IN
 
     static ParsedDicomFile* CreateFromJson(const Json::Value& value,
                                            DicomFromJsonFlags flags);
