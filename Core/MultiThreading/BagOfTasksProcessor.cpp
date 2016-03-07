@@ -236,6 +236,11 @@ namespace Orthanc
 
   BagOfTasksProcessor::Handle* BagOfTasksProcessor::Submit(BagOfTasks& tasks)
   {
+    if (tasks.GetSize() == 0)
+    {
+      return new Handle(*this, 0, true);
+    }
+
     boost::mutex::scoped_lock lock(mutex_);
 
     uint64_t id = countBags_;
@@ -249,6 +254,6 @@ namespace Orthanc
       queue_.Enqueue(new Task(id, tasks.Pop()));
     }
 
-    return new Handle(*this, id);
+    return new Handle(*this, id, false);
   }
 }

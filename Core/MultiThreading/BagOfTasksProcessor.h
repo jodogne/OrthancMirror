@@ -109,10 +109,11 @@ namespace Orthanc
       bool                  status_;
  
       Handle(BagOfTasksProcessor&  that,
-             uint64_t bag) : 
+             uint64_t bag,
+             bool empty) : 
         that_(that),
         bag_(bag),
-        hasJoined_(false)
+        hasJoined_(empty)
       {
       }
 
