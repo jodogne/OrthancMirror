@@ -59,12 +59,7 @@ namespace Orthanc
   public:
     PngReader();
 
-    void ReadFromFile(const char* filename);
-
-    void ReadFromFile(const std::string& filename)
-    {
-      ReadFromFile(filename.c_str());
-    }
+    void ReadFromFile(const std::string& filename);
 
     void ReadFromMemory(const void* buffer,
                         size_t size);

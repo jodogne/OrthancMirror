@@ -93,9 +93,9 @@ namespace Orthanc
   }
 
 
-  void JpegReader::ReadFromFile(const char* filename)
+  void JpegReader::ReadFromFile(const std::string& filename)
   {
-    FILE* fp = fopen(filename, "rb");
+    FILE* fp = fopen(filename.c_str(), "rb");
     if (!fp)
     {
       throw OrthancException(ErrorCode_InexistentFile);
