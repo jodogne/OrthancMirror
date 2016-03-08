@@ -204,9 +204,9 @@ namespace Orthanc
     AssignWritable(format, width, height, pitch, &data_[0]);
   }
 
-  void PngReader::ReadFromFile(const char* filename)
+  void PngReader::ReadFromFile(const std::string& filename)
   {
-    FileRabi f(filename);
+    FileRabi f(filename.c_str());
 
     char header[8];
     if (fread(header, 1, 8, f.fp_) != 8)
