@@ -718,6 +718,31 @@ namespace Orthanc
   }
 
 
+  const char* EnumerationToString(PixelFormat format)
+  {
+    switch (format)
+    {
+      case PixelFormat_RGB24:
+        return "RGB24";
+
+      case PixelFormat_RGBA32:
+        return "RGBA32";
+
+      case PixelFormat_Grayscale8:
+        return "Grayscale (unsigned 8bpp)";
+
+      case PixelFormat_Grayscale16:
+        return "Grayscale (unsigned 16bpp)";
+
+      case PixelFormat_SignedGrayscale16:
+        return "Grayscale (signed 16bpp)";
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
   Encoding StringToEncoding(const char* encoding)
   {
     std::string s(encoding);
