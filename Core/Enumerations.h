@@ -444,6 +444,8 @@ namespace Orthanc
 
   const char* EnumerationToString(RequestOrigin origin);
 
+  const char* EnumerationToString(PixelFormat format);
+
   Encoding StringToEncoding(const char* encoding);
 
   ResourceType StringToResourceType(const char* type);
