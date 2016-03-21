@@ -206,6 +206,17 @@ namespace Orthanc
   }
 
 
+  static std::streamsize GetStreamSize(std::istream& f)
+  {
+    // http://www.cplusplus.com/reference/iostream/istream/tellg/
+    f.seekg(0, std::ios::end);
+    std::streamsize size = f.tellg();
+    f.seekg(0, std::ios::beg);
+
+    return size;
+  }
+
+
   void Toolbox::ReadFile(std::string& content,
                          const std::string& path) 
   {
@@ -222,11 +233,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InexistentFile);
     }
 
-    // http://www.cplusplus.com/reference/iostream/istream/tellg/
-    f.seekg(0, std::ios::end);
-    std::streamsize size = f.tellg();
-    f.seekg(0, std::ios::beg);
-
+    std::streamsize size = GetStreamSize(f);
     content.resize(size);
     if (size != 0)
     {
@@ -234,6 +241,51 @@ namespace Orthanc
     }
 
     f.close();
+  }
+
+
+  bool Toolbox::ReadHeader(std::string& header,
+                           const std::string& path,
+                           size_t headerSize)
+  {
+    if (!IsRegularFile(path))
+    {
+      LOG(ERROR) << std::string("The path does not point to a regular file: ") << path;
+      throw OrthancException(ErrorCode_RegularFileExpected);
+    }
+
+    boost::filesystem::ifstream f;
+    f.open(path, std::ifstream::in | std::ifstream::binary);
+    if (!f.good())
+    {
+      throw OrthancException(ErrorCode_InexistentFile);
+    }
+
+    bool full = true;
+
+    {
+      std::streamsize size = GetStreamSize(f);
+      if (size <= 0)
+      {
+        headerSize = 0;
+        full = false;
+      }
+      else if (static_cast<size_t>(size) < headerSize)
+      {
+        headerSize = size;  // Truncate to the size of the file
+        full = false;
+      }
+    }
+
+    header.resize(headerSize);
+    if (headerSize != 0)
+    {
+      f.read(reinterpret_cast<char*>(&header[0]), headerSize);
+    }
+
+    f.close();
+
+    return full;
   }
 
 

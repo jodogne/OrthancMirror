@@ -66,6 +66,10 @@ namespace Orthanc
     void ReadFile(std::string& content,
                   const std::string& path);
 
+    bool ReadHeader(std::string& header,
+                    const std::string& path,
+                    size_t headerSize);
+
     void WriteFile(const std::string& content,
                    const std::string& path);
 
