@@ -76,10 +76,6 @@
   =========================================================================*/
 
 
-
-#include "../PrecompiledHeadersServer.h"
-#include "DicomImageDecoder.h"
-
 #include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
 #include "../../Core/Images/Image.h"
@@ -90,6 +86,7 @@
 #include "../ToDcmtkBridge.h"
 #include "../FromDcmtkBridge.h"
 #include "../ParsedDicomFile.h"
+#include "../OrthancInitialization.h"
 
 #include <boost/lexical_cast.hpp>
 
@@ -245,7 +242,8 @@ namespace Orthanc
       // See also: http://support.dcmtk.org/wiki/dcmtk/howto/accessing-compressed-data
 
       DicomMap m;
-      FromDcmtkBridge::Convert(m, dataset);
+      FromDcmtkBridge::Convert(m, dataset,
+                               Configuration::GetDefaultEncoding());
 
       /**
        * Create an accessor to the raw values of the DICOM image.
@@ -317,7 +315,8 @@ namespace Orthanc
                                                 bool ignorePhotometricInterpretation)
   {
     DicomMap m;
-    FromDcmtkBridge::Convert(m, dataset);
+    FromDcmtkBridge::Convert(m, dataset,
+                             Configuration::GetDefaultEncoding());
 
     DicomImageInformation info(m);
     PixelFormat format;

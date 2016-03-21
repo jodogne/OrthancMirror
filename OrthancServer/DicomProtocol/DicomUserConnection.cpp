@@ -86,6 +86,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../Core/OrthancException.h"
 #include "../FromDcmtkBridge.h"
 #include "../ToDcmtkBridge.h"
+#include "../OrthancInitialization.h"
 
 #include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcistrmf.h>
@@ -394,7 +395,8 @@ namespace Orthanc
       else
       {
         DicomMap m;
-        FromDcmtkBridge::Convert(m, *responseIdentifiers);
+        FromDcmtkBridge::Convert(m, *responseIdentifiers, 
+                                 Configuration::GetDefaultEncoding());
 
         if (!m.HasTag(DICOM_TAG_QUERY_RETRIEVE_LEVEL))
         {

@@ -115,5 +115,7 @@ namespace Orthanc
     static void FormatConfiguration(std::string& result);
 
     static const FontRegistry& GetFontRegistry();
+
+    static Encoding GetDefaultEncoding();
   };
 }
