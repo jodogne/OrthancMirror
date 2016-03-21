@@ -468,8 +468,6 @@ namespace Orthanc
 
   static void GetRawFrame(RestApiGetCall& call)
   {
-    ServerContext& context = OrthancRestApi::GetContext(call);
-
     std::string frameId = call.GetUriComponent("frame", "0");
 
     unsigned int frame;

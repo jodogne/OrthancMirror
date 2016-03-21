@@ -773,7 +773,8 @@ namespace Orthanc
       }
 
       std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement
-                                  (*element, DicomToJsonFlags_Default, GetEncoding()));
+                                  (*element, DicomToJsonFlags_Default, 
+                                   ORTHANC_MAXIMUM_TAG_LENGTH, GetEncoding()));
       
       if (v.get() == NULL ||
           v->IsNull())
@@ -1187,7 +1188,8 @@ namespace Orthanc
 
   void ParsedDicomFile::Convert(DicomMap& tags)
   {
-    FromDcmtkBridge::Convert(tags, *pimpl_->file_->getDataset(),
+    FromDcmtkBridge::Convert(tags, *pimpl_->file_->getDataset(), 
+                             ORTHANC_MAXIMUM_TAG_LENGTH, 
                              Configuration::GetDefaultEncoding());
   }
 

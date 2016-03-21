@@ -306,6 +306,7 @@ namespace Orthanc
 
   void FromDcmtkBridge::Convert(DicomMap& target, 
                                 DcmDataset& dataset,
+                                unsigned int maxStringLength,
                                 Encoding defaultEncoding)
   {
     Encoding encoding = DetectEncoding(dataset, defaultEncoding);
@@ -318,7 +319,7 @@ namespace Orthanc
       {
         target.SetValue(element->getTag().getGTag(),
                         element->getTag().getETag(),
-                        ConvertLeafElement(*element, DicomToJsonFlags_Default, encoding));
+                        ConvertLeafElement(*element, DicomToJsonFlags_Default, maxStringLength, encoding));
       }
     }
   }
@@ -338,6 +339,7 @@ namespace Orthanc
 
   DicomValue* FromDcmtkBridge::ConvertLeafElement(DcmElement& element,
                                                   DicomToJsonFlags flags,
+                                                  unsigned int maxStringLength,
                                                   Encoding encoding)
   {
     if (!element.isLeaf())
@@ -359,7 +361,8 @@ namespace Orthanc
         std::string s(c);
         std::string utf8 = Toolbox::ConvertToUtf8(s, encoding);
 
-        if (utf8.size() > ORTHANC_MAXIMUM_TAG_LENGTH)
+        if (maxStringLength != 0 &&
+            utf8.size() > maxStringLength)
         {
           return new DicomValue;  // Create a NULL value
         }
@@ -705,7 +708,7 @@ namespace Orthanc
 
     if (element.isLeaf())
     {
-      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element, flags, encoding));
+      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element, flags, maxStringLength, encoding));
       LeafValueToJson(target, *v, format, flags, maxStringLength);
     }
     else
