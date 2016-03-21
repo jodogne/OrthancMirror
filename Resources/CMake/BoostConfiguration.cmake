@@ -8,7 +8,7 @@ else()
   #set(Boost_USE_STATIC_LIBS ON)
 
   find_package(Boost
-    COMPONENTS filesystem thread system date_time regex locale)
+    COMPONENTS filesystem thread system date_time regex locale ${ORTHANC_BOOST_COMPONENTS})
 
   if (NOT Boost_FOUND)
     message(FATAL_ERROR "Unable to locate Boost on this system")
