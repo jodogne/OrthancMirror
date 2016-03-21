@@ -10,6 +10,7 @@ Pending changes in the mainline
 * Refactoring leading to speedups with custom image decoders (including Web viewer plugin)
 * Support decoding of RLE Lossless transfer syntax
 * Fix issue 11 (is_regular_file() fails for FILE_ATTRIBUTE_REPARSE_POINT)
+* Upgrade to Boost 1.60.0 for static builds
 
 
 Version 1.0.0 (2015/12/15)
