@@ -81,6 +81,11 @@
 #include <dcmtk/dcmdata/dcvrut.h>
 
 
+#if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
+#include <EmbeddedResources.h>
+#endif
+
+
 namespace Orthanc
 {
   static inline uint16_t GetCharValue(char c)
