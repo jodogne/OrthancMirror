@@ -69,6 +69,10 @@
 #endif
 
 
+#include <dcmtk/dcmnet/dul.h>
+
+
+
 namespace Orthanc
 {
   static boost::recursive_mutex globalMutex_;
@@ -427,6 +431,9 @@ namespace Orthanc
 #endif
 
     fontRegistry_.AddFromResource(EmbeddedResources::FONT_UBUNTU_MONO_BOLD_16);
+
+    /* Disable "gethostbyaddr" (which results in memory leaks) and use raw IP addresses */
+    dcmDisableGethostbyaddr.set(OFTrue);
   }
 
 

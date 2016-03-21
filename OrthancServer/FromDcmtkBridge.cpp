@@ -30,42 +30,36 @@
  **/
 
 
-
 #include "PrecompiledHeadersServer.h"
 
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
 
-#include "Internals/DicomImageDecoder.h"
-
 #include "FromDcmtkBridge.h"
-#include "ToDcmtkBridge.h"
 #include "OrthancInitialization.h"
 #include "../Core/Logging.h"
 #include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"
-#include "../Core/Images/PngWriter.h"
-#include "../Core/Uuid.h"
-#include "../Core/DicomFormat/DicomIntegerPixelAccessor.h"
 
 #include <list>
 #include <limits>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 
-#include <dcmtk/dcmdata/dcchrstr.h>
+#include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmdata/dcdicent.h>
 #include <dcmtk/dcmdata/dcdict.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
-#include <dcmtk/dcmdata/dcistrmb.h>
+#include <dcmtk/dcmdata/dcostrmb.h>
+#include <dcmtk/dcmdata/dcpixel.h>
 #include <dcmtk/dcmdata/dcuid.h>
-#include <dcmtk/dcmdata/dcmetinf.h>
-#include <dcmtk/dcmdata/dcdeftag.h>
 
 #include <dcmtk/dcmdata/dcvrae.h>
 #include <dcmtk/dcmdata/dcvras.h>
+#include <dcmtk/dcmdata/dcvrat.h>
 #include <dcmtk/dcmdata/dcvrcs.h>
 #include <dcmtk/dcmdata/dcvrda.h>
 #include <dcmtk/dcmdata/dcvrds.h>
@@ -85,16 +79,6 @@
 #include <dcmtk/dcmdata/dcvrul.h>
 #include <dcmtk/dcmdata/dcvrus.h>
 #include <dcmtk/dcmdata/dcvrut.h>
-#include <dcmtk/dcmdata/dcpixel.h>
-#include <dcmtk/dcmdata/dcpixseq.h>
-#include <dcmtk/dcmdata/dcpxitem.h>
-#include <dcmtk/dcmdata/dcvrat.h>
-
-#include <dcmtk/dcmnet/dul.h>
-
-#include <boost/math/special_functions/round.hpp>
-#include <boost/algorithm/string/predicate.hpp>
-#include <dcmtk/dcmdata/dcostrmb.h>
 
 
 namespace Orthanc
@@ -188,9 +172,6 @@ namespace Orthanc
 
   void FromDcmtkBridge::InitializeDictionary()
   {
-    /* Disable "gethostbyaddr" (which results in memory leaks) and use raw IP addresses */
-    dcmDisableGethostbyaddr.set(OFTrue);
-
     {
       DictionaryLocker locker;
 
@@ -1571,7 +1552,7 @@ namespace Orthanc
   DcmPixelSequence* FromDcmtkBridge::GetPixelSequence(DcmDataset& dataset)
   {
     DcmElement *element = NULL;
-    if (!dataset.findAndGetElement(ToDcmtkBridge::Convert(DICOM_TAG_PIXEL_DATA), element).good())
+    if (!dataset.findAndGetElement(DCM_PixelData, element).good())
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
