@@ -54,9 +54,12 @@ namespace Orthanc
                                       unsigned int minMultiplicity,
                                       unsigned int maxMultiplicity);
 
-    static Encoding DetectEncoding(DcmDataset& dataset);
+    static Encoding DetectEncoding(DcmDataset& dataset,
+                                   Encoding defaultEncoding);
 
-    static void Convert(DicomMap& target, DcmDataset& dataset);
+    static void Convert(DicomMap& target, 
+                        DcmDataset& dataset,
+                        Encoding defaultEncoding);
 
     static DicomTag Convert(const DcmTag& tag);
 
@@ -79,7 +82,8 @@ namespace Orthanc
                        DcmDataset& dataset,
                        DicomToJsonFormat format,
                        DicomToJsonFlags flags,
-                       unsigned int maxStringLength);
+                       unsigned int maxStringLength,
+                       Encoding defaultEncoding);
 
     static void ToJson(Json::Value& target, 
                        DcmMetaInfo& header,

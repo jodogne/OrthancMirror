@@ -86,6 +86,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../ToDcmtkBridge.h"
 #include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
+#include "../OrthancInitialization.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 
@@ -170,7 +171,8 @@ namespace Orthanc
               }
 
               DicomMap input;
-              FromDcmtkBridge::Convert(input, *requestIdentifiers);
+              FromDcmtkBridge::Convert(input, *requestIdentifiers,
+                                       Configuration::GetDefaultEncoding());
               data.findHandler_->Handle(data.answers_, input, sequencesToReturn,
                                         *data.remoteIp_, *data.remoteAet_,
                                         *data.calledAet_);

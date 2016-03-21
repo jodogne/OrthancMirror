@@ -37,9 +37,9 @@
 #endif
 
 #include "FromDcmtkBridge.h"
-#include "OrthancInitialization.h"
 #include "../Core/Logging.h"
 #include "../Core/Toolbox.h"
+#include "../Core/Uuid.h"
 #include "../Core/OrthancException.h"
 
 #include <list>
@@ -270,11 +270,10 @@ namespace Orthanc
   }
 
 
-  Encoding FromDcmtkBridge::DetectEncoding(DcmDataset& dataset)
+  Encoding FromDcmtkBridge::DetectEncoding(DcmDataset& dataset,
+                                           Encoding defaultEncoding)
   {
-    // By default, Latin1 encoding is assumed
-    std::string s = Configuration::GetGlobalStringParameter("DefaultEncoding", "Latin1");
-    Encoding encoding = s.empty() ? Encoding_Latin1 : StringToEncoding(s.c_str());
+    Encoding encoding = defaultEncoding;
 
     OFString tmp;
     if (dataset.findAndGetOFString(DCM_SpecificCharacterSet, tmp).good())
@@ -305,9 +304,11 @@ namespace Orthanc
   }
 
 
-  void FromDcmtkBridge::Convert(DicomMap& target, DcmDataset& dataset)
+  void FromDcmtkBridge::Convert(DicomMap& target, 
+                                DcmDataset& dataset,
+                                Encoding defaultEncoding)
   {
-    Encoding encoding = DetectEncoding(dataset);
+    Encoding encoding = DetectEncoding(dataset, defaultEncoding);
 
     target.Clear();
     for (unsigned long i = 0; i < dataset.card(); i++)
@@ -786,10 +787,11 @@ namespace Orthanc
                                DcmDataset& dataset,
                                DicomToJsonFormat format,
                                DicomToJsonFlags flags,
-                               unsigned int maxStringLength)
+                               unsigned int maxStringLength,
+                               Encoding defaultEncoding)
   {
     target = Json::objectValue;
-    DatasetToJson(target, dataset, format, flags, maxStringLength, DetectEncoding(dataset));
+    DatasetToJson(target, dataset, format, flags, maxStringLength, DetectEncoding(dataset, defaultEncoding));
   }
 
 

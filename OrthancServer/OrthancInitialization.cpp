@@ -1031,4 +1031,13 @@ namespace Orthanc
   {
     return fontRegistry_;
   }
+
+
+  Encoding Configuration::GetDefaultEncoding()
+  {
+    std::string s = GetGlobalStringParameter("DefaultEncoding", "Latin1");
+
+    // By default, Latin1 encoding is assumed
+    return s.empty() ? Encoding_Latin1 : StringToEncoding(s.c_str());
+  }
 }

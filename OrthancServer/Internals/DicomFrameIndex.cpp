@@ -36,6 +36,7 @@
 #include "../../Core/OrthancException.h"
 #include "../../Core/DicomFormat/DicomImageInformation.h"
 #include "../FromDcmtkBridge.h"
+#include "../OrthancInitialization.h"
 #include "DicomImageDecoder.h"
 
 #include <boost/lexical_cast.hpp>
@@ -376,7 +377,8 @@ namespace Orthanc
 
     // Extract information about the image structure
     DicomMap tags;
-    FromDcmtkBridge::Convert(tags, dataset);
+    FromDcmtkBridge::Convert(tags, dataset,
+                             Configuration::GetDefaultEncoding());
 
     DicomImageInformation information(tags);
 

@@ -85,6 +85,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../FromDcmtkBridge.h"
 #include "../ServerToolbox.h"
 #include "../ToDcmtkBridge.h"
+#include "../OrthancInitialization.h"
 #include "../../Core/OrthancException.h"
 #include "../../Core/Logging.h"
 
@@ -167,11 +168,13 @@ namespace Orthanc
 
           try
           {
-            FromDcmtkBridge::Convert(summary, **imageDataSet);
+            FromDcmtkBridge::Convert(summary, **imageDataSet,
+                                     Configuration::GetDefaultEncoding());
             FromDcmtkBridge::ToJson(dicomJson, **imageDataSet,
                                     DicomToJsonFormat_Full, 
                                     DicomToJsonFlags_Default, 
-                                    ORTHANC_MAXIMUM_TAG_LENGTH);
+                                    ORTHANC_MAXIMUM_TAG_LENGTH,
+                                    Configuration::GetDefaultEncoding());
 
             if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, **imageDataSet))
             {

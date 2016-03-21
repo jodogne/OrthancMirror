@@ -1059,7 +1059,8 @@ namespace Orthanc
   
   Encoding ParsedDicomFile::GetEncoding() const
   {
-    return FromDcmtkBridge::DetectEncoding(*pimpl_->file_->getDataset());
+    return FromDcmtkBridge::DetectEncoding(*pimpl_->file_->getDataset(),
+                                           Configuration::GetDefaultEncoding());
   }
 
 
@@ -1081,7 +1082,9 @@ namespace Orthanc
                                DicomToJsonFlags flags,
                                unsigned int maxStringLength)
   {
-    FromDcmtkBridge::ToJson(target, *pimpl_->file_->getDataset(), format, flags, maxStringLength);
+    FromDcmtkBridge::ToJson(target, *pimpl_->file_->getDataset(),
+                            format, flags, maxStringLength,
+                            Configuration::GetDefaultEncoding());
   }
 
 
@@ -1184,7 +1187,8 @@ namespace Orthanc
 
   void ParsedDicomFile::Convert(DicomMap& tags)
   {
-    FromDcmtkBridge::Convert(tags, *pimpl_->file_->getDataset());
+    FromDcmtkBridge::Convert(tags, *pimpl_->file_->getDataset(),
+                             Configuration::GetDefaultEncoding());
   }
 
 
