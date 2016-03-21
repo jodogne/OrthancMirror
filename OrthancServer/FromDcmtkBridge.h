@@ -59,6 +59,7 @@ namespace Orthanc
 
     static void Convert(DicomMap& target, 
                         DcmDataset& dataset,
+                        unsigned int maxStringLength,
                         Encoding defaultEncoding);
 
     static DicomTag Convert(const DcmTag& tag);
@@ -69,6 +70,7 @@ namespace Orthanc
 
     static DicomValue* ConvertLeafElement(DcmElement& element,
                                           DicomToJsonFlags flags,
+                                          unsigned int maxStringLength,
                                           Encoding encoding);
 
     static void ToJson(Json::Value& parent,

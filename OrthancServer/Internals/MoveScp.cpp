@@ -130,7 +130,7 @@ namespace Orthanc
       if (data.lastRequest_ == NULL)
       {
         DicomMap input;
-        FromDcmtkBridge::Convert(input, *requestIdentifiers,
+        FromDcmtkBridge::Convert(input, *requestIdentifiers, ORTHANC_MAXIMUM_TAG_LENGTH,
                                  Configuration::GetDefaultEncoding());
 
         try

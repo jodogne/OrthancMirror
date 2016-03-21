@@ -377,7 +377,7 @@ namespace Orthanc
 
     // Extract information about the image structure
     DicomMap tags;
-    FromDcmtkBridge::Convert(tags, dataset,
+    FromDcmtkBridge::Convert(tags, dataset, ORTHANC_MAXIMUM_TAG_LENGTH,
                              Configuration::GetDefaultEncoding());
 
     DicomImageInformation information(tags);
