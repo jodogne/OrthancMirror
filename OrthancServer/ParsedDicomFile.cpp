@@ -1197,32 +1197,14 @@ namespace Orthanc
   ParsedDicomFile* ParsedDicomFile::CreateFromJson(const Json::Value& json,
                                                    DicomFromJsonFlags flags)
   {
-    std::string tmp = Configuration::GetGlobalStringParameter("DefaultEncoding", "Latin1");
-    Encoding encoding = StringToEncoding(tmp.c_str());
-
-    Json::Value::Members tags = json.getMemberNames();
-    
-    for (size_t i = 0; i < tags.size(); i++)
-    {
-      DicomTag tag = FromDcmtkBridge::ParseTag(tags[i]);
-      if (tag == DICOM_TAG_SPECIFIC_CHARACTER_SET)
-      {
-        const Json::Value& value = json[tags[i]];
-        if (value.type() != Json::stringValue ||
-            !GetDicomEncoding(encoding, value.asCString()))
-        {
-          LOG(ERROR) << "Unknown encoding while creating DICOM from JSON: " << value;
-          throw OrthancException(ErrorCode_BadRequest);
-        }
-      }
-    }
-
     const bool generateIdentifiers = (flags & DicomFromJsonFlags_GenerateIdentifiers);
     const bool decodeDataUriScheme = (flags & DicomFromJsonFlags_DecodeDataUriScheme);
 
     std::auto_ptr<ParsedDicomFile> result(new ParsedDicomFile(generateIdentifiers));
-    result->SetEncoding(encoding);
+    result->SetEncoding(FromDcmtkBridge::ExtractEncoding(json, Configuration::GetDefaultEncoding()));
 
+    const Json::Value::Members tags = json.getMemberNames();
+    
     for (size_t i = 0; i < tags.size(); i++)
     {
       DicomTag tag = FromDcmtkBridge::ParseTag(tags[i]);

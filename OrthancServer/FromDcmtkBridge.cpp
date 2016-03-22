@@ -1579,4 +1579,130 @@ namespace Orthanc
       return pixelSequence;
     }
   }
+
+
+  Encoding FromDcmtkBridge::ExtractEncoding(const Json::Value& json,
+                                            Encoding defaultEncoding)
+  {
+    if (json.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+
+    Encoding encoding = defaultEncoding;
+
+    const Json::Value::Members tags = json.getMemberNames();
+    
+    // Look for SpecificCharacterSet (0008,0005) in the JSON file
+    for (size_t i = 0; i < tags.size(); i++)
+    {
+      DicomTag tag = FromDcmtkBridge::ParseTag(tags[i]);
+      if (tag == DICOM_TAG_SPECIFIC_CHARACTER_SET)
+      {
+        const Json::Value& value = json[tags[i]];
+        if (value.type() != Json::stringValue ||
+            !GetDicomEncoding(encoding, value.asCString()))
+        {
+          LOG(ERROR) << "Unknown encoding while creating DICOM from JSON: " << value;
+          throw OrthancException(ErrorCode_BadRequest);
+        }
+      }
+    }
+
+    return encoding;
+  } 
+
+
+  static void SetString(DcmDataset& target,
+                        const DcmTag& tag,
+                        const std::string& value)
+  {
+    if (!target.putAndInsertString(tag, value.c_str()).good())
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
+  DcmDataset* FromDcmtkBridge::FromJson(const Json::Value& json,  // Encoded using UTF-8
+                                        bool generateIdentifiers,
+                                        bool decodeDataUriScheme,
+                                        Encoding defaultEncoding)
+  {
+    std::auto_ptr<DcmDataset> result(new DcmDataset);
+    Encoding encoding = ExtractEncoding(json, defaultEncoding);
+
+    SetString(*result, DCM_SpecificCharacterSet, GetDicomSpecificCharacterSet(encoding));
+
+    const Json::Value::Members tags = json.getMemberNames();
+    
+    bool hasPatientId = false;
+    bool hasStudyInstanceUid = false;
+    bool hasSeriesInstanceUid = false;
+    bool hasSopInstanceUid = false;
+
+    for (size_t i = 0; i < tags.size(); i++)
+    {
+      DicomTag tag = FromDcmtkBridge::ParseTag(tags[i]);
+      const Json::Value& value = json[tags[i]];
+
+      if (tag == DICOM_TAG_PATIENT_ID)
+      {
+        hasPatientId = true;
+      }
+      else if (tag == DICOM_TAG_STUDY_INSTANCE_UID)
+      {
+        hasStudyInstanceUid = true;
+      }
+      else if (tag == DICOM_TAG_SERIES_INSTANCE_UID)
+      {
+        hasSeriesInstanceUid = true;
+      }
+      else if (tag == DICOM_TAG_SOP_INSTANCE_UID)
+      {
+        hasSopInstanceUid = true;
+      }
+
+      if (tag != DICOM_TAG_SPECIFIC_CHARACTER_SET)
+      {
+        std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, encoding));
+        const DcmTagKey& tag = element->getTag();
+
+        result->findAndDeleteElement(tag);
+
+        DcmElement* tmp = element.release();
+        if (!result->insert(tmp, false, false).good())
+        {
+          delete tmp;
+          throw OrthancException(ErrorCode_InternalError);
+        }
+      }
+    }
+
+    if (!hasPatientId &&
+        generateIdentifiers)
+    {
+      SetString(*result, DCM_PatientID, GenerateUniqueIdentifier(ResourceType_Patient));
+    }
+
+    if (!hasStudyInstanceUid &&
+        generateIdentifiers)
+    {
+      SetString(*result, DCM_StudyInstanceUID, GenerateUniqueIdentifier(ResourceType_Study));
+    }
+
+    if (!hasSeriesInstanceUid &&
+        generateIdentifiers)
+    {
+      SetString(*result, DCM_SeriesInstanceUID, GenerateUniqueIdentifier(ResourceType_Series));
+    }
+
+    if (!hasSopInstanceUid &&
+        generateIdentifiers)
+    {
+      SetString(*result, DCM_SOPInstanceUID, GenerateUniqueIdentifier(ResourceType_Instance));
+    }
+
+    return result.release();
+  }
 }

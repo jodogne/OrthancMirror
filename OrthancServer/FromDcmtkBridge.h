@@ -54,7 +54,7 @@ namespace Orthanc
                                       unsigned int minMultiplicity,
                                       unsigned int maxMultiplicity);
 
-    static Encoding DetectEncoding(DcmDataset& dataset,
+    static Encoding DetectEncoding(DcmDataset & dataset,
                                    Encoding defaultEncoding);
 
     static void Convert(DicomMap& target, 
@@ -141,12 +141,20 @@ namespace Orthanc
                                       Encoding dicomEncoding);
 
     static DcmElement* FromJson(const DicomTag& tag,
-                                const Json::Value& element,  // Encoding using UTF-8
+                                const Json::Value& element,  // Encoded using UTF-8
                                 bool decodeDataUriScheme,
                                 Encoding dicomEncoding);
 
     static DcmEVR ParseValueRepresentation(const std::string& s);
 
     static DcmPixelSequence* GetPixelSequence(DcmDataset& dataset);
+
+    static Encoding ExtractEncoding(const Json::Value& json,
+                                    Encoding defaultEncoding);
+
+    static DcmDataset* FromJson(const Json::Value& json,  // Encoded using UTF-8
+                                bool generateIdentifiers,
+                                bool decodeDataUriScheme,
+                                Encoding defaultEncoding);
   };
 }
