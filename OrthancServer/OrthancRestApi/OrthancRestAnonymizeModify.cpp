@@ -636,8 +636,7 @@ namespace Orthanc
       }
       else
       {
-        std::string tmp = Configuration::GetGlobalStringParameter("DefaultEncoding", "Latin1");
-        encoding = StringToEncoding(tmp.c_str());
+        encoding = Configuration::GetDefaultEncoding();
       }
 
       dicom.SetEncoding(encoding);
