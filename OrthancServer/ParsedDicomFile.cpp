@@ -101,7 +101,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <dcmtk/dcmdata/dcdicent.h>
 #include <dcmtk/dcmdata/dcdict.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
-#include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcuid.h>
 #include <dcmtk/dcmdata/dcmetinf.h>
 #include <dcmtk/dcmdata/dcdeftag.h>
@@ -148,31 +147,6 @@ namespace Orthanc
     std::auto_ptr<DcmFileFormat> file_;
     std::auto_ptr<DicomFrameIndex>  frameIndex_;
   };
-
-
-  // This method can only be called from the constructors!
-  void ParsedDicomFile::Setup(const void* buffer, 
-                              size_t size)
-  {
-    DcmInputBufferStream is;
-    if (size > 0)
-    {
-      is.setBuffer(buffer, size);
-    }
-    is.setEos();
-
-    pimpl_->file_.reset(new DcmFileFormat);
-    pimpl_->file_->transferInit();
-    if (!pimpl_->file_->read(is).good())
-    {
-      delete pimpl_;  // Avoid a memory leak due to exception
-                      // throwing, as we are in the constructor
-
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-    pimpl_->file_->loadAllDataIntoMemory();
-    pimpl_->file_->transferEnd();
-  }
 
 
   static void SendPathValueForDictionary(RestApiOutput& output,
@@ -852,18 +826,18 @@ namespace Orthanc
   ParsedDicomFile::ParsedDicomFile(const void* content, 
                                    size_t size) : pimpl_(new PImpl)
   {
-    Setup(content, size);
+    pimpl_->file_.reset(FromDcmtkBridge::LoadFromMemoryBuffer(content, size));
   }
 
   ParsedDicomFile::ParsedDicomFile(const std::string& content) : pimpl_(new PImpl)
   {
     if (content.size() == 0)
     {
-      Setup(NULL, 0);
+      pimpl_->file_.reset(FromDcmtkBridge::LoadFromMemoryBuffer(NULL, 0));
     }
     else
     {
-      Setup(&content[0], content.size());
+      pimpl_->file_.reset(FromDcmtkBridge::LoadFromMemoryBuffer(&content[0], content.size()));
     }
   }
 

@@ -39,6 +39,7 @@
 #include <dcmtk/dcmdata/dcdatset.h>
 #include <dcmtk/dcmdata/dcmetinf.h>
 #include <dcmtk/dcmdata/dcpixseq.h>
+#include <dcmtk/dcmdata/dcfilefo.h>
 #include <json/json.h>
 
 namespace Orthanc
@@ -156,5 +157,8 @@ namespace Orthanc
                                 bool generateIdentifiers,
                                 bool decodeDataUriScheme,
                                 Encoding defaultEncoding);
+
+    static DcmFileFormat* LoadFromMemoryBuffer(const void* buffer,
+                                               size_t size);
   };
 }

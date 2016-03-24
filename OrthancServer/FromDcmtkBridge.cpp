@@ -56,6 +56,7 @@
 #include <dcmtk/dcmdata/dcostrmb.h>
 #include <dcmtk/dcmdata/dcpixel.h>
 #include <dcmtk/dcmdata/dcuid.h>
+#include <dcmtk/dcmdata/dcistrmb.h>
 
 #include <dcmtk/dcmdata/dcvrae.h>
 #include <dcmtk/dcmdata/dcvras.h>
@@ -1702,6 +1703,31 @@ namespace Orthanc
     {
       SetString(*result, DCM_SOPInstanceUID, GenerateUniqueIdentifier(ResourceType_Instance));
     }
+
+    return result.release();
+  }
+
+
+  DcmFileFormat* FromDcmtkBridge::LoadFromMemoryBuffer(const void* buffer,
+                                                       size_t size)
+  {
+    DcmInputBufferStream is;
+    if (size > 0)
+    {
+      is.setBuffer(buffer, size);
+    }
+    is.setEos();
+
+    std::auto_ptr<DcmFileFormat> result(new DcmFileFormat);
+
+    result->transferInit();
+    if (!result->read(is).good())
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    result->loadAllDataIntoMemory();
+    result->transferEnd();
 
     return result.release();
   }
