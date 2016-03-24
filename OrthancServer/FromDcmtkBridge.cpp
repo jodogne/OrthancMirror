@@ -276,7 +276,7 @@ namespace Orthanc
   }
 
 
-  Encoding FromDcmtkBridge::DetectEncoding(DcmDataset& dataset,
+  Encoding FromDcmtkBridge::DetectEncoding(DcmItem& dataset,
                                            Encoding defaultEncoding)
   {
     Encoding encoding = defaultEncoding;
@@ -311,7 +311,7 @@ namespace Orthanc
 
 
   void FromDcmtkBridge::Convert(DicomMap& target, 
-                                DcmDataset& dataset,
+                                DcmItem& dataset,
                                 unsigned int maxStringLength,
                                 Encoding defaultEncoding)
   {
