@@ -55,11 +55,11 @@ namespace Orthanc
                                       unsigned int minMultiplicity,
                                       unsigned int maxMultiplicity);
 
-    static Encoding DetectEncoding(DcmDataset & dataset,
+    static Encoding DetectEncoding(DcmItem& dataset,
                                    Encoding defaultEncoding);
 
     static void Convert(DicomMap& target, 
-                        DcmDataset& dataset,
+                        DcmItem& dataset,
                         unsigned int maxStringLength,
                         Encoding defaultEncoding);
 
