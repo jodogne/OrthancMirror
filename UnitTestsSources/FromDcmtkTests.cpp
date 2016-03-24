@@ -41,6 +41,7 @@
 #include "../Core/Images/ImageBuffer.h"
 #include "../Core/Images/PngReader.h"
 #include "../Core/Images/PngWriter.h"
+#include "../Core/Images/Image.h"
 #include "../Core/Uuid.h"
 #include "../Resources/EncodingTests.h"
 #include "../OrthancServer/DicomProtocol/DicomFindAnswers.h"
@@ -761,3 +762,31 @@ TEST(ParsedDicomFile, FromJson)
     ASSERT_TRUE(vv[DICOM_TAG_PIXEL_DATA.Format()].asString().empty());
   }
 }
+
+
+
+TEST(TestImages, DISABLED_PatternUint16)
+{
+  Orthanc::Image image(Orthanc::PixelFormat_Grayscale16, 256, 256);
+
+  uint16_t v = 0;
+  for (int y = 0; y < 256; y++)
+  {
+    uint16_t *p = reinterpret_cast<uint16_t*>(image.GetRow(y));
+    for (int x = 0; x < 256; x++, v++, p++)
+    {
+      *p = v;
+    }
+  }
+
+  ParsedDicomFile f(true);
+  f.Replace(DICOM_TAG_PATIENT_ID, "ORTHANC");
+  f.Replace(DICOM_TAG_PATIENT_NAME, "Orthanc");
+  f.Replace(DICOM_TAG_STUDY_DESCRIPTION, "Patterns");
+  f.Replace(DICOM_TAG_SERIES_DESCRIPTION, "Grayscale16");
+  f.EmbedImage(image);
+
+  f.SaveToFile("PatternGrayscale16.dcm");
+}
+
+
