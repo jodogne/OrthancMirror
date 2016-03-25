@@ -691,23 +691,71 @@ TEST(Toolbox, Endianness)
 
 static void ASSERT_EQ16(uint16_t a, uint16_t b)
 {
+#ifdef __MINGW32__
   // This cast solves a linking problem with MinGW
   ASSERT_EQ(static_cast<unsigned int>(a), static_cast<unsigned int>(b));
+#else
+  ASSERT_EQ(a, b);
+#endif
 }
-
 
 static void ASSERT_NE16(uint16_t a, uint16_t b)
 {
+#ifdef __MINGW32__
   // This cast solves a linking problem with MinGW
   ASSERT_NE(static_cast<unsigned int>(a), static_cast<unsigned int>(b));
+#else
+  ASSERT_NE(a, b);
+#endif
 }
+
+static void ASSERT_EQ32(uint32_t a, uint32_t b)
+{
+#ifdef __MINGW32__
+  // This cast solves a linking problem with MinGW
+  ASSERT_EQ(static_cast<unsigned int>(a), static_cast<unsigned int>(b));
+#else
+  ASSERT_EQ(a, b);
+#endif
+}
+
+static void ASSERT_NE32(uint32_t a, uint32_t b)
+{
+#ifdef __MINGW32__
+  // This cast solves a linking problem with MinGW
+  ASSERT_NE(static_cast<unsigned int>(a), static_cast<unsigned int>(b));
+#else
+  ASSERT_NE(a, b);
+#endif
+}
+
+static void ASSERT_EQ64(uint64_t a, uint64_t b)
+{
+#ifdef __MINGW32__
+  // This cast solves a linking problem with MinGW
+  ASSERT_EQ(static_cast<unsigned int>(a), static_cast<unsigned int>(b));
+#else
+  ASSERT_EQ(a, b);
+#endif
+}
+
+static void ASSERT_NE64(uint64_t a, uint64_t b)
+{
+#ifdef __MINGW32__
+  // This cast solves a linking problem with MinGW
+  ASSERT_NE(static_cast<unsigned long long>(a), static_cast<unsigned long long>(b));
+#else
+  ASSERT_NE(a, b);
+#endif
+}
+
 
 
 TEST(Toolbox, EndiannessConversions16)
 {
   Endianness e = Toolbox::DetectEndianness();
 
-  for (unsigned int i = 0; i < 65536; i++)
+  for (unsigned int i = 0; i < 65536; i += 17)
   {
     uint16_t v = static_cast<uint16_t>(i);
     ASSERT_EQ16(v, be16toh(htobe16(v)));
@@ -758,6 +806,66 @@ TEST(Toolbox, EndiannessConversions16)
 }
 
 
+TEST(Toolbox, EndiannessConversions32)
+{
+  const uint32_t v = 0xff010203u;
+  const uint32_t r = 0x030201ffu;
+  ASSERT_EQ32(v, be32toh(htobe32(v)));
+  ASSERT_EQ32(v, le32toh(htole32(v)));
+  ASSERT_NE32(v, be32toh(htole32(v)));
+  ASSERT_NE32(v, le32toh(htobe32(v)));
+
+  switch (Toolbox::DetectEndianness())
+  {
+    case Endianness_Little:
+      ASSERT_EQ32(r, htobe32(v));
+      ASSERT_EQ32(v, htole32(v));
+      ASSERT_EQ32(r, be32toh(v));
+      ASSERT_EQ32(v, le32toh(v));
+      break;
+
+    case Endianness_Big:
+      ASSERT_EQ32(v, htobe32(v));
+      ASSERT_EQ32(r, htole32(v));
+      ASSERT_EQ32(v, be32toh(v));
+      ASSERT_EQ32(r, le32toh(v));
+      break;
+
+    default:
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+  }
+}
+
+
+TEST(Toolbox, EndiannessConversions64)
+{
+  const uint64_t v = 0xff01020304050607LLu;
+  const uint64_t r = 0x07060504030201ffLLu;
+  ASSERT_EQ64(v, be64toh(htobe64(v)));
+  ASSERT_EQ64(v, le64toh(htole64(v)));
+  ASSERT_NE64(v, be64toh(htole64(v)));
+  ASSERT_NE64(v, le64toh(htobe64(v)));
+
+  switch (Toolbox::DetectEndianness())
+  {
+    case Endianness_Little:
+      ASSERT_EQ64(r, htobe64(v));
+      ASSERT_EQ64(v, htole64(v));
+      ASSERT_EQ64(r, be64toh(v));
+      ASSERT_EQ64(v, le64toh(v));
+      break;
+
+    case Endianness_Big:
+      ASSERT_EQ64(v, htobe64(v));
+      ASSERT_EQ64(r, htole64(v));
+      ASSERT_EQ64(v, be64toh(v));
+      ASSERT_EQ64(r, le64toh(v));
+      break;
+
+    default:
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+  }
+}
 
 
 

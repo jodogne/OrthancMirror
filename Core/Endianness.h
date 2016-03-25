@@ -49,7 +49,6 @@
  ********************************************************************/
 
 #if defined(_WIN32)
-#include <winsock2.h>
 #  if defined(_MSC_VER)
 //   http://msdn.microsoft.com/en-us/library/a3140177.aspx
 #    define be16toh(x) _byteswap_ushort(x)
