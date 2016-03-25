@@ -687,6 +687,80 @@ TEST(Toolbox, Endianness)
 }
 
 
+#include "../Core/Endianness.h"
+
+static void ASSERT_EQ16(uint16_t a, uint16_t b)
+{
+  // This cast solves a linking problem with MinGW
+  ASSERT_EQ(static_cast<unsigned int>(a), static_cast<unsigned int>(b));
+}
+
+
+static void ASSERT_NE16(uint16_t a, uint16_t b)
+{
+  // This cast solves a linking problem with MinGW
+  ASSERT_NE(static_cast<unsigned int>(a), static_cast<unsigned int>(b));
+}
+
+
+TEST(Toolbox, EndiannessConversions16)
+{
+  Endianness e = Toolbox::DetectEndianness();
+
+  for (unsigned int i = 0; i < 65536; i++)
+  {
+    uint16_t v = static_cast<uint16_t>(i);
+    ASSERT_EQ16(v, be16toh(htobe16(v)));
+    ASSERT_EQ16(v, le16toh(htole16(v)));
+
+    const uint8_t* bytes = reinterpret_cast<const uint8_t*>(&v);
+    if (bytes[0] != bytes[1])
+    {
+      ASSERT_NE16(v, le16toh(htobe16(v)));
+      ASSERT_NE16(v, be16toh(htole16(v)));
+    }
+    else
+    {
+      ASSERT_EQ16(v, le16toh(htobe16(v)));
+      ASSERT_EQ16(v, be16toh(htole16(v)));
+    }
+
+    switch (e)
+    {
+      case Endianness_Little:
+        ASSERT_EQ16(v, htole16(v));
+        if (bytes[0] != bytes[1])
+        {
+          ASSERT_NE16(v, htobe16(v));
+        }
+        else
+        {
+          ASSERT_EQ16(v, htobe16(v));
+        }
+        break;
+
+      case Endianness_Big:
+        ASSERT_EQ16(v, htobe16(v));
+        if (bytes[0] != bytes[1])
+        {
+          ASSERT_NE16(v, htole16(v));
+        }
+        else
+        {
+          ASSERT_EQ16(v, htole16(v));
+        }
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+}
+
+
+
+
+
 #if ORTHANC_PUGIXML_ENABLED == 1
 TEST(Toolbox, Xml)
 {
