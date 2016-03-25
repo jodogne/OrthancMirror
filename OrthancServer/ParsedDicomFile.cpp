@@ -933,6 +933,7 @@ namespace Orthanc
   {
     if (accessor.GetFormat() != PixelFormat_Grayscale8 &&
         accessor.GetFormat() != PixelFormat_Grayscale16 &&
+        accessor.GetFormat() != PixelFormat_SignedGrayscale16 &&
         accessor.GetFormat() != PixelFormat_RGB24 &&
         accessor.GetFormat() != PixelFormat_RGBA32)
     {
@@ -951,28 +952,42 @@ namespace Orthanc
     Replace(DICOM_TAG_ROWS, boost::lexical_cast<std::string>(accessor.GetHeight()));
     Replace(DICOM_TAG_SAMPLES_PER_PIXEL, "1");
     Replace(DICOM_TAG_NUMBER_OF_FRAMES, "1");
-    Replace(DICOM_TAG_PIXEL_REPRESENTATION, "0");  // Unsigned pixels
+
+    if (accessor.GetFormat() == PixelFormat_SignedGrayscale16)
+    {
+      Replace(DICOM_TAG_PIXEL_REPRESENTATION, "1");
+    }
+    else
+    {
+      Replace(DICOM_TAG_PIXEL_REPRESENTATION, "0");  // Unsigned pixels
+    }
+
     Replace(DICOM_TAG_PLANAR_CONFIGURATION, "0");  // Color channels are interleaved
     Replace(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "MONOCHROME2");
-    Replace(DICOM_TAG_BITS_ALLOCATED, "8");
-    Replace(DICOM_TAG_BITS_STORED, "8");
-    Replace(DICOM_TAG_HIGH_BIT, "7");
 
-    unsigned int bytesPerPixel = 1;
+    unsigned int bytesPerPixel = 0;
 
     switch (accessor.GetFormat())
     {
+      case PixelFormat_Grayscale8:
+        Replace(DICOM_TAG_BITS_ALLOCATED, "8");
+        Replace(DICOM_TAG_BITS_STORED, "8");
+        Replace(DICOM_TAG_HIGH_BIT, "7");
+        bytesPerPixel = 1;
+        break;
+
       case PixelFormat_RGB24:
       case PixelFormat_RGBA32:
         Replace(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "RGB");
         Replace(DICOM_TAG_SAMPLES_PER_PIXEL, "3");
+        Replace(DICOM_TAG_BITS_ALLOCATED, "8");
+        Replace(DICOM_TAG_BITS_STORED, "8");
+        Replace(DICOM_TAG_HIGH_BIT, "7");
         bytesPerPixel = 3;
         break;
 
-      case PixelFormat_Grayscale8:
-        break;
-
       case PixelFormat_Grayscale16:
+      case PixelFormat_SignedGrayscale16:
         Replace(DICOM_TAG_BITS_ALLOCATED, "16");
         Replace(DICOM_TAG_BITS_STORED, "16");
         Replace(DICOM_TAG_HIGH_BIT, "15");
@@ -982,6 +997,8 @@ namespace Orthanc
       default:
         throw OrthancException(ErrorCode_NotImplemented);
     }
+
+    assert(bytesPerPixel != 0);
 
     DcmTag key(DICOM_TAG_PIXEL_DATA.GetGroup(), 
                DICOM_TAG_PIXEL_DATA.GetElement());

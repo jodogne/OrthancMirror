@@ -768,6 +768,121 @@ TEST(ParsedDicomFile, FromJson)
 
 
 
+TEST(TestImages, PatternGrayscale8)
+{
+  static const char* PATH = "UnitTestsResults/PatternGrayscale8.dcm";
+
+  Orthanc::Image image(Orthanc::PixelFormat_Grayscale8, 256, 256);
+
+  for (int y = 0; y < 256; y++)
+  {
+    uint8_t *p = reinterpret_cast<uint8_t*>(image.GetRow(y));
+    for (int x = 0; x < 256; x++, p++)
+    {
+      *p = y;
+    }
+  }
+
+  Orthanc::ImageAccessor r = image.GetRegion(32, 32, 64, 192);
+  Orthanc::ImageProcessing::Set(r, 0); 
+  r = image.GetRegion(160, 32, 64, 192);
+  Orthanc::ImageProcessing::Set(r, 255); 
+
+  {
+    ParsedDicomFile f(true);
+    f.Replace(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.7");
+    f.Replace(DICOM_TAG_STUDY_INSTANCE_UID, "1.2.276.0.7230010.3.1.2.2831176407.321.1458901422.884998");
+    f.Replace(DICOM_TAG_PATIENT_ID, "ORTHANC");
+    f.Replace(DICOM_TAG_PATIENT_NAME, "Orthanc");
+    f.Replace(DICOM_TAG_STUDY_DESCRIPTION, "Patterns");
+    f.Replace(DICOM_TAG_SERIES_DESCRIPTION, "Grayscale8");
+    f.EmbedImage(image);
+
+    f.SaveToFile(PATH);
+  }
+
+  {
+    std::string s;
+    Orthanc::Toolbox::ReadFile(s, PATH);
+    Orthanc::ParsedDicomFile f(s);
+    
+    std::auto_ptr<Orthanc::ImageAccessor> decoded(Orthanc::DicomImageDecoder::Decode(f, 0));
+    ASSERT_EQ(256, decoded->GetWidth());
+    ASSERT_EQ(256, decoded->GetHeight());
+    ASSERT_EQ(Orthanc::PixelFormat_Grayscale8, decoded->GetFormat());
+
+    for (int y = 0; y < 256; y++)
+    {
+      const void* a = image.GetConstRow(y);
+      const void* b = decoded->GetConstRow(y);
+      ASSERT_EQ(0, memcmp(a, b, 256));
+    }
+  }
+}
+
+
+TEST(TestImages, PatternRGB)
+{
+  static const char* PATH = "UnitTestsResults/PatternRGB24.dcm";
+
+  Orthanc::Image image(Orthanc::PixelFormat_RGB24, 384, 256);
+
+  for (int y = 0; y < 256; y++)
+  {
+    uint8_t *p = reinterpret_cast<uint8_t*>(image.GetRow(y));
+    for (int x = 0; x < 128; x++, p += 3)
+    {
+      p[0] = y;
+      p[1] = 0;
+      p[2] = 0;
+    }
+    for (int x = 128; x < 128 * 2; x++, p += 3)
+    {
+      p[0] = 0;
+      p[1] = 255 - y;
+      p[2] = 0;
+    }
+    for (int x = 128 * 2; x < 128 * 3; x++, p += 3)
+    {
+      p[0] = 0;
+      p[1] = 0;
+      p[2] = y;
+    }
+  }
+
+  {
+    ParsedDicomFile f(true);
+    f.Replace(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.7");
+    f.Replace(DICOM_TAG_STUDY_INSTANCE_UID, "1.2.276.0.7230010.3.1.2.2831176407.321.1458901422.884998");
+    f.Replace(DICOM_TAG_PATIENT_ID, "ORTHANC");
+    f.Replace(DICOM_TAG_PATIENT_NAME, "Orthanc");
+    f.Replace(DICOM_TAG_STUDY_DESCRIPTION, "Patterns");
+    f.Replace(DICOM_TAG_SERIES_DESCRIPTION, "RGB24");
+    f.EmbedImage(image);
+
+    f.SaveToFile(PATH);
+  }
+
+  {
+    std::string s;
+    Orthanc::Toolbox::ReadFile(s, PATH);
+    Orthanc::ParsedDicomFile f(s);
+    
+    std::auto_ptr<Orthanc::ImageAccessor> decoded(Orthanc::DicomImageDecoder::Decode(f, 0));
+    ASSERT_EQ(384, decoded->GetWidth());
+    ASSERT_EQ(256, decoded->GetHeight());
+    ASSERT_EQ(Orthanc::PixelFormat_RGB24, decoded->GetFormat());
+
+    for (int y = 0; y < 256; y++)
+    {
+      const void* a = image.GetConstRow(y);
+      const void* b = decoded->GetConstRow(y);
+      ASSERT_EQ(0, memcmp(a, b, 3 * 384));
+    }
+  }
+}
+
+
 TEST(TestImages, PatternUint16)
 {
   static const char* PATH = "UnitTestsResults/PatternGrayscale16.dcm";
@@ -791,6 +906,8 @@ TEST(TestImages, PatternUint16)
 
   {
     ParsedDicomFile f(true);
+    f.Replace(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.7");
+    f.Replace(DICOM_TAG_STUDY_INSTANCE_UID, "1.2.276.0.7230010.3.1.2.2831176407.321.1458901422.884998");
     f.Replace(DICOM_TAG_PATIENT_ID, "ORTHANC");
     f.Replace(DICOM_TAG_PATIENT_NAME, "Orthanc");
     f.Replace(DICOM_TAG_STUDY_DESCRIPTION, "Patterns");
@@ -809,6 +926,60 @@ TEST(TestImages, PatternUint16)
     ASSERT_EQ(256, decoded->GetWidth());
     ASSERT_EQ(256, decoded->GetHeight());
     ASSERT_EQ(Orthanc::PixelFormat_Grayscale16, decoded->GetFormat());
+
+    for (int y = 0; y < 256; y++)
+    {
+      const void* a = image.GetConstRow(y);
+      const void* b = decoded->GetConstRow(y);
+      ASSERT_EQ(0, memcmp(a, b, 512));
+    }
+  }
+}
+
+
+TEST(TestImages, PatternInt16)
+{
+  static const char* PATH = "UnitTestsResults/PatternSignedGrayscale16.dcm";
+
+  Orthanc::Image image(Orthanc::PixelFormat_SignedGrayscale16, 256, 256);
+
+  int16_t v = -32768;
+  for (int y = 0; y < 256; y++)
+  {
+    int16_t *p = reinterpret_cast<int16_t*>(image.GetRow(y));
+    for (int x = 0; x < 256; x++, v++, p++)
+    {
+      *p = htole16(v);   // Orthanc uses Little-Endian transfer syntax to encode images
+    }
+  }
+
+  Orthanc::ImageAccessor r = image.GetRegion(32, 32, 64, 192);
+  Orthanc::ImageProcessing::Set(r, -32768); 
+  r = image.GetRegion(160, 32, 64, 192);
+  Orthanc::ImageProcessing::Set(r, 32767); 
+
+  {
+    ParsedDicomFile f(true);
+    f.Replace(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.7");
+    f.Replace(DICOM_TAG_STUDY_INSTANCE_UID, "1.2.276.0.7230010.3.1.2.2831176407.321.1458901422.884998");
+    f.Replace(DICOM_TAG_PATIENT_ID, "ORTHANC");
+    f.Replace(DICOM_TAG_PATIENT_NAME, "Orthanc");
+    f.Replace(DICOM_TAG_STUDY_DESCRIPTION, "Patterns");
+    f.Replace(DICOM_TAG_SERIES_DESCRIPTION, "SignedGrayscale16");
+    f.EmbedImage(image);
+
+    f.SaveToFile(PATH);
+  }
+
+  {
+    std::string s;
+    Orthanc::Toolbox::ReadFile(s, PATH);
+    Orthanc::ParsedDicomFile f(s);
+    
+    std::auto_ptr<Orthanc::ImageAccessor> decoded(Orthanc::DicomImageDecoder::Decode(f, 0));
+    ASSERT_EQ(256, decoded->GetWidth());
+    ASSERT_EQ(256, decoded->GetHeight());
+    ASSERT_EQ(Orthanc::PixelFormat_SignedGrayscale16, decoded->GetFormat());
 
     for (int y = 0; y < 256; y++)
     {
