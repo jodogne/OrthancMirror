@@ -839,8 +839,8 @@ TEST(Toolbox, EndiannessConversions32)
 
 TEST(Toolbox, EndiannessConversions64)
 {
-  const uint64_t v = 0xff01020304050607LLu;
-  const uint64_t r = 0x07060504030201ffLLu;
+  const uint64_t v = 0xff01020304050607LLU;
+  const uint64_t r = 0x07060504030201ffLLU;
   ASSERT_EQ64(v, be64toh(htobe64(v)));
   ASSERT_EQ64(v, le64toh(htole64(v)));
   ASSERT_NE64(v, be64toh(htole64(v)));

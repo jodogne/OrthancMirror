@@ -42,9 +42,12 @@
 #include "../Core/Images/PngReader.h"
 #include "../Core/Images/PngWriter.h"
 #include "../Core/Images/Image.h"
+#include "../Core/Images/ImageProcessing.h"
 #include "../Core/Uuid.h"
+#include "../Core/Endianness.h"
 #include "../Resources/EncodingTests.h"
 #include "../OrthancServer/DicomProtocol/DicomFindAnswers.h"
+#include "../OrthancServer/Internals/DicomImageDecoder.h"
 
 #include <dcmtk/dcmdata/dcelem.h>
 
@@ -765,8 +768,10 @@ TEST(ParsedDicomFile, FromJson)
 
 
 
-TEST(TestImages, DISABLED_PatternUint16)
+TEST(TestImages, PatternUint16)
 {
+  static const char* PATH = "UnitTestsResults/PatternGrayscale16.dcm";
+
   Orthanc::Image image(Orthanc::PixelFormat_Grayscale16, 256, 256);
 
   uint16_t v = 0;
@@ -775,18 +780,41 @@ TEST(TestImages, DISABLED_PatternUint16)
     uint16_t *p = reinterpret_cast<uint16_t*>(image.GetRow(y));
     for (int x = 0; x < 256; x++, v++, p++)
     {
-      *p = v;
+      *p = htole16(v);   // Orthanc uses Little-Endian transfer syntax to encode images
     }
   }
 
-  ParsedDicomFile f(true);
-  f.Replace(DICOM_TAG_PATIENT_ID, "ORTHANC");
-  f.Replace(DICOM_TAG_PATIENT_NAME, "Orthanc");
-  f.Replace(DICOM_TAG_STUDY_DESCRIPTION, "Patterns");
-  f.Replace(DICOM_TAG_SERIES_DESCRIPTION, "Grayscale16");
-  f.EmbedImage(image);
+  Orthanc::ImageAccessor r = image.GetRegion(32, 32, 64, 192);
+  Orthanc::ImageProcessing::Set(r, 0); 
+  r = image.GetRegion(160, 32, 64, 192);
+  Orthanc::ImageProcessing::Set(r, 65535); 
 
-  f.SaveToFile("PatternGrayscale16.dcm");
+  {
+    ParsedDicomFile f(true);
+    f.Replace(DICOM_TAG_PATIENT_ID, "ORTHANC");
+    f.Replace(DICOM_TAG_PATIENT_NAME, "Orthanc");
+    f.Replace(DICOM_TAG_STUDY_DESCRIPTION, "Patterns");
+    f.Replace(DICOM_TAG_SERIES_DESCRIPTION, "Grayscale16");
+    f.EmbedImage(image);
+
+    f.SaveToFile(PATH);
+  }
+
+  {
+    std::string s;
+    Orthanc::Toolbox::ReadFile(s, PATH);
+    Orthanc::ParsedDicomFile f(s);
+    
+    std::auto_ptr<Orthanc::ImageAccessor> decoded(Orthanc::DicomImageDecoder::Decode(f, 0));
+    ASSERT_EQ(256, decoded->GetWidth());
+    ASSERT_EQ(256, decoded->GetHeight());
+    ASSERT_EQ(Orthanc::PixelFormat_Grayscale16, decoded->GetFormat());
+
+    for (int y = 0; y < 256; y++)
+    {
+      const void* a = image.GetConstRow(y);
+      const void* b = decoded->GetConstRow(y);
+      ASSERT_EQ(0, memcmp(a, b, 512));
+    }
+  }
 }
-
-
