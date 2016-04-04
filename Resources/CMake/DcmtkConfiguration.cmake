@@ -201,16 +201,16 @@ else()
   include(FindDCMTK)
   list(APPEND DCMTK_LIBRARIES "${tmp}")
 
-  include_directories(${DCMTK_INCLUDE_DIR})
+  include_directories(${DCMTK_INCLUDE_DIRS})
 
   add_definitions(
     -DHAVE_CONFIG_H=1
     )
 
-  if (EXISTS "${DCMTK_DIR}/config/cfunix.h")
-    set(DCMTK_CONFIGURATION_FILE "${DCMTK_DIR}/config/cfunix.h")
-  elseif (EXISTS "${DCMTK_DIR}/config/osconfig.h")  # This is for Arch Linux
-    set(DCMTK_CONFIGURATION_FILE "${DCMTK_DIR}/config/osconfig.h")
+  if (EXISTS "${DCMTK_config_INCLUDE_DIR}/cfunix.h")
+    set(DCMTK_CONFIGURATION_FILE "${DCMTK_config_INCLUDE_DIR}/cfunix.h")
+  elseif (EXISTS "${DCMTK_config_INCLUDE_DIR}/osconfig.h")  # This is for Arch Linux
+    set(DCMTK_CONFIGURATION_FILE "${DCMTK_config_INCLUDE_DIR}/osconfig.h")
   else()
     message(FATAL_ERROR "Please install libdcmtk*-dev")
   endif()
