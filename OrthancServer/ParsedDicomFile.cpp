@@ -136,6 +136,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/algorithm/string/predicate.hpp>
 
 
+#if DCMTK_VERSION_NUMBER <= 360
+#  define EXS_JPEGProcess1      EXS_JPEGProcess1TransferSyntax
+#endif
+
+
 static const char* CONTENT_TYPE_OCTET_STREAM = "application/octet-stream";
 
 
