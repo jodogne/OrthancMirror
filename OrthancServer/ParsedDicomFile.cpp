@@ -1242,7 +1242,7 @@ namespace Orthanc
     E_TransferSyntax transferSyntax = pimpl_->file_->getDataset()->getOriginalXfer();
     switch (transferSyntax)
     {
-      case EXS_JPEGProcess1TransferSyntax:
+      case EXS_JPEGProcess1:
         mime = "image/jpeg";
         break;
        
