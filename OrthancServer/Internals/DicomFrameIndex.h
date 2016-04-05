@@ -72,6 +72,8 @@ namespace Orthanc
     void GetRawFrame(std::string& frame,
                      unsigned int index) const;
 
+    static bool IsVideo(const DcmDataset& dataset);
+
     static unsigned int GetFramesCount(DcmDataset& dataset);
   };
 }

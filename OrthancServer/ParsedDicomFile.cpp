@@ -1261,4 +1261,10 @@ namespace Orthanc
   {
     pimpl_->frameIndex_.reset(NULL);
   }
+
+
+  unsigned int ParsedDicomFile::GetFramesCount() const
+  {
+    return DicomFrameIndex::GetFramesCount(*pimpl_->file_->getDataset());
+  }
 }

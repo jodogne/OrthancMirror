@@ -149,6 +149,8 @@ namespace Orthanc
                      std::string& mime,   // OUT
                      unsigned int frameId);  // IN
 
+    unsigned int GetFramesCount() const;
+
     static ParsedDicomFile* CreateFromJson(const Json::Value& value,
                                            DicomFromJsonFlags flags);
   };

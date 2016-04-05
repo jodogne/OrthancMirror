@@ -236,28 +236,22 @@ namespace Orthanc
   
   static void ListFrames(RestApiGetCall& call)
   {
-    Json::Value instance;
-    if (OrthancRestApi::GetIndex(call).LookupResource(instance, call.GetUriComponent("id", ""), ResourceType_Instance))
+    std::string publicId = call.GetUriComponent("id", "");
+
+    unsigned int numberOfFrames;
+      
     {
-      unsigned int numberOfFrames = 1;
-
-      try
-      {
-        Json::Value tmp = instance["MainDicomTags"]["NumberOfFrames"];
-        numberOfFrames = boost::lexical_cast<unsigned int>(tmp.asString());
-      }
-      catch (...)
-      {
-      }
-
-      Json::Value result = Json::arrayValue;
-      for (unsigned int i = 0; i < numberOfFrames; i++)
-      {
-        result.append(i);
-      }
-
-      call.GetOutput().AnswerJson(result);
+      ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), publicId);
+      numberOfFrames = locker.GetDicom().GetFramesCount();
     }
+    
+    Json::Value result = Json::arrayValue;
+    for (unsigned int i = 0; i < numberOfFrames; i++)
+    {
+      result.append(i);
+    }
+    
+    call.GetOutput().AnswerJson(result);
   }
 
 

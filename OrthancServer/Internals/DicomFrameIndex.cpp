@@ -37,6 +37,7 @@
 #include "../../Core/DicomFormat/DicomImageInformation.h"
 #include "../FromDcmtkBridge.h"
 #include "../OrthancInitialization.h"
+#include "../../Core/Endianness.h"
 #include "DicomImageDecoder.h"
 
 #include <boost/lexical_cast.hpp>
@@ -44,16 +45,6 @@
 #include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmdata/dcpxitem.h>
 #include <dcmtk/dcmdata/dcpixseq.h>
-
-#if defined(_WIN32)   // Windows machines are always little-endian
-#  define le32toh(x) x
-#elif defined(__APPLE__)
-#  include <libkern/OSByteOrder.h>
-#  define le32toh(x) OSSwapLittleToHostInt32(x)
-#else
-#  include <endian.h>
-#endif
-
 
 namespace Orthanc
 {
@@ -328,9 +319,38 @@ namespace Orthanc
 
 
 
+  bool DicomFrameIndex::IsVideo(const DcmDataset& dataset)
+  {
+    if (dataset.getOriginalXfer() == EXS_MPEG2MainProfileAtMainLevel ||
+        dataset.getOriginalXfer() == EXS_MPEG2MainProfileAtHighLevel)
+    {
+      return true;
+    }        
+
+#if DCMTK_VERSION_NUMBER > 360
+    // New transfer syntaxes introduced in the DICOM standard after DCMTK 3.6.0
+    if (dataset.getOriginalXfer() == EXS_MPEG4HighProfileLevel4 ||
+        dataset.getOriginalXfer() == EXS_MPEG4BDcompatibleHighProfileLevel4 ||
+        dataset.getOriginalXfer() == EXS_MPEG4HighProfileLevel4_2_For2DVideo ||
+        dataset.getOriginalXfer() == EXS_MPEG4HighProfileLevel4_2_For3DVideo ||
+        dataset.getOriginalXfer() == EXS_MPEG4StereoHighProfileLevel4_2)
+    {
+      return true;
+    }        
+#endif
+
+    return false;
+  }
+
 
   unsigned int DicomFrameIndex::GetFramesCount(DcmDataset& dataset)
   {
+    // Assume 1 frame for video transfer syntaxes
+    if (IsVideo(dataset))
+    {
+      return 1;
+    }        
+
     const char* tmp = NULL;
     if (!dataset.findAndGetString(DCM_NumberOfFrames, tmp).good() ||
         tmp == NULL)
