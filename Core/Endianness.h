@@ -45,7 +45,7 @@
 /********************************************************************
  ** WINDOWS ARCHITECTURES
  **
- ** On Windows, "host" will always be little-endian ("le").
+ ** On Windows x86, "host" will always be little-endian ("le").
  ********************************************************************/
 
 #if defined(_WIN32)
