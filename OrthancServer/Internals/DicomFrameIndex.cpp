@@ -329,8 +329,8 @@ namespace Orthanc
 
 #if DCMTK_VERSION_NUMBER > 360
     // New transfer syntaxes introduced in the DICOM standard after DCMTK 3.6.0
-    if (dataset.getOriginalXfer() == EXS_MPEG4HighProfileLevel4 ||
-        dataset.getOriginalXfer() == EXS_MPEG4BDcompatibleHighProfileLevel4 ||
+    if (dataset.getOriginalXfer() == EXS_MPEG4HighProfileLevel4_1 ||
+        dataset.getOriginalXfer() == EXS_MPEG4BDcompatibleHighProfileLevel4_1 ||
         dataset.getOriginalXfer() == EXS_MPEG4HighProfileLevel4_2_For2DVideo ||
         dataset.getOriginalXfer() == EXS_MPEG4HighProfileLevel4_2_For3DVideo ||
         dataset.getOriginalXfer() == EXS_MPEG4StereoHighProfileLevel4_2)

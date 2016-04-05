@@ -13,6 +13,7 @@ Pending changes in the mainline
 * Upgrade to Boost 1.60.0 for static builds
 * Support of signed 16bpp images in ParsedDicomFile
 * Fix of Debian bug #818512 ("FTBFS: Please install libdcmtk*-dev")
+* Possibility to use forthcoming DCMTK 3.6.1 in static builds (instead of 3.6.0)
 
 
 Version 1.0.0 (2015/12/15)

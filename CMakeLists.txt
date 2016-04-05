@@ -32,6 +32,7 @@ SET(ENABLE_JPEG_LOSSLESS ON CACHE BOOL "Enable JPEG-LS (Lossless) decompression"
 SET(ENABLE_PLUGINS ON CACHE BOOL "Enable plugins")
 SET(BUILD_SERVE_FOLDERS ON CACHE BOOL "Build the ServeFolders plugin")
 SET(BUILD_MODALITY_WORKLISTS ON CACHE BOOL "Build the sample plugin to serve modality worklists")
+SET(USE_DCMTK_361 OFF CACHE BOOL "Use forthcoming DCMTK version 3.6.1 in static builds (instead of 3.6.0)")
 
 # Advanced parameters to fine-tune linking against system libraries
 SET(USE_SYSTEM_JSONCPP ON CACHE BOOL "Use the system version of JsonCpp")
@@ -245,6 +246,27 @@ if (ENABLE_PLUGINS)
 
   list(APPEND ORTHANC_UNIT_TESTS_SOURCES
     UnitTestsSources/PluginsTests.cpp
+    )
+endif()
+
+
+set(ORTHANC_ALL_SOURCES
+  ${ORTHANC_CORE_SOURCES}
+  ${ORTHANC_SERVER_SOURCES}
+  ${ORTHANC_UNIT_TESTS_SOURCES}
+  Plugins/Samples/ServeFolders/Plugin.cpp
+  Plugins/Samples/ModalityWorklists/Plugin.cpp
+  OrthancServer/main.cpp
+  )
+
+
+if (CMAKE_COMPILER_IS_GNUCXX
+    AND NOT CMAKE_CROSSCOMPILING 
+    AND NOT USE_DCMTK_361)
+  # Add the "-pedantic" flag only on the Orthanc sources, and only if
+  # using DCMTK 3.6.0
+  set_source_files_properties(${ORTHANC_ALL_SOURCES}
+    PROPERTIES COMPILE_FLAGS -pedantic
     )
 endif()
 

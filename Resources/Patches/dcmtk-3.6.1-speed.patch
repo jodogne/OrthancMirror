@@ -1,0 +1,26 @@
+diff -urEb dcmtk-3.6.1_20160216.orig/dcmnet/libsrc/dul.cc dcmtk-3.6.1_20160216/dcmnet/libsrc/dul.cc
+--- dcmtk-3.6.1_20160216.orig/dcmnet/libsrc/dul.cc	2016-04-05 12:56:28.962230391 +0200
++++ dcmtk-3.6.1_20160216/dcmnet/libsrc/dul.cc	2016-04-05 12:57:15.814232296 +0200
+@@ -1841,7 +1841,7 @@
+         return makeDcmnetCondition(DULC_TCPINITERROR, OF_error, msg.c_str());
+     }
+ #endif
+-    setTCPBufferLength(sock);
++    //setTCPBufferLength(sock);
+ 
+ #ifndef DONT_DISABLE_NAGLE_ALGORITHM
+     /*
+Only in dcmtk-3.6.1_20160216/dcmnet/libsrc: dul.cc~
+diff -urEb dcmtk-3.6.1_20160216.orig/dcmnet/libsrc/dulfsm.cc dcmtk-3.6.1_20160216/dcmnet/libsrc/dulfsm.cc
+--- dcmtk-3.6.1_20160216.orig/dcmnet/libsrc/dulfsm.cc	2016-04-05 12:56:28.962230391 +0200
++++ dcmtk-3.6.1_20160216/dcmnet/libsrc/dulfsm.cc	2016-04-05 12:57:31.946232952 +0200
+@@ -2431,7 +2431,7 @@
+           return makeDcmnetCondition(DULC_TCPINITERROR, OF_error, msg.c_str());
+         }
+ #endif
+-        setTCPBufferLength(s);
++        //setTCPBufferLength(s);
+ 
+ #ifndef DONT_DISABLE_NAGLE_ALGORITHM
+         /*
+Only in dcmtk-3.6.1_20160216/dcmnet/libsrc: dulfsm.cc~
