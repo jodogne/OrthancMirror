@@ -300,7 +300,6 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
     
-    stateMachine_.ClearHeaders();
     stateMachine_.SetHttpStatus(status);
     stateMachine_.SendBody(message, messageSize);
   }
