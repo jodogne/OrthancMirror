@@ -541,8 +541,8 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_DirectoryOverFile, "The directory to be created is already occupied by a regular file");
     PrintErrorCode(ErrorCode_FileStorageCannotWrite, "Unable to create a subdirectory or a file in the file storage");
     PrintErrorCode(ErrorCode_DirectoryExpected, "The specified path does not point to a directory");
-    PrintErrorCode(ErrorCode_HttpPortInUse, "The TCP port of the HTTP server is already in use");
-    PrintErrorCode(ErrorCode_DicomPortInUse, "The TCP port of the DICOM server is already in use");
+    PrintErrorCode(ErrorCode_HttpPortInUse, "The TCP port of the HTTP server is privileged or already in use");
+    PrintErrorCode(ErrorCode_DicomPortInUse, "The TCP port of the DICOM server is privileged or already in use");
     PrintErrorCode(ErrorCode_BadHttpStatusInRest, "This HTTP status is not allowed in a REST API");
     PrintErrorCode(ErrorCode_RegularFileExpected, "The specified path does not point to a regular file");
     PrintErrorCode(ErrorCode_PathToExecutable, "Unable to get the path to the executable");
@@ -703,6 +703,13 @@ static bool StartHttpServer(ServerContext& context,
 
   httpServer.Register(context.GetHttpHandler());
 
+  if (httpServer.GetPortNumber() < 1024)
+  {
+    LOG(WARNING) << "The HTTP port is privileged (" 
+                 << httpServer.GetPortNumber() << " is below 1024), "
+                 << "make sure you run Orthanc as root/administrator";
+  }
+
   httpServer.Start();
   LOG(WARNING) << "HTTP server listening on port: " << httpServer.GetPortNumber();
   
@@ -746,6 +753,13 @@ static bool StartDicomServer(ServerContext& context,
   dicomServer.SetPortNumber(Configuration::GetGlobalIntegerParameter("DicomPort", 4242));
   dicomServer.SetApplicationEntityTitle(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"));
   dicomServer.SetApplicationEntityFilter(dicomFilter);
+
+  if (dicomServer.GetPortNumber() < 1024)
+  {
+    LOG(WARNING) << "The DICOM port is privileged (" 
+                 << dicomServer.GetPortNumber() << " is below 1024), "
+                 << "make sure you run Orthanc as root/administrator";
+  }
 
   dicomServer.Start();
   LOG(WARNING) << "DICOM server listening with AET " << dicomServer.GetApplicationEntityTitle() 

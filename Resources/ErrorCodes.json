@@ -327,12 +327,12 @@
   {
     "Code": 2003, 
     "Name": "HttpPortInUse", 
-    "Description": "The TCP port of the HTTP server is already in use"
+    "Description": "The TCP port of the HTTP server is privileged or already in use"
   },
   {
     "Code": 2004, 
     "Name": "DicomPortInUse", 
-    "Description": "The TCP port of the DICOM server is already in use"
+    "Description": "The TCP port of the DICOM server is privileged or already in use"
   },
   {
     "Code": 2005, 
