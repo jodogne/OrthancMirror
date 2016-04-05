@@ -32,4 +32,25 @@ else()
     message(FATAL_ERROR "Please install the libjsoncpp-dev package")
   endif()
 
+  # Switch to the C++11 standard if the version of JsonCpp is 1.y.z
+  message(${JSONCPP_INCLUDE_DIR}/json/version.h)
+  if (EXISTS ${JSONCPP_INCLUDE_DIR}/json/version.h)
+    file(STRINGS
+      "${JSONCPP_INCLUDE_DIR}/json/version.h" 
+      JSONCPP_VERSION_MAJOR1 REGEX
+      ".*JSONCPP_VERSION_MAJOR .*")
+    string(REGEX REPLACE
+      ".*JSONCPP_VERSION_MAJOR ([0-9]+)\\s*$" "\\1" 
+      JSONCPP_VERSION_MAJOR ${JSONCPP_VERSION_MAJOR1})
+    message("JsonCpp major version: ${JSONCPP_VERSION_MAJOR}")
+
+    if (CMAKE_COMPILER_IS_GNUCXX AND 
+        JSONCPP_VERSION_MAJOR GREATER 0)
+      message("Switching to C++11 standard, as version of JsonCpp is >= 1.0.0")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    endif()
+  else()
+    message("Unable to detect the major version of JsonCpp, assuming < 1.0.0")
+  endif()
+
 endif()
