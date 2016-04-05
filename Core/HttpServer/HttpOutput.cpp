@@ -291,8 +291,7 @@ namespace Orthanc
 			      const char* message,
 			      size_t messageSize)
   {
-    if (status == HttpStatus_200_Ok ||
-        status == HttpStatus_301_MovedPermanently ||
+    if (status == HttpStatus_301_MovedPermanently ||
         status == HttpStatus_401_Unauthorized ||
         status == HttpStatus_405_MethodNotAllowed)
     {
