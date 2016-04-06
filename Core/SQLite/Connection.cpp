@@ -163,7 +163,8 @@ namespace Orthanc
       if (error == SQLITE_ERROR)
       {
 #if ORTHANC_SQLITE_STANDALONE != 1
-        LOG(ERROR) << "SQLite execute error: " << sqlite3_errmsg(db_);
+        LOG(ERROR) << "SQLite execute error: " << sqlite3_errmsg(db_)
+                   << " (" << sqlite3_extended_errcode(db_) << ")";
 #endif
 
         throw OrthancSQLiteException(ErrorCode_SQLiteExecute);
