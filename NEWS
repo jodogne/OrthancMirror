@@ -9,11 +9,16 @@ Pending changes in the mainline
 * Huge speedup if decoding the family of JPEG transfer syntaxes
 * Refactoring leading to speedups with custom image decoders (including Web viewer plugin)
 * Support decoding of RLE Lossless transfer syntax
-* Fix issue 11 (is_regular_file() fails for FILE_ATTRIBUTE_REPARSE_POINT)
-* Upgrade to Boost 1.60.0 for static builds
 * Support of signed 16bpp images in ParsedDicomFile
+
+Maintenance
+-----------
+
+* Fix issue 11 (is_regular_file() fails for FILE_ATTRIBUTE_REPARSE_POINT)
 * Fix of Debian bug #818512 ("FTBFS: Please install libdcmtk*-dev")
+* Compatibility with CMake >= 3.5.0
 * Possibility to use forthcoming DCMTK 3.6.1 in static builds (instead of 3.6.0)
+* Upgrade to Boost 1.60.0 for static builds
 
 
 Version 1.0.0 (2015/12/15)
