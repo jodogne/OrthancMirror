@@ -321,23 +321,28 @@ namespace Orthanc
 
   bool DicomFrameIndex::IsVideo(DcmFileFormat& dicom)
   {
-    if (dicom.getDataset()->getOriginalXfer() == EXS_MPEG2MainProfileAtMainLevel ||
-        dicom.getDataset()->getOriginalXfer() == EXS_MPEG2MainProfileAtHighLevel)
+    // Retrieve the transfer syntax from the DICOM header
+    const char* value = NULL;
+    if (!dicom.getMetaInfo()->findAndGetString(DCM_TransferSyntaxUID, value).good() ||
+        value == NULL)
     {
-      return true;
-    }        
+      return false;
+    }
 
-#if DCMTK_VERSION_NUMBER > 360
-    // New transfer syntaxes introduced in the DICOM standard after DCMTK 3.6.0
-    if (dicom.getDataset()->getOriginalXfer() == EXS_MPEG4HighProfileLevel4_1 ||
-        dicom.getDataset()->getOriginalXfer() == EXS_MPEG4BDcompatibleHighProfileLevel4_1 ||
-        dicom.getDataset()->getOriginalXfer() == EXS_MPEG4HighProfileLevel4_2_For2DVideo ||
-        dicom.getDataset()->getOriginalXfer() == EXS_MPEG4HighProfileLevel4_2_For3DVideo ||
-        dicom.getDataset()->getOriginalXfer() == EXS_MPEG4StereoHighProfileLevel4_2)
+    const std::string transferSyntax(value);
+
+    // Video standards supported in DICOM 2016a
+    // http://dicom.nema.org/medical/dicom/2016a/output/html/part05.html
+    if (transferSyntax == "1.2.840.10008.1.2.4.100" ||  // MPEG2 MP@ML option of ISO/IEC MPEG2
+        transferSyntax == "1.2.840.10008.1.2.4.101" ||  // MPEG2 MP@HL option of ISO/IEC MPEG2
+        transferSyntax == "1.2.840.10008.1.2.4.102" ||  // MPEG-4 AVC/H.264 High Profile / Level 4.1 of ITU-T H.264
+        transferSyntax == "1.2.840.10008.1.2.4.103" ||  // MPEG-4 AVC/H.264 BD-compat High Profile / Level 4.1 of ITU-T H.264
+        transferSyntax == "1.2.840.10008.1.2.4.104" ||  // MPEG-4 AVC/H.264 High Profile / Level 4.2 of ITU-T H.264
+        transferSyntax == "1.2.840.10008.1.2.4.105" ||  // MPEG-4 AVC/H.264 High Profile / Level 4.2 of ITU-T H.264
+        transferSyntax == "1.2.840.10008.1.2.4.106")    // MPEG-4 AVC/H.264 Stereo High Profile / Level 4.2 of the ITU-T H.264
     {
       return true;
-    }        
-#endif
+    }
 
     return false;
   }
