@@ -319,21 +319,21 @@ namespace Orthanc
 
 
 
-  bool DicomFrameIndex::IsVideo(const DcmDataset& dataset)
+  bool DicomFrameIndex::IsVideo(DcmFileFormat& dicom)
   {
-    if (dataset.getOriginalXfer() == EXS_MPEG2MainProfileAtMainLevel ||
-        dataset.getOriginalXfer() == EXS_MPEG2MainProfileAtHighLevel)
+    if (dicom.getDataset()->getOriginalXfer() == EXS_MPEG2MainProfileAtMainLevel ||
+        dicom.getDataset()->getOriginalXfer() == EXS_MPEG2MainProfileAtHighLevel)
     {
       return true;
     }        
 
 #if DCMTK_VERSION_NUMBER > 360
     // New transfer syntaxes introduced in the DICOM standard after DCMTK 3.6.0
-    if (dataset.getOriginalXfer() == EXS_MPEG4HighProfileLevel4_1 ||
-        dataset.getOriginalXfer() == EXS_MPEG4BDcompatibleHighProfileLevel4_1 ||
-        dataset.getOriginalXfer() == EXS_MPEG4HighProfileLevel4_2_For2DVideo ||
-        dataset.getOriginalXfer() == EXS_MPEG4HighProfileLevel4_2_For3DVideo ||
-        dataset.getOriginalXfer() == EXS_MPEG4StereoHighProfileLevel4_2)
+    if (dicom.getDataset()->getOriginalXfer() == EXS_MPEG4HighProfileLevel4_1 ||
+        dicom.getDataset()->getOriginalXfer() == EXS_MPEG4BDcompatibleHighProfileLevel4_1 ||
+        dicom.getDataset()->getOriginalXfer() == EXS_MPEG4HighProfileLevel4_2_For2DVideo ||
+        dicom.getDataset()->getOriginalXfer() == EXS_MPEG4HighProfileLevel4_2_For3DVideo ||
+        dicom.getDataset()->getOriginalXfer() == EXS_MPEG4StereoHighProfileLevel4_2)
     {
       return true;
     }        
@@ -343,16 +343,16 @@ namespace Orthanc
   }
 
 
-  unsigned int DicomFrameIndex::GetFramesCount(DcmDataset& dataset)
+  unsigned int DicomFrameIndex::GetFramesCount(DcmFileFormat& dicom)
   {
     // Assume 1 frame for video transfer syntaxes
-    if (IsVideo(dataset))
+    if (IsVideo(dicom))
     {
       return 1;
     }        
 
     const char* tmp = NULL;
-    if (!dataset.findAndGetString(DCM_NumberOfFrames, tmp).good() ||
+    if (!dicom.getDataset()->findAndGetString(DCM_NumberOfFrames, tmp).good() ||
         tmp == NULL)
     {
       return 1;
@@ -378,14 +378,16 @@ namespace Orthanc
   }
 
 
-  DicomFrameIndex::DicomFrameIndex(DcmDataset& dataset)
+  DicomFrameIndex::DicomFrameIndex(DcmFileFormat& dicom)
   {
-    countFrames_ = GetFramesCount(dataset);
+    countFrames_ = GetFramesCount(dicom);
     if (countFrames_ == 0)
     {
       // The image has no frame. No index is to be built.
       return;
     }
+
+    DcmDataset& dataset = *dicom.getDataset();
 
     // Test whether this image is composed of a sequence of fragments
     DcmPixelSequence* pixelSequence = FromDcmtkBridge::GetPixelSequence(dataset);

@@ -33,6 +33,7 @@
 #pragma once
 
 #include <dcmtk/dcmdata/dcdatset.h>
+#include <dcmtk/dcmdata/dcfilefo.h>
 #include <vector>
 #include <stdint.h>
 #include <boost/noncopyable.hpp>
@@ -62,7 +63,7 @@ namespace Orthanc
     unsigned int           countFrames_;
 
   public:
-    DicomFrameIndex(DcmDataset& dataset);
+    DicomFrameIndex(DcmFileFormat& dicom);
 
     unsigned int GetFramesCount() const
     {
@@ -72,8 +73,8 @@ namespace Orthanc
     void GetRawFrame(std::string& frame,
                      unsigned int index) const;
 
-    static bool IsVideo(const DcmDataset& dataset);
+    static bool IsVideo(DcmFileFormat& dicom);
 
-    static unsigned int GetFramesCount(DcmDataset& dataset);
+    static unsigned int GetFramesCount(DcmFileFormat& dicom);
   };
 }
