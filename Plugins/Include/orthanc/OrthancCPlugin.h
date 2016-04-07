@@ -20,6 +20,7 @@
  *    - Possibly register a custom database back-end area using OrthancPluginRegisterDatabaseBackendV2().
  *    - Possibly register a handler for C-Find SCP against DICOM worklists using OrthancPluginRegisterWorklistCallback().
  *    - Possibly register a custom decoder for DICOM images using OrthancPluginRegisterDecodeImageCallback().
+ *    - Possibly register a callback to filter incoming HTTP requests using OrthancPluginRegisterIncomingHttpRequestFilter().
  * -# <tt>void OrthancPluginFinalize()</tt>:
  *    This function is invoked by Orthanc during its shutdown. The plugin
  *    must free all its memory.
@@ -114,7 +115,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     0
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  0
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  1
 
 
 
@@ -410,6 +411,7 @@ extern "C"
     _OrthancPluginService_RegisterRestCallbackNoLock = 1004,
     _OrthancPluginService_RegisterWorklistCallback = 1005,
     _OrthancPluginService_RegisterDecodeImageCallback = 1006,
+    _OrthancPluginService_RegisterIncomingHttpRequestFilter = 1007,
 
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
@@ -947,6 +949,34 @@ extern "C"
     const OrthancPluginWorklistQuery* query,
     const char*                       remoteAet,
     const char*                       calledAet);
+
+
+
+  /**
+   * @brief Callback to filter incoming HTTP requests received by Orthanc.
+   *
+   * Signature of a callback function that is triggered whenever
+   * Orthanc receives an HTTP/REST request, and that answers whether
+   * this request should be allowed. If the callback returns "0"
+   * ("false"), the server answers with HTTP status code 403
+   * (Forbidden).
+   *
+   * @param method The HTTP method used by the request.
+   * @param uri The URI of interest.
+   * @param ip The IP address of the HTTP client.
+   * @param headersCount The number of HTTP headers.
+   * @param headersKeys The keys of the HTTP headers (always converted to low-case).
+   * @param headersValues The values of the HTTP headers.
+   * @return 0 if forbidden access, 1 if allowed access, -1 if error.
+   * @ingroup Callback
+   **/
+  typedef int32_t (*OrthancPluginIncomingHttpRequestFilter) (
+    OrthancPluginHttpMethod  method,
+    const char*              uri,
+    const char*              ip,
+    const uint32_t           headersCount,
+    const char* const*       headersKeys,
+    const char* const*       headersValues);
 
 
 
@@ -4730,6 +4760,33 @@ extern "C"
     return context->InvokeService(context, _OrthancPluginService_SendMultipartItem2, &params);
   }
 
+
+  typedef struct
+  {
+    OrthancPluginIncomingHttpRequestFilter callback;
+  } _OrthancPluginIncomingHttpRequestFilter;
+
+  /**
+   * @brief Register a callback to filter incoming HTTP requests.
+   *
+   * This function registers a custom callback to filter incoming HTTP/REST
+   * requests received by the HTTP server of Orthanc.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param callback The callback.
+   * @return 0 if success, other value if error.
+   * @ingroup Callbacks
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterIncomingHttpRequestFilter(
+    OrthancPluginContext*                   context,
+    OrthancPluginIncomingHttpRequestFilter  callback)
+  {
+    _OrthancPluginIncomingHttpRequestFilter params;
+    params.callback = callback;
+
+    return context->InvokeService(context, _OrthancPluginService_RegisterIncomingHttpRequestFilter, &params);
+  }
+  
 
 #ifdef  __cplusplus
 }

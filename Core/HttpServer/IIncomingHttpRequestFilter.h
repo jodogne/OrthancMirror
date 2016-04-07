@@ -32,49 +32,21 @@
 
 #pragma once
 
-#if ORTHANC_PLUGINS_ENABLED == 1
-
-#include "../Include/orthanc/OrthancCPlugin.h"
-#include "../../OrthancServer/ServerEnumerations.h"
-
-#if !defined(ORTHANC_ENABLE_DCMTK) || ORTHANC_ENABLE_DCMTK != 0
-#include <dcmtk/dcmdata/dcvr.h>
-#endif
+#include "IHttpHandler.h"
 
 namespace Orthanc
 {
-  namespace Plugins
+  class IIncomingHttpRequestFilter : public boost::noncopyable
   {
-    OrthancPluginResourceType Convert(ResourceType type);
+  public:
+    virtual ~IIncomingHttpRequestFilter()
+    {
+    }
 
-    ResourceType Convert(OrthancPluginResourceType type);
-
-    OrthancPluginChangeType Convert(ChangeType type);
-
-    OrthancPluginPixelFormat Convert(PixelFormat format);
-
-    PixelFormat Convert(OrthancPluginPixelFormat format);
-
-    OrthancPluginContentType Convert(FileContentType type);
-
-    FileContentType Convert(OrthancPluginContentType type);
-
-    DicomToJsonFormat Convert(OrthancPluginDicomToJsonFormat format);
-
-    OrthancPluginIdentifierConstraint Convert(IdentifierConstraintType constraint);
-
-    IdentifierConstraintType Convert(OrthancPluginIdentifierConstraint constraint);
-
-    OrthancPluginInstanceOrigin Convert(RequestOrigin origin);
-
-    OrthancPluginHttpMethod Convert(HttpMethod method);
-
-#if !defined(ORTHANC_ENABLE_DCMTK) || ORTHANC_ENABLE_DCMTK != 0
-    DcmEVR Convert(OrthancPluginValueRepresentation vr);
-
-    OrthancPluginValueRepresentation Convert(DcmEVR vr);
-#endif
-  }
+    virtual bool IsAllowed(HttpMethod method,
+                           const char* uri,
+                           const char* ip,
+                           const char* username,
+                           const IHttpHandler::Arguments& httpHeaders) const = 0;
+  };
 }
-
-#endif
