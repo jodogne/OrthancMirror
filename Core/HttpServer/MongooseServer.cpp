@@ -647,7 +647,8 @@ namespace Orthanc
     {
       if (!filter->IsAllowed(method, request->uri, remoteIp, username.c_str(), headers))
       {
-        output.SendUnauthorized(ORTHANC_REALM);
+        //output.SendUnauthorized(ORTHANC_REALM);
+        output.SendStatus(HttpStatus_403_Forbidden);
         return;
       }
     }
