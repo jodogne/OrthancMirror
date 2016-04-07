@@ -56,7 +56,8 @@ namespace Orthanc
     virtual bool IsAllowed(HttpMethod method,
                            const char* uri,
                            const char* ip,
-                           const char* username) const = 0;
+                           const char* username,
+                           const IHttpHandler::Arguments& httpHeaders) const = 0;
   };
 
 

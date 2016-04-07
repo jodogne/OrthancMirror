@@ -62,6 +62,8 @@ namespace Orthanc
 
     void PushJson(const Json::Value& value);
 
+    void PushStringMap(const std::map<std::string, std::string>& value);
+
     void Execute()
     {
       ExecuteInternal(0);

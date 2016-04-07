@@ -152,4 +152,18 @@ namespace Orthanc
       throw OrthancException(ErrorCode_LuaReturnsNoString);
     }
   }
+
+
+  void LuaFunctionCall::PushStringMap(const std::map<std::string, std::string>& value)
+  {
+    Json::Value json = Json::objectValue;
+
+    for (std::map<std::string, std::string>::const_iterator
+           it = value.begin(); it != value.end(); ++it)
+    {
+      json[it->first] = it->second;
+    }
+
+    PushJson(json);
+  }
 }

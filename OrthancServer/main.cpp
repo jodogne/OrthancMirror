@@ -287,7 +287,8 @@ public:
   virtual bool IsAllowed(HttpMethod method,
                          const char* uri,
                          const char* ip,
-                         const char* username) const
+                         const char* username,
+                         const IHttpHandler::Arguments& httpHeaders) const
   {
     static const char* HTTP_FILTER = "IncomingHttpRequestFilter";
 
@@ -323,6 +324,7 @@ public:
       call.PushString(uri);
       call.PushString(ip);
       call.PushString(username);
+      call.PushStringMap(httpHeaders);
 
       if (!call.ExecutePredicate())
       {

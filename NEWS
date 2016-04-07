@@ -6,6 +6,15 @@ Pending changes in the mainline
 * Support of optional tags for counting resources in C-Find:
   0008-0061, 0008-0062, 0020-1200, 0020-1202, 0020-1204, 0020-1206, 0020-1208, 0020-1209
 * Support of Move Originator Message ID (0000,1031) in C-Store responses driven by C-Move
+
+Lua
+---
+
+* Access to the HTTP headers in the "IncomingHttpRequestFilter()" callback
+
+Image decoding
+--------------
+
 * Huge speedup if decoding the family of JPEG transfer syntaxes
 * Refactoring leading to speedups with custom image decoders (including Web viewer plugin)
 * Support decoding of RLE Lossless transfer syntax
