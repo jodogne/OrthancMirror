@@ -645,7 +645,7 @@ namespace Orthanc
     const IIncomingHttpRequestFilter *filter = that->GetIncomingHttpRequestFilter();
     if (filter != NULL)
     {
-      if (!filter->IsAllowed(method, request->uri, remoteIp, username.c_str()))
+      if (!filter->IsAllowed(method, request->uri, remoteIp, username.c_str(), headers))
       {
         output.SendUnauthorized(ORTHANC_REALM);
         return;
