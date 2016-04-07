@@ -278,9 +278,13 @@ class MyIncomingHttpRequestFilter : public IIncomingHttpRequestFilter
 {
 private:
   ServerContext& context_;
+  OrthancPlugins*  plugins_;
 
 public:
-  MyIncomingHttpRequestFilter(ServerContext& context) : context_(context)
+  MyIncomingHttpRequestFilter(ServerContext& context,
+                              OrthancPlugins* plugins) : 
+    context_(context),
+    plugins_(plugins)
   {
   }
 
@@ -290,6 +294,12 @@ public:
                          const char* username,
                          const IHttpHandler::Arguments& httpHeaders) const
   {
+    if (plugins_ != NULL &&
+        !plugins_->IsAllowed(method, uri, ip, username, httpHeaders))
+    {
+      return false;
+    }
+
     static const char* HTTP_FILTER = "IncomingHttpRequestFilter";
 
     LuaScripting::Locker locker(context_.GetLua());
@@ -679,7 +689,7 @@ static bool StartHttpServer(ServerContext& context,
   
 
   // HTTP server
-  MyIncomingHttpRequestFilter httpFilter(context);
+  MyIncomingHttpRequestFilter httpFilter(context, plugins);
   MongooseServer httpServer;
   httpServer.SetPortNumber(Configuration::GetGlobalIntegerParameter("HttpPort", 8042));
   httpServer.SetRemoteAccessAllowed(Configuration::GetGlobalBoolParameter("RemoteAccessAllowed", false));
