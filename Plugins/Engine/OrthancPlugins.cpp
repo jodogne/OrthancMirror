@@ -2431,18 +2431,15 @@ namespace Orthanc
                                  const char* username,
                                  const IHttpHandler::Arguments& httpHeaders) const
   {
-    std::vector<const char*> httpKeys;
-    std::vector<const char*> httpValues;
-
-    httpKeys.reserve(httpHeaders.size());
-    httpValues.reserve(httpHeaders.size());
+    std::vector<const char*> httpKeys(httpHeaders.size());
+    std::vector<const char*> httpValues(httpHeaders.size());
 
     size_t pos = 0;
     for (IHttpHandler::Arguments::const_iterator
            it = httpHeaders.begin(); it != httpHeaders.end(); ++it, pos++)
     {
       httpKeys[pos] = it->first.c_str();
-      httpValues[pos] = it->first.c_str();
+      httpValues[pos] = it->second.c_str();
     }
 
     OrthancPluginHttpMethod cMethod = Plugins::Convert(method);

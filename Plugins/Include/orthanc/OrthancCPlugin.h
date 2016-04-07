@@ -974,7 +974,7 @@ extern "C"
     OrthancPluginHttpMethod  method,
     const char*              uri,
     const char*              ip,
-    const uint32_t           headersCount,
+    uint32_t                 headersCount,
     const char* const*       headersKeys,
     const char* const*       headersValues);
 
