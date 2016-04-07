@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include "IHttpHandler.h"
+#include "IIncomingHttpRequestFilter.h"
 
 #include "../OrthancException.h"
 
@@ -46,22 +46,7 @@ namespace Orthanc
 {
   class ChunkStore;
 
-  class IIncomingHttpRequestFilter
-  {
-  public:
-    virtual ~IIncomingHttpRequestFilter()
-    {
-    }
-
-    virtual bool IsAllowed(HttpMethod method,
-                           const char* uri,
-                           const char* ip,
-                           const char* username,
-                           const IHttpHandler::Arguments& httpHeaders) const = 0;
-  };
-
-
-  class IHttpExceptionFormatter
+  class IHttpExceptionFormatter : public boost::noncopyable
   {
   public:
     virtual ~IHttpExceptionFormatter()

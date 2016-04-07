@@ -18,6 +18,11 @@ Image decoding
 * Support decoding of RLE Lossless transfer syntax
 * Support of signed 16bpp images in ParsedDicomFile
 
+Plugins
+-------
+
+* New callback to filter incoming HTTP requests: OrthancPluginRegisterIncomingHttpRequestFilter()
+
 Lua
 ---
 

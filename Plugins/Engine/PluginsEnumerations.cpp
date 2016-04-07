@@ -304,6 +304,28 @@ namespace Orthanc
     }
 
 
+    OrthancPluginHttpMethod Convert(HttpMethod method)
+    {
+      switch (method)
+      {
+        case HttpMethod_Get:
+          return OrthancPluginHttpMethod_Get;
+
+        case HttpMethod_Post:
+          return OrthancPluginHttpMethod_Post;
+
+        case HttpMethod_Put:
+          return OrthancPluginHttpMethod_Put;
+
+        case HttpMethod_Delete:
+          return OrthancPluginHttpMethod_Delete;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
+
 #if !defined(ORTHANC_ENABLE_DCMTK) || ORTHANC_ENABLE_DCMTK != 0
     DcmEVR Convert(OrthancPluginValueRepresentation vr)
     {

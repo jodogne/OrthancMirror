@@ -283,6 +283,7 @@ namespace Orthanc
     typedef std::list<RestCallback*>  RestCallbacks;
     typedef std::list<OrthancPluginOnStoredInstanceCallback>  OnStoredCallbacks;
     typedef std::list<OrthancPluginOnChangeCallback>  OnChangeCallbacks;
+    typedef std::list<OrthancPluginIncomingHttpRequestFilter>  IncomingHttpRequestFilters;
     typedef std::map<Property, std::string>  Properties;
 
     PluginsManager manager_;
@@ -292,6 +293,7 @@ namespace Orthanc
     OnChangeCallbacks  onChangeCallbacks_;
     OrthancPluginWorklistCallback  worklistCallback_;
     OrthancPluginDecodeImageCallback  decodeImageCallback_;
+    IncomingHttpRequestFilters  incomingHttpRequestFilters_;
     std::auto_ptr<StorageAreaFactory>  storageArea_;
     boost::recursive_mutex restCallbackMutex_;
     boost::recursive_mutex storedCallbackMutex_;
@@ -759,6 +761,14 @@ namespace Orthanc
   }
 
 
+  void OrthancPlugins::RegisterIncomingHttpRequestFilter(const void* parameters)
+  {
+    const _OrthancPluginIncomingHttpRequestFilter& p = 
+      *reinterpret_cast<const _OrthancPluginIncomingHttpRequestFilter*>(parameters);
+
+    LOG(INFO) << "Plugin has registered a callback to filter incoming HTTP requests";
+    pimpl_->incomingHttpRequestFilters_.push_back(p.callback);
+  }
 
 
   void OrthancPlugins::AnswerBuffer(const void* parameters)
@@ -1762,6 +1772,10 @@ namespace Orthanc
         RegisterDecodeImageCallback(parameters);
         return true;
 
+      case _OrthancPluginService_RegisterIncomingHttpRequestFilter:
+        RegisterIncomingHttpRequestFilter(parameters);
+        return true;
+
       case _OrthancPluginService_AnswerBuffer:
         AnswerBuffer(parameters);
         return true;
@@ -2408,5 +2422,51 @@ namespace Orthanc
 
     DefaultDicomImageDecoder defaultDecoder;
     return defaultDecoder.Decode(dicom, size, frame);  // TODO RETURN NULL ???
+  }
+
+
+  bool OrthancPlugins::IsAllowed(HttpMethod method,
+                                 const char* uri,
+                                 const char* ip,
+                                 const char* username,
+                                 const IHttpHandler::Arguments& httpHeaders) const
+  {
+    std::vector<const char*> httpKeys;
+    std::vector<const char*> httpValues;
+
+    httpKeys.reserve(httpHeaders.size());
+    httpValues.reserve(httpHeaders.size());
+
+    size_t pos = 0;
+    for (IHttpHandler::Arguments::const_iterator
+           it = httpHeaders.begin(); it != httpHeaders.end(); ++it, pos++)
+    {
+      httpKeys[pos] = it->first.c_str();
+      httpValues[pos] = it->first.c_str();
+    }
+
+    OrthancPluginHttpMethod cMethod = Plugins::Convert(method);
+    const char** cHttpKeys = (httpKeys.size() == 0 ? NULL : &httpKeys[0]);
+    const char** cHttpValues = (httpValues.size() == 0 ? NULL : &httpValues[0]);
+
+    for (PImpl::IncomingHttpRequestFilters::const_iterator
+           filter = pimpl_->incomingHttpRequestFilters_.begin();
+         filter != pimpl_->incomingHttpRequestFilters_.end(); ++filter)
+    {
+      int32_t allowed = (*filter) (cMethod, uri, ip, httpKeys.size(), cHttpKeys, cHttpValues);
+
+      if (allowed != 0 &&
+          allowed != 1)
+      {
+        throw OrthancException(ErrorCode_Plugin);
+      }
+
+      if (allowed == 0)
+      {
+        return false;
+      }
+    }
+
+    return true;
   }
 }
