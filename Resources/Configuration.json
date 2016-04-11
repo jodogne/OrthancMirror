@@ -177,7 +177,10 @@
   // Set the timeout for HTTP requests issued by Orthanc (in seconds).
   "HttpTimeout" : 10,
 
-  // Enable the verification of the peers during HTTPS requests.
+  // Enable the verification of the peers during HTTPS requests. This
+  // option must be set to "false" if using self-signed certificates.
+  // Pay attention that setting this option to "false" results in
+  // security risks!
   // Reference: http://curl.haxx.se/docs/sslcerts.html
   "HttpsVerifyPeers" : true,
 

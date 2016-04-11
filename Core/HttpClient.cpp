@@ -221,10 +221,12 @@ namespace Orthanc
     if (IsHttpsVerifyPeers())
     {
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CAINFO, GetHttpsCACertificates().c_str()));
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYHOST, 2));  // libcurl default is strict verifyhost
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYPEER, 1)); 
     }
     else
     {
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYHOST, 0)); 
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYPEER, 0)); 
     }
 #endif
