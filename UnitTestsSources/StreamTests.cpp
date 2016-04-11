@@ -74,7 +74,7 @@ TEST(Gzip, Empty)
 
   std::string uncompressed;
   IBufferCompressor::Uncompress(uncompressed, c, compressed);
-  ASSERT_EQ(0, uncompressed.size());
+  ASSERT_TRUE(uncompressed.empty());
 }
 
 
@@ -107,7 +107,7 @@ TEST(Gzip, EmptyWithPrefix)
 
   std::string uncompressed;
   IBufferCompressor::Uncompress(uncompressed, c, compressed);
-  ASSERT_EQ(0, uncompressed.size());
+  ASSERT_TRUE(uncompressed.empty());
 }
 
 
@@ -154,6 +154,7 @@ TEST(Zlib, DISABLED_Corrupted)  // Disabled because it may result in a crash
   ZlibCompressor c;
   IBufferCompressor::Compress(compressed, c, s);
 
+  ASSERT_FALSE(compressed.empty());
   compressed[compressed.size() - 1] = 'a';
   std::string u;
 
@@ -172,7 +173,7 @@ TEST(Zlib, Empty)
 
   std::string uncompressed;
   IBufferCompressor::Uncompress(uncompressed, c, compressed);
-  ASSERT_EQ(0u, uncompressed.size());
+  ASSERT_TRUE(uncompressed.empty());
 }
 
 
