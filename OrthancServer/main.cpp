@@ -777,7 +777,7 @@ static bool StartDicomServer(ServerContext& context,
   LOG(WARNING) << "DICOM server listening with AET " << dicomServer.GetApplicationEntityTitle() 
                << " on port: " << dicomServer.GetPortNumber();
 
-  bool restart;
+  bool restart = false;
   ErrorCode error = ErrorCode_Success;
 
   try
@@ -924,7 +924,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
   }
 #endif
 
-  bool restart;
+  bool restart = false;
   ErrorCode error = ErrorCode_Success;
 
   try
