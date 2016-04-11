@@ -103,8 +103,8 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
 
   if (CMAKE_COMPILER_IS_GNUCXX)
     # Some additional C/C++ compiler flags for MinGW
-    SET(MINGW_NO_WARNINGS "-Wno-unused-but-set-variable -Wno-int-to-pointer-cast -Wno-unused-function -Wno-unused-variable")
-    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MINGW_NO_WARNINGS} -Wno-pointer-to-int-cast")
+    SET(MINGW_NO_WARNINGS "-Wno-int-to-pointer-cast -Wno-unused-function -Wno-unused-variable")
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MINGW_NO_WARNINGS} -Wno-pointer-to-int-cast -Wno-unused-but-set-variable")
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MINGW_NO_WARNINGS}")
 
     # This is a patch for MinGW64
