@@ -541,7 +541,7 @@ TEST(ParsedDicomFile, ToJsonFlags1)
   Json::Value v;
   f.ToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
   ASSERT_EQ(Json::objectValue, v.type());
-  ASSERT_EQ(6, v.getMemberNames().size());
+  ASSERT_EQ(6u, v.getMemberNames().size());
   ASSERT_FALSE(v.isMember("7052,1000"));
   ASSERT_FALSE(v.isMember("7053,1000"));
   ASSERT_TRUE(v.isMember("7050,1000"));
@@ -550,7 +550,7 @@ TEST(ParsedDicomFile, ToJsonFlags1)
 
   f.ToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePrivateTags | DicomToJsonFlags_ConvertBinaryToNull), 0);
   ASSERT_EQ(Json::objectValue, v.type());
-  ASSERT_EQ(7, v.getMemberNames().size());
+  ASSERT_EQ(7u, v.getMemberNames().size());
   ASSERT_FALSE(v.isMember("7052,1000"));
   ASSERT_TRUE(v.isMember("7050,1000"));
   ASSERT_TRUE(v.isMember("7053,1000"));
@@ -559,7 +559,7 @@ TEST(ParsedDicomFile, ToJsonFlags1)
 
   f.ToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_IncludePrivateTags, 0);
   ASSERT_EQ(Json::objectValue, v.type());
-  ASSERT_EQ(7, v.getMemberNames().size());
+  ASSERT_EQ(7u, v.getMemberNames().size());
   ASSERT_FALSE(v.isMember("7052,1000"));
   ASSERT_TRUE(v.isMember("7050,1000"));
   ASSERT_TRUE(v.isMember("7053,1000"));
@@ -572,7 +572,7 @@ TEST(ParsedDicomFile, ToJsonFlags1)
 
   f.ToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludeUnknownTags | DicomToJsonFlags_ConvertBinaryToNull), 0);
   ASSERT_EQ(Json::objectValue, v.type());
-  ASSERT_EQ(7, v.getMemberNames().size());
+  ASSERT_EQ(7u, v.getMemberNames().size());
   ASSERT_TRUE(v.isMember("7050,1000"));
   ASSERT_TRUE(v.isMember("7052,1000"));
   ASSERT_FALSE(v.isMember("7053,1000"));
@@ -581,7 +581,7 @@ TEST(ParsedDicomFile, ToJsonFlags1)
 
   f.ToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludeUnknownTags), 0);
   ASSERT_EQ(Json::objectValue, v.type());
-  ASSERT_EQ(7, v.getMemberNames().size());
+  ASSERT_EQ(7u, v.getMemberNames().size());
   ASSERT_TRUE(v.isMember("7050,1000"));
   ASSERT_TRUE(v.isMember("7052,1000"));
   ASSERT_FALSE(v.isMember("7053,1000"));
@@ -593,7 +593,7 @@ TEST(ParsedDicomFile, ToJsonFlags1)
 
   f.ToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludeUnknownTags | DicomToJsonFlags_IncludePrivateTags | DicomToJsonFlags_ConvertBinaryToNull), 0);
   ASSERT_EQ(Json::objectValue, v.type());
-  ASSERT_EQ(8, v.getMemberNames().size());
+  ASSERT_EQ(8u, v.getMemberNames().size());
   ASSERT_TRUE(v.isMember("7050,1000"));
   ASSERT_TRUE(v.isMember("7052,1000"));
   ASSERT_TRUE(v.isMember("7053,1000"));
@@ -611,25 +611,25 @@ TEST(ParsedDicomFile, ToJsonFlags2)
   Json::Value v;
   f.ToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
   ASSERT_EQ(Json::objectValue, v.type());
-  ASSERT_EQ(5, v.getMemberNames().size());
+  ASSERT_EQ(5u, v.getMemberNames().size());
   ASSERT_FALSE(v.isMember("7fe0,0010"));  
 
   f.ToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePixelData | DicomToJsonFlags_ConvertBinaryToNull), 0);
   ASSERT_EQ(Json::objectValue, v.type());
-  ASSERT_EQ(6, v.getMemberNames().size());
+  ASSERT_EQ(6u, v.getMemberNames().size());
   ASSERT_TRUE(v.isMember("7fe0,0010"));  
   ASSERT_EQ(Json::nullValue, v["7fe0,0010"].type());  
 
   f.ToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePixelData | DicomToJsonFlags_ConvertBinaryToAscii), 0);
   ASSERT_EQ(Json::objectValue, v.type());
-  ASSERT_EQ(6, v.getMemberNames().size());
+  ASSERT_EQ(6u, v.getMemberNames().size());
   ASSERT_TRUE(v.isMember("7fe0,0010"));  
   ASSERT_EQ(Json::stringValue, v["7fe0,0010"].type());  
   ASSERT_EQ("Pixels", v["7fe0,0010"].asString());  
 
   f.ToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_IncludePixelData, 0);
   ASSERT_EQ(Json::objectValue, v.type());
-  ASSERT_EQ(6, v.getMemberNames().size());
+  ASSERT_EQ(6u, v.getMemberNames().size());
   ASSERT_TRUE(v.isMember("7fe0,0010"));  
   ASSERT_EQ(Json::stringValue, v["7fe0,0010"].type());
   std::string mime, content;
@@ -807,8 +807,8 @@ TEST(TestImages, PatternGrayscale8)
     Orthanc::ParsedDicomFile f(s);
     
     std::auto_ptr<Orthanc::ImageAccessor> decoded(Orthanc::DicomImageDecoder::Decode(f, 0));
-    ASSERT_EQ(256, decoded->GetWidth());
-    ASSERT_EQ(256, decoded->GetHeight());
+    ASSERT_EQ(256u, decoded->GetWidth());
+    ASSERT_EQ(256u, decoded->GetHeight());
     ASSERT_EQ(Orthanc::PixelFormat_Grayscale8, decoded->GetFormat());
 
     for (int y = 0; y < 256; y++)
@@ -869,8 +869,8 @@ TEST(TestImages, PatternRGB)
     Orthanc::ParsedDicomFile f(s);
     
     std::auto_ptr<Orthanc::ImageAccessor> decoded(Orthanc::DicomImageDecoder::Decode(f, 0));
-    ASSERT_EQ(384, decoded->GetWidth());
-    ASSERT_EQ(256, decoded->GetHeight());
+    ASSERT_EQ(384u, decoded->GetWidth());
+    ASSERT_EQ(256u, decoded->GetHeight());
     ASSERT_EQ(Orthanc::PixelFormat_RGB24, decoded->GetFormat());
 
     for (int y = 0; y < 256; y++)
@@ -923,8 +923,8 @@ TEST(TestImages, PatternUint16)
     Orthanc::ParsedDicomFile f(s);
     
     std::auto_ptr<Orthanc::ImageAccessor> decoded(Orthanc::DicomImageDecoder::Decode(f, 0));
-    ASSERT_EQ(256, decoded->GetWidth());
-    ASSERT_EQ(256, decoded->GetHeight());
+    ASSERT_EQ(256u, decoded->GetWidth());
+    ASSERT_EQ(256u, decoded->GetHeight());
     ASSERT_EQ(Orthanc::PixelFormat_Grayscale16, decoded->GetFormat());
 
     for (int y = 0; y < 256; y++)
@@ -977,8 +977,8 @@ TEST(TestImages, PatternInt16)
     Orthanc::ParsedDicomFile f(s);
     
     std::auto_ptr<Orthanc::ImageAccessor> decoded(Orthanc::DicomImageDecoder::Decode(f, 0));
-    ASSERT_EQ(256, decoded->GetWidth());
-    ASSERT_EQ(256, decoded->GetHeight());
+    ASSERT_EQ(256u, decoded->GetWidth());
+    ASSERT_EQ(256u, decoded->GetHeight());
     ASSERT_EQ(Orthanc::PixelFormat_SignedGrayscale16, decoded->GetFormat());
 
     for (int y = 0; y < 256; y++)

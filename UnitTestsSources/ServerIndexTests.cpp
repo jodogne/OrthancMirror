@@ -824,7 +824,7 @@ TEST(ServerIndex, AttachmentRecycling)
   }
 
   // Because the DB is in memory, the SQLite index must not have been created
-  ASSERT_THROW(Toolbox::GetFileSize(path + "/index"), OrthancException);  
+  ASSERT_FALSE(Toolbox::IsRegularFile(path + "/index"));
 
   context.Stop();
   db.Close();
