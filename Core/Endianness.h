@@ -38,6 +38,7 @@
  ********************************************************************/
 
 #if defined(__linux)
+#  define ORTHANC_HAS_BUILTIN_BYTE_SWAP 1
 #  include <endian.h>
 #endif
 
@@ -50,14 +51,23 @@
 
 #if defined(_WIN32)
 #  if defined(_MSC_VER)
-//   http://msdn.microsoft.com/en-us/library/a3140177.aspx
+//   Visual Studio - http://msdn.microsoft.com/en-us/library/a3140177.aspx
+#    define ORTHANC_HAS_BUILTIN_BYTE_SWAP 1
 #    define be16toh(x) _byteswap_ushort(x)
 #    define be32toh(x) _byteswap_ulong(x)
 #    define be64toh(x) _byteswap_uint64(x)
-#  else   // MinGW
+#  elif (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 3))
+//   MinGW >= 4.3 - Use builtin intrinsic for byte swapping
+#    define ORTHANC_HAS_BUILTIN_BYTE_SWAP 1
 #    define be16toh(x) __builtin_bswap16(x)
 #    define be32toh(x) __builtin_bswap32(x)
 #    define be64toh(x) __builtin_bswap64(x)
+#  else
+//   MinGW <= 4.2, we must manually implement the byte swapping
+#    define ORTHANC_HAS_BUILTIN_BYTE_SWAP 0
+#    define be16toh(x) __orthanc_bswap16(x)
+#    define be32toh(x) __orthanc_bswap32(x)
+#    define be64toh(x) __orthanc_bswap64(x)
 #  endif
 
 #  define htobe16(x) be16toh(x)
@@ -79,6 +89,7 @@
  ********************************************************************/
 
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+#  define ORTHANC_HAS_BUILTIN_BYTE_SWAP 1
 #  include <arpa/inet.h>
 #endif
 
@@ -88,6 +99,7 @@
  ********************************************************************/
 
 #if defined(__APPLE__)
+#  define ORTHANC_HAS_BUILTIN_BYTE_SWAP 1
 #  include <libkern/OSByteOrder.h>
 #  define be16toh(x) OSSwapBigToHostInt16(x)
 #  define be32toh(x) OSSwapBigToHostInt32(x)
@@ -104,4 +116,42 @@
 #  define le16toh(x) OSSwapLittleToHostInt16(x)
 #  define le32toh(x) OSSwapLittleToHostInt32(x)
 #  define le64toh(x) OSSwapLittleToHostInt64(x)
+#endif
+
+
+/********************************************************************
+ ** PORTABLE (BUT SLOW) IMPLEMENTATION OF BYTE-SWAPPING
+ ********************************************************************/
+
+#if ORTHANC_HAS_BUILTIN_BYTE_SWAP != 1
+
+#include <stdint.h>
+
+static inline uint16_t __orthanc_bswap16(uint16_t a)
+{
+  return (a << 8) | (a >> 8);
+}
+
+static inline uint32_t __orthanc_bswap32(uint32_t a)
+{
+  const uint8_t* p = reinterpret_cast<const uint8_t*>(&a);
+  return (static_cast<uint32_t>(p[0]) << 24 |
+          static_cast<uint32_t>(p[1]) << 16 |
+          static_cast<uint32_t>(p[2]) << 8 |
+          static_cast<uint32_t>(p[3]));
+}
+
+static inline uint64_t __orthanc_bswap64(uint64_t a)
+{
+  const uint8_t* p = reinterpret_cast<const uint8_t*>(&a);
+  return (static_cast<uint64_t>(p[0]) << 56 |
+          static_cast<uint64_t>(p[1]) << 48 |
+          static_cast<uint64_t>(p[2]) << 40 |
+          static_cast<uint64_t>(p[3]) << 32 |
+          static_cast<uint64_t>(p[4]) << 24 |
+          static_cast<uint64_t>(p[5]) << 16 |
+          static_cast<uint64_t>(p[6]) << 8 |
+          static_cast<uint64_t>(p[7]));
+}
+
 #endif
