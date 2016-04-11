@@ -259,9 +259,9 @@ TEST(Lua, ReturnJson)
     ASSERT_EQ(Json::stringValue, v["List"][0]["a"].type());
     ASSERT_EQ(Json::stringValue, v["List"][0]["b"].type());
     ASSERT_EQ(Json::stringValue, v["List"][0]["c"].type());
-    ASSERT_EQ("42", v["List"][0]["a"].asString());
-    ASSERT_EQ("44.37", v["List"][0]["b"].asString());
-    ASSERT_EQ("-43", v["List"][0]["c"].asString());
+    ASSERT_FLOAT_EQ(42.0f, boost::lexical_cast<float>(v["List"][0]["a"].asString()));
+    ASSERT_FLOAT_EQ(44.37f, boost::lexical_cast<float>(v["List"][0]["b"].asString()));
+    ASSERT_FLOAT_EQ(-43.0f, boost::lexical_cast<float>(v["List"][0]["c"].asString()));
     ASSERT_EQ("test3", v["List"][1][0].asString());
     ASSERT_EQ("test1", v["List"][1][1].asString());
     ASSERT_EQ("test2", v["List"][1][2].asString());
