@@ -236,12 +236,12 @@ TEST(JpegWriter, Basic)
   {
     Orthanc::JpegReader r1, r2;
     r1.ReadFromFile("UnitTestsResults/hello.jpg");
-    ASSERT_EQ(16, r1.GetWidth());
-    ASSERT_EQ(16, r1.GetHeight());
+    ASSERT_EQ(16u, r1.GetWidth());
+    ASSERT_EQ(16u, r1.GetHeight());
 
     r2.ReadFromMemory(s);
-    ASSERT_EQ(16, r2.GetWidth());
-    ASSERT_EQ(16, r2.GetHeight());
+    ASSERT_EQ(16u, r2.GetWidth());
+    ASSERT_EQ(16u, r2.GetHeight());
 
     for (unsigned int y = 0; y < r1.GetHeight(); y++)
     {
@@ -261,7 +261,7 @@ TEST(Font, Basic)
   Orthanc::Image s(Orthanc::PixelFormat_RGB24, 640, 480);
   memset(s.GetBuffer(), 0, s.GetPitch() * s.GetHeight());
 
-  ASSERT_GE(1, Orthanc::Configuration::GetFontRegistry().GetSize());
+  ASSERT_GE(1u, Orthanc::Configuration::GetFontRegistry().GetSize());
   Orthanc::Configuration::GetFontRegistry().GetFont(0).Draw(s, "Hello world É\n\rComment ça va ?\nq", 50, 60, 255, 0, 0);
 
   Orthanc::PngWriter w;
