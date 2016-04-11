@@ -563,9 +563,9 @@ TEST(Toolbox, WriteFile)
     ASSERT_EQ(true, Toolbox::ReadHeader(h, path.c_str(), 1));
     ASSERT_EQ(1, h.size());
     ASSERT_EQ('H', h[0]);
-    ASSERT_EQ(true, Toolbox::ReadHeader(h, path.c_str(), 0));
+    ASSERT_TRUE(Toolbox::ReadHeader(h, path.c_str(), 0));
     ASSERT_EQ(0, h.size());
-    ASSERT_EQ(false, Toolbox::ReadHeader(h, path.c_str(), 32));
+    ASSERT_FALSE(Toolbox::ReadHeader(h, path.c_str(), 32));
     ASSERT_EQ(11u, h.size());
     ASSERT_EQ(0, memcmp(s.c_str(), h.c_str(), s.size()));
   }
