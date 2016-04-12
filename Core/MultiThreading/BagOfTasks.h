@@ -35,6 +35,7 @@
 #include "../ICommand.h"
 
 #include <list>
+#include <cstddef>
 
 namespace Orthanc
 {
