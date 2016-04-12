@@ -79,7 +79,7 @@ SUPPORTED - Debian Jessie/Sid
 
 # sudo apt-get install build-essential unzip cmake mercurial \
        	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
-       	       	       libgoogle-glog-dev libgtest-dev libpng-dev libjpeg-dev \
+       	       	       libgtest-dev libpng-dev libjpeg-dev \
        	       	       libsqlite3-dev libssl-dev zlib1g-dev libdcmtk2-dev \
                        libboost-all-dev libwrap0-dev libjsoncpp-dev libpugixml-dev
 
@@ -134,7 +134,7 @@ SUPPORTED - Fedora 20-22
 ------------------------
 
 # sudo yum install unzip make automake gcc gcc-c++ python cmake \
-                   boost-devel curl-devel dcmtk-devel glog-devel \
+                   boost-devel curl-devel dcmtk-devel \
                    gtest-devel libpng-devel libsqlite3x-devel libuuid-devel jpeg-devel \
                    mongoose-devel openssl-devel jsoncpp-devel lua-devel pugixml-devel
 
@@ -155,7 +155,7 @@ SUPPORTED - FreeBSD 10.1
 ------------------------
 
 # pkg install jsoncpp pugixml lua51 curl googletest dcmtk cmake jpeg \
-              e2fsprogs-libuuid glog boost-libs sqlite3 python libiconv
+              e2fsprogs-libuuid boost-libs sqlite3 python libiconv
 
 # cmake -DALLOW_DOWNLOADS=ON \
         -DUSE_SYSTEM_MONGOOSE=OFF \
