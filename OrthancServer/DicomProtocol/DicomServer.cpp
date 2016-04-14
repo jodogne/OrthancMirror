@@ -44,7 +44,7 @@
 
 #include <boost/thread.hpp>
 
-#if defined(__linux)
+#if defined(__linux__)
 #include <cstdlib>
 #endif
 

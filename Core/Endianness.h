@@ -37,7 +37,7 @@
  ** LINUX ARCHITECTURES
  ********************************************************************/
 
-#if defined(__linux)
+#if defined(__linux__)
 #  define ORTHANC_HAS_BUILTIN_BYTE_SWAP 1
 #  include <endian.h>
 #endif
