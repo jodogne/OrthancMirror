@@ -42,7 +42,7 @@
  
    // Wait until mg_fini() stops
    while (ctx->stop_flag != 2) {
-+#if defined(__linux)
++#if defined(__linux__)
 +    usleep(100000);
 +#elif defined(_WIN32)
 +    Sleep(100);

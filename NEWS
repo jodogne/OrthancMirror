@@ -38,6 +38,7 @@ Maintenance
 * Upgrade to Boost 1.60.0 for static builds
 * Use of HTTP status 403 Forbidden (instead of 401) if access to a REST resource is disallowed
 * Option "HttpsVerifyPeers" can be used to connect against self-signed HTTPS certificates
+* Macro "__linux" (now obsolete) replaced by macro "__linux__" (maybe solves Debian bug #821011)
 
 
 Version 1.0.0 (2015/12/15)

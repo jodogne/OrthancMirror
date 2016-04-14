@@ -57,7 +57,7 @@ TEST(SharedLibrary, Basic)
   ASSERT_TRUE(l.HasFunction("GetVersionExW"));
   ASSERT_FALSE(l.HasFunction("world"));
 
-#elif defined(__linux) || defined(__FreeBSD_kernel__)
+#elif defined(__linux__) || defined(__FreeBSD_kernel__)
   SharedLibrary l("libdl.so");
   ASSERT_THROW(l.GetFunction("world"), OrthancException);
   ASSERT_TRUE(l.GetFunction("dlopen") != NULL);

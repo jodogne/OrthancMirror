@@ -67,7 +67,7 @@
 #include <limits.h>      /* PATH_MAX */
 #endif
 
-#if defined(__linux) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
+#if defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
 #include <limits.h>      /* PATH_MAX */
 #include <signal.h>
 #include <unistd.h>
@@ -132,7 +132,7 @@ namespace Orthanc
   {
 #if defined(_WIN32)
     ::Sleep(static_cast<DWORD>(microSeconds / static_cast<uint64_t>(1000)));
-#elif defined(__linux) || defined(__APPLE__) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
+#elif defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
     usleep(microSeconds);
 #else
 #error Support your platform here
@@ -629,7 +629,7 @@ namespace Orthanc
     return std::string(&buffer[0]);
   }
 
-#elif defined(__linux) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
+#elif defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
   static std::string GetPathToExecutableInternal()
   {
     std::vector<char> buffer(PATH_MAX + 1);

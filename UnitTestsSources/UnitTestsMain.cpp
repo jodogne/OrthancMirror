@@ -458,7 +458,7 @@ TEST(Toolbox, UrlDecode)
 }
 
 
-#if defined(__linux)
+#if defined(__linux__)
 TEST(OrthancInitialization, AbsoluteDirectory)
 {
   ASSERT_EQ("/tmp/hello", Configuration::InterpretRelativePath("/tmp", "hello"));
@@ -632,7 +632,7 @@ TEST(Toolbox, Enumerations)
 
 
 
-#if defined(__linux)
+#if defined(__linux__)
 #include <endian.h>
 #elif defined(__FreeBSD__)
 #include <machine/endian.h>
@@ -657,7 +657,7 @@ TEST(Toolbox, Endianness)
    * Linux.
    **/
   
-#elif defined(__linux) || defined(__FreeBSD_kernel__)
+#elif defined(__linux__) || defined(__FreeBSD_kernel__)
 
 #if !defined(__BYTE_ORDER)
 #  error Support your platform here
