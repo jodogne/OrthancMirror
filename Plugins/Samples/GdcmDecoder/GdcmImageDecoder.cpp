@@ -112,7 +112,9 @@ namespace OrthancPlugins
         else 
         {
           if (image.GetPixelFormat().GetSamplesPerPixel() == 3 &&
-              image.GetPhotometricInterpretation() != gdcm::PhotometricInterpretation::RGB)
+              image.GetPhotometricInterpretation() != gdcm::PhotometricInterpretation::RGB &&
+              (image.GetTransferSyntax() != gdcm::TransferSyntax::JPEG2000Lossless ||
+               image.GetPhotometricInterpretation() != gdcm::PhotometricInterpretation::YBR_RCT))
           {
             photometric_.reset(new gdcm::ImageChangePhotometricInterpretation());
             photometric_->SetInput(image);
@@ -188,7 +190,8 @@ namespace OrthancPlugins
       }
     }
     else if (image.GetPixelFormat().GetSamplesPerPixel() == 3 &&
-             image.GetPhotometricInterpretation() == gdcm::PhotometricInterpretation::RGB)
+             (image.GetPhotometricInterpretation() == gdcm::PhotometricInterpretation::RGB ||
+              image.GetPhotometricInterpretation() == gdcm::PhotometricInterpretation::YBR_RCT))
     {
       switch (image.GetPixelFormat())
       {
