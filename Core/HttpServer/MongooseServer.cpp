@@ -597,8 +597,11 @@ namespace Orthanc
     for (int i = 0; i < request->num_headers; i++)
     {
       std::string name = request->http_headers[i].name;
+      std::string value = request->http_headers[i].value;
+
       std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-      headers.insert(std::make_pair(name, request->http_headers[i].value));
+      headers.insert(std::make_pair(name, value));
+      VLOG(1) << "HTTP header: [" << name << "]: [" << value << "]";
     }
 
     if (that->IsHttpCompressionEnabled())
