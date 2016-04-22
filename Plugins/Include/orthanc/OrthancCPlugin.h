@@ -278,6 +278,7 @@ extern "C"
     OrthancPluginErrorCode_SslDisabled = 2039    /*!< Orthanc has been built without SSL support */,
     OrthancPluginErrorCode_CannotOrderSlices = 2040    /*!< Unable to order the slices of the series */,
     OrthancPluginErrorCode_NoWorklistHandler = 2041    /*!< No request handler factory for DICOM C-Find Modality SCP */,
+    OrthancPluginErrorCode_AlreadyExistingTag = 2042    /*!< Cannot override the value of a tag that already exists */,
 
     _OrthancPluginErrorCode_INTERNAL = 0x7fffffff
   } OrthancPluginErrorCode;

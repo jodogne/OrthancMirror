@@ -576,6 +576,11 @@ namespace Orthanc
                                const Json::Value& value,
                                bool decodeDataUriScheme)
   {
+    if (pimpl_->file_->getDataset()->tagExists(ToDcmtkBridge::Convert(tag)))
+    {
+      throw OrthancException(ErrorCode_AlreadyExistingTag);
+    }
+
     InvalidateCache();
 
     std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, GetEncoding()));

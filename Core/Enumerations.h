@@ -139,6 +139,7 @@ namespace Orthanc
     ErrorCode_SslDisabled = 2039    /*!< Orthanc has been built without SSL support */,
     ErrorCode_CannotOrderSlices = 2040    /*!< Unable to order the slices of the series */,
     ErrorCode_NoWorklistHandler = 2041    /*!< No request handler factory for DICOM C-Find Modality SCP */,
+    ErrorCode_AlreadyExistingTag = 2042    /*!< Cannot override the value of a tag that already exists */,
     ErrorCode_START_PLUGINS = 1000000
   };
 
