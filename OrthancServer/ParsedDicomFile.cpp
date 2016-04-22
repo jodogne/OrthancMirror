@@ -583,31 +583,33 @@ namespace Orthanc
   }
 
 
-  static void ReplaceInternal(DcmDataset& dicom,
-                              std::auto_ptr<DcmElement>& element,
-                              DicomReplaceMode mode)
+  static bool IsReplaceAllowed(DcmDataset& dicom,
+                               const DcmTagKey& tag,
+                               DicomReplaceMode mode)
   {
-    const DcmTagKey& tag = element->getTag();
-
-    if (!dicom.findAndDeleteElement(tag).good())
+    if (dicom.findAndDeleteElement(tag).good())
     {
-      // This field does not exist, act wrt. the specified "mode"
+      // This tag was existing, it has been deleted
+      return true;
+    }
+    else
+    {
+      // This tag was absent, act wrt. the specified "mode"
       switch (mode)
       {
         case DicomReplaceMode_InsertIfAbsent:
-          break;
+          return true;
 
         case DicomReplaceMode_ThrowIfAbsent:
           throw OrthancException(ErrorCode_InexistentItem);
 
         case DicomReplaceMode_IgnoreIfAbsent:
-          return;
+          return false;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
     }
-
-    // Either the tag was not existing, or the replace mode was set to
-    // "InsertIfAbsent"
-    InsertInternal(dicom, element.release());
   }
 
 
@@ -670,8 +672,15 @@ namespace Orthanc
 
     std::auto_ptr<DcmElement> element(FromDcmtkBridge::CreateElementForTag(tag));
     FromDcmtkBridge::FillElementWithString(*element, tag, utf8Value, false, GetEncoding());
-    ReplaceInternal(*pimpl_->file_->getDataset(), element, mode);
-    UpdateStorageUid(tag, utf8Value, false);
+
+    DcmDataset& dicom = *pimpl_->file_->getDataset();
+    if (IsReplaceAllowed(dicom, element->getTag(), mode))
+    {
+      // Either the tag was previously existing, or the replace mode
+      // was set to "InsertIfAbsent"
+      InsertInternal(dicom, element.release());
+      UpdateStorageUid(tag, utf8Value, false);
+    }
   }
 
     
@@ -683,17 +692,24 @@ namespace Orthanc
     InvalidateCache();
 
     std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, GetEncoding()));
-    ReplaceInternal(*pimpl_->file_->getDataset(), element, mode);
 
-    if (tag == DICOM_TAG_SOP_CLASS_UID ||
-        tag == DICOM_TAG_SOP_INSTANCE_UID)
+    DcmDataset& dicom = *pimpl_->file_->getDataset();
+    if (IsReplaceAllowed(dicom, element->getTag(), mode))
     {
-      if (value.type() != Json::stringValue)
-      {
-        throw OrthancException(ErrorCode_BadParameterType);
-      }
+      // Either the tag was previously existing, or the replace mode
+      // was set to "InsertIfAbsent"
+      InsertInternal(dicom, element.release());
 
-      UpdateStorageUid(tag, value.asString(), decodeDataUriScheme);
+      if (tag == DICOM_TAG_SOP_CLASS_UID ||
+          tag == DICOM_TAG_SOP_INSTANCE_UID)
+      {
+        if (value.type() != Json::stringValue)
+        {
+          throw OrthancException(ErrorCode_BadParameterType);
+        }
+
+        UpdateStorageUid(tag, value.asString(), decodeDataUriScheme);
+      }
     }
   }
 
