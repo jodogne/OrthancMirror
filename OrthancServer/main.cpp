@@ -592,6 +592,7 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_SslDisabled, "Orthanc has been built without SSL support");
     PrintErrorCode(ErrorCode_CannotOrderSlices, "Unable to order the slices of the series");
     PrintErrorCode(ErrorCode_NoWorklistHandler, "No request handler factory for DICOM C-Find Modality SCP");
+    PrintErrorCode(ErrorCode_AlreadyExistingTag, "Cannot override the value of a tag that already exists");
   }
 
   std::cout << std::endl;

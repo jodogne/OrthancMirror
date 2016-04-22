@@ -518,5 +518,10 @@
     "Code": 2041, 
     "Name": "NoWorklistHandler", 
     "Description": "No request handler factory for DICOM C-Find Modality SCP"
+  },
+  {
+    "Code": 2042,
+    "Name": "AlreadyExistingTag",
+    "Description": "Cannot override the value of a tag that already exists"
   }
 ]

@@ -328,6 +328,9 @@ namespace Orthanc
       case ErrorCode_NoWorklistHandler:
         return "No request handler factory for DICOM C-Find Modality SCP";
 
+      case ErrorCode_AlreadyExistingTag:
+        return "Cannot override the value of a tag that already exists";
+
       default:
         if (error >= ErrorCode_START_PLUGINS)
         {
