@@ -635,7 +635,11 @@ namespace Orthanc
         boost::starts_with(utf8Value, "data:application/octet-stream;base64,"))
     {
       std::string mime;
-      Toolbox::DecodeDataUriScheme(mime, binary, utf8Value);
+      if (!Toolbox::DecodeDataUriScheme(mime, binary, utf8Value))
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
       decoded = &binary;
     }
     else
@@ -911,7 +915,11 @@ namespace Orthanc
   void ParsedDicomFile::EmbedContent(const std::string& dataUriScheme)
   {
     std::string mime, content;
-    Toolbox::DecodeDataUriScheme(mime, content, dataUriScheme);
+    if (!Toolbox::DecodeDataUriScheme(mime, content, dataUriScheme))
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
     Toolbox::ToLowerCase(mime);
 
     if (mime == "image/png" ||

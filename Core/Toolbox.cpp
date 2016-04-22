@@ -587,7 +587,7 @@ namespace Orthanc
 
 
 #  if BOOST_HAS_REGEX == 1
-  void Toolbox::DecodeDataUriScheme(std::string& mime,
+  bool Toolbox::DecodeDataUriScheme(std::string& mime,
                                     std::string& content,
                                     const std::string& source)
   {
@@ -599,10 +599,11 @@ namespace Orthanc
     {
       mime = what[1];
       DecodeBase64(content, what[2]);
+      return true;
     }
     else
     {
-      throw OrthancException(ErrorCode_BadFileFormat);
+      return false;
     }
   }
 #  endif

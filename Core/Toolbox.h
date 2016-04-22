@@ -127,7 +127,7 @@ namespace Orthanc
                       const std::string& data);
 
 #  if BOOST_HAS_REGEX == 1
-    void DecodeDataUriScheme(std::string& mime,
+    bool DecodeDataUriScheme(std::string& mime,
                              std::string& content,
                              const std::string& source);
 #  endif
