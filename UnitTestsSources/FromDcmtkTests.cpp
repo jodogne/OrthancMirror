@@ -154,7 +154,7 @@ TEST(DicomModification, Png)
   std::string s = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==";
 
   std::string m, cc;
-  Toolbox::DecodeDataUriScheme(m, cc, s);
+  ASSERT_TRUE(Toolbox::DecodeDataUriScheme(m, cc, s));
 
   ASSERT_EQ("image/png", m);
 
@@ -566,7 +566,7 @@ TEST(ParsedDicomFile, ToJsonFlags1)
   ASSERT_EQ("Some public tag", v["7050,1000"].asString());
   std::string mime, content;
   ASSERT_EQ(Json::stringValue, v["7053,1000"].type());
-  Toolbox::DecodeDataUriScheme(mime, content, v["7053,1000"].asString());
+  ASSERT_TRUE(Toolbox::DecodeDataUriScheme(mime, content, v["7053,1000"].asString()));
   ASSERT_EQ("application/octet-stream", mime);
   ASSERT_EQ("Some private tag", content);
 
@@ -587,7 +587,7 @@ TEST(ParsedDicomFile, ToJsonFlags1)
   ASSERT_FALSE(v.isMember("7053,1000"));
   ASSERT_EQ("Some public tag", v["7050,1000"].asString());
   ASSERT_EQ(Json::stringValue, v["7052,1000"].type());
-  Toolbox::DecodeDataUriScheme(mime, content, v["7052,1000"].asString());
+  ASSERT_TRUE(Toolbox::DecodeDataUriScheme(mime, content, v["7052,1000"].asString()));
   ASSERT_EQ("application/octet-stream", mime);
   ASSERT_EQ("Some unknown tag", content);
 
@@ -633,7 +633,7 @@ TEST(ParsedDicomFile, ToJsonFlags2)
   ASSERT_TRUE(v.isMember("7fe0,0010"));  
   ASSERT_EQ(Json::stringValue, v["7fe0,0010"].type());
   std::string mime, content;
-  Toolbox::DecodeDataUriScheme(mime, content, v["7fe0,0010"].asString());
+  ASSERT_TRUE(Toolbox::DecodeDataUriScheme(mime, content, v["7fe0,0010"].asString()));
   ASSERT_EQ("application/octet-stream", mime);
   ASSERT_EQ("Pixels", content);
 }
@@ -733,7 +733,7 @@ TEST(ParsedDicomFile, FromJson)
     dicom->ToJson(vv, DicomToJsonFormat_Human, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePixelData), 0);
 
     std::string mime, content;
-    Toolbox::DecodeDataUriScheme(mime, content, vv["PixelData"].asString());
+    ASSERT_TRUE(Toolbox::DecodeDataUriScheme(mime, content, vv["PixelData"].asString()));
     ASSERT_EQ("application/octet-stream", mime);
     ASSERT_EQ(5u * 5u * 3u /* the red dot is 5x5 pixels in RGB24 */ + 1 /* for padding */, content.size());
   }

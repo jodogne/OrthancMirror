@@ -1264,7 +1264,11 @@ namespace Orthanc
         boost::starts_with(utf8Value, "data:application/octet-stream;base64,"))
     {
       std::string mime;
-      Toolbox::DecodeDataUriScheme(mime, binary, utf8Value);
+      if (!Toolbox::DecodeDataUriScheme(mime, binary, utf8Value))
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
       decoded = &binary;
     }
     else if (dicomEncoding != Encoding_Utf8)
