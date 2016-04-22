@@ -393,7 +393,7 @@ namespace Orthanc
             content.append(item);
           }
 
-          dicom.Replace(*tag, content, false);
+          dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent);
         }
       }
 

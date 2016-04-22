@@ -1163,23 +1163,6 @@ int main(int argc, char* argv[])
     {
       OrthancInitialize(configurationFile);
 
-      if (0)
-      {
-        // TODO REMOVE THIS TEST
-        DicomUserConnection c;
-        c.SetRemoteHost("localhost");
-        c.SetRemotePort(4243);
-        c.SetRemoteApplicationEntityTitle("ORTHANCTEST");
-        c.Open();
-        ParsedDicomFile f(false);
-        f.Replace(DICOM_TAG_PATIENT_NAME, "M*");
-        DicomFindAnswers a;
-        c.FindWorklist(a, f);
-        Json::Value j;
-        a.ToJson(j, true);
-        std::cout << j;
-      }
-
       bool restart = StartOrthanc(argc, argv, allowDatabaseUpgrade);
       if (restart)
       {

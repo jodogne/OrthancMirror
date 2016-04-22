@@ -59,6 +59,8 @@ namespace Orthanc
 
     void InvalidateCache();
 
+    bool EmbedContentInternal(const std::string& dataUriScheme);
+
   public:
     ParsedDicomFile(bool createIdentifiers);  // Create a minimal DICOM instance
 
@@ -88,16 +90,23 @@ namespace Orthanc
 
     void Replace(const DicomTag& tag,
                  const std::string& utf8Value,
-                 DicomReplaceMode mode = DicomReplaceMode_InsertIfAbsent);
+                 bool decodeDataUriScheme,
+                 DicomReplaceMode mode);
 
     void Replace(const DicomTag& tag,
                  const Json::Value& value,  // Assumed to be encoded with UTF-8
                  bool decodeDataUriScheme,
-                 DicomReplaceMode mode = DicomReplaceMode_InsertIfAbsent);
+                 DicomReplaceMode mode);
 
     void Insert(const DicomTag& tag,
                 const Json::Value& value,   // Assumed to be encoded with UTF-8
                 bool decodeDataUriScheme);
+
+    void ReplacePlainString(const DicomTag& tag,
+                            const std::string& utf8Value)
+    {
+      Replace(tag, utf8Value, false, DicomReplaceMode_InsertIfAbsent);
+    }
 
     void RemovePrivateTags()
     {

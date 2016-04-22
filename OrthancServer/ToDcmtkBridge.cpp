@@ -39,12 +39,6 @@
 
 namespace Orthanc
 {
-  DcmTagKey ToDcmtkBridge::Convert(const DicomTag& tag)
-  {
-    return DcmTagKey(tag.GetGroup(), tag.GetElement());
-  }
-
-
   DcmDataset* ToDcmtkBridge::Convert(const DicomMap& map)
   {
     std::auto_ptr<DcmDataset> result(new DcmDataset);
