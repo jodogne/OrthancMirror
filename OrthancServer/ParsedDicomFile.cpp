@@ -581,16 +581,26 @@ namespace Orthanc
       throw OrthancException(ErrorCode_AlreadyExistingTag);
     }
 
-    InvalidateCache();
+    if (decodeDataUriScheme &&
+        value.type() == Json::stringValue &&
+        (tag == DICOM_TAG_ENCAPSULATED_DOCUMENT ||
+         tag == DICOM_TAG_PIXEL_DATA))
+    {
+      if (EmbedContentInternal(value.asString()))
+      {
+        return;
+      }
+    }
 
+    InvalidateCache();
     std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, GetEncoding()));
     InsertInternal(*pimpl_->file_->getDataset(), element.release());
   }
 
 
-  static bool IsReplaceAllowed(DcmDataset& dicom,
-                               const DcmTagKey& tag,
-                               DicomReplaceMode mode)
+  static bool CanReplaceProceed(DcmDataset& dicom,
+                                const DcmTagKey& tag,
+                                DicomReplaceMode mode)
   {
     if (dicom.findAndDeleteElement(tag).good())
     {
@@ -663,30 +673,42 @@ namespace Orthanc
 
     if (tag == DICOM_TAG_SOP_CLASS_UID)
     {
-      Replace(DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID, *decoded, DicomReplaceMode_InsertIfAbsent);
+      ReplacePlainString(DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID, *decoded);
     }
 
     if (tag == DICOM_TAG_SOP_INSTANCE_UID)
     {
-      Replace(DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID, *decoded, DicomReplaceMode_InsertIfAbsent);
+      ReplacePlainString(DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID, *decoded);
     }    
   }
 
 
   void ParsedDicomFile::Replace(const DicomTag& tag,
                                 const std::string& utf8Value,
+                                bool decodeDataUriScheme,
                                 DicomReplaceMode mode)
   {
     InvalidateCache();
 
-    std::auto_ptr<DcmElement> element(FromDcmtkBridge::CreateElementForTag(tag));
-    FromDcmtkBridge::FillElementWithString(*element, tag, utf8Value, false, GetEncoding());
-
     DcmDataset& dicom = *pimpl_->file_->getDataset();
-    if (IsReplaceAllowed(dicom, element->getTag(), mode))
+    if (CanReplaceProceed(dicom, ToDcmtkBridge::Convert(tag), mode))
     {
-      // Either the tag was previously existing, or the replace mode
-      // was set to "InsertIfAbsent"
+      // Either the tag was previously existing (and now removed), or
+      // the replace mode was set to "InsertIfAbsent"
+
+      if (decodeDataUriScheme &&
+          (tag == DICOM_TAG_ENCAPSULATED_DOCUMENT ||
+           tag == DICOM_TAG_PIXEL_DATA))
+      {
+        if (EmbedContentInternal(utf8Value))
+        {
+          return;
+        }
+      }
+
+      std::auto_ptr<DcmElement> element(FromDcmtkBridge::CreateElementForTag(tag));
+      FromDcmtkBridge::FillElementWithString(*element, tag, utf8Value, decodeDataUriScheme, GetEncoding());
+
       InsertInternal(dicom, element.release());
       UpdateStorageUid(tag, utf8Value, false);
     }
@@ -700,14 +722,24 @@ namespace Orthanc
   {
     InvalidateCache();
 
-    std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, GetEncoding()));
-
     DcmDataset& dicom = *pimpl_->file_->getDataset();
-    if (IsReplaceAllowed(dicom, element->getTag(), mode))
+    if (CanReplaceProceed(dicom, ToDcmtkBridge::Convert(tag), mode))
     {
-      // Either the tag was previously existing, or the replace mode
-      // was set to "InsertIfAbsent"
-      InsertInternal(dicom, element.release());
+      // Either the tag was previously existing (and now removed), or
+      // the replace mode was set to "InsertIfAbsent"
+
+      if (decodeDataUriScheme &&
+          value.type() == Json::stringValue &&
+          (tag == DICOM_TAG_ENCAPSULATED_DOCUMENT ||
+           tag == DICOM_TAG_PIXEL_DATA))
+      {
+        if (EmbedContentInternal(value.asString()))
+        {
+          return;
+        }
+      }
+
+      InsertInternal(dicom, FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, GetEncoding()));
 
       if (tag == DICOM_TAG_SOP_CLASS_UID ||
           tag == DICOM_TAG_SOP_INSTANCE_UID)
@@ -833,10 +865,10 @@ namespace Orthanc
 
     if (createIdentifiers)
     {
-      Replace(DICOM_TAG_PATIENT_ID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Patient));
-      Replace(DICOM_TAG_STUDY_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Study));
-      Replace(DICOM_TAG_SERIES_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Series));
-      Replace(DICOM_TAG_SOP_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Instance));
+      ReplacePlainString(DICOM_TAG_PATIENT_ID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Patient));
+      ReplacePlainString(DICOM_TAG_STUDY_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Study));
+      ReplacePlainString(DICOM_TAG_SERIES_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Series));
+      ReplacePlainString(DICOM_TAG_SOP_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Instance));
     }
   }
 
@@ -878,7 +910,7 @@ namespace Orthanc
     pimpl_->file_.reset(dynamic_cast<DcmFileFormat*>(other.pimpl_->file_->clone()));
 
     // Create a new instance-level identifier
-    Replace(DICOM_TAG_SOP_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Instance));
+    ReplacePlainString(DICOM_TAG_SOP_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Instance));
   }
 
 
@@ -912,12 +944,12 @@ namespace Orthanc
   }
 
 
-  void ParsedDicomFile::EmbedContent(const std::string& dataUriScheme)
+  bool ParsedDicomFile::EmbedContentInternal(const std::string& dataUriScheme)
   {
     std::string mime, content;
     if (!Toolbox::DecodeDataUriScheme(mime, content, dataUriScheme))
     {
-      throw OrthancException(ErrorCode_BadFileFormat);
+      return false;
     }
 
     Toolbox::ToLowerCase(mime);
@@ -936,14 +968,23 @@ namespace Orthanc
       LOG(ERROR) << "Unsupported MIME type for the content of a new DICOM file: " << mime;
       throw OrthancException(ErrorCode_NotImplemented);
     }
+
+    return true;
+  }
+
+
+  void ParsedDicomFile::EmbedContent(const std::string& dataUriScheme)
+  {
+    if (!EmbedContentInternal(dataUriScheme))
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
   }
 
 
   void ParsedDicomFile::EmbedImage(const std::string& mime,
                                    const std::string& content)
   {
-    InvalidateCache();
-
     if (mime == "image/png")
     {
       PngReader reader;
@@ -974,6 +1015,8 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
+    InvalidateCache();
+
     if (accessor.GetFormat() == PixelFormat_RGBA32)
     {
       LOG(WARNING) << "Getting rid of the alpha channel when embedding a RGBA image inside DICOM";
@@ -982,49 +1025,49 @@ namespace Orthanc
     // http://dicomiseasy.blogspot.be/2012/08/chapter-12-pixel-data.html
 
     Remove(DICOM_TAG_PIXEL_DATA);
-    Replace(DICOM_TAG_COLUMNS, boost::lexical_cast<std::string>(accessor.GetWidth()));
-    Replace(DICOM_TAG_ROWS, boost::lexical_cast<std::string>(accessor.GetHeight()));
-    Replace(DICOM_TAG_SAMPLES_PER_PIXEL, "1");
-    Replace(DICOM_TAG_NUMBER_OF_FRAMES, "1");
+    ReplacePlainString(DICOM_TAG_COLUMNS, boost::lexical_cast<std::string>(accessor.GetWidth()));
+    ReplacePlainString(DICOM_TAG_ROWS, boost::lexical_cast<std::string>(accessor.GetHeight()));
+    ReplacePlainString(DICOM_TAG_SAMPLES_PER_PIXEL, "1");
+    ReplacePlainString(DICOM_TAG_NUMBER_OF_FRAMES, "1");
 
     if (accessor.GetFormat() == PixelFormat_SignedGrayscale16)
     {
-      Replace(DICOM_TAG_PIXEL_REPRESENTATION, "1");
+      ReplacePlainString(DICOM_TAG_PIXEL_REPRESENTATION, "1");
     }
     else
     {
-      Replace(DICOM_TAG_PIXEL_REPRESENTATION, "0");  // Unsigned pixels
+      ReplacePlainString(DICOM_TAG_PIXEL_REPRESENTATION, "0");  // Unsigned pixels
     }
 
-    Replace(DICOM_TAG_PLANAR_CONFIGURATION, "0");  // Color channels are interleaved
-    Replace(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "MONOCHROME2");
+    ReplacePlainString(DICOM_TAG_PLANAR_CONFIGURATION, "0");  // Color channels are interleaved
+    ReplacePlainString(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "MONOCHROME2");
 
     unsigned int bytesPerPixel = 0;
 
     switch (accessor.GetFormat())
     {
       case PixelFormat_Grayscale8:
-        Replace(DICOM_TAG_BITS_ALLOCATED, "8");
-        Replace(DICOM_TAG_BITS_STORED, "8");
-        Replace(DICOM_TAG_HIGH_BIT, "7");
+        ReplacePlainString(DICOM_TAG_BITS_ALLOCATED, "8");
+        ReplacePlainString(DICOM_TAG_BITS_STORED, "8");
+        ReplacePlainString(DICOM_TAG_HIGH_BIT, "7");
         bytesPerPixel = 1;
         break;
 
       case PixelFormat_RGB24:
       case PixelFormat_RGBA32:
-        Replace(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "RGB");
-        Replace(DICOM_TAG_SAMPLES_PER_PIXEL, "3");
-        Replace(DICOM_TAG_BITS_ALLOCATED, "8");
-        Replace(DICOM_TAG_BITS_STORED, "8");
-        Replace(DICOM_TAG_HIGH_BIT, "7");
+        ReplacePlainString(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "RGB");
+        ReplacePlainString(DICOM_TAG_SAMPLES_PER_PIXEL, "3");
+        ReplacePlainString(DICOM_TAG_BITS_ALLOCATED, "8");
+        ReplacePlainString(DICOM_TAG_BITS_STORED, "8");
+        ReplacePlainString(DICOM_TAG_HIGH_BIT, "7");
         bytesPerPixel = 3;
         break;
 
       case PixelFormat_Grayscale16:
       case PixelFormat_SignedGrayscale16:
-        Replace(DICOM_TAG_BITS_ALLOCATED, "16");
-        Replace(DICOM_TAG_BITS_STORED, "16");
-        Replace(DICOM_TAG_HIGH_BIT, "15");
+        ReplacePlainString(DICOM_TAG_BITS_ALLOCATED, "16");
+        ReplacePlainString(DICOM_TAG_BITS_STORED, "16");
+        ReplacePlainString(DICOM_TAG_HIGH_BIT, "15");
         bytesPerPixel = 2;
         break;
 
@@ -1100,7 +1143,7 @@ namespace Orthanc
     }
 
     std::string s = GetDicomSpecificCharacterSet(encoding);
-    Replace(DICOM_TAG_SPECIFIC_CHARACTER_SET, s, DicomReplaceMode_InsertIfAbsent);
+    ReplacePlainString(DICOM_TAG_SPECIFIC_CHARACTER_SET, s);
   }
 
   void ParsedDicomFile::ToJson(Json::Value& target, 
@@ -1137,11 +1180,13 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
-    Replace(DICOM_TAG_SOP_CLASS_UID, UID_EncapsulatedPDFStorage);
-    Replace(FromDcmtkBridge::Convert(DCM_Modality), "OT");
-    Replace(FromDcmtkBridge::Convert(DCM_ConversionType), "WSD");
-    Replace(FromDcmtkBridge::Convert(DCM_MIMETypeOfEncapsulatedDocument), "application/pdf");
-    //Replace(FromDcmtkBridge::Convert(DCM_SeriesNumber), "1");
+    InvalidateCache();
+
+    ReplacePlainString(DICOM_TAG_SOP_CLASS_UID, UID_EncapsulatedPDFStorage);
+    ReplacePlainString(FromDcmtkBridge::Convert(DCM_Modality), "OT");
+    ReplacePlainString(FromDcmtkBridge::Convert(DCM_ConversionType), "WSD");
+    ReplacePlainString(FromDcmtkBridge::Convert(DCM_MIMETypeOfEncapsulatedDocument), "application/pdf");
+    //ReplacePlainString(FromDcmtkBridge::Convert(DCM_SeriesNumber), "1");
 
     std::auto_ptr<DcmPolymorphOBOW> element(new DcmPolymorphOBOW(DCM_EncapsulatedDocument));
 
@@ -1249,7 +1294,7 @@ namespace Orthanc
       }
       else if (tag != DICOM_TAG_SPECIFIC_CHARACTER_SET)
       {
-        result->Replace(tag, value, decodeDataUriScheme);
+        result->Replace(tag, value, decodeDataUriScheme, DicomReplaceMode_InsertIfAbsent);
       }
     }
 

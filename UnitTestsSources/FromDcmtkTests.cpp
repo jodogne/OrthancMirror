@@ -76,8 +76,8 @@ TEST(DicomModification, Basic)
   DicomModification m;
   m.SetupAnonymization();
   //m.SetLevel(DicomRootLevel_Study);
-  //m.Replace(DICOM_TAG_PATIENT_ID, "coucou");
-  //m.Replace(DICOM_TAG_PATIENT_NAME, "coucou");
+  //m.ReplacePlainString(DICOM_TAG_PATIENT_ID, "coucou");
+  //m.ReplacePlainString(DICOM_TAG_PATIENT_NAME, "coucou");
 
   ParsedDicomFile o(true);
   o.SaveToFile("UnitTestsResults/anon.dcm");
@@ -88,7 +88,7 @@ TEST(DicomModification, Basic)
     sprintf(b, "UnitTestsResults/anon%06d.dcm", i);
     std::auto_ptr<ParsedDicomFile> f(o.Clone());
     if (i > 4)
-      o.Replace(DICOM_TAG_SERIES_INSTANCE_UID, "coucou");
+      o.ReplacePlainString(DICOM_TAG_SERIES_INSTANCE_UID, "coucou");
     m.Apply(*f);
     f->SaveToFile(b);
   }
@@ -108,21 +108,21 @@ TEST(DicomModification, Anonymization)
 
   std::string s;
   ParsedDicomFile o(true);
-  o.Replace(DICOM_TAG_PATIENT_NAME, "coucou");
+  o.ReplacePlainString(DICOM_TAG_PATIENT_NAME, "coucou");
   ASSERT_FALSE(o.GetTagValue(s, privateTag));
   o.Insert(privateTag, "private tag", false);
   ASSERT_TRUE(o.GetTagValue(s, privateTag));
   ASSERT_STREQ("private tag", s.c_str());
 
   ASSERT_FALSE(o.GetTagValue(s, privateTag2));
-  ASSERT_THROW(o.Replace(privateTag2, "hello", DicomReplaceMode_ThrowIfAbsent), OrthancException);
+  ASSERT_THROW(o.Replace(privateTag2, std::string("hello"), false, DicomReplaceMode_ThrowIfAbsent), OrthancException);
   ASSERT_FALSE(o.GetTagValue(s, privateTag2));
-  o.Replace(privateTag2, "hello", DicomReplaceMode_IgnoreIfAbsent);
+  o.Replace(privateTag2, std::string("hello"), false, DicomReplaceMode_IgnoreIfAbsent);
   ASSERT_FALSE(o.GetTagValue(s, privateTag2));
-  o.Replace(privateTag2, "hello", DicomReplaceMode_InsertIfAbsent);
+  o.Replace(privateTag2, std::string("hello"), false, DicomReplaceMode_InsertIfAbsent);
   ASSERT_TRUE(o.GetTagValue(s, privateTag2));
   ASSERT_STREQ("hello", s.c_str());
-  o.Replace(privateTag2, "hello world");
+  o.ReplacePlainString(privateTag2, "hello world");
   ASSERT_TRUE(o.GetTagValue(s, privateTag2));
   ASSERT_STREQ("hello world", s.c_str());
 
@@ -177,7 +177,7 @@ TEST(DicomModification, Png)
   // Check box in Graylevel8
   s = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAAAAAA6mKC9AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gUGDDcB53FulQAAAElJREFUGNNtj0sSAEEEQ1+U+185s1CtmRkblQ9CZldsKHJDk6DLGLJa6chjh0ooQmpjXMM86zPwydGEj6Ed/UGykkEM8X+p3u8/8LcOJIWLGeMAAAAASUVORK5CYII=";
   o.EmbedContent(s);
-  //o.Replace(DICOM_TAG_SOP_CLASS_UID, UID_DigitalXRayImageStorageForProcessing);
+  //o.ReplacePlainString(DICOM_TAG_SOP_CLASS_UID, UID_DigitalXRayImageStorageForProcessing);
   o.SaveToFile("UnitTestsResults/png3.dcm");
 
 
@@ -416,21 +416,22 @@ TEST(ParsedDicomFile, InsertReplaceStrings)
 
   f.Insert(DICOM_TAG_PATIENT_NAME, "World", false);
   ASSERT_THROW(f.Insert(DICOM_TAG_PATIENT_ID, "Hello", false), OrthancException);  // Already existing tag
-  f.Replace(DICOM_TAG_SOP_INSTANCE_UID, "Toto");  // (*)
-  f.Replace(DICOM_TAG_SOP_CLASS_UID, "Tata");  // (**)
+  f.ReplacePlainString(DICOM_TAG_SOP_INSTANCE_UID, "Toto");  // (*)
+  f.ReplacePlainString(DICOM_TAG_SOP_CLASS_UID, "Tata");  // (**)
 
   std::string s;
 
-  ASSERT_THROW(f.Replace(DICOM_TAG_ACCESSION_NUMBER, "Accession", DicomReplaceMode_ThrowIfAbsent), OrthancException);
-  f.Replace(DICOM_TAG_ACCESSION_NUMBER, "Accession", DicomReplaceMode_IgnoreIfAbsent);
+  ASSERT_THROW(f.Replace(DICOM_TAG_ACCESSION_NUMBER, std::string("Accession"),
+                         false, DicomReplaceMode_ThrowIfAbsent), OrthancException);
+  f.Replace(DICOM_TAG_ACCESSION_NUMBER, std::string("Accession"), false, DicomReplaceMode_IgnoreIfAbsent);
   ASSERT_FALSE(f.GetTagValue(s, DICOM_TAG_ACCESSION_NUMBER));
-  f.Replace(DICOM_TAG_ACCESSION_NUMBER, "Accession", DicomReplaceMode_InsertIfAbsent);
+  f.Replace(DICOM_TAG_ACCESSION_NUMBER, std::string("Accession"), false, DicomReplaceMode_InsertIfAbsent);
   ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_ACCESSION_NUMBER));
   ASSERT_EQ(s, "Accession");
-  f.Replace(DICOM_TAG_ACCESSION_NUMBER, "Accession2", DicomReplaceMode_IgnoreIfAbsent);
+  f.Replace(DICOM_TAG_ACCESSION_NUMBER, std::string("Accession2"), false, DicomReplaceMode_IgnoreIfAbsent);
   ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_ACCESSION_NUMBER));
   ASSERT_EQ(s, "Accession2");
-  f.Replace(DICOM_TAG_ACCESSION_NUMBER, "Accession3", DicomReplaceMode_ThrowIfAbsent);
+  f.Replace(DICOM_TAG_ACCESSION_NUMBER, std::string("Accession3"), false, DicomReplaceMode_ThrowIfAbsent);
   ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_ACCESSION_NUMBER));
   ASSERT_EQ(s, "Accession3");
 
@@ -486,8 +487,8 @@ TEST(ParsedDicomFile, InsertReplaceJson)
   }
 
   a = "data:application/octet-stream;base64,VGF0YQ==";   // echo -n "Tata" | base64 
-  f.Replace(DICOM_TAG_SOP_INSTANCE_UID, a, false);  // (*)
-  f.Replace(DICOM_TAG_SOP_CLASS_UID, a, true);  // (**)
+  f.Replace(DICOM_TAG_SOP_INSTANCE_UID, a, false, DicomReplaceMode_InsertIfAbsent);  // (*)
+  f.Replace(DICOM_TAG_SOP_CLASS_UID, a, true, DicomReplaceMode_InsertIfAbsent);  // (**)
 
   std::string s;
   ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_SOP_INSTANCE_UID));
@@ -518,7 +519,7 @@ TEST(ParsedDicomFile, JsonEncoding)
       }
 
       Json::Value s = Toolbox::ConvertToUtf8(testEncodingsEncoded[i], testEncodings[i]);
-      f.Replace(DICOM_TAG_PATIENT_NAME, s, false);
+      f.Replace(DICOM_TAG_PATIENT_NAME, s, false, DicomReplaceMode_InsertIfAbsent);
 
       Json::Value v;
       f.ToJson(v, DicomToJsonFormat_Human, DicomToJsonFlags_Default, 0);
@@ -651,7 +652,7 @@ TEST(DicomFindAnswers, Basic)
 
   {
     ParsedDicomFile d(true);
-    d.Replace(DICOM_TAG_PATIENT_ID, "my");
+    d.ReplacePlainString(DICOM_TAG_PATIENT_ID, "my");
     a.Add(d);
   }
 
@@ -790,12 +791,12 @@ TEST(TestImages, PatternGrayscale8)
 
   {
     ParsedDicomFile f(true);
-    f.Replace(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.7");
-    f.Replace(DICOM_TAG_STUDY_INSTANCE_UID, "1.2.276.0.7230010.3.1.2.2831176407.321.1458901422.884998");
-    f.Replace(DICOM_TAG_PATIENT_ID, "ORTHANC");
-    f.Replace(DICOM_TAG_PATIENT_NAME, "Orthanc");
-    f.Replace(DICOM_TAG_STUDY_DESCRIPTION, "Patterns");
-    f.Replace(DICOM_TAG_SERIES_DESCRIPTION, "Grayscale8");
+    f.ReplacePlainString(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.7");
+    f.ReplacePlainString(DICOM_TAG_STUDY_INSTANCE_UID, "1.2.276.0.7230010.3.1.2.2831176407.321.1458901422.884998");
+    f.ReplacePlainString(DICOM_TAG_PATIENT_ID, "ORTHANC");
+    f.ReplacePlainString(DICOM_TAG_PATIENT_NAME, "Orthanc");
+    f.ReplacePlainString(DICOM_TAG_STUDY_DESCRIPTION, "Patterns");
+    f.ReplacePlainString(DICOM_TAG_SERIES_DESCRIPTION, "Grayscale8");
     f.EmbedImage(image);
 
     f.SaveToFile(PATH);
@@ -852,12 +853,12 @@ TEST(TestImages, PatternRGB)
 
   {
     ParsedDicomFile f(true);
-    f.Replace(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.7");
-    f.Replace(DICOM_TAG_STUDY_INSTANCE_UID, "1.2.276.0.7230010.3.1.2.2831176407.321.1458901422.884998");
-    f.Replace(DICOM_TAG_PATIENT_ID, "ORTHANC");
-    f.Replace(DICOM_TAG_PATIENT_NAME, "Orthanc");
-    f.Replace(DICOM_TAG_STUDY_DESCRIPTION, "Patterns");
-    f.Replace(DICOM_TAG_SERIES_DESCRIPTION, "RGB24");
+    f.ReplacePlainString(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.7");
+    f.ReplacePlainString(DICOM_TAG_STUDY_INSTANCE_UID, "1.2.276.0.7230010.3.1.2.2831176407.321.1458901422.884998");
+    f.ReplacePlainString(DICOM_TAG_PATIENT_ID, "ORTHANC");
+    f.ReplacePlainString(DICOM_TAG_PATIENT_NAME, "Orthanc");
+    f.ReplacePlainString(DICOM_TAG_STUDY_DESCRIPTION, "Patterns");
+    f.ReplacePlainString(DICOM_TAG_SERIES_DESCRIPTION, "RGB24");
     f.EmbedImage(image);
 
     f.SaveToFile(PATH);
@@ -906,12 +907,12 @@ TEST(TestImages, PatternUint16)
 
   {
     ParsedDicomFile f(true);
-    f.Replace(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.7");
-    f.Replace(DICOM_TAG_STUDY_INSTANCE_UID, "1.2.276.0.7230010.3.1.2.2831176407.321.1458901422.884998");
-    f.Replace(DICOM_TAG_PATIENT_ID, "ORTHANC");
-    f.Replace(DICOM_TAG_PATIENT_NAME, "Orthanc");
-    f.Replace(DICOM_TAG_STUDY_DESCRIPTION, "Patterns");
-    f.Replace(DICOM_TAG_SERIES_DESCRIPTION, "Grayscale16");
+    f.ReplacePlainString(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.7");
+    f.ReplacePlainString(DICOM_TAG_STUDY_INSTANCE_UID, "1.2.276.0.7230010.3.1.2.2831176407.321.1458901422.884998");
+    f.ReplacePlainString(DICOM_TAG_PATIENT_ID, "ORTHANC");
+    f.ReplacePlainString(DICOM_TAG_PATIENT_NAME, "Orthanc");
+    f.ReplacePlainString(DICOM_TAG_STUDY_DESCRIPTION, "Patterns");
+    f.ReplacePlainString(DICOM_TAG_SERIES_DESCRIPTION, "Grayscale16");
     f.EmbedImage(image);
 
     f.SaveToFile(PATH);
@@ -960,12 +961,12 @@ TEST(TestImages, PatternInt16)
 
   {
     ParsedDicomFile f(true);
-    f.Replace(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.7");
-    f.Replace(DICOM_TAG_STUDY_INSTANCE_UID, "1.2.276.0.7230010.3.1.2.2831176407.321.1458901422.884998");
-    f.Replace(DICOM_TAG_PATIENT_ID, "ORTHANC");
-    f.Replace(DICOM_TAG_PATIENT_NAME, "Orthanc");
-    f.Replace(DICOM_TAG_STUDY_DESCRIPTION, "Patterns");
-    f.Replace(DICOM_TAG_SERIES_DESCRIPTION, "SignedGrayscale16");
+    f.ReplacePlainString(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.7");
+    f.ReplacePlainString(DICOM_TAG_STUDY_INSTANCE_UID, "1.2.276.0.7230010.3.1.2.2831176407.321.1458901422.884998");
+    f.ReplacePlainString(DICOM_TAG_PATIENT_ID, "ORTHANC");
+    f.ReplacePlainString(DICOM_TAG_PATIENT_NAME, "Orthanc");
+    f.ReplacePlainString(DICOM_TAG_STUDY_DESCRIPTION, "Patterns");
+    f.ReplacePlainString(DICOM_TAG_SERIES_DESCRIPTION, "SignedGrayscale16");
     f.EmbedImage(image);
 
     f.SaveToFile(PATH);

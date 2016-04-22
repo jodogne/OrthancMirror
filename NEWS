@@ -39,6 +39,8 @@ Maintenance
 * Use of HTTP status 403 Forbidden (instead of 401) if access to a REST resource is disallowed
 * Option "HttpsVerifyPeers" can be used to connect against self-signed HTTPS certificates
 * Macro "__linux" (now obsolete) replaced by macro "__linux__" (maybe solves Debian bug #821011)
+* Modification of instances can now replace PixelData (resp. EncapsulatedDocument) with 
+  provided a PNG/JPEG image (resp. PDF file) if it is encoded using Data URI Scheme
 
 
 Version 1.0.0 (2015/12/15)

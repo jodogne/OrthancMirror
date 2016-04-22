@@ -40,7 +40,10 @@ namespace Orthanc
   class ToDcmtkBridge
   {
   public:
-    static DcmTagKey Convert(const DicomTag& tag);
+    static DcmTagKey Convert(const DicomTag& tag)
+    {
+      return DcmTagKey(tag.GetGroup(), tag.GetElement());
+    }
 
     static DcmDataset* Convert(const DicomMap& map);
   };

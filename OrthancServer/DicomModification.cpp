@@ -141,7 +141,7 @@ namespace Orthanc
       mapped = previous->second;
     }    
 
-    dicom.Replace(*tag, mapped);
+    dicom.Replace(*tag, mapped, false /* don't try and decode data URI scheme for UIDs */, DicomReplaceMode_InsertIfAbsent);
   }
   
   DicomModification::DicomModification()
@@ -459,7 +459,7 @@ namespace Orthanc
     for (Replacements::const_iterator it = replacements_.begin(); 
          it != replacements_.end(); ++it)
     {
-      toModify.Replace(it->first, *it->second, DicomReplaceMode_InsertIfAbsent);
+      toModify.Replace(it->first, *it->second, true /* decode data URI scheme */, DicomReplaceMode_InsertIfAbsent);
     }
 
     // (4) Update the DICOM identifiers
