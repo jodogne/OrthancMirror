@@ -125,6 +125,11 @@ namespace Orthanc
       return isVerbose_;
     }
 
+    void AddHeader(const std::string& key,
+                   const std::string& value);
+
+    void ClearHeaders();
+
     bool Apply(std::string& answer);
 
     bool Apply(Json::Value& answer);

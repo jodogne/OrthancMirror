@@ -80,7 +80,8 @@ namespace Orthanc
   struct HttpClient::PImpl
   {
     CURL* curl_;
-    struct curl_slist *postHeaders_;
+    struct curl_slist *defaultPostHeaders_;
+    struct curl_slist *userHeaders_;
   };
 
 
@@ -135,8 +136,9 @@ namespace Orthanc
 
   void HttpClient::Setup()
   {
-    pimpl_->postHeaders_ = NULL;
-    if ((pimpl_->postHeaders_ = curl_slist_append(pimpl_->postHeaders_, "Expect:")) == NULL)
+    pimpl_->userHeaders_ = NULL;
+    pimpl_->defaultPostHeaders_ = NULL;
+    if ((pimpl_->defaultPostHeaders_ = curl_slist_append(pimpl_->defaultPostHeaders_, "Expect:")) == NULL)
     {
       throw OrthancException(ErrorCode_NotEnoughMemory);
     }
@@ -144,7 +146,7 @@ namespace Orthanc
     pimpl_->curl_ = curl_easy_init();
     if (!pimpl_->curl_)
     {
-      curl_slist_free_all(pimpl_->postHeaders_);
+      curl_slist_free_all(pimpl_->defaultPostHeaders_);
       throw OrthancException(ErrorCode_NotEnoughMemory);
     }
 
@@ -191,7 +193,8 @@ namespace Orthanc
   HttpClient::~HttpClient()
   {
     curl_easy_cleanup(pimpl_->curl_);
-    curl_slist_free_all(pimpl_->postHeaders_);
+    curl_slist_free_all(pimpl_->defaultPostHeaders_);
+    ClearHeaders();
   }
 
 
@@ -206,6 +209,33 @@ namespace Orthanc
     else
     {
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_VERBOSE, 0));
+    }
+  }
+
+
+  void HttpClient::AddHeader(const std::string& key,
+                             const std::string& value)
+  {
+    if (key.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    std::string s = key + ": " + value;
+
+    if ((pimpl_->userHeaders_ = curl_slist_append(pimpl_->userHeaders_, s.c_str())) == NULL)
+    {
+      throw OrthancException(ErrorCode_NotEnoughMemory);
+    }
+  }
+
+
+  void HttpClient::ClearHeaders()
+  {
+    if (pimpl_->userHeaders_ != NULL)
+    {
+      curl_slist_free_all(pimpl_->userHeaders_);
+      pimpl_->userHeaders_ = NULL;
     }
   }
 
@@ -232,7 +262,7 @@ namespace Orthanc
 #endif
 
     // Reset the parameters from previous calls to Apply()
-    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPHEADER, NULL));
+    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPHEADER, pimpl_->userHeaders_));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPGET, 0L));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POST, 0L));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_NOBODY, 0L));
@@ -271,7 +301,12 @@ namespace Orthanc
 
     case HttpMethod_Post:
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POST, 1L));
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPHEADER, pimpl_->postHeaders_));
+
+      if (pimpl_->userHeaders_ == NULL)
+      {
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPHEADER, pimpl_->defaultPostHeaders_));
+      }
+
       break;
 
     case HttpMethod_Delete:
@@ -286,7 +321,12 @@ namespace Orthanc
       // CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_PUT, 1L));
 
       curl_easy_setopt(pimpl_->curl_, CURLOPT_CUSTOMREQUEST, "PUT"); /* !!! */
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPHEADER, pimpl_->postHeaders_));      
+
+      if (pimpl_->userHeaders_ == NULL)
+      {
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPHEADER, pimpl_->defaultPostHeaders_));
+      }
+
       break;
 
     default:
