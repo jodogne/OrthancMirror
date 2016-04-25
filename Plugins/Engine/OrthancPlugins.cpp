@@ -962,7 +962,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_BadRequest);
+      throw OrthancException(ErrorCode_UnknownResource);
     }
   }
 
@@ -994,7 +994,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_BadRequest);
+      throw OrthancException(ErrorCode_UnknownResource);
     }
   }
 
@@ -1021,7 +1021,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_BadRequest);
+      throw OrthancException(ErrorCode_UnknownResource);
     }
   }
 
@@ -1038,7 +1038,7 @@ namespace Orthanc
 
     if (!HttpToolbox::SimpleDelete(handler, RequestOrigin_Plugins, uri))
     {
-      throw OrthancException(ErrorCode_BadRequest);
+      throw OrthancException(ErrorCode_UnknownResource);
     }
   }
 
