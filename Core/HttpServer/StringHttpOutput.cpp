@@ -39,7 +39,8 @@ namespace Orthanc
 {
   void StringHttpOutput::OnHttpStatusReceived(HttpStatus status)
   {
-    if (status != HttpStatus_200_Ok)
+    if (status != HttpStatus_200_Ok &&
+        status != HttpStatus_404_NotFound)
     {
       throw OrthancException(ErrorCode_BadRequest);
     }
