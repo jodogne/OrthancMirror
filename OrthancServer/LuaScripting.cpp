@@ -391,7 +391,6 @@ namespace Orthanc
     lua_.RegisterFunction("GetOrthancConfiguration", GetOrthancConfiguration);
 
     lua_.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
-    lua_.SetHttpProxy(Configuration::GetGlobalStringParameter("HttpProxy", ""));
   }
 
 

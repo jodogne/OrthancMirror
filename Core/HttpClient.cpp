@@ -42,10 +42,6 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 
-static std::string globalCACertificates_;
-static bool globalVerifyPeers_ = true;
-static long globalTimeout_ = 0;
-
 extern "C"
 {
   static CURLcode GetHttpStatus(CURLcode code, CURL* curl, long* status)
@@ -77,6 +73,79 @@ extern "C"
 
 namespace Orthanc
 {
+  class HttpClient::GlobalParameters
+  {
+  private:
+    boost::mutex    mutex_;
+    bool            httpsVerifyPeers_;
+    std::string     httpsCACertificates_;
+    std::string     proxy_;
+    long            timeout_;
+
+    GlobalParameters() : 
+      httpsVerifyPeers_(true),
+      timeout_(0)
+    {
+    }
+
+  public:
+    // Singleton pattern
+    static GlobalParameters& GetInstance()
+    {
+      static GlobalParameters parameters;
+      return parameters;
+    }
+
+    void ConfigureSsl(bool httpsVerifyPeers,
+                      const std::string& httpsCACertificates)
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+      httpsVerifyPeers_ = httpsVerifyPeers;
+      httpsCACertificates_ = httpsCACertificates;
+    }
+
+    void GetSslConfiguration(bool& httpsVerifyPeers,
+                             std::string& httpsCACertificates)
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+      httpsVerifyPeers = httpsVerifyPeers_;
+      httpsCACertificates = httpsCACertificates_;
+    }
+
+    void SetDefaultProxy(const std::string& proxy)
+    {
+      LOG(INFO) << "Setting the default proxy for HTTP client connections: " << proxy;
+
+      {
+        boost::mutex::scoped_lock lock(mutex_);
+        proxy_ = proxy;
+      }
+    }
+
+    void GetDefaultProxy(std::string& target)
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+      target = proxy_;
+    }
+
+    void SetDefaultTimeout(long seconds)
+    {
+      LOG(INFO) << "Setting the default timeout for HTTP client connections: " << seconds << " seconds";
+
+      {
+        boost::mutex::scoped_lock lock(mutex_);
+        timeout_ = seconds;
+      }
+    }
+
+    long GetDefaultTimeout()
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+      return timeout_;
+    }
+  };
+
+
   struct HttpClient::PImpl
   {
     CURL* curl_;
@@ -93,6 +162,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadRequest);
 
       case HttpStatus_401_Unauthorized:
+      case HttpStatus_403_Forbidden:
         throw OrthancException(ErrorCode_Unauthorized);
 
       case HttpStatus_404_NotFound:
@@ -163,30 +233,15 @@ namespace Orthanc
     method_ = HttpMethod_Get;
     lastStatus_ = HttpStatus_200_Ok;
     isVerbose_ = false;
-    timeout_ = globalTimeout_;
-    verifyPeers_ = globalVerifyPeers_;
+    timeout_ = GlobalParameters::GetInstance().GetDefaultTimeout();
+    GlobalParameters::GetInstance().GetDefaultProxy(proxy_);
+    GlobalParameters::GetInstance().GetSslConfiguration(verifyPeers_, caCertificates_);
   }
 
 
   HttpClient::HttpClient() : pimpl_(new PImpl)
   {
     Setup();
-  }
-
-
-  HttpClient::HttpClient(const HttpClient& other) : pimpl_(new PImpl)
-  {
-    Setup();
-
-    if (other.IsVerbose())
-    {
-      SetVerbose(true);
-    }
-
-    if (other.credentials_.size() != 0)
-    {
-      credentials_ = other.credentials_;
-    }
   }
 
 
@@ -248,9 +303,9 @@ namespace Orthanc
 
     // Setup HTTPS-related options
 #if ORTHANC_SSL_ENABLED == 1
-    if (IsHttpsVerifyPeers())
+    if (verifyPeers_)
     {
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CAINFO, GetHttpsCACertificates().c_str()));
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CAINFO, caCertificates_.c_str()));
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYHOST, 2));  // libcurl default is strict verifyhost
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYPEER, 1)); 
     }
@@ -375,7 +430,15 @@ namespace Orthanc
       lastStatus_ = static_cast<HttpStatus>(status);
     }
 
-    return (status >= 200 && status < 300);
+    bool success = (status >= 200 && status < 300);
+
+    if (!success)
+    {
+      LOG(INFO) << "Error in HTTP request, received HTTP status " << status 
+                << " (" << EnumerationToString(lastStatus_) << ")";
+    }
+
+    return success;
   }
 
 
@@ -400,59 +463,54 @@ namespace Orthanc
     credentials_ = std::string(username) + ":" + std::string(password);
   }
 
-  
-  const std::string& HttpClient::GetHttpsCACertificates() const
+
+  void HttpClient::ConfigureSsl(bool httpsVerifyPeers,
+                                const std::string& httpsVerifyCertificates)
   {
-    if (caCertificates_.empty())
-    {
-      return globalCACertificates_;
-    }
-    else
-    {
-      return caCertificates_;
-    }
-  }
-
-
-  void HttpClient::GlobalInitialize(bool httpsVerifyPeers,
-                                    const std::string& httpsVerifyCertificates)
-  {
-    globalVerifyPeers_ = httpsVerifyPeers;
-    globalCACertificates_ = httpsVerifyCertificates;
-
 #if ORTHANC_SSL_ENABLED == 1
     if (httpsVerifyPeers)
     {
-      if (globalCACertificates_.empty())
+      if (httpsVerifyCertificates.empty())
       {
         LOG(WARNING) << "No certificates are provided to validate peers, "
                      << "set \"HttpsCACertificates\" if you need to do HTTPS requests";
       }
       else
       {
-        LOG(WARNING) << "HTTPS will use the CA certificates from this file: " << globalCACertificates_;
+        LOG(WARNING) << "HTTPS will use the CA certificates from this file: " << httpsVerifyCertificates;
       }
     }
     else
     {
-      LOG(WARNING) << "The verification of the peers in HTTPS requests is disabled!";
+      LOG(WARNING) << "The verification of the peers in HTTPS requests is disabled";
     }
 #endif
 
-    CheckCode(curl_global_init(CURL_GLOBAL_DEFAULT));
+    GlobalParameters::GetInstance().ConfigureSsl(httpsVerifyPeers, httpsVerifyCertificates);
   }
 
   
+  void HttpClient::GlobalInitialize()
+  {
+    CheckCode(curl_global_init(CURL_GLOBAL_DEFAULT));
+  }
+
+
   void HttpClient::GlobalFinalize()
   {
     curl_global_cleanup();
   }
-
   
+
+  void HttpClient::SetDefaultProxy(const std::string& proxy)
+  {
+    GlobalParameters::GetInstance().SetDefaultProxy(proxy);
+  }
+
+
   void HttpClient::SetDefaultTimeout(long timeout)
   {
-    LOG(INFO) << "Setting the default timeout for HTTP client connections: " << timeout << " seconds";
-    globalTimeout_ = timeout;
+    GlobalParameters::GetInstance().SetDefaultTimeout(timeout);
   }
 
 

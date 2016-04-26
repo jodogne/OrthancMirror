@@ -1415,6 +1415,76 @@ namespace Orthanc
   }
 
 
+  void OrthancPlugins::CallHttpClient2(const void* parameters)
+  {
+    const _OrthancPluginCallHttpClient2& p = *reinterpret_cast<const _OrthancPluginCallHttpClient2*>(parameters);
+
+    HttpClient client;
+    client.SetUrl(p.url);
+
+    if (p.timeout != 0)
+    {
+      client.SetTimeout(p.timeout);
+    }
+
+    if (p.username != NULL && 
+        p.password != NULL)
+    {
+      client.SetCredentials(p.username, p.password);
+    }
+
+    for (uint32_t i = 0; i < p.headersCount; i++)
+    {
+      if (p.headersKeys[i] == NULL ||
+          p.headersValues[i] == NULL)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+
+      client.AddHeader(p.headersKeys[i], p.headersValues[i]);
+    }
+
+    switch (p.method)
+    {
+      case OrthancPluginHttpMethod_Get:
+        client.SetMethod(HttpMethod_Get);
+        break;
+
+      case OrthancPluginHttpMethod_Post:
+        client.SetMethod(HttpMethod_Post);
+        client.GetBody().assign(p.body, p.bodySize);
+        break;
+
+      case OrthancPluginHttpMethod_Put:
+        client.SetMethod(HttpMethod_Put);
+        client.GetBody().assign(p.body, p.bodySize);
+        break;
+
+      case OrthancPluginHttpMethod_Delete:
+        client.SetMethod(HttpMethod_Delete);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    std::string s;
+
+    if (!client.Apply(s))
+    {
+      *p.httpStatus = 0;
+      throw OrthancException(ErrorCode_NetworkProtocol);
+    }
+
+    *p.httpStatus = static_cast<uint16_t>(client.GetLastStatus());
+
+    if (p.method != OrthancPluginHttpMethod_Delete)
+    {
+      CopyToMemoryBuffer(*p.target, s);
+    }
+  }
+
+
   void OrthancPlugins::ConvertPixelFormat(const void* parameters)
   {
     const _OrthancPluginConvertPixelFormat& p = *reinterpret_cast<const _OrthancPluginConvertPixelFormat*>(parameters);
@@ -2115,6 +2185,10 @@ namespace Orthanc
         CallHttpClient(parameters);
         return true;
 
+      case _OrthancPluginService_CallHttpClient2:
+        CallHttpClient2(parameters);
+        return true;
+
       case _OrthancPluginService_ConvertPixelFormat:
         ConvertPixelFormat(parameters);
         return true;
@@ -2254,6 +2328,13 @@ namespace Orthanc
       case _OrthancPluginService_LookupDictionary:
         ApplyLookupDictionary(parameters);
         return true;
+
+      case _OrthancPluginService_GenerateUuid:
+      {
+        *reinterpret_cast<const _OrthancPluginRetrieveDynamicString*>(parameters)->result = 
+          CopyString(Toolbox::GenerateUuid());
+        return true;
+      }
 
       default:
       {

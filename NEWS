@@ -22,6 +22,8 @@ Plugins
 -------
 
 * New callback to filter incoming HTTP requests: OrthancPluginRegisterIncomingHttpRequestFilter()
+* New function: "OrthancPluginHttpClient()" to do HTTP requests with full control
+* New function: "OrthancPluginGenerateUuid()" to generate a UUID
 
 Lua
 ---
