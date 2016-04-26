@@ -43,6 +43,8 @@ namespace Orthanc
   class HttpClient
   {
   private:
+    class GlobalParameters;
+
     struct PImpl;
     boost::shared_ptr<PImpl> pimpl_;
 
@@ -59,11 +61,10 @@ namespace Orthanc
 
     void Setup();
 
-    void operator= (const HttpClient&);  // Forbidden
+    void operator= (const HttpClient&);  // Assignment forbidden
+    HttpClient(const HttpClient& base);  // Copy forbidden
 
   public:
-    HttpClient(const HttpClient& base);
-
     HttpClient();
 
     ~HttpClient();
@@ -162,12 +163,19 @@ namespace Orthanc
       caCertificates_ = certificates;
     }
 
-    const std::string& GetHttpsCACertificates() const;
+    const std::string& GetHttpsCACertificates() const
+    {
+      return caCertificates_;
+    }
 
-    static void GlobalInitialize(bool httpsVerifyPeers,
-                                 const std::string& httpsCACertificates);
+    static void GlobalInitialize();
   
     static void GlobalFinalize();
+
+    static void ConfigureSsl(bool httpsVerifyPeers,
+                             const std::string& httpsCACertificates);
+
+    static void SetDefaultProxy(const std::string& proxy);
 
     static void SetDefaultTimeout(long timeout);
 

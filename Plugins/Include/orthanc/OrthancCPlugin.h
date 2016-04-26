@@ -403,6 +403,8 @@ extern "C"
     _OrthancPluginService_ComputeMd5 = 24,
     _OrthancPluginService_ComputeSha1 = 25,
     _OrthancPluginService_LookupDictionary = 26,
+    _OrthancPluginService_CallHttpClient2 = 27,
+    _OrthancPluginService_GenerateUuid = 28,
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -4148,8 +4150,8 @@ extern "C"
    * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer().
    * @param uri The URI in the built-in Orthanc API.
    * @param headersCount The number of HTTP headers.
-   * @param headersKeys Array containing the keys of the HTTP headers.
-   * @param headersValues Array containing the values of the HTTP headers.
+   * @param headersKeys Array containing the keys of the HTTP headers (can be <tt>NULL</tt> if no header).
+   * @param headersValues Array containing the values of the HTTP headers (can be <tt>NULL</tt> if no header).
    * @param afterPlugins If 0, the built-in API of Orthanc is used.
    * If 1, the API is tainted by the plugins.
    * @return 0 if success, or the error code if failure.
@@ -4788,6 +4790,112 @@ extern "C"
     return context->InvokeService(context, _OrthancPluginService_RegisterIncomingHttpRequestFilter, &params);
   }
   
+
+
+  typedef struct
+  {
+    OrthancPluginMemoryBuffer*  target;
+    uint16_t*                   httpStatus;
+    OrthancPluginHttpMethod     method;
+    const char*                 url;
+    uint32_t                    headersCount;
+    const char* const*          headersKeys;
+    const char* const*          headersValues;
+    const char*                 body;
+    uint32_t                    bodySize;
+    const char*                 username;
+    const char*                 password;
+    uint32_t                    timeout;
+  } _OrthancPluginCallHttpClient2;
+
+
+
+  /**
+   * @brief Issue a HTTP call with full flexibility.
+   * 
+   * Make a HTTP call to the given URL. The result to the query is
+   * stored into a newly allocated memory buffer.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer() (out argument).
+   * @param httpStatus The HTTP status after the execution of the request (out argument).
+   * @param method HTTP method to be used.
+   * @param url The URL of interest.
+   * @param headersCount The number of HTTP headers.
+   * @param headersKeys Array containing the keys of the HTTP headers (can be <tt>NULL</tt> if no header).
+   * @param headersValues Array containing the values of the HTTP headers (can be <tt>NULL</tt> if no header).
+   * @param username The username (can be <tt>NULL</tt> if no password protection).
+   * @param password The password (can be <tt>NULL</tt> if no password protection).
+   * @param body The body of the POST request.
+   * @param bodySize The size of the body.
+   * @param timeout Timeout in seconds (0 for default timeout).
+   * @return 0 if success, or the error code if failure.
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginHttpClient(
+    OrthancPluginContext*       context,
+    OrthancPluginMemoryBuffer*  target,
+    uint16_t*                   httpStatus,
+    OrthancPluginHttpMethod     method,
+    const char*                 url,
+    uint32_t                    headersCount,
+    const char* const*          headersKeys,
+    const char* const*          headersValues,
+    const char*                 body,
+    uint32_t                    bodySize,
+    const char*                 username,
+    const char*                 password,
+    uint32_t                    timeout)
+  {
+    _OrthancPluginCallHttpClient2 params;
+    memset(&params, 0, sizeof(params));
+
+    params.target = target;
+    params.httpStatus = httpStatus;
+    params.method = method;
+    params.url = url;
+    params.headersCount = headersCount;
+    params.headersKeys = headersKeys;
+    params.headersValues = headersValues;
+    params.body = body;
+    params.bodySize = bodySize;
+    params.username = username;
+    params.password = password;
+    params.timeout = timeout;
+
+    return context->InvokeService(context, _OrthancPluginService_CallHttpClient2, &params);
+  }
+
+
+  /**
+   * @brief Generate an UUID.
+   *
+   * Generate a random GUID/UUID (globally unique identifier).
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @return NULL in the case of an error, or a newly allocated string
+   * containing the UUID. This string must be freed by OrthancPluginFreeString().
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginGenerateUuid(
+    OrthancPluginContext*  context)
+  {
+    char* result;
+
+    _OrthancPluginRetrieveDynamicString params;
+    params.result = &result;
+    params.argument = NULL;
+
+    if (context->InvokeService(context, _OrthancPluginService_GenerateUuid, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
 
 #ifdef  __cplusplus
 }

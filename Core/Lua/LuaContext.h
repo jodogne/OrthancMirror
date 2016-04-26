@@ -104,11 +104,6 @@ namespace Orthanc
       httpClient_.SetCredentials(username, password);
     }
 
-    void SetHttpProxy(const std::string& proxy)
-    {
-      httpClient_.SetProxy(proxy);
-    }
-
     void RegisterFunction(const char* name,
                           lua_CFunction func);
 

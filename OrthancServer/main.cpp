@@ -892,7 +892,10 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 {
   ServerContext context(database, storageArea);
 
+  HttpClient::ConfigureSsl(Configuration::GetGlobalBoolParameter("HttpsVerifyPeers", true),
+                           Configuration::GetGlobalStringParameter("HttpsCACertificates", ""));
   HttpClient::SetDefaultTimeout(Configuration::GetGlobalIntegerParameter("HttpTimeout", 0));
+  HttpClient::SetDefaultProxy(Configuration::GetGlobalStringParameter("HttpProxy", ""));
   context.SetCompressionEnabled(Configuration::GetGlobalBoolParameter("StorageCompression", false));
   context.SetStoreMD5ForAttachments(Configuration::GetGlobalBoolParameter("StoreMD5ForAttachments", true));
 
