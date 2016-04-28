@@ -582,6 +582,18 @@ namespace Orthanc
   void Toolbox::DecodeBase64(std::string& result, 
                              const std::string& data)
   {
+    for (size_t i = 0; i < data.length(); i++)
+    {
+      if (!isalnum(data[i]) &&
+          data[i] != '+' &&
+          data[i] != '/' &&
+          data[i] != '=')
+      {
+        // This is not a valid character for a Base64 string
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+    }
+
     result = base64_decode(data);
   }
 
