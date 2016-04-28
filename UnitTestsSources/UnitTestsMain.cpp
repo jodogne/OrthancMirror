@@ -364,6 +364,12 @@ TEST(Toolbox, Base64)
   std::string decoded;
   Toolbox::DecodeBase64(decoded, hello);
   ASSERT_EQ("Hello world", decoded);
+
+  // Invalid character
+  ASSERT_THROW(Toolbox::DecodeBase64(decoded, "?"), OrthancException);
+
+  // All the allowed characters
+  Toolbox::DecodeBase64(decoded, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=");
 }
 
 TEST(Toolbox, PathToExecutable)
