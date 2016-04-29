@@ -40,6 +40,7 @@
 #include <string.h>
 #include <curl/curl.h>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/thread/mutex.hpp>
 
 
 extern "C"
