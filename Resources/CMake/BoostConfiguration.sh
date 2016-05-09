@@ -26,7 +26,7 @@ tar xfz ./boost_1_60_0.tar.gz
 
 echo "Generating the subset..."
 mkdir -p /tmp/bcp/boost_1_60_0
-bcp --boost=/tmp/boost_1_60_0 thread system locale date_time filesystem math/special_functions algorithm uuid atomic iostreams program_options /tmp/bcp/boost_1_60_0
+bcp --boost=/tmp/boost_1_60_0 thread system locale date_time filesystem math/special_functions algorithm uuid atomic iostreams program_options numeric/ublas /tmp/bcp/boost_1_60_0
 cd /tmp/bcp
 
 echo "Compressing the subset..."
