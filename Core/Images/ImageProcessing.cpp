@@ -75,9 +75,26 @@ namespace Orthanc
   }
 
 
+  template <typename SourceType>
+  static void ConvertGrayscaleToFloat(ImageAccessor& target,
+                                      const ImageAccessor& source)
+  {
+    for (unsigned int y = 0; y < source.GetHeight(); y++)
+    {
+      float* t = reinterpret_cast<float*>(target.GetRow(y));
+      const SourceType* s = reinterpret_cast<const SourceType*>(source.GetConstRow(y));
+
+      for (unsigned int x = 0; x < source.GetWidth(); x++, t++, s++)
+      {
+        *t = static_cast<float>(*s);
+      }
+    }
+  }
+
+
   template <typename TargetType>
   static void ConvertColorToGrayscale(ImageAccessor& target,
-                              const ImageAccessor& source)
+                                      const ImageAccessor& source)
   {
     assert(source.GetFormat() == PixelFormat_RGB24);
 
@@ -375,6 +392,27 @@ namespace Orthanc
         source.GetFormat() == PixelFormat_RGB24)
     {
       ConvertColorToGrayscale<int16_t>(target, source);
+      return;
+    }
+
+    if (target.GetFormat() == PixelFormat_Float32 &&
+        source.GetFormat() == PixelFormat_Grayscale8)
+    {
+      ConvertGrayscaleToFloat<uint8_t>(target, source);
+      return;
+    }
+
+    if (target.GetFormat() == PixelFormat_Float32 &&
+        source.GetFormat() == PixelFormat_Grayscale16)
+    {
+      ConvertGrayscaleToFloat<uint16_t>(target, source);
+      return;
+    }
+
+    if (target.GetFormat() == PixelFormat_Float32 &&
+        source.GetFormat() == PixelFormat_SignedGrayscale16)
+    {
+      ConvertGrayscaleToFloat<int16_t>(target, source);
       return;
     }
 

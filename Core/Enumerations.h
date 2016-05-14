@@ -187,7 +187,13 @@ namespace Orthanc
      * {summary}{Graylevel, signed 16bpp image.}
      * {description}{The image is graylevel. Each pixel is signed and stored in two bytes.}
      **/
-    PixelFormat_SignedGrayscale16 = 5
+    PixelFormat_SignedGrayscale16 = 5,
+      
+    /**
+     * {summary}{Graylevel, floating-point image.}
+     * {description}{The image is graylevel. Each pixel is floating-point and stored in 4 bytes.}
+     **/
+    PixelFormat_Float32 = 6
   };
 
 
