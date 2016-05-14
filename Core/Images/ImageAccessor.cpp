@@ -65,7 +65,7 @@ namespace Orthanc
 
       for (unsigned int x = 0; x < source.GetWidth(); x++, p++)
       {
-        s += boost::lexical_cast<std::string>(static_cast<int>(*p)) + " ";
+        s += boost::lexical_cast<std::string>(static_cast<double>(*p)) + " ";
       }
 
       target.AddChunk(s);
@@ -219,6 +219,10 @@ namespace Orthanc
 
       case PixelFormat_SignedGrayscale16:
         ToMatlabStringInternal<int16_t>(buffer, *this);
+        break;
+
+      case PixelFormat_Float32:
+        ToMatlabStringInternal<float>(buffer, *this);
         break;
 
       case PixelFormat_RGB24:
