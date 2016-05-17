@@ -79,6 +79,8 @@ namespace Orthanc
   static void ConvertGrayscaleToFloat(ImageAccessor& target,
                                       const ImageAccessor& source)
   {
+    assert(sizeof(float) == 4);
+
     for (unsigned int y = 0; y < source.GetHeight(); y++)
     {
       float* t = reinterpret_cast<float*>(target.GetRow(y));
@@ -537,6 +539,11 @@ namespace Orthanc
 
       case PixelFormat_SignedGrayscale16:
         SetInternal<int16_t>(image, value);
+        return;
+
+      case PixelFormat_Float32:
+        assert(sizeof(float) == 4);
+        SetInternal<float>(image, value);
         return;
 
       default:
