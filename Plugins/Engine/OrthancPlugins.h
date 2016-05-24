@@ -53,6 +53,7 @@ namespace Orthanc
 #include "../../OrthancServer/IServerListener.h"
 #include "../../OrthancServer/IDicomImageDecoder.h"
 #include "../../OrthancServer/DicomProtocol/IWorklistRequestHandlerFactory.h"
+#include "../../OrthancServer/DicomProtocol/IFindRequestHandlerFactory.h"
 #include "OrthancPluginDatabase.h"
 #include "PluginsManager.h"
 
@@ -69,13 +70,15 @@ namespace Orthanc
     public IServerListener,
     public IWorklistRequestHandlerFactory,
     public IDicomImageDecoder,
-    public IIncomingHttpRequestFilter
+    public IIncomingHttpRequestFilter,
+    public IFindRequestHandlerFactory
   {
   private:
     struct PImpl;
     boost::shared_ptr<PImpl> pimpl_;
 
     class WorklistHandler;
+    class FindHandler;
 
     void CheckContextAvailable();
 
@@ -87,6 +90,8 @@ namespace Orthanc
     void RegisterOnChangeCallback(const void* parameters);
 
     void RegisterWorklistCallback(const void* parameters);
+
+    void RegisterFindCallback(const void* parameters);
 
     void RegisterDecodeImageCallback(const void* parameters);
 
@@ -251,6 +256,10 @@ namespace Orthanc
                            const char* ip,
                            const char* username,
                            const IHttpHandler::Arguments& httpHeaders) const;
+
+    bool HasFindHandler();
+
+    virtual IFindRequestHandler* ConstructFindRequestHandler();
   };
 }
 

@@ -64,7 +64,7 @@ namespace Orthanc
 
     void Add(ParsedDicomFile& dicom);
 
-    void Add(const char* dicom,
+    void Add(const void* dicom,
              size_t size);
 
     size_t GetSize() const
