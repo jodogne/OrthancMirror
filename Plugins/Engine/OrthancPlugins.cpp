@@ -39,6 +39,7 @@
 
 
 #include "../../Core/ChunkedBuffer.h"
+#include "../../Core/DicomFormat/DicomArray.h"
 #include "../../Core/HttpServer/HttpToolbox.h"
 #include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
@@ -104,6 +105,27 @@ namespace Orthanc
     {
       CopyToMemoryBuffer(target, str.c_str(), str.size());
     }
+  }
+
+
+  static char* CopyString(const std::string& str)
+  {
+    char *result = reinterpret_cast<char*>(malloc(str.size() + 1));
+    if (result == NULL)
+    {
+      throw OrthancException(ErrorCode_NotEnoughMemory);
+    }
+
+    if (str.size() == 0)
+    {
+      result[0] = '\0';
+    }
+    else
+    {
+      memcpy(result, &str[0], str.size() + 1);
+    }
+
+    return result;
   }
 
 
@@ -291,6 +313,7 @@ namespace Orthanc
     RestCallbacks restCallbacks_;
     OnStoredCallbacks  onStoredCallbacks_;
     OnChangeCallbacks  onChangeCallbacks_;
+    OrthancPluginFindCallback  findCallback_;
     OrthancPluginWorklistCallback  worklistCallback_;
     OrthancPluginDecodeImageCallback  decodeImageCallback_;
     IncomingHttpRequestFilters  incomingHttpRequestFilters_;
@@ -298,6 +321,7 @@ namespace Orthanc
     boost::recursive_mutex restCallbackMutex_;
     boost::recursive_mutex storedCallbackMutex_;
     boost::recursive_mutex changeCallbackMutex_;
+    boost::mutex findCallbackMutex_;
     boost::mutex worklistCallbackMutex_;
     boost::mutex decodeImageCallbackMutex_;
     boost::recursive_mutex invokeServiceMutex_;
@@ -309,6 +333,7 @@ namespace Orthanc
 
     PImpl() : 
       context_(NULL), 
+      findCallback_(NULL),
       worklistCallback_(NULL),
       decodeImageCallback_(NULL),
       argc_(1),
@@ -345,11 +370,12 @@ namespace Orthanc
                         const std::string& calledAet)
     {
       bool caseSensitivePN = Configuration::GetGlobalBoolParameter("CaseSensitivePN", false);
-      matcher_.reset(new HierarchicalMatcher(query, caseSensitivePN));
-      currentQuery_ = &query;
 
       {
         boost::mutex::scoped_lock lock(that_.pimpl_->worklistCallbackMutex_);
+
+        matcher_.reset(new HierarchicalMatcher(query, caseSensitivePN));
+        currentQuery_ = &query;
 
         if (that_.pimpl_->worklistCallback_)
         {
@@ -366,14 +392,18 @@ namespace Orthanc
             throw OrthancException(static_cast<ErrorCode>(error));
           }
         }
-      }
 
-      Reset();
+        Reset();
+      }
     }
 
     void GetDicomQuery(OrthancPluginMemoryBuffer& target) const
     {
-      assert(currentQuery_ != NULL);
+      if (currentQuery_ == NULL)
+      {
+        throw OrthancException(ErrorCode_Plugin);
+      }
+
       std::string dicom;
       currentQuery_->SaveToMemoryBuffer(dicom);
       CopyToMemoryBuffer(target, dicom.c_str(), dicom.size());
@@ -382,7 +412,11 @@ namespace Orthanc
     bool IsMatch(const void* dicom,
                  size_t size) const
     {
-      assert(matcher_.get() != NULL);
+      if (matcher_.get() == NULL)
+      {
+        throw OrthancException(ErrorCode_Plugin);
+      }
+
       ParsedDicomFile f(dicom, size);
       return matcher_->Match(f);
     }
@@ -391,7 +425,11 @@ namespace Orthanc
                    const void* dicom,
                    size_t size) const
     {
-      assert(matcher_.get() != NULL);
+      if (matcher_.get() == NULL)
+      {
+        throw OrthancException(ErrorCode_Plugin);
+      }
+
       ParsedDicomFile f(dicom, size);
       std::auto_ptr<ParsedDicomFile> summary(matcher_->Extract(f));
       reinterpret_cast<DicomFindAnswers*>(answers)->Add(*summary);
@@ -399,25 +437,107 @@ namespace Orthanc
   };
 
   
-  static char* CopyString(const std::string& str)
+  class OrthancPlugins::FindHandler : public IFindRequestHandler
   {
-    char *result = reinterpret_cast<char*>(malloc(str.size() + 1));
-    if (result == NULL)
+  private:
+    OrthancPlugins&            that_;
+    std::auto_ptr<DicomArray>  currentQuery_;
+
+    void Reset()
     {
-      throw OrthancException(ErrorCode_NotEnoughMemory);
+      currentQuery_.reset(NULL);
     }
 
-    if (str.size() == 0)
+  public:
+    FindHandler(OrthancPlugins& that) : that_(that)
     {
-      result[0] = '\0';
-    }
-    else
-    {
-      memcpy(result, &str[0], str.size() + 1);
+      Reset();
     }
 
-    return result;
-  }
+    virtual void Handle(DicomFindAnswers& answers,
+                        const DicomMap& input,
+                        const std::list<DicomTag>& sequencesToReturn,
+                        const std::string& remoteIp,
+                        const std::string& remoteAet,
+                        const std::string& calledAet)
+    {
+      DicomMap tmp;
+      tmp.Assign(input);
+
+      for (std::list<DicomTag>::const_iterator it = sequencesToReturn.begin(); 
+           it != sequencesToReturn.end(); ++it)
+      {
+        if (!input.HasTag(*it))
+        {
+          tmp.SetValue(*it, "");
+        }
+      }      
+
+      {
+        boost::mutex::scoped_lock lock(that_.pimpl_->findCallbackMutex_);
+        currentQuery_.reset(new DicomArray(tmp));
+
+        if (that_.pimpl_->findCallback_)
+        {
+          OrthancPluginErrorCode error = that_.pimpl_->findCallback_
+            (reinterpret_cast<OrthancPluginFindAnswers*>(&answers),
+             reinterpret_cast<const OrthancPluginFindQuery*>(this),
+             remoteAet.c_str(),
+             calledAet.c_str());
+
+          if (error != OrthancPluginErrorCode_Success)
+          {
+            Reset();
+            that_.GetErrorDictionary().LogError(error, true);
+            throw OrthancException(static_cast<ErrorCode>(error));
+          }
+        }
+
+        Reset();
+      }
+    }
+
+    void Invoke(_OrthancPluginService service,
+                const _OrthancPluginFindOperation& operation) const
+    {
+      if (currentQuery_.get() == NULL)
+      {
+        throw OrthancException(ErrorCode_Plugin);
+      }
+
+      switch (service)
+      {
+        case _OrthancPluginService_GetFindQuerySize:
+          *operation.resultUint32 = currentQuery_->GetSize();
+          break;
+
+        case _OrthancPluginService_GetFindQueryTag:
+        {
+          const DicomTag& tag = currentQuery_->GetElement(operation.index).GetTag();
+          *operation.resultGroup = tag.GetGroup();
+          *operation.resultElement = tag.GetElement();
+          break;
+        }
+
+        case _OrthancPluginService_GetFindQueryTagName:
+        {
+          const DicomTag& tag = currentQuery_->GetElement(operation.index).GetTag();
+          *operation.resultString = CopyString(FromDcmtkBridge::GetName(tag));
+          break;
+        }
+
+        case _OrthancPluginService_GetFindQueryValue:
+        {
+          *operation.resultString = CopyString(currentQuery_->GetElement(operation.index).GetValue().GetContent());
+          break;
+        }
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+  };
+  
 
 
   OrthancPlugins::OrthancPlugins()
@@ -737,6 +857,26 @@ namespace Orthanc
     {
       LOG(INFO) << "Plugin has registered a callback to handle modality worklists";
       pimpl_->worklistCallback_ = p.callback;
+    }
+  }
+
+
+  void OrthancPlugins::RegisterFindCallback(const void* parameters)
+  {
+    const _OrthancPluginFindCallback& p = 
+      *reinterpret_cast<const _OrthancPluginFindCallback*>(parameters);
+
+    boost::mutex::scoped_lock lock(pimpl_->findCallbackMutex_);
+
+    if (pimpl_->findCallback_ != NULL)
+    {
+      LOG(ERROR) << "Can only register one plugin to handle C-FIND requests";
+      throw OrthancException(ErrorCode_Plugin);
+    }
+    else
+    {
+      LOG(INFO) << "Plugin has registered a callback to handle C-FIND requests";
+      pimpl_->findCallback_ = p.callback;
     }
   }
 
@@ -1838,6 +1978,10 @@ namespace Orthanc
         RegisterWorklistCallback(parameters);
         return true;
 
+      case _OrthancPluginService_RegisterFindCallback:
+        RegisterFindCallback(parameters);
+        return true;
+
       case _OrthancPluginService_RegisterDecodeImageCallback:
         RegisterDecodeImageCallback(parameters);
         return true;
@@ -2314,6 +2458,33 @@ namespace Orthanc
         return true;
       }
 
+      case _OrthancPluginService_FindAddAnswer:
+      {
+        const _OrthancPluginFindOperation& p =
+          *reinterpret_cast<const _OrthancPluginFindOperation*>(parameters);
+        reinterpret_cast<DicomFindAnswers*>(p.answers)->Add(p.dicom, p.size);
+        return true;
+      }
+
+      case _OrthancPluginService_FindMarkIncomplete:
+      {
+        const _OrthancPluginFindOperation& p =
+          *reinterpret_cast<const _OrthancPluginFindOperation*>(parameters);
+        reinterpret_cast<DicomFindAnswers*>(p.answers)->SetComplete(false);
+        return true;
+      }
+
+      case _OrthancPluginService_GetFindQuerySize:
+      case _OrthancPluginService_GetFindQueryTag:
+      case _OrthancPluginService_GetFindQueryTagName:
+      case _OrthancPluginService_GetFindQueryValue:
+      {
+        const _OrthancPluginFindOperation& p =
+          *reinterpret_cast<const _OrthancPluginFindOperation*>(parameters);
+        reinterpret_cast<const FindHandler*>(p.query)->Invoke(service, p);
+        return true;
+      }
+
       case _OrthancPluginService_CreateImage:
       case _OrthancPluginService_CreateImageAccessor:
       case _OrthancPluginService_DecodeDicomImage:
@@ -2472,6 +2643,26 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(pimpl_->worklistCallbackMutex_);
     return pimpl_->worklistCallback_ != NULL;
+  }
+
+
+  IFindRequestHandler* OrthancPlugins::ConstructFindRequestHandler()
+  {
+    if (HasFindHandler())
+    {
+      return new FindHandler(*this);
+    }
+    else
+    {
+      return NULL;
+    }
+  }
+
+
+  bool OrthancPlugins::HasFindHandler()
+  {
+    boost::mutex::scoped_lock lock(pimpl_->findCallbackMutex_);
+    return pimpl_->findCallback_ != NULL;
   }
 
 

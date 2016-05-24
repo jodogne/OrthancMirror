@@ -67,7 +67,7 @@ namespace Orthanc
       CleanupDicom();
     }
 
-    Answer(const char* dicom,
+    Answer(const void* dicom,
            size_t size) : 
       dicom_(new ParsedDicomFile(dicom, size)),
       map_(NULL)
@@ -153,7 +153,7 @@ namespace Orthanc
   }
 
 
-  void DicomFindAnswers::Add(const char* dicom,
+  void DicomFindAnswers::Add(const void* dicom,
                              size_t size)
   {
     answers_.push_back(new Answer(dicom, size));

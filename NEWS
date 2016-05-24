@@ -22,6 +22,7 @@ Plugins
 -------
 
 * New callback to filter incoming HTTP requests: OrthancPluginRegisterIncomingHttpRequestFilter()
+* New callback to handle non-worklists C-Find requests: OrthancPluginRegisterCFindCallback()
 * New function: "OrthancPluginHttpClient()" to do HTTP requests with full control
 * New function: "OrthancPluginGenerateUuid()" to generate a UUID
 

@@ -18,6 +18,7 @@
  *    - Possibly register its callback for changes to the DICOM store using ::OrthancPluginRegisterOnChangeCallback().
  *    - Possibly register a custom storage area using ::OrthancPluginRegisterStorageArea().
  *    - Possibly register a custom database back-end area using OrthancPluginRegisterDatabaseBackendV2().
+ *    - Possibly register a handler for C-Find SCP using OrthancPluginRegisterFindCallback().
  *    - Possibly register a handler for C-Find SCP against DICOM worklists using OrthancPluginRegisterWorklistCallback().
  *    - Possibly register a custom decoder for DICOM images using OrthancPluginRegisterDecodeImageCallback().
  *    - Possibly register a callback to filter incoming HTTP requests using OrthancPluginRegisterIncomingHttpRequestFilter().
@@ -52,8 +53,8 @@
  * @defgroup Callbacks Callbacks
  * @brief Functions to register and manage callbacks by the plugins.
  *
- * @defgroup Worklists Worklists
- * @brief Functions to register and manage worklists.
+ * @defgroup DicomCallbaks DicomCallbaks
+ * @brief Functions to register and manage DICOM callbacks (worklists, C-Find, C-MOVE).
  *
  * @defgroup Orthanc Orthanc
  * @brief Functions to access the content of the Orthanc server.
@@ -415,6 +416,7 @@ extern "C"
     _OrthancPluginService_RegisterWorklistCallback = 1005,
     _OrthancPluginService_RegisterDecodeImageCallback = 1006,
     _OrthancPluginService_RegisterIncomingHttpRequestFilter = 1007,
+    _OrthancPluginService_RegisterFindCallback = 1008,
 
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
@@ -484,11 +486,17 @@ extern "C"
     _OrthancPluginService_CreateImageAccessor = 6013,
     _OrthancPluginService_DecodeDicomImage = 6014,
 
-    /* Primitives for handling worklists */
+    /* Primitives for handling C-Find, C-Move and worklists */
     _OrthancPluginService_WorklistAddAnswer = 7000,
     _OrthancPluginService_WorklistMarkIncomplete = 7001,
     _OrthancPluginService_WorklistIsMatch = 7002,
     _OrthancPluginService_WorklistGetDicomQuery = 7003,
+    _OrthancPluginService_FindAddAnswer = 7004,
+    _OrthancPluginService_FindMarkIncomplete = 7005,
+    _OrthancPluginService_GetFindQuerySize = 7006,
+    _OrthancPluginService_GetFindQueryTag = 7007,
+    _OrthancPluginService_GetFindQueryTagName = 7008,
+    _OrthancPluginService_GetFindQueryValue = 7009,
 
     _OrthancPluginService_INTERNAL = 0x7fffffff
   } _OrthancPluginService;
@@ -812,18 +820,34 @@ extern "C"
 
 
   /**
-   * @brief Opaque structure to an object that represents a C-Find query.
-   * @ingroup Worklists
+   * @brief Opaque structure to an object that represents a C-Find query for worklists.
+   * @ingroup DicomCallbacks
    **/
   typedef struct _OrthancPluginWorklistQuery_t OrthancPluginWorklistQuery;
 
 
 
   /**
-   * @brief Opaque structure to an object that represents the answers to a C-Find query.
-   * @ingroup Worklists
+   * @brief Opaque structure to an object that represents the answers to a C-Find query for worklists.
+   * @ingroup DicomCallbacks
    **/
   typedef struct _OrthancPluginWorklistAnswers_t OrthancPluginWorklistAnswers;
+
+
+
+  /**
+   * @brief Opaque structure to an object that represents a C-Find query.
+   * @ingroup DicomCallbacks
+   **/
+  typedef struct _OrthancPluginFindQuery_t OrthancPluginFindQuery;
+
+
+
+  /**
+   * @brief Opaque structure to an object that represents the answers to a C-Find query for worklists.
+   * @ingroup DicomCallbacks
+   **/
+  typedef struct _OrthancPluginFindAnswers_t OrthancPluginFindAnswers;
 
 
 
@@ -935,7 +959,7 @@ extern "C"
 
 
   /**
-   * @brief Callback to handle the C-Find SCP requests received by Orthanc.
+   * @brief Callback to handle the C-Find SCP requests for worklists.
    *
    * Signature of a callback function that is triggered when Orthanc
    * receives a C-Find SCP request against modality worklists.
@@ -945,13 +969,34 @@ extern "C"
    * @param remoteAet The Application Entity Title (AET) of the modality from which the request originates.
    * @param calledAet The Application Entity Title (AET) of the modality that is called by the request.
    * @return 0 if success, other value if error.
-   * @ingroup Worklists
+   * @ingroup DicomCallbacks
    **/
   typedef OrthancPluginErrorCode (*OrthancPluginWorklistCallback) (
     OrthancPluginWorklistAnswers*     answers,
     const OrthancPluginWorklistQuery* query,
     const char*                       remoteAet,
     const char*                       calledAet);
+
+
+
+  /**
+   * @brief Callback to handle the C-Find SCP requests.
+   *
+   * Signature of a callback function that is triggered when Orthanc
+   * receives a C-Find SCP request not concerning modality worklists.
+   *
+   * @param answers The target structure where answers must be stored.
+   * @param query The worklist query.
+   * @param remoteAet The Application Entity Title (AET) of the modality from which the request originates.
+   * @param calledAet The Application Entity Title (AET) of the modality that is called by the request.
+   * @return 0 if success, other value if error.
+   * @ingroup DicomCallbacks
+   **/
+  typedef OrthancPluginErrorCode (*OrthancPluginFindCallback) (
+    OrthancPluginFindAnswers*     answers,
+    const OrthancPluginFindQuery* query,
+    const char*                   remoteAet,
+    const char*                   calledAet);
 
 
 
@@ -4194,7 +4239,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param callback The callback.
    * @return 0 if success, other value if error.
-   * @ingroup Worklists
+   * @ingroup DicomCallbacks
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterWorklistCallback(
     OrthancPluginContext*          context,
@@ -4229,7 +4274,8 @@ extern "C"
    * @param dicom The worklist to answer, encoded as a DICOM file.
    * @param size The size of the DICOM file.
    * @return 0 if success, other value if error.
-   * @ingroup Worklists
+   * @ingroup DicomCallbacks
+   * @see OrthancPluginCreateDicom()
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginWorklistAddAnswer(
     OrthancPluginContext*             context,
@@ -4259,7 +4305,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param answers The set of answers.
    * @return 0 if success, other value if error.
-   * @ingroup Worklists
+   * @ingroup DicomCallbacks
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginWorklistMarkIncomplete(
     OrthancPluginContext*          context,
@@ -4297,7 +4343,7 @@ extern "C"
    * @param dicom The worklist to answer, encoded as a DICOM file.
    * @param size The size of the DICOM file.
    * @return 1 if the worklist matches the query, 0 otherwise.
-   * @ingroup Worklists
+   * @ingroup DicomCallbacks
    **/
   ORTHANC_PLUGIN_INLINE int32_t  OrthancPluginWorklistIsMatch(
     OrthancPluginContext*              context,
@@ -4336,7 +4382,7 @@ extern "C"
    * @param target Memory buffer where to store the DICOM file. It must be freed with OrthancPluginFreeMemoryBuffer().
    * @param query The worklist query, as received by the callback.
    * @return 0 if success, other value if error.
-   * @ingroup Worklists
+   * @ingroup DicomCallbacks
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginWorklistGetDicomQuery(
     OrthancPluginContext*              context,
@@ -4897,6 +4943,246 @@ extern "C"
   }
 
 
+
+
+  typedef struct
+  {
+    OrthancPluginFindCallback callback;
+  } _OrthancPluginFindCallback;
+
+  /**
+   * @brief Register a callback to handle C-Find requests.
+   *
+   * This function registers a callback to handle C-Find SCP requests
+   * that are not related to modality worklists.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param callback The callback.
+   * @return 0 if success, other value if error.
+   * @ingroup DicomCallbacks
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterFindCallback(
+    OrthancPluginContext*      context,
+    OrthancPluginFindCallback  callback)
+  {
+    _OrthancPluginFindCallback params;
+    params.callback = callback;
+
+    return context->InvokeService(context, _OrthancPluginService_RegisterFindCallback, &params);
+  }
+
+
+  typedef struct
+  {
+    OrthancPluginFindAnswers      *answers;
+    const OrthancPluginFindQuery  *query;
+    const void                    *dicom;
+    uint32_t                       size;
+    uint32_t                       index;
+    uint32_t                      *resultUint32;
+    uint16_t                      *resultGroup;
+    uint16_t                      *resultElement;
+    char                         **resultString;
+  } _OrthancPluginFindOperation;
+
+  /**
+   * @brief Add one answer to some C-Find request.
+   *
+   * This function adds one answer (encoded as a DICOM file) to the
+   * set of answers corresponding to some C-Find SCP request that is
+   * not related to modality worklists.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param answers The set of answers.
+   * @param dicom The answer to be added, encoded as a DICOM file.
+   * @param size The size of the DICOM file.
+   * @return 0 if success, other value if error.
+   * @ingroup DicomCallbacks
+   * @see OrthancPluginCreateDicom()
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginFindAddAnswer(
+    OrthancPluginContext*      context,
+    OrthancPluginFindAnswers*  answers,
+    const void*                dicom,
+    uint32_t                   size)
+  {
+    _OrthancPluginFindOperation params;
+    memset(&params, 0, sizeof(params));
+    params.answers = answers;
+    params.dicom = dicom;
+    params.size = size;
+
+    return context->InvokeService(context, _OrthancPluginService_FindAddAnswer, &params);
+  }
+
+
+  /**
+   * @brief Mark the set of C-Find answers as incomplete.
+   *
+   * This function marks as incomplete the set of answers
+   * corresponding to some C-Find SCP request that is not related to
+   * modality worklists. This must be used if canceling the handling
+   * of a request when too many answers are to be returned.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param answers The set of answers.
+   * @return 0 if success, other value if error.
+   * @ingroup DicomCallbacks
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginFindMarkIncomplete(
+    OrthancPluginContext*      context,
+    OrthancPluginFindAnswers*  answers)
+  {
+    _OrthancPluginFindOperation params;
+    memset(&params, 0, sizeof(params));
+    params.answers = answers;
+
+    return context->InvokeService(context, _OrthancPluginService_FindMarkIncomplete, &params);
+  }
+
+
+
+  /**
+   * @brief Get the number of tags in a C-Find query.
+   *
+   * This function returns the number of tags that are contained in
+   * the given C-Find query.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param query The C-Find query.
+   * @return The number of tags.
+   * @ingroup DicomCallbacks
+   **/
+  ORTHANC_PLUGIN_INLINE uint32_t  OrthancPluginGetFindQuerySize(
+    OrthancPluginContext*          context,
+    const OrthancPluginFindQuery*  query)
+  {
+    uint32_t count = 0;
+
+    _OrthancPluginFindOperation params;
+    memset(&params, 0, sizeof(params));
+    params.query = query;
+    params.resultUint32 = &count;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetFindQuerySize, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return 0;
+    }
+    else
+    {
+      return count;
+    }
+  }
+
+
+  /**
+   * @brief Get one tag in a C-Find query.
+   *
+   * This function returns the group and the element of one DICOM tag
+   * in the given C-Find query.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param group The group of the tag (output).
+   * @param element The element of the tag (output).
+   * @param query The C-Find query.
+   * @param index The index of the tag of interest.
+   * @return 0 if success, other value if error.
+   * @ingroup DicomCallbacks
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginGetFindQueryTag(
+    OrthancPluginContext*          context,
+    uint16_t*                      group,
+    uint16_t*                      element,
+    const OrthancPluginFindQuery*  query,
+    uint32_t                       index)
+  {
+    _OrthancPluginFindOperation params;
+    memset(&params, 0, sizeof(params));
+    params.query = query;
+    params.index = index;
+    params.resultGroup = group;
+    params.resultElement = element;
+
+    return context->InvokeService(context, _OrthancPluginService_GetFindQueryTag, &params);
+  }
+
+
+  /**
+   * @brief Get the symbolic name of one tag in a C-Find query.
+   *
+   * This function returns the symbolic name of one DICOM tag in the
+   * given C-Find query.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param query The C-Find query.
+   * @param index The index of the tag of interest.
+   * @return The NULL value in case of error, or a string containing the name of the tag.
+   * @return 0 if success, other value if error.
+   * @ingroup DicomCallbacks
+   **/
+  ORTHANC_PLUGIN_INLINE char*  OrthancPluginGetFindQueryTagName(
+    OrthancPluginContext*          context,
+    const OrthancPluginFindQuery*  query,
+    uint32_t                       index)
+  {
+    char* result;
+
+    _OrthancPluginFindOperation params;
+    memset(&params, 0, sizeof(params));
+    params.query = query;
+    params.index = index;
+    params.resultString = &result;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetFindQueryTagName, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  /**
+   * @brief Get the value associated with one tag in a C-Find query.
+   *
+   * This function returns the value associated with one tag in the
+   * given C-Find query.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param query The C-Find query.
+   * @param index The index of the tag of interest.
+   * @return The NULL value in case of error, or a string containing the value of the tag.
+   * @return 0 if success, other value if error.
+   * @ingroup DicomCallbacks
+   **/
+  ORTHANC_PLUGIN_INLINE char*  OrthancPluginGetFindQueryValue(
+    OrthancPluginContext*          context,
+    const OrthancPluginFindQuery*  query,
+    uint32_t                       index)
+  {
+    char* result;
+
+    _OrthancPluginFindOperation params;
+    memset(&params, 0, sizeof(params));
+    params.query = query;
+    params.index = index;
+    params.resultString = &result;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetFindQueryValue, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+ 
 #ifdef  __cplusplus
 }
 #endif
