@@ -683,10 +683,41 @@ namespace Orthanc
       return;
     }
 
+    static const char* LOCAL_AET = "LocalAet";
     std::string localAet = context.GetDefaultLocalApplicationEntityTitle();
-    if (request.isMember("LocalAet"))
+    if (request.type() == Json::objectValue &&
+        request.isMember(LOCAL_AET))
     {
-      localAet = request["LocalAet"].asString();
+      if (request[LOCAL_AET].type() == Json::stringValue)
+      {
+        localAet = request[LOCAL_AET].asString();
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+    }
+
+    uint16_t moveOriginatorID = 0; /* By default, not a C-MOVE */
+
+    static const char* MOVE_ORIGINATOR_ID = "MoveOriginatorID";
+    if (request.type() == Json::objectValue &&
+        request.isMember(MOVE_ORIGINATOR_ID))
+    {
+      if (request[MOVE_ORIGINATOR_ID].type() != Json::intValue)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      int v = request[MOVE_ORIGINATOR_ID].asInt();
+      if (v <= 0 || v >= 65536)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      else
+      {
+        moveOriginatorID = boost::lexical_cast<uint16_t>(v);
+      }
     }
 
     RemoteModalityParameters p = Configuration::GetModalityUsingSymbolicName(remote);
@@ -696,7 +727,7 @@ namespace Orthanc
            it = instances.begin(); it != instances.end(); ++it)
     {
       job.AddCommand(new StoreScuCommand(context, localAet, p, false,
-                                         0 /* not a C-MOVE */)).AddInput(*it);
+                                         moveOriginatorID)).AddInput(*it);
     }
 
     job.SetDescription("HTTP request: Store-SCU to peer \"" + remote + "\"");
