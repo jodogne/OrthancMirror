@@ -34,6 +34,7 @@ Lua
 Maintenance
 -----------
 
+* New logo of Orthanc
 * Fix issue 11 (is_regular_file() fails for FILE_ATTRIBUTE_REPARSE_POINT)
 * Fix of Debian bug #818512 ("FTBFS: Please install libdcmtk*-dev")
 * Compatibility with CMake >= 3.5.0
