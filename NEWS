@@ -34,7 +34,8 @@ Lua
 REST API
 --------
 
-* "MoveOriginatorID" can be specified for /modalities/.../store
+* New URI "/modalities/.../move" to issue C-Move SCU requests
+* "MoveOriginatorID" can be specified for "/modalities/.../store"
 
 Maintenance
 -----------
