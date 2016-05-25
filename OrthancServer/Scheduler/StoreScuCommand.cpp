@@ -41,12 +41,12 @@ namespace Orthanc
                                    const std::string& localAet,
                                    const RemoteModalityParameters& modality,
                                    bool ignoreExceptions,
-                                   uint16_t moveMessageID) : 
+                                   uint16_t moveOriginatorID) : 
     context_(context),
     modality_(modality),
     ignoreExceptions_(ignoreExceptions),
     localAet_(localAet),
-    moveMessageID_(moveMessageID)
+    moveOriginatorID_(moveOriginatorID)
   {
   }
 
@@ -66,7 +66,7 @@ namespace Orthanc
         std::string dicom;
         context_.ReadFile(dicom, *it, FileContentType_Dicom);
 
-        locker.GetConnection().Store(dicom, moveMessageID_);
+        locker.GetConnection().Store(dicom, moveOriginatorID_);
 
         // Only chain with other commands if this command succeeds
         outputs.push_back(*it);
