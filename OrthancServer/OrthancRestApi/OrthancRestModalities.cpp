@@ -386,7 +386,7 @@ namespace Orthanc
       std::auto_ptr<QueryRetrieveHandler>  handler(new QueryRetrieveHandler(context));
 
       handler->SetModality(call.GetUriComponent("id", ""));
-      handler->SetLevel(StringToResourceType(request["Level"].asString().c_str()));
+      handler->SetLevel(StringToResourceType(request["Level"].asCString()));
 
       if (request.isMember("Query"))
       {
@@ -745,6 +745,76 @@ namespace Orthanc
 
 
   /***************************************************************************
+   * DICOM C-Move SCU
+   ***************************************************************************/
+  
+  static void DicomMove(RestApiPostCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    Json::Value request;
+
+    static const char* RESOURCES = "Resources";
+    static const char* LEVEL = "Level";
+
+    if (!call.ParseJsonRequest(request) ||
+        request.type() != Json::objectValue ||
+        !request.isMember(RESOURCES) ||
+        !request.isMember(LEVEL) ||
+        request[RESOURCES].type() != Json::arrayValue ||
+        request[LEVEL].type() != Json::stringValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    ResourceType level = StringToResourceType(request["Level"].asCString());
+    
+    static const char* LOCAL_AET = "LocalAet";
+    std::string localAet = context.GetDefaultLocalApplicationEntityTitle();
+    if (request.isMember(LOCAL_AET))
+    {
+      if (request[LOCAL_AET].type() == Json::stringValue)
+      {
+        localAet = request[LOCAL_AET].asString();
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+    }
+
+    static const char* TARGET_AET = "TargetAet";
+    std::string targetAet = context.GetDefaultLocalApplicationEntityTitle();
+    if (request.isMember(TARGET_AET))
+    {
+      if (request[TARGET_AET].type() == Json::stringValue)
+      {
+        targetAet = request[TARGET_AET].asString();
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+    }
+
+    const RemoteModalityParameters source = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+      
+    for (Json::Value::ArrayIndex i = 0; i < request[RESOURCES].size(); i++)
+    {
+      DicomMap resource;
+      FromDcmtkBridge::FromJson(resource, request[RESOURCES][i]);
+
+      ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), localAet, source);
+      locker.GetConnection().Move(targetAet, level, resource);
+    }
+
+    // Move has succeeded
+    call.GetOutput().AnswerBuffer("{}", "application/json");
+  }
+
+
+
+  /***************************************************************************
    * Orthanc Peers => Store client
    ***************************************************************************/
 
@@ -936,6 +1006,7 @@ namespace Orthanc
     Register("/modalities/{id}/find-instance", DicomFindInstance);
     Register("/modalities/{id}/find", DicomFind);
     Register("/modalities/{id}/store", DicomStore);
+    Register("/modalities/{id}/move", DicomMove);
 
     // For Query/Retrieve
     Register("/modalities/{id}/query", DicomQuery);

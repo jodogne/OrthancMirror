@@ -995,16 +995,9 @@ namespace Orthanc
 
 
   void DicomUserConnection::Move(const std::string& targetAet,
+                                 ResourceType level,
                                  const DicomMap& findResult)
   {
-    if (!findResult.HasTag(DICOM_TAG_QUERY_RETRIEVE_LEVEL))
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    const std::string tmp = findResult.GetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL).GetContent();
-    ResourceType level = StringToResourceType(tmp.c_str());
-
     DicomMap move;
     switch (level)
     {
@@ -1032,6 +1025,21 @@ namespace Orthanc
     }
 
     MoveInternal(targetAet, level, move);
+  }
+
+
+  void DicomUserConnection::Move(const std::string& targetAet,
+                                 const DicomMap& findResult)
+  {
+    if (!findResult.HasTag(DICOM_TAG_QUERY_RETRIEVE_LEVEL))
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    const std::string tmp = findResult.GetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL).GetContent();
+    ResourceType level = StringToResourceType(tmp.c_str());
+
+    Move(targetAet, level, findResult);
   }
 
 

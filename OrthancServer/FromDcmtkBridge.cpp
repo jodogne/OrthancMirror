@@ -1735,4 +1735,30 @@ namespace Orthanc
 
     return result.release();
   }
+
+
+  void FromDcmtkBridge::FromJson(DicomMap& target,
+                                 const Json::Value& source)
+  {
+    if (source.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    target.Clear();
+
+    Json::Value::Members members = source.getMemberNames();
+
+    for (size_t i = 0; i < members.size(); i++)
+    {
+      const Json::Value& value = source[members[i]];
+
+      if (value.type() != Json::stringValue)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+      
+      target.SetValue(ParseTag(members[i]), value.asString());
+    }
+  }
 }

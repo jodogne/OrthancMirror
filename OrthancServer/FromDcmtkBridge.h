@@ -160,5 +160,8 @@ namespace Orthanc
 
     static DcmFileFormat* LoadFromMemoryBuffer(const void* buffer,
                                                size_t size);
+
+    static void FromJson(DicomMap& values,
+                         const Json::Value& result);
   };
 }
