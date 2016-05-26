@@ -54,6 +54,7 @@ namespace Orthanc
 #include "../../OrthancServer/IDicomImageDecoder.h"
 #include "../../OrthancServer/DicomProtocol/IWorklistRequestHandlerFactory.h"
 #include "../../OrthancServer/DicomProtocol/IFindRequestHandlerFactory.h"
+#include "../../OrthancServer/DicomProtocol/IMoveRequestHandlerFactory.h"
 #include "OrthancPluginDatabase.h"
 #include "PluginsManager.h"
 
@@ -71,7 +72,8 @@ namespace Orthanc
     public IWorklistRequestHandlerFactory,
     public IDicomImageDecoder,
     public IIncomingHttpRequestFilter,
-    public IFindRequestHandlerFactory
+    public IFindRequestHandlerFactory,
+    public IMoveRequestHandlerFactory
   {
   private:
     struct PImpl;
@@ -79,6 +81,7 @@ namespace Orthanc
 
     class WorklistHandler;
     class FindHandler;
+    class MoveHandler;
 
     void CheckContextAvailable();
 
@@ -92,6 +95,8 @@ namespace Orthanc
     void RegisterWorklistCallback(const void* parameters);
 
     void RegisterFindCallback(const void* parameters);
+
+    void RegisterMoveCallback(const void* parameters);
 
     void RegisterDecodeImageCallback(const void* parameters);
 
@@ -260,6 +265,10 @@ namespace Orthanc
     bool HasFindHandler();
 
     virtual IFindRequestHandler* ConstructFindRequestHandler();
+
+    bool HasMoveHandler();
+
+    virtual IMoveRequestHandler* ConstructMoveRequestHandler();
   };
 }
 
