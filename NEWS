@@ -2,6 +2,13 @@ Pending changes in the mainline
 ===============================
 
 
+REST API
+--------
+
+* New URI: "/instances/.../frames/.../raw" to access the raw frames (bypass image decoding)
+* New URI "/modalities/.../move" to issue C-Move SCU requests
+* "MoveOriginatorID" can be specified for "/modalities/.../store"
+
 Dicom protocol
 --------------
 
@@ -9,20 +16,12 @@ Dicom protocol
   0008-0061, 0008-0062, 0020-1200, 0020-1202, 0020-1204, 0020-1206, 0020-1208, 0020-1209
 * Support of Move Originator Message ID (0000,1031) in C-Store responses driven by C-Move
 
-Image decoding
---------------
-
-* New URI: "/instances/.../frames/.../raw" to access the raw frames (bypass image decoding)
-* Huge speedup if decoding the family of JPEG transfer syntaxes
-* Refactoring leading to speedups with custom image decoders (including Web viewer plugin)
-* Support decoding of RLE Lossless transfer syntax
-* Support of signed 16bpp images in ParsedDicomFile
-
 Plugins
 -------
 
 * New callback to filter incoming HTTP requests: OrthancPluginRegisterIncomingHttpRequestFilter()
-* New callback to handle non-worklists C-Find requests: OrthancPluginRegisterCFindCallback()
+* New callback to handle non-worklists C-Find requests: OrthancPluginRegisterFindCallback()
+* New callback to handle C-Move requests: OrthancPluginRegisterMoveCallback()
 * New function: "OrthancPluginHttpClient()" to do HTTP requests with full control
 * New function: "OrthancPluginGenerateUuid()" to generate a UUID
 
@@ -31,11 +30,13 @@ Lua
 
 * Access to the HTTP headers in the "IncomingHttpRequestFilter()" callback
 
-REST API
---------
+Image decoding
+--------------
 
-* New URI "/modalities/.../move" to issue C-Move SCU requests
-* "MoveOriginatorID" can be specified for "/modalities/.../store"
+* Huge speedup if decoding the family of JPEG transfer syntaxes
+* Refactoring leading to speedups with custom image decoders (including Web viewer plugin)
+* Support decoding of RLE Lossless transfer syntax
+* Support of signed 16bpp images in ParsedDicomFile
 
 Maintenance
 -----------

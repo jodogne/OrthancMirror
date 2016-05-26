@@ -20,6 +20,7 @@
  *    - Possibly register a custom database back-end area using OrthancPluginRegisterDatabaseBackendV2().
  *    - Possibly register a handler for C-Find SCP using OrthancPluginRegisterFindCallback().
  *    - Possibly register a handler for C-Find SCP against DICOM worklists using OrthancPluginRegisterWorklistCallback().
+ *    - Possibly register a handler for C-Move SCP using OrthancPluginRegisterMoveCallback().
  *    - Possibly register a custom decoder for DICOM images using OrthancPluginRegisterDecodeImageCallback().
  *    - Possibly register a callback to filter incoming HTTP requests using OrthancPluginRegisterIncomingHttpRequestFilter().
  * -# <tt>void OrthancPluginFinalize()</tt>:
@@ -417,6 +418,7 @@ extern "C"
     _OrthancPluginService_RegisterDecodeImageCallback = 1006,
     _OrthancPluginService_RegisterIncomingHttpRequestFilter = 1007,
     _OrthancPluginService_RegisterFindCallback = 1008,
+    _OrthancPluginService_RegisterMoveCallback = 1009,
 
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
@@ -966,7 +968,7 @@ extern "C"
    *
    * @param answers The target structure where answers must be stored.
    * @param query The worklist query.
-   * @param remoteAet The Application Entity Title (AET) of the modality from which the request originates.
+   * @param issuerAet The Application Entity Title (AET) of the modality from which the request originates.
    * @param calledAet The Application Entity Title (AET) of the modality that is called by the request.
    * @return 0 if success, other value if error.
    * @ingroup DicomCallbacks
@@ -974,29 +976,8 @@ extern "C"
   typedef OrthancPluginErrorCode (*OrthancPluginWorklistCallback) (
     OrthancPluginWorklistAnswers*     answers,
     const OrthancPluginWorklistQuery* query,
-    const char*                       remoteAet,
+    const char*                       issuerAet,
     const char*                       calledAet);
-
-
-
-  /**
-   * @brief Callback to handle the C-Find SCP requests.
-   *
-   * Signature of a callback function that is triggered when Orthanc
-   * receives a C-Find SCP request not concerning modality worklists.
-   *
-   * @param answers The target structure where answers must be stored.
-   * @param query The worklist query.
-   * @param remoteAet The Application Entity Title (AET) of the modality from which the request originates.
-   * @param calledAet The Application Entity Title (AET) of the modality that is called by the request.
-   * @return 0 if success, other value if error.
-   * @ingroup DicomCallbacks
-   **/
-  typedef OrthancPluginErrorCode (*OrthancPluginFindCallback) (
-    OrthancPluginFindAnswers*     answers,
-    const OrthancPluginFindQuery* query,
-    const char*                   remoteAet,
-    const char*                   calledAet);
 
 
 
@@ -1025,6 +1006,116 @@ extern "C"
     uint32_t                 headersCount,
     const char* const*       headersKeys,
     const char* const*       headersValues);
+
+
+
+  /**
+   * @brief Callback to handle incoming C-Find SCP requests.
+   *
+   * Signature of a callback function that is triggered whenever
+   * Orthanc receives a C-Find SCP request not concerning modality
+   * worklists.
+   *
+   * @param answers The target structure where answers must be stored.
+   * @param query The worklist query.
+   * @param issuerAet The Application Entity Title (AET) of the modality from which the request originates.
+   * @param calledAet The Application Entity Title (AET) of the modality that is called by the request.
+   * @return 0 if success, other value if error.
+   * @ingroup DicomCallbacks
+   **/
+  typedef OrthancPluginErrorCode (*OrthancPluginFindCallback) (
+    OrthancPluginFindAnswers*     answers,
+    const OrthancPluginFindQuery* query,
+    const char*                   issuerAet,
+    const char*                   calledAet);
+
+
+
+  /**
+   * @brief Callback to handle incoming C-Move SCP requests.
+   *
+   * Signature of a callback function that is triggered whenever
+   * Orthanc receives a C-Move SCP request. The callback receives the
+   * type of the resource of interest (study, series, instance...)
+   * together with the DICOM tags containing its identifiers. In turn,
+   * the plugin must create a driver object that will be responsible
+   * for driving the successive move suboperations.
+   *
+   * @param resourceType The type of the resource of interest. Note
+   * that this might be set to ResourceType_None if the
+   * QueryRetrieveLevel (0008,0052) tag was not provided by the
+   * issuer.
+   * @param patientId Content of the PatientID (0x0010, 0x0020) tag of the resource of interest. Might be NULL.
+   * @param accessionNumber Content of the AccessionNumber (0x0008, 0x0050) tag. Might be NULL.
+   * @param studyInstanceUid Content of the StudyInstanceUID (0x0020, 0x000d) tag. Might be NULL.
+   * @param seriesInstanceUid Content of the SeriesInstanceUID (0x0020, 0x000e) tag. Might be NULL.
+   * @param sopInstanceUid Content of the SOPInstanceUID (0x0008, 0x0018) tag. Might be NULL.
+   * @param issuerAet The Application Entity Title (AET) of the
+   * modality from which the request originates.
+   * @param sourceAet The Application Entity Title (AET) of the
+   * modality that should send its DICOM files to another modality.
+   * @param targetAet The Application Entity Title (AET) of the
+   * modality that should receive the DICOM files.
+   *
+   * @return The NULL value if the plugin cannot deal with this query,
+   * or a pointer to the driver object that is responsible for
+   * handling the successive move suboperations.
+   * 
+   * @note If targetAet equals sourceAet, this is actually a query/retrieve operation.
+   * @ingroup DicomCallbacks
+   **/
+  typedef void* (*OrthancPluginMoveCallback) (
+    OrthancPluginResourceType  resourceType,
+    const char*                patientId,
+    const char*                accessionNumber,
+    const char*                studyInstanceUid,
+    const char*                seriesInstanceUid,
+    const char*                sopInstanceUid,
+    const char*                issuerAet,
+    const char*                sourceAet,
+    const char*                targetAet,
+    uint16_t                   moveOriginatorId);
+    
+
+  /**
+   * @brief Callback to read the size of a C-Move driver.
+   * 
+   * Signature of a callback function that returns the number of
+   * C-Move suboperations that are to be achieved by the given C-Move
+   * driver. This driver is the return value of a previous call to the
+   * OrthancPluginMoveCallback() callback.
+   *
+   * @param moveDriver The C-Move driver of interest.
+   * @return The number of suboperations. 
+   **/
+  typedef uint32_t (*OrthancPluginGetMoveSize) (void* moveDriver);
+
+
+  /**
+   * @brief Callback to apply one C-Move suboperation.
+   * 
+   * Signature of a callback function that applies the next C-Move
+   * suboperation that os to be achieved by the given C-Move
+   * driver. This driver is the return value of a previous call to the
+   * OrthancPluginMoveCallback() callback.
+   *
+   * @param moveDriver The C-Move driver of interest.
+   * @return 0 if success, or the error code if failure.
+   **/
+  typedef OrthancPluginErrorCode (*OrthancPluginApplyMove) (void* moveDriver);
+
+
+  /**
+   * @brief Callback to free one C-Move driver.
+   * 
+   * Signature of a callback function that releases the resources
+   * allocated by the given C-Move driver. This driver is the return
+   * value of a previous call to the OrthancPluginMoveCallback()
+   * callback.
+   *
+   * @param moveDriver The C-Move driver of interest.
+   **/
+  typedef void (*OrthancPluginFreeMove) (void* moveDriver);
 
 
 
@@ -5183,6 +5274,49 @@ extern "C"
     }
   }
  
+
+
+
+  typedef struct
+  {
+    OrthancPluginMoveCallback   callback;
+    OrthancPluginGetMoveSize    getMoveSize;
+    OrthancPluginApplyMove      applyMove;
+    OrthancPluginFreeMove       freeMove;
+  } _OrthancPluginMoveCallback;
+
+  /**
+   * @brief Register a callback to handle C-Move requests.
+   *
+   * This function registers a callback to handle C-Move SCP requests.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param callback The main callback.
+   * @param getMoveSize Callback to read the number of C-Move suboperations.
+   * @param applyMove Callback to apply one C-Move suboperations.
+   * @param freeMove Callback to free the C-Move driver.
+   * @return 0 if success, other value if error.
+   * @ingroup DicomCallbacks
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterMoveCallback(
+    OrthancPluginContext*       context,
+    OrthancPluginMoveCallback   callback,
+    OrthancPluginGetMoveSize    getMoveSize,
+    OrthancPluginApplyMove      applyMove,
+    OrthancPluginFreeMove       freeMove)
+  {
+    _OrthancPluginMoveCallback params;
+    params.callback = callback;
+    params.getMoveSize = getMoveSize;
+    params.applyMove = applyMove;
+    params.freeMove = freeMove;
+
+    return context->InvokeService(context, _OrthancPluginService_RegisterMoveCallback, &params);
+  }
+
+
+
+
 #ifdef  __cplusplus
 }
 #endif

@@ -767,6 +767,11 @@ static bool StartDicomServer(ServerContext& context,
     {
       dicomServer.SetFindRequestHandlerFactory(*plugins);
     }
+
+    if (plugins->HasMoveHandler())
+    {
+      dicomServer.SetMoveRequestHandlerFactory(*plugins);
+    }
   }
 #endif
 

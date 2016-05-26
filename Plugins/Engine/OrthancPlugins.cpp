@@ -316,12 +316,14 @@ namespace Orthanc
     OrthancPluginFindCallback  findCallback_;
     OrthancPluginWorklistCallback  worklistCallback_;
     OrthancPluginDecodeImageCallback  decodeImageCallback_;
+    _OrthancPluginMoveCallback moveCallbacks_;
     IncomingHttpRequestFilters  incomingHttpRequestFilters_;
     std::auto_ptr<StorageAreaFactory>  storageArea_;
     boost::recursive_mutex restCallbackMutex_;
     boost::recursive_mutex storedCallbackMutex_;
     boost::recursive_mutex changeCallbackMutex_;
     boost::mutex findCallbackMutex_;
+    boost::mutex moveCallbackMutex_;
     boost::mutex worklistCallbackMutex_;
     boost::mutex decodeImageCallbackMutex_;
     boost::recursive_mutex invokeServiceMutex_;
@@ -339,6 +341,7 @@ namespace Orthanc
       argc_(1),
       argv_(NULL)
     {
+      memset(&moveCallbacks_, 0, sizeof(moveCallbacks_));
     }
   };
 
@@ -535,6 +538,155 @@ namespace Orthanc
         default:
           throw OrthancException(ErrorCode_InternalError);
       }
+    }
+  };
+  
+
+
+  class OrthancPlugins::MoveHandler : public IMoveRequestHandler
+  {
+  private:
+    class Driver : public IMoveRequestIterator
+    {
+    private:
+      void*                   driver_;
+      unsigned int            count_;
+      unsigned int            pos_;
+      OrthancPluginApplyMove  apply_;
+      OrthancPluginFreeMove   free_;
+
+    public:
+      Driver(void* driver,
+             unsigned int count,
+             OrthancPluginApplyMove apply,
+             OrthancPluginFreeMove free) :
+        driver_(driver),
+        count_(count),
+        pos_(0),
+        apply_(apply),
+        free_(free)
+      {
+        if (driver_ == NULL)
+        {
+          throw OrthancException(ErrorCode_Plugin);
+        }
+      }
+
+      virtual ~Driver()
+      {
+        if (driver_ != NULL)
+        {
+          free_(driver_);
+          driver_ = NULL;
+        }
+      }
+
+      virtual unsigned int GetSubOperationCount() const
+      {
+        return count_;
+      }
+
+      virtual Status DoNext()
+      {
+        if (pos_ >= count_)
+        {
+          throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
+        else
+        {
+          OrthancPluginErrorCode error = apply_(driver_);
+          if (error != OrthancPluginErrorCode_Success)
+          {
+            LOG(ERROR) << "Error while doing C-Move from plugin: " << EnumerationToString(static_cast<ErrorCode>(error));
+            return Status_Failure;
+          }
+          else
+          {
+            pos_++;
+            return Status_Success;
+          }
+        }
+      }
+    };
+
+
+    _OrthancPluginMoveCallback  params_;
+
+
+    static std::string ReadTag(const DicomMap& input,
+                               const DicomTag& tag)
+    {
+      const DicomValue* value = input.TestAndGetValue(tag);
+      if (value != NULL &&
+          !value->IsBinary() &&
+          !value->IsNull())
+      {
+        return value->GetContent();
+      }
+      else
+      {
+        return std::string();
+      }
+    }
+                        
+
+
+  public:
+    MoveHandler(OrthancPlugins& that)
+    {
+      boost::mutex::scoped_lock lock(that.pimpl_->moveCallbackMutex_);
+      params_ = that.pimpl_->moveCallbacks_;
+      
+      if (params_.callback == NULL ||
+          params_.getMoveSize == NULL ||
+          params_.applyMove == NULL ||
+          params_.freeMove == NULL)
+      {
+        throw OrthancException(ErrorCode_Plugin);
+      }
+    }
+
+    virtual IMoveRequestIterator* Handle(const std::string& targetAet,
+                                         const DicomMap& input,
+                                         const std::string& remoteIp,
+                                         const std::string& remoteAet,
+                                         const std::string& calledAet,
+                                         uint16_t messageId)
+    {
+      std::string levelString = ReadTag(input, DICOM_TAG_QUERY_RETRIEVE_LEVEL);
+      std::string patientId = ReadTag(input, DICOM_TAG_PATIENT_ID);
+      std::string accessionNumber = ReadTag(input, DICOM_TAG_ACCESSION_NUMBER);
+      std::string studyInstanceUid = ReadTag(input, DICOM_TAG_STUDY_INSTANCE_UID);
+      std::string seriesInstanceUid = ReadTag(input, DICOM_TAG_SERIES_INSTANCE_UID);
+      std::string sopInstanceUid = ReadTag(input, DICOM_TAG_SOP_INSTANCE_UID);
+
+      OrthancPluginResourceType level = OrthancPluginResourceType_None;
+
+      if (!levelString.empty())
+      {
+        level = Plugins::Convert(StringToResourceType(levelString.c_str()));
+      }
+
+      void* driver = params_.callback(level,
+                                      patientId.empty() ? NULL : patientId.c_str(),
+                                      accessionNumber.empty() ? NULL : accessionNumber.c_str(),
+                                      studyInstanceUid.empty() ? NULL : studyInstanceUid.c_str(),
+                                      seriesInstanceUid.empty() ? NULL : seriesInstanceUid.c_str(),
+                                      sopInstanceUid.empty() ? NULL : sopInstanceUid.c_str(),
+                                      remoteAet.c_str(),
+                                      calledAet.c_str(),
+                                      targetAet.c_str(),
+                                      messageId);
+
+      if (driver == NULL)
+      {
+        LOG(ERROR) << "Plugin cannot create a driver for an incoming C-MOVE request";
+        throw OrthancException(ErrorCode_Plugin);
+      }
+
+      unsigned int size = params_.getMoveSize(driver);
+
+      return new Driver(driver, size, params_.applyMove, params_.freeMove);
     }
   };
   
@@ -877,6 +1029,26 @@ namespace Orthanc
     {
       LOG(INFO) << "Plugin has registered a callback to handle C-FIND requests";
       pimpl_->findCallback_ = p.callback;
+    }
+  }
+
+
+  void OrthancPlugins::RegisterMoveCallback(const void* parameters)
+  {
+    const _OrthancPluginMoveCallback& p = 
+      *reinterpret_cast<const _OrthancPluginMoveCallback*>(parameters);
+
+    boost::mutex::scoped_lock lock(pimpl_->moveCallbackMutex_);
+
+    if (pimpl_->moveCallbacks_.callback != NULL)
+    {
+      LOG(ERROR) << "Can only register one plugin to handle C-MOVE requests";
+      throw OrthancException(ErrorCode_Plugin);
+    }
+    else
+    {
+      LOG(INFO) << "Plugin has registered a callback to handle C-MOVE requests";
+      pimpl_->moveCallbacks_ = p;
     }
   }
 
@@ -1982,6 +2154,10 @@ namespace Orthanc
         RegisterFindCallback(parameters);
         return true;
 
+      case _OrthancPluginService_RegisterMoveCallback:
+        RegisterMoveCallback(parameters);
+        return true;
+
       case _OrthancPluginService_RegisterDecodeImageCallback:
         RegisterDecodeImageCallback(parameters);
         return true;
@@ -2663,6 +2839,26 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(pimpl_->findCallbackMutex_);
     return pimpl_->findCallback_ != NULL;
+  }
+
+
+  IMoveRequestHandler* OrthancPlugins::ConstructMoveRequestHandler()
+  {
+    if (HasMoveHandler())
+    {
+      return new MoveHandler(*this);
+    }
+    else
+    {
+      return NULL;
+    }
+  }
+
+
+  bool OrthancPlugins::HasMoveHandler()
+  {
+    boost::mutex::scoped_lock lock(pimpl_->moveCallbackMutex_);
+    return pimpl_->moveCallbacks_.callback != NULL;
   }
 
 
