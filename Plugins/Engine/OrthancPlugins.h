@@ -83,8 +83,6 @@ namespace Orthanc
     class FindHandler;
     class MoveHandler;
 
-    void CheckContextAvailable();
-
     void RegisterRestCallback(const void* parameters,
                               bool lock);
 
@@ -179,12 +177,22 @@ namespace Orthanc
                               OrthancPluginResourceType resourceType,
                               const char* resource);
 
+    bool InvokeSafeService(SharedLibrary& plugin,
+                           _OrthancPluginService service,
+                           const void* parameters);
+
+    bool InvokeProtectedService(SharedLibrary& plugin,
+                                _OrthancPluginService service,
+                                const void* parameters);
+
   public:
     OrthancPlugins();
 
     virtual ~OrthancPlugins();
 
     void SetServerContext(ServerContext& context);
+
+    void ResetServerContext();
 
     virtual bool Handle(HttpOutput& output,
                         RequestOrigin origin,

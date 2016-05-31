@@ -19,6 +19,7 @@ Dicom protocol
 Plugins
 -------
 
+* Speedup in plugins by removing unnecessary locks
 * New callback to filter incoming HTTP requests: OrthancPluginRegisterIncomingHttpRequestFilter()
 * New callback to handle non-worklists C-Find requests: OrthancPluginRegisterFindCallback()
 * New callback to handle C-Move requests: OrthancPluginRegisterMoveCallback()
