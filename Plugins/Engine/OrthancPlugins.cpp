@@ -250,8 +250,14 @@ namespace Orthanc
   }
 
 
-  struct OrthancPlugins::PImpl
+  class OrthancPlugins::PImpl
   {
+  private:
+    boost::mutex   contextMutex_;
+    ServerContext* context_;
+    
+
+  public:
     class RestCallback : public boost::noncopyable
     {
     private:
@@ -301,6 +307,38 @@ namespace Orthanc
     };
 
 
+    class ServerContextLock
+    {
+    private:
+      boost::mutex::scoped_lock  lock_;
+      ServerContext* context_;
+
+    public:
+      ServerContextLock(PImpl& that) : 
+        lock_(that.contextMutex_),
+        context_(that.context_)
+      {
+        if (context_ == NULL)
+        {
+          throw OrthancException(ErrorCode_DatabaseNotInitialized);
+        }
+      }
+
+      ServerContext& GetContext()
+      {
+        assert(context_ != NULL);
+        return *context_;
+      }
+    };
+
+
+    void SetServerContext(ServerContext* context)
+    {
+      boost::mutex::scoped_lock(contextMutex_);
+      context_ = context;
+    }
+
+
     typedef std::pair<std::string, _OrthancPluginProperty>  Property;
     typedef std::list<RestCallback*>  RestCallbacks;
     typedef std::list<OrthancPluginOnStoredInstanceCallback>  OnStoredCallbacks;
@@ -309,7 +347,7 @@ namespace Orthanc
     typedef std::map<Property, std::string>  Properties;
 
     PluginsManager manager_;
-    ServerContext* context_;
+
     RestCallbacks restCallbacks_;
     OnStoredCallbacks  onStoredCallbacks_;
     OnChangeCallbacks  onChangeCallbacks_;
@@ -319,14 +357,15 @@ namespace Orthanc
     _OrthancPluginMoveCallback moveCallbacks_;
     IncomingHttpRequestFilters  incomingHttpRequestFilters_;
     std::auto_ptr<StorageAreaFactory>  storageArea_;
+
     boost::recursive_mutex restCallbackMutex_;
     boost::recursive_mutex storedCallbackMutex_;
     boost::recursive_mutex changeCallbackMutex_;
     boost::mutex findCallbackMutex_;
-    boost::mutex moveCallbackMutex_;
     boost::mutex worklistCallbackMutex_;
     boost::mutex decodeImageCallbackMutex_;
     boost::recursive_mutex invokeServiceMutex_;
+
     Properties properties_;
     int argc_;
     char** argv_;
@@ -634,7 +673,7 @@ namespace Orthanc
   public:
     MoveHandler(OrthancPlugins& that)
     {
-      boost::mutex::scoped_lock lock(that.pimpl_->moveCallbackMutex_);
+      boost::recursive_mutex::scoped_lock lock(that.pimpl_->invokeServiceMutex_);
       params_ = that.pimpl_->moveCallbacks_;
       
       if (params_.callback == NULL ||
@@ -732,9 +771,14 @@ namespace Orthanc
   
   void OrthancPlugins::SetServerContext(ServerContext& context)
   {
-    pimpl_->context_ = &context;
+    pimpl_->SetServerContext(&context);
   }
 
+
+  void OrthancPlugins::ResetServerContext()
+  {
+    pimpl_->SetServerContext(NULL);
+  }
 
   
   OrthancPlugins::~OrthancPlugins()
@@ -1035,10 +1079,10 @@ namespace Orthanc
 
   void OrthancPlugins::RegisterMoveCallback(const void* parameters)
   {
+    // invokeServiceMutex_ is assumed to be locked
+
     const _OrthancPluginMoveCallback& p = 
       *reinterpret_cast<const _OrthancPluginMoveCallback*>(parameters);
-
-    boost::mutex::scoped_lock lock(pimpl_->moveCallbackMutex_);
 
     if (pimpl_->moveCallbacks_.callback != NULL)
     {
@@ -1232,15 +1276,6 @@ namespace Orthanc
   }
 
 
-  void OrthancPlugins::CheckContextAvailable()
-  {
-    if (!pimpl_->context_)
-    {
-      throw OrthancException(ErrorCode_DatabaseNotInitialized);
-    }
-  }
-
-
   void OrthancPlugins::GetDicomForInstance(const void* parameters)
   {
     const _OrthancPluginGetDicomForInstance& p = 
@@ -1248,8 +1283,10 @@ namespace Orthanc
 
     std::string dicom;
 
-    CheckContextAvailable();
-    pimpl_->context_->ReadFile(dicom, p.instanceId, FileContentType_Dicom);
+    {
+      PImpl::ServerContextLock lock(*pimpl_);
+      lock.GetContext().ReadFile(dicom, p.instanceId, FileContentType_Dicom);
+    }
 
     CopyToMemoryBuffer(*p.target, dicom);
   }
@@ -1264,11 +1301,15 @@ namespace Orthanc
     LOG(INFO) << "Plugin making REST GET call on URI " << p.uri
               << (afterPlugins ? " (after plugins)" : " (built-in API)");
 
-    CheckContextAvailable();
-    IHttpHandler& handler = pimpl_->context_->GetHttpHandler().RestrictToOrthancRestApi(!afterPlugins);
+    IHttpHandler* handler;
+
+    {
+      PImpl::ServerContextLock lock(*pimpl_);
+      handler = &lock.GetContext().GetHttpHandler().RestrictToOrthancRestApi(!afterPlugins);
+    }
 
     std::string result;
-    if (HttpToolbox::SimpleGet(result, handler, RequestOrigin_Plugins, p.uri))
+    if (HttpToolbox::SimpleGet(result, *handler, RequestOrigin_Plugins, p.uri))
     {
       CopyToMemoryBuffer(*p.target, result);
     }
@@ -1296,11 +1337,15 @@ namespace Orthanc
       headers[name] = p.headersValues[i];
     }
 
-    CheckContextAvailable();
-    IHttpHandler& handler = pimpl_->context_->GetHttpHandler().RestrictToOrthancRestApi(!p.afterPlugins);
+    IHttpHandler* handler;
 
+    {
+      PImpl::ServerContextLock lock(*pimpl_);
+      handler = &lock.GetContext().GetHttpHandler().RestrictToOrthancRestApi(!p.afterPlugins);
+    }
+      
     std::string result;
-    if (HttpToolbox::SimpleGet(result, handler, RequestOrigin_Plugins, p.uri, headers))
+    if (HttpToolbox::SimpleGet(result, *handler, RequestOrigin_Plugins, p.uri, headers))
     {
       CopyToMemoryBuffer(*p.target, result);
     }
@@ -1321,13 +1366,17 @@ namespace Orthanc
     LOG(INFO) << "Plugin making REST " << EnumerationToString(isPost ? HttpMethod_Post : HttpMethod_Put)
               << " call on URI " << p.uri << (afterPlugins ? " (after plugins)" : " (built-in API)");
 
-    CheckContextAvailable();
-    IHttpHandler& handler = pimpl_->context_->GetHttpHandler().RestrictToOrthancRestApi(!afterPlugins);
+    IHttpHandler* handler;
 
+    {
+      PImpl::ServerContextLock lock(*pimpl_);
+      handler = &lock.GetContext().GetHttpHandler().RestrictToOrthancRestApi(!afterPlugins);
+    }
+      
     std::string result;
     if (isPost ? 
-        HttpToolbox::SimplePost(result, handler, RequestOrigin_Plugins, p.uri, p.body, p.bodySize) :
-        HttpToolbox::SimplePut (result, handler, RequestOrigin_Plugins, p.uri, p.body, p.bodySize))
+        HttpToolbox::SimplePost(result, *handler, RequestOrigin_Plugins, p.uri, p.body, p.bodySize) :
+        HttpToolbox::SimplePut (result, *handler, RequestOrigin_Plugins, p.uri, p.body, p.bodySize))
     {
       CopyToMemoryBuffer(*p.target, result);
     }
@@ -1345,10 +1394,14 @@ namespace Orthanc
     LOG(INFO) << "Plugin making REST DELETE call on URI " << uri
               << (afterPlugins ? " (after plugins)" : " (built-in API)");
 
-    CheckContextAvailable();
-    IHttpHandler& handler = pimpl_->context_->GetHttpHandler().RestrictToOrthancRestApi(!afterPlugins);
+    IHttpHandler* handler;
 
-    if (!HttpToolbox::SimpleDelete(handler, RequestOrigin_Plugins, uri))
+    {
+      PImpl::ServerContextLock lock(*pimpl_);
+      handler = &lock.GetContext().GetHttpHandler().RestrictToOrthancRestApi(!afterPlugins);
+    }
+      
+    if (!HttpToolbox::SimpleDelete(*handler, RequestOrigin_Plugins, uri))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
@@ -1401,10 +1454,12 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
     }
 
-    CheckContextAvailable();
-
     std::list<std::string> result;
-    pimpl_->context_->GetIndex().LookupIdentifierExact(result, level, tag, p.argument);
+
+    {
+      PImpl::ServerContextLock lock(*pimpl_);
+      lock.GetContext().GetIndex().LookupIdentifierExact(result, level, tag, p.argument);
+    }
 
     if (result.size() == 1)
     {
@@ -1862,7 +1917,12 @@ namespace Orthanc
       }
 
       std::string content;
-      pimpl_->context_->ReadFile(content, p.instanceId, FileContentType_Dicom);
+
+      {
+        PImpl::ServerContextLock lock(*pimpl_);
+        lock.GetContext().ReadFile(content, p.instanceId, FileContentType_Dicom);
+      }
+
       dicom.reset(new ParsedDicomFile(content));
     }
 
@@ -2074,25 +2134,11 @@ namespace Orthanc
 
 
 
-  bool OrthancPlugins::InvokeService(SharedLibrary& plugin,
-                                     _OrthancPluginService service,
-                                     const void* parameters)
+  bool OrthancPlugins::InvokeSafeService(SharedLibrary& plugin,
+                                         _OrthancPluginService service,
+                                         const void* parameters)
   {
-    VLOG(1) << "Calling service " << service << " from plugin " << plugin.GetPath();
-
-    if (service == _OrthancPluginService_DatabaseAnswer)
-    {
-      // This case solves a deadlock at (*) reported by James Webster
-      // on 2015-10-27 that was present in versions of Orthanc <=
-      // 0.9.4 and related to database plugins implementing a custom
-      // index. The problem was that locking the database is already
-      // ensured by the "ServerIndex" class if the invoked service is
-      // "DatabaseAnswer".
-      DatabaseAnswer(parameters);
-      return true;
-    }
-
-    boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);   // (*)
+    // Services that can be run without mutual exclusion
 
     switch (service)
     {
@@ -2128,42 +2174,6 @@ namespace Orthanc
 
       case _OrthancPluginService_BufferCompression:
         BufferCompression(parameters);
-        return true;
-
-      case _OrthancPluginService_RegisterRestCallback:
-        RegisterRestCallback(parameters, true);
-        return true;
-
-      case _OrthancPluginService_RegisterRestCallbackNoLock:
-        RegisterRestCallback(parameters, false);
-        return true;
-
-      case _OrthancPluginService_RegisterOnStoredInstanceCallback:
-        RegisterOnStoredInstanceCallback(parameters);
-        return true;
-
-      case _OrthancPluginService_RegisterOnChangeCallback:
-        RegisterOnChangeCallback(parameters);
-        return true;
-
-      case _OrthancPluginService_RegisterWorklistCallback:
-        RegisterWorklistCallback(parameters);
-        return true;
-
-      case _OrthancPluginService_RegisterFindCallback:
-        RegisterFindCallback(parameters);
-        return true;
-
-      case _OrthancPluginService_RegisterMoveCallback:
-        RegisterMoveCallback(parameters);
-        return true;
-
-      case _OrthancPluginService_RegisterDecodeImageCallback:
-        RegisterDecodeImageCallback(parameters);
-        return true;
-
-      case _OrthancPluginService_RegisterIncomingHttpRequestFilter:
-        RegisterIncomingHttpRequestFilter(parameters);
         return true;
 
       case _OrthancPluginService_AnswerBuffer:
@@ -2265,32 +2275,6 @@ namespace Orthanc
         AccessDicomInstance(service, parameters);
         return true;
 
-      case _OrthancPluginService_RegisterStorageArea:
-      {
-        LOG(INFO) << "Plugin has registered a custom storage area";
-        const _OrthancPluginRegisterStorageArea& p = 
-          *reinterpret_cast<const _OrthancPluginRegisterStorageArea*>(parameters);
-        
-        if (pimpl_->storageArea_.get() == NULL)
-        {
-          pimpl_->storageArea_.reset(new StorageAreaFactory(plugin, p, GetErrorDictionary()));
-        }
-        else
-        {
-          throw OrthancException(ErrorCode_StorageAreaAlreadyRegistered);
-        }
-
-        return true;
-      }
-
-      case _OrthancPluginService_SetPluginProperty:
-      {
-        const _OrthancPluginSetPluginProperty& p = 
-          *reinterpret_cast<const _OrthancPluginSetPluginProperty*>(parameters);
-        pimpl_->properties_[std::make_pair(p.plugin, p.property)] = p.value;
-        return true;
-      }
-
       case _OrthancPluginService_SetGlobalProperty:
       {
         const _OrthancPluginGlobalProperty& p = 
@@ -2301,95 +2285,27 @@ namespace Orthanc
         }
         else
         {
-          CheckContextAvailable();
-          pimpl_->context_->GetIndex().SetGlobalProperty(static_cast<GlobalProperty>(p.property), p.value);
+          PImpl::ServerContextLock lock(*pimpl_);
+          lock.GetContext().GetIndex().SetGlobalProperty(static_cast<GlobalProperty>(p.property), p.value);
           return true;
         }
       }
 
       case _OrthancPluginService_GetGlobalProperty:
       {
-        CheckContextAvailable();
-
         const _OrthancPluginGlobalProperty& p = 
           *reinterpret_cast<const _OrthancPluginGlobalProperty*>(parameters);
-        std::string result = pimpl_->context_->GetIndex().GetGlobalProperty(static_cast<GlobalProperty>(p.property), p.value);
+
+        std::string result;
+
+        {
+          PImpl::ServerContextLock lock(*pimpl_);
+          result = lock.GetContext().GetIndex().GetGlobalProperty(static_cast<GlobalProperty>(p.property), p.value);
+        }
+
         *(p.result) = CopyString(result);
         return true;
       }
-
-      case _OrthancPluginService_GetCommandLineArgumentsCount:
-      {
-        const _OrthancPluginReturnSingleValue& p =
-          *reinterpret_cast<const _OrthancPluginReturnSingleValue*>(parameters);
-        *(p.resultUint32) = pimpl_->argc_ - 1;
-        return true;
-      }
-
-      case _OrthancPluginService_GetCommandLineArgument:
-      {
-        const _OrthancPluginGlobalProperty& p =
-          *reinterpret_cast<const _OrthancPluginGlobalProperty*>(parameters);
-        
-        if (p.property + 1 > pimpl_->argc_)
-        {
-          return false;
-        }
-        else
-        {
-          std::string arg = std::string(pimpl_->argv_[p.property + 1]);
-          *(p.result) = CopyString(arg);
-          return true;
-        }
-      }
-
-      case _OrthancPluginService_RegisterDatabaseBackend:
-      {
-        LOG(INFO) << "Plugin has registered a custom database back-end";
-
-        const _OrthancPluginRegisterDatabaseBackend& p =
-          *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackend*>(parameters);
-
-        if (pimpl_->database_.get() == NULL)
-        {
-          pimpl_->database_.reset(new OrthancPluginDatabase(plugin, GetErrorDictionary(), 
-                                                            *p.backend, NULL, 0, p.payload));
-        }
-        else
-        {
-          throw OrthancException(ErrorCode_DatabaseBackendAlreadyRegistered);
-        }
-
-        *(p.result) = reinterpret_cast<OrthancPluginDatabaseContext*>(pimpl_->database_.get());
-
-        return true;
-      }
-
-      case _OrthancPluginService_RegisterDatabaseBackendV2:
-      {
-        LOG(INFO) << "Plugin has registered a custom database back-end";
-
-        const _OrthancPluginRegisterDatabaseBackendV2& p =
-          *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackendV2*>(parameters);
-
-        if (pimpl_->database_.get() == NULL)
-        {
-          pimpl_->database_.reset(new OrthancPluginDatabase(plugin, GetErrorDictionary(),
-                                                            *p.backend, p.extensions,
-                                                            p.extensionsSize, p.payload));
-        }
-        else
-        {
-          throw OrthancException(ErrorCode_DatabaseBackendAlreadyRegistered);
-        }
-
-        *(p.result) = reinterpret_cast<OrthancPluginDatabaseContext*>(pimpl_->database_.get());
-
-        return true;
-      }
-
-      case _OrthancPluginService_DatabaseAnswer:
-        throw OrthancException(ErrorCode_InternalError);   // Implemented before locking (*)
 
       case _OrthancPluginService_GetExpectedDatabaseVersion:
       {
@@ -2558,41 +2474,6 @@ namespace Orthanc
         return true;
       }
 
-      case _OrthancPluginService_RegisterErrorCode:
-      {
-        const _OrthancPluginRegisterErrorCode& p =
-          *reinterpret_cast<const _OrthancPluginRegisterErrorCode*>(parameters);
-        *(p.target) = pimpl_->dictionary_.Register(plugin, p.code, p.httpStatus, p.message);
-        return true;
-      }
-
-      case _OrthancPluginService_RegisterDictionaryTag:
-      {
-        const _OrthancPluginRegisterDictionaryTag& p =
-          *reinterpret_cast<const _OrthancPluginRegisterDictionaryTag*>(parameters);
-        FromDcmtkBridge::RegisterDictionaryTag(DicomTag(p.group, p.element),
-                                               Plugins::Convert(p.vr), p.name,
-                                               p.minMultiplicity, p.maxMultiplicity);
-        return true;
-      }
-
-      case _OrthancPluginService_ReconstructMainDicomTags:
-      {
-        const _OrthancPluginReconstructMainDicomTags& p =
-          *reinterpret_cast<const _OrthancPluginReconstructMainDicomTags*>(parameters);
-
-        if (pimpl_->database_.get() == NULL)
-        {
-          LOG(ERROR) << "The service ReconstructMainDicomTags can only be invoked by custom database plugins";
-          throw OrthancException(ErrorCode_DatabasePlugin);
-        }
-
-        IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
-        Toolbox::ReconstructMainDicomTags(*pimpl_->database_, storage, Plugins::Convert(p.level));
-
-        return true;
-      }
-
       case _OrthancPluginService_DicomBufferToJson:
       case _OrthancPluginService_DicomInstanceToJson:
         ApplyDicomToJson(service, parameters);
@@ -2684,6 +2565,193 @@ namespace Orthanc
       }
 
       default:
+        return false;
+    }
+  }
+
+
+
+  bool OrthancPlugins::InvokeProtectedService(SharedLibrary& plugin,
+                                              _OrthancPluginService service,
+                                              const void* parameters)
+  {
+    // Services that must be run in mutual exclusion. Guideline:
+    // Whenever "pimpl_" is directly accessed by the service, it
+    // should be listed here.
+    
+    switch (service)
+    {
+      case _OrthancPluginService_RegisterRestCallback:
+        RegisterRestCallback(parameters, true);
+        return true;
+
+      case _OrthancPluginService_RegisterRestCallbackNoLock:
+        RegisterRestCallback(parameters, false);
+        return true;
+
+      case _OrthancPluginService_RegisterOnStoredInstanceCallback:
+        RegisterOnStoredInstanceCallback(parameters);
+        return true;
+
+      case _OrthancPluginService_RegisterOnChangeCallback:
+        RegisterOnChangeCallback(parameters);
+        return true;
+
+      case _OrthancPluginService_RegisterWorklistCallback:
+        RegisterWorklistCallback(parameters);
+        return true;
+
+      case _OrthancPluginService_RegisterFindCallback:
+        RegisterFindCallback(parameters);
+        return true;
+
+      case _OrthancPluginService_RegisterMoveCallback:
+        RegisterMoveCallback(parameters);
+        return true;
+
+      case _OrthancPluginService_RegisterDecodeImageCallback:
+        RegisterDecodeImageCallback(parameters);
+        return true;
+
+      case _OrthancPluginService_RegisterIncomingHttpRequestFilter:
+        RegisterIncomingHttpRequestFilter(parameters);
+        return true;
+
+      case _OrthancPluginService_RegisterStorageArea:
+      {
+        LOG(INFO) << "Plugin has registered a custom storage area";
+        const _OrthancPluginRegisterStorageArea& p = 
+          *reinterpret_cast<const _OrthancPluginRegisterStorageArea*>(parameters);
+        
+        if (pimpl_->storageArea_.get() == NULL)
+        {
+          pimpl_->storageArea_.reset(new StorageAreaFactory(plugin, p, GetErrorDictionary()));
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_StorageAreaAlreadyRegistered);
+        }
+
+        return true;
+      }
+
+      case _OrthancPluginService_SetPluginProperty:
+      {
+        const _OrthancPluginSetPluginProperty& p = 
+          *reinterpret_cast<const _OrthancPluginSetPluginProperty*>(parameters);
+        pimpl_->properties_[std::make_pair(p.plugin, p.property)] = p.value;
+        return true;
+      }
+
+      case _OrthancPluginService_GetCommandLineArgumentsCount:
+      {
+        const _OrthancPluginReturnSingleValue& p =
+          *reinterpret_cast<const _OrthancPluginReturnSingleValue*>(parameters);
+        *(p.resultUint32) = pimpl_->argc_ - 1;
+        return true;
+      }
+
+      case _OrthancPluginService_GetCommandLineArgument:
+      {
+        const _OrthancPluginGlobalProperty& p =
+          *reinterpret_cast<const _OrthancPluginGlobalProperty*>(parameters);
+        
+        if (p.property + 1 > pimpl_->argc_)
+        {
+          return false;
+        }
+        else
+        {
+          std::string arg = std::string(pimpl_->argv_[p.property + 1]);
+          *(p.result) = CopyString(arg);
+          return true;
+        }
+      }
+
+      case _OrthancPluginService_RegisterDatabaseBackend:
+      {
+        LOG(INFO) << "Plugin has registered a custom database back-end";
+
+        const _OrthancPluginRegisterDatabaseBackend& p =
+          *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackend*>(parameters);
+
+        if (pimpl_->database_.get() == NULL)
+        {
+          pimpl_->database_.reset(new OrthancPluginDatabase(plugin, GetErrorDictionary(), 
+                                                            *p.backend, NULL, 0, p.payload));
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_DatabaseBackendAlreadyRegistered);
+        }
+
+        *(p.result) = reinterpret_cast<OrthancPluginDatabaseContext*>(pimpl_->database_.get());
+
+        return true;
+      }
+
+      case _OrthancPluginService_RegisterDatabaseBackendV2:
+      {
+        LOG(INFO) << "Plugin has registered a custom database back-end";
+
+        const _OrthancPluginRegisterDatabaseBackendV2& p =
+          *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackendV2*>(parameters);
+
+        if (pimpl_->database_.get() == NULL)
+        {
+          pimpl_->database_.reset(new OrthancPluginDatabase(plugin, GetErrorDictionary(),
+                                                            *p.backend, p.extensions,
+                                                            p.extensionsSize, p.payload));
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_DatabaseBackendAlreadyRegistered);
+        }
+
+        *(p.result) = reinterpret_cast<OrthancPluginDatabaseContext*>(pimpl_->database_.get());
+
+        return true;
+      }
+
+      case _OrthancPluginService_DatabaseAnswer:
+        throw OrthancException(ErrorCode_InternalError);   // Implemented before locking (*)
+
+      case _OrthancPluginService_RegisterErrorCode:
+      {
+        const _OrthancPluginRegisterErrorCode& p =
+          *reinterpret_cast<const _OrthancPluginRegisterErrorCode*>(parameters);
+        *(p.target) = pimpl_->dictionary_.Register(plugin, p.code, p.httpStatus, p.message);
+        return true;
+      }
+
+      case _OrthancPluginService_RegisterDictionaryTag:
+      {
+        const _OrthancPluginRegisterDictionaryTag& p =
+          *reinterpret_cast<const _OrthancPluginRegisterDictionaryTag*>(parameters);
+        FromDcmtkBridge::RegisterDictionaryTag(DicomTag(p.group, p.element),
+                                               Plugins::Convert(p.vr), p.name,
+                                               p.minMultiplicity, p.maxMultiplicity);
+        return true;
+      }
+
+      case _OrthancPluginService_ReconstructMainDicomTags:
+      {
+        const _OrthancPluginReconstructMainDicomTags& p =
+          *reinterpret_cast<const _OrthancPluginReconstructMainDicomTags*>(parameters);
+
+        if (pimpl_->database_.get() == NULL)
+        {
+          LOG(ERROR) << "The service ReconstructMainDicomTags can only be invoked by custom database plugins";
+          throw OrthancException(ErrorCode_DatabasePlugin);
+        }
+
+        IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
+        Toolbox::ReconstructMainDicomTags(*pimpl_->database_, storage, Plugins::Convert(p.level));
+
+        return true;
+      }
+
+      default:
       {
         // This service is unknown to the Orthanc plugin engine
         return false;
@@ -2692,13 +2760,48 @@ namespace Orthanc
   }
 
 
+
+  bool OrthancPlugins::InvokeService(SharedLibrary& plugin,
+                                     _OrthancPluginService service,
+                                     const void* parameters)
+  {
+    VLOG(1) << "Calling service " << service << " from plugin " << plugin.GetPath();
+
+    if (service == _OrthancPluginService_DatabaseAnswer)
+    {
+      // This case solves a deadlock at (*) reported by James Webster
+      // on 2015-10-27 that was present in versions of Orthanc <=
+      // 0.9.4 and related to database plugins implementing a custom
+      // index. The problem was that locking the database is already
+      // ensured by the "ServerIndex" class if the invoked service is
+      // "DatabaseAnswer".
+      DatabaseAnswer(parameters);
+      return true;
+    }
+
+    if (InvokeSafeService(plugin, service, parameters))
+    {
+      // The invoked service does not require locking
+      return true;
+    }
+    else
+    {
+      // The invoked service requires locking
+      boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);   // (*)
+      return InvokeProtectedService(plugin, service, parameters);
+    }
+  }
+
+
   bool OrthancPlugins::HasStorageArea() const
   {
+    boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
     return pimpl_->storageArea_.get() != NULL;
   }
   
   bool OrthancPlugins::HasDatabaseBackend() const
   {
+    boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
     return pimpl_->database_.get() != NULL;
   }
 
@@ -2857,7 +2960,7 @@ namespace Orthanc
 
   bool OrthancPlugins::HasMoveHandler()
   {
-    boost::mutex::scoped_lock lock(pimpl_->moveCallbackMutex_);
+    boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
     return pimpl_->moveCallbacks_.callback != NULL;
   }
 

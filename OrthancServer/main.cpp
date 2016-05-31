@@ -957,6 +957,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 #if ORTHANC_PLUGINS_ENABLED == 1
   if (plugins)
   {
+    plugins->ResetServerContext();
     context.ResetPlugins();
   }
 #endif
