@@ -83,7 +83,9 @@ macro(DownloadPackage MD5 Url TargetDirectory)
       # How to silently extract files using 7-zip
       # http://superuser.com/questions/331148/7zip-command-line-extract-silently-quietly
 
-      if (("${TMP_EXTENSION}" STREQUAL "gz") OR ("${TMP_EXTENSION}" STREQUAL "tgz"))
+      if (("${TMP_EXTENSION}" STREQUAL "gz") OR 
+          ("${TMP_EXTENSION}" STREQUAL "tgz") OR
+          ("${TMP_EXTENSION}" STREQUAL "xz"))
         execute_process(
           COMMAND ${ZIP_EXECUTABLE} e -y ${TMP_PATH}
           WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
@@ -97,8 +99,10 @@ macro(DownloadPackage MD5 Url TargetDirectory)
 
         if ("${TMP_EXTENSION}" STREQUAL "tgz")
           string(REGEX REPLACE ".tgz$" ".tar" TMP_FILENAME2 "${TMP_FILENAME}")
-        else()
+        elseif ("${TMP_EXTENSION}" STREQUAL "gz")
           string(REGEX REPLACE ".gz$" "" TMP_FILENAME2 "${TMP_FILENAME}")
+        elseif ("${TMP_EXTENSION}" STREQUAL "xz")
+          string(REGEX REPLACE ".xz" "" TMP_FILENAME2 "${TMP_FILENAME}")
         endif()
 
         execute_process(
