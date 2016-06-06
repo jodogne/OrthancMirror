@@ -142,6 +142,12 @@ macro(DownloadPackage MD5 Url TargetDirectory)
           WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
           RESULT_VARIABLE Failure
           )
+      elseif ("${TMP_EXTENSION}" STREQUAL "xz")
+        execute_process(
+          COMMAND sh -c "${TAR_EXECUTABLE} xf ${TMP_PATH}"
+          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+          RESULT_VARIABLE Failure
+          )
       else()
         message(FATAL_ERROR "Unknown package format.")
       endif()
