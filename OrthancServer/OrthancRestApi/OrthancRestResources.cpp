@@ -1099,7 +1099,7 @@ namespace Orthanc
       size_t limit = 0;
       if (request.isMember("Limit"))
       {
-        int tmp = request["CaseSensitive"].asInt();
+        int tmp = request["Limit"].asInt();
         if (tmp < 0)
         {
           throw OrthancException(ErrorCode_ParameterOutOfRange);
