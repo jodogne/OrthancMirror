@@ -436,9 +436,27 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
     }
 
-    if (level == ResourceType_Study)
+    switch (level)
     {
-      allowedTags.insert(DICOM_TAG_MODALITIES_IN_STUDY);
+      case ResourceType_Patient:
+        allowedTags.insert(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES);
+        allowedTags.insert(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES);
+        allowedTags.insert(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES);
+        break;
+
+      case ResourceType_Study:
+        allowedTags.insert(DICOM_TAG_MODALITIES_IN_STUDY);
+        allowedTags.insert(DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES);
+        allowedTags.insert(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES);
+        allowedTags.insert(DICOM_TAG_SOP_CLASSES_IN_STUDY);
+        break;
+
+      case ResourceType_Series:
+        allowedTags.insert(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES);
+        break;
+
+      default:
+        break;
     }
 
     allowedTags.insert(DICOM_TAG_SPECIFIC_CHARACTER_SET);
