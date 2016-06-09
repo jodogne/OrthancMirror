@@ -496,7 +496,7 @@ namespace Orthanc
 
         for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
         {
-          if (FromDcmtkBridge::GetValueRepresentation(*it) == ValueRepresentation_Date)
+          if (FromDcmtkBridge::LookupValueRepresentation(*it) == ValueRepresentation_Date)
           {
             // Replace a "*" query by an empty query ("") for "date"
             // value representations. Necessary to search over dates

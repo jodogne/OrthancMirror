@@ -47,7 +47,7 @@ namespace Orthanc
                                                          const std::string& dicomQuery,
                                                          bool caseSensitive)
   {
-    ValueRepresentation vr = FromDcmtkBridge::GetValueRepresentation(tag);
+    ValueRepresentation vr = FromDcmtkBridge::LookupValueRepresentation(tag);
 
     if (vr == ValueRepresentation_Sequence)
     {

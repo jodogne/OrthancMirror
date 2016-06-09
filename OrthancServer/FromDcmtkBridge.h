@@ -50,7 +50,7 @@ namespace Orthanc
     static void InitializeDictionary();
 
     static void RegisterDictionaryTag(const DicomTag& tag,
-                                      const DcmEVR& vr,
+                                      ValueRepresentation vr,
                                       const std::string& name,
                                       unsigned int minMultiplicity,
                                       unsigned int maxMultiplicity);
@@ -131,7 +131,9 @@ namespace Orthanc
     static bool SaveToMemoryBuffer(std::string& buffer,
                                    DcmDataset& dataSet);
 
-    static ValueRepresentation GetValueRepresentation(const DicomTag& tag);
+    static ValueRepresentation Convert(DcmEVR vr);
+
+    static ValueRepresentation LookupValueRepresentation(const DicomTag& tag);
 
     static DcmElement* CreateElementForTag(const DicomTag& tag);
     
@@ -145,8 +147,6 @@ namespace Orthanc
                                 const Json::Value& element,  // Encoded using UTF-8
                                 bool decodeDataUriScheme,
                                 Encoding dicomEncoding);
-
-    static DcmEVR ParseValueRepresentation(const std::string& s);
 
     static DcmPixelSequence* GetPixelSequence(DcmDataset& dataset);
 

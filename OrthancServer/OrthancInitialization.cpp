@@ -42,6 +42,7 @@
 #include "ServerEnumerations.h"
 #include "DatabaseWrapper.h"
 #include "FromDcmtkBridge.h"
+#include "ToDcmtkBridge.h"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
@@ -378,7 +379,7 @@ namespace Orthanc
       }
 
       DicomTag tag(FromDcmtkBridge::ParseTag(tags[i]));
-      DcmEVR vr = FromDcmtkBridge::ParseValueRepresentation(content[0].asString());
+      ValueRepresentation vr = StringToValueRepresentation(content[0].asString(), true);
       std::string name = content[1].asString();
       unsigned int minMultiplicity = (content.size() >= 2) ? content[2].asUInt() : 1;
       unsigned int maxMultiplicity = (content.size() >= 3) ? content[3].asUInt() : 1;

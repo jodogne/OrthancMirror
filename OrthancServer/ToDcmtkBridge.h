@@ -46,5 +46,7 @@ namespace Orthanc
     }
 
     static DcmDataset* Convert(const DicomMap& map);
+
+    static DcmEVR Convert(ValueRepresentation vr);
   };
 }

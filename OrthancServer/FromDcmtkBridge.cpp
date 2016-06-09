@@ -37,6 +37,7 @@
 #endif
 
 #include "FromDcmtkBridge.h"
+#include "ToDcmtkBridge.h"
 #include "../Core/Logging.h"
 #include "../Core/Toolbox.h"
 #include "../Core/Uuid.h"
@@ -232,7 +233,7 @@ namespace Orthanc
 
 
   void FromDcmtkBridge::RegisterDictionaryTag(const DicomTag& tag,
-                                              const DcmEVR& vr,
+                                              ValueRepresentation vr,
                                               const std::string& name,
                                               unsigned int minMultiplicity,
                                               unsigned int maxMultiplicity)
@@ -253,13 +254,15 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
     
-    LOG(INFO) << "Registering tag in dictionary: " << tag << " " << (DcmVR(vr).getValidVRName()) << " " 
+    DcmEVR evr = ToDcmtkBridge::Convert(vr);
+
+    LOG(INFO) << "Registering tag in dictionary: " << tag << " " << (DcmVR(evr).getValidVRName()) << " " 
               << name << " (multiplicity: " << minMultiplicity << "-" 
               << (arbitrary ? "n" : boost::lexical_cast<std::string>(maxMultiplicity)) << ")";
 
     std::auto_ptr<DcmDictEntry>  entry(new DcmDictEntry(tag.GetGroup(),
                                                         tag.GetElement(),
-                                                        vr, name.c_str(),
+                                                        evr, name.c_str(),
                                                         static_cast<int>(minMultiplicity),
                                                         static_cast<int>(maxMultiplicity),
                                                         NULL    /* version */,
@@ -1069,28 +1072,115 @@ namespace Orthanc
   }
 
 
-  ValueRepresentation FromDcmtkBridge::GetValueRepresentation(const DicomTag& tag)
+  ValueRepresentation FromDcmtkBridge::LookupValueRepresentation(const DicomTag& tag)
   {
     DcmTag t(tag.GetGroup(), tag.GetElement());
-    switch (t.getEVR())
+    return Convert(t.getEVR());
+  }
+
+  ValueRepresentation FromDcmtkBridge::Convert(const DcmEVR vr)
+  {
+    switch (vr)
     {
-      case EVR_PN:
-        return ValueRepresentation_PatientName;
+      case EVR_AE:
+        return ValueRepresentation_ApplicationEntity;
+
+      case EVR_AS:
+        return ValueRepresentation_AgeString;
+
+      case EVR_AT:
+        return ValueRepresentation_AttributeTag;
+
+      case EVR_CS:
+        return ValueRepresentation_CodeString;
 
       case EVR_DA:
         return ValueRepresentation_Date;
 
+      case EVR_DS:
+        return ValueRepresentation_DecimalString;
+
       case EVR_DT:
         return ValueRepresentation_DateTime;
 
-      case EVR_TM:
-        return ValueRepresentation_Time;
+      case EVR_FL:
+        return ValueRepresentation_FloatingPointSingle;
+
+      case EVR_FD:
+        return ValueRepresentation_FloatingPointDouble;
+
+      case EVR_IS:
+        return ValueRepresentation_IntegerString;
+
+      case EVR_LO:
+        return ValueRepresentation_LongString;
+
+      case EVR_LT:
+        return ValueRepresentation_LongText;
+
+      case EVR_OB:
+        return ValueRepresentation_OtherByte;
+
+        // Not supported as of DCMTK 3.6.0
+        /*case EVR_OD:
+          return ValueRepresentation_OtherDouble;*/
+
+      case EVR_OF:
+        return ValueRepresentation_OtherFloat;
+
+        // Not supported as of DCMTK 3.6.0
+        /*case EVR_OL:
+          return ValueRepresentation_OtherLong;*/
+
+      case EVR_OW:
+        return ValueRepresentation_OtherWord;
+
+      case EVR_PN:
+        return ValueRepresentation_PatientName;
+
+      case EVR_SH:
+        return ValueRepresentation_ShortString;
+
+      case EVR_SL:
+        return ValueRepresentation_SignedLong;
 
       case EVR_SQ:
         return ValueRepresentation_Sequence;
 
+      case EVR_SS:
+        return ValueRepresentation_SignedShort;
+
+      case EVR_ST:
+        return ValueRepresentation_ShortText;
+
+      case EVR_TM:
+        return ValueRepresentation_Time;
+
+        // Not supported as of DCMTK 3.6.0
+        /*case EVR_UC:
+          return ValueRepresentation_UnlimitedCharacters;*/
+
+      case EVR_UI:
+        return ValueRepresentation_UniqueIdentifier;
+
+      case EVR_UL:
+        return ValueRepresentation_UnsignedLong;
+
+      case EVR_UN:
+        return ValueRepresentation_Unknown;
+
+        // Not supported as of DCMTK 3.6.0
+        /*case EVR_UR:
+          return ValueRepresentation_UniversalResource;*/
+
+      case EVR_US:
+        return ValueRepresentation_UnsignedShort;
+
+      case EVR_UT:
+        return ValueRepresentation_UnlimitedText;
+
       default:
-        return ValueRepresentation_Other;
+        return ValueRepresentation_NotSupported;
     }
   }
 
@@ -1474,93 +1564,6 @@ namespace Orthanc
     }
 
     return element.release();
-  }
-
-
-  DcmEVR FromDcmtkBridge::ParseValueRepresentation(const std::string& s)
-  {
-    if (s == "AE")
-      return EVR_AE;
-
-    if (s == "AS")
-      return EVR_AS;
-
-    if (s == "AT")
-      return EVR_AT;
-
-    if (s == "CS")
-      return EVR_CS;
-
-    if (s == "DA")
-      return EVR_DA;
-
-    if (s == "DS")
-      return EVR_DS;
-
-    if (s == "DT")
-      return EVR_DT;
-
-    if (s == "FD")
-      return EVR_FD;
-
-    if (s == "FL")
-      return EVR_FL;
-
-    if (s == "IS")
-      return EVR_IS;
-
-    if (s == "LO")
-      return EVR_LO;
-
-    if (s == "LT")
-      return EVR_LT;
-
-    if (s == "OB")
-      return EVR_OB;
-
-    if (s == "OF")
-      return EVR_OF;
-
-    if (s == "OW")
-      return EVR_OW;
-
-    if (s == "PN")
-      return EVR_PN;
-
-    if (s == "SH")
-      return EVR_SH;
-
-    if (s == "SL")
-      return EVR_SL;
-
-    if (s == "SQ")
-      return EVR_SQ;
-
-    if (s == "SS")
-      return EVR_SS;
-
-    if (s == "ST")
-      return EVR_ST;
-
-    if (s == "TM")
-      return EVR_TM;
-
-    if (s == "UI")
-      return EVR_UI;
-
-    if (s == "UL")
-      return EVR_UL;
-
-    if (s == "UN")
-      return EVR_UN;
-
-    if (s == "US")
-      return EVR_US;
-
-    if (s == "UT")
-      return EVR_UT;
-
-    throw OrthancException(ErrorCode_ParameterOutOfRange);
   }
 
 

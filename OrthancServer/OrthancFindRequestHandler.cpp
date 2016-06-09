@@ -610,7 +610,7 @@ namespace Orthanc
 
       if (FilterQueryTag(value, level, tag, modality.GetManufacturer()))
       {
-        ValueRepresentation vr = FromDcmtkBridge::GetValueRepresentation(tag);
+        ValueRepresentation vr = FromDcmtkBridge::LookupValueRepresentation(tag);
 
         // DICOM specifies that searches must be case sensitive, except
         // for tags with a PN value representation

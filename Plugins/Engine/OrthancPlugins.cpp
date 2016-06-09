@@ -2126,7 +2126,7 @@ namespace Orthanc
     {
       p.target->group = entry->getKey().getGroup();
       p.target->element = entry->getKey().getElement();
-      p.target->vr = Plugins::Convert(entry->getEVR());
+      p.target->vr = Plugins::Convert(FromDcmtkBridge::Convert(entry->getEVR()));
       p.target->minMultiplicity = static_cast<uint32_t>(entry->getVMMin());
       p.target->maxMultiplicity = (entry->getVMMax() == DcmVariableVM ? 0 : static_cast<uint32_t>(entry->getVMMax()));
     }

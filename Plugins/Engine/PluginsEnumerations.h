@@ -37,10 +37,6 @@
 #include "../Include/orthanc/OrthancCPlugin.h"
 #include "../../OrthancServer/ServerEnumerations.h"
 
-#if !defined(ORTHANC_ENABLE_DCMTK) || ORTHANC_ENABLE_DCMTK != 0
-#include <dcmtk/dcmdata/dcvr.h>
-#endif
-
 namespace Orthanc
 {
   namespace Plugins
@@ -69,11 +65,9 @@ namespace Orthanc
 
     OrthancPluginHttpMethod Convert(HttpMethod method);
 
-#if !defined(ORTHANC_ENABLE_DCMTK) || ORTHANC_ENABLE_DCMTK != 0
-    DcmEVR Convert(OrthancPluginValueRepresentation vr);
+    ValueRepresentation Convert(OrthancPluginValueRepresentation vr);
 
-    OrthancPluginValueRepresentation Convert(DcmEVR vr);
-#endif
+    OrthancPluginValueRepresentation Convert(ValueRepresentation vr);
   }
 }
 

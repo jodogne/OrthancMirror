@@ -35,6 +35,7 @@
 
 #include "OrthancException.h"
 #include "Toolbox.h"
+#include "Logging.h"
 
 #include <string.h>
 #include <cassert>
@@ -896,6 +897,151 @@ namespace Orthanc
     else 
     {
       throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
+  ValueRepresentation StringToValueRepresentation(const std::string& vr,
+                                                  bool throwIfUnsupported)
+  {
+    if (vr == "AE")
+    {
+      return ValueRepresentation_ApplicationEntity;
+    }
+    else if (vr == "AS")
+    {
+      return ValueRepresentation_AgeString;
+    }
+    else if (vr == "AT")
+    {
+      return ValueRepresentation_AttributeTag;
+    }
+    else if (vr == "CS")
+    {
+      return ValueRepresentation_CodeString;
+    }
+    else if (vr == "DA")
+    {
+      return ValueRepresentation_Date;
+    }
+    else if (vr == "DS")
+    {
+      return ValueRepresentation_DecimalString;
+    }
+    else if (vr == "DT")
+    {
+      return ValueRepresentation_DateTime;
+    }
+    else if (vr == "FL")
+    {
+      return ValueRepresentation_FloatingPointSingle;
+    }
+    else if (vr == "FD")
+    {
+      return ValueRepresentation_FloatingPointDouble;
+    }
+    else if (vr == "IS")
+    {
+      return ValueRepresentation_IntegerString;
+    }
+    else if (vr == "LO")
+    {
+      return ValueRepresentation_LongString;
+    }
+    else if (vr == "LT")
+    {
+      return ValueRepresentation_LongText;
+    }
+    else if (vr == "OB")
+    {
+      return ValueRepresentation_OtherByte;
+    }
+    else if (vr == "OD")
+    {
+      return ValueRepresentation_OtherDouble;
+    }
+    else if (vr == "OF")
+    {
+      return ValueRepresentation_OtherFloat;
+    }
+    else if (vr == "OL")
+    {
+      return ValueRepresentation_OtherLong;
+    }
+    else if (vr == "OW")
+    {
+      return ValueRepresentation_OtherWord;
+    }
+    else if (vr == "PN")
+    {
+      return ValueRepresentation_PatientName;
+    }
+    else if (vr == "SH")
+    {
+      return ValueRepresentation_ShortString;
+    }
+    else if (vr == "SL")
+    {
+      return ValueRepresentation_SignedLong;
+    }
+    else if (vr == "SQ")
+    {
+      return ValueRepresentation_Sequence;
+    }
+    else if (vr == "SS")
+    {
+      return ValueRepresentation_SignedShort;
+    }
+    else if (vr == "ST")
+    {
+      return ValueRepresentation_ShortText;
+    }
+    else if (vr == "TM")
+    {
+      return ValueRepresentation_Time;
+    }
+    else if (vr == "UC")
+    {
+      return ValueRepresentation_UnlimitedCharacters;
+    }
+    else if (vr == "UI")
+    {
+      return ValueRepresentation_UniqueIdentifier;
+    }
+    else if (vr == "UL")
+    {
+      return ValueRepresentation_UnsignedLong;
+    }
+    else if (vr == "UN")
+    {
+      return ValueRepresentation_Unknown;
+    }
+    else if (vr == "UR")
+    {
+      return ValueRepresentation_UniversalResource;
+    }
+    else if (vr == "US")
+    {
+      return ValueRepresentation_UnsignedShort;
+    }
+    else if (vr == "UT")
+    {
+      return ValueRepresentation_UnlimitedText;
+    }
+    else
+    {
+      std::string s = "Unsupported value representation encountered: " + vr;
+
+      if (throwIfUnsupported)
+      {
+        LOG(ERROR) << s;
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      else
+      {
+        LOG(INFO) << s;
+        return ValueRepresentation_NotSupported;
+      }
     }
   }
 
