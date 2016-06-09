@@ -52,6 +52,9 @@ namespace Orthanc
 
   class Configuration
   {
+  private:
+    Configuration();  // Forbidden, this is a static class
+
   public:
     static std::string GetGlobalStringParameter(const std::string& parameter,
                                                 const std::string& defaultValue);
@@ -117,5 +120,7 @@ namespace Orthanc
     static const FontRegistry& GetFontRegistry();
 
     static Encoding GetDefaultEncoding();
+
+    static bool HasConfigurationChanged();
   };
 }
