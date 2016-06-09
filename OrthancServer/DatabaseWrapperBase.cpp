@@ -350,7 +350,7 @@ namespace Orthanc
     {
       map.SetValue(s.ColumnInt(1),
                    s.ColumnInt(2),
-                   s.ColumnString(3));
+                   s.ColumnString(3), false);
     }
   }
 

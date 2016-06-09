@@ -84,7 +84,7 @@ namespace Orthanc
       s += *it;
     }
 
-    result.SetValue(tag, s);
+    result.SetValue(tag, s, false);
   }
 
 
@@ -148,7 +148,7 @@ namespace Orthanc
     if (query.HasTag(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES))
     {
       result.SetValue(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES,
-                      boost::lexical_cast<std::string>(studies.size()));
+                      boost::lexical_cast<std::string>(studies.size()), false);
     }
 
     if (!query.HasTag(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES) &&
@@ -164,7 +164,7 @@ namespace Orthanc
     if (query.HasTag(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES))
     {
       result.SetValue(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES,
-                      boost::lexical_cast<std::string>(series.size()));
+                      boost::lexical_cast<std::string>(series.size()), false);
     }
 
     if (!query.HasTag(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES))
@@ -178,7 +178,7 @@ namespace Orthanc
     if (query.HasTag(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES))
     {
       result.SetValue(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES,
-                      boost::lexical_cast<std::string>(instances.size()));
+                      boost::lexical_cast<std::string>(instances.size()), false);
     }
   }
 
@@ -196,7 +196,7 @@ namespace Orthanc
     if (query.HasTag(DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES))
     {
       result.SetValue(DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES,
-                      boost::lexical_cast<std::string>(series.size()));
+                      boost::lexical_cast<std::string>(series.size()), false);
     }
 
     if (query.HasTag(DICOM_TAG_MODALITIES_IN_STUDY))
@@ -218,7 +218,7 @@ namespace Orthanc
     if (query.HasTag(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES))
     {
       result.SetValue(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES,
-                      boost::lexical_cast<std::string>(instances.size()));
+                      boost::lexical_cast<std::string>(instances.size()), false);
     }
 
     if (query.HasTag(DICOM_TAG_SOP_CLASSES_IN_STUDY))
@@ -241,7 +241,7 @@ namespace Orthanc
     if (query.HasTag(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES))
     {
       result.SetValue(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES,
-                      boost::lexical_cast<std::string>(instances.size()));
+                      boost::lexical_cast<std::string>(instances.size()), false);
     }
   }
 
@@ -342,11 +342,11 @@ namespace Orthanc
         if (resource.isMember(tag))
         {
           value = resource.get(tag, Json::arrayValue).get("Value", "").asString();
-          result.SetValue(query.GetElement(i).GetTag(), value);
+          result.SetValue(query.GetElement(i).GetTag(), value, false);
         }
         else
         {
-          result.SetValue(query.GetElement(i).GetTag(), "");
+          result.SetValue(query.GetElement(i).GetTag(), "", false);
         }
       }
     }
@@ -356,7 +356,7 @@ namespace Orthanc
       DicomArray tmp(*counters);
       for (size_t i = 0; i < tmp.GetSize(); i++)
       {
-        result.SetValue(tmp.GetElement(i).GetTag(), tmp.GetElement(i).GetValue().GetContent());
+        result.SetValue(tmp.GetElement(i).GetTag(), tmp.GetElement(i).GetValue().GetContent(), false);
       }
     }
 
@@ -496,7 +496,7 @@ namespace Orthanc
       }
 
       DicomTag tag(FromDcmtkBridge::ParseTag(members[i]));
-      target.SetValue(tag, output[members[i]].asString());
+      target.SetValue(tag, output[members[i]].asString(), false);
     }
 
     return true;
@@ -615,7 +615,7 @@ namespace Orthanc
         // DICOM specifies that searches must be case sensitive, except
         // for tags with a PN value representation
         bool sensitive = true;
-        if (vr == ValueRepresentation_PatientName)
+        if (vr == ValueRepresentation_PersonName)
         {
           sensitive = caseSensitivePN;
         }

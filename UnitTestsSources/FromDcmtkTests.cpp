@@ -301,7 +301,7 @@ TEST(FromDcmtkBridge, Encodings3)
 
 TEST(FromDcmtkBridge, ValueRepresentation)
 {
-  ASSERT_EQ(ValueRepresentation_PatientName, 
+  ASSERT_EQ(ValueRepresentation_PersonName, 
             FromDcmtkBridge::LookupValueRepresentation(DICOM_TAG_PATIENT_NAME));
   ASSERT_EQ(ValueRepresentation_Date, 
             FromDcmtkBridge::LookupValueRepresentation(DicomTag(0x0008, 0x0020) /* StudyDate */));
@@ -576,8 +576,8 @@ TEST(ParsedDicomFile, JsonEncoding)
 
 TEST(ParsedDicomFile, ToJsonFlags1)
 {
-  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7053, 0x1000), ValueRepresentation_PatientName, "MyPrivateTag", 1, 1);
-  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7050, 0x1000), ValueRepresentation_PatientName, "Declared public tag", 1, 1);
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7053, 0x1000), ValueRepresentation_PersonName, "MyPrivateTag", 1, 1);
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7050, 0x1000), ValueRepresentation_PersonName, "Declared public tag", 1, 1);
 
   ParsedDicomFile f(true);
   f.Insert(DicomTag(0x7050, 0x1000), "Some public tag", false);  // Even group => public tag
@@ -691,7 +691,7 @@ TEST(DicomFindAnswers, Basic)
 
   {
     DicomMap m;
-    m.SetValue(DICOM_TAG_PATIENT_ID, "hello");
+    m.SetValue(DICOM_TAG_PATIENT_ID, "hello", false);
     a.Add(m);
   }
 
@@ -703,7 +703,7 @@ TEST(DicomFindAnswers, Basic)
 
   {
     DicomMap m;
-    m.SetValue(DICOM_TAG_PATIENT_ID, "world");
+    m.SetValue(DICOM_TAG_PATIENT_ID, "world", false);
     a.Add(m);
   }
 
@@ -719,7 +719,7 @@ TEST(ParsedDicomFile, FromJson)
 {
   FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7057, 0x1000), ValueRepresentation_OtherByte, "MyPrivateTag", 1, 1);
   FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7059, 0x1000), ValueRepresentation_OtherByte, "MyPrivateTag", 1, 1);
-  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7050, 0x1000), ValueRepresentation_PatientName, "Declared public tag", 1, 1);
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7050, 0x1000), ValueRepresentation_PersonName, "Declared public tag", 1, 1);
 
   Json::Value v;
   const std::string sopClassUid = "1.2.840.10008.5.1.4.1.1.1";  // CR Image Storage:

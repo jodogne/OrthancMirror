@@ -1289,6 +1289,9 @@ namespace Orthanc
     std::string dicomContent;
     context.ReadFile(dicomContent, publicId, FileContentType_Dicom);
 
+    // TODO Consider using "DicomMap::ParseDicomMetaInformation()" to
+    // speed up things here
+
     ParsedDicomFile dicom(dicomContent);
 
     Json::Value header;

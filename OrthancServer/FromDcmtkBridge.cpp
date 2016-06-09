@@ -1136,7 +1136,7 @@ namespace Orthanc
         return ValueRepresentation_OtherWord;
 
       case EVR_PN:
-        return ValueRepresentation_PatientName;
+        return ValueRepresentation_PersonName;
 
       case EVR_SH:
         return ValueRepresentation_ShortString;
@@ -1761,7 +1761,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadFileFormat);
       }
       
-      target.SetValue(ParseTag(members[i]), value.asString());
+      target.SetValue(ParseTag(members[i]), value.asString(), false);
     }
   }
 }

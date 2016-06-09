@@ -102,16 +102,18 @@ namespace Orthanc
     }
 
     void SetValue(const DicomTag& tag,
-                  const std::string& str)
+                  const std::string& str,
+                  bool isBinary)
     {
-      SetValue(tag, new DicomValue(str, false));
+      SetValue(tag, new DicomValue(str, isBinary));
     }
 
     void SetValue(uint16_t group, 
                   uint16_t element, 
-                  const std::string& str)
+                  const std::string& str,
+                  bool isBinary)
     {
-      SetValue(group, element, new DicomValue(str, false));
+      SetValue(group, element, new DicomValue(str, isBinary));
     }
 
     bool HasTag(uint16_t group, uint16_t element) const
@@ -176,5 +178,9 @@ namespace Orthanc
     static void LoadMainDicomTags(const DicomTag*& tags,
                                   size_t& size,
                                   ResourceType level);
+
+    static bool ParseDicomMetaInformation(DicomMap& result,
+                                          const char* dicom,
+                                          size_t size);
   };
 }

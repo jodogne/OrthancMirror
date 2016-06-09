@@ -511,7 +511,7 @@ namespace Orthanc
       {
         if (!input.HasTag(*it))
         {
-          tmp.SetValue(*it, "");
+          tmp.SetValue(*it, "", false);
         }
       }      
 
