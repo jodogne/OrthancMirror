@@ -651,8 +651,15 @@ static bool WaitForExit(ServerContext& context,
 
   context.GetLua().Execute("Initialize");
 
-  Toolbox::ServerBarrier(restApi.LeaveBarrierFlag());
+  ServerBarrierEvent event = Toolbox::ServerBarrier(restApi.LeaveBarrierFlag());
   bool restart = restApi.IsResetRequestReceived();
+
+  if (!restart && 
+      event == ServerBarrierEvent_Reload)
+  {
+    printf("RECEIVED SIGHUP\n");
+  }
+
 
   context.GetLua().Execute("Finalize");
 
