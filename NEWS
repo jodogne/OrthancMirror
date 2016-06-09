@@ -2,6 +2,11 @@ Pending changes in the mainline
 ===============================
 
 
+General
+-------
+
+* Support of SIGHUP signal (restart Orthanc only if the configuration files have changed)
+
 REST API
 --------
 

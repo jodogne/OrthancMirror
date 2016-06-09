@@ -119,7 +119,6 @@ namespace Orthanc
   {
     // http://msdn.microsoft.com/en-us/library/ms683242(v=vs.85).aspx
     finish_ = true;
-    barrierEvent_ = ServerBarrierEvent_Stop;
     return true;
   }
 #else

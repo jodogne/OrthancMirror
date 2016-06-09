@@ -81,6 +81,7 @@ namespace Orthanc
   static boost::filesystem::path defaultDirectory_;
   static std::string configurationAbsolutePath_;
   static FontRegistry fontRegistry_;
+  static const char* configurationFileArg_ = NULL;
 
 
   static std::string GetGlobalStringParameterInternal(const std::string& parameter,
@@ -128,7 +129,8 @@ namespace Orthanc
 
 
 
-  static void AddFileToConfiguration(const boost::filesystem::path& path)
+  static void AddFileToConfiguration(Json::Value& target,
+                                     const boost::filesystem::path& path)
   {
     LOG(WARNING) << "Reading the configuration from: " << path;
 
@@ -150,30 +152,31 @@ namespace Orthanc
       Toolbox::CopyJsonWithoutComments(config, tmp);
     }
 
-    if (configuration_.size() == 0)
+    if (target.size() == 0)
     {
-      configuration_ = config;
+      target = config;
     }
     else
     {
       Json::Value::Members members = config.getMemberNames();
       for (Json::Value::ArrayIndex i = 0; i < members.size(); i++)
       {
-        if (configuration_.isMember(members[i]))
+        if (target.isMember(members[i]))
         {
           LOG(ERROR) << "The configuration section \"" << members[i] << "\" is defined in 2 different configuration files";
           throw OrthancException(ErrorCode_BadFileFormat);          
         }
         else
         {
-          configuration_[members[i]] = config[members[i]];
+          target[members[i]] = config[members[i]];
         }
       }
     }
   }
 
 
-  static void ScanFolderForConfiguration(const char* folder)
+  static void ScanFolderForConfiguration(Json::Value& target,
+                                         const char* folder)
   {
     using namespace boost::filesystem;
 
@@ -191,19 +194,17 @@ namespace Orthanc
 
         if (extension == ".json")
         {
-          AddFileToConfiguration(it->path().string());
+          AddFileToConfiguration(target, it->path().string());
         }
       }
     }
   }
 
 
-  static void ReadGlobalConfiguration(const char* configurationFile)
+  static void ReadConfiguration(Json::Value& target,
+                                const char* configurationFile)
   {
-    // Prepare the default configuration
-    defaultDirectory_ = boost::filesystem::current_path();
-    configuration_ = Json::objectValue;
-    configurationAbsolutePath_ = "";
+    target = Json::objectValue;
 
     if (configurationFile)
     {
@@ -215,15 +216,11 @@ namespace Orthanc
       
       if (boost::filesystem::is_directory(configurationFile))
       {
-        defaultDirectory_ = boost::filesystem::path(configurationFile);
-        configurationAbsolutePath_ = boost::filesystem::absolute(configurationFile).parent_path().string();
-        ScanFolderForConfiguration(configurationFile);
+        ScanFolderForConfiguration(target, configurationFile);
       }
       else
       {
-        defaultDirectory_ = boost::filesystem::path(configurationFile).parent_path();
-        configurationAbsolutePath_ = boost::filesystem::absolute(configurationFile).string();
-        AddFileToConfiguration(configurationFile);
+        AddFileToConfiguration(target, configurationFile);
       }
     }
     else
@@ -240,9 +237,47 @@ namespace Orthanc
       boost::filesystem::path p = ORTHANC_PATH;
       p /= "Resources";
       p /= "Configuration.json";
-      configurationAbsolutePath_ = boost::filesystem::absolute(p).string();
 
-      AddFileToConfiguration(p);      
+      AddFileToConfiguration(target, p);
+#endif
+    }
+  }
+
+
+
+  static void ReadGlobalConfiguration(const char* configurationFile)
+  {
+    // Read the content of the configuration
+    configurationFileArg_ = configurationFile;
+    ReadConfiguration(configuration_, configurationFile);
+
+    // Adapt the paths to the configurations
+    defaultDirectory_ = boost::filesystem::current_path();
+    configurationAbsolutePath_ = "";
+
+    if (configurationFile)
+    {
+      if (boost::filesystem::is_directory(configurationFile))
+      {
+        defaultDirectory_ = boost::filesystem::path(configurationFile);
+        configurationAbsolutePath_ = boost::filesystem::absolute(configurationFile).parent_path().string();
+      }
+      else
+      {
+        defaultDirectory_ = boost::filesystem::path(configurationFile).parent_path();
+        configurationAbsolutePath_ = boost::filesystem::absolute(configurationFile).string();
+      }
+    }
+    else
+    {
+#if ORTHANC_STANDALONE != 1
+      // In a non-standalone build, we use the
+      // "Resources/Configuration.json" from the Orthanc source code
+
+      boost::filesystem::path p = ORTHANC_PATH;
+      p /= "Resources";
+      p /= "Configuration.json";
+      configurationAbsolutePath_ = boost::filesystem::absolute(p).string();
 #endif
     }
   }
@@ -1039,5 +1074,21 @@ namespace Orthanc
 
     // By default, Latin1 encoding is assumed
     return s.empty() ? Encoding_Latin1 : StringToEncoding(s.c_str());
+  }
+
+
+  bool Configuration::HasConfigurationChanged()
+  {
+    Json::Value starting;
+    GetConfiguration(starting);
+
+    Json::Value current;
+    ReadConfiguration(current, configurationFileArg_);
+
+    Json::FastWriter writer;
+    std::string a = writer.write(starting);
+    std::string b = writer.write(current);
+
+    return a != b;
   }
 }

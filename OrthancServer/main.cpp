@@ -651,15 +651,33 @@ static bool WaitForExit(ServerContext& context,
 
   context.GetLua().Execute("Initialize");
 
-  ServerBarrierEvent event = Toolbox::ServerBarrier(restApi.LeaveBarrierFlag());
-  bool restart = restApi.IsResetRequestReceived();
+  bool restart;
 
-  if (!restart && 
-      event == ServerBarrierEvent_Reload)
+  for (;;)
   {
-    printf("RECEIVED SIGHUP\n");
-  }
+    ServerBarrierEvent event = Toolbox::ServerBarrier(restApi.LeaveBarrierFlag());
+    restart = restApi.IsResetRequestReceived();
 
+    if (!restart && 
+        event == ServerBarrierEvent_Reload)
+    {
+      if (Configuration::HasConfigurationChanged())
+      {
+        LOG(WARNING) << "A SIGHUP signal has been received, resetting Orthanc";
+        restart = true;
+        break;
+      }
+      else
+      {
+        LOG(WARNING) << "A SIGHUP signal has been received, but is ignored as the configuration has not changed";
+        continue;
+      }
+    }
+    else
+    {
+      break;
+    }
+  }
 
   context.GetLua().Execute("Finalize");
 
