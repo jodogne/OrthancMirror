@@ -92,7 +92,7 @@ namespace Orthanc
         continue;
       }
 
-      ValueRepresentation vr = FromDcmtkBridge::GetValueRepresentation(tag);
+      ValueRepresentation vr = FromDcmtkBridge::LookupValueRepresentation(tag);
 
       if (constraints_.find(tag) != constraints_.end() ||
           sequences_.find(tag) != sequences_.end())

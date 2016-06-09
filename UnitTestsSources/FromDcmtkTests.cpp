@@ -34,6 +34,7 @@
 #include "gtest/gtest.h"
 
 #include "../OrthancServer/FromDcmtkBridge.h"
+#include "../OrthancServer/ToDcmtkBridge.h"
 #include "../OrthancServer/OrthancInitialization.h"
 #include "../OrthancServer/DicomModification.h"
 #include "../OrthancServer/ServerToolbox.h"
@@ -48,6 +49,7 @@
 #include "../Resources/EncodingTests.h"
 #include "../OrthancServer/DicomProtocol/DicomFindAnswers.h"
 #include "../OrthancServer/Internals/DicomImageDecoder.h"
+#include "../Plugins/Engine/PluginsEnumerations.h"
 
 #include <dcmtk/dcmdata/dcelem.h>
 
@@ -300,15 +302,58 @@ TEST(FromDcmtkBridge, Encodings3)
 TEST(FromDcmtkBridge, ValueRepresentation)
 {
   ASSERT_EQ(ValueRepresentation_PatientName, 
-            FromDcmtkBridge::GetValueRepresentation(DICOM_TAG_PATIENT_NAME));
+            FromDcmtkBridge::LookupValueRepresentation(DICOM_TAG_PATIENT_NAME));
   ASSERT_EQ(ValueRepresentation_Date, 
-            FromDcmtkBridge::GetValueRepresentation(DicomTag(0x0008, 0x0020) /* StudyDate */));
+            FromDcmtkBridge::LookupValueRepresentation(DicomTag(0x0008, 0x0020) /* StudyDate */));
   ASSERT_EQ(ValueRepresentation_Time, 
-            FromDcmtkBridge::GetValueRepresentation(DicomTag(0x0008, 0x0030) /* StudyTime */));
+            FromDcmtkBridge::LookupValueRepresentation(DicomTag(0x0008, 0x0030) /* StudyTime */));
   ASSERT_EQ(ValueRepresentation_DateTime, 
-            FromDcmtkBridge::GetValueRepresentation(DicomTag(0x0008, 0x002a) /* AcquisitionDateTime */));
-  ASSERT_EQ(ValueRepresentation_Other, 
-            FromDcmtkBridge::GetValueRepresentation(DICOM_TAG_PATIENT_ID));
+            FromDcmtkBridge::LookupValueRepresentation(DicomTag(0x0008, 0x002a) /* AcquisitionDateTime */));
+  ASSERT_EQ(ValueRepresentation_NotSupported, 
+            FromDcmtkBridge::LookupValueRepresentation(DicomTag(0x0001, 0x0001) /* some private tag */));
+}
+
+
+TEST(FromDcmtkBridge, ValueRepresentationConversions)
+{
+  ASSERT_EQ(1, ValueRepresentation_ApplicationEntity);
+  ASSERT_EQ(1, OrthancPluginValueRepresentation_AE);
+
+  for (int i = ValueRepresentation_ApplicationEntity;
+       i <= ValueRepresentation_NotSupported; i++)
+  {
+    ValueRepresentation vr = static_cast<ValueRepresentation>(i);
+
+    if (vr == ValueRepresentation_NotSupported)
+    {
+      ASSERT_THROW(ToDcmtkBridge::Convert(vr), OrthancException);
+      ASSERT_THROW(Plugins::Convert(vr), OrthancException);
+    }
+    else if (vr == ValueRepresentation_OtherDouble || 
+             vr == ValueRepresentation_OtherLong ||
+             vr == ValueRepresentation_UniversalResource ||
+             vr == ValueRepresentation_UnlimitedCharacters)
+    {
+      // These VR are not supported as of DCMTK 3.6.0
+      ASSERT_THROW(ToDcmtkBridge::Convert(vr), OrthancException);
+      ASSERT_EQ(OrthancPluginValueRepresentation_UN, Plugins::Convert(vr));
+    }
+    else
+    {
+      ASSERT_EQ(vr, FromDcmtkBridge::Convert(ToDcmtkBridge::Convert(vr)));
+
+      OrthancPluginValueRepresentation plugins = Plugins::Convert(vr);
+      ASSERT_EQ(vr, Plugins::Convert(plugins));
+    }
+  }
+
+  for (int i = OrthancPluginValueRepresentation_AE;
+       i <= OrthancPluginValueRepresentation_UT; i++)
+  {
+    OrthancPluginValueRepresentation plugins = static_cast<OrthancPluginValueRepresentation>(i);
+    ValueRepresentation orthanc = Plugins::Convert(plugins);
+    ASSERT_EQ(plugins, Plugins::Convert(orthanc));
+  }
 }
 
 
@@ -531,8 +576,8 @@ TEST(ParsedDicomFile, JsonEncoding)
 
 TEST(ParsedDicomFile, ToJsonFlags1)
 {
-  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7053, 0x1000), EVR_PN, "MyPrivateTag", 1, 1);
-  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7050, 0x1000), EVR_PN, "Declared public tag", 1, 1);
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7053, 0x1000), ValueRepresentation_PatientName, "MyPrivateTag", 1, 1);
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7050, 0x1000), ValueRepresentation_PatientName, "Declared public tag", 1, 1);
 
   ParsedDicomFile f(true);
   f.Insert(DicomTag(0x7050, 0x1000), "Some public tag", false);  // Even group => public tag
@@ -672,9 +717,9 @@ TEST(DicomFindAnswers, Basic)
 
 TEST(ParsedDicomFile, FromJson)
 {
-  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7057, 0x1000), EVR_OB, "MyPrivateTag", 1, 1);
-  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7059, 0x1000), EVR_OB, "MyPrivateTag", 1, 1);
-  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7050, 0x1000), EVR_PN, "Declared public tag", 1, 1);
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7057, 0x1000), ValueRepresentation_OtherByte, "MyPrivateTag", 1, 1);
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7059, 0x1000), ValueRepresentation_OtherByte, "MyPrivateTag", 1, 1);
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7050, 0x1000), ValueRepresentation_PatientName, "Declared public tag", 1, 1);
 
   Json::Value v;
   const std::string sopClassUid = "1.2.840.10008.5.1.4.1.1.1";  // CR Image Storage:

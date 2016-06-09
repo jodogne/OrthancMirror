@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include <string>
+
 namespace Orthanc
 {
   enum Endianness
@@ -385,6 +387,48 @@ namespace Orthanc
 
 
   /**
+   * The value representations Orthanc knows about. They correspond to
+   * the DICOM 2016b version of the standard.
+   * http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.2.html
+   **/
+  enum ValueRepresentation
+  {
+    ValueRepresentation_ApplicationEntity = 1,     // AE
+    ValueRepresentation_AgeString = 2,             // AS
+    ValueRepresentation_AttributeTag = 3,          // AT (2 x uint16_t)
+    ValueRepresentation_CodeString = 4,            // CS
+    ValueRepresentation_Date = 5,                  // DA
+    ValueRepresentation_DecimalString = 6,         // DS
+    ValueRepresentation_DateTime = 7,              // DT
+    ValueRepresentation_FloatingPointSingle = 8,   // FL (float)
+    ValueRepresentation_FloatingPointDouble = 9,   // FD (double)
+    ValueRepresentation_IntegerString = 10,        // IS
+    ValueRepresentation_LongString = 11,           // LO
+    ValueRepresentation_LongText = 12,             // LT
+    ValueRepresentation_OtherByte = 13,            // OB
+    ValueRepresentation_OtherDouble = 14,          // OD
+    ValueRepresentation_OtherFloat = 15,           // OF
+    ValueRepresentation_OtherLong = 16,            // OL
+    ValueRepresentation_OtherWord = 17,            // OW
+    ValueRepresentation_PatientName = 18,          // PN
+    ValueRepresentation_ShortString = 19,          // SH
+    ValueRepresentation_SignedLong = 20,           // SL (int32_t)
+    ValueRepresentation_Sequence = 21,             // SQ
+    ValueRepresentation_SignedShort = 22,          // SS (int16_t)
+    ValueRepresentation_ShortText = 23,            // ST
+    ValueRepresentation_Time = 24,                 // TM
+    ValueRepresentation_UnlimitedCharacters = 25,  // UC
+    ValueRepresentation_UniqueIdentifier = 26,     // UI (UID)
+    ValueRepresentation_UnsignedLong = 27,         // UL (uint32_t)
+    ValueRepresentation_Unknown = 28,              // UN
+    ValueRepresentation_UniversalResource = 29,    // UR (URI or URL)
+    ValueRepresentation_UnsignedShort = 30,        // US (uint16_t)
+    ValueRepresentation_UnlimitedText = 31,        // UT
+    ValueRepresentation_NotSupported               // Not supported by Orthanc, or tag not in dictionary
+  };
+
+
+  /**
    * WARNING: Do not change the explicit values in the enumerations
    * below this point. This would result in incompatible databases
    * between versions of Orthanc!
@@ -459,7 +503,10 @@ namespace Orthanc
 
   ImageFormat StringToImageFormat(const char* format);
 
-  LogLevel StringToLogLevel(const char* format);
+  LogLevel StringToLogLevel(const char* level);
+
+  ValueRepresentation StringToValueRepresentation(const std::string& vr,
+                                                  bool throwIfUnsupported);
 
   unsigned int GetBytesPerPixel(PixelFormat format);
 
