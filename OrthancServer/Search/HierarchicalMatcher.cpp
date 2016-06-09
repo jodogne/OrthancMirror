@@ -147,7 +147,7 @@ namespace Orthanc
           // DICOM specifies that searches must be case sensitive, except
           // for tags with a PN value representation
           bool sensitive = true;
-          if (vr == ValueRepresentation_PatientName)
+          if (vr == ValueRepresentation_PersonName)
           {
             sensitive = caseSensitivePN;
           }

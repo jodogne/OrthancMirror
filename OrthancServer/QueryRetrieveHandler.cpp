@@ -84,7 +84,7 @@ namespace Orthanc
                                       const std::string& value)
   {
     Invalidate();
-    query_.SetValue(tag, value);
+    query_.SetValue(tag, value, false);
   }
 
 

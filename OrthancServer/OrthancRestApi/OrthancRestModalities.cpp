@@ -97,7 +97,7 @@ namespace Orthanc
     for (size_t i = 0; i < members.size(); i++)
     {
       DicomTag t = FromDcmtkBridge::ParseTag(members[i]);
-      result.SetValue(t, query[members[i]].asString());
+      result.SetValue(t, query[members[i]].asString(), false);
     }
 
     return true;
@@ -287,7 +287,7 @@ namespace Orthanc
     std::string tmp;
     if (source.GetTagValue(tmp, tag))
     {
-      target.SetValue(tag, tmp);
+      target.SetValue(tag, tmp, false);
     }
   }
 

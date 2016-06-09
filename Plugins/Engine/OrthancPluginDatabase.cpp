@@ -986,7 +986,7 @@ namespace Orthanc
       {
         const OrthancPluginDicomTag& tag = *reinterpret_cast<const OrthancPluginDicomTag*>(answer.valueGeneric);
         assert(answerDicomMap_ != NULL);
-        answerDicomMap_->SetValue(tag.group, tag.element, std::string(tag.value));
+        answerDicomMap_->SetValue(tag.group, tag.element, std::string(tag.value), false);
         break;
       }
 

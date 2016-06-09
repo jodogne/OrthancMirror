@@ -376,7 +376,7 @@ namespace Orthanc
           return ValueRepresentation_OtherWord;
 
         case OrthancPluginValueRepresentation_PN:
-          return ValueRepresentation_PatientName;
+          return ValueRepresentation_PersonName;
 
         case OrthancPluginValueRepresentation_SH:
           return ValueRepresentation_ShortString;
@@ -474,7 +474,7 @@ namespace Orthanc
         case ValueRepresentation_OtherWord:
           return OrthancPluginValueRepresentation_OW;
 
-        case ValueRepresentation_PatientName:
+        case ValueRepresentation_PersonName:
           return OrthancPluginValueRepresentation_PN;
 
         case ValueRepresentation_ShortString:

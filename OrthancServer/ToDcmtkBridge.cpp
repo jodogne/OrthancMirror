@@ -116,7 +116,7 @@ namespace Orthanc
       case ValueRepresentation_OtherWord:
         return EVR_OW;
 
-      case ValueRepresentation_PatientName:
+      case ValueRepresentation_PersonName:
         return EVR_PN;
 
       case ValueRepresentation_ShortString:

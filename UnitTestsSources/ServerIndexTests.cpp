@@ -790,10 +790,10 @@ TEST(ServerIndex, AttachmentRecycling)
   {
     std::string id = boost::lexical_cast<std::string>(i);
     DicomMap instance;
-    instance.SetValue(DICOM_TAG_PATIENT_ID, "patient-" + id);
-    instance.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "study-" + id);
-    instance.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, "series-" + id);
-    instance.SetValue(DICOM_TAG_SOP_INSTANCE_UID, "instance-" + id);
+    instance.SetValue(DICOM_TAG_PATIENT_ID, "patient-" + id, false);
+    instance.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "study-" + id, false);
+    instance.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, "series-" + id, false);
+    instance.SetValue(DICOM_TAG_SOP_INSTANCE_UID, "instance-" + id, false);
 
     std::map<MetadataType, std::string> instanceMetadata;
     DicomInstanceToStore toStore;

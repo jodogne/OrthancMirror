@@ -410,7 +410,7 @@ namespace Orthanc
     ValueRepresentation_OtherFloat = 15,           // OF
     ValueRepresentation_OtherLong = 16,            // OL
     ValueRepresentation_OtherWord = 17,            // OW
-    ValueRepresentation_PatientName = 18,          // PN
+    ValueRepresentation_PersonName = 18,           // PN
     ValueRepresentation_ShortString = 19,          // SH
     ValueRepresentation_SignedLong = 20,           // SL (int32_t)
     ValueRepresentation_Sequence = 21,             // SQ
@@ -524,4 +524,6 @@ namespace Orthanc
   HttpStatus ConvertErrorCodeToHttpStatus(ErrorCode error);
 
   bool IsUserContentType(FileContentType type);
+
+  bool IsBinaryValueRepresentation(ValueRepresentation vr);
 }

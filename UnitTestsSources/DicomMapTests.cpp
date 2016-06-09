@@ -90,7 +90,7 @@ TEST(DicomMap, Tags)
 
   ASSERT_FALSE(m.HasTag(DICOM_TAG_PATIENT_NAME));
   ASSERT_FALSE(m.HasTag(0x0010, 0x0010));
-  m.SetValue(0x0010, 0x0010, "PatientName");
+  m.SetValue(0x0010, 0x0010, "PatientName", false);
   ASSERT_TRUE(m.HasTag(DICOM_TAG_PATIENT_NAME));
   ASSERT_TRUE(m.HasTag(0x0010, 0x0010));
 
@@ -99,9 +99,9 @@ TEST(DicomMap, Tags)
   ASSERT_EQ(DICOM_TAG_PATIENT_NAME, *s.begin());
 
   ASSERT_FALSE(m.HasTag(DICOM_TAG_PATIENT_ID));
-  m.SetValue(DICOM_TAG_PATIENT_ID, "PatientID");
+  m.SetValue(DICOM_TAG_PATIENT_ID, "PatientID", false);
   ASSERT_TRUE(m.HasTag(0x0010, 0x0020));
-  m.SetValue(DICOM_TAG_PATIENT_ID, "PatientID2");
+  m.SetValue(DICOM_TAG_PATIENT_ID, "PatientID2", false);
   ASSERT_EQ("PatientID2", m.GetValue(0x0010, 0x0020).GetContent());
 
   m.GetTags(s);
@@ -117,7 +117,7 @@ TEST(DicomMap, Tags)
   std::auto_ptr<DicomMap> mm(m.Clone());
   ASSERT_EQ("PatientName", mm->GetValue(DICOM_TAG_PATIENT_NAME).GetContent());  
 
-  m.SetValue(DICOM_TAG_PATIENT_ID, "Hello");
+  m.SetValue(DICOM_TAG_PATIENT_ID, "Hello", false);
   ASSERT_THROW(mm->GetValue(DICOM_TAG_PATIENT_ID), OrthancException);
   mm->CopyTagIfExists(m, DICOM_TAG_PATIENT_ID);
   ASSERT_EQ("Hello", mm->GetValue(DICOM_TAG_PATIENT_ID).GetContent());  

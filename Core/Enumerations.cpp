@@ -974,7 +974,7 @@ namespace Orthanc
     }
     else if (vr == "PN")
     {
-      return ValueRepresentation_PatientName;
+      return ValueRepresentation_PersonName;
     }
     else if (vr == "SH")
     {
@@ -1332,5 +1332,61 @@ namespace Orthanc
   {
     return (type >= FileContentType_StartUser &&
             type <= FileContentType_EndUser);
+  }
+
+
+  bool IsBinaryValueRepresentation(ValueRepresentation vr)
+  {
+    // http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.2.html
+
+    switch (vr)
+    {
+      case ValueRepresentation_ApplicationEntity:     // AE
+      case ValueRepresentation_AgeString:             // AS
+      case ValueRepresentation_CodeString:            // CS
+      case ValueRepresentation_Date:                  // DA
+      case ValueRepresentation_DecimalString:         // DS
+      case ValueRepresentation_DateTime:              // DT
+      case ValueRepresentation_IntegerString:         // IS
+      case ValueRepresentation_LongString:            // LO
+      case ValueRepresentation_LongText:              // LT
+      case ValueRepresentation_PersonName:            // PN
+      case ValueRepresentation_ShortString:           // SH
+      case ValueRepresentation_ShortText:             // ST
+      case ValueRepresentation_Time:                  // TM
+      case ValueRepresentation_UnlimitedCharacters:   // UC
+      case ValueRepresentation_UniqueIdentifier:      // UI (UID)
+      case ValueRepresentation_UniversalResource:     // UR (URI or URL)
+      case ValueRepresentation_UnlimitedText:         // UT
+      {
+        return false;
+      }
+
+      /**
+       * Below are all the VR whose character repertoire is tagged as
+       * "not applicable"
+       **/
+      case ValueRepresentation_AttributeTag:          // AT (2 x uint16_t)
+      case ValueRepresentation_FloatingPointSingle:   // FL (float)
+      case ValueRepresentation_FloatingPointDouble:   // FD (double)
+      case ValueRepresentation_OtherByte:             // OB
+      case ValueRepresentation_OtherDouble:           // OD
+      case ValueRepresentation_OtherFloat:            // OF
+      case ValueRepresentation_OtherLong:             // OL
+      case ValueRepresentation_OtherWord:             // OW
+      case ValueRepresentation_SignedLong:            // SL (int32_t)
+      case ValueRepresentation_Sequence:              // SQ
+      case ValueRepresentation_SignedShort:           // SS (int16_t)
+      case ValueRepresentation_UnsignedLong:          // UL (uint32_t)
+      case ValueRepresentation_Unknown:               // UN
+      case ValueRepresentation_UnsignedShort:         // US (uint16_t)
+      {
+        return true;
+      }
+
+      case ValueRepresentation_NotSupported:
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
   }
 }

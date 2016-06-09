@@ -401,7 +401,7 @@ namespace Orthanc
 
         if (!m.HasTag(DICOM_TAG_QUERY_RETRIEVE_LEVEL))
         {
-          m.SetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL, payload.level);
+          m.SetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL, payload.level, false);
         }
 
         payload.answers->Add(m);
@@ -507,7 +507,7 @@ namespace Orthanc
                 !value->IsNull() &&
                 value->GetContent() == "*")
             {
-              fix->SetValue(*it, "");
+              fix->SetValue(*it, "", false);
             }
           }
         }
@@ -1065,7 +1065,7 @@ namespace Orthanc
                                         const std::string& patientId)
   {
     DicomMap query;
-    query.SetValue(DICOM_TAG_PATIENT_ID, patientId);
+    query.SetValue(DICOM_TAG_PATIENT_ID, patientId, false);
     MoveInternal(targetAet, ResourceType_Patient, query);
   }
 
@@ -1073,7 +1073,7 @@ namespace Orthanc
                                       const std::string& studyUid)
   {
     DicomMap query;
-    query.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid);
+    query.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid, false);
     MoveInternal(targetAet, ResourceType_Study, query);
   }
 
@@ -1082,8 +1082,8 @@ namespace Orthanc
                                        const std::string& seriesUid)
   {
     DicomMap query;
-    query.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid);
-    query.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, seriesUid);
+    query.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid, false);
+    query.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, seriesUid, false);
     MoveInternal(targetAet, ResourceType_Series, query);
   }
 
@@ -1093,9 +1093,9 @@ namespace Orthanc
                                          const std::string& instanceUid)
   {
     DicomMap query;
-    query.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid);
-    query.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, seriesUid);
-    query.SetValue(DICOM_TAG_SOP_INSTANCE_UID, instanceUid);
+    query.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid, false);
+    query.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, seriesUid, false);
+    query.SetValue(DICOM_TAG_SOP_INSTANCE_UID, instanceUid, false);
     MoveInternal(targetAet, ResourceType_Instance, query);
   }
 
