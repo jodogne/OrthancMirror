@@ -35,7 +35,6 @@
 
 #include <stdio.h>
 #include <memory>
-#include "DicomArray.h"
 #include "../Endianness.h"
 #include "../OrthancException.h"
 
@@ -460,13 +459,6 @@ namespace Orthanc
     GetMainDicomTagsInternal(result, ResourceType_Study);
     GetMainDicomTagsInternal(result, ResourceType_Series);
     GetMainDicomTagsInternal(result, ResourceType_Instance);
-  }
-
-
-  void DicomMap::Print(FILE* fp) const
-  {
-    DicomArray a(*this);
-    a.Print(fp);
   }
 
 
