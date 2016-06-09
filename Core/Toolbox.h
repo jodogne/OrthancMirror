@@ -47,11 +47,17 @@ namespace Orthanc
   {
   };
 
+  enum ServerBarrierEvent
+  {
+    ServerBarrierEvent_Stop,
+    ServerBarrierEvent_Reload  // SIGHUP signal: reload configuration file
+  };
+
   namespace Toolbox
   {
-    void ServerBarrier(const bool& stopFlag);
+    ServerBarrierEvent ServerBarrier(const bool& stopFlag);
 
-    void ServerBarrier();
+    ServerBarrierEvent ServerBarrier();
 
     void ToUpperCase(std::string& s);  // Inplace version
 

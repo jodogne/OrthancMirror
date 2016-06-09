@@ -2987,7 +2987,7 @@ namespace Orthanc
           return reinterpret_cast<ImageAccessor*>(pluginImage);
         }
 
-        LOG(WARNING) << "The custom image decoder cannot handle an image, fallback to the built-in decoder";
+        LOG(INFO) << "The installed image decoding plugins cannot handle an image, fallback to the built-in decoder";
       }
     }
 
