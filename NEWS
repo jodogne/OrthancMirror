@@ -2,11 +2,6 @@ Pending changes in the mainline
 ===============================
 
 
-General
--------
-
-* Support of SIGHUP signal (restart Orthanc only if the configuration files have changed)
-
 REST API
 --------
 
@@ -47,6 +42,7 @@ Image decoding
 Maintenance
 -----------
 
+* Support of SIGHUP signal (restart Orthanc only if the configuration files have changed)
 * New logo of Orthanc
 * Fix issue 11 (is_regular_file() fails for FILE_ATTRIBUTE_REPARSE_POINT)
 * Fix issue 16 ("Limit" parameter error in REST API /tools/find method)
