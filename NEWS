@@ -25,6 +25,7 @@ Plugins
 * New callback to handle C-Move requests: OrthancPluginRegisterMoveCallback()
 * New function: "OrthancPluginHttpClient()" to do HTTP requests with full control
 * New function: "OrthancPluginGenerateUuid()" to generate a UUID
+* More than one custom image decoder can be installed (e.g. to handle different transfer syntaxes)
 
 Lua
 ---

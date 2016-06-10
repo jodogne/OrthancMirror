@@ -344,6 +344,7 @@ namespace Orthanc
     typedef std::list<OrthancPluginOnStoredInstanceCallback>  OnStoredCallbacks;
     typedef std::list<OrthancPluginOnChangeCallback>  OnChangeCallbacks;
     typedef std::list<OrthancPluginIncomingHttpRequestFilter>  IncomingHttpRequestFilters;
+    typedef std::list<OrthancPluginDecodeImageCallback>  DecodeImageCallbacks;
     typedef std::map<Property, std::string>  Properties;
 
     PluginsManager manager_;
@@ -353,7 +354,7 @@ namespace Orthanc
     OnChangeCallbacks  onChangeCallbacks_;
     OrthancPluginFindCallback  findCallback_;
     OrthancPluginWorklistCallback  worklistCallback_;
-    OrthancPluginDecodeImageCallback  decodeImageCallback_;
+    DecodeImageCallbacks  decodeImageCallbacks_;
     _OrthancPluginMoveCallback moveCallbacks_;
     IncomingHttpRequestFilters  incomingHttpRequestFilters_;
     std::auto_ptr<StorageAreaFactory>  storageArea_;
@@ -376,7 +377,6 @@ namespace Orthanc
       context_(NULL), 
       findCallback_(NULL),
       worklistCallback_(NULL),
-      decodeImageCallback_(NULL),
       argc_(1),
       argv_(NULL)
     {
@@ -1104,16 +1104,9 @@ namespace Orthanc
 
     boost::mutex::scoped_lock lock(pimpl_->decodeImageCallbackMutex_);
 
-    if (pimpl_->decodeImageCallback_ != NULL)
-    {
-      LOG(ERROR) << "Can only register one plugin to handle the decompression of DICOM images";
-      throw OrthancException(ErrorCode_Plugin);
-    }
-    else
-    {
-      LOG(INFO) << "Plugin has registered a callback to decode DICOM images";
-      pimpl_->decodeImageCallback_ = p.callback;
-    }
+    pimpl_->decodeImageCallbacks_.push_back(p.callback);
+    LOG(INFO) << "Plugin has registered a callback to decode DICOM images (" 
+              << pimpl_->decodeImageCallbacks_.size() << " decoder(s) now active)";
   }
 
 
@@ -2968,31 +2961,48 @@ namespace Orthanc
   bool OrthancPlugins::HasCustomImageDecoder()
   {
     boost::mutex::scoped_lock lock(pimpl_->decodeImageCallbackMutex_);
-    return (pimpl_->decodeImageCallback_ != NULL);
+    return !pimpl_->decodeImageCallbacks_.empty();
   }
 
 
-  ImageAccessor*  OrthancPlugins::Decode(const void* dicom,
-                                         size_t size,
-                                         unsigned int frame)
+  ImageAccessor*  OrthancPlugins::DecodeUnsafe(const void* dicom,
+                                               size_t size,
+                                               unsigned int frame)
   {
-    {
-      boost::mutex::scoped_lock lock(pimpl_->decodeImageCallbackMutex_);
-      if (pimpl_->decodeImageCallback_ != NULL)
-      {
-        OrthancPluginImage* pluginImage = NULL;
-        if (pimpl_->decodeImageCallback_(&pluginImage, dicom, size, frame) == OrthancPluginErrorCode_Success &&
-            pluginImage != NULL)
-        {
-          return reinterpret_cast<ImageAccessor*>(pluginImage);
-        }
+    boost::mutex::scoped_lock lock(pimpl_->decodeImageCallbackMutex_);
 
-        LOG(INFO) << "The installed image decoding plugins cannot handle an image, fallback to the built-in decoder";
+    for (PImpl::DecodeImageCallbacks::const_iterator
+           decoder = pimpl_->decodeImageCallbacks_.begin();
+         decoder != pimpl_->decodeImageCallbacks_.end(); ++decoder)
+    {
+      OrthancPluginImage* pluginImage = NULL;
+      if ((*decoder) (&pluginImage, dicom, size, frame) == OrthancPluginErrorCode_Success &&
+          pluginImage != NULL)
+      {
+        return reinterpret_cast<ImageAccessor*>(pluginImage);
       }
     }
 
-    DefaultDicomImageDecoder defaultDecoder;
-    return defaultDecoder.Decode(dicom, size, frame);  // TODO RETURN NULL ???
+    return NULL;
+  }
+
+
+  ImageAccessor* OrthancPlugins::Decode(const void* dicom,
+                                        size_t size,
+                                        unsigned int frame)
+  {
+    ImageAccessor* result = DecodeUnsafe(dicom, size, frame);
+
+    if (result != NULL)
+    {
+      return result;
+    }
+    else
+    {
+      LOG(INFO) << "The installed image decoding plugins cannot handle an image, fallback to the built-in decoder";
+      DefaultDicomImageDecoder defaultDecoder;
+      return defaultDecoder.Decode(dicom, size, frame); 
+    }
   }
 
 
