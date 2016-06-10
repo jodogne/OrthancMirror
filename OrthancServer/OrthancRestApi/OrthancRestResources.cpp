@@ -380,7 +380,14 @@ namespace Orthanc
         // TODO create a cache of file
         std::string dicomContent;
         context.ReadFile(dicomContent, publicId, FileContentType_Dicom);
-        decoded.reset(context.GetPlugins().Decode(dicomContent.c_str(), dicomContent.size(), frame));
+        decoded.reset(context.GetPlugins().DecodeUnsafe(dicomContent.c_str(), dicomContent.size(), frame));
+
+        /**
+         * Note that we call "DecodeUnsafe()": We do not fallback to
+         * the builtin decoder if no installed decoder plugin is able
+         * to decode the image. This allows us to take advantage of
+         * the cache below.
+         **/
       }
 #endif
 
