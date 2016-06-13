@@ -47,11 +47,23 @@ namespace Orthanc
     {
     }
 
+    void Reset()
+    {
+    }
+
+    void Flush()
+    {
+    }
+
     void EnableInfoLevel(bool enabled)
     {
     }
 
     void EnableTraceLevel(bool enabled)
+    {
+    }
+
+    void SetTargetFile(const std::string& path)
     {
     }
 
@@ -85,10 +97,12 @@ namespace Orthanc
 
 namespace
 {
-  struct LoggingState
+  struct LoggingContext
   {
     bool infoEnabled_;
     bool traceEnabled_;
+    std::string  targetFile_;
+    std::string  targetFolder_;
 
     std::ostream* error_;
     std::ostream* warning_;
@@ -96,7 +110,7 @@ namespace
 
     std::auto_ptr<std::ofstream> file_;
 
-    LoggingState() : 
+    LoggingContext() : 
       infoEnabled_(false),
       traceEnabled_(false),
       error_(&std::cerr),
@@ -109,7 +123,7 @@ namespace
 
 
 
-static std::auto_ptr<LoggingState> loggingState_;
+static std::auto_ptr<LoggingContext> loggingContext_;
 static boost::mutex  loggingMutex_;
 
 
@@ -161,9 +175,9 @@ namespace Orthanc
     }
 
 
-    static void PrepareLogFile(std::auto_ptr<std::ofstream>& file,
-                               const std::string& suffix,
-                               const std::string& directory)
+    static void PrepareLogFolder(std::auto_ptr<std::ofstream>& file,
+                                 const std::string& suffix,
+                                 const std::string& directory)
     {
       boost::filesystem::path log, link;
       GetLogPath(log, link, suffix, directory);
@@ -180,48 +194,117 @@ namespace Orthanc
     void Initialize()
     {
       boost::mutex::scoped_lock lock(loggingMutex_);
-      loggingState_.reset(new LoggingState);
+      loggingContext_.reset(new LoggingContext);
     }
 
     void Finalize()
     {
       boost::mutex::scoped_lock lock(loggingMutex_);
-      loggingState_.reset(NULL);
+      loggingContext_.reset(NULL);
+    }
+
+    void Reset()
+    {
+      // Recover the old logging context
+      std::auto_ptr<LoggingContext> old;
+
+      {
+        boost::mutex::scoped_lock lock(loggingMutex_);
+        if (loggingContext_.get() == NULL)
+        {
+          return;
+        }
+        else
+        {
+          old = loggingContext_;
+
+          // Create a new logging context, 
+          loggingContext_.reset(new LoggingContext);
+        }
+      }
+      
+      EnableInfoLevel(old->infoEnabled_);
+      EnableTraceLevel(old->traceEnabled_);
+
+      if (!old->targetFolder_.empty())
+      {
+        SetTargetFolder(old->targetFolder_);
+      }
+      else if (!old->targetFile_.empty())
+      {
+        SetTargetFile(old->targetFile_);
+      }
     }
 
     void EnableInfoLevel(bool enabled)
     {
       boost::mutex::scoped_lock lock(loggingMutex_);
-      assert(loggingState_.get() != NULL);
+      assert(loggingContext_.get() != NULL);
 
-      loggingState_->infoEnabled_ = enabled;
+      loggingContext_->infoEnabled_ = enabled;
+      
+      if (!enabled)
+      {
+        // Also disable the "TRACE" level when info-level debugging is disabled
+        loggingContext_->traceEnabled_ = false;
+      }
     }
 
     void EnableTraceLevel(bool enabled)
     {
       boost::mutex::scoped_lock lock(loggingMutex_);
-      assert(loggingState_.get() != NULL);
+      assert(loggingContext_.get() != NULL);
 
-      loggingState_->traceEnabled_ = enabled;
+      loggingContext_->traceEnabled_ = enabled;
       
       if (enabled)
       {
         // Also enable the "INFO" level when trace-level debugging is enabled
-        loggingState_->infoEnabled_ = true;
+        loggingContext_->infoEnabled_ = true;
+      }
+    }
+
+
+    static void CheckFile(std::auto_ptr<std::ofstream>& f)
+    {
+      if (loggingContext_->file_.get() == NULL ||
+          !loggingContext_->file_->is_open())
+      {
+        throw OrthancException(ErrorCode_CannotWriteFile);
       }
     }
 
     void SetTargetFolder(const std::string& path)
     {
       boost::mutex::scoped_lock lock(loggingMutex_);
-      assert(loggingState_.get() != NULL);
+      assert(loggingContext_.get() != NULL);
 
-      PrepareLogFile(loggingState_->file_, "" /* no suffix */, path);
+      PrepareLogFolder(loggingContext_->file_, "" /* no suffix */, path);
+      CheckFile(loggingContext_->file_);
 
-      loggingState_->warning_ = loggingState_->file_.get();
-      loggingState_->error_ = loggingState_->file_.get();
-      loggingState_->info_ = loggingState_->file_.get();
+      loggingContext_->targetFile_.clear();
+      loggingContext_->targetFolder_ = path;
+      loggingContext_->warning_ = loggingContext_->file_.get();
+      loggingContext_->error_ = loggingContext_->file_.get();
+      loggingContext_->info_ = loggingContext_->file_.get();
     }
+
+
+    void SetTargetFile(const std::string& path)
+    {
+      boost::mutex::scoped_lock lock(loggingMutex_);
+      assert(loggingContext_.get() != NULL);
+
+      loggingContext_->file_.reset(new std::ofstream(path.c_str(), std::fstream::app));
+      CheckFile(loggingContext_->file_);
+
+      loggingContext_->targetFile_ = path;
+      loggingContext_->targetFolder_.clear();
+      loggingContext_->warning_ = loggingContext_->file_.get();
+      loggingContext_->error_ = loggingContext_->file_.get();
+      loggingContext_->info_ = loggingContext_->file_.get();
+    }
+
 
     InternalLogger::InternalLogger(const char* level,
                                    const char* file,
@@ -229,7 +312,7 @@ namespace Orthanc
       lock_(loggingMutex_), 
       stream_(&null_)  // By default, logging to "/dev/null" is simulated
     {
-      if (loggingState_.get() == NULL)
+      if (loggingContext_.get() == NULL)
       {
         fprintf(stderr, "ERROR: Trying to log a message after the finalization of the logging engine\n");
         return;
@@ -237,8 +320,8 @@ namespace Orthanc
 
       LogLevel l = StringToLogLevel(level);
       
-      if ((l == LogLevel_Info  && !loggingState_->infoEnabled_) ||
-          (l == LogLevel_Trace && !loggingState_->traceEnabled_))
+      if ((l == LogLevel_Info  && !loggingContext_->infoEnabled_) ||
+          (l == LogLevel_Trace && !loggingContext_->traceEnabled_))
       {
         // This logging level is disabled, directly exit and unlock
         // the mutex to speed-up things. The stream is set to "/dev/null"
@@ -292,12 +375,12 @@ namespace Orthanc
 
 
       // The header is computed, we now re-lock the mutex to access
-      // the stream objects. Pay attention that "loggingState_",
+      // the stream objects. Pay attention that "loggingContext_",
       // "infoEnabled_" or "traceEnabled_" might have changed while
       // the mutex was unlocked.
       lock_.lock();
 
-      if (loggingState_.get() == NULL)
+      if (loggingContext_.get() == NULL)
       {
         fprintf(stderr, "ERROR: Trying to log a message after the finalization of the logging engine\n");
         return;
@@ -306,25 +389,25 @@ namespace Orthanc
       switch (l)
       {
         case LogLevel_Error:
-          stream_ = loggingState_->error_;
+          stream_ = loggingContext_->error_;
           break;
 
         case LogLevel_Warning:
-          stream_ = loggingState_->warning_;
+          stream_ = loggingContext_->warning_;
           break;
 
         case LogLevel_Info:
-          if (loggingState_->infoEnabled_)
+          if (loggingContext_->infoEnabled_)
           {
-            stream_ = loggingState_->info_;
+            stream_ = loggingContext_->info_;
           }
 
           break;
 
         case LogLevel_Trace:
-          if (loggingState_->traceEnabled_)
+          if (loggingContext_->traceEnabled_)
           {
-            stream_ = loggingState_->info_;
+            stream_ = loggingContext_->info_;
           }
 
           break;
@@ -360,6 +443,16 @@ namespace Orthanc
     }
       
 
+    void Flush()
+    {
+      boost::mutex::scoped_lock lock(loggingMutex_);
+
+      if (loggingContext_.get() != NULL &&
+          loggingContext_->file_.get() != NULL)
+      {
+        loggingContext_->file_->flush();
+      }
+    }
   }
 }
 

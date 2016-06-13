@@ -443,7 +443,9 @@ static void PrintHelp(const char* path)
     << "Command-line options:" << std::endl
     << "  --help\t\tdisplay this help and exit" << std::endl
     << "  --logdir=[dir]\tdirectory where to store the log files" << std::endl
-    << "\t\t\t(if not used, the logs are dumped to stderr)" << std::endl
+    << "\t\t\t(by default, the log is dumped to stderr)" << std::endl
+    << "  --logfile=[file]\tfile where to store the log of Orthanc" << std::endl
+    << "\t\t\t(by default, the log is dumped to stderr)" << std::endl
     << "  --config=[file]\tcreate a sample configuration file and exit" << std::endl
     << "  --errors\t\tprint the supported error codes and exit" << std::endl
     << "  --verbose\t\tbe verbose in logs" << std::endl
@@ -661,15 +663,19 @@ static bool WaitForExit(ServerContext& context,
     if (!restart && 
         event == ServerBarrierEvent_Reload)
     {
+      // Handling of SIGHUP
+
       if (Configuration::HasConfigurationChanged())
       {
         LOG(WARNING) << "A SIGHUP signal has been received, resetting Orthanc";
+        Logging::Flush();
         restart = true;
         break;
       }
       else
       {
         LOG(WARNING) << "A SIGHUP signal has been received, but is ignored as the configuration has not changed";
+        Logging::Flush();
         continue;
       }
     }
@@ -1148,6 +1154,21 @@ int main(int argc, char* argv[])
         return -1;
       }
     }
+    else if (boost::starts_with(argument, "--logfile="))
+    {
+      std::string file = argument.substr(10);
+
+      try
+      {
+        Logging::SetTargetFile(file);
+      }
+      catch (OrthancException&)
+      {
+        LOG(ERROR) << "Cannot write to the specified log file (" 
+                   << file << "), aborting.";
+        return -1;
+      }
+    }
     else if (argument == "--upgrade")
     {
       allowDatabaseUpgrade = true;
@@ -1208,6 +1229,8 @@ int main(int argc, char* argv[])
       if (restart)
       {
         OrthancFinalize();
+        LOG(WARNING) << "Logging system is resetting";
+        Logging::Reset();
       }
       else
       {

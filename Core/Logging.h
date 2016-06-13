@@ -42,9 +42,15 @@ namespace Orthanc
 
     void Finalize();
 
+    void Reset();
+
+    void Flush();
+
     void EnableInfoLevel(bool enabled);
 
     void EnableTraceLevel(bool enabled);
+
+    void SetTargetFile(const std::string& path);
 
     void SetTargetFolder(const std::string& path);
 
