@@ -1480,5 +1480,30 @@ namespace Orthanc
 
     return false;
   }
-}
 
+
+  FILE* Toolbox::OpenFile(const std::string& path,
+                          FileMode mode)
+  {
+#if defined(_WIN32)
+    // TODO Deal with special characters by converting to the current locale
+#endif
+
+    const char* m;
+    switch (mode)
+    {
+      case FileMode_ReadBinary:
+        m = "rb";
+        break;
+
+      case FileMode_WriteBinary:
+        m = "wb";
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    return fopen(path.c_str(), m);
+  }
+}

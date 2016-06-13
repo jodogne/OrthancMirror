@@ -385,6 +385,17 @@ namespace Orthanc
     RequestOrigin_Lua
   };
 
+  enum ServerBarrierEvent
+  {
+    ServerBarrierEvent_Stop,
+    ServerBarrierEvent_Reload  // SIGHUP signal: reload configuration file
+  };
+
+  enum FileMode
+  {
+    FileMode_ReadBinary,
+    FileMode_WriteBinary
+  };
 
   /**
    * The value representations Orthanc knows about. They correspond to

@@ -36,6 +36,7 @@
 #include "JpegErrorManager.h"
 #include "../OrthancException.h"
 #include "../Logging.h"
+#include "../Toolbox.h"
 
 namespace Orthanc
 {
@@ -95,7 +96,7 @@ namespace Orthanc
 
   void JpegReader::ReadFromFile(const std::string& filename)
   {
-    FILE* fp = fopen(filename.c_str(), "rb");
+    FILE* fp = Toolbox::OpenFile(filename, FileMode_ReadBinary);
     if (!fp)
     {
       throw OrthancException(ErrorCode_InexistentFile);
