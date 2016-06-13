@@ -115,15 +115,16 @@ namespace Orthanc
   static void LoadEmbeddedDictionary(DcmDataDictionary& dictionary,
                                      EmbeddedResources::FileResourceId resource)
   {
-    Toolbox::TemporaryFile tmp;
+    std::string content;
+    EmbeddedResources::GetFileResource(content, resource);
 
-    FILE* fp = fopen(tmp.GetPath().c_str(), "wb");
-    fwrite(EmbeddedResources::GetFileResourceBuffer(resource), 
-           EmbeddedResources::GetFileResourceSize(resource), 1, fp);
-    fclose(fp);
+    Toolbox::TemporaryFile tmp;
+    tmp.Write(content);
 
     if (!dictionary.loadDictionary(tmp.GetPath().c_str()))
     {
+      LOG(ERROR) << "Cannot read embedded dictionary. Under Windows, make sure that " 
+                 << "your TEMP directory does not contain special characters.";
       throw OrthancException(ErrorCode_InternalError);
     }
   }

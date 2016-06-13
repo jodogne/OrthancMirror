@@ -211,8 +211,7 @@ namespace Orthanc
   {
     Prepare(width, height, pitch, format, buffer);
 
-    // TODO This will not work on Windows system if the path contains non-ASCII characters
-    FILE* fp = fopen(filename.c_str(), "wb");
+    FILE* fp = Toolbox::OpenFile(filename, FileMode_WriteBinary);
     if (!fp)
     {
       throw OrthancException(ErrorCode_CannotWriteFile);

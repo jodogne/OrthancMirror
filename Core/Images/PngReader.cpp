@@ -49,7 +49,7 @@ namespace Orthanc
 
       FileRabi(const char* filename)
       {
-        fp_ = fopen(filename, "rb");
+        fp_ = Toolbox::OpenFile(filename, FileMode_ReadBinary);
         if (!fp_)
         {
           throw OrthancException(ErrorCode_InexistentFile);
@@ -59,7 +59,9 @@ namespace Orthanc
       ~FileRabi()
       {
         if (fp_)
+        {
           fclose(fp_);
+        }
       }
     };
   }

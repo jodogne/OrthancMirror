@@ -416,10 +416,6 @@ TEST(Toolbox, ConvertFromLatin1)
   // This is a Latin-1 test string
   const unsigned char data[10] = { 0xe0, 0xe9, 0xea, 0xe7, 0x26, 0xc6, 0x61, 0x62, 0x63, 0x00 };
   
-  /*FILE* f = fopen("/tmp/tutu", "w");
-  fwrite(&data[0], 9, 1, f);
-  fclose(f);*/
-
   std::string s((char*) &data[0], 10);
   ASSERT_EQ("&abc", Toolbox::ConvertToAscii(s));
 

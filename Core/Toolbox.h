@@ -47,12 +47,6 @@ namespace Orthanc
   {
   };
 
-  enum ServerBarrierEvent
-  {
-    ServerBarrierEvent_Stop,
-    ServerBarrierEvent_Reload  // SIGHUP signal: reload configuration file
-  };
-
   namespace Toolbox
   {
     ServerBarrierEvent ServerBarrier(const bool& stopFlag);
@@ -202,5 +196,8 @@ namespace Orthanc
     int GetProcessId();
 
     bool IsRegularFile(const std::string& path);
+
+    FILE* OpenFile(const std::string& path,
+                   FileMode mode);
   }
 }

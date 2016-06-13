@@ -118,11 +118,10 @@ namespace Orthanc
                                        PixelFormat format,
                                        const void* buffer)
   {
-    // TODO This will not work on Windows system if the path contains non-ASCII characters
-    FILE* fp = fopen(filename.c_str(), "wb");
+    FILE* fp = Toolbox::OpenFile(filename, FileMode_WriteBinary);
     if (fp == NULL)
     {
-      throw OrthancException(ErrorCode_FullStorage);
+      throw OrthancException(ErrorCode_CannotWriteFile);
     }
 
     std::vector<uint8_t*> lines;
