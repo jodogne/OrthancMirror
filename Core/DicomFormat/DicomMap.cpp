@@ -535,10 +535,10 @@ namespace Orthanc
         return true;
       
       case ValueRepresentation_OtherDouble:
-        return value.size() <= static_cast<size_t>((1llu << 32) - 8);
+        return value.size() <= (static_cast<uint64_t>(1) << 32) - 8;
 
       case ValueRepresentation_OtherFloat:
-        return value.size() <= static_cast<size_t>((1llu << 32) - 4);
+        return value.size() <= (static_cast<uint64_t>(1) << 32) - 4;
 
       case ValueRepresentation_OtherLong:
         return true;
@@ -568,7 +568,7 @@ namespace Orthanc
         return value.size() <= 28;
 
       case ValueRepresentation_UnlimitedCharacters:
-        return value.size() <= static_cast<size_t>((1llu << 32) - 2);
+        return value.size() <= (static_cast<uint64_t>(1) << 32) - 2;
 
       case ValueRepresentation_UniqueIdentifier:
         return value.size() <= 64;
@@ -580,13 +580,13 @@ namespace Orthanc
         return true;
 
       case ValueRepresentation_UniversalResource:
-        return value.size() <= static_cast<size_t>((1llu << 32) - 2);
+        return value.size() <= (static_cast<uint64_t>(1) << 32) - 2;
 
       case ValueRepresentation_UnsignedShort:
         return value.size() == 2;
 
       case ValueRepresentation_UnlimitedText:
-        return value.size() <= static_cast<size_t>((1llu << 32) - 2);
+        return value.size() <= (static_cast<uint64_t>(1) << 32) - 2;
 
       default:
         // Assume unsupported tags are OK
