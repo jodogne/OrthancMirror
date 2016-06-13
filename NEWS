@@ -56,6 +56,7 @@ Maintenance
 * Macro "__linux" (now obsolete) replaced by macro "__linux__" (maybe solves Debian bug #821011)
 * Modification of instances can now replace PixelData (resp. EncapsulatedDocument) with 
   provided a PNG/JPEG image (resp. PDF file) if it is encoded using Data URI Scheme
+* Dropped support of Google Log
 
 
 Version 1.0.0 (2015/12/15)
@@ -696,7 +697,7 @@ Version 0.2.3 (2012/10/26)
 Version 0.2.2 (2012/10/04)
 ==========================
 
-* Switch to Google Logging
+* Switch to Google Log
 * Fixes to Debian packaging
 
 

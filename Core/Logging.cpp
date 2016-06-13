@@ -61,61 +61,11 @@ namespace Orthanc
   }
 }
 
-#elif ORTHANC_ENABLE_GOOGLE_LOG == 1
-
-/*********************************************************
- * Wrapper around Google Log
- *********************************************************/
-
-namespace Orthanc
-{  
-  namespace Logging
-  {
-    void Initialize()
-    {
-      // Initialize Google's logging library.
-      FLAGS_logtostderr = true;
-      FLAGS_minloglevel = 1;   // Do not print LOG(INFO) by default
-      FLAGS_v = 0;             // Do not print trace-level VLOG(1) by default
-
-      google::InitGoogleLogging("Orthanc");
-    }
-
-    void Finalize()
-    {
-      google::ShutdownGoogleLogging();
-    }
-
-    void EnableInfoLevel(bool enabled)
-    {
-      FLAGS_minloglevel = (enabled ? 0 : 1);
-    }
-
-    void EnableTraceLevel(bool enabled)
-    {
-      if (enabled)
-      {
-        FLAGS_minloglevel = 0;
-        FLAGS_v = 1;
-      }
-      else
-      {
-        FLAGS_v = 0;
-      }
-    }
-
-    void SetTargetFolder(const std::string& path)
-    {
-      FLAGS_logtostderr = false;
-      FLAGS_log_dir = path;
-    }
-  }
-}
-
 #else
 
 /*********************************************************
- * Use internal logger, not Google Log
+ * Internal logger of Orthanc, that mimics some
+ * behavior from Google Log.
  *********************************************************/
 
 #include "OrthancException.h"
