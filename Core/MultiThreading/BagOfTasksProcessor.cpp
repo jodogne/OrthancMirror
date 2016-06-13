@@ -198,7 +198,7 @@ namespace Orthanc
     countBags_(0),
     continue_(true)
   {
-    if (countThreads <= 0)
+    if (countThreads == 0)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
