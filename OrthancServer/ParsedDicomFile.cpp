@@ -1323,6 +1323,7 @@ namespace Orthanc
       case EXS_JPEG2000LosslessOnly:
       case EXS_JPEG2000:
         mime = "image/jp2";
+        break;
 
       default:
         mime = "application/octet-stream";

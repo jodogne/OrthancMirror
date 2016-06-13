@@ -240,7 +240,7 @@ namespace Orthanc
   }
 
 
-  HttpClient::HttpClient() : pimpl_(new PImpl)
+  HttpClient::HttpClient() : pimpl_(new PImpl), verifyPeers_(true)
   {
     Setup();
   }

@@ -49,7 +49,7 @@ namespace Orthanc
   public:
     ~BagOfTasks()
     {
-      for (Tasks::iterator it = tasks_.begin(); it != tasks_.end(); it++)
+      for (Tasks::iterator it = tasks_.begin(); it != tasks_.end(); ++it)
       {
         delete *it;
       }
