@@ -43,6 +43,7 @@ Image decoding
 Maintenance
 -----------
 
+* New option "--logfile" to output the Orthanc log to the given file
 * Support of SIGHUP signal (restart Orthanc only if the configuration files have changed)
 * New logo of Orthanc
 * Fix issue 11 (is_regular_file() fails for FILE_ATTRIBUTE_REPARSE_POINT)
