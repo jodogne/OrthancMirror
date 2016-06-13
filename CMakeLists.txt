@@ -26,7 +26,6 @@ SET(ENABLE_SSL ON CACHE BOOL "Include support for SSL")
 SET(DCMTK_DICTIONARY_DIR "" CACHE PATH "Directory containing the DCMTK dictionaries \"dicom.dic\" and \"private.dic\" (only when using system version of DCMTK)") 
 SET(ALLOW_DOWNLOADS OFF CACHE BOOL "Allow CMake to download packages")
 SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
-SET(ENABLE_GOOGLE_LOG OFF CACHE BOOL "Enable Google Log (otherwise, an internal logger is used)")
 SET(ENABLE_JPEG ON CACHE BOOL "Enable JPEG decompression")
 SET(ENABLE_JPEG_LOSSLESS ON CACHE BOOL "Enable JPEG-LS (Lossless) decompression")
 SET(ENABLE_PLUGINS ON CACHE BOOL "Enable plugins")
@@ -36,7 +35,6 @@ SET(USE_DCMTK_361 OFF CACHE BOOL "Use forthcoming DCMTK version 3.6.1 in static 
 
 # Advanced parameters to fine-tune linking against system libraries
 SET(USE_SYSTEM_JSONCPP ON CACHE BOOL "Use the system version of JsonCpp")
-SET(USE_SYSTEM_GOOGLE_LOG ON CACHE BOOL "Use the system version of Google Log")
 SET(USE_SYSTEM_GOOGLE_TEST ON CACHE BOOL "Use the system version of Google Test")
 SET(USE_SYSTEM_SQLITE ON CACHE BOOL "Use the system version of SQLite")
 SET(USE_SYSTEM_MONGOOSE ON CACHE BOOL "Use the system version of Mongoose")
@@ -287,10 +285,6 @@ set(ORTHANC_EMBEDDED_FILES
 ## Inclusion of third-party dependencies
 #####################################################################
 
-if (ENABLE_GOOGLE_LOG)
-  include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleLogConfiguration.cmake)
-endif()
-
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/JsonCppConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibCurlConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibPngConfiguration.cmake)
@@ -416,7 +410,6 @@ add_library(CoreLibrary
 
   ${BOOST_SOURCES}
   ${CURL_SOURCES}
-  ${GOOGLE_LOG_SOURCES}
   ${JSONCPP_SOURCES}
   ${LIBPNG_SOURCES}
   ${LIBJPEG_SOURCES}
