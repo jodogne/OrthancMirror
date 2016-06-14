@@ -52,12 +52,7 @@ namespace Orthanc
   {
     // Configure the HTTP client
     HttpClient client;
-    if (peer_.GetUsername().size() != 0 && 
-        peer_.GetPassword().size() != 0)
-    {
-      client.SetCredentials(peer_.GetUsername().c_str(), 
-                            peer_.GetPassword().c_str());
-    }
+    peer_.ConfigureClient(client);
 
     client.SetUrl(peer_.GetUrl() + "instances");
     client.SetMethod(HttpMethod_Post);

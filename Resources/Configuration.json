@@ -118,7 +118,8 @@
   // Whether or not SSL is enabled
   "SslEnabled" : false,
 
-  // Path to the SSL certificate (meaningful only if SSL is enabled)
+  // Path to the SSL certificate in the PEM format (meaningful only if
+  // SSL is enabled)
   "SslCertificate" : "certificate.pem",
 
   // Whether or not the password protection is enabled
@@ -166,6 +167,20 @@
      **/
     // "peer"  : [ "http://localhost:8043/", "alice", "alicePassword" ]
     // "peer2" : [ "http://localhost:8044/" ]
+
+    /**
+     * This is another, more advanced format to define Orthanc
+     * peers. It notably allows to specify a HTTPS client certificate
+     * in the PEM format, as in the "--cert" option of curl.
+     **/
+    // "peer" : {
+    //   "Url" : "http://localhost:8043/",
+    //   "Username" : "alice",
+    //   "Password" : "alicePassword",
+    //   "CertificateFile" : "client.crt",
+    //   "CertificateKeyFile" : "client.key",
+    //   "CertificateKeyPassword" : "certpass"
+    // }
   },
 
   // Parameters of the HTTP proxy to be used by Orthanc. If set to the
