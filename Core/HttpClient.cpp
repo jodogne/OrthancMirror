@@ -349,6 +349,26 @@ namespace Orthanc
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_PROXY, proxy_.c_str()));
     }
 
+    // Set the HTTPS client certificate
+    if (!clientCertificateFile_.empty())
+    {
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSLCERTTYPE, "PEM"));
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSLCERT, clientCertificateFile_.c_str()));
+
+      if (!clientCertificateKeyPassword_.empty())
+      {
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_KEYPASSWD, clientCertificateKeyPassword_.c_str()));
+      }
+
+      // NB: If no "clientKeyFile_" is provided, the key must be
+      // prepended to the certificate file
+      if (!clientCertificateKeyFile_.empty())
+      {
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSLKEYTYPE, "PEM"));
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSLKEY, clientCertificateKeyFile_.c_str()));
+      }
+    }
+
     switch (method_)
     {
     case HttpMethod_Get:
@@ -529,5 +549,33 @@ namespace Orthanc
     {
       ThrowException(GetLastStatus());
     }
+  }
+
+
+  void HttpClient::SetClientCertificate(const std::string& certificateFile,
+                                        const std::string& certificateKeyFile,
+                                        const std::string& certificateKeyPassword)
+  {
+    if (certificateFile.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    if (!Toolbox::IsRegularFile(certificateFile))
+    {
+      LOG(ERROR) << "Cannot open certificate file: " << certificateFile;
+      throw OrthancException(ErrorCode_InexistentFile);
+    }
+
+    if (!certificateKeyFile.empty() && 
+        !Toolbox::IsRegularFile(certificateKeyFile))
+    {
+      LOG(ERROR) << "Cannot open key file: " << certificateKeyFile;
+      throw OrthancException(ErrorCode_InexistentFile);
+    }
+
+    clientCertificateFile_ = certificateFile;
+    clientCertificateKeyFile_ = certificateKeyFile;
+    clientCertificateKeyPassword_ = certificateKeyPassword;
   }
 }

@@ -4943,6 +4943,9 @@ extern "C"
     const char*                 username;
     const char*                 password;
     uint32_t                    timeout;
+    const char*                 certificateFile;
+    const char*                 certificateKeyFile;
+    const char*                 certificateKeyPassword;
   } _OrthancPluginCallHttpClient2;
 
 
@@ -4966,6 +4969,12 @@ extern "C"
    * @param body The body of the POST request.
    * @param bodySize The size of the body.
    * @param timeout Timeout in seconds (0 for default timeout).
+   * @param certificateFile Path to the client certificate for HTTPS, in PEM format
+   * (can be <tt>NULL</tt> if no client certificate or if not using HTTPS).
+   * @param certificateKeyFile Path to the key of the client certificate for HTTPS, in PEM format
+   * (can be <tt>NULL</tt> if no client certificate or if not using HTTPS).
+   * @param certificateKeyPassword Password to unlock the key of the client certificate 
+   * (can be <tt>NULL</tt> if no client certificate or if not using HTTPS).
    * @return 0 if success, or the error code if failure.
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginHttpClient(
@@ -4981,7 +4990,10 @@ extern "C"
     uint32_t                    bodySize,
     const char*                 username,
     const char*                 password,
-    uint32_t                    timeout)
+    uint32_t                    timeout,
+    const char*                 certificateFile,
+    const char*                 certificateKeyFile,
+    const char*                 certificateKeyPassword)
   {
     _OrthancPluginCallHttpClient2 params;
     memset(&params, 0, sizeof(params));
@@ -4998,6 +5010,9 @@ extern "C"
     params.username = username;
     params.password = password;
     params.timeout = timeout;
+    params.certificateFile = certificateFile;
+    params.certificateKeyFile = certificateKeyFile;
+    params.certificateKeyPassword = certificateKeyPassword;
 
     return context->InvokeService(context, _OrthancPluginService_CallHttpClient2, &params);
   }

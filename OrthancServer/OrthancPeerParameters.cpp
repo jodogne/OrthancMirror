@@ -33,39 +33,152 @@
 #include "PrecompiledHeadersServer.h"
 #include "OrthancPeerParameters.h"
 
+#include "../Core/Logging.h"
+#include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"
 
 namespace Orthanc
 {
   OrthancPeerParameters::OrthancPeerParameters() : 
+    advancedFormat_(false),
     url_("http://localhost:8042/")
   {
   }
 
 
-  void OrthancPeerParameters::FromJson(const Json::Value& peer)
+  void OrthancPeerParameters::SetClientCertificate(const std::string& certificateFile,
+                                                   const std::string& certificateKeyFile,
+                                                   const std::string& certificateKeyPassword)
   {
-    if (!peer.isArray() ||
-        (peer.size() != 1 && peer.size() != 3))
+    if (certificateFile.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    if (!Toolbox::IsRegularFile(certificateFile))
+    {
+      LOG(ERROR) << "Cannot open certificate file: " << certificateFile;
+      throw OrthancException(ErrorCode_InexistentFile);
+    }
+
+    if (!certificateKeyFile.empty() && 
+        !Toolbox::IsRegularFile(certificateKeyFile))
+    {
+      LOG(ERROR) << "Cannot open key file: " << certificateKeyFile;
+      throw OrthancException(ErrorCode_InexistentFile);
+    }
+
+    advancedFormat_ = true;
+    certificateFile_ = certificateFile;
+    certificateKeyFile_ = certificateKeyFile;
+    certificateKeyPassword_ = certificateKeyPassword;
+  }
+
+
+  static void AddTrailingSlash(std::string& url)
+  {
+    if (url.size() != 0 && 
+        url[url.size() - 1] != '/')
+    {
+      url += '/';
+    }
+  }
+
+
+  void OrthancPeerParameters::FromJsonArray(const Json::Value& peer)
+  {
+    assert(peer.isArray());
+
+    advancedFormat_ = false;
+
+    if (peer.size() != 1 && 
+        peer.size() != 3)
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
-    std::string url;
+    std::string url = peer.get(0u, "").asString();
+    if (url.empty())
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
 
+    AddTrailingSlash(url);
+    SetUrl(url);
+
+    if (peer.size() == 1)
+    {
+      SetUsername("");
+      SetPassword("");
+    }
+    else if (peer.size() == 3)
+    {
+      SetUsername(peer.get(1u, "").asString());
+      SetPassword(peer.get(2u, "").asString());
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+  }
+
+
+  static std::string GetStringMember(const Json::Value& peer,
+                                     const std::string& key,
+                                     const std::string& defaultValue)
+  {
+    if (!peer.isMember(key))
+    {
+      return defaultValue;
+    }
+    else if (peer[key].type() != Json::stringValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+    else
+    {
+      return peer[key].asString();
+    }
+  }
+
+
+  void OrthancPeerParameters::FromJsonObject(const Json::Value& peer)
+  {
+    assert(peer.isObject());
+    advancedFormat_ = true;
+
+    std::string url = GetStringMember(peer, "Url", "");
+    if (url.empty())
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    AddTrailingSlash(url);
+    SetUrl(url);
+
+    SetUsername(GetStringMember(peer, "Username", ""));
+    SetPassword(GetStringMember(peer, "Password", ""));
+
+    if (peer.isMember("CertificateFile"))
+    {
+      SetClientCertificate(GetStringMember(peer, "CertificateFile", ""),
+                           GetStringMember(peer, "CertificateKeyFile", ""),
+                           GetStringMember(peer, "CertificateKeyPassword", ""));
+    }
+  }
+
+
+  void OrthancPeerParameters::FromJson(const Json::Value& peer)
+  {
     try
     {
-      url = peer.get(0u, "").asString();
-
-      if (peer.size() == 1)
+      if (peer.isArray())
       {
-        SetUsername("");
-        SetPassword("");
+        FromJsonArray(peer);
       }
-      else if (peer.size() == 3)
+      else if (peer.isObject())
       {
-        SetUsername(peer.get(1u, "").asString());
-        SetPassword(peer.get(2u, "").asString());
+        FromJsonObject(peer);
       }
       else
       {
@@ -76,21 +189,65 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
-
-    if (url.size() != 0 && url[url.size() - 1] != '/')
-    {
-      url += '/';
-    }
-
-    SetUrl(url);
   }
 
 
   void OrthancPeerParameters::ToJson(Json::Value& value) const
   {
-    value = Json::arrayValue;
-    value.append(GetUrl());
-    value.append(GetUsername());
-    value.append(GetPassword());
+    if (advancedFormat_)
+    {
+      value = Json::objectValue;
+      value["Url"] = url_;
+
+      if (!username_.empty() ||
+          !password_.empty())
+      {
+        value["Username"] = username_;
+        value["Password"] = password_;
+      }
+
+      if (!certificateFile_.empty())
+      {
+        value["CertificateFile"] = certificateFile_;
+      }
+
+      if (!certificateKeyFile_.empty())
+      {
+        value["CertificateKeyFile"] = certificateKeyFile_;
+      }
+
+      if (!certificateKeyPassword_.empty())
+      {
+        value["CertificateKeyPassword"] = certificateKeyPassword_;
+      }
+    }
+    else
+    {
+      value = Json::arrayValue;
+      value.append(url_);
+
+      if (!username_.empty() ||
+          !password_.empty())
+      {
+        value.append(username_);
+        value.append(password_);
+      }
+    }
+  }
+
+
+  void OrthancPeerParameters::ConfigureClient(HttpClient& client) const
+  {
+    if (username_.size() != 0 && 
+        password_.size() != 0)
+    {
+      client.SetCredentials(username_.c_str(), 
+                            password_.c_str());
+    }
+
+    if (!GetCertificateFile().empty())
+    {
+      client.SetClientCertificate(certificateFile_, certificateKeyFile_, certificateKeyPassword_);
+    }
   }
 }

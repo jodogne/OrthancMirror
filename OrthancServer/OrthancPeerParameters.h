@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "../Core/HttpClient.h"
+
 #include <string>
 #include <json/json.h>
 
@@ -40,9 +42,17 @@ namespace Orthanc
   class OrthancPeerParameters
   {
   private:
+    bool        advancedFormat_;
     std::string url_;
     std::string username_;
     std::string password_;
+    std::string certificateFile_;
+    std::string certificateKeyFile_;
+    std::string certificateKeyPassword_;
+
+    void FromJsonArray(const Json::Value& peer);
+
+    void FromJsonObject(const Json::Value& peer);
 
   public:
     OrthancPeerParameters();
@@ -77,8 +87,29 @@ namespace Orthanc
       password_ = password;
     }
 
+    void SetClientCertificate(const std::string& certificateFile,
+                              const std::string& certificateKeyFile,
+                              const std::string& certificateKeyPassword);
+
+    const std::string& GetCertificateFile() const
+    {
+      return certificateFile_;
+    }
+
+    const std::string& GetCertificateKeyFile() const
+    {
+      return certificateKeyFile_;
+    }
+
+    const std::string& GetCertificateKeyPassword() const
+    {
+      return certificateKeyPassword_;
+    }
+
     void FromJson(const Json::Value& peer);
 
     void ToJson(Json::Value& value) const;
+
+    void ConfigureClient(HttpClient& client) const;
   };
 }

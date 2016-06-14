@@ -58,6 +58,9 @@ namespace Orthanc
     std::string proxy_;
     bool verifyPeers_;
     std::string caCertificates_;
+    std::string clientCertificateFile_;
+    std::string clientCertificateKeyFile_;
+    std::string clientCertificateKeyPassword_;
 
     void Setup();
 
@@ -166,6 +169,25 @@ namespace Orthanc
     const std::string& GetHttpsCACertificates() const
     {
       return caCertificates_;
+    }
+
+    void SetClientCertificate(const std::string& certificateFile,
+                              const std::string& certificateKeyFile,
+                              const std::string& certificateKeyPassword);
+
+    const std::string& GetClientCertificateFile() const
+    {
+      return clientCertificateFile_;
+    }
+
+    const std::string& GetClientCertificateKeyFile() const
+    {
+      return clientCertificateKeyFile_;
+    }
+
+    const std::string& GetClientCertificateKeyPassword() const
+    {
+      return clientCertificateKeyPassword_;
     }
 
     static void GlobalInitialize();

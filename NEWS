@@ -1,6 +1,12 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* HTTPS client certificates can be associated with Orthanc peers to enhance security over Internet
+* New option "--logfile" to output the Orthanc log to the given file
+* Support of SIGHUP signal (restart Orthanc only if the configuration files have changed)
 
 REST API
 --------
@@ -43,8 +49,6 @@ Image decoding
 Maintenance
 -----------
 
-* New option "--logfile" to output the Orthanc log to the given file
-* Support of SIGHUP signal (restart Orthanc only if the configuration files have changed)
 * New logo of Orthanc
 * Fix issue 11 (is_regular_file() fails for FILE_ATTRIBUTE_REPARSE_POINT)
 * Fix issue 16 ("Limit" parameter error in REST API /tools/find method)

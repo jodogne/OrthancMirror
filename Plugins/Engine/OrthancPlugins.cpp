@@ -1793,6 +1793,24 @@ namespace Orthanc
       client.SetCredentials(p.username, p.password);
     }
 
+    if (p.certificateFile != NULL)
+    {
+      std::string certificate(p.certificateFile);
+      std::string key, password;
+
+      if (p.certificateKeyFile)
+      {
+        key.assign(p.certificateKeyFile);
+      }
+
+      if (p.certificateKeyPassword)
+      {
+        password.assign(p.certificateKeyPassword);
+      }
+
+      client.SetClientCertificate(certificate, key, password);
+    }
+
     for (uint32_t i = 0; i < p.headersCount; i++)
     {
       if (p.headersKeys[i] == NULL ||
