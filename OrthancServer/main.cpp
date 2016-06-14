@@ -33,7 +33,6 @@
 #include "PrecompiledHeadersServer.h"
 #include "OrthancRestApi/OrthancRestApi.h"
 
-#include <fstream>
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "../Core/Logging.h"
@@ -1113,6 +1112,8 @@ int main(int argc, char* argv[])
       {
         // Use the first argument that does not start with a "-" as
         // the configuration file
+
+        // TODO WHAT IS THE ENCODING?
         configurationFile = argv[i];
       }
     }
@@ -1141,6 +1142,7 @@ int main(int argc, char* argv[])
     }
     else if (boost::starts_with(argument, "--logdir="))
     {
+      // TODO WHAT IS THE ENCODING?
       std::string directory = argument.substr(9);
 
       try
@@ -1156,6 +1158,7 @@ int main(int argc, char* argv[])
     }
     else if (boost::starts_with(argument, "--logfile="))
     {
+      // TODO WHAT IS THE ENCODING?
       std::string file = argument.substr(10);
 
       try
@@ -1175,6 +1178,7 @@ int main(int argc, char* argv[])
     }
     else if (boost::starts_with(argument, "--config="))
     {
+      // TODO WHAT IS THE ENCODING?
       std::string configurationSample;
       GetFileResource(configurationSample, EmbeddedResources::CONFIGURATION_SAMPLE);
 
