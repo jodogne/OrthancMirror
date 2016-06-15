@@ -290,7 +290,7 @@ namespace Orthanc
     Configuration::GetListOfOrthancPeers(ids);
     for (std::set<std::string>::const_iterator it = ids.begin(); it != ids.end(); ++it)
     {
-      OrthancPeerParameters peer;
+      WebServiceParameters peer;
       Configuration::GetOrthancPeer(peer, *it);
     }
 
@@ -577,7 +577,7 @@ namespace Orthanc
 
 
 
-  void Configuration::GetOrthancPeer(OrthancPeerParameters& peer,
+  void Configuration::GetOrthancPeer(WebServiceParameters& peer,
                                      const std::string& name)
   {
     boost::recursive_mutex::scoped_lock lock(globalMutex_);
@@ -888,7 +888,7 @@ namespace Orthanc
 
 
   void Configuration::UpdatePeer(const std::string& symbolicName,
-                                 const OrthancPeerParameters& peer)
+                                 const WebServiceParameters& peer)
   {
     boost::recursive_mutex::scoped_lock lock(globalMutex_);
 

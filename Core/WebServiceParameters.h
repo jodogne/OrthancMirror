@@ -32,14 +32,12 @@
 
 #pragma once
 
-#include "../Core/HttpClient.h"
-
 #include <string>
 #include <json/json.h>
 
 namespace Orthanc
 {
-  class OrthancPeerParameters
+  class WebServiceParameters
   {
   private:
     bool        advancedFormat_;
@@ -55,7 +53,7 @@ namespace Orthanc
     void FromJsonObject(const Json::Value& peer);
 
   public:
-    OrthancPeerParameters();
+    WebServiceParameters();
 
     const std::string& GetUrl() const
     {
@@ -109,7 +107,5 @@ namespace Orthanc
     void FromJson(const Json::Value& peer);
 
     void ToJson(Json::Value& value) const;
-
-    void ConfigureClient(HttpClient& client) const;
   };
 }

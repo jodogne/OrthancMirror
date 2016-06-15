@@ -240,9 +240,36 @@ namespace Orthanc
   }
 
 
-  HttpClient::HttpClient() : pimpl_(new PImpl), verifyPeers_(true)
+  HttpClient::HttpClient() : 
+    pimpl_(new PImpl), 
+    verifyPeers_(true)
   {
     Setup();
+  }
+
+
+  HttpClient::HttpClient(const WebServiceParameters& service,
+                         const std::string& uri) : 
+    pimpl_(new PImpl), 
+    verifyPeers_(true)
+  {
+    Setup();
+
+    if (service.GetUsername().size() != 0 && 
+        service.GetPassword().size() != 0)
+    {
+      SetCredentials(service.GetUsername().c_str(), 
+                     service.GetPassword().c_str());
+    }
+
+    if (!service.GetCertificateFile().empty())
+    {
+      SetClientCertificate(service.GetCertificateFile(),
+                           service.GetCertificateKeyFile(),
+                           service.GetCertificateKeyPassword());
+    }
+
+    SetUrl(service.GetUrl() + uri);
   }
 
 
