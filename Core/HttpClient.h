@@ -33,6 +33,7 @@
 #pragma once
 
 #include "Enumerations.h"
+#include "WebServiceParameters.h"
 
 #include <string>
 #include <boost/shared_ptr.hpp>
@@ -69,6 +70,9 @@ namespace Orthanc
 
   public:
     HttpClient();
+
+    HttpClient(const WebServiceParameters& service,
+               const std::string& uri);
 
     ~HttpClient();
 

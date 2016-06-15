@@ -263,7 +263,7 @@ namespace Orthanc
       LOG(INFO) << "Lua script to send resource " << parameters["Resource"].asString()
                 << " to peer " << peer << " using HTTP";
 
-      OrthancPeerParameters parameters;
+      WebServiceParameters parameters;
       Configuration::GetOrthancPeer(parameters, peer);
       return new StorePeerCommand(context_, parameters, true);
     }

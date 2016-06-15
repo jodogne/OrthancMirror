@@ -36,13 +36,15 @@
 #include <set>
 #include <json/json.h>
 #include <stdint.h>
-#include "../Core/HttpServer/MongooseServer.h"
-#include "DicomProtocol/RemoteModalityParameters.h"
-#include "ServerEnumerations.h"
-#include "OrthancPeerParameters.h"
-#include "IDatabaseWrapper.h"
+
 #include "../Core/FileStorage/IStorageArea.h"
+#include "../Core/HttpServer/MongooseServer.h"
 #include "../Core/Images/FontRegistry.h"
+#include "../Core/WebServiceParameters.h"
+
+#include "DicomProtocol/RemoteModalityParameters.h"
+#include "IDatabaseWrapper.h"
+#include "ServerEnumerations.h"
 
 namespace Orthanc
 {
@@ -71,7 +73,7 @@ namespace Orthanc
     static bool LookupDicomModalityUsingAETitle(RemoteModalityParameters& modality,
                                                 const std::string& aet);
 
-    static void GetOrthancPeer(OrthancPeerParameters& peer,
+    static void GetOrthancPeer(WebServiceParameters& peer,
                                const std::string& name);
 
     static void GetListOfDicomModalities(std::set<std::string>& target);
@@ -103,7 +105,7 @@ namespace Orthanc
     static void RemoveModality(const std::string& symbolicName);
 
     static void UpdatePeer(const std::string& symbolicName,
-                           const OrthancPeerParameters& peer);
+                           const WebServiceParameters& peer);
 
     static void RemovePeer(const std::string& symbolicName);
 

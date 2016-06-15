@@ -144,6 +144,7 @@ set(ORTHANC_CORE_SOURCES
   Core/SQLite/Transaction.cpp
   Core/Toolbox.cpp
   Core/Uuid.cpp
+  Core/WebServiceParameters.cpp
   Core/Lua/LuaContext.cpp
   Core/Lua/LuaFunctionCall.cpp
   )
@@ -172,7 +173,6 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/OrthancHttpHandler.cpp
   OrthancServer/OrthancInitialization.cpp
   OrthancServer/OrthancMoveRequestHandler.cpp
-  OrthancServer/OrthancPeerParameters.cpp
   OrthancServer/OrthancRestApi/OrthancRestAnonymizeModify.cpp
   OrthancServer/OrthancRestApi/OrthancRestApi.cpp
   OrthancServer/OrthancRestApi/OrthancRestArchive.cpp

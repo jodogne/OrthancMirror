@@ -39,7 +39,7 @@
 namespace Orthanc
 {
   StorePeerCommand::StorePeerCommand(ServerContext& context,
-                                     const OrthancPeerParameters& peer,
+                                     const WebServiceParameters& peer,
                                      bool ignoreExceptions) : 
     context_(context),
     peer_(peer),
@@ -51,10 +51,7 @@ namespace Orthanc
                                const ListOfStrings& inputs)
   {
     // Configure the HTTP client
-    HttpClient client;
-    peer_.ConfigureClient(client);
-
-    client.SetUrl(peer_.GetUrl() + "instances");
+    HttpClient client(peer_, "instances");
     client.SetMethod(HttpMethod_Post);
 
     for (ListOfStrings::const_iterator

@@ -864,7 +864,7 @@ namespace Orthanc
       return;
     }
 
-    OrthancPeerParameters peer;
+    WebServiceParameters peer;
     Configuration::GetOrthancPeer(peer, remote);
 
     ServerJob job;
@@ -952,7 +952,7 @@ namespace Orthanc
     Json::Reader reader;
     if (reader.parse(call.GetBodyData(), call.GetBodyData() + call.GetBodySize(), json))
     {
-      OrthancPeerParameters peer;
+      WebServiceParameters peer;
       peer.FromJson(json);
       Configuration::UpdatePeer(call.GetUriComponent("id", ""), peer);
       call.GetOutput().AnswerBuffer("", "text/plain");

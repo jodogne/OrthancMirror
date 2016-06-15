@@ -30,8 +30,8 @@
  **/
 
 
-#include "PrecompiledHeadersServer.h"
-#include "OrthancPeerParameters.h"
+#include "PrecompiledHeaders.h"
+#include "WebServiceParameters.h"
 
 #include "../Core/Logging.h"
 #include "../Core/Toolbox.h"
@@ -39,16 +39,16 @@
 
 namespace Orthanc
 {
-  OrthancPeerParameters::OrthancPeerParameters() : 
+  WebServiceParameters::WebServiceParameters() : 
     advancedFormat_(false),
     url_("http://localhost:8042/")
   {
   }
 
 
-  void OrthancPeerParameters::SetClientCertificate(const std::string& certificateFile,
-                                                   const std::string& certificateKeyFile,
-                                                   const std::string& certificateKeyPassword)
+  void WebServiceParameters::SetClientCertificate(const std::string& certificateFile,
+                                                  const std::string& certificateKeyFile,
+                                                  const std::string& certificateKeyPassword)
   {
     if (certificateFile.empty())
     {
@@ -85,7 +85,7 @@ namespace Orthanc
   }
 
 
-  void OrthancPeerParameters::FromJsonArray(const Json::Value& peer)
+  void WebServiceParameters::FromJsonArray(const Json::Value& peer)
   {
     assert(peer.isArray());
 
@@ -142,7 +142,7 @@ namespace Orthanc
   }
 
 
-  void OrthancPeerParameters::FromJsonObject(const Json::Value& peer)
+  void WebServiceParameters::FromJsonObject(const Json::Value& peer)
   {
     assert(peer.isObject());
     advancedFormat_ = true;
@@ -168,7 +168,7 @@ namespace Orthanc
   }
 
 
-  void OrthancPeerParameters::FromJson(const Json::Value& peer)
+  void WebServiceParameters::FromJson(const Json::Value& peer)
   {
     try
     {
@@ -192,7 +192,7 @@ namespace Orthanc
   }
 
 
-  void OrthancPeerParameters::ToJson(Json::Value& value) const
+  void WebServiceParameters::ToJson(Json::Value& value) const
   {
     if (advancedFormat_)
     {
@@ -232,22 +232,6 @@ namespace Orthanc
         value.append(username_);
         value.append(password_);
       }
-    }
-  }
-
-
-  void OrthancPeerParameters::ConfigureClient(HttpClient& client) const
-  {
-    if (username_.size() != 0 && 
-        password_.size() != 0)
-    {
-      client.SetCredentials(username_.c_str(), 
-                            password_.c_str());
-    }
-
-    if (!GetCertificateFile().empty())
-    {
-      client.SetClientCertificate(certificateFile_, certificateKeyFile_, certificateKeyPassword_);
     }
   }
 }
