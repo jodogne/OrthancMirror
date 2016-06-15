@@ -37,6 +37,8 @@
 #include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"
 
+#include <cassert>
+
 namespace Orthanc
 {
   WebServiceParameters::WebServiceParameters() : 
