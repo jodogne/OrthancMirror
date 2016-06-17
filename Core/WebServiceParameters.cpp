@@ -43,8 +43,17 @@ namespace Orthanc
 {
   WebServiceParameters::WebServiceParameters() : 
     advancedFormat_(false),
-    url_("http://localhost:8042/")
+    url_("http://localhost:8042/"),
+    pkcs11Enabled_(false)
   {
+  }
+
+
+  void WebServiceParameters::ClearClientCertificate()
+  {
+    certificateFile_.clear();
+    certificateKeyFile_.clear();
+    certificateKeyPassword_.clear();
   }
 
 
@@ -92,6 +101,7 @@ namespace Orthanc
     assert(peer.isArray());
 
     advancedFormat_ = false;
+    pkcs11Enabled_ = false;
 
     if (peer.size() != 1 && 
         peer.size() != 3)
@@ -166,6 +176,18 @@ namespace Orthanc
       SetClientCertificate(GetStringMember(peer, "CertificateFile", ""),
                            GetStringMember(peer, "CertificateKeyFile", ""),
                            GetStringMember(peer, "CertificateKeyPassword", ""));
+    }
+
+    if (peer.isMember("Pkcs11"))
+    {
+      if (peer["Pkcs11"].type() == Json::booleanValue)
+      {
+        pkcs11Enabled_ = peer["Pkcs11"].asBool();
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
     }
   }
 

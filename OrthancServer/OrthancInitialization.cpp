@@ -424,6 +424,48 @@ namespace Orthanc
   }
 
 
+  static void ConfigurePkcs11(const Json::Value& config)
+  {
+    if (config.type() != Json::objectValue ||
+        !config.isMember("Module") ||
+        config["Module"].type() != Json::stringValue)
+    {
+      LOG(ERROR) << "No path to the PKCS#11 module (DLL or .so) is provided for HTTPS client authentication";
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    std::string pin;
+    if (config.isMember("Pin"))
+    {
+      if (config["Pin"].type() == Json::stringValue)
+      {
+        pin = config["Pin"].asString();
+      }
+      else
+      {
+        LOG(ERROR) << "The PIN number in the PKCS#11 configuration must be a string";
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+    }
+
+    bool verbose = false;
+    if (config.isMember("Verbose"))
+    {
+      if (config["Verbose"].type() == Json::booleanValue)
+      {
+        verbose = config["Verbose"].asBool();
+      }
+      else
+      {
+        LOG(ERROR) << "The Verbose option in the PKCS#11 configuration must be a Boolean";
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+    }
+
+    HttpClient::InitializePkcs11(config["Module"].asString(), pin, verbose);
+  }
+
+
 
   void OrthancInitialize(const char* configurationFile)
   {
@@ -435,10 +477,6 @@ namespace Orthanc
     SSL_load_error_strings();
     OpenSSL_add_all_algorithms();
     ERR_load_crypto_strings();
-
-    curl_global_init(CURL_GLOBAL_ALL);
-#else
-    curl_global_init(CURL_GLOBAL_ALL & ~CURL_GLOBAL_SSL);
 #endif
 
     InitializeServerEnumerations();
@@ -446,6 +484,11 @@ namespace Orthanc
     // Read the user-provided configuration
     ReadGlobalConfiguration(configurationFile);
     ValidateGlobalConfiguration();
+
+    if (configuration_.isMember("Pkcs11"))
+    {
+      ConfigurePkcs11(configuration_["Pkcs11"]);
+    }
 
     HttpClient::GlobalInitialize();
 
@@ -487,8 +530,6 @@ namespace Orthanc
     // Unregister JPEG codecs
     DJDecoderRegistration::cleanup();
 #endif
-
-    curl_global_cleanup();
 
 #if ORTHANC_SSL_ENABLED == 1
     // Finalize OpenSSL

@@ -25,9 +25,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
     -DOPENSSL_NO_BF 
     -DOPENSSL_NO_CAMELLIA
     -DOPENSSL_NO_CAST 
-    -DOPENSSL_NO_EC
-    -DOPENSSL_NO_ECDH
-    -DOPENSSL_NO_ECDSA
     -DOPENSSL_NO_EC_NISTP_64_GCC_128
     -DOPENSSL_NO_GMP
     -DOPENSSL_NO_GOST
@@ -98,6 +95,21 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
     ${OPENSSL_SOURCES_DIR}/crypto/x509v3
     ${OPENSSL_SOURCES_DIR}/ssl
     )
+
+  if (ENABLE_PKCS11)
+    list(APPEND OPENSSL_SOURCES_SUBDIRS
+      # EC, ECDH and ECDSA are necessary for PKCS11
+      ${OPENSSL_SOURCES_DIR}/crypto/ec
+      ${OPENSSL_SOURCES_DIR}/crypto/ecdh
+      ${OPENSSL_SOURCES_DIR}/crypto/ecdsa
+      )
+  else()
+    add_definitions(
+      -DOPENSSL_NO_EC
+      -DOPENSSL_NO_ECDH
+      -DOPENSSL_NO_ECDSA
+      )
+  endif()
 
   foreach(d ${OPENSSL_SOURCES_SUBDIRS})
     AUX_SOURCE_DIRECTORY(${d} OPENSSL_SOURCES)
@@ -181,7 +193,9 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
     ${OPENSSL_SOURCES_DIR}/crypto/x509v3/v3nametest.c
     ${OPENSSL_SOURCES_DIR}/crypto/ssl/heartbeat_test.c
     ${OPENSSL_SOURCES_DIR}/crypto/constant_time_test.c
+    ${OPENSSL_SOURCES_DIR}/crypto/ec/ecp_nistz256_table.c
     )
+
 
   if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     set_source_files_properties(

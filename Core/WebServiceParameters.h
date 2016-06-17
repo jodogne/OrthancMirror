@@ -47,6 +47,7 @@ namespace Orthanc
     std::string certificateFile_;
     std::string certificateKeyFile_;
     std::string certificateKeyPassword_;
+    bool        pkcs11Enabled_;
 
     void FromJsonArray(const Json::Value& peer);
 
@@ -85,6 +86,8 @@ namespace Orthanc
       password_ = password;
     }
 
+    void ClearClientCertificate();
+
     void SetClientCertificate(const std::string& certificateFile,
                               const std::string& certificateKeyFile,
                               const std::string& certificateKeyPassword);
@@ -102,6 +105,16 @@ namespace Orthanc
     const std::string& GetCertificateKeyPassword() const
     {
       return certificateKeyPassword_;
+    }
+
+    void SetPkcs11Enabled(bool pkcs11Enabled)
+    {
+      pkcs11Enabled_ = pkcs11Enabled;
+    }
+
+    bool IsPkcs11Enabled() const
+    {
+      return pkcs11Enabled_;
     }
 
     void FromJson(const Json::Value& peer);
