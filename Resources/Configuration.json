@@ -171,7 +171,8 @@
     /**
      * This is another, more advanced format to define Orthanc
      * peers. It notably allows to specify a HTTPS client certificate
-     * in the PEM format, as in the "--cert" option of curl.
+     * in the PEM format (as in the "--cert" option of curl), or to
+     * enable PKCS#11 authentication for smart cards.
      **/
     // "peer" : {
     //   "Url" : "http://localhost:8043/",
@@ -179,7 +180,8 @@
     //   "Password" : "alicePassword",
     //   "CertificateFile" : "client.crt",
     //   "CertificateKeyFile" : "client.key",
-    //   "CertificateKeyPassword" : "certpass"
+    //   "CertificateKeyPassword" : "certpass",
+    //   "Pkcs11" : false
     // }
   },
 
@@ -288,6 +290,16 @@
   // (such as PatientName). By default, the search is
   // case-insensitive, which does not follow the DICOM standard.
   "CaseSensitivePN" : false,
+
+  // Configure PKCS#11 to use hardware security modules (HSM) and
+  // smart cards when carrying on HTTPS client authentication.
+  /**
+     "Pkcs11" : {
+       "Module" : "/usr/local/lib/libbeidpkcs11.so",
+       "Pin" : "1234",
+       "Verbose" : true
+     }
+   **/
   
   // Register a new tag in the dictionary of DICOM tags that are known
   // to Orthanc. Each line must contain the tag (formatted as 2

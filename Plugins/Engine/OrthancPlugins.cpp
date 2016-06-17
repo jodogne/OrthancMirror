@@ -1811,6 +1811,8 @@ namespace Orthanc
       client.SetClientCertificate(certificate, key, password);
     }
 
+    client.SetPkcs11Enabled(p.pkcs11);
+
     for (uint32_t i = 0; i < p.headersCount; i++)
     {
       if (p.headersKeys[i] == NULL ||

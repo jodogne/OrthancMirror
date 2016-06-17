@@ -4946,6 +4946,7 @@ extern "C"
     const char*                 certificateFile;
     const char*                 certificateKeyFile;
     const char*                 certificateKeyPassword;
+    uint8_t                     pkcs11;
   } _OrthancPluginCallHttpClient2;
 
 
@@ -4975,6 +4976,7 @@ extern "C"
    * (can be <tt>NULL</tt> if no client certificate or if not using HTTPS).
    * @param certificateKeyPassword Password to unlock the key of the client certificate 
    * (can be <tt>NULL</tt> if no client certificate or if not using HTTPS).
+   * @param pkcs11 Enable PKCS#11 client authentication for hardware security modules and smart cards.
    * @return 0 if success, or the error code if failure.
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginHttpClient(
@@ -4993,7 +4995,8 @@ extern "C"
     uint32_t                    timeout,
     const char*                 certificateFile,
     const char*                 certificateKeyFile,
-    const char*                 certificateKeyPassword)
+    const char*                 certificateKeyPassword,
+    uint8_t                     pkcs11)
   {
     _OrthancPluginCallHttpClient2 params;
     memset(&params, 0, sizeof(params));
@@ -5013,6 +5016,7 @@ extern "C"
     params.certificateFile = certificateFile;
     params.certificateKeyFile = certificateKeyFile;
     params.certificateKeyPassword = certificateKeyPassword;
+    params.pkcs11 = pkcs11;
 
     return context->InvokeService(context, _OrthancPluginService_CallHttpClient2, &params);
   }

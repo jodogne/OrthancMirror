@@ -62,6 +62,7 @@ namespace Orthanc
     std::string clientCertificateFile_;
     std::string clientCertificateKeyFile_;
     std::string clientCertificateKeyPassword_;
+    bool pkcs11Enabled_;
 
     void Setup();
 
@@ -179,6 +180,16 @@ namespace Orthanc
                               const std::string& certificateKeyFile,
                               const std::string& certificateKeyPassword);
 
+    void SetPkcs11Enabled(bool enabled)
+    {
+      pkcs11Enabled_ = enabled;
+    }
+
+    bool IsPkcs11Enabled() const
+    {
+      return pkcs11Enabled_;
+    }
+
     const std::string& GetClientCertificateFile() const
     {
       return clientCertificateFile_;
@@ -197,6 +208,10 @@ namespace Orthanc
     static void GlobalInitialize();
   
     static void GlobalFinalize();
+
+    static void InitializePkcs11(const std::string& module,
+                                 const std::string& pin,
+                                 bool verbose);
 
     static void ConfigureSsl(bool httpsVerifyPeers,
                              const std::string& httpsCACertificates);

@@ -35,6 +35,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
     add_definitions(
       #-DHAVE_LIBSSL=1
       -DUSE_OPENSSL=1
+      -DHAVE_OPENSSL_ENGINE_H=1
       -DUSE_SSLEAY=1
       )
   endif()
