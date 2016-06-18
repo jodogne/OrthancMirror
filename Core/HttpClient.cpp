@@ -298,7 +298,7 @@ namespace Orthanc
   }
 
 
-  static size_t CurlCallback(void *buffer, size_t size, size_t nmemb, void *payload)
+  static size_t CurlBodyCallback(void *buffer, size_t size, size_t nmemb, void *payload)
   {
     std::string& target = *(static_cast<std::string*>(payload));
 
@@ -331,7 +331,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotEnoughMemory);
     }
 
-    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_WRITEFUNCTION, &CurlCallback));
+    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_WRITEFUNCTION, &CurlBodyCallback));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HEADER, 0));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_FOLLOWLOCATION, 1));
 
@@ -436,7 +436,7 @@ namespace Orthanc
   }
 
 
-  bool HttpClient::Apply(std::string& answer)
+  bool HttpClient::ApplyInternal(std::string& answer)
   {
     answer.clear();
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_URL, url_.c_str()));
@@ -632,6 +632,12 @@ namespace Orthanc
     }
 
     return success;
+  }
+
+
+  bool HttpClient::Apply(std::string& answer)
+  {
+    return ApplyInternal(answer);
   }
 
 
