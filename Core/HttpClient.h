@@ -69,6 +69,8 @@ namespace Orthanc
     void operator= (const HttpClient&);  // Assignment forbidden
     HttpClient(const HttpClient& base);  // Copy forbidden
 
+    bool ApplyInternal(std::string& answer);
+
   public:
     HttpClient();
 
