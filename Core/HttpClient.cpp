@@ -770,7 +770,7 @@ namespace Orthanc
   {
 #if ORTHANC_PKCS11_ENABLED == 1
     LOG(INFO) << "Initializing PKCS#11 using " << module 
-              << (pin.empty() ? "(no PIN provided)" : "(PIN is provided)");
+              << (pin.empty() ? " (no PIN provided)" : " (PIN is provided)");
     GlobalParameters::GetInstance().InitializePkcs11(module, pin, verbose);    
 #else
     LOG(ERROR) << "This version of Orthanc is compiled without support for PKCS11";
