@@ -296,6 +296,7 @@
   /**
      "Pkcs11" : {
        "Module" : "/usr/local/lib/libbeidpkcs11.so",
+       "Module" : "C:/Windows/System32/beidpkcs11.dll",
        "Pin" : "1234",
        "Verbose" : true
      }
