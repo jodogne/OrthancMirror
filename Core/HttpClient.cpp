@@ -44,17 +44,7 @@
 
 
 #if ORTHANC_PKCS11_ENABLED == 1
-
-#include <openssl/engine.h>
-#include <libp11.h>
-
-// Include the "libengine-pkcs11-openssl" from the libp11 package
-extern "C"
-{
-#pragma GCC diagnostic error "-fpermissive"
-#include <libp11/eng_front.c>
-}
-
+#  include "Pkcs11.h"
 #endif
 
 
@@ -97,42 +87,10 @@ namespace Orthanc
     std::string     httpsCACertificates_;
     std::string     proxy_;
     long            timeout_;
-    bool            pkcs11Initialized_;
-
-#if ORTHANC_PKCS11_ENABLED == 1
-    static ENGINE* LoadPkcs11Engine()
-    {
-      // This function mimics the "ENGINE_load_dynamic" function from
-      // OpenSSL, in file "crypto/engine/eng_dyn.c"
-
-      ENGINE* engine = ENGINE_new();
-      if (!engine)
-      {
-        LOG(ERROR) << "Cannot create an OpenSSL engine for PKCS11";
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
-      if (!bind_helper(engine) ||
-          !ENGINE_add(engine))
-      {
-        LOG(ERROR) << "Cannot initialize the OpenSSL engine for PKCS11";
-        ENGINE_free(engine);
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
-      // If the "ENGINE_add" worked, it gets a structural
-      // reference. We release our just-created reference.
-      ENGINE_free(engine);
-
-      assert(!strcmp("pkcs11", PKCS11_ENGINE_ID));
-      return ENGINE_by_id(PKCS11_ENGINE_ID);
-    }
-#endif
 
     GlobalParameters() : 
       httpsVerifyPeers_(true),
-      timeout_(0),
-      pkcs11Initialized_(false)
+      timeout_(0)
     {
     }
 
@@ -192,66 +150,19 @@ namespace Orthanc
       return timeout_;
     }
 
+#if ORTHANC_PKCS11_ENABLED == 1
     bool IsPkcs11Initialized()
     {
       boost::mutex::scoped_lock lock(mutex_);
-      return pkcs11Initialized_;
+      return Pkcs11::IsInitialized();
     }
 
-
-#if ORTHANC_PKCS11_ENABLED == 1
     void InitializePkcs11(const std::string& module,
                           const std::string& pin,
                           bool verbose)
     {
       boost::mutex::scoped_lock lock(mutex_);
-
-      if (pkcs11Initialized_)
-      {
-        LOG(ERROR) << "The PKCS11 engine has already been initialized";
-        throw OrthancException(ErrorCode_BadSequenceOfCalls);
-      }
-
-      if (module.empty() ||
-          !Toolbox::IsRegularFile(module))
-      {
-        LOG(ERROR) << "The PKCS11 module must be a path to one shared library (DLL or .so)";
-        throw OrthancException(ErrorCode_InexistentFile);
-      }
-
-      ENGINE* engine = LoadPkcs11Engine();
-      if (!engine)
-      {
-        LOG(ERROR) << "Cannot create an OpenSSL engine for PKCS11";
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
-      if (!ENGINE_ctrl_cmd_string(engine, "MODULE_PATH", module.c_str(), 0))
-      {
-        LOG(ERROR) << "Cannot configure the OpenSSL dynamic engine for PKCS11";
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
-      if (verbose)
-      {
-        ENGINE_ctrl_cmd_string(engine, "VERBOSE", NULL, 0);
-      }
-
-      if (!pin.empty() &&
-          !ENGINE_ctrl_cmd_string(engine, "PIN", pin.c_str(), 0)) 
-      {
-        LOG(ERROR) << "Cannot set the PIN code for PKCS11";
-        throw OrthancException(ErrorCode_InternalError);
-      }
-  
-      if (!ENGINE_init(engine))
-      {
-        LOG(ERROR) << "Cannot initialize the OpenSSL dynamic engine for PKCS11";
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
-      LOG(WARNING) << "The PKCS11 engine has been successfully initialized";
-      pkcs11Initialized_ = true;
+      Pkcs11::Initialize(module, pin, verbose);
     }
 #endif
   };
@@ -288,6 +199,13 @@ namespace Orthanc
 
   static CURLcode CheckCode(CURLcode code)
   {
+    if (code == CURLE_NOT_BUILT_IN)
+    {
+      LOG(ERROR) << "Your libcurl does not contain a required feature, "
+                 << "please recompile Orthanc with -DUSE_SYSTEM_CURL=OFF";
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
     if (code != CURLE_OK)
     {
       LOG(ERROR) << "libCURL error: " + std::string(curl_easy_strerror(code));
@@ -471,17 +389,17 @@ namespace Orthanc
 #if ORTHANC_PKCS11_ENABLED == 1
       if (GlobalParameters::GetInstance().IsPkcs11Initialized())
       {
-        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSLENGINE, "pkcs11"));
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSLENGINE, Pkcs11::GetEngineIdentifier()));
         CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSLKEYTYPE, "ENG"));
         CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSLCERTTYPE, "ENG"));
       }
       else
       {
-        LOG(ERROR) << "Cannot use PKCS11 for a HTTPS request, because it has not been initialized";
+        LOG(ERROR) << "Cannot use PKCS#11 for a HTTPS request, because it has not been initialized";
         throw OrthancException(ErrorCode_BadSequenceOfCalls);
       }
 #else
-      LOG(ERROR) << "This version of Orthanc is compiled without support for PKCS11";
+      LOG(ERROR) << "This version of Orthanc is compiled without support for PKCS#11";
       throw OrthancException(ErrorCode_InternalError);
 #endif
     }
@@ -704,6 +622,10 @@ namespace Orthanc
   void HttpClient::GlobalFinalize()
   {
     curl_global_cleanup();
+
+#if ORTHANC_PKCS11_ENABLED == 1
+    Pkcs11::Finalize();
+#endif
   }
   
 
@@ -773,7 +695,7 @@ namespace Orthanc
               << (pin.empty() ? " (no PIN provided)" : " (PIN is provided)");
     GlobalParameters::GetInstance().InitializePkcs11(module, pin, verbose);    
 #else
-    LOG(ERROR) << "This version of Orthanc is compiled without support for PKCS11";
+    LOG(ERROR) << "This version of Orthanc is compiled without support for PKCS#11";
     throw OrthancException(ErrorCode_InternalError);
 #endif
   }
