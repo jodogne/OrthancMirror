@@ -48,7 +48,7 @@ SET(USE_SYSTEM_CURL ON CACHE BOOL "Use the system version of LibCurl")
 SET(USE_SYSTEM_OPENSSL ON CACHE BOOL "Use the system version of OpenSSL")
 SET(USE_SYSTEM_ZLIB ON CACHE BOOL "Use the system version of ZLib")
 SET(USE_SYSTEM_PUGIXML ON CACHE BOOL "Use the system version of Pugixml")
-SET(USE_SYSTEM_LIBP11 ON CACHE BOOL "Use the system version of libp11 (PKCS#11 wrapper library)")
+SET(USE_SYSTEM_LIBP11 OFF CACHE BOOL "Use the system version of libp11 (PKCS#11 wrapper library)")
 
 # Experimental options
 SET(USE_PUGIXML ON CACHE BOOL "Use the Pugixml parser (turn off only for debug)")
@@ -334,8 +334,10 @@ endif()
 
 if (ENABLE_PKCS11)
   if (ENABLE_SSL)
-    add_definitions(-DORTHANC_PKCS11_ENABLED=1)
     include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibP11Configuration.cmake)
+
+    add_definitions(-DORTHANC_PKCS11_ENABLED=1)
+    list(APPEND ORTHANC_CORE_SOURCES Core/Pkcs11.cpp)
   else()
     message(FATAL_ERROR "OpenSSL is required to enable PKCS#11")
   endif()
@@ -440,7 +442,6 @@ add_library(CoreLibrary
   ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/ioapi.c
   ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/zip.c
   )  
-
 
 
 #####################################################################
