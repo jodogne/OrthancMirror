@@ -76,7 +76,7 @@ namespace Orthanc
     public IMoveRequestHandlerFactory
   {
   private:
-    struct PImpl;
+    class PImpl;
     boost::shared_ptr<PImpl> pimpl_;
 
     class WorklistHandler;

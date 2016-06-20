@@ -1811,7 +1811,7 @@ namespace Orthanc
       client.SetClientCertificate(certificate, key, password);
     }
 
-    client.SetPkcs11Enabled(p.pkcs11);
+	client.SetPkcs11Enabled(p.pkcs11 ? true : false);
 
     for (uint32_t i = 0; i < p.headersCount; i++)
     {
@@ -2463,7 +2463,7 @@ namespace Orthanc
         const _OrthancPluginStorageAreaCreate& p =
           *reinterpret_cast<const _OrthancPluginStorageAreaCreate*>(parameters);
         IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
-        storage.Create(p.uuid, p.content, p.size, Plugins::Convert(p.type));
+        storage.Create(p.uuid, p.content, static_cast<size_t>(p.size), Plugins::Convert(p.type));
         return true;
       }
 

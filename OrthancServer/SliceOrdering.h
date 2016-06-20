@@ -42,7 +42,7 @@ namespace Orthanc
     typedef float Vector[3];
 
     struct Instance;
-    struct PositionComparator;
+    class  PositionComparator;
 
     ServerIndex&             index_;
     std::string              seriesId_;

@@ -1267,8 +1267,8 @@ namespace Orthanc
   ParsedDicomFile* ParsedDicomFile::CreateFromJson(const Json::Value& json,
                                                    DicomFromJsonFlags flags)
   {
-    const bool generateIdentifiers = (flags & DicomFromJsonFlags_GenerateIdentifiers);
-    const bool decodeDataUriScheme = (flags & DicomFromJsonFlags_DecodeDataUriScheme);
+	const bool generateIdentifiers = (flags & DicomFromJsonFlags_GenerateIdentifiers) ? true : false;
+	const bool decodeDataUriScheme = (flags & DicomFromJsonFlags_DecodeDataUriScheme) ? true : false;
 
     std::auto_ptr<ParsedDicomFile> result(new ParsedDicomFile(generateIdentifiers));
     result->SetEncoding(FromDcmtkBridge::ExtractEncoding(json, Configuration::GetDefaultEncoding()));
