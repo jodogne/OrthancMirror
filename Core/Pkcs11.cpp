@@ -49,11 +49,11 @@
 
 extern "C"
 {
-#include <engine.h>  // This is P11's "engine.h"
+#include <libp11/engine.h>  // This is P11's "engine.h"
+#include <libp11/libp11.h>
 }
 
 #include <openssl/engine.h>
-#include <libp11.h>
 
 
 namespace Orthanc
