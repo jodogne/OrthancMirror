@@ -388,13 +388,13 @@ namespace Orthanc
   }
 
 
-  bool HttpClient::ApplyInternal(std::string& answer,
-                                 HttpHeaders* headers)
+  bool HttpClient::ApplyInternal(std::string& answerBody,
+                                 HttpHeaders* answerHeaders)
   {
-    answer.clear();
+    answerBody.clear();
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_URL, url_.c_str()));
 
-    if (headers == NULL)
+    if (answerHeaders == NULL)
     {
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HEADERFUNCTION, NULL));
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HEADERDATA, NULL));
@@ -402,7 +402,7 @@ namespace Orthanc
     else
     {
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HEADERFUNCTION, &CurlHeaderCallback));
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HEADERDATA, headers));
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HEADERDATA, answerHeaders));
     }
 
 #if ORTHANC_SSL_ENABLED == 1
@@ -593,11 +593,11 @@ namespace Orthanc
 
     if (success)
     {
-      buffer.Flatten(answer);
+      buffer.Flatten(answerBody);
     }
     else
     {
-      answer.clear();
+      answerBody.clear();
       LOG(INFO) << "Error in HTTP request, received HTTP status " << status 
                 << " (" << EnumerationToString(lastStatus_) << ")";
     }
@@ -606,14 +606,14 @@ namespace Orthanc
   }
 
 
-  bool HttpClient::ApplyInternal(Json::Value& answer,
+  bool HttpClient::ApplyInternal(Json::Value& answerBody,
                                  HttpClient::HttpHeaders* answerHeaders)
   {
     std::string s;
     if (ApplyInternal(s, answerHeaders))
     {
       Json::Reader reader;
-      return reader.parse(s, answer);
+      return reader.parse(s, answerBody);
     }
     else
     {
@@ -689,17 +689,38 @@ namespace Orthanc
   }
 
 
-  void HttpClient::ApplyAndThrowException(std::string& answer)
+  void HttpClient::ApplyAndThrowException(std::string& answerBody)
   {
-    if (!Apply(answer))
+    if (!Apply(answerBody))
+    {
+      ThrowException(GetLastStatus());
+    }
+  }
+
+  
+  void HttpClient::ApplyAndThrowException(Json::Value& answerBody)
+  {
+    if (!Apply(answerBody))
+    {
+      ThrowException(GetLastStatus());
+    }
+  }
+
+
+  void HttpClient::ApplyAndThrowException(std::string& answerBody,
+                                          HttpHeaders& answerHeaders)
+  {
+    if (!Apply(answerBody, answerHeaders))
     {
       ThrowException(GetLastStatus());
     }
   }
   
-  void HttpClient::ApplyAndThrowException(Json::Value& answer)
+
+  void HttpClient::ApplyAndThrowException(Json::Value& answerBody,
+                                          HttpHeaders& answerHeaders)
   {
-    if (!Apply(answer))
+    if (!Apply(answerBody, answerHeaders))
     {
       ThrowException(GetLastStatus());
     }
