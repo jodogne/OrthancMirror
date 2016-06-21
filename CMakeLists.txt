@@ -588,6 +588,10 @@ if (ENABLE_PLUGINS AND BUILD_MODALITY_WORKLISTS)
     SOVERSION ${ORTHANC_VERSION}
     )
 
+  set_source_files_properties(${ORTHANC_ALL_SOURCES}
+    PROPERTIES COMPILE_FLAGS -pedantic
+    )
+
   install(
     TARGETS ModalityWorklists
     RUNTIME DESTINATION lib    # Destination for Windows
@@ -604,6 +608,21 @@ endif()
 if (BUILD_RECOVER_COMPRESSED_FILE)
   set(RECOVER_COMPRESSED_SOURCES
     Resources/Samples/Tools/RecoverCompressedFile.cpp
+
+    ${CMAKE_SOURCE_DIR}/Core/ChunkedBuffer.cpp
+    ${CMAKE_SOURCE_DIR}/Core/Compression/DeflateBaseCompressor.cpp
+    ${CMAKE_SOURCE_DIR}/Core/Compression/ZlibCompressor.cpp
+    ${CMAKE_SOURCE_DIR}/Core/Enumerations.cpp
+    ${CMAKE_SOURCE_DIR}/Core/Logging.cpp
+    ${CMAKE_SOURCE_DIR}/Core/Toolbox.cpp
+    ${CMAKE_SOURCE_DIR}/Resources/ThirdParty/base64/base64.cpp
+    ${CMAKE_SOURCE_DIR}/Resources/ThirdParty/md5/md5.c
+
+    ${BOOST_SOURCES}
+    ${JSONCPP_SOURCES}
+    ${PUGIXML_SOURCES}
+    ${RECOVER_COMPRESSED_SOURCES}
+    ${ZLIB_SOURCES}
     )
 
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
@@ -625,21 +644,7 @@ if (BUILD_RECOVER_COMPRESSED_FILE)
       )
   endif()
 
-  add_executable(OrthancRecoverCompressedFile
-    ${RECOVER_COMPRESSED_SOURCES}
-    ${ZLIB_SOURCES}
-    ${BOOST_SOURCES}
-    ${JSONCPP_SOURCES}
-    ${PUGIXML_SOURCES}
-    ${CMAKE_SOURCE_DIR}/Core/ChunkedBuffer.cpp
-    ${CMAKE_SOURCE_DIR}/Core/Logging.cpp
-    ${CMAKE_SOURCE_DIR}/Core/Enumerations.cpp
-    ${CMAKE_SOURCE_DIR}/Core/Toolbox.cpp
-    ${CMAKE_SOURCE_DIR}/Core/Compression/DeflateBaseCompressor.cpp
-    ${CMAKE_SOURCE_DIR}/Core/Compression/ZlibCompressor.cpp
-    ${CMAKE_SOURCE_DIR}/Resources/ThirdParty/md5/md5.c
-    ${CMAKE_SOURCE_DIR}/Resources/ThirdParty/base64/base64.cpp
-    )
+  add_executable(OrthancRecoverCompressedFile ${RECOVER_COMPRESSED_SOURCES})
 
   install(
     TARGETS OrthancRecoverCompressedFile
