@@ -18,7 +18,6 @@
  **/
 
 
-#include "../../../Core/PrecompiledHeaders.h"
 #include "../../../Core/Compression/ZlibCompressor.h"
 #include "../../../Core/Toolbox.h"
 #include "../../../Core/OrthancException.h"
