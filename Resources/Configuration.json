@@ -302,6 +302,11 @@
      }
    **/
   
+  // If set to "true", Orthanc will handle "SOP Classes in Study"
+  // (0008,0062) in C-FIND requests. This option is turned off by
+  // default, as it requires intensive accesses to the hard drive.
+  "AllowFindSopClassesInStudy" : false,
+
   // Register a new tag in the dictionary of DICOM tags that are known
   // to Orthanc. Each line must contain the tag (formatted as 2
   // hexadecimal numbers), the value representation (2 upcase
