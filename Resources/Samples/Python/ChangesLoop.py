@@ -34,7 +34,7 @@ Sample script that continuously monitors the arrival of new DICOM
 images into Orthanc (through the Changes API).
 
 Usage: %s [hostname] [HTTP port]
-For instance: %s localhost 8042
+For instance: %s 127.0.0.1 8042
 """ % (sys.argv[0], sys.argv[0]))
     exit(-1)
 

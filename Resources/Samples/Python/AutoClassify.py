@@ -30,7 +30,7 @@ parser = argparse.ArgumentParser(
     description = 'Automated classification of DICOM files from Orthanc.',
     formatter_class = argparse.ArgumentDefaultsHelpFormatter)
 
-parser.add_argument('--host', default = 'localhost',
+parser.add_argument('--host', default = '127.0.0.1',
                     help = 'The host address that runs Orthanc')
 parser.add_argument('--port', type = int, default = '8042',
                     help = 'The port number to which Orthanc is listening for the REST API')

@@ -29,7 +29,7 @@
 
 from RestToolbox import *
 
-URL = 'http://localhost:8042'
+URL = 'http://127.0.0.1:8042'
 STUDY = '27f7126f-4f66fb14-03f4081b-f9341db2-53925988'
 
 identifiers = {}

@@ -29,7 +29,7 @@ def PrintHelp():
     print('Download ZIP archives for all the studies generated '
           'during a given time range (according to the StudyDate tag)\n')
     print('Usage: %s <URL> <StartDate> <EndDate> <TargetFolder>\n' % sys.argv[0])
-    print('Example: %s http://localhost:8042/ 20150101 20151231 /tmp/\n' % sys.argv[0])
+    print('Example: %s http://127.0.0.1:8042/ 20150101 20151231 /tmp/\n' % sys.argv[0])
     exit(-1)
 
 def CheckIsDate(date):

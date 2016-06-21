@@ -28,7 +28,7 @@ import RestToolbox
 def PrintHelp():
     print('Download one ZIP archive for all the patients stored in Orthanc\n')
     print('Usage: %s <URL> <Target>\n' % sys.argv[0])
-    print('Example: %s http://localhost:8042/ /tmp/Archive.zip\n' % sys.argv[0])
+    print('Example: %s http://127.0.0.1:8042/ /tmp/Archive.zip\n' % sys.argv[0])
     exit(-1)
 
 if len(sys.argv) != 3:

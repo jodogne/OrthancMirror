@@ -43,7 +43,7 @@ namespace Orthanc
 {
   WebServiceParameters::WebServiceParameters() : 
     advancedFormat_(false),
-    url_("http://localhost:8042/"),
+    url_("http://127.0.0.1:8042/"),
     pkcs11Enabled_(false)
   {
   }

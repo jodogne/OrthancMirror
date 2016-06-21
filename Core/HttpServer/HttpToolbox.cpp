@@ -41,7 +41,7 @@
 #include "StringHttpOutput.h"
 
 
-static const char* LOCALHOST = "localhost";
+static const char* LOCALHOST = "127.0.0.1";
 
 
 

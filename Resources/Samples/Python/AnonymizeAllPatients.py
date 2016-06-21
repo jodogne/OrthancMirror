@@ -20,7 +20,7 @@
 
 
 
-URL = 'http://localhost:8042'
+URL = 'http://127.0.0.1:8042'
 
 #
 # This sample code will anonymize all the patients that are stored in

@@ -17,7 +17,7 @@ function OnStoredInstance(instanceId, tags, metadata)
    info['PatientID'] = tags['PatientID']
 
    -- Send the POST request
-   local answer = HttpPost('http://localhost:8000/', JSON:encode(info))
+   local answer = HttpPost('http://127.0.0.1:8000/', JSON:encode(info))
 
    -- The answer equals "ERROR" in case of an error
    print('Web service called, answer received: ' .. answer)
