@@ -72,10 +72,10 @@ namespace Orthanc
     void operator= (const HttpClient&);  // Assignment forbidden
     HttpClient(const HttpClient& base);  // Copy forbidden
 
-    bool ApplyInternal(std::string& answer,
+    bool ApplyInternal(std::string& answerBody,
                        HttpHeaders* answerHeaders);
 
-    bool ApplyInternal(Json::Value& answer,
+    bool ApplyInternal(Json::Value& answerBody,
                        HttpHeaders* answerHeaders);
 
   public:
@@ -148,26 +148,26 @@ namespace Orthanc
 
     void ClearHeaders();
 
-    bool Apply(std::string& answer)
+    bool Apply(std::string& answerBody)
     {
-      return ApplyInternal(answer, NULL);
+      return ApplyInternal(answerBody, NULL);
     }
 
-    bool Apply(Json::Value& answer)
+    bool Apply(Json::Value& answerBody)
     {
-      return ApplyInternal(answer, NULL);
+      return ApplyInternal(answerBody, NULL);
     }
 
-    bool Apply(std::string& answer,
+    bool Apply(std::string& answerBody,
                HttpHeaders& answerHeaders)
     {
-      return ApplyInternal(answer, &answerHeaders);
+      return ApplyInternal(answerBody, &answerHeaders);
     }
 
-    bool Apply(Json::Value& answer,
+    bool Apply(Json::Value& answerBody,
                HttpHeaders& answerHeaders)
     {
-      return ApplyInternal(answer, &answerHeaders);
+      return ApplyInternal(answerBody, &answerHeaders);
     }
 
     HttpStatus GetLastStatus() const
@@ -247,8 +247,14 @@ namespace Orthanc
 
     static void SetDefaultTimeout(long timeout);
 
-    void ApplyAndThrowException(std::string& answer);
+    void ApplyAndThrowException(std::string& answerBody);
 
-    void ApplyAndThrowException(Json::Value& answer);
+    void ApplyAndThrowException(Json::Value& answerBody);
+
+    void ApplyAndThrowException(std::string& answerBody,
+                                HttpHeaders& answerHeaders);
+
+    void ApplyAndThrowException(Json::Value& answerBody,
+                                HttpHeaders& answerHeaders);
   };
 }

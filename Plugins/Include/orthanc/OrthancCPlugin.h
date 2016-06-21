@@ -4931,7 +4931,8 @@ extern "C"
 
   typedef struct
   {
-    OrthancPluginMemoryBuffer*  target;
+    OrthancPluginMemoryBuffer*  answerBody;
+    OrthancPluginMemoryBuffer*  answerHeaders;
     uint16_t*                   httpStatus;
     OrthancPluginHttpMethod     method;
     const char*                 url;
@@ -4955,10 +4956,19 @@ extern "C"
    * @brief Issue a HTTP call with full flexibility.
    * 
    * Make a HTTP call to the given URL. The result to the query is
-   * stored into a newly allocated memory buffer.
+   * stored into a newly allocated memory buffer. The HTTP request
+   * will be done accordingly to the global configuration of Orthanc
+   * (in particular, the options "HttpProxy", "HttpTimeout",
+   * "HttpsVerifyPeers", "HttpsCACertificates", and "Pkcs11" will be
+   * taken into account).
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer() (out argument).
+   * @param answerBody The target memory buffer (out argument).
+   *        It must be freed with OrthancPluginFreeMemoryBuffer().
+   * @param answerHeaders The target memory buffer for the HTTP headers in the answers (out argument). 
+   *        The answer headers are formatted as a JSON object (associative array).
+   *        The buffer must be freed with OrthancPluginFreeMemoryBuffer().
+   *        This argument can be set to NULL if the plugin has no interest in the HTTP headers.
    * @param httpStatus The HTTP status after the execution of the request (out argument).
    * @param method HTTP method to be used.
    * @param url The URL of interest.
@@ -4981,7 +4991,8 @@ extern "C"
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginHttpClient(
     OrthancPluginContext*       context,
-    OrthancPluginMemoryBuffer*  target,
+    OrthancPluginMemoryBuffer*  answerBody,
+    OrthancPluginMemoryBuffer*  answerHeaders,
     uint16_t*                   httpStatus,
     OrthancPluginHttpMethod     method,
     const char*                 url,
@@ -5001,7 +5012,8 @@ extern "C"
     _OrthancPluginCallHttpClient2 params;
     memset(&params, 0, sizeof(params));
 
-    params.target = target;
+    params.answerBody = answerBody;
+    params.answerHeaders = answerHeaders;
     params.httpStatus = httpStatus;
     params.method = method;
     params.url = url;

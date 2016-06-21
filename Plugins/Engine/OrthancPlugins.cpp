@@ -1811,7 +1811,7 @@ namespace Orthanc
       client.SetClientCertificate(certificate, key, password);
     }
 
-	client.SetPkcs11Enabled(p.pkcs11 ? true : false);
+    client.SetPkcs11Enabled(p.pkcs11 ? true : false);
 
     for (uint32_t i = 0; i < p.headersCount; i++)
     {
@@ -1848,19 +1848,33 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    std::string s;
+    std::string body;
+    HttpClient::HttpHeaders headers;
 
-    if (!client.Apply(s))
-    {
-      *p.httpStatus = 0;
-      throw OrthancException(ErrorCode_NetworkProtocol);
-    }
+    client.ApplyAndThrowException(body, headers);
 
+    // The HTTP request has succeeded
     *p.httpStatus = static_cast<uint16_t>(client.GetLastStatus());
 
+    // Copy the HTTP headers of the answer, if the plugin requested them
+    if (p.answerHeaders != NULL)
+    {
+      Json::Value json = Json::objectValue;
+
+      for (HttpClient::HttpHeaders::const_iterator 
+             it = headers.begin(); it != headers.end(); ++it)
+      {
+        json[it->first] = it->second;
+      }
+        
+      std::string s = json.toStyledString();
+      CopyToMemoryBuffer(*p.answerHeaders, s);
+    }
+
+    // Copy the body of the answer if it makes sense
     if (p.method != OrthancPluginHttpMethod_Delete)
     {
-      CopyToMemoryBuffer(*p.target, s);
+      CopyToMemoryBuffer(*p.answerBody, body);
     }
   }
 
