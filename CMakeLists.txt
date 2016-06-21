@@ -588,10 +588,6 @@ if (ENABLE_PLUGINS AND BUILD_MODALITY_WORKLISTS)
     SOVERSION ${ORTHANC_VERSION}
     )
 
-  set_source_files_properties(${ORTHANC_ALL_SOURCES}
-    PROPERTIES COMPILE_FLAGS -pedantic
-    )
-
   install(
     TARGETS ModalityWorklists
     RUNTIME DESTINATION lib    # Destination for Windows
