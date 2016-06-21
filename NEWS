@@ -6,7 +6,7 @@ General
 
 * HTTPS client certificates can be associated with Orthanc peers to enhance security over Internet
 * Possibility to use PKCS#11 authentication for hardware security modules with Orthanc peers
-* New option "--logfile" to output the Orthanc log to the given file
+* New command-line option "--logfile" to output the Orthanc log to the given file
 * Support of SIGHUP signal (restart Orthanc only if the configuration files have changed)
 
 REST API
@@ -61,6 +61,7 @@ Maintenance
 * Upgrade to Boost 1.60.0 for static builds
 * Use of HTTP status 403 Forbidden (instead of 401) if access to a REST resource is disallowed
 * Option "HttpsVerifyPeers" can be used to connect against self-signed HTTPS certificates
+* New configuration option "AllowFindSopClassesInStudy"
 * Macro "__linux" (now obsolete) replaced by macro "__linux__" (maybe solves Debian bug #821011)
 * Modification of instances can now replace PixelData (resp. EncapsulatedDocument) with 
   provided a PNG/JPEG image (resp. PDF file) if it is encoded using Data URI Scheme

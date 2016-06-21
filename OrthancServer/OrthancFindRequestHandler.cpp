@@ -112,6 +112,9 @@ namespace Orthanc
                                       const DicomTag& tag,
                                       const std::list<std::string>& instances)
   {
+    // WARNING: This function is slow, as it reads the JSON file
+    // summarizing each instance of interest from the hard drive.
+
     std::string formatted = tag.Format();
 
     for (std::list<std::string>::const_iterator
@@ -223,9 +226,18 @@ namespace Orthanc
 
     if (query.HasTag(DICOM_TAG_SOP_CLASSES_IN_STUDY))
     {
-      std::set<std::string> values;
-      ExtractTagFromInstances(values, context, DICOM_TAG_SOP_CLASS_UID, instances);
-      StoreSetOfStrings(result, DICOM_TAG_SOP_CLASSES_IN_STUDY, values);
+      if (Configuration::GetGlobalBoolParameter("AllowFindSopClassesInStudy", false))
+      {
+        std::set<std::string> values;
+        ExtractTagFromInstances(values, context, DICOM_TAG_SOP_CLASS_UID, instances);
+        StoreSetOfStrings(result, DICOM_TAG_SOP_CLASSES_IN_STUDY, values);
+      }
+      else
+      {
+        result.SetValue(DICOM_TAG_SOP_CLASSES_IN_STUDY, "", false);
+        LOG(WARNING) << "The handling of \"SOP Classes in Study\" (0008,0062) "
+                     << "in C-FIND requests is disabled";
+      }
     }
   }
 
