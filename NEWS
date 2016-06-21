@@ -54,6 +54,7 @@ Maintenance
 * Fix issue 11 (is_regular_file() fails for FILE_ATTRIBUTE_REPARSE_POINT)
 * Fix issue 16 ("Limit" parameter error in REST API /tools/find method)
 * Fix of Debian bug #818512 ("FTBFS: Please install libdcmtk*-dev")
+* Fix of Debian bug #823139 ("orthanc: Please provide RecoverCompressedFile.cpp")
 * Replaced "localhost" by "127.0.0.1", as it might impact performance on Windows
 * Compatibility with CMake >= 3.5.0
 * Possibility to use forthcoming DCMTK 3.6.1 in static builds (instead of 3.6.0)

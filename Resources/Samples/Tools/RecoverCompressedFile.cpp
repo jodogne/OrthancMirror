@@ -47,7 +47,9 @@ int main(int argc, const char* argv[])
 
     Orthanc::ZlibCompressor compressor;
     std::string uncompressed;
-    compressor.Uncompress(uncompressed, content);
+    compressor.Uncompress(uncompressed, 
+                          content.empty() ? NULL : content.c_str(), 
+                          content.size());
 
     fprintf(stderr, "Writing the uncompressed data...\n");
     fflush(stderr);
