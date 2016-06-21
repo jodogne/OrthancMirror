@@ -145,7 +145,7 @@
      * store (shipped in the DCMTK distribution) started by the
      * command line "storescp 2000".
      **/
-    // "sample" : [ "STORESCP", "localhost", 2000 ]
+    // "sample" : [ "STORESCP", "127.0.0.1", 2000 ]
 
     /**
      * A fourth parameter is available to enable patches for a
@@ -165,8 +165,8 @@
      * followed by the username/password pair (if the password
      * protection is enabled on the peer).
      **/
-    // "peer"  : [ "http://localhost:8043/", "alice", "alicePassword" ]
-    // "peer2" : [ "http://localhost:8044/" ]
+    // "peer"  : [ "http://127.0.0.1:8043/", "alice", "alicePassword" ]
+    // "peer2" : [ "http://127.0.0.1:8044/" ]
 
     /**
      * This is another, more advanced format to define Orthanc
@@ -175,7 +175,7 @@
      * enable PKCS#11 authentication for smart cards.
      **/
     // "peer" : {
-    //   "Url" : "http://localhost:8043/",
+    //   "Url" : "http://127.0.0.1:8043/",
     //   "Username" : "alice",
     //   "Password" : "alicePassword",
     //   "CertificateFile" : "client.crt",

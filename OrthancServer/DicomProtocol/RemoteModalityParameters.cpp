@@ -43,7 +43,7 @@ namespace Orthanc
 {
   RemoteModalityParameters::RemoteModalityParameters() :
     aet_("ORTHANC"),
-    host_("localhost"),
+    host_("127.0.0.1"),
     port_(104),
     manufacturer_(ModalityManufacturer_Generic)
   {
