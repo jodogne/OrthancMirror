@@ -20,12 +20,12 @@ include(${ORTHANC_ROOT}/Resources/CMake/Compiler.cmake)
 include(${ORTHANC_ROOT}/Resources/CMake/DownloadPackage.cmake)
 include(${ORTHANC_ROOT}/Resources/CMake/BoostConfiguration.cmake)
 include(${ORTHANC_ROOT}/Resources/CMake/ZlibConfiguration.cmake)
-include(${ORTHANC_ROOT}/Resources/CMake/GoogleLogConfiguration.cmake)
+include(${ORTHANC_ROOT}/Resources/CMake/JsonCppConfiguration.cmake)
 
 add_library(CommonLibraries
   ${BOOST_SOURCES}
-  ${THIRD_PARTY_SOURCES}
-  ${ORTHANC_ROOT}/Core/OrthancException.cpp
+  ${JSONCPP_SOURCES}
+  ${ORTHANC_ROOT}/Core/Enumerations.cpp
   ${ORTHANC_ROOT}/Core/Toolbox.cpp
   ${ORTHANC_ROOT}/Core/Uuid.cpp
   ${ORTHANC_ROOT}/Resources/ThirdParty/md5/md5.c
@@ -34,8 +34,9 @@ add_library(CommonLibraries
 
 add_executable(RecoverCompressedFile
   RecoverCompressedFile.cpp
-  ${ORTHANC_ROOT}/Core/Compression/BufferCompressor.cpp
+  ${ORTHANC_ROOT}/Core/Compression/DeflateBaseCompressor.cpp
   ${ORTHANC_ROOT}/Core/Compression/ZlibCompressor.cpp
+  ${ZLIB_SOURCES}
   )
 
-target_link_libraries(RecoverCompressedFile CommonLibraries GoogleLog)
+target_link_libraries(RecoverCompressedFile CommonLibraries)
