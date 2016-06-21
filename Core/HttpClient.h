@@ -43,6 +43,9 @@ namespace Orthanc
 {
   class HttpClient
   {
+  public:
+    typedef std::map<std::string, std::string>  HttpHeaders;
+
   private:
     class GlobalParameters;
 
@@ -69,7 +72,11 @@ namespace Orthanc
     void operator= (const HttpClient&);  // Assignment forbidden
     HttpClient(const HttpClient& base);  // Copy forbidden
 
-    bool ApplyInternal(std::string& answer);
+    bool ApplyInternal(std::string& answer,
+                       HttpHeaders* answerHeaders);
+
+    bool ApplyInternal(Json::Value& answer,
+                       HttpHeaders* answerHeaders);
 
   public:
     HttpClient();
@@ -141,9 +148,27 @@ namespace Orthanc
 
     void ClearHeaders();
 
-    bool Apply(std::string& answer);
+    bool Apply(std::string& answer)
+    {
+      return ApplyInternal(answer, NULL);
+    }
 
-    bool Apply(Json::Value& answer);
+    bool Apply(Json::Value& answer)
+    {
+      return ApplyInternal(answer, NULL);
+    }
+
+    bool Apply(std::string& answer,
+               HttpHeaders& answerHeaders)
+    {
+      return ApplyInternal(answer, &answerHeaders);
+    }
+
+    bool Apply(Json::Value& answer,
+               HttpHeaders& answerHeaders)
+    {
+      return ApplyInternal(answer, &answerHeaders);
+    }
 
     HttpStatus GetLastStatus() const
     {
