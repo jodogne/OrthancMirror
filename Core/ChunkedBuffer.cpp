@@ -51,17 +51,19 @@ namespace Orthanc
   }
 
 
-  void ChunkedBuffer::AddChunk(const char* chunkData,
+  void ChunkedBuffer::AddChunk(const void* chunkData,
                                size_t chunkSize)
   {
     if (chunkSize == 0)
     {
       return;
     }
-
-    assert(chunkData != NULL);
-    chunks_.push_back(new std::string(chunkData, chunkSize));
-    numBytes_ += chunkSize;
+    else
+    {
+      assert(chunkData != NULL);
+      chunks_.push_back(new std::string(reinterpret_cast<const char*>(chunkData), chunkSize));
+      numBytes_ += chunkSize;
+    }
   }
 
 

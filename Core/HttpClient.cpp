@@ -36,6 +36,7 @@
 #include "Toolbox.h"
 #include "OrthancException.h"
 #include "Logging.h"
+#include "ChunkedBuffer.h"
 
 #include <string.h>
 #include <curl/curl.h>
@@ -218,18 +219,51 @@ namespace Orthanc
 
   static size_t CurlBodyCallback(void *buffer, size_t size, size_t nmemb, void *payload)
   {
-    std::string& target = *(static_cast<std::string*>(payload));
+    ChunkedBuffer& target = *(static_cast<ChunkedBuffer*>(payload));
 
     size_t length = size * nmemb;
     if (length == 0)
+    {
       return 0;
+    }
+    else
+    {
+      target.AddChunk(buffer, length);
+      return length;
+    }
+  }
 
-    size_t pos = target.size();
 
-    target.resize(pos + length);
-    memcpy(&target.at(pos), buffer, length);
+  static size_t CurlHeaderCallback(void *buffer, size_t size, size_t nmemb, void *payload)
+  {
+    HttpClient::HttpHeaders& headers = *(static_cast<HttpClient::HttpHeaders*>(payload));
 
-    return length;
+    size_t length = size * nmemb;
+    if (length == 0)
+    {
+      return 0;
+    }
+    else
+    {
+      std::string s(reinterpret_cast<const char*>(buffer), length);
+      std::size_t colon = s.find(':');
+      std::size_t eol = s.find("\r\n");
+      if (colon != std::string::npos &&
+          eol != std::string::npos)
+      {
+        std::string tmp;
+        Toolbox::ToLowerCase(tmp, s.substr(0, colon));
+        std::string key = Toolbox::StripSpaces(tmp);
+
+        if (!key.empty())
+        {
+          std::string value = Toolbox::StripSpaces(s.substr(colon + 1, eol));
+          headers[key] = value;
+        }
+      }
+
+      return length;
+    }
   }
 
 
@@ -354,11 +388,22 @@ namespace Orthanc
   }
 
 
-  bool HttpClient::ApplyInternal(std::string& answer)
+  bool HttpClient::ApplyInternal(std::string& answer,
+                                 HttpHeaders* headers)
   {
     answer.clear();
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_URL, url_.c_str()));
-    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_WRITEDATA, &answer));
+
+    if (headers == NULL)
+    {
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HEADERFUNCTION, NULL));
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HEADERDATA, NULL));
+    }
+    else
+    {
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HEADERFUNCTION, &CurlHeaderCallback));
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HEADERDATA, headers));
+    }
 
 #if ORTHANC_SSL_ENABLED == 1
     // Setup HTTPS-related options
@@ -520,6 +565,9 @@ namespace Orthanc
     CURLcode code;
     long status = 0;
 
+    ChunkedBuffer buffer;
+    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_WRITEDATA, &buffer));
+
     if (boost::starts_with(url_, "https://"))
     {
       code = OrthancHttpClientPerformSSL(pimpl_->curl_, &status);
@@ -543,8 +591,13 @@ namespace Orthanc
 
     bool success = (status >= 200 && status < 300);
 
-    if (!success)
+    if (success)
     {
+      buffer.Flatten(answer);
+    }
+    else
+    {
+      answer.clear();
       LOG(INFO) << "Error in HTTP request, received HTTP status " << status 
                 << " (" << EnumerationToString(lastStatus_) << ")";
     }
@@ -553,16 +606,11 @@ namespace Orthanc
   }
 
 
-  bool HttpClient::Apply(std::string& answer)
-  {
-    return ApplyInternal(answer);
-  }
-
-
-  bool HttpClient::Apply(Json::Value& answer)
+  bool HttpClient::ApplyInternal(Json::Value& answer,
+                                 HttpClient::HttpHeaders* answerHeaders)
   {
     std::string s;
-    if (Apply(s))
+    if (ApplyInternal(s, answerHeaders))
     {
       Json::Reader reader;
       return reader.parse(s, answer);

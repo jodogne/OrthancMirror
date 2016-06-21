@@ -61,7 +61,7 @@ namespace Orthanc
       return numBytes_;
     }
 
-    void AddChunk(const char* chunkData,
+    void AddChunk(const void* chunkData,
                   size_t chunkSize);
 
     void AddChunk(const std::string& chunk);
