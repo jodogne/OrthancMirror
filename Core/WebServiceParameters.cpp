@@ -209,6 +209,10 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadFileFormat);
       }
     }
+    catch (OrthancException&)
+    {
+      throw;
+    }
     catch (...)
     {
       throw OrthancException(ErrorCode_BadFileFormat);
