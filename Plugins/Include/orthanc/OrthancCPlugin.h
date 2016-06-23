@@ -1569,6 +1569,7 @@ extern "C"
    * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer().
    * @param uri The URI in the built-in Orthanc API.
    * @return 0 if success, or the error code if failure.
+   * @note If the resource is not existing (error 404), the error code will be OrthancPluginErrorCode_UnknownResource.
    * @see OrthancPluginRestApiGetAfterPlugins
    * @ingroup Orthanc
    **/
@@ -1598,6 +1599,7 @@ extern "C"
    * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer().
    * @param uri The URI in the built-in Orthanc API.
    * @return 0 if success, or the error code if failure.
+   * @note If the resource is not existing (error 404), the error code will be OrthancPluginErrorCode_UnknownResource.
    * @see OrthancPluginRestApiGet
    * @ingroup Orthanc
    **/
@@ -1634,6 +1636,7 @@ extern "C"
    * @param body The body of the POST request.
    * @param bodySize The size of the body.
    * @return 0 if success, or the error code if failure.
+   * @note If the resource is not existing (error 404), the error code will be OrthancPluginErrorCode_UnknownResource.
    * @see OrthancPluginRestApiPostAfterPlugins
    * @ingroup Orthanc
    **/
@@ -1668,6 +1671,7 @@ extern "C"
    * @param body The body of the POST request.
    * @param bodySize The size of the body.
    * @return 0 if success, or the error code if failure.
+   * @note If the resource is not existing (error 404), the error code will be OrthancPluginErrorCode_UnknownResource.
    * @see OrthancPluginRestApiPost
    * @ingroup Orthanc
    **/
@@ -1696,6 +1700,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param uri The URI to delete in the built-in Orthanc API.
    * @return 0 if success, or the error code if failure.
+   * @note If the resource is not existing (error 404), the error code will be OrthancPluginErrorCode_UnknownResource.
    * @see OrthancPluginRestApiDeleteAfterPlugins
    * @ingroup Orthanc
    **/
@@ -1718,6 +1723,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param uri The URI to delete in the built-in Orthanc API.
    * @return 0 if success, or the error code if failure.
+   * @note If the resource is not existing (error 404), the error code will be OrthancPluginErrorCode_UnknownResource.
    * @see OrthancPluginRestApiDelete
    * @ingroup Orthanc
    **/
@@ -1742,6 +1748,7 @@ extern "C"
    * @param body The body of the PUT request.
    * @param bodySize The size of the body.
    * @return 0 if success, or the error code if failure.
+   * @note If the resource is not existing (error 404), the error code will be OrthancPluginErrorCode_UnknownResource.
    * @see OrthancPluginRestApiPutAfterPlugins
    * @ingroup Orthanc
    **/
@@ -1777,6 +1784,7 @@ extern "C"
    * @param body The body of the PUT request.
    * @param bodySize The size of the body.
    * @return 0 if success, or the error code if failure.
+   * @note If the resource is not existing (error 404), the error code will be OrthancPluginErrorCode_UnknownResource.
    * @see OrthancPluginRestApiPut
    * @ingroup Orthanc
    **/

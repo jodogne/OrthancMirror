@@ -189,13 +189,12 @@ namespace Orthanc
         throw OrthancException(ErrorCode_Unauthorized);
 
       case HttpStatus_404_NotFound:
-        throw OrthancException(ErrorCode_InexistentItem);
+        throw OrthancException(ErrorCode_UnknownResource);
 
       default:
         throw OrthancException(ErrorCode_NetworkProtocol);
     }
   }
-
 
 
   static CURLcode CheckCode(CURLcode code)
