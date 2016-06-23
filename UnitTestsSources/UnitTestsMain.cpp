@@ -926,6 +926,25 @@ TEST(Toolbox, StartsWith)
 }
 
 
+TEST(Toolbox, UriEncode)
+{
+  std::string s;
+
+  // Unreserved characters must not be modified
+  std::string t = "aAzZ09.-~_";
+  Toolbox::UriEncode(s, t); 
+  ASSERT_EQ(t, s);
+
+  Toolbox::UriEncode(s, "!#$&'()*+,/:;=?@[]"); ASSERT_EQ("%21%23%24%26%27%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D", s);  
+  Toolbox::UriEncode(s, "%"); ASSERT_EQ("%25", s);
+
+  // Encode characters from UTF-8. This is the test string from the
+  // file "../Resources/EncodingTests.py"
+  Toolbox::UriEncode(s, "\x54\x65\x73\x74\xc3\xa9\xc3\xa4\xc3\xb6\xc3\xb2\xd0\x94\xce\x98\xc4\x9d\xd7\x93\xd8\xb5\xc4\xb7\xd1\x9b\xe0\xb9\x9b\xef\xbe\x88\xc4\xb0"); 
+  ASSERT_EQ("Test%C3%A9%C3%A4%C3%B6%C3%B2%D0%94%CE%98%C4%9D%D7%93%D8%B5%C4%B7%D1%9B%E0%B9%9B%EF%BE%88%C4%B0", s);
+}
+
+
 int main(int argc, char **argv)
 {
   Logging::Initialize();

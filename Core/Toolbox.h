@@ -199,5 +199,8 @@ namespace Orthanc
 
     FILE* OpenFile(const std::string& path,
                    FileMode mode);
+
+    void UriEncode(std::string& target,
+                   const std::string& source);
   }
 }
