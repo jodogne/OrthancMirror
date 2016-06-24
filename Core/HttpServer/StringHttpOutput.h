@@ -41,16 +41,18 @@ namespace Orthanc
   class StringHttpOutput : public IHttpOutputStream
   {
   private:
+    bool          found_;
     ChunkedBuffer buffer_;
 
   public:
+    StringHttpOutput() : found_(false)
+    {
+    }
+
     virtual void OnHttpStatusReceived(HttpStatus status);
 
     virtual void Send(bool isHeader, const void* buffer, size_t length);
 
-    void GetOutput(std::string& output)
-    {
-      buffer_.Flatten(output);
-    }
+    void GetOutput(std::string& output);
   };
 }
