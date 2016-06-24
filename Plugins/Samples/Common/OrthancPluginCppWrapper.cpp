@@ -581,7 +581,7 @@ namespace OrthancPlugins
   }
 
 
-  OrthancImage::Image(OrthancPluginContext*  context) :
+  OrthancImage::OrthancImage(OrthancPluginContext*  context) :
     context_(context),
     image_(NULL)
   {
@@ -592,8 +592,8 @@ namespace OrthancPlugins
   }
 
 
-  OrthancImage::Image(OrthancPluginContext*  context,
-                      OrthancPluginImage*    image) :
+  OrthancImage::OrthancImage(OrthancPluginContext*  context,
+                             OrthancPluginImage*    image) :
     context_(context),
     image_(image)
   {
@@ -604,10 +604,10 @@ namespace OrthancPlugins
   }
   
 
-  OrthancImage::Image(OrthancPluginContext*     context,
-                      OrthancPluginPixelFormat  format,
-                      uint32_t                  width,
-                      uint32_t                  height) :
+  OrthancImage::OrthancImage(OrthancPluginContext*     context,
+                             OrthancPluginPixelFormat  format,
+                             uint32_t                  width,
+                             uint32_t                  height) :
     context_(context)
   {
     if (context == NULL)
