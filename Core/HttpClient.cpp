@@ -233,9 +233,17 @@ namespace Orthanc
   }
 
 
+  struct CurlHeaderParameters
+  {
+    bool lowerCase_;
+    HttpClient::HttpHeaders* headers_;
+  };
+
+
   static size_t CurlHeaderCallback(void *buffer, size_t size, size_t nmemb, void *payload)
   {
-    HttpClient::HttpHeaders& headers = *(static_cast<HttpClient::HttpHeaders*>(payload));
+    CurlHeaderParameters& parameters = *(static_cast<CurlHeaderParameters*>(payload));
+    assert(parameters.headers_ != NULL);
 
     size_t length = size * nmemb;
     if (length == 0)
@@ -250,14 +258,19 @@ namespace Orthanc
       if (colon != std::string::npos &&
           eol != std::string::npos)
       {
-        std::string tmp;
-        Toolbox::ToLowerCase(tmp, s.substr(0, colon));
+        std::string tmp(s.substr(0, colon));
+
+        if (parameters.lowerCase_)
+        {
+          Toolbox::ToLowerCase(tmp);
+        }
+
         std::string key = Toolbox::StripSpaces(tmp);
 
         if (!key.empty())
         {
           std::string value = Toolbox::StripSpaces(s.substr(colon + 1, eol));
-          headers[key] = value;
+          (*parameters.headers_) [key] = value;
         }
       }
 
@@ -304,7 +317,8 @@ namespace Orthanc
   HttpClient::HttpClient() : 
     pimpl_(new PImpl), 
     verifyPeers_(true),
-    pkcs11Enabled_(false)
+    pkcs11Enabled_(false),
+    headersToLowerCase_(true)
   {
     Setup();
   }
@@ -393,6 +407,8 @@ namespace Orthanc
     answerBody.clear();
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_URL, url_.c_str()));
 
+    CurlHeaderParameters headerParameters;
+
     if (answerHeaders == NULL)
     {
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HEADERFUNCTION, NULL));
@@ -400,8 +416,10 @@ namespace Orthanc
     }
     else
     {
+      headerParameters.lowerCase_ = headersToLowerCase_;
+      headerParameters.headers_ = answerHeaders;
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HEADERFUNCTION, &CurlHeaderCallback));
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HEADERDATA, answerHeaders));
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HEADERDATA, &headerParameters));
     }
 
 #if ORTHANC_SSL_ENABLED == 1

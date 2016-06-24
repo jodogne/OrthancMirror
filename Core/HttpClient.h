@@ -66,6 +66,7 @@ namespace Orthanc
     std::string clientCertificateKeyFile_;
     std::string clientCertificateKeyPassword_;
     bool pkcs11Enabled_;
+    bool headersToLowerCase_;
 
     void Setup();
 
@@ -230,6 +231,16 @@ namespace Orthanc
     const std::string& GetClientCertificateKeyPassword() const
     {
       return clientCertificateKeyPassword_;
+    }
+
+    void SetConvertHeadersToLowerCase(bool lowerCase)
+    {
+      headersToLowerCase_ = lowerCase;
+    }
+
+    bool IsConvertHeadersToLowerCase() const
+    {
+      return headersToLowerCase_;
     }
 
     static void GlobalInitialize();
