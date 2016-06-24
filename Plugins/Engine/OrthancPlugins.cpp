@@ -1781,6 +1781,7 @@ namespace Orthanc
 
     HttpClient client;
     client.SetUrl(p.url);
+    client.SetConvertHeadersToLowerCase(false);
 
     if (p.timeout != 0)
     {
