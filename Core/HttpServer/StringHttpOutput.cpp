@@ -39,10 +39,18 @@ namespace Orthanc
 {
   void StringHttpOutput::OnHttpStatusReceived(HttpStatus status)
   {
-    if (status != HttpStatus_200_Ok &&
-        status != HttpStatus_404_NotFound)
+    switch (status)
     {
-      throw OrthancException(ErrorCode_BadRequest);
+      case HttpStatus_200_Ok:
+        found_ = true;
+        break;
+
+      case HttpStatus_404_NotFound:
+        found_ = false;
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_BadRequest);
     }
   }
 
@@ -51,6 +59,18 @@ namespace Orthanc
     if (!isHeader)
     {
       buffer_.AddChunk(reinterpret_cast<const char*>(buffer), length);
+    }
+  }
+
+  void StringHttpOutput::GetOutput(std::string& output)
+  {
+    if (found_)
+    {
+      buffer_.Flatten(output);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
     }
   }
 }
