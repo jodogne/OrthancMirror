@@ -355,7 +355,7 @@ namespace OrthancPlugins
         return static_cast<OrthancPluginErrorCode>(e.GetErrorCode());
       }
 #endif
-      catch (boost::bad_lexical_cast& e)
+      catch (boost::bad_lexical_cast&)
       {
         return OrthancPluginErrorCode_BadFileFormat;
       }
