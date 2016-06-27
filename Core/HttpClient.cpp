@@ -327,7 +327,8 @@ namespace Orthanc
   HttpClient::HttpClient(const WebServiceParameters& service,
                          const std::string& uri) : 
     pimpl_(new PImpl), 
-    verifyPeers_(true)
+    verifyPeers_(true),
+    headersToLowerCase_(true)
   {
     Setup();
 
