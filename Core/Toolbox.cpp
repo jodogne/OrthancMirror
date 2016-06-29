@@ -111,6 +111,7 @@ extern "C"
 
 namespace Orthanc
 {
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
   static bool finish_;
   static ServerBarrierEvent barrierEvent_;
 
@@ -188,6 +189,7 @@ namespace Orthanc
     const bool stopFlag = false;
     return ServerBarrierInternal(&stopFlag);
   }
+#endif  /* ORTHANC_SANDBOXED */
 
 
   void Toolbox::ToUpperCase(std::string& s)
@@ -677,11 +679,15 @@ namespace Orthanc
     return std::string(pathbuf);
   }
 
+#elif defined(ORTHANC_SANDBOXED) && ORTHANC_SANDBOXED == 1
+  // Sandboxed Orthanc, no access to the executable
+
 #else
 #error Support your platform here
 #endif
 
 
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
   std::string Toolbox::GetPathToExecutable()
   {
     boost::filesystem::path p(GetPathToExecutableInternal());
@@ -694,6 +700,7 @@ namespace Orthanc
     boost::filesystem::path p(GetPathToExecutableInternal());
     return boost::filesystem::absolute(p.parent_path()).string();
   }
+#endif
 
 
   static const char* GetBoostLocaleEncoding(const Encoding sourceEncoding)

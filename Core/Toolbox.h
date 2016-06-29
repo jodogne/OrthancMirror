@@ -49,9 +49,11 @@ namespace Orthanc
 
   namespace Toolbox
   {
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
     ServerBarrierEvent ServerBarrier(const bool& stopFlag);
 
     ServerBarrierEvent ServerBarrier();
+#endif
 
     void ToUpperCase(std::string& s);  // Inplace version
 
@@ -77,7 +79,9 @@ namespace Orthanc
                    size_t size,
                    const std::string& path);
 
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
     void USleep(uint64_t microSeconds);
+#endif
 
     void RemoveFile(const std::string& path);
 
@@ -137,9 +141,11 @@ namespace Orthanc
                              const std::string& content);
 #endif
 
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
     std::string GetPathToExecutable();
 
     std::string GetDirectoryOfExecutable();
+#endif
 
     std::string ConvertToUtf8(const std::string& source,
                               Encoding sourceEncoding);
