@@ -332,6 +332,24 @@ namespace OrthancPlugins
                      const std::string& uri,
                      bool applyPlugins);
 
+  inline void LogError(OrthancPluginContext* context,
+                       const std::string& message)
+  {
+    OrthancPluginLogError(context, message.c_str());
+  }
+
+  inline void LogWarning(OrthancPluginContext* context,
+                         const std::string& message)
+  {
+    OrthancPluginLogWarning(context, message.c_str());
+  }
+
+  inline void LogInfo(OrthancPluginContext* context,
+                      const std::string& message)
+  {
+    OrthancPluginLogInfo(context, message.c_str());
+  }
+
 
   namespace Internals
   {

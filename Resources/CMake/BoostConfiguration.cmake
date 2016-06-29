@@ -54,7 +54,8 @@ if (BOOST_STATIC)
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
-      ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
+      ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "PNaCl")
     list(APPEND BOOST_SOURCES
       ${BOOST_SOURCES_DIR}/libs/thread/src/pthread/once.cpp
       ${BOOST_SOURCES_DIR}/libs/thread/src/pthread/thread.cpp
@@ -65,7 +66,8 @@ if (BOOST_STATIC)
       -DBOOST_LOCALE_NO_STD_BACKEND=1
       )
 
-    if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
+    if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase" OR
+        ${CMAKE_SYSTEM_NAME} STREQUAL "PNaCl")
       add_definitions(-DBOOST_HAS_SCHED_YIELD=1)
     endif()
 
@@ -119,7 +121,8 @@ if (BOOST_STATIC)
     if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
         ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
         ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
-        ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD")
+        ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD" OR
+        ${CMAKE_SYSTEM_NAME} STREQUAL "PNaCl")
       list(APPEND BOOST_SOURCES
         ${BOOST_SOURCES_DIR}/libs/locale/src/posix/codecvt.cpp
         ${BOOST_SOURCES_DIR}/libs/locale/src/posix/collate.cpp
