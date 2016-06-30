@@ -50,29 +50,34 @@ namespace Orthanc
     ParsedDicomFile* dicom_;
     DicomMap*        map_;
 
-    void CleanupDicom()
+    void CleanupDicom(bool isWorklist)
     {
-      if (dicom_ != NULL)
+      if (isWorklist &&
+          dicom_ != NULL)
       {
+        // These lines are necessary when serving worklists, otherwise
+        // Orthanc does not behave as "wlmscpfs"
         dicom_->Remove(DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID);
         dicom_->Remove(DICOM_TAG_SOP_INSTANCE_UID);
       }
     }
 
   public:
-    Answer(ParsedDicomFile& dicom) : 
+    Answer(bool isWorklist,
+           ParsedDicomFile& dicom) : 
       dicom_(dicom.Clone()),
       map_(NULL)
     {
-      CleanupDicom();
+      CleanupDicom(isWorklist);
     }
 
-    Answer(const void* dicom,
+    Answer(bool isWorklist,
+           const void* dicom,
            size_t size) : 
       dicom_(new ParsedDicomFile(dicom, size)),
       map_(NULL)
     {
-      CleanupDicom();
+      CleanupDicom(isWorklist);
     }
 
     Answer(const DicomMap& map) : 
@@ -120,6 +125,20 @@ namespace Orthanc
   };
 
 
+  void DicomFindAnswers::SetWorklist(bool isWorklist)
+  {
+    if (answers_.empty())
+    {
+      isWorklist_ = isWorklist;
+    }
+    else
+    {
+      // This set of answers is not empty anymore, cannot change its type
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
   void DicomFindAnswers::Clear()
   {
     for (size_t i = 0; i < answers_.size(); i++)
@@ -149,14 +168,14 @@ namespace Orthanc
 
   void DicomFindAnswers::Add(ParsedDicomFile& dicom)
   {
-    answers_.push_back(new Answer(dicom));
+    answers_.push_back(new Answer(isWorklist_, dicom));
   }
 
 
   void DicomFindAnswers::Add(const void* dicom,
                              size_t size)
   {
-    answers_.push_back(new Answer(dicom, size));
+    answers_.push_back(new Answer(isWorklist_, dicom, size));
   }
 
 

@@ -65,6 +65,8 @@ namespace OrthancPlugins
     }
 
     const char* GetErrorDescription(OrthancPluginContext* context) const;
+
+    static void Check(OrthancPluginErrorCode code);
   };
 
 
@@ -147,6 +149,9 @@ namespace OrthancPlugins
     {
       return RestApiPut(uri, body.empty() ? NULL : body.c_str(), body.size(), applyPlugins);
     }
+
+    void CreateDicom(const Json::Value& tags,
+                     OrthancPluginCreateDicomFlags flags);
   };
 
 
@@ -355,19 +360,28 @@ namespace OrthancPlugins
   inline void LogError(OrthancPluginContext* context,
                        const std::string& message)
   {
-    OrthancPluginLogError(context, message.c_str());
+    if (context != NULL)
+    {
+      OrthancPluginLogError(context, message.c_str());
+    }
   }
 
   inline void LogWarning(OrthancPluginContext* context,
                          const std::string& message)
   {
-    OrthancPluginLogWarning(context, message.c_str());
+    if (context != NULL)
+    {
+      OrthancPluginLogWarning(context, message.c_str());
+    }
   }
 
   inline void LogInfo(OrthancPluginContext* context,
                       const std::string& message)
   {
-    OrthancPluginLogInfo(context, message.c_str());
+    if (context != NULL)
+    {
+      OrthancPluginLogInfo(context, message.c_str());
+    }
   }
 
 

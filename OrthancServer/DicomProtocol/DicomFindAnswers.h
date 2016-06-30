@@ -41,19 +41,29 @@ namespace Orthanc
   private:
     class Answer;
 
+    bool                 isWorklist_;
     std::vector<Answer*> answers_;
     bool                 complete_;
 
     Answer& GetAnswerInternal(size_t index) const;
 
   public:
-    DicomFindAnswers() : complete_(true)
+    DicomFindAnswers(bool isWorklist) : 
+      isWorklist_(isWorklist),
+      complete_(true)
     {
     }
 
     ~DicomFindAnswers()
     {
       Clear();
+    }
+
+    void SetWorklist(bool isWorklist);
+
+    bool IsWorklist() const
+    {
+      return isWorklist_;
     }
 
     void Clear();

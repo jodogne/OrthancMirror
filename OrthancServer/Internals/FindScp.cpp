@@ -103,6 +103,10 @@ namespace Orthanc
       const std::string* remoteIp_;
       const std::string* remoteAet_;
       const std::string* calledAet_;
+
+      FindScpData() : answers_(false)
+      {
+      }
     };
 
 
@@ -132,6 +136,8 @@ namespace Orthanc
         {
           if (sopClassUid == UID_FINDModalityWorklistInformationModel)
           {
+            data.answers_.SetWorklist(true);
+
             if (data.worklistHandler_ != NULL)
             {
               ParsedDicomFile query(*requestIdentifiers);
@@ -147,6 +153,8 @@ namespace Orthanc
           }
           else
           {
+            data.answers_.SetWorklist(false);
+
             if (data.findHandler_ != NULL)
             {
               std::list<DicomTag> sequencesToReturn;

@@ -687,7 +687,7 @@ TEST(ParsedDicomFile, ToJsonFlags2)
 
 TEST(DicomFindAnswers, Basic)
 {
-  DicomFindAnswers a;
+  DicomFindAnswers a(false);
 
   {
     DicomMap m;

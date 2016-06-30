@@ -51,6 +51,15 @@ namespace OrthancPlugins
     }
   }
 
+  
+  void PluginException::Check(OrthancPluginErrorCode code)
+  {
+    if (code != OrthancPluginErrorCode_Success)
+    {
+      throw PluginException(code);
+    }
+  }
+
 
   MemoryBuffer::MemoryBuffer(OrthancPluginContext* context) : 
     context_(context)
@@ -230,6 +239,18 @@ namespace OrthancPlugins
   {
     Json::FastWriter writer;
     return RestApiPut(uri, writer.write(body), applyPlugins);
+  }
+
+
+  void MemoryBuffer::CreateDicom(const Json::Value& tags,
+                                 OrthancPluginCreateDicomFlags flags)
+  {
+    Clear();
+
+    Json::FastWriter writer;
+    std::string s = writer.write(tags);
+    
+    PluginException::Check(OrthancPluginCreateDicom(context_, &buffer_, s.c_str(), NULL, flags));
   }
 
 
