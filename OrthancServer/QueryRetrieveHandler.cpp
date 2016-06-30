@@ -60,7 +60,8 @@ namespace Orthanc
     context_(context),
     localAet_(context.GetDefaultLocalApplicationEntityTitle()),
     done_(false),
-    level_(ResourceType_Study)
+    level_(ResourceType_Study),
+    answers_(false)
   {
   }
 

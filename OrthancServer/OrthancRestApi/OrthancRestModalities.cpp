@@ -178,7 +178,7 @@ namespace Orthanc
     RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
     ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), localAet, remote);
 
-    DicomFindAnswers answers;
+    DicomFindAnswers answers(false);
     FindPatient(answers, locker.GetConnection(), fields);
 
     Json::Value result;
@@ -208,7 +208,7 @@ namespace Orthanc
     RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
     ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), localAet, remote);
 
-    DicomFindAnswers answers;
+    DicomFindAnswers answers(false);
     FindStudy(answers, locker.GetConnection(), fields);
 
     Json::Value result;
@@ -239,7 +239,7 @@ namespace Orthanc
     RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
     ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), localAet, remote);
 
-    DicomFindAnswers answers;
+    DicomFindAnswers answers(false);
     FindSeries(answers, locker.GetConnection(), fields);
 
     Json::Value result;
@@ -271,7 +271,7 @@ namespace Orthanc
     RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
     ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), localAet, remote);
 
-    DicomFindAnswers answers;
+    DicomFindAnswers answers(false);
     FindInstance(answers, locker.GetConnection(), fields);
 
     Json::Value result;
@@ -308,7 +308,7 @@ namespace Orthanc
     RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
     ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), localAet, remote);
 
-    DicomFindAnswers patients;
+    DicomFindAnswers patients(false);
     FindPatient(patients, locker.GetConnection(), m);
 
     // Loop over the found patients
@@ -326,7 +326,7 @@ namespace Orthanc
 
       CopyTagIfExists(m, patients.GetAnswer(i), DICOM_TAG_PATIENT_ID);
 
-      DicomFindAnswers studies;
+      DicomFindAnswers studies(false);
       FindStudy(studies, locker.GetConnection(), m);
 
       patient["Studies"] = Json::arrayValue;
@@ -346,7 +346,7 @@ namespace Orthanc
         CopyTagIfExists(m, studies.GetAnswer(j), DICOM_TAG_PATIENT_ID);
         CopyTagIfExists(m, studies.GetAnswer(j), DICOM_TAG_STUDY_INSTANCE_UID);
 
-        DicomFindAnswers series;
+        DicomFindAnswers series(false);
         FindSeries(series, locker.GetConnection(), m);
 
         // Loop over the found series
@@ -979,7 +979,7 @@ namespace Orthanc
 
       std::auto_ptr<ParsedDicomFile> query(ParsedDicomFile::CreateFromJson(json, static_cast<DicomFromJsonFlags>(0)));
 
-      DicomFindAnswers answers;
+      DicomFindAnswers answers(true);
 
       {
         ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), localAet, remote);
