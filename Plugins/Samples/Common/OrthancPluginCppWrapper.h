@@ -38,7 +38,7 @@
 #include <json/value.h>
 
 #if HAS_ORTHANC_EXCEPTION == 1
-#  include <OrthancException.h>
+#  include "../../../Core/OrthancException.h"
 #endif
 
 
