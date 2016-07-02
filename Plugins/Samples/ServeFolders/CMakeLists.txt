@@ -16,6 +16,7 @@ include(${ORTHANC_ROOT}/Resources/CMake/BoostConfiguration.cmake)
 
 add_library(ServeFolders SHARED 
   Plugin.cpp
+  ${CMAKE_SOURCE_DIR}/../Common/OrthancPluginCppWrapper.cpp
   ${JSONCPP_SOURCES}
   ${BOOST_SOURCES}
   )

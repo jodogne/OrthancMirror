@@ -18,17 +18,19 @@
  **/
 
 
-#include <orthanc/OrthancCPlugin.h>
+#include "../Common/OrthancPluginCppWrapper.h"
 
 #include <json/reader.h>
 #include <json/value.h>
 #include <boost/filesystem.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 
 static OrthancPluginContext* context_ = NULL;
 static std::map<std::string, std::string> folders_;
 static const char* INDEX_URI = "/app/plugin-serve-folders.html";
 static bool allowCache_ = true;
+static bool generateETag_ = true;  // TODO parameter
 
 
 static void SetHttpHeaders(OrthancPluginRestOutput* output)
@@ -112,16 +114,16 @@ static const char* GetMimeType(const std::string& path)
 static bool ReadFile(std::string& target,
                      const std::string& path)
 {
-  OrthancPluginMemoryBuffer buffer;
-  if (OrthancPluginReadFile(context_, &buffer, path.c_str()))
+  try
+  {
+    OrthancPlugins::MemoryBuffer buffer(context_);
+    buffer.ReadFile(path);
+    buffer.ToString(target);
+    return true;
+  }
+  catch (OrthancPlugins::PluginException)
   {
     return false;
-  }
-  else
-  {
-    target.assign(reinterpret_cast<const char*>(buffer.data), buffer.size);
-    OrthancPluginFreeMemoryBuffer(context_, &buffer);
-    return true;
   }
 }
 
@@ -247,6 +249,18 @@ static OrthancPluginErrorCode FolderCallback(OrthancPluginRestOutput* output,
       if (ReadFile(s, path))
       {
         const char* resource = s.size() ? s.c_str() : NULL;
+
+        if (generateETag_)
+        {
+          OrthancPlugins::OrthancString md5(context_, OrthancPluginComputeMd5(context_, resource, s.size()));
+          std::string etag = "\"" + std::string(md5.GetContent()) + "\"";
+          OrthancPluginSetHttpHeader(context_, output, "ETag", etag.c_str());
+        }
+
+        boost::posix_time::ptime lastModification = boost::posix_time::from_time_t(fs::last_write_time(path));
+        std::string t = boost::posix_time::to_iso_string(lastModification);
+        OrthancPluginSetHttpHeader(context_, output, "Last-Modified", t.c_str());
+
         SetHttpHeaders(output);
         OrthancPluginAnswerBuffer(context_, output, resource, s.size(), mime);
       }

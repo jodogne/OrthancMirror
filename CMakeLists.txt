@@ -546,6 +546,7 @@ if (ENABLE_PLUGINS AND BUILD_SERVE_FOLDERS)
     ${BOOST_SOURCES}
     ${JSONCPP_SOURCES}
     Plugins/Samples/ServeFolders/Plugin.cpp
+    Plugins/Samples/Common/OrthancPluginCppWrapper.cpp
     ${SERVE_FOLDERS_RESOURCES}
     )
 
