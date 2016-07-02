@@ -76,6 +76,8 @@ namespace OrthancPlugins
     OrthancPluginContext*      context_;
     OrthancPluginMemoryBuffer  buffer_;
 
+    void Check(OrthancPluginErrorCode code);
+
   public:
     MemoryBuffer(OrthancPluginContext* context);
 
@@ -152,6 +154,8 @@ namespace OrthancPlugins
 
     void CreateDicom(const Json::Value& tags,
                      OrthancPluginCreateDicomFlags flags);
+
+    void ReadFile(const std::string& path);
   };
 
 

@@ -61,6 +61,18 @@ namespace OrthancPlugins
   }
 
 
+  void MemoryBuffer::Check(OrthancPluginErrorCode code)
+  {
+    if (code != OrthancPluginErrorCode_Success)
+    {
+      // Prevent using garbage information
+      buffer_.data = NULL;
+      buffer_.size = 0;
+      throw PluginException(code);
+    }
+  }
+
+
   MemoryBuffer::MemoryBuffer(OrthancPluginContext* context) : 
     context_(context)
   {
@@ -250,7 +262,14 @@ namespace OrthancPlugins
     Json::FastWriter writer;
     std::string s = writer.write(tags);
     
-    PluginException::Check(OrthancPluginCreateDicom(context_, &buffer_, s.c_str(), NULL, flags));
+    Check(OrthancPluginCreateDicom(context_, &buffer_, s.c_str(), NULL, flags));
+  }
+
+
+  void MemoryBuffer::ReadFile(const std::string& path)
+  {
+    Clear();
+    Check(OrthancPluginReadFile(context_, &buffer_, path.c_str()));
   }
 
 
