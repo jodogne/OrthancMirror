@@ -28,6 +28,19 @@
 static OrthancPluginContext* context_ = NULL;
 static std::map<std::string, std::string> folders_;
 static const char* INDEX_URI = "/app/plugin-serve-folders.html";
+static bool allowCache_ = true;
+
+
+static void SetHttpHeaders(OrthancPluginRestOutput* output)
+{
+  if (!allowCache_)
+  {
+    // http://stackoverflow.com/a/2068407/881731
+    OrthancPluginSetHttpHeader(context_, output, "Cache-Control", "no-cache, no-store, must-revalidate");
+    OrthancPluginSetHttpHeader(context_, output, "Pragma", "no-cache");
+    OrthancPluginSetHttpHeader(context_, output, "Expires", "0");
+  }
+}
 
 
 static const char* GetMimeType(const std::string& path)
@@ -57,7 +70,8 @@ static const char* GetMimeType(const std::string& path)
   {
     return "image/svg+xml";
   }
-  else if (extension == ".json")
+  else if (extension == ".json" ||
+           extension == ".nmf")
   {
     return "application/json";
   }
@@ -69,13 +83,22 @@ static const char* GetMimeType(const std::string& path)
   {
     return "image/png";
   }
-  else if (extension == ".jpg" || extension == ".jpeg")
+  else if (extension == ".jpg" || 
+           extension == ".jpeg")
   {
     return "image/jpeg";
   }
   else if (extension == ".woff")
   {
     return "application/x-font-woff";
+  }
+  else if (extension == ".pexe")
+  {
+    return "application/x-pnacl";
+  }
+  else if (extension == ".nexe")
+  {
+    return "application/x-nacl";
   }
   else
   {
@@ -212,6 +235,7 @@ static OrthancPluginErrorCode FolderCallback(OrthancPluginRestOutput* output,
       s += "  </body>\n";
       s += "</html>\n";
 
+      SetHttpHeaders(output);
       OrthancPluginAnswerBuffer(context_, output, s.c_str(), s.size(), "text/html");
     }
     else
@@ -223,6 +247,7 @@ static OrthancPluginErrorCode FolderCallback(OrthancPluginRestOutput* output,
       if (ReadFile(s, path))
       {
         const char* resource = s.size() ? s.c_str() : NULL;
+        SetHttpHeaders(output);
         OrthancPluginAnswerBuffer(context_, output, resource, s.size(), mime);
       }
       else
@@ -269,6 +294,7 @@ static OrthancPluginErrorCode ListServedFolders(OrthancPluginRestOutput* output,
 
   s += "</body></html>\n";
 
+  SetHttpHeaders(output);
   OrthancPluginAnswerBuffer(context_, output, s.c_str(), s.size(), "text/html");
 
   return OrthancPluginErrorCode_Success;
@@ -300,6 +326,12 @@ extern "C"
     if (!ReadConfiguration(configuration, context_))
     {
       return -1;
+    }
+
+    if (configuration.isMember("ServeFoldersNoCache"))
+    {
+      OrthancPluginLogWarning(context_, "Disabling the cache");
+      allowCache_ = false;
     }
 
     if (configuration.isMember("ServeFolders"))
