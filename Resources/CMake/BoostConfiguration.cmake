@@ -57,6 +57,7 @@ if (BOOST_STATIC)
       ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "PNaCl")
     list(APPEND BOOST_SOURCES
+      ${BOOST_SOURCES_DIR}/libs/atomic/src/lockpool.cpp
       ${BOOST_SOURCES_DIR}/libs/thread/src/pthread/once.cpp
       ${BOOST_SOURCES_DIR}/libs/thread/src/pthread/thread.cpp
       )
@@ -109,13 +110,26 @@ if (BOOST_STATIC)
   list(APPEND BOOST_SOURCES
     ${BOOST_REGEX_SOURCES}
     ${BOOST_SOURCES_DIR}/libs/date_time/src/gregorian/greg_month.cpp
-    ${BOOST_FILESYSTEM_SOURCES_DIR}/codecvt_error_category.cpp
-    ${BOOST_FILESYSTEM_SOURCES_DIR}/operations.cpp
-    ${BOOST_FILESYSTEM_SOURCES_DIR}/path.cpp
-    ${BOOST_FILESYSTEM_SOURCES_DIR}/path_traits.cpp
     ${BOOST_SOURCES_DIR}/libs/locale/src/encoding/codepage.cpp
     ${BOOST_SOURCES_DIR}/libs/system/src/error_code.cpp
     )
+
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "PNaCl")
+    # boost::filesystem is not available on PNaCl
+    add_definitions(
+      -DBOOST_HAS_FILESYSTEM_V3=0
+      -D__INTEGRITY=1
+      -DORTHANC_SANDBOXED=1
+      )
+  else()
+    add_definitions(-DBOOST_HAS_FILESYSTEM_V3=1)
+    list(APPEND BOOST_SOURCES
+      ${BOOST_FILESYSTEM_SOURCES_DIR}/codecvt_error_category.cpp
+      ${BOOST_FILESYSTEM_SOURCES_DIR}/operations.cpp
+      ${BOOST_FILESYSTEM_SOURCES_DIR}/path.cpp
+      ${BOOST_FILESYSTEM_SOURCES_DIR}/path_traits.cpp
+      )
+  endif()
 
   if (USE_BOOST_LOCALE_BACKENDS)
     if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
@@ -178,7 +192,6 @@ if (BOOST_STATIC)
     -DBOOST_SYSTEM_NO_LIB
     -DBOOST_LOCALE_NO_LIB
     -DBOOST_HAS_LOCALE=1
-    -DBOOST_HAS_FILESYSTEM_V3=1
     )
 
   if (CMAKE_COMPILER_IS_GNUCXX)

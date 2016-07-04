@@ -40,10 +40,6 @@ namespace Orthanc
 {
   Semaphore::Semaphore(unsigned int count) : count_(count)
   {
-    if (count == 0)
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
   }
 
   void Semaphore::Release()
