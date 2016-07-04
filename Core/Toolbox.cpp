@@ -230,6 +230,7 @@ namespace Orthanc
   }
 
 
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
   void Toolbox::ReadFile(std::string& content,
                          const std::string& path) 
   {
@@ -255,8 +256,10 @@ namespace Orthanc
 
     f.close();
   }
+#endif
 
 
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
   bool Toolbox::ReadHeader(std::string& header,
                            const std::string& path,
                            size_t headerSize)
@@ -300,8 +303,10 @@ namespace Orthanc
 
     return full;
   }
+#endif
 
 
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
   void Toolbox::WriteFile(const void* content,
                           size_t size,
                           const std::string& path)
@@ -320,16 +325,20 @@ namespace Orthanc
 
     f.close();
   }
+#endif
 
 
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
   void Toolbox::WriteFile(const std::string& content,
                           const std::string& path)
   {
     WriteFile(content.size() > 0 ? content.c_str() : NULL,
               content.size(), path);
   }
+#endif
 
 
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
   void Toolbox::RemoveFile(const std::string& path)
   {
     if (boost::filesystem::exists(path))
@@ -344,7 +353,7 @@ namespace Orthanc
       }
     }
   }
-
+#endif
 
 
   void Toolbox::SplitUriComponents(UriComponents& components,
@@ -515,6 +524,7 @@ namespace Orthanc
 
 
 
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
   uint64_t Toolbox::GetFileSize(const std::string& path)
   {
     try
@@ -526,6 +536,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InexistentFile);
     }
   }
+#endif
 
 
 #if !defined(ORTHANC_ENABLE_MD5) || ORTHANC_ENABLE_MD5 == 1
@@ -1144,6 +1155,7 @@ namespace Orthanc
   }
 
 
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
   void Toolbox::MakeDirectory(const std::string& path)
   {
     if (boost::filesystem::exists(path))
@@ -1161,12 +1173,15 @@ namespace Orthanc
       }
     }
   }
+#endif
 
 
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
   bool Toolbox::IsExistingFile(const std::string& path)
   {
     return boost::filesystem::exists(path);
   }
+#endif
 
 
 #if ORTHANC_PUGIXML_ENABLED == 1
@@ -1468,6 +1483,7 @@ namespace Orthanc
   }
 
 
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
   bool Toolbox::IsRegularFile(const std::string& path)
   {
     namespace fs = boost::filesystem;
@@ -1487,6 +1503,7 @@ namespace Orthanc
 
     return false;
   }
+#endif
 
 
   FILE* Toolbox::OpenFile(const std::string& path,

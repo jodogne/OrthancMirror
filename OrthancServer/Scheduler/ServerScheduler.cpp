@@ -192,6 +192,11 @@ namespace Orthanc
 
   ServerScheduler::ServerScheduler(unsigned int maxJobs) : availableJob_(maxJobs)
   {
+    if (maxJobs == 0)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
     finish_ = false;
     worker_ = boost::thread(Worker, this);
   }

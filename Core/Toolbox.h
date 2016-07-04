@@ -65,25 +65,35 @@ namespace Orthanc
     void ToLowerCase(std::string& result,
                      const std::string& source);
 
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
     void ReadFile(std::string& content,
                   const std::string& path);
+#endif
 
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
     bool ReadHeader(std::string& header,
                     const std::string& path,
                     size_t headerSize);
+#endif
 
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
     void WriteFile(const std::string& content,
                    const std::string& path);
+#endif
 
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
     void WriteFile(const void* content,
                    size_t size,
                    const std::string& path);
+#endif
 
 #if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
     void USleep(uint64_t microSeconds);
 #endif
 
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
     void RemoveFile(const std::string& path);
+#endif
 
     void SplitUriComponents(UriComponents& components,
                             const std::string& uri);
@@ -100,7 +110,9 @@ namespace Orthanc
     std::string FlattenUri(const UriComponents& components,
                            size_t fromLevel = 0);
 
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
     uint64_t GetFileSize(const std::string& path);
+#endif
 
 #if !defined(ORTHANC_ENABLE_MD5) || ORTHANC_ENABLE_MD5 == 1
     void ComputeMD5(std::string& result,
@@ -177,9 +189,13 @@ namespace Orthanc
                         const std::string& source,
                         char separator);
 
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
     void MakeDirectory(const std::string& path);
+#endif
 
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
     bool IsExistingFile(const std::string& path);
+#endif
 
 #if ORTHANC_PUGIXML_ENABLED == 1
     void JsonToXml(std::string& target,
@@ -201,7 +217,9 @@ namespace Orthanc
 
     int GetProcessId();
 
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
     bool IsRegularFile(const std::string& path);
+#endif
 
     FILE* OpenFile(const std::string& path,
                    FileMode mode);
