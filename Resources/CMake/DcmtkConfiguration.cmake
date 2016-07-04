@@ -271,6 +271,9 @@ if (NOT DCMTK_USE_EMBEDDED_DICTIONARIES)
       /usr/share/libdcmtk4
       /usr/share/libdcmtk5
       /usr/share/libdcmtk6
+      /usr/share/libdcmtk7
+      /usr/share/libdcmtk8
+      /usr/share/libdcmtk9
       /usr/local/share/dcmtk
       )
 
