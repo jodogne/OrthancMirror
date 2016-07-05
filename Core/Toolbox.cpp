@@ -1306,6 +1306,7 @@ namespace Orthanc
 #endif
 
 
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
   void Toolbox::ExecuteSystemCommand(const std::string& command,
                                      const std::vector<std::string>& arguments)
   {
@@ -1363,6 +1364,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_SystemCommand);
     }
   }
+#endif
 
   
   bool Toolbox::IsInteger(const std::string& str)

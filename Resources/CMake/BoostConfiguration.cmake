@@ -55,7 +55,9 @@ if (BOOST_STATIC)
       ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD" OR
-      ${CMAKE_SYSTEM_NAME} STREQUAL "PNaCl")
+      ${CMAKE_SYSTEM_NAME} STREQUAL "PNaCl" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "NaCl32" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "NaCl64")
     list(APPEND BOOST_SOURCES
       ${BOOST_SOURCES_DIR}/libs/atomic/src/lockpool.cpp
       ${BOOST_SOURCES_DIR}/libs/thread/src/pthread/once.cpp
@@ -68,7 +70,9 @@ if (BOOST_STATIC)
       )
 
     if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase" OR
-        ${CMAKE_SYSTEM_NAME} STREQUAL "PNaCl")
+        ${CMAKE_SYSTEM_NAME} STREQUAL "PNaCl" OR
+        ${CMAKE_SYSTEM_NAME} STREQUAL "NaCl32" OR
+        ${CMAKE_SYSTEM_NAME} STREQUAL "NaCl64")
       add_definitions(-DBOOST_HAS_SCHED_YIELD=1)
     endif()
 
@@ -114,7 +118,9 @@ if (BOOST_STATIC)
     ${BOOST_SOURCES_DIR}/libs/system/src/error_code.cpp
     )
 
-  if (${CMAKE_SYSTEM_NAME} STREQUAL "PNaCl")
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "PNaCl" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "NaCl32" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "NaCl64")
     # boost::filesystem is not available on PNaCl
     add_definitions(
       -DBOOST_HAS_FILESYSTEM_V3=0
@@ -136,7 +142,9 @@ if (BOOST_STATIC)
         ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
         ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
         ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD" OR
-        ${CMAKE_SYSTEM_NAME} STREQUAL "PNaCl")
+        ${CMAKE_SYSTEM_NAME} STREQUAL "PNaCl" OR
+        ${CMAKE_SYSTEM_NAME} STREQUAL "NaCl32" OR
+        ${CMAKE_SYSTEM_NAME} STREQUAL "NaCl64")
       list(APPEND BOOST_SOURCES
         ${BOOST_SOURCES_DIR}/libs/locale/src/posix/codecvt.cpp
         ${BOOST_SOURCES_DIR}/libs/locale/src/posix/collate.cpp
