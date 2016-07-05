@@ -204,8 +204,10 @@ namespace Orthanc
                    const std::string& arrayElement = "item");
 #endif
 
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
     void ExecuteSystemCommand(const std::string& command,
                               const std::vector<std::string>& arguments);
+#endif
 
     bool IsInteger(const std::string& str);
 
