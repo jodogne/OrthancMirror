@@ -47,6 +47,6 @@ Build the Release version of Orthanc
 ------------------------------------
 
 # xcodebuild -configuration Release
-# ./Debug/UnitTests
+# ./Release/UnitTests
 
 The binaries of Orthanc are located at "~/OrthancBuild/Release/Orthanc".
