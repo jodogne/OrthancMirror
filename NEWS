@@ -1,6 +1,8 @@
 Pending changes in the mainline
 ===============================
 
+* "Permissive" flag for URI "/modalities/{...}/store" to ignore C-Store transfer errors
+
 
 Version 1.1.0 (2016/06/27)
 ==========================
