@@ -720,13 +720,28 @@ namespace Orthanc
       }
     }
 
+    static const char* PERMISSIVE = "Permissive";
+    bool permissive = false;
+    if (request.type() == Json::objectValue &&
+        request.isMember(PERMISSIVE))
+    {
+      if (request[PERMISSIVE].type() == Json::booleanValue)
+      {
+        permissive = request[PERMISSIVE].asBool();
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+    }
+
     RemoteModalityParameters p = Configuration::GetModalityUsingSymbolicName(remote);
 
     ServerJob job;
     for (std::list<std::string>::const_iterator 
            it = instances.begin(); it != instances.end(); ++it)
     {
-      job.AddCommand(new StoreScuCommand(context, localAet, p, false,
+      job.AddCommand(new StoreScuCommand(context, localAet, p, permissive,
                                          moveOriginatorID)).AddInput(*it);
     }
 
