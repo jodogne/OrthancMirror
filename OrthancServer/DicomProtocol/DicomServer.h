@@ -54,7 +54,7 @@ namespace Orthanc
     std::string aet_;
     uint16_t port_;
     bool continue_;
-    uint32_t clientTimeout_;
+    uint32_t associationTimeout_;
     IFindRequestHandlerFactory* findRequestHandlerFactory_;
     IMoveRequestHandlerFactory* moveRequestHandlerFactory_;
     IStoreRequestHandlerFactory* storeRequestHandlerFactory_;
@@ -71,8 +71,8 @@ namespace Orthanc
     void SetPortNumber(uint16_t port);
     uint16_t GetPortNumber() const;
 
-    void SetClientTimeout(uint32_t timeout);
-    uint32_t GetClientTimeout() const;
+    void SetAssociationTimeout(uint32_t timeout);
+    uint32_t GetAssociationTimeout() const;
 
     void SetCalledApplicationEntityTitleCheck(bool check);
     bool HasCalledApplicationEntityTitleCheck() const;

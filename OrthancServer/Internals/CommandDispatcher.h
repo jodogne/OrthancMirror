@@ -46,7 +46,7 @@ namespace Orthanc
     class CommandDispatcher : public IRunnableBySteps
     {
     private:
-      uint32_t clientTimeout_;
+      uint32_t associationTimeout_;
       uint32_t elapsedTimeSinceLastCommand_;
       const DicomServer& server_;
       T_ASC_Association* assoc_;
@@ -69,7 +69,7 @@ namespace Orthanc
         calledAet_(calledAet),
         filter_(filter)
       {
-        clientTimeout_ = server.GetClientTimeout();
+        associationTimeout_ = server.GetAssociationTimeout();
         elapsedTimeSinceLastCommand_ = 0;
       }
 

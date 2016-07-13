@@ -727,16 +727,16 @@ namespace Orthanc
       else if (cond == DIMSE_NODATAAVAILABLE)
       {
         // Timeout due to DIMSE_NONBLOCKING
-        if (clientTimeout_ != 0 && 
-            elapsedTimeSinceLastCommand_ >= clientTimeout_)
+        if (associationTimeout_ != 0 && 
+            elapsedTimeSinceLastCommand_ >= associationTimeout_)
         {
-          // This timeout is actually a client timeout
+          // This timeout is actually a association timeout
           finished = true;
         }
       }
       else if (cond == EC_Normal)
       {
-        // Reset the client timeout counter
+        // Reset the association timeout counter
         elapsedTimeSinceLastCommand_ = 0;
 
         // Convert the type of request to Orthanc's internal type

@@ -97,7 +97,7 @@ namespace Orthanc
     worklistRequestHandlerFactory_ = NULL;
     applicationEntityFilter_ = NULL;
     checkCalledAet_ = true;
-    clientTimeout_ = 30;
+    associationTimeout_ = 30;
     continue_ = false;
   }
 
@@ -121,15 +121,15 @@ namespace Orthanc
     return port_;
   }
 
-  void DicomServer::SetClientTimeout(uint32_t timeout)
+  void DicomServer::SetAssociationTimeout(uint32_t timeout)
   {
     Stop();
-    clientTimeout_ = timeout;
+    associationTimeout_ = timeout;
   }
 
-  uint32_t DicomServer::GetClientTimeout() const
+  uint32_t DicomServer::GetAssociationTimeout() const
   {
-    return clientTimeout_;
+    return associationTimeout_;
   }
 
 
@@ -296,9 +296,15 @@ namespace Orthanc
   {
     Stop();
 
+    uint32_t timeout = associationTimeout_;
+    if (timeout == 0)
+    {
+      timeout = 30;  // Some safe value (30 seconds) if association timeout is disabled
+    }
+
     /* initialize network, i.e. create an instance of T_ASC_Network*. */
     OFCondition cond = ASC_initializeNetwork
-      (NET_ACCEPTOR, OFstatic_cast(int, port_), /*opt_acse_timeout*/ 30, &pimpl_->network_);
+      (NET_ACCEPTOR, OFstatic_cast(int, port_), /*opt_acse_timeout*/ timeout, &pimpl_->network_);
     if (cond.bad())
     {
       LOG(ERROR) << "cannot create network: " << cond.text();
