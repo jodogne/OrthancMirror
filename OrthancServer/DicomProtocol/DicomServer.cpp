@@ -121,10 +121,13 @@ namespace Orthanc
     return port_;
   }
 
-  void DicomServer::SetAssociationTimeout(uint32_t timeout)
+  void DicomServer::SetAssociationTimeout(uint32_t seconds)
   {
+    LOG(INFO) << "Setting timeout for DICOM connections if Orthanc acts as SCP (server): " 
+              << seconds << " seconds (0 = no timeout)";
+
     Stop();
-    associationTimeout_ = timeout;
+    associationTimeout_ = seconds;
   }
 
   uint32_t DicomServer::GetAssociationTimeout() const
@@ -296,15 +299,9 @@ namespace Orthanc
   {
     Stop();
 
-    uint32_t timeout = associationTimeout_;
-    if (timeout == 0)
-    {
-      timeout = 30;  // Some safe value (30 seconds) if association timeout is disabled
-    }
-
     /* initialize network, i.e. create an instance of T_ASC_Network*. */
     OFCondition cond = ASC_initializeNetwork
-      (NET_ACCEPTOR, OFstatic_cast(int, port_), /*opt_acse_timeout*/ timeout, &pimpl_->network_);
+      (NET_ACCEPTOR, OFstatic_cast(int, port_), /*opt_acse_timeout*/ 30, &pimpl_->network_);
     if (cond.bad())
     {
       LOG(ERROR) << "cannot create network: " << cond.text();

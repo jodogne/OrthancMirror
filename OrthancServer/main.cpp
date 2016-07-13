@@ -111,8 +111,8 @@ public:
   {
     std::auto_ptr<OrthancFindRequestHandler> result(new OrthancFindRequestHandler(context_));
 
-    result->SetMaxResults(Configuration::GetGlobalIntegerParameter("LimitFindResults", 0));
-    result->SetMaxInstances(Configuration::GetGlobalIntegerParameter("LimitFindInstances", 0));
+    result->SetMaxResults(Configuration::GetGlobalUnsignedIntegerParameter("LimitFindResults", 0));
+    result->SetMaxInstances(Configuration::GetGlobalUnsignedIntegerParameter("LimitFindInstances", 0));
 
     if (result->GetMaxResults() == 0)
     {
@@ -722,7 +722,7 @@ static bool StartHttpServer(ServerContext& context,
   // HTTP server
   MyIncomingHttpRequestFilter httpFilter(context, plugins);
   MongooseServer httpServer;
-  httpServer.SetPortNumber(Configuration::GetGlobalIntegerParameter("HttpPort", 8042));
+  httpServer.SetPortNumber(Configuration::GetGlobalUnsignedIntegerParameter("HttpPort", 8042));
   httpServer.SetRemoteAccessAllowed(Configuration::GetGlobalBoolParameter("RemoteAccessAllowed", false));
   httpServer.SetKeepAliveEnabled(Configuration::GetGlobalBoolParameter("KeepAlive", false));
   httpServer.SetHttpCompressionEnabled(Configuration::GetGlobalBoolParameter("HttpCompressionEnabled", true));
@@ -784,6 +784,8 @@ static bool StartDicomServer(ServerContext& context,
   dicomServer.SetStoreRequestHandlerFactory(serverFactory);
   dicomServer.SetMoveRequestHandlerFactory(serverFactory);
   dicomServer.SetFindRequestHandlerFactory(serverFactory);
+  dicomServer.SetAssociationTimeout(Configuration::GetGlobalUnsignedIntegerParameter("DicomScpTimeout", 30));
+
 
 #if ORTHANC_PLUGINS_ENABLED == 1
   if (plugins != NULL)
@@ -805,7 +807,7 @@ static bool StartDicomServer(ServerContext& context,
   }
 #endif
 
-  dicomServer.SetPortNumber(Configuration::GetGlobalIntegerParameter("DicomPort", 4242));
+  dicomServer.SetPortNumber(Configuration::GetGlobalUnsignedIntegerParameter("DicomPort", 4242));
   dicomServer.SetApplicationEntityTitle(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"));
   dicomServer.SetApplicationEntityFilter(dicomFilter);
 
@@ -936,14 +938,17 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 
   HttpClient::ConfigureSsl(Configuration::GetGlobalBoolParameter("HttpsVerifyPeers", true),
                            Configuration::GetGlobalStringParameter("HttpsCACertificates", ""));
-  HttpClient::SetDefaultTimeout(Configuration::GetGlobalIntegerParameter("HttpTimeout", 0));
+  HttpClient::SetDefaultTimeout(Configuration::GetGlobalUnsignedIntegerParameter("HttpTimeout", 0));
   HttpClient::SetDefaultProxy(Configuration::GetGlobalStringParameter("HttpProxy", ""));
+
+  DicomUserConnection::SetDefaultTimeout(Configuration::GetGlobalUnsignedIntegerParameter("DicomScuTimeout", 10));
+
   context.SetCompressionEnabled(Configuration::GetGlobalBoolParameter("StorageCompression", false));
   context.SetStoreMD5ForAttachments(Configuration::GetGlobalBoolParameter("StoreMD5ForAttachments", true));
 
   try
   {
-    context.GetIndex().SetMaximumPatientCount(Configuration::GetGlobalIntegerParameter("MaximumPatientCount", 0));
+    context.GetIndex().SetMaximumPatientCount(Configuration::GetGlobalUnsignedIntegerParameter("MaximumPatientCount", 0));
   }
   catch (...)
   {
@@ -952,7 +957,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 
   try
   {
-    uint64_t size = Configuration::GetGlobalIntegerParameter("MaximumStorageSize", 0);
+    uint64_t size = Configuration::GetGlobalUnsignedIntegerParameter("MaximumStorageSize", 0);
     context.GetIndex().SetMaximumStorageSize(size * 1024 * 1024);
   }
   catch (...)

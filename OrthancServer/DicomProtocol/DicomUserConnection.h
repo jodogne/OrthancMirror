@@ -175,5 +175,7 @@ namespace Orthanc
 
     void FindWorklist(DicomFindAnswers& result,
                       ParsedDicomFile& query);
+
+    static void SetDefaultTimeout(uint32_t seconds);
   };
 }
