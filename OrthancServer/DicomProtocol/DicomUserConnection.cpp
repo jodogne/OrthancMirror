@@ -133,6 +133,9 @@ static const unsigned int MAXIMUM_STORAGE_SOP_CLASSES = 64;
 
 namespace Orthanc
 {
+  // By default, the timeout for DICOM SCU (client) connections is set to 10 seconds
+  static uint32_t defaultTimeout_ = 10;
+
   struct DicomUserConnection::PImpl
   {
     // Connection state
@@ -782,7 +785,7 @@ namespace Orthanc
     remotePort_ = 104;
     manufacturer_ = ModalityManufacturer_Generic;
 
-    SetTimeout(10); 
+    SetTimeout(defaultTimeout_);
     pimpl_->net_ = NULL;
     pimpl_->params_ = NULL;
     pimpl_->assoc_ = NULL;
@@ -1102,14 +1105,16 @@ namespace Orthanc
 
   void DicomUserConnection::SetTimeout(uint32_t seconds)
   {
-    if (seconds <= 0)
+    if (seconds == 0)
     {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      DisableTimeout();
     }
-
-    dcmConnectionTimeout.set(seconds);
-    pimpl_->dimseTimeout_ = seconds;
-    pimpl_->acseTimeout_ = 10;
+    else
+    {
+      dcmConnectionTimeout.set(seconds);
+      pimpl_->dimseTimeout_ = seconds;
+      pimpl_->acseTimeout_ = 10;  // Timeout used during association negociation
+    }
   }
 
 
@@ -1121,7 +1126,7 @@ namespace Orthanc
      */
     dcmConnectionTimeout.set(-1);
     pimpl_->dimseTimeout_ = 0;
-    pimpl_->acseTimeout_ = 10;
+    pimpl_->acseTimeout_ = 10;  // Timeout used during association negociation
   }
 
 
@@ -1191,4 +1196,12 @@ namespace Orthanc
 
     ExecuteFind(result, pimpl_->assoc_, dataset, sopClass, true, NULL, pimpl_->dimseTimeout_);
   }
+
+  
+  void DicomUserConnection::SetDefaultTimeout(uint32_t seconds)
+  {
+    LOG(INFO) << "Default timeout for DICOM connections if Orthanc acts as SCU (client): " 
+              << seconds << " seconds (0 = no timeout)";
+    defaultTimeout_ = seconds;
+  }  
 }

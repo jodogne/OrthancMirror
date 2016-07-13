@@ -951,7 +951,7 @@ namespace Orthanc
   {
     Stop();
     keepAlive_ = enabled;
-    LOG(WARNING) << "HTTP keep alive is " << (enabled ? "enabled" : "disabled");
+    LOG(INFO) << "HTTP keep alive is " << (enabled ? "enabled" : "disabled");
   }
 
 

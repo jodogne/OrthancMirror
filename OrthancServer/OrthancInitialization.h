@@ -64,6 +64,9 @@ namespace Orthanc
     static int GetGlobalIntegerParameter(const std::string& parameter,
                                          int defaultValue);
 
+    static unsigned int GetGlobalUnsignedIntegerParameter(const std::string& parameter,
+                                                          unsigned int defaultValue);
+
     static bool GetGlobalBoolParameter(const std::string& parameter,
                                        bool defaultValue);
 

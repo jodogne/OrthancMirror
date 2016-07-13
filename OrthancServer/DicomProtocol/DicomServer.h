@@ -71,7 +71,7 @@ namespace Orthanc
     void SetPortNumber(uint16_t port);
     uint16_t GetPortNumber() const;
 
-    void SetAssociationTimeout(uint32_t timeout);
+    void SetAssociationTimeout(uint32_t seconds);
     uint32_t GetAssociationTimeout() const;
 
     void SetCalledApplicationEntityTitleCheck(bool check);

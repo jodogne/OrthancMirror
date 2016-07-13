@@ -55,8 +55,8 @@ namespace Orthanc
 
     result["DatabaseVersion"] = OrthancRestApi::GetIndex(call).GetDatabaseVersion();
     result["DicomAet"] = Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC");
-    result["DicomPort"] = Configuration::GetGlobalIntegerParameter("DicomPort", 4242);
-    result["HttpPort"] = Configuration::GetGlobalIntegerParameter("HttpPort", 8042);
+    result["DicomPort"] = Configuration::GetGlobalUnsignedIntegerParameter("DicomPort", 4242);
+    result["HttpPort"] = Configuration::GetGlobalUnsignedIntegerParameter("HttpPort", 8042);
     result["Name"] = Configuration::GetGlobalStringParameter("Name", "");
     result["Version"] = ORTHANC_VERSION;
 

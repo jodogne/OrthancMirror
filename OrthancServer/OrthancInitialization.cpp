@@ -577,6 +577,23 @@ namespace Orthanc
   }
 
 
+  unsigned int Configuration::GetGlobalUnsignedIntegerParameter(const std::string& parameter,
+                                                                unsigned int defaultValue)
+  {
+    int v = GetGlobalIntegerParameter(parameter, defaultValue);
+
+    if (v < 0)
+    {
+      LOG(ERROR) << "The configuration option \"" << parameter << "\" must be a positive integer";
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+    else
+    {
+      return static_cast<unsigned int>(v);
+    }
+  }
+
+
   bool Configuration::GetGlobalBoolParameter(const std::string& parameter,
                                              bool defaultValue)
   {
