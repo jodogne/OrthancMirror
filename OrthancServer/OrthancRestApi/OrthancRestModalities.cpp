@@ -685,6 +685,7 @@ namespace Orthanc
 
     std::string localAet = Toolbox::GetJsonStringField(request, "LocalAet", context.GetDefaultLocalApplicationEntityTitle());
     bool permissive = Toolbox::GetJsonBooleanField(request, "Permissive", false);
+    bool asynchronous = Toolbox::GetJsonBooleanField(request, "Asynchronous", false);
     int moveOriginatorID = Toolbox::GetJsonIntegerField(request, "MoveOriginatorID", 0 /* By default, not a C-MOVE */);
 
     if (moveOriginatorID < 0 || 
@@ -705,9 +706,15 @@ namespace Orthanc
 
     job.SetDescription("HTTP request: Store-SCU to peer \"" + remote + "\"");
 
-    if (context.GetScheduler().SubmitAndWait(job))
+    if (asynchronous)
     {
-      // Success
+      // Asynchronous mode: Submit the job, but don't wait for its completion
+      context.GetScheduler().Submit(job);
+      call.GetOutput().AnswerBuffer("{}", "application/json");
+    }
+    else if (context.GetScheduler().SubmitAndWait(job))
+    {
+      // Synchronous mode: We have submitted and waited for completion
       call.GetOutput().AnswerBuffer("{}", "application/json");
     }
     else
@@ -812,6 +819,8 @@ namespace Orthanc
       return;
     }
 
+    bool asynchronous = Toolbox::GetJsonBooleanField(request, "Asynchronous", false);
+
     WebServiceParameters peer;
     Configuration::GetOrthancPeer(peer, remote);
 
@@ -824,9 +833,15 @@ namespace Orthanc
 
     job.SetDescription("HTTP request: POST to peer \"" + remote + "\"");
 
-    if (context.GetScheduler().SubmitAndWait(job))
+    if (asynchronous)
     {
-      // Success
+      // Asynchronous mode: Submit the job, but don't wait for its completion
+      context.GetScheduler().Submit(job);
+      call.GetOutput().AnswerBuffer("{}", "application/json");
+    }
+    else if (context.GetScheduler().SubmitAndWait(job))
+    {
+      // Synchronous mode: We have submitted and waited for completion
       call.GetOutput().AnswerBuffer("{}", "application/json");
     }
     else
