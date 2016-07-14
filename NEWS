@@ -1,8 +1,10 @@
 Pending changes in the mainline
 ===============================
 
-* "Permissive" flag for URI "/modalities/{...}/store" to ignore C-Store transfer errors
 * New configuration options: "DicomScuTimeout" and "DicomScpTimeout"
+* "Permissive" flag for URI "/modalities/{...}/store" to ignore C-Store transfer errors
+* "Asynchronous" flag for URIs "/modalities/{...}/store" and "/peers/{...}/store"
+  to avoid waiting for the completion of image transfers
 
 
 Version 1.1.0 (2016/06/27)
