@@ -585,7 +585,7 @@ namespace Orthanc
     if (v < 0)
     {
       LOG(ERROR) << "The configuration option \"" << parameter << "\" must be a positive integer";
-      throw OrthancException(ErrorCode_BadParameterType);
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
     else
     {

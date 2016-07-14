@@ -1590,5 +1590,87 @@ namespace Orthanc
         target.push_back(b < 10 ? b + '0' : b - 10 + 'A');
       }
     }
-  }  
+  }
+
+
+  static bool HasField(const Json::Value& json,
+                       const std::string& key,
+                       Json::ValueType expectedType)
+  {
+    if (json.type() != Json::objectValue ||
+        !json.isMember(key))
+    {
+      return false;
+    }
+    else if (json[key].type() == expectedType)
+    {
+      return true;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+  }
+
+
+  std::string Toolbox::GetJsonStringField(const Json::Value& json,
+                                          const std::string& key,
+                                          const std::string& defaultValue)
+  {
+    if (HasField(json, key, Json::stringValue))
+    {
+      return json[key].asString();
+    }
+    else
+    {
+      return defaultValue;
+    }
+  }
+
+
+  bool Toolbox::GetJsonBooleanField(const ::Json::Value& json,
+                                    const std::string& key,
+                                    bool defaultValue)
+  {
+    if (HasField(json, key, Json::booleanValue))
+    {
+      return json[key].asBool();
+    }
+    else
+    {
+      return defaultValue;
+    }
+  }
+
+
+  int Toolbox::GetJsonIntegerField(const ::Json::Value& json,
+                                   const std::string& key,
+                                   int defaultValue)
+  {
+    if (HasField(json, key, Json::intValue))
+    {
+      return json[key].asInt();
+    }
+    else
+    {
+      return defaultValue;
+    }
+  }
+
+
+  unsigned int Toolbox::GetJsonUnsignedIntegerField(const ::Json::Value& json,
+                                                    const std::string& key,
+                                                    unsigned int defaultValue)
+  {
+    int v = GetJsonIntegerField(json, key, defaultValue);
+
+    if (v < 0)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      return static_cast<unsigned int>(v);
+    }
+  }
 }

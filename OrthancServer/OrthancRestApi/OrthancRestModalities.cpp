@@ -683,58 +683,16 @@ namespace Orthanc
       return;
     }
 
-    static const char* LOCAL_AET = "LocalAet";
-    std::string localAet = context.GetDefaultLocalApplicationEntityTitle();
-    if (request.type() == Json::objectValue &&
-        request.isMember(LOCAL_AET))
+    std::string localAet = Toolbox::GetJsonStringField(request, "LocalAet", context.GetDefaultLocalApplicationEntityTitle());
+    bool permissive = Toolbox::GetJsonBooleanField(request, "Permissive", false);
+    int moveOriginatorID = Toolbox::GetJsonIntegerField(request, "MoveOriginatorID", 0 /* By default, not a C-MOVE */);
+
+    if (moveOriginatorID < 0 || 
+        moveOriginatorID >= 65536)
     {
-      if (request[LOCAL_AET].type() == Json::stringValue)
-      {
-        localAet = request[LOCAL_AET].asString();
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_BadFileFormat);
-      }
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
-
-    uint16_t moveOriginatorID = 0; /* By default, not a C-MOVE */
-
-    static const char* MOVE_ORIGINATOR_ID = "MoveOriginatorID";
-    if (request.type() == Json::objectValue &&
-        request.isMember(MOVE_ORIGINATOR_ID))
-    {
-      if (request[MOVE_ORIGINATOR_ID].type() != Json::intValue)
-      {
-        throw OrthancException(ErrorCode_BadFileFormat);
-      }
-
-      int v = request[MOVE_ORIGINATOR_ID].asInt();
-      if (v <= 0 || v >= 65536)
-      {
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-      }
-      else
-      {
-        moveOriginatorID = boost::lexical_cast<uint16_t>(v);
-      }
-    }
-
-    static const char* PERMISSIVE = "Permissive";
-    bool permissive = false;
-    if (request.type() == Json::objectValue &&
-        request.isMember(PERMISSIVE))
-    {
-      if (request[PERMISSIVE].type() == Json::booleanValue)
-      {
-        permissive = request[PERMISSIVE].asBool();
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_BadFileFormat);
-      }
-    }
-
+    
     RemoteModalityParameters p = Configuration::GetModalityUsingSymbolicName(remote);
 
     ServerJob job;
@@ -742,7 +700,7 @@ namespace Orthanc
            it = instances.begin(); it != instances.end(); ++it)
     {
       job.AddCommand(new StoreScuCommand(context, localAet, p, permissive,
-                                         moveOriginatorID)).AddInput(*it);
+                                         static_cast<uint16_t>(moveOriginatorID))).AddInput(*it);
     }
 
     job.SetDescription("HTTP request: Store-SCU to peer \"" + remote + "\"");
@@ -784,33 +742,8 @@ namespace Orthanc
 
     ResourceType level = StringToResourceType(request["Level"].asCString());
     
-    static const char* LOCAL_AET = "LocalAet";
-    std::string localAet = context.GetDefaultLocalApplicationEntityTitle();
-    if (request.isMember(LOCAL_AET))
-    {
-      if (request[LOCAL_AET].type() == Json::stringValue)
-      {
-        localAet = request[LOCAL_AET].asString();
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_BadFileFormat);
-      }
-    }
-
-    static const char* TARGET_AET = "TargetAet";
-    std::string targetAet = context.GetDefaultLocalApplicationEntityTitle();
-    if (request.isMember(TARGET_AET))
-    {
-      if (request[TARGET_AET].type() == Json::stringValue)
-      {
-        targetAet = request[TARGET_AET].asString();
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_BadFileFormat);
-      }
-    }
+    std::string localAet = Toolbox::GetJsonStringField(request, "LocalAet", context.GetDefaultLocalApplicationEntityTitle());
+    std::string targetAet = Toolbox::GetJsonStringField(request, "TargetAet", context.GetDefaultLocalApplicationEntityTitle());
 
     const RemoteModalityParameters source = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
       

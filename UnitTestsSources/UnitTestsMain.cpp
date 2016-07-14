@@ -945,6 +945,43 @@ TEST(Toolbox, UriEncode)
 }
 
 
+TEST(Toolbox, AccessJson)
+{
+  Json::Value v = Json::arrayValue;
+  ASSERT_EQ("nope", Toolbox::GetJsonStringField(v, "hello", "nope"));
+
+  v = Json::objectValue;
+  ASSERT_EQ("nope", Toolbox::GetJsonStringField(v, "hello", "nope"));
+  ASSERT_EQ(-10, Toolbox::GetJsonIntegerField(v, "hello", -10));
+  ASSERT_EQ(10, Toolbox::GetJsonUnsignedIntegerField(v, "hello", 10));
+  ASSERT_TRUE(Toolbox::GetJsonBooleanField(v, "hello", true));
+
+  v["hello"] = "world";
+  ASSERT_EQ("world", Toolbox::GetJsonStringField(v, "hello", "nope"));
+  ASSERT_THROW(Toolbox::GetJsonIntegerField(v, "hello", -10), OrthancException);
+  ASSERT_THROW(Toolbox::GetJsonUnsignedIntegerField(v, "hello", 10), OrthancException);
+  ASSERT_THROW(Toolbox::GetJsonBooleanField(v, "hello", true), OrthancException);
+
+  v["hello"] = -42;
+  ASSERT_THROW(Toolbox::GetJsonStringField(v, "hello", "nope"), OrthancException);
+  ASSERT_EQ(-42, Toolbox::GetJsonIntegerField(v, "hello", -10));
+  ASSERT_THROW(Toolbox::GetJsonUnsignedIntegerField(v, "hello", 10), OrthancException);
+  ASSERT_THROW(Toolbox::GetJsonBooleanField(v, "hello", true), OrthancException);
+
+  v["hello"] = 42;
+  ASSERT_THROW(Toolbox::GetJsonStringField(v, "hello", "nope"), OrthancException);
+  ASSERT_EQ(42, Toolbox::GetJsonIntegerField(v, "hello", -10));
+  ASSERT_EQ(42, Toolbox::GetJsonUnsignedIntegerField(v, "hello", 10));
+  ASSERT_THROW(Toolbox::GetJsonBooleanField(v, "hello", true), OrthancException);
+
+  v["hello"] = false;
+  ASSERT_THROW(Toolbox::GetJsonStringField(v, "hello", "nope"), OrthancException);
+  ASSERT_THROW(Toolbox::GetJsonIntegerField(v, "hello", -10), OrthancException);
+  ASSERT_THROW(Toolbox::GetJsonUnsignedIntegerField(v, "hello", 10), OrthancException);
+  ASSERT_FALSE(Toolbox::GetJsonBooleanField(v, "hello", true));
+}
+
+
 int main(int argc, char **argv)
 {
   Logging::Initialize();

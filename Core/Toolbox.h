@@ -228,5 +228,21 @@ namespace Orthanc
 
     void UriEncode(std::string& target,
                    const std::string& source);
+
+    std::string GetJsonStringField(const ::Json::Value& json,
+                                   const std::string& key,
+                                   const std::string& defaultValue);
+
+    bool GetJsonBooleanField(const ::Json::Value& json,
+                             const std::string& key,
+                             bool defaultValue);
+
+    int GetJsonIntegerField(const ::Json::Value& json,
+                            const std::string& key,
+                            int defaultValue);
+
+    unsigned int GetJsonUnsignedIntegerField(const ::Json::Value& json,
+                                             const std::string& key,
+                                             unsigned int defaultValue);
   }
 }
