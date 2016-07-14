@@ -45,7 +45,7 @@ parser.set_defaults(remove = False)
 
 
 def FixPath(p):
-    return p.encode('ascii', 'ignore').strip().decode()
+    return p.encode('ascii', errors = 'replace').translate(None, r"'\/:*?\"<>|!=").strip()
 
 def GetTag(resource, tag):
     if ('MainDicomTags' in resource and

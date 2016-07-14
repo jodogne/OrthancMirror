@@ -49,6 +49,12 @@ TARGET = sys.argv[4]
 CheckIsDate(START)
 CheckIsDate(END)
 
+def GetTag(tags, key):
+    if key in tags:
+        return tags[key]
+    else:
+        return 'No%s' % key
+
 # Loop over the studies
 for studyId in RestToolbox.DoGet('%s/studies' % URL):
     # Retrieve the DICOM tags of the current study
@@ -61,13 +67,13 @@ for studyId in RestToolbox.DoGet('%s/studies' % URL):
     studyDate = study['StudyDate'][:8]
     if studyDate >= START and studyDate <= END:
         # Create a filename
-        filename = '%s - %s %s - %s.zip' % (study['StudyDate'],
-                                            patient['PatientID'],
-                                            patient['PatientName'],
-                                            study['StudyDescription'])
+        filename = '%s - %s %s - %s.zip' % (GetTag(study, 'StudyDate'),
+                                            GetTag(patient, 'PatientID'),
+                                            GetTag(patient, 'PatientName'),
+                                            GetTag(study, 'StudyDescription'))
 
         # Remove any non-ASCII character in the filename
-        filename = filename.encode('ascii', errors = 'replace')
+        filename = filename.encode('ascii', errors = 'replace').translate(None, r"'\/:*?\"<>|!=").strip()
 
         # Download the ZIP archive of the study
         print('Downloading %s' % filename)

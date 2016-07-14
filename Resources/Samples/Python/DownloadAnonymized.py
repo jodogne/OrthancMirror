@@ -44,6 +44,5 @@ for patient in RestToolbox.DoGet('%s/patients' % URL):
         # Trigger the download
         print('Downloading %s' % name)
         zipContent = RestToolbox.DoGet('%s/patients/%s/archive' % (URL, patient))
-        f = open(os.path.join('/tmp', name + '.zip'), 'wb')
-        f.write(zipContent)
-        f.close()
+        with open(os.path.join('/tmp', name + '.zip'), 'wb') as f:
+            f.write(zipContent)
