@@ -66,6 +66,12 @@ namespace Orthanc
       {
         return *this;
       }
+
+      // This overload fixes build problems with Visual Studio 2015
+      std::ostream& operator<< (const char* message)
+      {
+        return *this;
+      }
     };
   }
 }
