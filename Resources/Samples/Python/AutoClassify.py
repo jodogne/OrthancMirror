@@ -110,12 +110,16 @@ while True:
         if change['ChangeType'] == 'NewInstance':
             try:
                 ClassifyInstance(change['ID'])
+
+                # If requested, remove the instance once it has been
+                # properly handled by "ClassifyInstance()". Thanks to
+                # the "try/except" block, the instance is not removed
+                # if the "ClassifyInstance()" function fails.
+                if args.remove:
+                    RestToolbox.DoDelete('%s/instances/%s' % (URL, change['ID']))
+
             except:
                 print('Unable to write instance %s to the disk' % change['ID'])
-
-            # If requested, remove the instance once it has been copied
-            if args.remove:
-                RestToolbox.DoDelete('%s/instances/%s' % (URL, change['ID']))
 
     current = r['Last']
 
