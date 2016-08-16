@@ -571,8 +571,7 @@ namespace Orthanc
     }
 
     // This code gives access to the name of the private tags
-    DcmTag tagbis(element.getTag());
-    const std::string tagName(tagbis.getTagName());      
+    const std::string tagName = FromDcmtkBridge::GetName(tag);
     
     switch (format)
     {
@@ -589,6 +588,7 @@ namespace Orthanc
         {
           node["Name"] = tagName;
 
+          DcmTag tagbis(tag.GetGroup(), tag.GetElement());
           if (tagbis.getPrivateCreator() != NULL)
           {
             node["PrivateCreator"] = tagbis.getPrivateCreator();

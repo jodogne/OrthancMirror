@@ -1,10 +1,22 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
 * New configuration options: "DicomScuTimeout" and "DicomScpTimeout"
+
+REST API
+--------
+
 * "Permissive" flag for URI "/modalities/{...}/store" to ignore C-Store transfer errors
 * "Asynchronous" flag for URIs "/modalities/{...}/store" and "/peers/{...}/store"
   to avoid waiting for the completion of image transfers
+
+Maintenance
+-----------
+
+* Fix extraction of the symbolic name of the private tags
 
 
 Version 1.1.0 (2016/06/27)
