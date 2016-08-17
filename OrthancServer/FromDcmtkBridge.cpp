@@ -588,10 +588,9 @@ namespace Orthanc
         {
           node["Name"] = tagName;
 
-          DcmTag tagbis(tag.GetGroup(), tag.GetElement());
-          if (tagbis.getPrivateCreator() != NULL)
+          if (element.getTag().getPrivateCreator() != NULL)
           {
-            node["PrivateCreator"] = tagbis.getPrivateCreator();
+            node["PrivateCreator"] = element.getTag().getPrivateCreator();
           }
 
           return node;
