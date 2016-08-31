@@ -49,6 +49,8 @@ namespace Orthanc
 
   namespace Toolbox
   {
+    void USleep(uint64_t microSeconds);
+
 #if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
     ServerBarrierEvent ServerBarrier(const bool& stopFlag);
 
@@ -85,10 +87,6 @@ namespace Orthanc
     void WriteFile(const void* content,
                    size_t size,
                    const std::string& path);
-#endif
-
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
-    void USleep(uint64_t microSeconds);
 #endif
 
 #if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
