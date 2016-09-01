@@ -78,5 +78,7 @@ namespace Orthanc
     void SetFifoPolicy();
 
     void SetLifoPolicy();
+
+    void Clear();
   };
 }
