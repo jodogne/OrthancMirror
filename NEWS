@@ -17,6 +17,7 @@ Maintenance
 -----------
 
 * Fix extraction of the symbolic name of the private tags
+* Performance warning if runtime debug assertions are turned on
 
 
 Version 1.1.0 (2016/06/27)
