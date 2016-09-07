@@ -185,4 +185,24 @@ namespace Orthanc
     boost::mutex::scoped_lock lock(mutex_);
     isFifo_ = false;
   }
+
+  void SharedMessageQueue::Clear()
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    if (queue_.empty())
+    {
+      return;
+    }
+    else
+    {
+      while (!queue_.empty())
+      {
+        std::auto_ptr<IDynamicObject> message(queue_.front());
+        queue_.pop_front();
+      }
+
+      emptied_.notify_all();
+    }
+  }
 }
