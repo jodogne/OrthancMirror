@@ -1086,6 +1086,14 @@ static bool StartOrthanc(int argc,
 }
 
 
+static bool DisplayPerformanceWarning()
+{
+  (void) DisplayPerformanceWarning;   // Disable warning about unused function
+  LOG(WARNING) << "Performance warning: Non-release build, runtime debug assertions are turned on";
+  return true;
+}
+
+
 int main(int argc, char* argv[]) 
 {
   Logging::Initialize();
@@ -1225,6 +1233,7 @@ int main(int argc, char* argv[])
     }
 
     LOG(WARNING) << "Orthanc version: " << version;
+    assert(DisplayPerformanceWarning());
   }
 
   int status = 0;
