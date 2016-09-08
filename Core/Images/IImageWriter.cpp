@@ -30,48 +30,26 @@
  **/
 
 
-#pragma once
+#include "IImageWriter.h"
 
-#include "ImageAccessor.h"
-
-#include <boost/noncopyable.hpp>
+#include "../OrthancException.h"
+#include "../Toolbox.h"
 
 namespace Orthanc
 {
-  class IImageWriter : public boost::noncopyable
+  void IImageWriter::WriteToFileInternal(const std::string& path,
+                                         unsigned int width,
+                                         unsigned int height,
+                                         unsigned int pitch,
+                                         PixelFormat format,
+                                         const void* buffer)
   {
-  protected:
-    virtual void WriteToMemoryInternal(std::string& compressed,
-                                       unsigned int width,
-                                       unsigned int height,
-                                       unsigned int pitch,
-                                       PixelFormat format,
-                                       const void* buffer) = 0;
-
-    virtual void WriteToFileInternal(const std::string& path,
-                                     unsigned int width,
-                                     unsigned int height,
-                                     unsigned int pitch,
-                                     PixelFormat format,
-                                     const void* buffer);
-
-  public:
-    virtual ~IImageWriter()
-    {
-    }
-
-    virtual void WriteToMemory(std::string& compressed,
-                               const ImageAccessor& accessor)
-    {
-      WriteToMemoryInternal(compressed, accessor.GetWidth(), accessor.GetHeight(),
-                            accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
-    }
-
-    virtual void WriteToFile(const std::string& path,
-                             const ImageAccessor& accessor)
-    {
-      WriteToFileInternal(path, accessor.GetWidth(), accessor.GetHeight(),
-                          accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
-    }
-  };
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
+    std::string compressed;
+    WriteToMemoryInternal(compressed, width, height, pitch, format, buffer);
+    Toolbox::WriteFile(compressed, path);
+#else
+    throw OrthancException(ErrorCode_CannotWriteFile);  // Unavailable in sandboxed environments
+#endif
+  }
 }
