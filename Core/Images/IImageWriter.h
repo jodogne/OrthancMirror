@@ -56,9 +56,13 @@ namespace Orthanc
                                      PixelFormat format,
                                      const void* buffer)
     {
-      std::string compressed;
+#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
+     std::string compressed;
       WriteToMemoryInternal(compressed, width, height, pitch, format, buffer);
       Toolbox::WriteFile(compressed, path);
+#else
+      throw OrthancException(ErrorCode_CannotWriteFile);  // Unavailable in sandboxed environments
+#endif
     }
 
   public:
