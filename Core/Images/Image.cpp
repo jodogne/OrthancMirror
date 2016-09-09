@@ -30,23 +30,28 @@
  **/
 
 
-#pragma once
+#include "Image.h"
 
-#include "ImageAccessor.h"
-#include "ImageBuffer.h"
+#include "ImageProcessing.h"
+
+#include <memory>
 
 namespace Orthanc
 {
-  class Image : public ImageAccessor
+  Image::Image(PixelFormat format,
+               unsigned int width,
+               unsigned int height) :
+    image_(format, width, height)
   {
-  private:
-    ImageBuffer  image_;
+    ImageAccessor accessor = image_.GetAccessor();
+    AssignWritable(format, width, height, accessor.GetPitch(), accessor.GetBuffer());
+  }
 
-  public:
-    Image(PixelFormat format,
-          unsigned int width,
-          unsigned int height);
 
-    static Image* Clone(const ImageAccessor& source);
-  };
+  Image* Image::Clone(const ImageAccessor& source)
+  {
+    std::auto_ptr<Image> target(new Image(source.GetFormat(), source.GetWidth(), source.GetHeight()));
+    ImageProcessing::Copy(*target, source);
+    return target.release();
+  }
 }

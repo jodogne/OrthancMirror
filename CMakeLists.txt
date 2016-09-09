@@ -131,6 +131,7 @@ set(ORTHANC_CORE_SOURCES
   Core/Images/Font.cpp
   Core/Images/FontRegistry.cpp
   Core/Images/IImageWriter.cpp
+  Core/Images/Image.cpp
   Core/Images/ImageAccessor.cpp
   Core/Images/ImageBuffer.cpp
   Core/Images/ImageProcessing.cpp
