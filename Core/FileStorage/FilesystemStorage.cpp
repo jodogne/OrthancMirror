@@ -86,11 +86,37 @@ namespace Orthanc
     Toolbox::MakeDirectory(root);
   }
 
+
+
+  static const char* GetDescriptionInternal(FileContentType content)
+  {
+    // This function is for logging only (internal use), a more
+    // fully-featured version is available in ServerEnumerations.cpp
+    switch (content)
+    {
+      case FileContentType_Unknown:
+        return "Unknown";
+
+      case FileContentType_Dicom:
+        return "DICOM";
+
+      case FileContentType_DicomAsJson:
+        return "JSON summary of DICOM";
+
+      default:
+        return "User-defined";
+    }
+  }
+
+
   void FilesystemStorage::Create(const std::string& uuid,
                                  const void* content, 
                                  size_t size,
-                                 FileContentType /*type*/)
+                                 FileContentType type)
   {
+    LOG(INFO) << "Creating attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
+              << "\" type (size: " << (size / (1024 * 1024) + 1) << "MB)";
+
     boost::filesystem::path path;
     
     path = GetPath(uuid);
@@ -117,31 +143,17 @@ namespace Orthanc
       }
     }
 
-    boost::filesystem::ofstream f;
-    f.open(path, std::ofstream::out | std::ios::binary);
-    if (!f.good())
-    {
-      throw OrthancException(ErrorCode_FileStorageCannotWrite);
-    }
-
-    if (size != 0)
-    {
-      f.write(static_cast<const char*>(content), size);
-      if (!f.good())
-      {
-        f.close();
-        throw OrthancException(ErrorCode_FileStorageCannotWrite);
-      }
-    }
-
-    f.close();
+    Toolbox::WriteFile(content, size, path.string());
   }
 
 
   void FilesystemStorage::Read(std::string& content,
                                const std::string& uuid,
-                               FileContentType /*type*/)
+                               FileContentType type)
   {
+    LOG(INFO) << "Reading attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
+              << "\" content type";
+
     content.clear();
     Toolbox::ReadFile(content, GetPath(uuid).string());
   }
@@ -213,9 +225,7 @@ namespace Orthanc
   void FilesystemStorage::Remove(const std::string& uuid,
                                  FileContentType /*type*/)
   {
-#if ORTHANC_ENABLE_GOOGLE_LOG == 1
-    LOG(INFO) << "Deleting file " << uuid;
-#endif
+    LOG(INFO) << "Deleting attachment \"" << uuid << "\"";
 
     namespace fs = boost::filesystem;
 
