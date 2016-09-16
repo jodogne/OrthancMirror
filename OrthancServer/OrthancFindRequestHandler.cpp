@@ -651,6 +651,8 @@ namespace Orthanc
     std::vector<std::string> resources, instances;
     context_.GetIndex().FindCandidates(resources, instances, finder);
 
+    LOG(INFO) << "Number of candidate resources after fast DB filtering: " << resources.size();
+
     assert(resources.size() == instances.size());
     bool complete = true;
 

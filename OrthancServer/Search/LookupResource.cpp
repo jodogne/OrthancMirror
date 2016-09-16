@@ -125,16 +125,16 @@ namespace Orthanc
         levels_[ResourceType_Patient] = new Level(ResourceType_Patient);
         break;
 
-      case ResourceType_Study:
-        levels_[ResourceType_Study] = new Level(ResourceType_Study);
+      case ResourceType_Instance:
+        levels_[ResourceType_Instance] = new Level(ResourceType_Instance);
         // Do not add "break" here
 
       case ResourceType_Series:
         levels_[ResourceType_Series] = new Level(ResourceType_Series);
         // Do not add "break" here
 
-      case ResourceType_Instance:
-        levels_[ResourceType_Instance] = new Level(ResourceType_Instance);
+      case ResourceType_Study:
+        levels_[ResourceType_Study] = new Level(ResourceType_Study);
         break;
 
       default:
