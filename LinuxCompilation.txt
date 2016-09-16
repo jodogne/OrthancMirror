@@ -1,17 +1,17 @@
 This file is a complement to "INSTALL", which contains instructions
-that are specific to Linux.
+that are specific to GNU/Linux.
 
 
-Static linking for Linux
-========================
+Static linking for GNU/Linux
+============================
 
-The most simple way of building Orthanc under Linux consists in
+The most simple way of building Orthanc under GNU/Linux consists in
 statically linking against all the third-party dependencies. In this
 case, the system-wide libraries will not be used. The build tool
 (CMake) will download the sources of all the required packages and
 automatically compile them.
 
-This process should work on any Linux distribution, provided that a
+This process should work on any GNU/Linux distribution, provided that a
 C/C++ compiler ("build-essential" in Debian-based systems), the Python
 interpreter, CMake, the "unzip" system tool, and the development
 package for libuuid ("uuid-dev" in Debian) are installed.
@@ -47,14 +47,14 @@ then run cmake again.
 Note 3- To build the documentation, you will have to install doxyen.
 
 
-Use system-wide libraries under Linux
-=====================================
+Use system-wide libraries under GNU/Linux
+=========================================
 
-Under Linux, by default, Orthanc links against the shared libraries of
-your system (the "STATIC_BUILD" option is set to "OFF"). This greatly
-speeds up the compilation. This is also required when building
-packages for Linux distributions. Because using system libraries is
-the default behavior, you just have to use:
+Under GNU/Linux, by default, Orthanc links against the shared
+libraries of your system (the "STATIC_BUILD" option is set to
+"OFF"). This greatly speeds up the compilation. This is also required
+when building packages for GNU/Linux distributions. Because using
+system libraries is the default behavior, you just have to use:
 
 # cd ~/OrthancBuild
 # cmake -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
@@ -62,13 +62,14 @@ the default behavior, you just have to use:
 
 Note that to build the documentation, you will have to install doxyen.
 
-However, on some Linux distributions, it is still required to download
-and static link against some third-party dependencies, e.g. when the
-system-wide library is not shipped or is outdated. Because of
-difference in the packaging of the various Linux distribution, it is
-also sometimes required to fine-tune some options.
+However, on some GNU/Linux distributions, it is still required to
+download and static link against some third-party dependencies,
+e.g. when the system-wide library is not shipped or is
+outdated. Because of difference in the packaging of the various
+GNU/Linux distribution, it is also sometimes required to fine-tune
+some options.
 
-You will find below build instructions for specific Linux
+You will find below build instructions for specific GNU/Linux
 distributions. Distributions tagged by "SUPPORTED" are tested by
 Sébastien Jodogne. Distributions tagged by "CONTRIBUTED" come from
 Orthanc users.
@@ -183,8 +184,8 @@ SUPPORTED - CentOS 6
 
 
 
-Other Linux distributions?
---------------------------
+Other GNU/Linux distributions?
+------------------------------
 
 Please send us your build instructions (by a mail to
 s.jodogne@gmail.com)!
@@ -202,7 +203,7 @@ they might give indications.
 Using ccache
 ============
 
-Under Linux, you also have the opportunity to use "ccache" to
+Under GNU/Linux, you also have the opportunity to use "ccache" to
 dramatically decrease the compilation time when rebuilding
 Orthanc. This is especially useful for developers. To this end, you
 would use:

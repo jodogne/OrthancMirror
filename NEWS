@@ -314,7 +314,7 @@ Fixes
 -----
 
 * Prevent freeze on C-FIND if no DICOM tag is to be returned
-* Fix slow C-STORE SCP on recent versions of Linux, if
+* Fix slow C-STORE SCP on recent versions of GNU/Linux, if
   USE_SYSTEM_DCMTK is set to OFF (http://forum.dcmtk.org/viewtopic.php?f=1&t=4009)
 * Fix issue 30 (QR response missing "Query/Retrieve Level" (008,0052))
 * Fix issue 32 (Cyrillic symbols): Introduction of the "Windows1251" encoding
@@ -535,8 +535,8 @@ Minor changes
 * Possibility to disable the HTTP server or the DICOM server
 * Automatic computation of MD5 hashes for the stored DICOM files
 * Maintenance tool to recover DICOM files compressed by Orthanc
-* The newline characters in the configuration file are fixed for Linux
-* Capture of the SIGTERM signal in Linux
+* The newline characters in the configuration file are fixed for GNU/Linux
+* Capture of the SIGTERM signal in GNU/Linux
 
 
 Version 0.7.2 (2013/11/08)

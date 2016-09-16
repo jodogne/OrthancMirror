@@ -16,11 +16,11 @@ file.
 Supported Platforms
 -------------------
 
-Currently, the supported platforms are:
+Currently, the officially supported platforms are:
 
-* Linux 32bit.
-* Linux 64bit.
+* GNU/Linux (32bit and 64bit).
 * Windows 32bit.
+* Apple OS X (32bit and 64bit).
 
 
 Supported Toolchains
@@ -29,9 +29,9 @@ Supported Toolchains
 Orthanc can currently be built using the following compiling
 toolchains:
 
-* Native Linux compilation, with gcc.
+* Native GNU/Linux compilation, with gcc.
 * Native Windows compilation, with Microsoft Visual Studio.
-* Cross-compilation for Windows under Linux, with MinGW.
+* Cross-compilation for Windows under GNU/Linux, with MinGW.
 
 
 Licensing

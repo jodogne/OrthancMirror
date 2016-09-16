@@ -51,12 +51,17 @@ WARNING 2: If cmake complains about not being able to uncompress
 third-party dependencies, delete the "~/Orthanc/ThirdPartyDownloads/"
 folder, then restart cmake.
 
+WARNING 3: If performance is important to you, make sure to add the
+option "-DCMAKE_BUILD_TYPE=Release" when invoking cmake. Indeed, by
+default, run-time debug assertions are enabled, which can seriously
+impact performance, especially if your Orthanc server stores a lot of
+DICOM instances.
 
-Native Linux Compilation
-------------------------
+
+Native GNU/Linux Compilation
+----------------------------
 
 See the file "LinuxCompilation.txt".
-
 
 
 Native OS X Compilation
@@ -85,8 +90,8 @@ NOTES:
 
 
 
-Cross-Compilation for Windows under Linux
------------------------------------------
+Cross-Compilation for Windows under GNU/Linux
+---------------------------------------------
 
 To cross-compile Windows binaries under Linux using MinGW, please use
 the following command:
