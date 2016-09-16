@@ -312,7 +312,7 @@ namespace Orthanc
                           const std::string& path)
   {
     boost::filesystem::ofstream f;
-    f.open(path, std::ofstream::binary);
+    f.open(path, std::ofstream::out | std::ofstream::binary);
     if (!f.good())
     {
       throw OrthancException(ErrorCode_CannotWriteFile);
@@ -321,6 +321,12 @@ namespace Orthanc
     if (size != 0)
     {
       f.write(reinterpret_cast<const char*>(content), size);
+
+      if (!f.good())
+      {
+        f.close();
+        throw OrthancException(ErrorCode_FileStorageCannotWrite);
+      }
     }
 
     f.close();
