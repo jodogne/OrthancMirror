@@ -195,7 +195,10 @@ namespace Orthanc
      * {summary}{Graylevel, floating-point image.}
      * {description}{The image is graylevel. Each pixel is floating-point and stored in 4 bytes.}
      **/
-    PixelFormat_Float32 = 6
+    PixelFormat_Float32 = 6,
+
+    // This is the memory layout for Cairo
+    PixelFormat_BGRA32 = 7
   };
 
 

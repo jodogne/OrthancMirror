@@ -552,6 +552,61 @@ namespace Orthanc
   }
 
 
+  void ImageProcessing::Set(ImageAccessor& image,
+                            uint8_t red,
+                            uint8_t green,
+                            uint8_t blue,
+                            uint8_t alpha)
+  {
+    uint8_t p[4];
+    unsigned int size;
+
+    switch (image.GetFormat())
+    {
+      case PixelFormat_RGBA32:
+        p[0] = red;
+        p[1] = green;
+        p[2] = blue;
+        p[3] = alpha;
+        size = 4;
+        break;
+
+      case PixelFormat_BGRA32:
+        p[0] = blue;
+        p[1] = green;
+        p[2] = red;
+        p[3] = alpha;
+        size = 4;
+        break;
+
+      case PixelFormat_RGB24:
+        p[0] = red;
+        p[1] = green;
+        p[2] = blue;
+        size = 3;
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }    
+
+    for (unsigned int y = 0; y < image.GetHeight(); y++)
+    {
+      uint8_t* q = reinterpret_cast<uint8_t*>(image.GetRow(y));
+
+      for (unsigned int x = 0; x < image.GetWidth(); x++)
+      {
+        for (unsigned int i = 0; i < size; i++)
+        {
+          q[i] = p[i];
+        }
+
+        q += size;
+      }
+    }
+  }
+
+
   void ImageProcessing::ShiftRight(ImageAccessor& image,
                                    unsigned int shift)
   {
