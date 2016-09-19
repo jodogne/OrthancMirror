@@ -50,6 +50,12 @@ namespace Orthanc
     static void Set(ImageAccessor& image,
                     int64_t value);
 
+    static void Set(ImageAccessor& image,
+                    uint8_t red,
+                    uint8_t green,
+                    uint8_t blue,
+                    uint8_t alpha);
+
     static void ShiftRight(ImageAccessor& target,
                            unsigned int shift);
 

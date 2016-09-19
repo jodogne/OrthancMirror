@@ -733,6 +733,9 @@ namespace Orthanc
       case PixelFormat_RGBA32:
         return "RGBA32";
 
+      case PixelFormat_BGRA32:
+        return "BGRA32";
+
       case PixelFormat_Grayscale8:
         return "Grayscale (unsigned 8bpp)";
 
@@ -1061,6 +1064,7 @@ namespace Orthanc
         return 3;
 
       case PixelFormat_RGBA32:
+      case PixelFormat_BGRA32:
         return 4;
 
       case PixelFormat_Float32:
