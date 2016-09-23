@@ -1214,22 +1214,34 @@ namespace Orthanc
       switch (currentType)
       {
         case ResourceType_Patient:
-          patientId = map.GetValue(DICOM_TAG_PATIENT_ID).GetContent();
+          if (map.HasTag(DICOM_TAG_PATIENT_ID))
+          {
+            patientId = map.GetValue(DICOM_TAG_PATIENT_ID).GetContent();
+          }
           done = true;
           break;
 
         case ResourceType_Study:
-          studyInstanceUid = map.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).GetContent();
+          if (map.HasTag(DICOM_TAG_STUDY_INSTANCE_UID))
+          {
+            studyInstanceUid = map.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).GetContent();
+          }
           currentType = ResourceType_Patient;
           break;
 
         case ResourceType_Series:
-          seriesInstanceUid = map.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).GetContent();
+          if (map.HasTag(DICOM_TAG_SERIES_INSTANCE_UID))
+          {
+            seriesInstanceUid = map.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).GetContent();
+          }
           currentType = ResourceType_Study;
           break;
 
         case ResourceType_Instance:
-          sopInstanceUid = map.GetValue(DICOM_TAG_SOP_INSTANCE_UID).GetContent();
+          if (map.HasTag(DICOM_TAG_SOP_INSTANCE_UID))
+          {
+            sopInstanceUid = map.GetValue(DICOM_TAG_SOP_INSTANCE_UID).GetContent();
+          }
           currentType = ResourceType_Series;
           break;
 
