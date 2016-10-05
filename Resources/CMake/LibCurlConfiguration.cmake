@@ -40,13 +40,15 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
       )
   endif()
 
-  file(WRITE ${CURL_SOURCES_DIR}/lib/curl_config.h "")
+  if (NOT EXISTS "${CURL_SOURCES_DIR}/lib/curl_config.h")
+    file(WRITE ${CURL_SOURCES_DIR}/lib/curl_config.h "")
 
-  file(GLOB CURL_LIBS_HEADERS ${CURL_SOURCES_DIR}/lib/*.h)
-  foreach (header IN LISTS CURL_LIBS_HEADERS)
-    get_filename_component(filename ${header} NAME)
-    file(WRITE ${CURL_SOURCES_DIR}/lib/vtls/${filename} "#include \"../${filename}\"\n")
-  endforeach()
+    file(GLOB CURL_LIBS_HEADERS ${CURL_SOURCES_DIR}/lib/*.h)
+    foreach (header IN LISTS CURL_LIBS_HEADERS)
+      get_filename_component(filename ${header} NAME)
+      file(WRITE ${CURL_SOURCES_DIR}/lib/vtls/${filename} "#include \"../${filename}\"\n")
+    endforeach()
+  endif()
 
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
