@@ -108,7 +108,7 @@ TEST(Versions, BoostStatic)
 TEST(Versions, CurlStatic)
 {
   curl_version_info_data* v = curl_version_info(CURLVERSION_NOW);
-  ASSERT_STREQ("7.53.0", v->version);
+  ASSERT_STREQ("7.50.3", v->version);
 }
 
 TEST(Versions, PngStatic)
