@@ -680,8 +680,6 @@ namespace Orthanc
 #else
     CheckCode(curl_global_init(CURL_GLOBAL_ALL & ~CURL_GLOBAL_SSL));
 #endif
-
-    CheckCode(curl_global_init(CURL_GLOBAL_DEFAULT));
   }
 
 
