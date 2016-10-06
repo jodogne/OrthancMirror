@@ -191,9 +191,10 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
     ${OPENSSL_SOURCES_DIR}/crypto/x509/verify_extra_test.c
     ${OPENSSL_SOURCES_DIR}/crypto/x509v3/v3prin.c
     ${OPENSSL_SOURCES_DIR}/crypto/x509v3/v3nametest.c
-    ${OPENSSL_SOURCES_DIR}/crypto/ssl/heartbeat_test.c
     ${OPENSSL_SOURCES_DIR}/crypto/constant_time_test.c
     ${OPENSSL_SOURCES_DIR}/crypto/ec/ecp_nistz256_table.c
+
+    ${OPENSSL_SOURCES_DIR}/ssl/heartbeat_test.c
     )
 
 
