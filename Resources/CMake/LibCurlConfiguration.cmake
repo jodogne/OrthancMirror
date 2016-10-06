@@ -1,7 +1,7 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
-  SET(CURL_SOURCES_DIR ${CMAKE_BINARY_DIR}/curl-7.44.0)
-  SET(CURL_URL "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/curl-7.44.0.tar.gz")
-  SET(CURL_MD5 "cf46112b5151e2f1a3fd38439bdade23")
+  SET(CURL_SOURCES_DIR ${CMAKE_BINARY_DIR}/curl-7.50.3)
+  SET(CURL_URL "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/curl-7.50.3.tar.gz")
+  SET(CURL_MD5 "870e16fd88a88b52e26a4f04dfc161db")
 
   DownloadPackage(${CURL_MD5} ${CURL_URL} "${CURL_SOURCES_DIR}")
 
@@ -10,6 +10,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
     )
 
   AUX_SOURCE_DIRECTORY(${CURL_SOURCES_DIR}/lib CURL_SOURCES)
+  AUX_SOURCE_DIRECTORY(${CURL_SOURCES_DIR}/lib/vauth CURL_SOURCES)
   AUX_SOURCE_DIRECTORY(${CURL_SOURCES_DIR}/lib/vtls CURL_SOURCES)
   source_group(ThirdParty\\LibCurl REGULAR_EXPRESSION ${CURL_SOURCES_DIR}/.*)
 
@@ -43,9 +44,15 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
   if (NOT EXISTS "${CURL_SOURCES_DIR}/lib/curl_config.h")
     file(WRITE ${CURL_SOURCES_DIR}/lib/curl_config.h "")
 
+    file(WRITE ${CURL_SOURCES_DIR}/lib/vauth/vauth/vauth.h "#include \"../vauth.h\"\n")
+    file(WRITE ${CURL_SOURCES_DIR}/lib/vauth/vauth/digest.h "#include \"../digest.h\"\n")
+    file(WRITE ${CURL_SOURCES_DIR}/lib/vauth/vauth/ntlm.h "#include \"../ntlm.h\"\n")
+    file(WRITE ${CURL_SOURCES_DIR}/lib/vauth/vtls/vtls.h "#include \"../../vtls/vtls.h\"\n")
+
     file(GLOB CURL_LIBS_HEADERS ${CURL_SOURCES_DIR}/lib/*.h)
     foreach (header IN LISTS CURL_LIBS_HEADERS)
       get_filename_component(filename ${header} NAME)
+      file(WRITE ${CURL_SOURCES_DIR}/lib/vauth/${filename} "#include \"../${filename}\"\n")
       file(WRITE ${CURL_SOURCES_DIR}/lib/vtls/${filename} "#include \"../${filename}\"\n")
     endforeach()
   endif()
