@@ -44,6 +44,16 @@
 #include <boost/thread/mutex.hpp>
 
 
+#if ORTHANC_SSL_ENABLED == 1
+// For OpenSSL initialization and finalization
+#  include <openssl/conf.h>
+#  include <openssl/engine.h>
+#  include <openssl/err.h>
+#  include <openssl/evp.h>
+#  include <openssl/ssl.h>
+#endif
+
+
 #if ORTHANC_PKCS11_ENABLED == 1
 #  include "Pkcs11.h"
 #endif
@@ -782,6 +792,34 @@ namespace Orthanc
 #else
     LOG(ERROR) << "This version of Orthanc is compiled without support for PKCS#11";
     throw OrthancException(ErrorCode_InternalError);
+#endif
+  }
+
+
+  void HttpClient::InitializeOpenSsl()
+  {
+#if ORTHANC_SSL_ENABLED == 1
+    // https://wiki.openssl.org/index.php/Library_Initialization
+    SSL_library_init();
+    SSL_load_error_strings();
+    OpenSSL_add_all_algorithms();
+    ERR_load_crypto_strings();
+#endif
+  }
+
+
+  void HttpClient::FinalizeOpenSsl()
+  {
+ #if ORTHANC_SSL_ENABLED == 1
+    // Finalize OpenSSL
+    // https://wiki.openssl.org/index.php/Library_Initialization#Cleanup
+    FIPS_mode_set(0);
+    ENGINE_cleanup();
+    CONF_modules_unload(1);
+    EVP_cleanup();
+    CRYPTO_cleanup_all_ex_data();
+    ERR_remove_state(0);
+    ERR_free_strings();
 #endif
   }
 }
