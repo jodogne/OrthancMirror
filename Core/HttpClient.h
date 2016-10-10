@@ -247,6 +247,10 @@ namespace Orthanc
   
     static void GlobalFinalize();
 
+    static void InitializeOpenSsl();
+
+    static void FinalizeOpenSsl();
+
     static void InitializePkcs11(const std::string& module,
                                  const std::string& pin,
                                  bool verbose);
