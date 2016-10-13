@@ -125,5 +125,7 @@ namespace Orthanc
                             unsigned int y,
                             unsigned int width,
                             unsigned int height) const;
+
+    void SetFormat(PixelFormat format);
   };
 }
