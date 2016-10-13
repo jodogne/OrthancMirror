@@ -275,4 +275,22 @@ namespace Orthanc
     return result;
   }
 
+
+  void ImageAccessor::SetFormat(PixelFormat format)
+  {
+    if (readOnly_)
+    {
+#if ORTHANC_ENABLE_LOGGING == 1
+      LOG(ERROR) << "Trying to modify the format of a read-only image";
+#endif
+      throw OrthancException(ErrorCode_ReadOnly);
+    }
+
+    if (::Orthanc::GetBytesPerPixel(format) != ::Orthanc::GetBytesPerPixel(format_))
+    {
+      throw OrthancException(ErrorCode_IncompatibleImageFormat);
+    }
+
+    format_ = format;
+  }
 }
