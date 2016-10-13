@@ -67,6 +67,7 @@ namespace Orthanc
     std::string clientCertificateKeyPassword_;
     bool pkcs11Enabled_;
     bool headersToLowerCase_;
+    bool redirectionFollowed_;
 
     void Setup();
 
@@ -241,6 +242,16 @@ namespace Orthanc
     bool IsConvertHeadersToLowerCase() const
     {
       return headersToLowerCase_;
+    }
+
+    void SetRedirectionFollowed(bool follow)
+    {
+      redirectionFollowed_ = follow;
+    }
+
+    bool IsRedirectionFollowed() const
+    {
+      return redirectionFollowed_;
     }
 
     static void GlobalInitialize();
