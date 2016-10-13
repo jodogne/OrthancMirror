@@ -507,8 +507,17 @@ namespace Orthanc
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_NOBODY, 0L));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CUSTOMREQUEST, NULL));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDS, NULL));
-    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDSIZE, 0));
+    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDSIZE, 0L));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_PROXY, NULL));
+
+    if (redirectionFollowed_)
+    {
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_FOLLOWLOCATION, 1L));
+    }
+    else
+    {
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_FOLLOWLOCATION, 0L));
+    }
 
     // Set timeouts
     if (timeout_ <= 0)
