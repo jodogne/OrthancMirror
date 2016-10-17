@@ -181,7 +181,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   list(REMOVE_ITEM DCMTK_SOURCES 
     ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/mkdictbi.cc
     ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/mkdeftag.cc
-    #${DCMTK_SOURCES_DIR}/dcmdata/libsrc/dcdictbi.cc
+    ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/dcdictbi.cc
     )
 
   #set_source_files_properties(${DCMTK_SOURCES}
