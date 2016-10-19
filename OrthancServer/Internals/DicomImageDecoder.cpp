@@ -340,7 +340,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
-    return new Image(format, info.GetWidth(), info.GetHeight());
+    return new Image(format, info.GetWidth(), info.GetHeight(), false);
   }
 
 
@@ -674,7 +674,7 @@ namespace Orthanc
     if (image->GetFormat() != format)
     {
       // A conversion is required
-      std::auto_ptr<ImageAccessor> target(new Image(format, image->GetWidth(), image->GetHeight()));
+      std::auto_ptr<ImageAccessor> target(new Image(format, image->GetWidth(), image->GetHeight(), false));
       ImageProcessing::Convert(*target, *image);
       image = target;
     }
@@ -713,7 +713,7 @@ namespace Orthanc
         // If the source image is not grayscale 8bpp, convert it
         if (image->GetFormat() != PixelFormat_Grayscale8)
         {
-          std::auto_ptr<ImageAccessor> target(new Image(PixelFormat_Grayscale8, image->GetWidth(), image->GetHeight()));
+          std::auto_ptr<ImageAccessor> target(new Image(PixelFormat_Grayscale8, image->GetWidth(), image->GetHeight(), false));
           ImageProcessing::Convert(*target, *image);
           image = target;
         }

@@ -61,7 +61,8 @@ namespace Orthanc
   public:
     ImageBuffer(PixelFormat format,
                 unsigned int width,
-                unsigned int height);
+                unsigned int height,
+                bool forceMinimalPitch);
 
     ImageBuffer()
     {
@@ -107,8 +108,6 @@ namespace Orthanc
     {
       return forceMinimalPitch_;
     }
-
-    void SetMinimalPitchForced(bool force);
 
     void AcquireOwnership(ImageBuffer& other);
   };

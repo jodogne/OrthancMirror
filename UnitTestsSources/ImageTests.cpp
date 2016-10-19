@@ -211,7 +211,7 @@ TEST(JpegWriter, Basic)
   std::string s;
 
   {
-    Orthanc::Image img(Orthanc::PixelFormat_Grayscale8, 16, 16);
+    Orthanc::Image img(Orthanc::PixelFormat_Grayscale8, 16, 16, false);
     for (unsigned int y = 0, value = 0; y < img.GetHeight(); y++)
     {
       uint8_t* p = reinterpret_cast<uint8_t*>(img.GetRow(y));
@@ -258,7 +258,7 @@ TEST(JpegWriter, Basic)
 
 TEST(Font, Basic)
 {
-  Orthanc::Image s(Orthanc::PixelFormat_RGB24, 640, 480);
+  Orthanc::Image s(Orthanc::PixelFormat_RGB24, 640, 480, false);
   memset(s.GetBuffer(), 0, s.GetPitch() * s.GetHeight());
 
   ASSERT_GE(1u, Orthanc::Configuration::GetFontRegistry().GetSize());

@@ -40,8 +40,9 @@ namespace Orthanc
 {
   Image::Image(PixelFormat format,
                unsigned int width,
-               unsigned int height) :
-    image_(format, width, height)
+               unsigned int height,
+               bool forceMinimalPitch) :
+    image_(format, width, height, forceMinimalPitch)
   {
     ImageAccessor accessor = image_.GetAccessor();
     AssignWritable(format, width, height, accessor.GetPitch(), accessor.GetBuffer());
@@ -50,7 +51,7 @@ namespace Orthanc
 
   Image* Image::Clone(const ImageAccessor& source)
   {
-    std::auto_ptr<Image> target(new Image(source.GetFormat(), source.GetWidth(), source.GetHeight()));
+    std::auto_ptr<Image> target(new Image(source.GetFormat(), source.GetWidth(), source.GetHeight(), false));
     ImageProcessing::Copy(*target, source);
     return target.release();
   }
