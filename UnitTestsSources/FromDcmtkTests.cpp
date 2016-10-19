@@ -818,7 +818,7 @@ TEST(TestImages, PatternGrayscale8)
 {
   static const char* PATH = "UnitTestsResults/PatternGrayscale8.dcm";
 
-  Orthanc::Image image(Orthanc::PixelFormat_Grayscale8, 256, 256);
+  Orthanc::Image image(Orthanc::PixelFormat_Grayscale8, 256, 256, false);
 
   for (int y = 0; y < 256; y++)
   {
@@ -871,7 +871,7 @@ TEST(TestImages, PatternRGB)
 {
   static const char* PATH = "UnitTestsResults/PatternRGB24.dcm";
 
-  Orthanc::Image image(Orthanc::PixelFormat_RGB24, 384, 256);
+  Orthanc::Image image(Orthanc::PixelFormat_RGB24, 384, 256, false);
 
   for (int y = 0; y < 256; y++)
   {
@@ -933,7 +933,7 @@ TEST(TestImages, PatternUint16)
 {
   static const char* PATH = "UnitTestsResults/PatternGrayscale16.dcm";
 
-  Orthanc::Image image(Orthanc::PixelFormat_Grayscale16, 256, 256);
+  Orthanc::Image image(Orthanc::PixelFormat_Grayscale16, 256, 256, false);
 
   uint16_t v = 0;
   for (int y = 0; y < 256; y++)
@@ -987,7 +987,7 @@ TEST(TestImages, PatternInt16)
 {
   static const char* PATH = "UnitTestsResults/PatternSignedGrayscale16.dcm";
 
-  Orthanc::Image image(Orthanc::PixelFormat_SignedGrayscale16, 256, 256);
+  Orthanc::Image image(Orthanc::PixelFormat_SignedGrayscale16, 256, 256, false);
 
   int16_t v = -32768;
   for (int y = 0; y < 256; y++)

@@ -1646,7 +1646,7 @@ namespace Orthanc
 
     if (image->IsReadOnly())
     {
-      std::auto_ptr<Image> copy(new Image(image->GetFormat(), image->GetWidth(), image->GetHeight()));
+      std::auto_ptr<Image> copy(new Image(image->GetFormat(), image->GetWidth(), image->GetHeight(), false));
       ImageProcessing::Copy(*copy, *image);
       image.reset(NULL);
       return reinterpret_cast<OrthancPluginImage*>(copy.release());
@@ -1885,7 +1885,7 @@ namespace Orthanc
     const _OrthancPluginConvertPixelFormat& p = *reinterpret_cast<const _OrthancPluginConvertPixelFormat*>(parameters);
     const ImageAccessor& source = *reinterpret_cast<const ImageAccessor*>(p.source);
 
-    std::auto_ptr<ImageAccessor> target(new Image(Plugins::Convert(p.targetFormat), source.GetWidth(), source.GetHeight()));
+    std::auto_ptr<ImageAccessor> target(new Image(Plugins::Convert(p.targetFormat), source.GetWidth(), source.GetHeight(), false));
     ImageProcessing::Convert(*target, source);
 
     *(p.target) = ReturnImage(target);
@@ -2038,7 +2038,7 @@ namespace Orthanc
     switch (service)
     {
       case _OrthancPluginService_CreateImage:
-        result.reset(new Image(Plugins::Convert(p.format), p.width, p.height));
+        result.reset(new Image(Plugins::Convert(p.format), p.width, p.height, false));
         break;
 
       case _OrthancPluginService_CreateImageAccessor:

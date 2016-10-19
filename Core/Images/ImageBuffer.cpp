@@ -87,7 +87,9 @@ namespace Orthanc
 
   ImageBuffer::ImageBuffer(PixelFormat format,
                            unsigned int width,
-                           unsigned int height)
+                           unsigned int height,
+                           bool forceMinimalPitch) :
+    forceMinimalPitch_(forceMinimalPitch)
   {
     Initialize();
     SetWidth(width);
@@ -155,16 +157,6 @@ namespace Orthanc
     ImageAccessor accessor;
     accessor.AssignReadOnly(format_, width_, height_, pitch_, buffer_);
     return accessor;
-  }
-
-
-  void ImageBuffer::SetMinimalPitchForced(bool force)
-  {
-    if (force != forceMinimalPitch_)
-    {
-      changed_ = true;
-      forceMinimalPitch_ = force;
-    }
   }
 
 

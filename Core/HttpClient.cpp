@@ -328,7 +328,8 @@ namespace Orthanc
     pimpl_(new PImpl), 
     verifyPeers_(true),
     pkcs11Enabled_(false),
-    headersToLowerCase_(true)
+    headersToLowerCase_(true),
+    redirectionFollowed_(true)
   {
     Setup();
   }
@@ -338,7 +339,8 @@ namespace Orthanc
                          const std::string& uri) : 
     pimpl_(new PImpl), 
     verifyPeers_(true),
-    headersToLowerCase_(true)
+    headersToLowerCase_(true),
+    redirectionFollowed_(true)
   {
     Setup();
 

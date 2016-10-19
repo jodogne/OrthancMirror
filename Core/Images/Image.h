@@ -45,7 +45,8 @@ namespace Orthanc
   public:
     Image(PixelFormat format,
           unsigned int width,
-          unsigned int height);
+          unsigned int height,
+          bool forceMinimalPitch);
 
     static Image* Clone(const ImageAccessor& source);
   };
