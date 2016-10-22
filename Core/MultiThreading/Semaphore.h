@@ -50,5 +50,23 @@ namespace Orthanc
     void Release();
 
     void Acquire();
+
+    class Locker : public boost::noncopyable
+    {
+    private:
+      Semaphore&  that_;
+
+    public:
+      Locker(Semaphore& that) :
+        that_(that)
+      {
+        that_.Acquire();
+      }
+
+      ~Locker()
+      {
+        that_.Release();
+      }
+    };
   };
 }
