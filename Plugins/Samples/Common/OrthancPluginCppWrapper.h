@@ -388,6 +388,11 @@ namespace OrthancPlugins
     }
   }
 
+  bool CheckMinimalOrthancVersion(OrthancPluginContext* context,
+                                  unsigned int major,
+                                  unsigned int minor,
+                                  unsigned int revision);
+
 
   namespace Internals
   {

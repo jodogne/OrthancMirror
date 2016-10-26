@@ -906,5 +906,97 @@ namespace OrthancPlugins
       throw PluginException(error);
     }
   }
+
+
+  static void ReportIncompatibleVersion(OrthancPluginContext* context,
+                                        unsigned int major,
+                                        unsigned int minor,
+                                        unsigned int revision)
+  {
+    char buf[128];
+    sprintf(buf, "Your version of the Orthanc core (%s) is too old to run this plugin (%d.%d.%d is required)",
+            context->orthancVersion, major, minor, revision);
+    OrthancPluginLogError(context, buf);
+  }
+
+
+  bool CheckMinimalOrthancVersion(OrthancPluginContext* context,
+                                  unsigned int major,
+                                  unsigned int minor,
+                                  unsigned int revision)
+  {
+    if (context == NULL)
+    {
+      OrthancPluginLogError(context, "Bad Orthanc context in the plugin");      
+      return false;
+    }
+
+    if (!strcmp(context->orthancVersion, "mainline"))
+    {
+      // Assume compatibility with the mainline
+      return true;
+    }
+
+    // Parse the version of the Orthanc core
+    int aa, bb, cc;
+    if ( 
+#ifdef _MSC_VER
+      sscanf_s
+#else
+      sscanf
+#endif
+      (context->orthancVersion, "%4d.%4d.%4d", &aa, &bb, &cc) != 3 ||
+      aa < 0 ||
+      bb < 0 ||
+      cc < 0)
+    {
+      throw false;
+    }
+
+    unsigned int a = static_cast<unsigned int>(aa);
+    unsigned int b = static_cast<unsigned int>(bb);
+    unsigned int c = static_cast<unsigned int>(cc);
+
+    // Check the major version number
+
+    if (a > major)
+    {
+      return true;
+    }
+
+    if (a < major)
+    {
+      ReportIncompatibleVersion(context, major, minor, revision);
+      return false;
+    }
+
+
+    // Check the minor version number
+    assert(a == major);
+
+    if (b > minor)
+    {
+      return true;
+    }
+
+    if (b < minor)
+    {
+      ReportIncompatibleVersion(context, major, minor, revision);
+      return false;
+    }
+
+    // Check the patch level version number
+    assert(a == major && b == minor);
+
+    if (c >= revision)
+    {
+      return true;
+    }
+    else
+    {
+      ReportIncompatibleVersion(context, major, minor, revision);
+      return false;
+    }
+  }
 }
 
