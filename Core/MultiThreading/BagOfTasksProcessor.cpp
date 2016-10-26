@@ -33,8 +33,10 @@
 #include "../PrecompiledHeaders.h"
 #include "BagOfTasksProcessor.h"
 
+#include "../Logging.h"
 #include "../OrthancException.h"
 
+#include <stdio.h>
 
 namespace Orthanc
 {
@@ -58,12 +60,19 @@ namespace Orthanc
       {
         return command_->Execute();
       }
-      catch (OrthancException&)
+      catch (OrthancException& e)
       {
+        LOG(ERROR) << "Exception while processing a bag of tasks: " << e.What();
         return false;
       }
-      catch (std::runtime_error&)
+      catch (std::runtime_error& e)
       {
+        LOG(ERROR) << "Runtime exception while processing a bag of tasks: " << e.what();
+        return false;
+      }
+      catch (...)
+      {
+        LOG(ERROR) << "Native exception while processing a bag of tasks";
         return false;
       }
     }
@@ -74,6 +83,20 @@ namespace Orthanc
     }
   };
 
+
+  void BagOfTasksProcessor::SignalProgress(Task& task,
+                                           Bag& bag)
+  {
+    assert(bag.done_ < bag.size_);
+
+    bag.done_ += 1;
+
+    if (bag.done_ == bag.size_)
+    {
+      exitStatus_[task.GetBag()] = (bag.status_ == BagStatus_Running);
+      bagFinished_.notify_all();
+    }
+  }
 
   void BagOfTasksProcessor::Worker(BagOfTasksProcessor* that)
   {
@@ -93,8 +116,9 @@ namespace Orthanc
 
           if (bag->second.status_ != BagStatus_Running)
           {
-            // This bag of task has failed or is tagged as canceled, do nothing
-            bag->second.done_ += 1;
+            // Do not execute this task, as its parent bag of tasks
+            // has failed or is tagged as canceled
+            that->SignalProgress(task, bag->second);
             continue;
           }
         }
@@ -112,14 +136,7 @@ namespace Orthanc
             bag->second.status_ = BagStatus_Failed;
           }
 
-          assert(bag->second.done_ < bag->second.size_);
-          bag->second.done_ += 1;
-
-          if (bag->second.done_ == bag->second.size_)
-          {
-            that->exitStatus_[task.GetBag()] = (bag->second.status_ == BagStatus_Running);
-            that->bagFinished_.notify_all();
-          }
+          that->SignalProgress(task, bag->second);
         }
       }
     }
