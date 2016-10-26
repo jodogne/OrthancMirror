@@ -97,6 +97,9 @@ namespace Orthanc
 
     float GetProgress(int64_t bag);
 
+    void SignalProgress(Task& task,
+                        Bag& bag);
+
   public:
     class Handle : public boost::noncopyable
     {
