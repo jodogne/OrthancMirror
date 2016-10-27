@@ -16,7 +16,11 @@ endmacro()
 ##
 
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
-  set(PATCH_EXECUTABLE ${CMAKE_SOURCE_DIR}/Resources/ThirdParty/patch/patch.exe)
+  set(PATCH_EXECUTABLE ${CMAKE_CURRENT_LIST_DIR}/../ThirdParty/patch/patch.exe)
+  if (NOT EXISTS ${PATCH_EXECUTABLE})
+    message(FATAL_ERROR "Unable to find the patch.exe tool that is shipped with Orthanc")
+  endif()
+
 else ()
   find_program(PATCH_EXECUTABLE patch)
   if (${PATCH_EXECUTABLE} MATCHES "PATCH_EXECUTABLE-NOTFOUND")
