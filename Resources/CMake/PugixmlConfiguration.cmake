@@ -26,6 +26,8 @@ if (USE_PUGIXML)
     link_libraries(pugixml)
   endif()
 
+  source_group(ThirdParty\\pugixml REGULAR_EXPRESSION ${PUGIXML_SOURCES_DIR}/.*)
+
 else()
   add_definitions(-DORTHANC_PUGIXML_ENABLED=0)
 endif()

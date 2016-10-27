@@ -28,6 +28,8 @@ elseif (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_TEST)
     add_definitions(/D _VARIADIC_MAX=10)
   endif()
 
+  source_group(ThirdParty\\GoogleTest REGULAR_EXPRESSION ${GTEST_SOURCES_DIR}/.*)
+
 else()
   include(FindGTest)
   if (NOT GTEST_FOUND)

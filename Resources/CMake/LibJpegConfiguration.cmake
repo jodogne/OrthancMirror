@@ -81,6 +81,8 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBJPEG)
     ${LIBJPEG_SOURCES_DIR}/jconfig.h COPYONLY
     )
 
+  source_group(ThirdParty\\libjpeg REGULAR_EXPRESSION ${LIBJPEG_SOURCES_DIR}/.*)
+
 else()
   include(FindJPEG)
 

@@ -210,7 +210,8 @@ if (BOOST_STATIC)
     ${BOOST_SOURCES_DIR}
     )
 
-  source_group(ThirdParty\\Boost REGULAR_EXPRESSION ${BOOST_SOURCES_DIR}/.*)
+  source_group(ThirdParty\\boost REGULAR_EXPRESSION ${BOOST_SOURCES_DIR}/.*)
+
 else()
   add_definitions(
     -DBOOST_HAS_LOCALE=1

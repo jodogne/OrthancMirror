@@ -46,7 +46,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBPNG)
     -DPNG_IMPEXP=
     )
 
-  source_group(ThirdParty\\Libpng REGULAR_EXPRESSION ${LIBPNG_SOURCES_DIR}/.*)
+  source_group(ThirdParty\\libpng REGULAR_EXPRESSION ${LIBPNG_SOURCES_DIR}/.*)
 
 else()
   include(FindPNG)

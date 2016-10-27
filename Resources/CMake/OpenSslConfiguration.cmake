@@ -216,6 +216,8 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
     endif()
   endif()
 
+  source_group(ThirdParty\\OpenSSL REGULAR_EXPRESSION ${OPENSSL_SOURCES_DIR}/.*)
+
 else()
   include(FindOpenSSL)
 
