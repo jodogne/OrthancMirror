@@ -48,3 +48,5 @@ list(APPEND BOOST_SOURCES
   ${LIBICONV_SOURCES_DIR}/libcharset/lib/localcharset.c  
   ${LIBICONV_SOURCES_DIR}/libcharset/lib/relocatable.c
   )
+
+source_group(ThirdParty\\libiconv REGULAR_EXPRESSION ${LIBICONV_SOURCES_DIR}/.*)

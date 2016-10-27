@@ -54,6 +54,8 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBP11)
       )
   endif()
 
+  source_group(ThirdParty\\libp11 REGULAR_EXPRESSION ${LIBP11_SOURCES_DIR}/.*)
+
 else()
   check_include_file_cxx(libp11.h HAVE_LIBP11_H)
   if (NOT HAVE_LIBP11_H)

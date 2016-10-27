@@ -27,10 +27,10 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_ZLIB)
     ${ZLIB_SOURCES_DIR}/zutil.c
     )
 
+  source_group(ThirdParty\\zlib REGULAR_EXPRESSION ${ZLIB_SOURCES_DIR}/.*)
+
 else()
   include(FindZLIB)
   include_directories(${ZLIB_INCLUDE_DIRS})
   link_libraries(${ZLIB_LIBRARIES})
 endif()
-
-source_group(ThirdParty\\ZLib REGULAR_EXPRESSION ${ZLIB_SOURCES_DIR}/.*)
