@@ -526,11 +526,11 @@ namespace OrthancPlugins
         return true;
         
       case Json::intValue:
-        target = configuration_[key].asInt();
+        target = static_cast<float>(configuration_[key].asInt());
         return true;
         
       case Json::uintValue:
-        target = configuration_[key].asUInt();
+        target = static_cast<float>(configuration_[key].asUInt());
         return true;
         
       default:
