@@ -317,6 +317,13 @@ namespace Orthanc
 
     {
       DictionaryLocker locker;
+
+      if (locker->findEntry(name.c_str()))
+      {
+        LOG(ERROR) << "Cannot register two tags with the same symbolic name \"" << name << "\"";
+        throw OrthancException(ErrorCode_AlreadyExistingTag);
+      }
+
       locker->addEntry(entry.release());
     }
   }
