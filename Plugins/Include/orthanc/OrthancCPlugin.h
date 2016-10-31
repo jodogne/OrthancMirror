@@ -116,7 +116,7 @@
 #endif
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
-#define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     1
+#define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     2
 #define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  0
 
 
@@ -407,6 +407,7 @@ extern "C"
     _OrthancPluginService_LookupDictionary = 26,
     _OrthancPluginService_CallHttpClient2 = 27,
     _OrthancPluginService_GenerateUuid = 28,
+    _OrthancPluginService_RegisterPrivateDictionaryTag = 29,
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -4091,9 +4092,9 @@ extern "C"
   /**
    * @brief Register a new tag into the DICOM dictionary.
    *
-   * This function declares a new tag in the dictionary of DICOM tags
-   * that are known to Orthanc. This function should be used in the
-   * OrthancPluginInitialize() callback.
+   * This function declares a new public tag in the dictionary of
+   * DICOM tags that are known to Orthanc. This function should be
+   * used in the OrthancPluginInitialize() callback.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param group The group of the tag.
@@ -4104,6 +4105,7 @@ extern "C"
    * @param maxMultiplicity The maximum multiplicity of the tag. A value of 0 means
    * an arbitrary multiplicity ("<tt>n</tt>").
    * @return 0 if success, other value if error.
+   * @see OrthancPluginRegisterPrivateDictionaryTag()
    * @ingroup Toolbox
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRegisterDictionaryTag(
@@ -4126,6 +4128,60 @@ extern "C"
     return context->InvokeService(context, _OrthancPluginService_RegisterDictionaryTag, &params);
   }
 
+
+
+  typedef struct
+  {
+    uint16_t                          group;
+    uint16_t                          element;
+    OrthancPluginValueRepresentation  vr;
+    const char*                       name;
+    uint32_t                          minMultiplicity;
+    uint32_t                          maxMultiplicity;
+    const char*                       privateCreator;
+  } _OrthancPluginRegisterPrivateDictionaryTag;
+  
+  /**
+   * @brief Register a new private tag into the DICOM dictionary.
+   *
+   * This function declares a new private tag in the dictionary of
+   * DICOM tags that are known to Orthanc. This function should be
+   * used in the OrthancPluginInitialize() callback.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param group The group of the tag.
+   * @param element The element of the tag.
+   * @param vr The value representation of the tag.
+   * @param name The nickname of the tag.
+   * @param minMultiplicity The minimum multiplicity of the tag (must be above 0).
+   * @param maxMultiplicity The maximum multiplicity of the tag. A value of 0 means
+   * an arbitrary multiplicity ("<tt>n</tt>").
+   * @param privateCreator The private creator of this private tag.
+   * @return 0 if success, other value if error.
+   * @see OrthancPluginRegisterDictionaryTag()
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRegisterPrivateDictionaryTag(
+    OrthancPluginContext*             context,
+    uint16_t                          group,
+    uint16_t                          element,
+    OrthancPluginValueRepresentation  vr,
+    const char*                       name,
+    uint32_t                          minMultiplicity,
+    uint32_t                          maxMultiplicity,
+    const char*                       privateCreator)
+  {
+    _OrthancPluginRegisterPrivateDictionaryTag params;
+    params.group = group;
+    params.element = element;
+    params.vr = vr;
+    params.name = name;
+    params.minMultiplicity = minMultiplicity;
+    params.maxMultiplicity = maxMultiplicity;
+    params.privateCreator = privateCreator;
+
+    return context->InvokeService(context, _OrthancPluginService_RegisterPrivateDictionaryTag, &params);
+  }
 
 
 

@@ -563,8 +563,8 @@ namespace Orthanc
 
         case _OrthancPluginService_GetFindQueryTagName:
         {
-          const DicomTag& tag = currentQuery_->GetElement(operation.index).GetTag();
-          *operation.resultString = CopyString(FromDcmtkBridge::GetName(tag));
+          const DicomElement& element = currentQuery_->GetElement(operation.index);
+          *operation.resultString = CopyString(FromDcmtkBridge::GetTagName(element));
           break;
         }
 
@@ -2758,7 +2758,17 @@ namespace Orthanc
           *reinterpret_cast<const _OrthancPluginRegisterDictionaryTag*>(parameters);
         FromDcmtkBridge::RegisterDictionaryTag(DicomTag(p.group, p.element),
                                                Plugins::Convert(p.vr), p.name,
-                                               p.minMultiplicity, p.maxMultiplicity);
+                                               p.minMultiplicity, p.maxMultiplicity, "");
+        return true;
+      }
+
+      case _OrthancPluginService_RegisterPrivateDictionaryTag:
+      {
+        const _OrthancPluginRegisterPrivateDictionaryTag& p =
+          *reinterpret_cast<const _OrthancPluginRegisterPrivateDictionaryTag*>(parameters);
+        FromDcmtkBridge::RegisterDictionaryTag(DicomTag(p.group, p.element),
+                                               Plugins::Convert(p.vr), p.name,
+                                               p.minMultiplicity, p.maxMultiplicity, p.privateCreator);
         return true;
       }
 

@@ -34,6 +34,7 @@
 
 #include "ServerEnumerations.h"
 
+#include "../Core/DicomFormat/DicomElement.h"
 #include "../Core/DicomFormat/DicomMap.h"
 
 #include <dcmtk/dcmdata/dcdatset.h>
@@ -53,7 +54,8 @@ namespace Orthanc
                                       ValueRepresentation vr,
                                       const std::string& name,
                                       unsigned int minMultiplicity,
-                                      unsigned int maxMultiplicity);
+                                      unsigned int maxMultiplicity,
+                                      const std::string& privateCreator);
 
     static Encoding DetectEncoding(DcmItem& dataset,
                                    Encoding defaultEncoding);
@@ -94,7 +96,15 @@ namespace Orthanc
                        DicomToJsonFlags flags,
                        unsigned int maxStringLength);
 
-    static std::string GetName(const DicomTag& tag);
+    static std::string GetTagName(const DicomTag& tag,
+                                  const std::string& privateCreator);
+
+    static std::string GetTagName(const DcmElement& element);
+
+    static std::string GetTagName(const DicomElement& element)
+    {
+      return GetTagName(element.GetTag(), "");
+    }
 
     static DicomTag ParseTag(const char* name);
 

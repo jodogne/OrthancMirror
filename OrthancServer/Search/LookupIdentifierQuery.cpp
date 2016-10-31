@@ -264,7 +264,7 @@ namespace Orthanc
       for (size_t j = 0; j < (*it)->GetSize(); j++)
       {
         const Constraint& c = (*it)->GetConstraint(j);
-        s << FromDcmtkBridge::GetName(c.GetTag());
+        s << FromDcmtkBridge::GetTagName(c.GetTag(), "");
 
         switch (c.GetType())
         {

@@ -582,7 +582,7 @@ namespace Orthanc
       if (!query.GetElement(i).GetValue().IsNull())
       {
         LOG(INFO) << "  " << query.GetElement(i).GetTag()
-                  << "  " << FromDcmtkBridge::GetName(query.GetElement(i).GetTag())
+                  << "  " << FromDcmtkBridge::GetTagName(query.GetElement(i))
                   << " = " << query.GetElement(i).GetValue().GetContent();
       }
     }
@@ -591,7 +591,7 @@ namespace Orthanc
          it != sequencesToReturn.end(); ++it)
     {
       LOG(INFO) << "  (" << it->Format()
-                << ")  " << FromDcmtkBridge::GetName(*it)
+                << ")  " << FromDcmtkBridge::GetTagName(*it, "")
                 << " : sequence tag whose content will be copied";
     }
 
@@ -604,16 +604,17 @@ namespace Orthanc
 
     for (size_t i = 0; i < query.GetSize(); i++)
     {
-      const DicomTag tag = query.GetElement(i).GetTag();
+      const DicomElement& element = query.GetElement(i);
+      const DicomTag tag = element.GetTag();
 
-      if (query.GetElement(i).GetValue().IsNull() ||
+      if (element.GetValue().IsNull() ||
           tag == DICOM_TAG_QUERY_RETRIEVE_LEVEL ||
           tag == DICOM_TAG_SPECIFIC_CHARACTER_SET)
       {
         continue;
       }
 
-      std::string value = query.GetElement(i).GetValue().GetContent();
+      std::string value = element.GetValue().GetContent();
       if (value.size() == 0)
       {
         // An empty string corresponds to a "*" wildcard constraint, so we ignore it
@@ -637,7 +638,7 @@ namespace Orthanc
       else
       {
         LOG(INFO) << "Because of a patch for the manufacturer of the remote modality, " 
-                  << "ignoring constraint on tag (" << tag.Format() << ") " << FromDcmtkBridge::GetName(tag);
+                  << "ignoring constraint on tag (" << tag.Format() << ") " << FromDcmtkBridge::GetTagName(element);
       }
     }
 

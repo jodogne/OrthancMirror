@@ -171,7 +171,7 @@ namespace Orthanc
                   {
                     LOG(WARNING) << "Orthanc only supports sequence matching on worklists, "
                                  << "ignoring C-FIND SCU constraint on tag (" << tag.Format() 
-                                 << ") " << FromDcmtkBridge::GetName(tag);
+                                 << ") " << FromDcmtkBridge::GetTagName(*element);
                   }
 
                   sequencesToReturn.push_back(tag);
