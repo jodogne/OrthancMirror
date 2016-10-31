@@ -204,7 +204,7 @@ static void TestModule(ResourceType level,
 
     if (!ok)
     {
-      std::cout << it->Format() << ": " << FromDcmtkBridge::GetName(*it)
+      std::cout << it->Format() << ": " << FromDcmtkBridge::GetTagName(*it, "")
                 << " not expected at level " << EnumerationToString(level) << std::endl;
     }
 

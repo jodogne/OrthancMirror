@@ -4,6 +4,7 @@ Pending changes in the mainline
 General
 -------
 
+* Handling of private tags/creators in the "Dictionary" configuration option
 * New configuration options: "DicomScuTimeout" and "DicomScpTimeout"
 
 REST API
@@ -12,6 +13,11 @@ REST API
 * "Permissive" flag for URI "/modalities/{...}/store" to ignore C-Store transfer errors
 * "Asynchronous" flag for URIs "/modalities/{...}/store" and "/peers/{...}/store"
   to avoid waiting for the completion of image transfers
+
+Plugins
+-------
+
+* New function: "OrthancPluginRegisterPrivateDictionaryTag()" to register private tags
 
 Maintenance
 -----------

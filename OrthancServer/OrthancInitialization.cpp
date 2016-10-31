@@ -394,11 +394,12 @@ namespace Orthanc
       const Json::Value& content = configuration["Dictionary"][tags[i]];
       if (content.type() != Json::arrayValue ||
           content.size() < 2 ||
-          content.size() > 4 ||
+          content.size() > 5 ||
           content[0].type() != Json::stringValue ||
           content[1].type() != Json::stringValue ||
           (content.size() >= 3 && content[2].type() != Json::intValue) ||
-          (content.size() >= 4 && content[3].type() != Json::intValue))
+          (content.size() >= 4 && content[3].type() != Json::intValue) ||
+          (content.size() >= 5 && content[4].type() != Json::stringValue))
       {
         throw OrthancException(ErrorCode_BadFileFormat);
       }
@@ -408,8 +409,9 @@ namespace Orthanc
       std::string name = content[1].asString();
       unsigned int minMultiplicity = (content.size() >= 2) ? content[2].asUInt() : 1;
       unsigned int maxMultiplicity = (content.size() >= 3) ? content[3].asUInt() : 1;
+      std::string privateCreator = (content.size() >= 4) ? content[4].asString() : "";
 
-      FromDcmtkBridge::RegisterDictionaryTag(tag, vr, name, minMultiplicity, maxMultiplicity);
+      FromDcmtkBridge::RegisterDictionaryTag(tag, vr, name, minMultiplicity, maxMultiplicity, privateCreator);
     }
   }
 

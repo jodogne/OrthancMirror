@@ -57,7 +57,7 @@ using namespace Orthanc;
 
 TEST(DicomFormat, Tag)
 {
-  ASSERT_EQ("PatientName", FromDcmtkBridge::GetName(DicomTag(0x0010, 0x0010)));
+  ASSERT_EQ("PatientName", FromDcmtkBridge::GetTagName(DicomTag(0x0010, 0x0010), ""));
 
   DicomTag t = FromDcmtkBridge::ParseTag("SeriesDescription");
   ASSERT_EQ(0x0008, t.GetGroup());
@@ -576,8 +576,8 @@ TEST(ParsedDicomFile, JsonEncoding)
 
 TEST(ParsedDicomFile, ToJsonFlags1)
 {
-  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7053, 0x1000), ValueRepresentation_PersonName, "MyPrivateTag", 1, 1);
-  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7050, 0x1000), ValueRepresentation_PersonName, "Declared public tag", 1, 1);
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7053, 0x1000), ValueRepresentation_PersonName, "MyPrivateTag", 1, 1, "");
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7050, 0x1000), ValueRepresentation_PersonName, "Declared public tag", 1, 1, "");
 
   ParsedDicomFile f(true);
   f.Insert(DicomTag(0x7050, 0x1000), "Some public tag", false);  // Even group => public tag
@@ -717,9 +717,9 @@ TEST(DicomFindAnswers, Basic)
 
 TEST(ParsedDicomFile, FromJson)
 {
-  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7057, 0x1000), ValueRepresentation_OtherByte, "MyPrivateTag", 1, 1);
-  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7059, 0x1000), ValueRepresentation_OtherByte, "MyPrivateTag", 1, 1);
-  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7050, 0x1000), ValueRepresentation_PersonName, "Declared public tag", 1, 1);
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7057, 0x1000), ValueRepresentation_OtherByte, "MyPrivateTag", 1, 1, "");
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7059, 0x1000), ValueRepresentation_OtherByte, "MyPrivateTag", 1, 1, "");
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7050, 0x1000), ValueRepresentation_PersonName, "Declared public tag", 1, 1, "");
 
   Json::Value v;
   const std::string sopClassUid = "1.2.840.10008.5.1.4.1.1.1";  // CR Image Storage:

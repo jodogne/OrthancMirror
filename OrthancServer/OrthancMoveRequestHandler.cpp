@@ -181,7 +181,7 @@ namespace Orthanc
         if (!query.GetElement(i).GetValue().IsNull())
         {
           LOG(INFO) << "  " << query.GetElement(i).GetTag()
-                    << "  " << FromDcmtkBridge::GetName(query.GetElement(i).GetTag())
+                    << "  " << FromDcmtkBridge::GetTagName(query.GetElement(i))
                     << " = " << query.GetElement(i).GetValue().GetContent();
         }
       }

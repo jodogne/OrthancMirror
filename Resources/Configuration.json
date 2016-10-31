@@ -321,9 +321,11 @@
   // to Orthanc. Each line must contain the tag (formatted as 2
   // hexadecimal numbers), the value representation (2 upcase
   // characters), a nickname for the tag, possibly the minimum
-  // multiplicity (> 0 with defaults to 1), and possibly the maximum
-  // multiplicity (0 means arbitrary multiplicity, defaults to 1).
+  // multiplicity (> 0 with defaults to 1), possibly the maximum
+  // multiplicity (0 means arbitrary multiplicity, defaults to 1), and
+  // possibly the Private Creator (for private tags).
   "Dictionary" : {
     // "0014,1020" : [ "DA", "ValidationExpiryDate", 1, 1 ]
+    // "00e1,10c2" : [ "UI", "PET-CT Multi Modality Name", 1, 1, "ELSCINT1" ]
   }
 }
