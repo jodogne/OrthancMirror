@@ -27,6 +27,7 @@ Maintenance
 * Performance warning if runtime debug assertions are turned on
 * Improved robustness against files with no PatientID
 * Upgrade to curl 7.50.3 for static and Windows builds
+* Content-Type for JSON documents is now "application/json; charset=utf-8"
 
 
 Version 1.1.0 (2016/06/27)
