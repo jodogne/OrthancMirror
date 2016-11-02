@@ -94,7 +94,7 @@ namespace Orthanc
 #if ORTHANC_PUGIXML_ENABLED == 1
       std::string s;
       Toolbox::JsonToXml(s, value);
-      output_.SetContentType("application/xml");
+      output_.SetContentType("application/xml; charset=utf-8");
       output_.Answer(s);
 #else
       LOG(ERROR) << "Orthanc was compiled without XML support";
@@ -104,7 +104,7 @@ namespace Orthanc
     else
     {
       Json::StyledWriter writer;
-      output_.SetContentType("application/json");
+      output_.SetContentType("application/json; charset=utf-8");
       output_.Answer(writer.write(value));
     }
 
