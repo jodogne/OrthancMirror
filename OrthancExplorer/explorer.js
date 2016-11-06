@@ -30,6 +30,36 @@ String.prototype.format = function() {
 };
 
 
+function DeepCopy(obj)
+{
+  return jQuery.extend(true, {}, obj);
+}
+
+
+function ChangePage(page, options)
+{
+  var first = true;
+  if (options) {
+    for (var key in options) {
+      var value = options[key];
+      if (first) {
+        page += '?';
+        first = false;
+      } else {
+        page += '&';
+      }
+      
+      page += key + '=' + value;
+    }
+  }
+
+  window.location.replace('explorer.html#' + page);
+  /*$.mobile.changePage('#' + page, {
+    changeHash: true
+  });*/
+}
+
+
 function Refresh()
 {
   if (currentPage == 'patient')
@@ -369,8 +399,10 @@ function SetupAnonymizedOrModifiedFrom(buttonSelector, resource, resourceType, f
 function RefreshPatient()
 {
   if ($.mobile.pageData) {
-    GetResource('/patients/' + $.mobile.pageData.uuid, function(patient) {
-      GetResource('/patients/' + $.mobile.pageData.uuid + '/studies', function(studies) {
+    var pageData = DeepCopy($.mobile.pageData);
+
+    GetResource('/patients/' + pageData.uuid, function(patient) {
+      GetResource('/patients/' + pageData.uuid + '/studies', function(studies) {
         SortOnDicomTag(studies, 'StudyDate', false, true);
 
         $('#patient-info li').remove();
@@ -399,7 +431,7 @@ function RefreshPatient()
 
         // Check whether this patient is protected
         $.ajax({
-          url: '../patients/' + $.mobile.pageData.uuid + '/protected',
+          url: '../patients/' + pageData.uuid + '/protected',
           type: 'GET',
           dataType: 'text',
           async: false,
@@ -411,7 +443,7 @@ function RefreshPatient()
         });
 
         currentPage = 'patient';
-        currentUuid = $.mobile.pageData.uuid;
+        currentUuid = pageData.uuid;
       });
     });
   }
@@ -421,9 +453,11 @@ function RefreshPatient()
 function RefreshStudy()
 {
   if ($.mobile.pageData) {
-    GetResource('/studies/' + $.mobile.pageData.uuid, function(study) {
+    var pageData = DeepCopy($.mobile.pageData);
+
+    GetResource('/studies/' + pageData.uuid, function(study) {
       GetResource('/patients/' + study.ParentPatient, function(patient) {
-        GetResource('/studies/' + $.mobile.pageData.uuid + '/series', function(series) {
+        GetResource('/studies/' + pageData.uuid + '/series', function(series) {
           SortOnDicomTag(series, 'SeriesDate', false, true);
 
           $('#study .patient-link').attr('href', '#patient?uuid=' + patient.ID);
@@ -451,7 +485,7 @@ function RefreshStudy()
           target.listview('refresh');
 
           currentPage = 'study';
-          currentUuid = $.mobile.pageData.uuid;
+          currentUuid = pageData.uuid;
         });
       });
     });
@@ -462,10 +496,12 @@ function RefreshStudy()
 function RefreshSeries() 
 {
   if ($.mobile.pageData) {
-    GetResource('/series/' + $.mobile.pageData.uuid, function(series) {
+    var pageData = DeepCopy($.mobile.pageData);
+
+    GetResource('/series/' + pageData.uuid, function(series) {
       GetResource('/studies/' + series.ParentStudy, function(study) {
         GetResource('/patients/' + study.ParentPatient, function(patient) {
-          GetResource('/series/' + $.mobile.pageData.uuid + '/instances', function(instances) {
+          GetResource('/series/' + pageData.uuid + '/instances', function(instances) {
             Sort(instances, function(x) { return x.IndexInSeries; }, true, false);
 
             $('#series .patient-link').attr('href', '#patient?uuid=' + patient.ID);
@@ -492,7 +528,7 @@ function RefreshSeries()
             target.listview('refresh');
 
             currentPage = 'series';
-            currentUuid = $.mobile.pageData.uuid;
+            currentUuid = pageData.uuid;
           });
         });
       });
@@ -556,7 +592,9 @@ function ConvertForTree(dicom)
 function RefreshInstance()
 {
   if ($.mobile.pageData) {
-    GetResource('/instances/' + $.mobile.pageData.uuid, function(instance) {
+    var pageData = DeepCopy($.mobile.pageData);
+
+    GetResource('/instances/' + pageData.uuid, function(instance) {
       GetResource('/series/' + instance.ParentSeries, function(series) {
         GetResource('/studies/' + series.ParentStudy, function(study) {
           GetResource('/patients/' + study.ParentPatient, function(patient) {
@@ -585,7 +623,7 @@ function RefreshInstance()
             SetupAnonymizedOrModifiedFrom('#instance-modified-from', instance, 'instance', 'ModifiedFrom');
 
             currentPage = 'instance';
-            currentUuid = $.mobile.pageData.uuid;
+            currentUuid = pageData.uuid;
           });
         });
       });
@@ -704,7 +742,9 @@ $('#instance-download-json').live('click', function(e) {
 
 $('#instance-preview').live('click', function(e) {
   if ($.mobile.pageData) {
-    var pdf = '../instances/' + $.mobile.pageData.uuid + '/pdf';
+    var pageData = DeepCopy($.mobile.pageData);
+
+    var pdf = '../instances/' + pageData.uuid + '/pdf';
     $.ajax({
       url: pdf,
       cache: false,
@@ -712,11 +752,11 @@ $('#instance-preview').live('click', function(e) {
         window.location.assign(pdf);
       },
       error: function() {
-        GetResource('/instances/' + $.mobile.pageData.uuid + '/frames', function(frames) {
+        GetResource('/instances/' + pageData.uuid + '/frames', function(frames) {
           if (frames.length == 1)
           {
             // Viewing a single-frame image
-            jQuery.slimbox('../instances/' + $.mobile.pageData.uuid + '/preview', '', {
+            jQuery.slimbox('../instances/' + pageData.uuid + '/preview', '', {
               overlayFadeDuration : 1,
               resizeDuration : 1,
               imageFadeDuration : 1
@@ -728,7 +768,7 @@ $('#instance-preview').live('click', function(e) {
 
             var images = [];
             for (var i = 0; i < frames.length; i++) {
-              images.push([ '../instances/' + $.mobile.pageData.uuid + '/frames/' + i + '/preview' ]);
+              images.push([ '../instances/' + pageData.uuid + '/frames/' + i + '/preview' ]);
             }
 
             jQuery.slimbox(images, 0, {
@@ -748,8 +788,10 @@ $('#instance-preview').live('click', function(e) {
 
 $('#series-preview').live('click', function(e) {
   if ($.mobile.pageData) {
-    GetResource('/series/' + $.mobile.pageData.uuid, function(series) {
-      GetResource('/series/' + $.mobile.pageData.uuid + '/instances', function(instances) {
+    var pageData = DeepCopy($.mobile.pageData);
+
+    GetResource('/series/' + pageData.uuid, function(series) {
+      GetResource('/series/' + pageData.uuid + '/instances', function(instances) {
         Sort(instances, function(x) { return x.IndexInSeries; }, true, false);
 
         var images = [];
@@ -858,6 +900,8 @@ function ChooseDicomModality(callback)
 
 $('#instance-store,#series-store,#study-store,#patient-store').live('click', function(e) {
   ChooseDicomModality(function(modality, peer) {
+    var pageData = DeepCopy($.mobile.pageData);
+
     var url;
     var loading;
 
@@ -878,7 +922,7 @@ $('#instance-store,#series-store,#study-store,#patient-store').live('click', fun
         url: url,
         type: 'POST',
         dataType: 'text',
-        data: $.mobile.pageData.uuid,
+        data: pageData.uuid,
         async: true,  // Necessary to block UI
         beforeSend: function() {
           $.blockUI({ message: $(loading) });
