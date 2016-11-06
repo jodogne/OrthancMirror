@@ -22,6 +22,7 @@ Plugins
 Maintenance
 -----------
 
+* Improved robustness of Orthanc Explorer wrt. query/retrieve (maybe fix issue 24)
 * Fix serious performance issue with C-FIND
 * Fix extraction of the symbolic name of the private tags
 * Performance warning if runtime debug assertions are turned on
