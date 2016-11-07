@@ -40,6 +40,7 @@
 #include "../ServerContext.h"
 #include "../SliceOrdering.h"
 #include "../Internals/DicomImageDecoder.h"
+#include "../Search/LookupResource.h"
 
 
 namespace Orthanc
