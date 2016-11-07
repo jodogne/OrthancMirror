@@ -68,11 +68,6 @@ namespace Orthanc
     bool IsIdentifier(const DicomTag& tag,
                       ResourceType level);
 
-    void StoreIdentifiers(IDatabaseWrapper& database,
-                          int64_t resource,
-                          ResourceType level,
-                          const DicomMap& map);
-
     std::string NormalizeIdentifier(const std::string& value);
   }
 }
