@@ -1151,16 +1151,15 @@ namespace Orthanc
                                DicomToJsonFlags flags,
                                unsigned int maxStringLength)
   {
-    FromDcmtkBridge::ToJson(target, *pimpl_->file_->getDataset(),
-                            format, flags, maxStringLength,
-                            Configuration::GetDefaultEncoding());
+    FromDcmtkBridge::ExtractDicomAsJson(target, *pimpl_->file_->getDataset(),
+                                        format, flags, maxStringLength);
   }
 
 
   void ParsedDicomFile::HeaderToJson(Json::Value& target, 
                                      DicomToJsonFormat format)
   {
-    FromDcmtkBridge::ToJson(target, *pimpl_->file_->getMetaInfo(), format, DicomToJsonFlags_None, 0);
+    FromDcmtkBridge::ExtractHeaderAsJson(target, *pimpl_->file_->getMetaInfo(), format, DicomToJsonFlags_None, 0);
   }
 
 

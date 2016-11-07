@@ -111,12 +111,11 @@ namespace Orthanc
     if (!json_.HasContent())
     {
       json_.Allocate();
-      FromDcmtkBridge::ToJson(json_.GetContent(), 
-                              *parsed_.GetContent().GetDcmtkObject().getDataset(),
-                              DicomToJsonFormat_Full, 
-                              DicomToJsonFlags_Default,
-                              ORTHANC_MAXIMUM_TAG_LENGTH,
-                              Configuration::GetDefaultEncoding());
+      FromDcmtkBridge::ExtractDicomAsJson(json_.GetContent(), 
+                                          *parsed_.GetContent().GetDcmtkObject().getDataset(),
+                                          DicomToJsonFormat_Full, 
+                                          DicomToJsonFlags_Default,
+                                          ORTHANC_MAXIMUM_TAG_LENGTH);
     }
   }
 

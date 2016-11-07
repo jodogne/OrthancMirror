@@ -44,10 +44,19 @@
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <json/json.h>
 
+#if ORTHANC_BUILD_UNIT_TESTS == 1
+#  include <gtest/gtest_prod.h>
+#endif
+
+
 namespace Orthanc
 {
   class FromDcmtkBridge : public boost::noncopyable
   {
+#if ORTHANC_BUILD_UNIT_TESTS == 1
+    FRIEND_TEST(FromDcmtkBridge, FromJson);
+#endif
+
   private:
     FromDcmtkBridge();  // Pure static class
 
@@ -55,6 +64,20 @@ namespace Orthanc
                                     DcmItem& dataset,
                                     unsigned int maxStringLength,
                                     Encoding defaultEncoding);
+
+    static void DatasetToJson(Json::Value& parent,
+                              DcmItem& item,
+                              DicomToJsonFormat format,
+                              DicomToJsonFlags flags,
+                              unsigned int maxStringLength,
+                              Encoding encoding);
+
+    static void ElementToJson(Json::Value& parent,
+                              DcmElement& element,
+                              DicomToJsonFormat format,
+                              DicomToJsonFlags flags,
+                              unsigned int maxStringLength,
+                              Encoding dicomEncoding);
 
   public:
     static void InitializeDictionary();
@@ -86,25 +109,17 @@ namespace Orthanc
                                           unsigned int maxStringLength,
                                           Encoding encoding);
 
-    static void ToJson(Json::Value& parent,
-                       DcmElement& element,
-                       DicomToJsonFormat format,
-                       DicomToJsonFlags flags,
-                       unsigned int maxStringLength,
-                       Encoding dicomEncoding);
+    static void ExtractDicomAsJson(Json::Value& target, 
+                                   DcmDataset& dataset,
+                                   DicomToJsonFormat format,
+                                   DicomToJsonFlags flags,
+                                   unsigned int maxStringLength);
 
-    static void ToJson(Json::Value& target, 
-                       DcmDataset& dataset,
-                       DicomToJsonFormat format,
-                       DicomToJsonFlags flags,
-                       unsigned int maxStringLength,
-                       Encoding defaultEncoding);
-
-    static void ToJson(Json::Value& target, 
-                       DcmMetaInfo& header,
-                       DicomToJsonFormat format,
-                       DicomToJsonFlags flags,
-                       unsigned int maxStringLength);
+    static void ExtractHeaderAsJson(Json::Value& target, 
+                                    DcmMetaInfo& header,
+                                    DicomToJsonFormat format,
+                                    DicomToJsonFlags flags,
+                                    unsigned int maxStringLength);
 
     static std::string GetTagName(const DicomTag& tag,
                                   const std::string& privateCreator);

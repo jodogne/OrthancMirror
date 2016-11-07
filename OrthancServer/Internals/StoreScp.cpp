@@ -169,11 +169,10 @@ namespace Orthanc
           try
           {
             FromDcmtkBridge::ExtractDicomSummary(summary, **imageDataSet);
-            FromDcmtkBridge::ToJson(dicomJson, **imageDataSet,
-                                    DicomToJsonFormat_Full, 
-                                    DicomToJsonFlags_Default, 
-                                    ORTHANC_MAXIMUM_TAG_LENGTH,
-                                    Configuration::GetDefaultEncoding());
+            FromDcmtkBridge::ExtractDicomAsJson(dicomJson, **imageDataSet,
+                                                DicomToJsonFormat_Full, 
+                                                DicomToJsonFlags_Default, 
+                                                ORTHANC_MAXIMUM_TAG_LENGTH);
 
             if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, **imageDataSet))
             {

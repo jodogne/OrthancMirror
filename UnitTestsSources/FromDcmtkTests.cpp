@@ -380,79 +380,83 @@ static void CreateSampleJson(Json::Value& a)
 }
 
 
-TEST(FromDcmtkBridge, FromJson)
+namespace Orthanc
 {
-  std::auto_ptr<DcmElement> element;
-
+  // Namespace for the "FRIEND_TEST()" directive in "FromDcmtkBridge" to apply:
+  // https://github.com/google/googletest/blob/master/googletest/docs/AdvancedGuide.md#private-class-members
+  TEST(FromDcmtkBridge, FromJson)
   {
-    Json::Value a;
-    a = "Hello";
-    element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, false, Encoding_Utf8));
-
-    Json::Value b;
-    FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Short, DicomToJsonFlags_Default, 0, Encoding_Ascii);
-    ASSERT_EQ("Hello", b["0010,0010"].asString());
-  }
-
-  {
-    Json::Value a;
-    a = "Hello";
-    // Cannot assign a string to a sequence
-    ASSERT_THROW(element.reset(FromDcmtkBridge::FromJson(REFERENCED_STUDY_SEQUENCE, a, false, Encoding_Utf8)), OrthancException);
-  }
-
-  {
-    Json::Value a = Json::arrayValue;
-    a.append("Hello");
-    // Cannot assign an array to a string
-    ASSERT_THROW(element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, false, Encoding_Utf8)), OrthancException);
-  }
-
-  {
-    Json::Value a;
-    a = "data:application/octet-stream;base64,SGVsbG8=";  // echo -n "Hello" | base64
-    element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, true, Encoding_Utf8));
-
-    Json::Value b;
-    FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Short, DicomToJsonFlags_Default, 0, Encoding_Ascii);
-    ASSERT_EQ("Hello", b["0010,0010"].asString());
-  }
-
-  {
-    Json::Value a = Json::arrayValue;
-    CreateSampleJson(a);
-    element.reset(FromDcmtkBridge::FromJson(REFERENCED_STUDY_SEQUENCE, a, true, Encoding_Utf8));
+    std::auto_ptr<DcmElement> element;
 
     {
-      Json::Value b;
-      FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Short, DicomToJsonFlags_Default, 0, Encoding_Ascii);
-      ASSERT_EQ(Json::arrayValue, b["0008,1110"].type());
-      ASSERT_EQ(2u, b["0008,1110"].size());
-      
-      Json::Value::ArrayIndex i = (b["0008,1110"][0]["0010,0010"].asString() == "Hello") ? 0 : 1;
+      Json::Value a;
+      a = "Hello";
+      element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, false, Encoding_Utf8));
 
-      ASSERT_EQ(3u, b["0008,1110"][i].size());
-      ASSERT_EQ(2u, b["0008,1110"][1 - i].size());
-      ASSERT_EQ(b["0008,1110"][i]["0010,0010"].asString(), "Hello");
-      ASSERT_EQ(b["0008,1110"][i]["0010,0020"].asString(), "World");
-      ASSERT_EQ(b["0008,1110"][i]["0008,1030"].asString(), "Toto");
-      ASSERT_EQ(b["0008,1110"][1 - i]["0010,0010"].asString(), "Hello2");
-      ASSERT_EQ(b["0008,1110"][1 - i]["0010,0020"].asString(), "World2");
+      Json::Value b;
+      FromDcmtkBridge::ElementToJson(b, *element, DicomToJsonFormat_Short, DicomToJsonFlags_Default, 0, Encoding_Ascii);
+      ASSERT_EQ("Hello", b["0010,0010"].asString());
     }
 
     {
+      Json::Value a;
+      a = "Hello";
+      // Cannot assign a string to a sequence
+      ASSERT_THROW(element.reset(FromDcmtkBridge::FromJson(REFERENCED_STUDY_SEQUENCE, a, false, Encoding_Utf8)), OrthancException);
+    }
+
+    {
+      Json::Value a = Json::arrayValue;
+      a.append("Hello");
+      // Cannot assign an array to a string
+      ASSERT_THROW(element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, false, Encoding_Utf8)), OrthancException);
+    }
+
+    {
+      Json::Value a;
+      a = "data:application/octet-stream;base64,SGVsbG8=";  // echo -n "Hello" | base64
+      element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, true, Encoding_Utf8));
+
       Json::Value b;
-      FromDcmtkBridge::ToJson(b, *element, DicomToJsonFormat_Full, DicomToJsonFlags_Default, 0, Encoding_Ascii);
+      FromDcmtkBridge::ElementToJson(b, *element, DicomToJsonFormat_Short, DicomToJsonFlags_Default, 0, Encoding_Ascii);
+      ASSERT_EQ("Hello", b["0010,0010"].asString());
+    }
 
-      Json::Value c;
-      ServerToolbox::SimplifyTags(c, b, DicomToJsonFormat_Human);
+    {
+      Json::Value a = Json::arrayValue;
+      CreateSampleJson(a);
+      element.reset(FromDcmtkBridge::FromJson(REFERENCED_STUDY_SEQUENCE, a, true, Encoding_Utf8));
 
-      a[1]["PatientName"] = "Hello2";  // To remove the Data URI Scheme encoding
-      ASSERT_EQ(0, c["ReferencedStudySequence"].compare(a));
+      {
+        Json::Value b;
+        FromDcmtkBridge::ElementToJson(b, *element, DicomToJsonFormat_Short, DicomToJsonFlags_Default, 0, Encoding_Ascii);
+        ASSERT_EQ(Json::arrayValue, b["0008,1110"].type());
+        ASSERT_EQ(2u, b["0008,1110"].size());
+      
+        Json::Value::ArrayIndex i = (b["0008,1110"][0]["0010,0010"].asString() == "Hello") ? 0 : 1;
+
+        ASSERT_EQ(3u, b["0008,1110"][i].size());
+        ASSERT_EQ(2u, b["0008,1110"][1 - i].size());
+        ASSERT_EQ(b["0008,1110"][i]["0010,0010"].asString(), "Hello");
+        ASSERT_EQ(b["0008,1110"][i]["0010,0020"].asString(), "World");
+        ASSERT_EQ(b["0008,1110"][i]["0008,1030"].asString(), "Toto");
+        ASSERT_EQ(b["0008,1110"][1 - i]["0010,0010"].asString(), "Hello2");
+        ASSERT_EQ(b["0008,1110"][1 - i]["0010,0020"].asString(), "World2");
+      }
+
+      {
+        Json::Value b;
+        FromDcmtkBridge::ElementToJson(b, *element, DicomToJsonFormat_Full, DicomToJsonFlags_Default, 0, Encoding_Ascii);
+
+        Json::Value c;
+        ServerToolbox::SimplifyTags(c, b, DicomToJsonFormat_Human);
+
+        a[1]["PatientName"] = "Hello2";  // To remove the Data URI Scheme encoding
+        ASSERT_EQ(0, c["ReferencedStudySequence"].compare(a));
+      }
     }
   }
 }
-
 
 
 TEST(ParsedDicomFile, InsertReplaceStrings)
