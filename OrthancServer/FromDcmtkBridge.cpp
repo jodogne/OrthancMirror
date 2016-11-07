@@ -741,20 +741,12 @@ namespace Orthanc
   }                              
 
 
-  static void DatasetToJson(Json::Value& parent,
-                            DcmItem& item,
-                            DicomToJsonFormat format,
-                            DicomToJsonFlags flags,
-                            unsigned int maxStringLength,
-                            Encoding encoding);
-
-
-  void FromDcmtkBridge::ToJson(Json::Value& parent,
-                               DcmElement& element,
-                               DicomToJsonFormat format,
-                               DicomToJsonFlags flags,
-                               unsigned int maxStringLength,
-                               Encoding encoding)
+  void FromDcmtkBridge::ElementToJson(Json::Value& parent,
+                                      DcmElement& element,
+                                      DicomToJsonFormat format,
+                                      DicomToJsonFlags flags,
+                                      unsigned int maxStringLength,
+                                      Encoding encoding)
   {
     if (parent.type() == Json::nullValue)
     {
@@ -789,12 +781,12 @@ namespace Orthanc
   }
 
 
-  static void DatasetToJson(Json::Value& parent,
-                            DcmItem& item,
-                            DicomToJsonFormat format,
-                            DicomToJsonFlags flags,
-                            unsigned int maxStringLength,
-                            Encoding encoding)
+  void FromDcmtkBridge::DatasetToJson(Json::Value& parent,
+                                      DcmItem& item,
+                                      DicomToJsonFormat format,
+                                      DicomToJsonFlags flags,
+                                      unsigned int maxStringLength,
+                                      Encoding encoding)
   {
     assert(parent.type() == Json::objectValue);
 
@@ -839,28 +831,29 @@ namespace Orthanc
         }
       }
 
-      FromDcmtkBridge::ToJson(parent, *element, format, flags, maxStringLength, encoding);
+      FromDcmtkBridge::ElementToJson(parent, *element, format, flags, maxStringLength, encoding);
     }
   }
 
 
-  void FromDcmtkBridge::ToJson(Json::Value& target, 
-                               DcmDataset& dataset,
-                               DicomToJsonFormat format,
-                               DicomToJsonFlags flags,
-                               unsigned int maxStringLength,
-                               Encoding defaultEncoding)
+  void FromDcmtkBridge::ExtractDicomAsJson(Json::Value& target, 
+                                           DcmDataset& dataset,
+                                           DicomToJsonFormat format,
+                                           DicomToJsonFlags flags,
+                                           unsigned int maxStringLength)
   {
+    Encoding encoding = DetectEncoding(dataset, Configuration::GetDefaultEncoding());
+
     target = Json::objectValue;
-    DatasetToJson(target, dataset, format, flags, maxStringLength, DetectEncoding(dataset, defaultEncoding));
+    DatasetToJson(target, dataset, format, flags, maxStringLength, encoding);
   }
 
 
-  void FromDcmtkBridge::ToJson(Json::Value& target, 
-                               DcmMetaInfo& dataset,
-                               DicomToJsonFormat format,
-                               DicomToJsonFlags flags,
-                               unsigned int maxStringLength)
+  void FromDcmtkBridge::ExtractHeaderAsJson(Json::Value& target, 
+                                            DcmMetaInfo& dataset,
+                                            DicomToJsonFormat format,
+                                            DicomToJsonFlags flags,
+                                            unsigned int maxStringLength)
   {
     target = Json::objectValue;
     DatasetToJson(target, dataset, format, flags, maxStringLength, Encoding_Ascii);
