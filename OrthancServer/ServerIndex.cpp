@@ -45,12 +45,11 @@
 #include "../Core/Logging.h"
 #include "../Core/Uuid.h"
 #include "../Core/DicomFormat/DicomArray.h"
-#include "Search/LookupIdentifierQuery.h"
-#include "Search/LookupResource.h"
 
 #include "FromDcmtkBridge.h"
 #include "ServerContext.h"
 #include "DicomInstanceToStore.h"
+#include "Search/LookupResource.h"
 
 #include <boost/lexical_cast.hpp>
 #include <stdio.h>

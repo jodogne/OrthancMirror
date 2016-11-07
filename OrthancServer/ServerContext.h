@@ -47,7 +47,6 @@
 #include "Scheduler/ServerScheduler.h"
 #include "ServerIndex.h"
 #include "OrthancHttpHandler.h"
-#include "Search/LookupResource.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
