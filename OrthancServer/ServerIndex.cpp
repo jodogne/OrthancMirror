@@ -634,7 +634,7 @@ namespace Orthanc
 
       // Create the instance
       int64_t instance = CreateResource(hasher.HashInstance(), ResourceType_Instance);
-      Toolbox::SetMainDicomTags(db_, instance, ResourceType_Instance, dicomSummary);
+      ServerToolbox::StoreMainDicomTags(db_, instance, ResourceType_Instance, dicomSummary);
 
       // Detect up to which level the patient/study/series/instance
       // hierarchy must be created
@@ -686,21 +686,21 @@ namespace Orthanc
       if (isNewSeries)
       {
         series = CreateResource(hasher.HashSeries(), ResourceType_Series);
-        Toolbox::SetMainDicomTags(db_, series, ResourceType_Series, dicomSummary);
+        ServerToolbox::StoreMainDicomTags(db_, series, ResourceType_Series, dicomSummary);
       }
 
       // Create the study if needed
       if (isNewStudy)
       {
         study = CreateResource(hasher.HashStudy(), ResourceType_Study);
-        Toolbox::SetMainDicomTags(db_, study, ResourceType_Study, dicomSummary);
+        ServerToolbox::StoreMainDicomTags(db_, study, ResourceType_Study, dicomSummary);
       }
 
       // Create the patient if needed
       if (isNewPatient)
       {
         patient = CreateResource(hasher.HashPatient(), ResourceType_Patient);
-        Toolbox::SetMainDicomTags(db_, patient, ResourceType_Patient, dicomSummary);
+        ServerToolbox::StoreMainDicomTags(db_, patient, ResourceType_Patient, dicomSummary);
       }
 
       // Create the parent-to-child links
@@ -2180,7 +2180,7 @@ namespace Orthanc
       assert(db_.GetResourceType(*it) == lookup.GetLevel());
       
       int64_t instance;
-      if (!Toolbox::FindOneChildInstance(instance, db_, *it, lookup.GetLevel()))
+      if (!ServerToolbox::FindOneChildInstance(instance, db_, *it, lookup.GetLevel()))
       {
         throw OrthancException(ErrorCode_InternalError);
       }

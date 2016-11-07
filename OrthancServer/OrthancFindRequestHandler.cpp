@@ -401,7 +401,7 @@ namespace Orthanc
           for (Json::Value::ArrayIndex i = 0; i < source["Value"].size(); i++)
           {
             Json::Value item;
-            Toolbox::SimplifyTags(item, source["Value"][i], DicomToJsonFormat_Short);
+            ServerToolbox::SimplifyTags(item, source["Value"][i], DicomToJsonFormat_Short);
             content.append(item);
           }
 
