@@ -215,7 +215,9 @@ namespace Orthanc
     }
     else
     {
-      context.AnswerAttachment(call.GetOutput(), publicId, FileContentType_DicomAsJson);
+      std::string full;
+      context.ReadDicomAsJson(full, publicId);
+      call.GetOutput().AnswerBuffer(full, "application/json");
     }
   }
 
