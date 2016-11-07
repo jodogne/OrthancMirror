@@ -674,7 +674,7 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError);
         }
 
-        context.ReadJson(siblingTags, siblingInstances.front());
+        context.ReadDicomAsJson(siblingTags, siblingInstances.front());
       }
 
 

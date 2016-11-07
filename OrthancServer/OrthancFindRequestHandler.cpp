@@ -121,7 +121,7 @@ namespace Orthanc
            it = instances.begin(); it != instances.end(); ++it)
     {
       Json::Value dicom;
-      context.ReadJson(dicom, *it);
+      context.ReadDicomAsJson(dicom, *it);
 
       if (dicom.isMember(formatted))
       {
@@ -660,7 +660,7 @@ namespace Orthanc
     for (size_t i = 0; i < instances.size(); i++)
     {
       Json::Value dicom;
-      context_.ReadJson(dicom, instances[i]);
+      context_.ReadDicomAsJson(dicom, instances[i]);
       
       if (finder.IsMatch(dicom))
       {

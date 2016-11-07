@@ -1278,7 +1278,7 @@ namespace Orthanc
 
     {
       PImpl::ServerContextLock lock(*pimpl_);
-      lock.GetContext().ReadFile(dicom, p.instanceId, FileContentType_Dicom);
+      lock.GetContext().ReadDicom(dicom, p.instanceId);
     }
 
     CopyToMemoryBuffer(*p.target, dicom);
@@ -1948,7 +1948,7 @@ namespace Orthanc
 
       {
         PImpl::ServerContextLock lock(*pimpl_);
-        lock.GetContext().ReadFile(content, p.instanceId, FileContentType_Dicom);
+        lock.GetContext().ReadDicom(content, p.instanceId);
       }
 
       dicom.reset(new ParsedDicomFile(content));

@@ -62,7 +62,7 @@ namespace Orthanc
 
       try
       {
-        context_.ReadFile(client.GetBody(), *it, FileContentType_Dicom);
+        context_.ReadDicom(client.GetBody(), *it);
 
         std::string answer;
         if (!client.Apply(answer))

@@ -368,11 +368,11 @@ namespace Orthanc
   }
 
 
-  void ServerContext::ReadJson(Json::Value& result,
-                               const std::string& instancePublicId)
+  void ServerContext::ReadDicomAsJson(Json::Value& result,
+                                      const std::string& instancePublicId)
   {
     std::string s;
-    ReadFile(s, instancePublicId, FileContentType_DicomAsJson);
+    ReadFile(s, instancePublicId, FileContentType_DicomAsJson, true /* decompress if needed */);
 
     Json::Reader reader;
     if (!reader.parse(s, result))
@@ -418,7 +418,7 @@ namespace Orthanc
   IDynamicObject* ServerContext::DicomCacheProvider::Provide(const std::string& instancePublicId)
   {
     std::string content;
-    context_.ReadFile(content, instancePublicId, FileContentType_Dicom);
+    context_.ReadDicom(content, instancePublicId);
     return new ParsedDicomFile(content);
   }
 
@@ -567,7 +567,7 @@ namespace Orthanc
     for (size_t i = 0; i < instances.size(); i++)
     {
       Json::Value dicom;
-      ReadJson(dicom, instances[i]);
+      ReadDicomAsJson(dicom, instances[i]);
       
       if (lookup.IsMatch(dicom))
       {

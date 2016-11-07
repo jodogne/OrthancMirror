@@ -191,14 +191,20 @@ namespace Orthanc
                                      FileContentType attachmentType,
                                      CompressionType compression);
 
-    void ReadJson(Json::Value& result,
-                  const std::string& instancePublicId);
+    void ReadDicomAsJson(Json::Value& result,
+                         const std::string& instancePublicId);
 
+    void ReadDicom(std::string& dicom,
+                   const std::string& instancePublicId)
+    {
+      ReadFile(dicom, instancePublicId, FileContentType_Dicom, true);
+    }
+    
     // TODO CACHING MECHANISM AT THIS POINT
     void ReadFile(std::string& result,
                   const std::string& instancePublicId,
                   FileContentType content,
-                  bool uncompressIfNeeded = true);
+                  bool uncompressIfNeeded);
 
     void ReadFile(std::string& result,
                   const FileInfo& file);

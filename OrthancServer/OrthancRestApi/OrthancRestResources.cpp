@@ -187,7 +187,7 @@ namespace Orthanc
     std::string publicId = call.GetUriComponent("id", "");
 
     std::string dicom;
-    context.ReadFile(dicom, publicId, FileContentType_Dicom);
+    context.ReadDicom(dicom, publicId);
 
     std::string target;
     call.BodyToString(target);
@@ -207,7 +207,7 @@ namespace Orthanc
     if (simplify)
     {
       Json::Value full;
-      context.ReadJson(full, publicId);
+      context.ReadDicomAsJson(full, publicId);
 
       Json::Value simplified;
       ServerToolbox::SimplifyTags(simplified, full, DicomToJsonFormat_Human);
@@ -380,7 +380,7 @@ namespace Orthanc
       {
         // TODO create a cache of file
         std::string dicomContent;
-        context.ReadFile(dicomContent, publicId, FileContentType_Dicom);
+        context.ReadDicom(dicomContent, publicId);
         decoded.reset(context.GetPlugins().DecodeUnsafe(dicomContent.c_str(), dicomContent.size(), frame));
 
         /**
@@ -450,7 +450,7 @@ namespace Orthanc
 
     std::string publicId = call.GetUriComponent("id", "");
     std::string dicomContent;
-    context.ReadFile(dicomContent, publicId, FileContentType_Dicom);
+    context.ReadDicom(dicomContent, publicId);
 
 #if ORTHANC_PLUGINS_ENABLED == 1
     IDicomImageDecoder& decoder = context.GetPlugins();
@@ -871,7 +871,7 @@ namespace Orthanc
 
       try
       {
-        context.ReadJson(tags, *it);
+        context.ReadDicomAsJson(tags, *it);
       }
       catch (OrthancException&)
       {
@@ -989,7 +989,7 @@ namespace Orthanc
       publicId = instances.front();
     }
 
-    context.ReadJson(tags, publicId);
+    context.ReadDicomAsJson(tags, publicId);
     
     // Filter the tags of the instance according to the module
     Json::Value result = Json::objectValue;
@@ -1206,7 +1206,7 @@ namespace Orthanc
          it != instances.end(); ++it)
     {
       Json::Value full;
-      context.ReadJson(full, *it);
+      context.ReadDicomAsJson(full, *it);
 
       if (simplify)
       {
@@ -1295,7 +1295,7 @@ namespace Orthanc
     bool simplify = call.HasArgument("simplify");
 
     std::string dicomContent;
-    context.ReadFile(dicomContent, publicId, FileContentType_Dicom);
+    context.ReadDicom(dicomContent, publicId);
 
     // TODO Consider using "DicomMap::ParseDicomMetaInformation()" to
     // speed up things here

@@ -59,7 +59,7 @@ namespace Orthanc
       try
       {
         std::string dicom;
-        context_.ReadFile(dicom, *it, FileContentType_Dicom);
+        context_.ReadDicom(dicom, *it);
 
         Toolbox::TemporaryFile tmp;
         tmp.Write(dicom);
