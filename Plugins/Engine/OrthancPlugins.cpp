@@ -1955,8 +1955,8 @@ namespace Orthanc
     }
 
     Json::Value json;
-    dicom->ToJson(json, Plugins::Convert(p.format), 
-                  static_cast<DicomToJsonFlags>(p.flags), p.maxStringLength);
+    dicom->DatasetToJson(json, Plugins::Convert(p.format), 
+                         static_cast<DicomToJsonFlags>(p.flags), p.maxStringLength);
 
     Json::FastWriter writer;
     *p.result = CopyString(writer.write(json));
