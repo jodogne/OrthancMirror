@@ -33,6 +33,7 @@
 #pragma once
 
 #include "ServerEnumerations.h"
+#include "OrthancInitialization.h"
 
 #include "../Core/DicomFormat/DicomElement.h"
 #include "../Core/DicomFormat/DicomMap.h"
@@ -45,8 +46,16 @@
 
 namespace Orthanc
 {
-  class FromDcmtkBridge
+  class FromDcmtkBridge : public boost::noncopyable
   {
+  private:
+    FromDcmtkBridge();  // Pure static class
+
+    static void ExtractDicomSummary(DicomMap& target, 
+                                    DcmItem& dataset,
+                                    unsigned int maxStringLength,
+                                    Encoding defaultEncoding);
+
   public:
     static void InitializeDictionary();
 
@@ -60,10 +69,11 @@ namespace Orthanc
     static Encoding DetectEncoding(DcmItem& dataset,
                                    Encoding defaultEncoding);
 
-    static void Convert(DicomMap& target, 
-                        DcmItem& dataset,
-                        unsigned int maxStringLength,
-                        Encoding defaultEncoding);
+    static void ExtractDicomSummary(DicomMap& target, 
+                                    DcmItem& dataset)
+    {
+      ExtractDicomSummary(target, dataset, ORTHANC_MAXIMUM_TAG_LENGTH, Configuration::GetDefaultEncoding());
+    }
 
     static DicomTag Convert(const DcmTag& tag);
 

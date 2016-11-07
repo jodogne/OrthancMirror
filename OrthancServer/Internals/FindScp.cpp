@@ -179,8 +179,8 @@ namespace Orthanc
               }
 
               DicomMap input;
-              FromDcmtkBridge::Convert(input, *requestIdentifiers, ORTHANC_MAXIMUM_TAG_LENGTH,
-                                       Configuration::GetDefaultEncoding());
+              FromDcmtkBridge::ExtractDicomSummary(input, *requestIdentifiers);
+
               data.findHandler_->Handle(data.answers_, input, sequencesToReturn,
                                         *data.remoteIp_, *data.remoteAet_,
                                         *data.calledAet_);

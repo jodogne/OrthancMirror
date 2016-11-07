@@ -104,10 +104,8 @@ namespace Orthanc
     if (!summary_.HasContent())
     {
       summary_.Allocate();
-      FromDcmtkBridge::Convert(summary_.GetContent(), 
-                               *parsed_.GetContent().GetDcmtkObject().getDataset(),
-                               ORTHANC_MAXIMUM_TAG_LENGTH,                               
-                               Configuration::GetDefaultEncoding());
+      FromDcmtkBridge::ExtractDicomSummary(summary_.GetContent(), 
+                                           *parsed_.GetContent().GetDcmtkObject().getDataset());
     }
     
     if (!json_.HasContent())

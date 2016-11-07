@@ -168,15 +168,12 @@ namespace Orthanc
 
           try
           {
-            const Encoding defaultEncoding = Configuration::GetDefaultEncoding();
-            FromDcmtkBridge::Convert(summary, **imageDataSet, 
-                                     ORTHANC_MAXIMUM_TAG_LENGTH,
-                                     defaultEncoding);
+            FromDcmtkBridge::ExtractDicomSummary(summary, **imageDataSet);
             FromDcmtkBridge::ToJson(dicomJson, **imageDataSet,
                                     DicomToJsonFormat_Full, 
                                     DicomToJsonFlags_Default, 
                                     ORTHANC_MAXIMUM_TAG_LENGTH,
-                                    defaultEncoding);
+                                    Configuration::GetDefaultEncoding());
 
             if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, **imageDataSet))
             {
