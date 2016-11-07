@@ -368,14 +368,21 @@ namespace Orthanc
   }
 
 
+  void ServerContext::ReadDicomAsJson(std::string& result,
+                                      const std::string& instancePublicId)
+  {
+    ReadFile(result, instancePublicId, FileContentType_DicomAsJson, true /* decompress if needed */);
+  }
+
+
   void ServerContext::ReadDicomAsJson(Json::Value& result,
                                       const std::string& instancePublicId)
   {
-    std::string s;
-    ReadFile(s, instancePublicId, FileContentType_DicomAsJson, true /* decompress if needed */);
+    std::string tmp;
+    ReadDicomAsJson(tmp, instancePublicId);
 
     Json::Reader reader;
-    if (!reader.parse(s, result))
+    if (!reader.parse(tmp, result))
     {
       throw OrthancException(ErrorCode_CorruptedFile);
     }
