@@ -371,7 +371,32 @@ namespace Orthanc
   void ServerContext::ReadDicomAsJson(std::string& result,
                                       const std::string& instancePublicId)
   {
-    ReadFile(result, instancePublicId, FileContentType_DicomAsJson, true /* decompress if needed */);
+    FileInfo attachment;
+    if (index_.LookupAttachment(attachment, instancePublicId, FileContentType_DicomAsJson))
+    {
+      ReadAttachment(result, attachment);
+      return;
+    }
+
+    // The "DICOM as JSON" summary is not available from the Orthanc
+    // store (most probably deleted), reconstruct it from the DICOM file
+    std::string dicom;
+    ReadDicom(dicom, instancePublicId);
+
+    LOG(INFO) << "Reconstructing the missing DICOM-as-JSON summary for instance: " << instancePublicId;
+    
+    ParsedDicomFile parsed(dicom);
+
+    Json::Value summary;
+    parsed.DatasetToJson(summary);
+
+    result = summary.toStyledString();
+
+    if (!AddAttachment(instancePublicId, FileContentType_DicomAsJson, result.c_str(), result.size()))
+    {
+      LOG(WARNING) << "Cannot associate the DICOM-as-JSON summary to instance: " << instancePublicId;
+      throw OrthancException(ErrorCode_InternalError);
+    }
   }
 
 
@@ -389,21 +414,21 @@ namespace Orthanc
   }
 
 
-  void ServerContext::ReadFile(std::string& result,
-                               const std::string& instancePublicId,
-                               FileContentType content,
-                               bool uncompressIfNeeded)
+  void ServerContext::ReadAttachment(std::string& result,
+                                     const std::string& instancePublicId,
+                                     FileContentType content,
+                                     bool uncompressIfNeeded)
   {
     FileInfo attachment;
     if (!index_.LookupAttachment(attachment, instancePublicId, content))
     {
+      LOG(WARNING) << "Unable to read attachment " << EnumerationToString(content) << " of instance " << instancePublicId;
       throw OrthancException(ErrorCode_InternalError);
     }
 
     if (uncompressIfNeeded)
     {
-      StorageAccessor accessor(area_);
-      accessor.Read(result, attachment);
+      ReadAttachment(result, attachment);
     }
     else
     {
@@ -414,11 +439,12 @@ namespace Orthanc
   }
 
 
-  void ServerContext::ReadFile(std::string& result,
-                               const FileInfo& file)
+  void ServerContext::ReadAttachment(std::string& result,
+                                     const FileInfo& attachment)
   {
+    // This will decompress the attachment
     StorageAccessor accessor(area_);
-    accessor.Read(result, file);
+    accessor.Read(result, attachment);
   }
 
 

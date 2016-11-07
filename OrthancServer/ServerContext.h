@@ -200,17 +200,17 @@ namespace Orthanc
     void ReadDicom(std::string& dicom,
                    const std::string& instancePublicId)
     {
-      ReadFile(dicom, instancePublicId, FileContentType_Dicom, true);
+      ReadAttachment(dicom, instancePublicId, FileContentType_Dicom, true);
     }
     
     // TODO CACHING MECHANISM AT THIS POINT
-    void ReadFile(std::string& result,
-                  const std::string& instancePublicId,
-                  FileContentType content,
-                  bool uncompressIfNeeded);
-
-    void ReadFile(std::string& result,
-                  const FileInfo& file);
+    void ReadAttachment(std::string& result,
+                        const std::string& instancePublicId,
+                        FileContentType content,
+                        bool uncompressIfNeeded);
+    
+    void ReadAttachment(std::string& result,
+                        const FileInfo& attachment);
 
     void SetStoreMD5ForAttachments(bool storeMD5);
 

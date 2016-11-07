@@ -13,6 +13,7 @@ REST API
 * "Permissive" flag for URI "/modalities/{...}/store" to ignore C-Store transfer errors
 * "Asynchronous" flag for URIs "/modalities/{...}/store" and "/peers/{...}/store"
   to avoid waiting for the completion of image transfers
+* Possibility to DELETE "dicom-as-json" attachments to reconstruct them
 
 Plugins
 -------

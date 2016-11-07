@@ -524,7 +524,7 @@ namespace Orthanc
                                const FileInfo& dicom)
       {
         std::string content;
-        context_.ReadFile(content, dicom);
+        context_.ReadAttachment(content, dicom);
 
         char filename[24];
         snprintf(filename, sizeof(filename) - 1, instanceFormat_, countInstances_);
@@ -612,7 +612,7 @@ namespace Orthanc
         writer_.OpenFile(filename.c_str());
 
         std::string content;
-        context_.ReadFile(content, dicom);
+        context_.ReadAttachment(content, dicom);
         writer_.Write(content);
 
         ParsedDicomFile parsed(content);

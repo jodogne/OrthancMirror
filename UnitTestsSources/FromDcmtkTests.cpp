@@ -526,7 +526,7 @@ TEST(ParsedDicomFile, InsertReplaceJson)
 
   {
     Json::Value b;
-    f.ToJson(b, DicomToJsonFormat_Full, DicomToJsonFlags_Default, 0);
+    f.DatasetToJson(b, DicomToJsonFormat_Full, DicomToJsonFlags_Default, 0);
 
     Json::Value c;
     ServerToolbox::SimplifyTags(c, b, DicomToJsonFormat_Human);
@@ -571,7 +571,7 @@ TEST(ParsedDicomFile, JsonEncoding)
       f.Replace(DICOM_TAG_PATIENT_NAME, s, false, DicomReplaceMode_InsertIfAbsent);
 
       Json::Value v;
-      f.ToJson(v, DicomToJsonFormat_Human, DicomToJsonFlags_Default, 0);
+      f.DatasetToJson(v, DicomToJsonFormat_Human, DicomToJsonFlags_Default, 0);
       ASSERT_EQ(v["PatientName"].asString(), std::string(testEncodingsExpected[i]));
     }
   }
@@ -589,7 +589,7 @@ TEST(ParsedDicomFile, ToJsonFlags1)
   f.Insert(DicomTag(0x7053, 0x1000), "Some private tag", false);  // Odd group => private tag
 
   Json::Value v;
-  f.ToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
+  f.DatasetToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
   ASSERT_EQ(Json::objectValue, v.type());
   ASSERT_EQ(6u, v.getMemberNames().size());
   ASSERT_FALSE(v.isMember("7052,1000"));
@@ -598,7 +598,7 @@ TEST(ParsedDicomFile, ToJsonFlags1)
   ASSERT_EQ(Json::stringValue, v["7050,1000"].type());
   ASSERT_EQ("Some public tag", v["7050,1000"].asString());
 
-  f.ToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePrivateTags | DicomToJsonFlags_ConvertBinaryToNull), 0);
+  f.DatasetToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePrivateTags | DicomToJsonFlags_ConvertBinaryToNull), 0);
   ASSERT_EQ(Json::objectValue, v.type());
   ASSERT_EQ(7u, v.getMemberNames().size());
   ASSERT_FALSE(v.isMember("7052,1000"));
@@ -607,7 +607,7 @@ TEST(ParsedDicomFile, ToJsonFlags1)
   ASSERT_EQ("Some public tag", v["7050,1000"].asString());
   ASSERT_EQ(Json::nullValue, v["7053,1000"].type());
 
-  f.ToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_IncludePrivateTags, 0);
+  f.DatasetToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_IncludePrivateTags, 0);
   ASSERT_EQ(Json::objectValue, v.type());
   ASSERT_EQ(7u, v.getMemberNames().size());
   ASSERT_FALSE(v.isMember("7052,1000"));
@@ -620,7 +620,7 @@ TEST(ParsedDicomFile, ToJsonFlags1)
   ASSERT_EQ("application/octet-stream", mime);
   ASSERT_EQ("Some private tag", content);
 
-  f.ToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludeUnknownTags | DicomToJsonFlags_ConvertBinaryToNull), 0);
+  f.DatasetToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludeUnknownTags | DicomToJsonFlags_ConvertBinaryToNull), 0);
   ASSERT_EQ(Json::objectValue, v.type());
   ASSERT_EQ(7u, v.getMemberNames().size());
   ASSERT_TRUE(v.isMember("7050,1000"));
@@ -629,7 +629,7 @@ TEST(ParsedDicomFile, ToJsonFlags1)
   ASSERT_EQ("Some public tag", v["7050,1000"].asString());
   ASSERT_EQ(Json::nullValue, v["7052,1000"].type());
 
-  f.ToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludeUnknownTags), 0);
+  f.DatasetToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludeUnknownTags), 0);
   ASSERT_EQ(Json::objectValue, v.type());
   ASSERT_EQ(7u, v.getMemberNames().size());
   ASSERT_TRUE(v.isMember("7050,1000"));
@@ -641,7 +641,7 @@ TEST(ParsedDicomFile, ToJsonFlags1)
   ASSERT_EQ("application/octet-stream", mime);
   ASSERT_EQ("Some unknown tag", content);
 
-  f.ToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludeUnknownTags | DicomToJsonFlags_IncludePrivateTags | DicomToJsonFlags_ConvertBinaryToNull), 0);
+  f.DatasetToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludeUnknownTags | DicomToJsonFlags_IncludePrivateTags | DicomToJsonFlags_ConvertBinaryToNull), 0);
   ASSERT_EQ(Json::objectValue, v.type());
   ASSERT_EQ(8u, v.getMemberNames().size());
   ASSERT_TRUE(v.isMember("7050,1000"));
@@ -659,25 +659,25 @@ TEST(ParsedDicomFile, ToJsonFlags2)
   f.Insert(DICOM_TAG_PIXEL_DATA, "Pixels", false);
 
   Json::Value v;
-  f.ToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
+  f.DatasetToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
   ASSERT_EQ(Json::objectValue, v.type());
   ASSERT_EQ(5u, v.getMemberNames().size());
   ASSERT_FALSE(v.isMember("7fe0,0010"));  
 
-  f.ToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePixelData | DicomToJsonFlags_ConvertBinaryToNull), 0);
+  f.DatasetToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePixelData | DicomToJsonFlags_ConvertBinaryToNull), 0);
   ASSERT_EQ(Json::objectValue, v.type());
   ASSERT_EQ(6u, v.getMemberNames().size());
   ASSERT_TRUE(v.isMember("7fe0,0010"));  
   ASSERT_EQ(Json::nullValue, v["7fe0,0010"].type());  
 
-  f.ToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePixelData | DicomToJsonFlags_ConvertBinaryToAscii), 0);
+  f.DatasetToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePixelData | DicomToJsonFlags_ConvertBinaryToAscii), 0);
   ASSERT_EQ(Json::objectValue, v.type());
   ASSERT_EQ(6u, v.getMemberNames().size());
   ASSERT_TRUE(v.isMember("7fe0,0010"));  
   ASSERT_EQ(Json::stringValue, v["7fe0,0010"].type());  
   ASSERT_EQ("Pixels", v["7fe0,0010"].asString());  
 
-  f.ToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_IncludePixelData, 0);
+  f.DatasetToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_IncludePixelData, 0);
   ASSERT_EQ(Json::objectValue, v.type());
   ASSERT_EQ(6u, v.getMemberNames().size());
   ASSERT_TRUE(v.isMember("7fe0,0010"));  
@@ -768,7 +768,7 @@ TEST(ParsedDicomFile, FromJson)
       (ParsedDicomFile::CreateFromJson(v, static_cast<DicomFromJsonFlags>(DicomFromJsonFlags_GenerateIdentifiers)));
 
     Json::Value vv;
-    dicom->ToJson(vv, DicomToJsonFormat_Human, toJsonFlags, 0);
+    dicom->DatasetToJson(vv, DicomToJsonFormat_Human, toJsonFlags, 0);
 
     ASSERT_EQ(vv["SOPClassUID"].asString(), sopClassUid);
     ASSERT_EQ(vv["MediaStorageSOPClassUID"].asString(), sopClassUid);
@@ -784,7 +784,7 @@ TEST(ParsedDicomFile, FromJson)
       (ParsedDicomFile::CreateFromJson(v, static_cast<DicomFromJsonFlags>(DicomFromJsonFlags_GenerateIdentifiers)));
 
     Json::Value vv;
-    dicom->ToJson(vv, DicomToJsonFormat_Human, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePixelData), 0);
+    dicom->DatasetToJson(vv, DicomToJsonFormat_Human, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePixelData), 0);
 
     std::string mime, content;
     ASSERT_TRUE(Toolbox::DecodeDataUriScheme(mime, content, vv["PixelData"].asString()));
@@ -798,7 +798,7 @@ TEST(ParsedDicomFile, FromJson)
       (ParsedDicomFile::CreateFromJson(v, static_cast<DicomFromJsonFlags>(DicomFromJsonFlags_DecodeDataUriScheme)));
 
     Json::Value vv;
-    dicom->ToJson(vv, DicomToJsonFormat_Short, toJsonFlags, 0);
+    dicom->DatasetToJson(vv, DicomToJsonFormat_Short, toJsonFlags, 0);
 
     ASSERT_FALSE(vv.isMember("SOPInstanceUID"));
     ASSERT_FALSE(vv.isMember("SeriesInstanceUID"));

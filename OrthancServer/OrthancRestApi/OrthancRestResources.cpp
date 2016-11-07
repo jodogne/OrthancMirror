@@ -565,6 +565,10 @@ namespace Orthanc
       OrthancRestApi::GetIndex(call).DeleteMetadata(publicId, metadata);
       call.GetOutput().AnswerBuffer("", "text/plain");
     }
+    else
+    {
+      call.GetOutput().SignalError(HttpStatus_403_Forbidden);
+    }
   }
 
 
@@ -584,6 +588,10 @@ namespace Orthanc
       // It is forbidden to modify internal metadata
       OrthancRestApi::GetIndex(call).SetMetadata(publicId, metadata, value);
       call.GetOutput().AnswerBuffer("", "text/plain");
+    }
+    else
+    {
+      call.GetOutput().SignalError(HttpStatus_403_Forbidden);
     }
   }
 
@@ -679,7 +687,7 @@ namespace Orthanc
     {
       // Return the raw data (possibly compressed), as stored on the filesystem
       std::string content;
-      context.ReadFile(content, publicId, type, false);
+      context.ReadAttachment(content, publicId, type, false);
       call.GetOutput().AnswerBuffer(content, "application/octet-stream");
     }
   }
@@ -748,7 +756,7 @@ namespace Orthanc
 
     // First check whether the compressed data is correctly stored in the disk
     std::string data;
-    context.ReadFile(data, publicId, StringToContentType(name), false);
+    context.ReadAttachment(data, publicId, StringToContentType(name), false);
 
     std::string actualMD5;
     Toolbox::ComputeMD5(actualMD5, data);
@@ -763,7 +771,7 @@ namespace Orthanc
       }
       else
       {
-        context.ReadFile(data, publicId, StringToContentType(name), true);        
+        context.ReadAttachment(data, publicId, StringToContentType(name), true);        
         Toolbox::ComputeMD5(actualMD5, data);
         ok = (actualMD5 == info.GetUncompressedMD5());
       }
@@ -795,6 +803,10 @@ namespace Orthanc
     {
       call.GetOutput().AnswerBuffer("{}", "application/json");
     }
+    else
+    {
+      call.GetOutput().SignalError(HttpStatus_403_Forbidden);
+    }
   }
 
 
@@ -806,10 +818,32 @@ namespace Orthanc
     std::string name = call.GetUriComponent("name", "");
     FileContentType contentType = StringToContentType(name);
 
-    if (IsUserContentType(contentType))  // It is forbidden to delete internal attachments
+    bool allowed;
+    if (IsUserContentType(contentType))
+    {
+      allowed = true;
+    }
+    else if (Configuration::GetGlobalBoolParameter("StoreDicom", true) &&
+             contentType == FileContentType_DicomAsJson)
+    {
+      allowed = true;
+    }
+    else
+    {
+      // It is forbidden to delete internal attachments, except for
+      // the "DICOM as JSON" summary as of Orthanc 1.2.0 (this summary
+      // would be automatically reconstructed on the next GET call)
+      allowed = false;
+    }
+
+    if (allowed) 
     {
       OrthancRestApi::GetIndex(call).DeleteAttachment(publicId, contentType);
       call.GetOutput().AnswerBuffer("{}", "application/json");
+    }
+    else
+    {
+      call.GetOutput().SignalError(HttpStatus_403_Forbidden);
     }
   }
 

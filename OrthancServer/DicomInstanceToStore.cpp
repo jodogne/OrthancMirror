@@ -112,10 +112,7 @@ namespace Orthanc
     {
       json_.Allocate();
       FromDcmtkBridge::ExtractDicomAsJson(json_.GetContent(), 
-                                          *parsed_.GetContent().GetDcmtkObject().getDataset(),
-                                          DicomToJsonFormat_Full, 
-                                          DicomToJsonFlags_Default,
-                                          ORTHANC_MAXIMUM_TAG_LENGTH);
+                                          *parsed_.GetContent().GetDcmtkObject().getDataset());
     }
   }
 

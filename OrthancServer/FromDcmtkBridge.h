@@ -57,6 +57,8 @@ namespace Orthanc
     FRIEND_TEST(FromDcmtkBridge, FromJson);
 #endif
 
+    friend class ParsedDicomFile;
+
   private:
     FromDcmtkBridge();  // Pure static class
 
@@ -78,6 +80,12 @@ namespace Orthanc
                               DicomToJsonFlags flags,
                               unsigned int maxStringLength,
                               Encoding dicomEncoding);
+
+    static void ExtractDicomAsJson(Json::Value& target, 
+                                   DcmDataset& dataset,
+                                   DicomToJsonFormat format,
+                                   DicomToJsonFlags flags,
+                                   unsigned int maxStringLength);
 
   public:
     static void InitializeDictionary();
@@ -110,10 +118,10 @@ namespace Orthanc
                                           Encoding encoding);
 
     static void ExtractDicomAsJson(Json::Value& target, 
-                                   DcmDataset& dataset,
-                                   DicomToJsonFormat format,
-                                   DicomToJsonFlags flags,
-                                   unsigned int maxStringLength);
+                                   DcmDataset& dataset)
+    {
+      ExtractDicomAsJson(target, dataset, DicomToJsonFormat_Full, DicomToJsonFlags_Default, ORTHANC_MAXIMUM_TAG_LENGTH);
+    }
 
     static void ExtractHeaderAsJson(Json::Value& target, 
                                     DcmMetaInfo& header,

@@ -138,10 +138,14 @@ namespace Orthanc
 
     void SetEncoding(Encoding encoding);
 
-    void ToJson(Json::Value& target, 
-                DicomToJsonFormat format,
-                DicomToJsonFlags flags,
-                unsigned int maxStringLength);
+    void DatasetToJson(Json::Value& target, 
+                       DicomToJsonFormat format,
+                       DicomToJsonFlags flags,
+                       unsigned int maxStringLength);
+
+    // This version uses the default parameters for
+    // FileContentType_DicomAsJson
+    void DatasetToJson(Json::Value& target);
 
     void HeaderToJson(Json::Value& target, 
                       DicomToJsonFormat format);
