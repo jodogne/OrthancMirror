@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include "../ServerEnumerations.h"
+#include "../ServerToolbox.h"
 #include "../IDatabaseWrapper.h"
 
 #include "SetOfResources.h"
@@ -78,7 +78,7 @@ namespace Orthanc
                  const std::string& value) : 
         tag_(tag),
         type_(type),
-        value_(NormalizeIdentifier(value))
+        value_(ServerToolbox::NormalizeIdentifier(value))
       {
       }
 
@@ -138,7 +138,7 @@ namespace Orthanc
 
     bool IsIdentifier(const DicomTag& tag)
     {
-      return IsIdentifier(tag, level_);
+      return ServerToolbox::IsIdentifier(tag, level_);
     }
 
     void AddConstraint(DicomTag tag,
@@ -163,20 +163,6 @@ namespace Orthanc
 
     void Apply(SetOfResources& result,
                IDatabaseWrapper& database);
-
-    static void LoadIdentifiers(const DicomTag*& tags,
-                                size_t& size,
-                                ResourceType level);
-
-    static bool IsIdentifier(const DicomTag& tag,
-                             ResourceType level);
-
-    static void StoreIdentifiers(IDatabaseWrapper& database,
-                                 int64_t resource,
-                                 ResourceType level,
-                                 const DicomMap& map);
-
-    static std::string NormalizeIdentifier(const std::string& value);
 
     void Print(std::ostream& s) const;
   };

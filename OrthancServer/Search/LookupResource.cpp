@@ -46,7 +46,7 @@ namespace Orthanc
     const DicomTag* tags = NULL;
     size_t size;
     
-    LookupIdentifierQuery::LoadIdentifiers(tags, size, level);
+    ServerToolbox::LoadIdentifiers(tags, size, level);
     
     for (size_t i = 0; i < size; i++)
     {
