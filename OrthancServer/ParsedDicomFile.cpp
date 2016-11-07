@@ -1258,9 +1258,7 @@ namespace Orthanc
 
   void ParsedDicomFile::Convert(DicomMap& tags)
   {
-    FromDcmtkBridge::Convert(tags, *pimpl_->file_->getDataset(), 
-                             ORTHANC_MAXIMUM_TAG_LENGTH, 
-                             Configuration::GetDefaultEncoding());
+    FromDcmtkBridge::ExtractDicomSummary(tags, *pimpl_->file_->getDataset());
   }
 
 

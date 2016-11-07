@@ -363,10 +363,10 @@ namespace Orthanc
   }
 
 
-  void FromDcmtkBridge::Convert(DicomMap& target, 
-                                DcmItem& dataset,
-                                unsigned int maxStringLength,
-                                Encoding defaultEncoding)
+  void FromDcmtkBridge::ExtractDicomSummary(DicomMap& target, 
+                                            DcmItem& dataset,
+                                            unsigned int maxStringLength,
+                                            Encoding defaultEncoding)
   {
     Encoding encoding = DetectEncoding(dataset, defaultEncoding);
 

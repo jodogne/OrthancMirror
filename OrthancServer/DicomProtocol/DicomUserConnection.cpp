@@ -398,9 +398,7 @@ namespace Orthanc
       else
       {
         DicomMap m;
-        FromDcmtkBridge::Convert(m, *responseIdentifiers, 
-                                 ORTHANC_MAXIMUM_TAG_LENGTH,
-                                 Configuration::GetDefaultEncoding());
+        FromDcmtkBridge::ExtractDicomSummary(m, *responseIdentifiers);
 
         if (!m.HasTag(DICOM_TAG_QUERY_RETRIEVE_LEVEL))
         {

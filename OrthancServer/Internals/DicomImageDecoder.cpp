@@ -250,8 +250,7 @@ namespace Orthanc
       // See also: http://support.dcmtk.org/wiki/dcmtk/howto/accessing-compressed-data
 
       DicomMap m;
-      FromDcmtkBridge::Convert(m, dataset, ORTHANC_MAXIMUM_TAG_LENGTH,
-                               Configuration::GetDefaultEncoding());
+      FromDcmtkBridge::ExtractDicomSummary(m, dataset);
 
       /**
        * Create an accessor to the raw values of the DICOM image.
@@ -323,8 +322,7 @@ namespace Orthanc
                                                 bool ignorePhotometricInterpretation)
   {
     DicomMap m;
-    FromDcmtkBridge::Convert(m, dataset, ORTHANC_MAXIMUM_TAG_LENGTH,
-                             Configuration::GetDefaultEncoding());
+    FromDcmtkBridge::ExtractDicomSummary(m, dataset);
 
     DicomImageInformation info(m);
     PixelFormat format;
