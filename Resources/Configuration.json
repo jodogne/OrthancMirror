@@ -326,6 +326,7 @@
   // possibly the Private Creator (for private tags).
   "Dictionary" : {
     // "0014,1020" : [ "DA", "ValidationExpiryDate", 1, 1 ]
-    // "00e1,10c2" : [ "SH", "PET-CT Multi Modality Name", 1, 1, "ELSCINT1" ]
+    // "00e1,10c2" : [ "UI", "PET-CT Multi Modality Name", 1, 1, "ELSCINT1" ],
+    // "7053,1003" : [ "ST", "Original Image Filename", 1, 1, "Philips PET Private Group" ]
   }
 }

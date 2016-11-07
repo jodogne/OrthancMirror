@@ -223,9 +223,9 @@ namespace Orthanc
 
 
   void FilesystemStorage::Remove(const std::string& uuid,
-                                 FileContentType /*type*/)
+                                 FileContentType type)
   {
-    LOG(INFO) << "Deleting attachment \"" << uuid << "\"";
+    LOG(INFO) << "Deleting attachment \"" << uuid << "\" of type " << static_cast<int>(type);
 
     namespace fs = boost::filesystem;
 

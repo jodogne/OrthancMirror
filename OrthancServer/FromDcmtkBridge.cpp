@@ -423,7 +423,7 @@ namespace Orthanc
         if (maxStringLength != 0 &&
             utf8.size() > maxStringLength)
         {
-          return new DicomValue;  // Create a NULL value
+          return new DicomValue;  // Too long, create a NULL value
         }
         else
         {
@@ -431,6 +431,47 @@ namespace Orthanc
         }
       }
     }
+
+
+    if (element.getVR() == EVR_UN)
+    {
+      // Unknown value representation: Lookup in the dictionary. This
+      // is notably the case for private tags registered with the
+      // "Dictionary" configuration option.
+      DictionaryLocker locker;
+      
+      const DcmDictEntry* entry = locker->findEntry(element.getTag().getXTag(), 
+                                                    element.getTag().getPrivateCreator());
+      if (entry != NULL && 
+          entry->getVR().isaString())
+      {
+        Uint8* data = NULL;
+
+        // At (*), we do not try and convert to UTF-8, as nothing says
+        // the encoding of the private tag is the same as that of the
+        // remaining of the DICOM dataset. Only go for ASCII strings.
+
+        if (element.getUint8Array(data) == EC_Normal &&
+            Toolbox::IsAsciiString(data, element.getLength()))   // (*)
+        {
+          if (data == NULL)
+          {
+            return new DicomValue("", false);   // Empty string
+          }
+          else if (maxStringLength != 0 &&
+                   element.getLength() > maxStringLength)
+          {
+            return new DicomValue;  // Too long, create a NULL value
+          }
+          else
+          {
+            std::string s(reinterpret_cast<const char*>(data), element.getLength());
+            return new DicomValue(s, false);
+          }
+        }
+      }
+    }
+
 
     try
     {
@@ -758,7 +799,8 @@ namespace Orthanc
 
     if (element.isLeaf())
     {
-      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element, flags, maxStringLength, encoding));
+      // The "0" below lets "LeafValueToJson()" take care of "TooLong" values
+      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element, flags, 0, encoding));
       LeafValueToJson(target, *v, format, flags, maxStringLength);
     }
     else

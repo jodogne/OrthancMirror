@@ -1354,6 +1354,32 @@ namespace Orthanc
   }
 
 
+  static void InvalidateTags(RestApiPostCall& call)
+  {
+    ServerIndex& index = OrthancRestApi::GetIndex(call);
+    
+    // Loop over the instances, grouping them by parent studies so as
+    // to avoid large memory consumption
+    std::list<std::string> studies;
+    index.GetAllUuids(studies, ResourceType_Study);
+
+    for (std::list<std::string>::const_iterator 
+           study = studies.begin(); study != studies.end(); ++study)
+    {
+      std::list<std::string> instances;
+      index.GetChildInstances(instances, *study);
+
+      for (std::list<std::string>::const_iterator 
+             instance = instances.begin(); instance != instances.end(); ++instance)
+      {
+        index.DeleteAttachment(*instance, FileContentType_DicomAsJson);
+      }
+    }
+
+    call.GetOutput().AnswerBuffer("", "text/plain");
+  }
+
+
   void OrthancRestApi::RegisterResources()
   {
     Register("/instances", ListResources<ResourceType_Instance>);
@@ -1428,6 +1454,7 @@ namespace Orthanc
     Register("/{resourceType}/{id}/attachments/{name}/uncompress", ChangeAttachmentCompression<CompressionType_None>);
     Register("/{resourceType}/{id}/attachments/{name}/verify-md5", VerifyAttachment);
 
+    Register("/tools/invalidate-tags", InvalidateTags);
     Register("/tools/lookup", Lookup);
     Register("/tools/find", Find);
 
