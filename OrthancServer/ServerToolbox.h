@@ -60,5 +60,19 @@ namespace Orthanc
     void ReconstructMainDicomTags(IDatabaseWrapper& database,
                                   IStorageArea& storageArea,
                                   ResourceType level);
+
+    void LoadIdentifiers(const DicomTag*& tags,
+                         size_t& size,
+                         ResourceType level);
+
+    bool IsIdentifier(const DicomTag& tag,
+                      ResourceType level);
+
+    void StoreIdentifiers(IDatabaseWrapper& database,
+                          int64_t resource,
+                          ResourceType level,
+                          const DicomMap& map);
+
+    std::string NormalizeIdentifier(const std::string& value);
   }
 }

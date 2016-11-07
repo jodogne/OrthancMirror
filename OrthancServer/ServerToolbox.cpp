@@ -46,6 +46,35 @@ namespace Orthanc
 {
   namespace ServerToolbox
   {
+    static const DicomTag patientIdentifiers[] = 
+    {
+      DICOM_TAG_PATIENT_ID,
+      DICOM_TAG_PATIENT_NAME,
+      DICOM_TAG_PATIENT_BIRTH_DATE
+    };
+
+    static const DicomTag studyIdentifiers[] = 
+    {
+      DICOM_TAG_PATIENT_ID,
+      DICOM_TAG_PATIENT_NAME,
+      DICOM_TAG_PATIENT_BIRTH_DATE,
+      DICOM_TAG_STUDY_INSTANCE_UID,
+      DICOM_TAG_ACCESSION_NUMBER,
+      DICOM_TAG_STUDY_DESCRIPTION,
+      DICOM_TAG_STUDY_DATE
+    };
+
+    static const DicomTag seriesIdentifiers[] = 
+    {
+      DICOM_TAG_SERIES_INSTANCE_UID
+    };
+
+    static const DicomTag instanceIdentifiers[] = 
+    {
+      DICOM_TAG_SOP_INSTANCE_UID
+    };
+
+
     void SimplifyTags(Json::Value& target,
                       const Json::Value& source,
                       DicomToJsonFormat format)
@@ -216,7 +245,7 @@ namespace Orthanc
     {
       // WARNING: The database should be locked with a transaction!
 
-      LookupIdentifierQuery::StoreIdentifiers(database, resource, level, dicomSummary);
+      StoreIdentifiers(database, resource, level, dicomSummary);
 
       DicomMap tags;
 
@@ -357,6 +386,108 @@ namespace Orthanc
           LOG(ERROR) << "Cannot decode the DICOM file with UUID " << attachment.GetUuid()
                      << " associated with instance " << database.GetPublicId(instance);
           throw;
+        }
+      }
+    }
+
+
+    void LoadIdentifiers(const DicomTag*& tags,
+                         size_t& size,
+                         ResourceType level)
+    {
+      switch (level)
+      {
+        case ResourceType_Patient:
+          tags = patientIdentifiers;
+          size = sizeof(patientIdentifiers) / sizeof(DicomTag);
+          break;
+
+        case ResourceType_Study:
+          tags = studyIdentifiers;
+          size = sizeof(studyIdentifiers) / sizeof(DicomTag);
+          break;
+
+        case ResourceType_Series:
+          tags = seriesIdentifiers;
+          size = sizeof(seriesIdentifiers) / sizeof(DicomTag);
+          break;
+
+        case ResourceType_Instance:
+          tags = instanceIdentifiers;
+          size = sizeof(instanceIdentifiers) / sizeof(DicomTag);
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
+
+    std::string NormalizeIdentifier(const std::string& value)
+    {
+      std::string t;
+      t.reserve(value.size());
+
+      for (size_t i = 0; i < value.size(); i++)
+      {
+        if (value[i] == '%' ||
+            value[i] == '_')
+        {
+          t.push_back(' ');  // These characters might break wildcard queries in SQL
+        }
+        else if (isascii(value[i]) &&
+                 !iscntrl(value[i]) &&
+                 (!isspace(value[i]) || value[i] == ' '))
+        {
+          t.push_back(value[i]);
+        }
+      }
+
+      Toolbox::ToUpperCase(t);
+
+      return Toolbox::StripSpaces(t);
+    }
+
+
+    bool IsIdentifier(const DicomTag& tag,
+                      ResourceType level)
+    {
+      const DicomTag* tags;
+      size_t size;
+
+      LoadIdentifiers(tags, size, level);
+
+      for (size_t i = 0; i < size; i++)
+      {
+        if (tag == tags[i])
+        {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+
+    void StoreIdentifiers(IDatabaseWrapper& database,
+                          int64_t resource,
+                          ResourceType level,
+                          const DicomMap& map)
+    {
+      const DicomTag* tags;
+      size_t size;
+
+      LoadIdentifiers(tags, size, level);
+
+      for (size_t i = 0; i < size; i++)
+      {
+        const DicomValue* value = map.TestAndGetValue(tags[i]);
+        if (value != NULL &&
+            !value->IsNull() &&
+            !value->IsBinary())
+        {
+          std::string s = NormalizeIdentifier(value->GetContent());
+          database.SetIdentifierTag(resource, tags[i], s);
         }
       }
     }

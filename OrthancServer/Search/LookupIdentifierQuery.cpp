@@ -43,67 +43,6 @@
 
 namespace Orthanc
 {
-  static const DicomTag patientIdentifiers[] = 
-  {
-    DICOM_TAG_PATIENT_ID,
-    DICOM_TAG_PATIENT_NAME,
-    DICOM_TAG_PATIENT_BIRTH_DATE
-  };
-
-  static const DicomTag studyIdentifiers[] = 
-  {
-    DICOM_TAG_PATIENT_ID,
-    DICOM_TAG_PATIENT_NAME,
-    DICOM_TAG_PATIENT_BIRTH_DATE,
-    DICOM_TAG_STUDY_INSTANCE_UID,
-    DICOM_TAG_ACCESSION_NUMBER,
-    DICOM_TAG_STUDY_DESCRIPTION,
-    DICOM_TAG_STUDY_DATE
-  };
-
-  static const DicomTag seriesIdentifiers[] = 
-  {
-    DICOM_TAG_SERIES_INSTANCE_UID
-  };
-
-  static const DicomTag instanceIdentifiers[] = 
-  {
-    DICOM_TAG_SOP_INSTANCE_UID
-  };
-
-
-  void LookupIdentifierQuery::LoadIdentifiers(const DicomTag*& tags,
-                                              size_t& size,
-                                              ResourceType level)
-  {
-    switch (level)
-    {
-      case ResourceType_Patient:
-        tags = patientIdentifiers;
-        size = sizeof(patientIdentifiers) / sizeof(DicomTag);
-        break;
-
-      case ResourceType_Study:
-        tags = studyIdentifiers;
-        size = sizeof(studyIdentifiers) / sizeof(DicomTag);
-        break;
-
-      case ResourceType_Series:
-        tags = seriesIdentifiers;
-        size = sizeof(seriesIdentifiers) / sizeof(DicomTag);
-        break;
-
-      case ResourceType_Instance:
-        tags = instanceIdentifiers;
-        size = sizeof(instanceIdentifiers) / sizeof(DicomTag);
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
-
   LookupIdentifierQuery::Disjunction::~Disjunction()
   {
     for (size_t i = 0; i < disjunction_.size(); i++)
@@ -131,27 +70,6 @@ namespace Orthanc
   }
 
 
-
-  bool LookupIdentifierQuery::IsIdentifier(const DicomTag& tag,
-                                           ResourceType level)
-  {
-    const DicomTag* tags;
-    size_t size;
-
-    LoadIdentifiers(tags, size, level);
-
-    for (size_t i = 0; i < size; i++)
-    {
-      if (tag == tags[i])
-      {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-
   void LookupIdentifierQuery::AddConstraint(DicomTag tag,
                                             IdentifierConstraintType type,
                                             const std::string& value)
@@ -166,56 +84,6 @@ namespace Orthanc
   {
     constraints_.push_back(new Disjunction);
     return *constraints_.back();
-  }
-
-
-  std::string LookupIdentifierQuery::NormalizeIdentifier(const std::string& value)
-  {
-    std::string t;
-    t.reserve(value.size());
-
-    for (size_t i = 0; i < value.size(); i++)
-    {
-      if (value[i] == '%' ||
-          value[i] == '_')
-      {
-        t.push_back(' ');  // These characters might break wildcard queries in SQL
-      }
-      else if (isascii(value[i]) &&
-               !iscntrl(value[i]) &&
-               (!isspace(value[i]) || value[i] == ' '))
-      {
-        t.push_back(value[i]);
-      }
-    }
-
-    Toolbox::ToUpperCase(t);
-
-    return Toolbox::StripSpaces(t);
-  }
-
-
-  void LookupIdentifierQuery::StoreIdentifiers(IDatabaseWrapper& database,
-                                               int64_t resource,
-                                               ResourceType level,
-                                               const DicomMap& map)
-  {
-    const DicomTag* tags;
-    size_t size;
-
-    LoadIdentifiers(tags, size, level);
-
-    for (size_t i = 0; i < size; i++)
-    {
-      const DicomValue* value = map.TestAndGetValue(tags[i]);
-      if (value != NULL &&
-          !value->IsNull() &&
-          !value->IsBinary())
-      {
-        std::string s = NormalizeIdentifier(value->GetContent());
-        database.SetIdentifierTag(resource, tags[i], s);
-      }
-    }
   }
 
 

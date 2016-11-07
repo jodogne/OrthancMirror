@@ -833,6 +833,6 @@ TEST(ServerIndex, AttachmentRecycling)
 
 TEST(LookupIdentifierQuery, NormalizeIdentifier)
 {
-  ASSERT_EQ("H^L.LO", LookupIdentifierQuery::NormalizeIdentifier("   Hé^l.LO  %_  "));
-  ASSERT_EQ("1.2.840.113619.2.176.2025", LookupIdentifierQuery::NormalizeIdentifier("   1.2.840.113619.2.176.2025  "));
+  ASSERT_EQ("H^L.LO", ServerToolbox::NormalizeIdentifier("   Hé^l.LO  %_  "));
+  ASSERT_EQ("1.2.840.113619.2.176.2025", ServerToolbox::NormalizeIdentifier("   1.2.840.113619.2.176.2025  "));
 }
