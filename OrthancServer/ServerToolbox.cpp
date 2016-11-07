@@ -237,6 +237,30 @@ namespace Orthanc
     }
 
 
+    static void StoreIdentifiers(IDatabaseWrapper& database,
+                                 int64_t resource,
+                                 ResourceType level,
+                                 const DicomMap& map)
+    {
+      const DicomTag* tags;
+      size_t size;
+
+      LoadIdentifiers(tags, size, level);
+
+      for (size_t i = 0; i < size; i++)
+      {
+        const DicomValue* value = map.TestAndGetValue(tags[i]);
+        if (value != NULL &&
+            !value->IsNull() &&
+            !value->IsBinary())
+        {
+          std::string s = NormalizeIdentifier(value->GetContent());
+          database.SetIdentifierTag(resource, tags[i], s);
+        }
+      }
+    }
+
+
     void StoreMainDicomTags(IDatabaseWrapper& database,
                             int64_t resource,
                             ResourceType level,
@@ -465,30 +489,6 @@ namespace Orthanc
       }
 
       return false;
-    }
-
-
-    void StoreIdentifiers(IDatabaseWrapper& database,
-                          int64_t resource,
-                          ResourceType level,
-                          const DicomMap& map)
-    {
-      const DicomTag* tags;
-      size_t size;
-
-      LoadIdentifiers(tags, size, level);
-
-      for (size_t i = 0; i < size; i++)
-      {
-        const DicomValue* value = map.TestAndGetValue(tags[i]);
-        if (value != NULL &&
-            !value->IsNull() &&
-            !value->IsBinary())
-        {
-          std::string s = NormalizeIdentifier(value->GetContent());
-          database.SetIdentifierTag(resource, tags[i], s);
-        }
-      }
     }
   }
 }
