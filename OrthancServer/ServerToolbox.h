@@ -39,7 +39,7 @@
 
 namespace Orthanc
 {
-  namespace Toolbox
+  namespace ServerToolbox
   {
     void SimplifyTags(Json::Value& target,
                       const Json::Value& source,
@@ -47,10 +47,10 @@ namespace Orthanc
 
     void LogMissingRequiredTag(const DicomMap& summary);
 
-    void SetMainDicomTags(IDatabaseWrapper& database,
-                          int64_t resource,
-                          ResourceType level,
-                          const DicomMap& dicomSummary);
+    void StoreMainDicomTags(IDatabaseWrapper& database,
+                            int64_t resource,
+                            ResourceType level,
+                            const DicomMap& dicomSummary);
 
     bool FindOneChildInstance(int64_t& result,
                               IDatabaseWrapper& database,

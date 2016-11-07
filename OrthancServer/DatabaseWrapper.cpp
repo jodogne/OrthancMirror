@@ -373,10 +373,10 @@ namespace Orthanc
       // consists in reconstructing the main DICOM tags information
       // (as more tags got included).
       db_.BeginTransaction();
-      Toolbox::ReconstructMainDicomTags(*this, storageArea, ResourceType_Patient);
-      Toolbox::ReconstructMainDicomTags(*this, storageArea, ResourceType_Study);
-      Toolbox::ReconstructMainDicomTags(*this, storageArea, ResourceType_Series);
-      Toolbox::ReconstructMainDicomTags(*this, storageArea, ResourceType_Instance);
+      ServerToolbox::ReconstructMainDicomTags(*this, storageArea, ResourceType_Patient);
+      ServerToolbox::ReconstructMainDicomTags(*this, storageArea, ResourceType_Study);
+      ServerToolbox::ReconstructMainDicomTags(*this, storageArea, ResourceType_Series);
+      ServerToolbox::ReconstructMainDicomTags(*this, storageArea, ResourceType_Instance);
       db_.Execute("UPDATE GlobalProperties SET value=\"6\" WHERE property=" +
                   boost::lexical_cast<std::string>(GlobalProperty_DatabaseSchemaVersion) + ";");
       db_.CommitTransaction();

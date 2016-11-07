@@ -189,7 +189,7 @@ namespace Orthanc
       resultPublicId = hasher.HashInstance();
 
       Json::Value simplifiedTags;
-      Toolbox::SimplifyTags(simplifiedTags, dicom.GetJson(), DicomToJsonFormat_Human);
+      ServerToolbox::SimplifyTags(simplifiedTags, dicom.GetJson(), DicomToJsonFormat_Human);
 
       // Test if the instance must be filtered out
       bool accepted = true;
@@ -298,7 +298,7 @@ namespace Orthanc
     {
       if (e.GetErrorCode() == ErrorCode_InexistentTag)
       {
-        Toolbox::LogMissingRequiredTag(dicom.GetSummary());
+        ServerToolbox::LogMissingRequiredTag(dicom.GetSummary());
       }
 
       throw;

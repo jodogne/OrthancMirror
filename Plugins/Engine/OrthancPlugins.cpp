@@ -1563,7 +1563,7 @@ namespace Orthanc
         else
         {
           Json::Value simplified;
-          Toolbox::SimplifyTags(simplified, instance.GetJson(), DicomToJsonFormat_Human);
+          ServerToolbox::SimplifyTags(simplified, instance.GetJson(), DicomToJsonFormat_Human);
           s = writer.write(simplified);
         }
 
@@ -2784,7 +2784,7 @@ namespace Orthanc
         }
 
         IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
-        Toolbox::ReconstructMainDicomTags(*pimpl_->database_, storage, Plugins::Convert(p.level));
+        ServerToolbox::ReconstructMainDicomTags(*pimpl_->database_, storage, Plugins::Convert(p.level));
 
         return true;
       }

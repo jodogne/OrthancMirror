@@ -44,7 +44,7 @@
 
 namespace Orthanc
 {
-  namespace Toolbox
+  namespace ServerToolbox
   {
     void SimplifyTags(Json::Value& target,
                       const Json::Value& source,
@@ -189,9 +189,9 @@ namespace Orthanc
     }
 
 
-    static void SetMainDicomTagsInternal(IDatabaseWrapper& database,
-                                         int64_t resource,
-                                         const DicomMap& tags)
+    static void StoreMainDicomTagsInternal(IDatabaseWrapper& database,
+                                           int64_t resource,
+                                           const DicomMap& tags)
     {
       DicomArray flattened(tags);
 
@@ -209,10 +209,10 @@ namespace Orthanc
     }
 
 
-    void SetMainDicomTags(IDatabaseWrapper& database,
-                          int64_t resource,
-                          ResourceType level,
-                          const DicomMap& dicomSummary)
+    void StoreMainDicomTags(IDatabaseWrapper& database,
+                            int64_t resource,
+                            ResourceType level,
+                            const DicomMap& dicomSummary)
     {
       // WARNING: The database should be locked with a transaction!
 
@@ -229,7 +229,7 @@ namespace Orthanc
         case ResourceType_Study:
           // Duplicate the patient tags at the study level (new in Orthanc 0.9.5 - db v6)
           dicomSummary.ExtractPatientInformation(tags);
-          SetMainDicomTagsInternal(database, resource, tags);
+          StoreMainDicomTagsInternal(database, resource, tags);
 
           dicomSummary.ExtractStudyInformation(tags);
           break;
@@ -246,7 +246,7 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError);
       }
 
-      SetMainDicomTagsInternal(database, resource, tags);
+      StoreMainDicomTagsInternal(database, resource, tags);
     }
 
 
@@ -350,7 +350,7 @@ namespace Orthanc
           dicom.Convert(dicomSummary);
 
           database.ClearMainDicomTags(resource);
-          Toolbox::SetMainDicomTags(database, resource, level, dicomSummary);
+          StoreMainDicomTags(database, resource, level, dicomSummary);
         }
         catch (OrthancException&)
         {
