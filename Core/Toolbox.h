@@ -163,6 +163,9 @@ namespace Orthanc
     std::string ConvertFromUtf8(const std::string& source,
                                 Encoding targetEncoding);
 
+    bool IsAsciiString(const void* data,
+                       size_t size);
+
     std::string ConvertToAscii(const std::string& source);
 
     std::string StripSpaces(const std::string& source);

@@ -10,10 +10,12 @@ General
 REST API
 --------
 
+* "/tools/invalidate-tags" to invalidate the JSON summary of all the DICOM files
+  (useful if private tags are registered, or if changing the default encoding)
 * "Permissive" flag for URI "/modalities/{...}/store" to ignore C-Store transfer errors
 * "Asynchronous" flag for URIs "/modalities/{...}/store" and "/peers/{...}/store"
   to avoid waiting for the completion of image transfers
-* Possibility to DELETE "dicom-as-json" attachments to reconstruct them
+* Possibility to DELETE "dicom-as-json" attachments to reconstruct the JSON summaries
 
 Plugins
 -------

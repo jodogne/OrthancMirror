@@ -334,6 +334,13 @@ namespace Orthanc
     {
       // WARNING: The database should be locked with a transaction!
 
+      // TODO: This function might consume much memory if level ==
+      // ResourceType_Instance. To improve this, first download the
+      // list of studies, then remove the instances for each single
+      // study (check out OrthancRestApi::InvalidateTags for an
+      // example). Take this improvement into consideration for the
+      // next upgrade of the database schema.
+
       const char* plural = NULL;
 
       switch (level)

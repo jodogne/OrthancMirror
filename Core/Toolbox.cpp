@@ -844,6 +844,23 @@ namespace Orthanc
   }
 
 
+  bool Toolbox::IsAsciiString(const void* data,
+                              size_t size)
+  {
+    const uint8_t* p = reinterpret_cast<const uint8_t*>(data);
+
+    for (size_t i = 0; i < size; i++, p++)
+    {
+      if (*p > 127 || (*p != 0 && iscntrl(*p)))
+      {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+
   std::string Toolbox::ConvertToAscii(const std::string& source)
   {
     std::string result;
