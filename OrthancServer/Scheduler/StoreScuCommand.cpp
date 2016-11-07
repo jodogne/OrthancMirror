@@ -64,7 +64,7 @@ namespace Orthanc
       try
       {
         std::string dicom;
-        context_.ReadFile(dicom, *it, FileContentType_Dicom);
+        context_.ReadDicom(dicom, *it);
 
         locker.GetConnection().Store(dicom, moveOriginatorID_);
 

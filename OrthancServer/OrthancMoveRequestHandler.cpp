@@ -93,7 +93,7 @@ namespace Orthanc
         const std::string& id = instances_[position_++];
 
         std::string dicom;
-        context_.ReadFile(dicom, id, FileContentType_Dicom);
+        context_.ReadDicom(dicom, id);
 
         {
           ReusableDicomUserConnection::Locker locker
