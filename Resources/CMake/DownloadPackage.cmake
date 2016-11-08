@@ -15,16 +15,18 @@ endmacro()
 ## Setup the patch command-line tool
 ##
 
-if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
-  set(PATCH_EXECUTABLE ${CMAKE_CURRENT_LIST_DIR}/../ThirdParty/patch/patch.exe)
-  if (NOT EXISTS ${PATCH_EXECUTABLE})
-    message(FATAL_ERROR "Unable to find the patch.exe tool that is shipped with Orthanc")
-  endif()
+if (NOT ORTHANC_DISABLE_PATCH)
+  if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
+    set(PATCH_EXECUTABLE ${CMAKE_CURRENT_LIST_DIR}/../ThirdParty/patch/patch.exe)
+    if (NOT EXISTS ${PATCH_EXECUTABLE})
+      message(FATAL_ERROR "Unable to find the patch.exe tool that is shipped with Orthanc")
+    endif()
 
-else ()
-  find_program(PATCH_EXECUTABLE patch)
-  if (${PATCH_EXECUTABLE} MATCHES "PATCH_EXECUTABLE-NOTFOUND")
-    message(FATAL_ERROR "Please install the 'patch' standard command-line tool")
+  else ()
+    find_program(PATCH_EXECUTABLE patch)
+    if (${PATCH_EXECUTABLE} MATCHES "PATCH_EXECUTABLE-NOTFOUND")
+      message(FATAL_ERROR "Please install the 'patch' standard command-line tool")
+    endif()
   endif()
 endif()
 
