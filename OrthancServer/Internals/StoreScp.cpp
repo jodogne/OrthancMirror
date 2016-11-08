@@ -168,8 +168,8 @@ namespace Orthanc
 
           try
           {
-            FromDcmtkBridge::ExtractDicomSummary(summary, **imageDataSet);
-            FromDcmtkBridge::ExtractDicomAsJson(dicomJson, **imageDataSet);
+            Configuration::ExtractDicomSummary(summary, **imageDataSet);
+            Configuration::ExtractDicomAsJson(dicomJson, **imageDataSet);
 
             if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, **imageDataSet))
             {

@@ -33,14 +33,15 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
-#include "../../Core/Logging.h"
 #include "../../Core/HttpServer/HttpContentNegociation.h"
-#include "../ServerToolbox.h"
+#include "../../Core/Logging.h"
 #include "../FromDcmtkBridge.h"
-#include "../ServerContext.h"
-#include "../SliceOrdering.h"
 #include "../Internals/DicomImageDecoder.h"
+#include "../OrthancInitialization.h"
 #include "../Search/LookupResource.h"
+#include "../ServerContext.h"
+#include "../ServerToolbox.h"
+#include "../SliceOrdering.h"
 
 
 namespace Orthanc
