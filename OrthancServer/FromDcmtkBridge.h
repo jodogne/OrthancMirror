@@ -33,7 +33,6 @@
 #pragma once
 
 #include "ServerEnumerations.h"
-#include "OrthancInitialization.h"
 
 #include "../Core/DicomFormat/DicomElement.h"
 #include "../Core/DicomFormat/DicomMap.h"
@@ -58,6 +57,7 @@ namespace Orthanc
 #endif
 
     friend class ParsedDicomFile;
+    friend class Configuration;
 
   private:
     FromDcmtkBridge();  // Pure static class
@@ -85,7 +85,8 @@ namespace Orthanc
                                    DcmDataset& dataset,
                                    DicomToJsonFormat format,
                                    DicomToJsonFlags flags,
-                                   unsigned int maxStringLength);
+                                   unsigned int maxStringLength,
+                                   Encoding defaultEncoding);
 
   public:
     static void InitializeDictionary();
@@ -100,12 +101,6 @@ namespace Orthanc
     static Encoding DetectEncoding(DcmItem& dataset,
                                    Encoding defaultEncoding);
 
-    static void ExtractDicomSummary(DicomMap& target, 
-                                    DcmItem& dataset)
-    {
-      ExtractDicomSummary(target, dataset, ORTHANC_MAXIMUM_TAG_LENGTH, Configuration::GetDefaultEncoding());
-    }
-
     static DicomTag Convert(const DcmTag& tag);
 
     static DicomTag GetTag(const DcmElement& element);
@@ -116,12 +111,6 @@ namespace Orthanc
                                           DicomToJsonFlags flags,
                                           unsigned int maxStringLength,
                                           Encoding encoding);
-
-    static void ExtractDicomAsJson(Json::Value& target, 
-                                   DcmDataset& dataset)
-    {
-      ExtractDicomAsJson(target, dataset, DicomToJsonFormat_Full, DicomToJsonFlags_Default, ORTHANC_MAXIMUM_TAG_LENGTH);
-    }
 
     static void ExtractHeaderAsJson(Json::Value& target, 
                                     DcmMetaInfo& header,

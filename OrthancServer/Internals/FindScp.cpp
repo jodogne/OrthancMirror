@@ -179,7 +179,7 @@ namespace Orthanc
               }
 
               DicomMap input;
-              FromDcmtkBridge::ExtractDicomSummary(input, *requestIdentifiers);
+              Configuration::ExtractDicomSummary(input, *requestIdentifiers);
 
               data.findHandler_->Handle(data.answers_, input, sequencesToReturn,
                                         *data.remoteIp_, *data.remoteAet_,

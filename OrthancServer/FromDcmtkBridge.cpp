@@ -882,9 +882,10 @@ namespace Orthanc
                                            DcmDataset& dataset,
                                            DicomToJsonFormat format,
                                            DicomToJsonFlags flags,
-                                           unsigned int maxStringLength)
+                                           unsigned int maxStringLength,
+                                           Encoding defaultEncoding)
   {
-    Encoding encoding = DetectEncoding(dataset, Configuration::GetDefaultEncoding());
+    Encoding encoding = DetectEncoding(dataset, defaultEncoding);
 
     target = Json::objectValue;
     DatasetToJson(target, dataset, format, flags, maxStringLength, encoding);

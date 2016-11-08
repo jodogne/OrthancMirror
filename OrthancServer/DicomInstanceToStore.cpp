@@ -104,15 +104,15 @@ namespace Orthanc
     if (!summary_.HasContent())
     {
       summary_.Allocate();
-      FromDcmtkBridge::ExtractDicomSummary(summary_.GetContent(), 
-                                           *parsed_.GetContent().GetDcmtkObject().getDataset());
+      Configuration::ExtractDicomSummary(summary_.GetContent(), 
+                                         *parsed_.GetContent().GetDcmtkObject().getDataset());
     }
     
     if (!json_.HasContent())
     {
       json_.Allocate();
-      FromDcmtkBridge::ExtractDicomAsJson(json_.GetContent(), 
-                                          *parsed_.GetContent().GetDcmtkObject().getDataset());
+      Configuration::ExtractDicomAsJson(json_.GetContent(), 
+                                        *parsed_.GetContent().GetDcmtkObject().getDataset());
     }
   }
 

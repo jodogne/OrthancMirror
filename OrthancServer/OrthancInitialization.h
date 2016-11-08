@@ -46,6 +46,9 @@
 #include "IDatabaseWrapper.h"
 #include "ServerEnumerations.h"
 
+class DcmDataset;
+class DcmItem;
+
 namespace Orthanc
 {
   void OrthancInitialize(const char* configurationFile = NULL);
@@ -127,5 +130,12 @@ namespace Orthanc
     static Encoding GetDefaultEncoding();
 
     static bool HasConfigurationChanged();
+
+
+    static void ExtractDicomSummary(DicomMap& target, 
+                                    DcmItem& dataset);
+
+    static void ExtractDicomAsJson(Json::Value& target, 
+                                   DcmDataset& dataset);
   };
 }

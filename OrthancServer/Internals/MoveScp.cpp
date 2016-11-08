@@ -130,7 +130,7 @@ namespace Orthanc
       if (data.lastRequest_ == NULL)
       {
         DicomMap input;
-        FromDcmtkBridge::ExtractDicomSummary(input, *requestIdentifiers);
+        Configuration::ExtractDicomSummary(input, *requestIdentifiers);
 
         try
         {

@@ -1125,4 +1125,21 @@ namespace Orthanc
 
     return a != b;
   }
+
+
+  void Configuration::ExtractDicomSummary(DicomMap& target, 
+                                          DcmItem& dataset)
+  {
+    FromDcmtkBridge::ExtractDicomSummary(target, dataset, 
+                                         ORTHANC_MAXIMUM_TAG_LENGTH, GetDefaultEncoding());
+  }
+
+  
+  void Configuration::ExtractDicomAsJson(Json::Value& target, 
+                                         DcmDataset& dataset)
+  {
+    FromDcmtkBridge::ExtractDicomAsJson(target, dataset, 
+                                        DicomToJsonFormat_Full, DicomToJsonFlags_Default, 
+                                        ORTHANC_MAXIMUM_TAG_LENGTH, GetDefaultEncoding());
+  }
 }

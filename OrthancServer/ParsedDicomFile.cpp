@@ -1152,13 +1152,13 @@ namespace Orthanc
                                       unsigned int maxStringLength)
   {
     FromDcmtkBridge::ExtractDicomAsJson(target, *pimpl_->file_->getDataset(),
-                                        format, flags, maxStringLength);
+                                        format, flags, maxStringLength, Configuration::GetDefaultEncoding());
   }
 
 
   void ParsedDicomFile::DatasetToJson(Json::Value& target)
   {
-    FromDcmtkBridge::ExtractDicomAsJson(target, *pimpl_->file_->getDataset());
+    Configuration::ExtractDicomAsJson(target, *pimpl_->file_->getDataset());
   }
 
 
@@ -1263,7 +1263,7 @@ namespace Orthanc
 
   void ParsedDicomFile::Convert(DicomMap& tags)
   {
-    FromDcmtkBridge::ExtractDicomSummary(tags, *pimpl_->file_->getDataset());
+    Configuration::ExtractDicomSummary(tags, *pimpl_->file_->getDataset());
   }
 
 
