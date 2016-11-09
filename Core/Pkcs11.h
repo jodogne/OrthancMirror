@@ -32,12 +32,20 @@
 
 #pragma once
 
+#if !defined(ORTHANC_SANDBOXED)
+#  error The macro ORTHANC_SANDBOXED must be defined
+#endif
+
 #if !defined(ORTHANC_ENABLE_PKCS11)
 #  error The macro ORTHANC_ENABLE_PKCS11 must be defined
 #endif
 
 #if !defined(ORTHANC_ENABLE_SSL)
 #  error The macro ORTHANC_ENABLE_SSL must be defined
+#endif
+
+#if ORTHANC_SANDBOXED == 1
+#  error This file cannot be used in sandboxed environments
 #endif
 
 #if ORTHANC_ENABLE_PKCS11 != 1 || ORTHANC_ENABLE_SSL != 1
