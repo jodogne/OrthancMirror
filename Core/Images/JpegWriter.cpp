@@ -35,7 +35,7 @@
 
 #include "../OrthancException.h"
 #include "../Logging.h"
-#include "../Toolbox.h"
+#include "../SystemToolbox.h"
 
 #include "JpegErrorManager.h"
 

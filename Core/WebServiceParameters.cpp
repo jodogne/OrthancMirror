@@ -34,6 +34,7 @@
 #include "WebServiceParameters.h"
 
 #include "../Core/Logging.h"
+#include "../Core/SystemToolbox.h"
 #include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"
 

@@ -106,6 +106,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
 #include "../Core/TemporaryFile.h"
+#include "../Core/Toolbox.h"
+#include "../Core/SystemToolbox.h"
 
 #include <dcmtk/dcmdata/dcdicdir.h>
 #include <dcmtk/dcmdata/dcmetinf.h>

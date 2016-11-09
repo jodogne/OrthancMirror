@@ -35,6 +35,7 @@
 
 #include "../OrthancServer/Scheduler/ServerScheduler.h"
 #include "../Core/OrthancException.h"
+#include "../Core/SystemToolbox.h"
 #include "../Core/Toolbox.h"
 #include "../Core/MultiThreading/Locker.h"
 #include "../Core/MultiThreading/Mutex.h"

@@ -40,6 +40,7 @@
 #include "../Core/ChunkedBuffer.h"
 #include "../Core/HttpClient.h"
 #include "../Core/Logging.h"
+#include "../Core/SystemToolbox.h"
 #include "../Core/RestApi/RestApi.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Compression/ZlibCompressor.h"

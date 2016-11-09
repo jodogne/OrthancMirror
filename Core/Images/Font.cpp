@@ -33,6 +33,7 @@
 #include "../PrecompiledHeaders.h"
 #include "Font.h"
 
+#include "../SystemToolbox.h"
 #include "../Toolbox.h"
 #include "../OrthancException.h"
 

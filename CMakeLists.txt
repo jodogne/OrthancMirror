@@ -146,6 +146,7 @@ set(ORTHANC_CORE_SOURCES
   Core/SQLite/StatementId.cpp
   Core/SQLite/StatementReference.cpp
   Core/SQLite/Transaction.cpp
+  Core/SystemToolbox.cpp
   Core/TemporaryFile.cpp
   Core/Toolbox.cpp
   Core/WebServiceParameters.cpp
@@ -406,11 +407,12 @@ include_directories(${CMAKE_SOURCE_DIR}/Plugins/Include)
 add_definitions(
   -DORTHANC_VERSION="${ORTHANC_VERSION}"
   -DORTHANC_DATABASE_VERSION=${ORTHANC_DATABASE_VERSION}
-  -DORTHANC_ENABLE_LOGGING=1
+  -DORTHANC_BUILD_UNIT_TESTS=1
   -DORTHANC_ENABLE_BASE64=1
+  -DORTHANC_ENABLE_LOGGING=1
   -DORTHANC_ENABLE_MD5=1
   -DORTHANC_MAXIMUM_TAG_LENGTH=256
-  -DORTHANC_BUILD_UNIT_TESTS=1
+  -DORTHANC_SANDBOXED=0
 
   # Macros for the plugins
   -DMODALITY_WORKLISTS_VERSION="${ORTHANC_VERSION}"

@@ -34,6 +34,7 @@
 #include "PngReader.h"
 
 #include "../OrthancException.h"
+#include "../SystemToolbox.h"
 #include "../Toolbox.h"
 
 #include <png.h>

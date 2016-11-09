@@ -34,6 +34,7 @@
 #include "FilesystemHttpHandler.h"
 
 #include "../OrthancException.h"
+#include "../SystemToolbox.h"
 #include "FilesystemHttpSender.h"
 
 #include <boost/filesystem.hpp>

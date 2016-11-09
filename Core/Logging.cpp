@@ -83,6 +83,7 @@ namespace Orthanc
 #include "OrthancException.h"
 #include "Enumerations.h"
 #include "Toolbox.h"
+#include "SystemToolbox.h"
 
 #include <fstream>
 #include <boost/filesystem.hpp>

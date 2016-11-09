@@ -33,7 +33,14 @@
 #include "IImageWriter.h"
 
 #include "../OrthancException.h"
-#include "../Toolbox.h"
+
+#if !defined(ORTHANC_SANDBOXED)
+#  error The macro ORTHANC_SANDBOXED must be defined
+#endif
+
+#if ORTHANC_SANDBOXED == 0
+#  include "../SystemToolbox.h"
+#endif
 
 namespace Orthanc
 {
