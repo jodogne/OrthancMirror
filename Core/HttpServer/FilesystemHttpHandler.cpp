@@ -95,7 +95,7 @@ namespace Orthanc
 #endif
 
       std::string h = Toolbox::FlattenUri(uri) + "/" + f;
-      if (Toolbox::IsRegularFile(it->path().string()))
+      if (SystemToolbox::IsRegularFile(it->path().string()))
       {
         s += "<li><a href=\"" + h + "\">" + f + "</a></li>";
       }
@@ -158,7 +158,7 @@ namespace Orthanc
       p /= uri[i];
     }
 
-    if (Toolbox::IsRegularFile(p.string()))
+    if (SystemToolbox::IsRegularFile(p.string()))
     {
       FilesystemHttpSender sender(p);
       output.Answer(sender);   // TODO COMPRESSION

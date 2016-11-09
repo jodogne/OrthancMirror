@@ -72,7 +72,7 @@ TEST(PngWriter, ColorPattern)
   w.WriteToFile("UnitTestsResults/ColorPattern.png", accessor);
 
   std::string f, md5;
-  Orthanc::Toolbox::ReadFile(f, "UnitTestsResults/ColorPattern.png");
+  Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/ColorPattern.png");
   Orthanc::Toolbox::ComputeMD5(md5, f);
   ASSERT_EQ("604e785f53c99cae6ea4584870b2c41d", md5);
 }
@@ -100,7 +100,7 @@ TEST(PngWriter, Gray8Pattern)
   w.WriteToFile("UnitTestsResults/Gray8Pattern.png", accessor);
 
   std::string f, md5;
-  Orthanc::Toolbox::ReadFile(f, "UnitTestsResults/Gray8Pattern.png");
+  Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/Gray8Pattern.png");
   Orthanc::Toolbox::ComputeMD5(md5, f);
   ASSERT_EQ("5a9b98bea3d0a6d983980cc38bfbcdb3", md5);
 }
@@ -129,7 +129,7 @@ TEST(PngWriter, Gray16Pattern)
   w.WriteToFile("UnitTestsResults/Gray16Pattern.png", accessor);
 
   std::string f, md5;
-  Orthanc::Toolbox::ReadFile(f, "UnitTestsResults/Gray16Pattern.png");
+  Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/Gray16Pattern.png");
   Orthanc::Toolbox::ComputeMD5(md5, f);
   ASSERT_EQ("0785866a08bf0a02d2eeff87f658571c", md5);
 }
@@ -180,8 +180,8 @@ TEST(PngWriter, EndToEnd)
   }
 
   {
-    Orthanc::Toolbox::TemporaryFile tmp;
-    Orthanc::Toolbox::WriteFile(s, tmp.GetPath());
+    Orthanc::TemporaryFile tmp;
+    Orthanc::SystemToolbox::WriteFile(s, tmp.GetPath());
 
     Orthanc::PngReader r2;
     r2.ReadFromFile(tmp.GetPath());
@@ -225,10 +225,10 @@ TEST(JpegWriter, Basic)
     w.WriteToFile("UnitTestsResults/hello.jpg", img);
 
     w.WriteToMemory(s, img);
-    Orthanc::Toolbox::WriteFile(s, "UnitTestsResults/hello2.jpg");
+    Orthanc::SystemToolbox::WriteFile(s, "UnitTestsResults/hello2.jpg");
 
     std::string t;
-    Orthanc::Toolbox::ReadFile(t, "UnitTestsResults/hello.jpg");
+    Orthanc::SystemToolbox::ReadFile(t, "UnitTestsResults/hello.jpg");
     ASSERT_EQ(s.size(), t.size());
     ASSERT_EQ(0, memcmp(s.c_str(), t.c_str(), s.size()));
   }

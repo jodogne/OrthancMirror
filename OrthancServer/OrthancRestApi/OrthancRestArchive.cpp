@@ -547,7 +547,7 @@ namespace Orthanc
         const bool isZip64 = IsZip64Required(stats.GetUncompressedSize(), stats.GetInstancesCount());
 
         // Create a RAII for the temporary file to manage the ZIP file
-        Toolbox::TemporaryFile tmp;
+        TemporaryFile tmp;
 
         {
           // Create a ZIP writer
@@ -634,7 +634,7 @@ namespace Orthanc
         const bool isZip64 = IsZip64Required(stats.GetUncompressedSize(), stats.GetInstancesCount());
 
         // Create a RAII for the temporary file to manage the ZIP file
-        Toolbox::TemporaryFile tmp;
+        TemporaryFile tmp;
 
         {
           // Create a ZIP writer

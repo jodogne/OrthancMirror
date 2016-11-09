@@ -131,7 +131,7 @@ namespace Orthanc
 
   static void GetNowIsoString(RestApiGetCall& call)
   {
-    call.GetOutput().AnswerBuffer(Toolbox::GetNowIsoString(), "text/plain");
+    call.GetOutput().AnswerBuffer(SystemToolbox::GetNowIsoString(), "text/plain");
   }
 
 

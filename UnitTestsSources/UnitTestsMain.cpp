@@ -374,8 +374,8 @@ TEST(Toolbox, Base64)
 
 TEST(Toolbox, PathToExecutable)
 {
-  printf("[%s]\n", Toolbox::GetPathToExecutable().c_str());
-  printf("[%s]\n", Toolbox::GetDirectoryOfExecutable().c_str());
+  printf("[%s]\n", SystemToolbox::GetPathToExecutable().c_str());
+  printf("[%s]\n", SystemToolbox::GetDirectoryOfExecutable().c_str());
 }
 
 TEST(Toolbox, StripSpaces)
@@ -543,7 +543,7 @@ TEST(Toolbox, WriteFile)
   std::string path;
 
   {
-    Toolbox::TemporaryFile tmp;
+    TemporaryFile tmp;
     path = tmp.GetPath();
 
     std::string s;
@@ -552,28 +552,28 @@ TEST(Toolbox, WriteFile)
     s.append("World");
     ASSERT_EQ(11u, s.size());
 
-    Toolbox::WriteFile(s, path.c_str());
+    SystemToolbox::WriteFile(s, path.c_str());
 
     std::string t;
-    Toolbox::ReadFile(t, path.c_str());
+    SystemToolbox::ReadFile(t, path.c_str());
 
     ASSERT_EQ(11u, t.size());
     ASSERT_EQ(0, t[5]);
     ASSERT_EQ(0, memcmp(s.c_str(), t.c_str(), s.size()));
 
     std::string h;
-    ASSERT_EQ(true, Toolbox::ReadHeader(h, path.c_str(), 1));
+    ASSERT_EQ(true, SystemToolbox::ReadHeader(h, path.c_str(), 1));
     ASSERT_EQ(1u, h.size());
     ASSERT_EQ('H', h[0]);
-    ASSERT_TRUE(Toolbox::ReadHeader(h, path.c_str(), 0));
+    ASSERT_TRUE(SystemToolbox::ReadHeader(h, path.c_str(), 0));
     ASSERT_EQ(0u, h.size());
-    ASSERT_FALSE(Toolbox::ReadHeader(h, path.c_str(), 32));
+    ASSERT_FALSE(SystemToolbox::ReadHeader(h, path.c_str(), 32));
     ASSERT_EQ(11u, h.size());
     ASSERT_EQ(0, memcmp(s.c_str(), h.c_str(), s.size()));
   }
 
   std::string u;
-  ASSERT_THROW(Toolbox::ReadFile(u, path.c_str()), OrthancException);
+  ASSERT_THROW(SystemToolbox::ReadFile(u, path.c_str()), OrthancException);
 }
 
 
@@ -896,7 +896,7 @@ TEST(Toolbox, ExecuteSystemCommand)
   args[0] = "Hello";
   args[1] = "World";
 
-  Toolbox::ExecuteSystemCommand("echo", args);
+  SystemToolbox::ExecuteSystemCommand("echo", args);
 }
 #endif
 
@@ -987,7 +987,7 @@ int main(int argc, char **argv)
   Logging::Initialize();
   Logging::EnableInfoLevel(true);
   Toolbox::DetectEndianness();
-  Toolbox::MakeDirectory("UnitTestsResults");
+  SystemToolbox::MakeDirectory("UnitTestsResults");
   OrthancInitialize();
 
   ::testing::InitGoogleTest(&argc, argv);

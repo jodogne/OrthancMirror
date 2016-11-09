@@ -58,7 +58,7 @@ namespace Orthanc
       changeType_(changeType),
       resourceType_(resourceType),
       publicId_(publicId),
-      date_(Toolbox::GetNowIsoString())
+      date_(SystemToolbox::GetNowIsoString())
     {
     }
 

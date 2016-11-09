@@ -2172,14 +2172,14 @@ namespace Orthanc
     {
       case _OrthancPluginService_GetOrthancPath:
       {
-        std::string s = Toolbox::GetPathToExecutable();
+        std::string s = SystemToolbox::GetPathToExecutable();
         *reinterpret_cast<const _OrthancPluginRetrieveDynamicString*>(parameters)->result = CopyString(s);
         return true;
       }
 
       case _OrthancPluginService_GetOrthancDirectory:
       {
-        std::string s = Toolbox::GetDirectoryOfExecutable();
+        std::string s = SystemToolbox::GetDirectoryOfExecutable();
         *reinterpret_cast<const _OrthancPluginRetrieveDynamicString*>(parameters)->result = CopyString(s);
         return true;
       }
@@ -2366,7 +2366,7 @@ namespace Orthanc
           *reinterpret_cast<const _OrthancPluginReadFile*>(parameters);
 
         std::string content;
-        Toolbox::ReadFile(content, p.path);
+        SystemToolbox::ReadFile(content, p.path);
         CopyToMemoryBuffer(*p.target, content.size() > 0 ? content.c_str() : NULL, content.size());
 
         return true;
@@ -2376,7 +2376,7 @@ namespace Orthanc
       {
         const _OrthancPluginWriteFile& p =
           *reinterpret_cast<const _OrthancPluginWriteFile*>(parameters);
-        Toolbox::WriteFile(p.data, p.size, p.path);
+        SystemToolbox::WriteFile(p.data, p.size, p.path);
         return true;
       }
 

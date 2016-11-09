@@ -857,7 +857,7 @@ TEST(TestImages, PatternGrayscale8)
 
   {
     std::string s;
-    Orthanc::Toolbox::ReadFile(s, PATH);
+    Orthanc::SystemToolbox::ReadFile(s, PATH);
     Orthanc::ParsedDicomFile f(s);
     
     std::auto_ptr<Orthanc::ImageAccessor> decoded(Orthanc::DicomImageDecoder::Decode(f, 0));
@@ -919,7 +919,7 @@ TEST(TestImages, PatternRGB)
 
   {
     std::string s;
-    Orthanc::Toolbox::ReadFile(s, PATH);
+    Orthanc::SystemToolbox::ReadFile(s, PATH);
     Orthanc::ParsedDicomFile f(s);
     
     std::auto_ptr<Orthanc::ImageAccessor> decoded(Orthanc::DicomImageDecoder::Decode(f, 0));
@@ -973,7 +973,7 @@ TEST(TestImages, PatternUint16)
 
   {
     std::string s;
-    Orthanc::Toolbox::ReadFile(s, PATH);
+    Orthanc::SystemToolbox::ReadFile(s, PATH);
     Orthanc::ParsedDicomFile f(s);
     
     std::auto_ptr<Orthanc::ImageAccessor> decoded(Orthanc::DicomImageDecoder::Decode(f, 0));
@@ -1027,7 +1027,7 @@ TEST(TestImages, PatternInt16)
 
   {
     std::string s;
-    Orthanc::Toolbox::ReadFile(s, PATH);
+    Orthanc::SystemToolbox::ReadFile(s, PATH);
     Orthanc::ParsedDicomFile f(s);
     
     std::auto_ptr<Orthanc::ImageAccessor> decoded(Orthanc::DicomImageDecoder::Decode(f, 0));

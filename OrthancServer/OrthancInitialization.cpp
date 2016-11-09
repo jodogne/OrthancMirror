@@ -128,7 +128,7 @@ namespace Orthanc
 
     {
       std::string content;
-      Toolbox::ReadFile(content, path.string());
+      SystemToolbox::ReadFile(content, path.string());
 
       Json::Value tmp;
       Json::Reader reader;

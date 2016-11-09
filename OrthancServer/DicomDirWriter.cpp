@@ -126,7 +126,7 @@ namespace Orthanc
   {
   private:
     std::string fileSetId_;
-    Toolbox::TemporaryFile file_;
+    TemporaryFile file_;
     std::auto_ptr<DcmDicomDir> dir_;
 
     typedef std::pair<ResourceType, std::string>  IndexKey;
@@ -260,7 +260,7 @@ namespace Orthanc
       // cf. "DicomDirInterface::buildStudyRecord()"
 
       std::string nowDate, nowTime;
-      Toolbox::GetNowDicom(nowDate, nowTime);
+      SystemToolbox::GetNowDicom(nowDate, nowTime);
 
       std::string studyDate;
       if (!GetUtf8TagValue(studyDate, dicom, encoding, DCM_StudyDate) &&

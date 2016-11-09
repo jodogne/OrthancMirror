@@ -671,7 +671,7 @@ TEST(ServerIndex, Sequence)
 {
   const std::string path = "UnitTestsStorage";
 
-  Toolbox::RemoveFile(path + "/index");
+  SystemToolbox::RemoveFile(path + "/index");
   FilesystemStorage storage(path);
   DatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
@@ -769,7 +769,7 @@ TEST(ServerIndex, AttachmentRecycling)
 {
   const std::string path = "UnitTestsStorage";
 
-  Toolbox::RemoveFile(path + "/index");
+  SystemToolbox::RemoveFile(path + "/index");
   FilesystemStorage storage(path);
   DatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
@@ -824,7 +824,7 @@ TEST(ServerIndex, AttachmentRecycling)
   }
 
   // Because the DB is in memory, the SQLite index must not have been created
-  ASSERT_FALSE(Toolbox::IsRegularFile(path + "/index"));
+  ASSERT_FALSE(SystemToolbox::IsRegularFile(path + "/index"));
 
   context.Stop();
   db.Close();

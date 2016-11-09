@@ -233,14 +233,14 @@ TEST(FilesystemHttpSender, Basic)
   std::string t;
 
   {
-    Toolbox::WriteFile(s, path);
+    SystemToolbox::WriteFile(s, path);
     FilesystemHttpSender sender(path);
     ASSERT_TRUE(ReadAllStream(t, sender));
     ASSERT_EQ(s, t);
   }
 
   {
-    Toolbox::WriteFile("", path);
+    SystemToolbox::WriteFile("", path);
     FilesystemHttpSender sender(path);
     ASSERT_TRUE(ReadAllStream(t, sender));
     ASSERT_EQ(0u, t.size());

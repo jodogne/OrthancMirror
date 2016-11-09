@@ -757,7 +757,7 @@ namespace Orthanc
       }
 
       // Attach the auto-computed metadata for the patient/study/series levels
-      std::string now = Toolbox::GetNowIsoString();
+      std::string now = SystemToolbox::GetNowIsoString();
       db_.SetMetadata(series, MetadataType_LastUpdate, now);
       db_.SetMetadata(study, MetadataType_LastUpdate, now);
       db_.SetMetadata(patient, MetadataType_LastUpdate, now);
@@ -1261,7 +1261,7 @@ namespace Orthanc
                               type,
                               publicId,
                               remoteModality,
-                              Toolbox::GetNowIsoString(),
+                              SystemToolbox::GetNowIsoString(),
                               patientId,
                               studyInstanceUid,
                               seriesInstanceUid,

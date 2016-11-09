@@ -96,7 +96,7 @@ namespace Orthanc
 
   void JpegReader::ReadFromFile(const std::string& filename)
   {
-    FILE* fp = Toolbox::OpenFile(filename, FileMode_ReadBinary);
+    FILE* fp = SystemToolbox::OpenFile(filename, FileMode_ReadBinary);
     if (!fp)
     {
       throw OrthancException(ErrorCode_InexistentFile);

@@ -100,12 +100,12 @@ TEST(HttpClient, Basic)
 
 TEST(HttpClient, Ssl)
 {
-  Toolbox::WriteFile(BITBUCKET_CERTIFICATES, "UnitTestsResults/bitbucket.cert");
+  SystemToolbox::WriteFile(BITBUCKET_CERTIFICATES, "UnitTestsResults/bitbucket.cert");
 
   /*{
     std::string s;
-    Toolbox::ReadFile(s, "/usr/share/ca-certificates/mozilla/WoSign.crt");
-    Toolbox::WriteFile(s, "UnitTestsResults/bitbucket.cert");
+    SystemToolbox::ReadFile(s, "/usr/share/ca-certificates/mozilla/WoSign.crt");
+    SystemToolbox::WriteFile(s, "UnitTestsResults/bitbucket.cert");
     }*/
 
   HttpClient c;

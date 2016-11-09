@@ -47,7 +47,7 @@ namespace Orthanc
 #if ORTHANC_SANDBOXED == 0
     std::string compressed;
     WriteToMemoryInternal(compressed, width, height, pitch, format, buffer);
-    Toolbox::WriteFile(compressed, path);
+    SystemToolbox::WriteFile(compressed, path);
 #else
     throw OrthancException(ErrorCode_CannotWriteFile);  // Unavailable in sandboxed environments
 #endif

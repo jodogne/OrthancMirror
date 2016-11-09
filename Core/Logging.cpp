@@ -150,7 +150,7 @@ namespace Orthanc
 
       boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
       boost::filesystem::path root(directory);
-      boost::filesystem::path exe(Toolbox::GetPathToExecutable());
+      boost::filesystem::path exe(SystemToolbox::GetPathToExecutable());
       
       if (!boost::filesystem::exists(root) ||
           !boost::filesystem::is_directory(root))
@@ -166,7 +166,7 @@ namespace Orthanc
               now.time_of_day().hours(),
               now.time_of_day().minutes(),
               now.time_of_day().seconds(),
-              Toolbox::GetProcessId());
+              SystemToolbox::GetProcessId());
 
       std::string programName = exe.filename().replace_extension("").string();
 

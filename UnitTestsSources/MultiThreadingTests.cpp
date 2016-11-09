@@ -151,7 +151,7 @@ TEST(ReusableDicomUserConnection, DISABLED_Basic)
     lock.GetConnection().StoreFile("/home/jodogne/DICOM/Cardiac/MR.X.1.2.276.0.7230010.3.1.4.2831157719.2256.1336386844.676277", 0);
   }
 
-  Toolbox::ServerBarrier();
+  SystemToolbox::ServerBarrier();
   printf("DONE\n"); fflush(stdout);
 }
 
@@ -246,7 +246,7 @@ TEST(MultiThreading, ServerScheduler)
     printf("** %s\n", i->c_str());
   }
 
-  //Toolbox::ServerBarrier();
+  //SystemToolbox::ServerBarrier();
   //Toolbox::USleep(3000000);
 
   scheduler.Stop();

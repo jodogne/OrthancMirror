@@ -758,7 +758,7 @@ namespace Orthanc
     
     // Inject time-related information
     std::string date, time;
-    Toolbox::GetNowDicom(date, time);
+    SystemToolbox::GetNowDicom(date, time);
     dicom.ReplacePlainString(DICOM_TAG_ACQUISITION_DATE, date);
     dicom.ReplacePlainString(DICOM_TAG_ACQUISITION_TIME, time);
     dicom.ReplacePlainString(DICOM_TAG_CONTENT_DATE, date);
