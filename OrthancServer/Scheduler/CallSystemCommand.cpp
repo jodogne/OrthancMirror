@@ -35,7 +35,7 @@
 
 #include "../../Core/Logging.h"
 #include "../../Core/Toolbox.h"
-#include "../../Core/Uuid.h"
+#include "../../Core/TemporaryFile.h"
 
 namespace Orthanc
 {

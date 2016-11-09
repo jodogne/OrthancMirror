@@ -35,7 +35,6 @@
 
 #include "../Core/DicomFormat/DicomArray.h"
 #include "../Core/Logging.h"
-#include "../Core/Uuid.h"
 #include "EmbeddedResources.h"
 #include "ServerToolbox.h"
 

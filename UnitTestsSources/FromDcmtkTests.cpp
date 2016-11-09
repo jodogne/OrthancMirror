@@ -44,7 +44,6 @@
 #include "../Core/Images/PngWriter.h"
 #include "../Core/Images/Image.h"
 #include "../Core/Images/ImageProcessing.h"
-#include "../Core/Uuid.h"
 #include "../Core/Endianness.h"
 #include "../Resources/EncodingTests.h"
 #include "../OrthancServer/DicomProtocol/DicomFindAnswers.h"

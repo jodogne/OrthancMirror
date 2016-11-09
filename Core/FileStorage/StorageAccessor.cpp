@@ -36,6 +36,7 @@
 #include "../Compression/ZlibCompressor.h"
 #include "../OrthancException.h"
 #include "../HttpServer/HttpStreamTranscoder.h"
+#include "../Toolbox.h"
 
 namespace Orthanc
 {

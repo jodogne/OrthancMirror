@@ -33,7 +33,6 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
-#include "../Core/Uuid.h"
 #include "../Core/OrthancException.h"
 #include "../Core/DicomFormat/DicomMap.h"
 #include "../OrthancServer/FromDcmtkBridge.h"

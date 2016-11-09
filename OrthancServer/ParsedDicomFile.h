@@ -36,6 +36,7 @@
 #include "../Core/Images/ImageAccessor.h"
 #include "../Core/IDynamicObject.h"
 #include "../Core/RestApi/RestApiOutput.h"
+#include "../Core/Toolbox.h"
 #include "ServerEnumerations.h"
 
 class DcmDataset;

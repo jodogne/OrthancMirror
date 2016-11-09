@@ -90,7 +90,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
-#include "../Core/Uuid.h"
 
 #include <list>
 #include <limits>

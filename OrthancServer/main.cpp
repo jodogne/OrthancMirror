@@ -36,7 +36,6 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "../Core/Logging.h"
-#include "../Core/Uuid.h"
 #include "../Core/HttpServer/EmbeddedResourceHttpHandler.h"
 #include "../Core/HttpServer/FilesystemHttpHandler.h"
 #include "../Core/Lua/LuaFunctionCall.h"

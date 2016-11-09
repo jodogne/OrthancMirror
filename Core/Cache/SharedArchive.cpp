@@ -34,9 +34,6 @@
 #include "SharedArchive.h"
 
 
-#include "../Uuid.h"
-
-
 namespace Orthanc
 {
   void SharedArchive::RemoveInternal(const std::string& id)
