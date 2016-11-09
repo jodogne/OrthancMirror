@@ -35,7 +35,6 @@
 
 #include "../../Core/OrthancException.h"
 #include "../../Core/Toolbox.h"
-#include "../../Core/Uuid.h"
 
 namespace Orthanc
 {

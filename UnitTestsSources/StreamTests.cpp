@@ -35,7 +35,6 @@
 
 #include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"
-#include "../Core/Uuid.h"
 #include "../Core/HttpServer/BufferHttpSender.h"
 #include "../Core/HttpServer/FilesystemHttpSender.h"
 #include "../Core/HttpServer/HttpStreamTranscoder.h"

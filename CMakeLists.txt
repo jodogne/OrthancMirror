@@ -146,8 +146,8 @@ set(ORTHANC_CORE_SOURCES
   Core/SQLite/StatementId.cpp
   Core/SQLite/StatementReference.cpp
   Core/SQLite/Transaction.cpp
+  Core/TemporaryFile.cpp
   Core/Toolbox.cpp
-  Core/Uuid.cpp
   Core/WebServiceParameters.cpp
   Core/Lua/LuaContext.cpp
   Core/Lua/LuaFunctionCall.cpp

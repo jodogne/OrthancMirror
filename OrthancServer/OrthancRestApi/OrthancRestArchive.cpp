@@ -38,7 +38,7 @@
 #include "../../Core/Compression/HierarchicalZipWriter.h"
 #include "../../Core/HttpServer/FilesystemHttpSender.h"
 #include "../../Core/Logging.h"
-#include "../../Core/Uuid.h"
+#include "../../Core/TemporaryFile.h"
 #include "../ServerContext.h"
 
 #include <stdio.h>

@@ -41,7 +41,7 @@
 #include "../Core/Images/PngReader.h"
 #include "../Core/Images/PngWriter.h"
 #include "../Core/Toolbox.h"
-#include "../Core/Uuid.h"
+#include "../Core/TemporaryFile.h"
 #include "../OrthancServer/OrthancInitialization.h"
 
 #include <stdint.h>

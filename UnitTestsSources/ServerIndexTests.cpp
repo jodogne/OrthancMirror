@@ -35,7 +35,6 @@
 
 #include "../Core/FileStorage/FilesystemStorage.h"
 #include "../Core/Logging.h"
-#include "../Core/Uuid.h"
 #include "../OrthancServer/DatabaseWrapper.h"
 #include "../OrthancServer/ServerContext.h"
 #include "../OrthancServer/ServerIndex.h"

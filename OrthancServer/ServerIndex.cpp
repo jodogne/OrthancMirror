@@ -43,7 +43,6 @@
 #include "ServerToolbox.h"
 #include "../Core/Toolbox.h"
 #include "../Core/Logging.h"
-#include "../Core/Uuid.h"
 #include "../Core/DicomFormat/DicomArray.h"
 
 #include "FromDcmtkBridge.h"

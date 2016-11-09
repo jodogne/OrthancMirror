@@ -30,52 +30,47 @@
  **/
 
 
-#include "PrecompiledHeaders.h"
-#include "Uuid.h"
+#pragma once
 
-#include <boost/filesystem.hpp>
+#include <string>
+
+#if !defined(ORTHANC_SANDBOXED)
+#  define ORTHANC_SANDBOXED  0
+#endif
+
+#if ORTHANC_SANDBOXED == 1
+#  error The class TemporaryFile cannot be used in sandboxed environments
+#endif
+
+#include "Toolbox.h"
 
 namespace Orthanc
 {
-  static std::string CreateTemporaryPath(const char* extension)
+  class TemporaryFile
   {
-#if BOOST_HAS_FILESYSTEM_V3 == 1
-    boost::filesystem::path tmpDir = boost::filesystem::temp_directory_path();
-#elif defined(__linux__)
-    boost::filesystem::path tmpDir("/tmp");
-#else
-#error Support your platform here
-#endif
+  private:
+    std::string path_;
 
-    // We use UUID to create unique path to temporary files
-    std::string filename = "Orthanc-" + Orthanc::Toolbox::GenerateUuid();
+  public:
+    TemporaryFile();
 
-    if (extension != NULL)
+    TemporaryFile(const char* extension);
+
+    ~TemporaryFile();
+
+    const std::string& GetPath() const
     {
-      filename.append(extension);
+      return path_;
     }
 
-    tmpDir /= filename;
-    return tmpDir.string();
-  }
+    void Write(const std::string& content)
+    {
+      SystemToolbox::WriteFile(content, path_);
+    }
 
-
-#if ORTHANC_SANDBOXED == 0
-  TemporaryFile::TemporaryFile() : 
-    path_(CreateTemporaryPath(NULL))
-  {
-  }
-
-
-  TemporaryFile::TemporaryFile(const char* extension) :
-    path_(CreateTemporaryPath(extension))
-  {
-  }
-
-
-  TemporaryFile::~TemporaryFile()
-  {
-    boost::filesystem::remove(path_);
-  }  
-#endif
+    void Read(std::string& content) const
+    {
+      SystemToolbox::ReadFile(content, path_);
+    }
+  };
 }

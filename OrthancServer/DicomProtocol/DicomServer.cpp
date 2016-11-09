@@ -36,7 +36,6 @@
 #include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
 #include "../../Core/Toolbox.h"
-#include "../../Core/Uuid.h"
 #include "../Internals/CommandDispatcher.h"
 #include "../OrthancInitialization.h"
 #include "EmbeddedResources.h"

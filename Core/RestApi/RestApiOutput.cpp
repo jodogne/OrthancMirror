@@ -35,6 +35,7 @@
 
 #include "../Logging.h"
 #include "../OrthancException.h"
+#include "../Toolbox.h"
 
 #include <boost/lexical_cast.hpp>
 

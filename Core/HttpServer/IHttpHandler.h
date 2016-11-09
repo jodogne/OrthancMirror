@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include "../Enumerations.h"
+#include "../Toolbox.h"
 #include "HttpOutput.h"
 
 #include <map>

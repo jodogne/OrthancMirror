@@ -41,8 +41,8 @@
 #include "../Core/HttpServer/HttpToolbox.h"
 #include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
+#include "../Core/TemporaryFile.h"
 #include "../Core/Toolbox.h"
-#include "../Core/Uuid.h"
 #include "../OrthancServer/OrthancInitialization.h"
 
 

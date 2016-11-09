@@ -32,13 +32,14 @@
 
 #pragma once
 
-#include <list>
-#include <string>
-#include <stdint.h>
 #include "../Enumerations.h"
 #include "IHttpOutputStream.h"
 #include "IHttpStreamAnswer.h"
-#include "../Uuid.h"
+
+#include <list>
+#include <string>
+#include <stdint.h>
+#include <map>
 
 namespace Orthanc
 {

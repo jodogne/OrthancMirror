@@ -41,7 +41,6 @@
 #include "../Core/HttpClient.h"
 #include "../Core/Logging.h"
 #include "../Core/RestApi/RestApi.h"
-#include "../Core/Uuid.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Compression/ZlibCompressor.h"
 #include "../Core/RestApi/RestApiHierarchy.h"
