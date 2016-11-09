@@ -64,7 +64,7 @@ namespace Orthanc
         return "Parameter out of range";
 
       case ErrorCode_NotEnoughMemory:
-        return "Not enough memory";
+        return "The server hosting Orthanc is running out of memory";
 
       case ErrorCode_BadParameterType:
         return "Bad type for a parameter";
@@ -155,9 +155,6 @@ namespace Orthanc
 
       case ErrorCode_NotAcceptable:
         return "Cannot send a response which is acceptable according to the Accept HTTP header";
-
-      case ErrorCode_NotEnoughMemory:
-        return "The server hosting Orthanc is running out of memory";
 
       case ErrorCode_NullPointer:
         return "Cannot handle a NULL pointer";

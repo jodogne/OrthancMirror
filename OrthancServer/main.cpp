@@ -504,7 +504,7 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_Plugin, "Error encountered within the plugin engine");
     PrintErrorCode(ErrorCode_NotImplemented, "Not implemented yet");
     PrintErrorCode(ErrorCode_ParameterOutOfRange, "Parameter out of range");
-    PrintErrorCode(ErrorCode_NotEnoughMemory, "Not enough memory");
+    PrintErrorCode(ErrorCode_NotEnoughMemory, "The server hosting Orthanc is running out of memory");
     PrintErrorCode(ErrorCode_BadParameterType, "Bad type for a parameter");
     PrintErrorCode(ErrorCode_BadSequenceOfCalls, "Bad sequence of calls");
     PrintErrorCode(ErrorCode_InexistentItem, "Accessing an inexistent item");
@@ -535,7 +535,6 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_StorageAreaPlugin, "Error in the plugin implementing a custom storage area");
     PrintErrorCode(ErrorCode_EmptyRequest, "The request is empty");
     PrintErrorCode(ErrorCode_NotAcceptable, "Cannot send a response which is acceptable according to the Accept HTTP header");
-    PrintErrorCode(ErrorCode_NotEnoughMemory, "The server hosting Orthanc is running out of memory");
     PrintErrorCode(ErrorCode_NullPointer, "Cannot handle a NULL pointer");
     PrintErrorCode(ErrorCode_SQLiteNotOpened, "SQLite: The database is not opened");
     PrintErrorCode(ErrorCode_SQLiteAlreadyOpened, "SQLite: Connection is already open");

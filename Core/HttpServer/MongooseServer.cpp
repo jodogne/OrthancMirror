@@ -744,6 +744,10 @@ namespace Orthanc
         // Presumably an error while parsing the JSON body
         throw OrthancException(ErrorCode_BadRequest);
       }
+      /*catch (std::bad_alloc&)
+      {
+        throw OrthancException(ErrorCode_NotEnoughMemory);
+        }*/
 
       if (!found)
       {

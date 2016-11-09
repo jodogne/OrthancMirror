@@ -32,7 +32,7 @@
   {
     "Code": 4, 
     "Name": "NotEnoughMemory", 
-    "Description": "Not enough memory"
+    "Description": "The server hosting Orthanc is running out of memory"
   }, 
   {
     "Code": 5, 
@@ -198,11 +198,6 @@
   }, 
   {
     "Code": 35, 
-    "Name": "NotEnoughMemory", 
-    "Description": "The server hosting Orthanc is running out of memory"
-  }, 
-  {
-    "Code": 36, 
     "Name": "NullPointer", 
     "Description": "Cannot handle a NULL pointer"
   },
