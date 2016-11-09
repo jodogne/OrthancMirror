@@ -195,6 +195,16 @@
     "HttpStatus": 406, 
     "Name": "NotAcceptable", 
     "Description": "Cannot send a response which is acceptable according to the Accept HTTP header"
+  }, 
+  {
+    "Code": 35, 
+    "Name": "NotEnoughMemory", 
+    "Description": "The server hosting Orthanc is running out of memory"
+  }, 
+  {
+    "Code": 36, 
+    "Name": "NullPointer", 
+    "Description": "Cannot handle a NULL pointer"
   },
 
 

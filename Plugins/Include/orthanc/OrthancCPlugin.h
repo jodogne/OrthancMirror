@@ -222,6 +222,8 @@ extern "C"
     OrthancPluginErrorCode_StorageAreaPlugin = 32    /*!< Error in the plugin implementing a custom storage area */,
     OrthancPluginErrorCode_EmptyRequest = 33    /*!< The request is empty */,
     OrthancPluginErrorCode_NotAcceptable = 34    /*!< Cannot send a response which is acceptable according to the Accept HTTP header */,
+    OrthancPluginErrorCode_NotEnoughMemory = 35    /*!< The server hosting Orthanc is running out of memory */,
+    OrthancPluginErrorCode_NullPointer = 36    /*!< Cannot handle a NULL pointer */,
     OrthancPluginErrorCode_SQLiteNotOpened = 1000    /*!< SQLite: The database is not opened */,
     OrthancPluginErrorCode_SQLiteAlreadyOpened = 1001    /*!< SQLite: Connection is already open */,
     OrthancPluginErrorCode_SQLiteCannotOpen = 1002    /*!< SQLite: Unable to open the database */,
