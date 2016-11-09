@@ -28,9 +28,9 @@ static OrthancPluginContext* context = NULL;
 static OrthancPluginErrorCode customError;
 
 
-ORTHANC_PLUGINS_API int32_t Callback1(OrthancPluginRestOutput* output,
-                                      const char* url,
-                                      const OrthancPluginHttpRequest* request)
+ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback1(OrthancPluginRestOutput* output,
+                                                     const char* url,
+                                                     const OrthancPluginHttpRequest* request)
 {
   char buffer[1024];
   uint32_t i;
@@ -57,7 +57,7 @@ ORTHANC_PLUGINS_API int32_t Callback1(OrthancPluginRestOutput* output,
     OrthancPluginLogWarning(context, buffer);    
   }
 
-  OrthancPluginLogWarning(context, "");    
+  OrthancPluginLogWarning(context, "");
 
   for (i = 0; i < request->headersCount; i++)
   {
@@ -67,13 +67,13 @@ ORTHANC_PLUGINS_API int32_t Callback1(OrthancPluginRestOutput* output,
 
   OrthancPluginLogWarning(context, "");
 
-  return 1;
+  return OrthancPluginErrorCode_Success;
 }
 
 
-ORTHANC_PLUGINS_API int32_t Callback2(OrthancPluginRestOutput* output,
-                                      const char* url,
-                                      const OrthancPluginHttpRequest* request)
+ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback2(OrthancPluginRestOutput* output,
+                                                     const char* url,
+                                                     const OrthancPluginHttpRequest* request)
 {
   /* Answer with a sample 16bpp image. */
 
@@ -99,13 +99,13 @@ ORTHANC_PLUGINS_API int32_t Callback2(OrthancPluginRestOutput* output,
                                            256, 256, sizeof(uint16_t) * 256, buffer);
   }
 
-  return 0;
+  return OrthancPluginErrorCode_Success;
 }
 
 
-ORTHANC_PLUGINS_API int32_t Callback3(OrthancPluginRestOutput* output,
-                                      const char* url,
-                                      const OrthancPluginHttpRequest* request)
+ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback3(OrthancPluginRestOutput* output,
+                                                     const char* url,
+                                                     const OrthancPluginHttpRequest* request)
 {
   if (request->method != OrthancPluginHttpMethod_Get)
   {
@@ -124,13 +124,13 @@ ORTHANC_PLUGINS_API int32_t Callback3(OrthancPluginRestOutput* output,
     }
   }
 
-  return 0;
+  return OrthancPluginErrorCode_Success;
 }
 
 
-ORTHANC_PLUGINS_API int32_t Callback4(OrthancPluginRestOutput* output,
-                                      const char* url,
-                                      const OrthancPluginHttpRequest* request)
+ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback4(OrthancPluginRestOutput* output,
+                                                     const char* url,
+                                                     const OrthancPluginHttpRequest* request)
 {
   /* Answer with a sample 8bpp image. */
 
@@ -156,13 +156,13 @@ ORTHANC_PLUGINS_API int32_t Callback4(OrthancPluginRestOutput* output,
                                            256, 256, 256, buffer);
   }
 
-  return 0;
+  return OrthancPluginErrorCode_Success;
 }
 
 
-ORTHANC_PLUGINS_API int32_t Callback5(OrthancPluginRestOutput* output,
-                                      const char* url,
-                                      const OrthancPluginHttpRequest* request)
+ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback5(OrthancPluginRestOutput* output,
+                                                     const char* url,
+                                                     const OrthancPluginHttpRequest* request)
 {
   /**
    * Demonstration the difference between the
@@ -199,13 +199,13 @@ ORTHANC_PLUGINS_API int32_t Callback5(OrthancPluginRestOutput* output,
 
   if (error)
   {
-    return -1;
+    return OrthancPluginErrorCode_InternalError;
   }
   else
   {
     OrthancPluginAnswerBuffer(context, output, tmp.data, tmp.size, "application/octet-stream");
     OrthancPluginFreeMemoryBuffer(context, &tmp);
-    return 0;
+    return OrthancPluginErrorCode_Success;
   }
 }
 
