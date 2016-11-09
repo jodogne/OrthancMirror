@@ -177,12 +177,14 @@ namespace Orthanc
     SetUsername(GetStringMember(peer, "Username", ""));
     SetPassword(GetStringMember(peer, "Password", ""));
 
+#if ORTHANC_SANDBOXED == 0
     if (peer.isMember("CertificateFile"))
     {
       SetClientCertificate(GetStringMember(peer, "CertificateFile", ""),
                            GetStringMember(peer, "CertificateKeyFile", ""),
                            GetStringMember(peer, "CertificateKeyPassword", ""));
     }
+#endif
 
     if (peer.isMember("Pkcs11"))
     {
