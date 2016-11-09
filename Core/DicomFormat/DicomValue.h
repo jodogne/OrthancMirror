@@ -35,6 +35,11 @@
 #include <string>
 #include <boost/noncopyable.hpp>
 
+#if !defined(ORTHANC_ENABLE_BASE64)
+#  error The macro ORTHANC_ENABLE_BASE64 must be defined
+#endif
+
+
 namespace Orthanc
 {
   class DicomValue : public boost::noncopyable
@@ -78,7 +83,7 @@ namespace Orthanc
     
     DicomValue* Clone() const;
 
-#if !defined(ORTHANC_ENABLE_BASE64) || ORTHANC_ENABLE_BASE64 == 1
+#if ORTHANC_ENABLE_BASE64 == 1
     void FormatDataUriScheme(std::string& target,
                              const std::string& mime) const;
 
