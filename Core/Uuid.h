@@ -34,15 +34,6 @@
 
 #include <string>
 
-/**
- * GUID vs. UUID
- * The simple answer is: no difference, they are the same thing. Treat
- * them as a 16 byte (128 bits) value that is used as a unique
- * value. In Microsoft-speak they are called GUIDs, but call them
- * UUIDs when not using Microsoft-speak.
- * http://stackoverflow.com/questions/246930/is-there-any-difference-between-a-guid-and-a-uuid
- **/
-
 #if !defined(ORTHANC_SANDBOXED)
 #  define ORTHANC_SANDBOXED  0
 #endif
@@ -51,15 +42,6 @@
 
 namespace Orthanc
 {
-  namespace Toolbox
-  {
-    std::string GenerateUuid();
-
-    bool IsUuid(const std::string& str);
-
-    bool StartsWithUuid(const std::string& str);
-  }
-
 #if ORTHANC_SANDBOXED == 0
   class TemporaryFile
   {
