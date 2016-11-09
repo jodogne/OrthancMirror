@@ -17,7 +17,7 @@ endif()
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   # Linking with "pthread" is necessary, otherwise the software crashes
   # http://sourceware.org/bugzilla/show_bug.cgi?id=10652#c17
-  link_libraries(dl rt)
+  link_libraries(dl rt pthread)
 endif()
 
 
