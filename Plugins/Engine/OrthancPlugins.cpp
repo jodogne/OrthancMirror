@@ -940,7 +940,7 @@ namespace Orthanc
     }
     else
     {
-      GetErrorDictionary().LogError(error, true);
+      GetErrorDictionary().LogError(error, false);
       throw OrthancException(static_cast<ErrorCode>(error));
     }
   }

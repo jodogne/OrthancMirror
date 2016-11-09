@@ -102,7 +102,8 @@ namespace Orthanc
           catch (OrthancException& e)
           {
             LOG(ERROR) << "Error in the " << it->GetDescription() 
-                       << " callback while signaling a change: " << e.What();
+                       << " callback while signaling a change: " << e.What()
+                       << " (code " << e.GetErrorCode() << ")";
           }
         }
       }
@@ -222,7 +223,8 @@ namespace Orthanc
           catch (OrthancException& e)
           {
             LOG(ERROR) << "Error in the " << it->GetDescription() 
-                       << " callback while receiving an instance: " << e.What();
+                       << " callback while receiving an instance: " << e.What()
+                       << " (code " << e.GetErrorCode() << ")";
             throw;
           }
         }
@@ -299,7 +301,8 @@ namespace Orthanc
           catch (OrthancException& e)
           {
             LOG(ERROR) << "Error in the " << it->GetDescription() 
-                       << " callback while receiving an instance: " << e.What();
+                       << " callback while receiving an instance: " << e.What()
+                       << " (code " << e.GetErrorCode() << ")";
           }
         }
       }
