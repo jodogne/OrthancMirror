@@ -30,65 +30,71 @@
  **/
 
 
-#include "PrecompiledHeaders.h"
-#include "TemporaryFile.h"
+#pragma once
 
-#include "SystemToolbox.h"
-#include "Toolbox.h"
+#if !defined(ORTHANC_SANDBOXED)
+#  error The macro ORTHANC_SANDBOXED must be defined
+#endif
 
-#include <boost/filesystem.hpp>
+#if ORTHANC_SANDBOXED == 1
+#  error The namespace SystemToolbox cannot be used in sandboxed environments
+#endif
+
+#include "Enumerations.h"
+
+#include <vector>
+#include <string>
+#include <stdint.h>
 
 namespace Orthanc
 {
-  static std::string CreateTemporaryPath(const char* extension)
+  namespace SystemToolbox
   {
-#if BOOST_HAS_FILESYSTEM_V3 == 1
-    boost::filesystem::path tmpDir = boost::filesystem::temp_directory_path();
-#elif defined(__linux__)
-    boost::filesystem::path tmpDir("/tmp");
-#else
-#error Support your platform here
+    ServerBarrierEvent ServerBarrier(const bool& stopFlag);
+
+    ServerBarrierEvent ServerBarrier();
+
+    void ReadFile(std::string& content,
+                  const std::string& path);
+
+    bool ReadHeader(std::string& header,
+                    const std::string& path,
+                    size_t headerSize);
+
+    void WriteFile(const void* content,
+                   size_t size,
+                   const std::string& path);
+
+    void WriteFile(const std::string& content,
+                   const std::string& path);
+
+    void RemoveFile(const std::string& path);
+
+    uint64_t GetFileSize(const std::string& path);
+
+    void MakeDirectory(const std::string& path);
+
+    bool IsExistingFile(const std::string& path);
+
+    std::string GetPathToExecutable();
+
+    std::string GetDirectoryOfExecutable();
+
+    void ExecuteSystemCommand(const std::string& command,
+                              const std::vector<std::string>& arguments);
+
+    int GetProcessId();
+
+    bool IsRegularFile(const std::string& path);
+
+    FILE* OpenFile(const std::string& path,
+                   FileMode mode);
+
+#if BOOST_HAS_DATE_TIME == 1
+    std::string GetNowIsoString();
+
+    void GetNowDicom(std::string& date,
+                     std::string& time);
 #endif
-
-    // We use UUID to create unique path to temporary files
-    std::string filename = "Orthanc-" + Orthanc::Toolbox::GenerateUuid();
-
-    if (extension != NULL)
-    {
-      filename.append(extension);
-    }
-
-    tmpDir /= filename;
-    return tmpDir.string();
-  }
-
-
-  TemporaryFile::TemporaryFile() : 
-    path_(CreateTemporaryPath(NULL))
-  {
-  }
-
-
-  TemporaryFile::TemporaryFile(const char* extension) :
-    path_(CreateTemporaryPath(extension))
-  {
-  }
-
-
-  TemporaryFile::~TemporaryFile()
-  {
-    boost::filesystem::remove(path_);
-  }
-
-
-  void TemporaryFile::Write(const std::string& content)
-  {
-    SystemToolbox::WriteFile(content, path_);
-  }
-
-
-  void TemporaryFile::Read(std::string& content) const
-  {
-    SystemToolbox::ReadFile(content, path_);
   }
 }

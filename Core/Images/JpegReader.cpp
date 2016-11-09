@@ -36,7 +36,7 @@
 #include "JpegErrorManager.h"
 #include "../OrthancException.h"
 #include "../Logging.h"
-#include "../Toolbox.h"
+#include "../SystemToolbox.h"
 
 namespace Orthanc
 {

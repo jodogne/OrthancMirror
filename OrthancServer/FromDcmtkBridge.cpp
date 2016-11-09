@@ -118,7 +118,7 @@ namespace Orthanc
     std::string content;
     EmbeddedResources::GetFileResource(content, resource);
 
-    Toolbox::TemporaryFile tmp;
+    TemporaryFile tmp;
     tmp.Write(content);
 
     if (!dictionary.loadDictionary(tmp.GetPath().c_str()))
@@ -144,7 +144,6 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
   }
-                            
 #endif
 
 

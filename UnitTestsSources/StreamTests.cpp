@@ -33,6 +33,7 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
+#include "../Core/SystemToolbox.h"
 #include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"
 #include "../Core/HttpServer/BufferHttpSender.h"

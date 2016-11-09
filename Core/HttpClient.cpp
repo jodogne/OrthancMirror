@@ -37,6 +37,7 @@
 #include "OrthancException.h"
 #include "Logging.h"
 #include "ChunkedBuffer.h"
+#include "SystemToolbox.h"
 
 #include <string.h>
 #include <curl/curl.h>

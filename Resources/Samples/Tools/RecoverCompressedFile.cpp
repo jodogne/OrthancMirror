@@ -19,7 +19,7 @@
 
 
 #include "../../../Core/Compression/ZlibCompressor.h"
-#include "../../../Core/Toolbox.h"
+#include "../../../Core/SystemToolbox.h"
 #include "../../../Core/OrthancException.h"
 
 #include <stdio.h>

@@ -125,10 +125,11 @@ if (BOOST_STATIC)
     add_definitions(
       -DBOOST_HAS_FILESYSTEM_V3=0
       -D__INTEGRITY=1
-      -DORTHANC_SANDBOXED=1
       )
   else()
-    add_definitions(-DBOOST_HAS_FILESYSTEM_V3=1)
+    add_definitions(
+      -DBOOST_HAS_FILESYSTEM_V3=1
+      )
     list(APPEND BOOST_SOURCES
       ${BOOST_FILESYSTEM_SOURCES_DIR}/codecvt_error_category.cpp
       ${BOOST_FILESYSTEM_SOURCES_DIR}/operations.cpp

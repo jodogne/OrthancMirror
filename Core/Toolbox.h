@@ -56,10 +56,6 @@
 #  error The macro BOOST_HAS_REGEX must be defined
 #endif
 
-#if !defined(ORTHANC_SANDBOXED)
-#  define ORTHANC_SANDBOXED  0
-#endif
-
 
 /**
  * NOTE: GUID vs. UUID
@@ -214,57 +210,4 @@ namespace Orthanc
 
     bool StartsWithUuid(const std::string& str);
   }
-
-
-#if ORTHANC_SANDBOXED == 0
-  namespace SystemToolbox
-  {
-    ServerBarrierEvent ServerBarrier(const bool& stopFlag);
-
-    ServerBarrierEvent ServerBarrier();
-
-    void ReadFile(std::string& content,
-                  const std::string& path);
-
-    bool ReadHeader(std::string& header,
-                    const std::string& path,
-                    size_t headerSize);
-
-    void WriteFile(const void* content,
-                   size_t size,
-                   const std::string& path);
-
-    void WriteFile(const std::string& content,
-                   const std::string& path);
-
-    void RemoveFile(const std::string& path);
-
-    uint64_t GetFileSize(const std::string& path);
-
-    void MakeDirectory(const std::string& path);
-
-    bool IsExistingFile(const std::string& path);
-
-    std::string GetPathToExecutable();
-
-    std::string GetDirectoryOfExecutable();
-
-    void ExecuteSystemCommand(const std::string& command,
-                              const std::vector<std::string>& arguments);
-
-    int GetProcessId();
-
-    bool IsRegularFile(const std::string& path);
-
-    FILE* OpenFile(const std::string& path,
-                   FileMode mode);
-
-#if BOOST_HAS_DATE_TIME == 1
-    std::string GetNowIsoString();
-
-    void GetNowDicom(std::string& date,
-                     std::string& time);
-#endif
-  }
-#endif /* ORTHANC_SANDBOXED */
 }

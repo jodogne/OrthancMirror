@@ -39,6 +39,7 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
+#include "../SystemToolbox.h"
 
 #include <boost/filesystem/fstream.hpp>
 

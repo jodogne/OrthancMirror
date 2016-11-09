@@ -33,7 +33,7 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
-#include "../Core/Toolbox.h"
+#include "../Core/SystemToolbox.h"
 #include "../Core/SQLite/Connection.h"
 #include "../Core/SQLite/Statement.h"
 #include "../Core/SQLite/Transaction.h"

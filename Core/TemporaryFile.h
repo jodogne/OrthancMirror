@@ -32,17 +32,15 @@
 
 #pragma once
 
-#include <string>
-
 #if !defined(ORTHANC_SANDBOXED)
-#  define ORTHANC_SANDBOXED  0
+#  error The macro ORTHANC_SANDBOXED must be defined
 #endif
 
 #if ORTHANC_SANDBOXED == 1
 #  error The class TemporaryFile cannot be used in sandboxed environments
 #endif
 
-#include "Toolbox.h"
+#include <string>
 
 namespace Orthanc
 {
@@ -63,14 +61,8 @@ namespace Orthanc
       return path_;
     }
 
-    void Write(const std::string& content)
-    {
-      SystemToolbox::WriteFile(content, path_);
-    }
+    void Write(const std::string& content);
 
-    void Read(std::string& content) const
-    {
-      SystemToolbox::ReadFile(content, path_);
-    }
+    void Read(std::string& content) const;
   };
 }

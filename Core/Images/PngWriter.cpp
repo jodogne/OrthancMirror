@@ -39,6 +39,7 @@
 #include "../OrthancException.h"
 #include "../ChunkedBuffer.h"
 #include "../Toolbox.h"
+#include "../SystemToolbox.h"
 
 
 // http://www.libpng.org/pub/png/libpng-1.2.5-manual.html#section-4
