@@ -39,6 +39,27 @@
 #include <string>
 #include <json/json.h>
 
+
+#if !defined(ORTHANC_ENABLE_BASE64)
+#  error The macro ORTHANC_ENABLE_BASE64 must be defined
+#endif
+
+#if !defined(ORTHANC_ENABLE_MD5)
+#  error The macro ORTHANC_ENABLE_MD5 must be defined
+#endif
+
+#if !defined(ORTHANC_ENABLE_PUGIXML)
+#  error The macro ORTHANC_ENABLE_PUGIXML must be defined
+#endif
+
+#if !defined(BOOST_HAS_REGEX)
+#  error The macro BOOST_HAS_REGEX must be defined
+#endif
+
+#if !defined(ORTHANC_SANDBOXED)
+#  define ORTHANC_SANDBOXED  0
+#endif
+
 namespace Orthanc
 {
   typedef std::vector<std::string> UriComponents;
@@ -51,7 +72,7 @@ namespace Orthanc
   {
     void USleep(uint64_t microSeconds);
 
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
+#if ORTHANC_SANDBOXED == 0
     ServerBarrierEvent ServerBarrier(const bool& stopFlag);
 
     ServerBarrierEvent ServerBarrier();
@@ -67,29 +88,21 @@ namespace Orthanc
     void ToLowerCase(std::string& result,
                      const std::string& source);
 
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
+#if ORTHANC_SANDBOXED == 0
     void ReadFile(std::string& content,
                   const std::string& path);
-#endif
 
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
     bool ReadHeader(std::string& header,
                     const std::string& path,
                     size_t headerSize);
-#endif
 
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
     void WriteFile(const std::string& content,
                    const std::string& path);
-#endif
 
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
     void WriteFile(const void* content,
                    size_t size,
                    const std::string& path);
-#endif
 
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
     void RemoveFile(const std::string& path);
 #endif
 
@@ -108,11 +121,11 @@ namespace Orthanc
     std::string FlattenUri(const UriComponents& components,
                            size_t fromLevel = 0);
 
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
+#if ORTHANC_SANDBOXED == 0
     uint64_t GetFileSize(const std::string& path);
 #endif
 
-#if !defined(ORTHANC_ENABLE_MD5) || ORTHANC_ENABLE_MD5 == 1
+#if ORTHANC_ENABLE_MD5 == 1
     void ComputeMD5(std::string& result,
                     const std::string& data);
 
@@ -133,7 +146,7 @@ namespace Orthanc
 
     bool IsSHA1(const std::string& s);
 
-#if !defined(ORTHANC_ENABLE_BASE64) || ORTHANC_ENABLE_BASE64 == 1
+#if ORTHANC_ENABLE_BASE64 == 1
     void DecodeBase64(std::string& result, 
                       const std::string& data);
 
@@ -151,7 +164,7 @@ namespace Orthanc
                              const std::string& content);
 #endif
 
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
+#if ORTHANC_SANDBOXED == 0
     std::string GetPathToExecutable();
 
     std::string GetDirectoryOfExecutable();
@@ -190,11 +203,9 @@ namespace Orthanc
                         const std::string& source,
                         char separator);
 
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
+#if ORTHANC_SANDBOXED == 0
     void MakeDirectory(const std::string& path);
-#endif
 
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
     bool IsExistingFile(const std::string& path);
 #endif
 
@@ -205,7 +216,7 @@ namespace Orthanc
                    const std::string& arrayElement = "item");
 #endif
 
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
+#if ORTHANC_SANDBOXED == 0
     void ExecuteSystemCommand(const std::string& command,
                               const std::vector<std::string>& arguments);
 #endif
@@ -218,9 +229,9 @@ namespace Orthanc
     bool StartsWith(const std::string& str,
                     const std::string& prefix);
 
+#if ORTHANC_SANDBOXED == 0
     int GetProcessId();
 
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
     bool IsRegularFile(const std::string& path);
 #endif
 

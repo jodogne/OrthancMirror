@@ -34,6 +34,10 @@
 
 #include <iostream>
 
+#if !defined(ORTHANC_ENABLE_LOGGING)
+#  error The macro ORTHANC_ENABLE_LOGGING must be defined
+#endif
+
 namespace Orthanc
 {
   namespace Logging

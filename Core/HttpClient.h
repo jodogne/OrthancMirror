@@ -39,6 +39,15 @@
 #include <boost/shared_ptr.hpp>
 #include <json/json.h>
 
+#if !defined(ORTHANC_ENABLE_SSL)
+#  error The macro ORTHANC_ENABLE_SSL must be defined
+#endif
+
+#if !defined(ORTHANC_ENABLE_PKCS11)
+#  error The macro ORTHANC_ENABLE_PKCS11 must be defined
+#endif
+
+
 namespace Orthanc
 {
   class HttpClient

@@ -49,6 +49,10 @@
 #include <stdio.h>
 #include <boost/thread.hpp>
 
+#if !defined(ORTHANC_ENABLE_SSL)
+#  error The macro ORTHANC_ENABLE_SSL must be defined
+#endif
+
 #if ORTHANC_ENABLE_SSL == 1
 #include <openssl/opensslv.h>
 #endif

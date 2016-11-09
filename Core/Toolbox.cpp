@@ -80,13 +80,13 @@
 #include <boost/locale.hpp>
 
 
-#if !defined(ORTHANC_ENABLE_MD5) || ORTHANC_ENABLE_MD5 == 1
-#include "../Resources/ThirdParty/md5/md5.h"
+#if ORTHANC_ENABLE_MD5 == 1
+#  include "../Resources/ThirdParty/md5/md5.h"
 #endif
 
 
-#if !defined(ORTHANC_ENABLE_BASE64) || ORTHANC_ENABLE_BASE64 == 1
-#include "../Resources/ThirdParty/base64/base64.h"
+#if ORTHANC_ENABLE_BASE64 == 1
+#  include "../Resources/ThirdParty/base64/base64.h"
 #endif
 
 
@@ -123,7 +123,7 @@ namespace Orthanc
   }
 
 
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
+#if ORTHANC_SANDBOXED == 0
   static bool finish_;
   static ServerBarrierEvent barrierEvent_;
 
@@ -230,7 +230,7 @@ namespace Orthanc
   }
 
 
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
+#if ORTHANC_SANDBOXED == 0
   void Toolbox::ReadFile(std::string& content,
                          const std::string& path) 
   {
@@ -259,7 +259,7 @@ namespace Orthanc
 #endif
 
 
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
+#if ORTHANC_SANDBOXED == 0
   bool Toolbox::ReadHeader(std::string& header,
                            const std::string& path,
                            size_t headerSize)
@@ -306,7 +306,7 @@ namespace Orthanc
 #endif
 
 
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
+#if ORTHANC_SANDBOXED == 0
   void Toolbox::WriteFile(const void* content,
                           size_t size,
                           const std::string& path)
@@ -334,7 +334,7 @@ namespace Orthanc
 #endif
 
 
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
+#if ORTHANC_SANDBOXED == 0
   void Toolbox::WriteFile(const std::string& content,
                           const std::string& path)
   {
@@ -344,7 +344,7 @@ namespace Orthanc
 #endif
 
 
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
+#if ORTHANC_SANDBOXED == 0
   void Toolbox::RemoveFile(const std::string& path)
   {
     if (boost::filesystem::exists(path))
@@ -530,7 +530,7 @@ namespace Orthanc
 
 
 
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
+#if ORTHANC_SANDBOXED == 0
   uint64_t Toolbox::GetFileSize(const std::string& path)
   {
     try
@@ -545,7 +545,7 @@ namespace Orthanc
 #endif
 
 
-#if !defined(ORTHANC_ENABLE_MD5) || ORTHANC_ENABLE_MD5 == 1
+#if ORTHANC_ENABLE_MD5 == 1
   static char GetHexadecimalCharacter(uint8_t value)
   {
     assert(value < 16);
@@ -602,7 +602,7 @@ namespace Orthanc
 #endif
 
 
-#if !defined(ORTHANC_ENABLE_BASE64) || ORTHANC_ENABLE_BASE64 == 1
+#if ORTHANC_ENABLE_BASE64 == 1
   void Toolbox::EncodeBase64(std::string& result, 
                              const std::string& data)
   {
@@ -696,7 +696,7 @@ namespace Orthanc
     return std::string(pathbuf);
   }
 
-#elif defined(ORTHANC_SANDBOXED) && ORTHANC_SANDBOXED == 1
+#elif ORTHANC_SANDBOXED == 1
   // Sandboxed Orthanc, no access to the executable
 
 #else
@@ -704,7 +704,7 @@ namespace Orthanc
 #endif
 
 
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
+#if ORTHANC_SANDBOXED == 0
   std::string Toolbox::GetPathToExecutable()
   {
     boost::filesystem::path p(GetPathToExecutableInternal());
@@ -1178,7 +1178,7 @@ namespace Orthanc
   }
 
 
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
+#if ORTHANC_SANDBOXED == 0
   void Toolbox::MakeDirectory(const std::string& path)
   {
     if (boost::filesystem::exists(path))
@@ -1199,7 +1199,7 @@ namespace Orthanc
 #endif
 
 
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
+#if ORTHANC_SANDBOXED == 0
   bool Toolbox::IsExistingFile(const std::string& path)
   {
     return boost::filesystem::exists(path);
@@ -1329,7 +1329,7 @@ namespace Orthanc
 #endif
 
 
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
+#if ORTHANC_SANDBOXED == 0
   void Toolbox::ExecuteSystemCommand(const std::string& command,
                                      const std::vector<std::string>& arguments)
   {
@@ -1498,6 +1498,7 @@ namespace Orthanc
   }
 
 
+#if ORTHANC_SANDBOXED == 0
   int Toolbox::GetProcessId()
   {
 #if defined(_WIN32)
@@ -1506,9 +1507,10 @@ namespace Orthanc
     return static_cast<int>(getpid());
 #endif
   }
+#endif
 
 
-#if !defined(ORTHANC_SANDBOXED) || ORTHANC_SANDBOXED != 1
+#if ORTHANC_SANDBOXED == 0
   bool Toolbox::IsRegularFile(const std::string& path)
   {
     namespace fs = boost::filesystem;
