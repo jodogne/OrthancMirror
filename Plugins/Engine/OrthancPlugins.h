@@ -34,6 +34,11 @@
 
 #include "PluginsErrorDictionary.h"
 
+#if !defined(ORTHANC_ENABLE_PLUGINS)
+#  error The macro ORTHANC_ENABLE_PLUGINS must be defined
+#endif
+
+
 #if ORTHANC_ENABLE_PLUGINS != 1
 
 #include <boost/noncopyable.hpp>

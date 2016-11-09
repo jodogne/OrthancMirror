@@ -36,6 +36,15 @@
 
 #include <memory>
 
+#if !defined(ORTHANC_ENABLE_JPEG)
+#  error The macro ORTHANC_ENABLE_JPEG must be defined
+#endif
+
+#if !defined(ORTHANC_ENABLE_JPEG_LOSSLESS)
+#  error The macro ORTHANC_ENABLE_JPEG_LOSSLESS must be defined
+#endif
+
+
 class DcmDataset;
 class DcmCodec;
 class DcmCodecParameter;

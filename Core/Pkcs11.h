@@ -32,6 +32,14 @@
 
 #pragma once
 
+#if !defined(ORTHANC_ENABLE_PKCS11)
+#  error The macro ORTHANC_ENABLE_PKCS11 must be defined
+#endif
+
+#if !defined(ORTHANC_ENABLE_SSL)
+#  error The macro ORTHANC_ENABLE_SSL must be defined
+#endif
+
 #if ORTHANC_ENABLE_PKCS11 != 1 || ORTHANC_ENABLE_SSL != 1
 #  error This file cannot be used if OpenSSL or PKCS#11 support is disabled
 #endif
