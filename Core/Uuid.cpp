@@ -33,93 +33,10 @@
 #include "PrecompiledHeaders.h"
 #include "Uuid.h"
 
-// http://stackoverflow.com/a/1626302
-
-extern "C"
-{
-#ifdef WIN32
-#include <rpc.h>
-#else
-#include <uuid/uuid.h>
-#endif
-}
-
 #include <boost/filesystem.hpp>
 
 namespace Orthanc
 {
-  namespace Toolbox
-  {
-    std::string GenerateUuid()
-    {
-#ifdef WIN32
-      UUID uuid;
-      UuidCreate ( &uuid );
-
-      unsigned char * str;
-      UuidToStringA ( &uuid, &str );
-
-      std::string s( ( char* ) str );
-
-      RpcStringFreeA ( &str );
-#else
-      uuid_t uuid;
-      uuid_generate_random ( uuid );
-      char s[37];
-      uuid_unparse ( uuid, s );
-#endif
-      return s;
-    }
-
-
-    bool IsUuid(const std::string& str)
-    {
-      if (str.size() != 36)
-      {
-        return false;
-      }
-
-      for (size_t i = 0; i < str.length(); i++)
-      {
-        if (i == 8 || i == 13 || i == 18 || i == 23)
-        {
-          if (str[i] != '-')
-            return false;
-        }
-        else
-        {
-          if (!isalnum(str[i]))
-            return false;
-        }
-      }
-
-      return true;
-    }
-
-
-    bool StartsWithUuid(const std::string& str)
-    {
-      if (str.size() < 36)
-      {
-        return false;
-      }
-
-      if (str.size() == 36)
-      {
-        return IsUuid(str);
-      }
-
-      assert(str.size() > 36);
-      if (!isspace(str[36]))
-      {
-        return false;
-      }
-
-      return IsUuid(str.substr(0, 36));
-    }
-  }
-
-
   static std::string CreateTemporaryPath(const char* extension)
   {
 #if BOOST_HAS_FILESYSTEM_V3 == 1
