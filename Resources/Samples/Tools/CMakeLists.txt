@@ -22,12 +22,20 @@ include(${ORTHANC_ROOT}/Resources/CMake/BoostConfiguration.cmake)
 include(${ORTHANC_ROOT}/Resources/CMake/ZlibConfiguration.cmake)
 include(${ORTHANC_ROOT}/Resources/CMake/JsonCppConfiguration.cmake)
 
+add_definitions(
+  -DORTHANC_ENABLE_BASE64=0
+  -DORTHANC_ENABLE_MD5=0
+  -DORTHANC_ENABLE_PUGIXML=0
+  -DORTHANC_ENABLE_LOGGING=0
+  -DORTHANC_SANDBOXED=0
+  )
+
 add_library(CommonLibraries
   ${BOOST_SOURCES}
   ${JSONCPP_SOURCES}
   ${ORTHANC_ROOT}/Core/Enumerations.cpp
+  ${ORTHANC_ROOT}/Core/SystemToolbox.cpp
   ${ORTHANC_ROOT}/Core/Toolbox.cpp
-  ${ORTHANC_ROOT}/Core/Uuid.cpp
   ${ORTHANC_ROOT}/Resources/ThirdParty/md5/md5.c
   ${ORTHANC_ROOT}/Resources/ThirdParty/base64/base64.cpp
   )
