@@ -381,7 +381,6 @@ namespace Orthanc
 
     OFCondition AssociationCleanup(T_ASC_Association *assoc)
     {
-      OFString temp_str;
       OFCondition cond = ASC_dropSCPAssociation(assoc);
       if (cond.bad())
       {
@@ -694,6 +693,38 @@ namespace Orthanc
       IApplicationEntityFilter* filter = server.HasApplicationEntityFilter() ? &server.GetApplicationEntityFilter() : NULL;
       return new CommandDispatcher(server, assoc, remoteIp, remoteAet, calledAet, filter);
     }
+
+
+    CommandDispatcher::CommandDispatcher(const DicomServer& server,
+                                         T_ASC_Association* assoc,
+                                         const std::string& remoteIp,
+                                         const std::string& remoteAet,
+                                         const std::string& calledAet,
+                                         IApplicationEntityFilter* filter) :
+      server_(server),
+      assoc_(assoc),
+      remoteIp_(remoteIp),
+      remoteAet_(remoteAet),
+      calledAet_(calledAet),
+      filter_(filter)
+    {
+      associationTimeout_ = server.GetAssociationTimeout();
+      elapsedTimeSinceLastCommand_ = 0;
+    }
+
+
+    CommandDispatcher::~CommandDispatcher()
+    {
+      try
+      {
+        AssociationCleanup(assoc_);
+      }
+      catch (...)
+      {
+        LOG(ERROR) << "Some association was not cleanly aborted";
+      }
+    }
+
 
     bool CommandDispatcher::Step()
     /*

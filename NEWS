@@ -25,6 +25,7 @@ Plugins
 Maintenance
 -----------
 
+* Avoid hard crash if not enough memory (handling of std::bad_alloc)
 * Improved robustness of Orthanc Explorer wrt. query/retrieve (maybe fix issue 24)
 * Fix serious performance issue with C-FIND
 * Fix extraction of the symbolic name of the private tags

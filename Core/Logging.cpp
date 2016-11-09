@@ -318,113 +318,123 @@ namespace Orthanc
         return;
       }
 
-      LogLevel l = StringToLogLevel(level);
+      try
+      {
+        LogLevel l = StringToLogLevel(level);
       
-      if ((l == LogLevel_Info  && !loggingContext_->infoEnabled_) ||
-          (l == LogLevel_Trace && !loggingContext_->traceEnabled_))
-      {
-        // This logging level is disabled, directly exit and unlock
-        // the mutex to speed-up things. The stream is set to "/dev/null"
+        if ((l == LogLevel_Info  && !loggingContext_->infoEnabled_) ||
+            (l == LogLevel_Trace && !loggingContext_->traceEnabled_))
+        {
+          // This logging level is disabled, directly exit and unlock
+          // the mutex to speed-up things. The stream is set to "/dev/null"
+          lock_.unlock();
+          return;
+        }
+
+        // Compute the header of the line, temporary release the lock as
+        // this is a time-consuming operation
         lock_.unlock();
-        return;
+        std::string header;
+
+        {
+          boost::filesystem::path path(file);
+          boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
+          boost::posix_time::time_duration duration = now.time_of_day();
+
+          /**
+             From Google Log documentation:
+
+             "Log lines have this form:
+
+             Lmmdd hh:mm:ss.uuuuuu threadid file:line] msg...
+
+             where the fields are defined as follows:
+
+             L                A single character, representing the log level (eg 'I' for INFO)
+             mm               The month (zero padded; ie May is '05')
+             dd               The day (zero padded)
+             hh:mm:ss.uuuuuu  Time in hours, minutes and fractional seconds
+             threadid         The space-padded thread ID as returned by GetTID() (this matches the PID on Linux)
+             file             The file name
+             line             The line number
+             msg              The user-supplied message"
+
+             In this implementation, "threadid" is not printed.
+          **/
+
+          char date[32];
+          sprintf(date, "%c%02d%02d %02d:%02d:%02d.%06d ",
+                  level[0],
+                  now.date().month().as_number(),
+                  now.date().day().as_number(),
+                  duration.hours(),
+                  duration.minutes(),
+                  duration.seconds(),
+                  static_cast<int>(duration.fractional_seconds()));
+
+          header = std::string(date) + path.filename().string() + ":" + boost::lexical_cast<std::string>(line) + "] ";
+        }
+
+
+        // The header is computed, we now re-lock the mutex to access
+        // the stream objects. Pay attention that "loggingContext_",
+        // "infoEnabled_" or "traceEnabled_" might have changed while
+        // the mutex was unlocked.
+        lock_.lock();
+
+        if (loggingContext_.get() == NULL)
+        {
+          fprintf(stderr, "ERROR: Trying to log a message after the finalization of the logging engine\n");
+          return;
+        }
+
+        switch (l)
+        {
+          case LogLevel_Error:
+            stream_ = loggingContext_->error_;
+            break;
+
+          case LogLevel_Warning:
+            stream_ = loggingContext_->warning_;
+            break;
+
+          case LogLevel_Info:
+            if (loggingContext_->infoEnabled_)
+            {
+              stream_ = loggingContext_->info_;
+            }
+
+            break;
+
+          case LogLevel_Trace:
+            if (loggingContext_->traceEnabled_)
+            {
+              stream_ = loggingContext_->info_;
+            }
+
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_InternalError);
+        }
+
+        if (stream_ == &null_)
+        {
+          // The logging is disabled for this level. The stream is the
+          // "null_" member of this object, so we can release the global
+          // mutex.
+          lock_.unlock();
+        }
+
+        (*stream_) << header;
       }
-
-      // Compute the header of the line, temporary release the lock as
-      // this is a time-consuming operation
-      lock_.unlock();
-      std::string header;
-
-      {
-        boost::filesystem::path path(file);
-        boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
-        boost::posix_time::time_duration duration = now.time_of_day();
-
-        /**
-           From Google Log documentation:
-
-           "Log lines have this form:
-
-           Lmmdd hh:mm:ss.uuuuuu threadid file:line] msg...
-
-           where the fields are defined as follows:
-
-           L                A single character, representing the log level (eg 'I' for INFO)
-           mm               The month (zero padded; ie May is '05')
-           dd               The day (zero padded)
-           hh:mm:ss.uuuuuu  Time in hours, minutes and fractional seconds
-           threadid         The space-padded thread ID as returned by GetTID() (this matches the PID on Linux)
-           file             The file name
-           line             The line number
-           msg              The user-supplied message"
-
-           In this implementation, "threadid" is not printed.
-         **/
-
-        char date[32];
-        sprintf(date, "%c%02d%02d %02d:%02d:%02d.%06d ",
-                level[0],
-                now.date().month().as_number(),
-                now.date().day().as_number(),
-                duration.hours(),
-                duration.minutes(),
-                duration.seconds(),
-                static_cast<int>(duration.fractional_seconds()));
-
-        header = std::string(date) + path.filename().string() + ":" + boost::lexical_cast<std::string>(line) + "] ";
+      catch (...)
+      { 
+        // Something is going really wrong, probably running out of
+        // memory. Fallback to a degraded mode.
+        stream_ = loggingContext_->error_;
+        (*stream_) << "E???? ??:??:??.?????? ] ";
       }
-
-
-      // The header is computed, we now re-lock the mutex to access
-      // the stream objects. Pay attention that "loggingContext_",
-      // "infoEnabled_" or "traceEnabled_" might have changed while
-      // the mutex was unlocked.
-      lock_.lock();
-
-      if (loggingContext_.get() == NULL)
-      {
-        fprintf(stderr, "ERROR: Trying to log a message after the finalization of the logging engine\n");
-        return;
-      }
-
-      switch (l)
-      {
-        case LogLevel_Error:
-          stream_ = loggingContext_->error_;
-          break;
-
-        case LogLevel_Warning:
-          stream_ = loggingContext_->warning_;
-          break;
-
-        case LogLevel_Info:
-          if (loggingContext_->infoEnabled_)
-          {
-            stream_ = loggingContext_->info_;
-          }
-
-          break;
-
-        case LogLevel_Trace:
-          if (loggingContext_->traceEnabled_)
-          {
-            stream_ = loggingContext_->info_;
-          }
-
-          break;
-
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }
-
-      if (stream_ == &null_)
-      {
-        // The logging is disabled for this level. The stream is the
-        // "null_" member of this object, so we can release the global
-        // mutex.
-        lock_.unlock();
-      }
-
-      (*stream_) << header;
     }
 
 

@@ -110,6 +110,12 @@ namespace Orthanc
       {
         return (*stream_) << message;
       }
+
+      // This overload fixes build problems with Visual Studio 2015
+      std::ostream& operator<< (const char* message)
+      {
+        return (*stream_) << message;
+      }
     };
   }
 }

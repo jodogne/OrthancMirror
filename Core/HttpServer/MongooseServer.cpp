@@ -575,16 +575,14 @@ namespace Orthanc
   }
 
 
-  static void InternalCallback(struct mg_connection *connection,
+  static void InternalCallback(HttpOutput& output /* out */,
+                               HttpMethod& method /* out */,
+                               MongooseServer& server,
+                               struct mg_connection *connection,
                                const struct mg_request_info *request)
   {
-    MongooseServer* that = reinterpret_cast<MongooseServer*>(request->user_data);
-
-    MongooseOutputStream stream(connection);
-    HttpOutput output(stream, that->IsKeepAliveEnabled());
-
     // Check remote calls
-    if (!that->IsRemoteAccessAllowed() &&
+    if (!server.IsRemoteAccessAllowed() &&
         request->remote_ip != LOCALHOST)
     {
       output.SendUnauthorized(ORTHANC_REALM);
@@ -604,7 +602,7 @@ namespace Orthanc
       VLOG(1) << "HTTP header: [" << name << "]: [" << value << "]";
     }
 
-    if (that->IsHttpCompressionEnabled())
+    if (server.IsHttpCompressionEnabled())
     {
       ConfigureHttpCompression(output, headers);
     }
@@ -619,7 +617,7 @@ namespace Orthanc
 
 
     // Compute the HTTP method, taking method faking into consideration
-    HttpMethod method = HttpMethod_Get;
+    method = HttpMethod_Get;
     if (!ExtractMethod(method, request, headers, argumentsGET))
     {
       output.SendStatus(HttpStatus_400_BadRequest);
@@ -628,7 +626,8 @@ namespace Orthanc
 
 
     // Authenticate this connection
-    if (that->IsAuthenticationEnabled() && !IsAccessGranted(*that, headers))
+    if (server.IsAuthenticationEnabled() && 
+        !IsAccessGranted(server, headers))
     {
       output.SendUnauthorized(ORTHANC_REALM);
       return;
@@ -645,7 +644,7 @@ namespace Orthanc
 
     std::string username = GetAuthenticatedUsername(headers);
 
-    const IIncomingHttpRequestFilter *filter = that->GetIncomingHttpRequestFilter();
+    const IIncomingHttpRequestFilter *filter = server.GetIncomingHttpRequestFilter();
     if (filter != NULL)
     {
       if (!filter->IsAllowed(method, request->uri, remoteIp, username.c_str(), headers))
@@ -679,7 +678,7 @@ namespace Orthanc
         if (contentType.size() >= multipartLength &&
             !memcmp(contentType.c_str(), multipart, multipartLength))
         {
-          status = ParseMultipartPost(body, connection, headers, contentType, that->GetChunkStore());
+          status = ParseMultipartPost(body, connection, headers, contentType, server.GetChunkStore());
         }
         else
         {
@@ -713,7 +712,7 @@ namespace Orthanc
     {
       Toolbox::SplitUriComponents(uri, request->uri);
     }
-    catch (OrthancException)
+    catch (OrthancException&)
     {
       output.SendStatus(HttpStatus_400_BadRequest);
       return;
@@ -722,60 +721,100 @@ namespace Orthanc
 
     LOG(INFO) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
 
+    bool found = false;
 
+    if (server.HasHandler())
+    {
+      found = server.GetHandler().Handle(output, RequestOrigin_RestApi, remoteIp, username.c_str(), 
+                                         method, uri, headers, argumentsGET, body.c_str(), body.size());
+    }
+
+    if (!found)
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+  }
+
+
+  static void ProtectedCallback(struct mg_connection *connection,
+                                const struct mg_request_info *request)
+  {
     try
     {
-      bool found = false;
+      MongooseServer* server = reinterpret_cast<MongooseServer*>(request->user_data);
+      
+      if (server == NULL)
+      {
+        MongooseOutputStream stream(connection);
+        HttpOutput output(stream, false /* assume no keep-alive */);
+        output.SendStatus(HttpStatus_500_InternalServerError);
+        return;
+      }
+      
+      MongooseOutputStream stream(connection);
+      HttpOutput output(stream, server->IsKeepAliveEnabled());
+      HttpMethod method = HttpMethod_Get;
 
       try
       {
-        if (that->HasHandler())
+        try
         {
-          found = that->GetHandler().Handle(output, RequestOrigin_RestApi, remoteIp, username.c_str(), 
-                                            method, uri, headers, argumentsGET, body.c_str(), body.size());
+          InternalCallback(output, method, *server, connection, request);
+        }
+        catch (OrthancException&)
+        {
+          throw;  // Pass the exception to the main handler below
+        }
+        // Now convert native exceptions as OrthancException
+        catch (boost::bad_lexical_cast&)
+        {
+          LOG(ERROR) << "Syntax error in some user-supplied data";
+          throw OrthancException(ErrorCode_BadParameterType);
+        }
+        catch (std::runtime_error&)
+        {
+          // Presumably an error while parsing the JSON body
+          throw OrthancException(ErrorCode_BadRequest);
+        }
+        catch (std::bad_alloc&)
+        {
+          LOG(ERROR) << "The server hosting Orthanc is running out of memory";
+          throw OrthancException(ErrorCode_NotEnoughMemory);
+        }
+        catch (...)
+        {
+          LOG(ERROR) << "An unhandled exception was generated inside the HTTP server";
+          throw OrthancException(ErrorCode_InternalError);
         }
       }
-      catch (boost::bad_lexical_cast&)
+      catch (OrthancException& e)
       {
-        throw OrthancException(ErrorCode_BadParameterType);
-      }
-      catch (std::runtime_error&)
-      {
-        // Presumably an error while parsing the JSON body
-        throw OrthancException(ErrorCode_BadRequest);
-      }
-      /*catch (std::bad_alloc&)
-      {
-        throw OrthancException(ErrorCode_NotEnoughMemory);
-        }*/
+        assert(server != NULL);
 
-      if (!found)
-      {
-        throw OrthancException(ErrorCode_UnknownResource);
+        // Using this candidate handler results in an exception
+        try
+        {
+          if (server->GetExceptionFormatter() == NULL)
+          {
+            LOG(ERROR) << "Exception in the HTTP handler: " << e.What();
+            output.SendStatus(e.GetHttpStatus());
+          }
+          else
+          {
+            server->GetExceptionFormatter()->Format(output, e, method, request->uri);
+          }
+        }
+        catch (OrthancException&)
+        {
+          // An exception here reflects the fact that the status code
+          // was already set by the HTTP handler.
+        }
       }
     }
-    catch (OrthancException& e)
+    catch (...)
     {
-      // Using this candidate handler results in an exception
-      try
-      {
-        if (that->GetExceptionFormatter() == NULL)
-        {
-          LOG(ERROR) << "Exception in the HTTP handler: " << e.What();
-          output.SendStatus(e.GetHttpStatus());
-        }
-        else
-        {
-          that->GetExceptionFormatter()->Format(output, e, method, request->uri);
-        }
-      }
-      catch (OrthancException&)
-      {
-        // An exception here reflects the fact that the status code
-        // was already set by the HTTP handler.
-      }
-
-      return;
+      // We should never arrive at this point, where it is even impossible to send an answer
+      LOG(ERROR) << "Catastrophic error inside the HTTP server, giving up";
     }
   }
 
@@ -787,7 +826,7 @@ namespace Orthanc
   {
     if (event == MG_NEW_REQUEST) 
     {
-      InternalCallback(connection, request);
+      ProtectedCallback(connection, request);
 
       // Mark as processed
       return (void*) "";
@@ -803,7 +842,7 @@ namespace Orthanc
   {
     struct mg_request_info *request = mg_get_request_info(connection);
 
-    InternalCallback(connection, request);
+    ProtectedCallback(connection, request);
 
     return 1;  // Do not let Mongoose handle the request by itself
   }
