@@ -156,6 +156,12 @@ namespace Orthanc
       case ErrorCode_NotAcceptable:
         return "Cannot send a response which is acceptable according to the Accept HTTP header";
 
+      case ErrorCode_NotEnoughMemory:
+        return "The server hosting Orthanc is running out of memory";
+
+      case ErrorCode_NullPointer:
+        return "Cannot handle a NULL pointer";
+
       case ErrorCode_SQLiteNotOpened:
         return "SQLite: The database is not opened";
 
