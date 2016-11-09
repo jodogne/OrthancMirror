@@ -308,31 +308,31 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/DcmtkConfiguration.cmake)
 
 
 if (ENABLE_SSL)
-  add_definitions(-DORTHANC_SSL_ENABLED=1)
+  add_definitions(-DORTHANC_ENABLE_SSL=1)
   include(${CMAKE_SOURCE_DIR}/Resources/CMake/OpenSslConfiguration.cmake)
 else()
-  add_definitions(-DORTHANC_SSL_ENABLED=0)
+  add_definitions(-DORTHANC_ENABLE_SSL=0)
 endif()
 
 
 if (ENABLE_JPEG)
-  add_definitions(-DORTHANC_JPEG_ENABLED=1)
+  add_definitions(-DORTHANC_ENABLE_JPEG=1)
 else()
-  add_definitions(-DORTHANC_JPEG_ENABLED=0)
+  add_definitions(-DORTHANC_ENABLE_JPEG=0)
 endif()
 
 
 if (ENABLE_JPEG_LOSSLESS)
-  add_definitions(-DORTHANC_JPEG_LOSSLESS_ENABLED=1)
+  add_definitions(-DORTHANC_ENABLE_JPEG_LOSSLESS=1)
 else()
-  add_definitions(-DORTHANC_JPEG_LOSSLESS_ENABLED=0)
+  add_definitions(-DORTHANC_ENABLE_JPEG_LOSSLESS=0)
 endif()
 
 
 if (ENABLE_PLUGINS)
-  add_definitions(-DORTHANC_PLUGINS_ENABLED=1)
+  add_definitions(-DORTHANC_ENABLE_PLUGINS=1)
 else()
-  add_definitions(-DORTHANC_PLUGINS_ENABLED=0)
+  add_definitions(-DORTHANC_ENABLE_PLUGINS=0)
 endif()
 
 
@@ -340,13 +340,13 @@ if (ENABLE_PKCS11)
   if (ENABLE_SSL)
     include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibP11Configuration.cmake)
 
-    add_definitions(-DORTHANC_PKCS11_ENABLED=1)
+    add_definitions(-DORTHANC_ENABLE_PKCS11=1)
     list(APPEND ORTHANC_CORE_SOURCES Core/Pkcs11.cpp)
   else()
     message(FATAL_ERROR "OpenSSL is required to enable PKCS#11")
   endif()
 else()
-  add_definitions(-DORTHANC_PKCS11_ENABLED=0)  
+  add_definitions(-DORTHANC_ENABLE_PKCS11=0)  
 endif()
 
 

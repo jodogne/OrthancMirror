@@ -32,7 +32,7 @@
 
 #pragma once
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
 
 #include "../Include/orthanc/OrthancCPlugin.h"
 #include "../../OrthancServer/ServerEnumerations.h"

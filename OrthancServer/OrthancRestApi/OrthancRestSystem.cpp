@@ -63,7 +63,7 @@ namespace Orthanc
     result["StorageAreaPlugin"] = Json::nullValue;
     result["DatabaseBackendPlugin"] = Json::nullValue;
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
     result["PluginsEnabled"] = true;
     const OrthancPlugins& plugins = OrthancRestApi::GetContext(call).GetPlugins();
 
@@ -153,7 +153,7 @@ namespace Orthanc
 
     if (OrthancRestApi::GetContext(call).HasPlugins())
     {
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
       std::list<std::string> plugins;
       OrthancRestApi::GetContext(call).GetPlugins().GetManager().ListPlugins(plugins);
 
@@ -176,7 +176,7 @@ namespace Orthanc
       return;
     }
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
     const PluginsManager& manager = OrthancRestApi::GetContext(call).GetPlugins().GetManager();
     std::string id = call.GetUriComponent("id", "");
 
@@ -224,7 +224,7 @@ namespace Orthanc
 
     if (OrthancRestApi::GetContext(call).HasPlugins())
     {
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
       const OrthancPlugins& plugins = OrthancRestApi::GetContext(call).GetPlugins();
       const PluginsManager& manager = plugins.GetManager();
 

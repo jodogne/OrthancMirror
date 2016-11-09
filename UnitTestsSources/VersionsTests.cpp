@@ -44,7 +44,7 @@
 #include <lua.h>
 #include <jpeglib.h>
 
-#if ORTHANC_SSL_ENABLED == 1
+#if ORTHANC_ENABLE_SSL == 1
 #include <openssl/opensslv.h>
 #endif
 
@@ -130,7 +130,7 @@ TEST(Versions, CurlSslStatic)
   // Check that SSL support is enabled when required
   bool curlSupportsSsl = (vinfo->features & CURL_VERSION_SSL) != 0;
 
-#if ORTHANC_SSL_ENABLED == 0
+#if ORTHANC_ENABLE_SSL == 0
   ASSERT_FALSE(curlSupportsSsl);
 #else
   ASSERT_TRUE(curlSupportsSsl);
@@ -143,7 +143,7 @@ TEST(Version, LuaStatic)
 }
 
 
-#if ORTHANC_SSL_ENABLED == 1
+#if ORTHANC_ENABLE_SSL == 1
 TEST(Version, OpenSslStatic)
 {
   ASSERT_EQ(0x1000204fL /* openssl-1.0.2d */, OPENSSL_VERSION_NUMBER);

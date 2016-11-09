@@ -49,7 +49,7 @@
 #include <stdio.h>
 #include <boost/thread.hpp>
 
-#if ORTHANC_SSL_ENABLED == 1
+#if ORTHANC_ENABLE_SSL == 1
 #include <openssl/opensslv.h>
 #endif
 
@@ -874,7 +874,7 @@ namespace Orthanc
     httpCompression_ = true;
     exceptionFormatter_ = NULL;
 
-#if ORTHANC_SSL_ENABLED == 1
+#if ORTHANC_ENABLE_SSL == 1
     // Check for the Heartbleed exploit
     // https://en.wikipedia.org/wiki/OpenSSL#Heartbleed_bug
     if (OPENSSL_VERSION_NUMBER <  0x1000107fL  /* openssl-1.0.1g */ &&
@@ -975,7 +975,7 @@ namespace Orthanc
   {
     Stop();
 
-#if ORTHANC_SSL_ENABLED == 0
+#if ORTHANC_ENABLE_SSL == 0
     if (enabled)
     {
       throw OrthancException(ErrorCode_SslDisabled);

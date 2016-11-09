@@ -198,7 +198,7 @@ namespace Orthanc
     bool IsExistingFile(const std::string& path);
 #endif
 
-#if ORTHANC_PUGIXML_ENABLED == 1
+#if ORTHANC_ENABLE_PUGIXML == 1
     void JsonToXml(std::string& target,
                    const Json::Value& source,
                    const std::string& rootElement = "root",

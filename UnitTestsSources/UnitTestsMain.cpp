@@ -871,7 +871,7 @@ TEST(Toolbox, EndiannessConversions64)
 
 
 
-#if ORTHANC_PUGIXML_ENABLED == 1
+#if ORTHANC_ENABLE_PUGIXML == 1
 TEST(Toolbox, Xml)
 {
   Json::Value a;

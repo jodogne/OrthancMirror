@@ -35,7 +35,7 @@
 
 #include "../OrthancServer/Internals/DicomImageDecoder.h"
 
-#if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
+#if ORTHANC_ENABLE_JPEG_LOSSLESS == 1
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 

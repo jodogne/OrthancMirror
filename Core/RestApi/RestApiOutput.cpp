@@ -91,7 +91,7 @@ namespace Orthanc
 
     if (convertJsonToXml_)
     {
-#if ORTHANC_PUGIXML_ENABLED == 1
+#if ORTHANC_ENABLE_PUGIXML == 1
       std::string s;
       Toolbox::JsonToXml(s, value);
       output_.SetContentType("application/xml; charset=utf-8");

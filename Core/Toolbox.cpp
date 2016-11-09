@@ -103,7 +103,7 @@ extern "C"
 #endif
 
 
-#if ORTHANC_PUGIXML_ENABLED == 1
+#if ORTHANC_ENABLE_PUGIXML == 1
 #include "ChunkedBuffer.h"
 #include <pugixml.hpp>
 #endif
@@ -1207,7 +1207,7 @@ namespace Orthanc
 #endif
 
 
-#if ORTHANC_PUGIXML_ENABLED == 1
+#if ORTHANC_ENABLE_PUGIXML == 1
   class ChunkedBufferWriter : public pugi::xml_writer
   {
   private:

@@ -121,7 +121,7 @@ namespace Orthanc
     dicomCache_(provider_, DICOM_CACHE_SIZE),
     scheduler_(Configuration::GetGlobalUnsignedIntegerParameter("LimitJobs", 10)),
     lua_(*this),
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
     plugins_(NULL),
 #endif
     done_(false),
@@ -537,7 +537,7 @@ namespace Orthanc
   }
 
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
   void ServerContext::SetPlugins(OrthancPlugins& plugins)
   {
     boost::recursive_mutex::scoped_lock lock(listenersMutex_);
@@ -592,7 +592,7 @@ namespace Orthanc
 
   bool ServerContext::HasPlugins() const
   {
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
     return (plugins_ != NULL);
 #else
     return false;

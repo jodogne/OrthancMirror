@@ -44,7 +44,7 @@
 #include <boost/thread/mutex.hpp>
 
 
-#if ORTHANC_SSL_ENABLED == 1
+#if ORTHANC_ENABLE_SSL == 1
 // For OpenSSL initialization and finalization
 #  include <openssl/conf.h>
 #  include <openssl/engine.h>
@@ -54,7 +54,7 @@
 #endif
 
 
-#if ORTHANC_PKCS11_ENABLED == 1
+#if ORTHANC_ENABLE_PKCS11 == 1
 #  include "Pkcs11.h"
 #endif
 
@@ -161,7 +161,7 @@ namespace Orthanc
       return timeout_;
     }
 
-#if ORTHANC_PKCS11_ENABLED == 1
+#if ORTHANC_ENABLE_PKCS11 == 1
     bool IsPkcs11Initialized()
     {
       boost::mutex::scoped_lock lock(mutex_);
@@ -435,7 +435,7 @@ namespace Orthanc
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HEADERDATA, &headerParameters));
     }
 
-#if ORTHANC_SSL_ENABLED == 1
+#if ORTHANC_ENABLE_SSL == 1
     // Setup HTTPS-related options
 
     if (verifyPeers_)
@@ -461,7 +461,7 @@ namespace Orthanc
 
     if (pkcs11Enabled_)
     {
-#if ORTHANC_PKCS11_ENABLED == 1
+#if ORTHANC_ENABLE_PKCS11 == 1
       if (GlobalParameters::GetInstance().IsPkcs11Initialized())
       {
         CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSLENGINE, Pkcs11::GetEngineIdentifier()));
@@ -480,7 +480,7 @@ namespace Orthanc
     }
     else if (!clientCertificateFile_.empty())
     {
-#if ORTHANC_SSL_ENABLED == 1
+#if ORTHANC_ENABLE_SSL == 1
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSLCERTTYPE, "PEM"));
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSLCERT, clientCertificateFile_.c_str()));
 
@@ -671,7 +671,7 @@ namespace Orthanc
   void HttpClient::ConfigureSsl(bool httpsVerifyPeers,
                                 const std::string& httpsVerifyCertificates)
   {
-#if ORTHANC_SSL_ENABLED == 1
+#if ORTHANC_ENABLE_SSL == 1
     if (httpsVerifyPeers)
     {
       if (httpsVerifyCertificates.empty())
@@ -696,7 +696,7 @@ namespace Orthanc
   
   void HttpClient::GlobalInitialize()
   {
-#if ORTHANC_SSL_ENABLED == 1
+#if ORTHANC_ENABLE_SSL == 1
     CheckCode(curl_global_init(CURL_GLOBAL_ALL));
 #else
     CheckCode(curl_global_init(CURL_GLOBAL_ALL & ~CURL_GLOBAL_SSL));
@@ -708,7 +708,7 @@ namespace Orthanc
   {
     curl_global_cleanup();
 
-#if ORTHANC_PKCS11_ENABLED == 1
+#if ORTHANC_ENABLE_PKCS11 == 1
     Pkcs11::Finalize();
 #endif
   }
@@ -796,7 +796,7 @@ namespace Orthanc
                                     const std::string& pin,
                                     bool verbose)
   {
-#if ORTHANC_PKCS11_ENABLED == 1
+#if ORTHANC_ENABLE_PKCS11 == 1
     LOG(INFO) << "Initializing PKCS#11 using " << module 
               << (pin.empty() ? " (no PIN provided)" : " (PIN is provided)");
     GlobalParameters::GetInstance().InitializePkcs11(module, pin, verbose);    
@@ -809,7 +809,7 @@ namespace Orthanc
 
   void HttpClient::InitializeOpenSsl()
   {
-#if ORTHANC_SSL_ENABLED == 1
+#if ORTHANC_ENABLE_SSL == 1
     // https://wiki.openssl.org/index.php/Library_Initialization
     SSL_library_init();
     SSL_load_error_strings();
@@ -821,7 +821,7 @@ namespace Orthanc
 
   void HttpClient::FinalizeOpenSsl()
   {
- #if ORTHANC_SSL_ENABLED == 1
+ #if ORTHANC_ENABLE_SSL == 1
     // Finalize OpenSSL
     // https://wiki.openssl.org/index.php/Library_Initialization#Cleanup
     FIPS_mode_set(0);

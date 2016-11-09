@@ -370,7 +370,7 @@ public:
     {
       bool isPlugin = false;
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
       if (plugins_ != NULL)
       {
         plugins_->GetErrorDictionary().LogError(exception.GetErrorCode(), true);
@@ -391,7 +391,7 @@ public:
     {
       bool isPlugin = false;
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
       if (plugins_ != NULL &&
           plugins_->GetErrorDictionary().Format(message, httpStatus, exception))
       {
@@ -621,7 +621,7 @@ static void LoadLuaScripts(ServerContext& context)
 
 
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
 static void LoadPlugins(OrthancPlugins& plugins)
 {
   std::list<std::string> path;
@@ -644,7 +644,7 @@ static bool WaitForExit(ServerContext& context,
 {
   LOG(WARNING) << "Orthanc has started";
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
   if (context.HasPlugins())
   {
     context.GetPlugins().SignalOrthancStarted();
@@ -687,7 +687,7 @@ static bool WaitForExit(ServerContext& context,
 
   context.GetLua().Execute("Finalize");
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
   if (context.HasPlugins())
   {
     context.GetPlugins().SignalOrthancStopped();
@@ -788,7 +788,7 @@ static bool StartDicomServer(ServerContext& context,
   dicomServer.SetAssociationTimeout(Configuration::GetGlobalUnsignedIntegerParameter("DicomScpTimeout", 30));
 
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
   if (plugins != NULL)
   {
     if (plugins->HasWorklistHandler())
@@ -852,7 +852,7 @@ static bool StartDicomServer(ServerContext& context,
 static bool ConfigureHttpHandler(ServerContext& context,
                                  OrthancPlugins *plugins)
 {
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
   // By order of priority, first apply the "plugins" layer, so that
   // plugins can overwrite the built-in REST API of Orthanc
   if (plugins)
@@ -968,7 +968,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 
   LoadLuaScripts(context);
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
   if (plugins)
   {
     plugins->SetServerContext(context);
@@ -990,7 +990,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 
   context.Stop();
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
   if (plugins)
   {
     plugins->ResetServerContext();
@@ -1034,7 +1034,7 @@ static bool ConfigurePlugins(int argc,
   std::auto_ptr<IDatabaseWrapper>  databasePtr;
   std::auto_ptr<IStorageArea>  storage;
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
   OrthancPlugins plugins;
   plugins.SetCommandLineArguments(argc, argv);
   LoadPlugins(plugins);
@@ -1066,7 +1066,7 @@ static bool ConfigurePlugins(int argc,
 
   return ConfigureDatabase(*database, *storage, &plugins, allowDatabaseUpgrade);
 
-#elif ORTHANC_PLUGINS_ENABLED == 0
+#elif ORTHANC_ENABLE_PLUGINS == 0
   // The plugins are disabled
   databasePtr.reset(Configuration::CreateDatabaseWrapper());
   storage.reset(Configuration::CreateStorageArea());
@@ -1074,7 +1074,7 @@ static bool ConfigurePlugins(int argc,
   return ConfigureDatabase(*databasePtr, *storage, NULL, allowDatabaseUpgrade);
 
 #else
-#  error The macro ORTHANC_PLUGINS_ENABLED must be set to 0 or 1
+#  error The macro ORTHANC_ENABLE_PLUGINS must be set to 0 or 1
 #endif
 }
 

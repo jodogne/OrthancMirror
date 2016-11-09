@@ -73,7 +73,7 @@ TEST(HttpClient, Basic)
 }
 
 
-#if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1 && ORTHANC_SSL_ENABLED == 1
+#if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1 && ORTHANC_ENABLE_SSL == 1
 
 /**
    The HTTPS CA certificates for BitBucket were extracted as follows:

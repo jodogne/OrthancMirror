@@ -50,12 +50,12 @@
 #include <boost/thread.hpp>
 
 
-#if ORTHANC_JPEG_ENABLED == 1
+#if ORTHANC_ENABLE_JPEG == 1
 #  include <dcmtk/dcmjpeg/djdecode.h>
 #endif
 
 
-#if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
+#if ORTHANC_ENABLE_JPEG_LOSSLESS == 1
 #  include <dcmtk/dcmjpls/djdecode.h>
 #endif
 
@@ -484,12 +484,12 @@ namespace Orthanc
     FromDcmtkBridge::InitializeDictionary();
     LoadCustomDictionary(configuration_);
 
-#if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
+#if ORTHANC_ENABLE_JPEG_LOSSLESS == 1
     LOG(WARNING) << "Registering JPEG Lossless codecs";
     DJLSDecoderRegistration::registerCodecs();    
 #endif
 
-#if ORTHANC_JPEG_ENABLED == 1
+#if ORTHANC_ENABLE_JPEG == 1
     LOG(WARNING) << "Registering JPEG codecs";
     DJDecoderRegistration::registerCodecs(); 
 #endif
@@ -507,12 +507,12 @@ namespace Orthanc
     boost::recursive_mutex::scoped_lock lock(globalMutex_);
     HttpClient::GlobalFinalize();
 
-#if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
+#if ORTHANC_ENABLE_JPEG_LOSSLESS == 1
     // Unregister JPEG-LS codecs
     DJLSDecoderRegistration::cleanup();
 #endif
 
-#if ORTHANC_JPEG_ENABLED == 1
+#if ORTHANC_ENABLE_JPEG == 1
     // Unregister JPEG codecs
     DJDecoderRegistration::cleanup();
 #endif
