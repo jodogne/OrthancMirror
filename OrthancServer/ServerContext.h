@@ -120,7 +120,7 @@ namespace Orthanc
 
     LuaScripting lua_;
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
     OrthancPlugins* plugins_;
 #endif
 
@@ -266,7 +266,7 @@ namespace Orthanc
      * Management of the plugins
      **/
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
     void SetPlugins(OrthancPlugins& plugins);
 
     void ResetPlugins();

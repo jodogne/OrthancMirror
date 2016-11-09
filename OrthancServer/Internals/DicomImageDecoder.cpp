@@ -94,13 +94,13 @@
 #include <dcmtk/dcmdata/dcrleccd.h>
 #include <dcmtk/dcmdata/dcrlecp.h>
 
-#if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
+#if ORTHANC_ENABLE_JPEG_LOSSLESS == 1
 #  include <dcmtk/dcmjpls/djcodecd.h>
 #  include <dcmtk/dcmjpls/djcparam.h>
 #  include <dcmtk/dcmjpeg/djrplol.h>
 #endif
 
-#if ORTHANC_JPEG_ENABLED == 1
+#if ORTHANC_ENABLE_JPEG == 1
 #  include <dcmtk/dcmjpeg/djcodecd.h>
 #  include <dcmtk/dcmjpeg/djcparam.h>
 #  include <dcmtk/dcmjpeg/djdecbas.h>
@@ -517,7 +517,7 @@ namespace Orthanc
     }
 
 
-#if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
+#if ORTHANC_ENABLE_JPEG_LOSSLESS == 1
     /**
      * Deal with JPEG-LS images.
      **/
@@ -549,7 +549,7 @@ namespace Orthanc
 #endif
 
 
-#if ORTHANC_JPEG_ENABLED == 1
+#if ORTHANC_ENABLE_JPEG == 1
     /**
      * Deal with JPEG images.
      **/

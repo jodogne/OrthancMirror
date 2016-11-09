@@ -33,7 +33,7 @@
 #include "../../OrthancServer/PrecompiledHeadersServer.h"
 #include "OrthancPluginDatabase.h"
 
-#if ORTHANC_PLUGINS_ENABLED != 1
+#if ORTHANC_ENABLE_PLUGINS != 1
 #error The plugin support is disabled
 #endif
 

@@ -34,7 +34,7 @@
 
 #include "PluginsErrorDictionary.h"
 
-#if ORTHANC_PLUGINS_ENABLED != 1
+#if ORTHANC_ENABLE_PLUGINS != 1
 
 #include <boost/noncopyable.hpp>
 

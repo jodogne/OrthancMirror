@@ -33,7 +33,7 @@
 #include "PrecompiledHeaders.h"
 #include "Pkcs11.h"
 
-#if ORTHANC_PKCS11_ENABLED != 1 || ORTHANC_SSL_ENABLED != 1
+#if ORTHANC_ENABLE_PKCS11 != 1 || ORTHANC_ENABLE_SSL != 1
 #  error This file cannot be used if OpenSSL or PKCS#11 support is disabled
 #endif
 

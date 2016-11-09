@@ -48,7 +48,7 @@
 
 #include <json/value.h>
 
-#if ORTHANC_PUGIXML_ENABLED == 1
+#if ORTHANC_ENABLE_PUGIXML == 1
 #include <pugixml.hpp>
 #endif
 

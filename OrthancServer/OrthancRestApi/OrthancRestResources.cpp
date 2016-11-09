@@ -378,7 +378,7 @@ namespace Orthanc
     {
       std::string publicId = call.GetUriComponent("id", "");
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
       if (context.GetPlugins().HasCustomImageDecoder())
       {
         // TODO create a cache of file
@@ -455,7 +455,7 @@ namespace Orthanc
     std::string dicomContent;
     context.ReadDicom(dicomContent, publicId);
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
     IDicomImageDecoder& decoder = context.GetPlugins();
 #else
     DefaultDicomImageDecoder decoder;  // This is Orthanc's built-in decoder

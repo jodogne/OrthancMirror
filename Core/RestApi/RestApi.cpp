@@ -185,7 +185,7 @@ namespace Orthanc
   {
     RestApiOutput wrappedOutput(output, method);
 
-#if ORTHANC_PUGIXML_ENABLED == 1
+#if ORTHANC_ENABLE_PUGIXML == 1
     {
       // Look if the client wishes XML answers instead of JSON
       // http://www.w3.org/Protocols/HTTP/HTRQ_Headers.html#z3

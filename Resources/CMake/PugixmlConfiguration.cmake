@@ -1,5 +1,5 @@
 if (USE_PUGIXML)
-  add_definitions(-DORTHANC_PUGIXML_ENABLED=1)
+  add_definitions(-DORTHANC_ENABLE_PUGIXML=1)
 
   if (STATIC_BUILD OR NOT USE_SYSTEM_PUGIXML)
     set(PUGIXML_SOURCES_DIR ${CMAKE_BINARY_DIR}/pugixml-1.4)
@@ -29,5 +29,5 @@ if (USE_PUGIXML)
   source_group(ThirdParty\\pugixml REGULAR_EXPRESSION ${PUGIXML_SOURCES_DIR}/.*)
 
 else()
-  add_definitions(-DORTHANC_PUGIXML_ENABLED=0)
+  add_definitions(-DORTHANC_ENABLE_PUGIXML=0)
 endif()
