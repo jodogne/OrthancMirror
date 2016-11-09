@@ -33,10 +33,6 @@
 #include "PrecompiledHeaders.h"
 #include "Pkcs11.h"
 
-#if ORTHANC_ENABLE_PKCS11 != 1 || ORTHANC_ENABLE_SSL != 1
-#  error This file cannot be used if OpenSSL or PKCS#11 support is disabled
-#endif
-
 
 #if defined(OPENSSL_NO_RSA) || defined(OPENSSL_NO_EC) || defined(OPENSSL_NO_ECDSA) || defined(OPENSSL_NO_ECDH)
 #  error OpenSSL was compiled without support for RSA, EC, ECDSA or ECDH
@@ -45,12 +41,12 @@
 
 #include "Logging.h"
 #include "OrthancException.h"
-#include "Toolbox.h"
+#include "SystemToolbox.h"
 
 extern "C"
 {
-#include <libp11/engine.h>  // This is P11's "engine.h"
-#include <libp11/libp11.h>
+#  include <libp11/engine.h>  // This is P11's "engine.h"
+#  include <libp11/libp11.h>
 }
 
 #include <openssl/engine.h>
@@ -261,7 +257,7 @@ namespace Orthanc
       }
 
       if (module.empty() ||
-          !Toolbox::IsRegularFile(module))
+          !SystemToolbox::IsRegularFile(module))
       {
         LOG(ERROR) << "The PKCS#11 module must be a path to one shared library (DLL or .so)";
         throw OrthancException(ErrorCode_InexistentFile);

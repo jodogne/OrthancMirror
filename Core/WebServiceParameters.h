@@ -32,6 +32,10 @@
 
 #pragma once
 
+#if !defined(ORTHANC_SANDBOXED)
+#  error The macro ORTHANC_SANDBOXED must be defined
+#endif
+
 #include <string>
 #include <json/json.h>
 
@@ -88,9 +92,11 @@ namespace Orthanc
 
     void ClearClientCertificate();
 
+#if ORTHANC_SANDBOXED == 0
     void SetClientCertificate(const std::string& certificateFile,
                               const std::string& certificateKeyFile,
                               const std::string& certificateKeyPassword);
+#endif
 
     const std::string& GetCertificateFile() const
     {

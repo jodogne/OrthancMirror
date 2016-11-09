@@ -34,9 +34,12 @@
 #include "WebServiceParameters.h"
 
 #include "../Core/Logging.h"
-#include "../Core/SystemToolbox.h"
 #include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"
+
+#if ORTHANC_SANDBOXED == 0
+#  include "../Core/SystemToolbox.h"
+#endif
 
 #include <cassert>
 
@@ -58,6 +61,7 @@ namespace Orthanc
   }
 
 
+#if ORTHANC_SANDBOXED == 0
   void WebServiceParameters::SetClientCertificate(const std::string& certificateFile,
                                                   const std::string& certificateKeyFile,
                                                   const std::string& certificateKeyPassword)
@@ -85,6 +89,7 @@ namespace Orthanc
     certificateKeyFile_ = certificateKeyFile;
     certificateKeyPassword_ = certificateKeyPassword;
   }
+#endif
 
 
   static void AddTrailingSlash(std::string& url)
