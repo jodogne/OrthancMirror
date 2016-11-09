@@ -119,7 +119,7 @@ namespace Orthanc
                                        PixelFormat format,
                                        const void* buffer)
   {
-    FILE* fp = Toolbox::OpenFile(filename, FileMode_WriteBinary);
+    FILE* fp = SystemToolbox::OpenFile(filename, FileMode_WriteBinary);
     if (fp == NULL)
     {
       throw OrthancException(ErrorCode_CannotWriteFile);

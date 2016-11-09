@@ -43,6 +43,10 @@
  * http://stackoverflow.com/questions/246930/is-there-any-difference-between-a-guid-and-a-uuid
  **/
 
+#if !defined(ORTHANC_SANDBOXED)
+#  define ORTHANC_SANDBOXED  0
+#endif
+
 #include "Toolbox.h"
 
 namespace Orthanc
@@ -54,33 +58,35 @@ namespace Orthanc
     bool IsUuid(const std::string& str);
 
     bool StartsWithUuid(const std::string& str);
-
-    class TemporaryFile
-    {
-    private:
-      std::string path_;
-
-    public:
-      TemporaryFile();
-
-      TemporaryFile(const char* extension);
-
-      ~TemporaryFile();
-
-      const std::string& GetPath() const
-      {
-        return path_;
-      }
-
-      void Write(const std::string& content)
-      {
-        Toolbox::WriteFile(content, path_);
-      }
-
-      void Read(std::string& content) const
-      {
-        Toolbox::ReadFile(content, path_);
-      }
-    };
   }
+
+#if ORTHANC_SANDBOXED == 0
+  class TemporaryFile
+  {
+  private:
+    std::string path_;
+
+  public:
+    TemporaryFile();
+
+    TemporaryFile(const char* extension);
+
+    ~TemporaryFile();
+
+    const std::string& GetPath() const
+    {
+      return path_;
+    }
+
+    void Write(const std::string& content)
+    {
+      SystemToolbox::WriteFile(content, path_);
+    }
+
+    void Read(std::string& content) const
+    {
+      SystemToolbox::ReadFile(content, path_);
+    }
+  };
+#endif
 }

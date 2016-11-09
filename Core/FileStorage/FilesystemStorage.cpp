@@ -83,7 +83,7 @@ namespace Orthanc
     //root_ = boost::filesystem::absolute(root).string();
     root_ = root;
 
-    Toolbox::MakeDirectory(root);
+    SystemToolbox::MakeDirectory(root);
   }
 
 
@@ -143,7 +143,7 @@ namespace Orthanc
       }
     }
 
-    Toolbox::WriteFile(content, size, path.string());
+    SystemToolbox::WriteFile(content, size, path.string());
   }
 
 
@@ -155,7 +155,7 @@ namespace Orthanc
               << "\" content type";
 
     content.clear();
-    Toolbox::ReadFile(content, GetPath(uuid).string());
+    SystemToolbox::ReadFile(content, GetPath(uuid).string());
   }
 
 
@@ -177,7 +177,7 @@ namespace Orthanc
     {
       for (fs::recursive_directory_iterator current(root_), end; current != end ; ++current)
       {
-        if (Toolbox::IsRegularFile(current->path().string()))
+        if (SystemToolbox::IsRegularFile(current->path().string()))
         {
           try
           {

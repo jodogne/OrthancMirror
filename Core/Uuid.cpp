@@ -117,46 +117,48 @@ namespace Orthanc
 
       return IsUuid(str.substr(0, 36));
     }
+  }
 
 
-    static std::string CreateTemporaryPath(const char* extension)
-    {
+  static std::string CreateTemporaryPath(const char* extension)
+  {
 #if BOOST_HAS_FILESYSTEM_V3 == 1
-      boost::filesystem::path tmpDir = boost::filesystem::temp_directory_path();
+    boost::filesystem::path tmpDir = boost::filesystem::temp_directory_path();
 #elif defined(__linux__)
-      boost::filesystem::path tmpDir("/tmp");
+    boost::filesystem::path tmpDir("/tmp");
 #else
 #error Support your platform here
 #endif
 
-      // We use UUID to create unique path to temporary files
-      std::string filename = "Orthanc-" + Orthanc::Toolbox::GenerateUuid();
+    // We use UUID to create unique path to temporary files
+    std::string filename = "Orthanc-" + Orthanc::Toolbox::GenerateUuid();
 
-      if (extension != NULL)
-      {
-        filename.append(extension);
-      }
-
-      tmpDir /= filename;
-      return tmpDir.string();
+    if (extension != NULL)
+    {
+      filename.append(extension);
     }
 
-
-    TemporaryFile::TemporaryFile() : 
-      path_(CreateTemporaryPath(NULL))
-    {
-    }
-
-
-    TemporaryFile::TemporaryFile(const char* extension) :
-      path_(CreateTemporaryPath(extension))
-    {
-    }
-
-
-    TemporaryFile::~TemporaryFile()
-    {
-      boost::filesystem::remove(path_);
-    }  
+    tmpDir /= filename;
+    return tmpDir.string();
   }
+
+
+#if ORTHANC_SANDBOXED == 0
+  TemporaryFile::TemporaryFile() : 
+    path_(CreateTemporaryPath(NULL))
+  {
+  }
+
+
+  TemporaryFile::TemporaryFile(const char* extension) :
+    path_(CreateTemporaryPath(extension))
+  {
+  }
+
+
+  TemporaryFile::~TemporaryFile()
+  {
+    boost::filesystem::remove(path_);
+  }  
+#endif
 }

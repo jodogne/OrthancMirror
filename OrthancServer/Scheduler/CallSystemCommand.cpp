@@ -61,13 +61,13 @@ namespace Orthanc
         std::string dicom;
         context_.ReadDicom(dicom, *it);
 
-        Toolbox::TemporaryFile tmp;
+        TemporaryFile tmp;
         tmp.Write(dicom);
 
         std::vector<std::string> args = arguments_;
         args.push_back(tmp.GetPath());
 
-        Toolbox::ExecuteSystemCommand(command_, args);
+        SystemToolbox::ExecuteSystemCommand(command_, args);
 
         // Only chain with other commands if this command succeeds
         outputs.push_back(*it);

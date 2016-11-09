@@ -135,7 +135,7 @@ namespace Orthanc
   void Font::LoadFromFile(const std::string& path)
   {
     std::string font;
-    Toolbox::ReadFile(font, path);
+    SystemToolbox::ReadFile(font, path);
     LoadFromMemory(font);
   }
 

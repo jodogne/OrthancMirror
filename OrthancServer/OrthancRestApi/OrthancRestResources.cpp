@@ -192,7 +192,7 @@ namespace Orthanc
 
     std::string target;
     call.BodyToString(target);
-    Toolbox::WriteFile(dicom, target);
+    SystemToolbox::WriteFile(dicom, target);
 
     call.GetOutput().AnswerBuffer("{}", "application/json");
   }

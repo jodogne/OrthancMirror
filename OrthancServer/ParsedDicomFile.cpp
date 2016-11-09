@@ -855,7 +855,7 @@ namespace Orthanc
     // TODO Avoid using a temporary memory buffer, write directly on disk
     std::string content;
     SaveToMemoryBuffer(content);
-    Toolbox::WriteFile(content, path);
+    SystemToolbox::WriteFile(content, path);
   }
 
 

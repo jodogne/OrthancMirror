@@ -612,7 +612,7 @@ static void LoadLuaScripts(ServerContext& context)
     std::string path = Configuration::InterpretStringParameterAsPath(*it);
     LOG(WARNING) << "Installing the Lua scripts from: " << path;
     std::string script;
-    Toolbox::ReadFile(script, path);
+    SystemToolbox::ReadFile(script, path);
 
     LuaScripting::Locker locker(context.GetLua());
     locker.GetLua().Execute(script);
@@ -657,7 +657,7 @@ static bool WaitForExit(ServerContext& context,
 
   for (;;)
   {
-    ServerBarrierEvent event = Toolbox::ServerBarrier(restApi.LeaveBarrierFlag());
+    ServerBarrierEvent event = SystemToolbox::ServerBarrier(restApi.LeaveBarrierFlag());
     restart = restApi.IsResetRequestReceived();
 
     if (!restart && 
@@ -1202,7 +1202,7 @@ int main(int argc, char* argv[])
 #endif
 
       std::string target = argument.substr(9);
-      Toolbox::WriteFile(configurationSample, target);
+      SystemToolbox::WriteFile(configurationSample, target);
       return 0;
     }
     else
@@ -1223,7 +1223,7 @@ int main(int argc, char* argv[])
     {
       try
       {
-        boost::filesystem::path exe(Toolbox::GetPathToExecutable());
+        boost::filesystem::path exe(SystemToolbox::GetPathToExecutable());
         std::time_t creation = boost::filesystem::last_write_time(exe);
         boost::posix_time::ptime converted(boost::posix_time::from_time_t(creation));
         version += " (" + boost::posix_time::to_iso_string(converted) + ")";

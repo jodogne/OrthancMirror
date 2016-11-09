@@ -40,7 +40,7 @@ int main(int argc, const char* argv[])
     fflush(stderr);
 
     std::string content;
-    Orthanc::Toolbox::ReadFile(content, argv[1]);
+    Orthanc::SystemToolbox::ReadFile(content, argv[1]);
 
     fprintf(stderr, "Decompressing the content of the file...\n");
     fflush(stderr);
@@ -56,7 +56,7 @@ int main(int argc, const char* argv[])
 
     if (argc == 3)
     {
-      Orthanc::Toolbox::WriteFile(uncompressed, argv[2]);
+      Orthanc::SystemToolbox::WriteFile(uncompressed, argv[2]);
     }
     else
     {

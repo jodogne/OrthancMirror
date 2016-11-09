@@ -66,14 +66,14 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    if (!Toolbox::IsRegularFile(certificateFile))
+    if (!SystemToolbox::IsRegularFile(certificateFile))
     {
       LOG(ERROR) << "Cannot open certificate file: " << certificateFile;
       throw OrthancException(ErrorCode_InexistentFile);
     }
 
     if (!certificateKeyFile.empty() && 
-        !Toolbox::IsRegularFile(certificateKeyFile))
+        !SystemToolbox::IsRegularFile(certificateKeyFile))
     {
       LOG(ERROR) << "Cannot open key file: " << certificateKeyFile;
       throw OrthancException(ErrorCode_InexistentFile);
