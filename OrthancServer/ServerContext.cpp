@@ -86,7 +86,18 @@ namespace Orthanc
         {
           try
           {
-            it->GetListener().SignalChange(change);
+            try
+            {
+              it->GetListener().SignalChange(change);
+            }
+            catch (std::bad_alloc&)
+            {
+              LOG(ERROR) << "Not enough memory while signaling a change";
+            }
+            catch (...)
+            {
+              throw OrthancException(ErrorCode_InternalError);
+            }
           }
           catch (OrthancException& e)
           {

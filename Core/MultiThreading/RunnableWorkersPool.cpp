@@ -52,25 +52,33 @@ namespace Orthanc
       {
         while (that->continue_)
         {
-          std::auto_ptr<IDynamicObject>  obj(that->queue_.Dequeue(100));
-          if (obj.get() != NULL)
+          try
           {
-            try
+            std::auto_ptr<IDynamicObject>  obj(that->queue_.Dequeue(100));
+            if (obj.get() != NULL)
             {
               IRunnableBySteps& runnable = *dynamic_cast<IRunnableBySteps*>(obj.get());
-            
+              
               bool wishToContinue = runnable.Step();
-
+              
               if (wishToContinue)
               {
                 // The runnable wishes to continue, reinsert it at the beginning of the queue
                 that->queue_.Enqueue(obj.release());
               }
             }
-            catch (OrthancException& e)
-            {
-              LOG(ERROR) << "Exception in a pool of working threads: " << e.What();
-            }
+          }
+          catch (OrthancException& e)
+          {
+            LOG(ERROR) << "Exception while handling some runnable object: " << e.What();
+          }
+          catch (std::bad_alloc&)
+          {
+            LOG(ERROR) << "Not enough memory to handle some runnable object";
+          }
+          catch (...)
+          {
+            LOG(ERROR) << "Native exception while handling some runnable object";
           }
         }
       }

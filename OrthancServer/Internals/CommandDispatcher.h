@@ -61,22 +61,9 @@ namespace Orthanc
                         const std::string& remoteIp,
                         const std::string& remoteAet,
                         const std::string& calledAet,
-                        IApplicationEntityFilter* filter) :
-        server_(server),
-        assoc_(assoc),
-        remoteIp_(remoteIp),
-        remoteAet_(remoteAet),
-        calledAet_(calledAet),
-        filter_(filter)
-      {
-        associationTimeout_ = server.GetAssociationTimeout();
-        elapsedTimeSinceLastCommand_ = 0;
-      }
+                        IApplicationEntityFilter* filter);
 
-      virtual ~CommandDispatcher()
-      {
-        AssociationCleanup(assoc_);
-      }
+      virtual ~CommandDispatcher();
 
       virtual bool Step();
     };
