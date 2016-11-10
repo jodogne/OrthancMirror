@@ -41,7 +41,17 @@ elseif (MSVC)
     -D_CRT_SECURE_NO_WARNINGS=1
     -D_CRT_SECURE_NO_DEPRECATE=1
     )
-  include_directories(${ORTHANC_ROOT}/Resources/ThirdParty/VisualStudio)
+
+  if (MSVC_VERSION LESS 1600)
+    # Starting with Visual Studio >= 2010 (i.e. macro _MSC_VER >=
+    # 1600), Microsoft ships a standard-compliant <stdint.h>
+    # header. For earlier versions of Visual Studio, give access to a
+    # compatibility header.
+    # http://stackoverflow.com/a/70630/881731
+    # https://en.wikibooks.org/wiki/C_Programming/C_Reference/stdint.h#External_links
+    include_directories(${ORTHANC_ROOT}/Resources/ThirdParty/VisualStudio)
+  endif()
+
   link_libraries(netapi32)
 endif()
 
