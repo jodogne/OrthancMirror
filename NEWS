@@ -25,6 +25,7 @@ Plugins
 Maintenance
 -----------
 
+* Use of DCMTK 3.6.1 dictionary of private tags in standalone builds
 * Avoid hard crash if not enough memory (handling of std::bad_alloc)
 * Improved robustness of Orthanc Explorer wrt. query/retrieve (maybe fix issue 24)
 * Fix serious performance issue with C-FIND

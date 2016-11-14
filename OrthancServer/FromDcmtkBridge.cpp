@@ -197,7 +197,7 @@ namespace Orthanc
 
       if (loadPrivateDictionary)
       {
-        LOG(INFO) << "Loading the dictionary of private tags";
+        LOG(INFO) << "Loading the embedded dictionary of private tags";
         LoadEmbeddedDictionary(*locker, EmbeddedResources::DICTIONARY_PRIVATE);
       }
       else
@@ -218,7 +218,6 @@ namespace Orthanc
 
       if (loadPrivateDictionary)
       {
-        LOG(INFO) << "Loading the dictionary of private tags";
         LoadExternalDictionary(*locker, path, "private.dic");
       }
       else
