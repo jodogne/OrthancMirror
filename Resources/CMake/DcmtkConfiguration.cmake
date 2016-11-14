@@ -65,11 +65,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   if (USE_DCMTK_361)
     # This step must be after the generation of "osconfig.h"
     INSPECT_FUNDAMENTAL_ARITHMETIC_TYPES()
-  else()
-    # Removing this file is required with DCMTK 3.6.0
-    list(REMOVE_ITEM DCMTK_SOURCES 
-      ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/dcdictbi.cc
-      )
   endif()
 
   AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmdata/libsrc DCMTK_SOURCES)
@@ -187,6 +182,13 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/mkdictbi.cc
     ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/mkdeftag.cc
     )
+
+  if (NOT USE_DCMTK_361)
+    # Removing this file is required with DCMTK 3.6.0
+    list(REMOVE_ITEM DCMTK_SOURCES 
+      ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/dcdictbi.cc
+      )
+  endif()
 
   #set_source_files_properties(${DCMTK_SOURCES}
   #  PROPERTIES COMPILE_DEFINITIONS
