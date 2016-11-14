@@ -89,7 +89,7 @@ namespace Orthanc
                                    Encoding defaultEncoding);
 
   public:
-    static void InitializeDictionary();
+    static void InitializeDictionary(bool loadPrivateDictionary);
 
     static void RegisterDictionaryTag(const DicomTag& tag,
                                       ValueRepresentation vr,

@@ -481,7 +481,7 @@ namespace Orthanc
     RegisterUserMetadata();
     RegisterUserContentType();
 
-    FromDcmtkBridge::InitializeDictionary();
+    FromDcmtkBridge::InitializeDictionary(GetGlobalBoolParameterInternal("LoadPrivateDictionary", true));
     LoadCustomDictionary(configuration_);
 
 #if ORTHANC_ENABLE_JPEG_LOSSLESS == 1

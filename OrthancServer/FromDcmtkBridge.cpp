@@ -177,7 +177,7 @@ namespace Orthanc
   }
 
 
-  void FromDcmtkBridge::InitializeDictionary()
+  void FromDcmtkBridge::InitializeDictionary(bool loadPrivateDictionary)
   {
     {
       DictionaryLocker locker;
@@ -194,7 +194,16 @@ namespace Orthanc
       //LoadEmbeddedDictionary(*locker, EmbeddedResources::DICTIONARY_DICONDE);
 
       LoadEmbeddedDictionary(*locker, EmbeddedResources::DICTIONARY_DICOM);
-      LoadEmbeddedDictionary(*locker, EmbeddedResources::DICTIONARY_PRIVATE);
+
+      if (loadPrivateDictionary)
+      {
+        LOG(INFO) << "Loading the dictionary of private tags";
+        LoadEmbeddedDictionary(*locker, EmbeddedResources::DICTIONARY_PRIVATE);
+      }
+      else
+      {
+        LOG(INFO) << "The dictionary of private tags has not been loaded";
+      }
 
 #elif defined(__linux__) || defined(__FreeBSD_kernel__)
       std::string path = DCMTK_DICTIONARY_DIR;
@@ -206,7 +215,16 @@ namespace Orthanc
       }
 
       LoadExternalDictionary(*locker, path, "dicom.dic");
-      LoadExternalDictionary(*locker, path, "private.dic");
+
+      if (loadPrivateDictionary)
+      {
+        LOG(INFO) << "Loading the dictionary of private tags";
+        LoadExternalDictionary(*locker, path, "private.dic");
+      }
+      else
+      {
+        LOG(INFO) << "The dictionary of private tags has not been loaded";
+      }
 
 #else
 #error Support your platform here
