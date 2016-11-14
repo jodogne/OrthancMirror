@@ -5,7 +5,7 @@ General
 -------
 
 * Handling of private tags/creators in the "Dictionary" configuration option
-* New configuration options: "DicomScuTimeout" and "DicomScpTimeout"
+* New configuration options: "LoadPrivateDictionary", "DicomScuTimeout" and "DicomScpTimeout"
 
 REST API
 --------

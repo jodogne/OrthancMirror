@@ -317,6 +317,13 @@
   // default, as it requires intensive accesses to the hard drive.
   "AllowFindSopClassesInStudy" : false,
 
+  // If set to "false", Orthanc will not load its default dictionary
+  // of private tags. This might be necessary if you cannot import a
+  // DICOM file encoded using the Implicit VR Endian transfer syntax,
+  // and containing private tags. You can still list your private tags
+  // of interest in the "Dictionary" configuration option below.
+  "LoadPrivateDictionary" : true,
+
   // Register a new tag in the dictionary of DICOM tags that are known
   // to Orthanc. Each line must contain the tag (formatted as 2
   // hexadecimal numbers), the value representation (2 upcase
@@ -326,7 +333,8 @@
   // possibly the Private Creator (for private tags).
   "Dictionary" : {
     // "0014,1020" : [ "DA", "ValidationExpiryDate", 1, 1 ]
-    // "00e1,10c2" : [ "UI", "PET-CT Multi Modality Name", 1, 1, "ELSCINT1" ],
+    // "00e1,10c2" : [ "UI", "PET-CT Multi Modality Name", 1, 1, "ELSCINT1" ]
     // "7053,1003" : [ "ST", "Original Image Filename", 1, 1, "Philips PET Private Group" ]
+    // "2001,5f" : [ "SQ", "StackSequence", 1, 0, "Philips Imaging DD 001" ]
   }
 }
