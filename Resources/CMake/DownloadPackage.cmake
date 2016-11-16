@@ -78,7 +78,7 @@ macro(DownloadPackage MD5 Url TargetDirectory)
 
       file(DOWNLOAD "${Url}" "${TMP_PATH}" 
         SHOW_PROGRESS EXPECTED_MD5 "${MD5}"
-        TIMEOUT 5 INACTIVITY_TIMEOUT 5)
+        TIMEOUT 60 INACTIVITY_TIMEOUT 60)
     else()
       message("Using local copy of ${Url}")
     endif()
