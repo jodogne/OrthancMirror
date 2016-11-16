@@ -76,7 +76,9 @@ macro(DownloadPackage MD5 Url TargetDirectory)
 	message(FATAL_ERROR "CMake is not allowed to download from Internet. Please set the ALLOW_DOWNLOADS option to ON")
       endif()
 
-      file(DOWNLOAD "${Url}" "${TMP_PATH}" SHOW_PROGRESS EXPECTED_MD5 "${MD5}")
+      file(DOWNLOAD "${Url}" "${TMP_PATH}" 
+        SHOW_PROGRESS EXPECTED_MD5 "${MD5}"
+        TIMEOUT 5 INACTIVITY_TIMEOUT 5)
     else()
       message("Using local copy of ${Url}")
     endif()
