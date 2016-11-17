@@ -32,7 +32,6 @@ SET(ENABLE_PLUGINS ON CACHE BOOL "Enable plugins")
 SET(BUILD_SERVE_FOLDERS ON CACHE BOOL "Whether to build the ServeFolders plugin")
 SET(BUILD_MODALITY_WORKLISTS ON CACHE BOOL "Whether to build the sample plugin to serve modality worklists")
 SET(BUILD_RECOVER_COMPRESSED_FILE ON CACHE BOOL "Whether to build the companion tool to recover files compressed using Orthanc")
-SET(USE_DCMTK_361 OFF CACHE BOOL "Use forthcoming DCMTK version 3.6.1 in static builds (instead of 3.6.0)")
 SET(ENABLE_PKCS11 OFF CACHE BOOL "Enable PKCS#11 for HTTPS client authentication using hardware security modules and smart cards")
 
 # Advanced parameters to fine-tune linking against system libraries
@@ -51,8 +50,10 @@ SET(USE_SYSTEM_ZLIB ON CACHE BOOL "Use the system version of ZLib")
 SET(USE_SYSTEM_PUGIXML ON CACHE BOOL "Use the system version of Pugixml")
 SET(USE_SYSTEM_LIBP11 OFF CACHE BOOL "Use the system version of libp11 (PKCS#11 wrapper library)")
 
-# Experimental options
+# Advanced parameters
 SET(USE_PUGIXML ON CACHE BOOL "Use the Pugixml parser (turn off only for debug)")
+SET(USE_DCMTK_361 OFF CACHE BOOL "Use forthcoming DCMTK version 3.6.1 in static builds (instead of 3.6.0)")
+SET(USE_DCMTK_361_PRIVATE_DIC ON CACHE BOOL "Use the dictionary of private tags from DCMTK 3.6.1 in static builds (which is more up-to-date)")
 
 # Distribution-specific settings
 SET(USE_GTEST_DEBIAN_SOURCE_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
