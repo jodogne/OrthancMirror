@@ -36,15 +36,20 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   DownloadPackage(${DCMTK_MD5} ${DCMTK_URL} "${DCMTK_SOURCES_DIR}")
 
   
-  if (FirstRun AND NOT USE_DCMTK_361)
-    # If using DCMTK 3.6.0, backport the "private.dic" file from DCMTK
-    # 3.6.1 snapshot. This adds support for more private tags, and
-    # fixes some import problems with Philips MRI Achieva.
-    message("Using the dictionary of private tags from DCMTK 3.6.1")
-    configure_file(
-      ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.1-private.dic
-      ${DCMTK_SOURCES_DIR}/dcmdata/data/private.dic
-      COPYONLY)
+  if (FirstRun AND
+      NOT USE_DCMTK_361)
+    if (USE_DCMTK_361_PRIVATE_DIC)
+      # If using DCMTK 3.6.0, backport the "private.dic" file from DCMTK
+      # 3.6.1 snapshot. This adds support for more private tags, and
+      # fixes some import problems with Philips MRI Achieva.
+      message("Using the dictionary of private tags from DCMTK 3.6.1")
+      configure_file(
+        ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.1-private.dic
+        ${DCMTK_SOURCES_DIR}/dcmdata/data/private.dic
+        COPYONLY)
+    else()
+      message("Using the dictionary of private tags from DCMTK 3.6.0")
+    endif()
   endif()
 
 
