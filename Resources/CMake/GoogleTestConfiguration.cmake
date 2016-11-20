@@ -1,9 +1,26 @@
 if (USE_GTEST_DEBIAN_SOURCE_PACKAGE)
-  set(GTEST_SOURCES /usr/src/gtest/src/gtest-all.cc)
-  include_directories(/usr/src/gtest)
+  find_path(GTEST_DEBIAN_SOURCES_DIR
+    NAMES src/gtest-all.cc
+    PATHS
+    /usr/src/gtest
+    /usr/src/googletest/googletest
+    PATH_SUFFIXES src
+    )
 
-  if (NOT EXISTS /usr/include/gtest/gtest.h OR
-      NOT EXISTS ${GTEST_SOURCES})
+  find_path(GTEST_DEBIAN_INCLUDE_DIR
+    NAMES gtest.h
+    PATHS
+    /usr/include/gtest
+    )
+
+  message("Path to the Debian Google Test sources: ${GTEST_DEBIAN_SOURCES_DIR}")
+  message("Path to the Debian Google Test includes: ${GTEST_DEBIAN_INCLUDE_DIR}")
+
+  set(GTEST_SOURCES ${GTEST_DEBIAN_SOURCES_DIR}/src/gtest-all.cc)
+  include_directories(${GTEST_DEBIAN_SOURCES_DIR})
+
+  if (NOT EXISTS ${GTEST_SOURCES} OR
+      NOT EXISTS ${GTEST_DEBIAN_INCLUDE_DIR}/gtest.h)
     message(FATAL_ERROR "Please install the libgtest-dev package")
   endif()
 
