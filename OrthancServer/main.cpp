@@ -914,7 +914,7 @@ static bool UpgradeDatabase(IDatabaseWrapper& database,
   catch (OrthancException&)
   {
     LOG(ERROR) << "Unable to run the automated upgrade, please use the replication instructions: "
-               << "https://orthanc.chu.ulg.ac.be/book/users/replication.html";
+               << "http://book.orthanc-server.com//users/replication.html";
     throw;
   }
     
