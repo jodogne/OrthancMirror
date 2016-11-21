@@ -203,7 +203,7 @@ Orthanc supports the following SOP Classes as an SCU for C-Move:
 Transfer Syntaxes
 -----------------
 
-Orthanc will accept and negociate presentation contexts for all of the
+Orthanc will accept and negotiate presentation contexts for all of the
 abovementioned supported SOP Classes using any of the following
 transfer syntaxes:
 
