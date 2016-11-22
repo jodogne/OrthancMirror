@@ -1,0 +1,146 @@
+====================
+=== Orthanc TODO ===
+====================
+
+The wishlist from Orthanc users is available on Trello:
+https://trello.com/b/gcn33tDM/orthanc-wishlist
+
+
+=======
+General
+=======
+
+* Configure an user-defined site UID root if generating DICOM UIDs
+  ("FromDcmtkBridge::GenerateUuid()")
+* Support "/preview" and "/matlab" for LUT images
+* Improve handling of errors in the command queue:
+  https://groups.google.com/d/msg/orthanc-users/--njEbqcDDI/rBu8XL-Mm-cJ
+
+
+========
+REST API
+========
+
+----------
+Short-term
+----------
+
+* Create multi-frame images with /tools/create-dicom (by adding a
+  "MultiFrame" flag to avoid creating a series)
+
+---------
+Long-term
+---------
+
+* Stick to the JSONapi or JAREST guidelines for a "v2" of the API:
+  https://groups.google.com/forum/#!msg/orthanc-users/Bag-SwEE9ZI/-w7QXI6p7-oJ
+  http://www.admiraalit.nl/jarest/
+
+
+=====
+DICOM
+=====
+
+----------
+Short-term
+----------
+
+* Support C-GET: 
+  http://dclunie.blogspot.be/2016/05/to-c-move-is-human-to-c-get-divine.html
+* Check Big Endian transfer syntax in ParsedDicomFile::EmbedImage and
+  DicomImageDecoder
+
+---------
+Long-term
+---------
+
+* Support DICOM TLS (cf. "--enable-tls" in storescp)
+* Support Storage Commitment:
+  https://groups.google.com/forum/#!msg/orthanc-users/VZOn8St65jw/s8kg_OHesj0J
+
+
+=======
+Plugins
+=======
+
+---
+SDK
+---
+
+* Image transcoding API
+* Add plugins for normalized operations (notably so as to support
+  Print SCU/SCP):
+  https://www.medicalconnections.co.uk/kb/DICOM_Print_Service
+
+----------------
+Ideas of plugins
+----------------
+
+* DICOM-RT primitives (RT-STRUCT, RT-PLAN, RT-DOSE)
+* Converter to/from NIfTI
+* MySQL database plugin
+* Decode JPEG2k with grok: https://github.com/GrokImageCompression/grok
+
+
+===
+Lua
+===
+
+* Configure HTTP headers from Lua (in HttpGet(), HttpPost(),
+  HttpPut(), HttpDelete(), RestApiGet(), RestApiPost(), RestApiPut()
+  and RestApiDelete().
+  https://groups.google.com/forum/#!msg/orthanc-users/WNnW187OILM/6XX_bm96BwAJ
+
+
+===========
+Performance
+===========
+
+
+============
+Orthanc Book
+============
+
+* Document C-FIND filters
+
+
+================
+Code refactoring
+================
+
+* Use Semaphore::Locker everywhere (instead of explicit
+  Release() and Acquire())
+
+
+=================
+Platform-specific
+=================
+
+---------
+Packaging
+---------
+
+* CentOS and RHEL through EPEL:
+  http://fedoraproject.org/wiki/EPEL_Package_Maintainers
+
+------------------------
+Big-endian architectures
+------------------------
+
+* Check the generated 16bpp PNG images
+
+-----------------
+Microsoft Windows
+-----------------
+
+* Add compatibility with non-ASCII paths (Orthanc expresses its paths
+  as UTF-8 strings, but Windows expects them to be translated to the 
+  system locale)
+
+
+=====================
+External applications
+=====================
+
+* Create REST bindings with Slicer
+* Create REST bindings with Horos/OsiriX
