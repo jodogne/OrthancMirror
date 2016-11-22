@@ -108,6 +108,23 @@ static bool LookupFolder(std::string& folder,
 }
 
 
+static void Answer(OrthancPluginRestOutput* output,
+                   const char* content,
+                   size_t size,
+                   const std::string& mime)
+{
+  if (generateETag_)
+  {
+    OrthancPlugins::OrthancString md5(context_, OrthancPluginComputeMd5(context_, content, size));
+    std::string etag = "\"" + std::string(md5.GetContent()) + "\"";
+    OrthancPluginSetHttpHeader(context_, output, "ETag", etag.c_str());
+  }
+
+  SetHttpHeaders(output);
+  OrthancPluginAnswerBuffer(context_, output, content, size, mime.c_str());
+}
+
+
 void ServeFolder(OrthancPluginRestOutput* output,
                  const char* url,
                  const OrthancPluginHttpRequest* request)
@@ -164,8 +181,7 @@ void ServeFolder(OrthancPluginRestOutput* output,
       s += "  </body>\n";
       s += "</html>\n";
 
-      SetHttpHeaders(output);
-      OrthancPluginAnswerBuffer(context_, output, s.c_str(), s.size(), "text/html");
+      Answer(output, s.c_str(), s.size(), "text/html");
     }
     else
     {
@@ -183,19 +199,11 @@ void ServeFolder(OrthancPluginRestOutput* output,
         throw OrthancPlugins::PluginException(OrthancPluginErrorCode_InexistentFile);
       }
 
-      if (generateETag_)
-      {
-        OrthancPlugins::OrthancString md5(context_, OrthancPluginComputeMd5(context_, content.GetData(), content.GetSize()));
-        std::string etag = "\"" + std::string(md5.GetContent()) + "\"";
-        OrthancPluginSetHttpHeader(context_, output, "ETag", etag.c_str());
-      }
-
       boost::posix_time::ptime lastModification = boost::posix_time::from_time_t(fs::last_write_time(path));
       std::string t = boost::posix_time::to_iso_string(lastModification);
       OrthancPluginSetHttpHeader(context_, output, "Last-Modified", t.c_str());
 
-      SetHttpHeaders(output);
-      OrthancPluginAnswerBuffer(context_, output, content.GetData(), content.GetSize(), mime.c_str());
+      Answer(output, content.GetData(), content.GetSize(), mime);
     }
   }
 }
@@ -232,8 +240,7 @@ void ListServedFolders(OrthancPluginRestOutput* output,
 
   s += "</body></html>\n";
 
-  SetHttpHeaders(output);
-  OrthancPluginAnswerBuffer(context_, output, s.c_str(), s.size(), "text/html");
+  Answer(output, s.c_str(), s.size(), "text/html");
 }
 
 
@@ -253,7 +260,7 @@ static void ConfigureFolders(const Json::Value& folders)
   {
     if (folders[*it].type() != Json::stringValue)
     {
-      OrthancPlugins::LogError(context_, "The folder to be server \"" + *it + 
+      OrthancPlugins::LogError(context_, "The folder to be served \"" + *it + 
                                "\" must be associated with a string value (its mapped URI)");
       throw OrthancPlugins::PluginException(OrthancPluginErrorCode_BadFileFormat);
     }
@@ -298,6 +305,51 @@ static void ConfigureFolders(const Json::Value& folders)
 }
 
 
+static void ConfigureExtensions(const Json::Value& extensions)
+{
+  if (extensions.type() != Json::objectValue)
+  {
+    OrthancPlugins::LogError(context_, "The list of extensions is badly formatted (must be a JSON object)");
+    throw OrthancPlugins::PluginException(OrthancPluginErrorCode_BadFileFormat);
+  }
+
+  Json::Value::Members members = extensions.getMemberNames();
+
+  for (Json::Value::Members::const_iterator 
+         it = members.begin(); it != members.end(); ++it)
+  {
+    if (extensions[*it].type() != Json::stringValue)
+    {
+      OrthancPlugins::LogError(context_, "The file extension \"" + *it + 
+                               "\" must be associated with a string value (its MIME type)");
+      throw OrthancPlugins::PluginException(OrthancPluginErrorCode_BadFileFormat);
+    }
+
+    const std::string& mime = extensions[*it].asString();
+
+    std::string name = *it;
+
+    if (!name.empty() &&
+        name[0] == '.')
+    {
+      name = name.substr(1);  // Remove the leading dot "."
+    }
+
+    extensions_[name] = mime;
+
+    if (mime.empty())
+    {
+      OrthancPlugins::LogWarning(context_, "ServeFolders: Removing MIME type for file extension \"." + name + "\"");
+    }
+    else
+    {
+      OrthancPlugins::LogWarning(context_, "ServeFolders: Associating file extension \"." + name + 
+                                 "\" with MIME type \"" + mime + "\"");
+    }
+  }  
+}
+
+
 static void ReadConfiguration()
 {
   OrthancPlugins::OrthancConfiguration configuration;
@@ -333,6 +385,10 @@ static void ReadConfiguration()
       OrthancPlugins::LogWarning(context_, "ServeFolders: The computation of an ETag for the served resources is " +
                                  std::string(tmp ? "enabled" : "disabled"));
     }
+
+    OrthancPlugins::OrthancConfiguration extensions;
+    configuration.GetSection(extensions, "Extensions");
+    ConfigureExtensions(extensions.GetJson());
   }
 
   if (folders_.empty())
