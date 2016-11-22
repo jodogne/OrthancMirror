@@ -30,8 +30,8 @@ static OrthancPluginContext* context_ = NULL;
 static std::map<std::string, std::string> extensions_;
 static std::map<std::string, std::string> folders_;
 static const char* INDEX_URI = "/app/plugin-serve-folders.html";
-static bool allowCache_ = true;
-static bool generateETag_ = true;  // TODO parameter
+static bool allowCache_ = false;
+static bool generateETag_ = true;
 
 
 static void SetHttpHeaders(OrthancPluginRestOutput* output)
@@ -81,25 +81,8 @@ static std::string GetMimeType(const std::string& path)
   }
   else
   {
-    OrthancPlugins::LogWarning(context_, "ServeFolders- Unknown MIME type for extension: " + extension);
+    OrthancPlugins::LogWarning(context_, "ServeFolders: Unknown MIME type for extension \"" + extension + "\"");
     return "application/octet-stream";
-  }
-}
-
-
-static bool ReadFile(std::string& target,
-                     const std::string& path)
-{
-  try
-  {
-    OrthancPlugins::MemoryBuffer buffer(context_);
-    buffer.ReadFile(path);
-    buffer.ToString(target);
-    return true;
-  }
-  catch (OrthancPlugins::PluginException&)
-  {
-    return false;
   }
 }
 
@@ -125,16 +108,16 @@ static bool LookupFolder(std::string& folder,
 }
 
 
-static OrthancPluginErrorCode FolderCallback(OrthancPluginRestOutput* output,
-                                             const char* url,
-                                             const OrthancPluginHttpRequest* request)
+void ServeFolder(OrthancPluginRestOutput* output,
+                 const char* url,
+                 const OrthancPluginHttpRequest* request)
 {
   namespace fs = boost::filesystem;  
 
   if (request->method != OrthancPluginHttpMethod_Get)
   {
     OrthancPluginSendMethodNotAllowed(context_, output, "GET");
-    return OrthancPluginErrorCode_Success;
+    return;
   }
 
   std::string folder;
@@ -189,45 +172,43 @@ static OrthancPluginErrorCode FolderCallback(OrthancPluginRestOutput* output,
       std::string path = folder + "/" + item.string();
       std::string mime = GetMimeType(path);
 
-      std::string s;
-      if (ReadFile(s, path))
+      OrthancPlugins::MemoryBuffer content(context_);
+
+      try
       {
-        const char* resource = s.size() ? s.c_str() : NULL;
-
-        if (generateETag_)
-        {
-          OrthancPlugins::OrthancString md5(context_, OrthancPluginComputeMd5(context_, resource, s.size()));
-          std::string etag = "\"" + std::string(md5.GetContent()) + "\"";
-          OrthancPluginSetHttpHeader(context_, output, "ETag", etag.c_str());
-        }
-
-        boost::posix_time::ptime lastModification = boost::posix_time::from_time_t(fs::last_write_time(path));
-        std::string t = boost::posix_time::to_iso_string(lastModification);
-        OrthancPluginSetHttpHeader(context_, output, "Last-Modified", t.c_str());
-
-        SetHttpHeaders(output);
-        OrthancPluginAnswerBuffer(context_, output, resource, s.size(), mime.c_str());
+        content.ReadFile(path);
       }
-      else
+      catch (OrthancPlugins::PluginException&)
       {
-        OrthancPlugins::LogError(context_, "Inexistent file in served folder: " + path);
-        OrthancPluginSendHttpStatusCode(context_, output, 404);
+        throw OrthancPlugins::PluginException(OrthancPluginErrorCode_InexistentFile);
       }
+
+      if (generateETag_)
+      {
+        OrthancPlugins::OrthancString md5(context_, OrthancPluginComputeMd5(context_, content.GetData(), content.GetSize()));
+        std::string etag = "\"" + std::string(md5.GetContent()) + "\"";
+        OrthancPluginSetHttpHeader(context_, output, "ETag", etag.c_str());
+      }
+
+      boost::posix_time::ptime lastModification = boost::posix_time::from_time_t(fs::last_write_time(path));
+      std::string t = boost::posix_time::to_iso_string(lastModification);
+      OrthancPluginSetHttpHeader(context_, output, "Last-Modified", t.c_str());
+
+      SetHttpHeaders(output);
+      OrthancPluginAnswerBuffer(context_, output, content.GetData(), content.GetSize(), mime.c_str());
     }
   }
-
-  return OrthancPluginErrorCode_Success;
 }
 
 
-static OrthancPluginErrorCode ListServedFolders(OrthancPluginRestOutput* output,
-                                                const char* url,
-                                                const OrthancPluginHttpRequest* request)
+void ListServedFolders(OrthancPluginRestOutput* output,
+                       const char* url,
+                       const OrthancPluginHttpRequest* request)
 {
   if (request->method != OrthancPluginHttpMethod_Get)
   {
     OrthancPluginSendMethodNotAllowed(context_, output, "GET");
-    return OrthancPluginErrorCode_Success;
+    return;
   }
 
   std::string s = "<html><body><h1>Additional folders served by Orthanc</h1>\n";
@@ -253,8 +234,6 @@ static OrthancPluginErrorCode ListServedFolders(OrthancPluginRestOutput* output,
 
   SetHttpHeaders(output);
   OrthancPluginAnswerBuffer(context_, output, s.c_str(), s.size(), "text/html");
-
-  return OrthancPluginErrorCode_Success;
 }
 
 
@@ -313,7 +292,7 @@ static void ConfigureFolders(const Json::Value& folders)
     // Register the callback to serve the folder
     {
       const std::string regex = "/(" + baseUri + ")/(.*)";
-      OrthancPluginRegisterRestCallback(context_, regex.c_str(), FolderCallback);
+      OrthancPlugins::RegisterRestCallback<ServeFolder>(context_, regex.c_str(), true);
     }
   }
 }
@@ -343,15 +322,22 @@ static void ReadConfiguration()
     if (configuration.LookupBooleanValue(tmp, "AllowCache"))
     {
       allowCache_ = tmp;
-      OrthancPlugins::LogWarning(context_, "ServeFolders- Requesting the HTTP client to " +
-                                 std::string(allowCache_ ? "enable" : "disable") + 
+      OrthancPlugins::LogWarning(context_, "ServeFolders: Requesting the HTTP client to " +
+                                 std::string(tmp ? "enable" : "disable") + 
                                  " its caching mechanism");
+    }
+
+    if (configuration.LookupBooleanValue(tmp, "GenerateETag"))
+    {
+      generateETag_ = tmp;
+      OrthancPlugins::LogWarning(context_, "ServeFolders: The computation of an ETag for the served resources is " +
+                                 std::string(tmp ? "enabled" : "disabled"));
     }
   }
 
   if (folders_.empty())
   {
-    OrthancPlugins::LogWarning(context_, "ServeFolders- Empty configuration file: No additional folder will be served!");
+    OrthancPlugins::LogWarning(context_, "ServeFolders: Empty configuration file: No additional folder will be served!");
   }
 }
 
@@ -378,7 +364,7 @@ extern "C"
     RegisterDefaultExtensions();
     OrthancPluginSetDescription(context_, "Serve additional folders with the HTTP server of Orthanc.");
     OrthancPluginSetRootUri(context, INDEX_URI);
-    OrthancPluginRegisterRestCallback(context, INDEX_URI, ListServedFolders);
+    OrthancPlugins::RegisterRestCallback<ListServedFolders>(context_, INDEX_URI, true);
 
     try
     {
