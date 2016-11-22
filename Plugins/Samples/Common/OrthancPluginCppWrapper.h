@@ -191,7 +191,7 @@ namespace OrthancPlugins
   {
   private:
     OrthancPluginContext*  context_;
-    Json::Value            configuration_;
+    Json::Value            configuration_;  // Necessarily a Json::objectValue
     std::string            path_;
 
     std::string GetPath(const std::string& key) const;
@@ -209,6 +209,8 @@ namespace OrthancPlugins
     {
       return configuration_;
     }
+
+    bool IsSection(const std::string& key) const;
 
     void GetSection(OrthancConfiguration& target,
                     const std::string& key) const;
