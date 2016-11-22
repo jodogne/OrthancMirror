@@ -27,6 +27,7 @@
 
 
 static OrthancPluginContext* context_ = NULL;
+static std::map<std::string, std::string> extensions_;
 static std::map<std::string, std::string> folders_;
 static const char* INDEX_URI = "/app/plugin-serve-folders.html";
 static bool allowCache_ = true;
@@ -45,62 +46,38 @@ static void SetHttpHeaders(OrthancPluginRestOutput* output)
 }
 
 
-static const char* GetMimeType(const std::string& path)
+static void RegisterDefaultExtensions()
+{
+  extensions_["css"]  = "text/css";
+  extensions_["gif"]  = "image/gif";
+  extensions_["html"] = "text/html";
+  extensions_["jpeg"] = "image/jpeg";
+  extensions_["jpg"]  = "image/jpeg";
+  extensions_["js"]   = "application/javascript";
+  extensions_["json"] = "application/json";
+  extensions_["nexe"] = "application/x-nacl";
+  extensions_["nmf"]  = "application/json";
+  extensions_["pexe"] = "application/x-pnacl";
+  extensions_["png"]  = "image/png";
+  extensions_["svg"]  = "image/svg+xml";
+  extensions_["woff"] = "application/x-font-woff";
+  extensions_["xml"]  = "application/xml";
+}
+
+
+static std::string GetMimeType(const std::string& path)
 {
   size_t dot = path.find_last_of('.');
 
-  std::string extension = (dot == std::string::npos) ? "" : path.substr(dot);
+  std::string extension = (dot == std::string::npos) ? "" : path.substr(dot + 1);
   std::transform(extension.begin(), extension.end(), extension.begin(), tolower);
 
-  if (extension == ".html")
+  std::map<std::string, std::string>::const_iterator found = extensions_.find(extension);
+
+  if (found != extensions_.end() &&
+      !found->second.empty())
   {
-    return "text/html";
-  }
-  else if (extension == ".css")
-  {
-    return "text/css";
-  }
-  else if (extension == ".js")
-  {
-    return "application/javascript";
-  }
-  else if (extension == ".gif")
-  {
-    return "image/gif";
-  }
-  else if (extension == ".svg")
-  {
-    return "image/svg+xml";
-  }
-  else if (extension == ".json" ||
-           extension == ".nmf")
-  {
-    return "application/json";
-  }
-  else if (extension == ".xml")
-  {
-    return "application/xml";
-  }
-  else if (extension == ".png")
-  {
-    return "image/png";
-  }
-  else if (extension == ".jpg" || 
-           extension == ".jpeg")
-  {
-    return "image/jpeg";
-  }
-  else if (extension == ".woff")
-  {
-    return "application/x-font-woff";
-  }
-  else if (extension == ".pexe")
-  {
-    return "application/x-pnacl";
-  }
-  else if (extension == ".nexe")
-  {
-    return "application/x-nacl";
+    return found->second;
   }
   else
   {
@@ -121,7 +98,7 @@ static bool ReadFile(std::string& target,
     buffer.ToString(target);
     return true;
   }
-  catch (OrthancPlugins::PluginException)
+  catch (OrthancPlugins::PluginException&)
   {
     return false;
   }
@@ -243,7 +220,7 @@ static OrthancPluginErrorCode FolderCallback(OrthancPluginRestOutput* output,
     else
     {
       std::string path = folder + "/" + item.string();
-      const char* mime = GetMimeType(path);
+      std::string mime = GetMimeType(path);
 
       std::string s;
       if (ReadFile(s, path))
@@ -262,7 +239,7 @@ static OrthancPluginErrorCode FolderCallback(OrthancPluginRestOutput* output,
         OrthancPluginSetHttpHeader(context_, output, "Last-Modified", t.c_str());
 
         SetHttpHeaders(output);
-        OrthancPluginAnswerBuffer(context_, output, resource, s.size(), mime);
+        OrthancPluginAnswerBuffer(context_, output, resource, s.size(), mime.c_str());
       }
       else
       {
@@ -334,6 +311,7 @@ extern "C"
       return -1;
     }
 
+    RegisterDefaultExtensions();
     OrthancPluginSetDescription(context_, "Serve additional folders with the HTTP server of Orthanc.");
 
     Json::Value configuration;
