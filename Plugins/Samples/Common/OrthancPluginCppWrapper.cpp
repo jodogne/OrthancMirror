@@ -368,6 +368,15 @@ namespace OrthancPlugins
   }
 
 
+  bool OrthancConfiguration::IsSection(const std::string& key) const
+  {
+    assert(configuration_.type() == Json::objectValue);
+
+    return (configuration_.isMember(key) &&
+            configuration_[key].type() == Json::objectValue);
+  }
+
+
   void OrthancConfiguration::GetSection(OrthancConfiguration& target,
                                         const std::string& key) const
   {
