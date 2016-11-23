@@ -77,6 +77,10 @@ extern "C"
 #endif
 
 
+#if defined(_WIN32)
+#  include <windows.h>   // For ::Sleep
+#endif
+
 
 #if ORTHANC_ENABLE_PUGIXML == 1
 #  include "ChunkedBuffer.h"
