@@ -204,8 +204,6 @@ namespace Orthanc
                                              const std::string& key,
                                              unsigned int defaultValue);
 
-    std::string GenerateUuid();
-
     bool IsUuid(const std::string& str);
 
     bool StartsWithUuid(const std::string& str);

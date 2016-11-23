@@ -2588,7 +2588,7 @@ namespace Orthanc
       case _OrthancPluginService_GenerateUuid:
       {
         *reinterpret_cast<const _OrthancPluginRetrieveDynamicString*>(parameters)->result = 
-          CopyString(Toolbox::GenerateUuid());
+          CopyString(SystemToolbox::GenerateUuid());
         return true;
       }
 

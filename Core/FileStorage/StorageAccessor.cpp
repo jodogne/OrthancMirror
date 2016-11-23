@@ -37,6 +37,7 @@
 #include "../OrthancException.h"
 #include "../HttpServer/HttpStreamTranscoder.h"
 #include "../Toolbox.h"
+#include "../SystemToolbox.h"
 
 namespace Orthanc
 {
@@ -46,7 +47,7 @@ namespace Orthanc
                                   CompressionType compression,
                                   bool storeMd5)
   {
-    std::string uuid = Toolbox::GenerateUuid();
+    std::string uuid = SystemToolbox::GenerateUuid();
 
     std::string md5;
 

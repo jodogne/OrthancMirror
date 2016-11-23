@@ -59,6 +59,19 @@
 #endif
 
 
+// Inclusions for UUID
+// http://stackoverflow.com/a/1626302
+
+extern "C"
+{
+#ifdef WIN32
+#  include <rpc.h>
+#else
+#  include <uuid/uuid.h>
+#endif
+}
+
+
 #include "Logging.h"
 #include "OrthancException.h"
 #include "Toolbox.h"
@@ -474,6 +487,28 @@ namespace Orthanc
     }
 
     return fopen(path.c_str(), m);
+  }
+
+
+  std::string SystemToolbox::GenerateUuid()
+  {
+#ifdef WIN32
+    UUID uuid;
+    UuidCreate ( &uuid );
+
+    unsigned char * str;
+    UuidToStringA ( &uuid, &str );
+
+    std::string s( ( char* ) str );
+
+    RpcStringFreeA ( &str );
+#else
+    uuid_t uuid;
+    uuid_generate_random ( uuid );
+    char s[37];
+    uuid_unparse ( uuid, s );
+#endif
+    return s;
   }
 
 
