@@ -34,8 +34,11 @@
 #include "PngReader.h"
 
 #include "../OrthancException.h"
-#include "../SystemToolbox.h"
 #include "../Toolbox.h"
+
+#if ORTHANC_SANDBOXED == 0
+#  include "../SystemToolbox.h"
+#endif
 
 #include <png.h>
 #include <string.h>  // For memcpy()

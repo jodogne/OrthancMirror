@@ -36,7 +36,11 @@
 #include "JpegErrorManager.h"
 #include "../OrthancException.h"
 #include "../Logging.h"
-#include "../SystemToolbox.h"
+
+#if ORTHANC_SANDBOXED == 0
+#  include "../SystemToolbox.h"
+#endif
+
 
 namespace Orthanc
 {
