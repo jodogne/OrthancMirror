@@ -39,6 +39,7 @@
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
 #include "../Core/Logging.h"
+#include "../Core/SystemToolbox.h"
 #include "../Core/Toolbox.h"
 #include "../Core/TemporaryFile.h"
 #include "../Core/OrthancException.h"
@@ -1119,7 +1120,7 @@ namespace Orthanc
         // The "PatientID" field is of type LO (Long String), 64
         // Bytes Maximum. An UUID is of length 36, thus it can be used
         // as a random PatientID.
-        return Toolbox::GenerateUuid();
+        return SystemToolbox::GenerateUuid();
 
       case ResourceType_Instance:
         return dcmGenerateUniqueIdentifier(uid, SITE_INSTANCE_UID_ROOT);

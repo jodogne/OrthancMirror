@@ -90,6 +90,8 @@ namespace Orthanc
     FILE* OpenFile(const std::string& path,
                    FileMode mode);
 
+    std::string GenerateUuid();
+
 #if BOOST_HAS_DATE_TIME == 1
     std::string GetNowIsoString();
 

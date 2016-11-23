@@ -60,8 +60,8 @@ TEST(FilesystemStorage, Basic)
 {
   FilesystemStorage s("UnitTestsStorage");
 
-  std::string data = Toolbox::GenerateUuid();
-  std::string uid = Toolbox::GenerateUuid();
+  std::string data = SystemToolbox::GenerateUuid();
+  std::string uid = SystemToolbox::GenerateUuid();
   s.Create(uid.c_str(), &data[0], data.size(), FileContentType_Unknown);
   std::string d;
   s.Read(d, uid, FileContentType_Unknown);
@@ -75,8 +75,8 @@ TEST(FilesystemStorage, Basic2)
   FilesystemStorage s("UnitTestsStorage");
 
   std::vector<uint8_t> data;
-  StringToVector(data, Toolbox::GenerateUuid());
-  std::string uid = Toolbox::GenerateUuid();
+  StringToVector(data, SystemToolbox::GenerateUuid());
+  std::string uid = SystemToolbox::GenerateUuid();
   s.Create(uid.c_str(), &data[0], data.size(), FileContentType_Unknown);
   std::string d;
   s.Read(d, uid, FileContentType_Unknown);
@@ -93,8 +93,8 @@ TEST(FilesystemStorage, EndToEnd)
   std::list<std::string> u;
   for (unsigned int i = 0; i < 10; i++)
   {
-    std::string t = Toolbox::GenerateUuid();
-    std::string uid = Toolbox::GenerateUuid();
+    std::string t = SystemToolbox::GenerateUuid();
+    std::string uid = SystemToolbox::GenerateUuid();
     s.Create(uid.c_str(), &t[0], t.size(), FileContentType_Unknown);
     u.push_back(uid);
   }

@@ -53,7 +53,7 @@ TEST(Uuid, Generation)
 {
   for (int i = 0; i < 10; i++)
   {
-    std::string s = Toolbox::GenerateUuid();
+    std::string s = SystemToolbox::GenerateUuid();
     ASSERT_TRUE(Toolbox::IsUuid(s));
   }
 }

@@ -34,6 +34,7 @@
 #include "ServerJob.h"
 
 #include "../../Core/OrthancException.h"
+#include "../../Core/SystemToolbox.h"
 #include "../../Core/Toolbox.h"
 
 namespace Orthanc
@@ -95,7 +96,7 @@ namespace Orthanc
 
 
   ServerJob::ServerJob() :
-    jobId_(Toolbox::GenerateUuid()),
+    jobId_(SystemToolbox::GenerateUuid()),
     submitted_(false),
     description_("no description")
   {
