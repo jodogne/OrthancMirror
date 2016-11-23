@@ -41,6 +41,10 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
 
+#if !defined(ORTHANC_SANDBOXED)
+#  error The macro ORTHANC_SANDBOXED must be defined
+#endif
+
 namespace Orthanc
 {
   class PngReader : 
@@ -59,7 +63,9 @@ namespace Orthanc
   public:
     PngReader();
 
+#if ORTHANC_SANDBOXED == 0
     void ReadFromFile(const std::string& filename);
+#endif
 
     void ReadFromMemory(const void* buffer,
                         size_t size);

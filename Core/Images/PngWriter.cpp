@@ -203,6 +203,7 @@ namespace Orthanc
   }
 
 
+#if ORTHANC_SANDBOXED == 0
   void PngWriter::WriteToFileInternal(const std::string& filename,
                                       unsigned int width,
                                       unsigned int height,
@@ -230,7 +231,7 @@ namespace Orthanc
 
     fclose(fp);
   }
-
+#endif
 
 
   static void MemoryCallback(png_structp png_ptr, 

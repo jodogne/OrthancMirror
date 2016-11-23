@@ -36,6 +36,10 @@
 
 #include <boost/noncopyable.hpp>
 
+#if !defined(ORTHANC_SANDBOXED)
+#  error The macro ORTHANC_SANDBOXED must be defined
+#endif
+
 namespace Orthanc
 {
   class IImageWriter : public boost::noncopyable
@@ -48,12 +52,14 @@ namespace Orthanc
                                        PixelFormat format,
                                        const void* buffer) = 0;
 
+#if ORTHANC_SANDBOXED == 0
     virtual void WriteToFileInternal(const std::string& path,
                                      unsigned int width,
                                      unsigned int height,
                                      unsigned int pitch,
                                      PixelFormat format,
                                      const void* buffer);
+#endif
 
   public:
     virtual ~IImageWriter()
@@ -67,11 +73,13 @@ namespace Orthanc
                             accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
     }
 
+#if ORTHANC_SANDBOXED == 0
     virtual void WriteToFile(const std::string& path,
                              const ImageAccessor& accessor)
     {
       WriteToFileInternal(path, accessor.GetWidth(), accessor.GetHeight(),
                           accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
     }
+#endif
   };
 }
