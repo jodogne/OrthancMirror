@@ -159,6 +159,10 @@ header.write("""
 #include <string>
 #include <list>
 
+#if defined(_MSC_VER)
+#  pragma warning(disable: 4065)  // "Switch statement contains 'default' but no 'case' labels"
+#endif
+
 namespace %s
 {
   namespace EmbeddedResources
