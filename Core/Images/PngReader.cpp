@@ -42,6 +42,7 @@
 
 namespace Orthanc
 {
+#if ORTHANC_SANDBOXED == 0
   namespace 
   {
     struct FileRabi
@@ -66,6 +67,7 @@ namespace Orthanc
       }
     };
   }
+#endif
 
 
   struct PngReader::PngRabi
@@ -207,6 +209,8 @@ namespace Orthanc
     AssignWritable(format, width, height, pitch, &data_[0]);
   }
 
+
+#if ORTHANC_SANDBOXED == 0
   void PngReader::ReadFromFile(const std::string& filename)
   {
     FileRabi f(filename.c_str());
@@ -231,6 +235,7 @@ namespace Orthanc
 
     Read(rabi);
   }
+#endif
 
 
   namespace

@@ -48,12 +48,14 @@ namespace Orthanc
                                      PixelFormat format,
                                      const void* buffer);
 
+#if ORTHANC_SANDBOXED == 0
     virtual void WriteToMemoryInternal(std::string& png,
                                        unsigned int width,
                                        unsigned int height,
                                        unsigned int pitch,
                                        PixelFormat format,
                                        const void* buffer);
+#endif
 
   private:
     struct PImpl;

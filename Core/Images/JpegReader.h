@@ -37,6 +37,10 @@
 #include <string>
 #include <boost/noncopyable.hpp>
 
+#if !defined(ORTHANC_SANDBOXED)
+#  error The macro ORTHANC_SANDBOXED must be defined
+#endif
+
 namespace Orthanc
 {
   class JpegReader : 
@@ -47,7 +51,9 @@ namespace Orthanc
     std::string  content_;
 
   public:
+#if ORTHANC_SANDBOXED == 0
     void ReadFromFile(const std::string& filename);
+#endif
 
     void ReadFromMemory(const void* buffer,
                         size_t size);
