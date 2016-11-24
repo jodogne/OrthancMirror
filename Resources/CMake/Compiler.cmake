@@ -164,6 +164,23 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
 endif()
 
 
+if (DEFINED ENABLE_PROFILING AND ENABLE_PROFILING)
+  if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    message(WARNING "Enabling profiling on a non-debug build will not produce full information")
+  endif()
+
+  if (CMAKE_COMPILER_IS_GNUCXX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
+    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -pg")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
+  else()
+    message(FATAL_ERROR "Don't know how to enable profiling on your configuration")
+  endif()
+endif()
+
+
 if (STATIC_BUILD)
   add_definitions(-DORTHANC_STATIC=1)
 else()
