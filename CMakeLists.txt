@@ -33,6 +33,7 @@ SET(BUILD_SERVE_FOLDERS ON CACHE BOOL "Whether to build the ServeFolders plugin"
 SET(BUILD_MODALITY_WORKLISTS ON CACHE BOOL "Whether to build the sample plugin to serve modality worklists")
 SET(BUILD_RECOVER_COMPRESSED_FILE ON CACHE BOOL "Whether to build the companion tool to recover files compressed using Orthanc")
 SET(ENABLE_PKCS11 OFF CACHE BOOL "Enable PKCS#11 for HTTPS client authentication using hardware security modules and smart cards")
+SET(ENABLE_PROFILING OFF CACHE BOOL "Whether to enable the generation of profiling information with gprof")
 
 # Advanced parameters to fine-tune linking against system libraries
 SET(USE_SYSTEM_JSONCPP ON CACHE BOOL "Use the system version of JsonCpp")
