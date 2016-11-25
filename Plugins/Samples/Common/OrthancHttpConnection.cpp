@@ -79,4 +79,29 @@ namespace OrthancPlugins
     client_.SetBody(body);
     client_.ApplyAndThrowException(result);
   }
+
+
+  void OrthancHttpConnection::RestApiPut(std::string& result,
+                                         const std::string& uri,
+                                         const std::string& body)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    client_.SetMethod(Orthanc::HttpMethod_Put);
+    client_.SetUrl(url_ + uri);
+    client_.SetBody(body);
+    client_.ApplyAndThrowException(result);
+  }
+
+
+  void OrthancHttpConnection::RestApiDelete(const std::string& uri)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    std::string result;
+
+    client_.SetMethod(Orthanc::HttpMethod_Delete);
+    client_.SetUrl(url_ + uri);
+    client_.ApplyAndThrowException(result);
+  }
 }
