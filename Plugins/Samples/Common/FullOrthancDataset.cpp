@@ -34,22 +34,8 @@
 
 #include "OrthancPluginCppWrapper.h"
 
-#include <json/reader.h>
-
 namespace OrthancPlugins
 {
-  void FullOrthancDataset::Parse(const std::string& source)
-  {
-    Json::Reader reader;
-
-    if (!reader.parse(source, root_) ||
-        root_.type() != Json::objectValue)
-    {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
-    }
-  }
-
-
   static const Json::Value* AccessTag(const Json::Value& dataset,
                                       const DicomTag& tag) 
   {
@@ -152,12 +138,27 @@ namespace OrthancPlugins
   }
 
 
+  void FullOrthancDataset::CheckRoot() const
+  {
+    if (root_.type() != Json::objectValue)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
+    }
+  }
+
+
   FullOrthancDataset::FullOrthancDataset(IOrthancConnection& orthanc,
                                          const std::string& uri)
   {
-    std::string content;
-    orthanc.RestApiGet(content, uri);
-    Parse(content);
+    IOrthancConnection::RestApiGet(root_, orthanc, uri);
+    CheckRoot();
+  }
+
+
+  FullOrthancDataset::FullOrthancDataset(const std::string& content)
+  {
+    IOrthancConnection::ParseJson(root_, content);
+    CheckRoot();
   }
 
 

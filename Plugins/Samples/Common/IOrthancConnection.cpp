@@ -30,40 +30,43 @@
  **/
 
 
-#pragma once
+#include "IOrthancConnection.h"
 
-#include "DicomPath.h"
+#include "OrthancPluginCppWrapper.h"
 
-#include <boost/noncopyable.hpp>
-#include <string>
-#include <json/value.h>
+#include <json/reader.h>
 
 namespace OrthancPlugins
 {
-  class IOrthancConnection : public boost::noncopyable
+  void IOrthancConnection::ParseJson(Json::Value& result,
+                                     const std::string& content)
   {
-  public:
-    virtual ~IOrthancConnection()
+    Json::Reader reader;
+    
+    if (!reader.parse(content, result))
     {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
     }
+  }
 
-    virtual void RestApiGet(std::string& result,
-                            const std::string& uri) = 0;
 
-    virtual void RestApiPost(std::string& result,
-                             const std::string& uri,
-                             const std::string& body) = 0;
+  void IOrthancConnection::RestApiGet(Json::Value& result,
+                                      IOrthancConnection& orthanc,
+                                      const std::string& uri)
+  {
+    std::string content;
+    orthanc.RestApiGet(content, uri);
+    ParseJson(result, content);
+  }
 
-    static void ParseJson(Json::Value& result,
-                          const std::string& content);
 
-    static void RestApiGet(Json::Value& result,
-                           IOrthancConnection& orthanc,
-                           const std::string& uri);
-
-    static void RestApiGet(Json::Value& result,
-                           IOrthancConnection& orthanc,
-                           const std::string& uri,
-                           const std::string& body);
-  };
+  void IOrthancConnection::RestApiGet(Json::Value& result,
+                                      IOrthancConnection& orthanc,
+                                      const std::string& uri,
+                                      const std::string& body)
+  {
+    std::string content;
+    orthanc.RestApiPost(content, uri, body);
+    ParseJson(result, content);
+  }
 }

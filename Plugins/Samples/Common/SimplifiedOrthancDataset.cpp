@@ -34,22 +34,8 @@
 
 #include "OrthancPluginCppWrapper.h"
 
-#include <json/reader.h>
-
 namespace OrthancPlugins
 {
-  void SimplifiedOrthancDataset::Parse(const std::string& source)
-  {
-    Json::Reader reader;
-
-    if (!reader.parse(source, root_) ||
-        root_.type() != Json::objectValue)
-    {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
-    }
-  }
-
-
   const Json::Value* SimplifiedOrthancDataset::LookupPath(const DicomPath& path) const
   {
     const Json::Value* content = &root_;
@@ -101,12 +87,27 @@ namespace OrthancPlugins
   }
 
 
+  void SimplifiedOrthancDataset::CheckRoot() const
+  {
+    if (root_.type() != Json::objectValue)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
+    }
+  }
+
+
   SimplifiedOrthancDataset::SimplifiedOrthancDataset(IOrthancConnection& orthanc,
                                                      const std::string& uri)
   {
-    std::string content;
-    orthanc.RestApiGet(content, uri);
-    Parse(content);
+    IOrthancConnection::RestApiGet(root_, orthanc, uri);
+    CheckRoot();
+  }
+
+
+  SimplifiedOrthancDataset::SimplifiedOrthancDataset(const std::string& content)
+  {
+    IOrthancConnection::ParseJson(root_, content);
+    CheckRoot();
   }
 
 
