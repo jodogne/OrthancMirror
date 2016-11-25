@@ -12,9 +12,11 @@ General
 
 * Configure an user-defined site UID root if generating DICOM UIDs
   ("FromDcmtkBridge::GenerateUuid()")
-* Support "/preview" and "/matlab" for LUT images
+* Support "/preview" and "/matlab" for LUT color images
 * Improve handling of errors in the command queue:
   https://groups.google.com/d/msg/orthanc-users/--njEbqcDDI/rBu8XL-Mm-cJ
+* Support partial file retrieval in Orthanc::HttpClient
+* Support retry counter in Orthanc::HttpClient
 
 
 ========
