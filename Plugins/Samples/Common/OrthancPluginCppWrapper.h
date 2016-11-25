@@ -37,6 +37,11 @@
 #include <boost/lexical_cast.hpp>
 #include <json/value.h>
 
+#if !defined(HAS_ORTHANC_EXCEPTION)
+#  error The macro HAS_ORTHANC_EXCEPTION must be defined
+#endif
+
+
 #if HAS_ORTHANC_EXCEPTION == 1
 #  include "../../../Core/OrthancException.h"
 #endif
@@ -48,7 +53,12 @@ namespace OrthancPlugins
                                 const char* url,
                                 const OrthancPluginHttpRequest* request);
 
+  const char* GetErrorDescription(OrthancPluginContext* context,
+                                  OrthancPluginErrorCode code);
 
+  void ThrowException(OrthancPluginErrorCode code);
+
+#if HAS_ORTHANC_EXCEPTION == 0
   class PluginException
   {
   private:
@@ -64,10 +74,14 @@ namespace OrthancPlugins
       return code_;
     }
 
-    const char* GetErrorDescription(OrthancPluginContext* context) const;
+    const char* What(OrthancPluginContext* context) const
+    {
+      return ::OrthancPlugins::GetErrorDescription(context, code_);
+    }
 
     static void Check(OrthancPluginErrorCode code);
   };
+#endif
 
 
   class MemoryBuffer : public boost::noncopyable
@@ -408,14 +422,15 @@ namespace OrthancPlugins
         Callback(output, url, request);
         return OrthancPluginErrorCode_Success;
       }
-      catch (OrthancPlugins::PluginException& e)
-      {
-        return e.GetErrorCode();
-      }
 #if HAS_ORTHANC_EXCEPTION == 1
       catch (Orthanc::OrthancException& e)
       {
         return static_cast<OrthancPluginErrorCode>(e.GetErrorCode());
+      }
+#else
+      catch (OrthancPlugins::PluginException& e)
+      {
+        return e.GetErrorCode();
       }
 #endif
       catch (boost::bad_lexical_cast&)

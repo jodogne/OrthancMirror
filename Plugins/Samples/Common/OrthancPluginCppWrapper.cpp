@@ -36,11 +36,26 @@
 #include <json/writer.h>
 
 
+#if HAS_ORTHANC_EXCEPTION == 1
+#  define THROW_EXCEPTION(code)  throw Orthanc::OrthancException(static_cast<Orthanc::ErrorCode>(code))
+#else
+#  define THROW_EXCEPTION(code)  throw PluginException(code)
+#endif
+
+
+
 namespace OrthancPlugins
 {
-  const char* PluginException::GetErrorDescription(OrthancPluginContext* context) const
+  void ThrowException(OrthancPluginErrorCode code)
   {
-    const char* description = OrthancPluginGetErrorDescription(context, code_);
+    THROW_EXCEPTION(code);
+  }
+
+
+  const char* GetErrorDescription(OrthancPluginContext* context,
+                                  OrthancPluginErrorCode code)
+  {
+    const char* description = OrthancPluginGetErrorDescription(context, code);
     if (description)
     {
       return description;
@@ -52,13 +67,15 @@ namespace OrthancPlugins
   }
 
   
+#if HAS_ORTHANC_EXCEPTION == 0
   void PluginException::Check(OrthancPluginErrorCode code)
   {
     if (code != OrthancPluginErrorCode_Success)
     {
-      throw PluginException(code);
+      THROW_EXCEPTION(code);
     }
   }
+#endif
 
 
   void MemoryBuffer::Check(OrthancPluginErrorCode code)
@@ -68,7 +85,7 @@ namespace OrthancPlugins
       // Prevent using garbage information
       buffer_.data = NULL;
       buffer_.size = 0;
-      throw PluginException(code);
+      THROW_EXCEPTION(code);
     }
   }
 
@@ -122,7 +139,7 @@ namespace OrthancPlugins
     if (buffer_.data == NULL ||
         buffer_.size == 0)
     {
-      throw PluginException(OrthancPluginErrorCode_InternalError);
+      THROW_EXCEPTION(OrthancPluginErrorCode_InternalError);
     }
 
     const char* tmp = reinterpret_cast<const char*>(buffer_.data);
@@ -131,7 +148,7 @@ namespace OrthancPlugins
     if (!reader.parse(tmp, tmp + buffer_.size, target))
     {
       OrthancPluginLogError(context_, "Cannot convert some memory buffer to JSON");
-      throw PluginException(OrthancPluginErrorCode_BadFileFormat);
+      THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
     }
   }
 
@@ -163,7 +180,7 @@ namespace OrthancPlugins
     }
     else
     {
-      throw PluginException(error);
+      THROW_EXCEPTION(error);
     }
   }
 
@@ -197,7 +214,7 @@ namespace OrthancPlugins
     }
     else
     {
-      throw PluginException(error);
+      THROW_EXCEPTION(error);
     }
   }
 
@@ -231,7 +248,7 @@ namespace OrthancPlugins
     }
     else
     {
-      throw PluginException(error);
+      THROW_EXCEPTION(error);
     }
   }
 
@@ -309,14 +326,14 @@ namespace OrthancPlugins
     if (str_ == NULL)
     {
       OrthancPluginLogError(context_, "Cannot convert an empty memory buffer to JSON");
-      throw PluginException(OrthancPluginErrorCode_InternalError);
+      THROW_EXCEPTION(OrthancPluginErrorCode_InternalError);
     }
 
     Json::Reader reader;
     if (!reader.parse(str_, target))
     {
       OrthancPluginLogError(context_, "Cannot convert some memory buffer to JSON");
-      throw PluginException(OrthancPluginErrorCode_BadFileFormat);
+      THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
     }
   }
   
@@ -329,7 +346,7 @@ namespace OrthancPlugins
     if (str.GetContent() == NULL)
     {
       OrthancPluginLogError(context, "Cannot access the Orthanc configuration");
-      throw PluginException(OrthancPluginErrorCode_InternalError);
+      THROW_EXCEPTION(OrthancPluginErrorCode_InternalError);
     }
 
     str.ToJson(configuration_);
@@ -337,7 +354,7 @@ namespace OrthancPlugins
     if (configuration_.type() != Json::objectValue)
     {
       OrthancPluginLogError(context, "Unable to read the Orthanc configuration");
-      throw PluginException(OrthancPluginErrorCode_InternalError);
+      THROW_EXCEPTION(OrthancPluginErrorCode_InternalError);
     }
   }
 
@@ -346,7 +363,7 @@ namespace OrthancPlugins
   {
     if (context_ == NULL)
     {
-      throw PluginException(OrthancPluginErrorCode_Plugin);
+      THROW_EXCEPTION(OrthancPluginErrorCode_Plugin);
     }
     else
     {
@@ -399,7 +416,7 @@ namespace OrthancPlugins
           OrthancPluginLogError(context_, s.c_str());
         }
 
-        throw PluginException(OrthancPluginErrorCode_BadFileFormat);
+        THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
       }
 
       target.configuration_ = configuration_[key];
@@ -425,7 +442,7 @@ namespace OrthancPlugins
         OrthancPluginLogError(context_, s.c_str());
       }
 
-      throw PluginException(OrthancPluginErrorCode_BadFileFormat);
+      THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
     }
 
     target = configuration_[key].asString();
@@ -460,7 +477,7 @@ namespace OrthancPlugins
           OrthancPluginLogError(context_, s.c_str());
         }
 
-        throw PluginException(OrthancPluginErrorCode_BadFileFormat);
+        THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
     }
   }
 
@@ -482,7 +499,7 @@ namespace OrthancPlugins
         OrthancPluginLogError(context_, s.c_str());
       }
 
-      throw PluginException(OrthancPluginErrorCode_BadFileFormat);
+      THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
     }
     else
     {
@@ -510,7 +527,7 @@ namespace OrthancPlugins
         OrthancPluginLogError(context_, s.c_str());
       }
 
-      throw PluginException(OrthancPluginErrorCode_BadFileFormat);
+      THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
     }
 
     target = configuration_[key].asBool();
@@ -549,7 +566,7 @@ namespace OrthancPlugins
           OrthancPluginLogError(context_, s.c_str());
         }
 
-        throw PluginException(OrthancPluginErrorCode_BadFileFormat);
+        THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
     }
   }
 
@@ -644,7 +661,7 @@ namespace OrthancPlugins
     if (image_ == NULL)
     {
       OrthancPluginLogError(context_, "Trying to access a NULL image");
-      throw PluginException(OrthancPluginErrorCode_ParameterOutOfRange);
+      THROW_EXCEPTION(OrthancPluginErrorCode_ParameterOutOfRange);
     }
   }
 
@@ -655,7 +672,7 @@ namespace OrthancPlugins
   {
     if (context == NULL)
     {
-      throw PluginException(OrthancPluginErrorCode_ParameterOutOfRange);
+      THROW_EXCEPTION(OrthancPluginErrorCode_ParameterOutOfRange);
     }
   }
 
@@ -667,7 +684,7 @@ namespace OrthancPlugins
   {
     if (context == NULL)
     {
-      throw PluginException(OrthancPluginErrorCode_ParameterOutOfRange);
+      THROW_EXCEPTION(OrthancPluginErrorCode_ParameterOutOfRange);
     }
   }
   
@@ -680,7 +697,7 @@ namespace OrthancPlugins
   {
     if (context == NULL)
     {
-      throw PluginException(OrthancPluginErrorCode_ParameterOutOfRange);
+      THROW_EXCEPTION(OrthancPluginErrorCode_ParameterOutOfRange);
     }
     else
     {
@@ -697,7 +714,7 @@ namespace OrthancPlugins
     if (image_ == NULL)
     {
       OrthancPluginLogError(context_, "Cannot uncompress a PNG image");
-      throw PluginException(OrthancPluginErrorCode_ParameterOutOfRange);
+      THROW_EXCEPTION(OrthancPluginErrorCode_ParameterOutOfRange);
     }
   }
 
@@ -710,7 +727,7 @@ namespace OrthancPlugins
     if (image_ == NULL)
     {
       OrthancPluginLogError(context_, "Cannot uncompress a JPEG image");
-      throw PluginException(OrthancPluginErrorCode_ParameterOutOfRange);
+      THROW_EXCEPTION(OrthancPluginErrorCode_ParameterOutOfRange);
     }
   }
 
@@ -724,7 +741,7 @@ namespace OrthancPlugins
     if (image_ == NULL)
     {
       OrthancPluginLogError(context_, "Cannot uncompress a DICOM image");
-      throw PluginException(OrthancPluginErrorCode_ParameterOutOfRange);
+      THROW_EXCEPTION(OrthancPluginErrorCode_ParameterOutOfRange);
     }
   }
 
@@ -912,7 +929,7 @@ namespace OrthancPlugins
     }
     else
     {
-      throw PluginException(error);
+      THROW_EXCEPTION(error);
     }
   }
 
