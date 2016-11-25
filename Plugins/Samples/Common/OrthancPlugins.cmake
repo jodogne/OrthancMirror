@@ -27,3 +27,6 @@ include_directories(${SAMPLES_ROOT}/../Include/)
 if (MSVC)
   include_directories(${SAMPLES_ROOT}/../../Resources/ThirdParty/VisualStudio/)
 endif()
+
+
+add_definitions(-DORTHANC_HAS_EXCEPTION=0)
