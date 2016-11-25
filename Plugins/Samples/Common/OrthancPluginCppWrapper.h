@@ -44,7 +44,11 @@
 
 #if HAS_ORTHANC_EXCEPTION == 1
 #  include "../../../Core/OrthancException.h"
+#  define ORTHANC_PLUGINS_THROW_EXCEPTION(code)  throw ::Orthanc::OrthancException(static_cast<Orthanc::ErrorCode>(code))
+#else
+#  define ORTHANC_PLUGINS_THROW_EXCEPTION(code)  throw ::OrthancPlugins::PluginException(code)
 #endif
+
 
 
 namespace OrthancPlugins
@@ -55,8 +59,6 @@ namespace OrthancPlugins
 
   const char* GetErrorDescription(OrthancPluginContext* context,
                                   OrthancPluginErrorCode code);
-
-  void ThrowException(OrthancPluginErrorCode code);
 
 #if HAS_ORTHANC_EXCEPTION == 0
   class PluginException
