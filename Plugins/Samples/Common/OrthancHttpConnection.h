@@ -65,5 +65,11 @@ namespace OrthancPlugins
     virtual void RestApiPost(std::string& result,
                              const std::string& uri,
                              const std::string& body);
+
+    virtual void RestApiPut(std::string& result,
+                            const std::string& uri,
+                            const std::string& body);
+
+    virtual void RestApiDelete(const std::string& uri);
   };
 }

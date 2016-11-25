@@ -54,6 +54,12 @@ namespace OrthancPlugins
                              const std::string& uri,
                              const std::string& body) = 0;
 
+    virtual void RestApiPut(std::string& result,
+                            const std::string& uri,
+                            const std::string& body) = 0;
+
+    virtual void RestApiDelete(const std::string& uri) = 0;
+
     static void ParseJson(Json::Value& result,
                           const std::string& content);
 
@@ -65,5 +71,10 @@ namespace OrthancPlugins
                             IOrthancConnection& orthanc,
                             const std::string& uri,
                             const std::string& body);
+
+    static void RestApiPut(Json::Value& result,
+                           IOrthancConnection& orthanc,
+                           const std::string& uri,
+                           const std::string& body);
   };
 }

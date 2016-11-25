@@ -69,4 +69,15 @@ namespace OrthancPlugins
     orthanc.RestApiPost(content, uri, body);
     ParseJson(result, content);
   }
+
+
+  void IOrthancConnection::RestApiPut(Json::Value& result,
+                                      IOrthancConnection& orthanc,
+                                      const std::string& uri,
+                                      const std::string& body)
+  {
+    std::string content;
+    orthanc.RestApiPut(content, uri, body);
+    ParseJson(result, content);
+  }
 }

@@ -58,11 +58,39 @@ namespace OrthancPlugins
   {
     OrthancPlugins::MemoryBuffer buffer(context_);
 
-    if (!buffer.RestApiPost(uri, body.c_str(), body.size(), false))
+    if (buffer.RestApiPost(uri, body.c_str(), body.size(), false))
     {
       buffer.ToString(result);
     }
     else
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_UnknownResource);
+    }
+  }
+
+
+  void OrthancPluginConnection::RestApiPut(std::string& result,
+                                           const std::string& uri,
+                                           const std::string& body)
+  {
+    OrthancPlugins::MemoryBuffer buffer(context_);
+
+    if (buffer.RestApiPut(uri, body.c_str(), body.size(), false))
+    {
+      buffer.ToString(result);
+    }
+    else
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_UnknownResource);
+    }
+  }
+
+
+  void OrthancPluginConnection::RestApiDelete(const std::string& uri)
+  {
+    OrthancPlugins::MemoryBuffer buffer(context_);
+
+    if (!::OrthancPlugins::RestApiDelete(context_, uri, false))
     {
       ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_UnknownResource);
     }

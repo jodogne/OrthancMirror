@@ -375,10 +375,6 @@ namespace OrthancPlugins
                      const std::string& uri,
                      bool applyPlugins);
 
-  bool RestApiDelete(OrthancPluginContext* context,
-                     const std::string& uri,
-                     bool applyPlugins);
-
   inline void LogError(OrthancPluginContext* context,
                        const std::string& message)
   {
