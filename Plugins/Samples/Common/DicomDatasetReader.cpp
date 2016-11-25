@@ -73,7 +73,7 @@ namespace OrthancPlugins
   {
     if (dataset == NULL)
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_NullPointer);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_ParameterOutOfRange);
     }
   }
   
