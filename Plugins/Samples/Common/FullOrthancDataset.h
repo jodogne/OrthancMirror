@@ -44,18 +44,15 @@ namespace OrthancPlugins
   private:
     Json::Value   root_;
 
-    void Parse(const std::string& source);
-
     const Json::Value* LookupPath(const DicomPath& path) const;
+
+    void CheckRoot() const;
 
   public:
     FullOrthancDataset(IOrthancConnection& orthanc,
                        const std::string& uri);
 
-    FullOrthancDataset(const std::string& content)
-    {
-      Parse(content);
-    }
+    FullOrthancDataset(const std::string& content);
 
     virtual bool GetStringValue(std::string& result,
                                 const DicomPath& path) const;

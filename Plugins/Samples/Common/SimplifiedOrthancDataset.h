@@ -35,8 +35,6 @@
 #include "IOrthancConnection.h"
 #include "IDicomDataset.h"
 
-#include <json/value.h>
-
 namespace OrthancPlugins
 {
   class SimplifiedOrthancDataset : public IDicomDataset
@@ -44,18 +42,15 @@ namespace OrthancPlugins
   private:
     Json::Value   root_;
 
-    void Parse(const std::string& source);
-
     const Json::Value* LookupPath(const DicomPath& path) const;
+
+    void CheckRoot() const;
 
   public:
     SimplifiedOrthancDataset(IOrthancConnection& orthanc,
                              const std::string& uri);
 
-    SimplifiedOrthancDataset(const std::string& content)
-    {
-      Parse(content);
-    }
+    SimplifiedOrthancDataset(const std::string& content);
 
     virtual bool GetStringValue(std::string& result,
                                 const DicomPath& path) const;
