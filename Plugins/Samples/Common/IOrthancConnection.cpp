@@ -60,10 +60,10 @@ namespace OrthancPlugins
   }
 
 
-  void IOrthancConnection::RestApiGet(Json::Value& result,
-                                      IOrthancConnection& orthanc,
-                                      const std::string& uri,
-                                      const std::string& body)
+  void IOrthancConnection::RestApiPost(Json::Value& result,
+                                       IOrthancConnection& orthanc,
+                                       const std::string& uri,
+                                       const std::string& body)
   {
     std::string content;
     orthanc.RestApiPost(content, uri, body);

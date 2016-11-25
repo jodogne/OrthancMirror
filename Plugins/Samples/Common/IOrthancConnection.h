@@ -61,9 +61,9 @@ namespace OrthancPlugins
                            IOrthancConnection& orthanc,
                            const std::string& uri);
 
-    static void RestApiGet(Json::Value& result,
-                           IOrthancConnection& orthanc,
-                           const std::string& uri,
-                           const std::string& body);
+    static void RestApiPost(Json::Value& result,
+                            IOrthancConnection& orthanc,
+                            const std::string& uri,
+                            const std::string& body);
   };
 }
