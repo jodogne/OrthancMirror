@@ -226,7 +226,8 @@
 
   // Dictionary of symbolic names for the user-defined metadata. Each
   // entry must map an unique string to an unique number between 1024
-  // and 65535.
+  // and 65535. Reserved values:
+  //  - The Orthanc whole-slide imaging plugin uses metadata 4200
   "UserMetadata" : {
     // "Sample" : 1024
   },
