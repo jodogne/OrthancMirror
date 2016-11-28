@@ -21,6 +21,8 @@ Plugins
 -------
 
 * New function: "OrthancPluginRegisterPrivateDictionaryTag()" to register private tags
+* More control over client cache in the ServeFolders plugin
+* New C++ help wrappers in "Plugins/Samples/Common/" to read DICOM datasets
 
 Maintenance
 -----------
