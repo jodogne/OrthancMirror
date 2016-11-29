@@ -287,8 +287,8 @@ TEST(Lua, Http)
   Orthanc::LuaContext lua;
 
 #if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1  
-  lua.Execute("JSON = loadstring(HttpGet('http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/JSON.lua')) ()");
-  const std::string url("http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/Product.json");
+  lua.Execute("JSON = loadstring(HttpGet('http://www.orthanc-server.com/downloads/third-party/JSON.lua')) ()");
+  const std::string url("http://www.orthanc-server.com/downloads/third-party/Product.json");
 #endif
 
   std::string s;

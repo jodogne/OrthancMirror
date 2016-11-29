@@ -43,7 +43,7 @@ if (BOOST_STATIC)
   set(BOOST_NAME boost_1_60_0)
   set(BOOST_BCP_SUFFIX bcpdigest-1.0.1)
   set(BOOST_MD5 "a789f8ec2056ad1c2d5f0cb64687cc7b")
-  set(BOOST_URL "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz")
+  set(BOOST_URL "http://www.orthanc-server.com/downloads/third-party/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz")
   set(BOOST_FILESYSTEM_SOURCES_DIR "${BOOST_NAME}/libs/filesystem/src") 
   set(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
 
