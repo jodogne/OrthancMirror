@@ -66,9 +66,10 @@ TEST(HttpClient, Basic)
 
 #if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1
   Json::Value v;
-  c.SetUrl("http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/Configuration.json");
+  c.SetUrl("http://www.orthanc-server.com/downloads/third-party/Product.json");
   c.Apply(v);
-  ASSERT_TRUE(v.isMember("StorageDirectory"));
+  ASSERT_TRUE(v.type() == Json::objectValue);
+  ASSERT_TRUE(v.isMember("Description"));
 #endif
 }
 
