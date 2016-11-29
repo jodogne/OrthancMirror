@@ -1,5 +1,5 @@
 set(LIBICONV_SOURCES_DIR ${CMAKE_BINARY_DIR}/libiconv-1.14)
-set(LIBICONV_URL "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/libiconv-1.14.tar.gz")
+set(LIBICONV_URL "http://www.orthanc-server.com/downloads/third-party/libiconv-1.14.tar.gz")
 set(LIBICONV_MD5 "e34509b1623cec449dfeb73d7ce9c6c6")
 
 DownloadPackage(${LIBICONV_MD5} ${LIBICONV_URL} "${LIBICONV_SOURCES_DIR}")
