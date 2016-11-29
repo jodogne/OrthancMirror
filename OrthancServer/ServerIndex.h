@@ -115,6 +115,11 @@ namespace Orthanc
     int64_t CreateResource(const std::string& publicId,
                            ResourceType type);
 
+    void SetInstanceMetadata(std::map<MetadataType, std::string>& instanceMetadata,
+                             int64_t instance,
+                             MetadataType metadata,
+                             const std::string& value);
+
   public:
     ServerIndex(ServerContext& context,
                 IDatabaseWrapper& database);
