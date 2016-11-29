@@ -798,9 +798,13 @@ TEST(ServerIndex, AttachmentRecycling)
     DicomInstanceToStore toStore;
     toStore.SetSummary(instance);
     ASSERT_EQ(StoreStatus_Success, index.Store(instanceMetadata, toStore, attachments));
-    ASSERT_EQ(3u, instanceMetadata.size());
+    ASSERT_EQ(4u, instanceMetadata.size());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_RemoteAet) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_ReceptionDate) != instanceMetadata.end());
+    ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_TransferSyntax) != instanceMetadata.end());
+
+    // By default, an Explicit VR Little Endian is used by Orthanc
+    ASSERT_EQ("1.2.840.10008.1.2.1", instanceMetadata[MetadataType_Instance_TransferSyntax]);
 
     DicomInstanceHasher hasher(instance);
     ids.push_back(hasher.HashPatient());
