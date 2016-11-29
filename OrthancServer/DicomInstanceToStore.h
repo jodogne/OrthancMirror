@@ -221,5 +221,7 @@ namespace Orthanc
     const Json::Value& GetJson();
 
     void GetOriginInformation(Json::Value& result) const;
+
+    bool LookupTransferSyntax(std::string& result);
   };
 }

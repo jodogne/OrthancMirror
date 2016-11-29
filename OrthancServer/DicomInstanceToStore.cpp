@@ -38,6 +38,7 @@
 #include "../Core/Logging.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
+#include <dcmtk/dcmdata/dcdeftag.h>
 
 
 namespace Orthanc
@@ -269,5 +270,26 @@ namespace Orthanc
     {
       return "";
     }
+  }
+
+
+  bool DicomInstanceToStore::LookupTransferSyntax(std::string& result)
+  {
+    ComputeMissingInformation();
+
+    DicomMap header;
+    if (DicomMap::ParseDicomMetaInformation(header, GetBufferData(), GetBufferSize()))
+    {
+      const DicomValue* value = header.TestAndGetValue(DICOM_TAG_TRANSFER_SYNTAX_UID);
+      if (value != NULL &&
+          !value->IsBinary() &&
+          !value->IsNull())
+      {
+        result = Toolbox::StripSpaces(value->GetContent());
+        return true;
+      }
+    }
+
+    return false;
   }
 }
