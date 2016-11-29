@@ -591,6 +591,17 @@ namespace Orthanc
 
 
 
+  void ServerIndex::SetInstanceMetadata(std::map<MetadataType, std::string>& instanceMetadata,
+                                        int64_t instance,
+                                        MetadataType metadata,
+                                        const std::string& value)
+  {
+    db_.SetMetadata(instance, metadata, value);
+    instanceMetadata[metadata] = value;
+  }
+
+
+
   StoreStatus ServerIndex::Store(std::map<MetadataType, std::string>& instanceMetadata,
                                  DicomInstanceToStore& instanceToStore,
                                  const Attachments& attachments)
@@ -746,8 +757,7 @@ namespace Orthanc
             break;
 
           case ResourceType_Instance:
-            db_.SetMetadata(instance, it->first.second, it->second);
-            instanceMetadata[it->first.second] = it->second;
+            SetInstanceMetadata(instanceMetadata, instance, it->first.second, it->second);
             break;
 
           default:
@@ -763,16 +773,12 @@ namespace Orthanc
 
       // Attach the auto-computed metadata for the instance level,
       // reflecting these additions into the input metadata map
-      db_.SetMetadata(instance, MetadataType_Instance_ReceptionDate, now);
-      instanceMetadata[MetadataType_Instance_ReceptionDate] = now;
-
-      db_.SetMetadata(instance, MetadataType_Instance_RemoteAet, instanceToStore.GetRemoteAet());
-      instanceMetadata[MetadataType_Instance_RemoteAet] = instanceToStore.GetRemoteAet();
+      SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_ReceptionDate, now);
+      SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_RemoteAet, instanceToStore.GetRemoteAet());
 
       {
         std::string s = EnumerationToString(instanceToStore.GetRequestOrigin());
-        db_.SetMetadata(instance, MetadataType_Instance_Origin, s);
-        instanceMetadata[MetadataType_Instance_Origin] = s;
+        SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_Origin, s);
       }
 
       const DicomValue* value;
@@ -782,8 +788,7 @@ namespace Orthanc
         if (!value->IsNull() && 
             !value->IsBinary())
         {
-          db_.SetMetadata(instance, MetadataType_Instance_IndexInSeries, value->GetContent());
-          instanceMetadata[MetadataType_Instance_IndexInSeries] = value->GetContent();
+          SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_IndexInSeries, value->GetContent());
         }
       }
 
