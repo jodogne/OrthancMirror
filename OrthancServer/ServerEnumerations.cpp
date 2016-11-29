@@ -64,6 +64,7 @@ namespace Orthanc
     dictMetadataType_.Add(MetadataType_AnonymizedFrom, "AnonymizedFrom");
     dictMetadataType_.Add(MetadataType_LastUpdate, "LastUpdate");
     dictMetadataType_.Add(MetadataType_Instance_Origin, "Origin");
+    dictMetadataType_.Add(MetadataType_Instance_TransferSyntax, "TransferSyntax");
 
     dictContentType_.Add(FileContentType_Dicom, "dicom");
     dictContentType_.Add(FileContentType_DicomAsJson, "dicom-as-json");

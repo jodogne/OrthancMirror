@@ -100,6 +100,7 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_SERIES_INSTANCE_UID(0x0020, 0x000e);
   static const DicomTag DICOM_TAG_STUDY_INSTANCE_UID(0x0020, 0x000d);
   static const DicomTag DICOM_TAG_PIXEL_DATA(0x7fe0, 0x0010);
+  static const DicomTag DICOM_TAG_TRANSFER_SYNTAX_UID(0x0002, 0x0010);
 
   static const DicomTag DICOM_TAG_IMAGE_INDEX(0x0054, 0x1330);
   static const DicomTag DICOM_TAG_INSTANCE_NUMBER(0x0020, 0x0013);

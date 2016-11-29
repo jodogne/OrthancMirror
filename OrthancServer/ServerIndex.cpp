@@ -775,10 +775,15 @@ namespace Orthanc
       // reflecting these additions into the input metadata map
       SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_ReceptionDate, now);
       SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_RemoteAet, instanceToStore.GetRemoteAet());
-
+      SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_Origin, 
+                          EnumerationToString(instanceToStore.GetRequestOrigin()));
+        
       {
-        std::string s = EnumerationToString(instanceToStore.GetRequestOrigin());
-        SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_Origin, s);
+        std::string s;
+        if (instanceToStore.LookupTransferSyntax(s))
+        {
+          SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_TransferSyntax, s);
+        }
       }
 
       const DicomValue* value;
