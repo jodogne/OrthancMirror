@@ -1,7 +1,7 @@
 if (${STATIC_BUILD})
   SET(DCMTK_VERSION_NUMBER 360)
   SET(DCMTK_SOURCES_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.0)
-  DownloadPackage("ftp://dicom.offis.de/pub/dicom/offis/software/dcmtk/dcmtk360/dcmtk-3.6.0.zip" "${DCMTK_SOURCES_DIR}" "" "")
+  DownloadPackage("http://www.orthanc-server.com/downloads/third-party/dcmtk-3.6.0.zip" "${DCMTK_SOURCES_DIR}" "" "")
 
   IF(CMAKE_CROSSCOMPILING)
     SET(C_CHAR_UNSIGNED 1 CACHE INTERNAL "Whether char is unsigned.")

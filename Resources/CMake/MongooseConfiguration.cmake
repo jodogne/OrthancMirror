@@ -1,5 +1,5 @@
 SET(MONGOOSE_SOURCES_DIR ${CMAKE_BINARY_DIR}/mongoose)
-DownloadPackage("http://mongoose.googlecode.com/files/mongoose-3.1.tgz" "${MONGOOSE_SOURCES_DIR}" "" "")
+DownloadPackage("http://www.orthanc-server.com/downloads/third-party/mongoose-3.1.tgz" "${MONGOOSE_SOURCES_DIR}" "" "")
 
 # Patch mongoose
 execute_process(
