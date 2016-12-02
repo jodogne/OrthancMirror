@@ -50,6 +50,17 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     else()
       message("Using the dictionary of private tags from DCMTK 3.6.0")
     endif()
+
+    # Patches specific to DCMTK 3.6.0
+    execute_process(
+      COMMAND ${PATCH_EXECUTABLE} -p0 -N -i ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.0-dulparse-vulnerability.patch
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      RESULT_VARIABLE Failure
+      )
+
+    if (Failure)
+      message(FATAL_ERROR "Error while patching a file")
+    endif()
   endif()
 
 
