@@ -144,11 +144,14 @@ namespace Orthanc
     dicom.Replace(*tag, mapped, false /* don't try and decode data URI scheme for UIDs */, DicomReplaceMode_InsertIfAbsent);
   }
   
-  DicomModification::DicomModification()
+  DicomModification::DicomModification() :
+    removePrivateTags_(false),
+    level_(ResourceType_Instance),
+    allowManualIdentifiers_(true),
+    keepStudyInstanceUid_(false),
+    keepSeriesInstanceUid_(false),
+    keepSopInstanceUid_(false)
   {
-    removePrivateTags_ = false;
-    level_ = ResourceType_Instance;
-    allowManualIdentifiers_ = true;
   }
 
   DicomModification::~DicomModification()
@@ -164,6 +167,21 @@ namespace Orthanc
     if (tag.IsPrivate())
     {
       privateTagsToKeep_.insert(tag);
+    }
+
+    if (tag == DICOM_TAG_STUDY_INSTANCE_UID)
+    {
+      keepStudyInstanceUid_ = true;
+    }
+
+    if (tag == DICOM_TAG_SERIES_INSTANCE_UID)
+    {
+      keepSeriesInstanceUid_ = true;
+    }
+
+    if (tag == DICOM_TAG_SOP_INSTANCE_UID)
+    {
+      keepSopInstanceUid_ = true;
     }
 
     MarkNotOrthancAnonymization();
@@ -466,19 +484,40 @@ namespace Orthanc
     if (level_ <= ResourceType_Study &&
         !IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
     {
-      MapDicomIdentifier(toModify, ResourceType_Study);
+      if (keepStudyInstanceUid_)
+      {
+        LOG(WARNING) << "Modifying a study while keeping its original StudyInstanceUID: This should be avoided!";
+      }
+      else
+      {
+        MapDicomIdentifier(toModify, ResourceType_Study);
+      }
     }
 
     if (level_ <= ResourceType_Series &&
         !IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
     {
-      MapDicomIdentifier(toModify, ResourceType_Series);
+      if (keepSeriesInstanceUid_)
+      {
+        LOG(WARNING) << "Modifying a series while keeping its original SeriesInstanceUID: This should be avoided!";
+      }
+      else
+      {
+        MapDicomIdentifier(toModify, ResourceType_Series);
+      }
     }
 
     if (level_ <= ResourceType_Instance &&  // Always true
         !IsReplaced(DICOM_TAG_SOP_INSTANCE_UID))
     {
-      MapDicomIdentifier(toModify, ResourceType_Instance);
+      if (keepSopInstanceUid_)
+      {
+        LOG(WARNING) << "Modifying an instance while keeping its original SOPInstanceUID: This should be avoided!";
+      }
+      else
+      {
+        MapDicomIdentifier(toModify, ResourceType_Instance);
+      }
     }
   }
 }
