@@ -17,6 +17,7 @@ REST API
 * "Asynchronous" flag for URIs "/modalities/{...}/store" and "/peers/{...}/store"
   to avoid waiting for the completion of image transfers
 * Possibility to DELETE "dicom-as-json" attachments to reconstruct the JSON summaries
+* "Keep" option for modifications to keep original DICOM identifiers (advanced feature)
 
 Plugins
 -------

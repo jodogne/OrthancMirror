@@ -57,6 +57,9 @@ namespace Orthanc
     UidMap uidMap_;
     SetOfTags privateTagsToKeep_;
     bool allowManualIdentifiers_;
+    bool keepStudyInstanceUid_;
+    bool keepSeriesInstanceUid_;
+    bool keepSopInstanceUid_;
 
     void MapDicomIdentifier(ParsedDicomFile& dicom,
                             ResourceType level);

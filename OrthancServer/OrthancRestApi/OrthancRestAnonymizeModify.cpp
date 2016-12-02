@@ -136,6 +136,16 @@ namespace Orthanc
         ParseReplacements(target, request["Replace"]);
       }
 
+      // The "Keep" operation only makes sense for the tags
+      // StudyInstanceUID, SeriesInstanceUID and SOPInstanceUID. Avoid
+      // this feature as much as possible, as this breaks the DICOM
+      // model of the real world, except if you know exactly what
+      // you're doing!
+      if (request.isMember("Keep"))
+      {
+        ParseListOfTags(target, request["Keep"], TagOperation_Keep);
+      }
+
       return true;
     }
     else
