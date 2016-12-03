@@ -58,7 +58,7 @@ var server = http.createServer(function(req, response) {
         toolbox.ServeFile('DrawingDicomizer/orthanc.js', response);
       }
       else if (req.url == '/jquery.js') {
-        toolbox.ServeFile('../../../OrthancExplorer/libs/jquery-1.7.2.min.js', response);
+        toolbox.ServeFile('../../../OrthancExplorer/libs/jquery.min.js', response);
       }
       else if (req.url.startsWith('/orthanc')) {
         toolbox.ForwardGetRequest(orthanc, req.url.substr(8), response);
