@@ -96,4 +96,6 @@ var server = http.createServer(function(req, response) {
   }
 });
 
+
+console.log('The demo is running at http://localhost:' + port + '/');
 server.listen(port);
