@@ -38,6 +38,7 @@ Maintenance
 * Improved robustness against files with no PatientID
 * Upgrade to curl 7.50.3 for static and Windows builds
 * Content-Type for JSON documents is now "application/json; charset=utf-8"
+* Ignore "Group Length" tags in C-FIND queries
 
 
 Version 1.1.0 (2016/06/27)
