@@ -86,9 +86,9 @@ namespace Orthanc
       }
 
       DicomTag tag(FromDcmtkBridge::Convert(element->getTag()));
-      if (tag == DICOM_TAG_SPECIFIC_CHARACTER_SET)
+      if (tag == DICOM_TAG_SPECIFIC_CHARACTER_SET ||   // Ignore encoding
+          tag.GetElement() == 0x0000)  // Ignore all "Group Length" tags
       {
-        // Ignore this specific tag
         continue;
       }
 
