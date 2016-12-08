@@ -29,4 +29,4 @@ if (MSVC)
 endif()
 
 
-add_definitions(-DORTHANC_HAS_EXCEPTION=0)
+add_definitions(-DHAS_ORTHANC_EXCEPTION=0)

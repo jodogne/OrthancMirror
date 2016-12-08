@@ -18,7 +18,7 @@
  **/
 
 
-#include <orthanc/OrthancCPlugin.h>
+#include "../Common/OrthancPluginCppWrapper.h"
 
 #include <boost/filesystem.hpp>
 #include <json/value.h>
@@ -31,23 +31,6 @@ static OrthancPluginContext* context_ = NULL;
 static std::string folder_;
 
 
-static bool ReadFile(std::string& result,
-                     const std::string& path)
-{
-  OrthancPluginMemoryBuffer tmp;
-  if (OrthancPluginReadFile(context_, &tmp, path.c_str()))
-  {
-    return false;
-  }
-  else
-  {
-    result.assign(reinterpret_cast<const char*>(tmp.data), tmp.size);
-    OrthancPluginFreeMemoryBuffer(context_, &tmp);
-    return true;
-  }
-}
-
-
 /**
  * This is the main function for matching a DICOM worklist against a query.
  **/
@@ -55,18 +38,14 @@ static OrthancPluginErrorCode  MatchWorklist(OrthancPluginWorklistAnswers*     a
                                              const OrthancPluginWorklistQuery* query,
                                              const std::string& path)
 {
-  std::string dicom;
-  if (!ReadFile(dicom, path))
-  {
-    // Cannot read this file, ignore this error
-    return OrthancPluginErrorCode_Success;
-  }
+  OrthancPlugins::MemoryBuffer dicom(context_);
+  dicom.ReadFile(path);
 
-  if (OrthancPluginWorklistIsMatch(context_, query, dicom.c_str(), dicom.size()))
+  if (OrthancPluginWorklistIsMatch(context_, query, dicom.GetData(), dicom.GetSize()))
   {
     // This DICOM file matches the worklist query, add it to the answers
     return OrthancPluginWorklistAddAnswer
-      (context_, answers, query, dicom.c_str(), dicom.size());
+      (context_, answers, query, dicom.GetData(), dicom.GetSize());
   }
   else
   {
@@ -77,41 +56,19 @@ static OrthancPluginErrorCode  MatchWorklist(OrthancPluginWorklistAnswers*     a
 
 
 
-static bool ConvertToJson(Json::Value& result,
-                          char* content)
-{
-  if (content == NULL)
-  {
-    return false;
-  }
-  else
-  {
-    Json::Reader reader;
-    bool success = reader.parse(content, content + strlen(content), result);
-    OrthancPluginFreeString(context_, content);
-    return success;
-  }
-}
-
-
-static bool GetQueryDicom(Json::Value& value,
+static void GetQueryDicom(Json::Value& value,
                           const OrthancPluginWorklistQuery* query)
 {
-  OrthancPluginMemoryBuffer dicom;
-  if (OrthancPluginWorklistGetDicomQuery(context_, &dicom, query))
-  {
-    return false;
-  }
+  OrthancPlugins::MemoryBuffer dicom(context_);
+  dicom.GetDicomQuery(query);
 
-  char* json = OrthancPluginDicomBufferToJson(context_, reinterpret_cast<const char*>(dicom.data),
-                                              dicom.size, 
-                                              OrthancPluginDicomToJsonFormat_Short, 
-                                              static_cast<OrthancPluginDicomToJsonFlags>(0), 0);
-  OrthancPluginFreeMemoryBuffer(context_, &dicom);
+  OrthancPlugins::OrthancString str(context_);
+  str.DicomToJson(dicom, OrthancPluginDicomToJsonFormat_Short, 
+                  static_cast<OrthancPluginDicomToJsonFlags>(0), 0);
 
-  return ConvertToJson(value, json);
+  str.ToJson(value);
 }
-                          
+
 
 static void ToLowerCase(std::string& s)
 {
@@ -124,59 +81,62 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
                                 const char*                       remoteAet,
                                 const char*                       calledAet)
 {
-  namespace fs = boost::filesystem;  
-
-  Json::Value json;
-
-  if (!GetQueryDicom(json, query))
-  {
-    return OrthancPluginErrorCode_InternalError;
-  }
-
-  {
-    std::string msg = ("Received worklist query from remote modality " + 
-                       std::string(remoteAet) + ":\n" + json.toStyledString());
-    OrthancPluginLogInfo(context_, msg.c_str());
-  }
-
-  fs::path source(folder_);
-  fs::directory_iterator end;
-
   try
   {
-    for (fs::directory_iterator it(source); it != end; ++it)
+    namespace fs = boost::filesystem;  
+
     {
-      fs::file_type type(it->status().type());
+      Json::Value json;
+      GetQueryDicom(json, query);
 
-      if (type == fs::regular_file ||
-          type == fs::reparse_file)   // cf. BitBucket issue #11
+      std::string msg = ("Received worklist query from remote modality " + 
+                         std::string(remoteAet) + ":\n" + json.toStyledString());
+      OrthancPluginLogInfo(context_, msg.c_str());
+    }
+
+    fs::path source(folder_);
+    fs::directory_iterator end;
+
+    try
+    {
+      for (fs::directory_iterator it(source); it != end; ++it)
       {
-        std::string extension = fs::extension(it->path());
-        ToLowerCase(extension);
+        fs::file_type type(it->status().type());
 
-        if (extension == ".wl")
+        if (type == fs::regular_file ||
+            type == fs::reparse_file)   // cf. BitBucket issue #11
         {
-          OrthancPluginErrorCode error = MatchWorklist(answers, query, it->path().string());
-          if (error)
+          std::string extension = fs::extension(it->path());
+          ToLowerCase(extension);
+
+          if (extension == ".wl")
           {
-            OrthancPluginLogError(context_, "Error while adding an answer to a worklist request");
-            return error;
+            OrthancPluginErrorCode error = MatchWorklist(answers, query, it->path().string());
+            if (error)
+            {
+              OrthancPluginLogError(context_, "Error while adding an answer to a worklist request");
+              return error;
+            }
           }
         }
       }
     }
+    catch (fs::filesystem_error&)
+    {
+      std::string description = std::string("Inexistent folder while scanning for worklists: ") + source.string();
+      OrthancPluginLogError(context_, description.c_str());
+      return OrthancPluginErrorCode_DirectoryExpected;
+    }
+
+    // Uncomment the following line if too many answers are to be returned
+    // OrthancPluginMarkWorklistAnswersIncomplete(context_, answers);
+
+    return OrthancPluginErrorCode_Success;
   }
-  catch (fs::filesystem_error&)
+  catch (OrthancPlugins::PluginException& e)
   {
-    std::string description = std::string("Inexistent folder while scanning for worklists: ") + source.string();
-    OrthancPluginLogError(context_, description.c_str());
-    return OrthancPluginErrorCode_DirectoryExpected;
+    return e.GetErrorCode();
   }
-
-  // Uncomment the following line if too many answers are to be returned
-  // OrthancPluginMarkWorklistAnswersIncomplete(context_, answers);
-
-  return OrthancPluginErrorCode_Success;
 }
 
 
@@ -185,8 +145,6 @@ extern "C"
   ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   {
     context_ = c;
-    OrthancPluginLogWarning(context_, "Sample worklist plugin is initializing");
-    OrthancPluginSetDescription(context_, "Serve DICOM modality worklists from a folder with Orthanc.");
 
     /* Check the version of the Orthanc core */
     if (OrthancPluginCheckVersion(c) == 0)
@@ -201,55 +159,31 @@ extern "C"
       return -1;
     }
 
-    Json::Value configuration;
-    if (!ConvertToJson(configuration, OrthancPluginGetConfiguration(context_)))
-    {
-      OrthancPluginLogError(context_, "Cannot access the configuration of the worklist server");
-      return -1;
-    }
+    OrthancPlugins::LogWarning(context_, "Sample worklist plugin is initializing");
+    OrthancPluginSetDescription(context_, "Serve DICOM modality worklists from a folder with Orthanc.");
 
-    bool enabled = false;
+    OrthancPlugins::OrthancConfiguration configuration(context_);
 
-    if (configuration.isMember("Worklists"))
+    OrthancPlugins::OrthancConfiguration worklists;
+    configuration.GetSection(worklists, "Worklists");
+
+    bool enabled = worklists.GetBooleanValue("Enable", false);
+    if (enabled)
     {
-      const Json::Value& config = configuration["Worklists"];
-      if (!config.isMember("Enable") ||
-          config["Enable"].type() != Json::booleanValue)
+      if (worklists.LookupStringValue(folder_, "Database"))
       {
-        OrthancPluginLogError(context_, "The configuration option \"Worklists.Enable\" must contain a Boolean");
-        return -1;
+        OrthancPlugins::LogWarning(context_, "The database of worklists will be read from folder: " + folder_);
+        OrthancPluginRegisterWorklistCallback(context_, Callback);
       }
       else
       {
-        enabled = config["Enable"].asBool();
-        if (enabled)
-        {
-          if (!config.isMember("Database") ||
-              config["Database"].type() != Json::stringValue)
-          {
-            OrthancPluginLogError(context_, "The configuration option \"Worklists.Database\" must contain a path");
-            return -1;
-          }
-
-          folder_ = config["Database"].asString();
-        }
-        else
-        {
-          OrthancPluginLogWarning(context_, "Worklists server is disabled by the configuration file");
-        }
+        OrthancPlugins::LogError(context_, "The configuration option \"Worklists.Database\" must contain a path");
+        return -1;
       }
     }
     else
     {
-      OrthancPluginLogWarning(context_, "Worklists server is disabled, no suitable configuration section was provided");
-    }
-
-    if (enabled)
-    {
-      std::string message = "The database of worklists will be read from folder: " + folder_;
-      OrthancPluginLogWarning(context_, message.c_str());
-
-      OrthancPluginRegisterWorklistCallback(context_, Callback);
+      OrthancPlugins::LogWarning(context_, "Worklists server is disabled by the configuration file");
     }
 
     return 0;

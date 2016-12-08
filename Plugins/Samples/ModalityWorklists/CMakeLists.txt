@@ -16,6 +16,7 @@ include(${ORTHANC_ROOT}/Resources/CMake/BoostConfiguration.cmake)
 
 add_library(ModalityWorklists SHARED 
   Plugin.cpp
+  ../Common/OrthancPluginCppWrapper.cpp
   ${JSONCPP_SOURCES}
   ${BOOST_SOURCES}
   )

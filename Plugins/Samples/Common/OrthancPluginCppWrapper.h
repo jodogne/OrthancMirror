@@ -172,6 +172,8 @@ namespace OrthancPlugins
                      OrthancPluginCreateDicomFlags flags);
 
     void ReadFile(const std::string& path);
+
+    void GetDicomQuery(const OrthancPluginWorklistQuery* query);
   };
 
 
@@ -181,16 +183,21 @@ namespace OrthancPlugins
     OrthancPluginContext*  context_;
     char*                  str_;
 
+    void Clear();
+
   public:
-    OrthancString(OrthancPluginContext* context,
-                  char* str);
+    OrthancString(OrthancPluginContext* context) :
+      context_(context),
+      str_(NULL)
+    {
+    }
 
     ~OrthancString()
     {
       Clear();
     }
 
-    void Clear();
+    void Assign(char* str);
 
     const char* GetContent() const
     {
@@ -200,6 +207,11 @@ namespace OrthancPlugins
     void ToString(std::string& target) const;
 
     void ToJson(Json::Value& target) const;
+
+    void DicomToJson(const OrthancPlugins::MemoryBuffer& dicom,
+                     OrthancPluginDicomToJsonFormat format,
+                     OrthancPluginDicomToJsonFlags flags,
+                     uint32_t maxStringLength);
   };
 
 
