@@ -34,9 +34,9 @@ static std::string folder_;
 /**
  * This is the main function for matching a DICOM worklist against a query.
  **/
-static OrthancPluginErrorCode  MatchWorklist(OrthancPluginWorklistAnswers*     answers,
-                                             const OrthancPluginWorklistQuery* query,
-                                             const std::string& path)
+static void  MatchWorklist(OrthancPluginWorklistAnswers*     answers,
+                           const OrthancPluginWorklistQuery* query,
+                           const std::string& path)
 {
   OrthancPlugins::MemoryBuffer dicom(context_);
   dicom.ReadFile(path);
@@ -44,35 +44,15 @@ static OrthancPluginErrorCode  MatchWorklist(OrthancPluginWorklistAnswers*     a
   if (OrthancPluginWorklistIsMatch(context_, query, dicom.GetData(), dicom.GetSize()))
   {
     // This DICOM file matches the worklist query, add it to the answers
-    return OrthancPluginWorklistAddAnswer
+    OrthancPluginErrorCode code = OrthancPluginWorklistAddAnswer
       (context_, answers, query, dicom.GetData(), dicom.GetSize());
+
+    if (code != OrthancPluginErrorCode_Success)
+    {
+      OrthancPlugins::LogError(context_, "Error while adding an answer to a worklist request");
+      ORTHANC_PLUGINS_THROW_EXCEPTION(code);
+    }
   }
-  else
-  {
-    // This DICOM file does not match
-    return OrthancPluginErrorCode_Success;
-  }
-}
-
-
-
-static void GetQueryDicom(Json::Value& value,
-                          const OrthancPluginWorklistQuery* query)
-{
-  OrthancPlugins::MemoryBuffer dicom(context_);
-  dicom.GetDicomQuery(query);
-
-  OrthancPlugins::OrthancString str(context_);
-  str.DicomToJson(dicom, OrthancPluginDicomToJsonFormat_Short, 
-                  static_cast<OrthancPluginDicomToJsonFlags>(0), 0);
-
-  str.ToJson(value);
-}
-
-
-static void ToLowerCase(std::string& s)
-{
-  std::transform(s.begin(), s.end(), s.begin(), tolower);
 }
 
 
@@ -86,12 +66,15 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
     namespace fs = boost::filesystem;  
 
     {
-      Json::Value json;
-      GetQueryDicom(json, query);
+      OrthancPlugins::MemoryBuffer dicom(context_);
+      dicom.GetDicomQuery(query);
 
-      std::string msg = ("Received worklist query from remote modality " + 
-                         std::string(remoteAet) + ":\n" + json.toStyledString());
-      OrthancPluginLogInfo(context_, msg.c_str());
+      Json::Value json;
+      dicom.DicomToJson(json, OrthancPluginDicomToJsonFormat_Short, 
+                        static_cast<OrthancPluginDicomToJsonFlags>(0), 0);
+
+      OrthancPlugins::LogInfo(context_, "Received worklist query from remote modality " + 
+                              std::string(remoteAet) + ":\n" + json.toStyledString());
     }
 
     fs::path source(folder_);
@@ -107,24 +90,18 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
             type == fs::reparse_file)   // cf. BitBucket issue #11
         {
           std::string extension = fs::extension(it->path());
-          ToLowerCase(extension);
+          std::transform(extension.begin(), extension.end(), extension.begin(), tolower);  // Convert to lowercase
 
           if (extension == ".wl")
           {
-            OrthancPluginErrorCode error = MatchWorklist(answers, query, it->path().string());
-            if (error)
-            {
-              OrthancPluginLogError(context_, "Error while adding an answer to a worklist request");
-              return error;
-            }
+            MatchWorklist(answers, query, it->path().string());
           }
         }
       }
     }
     catch (fs::filesystem_error&)
     {
-      std::string description = std::string("Inexistent folder while scanning for worklists: ") + source.string();
-      OrthancPluginLogError(context_, description.c_str());
+      OrthancPlugins::LogError(context_, "Inexistent folder while scanning for worklists: " + source.string());
       return OrthancPluginErrorCode_DirectoryExpected;
     }
 

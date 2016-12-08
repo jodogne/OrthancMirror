@@ -174,6 +174,11 @@ namespace OrthancPlugins
     void ReadFile(const std::string& path);
 
     void GetDicomQuery(const OrthancPluginWorklistQuery* query);
+
+    void DicomToJson(Json::Value& target,
+                     OrthancPluginDicomToJsonFormat format,
+                     OrthancPluginDicomToJsonFlags flags,
+                     uint32_t maxStringLength);
   };
 
 
@@ -197,6 +202,8 @@ namespace OrthancPlugins
       Clear();
     }
 
+    // This transfers ownership, warning: The string must have been
+    // allocated by the Orthanc core
     void Assign(char* str);
 
     const char* GetContent() const
@@ -207,11 +214,6 @@ namespace OrthancPlugins
     void ToString(std::string& target) const;
 
     void ToJson(Json::Value& target) const;
-
-    void DicomToJson(const OrthancPlugins::MemoryBuffer& dicom,
-                     OrthancPluginDicomToJsonFormat format,
-                     OrthancPluginDicomToJsonFlags flags,
-                     uint32_t maxStringLength);
   };
 
 
