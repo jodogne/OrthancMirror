@@ -89,6 +89,48 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../OrthancInitialization.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
+#include <dcmtk/dcmdata/dcdeftag.h>
+
+
+
+/**
+ * The function below is extracted from DCMTK 3.6.0, cf. file
+ * "dcmtk-3.6.0/dcmwlm/libsrc/wldsfs.cc".
+ **/
+
+static void HandleExistentButEmptyReferencedStudyOrPatientSequenceAttributes(DcmDataset *dataset, 
+                                                                             const DcmTagKey &sequenceTagKey)
+// Date         : May 3, 2005
+// Author       : Thomas Wilkens
+// Task         : This function performs a check on a sequence attribute in the given dataset. At two different places
+//                in the definition of the DICOM worklist management service, a sequence attribute with a return type
+//                of 2 is mentioned containing two 1C attributes in its item; the condition of the two 1C attributes
+//                specifies that in case a sequence item is present, then these two attributes must be existent and
+//                must contain a value. (I am talking about ReferencedStudySequence and ReferencedPatientSequence.)
+//                In cases where the sequence attribute contains exactly one item with an empty ReferencedSOPClass
+//                and an empty ReferencedSOPInstance, we want to remove the item from the sequence. This is what
+//                this function does.
+// Parameters   : dataset         - [in] Dataset in which the consistency of the sequence attribute shall be checked.
+//                sequenceTagKey  - [in] DcmTagKey of the sequence attribute which shall be checked.
+// Return Value : none.
+{
+  DcmElement *sequenceAttribute = NULL, *referencedSOPClassUIDAttribute = NULL, *referencedSOPInstanceUIDAttribute = NULL;
+
+  // in case the sequence attribute contains exactly one item with an empty
+  // ReferencedSOPClassUID and an empty ReferencedSOPInstanceUID, remove the item
+  if( dataset->findAndGetElement( sequenceTagKey, sequenceAttribute ).good() &&
+      ( (DcmSequenceOfItems*)sequenceAttribute )->card() == 1 &&
+      ( (DcmSequenceOfItems*)sequenceAttribute )->getItem(0)->findAndGetElement( DCM_ReferencedSOPClassUID, referencedSOPClassUIDAttribute ).good() &&
+      referencedSOPClassUIDAttribute->getLength() == 0 &&
+      ( (DcmSequenceOfItems*)sequenceAttribute )->getItem(0)->findAndGetElement( DCM_ReferencedSOPInstanceUID, referencedSOPInstanceUIDAttribute, OFFalse ).good() &&
+      referencedSOPInstanceUIDAttribute->getLength() == 0 )
+  {
+    DcmItem *item = ((DcmSequenceOfItems*)sequenceAttribute)->remove( ((DcmSequenceOfItems*)sequenceAttribute)->getItem(0) );
+    delete item;
+  }
+}
+
+
 
 namespace Orthanc
 {
@@ -108,6 +150,20 @@ namespace Orthanc
       {
       }
     };
+
+
+
+    static void FixWorklistQuery(ParsedDicomFile& query)
+    {
+      // TODO: Check out
+      // WlmDataSourceFileSystem::HandleExistentButEmptyDescriptionAndCodeSequenceAttributes()"
+      // in DCMTK 3.6.0
+
+      DcmDataset* dataset = query.GetDcmtkObject().getDataset();      
+      HandleExistentButEmptyReferencedStudyOrPatientSequenceAttributes(dataset, DCM_ReferencedStudySequence);
+      HandleExistentButEmptyReferencedStudyOrPatientSequenceAttributes(dataset, DCM_ReferencedPatientSequence);
+    }
+
 
 
     void FindScpCallback(
@@ -141,6 +197,8 @@ namespace Orthanc
             if (data.worklistHandler_ != NULL)
             {
               ParsedDicomFile query(*requestIdentifiers);
+              FixWorklistQuery(query);
+
               data.worklistHandler_->Handle(data.answers_, query,
                                             *data.remoteIp_, *data.remoteAet_,
                                             *data.calledAet_);
