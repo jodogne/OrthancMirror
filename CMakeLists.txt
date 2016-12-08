@@ -598,6 +598,7 @@ if (ENABLE_PLUGINS AND BUILD_MODALITY_WORKLISTS)
   add_library(ModalityWorklists SHARED 
     ${BOOST_SOURCES}
     ${JSONCPP_SOURCES}
+    Plugins/Samples/Common/OrthancPluginCppWrapper.cpp
     Plugins/Samples/ModalityWorklists/Plugin.cpp
     ${MODALITY_WORKLISTS_RESOURCES}
     )

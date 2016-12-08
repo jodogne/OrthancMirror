@@ -121,7 +121,9 @@ static void Answer(OrthancPluginRestOutput* output,
 {
   if (generateETag_)
   {
-    OrthancPlugins::OrthancString md5(context_, OrthancPluginComputeMd5(context_, content, size));
+    OrthancPlugins::OrthancString md5(context_);
+    md5.Assign(OrthancPluginComputeMd5(context_, content, size));
+
     std::string etag = "\"" + std::string(md5.GetContent()) + "\"";
     OrthancPluginSetHttpHeader(context_, output, "ETag", etag.c_str());
   }

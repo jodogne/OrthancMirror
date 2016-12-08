@@ -276,11 +276,24 @@ namespace OrthancPlugins
   }
 
 
-  OrthancString::OrthancString(OrthancPluginContext* context,
-                               char* str) :
-    context_(context),
-    str_(str)
+  void MemoryBuffer::GetDicomQuery(const OrthancPluginWorklistQuery* query)
   {
+    Clear();
+    Check(OrthancPluginWorklistGetDicomQuery(context_, &buffer_, query));
+  }
+
+
+  void OrthancString::Assign(char* str)
+  {
+    if (str == NULL)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_InternalError);
+    }
+    else
+    {
+      Clear();
+      str_ = str;
+    }
   }
 
 
@@ -322,12 +335,24 @@ namespace OrthancPlugins
       ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
     }
   }
+
+  
+  void OrthancString::DicomToJson(const OrthancPlugins::MemoryBuffer& dicom,
+                                  OrthancPluginDicomToJsonFormat format,
+                                  OrthancPluginDicomToJsonFlags flags,
+                                  uint32_t maxStringLength)
+  {
+    Assign(OrthancPluginDicomBufferToJson(context_, dicom.GetData(), dicom.GetSize(), 
+                                          format, flags, maxStringLength));
+  }
+
   
 
   OrthancConfiguration::OrthancConfiguration(OrthancPluginContext* context) : 
     context_(context)
   {
-    OrthancString str(context, OrthancPluginGetConfiguration(context));
+    OrthancString str(context);
+    str.Assign(OrthancPluginGetConfiguration(context));
 
     if (str.GetContent() == NULL)
     {
