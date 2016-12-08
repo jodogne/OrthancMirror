@@ -52,6 +52,9 @@ namespace Orthanc
 
     ParsedDicomFile(ParsedDicomFile& other);
 
+    void CreateFromDicomMap(const DicomMap& source,
+                            Encoding defaultEncoding);
+
     void RemovePrivateTagsInternal(const std::set<DicomTag>* toKeep);
 
     void UpdateStorageUid(const DicomTag& tag,
@@ -64,6 +67,9 @@ namespace Orthanc
 
   public:
     ParsedDicomFile(bool createIdentifiers);  // Create a minimal DICOM instance
+
+    ParsedDicomFile(const DicomMap& map,
+                    Encoding defaultEncoding);
 
     ParsedDicomFile(const DicomMap& map);
 

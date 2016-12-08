@@ -138,6 +138,8 @@ namespace Orthanc
 
     static Encoding GetDefaultEncoding();
 
+    static void SetDefaultEncoding(Encoding encoding);
+
     static bool HasConfigurationChanged();
 
 

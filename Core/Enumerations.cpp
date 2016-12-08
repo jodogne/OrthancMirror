@@ -1083,14 +1083,17 @@ namespace Orthanc
   bool GetDicomEncoding(Encoding& encoding,
                         const char* specificCharacterSet)
   {
-    std::string s = specificCharacterSet;
+    std::string s = Toolbox::StripSpaces(specificCharacterSet);
     Toolbox::ToUpperCase(s);
 
     // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#sect_C.12.1.1.2
     // https://github.com/dcm4che/dcm4che/blob/master/dcm4che-core/src/main/java/org/dcm4che3/data/SpecificCharacterSet.java
     if (s == "ISO_IR 6" ||
-        s == "ISO_IR 192" ||
         s == "ISO 2022 IR 6")
+    {
+      encoding = Encoding_Ascii;
+    }
+    else if (s == "ISO_IR 192")
     {
       encoding = Encoding_Utf8;
     }
@@ -1238,8 +1241,10 @@ namespace Orthanc
     // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#sect_C.12.1.1.2
     switch (encoding)
     {
-      case Encoding_Utf8:
       case Encoding_Ascii:
+        return "ISO_IR 6";
+
+      case Encoding_Utf8:
         return "ISO_IR 192";
 
       case Encoding_Latin1:

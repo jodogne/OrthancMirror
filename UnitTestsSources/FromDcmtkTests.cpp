@@ -51,6 +51,7 @@
 #include "../Plugins/Engine/PluginsEnumerations.h"
 
 #include <dcmtk/dcmdata/dcelem.h>
+#include <dcmtk/dcmdata/dcdeftag.h>
 
 using namespace Orthanc;
 
@@ -225,7 +226,7 @@ TEST(FromDcmtkBridge, Enumerations)
   Encoding e;
 
   ASSERT_FALSE(GetDicomEncoding(e, ""));
-  ASSERT_TRUE(GetDicomEncoding(e, "ISO_IR 6"));  ASSERT_EQ(Encoding_Utf8, e);
+  ASSERT_TRUE(GetDicomEncoding(e, "ISO_IR 6"));  ASSERT_EQ(Encoding_Ascii, e);
 
   // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#table_C.12-2
   ASSERT_TRUE(GetDicomEncoding(e, "ISO_IR 100"));  ASSERT_EQ(Encoding_Latin1, e);
@@ -241,7 +242,7 @@ TEST(FromDcmtkBridge, Enumerations)
   ASSERT_TRUE(GetDicomEncoding(e, "ISO_IR 166"));  ASSERT_EQ(Encoding_Thai, e);
 
   // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#table_C.12-3
-  ASSERT_TRUE(GetDicomEncoding(e, "ISO 2022 IR 6"));    ASSERT_EQ(Encoding_Utf8, e);
+  ASSERT_TRUE(GetDicomEncoding(e, "ISO 2022 IR 6"));    ASSERT_EQ(Encoding_Ascii, e);
   ASSERT_TRUE(GetDicomEncoding(e, "ISO 2022 IR 100"));  ASSERT_EQ(Encoding_Latin1, e);
   ASSERT_TRUE(GetDicomEncoding(e, "ISO 2022 IR 101"));  ASSERT_EQ(Encoding_Latin2, e);
   ASSERT_TRUE(GetDicomEncoding(e, "ISO 2022 IR 109"));  ASSERT_EQ(Encoding_Latin3, e);
@@ -1039,6 +1040,132 @@ TEST(TestImages, PatternInt16)
       const void* a = image.GetConstRow(y);
       const void* b = decoded->GetConstRow(y);
       ASSERT_EQ(0, memcmp(a, b, 512));
+    }
+  }
+}
+
+
+
+static void CheckEncoding(const ParsedDicomFile& dicom,
+                          Encoding expected)
+{
+  const char* value = NULL;
+  ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->findAndGetString(DCM_SpecificCharacterSet, value).good());
+
+  Encoding encoding;
+  ASSERT_TRUE(GetDicomEncoding(encoding, value));
+  ASSERT_EQ(expected, encoding);
+}
+
+
+TEST(ParsedDicomFile, DicomMapEncodings1)
+{
+  Configuration::SetDefaultEncoding(Encoding_Ascii);
+  ASSERT_EQ(Encoding_Ascii, Configuration::GetDefaultEncoding());
+
+  {
+    DicomMap m;
+    ParsedDicomFile dicom(m);
+    ASSERT_EQ(1, dicom.GetDcmtkObject().getDataset()->card());
+    CheckEncoding(dicom, Encoding_Ascii);
+  }
+
+  {
+    DicomMap m;
+    ParsedDicomFile dicom(m, Encoding_Latin4);
+    ASSERT_EQ(1, dicom.GetDcmtkObject().getDataset()->card());
+    CheckEncoding(dicom, Encoding_Latin4);
+  }
+
+  {
+    DicomMap m;
+    m.SetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET, "ISO_IR 148", false);
+    ParsedDicomFile dicom(m);
+    ASSERT_EQ(1, dicom.GetDcmtkObject().getDataset()->card());
+    CheckEncoding(dicom, Encoding_Latin5);
+  }
+
+  {
+    DicomMap m;
+    m.SetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET, "ISO_IR 148", false);
+    ParsedDicomFile dicom(m, Encoding_Latin1);
+    ASSERT_EQ(1, dicom.GetDcmtkObject().getDataset()->card());
+    CheckEncoding(dicom, Encoding_Latin5);
+  }
+}
+
+
+TEST(ParsedDicomFile, DicomMapEncodings2)
+{
+  const char* utf8 = NULL;
+  for (unsigned int i = 0; i < testEncodingsCount; i++)
+  {
+    if (testEncodings[i] == Encoding_Utf8)
+    {
+      utf8 = testEncodingsEncoded[i];
+      break;
+    }
+  }  
+
+  ASSERT_TRUE(utf8 != NULL);
+
+  for (unsigned int i = 0; i < testEncodingsCount; i++)
+  {
+    // 1251 codepage is not supported by the core DICOM standard, ignore it
+    if (testEncodings[i] != Encoding_Windows1251) 
+    {
+      {
+        // Sanity check to test the proper behavior of "EncodingTests.py"
+        std::string encoded = Toolbox::ConvertFromUtf8(testEncodingsExpected[i], testEncodings[i]);
+        ASSERT_STREQ(testEncodingsEncoded[i], encoded.c_str());
+        std::string decoded = Toolbox::ConvertToUtf8(encoded, testEncodings[i]);
+        ASSERT_STREQ(testEncodingsExpected[i], decoded.c_str());
+
+        if (testEncodings[i] != Encoding_Chinese)
+        {
+          // A specific source string is used in "EncodingTests.py" to
+          // test against Chinese, it is normal that it does not correspond to UTF8
+
+          std::string encoded = Toolbox::ConvertToUtf8(Toolbox::ConvertFromUtf8(utf8, testEncodings[i]), testEncodings[i]);
+          ASSERT_STREQ(testEncodingsExpected[i], encoded.c_str());
+        }
+      }
+
+
+      Json::Value v;
+
+      {
+        DicomMap m;
+        m.SetValue(DICOM_TAG_PATIENT_NAME, testEncodingsExpected[i], false);
+
+        ParsedDicomFile dicom(m, testEncodings[i]);
+    
+        const char* encoded = NULL;
+        ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->findAndGetString(DCM_PatientName, encoded).good());
+        ASSERT_STREQ(testEncodingsEncoded[i], encoded);
+
+        dicom.DatasetToJson(v, DicomToJsonFormat_Human, DicomToJsonFlags_Default, 0);
+
+        Encoding encoding;
+        ASSERT_TRUE(GetDicomEncoding(encoding, v["SpecificCharacterSet"].asCString()));
+        ASSERT_EQ(encoding, testEncodings[i]);
+        ASSERT_STREQ(testEncodingsExpected[i], v["PatientName"].asCString());
+      }
+
+
+      {
+        DicomMap m;
+        m.SetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET, GetDicomSpecificCharacterSet(testEncodings[i]), false);
+        m.SetValue(DICOM_TAG_PATIENT_NAME, testEncodingsExpected[i], false);
+
+        ParsedDicomFile dicom(m, testEncodings[i]);
+
+        Json::Value v2;
+        dicom.DatasetToJson(v2, DicomToJsonFormat_Human, DicomToJsonFlags_Default, 0);
+        
+        ASSERT_EQ(v2["PatientName"].asString(), v["PatientName"].asString());
+        ASSERT_EQ(v2["SpecificCharacterSet"].asString(), v["SpecificCharacterSet"].asString());
+      }
     }
   }
 }

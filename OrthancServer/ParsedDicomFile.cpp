@@ -872,15 +872,55 @@ namespace Orthanc
   }
 
 
-  ParsedDicomFile::ParsedDicomFile(const DicomMap& map) : pimpl_(new PImpl)
+  void ParsedDicomFile::CreateFromDicomMap(const DicomMap& source,
+                                           Encoding defaultEncoding)
   {
-    std::auto_ptr<DcmDataset> dataset(ToDcmtkBridge::Convert(map));
+    pimpl_->file_.reset(new DcmFileFormat);
 
-    // NOTE: This implies an unnecessary memory copy of the dataset, but no way to get around
-    // http://support.dcmtk.org/redmine/issues/544
-    std::auto_ptr<DcmFileFormat> fileFormat(new DcmFileFormat(dataset.get()));
+    const DicomValue* tmp = source.TestAndGetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET);
+    if (tmp != NULL)
+    {
+      Encoding encoding;
+      if (tmp->IsNull() ||
+          tmp->IsBinary() ||
+          !GetDicomEncoding(encoding, tmp->GetContent().c_str()))
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      else
+      {
+        SetEncoding(encoding);
+      }
+    }
+    else
+    {
+      SetEncoding(defaultEncoding);
+    }
 
-    pimpl_->file_.reset(fileFormat.release());
+    for (DicomMap::Map::const_iterator 
+           it = source.map_.begin(); it != source.map_.end(); ++it)
+    {
+      if (it->first != DICOM_TAG_SPECIFIC_CHARACTER_SET &&
+          !it->second->IsNull())
+      {
+        ReplacePlainString(it->first, it->second->GetContent());
+      }
+    }
+  }
+
+
+  ParsedDicomFile::ParsedDicomFile(const DicomMap& map,
+                                   Encoding defaultEncoding) :
+    pimpl_(new PImpl)
+  {
+    CreateFromDicomMap(map, defaultEncoding);
+  }
+
+
+  ParsedDicomFile::ParsedDicomFile(const DicomMap& map) : 
+    pimpl_(new PImpl)
+  {
+    CreateFromDicomMap(map, Configuration::GetDefaultEncoding());
   }
 
 

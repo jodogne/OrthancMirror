@@ -109,19 +109,6 @@ namespace Orthanc
 
       return *dicom_;
     }
-
-    DcmDataset* ExtractDcmDataset() const
-    {
-      if (dicom_ != NULL)
-      {
-        return new DcmDataset(*dicom_->GetDcmtkObject().getDataset());
-      }
-      else
-      {
-        assert(map_ != NULL);
-        return ToDcmtkBridge::Convert(*map_);
-      }
-    }
   };
 
 
@@ -200,7 +187,7 @@ namespace Orthanc
 
   DcmDataset* DicomFindAnswers::ExtractDcmDataset(size_t index) const
   {
-    return GetAnswerInternal(index).ExtractDcmDataset();
+    return new DcmDataset(*GetAnswer(index).GetDcmtkObject().getDataset());
   }
 
 
