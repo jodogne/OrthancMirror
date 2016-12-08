@@ -45,8 +45,6 @@ namespace Orthanc
       return DcmTagKey(tag.GetGroup(), tag.GetElement());
     }
 
-    static DcmDataset* Convert(const DicomMap& map);
-
     static DcmEVR Convert(ValueRepresentation vr);
   };
 }

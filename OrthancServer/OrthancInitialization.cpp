@@ -1111,6 +1111,19 @@ namespace Orthanc
   }
 
 
+  void Configuration::SetDefaultEncoding(Encoding encoding)
+  {
+    std::string name = EnumerationToString(encoding);
+
+    {
+      boost::recursive_mutex::scoped_lock lock(globalMutex_);
+      configuration_["DefaultEncoding"] = name;
+    }
+
+    LOG(INFO) << "Default encoding was changed to: " << name;
+  }
+
+
   bool Configuration::HasConfigurationChanged()
   {
     Json::Value starting;

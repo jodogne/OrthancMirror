@@ -248,6 +248,23 @@ namespace Orthanc
   }
 
 
+  static void GetDefaultEncoding(RestApiGetCall& call)
+  {
+    Encoding encoding = Configuration::GetDefaultEncoding();
+    call.GetOutput().AnswerBuffer(EnumerationToString(encoding), "text/plain");
+  }
+
+
+  static void SetDefaultEncoding(RestApiPutCall& call)
+  {
+    Encoding encoding = StringToEncoding(call.GetBodyData());
+
+    Configuration::SetDefaultEncoding(encoding);
+
+    call.GetOutput().AnswerBuffer(EnumerationToString(encoding), "text/plain");
+  }
+
+
   void OrthancRestApi::RegisterSystem()
   {
     Register("/", ServeRoot);
@@ -257,6 +274,8 @@ namespace Orthanc
     Register("/tools/execute-script", ExecuteScript);
     Register("/tools/now", GetNowIsoString);
     Register("/tools/dicom-conformance", GetDicomConformanceStatement);
+    Register("/tools/default-encoding", GetDefaultEncoding);
+    Register("/tools/default-encoding", SetDefaultEncoding);
 
     Register("/plugins", ListPlugins);
     Register("/plugins/{id}", GetPlugin);

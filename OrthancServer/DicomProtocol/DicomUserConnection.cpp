@@ -478,8 +478,8 @@ namespace Orthanc
   }
 
 
-  static DcmDataset* ConvertQueryFields(const DicomMap& fields,
-                                        ModalityManufacturer manufacturer)
+  static ParsedDicomFile* ConvertQueryFields(const DicomMap& fields,
+                                             ModalityManufacturer manufacturer)
   {
     switch (manufacturer)
     {
@@ -513,11 +513,11 @@ namespace Orthanc
           }
         }
 
-        return ToDcmtkBridge::Convert(*fix);
+        return new ParsedDicomFile(*fix);
       }
 
       default:
-        return ToDcmtkBridge::Convert(fields);
+        return new ParsedDicomFile(fields);
     }
   }
 
@@ -577,7 +577,9 @@ namespace Orthanc
 
     CheckIsOpen();
 
-    std::auto_ptr<DcmDataset> dataset(ConvertQueryFields(fields, manufacturer_));
+    std::auto_ptr<ParsedDicomFile> query(ConvertQueryFields(fields, manufacturer_));
+    DcmDataset* dataset = query->GetDcmtkObject().getDataset();
+
     const char* clevel = NULL;
     const char* sopClass = NULL;
 
@@ -585,19 +587,19 @@ namespace Orthanc
     {
       case ResourceType_Patient:
         clevel = "PATIENT";
-        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "PATIENT");
+        DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0052), "PATIENT");
         sopClass = UID_FINDPatientRootQueryRetrieveInformationModel;
         break;
 
       case ResourceType_Study:
         clevel = "STUDY";
-        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "STUDY");
+        DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0052), "STUDY");
         sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
         break;
 
       case ResourceType_Series:
         clevel = "SERIES";
-        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "SERIES");
+        DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0052), "SERIES");
         sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
         break;
 
@@ -609,11 +611,11 @@ namespace Orthanc
           // This is a particular case for ClearCanvas, thanks to Peter Somlo <peter.somlo@gmail.com>.
           // https://groups.google.com/d/msg/orthanc-users/j-6C3MAVwiw/iolB9hclom8J
           // http://www.clearcanvas.ca/Home/Community/OldForums/tabid/526/aff/11/aft/14670/afv/topic/Default.aspx
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "IMAGE");
+          DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0052), "IMAGE");
         }
         else
         {
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "INSTANCE");
+          DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0052), "INSTANCE");
         }
 
         sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
@@ -630,26 +632,26 @@ namespace Orthanc
       case ResourceType_Instance:
         // SOP Instance UID
         if (!fields.HasTag(0x0008, 0x0018))
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0018), "");
+          DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0018), "");
 
       case ResourceType_Series:
         // Series instance UID
         if (!fields.HasTag(0x0020, 0x000e))
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0020, 0x000e), "");
+          DU_putStringDOElement(dataset, DcmTagKey(0x0020, 0x000e), "");
 
       case ResourceType_Study:
         // Accession number
         if (!fields.HasTag(0x0008, 0x0050))
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0050), "");
+          DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0050), "");
 
         // Study instance UID
         if (!fields.HasTag(0x0020, 0x000d))
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0020, 0x000d), "");
+          DU_putStringDOElement(dataset, DcmTagKey(0x0020, 0x000d), "");
 
       case ResourceType_Patient:
         // Patient ID
         if (!fields.HasTag(0x0010, 0x0020))
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0010, 0x0020), "");
+          DU_putStringDOElement(dataset, DcmTagKey(0x0010, 0x0020), "");
 
         break;
 
@@ -658,7 +660,7 @@ namespace Orthanc
     }
 
     assert(clevel != NULL && sopClass != NULL);
-    ExecuteFind(result, pimpl_->assoc_, dataset.get(), sopClass, false, clevel, pimpl_->dimseTimeout_);
+    ExecuteFind(result, pimpl_->assoc_, dataset, sopClass, false, clevel, pimpl_->dimseTimeout_);
   }
 
 
@@ -668,21 +670,22 @@ namespace Orthanc
   {
     CheckIsOpen();
 
-    std::auto_ptr<DcmDataset> dataset(ConvertQueryFields(fields, manufacturer_));
+    std::auto_ptr<ParsedDicomFile> query(ConvertQueryFields(fields, manufacturer_));
+    DcmDataset* dataset = query->GetDcmtkObject().getDataset();
 
     const char* sopClass = UID_MOVEStudyRootQueryRetrieveInformationModel;
     switch (level)
     {
       case ResourceType_Patient:
-        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "PATIENT");
+        DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0052), "PATIENT");
         break;
 
       case ResourceType_Study:
-        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "STUDY");
+        DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0052), "STUDY");
         break;
 
       case ResourceType_Series:
-        DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "SERIES");
+        DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0052), "SERIES");
         break;
 
       case ResourceType_Instance:
@@ -692,11 +695,11 @@ namespace Orthanc
           // This is a particular case for ClearCanvas, thanks to Peter Somlo <peter.somlo@gmail.com>.
           // https://groups.google.com/d/msg/orthanc-users/j-6C3MAVwiw/iolB9hclom8J
           // http://www.clearcanvas.ca/Home/Community/OldForums/tabid/526/aff/11/aft/14670/afv/topic/Default.aspx
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "IMAGE");
+          DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0052), "IMAGE");
         }
         else
         {
-          DU_putStringDOElement(dataset.get(), DcmTagKey(0x0008, 0x0052), "INSTANCE");
+          DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0052), "INSTANCE");
         }
         break;
 
@@ -722,7 +725,7 @@ namespace Orthanc
     T_DIMSE_C_MoveRSP response;
     DcmDataset* statusDetail = NULL;
     DcmDataset* responseIdentifiers = NULL;
-    OFCondition cond = DIMSE_moveUser(pimpl_->assoc_, presID, &request, dataset.get(),
+    OFCondition cond = DIMSE_moveUser(pimpl_->assoc_, presID, &request, dataset,
                                       NULL, NULL,
                                       /*opt_blockMode*/ DIMSE_BLOCKING, 
                                       /*opt_dimse_timeout*/ pimpl_->dimseTimeout_,

@@ -18,6 +18,7 @@ REST API
   to avoid waiting for the completion of image transfers
 * Possibility to DELETE "dicom-as-json" attachments to reconstruct the JSON summaries
 * "Keep" option for modifications to keep original DICOM identifiers (advanced feature)
+* "/tools/default-encoding" to get or temporarily change the default encoding
 
 Plugins
 -------
@@ -29,6 +30,7 @@ Plugins
 Maintenance
 -----------
 
+* Fix handling of encodings in C-FIND requests
 * Use of DCMTK 3.6.1 dictionary of private tags in standalone builds
 * Avoid hard crash if not enough memory (handling of std::bad_alloc)
 * Improved robustness of Orthanc Explorer wrt. query/retrieve (maybe fix issue 24)

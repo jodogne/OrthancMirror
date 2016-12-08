@@ -47,7 +47,7 @@ namespace Orthanc
   private:
     friend class DicomArray;
     friend class FromDcmtkBridge;
-    friend class ToDcmtkBridge;
+    friend class ParsedDicomFile;
 
     typedef std::map<DicomTag, DicomValue*>  Map;
 

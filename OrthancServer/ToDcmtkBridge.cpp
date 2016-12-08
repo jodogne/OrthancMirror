@@ -41,24 +41,6 @@
 
 namespace Orthanc
 {
-  DcmDataset* ToDcmtkBridge::Convert(const DicomMap& map)
-  {
-    std::auto_ptr<DcmDataset> result(new DcmDataset);
-
-    for (DicomMap::Map::const_iterator 
-           it = map.map_.begin(); it != map.map_.end(); ++it)
-    {
-      if (!it->second->IsNull())
-      {
-        std::string s = it->second->GetContent();
-        DU_putStringDOElement(result.get(), Convert(it->first), s.c_str());
-      }
-    }
-
-    return result.release();
-  }
-
-
   DcmEVR ToDcmtkBridge::Convert(ValueRepresentation vr)
   {
     switch (vr)
