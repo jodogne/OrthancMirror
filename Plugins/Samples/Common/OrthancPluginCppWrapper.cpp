@@ -337,13 +337,14 @@ namespace OrthancPlugins
   }
 
   
-  void OrthancString::DicomToJson(const OrthancPlugins::MemoryBuffer& dicom,
-                                  OrthancPluginDicomToJsonFormat format,
-                                  OrthancPluginDicomToJsonFlags flags,
-                                  uint32_t maxStringLength)
+  void MemoryBuffer::DicomToJson(Json::Value& target,
+                                 OrthancPluginDicomToJsonFormat format,
+                                 OrthancPluginDicomToJsonFlags flags,
+                                 uint32_t maxStringLength)
   {
-    Assign(OrthancPluginDicomBufferToJson(context_, dicom.GetData(), dicom.GetSize(), 
-                                          format, flags, maxStringLength));
+    OrthancString str(context_);
+    str.Assign(OrthancPluginDicomBufferToJson(context_, GetData(), GetSize(), format, flags, maxStringLength));
+    str.ToJson(target);
   }
 
   
