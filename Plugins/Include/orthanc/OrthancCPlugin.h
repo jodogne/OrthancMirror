@@ -501,6 +501,9 @@ extern "C"
     _OrthancPluginService_GetFindQueryTag = 7007,
     _OrthancPluginService_GetFindQueryTagName = 7008,
     _OrthancPluginService_GetFindQueryValue = 7009,
+    _OrthancPluginService_CreateFindMatcher = 7010,
+    _OrthancPluginService_FreeFindMatcher = 7011,
+    _OrthancPluginService_FindMatcherIsMatch = 7012,
 
     _OrthancPluginService_INTERNAL = 0x7fffffff
   } _OrthancPluginService;
@@ -852,6 +855,14 @@ extern "C"
    * @ingroup DicomCallbacks
    **/
   typedef struct _OrthancPluginFindAnswers_t OrthancPluginFindAnswers;
+
+
+
+  /**
+   * @brief Opaque structure to an object that can be used to check whether a DICOM instance matches a C-Find query.
+   * @ingroup Toolbox
+   **/
+  typedef struct _OrthancPluginFindAnswers_t OrthancPluginFindMatcher;
 
 
 
@@ -5411,6 +5422,123 @@ extern "C"
   }
 
 
+
+  typedef struct
+  {
+    OrthancPluginFindMatcher** target;
+    const void*                query;
+    uint32_t                   size;
+  } _OrthancPluginCreateFindMatcher;
+
+
+  /**
+   * @brief Create a C-Find matcher.
+   *
+   * This function creates a "matcher" object that can be used to
+   * check whether a DICOM instance matches a C-Find query. The C-Find
+   * query must be expressed as a DICOM buffer.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param query The C-Find DICOM query.
+   * @param size The size of the DICOM query.
+   * @return The newly allocated matcher. It must be freed with OrthancPluginFreeFindMatcher().
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginFindMatcher* OrthancPluginCreateFindMatcher(
+    OrthancPluginContext*  context,
+    const void*            query,
+    uint32_t               size)
+  {
+    OrthancPluginFindMatcher* target = NULL;
+
+    _OrthancPluginCreateFindMatcher params;
+    memset(&params, 0, sizeof(params));
+    params.target = &target;
+    params.query = query;
+    params.size = size;
+
+    if (context->InvokeService(context, _OrthancPluginService_CreateFindMatcher, &params) != OrthancPluginErrorCode_Success)
+    {
+      return NULL;
+    }
+    else
+    {
+      return target;
+    }
+  }
+
+
+  typedef struct
+  {
+    OrthancPluginFindMatcher*   matcher;
+  } _OrthancPluginFreeFindMatcher;
+
+  /**
+   * @brief Free a C-Find matcher.
+   *
+   * This function frees a matcher that was created using OrthancPluginCreateFindMatcher().
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param matcher The matcher of interest.
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE void  OrthancPluginFreeFindMatcher(
+    OrthancPluginContext*     context, 
+    OrthancPluginFindMatcher* matcher)
+  {
+    _OrthancPluginFreeFindMatcher params;
+    params.matcher = matcher;
+
+    context->InvokeService(context, _OrthancPluginService_FreeFindMatcher, &params);
+  }
+
+
+  typedef struct
+  {
+    const OrthancPluginFindMatcher*  matcher;
+    const void*                      dicom;
+    uint32_t                         size;
+    int32_t*                         isMatch;
+  } _OrthancPluginFindMatcherIsMatch;
+
+  /**
+   * @brief Test whether a DICOM instance matches a C-Find query.
+   *
+   * This function checks whether one DICOM instance matches C-Find
+   * matcher that was previously allocated using
+   * OrthancPluginCreateFindMatcher().
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param matcher The matcher of interest.
+   * @param dicom The DICOM instance to be matched.
+   * @param size The size of the DICOM instance.
+   * @return 1 if the DICOM instance matches the query, 0 otherwise.
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE int32_t  OrthancPluginFindMatcherIsMatch(
+    OrthancPluginContext*            context,
+    const OrthancPluginFindMatcher*  matcher,
+    const void*                      dicom,
+    uint32_t                         size)
+  {
+    int32_t isMatch = 0;
+
+    _OrthancPluginFindMatcherIsMatch params;
+    params.matcher = matcher;
+    params.dicom = dicom;
+    params.size = size;
+    params.isMatch = &isMatch;
+
+    if (context->InvokeService(context, _OrthancPluginService_FindMatcherIsMatch, &params) == OrthancPluginErrorCode_Success)
+    {
+      return isMatch;
+    }
+    else
+    {
+      /* Error: Assume non-match */
+      return 0;
+    }
+  }
 
 
 #ifdef  __cplusplus

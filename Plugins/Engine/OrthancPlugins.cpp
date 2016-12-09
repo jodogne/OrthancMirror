@@ -2592,6 +2592,49 @@ namespace Orthanc
         return true;
       }
 
+      case _OrthancPluginService_CreateFindMatcher:
+      {
+        const _OrthancPluginCreateFindMatcher& p =
+          *reinterpret_cast<const _OrthancPluginCreateFindMatcher*>(parameters);
+        ParsedDicomFile query(p.query, p.size);
+        *(p.target) = reinterpret_cast<OrthancPluginFindMatcher*>
+          (new HierarchicalMatcher(query, Configuration::GetGlobalBoolParameter("CaseSensitivePN", false)));
+        return true;
+      }
+
+      case _OrthancPluginService_FreeFindMatcher:
+      {
+        const _OrthancPluginFreeFindMatcher& p =
+          *reinterpret_cast<const _OrthancPluginFreeFindMatcher*>(parameters);
+
+        if (p.matcher == NULL)
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+        else
+        {
+          delete reinterpret_cast<HierarchicalMatcher*>(p.matcher);
+          return true;
+        }
+      }
+
+      case _OrthancPluginService_FindMatcherIsMatch:
+      {
+        const _OrthancPluginFindMatcherIsMatch& p =
+          *reinterpret_cast<const _OrthancPluginFindMatcherIsMatch*>(parameters);
+
+        if (p.matcher == NULL)
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+        else
+        {
+          ParsedDicomFile query(p.dicom, p.size);
+          reinterpret_cast<const HierarchicalMatcher*>(p.matcher)->Match(query);
+          return true;
+        }
+      }
+
       default:
         return false;
     }
