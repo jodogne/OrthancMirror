@@ -6,7 +6,7 @@ General
 
 * Handling of private tags/creators in the "Dictionary" configuration option
 * New configuration options: "LoadPrivateDictionary", "DicomScuTimeout" and "DicomScpTimeout"
-* New metadata automatically computed at the instance level: "TransferSyntax"
+* New metadata automatically computed at the instance level: "TransferSyntax" and "SopClassUid"
 
 REST API
 --------

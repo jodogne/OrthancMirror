@@ -159,6 +159,7 @@ namespace Orthanc
     MetadataType_LastUpdate = 7,
     MetadataType_Instance_Origin = 8,          // New in Orthanc 0.9.5
     MetadataType_Instance_TransferSyntax = 9,  // New in Orthanc 1.2.0
+    MetadataType_Instance_SopClassUid = 10,    // New in Orthanc 1.2.0
 
     // Make sure that the value "65535" can be stored into this enumeration
     MetadataType_StartUser = 1024,

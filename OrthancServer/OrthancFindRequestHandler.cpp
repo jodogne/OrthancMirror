@@ -107,10 +107,34 @@ namespace Orthanc
   }
 
 
-  static void ExtractTagFromInstances(std::set<std::string>& target,
-                                      ServerContext& context,
-                                      const DicomTag& tag,
-                                      const std::list<std::string>& instances)
+  static bool ExtractMetadata(std::set<std::string>& target,
+                              ServerIndex& index,
+                              MetadataType metadata,
+                              const std::list<std::string>& resources)
+  {
+    for (std::list<std::string>::const_iterator
+           it = resources.begin(); it != resources.end(); ++it)
+    {
+      std::string value;
+      if (index.LookupMetadata(value, *it, metadata))
+      {
+        target.insert(value);
+      }
+      else
+      {
+        // This metadata is unavailable for some resource, give up
+        return false;
+      }
+    }
+
+    return true;
+  }  
+
+
+  static void ExtractTagFromInstancesOnDisk(std::set<std::string>& target,
+                                            ServerContext& context,
+                                            const DicomTag& tag,
+                                            const std::list<std::string>& instances)
   {
     // WARNING: This function is slow, as it reads the JSON file
     // summarizing each instance of interest from the hard drive.
@@ -226,10 +250,16 @@ namespace Orthanc
 
     if (query.HasTag(DICOM_TAG_SOP_CLASSES_IN_STUDY))
     {
-      if (Configuration::GetGlobalBoolParameter("AllowFindSopClassesInStudy", false))
+      std::set<std::string> values;
+
+      if (ExtractMetadata(values, index, MetadataType_Instance_SopClassUid, instances))
       {
-        std::set<std::string> values;
-        ExtractTagFromInstances(values, context, DICOM_TAG_SOP_CLASS_UID, instances);
+        // The metadata "SopClassUid" is available for each of these instances
+        StoreSetOfStrings(result, DICOM_TAG_SOP_CLASSES_IN_STUDY, values);
+      }
+      else if (Configuration::GetGlobalBoolParameter("AllowFindSopClassesInStudy", false))
+      {
+        ExtractTagFromInstancesOnDisk(values, context, DICOM_TAG_SOP_CLASS_UID, instances);
         StoreSetOfStrings(result, DICOM_TAG_SOP_CLASSES_IN_STUDY, values);
       }
       else
