@@ -1943,4 +1943,23 @@ namespace Orthanc
       }
     }
   }
+
+
+  bool FromDcmtkBridge::LookupTransferSyntax(std::string& result,
+                                             DcmFileFormat& dicom)
+  {
+    const char* value = NULL;
+
+    if (dicom.getMetaInfo() != NULL &&
+        dicom.getMetaInfo()->findAndGetString(DCM_TransferSyntaxUID, value).good() &&
+        value != NULL)
+    {
+      result.assign(value);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
 }

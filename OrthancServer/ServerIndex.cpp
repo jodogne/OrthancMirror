@@ -40,6 +40,7 @@
 #include "ServerIndexChange.h"
 #include "EmbeddedResources.h"
 #include "OrthancInitialization.h"
+#include "ParsedDicomFile.h"
 #include "ServerToolbox.h"
 #include "../Core/Toolbox.h"
 #include "../Core/Logging.h"
@@ -2235,5 +2236,68 @@ namespace Orthanc
 
     target = db_.GetPublicId(id);
     return true;
+  }
+
+
+  void ServerIndex::ReconstructInstance(ParsedDicomFile& dicom)
+  {
+    DicomMap summary;
+    dicom.ExtractDicomSummary(summary);
+
+    DicomInstanceHasher hasher(summary);
+
+    boost::mutex::scoped_lock lock(mutex_);
+
+    try
+    {
+      Transaction t(*this);
+
+      int64_t patient = -1, study = -1, series = -1, instance = -1;
+
+      ResourceType dummy;      
+      if (!db_.LookupResource(patient, dummy, hasher.HashPatient()) ||
+          !db_.LookupResource(study, dummy, hasher.HashStudy()) ||
+          !db_.LookupResource(series, dummy, hasher.HashSeries()) ||
+          !db_.LookupResource(instance, dummy, hasher.HashInstance()) ||
+          patient == -1 ||
+          study == -1 ||
+          series == -1 ||
+          instance == -1)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      db_.ClearMainDicomTags(patient);
+      db_.ClearMainDicomTags(study);
+      db_.ClearMainDicomTags(series);
+      db_.ClearMainDicomTags(instance);
+
+      ServerToolbox::StoreMainDicomTags(db_, patient, ResourceType_Patient, summary);
+      ServerToolbox::StoreMainDicomTags(db_, study, ResourceType_Study, summary);
+      ServerToolbox::StoreMainDicomTags(db_, series, ResourceType_Series, summary);
+      ServerToolbox::StoreMainDicomTags(db_, instance, ResourceType_Instance, summary);
+
+      {
+        std::string s;
+        if (dicom.LookupTransferSyntax(s))
+        {
+          db_.SetMetadata(instance, MetadataType_Instance_TransferSyntax, s);
+        }
+      }
+
+      const DicomValue* value;
+      if ((value = summary.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&
+          !value->IsNull() &&
+          !value->IsBinary())
+      {
+        db_.SetMetadata(instance, MetadataType_Instance_SopClassUid, value->GetContent());
+      }
+
+      t.Commit(0);  // No change in the DB size
+    }
+    catch (OrthancException& e)
+    {
+      LOG(ERROR) << "EXCEPTION [" << e.What() << "]";
+    }
   }
 }

@@ -37,7 +37,6 @@
 #include "../Core/FileStorage/StorageAccessor.h"
 #include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
-#include "ParsedDicomFile.h"
 
 #include <cassert>
 
@@ -406,7 +405,7 @@ namespace Orthanc
 
           // Update the tags of this resource
           DicomMap dicomSummary;
-          dicom.Convert(dicomSummary);
+          dicom.ExtractDicomSummary(dicomSummary);
 
           database.ClearMainDicomTags(resource);
           StoreMainDicomTags(database, resource, level, dicomSummary);
@@ -496,6 +495,30 @@ namespace Orthanc
       }
 
       return false;
+    }
+
+    
+    void ReconstructResource(ServerContext& context,
+                             const std::string& resource)
+    {
+      LOG(WARNING) << "Reconstructing resource " << resource;
+      
+      std::list<std::string> instances;
+      context.GetIndex().GetChildInstances(instances, resource);
+
+      for (std::list<std::string>::const_iterator 
+             it = instances.begin(); it != instances.end(); ++it)
+      {
+        ServerContext::DicomCacheLocker locker(context, *it);
+
+        Json::Value dicomAsJson;
+        locker.GetDicom().ExtractDicomAsJson(dicomAsJson);
+
+        std::string s = dicomAsJson.toStyledString();
+        context.AddAttachment(*it, FileContentType_DicomAsJson, s.c_str(), s.size());
+
+        context.GetIndex().ReconstructInstance(locker.GetDicom());
+      }
     }
   }
 }

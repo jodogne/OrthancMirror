@@ -166,8 +166,6 @@ namespace Orthanc
 
     bool ExtractPdf(std::string& pdf);
 
-    void Convert(DicomMap& tags);
-
     void GetRawFrame(std::string& target, // OUT
                      std::string& mime,   // OUT
                      unsigned int frameId);  // IN
@@ -178,5 +176,11 @@ namespace Orthanc
                                            DicomFromJsonFlags flags);
 
     void ChangeEncoding(Encoding target);
+
+    void ExtractDicomSummary(DicomMap& target) const;
+
+    void ExtractDicomAsJson(Json::Value& target) const;
+
+    bool LookupTransferSyntax(std::string& result);
   };
 }

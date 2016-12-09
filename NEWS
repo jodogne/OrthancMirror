@@ -17,15 +17,18 @@ REST API
 * "Asynchronous" flag for URIs "/modalities/{...}/store" and "/peers/{...}/store"
   to avoid waiting for the completion of image transfers
 * Possibility to DELETE "dicom-as-json" attachments to reconstruct the JSON summaries
+  (useful if "Dictionary" has changed)
 * "Keep" option for modifications to keep original DICOM identifiers (advanced feature)
 * "/tools/default-encoding" to get or temporarily change the default encoding
+* "/{resource}/{id}/reconstruct" to reconstruct the main DICOM tags, the JSON summary and
+  the metadata of a resource (useful to compute new metadata, or if using "Keep" above)
 
 Plugins
 -------
 
 * New function: "OrthancPluginRegisterPrivateDictionaryTag()" to register private tags
 * More control over client cache in the ServeFolders plugin
-* New C++ help wrappers in "Plugins/Samples/Common/" to read DICOM datasets
+* New C++ help wrappers in "Plugins/Samples/Common/" to read DICOM datasets from REST API
 
 Maintenance
 -----------

@@ -100,7 +100,7 @@ namespace Orthanc
                                        size_t i)
   {
     Run();
-    answers_.GetAnswer(i).Convert(target);
+    answers_.GetAnswer(i).ExtractDicomSummary(target);
   }
 
 

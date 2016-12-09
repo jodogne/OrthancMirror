@@ -149,8 +149,7 @@ namespace Orthanc
     level_(ResourceType_Instance),
     allowManualIdentifiers_(true),
     keepStudyInstanceUid_(false),
-    keepSeriesInstanceUid_(false),
-    keepSopInstanceUid_(false)
+    keepSeriesInstanceUid_(false)
   {
   }
 
@@ -177,11 +176,6 @@ namespace Orthanc
     if (tag == DICOM_TAG_SERIES_INSTANCE_UID)
     {
       keepSeriesInstanceUid_ = true;
-    }
-
-    if (tag == DICOM_TAG_SOP_INSTANCE_UID)
-    {
-      keepSopInstanceUid_ = true;
     }
 
     MarkNotOrthancAnonymization();
@@ -510,14 +504,7 @@ namespace Orthanc
     if (level_ <= ResourceType_Instance &&  // Always true
         !IsReplaced(DICOM_TAG_SOP_INSTANCE_UID))
     {
-      if (keepSopInstanceUid_)
-      {
-        LOG(WARNING) << "Modifying an instance while keeping its original SOPInstanceUID: This should be avoided!";
-      }
-      else
-      {
-        MapDicomIdentifier(toModify, ResourceType_Instance);
-      }
+      MapDicomIdentifier(toModify, ResourceType_Instance);
     }
   }
 }

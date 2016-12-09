@@ -1381,6 +1381,15 @@ namespace Orthanc
   }
 
 
+  template <enum ResourceType type>
+  static void ReconstructResource(RestApiPostCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+    ServerToolbox::ReconstructResource(context, call.GetUriComponent("id", ""));
+    call.GetOutput().AnswerBuffer("", "text/plain");
+  }
+
+
   void OrthancRestApi::RegisterResources()
   {
     Register("/instances", ListResources<ResourceType_Instance>);
@@ -1480,5 +1489,10 @@ namespace Orthanc
     Register("/instances/{id}/content/*", GetRawContent);
 
     Register("/series/{id}/ordered-slices", OrderSlices);
+
+    Register("/patients/{id}/reconstruct", ReconstructResource<ResourceType_Patient>);
+    Register("/studies/{id}/reconstruct", ReconstructResource<ResourceType_Study>);
+    Register("/series/{id}/reconstruct", ReconstructResource<ResourceType_Series>);
+    Register("/instances/{id}/reconstruct", ReconstructResource<ResourceType_Instance>);
   }
 }

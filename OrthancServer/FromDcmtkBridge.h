@@ -199,5 +199,8 @@ namespace Orthanc
 
     static void FromJson(DicomMap& values,
                          const Json::Value& result);
+
+    static bool LookupTransferSyntax(std::string& result,
+                                     DcmFileFormat& dicom);
   };
 }

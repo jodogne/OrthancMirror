@@ -142,7 +142,6 @@ namespace Orthanc
 
     static bool HasConfigurationChanged();
 
-
     static void ExtractDicomSummary(DicomMap& target, 
                                     DcmItem& dataset);
 
