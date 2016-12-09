@@ -33,8 +33,8 @@
 #include "../PrecompiledHeadersServer.h"
 #include "DicomFindAnswers.h"
 
+#include "../OrthancInitialization.h"
 #include "../FromDcmtkBridge.h"
-#include "../ToDcmtkBridge.h"
 #include "../../Core/OrthancException.h"
 
 #include <memory>
@@ -44,72 +44,42 @@
 
 namespace Orthanc
 {
-  class DicomFindAnswers::Answer : public boost::noncopyable
+  void DicomFindAnswers::AddAnswerInternal(ParsedDicomFile* answer)
   {
-  private:
-    ParsedDicomFile* dicom_;
-    DicomMap*        map_;
+    std::auto_ptr<ParsedDicomFile> protection(answer);
 
-    void CleanupDicom(bool isWorklist)
+    if (isWorklist_)
     {
-      if (isWorklist &&
-          dicom_ != NULL)
-      {
-        // These lines are necessary when serving worklists, otherwise
-        // Orthanc does not behave as "wlmscpfs"
-        dicom_->Remove(DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID);
-        dicom_->Remove(DICOM_TAG_SOP_INSTANCE_UID);
-      }
+      // These lines are necessary when serving worklists, otherwise
+      // Orthanc does not behave as "wlmscpfs"
+      protection->Remove(DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID);
+      protection->Remove(DICOM_TAG_SOP_INSTANCE_UID);
     }
 
-  public:
-    Answer(bool isWorklist,
-           ParsedDicomFile& dicom) : 
-      dicom_(dicom.Clone()),
-      map_(NULL)
+    protection->ChangeEncoding(encoding_);
+
+    answers_.push_back(protection.release());
+  }
+
+
+  DicomFindAnswers::DicomFindAnswers(bool isWorklist) : 
+    encoding_(Configuration::GetDefaultEncoding()),
+    isWorklist_(isWorklist),
+    complete_(true)
+  {
+  }
+
+
+  void DicomFindAnswers::SetEncoding(Encoding encoding)
+  {
+    for (size_t i = 0; i < answers_.size(); i++)
     {
-      CleanupDicom(isWorklist);
+      assert(answers_[i] != NULL);
+      answers_[i]->ChangeEncoding(encoding);
     }
 
-    Answer(bool isWorklist,
-           const void* dicom,
-           size_t size) : 
-      dicom_(new ParsedDicomFile(dicom, size)),
-      map_(NULL)
-    {
-      CleanupDicom(isWorklist);
-    }
-
-    Answer(const DicomMap& map) : 
-      dicom_(NULL),
-      map_(map.Clone())
-    {
-    }
-
-    ~Answer()
-    {
-      if (dicom_ != NULL)
-      {
-        delete dicom_;
-      }
-
-      if (map_ != NULL)
-      {
-        delete map_;
-      }
-    }
-
-    ParsedDicomFile& GetDicomFile()
-    {
-      if (dicom_ == NULL)
-      {
-        assert(map_ != NULL);
-        dicom_ = new ParsedDicomFile(*map_);
-      }
-
-      return *dicom_;
-    }
-  };
+    encoding_ = encoding;
+  }
 
 
   void DicomFindAnswers::SetWorklist(bool isWorklist)
@@ -149,39 +119,32 @@ namespace Orthanc
 
   void DicomFindAnswers::Add(const DicomMap& map)
   {
-    answers_.push_back(new Answer(map));
+    AddAnswerInternal(new ParsedDicomFile(map, encoding_));
   }
 
 
   void DicomFindAnswers::Add(ParsedDicomFile& dicom)
   {
-    answers_.push_back(new Answer(isWorklist_, dicom));
+    AddAnswerInternal(dicom.Clone());
   }
-
 
   void DicomFindAnswers::Add(const void* dicom,
                              size_t size)
   {
-    answers_.push_back(new Answer(isWorklist_, dicom, size));
-  }
-
-
-  DicomFindAnswers::Answer& DicomFindAnswers::GetAnswerInternal(size_t index) const
-  {
-    if (index < answers_.size())
-    {
-      return *answers_.at(index);
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
+    AddAnswerInternal(new ParsedDicomFile(dicom, size));
   }
 
 
   ParsedDicomFile& DicomFindAnswers::GetAnswer(size_t index) const
   {
-    return GetAnswerInternal(index).GetDicomFile();
+    if (index < answers_.size())
+    {
+      return *answers_[index];
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
   }
 
 

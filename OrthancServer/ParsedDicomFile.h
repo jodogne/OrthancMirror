@@ -125,6 +125,7 @@ namespace Orthanc
       RemovePrivateTagsInternal(&toKeep);
     }
 
+    // WARNING: This function handles the decoding of strings to UTF8
     bool GetTagValue(std::string& value,
                      const DicomTag& tag);
 
@@ -143,6 +144,8 @@ namespace Orthanc
 
     Encoding GetEncoding() const;
 
+    // WARNING: This function only sets the encoding, it will not
+    // convert the encoding of the tags. Use "ChangeEncoding()" if need be.
     void SetEncoding(Encoding encoding);
 
     void DatasetToJson(Json::Value& target, 
@@ -173,6 +176,7 @@ namespace Orthanc
 
     static ParsedDicomFile* CreateFromJson(const Json::Value& value,
                                            DicomFromJsonFlags flags);
-  };
 
+    void ChangeEncoding(Encoding target);
+  };
 }

@@ -88,6 +88,10 @@ namespace Orthanc
                                    unsigned int maxStringLength,
                                    Encoding defaultEncoding);
 
+    static void ChangeStringEncoding(DcmItem& dataset,
+                                     Encoding source,
+                                     Encoding target);
+
   public:
     static void InitializeDictionary(bool loadPrivateDictionary);
 

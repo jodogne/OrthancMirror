@@ -114,8 +114,8 @@ Code refactoring
 
 * Use Semaphore::Locker everywhere (instead of explicit
   Release() and Acquire())
-* Avoid direct calls to FromDcmtkBridge, go through ParsedDicomFile
-  wherever possible
+* Avoid direct calls to FromDcmtkBridge (make most of its 
+  methods private), go through ParsedDicomFile wherever possible
 
 
 =================
