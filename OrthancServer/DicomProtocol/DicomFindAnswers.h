@@ -39,25 +39,27 @@ namespace Orthanc
   class DicomFindAnswers : public boost::noncopyable
   {
   private:
-    class Answer;
+    Encoding                      encoding_;
+    bool                          isWorklist_;
+    std::vector<ParsedDicomFile*> answers_;
+    bool                          complete_;
 
-    bool                 isWorklist_;
-    std::vector<Answer*> answers_;
-    bool                 complete_;
-
-    Answer& GetAnswerInternal(size_t index) const;
+    void AddAnswerInternal(ParsedDicomFile* answer);
 
   public:
-    DicomFindAnswers(bool isWorklist) : 
-      isWorklist_(isWorklist),
-      complete_(true)
-    {
-    }
+    DicomFindAnswers(bool isWorklist);
 
     ~DicomFindAnswers()
     {
       Clear();
     }
+
+    Encoding GetEncoding() const
+    {
+      return encoding_;
+    }
+
+    void SetEncoding(Encoding encoding);
 
     void SetWorklist(bool isWorklist);
 

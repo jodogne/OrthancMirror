@@ -1384,4 +1384,16 @@ namespace Orthanc
   {
     return DicomFrameIndex::GetFramesCount(*pimpl_->file_);
   }
+
+
+  void ParsedDicomFile::ChangeEncoding(Encoding target)
+  {
+    Encoding source = GetEncoding();
+
+    if (source != target)  // Avoid unnecessary conversion
+    {
+      ReplacePlainString(DICOM_TAG_SPECIFIC_CHARACTER_SET, GetDicomSpecificCharacterSet(target));
+      FromDcmtkBridge::ChangeStringEncoding(*pimpl_->file_->getDataset(), source, target);
+    }
+  }
 }

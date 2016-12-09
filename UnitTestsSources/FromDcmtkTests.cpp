@@ -1169,3 +1169,49 @@ TEST(ParsedDicomFile, DicomMapEncodings2)
     }
   }
 }
+
+
+TEST(ParsedDicomFile, ChangeEncoding)
+{
+  for (unsigned int i = 0; i < testEncodingsCount; i++)
+  {
+    // 1251 codepage is not supported by the core DICOM standard, ignore it
+    if (testEncodings[i] != Encoding_Windows1251) 
+    {
+      DicomMap m;
+      m.SetValue(DICOM_TAG_PATIENT_NAME, testEncodingsExpected[i], false);
+
+      std::string tag;
+
+      ParsedDicomFile dicom(m, Encoding_Utf8);
+      ASSERT_EQ(Encoding_Utf8, dicom.GetEncoding());
+      ASSERT_TRUE(dicom.GetTagValue(tag, DICOM_TAG_PATIENT_NAME));
+      ASSERT_EQ(tag, testEncodingsExpected[i]);
+
+      {
+        Json::Value v;
+        dicom.DatasetToJson(v, DicomToJsonFormat_Human, DicomToJsonFlags_Default, 0);
+        ASSERT_STREQ(v["SpecificCharacterSet"].asCString(), "ISO_IR 192");
+        ASSERT_STREQ(v["PatientName"].asCString(), testEncodingsExpected[i]);
+      }
+
+      dicom.ChangeEncoding(testEncodings[i]);
+
+      ASSERT_EQ(testEncodings[i], dicom.GetEncoding());
+      
+      const char* c = NULL;
+      ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->findAndGetString(DCM_PatientName, c).good());
+      EXPECT_STREQ(c, testEncodingsEncoded[i]);
+      
+      ASSERT_TRUE(dicom.GetTagValue(tag, DICOM_TAG_PATIENT_NAME));  // Decodes to UTF-8
+      EXPECT_EQ(tag, testEncodingsExpected[i]);
+
+      {
+        Json::Value v;
+        dicom.DatasetToJson(v, DicomToJsonFormat_Human, DicomToJsonFlags_Default, 0);
+        ASSERT_STREQ(v["SpecificCharacterSet"].asCString(), GetDicomSpecificCharacterSet(testEncodings[i]));
+        ASSERT_STREQ(v["PatientName"].asCString(), testEncodingsExpected[i]);
+      }
+    }
+  }
+}

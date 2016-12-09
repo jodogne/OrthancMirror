@@ -1897,4 +1897,50 @@ namespace Orthanc
       target.SetValue(ParseTag(members[i]), value.asString(), false);
     }
   }
+
+
+  void FromDcmtkBridge::ChangeStringEncoding(DcmItem& dataset,
+                                             Encoding source,
+                                             Encoding target)
+  {
+    // Recursive exploration of a dataset to change the encoding of
+    // each string-like element
+
+    if (source == target)
+    {
+      return;
+    }
+
+    for (unsigned long i = 0; i < dataset.card(); i++)
+    {
+      DcmElement* element = dataset.getElement(i);
+      if (element)
+      {
+        if (element->isLeaf())
+        {
+          char *c = NULL;
+          if (element->isaString() &&
+              element->getString(c).good() && 
+              c != NULL)
+          {
+            std::string a = Toolbox::ConvertToUtf8(c, source);
+            std::string b = Toolbox::ConvertFromUtf8(a, target);
+            element->putString(b.c_str());
+          }
+        }
+        else
+        {
+          // "All subclasses of DcmElement except for DcmSequenceOfItems
+          // are leaf nodes, while DcmSequenceOfItems, DcmItem, DcmDataset
+          // etc. are not." The following dynamic_cast is thus OK.
+          DcmSequenceOfItems& sequence = dynamic_cast<DcmSequenceOfItems&>(*element);
+
+          for (unsigned long j = 0; j < sequence.card(); j++)
+          {
+            ChangeStringEncoding(*sequence.getItem(j), source, target);
+          }
+        }
+      }
+    }
+  }
 }
