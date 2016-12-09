@@ -793,18 +793,22 @@ TEST(ServerIndex, AttachmentRecycling)
     instance.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "study-" + id, false);
     instance.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, "series-" + id, false);
     instance.SetValue(DICOM_TAG_SOP_INSTANCE_UID, "instance-" + id, false);
+    instance.SetValue(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.1", false);  // CR image
 
     std::map<MetadataType, std::string> instanceMetadata;
     DicomInstanceToStore toStore;
     toStore.SetSummary(instance);
     ASSERT_EQ(StoreStatus_Success, index.Store(instanceMetadata, toStore, attachments));
-    ASSERT_EQ(4u, instanceMetadata.size());
+    ASSERT_EQ(5u, instanceMetadata.size());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_RemoteAet) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_ReceptionDate) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_TransferSyntax) != instanceMetadata.end());
+    ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_SopClassUid) != instanceMetadata.end());
 
     // By default, an Explicit VR Little Endian is used by Orthanc
     ASSERT_EQ("1.2.840.10008.1.2.1", instanceMetadata[MetadataType_Instance_TransferSyntax]);
+
+    ASSERT_EQ("1.2.840.10008.5.1.4.1.1.1", instanceMetadata[MetadataType_Instance_SopClassUid]);
 
     DicomInstanceHasher hasher(instance);
     ids.push_back(hasher.HashPatient());

@@ -787,6 +787,13 @@ namespace Orthanc
       }
 
       const DicomValue* value;
+      if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&
+          !value->IsNull() &&
+          !value->IsBinary())
+      {
+        SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_SopClassUid, value->GetContent());
+      }
+
       if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_INSTANCE_NUMBER)) != NULL ||
           (value = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGE_INDEX)) != NULL)
       {
