@@ -469,6 +469,7 @@ TEST(ParsedDicomFile, InsertReplaceStrings)
   f.ReplacePlainString(DICOM_TAG_SOP_CLASS_UID, "Tata");  // (**)
 
   std::string s;
+  ASSERT_FALSE(f.LookupTransferSyntax(s));
 
   ASSERT_THROW(f.Replace(DICOM_TAG_ACCESSION_NUMBER, std::string("Accession"),
                          false, DicomReplaceMode_ThrowIfAbsent), OrthancException);

@@ -32,8 +32,7 @@
 
 #pragma once
 
-#include "../Core/DicomFormat/DicomMap.h"
-#include "IDatabaseWrapper.h"
+#include "ServerContext.h"
 
 #include <json/json.h>
 
@@ -69,5 +68,8 @@ namespace Orthanc
                       ResourceType level);
 
     std::string NormalizeIdentifier(const std::string& value);
+
+    void ReconstructResource(ServerContext& context,
+                             const std::string& resource);
   }
 }

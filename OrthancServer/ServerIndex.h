@@ -47,6 +47,7 @@ namespace Orthanc
   class LookupResource;
   class ServerContext;
   class DicomInstanceToStore;
+  class ParsedDicomFile;
 
   class ServerIndex : public boost::noncopyable
   {
@@ -273,5 +274,7 @@ namespace Orthanc
     bool LookupParent(std::string& target,
                       const std::string& publicId,
                       ResourceType parentType);
+
+    void ReconstructInstance(ParsedDicomFile& dicom);
   };
 }

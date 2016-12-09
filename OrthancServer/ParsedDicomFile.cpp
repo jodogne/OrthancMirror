@@ -1300,12 +1300,6 @@ namespace Orthanc
   }
 
 
-  void ParsedDicomFile::Convert(DicomMap& tags)
-  {
-    Configuration::ExtractDicomSummary(tags, *pimpl_->file_->getDataset());
-  }
-
-
   ParsedDicomFile* ParsedDicomFile::CreateFromJson(const Json::Value& json,
                                                    DicomFromJsonFlags flags)
   {
@@ -1395,5 +1389,23 @@ namespace Orthanc
       ReplacePlainString(DICOM_TAG_SPECIFIC_CHARACTER_SET, GetDicomSpecificCharacterSet(target));
       FromDcmtkBridge::ChangeStringEncoding(*pimpl_->file_->getDataset(), source, target);
     }
+  }
+
+
+  void ParsedDicomFile::ExtractDicomSummary(DicomMap& target) const
+  {
+    Configuration::ExtractDicomSummary(target, *pimpl_->file_->getDataset());
+  }
+
+
+  void ParsedDicomFile::ExtractDicomAsJson(Json::Value& target) const
+  {
+    Configuration::ExtractDicomAsJson(target, *pimpl_->file_->getDataset());
+  }
+
+
+  bool ParsedDicomFile::LookupTransferSyntax(std::string& result)
+  {
+    return FromDcmtkBridge::LookupTransferSyntax(result, *pimpl_->file_);
   }
 }
