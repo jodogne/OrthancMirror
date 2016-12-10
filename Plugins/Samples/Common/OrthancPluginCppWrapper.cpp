@@ -836,12 +836,12 @@ namespace OrthancPlugins
 
 
   FindMatcher::FindMatcher(OrthancPluginContext*              context,
-                           const OrthancPluginWorklistQuery*  query) :
+                           const OrthancPluginWorklistQuery*  worklist) :
     context_(context),
     matcher_(NULL),
-    query_(query)
+    worklist_(worklist)
   {
-    if (query_ == NULL)
+    if (worklist_ == NULL)
     {
       ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_ParameterOutOfRange);
     }
@@ -852,7 +852,7 @@ namespace OrthancPlugins
                            const void*            query,
                            uint32_t               size) :
     context_(context),
-    query_(NULL)
+    worklist_(NULL)
   {
     matcher_ = OrthancPluginCreateFindMatcher(context_, query, size);
     if (matcher_ == NULL)
@@ -864,11 +864,48 @@ namespace OrthancPlugins
 
   FindMatcher::~FindMatcher()
   {
+    // The "worklist_" field 
+
     if (matcher_ != NULL)
     {
       OrthancPluginFreeFindMatcher(context_, matcher_);
     }
   }
+
+
+
+  bool FindMatcher::IsMatch(const void*  dicom,
+                            uint32_t     size) const
+  {
+    int32_t result;
+
+    if (matcher_ != NULL)
+    {
+      result = OrthancPluginFindMatcherIsMatch(context_, matcher_, dicom, size);
+    }
+    else if (worklist_ != NULL)
+    {
+      result = OrthancPluginWorklistIsMatch(context_, worklist_, dicom, size);
+    }
+    else
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_InternalError);
+    }
+
+    if (result == 0)
+    {
+      return false;
+    }
+    else if (result == 1)
+    {
+      return true;
+    }
+    else
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_InternalError);
+    }
+  }
+
 
 
   bool RestApiGet(Json::Value& result,
