@@ -339,17 +339,20 @@ namespace OrthancPlugins
   private:
     OrthancPluginContext*              context_;
     OrthancPluginFindMatcher*          matcher_;
-    const OrthancPluginWorklistQuery*  query_;
+    const OrthancPluginWorklistQuery*  worklist_;
 
   public:
     FindMatcher(OrthancPluginContext*              context,
-                const OrthancPluginWorklistQuery*  query);
+                const OrthancPluginWorklistQuery*  worklist);
 
     FindMatcher(OrthancPluginContext*  context,
                 const void*            query,
                 uint32_t               size);
 
     ~FindMatcher();
+
+    bool IsMatch(const void*  dicom,
+                 uint32_t     size) const;
   };
 
 
