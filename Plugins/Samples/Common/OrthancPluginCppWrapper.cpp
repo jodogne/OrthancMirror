@@ -835,6 +835,42 @@ namespace OrthancPlugins
   }
 
 
+  FindMatcher::FindMatcher(OrthancPluginContext*              context,
+                           const OrthancPluginWorklistQuery*  query) :
+    context_(context),
+    matcher_(NULL),
+    query_(query)
+  {
+    if (query_ == NULL)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  FindMatcher::FindMatcher(OrthancPluginContext*  context,
+                           const void*            query,
+                           uint32_t               size) :
+    context_(context),
+    query_(NULL)
+  {
+    matcher_ = OrthancPluginCreateFindMatcher(context_, query, size);
+    if (matcher_ == NULL)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_InternalError);
+    }
+  }
+
+
+  FindMatcher::~FindMatcher()
+  {
+    if (matcher_ != NULL)
+    {
+      OrthancPluginFreeFindMatcher(context_, matcher_);
+    }
+  }
+
+
   bool RestApiGet(Json::Value& result,
                   OrthancPluginContext* context,
                   const std::string& uri,

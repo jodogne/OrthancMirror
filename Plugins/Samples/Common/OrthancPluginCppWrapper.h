@@ -276,7 +276,7 @@ namespace OrthancPlugins
                         float defaultValue) const;
   };
 
-  class OrthancImage
+  class OrthancImage : public boost::noncopyable
   {
   private:
     OrthancPluginContext*  context_;
@@ -331,6 +331,25 @@ namespace OrthancPlugins
 
     void AnswerJpegImage(OrthancPluginRestOutput* output,
                          uint8_t quality);
+  };
+
+
+  class FindMatcher : public boost::noncopyable
+  {
+  private:
+    OrthancPluginContext*              context_;
+    OrthancPluginFindMatcher*          matcher_;
+    const OrthancPluginWorklistQuery*  query_;
+
+  public:
+    FindMatcher(OrthancPluginContext*              context,
+                const OrthancPluginWorklistQuery*  query);
+
+    FindMatcher(OrthancPluginContext*  context,
+                const void*            query,
+                uint32_t               size);
+
+    ~FindMatcher();
   };
 
 
