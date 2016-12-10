@@ -848,12 +848,13 @@ namespace OrthancPlugins
   }
 
 
-  FindMatcher::FindMatcher(OrthancPluginContext*  context,
-                           const void*            query,
-                           uint32_t               size) :
-    context_(context),
-    worklist_(NULL)
+  void FindMatcher::SetupDicom(OrthancPluginContext*  context,
+                               const void*            query,
+                               uint32_t               size)
   {
+    context_ = context;
+    worklist_ = NULL;
+
     matcher_ = OrthancPluginCreateFindMatcher(context_, query, size);
     if (matcher_ == NULL)
     {

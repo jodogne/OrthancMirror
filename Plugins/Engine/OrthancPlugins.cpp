@@ -2630,7 +2630,7 @@ namespace Orthanc
         else
         {
           ParsedDicomFile query(p.dicom, p.size);
-          reinterpret_cast<const HierarchicalMatcher*>(p.matcher)->Match(query);
+          *p.isMatch = reinterpret_cast<const HierarchicalMatcher*>(p.matcher)->Match(query) ? 1 : 0;
           return true;
         }
       }
