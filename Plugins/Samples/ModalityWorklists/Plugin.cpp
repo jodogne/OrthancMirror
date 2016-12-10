@@ -57,6 +57,27 @@ static void  MatchWorklist(OrthancPluginWorklistAnswers*      answers,
 }
 
 
+OrthancPlugins::FindMatcher* CreateMatcher(const OrthancPluginWorklistQuery* query,
+                                           const char*                       remoteAet)
+{
+  OrthancPlugins::MemoryBuffer dicom(context_);
+  dicom.GetDicomQuery(query);
+
+  {
+    Json::Value json;
+    dicom.DicomToJson(json, OrthancPluginDicomToJsonFormat_Short, 
+                      static_cast<OrthancPluginDicomToJsonFlags>(0), 0);
+
+    OrthancPlugins::LogInfo(context_, "Received worklist query from remote modality " + 
+                            std::string(remoteAet) + ":\n" + json.toStyledString());
+  }
+
+  return new OrthancPlugins::FindMatcher(context_, query);
+  //return new OrthancPlugins::FindMatcher(context_, dicom);
+}
+
+
+
 OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
                                 const OrthancPluginWorklistQuery* query,
                                 const char*                       remoteAet,
@@ -64,21 +85,11 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
 {
   try
   {
+    // Construct an object to match the worklists in the database against the C-Find query
+    std::auto_ptr<OrthancPlugins::FindMatcher> matcher(CreateMatcher(query, remoteAet));
+
+    // Loop over the regular files in the database folder
     namespace fs = boost::filesystem;  
-
-    {
-      OrthancPlugins::MemoryBuffer dicom(context_);
-      dicom.GetDicomQuery(query);
-
-      Json::Value json;
-      dicom.DicomToJson(json, OrthancPluginDicomToJsonFormat_Short, 
-                        static_cast<OrthancPluginDicomToJsonFlags>(0), 0);
-
-      OrthancPlugins::LogInfo(context_, "Received worklist query from remote modality " + 
-                              std::string(remoteAet) + ":\n" + json.toStyledString());
-    }
-
-    OrthancPlugins::FindMatcher matcher(context_, query);
 
     fs::path source(folder_);
     fs::directory_iterator end;
@@ -97,7 +108,8 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
 
           if (extension == ".wl")
           {
-            MatchWorklist(answers, query, matcher, it->path().string());
+            // We found a worklist (i.e. a DICOM find with extension ".wl"), match it against the query
+            MatchWorklist(answers, query, *matcher, it->path().string());
           }
         }
       }

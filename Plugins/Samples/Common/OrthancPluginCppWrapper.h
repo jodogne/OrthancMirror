@@ -341,13 +341,26 @@ namespace OrthancPlugins
     OrthancPluginFindMatcher*          matcher_;
     const OrthancPluginWorklistQuery*  worklist_;
 
+    void SetupDicom(OrthancPluginContext*  context,
+                    const void*            query,
+                    uint32_t               size);
+
   public:
     FindMatcher(OrthancPluginContext*              context,
                 const OrthancPluginWorklistQuery*  worklist);
 
     FindMatcher(OrthancPluginContext*  context,
                 const void*            query,
-                uint32_t               size);
+                uint32_t               size)
+    {
+      SetupDicom(context, query, size);
+    }
+
+    FindMatcher(OrthancPluginContext*  context,
+                const MemoryBuffer&    dicom)
+    {
+      SetupDicom(context, dicom.GetData(), dicom.GetSize());
+    }
 
     ~FindMatcher();
 
