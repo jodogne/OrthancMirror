@@ -353,6 +353,11 @@ namespace OrthancPlugins
 
     bool IsMatch(const void*  dicom,
                  uint32_t     size) const;
+
+    bool IsMatch(const MemoryBuffer& dicom) const
+    {
+      return IsMatch(dicom.GetData(), dicom.GetSize());
+    }
   };
 
 

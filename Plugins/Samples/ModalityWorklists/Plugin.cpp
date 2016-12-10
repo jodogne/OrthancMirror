@@ -34,14 +34,15 @@ static std::string folder_;
 /**
  * This is the main function for matching a DICOM worklist against a query.
  **/
-static void  MatchWorklist(OrthancPluginWorklistAnswers*     answers,
-                           const OrthancPluginWorklistQuery* query,
+static void  MatchWorklist(OrthancPluginWorklistAnswers*      answers,
+                           const OrthancPluginWorklistQuery*  query,
+                           const OrthancPlugins::FindMatcher& matcher,
                            const std::string& path)
 {
   OrthancPlugins::MemoryBuffer dicom(context_);
   dicom.ReadFile(path);
 
-  if (OrthancPluginWorklistIsMatch(context_, query, dicom.GetData(), dicom.GetSize()))
+  if (matcher.IsMatch(dicom))
   {
     // This DICOM file matches the worklist query, add it to the answers
     OrthancPluginErrorCode code = OrthancPluginWorklistAddAnswer
@@ -77,6 +78,8 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
                               std::string(remoteAet) + ":\n" + json.toStyledString());
     }
 
+    OrthancPlugins::FindMatcher matcher(context_, query);
+
     fs::path source(folder_);
     fs::directory_iterator end;
 
@@ -94,7 +97,7 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
 
           if (extension == ".wl")
           {
-            MatchWorklist(answers, query, it->path().string());
+            MatchWorklist(answers, query, matcher, it->path().string());
           }
         }
       }
