@@ -717,6 +717,7 @@ extern "C"
    **/
   typedef enum
   {
+    OrthancPluginDicomToJsonFlags_None                  = 0,
     OrthancPluginDicomToJsonFlags_IncludeBinary         = (1 << 0),  /*!< Include the binary tags */
     OrthancPluginDicomToJsonFlags_IncludePrivateTags    = (1 << 1),  /*!< Include the private tags */
     OrthancPluginDicomToJsonFlags_IncludeUnknownTags    = (1 << 2),  /*!< Include the tags unknown by the dictionary */
@@ -735,6 +736,7 @@ extern "C"
    **/
   typedef enum
   {
+    OrthancPluginCreateDicomFlags_None                  = 0,
     OrthancPluginCreateDicomFlags_DecodeDataUriScheme   = (1 << 0),  /*!< Decode fields encoded using data URI scheme */
     OrthancPluginCreateDicomFlags_GenerateIdentifiers   = (1 << 1),  /*!< Automatically generate DICOM identifiers */
 
