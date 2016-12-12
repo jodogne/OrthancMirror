@@ -57,23 +57,71 @@ static void  MatchWorklist(OrthancPluginWorklistAnswers*      answers,
 }
 
 
-OrthancPlugins::FindMatcher* CreateMatcher(const OrthancPluginWorklistQuery* query,
-                                           const char*                       remoteAet)
+static OrthancPlugins::FindMatcher* CreateMatcher(const OrthancPluginWorklistQuery* query,
+                                                  const char*                       remoteAet)
 {
+  // Extract the DICOM instance underlying the C-Find query
   OrthancPlugins::MemoryBuffer dicom(context_);
   dicom.GetDicomQuery(query);
 
-  {
-    Json::Value json;
-    dicom.DicomToJson(json, OrthancPluginDicomToJsonFormat_Short, 
-                      static_cast<OrthancPluginDicomToJsonFlags>(0), 0);
+  // Convert the DICOM as JSON, and dump it to the user in "--verbose" mode
+  Json::Value json;
+  dicom.DicomToJson(json, OrthancPluginDicomToJsonFormat_Short, 
+                    static_cast<OrthancPluginDicomToJsonFlags>(0), 0);
+  
+  OrthancPlugins::LogInfo(context_, "Received worklist query from remote modality " + 
+                          std::string(remoteAet) + ":\n" + json.toStyledString());
 
-    OrthancPlugins::LogInfo(context_, "Received worklist query from remote modality " + 
-                            std::string(remoteAet) + ":\n" + json.toStyledString());
+#if 1
+  return new OrthancPlugins::FindMatcher(context_, query);
+
+#else
+  // Alternative sample showing how to fine-tune an incoming C-Find
+  // request, before matching it against the worklist database. The
+  // code below will restrict the original DICOM request by requesting
+  // the ScheduledStationAETitle to correspond to the AET of the
+  // issuer. This code will make the integration test "test_other_aet"
+  // succeed (cf. the orthanc-tests repository).
+
+  static const char* SCHEDULED_PROCEDURE_STEP_SEQUENCE = "0040,0100";
+  static const char* SCHEDULED_STATION_AETITLE = "0040,0001";
+
+  if (!json.isMember(SCHEDULED_PROCEDURE_STEP_SEQUENCE))
+  {
+    // Create a ScheduledProcedureStepSequence sequence, with one empty element
+    json[SCHEDULED_PROCEDURE_STEP_SEQUENCE] = Json::arrayValue;
+    json[SCHEDULED_PROCEDURE_STEP_SEQUENCE].append(Json::objectValue);
   }
 
-  return new OrthancPlugins::FindMatcher(context_, query);
-  //return new OrthancPlugins::FindMatcher(context_, dicom);
+  Json::Value& v = json[SCHEDULED_PROCEDURE_STEP_SEQUENCE];
+
+  if (v.type() != Json::arrayValue ||
+      v.size() != 1 ||
+      v[0].type() != Json::objectValue)
+  {
+    ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
+  }
+
+  // Set the ScheduledStationAETitle if none was provided
+  if (!v[0].isMember(SCHEDULED_STATION_AETITLE) ||
+      v[0].type() != Json::stringValue ||
+      v[0][SCHEDULED_STATION_AETITLE].asString().size() == 0 ||
+      v[0][SCHEDULED_STATION_AETITLE].asString() == "*")
+  {
+    v[0][SCHEDULED_STATION_AETITLE] = remoteAet;
+  }
+
+  if (json.isMember("0010,21c0") &&
+      json["0010,21c0"].asString().size() == 0)
+  {
+    json.removeMember("0010,21c0");
+  }
+
+  // Encode the modified JSON as a DICOM instance, then convert it to a C-Find matcher
+  OrthancPlugins::MemoryBuffer modified(context_);
+  modified.CreateDicom(json, OrthancPluginCreateDicomFlags_None);
+  return new OrthancPlugins::FindMatcher(context_, modified);
+#endif
 }
 
 

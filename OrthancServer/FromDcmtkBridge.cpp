@@ -1646,7 +1646,9 @@ namespace Orthanc
 
     if (!ok)
     {
-      throw OrthancException(ErrorCode_InternalError);
+      LOG(ERROR) << "While creating a DICOM instance, tag (" << tag.Format()
+                 << ") has out-of-range value: \"" << *decoded << "\"";
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
   }
 
@@ -1663,6 +1665,11 @@ namespace Orthanc
       case Json::stringValue:
         element.reset(CreateElementForTag(tag));
         FillElementWithString(*element, tag, value.asString(), decodeDataUriScheme, dicomEncoding);
+        break;
+
+      case Json::nullValue:
+        element.reset(CreateElementForTag(tag));
+        FillElementWithString(*element, tag, "", decodeDataUriScheme, dicomEncoding);
         break;
 
       case Json::arrayValue:
@@ -1742,10 +1749,16 @@ namespace Orthanc
       {
         const Json::Value& value = json[tags[i]];
         if (value.type() != Json::stringValue ||
-            !GetDicomEncoding(encoding, value.asCString()))
+            (value.asString().length() != 0 &&
+             !GetDicomEncoding(encoding, value.asCString())))
         {
           LOG(ERROR) << "Unknown encoding while creating DICOM from JSON: " << value;
           throw OrthancException(ErrorCode_BadRequest);
+        }
+
+        if (value.asString().length() == 0)
+        {
+          return defaultEncoding;
         }
       }
     }
