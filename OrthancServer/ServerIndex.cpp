@@ -374,6 +374,8 @@ namespace Orthanc
         continue;
       }
 
+      Logging::Flush();
+
       boost::mutex::scoped_lock lock(that->mutex_);
       that->db_.FlushToDisk();
       count = 0;
