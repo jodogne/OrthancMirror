@@ -47,7 +47,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
 #include <curl/curl.h>
-#include <boost/thread.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 
 
 #if ORTHANC_ENABLE_JPEG == 1
