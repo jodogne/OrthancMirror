@@ -57,7 +57,7 @@ namespace Orthanc
     PhotometricInterpretation  photometric_;
 
   public:
-    DicomImageInformation(const DicomMap& values);
+    explicit DicomImageInformation(const DicomMap& values);
 
     unsigned int GetWidth() const
     {

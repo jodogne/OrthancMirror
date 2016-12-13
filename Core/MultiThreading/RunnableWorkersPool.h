@@ -47,7 +47,7 @@ namespace Orthanc
     void Stop();
 
   public:
-    RunnableWorkersPool(size_t countWorkers);
+    explicit RunnableWorkersPool(size_t countWorkers);
 
     ~RunnableWorkersPool();
 

@@ -50,12 +50,12 @@ namespace Orthanc
     void Initialize(const boost::filesystem::path& path);
 
   public:
-    FilesystemHttpSender(const std::string& path)
+    explicit FilesystemHttpSender(const std::string& path)
     {
       Initialize(path);
     }
 
-    FilesystemHttpSender(const boost::filesystem::path& path)
+    explicit FilesystemHttpSender(const boost::filesystem::path& path)
     {
       Initialize(path);
     }

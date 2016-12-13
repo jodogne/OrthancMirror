@@ -59,7 +59,7 @@ namespace Orthanc
       }
 
     public:
-      ReaderLockable(boost::shared_mutex& lock) : lock_(lock)
+      explicit ReaderLockable(boost::shared_mutex& lock) : lock_(lock)
       {
       }
     };
@@ -82,10 +82,9 @@ namespace Orthanc
       }
 
     public:
-      WriterLockable(boost::shared_mutex& lock) : lock_(lock)
+      explicit WriterLockable(boost::shared_mutex& lock) : lock_(lock)
       {
       }
-
     };
   }
 

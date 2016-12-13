@@ -64,10 +64,10 @@ namespace Orthanc
       {
       }
 
-      Bag(size_t size) : 
-      size_(size),
-      done_(0),
-      status_(BagStatus_Running)
+      explicit Bag(size_t size) : 
+        size_(size),
+        done_(0),
+        status_(BagStatus_Running)
       {
       }
     };
@@ -140,7 +140,7 @@ namespace Orthanc
     };
   
 
-    BagOfTasksProcessor(size_t countThreads);
+    explicit BagOfTasksProcessor(size_t countThreads);
 
     ~BagOfTasksProcessor();
 

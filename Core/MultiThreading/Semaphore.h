@@ -57,7 +57,7 @@ namespace Orthanc
       Semaphore&  that_;
 
     public:
-      Locker(Semaphore& that) :
+      explicit Locker(Semaphore& that) :
         that_(that)
       {
         that_.Acquire();
