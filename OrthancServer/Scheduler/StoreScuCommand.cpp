@@ -40,15 +40,23 @@ namespace Orthanc
   StoreScuCommand::StoreScuCommand(ServerContext& context,
                                    const std::string& localAet,
                                    const RemoteModalityParameters& modality,
-                                   bool ignoreExceptions,
-                                   uint16_t moveOriginatorID) : 
+                                   bool ignoreExceptions) : 
     context_(context),
     modality_(modality),
     ignoreExceptions_(ignoreExceptions),
     localAet_(localAet),
-    moveOriginatorID_(moveOriginatorID)
+    moveOriginatorID_(0)
   {
   }
+
+
+  void StoreScuCommand::SetMoveOriginator(const std::string& aet,
+                                          uint16_t id)
+  {
+    moveOriginatorAET_ = aet;
+    moveOriginatorID_ = id;
+  }
+
 
   bool StoreScuCommand::Apply(ListOfStrings& outputs,
                              const ListOfStrings& inputs)
@@ -66,7 +74,7 @@ namespace Orthanc
         std::string dicom;
         context_.ReadDicom(dicom, *it);
 
-        locker.GetConnection().Store(dicom, moveOriginatorID_);
+        locker.GetConnection().Store(dicom, moveOriginatorAET_, moveOriginatorID_);
 
         // Only chain with other commands if this command succeeds
         outputs.push_back(*it);

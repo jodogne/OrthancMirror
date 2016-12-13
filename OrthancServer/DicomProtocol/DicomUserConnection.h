@@ -135,13 +135,32 @@ namespace Orthanc
 
     void Store(const char* buffer, 
                size_t size,
+               const std::string& moveOriginatorAET,
                uint16_t moveOriginatorID);
+
+    void Store(const char* buffer, 
+               size_t size)
+    {
+      Store(buffer, size, "", 0);  // Not a C-Move
+    }
 
     void Store(const std::string& buffer,
+               const std::string& moveOriginatorAET,
                uint16_t moveOriginatorID);
 
+    void Store(const std::string& buffer)
+    {
+      Store(buffer, "", 0);  // Not a C-Move
+    }
+
     void StoreFile(const std::string& path,
+                   const std::string& moveOriginatorAET,
                    uint16_t moveOriginatorID);
+
+    void StoreFile(const std::string& path)
+    {
+      StoreFile(path, "", 0);  // Not a C-Move
+    }
 
     void Find(DicomFindAnswers& result,
               ResourceType level,

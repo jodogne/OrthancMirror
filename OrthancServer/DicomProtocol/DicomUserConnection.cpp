@@ -154,6 +154,7 @@ namespace Orthanc
 
     void Store(DcmInputStream& is, 
                DicomUserConnection& connection,
+               const std::string& moveOriginatorAET,
                uint16_t moveOriginatorID);
   };
 
@@ -259,6 +260,7 @@ namespace Orthanc
 
   void DicomUserConnection::PImpl::Store(DcmInputStream& is, 
                                          DicomUserConnection& connection,
+                                         const std::string& moveOriginatorAET,
                                          uint16_t moveOriginatorID)
   {
     CheckIsOpen();
@@ -341,12 +343,12 @@ namespace Orthanc
     request.DataSetType = DIMSE_DATASET_PRESENT;
     strncpy(request.AffectedSOPInstanceUID, sopInstance, DIC_UI_LEN);
 
-    strncpy(request.MoveOriginatorApplicationEntityTitle, 
-            connection.GetLocalApplicationEntityTitle().c_str(), DIC_AE_LEN);
-    request.opts = O_STORE_MOVEORIGINATORAETITLE;
-
-    if (moveOriginatorID != 0)
+    if (!moveOriginatorAET.empty())
     {
+      strncpy(request.MoveOriginatorApplicationEntityTitle, 
+              moveOriginatorAET.c_str(), DIC_AE_LEN);
+      request.opts = O_STORE_MOVEORIGINATORAETITLE;
+
       request.MoveOriginatorID = moveOriginatorID;  // The type DIC_US is an alias for uint16_t
       request.opts |= O_STORE_MOVEORIGINATORID;
     }
@@ -961,6 +963,7 @@ namespace Orthanc
 
   void DicomUserConnection::Store(const char* buffer, 
                                   size_t size,
+                                  const std::string& moveOriginatorAET,
                                   uint16_t moveOriginatorID)
   {
     // Prepare an input stream for the memory buffer
@@ -969,24 +972,26 @@ namespace Orthanc
       is.setBuffer(buffer, size);
     is.setEos();
       
-    pimpl_->Store(is, *this, moveOriginatorID);
+    pimpl_->Store(is, *this, moveOriginatorAET, moveOriginatorID);
   }
 
   void DicomUserConnection::Store(const std::string& buffer,
+                                  const std::string& moveOriginatorAET,
                                   uint16_t moveOriginatorID)
   {
     if (buffer.size() > 0)
-      Store(reinterpret_cast<const char*>(&buffer[0]), buffer.size(), moveOriginatorID);
+      Store(reinterpret_cast<const char*>(&buffer[0]), buffer.size(), moveOriginatorAET, moveOriginatorID);
     else
-      Store(NULL, 0, moveOriginatorID);
+      Store(NULL, 0, moveOriginatorAET, moveOriginatorID);
   }
 
   void DicomUserConnection::StoreFile(const std::string& path,
+                                      const std::string& moveOriginatorAET,
                                       uint16_t moveOriginatorID)
   {
     // Prepare an input stream for the file
     DcmInputFileStream is(path.c_str());
-    pimpl_->Store(is, *this, moveOriginatorID);
+    pimpl_->Store(is, *this, moveOriginatorAET, moveOriginatorID);
   }
 
   bool DicomUserConnection::Echo()

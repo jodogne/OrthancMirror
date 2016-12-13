@@ -13,7 +13,7 @@ REST API
 
 * "/tools/invalidate-tags" to invalidate the JSON summary of all the DICOM files
   (useful if private tags are registered, or if changing the default encoding)
-* "Permissive" flag for URI "/modalities/{...}/store" to ignore C-Store transfer errors
+* "Permissive" flag for URI "/modalities/{...}/store" to ignore C-STORE transfer errors
 * "Asynchronous" flag for URIs "/modalities/{...}/store" and "/peers/{...}/store"
   to avoid waiting for the completion of image transfers
 * Possibility to DELETE "dicom-as-json" attachments to reconstruct the JSON summaries
@@ -29,7 +29,7 @@ Plugins
 * New function: "OrthancPluginRegisterPrivateDictionaryTag()" to register private tags
 * More control over client cache in the ServeFolders plugin
 * New C++ help wrappers in "Plugins/Samples/Common/" to read DICOM datasets from REST API
-* New data structure: "OrthancPluginFindMatcher" to match DICOM against C-Find queries
+* New data structure: "OrthancPluginFindMatcher" to match DICOM against C-FIND queries
 
 Maintenance
 -----------
@@ -46,6 +46,7 @@ Maintenance
 * Content-Type for JSON documents is now "application/json; charset=utf-8"
 * Ignore "Group Length" tags in C-FIND queries
 * Fix handling of worklist SCP with ReferencedStudySequence and ReferencedPatientSequence
+* Fix handling of Move Originator AET and ID in C-MOVE SCP
 
 
 Version 1.1.0 (2016/06/27)
@@ -63,23 +64,23 @@ REST API
 --------
 
 * New URI: "/instances/.../frames/.../raw" to access the raw frames (bypass image decoding)
-* New URI "/modalities/.../move" to issue C-Move SCU requests
+* New URI "/modalities/.../move" to issue C-MOVE SCU requests
 * "MoveOriginatorID" can be specified for "/modalities/.../store"
 
 Dicom protocol
 --------------
 
-* Support of optional tags for counting resources in C-Find:
+* Support of optional tags for counting resources in C-FIND:
   0008-0061, 0008-0062, 0020-1200, 0020-1202, 0020-1204, 0020-1206, 0020-1208, 0020-1209
-* Support of Move Originator Message ID (0000,1031) in C-Store responses driven by C-Move
+* Support of Move Originator Message ID (0000,1031) in C-STORE responses driven by C-MOVE
 
 Plugins
 -------
 
 * Speedup in plugins by removing unnecessary locks
 * New callback to filter incoming HTTP requests: OrthancPluginRegisterIncomingHttpRequestFilter()
-* New callback to handle non-worklists C-Find requests: OrthancPluginRegisterFindCallback()
-* New callback to handle C-Move requests: OrthancPluginRegisterMoveCallback()
+* New callback to handle non-worklists C-FIND requests: OrthancPluginRegisterFindCallback()
+* New callback to handle C-MOVE requests: OrthancPluginRegisterMoveCallback()
 * New function: "OrthancPluginHttpClient()" to do HTTP requests with full control
 * New function: "OrthancPluginGenerateUuid()" to generate a UUID
 * More than one custom image decoder can be installed (e.g. to handle different transfer syntaxes)
@@ -87,7 +88,7 @@ Plugins
 Lua
 ---
 
-* Possibility to dynamically fix outgoing C-Find requests using "OutgoingFindRequestFilter()"
+* Possibility to dynamically fix outgoing C-FIND requests using "OutgoingFindRequestFilter()"
 * Access to the HTTP headers in the "IncomingHttpRequestFilter()" callback
 
 Image decoding
@@ -122,7 +123,7 @@ Maintenance
 Version 1.0.0 (2015/12/15)
 ==========================
 
-* Lua: "IncomingFindRequestFilter()" to apply filters to incoming C-Find requests
+* Lua: "IncomingFindRequestFilter()" to apply filters to incoming C-FIND requests
 * New function in plugin SDK: "OrthancPluginSendMultipartItem2()"
 * Fix of DICOMDIR generation with DCMTK 3.6.1, support of encodings
 * Fix range search if the lower or upper limit is absent

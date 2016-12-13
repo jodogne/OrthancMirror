@@ -687,10 +687,10 @@ namespace Orthanc
 
     virtual IMoveRequestIterator* Handle(const std::string& targetAet,
                                          const DicomMap& input,
-                                         const std::string& remoteIp,
-                                         const std::string& remoteAet,
+                                         const std::string& originatorIp,
+                                         const std::string& originatorAet,
                                          const std::string& calledAet,
-                                         uint16_t messageId)
+                                         uint16_t originatorId)
     {
       std::string levelString = ReadTag(input, DICOM_TAG_QUERY_RETRIEVE_LEVEL);
       std::string patientId = ReadTag(input, DICOM_TAG_PATIENT_ID);
@@ -712,10 +712,10 @@ namespace Orthanc
                                       studyInstanceUid.empty() ? NULL : studyInstanceUid.c_str(),
                                       seriesInstanceUid.empty() ? NULL : seriesInstanceUid.c_str(),
                                       sopInstanceUid.empty() ? NULL : sopInstanceUid.c_str(),
-                                      remoteAet.c_str(),
+                                      originatorAet.c_str(),
                                       calledAet.c_str(),
                                       targetAet.c_str(),
-                                      messageId);
+                                      originatorId);
 
       if (driver == NULL)
       {

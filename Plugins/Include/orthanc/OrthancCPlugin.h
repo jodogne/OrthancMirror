@@ -1059,18 +1059,20 @@ extern "C"
    * @param resourceType The type of the resource of interest. Note
    * that this might be set to ResourceType_None if the
    * QueryRetrieveLevel (0008,0052) tag was not provided by the
-   * issuer.
+   * issuer (i.e. the originator modality).
    * @param patientId Content of the PatientID (0x0010, 0x0020) tag of the resource of interest. Might be NULL.
    * @param accessionNumber Content of the AccessionNumber (0x0008, 0x0050) tag. Might be NULL.
    * @param studyInstanceUid Content of the StudyInstanceUID (0x0020, 0x000d) tag. Might be NULL.
    * @param seriesInstanceUid Content of the SeriesInstanceUID (0x0020, 0x000e) tag. Might be NULL.
    * @param sopInstanceUid Content of the SOPInstanceUID (0x0008, 0x0018) tag. Might be NULL.
-   * @param issuerAet The Application Entity Title (AET) of the
+   * @param originatorAet The Application Entity Title (AET) of the
    * modality from which the request originates.
    * @param sourceAet The Application Entity Title (AET) of the
    * modality that should send its DICOM files to another modality.
    * @param targetAet The Application Entity Title (AET) of the
    * modality that should receive the DICOM files.
+   * @param originatorId The Message ID issued by the originator modality,
+   * as found in tag (0000,0110) of the DICOM query emitted by the issuer.
    *
    * @return The NULL value if the plugin cannot deal with this query,
    * or a pointer to the driver object that is responsible for
@@ -1086,10 +1088,10 @@ extern "C"
     const char*                studyInstanceUid,
     const char*                seriesInstanceUid,
     const char*                sopInstanceUid,
-    const char*                issuerAet,
+    const char*                originatorAet,
     const char*                sourceAet,
     const char*                targetAet,
-    uint16_t                   moveOriginatorId);
+    uint16_t                   originatorId);
     
 
   /**

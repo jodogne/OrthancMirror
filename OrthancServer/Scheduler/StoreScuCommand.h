@@ -44,15 +44,17 @@ namespace Orthanc
     RemoteModalityParameters modality_;
     bool ignoreExceptions_;
     std::string localAet_;
+    std::string moveOriginatorAET_;
     uint16_t moveOriginatorID_;
 
   public:
     StoreScuCommand(ServerContext& context,
                     const std::string& localAet,
                     const RemoteModalityParameters& modality,
-                    bool ignoreExceptions,
-                    uint16_t moveOriginatorID /* only makes sense if this 
-                                                 command results from a C-MOVE */);
+                    bool ignoreExceptions);
+
+    void SetMoveOriginator(const std::string& aet,
+                           uint16_t id);
 
     virtual bool Apply(ListOfStrings& outputs,
                        const ListOfStrings& inputs);
