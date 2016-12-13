@@ -36,6 +36,7 @@
 
 #include "../Core/DicomFormat/DicomElement.h"
 #include "../Core/DicomFormat/DicomMap.h"
+#include "../Core/Lua/LuaFunctionCall.h"
 
 #include <dcmtk/dcmdata/dcdatset.h>
 #include <dcmtk/dcmdata/dcmetinf.h>
@@ -202,5 +203,8 @@ namespace Orthanc
 
     static bool LookupTransferSyntax(std::string& result,
                                      DcmFileFormat& dicom);
+
+    static void ExecuteToDicom(DicomMap& target,
+                               LuaFunctionCall& call);
   };
 }

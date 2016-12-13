@@ -486,62 +486,27 @@ namespace Orthanc
                                                  const std::string& remoteAet,
                                                  const std::string& calledAet)
   {
-    Json::Value output;
-
-    {
-      LuaScripting::Locker locker(context_.GetLua());
-      static const char* NAME = "IncomingFindRequestFilter";
+    LuaScripting::Locker locker(context_.GetLua());
+    static const char* CALLBACK = "IncomingFindRequestFilter";
       
-      if (!locker.GetLua().IsExistingFunction(NAME))
-      {
-        return false;
-      }
-
-      Json::Value tmp = Json::objectValue;
-      DicomArray a(source);
-
-      for (size_t i = 0; i < a.GetSize(); i++)
-      {
-        const DicomValue& v = a.GetElement(i).GetValue();
-        std::string s = (v.IsNull() || v.IsBinary()) ? "" : v.GetContent();
-        tmp[a.GetElement(i).GetTag().Format()] = s;
-      }
-
+    if (!locker.GetLua().IsExistingFunction(CALLBACK))
+    {
+      return false;
+    }
+    else
+    {
       Json::Value origin = Json::objectValue;
       origin["RemoteIp"] = remoteIp;
       origin["RemoteAet"] = remoteAet;
       origin["CalledAet"] = calledAet;
 
-      LuaFunctionCall call(locker.GetLua(), NAME);
-      call.PushJson(tmp);
+      LuaFunctionCall call(locker.GetLua(), CALLBACK);
+      call.PushDicom(source);
       call.PushJson(origin);
+      FromDcmtkBridge::ExecuteToDicom(target, call);
 
-      call.ExecuteToJson(output, true);
+      return true;
     }
-
-    // The Lua context is released at this point
-
-    if (output.type() != Json::objectValue)
-    {
-      LOG(ERROR) << "Lua: IncomingFindRequestFilter must return a table";
-      throw OrthancException(ErrorCode_LuaBadOutput);
-    }
-
-    Json::Value::Members members = output.getMemberNames();
-
-    for (size_t i = 0; i < members.size(); i++)
-    {
-      if (output[members[i]].type() != Json::stringValue)
-      {
-        LOG(ERROR) << "Lua: IncomingFindRequestFilter must return a table mapping names of DICOM tags to strings";
-        throw OrthancException(ErrorCode_LuaBadOutput);
-      }
-
-      DicomTag tag(FromDcmtkBridge::ParseTag(members[i]));
-      target.SetValue(tag, output[members[i]].asString(), false);
-    }
-
-    return true;
   }
 
 
@@ -702,7 +667,7 @@ namespace Orthanc
         }
         else
         {
-          std::auto_ptr<DicomMap> counters(ComputeCounters(context_, instances[i], level, input));
+          std::auto_ptr<DicomMap> counters(ComputeCounters(context_, instances[i], level, *filteredInput));
           AddAnswer(answers, dicom, query, sequencesToReturn, counters.get());
         }
       }

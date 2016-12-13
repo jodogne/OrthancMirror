@@ -87,6 +87,7 @@ Plugins
 Lua
 ---
 
+* Possibility to dynamically fix outgoing C-Find requests using "OutgoingFindRequestFilter()"
 * Access to the HTTP headers in the "IncomingHttpRequestFilter()" callback
 
 Image decoding

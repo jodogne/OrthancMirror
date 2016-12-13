@@ -166,4 +166,26 @@ namespace Orthanc
 
     PushJson(json);
   }
+
+
+  void LuaFunctionCall::PushDicom(const DicomMap& dicom)
+  {
+    DicomArray a(dicom);
+    PushDicom(a);
+  }
+
+
+  void LuaFunctionCall::PushDicom(const DicomArray& dicom)
+  {
+    Json::Value value = Json::objectValue;
+
+    for (size_t i = 0; i < dicom.GetSize(); i++)
+    {
+      const DicomValue& v = dicom.GetElement(i).GetValue();
+      std::string s = (v.IsNull() || v.IsBinary()) ? "" : v.GetContent();
+      value[dicom.GetElement(i).GetTag().Format()] = s;
+    }
+
+    PushJson(value);
+  }
 }
