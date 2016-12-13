@@ -61,6 +61,7 @@ namespace Orthanc
       sourceCompression_(compression),
       bytesToSkip_(0),
       skipped_(0),
+      currentChunkOffset_(0),
       ready_(false)
     {
     }

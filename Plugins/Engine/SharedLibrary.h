@@ -60,7 +60,7 @@ namespace Orthanc
     FunctionPointer GetFunctionInternal(const std::string& name);
 
   public:
-    SharedLibrary(const std::string& path);
+    explicit SharedLibrary(const std::string& path);
 
     ~SharedLibrary();
 

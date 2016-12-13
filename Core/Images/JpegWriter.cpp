@@ -105,7 +105,7 @@ namespace Orthanc
 
   void JpegWriter::SetQuality(uint8_t quality)
   {
-    if (quality <= 0 || quality > 100)
+    if (quality == 0 || quality > 100)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }

@@ -82,7 +82,7 @@ namespace Orthanc
                         bool watched);
 
   public:
-    ServerScheduler(unsigned int maxjobs);
+    explicit ServerScheduler(unsigned int maxjobs);
 
     ~ServerScheduler();
 

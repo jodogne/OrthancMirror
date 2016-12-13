@@ -47,7 +47,7 @@ namespace Orthanc
       ListOfStrings& target_;
 
     public:
-      Sink(ListOfStrings& target) : target_(target)
+      explicit Sink(ListOfStrings& target) : target_(target)
       {
       }
 

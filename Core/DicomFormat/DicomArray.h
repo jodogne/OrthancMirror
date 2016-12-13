@@ -47,7 +47,7 @@ namespace Orthanc
     Elements  elements_;
 
   public:
-    DicomArray(const DicomMap& map);
+    explicit DicomArray(const DicomMap& map);
 
     ~DicomArray();
 

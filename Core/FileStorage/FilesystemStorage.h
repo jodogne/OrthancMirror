@@ -52,7 +52,7 @@ namespace Orthanc
     boost::filesystem::path GetPath(const std::string& uuid) const;
 
   public:
-    FilesystemStorage(std::string root);
+    explicit FilesystemStorage(std::string root);
 
     virtual void Create(const std::string& uuid,
                         const void* content, 

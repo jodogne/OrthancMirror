@@ -45,7 +45,7 @@ namespace Orthanc
     HttpStatus httpStatus_;
 
   public:
-    OrthancException(ErrorCode errorCode) : 
+    explicit OrthancException(ErrorCode errorCode) : 
       errorCode_(errorCode),
       httpStatus_(ConvertErrorCodeToHttpStatus(errorCode))
     {
