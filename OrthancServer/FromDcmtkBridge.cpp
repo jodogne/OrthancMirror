@@ -1975,4 +1975,41 @@ namespace Orthanc
       return false;
     }
   }
+
+
+  void FromDcmtkBridge::ExecuteToDicom(DicomMap& target,
+                                       LuaFunctionCall& call)
+  {
+    Json::Value output;
+    call.ExecuteToJson(output, true /* keep strings */);
+
+    target.Clear();
+
+    if (output.type() == Json::arrayValue &&
+        output.size() == 0)
+    {
+      // This case happens for empty tables
+      return;
+    }
+
+    if (output.type() != Json::objectValue)
+    {
+      LOG(ERROR) << "Lua: IncomingFindRequestFilter must return a table";
+      throw OrthancException(ErrorCode_LuaBadOutput);
+    }
+
+    Json::Value::Members members = output.getMemberNames();
+
+    for (size_t i = 0; i < members.size(); i++)
+    {
+      if (output[members[i]].type() != Json::stringValue)
+      {
+        LOG(ERROR) << "Lua: IncomingFindRequestFilter must return a table mapping names of DICOM tags to strings";
+        throw OrthancException(ErrorCode_LuaBadOutput);
+      }
+
+      DicomTag tag(ParseTag(members[i]));
+      target.SetValue(tag, output[members[i]].asString(), false);
+    }
+  }
 }

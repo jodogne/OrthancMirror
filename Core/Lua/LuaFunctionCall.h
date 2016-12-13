@@ -34,6 +34,9 @@
 
 #include "LuaContext.h"
 
+#include "../DicomFormat/DicomArray.h"
+#include "../DicomFormat/DicomMap.h"
+
 #include <json/json.h>
 
 namespace Orthanc
@@ -63,6 +66,10 @@ namespace Orthanc
     void PushJson(const Json::Value& value);
 
     void PushStringMap(const std::map<std::string, std::string>& value);
+
+    void PushDicom(const DicomMap& dicom);
+
+    void PushDicom(const DicomArray& dicom);
 
     void Execute()
     {

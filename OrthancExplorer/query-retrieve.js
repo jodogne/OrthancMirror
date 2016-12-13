@@ -83,7 +83,6 @@ $('#qr-submit').live('click', function() {
       'PatientID' : '*',
       'PatientName' : '*',
       'PatientSex' : '*',
-      'SpecificCharacterSet' : 'ISO_IR 192',  // UTF-8
       'StudyDate' : $('#qr-date').val(),
       'StudyDescription' : '*'
     }
@@ -95,7 +94,7 @@ $('#qr-submit').live('click', function() {
   var modalities = '';
   $('#qr-modalities input:checked').each(function() {
     var s = $(this).attr('name');
-    if (modalities == '*')
+    if (modalities == '')
       modalities = s;
     else
       modalities += '\\' + s;
