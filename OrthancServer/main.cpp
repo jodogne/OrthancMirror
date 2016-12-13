@@ -934,15 +934,18 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
                                    IStorageArea& storageArea,
                                    OrthancPlugins *plugins)
 {
-  ServerContext context(database, storageArea);
-
+  // These configuration options must be set before creating the
+  // ServerContext, otherwise the possible Lua scripts will not be
+  // able to properly issue HTTP/HTTPS queries
   HttpClient::ConfigureSsl(Configuration::GetGlobalBoolParameter("HttpsVerifyPeers", true),
-                           Configuration::GetGlobalStringParameter("HttpsCACertificates", ""));
+                           Configuration::InterpretStringParameterAsPath
+                           (Configuration::GetGlobalStringParameter("HttpsCACertificates", "")));
   HttpClient::SetDefaultTimeout(Configuration::GetGlobalUnsignedIntegerParameter("HttpTimeout", 0));
   HttpClient::SetDefaultProxy(Configuration::GetGlobalStringParameter("HttpProxy", ""));
 
   DicomUserConnection::SetDefaultTimeout(Configuration::GetGlobalUnsignedIntegerParameter("DicomScuTimeout", 10));
 
+  ServerContext context(database, storageArea);
   context.SetCompressionEnabled(Configuration::GetGlobalBoolParameter("StorageCompression", false));
   context.SetStoreMD5ForAttachments(Configuration::GetGlobalBoolParameter("StoreMD5ForAttachments", true));
 

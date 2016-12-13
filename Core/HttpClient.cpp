@@ -318,10 +318,10 @@ namespace Orthanc
     url_ = "";
     method_ = HttpMethod_Get;
     lastStatus_ = HttpStatus_200_Ok;
-    isVerbose_ = false;
+    SetVerbose(false);
     timeout_ = GlobalParameters::GetInstance().GetDefaultTimeout();
     GlobalParameters::GetInstance().GetDefaultProxy(proxy_);
-    GlobalParameters::GetInstance().GetSslConfiguration(verifyPeers_, caCertificates_);
+    GlobalParameters::GetInstance().GetSslConfiguration(verifyPeers_, caCertificates_);    
   }
 
 
