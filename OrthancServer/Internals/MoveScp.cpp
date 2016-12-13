@@ -90,6 +90,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
 
+#include <boost/lexical_cast.hpp>
+
 
 namespace Orthanc
 {
@@ -108,6 +110,42 @@ namespace Orthanc
       const std::string* remoteAet_;
       const std::string* calledAet_;
     };
+
+
+
+    static uint16_t GetMessageId(const DicomMap& message)
+    {
+      /**
+       * Retrieve the Message ID (0000,0110) for this C-MOVE request, if
+       * any. If present, this Message ID will be stored in the Move
+       * Originator Message ID (0000,1031) field of the C-MOVE response.
+       * http://dicom.nema.org/dicom/2013/output/chtml/part07/chapter_E.html
+       **/
+
+      const DicomValue* value = message.TestAndGetValue(DICOM_TAG_MESSAGE_ID);
+
+      if (value != NULL &&
+          !value->IsNull() &&
+          !value->IsBinary())
+      {
+        try
+        {
+          int tmp = boost::lexical_cast<int>(value->GetContent());
+          if (tmp >= 0 && tmp <= 0xffff)
+          {
+            return static_cast<uint16_t>(tmp);
+          }
+        }
+        catch (boost::bad_lexical_cast&)
+        {
+          LOG(WARNING) << "Cannot convert the Message ID (\"" << value->GetContent()
+                       << "\") of an incoming C-MOVE request to an integer, assuming zero";
+        }
+      }
+
+      return 0;
+    }
+
 
 
     void MoveScpCallback(
@@ -134,9 +172,8 @@ namespace Orthanc
 
         try
         {
-          data.iterator_.reset(data.handler_->Handle(data.target_, input,
-                                                     *data.remoteIp_, *data.remoteAet_,
-                                                     *data.calledAet_, request->MessageID));
+          data.iterator_.reset(data.handler_->Handle(data.target_, input, *data.remoteIp_, *data.remoteAet_,
+                                                     *data.calledAet_, GetMessageId(input)));
 
           if (data.iterator_.get() == NULL)
           {

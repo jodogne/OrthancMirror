@@ -686,6 +686,7 @@ namespace Orthanc
     std::string localAet = Toolbox::GetJsonStringField(request, "LocalAet", context.GetDefaultLocalApplicationEntityTitle());
     bool permissive = Toolbox::GetJsonBooleanField(request, "Permissive", false);
     bool asynchronous = Toolbox::GetJsonBooleanField(request, "Asynchronous", false);
+    std::string moveOriginatorAET = Toolbox::GetJsonStringField(request, "MoveOriginatorAet", context.GetDefaultLocalApplicationEntityTitle());
     int moveOriginatorID = Toolbox::GetJsonIntegerField(request, "MoveOriginatorID", 0 /* By default, not a C-MOVE */);
 
     if (moveOriginatorID < 0 || 
@@ -700,8 +701,14 @@ namespace Orthanc
     for (std::list<std::string>::const_iterator 
            it = instances.begin(); it != instances.end(); ++it)
     {
-      job.AddCommand(new StoreScuCommand(context, localAet, p, permissive,
-                                         static_cast<uint16_t>(moveOriginatorID))).AddInput(*it);
+      std::auto_ptr<StoreScuCommand> command(new StoreScuCommand(context, localAet, p, permissive));
+
+      if (moveOriginatorID != 0)
+      {
+        command->SetMoveOriginator(moveOriginatorAET, static_cast<uint16_t>(moveOriginatorID));
+      }
+
+      job.AddCommand(command.release()).AddInput(*it);
     }
 
     job.SetDescription("HTTP request: Store-SCU to peer \"" + remote + "\"");

@@ -252,9 +252,10 @@ namespace Orthanc
       std::string modality = parameters["Modality"].asString();
       LOG(INFO) << "Lua script to send resource " << parameters["Resource"].asString()
                 << " to modality " << modality << " using Store-SCU";
+
+      // This is not a C-MOVE: No need to call "StoreScuCommand::SetMoveOriginator()"
       return new StoreScuCommand(context_, localAet,
-                                 Configuration::GetModalityUsingSymbolicName(modality), 
-                                 true, 0 /* not a C-MOVE */);
+                                 Configuration::GetModalityUsingSymbolicName(modality), true);
     }
 
     if (operation == "store-peer")
