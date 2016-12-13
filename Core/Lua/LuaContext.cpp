@@ -497,6 +497,10 @@ namespace Orthanc
       // Lua can convert most types to strings by default.
       result = std::string(lua_tostring(lua_, top));
     }
+    else if (lua_isboolean(lua_, top))
+    {
+      result = lua_toboolean(lua_, top) ? true : false;
+    }
     else
     {
       LOG(WARNING) << "Unsupported Lua type when returning Json";
