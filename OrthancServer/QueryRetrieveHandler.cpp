@@ -43,12 +43,12 @@ namespace Orthanc
                        ServerContext& context,
                        const std::string& modality)
   {
+    static const char* LUA_CALLBACK = "OutgoingFindRequestFilter";
+
     LuaScripting::Locker locker(context.GetLua());
-    static const char* CALLBACK = "OutgoingFindRequestFilter";
-        
-    if (locker.GetLua().IsExistingFunction(CALLBACK))
+    if (locker.GetLua().IsExistingFunction(LUA_CALLBACK))
     {
-      LuaFunctionCall call(locker.GetLua(), CALLBACK);
+      LuaFunctionCall call(locker.GetLua(), LUA_CALLBACK);
       call.PushDicom(query);
       call.PushJson(modality);
       FromDcmtkBridge::ExecuteToDicom(query, call);

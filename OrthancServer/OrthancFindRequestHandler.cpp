@@ -486,10 +486,10 @@ namespace Orthanc
                                                  const std::string& remoteAet,
                                                  const std::string& calledAet)
   {
+    static const char* LUA_CALLBACK = "IncomingFindRequestFilter";
+
     LuaScripting::Locker locker(context_.GetLua());
-    static const char* CALLBACK = "IncomingFindRequestFilter";
-      
-    if (!locker.GetLua().IsExistingFunction(CALLBACK))
+    if (!locker.GetLua().IsExistingFunction(LUA_CALLBACK))
     {
       return false;
     }
@@ -500,7 +500,7 @@ namespace Orthanc
       origin["RemoteAet"] = remoteAet;
       origin["CalledAet"] = calledAet;
 
-      LuaFunctionCall call(locker.GetLua(), CALLBACK);
+      LuaFunctionCall call(locker.GetLua(), LUA_CALLBACK);
       call.PushDicom(source);
       call.PushJson(origin);
       FromDcmtkBridge::ExecuteToDicom(target, call);
