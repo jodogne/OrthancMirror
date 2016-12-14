@@ -1977,6 +1977,7 @@ namespace Orthanc
   }
 
 
+#if ORTHANC_ENABLE_LUA == 1
   void FromDcmtkBridge::ExecuteToDicom(DicomMap& target,
                                        LuaFunctionCall& call)
   {
@@ -2012,4 +2013,5 @@ namespace Orthanc
       target.SetValue(tag, output[members[i]].asString(), false);
     }
   }
+#endif
 }
