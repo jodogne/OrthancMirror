@@ -835,6 +835,8 @@ namespace OrthancPlugins
   }
 
 
+
+#if HAS_ORTHANC_PLUGIN_FIND_MATCHER == 1
   FindMatcher::FindMatcher(OrthancPluginContext*              context,
                            const OrthancPluginWorklistQuery*  worklist) :
     context_(context),
@@ -907,6 +909,7 @@ namespace OrthancPlugins
     }
   }
 
+#endif /* HAS_ORTHANC_PLUGIN_FIND_MATCHER == 1 */
 
 
   bool RestApiGet(Json::Value& result,

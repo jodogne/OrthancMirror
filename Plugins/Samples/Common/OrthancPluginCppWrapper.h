@@ -50,6 +50,17 @@
 #endif
 
 
+#if (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER >= 2 ||   \
+     (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER == 1 &&  \
+      ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER >= 2))
+// The "OrthancPluginFindMatcher()" primitive was introduced in Orthanc 1.2.0
+#  define HAS_ORTHANC_PLUGIN_FIND_MATCHER  1
+#else
+#  define HAS_ORTHANC_PLUGIN_FIND_MATCHER  0
+#endif
+
+
+
 
 namespace OrthancPlugins
 {
@@ -334,6 +345,7 @@ namespace OrthancPlugins
   };
 
 
+#if HAS_ORTHANC_PLUGIN_FIND_MATCHER == 1
   class FindMatcher : public boost::noncopyable
   {
   private:
@@ -372,6 +384,7 @@ namespace OrthancPlugins
       return IsMatch(dicom.GetData(), dicom.GetSize());
     }
   };
+#endif
 
 
   bool RestApiGet(Json::Value& result,
