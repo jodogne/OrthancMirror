@@ -36,7 +36,6 @@
 
 #include "../Core/DicomFormat/DicomElement.h"
 #include "../Core/DicomFormat/DicomMap.h"
-#include "../Core/Lua/LuaFunctionCall.h"
 
 #include <dcmtk/dcmdata/dcdatset.h>
 #include <dcmtk/dcmdata/dcmetinf.h>
@@ -44,8 +43,20 @@
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <json/json.h>
 
+#if !defined(ORTHANC_BUILD_UNIT_TESTS)
+#  error The macro ORTHANC_BUILD_UNIT_TESTS must be defined
+#endif
+
+#if !defined(ORTHANC_ENABLE_LUA)
+#  error The macro ORTHANC_ENABLE_LUA must be defined
+#endif
+
 #if ORTHANC_BUILD_UNIT_TESTS == 1
 #  include <gtest/gtest_prod.h>
+#endif
+
+#if ORTHANC_ENABLE_LUA == 1
+#  include "../Core/Lua/LuaFunctionCall.h"
 #endif
 
 
@@ -204,7 +215,9 @@ namespace Orthanc
     static bool LookupTransferSyntax(std::string& result,
                                      DcmFileFormat& dicom);
 
+#if ORTHANC_ENABLE_LUA == 1
     static void ExecuteToDicom(DicomMap& target,
                                LuaFunctionCall& call);
+#endif
   };
 }

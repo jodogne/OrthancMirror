@@ -32,6 +32,14 @@
 
 #pragma once
 
+#if !defined(ORTHANC_ENABLE_LUA)
+#  error The macro ORTHANC_ENABLE_LUA must be defined
+#endif
+
+#if ORTHANC_ENABLE_LUA == 0
+#  error The Lua support is disabled, cannot include this file
+#endif
+
 #include "../HttpClient.h"
 
 extern "C" 
