@@ -105,8 +105,6 @@ Performance
 Orthanc Book
 ============
 
-* Document Lua C-FIND filters (cf. "IncomingFindRequestFilter()")
-
 
 ================
 Code refactoring
