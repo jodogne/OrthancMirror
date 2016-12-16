@@ -32,22 +32,12 @@
 
 #pragma once
 
+#include "OrthancPluginException.h"
+
 #include <orthanc/OrthancCPlugin.h>
 #include <boost/noncopyable.hpp>
 #include <boost/lexical_cast.hpp>
 #include <json/value.h>
-
-#if !defined(HAS_ORTHANC_EXCEPTION)
-#  error The macro HAS_ORTHANC_EXCEPTION must be defined
-#endif
-
-
-#if HAS_ORTHANC_EXCEPTION == 1
-#  include "../../../Core/OrthancException.h"
-#  define ORTHANC_PLUGINS_THROW_EXCEPTION(code)  throw ::Orthanc::OrthancException(static_cast<Orthanc::ErrorCode>(code))
-#else
-#  define ORTHANC_PLUGINS_THROW_EXCEPTION(code)  throw ::OrthancPlugins::PluginException(code)
-#endif
 
 
 #if (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER >= 2 ||   \
@@ -61,41 +51,11 @@
 
 
 
-
 namespace OrthancPlugins
 {
   typedef void (*RestCallback) (OrthancPluginRestOutput* output,
                                 const char* url,
                                 const OrthancPluginHttpRequest* request);
-
-  const char* GetErrorDescription(OrthancPluginContext* context,
-                                  OrthancPluginErrorCode code);
-
-#if HAS_ORTHANC_EXCEPTION == 0
-  class PluginException
-  {
-  private:
-    OrthancPluginErrorCode  code_;
-
-  public:
-    PluginException(OrthancPluginErrorCode code) : code_(code)
-    {
-    }
-
-    OrthancPluginErrorCode GetErrorCode() const
-    {
-      return code_;
-    }
-
-    const char* What(OrthancPluginContext* context) const
-    {
-      return ::OrthancPlugins::GetErrorDescription(context, code_);
-    }
-
-    static void Check(OrthancPluginErrorCode code);
-  };
-#endif
-
 
   class MemoryBuffer : public boost::noncopyable
   {
@@ -487,17 +447,10 @@ namespace OrthancPlugins
         Callback(output, url, request);
         return OrthancPluginErrorCode_Success;
       }
-#if HAS_ORTHANC_EXCEPTION == 1
-      catch (Orthanc::OrthancException& e)
+      catch (ORTHANC_PLUGINS_GET_EXCEPTION_CLASS& e)
       {
         return static_cast<OrthancPluginErrorCode>(e.GetErrorCode());
       }
-#else
-      catch (OrthancPlugins::PluginException& e)
-      {
-        return e.GetErrorCode();
-      }
-#endif
       catch (boost::bad_lexical_cast&)
       {
         return OrthancPluginErrorCode_BadFileFormat;
