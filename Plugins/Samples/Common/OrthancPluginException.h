@@ -39,23 +39,23 @@
 
 #if HAS_ORTHANC_EXCEPTION == 1
 #  include "../../../Core/OrthancException.h"
-#  define ORTHANC_PLUGINS_GET_ERROR_ENUMERATION  ::Orthanc::ErrorCode
-#  define ORTHANC_PLUGINS_GET_ERROR_CODE(code)   ::Orthanc::ErrorCode_ ## code
-#  define ORTHANC_PLUGINS_GET_EXCEPTION_CLASS    ::Orthanc::OrthancException
+#  define ORTHANC_PLUGINS_ERROR_ENUMERATION     ::Orthanc::ErrorCode
+#  define ORTHANC_PLUGINS_EXCEPTION_CLASS       ::Orthanc::OrthancException
+#  define ORTHANC_PLUGINS_GET_ERROR_CODE(code)  ::Orthanc::ErrorCode_ ## code
 #else
 #  include <orthanc/OrthancCPlugin.h>
-#  define ORTHANC_PLUGINS_GET_ERROR_ENUMERATION  ::OrthancPluginErrorCode
-#  define ORTHANC_PLUGINS_GET_ERROR_CODE(code)   ::OrthancPluginErrorCode_ ## code
-#  define ORTHANC_PLUGINS_GET_EXCEPTION_CLASS    ::OrthancPlugins::PluginException
+#  define ORTHANC_PLUGINS_ERROR_ENUMERATION     ::OrthancPluginErrorCode
+#  define ORTHANC_PLUGINS_EXCEPTION_CLASS       ::OrthancPlugins::PluginException
+#  define ORTHANC_PLUGINS_GET_ERROR_CODE(code)  ::OrthancPluginErrorCode_ ## code
 #endif
 
 
 #define ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code)                   \
-  throw ORTHANC_PLUGINS_GET_EXCEPTION_CLASS(static_cast<ORTHANC_PLUGINS_GET_ERROR_ENUMERATION>(code));
+  throw ORTHANC_PLUGINS_EXCEPTION_CLASS(static_cast<ORTHANC_PLUGINS_ERROR_ENUMERATION>(code));
 
 
 #define ORTHANC_PLUGINS_THROW_EXCEPTION(code)                           \
-  throw ORTHANC_PLUGINS_GET_EXCEPTION_CLASS(ORTHANC_PLUGINS_GET_ERROR_CODE(code));
+  throw ORTHANC_PLUGINS_EXCEPTION_CLASS(ORTHANC_PLUGINS_GET_ERROR_CODE(code));
                                                   
 
 #define ORTHANC_PLUGINS_CHECK_ERROR(code)                           \

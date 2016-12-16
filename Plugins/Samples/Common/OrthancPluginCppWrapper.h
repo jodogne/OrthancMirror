@@ -447,7 +447,7 @@ namespace OrthancPlugins
         Callback(output, url, request);
         return OrthancPluginErrorCode_Success;
       }
-      catch (ORTHANC_PLUGINS_GET_EXCEPTION_CLASS& e)
+      catch (ORTHANC_PLUGINS_EXCEPTION_CLASS& e)
       {
         return static_cast<OrthancPluginErrorCode>(e.GetErrorCode());
       }
