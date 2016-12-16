@@ -29,7 +29,7 @@
 
 static OrthancPluginContext* context_ = NULL;
 static std::string folder_;
-
+static bool filterIssuerAet_ = false;
 
 /**
  * This is the main function for matching a DICOM worklist against a query.
@@ -58,7 +58,7 @@ static void  MatchWorklist(OrthancPluginWorklistAnswers*      answers,
 
 
 static OrthancPlugins::FindMatcher* CreateMatcher(const OrthancPluginWorklistQuery* query,
-                                                  const char*                       remoteAet)
+                                                  const char*                       issuerAet)
 {
   // Extract the DICOM instance underlying the C-Find query
   OrthancPlugins::MemoryBuffer dicom(context_);
@@ -70,71 +70,73 @@ static OrthancPlugins::FindMatcher* CreateMatcher(const OrthancPluginWorklistQue
                     static_cast<OrthancPluginDicomToJsonFlags>(0), 0);
   
   OrthancPlugins::LogInfo(context_, "Received worklist query from remote modality " + 
-                          std::string(remoteAet) + ":\n" + json.toStyledString());
+                          std::string(issuerAet) + ":\n" + json.toStyledString());
 
-#if 1
-  return new OrthancPlugins::FindMatcher(context_, query);
-
-#else
-  // Alternative sample showing how to fine-tune an incoming C-Find
-  // request, before matching it against the worklist database. The
-  // code below will restrict the original DICOM request by requesting
-  // the ScheduledStationAETitle to correspond to the AET of the
-  // issuer. This code will make the integration test "test_other_aet"
-  // succeed (cf. the orthanc-tests repository).
-
-  static const char* SCHEDULED_PROCEDURE_STEP_SEQUENCE = "0040,0100";
-  static const char* SCHEDULED_STATION_AETITLE = "0040,0001";
-
-  if (!json.isMember(SCHEDULED_PROCEDURE_STEP_SEQUENCE))
+  if (!filterIssuerAet_)
   {
-    // Create a ScheduledProcedureStepSequence sequence, with one empty element
-    json[SCHEDULED_PROCEDURE_STEP_SEQUENCE] = Json::arrayValue;
-    json[SCHEDULED_PROCEDURE_STEP_SEQUENCE].append(Json::objectValue);
+    return new OrthancPlugins::FindMatcher(context_, query);
   }
-
-  Json::Value& v = json[SCHEDULED_PROCEDURE_STEP_SEQUENCE];
-
-  if (v.type() != Json::arrayValue ||
-      v.size() != 1 ||
-      v[0].type() != Json::objectValue)
+  else
   {
-    ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
-  }
+    // Alternative sample showing how to fine-tune an incoming C-Find
+    // request, before matching it against the worklist database. The
+    // code below will restrict the original DICOM request by
+    // requesting the ScheduledStationAETitle to correspond to the AET
+    // of the C-Find issuer. This code will make the integration test
+    // "test_filter_issuer_aet" succeed (cf. the orthanc-tests repository).
 
-  // Set the ScheduledStationAETitle if none was provided
-  if (!v[0].isMember(SCHEDULED_STATION_AETITLE) ||
-      v[0].type() != Json::stringValue ||
-      v[0][SCHEDULED_STATION_AETITLE].asString().size() == 0 ||
-      v[0][SCHEDULED_STATION_AETITLE].asString() == "*")
-  {
-    v[0][SCHEDULED_STATION_AETITLE] = remoteAet;
-  }
+    static const char* SCHEDULED_PROCEDURE_STEP_SEQUENCE = "0040,0100";
+    static const char* SCHEDULED_STATION_AETITLE = "0040,0001";
 
-  if (json.isMember("0010,21c0") &&
-      json["0010,21c0"].asString().size() == 0)
-  {
-    json.removeMember("0010,21c0");
-  }
+    if (!json.isMember(SCHEDULED_PROCEDURE_STEP_SEQUENCE))
+    {
+      // Create a ScheduledProcedureStepSequence sequence, with one empty element
+      json[SCHEDULED_PROCEDURE_STEP_SEQUENCE] = Json::arrayValue;
+      json[SCHEDULED_PROCEDURE_STEP_SEQUENCE].append(Json::objectValue);
+    }
 
-  // Encode the modified JSON as a DICOM instance, then convert it to a C-Find matcher
-  OrthancPlugins::MemoryBuffer modified(context_);
-  modified.CreateDicom(json, OrthancPluginCreateDicomFlags_None);
-  return new OrthancPlugins::FindMatcher(context_, modified);
-#endif
+    Json::Value& v = json[SCHEDULED_PROCEDURE_STEP_SEQUENCE];
+
+    if (v.type() != Json::arrayValue ||
+        v.size() != 1 ||
+        v[0].type() != Json::objectValue)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
+    }
+
+    // Set the ScheduledStationAETitle if none was provided
+    if (!v[0].isMember(SCHEDULED_STATION_AETITLE) ||
+        v[0].type() != Json::stringValue ||
+        v[0][SCHEDULED_STATION_AETITLE].asString().size() == 0 ||
+        v[0][SCHEDULED_STATION_AETITLE].asString() == "*")
+    {
+      v[0][SCHEDULED_STATION_AETITLE] = issuerAet;
+    }
+
+    if (json.isMember("0010,21c0") &&
+        json["0010,21c0"].asString().size() == 0)
+    {
+      json.removeMember("0010,21c0");
+    }
+
+    // Encode the modified JSON as a DICOM instance, then convert it to a C-Find matcher
+    OrthancPlugins::MemoryBuffer modified(context_);
+    modified.CreateDicom(json, OrthancPluginCreateDicomFlags_None);
+    return new OrthancPlugins::FindMatcher(context_, modified);
+  }
 }
 
 
 
 OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
                                 const OrthancPluginWorklistQuery* query,
-                                const char*                       remoteAet,
+                                const char*                       issuerAet,
                                 const char*                       calledAet)
 {
   try
   {
     // Construct an object to match the worklists in the database against the C-Find query
-    std::auto_ptr<OrthancPlugins::FindMatcher> matcher(CreateMatcher(query, remoteAet));
+    std::auto_ptr<OrthancPlugins::FindMatcher> matcher(CreateMatcher(query, issuerAet));
 
     // Loop over the regular files in the database folder
     namespace fs = boost::filesystem;  
@@ -220,10 +222,12 @@ extern "C"
         OrthancPlugins::LogError(context_, "The configuration option \"Worklists.Database\" must contain a path");
         return -1;
       }
+
+      filterIssuerAet_ = worklists.GetBooleanValue("FilterIssuerAet", false);
     }
     else
     {
-      OrthancPlugins::LogWarning(context_, "Worklists server is disabled by the configuration file");
+      OrthancPlugins::LogWarning(context_, "Worklist server is disabled by the configuration file");
     }
 
     return 0;
