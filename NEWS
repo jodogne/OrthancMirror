@@ -51,6 +51,9 @@ Maintenance
 * Ignore "Group Length" tags in C-FIND queries
 * Fix handling of worklist SCP with ReferencedStudySequence and ReferencedPatientSequence
 * Fix handling of Move Originator AET and ID in C-MOVE SCP
+* Fix vulnerability ZSL-2016-5379 "Unquoted Service Path Privilege Escalation" in the
+  Windows service
+* Fix vulnerability ZSL-2016-5380 "Remote Memory Corruption Vulnerability" in DCMTK 3.6.0
 
 
 Version 1.1.0 (2016/06/27)
