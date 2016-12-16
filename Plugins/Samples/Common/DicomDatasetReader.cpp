@@ -68,20 +68,31 @@ namespace OrthancPlugins
   }
 
 
-  DicomDatasetReader::DicomDatasetReader(IDicomDataset* dataset) :  // takes ownership
+  DicomDatasetReader::DicomDatasetReader(const IDicomDataset& dataset) :
     dataset_(dataset)
   {
-    if (dataset == NULL)
-    {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(ParameterOutOfRange);
-    }
   }
   
+
+  std::string DicomDatasetReader::GetStringValue(const DicomPath& path,
+                                                 const std::string& defaultValue) const
+  {
+    std::string s;
+    if (dataset_.GetStringValue(s, path))
+    {
+      return s;
+    }
+    else
+    {
+      return defaultValue;
+    }
+  }
+
 
   std::string DicomDatasetReader::GetMandatoryStringValue(const DicomPath& path) const
   {
     std::string s;
-    if (dataset_->GetStringValue(s, path))
+    if (dataset_.GetStringValue(s, path))
     {
       return s;
     }
@@ -92,12 +103,22 @@ namespace OrthancPlugins
   }
 
 
-  int DicomDatasetReader::GetIntegerValue(const DicomPath& path)
+  template <typename T>
+  static T GetValueInternal(const IDicomDataset& dataset,
+                            const DicomPath& path)
   {
     try
     {
-      std::string s = StripSpaces(GetMandatoryStringValue(path));
-      return boost::lexical_cast<int>(s);
+      std::string s;
+
+      if (dataset.GetStringValue(s, path))
+      {
+        return boost::lexical_cast<T>(StripSpaces(s));
+      }
+      else
+      {
+        ORTHANC_PLUGINS_THROW_EXCEPTION(InexistentTag);
+      }
     }
     catch (boost::bad_lexical_cast&)
     {
@@ -106,10 +127,16 @@ namespace OrthancPlugins
   }
 
 
-  unsigned int DicomDatasetReader::GetUnsignedIntegerValue(const DicomPath& path)
+  int DicomDatasetReader::GetIntegerValue(const DicomPath& path) const
+  {
+    return GetValueInternal<int>(dataset_, path);
+  }
+
+
+  unsigned int DicomDatasetReader::GetUnsignedIntegerValue(const DicomPath& path) const
   {
     int value = GetIntegerValue(path);
-
+    
     if (value >= 0)
     {
       return static_cast<unsigned int>(value);
@@ -118,5 +145,17 @@ namespace OrthancPlugins
     {
       ORTHANC_PLUGINS_THROW_EXCEPTION(ParameterOutOfRange);
     }
+  }
+
+
+  float DicomDatasetReader::GetFloatValue(const DicomPath& path) const
+  {
+    return GetValueInternal<float>(dataset_, path);
+  }
+
+
+  double DicomDatasetReader::GetDoubleValue(const DicomPath& path) const
+  {
+    return GetValueInternal<double>(dataset_, path);
   }
 }

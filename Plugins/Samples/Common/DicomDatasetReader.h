@@ -35,26 +35,34 @@
 #include "IDicomDataset.h"
 
 #include <memory>
+#include <vector>
 
 namespace OrthancPlugins
 {
   class DicomDatasetReader : public boost::noncopyable
   {
   private:
-    std::auto_ptr<IDicomDataset>  dataset_;
+    const IDicomDataset&  dataset_;
 
   public:
-    DicomDatasetReader(IDicomDataset* dataset);  // takes ownership
+    DicomDatasetReader(const IDicomDataset& dataset);
 
-    IDicomDataset& GetDataset() const
+    const IDicomDataset& GetDataset() const
     {
-      return *dataset_;
+      return dataset_;
     }
+
+    std::string GetStringValue(const DicomPath& path,
+                               const std::string& defaultValue) const;
 
     std::string GetMandatoryStringValue(const DicomPath& path) const;
 
-    int GetIntegerValue(const DicomPath& path);
+    int GetIntegerValue(const DicomPath& path) const;
 
-    unsigned int GetUnsignedIntegerValue(const DicomPath& path);
+    unsigned int GetUnsignedIntegerValue(const DicomPath& path) const;
+
+    float GetFloatValue(const DicomPath& path) const;
+
+    double GetDoubleValue(const DicomPath& path) const;
   };
 }
