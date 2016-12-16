@@ -57,12 +57,16 @@ namespace OrthancPlugins
 
     std::string GetMandatoryStringValue(const DicomPath& path) const;
 
-    int GetIntegerValue(const DicomPath& path) const;
+    bool GetIntegerValue(int& target,
+                         const DicomPath& path) const;
 
-    unsigned int GetUnsignedIntegerValue(const DicomPath& path) const;
+    bool GetUnsignedIntegerValue(unsigned int& target,
+                                 const DicomPath& path) const;
 
-    float GetFloatValue(const DicomPath& path) const;
+    bool GetFloatValue(float& target,
+                       const DicomPath& path) const;
 
-    double GetDoubleValue(const DicomPath& path) const;
+    bool GetDoubleValue(double& target,
+                        const DicomPath& path) const;
   };
 }

@@ -104,8 +104,9 @@ namespace OrthancPlugins
 
 
   template <typename T>
-  static T GetValueInternal(const IDicomDataset& dataset,
-                            const DicomPath& path)
+  static bool GetValueInternal(T& target,
+                               const IDicomDataset& dataset,
+                               const DicomPath& path)
   {
     try
     {
@@ -113,11 +114,12 @@ namespace OrthancPlugins
 
       if (dataset.GetStringValue(s, path))
       {
-        return boost::lexical_cast<T>(StripSpaces(s));
+        target = boost::lexical_cast<T>(StripSpaces(s));
+        return true;
       }
       else
       {
-        ORTHANC_PLUGINS_THROW_EXCEPTION(InexistentTag);
+        return false;
       }
     }
     catch (boost::bad_lexical_cast&)
@@ -127,19 +129,26 @@ namespace OrthancPlugins
   }
 
 
-  int DicomDatasetReader::GetIntegerValue(const DicomPath& path) const
+  bool DicomDatasetReader::GetIntegerValue(int& target,
+                                           const DicomPath& path) const
   {
-    return GetValueInternal<int>(dataset_, path);
+    return GetValueInternal<int>(target, dataset_, path);
   }
 
 
-  unsigned int DicomDatasetReader::GetUnsignedIntegerValue(const DicomPath& path) const
+  bool DicomDatasetReader::GetUnsignedIntegerValue(unsigned int& target,
+                                                   const DicomPath& path) const
   {
-    int value = GetIntegerValue(path);
-    
-    if (value >= 0)
+    int value;
+
+    if (!GetIntegerValue(value, path))
     {
-      return static_cast<unsigned int>(value);
+      return false;
+    }
+    else if (value >= 0)
+    {
+      target = static_cast<unsigned int>(value);
+      return true;
     }
     else
     {
@@ -148,14 +157,16 @@ namespace OrthancPlugins
   }
 
 
-  float DicomDatasetReader::GetFloatValue(const DicomPath& path) const
+  bool DicomDatasetReader::GetFloatValue(float& target,
+                                         const DicomPath& path) const
   {
-    return GetValueInternal<float>(dataset_, path);
+    return GetValueInternal<float>(target, dataset_, path);
   }
 
 
-  double DicomDatasetReader::GetDoubleValue(const DicomPath& path) const
+  bool DicomDatasetReader::GetDoubleValue(double& target,
+                                          const DicomPath& path) const
   {
-    return GetValueInternal<double>(dataset_, path);
+    return GetValueInternal<double>(target, dataset_, path);
   }
 }
