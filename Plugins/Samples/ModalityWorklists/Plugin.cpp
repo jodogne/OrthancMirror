@@ -101,7 +101,7 @@ static OrthancPlugins::FindMatcher* CreateMatcher(const OrthancPluginWorklistQue
         v.size() != 1 ||
         v[0].type() != Json::objectValue)
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
 
     // Set the ScheduledStationAETitle if none was provided
