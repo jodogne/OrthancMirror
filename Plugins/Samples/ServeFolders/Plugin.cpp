@@ -204,7 +204,7 @@ void ServeFolder(OrthancPluginRestOutput* output,
       }
       catch (...)
       {
-        ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_InexistentFile);
+        ORTHANC_PLUGINS_THROW_EXCEPTION(InexistentFile);
       }
 
       boost::posix_time::ptime lastModification = boost::posix_time::from_time_t(fs::last_write_time(path));
@@ -257,7 +257,7 @@ static void ConfigureFolders(const Json::Value& folders)
   if (folders.type() != Json::objectValue)
   {
     OrthancPlugins::LogError(context_, "The list of folders to be served is badly formatted (must be a JSON object)");
-    ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
+    ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
   }
 
   Json::Value::Members members = folders.getMemberNames();
@@ -270,7 +270,7 @@ static void ConfigureFolders(const Json::Value& folders)
     {
       OrthancPlugins::LogError(context_, "The folder to be served \"" + *it + 
                                "\" must be associated with a string value (its mapped URI)");
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
 
     std::string baseUri = *it;
@@ -291,7 +291,7 @@ static void ConfigureFolders(const Json::Value& folders)
     if (baseUri.empty())
     {
       OrthancPlugins::LogError(context_, "The URI of a folder to be served cannot be empty");
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
 
     // Check whether the source folder exists and is indeed a directory
@@ -299,7 +299,7 @@ static void ConfigureFolders(const Json::Value& folders)
     if (!boost::filesystem::is_directory(folder))
     {
       OrthancPlugins::LogError(context_, "Trying and serve an inexistent folder: " + folder);
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_InexistentFile);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(InexistentFile);
     }
 
     folders_[baseUri] = folder;
@@ -318,7 +318,7 @@ static void ConfigureExtensions(const Json::Value& extensions)
   if (extensions.type() != Json::objectValue)
   {
     OrthancPlugins::LogError(context_, "The list of extensions is badly formatted (must be a JSON object)");
-    ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
+    ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
   }
 
   Json::Value::Members members = extensions.getMemberNames();
@@ -330,7 +330,7 @@ static void ConfigureExtensions(const Json::Value& extensions)
     {
       OrthancPlugins::LogError(context_, "The file extension \"" + *it + 
                                "\" must be associated with a string value (its MIME type)");
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
 
     const std::string& mime = extensions[*it].asString();

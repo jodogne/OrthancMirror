@@ -51,7 +51,7 @@ static void  MatchWorklist(OrthancPluginWorklistAnswers*      answers,
     if (code != OrthancPluginErrorCode_Success)
     {
       OrthancPlugins::LogError(context_, "Error while adding an answer to a worklist request");
-      ORTHANC_PLUGINS_THROW_EXCEPTION(code);
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
     }
   }
 }
