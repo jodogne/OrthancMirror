@@ -32,7 +32,10 @@
 
 #include "FullOrthancDataset.h"
 
-#include "OrthancPluginCppWrapper.h"
+#include "OrthancPluginException.h"
+
+#include <stdio.h>
+#include <cassert>
 
 namespace OrthancPlugins
 {
@@ -41,7 +44,7 @@ namespace OrthancPlugins
   {
     if (dataset.type() != Json::objectValue)
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
 
     char name[16];
@@ -60,7 +63,7 @@ namespace OrthancPlugins
         value["Name"].type() != Json::stringValue ||
         value["Type"].type() != Json::stringValue)
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
 
     return &value;
@@ -78,7 +81,7 @@ namespace OrthancPlugins
     if (sequence["Type"].asString() != "Sequence" ||
         value.type() != Json::arrayValue)
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
     else
     {
@@ -99,7 +102,7 @@ namespace OrthancPlugins
     if (tag["Type"].asString() != "String" ||
         value.type() != Json::stringValue)
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
     else
     {
@@ -142,7 +145,7 @@ namespace OrthancPlugins
   {
     if (root_.type() != Json::objectValue)
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
   }
 

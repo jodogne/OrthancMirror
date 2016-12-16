@@ -32,7 +32,7 @@
 
 #include "IOrthancConnection.h"
 
-#include "OrthancPluginCppWrapper.h"
+#include "OrthancPluginException.h"
 
 #include <json/reader.h>
 
@@ -45,7 +45,7 @@ namespace OrthancPlugins
     
     if (!reader.parse(content, result))
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
   }
 

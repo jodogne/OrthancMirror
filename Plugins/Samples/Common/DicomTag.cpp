@@ -32,7 +32,7 @@
 
 #include "DicomTag.h"
 
-#include "OrthancPluginCppWrapper.h"
+#include "OrthancPluginException.h"
 
 namespace OrthancPlugins
 {
@@ -104,7 +104,7 @@ namespace OrthancPlugins
     }
     else
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_NotImplemented);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(NotImplemented);
     }
   }
 }
