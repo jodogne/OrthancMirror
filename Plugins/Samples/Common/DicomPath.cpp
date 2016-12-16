@@ -32,7 +32,7 @@
 
 #include "DicomPath.h"
 
-#include "OrthancPluginCppWrapper.h"
+#include "OrthancPluginException.h"
 
 namespace OrthancPlugins
 {
@@ -40,7 +40,7 @@ namespace OrthancPlugins
   {
     if (depth >= prefix_.size())
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_ParameterOutOfRange);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(ParameterOutOfRange);
     }
     else
     {

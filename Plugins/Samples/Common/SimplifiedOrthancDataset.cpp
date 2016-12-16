@@ -32,7 +32,7 @@
 
 #include "SimplifiedOrthancDataset.h"
 
-#include "OrthancPluginCppWrapper.h"
+#include "OrthancPluginException.h"
 
 namespace OrthancPlugins
 {
@@ -45,7 +45,7 @@ namespace OrthancPlugins
       const char* name = path.GetPrefixTag(depth).GetName();
       if (content->type() != Json::objectValue)
       {
-        ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
+        ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
       }
 
       if (!content->isMember(name))
@@ -56,7 +56,7 @@ namespace OrthancPlugins
       const Json::Value& sequence = (*content) [name];
       if (sequence.type() != Json::arrayValue)
       {
-        ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
+        ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
       }
 
       size_t index = path.GetPrefixIndex(depth);
@@ -74,7 +74,7 @@ namespace OrthancPlugins
 
     if (content->type() != Json::objectValue)
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
     if (!content->isMember(name))
     {
@@ -91,7 +91,7 @@ namespace OrthancPlugins
   {
     if (root_.type() != Json::objectValue)
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
   }
 
@@ -122,7 +122,7 @@ namespace OrthancPlugins
     }
     else if (value->type() != Json::stringValue)
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
     else
     {
@@ -145,7 +145,7 @@ namespace OrthancPlugins
     else if (sequence->type() != Json::arrayValue)
     {
       // Not a sequence
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
     else
     {

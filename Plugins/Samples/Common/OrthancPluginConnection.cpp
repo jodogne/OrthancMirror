@@ -47,7 +47,7 @@ namespace OrthancPlugins
     }
     else
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_UnknownResource);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(UnknownResource);
     }
   }
 
@@ -64,7 +64,7 @@ namespace OrthancPlugins
     }
     else
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_UnknownResource);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(UnknownResource);
     }
   }
 
@@ -81,7 +81,7 @@ namespace OrthancPlugins
     }
     else
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_UnknownResource);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(UnknownResource);
     }
   }
 
@@ -92,7 +92,7 @@ namespace OrthancPlugins
 
     if (!::OrthancPlugins::RestApiDelete(context_, uri, false))
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_UnknownResource);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(UnknownResource);
     }
   }
 }

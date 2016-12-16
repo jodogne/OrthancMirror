@@ -32,7 +32,7 @@
 
 #include "DicomDatasetReader.h"
 
-#include "OrthancPluginCppWrapper.h"
+#include "OrthancPluginException.h"
 
 #include <boost/lexical_cast.hpp>
 
@@ -73,7 +73,7 @@ namespace OrthancPlugins
   {
     if (dataset == NULL)
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_ParameterOutOfRange);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(ParameterOutOfRange);
     }
   }
   
@@ -87,7 +87,7 @@ namespace OrthancPlugins
     }
     else
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_InexistentTag);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(InexistentTag);
     }
   }
 
@@ -101,7 +101,7 @@ namespace OrthancPlugins
     }
     catch (boost::bad_lexical_cast&)
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_BadFileFormat);        
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);        
     }
   }
 
@@ -116,7 +116,7 @@ namespace OrthancPlugins
     }
     else
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(OrthancPluginErrorCode_ParameterOutOfRange);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(ParameterOutOfRange);
     }
   }
 }
