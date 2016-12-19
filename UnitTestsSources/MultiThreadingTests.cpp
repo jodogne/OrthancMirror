@@ -143,7 +143,7 @@ TEST(ReusableDicomUserConnection, DISABLED_Basic)
   }
 
   printf("**\n"); fflush(stdout);
-  Toolbox::USleep(1000000);
+  SystemToolbox::USleep(1000000);
   printf("**\n"); fflush(stdout);
 
   {
@@ -184,7 +184,7 @@ public:
       outputs.push_back(boost::lexical_cast<std::string>(b));
     }
 
-    Toolbox::USleep(30000);
+    SystemToolbox::USleep(30000);
 
     return true;
   }
@@ -203,7 +203,7 @@ static void Tata(ServerScheduler* s, ServerJob* j, bool* done)
     {
       printf(">> %s: %0.1f\n", it->c_str(), 100.0f * s->GetProgress(*it));
     }
-    Toolbox::USleep(3000);
+    SystemToolbox::USleep(3000);
   }
 }
 
@@ -248,7 +248,7 @@ TEST(MultiThreading, ServerScheduler)
   }
 
   //SystemToolbox::ServerBarrier();
-  //Toolbox::USleep(3000000);
+  //SystemToolbox::USleep(3000000);
 
   scheduler.Stop();
 

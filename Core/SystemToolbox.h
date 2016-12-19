@@ -50,6 +50,8 @@ namespace Orthanc
 {
   namespace SystemToolbox
   {
+    void USleep(uint64_t microSeconds);
+
     ServerBarrierEvent ServerBarrier(const bool& stopFlag);
 
     ServerBarrierEvent ServerBarrier();

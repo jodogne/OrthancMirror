@@ -78,8 +78,6 @@ namespace Orthanc
 
   namespace Toolbox
   {
-    void USleep(uint64_t microSeconds);
-
     void ToUpperCase(std::string& s);  // Inplace version
 
     void ToLowerCase(std::string& s);  // Inplace version

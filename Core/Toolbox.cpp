@@ -90,18 +90,6 @@ extern "C"
 
 namespace Orthanc
 {
-  void Toolbox::USleep(uint64_t microSeconds)
-  {
-#if defined(_WIN32)
-    ::Sleep(static_cast<DWORD>(microSeconds / static_cast<uint64_t>(1000)));
-#elif defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__) || defined(__native_client__)
-    usleep(microSeconds);
-#else
-#error Support your platform here
-#endif
-  }
-
-
   void Toolbox::ToUpperCase(std::string& s)
   {
     std::transform(s.begin(), s.end(), s.begin(), toupper);
