@@ -99,6 +99,13 @@ if (BOOST_STATIC)
       -DBOOST_LOCALE_NO_POSIX_BACKEND=1
       -DBOOST_LOCALE_NO_STD_BACKEND=1
       )
+
+  elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
+    add_definitions(
+      -DBOOST_LOCALE_NO_POSIX_BACKEND=1
+      -DBOOST_LOCALE_NO_STD_BACKEND=1
+      )
+
   else()
     message(FATAL_ERROR "Support your platform here")
   endif()
@@ -114,9 +121,14 @@ if (BOOST_STATIC)
   list(APPEND BOOST_SOURCES
     ${BOOST_REGEX_SOURCES}
     ${BOOST_SOURCES_DIR}/libs/date_time/src/gregorian/greg_month.cpp
-    ${BOOST_SOURCES_DIR}/libs/locale/src/encoding/codepage.cpp
     ${BOOST_SOURCES_DIR}/libs/system/src/error_code.cpp
     )
+
+  if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
+    list(APPEND BOOST_SOURCES
+      ${BOOST_SOURCES_DIR}/libs/locale/src/encoding/codepage.cpp
+      )
+  endif()
 
   if (${CMAKE_SYSTEM_NAME} STREQUAL "PNaCl" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "NaCl32" OR
