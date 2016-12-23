@@ -73,7 +73,74 @@ namespace Orthanc
   }
 }
 
-#else
+
+#elif ORTHANC_ENABLE_LOGGING_PLUGIN == 1
+
+/*********************************************************
+ * Logger compatible with the Orthanc plugin SDK
+ *********************************************************/
+
+#include <boost/lexical_cast.hpp>
+
+namespace Orthanc
+{
+  namespace Logging
+  {
+    static OrthancPluginContext* context_ = NULL;
+
+    void Initialize(OrthancPluginContext* context)
+    {
+      context_ = context_;
+    }
+
+    InternalLogger::InternalLogger(const char* level,
+                                   const char* file  /* ignored */,
+                                   int line  /* ignored */) :
+      level_(level)
+    {
+    }
+
+    InternalLogger::~InternalLogger()
+    {
+      if (context_ != NULL)
+      {
+        if (level_ == "ERROR")
+        {
+          OrthancPluginLogError(context_, message_.c_str());
+        }
+        else if (level_ == "WARNING")
+        {
+          OrthancPluginLogWarning(context_, message_.c_str());
+        }
+        else if (level_ == "INFO")
+        {
+          OrthancPluginLogInfo(context_, message_.c_str());
+        }
+      }
+    }
+
+    InternalLogger& InternalLogger::operator<< (const std::string& message)
+    {
+      message_ += message;
+      return *this;
+    }
+
+    InternalLogger& InternalLogger::operator<< (const char* message)
+    {
+      message_ += std::string(message);
+      return *this;
+    }
+
+    InternalLogger& InternalLogger::operator<< (int message)
+    {
+      message_ += boost::lexical_cast<std::string>(message);
+      return *this;
+    }
+  }
+}
+
+
+#else  /* ORTHANC_ENABLE_LOGGING_PLUGIN == 0 && ORTHANC_ENABLE_LOGGING == 1 */
 
 /*********************************************************
  * Internal logger of Orthanc, that mimics some
