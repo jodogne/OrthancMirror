@@ -17,6 +17,7 @@ General
   https://groups.google.com/d/msg/orthanc-users/--njEbqcDDI/rBu8XL-Mm-cJ
 * Support partial file retrieval in Orthanc::HttpClient
 * Support retry counter in Orthanc::HttpClient
+* Option to enable DNS lookups in DICOM: https://goo.gl/woa35Z
 
 
 ========
