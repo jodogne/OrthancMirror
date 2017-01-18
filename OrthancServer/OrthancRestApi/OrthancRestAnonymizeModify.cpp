@@ -862,9 +862,9 @@ namespace Orthanc
     Register("/patients/{id}/modify", ModifyResource<ChangeType_ModifiedPatient, ResourceType_Patient>);
 
     Register("/instances/{id}/anonymize", AnonymizeInstance);
-    Register("/series/{id}/anonymize", AnonymizeResource<ChangeType_ModifiedSeries, ResourceType_Series>);
-    Register("/studies/{id}/anonymize", AnonymizeResource<ChangeType_ModifiedStudy, ResourceType_Study>);
-    Register("/patients/{id}/anonymize", AnonymizeResource<ChangeType_ModifiedPatient, ResourceType_Patient>);
+    Register("/series/{id}/anonymize", AnonymizeResource<ChangeType_AnonymizedSeries, ResourceType_Series>);
+    Register("/studies/{id}/anonymize", AnonymizeResource<ChangeType_AnonymizedStudy, ResourceType_Study>);
+    Register("/patients/{id}/anonymize", AnonymizeResource<ChangeType_AnonymizedPatient, ResourceType_Patient>);
 
     Register("/tools/create-dicom", CreateDicom);
   }
