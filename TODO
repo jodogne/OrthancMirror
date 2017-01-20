@@ -83,8 +83,10 @@ Ideas of plugins
 * Converter to/from NIfTI
 * MySQL database plugin
 * Decode JPEG2k with grok: https://github.com/GrokImageCompression/grok
-* Generate dynamic content using Lua:
+* Generate dynamic HTTP content using Lua:
   https://groups.google.com/d/msg/orthanc-users/KompazkxRSs/5Rh03mzgDAAJ
+* More generally, expose more callbacks of the plugin SDK in Lua:
+  https://groups.google.com/d/msg/orthanc-users/_FbiRHuXPGM/J-OAv7zaCAAJ
 
 
 ===
