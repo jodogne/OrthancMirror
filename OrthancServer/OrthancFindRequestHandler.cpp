@@ -516,22 +516,9 @@ namespace Orthanc
                                          const std::list<DicomTag>& sequencesToReturn,
                                          const std::string& remoteIp,
                                          const std::string& remoteAet,
-                                         const std::string& calledAet)
+                                         const std::string& calledAet,
+                                         ModalityManufacturer manufacturer)
   {
-    /**
-     * Ensure that the remote modality is known to Orthanc.
-     **/
-
-    RemoteModalityParameters modality;
-
-    if (!Configuration::LookupDicomModalityUsingAETitle(modality, remoteAet))
-    {
-      throw OrthancException(ErrorCode_UnknownModality);
-    }
-
-    bool caseSensitivePN = Configuration::GetGlobalBoolParameter("CaseSensitivePN", false);
-
-
     /**
      * Possibly apply the user-supplied Lua filter.
      **/
@@ -598,6 +585,8 @@ namespace Orthanc
 
     LookupResource finder(level);
 
+    const bool caseSensitivePN = Configuration::GetGlobalBoolParameter("CaseSensitivePN", false);
+
     for (size_t i = 0; i < query.GetSize(); i++)
     {
       const DicomElement& element = query.GetElement(i);
@@ -617,7 +606,7 @@ namespace Orthanc
         continue;
       }
 
-      if (FilterQueryTag(value, level, tag, modality.GetManufacturer()))
+      if (FilterQueryTag(value, level, tag, manufacturer))
       {
         ValueRepresentation vr = FromDcmtkBridge::LookupValueRepresentation(tag);
 

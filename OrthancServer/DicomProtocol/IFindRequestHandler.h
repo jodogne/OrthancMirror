@@ -49,6 +49,7 @@ namespace Orthanc
                         const std::list<DicomTag>& sequencesToReturn,
                         const std::string& remoteIp,
                         const std::string& remoteAet,
-                        const std::string& calledAet) = 0;
+                        const std::string& calledAet,
+                        ModalityManufacturer manufacturer) = 0;
   };
 }

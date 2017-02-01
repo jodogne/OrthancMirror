@@ -191,6 +191,20 @@ namespace Orthanc
 
         try
         {
+          RemoteModalityParameters modality;
+
+          /**
+           * Ensure that the remote modality is known to Orthanc for C-FIND requests.
+           **/
+
+          if (!Configuration::LookupDicomModalityUsingAETitle(modality, *data.remoteAet_))
+          {
+            LOG(ERROR) << "Modality with AET \"" << *data.remoteAet_
+                       << "\" is not defined in the \"DicomModalities\" configuration option";
+            throw OrthancException(ErrorCode_UnknownModality);
+          }
+
+          
           if (sopClassUid == UID_FINDModalityWorklistInformationModel)
           {
             data.answers_.SetWorklist(true);
@@ -202,7 +216,7 @@ namespace Orthanc
 
               data.worklistHandler_->Handle(data.answers_, query,
                                             *data.remoteIp_, *data.remoteAet_,
-                                            *data.calledAet_);
+                                            *data.calledAet_, modality.GetManufacturer());
               ok = true;
             }
             else
@@ -242,7 +256,7 @@ namespace Orthanc
 
               data.findHandler_->Handle(data.answers_, input, sequencesToReturn,
                                         *data.remoteIp_, *data.remoteAet_,
-                                        *data.calledAet_);
+                                        *data.calledAet_, modality.GetManufacturer());
               ok = true;
             }
             else

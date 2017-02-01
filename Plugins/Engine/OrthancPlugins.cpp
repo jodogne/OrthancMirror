@@ -410,14 +410,13 @@ namespace Orthanc
                         ParsedDicomFile& query,
                         const std::string& remoteIp,
                         const std::string& remoteAet,
-                        const std::string& calledAet)
+                        const std::string& calledAet,
+                        ModalityManufacturer manufacturer)
     {
-      bool caseSensitivePN = Configuration::GetGlobalBoolParameter("CaseSensitivePN", false);
-
       {
         boost::mutex::scoped_lock lock(that_.pimpl_->worklistCallbackMutex_);
 
-        matcher_.reset(new HierarchicalMatcher(query, caseSensitivePN));
+        matcher_.reset(new HierarchicalMatcher(query));
         currentQuery_ = &query;
 
         if (that_.pimpl_->worklistCallback_)
@@ -502,7 +501,8 @@ namespace Orthanc
                         const std::list<DicomTag>& sequencesToReturn,
                         const std::string& remoteIp,
                         const std::string& remoteAet,
-                        const std::string& calledAet)
+                        const std::string& calledAet,
+                        ModalityManufacturer manufacturer)
     {
       DicomMap tmp;
       tmp.Assign(input);
@@ -2598,8 +2598,7 @@ namespace Orthanc
         const _OrthancPluginCreateFindMatcher& p =
           *reinterpret_cast<const _OrthancPluginCreateFindMatcher*>(parameters);
         ParsedDicomFile query(p.query, p.size);
-        *(p.target) = reinterpret_cast<OrthancPluginFindMatcher*>
-          (new HierarchicalMatcher(query, Configuration::GetGlobalBoolParameter("CaseSensitivePN", false)));
+        *(p.target) = reinterpret_cast<OrthancPluginFindMatcher*>(new HierarchicalMatcher(query));
         return true;
       }
 
