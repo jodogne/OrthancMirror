@@ -38,16 +38,16 @@
 #include "../../Core/OrthancException.h"
 #include "../FromDcmtkBridge.h"
 #include "../ToDcmtkBridge.h"
+#include "../OrthancInitialization.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 
 namespace Orthanc
 {
-  HierarchicalMatcher::HierarchicalMatcher(ParsedDicomFile& query,
-                                           bool caseSensitivePN)
+  HierarchicalMatcher::HierarchicalMatcher(ParsedDicomFile& query)
   {
     Setup(*query.GetDcmtkObject().getDataset(), 
-          caseSensitivePN,
+          Configuration::GetGlobalBoolParameter("CaseSensitivePN", false),
           query.GetEncoding());
   }
 

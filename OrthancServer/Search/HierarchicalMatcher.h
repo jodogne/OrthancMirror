@@ -68,8 +68,7 @@ namespace Orthanc
                                 Encoding encoding) const;
 
   public:
-    HierarchicalMatcher(ParsedDicomFile& query,
-                        bool caseSensitivePN);
+    HierarchicalMatcher(ParsedDicomFile& query);
 
     ~HierarchicalMatcher();
 

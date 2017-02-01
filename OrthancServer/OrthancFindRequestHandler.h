@@ -72,7 +72,8 @@ namespace Orthanc
                         const std::list<DicomTag>& sequencesToReturn,
                         const std::string& remoteIp,
                         const std::string& remoteAet,
-                        const std::string& calledAet);
+                        const std::string& calledAet,
+                        ModalityManufacturer manufacturer);
 
     unsigned int GetMaxResults() const
     {

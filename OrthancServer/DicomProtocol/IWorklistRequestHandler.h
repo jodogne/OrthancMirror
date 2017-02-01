@@ -48,6 +48,7 @@ namespace Orthanc
                         ParsedDicomFile& query,
                         const std::string& remoteIp,
                         const std::string& remoteAet,
-                        const std::string& calledAet) = 0;
+                        const std::string& calledAet,
+                        ModalityManufacturer manufacturer) = 0;
   };
 }
