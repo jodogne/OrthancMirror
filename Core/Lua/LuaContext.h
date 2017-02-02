@@ -83,6 +83,8 @@ namespace Orthanc
     void GetJson(Json::Value& result,
                  int top,
                  bool keepStrings);
+
+    void SetHttpHeaders(lua_State* state, int top);
     
   public:
     LuaContext();
