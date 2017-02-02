@@ -238,7 +238,7 @@ namespace Orthanc
 
     // Check the types of the arguments
     int nArgs = lua_gettop(state);
-    if ((nArgs < 1 or nArgs > 2) ||         // check args count
+    if ((nArgs < 1 || nArgs > 2) ||         // check args count
        !lua_isstring(state, 1))             // URL is a string
     {
       LOG(ERROR) << "Lua: Bad parameters to HttpGet()";
