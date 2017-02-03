@@ -225,7 +225,6 @@ namespace Orthanc
       {
         this->httpClient_.AddHeader(*it, headers[*it].asString());
       }
-      LOG(ERROR) << "4";
     }
 
   }
