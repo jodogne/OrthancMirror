@@ -39,6 +39,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/lexical_cast.hpp>
 #include <json/value.h>
+#include <list>
 
 
 #if (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER >= 2 ||   \
@@ -231,6 +232,9 @@ namespace OrthancPlugins
 
     bool LookupFloatValue(float& target,
                           const std::string& key) const;
+
+    bool LookupListOfStrings(std::list<std::string>& target,
+                             const std::string& key) const;
 
     std::string GetStringValue(const std::string& key,
                                const std::string& defaultValue) const;
