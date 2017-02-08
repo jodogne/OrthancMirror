@@ -557,6 +557,57 @@ namespace OrthancPlugins
     }
   }
 
+
+  bool OrthancConfiguration::LookupListOfStrings(std::list<std::string>& target,
+                                                 const std::string& key) const
+  {
+    assert(configuration_.type() == Json::objectValue);
+
+    target.clear();
+
+    if (!configuration_.isMember(key))
+    {
+      return false;
+    }
+
+    bool ok = true;
+    
+    if (configuration_[key].type() != Json::arrayValue)
+    {
+      ok = false;
+    }
+    else
+    {
+      for (Json::Value::ArrayIndex i = 0; ok && i < configuration_[key].size(); i++)
+      {
+        if (configuration_[key][i].type() == Json::stringValue)
+        {
+          target.push_back(configuration_[key][i].asString());
+        }
+        else
+        {
+          ok = false;
+        }
+      }
+    }
+
+    if (ok)
+    {
+      return true;
+    }
+    else
+    {
+      if (context_ != NULL)
+      {
+        std::string s = ("The configuration option \"" + GetPath(key) +
+                         "\" is not a list of strings as expected");
+        OrthancPluginLogError(context_, s.c_str());
+      }
+
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
+    }
+  }
+
   
   std::string OrthancConfiguration::GetStringValue(const std::string& key,
                                                    const std::string& defaultValue) const
