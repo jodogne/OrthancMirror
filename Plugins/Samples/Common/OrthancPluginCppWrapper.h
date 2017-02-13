@@ -67,6 +67,8 @@ namespace OrthancPlugins
 
     void Check(OrthancPluginErrorCode code);
 
+    bool CheckHttp(OrthancPluginErrorCode code);
+
   public:
     MemoryBuffer(OrthancPluginContext* context);
 
@@ -152,6 +154,20 @@ namespace OrthancPlugins
                      OrthancPluginDicomToJsonFormat format,
                      OrthancPluginDicomToJsonFlags flags,
                      uint32_t maxStringLength);
+
+    bool HttpGet(const std::string& url,
+                 const std::string& username,
+                 const std::string& password);
+ 
+    bool HttpPost(const std::string& url,
+                  const std::string& body,
+                  const std::string& username,
+                  const std::string& password);
+ 
+    bool HttpPut(const std::string& url,
+                 const std::string& body,
+                 const std::string& username,
+                 const std::string& password);
   };
 
 
@@ -406,6 +422,11 @@ namespace OrthancPlugins
   bool RestApiDelete(OrthancPluginContext* context,
                      const std::string& uri,
                      bool applyPlugins);
+
+  bool HttpDelete(OrthancPluginContext* context,
+                  const std::string& url,
+                  const std::string& username,
+                  const std::string& password);
 
   inline void LogError(OrthancPluginContext* context,
                        const std::string& message)
