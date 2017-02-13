@@ -51,6 +51,31 @@ namespace OrthancPlugins
   }
 
 
+  bool MemoryBuffer::CheckHttp(OrthancPluginErrorCode code)
+  {
+    if (code != OrthancPluginErrorCode_Success)
+    {
+      // Prevent using garbage information
+      buffer_.data = NULL;
+      buffer_.size = 0;
+    }
+
+    if (code == OrthancPluginErrorCode_Success)
+    {
+      return true;
+    }
+    else if (code == OrthancPluginErrorCode_UnknownResource ||
+             code == OrthancPluginErrorCode_InexistentItem)
+    {
+      return false;
+    }
+    else
+    {
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
+    }
+  }
+
+
   MemoryBuffer::MemoryBuffer(OrthancPluginContext* context) : 
     context_(context)
   {
@@ -119,29 +144,13 @@ namespace OrthancPlugins
   {
     Clear();
 
-    OrthancPluginErrorCode error;
-
     if (applyPlugins)
     {
-      error = OrthancPluginRestApiGetAfterPlugins(context_, &buffer_, uri.c_str());
+      return CheckHttp(OrthancPluginRestApiGetAfterPlugins(context_, &buffer_, uri.c_str()));
     }
     else
     {
-      error = OrthancPluginRestApiGet(context_, &buffer_, uri.c_str());
-    }
-
-    if (error == OrthancPluginErrorCode_Success)
-    {
-      return true;
-    }
-    else if (error == OrthancPluginErrorCode_UnknownResource ||
-             error == OrthancPluginErrorCode_InexistentItem)
-    {
-      return false;
-    }
-    else
-    {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(error);
+      return CheckHttp(OrthancPluginRestApiGet(context_, &buffer_, uri.c_str()));
     }
   }
 
@@ -153,29 +162,13 @@ namespace OrthancPlugins
   {
     Clear();
 
-    OrthancPluginErrorCode error;
-
     if (applyPlugins)
     {
-      error = OrthancPluginRestApiPostAfterPlugins(context_, &buffer_, uri.c_str(), body, bodySize);
+      return CheckHttp(OrthancPluginRestApiPostAfterPlugins(context_, &buffer_, uri.c_str(), body, bodySize));
     }
     else
     {
-      error = OrthancPluginRestApiPost(context_, &buffer_, uri.c_str(), body, bodySize);
-    }
-
-    if (error == OrthancPluginErrorCode_Success)
-    {
-      return true;
-    }
-    else if (error == OrthancPluginErrorCode_UnknownResource ||
-             error == OrthancPluginErrorCode_InexistentItem)
-    {
-      return false;
-    }
-    else
-    {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(error);
+      return CheckHttp(OrthancPluginRestApiPost(context_, &buffer_, uri.c_str(), body, bodySize));
     }
   }
 
@@ -187,29 +180,13 @@ namespace OrthancPlugins
   {
     Clear();
 
-    OrthancPluginErrorCode error;
-
     if (applyPlugins)
     {
-      error = OrthancPluginRestApiPutAfterPlugins(context_, &buffer_, uri.c_str(), body, bodySize);
+      return CheckHttp(OrthancPluginRestApiPutAfterPlugins(context_, &buffer_, uri.c_str(), body, bodySize));
     }
     else
     {
-      error = OrthancPluginRestApiPut(context_, &buffer_, uri.c_str(), body, bodySize);
-    }
-
-    if (error == OrthancPluginErrorCode_Success)
-    {
-      return true;
-    }
-    else if (error == OrthancPluginErrorCode_UnknownResource ||
-             error == OrthancPluginErrorCode_InexistentItem)
-    {
-      return false;
-    }
-    else
-    {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(error);
+      return CheckHttp(OrthancPluginRestApiPut(context_, &buffer_, uri.c_str(), body, bodySize));
     }
   }
 
@@ -322,6 +299,68 @@ namespace OrthancPlugins
     str.ToJson(target);
   }
 
+
+  bool MemoryBuffer::HttpGet(const std::string& url,
+                             const std::string& username,
+                             const std::string& password)
+  {
+    Clear();
+    return CheckHttp(OrthancPluginHttpGet(context_, &buffer_, url.c_str(),
+                                          username.empty() ? NULL : username.c_str(),
+                                          password.empty() ? NULL : password.c_str()));
+  }
+
+  
+  bool MemoryBuffer::HttpPost(const std::string& url,
+                              const std::string& body,
+                              const std::string& username,
+                              const std::string& password)
+  {
+    Clear();
+    return CheckHttp(OrthancPluginHttpGet(context_, &buffer_, url.c_str(),
+                                          username.empty() ? NULL : username.c_str(),
+                                          password.empty() ? NULL : password.c_str()));
+  }
+  
+ 
+  bool MemoryBuffer::HttpPut(const std::string& url,
+                             const std::string& body,
+                             const std::string& username,
+                             const std::string& password)
+  {
+    Clear();
+    return CheckHttp(OrthancPluginHttpPut(context_, &buffer_, url.c_str(),
+                                          body.empty() ? NULL : body.c_str(),
+                                          body.size(),
+                                          username.empty() ? NULL : username.c_str(),
+                                          password.empty() ? NULL : password.c_str()));
+  }
+  
+ 
+  bool HttpDelete(OrthancPluginContext* context_,
+                  const std::string& url,
+                  const std::string& username,
+                  const std::string& password)
+  {
+    OrthancPluginErrorCode error = OrthancPluginHttpDelete
+      (context_, url.c_str(),
+       username.empty() ? NULL : username.c_str(),
+       password.empty() ? NULL : password.c_str());
+  
+    if (error == OrthancPluginErrorCode_Success)
+    {
+      return true;
+    }
+    else if (error == OrthancPluginErrorCode_UnknownResource ||
+             error == OrthancPluginErrorCode_InexistentItem)
+    {
+      return false;
+    }
+    else
+    {
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(error);
+    }
+  }
   
 
   OrthancConfiguration::OrthancConfiguration(OrthancPluginContext* context) : 
