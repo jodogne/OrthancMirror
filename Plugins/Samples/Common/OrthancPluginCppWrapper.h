@@ -40,6 +40,7 @@
 #include <boost/lexical_cast.hpp>
 #include <json/value.h>
 #include <list>
+#include <set>
 
 
 #if (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER >= 2 ||   \
@@ -252,6 +253,10 @@ namespace OrthancPlugins
     bool LookupListOfStrings(std::list<std::string>& target,
                              const std::string& key,
                              bool allowSingleString) const;
+
+    bool LookupSetOfStrings(std::set<std::string>& target,
+                            const std::string& key,
+                            bool allowSingleString) const;
 
     std::string GetStringValue(const std::string& key,
                                const std::string& defaultValue) const;

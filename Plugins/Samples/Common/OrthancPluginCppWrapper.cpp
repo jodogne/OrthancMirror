@@ -659,6 +659,31 @@ namespace OrthancPlugins
     ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
   }
 
+
+  bool OrthancConfiguration::LookupSetOfStrings(std::set<std::string>& target,
+                                                const std::string& key,
+                                                bool allowSingleString) const
+  {
+    std::list<std::string> lst;
+
+    if (LookupListOfStrings(lst, key, allowSingleString))
+    {
+      target.clear();
+
+      for (std::list<std::string>::const_iterator
+             it = lst.begin(); it != lst.end(); ++it)
+      {
+        target.insert(*it);
+      }
+
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
   
   std::string OrthancConfiguration::GetStringValue(const std::string& key,
                                                    const std::string& defaultValue) const
