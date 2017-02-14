@@ -598,7 +598,8 @@ namespace OrthancPlugins
 
 
   bool OrthancConfiguration::LookupListOfStrings(std::list<std::string>& target,
-                                                 const std::string& key) const
+                                                 const std::string& key,
+                                                 bool allowSingleString) const
   {
     assert(configuration_.type() == Json::objectValue);
 
@@ -609,42 +610,53 @@ namespace OrthancPlugins
       return false;
     }
 
-    bool ok = true;
+    switch (configuration_[key].type())
+    {
+      case Json::arrayValue:
+      {
+        bool ok = true;
     
-    if (configuration_[key].type() != Json::arrayValue)
-    {
-      ok = false;
-    }
-    else
-    {
-      for (Json::Value::ArrayIndex i = 0; ok && i < configuration_[key].size(); i++)
-      {
-        if (configuration_[key][i].type() == Json::stringValue)
+        for (Json::Value::ArrayIndex i = 0; ok && i < configuration_[key].size(); i++)
         {
-          target.push_back(configuration_[key][i].asString());
+          if (configuration_[key][i].type() == Json::stringValue)
+          {
+            target.push_back(configuration_[key][i].asString());
+          }
+          else
+          {
+            ok = false;
+          }
         }
-        else
-        {
-          ok = false;
-        }
-      }
-    }
 
-    if (ok)
-    {
-      return true;
-    }
-    else
-    {
-      if (context_ != NULL)
-      {
-        std::string s = ("The configuration option \"" + GetPath(key) +
-                         "\" is not a list of strings as expected");
-        OrthancPluginLogError(context_, s.c_str());
+        if (ok)
+        {
+          return true;
+        }
+
+        break;
       }
 
-      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
+      case Json::stringValue:
+        if (allowSingleString)
+        {
+          target.push_back(configuration_[key].asString());
+          return true;
+        }
+
+        break;
+
+      default:
+        break;
     }
+
+    if (context_ != NULL)
+    {
+      std::string s = ("The configuration option \"" + GetPath(key) +
+                       "\" is not a list of strings as expected");
+      OrthancPluginLogError(context_, s.c_str());
+    }
+
+    ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
   }
 
   

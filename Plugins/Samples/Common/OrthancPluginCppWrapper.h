@@ -250,7 +250,8 @@ namespace OrthancPlugins
                           const std::string& key) const;
 
     bool LookupListOfStrings(std::list<std::string>& target,
-                             const std::string& key) const;
+                             const std::string& key,
+                             bool allowSingleString) const;
 
     std::string GetStringValue(const std::string& key,
                                const std::string& defaultValue) const;
