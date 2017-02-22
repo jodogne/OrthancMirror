@@ -317,9 +317,10 @@ namespace OrthancPlugins
                               const std::string& password)
   {
     Clear();
-    return CheckHttp(OrthancPluginHttpGet(context_, &buffer_, url.c_str(),
-                                          username.empty() ? NULL : username.c_str(),
-                                          password.empty() ? NULL : password.c_str()));
+    return CheckHttp(OrthancPluginHttpPost(context_, &buffer_, url.c_str(),
+                                           body.c_str(), body.size(),
+                                           username.empty() ? NULL : username.c_str(),
+                                           password.empty() ? NULL : password.c_str()));
   }
   
  
@@ -1130,10 +1131,15 @@ namespace OrthancPlugins
                                         unsigned int minor,
                                         unsigned int revision)
   {
-    char buf[128];
-    sprintf(buf, "Your version of the Orthanc core (%s) is too old to run this plugin (%d.%d.%d is required)",
-            context->orthancVersion, major, minor, revision);
-    OrthancPluginLogError(context, buf);
+    std::string s = ("Your version of the Orthanc core (" +
+                     std::string(context->orthancVersion) +
+                     ") is too old to run this plugin (" +
+                     boost::lexical_cast<std::string>(major) + "." +
+                     boost::lexical_cast<std::string>(minor) + "." +
+                     boost::lexical_cast<std::string>(revision) + 
+                     " is required)");
+    
+    OrthancPluginLogError(context, s.c_str());
   }
 
 
