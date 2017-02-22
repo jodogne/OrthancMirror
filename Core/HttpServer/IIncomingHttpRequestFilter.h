@@ -48,6 +48,7 @@ namespace Orthanc
                            const char* uri,
                            const char* ip,
                            const char* username,
-                           const IHttpHandler::Arguments& httpHeaders) const = 0;
+                           const IHttpHandler::Arguments& httpHeaders,
+                           const IHttpHandler::GetArguments& getArguments) const = 0;
   };
 }

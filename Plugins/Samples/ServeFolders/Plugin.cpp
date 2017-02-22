@@ -416,13 +416,10 @@ extern "C"
     /* Check the version of the Orthanc core */
     if (OrthancPluginCheckVersion(context_) == 0)
     {
-      char info[1024];
-      sprintf(info, "Your version of Orthanc (%s) must be above %d.%d.%d to run this plugin",
-              context_->orthancVersion,
-              ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER,
-              ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER,
-              ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER);
-      OrthancPluginLogError(context_, info);
+      OrthancPlugins::ReportMinimalOrthancVersion(context_, 
+                                                  ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER,
+                                                  ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER,
+                                                  ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER);
       return -1;
     }
 

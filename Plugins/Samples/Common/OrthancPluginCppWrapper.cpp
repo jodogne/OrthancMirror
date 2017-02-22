@@ -1126,14 +1126,14 @@ namespace OrthancPlugins
   }
 
 
-  static void ReportIncompatibleVersion(OrthancPluginContext* context,
-                                        unsigned int major,
-                                        unsigned int minor,
-                                        unsigned int revision)
+  void ReportMinimalOrthancVersion(OrthancPluginContext* context,
+                                   unsigned int major,
+                                   unsigned int minor,
+                                   unsigned int revision)
   {
     std::string s = ("Your version of the Orthanc core (" +
                      std::string(context->orthancVersion) +
-                     ") is too old to run this plugin (" +
+                     ") is too old to run this plugin (version " +
                      boost::lexical_cast<std::string>(major) + "." +
                      boost::lexical_cast<std::string>(minor) + "." +
                      boost::lexical_cast<std::string>(revision) + 
@@ -1189,7 +1189,6 @@ namespace OrthancPlugins
 
     if (a < major)
     {
-      ReportIncompatibleVersion(context, major, minor, revision);
       return false;
     }
 
@@ -1204,7 +1203,6 @@ namespace OrthancPlugins
 
     if (b < minor)
     {
-      ReportIncompatibleVersion(context, major, minor, revision);
       return false;
     }
 
@@ -1217,7 +1215,6 @@ namespace OrthancPlugins
     }
     else
     {
-      ReportIncompatibleVersion(context, major, minor, revision);
       return false;
     }
   }
