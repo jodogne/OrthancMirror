@@ -291,10 +291,11 @@ public:
                          const char* uri,
                          const char* ip,
                          const char* username,
-                         const IHttpHandler::Arguments& httpHeaders) const
+                         const IHttpHandler::Arguments& httpHeaders,
+                         const IHttpHandler::GetArguments& getArguments) const
   {
     if (plugins_ != NULL &&
-        !plugins_->IsAllowed(method, uri, ip, username, httpHeaders))
+        !plugins_->IsAllowed(method, uri, ip, username, httpHeaders, getArguments))
     {
       return false;
     }

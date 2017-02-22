@@ -106,6 +106,8 @@ namespace Orthanc
 
     void RegisterIncomingHttpRequestFilter(const void* parameters);
 
+    void RegisterIncomingHttpRequestFilter2(const void* parameters);
+
     void AnswerBuffer(const void* parameters);
 
     void Redirect(const void* parameters);
@@ -281,7 +283,8 @@ namespace Orthanc
                            const char* uri,
                            const char* ip,
                            const char* username,
-                           const IHttpHandler::Arguments& httpHeaders) const;
+                           const IHttpHandler::Arguments& httpHeaders,
+                           const IHttpHandler::GetArguments& getArguments) const;
 
     bool HasFindHandler();
 

@@ -652,7 +652,8 @@ namespace Orthanc
     const IIncomingHttpRequestFilter *filter = server.GetIncomingHttpRequestFilter();
     if (filter != NULL)
     {
-      if (!filter->IsAllowed(method, request->uri, remoteIp, username.c_str(), headers))
+      if (!filter->IsAllowed(method, request->uri, remoteIp,
+                             username.c_str(), headers, argumentsGET))
       {
         //output.SendUnauthorized(ORTHANC_REALM);
         output.SendStatus(HttpStatus_403_Forbidden);

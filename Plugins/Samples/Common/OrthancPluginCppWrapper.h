@@ -461,6 +461,11 @@ namespace OrthancPlugins
     }
   }
 
+  void ReportMinimalOrthancVersion(OrthancPluginContext* context,
+                                   unsigned int major,
+                                   unsigned int minor,
+                                   unsigned int revision);
+  
   bool CheckMinimalOrthancVersion(OrthancPluginContext* context,
                                   unsigned int major,
                                   unsigned int minor,

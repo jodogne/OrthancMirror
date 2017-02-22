@@ -1,7 +1,16 @@
 Pending changes in the mainline
 ===============================
 
+Plugins
+-------
+
+* New function: "OrthancPluginRegisterIncomingHttpRequestFilter2()"
+
+Lua
+---
+
 * Added HTTP headers support for Lua HttpPost/HttpGet/HttpPut/HttpDelete
+
 
 Version 1.2.0 (2016/12/13)
 ==========================

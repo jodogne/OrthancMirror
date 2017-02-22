@@ -345,6 +345,7 @@ namespace Orthanc
     typedef std::list<OrthancPluginOnStoredInstanceCallback>  OnStoredCallbacks;
     typedef std::list<OrthancPluginOnChangeCallback>  OnChangeCallbacks;
     typedef std::list<OrthancPluginIncomingHttpRequestFilter>  IncomingHttpRequestFilters;
+    typedef std::list<OrthancPluginIncomingHttpRequestFilter2>  IncomingHttpRequestFilters2;
     typedef std::list<OrthancPluginDecodeImageCallback>  DecodeImageCallbacks;
     typedef std::map<Property, std::string>  Properties;
 
@@ -358,6 +359,7 @@ namespace Orthanc
     DecodeImageCallbacks  decodeImageCallbacks_;
     _OrthancPluginMoveCallback moveCallbacks_;
     IncomingHttpRequestFilters  incomingHttpRequestFilters_;
+    IncomingHttpRequestFilters2 incomingHttpRequestFilters2_;
     std::auto_ptr<StorageAreaFactory>  storageArea_;
 
     boost::recursive_mutex restCallbackMutex_;
@@ -1118,6 +1120,16 @@ namespace Orthanc
 
     LOG(INFO) << "Plugin has registered a callback to filter incoming HTTP requests";
     pimpl_->incomingHttpRequestFilters_.push_back(p.callback);
+  }
+
+
+  void OrthancPlugins::RegisterIncomingHttpRequestFilter2(const void* parameters)
+  {
+    const _OrthancPluginIncomingHttpRequestFilter2& p = 
+      *reinterpret_cast<const _OrthancPluginIncomingHttpRequestFilter2*>(parameters);
+
+    LOG(INFO) << "Plugin has registered a callback to filter incoming HTTP requests";
+    pimpl_->incomingHttpRequestFilters2_.push_back(p.callback);
   }
 
 
@@ -2688,6 +2700,10 @@ namespace Orthanc
         RegisterIncomingHttpRequestFilter(parameters);
         return true;
 
+      case _OrthancPluginService_RegisterIncomingHttpRequestFilter2:
+        RegisterIncomingHttpRequestFilter2(parameters);
+        return true;
+
       case _OrthancPluginService_RegisterStorageArea:
       {
         LOG(INFO) << "Plugin has registered a custom storage area";
@@ -3098,8 +3114,11 @@ namespace Orthanc
                                  const char* uri,
                                  const char* ip,
                                  const char* username,
-                                 const IHttpHandler::Arguments& httpHeaders) const
+                                 const IHttpHandler::Arguments& httpHeaders,
+                                 const IHttpHandler::GetArguments& getArguments) const
   {
+    OrthancPluginHttpMethod cMethod = Plugins::Convert(method);
+
     std::vector<const char*> httpKeys(httpHeaders.size());
     std::vector<const char*> httpValues(httpHeaders.size());
 
@@ -3111,25 +3130,55 @@ namespace Orthanc
       httpValues[pos] = it->second.c_str();
     }
 
-    OrthancPluginHttpMethod cMethod = Plugins::Convert(method);
-    const char** cHttpKeys = (httpKeys.size() == 0 ? NULL : &httpKeys[0]);
-    const char** cHttpValues = (httpValues.size() == 0 ? NULL : &httpValues[0]);
+    std::vector<const char*> getKeys(getArguments.size());
+    std::vector<const char*> getValues(getArguments.size());
+
+    for (size_t i = 0; i < getArguments.size(); i++)
+    {
+      getKeys[i] = getArguments[i].first.c_str();
+      getValues[i] = getArguments[i].second.c_str();
+    }
+
+    // Improved callback with support for GET arguments, since Orthanc 1.2.1
+    for (PImpl::IncomingHttpRequestFilters2::const_iterator
+           filter = pimpl_->incomingHttpRequestFilters2_.begin();
+         filter != pimpl_->incomingHttpRequestFilters2_.end(); ++filter)
+    {
+      int32_t allowed = (*filter) (cMethod, uri, ip,
+                                   httpKeys.size(),
+                                   httpKeys.empty() ? NULL : &httpKeys[0],
+                                   httpValues.empty() ? NULL : &httpValues[0],
+                                   getKeys.size(),
+                                   getKeys.empty() ? NULL : &getKeys[0],
+                                   getValues.empty() ? NULL : &getValues[0]);
+
+      if (allowed == 0)
+      {
+        return false;
+      }
+      else if (allowed != 1)
+      {
+        // The callback is only allowed to answer 0 or 1
+        throw OrthancException(ErrorCode_Plugin);
+      }
+    }
 
     for (PImpl::IncomingHttpRequestFilters::const_iterator
            filter = pimpl_->incomingHttpRequestFilters_.begin();
          filter != pimpl_->incomingHttpRequestFilters_.end(); ++filter)
     {
-      int32_t allowed = (*filter) (cMethod, uri, ip, httpKeys.size(), cHttpKeys, cHttpValues);
-
-      if (allowed != 0 &&
-          allowed != 1)
-      {
-        throw OrthancException(ErrorCode_Plugin);
-      }
+      int32_t allowed = (*filter) (cMethod, uri, ip, httpKeys.size(),
+                                   httpKeys.empty() ? NULL : &httpKeys[0],
+                                   httpValues.empty() ? NULL : &httpValues[0]);
 
       if (allowed == 0)
       {
         return false;
+      }
+      else if (allowed != 1)
+      {
+        // The callback is only allowed to answer 0 or 1
+        throw OrthancException(ErrorCode_Plugin);
       }
     }
 
