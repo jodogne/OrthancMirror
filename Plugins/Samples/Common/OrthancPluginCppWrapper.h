@@ -43,9 +43,16 @@
 #include <set>
 
 
-#if (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER >= 2 ||   \
-     (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER == 1 &&  \
-      ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER >= 2))
+
+#define ORTHANC_PLUGINS_VERSION_IS_ABOVE(major, minor, revision) \
+  (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER > major ||               \
+   (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER == major &&             \
+    (ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER > minor ||             \
+     (ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER == minor &&           \
+      ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER >= revision))))
+  
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 2, 0)
 // The "OrthancPluginFindMatcher()" primitive was introduced in Orthanc 1.2.0
 #  define HAS_ORTHANC_PLUGIN_FIND_MATCHER  1
 #else
