@@ -11,6 +11,11 @@ Lua
 
 * Added HTTP headers support for Lua HttpPost/HttpGet/HttpPut/HttpDelete
 
+Maintenance
+-----------
+
+* Fix issue 35 (AET name is not transferred to Orthanc using DCMTK 3.6.0)
+
 
 Version 1.2.0 (2016/12/13)
 ==========================

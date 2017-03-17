@@ -1,7 +1,19 @@
 diff -urEb dcmtk-3.6.0.orig/dcmnet/libsrc/dul.cc dcmtk-3.6.0/dcmnet/libsrc/dul.cc
---- dcmtk-3.6.0.orig/dcmnet/libsrc/dul.cc	2016-04-05 14:30:18.254459281 +0200
-+++ dcmtk-3.6.0/dcmnet/libsrc/dul.cc	2016-04-05 14:32:07.246463713 +0200
-@@ -1770,7 +1770,7 @@
+--- dcmtk-3.6.0.orig/dcmnet/libsrc/dul.cc	2017-03-17 15:49:23.043061969 +0100
++++ dcmtk-3.6.0/dcmnet/libsrc/dul.cc	2017-03-17 15:50:44.075359547 +0100
+@@ -630,7 +630,10 @@
+     if (cond.bad())
+         return cond;
+ 
+-    cond = PRV_NextPDUType(association, block, timeout, &pduType);
++    /* This is the first time we read from this new connection, so in case it
++     * doesn't speak DICOM, we shouldn't wait forever (= DUL_NOBLOCK).
++     */
++    cond = PRV_NextPDUType(association, DUL_NOBLOCK, PRV_DEFAULTTIMEOUT, &pduType);
+ 
+     if (cond == DUL_NETWORKCLOSED)
+         event = TRANS_CONN_CLOSED;
+@@ -1770,7 +1773,7 @@
                  // send number of socket handle in child process over anonymous pipe
                  DWORD bytesWritten;
                  char buf[20];
@@ -10,7 +22,7 @@ diff -urEb dcmtk-3.6.0.orig/dcmnet/libsrc/dul.cc dcmtk-3.6.0/dcmnet/libsrc/dul.c
                  if (!WriteFile(hChildStdInWriteDup, buf, strlen(buf) + 1, &bytesWritten, NULL))
                  {
                      CloseHandle(hChildStdInWriteDup);
-@@ -1780,7 +1780,7 @@
+@@ -1780,7 +1783,7 @@
                  // return OF_ok status code DULC_FORKEDCHILD with descriptive text
                  OFOStringStream stream;
                  stream << "New child process started with pid " << OFstatic_cast(int, pi.dwProcessId)
@@ -19,7 +31,7 @@ diff -urEb dcmtk-3.6.0.orig/dcmnet/libsrc/dul.cc dcmtk-3.6.0/dcmnet/libsrc/dul.c
                  OFSTRINGSTREAM_GETOFSTRING(stream, msg)
                  return makeDcmnetCondition(DULC_FORKEDCHILD, OF_ok, msg.c_str());
              }
-@@ -1840,7 +1840,7 @@
+@@ -1840,7 +1843,7 @@
      }
  #endif
  #endif
@@ -28,10 +40,9 @@ diff -urEb dcmtk-3.6.0.orig/dcmnet/libsrc/dul.cc dcmtk-3.6.0/dcmnet/libsrc/dul.c
  
  #ifndef DONT_DISABLE_NAGLE_ALGORITHM
      /*
-Only in dcmtk-3.6.0/dcmnet/libsrc: dul.cc~
 diff -urEb dcmtk-3.6.0.orig/dcmnet/libsrc/dulfsm.cc dcmtk-3.6.0/dcmnet/libsrc/dulfsm.cc
---- dcmtk-3.6.0.orig/dcmnet/libsrc/dulfsm.cc	2016-04-05 14:30:18.250459281 +0200
-+++ dcmtk-3.6.0/dcmnet/libsrc/dulfsm.cc	2016-04-05 14:32:20.566464254 +0200
+--- dcmtk-3.6.0.orig/dcmnet/libsrc/dulfsm.cc	2017-03-17 15:49:23.043061969 +0100
++++ dcmtk-3.6.0/dcmnet/libsrc/dulfsm.cc	2017-03-17 15:49:48.467144792 +0100
 @@ -2417,7 +2417,7 @@
            return makeDcmnetCondition(DULC_TCPINITERROR, OF_error, msg.c_str());
          }
@@ -41,4 +52,3 @@ diff -urEb dcmtk-3.6.0.orig/dcmnet/libsrc/dulfsm.cc dcmtk-3.6.0/dcmnet/libsrc/du
  
  #ifndef DONT_DISABLE_NAGLE_ALGORITHM
          /*
-Only in dcmtk-3.6.0/dcmnet/libsrc: dulfsm.cc~
