@@ -207,7 +207,7 @@ namespace Orthanc
         LOG(INFO) << "The dictionary of private tags has not been loaded";
       }
 
-#elif defined(__linux__) || defined(__FreeBSD_kernel__)
+#elif defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
       std::string path = DCMTK_DICTIONARY_DIR;
 
       const char* env = std::getenv(DCM_DICT_ENVIRONMENT_VARIABLE);
