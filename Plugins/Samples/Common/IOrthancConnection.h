@@ -64,6 +64,10 @@ namespace OrthancPlugins
     static void ParseJson(Json::Value& result,
                           const std::string& content);
 
+    static void ParseJson(Json::Value& result,
+                          const void* content,
+                          size_t size);
+
     static void RestApiGet(Json::Value& result,
                            IOrthancConnection& orthanc,
                            const std::string& uri);

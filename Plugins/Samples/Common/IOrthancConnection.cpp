@@ -51,6 +51,20 @@ namespace OrthancPlugins
   }
 
 
+  void IOrthancConnection::ParseJson(Json::Value& result,
+                                     const void* content,
+                                     size_t size)
+  {
+    Json::Reader reader;
+    
+    if (!reader.parse(reinterpret_cast<const char*>(content),
+                      reinterpret_cast<const char*>(content) + size, result))
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
+    }
+  }
+
+
   void IOrthancConnection::RestApiGet(Json::Value& result,
                                       IOrthancConnection& orthanc,
                                       const std::string& uri)

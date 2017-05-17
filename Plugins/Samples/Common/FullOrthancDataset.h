@@ -55,6 +55,9 @@ namespace OrthancPlugins
 
     FullOrthancDataset(const std::string& content);
 
+    FullOrthancDataset(const void* content,
+                       size_t size);
+
     virtual bool GetStringValue(std::string& result,
                                 const DicomPath& path) const;
 
