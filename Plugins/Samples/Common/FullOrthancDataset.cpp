@@ -174,6 +174,13 @@ namespace OrthancPlugins
   }
 
 
+  FullOrthancDataset::FullOrthancDataset(const Json::Value& root) :
+    root_(root)
+  {
+    CheckRoot();
+  }
+
+
   bool FullOrthancDataset::GetStringValue(std::string& result,
                                           const DicomPath& path) const
   {
