@@ -58,6 +58,8 @@ namespace OrthancPlugins
     FullOrthancDataset(const void* content,
                        size_t size);
 
+    FullOrthancDataset(const Json::Value& root);
+
     virtual bool GetStringValue(std::string& result,
                                 const DicomPath& path) const;
 
