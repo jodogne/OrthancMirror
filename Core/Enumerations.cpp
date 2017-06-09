@@ -636,10 +636,10 @@ namespace Orthanc
         return "RGB";
 
       case PhotometricInterpretation_Monochrome1:
-        return "Monochrome1";
+        return "MONOCHROME1";
 
       case PhotometricInterpretation_Monochrome2:
-        return "Monochrome2";
+        return "MONOCHROME2";
 
       case PhotometricInterpretation_ARGB:
         return "ARGB";
@@ -651,25 +651,25 @@ namespace Orthanc
         return "HSV";
 
       case PhotometricInterpretation_Palette:
-        return "Palette color";
+        return "PALETTE COLOR";
 
       case PhotometricInterpretation_YBRFull:
-        return "YBR full";
+        return "YBR_FULL";
 
       case PhotometricInterpretation_YBRFull422:
-        return "YBR full 422";
+        return "YBR_FULL_422";
 
       case PhotometricInterpretation_YBRPartial420:
-        return "YBR partial 420"; 
+        return "YBR_PARTIAL_420"; 
 
       case PhotometricInterpretation_YBRPartial422:
-        return "YBR partial 422"; 
+        return "YBR_PARTIAL_422"; 
 
       case PhotometricInterpretation_YBR_ICT:
-        return "YBR ICT"; 
+        return "YBR_ICT"; 
 
       case PhotometricInterpretation_YBR_RCT:
-        return "YBR RCT"; 
+        return "YBR_RCT"; 
 
       case PhotometricInterpretation_Unknown:
         return "Unknown";
@@ -1052,6 +1052,80 @@ namespace Orthanc
     }
   }
 
+
+  PhotometricInterpretation StringToPhotometricInterpretation(const char* value)
+  {
+    // http://dicom.nema.org/medical/dicom/2017a/output/chtml/part03/sect_C.7.6.3.html#sect_C.7.6.3.1.2
+    std::string s(value);
+
+    if (s == "MONOCHROME1")
+    {
+      return PhotometricInterpretation_Monochrome1;
+    }
+    
+    if (s == "MONOCHROME2")
+    {
+      return PhotometricInterpretation_Monochrome2;
+    }
+
+    if (s == "PALETTE COLOR")
+    {
+      return PhotometricInterpretation_Palette;
+    }
+    
+    if (s == "RGB")
+    {
+      return PhotometricInterpretation_RGB;
+    }
+    
+    if (s == "HSV")
+    {
+      return PhotometricInterpretation_HSV;
+    }
+    
+    if (s == "ARGB")
+    {
+      return PhotometricInterpretation_ARGB;
+    }    
+
+    if (s == "CMYK")
+    {
+      return PhotometricInterpretation_CMYK;
+    }    
+
+    if (s == "YBR_FULL")
+    {
+      return PhotometricInterpretation_YBRFull;
+    }
+    
+    if (s == "YBR_FULL_422")
+    {
+      return PhotometricInterpretation_YBRFull422;
+    }
+    
+    if (s == "YBR_PARTIAL_422")
+    {
+      return PhotometricInterpretation_YBRPartial422;
+    }
+    
+    if (s == "YBR_PARTIAL_420")
+    {
+      return PhotometricInterpretation_YBRPartial420;
+    }
+    
+    if (s == "YBR_ICT")
+    {
+      return PhotometricInterpretation_YBR_ICT;
+    }
+    
+    if (s == "YBR_RCT")
+    {
+      return PhotometricInterpretation_YBR_RCT;
+    }
+
+    throw OrthancException(ErrorCode_ParameterOutOfRange);
+  }
+  
 
   unsigned int GetBytesPerPixel(PixelFormat format)
   {

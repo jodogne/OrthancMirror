@@ -79,7 +79,8 @@ namespace Orthanc
     static bool PreviewDecodedImage(std::auto_ptr<ImageAccessor>& image);
 
     static void ApplyExtractionMode(std::auto_ptr<ImageAccessor>& image,
-                                    ImageExtractionMode mode);
+                                    ImageExtractionMode mode,
+                                    bool invert);
 
   public:
     static bool IsPsmctRle1(DcmDataset& dataset);
@@ -92,11 +93,13 @@ namespace Orthanc
 
     static void ExtractPngImage(std::string& result,
                                 std::auto_ptr<ImageAccessor>& image,
-                                ImageExtractionMode mode);
+                                ImageExtractionMode mode,
+                                bool invert);
 
     static void ExtractJpegImage(std::string& result,
                                  std::auto_ptr<ImageAccessor>& image,
                                  ImageExtractionMode mode,
+                                 bool invert,
                                  uint8_t quality);
   };
 }

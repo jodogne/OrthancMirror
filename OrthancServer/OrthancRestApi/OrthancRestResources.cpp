@@ -267,14 +267,17 @@ namespace Orthanc
     private:
       std::auto_ptr<ImageAccessor>&  image_;
       ImageExtractionMode            mode_;
+      bool                           invert_;
       std::string                    format_;
       std::string                    answer_;
 
     public:
       ImageToEncode(std::auto_ptr<ImageAccessor>& image,
-                    ImageExtractionMode mode) : 
+                    ImageExtractionMode mode,
+                    bool invert) :
         image_(image),
-        mode_(mode)
+        mode_(mode),
+        invert_(invert)
       {
       }
 
@@ -286,13 +289,13 @@ namespace Orthanc
       void EncodeUsingPng()
       {
         format_ = "image/png";
-        DicomImageDecoder::ExtractPngImage(answer_, image_, mode_);
+        DicomImageDecoder::ExtractPngImage(answer_, image_, mode_, invert_);
       }
 
       void EncodeUsingJpeg(uint8_t quality)
       {
         format_ = "image/jpeg";
-        DicomImageDecoder::ExtractJpegImage(answer_, image_, mode_, quality);
+        DicomImageDecoder::ExtractJpegImage(answer_, image_, mode_, invert_, quality);
       }
     };
 
@@ -373,6 +376,7 @@ namespace Orthanc
       return;
     }
 
+    bool invert = false;
     std::auto_ptr<ImageAccessor> decoded;
 
     try
@@ -393,6 +397,21 @@ namespace Orthanc
          * to decode the image. This allows us to take advantage of
          * the cache below.
          **/
+
+        if (mode == ImageExtractionMode_Preview &&
+            decoded.get() != NULL)
+        {
+          // TODO Optimize this lookup for photometric interpretation:
+          // It should be implemented by the plugin to avoid parsing
+          // twice the DICOM file
+          ParsedDicomFile parsed(dicomContent);
+          
+          PhotometricInterpretation photometric;
+          if (parsed.LookupPhotometricInterpretation(photometric))
+          {
+            invert = (photometric == PhotometricInterpretation_Monochrome1);
+          }
+        }
       }
 #endif
 
@@ -400,8 +419,15 @@ namespace Orthanc
       {
         // Use Orthanc's built-in decoder, using the cache to speed-up
         // things on multi-frame images
-        ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), publicId);
+        ServerContext::DicomCacheLocker locker(context, publicId);        
         decoded.reset(DicomImageDecoder::Decode(locker.GetDicom(), frame));
+
+        PhotometricInterpretation photometric;
+        if (mode == ImageExtractionMode_Preview &&
+            locker.GetDicom().LookupPhotometricInterpretation(photometric))
+        {
+          invert = (photometric == PhotometricInterpretation_Monochrome1);
+        }
       }
     }
     catch (OrthancException& e)
@@ -423,7 +449,7 @@ namespace Orthanc
       }
     }
 
-    ImageToEncode image(decoded, mode);
+    ImageToEncode image(decoded, mode, invert);
 
     HttpContentNegociation negociation;
     EncodePng png(image);          negociation.Register("image/png", png);

@@ -1409,4 +1409,25 @@ namespace Orthanc
   {
     return FromDcmtkBridge::LookupTransferSyntax(result, *pimpl_->file_);
   }
+
+
+  bool ParsedDicomFile::LookupPhotometricInterpretation(PhotometricInterpretation& result) const
+  {
+    DcmTagKey k(DICOM_TAG_PHOTOMETRIC_INTERPRETATION.GetGroup(),
+                DICOM_TAG_PHOTOMETRIC_INTERPRETATION.GetElement());
+
+    DcmDataset& dataset = *pimpl_->file_->getDataset();
+
+    const char *c = NULL;
+    if (dataset.findAndGetString(k, c).good() &&
+        c != NULL)
+    {
+      result = StringToPhotometricInterpretation(c);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
 }
