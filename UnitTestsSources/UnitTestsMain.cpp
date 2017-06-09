@@ -631,6 +631,23 @@ TEST(Toolbox, Enumerations)
   ASSERT_EQ(ResourceType_Instance, StringToResourceType(EnumerationToString(ResourceType_Instance)));
 
   ASSERT_EQ(ImageFormat_Png, StringToImageFormat(EnumerationToString(ImageFormat_Png)));
+
+  ASSERT_EQ(PhotometricInterpretation_ARGB, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_ARGB)));
+  ASSERT_EQ(PhotometricInterpretation_CMYK, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_CMYK)));
+  ASSERT_EQ(PhotometricInterpretation_HSV, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_HSV)));
+  ASSERT_EQ(PhotometricInterpretation_Monochrome1, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_Monochrome1)));
+  ASSERT_EQ(PhotometricInterpretation_Monochrome2, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_Monochrome2)));
+  ASSERT_EQ(PhotometricInterpretation_Palette, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_Palette)));
+  ASSERT_EQ(PhotometricInterpretation_RGB, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_RGB)));
+  ASSERT_EQ(PhotometricInterpretation_YBRFull, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_YBRFull)));
+  ASSERT_EQ(PhotometricInterpretation_YBRFull422, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_YBRFull422)));
+  ASSERT_EQ(PhotometricInterpretation_YBRPartial420, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_YBRPartial420)));
+  ASSERT_EQ(PhotometricInterpretation_YBRPartial422, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_YBRPartial422)));
+  ASSERT_EQ(PhotometricInterpretation_YBR_ICT, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_YBR_ICT)));
+  ASSERT_EQ(PhotometricInterpretation_YBR_RCT, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_YBR_RCT)));
+
+  ASSERT_STREQ("Unknown", EnumerationToString(PhotometricInterpretation_Unknown));
+  ASSERT_THROW(StringToPhotometricInterpretation("Unknown"), OrthancException);
 }
 
 

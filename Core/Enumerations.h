@@ -524,6 +524,8 @@ namespace Orthanc
   ValueRepresentation StringToValueRepresentation(const std::string& vr,
                                                   bool throwIfUnsupported);
 
+  PhotometricInterpretation StringToPhotometricInterpretation(const char* value);
+  
   unsigned int GetBytesPerPixel(PixelFormat format);
 
   bool GetDicomEncoding(Encoding& encoding,
