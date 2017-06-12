@@ -333,7 +333,7 @@ namespace Orthanc
                                                       dicom.GetEncoding()));
 
     std::auto_ptr<ParsedDicomFile> result(new ParsedDicomFile(*dataset));
-    result->ChangeEncoding(Encoding_Utf8);
+    result->SetEncoding(dicom.GetEncoding());
 
     return result.release();
   }
