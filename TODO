@@ -87,6 +87,8 @@ Ideas of plugins
   https://groups.google.com/d/msg/orthanc-users/KompazkxRSs/5Rh03mzgDAAJ
 * More generally, expose more callbacks of the plugin SDK in Lua:
   https://groups.google.com/d/msg/orthanc-users/_FbiRHuXPGM/J-OAv7zaCAAJ
+* Authorization plugin for the DICOM protocol:
+  https://groups.google.com/d/msg/orthanc-users/Wv-QEwTE0IA/rvJxoOjcAQAJ
 
 
 ===
