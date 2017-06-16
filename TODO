@@ -10,6 +10,8 @@ https://trello.com/b/gcn33tDM/orthanc-wishlist
 General
 =======
 
+* Docker: Statically link against DCMTK, because of:
+  https://bitbucket.org/sjodogne/orthanc/issues/35/aet-name-is-not-transferred-to-orthanc#comment-35174449
 * Configure an user-defined site UID root if generating DICOM UIDs
   ("FromDcmtkBridge::GenerateUuid()")
 * Support "/preview" and "/matlab" for LUT color images
