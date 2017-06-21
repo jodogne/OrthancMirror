@@ -32,6 +32,13 @@ Short-term
 
 * Create multi-frame images with /tools/create-dicom (by adding a
   "MultiFrame" flag to avoid creating a series)
+* In the POST /instances, add a ?force=true query arguments to force Orthanc to replace 
+  the uploaded file even if it already exists in Orthanc.  This is useful when transcoding
+  an image outside Orthanc and reuploading it.  Since it has the same ids, its Orthanc ID
+  will be the same as the previous one.
+* In the /studies/{id}/anonymize route, add an option to remove secondary captures.
+  They usually contains Patient info in the image.  The SOPClassUID might be used to
+  identify such secondary captures.
 
 ---------
 Long-term
