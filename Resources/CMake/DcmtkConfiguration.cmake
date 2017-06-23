@@ -313,6 +313,13 @@ if (NOT DCMTK_USE_EMBEDDED_DICTIONARIES)
       /usr/share/libdcmtk7
       /usr/share/libdcmtk8
       /usr/share/libdcmtk9
+      /usr/share/libdcmtk10
+      /usr/share/libdcmtk11
+      /usr/share/libdcmtk12
+      /usr/share/libdcmtk13
+      /usr/share/libdcmtk14
+      /usr/share/libdcmtk15
+      /usr/share/libdcmtk16
       /usr/local/share/dcmtk
       )
 
