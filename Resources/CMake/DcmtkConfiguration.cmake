@@ -270,10 +270,14 @@ else()
     set(DCMTK_CONFIGURATION_FILE "${DCMTK_config_INCLUDE_DIR}/cfunix.h")
   elseif (EXISTS "${DCMTK_config_INCLUDE_DIR}/osconfig.h")  # This is for Arch Linux
     set(DCMTK_CONFIGURATION_FILE "${DCMTK_config_INCLUDE_DIR}/osconfig.h")
+  elseif (EXISTS "${DCMTK_INCLUDE_DIRS}/dcmtk/config/osconfig.h")  # This is for Debian Buster
+    set(DCMTK_CONFIGURATION_FILE "${DCMTK_INCLUDE_DIRS}/dcmtk/config/osconfig.h")
   else()
     message(FATAL_ERROR "Please install libdcmtk*-dev")
   endif()
 
+  message("DCMTK configuration file: ${DCMTK_CONFIGURATION_FILE}")
+  
   # Autodetection of the version of DCMTK
   file(STRINGS
     "${DCMTK_CONFIGURATION_FILE}" 
