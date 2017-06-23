@@ -1681,7 +1681,7 @@ namespace Orthanc
           throw OrthancException(ErrorCode_BadParameterType);
         }
 
-        DcmSequenceOfItems* sequence = new DcmSequenceOfItems(key, value.size());
+        DcmSequenceOfItems* sequence = new DcmSequenceOfItems(key);
         element.reset(sequence);
         
         for (Json::Value::ArrayIndex i = 0; i < value.size(); i++)
