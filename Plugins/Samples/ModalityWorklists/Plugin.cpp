@@ -8,7 +8,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -35,7 +35,7 @@ static bool filterIssuerAet_ = false;
 /**
  * This is the main function for matching a DICOM worklist against a query.
  **/
-static void  MatchWorklist(OrthancPluginWorklistAnswers*      answers,
+static bool MatchWorklist(OrthancPluginWorklistAnswers*      answers,
                            const OrthancPluginWorklistQuery*  query,
                            const OrthancPlugins::FindMatcher& matcher,
                            const std::string& path)
@@ -54,7 +54,11 @@ static void  MatchWorklist(OrthancPluginWorklistAnswers*      answers,
       OrthancPlugins::LogError(context_, "Error while adding an answer to a worklist request");
       ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
     }
+
+    return true;
   }
+
+  return false;
 }
 
 
@@ -67,10 +71,10 @@ static OrthancPlugins::FindMatcher* CreateMatcher(const OrthancPluginWorklistQue
 
   // Convert the DICOM as JSON, and dump it to the user in "--verbose" mode
   Json::Value json;
-  dicom.DicomToJson(json, OrthancPluginDicomToJsonFormat_Short, 
+  dicom.DicomToJson(json, OrthancPluginDicomToJsonFormat_Short,
                     static_cast<OrthancPluginDicomToJsonFlags>(0), 0);
-  
-  OrthancPlugins::LogInfo(context_, "Received worklist query from remote modality " + 
+
+  OrthancPlugins::LogInfo(context_, "Received worklist query from remote modality " +
                           std::string(issuerAet) + ":\n" + json.toStyledString());
 
   if (!filterIssuerAet_)
@@ -140,10 +144,12 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
     std::auto_ptr<OrthancPlugins::FindMatcher> matcher(CreateMatcher(query, issuerAet));
 
     // Loop over the regular files in the database folder
-    namespace fs = boost::filesystem;  
+    namespace fs = boost::filesystem;
 
     fs::path source(folder_);
     fs::directory_iterator end;
+    int parsedFilesCount = 0;
+    int matchedWorklistCount = 0;
 
     try
     {
@@ -159,11 +165,21 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
 
           if (extension == ".wl")
           {
+            parsedFilesCount++;
             // We found a worklist (i.e. a DICOM find with extension ".wl"), match it against the query
-            MatchWorklist(answers, query, *matcher, it->path().string());
+            if (MatchWorklist(answers, query, *matcher, it->path().string()))
+            {
+              OrthancPlugins::LogInfo(context_, "Worklist matched: " + it->path().string());
+              matchedWorklistCount++;
+            }
           }
         }
       }
+
+      std::ostringstream message;
+      message << "Worklist C-Find: parsed " << parsedFilesCount << " files, found " << matchedWorklistCount << " match(es)";
+      OrthancPlugins::LogInfo(context_, message.str());
+
     }
     catch (fs::filesystem_error&)
     {
@@ -192,7 +208,7 @@ extern "C"
     /* Check the version of the Orthanc core */
     if (OrthancPluginCheckVersion(c) == 0)
     {
-      OrthancPlugins::ReportMinimalOrthancVersion(context_, 
+      OrthancPlugins::ReportMinimalOrthancVersion(context_,
                                                   ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER,
                                                   ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER,
                                                   ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER);
