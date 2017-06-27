@@ -19,6 +19,7 @@ Maintenance
 * Fix issue 44 (Bad interpretation of photometric interpretation MONOCHROME1)
 * Fix issue 49 (Worklists: accentuated characters are removed from C-Find responses)
 * Fix Debian #865606 (orthanc FTBFS with libdcmtk-dev 3.6.1~20170228-2)
+* Fix XSS inside DICOM in Orthanc Explorer (as reported by Victor Pasnkel, Morphus Labs)
 
 
 Version 1.2.0 (2016/12/13)

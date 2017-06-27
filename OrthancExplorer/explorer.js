@@ -17,19 +17,6 @@ var currentPage = '';
 var currentUuid = '';
 
 
-// http://stackoverflow.com/a/4673436
-String.prototype.format = function() {
-  var args = arguments;
-  return this.replace(/{(\d+)}/g, function(match, number) { 
-    /*return typeof args[number] != 'undefined'
-      ? args[number]
-      : match;*/
-
-    return args[number];
-  });
-};
-
-
 function DeepCopy(obj)
 {
   return jQuery.extend(true, {}, obj);
@@ -209,29 +196,34 @@ function GetResource(uri, callback)
 }
 
 
-function CompleteFormatting(s, link, isReverse)
+function CompleteFormatting(node, link, isReverse, count)
 {
+  if (count != null)
+  {
+    node = node.add($('<span>')
+                    .addClass('ui-li-count')
+                    .text(count));
+  }
+  
   if (link != null)
   {
-    s = 'href="' + link + '">' + s + '</a>';
-    
-    if (isReverse)
-      s = 'data-direction="reverse" '+ s;
+    node = $('<a>').attr('href', link).append(node);
 
-    s = '<a ' + s;
+    if (isReverse)
+      node.attr('data-direction', 'reverse')
   }
 
+  node = $('<li>').append(node);
+
   if (isReverse)
-    return '<li data-icon="back">' + s + '</li>';
-  else
-    return '<li>' + s + '</li>';
+    node.attr('data-icon', 'back');
+
+  return node;
 }
 
 
-function FormatMainDicomTags(tags, tagsToIgnore)
+function FormatMainDicomTags(target, tags, tagsToIgnore)
 {
-  var s = '';
-
   for (var i in tags)
   {
     if (tagsToIgnore.indexOf(i) == -1)
@@ -250,47 +242,38 @@ function FormatMainDicomTags(tags, tagsToIgnore)
         v = SplitLongUid(v);
       }
       
-
-      s += ('<p>{0}: <strong>{1}</strong></p>').format(i, v);
+      target.append($('<p>')
+                    .text(i + ': ')
+                    .append($('<strong>').text(v)));
     }
   }
-
-  return s;
 }
 
 
 function FormatPatient(patient, link, isReverse)
 {
-  var s = ('<h3>{0}</h3>{1}' + 
-           '<span class="ui-li-count">{2}</span>'
-          ).format
-  (patient.MainDicomTags.PatientName,
-   FormatMainDicomTags(patient.MainDicomTags, [ 
-     "PatientName"
-     /*"OtherPatientIDs" */
-   ]),
-   patient.Studies.length
-  );
+  var node = $('<div>').append($('<h3>').text(patient.MainDicomTags.PatientName));
 
-  return CompleteFormatting(s, link, isReverse);
+  FormatMainDicomTags(node, patient.MainDicomTags, [ 
+    "PatientName"
+    // "OtherPatientIDs"
+  ]);
+    
+  return CompleteFormatting(node, link, isReverse, patient.Studies.length);
 }
 
 
 
 function FormatStudy(study, link, isReverse)
 {
-  var s = ('<h3>{0}</h3>{1}' +
-           '<span class="ui-li-count">{2}</span>'
-           ).format
-  (study.MainDicomTags.StudyDescription,
-   FormatMainDicomTags(study.MainDicomTags, [
+  var node = $('<div>').append($('<h3>').text(study.MainDicomTags.StudyDescription));
+
+  FormatMainDicomTags(node, study.MainDicomTags, [ 
      "StudyDescription", 
      "StudyTime" 
-   ]),
-   study.Series.length
-  );
-
-  return CompleteFormatting(s, link, isReverse);
+  ]);
+    
+  return CompleteFormatting(node, link, isReverse, study.Series.length);
 }
 
 
@@ -307,41 +290,39 @@ function FormatSeries(series, link, isReverse)
   {
     c = series.Instances.length + '/' + series.ExpectedNumberOfInstances;
   }
+  
+  var node = $('<div>')
+      .append($('<h3>').text(series.MainDicomTags.SeriesDescription))
+      .append($('<p>').append($('<em>')
+                           .text('Status: ')
+                           .append($('<strong>').text(series.Status))));
 
-  var s = ('<h3>{0}</h3>' +
-           '<p><em>Status: <strong>{1}</strong></em></p>{2}' +
-           '<span class="ui-li-count">{3}</span>').format
-  (series.MainDicomTags.SeriesDescription,
-   series.Status,
-   FormatMainDicomTags(series.MainDicomTags, [
+  FormatMainDicomTags(node, series.MainDicomTags, [ 
      "SeriesDescription", 
      "SeriesTime", 
      "Manufacturer",
      "ImagesInAcquisition",
      "SeriesDate",
      "ImageOrientationPatient"
-   ]),
-   c
-  );
-
-  return CompleteFormatting(s, link, isReverse);
+  ]);
+    
+  return CompleteFormatting(node, link, isReverse, c);
 }
 
 
 function FormatInstance(instance, link, isReverse)
 {
-  var s = ('<h3>Instance {0}</h3>{1}').format
-  (instance.IndexInSeries,
-   FormatMainDicomTags(instance.MainDicomTags, [
-     "AcquisitionNumber", 
-     "InstanceNumber", 
-     "InstanceCreationDate", 
-     "InstanceCreationTime",
-     "ImagePositionPatient"
-   ])
-  );
+  var node = $('<div>').append($('<h3>').text('Instance: ' + instance.IndexInSeries));
 
-  return CompleteFormatting(s, link, isReverse);
+  FormatMainDicomTags(node, instance.MainDicomTags, [
+    "AcquisitionNumber", 
+    "InstanceNumber", 
+    "InstanceCreationDate", 
+    "InstanceCreationTime",
+    "ImagePositionPatient"
+  ]);
+    
+  return CompleteFormatting(node, link, isReverse);
 }
 
 
@@ -353,7 +334,11 @@ $('[data-role="page"]').live('pagebeforeshow', function() {
     cache: false,
     success: function(s) {
       if (s.Name != "") {
-        $('.orthanc-name').html('<a class="ui-link" href="explorer.html">' + s.Name + '</a> &raquo; ');
+        $('.orthanc-name').append($('<a>')
+                                  .addClass('ui-link')
+                                  .attr('href', 'explorer.html')
+                                  .text(s.Name)
+                                  .append(' &raquo; '));
       }
     }
   });
@@ -417,8 +402,9 @@ function RefreshPatient()
         for (var i = 0; i < studies.length; i++) {
           if (i == 0 || studies[i].MainDicomTags.StudyDate != studies[i - 1].MainDicomTags.StudyDate)
           {
-            target.append('<li data-role="list-divider">{0}</li>'.format
-                          (FormatDicomDate(studies[i].MainDicomTags.StudyDate)));
+            target.append($('<li>')
+                          .attr('data-role', 'list-divider')
+                          .text(FormatDicomDate(studies[i].MainDicomTags.StudyDate)));
           }
 
           target.append(FormatStudy(studies[i], '#study?uuid=' + studies[i].ID));
@@ -477,9 +463,11 @@ function RefreshStudy()
           for (var i = 0; i < series.length; i++) {
             if (i == 0 || series[i].MainDicomTags.SeriesDate != series[i - 1].MainDicomTags.SeriesDate)
             {
-              target.append('<li data-role="list-divider">{0}</li>'.format
-                            (FormatDicomDate(series[i].MainDicomTags.SeriesDate)));
+              target.append($('<li>')
+                            .attr('data-role', 'list-divider')
+                            .text(FormatDicomDate(series[i].MainDicomTags.SeriesDate)));
             }
+            
             target.append(FormatSeries(series[i], '#series?uuid=' + series[i].ID));
           }
           target.listview('refresh');
@@ -537,6 +525,24 @@ function RefreshSeries()
 }
 
 
+function EscapeHtml(value)
+{
+  var ENTITY_MAP = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+    '/': '&#x2F;',
+    '`': '&#x60;',
+    '=': '&#x3D;'
+  };
+
+  return String(value).replace(/[&<>"'`=\/]/g, function (s) {
+    return ENTITY_MAP[s];
+  });
+}
+
 
 function ConvertForTree(dicom)
 {
@@ -544,12 +550,14 @@ function ConvertForTree(dicom)
 
   for (var i in dicom) {
     if (dicom[i] != null) {
-      var label = i + '<span class="tag-name"> (<i>' + dicom[i]["Name"] + '</i>)</span>: ';
+      var label = (i + '<span class="tag-name"> (<i>' +
+                   EscapeHtml(dicom[i]["Name"]) +
+                   '</i>)</span>: ');
 
       if (dicom[i]["Type"] == 'String')
       {
         result.push({
-          label: label + '<strong>' + dicom[i]["Value"] + '</strong>',
+          label: label + '<strong>' + EscapeHtml(dicom[i]["Value"]) + '</strong>',
           children: []
         });
       }
@@ -797,7 +805,7 @@ $('#series-preview').live('click', function(e) {
         var images = [];
         for (var i = 0; i < instances.length; i++) {
           images.push([ '../instances/' + instances[i].ID + '/preview',
-                        '{0}/{1}'.format(i + 1, instances.length) ])
+                        (i + 1).toString() + '/' + instances.length.toString() ])
         }
 
         jQuery.slimbox(images, 0, {
