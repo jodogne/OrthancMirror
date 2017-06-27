@@ -79,7 +79,7 @@ namespace Orthanc
           }
           catch (std::exception& e)
           {
-            LOG(ERROR) << "Std excetion while handling some runnable object: " << e.what();
+            LOG(ERROR) << "std::exception while handling some runnable object: " << e.what();
           }
           catch (...)
           {
