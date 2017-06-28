@@ -11,6 +11,11 @@ Lua
 
 * Added HTTP headers support for Lua HttpPost/HttpGet/HttpPut/HttpDelete
 
+Orthanc Explorer
+----------------
+
+* Query/retrieve: Added button for "DR" modality
+
 Maintenance
 -----------
 
