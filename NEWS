@@ -20,6 +20,7 @@ Maintenance
 -----------
 
 * Ability to retrieve raw frames encoded as unsigned 32-bits integers
+* Fix issue 29 (more consistent handling of the "--upgrade" argument)
 * Fix issue 35 (AET name is not transferred to Orthanc using DCMTK 3.6.0)
 * Fix issue 44 (Bad interpretation of photometric interpretation MONOCHROME1)
 * Fix issue 45 (crash when providing a folder to "--config" command-line option)

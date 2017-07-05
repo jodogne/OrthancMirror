@@ -881,30 +881,27 @@ static bool ConfigureHttpHandler(ServerContext& context,
 }
 
 
-static bool UpgradeDatabase(IDatabaseWrapper& database,
-                            IStorageArea& storageArea,
-                            bool allowDatabaseUpgrade)
+static void UpgradeDatabase(IDatabaseWrapper& database,
+                            IStorageArea& storageArea)
 {
   // Upgrade the schema of the database, if needed
   unsigned int currentVersion = database.GetDatabaseVersion();
+
+  LOG(WARNING) << "Starting the upgrade of the database schema";
+  LOG(WARNING) << "Current database version: " << currentVersion;
+  LOG(WARNING) << "Database version expected by Orthanc: " << ORTHANC_DATABASE_VERSION;
+  
   if (currentVersion == ORTHANC_DATABASE_VERSION)
   {
-    return true;
+    LOG(WARNING) << "No upgrade is needed, start Orthanc without the \"--upgrade\" argument";
+    return;
   }
 
   if (currentVersion > ORTHANC_DATABASE_VERSION)
   {
     LOG(ERROR) << "The version of the database schema (" << currentVersion
                << ") is too recent for this version of Orthanc. Please upgrade Orthanc.";
-    return false;
-  }
-
-  if (!allowDatabaseUpgrade)
-  {
-    LOG(ERROR) << "The database schema must be upgraded from version "
-               << currentVersion << " to " << ORTHANC_DATABASE_VERSION 
-               << ": Please run Orthanc with the \"--upgrade\" command-line option";
-    return false;
+    throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
   }
 
   LOG(WARNING) << "Upgrading the database from schema version "
@@ -926,10 +923,13 @@ static bool UpgradeDatabase(IDatabaseWrapper& database,
   if (ORTHANC_DATABASE_VERSION != currentVersion)
   {
     LOG(ERROR) << "The database schema was not properly upgraded, it is still at version " << currentVersion;
-    throw OrthancException(ErrorCode_InternalError);
+    throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
   }
-
-  return true;
+  else
+  {
+    LOG(WARNING) << "The database schema was successfully upgraded, "
+                 << "you can now start Orthanc without the \"--upgrade\" argument";
+  }
 }
 
 
@@ -1015,13 +1015,23 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 static bool ConfigureDatabase(IDatabaseWrapper& database,
                               IStorageArea& storageArea,
                               OrthancPlugins *plugins,
-                              bool allowDatabaseUpgrade)
+                              bool upgradeDatabase)
 {
   database.Open();
+
+  unsigned int currentVersion = database.GetDatabaseVersion();
   
-  if (!UpgradeDatabase(database, storageArea, allowDatabaseUpgrade))
+  if (upgradeDatabase)
   {
-    return false;
+    UpgradeDatabase(database, storageArea);
+    return false;  // Stop and don't restart Orthanc (cf. issue 29)
+  }
+  else if (currentVersion != ORTHANC_DATABASE_VERSION)
+  {
+    LOG(ERROR) << "The database schema must be changed from version "
+               << currentVersion << " to " << ORTHANC_DATABASE_VERSION 
+               << ": Please run Orthanc with the \"--upgrade\" argument";
+    throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
   }
 
   bool success = ConfigureServerContext(database, storageArea, plugins);
@@ -1034,7 +1044,7 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
 
 static bool ConfigurePlugins(int argc, 
                              char* argv[],
-                             bool allowDatabaseUpgrade)
+                             bool upgradeDatabase)
 {
   std::auto_ptr<IDatabaseWrapper>  databasePtr;
   std::auto_ptr<IStorageArea>  storage;
@@ -1069,14 +1079,14 @@ static bool ConfigurePlugins(int argc,
   assert(database != NULL);
   assert(storage.get() != NULL);
 
-  return ConfigureDatabase(*database, *storage, &plugins, allowDatabaseUpgrade);
+  return ConfigureDatabase(*database, *storage, &plugins, upgradeDatabase);
 
 #elif ORTHANC_ENABLE_PLUGINS == 0
   // The plugins are disabled
   databasePtr.reset(Configuration::CreateDatabaseWrapper());
   storage.reset(Configuration::CreateStorageArea());
 
-  return ConfigureDatabase(*databasePtr, *storage, NULL, allowDatabaseUpgrade);
+  return ConfigureDatabase(*databasePtr, *storage, NULL, upgradeDatabase);
 
 #else
 #  error The macro ORTHANC_ENABLE_PLUGINS must be set to 0 or 1
@@ -1086,9 +1096,9 @@ static bool ConfigurePlugins(int argc,
 
 static bool StartOrthanc(int argc, 
                          char* argv[],
-                         bool allowDatabaseUpgrade)
+                         bool upgradeDatabase)
 {
-  return ConfigurePlugins(argc, argv, allowDatabaseUpgrade);
+  return ConfigurePlugins(argc, argv, upgradeDatabase);
 }
 
 
@@ -1104,7 +1114,7 @@ int main(int argc, char* argv[])
 {
   Logging::Initialize();
 
-  bool allowDatabaseUpgrade = false;
+  bool upgradeDatabase = false;
   const char* configurationFile = NULL;
 
 
@@ -1193,7 +1203,7 @@ int main(int argc, char* argv[])
     }
     else if (argument == "--upgrade")
     {
-      allowDatabaseUpgrade = true;
+      upgradeDatabase = true;
     }
     else if (boost::starts_with(argument, "--config="))
     {
@@ -1258,7 +1268,7 @@ int main(int argc, char* argv[])
     {
       OrthancInitialize(configurationFile);
 
-      bool restart = StartOrthanc(argc, argv, allowDatabaseUpgrade);
+      bool restart = StartOrthanc(argc, argv, upgradeDatabase);
       if (restart)
       {
         OrthancFinalize();
