@@ -181,6 +181,8 @@ namespace Orthanc
 
   void FromDcmtkBridge::InitializeDictionary(bool loadPrivateDictionary)
   {
+    LOG(INFO) << "Using DCTMK version: " << DCMTK_VERSION_NUMBER;
+    
     {
       DictionaryLocker locker;
 
