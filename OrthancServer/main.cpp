@@ -1207,8 +1207,17 @@ int main(int argc, char* argv[])
 #endif
 
       std::string target = argument.substr(9);
-      SystemToolbox::WriteFile(configurationSample, target);
-      return 0;
+
+      try
+      {
+        SystemToolbox::WriteFile(configurationSample, target);
+        return 0;
+      }
+      catch (OrthancException&)
+      {
+        LOG(ERROR) << "Cannot write sample configuration as file \"" << target << "\"";
+        return -1;
+      }
     }
     else
     {
