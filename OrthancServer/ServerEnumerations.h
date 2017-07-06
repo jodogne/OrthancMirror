@@ -146,7 +146,8 @@ namespace Orthanc
   {
     GlobalProperty_DatabaseSchemaVersion = 1,   // Unused in the Orthanc core as of Orthanc 0.9.5
     GlobalProperty_FlushSleep = 2,
-    GlobalProperty_AnonymizationSequence = 3
+    GlobalProperty_AnonymizationSequence = 3,
+    GlobalProperty_DatabasePatchLevel = 4       // Reserved for internal use of the database plugins
   };
 
   enum MetadataType
