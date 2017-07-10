@@ -49,7 +49,7 @@ namespace Orthanc
   {
     FunctionContext::FunctionContext(struct sqlite3_context* context,
                                      int argc,
-                                     struct sqlite3_value** argv)
+                                     Internals::SQLiteValue** argv)
     {
       assert(context != NULL);
       assert(argc >= 0);

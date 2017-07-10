@@ -49,8 +49,6 @@
 #include <gtest/gtest_prod.h>
 #endif
 
-struct sqlite3_stmt;
-
 
 namespace Orthanc
 {

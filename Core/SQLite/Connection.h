@@ -39,12 +39,10 @@
 
 #include "Statement.h"
 #include "IScalarFunction.h"
+#include "SQLiteTypes.h"
 
 #include <string>
 #include <map>
-
-struct sqlite3;
-struct sqlite3_stmt;
 
 #define SQLITE_FROM_HERE ::Orthanc::SQLite::StatementId(__FILE__, __LINE__)
 

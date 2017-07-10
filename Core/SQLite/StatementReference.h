@@ -38,13 +38,12 @@
 #pragma once
 
 #include "NonCopyable.h"
+#include "SQLiteTypes.h"
 
 #include <stdint.h>
 #include <cassert>
 #include <stdlib.h>
 
-struct sqlite3;
-struct sqlite3_stmt;
 
 namespace Orthanc
 {
