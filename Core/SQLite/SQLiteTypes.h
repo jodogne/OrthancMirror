@@ -42,8 +42,19 @@ struct sqlite3_stmt;
 #error  Please define macro ORTHANC_SQLITE_VERSION
 #endif
 
+
+/**
+ * "sqlite3_value" is defined as:
+ * - "typedef struct Mem sqlite3_value;" up to SQLite <= 3.18.2
+ * - "typedef struct sqlite3_value sqlite3_value;" since SQLite >= 3.19.0.
+ * We create our own copy of this typedef to get around this API incompatibility.
+ * https://github.com/mackyle/sqlite/commit/db1d90df06a78264775a14d22c3361eb5b42be17
+ **/
+      
 #if ORTHANC_SQLITE_VERSION < 3019000
 struct Mem;
+#else
+struct sqlite3_value;
 #endif
 
 namespace Orthanc
@@ -52,14 +63,6 @@ namespace Orthanc
   {
     namespace Internals
     {
-      /**
-       * "sqlite3_value" is defined as:
-       * - "typedef struct Mem sqlite3_value;" up to SQLite <= 3.18.2
-       * - "typedef struct sqlite3_value sqlite3_value;" since SQLite >= 3.19.0.
-       * We create our own copy of this typedef to get around this API incompatibility.
-       * https://github.com/mackyle/sqlite/commit/db1d90df06a78264775a14d22c3361eb5b42be17
-       **/
-      
 #if ORTHANC_SQLITE_VERSION < 3019000
       typedef struct ::Mem  SQLiteValue;
 #else
