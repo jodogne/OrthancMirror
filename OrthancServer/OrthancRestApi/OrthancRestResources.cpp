@@ -1154,7 +1154,8 @@ namespace Orthanc
         request["Level"].type() == Json::stringValue &&
         request["Query"].type() == Json::objectValue &&
         (!request.isMember("CaseSensitive") || request["CaseSensitive"].type() == Json::booleanValue) &&
-        (!request.isMember("Limit") || request["Limit"].type() == Json::intValue))
+        (!request.isMember("Limit") || request["Limit"].type() == Json::intValue) &&
+        (!request.isMember("Since") || request["Since"].type() == Json::intValue))
     {
       bool expand = false;
       if (request.isMember("Expand"))
@@ -1180,6 +1181,18 @@ namespace Orthanc
         limit = static_cast<size_t>(tmp);
       }
 
+      size_t since = 0;
+      if (request.isMember("Since"))
+      {
+        int tmp = request["Since"].asInt();
+        if (tmp < 0)
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+
+        since = static_cast<size_t>(tmp);
+      }
+
       std::string level = request["Level"].asString();
 
       LookupResource query(StringToResourceType(level.c_str()));
@@ -1198,8 +1211,9 @@ namespace Orthanc
       }
       
       std::list<std::string> resources;
-      context.Apply(resources, query, limit);
-      AnswerListOfResources(call.GetOutput(), context.GetIndex(), resources, query.GetLevel(), expand);
+      context.Apply(resources, query, since, limit);
+      AnswerListOfResources(call.GetOutput(), context.GetIndex(),
+                            resources, query.GetLevel(), expand);
     }
     else
     {

@@ -1,6 +1,11 @@
 Pending changes in the mainline
 ===============================
 
+REST API
+--------
+
+* Argument "Since" in URI "/tools/find" (related to issue 53)
+
 Plugins
 -------
 

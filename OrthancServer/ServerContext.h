@@ -258,9 +258,10 @@ namespace Orthanc
 
     void Stop();
 
-    bool Apply(std::list<std::string>& result,
+    void Apply(std::list<std::string>& result,
                const ::Orthanc::LookupResource& lookup,
-               size_t maxResults);
+               size_t since,
+               size_t limit);
 
 
     /**
