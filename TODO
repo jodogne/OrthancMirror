@@ -42,8 +42,6 @@ Short-term
 Long-term
 ---------
 
-* Case-insensitive search over special characters (e.g. "ä" should match "Ä")
-  https://groups.google.com/d/msg/orthanc-users/WXF6swIzbCU/jmQglkCwBAAJ
 * Stick to the JSONapi or JAREST guidelines for a "v2" of the API:
   https://groups.google.com/forum/#!msg/orthanc-users/Bag-SwEE9ZI/-w7QXI6p7-oJ
   http://www.admiraalit.nl/jarest/
@@ -66,8 +64,6 @@ Short-term
 Long-term
 ---------
 
-* Case-insensitive search over special characters (e.g. "ä" should match "Ä")
-  https://groups.google.com/d/msg/orthanc-users/WXF6swIzbCU/jmQglkCwBAAJ
 * Support DICOM TLS (cf. "--enable-tls" in storescp)
 * Support Storage Commitment:
   https://groups.google.com/forum/#!msg/orthanc-users/VZOn8St65jw/s8kg_OHesj0J
