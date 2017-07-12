@@ -86,6 +86,8 @@ SDK
 Ideas of plugins
 ----------------
 
+* Complex anonymization, with recursive mapping of UIDs
+  https://bitbucket.org/sjodogne/orthanc/issues/46/
 * DICOM-RT primitives (RT-STRUCT, RT-PLAN, RT-DOSE)
 * Converter to/from NIfTI
 * MySQL database plugin
