@@ -73,6 +73,12 @@ namespace Orthanc
     void ReplaceInternal(const DicomTag& tag,
                          const Json::Value& value);
 
+    void SetupAnonymization2008();
+
+    void SetupAnonymization2011();
+
+    void SetupAnonymization2017c();
+
   public:
     DicomModification();
 
@@ -108,7 +114,7 @@ namespace Orthanc
       return level_;
     }
 
-    void SetupAnonymization();
+    void SetupAnonymization(DicomVersion version);
 
     void Apply(ParsedDicomFile& toModify);
 
