@@ -45,7 +45,7 @@ static const std::string ORTHANC_DEIDENTIFICATION_METHOD_2008 =
   "Orthanc " ORTHANC_VERSION " - PS 3.15-2008 Table E.1-1";
 
 static const std::string ORTHANC_DEIDENTIFICATION_METHOD_2017c =
-  "Orthanc " ORTHANC_VERSION " - PS 3.15-2017c Table E.1-1";
+  "Orthanc " ORTHANC_VERSION " - PS 3.15-2017c Table E.1-1 Basic Profile";
 
 namespace Orthanc
 {
