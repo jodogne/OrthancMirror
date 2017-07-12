@@ -77,7 +77,7 @@ TEST(DicomFormat, Tag)
 TEST(DicomModification, Basic)
 {
   DicomModification m;
-  m.SetupAnonymization();
+  m.SetupAnonymization(DicomVersion_2008);
   //m.SetLevel(DicomRootLevel_Study);
   //m.ReplacePlainString(DICOM_TAG_PATIENT_ID, "coucou");
   //m.ReplacePlainString(DICOM_TAG_PATIENT_NAME, "coucou");
@@ -133,7 +133,7 @@ TEST(DicomModification, Anonymization)
   ASSERT_FALSE(Toolbox::IsUuid(s));
 
   DicomModification m;
-  m.SetupAnonymization();
+  m.SetupAnonymization(DicomVersion_2008);
   m.Keep(privateTag);
 
   m.Apply(o);
@@ -143,7 +143,7 @@ TEST(DicomModification, Anonymization)
   ASSERT_TRUE(o.GetTagValue(s, privateTag));
   ASSERT_STREQ("private tag", s.c_str());
   
-  m.SetupAnonymization();
+  m.SetupAnonymization(DicomVersion_2008);
   m.Apply(o);
   ASSERT_FALSE(o.GetTagValue(s, privateTag));
 }

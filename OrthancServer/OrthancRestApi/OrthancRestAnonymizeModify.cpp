@@ -178,46 +178,58 @@ namespace Orthanc
   {
     // curl http://localhost:8042/instances/6e67da51-d119d6ae-c5667437-87b9a8a5-0f07c49f/anonymize -X POST -d '{"Replace":{"PatientName":"hello","0010-0020":"world"},"Keep":["StudyDescription", "SeriesDescription"],"KeepPrivateTags": null,"Remove":["Modality"]}' > Anonymized.dcm
 
-    target.SetupAnonymization();
-    std::string patientName = target.GetReplacementAsString(DICOM_TAG_PATIENT_NAME);
-
     Json::Value request;
-    if (call.ParseJsonRequest(request) && request.isObject())
-    {
-      if (request.isMember("KeepPrivateTags"))
-      {
-        target.SetRemovePrivateTags(false);
-      }
-
-      if (request.isMember("Remove"))
-      {
-        ParseListOfTags(target, request["Remove"], TagOperation_Remove);
-      }
-
-      if (request.isMember("Replace"))
-      {
-        ParseReplacements(target, request["Replace"]);
-      }
-
-      if (request.isMember("Keep"))
-      {
-        ParseListOfTags(target, request["Keep"], TagOperation_Keep);
-      }
-
-      if (target.IsReplaced(DICOM_TAG_PATIENT_NAME) &&
-          target.GetReplacement(DICOM_TAG_PATIENT_NAME) == patientName)
-      {
-        // Overwrite the random Patient's Name by one that is more
-        // user-friendly (provided none was specified by the user)
-        target.Replace(DICOM_TAG_PATIENT_NAME, GeneratePatientName(OrthancRestApi::GetContext(call)), true);
-      }
-
-      return true;
-    }
-    else
+    if (!call.ParseJsonRequest(request) ||
+        !request.isObject())
     {
       return false;
     }
+
+    DicomVersion version = DicomVersion_2008;  // TODO Switch to 2017c
+    if (request.isMember("DicomVersion"))
+    {
+      if (request["DicomVersion"].type() != Json::stringValue)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+      else
+      {
+        version = StringToDicomVersion(request["DicomVersion"].asString());
+      }
+    }
+        
+    target.SetupAnonymization(version);
+    std::string patientName = target.GetReplacementAsString(DICOM_TAG_PATIENT_NAME);
+
+    if (request.isMember("KeepPrivateTags"))
+    {
+      target.SetRemovePrivateTags(false);
+    }
+
+    if (request.isMember("Remove"))
+    {
+      ParseListOfTags(target, request["Remove"], TagOperation_Remove);
+    }
+
+    if (request.isMember("Replace"))
+    {
+      ParseReplacements(target, request["Replace"]);
+    }
+
+    if (request.isMember("Keep"))
+    {
+      ParseListOfTags(target, request["Keep"], TagOperation_Keep);
+    }
+
+    if (target.IsReplaced(DICOM_TAG_PATIENT_NAME) &&
+        target.GetReplacement(DICOM_TAG_PATIENT_NAME) == patientName)
+    {
+      // Overwrite the random Patient's Name by one that is more
+      // user-friendly (provided none was specified by the user)
+      target.Replace(DICOM_TAG_PATIENT_NAME, GeneratePatientName(OrthancRestApi::GetContext(call)), true);
+    }
+
+    return true;
   }
 
 

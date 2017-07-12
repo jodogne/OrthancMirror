@@ -5,6 +5,7 @@ REST API
 --------
 
 * Argument "Since" in URI "/tools/find" (related to issue 53)
+* Argument "DicomVersion" in URIs "/{...}/{...}/anonymization"
 
 Plugins
 -------
