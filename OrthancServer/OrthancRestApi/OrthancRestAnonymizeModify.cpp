@@ -101,7 +101,7 @@ namespace Orthanc
       const Json::Value& value = replacements[name];
 
       DicomTag tag = FromDcmtkBridge::ParseTag(name);
-      target.Replace(tag, value);
+      target.Replace(tag, value, false);
 
       VLOG(1) << "Replace: " << name << " " << tag 
               << " == " << value.toStyledString() << std::endl;

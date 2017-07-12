@@ -171,6 +171,7 @@ namespace Orthanc
   void DicomModification::Keep(const DicomTag& tag)
   {
     removals_.erase(tag);
+    clearings_.erase(tag);
     RemoveInternal(tag);
 
     if (tag.IsPrivate())
@@ -194,6 +195,17 @@ namespace Orthanc
   void DicomModification::Remove(const DicomTag& tag)
   {
     removals_.insert(tag);
+    clearings_.erase(tag);
+    RemoveInternal(tag);
+    privateTagsToKeep_.erase(tag);
+
+    MarkNotOrthancAnonymization();
+  }
+
+  void DicomModification::Clear(const DicomTag& tag)
+  {
+    removals_.erase(tag);
+    clearings_.insert(tag);
     RemoveInternal(tag);
     privateTagsToKeep_.erase(tag);
 
@@ -205,10 +217,16 @@ namespace Orthanc
     return removals_.find(tag) != removals_.end();
   }
 
+  bool DicomModification::IsCleared(const DicomTag& tag) const
+  {
+    return clearings_.find(tag) != clearings_.end();
+  }
+
   void DicomModification::Replace(const DicomTag& tag,
                                   const Json::Value& value,
                                   bool safeForAnonymization)
   {
+    clearings_.erase(tag);
     removals_.erase(tag);
     privateTagsToKeep_.erase(tag);
     ReplaceInternal(tag, value);
@@ -606,6 +624,7 @@ namespace Orthanc
   void DicomModification::SetupAnonymization(DicomVersion version)
   {
     removals_.clear();
+    clearings_.clear();
     ClearReplacements();
     removePrivateTags_ = true;
     level_ = ResourceType_Patient;
@@ -756,21 +775,28 @@ namespace Orthanc
       toModify.RemovePrivateTags(privateTagsToKeep_);
     }
 
-    // (2) Remove the tags specified by the user
+    // (2) Clear the tags specified by the user
+    for (SetOfTags::const_iterator it = clearings_.begin(); 
+         it != clearings_.end(); ++it)
+    {
+      toModify.Clear(*it, true /* only clear if the tag exists in the original file */);
+    }
+
+    // (3) Remove the tags specified by the user
     for (SetOfTags::const_iterator it = removals_.begin(); 
          it != removals_.end(); ++it)
     {
       toModify.Remove(*it);
     }
 
-    // (3) Replace the tags
+    // (4) Replace the tags
     for (Replacements::const_iterator it = replacements_.begin(); 
          it != replacements_.end(); ++it)
     {
       toModify.Replace(it->first, *it->second, true /* decode data URI scheme */, DicomReplaceMode_InsertIfAbsent);
     }
 
-    // (4) Update the DICOM identifiers
+    // (5) Update the DICOM identifiers
     if (level_ <= ResourceType_Study &&
         !IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
     {
