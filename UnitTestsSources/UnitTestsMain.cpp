@@ -648,6 +648,9 @@ TEST(Toolbox, Enumerations)
 
   ASSERT_STREQ("Unknown", EnumerationToString(PhotometricInterpretation_Unknown));
   ASSERT_THROW(StringToPhotometricInterpretation("Unknown"), OrthancException);
+
+  ASSERT_EQ(DicomVersion_2008, StringToDicomVersion(EnumerationToString(DicomVersion_2008)));
+  ASSERT_EQ(DicomVersion_2017c, StringToDicomVersion(EnumerationToString(DicomVersion_2017c)));
 }
 
 

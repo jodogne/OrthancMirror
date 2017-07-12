@@ -135,6 +135,12 @@ namespace Orthanc
     IdentifierConstraintType_Wildcard        /* Case sensitive, "*" or "?" are the only allowed wildcards */
   };
 
+  enum DicomVersion
+  {
+    DicomVersion_2008,
+    DicomVersion_2017c
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations
@@ -230,7 +236,11 @@ namespace Orthanc
 
   const char* EnumerationToString(TransferSyntax syntax);
 
+  const char* EnumerationToString(DicomVersion version);
+
   ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer);
+
+  DicomVersion StringToDicomVersion(const std::string& version);
 
   bool IsUserMetadata(MetadataType type);
 }
