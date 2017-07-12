@@ -372,10 +372,10 @@ namespace Orthanc
     removals_.insert(DicomTag(0x0008, 0x0010));  // Irradiation Event UID
     removals_.insert(DicomTag(0x0008, 0x0014));  // Instance Creator UID
     //removals_.insert(DicomTag(0x0008, 0x0018));  // SOP Instance UID => set in Apply()
-    //removals_.insert(DicomTag(0x0008, 0x0020));  // Study Date => TODO: shall be nulled
-    //removals_.insert(DicomTag(0x0008, 0x0021));  // Series Date => TODO: shall be nulled
-    //removals_.insert(DicomTag(0x0008, 0x0030));  // Study Time => TODO: shall be nulled
-    //removals_.insert(DicomTag(0x0008, 0x0031));  // Series Time => TODO: shall be nulled
+    clearings_.insert(DicomTag(0x0008, 0x0020)); // Study Date
+    clearings_.insert(DicomTag(0x0008, 0x0021)); // Series Date
+    clearings_.insert(DicomTag(0x0008, 0x0030)); // Study Time
+    clearings_.insert(DicomTag(0x0008, 0x0031)); // Series Time
     removals_.insert(DicomTag(0x0008, 0x0022));  // Acquisition Date
     removals_.insert(DicomTag(0x0008, 0x0023));  // Content Date
     removals_.insert(DicomTag(0x0008, 0x0024));  // Overlay Date
@@ -425,10 +425,10 @@ namespace Orthanc
     //removals_.insert(DicomTag(0x0010, 0x0020));  // Patient ID => cf. below (*)
     removals_.insert(DicomTag(0x0010, 0x0030));  // Patient's Birth Date 
     removals_.insert(DicomTag(0x0010, 0x0032));  // Patient's Birth Time 
-    //removals_.insert(DicomTag(0x0010, 0x0040));  // Patient's Sex => TODO: shall be nulled
-    removals_.insert(DicomTag(0x0010, 0x0050));  // Patient’s Insurance Plan Code Sequence
-    removals_.insert(DicomTag(0x0010, 0x0101));  // Patient’s Primary Language Code Sequence
-    removals_.insert(DicomTag(0x0010, 0x0102));  // Patient’s Primary Language Modifier Code Sequence
+    clearings_.insert(DicomTag(0x0010, 0x0040)); // Patient's Sex
+    removals_.insert(DicomTag(0x0010, 0x0050));  // Patient's Insurance Plan Code Sequence
+    removals_.insert(DicomTag(0x0010, 0x0101));  // Patient's Primary Language Code Sequence
+    removals_.insert(DicomTag(0x0010, 0x0102));  // Patient's Primary Language Modifier Code Sequence
     removals_.insert(DicomTag(0x0010, 0x1000));  // Other Patient Ids
     removals_.insert(DicomTag(0x0010, 0x1001));  // Other Patient Names 
     removals_.insert(DicomTag(0x0010, 0x1002));  // Other Patient IDs Sequence
@@ -438,7 +438,7 @@ namespace Orthanc
     removals_.insert(DicomTag(0x0010, 0x1030));  // Patient's Weight 
     removals_.insert(DicomTag(0x0010, 0x1040));  // Patient's Address
     removals_.insert(DicomTag(0x0010, 0x1050));  // Insurance Plan Identification
-    removals_.insert(DicomTag(0x0010, 0x1060));  // Patient’s Mother’s Birth Name
+    removals_.insert(DicomTag(0x0010, 0x1060));  // Patient's Mother's Birth Name
     removals_.insert(DicomTag(0x0010, 0x1080));  // Military Rank
     removals_.insert(DicomTag(0x0010, 0x1081));  // Branch of Service
     removals_.insert(DicomTag(0x0010, 0x1090));  // Medical Record Locator
@@ -505,7 +505,7 @@ namespace Orthanc
     removals_.insert(DicomTag(0x0038, 0x0060));  // Service Episode ID
     removals_.insert(DicomTag(0x0038, 0x0061));  // Issuer of Service Episode ID
     removals_.insert(DicomTag(0x0038, 0x0062));  // Service Episode Description
-    removals_.insert(DicomTag(0x0038, 0x0400));  // Patient’s Institution Residence
+    removals_.insert(DicomTag(0x0038, 0x0400));  // Patient's Institution Residence
     removals_.insert(DicomTag(0x0038, 0x0500));  // Patient State
     removals_.insert(DicomTag(0x0038, 0x4000));  // Visit Comments
     removals_.insert(DicomTag(0x0038, 0x1234));  // Referenced Patient Alias Sequence
