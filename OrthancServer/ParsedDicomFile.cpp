@@ -508,6 +508,28 @@ namespace Orthanc
   }
 
 
+  void ParsedDicomFile::Clear(const DicomTag& tag,
+                              bool onlyIfExists)
+  {
+    InvalidateCache();
+
+    DcmItem* dicom = pimpl_->file_->getDataset();
+    DcmTagKey key(tag.GetGroup(), tag.GetElement());
+
+    if (onlyIfExists &&
+        !dicom->tagExists(key))
+    {
+      // The tag is non-existing, do not clear it
+    }
+    else
+    {
+      if (!dicom->insertEmptyElement(key, OFTrue /* replace old value */).good())
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+  }
+
 
   void ParsedDicomFile::RemovePrivateTagsInternal(const std::set<DicomTag>* toKeep)
   {

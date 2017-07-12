@@ -462,6 +462,41 @@ namespace Orthanc
   }
 
 
+  const char* EnumerationToString(DicomVersion version)
+  {
+    switch (version)
+    {
+      case DicomVersion_2008:
+        return "2008";
+        break;
+
+      case DicomVersion_2017c:
+        return "2017c";
+        break;
+
+      default: 
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  DicomVersion StringToDicomVersion(const std::string& version)
+  {
+    if (version == "2008")
+    {
+      return DicomVersion_2008;
+    }
+    else if (version == "2017c")
+    {
+      return DicomVersion_2017c;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+  
   bool IsUserMetadata(MetadataType metadata)
   {
     return (metadata >= MetadataType_StartUser &&
