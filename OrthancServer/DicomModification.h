@@ -76,8 +76,6 @@ namespace Orthanc
 
     void SetupAnonymization2008();
 
-    void SetupAnonymization2011();
-
     void SetupAnonymization2017c();
 
   public:

@@ -138,7 +138,6 @@ namespace Orthanc
   enum DicomVersion
   {
     DicomVersion_2008,
-    DicomVersion_2011,
     DicomVersion_2017c
   };
 
