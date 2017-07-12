@@ -75,7 +75,7 @@ for table in root.iter('%stable' % br):
                         'Study Instance UID',
                 ]:
                     FormatLine('// Tag (%s) is set in Apply()' % tag, name)
-                if name in [
+                elif name in [
                         'Patient\'s Name',
                         'Patient ID',
                 ]:
@@ -89,10 +89,22 @@ for table in root.iter('%stable' % br):
                 elif profile == 'D' or profile.startswith('Z/'):
                     FormatLine('clearings_.insert(DicomTag(%s));  /* %s */' % (tag, profile), name)
                 elif profile == 'U':
-                    FormatLine('clearings_.insert(DicomTag(%s));  /* TODO UID */' % (tag), name)
+                    FormatLine('removals_.insert(DicomTag(%s));   /* TODO UID */' % (tag), name)
                 else:
                     FormatUnknown(rawTag, name, profile)
 
 for line in sorted(LINES):
     print line
     
+
+# D - replace with a non-zero length value that may be a dummy value and consistent with the VR
+# Z - replace with a zero length value, or a non-zero length value that may be a dummy value and consistent with the VR
+# X - remove
+# K - keep (unchanged for non-sequence attributes, cleaned for sequences)
+# C - clean, that is replace with values of similar meaning known not to contain identifying information and consistent with the VR
+# U - replace with a non-zero length UID that is internally consistent within a set of Instances
+# Z/D - Z unless D is required to maintain IOD conformance (Type 2 versus Type 1)
+# X/Z - X unless Z is required to maintain IOD conformance (Type 3 versus Type 2)
+# X/D - X unless D is required to maintain IOD conformance (Type 3 versus Type 1)
+# X/Z/D - X unless Z or D is required to maintain IOD conformance (Type 3 versus Type 2 versus Type 1)
+# X/Z/U* - X unless Z or replacement of contained instance UIDs (U) is required to maintain IOD conformance (Type 3 versus Type 2 versus Type 1 sequences containing UID references)

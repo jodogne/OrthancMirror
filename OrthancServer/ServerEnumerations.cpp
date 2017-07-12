@@ -470,10 +470,6 @@ namespace Orthanc
         return "2008";
         break;
 
-      case DicomVersion_2011:
-        return "2011";
-        break;
-
       case DicomVersion_2017c:
         return "2017c";
         break;
@@ -489,10 +485,6 @@ namespace Orthanc
     if (version == "2008")
     {
       return DicomVersion_2008;
-    }
-    else if (version == "2011")
-    {
-      return DicomVersion_2011;
     }
     else if (version == "2017c")
     {

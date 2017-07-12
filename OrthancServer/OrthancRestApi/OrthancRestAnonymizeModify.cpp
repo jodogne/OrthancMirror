@@ -186,9 +186,8 @@ namespace Orthanc
     }
 
     // As of Orthanc 1.2.1, the default anonymization is done
-    // according to PS 3.15-2011 Table E.1-1
-    // TODO Switch to 2017c
-    DicomVersion version = DicomVersion_2011;
+    // according to PS 3.15-2017c Table E.1-1 (basic profile)
+    DicomVersion version = DicomVersion_2017c;
     if (request.isMember("DicomVersion"))
     {
       if (request["DicomVersion"].type() != Json::stringValue)
