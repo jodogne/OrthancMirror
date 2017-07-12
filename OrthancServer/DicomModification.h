@@ -52,6 +52,7 @@ namespace Orthanc
     typedef std::map< std::pair<ResourceType, std::string>, std::string>  UidMap;
 
     SetOfTags removals_;
+    SetOfTags clearings_;
     Replacements replacements_;
     bool removePrivateTags_;
     ResourceType level_;
@@ -88,11 +89,18 @@ namespace Orthanc
 
     void Remove(const DicomTag& tag);
 
+    // Replace the DICOM tag as a NULL/empty value (e.g. for anonymization)
+    void Clear(const DicomTag& tag);
+
     bool IsRemoved(const DicomTag& tag) const;
 
+    bool IsCleared(const DicomTag& tag) const;
+
+    // "safeForAnonymization" tells Orthanc that this replacement does
+    // not break the anonymization process it implements (for internal use only)
     void Replace(const DicomTag& tag,
                  const Json::Value& value,   // Encoded using UTF-8
-                 bool safeForAnonymization = false);
+                 bool safeForAnonymization);
 
     bool IsReplaced(const DicomTag& tag) const;
 

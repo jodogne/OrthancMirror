@@ -96,6 +96,10 @@ namespace Orthanc
 
     void Remove(const DicomTag& tag);
 
+    // Replace the DICOM tag as a NULL/empty value (e.g. for anonymization)
+    void Clear(const DicomTag& tag,
+               bool onlyIfExists);
+
     void Replace(const DicomTag& tag,
                  const std::string& utf8Value,
                  bool decodeDataUriScheme,
