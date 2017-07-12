@@ -77,6 +77,10 @@ namespace Orthanc
           {
             LOG(ERROR) << "Not enough memory to handle some runnable object";
           }
+          catch (std::exception& e)
+          {
+            LOG(ERROR) << "std::exception while handling some runnable object: " << e.what();
+          }
           catch (...)
           {
             LOG(ERROR) << "Native exception while handling some runnable object";

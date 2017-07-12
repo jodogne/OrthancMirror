@@ -727,7 +727,8 @@ namespace Orthanc
 
 
   void DicomImageDecoder::ApplyExtractionMode(std::auto_ptr<ImageAccessor>& image,
-                                              ImageExtractionMode mode)
+                                              ImageExtractionMode mode,
+                                              bool invert)
   {
     if (image.get() == NULL)
     {
@@ -761,6 +762,11 @@ namespace Orthanc
     if (ok)
     {
       assert(image.get() != NULL);
+
+      if (invert)
+      {
+        Orthanc::ImageProcessing::Invert(*image);
+      }
     }
     else
     {
@@ -771,9 +777,10 @@ namespace Orthanc
 
   void DicomImageDecoder::ExtractPngImage(std::string& result,
                                           std::auto_ptr<ImageAccessor>& image,
-                                          ImageExtractionMode mode)
+                                          ImageExtractionMode mode,
+                                          bool invert)
   {
-    ApplyExtractionMode(image, mode);
+    ApplyExtractionMode(image, mode, invert);
 
     PngWriter writer;
     writer.WriteToMemory(result, *image);
@@ -783,6 +790,7 @@ namespace Orthanc
   void DicomImageDecoder::ExtractJpegImage(std::string& result,
                                            std::auto_ptr<ImageAccessor>& image,
                                            ImageExtractionMode mode,
+                                           bool invert,
                                            uint8_t quality)
   {
     if (mode != ImageExtractionMode_UInt8 &&
@@ -791,7 +799,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    ApplyExtractionMode(image, mode);
+    ApplyExtractionMode(image, mode, invert);
 
     JpegWriter writer;
     writer.SetQuality(quality);

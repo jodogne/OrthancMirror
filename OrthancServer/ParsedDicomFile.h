@@ -183,5 +183,7 @@ namespace Orthanc
     void ExtractDicomAsJson(Json::Value& target) const;
 
     bool LookupTransferSyntax(std::string& result);
+
+    bool LookupPhotometricInterpretation(PhotometricInterpretation& result) const;
   };
 }

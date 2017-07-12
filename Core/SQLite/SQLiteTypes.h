@@ -34,52 +34,40 @@
 
 #pragma once
 
-#include "Statement.h"
+struct sqlite3;
+struct sqlite3_context;
+struct sqlite3_stmt;
+
+#if !defined(ORTHANC_SQLITE_VERSION)
+#error  Please define macro ORTHANC_SQLITE_VERSION
+#endif
+
+
+/**
+ * "sqlite3_value" is defined as:
+ * - "typedef struct Mem sqlite3_value;" up to SQLite <= 3.18.2
+ * - "typedef struct sqlite3_value sqlite3_value;" since SQLite >= 3.19.0.
+ * We create our own copy of this typedef to get around this API incompatibility.
+ * https://github.com/mackyle/sqlite/commit/db1d90df06a78264775a14d22c3361eb5b42be17
+ **/
+      
+#if ORTHANC_SQLITE_VERSION < 3019000
+struct Mem;
+#else
+struct sqlite3_value;
+#endif
 
 namespace Orthanc
 {
   namespace SQLite
   {
-    class FunctionContext : public NonCopyable
+    namespace Internals
     {
-      friend class Connection;
-
-    private:
-      struct sqlite3_context* context_;
-      unsigned int argc_;
-      Internals::SQLiteValue** argv_;
-
-      void CheckIndex(unsigned int index) const;
-
-    public:
-      FunctionContext(struct sqlite3_context* context,
-                      int argc,
-                      Internals::SQLiteValue** argv);
-
-      ColumnType GetColumnType(unsigned int index) const;
- 
-      unsigned int GetParameterCount() const
-      {
-        return argc_;
-      }
-
-      int GetIntValue(unsigned int index) const;
-
-      int64_t GetInt64Value(unsigned int index) const;
-
-      double GetDoubleValue(unsigned int index) const;
-
-      std::string GetStringValue(unsigned int index) const;
-
-      bool IsNullValue(unsigned int index) const;
-  
-      void SetNullResult();
-
-      void SetIntResult(int value);
-
-      void SetDoubleResult(double value);
-
-      void SetStringResult(const std::string& str);
-    };
+#if ORTHANC_SQLITE_VERSION < 3019000
+      typedef struct ::Mem  SQLiteValue;
+#else
+      typedef struct ::sqlite3_value  SQLiteValue;
+#endif
+    }
   }
 }

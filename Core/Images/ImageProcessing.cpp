@@ -772,4 +772,29 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NotImplemented);
     }
   }
+
+
+  void ImageProcessing::Invert(ImageAccessor& image)
+  {
+    switch (image.GetFormat())
+    {
+      case PixelFormat_Grayscale8:
+      {
+        for (unsigned int y = 0; y < image.GetHeight(); y++)
+        {
+          uint8_t* p = reinterpret_cast<uint8_t*>(image.GetRow(y));
+
+          for (unsigned int x = 0; x < image.GetWidth(); x++, p++)
+          {
+            *p = 255 - (*p);
+          }
+        }
+        
+        return;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }   
+  }
 }
