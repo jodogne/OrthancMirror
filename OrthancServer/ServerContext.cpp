@@ -601,9 +601,10 @@ namespace Orthanc
   }
 
 
-  bool ServerContext::Apply(std::list<std::string>& result,
+  void ServerContext::Apply(std::list<std::string>& result,
                             const ::Orthanc::LookupResource& lookup,
-                            size_t maxResults)
+                            size_t since,
+                            size_t limit)
   {
     result.clear();
 
@@ -612,6 +613,7 @@ namespace Orthanc
 
     assert(resources.size() == instances.size());
 
+    size_t skipped = 0;
     for (size_t i = 0; i < instances.size(); i++)
     {
       Json::Value dicom;
@@ -619,10 +621,14 @@ namespace Orthanc
       
       if (lookup.IsMatch(dicom))
       {
-        if (maxResults != 0 &&
-            result.size() >= maxResults)
+        if (skipped < since)
         {
-          return false;  // too many results
+          skipped++;
+        }
+        else if (limit != 0 &&
+                 result.size() >= limit)
+        {
+          return;  // too many results
         }
         else
         {
@@ -630,8 +636,6 @@ namespace Orthanc
         }
       }
     }
-
-    return true;  // finished
   }
 
 }

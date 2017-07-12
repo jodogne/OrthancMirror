@@ -200,13 +200,6 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
-    if (bitsAllocated_ > 32 ||
-        bitsStored_ >= 32)
-    {
-      // Not available, as the accessor internally uses int32_t values
-      throw OrthancException(ErrorCode_NotImplemented);
-    }
-
     if (samplesPerPixel_ == 0)
     {
       throw OrthancException(ErrorCode_NotImplemented);

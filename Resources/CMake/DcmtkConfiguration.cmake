@@ -6,9 +6,9 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   if (USE_DCMTK_361)
     SET(DCMTK_VERSION_NUMBER 361)
     SET(DCMTK_PACKAGE_VERSION "3.6.1")
-    SET(DCMTK_SOURCES_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.1_20160216)
-    SET(DCMTK_URL "http://www.orthanc-server.com/downloads/third-party/dcmtk-3.6.1_20160216.tar.gz")
-    SET(DCMTK_MD5 "273c8a544b9fe09b8a4fb4eb51df8e52")
+    SET(DCMTK_SOURCES_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.1_20170228)
+    SET(DCMTK_URL "http://www.orthanc-server.com/downloads/third-party/dcmtk-3.6.1_20170228.tar.gz")
+    SET(DCMTK_MD5 "65f3520fce5d084c3530ae7252e39f3e")
     SET(DCMTK_PATCH_SPEED "${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.1-speed.patch")
 
     macro(DCMTK_UNSET)
@@ -270,10 +270,14 @@ else()
     set(DCMTK_CONFIGURATION_FILE "${DCMTK_config_INCLUDE_DIR}/cfunix.h")
   elseif (EXISTS "${DCMTK_config_INCLUDE_DIR}/osconfig.h")  # This is for Arch Linux
     set(DCMTK_CONFIGURATION_FILE "${DCMTK_config_INCLUDE_DIR}/osconfig.h")
+  elseif (EXISTS "${DCMTK_INCLUDE_DIRS}/dcmtk/config/osconfig.h")  # This is for Debian Buster
+    set(DCMTK_CONFIGURATION_FILE "${DCMTK_INCLUDE_DIRS}/dcmtk/config/osconfig.h")
   else()
     message(FATAL_ERROR "Please install libdcmtk*-dev")
   endif()
 
+  message("DCMTK configuration file: ${DCMTK_CONFIGURATION_FILE}")
+  
   # Autodetection of the version of DCMTK
   file(STRINGS
     "${DCMTK_CONFIGURATION_FILE}" 
@@ -309,6 +313,13 @@ if (NOT DCMTK_USE_EMBEDDED_DICTIONARIES)
       /usr/share/libdcmtk7
       /usr/share/libdcmtk8
       /usr/share/libdcmtk9
+      /usr/share/libdcmtk10
+      /usr/share/libdcmtk11
+      /usr/share/libdcmtk12
+      /usr/share/libdcmtk13
+      /usr/share/libdcmtk14
+      /usr/share/libdcmtk15
+      /usr/share/libdcmtk16
       /usr/local/share/dcmtk
       )
 
