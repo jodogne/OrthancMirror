@@ -22,11 +22,19 @@ Orthanc Explorer
 
 * Query/retrieve: Added button for "DR" modality
 
+Configuration file
+------------------
+* Manufacturer type MedInria is now obsolete
+  Manufacturer type AgfaImpax & SyngoVia are obsolete too, use GenericNoWildcardInDates instead
+  obsolete manufacturers are still accepted but might disappear in the future
+  added new manufacturer: GenericNoWidlcards to replace all '*' by '' in outgoing C-Find requests
+
 Maintenance
 -----------
 
 * Ability to retrieve raw frames encoded as unsigned 32-bits integers
 * Fix issue 29 (more consistent handling of the "--upgrade" argument)
+* Fix issue 31 (Create new modality types for Philips ADW, GE Xeleris, GE AWServer)
 * Fix issue 35 (AET name is not transferred to Orthanc using DCMTK 3.6.0)
 * Fix issue 44 (Bad interpretation of photometric interpretation MONOCHROME1)
 * Fix issue 45 (crash when providing a folder to "--config" command-line option)
