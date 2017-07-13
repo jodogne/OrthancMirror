@@ -59,12 +59,11 @@ namespace Orthanc
   enum ModalityManufacturer
   {
     ModalityManufacturer_Generic,
+    ModalityManufacturer_GenericNoWildcardInDates,
+    ModalityManufacturer_GenericNoWildcards,
     ModalityManufacturer_StoreScp,
     ModalityManufacturer_ClearCanvas,
-    ModalityManufacturer_MedInria,
     ModalityManufacturer_Dcm4Chee,
-    ModalityManufacturer_SyngoVia,
-    ModalityManufacturer_AgfaImpax,
     ModalityManufacturer_Vitrea
   };
 
