@@ -343,9 +343,6 @@ namespace Orthanc
       case ModalityManufacturer_AgfaImpax:
         return "AgfaImpax";
       
-      case ModalityManufacturer_EFilm2:
-        return "EFilm2";
-      
       case ModalityManufacturer_Vitrea:
         return "Vitrea";
       
@@ -422,7 +419,9 @@ namespace Orthanc
     }
     else if (manufacturer == "EFilm2")
     {
-      return ModalityManufacturer_EFilm2;
+      LOG(WARNING) << "The " << manufacturer << " manufacturer is obsolete since Orthanc 1.2.1.  To guarantee compatibility with future Orthanc version, you should remove it from your configuration file.";
+
+      return ModalityManufacturer_Generic;
     }
     else
     {

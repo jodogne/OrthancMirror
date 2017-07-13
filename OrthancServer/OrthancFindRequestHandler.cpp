@@ -451,19 +451,14 @@ namespace Orthanc
                                                  const DicomTag& tag,
                                                  ModalityManufacturer manufacturer)
   {
+    // wathever the manufacturer, remote the GenericGroupLength tags (http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.2.html)
+    if (tag.GetGroup() == 0x0000)
+    {
+      return false;
+    }
+
     switch (manufacturer)
     {
-      case ModalityManufacturer_EFilm2:
-        // Following Denis Nesterov's mail on 2015-11-30
-        if (tag == DicomTag(0x0008, 0x0000) ||  // "GenericGroupLength"
-            tag == DicomTag(0x0010, 0x0000) ||  // "GenericGroupLength"
-            tag == DicomTag(0x0020, 0x0000))    // "GenericGroupLength"
-        {
-          return false;
-        }
-
-        break;
-
       case ModalityManufacturer_Vitrea:
         // Following Denis Nesterov's mail on 2015-11-30
         if (tag == DicomTag(0x5653, 0x0010))  // "PrivateCreator = Vital Images SW 3.4"
