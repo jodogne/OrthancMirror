@@ -42,12 +42,15 @@ namespace Orthanc
 {
   ValueConstraint::ValueConstraint(const std::string& value,
                                    bool isCaseSensitive) : 
-    value_(value),
     isCaseSensitive_(isCaseSensitive)
   {
-    if (!isCaseSensitive)
+    if (isCaseSensitive)
     {
-      Toolbox::ToUpperCase(value_);
+      value_ = value;
+    }
+    else
+    {
+      value_ = Toolbox::ToUpperCaseWithAccents(value);
     }
   }
 
@@ -66,9 +69,7 @@ namespace Orthanc
     }
     else
     {
-      std::string v;
-      Toolbox::ToUpperCase(v, value);
-      return value_ == v;
+      return value_ == Toolbox::ToUpperCaseWithAccents(value);
     }
   }
 }

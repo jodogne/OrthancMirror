@@ -45,9 +45,7 @@ namespace Orthanc
     }
     else
     {
-      std::string s = value;
-      Toolbox::ToUpperCase(s);
-      allowedValues_.insert(s);      
+      allowedValues_.insert(Toolbox::ToUpperCaseWithAccents(value));
     }
   }
 
@@ -67,14 +65,18 @@ namespace Orthanc
 
   bool ListConstraint::Match(const std::string& value) const
   {
-    std::string v = value;
-
-    if (!isCaseSensitive_)
+    std::string s;
+    
+    if (isCaseSensitive_)
     {
-      Toolbox::ToUpperCase(v);
+      s = value;
+    }
+    else
+    {
+      s = Toolbox::ToUpperCaseWithAccents(value);
     }
 
-    return allowedValues_.find(v) != allowedValues_.end();
+    return allowedValues_.find(s) != allowedValues_.end();
   }
 
 

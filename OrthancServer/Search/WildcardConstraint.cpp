@@ -42,6 +42,24 @@ namespace Orthanc
   {
     boost::regex  pattern_;
     std::string   wildcard_;
+    bool          isCaseSensitive_;
+
+    PImpl(const std::string& wildcard,
+          bool isCaseSensitive)
+    {
+      isCaseSensitive_ = isCaseSensitive;
+    
+      if (isCaseSensitive)
+      {
+        wildcard_ = wildcard;
+      }
+      else
+      {
+        wildcard_ = Toolbox::ToUpperCaseWithAccents(wildcard);
+      }
+
+      pattern_ = boost::regex(Toolbox::WildcardToRegularExpression(wildcard_));
+    }
   };
 
 
@@ -53,25 +71,20 @@ namespace Orthanc
 
   WildcardConstraint::WildcardConstraint(const std::string& wildcard,
                                          bool isCaseSensitive) :
-    pimpl_(new PImpl)
+    pimpl_(new PImpl(wildcard, isCaseSensitive))
   {
-    pimpl_->wildcard_ = wildcard;
-
-    std::string re = Toolbox::WildcardToRegularExpression(wildcard);
-
-    if (isCaseSensitive)
-    {
-      pimpl_->pattern_ = boost::regex(re);
-    }
-    else
-    {
-      pimpl_->pattern_ = boost::regex(re, boost::regex::icase /* case insensitive search */);
-    }
   }
 
   bool WildcardConstraint::Match(const std::string& value) const
   {
-    return boost::regex_match(value, pimpl_->pattern_);
+    if (pimpl_->isCaseSensitive_)
+    {
+      return boost::regex_match(value, pimpl_->pattern_);
+    }
+    else
+    {
+      return boost::regex_match(Toolbox::ToUpperCaseWithAccents(value), pimpl_->pattern_);
+    }
   }
 
   void WildcardConstraint::Setup(LookupIdentifierQuery& lookup,

@@ -41,14 +41,17 @@ namespace Orthanc
   RangeConstraint::RangeConstraint(const std::string& lower,
                                    const std::string& upper,
                                    bool isCaseSensitive) : 
-    lower_(lower),
-    upper_(upper),
     isCaseSensitive_(isCaseSensitive)
   {
-    if (!isCaseSensitive_)
+    if (isCaseSensitive_)
     {
-      Toolbox::ToUpperCase(lower_);
-      Toolbox::ToUpperCase(upper_);
+      lower_ = lower;
+      upper_ = upper;
+    }
+    else
+    {
+      lower_ = Toolbox::ToUpperCaseWithAccents(lower);
+      upper_ = Toolbox::ToUpperCaseWithAccents(upper);
     }
   }
 
@@ -70,11 +73,15 @@ namespace Orthanc
 
   bool RangeConstraint::Match(const std::string& value) const
   {
-    std::string v = value;
+    std::string v;
 
-    if (!isCaseSensitive_)
+    if (isCaseSensitive_)
     {
-      Toolbox::ToUpperCase(v);
+      v = value;
+    }
+    else
+    {
+      v = Toolbox::ToUpperCaseWithAccents(value);
     }
 
     if (lower_.size() == 0 && 
