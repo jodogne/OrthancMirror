@@ -39,10 +39,10 @@ endif()
 
 
 if (BOOST_STATIC)
-  # Parameters for Boost 1.60.0
-  set(BOOST_NAME boost_1_60_0)
-  set(BOOST_BCP_SUFFIX bcpdigest-1.0.1)
-  set(BOOST_MD5 "a789f8ec2056ad1c2d5f0cb64687cc7b")
+  # Parameters for Boost 1.64.0
+  set(BOOST_NAME boost_1_64_0)
+  set(BOOST_BCP_SUFFIX bcpdigest-1.2.1)
+  set(BOOST_MD5 "ecb266cf46adcc7f695ad12685871174")
   set(BOOST_URL "http://www.orthanc-server.com/downloads/third-party/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz")
   set(BOOST_FILESYSTEM_SOURCES_DIR "${BOOST_NAME}/libs/filesystem/src") 
   set(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
@@ -150,7 +150,7 @@ if (BOOST_STATIC)
       )
   endif()
 
-  if (USE_BOOST_LOCALE_BACKENDS)
+  if (USE_BOOST_LOCALE_BACKEND)
     if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
         ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
         ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR

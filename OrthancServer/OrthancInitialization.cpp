@@ -464,6 +464,7 @@ namespace Orthanc
   {
     boost::recursive_mutex::scoped_lock lock(globalMutex_);
 
+    Toolbox::InitializeGlobalLocale();
     HttpClient::InitializeOpenSsl();
 
     InitializeServerEnumerations();
@@ -519,6 +520,7 @@ namespace Orthanc
 #endif
 
     HttpClient::FinalizeOpenSsl();
+    Toolbox::FinalizeGlobalLocale();
   }
 
 
