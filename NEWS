@@ -48,6 +48,7 @@ Maintenance
 * Fix issue 49 (worklists: accentuated characters are removed from C-Find responses)
 * Fix issue 55 (modification/anonymization of tags that might break the database
   model now requires the "Force" parameter to be set to "true" in the query)
+* Fix issue 56 (case-insensitive matching over accents)
 * Fix Debian #865606 (orthanc FTBFS with libdcmtk-dev 3.6.1~20170228-2)
 * Fix XSS inside DICOM in Orthanc Explorer (as reported by Victor Pasnkel, Morphus Labs)
 * Upgrade forthcoming DCMTK 3.6.1 to snapshot 20170228
