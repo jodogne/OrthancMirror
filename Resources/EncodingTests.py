@@ -75,6 +75,6 @@ else:
 
 
 
-u = (u'grüßEN SébasTIen %s' % source)
+u = (u'grüßEN SébasTIen äöòДΘ')
 print 'static const char *toUpperSource = %s;' % ToArray(u.encode('utf-8'))
 print 'static const char *toUpperResult = %s;' % ToArray(u.upper().encode('utf-8'))
