@@ -49,15 +49,20 @@ static const std::string ORTHANC_DEIDENTIFICATION_METHOD_2017c =
 
 namespace Orthanc
 {
-  void DicomModification::RemoveInternal(const DicomTag& tag)
+  bool DicomModification::CancelReplacement(const DicomTag& tag)
   {
     Replacements::iterator it = replacements_.find(tag);
-
+    
     if (it != replacements_.end())
     {
       delete it->second;
       replacements_.erase(it);
-    }    
+      return true;
+    }
+    else
+    {
+      return false;
+    }
   }
 
 
@@ -166,9 +171,13 @@ namespace Orthanc
 
   void DicomModification::Keep(const DicomTag& tag)
   {
+    bool wasRemoved = IsRemoved(tag);
+    bool wasCleared = IsCleared(tag);
+    
     removals_.erase(tag);
     clearings_.erase(tag);
-    RemoveInternal(tag);
+
+    bool wasReplaced = CancelReplacement(tag);
 
     if (tag == DICOM_TAG_STUDY_INSTANCE_UID)
     {
@@ -182,7 +191,9 @@ namespace Orthanc
     {
       privateTagsToKeep_.insert(tag);
     }
-    else
+    else if (!wasRemoved &&
+             !wasReplaced &&
+             !wasCleared)
     {
       LOG(WARNING) << "Marking this tag as to be kept has no effect: " << tag.Format();
     }
@@ -194,7 +205,7 @@ namespace Orthanc
   {
     removals_.insert(tag);
     clearings_.erase(tag);
-    RemoveInternal(tag);
+    CancelReplacement(tag);
     privateTagsToKeep_.erase(tag);
 
     MarkNotOrthancAnonymization();
@@ -204,7 +215,7 @@ namespace Orthanc
   {
     removals_.erase(tag);
     clearings_.insert(tag);
-    RemoveInternal(tag);
+    CancelReplacement(tag);
     privateTagsToKeep_.erase(tag);
 
     MarkNotOrthancAnonymization();
