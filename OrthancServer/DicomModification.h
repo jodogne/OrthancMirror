@@ -69,7 +69,7 @@ namespace Orthanc
 
     void ClearReplacements();
 
-    void RemoveInternal(const DicomTag& tag);
+    bool CancelReplacement(const DicomTag& tag);
 
     void ReplaceInternal(const DicomTag& tag,
                          const Json::Value& value);
