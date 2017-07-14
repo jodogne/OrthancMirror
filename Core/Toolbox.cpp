@@ -1256,7 +1256,7 @@ namespace Orthanc
 
   static std::auto_ptr<std::locale>  globalLocale_;
   
-  void Toolbox::InitializeGlobalLocale()
+  void Toolbox::InitializeGlobalLocale(const char* locale)
   {
     // Make Orthanc use English, United States locale
 
@@ -1270,18 +1270,25 @@ namespace Orthanc
 
     try
     {
-      if (DEFAULT_LOCALE == NULL)
+      if (locale != NULL)
       {
+        LOG(WARNING) << "Using user-specified locale: \"" << locale << "\"";
+        globalLocale_.reset(new std::locale(locale));
+      }
+      else if (DEFAULT_LOCALE == NULL)
+      {
+        LOG(WARNING) << "Using system-wide default locale";
         globalLocale_.reset(new std::locale());
       }
       else
       {
+        LOG(WARNING) << "Using default locale: \"" << DEFAULT_LOCALE << "\"";
         globalLocale_.reset(new std::locale(DEFAULT_LOCALE));
       }
     }
-    catch (std::runtime_error& e)
+    catch (std::runtime_error&)
     {
-      LOG(ERROR) << "Cannot initialize global locale as \"" << DEFAULT_LOCALE << "\"";
+      LOG(ERROR) << "Cannot initialize global locale";
       throw OrthancException(ErrorCode_InternalError);
     }
   }

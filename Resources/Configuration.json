@@ -334,6 +334,10 @@
   // interest in the "Dictionary" configuration option below.
   "LoadPrivateDictionary" : true,
 
+  // Locale to be used by Orthanc. Notably used if comparing strings
+  // in a case-insensitive way.
+  // "Locale" : "en_US.UTF-8",
+
   // Register a new tag in the dictionary of DICOM tags that are known
   // to Orthanc. Each line must contain the tag (formatted as 2
   // hexadecimal numbers), the value representation (2 upcase

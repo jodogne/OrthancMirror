@@ -207,7 +207,7 @@ namespace Orthanc
 
     bool StartsWithUuid(const std::string& str);
 
-    void InitializeGlobalLocale();
+    void InitializeGlobalLocale(const char* locale);
 
     void FinalizeGlobalLocale();
 
