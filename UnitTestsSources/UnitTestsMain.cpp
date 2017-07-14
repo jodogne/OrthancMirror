@@ -527,14 +527,17 @@ TEST(EnumerationDictionary, ServerEnumerations)
   ASSERT_EQ(2047, StringToMetadata("Ceci est un test"));
 
   ASSERT_STREQ("Generic", EnumerationToString(StringToModalityManufacturer("Generic")));
+  ASSERT_STREQ("GenericNoWildcardInDates", EnumerationToString(StringToModalityManufacturer("GenericNoWildcardInDates")));
+  ASSERT_STREQ("GenericNoWildcards", EnumerationToString(StringToModalityManufacturer("GenericNoWildcards")));
   ASSERT_STREQ("StoreScp", EnumerationToString(StringToModalityManufacturer("StoreScp")));
   ASSERT_STREQ("ClearCanvas", EnumerationToString(StringToModalityManufacturer("ClearCanvas")));
-  ASSERT_STREQ("MedInria", EnumerationToString(StringToModalityManufacturer("MedInria")));
   ASSERT_STREQ("Dcm4Chee", EnumerationToString(StringToModalityManufacturer("Dcm4Chee")));
-  ASSERT_STREQ("SyngoVia", EnumerationToString(StringToModalityManufacturer("SyngoVia")));
-  ASSERT_STREQ("AgfaImpax", EnumerationToString(StringToModalityManufacturer("AgfaImpax")));
-  ASSERT_STREQ("EFilm2", EnumerationToString(StringToModalityManufacturer("EFilm2")));
   ASSERT_STREQ("Vitrea", EnumerationToString(StringToModalityManufacturer("Vitrea")));
+  // backward compatibility tests (to remove once we make these manufacturer really obsolete)
+  ASSERT_STREQ("Generic", EnumerationToString(StringToModalityManufacturer("MedInria")));
+  ASSERT_STREQ("Generic", EnumerationToString(StringToModalityManufacturer("EFilm2")));
+  ASSERT_STREQ("GenericNoWildcardInDates", EnumerationToString(StringToModalityManufacturer("SyngoVia")));
+  ASSERT_STREQ("GenericNoWildcardInDates", EnumerationToString(StringToModalityManufacturer("AgfaImpax")));
 }
 
 

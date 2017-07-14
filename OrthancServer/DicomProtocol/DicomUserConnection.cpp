@@ -484,27 +484,29 @@ namespace Orthanc
   static ParsedDicomFile* ConvertQueryFields(const DicomMap& fields,
                                              ModalityManufacturer manufacturer)
   {
+    // Fix outgoing C-Find requests
+    // issue for Syngo.Via and its solution was reported by
+    // Emsy Chan by private mail on 2015-06-17. According to
+    // Robert van Ommen (2015-11-30), the same fix is required for
+    // Agfa Impax.
+    // solutions was generalized for generic manufacturer since it seems to affect PhilipsADW, GEWAServer as well (check issue #31)
+
     switch (manufacturer)
     {
-      case ModalityManufacturer_AgfaImpax:
-      case ModalityManufacturer_SyngoVia:
+      case ModalityManufacturer_GenericNoWildcardInDates:
+      case ModalityManufacturer_GenericNoWildcards:
       {
         std::auto_ptr<DicomMap> fix(fields.Clone());
 
-        // This issue for Syngo.Via and its solution was reported by
-        // Emsy Chan by private mail on 2015-06-17. According to
-        // Robert van Ommen (2015-11-30), the same fix is required for
-        // Agfa Impax.
         std::set<DicomTag> tags;
         fix->GetTags(tags);
 
         for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
         {
-          if (FromDcmtkBridge::LookupValueRepresentation(*it) == ValueRepresentation_Date)
+          // Replace a "*" query by an empty query ("") for "date" or "all" value representations depending on the manufacturer.
+          if ((manufacturer == ModalityManufacturer_GenericNoWildcards)
+              || (manufacturer == ModalityManufacturer_GenericNoWildcardInDates && FromDcmtkBridge::LookupValueRepresentation(*it) == ValueRepresentation_Date))
           {
-            // Replace a "*" query by an empty query ("") for "date"
-            // value representations. Necessary to search over dates
-            // in Syngo.Via.
             const DicomValue* value = fix->TestAndGetValue(*it);
 
             if (value != NULL && 
