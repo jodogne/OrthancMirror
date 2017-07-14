@@ -37,11 +37,12 @@
 #include "OrthancException.h"
 #include "Logging.h"
 
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/locale.hpp>
 #include <boost/uuid/sha1.hpp>
-
+ 
 #include <string>
 #include <stdint.h>
 #include <string.h>
@@ -1250,5 +1251,85 @@ namespace Orthanc
     }
 
     return IsUuid(str.substr(0, 36));
+  }
+
+
+  static std::auto_ptr<std::locale>  globalLocale_;
+  
+  void Toolbox::InitializeGlobalLocale()
+  {
+    // Make Orthanc use English, United States locale
+
+#if defined(_WIN32)
+    // For Windows: use default locale (one might use "en-US" instead)
+    static const char* DEFAULT_LOCALE = NULL;
+#else
+    // For Linux & cie
+    static const char* DEFAULT_LOCALE = "en_US.UTF-8";
+#endif
+
+    try
+    {
+      if (DEFAULT_LOCALE == NULL)
+      {
+        globalLocale_.reset(new std::locale());
+      }
+      else
+      {
+        globalLocale_.reset(new std::locale(DEFAULT_LOCALE));
+      }
+    }
+    catch (std::runtime_error& e)
+    {
+      LOG(ERROR) << "Cannot initialize global locale as \"" << DEFAULT_LOCALE << "\"";
+      throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
+  void Toolbox::FinalizeGlobalLocale()
+  {
+    globalLocale_.reset();
+  }
+
+  
+  std::string Toolbox::ToUpperCaseWithAccents(const std::string& source)
+  {
+    if (globalLocale_.get() == NULL)
+    {
+      LOG(ERROR) << "No global locale was set, call Toolbox::InitializeGlobalLocale()";
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    /**
+     * A few notes about locales:
+     *
+     * (1) We don't use "case folding":
+     * http://www.boost.org/doc/libs/1_64_0/libs/locale/doc/html/conversions.html
+     *
+     * Characters are made uppercase one by one. This is because, in
+     * static builds, we are using iconv, which is visibly not
+     * supported correctly (TODO: Understand why). Case folding seems
+     * to be working correctly if using the default backend under
+     * Linux (ICU or POSIX?). If one wishes to use case folding, one
+     * would use:
+     *
+     *   boost::locale::generator gen;
+     *   std::locale::global(gen(DEFAULT_LOCALE));
+     *   return boost::locale::to_upper(source);
+     *
+     * (2) The function "boost::algorithm::to_upper_copy" does not
+     * make use of the "std::locale::global()". We therefore create a
+     * global variable "globalLocale_".
+     * 
+     * (3) The variant of "boost::algorithm::to_upper_copy()" that
+     * uses std::string does not work properly. We need to apply it
+     * one wide strings (std::wstring). This explains the two calls to
+     * "utf_to_utf" in order to convert to/from std::wstring.
+     **/
+
+    std::wstring w = boost::locale::conv::utf_to_utf<wchar_t>(source);
+    w = boost::algorithm::to_upper_copy<std::wstring>(w, *globalLocale_);
+    return boost::locale::conv::utf_to_utf<char>(w);
   }
 }

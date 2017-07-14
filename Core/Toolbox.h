@@ -206,5 +206,11 @@ namespace Orthanc
     bool IsUuid(const std::string& str);
 
     bool StartsWithUuid(const std::string& str);
+
+    void InitializeGlobalLocale();
+
+    void FinalizeGlobalLocale();
+
+    std::string ToUpperCaseWithAccents(const std::string& source);
   }
 }

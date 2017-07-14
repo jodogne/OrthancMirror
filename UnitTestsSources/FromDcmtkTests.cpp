@@ -1217,3 +1217,9 @@ TEST(ParsedDicomFile, ChangeEncoding)
     }
   }
 }
+
+
+TEST(Toolbox, CaseWithAccents)
+{
+  ASSERT_EQ(toUpperResult, Toolbox::ToUpperCaseWithAccents(toUpperSource));
+}
