@@ -325,26 +325,20 @@ namespace Orthanc
       case ModalityManufacturer_Generic:
         return "Generic";
 
+      case ModalityManufacturer_GenericNoWildcardInDates:
+        return "GenericNoWildcardInDates";
+
+      case ModalityManufacturer_GenericNoWildcards:
+        return "GenericNoWildcards";
+
       case ModalityManufacturer_StoreScp:
         return "StoreScp";
       
       case ModalityManufacturer_ClearCanvas:
         return "ClearCanvas";
       
-      case ModalityManufacturer_MedInria:
-        return "MedInria";
-
       case ModalityManufacturer_Dcm4Chee:
         return "Dcm4Chee";
-      
-      case ModalityManufacturer_SyngoVia:
-        return "SyngoVia";
-      
-      case ModalityManufacturer_AgfaImpax:
-        return "AgfaImpax";
-      
-      case ModalityManufacturer_EFilm2:
-        return "EFilm2";
       
       case ModalityManufacturer_Vitrea:
         return "Vitrea";
@@ -392,6 +386,14 @@ namespace Orthanc
     {
       return ModalityManufacturer_Generic;
     }
+    else if (manufacturer == "GenericNoWildcardInDates")
+    {
+      return ModalityManufacturer_GenericNoWildcardInDates;
+    }
+    else if (manufacturer == "GenericNoWildcards")
+    {
+      return ModalityManufacturer_GenericNoWildcards;
+    }
     else if (manufacturer == "ClearCanvas")
     {
       return ModalityManufacturer_ClearCanvas;
@@ -400,29 +402,24 @@ namespace Orthanc
     {
       return ModalityManufacturer_StoreScp;
     }
-    else if (manufacturer == "MedInria")
-    {
-      return ModalityManufacturer_MedInria;
-    }
     else if (manufacturer == "Dcm4Chee")
     {
       return ModalityManufacturer_Dcm4Chee;
-    }
-    else if (manufacturer == "SyngoVia")
-    {
-      return ModalityManufacturer_SyngoVia;
-    }
-    else if (manufacturer == "AgfaImpax")
-    {
-      return ModalityManufacturer_AgfaImpax;
     }
     else if (manufacturer == "Vitrea")
     {
       return ModalityManufacturer_Vitrea;
     }
-    else if (manufacturer == "EFilm2")
+    else if (manufacturer == "AgfaImpax" || manufacturer == "SyngoVia")
     {
-      return ModalityManufacturer_EFilm2;
+      LOG(WARNING) << "The " << manufacturer << " manufacturer is obsolete since Orthanc 1.2.1.  To guarantee compatibility with future Orthanc version, you should use \"GenericNoWildcardInDates\" instead in your configuration file.";
+      return ModalityManufacturer_GenericNoWildcardInDates;
+    }
+    else if (manufacturer == "EFilm2" || manufacturer == "MedInria")
+    {
+      LOG(WARNING) << "The " << manufacturer << " manufacturer is obsolete since Orthanc 1.2.1.  To guarantee compatibility with future Orthanc version, you should remove it from your configuration file.";
+
+      return ModalityManufacturer_Generic;
     }
     else
     {

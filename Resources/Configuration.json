@@ -158,10 +158,12 @@
     /**
      * A fourth parameter is available to enable patches for a
      * specific PACS manufacturer. The allowed values are currently
-     * "Generic" (default value), "StoreScp" (storescp tool from
-     * DCMTK), "ClearCanvas", "MedInria", "Dcm4Chee", "SyngoVia",
-     * "AgfaImpax" (Agfa IMPAX), "EFilm2" (eFilm version 2), and
-     * "Vitrea". This parameter is case-sensitive.
+     * "Generic" (default value),
+     * "GenericNoWildcardInDates" (to replace '*' by '' in date fields in outgoing C-Find)
+     * "GenericNoWildcards" (to replace '*' by '' in all fields in outgoing C-Find)
+     * "StoreScp" (storescp tool from DCMTK),
+     * "ClearCanvas", "Dcm4Chee" and "Vitrea".
+     * This parameter is case-sensitive.
      **/
     // "clearcanvas" : [ "CLEARCANVAS", "192.168.1.1", 104, "ClearCanvas" ]
   },
