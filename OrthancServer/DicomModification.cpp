@@ -170,19 +170,21 @@ namespace Orthanc
     clearings_.erase(tag);
     RemoveInternal(tag);
 
-    if (tag.IsPrivate())
-    {
-      privateTagsToKeep_.insert(tag);
-    }
-
     if (tag == DICOM_TAG_STUDY_INSTANCE_UID)
     {
       keepStudyInstanceUid_ = true;
     }
-
-    if (tag == DICOM_TAG_SERIES_INSTANCE_UID)
+    else if (tag == DICOM_TAG_SERIES_INSTANCE_UID)
     {
       keepSeriesInstanceUid_ = true;
+    }
+    else if (tag.IsPrivate())
+    {
+      privateTagsToKeep_.insert(tag);
+    }
+    else
+    {
+      LOG(WARNING) << "Marking this tag as to be kept has no effect: " << tag.Format();
     }
 
     MarkNotOrthancAnonymization();
