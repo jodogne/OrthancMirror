@@ -12,6 +12,7 @@ General
   - Obsolete manufacturers are still accepted but might disappear in the future
   - Added new manufacturer: GenericNoWidlcards to replace all '*' by '' in
     outgoing C-Find requests
+* "Locale" configuration option
 
 REST API
 --------

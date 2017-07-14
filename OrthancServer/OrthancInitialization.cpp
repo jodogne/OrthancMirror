@@ -464,7 +464,6 @@ namespace Orthanc
   {
     boost::recursive_mutex::scoped_lock lock(globalMutex_);
 
-    Toolbox::InitializeGlobalLocale();
     HttpClient::InitializeOpenSsl();
 
     InitializeServerEnumerations();
@@ -472,6 +471,16 @@ namespace Orthanc
     // Read the user-provided configuration
     ReadGlobalConfiguration(configurationFile);
     ValidateGlobalConfiguration();
+
+    if (configuration_.isMember("Locale"))
+    {
+      std::string locale = GetGlobalStringParameterInternal("Locale", "");
+      Toolbox::InitializeGlobalLocale(configuration_["Locale"].asCString());
+    }
+    else
+    {
+      Toolbox::InitializeGlobalLocale(NULL);
+    }
 
     if (configuration_.isMember("Pkcs11"))
     {
