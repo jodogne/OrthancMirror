@@ -34,12 +34,14 @@ Maintenance
 
 * Ability to retrieve raw frames encoded as unsigned 32-bits integers
 * Fix issue 29 (more consistent handling of the "--upgrade" argument)
-* Fix issue 31 (Create new modality types for Philips ADW, GE Xeleris, GE AWServer)
+* Fix issue 31 (create new modality types for Philips ADW, GE Xeleris, GE AWServer)
 * Fix issue 35 (AET name is not transferred to Orthanc using DCMTK 3.6.0)
-* Fix issue 44 (Bad interpretation of photometric interpretation MONOCHROME1)
+* Fix issue 44 (bad interpretation of photometric interpretation MONOCHROME1)
 * Fix issue 45 (crash when providing a folder to "--config" command-line option)
 * Fix issue 46 (PHI remaining after anonymization)
-* Fix issue 49 (Worklists: accentuated characters are removed from C-Find responses)
+* Fix issue 49 (worklists: accentuated characters are removed from C-Find responses)
+* Fix issue 55 (modification/anonymization of tags that might break the database
+  model now require the "Force" parameter to be set to "true" in the query)
 * Fix Debian #865606 (orthanc FTBFS with libdcmtk-dev 3.6.1~20170228-2)
 * Fix XSS inside DICOM in Orthanc Explorer (as reported by Victor Pasnkel, Morphus Labs)
 * Upgrade forthcoming DCMTK 3.6.1 to snapshot 20170228

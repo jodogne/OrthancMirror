@@ -52,9 +52,18 @@ namespace Orthanc
     TagOperation_Remove
   };
 
+  static bool IsDatabaseKey(const DicomTag& tag)
+  {
+    return (tag == DICOM_TAG_PATIENT_ID ||
+            tag == DICOM_TAG_STUDY_INSTANCE_UID ||
+            tag == DICOM_TAG_SERIES_INSTANCE_UID ||
+            tag == DICOM_TAG_SOP_INSTANCE_UID);
+  }
+
   static void ParseListOfTags(DicomModification& target,
                               const Json::Value& query,
-                              TagOperation operation)
+                              TagOperation operation,
+                              bool force)
   {
     if (!query.isArray())
     {
@@ -66,6 +75,14 @@ namespace Orthanc
       std::string name = query[i].asString();
 
       DicomTag tag = FromDcmtkBridge::ParseTag(name);
+
+      if (!force && IsDatabaseKey(tag))
+      {
+        LOG(ERROR) << "Marking tag \"" << name << "\" as to be "
+                   << (operation == TagOperation_Keep ? "kept" : "removed")
+                   << " requires the \"Force\" option to be set to true";
+        throw OrthancException(ErrorCode_BadRequest);
+      }
 
       switch (operation)
       {
@@ -87,7 +104,8 @@ namespace Orthanc
 
 
   static void ParseReplacements(DicomModification& target,
-                                const Json::Value& replacements)
+                                const Json::Value& replacements,
+                                bool force)
   {
     if (!replacements.isObject())
     {
@@ -101,6 +119,14 @@ namespace Orthanc
       const Json::Value& value = replacements[name];
 
       DicomTag tag = FromDcmtkBridge::ParseTag(name);
+
+      if (!force && IsDatabaseKey(tag))
+      {
+        LOG(ERROR) << "Marking tag \"" << name << "\" as to be replaced "
+                   << "requires the \"Force\" option to be set to true";
+        throw OrthancException(ErrorCode_BadRequest);
+      }
+
       target.Replace(tag, value, false);
 
       VLOG(1) << "Replace: " << name << " " << tag 
@@ -116,25 +142,46 @@ namespace Orthanc
   }
 
 
+  static bool GetBooleanValue(const std::string& member,
+                              const Json::Value& json,
+                              bool defaultValue)
+  {
+    if (!json.isMember(member))
+    {
+      return defaultValue;
+    }
+    else if (json[member].type() == Json::booleanValue)
+    {
+      return json[member].asBool();
+    }
+    else
+    {
+      LOG(ERROR) << "Member \"" << member << "\" should be a Boolean value";
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+  }
+
 
   bool OrthancRestApi::ParseModifyRequest(DicomModification& target,
                                           const Json::Value& request)
   {
     if (request.isObject())
     {
-      if (request.isMember("RemovePrivateTags"))
+      bool force = GetBooleanValue("Force", request, false);
+      
+      if (GetBooleanValue("RemovePrivateTags", request, false))
       {
         target.SetRemovePrivateTags(true);
       }
 
       if (request.isMember("Remove"))
       {
-        ParseListOfTags(target, request["Remove"], TagOperation_Remove);
+        ParseListOfTags(target, request["Remove"], TagOperation_Remove, force);
       }
 
       if (request.isMember("Replace"))
       {
-        ParseReplacements(target, request["Replace"]);
+        ParseReplacements(target, request["Replace"], force);
       }
 
       // The "Keep" operation only makes sense for the tags
@@ -144,7 +191,7 @@ namespace Orthanc
       // you're doing!
       if (request.isMember("Keep"))
       {
-        ParseListOfTags(target, request["Keep"], TagOperation_Keep);
+        ParseListOfTags(target, request["Keep"], TagOperation_Keep, force);
       }
 
       return true;
@@ -185,6 +232,8 @@ namespace Orthanc
       return false;
     }
 
+    bool force = GetBooleanValue("Force", request, false);
+      
     // As of Orthanc 1.2.1, the default anonymization is done
     // according to PS 3.15-2017c Table E.1-1 (basic profile)
     DicomVersion version = DicomVersion_2017c;
@@ -203,24 +252,24 @@ namespace Orthanc
     target.SetupAnonymization(version);
     std::string patientName = target.GetReplacementAsString(DICOM_TAG_PATIENT_NAME);
 
-    if (request.isMember("KeepPrivateTags"))
+    if (GetBooleanValue("KeepPrivateTags", request, false))
     {
       target.SetRemovePrivateTags(false);
     }
 
     if (request.isMember("Remove"))
     {
-      ParseListOfTags(target, request["Remove"], TagOperation_Remove);
+      ParseListOfTags(target, request["Remove"], TagOperation_Remove, force);
     }
 
     if (request.isMember("Replace"))
     {
-      ParseReplacements(target, request["Replace"]);
+      ParseReplacements(target, request["Replace"], force);
     }
 
     if (request.isMember("Keep"))
     {
-      ParseListOfTags(target, request["Keep"], TagOperation_Keep);
+      ParseListOfTags(target, request["Keep"], TagOperation_Keep, force);
     }
 
     if (target.IsReplaced(DICOM_TAG_PATIENT_NAME) &&
