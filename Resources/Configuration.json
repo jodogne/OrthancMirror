@@ -334,8 +334,9 @@
   // interest in the "Dictionary" configuration option below.
   "LoadPrivateDictionary" : true,
 
-  // Locale to be used by Orthanc. Notably used if comparing strings
-  // in a case-insensitive way.
+  // Locale to be used by Orthanc. Currently, only used if comparing
+  // strings in a case-insensitive way. It should be safe to keep this
+  // value undefined, which lets Orthanc autodetect the suitable locale.
   // "Locale" : "en_US.UTF-8",
 
   // Register a new tag in the dictionary of DICOM tags that are known
