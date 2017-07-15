@@ -1261,8 +1261,8 @@ namespace Orthanc
     // Make Orthanc use English, United States locale
 
 #if defined(_WIN32)
-    // For Windows: use default locale (one might use "en-US" instead)
-    static const char* DEFAULT_LOCALE = NULL;
+    // For Windows: use default locale (one might use "en_US" instead)
+    static const char* DEFAULT_LOCALE = "";
 #else
     // For Linux & cie
     static const char* DEFAULT_LOCALE = "en_US.UTF-8";
