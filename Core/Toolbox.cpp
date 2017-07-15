@@ -1255,42 +1255,73 @@ namespace Orthanc
 
 
   static std::auto_ptr<std::locale>  globalLocale_;
+
+  static bool SetGlobalLocale(const char* locale)
+  {
+    globalLocale_.reset(NULL);
+
+    try
+    {
+      if (locale == NULL)
+      {
+        LOG(WARNING) << "Falling back to system-wide default locale";
+        globalLocale_.reset(new std::locale());
+      }
+      else
+      {
+        LOG(WARNING) << "Using locale: \"" << locale << "\"";
+        globalLocale_.reset(new std::locale(locale));
+      }
+    }
+    catch (std::runtime_error&)
+    {
+    }
+
+    return (globalLocale_.get() != NULL);
+  }
   
   void Toolbox::InitializeGlobalLocale(const char* locale)
   {
     // Make Orthanc use English, United States locale
-
-#if defined(_WIN32)
-    // For Windows: use default locale (one might use "en_US" instead)
+    // Linux: use "en_US.UTF-8"
+    // Windows: use ""
+    // Wine: use NULL
+    
+#if defined(__MINGW32__)
+    // Visibly, there is no support of locales in MinGW yet
+    // http://mingw.5.n7.nabble.com/How-to-use-std-locale-global-with-MinGW-correct-td33048.html
+    static const char* DEFAULT_LOCALE = NULL;
+#elif defined(_WIN32)
+    // For Windows: use default locale (using "en_US" does not work)
     static const char* DEFAULT_LOCALE = "";
 #else
     // For Linux & cie
     static const char* DEFAULT_LOCALE = "en_US.UTF-8";
 #endif
 
-    try
+    bool ok;
+    
+    if (locale == NULL)
     {
-      if (locale != NULL)
-      {
-        LOG(WARNING) << "Using user-specified locale: \"" << locale << "\"";
-        globalLocale_.reset(new std::locale(locale));
-      }
-      else if (DEFAULT_LOCALE == NULL)
-      {
-        LOG(WARNING) << "Using system-wide default locale";
-        globalLocale_.reset(new std::locale());
-      }
-      else
-      {
-        LOG(WARNING) << "Using default locale: \"" << DEFAULT_LOCALE << "\"";
-        globalLocale_.reset(new std::locale(DEFAULT_LOCALE));
-      }
+      ok = SetGlobalLocale(DEFAULT_LOCALE);
+
+#if defined(__MINGW32__)
+      LOG(WARNING) << "This is a MinGW build, case-insensitive comparison of "
+                   << "strings with accents will not work outside of Wine";
+#endif
     }
-    catch (std::runtime_error&)
+    else
+    {
+      ok = SetGlobalLocale(locale);
+    }
+
+    if (!ok &&
+        !SetGlobalLocale(NULL))
     {
       LOG(ERROR) << "Cannot initialize global locale";
       throw OrthancException(ErrorCode_InternalError);
     }
+
   }
 
 
