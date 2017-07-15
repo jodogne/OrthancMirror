@@ -193,7 +193,7 @@ namespace Orthanc
     }
 
     std::streamsize size = GetStreamSize(f);
-    content.resize(size);
+    content.resize(static_cast<size_t>(size));
     if (size != 0)
     {
       f.read(reinterpret_cast<char*>(&content[0]), size);
@@ -231,7 +231,7 @@ namespace Orthanc
       }
       else if (static_cast<size_t>(size) < headerSize)
       {
-        headerSize = size;  // Truncate to the size of the file
+        headerSize = static_cast<size_t>(size);  // Truncate to the size of the file
         full = false;
       }
     }

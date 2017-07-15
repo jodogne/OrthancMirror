@@ -70,7 +70,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_CorruptedFile);
     }
 
-    chunkSize_ = file_.gcount();
+    chunkSize_ = static_cast<size_t>(file_.gcount());
 
     return chunkSize_ > 0;
   }
