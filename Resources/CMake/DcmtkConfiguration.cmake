@@ -68,8 +68,14 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
 
 
   IF (CMAKE_CROSSCOMPILING)
-    SET(C_CHAR_UNSIGNED 1 CACHE INTERNAL "Whether char is unsigned.")
+    if (CMAKE_COMPILER_IS_GNUCXX AND
+        ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")  # MinGW
+      SET(C_CHAR_UNSIGNED 1 CACHE INTERNAL "Whether char is unsigned.")
+    else()
+      message(FATAL_ERROR "Support your platform here")
+    endif()
   ENDIF()
+  
   SET(DCMTK_SOURCE_DIR ${DCMTK_SOURCES_DIR})
   include(${DCMTK_SOURCES_DIR}/CMake/CheckFunctionWithHeaderExists.cmake)
   include(${DCMTK_SOURCES_DIR}/CMake/GenerateDCMTKConfigure.cmake)
@@ -95,19 +101,21 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     ${DCMTK_SOURCES_DIR}/config/include/dcmtk/config/osconfig.h)
 
   if (NOT USE_DCMTK_360)
-    # Configure Wine if cross-compiling for Windows
-    if (CMAKE_CROSSCOMPILING AND WIN32)
-      include(${DCMTK_SOURCES_DIR}/CMake/dcmtkUseWine.cmake)
-      FIND_PROGRAM(WINE_WINE_PROGRAM wine)
-      FIND_PROGRAM(WINE_WINEPATH_PROGRAM winepath)
-      list(APPEND DCMTK_TRY_COMPILE_REQUIRED_CMAKE_FLAGS "-DCMAKE_EXE_LINKER_FLAGS=-static")
+    if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+      link_libraries(netapi32)  # For NetWkstaUserGetInfo@12
+      link_libraries(iphlpapi)  # For GetAdaptersInfo@8
+
+      # Configure Wine if cross-compiling for Windows
+      if (CMAKE_COMPILER_IS_GNUCXX)
+        include(${DCMTK_SOURCES_DIR}/CMake/dcmtkUseWine.cmake)
+        FIND_PROGRAM(WINE_WINE_PROGRAM wine)
+        FIND_PROGRAM(WINE_WINEPATH_PROGRAM winepath)
+        list(APPEND DCMTK_TRY_COMPILE_REQUIRED_CMAKE_FLAGS "-DCMAKE_EXE_LINKER_FLAGS=-static")
+      endif()
     endif()
 
     # This step must be after the generation of "osconfig.h"
     INSPECT_FUNDAMENTAL_ARITHMETIC_TYPES()
-
-    link_libraries(netapi32)  # For NetWkstaUserGetInfo@12
-    link_libraries(iphlpapi)  # For GetAdaptersInfo@8
   endif()
 
   AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmdata/libsrc DCMTK_SOURCES)
