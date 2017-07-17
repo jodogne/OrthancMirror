@@ -31,8 +31,11 @@ before_install:
     -qq build-essential unzip cmake mercurial uuid-dev libcurl4-openssl-dev liblua5.1-0-dev
     libgtest-dev libpng-dev libsqlite3-dev libssl-dev zlib1g-dev libdcmtk2-dev libwrap0-dev
     libcharls-dev; fi
-  - if [ $TRAVIS_OS_NAME == linux -a $TRAVIS_MINGW == ON ]; then sudo apt-get install mingw32 wine; fi
+  # For DCMTK 3.6.2:
+  - if [ $TRAVIS_OS_NAME == linux -a $TRAVIS_MINGW == ON ]; then sudo apt-get install i686-w64-mingw32 wine; fi
 
+  # For DCMTK 3.6.0: 
+  # - if [ $TRAVIS_OS_NAME == linux -a $TRAVIS_MINGW == ON ]; then sudo apt-get install mingw; fi
 
 before_script:
   - mkdir Build
