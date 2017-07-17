@@ -451,7 +451,9 @@ namespace Orthanc
                                                  const DicomTag& tag,
                                                  ModalityManufacturer manufacturer)
   {
-    // wathever the manufacturer, remote the GenericGroupLength tags (http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.2.html)
+    // Whatever the manufacturer, remove the GenericGroupLength tags
+    // http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.2.html
+    // https://bitbucket.org/sjodogne/orthanc/issues/31/
     if (tag.GetGroup() == 0x0000)
     {
       return false;

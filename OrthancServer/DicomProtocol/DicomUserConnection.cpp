@@ -484,12 +484,13 @@ namespace Orthanc
   static ParsedDicomFile* ConvertQueryFields(const DicomMap& fields,
                                              ModalityManufacturer manufacturer)
   {
-    // Fix outgoing C-Find requests
-    // issue for Syngo.Via and its solution was reported by
-    // Emsy Chan by private mail on 2015-06-17. According to
-    // Robert van Ommen (2015-11-30), the same fix is required for
-    // Agfa Impax.
-    // solutions was generalized for generic manufacturer since it seems to affect PhilipsADW, GEWAServer as well (check issue #31)
+    // Fix outgoing C-Find requests issue for Syngo.Via and its
+    // solution was reported by Emsy Chan by private mail on
+    // 2015-06-17. According to Robert van Ommen (2015-11-30), the
+    // same fix is required for Agfa Impax. This was generalized for
+    // generic manufacturer since it seems to affect PhilipsADW,
+    // GEWAServer as well:
+    // https://bitbucket.org/sjodogne/orthanc/issues/31/
 
     switch (manufacturer)
     {
@@ -503,9 +504,12 @@ namespace Orthanc
 
         for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
         {
-          // Replace a "*" query by an empty query ("") for "date" or "all" value representations depending on the manufacturer.
-          if ((manufacturer == ModalityManufacturer_GenericNoWildcards)
-              || (manufacturer == ModalityManufacturer_GenericNoWildcardInDates && FromDcmtkBridge::LookupValueRepresentation(*it) == ValueRepresentation_Date))
+          // Replace a "*" wildcard query by an empty query ("") for
+          // "date" or "all" value representations depending on the
+          // type of manufacturer.
+          if (manufacturer == ModalityManufacturer_GenericNoWildcards ||
+              (manufacturer == ModalityManufacturer_GenericNoWildcardInDates &&
+               FromDcmtkBridge::LookupValueRepresentation(*it) == ValueRepresentation_Date))
           {
             const DicomValue* value = fix->TestAndGetValue(*it);
 
