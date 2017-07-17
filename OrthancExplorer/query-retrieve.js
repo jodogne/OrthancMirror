@@ -149,21 +149,22 @@ $('#query-retrieve-2').live('pagebeforeshow', function() {
             async: false,
             success: function(study) {
               var series = '#query-retrieve-3?server=' + pageData.server + '&uuid=' + study['StudyInstanceUID'];
-              var info = $('<a>').attr('href', series).html(
-                ('<h3>{0} - {1}</h3>' + 
-                 '<p>Accession number: <b>{2}</b></p>' +
-                 '<p>Birth date: <b>{3}</b></p>' +
-                 '<p>Patient sex: <b>{4}</b></p>' +
-                 '<p>Study description: <b>{5}</b></p>' +
-                 '<p>Study date: <b>{6}</b></p>').format(
-                   study['PatientID'],
-                   study['PatientName'],
-                   study['AccessionNumber'],
-                   FormatDicomDate(study['PatientBirthDate']),
-                   study['PatientSex'],
-                   study['StudyDescription'],
-                   FormatDicomDate(study['StudyDate'])));
 
+              var content = ($('<div>')
+                             .append($('<h3>').text(study['PatientID'] + ' - ' + study['PatientName']))
+                             .append($('<p>').text('Accession number: ')
+                                     .append($('<b>').text(study['AccessionNumber'])))
+                             .append($('<p>').text('Birth date: ')
+                                     .append($('<b>').text(study['PatientBirthDate'])))
+                             .append($('<p>').text('Patient sex: ')
+                                     .append($('<b>').text(study['PatientSex'])))
+                             .append($('<p>').text('Study description: ')
+                                     .append($('<b>').text(study['StudyDescription'])))
+                             .append($('<p>').text('Study date: ')
+                                     .append($('<b>').text(FormatDicomDate(study['StudyDate'])))));
+
+              var info = $('<a>').attr('href', series).html(content);
+              
               var answerId = answers[i];
               var retrieve = $('<a>').text('Retrieve all study').click(function() {
                 ChangePage('query-retrieve-4', {
@@ -228,15 +229,14 @@ $('#query-retrieve-3').live('pagebeforeshow', function() {
                 dataType: 'json',
                 async: false,
                 success: function(series) {
-                  var info = $('<a>').html(
-                    ('<h3>{0}</h3>'  + 
-                     '<p>Modality: <b>{1}</b></p>' +
-                     '<p>Protocol name: <b>{2}</b></p>'
-                    ).format(
-                      series['SeriesDescription'],
-                      series['Modality'],
-                      series['ProtocolName']
-                    ));
+                  var content = ($('<div>')
+                                 .append($('<h3>').text(series['SeriesDescription']))
+                                 .append($('<p>').text('Modality: ')
+                                         .append($('<b>').text(series['Modality'])))
+                                 .append($('<p>').text('ProtocolName: ')
+                                         .append($('<b>').text(series['ProtocolName']))));
+
+                  var info = $('<a>').html(content);
 
                   var answerId = answers[i];
                   info.click(function() {

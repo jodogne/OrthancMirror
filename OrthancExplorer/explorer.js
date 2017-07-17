@@ -334,11 +334,11 @@ $('[data-role="page"]').live('pagebeforeshow', function() {
     cache: false,
     success: function(s) {
       if (s.Name != "") {
-        $('.orthanc-name').append($('<a>')
-                                  .addClass('ui-link')
-                                  .attr('href', 'explorer.html')
-                                  .text(s.Name)
-                                  .append(' &raquo; '));
+        $('.orthanc-name').html($('<a>')
+                                .addClass('ui-link')
+                                .attr('href', 'explorer.html')
+                                .text(s.Name)
+                                .append(' &raquo; '));
       }
     }
   });
