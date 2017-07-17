@@ -32,7 +32,7 @@ before_install:
     libgtest-dev libpng-dev libsqlite3-dev libssl-dev zlib1g-dev libdcmtk2-dev libwrap0-dev
     libcharls-dev; fi
   # For DCMTK 3.6.2:
-  - if [ $TRAVIS_OS_NAME == linux -a $TRAVIS_MINGW == ON ]; then sudo apt-get install mingw-w64 gcc-mingw-w64 g++-mingw-w64 wine; fi
+  - if [ $TRAVIS_OS_NAME == linux -a $TRAVIS_MINGW == ON ]; then sudo apt-get install mingw-w64 gcc-mingw-w64-i686 g++-mingw-w64-i686 wine; fi
 
   # For DCMTK 3.6.0: 
   # - if [ $TRAVIS_OS_NAME == linux -a $TRAVIS_MINGW == ON ]; then sudo apt-get install mingw; fi
