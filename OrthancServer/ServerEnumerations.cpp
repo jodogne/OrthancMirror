@@ -382,6 +382,9 @@ namespace Orthanc
 
   ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer)
   {
+    ModalityManufacturer result;
+    bool obsolete = false;
+    
     if (manufacturer == "Generic")
     {
       return ModalityManufacturer_Generic;
@@ -410,21 +413,33 @@ namespace Orthanc
     {
       return ModalityManufacturer_Vitrea;
     }
-    else if (manufacturer == "AgfaImpax" || manufacturer == "SyngoVia")
+    else if (manufacturer == "AgfaImpax" ||
+             manufacturer == "SyngoVia")
     {
-      LOG(WARNING) << "The " << manufacturer << " manufacturer is obsolete since Orthanc 1.2.1.  To guarantee compatibility with future Orthanc version, you should use \"GenericNoWildcardInDates\" instead in your configuration file.";
-      return ModalityManufacturer_GenericNoWildcardInDates;
+      result = ModalityManufacturer_GenericNoWildcardInDates;
+      obsolete = true;
     }
-    else if (manufacturer == "EFilm2" || manufacturer == "MedInria")
+    else if (manufacturer == "EFilm2" ||
+             manufacturer == "MedInria")
     {
-      LOG(WARNING) << "The " << manufacturer << " manufacturer is obsolete since Orthanc 1.2.1.  To guarantee compatibility with future Orthanc version, you should remove it from your configuration file.";
-
-      return ModalityManufacturer_Generic;
+      result = ModalityManufacturer_Generic;
+      obsolete = true;
     }
     else
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
+
+    if (obsolete)
+    {
+      LOG(WARNING) << "The \"" << manufacturer << "\" manufacturer is obsolete since "
+                   << "Orthanc 1.2.1. To guarantee compatibility with future Orthanc "
+                   << "releases, you should replace it by \""
+                   << EnumerationToString(result)
+                   << "\" in your configuration file.";
+    }
+
+    return result;
   }
 
 
