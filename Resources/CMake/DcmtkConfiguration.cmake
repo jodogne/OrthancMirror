@@ -29,7 +29,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     set(DCMTK_CMAKE_INCLUDE ${DCMTK_SOURCES_DIR}/)
     add_definitions(-DDCMTK_INSIDE_LOG4CPLUS=1)
   endif()
-
+  
   if (IS_DIRECTORY "${DCMTK_SOURCES_DIR}")
     set(FirstRun OFF)
   else()
@@ -41,6 +41,19 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   
   if (FirstRun AND
       USE_DCMTK_360)
+    # If using DCMTK 3.6.0, backport the "private.dic" file from DCMTK
+    # 3.6.2. This adds support for more private tags, and fixes some
+    # import problems with Philips MRI Achieva.
+    if (USE_DCMTK_362_PRIVATE_DIC)
+      message("Using the dictionary of private tags from DCMTK 3.6.2")
+      configure_file(
+        ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.2-private.dic
+        ${DCMTK_SOURCES_DIR}/dcmdata/data/private.dic
+        COPYONLY)
+    else()
+      message("Using the dictionary of private tags from DCMTK 3.6.0")
+    endif()
+    
     # Patches specific to DCMTK 3.6.0
     execute_process(
       COMMAND ${PATCH_EXECUTABLE} -p0 -N -i ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.0-dulparse-vulnerability.patch

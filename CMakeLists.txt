@@ -54,6 +54,7 @@ SET(USE_SYSTEM_LIBP11 OFF CACHE BOOL "Use the system version of libp11 (PKCS#11 
 # Advanced parameters
 SET(USE_PUGIXML ON CACHE BOOL "Use the Pugixml parser (turn off only for debug)")
 SET(USE_DCMTK_360 OFF CACHE BOOL "Use older DCMTK version 3.6.0 in static builds (instead of default 3.6.2)")
+SET(USE_DCMTK_362_PRIVATE_DIC ON CACHE BOOL "Use the dictionary of private tags from DCMTK 3.6.2 if using DCMTK 3.6.0")
 
 # Distribution-specific settings
 SET(USE_GTEST_DEBIAN_SOURCE_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
