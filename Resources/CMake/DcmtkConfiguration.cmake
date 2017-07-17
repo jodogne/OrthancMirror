@@ -106,8 +106,8 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     # This step must be after the generation of "osconfig.h"
     INSPECT_FUNDAMENTAL_ARITHMETIC_TYPES()
 
-    link_libraries(-lnetapi32)  # For NetWkstaUserGetInfo@12
-    link_libraries(-liphlpapi)  # For GetAdaptersInfo@8
+    link_libraries(netapi32)  # For NetWkstaUserGetInfo@12
+    link_libraries(iphlpapi)  # For GetAdaptersInfo@8
   endif()
 
   AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmdata/libsrc DCMTK_SOURCES)
