@@ -105,7 +105,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * but this string must be 256 bytes or less.
  * http://msdn.microsoft.com/en-us/library/windows/desktop/ms738527(v=vs.85).aspx
  **/
-#define HOST_NAME_MAX 256
+#  define HOST_NAME_MAX 256
+#  include <winsock.h>
 #endif 
 
 
