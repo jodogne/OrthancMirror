@@ -53,8 +53,7 @@ SET(USE_SYSTEM_LIBP11 OFF CACHE BOOL "Use the system version of libp11 (PKCS#11 
 
 # Advanced parameters
 SET(USE_PUGIXML ON CACHE BOOL "Use the Pugixml parser (turn off only for debug)")
-SET(USE_DCMTK_361 OFF CACHE BOOL "Use forthcoming DCMTK version 3.6.1 in static builds (instead of 3.6.0)")
-SET(USE_DCMTK_361_PRIVATE_DIC ON CACHE BOOL "Use the dictionary of private tags from DCMTK 3.6.1 in static builds (which is more up-to-date)")
+SET(USE_DCMTK_360 OFF CACHE BOOL "Use older DCMTK version 3.6.0 in static builds (instead of default 3.6.2)")
 
 # Distribution-specific settings
 SET(USE_GTEST_DEBIAN_SOURCE_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
@@ -268,7 +267,7 @@ set(ORTHANC_ALL_SOURCES
 
 if (CMAKE_COMPILER_IS_GNUCXX
     AND NOT CMAKE_CROSSCOMPILING 
-    AND NOT USE_DCMTK_361)
+    AND USE_DCMTK_360)
   # Add the "-pedantic" flag only on the Orthanc sources, and only if
   # using DCMTK 3.6.0
   set_source_files_properties(${ORTHANC_ALL_SOURCES}

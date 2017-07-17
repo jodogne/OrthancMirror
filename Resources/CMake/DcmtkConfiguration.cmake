@@ -3,21 +3,7 @@ if (NOT DEFINED ENABLE_DCMTK_NETWORKING)
 endif()
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
-  if (USE_DCMTK_361)
-    SET(DCMTK_VERSION_NUMBER 361)
-    SET(DCMTK_PACKAGE_VERSION "3.6.1")
-    SET(DCMTK_SOURCES_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.1_20170228)
-    SET(DCMTK_URL "http://www.orthanc-server.com/downloads/third-party/dcmtk-3.6.1_20170228.tar.gz")
-    SET(DCMTK_MD5 "65f3520fce5d084c3530ae7252e39f3e")
-    SET(DCMTK_PATCH_SPEED "${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.1-speed.patch")
-
-    macro(DCMTK_UNSET)
-    endmacro()
-
-    set(DCMTK_BINARY_DIR ${DCMTK_SOURCES_DIR}/)
-    set(DCMTK_CMAKE_INCLUDE ${DCMTK_SOURCES_DIR}/)
-    add_definitions(-DDCMTK_INSIDE_LOG4CPLUS=1)
-  else()
+  if (USE_DCMTK_360)
     SET(DCMTK_VERSION_NUMBER 360)
     SET(DCMTK_PACKAGE_VERSION "3.6.0")
     SET(DCMTK_SOURCES_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.0)
@@ -25,6 +11,23 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     SET(DCMTK_MD5 "219ad631b82031806147e4abbfba4fa4")
     SET(DCMTK_PATCH_SPEED "${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.0-speed.patch")
     SET(DCMTK_PATCH_MINGW64 "${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.0-mingw64.patch")
+  else()
+    SET(DCMTK_VERSION_NUMBER 362)
+    SET(DCMTK_PACKAGE_VERSION "3.6.2")
+    SET(DCMTK_SOURCES_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.2)
+    SET(DCMTK_URL "http://www.orthanc-server.com/downloads/third-party/dcmtk-3.6.2.tar.gz")
+    SET(DCMTK_MD5 "d219a4152772985191c9b89d75302d12")
+    SET(DCMTK_PATCH_SPEED "${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.2-speed.patch")
+
+    macro(DCMTK_UNSET)
+    endmacro()
+
+    macro(DCMTK_UNSET_CACHE)
+    endmacro()
+
+    set(DCMTK_BINARY_DIR ${DCMTK_SOURCES_DIR}/)
+    set(DCMTK_CMAKE_INCLUDE ${DCMTK_SOURCES_DIR}/)
+    add_definitions(-DDCMTK_INSIDE_LOG4CPLUS=1)
   endif()
 
   if (IS_DIRECTORY "${DCMTK_SOURCES_DIR}")
@@ -37,20 +40,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
 
   
   if (FirstRun AND
-      NOT USE_DCMTK_361)
-    if (USE_DCMTK_361_PRIVATE_DIC)
-      # If using DCMTK 3.6.0, backport the "private.dic" file from DCMTK
-      # 3.6.1 snapshot. This adds support for more private tags, and
-      # fixes some import problems with Philips MRI Achieva.
-      message("Using the dictionary of private tags from DCMTK 3.6.1")
-      configure_file(
-        ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.1-private.dic
-        ${DCMTK_SOURCES_DIR}/dcmdata/data/private.dic
-        COPYONLY)
-    else()
-      message("Using the dictionary of private tags from DCMTK 3.6.0")
-    endif()
-
+      USE_DCMTK_360)
     # Patches specific to DCMTK 3.6.0
     execute_process(
       COMMAND ${PATCH_EXECUTABLE} -p0 -N -i ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.0-dulparse-vulnerability.patch
@@ -91,7 +81,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     ${DCMTK_SOURCES_DIR}/CMake/osconfig.h.in
     ${DCMTK_SOURCES_DIR}/config/include/dcmtk/config/osconfig.h)
 
-  if (USE_DCMTK_361)
+  if (NOT USE_DCMTK_360)
     # This step must be after the generation of "osconfig.h"
     INSPECT_FUNDAMENTAL_ARITHMETIC_TYPES()
   endif()
@@ -212,7 +202,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/mkdeftag.cc
     )
 
-  if (NOT USE_DCMTK_361)
+  if (USE_DCMTK_360)
     # Removing this file is required with DCMTK 3.6.0
     list(REMOVE_ITEM DCMTK_SOURCES 
       ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/dcdictbi.cc
