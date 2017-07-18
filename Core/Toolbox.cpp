@@ -1269,7 +1269,7 @@ namespace Orthanc
       }
       else
       {
-        LOG(WARNING) << "Using locale: \"" << locale << "\"";
+        LOG(INFO) << "Using locale: \"" << locale << "\" for case-insensitive comparison of strings";
         globalLocale_.reset(new std::locale(locale));
       }
     }
