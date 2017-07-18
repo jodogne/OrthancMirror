@@ -328,8 +328,8 @@ namespace Orthanc
       case ModalityManufacturer_GenericNoWildcardInDates:
         return "GenericNoWildcardInDates";
 
-      case ModalityManufacturer_GenericNoWildcards:
-        return "GenericNoWildcards";
+      case ModalityManufacturer_GenericNoUniversalWildcard:
+        return "GenericNoUniversalWildcard";
 
       case ModalityManufacturer_StoreScp:
         return "StoreScp";
@@ -393,9 +393,9 @@ namespace Orthanc
     {
       return ModalityManufacturer_GenericNoWildcardInDates;
     }
-    else if (manufacturer == "GenericNoWildcards")
+    else if (manufacturer == "GenericNoUniversalWildcard")
     {
-      return ModalityManufacturer_GenericNoWildcards;
+      return ModalityManufacturer_GenericNoUniversalWildcard;
     }
     else if (manufacturer == "ClearCanvas")
     {

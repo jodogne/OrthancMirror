@@ -496,7 +496,7 @@ namespace Orthanc
     switch (manufacturer)
     {
       case ModalityManufacturer_GenericNoWildcardInDates:
-      case ModalityManufacturer_GenericNoWildcards:
+      case ModalityManufacturer_GenericNoUniversalWildcard:
       {
         std::auto_ptr<DicomMap> fix(fields.Clone());
 
@@ -508,7 +508,7 @@ namespace Orthanc
           // Replace a "*" wildcard query by an empty query ("") for
           // "date" or "all" value representations depending on the
           // type of manufacturer.
-          if (manufacturer == ModalityManufacturer_GenericNoWildcards ||
+          if (manufacturer == ModalityManufacturer_GenericNoUniversalWildcard ||
               (manufacturer == ModalityManufacturer_GenericNoWildcardInDates &&
                FromDcmtkBridge::LookupValueRepresentation(*it) == ValueRepresentation_Date))
           {
