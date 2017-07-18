@@ -806,13 +806,12 @@ namespace Orthanc
 
         // Check whether this request is allowed by the security filter
         if (supported && 
-            request != DicomRequestType_Echo &&  // Always allow incoming ECHO requests
             filter_ != NULL &&
             !filter_->IsAllowedRequest(remoteIp_, remoteAet_, calledAet_, request))
         {
-          LOG(ERROR) << EnumerationToString(request) 
-                     << " requests are disallowed for the AET \"" 
-                     << remoteAet_ << "\"";
+          LOG(WARNING) << "Rejected " << EnumerationToString(request)
+                       << " request from remote DICOM modality with AET \""
+                       << remoteAet_ << "\" and hostname \"" << remoteIp_ << "\"";
           cond = DIMSE_ILLEGALASSOCIATION;
           supported = false;
           finished = true;
@@ -906,7 +905,7 @@ namespace Orthanc
         else
         {
           OFString temp_str;
-          LOG(ERROR) << "DIMSE failure (aborting association): " << cond.text();
+          LOG(INFO) << "DIMSE failure (aborting association): " << cond.text();
           /* some kind of error so abort the association */
           ASC_abortAssociation(assoc_);
         }

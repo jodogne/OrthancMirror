@@ -106,7 +106,8 @@ namespace Orthanc
     static void GetGlobalListOfStringsParameter(std::list<std::string>& target,
                                                 const std::string& key);
 
-    static bool IsKnownAETitle(const std::string& aet);
+    static bool IsKnownAETitle(const std::string& aet,
+                               const std::string& ip);
 
     static bool IsSameAETitle(const std::string& aet1,
                               const std::string& aet2);

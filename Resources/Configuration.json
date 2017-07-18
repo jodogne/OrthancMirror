@@ -82,7 +82,8 @@
   // The DICOM Application Entity Title
   "DicomAet" : "ORTHANC",
 
-  // Check whether the called AET corresponds during a DICOM request
+  // Check whether the called AET corresponds to the AET of Orthanc
+  // during an incoming DICOM SCU request
   "DicomCheckCalledAet" : false,
 
   // The DICOM port
@@ -156,17 +157,30 @@
     // "sample" : [ "STORESCP", "127.0.0.1", 2000 ]
 
     /**
-     * A fourth parameter is available to enable patches for a
-     * specific PACS manufacturer. The allowed values are currently
-     * "Generic" (default value),
-     * "GenericNoWildcardInDates" (to replace '*' by '' in date fields in outgoing C-Find)
-     * "GenericNoWildcards" (to replace '*' by '' in all fields in outgoing C-Find)
-     * "StoreScp" (storescp tool from DCMTK),
-     * "ClearCanvas", "Dcm4Chee" and "Vitrea".
+     * A fourth parameter is available to enable patches for
+     * specific PACS manufacturers. The allowed values are currently:
+     * - "Generic" (default value),
+     * - "GenericNoWildcardInDates" (to replace "*" by "" in date fields 
+     *   in outgoing C-Find requests originating from Orthanc)
+     * - "GenericNoUniversalWildcard" (to replace "*" by "" in all fields
+     *   in outgoing C-Find SCU requests originating from Orthanc)
+     * - "StoreScp" (storescp tool from DCMTK),
+     * - "ClearCanvas", "Dcm4Chee" and "Vitrea".
      * This parameter is case-sensitive.
      **/
     // "clearcanvas" : [ "CLEARCANVAS", "192.168.1.1", 104, "ClearCanvas" ]
   },
+
+  // Whether the Orthanc SCP allows incoming C-Store requests, even
+  // from SCU modalities it does not know about (i.e. that are not
+  // listed in the "DicomModalities" option above)
+  "DicomAlwaysAllowStore" : true,
+
+  // Whether Orthanc checks the IP/hostname address of the remote
+  // modality initiating a DICOM connection (as listed in the
+  // "DicomModalities" option above). If this option is set to
+  // "false", Orthanc only checks the AET of the remote modality.
+  "DicomCheckModalityHost" : false,
 
   // The timeout (in seconds) after which the DICOM associations are
   // considered as closed by the Orthanc SCU (client) if the remote

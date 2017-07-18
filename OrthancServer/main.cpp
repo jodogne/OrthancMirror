@@ -158,27 +158,33 @@ public:
   {
   }
 
-  virtual bool IsAllowedConnection(const std::string& /*remoteIp*/,
-                                   const std::string& /*remoteAet*/,
-                                   const std::string& /*calledAet*/)
+  virtual bool IsAllowedConnection(const std::string& remoteIp,
+                                   const std::string& remoteAet,
+                                   const std::string& calledAet)
   {
+    LOG(INFO) << "Incoming connection from AET " << remoteAet
+              << " on IP " << remoteIp << ", calling AET " << calledAet;
+    
     return true;
   }
 
-  virtual bool IsAllowedRequest(const std::string& /*remoteIp*/,
+  virtual bool IsAllowedRequest(const std::string& remoteIp,
                                 const std::string& remoteAet,
-                                const std::string& /*calledAet*/,
+                                const std::string& calledAet,
                                 DicomRequestType type)
   {
-    if (type == DicomRequestType_Store)
+    LOG(INFO) << "Incoming " << Orthanc::EnumerationToString(type) << " request from AET "
+              << remoteAet << " on IP " << remoteIp << ", calling AET " << calledAet;
+    
+    if (type == DicomRequestType_Store &&
+        Configuration::GetGlobalBoolParameter("DicomAlwaysAllowStore", true))
     {
       // Incoming store requests are always accepted, even from unknown AET
       return true;
     }
 
-    if (!Configuration::IsKnownAETitle(remoteAet))
+    if (!Configuration::IsKnownAETitle(remoteAet, remoteIp))
     {
-      LOG(ERROR) << "Unknown remote DICOM modality AET: \"" << remoteAet << "\"";
       return false;
     }
     else
