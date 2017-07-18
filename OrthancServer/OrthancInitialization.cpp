@@ -855,10 +855,30 @@ namespace Orthanc
   }
 
 
-  bool Configuration::IsKnownAETitle(const std::string& aet)
+  bool Configuration::IsKnownAETitle(const std::string& aet,
+                                     const std::string& ip)
   {
     RemoteModalityParameters modality;
-    return LookupDicomModalityUsingAETitle(modality, aet);
+    
+    if (!LookupDicomModalityUsingAETitle(modality, aet))
+    {
+      LOG(WARNING) << "Modality \"" << aet
+                   << "\" is not listed in the \"DicomModalities\" configuration option";
+      return false;
+    }
+    else if (!Configuration::GetGlobalBoolParameter("DicomCheckModalityHost", false) ||
+             ip == modality.GetHost())
+    {
+      return true;
+    }
+    else
+    {
+      LOG(WARNING) << "Forbidding access from AET \"" << aet
+                   << "\" given its hostname (" << ip << ") does not match "
+                   << "the \"DicomModalities\" configuration option ("
+                   << modality.GetHost() << " was expected)";
+      return false;
+    }
   }
 
 

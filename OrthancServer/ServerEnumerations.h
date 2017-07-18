@@ -60,7 +60,7 @@ namespace Orthanc
   {
     ModalityManufacturer_Generic,
     ModalityManufacturer_GenericNoWildcardInDates,
-    ModalityManufacturer_GenericNoWildcards,
+    ModalityManufacturer_GenericNoUniversalWildcard,
     ModalityManufacturer_StoreScp,
     ModalityManufacturer_ClearCanvas,
     ModalityManufacturer_Dcm4Chee,
