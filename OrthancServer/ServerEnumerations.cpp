@@ -433,7 +433,7 @@ namespace Orthanc
     if (obsolete)
     {
       LOG(WARNING) << "The \"" << manufacturer << "\" manufacturer is obsolete since "
-                   << "Orthanc 1.2.1. To guarantee compatibility with future Orthanc "
+                   << "Orthanc 1.3.0. To guarantee compatibility with future Orthanc "
                    << "releases, you should replace it by \""
                    << EnumerationToString(result)
                    << "\" in your configuration file.";

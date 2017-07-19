@@ -3139,7 +3139,7 @@ namespace Orthanc
       getValues[i] = getArguments[i].second.c_str();
     }
 
-    // Improved callback with support for GET arguments, since Orthanc 1.2.1
+    // Improved callback with support for GET arguments, since Orthanc 1.3.0
     for (PImpl::IncomingHttpRequestFilters2::const_iterator
            filter = pimpl_->incomingHttpRequestFilters2_.begin();
          filter != pimpl_->incomingHttpRequestFilters2_.end(); ++filter)

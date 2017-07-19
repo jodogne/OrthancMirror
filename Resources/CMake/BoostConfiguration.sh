@@ -16,7 +16,7 @@ set -u
 ##   - Orthanc between 0.9.2 and 0.9.4: Boost 1.58.0
 ##   - Orthanc between 0.9.5 and 1.0.0: Boost 1.59.0
 ##   - Orthanc between 1.1.0 and 1.2.0: Boost 1.60.0
-##   - Orthanc >= 1.2.1: Boost 1.64.0
+##   - Orthanc >= 1.3.0: Boost 1.64.0
 
 rm -rf /tmp/boost_1_64_0
 rm -rf /tmp/bcp/boost_1_64_0
@@ -31,7 +31,7 @@ bcp --boost=/tmp/boost_1_64_0 thread system locale date_time filesystem math/spe
 cd /tmp/bcp
 
 echo "Compressing the subset..."
-tar cfz boost_1_64_0_bcpdigest-1.2.1.tar.gz boost_1_64_0
-ls -l boost_1_64_0_bcpdigest-1.2.1.tar.gz
-md5sum boost_1_64_0_bcpdigest-1.2.1.tar.gz
-readlink -f boost_1_64_0_bcpdigest-1.2.1.tar.gz
+tar cfz boost_1_64_0_bcpdigest-1.3.0.tar.gz boost_1_64_0
+ls -l boost_1_64_0_bcpdigest-1.3.0.tar.gz
+md5sum boost_1_64_0_bcpdigest-1.3.0.tar.gz
+readlink -f boost_1_64_0_bcpdigest-1.3.0.tar.gz
