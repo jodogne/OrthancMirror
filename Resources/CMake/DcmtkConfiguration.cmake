@@ -17,7 +17,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     SET(DCMTK_SOURCES_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.2)
     SET(DCMTK_URL "http://www.orthanc-server.com/downloads/third-party/dcmtk-3.6.2.tar.gz")
     SET(DCMTK_MD5 "d219a4152772985191c9b89d75302d12")
-    SET(DCMTK_PATCH_SPEED "${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.2-speed.patch")
 
     macro(DCMTK_UNSET)
     endmacro()
@@ -39,33 +38,55 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   DownloadPackage(${DCMTK_MD5} ${DCMTK_URL} "${DCMTK_SOURCES_DIR}")
 
   
-  if (FirstRun AND
-      USE_DCMTK_360)
-    # If using DCMTK 3.6.0, backport the "private.dic" file from DCMTK
-    # 3.6.2. This adds support for more private tags, and fixes some
-    # import problems with Philips MRI Achieva.
-    if (USE_DCMTK_362_PRIVATE_DIC)
-      message("Using the dictionary of private tags from DCMTK 3.6.2")
-      configure_file(
-        ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.2-private.dic
-        ${DCMTK_SOURCES_DIR}/dcmdata/data/private.dic
-        COPYONLY)
-    else()
-      message("Using the dictionary of private tags from DCMTK 3.6.0")
-    endif()
-    
-    # Patches specific to DCMTK 3.6.0
-    execute_process(
-      COMMAND ${PATCH_EXECUTABLE} -p0 -N -i ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.0-dulparse-vulnerability.patch
-      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-      RESULT_VARIABLE Failure
-      )
+  if (FirstRun)
+    if (USE_DCMTK_360)
+      # If using DCMTK 3.6.0, backport the "private.dic" file from DCMTK
+      # 3.6.2. This adds support for more private tags, and fixes some
+      # import problems with Philips MRI Achieva.
+      if (USE_DCMTK_362_PRIVATE_DIC)
+        message("Using the dictionary of private tags from DCMTK 3.6.2")
+        configure_file(
+          ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.2-private.dic
+          ${DCMTK_SOURCES_DIR}/dcmdata/data/private.dic
+          COPYONLY)
+      else()
+        message("Using the dictionary of private tags from DCMTK 3.6.0")
+      endif()
+      
+      # Patches specific to DCMTK 3.6.0
+      message("Applying patch to solve vulnerability in DCMTK 3.6.0")
+      execute_process(
+        COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
+        ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.0-dulparse-vulnerability.patch
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        RESULT_VARIABLE Failure
+        )
 
-    if (Failure)
-      message(FATAL_ERROR "Error while patching a file")
+      if (Failure)
+        message(FATAL_ERROR "Error while patching a file")
+      endif()
+
+      # This patch is not needed anymore thanks to the following commit
+      # (information sent by Jorg Riesmeier on Twitter on 2017-07-19):
+      # http://git.dcmtk.org/?p=dcmtk.git;a=commit;h=8df1f5e517b8629ae09088d0935c2a8dd333c76f
+      message("Applying patch for speed in DCMTK 3.6.0")
+      execute_process(
+        COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
+        ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.0-speed.patch
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        RESULT_VARIABLE Failure
+        )
+
+      if (Failure)
+        message(FATAL_ERROR "Error while patching a file")
+      endif()
+
+    else (FirstRun())
+      message("No need to apply a patch for speed in DCMTK")
     endif()
+  else()
+    message("The patches for DCMTK have already been applied")
   endif()
-
 
   IF (CMAKE_CROSSCOMPILING)
     if (CMAKE_COMPILER_IS_GNUCXX AND
@@ -187,16 +208,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       ${DCMTK_SOURCES_DIR}/oflog/libsrc/windebap.cc
       ${DCMTK_SOURCES_DIR}/oflog/libsrc/winsock.cc
       )
-    
-    execute_process(
-      COMMAND ${PATCH_EXECUTABLE} -p0 -N -i ${DCMTK_PATCH_SPEED}
-      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-      RESULT_VARIABLE Failure
-      )
-
-    if (Failure AND FirstRun)
-      message(FATAL_ERROR "Error while patching a file")
-    endif()
 
   elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     list(REMOVE_ITEM DCMTK_SOURCES 
@@ -204,7 +215,9 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       ${DCMTK_SOURCES_DIR}/oflog/libsrc/clfsap.cc
       )
 
-    if (CMAKE_COMPILER_IS_GNUCXX AND DCMTK_PATCH_MINGW64)
+    if (CMAKE_COMPILER_IS_GNUCXX AND
+        DCMTK_PATCH_MINGW64 AND
+        USE_DCMTK_360)
       # This is a patch for MinGW64
       execute_process(
         COMMAND ${PATCH_EXECUTABLE} -p0 -N -i ${DCMTK_PATCH_MINGW64}
@@ -215,18 +228,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       if (Failure AND FirstRun)
         message(FATAL_ERROR "Error while patching a file")
       endif()
-    endif()
-
-    # This patch improves speed, even for Windows
-    execute_process(
-      COMMAND ${PATCH_EXECUTABLE} -p0 -N 
-      INPUT_FILE ${DCMTK_PATCH_SPEED}
-      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-      RESULT_VARIABLE Failure
-      )
-
-    if (Failure AND FirstRun)
-      message(FATAL_ERROR "Error while patching a file")
     endif()
   endif()
 
