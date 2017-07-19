@@ -234,7 +234,7 @@ namespace Orthanc
 
     bool force = GetBooleanValue("Force", request, false);
       
-    // As of Orthanc 1.2.1, the default anonymization is done
+    // As of Orthanc 1.3.0, the default anonymization is done
     // according to PS 3.15-2017c Table E.1-1 (basic profile)
     DicomVersion version = DicomVersion_2017c;
     if (request.isMember("DicomVersion"))
