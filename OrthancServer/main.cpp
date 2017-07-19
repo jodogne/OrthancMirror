@@ -152,10 +152,13 @@ class OrthancApplicationEntityFilter : public IApplicationEntityFilter
 {
 private:
   ServerContext& context_;
+  bool           alwaysAllowStore_;
 
 public:
-  OrthancApplicationEntityFilter(ServerContext& context) : context_(context)
+  OrthancApplicationEntityFilter(ServerContext& context) :
+    context_(context)
   {
+    alwaysAllowStore_ = Configuration::GetGlobalBoolParameter("DicomAlwaysAllowStore", true);
   }
 
   virtual bool IsAllowedConnection(const std::string& remoteIp,
@@ -164,8 +167,9 @@ public:
   {
     LOG(INFO) << "Incoming connection from AET " << remoteAet
               << " on IP " << remoteIp << ", calling AET " << calledAet;
-    
-    return true;
+
+    return (alwaysAllowStore_ ||
+            Configuration::IsKnownAETitle(remoteAet, remoteIp));
   }
 
   virtual bool IsAllowedRequest(const std::string& remoteIp,
@@ -177,13 +181,12 @@ public:
               << remoteAet << " on IP " << remoteIp << ", calling AET " << calledAet;
     
     if (type == DicomRequestType_Store &&
-        Configuration::GetGlobalBoolParameter("DicomAlwaysAllowStore", true))
+        alwaysAllowStore_)
     {
       // Incoming store requests are always accepted, even from unknown AET
       return true;
     }
-
-    if (!Configuration::IsKnownAETitle(remoteAet, remoteIp))
+    else if (!Configuration::IsKnownAETitle(remoteAet, remoteIp))
     {
       return false;
     }
