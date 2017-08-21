@@ -658,7 +658,7 @@ TEST(Toolbox, Enumerations)
 
 
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__OpenBSD__)
 #include <endian.h>
 #elif defined(__FreeBSD__)
 #include <machine/endian.h>
@@ -700,7 +700,7 @@ TEST(Toolbox, Endianness)
    * FreeBSD.
    **/
   
-#elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__) || defined(__OpenBSD__)
 #  if _BYTE_ORDER == _BIG_ENDIAN
    ASSERT_EQ(Endianness_Big, Toolbox::DetectEndianness());
 #  else // _LITTLE_ENDIAN

@@ -65,8 +65,8 @@ TEST(SharedLibrary, Basic)
   ASSERT_TRUE(l.HasFunction("dlclose"));
   ASSERT_FALSE(l.HasFunction("world"));
 
-#elif defined(__FreeBSD__)
-  // dlopen() in FreeBSD is supplied by libc, libc.so is
+#elif defined(__FreeBSD__) || defined(__OpenBSD__)
+  // dlopen() in FreeBSD/OpenBSD is supplied by libc, libc.so is
   // a ldscript, so we can't actually use it. Use thread
   // library instead - if it works - dlopen() is good.
   SharedLibrary l("libpthread.so");

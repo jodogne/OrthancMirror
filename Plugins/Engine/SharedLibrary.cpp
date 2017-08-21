@@ -46,7 +46,7 @@
 
 #if defined(_WIN32)
 #include <windows.h>
-#elif defined(__linux__) || (defined(__APPLE__) && defined(__MACH__)) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
+#elif defined(__linux__) || (defined(__APPLE__) && defined(__MACH__)) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__) || defined(__OpenBSD__)
 #include <dlfcn.h>
 #else
 #error Support your platform here
@@ -66,7 +66,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_SharedLibrary);
     }
 
-#elif defined(__linux__) || (defined(__APPLE__) && defined(__MACH__)) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
+#elif defined(__linux__) || (defined(__APPLE__) && defined(__MACH__)) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__) || defined(__OpenBSD__)
     handle_ = ::dlopen(path_.c_str(), RTLD_NOW);
     if (handle_ == NULL) 
     {
@@ -92,7 +92,7 @@ namespace Orthanc
     {
 #if defined(_WIN32)
       ::FreeLibrary((HMODULE)handle_);
-#elif defined(__linux__) || (defined(__APPLE__) && defined(__MACH__)) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
+#elif defined(__linux__) || (defined(__APPLE__) && defined(__MACH__)) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__) || defined(__OpenBSD__)
       ::dlclose(handle_);
 #else
 #error Support your platform here
@@ -110,7 +110,7 @@ namespace Orthanc
 
 #if defined(_WIN32)
     return ::GetProcAddress((HMODULE)handle_, name.c_str());
-#elif defined(__linux__) || (defined(__APPLE__) && defined(__MACH__)) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
+#elif defined(__linux__) || (defined(__APPLE__) && defined(__MACH__)) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__) || defined(__OpenBSD__)
     return ::dlsym(handle_, name.c_str());
 #else
 #error Support your platform here
