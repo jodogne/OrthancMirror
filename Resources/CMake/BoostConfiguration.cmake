@@ -65,7 +65,6 @@ if (BOOST_STATIC)
       ${BOOST_SOURCES_DIR}/libs/thread/src/pthread/thread.cpp
       )
     add_definitions(
-      -DBOOST_LOCALE_WITH_ICONV=1
       -DBOOST_LOCALE_NO_WINAPI_BACKEND=1
       -DBOOST_LOCALE_NO_STD_BACKEND=1
       )
@@ -77,8 +76,6 @@ if (BOOST_STATIC)
       add_definitions(-DBOOST_HAS_SCHED_YIELD=1)
     endif()
 
-    link_libraries(iconv)
-
   elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     list(APPEND BOOST_SOURCES
       ${BOOST_SOURCES_DIR}/libs/thread/src/win32/tss_dll.cpp
@@ -86,17 +83,6 @@ if (BOOST_STATIC)
       ${BOOST_SOURCES_DIR}/libs/thread/src/win32/tss_pe.cpp
       ${BOOST_FILESYSTEM_SOURCES_DIR}/windows_file_codecvt.cpp
       )
-
-    # Starting with release 0.8.2, Orthanc statically links against
-    # libiconv, even on Windows. Indeed, the "WCONV" library of
-    # Windows XP seems not to support properly several codepages
-    # (notably "Latin3", "Hebrew", and "Arabic").
-
-    if (USE_BOOST_ICONV)
-      include(${ORTHANC_ROOT}/Resources/CMake/LibIconvConfiguration.cmake)
-    else()
-      add_definitions(-DBOOST_LOCALE_WITH_WCONV=1)
-    endif()
 
     add_definitions(
       -DBOOST_LOCALE_NO_POSIX_BACKEND=1
