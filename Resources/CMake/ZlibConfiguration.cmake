@@ -29,6 +29,15 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_ZLIB)
 
   source_group(ThirdParty\\zlib REGULAR_EXPRESSION ${ZLIB_SOURCES_DIR}/.*)
 
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD")
+    # "ioapi.c" from zlib (minizip) expects the "IOAPI_NO_64" macro to be set to "true"
+    # https://ohse.de/uwe/articles/lfs.html
+    add_definitions(
+      -DIOAPI_NO_64=1
+      )
+  endif()
+
 else()
   include(FindZLIB)
   include_directories(${ZLIB_INCLUDE_DIRS})

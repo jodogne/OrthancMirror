@@ -38,7 +38,7 @@
 
 #if defined(_WIN32)
 #include <windows.h>
-#elif defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__APPLE__) || defined(__FreeBSD__)
+#elif defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__)
 #include <pthread.h>
 #else
 #error Support your platform here
@@ -76,7 +76,7 @@ namespace Orthanc
   }
 
 
-#elif defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__APPLE__) || defined(__FreeBSD__)
+#elif defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__)
 
   struct Mutex::PImpl
   {
