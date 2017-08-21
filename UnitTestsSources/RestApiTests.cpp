@@ -66,8 +66,15 @@ TEST(HttpClient, Basic)
   ASSERT_FALSE(c.IsVerbose());
 
 #if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1
+  // It is not guaranteed that the URL on server
+  // "www.montefiore.ulg.ac.be" will work forever. We switched to it,
+  // as the "www.orthanc-server.com" now mandatory uses HTTPS.
+  const std::string BASE = "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/";
+  //const std::string BASE = "http://www.orthanc-server.com/downloads/third-party/";
+
   Json::Value v;
-  c.SetUrl("http://www.orthanc-server.com/downloads/third-party/Product.json");
+  c.SetUrl(BASE + "Product.json");
+
   c.Apply(v);
   ASSERT_TRUE(v.type() == Json::objectValue);
   ASSERT_TRUE(v.isMember("Description"));
