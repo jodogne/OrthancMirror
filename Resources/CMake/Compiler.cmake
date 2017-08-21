@@ -7,7 +7,8 @@ if (CMAKE_CROSSCOMPILING)
 endif()
 
 if (CMAKE_COMPILER_IS_GNUCXX)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-long-long -Wno-implicit-function-declaration")  
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-long-long")
+
   # --std=c99 makes libcurl not to compile
   # -pedantic gives a lot of warnings on OpenSSL 
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long -Wno-variadic-macros")
