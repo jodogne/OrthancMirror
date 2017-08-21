@@ -44,6 +44,7 @@
 #include <sqlite3.h>
 #include <lua.h>
 #include <jpeglib.h>
+#include <iconv.h>
 
 #if ORTHANC_ENABLE_SSL == 1
 #include <openssl/opensslv.h>
@@ -141,6 +142,13 @@ TEST(Versions, CurlSslStatic)
 TEST(Version, LuaStatic)
 {
   ASSERT_STREQ("Lua 5.1.5", LUA_RELEASE);
+}
+
+TEST(Version, LibIconvStatic)
+{
+  static const int major = 1;
+  static const int minor = 15;  
+  ASSERT_EQ((major << 8) + minor, _LIBICONV_VERSION);
 }
 
 
