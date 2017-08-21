@@ -55,6 +55,7 @@ if (BOOST_STATIC)
       ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "PNaCl" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "NaCl32" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "NaCl64")
@@ -75,6 +76,8 @@ if (BOOST_STATIC)
         ${CMAKE_SYSTEM_NAME} STREQUAL "NaCl64")
       add_definitions(-DBOOST_HAS_SCHED_YIELD=1)
     endif()
+
+    link_libraries(iconv)
 
   elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     list(APPEND BOOST_SOURCES
@@ -110,7 +113,8 @@ if (BOOST_STATIC)
     message(FATAL_ERROR "Support your platform here")
   endif()
 
-  if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD")
     list(APPEND BOOST_SOURCES
       ${BOOST_SOURCES_DIR}/libs/filesystem/src/utf8_codecvt_facet.cpp
       )
@@ -155,6 +159,7 @@ if (BOOST_STATIC)
         ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
         ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
         ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD" OR
+        ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD" OR
         ${CMAKE_SYSTEM_NAME} STREQUAL "PNaCl" OR
         ${CMAKE_SYSTEM_NAME} STREQUAL "NaCl32" OR
         ${CMAKE_SYSTEM_NAME} STREQUAL "NaCl64")

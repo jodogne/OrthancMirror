@@ -67,7 +67,7 @@
 
 extern "C"
 {
-#ifdef WIN32
+#if defined(_WIN32)
 #  include <rpc.h>
 #else
 #  include <uuid/uuid.h>
@@ -157,7 +157,7 @@ namespace Orthanc
   {
 #if defined(_WIN32)
     ::Sleep(static_cast<DWORD>(microSeconds / static_cast<uint64_t>(1000)));
-#elif defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__) || defined(__native_client__)
+#elif defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__native_client__)
     usleep(microSeconds);
 #else
 #error Support your platform here
@@ -368,6 +368,13 @@ namespace Orthanc
     _NSGetExecutablePath( pathbuf, &bufsize);
 
     return std::string(pathbuf);
+  }
+
+#elif defined(__OpenBSD__)
+  static std::string GetPathToExecutableInternal()
+  {
+    // TODO
+    throw OrthancException(ErrorCode_NotImplemented);
   }
 
 #else
