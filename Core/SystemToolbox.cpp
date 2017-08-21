@@ -62,6 +62,11 @@
 #endif
 
 
+#if defined(__OpenBSD__)
+#  include <sys/sysctl.h>  // For "sysctl", "CTL_KERN" and "KERN_PROC_ARGS"
+#endif
+
+
 // Inclusions for UUID
 // http://stackoverflow.com/a/1626302
 
@@ -349,6 +354,8 @@ namespace Orthanc
 #elif defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
   static std::string GetPathToExecutableInternal()
   {
+    // NOTE: For FreeBSD, using KERN_PROC_PATHNAME might be a better alternative
+
     std::vector<char> buffer(PATH_MAX + 1);
     ssize_t bytes = readlink("/proc/self/exe", &buffer[0], buffer.size() - 1);
     if (bytes == 0)
@@ -373,8 +380,32 @@ namespace Orthanc
 #elif defined(__OpenBSD__)
   static std::string GetPathToExecutableInternal()
   {
-    // TODO
-    throw OrthancException(ErrorCode_NotImplemented);
+    // This is an adapted version of the patch proposed in issue #64
+    // without an explicit call to "malloc()" to prevent memory leak
+    // https://bitbucket.org/sjodogne/orthanc/issues/64/add-openbsd-support
+    // https://stackoverflow.com/q/31494901/881731
+
+    const int mib[4] = { CTL_KERN, KERN_PROC_ARGS, getpid(), KERN_PROC_ARGV };
+
+    size_t len;
+    if (sysctl(mib, 4, NULL, &len, NULL, 0) == -1) 
+    {
+      throw OrthancException(ErrorCode_PathToExecutable);
+    }
+
+    std::string tmp;
+    tmp.resize(len);
+
+    char** buffer = reinterpret_cast<char**>(&tmp[0]);
+
+    if (sysctl(mib, 4, buffer, &len, NULL, 0) == -1) 
+    {
+      throw OrthancException(ErrorCode_PathToExecutable);
+    }
+    else
+    {
+      return std::string(buffer[0]);
+    }
   }
 
 #else
