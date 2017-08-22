@@ -40,7 +40,7 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/locale.hpp>
+#include <boost/regex.hpp> 
 #include <boost/uuid/sha1.hpp>
  
 #include <string>
@@ -49,13 +49,6 @@
 #include <algorithm>
 #include <ctype.h>
 
-#if BOOST_HAS_REGEX == 1
-#  include <boost/regex.hpp> 
-#endif
-
-#if BOOST_HAS_LOCALE != 1
-#  error Since version 0.7.6, Orthanc entirely relies on boost::locale
-#endif
 
 #if ORTHANC_ENABLE_MD5 == 1
 #  include "../Resources/ThirdParty/md5/md5.h"
@@ -63,6 +56,10 @@
 
 #if ORTHANC_ENABLE_BASE64 == 1
 #  include "../Resources/ThirdParty/base64/base64.h"
+#endif
+
+#if ORTHANC_ENABLE_LOCALE == 1
+#  include <boost/locale.hpp>
 #endif
 
 
@@ -369,7 +366,6 @@ namespace Orthanc
   }
 
 
-#  if BOOST_HAS_REGEX == 1
   bool Toolbox::DecodeDataUriScheme(std::string& mime,
                                     std::string& content,
                                     const std::string& source)
@@ -389,7 +385,6 @@ namespace Orthanc
       return false;
     }
   }
-#  endif
 
 
   void Toolbox::EncodeDataUriScheme(std::string& result,
@@ -470,6 +465,7 @@ namespace Orthanc
   }
 
 
+#if ORTHANC_ENABLE_LOCALE == 1
   std::string Toolbox::ConvertToUtf8(const std::string& source,
                                      Encoding sourceEncoding)
   {
@@ -496,8 +492,10 @@ namespace Orthanc
       return ConvertToAscii(source);
     }
   }
+#endif
+  
 
-
+#if ORTHANC_ENABLE_LOCALE == 1
   std::string Toolbox::ConvertFromUtf8(const std::string& source,
                                        Encoding targetEncoding)
   {
@@ -524,6 +522,7 @@ namespace Orthanc
       return ConvertToAscii(source);
     }
   }
+#endif
 
 
   bool Toolbox::IsAsciiString(const void* data,
@@ -779,7 +778,6 @@ namespace Orthanc
   }
 
 
-#if BOOST_HAS_REGEX == 1
   std::string Toolbox::WildcardToRegularExpression(const std::string& source)
   {
     // TODO - Speed up this with a regular expression
@@ -807,8 +805,6 @@ namespace Orthanc
 
     return result;
   }
-#endif
-
 
 
   void Toolbox::TokenizeString(std::vector<std::string>& result,
@@ -1254,6 +1250,7 @@ namespace Orthanc
   }
 
 
+#if ORTHANC_ENABLE_LOCALE == 1
   static std::auto_ptr<std::locale>  globalLocale_;
 
   static bool SetGlobalLocale(const char* locale)
@@ -1329,6 +1326,7 @@ namespace Orthanc
   {
     globalLocale_.reset();
   }
+#endif
 
   
   std::string Toolbox::ToUpperCaseWithAccents(const std::string& source)

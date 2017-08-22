@@ -1,23 +1,11 @@
-if (NOT USE_BOOST_ICONV)
-  message("Not using libiconv")
+if (NOT ENABLE_LOCALE)
+  message("Support for locales is disabled")
 
-  if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    # Starting with release 0.8.2, Orthanc statically links against
-    # libiconv, even on Windows. Indeed, the "WCONV" library of
-    # Windows XP seems not to support properly several codepages
-    # (notably "Latin3", "Hebrew", and "Arabic"). The flag
-    # "USE_BOOST_ICONV" allows to force the use of "WCONV".
-    add_definitions(-DBOOST_LOCALE_WITH_WCONV=1)
-  else()
-    message(FATAL_ERROR "Support your platform here")
-  endif()
+elseif (NOT USE_BOOST_ICONV)
+  message("Not using libiconv")
 
 else()
   message("Using libiconv")
-
-  add_definitions(
-    -DBOOST_LOCALE_WITH_ICONV=1
-    )
 
   if (STATIC_BUILD OR NOT USE_SYSTEM_LIBICONV)
     set(LIBICONV_SOURCES_DIR ${CMAKE_BINARY_DIR}/libiconv-1.15)
@@ -28,8 +16,8 @@ else()
 
     # Disable the support of libiconv that is shipped by default with
     # the C standard library on Linux. Setting this macro redirects
-    # calls from "iconv*()" to "libiconv*()" in the source code of
-    # "libiconv-1.15".
+    # calls from "iconv*()" to "libiconv*()" by defining macros in the
+    # C headers of "libiconv-1.15".
     add_definitions(-DLIBICONV_PLUG=1)
 
     # https://groups.google.com/d/msg/android-ndk/AS1nkxnk6m4/EQm09hD1tigJ

@@ -161,12 +161,7 @@ namespace Orthanc
 #include <fstream>
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
-
-#if BOOST_HAS_DATE_TIME == 1
-#  include <boost/date_time/posix_time/posix_time.hpp>
-#else
-#  error Boost::date_time is required
-#endif
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 
 namespace

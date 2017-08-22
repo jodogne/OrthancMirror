@@ -7,8 +7,12 @@ else()
   #set(Boost_DEBUG 1)
   #set(Boost_USE_STATIC_LIBS ON)
 
+  if (ENABLE_LOCALE)
+    list(APPEND ORTHANC_BOOST_COMPONENTS locale)
+  endif()
+
   find_package(Boost
-    COMPONENTS filesystem thread system date_time regex locale ${ORTHANC_BOOST_COMPONENTS})
+    COMPONENTS filesystem thread system date_time regex ${ORTHANC_BOOST_COMPONENTS})
 
   if (NOT Boost_FOUND)
     message(FATAL_ERROR "Unable to locate Boost on this system")
@@ -27,19 +31,16 @@ else()
       )
   endif()
 
-  #if (${Boost_VERSION} LESS 104800)
-  # boost::locale is only available from 1.48.00
-  #message("Too old version of Boost (${Boost_LIB_VERSION}): Building the static version")
-  #  set(BOOST_STATIC 1)
-  #endif()
-
   include_directories(${Boost_INCLUDE_DIRS})
   link_libraries(${Boost_LIBRARIES})
 endif()
 
 
 if (BOOST_STATIC)
-  # Parameters for Boost 1.64.0
+  ##
+  ## Parameters for static compilation of Boost 
+  ##
+  
   set(BOOST_NAME boost_1_64_0)
   set(BOOST_BCP_SUFFIX bcpdigest-1.3.0)
   set(BOOST_MD5 "ecb266cf46adcc7f695ad12685871174")
@@ -49,80 +50,102 @@ if (BOOST_STATIC)
 
   DownloadPackage(${BOOST_MD5} ${BOOST_URL} "${BOOST_SOURCES_DIR}")
 
-  set(BOOST_SOURCES)
 
-  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
-      ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
-      ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
-      ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD" OR
-      ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD" OR
-      ${CMAKE_SYSTEM_NAME} STREQUAL "PNaCl" OR
-      ${CMAKE_SYSTEM_NAME} STREQUAL "NaCl32" OR
-      ${CMAKE_SYSTEM_NAME} STREQUAL "NaCl64")
+  ##
+  ## Generic configuration of Boost
+  ## 
+
+  if (CMAKE_COMPILER_IS_GNUCXX)
+    add_definitions(-isystem ${BOOST_SOURCES_DIR})
+  endif()
+
+  include_directories(
+    ${BOOST_SOURCES_DIR}
+    )
+
+  add_definitions(
+    # Static build of Boost
+    -DBOOST_ALL_NO_LIB 
+    -DBOOST_ALL_NOLIB 
+    -DBOOST_DATE_TIME_NO_LIB 
+    -DBOOST_THREAD_BUILD_LIB
+    -DBOOST_PROGRAM_OPTIONS_NO_LIB
+    -DBOOST_REGEX_NO_LIB
+    -DBOOST_SYSTEM_NO_LIB
+    -DBOOST_LOCALE_NO_LIB
+    )
+
+
+  ##
+  ## Configuration of Boost core
+  ##
+  
+  set(BOOST_SOURCES
+    ${BOOST_SOURCES_DIR}/libs/system/src/error_code.cpp
+    )
+
+  if (CMAKE_SYSTEM_NAME STREQUAL "Linux" OR
+      CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR
+      CMAKE_SYSTEM_NAME STREQUAL "FreeBSD" OR
+      CMAKE_SYSTEM_NAME STREQUAL "kFreeBSD" OR
+      CMAKE_SYSTEM_NAME STREQUAL "OpenBSD" OR
+      CMAKE_SYSTEM_NAME STREQUAL "PNaCl" OR
+      CMAKE_SYSTEM_NAME STREQUAL "NaCl32" OR
+      CMAKE_SYSTEM_NAME STREQUAL "NaCl64")
     list(APPEND BOOST_SOURCES
       ${BOOST_SOURCES_DIR}/libs/atomic/src/lockpool.cpp
       ${BOOST_SOURCES_DIR}/libs/thread/src/pthread/once.cpp
       ${BOOST_SOURCES_DIR}/libs/thread/src/pthread/thread.cpp
       )
-    add_definitions(
-      -DBOOST_LOCALE_NO_WINAPI_BACKEND=1
-      -DBOOST_LOCALE_NO_STD_BACKEND=1
-      )
 
     if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase" OR
-        ${CMAKE_SYSTEM_NAME} STREQUAL "PNaCl" OR
-        ${CMAKE_SYSTEM_NAME} STREQUAL "NaCl32" OR
-        ${CMAKE_SYSTEM_NAME} STREQUAL "NaCl64")
+        CMAKE_SYSTEM_NAME STREQUAL "PNaCl" OR
+        CMAKE_SYSTEM_NAME STREQUAL "NaCl32" OR
+        CMAKE_SYSTEM_NAME STREQUAL "NaCl64")
       add_definitions(-DBOOST_HAS_SCHED_YIELD=1)
     endif()
 
-  elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+  elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     list(APPEND BOOST_SOURCES
       ${BOOST_SOURCES_DIR}/libs/thread/src/win32/tss_dll.cpp
       ${BOOST_SOURCES_DIR}/libs/thread/src/win32/thread.cpp
       ${BOOST_SOURCES_DIR}/libs/thread/src/win32/tss_pe.cpp
-      ${BOOST_FILESYSTEM_SOURCES_DIR}/windows_file_codecvt.cpp
       )
 
-    add_definitions(
-      -DBOOST_LOCALE_NO_POSIX_BACKEND=1
-      -DBOOST_LOCALE_NO_STD_BACKEND=1
-      )
-
-  elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
-    add_definitions(
-      -DBOOST_LOCALE_NO_POSIX_BACKEND=1
-      -DBOOST_LOCALE_NO_STD_BACKEND=1
-      )
+  elseif (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
 
   else()
     message(FATAL_ERROR "Support your platform here")
   endif()
 
-  if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
-      ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD")
-    list(APPEND BOOST_SOURCES
-      ${BOOST_SOURCES_DIR}/libs/filesystem/src/utf8_codecvt_facet.cpp
-      )
-  endif()
 
+  ##
+  ## Configuration of boost::regex
+  ##
+  
   aux_source_directory(${BOOST_SOURCES_DIR}/libs/regex/src BOOST_REGEX_SOURCES)
 
   list(APPEND BOOST_SOURCES
     ${BOOST_REGEX_SOURCES}
-    ${BOOST_SOURCES_DIR}/libs/date_time/src/gregorian/greg_month.cpp
-    ${BOOST_SOURCES_DIR}/libs/system/src/error_code.cpp
     )
 
-  if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
-    list(APPEND BOOST_SOURCES
-      ${BOOST_SOURCES_DIR}/libs/locale/src/encoding/codepage.cpp
-      )
-  endif()
 
-  if (${CMAKE_SYSTEM_NAME} STREQUAL "PNaCl" OR
-      ${CMAKE_SYSTEM_NAME} STREQUAL "NaCl32" OR
-      ${CMAKE_SYSTEM_NAME} STREQUAL "NaCl64")
+  ##
+  ## Configuration of boost::datetime
+  ##
+  
+  list(APPEND BOOST_SOURCES
+    ${BOOST_SOURCES_DIR}/libs/date_time/src/gregorian/greg_month.cpp
+    )
+
+
+  ##
+  ## Configuration of boost::filesystem
+  ## 
+
+  if (CMAKE_SYSTEM_NAME STREQUAL "PNaCl" OR
+      CMAKE_SYSTEM_NAME STREQUAL "NaCl32" OR
+      CMAKE_SYSTEM_NAME STREQUAL "NaCl64")
     # boost::filesystem is not available on PNaCl
     add_definitions(
       -DBOOST_HAS_FILESYSTEM_V3=0
@@ -133,51 +156,22 @@ if (BOOST_STATIC)
       -DBOOST_HAS_FILESYSTEM_V3=1
       )
     list(APPEND BOOST_SOURCES
-      ${BOOST_FILESYSTEM_SOURCES_DIR}/codecvt_error_category.cpp
       ${BOOST_FILESYSTEM_SOURCES_DIR}/operations.cpp
       ${BOOST_FILESYSTEM_SOURCES_DIR}/path.cpp
       ${BOOST_FILESYSTEM_SOURCES_DIR}/path_traits.cpp
       )
   endif()
 
-  if (USE_BOOST_LOCALE_BACKEND)
-    if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
-        ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR
-        ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
-        ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD" OR
-        ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD" OR
-        ${CMAKE_SYSTEM_NAME} STREQUAL "PNaCl" OR
-        ${CMAKE_SYSTEM_NAME} STREQUAL "NaCl32" OR
-        ${CMAKE_SYSTEM_NAME} STREQUAL "NaCl64")
-      list(APPEND BOOST_SOURCES
-        ${BOOST_SOURCES_DIR}/libs/locale/src/posix/codecvt.cpp
-        ${BOOST_SOURCES_DIR}/libs/locale/src/posix/collate.cpp
-        ${BOOST_SOURCES_DIR}/libs/locale/src/posix/converter.cpp
-        ${BOOST_SOURCES_DIR}/libs/locale/src/posix/numeric.cpp
-        ${BOOST_SOURCES_DIR}/libs/locale/src/posix/posix_backend.cpp
-        )
-    elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-      list(APPEND BOOST_SOURCES
-        ${BOOST_SOURCES_DIR}/libs/locale/src/win32/collate.cpp
-        ${BOOST_SOURCES_DIR}/libs/locale/src/win32/converter.cpp
-        ${BOOST_SOURCES_DIR}/libs/locale/src/win32/lcid.cpp
-        ${BOOST_SOURCES_DIR}/libs/locale/src/win32/numeric.cpp
-        ${BOOST_SOURCES_DIR}/libs/locale/src/win32/win_backend.cpp
-        )
-    else()
-      message(FATAL_ERROR "Support your platform here")
-    endif()
 
+  ##
+  ## Configuration of boost::locale
+  ## 
+
+  if (NOT ENABLE_LOCALE)
+    message("boost::locale is disabled")
+  else()
     list(APPEND BOOST_SOURCES
-      ${BOOST_REGEX_SOURCES}
-      ${BOOST_SOURCES_DIR}/libs/date_time/src/gregorian/greg_month.cpp
-      ${BOOST_SOURCES_DIR}/libs/system/src/error_code.cpp
-
       ${BOOST_FILESYSTEM_SOURCES_DIR}/codecvt_error_category.cpp
-      ${BOOST_FILESYSTEM_SOURCES_DIR}/operations.cpp
-      ${BOOST_FILESYSTEM_SOURCES_DIR}/path.cpp
-      ${BOOST_FILESYSTEM_SOURCES_DIR}/path_traits.cpp
-
       ${BOOST_SOURCES_DIR}/libs/locale/src/shared/generator.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/shared/date_time.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/shared/formatting.cpp
@@ -191,39 +185,81 @@ if (BOOST_STATIC)
       ${BOOST_SOURCES_DIR}/libs/locale/src/util/info.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/util/locale_data.cpp
       )        
+
+    if (CMAKE_SYSTEM_NAME STREQUAL "Linux" OR
+        CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR
+        CMAKE_SYSTEM_NAME STREQUAL "FreeBSD" OR
+        CMAKE_SYSTEM_NAME STREQUAL "kFreeBSD" OR
+        CMAKE_SYSTEM_NAME STREQUAL "OpenBSD" OR
+        CMAKE_SYSTEM_NAME STREQUAL "PNaCl" OR
+        CMAKE_SYSTEM_NAME STREQUAL "NaCl32" OR
+        CMAKE_SYSTEM_NAME STREQUAL "NaCl64")
+      list(APPEND BOOST_SOURCES
+        ${BOOST_SOURCES_DIR}/libs/locale/src/encoding/codepage.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/posix/codecvt.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/posix/collate.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/posix/converter.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/posix/numeric.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/posix/posix_backend.cpp
+        )
+
+      add_definitions(
+        -DBOOST_LOCALE_WITH_ICONV=1
+        -DBOOST_LOCALE_NO_WINAPI_BACKEND=1
+        -DBOOST_LOCALE_NO_STD_BACKEND=1
+        )
+      
+    elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+      list(APPEND BOOST_SOURCES
+        ${BOOST_FILESYSTEM_SOURCES_DIR}/windows_file_codecvt.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/encoding/codepage.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/win32/collate.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/win32/converter.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/win32/lcid.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/win32/numeric.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/win32/win_backend.cpp
+        )
+
+      add_definitions(
+        -DBOOST_LOCALE_NO_POSIX_BACKEND=1
+        -DBOOST_LOCALE_NO_STD_BACKEND=1
+        )
+
+      # Starting with release 0.8.2, Orthanc statically links against
+      # libiconv, even on Windows. Indeed, the "WCONV" library of
+      # Windows XP seems not to support properly several codepages
+      # (notably "Latin3", "Hebrew", and "Arabic").
+
+      if (USE_BOOST_ICONV)
+        add_definitions(-DBOOST_LOCALE_WITH_ICONV=1)
+      else()
+        add_definitions(-DBOOST_LOCALE_WITH_WCONV=1)
+      endif()
+
+    elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR
+            CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
+      list(APPEND BOOST_SOURCES
+        ${BOOST_SOURCES_DIR}/libs/filesystem/src/utf8_codecvt_facet.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/encoding/codepage.cpp
+        )
+      
+      add_definitions(
+        -DBOOST_LOCALE_WITH_ICONV=1
+        )
+      
+    elseif (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+      add_definitions(
+        -DBOOST_LOCALE_WITH_ICONV=1
+        -DBOOST_LOCALE_NO_POSIX_BACKEND=1
+        -DBOOST_LOCALE_NO_STD_BACKEND=1
+        )
+      
+    else()
+      message(FATAL_ERROR "Support your platform here")
+    endif()
   endif()
 
-  add_definitions(
-    # Static build of Boost
-    -DBOOST_ALL_NO_LIB 
-    -DBOOST_ALL_NOLIB 
-    -DBOOST_DATE_TIME_NO_LIB 
-    -DBOOST_THREAD_BUILD_LIB
-    -DBOOST_PROGRAM_OPTIONS_NO_LIB
-    -DBOOST_REGEX_NO_LIB
-    -DBOOST_SYSTEM_NO_LIB
-    -DBOOST_LOCALE_NO_LIB
-    -DBOOST_HAS_LOCALE=1
-    )
-
-  if (CMAKE_COMPILER_IS_GNUCXX)
-    add_definitions(-isystem ${BOOST_SOURCES_DIR})
-  endif()
-
-  include_directories(
-    ${BOOST_SOURCES_DIR}
-    )
-
+  
   source_group(ThirdParty\\boost REGULAR_EXPRESSION ${BOOST_SOURCES_DIR}/.*)
 
-else()
-  add_definitions(
-    -DBOOST_HAS_LOCALE=1
-    )
 endif()
-
-
-add_definitions(
-  -DBOOST_HAS_DATE_TIME=1
-  -DBOOST_HAS_REGEX=1
-  )

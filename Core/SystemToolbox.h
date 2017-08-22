@@ -95,11 +95,9 @@ namespace Orthanc
 
     std::string GenerateUuid();
 
-#if BOOST_HAS_DATE_TIME == 1
     std::string GetNowIsoString();
 
     void GetNowDicom(std::string& date,
                      std::string& time);
-#endif
   }
 }

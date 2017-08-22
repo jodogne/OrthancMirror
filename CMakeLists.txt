@@ -69,8 +69,11 @@ mark_as_advanced(USE_PUGIXML)
 
 # Path to the root folder of the Orthanc distribution
 set(ORTHANC_ROOT ${CMAKE_SOURCE_DIR})
-set(ENABLE_DCMTK_NETWORK ON)
-set(USE_BOOST_LOCALE_BACKEND OFF)
+
+# These options must be set to "ON" if compiling Orthanc, but might be
+# set to "OFF" in some plugins if their support is not required
+set(ENABLE_DCMTK_NETWORK ON)  # Enable support for DICOM networking in DCMTK
+set(ENABLE_LOCALE ON)         # Enable support for locales (notably in Boost)
 
 # Some basic inclusions
 include(CheckIncludeFiles)
@@ -306,6 +309,7 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/SQLiteConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/ZlibConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibIconvConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/OpenSslConfiguration.cmake)
 
 # These are the two most heavyweight dependencies. We put them as the
 # last includes to quickly spot problems when configuring static
@@ -316,7 +320,6 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/DcmtkConfiguration.cmake)
 
 if (ENABLE_SSL)
   add_definitions(-DORTHANC_ENABLE_SSL=1)
-  include(${CMAKE_SOURCE_DIR}/Resources/CMake/OpenSslConfiguration.cmake)
 else()
   add_definitions(-DORTHANC_ENABLE_SSL=0)
 endif()
@@ -340,6 +343,13 @@ if (ENABLE_PLUGINS)
   add_definitions(-DORTHANC_ENABLE_PLUGINS=1)
 else()
   add_definitions(-DORTHANC_ENABLE_PLUGINS=0)
+endif()
+
+
+if (ENABLE_LOCALE)
+  add_definitions(-DORTHANC_ENABLE_LOCALE=1)
+else()
+  add_definitions(-DORTHANC_ENABLE_LOCALE=0)
 endif()
 
 
