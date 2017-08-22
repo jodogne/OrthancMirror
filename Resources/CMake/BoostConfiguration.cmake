@@ -45,7 +45,6 @@ if (BOOST_STATIC)
   set(BOOST_BCP_SUFFIX bcpdigest-1.3.0)
   set(BOOST_MD5 "ecb266cf46adcc7f695ad12685871174")
   set(BOOST_URL "http://www.orthanc-server.com/downloads/third-party/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz")
-  set(BOOST_FILESYSTEM_SOURCES_DIR "${BOOST_NAME}/libs/filesystem/src") 
   set(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
 
   DownloadPackage(${BOOST_MD5} ${BOOST_URL} "${BOOST_SOURCES_DIR}")
@@ -75,15 +74,15 @@ if (BOOST_STATIC)
     -DBOOST_LOCALE_NO_LIB
     )
 
-
-  ##
-  ## Configuration of Boost core
-  ##
-  
   set(BOOST_SOURCES
     ${BOOST_SOURCES_DIR}/libs/system/src/error_code.cpp
     )
 
+
+  ##
+  ## Configuration of boost::thread
+  ##
+  
   if (CMAKE_SYSTEM_NAME STREQUAL "Linux" OR
       CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR
       CMAKE_SYSTEM_NAME STREQUAL "FreeBSD" OR
@@ -156,15 +155,21 @@ if (BOOST_STATIC)
       -DBOOST_HAS_FILESYSTEM_V3=1
       )
     list(APPEND BOOST_SOURCES
-      ${BOOST_FILESYSTEM_SOURCES_DIR}/codecvt_error_category.cpp
-      ${BOOST_FILESYSTEM_SOURCES_DIR}/operations.cpp
-      ${BOOST_FILESYSTEM_SOURCES_DIR}/path.cpp
-      ${BOOST_FILESYSTEM_SOURCES_DIR}/path_traits.cpp
+      ${BOOST_NAME}/libs/filesystem/src/codecvt_error_category.cpp
+      ${BOOST_NAME}/libs/filesystem/src/operations.cpp
+      ${BOOST_NAME}/libs/filesystem/src/path.cpp
+      ${BOOST_NAME}/libs/filesystem/src/path_traits.cpp
       )
 
-    if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    if (CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR
+        CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
+     list(APPEND BOOST_SOURCES
+        ${BOOST_SOURCES_DIR}/libs/filesystem/src/utf8_codecvt_facet.cpp
+        )
+
+    elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
       list(APPEND BOOST_SOURCES
-        ${BOOST_FILESYSTEM_SOURCES_DIR}/windows_file_codecvt.cpp
+        ${BOOST_NAME}/libs/filesystem/src/windows_file_codecvt.cpp
         )
     endif()
   endif()
@@ -178,6 +183,7 @@ if (BOOST_STATIC)
     message("boost::locale is disabled")
   else()
     list(APPEND BOOST_SOURCES
+      ${BOOST_SOURCES_DIR}/libs/locale/src/encoding/codepage.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/shared/generator.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/shared/date_time.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/shared/formatting.cpp
@@ -201,7 +207,6 @@ if (BOOST_STATIC)
         CMAKE_SYSTEM_NAME STREQUAL "NaCl32" OR
         CMAKE_SYSTEM_NAME STREQUAL "NaCl64")
       list(APPEND BOOST_SOURCES
-        ${BOOST_SOURCES_DIR}/libs/locale/src/encoding/codepage.cpp
         ${BOOST_SOURCES_DIR}/libs/locale/src/posix/codecvt.cpp
         ${BOOST_SOURCES_DIR}/libs/locale/src/posix/collate.cpp
         ${BOOST_SOURCES_DIR}/libs/locale/src/posix/converter.cpp
@@ -217,7 +222,6 @@ if (BOOST_STATIC)
       
     elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
       list(APPEND BOOST_SOURCES
-        ${BOOST_SOURCES_DIR}/libs/locale/src/encoding/codepage.cpp
         ${BOOST_SOURCES_DIR}/libs/locale/src/win32/collate.cpp
         ${BOOST_SOURCES_DIR}/libs/locale/src/win32/converter.cpp
         ${BOOST_SOURCES_DIR}/libs/locale/src/win32/lcid.cpp
@@ -233,7 +237,8 @@ if (BOOST_STATIC)
       # Starting with release 0.8.2, Orthanc statically links against
       # libiconv, even on Windows. Indeed, the "WCONV" library of
       # Windows XP seems not to support properly several codepages
-      # (notably "Latin3", "Hebrew", and "Arabic").
+      # (notably "Latin3", "Hebrew", and "Arabic"). Set
+      # "USE_BOOST_ICONV" to "OFF" to use WCONV anyway.
 
       if (USE_BOOST_ICONV)
         add_definitions(-DBOOST_LOCALE_WITH_ICONV=1)
@@ -241,24 +246,6 @@ if (BOOST_STATIC)
         add_definitions(-DBOOST_LOCALE_WITH_WCONV=1)
       endif()
 
-    elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR
-            CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
-      list(APPEND BOOST_SOURCES
-        ${BOOST_SOURCES_DIR}/libs/filesystem/src/utf8_codecvt_facet.cpp
-        ${BOOST_SOURCES_DIR}/libs/locale/src/encoding/codepage.cpp
-        )
-      
-      add_definitions(
-        -DBOOST_LOCALE_WITH_ICONV=1
-        )
-      
-    elseif (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
-      add_definitions(
-        -DBOOST_LOCALE_WITH_ICONV=1
-        -DBOOST_LOCALE_NO_POSIX_BACKEND=1
-        -DBOOST_LOCALE_NO_STD_BACKEND=1
-        )
-      
     else()
       message(FATAL_ERROR "Support your platform here")
     endif()
