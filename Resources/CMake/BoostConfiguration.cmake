@@ -156,10 +156,17 @@ if (BOOST_STATIC)
       -DBOOST_HAS_FILESYSTEM_V3=1
       )
     list(APPEND BOOST_SOURCES
+      ${BOOST_FILESYSTEM_SOURCES_DIR}/codecvt_error_category.cpp
       ${BOOST_FILESYSTEM_SOURCES_DIR}/operations.cpp
       ${BOOST_FILESYSTEM_SOURCES_DIR}/path.cpp
       ${BOOST_FILESYSTEM_SOURCES_DIR}/path_traits.cpp
       )
+
+    if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+      list(APPEND BOOST_SOURCES
+        ${BOOST_FILESYSTEM_SOURCES_DIR}/windows_file_codecvt.cpp
+        )
+    endif()
   endif()
 
 
@@ -171,7 +178,6 @@ if (BOOST_STATIC)
     message("boost::locale is disabled")
   else()
     list(APPEND BOOST_SOURCES
-      ${BOOST_FILESYSTEM_SOURCES_DIR}/codecvt_error_category.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/shared/generator.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/shared/date_time.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/shared/formatting.cpp
@@ -211,7 +217,6 @@ if (BOOST_STATIC)
       
     elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
       list(APPEND BOOST_SOURCES
-        ${BOOST_FILESYSTEM_SOURCES_DIR}/windows_file_codecvt.cpp
         ${BOOST_SOURCES_DIR}/libs/locale/src/encoding/codepage.cpp
         ${BOOST_SOURCES_DIR}/libs/locale/src/win32/collate.cpp
         ${BOOST_SOURCES_DIR}/libs/locale/src/win32/converter.cpp
