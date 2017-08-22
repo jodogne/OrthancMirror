@@ -45,16 +45,16 @@
 #  error The macro ORTHANC_ENABLE_BASE64 must be defined
 #endif
 
+#if !defined(ORTHANC_ENABLE_LOCALE)
+#  error The macro ORTHANC_ENABLE_LOCALE must be defined
+#endif
+
 #if !defined(ORTHANC_ENABLE_MD5)
 #  error The macro ORTHANC_ENABLE_MD5 must be defined
 #endif
 
 #if !defined(ORTHANC_ENABLE_PUGIXML)
 #  error The macro ORTHANC_ENABLE_PUGIXML must be defined
-#endif
-
-#if !defined(BOOST_HAS_REGEX)
-#  error The macro BOOST_HAS_REGEX must be defined
 #endif
 
 
@@ -132,22 +132,22 @@ namespace Orthanc
     void EncodeBase64(std::string& result, 
                       const std::string& data);
 
-#  if BOOST_HAS_REGEX == 1
     bool DecodeDataUriScheme(std::string& mime,
                              std::string& content,
                              const std::string& source);
-#  endif
 
     void EncodeDataUriScheme(std::string& result,
                              const std::string& mime,
                              const std::string& content);
 #endif
 
+#if ORTHANC_ENABLE_LOCALE == 1
     std::string ConvertToUtf8(const std::string& source,
                               Encoding sourceEncoding);
 
     std::string ConvertFromUtf8(const std::string& source,
                                 Encoding targetEncoding);
+#endif
 
     bool IsAsciiString(const void* data,
                        size_t size);
@@ -161,9 +161,7 @@ namespace Orthanc
 
     Endianness DetectEndianness();
 
-#if BOOST_HAS_REGEX == 1
     std::string WildcardToRegularExpression(const std::string& s);
-#endif
 
     void TokenizeString(std::vector<std::string>& result,
                         const std::string& source,
@@ -207,9 +205,11 @@ namespace Orthanc
 
     bool StartsWithUuid(const std::string& str);
 
+#if ORTHANC_ENABLE_LOCALE == 1
     void InitializeGlobalLocale(const char* locale);
 
     void FinalizeGlobalLocale();
+#endif
 
     std::string ToUpperCaseWithAccents(const std::string& source);
   }

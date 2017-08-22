@@ -35,11 +35,6 @@
 #include "SystemToolbox.h"
 
 
-#if BOOST_HAS_DATE_TIME == 1
-#  include <boost/date_time/posix_time/posix_time.hpp>
-#endif
-
-
 #if defined(_WIN32)
 #  include <windows.h>
 #  include <process.h>   // For "_spawnvp()" and "_getpid()"
@@ -86,6 +81,7 @@ extern "C"
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 
 namespace Orthanc
@@ -565,13 +561,13 @@ namespace Orthanc
   }
 
 
-#if BOOST_HAS_DATE_TIME == 1
   std::string SystemToolbox::GetNowIsoString()
   {
     boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
     return boost::posix_time::to_iso_string(now);
   }
 
+  
   void SystemToolbox::GetNowDicom(std::string& date,
                                   std::string& time)
   {
@@ -586,5 +582,4 @@ namespace Orthanc
     sprintf(s, "%02d%02d%02d.%06d", tm.tm_hour, tm.tm_min, tm.tm_sec, 0);
     time.assign(s);
   }
-#endif
 }
