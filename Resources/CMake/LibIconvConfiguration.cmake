@@ -79,7 +79,7 @@ else()
     endif()
 
     # Check whether the support for libiconv is bundled within the
-    # standard library
+    # standard C library
     CHECK_FUNCTION_EXISTS(iconv_open HAVE_ICONV_LIB)
     if (NOT HAVE_ICONV_LIB)
       # No builtin support for libiconv, try and find an external library.
