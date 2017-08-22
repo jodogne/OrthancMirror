@@ -1326,7 +1326,6 @@ namespace Orthanc
   {
     globalLocale_.reset();
   }
-#endif
 
   
   std::string Toolbox::ToUpperCaseWithAccents(const std::string& source)
@@ -1368,4 +1367,5 @@ namespace Orthanc
     w = boost::algorithm::to_upper_copy<std::wstring>(w, *globalLocale_);
     return boost::locale::conv::utf_to_utf<char>(w);
   }
+#endif
 }

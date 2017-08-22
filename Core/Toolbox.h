@@ -209,8 +209,8 @@ namespace Orthanc
     void InitializeGlobalLocale(const char* locale);
 
     void FinalizeGlobalLocale();
-#endif
 
     std::string ToUpperCaseWithAccents(const std::string& source);
+#endif
   }
 }
