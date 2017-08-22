@@ -202,7 +202,6 @@ if (BOOST_STATIC)
         CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR
         CMAKE_SYSTEM_NAME STREQUAL "FreeBSD" OR
         CMAKE_SYSTEM_NAME STREQUAL "kFreeBSD" OR
-        CMAKE_SYSTEM_NAME STREQUAL "OpenBSD" OR
         CMAKE_SYSTEM_NAME STREQUAL "PNaCl" OR
         CMAKE_SYSTEM_NAME STREQUAL "NaCl32" OR
         CMAKE_SYSTEM_NAME STREQUAL "NaCl64")
@@ -218,6 +217,21 @@ if (BOOST_STATIC)
         -DBOOST_LOCALE_WITH_ICONV=1
         -DBOOST_LOCALE_NO_WINAPI_BACKEND=1
         -DBOOST_LOCALE_NO_STD_BACKEND=1
+        )
+      
+    elseif (CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
+      list(APPEND BOOST_SOURCES
+        ${BOOST_SOURCES_DIR}/libs/locale/src/std/codecvt.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/std/collate.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/std/converter.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/std/numeric.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/std/std_backend.cpp
+        )
+
+      add_definitions(
+        -DBOOST_LOCALE_WITH_ICONV=1
+        -DBOOST_LOCALE_NO_WINAPI_BACKEND=1
+        -DBOOST_LOCALE_NO_POSIX_BACKEND=1
         )
       
     elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
