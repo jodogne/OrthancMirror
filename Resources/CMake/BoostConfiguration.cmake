@@ -162,7 +162,8 @@ if (BOOST_STATIC)
       )
 
     if (CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR
-        CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
+        CMAKE_SYSTEM_NAME STREQUAL "OpenBSD" OR
+        CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
      list(APPEND BOOST_SOURCES
         ${BOOST_SOURCES_DIR}/libs/filesystem/src/utf8_codecvt_facet.cpp
         )
