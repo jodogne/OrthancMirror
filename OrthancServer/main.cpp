@@ -152,12 +152,14 @@ class OrthancApplicationEntityFilter : public IApplicationEntityFilter
 {
 private:
   ServerContext& context_;
+  bool           alwaysAllowEcho_;
   bool           alwaysAllowStore_;
 
 public:
   OrthancApplicationEntityFilter(ServerContext& context) :
     context_(context)
   {
+    alwaysAllowEcho_ = Configuration::GetGlobalBoolParameter("DicomAlwaysAllowEcho", true);
     alwaysAllowStore_ = Configuration::GetGlobalBoolParameter("DicomAlwaysAllowStore", true);
   }
 
@@ -168,7 +170,8 @@ public:
     LOG(INFO) << "Incoming connection from AET " << remoteAet
               << " on IP " << remoteIp << ", calling AET " << calledAet;
 
-    return (alwaysAllowStore_ ||
+    return (alwaysAllowEcho_ ||
+            alwaysAllowStore_ ||
             Configuration::IsKnownAETitle(remoteAet, remoteIp));
   }
 
@@ -180,10 +183,16 @@ public:
     LOG(INFO) << "Incoming " << Orthanc::EnumerationToString(type) << " request from AET "
               << remoteAet << " on IP " << remoteIp << ", calling AET " << calledAet;
     
-    if (type == DicomRequestType_Store &&
-        alwaysAllowStore_)
+    if (type == DicomRequestType_Echo &&
+        alwaysAllowEcho_)
     {
-      // Incoming store requests are always accepted, even from unknown AET
+      // Incoming C-Echo requests are always accepted, even from unknown AET
+      return true;
+    }
+    else if (type == DicomRequestType_Store &&
+             alwaysAllowStore_)
+    {
+      // Incoming C-Store requests are always accepted, even from unknown AET
       return true;
     }
     else if (!Configuration::IsKnownAETitle(remoteAet, remoteIp))
