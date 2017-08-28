@@ -24,9 +24,6 @@ General
 Dependencies
 ============
 
-* Switch to CivetWeb because of licensing issues with recent
-  versions of Mongoose (versions > 3.8 are GPLv2 and not GPLv2+):
-  https://www.mail-archive.com/mongoose-users@googlegroups.com/msg00625.html
 * Switch from libiconv to libICU (http://site.icu-project.org/download),
   as recommended by Boost:
   http://www.boost.org/doc/libs/1_64_0/libs/locale/doc/html/building_boost_locale.html
