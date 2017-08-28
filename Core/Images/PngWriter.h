@@ -33,6 +33,14 @@
 
 #pragma once
 
+#if !defined(ORTHANC_ENABLE_PNG)
+#  error The macro ORTHANC_ENABLE_PNG must be defined
+#endif
+
+#if ORTHANC_ENABLE_PNG != 1
+#  error PNG support must be enabled to include this file
+#endif
+
 #include "IImageWriter.h"
 
 #include <boost/shared_ptr.hpp>

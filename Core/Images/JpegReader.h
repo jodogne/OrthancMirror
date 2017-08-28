@@ -33,14 +33,22 @@
 
 #pragma once
 
+#if !defined(ORTHANC_SANDBOXED)
+#  error The macro ORTHANC_SANDBOXED must be defined
+#endif
+
+#if !defined(ORTHANC_ENABLE_JPEG)
+#  error The macro ORTHANC_ENABLE_JPEG must be defined
+#endif
+
+#if ORTHANC_ENABLE_JPEG != 1
+#  error JPEG support must be enabled to include this file
+#endif
+
 #include "ImageAccessor.h"
 
 #include <string>
 #include <boost/noncopyable.hpp>
-
-#if !defined(ORTHANC_SANDBOXED)
-#  error The macro ORTHANC_SANDBOXED must be defined
-#endif
 
 namespace Orthanc
 {
