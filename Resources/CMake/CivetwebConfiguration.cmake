@@ -6,7 +6,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
   DownloadPackage(${CIVETWEB_MD5} ${CIVETWEB_URL} "${CIVETWEB_SOURCES_DIR}")
 
   include_directories(
-    ${CIVETWEB_SOURCES_DIR}/src
+    ${CIVETWEB_SOURCES_DIR}/include
     )
 
   set(CIVETWEB_SOURCES
