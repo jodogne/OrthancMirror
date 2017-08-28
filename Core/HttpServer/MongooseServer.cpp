@@ -39,7 +39,17 @@
 #include "../Logging.h"
 #include "../ChunkedBuffer.h"
 #include "HttpToolbox.h"
-#include "mongoose.h"
+
+#if ORTHANC_ENABLE_MONGOOSE == 1
+#  include "mongoose.h"
+
+#elif ORTHANC_ENABLE_CIVETWEB == 1
+#  include "civetweb.h"
+#  define MONGOOSE_USE_CALLBACKS 1
+
+#else
+#  error "Either Mongoose or Civetweb must be enabled to compile this file"
+#endif
 
 #include <algorithm>
 #include <string.h>
@@ -59,8 +69,6 @@
 #endif
 
 #define ORTHANC_REALM "Orthanc Secure Area"
-
-static const long LOCALHOST = (127ll << 24) + 1ll;
 
 
 namespace Orthanc
@@ -586,9 +594,22 @@ namespace Orthanc
                                struct mg_connection *connection,
                                const struct mg_request_info *request)
   {
+    bool localhost;
+
+#if ORTHANC_ENABLE_MONGOOSE == 1
+    static const long LOCALHOST = (127ll << 24) + 1ll;
+    localhost = (request->remote_ip == LOCALHOST);
+#elif ORTHANC_ENABLE_CIVETWEB == 1
+    // The "remote_ip" field of "struct mg_request_info" is tagged as
+    // deprecated in Civetweb, using "remote_addr" instead.
+    localhost = (std::string(request->remote_addr) == "127.0.0.1");
+#else
+#error
+#endif
+    
     // Check remote calls
     if (!server.IsRemoteAccessAllowed() &&
-        request->remote_ip != LOCALHOST)
+        !localhost)
     {
       output.SendUnauthorized(ORTHANC_REALM);
       return;
@@ -638,7 +659,8 @@ namespace Orthanc
       return;
     }
 
-
+    
+#if ORTHANC_ENABLE_MONGOOSE == 1
     // Apply the filter, if it is installed
     char remoteIp[24];
     sprintf(remoteIp, "%d.%d.%d.%d", 
@@ -646,6 +668,11 @@ namespace Orthanc
             reinterpret_cast<const uint8_t*>(&request->remote_ip) [2], 
             reinterpret_cast<const uint8_t*>(&request->remote_ip) [1], 
             reinterpret_cast<const uint8_t*>(&request->remote_ip) [0]);
+#elif ORTHANC_ENABLE_CIVETWEB == 1
+    const char* remoteIp = request->remote_addr;
+#else
+#error
+#endif
 
     std::string username = GetAuthenticatedUsername(headers);
 
@@ -747,8 +774,19 @@ namespace Orthanc
   {
     try
     {
-      MongooseServer* server = reinterpret_cast<MongooseServer*>(request->user_data);
+      void* that = NULL;
+
+#if ORTHANC_ENABLE_MONGOOSE == 1
+      that = request->user_data;
+#elif ORTHANC_ENABLE_CIVETWEB == 1
+      // https://github.com/civetweb/civetweb/issues/409
+      that = mg_get_user_data(mg_get_context(connection));
+#else
+#error
+#endif                              
       
+      MongooseServer* server = reinterpret_cast<MongooseServer*>(that);
+
       if (server == NULL)
       {
         MongooseOutputStream stream(connection);
@@ -756,7 +794,7 @@ namespace Orthanc
         output.SendStatus(HttpStatus_500_InternalServerError);
         return;
       }
-      
+
       MongooseOutputStream stream(connection);
       HttpOutput output(stream, server->IsKeepAliveEnabled());
       HttpMethod method = HttpMethod_Get;
@@ -846,7 +884,7 @@ namespace Orthanc
 #elif MONGOOSE_USE_CALLBACKS == 1
   static int Callback(struct mg_connection *connection)
   {
-    struct mg_request_info *request = mg_get_request_info(connection);
+    const struct mg_request_info *request = mg_get_request_info(connection);
 
     ProtectedCallback(connection, request);
 
@@ -906,6 +944,14 @@ namespace Orthanc
 
   void MongooseServer::Start()
   {
+#if ORTHANC_ENABLE_MONGOOSE == 1
+    LOG(INFO) << "Starting embedded Web server using Mongoose";
+#elif ORTHANC_ENABLE_CIVETWEB == 1
+    LOG(INFO) << "Starting embedded Web server using Civetweb";
+#else
+#error
+#endif  
+
     if (!IsRunning())
     {
       std::string port = boost::lexical_cast<std::string>(port_);
