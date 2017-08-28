@@ -34,23 +34,25 @@ SET(BUILD_MODALITY_WORKLISTS ON CACHE BOOL "Whether to build the sample plugin t
 SET(BUILD_RECOVER_COMPRESSED_FILE ON CACHE BOOL "Whether to build the companion tool to recover files compressed using Orthanc")
 SET(ENABLE_PKCS11 OFF CACHE BOOL "Enable PKCS#11 for HTTPS client authentication using hardware security modules and smart cards")
 SET(ENABLE_PROFILING OFF CACHE BOOL "Whether to enable the generation of profiling information with gprof")
+SET(ENABLE_CIVETWEB OFF CACHE BOOL "Use Civetweb instead of Mongoose (experimental)")
 
 # Advanced parameters to fine-tune linking against system libraries
-SET(USE_SYSTEM_JSONCPP ON CACHE BOOL "Use the system version of JsonCpp")
-SET(USE_SYSTEM_GOOGLE_TEST ON CACHE BOOL "Use the system version of Google Test")
-SET(USE_SYSTEM_SQLITE ON CACHE BOOL "Use the system version of SQLite")
-SET(USE_SYSTEM_MONGOOSE ON CACHE BOOL "Use the system version of Mongoose")
-SET(USE_SYSTEM_LUA ON CACHE BOOL "Use the system version of Lua")
-SET(USE_SYSTEM_DCMTK ON CACHE BOOL "Use the system version of DCMTK")
 SET(USE_SYSTEM_BOOST ON CACHE BOOL "Use the system version of Boost")
-SET(USE_SYSTEM_LIBICONV ON CACHE BOOL "Use the system version of libiconv")
-SET(USE_SYSTEM_LIBPNG ON CACHE BOOL "Use the system version of libpng")
-SET(USE_SYSTEM_LIBJPEG ON CACHE BOOL "Use the system version of libjpeg")
+SET(USE_SYSTEM_CIVETWEB ON CACHE BOOL "Use the system version of Civetweb (experimental)")
 SET(USE_SYSTEM_CURL ON CACHE BOOL "Use the system version of LibCurl")
-SET(USE_SYSTEM_OPENSSL ON CACHE BOOL "Use the system version of OpenSSL")
-SET(USE_SYSTEM_ZLIB ON CACHE BOOL "Use the system version of ZLib")
-SET(USE_SYSTEM_PUGIXML ON CACHE BOOL "Use the system version of Pugixml")
+SET(USE_SYSTEM_DCMTK ON CACHE BOOL "Use the system version of DCMTK")
+SET(USE_SYSTEM_GOOGLE_TEST ON CACHE BOOL "Use the system version of Google Test")
+SET(USE_SYSTEM_JSONCPP ON CACHE BOOL "Use the system version of JsonCpp")
+SET(USE_SYSTEM_LIBICONV ON CACHE BOOL "Use the system version of libiconv")
+SET(USE_SYSTEM_LIBJPEG ON CACHE BOOL "Use the system version of libjpeg")
 SET(USE_SYSTEM_LIBP11 OFF CACHE BOOL "Use the system version of libp11 (PKCS#11 wrapper library)")
+SET(USE_SYSTEM_LIBPNG ON CACHE BOOL "Use the system version of libpng")
+SET(USE_SYSTEM_LUA ON CACHE BOOL "Use the system version of Lua")
+SET(USE_SYSTEM_MONGOOSE ON CACHE BOOL "Use the system version of Mongoose")
+SET(USE_SYSTEM_OPENSSL ON CACHE BOOL "Use the system version of OpenSSL")
+SET(USE_SYSTEM_PUGIXML ON CACHE BOOL "Use the system version of Pugixml")
+SET(USE_SYSTEM_SQLITE ON CACHE BOOL "Use the system version of SQLite")
+SET(USE_SYSTEM_ZLIB ON CACHE BOOL "Use the system version of ZLib")
 
 # Advanced parameters
 SET(USE_PUGIXML ON CACHE BOOL "Use the Pugixml parser (turn off only for debug)")
@@ -303,13 +305,26 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibCurlConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibPngConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibJpegConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LuaConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/MongooseConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/PugixmlConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/SQLiteConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/ZlibConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibIconvConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/OpenSslConfiguration.cmake)
+
+if (ENABLE_CIVETWEB)
+  include(${CMAKE_SOURCE_DIR}/Resources/CMake/CivetwebConfiguration.cmake)
+  add_definitions(
+    -DORTHANC_ENABLE_CIVETWEB=1
+    -DORTHANC_ENABLE_MONGOOSE=0
+    )
+else()
+  include(${CMAKE_SOURCE_DIR}/Resources/CMake/MongooseConfiguration.cmake)
+  add_definitions(
+    -DORTHANC_ENABLE_CIVETWEB=0
+    -DORTHANC_ENABLE_MONGOOSE=1
+    )
+endif()
 
 # These are the two most heavyweight dependencies. We put them as the
 # last includes to quickly spot problems when configuring static
@@ -484,6 +499,7 @@ add_library(CoreLibrary
   ${LIBP11_SOURCES}
   ${LIBPNG_SOURCES}
   ${LUA_SOURCES}
+  ${CIVETWEB_SOURCES}
   ${MONGOOSE_SOURCES}
   ${PUGIXML_SOURCES}
   ${SQLITE_SOURCES}
