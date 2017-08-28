@@ -305,12 +305,18 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibCurlConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibPngConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibJpegConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LuaConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/PugixmlConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/SQLiteConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/ZlibConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibIconvConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/OpenSslConfiguration.cmake)
+
+if (USE_PUGIXML)
+  include(${CMAKE_SOURCE_DIR}/Resources/CMake/PugixmlConfiguration.cmake)
+  add_definitions(-DORTHANC_ENABLE_PUGIXML=1)
+else()
+  add_definitions(-DORTHANC_ENABLE_PUGIXML=0)  
+endif()
 
 if (ENABLE_CIVETWEB)
   include(${CMAKE_SOURCE_DIR}/Resources/CMake/CivetwebConfiguration.cmake)
@@ -444,6 +450,8 @@ add_definitions(
   -DORTHANC_ENABLE_LOGGING_PLUGIN=0
   -DORTHANC_ENABLE_LUA=1
   -DORTHANC_ENABLE_MD5=1
+  -DORTHANC_ENABLE_PNG=1
+  -DORTHANC_HAS_EMBEDDED_RESOURCES=1
   -DORTHANC_MAXIMUM_TAG_LENGTH=256
   -DORTHANC_SANDBOXED=0
 

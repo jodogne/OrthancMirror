@@ -34,6 +34,10 @@
 #include "../PrecompiledHeaders.h"
 #include "Font.h"
 
+#if !defined(ORTHANC_ENABLE_LOCALE)
+#  error ORTHANC_ENABLE_LOCALE must be defined to use this file
+#endif
+
 #include "../SystemToolbox.h"
 #include "../Toolbox.h"
 #include "../OrthancException.h"
@@ -254,7 +258,13 @@ namespace Orthanc
 
     int a = x;
 
+#if ORTHANC_ENABLE_LOCALE == 1
     std::string s = Toolbox::ConvertFromUtf8(utf8, Encoding_Latin1);
+#else
+    // If the locale support is disabled, simply drop non-ASCII
+    // characters from the source UTF-8 string
+    std::string s = Toolbox::ConvertToAscii(utf8);
+#endif
 
     for (size_t i = 0; i < s.size(); i++)
     {

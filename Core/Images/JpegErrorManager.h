@@ -32,6 +32,14 @@
 
 #pragma once
 
+#if !defined(ORTHANC_ENABLE_JPEG)
+#  error The macro ORTHANC_ENABLE_JPEG must be defined
+#endif
+
+#if ORTHANC_ENABLE_JPEG != 1
+#  error JPEG support must be enabled to include this file
+#endif
+
 #include <string.h>
 #include <stdio.h>
 #include <jpeglib.h>
