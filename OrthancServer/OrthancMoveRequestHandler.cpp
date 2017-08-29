@@ -35,7 +35,7 @@
 #include "OrthancMoveRequestHandler.h"
 
 #include "OrthancInitialization.h"
-#include "FromDcmtkBridge.h"
+#include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/DicomFormat/DicomArray.h"
 #include "../Core/Logging.h"
 

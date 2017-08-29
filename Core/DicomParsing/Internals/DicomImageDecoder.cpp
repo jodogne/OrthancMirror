@@ -31,7 +31,7 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
+#include "../../PrecompiledHeaders.h"
 #include "DicomImageDecoder.h"
 
 
@@ -77,21 +77,21 @@
   =========================================================================*/
 
 
-#include "../../Core/Logging.h"
-#include "../../Core/OrthancException.h"
-#include "../../Core/Images/Image.h"
-#include "../../Core/Images/ImageProcessing.h"
-#include "../../Core/DicomFormat/DicomIntegerPixelAccessor.h"
+#include "../../Logging.h"
+#include "../../OrthancException.h"
+#include "../../Images/Image.h"
+#include "../../Images/ImageProcessing.h"
+#include "../../DicomFormat/DicomIntegerPixelAccessor.h"
 #include "../ToDcmtkBridge.h"
 #include "../FromDcmtkBridge.h"
 #include "../ParsedDicomFile.h"
 
 #if ORTHANC_ENABLE_PNG == 1
-#  include "../../Core/Images/PngWriter.h"
+#  include "../../Images/PngWriter.h"
 #endif
 
 #if ORTHANC_ENABLE_JPEG == 1
-#  include "../../Core/Images/JpegWriter.h"
+#  include "../../Images/JpegWriter.h"
 #endif
 
 #include <boost/lexical_cast.hpp>

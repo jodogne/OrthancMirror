@@ -31,13 +31,13 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
+#include "../../PrecompiledHeaders.h"
 #include "DicomFrameIndex.h"
 
-#include "../../Core/OrthancException.h"
-#include "../../Core/DicomFormat/DicomImageInformation.h"
+#include "../../OrthancException.h"
+#include "../../DicomFormat/DicomImageInformation.h"
 #include "../FromDcmtkBridge.h"
-#include "../../Core/Endianness.h"
+#include "../../Endianness.h"
 #include "DicomImageDecoder.h"
 
 #include <boost/lexical_cast.hpp>

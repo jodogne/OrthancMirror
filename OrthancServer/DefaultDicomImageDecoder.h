@@ -34,8 +34,8 @@
 #pragma once
 
 #include "IDicomImageDecoder.h"
-#include "ParsedDicomFile.h"
-#include "Internals/DicomImageDecoder.h"
+#include "../Core/DicomParsing/ParsedDicomFile.h"
+#include "../Core/DicomParsing/Internals/DicomImageDecoder.h"
 
 namespace Orthanc
 {

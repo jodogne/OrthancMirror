@@ -36,7 +36,7 @@
 
 #include "../Core/OrthancException.h"
 #include "../Core/DicomFormat/DicomMap.h"
-#include "../OrthancServer/FromDcmtkBridge.h"
+#include "../Core/DicomParsing/FromDcmtkBridge.h"
 
 #include <memory>
 

@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "ParsedDicomFile.h"
+#include "../Core/DicomParsing/ParsedDicomFile.h"
 #include "ServerIndex.h"
 #include "../Core/OrthancException.h"
 #include "../Core/RestApi/RestApiCall.h"

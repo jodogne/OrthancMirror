@@ -41,15 +41,15 @@
 #include "../Core/HttpServer/FilesystemHttpHandler.h"
 #include "../Core/Lua/LuaFunctionCall.h"
 #include "../Core/DicomFormat/DicomArray.h"
-#include "DicomProtocol/DicomServer.h"
-#include "DicomProtocol/ReusableDicomUserConnection.h"
+#include "../Core/DicomNetworking/DicomServer.h"
+#include "../Core/DicomNetworking/ReusableDicomUserConnection.h"
 #include "OrthancInitialization.h"
 #include "ServerContext.h"
 #include "OrthancFindRequestHandler.h"
 #include "OrthancMoveRequestHandler.h"
 #include "ServerToolbox.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
-#include "FromDcmtkBridge.h"
+#include "../Core/DicomParsing/FromDcmtkBridge.h"
 
 using namespace Orthanc;
 

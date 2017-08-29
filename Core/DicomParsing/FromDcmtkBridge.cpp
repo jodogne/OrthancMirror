@@ -31,7 +31,7 @@
  **/
 
 
-#include "PrecompiledHeadersServer.h"
+#include "../PrecompiledHeaders.h"
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -39,11 +39,11 @@
 
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
-#include "../Core/Logging.h"
-#include "../Core/SystemToolbox.h"
-#include "../Core/Toolbox.h"
-#include "../Core/TemporaryFile.h"
-#include "../Core/OrthancException.h"
+#include "../Logging.h"
+#include "../SystemToolbox.h"
+#include "../Toolbox.h"
+#include "../TemporaryFile.h"
+#include "../OrthancException.h"
 
 #include <list>
 #include <limits>

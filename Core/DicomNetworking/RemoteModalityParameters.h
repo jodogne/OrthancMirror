@@ -33,51 +33,77 @@
 
 #pragma once
 
-#include "../../Core/Enumerations.h"
+#include "../Enumerations.h"
 
-#include <dcmtk/dcmdata/dcdatset.h>
-#include <dcmtk/dcmdata/dcfilefo.h>
-#include <vector>
 #include <stdint.h>
-#include <boost/noncopyable.hpp>
-#include <memory>
+#include <string>
+#include <json/json.h>
 
 namespace Orthanc
 {
-  class DicomFrameIndex
+  class RemoteModalityParameters
   {
   private:
-    class IIndex : public boost::noncopyable
-    {
-    public:
-      virtual ~IIndex()
-      {
-      }
-
-      virtual void GetRawFrame(std::string& frame,
-                               unsigned int index) const = 0;
-    };
-
-    class FragmentIndex;
-    class UncompressedIndex;
-    class PsmctRle1Index;
-
-    std::auto_ptr<IIndex>  index_;
-    unsigned int           countFrames_;
+    std::string aet_;
+    std::string host_;
+    uint16_t port_;
+    ModalityManufacturer manufacturer_;
 
   public:
-    DicomFrameIndex(DcmFileFormat& dicom);
+    RemoteModalityParameters();
 
-    unsigned int GetFramesCount() const
+    RemoteModalityParameters(const std::string& aet,
+                             const std::string& host,
+                             uint16_t port,
+                             ModalityManufacturer manufacturer);
+
+    const std::string& GetApplicationEntityTitle() const
     {
-      return countFrames_;
+      return aet_;
     }
 
-    void GetRawFrame(std::string& frame,
-                     unsigned int index) const;
+    void SetApplicationEntityTitle(const std::string& aet)
+    {
+      aet_ = aet;
+    }
 
-    static bool IsVideo(DcmFileFormat& dicom);
+    const std::string& GetHost() const
+    {
+      return host_;
+    }
 
-    static unsigned int GetFramesCount(DcmFileFormat& dicom);
+    void SetHost(const std::string& host)
+    {
+      host_ = host;
+    }
+    
+    uint16_t GetPort() const
+    {
+      return port_;
+    }
+
+    void SetPort(uint16_t port)
+    {
+      port_ = port;
+    }
+
+    ModalityManufacturer GetManufacturer() const
+    {
+      return manufacturer_;
+    }
+
+    void SetManufacturer(ModalityManufacturer manufacturer)
+    {
+      manufacturer_ = manufacturer;
+    }    
+
+    void SetManufacturer(const std::string& manufacturer)
+    {
+      manufacturer_ = StringToModalityManufacturer(manufacturer);
+    }
+
+    void FromJson(const Json::Value& modality);
+
+    void ToJson(Json::Value& value) const;
   };
 }

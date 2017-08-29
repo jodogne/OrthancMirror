@@ -42,8 +42,8 @@
 #include "../Core/HttpServer/MongooseServer.h"
 #include "../Core/Images/FontRegistry.h"
 #include "../Core/WebServiceParameters.h"
+#include "../Core/DicomNetworking/RemoteModalityParameters.h"
 
-#include "DicomProtocol/RemoteModalityParameters.h"
 #include "IDatabaseWrapper.h"
 #include "ServerEnumerations.h"
 

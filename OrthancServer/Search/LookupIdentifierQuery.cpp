@@ -36,7 +36,7 @@
 
 #include "../../Core/OrthancException.h"
 #include "SetOfResources.h"
-#include "../FromDcmtkBridge.h"
+#include "../../Core/DicomParsing/FromDcmtkBridge.h"
 
 #include <cassert>
 

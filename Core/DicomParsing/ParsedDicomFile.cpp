@@ -73,7 +73,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =========================================================================*/
 
 
-#include "PrecompiledHeadersServer.h"
+#include "../PrecompiledHeaders.h"
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -84,17 +84,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
 #include "Internals/DicomFrameIndex.h"
-#include "../Core/Logging.h"
-#include "../Core/OrthancException.h"
-#include "../Core/Toolbox.h"
-#include "../Core/SystemToolbox.h"
+#include "../Logging.h"
+#include "../OrthancException.h"
+#include "../Toolbox.h"
+#include "../SystemToolbox.h"
 
 #if ORTHANC_ENABLE_JPEG == 1
-#  include "../Core/Images/JpegReader.h"
+#  include "../Images/JpegReader.h"
 #endif
 
 #if ORTHANC_ENABLE_PNG == 1
-#  include "../Core/Images/PngReader.h"
+#  include "../Images/PngReader.h"
 #endif
 
 #include <list>

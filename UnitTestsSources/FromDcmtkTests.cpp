@@ -34,9 +34,9 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
-#include "../OrthancServer/FromDcmtkBridge.h"
-#include "../OrthancServer/ToDcmtkBridge.h"
-#include "../OrthancServer/DicomModification.h"
+#include "../Core/DicomParsing/FromDcmtkBridge.h"
+#include "../Core/DicomParsing/ToDcmtkBridge.h"
+#include "../Core/DicomParsing/DicomModification.h"
 #include "../OrthancServer/ServerToolbox.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Images/ImageBuffer.h"
@@ -46,8 +46,8 @@
 #include "../Core/Images/ImageProcessing.h"
 #include "../Core/Endianness.h"
 #include "../Resources/EncodingTests.h"
-#include "../OrthancServer/DicomProtocol/DicomFindAnswers.h"
-#include "../OrthancServer/Internals/DicomImageDecoder.h"
+#include "../Core/DicomNetworking/DicomFindAnswers.h"
+#include "../Core/DicomParsing/Internals/DicomImageDecoder.h"
 #include "../Plugins/Engine/PluginsEnumerations.h"
 
 #include <dcmtk/dcmdata/dcelem.h>

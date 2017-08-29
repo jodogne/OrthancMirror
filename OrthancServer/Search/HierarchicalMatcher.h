@@ -33,9 +33,8 @@
 
 #pragma once
 
-#include "../../Core/DicomFormat/DicomMap.h"
 #include "IFindConstraint.h"
-#include "../ParsedDicomFile.h"
+#include "../../Core/DicomParsing/ParsedDicomFile.h"
 
 class DcmItem;
 
