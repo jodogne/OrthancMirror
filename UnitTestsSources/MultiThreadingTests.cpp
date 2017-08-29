@@ -129,7 +129,7 @@ TEST(MultiThreading, ReaderWriterLock)
 
 
 
-#include "../OrthancServer/DicomProtocol/ReusableDicomUserConnection.h"
+#include "../Core/DicomNetworking/ReusableDicomUserConnection.h"
 
 TEST(ReusableDicomUserConnection, DISABLED_Basic)
 {

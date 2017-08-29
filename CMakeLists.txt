@@ -166,23 +166,27 @@ set(ORTHANC_CORE_SOURCES
 
 
 set(ORTHANC_SERVER_SOURCES
+  Core/DicomParsing/DicomDirWriter.cpp
+  Core/DicomParsing/DicomModification.cpp
+  Core/DicomParsing/FromDcmtkBridge.cpp
+  Core/DicomParsing/Internals/DicomFrameIndex.cpp
+  Core/DicomParsing/Internals/DicomImageDecoder.cpp
+  Core/DicomParsing/ParsedDicomFile.cpp
+  Core/DicomParsing/ToDcmtkBridge.cpp
+
+  Core/DicomNetworking/DicomFindAnswers.cpp
+  Core/DicomNetworking/DicomServer.cpp
+  Core/DicomNetworking/DicomUserConnection.cpp
+  Core/DicomNetworking/RemoteModalityParameters.cpp
+  Core/DicomNetworking/ReusableDicomUserConnection.cpp
+  Core/DicomNetworking/Internals/CommandDispatcher.cpp
+  Core/DicomNetworking/Internals/FindScp.cpp
+  Core/DicomNetworking/Internals/MoveScp.cpp
+  Core/DicomNetworking/Internals/StoreScp.cpp
+
   OrthancServer/DatabaseWrapper.cpp
   OrthancServer/DatabaseWrapperBase.cpp
-  OrthancServer/DicomDirWriter.cpp
-  OrthancServer/DicomModification.cpp
-  OrthancServer/DicomProtocol/DicomFindAnswers.cpp
-  OrthancServer/DicomProtocol/DicomServer.cpp
-  OrthancServer/DicomProtocol/DicomUserConnection.cpp
-  OrthancServer/DicomProtocol/RemoteModalityParameters.cpp
-  OrthancServer/DicomProtocol/ReusableDicomUserConnection.cpp
   OrthancServer/ExportedResource.cpp
-  OrthancServer/FromDcmtkBridge.cpp
-  OrthancServer/Internals/CommandDispatcher.cpp
-  OrthancServer/Internals/DicomFrameIndex.cpp
-  OrthancServer/Internals/DicomImageDecoder.cpp
-  OrthancServer/Internals/FindScp.cpp
-  OrthancServer/Internals/MoveScp.cpp
-  OrthancServer/Internals/StoreScp.cpp
   OrthancServer/LuaScripting.cpp
   OrthancServer/OrthancFindRequestHandler.cpp
   OrthancServer/OrthancHttpHandler.cpp
@@ -195,7 +199,6 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/OrthancRestApi/OrthancRestModalities.cpp
   OrthancServer/OrthancRestApi/OrthancRestResources.cpp
   OrthancServer/OrthancRestApi/OrthancRestSystem.cpp
-  OrthancServer/ParsedDicomFile.cpp
   OrthancServer/QueryRetrieveHandler.cpp
   OrthancServer/Search/HierarchicalMatcher.cpp
   OrthancServer/Search/IFindConstraint.cpp
@@ -211,7 +214,6 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/ServerIndex.cpp
   OrthancServer/ServerToolbox.cpp
   OrthancServer/SliceOrdering.cpp
-  OrthancServer/ToDcmtkBridge.cpp
 
   # From "lua-scripting" branch
   OrthancServer/DicomInstanceToStore.cpp

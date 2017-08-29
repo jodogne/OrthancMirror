@@ -37,7 +37,7 @@
 #include "../Core/DicomFormat/DicomArray.h"
 #include "../Core/Lua/LuaFunctionCall.h"
 #include "../Core/Logging.h"
-#include "FromDcmtkBridge.h"
+#include "../Core/DicomParsing/FromDcmtkBridge.h"
 #include "OrthancInitialization.h"
 #include "Search/LookupResource.h"
 #include "ServerToolbox.h"

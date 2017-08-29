@@ -34,7 +34,8 @@
 #pragma once
 
 #include "../../Core/RestApi/RestApi.h"
-#include "../DicomModification.h"
+#include "../../Core/DicomParsing/DicomModification.h"
+#include "../ServerEnumerations.h"
 
 #include <set>
 

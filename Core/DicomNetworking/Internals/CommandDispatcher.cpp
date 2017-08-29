@@ -80,14 +80,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =========================================================================*/
 
 
-#include "../PrecompiledHeadersServer.h"
+#include "../../PrecompiledHeaders.h"
 #include "CommandDispatcher.h"
 
 #include "FindScp.h"
 #include "StoreScp.h"
 #include "MoveScp.h"
-#include "../../Core/Toolbox.h"
-#include "../../Core/Logging.h"
+#include "../../Toolbox.h"
+#include "../../Logging.h"
 
 #include <dcmtk/dcmnet/dcasccfg.h>      /* for class DcmAssociationConfiguration */
 #include <boost/lexical_cast.hpp>

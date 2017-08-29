@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "../ParsedDicomFile.h"
+#include "../DicomParsing/ParsedDicomFile.h"
 
 namespace Orthanc
 {

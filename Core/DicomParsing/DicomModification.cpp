@@ -31,11 +31,11 @@
  **/
 
 
-#include "PrecompiledHeadersServer.h"
+#include "../PrecompiledHeaders.h"
 #include "DicomModification.h"
 
-#include "../Core/Logging.h"
-#include "../Core/OrthancException.h"
+#include "../Logging.h"
+#include "../OrthancException.h"
 #include "FromDcmtkBridge.h"
 
 #include <memory>   // For std::auto_ptr

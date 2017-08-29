@@ -33,23 +33,47 @@
 
 #pragma once
 
-#if ORTHANC_ENABLE_DCMTK != 1
-#  error The macro ORTHANC_ENABLE_DCMTK must be set to 1
-#endif
+#include "../DicomServer.h"
+#include "../../MultiThreading/IRunnableBySteps.h"
 
-#include "../Core/DicomFormat/DicomMap.h"
-#include <dcmtk/dcmdata/dcdatset.h>
+#include <dcmtk/dcmnet/dimse.h>
 
 namespace Orthanc
 {
-  class ToDcmtkBridge
+  namespace Internals
   {
-  public:
-    static DcmTagKey Convert(const DicomTag& tag)
-    {
-      return DcmTagKey(tag.GetGroup(), tag.GetElement());
-    }
+    OFCondition AssociationCleanup(T_ASC_Association *assoc);
 
-    static DcmEVR Convert(ValueRepresentation vr);
-  };
+    class CommandDispatcher : public IRunnableBySteps
+    {
+    private:
+      uint32_t associationTimeout_;
+      uint32_t elapsedTimeSinceLastCommand_;
+      const DicomServer& server_;
+      T_ASC_Association* assoc_;
+      std::string remoteIp_;
+      std::string remoteAet_;
+      std::string calledAet_;
+      IApplicationEntityFilter* filter_;
+
+    public:
+      CommandDispatcher(const DicomServer& server,
+                        T_ASC_Association* assoc,
+                        const std::string& remoteIp,
+                        const std::string& remoteAet,
+                        const std::string& calledAet,
+                        IApplicationEntityFilter* filter);
+
+      virtual ~CommandDispatcher();
+
+      virtual bool Step();
+    };
+
+    OFCondition EchoScp(T_ASC_Association * assoc, 
+                        T_DIMSE_Message * msg, 
+                        T_ASC_PresentationContextID presID);
+
+    CommandDispatcher* AcceptAssociation(const DicomServer& server, 
+                                         T_ASC_Network *net);
+  }
 }

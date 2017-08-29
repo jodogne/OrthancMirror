@@ -35,7 +35,7 @@
 
 #include "IServerCommand.h"
 #include "../ServerContext.h"
-#include "../DicomModification.h"
+#include "../../Core/DicomParsing/DicomModification.h"
 
 namespace Orthanc
 {

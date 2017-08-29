@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "../ServerEnumerations.h"
+#include "../Enumerations.h"
 
 #include <string>
 

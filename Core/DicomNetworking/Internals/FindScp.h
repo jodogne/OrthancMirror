@@ -33,77 +33,22 @@
 
 #pragma once
 
-#include "../ServerEnumerations.h"
+#include "../DicomServer.h"
 
-#include <stdint.h>
-#include <string>
-#include <json/json.h>
+#include <dcmtk/dcmnet/dimse.h>
 
 namespace Orthanc
 {
-  class RemoteModalityParameters
+  namespace Internals
   {
-  private:
-    std::string aet_;
-    std::string host_;
-    uint16_t port_;
-    ModalityManufacturer manufacturer_;
-
-  public:
-    RemoteModalityParameters();
-
-    RemoteModalityParameters(const std::string& aet,
-                             const std::string& host,
-                             uint16_t port,
-                             ModalityManufacturer manufacturer);
-
-    const std::string& GetApplicationEntityTitle() const
-    {
-      return aet_;
-    }
-
-    void SetApplicationEntityTitle(const std::string& aet)
-    {
-      aet_ = aet;
-    }
-
-    const std::string& GetHost() const
-    {
-      return host_;
-    }
-
-    void SetHost(const std::string& host)
-    {
-      host_ = host;
-    }
-    
-    uint16_t GetPort() const
-    {
-      return port_;
-    }
-
-    void SetPort(uint16_t port)
-    {
-      port_ = port;
-    }
-
-    ModalityManufacturer GetManufacturer() const
-    {
-      return manufacturer_;
-    }
-
-    void SetManufacturer(ModalityManufacturer manufacturer)
-    {
-      manufacturer_ = manufacturer;
-    }    
-
-    void SetManufacturer(const std::string& manufacturer)
-    {
-      manufacturer_ = StringToModalityManufacturer(manufacturer);
-    }
-
-    void FromJson(const Json::Value& modality);
-
-    void ToJson(Json::Value& value) const;
-  };
+    OFCondition findScp(T_ASC_Association * assoc, 
+                        T_DIMSE_Message * msg, 
+                        T_ASC_PresentationContextID presID,
+                        DicomServer::IRemoteModalities& modalities,
+                        IFindRequestHandler* findHandler,   // can be NULL
+                        IWorklistRequestHandler* worklistHandler,   // can be NULL
+                        const std::string& remoteIp,
+                        const std::string& remoteAet,
+                        const std::string& calledAet);
+  }
 }

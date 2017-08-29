@@ -35,7 +35,6 @@
 #include "OrthancRestApi.h"
 
 #include "../../Core/Logging.h"
-#include "../DicomModification.h"
 #include "../ServerContext.h"
 
 namespace Orthanc

@@ -34,13 +34,13 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
-#include "../OrthancServer/Internals/DicomImageDecoder.h"
+#include "../Core/DicomParsing/Internals/DicomImageDecoder.h"
 
 #if ORTHANC_ENABLE_JPEG_LOSSLESS == 1
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 
-#include "../OrthancServer/ParsedDicomFile.h"
+#include "../Core/DicomParsing/ParsedDicomFile.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Images/ImageBuffer.h"
 #include "../Core/Images/PngWriter.h"

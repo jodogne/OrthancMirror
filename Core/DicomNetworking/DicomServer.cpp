@@ -31,14 +31,14 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
+#include "../PrecompiledHeaders.h"
 #include "DicomServer.h"
 
 #include "../../Core/Logging.h"
 #include "../../Core/MultiThreading/RunnableWorkersPool.h"
 #include "../../Core/OrthancException.h"
 #include "../../Core/Toolbox.h"
-#include "../Internals/CommandDispatcher.h"
+#include "Internals/CommandDispatcher.h"
 
 #include <boost/thread.hpp>
 
