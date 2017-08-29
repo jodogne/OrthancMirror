@@ -84,7 +84,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "StoreScp.h"
 
 #include "../FromDcmtkBridge.h"
-#include "../ServerToolbox.h"
 #include "../ToDcmtkBridge.h"
 #include "../OrthancInitialization.h"
 #include "../../Core/OrthancException.h"
@@ -213,7 +212,7 @@ namespace Orthanc
 
                 if (e.GetErrorCode() == ErrorCode_InexistentTag)
                 {
-                  ServerToolbox::LogMissingRequiredTag(summary);
+                  summary.LogMissingTagsForStore();
                 }
                 else
                 {

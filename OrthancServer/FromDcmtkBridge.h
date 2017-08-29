@@ -44,12 +44,12 @@
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <json/json.h>
 
-#if !defined(ORTHANC_BUILD_UNIT_TESTS)
-#  error The macro ORTHANC_BUILD_UNIT_TESTS must be defined
-#endif
-
 #if !defined(ORTHANC_ENABLE_LUA)
 #  error The macro ORTHANC_ENABLE_LUA must be defined
+#endif
+
+#if ORTHANC_ENABLE_DCMTK != 1
+#  error The macro ORTHANC_ENABLE_DCMTK must be set to 1
 #endif
 
 #if ORTHANC_BUILD_UNIT_TESTS == 1
