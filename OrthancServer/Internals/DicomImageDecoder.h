@@ -41,8 +41,16 @@
 #  error The macro ORTHANC_ENABLE_JPEG must be defined
 #endif
 
-#if !defined(ORTHANC_ENABLE_JPEG_LOSSLESS)
-#  error The macro ORTHANC_ENABLE_JPEG_LOSSLESS must be defined
+#if !defined(ORTHANC_ENABLE_PNG)
+#  error The macro ORTHANC_ENABLE_PNG must be defined
+#endif
+
+#if !defined(ORTHANC_ENABLE_DCMTK_JPEG)
+#  error The macro ORTHANC_ENABLE_DCMTK_JPEG must be defined
+#endif
+
+#if !defined(ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS)
+#  error The macro ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS must be defined
 #endif
 
 
@@ -91,15 +99,19 @@ namespace Orthanc
     static ImageAccessor *Decode(ParsedDicomFile& dicom,
                                  unsigned int frame);
 
+#if ORTHANC_ENABLE_PNG == 1
     static void ExtractPngImage(std::string& result,
                                 std::auto_ptr<ImageAccessor>& image,
                                 ImageExtractionMode mode,
                                 bool invert);
+#endif
 
+#if ORTHANC_ENABLE_JPEG == 1
     static void ExtractJpegImage(std::string& result,
                                  std::auto_ptr<ImageAccessor>& image,
                                  ImageExtractionMode mode,
                                  bool invert,
                                  uint8_t quality);
+#endif
   };
 }

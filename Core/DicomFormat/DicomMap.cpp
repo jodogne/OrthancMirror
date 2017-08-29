@@ -36,7 +36,9 @@
 
 #include <stdio.h>
 #include <memory>
+
 #include "../Endianness.h"
+#include "../Logging.h"
 #include "../OrthancException.h"
 
 
@@ -780,5 +782,87 @@ namespace Orthanc
     }
 
     return true;
+  }
+
+
+  static std::string ValueAsString(const DicomMap& summary,
+                                   const DicomTag& tag)
+  {
+    const DicomValue& value = summary.GetValue(tag);
+    if (value.IsNull())
+    {
+      return "(null)";
+    }
+    else
+    {
+      return value.GetContent();
+    }
+  }
+
+
+  void DicomMap::LogMissingTagsForStore() const
+  {
+    std::string s, t;
+
+    if (HasTag(DICOM_TAG_PATIENT_ID))
+    {
+      if (t.size() > 0)
+        t += ", ";
+      t += "PatientID=" + ValueAsString(*this, DICOM_TAG_PATIENT_ID);
+    }
+    else
+    {
+      if (s.size() > 0)
+        s += ", ";
+      s += "PatientID";
+    }
+
+    if (HasTag(DICOM_TAG_STUDY_INSTANCE_UID))
+    {
+      if (t.size() > 0)
+        t += ", ";
+      t += "StudyInstanceUID=" + ValueAsString(*this, DICOM_TAG_STUDY_INSTANCE_UID);
+    }
+    else
+    {
+      if (s.size() > 0)
+        s += ", ";
+      s += "StudyInstanceUID";
+    }
+
+    if (HasTag(DICOM_TAG_SERIES_INSTANCE_UID))
+    {
+      if (t.size() > 0)
+        t += ", ";
+      t += "SeriesInstanceUID=" + ValueAsString(*this, DICOM_TAG_SERIES_INSTANCE_UID);
+    }
+    else
+    {
+      if (s.size() > 0)
+        s += ", ";
+      s += "SeriesInstanceUID";
+    }
+
+    if (HasTag(DICOM_TAG_SOP_INSTANCE_UID))
+    {
+      if (t.size() > 0)
+        t += ", ";
+      t += "SOPInstanceUID=" + ValueAsString(*this, DICOM_TAG_SOP_INSTANCE_UID);
+    }
+    else
+    {
+      if (s.size() > 0)
+        s += ", ";
+      s += "SOPInstanceUID";
+    }
+
+    if (t.size() == 0)
+    {
+      LOG(ERROR) << "Store has failed because all the required tags (" << s << ") are missing (is it a DICOMDIR file?)";
+    }
+    else
+    {
+      LOG(ERROR) << "Store has failed because required tags (" << s << ") are missing for the following instance: " << t;
+    }
   }
 }

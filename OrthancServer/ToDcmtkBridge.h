@@ -33,6 +33,10 @@
 
 #pragma once
 
+#if ORTHANC_ENABLE_DCMTK != 1
+#  error The macro ORTHANC_ENABLE_DCMTK must be set to 1
+#endif
+
 #include "../Core/DicomFormat/DicomMap.h"
 #include <dcmtk/dcmdata/dcdatset.h>
 

@@ -181,5 +181,7 @@ namespace Orthanc
     static bool ParseDicomMetaInformation(DicomMap& result,
                                           const char* dicom,
                                           size_t size);
+
+    void LogMissingTagsForStore() const;
   };
 }

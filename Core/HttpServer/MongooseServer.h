@@ -33,6 +33,20 @@
 
 #pragma once
 
+#if !defined(ORTHANC_ENABLE_MONGOOSE)
+#  error Macro ORTHANC_ENABLE_MONGOOSE must be defined to include this file
+#endif
+
+#if !defined(ORTHANC_ENABLE_CIVETWEB)
+#  error Macro ORTHANC_ENABLE_CIVETWEB must be defined to include this file
+#endif
+
+#if (ORTHANC_ENABLE_MONGOOSE == 0 && \
+     ORTHANC_ENABLE_CIVETWEB == 0)
+#  error Either ORTHANC_ENABLE_MONGOOSE or ORTHANC_ENABLE_CIVETWEB must be set to 1
+#endif
+
+
 #include "IIncomingHttpRequestFilter.h"
 
 #include "../OrthancException.h"

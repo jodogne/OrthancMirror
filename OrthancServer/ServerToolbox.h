@@ -45,8 +45,6 @@ namespace Orthanc
                       const Json::Value& source,
                       DicomToJsonFormat format);
 
-    void LogMissingRequiredTag(const DicomMap& summary);
-
     void StoreMainDicomTags(IDatabaseWrapper& database,
                             int64_t resource,
                             ResourceType level,

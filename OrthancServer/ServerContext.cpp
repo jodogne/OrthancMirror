@@ -314,7 +314,7 @@ namespace Orthanc
     {
       if (e.GetErrorCode() == ErrorCode_InexistentTag)
       {
-        ServerToolbox::LogMissingRequiredTag(dicom.GetSummary());
+        dicom.GetSummary().LogMissingTagsForStore();
       }
 
       throw;

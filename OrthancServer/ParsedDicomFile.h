@@ -40,6 +40,14 @@
 #include "../Core/Toolbox.h"
 #include "ServerEnumerations.h"
 
+#if !defined(ORTHANC_ENABLE_JPEG)
+#  error Macro ORTHANC_ENABLE_JPEG must be defined to use this file
+#endif
+
+#if !defined(ORTHANC_ENABLE_PNG)
+#  error Macro ORTHANC_ENABLE_PNG must be defined to use this file
+#endif
+
 class DcmDataset;
 class DcmFileFormat;
 
@@ -144,8 +152,11 @@ namespace Orthanc
 
     void EmbedImage(const ImageAccessor& accessor);
 
+#if (ORTHANC_ENABLE_JPEG == 1 &&  \
+     ORTHANC_ENABLE_PNG == 1)
     void EmbedImage(const std::string& mime,
                     const std::string& content);
+#endif
 
     Encoding GetEncoding() const;
 

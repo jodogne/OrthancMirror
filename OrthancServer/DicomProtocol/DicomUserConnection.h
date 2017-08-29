@@ -33,6 +33,10 @@
 
 #pragma once
 
+#if ORTHANC_ENABLE_DCMTK_NETWORKING != 1
+#  error The macro ORTHANC_ENABLE_DCMTK_NETWORKING must be set to 1
+#endif
+
 #include "DicomFindAnswers.h"
 #include "../ServerEnumerations.h"
 #include "RemoteModalityParameters.h"

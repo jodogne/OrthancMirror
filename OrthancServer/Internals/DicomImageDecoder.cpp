@@ -81,13 +81,19 @@
 #include "../../Core/OrthancException.h"
 #include "../../Core/Images/Image.h"
 #include "../../Core/Images/ImageProcessing.h"
-#include "../../Core/Images/PngWriter.h"
-#include "../../Core/Images/JpegWriter.h"
 #include "../../Core/DicomFormat/DicomIntegerPixelAccessor.h"
 #include "../ToDcmtkBridge.h"
 #include "../FromDcmtkBridge.h"
 #include "../ParsedDicomFile.h"
 #include "../OrthancInitialization.h"
+
+#if ORTHANC_ENABLE_PNG == 1
+#  include "../../Core/Images/PngWriter.h"
+#endif
+
+#if ORTHANC_ENABLE_JPEG == 1
+#  include "../../Core/Images/JpegWriter.h"
+#endif
 
 #include <boost/lexical_cast.hpp>
 
@@ -95,13 +101,13 @@
 #include <dcmtk/dcmdata/dcrleccd.h>
 #include <dcmtk/dcmdata/dcrlecp.h>
 
-#if ORTHANC_ENABLE_JPEG_LOSSLESS == 1
+#if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
 #  include <dcmtk/dcmjpls/djcodecd.h>
 #  include <dcmtk/dcmjpls/djcparam.h>
 #  include <dcmtk/dcmjpeg/djrplol.h>
 #endif
 
-#if ORTHANC_ENABLE_JPEG == 1
+#if ORTHANC_ENABLE_DCMTK_JPEG == 1
 #  include <dcmtk/dcmjpeg/djcodecd.h>
 #  include <dcmtk/dcmjpeg/djcparam.h>
 #  include <dcmtk/dcmjpeg/djdecbas.h>
@@ -518,7 +524,7 @@ namespace Orthanc
     }
 
 
-#if ORTHANC_ENABLE_JPEG_LOSSLESS == 1
+#if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
     /**
      * Deal with JPEG-LS images.
      **/
@@ -550,7 +556,7 @@ namespace Orthanc
 #endif
 
 
-#if ORTHANC_ENABLE_JPEG == 1
+#if ORTHANC_ENABLE_DCMTK_JPEG == 1
     /**
      * Deal with JPEG images.
      **/
@@ -775,6 +781,7 @@ namespace Orthanc
   }
 
 
+#if ORTHANC_ENABLE_PNG == 1
   void DicomImageDecoder::ExtractPngImage(std::string& result,
                                           std::auto_ptr<ImageAccessor>& image,
                                           ImageExtractionMode mode,
@@ -785,8 +792,10 @@ namespace Orthanc
     PngWriter writer;
     writer.WriteToMemory(result, *image);
   }
+#endif
 
 
+#if ORTHANC_ENABLE_JPEG == 1
   void DicomImageDecoder::ExtractJpegImage(std::string& result,
                                            std::auto_ptr<ImageAccessor>& image,
                                            ImageExtractionMode mode,
@@ -805,4 +814,5 @@ namespace Orthanc
     writer.SetQuality(quality);
     writer.WriteToMemory(result, *image);
   }
+#endif
 }

@@ -38,6 +38,11 @@
 #pragma once
 
 
+#if ORTHANC_ENABLE_SQLITE != 1
+#  error Macro ORTHANC_ENABLE_SQLITE must be set to 1 to use SQLite
+#endif
+
+
 #if ORTHANC_SQLITE_STANDALONE == 1
 #include <stdexcept>
 
