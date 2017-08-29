@@ -82,15 +82,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParsedDicomFile.h"
 
 #include "OrthancInitialization.h"
-#include "ServerToolbox.h"
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
 #include "Internals/DicomFrameIndex.h"
-#include "../Core/Images/JpegReader.h"
-#include "../Core/Images/PngReader.h"
 #include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
+
+#if ORTHANC_ENABLE_JPEG == 1
+#  include "../Core/Images/JpegReader.h"
+#endif
+
+#if ORTHANC_ENABLE_PNG == 1
+#  include "../Core/Images/PngReader.h"
+#endif
 
 #include <list>
 #include <limits>
@@ -1016,10 +1021,23 @@ namespace Orthanc
 
     Toolbox::ToLowerCase(mime);
 
-    if (mime == "image/png" ||
-        mime == "image/jpeg")
+    if (mime == "image/png")
     {
+#if ORTHANC_ENABLE_PNG == 1
       EmbedImage(mime, content);
+#else
+      LOG(ERROR) << "Orthanc was compiled without support of PNG";
+      throw OrthancException(ErrorCode_NotImplemented);
+#endif
+    }
+    else if (mime == "image/jpeg")
+    {
+#if ORTHANC_ENABLE_JPEG == 1
+      EmbedImage(mime, content);
+#else
+      LOG(ERROR) << "Orthanc was compiled without support of JPEG";
+      throw OrthancException(ErrorCode_NotImplemented);
+#endif
     }
     else if (mime == "application/pdf")
     {
@@ -1044,6 +1062,8 @@ namespace Orthanc
   }
 
 
+#if (ORTHANC_ENABLE_JPEG == 1 &&  \
+     ORTHANC_ENABLE_PNG == 1)
   void ParsedDicomFile::EmbedImage(const std::string& mime,
                                    const std::string& content)
   {
@@ -1064,6 +1084,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotImplemented);
     }
   }
+#endif
 
 
   void ParsedDicomFile::EmbedImage(const ImageAccessor& accessor)

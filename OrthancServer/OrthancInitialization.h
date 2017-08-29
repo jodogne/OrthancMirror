@@ -47,12 +47,12 @@
 #include "IDatabaseWrapper.h"
 #include "ServerEnumerations.h"
 
-#if !defined(ORTHANC_ENABLE_JPEG)
-#  error The macro ORTHANC_ENABLE_JPEG must be defined
+#if !defined(ORTHANC_ENABLE_DCMTK_JPEG)
+#  error The macro ORTHANC_ENABLE_DCMTK_JPEG must be defined
 #endif
 
-#if !defined(ORTHANC_ENABLE_JPEG_LOSSLESS)
-#  error The macro ORTHANC_ENABLE_JPEG_LOSSLESS must be defined
+#if !defined(ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS)
+#  error The macro ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS must be defined
 #endif
 
 

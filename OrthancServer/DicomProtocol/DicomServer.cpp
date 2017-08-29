@@ -35,12 +35,11 @@
 #include "DicomServer.h"
 
 #include "../../Core/Logging.h"
+#include "../../Core/MultiThreading/RunnableWorkersPool.h"
 #include "../../Core/OrthancException.h"
 #include "../../Core/Toolbox.h"
 #include "../Internals/CommandDispatcher.h"
 #include "../OrthancInitialization.h"
-#include "EmbeddedResources.h"
-#include "../../Core/MultiThreading/RunnableWorkersPool.h"
 
 #include <boost/thread.hpp>
 

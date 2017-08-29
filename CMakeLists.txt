@@ -26,8 +26,8 @@ SET(ENABLE_SSL ON CACHE BOOL "Include support for SSL")
 SET(DCMTK_DICTIONARY_DIR "" CACHE PATH "Directory containing the DCMTK dictionaries \"dicom.dic\" and \"private.dic\" (only when using system version of DCMTK)") 
 SET(ALLOW_DOWNLOADS OFF CACHE BOOL "Allow CMake to download packages")
 SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
-SET(ENABLE_JPEG ON CACHE BOOL "Enable JPEG decompression")
-SET(ENABLE_JPEG_LOSSLESS ON CACHE BOOL "Enable JPEG-LS (Lossless) decompression")
+SET(ENABLE_DCMTK_JPEG ON CACHE BOOL "Enable JPEG decompression in DCMTK")
+SET(ENABLE_DCMTK_JPEG_LOSSLESS ON CACHE BOOL "Enable JPEG-LS (Lossless) decompression in DCMTK")
 SET(ENABLE_PLUGINS ON CACHE BOOL "Enable plugins")
 SET(BUILD_SERVE_FOLDERS ON CACHE BOOL "Whether to build the ServeFolders plugin")
 SET(BUILD_MODALITY_WORKLISTS ON CACHE BOOL "Whether to build the sample plugin to serve modality worklists")
@@ -74,8 +74,8 @@ set(ORTHANC_ROOT ${CMAKE_SOURCE_DIR})
 
 # These options must be set to "ON" if compiling Orthanc, but might be
 # set to "OFF" in some plugins if their support is not required
-set(ENABLE_DCMTK_NETWORK ON)  # Enable support for DICOM networking in DCMTK
-set(ENABLE_LOCALE ON)         # Enable support for locales (notably in Boost)
+set(ENABLE_DCMTK_NETWORKING ON)  # Enable support for DICOM networking in DCMTK
+set(ENABLE_LOCALE ON)            # Enable support for locales (notably in Boost)
 
 # Some basic inclusions
 include(CheckIncludeFiles)
@@ -346,17 +346,17 @@ else()
 endif()
 
 
-if (ENABLE_JPEG)
-  add_definitions(-DORTHANC_ENABLE_JPEG=1)
+if (ENABLE_DCMTK_JPEG)
+  add_definitions(-DORTHANC_ENABLE_DCMTK_JPEG=1)
 else()
-  add_definitions(-DORTHANC_ENABLE_JPEG=0)
+  add_definitions(-DORTHANC_ENABLE_DCMTK_JPEG=0)
 endif()
 
 
-if (ENABLE_JPEG_LOSSLESS)
-  add_definitions(-DORTHANC_ENABLE_JPEG_LOSSLESS=1)
+if (ENABLE_DCMTK_JPEG_LOSSLESS)
+  add_definitions(-DORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS=1)
 else()
-  add_definitions(-DORTHANC_ENABLE_JPEG_LOSSLESS=0)
+  add_definitions(-DORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS=0)
 endif()
 
 
@@ -448,9 +448,13 @@ add_definitions(
   -DORTHANC_ENABLE_BASE64=1
   -DORTHANC_ENABLE_LOGGING=1
   -DORTHANC_ENABLE_LOGGING_PLUGIN=0
+  -DORTHANC_ENABLE_DCMTK=1
+  -DORTHANC_ENABLE_DCMTK_NETWORKING=1
+  -DORTHANC_ENABLE_JPEG=1
   -DORTHANC_ENABLE_LUA=1
   -DORTHANC_ENABLE_MD5=1
   -DORTHANC_ENABLE_PNG=1
+  -DORTHANC_ENABLE_SQLITE=1
   -DORTHANC_HAS_EMBEDDED_RESOURCES=1
   -DORTHANC_MAXIMUM_TAG_LENGTH=256
   -DORTHANC_SANDBOXED=0
