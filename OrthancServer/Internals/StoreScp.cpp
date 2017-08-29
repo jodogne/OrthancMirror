@@ -85,7 +85,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../FromDcmtkBridge.h"
 #include "../ToDcmtkBridge.h"
-#include "../OrthancInitialization.h"
 #include "../../Core/OrthancException.h"
 #include "../../Core/Logging.h"
 
@@ -168,8 +167,8 @@ namespace Orthanc
 
           try
           {
-            Configuration::ExtractDicomSummary(summary, **imageDataSet);
-            Configuration::ExtractDicomAsJson(dicomJson, **imageDataSet);
+            FromDcmtkBridge::ExtractDicomSummary(summary, **imageDataSet);
+            FromDcmtkBridge::ExtractDicomAsJson(dicomJson, **imageDataSet);
 
             if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, **imageDataSet))
             {

@@ -43,7 +43,7 @@
 #include "../Core/Images/PngWriter.h"
 #include "../Core/Toolbox.h"
 #include "../Core/TemporaryFile.h"
-#include "../OrthancServer/OrthancInitialization.h"
+#include "../OrthancServer/OrthancInitialization.h"  // For the FontRegistry
 
 #include <stdint.h>
 
