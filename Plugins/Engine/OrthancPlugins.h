@@ -53,14 +53,14 @@ namespace Orthanc
 
 #else
 
+#include "../../Core/DicomNetworking/IFindRequestHandlerFactory.h"
+#include "../../Core/DicomNetworking/IMoveRequestHandlerFactory.h"
+#include "../../Core/DicomNetworking/IWorklistRequestHandlerFactory.h"
 #include "../../Core/FileStorage/IStorageArea.h"
 #include "../../Core/HttpServer/IHttpHandler.h"
 #include "../../Core/HttpServer/IIncomingHttpRequestFilter.h"
-#include "../../OrthancServer/IServerListener.h"
 #include "../../OrthancServer/IDicomImageDecoder.h"
-#include "../../OrthancServer/DicomProtocol/IWorklistRequestHandlerFactory.h"
-#include "../../OrthancServer/DicomProtocol/IFindRequestHandlerFactory.h"
-#include "../../OrthancServer/DicomProtocol/IMoveRequestHandlerFactory.h"
+#include "../../OrthancServer/IServerListener.h"
 #include "OrthancPluginDatabase.h"
 #include "PluginsManager.h"
 

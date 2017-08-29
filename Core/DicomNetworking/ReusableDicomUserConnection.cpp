@@ -31,11 +31,11 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
+#include "../PrecompiledHeaders.h"
 #include "ReusableDicomUserConnection.h"
 
-#include "../../Core/Logging.h"
-#include "../../Core/OrthancException.h"
+#include "../Logging.h"
+#include "../OrthancException.h"
 
 namespace Orthanc
 {

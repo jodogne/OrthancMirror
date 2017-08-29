@@ -33,10 +33,8 @@
 
 #pragma once
 
-#include "ServerEnumerations.h"
-
-#include "../Core/DicomFormat/DicomElement.h"
-#include "../Core/DicomFormat/DicomMap.h"
+#include "../DicomFormat/DicomElement.h"
+#include "../DicomFormat/DicomMap.h"
 
 #include <dcmtk/dcmdata/dcdatset.h>
 #include <dcmtk/dcmdata/dcmetinf.h>
@@ -57,7 +55,7 @@
 #endif
 
 #if ORTHANC_ENABLE_LUA == 1
-#  include "../Core/Lua/LuaFunctionCall.h"
+#  include "../Lua/LuaFunctionCall.h"
 #endif
 
 #if !defined(ORTHANC_ENABLE_DCMTK_JPEG)

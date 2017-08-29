@@ -38,7 +38,7 @@
 #include "../Core/HttpServer/FilesystemHttpSender.h"
 #include "../Core/HttpServer/HttpStreamTranscoder.h"
 #include "../Core/Logging.h"
-#include "FromDcmtkBridge.h"
+#include "../Core/DicomParsing/FromDcmtkBridge.h"
 #include "ServerToolbox.h"
 #include "OrthancInitialization.h"
 

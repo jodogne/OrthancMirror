@@ -33,18 +33,23 @@
 
 #pragma once
 
-#include "../DicomProtocol/IStoreRequestHandler.h"
+#if ORTHANC_ENABLE_DCMTK != 1
+#  error The macro ORTHANC_ENABLE_DCMTK must be set to 1
+#endif
 
-#include <dcmtk/dcmnet/dimse.h>
+#include "../DicomFormat/DicomMap.h"
+#include <dcmtk/dcmdata/dcdatset.h>
 
 namespace Orthanc
 {
-  namespace Internals
+  class ToDcmtkBridge
   {
-    OFCondition storeScp(T_ASC_Association * assoc, 
-                         T_DIMSE_Message * msg, 
-                         T_ASC_PresentationContextID presID,
-                         IStoreRequestHandler& handler,
-                         const std::string& remoteIp);
-  }
+  public:
+    static DcmTagKey Convert(const DicomTag& tag)
+    {
+      return DcmTagKey(tag.GetGroup(), tag.GetElement());
+    }
+
+    static DcmEVR Convert(ValueRepresentation vr);
+  };
 }

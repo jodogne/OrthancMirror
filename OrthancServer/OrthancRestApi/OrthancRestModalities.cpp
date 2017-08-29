@@ -37,7 +37,7 @@
 #include "../OrthancInitialization.h"
 #include "../../Core/HttpClient.h"
 #include "../../Core/Logging.h"
-#include "../FromDcmtkBridge.h"
+#include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Scheduler/ServerJob.h"
 #include "../Scheduler/StoreScuCommand.h"
 #include "../Scheduler/StorePeerCommand.h"

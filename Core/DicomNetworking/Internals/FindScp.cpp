@@ -80,14 +80,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 
-#include "../PrecompiledHeadersServer.h"
+#include "../../PrecompiledHeaders.h"
 #include "FindScp.h"
 
-#include "../FromDcmtkBridge.h"
-#include "../ToDcmtkBridge.h"
-#include "../../Core/Logging.h"
-#include "../../Core/OrthancException.h"
-#include "../OrthancInitialization.h"
+#include "../../DicomParsing/FromDcmtkBridge.h"
+#include "../../DicomParsing/ToDcmtkBridge.h"
+#include "../../Logging.h"
+#include "../../OrthancException.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmdata/dcdeftag.h>

@@ -37,7 +37,7 @@
 #include "../../Core/OrthancException.h"
 #include "../../Core/FileStorage/StorageAccessor.h"
 #include "../ServerToolbox.h"
-#include "../FromDcmtkBridge.h"
+#include "../../Core/DicomParsing/FromDcmtkBridge.h"
 
 
 namespace Orthanc

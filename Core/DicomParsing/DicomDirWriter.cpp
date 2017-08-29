@@ -98,17 +98,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***/
 
 
-#include "PrecompiledHeadersServer.h"
+#include "../PrecompiledHeaders.h"
 #include "DicomDirWriter.h"
 
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
 
-#include "../Core/Logging.h"
-#include "../Core/OrthancException.h"
-#include "../Core/TemporaryFile.h"
-#include "../Core/Toolbox.h"
-#include "../Core/SystemToolbox.h"
+#include "../Logging.h"
+#include "../OrthancException.h"
+#include "../TemporaryFile.h"
+#include "../Toolbox.h"
+#include "../SystemToolbox.h"
 
 #include <dcmtk/dcmdata/dcdicdir.h>
 #include <dcmtk/dcmdata/dcmetinf.h>

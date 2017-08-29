@@ -34,7 +34,7 @@
 #include "PrecompiledHeadersServer.h"
 #include "DicomInstanceToStore.h"
 
-#include "FromDcmtkBridge.h"
+#include "../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/Logging.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>

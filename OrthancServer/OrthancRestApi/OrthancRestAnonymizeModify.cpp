@@ -35,7 +35,7 @@
 #include "OrthancRestApi.h"
 
 #include "../../Core/Logging.h"
-#include "../FromDcmtkBridge.h"
+#include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../ServerContext.h"
 #include "../OrthancInitialization.h"
 

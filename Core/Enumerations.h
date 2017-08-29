@@ -443,6 +443,81 @@ namespace Orthanc
     ValueRepresentation_NotSupported               // Not supported by Orthanc, or tag not in dictionary
   };
 
+  enum DicomReplaceMode
+  {
+    DicomReplaceMode_InsertIfAbsent,
+    DicomReplaceMode_ThrowIfAbsent,
+    DicomReplaceMode_IgnoreIfAbsent
+  };
+
+  enum DicomToJsonFormat
+  {
+    DicomToJsonFormat_Full,
+    DicomToJsonFormat_Short,
+    DicomToJsonFormat_Human
+  };
+
+  enum DicomToJsonFlags
+  {
+    DicomToJsonFlags_IncludeBinary         = (1 << 0),
+    DicomToJsonFlags_IncludePrivateTags    = (1 << 1),
+    DicomToJsonFlags_IncludeUnknownTags    = (1 << 2),
+    DicomToJsonFlags_IncludePixelData      = (1 << 3),
+    DicomToJsonFlags_ConvertBinaryToAscii  = (1 << 4),
+    DicomToJsonFlags_ConvertBinaryToNull   = (1 << 5),
+
+    // Some predefined combinations
+    DicomToJsonFlags_None     = 0,
+    DicomToJsonFlags_Default  = (DicomToJsonFlags_IncludeBinary |
+                                 DicomToJsonFlags_IncludePixelData | 
+                                 DicomToJsonFlags_IncludePrivateTags | 
+                                 DicomToJsonFlags_IncludeUnknownTags | 
+                                 DicomToJsonFlags_ConvertBinaryToNull)
+  };
+  
+  enum DicomFromJsonFlags
+  {
+    DicomFromJsonFlags_DecodeDataUriScheme = (1 << 0),
+    DicomFromJsonFlags_GenerateIdentifiers = (1 << 1)
+  };
+  
+  enum DicomVersion
+  {
+    DicomVersion_2008,
+    DicomVersion_2017c
+  };
+
+  enum ModalityManufacturer
+  {
+    ModalityManufacturer_Generic,
+    ModalityManufacturer_GenericNoWildcardInDates,
+    ModalityManufacturer_GenericNoUniversalWildcard,
+    ModalityManufacturer_StoreScp,
+    ModalityManufacturer_ClearCanvas,
+    ModalityManufacturer_Dcm4Chee,
+    ModalityManufacturer_Vitrea
+  };
+
+  enum DicomRequestType
+  {
+    DicomRequestType_Echo,
+    DicomRequestType_Find,
+    DicomRequestType_Get,
+    DicomRequestType_Move,
+    DicomRequestType_Store
+  };
+
+  enum TransferSyntax
+  {
+    TransferSyntax_Deflated,
+    TransferSyntax_Jpeg,
+    TransferSyntax_Jpeg2000,
+    TransferSyntax_JpegLossless,
+    TransferSyntax_Jpip,
+    TransferSyntax_Mpeg2,
+    TransferSyntax_Rle
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations
@@ -513,6 +588,14 @@ namespace Orthanc
 
   const char* EnumerationToString(PixelFormat format);
 
+  const char* EnumerationToString(ModalityManufacturer manufacturer);
+
+  const char* EnumerationToString(DicomRequestType type);
+
+  const char* EnumerationToString(TransferSyntax syntax);
+
+  const char* EnumerationToString(DicomVersion version);
+
   Encoding StringToEncoding(const char* encoding);
 
   ResourceType StringToResourceType(const char* type);
@@ -525,6 +608,10 @@ namespace Orthanc
                                                   bool throwIfUnsupported);
 
   PhotometricInterpretation StringToPhotometricInterpretation(const char* value);
+
+  ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer);
+
+  DicomVersion StringToDicomVersion(const std::string& version);
   
   unsigned int GetBytesPerPixel(PixelFormat format);
 

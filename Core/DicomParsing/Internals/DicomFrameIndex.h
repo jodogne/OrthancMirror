@@ -33,20 +33,51 @@
 
 #pragma once
 
-#include "../DicomProtocol/IMoveRequestHandler.h"
+#include "../../Enumerations.h"
 
-#include <dcmtk/dcmnet/dimse.h>
+#include <dcmtk/dcmdata/dcdatset.h>
+#include <dcmtk/dcmdata/dcfilefo.h>
+#include <vector>
+#include <stdint.h>
+#include <boost/noncopyable.hpp>
+#include <memory>
 
 namespace Orthanc
 {
-  namespace Internals
+  class DicomFrameIndex
   {
-    OFCondition moveScp(T_ASC_Association * assoc, 
-                        T_DIMSE_Message * msg, 
-                        T_ASC_PresentationContextID presID,
-                        IMoveRequestHandler& handler,
-                        const std::string& remoteIp,
-                        const std::string& remoteAet,
-                        const std::string& calledAet);
-  }
+  private:
+    class IIndex : public boost::noncopyable
+    {
+    public:
+      virtual ~IIndex()
+      {
+      }
+
+      virtual void GetRawFrame(std::string& frame,
+                               unsigned int index) const = 0;
+    };
+
+    class FragmentIndex;
+    class UncompressedIndex;
+    class PsmctRle1Index;
+
+    std::auto_ptr<IIndex>  index_;
+    unsigned int           countFrames_;
+
+  public:
+    DicomFrameIndex(DcmFileFormat& dicom);
+
+    unsigned int GetFramesCount() const
+    {
+      return countFrames_;
+    }
+
+    void GetRawFrame(std::string& frame,
+                     unsigned int index) const;
+
+    static bool IsVideo(DcmFileFormat& dicom);
+
+    static unsigned int GetFramesCount(DcmFileFormat& dicom);
+  };
 }

@@ -758,6 +758,116 @@ namespace Orthanc
   }
 
 
+  const char* EnumerationToString(ModalityManufacturer manufacturer)
+  {
+    switch (manufacturer)
+    {
+      case ModalityManufacturer_Generic:
+        return "Generic";
+
+      case ModalityManufacturer_GenericNoWildcardInDates:
+        return "GenericNoWildcardInDates";
+
+      case ModalityManufacturer_GenericNoUniversalWildcard:
+        return "GenericNoUniversalWildcard";
+
+      case ModalityManufacturer_StoreScp:
+        return "StoreScp";
+      
+      case ModalityManufacturer_ClearCanvas:
+        return "ClearCanvas";
+      
+      case ModalityManufacturer_Dcm4Chee:
+        return "Dcm4Chee";
+      
+      case ModalityManufacturer_Vitrea:
+        return "Vitrea";
+      
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  const char* EnumerationToString(DicomRequestType type)
+  {
+    switch (type)
+    {
+      case DicomRequestType_Echo:
+        return "Echo";
+        break;
+
+      case DicomRequestType_Find:
+        return "Find";
+        break;
+
+      case DicomRequestType_Get:
+        return "Get";
+        break;
+
+      case DicomRequestType_Move:
+        return "Move";
+        break;
+
+      case DicomRequestType_Store:
+        return "Store";
+        break;
+
+      default: 
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  const char* EnumerationToString(TransferSyntax syntax)
+  {
+    switch (syntax)
+    {
+      case TransferSyntax_Deflated:
+        return "Deflated";
+
+      case TransferSyntax_Jpeg:
+        return "JPEG";
+
+      case TransferSyntax_Jpeg2000:
+        return "JPEG2000";
+
+      case TransferSyntax_JpegLossless:
+        return "JPEG Lossless";
+
+      case TransferSyntax_Jpip:
+        return "JPIP";
+
+      case TransferSyntax_Mpeg2:
+        return "MPEG2";
+
+      case TransferSyntax_Rle:
+        return "RLE";
+
+      default: 
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  const char* EnumerationToString(DicomVersion version)
+  {
+    switch (version)
+    {
+      case DicomVersion_2008:
+        return "2008";
+        break;
+
+      case DicomVersion_2017c:
+        return "2017c";
+        break;
+
+      default: 
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
   Encoding StringToEncoding(const char* encoding)
   {
     std::string s(encoding);
@@ -1126,6 +1236,86 @@ namespace Orthanc
     throw OrthancException(ErrorCode_ParameterOutOfRange);
   }
   
+
+  ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer)
+  {
+    ModalityManufacturer result;
+    bool obsolete = false;
+    
+    if (manufacturer == "Generic")
+    {
+      return ModalityManufacturer_Generic;
+    }
+    else if (manufacturer == "GenericNoWildcardInDates")
+    {
+      return ModalityManufacturer_GenericNoWildcardInDates;
+    }
+    else if (manufacturer == "GenericNoUniversalWildcard")
+    {
+      return ModalityManufacturer_GenericNoUniversalWildcard;
+    }
+    else if (manufacturer == "ClearCanvas")
+    {
+      return ModalityManufacturer_ClearCanvas;
+    }
+    else if (manufacturer == "StoreScp")
+    {
+      return ModalityManufacturer_StoreScp;
+    }
+    else if (manufacturer == "Dcm4Chee")
+    {
+      return ModalityManufacturer_Dcm4Chee;
+    }
+    else if (manufacturer == "Vitrea")
+    {
+      return ModalityManufacturer_Vitrea;
+    }
+    else if (manufacturer == "AgfaImpax" ||
+             manufacturer == "SyngoVia")
+    {
+      result = ModalityManufacturer_GenericNoWildcardInDates;
+      obsolete = true;
+    }
+    else if (manufacturer == "EFilm2" ||
+             manufacturer == "MedInria")
+    {
+      result = ModalityManufacturer_Generic;
+      obsolete = true;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    if (obsolete)
+    {
+      LOG(WARNING) << "The \"" << manufacturer << "\" manufacturer is obsolete since "
+                   << "Orthanc 1.3.0. To guarantee compatibility with future Orthanc "
+                   << "releases, you should replace it by \""
+                   << EnumerationToString(result)
+                   << "\" in your configuration file.";
+    }
+
+    return result;
+  }
+
+
+  DicomVersion StringToDicomVersion(const std::string& version)
+  {
+    if (version == "2008")
+    {
+      return DicomVersion_2008;
+    }
+    else if (version == "2017c")
+    {
+      return DicomVersion_2017c;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
 
   unsigned int GetBytesPerPixel(PixelFormat format)
   {

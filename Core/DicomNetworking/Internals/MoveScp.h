@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "../DicomProtocol/DicomServer.h"
+#include "../IMoveRequestHandler.h"
 
 #include <dcmtk/dcmnet/dimse.h>
 
@@ -41,12 +41,10 @@ namespace Orthanc
 {
   namespace Internals
   {
-    OFCondition findScp(T_ASC_Association * assoc, 
+    OFCondition moveScp(T_ASC_Association * assoc, 
                         T_DIMSE_Message * msg, 
                         T_ASC_PresentationContextID presID,
-                        DicomServer::IRemoteModalities& modalities,
-                        IFindRequestHandler* findHandler,   // can be NULL
-                        IWorklistRequestHandler* worklistHandler,   // can be NULL
+                        IMoveRequestHandler& handler,
                         const std::string& remoteIp,
                         const std::string& remoteAet,
                         const std::string& calledAet);

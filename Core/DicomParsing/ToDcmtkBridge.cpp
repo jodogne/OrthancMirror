@@ -31,13 +31,13 @@
  **/
 
 
-#include "PrecompiledHeadersServer.h"
+#include "../PrecompiledHeaders.h"
 #include "ToDcmtkBridge.h"
 
 #include <memory>
 #include <dcmtk/dcmnet/diutil.h>
 
-#include "../Core/OrthancException.h"
+#include "../OrthancException.h"
 
 
 namespace Orthanc

@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include "DicomProtocol/IFindRequestHandler.h"
+#include "../Core/DicomNetworking/IFindRequestHandler.h"
 
 #include "ServerContext.h"
 

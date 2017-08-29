@@ -36,8 +36,8 @@
 
 #include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
-#include "../FromDcmtkBridge.h"
-#include "../ToDcmtkBridge.h"
+#include "../../Core/DicomParsing/FromDcmtkBridge.h"
+#include "../../Core/DicomParsing/ToDcmtkBridge.h"
 #include "../OrthancInitialization.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>

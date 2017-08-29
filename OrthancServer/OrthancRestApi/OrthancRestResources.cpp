@@ -36,8 +36,8 @@
 
 #include "../../Core/HttpServer/HttpContentNegociation.h"
 #include "../../Core/Logging.h"
-#include "../FromDcmtkBridge.h"
-#include "../Internals/DicomImageDecoder.h"
+#include "../../Core/DicomParsing/FromDcmtkBridge.h"
+#include "../../Core/DicomParsing/Internals/DicomImageDecoder.h"
 #include "../OrthancInitialization.h"
 #include "../Search/LookupResource.h"
 #include "../ServerContext.h"

@@ -31,12 +31,11 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
+#include "../PrecompiledHeaders.h"
 #include "DicomFindAnswers.h"
 
-#include "../OrthancInitialization.h"
-#include "../FromDcmtkBridge.h"
-#include "../../Core/OrthancException.h"
+#include "../DicomParsing/FromDcmtkBridge.h"
+#include "../OrthancException.h"
 
 #include <memory>
 #include <dcmtk/dcmdata/dcfilefo.h>

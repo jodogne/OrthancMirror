@@ -31,11 +31,11 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
+#include "../PrecompiledHeaders.h"
 #include "RemoteModalityParameters.h"
 
-#include "../../Core/Logging.h"
-#include "../../Core/OrthancException.h"
+#include "../Logging.h"
+#include "../OrthancException.h"
 
 #include <boost/lexical_cast.hpp>
 #include <stdexcept>

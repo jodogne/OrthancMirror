@@ -33,12 +33,11 @@
 
 #pragma once
 
-#include "../Core/DicomFormat/DicomInstanceHasher.h"
-#include "../Core/Images/ImageAccessor.h"
-#include "../Core/IDynamicObject.h"
-#include "../Core/RestApi/RestApiOutput.h"
-#include "../Core/Toolbox.h"
-#include "ServerEnumerations.h"
+#include "../DicomFormat/DicomInstanceHasher.h"
+#include "../Images/ImageAccessor.h"
+#include "../IDynamicObject.h"
+#include "../RestApi/RestApiOutput.h"
+#include "../Toolbox.h"
 
 #if !defined(ORTHANC_ENABLE_JPEG)
 #  error Macro ORTHANC_ENABLE_JPEG must be defined to use this file

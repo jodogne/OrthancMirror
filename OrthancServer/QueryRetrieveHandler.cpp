@@ -35,7 +35,7 @@
 #include "QueryRetrieveHandler.h"
 
 #include "OrthancInitialization.h"
-#include "FromDcmtkBridge.h"
+#include "../Core/DicomParsing/FromDcmtkBridge.h"
 
 
 namespace Orthanc

@@ -79,14 +79,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =========================================================================*/
 
 
-#include "../PrecompiledHeadersServer.h"
+#include "../PrecompiledHeaders.h"
 #include "DicomUserConnection.h"
 
-#include "../../Core/DicomFormat/DicomArray.h"
-#include "../../Core/Logging.h"
-#include "../../Core/OrthancException.h"
-#include "../FromDcmtkBridge.h"
-#include "../ToDcmtkBridge.h"
+#include "../DicomFormat/DicomArray.h"
+#include "../Logging.h"
+#include "../OrthancException.h"
+#include "../DicomParsing/FromDcmtkBridge.h"
+#include "../DicomParsing/ToDcmtkBridge.h"
 
 #include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcistrmf.h>

@@ -38,7 +38,7 @@
 #endif
 
 #include "DicomFindAnswers.h"
-#include "../ServerEnumerations.h"
+#include "../Enumerations.h"
 #include "RemoteModalityParameters.h"
 
 #include <stdint.h>

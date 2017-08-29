@@ -34,7 +34,7 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
-#include "../DicomDirWriter.h"
+#include "../../Core/DicomParsing/DicomDirWriter.h"
 #include "../../Core/FileStorage/StorageAccessor.h"
 #include "../../Core/Compression/HierarchicalZipWriter.h"
 #include "../../Core/HttpServer/FilesystemHttpSender.h"

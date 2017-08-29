@@ -39,7 +39,7 @@
 #include "ValueConstraint.h"
 #include "WildcardConstraint.h"
 
-#include "../FromDcmtkBridge.h"
+#include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../../Core/OrthancException.h"
 
 namespace Orthanc
